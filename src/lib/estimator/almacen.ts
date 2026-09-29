@@ -84,9 +84,17 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
     phone: texto(c.phone),
     address: texto(c.address),
   };
+  // Antes de D-442 la dirección eran cuatro campos (calle, ciudad, estado, zip); se juntan en la línea de hoy para que
+  // una cotización vieja se abra con su dirección escrita, lista para buscarla.
+  const vieja = [texto(d.street), texto(d.city), [texto(d.state), texto(d.zip)].filter((x) => x.trim()).join(" ")]
+    .map((x) => x.trim()).filter(Boolean).join(", ");
   const delivery: Delivery = {
     mode: d.mode === "delivery" ? "delivery" : "pickup",
-    street: texto(d.street), city: texto(d.city), state: texto(d.state), zip: texto(d.zip),
+    address: texto(d.address) || vieja,
+    lat: num(d.lat), lng: num(d.lng),
+    pin_source: d.pin_source === "manual" || d.pin_source === "geocoded" ? d.pin_source : null,
+    store: texto(d.store),
+    miles: num(d.miles),
     charge: num(d.charge),
   };
   const crudas = Array.isArray(fila.lines) ? (fila.lines as Record<string, unknown>[]) : [];
@@ -99,11 +107,16 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
       customer_note: texto(l.customer_note),
     };
     if (l.kind === "unit") {
-      return { kind: "unit", ...comun, quantity: num(l.quantity), unit: texto(l.unit) || "Lot", unit_price: num(l.unit_price) };
+      return {
+        kind: "unit", ...comun, quantity: num(l.quantity), unit: texto(l.unit) || "Lot",
+        unit_price: num(l.unit_price), lower_unit_price: num(l.lower_unit_price),
+      };
     }
     return {
       kind: "sf", ...comun,
       requested_sf: num(l.requested_sf), boxes: num(l.boxes), sf_per_box: num(l.sf_per_box), price_per_sf: num(l.price_per_sf),
+      // El precio más bajo (D-442) va en el mismo `jsonb` de líneas; las filas de antes no lo traen y quedan sin descuento.
+      lower_price_per_sf: num(l.lower_price_per_sf),
     };
   });
   const nivel = texto(fila.display_level);

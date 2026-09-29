@@ -62,6 +62,33 @@ describe("de la fila a la pantalla y de vuelta", () => {
   });
 });
 
+describe("la entrega guarda dirección, pin, tienda y millas en el jsonb que ya había (D-442, sin migración)", () => {
+  it("lo nuevo de la entrega vuelve igual", () => {
+    const d = borradorVacio("2026-09-08");
+    d.delivery = { mode: "delivery", address: "1 Main St, McAllen, TX 78501", lat: 26.2, lng: -98.23, pin_source: "manual", store: "Pharr", miles: 12.4, charge: 95 };
+    expect(borradorDeFila(JSON.parse(JSON.stringify(filaDeBorrador(d)))).delivery).toEqual(d.delivery);
+  });
+  it("una cotización guardada con calle, ciudad, estado y zip se abre con la dirección en una línea", () => {
+    const d = borradorDeFila({ delivery: { mode: "delivery", street: "12 Main St", city: "McAllen", state: "TX", zip: "78501", charge: 150 } });
+    expect(d.delivery).toEqual({ mode: "delivery", address: "12 Main St, McAllen, TX 78501", lat: null, lng: null, pin_source: null, store: "", miles: null, charge: 150 });
+  });
+  it("los precios más bajos de las líneas viajan en el mismo jsonb de líneas, y vuelven", () => {
+    const d = borradorVacio("2026-09-08");
+    d.lines = [
+      { ...lineaSfVacia(), id: "a", requested_sf: 10, sf_per_box: 5, price_per_sf: 10, lower_price_per_sf: 8 },
+      { ...lineaUnidadVacia(), id: "b", unit_price: 385, lower_unit_price: 350 },
+    ];
+    expect(borradorDeFila(JSON.parse(JSON.stringify(filaDeBorrador(d)))).lines).toEqual(d.lines);
+  });
+  it("una línea guardada antes, sin precio más bajo, se abre sin descuento", () => {
+    const d = borradorDeFila({ lines: [{ kind: "sf", id: "a", price_per_sf: 2 }, { kind: "unit", id: "b", unit_price: 5 }] });
+    expect(d.lines.map((l) => (l.kind === "sf" ? l.lower_price_per_sf : l.lower_unit_price))).toEqual([null, null]);
+  });
+  it("un pin_source raro no se cree", () => {
+    expect(borradorDeFila({ delivery: { pin_source: "gps" } }).delivery.pin_source).toBeNull();
+  });
+});
+
 describe("el demo simula la extensión del expediente (D-432)", () => {
   it("cada vendedor la suya; «Maria Manager» sin ninguna, para medir el caso a mano", () => {
     expect(extensionDemo("u-sales")).toBe("214");

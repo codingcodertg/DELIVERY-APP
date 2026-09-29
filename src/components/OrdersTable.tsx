@@ -15,6 +15,7 @@ import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
 import { comparaCeldas, filtraFilas, opcionesDeFiltro, type ValorDeCelda } from "@/lib/orden-y-filtro";
 import { gruposPorTienda } from "@/lib/documento-pendiente";
+import type { VistaDeTabla } from "@/lib/filtros-guardados";
 import { etiquetaDePrioridad, prioridadDe, seDestaca, valorDePrioridad } from "@/lib/prioridad";
 import { DocumentoPendiente } from "@/components/DocumentoPendiente";
 import { BarraSuperior } from "@/components/BarraSuperior";
@@ -367,6 +368,8 @@ export function OrdersTable({
   anchos,
   onAnchos,
   accionDeFila,
+  vista,
+  onVista,
 }: {
   rows: Delivery[];
   onOpen: (d: Delivery) => void;
@@ -400,6 +403,10 @@ export function OrdersTable({
   onAnchos?: (anchos: Record<string, number>) => void;
   /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-409). No abre la orden al pulsarlo. */
   accionDeFila?: (d: Delivery) => React.ReactNode;
+  /** Los filtros de columna y el orden, llevados por la página (D-440): así se pueden guardar con nombre y volver a
+   *  poner. Sin `vista` y `onVista`, la tabla los lleva dentro, como siempre (Almacén, chofer…). */
+  vista?: VistaDeTabla;
+  onVista?: (v: VistaDeTabla) => void;
 }) {
   const { lang, t } = usePrefs();
   const { me, settings, events } = useData();
@@ -419,9 +426,15 @@ export function OrdersTable({
   // Qué entregadas recibió almacén (D-409): un índice sobre los eventos que el proveedor ya tiene cargados.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas };
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
-  const [filters, setFilters] = useState<Record<string, Set<string>>>({});
+  const [vistaPropia, setVistaPropia] = useState<VistaDeTabla>({ filtros: {}, orden: null });
+  // Llevada por la página si la pasa (D-440); si no, la de dentro.
+  const vistaQueManda = vista && onVista ? vista : vistaPropia;
+  const cambiaVista = vista && onVista ? onVista : setVistaPropia;
+  const filters = vistaQueManda.filtros;
+  const sortKey = vistaQueManda.orden?.clave ?? null;
+  const sortDir = vistaQueManda.orden?.dir ?? null;
+  type Filtros = Record<string, Set<string>>;
+  const setFilters = (cambio: Filtros | ((f: Filtros) => Filtros)) => cambiaVista({ ...vistaQueManda, filtros: typeof cambio === "function" ? cambio(filters) : cambio });
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   // The filter menu renders in a portal (see below) so a short table with
   // few rows can't clip it — .tbl-scroll's horizontal scrollbar makes it
@@ -516,8 +529,7 @@ export function OrdersTable({
 
   // Sorting is chosen in the header menu: ascending, descending, or none. Choosing closes it.
   const ordenar = (key: string, dir: "asc" | "desc" | null) => {
-    setSortKey(dir ? key : null);
-    setSortDir(dir);
+    cambiaVista({ ...vistaQueManda, orden: dir ? { clave: key, dir } : null });
     setOpenFilter(null);
   };
 

@@ -8,9 +8,11 @@ import { createClient } from "@/lib/supabase/client";
 import { createClient as createErpClient } from "@/lib/erp/supabase/client";
 import {
   borradorVacio, cajasDeLinea, cajasPorDefecto, claveDeEstimado, dinero, extensionDePartida, lineaSfVacia, lineaUnidadVacia,
-  numero, paraQuienSeImprime, SALUTATIONS, sfReal, telefonoAlEscribir, telefonoLimpio, totalDeLinea, totalDeMateriales,
+  estadoDelPrecioBajo, numero, paraQuienSeImprime, porcentajeDeDescuento, preciosDeLinea, resumenDeTotales, SALUTATIONS,
+  sfReal, telefonoAlEscribir, telefonoLimpio, totalDeLinea, totalRegularDeLinea,
   type DisplayLevel, type QuoteDraft, type QuoteLine, type Salutation,
 } from "@/lib/estimator/modelo";
+import { tiendaDePartida, type AjustesDeEntrega } from "@/lib/estimator/entrega";
 import { hojaDelCliente } from "@/lib/estimator/hoja";
 import {
   estadoDelEstimado, trasComprobar, lineasCortas, loQueFalta, puedeGuardar, puedeTrabajar, TEXTO_DE_FALTA, type EstimadoHallado,
@@ -25,6 +27,7 @@ import {
 } from "@/lib/estimator/politica";
 import { HojaCliente } from "./HojaCliente";
 import { SeccionCompetencia } from "./Competencia";
+import { EntregaCotizacion } from "./EntregaCotizacion";
 
 /** Donde el modo demo guarda quién eres: la misma clave que escribe «Ver como» (y que lee promos). */
 const ME_DEMO = "rtg_deliveries_local_me";
@@ -32,7 +35,7 @@ const claveDeExtension = (id: string) => `rtg_estimator_ext_${id}`;
 /** La pausa tras la última tecla del # de estimado antes de comprobarlo solo (D-432: sin botón «Search»). */
 const ESPERA_COMPROBACION_MS = 600;
 
-type Yo = { id: string; name: string; admin: boolean };
+type Yo = { id: string; name: string; admin: boolean; store?: string | null };
 type Aviso = { tipo: "verde" | "ambar" | "rojo"; texto: string } | null;
 
 /**
@@ -45,11 +48,13 @@ type Aviso = { tipo: "verde" | "ambar" | "rojo"; texto: string } | null;
  * Sin la migración 148 aplicada, se arma e imprime igual —y se dice que no se guarda ni se comprueba
  * el dueño del estimado—, como la prioridad sin la 147.
  */
-export function Estimador({ me: meServidor, demo, extension: extensionServidor }: {
+export function Estimador({ me: meServidor, demo, extension: extensionServidor, ajustes }: {
   me: Yo | null;
   demo: boolean;
   /** La del expediente de RR. HH. de quien prepara, leída en el servidor (page.tsx). En demo, `extensionDemo`. */
   extension: string | null;
+  /** Tiendas, ciudades locales y recargo de Ajustes: lo que pide la calculadora de tarifa de Entregas (D-442). */
+  ajustes: AjustesDeEntrega;
 }) {
   const { t, lang } = usePrefs();
 
@@ -63,7 +68,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
         const crudo = localStorage.getItem(ME_DEMO);
         const m = crudo ? JSON.parse(crudo) : null;
         setMe(m && typeof m.id === "string"
-          ? { id: m.id, name: typeof m.full_name === "string" ? m.full_name : m.id, admin: m.role === "admin" }
+          ? { id: m.id, name: typeof m.full_name === "string" ? m.full_name : m.id, admin: m.role === "admin", store: typeof m.store === "string" ? m.store : null }
           : { id: "u-admin", name: "You (Admin)", admin: true });
       } catch { setMe({ id: "u-admin", name: "You (Admin)", admin: true }); }
     };
@@ -129,9 +134,17 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
     extAuto.current = p.valor;
   }, [me, demo, extensionServidor]);
 
+  // La tienda de salida de la entrega nace con la del perfil (D-442), como la extensión: solo si nadie eligió otra.
+  useEffect(() => {
+    if (!me) return;
+    const tienda = tiendaDePartida(me.store, ajustes.stores);
+    if (tienda) setDraft((d) => (d.delivery.store ? d : { ...d, delivery: { ...d.delivery, store: tienda } }));
+  }, [me, ajustes.stores]);
+
   const set = <K extends keyof QuoteDraft>(k: K, v: QuoteDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const setCliente = (patch: Partial<QuoteDraft["customer"]>) => setDraft((d) => ({ ...d, customer: { ...d.customer, ...patch } }));
   const setEntrega = (patch: Partial<QuoteDraft["delivery"]>) => setDraft((d) => ({ ...d, delivery: { ...d.delivery, ...patch } }));
+  const ponEntrega = (delivery: QuoteDraft["delivery"]) => setDraft((d) => ({ ...d, delivery }));
   const setLinea = (id: string, patch: Partial<QuoteLine>) =>
     setDraft((d) => ({ ...d, lines: d.lines.map((l) => (l.id === id ? ({ ...l, ...patch } as QuoteLine) : l)) }));
 
@@ -152,7 +165,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
   });
   const faltas = loQueFalta(draft, estado);
   const cortas = lineasCortas(draft);
-  const total = totalDeMateriales(draft.lines);
+  // Subtotal regular → ahorro → impuesto → total (D-442), el mismo cálculo que la hoja. Solo líneas: sin entrega.
+  const totales = resumenDeTotales(draft.lines);
 
   // ---- acciones -------------------------------------------------------------------------------------
   const abrirGuardada = async (id: string): Promise<boolean> => {
@@ -485,6 +499,10 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
         {draft.lines.map((l, i) => {
           const res = catalogo[l.id];
           const tot = totalDeLinea(l);
+          const regularTot = totalRegularDeLinea(l);
+          const { regular, bajo } = preciosDeLinea(l);
+          const estadoBajo = estadoDelPrecioBajo(regular, bajo);
+          const pct = porcentajeDeDescuento(regular, bajo);
           return (
             <div key={l.id} className="est-linea" data-linea={i}>
               <div className="est-linea-cab">
@@ -546,9 +564,14 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
                         onValor={(n) => setLinea(l.id, { boxes: n })} />
                     </div>
                     <div className="field">
-                      <label>{t("Internal $/SF", "$/SF interno")}</label>
+                      <label>{t("Regular $/SF", "$/SF regular")}</label>
                       <CampoDecimal value={l.price_per_sf} data-precio
                         onValor={(n) => setLinea(l.id, { price_per_sf: n })} />
+                    </div>
+                    <div className="field">
+                      <label>{t("Lower $/SF (optional)", "$/SF más bajo (opcional)")}</label>
+                      <CampoDecimal value={l.lower_price_per_sf} data-precio-bajo
+                        onValor={(n) => setLinea(l.id, { lower_price_per_sf: n })} />
                     </div>
                   </>
                 ) : (
@@ -562,8 +585,12 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
                       <input value={l.unit} onChange={(e) => setLinea(l.id, { unit: e.target.value })} />
                     </div>
                     <div className="field">
-                      <label>{t("Unit price", "Precio unitario")}</label>
-                      <CampoDecimal value={l.unit_price} onValor={(n) => setLinea(l.id, { unit_price: n })} />
+                      <label>{t("Regular unit price", "Precio unitario regular")}</label>
+                      <CampoDecimal value={l.unit_price} data-precio-unidad onValor={(n) => setLinea(l.id, { unit_price: n })} />
+                    </div>
+                    <div className="field">
+                      <label>{t("Lower unit price (optional)", "Precio unitario más bajo (opcional)")}</label>
+                      <CampoDecimal value={l.lower_unit_price} data-precio-bajo onValor={(n) => setLinea(l.id, { lower_unit_price: n })} />
                     </div>
                   </>
                 )}
@@ -575,8 +602,21 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
                     <span>{t("Actual SF", "SF real")}: <b data-sfreal>{sfReal(l) !== null ? numero(sfReal(l)!, 2) : "—"}</b></span>
                   </>
                 )}
-                <span>{t("Line total", "Total de línea")}: <b data-total-linea>{tot !== null ? dinero(tot) : "—"}</b></span>
+                {/* El total de la línea a precio REGULAR es lo que ve el cliente; el % se calcula solo (D-442). */}
+                <span>{t("Line total", "Total de línea")}: <b data-total-linea>{regularTot !== null ? dinero(regularTot) : "—"}</b></span>
+                {pct !== null && tot !== null && (
+                  <span data-descuento-calc>
+                    {t("Discount", "Descuento")}: <b data-pct>{numero(pct)}%</b> · {t("with lower price", "con el precio más bajo")}: <b data-total-bajo>{dinero(tot)}</b>
+                  </span>
+                )}
               </div>
+              {(estadoBajo === "no-menor" || estadoBajo === "sin-regular") && (
+                <p className="hint" data-sin-descuento style={{ color: "var(--red)", margin: "6px 0 0" }}>
+                  {estadoBajo === "no-menor"
+                    ? t("The lower price is not below the regular price: no discount applied.", "El precio más bajo no es menor que el regular: no se aplica descuento.")
+                    : t("Enter the regular price first: the discount is calculated from it.", "Escribe primero el precio regular: el descuento se calcula sobre él.")}
+                </p>
+              )}
               {cortas.includes(l.id) && (
                 <p className="hint" style={{ color: "var(--red)", margin: "6px 0 0" }}>
                   {t("These boxes cover less than the requested area.", "Estas cajas cubren menos que el área pedida.")}
@@ -598,34 +638,9 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
           <label><input type="radio" name="entrega" checked={draft.delivery.mode === "pickup"} onChange={() => setEntrega({ mode: "pickup" })} /> {t("Pickup", "Recoge")}</label>
           <label><input type="radio" name="entrega" data-entrega checked={draft.delivery.mode === "delivery"} onChange={() => setEntrega({ mode: "delivery" })} /> {t("Delivery", "Entrega")}</label>
         </div>
+        {/* Búsqueda de dirección, pin y calculadora de tarifa de la ficha de Entregas (D-442). Solo para el vendedor. */}
         {draft.delivery.mode === "delivery" && (
-          <>
-            <div className="grid g4">
-              <div className="field" style={{ gridColumn: "span 2" }}>
-                <label>{t("Street", "Calle")}</label>
-                <input value={draft.delivery.street} data-calle className={inv(!draft.delivery.street.trim())} onChange={(e) => setEntrega({ street: e.target.value })} />
-              </div>
-              <div className="field">
-                <label>{t("City", "Ciudad")}</label>
-                <input value={draft.delivery.city} data-ciudad className={inv(!draft.delivery.city.trim())} onChange={(e) => setEntrega({ city: e.target.value })} />
-              </div>
-              <div className="field">
-                <label>{t("State", "Estado")}</label>
-                <input value={draft.delivery.state} data-estado className={inv(!draft.delivery.state.trim())} onChange={(e) => setEntrega({ state: e.target.value })} />
-              </div>
-              <div className="field">
-                <label>ZIP</label>
-                <input value={draft.delivery.zip} data-zip className={inv(!draft.delivery.zip.trim())} onChange={(e) => setEntrega({ zip: e.target.value })} />
-              </div>
-              <div className="field">
-                <label>{t("Delivery charge (internal)", "Cargo de entrega (interno)")}</label>
-                <CampoDecimal value={draft.delivery.charge} data-cargo onValor={(n) => setEntrega({ charge: n })} />
-              </div>
-            </div>
-            <p className="hint" style={{ margin: 0 }}>
-              {t("The address is not printed and the charge is NOT added to the total. The customer reads: “Delivery: Available upon request…”.", "La dirección no se imprime y el cargo NO se suma al total. El cliente lee: «Delivery: Available upon request…».")}
-            </p>
-          </>
+          <EntregaCotizacion entrega={draft.delivery} onEntrega={ponEntrega} ajustes={ajustes} admin={me.admin} t={t} />
         )}
       </div>
 
@@ -659,7 +674,10 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor }
         </div>
         <div className="est-acciones" style={{ justifyContent: "space-between" }}>
           <div>
-            <div className="est-total" data-total>{t("Estimated Material Total", "Total estimado de materiales")}: {dinero(total)}</div>
+            <div className="hint" data-subtotal>{t("Subtotal (regular prices)", "Subtotal (precios regulares)")}: {dinero(totales.subtotal)}</div>
+            {totales.ahorro > 0 && <div className="hint" data-ahorro>{t("Savings", "Ahorro")}: −{dinero(totales.ahorro)}</div>}
+            <div className="hint" data-impuesto>{t("Tax", "Impuesto")} {numero(totales.tasa)}%: {dinero(totales.impuesto)}</div>
+            <div className="est-total" data-total>{t("Estimated Material Total", "Total estimado de materiales")}: {dinero(totales.total)}</div>
             {draft.delivery.mode === "delivery" && draft.delivery.charge !== null && (
               <div className="hint" data-cargo-fuera>{t("Delivery charge, not included", "Cargo de entrega, no incluido")}: {dinero(draft.delivery.charge)}</div>
             )}

@@ -133,25 +133,41 @@ export type CambioDeViaje =
 export function planDeCambioDeViaje<T extends Parada>(
   viajes: readonly (readonly T[])[], id: string, destino: number, capacidad: number, desde: number,
 ): CambioDeViaje {
-  const origen = viajes.findIndex((v) => v.some((o) => o.id === id));
-  if (origen < 0) return { ok: false, motivo: "no_esta" };
-  const orden = viajes[origen].find((o) => o.id === id)!;
+  return planDeCambioDeViajeDeVarias(viajes, [id], destino, capacidad, desde);
+}
+
+/**
+ * Lo mismo que `planDeCambioDeViaje`, para VARIAS órdenes de un mismo viaje a la vez: el selector «Viaje N» de una fila de
+ * recogida (D-441) pasa toda la carga que se recoge en esa tienda en ese viaje. Las mismas reglas: al final del destino,
+ * solo si cabe TODO lo que se mueve (si no, no se mueve ninguna), un viaje nuevo siempre, y la ruta entera reescrita.
+ * Las órdenes tienen que estar todas en el mismo viaje; si alguna no está en la ruta, no se mueve nada (`no_esta`).
+ */
+export function planDeCambioDeViajeDeVarias<T extends Parada>(
+  viajes: readonly (readonly T[])[], ids: readonly string[], destino: number, capacidad: number, desde: number,
+): CambioDeViaje {
+  const mueve = new Set(ids);
+  const origen = viajes.findIndex((v) => v.some((o) => mueve.has(o.id)));
+  if (origen < 0 || ids.length === 0) return { ok: false, motivo: "no_esta" };
+  const movidas = viajes[origen].filter((o) => mueve.has(o.id));
+  if (movidas.length !== mueve.size) return { ok: false, motivo: "no_esta" };
   const nuevo = destino > viajes.length;
   if (destino - 1 === origen) return { ok: false, motivo: "sin_cambio" };
-  // Ya va sola en el último viaje: un viaje nuevo sería el mismo.
-  if (nuevo && viajes[origen].length === 1 && origen === viajes.length - 1) return { ok: false, motivo: "sin_cambio" };
+  // Ya van solas en el último viaje: un viaje nuevo sería el mismo.
+  if (nuevo && viajes[origen].length === movidas.length && origen === viajes.length - 1) return { ok: false, motivo: "sin_cambio" };
   if (!nuevo) {
-    const c = cabeEnElViaje(viajes, id, destino, capacidad);
-    if (!c.cabe) return { ok: false, motivo: "no_cabe", viaje: destino, carga: c.carga, pallets: c.pallets, capacidad };
+    const pallets = sumaPallets(movidas);
+    const carga = sumaPallets((viajes[destino - 1] ?? []).filter((o) => !mueve.has(o.id)));
+    if (aLaDecima(carga + pallets) > capacidad) return { ok: false, motivo: "no_cabe", viaje: destino, carga, pallets, capacidad };
   }
-  const nuevos: T[][] = viajes.map((v) => v.filter((o) => o.id !== id));
-  if (nuevo) nuevos.push([orden]);
-  else nuevos[destino - 1].push(orden);
+  const nuevos: T[][] = viajes.map((v) => v.filter((o) => !mueve.has(o.id)));
+  if (nuevo) nuevos.push([...movidas]);
+  else nuevos[destino - 1].push(...movidas);
   const finales = nuevos.filter((v) => v.length > 0);
   const loadNoById: Record<string, number | null> = {};
   finales.forEach((v, ti) => v.forEach((o) => { loadNoById[o.id] = cargaDelViaje(ti); }));
   return {
     ok: true, ids: finales.flat().map((o) => o.id), loadNoById, desde,
-    viaje: finales.findIndex((v) => v.includes(orden)) + 1, nuevo, excede: nuevo && palletsDeLaOrden(orden) > capacidad,
+    viaje: finales.findIndex((v) => v.includes(movidas[0])) + 1, nuevo,
+    excede: nuevo && movidas.reduce((s, o) => s + palletsDeLaOrden(o), 0) > capacidad,
   };
 }

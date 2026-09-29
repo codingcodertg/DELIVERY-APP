@@ -167,7 +167,7 @@ describe("se guarda por persona, en su propia clave", () => {
       select: () => ({ eq: (_c1, v1) => ({ eq: (_c2, v2) => ({ maybeSingle: async () => { llamadas.push(["lee", v1, v2]); return { data: { value: { logistics: ["invoice"] } }, error: null }; } }) }) }),
       upsert: (fila) => ({ select: async () => { llamadas.push(["guarda", fila.key, fila.value]); return { data: [{ user_id: fila.user_id }], error: null }; } }),
     }) };
-    expect(await leeColumnas(cliente, "yo", CLAVE_DE_COLUMNAS_DEL_GESTOR)).toEqual({ leida: true, hayFila: true, columnas: { logistics: ["invoice"] }, orden: {}, anchos: {}, plantillas: [] });
+    expect(await leeColumnas(cliente, "yo", CLAVE_DE_COLUMNAS_DEL_GESTOR)).toEqual({ leida: true, hayFila: true, columnas: { logistics: ["invoice"] }, orden: {}, anchos: {}, plantillas: [], filtros: [] });
     expect(await guardaColumnas(cliente, "yo", { logistics: ["invoice", "account"] }, CLAVE_DE_COLUMNAS_DEL_GESTOR)).toBe(true);
     expect(llamadas).toEqual([["lee", "yo", "routes_columns"], ["guarda", "routes_columns", { logistics: ["invoice", "account"] }]]);
   });
@@ -243,7 +243,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("const columnasDeParadas = 3 + colsParadas.length;");
     // Los tres colSpan de las filas que ocupan la tabla entera (el viaje, el aviso, la fila informativa).
     expect(pagina.split("<td colSpan={columnasDeParadas}").length - 1).toBe(2);
-    expect(pagina.split("<td colSpan={columnasDeParadas - 1}>").length - 1).toBe(1);
+    expect(pagina.split("<td colSpan={columnasDeParadas - 2}>").length - 1).toBe(1);
     expect(pagina).toContain('width: ["_n", "_factura", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0)');
   });
   it("D-410: los anchos de paradas van por CLAVE, en la llave nueva, sembrada antes de que el hook la lea", () => {

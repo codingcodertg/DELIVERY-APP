@@ -133,9 +133,86 @@ export function plantillasValidas(v: unknown): PlantillaDeColumnas[] {
   return r;
 }
 
-/** `anchos` y `plantillas` son opcionales al ESCRIBIR el tipo —no todas las pantallas los usan—, pero `prefsDeValor`
- *  devuelve siempre `anchos`. Las plantillas se leen aparte (`plantillasDeValor`). */
-export interface PrefsDeColumnas { visibles: ColumnasPorRol; orden: ColumnasPorRol; anchos?: AnchosPorRol; plantillas?: PlantillaDeColumnas[] }
+/**
+ * Los FILTROS GUARDADOS de Órdenes (D-440), la quinta mitad del mismo `value`: `{ "_filtros": [ { n, f?, p?, c?, s?, l? } ] }`.
+ * El dueño: «create cuztomizable filters that the user sorts different columns and that stays as a filter». Un filtro
+ * guardado es una FOTO con nombre del estado de la tabla: los filtros de columna (`c`, columna → valores marcados), el orden
+ * (`s`, columna y dirección: la tabla ordena por UNA columna), y si la persona quiso, la pastilla de etapa (`f`) y el chip de
+ * fechas (`p`). `l` es el idioma en que se guardó: los valores de «Etapa» y «Prioridad» se filtran por su texto traducido.
+ *
+ * Como las plantillas: de la PERSONA (una lista, no un mapa por rol), claves de una letra, y sin migración — la clave de la
+ * fila sigue siendo `order_columns`, que la lista cerrada de la base ya admite (141). El tamaño lo guarda `cabeEnLaFila`.
+ */
+export const CLAVE_DE_FILTROS = "_filtros";
+export const MAX_FILTROS_GUARDADOS = 10;
+export const MAX_NOMBRE_DE_FILTRO = 40;
+/** Los chips de fechas que se pueden guardar: los tres que la pantalla enseña. */
+export const PRESETS_GUARDABLES: readonly string[] = ["all", "recent", "today"];
+const MAX_COLUMNAS_FILTRADAS = 20;
+const MAX_VALORES_POR_COLUMNA = 300;
+const MAX_LARGO_DE_VALOR = 200;
+export type DireccionDeOrden = "asc" | "desc";
+export interface FiltroGuardado {
+  n: string;
+  /** La pastilla de etapa (o «all», «Outdated», «Factura pendiente»). */
+  f?: string;
+  /** El chip de fechas. */
+  p?: string;
+  /** Columna → valores marcados (las claves de `claveDeFiltro`). */
+  c?: Record<string, string[]>;
+  /** La columna por la que se ordena y en qué dirección. */
+  s?: [string, DireccionDeOrden];
+  l?: "en" | "es";
+}
+
+const textoCorto = (x: unknown, max: number): x is string => typeof x === "string" && x.length > 0 && x.length <= max;
+
+/** Los filtros de columna de un filtro guardado, saneados: columnas de nombre corto, valores de texto (el «sin valor» es
+ *  « —», con su espacio), sin repetidos. Una columna sin valores no filtra y se cae. */
+function columnasDeFiltro(v: unknown): Record<string, string[]> {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const r: Record<string, string[]> = {};
+  for (const [k, vals] of Object.entries(v as Record<string, unknown>).slice(0, MAX_COLUMNAS_FILTRADAS)) {
+    if (!textoCorto(k, 40) || !Array.isArray(vals) || vals.length > MAX_VALORES_POR_COLUMNA) continue;
+    const limpios = [...new Set(vals.filter((x): x is string => textoCorto(x, MAX_LARGO_DE_VALOR)))];
+    if (limpios.length) r[k] = limpios;
+  }
+  return r;
+}
+
+/** Lo que venga de la base o del navegador, saneado: a lo sumo `MAX_FILTROS_GUARDADOS`, con nombre (recortado, no vacío, sin
+ *  repetir sin distinguir mayúsculas). De cada uno se queda lo que vale; lo que no, se cae sin llevarse el resto. */
+export function filtrosGuardadosValidos(v: unknown): FiltroGuardado[] {
+  if (!Array.isArray(v)) return [];
+  const r: FiltroGuardado[] = [];
+  const vistos = new Set<string>();
+  for (const x of v) {
+    if (r.length >= MAX_FILTROS_GUARDADOS) break;
+    if (!x || typeof x !== "object" || Array.isArray(x)) continue;
+    const { n, f, p, c, s, l } = x as Record<string, unknown>;
+    const nombre = typeof n === "string" ? n.trim().slice(0, MAX_NOMBRE_DE_FILTRO) : "";
+    if (!nombre || vistos.has(nombre.toLowerCase())) continue;
+    vistos.add(nombre.toLowerCase());
+    const g: FiltroGuardado = { n: nombre };
+    if (textoCorto(f, 40)) g.f = f;
+    if (typeof p === "string" && PRESETS_GUARDABLES.includes(p)) g.p = p;
+    const cols = columnasDeFiltro(c);
+    if (Object.keys(cols).length) g.c = cols;
+    if (Array.isArray(s) && s.length === 2 && textoCorto(s[0], 40) && (s[1] === "asc" || s[1] === "desc")) g.s = [s[0], s[1]];
+    if (l === "en" || l === "es") g.l = l;
+    r.push(g);
+  }
+  return r;
+}
+
+/** Los filtros guardados del `value` de la base, saneados. */
+export function filtrosDeValor(v: unknown): FiltroGuardado[] {
+  return v && typeof v === "object" && !Array.isArray(v) ? filtrosGuardadosValidos((v as Record<string, unknown>)[CLAVE_DE_FILTROS]) : [];
+}
+
+/** `anchos`, `plantillas` y `filtros` son opcionales al ESCRIBIR el tipo —no todas las pantallas los usan—, pero `prefsDeValor`
+ *  devuelve siempre `anchos`. Las plantillas y los filtros se leen aparte (`plantillasDeValor`, `filtrosDeValor`). */
+export interface PrefsDeColumnas { visibles: ColumnasPorRol; orden: ColumnasPorRol; anchos?: AnchosPorRol; plantillas?: PlantillaDeColumnas[]; filtros?: FiltroGuardado[] }
 
 /** Del `value` de la base a sus dos mitades, saneadas. */
 export function prefsDeValor(v: unknown): PrefsDeColumnas {
@@ -151,12 +228,13 @@ export function plantillasDeValor(v: unknown): PlantillaDeColumnas[] {
 
 /** De las dos mitades al `value` que se guarda. Sin orden elegido no se escribe `_orden`: el canónico no se guarda. */
 export function valorDeColumnas(p: PrefsDeColumnas): Record<string, unknown> {
-  const orden = columnasValidas(p.orden), anchos = anchosValidos(p.anchos), plantillas = plantillasValidas(p.plantillas);
+  const orden = columnasValidas(p.orden), anchos = anchosValidos(p.anchos), plantillas = plantillasValidas(p.plantillas), filtros = filtrosGuardadosValidos(p.filtros);
   return {
     ...columnasValidas(p.visibles),
     ...(Object.keys(orden).length ? { [CLAVE_DEL_ORDEN]: orden } : {}),
     ...(Object.keys(anchos).length ? { [CLAVE_DE_ANCHOS]: anchos } : {}),
     ...(plantillas.length ? { [CLAVE_DE_PLANTILLAS]: plantillas } : {}),
+    ...(filtros.length ? { [CLAVE_DE_FILTROS]: filtros } : {}),
   };
 }
 
@@ -203,22 +281,23 @@ export interface ClienteDePrefs {
 }
 
 /** `leida: false` = no se pudo leer (sin red, o la tabla aún no existe): se sigue con el navegador y NO se siembra. */
-export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol; orden: ColumnasPorRol; anchos: AnchosPorRol; plantillas: PlantillaDeColumnas[] }> {
+export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS): Promise<{ leida: boolean; hayFila: boolean; columnas: ColumnasPorRol; orden: ColumnasPorRol; anchos: AnchosPorRol; plantillas: PlantillaDeColumnas[]; filtros: FiltroGuardado[] }> {
   try {
     const { data, error } = await supabase.from("user_prefs").select("value").eq("user_id", userId).eq("key", clave).maybeSingle();
-    if (error) return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {}, plantillas: [] };
+    if (error) return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {}, plantillas: [], filtros: [] };
     const p = prefsDeValor(data?.value);
-    return { leida: true, hayFila: !!data, columnas: p.visibles, orden: p.orden, anchos: p.anchos ?? {}, plantillas: plantillasDeValor(data?.value) };
-  } catch { return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {}, plantillas: [] }; }
+    return { leida: true, hayFila: !!data, columnas: p.visibles, orden: p.orden, anchos: p.anchos ?? {}, plantillas: plantillasDeValor(data?.value), filtros: filtrosDeValor(data?.value) };
+  } catch { return { leida: false, hayFila: false, columnas: {}, orden: {}, anchos: {}, plantillas: [], filtros: [] }; }
 }
 
 /** Guarda la fila propia, y MIDE que se escribió: en PostgREST un UPDATE de cero filas vuelve limpio. */
 /** `orden` y `anchos`: SIEMPRE lo que se leyó (o lo que la persona acaba de cambiar). La fila se escribe entera, así que
  *  quien no pase una mitad la borra — por eso la página de Órdenes escribe por un solo sitio, con las tres. */
 /** `plantillas` (D-394), igual: quien escribe la fila de una pantalla que tiene plantillas pasa las leídas, o las borra. */
-export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}, anchos: AnchosPorRol = {}, plantillas: PlantillaDeColumnas[] = []): Promise<boolean> {
+/** `filtros` (D-440), igual: la página de Órdenes pasa los leídos en cada escritura, o los borra. */
+export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}, anchos: AnchosPorRol = {}, plantillas: PlantillaDeColumnas[] = [], filtros: FiltroGuardado[] = []): Promise<boolean> {
   try {
-    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden, anchos, plantillas }) }, { onConflict: "user_id,key" }).select("user_id");
+    const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden, anchos, plantillas, filtros }) }, { onConflict: "user_id,key" }).select("user_id");
     return !error && !!data && data.length === 1;
   } catch { return false; }
 }

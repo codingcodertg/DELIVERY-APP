@@ -23198,7 +23198,11 @@ colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y ti
 
 > **⚠ Reemplazada en parte por D-346** (2026-09-20). «Armar las rutas del día» ya no es imposible de no ver: el dueño
 > lo pidió plegado tras un botón. El resto sigue vigente.
-
+>
+> **⚠ Reemplazada en parte por D-441** (2026-09-28): «Las recogidas no llevan flechas» ya no vale — las filas P llevan ↑↓
+> (qué tienda se recoge antes, adelantando su primera entrega) y un «Viaje N» que pasa su carga a otro viaje. Y la marca P
+> del mapa ya no va «del color del chofer», sino del color de SU viaje (el del chofer es solo el del viaje 1). La numeración
+> y las reglas de lectura no cambian.
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No cambia ninguna
 asignación ni escribe nada:** es solo cómo se LEE lo que ya hay.
 **Pedido por:** Andrés, literal: «I DONT SEE P1 PICKUP 1 PICKUP 2 AS P2 AND D1 AND D2 … AND SO ON».
@@ -30078,6 +30082,13 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
   `box`). Quien no tiene el módulo ERP recibe cero filas por la puerta restrictiva de la 066 y lo escribe a mano: no se abrió
   el catálogo a nadie.
 
+> **Reemplazada en parte por D-442** (2026-09-28): la hoja del cliente ya no pone de «Amount» el total con el $/SF que se
+> cobra, sino el total **a precio regular**, con el «−N%» de la línea si hay un precio más bajo, y debajo *Subtotal → Savings
+> → Tax 8.25% → Estimated Material Total* (el total lleva ahora el impuesto). Y la entrega ya no son cuatro campos
+> (calle/ciudad/estado/zip): es una dirección buscada, con pin, tienda de salida, millas y la calculadora de tarifa de Entregas,
+> todo interno. Lo demás de esta entrada sigue: el cargo de entrega **no** entra en el total ni se imprime, y la hoja no lleva
+> el $/SF.
+
 ### Decisiones mías, para validar
 
 1. **La hoja NO imprime el $/SF.** El ejemplo del apartado 7 del documento pone una columna *Price* con «$1.89», pero todo el
@@ -32442,3 +32453,380 @@ salía **vacío para todos, admin incluido**. Se les dio `["deliveries"]`, como 
 - **Producción:** que cada tienda de office tenga vendedores con Entregas (si una no tiene, la lista enseña todos, D-290).
 - Al pasar de Intertienda a Customer, **«Dropoff» y su dirección se quedan con la tienda del usuario** (la puso Intertienda).
   Ya pasaba al cambiar el tipo a mano; no se tocó.
+
+## D-440 · Filtros guardados en Órdenes: guardar los filtros de columna y el orden con un nombre, y volver a ellos desde una pastilla ★
+
+**Fecha:** 2026-09-28 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** el dueño, literal: *«create cuztomizable filters that the user sorts different columns and that stays as a filter»*.
+Sigue a D-275/D-292 (ordenar y filtrar desde el menú de cada cabecera), D-297 (la barra «Filtrado por»), D-313/D-436 (la fila
+de pastillas), D-330 (lo de la tabla es de la persona, en `user_prefs`) y D-394 (plantillas de columnas). No reemplaza ninguna.
+
+### Lo que se entendió
+
+La tabla de Órdenes ya filtraba por los valores de cada columna y ordenaba por una, desde el menú de su cabecera. Lo que faltaba
+es lo que dice el final de la frase: *«that stays as a filter»*. Ese filtro y ese orden vivían dentro del componente de la tabla y
+se perdían al recargar o al salir de la pantalla, y no había forma de ponerles nombre y volver a ellos. Se leyó como: **que cada
+persona pueda guardar lo que tiene puesto como un filtro con nombre, que salga como una pastilla más**.
+
+### Qué hay ahora
+
+- **«★ Guardar filtro / Save filter (N)»**, junto al buscador, abre un panel en la página (no un menú flotante: a 390 la fila de
+  pastillas se desplaza a lo ancho y recorta lo que sobresale). En él:
+  - un campo con el nombre y **Guardar** (o **Reemplazar** si el nombre ya existe, sin distinguir mayúsculas);
+  - una casilla, marcada por defecto: **«También la pastilla de etapa y el chip de fechas de ahora»**;
+  - la lista de los guardados, cada uno con **Actualizar** (le pone lo que se ve ahora), **Renombrar** (en la misma línea) y
+    **✕**, que no borra: pregunta «¿Borrar «X»? **Sí, borrar** · No», como las plantillas de D-394.
+- **Cada filtro guardado es una pastilla ★** al final de la fila de pastillas, detrás de «Outdated» y «Factura pendiente»: borde
+  discontinuo y color de acento, para que no se confunda con las fijas. **Pulsarla lo aplica tal cual**: los filtros de columna y
+  el orden de la foto sustituyen a los de ahora (sin orden en la foto, se quita el que hubiera), y si guardó pastilla y chip, se
+  ponen. **Se enciende** cuando lo que se ve es exactamente lo que guarda (la pastilla y el chip cuentan solo si los guardó).
+  **Pulsarla encendida la apaga**: quita los filtros de columna y el orden, como pulsar la pastilla de etapa encendida vuelve a
+  «Todas» (D-313).
+- Hasta **10** por persona; el nombre, hasta 40 caracteres.
+
+**Qué guarda** (`fotoDeOrdenes`): los filtros de columna puestos (columna → valores marcados, ordenados), el orden (columna y
+dirección — la tabla ordena por **una** columna; si algún día admite varias, `s` pasa a lista), y con la casilla, la pastilla
+(`f`) y el chip de fechas (`p`, solo «Todas / Reciente / Hoy», los que la pantalla enseña). También el idioma (`l`).
+
+### Lo que no se puede aplicar no rompe: se ignora y se dice
+
+`aplicaFiltroGuardado` devuelve lo aplicable y una lista de avisos, que la página enseña en una línea bajo las pastillas:
+
+- **Una columna que ya no existe** en la tabla: fuera su filtro y su orden.
+- **Una pastilla que este rol no tiene** (p. ej. «Pendiente» para quien no la ve, o con todas las tiendas aprobando solas): se
+  queda la pastilla de ahora.
+- **«Etapa» y «Prioridad» guardadas en el otro idioma**: su valor de filtro es el texto traducido («Programado» / «Scheduled»),
+  así que en el otro idioma no encontrarían ninguna fila. Fuera, y se dice. Las demás columnas se aplican igual.
+- **Una columna que existe pero la persona tiene OCULTA**: se pone igual, pero la tabla solo filtra y ordena por las que se ven
+  (D-360), así que no hace nada hasta que se muestre — y se dice. **Se descartó** mostrar la columna sola: tocaría las columnas
+  guardadas de la persona (D-330) sin que lo pidiera.
+
+### Dónde vive: la quinta mitad de la fila, sin migración
+
+En la misma fila de `user_prefs` (`order_columns`), bajo `_filtros`, al lado de `_orden`, `_anchos` y `_plantillas`:
+`{ …, "_filtros": [ { "n", "f"?, "p"?, "c"?: { "<columna>": [valores] }, "s"?: ["<columna>", "asc"|"desc"], "l"? } ] }`.
+**No hace falta clave nueva**: la clave de la fila sigue siendo `order_columns`, que la lista cerrada de la base ya admite (la 141
+es la última que toca `user_prefs_key_permitida`). De la **persona**, no del rol, como las plantillas.
+
+- **Un solo sitio escribe la fila** (`escribeLaFila`), ahora con las cinco mitades tal como se leyeron: marcar una casilla no
+  borra los filtros guardados, y guardar un filtro no borra columnas, orden, anchos ni plantillas. Pruebas con nombre en las dos
+  direcciones, y una que muestra que quien NO pasa los filtros los borra. La guarda de tamaño de las plantillas (`filaCon`) cuenta
+  ahora también los filtros, y la de los filtros cuenta las plantillas: el tope es de la fila entera.
+- **Lo leído se sanea** (`filtrosGuardadosValidos`): nombre recortado y sin repetir; a lo sumo 20 columnas por filtro y 300
+  valores por columna, de hasta 200 caracteres; chip de fechas solo de los tres; orden solo `asc`/`desc`; nunca más de diez.
+- **La red del navegador** (como D-330): cada cambio se escribe también en `localStorage` (`rtg_filtros_ordenes_<persona>`). Al
+  entrar se pinta lo del navegador y, al leer la base, **manda la base** (aunque venga vacía). Si la base no se pudo leer o no
+  aceptó la escritura, el filtro queda en este navegador y **se dice**: «queda solo en este navegador, hasta que el servidor
+  vuelva a contestar (entonces vale lo que tenga el servidor)». Sin base leída **no se escribe la fila a ciegas** (se escribe
+  entera y se llevaría lo que hubiera). El demo, que no tiene base, usa solo el navegador.
+- **Tamaño** (`bytesEnLaBase`, el modelo del `jsonb` de D-394, **no** medido en Postgres para esta forma): la fila con un rol lleno
+  pasa de 725 a 2 745 bytes con diez filtros normales (≈ 200 cada uno), lejos del tope de 8 192. Un filtro con cientos de valores
+  largos (p. ej. 300 direcciones) no pasa `cabeEnLaFila`, no se guarda en ningún sitio y se dice «No cabe». Borrar nunca se impide.
+
+### La tabla ya no guarda sola su filtro y su orden
+
+`OrdersTable` acepta `vista` y `onVista` (filtros por columna y orden): si se los pasan, manda la de la página; si no, los lleva
+dentro como siempre (Almacén, chofer y las demás pantallas que la usan no cambian). Órdenes se los pasa, y por eso sus filtros de
+columna ahora deberían **sobrevivir a cambiar entre Tabla y Tablero** (antes, al volver a Tabla, se perdían: el Tablero desmonta la tabla). Esto es por construcción: **no se midió**. Columna y dirección van juntas
+(`orden: { clave, dir } | null`): quitar el orden no deja la columna marcada.
+
+### A 390
+
+En el teléfono la tabla es una tarjeta por orden y **no tiene cabeceras**, así que allí no se puede filtrar por columna
+desde la cabecera; un filtro guardado en el escritorio **sí se aplica en el teléfono**, con las mismas filas y en el mismo orden.
+El panel cabe (366 px de ancho) y la página no desborda.
+
+### Medido
+
+- **Pruebas** (`src/lib/filtros-guardados.test.ts`, 48 con nombre): foto, guardar/reemplazar/tope/renombrar/borrar, aplicar con
+  cada caso ignorado, cuándo se enciende, la fila (se escribe, se lee, no pisa ni la pisan), el saneo, dónde se guarda
+  (base / navegador / demo / no cabe / nada), y que la página y la tabla usan las funciones. Una prueba de ida y vuelta —foto →
+  fila JSON → leída → aplicada— filtra y ordena filas con `filtraFilas` y `comparaCeldas` y da las mismas filas en el mismo orden,
+  con datos cuyo orden de entrada contradice el pedido.
+- **Mutantes**: 36 de 36 caen, cada uno con una prueba con nombre (tanda en la carpeta de trabajo del worker). Uno sobrevivió en
+  la primera pasada —«se pinta un filtro que no se guardó en ningún sitio»— porque la prueba comparaba dos `indexOf` y uno daba
+  −1; ahora afirma primero que la línea está.
+- **En el demo, por CDP, con clics de persona** (2026-09-28, 1280 y 390, rol admin, inglés, 89 órdenes con «All»): Tienda =
+  Brownsville + Fecha descendente → 13 filas; guardado como «Mis Brownsville» (pastilla ★ encendida, en `localStorage`); otra
+  pastilla («Pending Approval», 10 filas) y filtros limpiados → la ★ se apaga; pulsar la ★ → **las mismas 13 filas en el mismo
+  orden** (y se enciende); recargar → sigue, y aplicada da lo mismo; a **390**, las mismas 13 en el mismo orden, desborde 0 px;
+  renombrar a «Brownsville por fecha» → cambia la pastilla y el navegador; el ✕ solo pregunta; «Yes, delete» la borra, y al
+  recargar no está.
+
+### Lo que NO se midió
+
+- **Contra la base de verdad**: el demo no tiene `user_prefs`; el camino de la base está probado con un cliente falso (lectura,
+  escritura de la fila entera, no pisar las otras mitades), no contra Supabase. Tampoco se midió en Postgres el tamaño del `jsonb`
+  de esta mitad: es el modelo de D-394.
+- Ventas, almacén y chofer: la barra y las pastillas ★ salen a todos los roles (la fila de pastillas es de todos), pero solo se
+  midió con admin.
+
+## D-441 · Gestor de Rutas: cada recogida del mapa con el color de SU viaje; las filas P se reordenan y cambian de viaje; «Ver un viaje» filtra tabla y mapa
+
+**Fecha:** 2026-09-28. **Sin migración.** **Reemplaza en parte a D-334** (recogidas sin flechas; la P del mapa «del color
+del chofer»), que lleva su nota. No toca `OrderModal` (otra rama).
+
+**Qué pidió el dueño** (citas tal como las pasó el orquestador, no extraídas del fichero de sesión), con una captura del
+Gestor: la tarjeta de Maximo Garza (4 paradas, 2 viajes, «viajes fijados por usted», «Supera la capacidad de 10 pallets del
+camión (11 a bordo)…», «Esta ruta cambió desde que se publicó el plan»). Viaje 1 (~9/10, naranja): P1·P2 Recoger en RDZ
+Brownsville — #FT201 · #FT521; P3 Recoger en RDZ Weslaco — #FT523; D1 South Padre Island, D3 Donna, D2 Edinburg. Viaje 2
+(~2/10, cian): P4 Recoger en RDZ Weslaco — #FT510; D4 La Feria. En el mapa D4 salía cian y **P4 naranja**, junto a P3.
+1. *«why p4 is not in cyan since is in viaje 2, please check»*
+2. *«also in that same picture why i can't rearrenge pickup check that»*
+3. Después, en la misma tanda: *«select truckload so it only shows one truckload or all in the logistic manager routes and
+   map»*.
+Y el orquestador pidió mirar las D del viaje 1 que salían D1, D3, D2.
+
+### Reproducido antes de tocar nada (demo, Chrome por CDP, 1280 px, 2026-09-28)
+
+Diego Driver con la forma de la captura: viaje 1 a mano con #1069 Brownsville (3), #1068 Weslaco (3), #1067 Brownsville (3)
+= 9/10; viaje 2 con #1066 Weslaco (2); tiendas con coordenadas puestas en el demo; y un plan publicado simulado en el
+navegador con las mismas órdenes en otro orden (para el aviso). La tarjeta: `P1·P2 Brownsville · P3 Weslaco · D1 · D3 · D2 ·
+P4 Weslaco · D4`, el aviso «This route changed…», **0 botones en las tres filas P**. El mapa: `P1·P2, P3, P4, D1, D3, D2`
+en `rgb(36, 86, 201)` (el color del chofer = viaje 1) y **solo `D4` en `rgb(195, 66, 35)`** (viaje 2). Lo mismo que la captura.
+
+### 1 · El color de P4: la marca P salía del color del CHOFER, no del viaje
+
+**Causa, en el código:** las entregas del mapa se pintan con `tripColor(color del chofer, viaje)` (`stopColor`), pero las
+recogidas se sacaban de `lectura.previas` —que no dice de qué viaje es cada fila— con `color: colorFor(chofer)`. Y
+`tripColor(base, 0)` **es** el color del chofer: así que toda P salía del color del viaje 1, fuera del viaje que fuera. D-334
+lo escribió así a propósito («del color del chofer, que es lo que distingue una ruta de otra»), cuando todavía no había
+viajes con color propio en el mapa. **No** era que P3 y P4 compartieran marcador por estar en la misma tienda: ya eran dos
+marcas (`__pd__<ruta>__P3` y `__P4`), abiertas en abanico por D-367; las dos del mismo color.
+
+**Ahora:** `recogidasPorViaje` (`lectura-de-ruta.ts`) recorre cada viaje con `filasDelViaje` —**lo mismo que pinta la
+tabla**— y devuelve cada fila P con su viaje. El mapa pinta cada P con el color de su viaje, el mismo que sus entregas
+(`colorDelViaje`, sacado del mismo bucle que `stopColor`). La etiqueta al pasar el ratón dice también «Viaje N».
+- **Dos recogidas en la misma tienda en viajes distintos son dos marcas**, cada una de su color, en abanico. Se eligió así y
+  no «una marca partida» porque son dos visitas: el camión vuelve a la tienda a cargar otro viaje. Una marca con las dos
+  etiquetas diría que se recoge todo a la vez.
+- Una recogida es del viaje de la entrega que la sigue. Lo que la lectura deja al final (la recogida de una orden ya
+  entregada, D-433) va con el último viaje, como en la tabla — y ahora sale en el mapa, que antes no la pintaba.
+- **Medido después:** `P1·P2, P3` en `rgb(36, 86, 201)`; **`P4` y `D4` en `rgb(195, 66, 35)`**.
+
+### 2 · Reordenar recogidas: por qué no se podía, y cómo se hace ahora
+
+**Por qué no:** en una ruta hecha a mano lo único que se guarda de cada orden es su viaje (`load_no`) y su puesto de
+ENTREGA (`route_seq`). La P es la recogida de esa misma orden y **se deriva** (D-334): las tiendas de un viaje se recogen
+en el orden de su **primera entrega**. No existe ningún campo «esta tienda antes que aquella» independiente de las
+entregas; D-334 lo dejó dicho («en una ruta manual solo se decide el orden de las entregas») y la fila P no tenía controles.
+
+**Ahora, en cada fila P** (derecha, donde las D tienen los suyos):
+- **↑ / ↓ — qué tienda se recoge antes en este viaje.** Como lo que decide el orden de recogida es la primera entrega de
+  cada tienda, la flecha **adelanta la primera entrega de esa tienda justo delante de la primera de la tienda que se
+  salta**, y nada más (`ordenaPorRecogidas`, `planDeFlechaDeRecogida`, `src/lib/mover-recogida.ts`). Se dice al pulsar:
+  *«Weslaco se recoge ahora antes que Brownsville: para eso, #1068 se entrega ahora antes que #1069 (las recogidas siguen la
+  primera entrega de cada tienda)»*. Lo que se guarda (`route_seq`) es lo que se lee después y lo que pinta el mapa: no hay
+  un orden de recogida «de pantalla» aparte. La primera no sube, la última no baja, y una fila P que solo nombra algo ya
+  entregado no se mueve: ahí la flecha sale **apagada**.
+- **«Viaje N» — pasar la carga de esa recogida (todas sus órdenes) a otro viaje** o a uno nuevo
+  (`planDeCambioDeViajeDeVarias`, `mover-parada.ts`). Las reglas de D-433, para el grupo entero: al final del destino,
+  **solo si cabe TODO** (si no, no se mueve ninguna y se dice cuánto lleva), un viaje nuevo siempre, la ruta entera
+  reescrita. `planDeCambioDeViaje` (el de una parada) es ahora ese mismo con una sola orden (prueba de que dan lo mismo).
+- Las dos, como las flechas de parada: **numeran tras lo ya hecho** (`inicioDeLaRuta`, D-433), **entran en deshacer/rehacer**
+  (D-417) con la foto de lo que escribieron, y **se permiten con candado 🔒** (D-411: el candado protege de lo automático, no
+  de quien despacha). Con viajes a mano cada orden conserva su viaje; si la ruta se parte sola por capacidad basta la
+  secuencia, salvo que el orden nuevo la partiera distinto (con fracciones de pallet la suma en coma flotante depende del
+  orden: 0,3+0,1+0,2 da 0,6000000000000001 > 0,6) — entonces se fijan los viajes que se ven, como soltar en «📅 Horario».
+- **Descartado:** un orden de recogida propio, separado de las entregas. Es lo que de verdad desacoplaría P de D, pero
+  necesita una columna nueva en `deliveries` (migración) y que publicar, «Mi ruta» y el motor la lean. Si el dueño quiere
+  mover recogidas **sin** que se muevan entregas, es eso, y es otra decisión.
+- **Descartado:** que la flecha de una P cruce al viaje de al lado. Para eso está su «Viaje N», que mira la capacidad.
+- **Consecuencia a validar:** con plan publicado y la ruta tal como se publicó, el orden de las P de la tabla es el del
+  plan; la flecha trabaja con ese orden, pero tras escribir la ruta ya no es la publicada (sale el aviso) y se lee derivada.
+  Si el plan tenía un orden de recogidas que la lectura derivada no puede expresar, la flecha puede salir apagada.
+
+**Medido en el demo después (1280):**
+- Flechas de partida: P1·P2 [↑ apagada, ↓ viva], P3 [↑ viva, ↓ apagada], P4 [las dos apagadas, sola en su viaje]. El «Viaje
+  N» de P4 dice «Truckload 1 — won't fit».
+- **↑ en P3:** guardado `#1068 seq=0 · #1069 seq=1 · #1067 seq=2 · #1066 seq=3 load=2` (antes `#1069, #1068, #1067, #1066`);
+  la tarjeta: `P1 Weslaco · P2·P3 Brownsville · D1 · D2 · D3 · P4 Weslaco · D4`; el mapa, P1 y P2·P3 del viaje 1 y P4 del 2.
+  **Deshacer** lo devolvió idéntico a la partida.
+- **P4 → Viaje 1:** «The pickup at Weslaco (2 pallets) doesn't fit in truckload 1: it already carries 9 of 10. Nothing was
+  moved…», y lo guardado no cambió.
+- **P3 → Viaje 2** (con el teclado sobre su selector): `#1069 seq=0 · #1067 seq=1 · #1066 seq=2 load=2 · #1068 seq=3 load=2`;
+  la tarjeta: viaje 1 `P1·P2 Brownsville · D1 · D2` (6/10) y viaje 2 `P3·P4 Weslaco · D3 · D4` (5/10) — las dos recogidas de
+  Weslaco quedan en una parada. Deshacer, idéntico a la partida.
+
+### 3 · «D1, D3, D2» no es un fallo
+
+Es la regla de D-334, escrita por el dueño: el número es el de **recogida** («P1, P2, P3… = Pickup 1, 2, 3», y su ejemplo
+`Base → P1 → P2 → D2 → P3 → D1 → D3`); `Dk` es siempre la entrega de lo recogido en `Pk`. En el viaje 1 se recoge primero en
+Brownsville (#FT201 = P1, #FT521 = P2) y luego en Weslaco (#FT523 = P3), y se entrega SPI (#FT201 → D1), Donna (#FT523 → D3)
+y Edinburg (#FT521 → D2). Con dos órdenes de la misma tienda entregadas no seguidas, las D saltan siempre. **No viene del
+plan publicado:** la ruta ya no es la publicada (sale el aviso), así que las etiquetas son las derivadas. Queda fijado en una
+prueba con la forma exacta de la captura. Con la flecha nueva, poner Weslaco primero deja `D1 · D2 · D3` (medido arriba),
+pero porque cambia el orden de recogida, no la regla.
+
+### 4 · «Ver un viaje»: un selector por tarjeta que filtra la tabla y el mapa
+
+En la cabecera de cada tarjeta con más de un viaje, junto a «N viajes»: **«Todos los viajes» / «Viaje 1» / «Viaje 2»…**
+(`filtro-de-viaje.ts`). Con un viaje elegido, la tabla de esa tarjeta enseña solo ese viaje, y el mapa, **para ese chofer**,
+solo sus entregas, sus recogidas y su línea. Los demás choferes no cambian.
+- **Por tarjeta y no global** junto al filtro de chofer: cada chofer tiene sus viajes; un «Viaje 2» global no querría decir
+  nada para el que tiene uno, y con varios choferes a la vista cada uno puede mirar el suyo.
+- **Un «Viaje N» que el chofer ya no tiene vuelve a «Todos»** (se unieron los viajes, se movió la última parada): esconder
+  la ruta entera por un número viejo no ayuda a nadie.
+- **Solo mira.** No escribe nada; flechas, «Viaje N», las filas P y el arrastre siguen trabajando sobre la ruta ENTERA, con
+  sus índices de siempre. Una flecha de parada que la saca del viaje que se ve la pasa a uno que no se ve: se deja, porque
+  es lo que hace la flecha.
+- **Vive mientras se mira ese día:** estado de la página, se vacía al cambiar de fecha; no va a `user_prefs`.
+- **El trazo del plan publicado** es una línea para todo el día, sin cortes por viaje: con un viaje elegido no se pinta, y
+  se pinta la línea medida de ese viaje si la hay. El aviso «Esta ruta cambió…» sale encima del viaje que se ve.
+- **Medido en el demo:** 1280 — «Viaje 2»: la tabla `Truckload 2 · aviso · P4 Weslaco · D4`, el mapa solo `P4` y `D4` (los
+  dos `rgb(195, 66, 35)`), lo guardado igual; «Todos»: las 10 filas y las 7 marcas otra vez. Con Diego elegido en el panel (la
+  medida con el doble de `/api/optimize-route`, `optimize: false`): «Todos» 2 trazos, «Viaje 2» 0, «Todos» 2 otra vez, sin
+  llamadas nuevas. 390 — lo mismo en tabla y mapa. Desplazamiento lateral 0 en todas.
+
+### Verificado
+
+- Pruebas nuevas en `src/lib/mover-recogida.test.ts` (librerías y pantalla); puestas al día `secuencia-pd.test.ts` (la fila P
+  ya no es «sin flechas»; el color del mapa) y `routes-columns.test.ts` (el `colSpan` de la fila informativa, que ahora deja
+  sitio a sus controles).
+- **Mutantes: 36, caen los 36**, leídos por nombre. Dos sobrevivieron a la primera vuelta y eran **pruebas flojas**: «la
+  flecha P mueve una fila de lo ya entregado» (mi caso tenía dos filas; con tres, quitar el `if (mia == null)` intercambiaba
+  las otras dos) y «“sola en el último” mira una sola» (mi caso movía una orden; ahora hay uno con dos). Librería: no
+  adelantar, ignorar el orden pedido, no intercambiar, sin tope, sin viajes a mano, sin fijar viajes, el viaje 1 con número,
+  la fila de lo entregado, adelantada/delanteDe al revés; varias: capacidad de la primera, viajes distintos, solo la primera,
+  «sola» de una; `recogidasPorViaje` todo al viaje 1 (el fallo), con filas D, sin lo del final; filtro que no vuelve a todos
+  o que deja pasar todo; las sin tienda juntas. Pantalla: la P al color del chofer, las P desde `previas`, la ↑ nunca
+  apagada, la flecha sin viajes a mano o desde 0 o sin fijar, el selector con una sola orden o fuera de deshacer, la fila P
+  con órdenes de otro viaje; el filtro sin tabla, sin D, sin P, sin líneas, con el trazo del plan, sin vaciarse al cambiar
+  de día, y los dos `useMemo` sin la dependencia.
+
+### No verificado
+
+- Nada contra producción: todo en el demo, con el plan publicado y `/api/optimize-route` servidos desde el navegador.
+- En el demo solo se midió la línea del viaje 1 (la medida no pidió la del 2); que «Viaje 2» enseñe la línea medida del 2
+  con base está leído en el código, no visto.
+- Los selectores se eligieron con el TECLADO (foco y flechas), porque el desplegable nativo no se abre en Chrome sin
+  pantalla. Cada flecha del teclado sobre un `<select>` dispara `change`: P3 bajó un viaje con la primera pulsación. Es lo
+  mismo que ya hace el selector «Viaje N» de las paradas.
+
+## D-442 · El Estimador: la calculadora de tarifa de Entregas (dirección buscada, pin, lista y descuento) solo para el vendedor, y un precio más bajo por línea con su % de descuento, ahorro e impuesto en la hoja
+
+**Fecha:** 2026-09-28 · **Versión:** la pone el orquestador (toca solo `src/app/estimator` y `src/lib/estimator`, más una
+prueba de `campo-decimal`) · **Migración:** ninguna — todo cabe en los `jsonb` `delivery` y `lines` de `estimator_quotes`
+(148).
+
+**Qué pidió el dueño**, en tres mensajes del mismo día:
+
+1. *«en el estimador la misma funcion de delivery fee y el calculador ponlo cuando es entrega y se pone el address tambien
+   agrega la funcion de pin del mapa and the search of the address just like in the delivery app and it should output the
+   price and discount price for the sales rep but not for the customer in the estimate»*. Y al no verlo aún: *«the discounts
+   options is not in the estimate form»*.
+2. Aclarando que hablaba **también** del descuento del producto: *«no i mean discount of the product with the picture i sent
+   you»*. La imagen dice, literal: *«For each item, the rep enters a regular price and, optionally, a lower price. The system
+   automatically calculates the discount percentage using: Discount % = (Regular Price − Lower Price) / Regular Price × 100»*.
+3. Cómo se enseña en la hoja: *«Last thing for estimate builder: i want to add is that the estimate will show the line total
+   with the regular price they input but then it will show a % discount (not amount) if they provide a secondary lower price.
+   Then at the bottom after the subtotal we will show the amount of savings to then give the final total price with taxes /
+   this are the instructions for the discount»*.
+
+### Qué hay ahora
+
+**A. La entrega, con las piezas de la ficha de Entregas** (`src/app/estimator/EntregaCotizacion.tsx`,
+`src/lib/estimator/entrega.ts`). Con «Delivery» marcado:
+
+- **La dirección se busca con `AddressInput`**, el mismo componente de la ficha de la orden (`/api/geocode`, con pausa de
+  350 ms). Sustituye a los cuatro campos calle/ciudad/estado/zip: `Delivery` guarda ahora `address` (una línea, como
+  `delivery_address`), `lat`/`lng`/`pin_source`, `store` y `miles`. Las cotizaciones guardadas antes se abren con la dirección
+  juntada en una línea (`borradorDeFila`).
+- **El pin**: «📍 Marcar ubicación exacta en el mapa» abre `MapView` con la zona verde (`LOCAL_ZONE_LATLNG`) y las tiendas
+  (`useStoreMarkers` + `tiendasParaElMapa`); el clic derecho suelta el pin y rellena la dirección con `/api/reverse-geocode`,
+  como `dropPin` de la ficha. Aquí el pin entra **directo** en el borrador de la cotización (que a su vez es un borrador
+  hasta «Guardar»), así que no hace falta el `pin-draft` de D-221: «Guardar pin» cierra, «Cancelar» devuelve el pin que había
+  al abrir, «Quitar pin» lo borra.
+- **La calculadora es `suggestDeliveryFee`**, la función de la ficha, llamada desde `tarifaDeLaCotizacion` con los nombres de
+  una orden. Enseña la zona **LOCAL / NO LOCAL** y de dónde sale (pin o ciudad), y los dos botones **Lista** y **Descuento**:
+  pulsar uno lo pone en «Cargo de entrega (interno)», pulsarlo otra vez lo quita (`alternarCargo`, el mismo gesto de la
+  ficha). Fuera de zona: «No local — requiere aprobación del gerente». Por debajo del descuento: «Igualar precio (menor al
+  descuento) — requiere aprobación» (`bajoElDescuento`, la condición de D-303). La fórmula («¿Cómo se calculó?») solo para
+  el admin, como en la ficha (D-244, T-0049).
+- **Las millas cuestan una llamada a Google** (`/api/distance` → Google Routes). Se piden **solo con el botón «🚚 Calcular
+  distancia y tarifa»**, una llamada por pulsación, y se **borran al cambiar la dirección o la tienda** (serían de otro
+  viaje). Esto es más estricto que la ficha, que además lanza la ruta sola 900 ms después de dejar de escribir: una
+  cotización se reescribe más que una orden y cada vuelta costaría una llamada.
+- **La tienda de salida** (el origen de las millas) nace con la del perfil de quien prepara y se puede cambiar. Las tiendas,
+  las ciudades locales y el recargo se leen en el servidor **con la llave de servicio, solo esas tres columnas de
+  `settings`**: la tabla solo la lee quien tiene Entregas (`has_deliveries_access()`, 100), y un vendedor con el Estimador y
+  sin Entregas se quedaría sin tiendas.
+
+**B. El precio más bajo por línea** (`modelo.ts`). Cada línea tiene su **precio regular** (el campo de siempre, `price_per_sf`
+o `unit_price`, que en pantalla pasa de «$/SF interno» a «$/SF regular») y un **precio más bajo opcional**
+(`lower_price_per_sf` / `lower_unit_price`, `CampoDecimal` de D-420). `estadoDelPrecioBajo` decide: `sin` (vacío),
+`aplica` (menor que el regular), `no-menor` (igual o mayor: **no es descuento**, y la pantalla lo dice en rojo) o
+`sin-regular` (sin regular, o regular 0: no se divide por cero). `porcentajeDeDescuento` es la fórmula de la imagen, a un
+decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Descuento: 20% · con el precio más bajo: $800.00».
+
+**C. La hoja del cliente** (`hoja.ts`, `HojaCliente.tsx`):
+
+- Cada **Amount es el total a precio REGULAR**; bajo él, **«−20%»** si la línea tiene un precio más bajo válido. **Nunca** el
+  importe con el precio más bajo, ni el $/SF, ni el precio unitario (D-413).
+- Debajo de la tabla: **«Subtotal: $X»** (suma regular) → **«Savings: −$Y»** (solo si hay ahorro) → **«Tax 8.25%: $Z»** →
+  **«Estimated Material Total: $T»**. El impuesto va sobre el subtotal **ya con el ahorro** y se redondea a centavos
+  (`resumenDeTotales`). El cargo de entrega sigue **fuera** (la función solo recibe líneas) y el texto «Delivery: Available
+  upon request…» y los descargos del final no cambian.
+- **Nada de la entrega del vendedor sale en la hoja**: ni la dirección, ni el pin, ni la tienda, ni las millas, ni la lista,
+  ni el descuento, ni la zona. `hojaDelCliente` solo mira el modo; al imprimir, `@media print` esconde todo lo que no es
+  `.hoja-cliente`.
+
+### Decisiones mías, para validar
+
+1. **La tasa de impuesto es 8.25 % fija en el código** (`TASA_DE_IMPUESTO`): el supuesto es la tasa habitual del Valle (6.25 %
+   del estado + 2 % local). **No es configurable**: no hay en `settings` un `jsonb` del Estimador donde quepa, y una columna
+   nueva es una migración que esta rama no escribe. Si la quiere en Ajustes, es una columna (`settings.estimator_tax_rate`)
+   y una casilla.
+2. **El total final lleva el impuesto y sigue llamándose «Estimated Material Total»**, el texto literal del documento de
+   D-413. Si prefiere «Total (with tax)», es una línea.
+3. **El cargo de entrega elegido NO sale en la hoja**, aunque ahora se elija con Lista/Descuento: D-413 dice que la hoja no lo
+   lleva y el dueño pidió los precios *«for the sales rep but not for the customer»*. Si lo quiere impreso, es otra decisión.
+4. **Sin recargo de mismo día en el Estimador**: `suggestDeliveryFee` solo lo suma si la fecha de entrega es hoy, y una
+   cotización no tiene fecha de entrega. No se añadió un campo de fecha.
+5. **La tarifa sugerida no se guarda**, solo lo que la produce (dirección, pin, tienda, millas) y el cargo elegido: se
+   recalcula al abrir, y guardarla la dejaría vieja el día que cambie la fórmula.
+6. **Un «You save» en la hoja no se añadió aparte**: la línea «Savings» del total es el ahorro que pidió.
+7. Un precio más bajo de **0** cuenta como descuento del 100 % (es menor que el regular); uno negativo no se acepta.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, 5,330 pruebas (+3 saltadas de siempre) y `next build`.
+- Pruebas nuevas con nombre: `entrega.test.ts` (la tarifa es la de `suggestDeliveryFee` con los mismos datos; 23.7 mi
+  locales → lista $125 y descuento $120; 150 mi fuera de zona → $620 / $520 con aprobación; el pin manda sobre la ciudad;
+  sin fecha no hay mismo día; los botones; las millas solo con una llamada y ninguna sin origen; y que la pantalla usa cada
+  pieza), `modelo.test.ts` (10 → 8 = 20 %, 3.50 → 3.15 = 10 %, igual/mayor/vacío y regular 0 sin descuento; dos líneas
+  3×$10→$8 y $385: subtotal 415.00, ahorro 6.00, impuesto 33.74, total 442.74), `hoja.test.ts` (la línea 10→8 y la de lote:
+  amounts $1,000.00 y $385.00, «−20%», subtotal 1,385.00, ahorro 200.00, impuesto 97.76, total 1,282.76; ni el $/SF, ni el
+  bajo, ni el importe con descuento; y ni la dirección, ni el pin, ni la tienda, ni las millas, ni la lista, ni el descuento
+  en los tres niveles, en el objeto y renderizada), `almacen.test.ts` (la entrega y los precios bajos van y vuelven por el
+  `jsonb`; una fila vieja de calle/ciudad/estado/zip se abre en una línea).
+- **Mutantes: 40, caen los 40**, leídos por el nombre de la prueba: el % dividido por el bajo o truncado; igual o mayor como
+  descuento; regular 0; la línea (por SF y por unidad) con el regular; el total regular con el bajo; el impuesto sobre el
+  regular; ahorro cero; total sin impuesto; otra tasa; la hoja con el importe descontado, sin el %, sin ahorro, sin impuesto,
+  con el total sin impuesto, con la dirección o con el cargo; la tarifa sin pin o sin millas; aprobación al cobrar igual al
+  descuento; el botón que no se desmarca; las millas que sobreviven al cambio de dirección o de tienda; llamar sin origen; el
+  origen por nombre; la pantalla sin el aviso de aprobación, escribiendo la dirección sin borrar millas, con el botón
+  Descuento poniendo la lista o con la fórmula para todos; la fila vieja sin dirección; los precios bajos y el pin que no
+  vuelven de la base; la dirección no obligatoria; la pantalla con otra tasa; la tienda de partida sin normalizar.
+- **Demo por CDP** (2026-09-28, puerto propio, `/api/geocode`, `/api/reverse-geocode`, `/api/distance` y
+  `/api/geocode-point` servidos por dobles **en el navegador**; las teselas de OSM y las fuentes de Google, bloqueadas:
+  ninguna llamada salió), como Sam Sales, clics de persona, a **1280 y a 390**: Delivery → tienda Edinburg preelegida, sin
+  los campos viejos; «2400 N 10th» → dos sugerencias → elegida; LOCAL por la ciudad; mapa, clic derecho → pin y dirección
+  del doble; mover el pin; LOCAL por el pin; **0 llamadas a `/api/distance` antes del botón y 1 después**; 23.7 mi →
+  «List $125.00» y «Discount $120.00»; pulsar Descuento → cargo 120 y «✓ Discount»; cargo 100 → «Price match (below
+  discount) — requires approval»; línea 100 SF, 10 SF/caja, $10 → $8 → «Line total $1,000.00 · Discount 20% · $800.00»; lote
+  $385; totales «Subtotal $1,385.00 · Savings −$200.00 · Tax 8.25% $97.76 · Total $1,282.76»; un bajo de 400 sobre 385 →
+  «no discount applied»; desplazamiento lateral 0; y la **emulación de impresión**: la hoja con «−20%», Subtotal, Savings,
+  Tax y Total, y **sin ninguno** de 15 datos buscados (la dirección elegida y la del pin, las millas, la tienda, $125, $120,
+  LOCAL, «Suggested», «List», $10.00, $8.00, $800.00…); la calculadora, la entrega, las líneas y el total de la pantalla,
+  `visibility: hidden`.
+
+### Lo no verificado
+
+- **Nada contra Google ni contra producción**: las millas, las sugerencias y el pin se midieron con dobles. Que Google Routes
+  devuelva millas para «dirección de tienda → dirección elegida» lo dice el código de `/api/distance`, el mismo de la ficha.
+- `useStoreMarkers` pide `/api/geocode-point` para cada tienda **sin `lat`/`lng` en Ajustes** (en el demo, 6 tiendas sin punto y 7
+  llamadas medidas): si las tiendas de producción no tienen el punto guardado, abrir el mapa gasta una geocodificación por
+  tienda la primera vez (luego hay caché). Es lo mismo que pasa en la ficha de la orden.
+- La lectura de `settings` con la llave de servicio no se probó contra la base: sin la llave, la pantalla abre sin tiendas y
+  las millas piden elegir una.

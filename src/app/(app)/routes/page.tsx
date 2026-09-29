@@ -24,7 +24,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
 import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
 import { PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
-import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaParaLasFilas } from "@/lib/route-plan/lectura-de-ruta";
+import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaParaLasFilas, recogidasPorViaje } from "@/lib/route-plan/lectura-de-ruta";
 import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
@@ -61,7 +61,9 @@ import {
   HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
-import { cabeEnElViaje, hechasDelChofer, inicioDeLaSecuencia, planDeCambioDeViaje, planDeDividirEnDos, planDeFlecha, planDeUnirViajes } from "@/lib/mover-parada";
+import { cabeEnElViaje, hechasDelChofer, inicioDeLaSecuencia, planDeCambioDeViaje, planDeCambioDeViajeDeVarias, planDeDividirEnDos, planDeFlecha, planDeUnirViajes } from "@/lib/mover-parada";
+import { planDeFlechaDeRecogida } from "@/lib/mover-recogida";
+import { pasaElViaje, viajeEfectivo } from "@/lib/filtro-de-viaje";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
 import { esDeSuZona } from "@/lib/zonas";
@@ -704,6 +706,57 @@ export default function RoutesPage() {
     // Entra en deshacer/rehacer como las flechas (D-417).
     const antes = fotoDe(trips.flat().map(aParadaDelGantt));
     await anotaMovimiento({ en: `#${orderLabel(d)} → truckload ${plan.viaje}`, es: `#${orderLabel(d)} → viaje ${plan.viaje}` }, [driver], antes, fotoTrasReordenar(antes, plan.ids, plan.loadNoById, plan.desde));
+  };
+  // Las filas de RECOGIDA (P) se mueven (D-441). El dueño: «why i can't rearrenge pickup». No se movían porque la P se
+  // DERIVA (D-334): una ruta a mano solo guarda viaje y puesto de ENTREGA de cada orden, y las tiendas de un viaje se
+  // recogen en el orden de su primera entrega. Así que ↑↓ en una P adelanta la PRIMERA entrega de esa tienda delante de
+  // la de la tienda que se salta (`planDeFlechaDeRecogida`, lo mínimo), y se dice. El selector «Viaje N» de la P pasa toda
+  // esa carga a otro viaje, con la misma regla de capacidad que el de una parada (D-433). Las dos numeran tras lo hecho,
+  // entran en deshacer y se permiten con candado 🔒, como las flechas (D-411).
+  const moveRecogida = async (laneKey: string, ti: number, grupos: string[][], k: number, dir: -1 | 1) => {
+    const stops = byDriver.get(laneKey) ?? [];
+    const capacidad = capacityFor(driverOf(laneKey));
+    const trips = buildTrips(stops, capacidad);
+    const plan = planDeFlechaDeRecogida(trips, ti, grupos, k, dir, hasManualLoads(stops), capacidad, inicioDeLaRuta(laneKey, stops));
+    if (!plan) return;
+    clearRouteFor(laneKey);
+    const ok = await reorderStops(plan.ids, plan.loadNoById, plan.fijaViajes ? false : undefined, plan.desde);
+    if (!ok) return;
+    const orden = (id: string) => stops.find((x) => x.id === id);
+    const tienda = (id: string) => orden(id)?.store || t("(no store)", "(sin tienda)");
+    const num = (id: string) => { const d = orden(id); return d ? `#${orderLabel(d)}` : id; };
+    senalaLaMovida(plan.adelantada);
+    notify(t(
+      `${tienda(plan.adelantada)} is now picked up before ${tienda(plan.delanteDe)}: for that, ${num(plan.adelantada)} is now delivered before ${num(plan.delanteDe)} (pickups follow each store's first delivery).`,
+      `${tienda(plan.adelantada)} se recoge ahora antes que ${tienda(plan.delanteDe)}: para eso, ${num(plan.adelantada)} se entrega ahora antes que ${num(plan.delanteDe)} (las recogidas siguen la primera entrega de cada tienda).`,
+    ));
+    const antes = fotoDe(trips.flat().map(aParadaDelGantt));
+    await anotaMovimiento({ en: `Pickup ${tienda(plan.adelantada)} first`, es: `Recogida ${tienda(plan.adelantada)} antes` }, [laneKey], antes, fotoTrasReordenar(antes, plan.ids, plan.loadNoById, plan.desde));
+  };
+  const moveRecogidaToLoad = async (laneKey: string, ids: string[], lugar: string | null, destino: number) => {
+    const stops = byDriver.get(laneKey) ?? [];
+    const capacidad = capacityFor(driverOf(laneKey));
+    const trips = buildTrips(stops, capacidad);
+    const plan = planDeCambioDeViajeDeVarias(trips, ids, destino, capacidad, inicioDeLaRuta(laneKey, stops));
+    const donde = lugar ?? t("(no store)", "(sin tienda)");
+    if (!plan.ok) {
+      if (plan.motivo === "no_cabe") {
+        notify(t(
+          `The pickup at ${donde} (${plan.pallets} pallets) doesn't fit in truckload ${plan.viaje}: it already carries ${plan.carga} of ${plan.capacidad}. Nothing was moved — use “New truckload”.`,
+          `La recogida en ${donde} (${plan.pallets} pallets) no cabe en el viaje ${plan.viaje}: ya lleva ${plan.carga} de ${plan.capacidad}. No se movió nada — use «Nuevo viaje».`,
+        ));
+      }
+      return;
+    }
+    clearRouteFor(laneKey);
+    const ok = await reorderStops(plan.ids, plan.loadNoById, false, plan.desde);
+    if (!ok) return;
+    senalaLaMovida(ids[0]);
+    notify(plan.nuevo
+      ? t(`Pickup at ${donde} moved to a new truckload ${plan.viaje}`, `Recogida en ${donde} movida a un viaje nuevo, el ${plan.viaje}`)
+      : t(`Pickup at ${donde} moved to truckload ${plan.viaje}`, `Recogida en ${donde} movida al viaje ${plan.viaje}`));
+    const antes = fotoDe(trips.flat().map(aParadaDelGantt));
+    await anotaMovimiento({ en: `Pickup ${donde} → truckload ${plan.viaje}`, es: `Recogida ${donde} → viaje ${plan.viaje}` }, [laneKey], antes, fotoTrasReordenar(antes, plan.ids, plan.loadNoById, plan.desde));
   };
   // Split a lane's stops into truckloads: by the dispatcher's manual load
   // numbers when set, otherwise automatically by truck capacity.
@@ -1423,6 +1476,10 @@ export default function RoutesPage() {
   const [historial, setHistorial] = useState<Historial>(HISTORIAL_VACIO);
   const [moviendo, setMoviendo] = useState(false);
   useEffect(() => { setHistorial(HISTORIAL_VACIO); }, [date]);
+  // «Ver un viaje» por tarjeta de chofer (D-441): qué viaje se enseña en su tabla y en el mapa (0 = el primero; sin
+  // entrada = todos). Solo mira. Vive mientras se mira ese día: cambiar de fecha lo vacía.
+  const [viajeVisto, setViajeVisto] = useState<Record<string, number>>({});
+  useEffect(() => { setViajeVisto({}); }, [date]);
   const deliveriesRef = useRef(deliveries);
   deliveriesRef.current = deliveries;
   /** Lo que hay ahora de estas paradas. Con base, leído de la base en este momento (no lo de la pantalla, que puede ir
@@ -1582,11 +1639,18 @@ export default function RoutesPage() {
     // Color each assigned stop by its TRUCKLOAD (matching the route line),
     // so the map groups stops into the same colors as their loop.
     const stopColor = new Map<string, string>();
+    // El color de cada viaje de cada ruta: el mismo para sus entregas y para sus recogidas (D-441).
+    const colorDelViaje = new Map<string, string[]>();
+    // «Ver un viaje» (D-441): la entrega de un viaje que su tarjeta no enseña tampoco sale en el mapa.
+    const ocultaPorViaje = new Set<string>();
     for (const u of lanes) {
       const stops = byDriver.get(u.key) ?? [];
-      buildTrips(stops, capacityFor(u.driver)).forEach((batch, ti) => {
+      const viajesDeU = buildTrips(stops, capacityFor(u.driver));
+      const visto = viajeEfectivo(viajeVisto[u.key], viajesDeU.length);
+      viajesDeU.forEach((batch, ti) => {
         const c = tripColor(colorFor(u.driver), ti);
-        for (const d of batch) stopColor.set(d.id, c);
+        colorDelViaje.set(u.key, [...(colorDelViaje.get(u.key) ?? []), c]);
+        for (const d of batch) { stopColor.set(d.id, c); if (!pasaElViaje(visto, ti)) ocultaPorViaje.add(d.id); }
       });
     }
 
@@ -1612,20 +1676,28 @@ export default function RoutesPage() {
     }
     const selActive = selectedOrders.size > 0;
     // Las etiquetas P/D de cada ruta (D-334): las entregas pasan de «1, 2, 3» a «D1, D2…», y cada tienda donde la ruta
-    // recoge lleva su «P1·P2», del color del chofer — que es lo que distingue una ruta de otra cuando hay varias a la vista.
+    // recoge lleva su «P1·P2». Hasta D-441 la P salía del color del CHOFER, que es el del viaje 1: una recogida del viaje 2
+    // (P4 en Weslaco, en la ruta de Maximo Garza) salía naranja mientras su entrega salía cian. Ahora cada P lleva el color
+    // de SU viaje (`recogidasPorViaje`, las mismas filas que la tabla), el mismo que sus entregas y que su línea. Dos
+    // recogidas en la misma tienda en viajes distintos son dos visitas: dos marcas, cada una de su color, abiertas en
+    // abanico (D-367) para que no se tapen.
     const dDeTodas = new Map<string, string>();
     for (const [laneKey, list] of byDriver) {
       if (!list.some((d) => d.route_seq != null)) continue;
       if (!pasaFiltro(laneKey)) continue;
-      const lectura = lecturaConLoHecho(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));
+      const viajesDelMapa = buildTrips(list, capacityFor(driverOf(laneKey)));
+      const lectura = lecturaConLoHecho(viajesDelMapa, paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));
       for (const [id, etiqueta] of lectura.etiquetaDe) dDeTodas.set(id, etiqueta);
-      for (const p of [...lectura.previas.values()].flat()) {
-        if (p.tipo !== "P" || !p.lugar) continue;
+      const visto = viajeEfectivo(viajeVisto[laneKey], viajesDelMapa.length);
+      for (const { fila: p, viaje } of recogidasPorViaje(lectura, viajesDelMapa)) {
+        if (!p.lugar || !pasaElViaje(visto, viaje)) continue;
         const tienda = (settings.stores ?? []).find((s) => s.name.trim().toLowerCase() === p.lugar!.trim().toLowerCase());
         if (tienda?.lat == null || tienda.lng == null) continue;
         pts.push({
-          id: `__pd__${laneKey}__${p.etiquetas[0]}`, lat: tienda.lat, lng: tienda.lng, color: colorFor(list[0].assigned_driver),
-          badge: p.etiquetas.join("·"), label: `${list[0].assigned_driver} — ${t("Pick up", "Recoger")} ${p.etiquetas.join("·")} · ${p.lugar}`,
+          id: `__pd__${laneKey}__${p.etiquetas[0]}`, lat: tienda.lat, lng: tienda.lng,
+          color: colorDelViaje.get(laneKey)?.[viaje] ?? tripColor(colorFor(list[0].assigned_driver), viaje),
+          badge: p.etiquetas.join("·"),
+          label: `${list[0].assigned_driver} — ${t("Truckload", "Viaje")} ${viaje + 1} · ${t("Pick up", "Recoger")} ${p.etiquetas.join("·")} · ${p.lugar}`,
           dimmed: isDim(laneKey) || selActive,
         });
       }
@@ -1650,6 +1722,7 @@ export default function RoutesPage() {
       const sel = selectedOrders.has(d.id);
       const laneKey = orderLaneKey(d)!;
       if (!sel && !pasaFiltro(laneKey)) continue;
+      if (!sel && ocultaPorViaje.has(d.id)) continue;
       const list = byDriver.get(laneKey) ?? [];
       const idx = list.findIndex((x) => x.id === d.id);
       const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;
@@ -1688,7 +1761,7 @@ export default function RoutesPage() {
     const abanico = abanicoDeMarcas(pts);
     return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas, deliveries]);
+  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas, deliveries, viajeVisto]);
 
   // Every measured driver's routes are always drawn; a focus just dims the
   // others. Clicking a route focuses its driver (see onLineClick below).
@@ -1706,13 +1779,19 @@ export default function RoutesPage() {
     let idx = 0;
     // Con plan publicado y su trazo ya pedido, la línea es la del plan (D-352) y no la medida de la tarjeta — mientras la
     // ruta SIGA siendo la publicada y le queden paradas (`sigueSuPlan`, D-437). Si no, la del plan no se pinta.
-    const conSuPlan = new Set(Object.entries(trazosDelPlan).filter(([driver, geom]) => geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver)).map(([d]) => d));
+    // «Ver un viaje» (D-441): el viaje que enseña la tarjeta de ese chofer, o `null` = todos.
+    const vistoDe = (driver: string) => viajeEfectivo(viajeVisto[driver], buildTrips(byDriver.get(driver) ?? [], capacityFor(driverOf(driver))).length);
+    // El trazo del plan es UNA línea para todo el día, sin cortes por viaje: con un viaje elegido no se pinta, y se pinta
+    // la línea medida de ese viaje si la hay.
+    const conSuPlan = new Set(Object.entries(trazosDelPlan).filter(([driver, geom]) => geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver) && vistoDe(driver) == null).map(([d]) => d));
     for (const driver of conSuPlan) {
       out.push({ id: `plan:${driver}`, color: colorFor(driverOf(driver)), positions: trazosDelPlan[driver], dimmed: isDim(driver), offset: 0 });
     }
     for (const [driver, trips] of entries) {
       if (conSuPlan.has(driver)) continue;
+      const visto = vistoDe(driver);
       trips.forEach((trace, i) => {
+        if (!pasaElViaje(visto, i)) return;
         const color = tripColor(colorFor(driverOf(driver)), i);
         const dimmed = isDim(driver);
         const offset = (idx - center) * spacing;
@@ -1746,7 +1825,7 @@ export default function RoutesPage() {
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeLines, trazosDelPlan, byDriver, rutasPublicadas, deliveries, selected, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders, filtroChofer]);
+  }, [routeLines, trazosDelPlan, byDriver, rutasPublicadas, deliveries, selected, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders, filtroChofer, viajeVisto]);
 
   const onLineClick = (id: string) => {
     const m = id.match(/^(?:line|ret):(.+)#\d+$/);
@@ -2437,6 +2516,9 @@ export default function RoutesPage() {
         // la lectura derivada, y se avisa (D-335). Se decide por chofer.
         const lectura = lecturaConLoHecho(trips, paradasPublicadasDe(u.driver), hechasDeLaRuta(u.key, stops));
         const dDe = lectura.etiquetaDe;
+        // «Ver un viaje» (D-441): qué viaje enseña esta tarjeta (y el mapa, para este chofer), o `null` = todos. Solo mira:
+        // flechas, «Viaje N» y el arrastre siguen trabajando sobre `trips` entero.
+        const visto = viajeEfectivo(viajeVisto[u.key], trips.length);
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379). A medias, no: D-336.
         const provisional = esProvisional(stops);
         // A load a person pinned (by hand), as opposed to one «Armar rutas» or the truck's capacity made.
@@ -2476,6 +2558,17 @@ export default function RoutesPage() {
               <span className="count-tag">{stops.length} {t("stops", "paradas")}</span>
               {stops.length > 0 && trips.length > 1 && (
                 <span className="sema" style={{ background: "var(--amber)", color: "#fff" }}>{trips.length} {t("truckloads", "viajes")}</span>
+              )}
+              {/* «Ver un viaje» (D-441): filtra la tabla de esta tarjeta y lo de este chofer en el mapa. Solo mira. */}
+              {stops.length > 0 && trips.length > 1 && (
+                <select data-viaje-visto={u.key} value={visto == null ? "" : String(visto)}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => { const v = e.target.value; setViajeVisto((m) => { const n = { ...m }; if (v === "") delete n[u.key]; else n[u.key] = Number(v); return n; }); }}
+                  title={t("Show one truckload or all, in this table and on the map", "Ver un viaje o todos, en esta tabla y en el mapa")}
+                  style={{ width: "auto", padding: "2px 4px", fontSize: 12 }}>
+                  <option value="">{t("All truckloads", "Todos los viajes")}</option>
+                  {trips.map((_, x) => <option key={x} value={x}>{t("Truckload", "Viaje")} {x + 1}</option>)}
+                </select>
               )}
               {/* Says who decided the grouping: a person (by hand) or the system («Armar rutas», or the truck's capacity).
                   Hasta D-437 decía también qué podía cambiar «Optimizar», que ya no existe. */}
@@ -2652,6 +2745,8 @@ export default function RoutesPage() {
                   </thead>
                   <tbody>
                     {trips.map((batch, ti) => {
+                      // «Ver un viaje» (D-441): el que no se enseña no se pinta; los índices siguen siendo los de la ruta entera.
+                      if (!pasaElViaje(visto, ti)) return null;
                       const startIdx = trips.slice(0, ti).reduce((n, b) => n + b.length, 0);
                       // A la décima (D-355): los pallets llevan fracciones (0.03) y la suma en coma flotante salía «7.569999999999999».
                       const load = sumaPallets(batch);
@@ -2664,6 +2759,13 @@ export default function RoutesPage() {
                       // let a truck get planned on an undercount.
                       const noCount = batch.filter((d) => d.actual_pallets == null && d.est_pallets == null).length;
                       const estimated = batch.some((d) => d.actual_pallets == null && d.est_pallets != null);
+                      // Las filas del viaje, y de ellas las de RECOGIDA con las órdenes que son de ESTE viaje (una P puede
+                      // nombrar lo ya entregado, D-433: eso no se mueve). Es lo que mueven sus flechas y su selector (D-441).
+                      const filas = filasDelViaje(lecturaParaLasFilas(lectura, sequenced, provisional), batch, ti === trips.length - 1);
+                      const enEsteViaje = new Set(batch.map((d) => d.id));
+                      const filasP = filas.filter((f) => f.clase === "informa" && f.fila.tipo === "P");
+                      const gruposP = filasP.map((f) => (f.clase === "informa" ? f.fila.ordenes.filter((id) => enEsteViaje.has(id)) : []));
+                      const manualLoads = hasManualLoads(stops);
                       return (
                         <Fragment key={ti}>
                           <tr>
@@ -2721,18 +2823,44 @@ export default function RoutesPage() {
                           </tr>
                           {/* Las filas que INFORMAN (recogidas, u otra carga de una orden repartida) van justo ANTES de la entrega
                               a la que preceden —donde el plan las puso—, no todas en cabeza del viaje (`filasDelViaje`).
-                              No llevan flechas: en una ruta manual solo se decide el orden de las entregas. */}
-                          {sequenced && ti === 0 && lectura.cambioTrasPublicar && (
+                              Las de RECOGIDA llevan desde D-441 sus flechas ↑↓ (qué tienda se recoge antes) y su «Viaje N»
+                              (pasar esa carga a otro viaje); hasta entonces no llevaban nada (D-334). */}
+                          {sequenced && ti === (visto ?? 0) && lectura.cambioTrasPublicar && (
                             <tr><td colSpan={columnasDeParadas} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
                           )}
-                          {filasDelViaje(lecturaParaLasFilas(lectura, sequenced, provisional), batch, ti === trips.length - 1).map((f) => {
-                            if (f.clase === "informa") { const p = f.fila; return (
-                            <tr key={`${p.tipo}-${ti}-${p.etiquetas[0]}`}>
+                          {filas.map((f) => {
+                            if (f.clase === "informa") { const p = f.fila; const k = filasP.indexOf(f); const suyas = k >= 0 ? gruposP[k] : []; return (
+                            <tr key={`${p.tipo}-${ti}-${p.etiquetas[0]}`} data-recogida={p.tipo === "P" ? p.etiquetas.join("·") : undefined}>
                               <td className={provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}>{p.etiquetas.join("·")}</td>
-                              <td colSpan={columnasDeParadas - 1}>
+                              <td colSpan={columnasDeParadas - 2}>
                                 {p.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {p.tipo === "P" && <b>{p.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>}
                                 {" — "}{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
                                 <span className="hint" style={{ margin: 0 }}> · {p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
+                              </td>
+                              {/* Mover la RECOGIDA (D-441): ↑↓ cambian qué tienda se recoge antes en este viaje —adelantando la
+                                  primera entrega de esa tienda, que es lo que la decide— y «Viaje N» pasa su carga a otro viaje.
+                                  Apagadas cuando no harían nada (la primera no sube, la última no baja). */}
+                              <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>
+                                {p.tipo === "P" && suyas.length > 0 && <>
+                                  <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-recogida-sube
+                                    disabled={!planDeFlechaDeRecogida(trips, ti, gruposP, k, -1, manualLoads, capacity, 0)}
+                                    onClick={() => moveRecogida(u.key, ti, gruposP, k, -1)}
+                                    title={t("Pick up at this store earlier in this truckload", "Recoger en esta tienda antes en este viaje")}>↑</button>
+                                  <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-recogida-baja
+                                    disabled={!planDeFlechaDeRecogida(trips, ti, gruposP, k, 1, manualLoads, capacity, 0)}
+                                    onClick={() => moveRecogida(u.key, ti, gruposP, k, 1)}
+                                    title={t("Pick up at this store later in this truckload", "Recoger en esta tienda después en este viaje")}>↓</button>
+                                  <select value={ti + 1} data-recogida-viaje
+                                    title={t("Move this pickup (all its orders) to another truckload", "Pasar esta recogida (todas sus órdenes) a otro viaje")}
+                                    onChange={(e) => { const v = e.target.value; void moveRecogidaToLoad(u.key, suyas, p.lugar, v === "__new__" ? trips.length + 1 : Number(v)); }}
+                                    style={{ width: "auto", padding: "2px 4px", fontSize: 12 }}>
+                                    {Array.from({ length: trips.length }, (_, x) => x + 1).map((n) => {
+                                      const r = n === ti + 1 ? null : planDeCambioDeViajeDeVarias(trips, suyas, n, capacity, 0);
+                                      return <option key={n} value={n}>{t("Truckload", "Viaje")} {n}{r && !r.ok && r.motivo === "no_cabe" ? t(" — won't fit", " — no cabe") : ""}</option>;
+                                    })}
+                                    <option value="__new__">＋ {t("New truckload", "Nuevo viaje")}</option>
+                                  </select>
+                                </>}
                               </td>
                             </tr>
                           ); }

@@ -1,6 +1,6 @@
 import {
-  cajasDeLinea, dinero, fechaLarga, numero, paraQuienSeImprime, totalDeLinea, totalDeMateriales,
-  type DisplayLevel, type QuoteDraft, type QuoteLine,
+  cajasDeLinea, dinero, fechaLarga, numero, paraQuienSeImprime, porcentajeDeDescuento, preciosDeLinea, resumenDeTotales,
+  totalRegularDeLinea, type DisplayLevel, type QuoteDraft, type QuoteLine,
 } from "./modelo";
 
 /**
@@ -34,7 +34,10 @@ export interface FilaDelCliente {
   descripcion: string;
   /** Una o dos líneas: «Requested Area: 1,250 SF» y, desde Standard, «Quantity: 53 Boxes». */
   cantidad: string[];
+  /** El total de la línea **a precio regular** (D-442). Nunca el importe con el precio más bajo. */
   importe: number;
+  /** «−20%» si hay un precio más bajo válido; null si no. Es un **porcentaje, no un importe** (lo dijo el dueño). */
+  descuento: string | null;
 }
 
 export interface HojaDelCliente {
@@ -46,6 +49,12 @@ export interface HojaDelCliente {
   representante: string;
   resumen: string | null;
   filas: FilaDelCliente[];
+  /** «Subtotal: $X», la suma a precio regular (D-442). */
+  textoSubtotal: string;
+  /** «Savings: −$Y», o null si no hay ahorro. */
+  textoAhorro: string | null;
+  /** «Tax 8.25%: $Z», con la tasa escrita. */
+  textoImpuesto: string;
   total: number;
   textoTotal: string;
   validezConspicua: string;
@@ -80,13 +89,23 @@ export function cantidadParaElCliente(l: QuoteLine, nivel: DisplayLevel): string
   return out;
 }
 
+/** «−20%», «−12.5%»: el descuento de la línea como lo lee el cliente (D-442). Null si no hay. */
+export function descuentoParaElCliente(l: QuoteLine): string | null {
+  const { regular, bajo } = preciosDeLinea(l);
+  const p = porcentajeDeDescuento(regular, bajo);
+  return p === null ? null : `−${numero(p)}%`;
+}
+
 export function hojaDelCliente(q: QuoteDraft): HojaDelCliente {
   const filas: FilaDelCliente[] = q.lines.map((l) => ({
     descripcion: descripcionParaElCliente(l, q.display_level),
     cantidad: cantidadParaElCliente(l, q.display_level),
-    importe: totalDeLinea(l) ?? 0,
+    importe: totalRegularDeLinea(l) ?? 0,
+    descuento: descuentoParaElCliente(l),
   }));
-  const total = totalDeMateriales(q.lines);
+  // Subtotal regular → ahorro → impuesto → total (D-442). Solo con las líneas: la entrega no entra (D-413).
+  const r = resumenDeTotales(q.lines);
+  const total = r.total;
   const hayCajas = q.lines.some((l) => l.kind === "sf");
   const fecha = fechaLarga(q.valid_through);
   return {
@@ -98,6 +117,9 @@ export function hojaDelCliente(q: QuoteDraft): HojaDelCliente {
     representante: q.sales_ext.trim() ? `Ext. ${q.sales_ext.trim()}` : "",
     resumen: q.project_summary.trim() || null,
     filas,
+    textoSubtotal: `Subtotal: ${dinero(r.subtotal)}`,
+    textoAhorro: r.ahorro > 0 ? `Savings: −${dinero(r.ahorro)}` : null,
+    textoImpuesto: `Tax ${numero(r.tasa)}%: ${dinero(r.impuesto)}`,
     total,
     textoTotal: `Estimated Material Total: ${dinero(total)}`,
     validezConspicua: `QUOTE VALID THROUGH ${fecha.toUpperCase()}`,

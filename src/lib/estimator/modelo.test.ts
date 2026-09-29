@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aCentavos, apellidoDe, borradorVacio, extensionDePartida, SALUTATIONS, telefonoAlEscribir, telefonoLimpio, cajasDeLinea, cajasPorDefecto, fechaLarga, hoyLocal, lineaSfVacia,
   lineaUnidadVacia, paraQuienSeImprime, sfReal, totalDeLinea, totalDeMateriales, type SfLine, type UnitLine,
+  estadoDelPrecioBajo, porcentajeDeDescuento, precioAplicado, resumenDeTotales, TASA_DE_IMPUESTO, totalRegularDeLinea,
 } from "./modelo";
 
 // Los datos son los del documento del dueño («Estimate print outs app copy», plantilla 3): 1,250 SF
@@ -135,5 +136,75 @@ describe("fechas", () => {
     expect(fechaLarga("2026-09-08")).toBe("September 8, 2026");
     expect(fechaLarga("2026-12-31")).toBe("December 31, 2026");
     expect(fechaLarga("x")).toBe("");
+  });
+});
+
+describe("precio más bajo: Discount % = (Regular − Lower) / Regular × 100 (D-442, la imagen del dueño)", () => {
+  it("10 → 8 es 20 %", () => {
+    expect(porcentajeDeDescuento(10, 8)).toBe(20);
+  });
+  it("3.50 → 3.15 es 10 % (sin el 10.000000000000002 del binario)", () => {
+    expect(porcentajeDeDescuento(3.5, 3.15)).toBe(10);
+  });
+  it("a un decimal: 3 → 2 es 33.3 %; 1.89 → 1.70 es 10.1 %", () => {
+    expect(porcentajeDeDescuento(3, 2)).toBe(33.3);
+    expect(porcentajeDeDescuento(1.89, 1.7)).toBe(10.1);
+  });
+  it("igual, mayor o vacío: sin descuento, y se dice cuál", () => {
+    expect([porcentajeDeDescuento(10, 10), estadoDelPrecioBajo(10, 10)]).toEqual([null, "no-menor"]);
+    expect([porcentajeDeDescuento(10, 12), estadoDelPrecioBajo(10, 12)]).toEqual([null, "no-menor"]);
+    expect([porcentajeDeDescuento(10, null), estadoDelPrecioBajo(10, null)]).toEqual([null, "sin"]);
+  });
+  it("regular 0 o vacío: sin descuento (no se divide por cero)", () => {
+    expect([porcentajeDeDescuento(0, 0), estadoDelPrecioBajo(0, 0)]).toEqual([null, "sin-regular"]);
+    expect([porcentajeDeDescuento(null, 5), estadoDelPrecioBajo(null, 5)]).toEqual([null, "sin-regular"]);
+  });
+  it("el precio aplicado es el más bajo solo si es un descuento de verdad", () => {
+    expect(precioAplicado(10, 8)).toBe(8);
+    expect(precioAplicado(10, 12)).toBe(10);
+    expect(precioAplicado(10, null)).toBe(10);
+  });
+});
+
+describe("la línea se calcula con el precio aplicado, y el total regular aparte (D-442)", () => {
+  it("por SF: 53 cajas × 23.80 × 1.70 = 2,144.38; a regular 2,384.05", () => {
+    const l = carrara({ lower_price_per_sf: 1.7 });
+    expect(totalDeLinea(l)).toBe(2144.38);
+    expect(totalRegularDeLinea(l)).toBe(2384.05);
+  });
+  it("un precio más bajo que no es menor no cambia nada", () => {
+    expect(totalDeLinea(carrara({ lower_price_per_sf: 2 }))).toBe(2384.05);
+  });
+  it("por unidad: 3 × 10 con más bajo 8 = 24; regular 30", () => {
+    const l: UnitLine = { ...lineaUnidadVacia(), quantity: 3, unit_price: 10, lower_unit_price: 8 };
+    expect([totalDeLinea(l), totalRegularDeLinea(l)]).toEqual([24, 30]);
+  });
+  it("sin precio regular la línea sigue incompleta aunque haya uno más bajo", () => {
+    expect(totalDeLinea(carrara({ price_per_sf: null, lower_price_per_sf: 1.5 }))).toBeNull();
+  });
+});
+
+describe("subtotal → ahorro → impuesto → total (D-442)", () => {
+  // Dos líneas: una 10 → 8 y otra sin descuento.
+  const conDescuento: UnitLine = { ...lineaUnidadVacia(), quantity: 3, unit_price: 10, lower_unit_price: 8 };
+  const sinDescuento: UnitLine = { ...lineaUnidadVacia(), quantity: 1, unit_price: 385 };
+  it("la tasa por defecto es 8.25 %", () => {
+    expect(TASA_DE_IMPUESTO).toBe(8.25);
+  });
+  it("subtotal 415.00, ahorro 6.00, impuesto 8.25 % de 409.00 = 33.74, total 442.74", () => {
+    expect(resumenDeTotales([conDescuento, sinDescuento])).toEqual({
+      subtotal: 415, ahorro: 6, baseImponible: 409, tasa: 8.25, impuesto: 33.74, total: 442.74,
+    });
+  });
+  it("el impuesto va sobre el subtotal YA con el ahorro, no sobre el regular", () => {
+    // 8.25 % de 415 sería 34.24: si sale eso, se cobró impuesto sobre lo ahorrado.
+    expect(resumenDeTotales([conDescuento, sinDescuento]).impuesto).not.toBe(34.24);
+  });
+  it("sin precios más bajos el ahorro es 0 y el total es subtotal + impuesto", () => {
+    const r = resumenDeTotales([carrara()]);
+    expect(r).toEqual({ subtotal: 2384.05, ahorro: 0, baseImponible: 2384.05, tasa: 8.25, impuesto: 196.68, total: 2580.73 });
+  });
+  it("la base imponible es totalDeMateriales (solo líneas, D-413)", () => {
+    expect(resumenDeTotales([conDescuento, sinDescuento]).baseImponible).toBe(totalDeMateriales([conDescuento, sinDescuento]));
   });
 });
