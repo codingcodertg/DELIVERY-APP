@@ -32366,3 +32366,110 @@ así que no hay «última pestaña = incidencias» que recoger.
 **Qué cambió.** La etiqueta roja junto a la fecha de entrega de una orden vencida (`OrdersTable.tsx`, `isOverdue`) pasa de
 «Late / Tarde» a «Expired / Expirada», igual que la pastilla «Expiradas» de D-426. **No cambia** «Tarde» en «Puntualidad por
 chofer» (D-414): ahí quiere decir que el chofer llegó tarde, no que la orden venció.
+
+## D-NEXT · Filtros guardados en Órdenes: guardar los filtros de columna y el orden con un nombre, y volver a ellos desde una pastilla ★
+
+**Fecha:** 2026-09-28 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
+**Pedido por:** el dueño, literal: *«create cuztomizable filters that the user sorts different columns and that stays as a filter»*.
+Sigue a D-275/D-292 (ordenar y filtrar desde el menú de cada cabecera), D-297 (la barra «Filtrado por»), D-313/D-436 (la fila
+de pastillas), D-330 (lo de la tabla es de la persona, en `user_prefs`) y D-394 (plantillas de columnas). No reemplaza ninguna.
+
+### Lo que se entendió
+
+La tabla de Órdenes ya filtraba por los valores de cada columna y ordenaba por una, desde el menú de su cabecera. Lo que faltaba
+es lo que dice el final de la frase: *«that stays as a filter»*. Ese filtro y ese orden vivían dentro del componente de la tabla y
+se perdían al recargar o al salir de la pantalla, y no había forma de ponerles nombre y volver a ellos. Se leyó como: **que cada
+persona pueda guardar lo que tiene puesto como un filtro con nombre, que salga como una pastilla más**.
+
+### Qué hay ahora
+
+- **«★ Guardar filtro / Save filter (N)»**, junto al buscador, abre un panel en la página (no un menú flotante: a 390 la fila de
+  pastillas se desplaza a lo ancho y recorta lo que sobresale). En él:
+  - un campo con el nombre y **Guardar** (o **Reemplazar** si el nombre ya existe, sin distinguir mayúsculas);
+  - una casilla, marcada por defecto: **«También la pastilla de etapa y el chip de fechas de ahora»**;
+  - la lista de los guardados, cada uno con **Actualizar** (le pone lo que se ve ahora), **Renombrar** (en la misma línea) y
+    **✕**, que no borra: pregunta «¿Borrar «X»? **Sí, borrar** · No», como las plantillas de D-394.
+- **Cada filtro guardado es una pastilla ★** al final de la fila de pastillas, detrás de «Outdated» y «Factura pendiente»: borde
+  discontinuo y color de acento, para que no se confunda con las fijas. **Pulsarla lo aplica tal cual**: los filtros de columna y
+  el orden de la foto sustituyen a los de ahora (sin orden en la foto, se quita el que hubiera), y si guardó pastilla y chip, se
+  ponen. **Se enciende** cuando lo que se ve es exactamente lo que guarda (la pastilla y el chip cuentan solo si los guardó).
+  **Pulsarla encendida la apaga**: quita los filtros de columna y el orden, como pulsar la pastilla de etapa encendida vuelve a
+  «Todas» (D-313).
+- Hasta **10** por persona; el nombre, hasta 40 caracteres.
+
+**Qué guarda** (`fotoDeOrdenes`): los filtros de columna puestos (columna → valores marcados, ordenados), el orden (columna y
+dirección — la tabla ordena por **una** columna; si algún día admite varias, `s` pasa a lista), y con la casilla, la pastilla
+(`f`) y el chip de fechas (`p`, solo «Todas / Reciente / Hoy», los que la pantalla enseña). También el idioma (`l`).
+
+### Lo que no se puede aplicar no rompe: se ignora y se dice
+
+`aplicaFiltroGuardado` devuelve lo aplicable y una lista de avisos, que la página enseña en una línea bajo las pastillas:
+
+- **Una columna que ya no existe** en la tabla: fuera su filtro y su orden.
+- **Una pastilla que este rol no tiene** (p. ej. «Pendiente» para quien no la ve, o con todas las tiendas aprobando solas): se
+  queda la pastilla de ahora.
+- **«Etapa» y «Prioridad» guardadas en el otro idioma**: su valor de filtro es el texto traducido («Programado» / «Scheduled»),
+  así que en el otro idioma no encontrarían ninguna fila. Fuera, y se dice. Las demás columnas se aplican igual.
+- **Una columna que existe pero la persona tiene OCULTA**: se pone igual, pero la tabla solo filtra y ordena por las que se ven
+  (D-360), así que no hace nada hasta que se muestre — y se dice. **Se descartó** mostrar la columna sola: tocaría las columnas
+  guardadas de la persona (D-330) sin que lo pidiera.
+
+### Dónde vive: la quinta mitad de la fila, sin migración
+
+En la misma fila de `user_prefs` (`order_columns`), bajo `_filtros`, al lado de `_orden`, `_anchos` y `_plantillas`:
+`{ …, "_filtros": [ { "n", "f"?, "p"?, "c"?: { "<columna>": [valores] }, "s"?: ["<columna>", "asc"|"desc"], "l"? } ] }`.
+**No hace falta clave nueva**: la clave de la fila sigue siendo `order_columns`, que la lista cerrada de la base ya admite (la 141
+es la última que toca `user_prefs_key_permitida`). De la **persona**, no del rol, como las plantillas.
+
+- **Un solo sitio escribe la fila** (`escribeLaFila`), ahora con las cinco mitades tal como se leyeron: marcar una casilla no
+  borra los filtros guardados, y guardar un filtro no borra columnas, orden, anchos ni plantillas. Pruebas con nombre en las dos
+  direcciones, y una que muestra que quien NO pasa los filtros los borra. La guarda de tamaño de las plantillas (`filaCon`) cuenta
+  ahora también los filtros, y la de los filtros cuenta las plantillas: el tope es de la fila entera.
+- **Lo leído se sanea** (`filtrosGuardadosValidos`): nombre recortado y sin repetir; a lo sumo 20 columnas por filtro y 300
+  valores por columna, de hasta 200 caracteres; chip de fechas solo de los tres; orden solo `asc`/`desc`; nunca más de diez.
+- **La red del navegador** (como D-330): cada cambio se escribe también en `localStorage` (`rtg_filtros_ordenes_<persona>`). Al
+  entrar se pinta lo del navegador y, al leer la base, **manda la base** (aunque venga vacía). Si la base no se pudo leer o no
+  aceptó la escritura, el filtro queda en este navegador y **se dice**: «queda solo en este navegador, hasta que el servidor
+  vuelva a contestar (entonces vale lo que tenga el servidor)». Sin base leída **no se escribe la fila a ciegas** (se escribe
+  entera y se llevaría lo que hubiera). El demo, que no tiene base, usa solo el navegador.
+- **Tamaño** (`bytesEnLaBase`, el modelo del `jsonb` de D-394, **no** medido en Postgres para esta forma): la fila con un rol lleno
+  pasa de 725 a 2 745 bytes con diez filtros normales (≈ 200 cada uno), lejos del tope de 8 192. Un filtro con cientos de valores
+  largos (p. ej. 300 direcciones) no pasa `cabeEnLaFila`, no se guarda en ningún sitio y se dice «No cabe». Borrar nunca se impide.
+
+### La tabla ya no guarda sola su filtro y su orden
+
+`OrdersTable` acepta `vista` y `onVista` (filtros por columna y orden): si se los pasan, manda la de la página; si no, los lleva
+dentro como siempre (Almacén, chofer y las demás pantallas que la usan no cambian). Órdenes se los pasa, y por eso sus filtros de
+columna ahora deberían **sobrevivir a cambiar entre Tabla y Tablero** (antes, al volver a Tabla, se perdían: el Tablero desmonta la tabla). Esto es por construcción: **no se midió**. Columna y dirección van juntas
+(`orden: { clave, dir } | null`): quitar el orden no deja la columna marcada.
+
+### A 390
+
+En el teléfono la tabla es una tarjeta por orden y **no tiene cabeceras**, así que allí no se puede filtrar por columna
+desde la cabecera; un filtro guardado en el escritorio **sí se aplica en el teléfono**, con las mismas filas y en el mismo orden.
+El panel cabe (366 px de ancho) y la página no desborda.
+
+### Medido
+
+- **Pruebas** (`src/lib/filtros-guardados.test.ts`, 48 con nombre): foto, guardar/reemplazar/tope/renombrar/borrar, aplicar con
+  cada caso ignorado, cuándo se enciende, la fila (se escribe, se lee, no pisa ni la pisan), el saneo, dónde se guarda
+  (base / navegador / demo / no cabe / nada), y que la página y la tabla usan las funciones. Una prueba de ida y vuelta —foto →
+  fila JSON → leída → aplicada— filtra y ordena filas con `filtraFilas` y `comparaCeldas` y da las mismas filas en el mismo orden,
+  con datos cuyo orden de entrada contradice el pedido.
+- **Mutantes**: 36 de 36 caen, cada uno con una prueba con nombre (tanda en la carpeta de trabajo del worker). Uno sobrevivió en
+  la primera pasada —«se pinta un filtro que no se guardó en ningún sitio»— porque la prueba comparaba dos `indexOf` y uno daba
+  −1; ahora afirma primero que la línea está.
+- **En el demo, por CDP, con clics de persona** (2026-09-28, 1280 y 390, rol admin, inglés, 89 órdenes con «All»): Tienda =
+  Brownsville + Fecha descendente → 13 filas; guardado como «Mis Brownsville» (pastilla ★ encendida, en `localStorage`); otra
+  pastilla («Pending Approval», 10 filas) y filtros limpiados → la ★ se apaga; pulsar la ★ → **las mismas 13 filas en el mismo
+  orden** (y se enciende); recargar → sigue, y aplicada da lo mismo; a **390**, las mismas 13 en el mismo orden, desborde 0 px;
+  renombrar a «Brownsville por fecha» → cambia la pastilla y el navegador; el ✕ solo pregunta; «Yes, delete» la borra, y al
+  recargar no está.
+
+### Lo que NO se midió
+
+- **Contra la base de verdad**: el demo no tiene `user_prefs`; el camino de la base está probado con un cliente falso (lectura,
+  escritura de la fila entera, no pisar las otras mitades), no contra Supabase. Tampoco se midió en Postgres el tamaño del `jsonb`
+  de esta mitad: es el modelo de D-394.
+- Ventas, almacén y chofer: la barra y las pastillas ★ salen a todos los roles (la fila de pastillas es de todos), pero solo se
+  midió con admin.

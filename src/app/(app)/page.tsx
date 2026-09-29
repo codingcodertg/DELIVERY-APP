@@ -9,7 +9,9 @@ import { preguntaDelBloque, reparteParaElBloque } from "@/lib/cambio-en-bloque";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
-import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, valorDeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol, type PlantillaDeColumnas } from "@/lib/user-prefs";
+import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, valorDeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol, type FiltroGuardado, type PlantillaDeColumnas } from "@/lib/user-prefs";
+import { VISTA_VACIA, aplicaFiltroGuardado, borraFiltro, claveDeFiltrosEnElNavegador, coincideConLaVista, filtroLlamado, filtrosAlEntrar, filtrosDelNavegador, fotoDeOrdenes, guardaFiltro, persisteFiltros, renombraFiltro, textoDeLoIgnorado, textoDelRechazoDeFiltro, type VistaDeTabla } from "@/lib/filtros-guardados";
+import { FiltrosGuardados, type RespuestaDeFiltro } from "@/components/FiltrosGuardados";
 import { aplicaEnOrdenes, borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { PlantillasDeColumnas } from "@/components/PlantillasDeColumnas";
 import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
@@ -113,8 +115,17 @@ export default function OrdersPage() {
   // lo que pinta el menú, y solo cambia cuando la base aceptó la escritura.
   const plantillasDeLaBase = useRef<PlantillaDeColumnas[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDeColumnas[]>([]);
-  // La fila se escribe ENTERA y por UN solo sitio, con las cuatro mitades tal como están: así guardar una no borra las otras.
-  const escribeLaFila = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDeLaBase.current ?? {}, CLAVE_DE_COLUMNAS, ordenDeLaBase.current, anchosDeLaBase.current, plantillasDeLaBase.current);
+  // Los FILTROS GUARDADOS (D-NEXT), la quinta mitad: de la persona. La `ref` es lo que se escribe en la base; el estado, lo que
+  // pintan las pastillas ★ (y puede venir solo del navegador si la base no contestó).
+  const filtrosDeLaBase = useRef<FiltroGuardado[]>([]);
+  const [filtrosGuardados, setFiltrosGuardados] = useState<FiltroGuardado[]>([]);
+  const [verFiltrosGuardados, setVerFiltrosGuardados] = useState(false);
+  const [avisoDeFiltro, setAvisoDeFiltro] = useState<string | null>(null);
+  // Los filtros de columna y el orden de la tabla viven AQUÍ desde D-NEXT (antes, dentro de `OrdersTable`): así se guardan y
+  // se vuelven a poner.
+  const [vistaTabla, setVistaTabla] = useState<VistaDeTabla>(VISTA_VACIA);
+  // La fila se escribe ENTERA y por UN solo sitio, con las cinco mitades tal como están: así guardar una no borra las otras.
+  const escribeLaFila = () => guardaColumnas(createClient() as unknown as ClienteDePrefs, me!.id, prefsDeLaBase.current ?? {}, CLAVE_DE_COLUMNAS, ordenDeLaBase.current, anchosDeLaBase.current, plantillasDeLaBase.current, filtrosDeLaBase.current);
   const [showCols, setShowCols] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   // Elegir y aplicar son DOS pasos (D-372): aquí vive lo elegido hasta que se pulsa el botón y se confirma.
@@ -169,6 +180,10 @@ export default function OrdersPage() {
     // Las plantillas: en el demo, las de este navegador; con base, nada hasta leerla.
     plantillasDeLaBase.current = SIN_BASE ? plantillasDelNavegador((k) => { try { return localStorage.getItem(k); } catch { return null; } }, CLAVE_DE_COLUMNAS) : [];
     setPlantillas(plantillasDeLaBase.current);
+    // Los filtros guardados: los de este navegador YA (la red, y todo lo que hay en el demo); la base, al leerla, manda.
+    const filtrosDeAqui = filtrosDelNavegador((k) => { try { return localStorage.getItem(k); } catch { return null; } }, me.id);
+    filtrosDeLaBase.current = [];
+    setFiltrosGuardados(filtrosDeAqui);
     if (SIN_BASE) return;
     // Y después la base, que es la que manda (D-330): la elección es de la persona, no del navegador.
     let vivo = true;
@@ -184,6 +199,8 @@ export default function OrdersPage() {
       setAnchos(leido.anchos[rol] ?? null);
       plantillasDeLaBase.current = leido.plantillas;
       setPlantillas(leido.plantillas);
+      filtrosDeLaBase.current = leido.filtros;
+      setFiltrosGuardados(filtrosAlEntrar(leido, filtrosDeAqui));
       // Ventas lee la base solo por el ANCHO de sus columnas: cuáles ve sigue saliendo de Ajustes.
       if (leido.hayFila) { if (!esVentas) setCols(columnasDe(rol, leido.columnas, delNavegador, defaultColsFor(rol)).columnas); return; }
       // Sin fila: se siembra UNA vez desde este navegador — nunca durante una suplantación (el navegador es del
@@ -269,7 +286,7 @@ export default function OrdersPage() {
     sinBase: SIN_BASE,
     guardaEnElNavegador: (lista: PlantillaDeColumnas[]) => localStorage.setItem(claveDePlantillasEnElNavegador(CLAVE_DE_COLUMNAS), JSON.stringify(lista)),
     baseLeida: prefsDeLaBase.current !== null,
-    filaCon: (lista: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: prefsDeLaBase.current ?? {}, orden: ordenDeLaBase.current, anchos: anchosDeLaBase.current, plantillas: lista }),
+    filaCon: (lista: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: prefsDeLaBase.current ?? {}, orden: ordenDeLaBase.current, anchos: anchosDeLaBase.current, plantillas: lista, filtros: filtrosDeLaBase.current }),
     escribe: async (lista: PlantillaDeColumnas[]) => {
       const antes = plantillasDeLaBase.current;
       plantillasDeLaBase.current = lista;
@@ -295,6 +312,46 @@ export default function OrdersPage() {
     return r.ok ? cambiaPlantillas(r.lista, true) : Promise.resolve(textoDelRechazo(r.motivo, t));
   };
   const borraPlantillaGuardada = (nombre: string) => cambiaPlantillas(borraPlantilla(plantillasDeLaBase.current, nombre), false);
+
+  // FILTROS GUARDADOS (D-NEXT). El dueño: «create cuztomizable filters that the user sorts different columns and that stays as
+  // a filter». Qué se guarda, cómo se aplica y qué se ignora lo decide `lib/filtros-guardados`; aquí solo dónde se guarda.
+  const destinoDeFiltros = {
+    sinBase: SIN_BASE,
+    guardaEnElNavegador: (lista: FiltroGuardado[]) => localStorage.setItem(claveDeFiltrosEnElNavegador(me!.id), JSON.stringify(lista)),
+    baseLeida: prefsDeLaBase.current !== null,
+    filaCon: (lista: FiltroGuardado[]) => valorDeColumnas({ visibles: prefsDeLaBase.current ?? {}, orden: ordenDeLaBase.current, anchos: anchosDeLaBase.current, plantillas: plantillasDeLaBase.current, filtros: lista }),
+    escribe: async (lista: FiltroGuardado[]) => {
+      const antes = filtrosDeLaBase.current;
+      filtrosDeLaBase.current = lista;
+      const ok = await escribeLaFila();
+      if (!ok) filtrosDeLaBase.current = antes;
+      return ok;
+    },
+  };
+  const estadoDeOrdenes = { pastilla: filter, preset, vista: vistaTabla, lang };
+  /** Guarda la lista nueva y dice qué pasó. Lo que no quedó en ningún sitio no se pinta. */
+  const cambiaFiltrosGuardados = async (lista: FiltroGuardado[], crece: boolean, hecho: string): Promise<RespuestaDeFiltro> => {
+    const r = await persisteFiltros(lista, crece, destinoDeFiltros, t);
+    if (r.guardado === "no") return { texto: r.texto ?? "", mal: true };
+    setFiltrosGuardados(lista);
+    return r.texto ? { texto: r.texto, mal: true } : { texto: hecho, mal: false };
+  };
+  const guardaFiltroActual = (nombre: string, conPastilla: boolean) => {
+    const r = guardaFiltro(filtrosGuardados, nombre, fotoDeOrdenes(estadoDeOrdenes, conPastilla));
+    return r.ok ? cambiaFiltrosGuardados(r.lista, true, t(`Saved “${nombre}”.`, `Guardado «${nombre}».`)) : Promise.resolve({ texto: textoDelRechazoDeFiltro(r.motivo, t), mal: true });
+  };
+  // Actualizar: la foto de ahora con el mismo nombre; la pastilla, solo si el guardado ya la guardaba.
+  const actualizaFiltroGuardado = (nombre: string) => {
+    const antes = filtroLlamado(filtrosGuardados, nombre);
+    if (!antes) return Promise.resolve({ texto: textoDelRechazoDeFiltro("no-existe", t), mal: true });
+    const r = guardaFiltro(filtrosGuardados, antes.n, fotoDeOrdenes(estadoDeOrdenes, antes.f !== undefined));
+    return r.ok ? cambiaFiltrosGuardados(r.lista, true, t(`Updated “${antes.n}”.`, `Actualizado «${antes.n}».`)) : Promise.resolve({ texto: textoDelRechazoDeFiltro(r.motivo, t), mal: true });
+  };
+  const renombraFiltroGuardado = (viejo: string, nuevo: string) => {
+    const r = renombraFiltro(filtrosGuardados, viejo, nuevo);
+    return r.ok ? cambiaFiltrosGuardados(r.lista, true, t(`Renamed to “${nuevo}”.`, `Renombrado a «${nuevo}».`)) : Promise.resolve({ texto: textoDelRechazoDeFiltro(r.motivo, t), mal: true });
+  };
+  const borraFiltroGuardado = (nombre: string) => cambiaFiltrosGuardados(borraFiltro(filtrosGuardados, nombre), false, t(`Deleted “${nombre}”.`, `Borrado «${nombre}».`));
 
   // «⚙ Columnas» se cierra con un clic fuera o con Escape (D-275); antes solo con su botón.
   // El contenedor envuelve botón y menú: pulsar el botón con el menú abierto lo cierra, y marcar
@@ -396,6 +453,45 @@ export default function OrdersPage() {
   const motivos = useMemo(() => motivosDeAnulacion(settings), [settings]);
 
   if (!me) return null;
+
+  // Qué pastillas hay, en qué orden y cuál está encendida lo decide `pastillasDeOrdenes` (D-313). Se calcula aquí y no dentro
+  // del JSX porque un filtro guardado (D-NEXT) necesita saber qué pastillas tiene este rol antes de poner la suya.
+  const pastillas = pastillasDeOrdenes({
+    etapas: filterStagesFor(me.role),
+    todasAprueban: autoApproveAll,
+    cuentas: counts,
+    filtro: filter,
+    // «Outdated» sale para todos desde D-404, con lo que cada uno ve. «Factura pendiente»
+    // sale con 0 a quien no tiene tienda, para que dentro lea por qué (D-404).
+    pendientesSinTienda: alcancePendientes.tipo === "sin-tienda",
+  });
+  const nombreDePastilla = (key: string) => key === PASTILLA_TODAS
+    ? t("All", "Todas")
+    : key === PESTANA_DOCUMENTO_PENDIENTE
+      ? t("Invoice pending", "Factura pendiente")
+      : key === PESTANA_ATRASADAS
+        ? t("Outdated", "Expiradas")
+        : stageLabel(key, lang);
+  // Aplicar un filtro guardado: lo que se pueda, tal cual; lo que no, fuera y dicho. Pulsar el encendido lo apaga: quita los
+  // filtros de columna y el orden, como pulsar la pastilla de etapa encendida vuelve a «Todas» (D-313).
+  const aplicaGuardado = (g: FiltroGuardado, encendido: boolean) => {
+    if (encendido) { setVistaTabla(VISTA_VACIA); setAvisoDeFiltro(null); return; }
+    const r = aplicaFiltroGuardado(g, {
+      columnas: ["__id", ...ORDER_COLUMNS.map((c) => c.key)],
+      visibles: ["__id", ...cols],
+      pastillas: pastillas.map((p) => p.key),
+      lang,
+    });
+    if (r.pastilla !== null) setFilter(r.pastilla);
+    if (r.preset !== null) setPreset(r.preset as Preset);
+    setVistaTabla(r.vista);
+    const nombreDe = (k: string) => {
+      const col = ORDER_COLUMNS.find((c) => c.key === k);
+      if (col) return lang === "es" ? col.es : col.en;
+      return pastillas.some((p) => p.key === k) || STAGES.some((s) => s.key === k) ? nombreDePastilla(k) : k;
+    };
+    setAvisoDeFiltro(r.avisos.length ? `★ ${g.n}: ` + textoDeLoIgnorado(r.avisos, t, nombreDe) : null);
+  };
 
   // Who gets the checkbox column.
   //
@@ -607,6 +703,12 @@ export default function OrdersPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
+        {view === "table" && (
+          <button type="button" className={"btn btn-ghost btn-sm" + (verFiltrosGuardados ? " on" : "")} data-abre-filtros-guardados
+            aria-expanded={verFiltrosGuardados} onClick={() => setVerFiltrosGuardados((v) => !v)}>
+            ★ {t("Save filter", "Guardar filtro")}{filtrosGuardados.length ? ` (${filtrosGuardados.length})` : ""}
+          </button>
+        )}
       </div>
 
       <div className="filters filters-oneline">
@@ -616,15 +718,7 @@ export default function OrdersPage() {
                 (D-313): «Todas» la primera —antes no existía y volver a verlas todas era volver a
                 pulsar la encendida, que nadie descubre—, las etapas del rol, y la de «Factura
                 pendiente» (D-310) al final, solo si hay algo o si se está en ella. */}
-            {pastillasDeOrdenes({
-              etapas: me ? filterStagesFor(me.role) : STAGES.map((s) => s.key),
-              todasAprueban: autoApproveAll,
-              cuentas: counts,
-              filtro: filter,
-              // «Outdated» sale para todos desde D-404, con lo que cada uno ve. «Factura pendiente»
-              // sale con 0 a quien no tiene tienda, para que dentro lea por qué (D-404).
-              pendientesSinTienda: alcancePendientes.tipo === "sin-tienda",
-            }).map((p) => (
+            {pastillas.map((p) => (
               <button
                 key={p.key}
                 className={"chip " + (p.clase ? p.clase + " " : "") + (p.activa ? "on" : "")}
@@ -637,18 +731,33 @@ export default function OrdersPage() {
                   setPreset((antes) => presetAlElegirPastilla(queda, antes, "all"));
                 }}
               >
-                {p.key === PASTILLA_TODAS
-                  ? t("All", "Todas")
-                  : p.key === PESTANA_DOCUMENTO_PENDIENTE
-                    ? t("Invoice pending", "Factura pendiente")
-                    : p.key === PESTANA_ATRASADAS
-                      ? t("Outdated", "Expiradas")
-                      : stageLabel(p.key, lang)} <span className="cnt">{p.cuenta}</span>
+                {nombreDePastilla(p.key)} <span className="cnt">{p.cuenta}</span>
               </button>
             ))}
+            {/* Los filtros guardados de esta persona (D-NEXT), detrás de las fijas y con su ★: se distinguen de ellas. Se
+                encienden cuando lo que se ve es exactamente lo que guardan. */}
+            {filtrosGuardados.map((g) => {
+              const encendido = coincideConLaVista(g, estadoDeOrdenes);
+              return (
+                <button key={"★" + g.n} className={"chip chip-guardado" + (encendido ? " on" : "")} data-filtro-guardado={g.n}
+                  title={t(`Saved filter: tap to apply “${g.n}”`, `Filtro guardado: pulse para aplicar «${g.n}»`)}
+                  onClick={() => aplicaGuardado(g, encendido)}>
+                  ★ {g.n}
+                </button>
+              );
+            })}
           </>
         )}
       </div>
+      {view === "table" && avisoDeFiltro && (
+        <div className="hint filtro-aviso" role="status" data-aviso-filtro>
+          {avisoDeFiltro} <button type="button" className="notif-clear" onClick={() => setAvisoDeFiltro(null)} aria-label={t("Close", "Cerrar")}>✕</button>
+        </div>
+      )}
+      {view === "table" && verFiltrosGuardados && (
+        <FiltrosGuardados lista={filtrosGuardados} onGuardar={guardaFiltroActual} onActualizar={actualizaFiltroGuardado}
+          onRenombrar={renombraFiltroGuardado} onBorrar={borraFiltroGuardado} onCerrar={() => setVerFiltrosGuardados(false)} t={t} />
+      )}
 
       {view === "table" && chosen.length > 0 && (
         <div className="bulk-bar">
@@ -771,6 +880,8 @@ export default function OrdersPage() {
             collapsible
             porTienda={filter === PESTANA_DOCUMENTO_PENDIENTE}
             tiendasPrimero={tiendasDeQuienMira(me)}
+            vista={vistaTabla}
+            onVista={setVistaTabla}
             selected={selected}
             onToggle={toggle}
             onToggleAll={toggleAll}
