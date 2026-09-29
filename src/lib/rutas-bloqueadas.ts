@@ -1,7 +1,9 @@
 /**
  * 🔒 Rutas bloqueadas del Gestor de Rutas (D-411): una ruta (un chofer o una ruta temporal) en un DÍA que las
- * herramientas automáticas no tocan — «Optimizar todas las rutas», su «Optimizar ruta», «Simular», el dibujo automático
- * al elegir un chofer, «✨ Auto-asignar» y «📍 Mejor lugar». Es el `lockType: ROUTES` de OptimoRoute
+ * herramientas automáticas no tocan. Desde D-NEXT son dos: «Armar las rutas del día» (el motor, en el servidor) y
+ * «📍 Mejor lugar» (con el arrastre al nombre de un chofer, que es Mejor lugar). Hasta D-NEXT también «Optimizar todas las
+ * rutas», su «Optimizar ruta», «Simular», el dibujo automático al elegir un chofer y «✨ Auto-asignar», que se quitaron.
+ * Es el `lockType: ROUTES` de OptimoRoute
  * (docs/research-route-optimization.md §1.3). A mano sigue editable: flechas, «Asignar», quitar, mover de viaje.
  *
  * **Dónde vive (D-414): en la base, `public.route_locks` (migración 149), si la tabla está; si no, en ESTE navegador.**
@@ -57,44 +59,6 @@ export function alternaBloqueo(b: Bloqueos, fecha: string, ruta: string, hoy: st
 
 export function guardaBloqueos(almacen: Almacen | null | undefined, b: Bloqueos): void {
   try { almacen?.setItem(LLAVE_DE_BLOQUEOS, JSON.stringify(b)); } catch { /* navegador sin almacén: el candado dura la visita */ }
-}
-
-/**
- * El bucle de optimizar varias rutas, sin las bloqueadas: la bloqueada NO se pide (ni una llamada al optimizador, que es
- * Google, de pago). Devuelve las que salieron bien —lo que ya devolvía `optimizaEstas` (D-401)—, las que se saltó por el
- * candado y las que fallaron. `optimizaUna` y `pausa` las pone quien llama (la pantalla: `computeRoute` + `applyPlan`,
- * y 400 ms entre una y otra).
- */
-export async function optimizaSinLasBloqueadas<R extends { clave: string }>(args: {
-  rutas: readonly R[];
-  bloqueada: (clave: string) => boolean;
-  optimizaUna: (r: R) => Promise<void>;
-  alFallar?: (e: unknown) => void;
-  pausa?: () => Promise<void>;
-}): Promise<{ bien: string[]; saltadas: string[]; fallidas: string[] }> {
-  const bien: string[] = [], saltadas: string[] = [], fallidas: string[] = [];
-  for (const r of args.rutas) {
-    if (args.bloqueada(r.clave)) { saltadas.push(r.clave); continue; }
-    try {
-      await args.optimizaUna(r);
-      bien.push(r.clave);
-    } catch (e) {
-      fallidas.push(r.clave);
-      args.alFallar?.(e);
-    }
-    if (args.pausa) await args.pausa();
-  }
-  return { bien, saltadas, fallidas };
-}
-
-/** «Se saltó N ruta(s) bloqueada(s): …», o nada si no se saltó ninguna. */
-export function avisoDeSaltadas(saltadas: readonly string[]): { en: string; es: string } | null {
-  if (!saltadas.length) return null;
-  const quienes = saltadas.join(", ");
-  return {
-    en: `Skipped ${saltadas.length} locked route(s) 🔒: ${quienes}.`,
-    es: `Se saltó ${saltadas.length} ruta(s) bloqueada(s) 🔒: ${quienes}.`,
-  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -13,20 +13,15 @@ import { cityFromAddress, deliveryRisk, fallbackDriverColor, fmtDate, fmtWindows
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { assignmentWarnings, recommendDriver, type AssignWarning } from "@/lib/dispatch";
-import { repartirConElMotor, resumenDelReparto } from "@/lib/auto-asignar";
-import { pideElReparto } from "@/lib/route-plan/reparto-cliente";
-import { leeBloqueos } from "@/lib/rutas-bloqueadas";
 import type { Delivery } from "@/lib/types";
 import { sumaPallets } from "@/lib/pallets";
 import { aLaDecima } from "@/lib/pallets";
 
 // Matches the Routes Manager default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
-// El demo (sin base): «Auto-asignar selección» reparte con el motor en el navegador (D-419).
-const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default function MapPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, ready, driverLocations, realRole, availability } = useData();
+  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, ready, driverLocations, realRole } = useData();
   const { lang, t } = usePrefs();
   const [date, setDate] = useState(todayISO());
   const [open, setOpen] = useState<Delivery | null>(null);
@@ -204,35 +199,8 @@ export default function MapPage() {
   };
   const assignDriver = (driver: string | null) => assignOrders(selectedList, driver);
 
-  // Auto-assign only the selected (unassigned) loads across the drivers — con el MISMO camino que el Gestor (D-419): el
-  // motor de «Planificar el día», un día por petición, sin los choferes que no están, no rutean o tienen la ruta 🔒 (el
-  // servidor lee ausencias y candados de ese día), y cada orden escrita solo si no cambió desde que se planificó.
-  const autoAssignSelected = async () => {
-    const pool = selectedList.filter((d) => !d.assigned_driver);
-    if (!pool.length) { notify(t("Select unassigned loads to auto-assign.", "Seleccione cargas sin asignar.")); return; }
-    setAssignBusy(true);
-    try {
-      const r = await repartirConElMotor({
-        ordenes: pool,
-        choferes: drivers,
-        pide: pideElReparto(SIN_BASE, () => ({
-          deliveries, users, settings, availability,
-          bloqueadas: (f) => leeBloqueos((() => { try { return window.localStorage; } catch { return null; } })())[f] ?? [],
-        })),
-        escribe: async (w) => {
-          const ok = await updateDelivery(w.id, w.patch, { quiet: true, siNoCambioDesde: w.updated_at || undefined });
-          if (ok && w.nueva) addNote(w.id, `Assigned to ${w.chofer} (auto-assign)`);
-          return ok;
-        },
-      });
-      const porId = new Map(pool.map((d) => [d.id, d]));
-      const resumen = resumenDelReparto(r, (id) => porId.get(id), orderLabel);
-      notify(t(resumen.en, resumen.es));
-    } finally {
-      setAssignBusy(false);
-      clearSelection();
-    }
-  };
+  // «✨ Auto-asignar selección» se quitó en D-NEXT: repartir automático es «Armar las rutas del día», en el Gestor de
+  // Rutas. Aquí queda asignar a mano (una, o todas las marcadas a un chofer).
 
   // Las órdenes que tienen punto: las que se pintan, y de las que sale la leyenda.
   const conPunto = useMemo(() => dayOrders.filter((d) => d.delivery_lat != null && d.delivery_lng != null), [dayOrders]);
@@ -475,14 +443,13 @@ export default function MapPage() {
             </h2>
             <button className="btn btn-ghost btn-sm" onClick={clearSelection}>✕ {t("Clear", "Limpiar")}</button>
           </div>
-          <p className="hint" style={{ marginTop: 6 }}>{t("Their routes are highlighted in blue. Assign all to one driver, or auto-assign the unassigned ones.", "Sus rutas se resaltan en azul. Asigne todas a un chofer, o auto-asigne las que estén sin asignar.")}</p>
+          <p className="hint" style={{ marginTop: 6 }}>{t("Their routes are highlighted in blue. Assign all to one driver, or plan the day with “Build routes” in the Routes Manager.", "Sus rutas se resaltan en azul. Asigne todas a un chofer, o planifique el día con «Armar rutas» en el Gestor de Rutas.")}</p>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
             <select defaultValue="" disabled={assignBusy} style={{ width: "auto" }}
               onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v) assignOrders(selectedList, v); }}>
               <option value="">{t("Assign all to…", "Asignar todas a…")}</option>
               {drivers.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
-            <button className="btn btn-amber btn-sm" disabled={assignBusy} onClick={autoAssignSelected}>✨ {t("Auto-assign selected", "Auto-asignar selección")}</button>
             <button className="btn btn-ghost btn-sm" disabled={assignBusy} onClick={() => assignOrders(selectedList, null)}>{t("Unassign", "Quitar")}</button>
           </div>
         </div>

@@ -183,11 +183,13 @@ describe("la pantalla del Gestor usa «Mejor lugar»", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
   const cuerpo = (() => {
     const i = pagina.indexOf("const colocaEnElMejorLugar = async");
-    return pagina.slice(i, pagina.indexOf("const previewAdd = async", i));
+    const fin = pagina.indexOf("const move = async", i);
+    expect(fin).toBeGreaterThan(i);
+    return pagina.slice(i, fin);
   })();
 
   it("el botón del recuadro «Elige conductor» coloca en la ruta del elegido, y se apaga sin elegido o con la ruta bloqueada", () => {
-    expect(pagina).toContain("data-mejor-lugar disabled={!conductorElegido || autoAssigning || (!!conductorElegido && bloqueada(conductorElegido))}");
+    expect(pagina).toContain("data-mejor-lugar disabled={!conductorElegido || asignando || (!!conductorElegido && bloqueada(conductorElegido))}");
     expect(pagina).toContain("onClick={() => { if (conductorElegido) void colocaEnElMejorLugar(conductorElegido); }}");
   });
   it("con la ruta bloqueada, el recuadro dice por qué", () => {

@@ -6,7 +6,9 @@ import { proveedorEstimado } from "@/lib/route-times/proveedores";
 import { esDeSuZona, zonaDeLaRecogida, zonasPorNombre } from "@/lib/zonas";
 import { planificaElDia } from "./borrador";
 import { entradaDelDia, type DatosDelDia } from "./entrada";
-import { repartoConDetalle, type DiaParaElReparto, type FilaDelReparto } from "./reparto";
+
+/** Una orden del día tal como la lee el motor, con dónde va hoy en su ruta. */
+type FilaDelReparto = DatosDelDia["ordenes"][number] & { delivery_date?: string | null; route_seq?: number | null; load_no?: number | null };
 
 /**
  * La zona de la RECOGIDA, de la base a las tres pantallas que reparten (D-427). El dueño, 2026-09-27: *«no tiene sentido
@@ -68,7 +70,7 @@ describe("Ajustes lo dice", () => {
   });
 });
 
-describe("las tres pantallas que reparten heredan la regla", () => {
+describe("las pantallas que reparten heredan la regla (eran tres; Auto-asignar se quitó en D-NEXT)", () => {
   it("«Planificar el día»: lo que sale de la tienda de M hacia la zona de J va con M (sin la ciudad de la tienda, con J)", async () => {
     const con = await planificaElDia(datos([ordenDe("o1")]), "2026-10-05", "America/Chicago", deps());
     const sin = await planificaElDia(datos([ordenDe("o1")], SIN_CIUDAD), "2026-10-05", "America/Chicago", deps());
@@ -77,14 +79,7 @@ describe("las tres pantallas que reparten heredan la regla", () => {
     expect(sin.paradas.filter((p) => p.kind === "D").map((p) => p.driver_id)).toEqual(["uj"]);
   });
 
-  it("«✨ Auto-asignar» (el mismo motor, D-419): la misma orden, al mismo chofer", async () => {
-    const dia = (tiendas: object[]): DiaParaElReparto => ({ ordenes: [ordenDe("o1")], choferes: CHOFERES, ajustesDeChofer: AJUSTES, settings: settings(tiendas), noDisponibles: [], bloqueadas: [] });
-    const pet = { fecha: "2026-10-05", ordenes: ["o1"], choferes: ["Chofer J", "Chofer M"] };
-    const con = (await repartoConDetalle(dia([TIENDA_N, TIENDA_S]), pet, "America/Chicago", deps())).respuesta;
-    const sin = (await repartoConDetalle(dia(SIN_CIUDAD), pet, "America/Chicago", deps())).respuesta;
-    expect(con.escrituras.filter((e) => e.nueva).map((e) => e.chofer)).toEqual(["Chofer M"]);
-    expect(sin.escrituras.filter((e) => e.nueva).map((e) => e.chofer)).toEqual(["Chofer J"]);
-  });
+  // «✨ Auto-asignar» (el mismo motor, D-419) tenía aquí su prueba; se fue con él en D-NEXT.
 
   it("«📍 Mejor lugar» (solo sugerencia): con las tiendas, la orden también es «de su zona» para M, por su tienda", () => {
     const zonas = zonasPorNombre(AJUSTES, CHOFERES);
