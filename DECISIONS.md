@@ -32358,3 +32358,11 @@ así que no hay «última pestaña = incidencias» que recoger.
   Incidencias o la barra de «Armar rutas» hay que bajar hasta que asomen por abajo, u ocultar el mapa con «🗺 Ocultar mapa y
   choferes». Ya era así; no se tocó.
 - El gerente sin nada automático (sección 2), a validar con el dueño.
+
+## D-438 · En la tabla de Órdenes, la marca roja de la fecha dice «Expirada», no «Tarde»
+
+**Fecha:** 2026-09-28. **Pedido del dueño**, con captura de la pastilla «Expiradas»: *«change tarde to expirado»*.
+
+**Qué cambió.** La etiqueta roja junto a la fecha de entrega de una orden vencida (`OrdersTable.tsx`, `isOverdue`) pasa de
+«Late / Tarde» a «Expired / Expirada», igual que la pastilla «Expiradas» de D-426. **No cambia** «Tarde» en «Puntualidad por
+chofer» (D-414): ahí quiere decir que el chofer llegó tarde, no que la orden venció.
