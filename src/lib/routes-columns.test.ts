@@ -35,7 +35,7 @@ describe("las columnas del Gestor", () => {
     // Todas menos la prioridad (D-412), que nace escondida y se elige en ⚙.
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR.filter((k) => k !== "priority"));
     // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen.
-    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]);
+    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_address", "p_eta", "p_windows"]);
   });
   it("el orden es el de la tabla, no el de quien marca; una clave que ya no existe se ignora; y cada columna sale solo en SU tabla", () => {
     expect(columnasDeLaTabla("sinAsignar", ["pallets", "columna_retirada", "fee", "invoice", "p_eta"]).map((c) => c.key)).toEqual(["invoice", "pallets", "fee"]);
@@ -102,12 +102,12 @@ describe("las columnas del Gestor", () => {
   });
   it("la tabla de paradas: lo que se quita no se pinta; por defecto salen las cinco de siempre", () => {
     const paradas = (elegidas: readonly string[]) => columnasDeLaTabla("paradas", elegidas).map((c) => c.key);
-    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]);
-    expect(paradas(alternaColumna(COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_eta"))).toEqual(["p_type", "p_pallets", "p_address", "p_windows"]);
+    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_type", "p_address", "p_eta", "p_windows"]);
+    expect(paradas(alternaColumna(COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_eta"))).toEqual(["p_type", "p_address", "p_windows"]);
     expect(paradas(["invoice", MARCA_V2])).toEqual([]);
     // Los puestos viejos (`indice`) ya no pintan: solo dicen de qué casilla de `rtg_routes_stops8` se hereda el ancho.
     const puestos = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas") && c.indice != null).map((c) => c.indice);
-    expect(puestos).toEqual([2, 3, 4, 5, 6]);
+    expect(puestos).toEqual([2, 4, 5, 6]);   // el 3 era `p_pallets`, quitada en D-444
   });
   it("las columnas de Órdenes en paradas: solo las elegidas, de partida detrás de las cinco de siempre, y ninguna con puesto", () => {
     expect(columnasDeLaTabla("paradas", ["p_fee", "p_type", "p_stage", "fee"]).map((c) => c.key)).toEqual(["p_type", "p_stage", "p_fee"]);
@@ -183,15 +183,18 @@ describe("la página del Gestor", () => {
     expect(pagina.split('c.key === "invoice" ? enlaceALaOrden(d)').length - 1).toBe(1);
     expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map(");
     expect(pagina).toContain("{menuSinAsignar.map((c) => <th key={c.key}>");
-    // La tabla de paradas la enseña en el puesto 1, donde estaba el ID, con el mismo enlace.
-    expect(pagina).toContain('<td className="ordno">{enlaceALaOrden(d)}</td>');
+    // La tabla de paradas enseñaba la factura en el puesto 1; desde D-444 vuelve el ID, con el mismo gesto que abre la orden.
+    expect(pagina).toContain('<td className="ordno">{enlaceConElId(d)}</td>');
+    expect(pagina).toContain("const enlaceConElId = (d: Delivery) => <span {...abreLaOrden(d)} data-abre-la-orden>{orderLabel(d)}</span>;");
   });
-  it("D-408: sin columna del ID en ninguna de las dos tablas — ni cabecera, ni col, ni celda", () => {
-    for (const muerto of ["COL_ID", "CLAVE_ID", 'poolCols.widthOf("__id")', 'poolCols.startResize("__id")', "#{orderLabel(d)}</td>", '<span className="parada-id">', 'className="parada-factura"', 't("ID", "ID")'])
+  it("D-408: sin columna del ID en «Sin asignar»; en paradas, el ID vuelve en el puesto de la factura (D-444)", () => {
+    for (const muerto of ["COL_ID", "CLAVE_ID", 'poolCols.widthOf("__id")', 'poolCols.startResize("__id")', "#{orderLabel(d)}</td>", '<span className="parada-id">', 'className="parada-factura"'])
       expect(pagina, muerto).not.toContain(muerto);
     expect(pagina).toContain("style={anchoDeTabla([28, ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}");
     expect(pagina).toContain("<td colSpan={colsSinAsignar.length + 2} className=\"empty\">");
-    expect(pagina).toContain('<th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
+    // El dueño, 2026-09-29: «en vez de facturas, pongas el ID». La clave del ancho sigue siendo `_factura`.
+    expect(pagina).toContain('<th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
+    expect(pagina).not.toContain('<th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
   });
   it("D-408: el enlace pinta el texto de `textoQueAbreLaOrden`, abre con el gesto de siempre, y va gris sin factura", () => {
     const i = pagina.indexOf("const enlaceALaOrden = (d: Delivery) => {");
@@ -234,9 +237,10 @@ describe("la página del Gestor", () => {
     // Número de parada y factura delante de las elegidas; las acciones, detrás.
     expect(pagina.indexOf('<col style={{ width: anchoDeParada("_factura") }} />')).toBeLessThan(col);
     expect(pagina.indexOf('<col style={{ width: anchoDeParada("_acciones") }} />')).toBeGreaterThan(col);
-    expect(pagina.indexOf('<td className="ordno">{enlaceALaOrden(d)}</td>')).toBeLessThan(td);
+    expect(pagina.indexOf('<td className="ordno">{enlaceConElId(d)}</td>')).toBeGreaterThan(-1);
+    expect(pagina.indexOf('<td className="ordno">{enlaceConElId(d)}</td>')).toBeLessThan(td);
     // Las cinco de siempre, cada una por su clave; y las de Órdenes con la celda de Órdenes.
-    for (const k of ["p_type", "p_pallets", "p_address", "p_eta", "p_windows"]) expect(pagina.split(`case "${k}": return`).length - 1, k).toBe(1);
+    for (const k of ["p_type", "p_address", "p_eta", "p_windows"]) expect(pagina.split(`case "${k}": return`).length - 1, k).toBe(1);
     expect(pagina).toContain("default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;");
   });
   it("D-376 → D-410: los colSpan cuentan las fijas y las elegidas, y el ancho de la tabla suma las mismas", () => {
@@ -245,7 +249,8 @@ describe("la página del Gestor", () => {
     // Solo el aviso ocupa la tabla entera (la cabecera de cada viaje se fue con los viajes); las filas P, Base y «otra
     // carga» ocupan justo las elegidas, tras las tres fijas.
     expect(pagina.split("<td colSpan={columnasDeParadas}").length - 1).toBe(1);
-    expect(pagina.split("<td colSpan={colsParadas.length}").length - 1).toBe(3);
+    // Desde D-444 la fila P pinta sus columnas (una orden por fila): quedan las Base y «otra carga».
+    expect(pagina.split("<td colSpan={colsParadas.length}").length - 1).toBe(2);
     expect(pagina).toContain('width: ["_n", "_factura", "_cuenta", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0)');
   });
   it("D-410: los anchos de paradas van por CLAVE, en la llave nueva, sembrada antes de que el hook la lea", () => {

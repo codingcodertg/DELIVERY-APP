@@ -3,7 +3,7 @@
 import { Fragment, useState, type ReactNode } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { horaDeReloj, type ParadaVista, type RutaVista } from "@/lib/route-plan/vista";
-import { dosDecimales, textoDeLaCuenta, textoDelExceso, type FilaDeCuenta } from "@/lib/lista-unica";
+import { numeroDePallets, textoDeLaCuenta, textoDelExceso, type FilaDeCuenta } from "@/lib/lista-unica";
 import { cambiaConLaVecina, type Movimiento } from "@/lib/route-plan/ajuste";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { COLUMNAS_DEL_GESTOR, seVeEnLaRecogida, type ColumnaDelGestor } from "@/lib/routes-columns";
@@ -94,10 +94,10 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
 
   const duracion = (min: number) => `${Math.floor(min / 60)} h ${min % 60} min`;
 
-  /** La celda fija de la cuenta (D-443): la operación entera y, si se pasa, cuánto, en ESTA fila. */
+  /** La celda fija de la cuenta (D-443): «+4 = 4» desde D-444 y, si se pasa, cuánto, en ESTA fila. */
   const celdaDeCuenta = (f: FilaDeCuenta, capacidad: number | null) => (
-    <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }} title={t("On board before ± this stop = on board after · free", "A bordo antes ± esta parada = a bordo después · libres")}>
-      {capacidad != null ? textoDeLaCuenta(f, lang === "es") : `${dosDecimales(f.antes)} ${f.cambio < 0 ? "−" : "+"} ${dosDecimales(Math.abs(f.cambio))} = ${dosDecimales(f.despues)}`}
+    <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }} title={t("What this stop loads (+) or unloads (−) = pallets on board after it", "Lo que carga (+) o descarga (−) esta parada = pallets a bordo después")}>
+      {textoDeLaCuenta(f)}
       {f.exceso > 0 && <span data-exceso style={{ color: "var(--red)", fontWeight: 700, marginLeft: 6 }}>{textoDelExceso(f, capacidad, lang === "es")}</span>}
     </td>
   );
@@ -110,7 +110,7 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
         <td><b>{t("Base", "Base")}</b></td>
         <td>{cual === "salida" ? t("Leaves", "Salida") : t("Returns", "Regreso")}</td>
         <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", color: mal ? "var(--red)" : undefined, fontWeight: mal ? 700 : undefined }}>
-          {dosDecimales(f.despues)}{ruta.capacidad != null && ` · ${dosDecimales(f.disponible)} ${t("free", "libres")}`}
+          {numeroDePallets(f.despues)}
           {mal && <span data-no-cuadra> ⚠ {t("doesn’t come back empty: the count doesn’t add up", "no vuelve vacío: la cuenta no cuadra")}</span>}
         </td>
         {lista.map((c) => <td key={c.key} />)}

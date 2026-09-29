@@ -55,7 +55,7 @@ describe("mover columnas en «Sin asignar»", () => {
   it("mover en una tabla NO toca la otra, y nunca cruza de una tabla a la otra", () => {
     const orden = mueve("paradas", mueve("sinAsignar", null, "store", -2), "p_eta", -1);
     expect(sinAsignar(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden).indexOf("store")).toBe(5);
-    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden)).toEqual(["p_type", "p_pallets", "p_eta", "p_address", "p_windows"]);
+    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden)).toEqual(["p_type", "p_eta", "p_address", "p_windows"]);
     // La última de «Sin asignar» hacia abajo no se va a la tabla de paradas: no se mueve, y la flecha se apaga.
     // Con TODAS puestas la última es la prioridad (D-412, `alFinal`); hasta entonces era «Ventanas».
     expect(SIN[SIN.length - 1]).toBe("priority");
@@ -82,7 +82,7 @@ describe("lo que se guarda en `_orden`", () => {
     expect(tieneOrdenPropio("paradas", orden)).toBe(true);
     const sinSin = restableceOrdenDelGestor("sinAsignar", orden);
     expect(tieneOrdenPropio("sinAsignar", sinSin)).toBe(false);
-    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, sinSin)).toEqual(["p_type", "p_pallets", "p_eta", "p_address", "p_windows"]);
+    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, sinSin)).toEqual(["p_type", "p_eta", "p_address", "p_windows"]);
     expect(restableceOrdenDelGestor("paradas", sinSin)).toBeNull();
     expect(tieneOrdenPropio("sinAsignar", null)).toBe(false);
   });
@@ -181,10 +181,12 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // D-435 sumó la ciudad de entrega al plan y la marca `_v7`: 13916 con 10 (modelo). En este peor caso ya caben 4 plantillas
     // llenas, no 5: la quinta la para la guarda, que lo dice al guardar.
     // D-443 quitó una (`pl_bordo`: la cuenta de pallets pasó a columna fija): 13916 → 13652 con 10 (modelo). Lo mismo: caben 4.
-    expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(13652);
+    // D-444 (sin `p_pallets`: la cuenta ya dice lo de cada parada): 13652 → 13387 con 10 (modelo). Lo mismo: caben 4.
+    expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(13387);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
-    expect(cabeEnLaFila(con(4))).toBe(true);
-    expect(cabeEnLaFila(con(5))).toBe(false);
+    // Y con eso vuelven a caber 5 (7 327 + 800 < 8 192), como decía el título: la sexta la para la guarda.
+    expect(cabeEnLaFila(con(5))).toBe(true);
+    expect(cabeEnLaFila(con(6))).toBe(false);
     expect(MAX_PLANTILLAS).toBe(10);
   });
   it("los 6 roles llenos + plantillas llenas: la guarda dice cuántas no caben en vez de fallar en silencio", () => {
@@ -199,17 +201,21 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // lo que la 136 rechaza), pero ya no con la reserva de 800 de la guarda: en este peor caso no se puede guardar ninguna
     // plantilla — que ya era así (caben 0, abajo). Marcar, mover o quitar columnas no pasa por la guarda y sigue escribiéndose.
     // D-443 (sin `pl_bordo`): 7 582 → 7 438 sin plantillas.
-    expect(bytesEnLaBase(con(0))).toBe(7438);
+    // D-444 (sin `p_pallets`: la cuenta ya dice lo de cada parada): 7 438 → 7 293.
+    expect(bytesEnLaBase(con(0))).toBe(7293);
     expect(bytesEnLaBase(con(0))).toBeLessThan(TOPE_DE_LA_BASE);
-    expect(cabeEnLaFila(con(0))).toBe(false);
-    // D-443 (sin `pl_bordo`): 20 208 → 19 824 con 10.
-    expect(bytesEnLaBase(con(10))).toBe(19824);
+    // Con 7 293 + 800 = 8 093 < 8 192, sin plantillas la guarda vuelve a dejar (D-444); una ya no.
+    expect(cabeEnLaFila(con(0))).toBe(true);
+    expect(cabeEnLaFila(con(1))).toBe(false);
+    // D-443 (sin `pl_bordo`): 20 208 → 19 824 con 10. D-444 (sin `p_pallets`): 19 824 → 19 439.
+    expect(bytesEnLaBase(con(10))).toBe(19439);
     expect(bytesEnLaBase(con(10))).toBeGreaterThan(TOPE_DE_LA_BASE - RESERVA_PARA_LO_DEMAS);
     expect(cabeEnLaFila(con(10))).toBe(false);
     // Cuántas caben en ese peor caso: lo que cuenta la entrada de DECISIONS.md.
     const caben = Array.from({ length: MAX_PLANTILLAS + 1 }, (_, n) => n).filter((n) => cabeEnLaFila(con(n))).pop();
     // Hasta D-434, 0 (sin plantillas la guarda aún dejaba); desde D-435, ninguna cuenta —ni 0—: la guarda para la primera.
-    expect(caben).toBeUndefined();
+    // Desde D-444, 0 otra vez: sin plantillas cabe, y la primera ya no.
+    expect(caben).toBe(0);
   });
   it("lo normal con la tabla del plan (D-429): logística y admin con las de por defecto y 10 plantillas de esas caben con holgura", () => {
     const porDefecto = COLUMNAS_DEL_GESTOR_POR_DEFECTO.filter((k) => !MARCAS.includes(k));
@@ -217,8 +223,9 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
       plantillas: Array.from({ length: MAX_PLANTILLAS }, (_, i) => ({ n: `Logística ${i + 1}`, v: porDefecto })) });
     // D-434: el plan de partida pasa de 10 columnas a 5, así que lo normal pesa menos (4 312 → 3 752).
     // D-435: una columna más de partida (la ciudad de entrega) y la marca `_v7`.
-    expect(porDefecto).toHaveLength(25);
-    expect(bytesEnLaBase(v)).toBe(4045);   // 3 752 → 4 045
+    // D-444 (sin `p_pallets`: la cuenta ya dice lo de cada parada): 25 → 24.
+    expect(porDefecto).toHaveLength(24);
+    expect(bytesEnLaBase(v)).toBe(3864);   // 3 752 → 4 045; D-444 (sin `p_pallets`): 4 045 → 3 864
     expect(cabeEnLaFila(v)).toBe(true);
   });
 });
@@ -227,7 +234,8 @@ describe("los anchos de paradas, por clave", () => {
   it("de partida, los MISMOS que tenía la tabla por posición (D-408), columna por columna", () => {
     const porPosicion = [40, 110, 140, 70, 120, 56, 110, 150];
     const claves = ["_n", "_factura", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", "_acciones"];
-    expect(claves.map((k) => anchoDePartidaDeParada(k, COLUMN_WIDTHS))).toEqual(porPosicion);
+    // D-444 (sin `p_pallets`: la cuenta ya dice lo de cada parada): la del puesto 3 ya no tiene ancho; las demás, los mismos.
+    expect(claves.map((k) => anchoDePartidaDeParada(k, COLUMN_WIDTHS))).toEqual(porPosicion.map((w, i) => (i === 3 ? undefined : w)));
     // Las de Órdenes, con el ancho de Órdenes, como antes (`stopExtraCols.widthOf(deOrdenes)`).
     expect(anchoDePartidaDeParada("p_stage", COLUMN_WIDTHS)).toBe(COLUMN_WIDTHS.stage);
     expect(anchoDePartidaDeParada("p_account", COLUMN_WIDTHS)).toBe(COLUMN_WIDTHS.account);
@@ -236,7 +244,7 @@ describe("los anchos de paradas, por clave", () => {
   });
   it("lo arrastrado antes se hereda: por posición de `stops8` y por clave de Órdenes de `stops_extra1`", () => {
     expect(anchosDeParadasHeredados([41, 111, 141, 71, 121, 57, 111, 151], { stage: 200, fee: 90, raro: 5 }))
-      .toEqual({ _n: 41, _factura: 111, _acciones: 151, p_type: 141, p_pallets: 71, p_address: 121, p_eta: 57, p_windows: 111, p_stage: 200, p_fee: 90 });
+      .toEqual({ _n: 41, _factura: 111, _acciones: 151, p_type: 141, p_address: 121, p_eta: 57, p_windows: 111, p_stage: 200, p_fee: 90 });   // sin p_pallets (D-444)
     // Lo que no vale no se hereda: una lista de otro largo (la de `stops7` tenía 8, pero otra cosa no), números rotos.
     expect(anchosDeParadasHeredados([1, 2, 3], null)).toEqual({});
     expect(anchosDeParadasHeredados([40, "x", 140, null, 120, 56, 110, 150], "roto")).toEqual({ _n: 40, p_type: 140, p_address: 120, p_eta: 56, p_windows: 110, _acciones: 150 });

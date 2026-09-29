@@ -123,7 +123,7 @@ export function lecturaDeLaRuta(
 }
 
 /** La lista tal como la dejó el plan, solo con las órdenes que se pintan. La carga de cada parada, la del plan (lo que
- *  cambió `load_after`): así cuadra también una orden repartida en cargas. Recogidas seguidas en el mismo sitio, una. */
+ *  cambió `load_after`): así cuadra también una orden repartida en cargas. Cada recogida, su fila (D-444). */
 function delPlan(paradas: readonly ParadaDelPlanMinima[], ordenes: readonly OrdenAsignada[]): LecturaDeRuta {
   const pinta = new Set(ordenes.map((o) => o.id));
   const filas: FilaDeLaRuta[] = [];
@@ -145,15 +145,9 @@ function delPlan(paradas: readonly ParadaDelPlanMinima[], ordenes: readonly Orde
       filas.push({ tipo: "D", orden: id, etiqueta: p.label, cambio, indice: otraCarga ? null : lista.length - 1, otraCarga });
       continue;
     }
-    const ultima = filas[filas.length - 1];
+    // Cada recogida en su fila, también seguidas en el mismo sitio (D-444): el grupo lo pinta el color, no una fila juntada.
     const lugar = p.place ?? null;
-    if (ultima?.tipo === "P" && ultima.indice != null && !!lugar && ultima.lugar === lugar) {
-      if (!ultima.ordenes.includes(id)) ultima.ordenes.push(id);
-      ultima.etiqueta = `${ultima.etiqueta}·${p.label}`;
-      ultima.cambio = Math.round(((ultima.cambio ?? 0) + cambio) * 100) / 100;
-      const enLista = lista[ultima.indice];
-      if (enLista.tipo === "P" && !recogida.has(id)) enLista.ordenes.push(id);
-    } else if (recogida.has(id)) {
+    if (recogida.has(id)) {
       // Otra carga de una orden ya recogida: el camión vuelve a por ella. Se pinta; no es otra recogida que mover.
       filas.push({ tipo: "P", ordenes: [id], lugar, etiqueta: p.label, cambio, indice: null });
     } else {

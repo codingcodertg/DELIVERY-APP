@@ -29446,6 +29446,10 @@ desplaza de lado. Capturas: `agente-R/tiros/` del scratchpad (16).
 > «TX.78521») y, cuando lo que queda es la calle sin comas («9 W ROBLES EDINBURG TX»), toma la ciudad CONOCIDA que cierra el
 > texto (las que salen limpias de otras direcciones, las de las tiendas y las zonas de los choferes). «Nunca adivina buscando
 > nombres conocidos dentro del texto» sigue valiendo para las direcciones con comas; sin ellas, una conocida al FINAL sí.
+>
+> **Reemplazada en parte por D-444** (2026-09-29): en la tabla de PARADAS de cada chofer vuelve el **ID**, en el puesto
+> de la factura y con el mismo gesto que abre la orden. El dueño: «en vez de facturas, pongas el ID. Entonces no ocupo la
+> factura». «Sin asignar» sigue sin columna del ID, como decidió esta entrada.
 
 **Fecha:** 2026-09-26 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **De dónde sale.** Dos pedidos del dueño el mismo día, literales:
@@ -32921,6 +32925,11 @@ decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Des
 
 ## D-443 · Una sola lista por camión: se eliminan los viajes del Gestor, del plan y de «Mi ruta», con la cuenta de pallets en cada parada
 
+> **⚠ Reemplazada en parte por D-444** (2026-09-29): recogidas seguidas en la misma tienda ya **no** son una fila
+> («P1·P2»): cada recogida en su fila, y el mismo sitio se pinta como grupo (también entregas seguidas a la misma
+> dirección). La cuenta de cada fila ya no es la operación entera: «+4 = 4», sin el «antes» ni «libres», y sin decimales
+> de más. Era la decisión 1 de «Decisiones mías que el dueño debe validar»: no la validó.
+
 **Fecha:** 2026-09-28 · **Versión:** la pone el orquestador · **Migración:** `154_lista_unica.sql`, **escrita y NO
 aplicada** (plan: `docs/PLAN-154-lista-unica.md`). **Reemplaza en parte a** D-016, D-021, D-024, D-025, D-320, D-322,
 D-324, D-334, D-335, D-336, D-341, D-342, D-355, D-379, D-410, D-411, D-417, D-429, D-433, D-434, D-435, D-437 y D-441,
@@ -33048,3 +33057,78 @@ Pharr), camión de 10, y la lista del ejemplo guardada (`pickup_seq` −0.75, �
 **No verificado:** nada contra la base. La 154 no está aplicada, ni su ensayo (§6 del plan, lo corre el orquestador);
 publicar con la función nueva; una ruta publicada antes de este cambio en producción (se reconoce por la regla vieja: probado
 con planes del motor, no con datos reales); la recarga a media ruta en el mapa real de Google (el demo pinta Leaflet).
+
+## D-444 · Gestor de Rutas: una fila por recogida, el mismo sitio como grupo de color, la cuenta «+4 = 4» y el ID en vez de la factura
+
+**Fecha:** 2026-09-29 · **Versión:** deliveries 1.236.0 (repo 1.319.0) · **Migración:** ninguna nueva. **Reemplaza en
+parte a** D-443 (las recogidas juntadas y el texto de la cuenta) y D-408 (la factura en la tabla de paradas), que llevan su
+nota.
+
+### Qué pidió el dueño
+
+Con una captura de la ruta de un chofer en el Gestor, recién publicada D-443 (mensaje del 2026-09-29, por voz; extraído del
+fichero de sesión tal cual, sin corregir):
+
+> Mira, lo que estoy viendo aquí es que otra vez se hizo una actualización como yo quería, pero no me gusta. Ok, primero
+> que todo, yo no quiero que diga 0.00 pallets antes de parada, después, o sea, esa matemática no. Simplemente quiero
+> que diga si ahí arriba había 0, abajo va a decir 4 más... O sea, va a decir 0 y abajo va a decir más 4 igual... Hmm. 4
+> igual a 10. O sea, ¿cuántos pallets hay total? Eso es lo que quiero. Y no quiero que pongas libre y todo eso. Y si la
+> cifra no tiene decimal, no le pongas el decimal. A menos que si te desea un 3.15, 3.6, ahí sí pone. Pero si no, no le
+> pongas el decimal. Otra cosa. Estoy viendo que tienes facturas y al lado... Otra vez pones recoger en RDC4 y vuelves a
+> poner factura. Entonces, yo lo que quiero ahí es que a, en, en, al ladito, de, en vez de facturas, pongas el ID.
+> Entonces no ocupo la factura. Otra cosa. Eh, porque mira, ya tienes recoger en RDC y pones todas las facturas y todos
+> los ID. Eso no me sirve. Entonces... Eh, los, esa columna de pallets ya está en eso de pallets antes y para después
+> entonces eso no lo ocupo y los arrows, mira tenés combinadas a veces varias eh, pickups en una row no, cada pickup
+> tiene que tener su propio row, ahora si el sistema detecta que cada pickup que hay pickups en el mismo lugar seguidos,
+> entonces los va a poner De ese color así que tú los tienes Para que sepa que son las mismas, las mismas cosas Y si es
+> delivery en el mismo lugar También eh, Para que se mire como group Pero no me los pongas en una sola línea Porque se
+> confunde y después no lo puedo hacer Y ahora yo quiero cambiar el orden de los pickups Y el orden de las cosas y no
+> puedo Entonces quiero que pues, yo pueda mover Pickups y delivery como yo quiera Y que el sistema calcule la llegada
+> Entonces por favor hazme eso
+
+### Qué cambió
+
+- **Una recogida por fila** (`lista-unica`: `unaPorOrden`; `lectura-de-ruta`: `delPlan` ya no junta). La regla de
+  recogidas sin posición guardada sigue poniendo seguidas las de una misma tienda, pero cada una con su fila, su etiqueta
+  (P4, P5, P6 en vez de «P4·P5·P6») y sus flechas: el orden **dentro** del grupo se cambia con ↑↓ como cualquier otro.
+  Una parada P de varias órdenes que llegue (una lista vieja) se separa al leer y al mover, en el mismo orden.
+- **El mismo sitio, como grupo** (`gruposDeMismoLugar`): recogidas SEGUIDAS en la misma tienda, o entregas SEGUIDAS a la
+  misma dirección (sin mirar mayúsculas ni espacios), llevan un tono más fuerte (verde las P, amarillo las D) y una raya
+  arriba donde empieza cada grupo, para separar dos grupos seguidos. Solo lo seguido: la misma tienda más adelante es otra
+  vuelta. Una P y una D en el mismo sitio no se agrupan. Una parada sola no es grupo.
+- **La cuenta**: «+4 = 4» —lo que suma o resta la parada y el total a bordo— en el Gestor, la tabla del plan y «Mi ruta».
+  Sin el «antes» (es el total de la fila de arriba) ni «libres». La Base dice solo «0». Los números sin decimales si no los
+  tienen (`numeroDePallets`: «4», «3.15», «3.6»), también en «carga máxima», «pallets movidos» y el panel de choferes. El
+  aviso de exceso sigue en su fila («⚠ se pasa 1.5 de 10»).
+- **El ID en vez de la factura** en la columna fija de la tabla de paradas (`enlaceConElId`, abre la orden igual). La
+  fila P ya no dice «#FS515 · Fact. 170032»: dice «Recoger en RDZ Pharr» en la columna Tipo, y pinta las demás columnas
+  elegidas de SU orden (lo que es de la entrega —ciudad, ventanas, dirección, contacto— va vacío, como en el plan, D-429).
+  La factura sigue disponible como columna de Órdenes en el ⚙. La clave del ancho sigue siendo `_factura`.
+- **Sin la columna «Paradas: Pallets»** (`p_pallets`, fuera del catálogo): la cuenta ya lo dice. Quien la tenía guardada
+  no pierde nada: una clave que no está en el catálogo se ignora al leer.
+- **La llegada de cada recogida** en la columna Llegada: la medida de la ruta ya la calculaba (`P:` + su puesto en la
+  lista, desde D-443) y nadie la pintaba. Mover cualquier parada cambia la firma de la ruta y se vuelve a medir sola (para
+  los choferes marcados), así que la llegada de todas las paradas se recalcula.
+
+### Lo que NO hace esto: mover las recogidas necesita la 154
+
+Las flechas de las recogidas siguen **apagadas hasta que se aplique `154_lista_unica.sql`** (D-443): sin la columna
+`pickup_seq` no hay dónde guardar dónde va una recogida. Al publicar esto la 154 **no** estaba aplicada: el clasificador
+bloqueó aplicarla desde la sesión (2026-09-29) y se le pasó el comando al dueño. Las entregas sí se mueven ya.
+
+### Descartado
+
+- **Juntar las recogidas en una fila y abrirla al pulsar**: el dueño pidió explícitamente una fila cada una.
+- **Esconder `p_pallets` por defecto** en vez de quitarla: a quien ya la tenía guardada (el dueño) le seguiría saliendo.
+
+### Pruebas y mutantes
+
+Nuevas en `lista-unica.test.ts` (bloque «D-444…», ya numerado): los números sin decimales de más, la cuenta «+4 = 4»,
+tres recogidas seguidas en la misma tienda como tres filas y un grupo, entregas a la misma dirección normalizada, dos grupos
+seguidos con números distintos, P y D en el mismo sitio sin agrupar, y la página (la clave de la llegada de la P, la clase
+de grupo en P y D, sin «Fact.» ni «libres»). Las que afirmaban la fila juntada, el texto viejo de la cuenta y
+`p_pallets` se actualizaron con su nota; los tamaños de las plantillas (modelo, no medida de Postgres) bajan: con un rol
+lleno vuelven a caber 5 plantillas llenas, y con los seis roles llenos cabe 0 (antes ninguna).
+
+Tanda de 14 mutantes: **13 caen** con una prueba con nombre. **U1 sobrevive y es equivalente**: volver a juntar las
+recogidas de una tienda dentro del bloque no cambia nada, porque `unaPorOrden` las separa al final.

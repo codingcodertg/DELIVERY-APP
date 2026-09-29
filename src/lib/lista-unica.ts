@@ -86,7 +86,7 @@ export function tienePosicionDeRecogida(filas: readonly object[]): boolean {
  *   bloque. Una ruta que cabe entera en el camión son todas las recogidas al principio. Una ruta que no cabe recarga a
  *   media ruta cuando el camión se vacía, que es lo que hacían los viajes, pero ya en la misma lista. Un viaje histórico
  *   (`load_no`) también corta el bloque: la ruta vieja se sigue leyendo como se cargó.
- * - **Recogidas seguidas en la misma tienda son UNA parada**, con todas sus órdenes («P1·P2»).
+ * - **Una recogida por orden**, cada una en su fila, también seguidas en la misma tienda (D-444; hasta ahí eran una).
  */
 export function listaDelChofer(ordenes: readonly OrdenDeLaLista[], capacidad: number): ParadaDeLaLista[] {
   const entregas = entregasEnOrden(ordenes);
@@ -119,27 +119,54 @@ export function listaDelChofer(ordenes: readonly OrdenDeLaLista[], capacidad: nu
     if (guardada(o) != null && !recogidas.has(o.id)) { recogidas.add(o.id); sueltas.push(recogida(o)); }
     const suyo = bloqueAntesDe.get(o.id);
     if (suyo) {
-      // Una parada por tienda, en el orden en que aparece la primera orden de cada una.
+      // Las de una misma tienda, seguidas, en el orden en que aparece la primera orden de cada tienda. Una fila cada una
+      // (D-444): el grupo se ve por el color de la fila, no juntándolas.
       const porTienda = new Map<string, OrdenDeLaLista[]>();
       for (const x of suyo) porTienda.set(claveDeTienda(x), [...(porTienda.get(claveDeTienda(x)) ?? []), x]);
       for (const grupo of porTienda.values()) {
-        for (const x of grupo) recogidas.add(x.id);
-        sueltas.push({ tipo: "P", ordenes: grupo.map((x) => x.id), tienda: (grupo[0].store ?? "").trim() || null });
+        for (const x of grupo) { recogidas.add(x.id); sueltas.push(recogida(x)); }
       }
     }
     sueltas.push({ tipo: "D", orden: o.id });
   }
-  return juntaRecogidas(sueltas, new Map(ordenes.map((o) => [o.id, o])));
+  return unaPorOrden(sueltas);
 }
 
-/** Recogidas SEGUIDAS en la misma tienda son una sola parada física. */
-function juntaRecogidas(paradas: readonly ParadaDeLaLista[], porId: ReadonlyMap<string, { id: string; store?: string | null }>): ParadaDeLaLista[] {
-  const out: ParadaDeLaLista[] = [];
-  const clave = (p: ParadaDeLaLista & { tipo: "P" }) => { const o = porId.get(p.ordenes[0]); return o ? claveDeTienda(o) : `sin-tienda:${p.ordenes[0]}`; };
-  for (const p of paradas) {
-    const ultima = out[out.length - 1];
-    if (p.tipo === "P" && ultima?.tipo === "P" && clave(ultima) === clave(p)) out[out.length - 1] = { ...ultima, ordenes: [...ultima.ordenes, ...p.ordenes] };
-    else out.push(p.tipo === "P" ? { ...p, ordenes: [...p.ordenes] } : p);
+/**
+ * Una recogida por orden, cada una en su fila (D-444). Hasta aquí, recogidas SEGUIDAS en la misma tienda se juntaban en
+ * una parada («P4·P5·P6»). El dueño, 2026-09-29: «cada pickup tiene que tener su propio row […] no me los pongas en una sola
+ * línea porque se confunde y después no lo puedo hacer» — no podía cambiar el orden DENTRO del grupo. Que sean el mismo
+ * sitio lo dice el color de la fila (`gruposDeMismoLugar`). Una parada P de varias órdenes que llegue (una lista vieja) se
+ * separa aquí, en el mismo orden.
+ */
+function unaPorOrden(paradas: readonly ParadaDeLaLista[]): ParadaDeLaLista[] {
+  return paradas.flatMap((p): ParadaDeLaLista[] => (p.tipo === "P" ? p.ordenes.map((id) => ({ tipo: "P", ordenes: [id], tienda: p.tienda })) : [p]));
+}
+
+/**
+ * Qué filas SEGUIDAS son el mismo sitio (D-444), para pintarlas como grupo: recogidas seguidas en la misma tienda, o
+ * entregas seguidas en la misma dirección. Devuelve, por parada, el número de su grupo (0, 1, 2… en el orden de la lista),
+ * o `null` si la parada va sola. Solo agrupa lo seguido: la misma tienda más adelante es otra vuelta, no el mismo grupo.
+ */
+export function gruposDeMismoLugar(
+  paradas: readonly ParadaDeLaLista[], ordenes: readonly { id: string; store?: string | null; delivery_address?: string | null }[],
+): (number | null)[] {
+  const porId = new Map(ordenes.map((o) => [o.id, o]));
+  const lugar = (p: ParadaDeLaLista): string | null => {
+    if (p.tipo === "P") { const t = normaliza(p.tienda); return t ? `P:${t}` : null; }
+    const dir = normaliza(porId.get(p.orden)?.delivery_address).replace(/\s+/g, " ");
+    return dir ? `D:${dir}` : null;
+  };
+  const claves = paradas.map(lugar);
+  const out: (number | null)[] = paradas.map(() => null);
+  let grupo = -1;
+  for (let i = 0; i < paradas.length; i++) {
+    const k = claves[i];
+    if (k == null) continue;
+    const conLaDeAntes = i > 0 && claves[i - 1] === k;
+    const conLaDeDespues = i + 1 < paradas.length && claves[i + 1] === k;
+    if (!conLaDeAntes && conLaDeDespues) grupo++;
+    if (conLaDeAntes || conLaDeDespues) out[i] = grupo;
   }
   return out;
 }
@@ -241,22 +268,32 @@ export function cambiosDeLaLista(paradas: readonly ParadaDeLaLista[], ordenes: r
   });
 }
 
-const dos = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
+/**
+ * Un número de pallets como se lee (D-444): sin decimales si no los tiene («4», no «4.00»), y con los que tenga si sí
+ * («3.15», «3.6»). Redondeado a la centésima. El dueño, 2026-09-29: «si la cifra no tiene decimal, no le pongas el
+ * decimal. A menos que sea un 3.15, 3.6, ahí sí».
+ */
+export function numeroDePallets(n: number): string {
+  const c = Math.round(n * 100) / 100;
+  return String(c === 0 ? 0 : c);
+}
+const pl = numeroDePallets;
 
-/** «8.75 + 3.00 = 11.75 · −1.75 libres»: la cuenta de una fila tal como se lee, con dos decimales como la hoja del dueño. */
-export function textoDeLaCuenta(f: FilaDeCuenta, es: boolean): string {
-  const signo = f.cambio < 0 ? "−" : "+";
-  const libres = es ? "libres" : "free";
-  return `${dos(f.antes)} ${signo} ${dos(Math.abs(f.cambio))} = ${dos(f.despues)} · ${f.disponible < 0 ? "−" : ""}${dos(Math.abs(f.disponible))} ${libres}`;
+/**
+ * «+4 = 4»: lo que suma o resta la parada y cuántos pallets quedan a bordo (D-444). Hasta aquí era la operación entera,
+ * «0.00 + 4.00 = 4.00 · 6.00 libres» (D-443). El dueño, 2026-09-29: «no quiero que diga 0.00 pallets antes […] esa
+ * matemática no. […] ¿cuántos pallets hay total? Eso es lo que quiero. Y no quiero que pongas libre». El «antes» es el
+ * total de la fila de arriba.
+ */
+export function textoDeLaCuenta(f: FilaDeCuenta): string {
+  return `${f.cambio < 0 ? "−" : "+"}${pl(Math.abs(f.cambio))} = ${pl(f.despues)}`;
 }
 
 /** El aviso de la parada que se pasa: «⚠ se pasa 1.75 de 10». Vacío si no se pasa. */
 export function textoDelExceso(f: FilaDeCuenta, capacidad: number | null, es: boolean): string {
   if (!(f.exceso > 0)) return "";
-  return es ? `⚠ se pasa ${dos(f.exceso)} de ${capacidad}` : `⚠ over by ${dos(f.exceso)} of ${capacidad}`;
+  return es ? `⚠ se pasa ${pl(f.exceso)} de ${capacidad}` : `⚠ over by ${pl(f.exceso)} of ${capacidad}`;
 }
-
-export { dos as dosDecimales };
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Mover y escribir.
@@ -270,11 +307,11 @@ export type MovimientoEnLaLista =
 /**
  * ↑ / ↓ de la parada `indice` (cualquiera: P o D) un puesto. Cambia con su vecina, salvo que eso deje una entrega antes que
  * su recogida: una P que baja sobre la entrega de una de sus órdenes, o una D que sube sobre su propia recogida. Entonces no
- * se mueve nada y se dice qué orden lo impide. Tras mover, dos recogidas seguidas en la misma tienda pasan a ser una.
+ * se mueve nada y se dice qué orden lo impide. Cada recogida sigue en su fila (D-444).
  * La capacidad NO bloquea (es un cambio a mano): la cuenta lo avisa en la parada que se pase.
  */
 export function mueveEnLaLista(
-  paradas: readonly ParadaDeLaLista[], indice: number, dir: -1 | 1, ordenes: readonly { id: string; store?: string | null }[],
+  paradas: readonly ParadaDeLaLista[], indice: number, dir: -1 | 1,
 ): MovimientoEnLaLista {
   const j = indice + dir;
   if (indice < 0 || indice >= paradas.length || j < 0 || j >= paradas.length) return { ok: false, motivo: "borde" };
@@ -284,7 +321,7 @@ export function mueveEnLaLista(
   const nuevas = [...paradas];
   nuevas[indice] = paradas[j];
   nuevas[j] = paradas[indice];
-  return { ok: true, paradas: juntaRecogidas(nuevas, new Map(ordenes.map((o) => [o.id, o]))) };
+  return { ok: true, paradas: unaPorOrden(nuevas) };
 }
 
 /**
@@ -315,7 +352,7 @@ export function listaConEntregasEn(
     out.push({ tipo: "D", orden: id });
   }
   out.push(...pendientes);
-  return juntaRecogidas(conPrecedencia(out), porId);
+  return unaPorOrden(conPrecedencia(out));
 }
 
 /** Una recogida que haya quedado DESPUÉS de su entrega se adelanta, solo esa orden, justo delante de la entrega. */

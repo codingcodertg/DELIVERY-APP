@@ -32,7 +32,7 @@ describe("lo ya hecho no choca (`inicioDeLaSecuencia`, `hechasDelChofer`)", () =
     expect(desde).toBe(2);
     // Bajar la primera entrega (la lista: P·P, D335, D603 → P·P, D603, D335) y escribirla desde `desde`.
     const lista = listaDelChofer([todas[1], todas[2]], 12);
-    const r = mueveEnLaLista(lista, lista.findIndex((x) => x.tipo === "D" && x.orden === "335"), 1, [todas[1], todas[2]]);
+    const r = mueveEnLaLista(lista, lista.findIndex((x) => x.tipo === "D" && x.orden === "335"), 1);
     if (!r.ok) throw new Error("no se movió");
     const e = escrituraDeLaLista(r.paradas, desde);
     const foto = fotoTrasReordenar({}, e.ids, e.loadNoById, desde);

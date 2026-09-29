@@ -33,7 +33,7 @@ import {
   COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, claveDelOrdenEnElNavegador,
   columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
   mueveEnElGestor, ordenDePlantillaDelGestor, ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas,
-  tieneOrdenPropio, type TablaDelGestor,
+  seVeEnLaRecogida, tieneOrdenPropio, type TablaDelGestor,
 } from "@/lib/routes-columns";
 import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
@@ -63,8 +63,8 @@ import {
 } from "@/lib/arrastre-de-paradas";
 import { hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
 import {
-  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, dosDecimales, escrituraDeLaLista, listaConEntregasEn, mueveEnLaLista, textoDeLaCuenta,
-  textoDelExceso, tienePosicionDeRecogida, type FilaDeCuenta, type ParadaDeLaLista,
+  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, mueveEnLaLista, numeroDePallets,
+  textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type FilaDeCuenta, type ParadaDeLaLista,
 } from "@/lib/lista-unica";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
@@ -663,12 +663,13 @@ export default function RoutesPage() {
     return true;
   };
   /** La fila de la Base (D-443): la ruta sale de ella con 0 a bordo y vuelve con lo que quede, que tiene que ser 0. */
-  const filaDeLaBase = (laneKey: string, cual: "salida" | "regreso", f: FilaDeCuenta, capacidad: number, noCuadra: boolean) => (
+  const filaDeLaBase = (laneKey: string, cual: "salida" | "regreso", f: FilaDeCuenta, noCuadra: boolean) => (
     <tr key={`base-${cual}`} data-base={cual}>
       <td style={{ fontWeight: 700 }} title={t("Base", "Base")} aria-label={t("Base", "Base")}>🏠</td>
       <td className="hint" style={{ margin: 0 }}>{cual === "salida" ? t("Base: leaves", "Base: salida") : t("Base: returns", "Base: regreso")}</td>
       <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12, color: noCuadra ? "var(--red)" : undefined, fontWeight: noCuadra ? 700 : undefined }}>
-        {dosDecimales(f.despues)} · {dosDecimales(f.disponible)} {t("free", "libres")} <span className="hint" style={{ margin: 0 }}>/ {capacidad}</span>
+        {/* Solo cuántos van a bordo (D-444): «0». Sin «libres» ni «/ capacidad»: el dueño, «no quiero que pongas libre». */}
+        {numeroDePallets(f.despues)}
         {noCuadra && <div data-no-cuadra>⚠ {t("doesn’t come back empty: the count doesn’t add up", "no vuelve vacío: la cuenta no cuadra")}</div>}
       </td>
       <td colSpan={colsParadas.length} className="hint" style={{ margin: 0 }}>{pickupAddressFor(laneKey) ?? t("(no base: the driver has no store)", "(sin base: el chofer no tiene tienda)")}</td>
@@ -692,7 +693,7 @@ export default function RoutesPage() {
       notify(t("Moving a pickup needs the database update (migration 154). Deliveries can be moved; pickups follow the usual rule.", "Mover una recogida necesita la actualización de la base (migración 154). Las entregas sí se mueven; las recogidas siguen la regla de siempre."));
       return;
     }
-    const r = mueveEnLaLista(lectura.paradas, indice, dir, stops);
+    const r = mueveEnLaLista(lectura.paradas, indice, dir);
     if (!r.ok) {
       if (r.motivo === "precedencia") {
         const o = stops.find((x) => x.id === r.orden);
@@ -1041,6 +1042,10 @@ export default function RoutesPage() {
     const gesto = abreLaOrden(d);
     return <span {...gesto} data-abre-la-orden style={esFactura ? gesto.style : { ...gesto.style, color: "var(--gray)" }}>{texto}</span>;
   };
+
+  // En la tabla de paradas de un chofer, el enlace que abre la orden es su ID, no su factura (D-444). El dueño, 2026-09-29:
+  // «en vez de facturas, pongas el ID. Entonces no ocupo la factura». La factura sigue en su columna de Órdenes (⚙).
+  const enlaceConElId = (d: Delivery) => <span {...abreLaOrden(d)} data-abre-la-orden>{orderLabel(d)}</span>;
 
   // Columns for the drag-and-drop board: the unassigned pool, then one per driver.
   const boardColumns: BoardColumn[] = useMemo(() => {
@@ -2053,7 +2058,7 @@ export default function RoutesPage() {
                         </div>
                         <span className="hint" data-carga-maxima style={{ fontSize: 11, fontWeight: 700, color: over ? "var(--red)" : undefined }}
                           title={t("Peak load on the route vs the truck's capacity", "Carga máxima de la ruta contra la capacidad del camión")}>
-                          {dosDecimales(pallets)}/{cap}
+                          {numeroDePallets(pallets)}/{cap}
                         </span>
                       </div>
                     </div>
@@ -2392,8 +2397,16 @@ export default function RoutesPage() {
         // avisa (D-335). Se decide por chofer.
         const lectura = lecturaDe(u.key, stops);
         const porId = new Map(stops.map((d) => [d.id, d]));
-        // La cuenta de pallets de cada fila, visible de partida: antes ± la parada = después · libres (`cuentaDePallets`).
+        // La cuenta de pallets de cada fila, visible de partida: «+4 = 4», lo de la parada y el total a bordo (D-444).
         const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);
+        // Filas SEGUIDAS en el mismo sitio (D-444): cada una en su fila, pintadas como grupo con un tono más fuerte.
+        const grupos = gruposDeMismoLugar(lectura.paradas, stops);
+        const claseDeGrupo = (f: FilaDeLaRuta): string => {
+          const g = f.indice != null ? grupos[f.indice] : null;
+          if (g == null || f.indice == null) return "";
+          const inicio = f.indice === 0 || grupos[f.indice - 1] !== g;
+          return ` fila-grupo-${f.tipo === "P" ? "recoger" : "entregar"}${inicio ? " fila-grupo-inicio" : ""}`;
+        };
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379); y, fila a fila, lo que aún no tiene puesto.
         const provisional = esProvisional(stops);
         const isC = isCollapsed(u.key);
@@ -2435,7 +2448,7 @@ export default function RoutesPage() {
                   Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión. */}
               {stops.length > 0 && (
                 <span className="hint" data-totales-de-la-lista style={{ marginTop: 0 }}>
-                  {cuenta.totales.paradas} {t("stops", "paradas")} · {dosDecimales(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {dosDecimales(cuenta.totales.cargaMaxima)}/{capacity}
+                  {cuenta.totales.paradas} {t("stops", "paradas")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}
                 </span>
               )}
               {cuenta.totales.paradasConExceso > 0 && (
@@ -2583,12 +2596,13 @@ export default function RoutesPage() {
                   <thead>
                     <tr>
                       <th>#<span className="col-resizer" onMouseDown={asaDeParada("_n")} /></th>
-                      <th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
-                      <th data-columna-cuenta title={t("On board before ± this stop = on board after · free, against the truck's capacity", "A bordo antes ± esta parada = a bordo después · libres, contra la capacidad del camión")}>
-                        {t("Pallets: before ± stop = after · free", "Pallets: antes ± parada = después · libres")}<span className="col-resizer" onMouseDown={asaDeParada("_cuenta")} />
+                      {/* El ID, no la factura (D-444). La clave del ancho sigue siendo `_factura`: es la que está guardada. */}
+                      <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
+                      <th data-columna-cuenta title={t("What this stop loads (+) or unloads (−) = pallets on board after it", "Lo que carga (+) o descarga (−) esta parada = pallets a bordo después")}>
+                        {t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={asaDeParada("_cuenta")} />
                       </th>
                       {/* El rótulo es el del catálogo sin su «Paradas: » (el de Órdenes, para las que vienen de allí). */}
-                      {colsParadas.map((c) => <th key={c.key} title={c.key === "p_pallets" ? t("Pallets on this stop", "Pallets de esta parada") : undefined}>{(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}<span className="col-resizer" onMouseDown={asaDeParada(c.key)} /></th>)}
+                      {colsParadas.map((c) => <th key={c.key}>{(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}<span className="col-resizer" onMouseDown={asaDeParada(c.key)} /></th>)}
                       <th></th>
                     </tr>
                   </thead>
@@ -2597,7 +2611,7 @@ export default function RoutesPage() {
                       <tr><td colSpan={columnasDeParadas} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
                     )}
                     {/* La Base (D-443): la ruta sale de ella con 0 a bordo y vuelve a ella con 0. Si al volver no da 0, se marca. */}
-                    {filaDeLaBase(u.key, "salida", cuenta.salida, capacity, false)}
+                    {filaDeLaBase(u.key, "salida", cuenta.salida, false)}
                     {lectura.filas.map((f, fi) => {
                       const cu = cuenta.paradas[fi];
                       const gris = esProvisionalLaFila(f, porId);
@@ -2628,23 +2642,35 @@ export default function RoutesPage() {
                       );
                       const celdaDeCuenta = (
                         <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>
-                          {cu.sinConteo ? "~" : ""}{textoDeLaCuenta(cu, lang === "es")}
+                          {cu.sinConteo ? "~" : ""}{textoDeLaCuenta(cu)}
                           {cu.exceso > 0 && <div data-exceso style={{ color: "var(--red)", fontWeight: 700 }}>{textoDelExceso(cu, capacity, lang === "es")}</div>}
                         </td>
                       );
                       if (f.tipo === "P") {
+                        // Una orden por fila (D-444): su ID, su cuenta y sus columnas, como una entrega. Lo que es de la ENTREGA
+                        // —ciudad, ventanas, dirección, contacto— va vacío: esta parada es en la tienda (`seVeEnLaRecogida`).
                         const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
+                        const o = suyas[0];
+                        // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + su puesto en la lista.
+                        const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;
+                        const dondeRecoge = (
+                          <>
+                            {t("Pick up at", "Recoger en")} <b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>
+                            {!movible && <span className="hint" style={{ margin: 0 }}> · {t("another load of the same order", "otra carga de la misma orden")}</span>}
+                          </>
+                        );
                         return (
-                          <tr key={`P-${fi}-${clave}`} data-recogida={f.etiqueta} className={claseDeLaFilaDelPlan("P")}
+                          <tr key={`P-${fi}-${clave}`} data-recogida={f.etiqueta} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}`}
                             style={resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined} data-recien-movida={resaltada ? "" : undefined}>
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
-                            <td className="ordno">{suyas.map((d, k) => <Fragment key={d.id}>{k > 0 && " · "}{enlaceALaOrden(d)}</Fragment>)}</td>
+                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{enlaceConElId(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
-                            <td colSpan={colsParadas.length}>
-                              {t("Pick up at", "Recoger en")} <b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>
-                              {" — "}{f.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
-                              {!movible && <span className="hint" style={{ margin: 0 }}> · {t("another load of the same order", "otra carga de la misma orden")}</span>}
-                            </td>
+                            {colsParadas.map((c) => {
+                              if (c.key === "p_type") return <td key={c.key}>{dondeRecoge}</td>;
+                              if (c.key === "p_eta") return <td key={c.key} style={{ fontWeight: 600 }}>{etaP ?? "—"}</td>;
+                              if (c.key === "p_address" || c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
+                              return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, o)}</td>;
+                            })}
                             <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>
                               {flechas}{pasar}
                             </td>
@@ -2658,7 +2684,7 @@ export default function RoutesPage() {
                         return (
                           <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D")}>
                             <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
-                            <td className="ordno">{enlaceALaOrden(d)}</td>
+                            <td className="ordno">{enlaceConElId(d)}</td>
                             {celdaDeCuenta}
                             <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
                             <td />
@@ -2680,7 +2706,7 @@ export default function RoutesPage() {
                           key={d.id}
                           // Delivered stops tint green, so the route visibly fills in over the day. Isolating a stop still
                           // wins — that's a deliberate pick.
-                          className={`clickable${d.stage === "delivered" && !isolated ? " row-done" : ""}`}
+                          className={`clickable${d.stage === "delivered" && !isolated ? " row-done" : ""}${claseDeGrupo(f)}`}
                           style={isolated ? { background: "var(--accent-soft)" } : resaltada ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined}
                           data-recien-movida={resaltada ? "" : undefined}
                           data-entrega={f.etiqueta}
@@ -2692,26 +2718,14 @@ export default function RoutesPage() {
                           <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}
                             title={gris || provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
                           >{f.etiqueta}</td>
-                          {/* Solo la factura, subrayada: abre la orden (D-408). */}
-                          <td className="ordno">{enlaceALaOrden(d)}</td>
+                          {/* El ID, subrayado: abre la orden (D-408; el ID en vez de la factura desde D-444). */}
+                          <td className="ordno">{enlaceConElId(d)}</td>
                           {celdaDeCuenta}
                           {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
                               manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
                           {colsParadas.map((c) => {
                             switch (c.key) {
                               case "p_type": return <td key={c.key} title={d.order_type || undefined}>{d.order_type || "—"}</td>;
-                              // An estimate is marked so nobody plans capacity on a guess thinking it's counted.
-                              case "p_pallets": return (
-                                <td key={c.key} style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                  {d.actual_pallets != null ? (
-                                    <b title={t("Counted", "Contado")}>{d.actual_pallets}</b>
-                                  ) : d.est_pallets != null ? (
-                                    <span style={{ color: "var(--gray)" }} title={t("Estimate — not counted yet", "Estimado — aún sin contar")}>~{d.est_pallets}</span>
-                                  ) : (
-                                    <span style={{ color: "var(--amber)" }} title={t("No pallet count — this stop adds nothing to the count", "Sin conteo de pallets — esta parada no suma a la cuenta")}>—</span>
-                                  )}
-                                </td>
-                              );
                               case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;
                               case "p_eta": return (
                                 <td key={c.key} style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
@@ -2730,7 +2744,7 @@ export default function RoutesPage() {
                         </tr>
                       );
                     })}
-                    {filaDeLaBase(u.key, "regreso", cuenta.regreso, capacity, cuenta.totales.finalNoCero)}
+                    {filaDeLaBase(u.key, "regreso", cuenta.regreso, cuenta.totales.finalNoCero)}
                   </tbody>
                 </table>
               </div>

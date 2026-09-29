@@ -51,6 +51,8 @@
      no ámbar, para que el borde ámbar entre viajes siga viéndose encima. */
   --plan-recoger-bg: #eef9f2;
   --plan-entregar-bg: #fff9e0;
+  --grupo-recoger-bg: #d3efdd;
+  --grupo-entregar-bg: #fcefb4;
   /* El azul de los enlaces que abren una orden desde el plan (`var(--blue, #2563eb)`). En claro es el mismo que ya había;
      se declara para poder darle su par oscuro: #2563eb sobre la tarjeta oscura se leía a 3,1:1. */
   --blue: #2563eb;
@@ -99,6 +101,8 @@
   /* Los pares oscuros de la tabla del plan (D-435): el mismo matiz, apenas por encima de la tarjeta (#1a212c). */
   --plan-recoger-bg: #172a21;
   --plan-entregar-bg: #2a2818;
+  --grupo-recoger-bg: #1f3d2d;
+  --grupo-entregar-bg: #3d3819;
   --blue: #7aa2ff;
 }
 /* These element-level defaults are wrapped in a cascade LAYER, and that is
@@ -415,6 +419,12 @@ table.orders tr.row-done:hover td { background: #d8f0e4; }
 table.orders tr.fila-plan-recoger td { background: var(--plan-recoger-bg); }
 table.orders tr.fila-plan-entregar td { background: var(--plan-entregar-bg); }
 table.orders tr.fila-plan-recoger .hint, table.orders tr.fila-plan-entregar .hint { color: var(--ink-soft); }
+/* D-444: filas SEGUIDAS en el mismo sitio (recogidas en la misma tienda, entregas en la misma dirección), cada una en su
+   fila y pintadas como grupo: un tono más fuerte, y una raya arriba donde empieza cada grupo para separar dos seguidos. */
+table.orders tr.fila-grupo-recoger td { background: var(--grupo-recoger-bg); }
+table.orders tr.fila-grupo-entregar td { background: var(--grupo-entregar-bg); }
+table.orders tr.fila-grupo-inicio.fila-grupo-recoger td { border-top: 2px solid var(--green); }
+table.orders tr.fila-grupo-inicio.fila-grupo-entregar td { border-top: 2px solid var(--amber); }
 .ordno { font-weight: 800; font-family: 'Archivo'; }
 /* `.parada-id` y `.parada-factura` (D-379, el código arriba y la factura debajo en la celda del ID de las paradas) se
    quitaron en D-408: esa celda enseña solo la factura, subrayada con el mismo gesto que en «Sin asignar». */

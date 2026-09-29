@@ -12,7 +12,7 @@ import { routeOrder } from "@/lib/dispatch";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
 import { siguienteParada } from "@/lib/avisos-cliente";
 import { lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
-import { cuentaDePallets, dosDecimales, textoDeLaCuenta, textoDelExceso } from "@/lib/lista-unica";
+import { cuentaDePallets, numeroDePallets, textoDeLaCuenta, textoDelExceso } from "@/lib/lista-unica";
 import { usePlanPublicadoDelChofer } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
@@ -64,7 +64,7 @@ export default function MyRoutePage() {
   // (D-335). Una sola lectura, compartida.
   const planPublicado = usePlanPublicadoDelChofer(todayISO());
   const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, verAtrasadas ? null : planPublicado?.paradas ?? null), [stops, capacidad, planPublicado, verAtrasadas]);
-  // La cuenta de pallets de cada parada, la misma del Gestor: antes ± la parada = después · libres.
+  // La cuenta de pallets de cada parada, la misma del Gestor: «+4 = 4» (D-444; hasta ahí, la operación entera).
   const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);
   const dDe = lectura.etiquetaDe;
 
@@ -320,7 +320,7 @@ export default function MyRoutePage() {
                 {t(`${done} of ${stops.length} delivered`, `${done} de ${stops.length} entregadas`)}
               </b>
               <span className="hint">
-                {cuenta.totales.paradas} {t("stops", "paradas")} · {t("peak load", "carga máxima")} {dosDecimales(cuenta.totales.cargaMaxima)}/{capacidad}
+                {cuenta.totales.paradas} {t("stops", "paradas")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacidad}
               </span>
             </div>
             <div style={{ height: 8, borderRadius: 999, background: "var(--line)", overflow: "hidden", marginTop: 8 }}>
@@ -410,7 +410,7 @@ export default function MyRoutePage() {
                   aria-expanded={openTrip === 0}
                 >
                   <span>{openTrip === 0 ? "▾" : "▸"}</span>
-                  <span>🚚 {t("Your route", "Tu ruta")} · {dosDecimales(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")}</span>
+                  <span>🚚 {t("Your route", "Tu ruta")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")}</span>
                   {tripBusy === 0 && <span className="hint">{t("measuring…", "midiendo…")}</span>}
                   {tripRoutes[0] && (
                     <span className="hint" style={{ textTransform: "none", letterSpacing: 0 }}>
@@ -433,7 +433,7 @@ export default function MyRoutePage() {
                     const c = cuenta.paradas[fi];
                     const lineaDeCuenta = (
                       <span className="hint" data-cuenta style={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
-                        {c.sinConteo ? "~" : ""}{textoDeLaCuenta(c, lang === "es")}
+                        {c.sinConteo ? "~" : ""}{textoDeLaCuenta(c)}
                         {c.exceso > 0 && <b style={{ color: "var(--red)" }}> {textoDelExceso(c, capacidad, lang === "es")}</b>}
                       </span>
                     );

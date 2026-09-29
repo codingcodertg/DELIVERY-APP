@@ -31,12 +31,9 @@ describe("la ruta de un chofer, parada a parada", () => {
     expect(ruta.paradas.map((p) => [p.aBordoAlLlegar, p.load_after])).toEqual([[0, 2], [2, 5.5], [5.5, 3.5], [3.5, 0], [0, 4], [4, 0]]);
   });
 
-  it("D-443: sin viajes — cada parada lleva su CUENTA (antes ± parada = después · libres) con la capacidad del camión", () => {
+  it("D-443: sin viajes — cada parada lleva su CUENTA («+2 = 2» desde D-444) con la capacidad del camión", () => {
     expect(ruta.paradas.some((p) => "viaje" in p)).toBe(false);
-    expect(ruta.paradas.map((p) => textoDeLaCuenta(p.cuenta, true))).toEqual([
-      "0.00 + 2.00 = 2.00 · 3.00 libres", "2.00 + 3.50 = 5.50 · −0.50 libres", "5.50 − 2.00 = 3.50 · 1.50 libres",
-      "3.50 − 3.50 = 0.00 · 5.00 libres", "0.00 + 4.00 = 4.00 · 1.00 libres", "4.00 − 4.00 = 0.00 · 5.00 libres",
-    ]);
+    expect(ruta.paradas.map((p) => textoDeLaCuenta(p.cuenta))).toEqual(["+2 = 2", "+3.5 = 5.5", "−2 = 3.5", "−3.5 = 0", "+4 = 4", "−4 = 0"]);
     // En la parada exacta donde se pasa, cuánto; en las demás, nada.
     expect(ruta.paradas.map((p) => p.cuenta.exceso)).toEqual([0, 0.5, 0, 0, 0, 0]);
     // Sale de la base con 0 y vuelve con 0.

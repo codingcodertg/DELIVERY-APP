@@ -77,16 +77,19 @@ describe("si la ruta sigue siendo la que el plan publicó, manda el plan", () =>
     const tiendas = { x: "Tienda A", z: "Tienda A", y: "Tienda B" };
     const conPlan = lecturaDeLaRuta(trasPublicar(plan, tiendas), 10, guardadas(plan));
     expect(conPlan.fuente).toBe("plan");
-    expect(pinta(conPlan)).toEqual(["P1·P2", "D2", "P3", "D3", "D1"]);
+    expect(pinta(conPlan)).toEqual(["P1", "P2", "D2", "P3", "D3", "D1"]);
     // Y lo guardado, leído sin el plan, dice lo mismo (con la 154).
-    expect(pinta(lecturaDeLaRuta(trasPublicar(plan, tiendas), 10, null))).toEqual(["P1·P2", "D2", "P3", "D3", "D1"]);
+    expect(pinta(lecturaDeLaRuta(trasPublicar(plan, tiendas), 10, null))).toEqual(["P1", "P2", "D2", "P3", "D3", "D1"]);
   });
 
-  it("recogidas seguidas en el MISMO sitio son una sola fila, como una parada física", () => {
+  it("recogidas seguidas en el MISMO sitio van cada una en su fila (D-444; hasta ahí, una sola)", () => {
     const juntas = evaluaPlan({ secuencias: { c1: [P("x"), P("z"), D("z"), D("x")] }, ordenes: [orden("x", 0, 30), orden("z", 0, 12)], choferes: [chofer], matriz: matrizDe(XS) });
     const l = lecturaDeLaRuta(trasPublicar(juntas, { x: "Tienda A", z: "Tienda A" }), 10, guardadas(juntas));
-    expect(l.filas[0]).toMatchObject({ tipo: "P", etiqueta: "P1·P2", ordenes: ["x", "z"], lugar: "Tienda A", cambio: 2 });
-    expect(l.paradas[0]).toEqual({ tipo: "P", ordenes: ["x", "z"], tienda: "Tienda A" });
+    expect(l.filas.slice(0, 2)).toMatchObject([
+      { tipo: "P", etiqueta: "P1", ordenes: ["x"], lugar: "Tienda A", cambio: 1, indice: 0 },
+      { tipo: "P", etiqueta: "P2", ordenes: ["z"], lugar: "Tienda A", cambio: 1, indice: 1 },
+    ]);
+    expect(l.paradas.slice(0, 2)).toEqual([{ tipo: "P", ordenes: ["x"], tienda: "Tienda A" }, { tipo: "P", ordenes: ["z"], tienda: "Tienda A" }]);
   });
 
   it("un cambio de ETAPA no es tocar la ruta: sigue mandando el plan", () => {
@@ -204,10 +207,10 @@ describe("una ruta ordenada a medias", () => {
   it("la orden SIN puesto va al final, con su recogida y su entrega; sus filas son provisionales", () => {
     const ordenes = [o("a", 0), o("suelta", null), o("b", 1)];
     const l = lecturaDeLaRuta(ordenes, 10, null);
-    expect(pinta(l)).toEqual(["P1·P2·P3", "D1", "D2", "D3"]);
+    expect(pinta(l)).toEqual(["P1", "P2", "P3", "D1", "D2", "D3"]);
     expect([...l.etiquetaDe]).toEqual([["a", "D1"], ["b", "D2"], ["suelta", "D3"]]);
     const porId = new Map(ordenes.map((x) => [x.id, x]));
-    expect(l.filas.map((f) => esProvisionalLaFila(f, porId))).toEqual([false, false, false, true]);
+    expect(l.filas.map((f) => esProvisionalLaFila(f, porId))).toEqual([false, false, true, false, false, true]);
   });
   it("si NINGUNA tiene puesto se numeran todas, como las enseña «Mi ruta»", () => {
     expect([...lecturaDeLaRuta([o("a", null), o("b", null)], 10, null).etiquetaDe.values()]).toEqual(["D1", "D2"]);
@@ -295,7 +298,7 @@ describe("D-379: una ruta que nadie ordenó enseña su P/D provisional", () => {
     expect(esProvisional([])).toBe(false);
   });
   it("las filas llevan sus recogidas (una por tienda), y ninguna D sale antes que su P", () => {
-    expect(pinta(l)).toEqual(["P1·P2", "P3", "D1", "D3", "D2"]);
+    expect(pinta(l)).toEqual(["P1", "P2", "P3", "D1", "D3", "D2"]);
     const etiquetas = l.filas.flatMap((f) => f.etiqueta.split("·"));
     for (const d of etiquetas.filter((x) => x.startsWith("D"))) {
       const p = "P" + d.slice(1);
