@@ -165,6 +165,7 @@ describe("el formulario usa esa regla, y la de la tienda de la orden", () => {
 
   it("no cambia quién está obligado a elegir vendedor", () => {
     // Sigue siendo solo la orden nueva, y los mismos roles: este encargo cambia la lista, no la regla.
-    expect(modal).toContain('const needsSalesRep = isNew && (ordersLikeOfficeManager(me.role) || me.role === "admin" || me.role === "driver")');
+    // La regla se mudó a lib/sales-reps en D-439 (`pideVendedor`); los roles, los mismos.
+    expect(modal).toContain("const needsSalesRep = pideVendedor(me.role, isNew, isStoreToStore(d.order_type, settings.order_type_rules));");
   });
 });

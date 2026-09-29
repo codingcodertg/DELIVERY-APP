@@ -1,4 +1,5 @@
-import { tieneAccesoAEntregas } from "./constants";
+import { ordersLikeOfficeManager, tieneAccesoAEntregas } from "./constants";
+import { isStoreToStore, type OrderTypeRules } from "./required";
 import { mismaTiendaOGrupo } from "./store-group";
 import type { NamedLocation, Profile } from "./types";
 
@@ -84,4 +85,48 @@ export function vendedoresParaLaOrden<T extends Candidato>(
   const base = deLaTienda.length > 0 ? deLaTienda : users.filter(puedeSerVendedor);
   const suelto = actual && !base.some((u) => u.id === actual) ? users.filter((u) => u.id === actual) : [];
   return [...base, ...suelto].sort(porNombre);
+}
+
+/**
+ * Quién elige el «Vendedor» al registrar una orden a cliente en nombre de otro: office (`accounting`), el
+ * gerente, el admin y el chofer. Ventas no: la orden que escribe es suya.
+ */
+export function eligeVendedorAlCrear(rol: string | null | undefined): boolean {
+  return ordersLikeOfficeManager(rol) || rol === "admin" || rol === "driver";
+}
+
+/**
+ * El formulario pide «Vendedor» (obligatorio) en una orden **nueva a cliente** de alguien que lo elige. Un
+ * movimiento tienda-a-tienda no tiene cliente, así que no tiene vendedor a quien acreditarlo.
+ */
+export function pideVendedor(rol: string | null | undefined, esNueva: boolean, tiendaATienda: boolean): boolean {
+  return esNueva && eligeVendedorAlCrear(rol) && !tiendaATienda;
+}
+
+/**
+ * **Office no encontraba el campo, y no porque no lo tuviera** (D-439). El dueño: *«ADD VENDEDOR LIKE
+ * ADMIN, ADD THAT TO ALL OFFICE PEOPLE SO THEY CAN CREATE AN ORDER AND ATTACHED A VENDEDOR»*; preguntado
+ * qué faltaba: *«No le sale el campo»*.
+ *
+ * Medido en el demo: el admin abre una orden nueva en Customer y, tras «Siguiente», tiene «Vendedor» arriba
+ * del todo. Office la abre en **Intertienda** (D-084, pedido del dueño: casi todo lo que registra office es
+ * entre tiendas), y ahí el formulario completo sale directo y sin «Vendedor» —con razón: no hay cliente—.
+ * Para verlo había que encontrar «Tipo de Orden» más abajo, cambiarlo a Customer, volver al paso 1 y pulsar
+ * «Siguiente». Nada en pantalla lo decía.
+ *
+ * En ese hueco se ofrece el atajo: «Es para un cliente», que pasa la orden al tipo de cliente y deja el
+ * «Vendedor» a la vista en el mismo sitio. Ni D-084 ni la regla de arriba cambian.
+ */
+export function ofrecePasarACliente(rol: string | null | undefined, esNueva: boolean, tiendaATienda: boolean): boolean {
+  return esNueva && eligeVendedorAlCrear(rol) && tiendaATienda;
+}
+
+/**
+ * A qué tipo pasa ese atajo: «Customer» si está y es de cliente —el que usan los demás al abrir
+ * (`borradorInicial`)—; si no, el primer tipo configurado que no sea tienda-a-tienda. `null` si no hay
+ * ninguno, y entonces el atajo no se pinta.
+ */
+export function tipoDeCliente(tipos: readonly string[], reglas?: OrderTypeRules): string | null {
+  if (tipos.includes("Customer") && !isStoreToStore("Customer", reglas)) return "Customer";
+  return tipos.find((t) => !isStoreToStore(t, reglas)) ?? null;
 }

@@ -5,6 +5,7 @@ import {
   canApprove, canCreate, canEditFields, hasCap, ordersLikeOfficeManager, ROLE_CAPS, ROLE_ORDER, roleLabel, STAGES,
 } from "./constants";
 import { seesAllHistory } from "./utils";
+import { eligeVendedorAlCrear } from "./sales-reps";
 import type { UserRole } from "./types";
 
 // `accounting` se ve como «Office» y crea órdenes como el gerente (D-279). La clave no cambia.
@@ -106,7 +107,10 @@ describe("OrderModal: donde decía manager, ahora dice office también", () => {
   const modal = plano(leer("src/components/OrderModal.tsx"));
 
   it("elige vendedor al crear una orden de cliente", () => {
-    expect(modal).toContain('const needsSalesRep = isNew && (ordersLikeOfficeManager(me.role) || me.role === "admin" || me.role === "driver")');
+    // Desde D-439 la regla vive en lib/sales-reps (`pideVendedor`), y la usa también el atajo de office.
+    expect(modal).toContain("const needsSalesRep = pideVendedor(me.role, isNew, isStoreToStore(d.order_type, settings.order_type_rules));");
+    expect(eligeVendedorAlCrear("accounting")).toBe(true);
+    expect(eligeVendedorAlCrear("manager")).toBe(true);
   });
 
   it("edita los campos de ventas", () => {
