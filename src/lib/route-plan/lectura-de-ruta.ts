@@ -164,3 +164,17 @@ export function filasDelViaje<T extends { id: string }>(lectura: LecturaDeRuta |
     ...(esElUltimoViaje ? (lectura?.alFinal ?? []).map(informa) : []),
   ];
 }
+
+/**
+ * Las filas de recogida de la ruta, cada una con SU viaje (0 = el primero), recorridas con `filasDelViaje` —lo mismo que
+ * pinta la tabla—, para el mapa (D-NEXT).
+ *
+ * Hasta aquí el mapa sacaba las recogidas de `previas` sin saber de qué viaje eran, y las pintaba todas del color del
+ * chofer, que es el del viaje 1: en la ruta de Maximo Garza, «P4 — Recoger en Weslaco» (viaje 2, cian en la tabla y en
+ * su entrega D4) salía naranja, junto a P3 en la misma tienda. Una recogida es del viaje de la entrega que la sigue: el
+ * camión vuelve a la tienda a cargar ESE viaje. Lo que queda al final va con el último viaje, como en la tabla.
+ */
+export function recogidasPorViaje<T extends { id: string }>(lectura: LecturaDeRuta, viajes: readonly (readonly T[])[]): { fila: FilaInformativa; viaje: number }[] {
+  return viajes.flatMap((v, ti) => filasDelViaje(lectura, v, ti === viajes.length - 1)
+    .flatMap((f) => (f.clase === "informa" && f.fila.tipo === "P" ? [{ fila: f.fila, viaje: ti }] : [])));
+}

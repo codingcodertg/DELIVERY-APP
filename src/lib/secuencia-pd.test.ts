@@ -95,31 +95,37 @@ describe("dónde se ve", () => {
     expect(gestor).toContain(">{e.texto}</td>");
     expect(gestor).not.toContain('{d.route_seq != null ? (dDe.get(d.id) ?? i + 1) : "—"}</td>');
   });
-  it("las filas que informan —recogidas, u otra carga de una orden repartida— van ANTES de su entrega, SIN flechas; con secuencia, o provisionales si nadie la ordenó (D-379)", () => {
+  it("las filas que informan —recogidas, u otra carga de una orden repartida— van ANTES de su entrega; con secuencia, o provisionales si nadie la ordenó (D-379)", () => {
     // El ORDEN de las filas lo decide `filasDelViaje` (probada en lectura-de-ruta.test.ts): aquí, que la tabla pinta ESO y nada más.
-    const i = gestor.indexOf("{filasDelViaje(lecturaParaLasFilas(lectura, sequenced, provisional), batch, ti === trips.length - 1).map((f) => {");
+    expect(gestor).toContain("const filas = filasDelViaje(lecturaParaLasFilas(lectura, sequenced, provisional), batch, ti === trips.length - 1);");
+    const i = gestor.indexOf("{filas.map((f) => {");
     expect(i).toBeGreaterThanOrEqual(0);
     const z = gestor.indexOf("const d = f.orden, bi = f.indice;", i);
     expect(z).toBeGreaterThan(i);
     const fila = gestor.slice(i, z);
-    expect(fila).toContain('if (f.clase === "informa") { const p = f.fila; return (');
+    expect(fila).toContain('if (f.clase === "informa") { const p = f.fila;');
     expect(gestor).not.toMatch(/lectura\.previas\.get|batch\.map\(\(d, bi\)/);            // nadie las junta en cabeza del viaje por su cuenta
     expect(fila).toContain('{p.etiquetas.join("·")}');
     expect(fila).toContain("nombraLaOrden(deliveries, id, lang === \"es\")");
     expect(fila).toContain("pallets a bordo");
-    expect(fila).not.toMatch(/moveStop|moveTrip|onClick|↑|↓/);
+    // Desde D-NEXT las de RECOGIDA se mueven —con lo suyo, no con lo de una parada—; las demás siguen sin controles.
+    expect(fila).not.toMatch(/moveStop|moveTrip/);
+    expect(fila).toContain('{p.tipo === "P" && suyas.length > 0 && <>');
   });
   it("si la ruta cambió tras publicar, la tabla LO DICE, una vez por ruta", () => {
-    expect(gestor).toContain("{sequenced && ti === 0 && lectura.cambioTrasPublicar && (");
+    expect(gestor).toContain("{sequenced && ti === (visto ?? 0) && lectura.cambioTrasPublicar && (");
     expect(gestor).toContain("Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.");
   });
-  it("el mapa: las entregas llevan su D y cada tienda donde la ruta recoge su «P1·P2» del color del chofer — con la misma lectura que la tabla", () => {
+  it("el mapa: las entregas llevan su D y cada tienda donde la ruta recoge su «P1·P2» del color de SU viaje (D-NEXT) — con la misma lectura que la tabla", () => {
     expect(gestor).toContain("const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;");
-    expect(gestor).toContain("const lectura = lecturaConLoHecho(buildTrips(list, capacityFor(driverOf(laneKey))), paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));");
+    expect(gestor).toContain("const viajesDelMapa = buildTrips(list, capacityFor(driverOf(laneKey))); const lectura = lecturaConLoHecho(viajesDelMapa, paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));");
     expect(gestor).toContain('badge: p.etiquetas.join("·"),');
-    expect(gestor).toContain("color: colorFor(list[0].assigned_driver),");
+    expect(gestor).toContain("for (const { fila: p, viaje } of recogidasPorViaje(lectura, viajesDelMapa)) {");
+    expect(gestor).toContain("color: colorDelViaje.get(laneKey)?.[viaje] ?? tripColor(colorFor(list[0].assigned_driver), viaje),");
+    expect(gestor).toContain("colorDelViaje.set(u.key, [...(colorDelViaje.get(u.key) ?? []), c]); for (const d of batch) { stopColor.set(d.id, c);");
+    expect(gestor).not.toContain("color: colorFor(list[0].assigned_driver),");
     expect(gestor).toContain("if (!list.some((d) => d.route_seq != null)) continue;");
-    expect(gestor).toContain("depotCoords, lanes, rutasPublicadas, deliveries]);");                 // el plan llega después: el mapa se recalcula
+    expect(gestor).toContain("depotCoords, lanes, rutasPublicadas, deliveries, viajeVisto]);");               // el plan llega después: el mapa se recalcula
   });
   it("el plan publicado se lee UNA vez por fecha, y sin UNA fecha —«todas», pendientes— no hay plan con el que comparar", () => {
     expect(gestor).toContain("const rutasPublicadas = usePlanPublicadoDelGestor(allDates || soloPendientes ? null : date, publicaciones);");
@@ -144,7 +150,7 @@ describe("dónde se ve", () => {
     expect(hook).not.toMatch(/\.(insert|update|delete|upsert|rpc)\(|method:/);
   });
   it("nada de esto escribe: ni `route_seq`, ni `load_no`, ni una orden", () => {
-    const tabla = gestor.slice(gestor.indexOf("{sequenced && ti === 0 && lectura.cambioTrasPublicar"), gestor.indexOf("const d = f.orden, bi = f.indice;"));
+    const tabla = gestor.slice(gestor.indexOf("{sequenced && ti === (visto ?? 0) && lectura.cambioTrasPublicar"), gestor.indexOf("const d = f.orden, bi = f.indice;"));
     for (const trozo of [gestor.slice(gestor.indexOf("const dDeTodas"), gestor.indexOf("const badge = d.route_seq")), tabla]) {
       expect(trozo.length).toBeGreaterThan(50);
       expect(trozo).not.toMatch(/updateDelivery|route_seq:|load_no:|\.update\(|setStage/);
