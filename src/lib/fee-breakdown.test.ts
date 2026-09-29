@@ -195,7 +195,7 @@ describe("todo sitio que pinte «Tarifa sugerida» pinta también el desglose", 
   const dondeSePinta = (aguja: string) =>
     lineas.reduce<number[]>((acc, l, i) => (l.includes(aguja) ? [...acc, i] : acc), []);
 
-  // Nota D-NEXT: «Tarifa sugerida» la pinta ahora `BotonesDeTarifa`, así que el sitio es cada uso del componente —el
+  // Nota D-450: «Tarifa sugerida» la pinta ahora `BotonesDeTarifa`, así que el sitio es cada uso del componente —el
   // alta, la tarjeta de zona y el diálogo de «Comenzar preparación»—. El tercero salió justo por esta prueba.
   const sitios = dondeSePinta("<BotonesDeTarifa ");
   const desgloses = dondeSePinta("<FeeBreakdownDetails");
@@ -254,7 +254,7 @@ describe("los dos precios llegan a las tres pantallas", () => {
     // dos veces en el modal (el bloque compacto y el de zona), así que un `toContain` se quedaba
     // contento con que UNO llevara etiqueta mientras el otro la perdía. Lo enseñó un mutante.
     //
-    // Nota D-NEXT: los botones son ahora `BotonesDeTarifa`, escrito una vez y usado en tres sitios (se cuentan en
+    // Nota D-450: los botones son ahora `BotonesDeTarifa`, escrito una vez y usado en tres sitios (se cuentan en
     // `tarifa-descuento.test.ts`). La etiqueta se mira en el componente: cada importe, una vez y con su nombre delante.
     const botones = readFileSync("src/components/BotonesDeTarifa.tsx", "utf8");
     for (const [campo, etiqueta] of [

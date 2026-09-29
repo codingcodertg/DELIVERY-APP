@@ -169,7 +169,7 @@ describe("lo que el dueño no veía: el descuento en la pantalla", () => {
     const modal = readFileSync("src/components/OrderModal.tsx", "utf8").split("\r\n").join("\n");
     expect(modal).not.toContain("feeSuggestion.discount !== feeSuggestion.list");
     // Y donde se enseña la lista se enseña el descuento, cada uno con su única condición, que es tener valor.
-    // Nota D-NEXT: los botones salieron de la ficha a `BotonesDeTarifa`, que pinta la ficha en sus dos sitios Y el
+    // Nota D-450: los botones salieron de la ficha a `BotonesDeTarifa`, que pinta la ficha en sus dos sitios Y el
     // diálogo de «Comenzar preparación». Lo que se contaba en la ficha se mira ahora en el componente, y que los tres
     // sitios le pasan los DOS precios.
     const boton = readFileSync("src/components/BotonesDeTarifa.tsx", "utf8").split("\r\n").join("\n");
@@ -184,7 +184,7 @@ describe("lo que el dueño no veía: el descuento en la pantalla", () => {
     // Los dos botones existen y cada uno escribe SU número, no el de al lado. El toggle («si ya
     // está puesto, lo quita») es parte de la cita a propósito: sin él, un botón que escribiera
     // siempre la lista pasaría un `toContain` más corto.
-    // **Se cuentan, no se buscan.** Nota D-NEXT: la pareja vive ahora una sola vez, en `BotonesDeTarifa`; se cuenta
+    // **Se cuentan, no se buscan.** Nota D-450: la pareja vive ahora una sola vez, en `BotonesDeTarifa`; se cuenta
     // allí, exactamente una por precio, para que un botón del descuento que escribiera la lista no pase.
     const boton = readFileSync("src/components/BotonesDeTarifa.tsx", "utf8");
     const veces = (campo: string) => boton.split(`onClick={() => elegir(tarifa === ${campo} ? null : ${campo})}`).length - 1;
@@ -219,7 +219,7 @@ describe("las órdenes guardadas no se recalculan", () => {
         expect(trozo, campo).toContain("onClick");
       }
     }
-    // Nota D-NEXT: los botones escriben por `elegir` dentro de `BotonesDeTarifa`; ahí también, solo en un `onClick`.
+    // Nota D-450: los botones escriben por `elegir` dentro de `BotonesDeTarifa`; ahí también, solo en un `onClick`.
     const boton = readFileSync("src/components/BotonesDeTarifa.tsx", "utf8");
     const llamadas = todasLasVeces(boton, "elegir(");
     expect(llamadas.length).toBe(2);

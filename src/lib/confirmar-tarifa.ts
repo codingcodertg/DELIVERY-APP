@@ -3,7 +3,7 @@ import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { changedFieldsNote, fmtMoney } from "@/lib/utils";
 
 /**
- * Confirmar la tarifa al «Comenzar preparación» (D-NEXT), SIN bloqueo.
+ * Confirmar la tarifa al «Comenzar preparación» (D-450), SIN bloqueo.
  *
  * El dueño, 2026-09-29: *«It's not asking warehouse to confirm delivery fee before they start preparing
  * they just need to confirm the amount»*. Preguntado si vuelve así, eligió **«confirmar el monto, sin

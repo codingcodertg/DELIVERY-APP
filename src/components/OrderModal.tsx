@@ -171,7 +171,7 @@ export function OrderModal({
   // desde D-340, por petición del dueño: «quítale el bloqueo a warehouse con lo de la tarifa».
   // Almacén ya no confirma ni corrige la tarifa; «Comenzar preparación» mueve la etapa y ya.
   //
-  // Nota D-NEXT (2026-09-29): vuelve la confirmación, SIN el bloqueo. El dueño: «they just need to confirm
+  // Nota D-450 (2026-09-29): vuelve la confirmación, SIN el bloqueo. El dueño: «they just need to confirm
   // the amount». `tarifaAlComenzar` es el número del campo del diálogo; `null` es el campo vacío.
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [tarifaAlComenzar, setTarifaAlComenzar] = useState<number | null>(null);
@@ -801,7 +801,7 @@ export function OrderModal({
   // `delivery_fee`»— describía el agujero, no la intención: al almacén se le fue la
   // escritura de rebote al quitar el diálogo. La escribe por el campo de siempre, con `tarifaEditable`.
   //
-  // Nota D-NEXT (2026-09-29): el dueño pidió que se CONFIRME el monto otra vez —«they just need to confirm the
+  // Nota D-450 (2026-09-29): el dueño pidió que se CONFIRME el monto otra vez —«they just need to confirm the
   // amount»— y, preguntado, «confirmar el monto, sin bloqueo». Vuelve el diálogo, no el bloqueo: `comenzarPreparacion`
   // lo abre solo para los tipos que cobran (`pideConfirmarTarifa`), y sin tarifa hay salida siempre.
 
@@ -1791,7 +1791,7 @@ export function OrderModal({
             {routeErr && <div className="hint" style={{ color: "var(--red)" }}>{routeErr}</div>}
             {/* Los dos botones otra vez, Lista y Descuento (D-303): D-283 los dejó en uno y el
                 dueño pidió el descuento de vuelta el mismo día. */}
-            {/* Desde D-NEXT los botones son `BotonesDeTarifa`, el mismo componente en los tres sitios. */}
+            {/* Desde D-450 los botones son `BotonesDeTarifa`, el mismo componente en los tres sitios. */}
             <BotonesDeTarifa tarifa={d.delivery_fee} list={feeSuggestion.list} discount={feeSuggestion.discount}
               elegir={(v) => set("delivery_fee", v)} t={t} />
             {/* Y aquí también (D-249). D-244 puso el desglose solo en el bloque de zona local,
@@ -2817,7 +2817,7 @@ export function OrderModal({
       );
     })()}
 
-    {/* Confirmar el MONTO al comenzar la preparación (D-NEXT). Vuelve el diálogo de D-146 sin su bloqueo: el dueño,
+    {/* Confirmar el MONTO al comenzar la preparación (D-450). Vuelve el diálogo de D-146 sin su bloqueo: el dueño,
         «they just need to confirm the amount», y preguntado, «confirmar el monto, sin bloqueo». Se ve lo que cobró
         ventas, se confirma o se corrige ahí mismo, y sin tarifa hay salida. Solo lo abre `comenzarPreparacion`, y solo
         para los tipos que cobran (`pideConfirmarTarifa`). */}
@@ -3057,7 +3057,7 @@ function StageActions({
   onPrint: () => void; onRequestDeliver: () => void; podOpen: boolean;
   /** Abre el diálogo de «Agregar material» del vendedor dueño de la orden (D-339). */
   onAddMaterial: () => void;
-  /** «Comenzar preparación» (D-NEXT): abre la confirmación del monto, o mueve la etapa si el tipo no cobra tarifa. */
+  /** «Comenzar preparación» (D-450): abre la confirmación del monto, o mueve la etapa si el tipo no cobra tarifa. */
   onRequestStart: () => void;
   readyConfirmOpen: boolean; onRequestReady: () => void; onConfirmReady: () => void; onCancelReady: () => void;
   pickupConfirmOpen: boolean; onRequestPickup: () => void; onConfirmPickup: () => void; onCancelPickup: () => void;
@@ -3129,7 +3129,7 @@ function StageActions({
     // Agarrar la orden mueve la etapa y ya (D-340). Entre D-146 y hoy, este botón abría el
     // diálogo de tarifa y el cambio de etapa salía de allí; el dueño lo quitó: «quítale el
     // bloqueo a warehouse con lo de la tarifa». Almacén no confirma ni corrige la tarifa.
-    // Nota D-NEXT: vuelve a abrir la confirmación del MONTO, sin bloqueo —«they just need to confirm the amount»—.
+    // Nota D-450: vuelve a abrir la confirmación del MONTO, sin bloqueo —«they just need to confirm the amount»—.
     // Sale para quien pulse el botón (almacén, o el gerente que hace bodega, D-397): es el paso del almacén.
     if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={onRequestStart} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);
     if (stage === "fulfilling") {

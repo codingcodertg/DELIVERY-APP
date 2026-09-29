@@ -5,7 +5,7 @@ import { escrituraAlComenzar, llegaSinTarifa, pideConfirmarTarifa } from "./conf
 import type { OrderTypeRule } from "./types";
 
 /**
- * Confirmar el monto al «Comenzar preparación», sin bloqueo (D-NEXT). El dueño: «they just need to confirm the
+ * Confirmar el monto al «Comenzar preparación», sin bloqueo (D-450). El dueño: «they just need to confirm the
  * amount»; preguntado, «confirmar el monto, sin bloqueo». Datos inventados; las reglas de tipo son las del demo,
  * que es la forma que tienen en Ajustes.
  */

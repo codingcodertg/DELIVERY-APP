@@ -6,7 +6,7 @@ import { fmtMoney } from "@/lib/utils";
  * Los dos precios calculados, Lista y Descuento, como botones que ponen la tarifa (D-303, D-317).
  *
  * Vivían escritos dos veces en la ficha —el alta paso a paso y la tarjeta de zona— y el diálogo de «Comenzar
- * preparación» (D-NEXT) los necesita otra vez. Un solo componente para los tres: el día que cambie cómo se
+ * preparación» (D-450) los necesita otra vez. Un solo componente para los tres: el día que cambie cómo se
  * ofrece un precio, cambia en todos o en ninguno.
  *
  * Cada botón escribe SU número, y pulsar el que ya está puesto lo quita (vuelve a vacío). Se pinta cada uno

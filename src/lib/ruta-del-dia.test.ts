@@ -203,7 +203,7 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
 
   it("y la tarjeta está en los TRES diálogos del almacén: tarifa, listo y recoger", () => {
     // Eran tres. El de la tarifa desapareció con D-340 —el dueño se lo quitó al almacén— y se
-    // quedaron dos. Nota D-NEXT: vuelve el de la tarifa (confirmar el monto, sin bloqueo), y con él
+    // quedaron dos. Nota D-450: vuelve el de la tarifa (confirmar el monto, sin bloqueo), y con él
     // la tarjeta: vuelven a ser tres.
     expect((modal.match(/<ChoferYPallets pedido=\{existing\} \/>/g) ?? [])).toHaveLength(3);
   });
@@ -217,7 +217,7 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
   });
 });
 
-describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve con D-NEXT", () => {
+describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve con D-450", () => {
   const modal = plano(leer("src/components/OrderModal.tsx"));
 
   /**
@@ -230,13 +230,13 @@ describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve
    * que hay que impedir ahora es que el bloqueo reaparezca.
    */
   /*
-   * Nota D-NEXT (2026-09-29): estas dos se dan la vuelta OTRA vez. El dueño pidió que se confirme el
+   * Nota D-450 (2026-09-29): estas dos se dan la vuelta OTRA vez. El dueño pidió que se confirme el
    * monto —«they just need to confirm the amount»— y, preguntado, «confirmar el monto, sin bloqueo».
    * Vuelve el diálogo, NO el bloqueo: lo que ahora hay que impedir es (a) que el botón vuelva a mover
    * la etapa sin preguntar, y (b) que la salida sin tarifa desaparezca. Las pruebas de la escritura
    * y de quién ve el diálogo están en `confirmar-tarifa.test.ts`.
    */
-  it("el botón abre la confirmación del monto, no mueve la etapa por su cuenta (D-NEXT)", () => {
+  it("el botón abre la confirmación del monto, no mueve la etapa por su cuenta (D-450)", () => {
     // Desde D-397 (145) el bloque se abre con `preparaEnLaFicha` (almacén, o el gerente que hace bodega).
     // Se afirma primero que está: un `indexOf` de -1 cortaría desde el final y la prueba mediría otra cosa.
     const inicio = modal.indexOf("if (preparaEnLaFicha(me)) {");
@@ -258,7 +258,7 @@ describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve
     // cuerpo ENTERO de `move` —el camino por el que pasan todos los cambios de etapa— y no solo
     // la llamada a `setStage`: reintroducir la tarifa en el `extra` de unas líneas antes no
     // tocaría esa llamada y pasaría desapercibido. Medido con ese mutante.
-    // Nota D-NEXT: sigue valiendo para `move`, el camino de TODOS los cambios de etapa. La tarifa se escribe
+    // Nota D-450: sigue valiendo para `move`, el camino de TODOS los cambios de etapa. La tarifa se escribe
     // ahora solo desde `confirmarYComenzar`, el del diálogo, y solo si cambió (`confirmar-tarifa.test.ts`).
     const mover = modal.slice(modal.indexOf("const move = async (to: Stage"), modal.indexOf("const depart = async ()"));
     expect(mover).not.toContain("delivery_fee");

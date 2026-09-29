@@ -6628,7 +6628,7 @@ distintas y la pantalla debe distinguirlas.
 > etapa y ya—. **La confirmación de PALLETS de esta misma entrada se queda**: es lo único que sigue
 > preguntándose al marcar listo.
 >
-> **Nota D-NEXT (2026-09-29):** el almacén vuelve a confirmar o corregir la tarifa, en «Comenzar preparación» (el sitio de
+> **Nota D-450 (2026-09-29):** el almacén vuelve a confirmar o corregir la tarifa, en «Comenzar preparación» (el sitio de
 > D-146, no el de esta entrada) y sin exigirla.
 
 **Fecha:** 2026-08-31 · **Versión:** v1.40.0 (deliveries) · **Pedido por:** Andrés (*"cuando
@@ -6794,7 +6794,7 @@ marcar. Se reutiliza el tramo que ya existe.
 > **El razonamiento de por qué el momento importaba no se toca**, y sigue valiendo el día que alguien
 > quiera volver a poner una revisión: al agarrarla la orden está quieta; al soltarla, el camión espera.
 >
-> **Nota D-NEXT (2026-09-29):** ese día llegó. La confirmación vuelve a «Comenzar preparación», que es el momento que
+> **Nota D-450 (2026-09-29):** ese día llegó. La confirmación vuelve a «Comenzar preparación», que es el momento que
 > esta entrada eligió, pero **sin exigir tarifa** (D-340 quitó el bloqueo y no vuelve) y solo en los tipos que cobran.
 
 **Fecha:** 2026-08-31 · **Versión:** v1.43.0 (deliveries) · **Pedido por:** Andrés (*"vamos a
@@ -18689,7 +18689,7 @@ con sus 16, con una afirmación cambiada de signo. `main` 6f4be11, medido en un 
 > resolvió por la raíz. **Las otras seis siguen enteras**, incluida la confirmación de pallets y la
 > vuelta de «listo» a «preparando».
 >
-> **Nota D-NEXT (2026-09-29):** la salida de la queja 4 **vuelve**, porque vuelve el diálogo (confirmar el monto, sin
+> **Nota D-450 (2026-09-29):** la salida de la queja 4 **vuelve**, porque vuelve el diálogo (confirmar el monto, sin
 > bloqueo). Sale cuando la orden llega sin tarifa o a $0, y hace lo mismo que aquí: mueve la etapa sin escribir tarifa.
 >
 > **⚠ La queja 2 cambió de forma el 2026-09-24, por D-383 (pantalla de la 142).** El botón propio
@@ -23809,7 +23809,7 @@ y la 125. Lo de «cuál es la vigente» pasa a fijarlo la prueba de la 138.
 
 ## D-340 · Al almacén se le quita la confirmación de tarifa: «Comenzar preparación» vuelve a mover la etapa
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-29). Vuelve la **confirmación del monto**, no el bloqueo. El dueño:
+> **⚠ Reemplazada en parte por D-450** (2026-09-29). Vuelve la **confirmación del monto**, no el bloqueo. El dueño:
 > *«It's not asking warehouse to confirm delivery fee before they start preparing they just need to confirm the
 > amount»*, y preguntado, eligió «confirmar el monto, sin bloqueo». «Comenzar preparación» vuelve a abrir un diálogo
 > —solo en los tipos que cobran tarifa— donde se confirma o se corrige, y sin tarifa se sigue igual. **Lo que esta
@@ -25966,7 +25966,7 @@ que la prueba ahora fija la llamada entera.
 
 ## D-373 · El almacén vuelve a escribir la tarifa: gate propio, sin diálogo y sin bloqueo
 
-> **Nota D-NEXT (2026-09-29):** el «sin diálogo» del título dejó de ser verdad: «Comenzar preparación» vuelve a abrir
+> **Nota D-450 (2026-09-29):** el «sin diálogo» del título dejó de ser verdad: «Comenzar preparación» vuelve a abrir
 > la confirmación del monto (en los tipos que cobran). El gate `tarifaEditable` y todo lo demás de esta entrada siguen
 > igual; «sin bloqueo», también. Los botones Lista/Descuento de la tarjeta son ahora el componente `BotonesDeTarifa`.
 
@@ -33414,9 +33414,9 @@ ninguno, porque no lee ninguna tabla, y ni así lee respuestas ni marca contacta
   148 con las claves que había entonces: la igualdad con `MODULE_ACCESS` entero pasa a mirarse sobre la **última**
   migración que define la restricción.
 
-## D-NEXT · «Comenzar preparación» vuelve a confirmar el monto de la tarifa, sin bloqueo
+## D-450 · «Comenzar preparación» vuelve a confirmar el monto de la tarifa, sin bloqueo
 
-**Fecha:** 2026-09-29 · **Versión:** la pone el orquestador al fusionar · **Sin migración.**
+**Fecha:** 2026-09-29 · **Versión:** deliveries 1.242.0, repo 1.325.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«It's not asking warehouse to confirm delivery fee before they start preparing they
 just need to confirm the amount»*. Se le preguntó si vuelve así, y eligió: **«Sí: confirmar el monto, sin bloqueo»**.
 
@@ -33483,7 +33483,7 @@ los contaban en la ficha los cuentan ahora en el componente (una vez cada precio
 
 ### Qué se tocó en las pruebas viejas
 
-Con su nota «D-NEXT» dentro, sin borrar el porqué:
+Con su nota «D-450» dentro, sin borrar el porqué:
 
 - `ruta-del-dia.test.ts`: «el botón ya no pasa por ningún diálogo» se da la vuelta (ahora **no** puede mover la etapa sin
   abrirlo); «no queda nada de la confirmación» pasa a exigir que **vuelva la salida** sin tarifa; la tarjeta
