@@ -98,7 +98,7 @@ export const ORDER_COLUMNS: OrderColumn[] = [
       return (
         <span style={late ? { color: "var(--red)", fontWeight: 700 } : undefined}>
           {fmtDate(d.delivery_date)}
-          {late && <span className="sema" style={{ background: "var(--red)", color: "#fff", marginLeft: 6 }}>{t("Late", "Tarde")}</span>}
+          {late && <span className="sema" style={{ background: "var(--red)", color: "#fff", marginLeft: 6 }}>{t("Expired", "Expirada")}</span>}
           {d.morning_priority && <span className="sema" title={t("Priority — deliver first thing in the morning", "Prioridad — entregar a primera hora")} style={{ background: "var(--amber)", color: "#3a2a00", marginLeft: 6 }}>⏰ {t("AM", "AM")}</span>}
         </span>
       );
