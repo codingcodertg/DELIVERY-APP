@@ -30238,6 +30238,11 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
 > decisión 7: **el tratamiento por defecto es «Mr.»** y el apellido **ya no se corrige a mano** (el campo se quitó): sale
 > siempre de la última palabra del nombre. (d) En `validar.ts` desaparece la falta «apellido».
 
+> **Reemplazada en parte por D-451** (2026-09-29, sobre la hoja impresa): la hoja ya no lleva «Valid through» arriba
+> (queda solo «QUOTE VALID THROUGH …» junto al total) ni **nada detrás de «Delivery: Available upon request…»**: la nota
+> de cajas completas, «Delivery charges are not included…» y el descargo final se quitaron. Lleva «Store: …» (la tienda
+> de la cotización). Y la pantalla ya no tiene «Dirección» del cliente. Lo demás de esta entrada sigue.
+
 ## D-414 · Como OptimoRoute: el candado de ruta pasa a la base (migración 149) y el Panel mide la puntualidad por chofer contra la ventana
 
 > **⚠ Reemplazada en parte por D-437** (2026-09-28): ya no hay «Optimizar todas» que pudiera pasar por encima del
@@ -31578,6 +31583,11 @@ estimate upload option»*.
 - `window.open` tras un `await` puede quedar bloqueado por el navegador en algunos móviles (Safari); es el mismo patrón que
   los CV de recruiting y la ayuda. No se probó en un teléfono.
 - Solo el admin tiene hoy el módulo `estimator`: nadie más lo verá hasta que se le conceda (D-413).
+
+> **Reemplazada en parte por D-451** (2026-09-29, migración 156): el estimado de la competencia también se sube
+> **suelto**, sin cotización, y **lo ve todo el que tiene el módulo**, de todas las tiendas (ya no «quien ve la
+> cotización»), en una pestaña con todos. Subir a una cotización sigue igual; quitar, quien lo subió o el admin, ya sin
+> exigir ver la cotización.
 
 ## D-426 · En Entregas, «Atrasada» pasa a llamarse «Expirada»
 
@@ -32942,6 +32952,11 @@ decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Des
 - La lectura de `settings` con la llave de servicio no se probó contra la base: sin la llave, la pantalla abre sin tiendas y
   las millas piden elegir una.
 
+> **Reemplazada en parte por D-451** (2026-09-29): bajo el importe regular la hoja ya no pone «−N%» sino el **precio
+> con descuento** («Discount price: $800.00», el total de la línea con ese precio), porque el dueño dijo *«descuento is a
+> price not a percentage and has to be an optional field»*; el campo pasa a llamarse «Precio con descuento (opcional)».
+> El importe regular y Subtotal → Savings → Tax → Total siguen.
+
 ## D-443 · Una sola lista por camión: se eliminan los viajes del Gestor, del plan y de «Mi ruta», con la cuenta de pallets en cada parada
 
 > **⚠ Reemplazada en parte por D-444** (2026-09-29): recogidas seguidas en la misma tienda ya **no** son una fila
@@ -33531,3 +33546,139 @@ A 390 px de ancho el diálogo entra entero, con los botones en su fila. Los dato
   prueba.
 - Que la **línea de tiempo** de la ficha enseñe la nota al almacén sigue igual que en D-373: la ve admin, gerente o quien
   creó la orden.
+
+## D-451 · Quote Builder, sobre la hoja impresa: sin «Dirección» del cliente, el descuento como precio, la tienda en la cotización, una sola validez y un solo cargo de entrega, nada tras «Delivery: Available», y los estimados de la competencia sueltos en una pestaña que ven todos (migración 156)
+
+**Fecha:** 2026-09-29 · **Versión:** estimator 0.7.0, repo 1.326.0 · **Migración:** `156_competencia_suelta.sql`, **escrita y NO aplicada** (plan: `docs/PLAN-156-competencia-suelta.md`,
+matriz de 26 casos **ensayada contra producción con ROLLBACK: 26/26**). **Reemplaza en parte a** D-413, D-425 y D-442,
+que llevan su nota.
+
+**Qué pidió el dueño** (2026-09-29, cita tal como la pasó el orquestador; no extraída del fichero de sesión):
+
+```
+remove dirrecion en estimador
+descuento is a price not a percentage and has to be an optional field
+add in the quote the store where the estimate was created
+valid through is duplicated so remove the one at the top
+delivery charge is also repetied
+delete everything afte the Delivery: available text
+add the
+THE COMEPTITORS ESTIMATE YOU CAN UPLOAD IT WITHOUT NEEDE TO CREATE AN ESTIMATE
+AND I WANT IT TO SHOW ALL ESTIAMTES IN A TAB AND ALL SALES REP COULD SEE IT
+```
+
+**«add the» llegó cortado.** No se hizo nada por esa línea: no se sabe qué quería añadir. Hay que preguntárselo.
+
+Antes de tocar se midió la pantalla y la hoja en el demo (Chrome headless por CDP, clics de persona, 1280 y 390). La hoja,
+con una línea 100 SF a $10 con precio bajo $8 y entrega, decía: *Prepared for / Quote Reference / **Valid through:
+September 29, 2026** / Sales Representative*, la tabla con **«−20%»** bajo el importe, los totales, **«QUOTE VALID THROUGH
+SEPTEMBER 29, 2026»**, el aviso de Final Sale, **«Delivery: Available upon request. Delivery charges will be confirmed…»**
+y detrás tres párrafos: la nota de cajas completas, **«Delivery charges are not included and will be confirmed…»** y el
+descargo final.
+
+### Qué hay ahora, punto por punto
+
+1. **«remove dirrecion»: se quitó la «Dirección» del CLIENTE**, no la de entrega. Había dos: la del cliente (tarjeta
+   «Cliente (interno)», un texto libre que nunca se imprimía ni usaba nada) y la de entrega (sección Entrega, `AddressInput`,
+   la que alimenta el pin, las millas y la calculadora de tarifa de D-442). Con «Entrega» marcada salían las dos, una
+   encima de otra; la que sobraba es la del cliente. La de entrega sigue, y sigue siendo obligatoria si es entrega.
+   `address` sale del tipo `Customer`; `borradorDeFila` ya no la lee. **Dato que se pierde:** la única cotización guardada
+   en producción (medido 2026-09-29, `begin read only`) tiene una dirección de cliente de 11 caracteres en su `jsonb`;
+   al volver a guardarla se va. «Empresa, teléfono y dirección no se imprimen» pasa a «Empresa y teléfono…».
+2. **«descuento is a price not a percentage and has to be an optional field»:** el campo ya era un precio ($/SF o $ por
+   unidad) y ya era opcional, pero se llamaba «$/SF más bajo»; ahora **«Precio con descuento $/SF (opcional)»** y
+   **«Precio unitario con descuento (opcional)»**. Vacío = sin descuento (sin ahorro y sin nada que falte). Lo que cambia
+   de verdad es **la hoja**: bajo el importe regular ya no va **«−20%»** sino **«Discount price: $800.00»** — el total de
+   la línea con el precio con descuento, nunca el $/SF (D-413). Subtotal → Savings → Tax → Total, igual que D-442. En la
+   pantalla, la línea dice «Precio con descuento: $800.00 (20% menos)»: el % queda como dato para el vendedor.
+   **Esto revierte a conciencia una frase literal de D-442** (*«it will show a % discount (not amount)»*, 2026-09-28): el
+   mensaje de hoy es más nuevo y dice lo contrario. Si lo que quería era el % **y** el precio, es una línea.
+3. **La tienda donde se creó:** `estimator_quotes.store` ya existe (148: la pone el disparador con la tienda del perfil
+   del dueño al crearla). **Sin migración.** La hoja lleva **«Store: RDZ McAllen»** debajo de «Quote Reference»: la de la
+   cotización guardada que está abierta; si es nueva (o esa fila no tiene tienda), la del perfil de quien prepara
+   (`tiendaDeLaHoja`). Sin ninguna, la línea no sale. La pantalla la enseña en la tarjeta del estimado («Tienda (sale en
+   la cotización)»). Solo el nombre, sin dirección de la tienda.
+4. **«Valid through» duplicado:** se quitó el de ARRIBA (en los datos); queda «QUOTE VALID THROUGH …» junto al total.
+5. **«Delivery charge» repetido:** en la hoja salía dos veces («Delivery charges will be confirmed…» dentro de
+   «Delivery: Available…», y «Delivery charges are not included and will be confirmed…» en las notas). **Se quitó la de las
+   notas**; queda la de «Delivery: Available…». **En la pantalla** del vendedor el cargo también sale dos veces (el campo
+   «Cargo de entrega (interno)» en Entrega y «Cargo de entrega, no incluido: $120.00» bajo el total): **esa no se tocó**,
+   porque el dueño hablaba de la hoja y en pantalla la segunda recuerda que el cargo no entra en el total. Si era esa, es
+   una línea.
+6. **Nada después de «Delivery: Available…»:** se quitaron la nota de cajas completas (*«Quantity Note: Certain products
+   are sold by full box only…»*), la de cargos de entrega y el descargo final (*«…is not an invoice, sales order, inventory
+   reservation, or guarantee of availability»*). Ya no hay `notas` en `HojaDelCliente`. **Recogiendo** (sin la línea de
+   entrega) la hoja acaba en el bloque de validez y Final Sale: se quitaron igual, porque el dueño pidió quitar ese bloque,
+   no moverlo. Aviso: con eso se van dos textos que él mismo escribió en su documento original (D-413); el aviso de Final
+   Sale junto al total sigue.
+7. **Estimados de la competencia sin cotización, y una pestaña con TODOS que ven todos los vendedores.**
+   - `/estimator` tiene dos pestañas: **«Cotización»** (todo lo de antes, incluida la sección de competencia pegada a la
+     cotización, D-425) y **«Estimados de la competencia»** (`EstimadosCompetencia.tsx`): arriba, subir uno **suelto**
+     (archivos + **cliente obligatorio**, tienda —por defecto la del perfil—, nuestro # de estimado, competidor, su total y
+     nota, todo opcional salvo el cliente); abajo, **la lista de todos**, sueltos y pegados, de lo más nuevo a lo más
+     viejo, con filtro por tienda y búsqueda (cliente, competidor, #, nota, quién). Abrir firma 60 s como antes; quitar,
+     quien lo subió o el admin.
+   - **La base (156):** `quote_id` pasa a opcional; columnas `customer_name`, `store`, `estimate_num`; un suelto exige
+     cliente (`check`); ruta `general/<uid de quien sube>/…`; techo de **50 sueltos por persona** (tabla y cubo; el de 5
+     por cotización sigue). **Ver** (tabla y cubo) = `has_estimator_access()`: admin o la casilla, de todas las tiendas;
+     antes era «quien ve la cotización». **Subir a una cotización** no cambia (dueño, aprobado, admin). **Quitar**: quien
+     lo subió o el admin, ya sin exigir ver la cotización. El disparador copia a los pegados el # y la tienda de su
+     cotización, para que quien no la ve sepa de cuál es.
+   - **Sin la 156** la lista pide columnas que no existen (`42703`/`PGRST204`, `faltaLa156`) y la pestaña dice «falta
+     actualizar la base (migración 156)»; la sección pegada a la cotización sigue, porque pide solo las columnas de la 153.
+     En demo, `?sin156=1`.
+   - **Ambigüedad:** «SHOW ALL ESTIAMTES IN A TAB» se leyó como los estimados **de la competencia** (el tema de la frase).
+     **Las cotizaciones propias NO se abrieron**: siguen con la RLS de la 148. Si quería también una lista de todas las
+     cotizaciones para todos los vendedores, es otra decisión (y otra migración): hay que preguntárselo.
+
+### Decisiones mías, para validar
+
+1. La dirección que se quitó es la del cliente (punto 1).
+2. La hoja enseña el precio con descuento **en lugar** del % (punto 2).
+3. La tienda de la hoja: la guardada de la cotización, y si no, la del perfil de quien prepara; solo el nombre.
+4. El cargo repetido de la pantalla se deja (punto 5).
+5. Recogiendo, la hoja tampoco lleva las notas (punto 6).
+6. Ver los estimados de la competencia = tener el módulo, **también los pegados a una cotización** (un PDF de la
+   competencia puede llevar nombre y dirección del cliente). Hoy (2026-09-29) solo los 4 admin tienen el módulo: hasta que
+   se conceda la casilla a los vendedores, la pestaña solo la ven ellos.
+7. 50 sueltos por persona, sin medición detrás (el cubo tenía 0 archivos).
+8. Conflicto con las reglas del worker: dicen «no escribas migraciones»; este encargo pedía la 156 escrita, con plan y
+   ensayo. Se siguió el encargo, como en D-425.
+
+### Verificado
+
+- **Ensayo de la 156 contra producción, dentro de una transacción con ROLLBACK** (2026-09-29): la migración entera, su
+  autocomprobación y los **26 casos de §6 OK**, con un vendedor de RDZ Pharr, uno de RDZ Brownsville (a los dos se les dio
+  el módulo dentro de la transacción), uno de RDZ McAllen sin el módulo y un admin. Y **4 mutantes de la migración**, cada
+  uno ensayado entero con ROLLBACK: la política de SELECT que vuelve a mirar la cotización (lo para la autocomprobación),
+  el techo a 51 (L2), la carpeta suelta sin mirar que sea la propia (V3, B2) y el cubo legible sin módulo (S2).
+- `node scripts/verify.mjs` (2026-09-29): tipos, **5506 pasadas | 3 saltadas** y `next build` en verde.
+- **Mutantes: 33, caen los 33**, leídos por el nombre de la prueba (el M23 **sobrevivió la primera vez porque el mutante
+  estaba mal hecho**: cambiaba el `return` pero dejaba el `remove`, o sea que no hacía lo que decía su nombre; rehecho
+  como M23b, que quita el `remove`, cae). Hoja: vuelve el «Valid through» de arriba (M1), una nota tras «Delivery:
+  Available» (M2), «Delivery charges are not included» (M3), sin tienda pintada (M4), la tienda ignorada (M5), el perfil
+  ganando a la guardada (M6), la pantalla sin pasarla (M7), abrir sin recogerla (M8), el % de vuelta (M9), el precio con
+  descuento con el total regular (M10) o sin ser menor (M11), sin pintarlo (M12). Pantalla: «Lower $/SF» (M13), vuelve la
+  Dirección (M14) y su clave (M15). Sueltos: ruta sin la carpeta propia (M16), sin exigir cliente (M17), `quote_id` que no
+  es null (M18), 42703 sin reconocer (M19), filtro sin tienda (M20), orden al revés (M21), columnas de la 153 (M22), el
+  archivo que no se retira (M23b), «Quitar» para todos (M24), subir con otro id (M25), subir sin cliente (M26), la
+  pestaña sin filtrar (M27), otro almacén (M28), el demo sin techo (M29) o sin `sin156` (M30). La 156: el cubo mirando la
+  cotización (M31), el suelto sin su carpeta (M32), el disparador sin copiar el # (M33).
+- Pruebas: `hoja.test.ts` (una sola validez, un solo «Delivery charges», nada tras «Delivery: Available», recogiendo sin
+  notas, «Store: …» y su origen, el precio con descuento y ningún % en la hoja, el campo de precio opcional),
+  `validar.test.ts` (sin campo de dirección del cliente; la de entrega sigue), `competencia-suelta.test.ts` (ruta, fila,
+  sin la 156, orden y filtro con datos desordenados, lista y «Quitar», el demo, el almacén de la base con un falso, el
+  cableado de la pantalla y el texto de la 156 con su checksum).
+- **En el navegador** (demo, puerto propio, clics de persona, 1280 y 390, sin desplazamiento lateral): la pantalla sin
+  «Address» y con «Discount price $/SF (optional)»; la línea «Discount price: $800.00 (20% off)»; la hoja como Sam Sales:
+  *Prepared for: Mr. Garza · Quote Reference · **Store: Edinburg** · Sales Representative: Ext. 214*, «Discount price:
+  $800.00», totales, **una** «QUOTE VALID THROUGH», el aviso de Final Sale y **«Delivery: Available…» como última línea**.
+  La pestaña: como Sam, «Subir» desactivado sin cliente, tienda Edinburg por defecto, subir un PDF inventado → «Uploaded»,
+  la lista con cliente, tienda, competidor, nota, «Uploaded on its own» y un «Remove»; como Sofia Ventas (otra persona,
+  sin tienda) la misma fila **sin** «Remove»; con `?sin156=1`, el aviso de la 156.
+
+### Lo no verificado
+
+- **La 156 no está aplicada**; la subida por la API de Storage (el servicio, no Postgres) contra la base no se probó: se
+  mide tras aplicar, subiendo un PDF pequeño suelto y quitándolo.
+- `window.print()` real: como en D-413, solo se miró la hoja en pantalla.

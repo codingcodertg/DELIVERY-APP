@@ -47,7 +47,7 @@ function completo(patch: Partial<QuoteDraft> = {}): QuoteDraft {
     ...borradorVacio("2026-09-08"),
     estimate_num: "104582",
     sales_ext: "214",
-    customer: { salutation: "Ms.", full_name: "Ana Prueba", company: "", phone: "", address: "" },
+    customer: { salutation: "Ms.", full_name: "Ana Prueba", company: "", phone: "" },
     lines: [{ ...lineaSfVacia(), customer_category: "24x48 Tile", requested_sf: 100, sf_per_box: 10, price_per_sf: 2 }],
     ...patch,
   };
@@ -220,8 +220,14 @@ describe("la pantalla usa estas reglas, no una copia", () => {
     expect(p).toContain("onChange={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })}");
     expect(p).toContain("onBlur={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })} />");
   });
-  it("la dirección ocupa la fila entera: en el móvil no fabrica columnas que estrujen Título y Teléfono", () => {
-    expect(p).toMatch(/gridColumn: "1 \/ -1" \}\}>\s*<label htmlFor="est-dir">/);
+  it("sin campo «Dirección» del cliente (D-451, «remove dirrecion en estimador»); la de entrega sigue", () => {
+    expect(p).not.toContain("est-dir");
+    expect(p).not.toContain("customer.address");
+    expect(p).not.toMatch(/t\("Address", "Dirección"\)/);
+    expect(p).toContain("Company and phone are never printed.");
+    // La de entrega, la que usa la calculadora de tarifa (D-442), sigue en su sección.
+    expect(leer("src/app/estimator/EntregaCotizacion.tsx")).toContain('label={t("Delivery address", "Dirección de entrega")}');
+    expect(Object.keys(borradorVacio().customer).sort()).toEqual(["company", "full_name", "phone", "salutation"]);
   });
   it("la sección de la competencia ya no pide «buscar» el estimado", () => {
     const comp = leer("src/app/estimator/Competencia.tsx");

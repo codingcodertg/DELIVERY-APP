@@ -2,7 +2,8 @@ import type { AlmacenDeCotizaciones, AprobacionPendiente, CotizacionGuardada, Pr
 import { claveDeEstimado, lineaSfVacia, borradorVacio, type QuoteDraft } from "./modelo";
 import type { AprobacionEstado, EstimadoHallado } from "./validar";
 import {
-  filaDeCompetencia, puedeQuitar, rutaDeCompetencia, validaArchivos, type AlmacenDeCompetencia, type ArchivoDeCompetencia,
+  LIMITES_DE_COMPETENCIA, filaDeCompetencia, filaSuelta, masNuevoPrimero, puedeQuitar, rutaDeCompetencia, rutaSuelta,
+  validaArchivos, type AlmacenDeCompetencia, type EstimadoDeCompetencia,
 } from "./competencia";
 
 /**
@@ -40,17 +41,17 @@ export function buscarEnCatalogoDemo(codigo: string): ProductoDelCatalogo[] {
   return CATALOGO_DEMO.filter((p) => p.sku.startsWith(c));
 }
 
-interface FilaDemo { id: string; owner_id: string; owner_name: string; print_count: number; draft: QuoteDraft }
+interface FilaDemo { id: string; owner_id: string; owner_name: string; store: string | null; print_count: number; draft: QuoteDraft }
 interface AprobDemo { id: string; quote_id: string; requested_by: string; requester_name: string; status: AprobacionEstado; requested_at: string }
 
 function semilla(): { cotizaciones: FilaDemo[]; aprobaciones: AprobDemo[] } {
   const draft = borradorVacio();
   draft.estimate_num = DEMO_ESTIMADO_AJENO;
   draft.sales_ext = "201";
-  draft.customer = { salutation: "Mr.", full_name: "Demo Customer", company: "Demo Builders", phone: "956-555-0100", address: "1 Demo St" };
+  draft.customer = { salutation: "Mr.", full_name: "Demo Customer", company: "Demo Builders", phone: "956-555-0100" };
   draft.lines = [{ ...lineaSfVacia(), customer_category: "12x24 Tile", requested_sf: 400, sf_per_box: 15.5, price_per_sf: 1.29, item_code: "DEMO-1224", internal_description: "Demo Ceramic Wood-look 12x24 Matte" }];
   return {
-    cotizaciones: [{ id: "demo-q-1", owner_id: DEMO_OTRO_VENDEDOR.id, owner_name: DEMO_OTRO_VENDEDOR.name, print_count: 0, draft }],
+    cotizaciones: [{ id: "demo-q-1", owner_id: DEMO_OTRO_VENDEDOR.id, owner_name: DEMO_OTRO_VENDEDOR.name, store: "Weslaco", print_count: 0, draft }],
     aprobaciones: [],
   };
 }
@@ -62,7 +63,7 @@ const SIN_TABLA: Resultado<never> = { ok: false, sinTabla: true, error: "PGRST20
  * `me` se pide en cada llamada (no se captura) porque «Ver como» cambia de persona sin recargar, y
  * el demo tiene que responder como respondería la base a quien pregunta AHORA.
  */
-export function almacenDemo(me: () => { id: string; name: string; admin: boolean }, sinTabla: boolean): AlmacenDeCotizaciones {
+export function almacenDemo(me: () => { id: string; name: string; admin: boolean; store?: string | null }, sinTabla: boolean): AlmacenDeCotizaciones {
   const db = semilla();
   let n = 1;
 
@@ -83,7 +84,7 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       if (sinTabla) return SIN_TABLA;
       const q = db.cotizaciones.find((c) => c.id === quoteId);
       if (!q) return { ok: false, sinTabla: false, error: "not visible" };
-      const out: CotizacionGuardada = { id: q.id, owner_id: q.owner_id, owner_name: q.owner_name, print_count: q.print_count, draft: structuredClone(q.draft) };
+      const out: CotizacionGuardada = { id: q.id, owner_id: q.owner_id, owner_name: q.owner_name, store: q.store, print_count: q.print_count, draft: structuredClone(q.draft) };
       return bien(out);
     },
 
@@ -105,7 +106,8 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       }
       n += 1;
       const id = `demo-q-${n}`;
-      db.cotizaciones.push({ id, owner_id: yo.id, owner_name: yo.name, print_count: 0, draft: structuredClone(draft) });
+      // Como el disparador de la 148: la tienda es la del perfil de quien la crea.
+      db.cotizaciones.push({ id, owner_id: yo.id, owner_name: yo.name, store: yo.store?.trim() || null, print_count: 0, draft: structuredClone(draft) });
       return bien(id);
     },
 
@@ -163,9 +165,11 @@ const SIN_TABLA_COMPETENCIA: Resultado<never> = {
  * cubo, y quitar solo quien lo subió o el admin. Con `?sinTabla=1`, como la base sin la 153.
  */
 export function almacenDeCompetenciaDemo(
-  me: () => { id: string; name: string; admin: boolean }, sinTabla: boolean,
+  me: () => { id: string; name: string; admin: boolean; store?: string | null }, sinTabla: boolean,
+  /** `?sin156=1`: como la base con la 153 y sin la 156 (la pestaña de todos y los sueltos, apagados). */
+  sin156 = false,
 ): AlmacenDeCompetencia {
-  const filas: ArchivoDeCompetencia[] = [];
+  const filas: EstimadoDeCompetencia[] = [];
   const blobs = new Map<string, Blob>();
   let n = 0;
   return {
@@ -184,8 +188,9 @@ export function almacenDeCompetenciaDemo(
       n += 1;
       const yo = me();
       const path = rutaDeCompetencia(quoteId, f.name, new Date(), `d${n}`);
-      const fila: ArchivoDeCompetencia = {
+      const fila: EstimadoDeCompetencia = {
         ...filaDeCompetencia(quoteId, path, f, meta),
+        customer_name: null, store: yo.store?.trim() || null, estimate_num: null,
         id: `demo-c-${n}`, uploaded_by: yo.id, uploaded_by_name: yo.name, uploaded_at: new Date().toISOString(),
       };
       filas.push(fila);
@@ -196,6 +201,29 @@ export function almacenDeCompetenciaDemo(
       const b = blobs.get(a.id);
       if (!b || typeof URL.createObjectURL !== "function") return { ok: false, sinTabla: false, error: "demo: not found" };
       return bien(URL.createObjectURL(b));
+    },
+    async listarTodos() {
+      if (sinTabla || sin156) return SIN_TABLA_COMPETENCIA;
+      // Como la 156: todo el que tiene el módulo ve todos, de todas las tiendas.
+      return bien(masNuevoPrimero(filas).map((f) => ({ ...f })));
+    },
+    async subirSuelto(yoId, f, meta) {
+      if (sinTabla || sin156) return SIN_TABLA_COMPETENCIA;
+      if (!meta.customer_name.trim()) return { ok: false, sinTabla: false, error: "demo: customer name required" };
+      const mios = filas.filter((x) => x.quote_id === null && x.uploaded_by === yoId).length;
+      if (mios >= LIMITES_DE_COMPETENCIA.maxSueltosPorPersona) return { ok: false, sinTabla: false, error: "demo: up to 50 loose files" };
+      const fallo = validaArchivos([f], 0);
+      if (fallo) return { ok: false, sinTabla: false, error: `demo: ${fallo.motivo}` };
+      n += 1;
+      const yo = me();
+      const base = filaSuelta(rutaSuelta(yoId, f.name, new Date(), `d${n}`), f, meta);
+      const fila: EstimadoDeCompetencia = {
+        ...base, store: base.store ?? (yo.store?.trim() || null),
+        id: `demo-c-${n}`, uploaded_by: yoId, uploaded_by_name: yo.name, uploaded_at: new Date().toISOString(),
+      };
+      filas.push(fila);
+      blobs.set(fila.id, f);
+      return bien({ ...fila });
     },
     async quitar(a) {
       if (sinTabla) return SIN_TABLA_COMPETENCIA;
