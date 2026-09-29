@@ -119,8 +119,13 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   { key: "p_type", en: "Stops: Type", es: "Paradas: Tipo", tablas: ["paradas"], ancho: 140, indice: 2 },
   // «Paradas: Pallets» (`p_pallets`, puesto 3) se quitó en D-444: la columna fija de la cuenta ya dice lo de cada parada
   // («+4 = 4»). El dueño, 2026-09-29: «esa columna de pallets […] no lo ocupo». Guardada en una lista, se ignora al leer.
-  // La ciudad también aquí desde D-408, con la misma clave por la misma razón.
-  { key: "p_address", en: "Stops: City", es: "Paradas: Ciudad", tablas: ["paradas"], ancho: 120, indice: 4 },
+  // D-NEXT: la ciudad de donde SALE la carga, justo delante de la de entrega (de dónde sale a dónde va). El dueño,
+  // 2026-09-29: «no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda». La celda es
+  // `zonaDeLaRecogida`, la misma de «Plan: Ciudad de recogida» (D-434). Sin `indice`: nació con los anchos por clave.
+  { key: "p_ciudad_recogida", en: "Stops: Pickup city", es: "Paradas: Ciudad de recogida", tablas: ["paradas"], ancho: 120 },
+  // La ciudad también aquí desde D-408, con la misma clave por la misma razón. Desde D-NEXT se rotula «Ciudad de entrega»
+  // (era «Ciudad» a secas) para que no se confunda con la de recogida que va al lado.
+  { key: "p_address", en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega", tablas: ["paradas"], ancho: 120, indice: 4 },
   { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 56, indice: 5 },
   { key: "p_windows", en: "Stops: Windows", es: "Paradas: Ventanas", tablas: ["paradas"], ancho: 110, indice: 6 },
   // Las de Órdenes que la tabla de paradas no tenía (D-376). NO salen por defecto: esta tabla es donde se cambia el orden
@@ -203,14 +208,14 @@ export const seVeEnLaRecogida = (c: Pick<ColumnaDelGestor, "key" | "deOrdenes">)
 
 /** Por defecto, todas menos las marcadas `oculta`: lo que ya se veía, más la factura y lo nuevo de «Sin asignar». Quitar
  *  columnas es una elección, no el punto de partida. */
-export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4", "_v5", "_v6", "_v7"];
+export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4", "_v5", "_v6", "_v7", "_v8"];
 
 /** El orden DE PARTIDA de cada tabla: el de quien no ha movido nada, y el que devuelven «Default» y «Restablecer orden».
  *  «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-402; antes, desde D-331, la factura la primera
  *  y lo demás como estaba). Paradas, el que ya tenía antes de poder elegir: lo que llega después va al final. */
 export const ORDEN_DE_PARTIDA_DEL_GESTOR: Readonly<Record<TablaDelGestor, readonly string[]>> = {
   sinAsignar: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key),
-  paradas: ["p_type", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"],
+  paradas: ["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_windows", "p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"],
   // El plan (D-429): el orden de Órdenes, que es el del catálogo, y detrás las cuatro propias del plan.
   plan: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan")).map((c) => c.key),
 };
@@ -350,6 +355,8 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
   if (!lista.includes(MARCA_V6)) lista = [...lista.filter((k) => !esDelPlan(k)), ...VISTAS_EN_EL_PLAN, MARCA_V6];
   // D-435 vuelve a AÑADIR, como las tandas de antes: la ciudad de entrega, sin quitar nada de lo que la persona eligió.
   if (!lista.includes(MARCA_V7)) lista = [...new Set([...lista, ...NUEVAS_EN_V7])].concat(MARCA_V7);
+  // D-NEXT: la ciudad de recogida en la tabla de paradas. También AÑADE, sin quitar nada.
+  if (!lista.includes(MARCA_V8)) lista = [...new Set([...lista, ...NUEVAS_EN_V8])].concat(MARCA_V8);
   return lista;
 }
 
@@ -357,6 +364,25 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
 // marca no la vería nunca, porque su lista ya no es de antes de D-434.
 export const MARCA_V7 = "_v7";
 const NUEVAS_EN_V7: readonly string[] = ["pl_ciudad_entrega"];
+
+// D-NEXT: la «Ciudad de recogida» en la tabla de paradas de cada chofer. Quien ya guardó sus columnas no la vería nunca sin
+// esta marca: su lista ya conoce las tandas de antes, y una clave que no está se lee como «la quitó».
+export const MARCA_V8 = "_v8";
+const NUEVAS_EN_V8: readonly string[] = ["p_ciudad_recogida"];
+
+/**
+ * El ORDEN guardado con la ciudad de recogida de paradas en su sitio (D-NEXT): justo DELANTE de la ciudad de entrega
+ * (`p_address`), esté donde esté esa en el orden de la persona. Hermana de `conCiudadDeEntregaEnSuSitio`. Sin esto,
+ * `ordenEfectivo` la pondría al FINAL de un orden de paradas guardado. Solo inserta; sin orden, o sin la tabla de paradas
+ * en él (está en su partida, que ya la trae en su sitio), no hay nada que hacer. Si ya la tiene, tampoco.
+ */
+export function conCiudadDeRecogidaEnSuSitio(orden: readonly string[] | null | undefined): string[] | null {
+  if (!orden) return null;
+  const r = [...orden];
+  const antes = r.indexOf("p_address");
+  if (antes >= 0 && !r.includes("p_ciudad_recogida")) r.splice(antes, 0, "p_ciudad_recogida");
+  return r;
+}
 
 /**
  * El ORDEN guardado con la ciudad de entrega en su sitio (D-435): justo tras la «Ciudad de recogida», esté donde esté esa
@@ -388,12 +414,19 @@ const esDelPlan = (k: string): boolean => COLUMNAS_DEL_GESTOR.some((c) => c.key 
  * D-435 (`MARCA_V7`): quien ya pasó por `_v6` recibe la ciudad de entrega AÑADIDA —sus columnas y su orden del plan se
  * quedan— y, si movió el plan, la columna entra en su orden justo tras la ciudad de recogida (`conCiudadDeEntregaEnSuSitio`).
  * También se guarda ya, una vez, por la misma razón que `_v6`.
+ *
+ * D-NEXT (`MARCA_V8`): lo mismo en la tabla de PARADAS con la ciudad de recogida: añadida a sus columnas y, si movió las
+ * paradas, en su orden justo delante de la ciudad de entrega (`conCiudadDeRecogidaEnSuSitio`). Quien viene de más atrás
+ * pasa por lo suyo (`_v6`, `_v7`) y además por esto. `escribe` una vez; con `_v8` ya no.
  */
 export function preferenciasDelGestorAlLeer(suyas: readonly string[] | undefined, orden: readonly string[] | null | undefined): { columnas: string[] | null; orden: string[] | null; escribe: boolean } {
   const columnas = suyas ? conColumnasNuevas(suyas) : null;
-  if (suyas?.includes(MARCA_V7) || (!suyas && !orden)) return { columnas, orden: orden ? [...orden] : null, escribe: false };
-  if (suyas?.includes(MARCA_V6)) return { columnas, orden: conCiudadDeEntregaEnSuSitio(orden), escribe: true };
-  return { columnas: columnas ?? [...COLUMNAS_DEL_GESTOR_POR_DEFECTO], orden: restableceOrdenDelGestor("plan", orden), escribe: true };
+  if (suyas?.includes(MARCA_V8) || (!suyas && !orden)) return { columnas, orden: orden ? [...orden] : null, escribe: false };
+  if (suyas?.includes(MARCA_V7)) return { columnas, orden: conCiudadDeRecogidaEnSuSitio(orden), escribe: true };
+  if (suyas?.includes(MARCA_V6)) return { columnas, orden: conCiudadDeRecogidaEnSuSitio(conCiudadDeEntregaEnSuSitio(orden)), escribe: true };
+  // Se inserta ANTES de restablecer el plan: `restableceOrdenDelGestor` reescribe el orden entero con `ordenEfectivo`, que ya
+  // pondría la columna nueva al final de unas paradas movidas, y entonces la inserción la vería puesta y no haría nada.
+  return { columnas: columnas ?? [...COLUMNAS_DEL_GESTOR_POR_DEFECTO], orden: restableceOrdenDelGestor("plan", conCiudadDeRecogidaEnSuSitio(orden)), escribe: true };
 }
 
 /**
@@ -454,7 +487,7 @@ export function siembraAnchosDeParadas(almacen: { getItem(k: string): string | n
 export function columnasDePlantillaDelGestor(v: readonly string[]): string[] {
   const conocePlan = v.some((k) => COLUMNAS_DEL_GESTOR.some((c) => c.key === k && c.tablas.includes("plan")));
   const si = new Set(conocePlan ? v : [...v, ...NUEVAS_EN_V5]);
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8);
 }
 
 /** La foto que guarda una plantilla del Gestor: solo las columnas del catálogo que se ven, sin marcas ni claves retiradas. */
@@ -475,5 +508,5 @@ export function alternaColumna(elegidas: readonly string[], key: string): string
   const si = new Set(elegidas);
   if (si.has(key)) si.delete(key); else si.add(key);
   // Las marcas viajan siempre: lo que se guarde a partir de aquí ya conoce las columnas de cada tanda.
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8);
 }

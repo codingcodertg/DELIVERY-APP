@@ -33060,6 +33060,11 @@ con planes del motor, no con datos reales); la recarga a media ruta en el mapa r
 
 ## D-444 · Gestor de Rutas: una fila por recogida, el mismo sitio como grupo de color, la cuenta «+4 = 4» y el ID en vez de la factura
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-29): en la tabla de paradas del Gestor la fila P ya **no** deja vacía
+> la ciudad: pinta la ciudad de entrega de SU orden (`p_address`, ahora rotulada «Ciudad de entrega») y la nueva «Ciudad
+> de recogida» (`p_ciudad_recogida`). Ventanas, dirección y contacto siguen vacíos en la P. La tabla del plan (D-429,
+> D-435) no cambia.
+
 **Fecha:** 2026-09-29 · **Versión:** deliveries 1.236.0 (repo 1.319.0) · **Migración:** ninguna nueva. **Reemplaza en
 parte a** D-443 (las recogidas juntadas y el texto de la cuenta) y D-408 (la factura en la tabla de paradas), que llevan su
 nota.
@@ -33132,3 +33137,79 @@ lleno vuelven a caber 5 plantillas llenas, y con los seis roles llenos cabe 0 (a
 
 Tanda de 14 mutantes: **13 caen** con una prueba con nombre. **U1 sobrevive y es equivalente**: volver a juntar las
 recogidas de una tienda dentro del bloque no cambia nada, porque `unaPorOrden` las separa al final.
+
+## D-NEXT · Gestor de Rutas: la tabla de paradas dice la ciudad de RECOGIDA y la de ENTREGA, también en las filas de recogida
+
+**Fecha:** 2026-09-29 · **Versión:** la pone el orquestador (Entregas) · **Migración:** ninguna. **Reemplaza en parte a**
+D-444 (la ciudad vacía en la fila P de la tabla de paradas), que lleva su nota.
+
+### Qué pidió el dueño
+
+Con una captura de la tabla de paradas de un chofer en el Gestor de Rutas (`/routes`), recién publicada D-444 (mensaje del
+2026-09-29; extraído del fichero de sesión tal cual, sin corregir):
+
+> no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda
+
+### Qué fallaba
+
+La tabla de paradas por chofer (filas P y D, D-443/D-444; columnas elegibles en su ⚙) tenía una sola columna de ciudad,
+`p_address`, rotulada «Ciudad» a secas. En las filas D pintaba la ciudad de entrega; en las filas P iba **vacía** a
+propósito (D-444: «lo que es de la entrega va vacío, como en el plan»). En una ruta que empieza con recogidas, las primeras
+filas no decían ninguna ciudad, y ninguna columna decía de qué ciudad sale la carga — solo la columna Tipo nombra la
+tienda («Recoger en …»), no su ciudad.
+
+### Qué cambió
+
+- **Columna nueva «Ciudad de recogida»** (`p_ciudad_recogida`, «Stops: Pickup city» / «Paradas: Ciudad de recogida»,
+  ancho 120, sin `indice`: nació con los anchos por clave de D-410), **visible por defecto**, justo **delante** de la de
+  entrega: en el catálogo y en el orden de partida de paradas. Su celda es `zonaDeLaRecogida` (`lib/zonas`): la ciudad de
+  la tienda de `pickup_name` y, si no está o no tiene punto, la de `store` — la **misma** función que pinta «Plan:
+  Ciudad de recogida» (`celdaPropiaDelPlan`, D-434). Sin tienda con punto, «—».
+- **`p_address` se rotula «Ciudad de entrega»** («Stops: Delivery city» / «Paradas: Ciudad de entrega»). Misma clave:
+  está guardada en listas y plantillas.
+- **La fila P pinta las dos ciudades de SU orden**: de dónde sale y a dónde va. Ventanas, dirección y contacto siguen
+  vacíos en la P (son de la entrega; `seVeEnLaRecogida`).
+- **Lo ya guardado (`MARCA_V8 = "_v8"`)**: quien guardó sus columnas antes recibe la nueva **añadida** (sin quitarle
+  nada), una vez. Si movió la tabla de paradas, su orden guardado recibe la nueva **justo delante de `p_address`**
+  (`conCiudadDeRecogidaEnSuSitio`, hermana de `conCiudadDeEntregaEnSuSitio` de D-435); sin eso `ordenEfectivo` la
+  pondría al final. Se escribe ya (`escribe: true`), una vez, por la misma razón que `_v6`/`_v7`: si esperara a que
+  marque una casilla, mover antes una columna guardaría el orden sin la marca. Quien viene de `_v6` o de antes pasa por lo
+  suyo y además por esto. Con la marca y sin la columna, es que la quitó: no vuelve. Las plantillas llevan la marca al
+  aplicarse (no la ganan al recargar).
+- **Un fallo que cazó la prueba antes de publicar**: para quien viene de antes de `_v6`, primero se restablecía el plan
+  y luego se insertaba. `restableceOrdenDelGestor` reescribe el orden entero con `ordenEfectivo`, que ya dejaba la
+  columna nueva al FINAL de unas paradas movidas, y la inserción la veía puesta y no hacía nada. Ahora se inserta antes de
+  restablecer.
+
+### Cuánto pesa (modelo `bytesEnLaBase`, no medida de Postgres; 2026-09-29)
+
+Una columna y una marca más en `routes_columns`. El peor caso —un rol con TODO marcado y movido y plantillas llenas—
+pasa de 13 387 a 13 836 bytes con 10 plantillas, y vuelven a caber **4** plantillas llenas, no 5 (como tras D-435; la
+quinta la para la guarda, que lo dice). Los seis roles con todo lleno: 7 293 → 7 581 sin plantillas; la fila cabe en la
+base (< 8 192) pero no con la reserva de 800 de la guarda, así que en ese peor caso no se puede guardar ninguna plantilla
+(como tras D-435). Marcar, mover o quitar columnas no pasa por la guarda. Lo normal (logística y admin con las de defecto
+y 10 plantillas de esas) pasa de 3 864 a 4 157. Los casos que se midieron en Postgres el 2026-09-25 no cambian: la
+columna nueva se excluye de lo medido, como las que llegaron después.
+
+### Descartado
+
+- **Llenar la P con el nombre de la tienda en vez de su ciudad**: la columna Tipo ya dice «Recoger en <tienda>»; el dueño
+  pidió «ciudad tienda de rocigda».
+- **Copiar la lógica de la ciudad de recogida en la página**: se reutiliza `zonaDeLaRecogida`, la de la tabla del plan.
+- **Mandar la columna nueva al FINAL del orden de partida**, como toda columna nueva de paradas desde D-412: aquí el
+  sentido es «de dónde sale a dónde va», y va pegada a la de entrega (como hizo D-435 en el plan).
+- **Tocar la tabla del plan** (D-429/D-435): allí la fila P sigue sin la ciudad de entrega. No se pidió.
+
+### Pruebas y mutantes
+
+Nueva `ciudad-de-recogida-en-paradas.test.ts`: el catálogo (rótulos, defecto, delante de la de entrega), la tanda `_v8`
+(añade sin quitar; con la marca y sin la columna no vuelve; sin orden sale en su sitio; con paradas movidas entra delante
+de `p_address` y no mueve nada más; con la de entrega al final; desde `_v6` y desde antes de `_v6`; `escribe` una
+vez y después no; plantillas) y la página (celdas de P y D para las dos columnas, y que las de P van antes de la que deja
+vacío). Las que afirmaban las cuatro columnas de paradas, las marcas, el rótulo «Ciudad» y los tamaños se actualizaron con
+su nota «D-NEXT».
+
+Tanda de 20 mutantes, **20 caen** con una prueba con nombre (orden de partida, oculta, rótulo, tanda sin aplicar, tanda
+sin la columna, defecto sin marca, insertar detrás, no insertar, `_v7` sin tanda, `_v7` sin insertar, `_v7` sin
+escribir, `_v6` sin la de recogida, el orden restablecer/insertar invertido, plantilla sin marca, marcar sin marca, y
+cinco en la página: D sin la celda, D con la tienda, P sin recogida, P con la entrega vacía, P con ventanas).
