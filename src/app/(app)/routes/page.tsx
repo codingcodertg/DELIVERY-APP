@@ -7,16 +7,16 @@ import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { canPlanRoutes } from "@/lib/constants";
-import { parseWindow, splitIntoTrips, unavailableDriverNames } from "@/lib/dispatch";
+import { parseWindow, unavailableDriverNames } from "@/lib/dispatch";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
 import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLabel, shiftDateISO, todayISO } from "@/lib/utils";
-import { serviceMin, tripTiming, dayMinutes, RELOAD_MIN } from "@/lib/trip-timing";
+import { serviceMin, RELOAD_MIN } from "@/lib/trip-timing";
 import { cuerpoDeLaMedida, firmaDeLaMedida, pintaElTrazoDelPlan } from "@/lib/medida-de-ruta";
-import { driverOf, groupIntoLoads, hasManualLoads, loadNoOf, nextLoadFor as nextLoadForPure, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
+import { driverOf, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
 import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
@@ -24,7 +24,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
 import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
 import { PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
-import { esProvisional, etiquetaDeLaParada, filasDelViaje, lecturaParaLasFilas, recogidasPorViaje } from "@/lib/route-plan/lectura-de-ruta";
+import { esProvisional, esProvisionalLaFila, type FilaDeLaRuta, type LecturaDeRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
@@ -44,13 +44,13 @@ import { createClient } from "@/lib/supabase/client";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { etiquetaDelGestor, textoQueAbreLaOrden, valorDelGestor } from "@/lib/valores-del-gestor";
 import { ciudadDeEntrega, ciudadesConocidas } from "@/lib/ciudad-de-entrega";
-import { celdaPropiaDelPlan } from "@/lib/route-plan/celdas-del-plan";
+import { celdaPropiaDelPlan, claseDeLaFilaDelPlan } from "@/lib/route-plan/celdas-del-plan";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 import { abanicoDeMarcas } from "@/lib/abanico-de-marcas";
-import { aLaDecima, palletsDeLaOrden, sumaPallets } from "@/lib/pallets";
+import { palletsDeLaOrden, sumaPallets } from "@/lib/pallets";
 import { sumaDinero } from "@/lib/totales";
 import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
@@ -61,9 +61,11 @@ import {
   HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
-import { cabeEnElViaje, hechasDelChofer, inicioDeLaSecuencia, planDeCambioDeViaje, planDeCambioDeViajeDeVarias, planDeDividirEnDos, planDeFlecha, planDeUnirViajes } from "@/lib/mover-parada";
-import { planDeFlechaDeRecogida } from "@/lib/mover-recogida";
-import { pasaElViaje, viajeEfectivo } from "@/lib/filtro-de-viaje";
+import { hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
+import {
+  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, dosDecimales, escrituraDeLaLista, listaConEntregasEn, mueveEnLaLista, textoDeLaCuenta,
+  textoDelExceso, tienePosicionDeRecogida, type FilaDeCuenta, type ParadaDeLaLista,
+} from "@/lib/lista-unica";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
 import { esDeSuZona } from "@/lib/zonas";
@@ -78,17 +80,18 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 // Desde D-437 el orden AUTOMÁTICO de una ruta sale de un solo sitio: «🧭 Armar las rutas del día» (el motor: planifica
 // en borrador, se ajusta y se publica). Aquí ya no hay «Optimizar ruta», «Optimizar todas las rutas», «✨ Auto-asignar»,
 // «Reagrupar por zona» ni «Simular»: el dueño, 2026-09-28, «Quitar los dos; solo Armar rutas». A mano quedan asignar,
-// «📍 Mejor lugar», las flechas, el selector de viaje, unir/dividir viajes y el arrastre de «📅 Horario». La pantalla
-// MIDE la ruta de un chofer elegido (millas, horas, trazo) en el orden guardado, sin reordenarla (`medida-de-ruta.ts`).
+// «📍 Mejor lugar», las flechas, «Pasar a…» y el arrastre de «📅 Horario». La pantalla MIDE la ruta de un chofer elegido
+// (millas, horas, trazo) en el orden guardado, sin reordenarla (`medida-de-ruta.ts`).
 //
-// Each driver's truck has a pallet capacity. When their assigned stops add
-// up to more than it can carry in one load, the route is split into
-// several round trips — out to a batch of stops, back to the driver's home
-// store to reload, out again — rather than one trip that assumes an
-// infinitely large truck.
+// SIN VIAJES desde D-NEXT (el dueño, 2026-09-28: «SI ELIMINA VIAJES»). La ruta de un chofer es UNA lista de paradas
+// —recogidas (P) y entregas (D) intercaladas— y el camión puede recoger, entregar una parte, volver a recoger y seguir,
+// siempre que no lleve más pallets de los que le caben. Qué lista sale de lo guardado, cómo se mueve una parada y la cuenta
+// de pallets de cada una viven en `lib/lista-unica`; aquí solo se pinta y se escribe. Se fueron: «Viaje N» / «＋ Nuevo
+// viaje» (D-433), «Dividir en 2» / «Unir viajes» (D-437), «Ver un viaje» (D-441), la cabecera y la raya de cada viaje, sus
+// flechas, y sus colores.
 //
 // The page is driven by a driver switcher: pick one driver to see just
-// their pins, routes and truckloads (or "All" for the whole day at once).
+// their pins and routes (or "All" for the whole day at once).
 // ============================================================
 
 const UNASSIGNED_COLOR = "#6b7686";
@@ -107,9 +110,9 @@ const ROUTE_STAGES: Delivery["stage"][] = ["pending", "approved", "fulfilling", 
 // Used whenever a driver has no capacity set yet in Settings.
 const DEFAULT_CAPACITY = 12;
 
-// The day's routes are timed from this clock, with a reload buffer added at
-// the pickup between truckloads. Service (unload) time per stop comes from
-// the order's own delivery_duration.
+// The day's routes are timed from this clock, with a reload buffer at each
+// pickup stop (RELOAD_MIN). Service (unload) time per stop comes from the
+// order's own delivery_duration.
 const DAY_START_MIN = 8 * 60; // 08:00
 
 function fmtMinutes(min: number): string {
@@ -127,61 +130,19 @@ function fmtClock(min: number): string {
   return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
-function hexToHsl(hex: string): [number, number, number] {
-  const c = hex.replace("#", "");
-  const r = parseInt(c.slice(0, 2), 16) / 255, g = parseInt(c.slice(2, 4), 16) / 255, b = parseInt(c.slice(4, 6), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  let h = 0, s = 0;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
-    h *= 60;
-  }
-  return [h, s, l];
-}
+// Los colores por viaje (`tripColor`) se fueron con los viajes (D-NEXT): cada ruta va del color de su chofer.
 
-function hslToHex(h: number, s: number, l: number): string {
-  h = ((h % 360) + 360) % 360;
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  let [r, g, b] = [0, 0, 0];
-  if (h < 60) [r, g, b] = [c, x, 0];
-  else if (h < 120) [r, g, b] = [x, c, 0];
-  else if (h < 180) [r, g, b] = [0, c, x];
-  else if (h < 240) [r, g, b] = [0, x, c];
-  else if (h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
-  const hx = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
-  return `#${hx(r)}${hx(g)}${hx(b)}`;
-}
-
-// Truckload 1 keeps the driver's own color; later truckloads rotate the HUE
-// far away (not a lighter shade), so each loop is an unmistakably different
-// color from the driver's and from each other.
-const HUE_OFFSETS = [150, 60, 240, 300, 120, 30, 210];
-
-/** A distinctly different color per truckload. */
-function tripColor(base: string, index: number): string {
-  if (index === 0) return base;
-  const [h, s] = hexToHsl(base);
-  return hslToHex(h + HUE_OFFSETS[(index - 1) % HUE_OFFSETS.length], Math.max(0.6, s), 0.45);
-}
-
-/** One truckload's traced path, split so the delivery run and the empty
- * drive back to the pickup can be styled differently (solid vs dashed). */
+/** A route's traced path, split so the run and the empty drive back to the
+ * base can be styled differently (solid vs dashed). Since D-NEXT a route is
+ * ONE list, so there is one trace per driver. */
 interface TripTrace {
   delivery: [number, number][];
   ret: [number, number][];
 }
 
-/** What one truckload actually costs. Wheel time alone understates the day:
- * a load of six stops spends over an hour standing still being unloaded, and
- * that time is already programmed per order (delivery_duration). */
+/** What the route actually costs. Wheel time alone understates the day:
+ * six stops spend over an hour standing still being unloaded, and that time
+ * is already programmed per order (delivery_duration). */
 interface TripStat {
   miles: number;
   /** Time behind the wheel, pickup out and back. */
@@ -201,10 +162,9 @@ interface MedidaDeLaRuta {
   miles: number;
   seconds: number;
   traces: TripTrace[];
-  trips: number;
-  /** Per-truckload breakdown, by the truckload's position (`null`: a truckload that couldn't be measured). */
-  tripStats: (TripStat | null)[];
-  /** Whole day: driving + unloading + reloading between truckloads. */
+  /** The whole list (D-NEXT: one per driver), or `null` if it couldn't be measured. */
+  stat: TripStat | null;
+  /** Whole day: driving + unloading + reloading at each pickup stop. */
   dayMinutes: number;
   /** Estimated arrival time per stop id, "HH:MM". */
   etas: Record<string, string>;
@@ -373,7 +333,8 @@ export default function RoutesPage() {
   // La tabla de paradas: el número de parada y la factura, fijos delante; las elegidas, en el orden de la persona (D-410;
   // hasta aquí, puestos fijos y las de Órdenes detrás, D-346/D-376); y las acciones, fijas al final.
   const colsParadas = columnasDeLaTabla("paradas", colsGestor, ordenGestor);
-  const columnasDeParadas = 3 + colsParadas.length;
+  // #, factura, la cuenta de pallets (D-NEXT), las elegidas y las acciones.
+  const columnasDeParadas = 4 + colsParadas.length;
   // Which drivers are highlighted on the map / focused in the tables. Empty
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
@@ -428,9 +389,9 @@ export default function RoutesPage() {
   }, [incidenciasAbiertas]);
   // La ruta que se está midiendo ahora (una a la vez, D-437).
   const [midiendo, setMidiendo] = useState<string | null>(null);
-  const [routeInfo, setRouteInfo] = useState<Record<string, { miles: number; duration_text: string; trips: number; minutes: number; dayMinutes: number; dayText: string }>>({});
-  // Per-truckload numbers, keyed by driver then load index.
-  const [routeTrips, setRouteTrips] = useState<Record<string, (TripStat | null)[]>>({});
+  const [routeInfo, setRouteInfo] = useState<Record<string, { miles: number; duration_text: string; minutes: number; dayMinutes: number; dayText: string }>>({});
+  // What the whole list costs, per driver (D-NEXT: one per driver; until then, one per truckload).
+  const [routeStats, setRouteStats] = useState<Record<string, TripStat | null>>({});
   const [routeLines, setRouteLines] = useState<Record<string, TripTrace[]>>({});
   const [routeEtas, setRouteEtas] = useState<Record<string, Record<string, string>>>({});
   const [depotCoords, setDepotCoords] = useState<Record<string, [number, number]>>({});
@@ -513,7 +474,7 @@ export default function RoutesPage() {
     });
 
   // A newly-viewed date invalidates any measured summary/trace from before.
-  useEffect(() => { setRouteInfo({}); setRouteTrips({}); setRouteLines({}); setRouteEtas({}); setErr(null); }, [date]);
+  useEffect(() => { setRouteInfo({}); setRouteStats({}); setRouteLines({}); setRouteEtas({}); setErr(null); }, [date]);
 
   const focusOnly = (name: string) => setSelected(new Set([name]));
   const toggleDriver = (name: string) =>
@@ -658,8 +619,6 @@ export default function RoutesPage() {
   const pasaFiltro = (ruta: string | null | undefined) => pasaElFiltroDeChofer(filtroChofer, ruta);
   const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));
 
-  // The next free load number for a driver (1 if they have no work yet).
-  const nextLoadFor = (driver: string) => nextLoadForPure(dayOrders, driver);
   // Desde qué puesto se numera la ruta de un chofer al moverla a mano: tras lo que ya recogió o entregó en esas fechas, que
   // el Gestor no enseña pero «Mi ruta» sí (D-433, `inicioDeLaSecuencia`).
   // Lo ya recogido o entregado de esa ruta en las fechas de sus paradas: no se pinta, pero sí cuenta para numerar y para
@@ -667,118 +626,97 @@ export default function RoutesPage() {
   const hechasDeLaRuta = (laneKey: string, stops: Delivery[]) =>
     hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null)));
   const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => inicioDeLaSecuencia(hechasDeLaRuta(laneKey, stops));
-  // La parada recién movida se resalta un momento, para que se vea a dónde fue (D-433).
+  // La parada recién movida se resalta un momento, para que se vea a dónde fue (D-433). La clave es la de su fila
+  // (`claveDeLaFila`): el id de la orden en una entrega, «P:» y sus órdenes en una recogida.
   const [recienMovida, setRecienMovida] = useState<string | null>(null);
-  const senalaLaMovida = (id: string) => {
-    setRecienMovida(id);
-    setTimeout(() => setRecienMovida((x) => (x === id ? null : x)), 2500);
+  const senalaLaMovida = (clave: string) => {
+    setRecienMovida(clave);
+    setTimeout(() => setRecienMovida((x) => (x === clave ? null : x)), 2500);
   };
-  // El selector «Viaje N» de una parada (D-433): la pasa al final de otro viaje del mismo chofer, o a uno nuevo. Qué se
-  // escribe lo decide `planDeCambioDeViaje`: la ruta ENTERA —puesto y viaje de cada parada—, no solo la movida. Antes se
-  // escribía la movida con `route_seq: null`, y una ruta con una parada sin puesto se lee a medias (D-336): la movida salía
-  // «—» y desaparecían todas las filas de recogida de la tarjeta. Y a un viaje donde no cabe, no: se dice cuánto lleva.
-  const moveStopToLoad = async (d: Delivery, destino: number) => {
-    const driver = d.assigned_driver;
-    if (!driver) return;
-    const stops = byDriver.get(driver) ?? [];
-    const capacidad = capacityFor(driverOf(driver));
-    const trips = buildTrips(stops, capacidad);
-    const plan = planDeCambioDeViaje(trips, d.id, destino, capacidad, inicioDeLaRuta(driver, stops));
-    if (!plan.ok) {
-      if (plan.motivo === "no_cabe") {
+
+  // ---- La lista única (D-NEXT) -------------------------------------------------------------------------------------
+  // ¿La base guarda dónde va cada recogida (migración 154)? Sin la columna, las recogidas salen de la regla de siempre
+  // (`listaDelChofer`) y sus flechas se apagan: mover una recogida no se podría guardar.
+  const hayRecogidaGuardada = useMemo(() => tienePosicionDeRecogida(deliveries), [deliveries]);
+  /** La ruta de un chofer como la pinta la tabla, la lee el mapa y la mueven las flechas: UNA lista (lib/lista-unica). Con
+   *  plan publicado y la ruta tal como el plan la dejó, las paradas y etiquetas del plan (D-335); si no, lo guardado. */
+  const lecturaDe = (laneKey: string, stops: Delivery[]): LecturaDeRuta =>
+    lecturaConLoHecho(stops, capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), hechasDeLaRuta(laneKey, stops));
+  /** Las entregas en el orden de la lista. */
+  const entregasDeLaLista = (lista: readonly ParadaDeLaLista[], stops: readonly Delivery[]): Delivery[] => {
+    const porId = new Map(stops.map((d) => [d.id, d]));
+    return lista.flatMap((p) => (p.tipo === "D" && porId.has(p.orden) ? [porId.get(p.orden)!] : []));
+  };
+  /** Escribe la lista ENTERA de un chofer: el puesto de cada entrega (tras lo ya hecho), la posición de cada recogida si la
+   *  base la guarda, y el viaje viejo vacío. Anota el movimiento para deshacer (D-417). Devuelve si se escribió. */
+  const guardaLaLista = async (laneKey: string, stops: Delivery[], lista: readonly ParadaDeLaLista[], etiqueta: { en: string; es: string }): Promise<boolean> => {
+    const desde = inicioDeLaRuta(laneKey, stops);
+    const e = escrituraDeLaLista(lista, desde);
+    const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
+    clearRouteFor(laneKey);
+    // One guarded operation for the whole new sequence: the list updates locally right away and is held there until every
+    // write lands, so a realtime refetch can't snap the stop back to where it was.
+    const ok = await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);
+    if (!ok) return false;
+    const antes = fotoDe(stops.map(aParadaDelGantt));
+    await anotaMovimiento(etiqueta, [laneKey], antes, fotoTrasReordenar(antes, e.ids, e.loadNoById, desde, recogidas));
+    return true;
+  };
+  /** La fila de la Base (D-NEXT): la ruta sale de ella con 0 a bordo y vuelve con lo que quede, que tiene que ser 0. */
+  const filaDeLaBase = (laneKey: string, cual: "salida" | "regreso", f: FilaDeCuenta, capacidad: number, noCuadra: boolean) => (
+    <tr key={`base-${cual}`} data-base={cual}>
+      <td style={{ fontWeight: 700 }} title={t("Base", "Base")} aria-label={t("Base", "Base")}>🏠</td>
+      <td className="hint" style={{ margin: 0 }}>{cual === "salida" ? t("Base: leaves", "Base: salida") : t("Base: returns", "Base: regreso")}</td>
+      <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12, color: noCuadra ? "var(--red)" : undefined, fontWeight: noCuadra ? 700 : undefined }}>
+        {dosDecimales(f.despues)} · {dosDecimales(f.disponible)} {t("free", "libres")} <span className="hint" style={{ margin: 0 }}>/ {capacidad}</span>
+        {noCuadra && <div data-no-cuadra>⚠ {t("doesn’t come back empty: the count doesn’t add up", "no vuelve vacío: la cuenta no cuadra")}</div>}
+      </td>
+      <td colSpan={colsParadas.length} className="hint" style={{ margin: 0 }}>{pickupAddressFor(laneKey) ?? t("(no base: the driver has no store)", "(sin base: el chofer no tiene tienda)")}</td>
+      <td />
+    </tr>
+  );
+  /** La clave de una fila de la lista, para resaltarla y para la `key` de React. */
+  const claveDeLaFila = (p: ParadaDeLaLista | FilaDeLaRuta) => (p.tipo === "D" ? p.orden : `P:${p.ordenes.join(",")}`);
+  /**
+   * ↑ / ↓ de CUALQUIER parada de la lista, P o D (D-NEXT). Qué pasa lo decide `mueveEnLaLista`: cambia con su vecina salvo
+   * que una entrega quede antes que su recogida —entonces no mueve nada y se dice por qué—. La capacidad no bloquea: la
+   * cuenta avisa en la parada que se pase. Con candado 🔒 también, como las flechas de siempre (D-411).
+   */
+  const mueveParada = async (laneKey: string, indice: number, dir: -1 | 1) => {
+    const stops = byDriver.get(laneKey) ?? [];
+    const lectura = lecturaDe(laneKey, stops);
+    const p = lectura.paradas[indice];
+    if (!p) return;
+    const etiquetaDe = (i: number) => lectura.filas.find((f) => f.indice === i)?.etiqueta ?? "";
+    if (p.tipo === "P" && !hayRecogidaGuardada) {
+      notify(t("Moving a pickup needs the database update (migration 154). Deliveries can be moved; pickups follow the usual rule.", "Mover una recogida necesita la actualización de la base (migración 154). Las entregas sí se mueven; las recogidas siguen la regla de siempre."));
+      return;
+    }
+    const r = mueveEnLaLista(lectura.paradas, indice, dir, stops);
+    if (!r.ok) {
+      if (r.motivo === "precedencia") {
+        const o = stops.find((x) => x.id === r.orden);
+        const n = o ? `#${orderLabel(o)}` : "";
+        const d = lectura.filas.find((f) => f.tipo === "D" && f.orden === r.orden)?.etiqueta ?? "";
         notify(t(
-          `#${orderLabel(d)} doesn't fit in truckload ${plan.viaje}: it already carries ${plan.carga} of ${plan.capacidad} pallets and this stop is ${plan.pallets}. Nothing was moved — use “New truckload”.`,
-          `#${orderLabel(d)} no cabe en el viaje ${plan.viaje}: ya lleva ${plan.carga} de ${plan.capacidad} pallets y esta parada son ${plan.pallets}. No se movió nada — use «Nuevo viaje».`,
+          `Not moved: ${d} ${n} would be delivered before it's picked up. A delivery always goes after its pickup.`,
+          `No se movió: ${d} ${n} se entregaría antes de recogerla. Una entrega va siempre después de su recogida.`,
         ));
       }
       return;
     }
-    clearRouteFor(driver);
-    // Hand-placed (`load_auto: false`): the truckloads are a person's call from here on.
-    const ok = await reorderStops(plan.ids, plan.loadNoById, false, plan.desde);
-    if (!ok) return;
-    senalaLaMovida(d.id);
-    notify(plan.excede
-      ? t(`Moved to a new truckload ${plan.viaje} — on its own it's already over the truck's ${capacidad} pallets.`, `Movido a un viaje nuevo, el ${plan.viaje} — sola ya pasa los ${capacidad} pallets del camión.`)
-      : plan.nuevo
-        ? t(`Moved to a new truckload ${plan.viaje}`, `Movido a un viaje nuevo, el ${plan.viaje}`)
-        : t(`Moved to truckload ${plan.viaje}`, `Movido al viaje ${plan.viaje}`));
-    // Entra en deshacer/rehacer como las flechas (D-417).
-    const antes = fotoDe(trips.flat().map(aParadaDelGantt));
-    await anotaMovimiento({ en: `#${orderLabel(d)} → truckload ${plan.viaje}`, es: `#${orderLabel(d)} → viaje ${plan.viaje}` }, [driver], antes, fotoTrasReordenar(antes, plan.ids, plan.loadNoById, plan.desde));
+    const nombre = p.tipo === "D" ? (() => { const o = stops.find((x) => x.id === p.orden); return o ? `#${orderLabel(o)}` : ""; })() : (p.tienda ?? t("(no store)", "(sin tienda)"));
+    const etiqueta = etiquetaDe(indice);
+    if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `${etiqueta} ${nombre} ${dir < 0 ? "up" : "down"}`, es: `${etiqueta} ${nombre} ${dir < 0 ? "arriba" : "abajo"}` }))) return;
+    senalaLaMovida(claveDeLaFila(p));
+    notify(t(`${etiqueta} ${nombre} → stop ${indice + dir + 1} of ${r.paradas.length}`, `${etiqueta} ${nombre} → parada ${indice + dir + 1} de ${r.paradas.length}`));
   };
-  // Las filas de RECOGIDA (P) se mueven (D-441). El dueño: «why i can't rearrenge pickup». No se movían porque la P se
-  // DERIVA (D-334): una ruta a mano solo guarda viaje y puesto de ENTREGA de cada orden, y las tiendas de un viaje se
-  // recogen en el orden de su primera entrega. Así que ↑↓ en una P adelanta la PRIMERA entrega de esa tienda delante de
-  // la de la tienda que se salta (`planDeFlechaDeRecogida`, lo mínimo), y se dice. El selector «Viaje N» de la P pasa toda
-  // esa carga a otro viaje, con la misma regla de capacidad que el de una parada (D-433). Las dos numeran tras lo hecho,
-  // entran en deshacer y se permiten con candado 🔒, como las flechas (D-411).
-  const moveRecogida = async (laneKey: string, ti: number, grupos: string[][], k: number, dir: -1 | 1) => {
-    const stops = byDriver.get(laneKey) ?? [];
-    const capacidad = capacityFor(driverOf(laneKey));
-    const trips = buildTrips(stops, capacidad);
-    const plan = planDeFlechaDeRecogida(trips, ti, grupos, k, dir, hasManualLoads(stops), capacidad, inicioDeLaRuta(laneKey, stops));
-    if (!plan) return;
-    clearRouteFor(laneKey);
-    const ok = await reorderStops(plan.ids, plan.loadNoById, plan.fijaViajes ? false : undefined, plan.desde);
-    if (!ok) return;
-    const orden = (id: string) => stops.find((x) => x.id === id);
-    const tienda = (id: string) => orden(id)?.store || t("(no store)", "(sin tienda)");
-    const num = (id: string) => { const d = orden(id); return d ? `#${orderLabel(d)}` : id; };
-    senalaLaMovida(plan.adelantada);
-    notify(t(
-      `${tienda(plan.adelantada)} is now picked up before ${tienda(plan.delanteDe)}: for that, ${num(plan.adelantada)} is now delivered before ${num(plan.delanteDe)} (pickups follow each store's first delivery).`,
-      `${tienda(plan.adelantada)} se recoge ahora antes que ${tienda(plan.delanteDe)}: para eso, ${num(plan.adelantada)} se entrega ahora antes que ${num(plan.delanteDe)} (las recogidas siguen la primera entrega de cada tienda).`,
-    ));
-    const antes = fotoDe(trips.flat().map(aParadaDelGantt));
-    await anotaMovimiento({ en: `Pickup ${tienda(plan.adelantada)} first`, es: `Recogida ${tienda(plan.adelantada)} antes` }, [laneKey], antes, fotoTrasReordenar(antes, plan.ids, plan.loadNoById, plan.desde));
-  };
-  const moveRecogidaToLoad = async (laneKey: string, ids: string[], lugar: string | null, destino: number) => {
-    const stops = byDriver.get(laneKey) ?? [];
-    const capacidad = capacityFor(driverOf(laneKey));
-    const trips = buildTrips(stops, capacidad);
-    const plan = planDeCambioDeViajeDeVarias(trips, ids, destino, capacidad, inicioDeLaRuta(laneKey, stops));
-    const donde = lugar ?? t("(no store)", "(sin tienda)");
-    if (!plan.ok) {
-      if (plan.motivo === "no_cabe") {
-        notify(t(
-          `The pickup at ${donde} (${plan.pallets} pallets) doesn't fit in truckload ${plan.viaje}: it already carries ${plan.carga} of ${plan.capacidad}. Nothing was moved — use “New truckload”.`,
-          `La recogida en ${donde} (${plan.pallets} pallets) no cabe en el viaje ${plan.viaje}: ya lleva ${plan.carga} de ${plan.capacidad}. No se movió nada — use «Nuevo viaje».`,
-        ));
-      }
-      return;
-    }
-    clearRouteFor(laneKey);
-    const ok = await reorderStops(plan.ids, plan.loadNoById, false, plan.desde);
-    if (!ok) return;
-    senalaLaMovida(ids[0]);
-    notify(plan.nuevo
-      ? t(`Pickup at ${donde} moved to a new truckload ${plan.viaje}`, `Recogida en ${donde} movida a un viaje nuevo, el ${plan.viaje}`)
-      : t(`Pickup at ${donde} moved to truckload ${plan.viaje}`, `Recogida en ${donde} movida al viaje ${plan.viaje}`));
-    const antes = fotoDe(trips.flat().map(aParadaDelGantt));
-    await anotaMovimiento({ en: `Pickup ${donde} → truckload ${plan.viaje}`, es: `Recogida ${donde} → viaje ${plan.viaje}` }, [laneKey], antes, fotoTrasReordenar(antes, plan.ids, plan.loadNoById, plan.desde));
-  };
-  // Split a lane's stops into truckloads: by the dispatcher's manual load
-  // numbers when set, otherwise automatically by truck capacity.
-  const buildTrips = (stops: Delivery[], capacity: number): Delivery[][] =>
-    hasManualLoads(stops) ? groupIntoLoads(stops) : splitIntoTrips(stops, capacity);
-  // «🔗 Unir viajes» y «✂ Dividir en 2» (D-437): la ruta ENTERA en el orden que se ve, con su viaje nuevo, numerada tras
-  // lo ya hecho (como las flechas, D-433). Antes dejaban `route_seq: null` para que «Optimizar» rehiciera el orden; sin
-  // Optimizar, eso tiraba el orden puesto a mano. «Reagrupar por zona» (borraba los viajes y optimizaba) se quitó.
-  const combineLoads = async (laneKey: string) => {
-    const stops = byDriver.get(laneKey) ?? [];
-    const plan = planDeUnirViajes(buildTrips(stops, capacityFor(driverOf(laneKey))), inicioDeLaRuta(laneKey, stops));
-    clearRouteFor(laneKey);
-    if (!(await reorderStops(plan.ids, plan.loadNoById, false, plan.desde))) return;
-    notify(t("Combined into one truckload", "Unido en un solo viaje"));
-  };
-  const splitLoads = async (laneKey: string) => {
-    const stops = byDriver.get(laneKey) ?? [];
-    const plan = planDeDividirEnDos(buildTrips(stops, capacityFor(driverOf(laneKey))), inicioDeLaRuta(laneKey, stops));
-    if (!plan) return;
-    clearRouteFor(laneKey);
-    if (!(await reorderStops(plan.ids, plan.loadNoById, false, plan.desde))) return;
-    notify(t("Split into 2 truckloads", "Dividido en 2 viajes"));
+  /** «Pasar a…» (D-NEXT, en cada fila P y D): las órdenes de la parada, enteras —recogida y entrega—, a la ruta de otro chofer.
+   *  Entran al final de su lista, sin puesto, como «Asignar» (`assignToLane`), y se dice. */
+  const pasaA = async (ids: readonly string[], destino: string) => {
+    if (!destino || !ids.length) return;
+    for (const id of ids) await assignToLane(id, destino);
+    notify(t(`${ids.length} order(s) → ${laneLabel(destino)} (at the end of its list)`, `${ids.length} orden(es) → ${laneLabel(destino)} (al final de su lista)`));
   };
   // Friendly display name for a lane key.
   const laneLabel = (key: string) => lanes.find((l) => l.key === key)?.label ?? key;
@@ -847,19 +785,20 @@ export default function RoutesPage() {
     saveSettings({ route_buckets: (settings.route_buckets ?? []).map((b) => (b === oldName ? newName : b)) });
     notify(t(`Renamed to ${newName}`, `Renombrado a ${newName}`));
   };
-  // Hand a whole bucket's route to a real driver as a distinct LOAD (keeping its
-  // saved sequence), then retire the bucket. If the driver already has
-  // work, this becomes their next load — so one driver can carry several routes.
+  // Hand a whole bucket's route to a real driver, keeping its saved sequence, then retire the bucket. Until D-NEXT it went
+  // in as the driver's next LOAD (`load_no`); with no trips, the bucket's list goes AFTER the driver's own list, in one list.
   const assignRouteToDriver = async (bucket: string, driver: string) => {
     if (!driver) return;
     const stops = byDriver.get(bucket) ?? [];
-    const load = nextLoadFor(driver);
+    const suyas = byDriver.get(driver) ?? [];
+    const lista = [...lecturaDe(driver, suyas).paradas, ...lecturaDe(bucket, stops).paradas];
     for (const d of stops) {
-      await updateDelivery(d.id, { assigned_driver: driver, load_no: load });
-      addNote(d.id, `Route "${bucket}" assigned to ${driver} as load ${load}`);
+      await updateDelivery(d.id, { assigned_driver: driver, load_no: null });
+      addNote(d.id, `Route "${bucket}" assigned to ${driver}, after their own stops`);
     }
+    await guardaLaLista(driver, [...suyas, ...stops], lista, { en: `Route ${bucket} → ${driver}`, es: `Ruta ${bucket} → ${driver}` });
     removeBucket(bucket);
-    notify(t(`Route "${bucket}" (${stops.length} stop(s)) → ${driver}, load ${load}`, `Ruta "${bucket}" (${stops.length} parada(s)) → ${driver}, carga ${load}`));
+    notify(t(`Route "${bucket}" (${stops.length} stop(s)) → ${driver}, after their own stops`, `Ruta "${bucket}" (${stops.length} parada(s)) → ${driver}, detrás de sus paradas`));
   };
   // Delete a whole route/load: unassign every stop (back to the pool) and, if
   // it was a bucket, retire it.
@@ -1043,8 +982,7 @@ export default function RoutesPage() {
     const stops = byDriver.get(laneKey) ?? [];
     const paradas = paradasPublicadasDe(laneKey);
     if (!paradas) return false;
-    const lectura = lecturaConLoHecho(buildTrips(stops, capacityFor(driverOf(laneKey))), paradas, hechasDeLaRuta(laneKey, stops));
-    return pintaElTrazoDelPlan(stops.length, lectura.fuente);
+    return pintaElTrazoDelPlan(stops.length, lecturaDe(laneKey, stops).fuente);
   };
 
   // «Elige conductor para N órdenes» (D-395): todos los choferes y rutas temporales, con los números del panel
@@ -1128,9 +1066,10 @@ export default function RoutesPage() {
     printRouteManifest(label, stops, settings, lang, fmtDate(date));
   };
 
-  // «📅 Horario» (D-417): cada ruta del día en su orden y sus viajes (`buildTrips`, lo mismo que la tabla de paradas), con
-  // cada parada a su hora ESTIMADA (la de «📍 Mejor lugar»: línea recta, sin llamar a Google). Es lo que pinta la línea de
-  // tiempo y lo que lee el arrastre: se suelta sobre lo mismo que se ve.
+  // «📅 Horario» (D-417): cada ruta del día en el orden de su lista (D-NEXT: sin viajes, la lista entera como UNO), con
+  // cada entrega a su hora ESTIMADA (la de «📍 Mejor lugar»: línea recta, sin llamar a Google). Es lo que pinta la línea de
+  // tiempo y lo que lee el arrastre: se suelta sobre lo mismo que se ve. Las recogidas no son barras: el arrastre mueve
+  // entregas; su recogida la coloca `listaConEntregasEn` al soltar.
   // La base: las coordenadas de la tienda en Ajustes si las tiene; si no, las que la pantalla ya buscó para pintar la «P».
   const baseDeLaRuta = (laneKey: string): { lat: number; lng: number } | null => {
     const direccion = (pickupAddressFor(laneKey) ?? "").trim();
@@ -1139,17 +1078,31 @@ export default function RoutesPage() {
     const c = depotCoords[direccion];
     return c ? { lat: c[0], lng: c[1] } : null;
   };
+  /** Las coordenadas de una tienda de recogida, por su nombre, de Ajustes (sin llamar a nadie). */
+  const coordsDeTienda = (nombre: string | null): { lat: number; lng: number } | null => {
+    const n = (nombre ?? "").trim().toLowerCase();
+    const s = n ? (settings.stores ?? []).find((x) => x.name.trim().toLowerCase() === n) : undefined;
+    return s?.lat != null && s.lng != null ? { lat: s.lat, lng: s.lng } : null;
+  };
   const aParadaDelGantt = (x: Delivery): ParadaDelGantt => ({
     id: x.id, lat: x.delivery_lat, lng: x.delivery_lng, pallets: palletsDeLaOrden(x),
     ventana: parseWindow(x.delivery_windows), servicioMin: serviceMin(x.delivery_duration),
     assigned_driver: x.assigned_driver ?? null, route_seq: x.route_seq ?? null, load_no: x.load_no ?? null,
+    ...(x.pickup_seq !== undefined ? { pickup_seq: x.pickup_seq == null ? null : Number(x.pickup_seq) } : {}),
   });
+  /** ¿Cabe una orden de `pallets` metida en el puesto `puesto` de la lista, recogida justo delante de su entrega? La
+   *  carga a bordo en ese punto más la suya, contra la capacidad (D-NEXT). Para «📍 Mejor lugar». */
+  const admiteEnLaLista = (lista: readonly ParadaDeLaLista[], stops: readonly Delivery[], capacidad: number) => {
+    const cambios = cambiosDeLaLista(lista, stops);
+    return (puesto: number, pallets: number) => cabeEnElPuesto(lista, cambios, puesto, pallets, capacidad);
+  };
   const rutasDelGantt: RutaDelGantt[] = lanes.map((l) => {
     const stops = byDriver.get(l.key) ?? [];
     const capacidad = capacityFor(driverOf(l.key));
+    const lista = lecturaDe(l.key, stops).paradas;
     return {
-      clave: l.key, viajes: buildTrips(stops, capacidad).map((v) => v.map(aParadaDelGantt)), manual: hasManualLoads(stops),
-      capacidad, bloqueada: bloqueada(l.key), base: baseDeLaRuta(l.key),
+      clave: l.key, viajes: [entregasDeLaLista(lista, stops).map(aParadaDelGantt)], manual: true,
+      capacidad, admite: admiteEnLaLista(lista, stops, capacidad), bloqueada: bloqueada(l.key), base: baseDeLaRuta(l.key),
     };
   });
   // Una fila por ruta, también las vacías: se puede soltar una parada en un chofer que aún no tiene nada.
@@ -1166,9 +1119,7 @@ export default function RoutesPage() {
   // selected it's measured again, in the NEW order: see `mideLaRuta`.)
   const clearRouteFor = (driver: string) => {
     setRouteInfo((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
-    // Regrouping the loads renumbers them, so per-truckload figures would be
-    // attached to the wrong load — drop them with the rest.
-    setRouteTrips((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
+    setRouteStats((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
     setRouteLines((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
     setRouteEtas((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
   };
@@ -1214,101 +1165,84 @@ export default function RoutesPage() {
     else if (orderLaneKey(d) !== columnKey) assignToLane(orderId, columnKey);
   };
 
-  /** Mide la ruta de un chofer TAL COMO ESTÁ —sus viajes y su orden, los que pinta la tabla (`buildTrips`)— para las millas,
-   * las horas por viaje, la llegada estimada de cada parada y el trazo del mapa. NO reordena ni escribe nada (D-437).
+  /** Mide la ruta de un chofer TAL COMO ESTÁ —su lista, la que pinta la tabla— para las millas, las horas, la llegada
+   * estimada de cada parada y el trazo del mapa. NO reordena ni escribe nada (D-437).
    * Hasta D-437 esto era `computeRoute` + `applyPlan` («Optimizar»): pedía a Google el MEJOR orden, reagrupaba los viajes
-   * por zona y lo guardaba. Ahora pide el camino en el orden guardado (`cuerpoDeLaMedida`, `optimize: false`). */
+   * por zona y lo guardaba. Ahora pide el camino en el orden guardado (`cuerpoDeLaMedida`, `optimize: false`).
+   * D-NEXT: UNA medida por chofer, la lista entera —base, cada recogida en su tienda (con la recarga, `RELOAD_MIN`), cada
+   * entrega, y vuelta a la base—, en vez de un lazo por viaje. Una recogida en una tienda sin coordenadas en Ajustes, o una
+   * entrega sin pin, no se miden (no se inventa un punto). */
   const mideLaRuta = async (laneKey: string, stopList: Delivery[]): Promise<MedidaDeLaRuta> => {
     const depot = await getDepotCoords(pickupAddressFor(laneKey));
-    const batches = buildTrips(stopList, capacityFor(driverOf(laneKey)))
-      .map((b) => b.filter((d) => d.delivery_lat != null && d.delivery_lng != null));
     const byId = new Map(stopList.map((d) => [d.id, d]));
-
-    let miles = 0;
-    let seconds = 0;
-    const traces: TripTrace[] = [];
-    const tripStats: (TripStat | null)[] = [];
-    const etas: Record<string, string> = {};
-    let clock = DAY_START_MIN; // arrival clock, continuous across truckloads
-
-    for (const batch of batches) {
-      // Sin nada que medir en este viaje (sin pins, o una sola parada sin base de la que salir): se queda sin números.
-      if (!batch.length || (batch.length < 2 && !depot)) { tripStats.push(null); continue; }
-      const tripStart = clock;
-      const res = await fetch("/api/optimize-route", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // The run's own date drives PREDICTIVE traffic: a route planned tonight
-        // for tomorrow gets tomorrow-morning conditions, not tonight's empty roads.
-        body: JSON.stringify(cuerpoDeLaMedida(batch.map((d) => ({ id: d.id, lat: d.delivery_lat!, lng: d.delivery_lng! })), depot, batch[0]?.delivery_date ?? date)),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Route measurement failed");
-      if (data.provider) lastProviderRef.current = { provider: data.provider, traffic: !!data.traffic };
-      // En el orden guardado: el de la llamada, no el que devuelva el proveedor.
-      const stopIds = batch.map((d) => d.id);
-      const legs = (data.legs ?? []) as number[];
-      miles += data.miles;
-      seconds += data.duration_seconds;
-
-      // Split the loop geometry into the delivery run and the empty drive back
-      // to the pickup. The return leg starts at the last stop, so find where
-      // the path is closest to it (searching from the end) and cut there.
-      const geom = ((data.geometry ?? []) as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number]);
-      const lastStop = depot && stopIds.length ? byId.get(stopIds[stopIds.length - 1]) : undefined;
-      if (lastStop?.delivery_lat != null && lastStop.delivery_lng != null && geom.length > 2) {
-        let cut = geom.length - 1, best = Infinity;
-        for (let k = geom.length - 1; k >= 1; k--) {
-          const dLat = geom[k][0] - lastStop.delivery_lat, dLng = geom[k][1] - lastStop.delivery_lng;
-          const d2 = dLat * dLat + dLng * dLng;
-          if (d2 < best) { best = d2; cut = k; }
-        }
-        traces.push({ delivery: geom.slice(0, cut + 1), ret: geom.slice(cut) });
+    const lista = lecturaDe(laneKey, stopList).paradas;
+    // Los puntos en el orden de la lista. El id de una recogida es «P:» + su puesto en la lista (así sale su hora estimada).
+    const puntos: { id: string; lat: number; lng: number; servicio: number }[] = [];
+    lista.forEach((p, i) => {
+      if (p.tipo === "D") {
+        const d = byId.get(p.orden);
+        if (d?.delivery_lat != null && d.delivery_lng != null) puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: serviceMin(d.delivery_duration) });
       } else {
-        traces.push({ delivery: geom, ret: [] });
+        const c = coordsDeTienda(p.tienda);
+        if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: RELOAD_MIN });
       }
+    });
+    const vacia: MedidaDeLaRuta = { miles: 0, seconds: 0, traces: [], stat: null, dayMinutes: 0, etas: {} };
+    // Sin nada que medir (sin pins, o un solo punto sin base de la que salir): se queda sin números.
+    if (!puntos.length || (puntos.length < 2 && !depot)) return vacia;
+    const res = await fetch("/api/optimize-route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // The run's own date drives PREDICTIVE traffic: a route planned tonight
+      // for tomorrow gets tomorrow-morning conditions, not tonight's empty roads.
+      body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, stopList[0]?.delivery_date ?? date)),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Route measurement failed");
+    if (data.provider) lastProviderRef.current = { provider: data.provider, traffic: !!data.traffic };
+    const legs = (data.legs ?? []) as number[];
 
-      // Walk the legs into per-stop arrival clocks. With a depot the trip is
-      // [depot, s1, …, sN] so leg k drives INTO stop k; without one the first
-      // stop is the start (no lead-in drive).
-      for (let j = 0; j < stopIds.length; j++) {
-        if (depot || j > 0) clock += (legs[depot ? j : j - 1] ?? 0) / 60;
-        etas[stopIds[j]] = fmtClock(clock);
-        const stop = byId.get(stopIds[j]);
-        if (stop) clock += serviceMin(stop.delivery_duration);
+    // Split the loop geometry into the run and the empty drive back to the base. The return leg starts at the last stop,
+    // so find where the path is closest to it (searching from the end) and cut there.
+    const geom = ((data.geometry ?? []) as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number]);
+    const ultimo = depot ? puntos[puntos.length - 1] : undefined;
+    let traces: TripTrace[];
+    if (ultimo && geom.length > 2) {
+      let cut = geom.length - 1, best = Infinity;
+      for (let k = geom.length - 1; k >= 1; k--) {
+        const dLat = geom[k][0] - ultimo.lat, dLng = geom[k][1] - ultimo.lng;
+        const d2 = dLat * dLat + dLng * dLng;
+        if (d2 < best) { best = d2; cut = k; }
       }
-      if (depot) clock += (legs[stopIds.length] ?? 0) / 60;  // empty drive back to pickup
-
-      const timing = tripTiming(data.duration_seconds / 60, stopIds.map((id) => byId.get(id)?.delivery_duration));
-      tripStats.push({
-        miles: Math.round(data.miles * 10) / 10,
-        ...timing,
-        stops: stopIds.length,
-        start: fmtClock(tripStart),
-        end: fmtClock(clock),
-      });
-
-      if (depot) clock += RELOAD_MIN;   // reload for the next load
+      traces = [{ delivery: geom.slice(0, cut + 1), ret: geom.slice(cut) }];
+    } else {
+      traces = [{ delivery: geom, ret: [] }];
     }
 
-    const medidos = tripStats.filter((s): s is TripStat => s != null);
-    return {
-      miles: Math.round(miles * 10) / 10,
-      seconds,
-      traces,
-      trips: batches.length,
-      tripStats,
-      // The reload between loads is real time too, but it isn't part of any
-      // single truckload — so it only shows up in the day total.
-      dayMinutes: depot ? dayMinutes(medidos) : medidos.reduce((n, s) => n + s.totalMin, 0),
-      etas,
+    // Walk the legs into per-stop arrival clocks. With a depot the route is [depot, s1, …, sN] so leg k drives INTO stop
+    // k; without one the first stop is the start (no lead-in drive).
+    const etas: Record<string, string> = {};
+    let clock = DAY_START_MIN;
+    let servicio = 0;
+    puntos.forEach((p, j) => {
+      if (depot || j > 0) clock += (legs[depot ? j : j - 1] ?? 0) / 60;
+      etas[p.id] = fmtClock(clock);
+      clock += p.servicio;
+      servicio += p.servicio;
+    });
+    if (depot) clock += (legs[puntos.length] ?? 0) / 60;  // empty drive back to the base
+    const driveMin = data.duration_seconds / 60;
+    const stat: TripStat = {
+      miles: Math.round(data.miles * 10) / 10, driveMin, serviceMin: servicio, totalMin: driveMin + servicio,
+      stops: puntos.length, start: fmtClock(DAY_START_MIN), end: fmtClock(clock),
     };
+    return { miles: Math.round(data.miles * 10) / 10, seconds: data.duration_seconds, traces, stat, dayMinutes: stat.totalMin, etas };
   };
 
   /** Pinta lo medido en la tarjeta y el mapa. Solo pinta: la ruta no se toca. */
   const pintaLaMedida = (driver: string, m: MedidaDeLaRuta) => {
-    setRouteInfo((p) => ({ ...p, [driver]: { miles: m.miles, duration_text: fmtMinutes(m.seconds / 60), trips: m.trips, minutes: m.seconds / 60, dayMinutes: m.dayMinutes, dayText: fmtMinutes(m.dayMinutes) } }));
-    setRouteTrips((p) => ({ ...p, [driver]: m.tripStats }));
+    setRouteInfo((p) => ({ ...p, [driver]: { miles: m.miles, duration_text: fmtMinutes(m.seconds / 60), minutes: m.seconds / 60, dayMinutes: m.dayMinutes, dayText: fmtMinutes(m.dayMinutes) } }));
+    setRouteStats((p) => ({ ...p, [driver]: m.stat }));
     setRouteLines((p) => ({ ...p, [driver]: m.traces }));
     setRouteEtas((p) => ({ ...p, [driver]: m.etas }));
   };
@@ -1386,42 +1320,54 @@ export default function RoutesPage() {
       id: x.id, lat: x.delivery_lat, lng: x.delivery_lng, pallets: palletsDeLaOrden(x),
       ventana: parseWindow(x.delivery_windows), servicioMin: serviceMin(x.delivery_duration),
     });
+    // D-NEXT: la ruta es UNA lista. El hueco es un puesto de entrega en ella; la orden nueva se recoge justo delante de su
+    // entrega (`listaConEntregasEn`), y solo se miran los puestos donde, así, el camión no pasa de su capacidad (`admite`).
     let paradas: Delivery[] = [...(byDriver.get(laneKey) ?? [])];
+    let lista: ParadaDeLaLista[] = lecturaDe(laneKey, paradas).paradas;
+    const desde = inicioDeLaRuta(laneKey, paradas);
     const colocadas: { en: string; es: string }[] = [];
     const aMano: string[] = [];
     setAsignando(true);
     try {
       for (const d of marcadas) {
+        const entregas = entregasDeLaLista(lista, paradas);
+        const cabe = admiteEnLaLista(lista, paradas, capacidad);
         // De otro día (chip «Todas»), o sin pin: se asigna como «Asignar», al final, y se dice.
         const r = delDia.has(d.id)
-          ? mejorLugar({ viajes: buildTrips(paradas, capacidad).map((v) => v.map(aParada)), nueva: aParada(d), base, capacidad, inicioMin: DAY_START_MIN })
+          ? mejorLugar({ viajes: [entregas.map(aParada)], nueva: aParada(d), base, capacidad, inicioMin: DAY_START_MIN, admite: (_v, puesto) => cabe(puesto, palletsDeLaOrden(d)) })
           : null;
         if (!r || !r.ok) {
           await assignTo(d.id, laneKey);
           aMano.push(orderLabel(d));
-          if (delDia.has(d.id)) paradas = [...paradas, { ...d, assigned_driver: laneKey, route_seq: null, load_no: null }];
+          if (delDia.has(d.id)) {
+            paradas = [...paradas, { ...d, assigned_driver: laneKey, route_seq: null, load_no: null }];
+            lista = listaConEntregasEn(lista, [...entregas.map((x) => x.id), d.id], paradas);
+          }
           continue;
         }
-        const viajes = buildTrips(paradas, capacidad);
-        const w = escrituraDelHueco(viajes, d.id, r.hueco, hasManualLoads(paradas));
+        const ids = entregas.map((x) => x.id);
+        ids.splice(r.hueco.puesto, 0, d.id);
+        const nueva = listaConEntregasEn(lista, ids, [...paradas, d]);
+        const e = escrituraDeLaLista(nueva, desde);
+        const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
         clearRouteFor(laneKey);
-        await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: w.ids.indexOf(d.id), load_no: w.loadNoDeLaNueva });
-        await reorderStops(w.ids, w.loadNoById);
-        const delViaje = viajes[r.hueco.viaje] ?? [];
+        await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) });
+        await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);
         const aviso = avisoDelHueco({
           orden: orderLabel(d), ruta: laneLabel(laneKey), hueco: r.hueco,
-          totalDelViaje: delViaje.length + 1,
-          anterior: r.hueco.puesto > 0 ? orderLabel(delViaje[r.hueco.puesto - 1]) : null,
-          siguienteParada: delViaje[r.hueco.puesto] ? orderLabel(delViaje[r.hueco.puesto]) : null,
+          totalDelViaje: entregas.length + 1,
+          anterior: r.hueco.puesto > 0 ? orderLabel(entregas[r.hueco.puesto - 1]) : null,
+          siguienteParada: entregas[r.hueco.puesto] ? orderLabel(entregas[r.hueco.puesto]) : null,
           huecosMirados: r.huecosMirados, alternativa: r.siguiente, masCorto: r.masCorto,
         });
         colocadas.push(aviso);
         addNote(d.id, `Best fit: ${aviso.en}`);
         const porId = new Map([...paradas, d].map((x) => [x.id, x]));
-        paradas = w.ids.map((id, i) => ({
-          ...porId.get(id)!, assigned_driver: laneKey, route_seq: i,
-          load_no: w.loadNoById ? w.loadNoById[id] : (id === d.id ? w.loadNoDeLaNueva : porId.get(id)!.load_no),
+        paradas = e.ids.map((id, i) => ({
+          ...porId.get(id)!, assigned_driver: laneKey, route_seq: desde + i, load_no: null,
+          ...(recogidas ? { pickup_seq: recogidas[id] ?? null } : {}),
         }));
+        lista = nueva;
       }
     } finally {
       setAsignando(false);
@@ -1433,53 +1379,17 @@ export default function RoutesPage() {
     setAvisoMejorLugar([...colocadas.map((a) => t(a.en, a.es)), ...(aMano.length || sinCamion.length ? [t(extraEn.trim(), extraEs.trim())] : [])]);
   };
 
-  // Manual nudge — hand-arrange a load's stops with the ↑/↓ arrows, whether or
-  // not the route has a saved order yet. `index` is the position in the DISPLAYED
-  // order (the flattened truckloads), so we rebuild that exact order here rather
-  // than byDriver's sequence — otherwise, with manual truckloads, the two orders
-  // differ and the arrow would move the wrong row.
-  const move = async (laneKey: string, index: number, dir: -1 | 1) => {
-    const stops = byDriver.get(laneKey) ?? [];
-    const trips = buildTrips(stops, capacityFor(driverOf(laneKey)));
-    const item = trips.flat()[index];
-    // Qué se escribe lo decide `planDeFlecha` (D-433): la secuencia entera en el orden nuevo y, con viajes puestos a mano,
-    // el viaje de cada parada por posición —cada viaje conserva su tamaño, y la que pasa del borde entra de verdad en el de
-    // al lado; si no, la pantalla la reagruparía por `load_no` y la flecha parecería rota—. Numerada DESPUÉS de lo que el
-    // chofer ya recogió o entregó ese día (`inicioDeLaRuta`), que no sale aquí pero sí en «Mi ruta».
-    const plan = item ? planDeFlecha(trips, index, dir, hasManualLoads(stops), inicioDeLaRuta(laneKey, stops)) : null;
-    if (!plan) return;
-    // The traced path/distance were computed for the old order — a manual
-    // nudge no longer matches them, so drop them rather than mislead.
-    clearRouteFor(laneKey);
-    const { ids, loadNoById, desde } = plan;
-    // One guarded operation for the whole new sequence: the list updates
-    // locally right away and is held there until every write lands, so a
-    // realtime refetch can't snap the stop back to where it was.
-    const ok = await reorderStops(ids, loadNoById, undefined, desde);
-    // Las flechas también entran en deshacer/rehacer (D-417): Ctrl+Z tras una flecha la deshace, y un arrastre anterior
-    // no se deshace pisando la flecha (su comprobación lo vería cambiado).
-    if (ok) {
-      // Se VE a dónde fue (D-433): la etiqueta P/D es de la posición —la primera entrega es D1 la haga quien la haga—, así
-      // que tras la flecha la fila de arriba sigue diciendo «D1». La movida se resalta y se dice su puesto.
-      senalaLaMovida(item.id);
-      const viaje = plan.viaje ? t(`, truckload ${plan.viaje}`, `, viaje ${plan.viaje}`) : "";
-      notify(t(`#${orderLabel(item)} → stop ${plan.puesto + 1} of ${plan.total}${viaje}`, `#${orderLabel(item)} → parada ${plan.puesto + 1} de ${plan.total}${viaje}`));
-      const antes = fotoDe(trips.flat().map(aParadaDelGantt));
-      await anotaMovimiento({ en: `#${orderLabel(item)} ${dir < 0 ? "up" : "down"}`, es: `#${orderLabel(item)} ${dir < 0 ? "arriba" : "abajo"}` }, [laneKey], antes, fotoTrasReordenar(antes, ids, loadNoById, desde));
-    }
-  };
+  // Las flechas ↑ ↓ de cada parada son `mueveParada` (arriba, D-NEXT): P o D, sobre la lista única. La de antes (`move`,
+  // D-433) movía solo entregas y, con viajes a mano, sellaba el viaje de cada una por posición; se fue con los viajes.
 
   // ---- Deshacer / rehacer (D-417) -------------------------------------------------------------------------------
   // Los movimientos a mano de ESTA sesión y de ESTE día: arrastrar en «📅 Horario» y las flechas ↑ ↓ de parada. Deshacer
-  // es otra escritura en la base (los mismos campos que las flechas: `assigned_driver`, `route_seq`, `load_no`), y antes
-  // de escribir se lee lo que hay AHORA: si otra persona tocó algo de lo que se va a escribir, no se escribe nada.
+  // es otra escritura en la base (los mismos campos que las flechas: `assigned_driver`, `route_seq`, `load_no` y, con la
+  // 154, `pickup_seq`), y antes de escribir se lee lo que hay AHORA: si otra persona tocó algo de lo que se va a escribir,
+  // no se escribe nada.
   const [historial, setHistorial] = useState<Historial>(HISTORIAL_VACIO);
   const [moviendo, setMoviendo] = useState(false);
   useEffect(() => { setHistorial(HISTORIAL_VACIO); }, [date]);
-  // «Ver un viaje» por tarjeta de chofer (D-441): qué viaje se enseña en su tabla y en el mapa (0 = el primero; sin
-  // entrada = todos). Solo mira. Vive mientras se mira ese día: cambiar de fecha lo vacía.
-  const [viajeVisto, setViajeVisto] = useState<Record<string, number>>({});
-  useEffect(() => { setViajeVisto({}); }, [date]);
   const deliveriesRef = useRef(deliveries);
   deliveriesRef.current = deliveries;
   /** Lo que hay ahora de estas paradas. Con base, leído de la base en este momento (no lo de la pantalla, que puede ir
@@ -1490,11 +1400,13 @@ export default function RoutesPage() {
       const quiero = new Set(ids);
       return deliveriesRef.current.filter((d) => quiero.has(d.id)).map((d) => ({
         id: d.id, assigned_driver: d.assigned_driver ?? null, route_seq: d.route_seq ?? null, load_no: d.load_no ?? null, updated_at: d.updated_at ?? null,
+        ...(d.pickup_seq !== undefined ? { pickup_seq: d.pickup_seq == null ? null : Number(d.pickup_seq) } : {}),
       }));
     }
-    const { data, error } = await createClient().from("deliveries").select("id, assigned_driver, route_seq, load_no, updated_at").in("id", ids);
+    // `pickup_seq` solo si la base lo tiene (154): pedir una columna que no existe haría fallar la lectura entera.
+    const { data, error } = await createClient().from("deliveries").select(`id, assigned_driver, route_seq, load_no, updated_at${hayRecogidaGuardada ? ", pickup_seq" : ""}`).in("id", ids);
     if (error || !data) return null;
-    return data as FilaFresca[];
+    return data as unknown as FilaFresca[];
   };
   const anotaMovimiento = async (etiqueta: { en: string; es: string }, rutas: string[], antes: ReturnType<typeof fotoDe>, despues: ReturnType<typeof fotoDe>) => {
     const sellos = sellosDe(await leeFilasFrescas(Object.keys(despues)));
@@ -1549,7 +1461,9 @@ export default function RoutesPage() {
   }, []);
 
   // Soltar una parada en «📅 Horario» (D-417). Qué se escribe lo decide `planDeSoltar` (lo mismo que las flechas y que
-  // «📍 Mejor lugar»); la vista previa mientras se arrastra es ese mismo plan, sin escribir.
+  // «📍 Mejor lugar»); la vista previa mientras se arrastra es ese mismo plan, sin escribir. D-NEXT: el orden nuevo de las
+  // ENTREGAS lo decide `planDeSoltar`; dónde va cada recogida, `listaConEntregasEn` (cada una sigue pegada a la entrega que
+  // tenía delante, y la de la orden que llega, justo antes de su entrega). Las dos cosas van en la foto de deshacer.
   const previaDeSoltar = (movida: string, destino: Destino) => planDeSoltar(rutasDelGantt, movida, destino, DAY_START_MIN);
   const sueltaEnLaLinea = async (movida: string, destino: Destino) => {
     if (moviendo) return;
@@ -1560,47 +1474,36 @@ export default function RoutesPage() {
     }
     const d = dayOrders.find((x) => x.id === movida);
     if (!d) return;
+    const suyas = byDriver.get(plan.destino) ?? [];
+    const conLaMovida = suyas.some((x) => x.id === movida) ? suyas : [...suyas, d];
+    const lista = listaConEntregasEn(lecturaDe(plan.destino, suyas).paradas, plan.ids, conLaMovida);
+    const recogidas = hayRecogidaGuardada ? escrituraDeLaLista(lista, 0).pickupSeqById : undefined;
+    const despues = { ...plan.despues };
+    if (recogidas) for (const id of plan.ids) despues[id] = { ...despues[id], pickup_seq: recogidas[id] ?? null };
     setMoviendo(true);
     try {
       clearRouteFor(plan.destino);
       if (plan.origen !== plan.destino) {
         clearRouteFor(plan.origen);
-        if (!(await updateDelivery(movida, plan.parcheDeLaMovida))) return;
+        if (!(await updateDelivery(movida, { ...plan.parcheDeLaMovida, ...(recogidas ? { pickup_seq: recogidas[movida] ?? null } : {}) }))) return;
       }
-      if (!(await reorderStops(plan.ids, plan.loadNoById))) return;
+      if (!(await reorderStops(plan.ids, plan.loadNoById, undefined, 0, recogidas))) return;
       const nombre = (id: string) => { const x = dayOrders.find((o) => o.id === id); return x ? orderLabel(x) : id.slice(0, 6); };
       const previa = textoDePrevia(plan.previa, nombre);
       const cambio = plan.origen !== plan.destino ? ` (from ${laneLabel(plan.origen)})` : "";
       const cambioEs = plan.origen !== plan.destino ? ` (desde ${laneLabel(plan.origen)})` : "";
-      const en = `#${orderLabel(d)} → ${laneLabel(plan.destino)}${cambio}, truckload ${plan.viaje + 1}, stop ${plan.puesto + 1} of ${plan.totalDelViaje}${plan.porNombre ? " (Best fit)" : ""}: ${previa.en} (straight-line estimate)`;
-      const es = `#${orderLabel(d)} → ${laneLabel(plan.destino)}${cambioEs}, viaje ${plan.viaje + 1}, parada ${plan.puesto + 1} de ${plan.totalDelViaje}${plan.porNombre ? " (Mejor lugar)" : ""}: ${previa.es} (estimación en línea recta)`;
+      const en = `#${orderLabel(d)} → ${laneLabel(plan.destino)}${cambio}, stop ${plan.puesto + 1} of ${plan.totalDelViaje}${plan.porNombre ? " (Best fit)" : ""}: ${previa.en} (straight-line estimate)`;
+      const es = `#${orderLabel(d)} → ${laneLabel(plan.destino)}${cambioEs}, parada ${plan.puesto + 1} de ${plan.totalDelViaje}${plan.porNombre ? " (Mejor lugar)" : ""}: ${previa.es} (estimación en línea recta)`;
       addNote(movida, `Timeline: ${en}`);
       notify(t(en, es));
       await anotaMovimiento({ en: `#${orderLabel(d)} → ${laneLabel(plan.destino)}`, es: `#${orderLabel(d)} → ${laneLabel(plan.destino)}` },
-        plan.origen === plan.destino ? [plan.destino] : [plan.origen, plan.destino], plan.antes, plan.despues);
+        plan.origen === plan.destino ? [plan.destino] : [plan.origen, plan.destino], plan.antes, despues);
     } finally {
       setMoviendo(false);
     }
   };
 
-  // Move a WHOLE truckload up/down within a driver's day, so the dispatcher
-  // can say which load goes out first. The new order is stamped as explicit
-  // load numbers (not just a sequence), otherwise a lane that was auto-split by
-  // capacity would just re-derive the original grouping on the next render.
-  const moveTrip = async (laneKey: string, index: number, dir: -1 | 1) => {
-    const stops = byDriver.get(laneKey) ?? [];
-    const trips = buildTrips(stops, capacityFor(driverOf(laneKey)));
-    const j = index + dir;
-    if (j < 0 || j >= trips.length) return;
-    const next = [...trips];
-    const [moved] = next.splice(index, 1);
-    next.splice(j, 0, moved);
-    clearRouteFor(laneKey);
-    const loadNoById: Record<string, number | null> = {};
-    next.forEach((batch, ti) => batch.forEach((d) => { loadNoById[d.id] = ti + 1 > 1 ? ti + 1 : null; }));
-    await reorderStops(next.flat().map((d) => d.id), loadNoById, undefined, inicioDeLaRuta(laneKey, stops));
-    notify(t(`Truckload moved to position ${j + 1}`, `Viaje movido a la posición ${j + 1}`));
-  };
+  // «Mover un viaje entero» (↑↓ en la cabecera de cada viaje) se fue con los viajes (D-NEXT).
 
   const focused = selected.size > 0;
   const isDim = (driver: string | null) => focused && !!driver && !selected.has(driver);
@@ -1636,23 +1539,7 @@ export default function RoutesPage() {
   // The whole day is always on the map — a driver focus dims the rest rather
   // than hiding it, so the full picture stays visible.
   const points: MapPoint[] = useMemo(() => {
-    // Color each assigned stop by its TRUCKLOAD (matching the route line),
-    // so the map groups stops into the same colors as their loop.
-    const stopColor = new Map<string, string>();
-    // El color de cada viaje de cada ruta: el mismo para sus entregas y para sus recogidas (D-441).
-    const colorDelViaje = new Map<string, string[]>();
-    // «Ver un viaje» (D-441): la entrega de un viaje que su tarjeta no enseña tampoco sale en el mapa.
-    const ocultaPorViaje = new Set<string>();
-    for (const u of lanes) {
-      const stops = byDriver.get(u.key) ?? [];
-      const viajesDeU = buildTrips(stops, capacityFor(u.driver));
-      const visto = viajeEfectivo(viajeVisto[u.key], viajesDeU.length);
-      viajesDeU.forEach((batch, ti) => {
-        const c = tripColor(colorFor(u.driver), ti);
-        colorDelViaje.set(u.key, [...(colorDelViaje.get(u.key) ?? []), c]);
-        for (const d of batch) { stopColor.set(d.id, c); if (!pasaElViaje(visto, ti)) ocultaPorViaje.add(d.id); }
-      });
-    }
+    // Cada parada va del color de su chofer: sin viajes (D-NEXT) no hay un color por viaje (D-441) ni un viaje que esconder.
 
     const pts: MapPoint[] = [];
     // Pickup / base pins first, so a stop that sits right on the pickup still
@@ -1675,29 +1562,24 @@ export default function RoutesPage() {
       });
     }
     const selActive = selectedOrders.size > 0;
-    // Las etiquetas P/D de cada ruta (D-334): las entregas pasan de «1, 2, 3» a «D1, D2…», y cada tienda donde la ruta
-    // recoge lleva su «P1·P2». Hasta D-441 la P salía del color del CHOFER, que es el del viaje 1: una recogida del viaje 2
-    // (P4 en Weslaco, en la ruta de Maximo Garza) salía naranja mientras su entrega salía cian. Ahora cada P lleva el color
-    // de SU viaje (`recogidasPorViaje`, las mismas filas que la tabla), el mismo que sus entregas y que su línea. Dos
-    // recogidas en la misma tienda en viajes distintos son dos visitas: dos marcas, cada una de su color, abiertas en
-    // abanico (D-367) para que no se tapen.
+    // Las etiquetas P/D de cada ruta (D-334): las entregas pasan de «1, 2, 3» a «D1, D2…», y cada parada de recogida de la
+    // lista lleva su «P1·P2» en su tienda, del color del chofer (D-NEXT: sin viajes). Dos recogidas en la misma tienda en
+    // puntos distintos de la lista —una recarga a media ruta— son dos visitas: dos marcas, abiertas en abanico (D-367).
     const dDeTodas = new Map<string, string>();
     for (const [laneKey, list] of byDriver) {
       if (!list.some((d) => d.route_seq != null)) continue;
       if (!pasaFiltro(laneKey)) continue;
-      const viajesDelMapa = buildTrips(list, capacityFor(driverOf(laneKey)));
-      const lectura = lecturaConLoHecho(viajesDelMapa, paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));
+      const lectura = lecturaDe(laneKey, list);
       for (const [id, etiqueta] of lectura.etiquetaDe) dDeTodas.set(id, etiqueta);
-      const visto = viajeEfectivo(viajeVisto[laneKey], viajesDelMapa.length);
-      for (const { fila: p, viaje } of recogidasPorViaje(lectura, viajesDelMapa)) {
-        if (!p.lugar || !pasaElViaje(visto, viaje)) continue;
-        const tienda = (settings.stores ?? []).find((s) => s.name.trim().toLowerCase() === p.lugar!.trim().toLowerCase());
-        if (tienda?.lat == null || tienda.lng == null) continue;
+      for (const p of lectura.filas) {
+        if (p.tipo !== "P" || !p.lugar) continue;
+        const tienda = coordsDeTienda(p.lugar);
+        if (!tienda) continue;
         pts.push({
-          id: `__pd__${laneKey}__${p.etiquetas[0]}`, lat: tienda.lat, lng: tienda.lng,
-          color: colorDelViaje.get(laneKey)?.[viaje] ?? tripColor(colorFor(list[0].assigned_driver), viaje),
-          badge: p.etiquetas.join("·"),
-          label: `${list[0].assigned_driver} — ${t("Truckload", "Viaje")} ${viaje + 1} · ${t("Pick up", "Recoger")} ${p.etiquetas.join("·")} · ${p.lugar}`,
+          id: `__pd__${laneKey}__${p.etiqueta}`, lat: tienda.lat, lng: tienda.lng,
+          color: colorFor(list[0].assigned_driver),
+          badge: p.etiqueta,
+          label: `${list[0].assigned_driver} — ${t("Pick up", "Recoger")} ${p.etiqueta} · ${p.lugar}`,
           dimmed: isDim(laneKey) || selActive,
         });
       }
@@ -1722,20 +1604,18 @@ export default function RoutesPage() {
       const sel = selectedOrders.has(d.id);
       const laneKey = orderLaneKey(d)!;
       if (!sel && !pasaFiltro(laneKey)) continue;
-      if (!sel && ocultaPorViaje.has(d.id)) continue;
       const list = byDriver.get(laneKey) ?? [];
       const idx = list.findIndex((x) => x.id === d.id);
       const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;
-      const loadTag = !isBucket(d.assigned_driver) && loadNoOf(d) > 1 ? ` · ${t("Load", "Carga")} ${loadNoOf(d)}` : "";
       pts.push({
         id: d.id,
         lat: d.delivery_lat,
         lng: d.delivery_lng,
         // A selected assigned stop pops in its own selection color, un-dimmed,
         // marked "D" so it pairs with its "P" pickup pin.
-        color: sel ? (selColorById.get(d.id) ?? "#2456c9") : (stopColor.get(d.id) ?? colorFor(d.assigned_driver)),
+        color: sel ? (selColorById.get(d.id) ?? "#2456c9") : colorFor(d.assigned_driver),
         badge: sel ? "D" : badge,
-        label: `#${orderLabel(d)} — ${d.assigned_driver}${loadTag}${badge ? ` (${t("Stop", "Parada")} ${badge})` : ""}`,
+        label: `#${orderLabel(d)} — ${d.assigned_driver}${badge ? ` (${t("Stop", "Parada")} ${badge})` : ""}`,
         dimmed: sel ? false : (isDim(laneKey) || selActive),
       });
     }
@@ -1761,7 +1641,7 @@ export default function RoutesPage() {
     const abanico = abanicoDeMarcas(pts);
     return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas, deliveries, viajeVisto]);
+  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas, deliveries]);
 
   // Every measured driver's routes are always drawn; a focus just dims the
   // others. Clicking a route focuses its driver (see onLineClick below).
@@ -1779,20 +1659,15 @@ export default function RoutesPage() {
     let idx = 0;
     // Con plan publicado y su trazo ya pedido, la línea es la del plan (D-352) y no la medida de la tarjeta — mientras la
     // ruta SIGA siendo la publicada y le queden paradas (`sigueSuPlan`, D-437). Si no, la del plan no se pinta.
-    // «Ver un viaje» (D-441): el viaje que enseña la tarjeta de ese chofer, o `null` = todos.
-    const vistoDe = (driver: string) => viajeEfectivo(viajeVisto[driver], buildTrips(byDriver.get(driver) ?? [], capacityFor(driverOf(driver))).length);
-    // El trazo del plan es UNA línea para todo el día, sin cortes por viaje: con un viaje elegido no se pinta, y se pinta
-    // la línea medida de ese viaje si la hay.
-    const conSuPlan = new Set(Object.entries(trazosDelPlan).filter(([driver, geom]) => geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver) && vistoDe(driver) == null).map(([d]) => d));
+    // El trazo del plan es UNA línea para todo el día (y desde D-NEXT también la medida: una lista, un trazo).
+    const conSuPlan = new Set(Object.entries(trazosDelPlan).filter(([driver, geom]) => geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver)).map(([d]) => d));
     for (const driver of conSuPlan) {
       out.push({ id: `plan:${driver}`, color: colorFor(driverOf(driver)), positions: trazosDelPlan[driver], dimmed: isDim(driver), offset: 0 });
     }
     for (const [driver, trips] of entries) {
       if (conSuPlan.has(driver)) continue;
-      const visto = vistoDe(driver);
       trips.forEach((trace, i) => {
-        if (!pasaElViaje(visto, i)) return;
-        const color = tripColor(colorFor(driverOf(driver)), i);
+        const color = colorFor(driverOf(driver));
         const dimmed = isDim(driver);
         const offset = (idx - center) * spacing;
         // Delivery run: solid. Empty drive back to the pickup: dashed, and
@@ -1825,7 +1700,7 @@ export default function RoutesPage() {
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeLines, trazosDelPlan, byDriver, rutasPublicadas, deliveries, selected, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders, filtroChofer, viajeVisto]);
+  }, [routeLines, trazosDelPlan, byDriver, rutasPublicadas, deliveries, selected, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders, filtroChofer]);
 
   const onLineClick = (id: string) => {
     const m = id.match(/^(?:line|ret):(.+)#\d+$/);
@@ -2122,9 +1997,10 @@ export default function RoutesPage() {
                 const on = selected.has(u.key);
                 const bucket = u.isBucket;
                 const needsDriver = !isRealDriver(u.driver);
-                // Load vs truck capacity — a filled bar the dispatcher can read
-                // at a glance; over capacity turns red (the day needs a reload trip).
-                const pallets = sumaPallets(stops);
+                // La CARGA MÁXIMA de su lista contra el camión (D-NEXT): lo más cargado que va en algún punto del día. Hasta
+                // D-NEXT era la suma del día, en rojo si pasaba del camión («hace falta otro viaje»); con la lista única el camión
+                // recarga a media ruta y la suma del día no dice nada. Rojo solo si en alguna parada se pasa.
+                const pallets = cuentaDePallets(lecturaDe(u.key, stops).filas.map((f) => f.cambio), capacityFor(u.driver)).totales.cargaMaxima;
                 const cap = capacityFor(u.driver);
                 const pct = cap > 0 ? Math.min(100, (pallets / cap) * 100) : 0;
                 const over = pallets > cap;
@@ -2170,13 +2046,14 @@ export default function RoutesPage() {
                         {info && <span>⏱ {info.duration_text}</span>}
                         {info && <span>⇥ {info.miles} mi</span>}
                       </div>
-                      {/* Capacity meter: pallets loaded vs the truck's capacity. */}
+                      {/* Capacity meter: the peak load of the list vs the truck's capacity (D-NEXT). */}
                       <div style={{ marginTop: 5, display: "flex", alignItems: "center", gap: 6 }}>
                         <div style={{ flex: 1, height: 6, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}>
                           <div style={{ width: `${pct}%`, height: "100%", background: over ? "var(--red)" : "var(--green)" }} />
                         </div>
-                        <span className="hint" style={{ fontSize: 11, fontWeight: 700, color: over ? "var(--red)" : undefined }}>
-                          {pallets}/{cap}
+                        <span className="hint" data-carga-maxima style={{ fontSize: 11, fontWeight: 700, color: over ? "var(--red)" : undefined }}
+                          title={t("Peak load on the route vs the truck's capacity", "Carga máxima de la ruta contra la capacidad del camión")}>
+                          {dosDecimales(pallets)}/{cap}
                         </span>
                       </div>
                     </div>
@@ -2510,19 +2387,15 @@ export default function RoutesPage() {
         const missingPins = stops.filter((d) => d.delivery_lat == null).length;
         const info = routeInfo[u.key];
         const capacity = capacityFor(u.driver);
-        const trips = buildTrips(stops, capacity);
-        // La misma ruta, leída como P1, P2… D1, D2… (D-334). No cambia nada de lo asignado: es solo cómo se LEE.
-        // Con plan publicado y la ruta tal como el plan la dejó, mandan SUS etiquetas y SU secuencia; si se tocó después,
-        // la lectura derivada, y se avisa (D-335). Se decide por chofer.
-        const lectura = lecturaConLoHecho(trips, paradasPublicadasDe(u.driver), hechasDeLaRuta(u.key, stops));
-        const dDe = lectura.etiquetaDe;
-        // «Ver un viaje» (D-441): qué viaje enseña esta tarjeta (y el mapa, para este chofer), o `null` = todos. Solo mira:
-        // flechas, «Viaje N» y el arrastre siguen trabajando sobre `trips` entero.
-        const visto = viajeEfectivo(viajeVisto[u.key], trips.length);
-        // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379). A medias, no: D-336.
+        // La ruta como UNA lista (D-NEXT): recogidas y entregas intercaladas, leídas como P1, P2… D1, D2… (D-334). Con plan
+        // publicado y la ruta tal como el plan la dejó, mandan SUS paradas y etiquetas; si se tocó después, lo guardado, y se
+        // avisa (D-335). Se decide por chofer.
+        const lectura = lecturaDe(u.key, stops);
+        const porId = new Map(stops.map((d) => [d.id, d]));
+        // La cuenta de pallets de cada fila, visible de partida: antes ± la parada = después · libres (`cuentaDePallets`).
+        const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);
+        // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379); y, fila a fila, lo que aún no tiene puesto.
         const provisional = esProvisional(stops);
-        // A load a person pinned (by hand), as opposed to one «Armar rutas» or the truck's capacity made.
-        const pinnedLoads = stops.some((d) => (d.load_no ?? 1) > 1 && !d.load_auto);
         const isC = isCollapsed(u.key);
         const bucket = u.isBucket;
         // A route that isn't on a real driver (a bucket, or one recovered under
@@ -2555,43 +2428,32 @@ export default function RoutesPage() {
               </span>
               {needsDriver && <span className="sema" style={{ background: "var(--accent)", color: "#fff" }}>🧭 {t("route (no driver)", "ruta (sin chofer)")}</span>}
               {bucket && <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} title={t("Rename temp driver", "Renombrar chofer temp")} onClick={() => renameBucket(u.key)}>✏</button>}
-              <span className="count-tag">{stops.length} {t("stops", "paradas")}</span>
-              {stops.length > 0 && trips.length > 1 && (
-                <span className="sema" style={{ background: "var(--amber)", color: "#fff" }}>{trips.length} {t("truckloads", "viajes")}</span>
+              {/* Órdenes, no paradas (D-NEXT): cada orden son dos paradas —su recogida y su entrega— y las paradas de la lista
+                  las cuenta la línea de totales de al lado. Con las dos diciendo «paradas», 4 y 7 se contradecían. */}
+              <span className="count-tag">{stops.length} {t("orders", "órdenes")}</span>
+              {/* Sin viajes (D-NEXT): ni «N viajes», ni «Ver un viaje» (D-441), ni «viajes fijados / agrupado automáticamente».
+                  Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión. */}
+              {stops.length > 0 && (
+                <span className="hint" data-totales-de-la-lista style={{ marginTop: 0 }}>
+                  {cuenta.totales.paradas} {t("stops", "paradas")} · {dosDecimales(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {dosDecimales(cuenta.totales.cargaMaxima)}/{capacity}
+                </span>
               )}
-              {/* «Ver un viaje» (D-441): filtra la tabla de esta tarjeta y lo de este chofer en el mapa. Solo mira. */}
-              {stops.length > 0 && trips.length > 1 && (
-                <select data-viaje-visto={u.key} value={visto == null ? "" : String(visto)}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => { const v = e.target.value; setViajeVisto((m) => { const n = { ...m }; if (v === "") delete n[u.key]; else n[u.key] = Number(v); return n; }); }}
-                  title={t("Show one truckload or all, in this table and on the map", "Ver un viaje o todos, en esta tabla y en el mapa")}
-                  style={{ width: "auto", padding: "2px 4px", fontSize: 12 }}>
-                  <option value="">{t("All truckloads", "Todos los viajes")}</option>
-                  {trips.map((_, x) => <option key={x} value={x}>{t("Truckload", "Viaje")} {x + 1}</option>)}
-                </select>
+              {cuenta.totales.paradasConExceso > 0 && (
+                <span className="sema" data-exceso-en-la-ruta style={{ background: "var(--red)", color: "#fff" }}
+                  title={t("At these stops the truck carries more than its capacity — see the row", "En estas paradas el camión lleva más de lo que le cabe — mire la fila")}>
+                  ⚠ {t(`over capacity at ${cuenta.totales.paradasConExceso} stop(s)`, `se pasa en ${cuenta.totales.paradasConExceso} parada(s)`)}
+                </span>
               )}
-              {/* Says who decided the grouping: a person (by hand) or the system («Armar rutas», or the truck's capacity).
-                  Hasta D-437 decía también qué podía cambiar «Optimizar», que ya no existe. */}
-              {stops.length > 0 && trips.length > 1 && (
-                pinnedLoads ? (
-                  <span className="sema" style={{ background: "var(--card-hover)", color: "var(--ink-soft)" }}
-                    title={t("You grouped these truckloads by hand. “Combine loads” puts them back into one.", "Usted agrupó estos viajes a mano. «Unir viajes» los vuelve a juntar en uno.")}>
-                    📌 {t("loads pinned by you", "viajes fijados por usted")}
-                  </span>
-                ) : (
-                  <span className="sema" style={{ background: "var(--card-hover)", color: "var(--ink-soft)" }}
-                    title={t("The truckloads came from “Build routes” or from the truck's capacity, not from a person.", "Los viajes salieron de «Armar rutas» o de la capacidad del camión, no de una persona.")}>
-                    🧩 {t("grouped automatically", "agrupado automáticamente")}
-                  </span>
-                )
+              {stops.length > 0 && cuenta.totales.finalNoCero && (
+                <span className="sema" data-no-acaba-en-cero style={{ background: "var(--red)", color: "#fff" }}>⚠ {t("doesn’t end at 0 pallets", "no acaba en 0 pallets")}</span>
               )}
               {info && (
                 <span
                   className="hint"
                   style={{ marginTop: 0 }}
                   title={t(
-                    `${info.duration_text} driving; the rest is unloading and reloading between truckloads`,
-                    `${info.duration_text} manejando; el resto es descarga y recarga entre viajes`,
+                    `${info.duration_text} driving; the rest is unloading and reloading at the pickups`,
+                    `${info.duration_text} manejando; el resto es descarga y recarga en las recogidas`,
                   )}
                 >
                   · {info.miles} mi · {info.dayText} {t("day", "jornada")} ({info.duration_text} {t("drive", "manejo")})
@@ -2639,14 +2501,7 @@ export default function RoutesPage() {
                   {drivers.map((dv) => <option key={dv.id} value={dv.full_name}>{dv.full_name}</option>)}
                 </select>
               )}
-              {/* «🧩 Reagrupar por zona» iba antes de «Unir viajes»: borraba los viajes y OPTIMIZABA. Se quitó en D-437. */}
-              {hasManualLoads(stops) ? (
-                <button className="btn btn-ghost btn-sm" data-unir-viajes title={t("Merge all truckloads back into one, keeping the order", "Unir todos los viajes en uno, en el mismo orden")}
-                  onClick={() => combineLoads(u.key)}>🔗 {t("Combine loads", "Unir viajes")}</button>
-              ) : trips.length === 1 && stops.length >= 2 && (
-                <button className="btn btn-ghost btn-sm" data-dividir-en-dos title={t("Split this truckload into two, keeping the order", "Dividir este viaje en dos, en el mismo orden")}
-                  onClick={() => splitLoads(u.key)}>✂ {t("Split into 2", "Dividir en 2")}</button>
-              )}
+              {/* «Unir viajes» y «Dividir en 2» (D-437) se fueron con los viajes (D-NEXT): la ruta es una lista. */}
               {stops.length > 0 && (
                 <button className="btn btn-danger btn-sm" title={t("Clear this route — send every stop back to Unassigned", "Vaciar esta ruta — devolver todas las paradas a Sin asignar")}
                   onClick={() => clearLane(u.key)}>🗑 {t("Clear", "Vaciar")}</button>
@@ -2664,33 +2519,23 @@ export default function RoutesPage() {
             )}
             {info && (
               <div className="hint" style={{ marginBottom: 8 }}>
-                {t("Total (loop from pickup and back)", "Total (ciclo desde recolección y regreso)")}: <b>{info.miles} mi</b> · <b>{info.dayText}</b> {t("on the clock", "de jornada")} ({info.duration_text} {t("driving", "manejando")})
-                {info.trips > 1 && ` · ${info.trips} ${t("round trips back to pickup to reload", "viajes de ida y vuelta a recolección para recargar")}`}
+                {t("Total (from the base and back)", "Total (desde la base y de regreso)")}: <b>{info.miles} mi</b> · <b>{info.dayText}</b> {t("on the clock", "de jornada")} ({info.duration_text} {t("driving", "manejando")})
               </div>
             )}
-            {trips.length > 1 && (() => {
-              const load = sumaPallets(stops);
-              return (
-                <div className="hint" style={{ marginBottom: 8, color: "var(--accent)" }}>
-                  💡 {t(
-                    `This is over the ${capacity}-pallet truck capacity (${load} on board), so it reloads at the pickup between loads. Raise the truck capacity to ${load} or more to carry it all in one trip (drop → drop).`,
-                    `Supera la capacidad de ${capacity} pallets del camión (${load} a bordo), por eso recarga en la recolección entre cargas. Sube la capacidad a ${load} o más para llevar todo en un solo viaje (parada → parada).`,
-                  )}
-                </div>
-              );
-            })()}
-            {!u.store && stops.length > 0 && trips.length > 1 && (
+            {/* El «💡 supera la capacidad, por eso recarga entre cargas» se fue con los viajes (D-NEXT): la lista ya lleva sus
+                recargas, y la parada donde se pasa lo dice en su fila. */}
+            {!u.store && stops.length > 0 && (
               <div className="hint" style={{ marginBottom: 8 }}>
                 {t(
-                  "This driver has no home store assigned (Users), so trips can't be anchored to a depot — the miles are measured as open routes instead of round trips.",
-                  "Este chofer no tiene tienda asignada (Usuarios), así que los viajes no pueden anclarse a un depósito — las millas se miden como rutas abiertas en vez de viajes de ida y vuelta.",
+                  "This driver has no home store assigned (Users), so the route can't be anchored to a base — the miles are measured as an open route instead of a round trip.",
+                  "Este chofer no tiene tienda asignada (Usuarios), así que la ruta no puede anclarse a una base — las millas se miden como ruta abierta en vez de ida y vuelta.",
                 )}
               </div>
             )}
             {stops.length > 0 && !sequenced && (
               <div className="hint" style={{ marginBottom: 8 }}>
                 {t("No saved order yet — set it with the ↑/↓ arrows or 📍 Best fit, or plan the day with “Build routes”.", "Aún sin orden guardado — póngalo con las flechas ↑/↓ o 📍 Mejor lugar, o planifique el día con «Armar rutas».")}
-                {provisional && <> {t("The grey P/D labels follow the current order.", "Las etiquetas P/D en gris siguen el orden de ahora.")}</>}
+                {<> {t("The grey P/D labels follow the current order.", "Las etiquetas P/D en gris siguen el orden de ahora.")}</>}
               </div>
             )}
             {missingPins > 0 && (() => {
@@ -2725,12 +2570,13 @@ export default function RoutesPage() {
                     expand/contract toggle, so Windows + the action arrows never
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
-                <table className="orders tbl-resize" style={{ width: ["_n", "_factura", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0) }}>
-                  {/* Número de parada y factura, las elegidas en el orden de la persona (D-410), y las acciones al final.
-                      Todo por CLAVE: el ancho viaja con la columna cuando se mueve. */}
+                <table className="orders tbl-resize" style={{ width: ["_n", "_factura", "_cuenta", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0) }}>
+                  {/* Número de parada, factura y la CUENTA DE PALLETS (D-NEXT, fija y visible siempre), las elegidas en el orden de
+                      la persona (D-410), y las acciones al final. Todo por CLAVE: el ancho viaja con la columna cuando se mueve. */}
                   <colgroup>
                     <col style={{ width: anchoDeParada("_n") }} />
                     <col style={{ width: anchoDeParada("_factura") }} />
+                    <col style={{ width: anchoDeParada("_cuenta") }} />
                     {colsParadas.map((c) => <col key={c.key} style={{ width: anchoDeParada(c.key) }} />)}
                     <col style={{ width: anchoDeParada("_acciones") }} />
                   </colgroup>
@@ -2738,235 +2584,153 @@ export default function RoutesPage() {
                     <tr>
                       <th>#<span className="col-resizer" onMouseDown={asaDeParada("_n")} /></th>
                       <th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
+                      <th data-columna-cuenta title={t("On board before ± this stop = on board after · free, against the truck's capacity", "A bordo antes ± esta parada = a bordo después · libres, contra la capacidad del camión")}>
+                        {t("Pallets: before ± stop = after · free", "Pallets: antes ± parada = después · libres")}<span className="col-resizer" onMouseDown={asaDeParada("_cuenta")} />
+                      </th>
                       {/* El rótulo es el del catálogo sin su «Paradas: » (el de Órdenes, para las que vienen de allí). */}
                       {colsParadas.map((c) => <th key={c.key} title={c.key === "p_pallets" ? t("Pallets on this stop", "Pallets de esta parada") : undefined}>{(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}<span className="col-resizer" onMouseDown={asaDeParada(c.key)} /></th>)}
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {trips.map((batch, ti) => {
-                      // «Ver un viaje» (D-441): el que no se enseña no se pinta; los índices siguen siendo los de la ruta entera.
-                      if (!pasaElViaje(visto, ti)) return null;
-                      const startIdx = trips.slice(0, ti).reduce((n, b) => n + b.length, 0);
-                      // A la décima (D-355): los pallets llevan fracciones (0.03) y la suma en coma flotante salía «7.569999999999999».
-                      const load = sumaPallets(batch);
-                      const free = aLaDecima(Math.max(0, capacity - load));
-                      const tColor = tripColor(colorFor(u.driver), ti);
-                      const ts = routeTrips[u.key]?.[ti];
-                      const doneN = batch.filter((d) => d.stage === "delivered").length;
-                      // A stop with no pallet figure adds 0 to the total, so
-                      // the load looks lighter than it is — say so rather than
-                      // let a truck get planned on an undercount.
-                      const noCount = batch.filter((d) => d.actual_pallets == null && d.est_pallets == null).length;
-                      const estimated = batch.some((d) => d.actual_pallets == null && d.est_pallets != null);
-                      // Las filas del viaje, y de ellas las de RECOGIDA con las órdenes que son de ESTE viaje (una P puede
-                      // nombrar lo ya entregado, D-433: eso no se mueve). Es lo que mueven sus flechas y su selector (D-441).
-                      const filas = filasDelViaje(lecturaParaLasFilas(lectura, sequenced, provisional), batch, ti === trips.length - 1);
-                      const enEsteViaje = new Set(batch.map((d) => d.id));
-                      const filasP = filas.filter((f) => f.clase === "informa" && f.fila.tipo === "P");
-                      const gruposP = filasP.map((f) => (f.clase === "informa" ? f.fila.ordenes.filter((id) => enEsteViaje.has(id)) : []));
-                      const manualLoads = hasManualLoads(stops);
-                      return (
-                        <Fragment key={ti}>
-                          <tr>
-                            <td colSpan={columnasDeParadas} style={{ background: "var(--card-hover)", fontWeight: 700, fontSize: 12 }}>
-                              <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: tColor, marginRight: 7, verticalAlign: "-1px", boxShadow: "0 0 0 1px var(--line)" }} />
-                              🚚 {t("Truckload", "Viaje")} {ti + 1} — {estimated ? "~" : ""}{load}/{capacity} {t("pallets", "pallets")}
-                              {noCount > 0 && (
-                                <span style={{ color: "var(--amber)", marginLeft: 6, fontWeight: 600 }}
-                                  title={t("These stops have no pallet count, so the load total is lower than reality.", "Estas paradas no tienen conteo de pallets, así que el total del viaje es menor que la realidad.")}>
-                                  ⚠ {noCount} {t("without a count", "sin conteo")}
-                                </span>
-                              )}
-                              {/* Capacity bar: fills with the load, turns red when over. */}
-                              <span title={`${load}/${capacity}`} style={{ display: "inline-block", width: 84, height: 7, borderRadius: 999, background: "var(--line)", verticalAlign: "middle", margin: "0 8px", overflow: "hidden" }}>
-                                <span style={{ display: "block", height: "100%", width: `${Math.min(100, capacity > 0 ? (load / capacity) * 100 : 0)}%`, background: load > capacity ? "var(--red)" : tColor }} />
-                              </span>
-                              · {t("loads at pickup ↺", "carga en recolección ↺")}
-                              {free > 0 && <span style={{ color: "var(--green)", marginLeft: 6 }}>({free} {t("free", "libres")})</span>}
-                              {load > capacity && <span style={{ color: "var(--red)", marginLeft: 6 }}>⚠ {t("over capacity", "sobre capacidad")}</span>}
-                              {/* What THIS load costs: the drive plus the time
-                                  the truck stands still being unloaded, which
-                                  each order already carries as its duration. */}
-                              {ts && (
-                                <span
-                                  style={{ marginLeft: 8, fontWeight: 600, color: "var(--ink-soft)" }}
-                                  title={t(
-                                    `${ts.miles} mi · ${fmtMinutes(ts.driveMin)} driving + ${fmtMinutes(ts.serviceMin)} unloading at ${ts.stops} stops`,
-                                    `${ts.miles} mi · ${fmtMinutes(ts.driveMin)} manejando + ${fmtMinutes(ts.serviceMin)} descargando en ${ts.stops} paradas`,
-                                  )}
-                                >
-                                  ⇥ {ts.miles} mi · ⏱ {fmtMinutes(ts.totalMin)}
-                                  <span style={{ fontWeight: 400, color: "var(--gray)" }}>
-                                    {" "}({fmtMinutes(ts.driveMin)} {t("drive", "manejo")} + {fmtMinutes(ts.serviceMin)} {t("unload", "descarga")}) · {ts.start}–{ts.end}
-                                  </span>
-                                </span>
-                              )}
-                              {/* Progress fills in as stops get delivered. */}
-                              {doneN > 0 && (
-                                <span className="sema" style={{ marginLeft: 8, background: doneN === batch.length ? "var(--green)" : "var(--green-soft)", color: doneN === batch.length ? "#fff" : "var(--green)" }}>
-                                  {doneN === batch.length ? `✓ ${t("load delivered", "viaje entregado")}` : `${doneN}/${batch.length} ${t("delivered", "entregadas")}`}
-                                </span>
-                              )}
-                              {/* Reorder whole truckloads — which load goes out first. */}
-                              {trips.length > 1 && (
-                                <span style={{ float: "right", display: "inline-flex", gap: 3 }}>
-                                  <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }}
-                                    disabled={ti === 0} onClick={() => moveTrip(u.key, ti, -1)}
-                                    title={t("Move this truckload earlier", "Adelantar este viaje")}>↑</button>
-                                  <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }}
-                                    disabled={ti === trips.length - 1} onClick={() => moveTrip(u.key, ti, 1)}
-                                    title={t("Move this truckload later", "Retrasar este viaje")}>↓</button>
-                                </span>
-                              )}
+                    {sequenced && lectura.cambioTrasPublicar && (
+                      <tr><td colSpan={columnasDeParadas} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
+                    )}
+                    {/* La Base (D-NEXT): la ruta sale de ella con 0 a bordo y vuelve a ella con 0. Si al volver no da 0, se marca. */}
+                    {filaDeLaBase(u.key, "salida", cuenta.salida, capacity, false)}
+                    {lectura.filas.map((f, fi) => {
+                      const cu = cuenta.paradas[fi];
+                      const gris = esProvisionalLaFila(f, porId);
+                      const movible = f.indice != null;
+                      const clave = claveDeLaFila(f);
+                      const resaltada = recienMovida === clave;
+                      // Las flechas de una fila: cualquier parada, P o D (D-NEXT). Apagadas en el borde de la lista, y en una
+                      // recogida si la base no guarda su posición (sin la 154). La precedencia la mira `mueveEnLaLista` al pulsar.
+                      const flechas = movible && (
+                        <>
+                          <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-sube-parada
+                            disabled={f.indice === 0 || (f.tipo === "P" && !hayRecogidaGuardada)} onClick={() => void mueveParada(u.key, f.indice!, -1)}
+                            title={f.tipo === "P" && !hayRecogidaGuardada ? t("Needs the database update (154) to save where a pickup goes", "Necesita la actualización de la base (154) para guardar dónde va una recogida") : t("Move up", "Subir")}>↑</button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-baja-parada
+                            disabled={f.indice === lectura.paradas.length - 1 || (f.tipo === "P" && !hayRecogidaGuardada)} onClick={() => void mueveParada(u.key, f.indice!, 1)}
+                            title={f.tipo === "P" && !hayRecogidaGuardada ? t("Needs the database update (154) to save where a pickup goes", "Necesita la actualización de la base (154) para guardar dónde va una recogida") : t("Move down", "Bajar")}>↓</button>
+                        </>
+                      );
+                      // «Pasar a…» otro chofer (D-NEXT, en las P y en las D): las órdenes de la parada, enteras.
+                      const ordenesDeLaFila = f.tipo === "P" ? f.ordenes : [f.orden];
+                      const pasar = movible && lanes.length > 1 && (
+                        <select value="" data-pasar-a aria-label={t("Move the order(s) to another driver", "Pasar la(s) orden(es) a otro chofer")}
+                          onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v) void pasaA(ordenesDeLaFila, v); }}
+                          style={{ width: "auto", maxWidth: 84, padding: "2px 2px", fontSize: 12 }}>
+                          <option value="">{t("Move to…", "Pasar a…")}</option>
+                          {lanes.filter((l) => l.key !== u.key).map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
+                        </select>
+                      );
+                      const celdaDeCuenta = (
+                        <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>
+                          {cu.sinConteo ? "~" : ""}{textoDeLaCuenta(cu, lang === "es")}
+                          {cu.exceso > 0 && <div data-exceso style={{ color: "var(--red)", fontWeight: 700 }}>{textoDelExceso(cu, capacity, lang === "es")}</div>}
+                        </td>
+                      );
+                      if (f.tipo === "P") {
+                        const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
+                        return (
+                          <tr key={`P-${fi}-${clave}`} data-recogida={f.etiqueta} className={claseDeLaFilaDelPlan("P")}
+                            style={resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined} data-recien-movida={resaltada ? "" : undefined}>
+                            <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
+                            <td className="ordno">{suyas.map((d, k) => <Fragment key={d.id}>{k > 0 && " · "}{enlaceALaOrden(d)}</Fragment>)}</td>
+                            {celdaDeCuenta}
+                            <td colSpan={colsParadas.length}>
+                              {t("Pick up at", "Recoger en")} <b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>
+                              {" — "}{f.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
+                              {!movible && <span className="hint" style={{ margin: 0 }}> · {t("another load of the same order", "otra carga de la misma orden")}</span>}
+                            </td>
+                            <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>
+                              {flechas}{pasar}
                             </td>
                           </tr>
-                          {/* Las filas que INFORMAN (recogidas, u otra carga de una orden repartida) van justo ANTES de la entrega
-                              a la que preceden —donde el plan las puso—, no todas en cabeza del viaje (`filasDelViaje`).
-                              Las de RECOGIDA llevan desde D-441 sus flechas ↑↓ (qué tienda se recoge antes) y su «Viaje N»
-                              (pasar esa carga a otro viaje); hasta entonces no llevaban nada (D-334). */}
-                          {sequenced && ti === (visto ?? 0) && lectura.cambioTrasPublicar && (
-                            <tr><td colSpan={columnasDeParadas} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
-                          )}
-                          {filas.map((f) => {
-                            if (f.clase === "informa") { const p = f.fila; const k = filasP.indexOf(f); const suyas = k >= 0 ? gruposP[k] : []; return (
-                            <tr key={`${p.tipo}-${ti}-${p.etiquetas[0]}`} data-recogida={p.tipo === "P" ? p.etiquetas.join("·") : undefined}>
-                              <td className={provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}>{p.etiquetas.join("·")}</td>
-                              <td colSpan={columnasDeParadas - 2}>
-                                {p.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {p.tipo === "P" && <b>{p.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>}
-                                {" — "}{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
-                                <span className="hint" style={{ margin: 0 }}> · {p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
-                              </td>
-                              {/* Mover la RECOGIDA (D-441): ↑↓ cambian qué tienda se recoge antes en este viaje —adelantando la
-                                  primera entrega de esa tienda, que es lo que la decide— y «Viaje N» pasa su carga a otro viaje.
-                                  Apagadas cuando no harían nada (la primera no sube, la última no baja). */}
-                              <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>
-                                {p.tipo === "P" && suyas.length > 0 && <>
-                                  <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-recogida-sube
-                                    disabled={!planDeFlechaDeRecogida(trips, ti, gruposP, k, -1, manualLoads, capacity, 0)}
-                                    onClick={() => moveRecogida(u.key, ti, gruposP, k, -1)}
-                                    title={t("Pick up at this store earlier in this truckload", "Recoger en esta tienda antes en este viaje")}>↑</button>
-                                  <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-recogida-baja
-                                    disabled={!planDeFlechaDeRecogida(trips, ti, gruposP, k, 1, manualLoads, capacity, 0)}
-                                    onClick={() => moveRecogida(u.key, ti, gruposP, k, 1)}
-                                    title={t("Pick up at this store later in this truckload", "Recoger en esta tienda después en este viaje")}>↓</button>
-                                  <select value={ti + 1} data-recogida-viaje
-                                    title={t("Move this pickup (all its orders) to another truckload", "Pasar esta recogida (todas sus órdenes) a otro viaje")}
-                                    onChange={(e) => { const v = e.target.value; void moveRecogidaToLoad(u.key, suyas, p.lugar, v === "__new__" ? trips.length + 1 : Number(v)); }}
-                                    style={{ width: "auto", padding: "2px 4px", fontSize: 12 }}>
-                                    {Array.from({ length: trips.length }, (_, x) => x + 1).map((n) => {
-                                      const r = n === ti + 1 ? null : planDeCambioDeViajeDeVarias(trips, suyas, n, capacity, 0);
-                                      return <option key={n} value={n}>{t("Truckload", "Viaje")} {n}{r && !r.ok && r.motivo === "no_cabe" ? t(" — won't fit", " — no cabe") : ""}</option>;
-                                    })}
-                                    <option value="__new__">＋ {t("New truckload", "Nuevo viaje")}</option>
-                                  </select>
-                                </>}
-                              </td>
-                            </tr>
-                          ); }
-                            const d = f.orden, bi = f.indice;
-                            const i = startIdx + bi;
-                            // Flag a stop whose measured ETA lands after its window closes.
-                            const eta = routeEtas[u.key]?.[d.id];
-                            const win = parseWindow(d.delivery_windows);
-                            const etaMin = eta ? parseInt(eta.slice(0, 2), 10) * 60 + parseInt(eta.slice(3, 5), 10) : null;
-                            const late = etaMin != null && win != null && etaMin > win[1];
-                            // Stops are reordered with the ↑/↓ arrows only —
-                            // row dragging was removed on request.
-                            //
-                            // Three levels of detail, by where you tap:
-                            //   the invoice → open the order itself (the ID until D-408)
-                            //   the row  → isolate this stop on the map, with its route
-                            //   outside  → back to the driver's whole day
-                            const isolated = selectedOrders.has(d.id) && selectedOrders.size === 1;
-                            return (
-                              <tr
-                                key={d.id}
-                                // Delivered stops tint green, so the route
-                                // visibly fills in over the day. Isolating a
-                                // stop still wins — that's a deliberate pick.
-                                className={`clickable${d.stage === "delivered" && !isolated ? " row-done" : ""}`}
-                                style={isolated ? { background: "var(--accent-soft)" } : recienMovida === d.id ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined}
-                                data-recien-movida={recienMovida === d.id ? "" : undefined}
-                                // Stop here: without this the click also reaches
-                                // the card's "tap outside" handler, which sees a
-                                // selection already set and clears it — so moving
-                                // from one stop to the next took two clicks.
-                                onClick={(e) => { e.stopPropagation(); setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
-                                title={t("Show this stop on the map", "Ver esta parada en el mapa")}
-                              >
-                                {(() => {
-                                  const e = etiquetaDeLaParada(d, dDe, i + 1, provisional);
-                                  return (
-                                    <td className={e.provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${tColor}`, fontWeight: 700 }}
-                                      title={e.provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
-                                    >{e.texto}</td>
-                                  );
-                                })()}
-                                {/* Solo la factura, subrayada: abre la orden (D-408). Antes (D-379) el código de la orden iba
-                                    arriba, subrayado, y la factura debajo en pequeño; el código era lo que se pulsaba. */}
-                                <td className="ordno">{enlaceALaOrden(d)}</td>
-                                {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan
-                                    a su manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
-                                {colsParadas.map((c) => {
-                                  switch (c.key) {
-                                    case "p_type": return <td key={c.key} title={d.order_type || undefined}>{d.order_type || "—"}</td>;
-                                    // Where the truckload's pallet total comes from. An estimate is marked so nobody
-                                    // plans capacity on a guess thinking it's counted.
-                                    case "p_pallets": return (
-                                      <td key={c.key} style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                        {d.actual_pallets != null ? (
-                                          <b title={t("Counted", "Contado")}>{d.actual_pallets}</b>
-                                        ) : d.est_pallets != null ? (
-                                          <span style={{ color: "var(--gray)" }} title={t("Estimate — not counted yet", "Estimado — aún sin contar")}>~{d.est_pallets}</span>
-                                        ) : (
-                                          <span style={{ color: "var(--amber)" }} title={t("No pallet count — this stop adds nothing to the load total", "Sin conteo de pallets — esta parada no suma al total del viaje")}>—</span>
-                                        )}
-                                      </td>
-                                    );
-                                    case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;
-                                    case "p_eta": return (
-                                      <td key={c.key} style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
-                                        {eta ?? "—"}{late ? " ⚠️" : ""}
-                                      </td>
-                                    );
-                                    case "p_windows": return <td key={c.key}>{fmtWindows(d.delivery_windows)}</td>;
-                                    default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
-                                  }
-                                })}
-                                {/* Reordering and moving loads are edits, not
-                                    "show me this" — they must not also hijack
-                                    the map to this one stop. */}
-                                <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>
-                                  {/* Hand-arrange the stops — works even before the route has a saved order. */}
-                                  <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} disabled={i === 0} onClick={() => move(u.key, i, -1)} title={t("Move up", "Subir")}>↑</button>
-                                  <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} disabled={i === stops.length - 1} onClick={() => move(u.key, i, 1)} title={t("Move down", "Bajar")}>↓</button>
-                                  {/* Move this stop to another truckload/pickup of the same driver. */}
-                                  <select
-                                    // Show the truckload this stop is ACTUALLY in (ti+1 = the
-                                    // section it's rendered under), not its raw load_no — which
-                                    // stays 1 for all when the split is auto (by capacity).
-                                    value={ti + 1}
-                                    title={t("Move to another truckload", "Mover a otro viaje")}
-                                    onChange={(e) => { const v = e.target.value; moveStopToLoad(d, v === "__new__" ? trips.length + 1 : Number(v)); }}
-                                    style={{ width: "auto", padding: "2px 4px", fontSize: 12 }}
-                                  >
-                                    {/* Los viajes que se PINTAN (D-433): antes salían tantos como el `load_no` más alto, y con
-                                        números saltados («1» y «3») se ofrecía un «Viaje 2» que no era ninguno. El que no
-                                        cabe lo dice ya en la lista; elegirlo no mueve nada y explica por qué. */}
-                                    {Array.from({ length: trips.length }, (_, k) => k + 1).map((n) => (
-                                      <option key={n} value={n}>{t("Truckload", "Viaje")} {n}{n !== ti + 1 && !cabeEnElViaje(trips, d.id, n, capacity).cabe ? t(" — won't fit", " — no cabe") : ""}</option>
-                                    ))}
-                                    <option value="__new__">＋ {t("New truckload", "Nuevo viaje")}</option>
-                                  </select>
-                                  <button className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => unassign(d.id)} title={t("Unassign", "Quitar asignación")}>✕</button>
+                        );
+                      }
+                      const d = porId.get(f.orden);
+                      if (!d) return null;
+                      if (f.otraCarga) {
+                        // La entrega de OTRA carga de una orden que el motor repartió: informa, no se mueve.
+                        return (
+                          <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D")}>
+                            <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
+                            <td className="ordno">{enlaceALaOrden(d)}</td>
+                            {celdaDeCuenta}
+                            <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
+                            <td />
+                          </tr>
+                        );
+                      }
+                      // Flag a stop whose measured ETA lands after its window closes.
+                      const eta = routeEtas[u.key]?.[d.id];
+                      const win = parseWindow(d.delivery_windows);
+                      const etaMin = eta ? parseInt(eta.slice(0, 2), 10) * 60 + parseInt(eta.slice(3, 5), 10) : null;
+                      const late = etaMin != null && win != null && etaMin > win[1];
+                      // Three levels of detail, by where you tap:
+                      //   the invoice → open the order itself (the ID until D-408)
+                      //   the row  → isolate this stop on the map, with its route
+                      //   outside  → back to the driver's whole day
+                      const isolated = selectedOrders.has(d.id) && selectedOrders.size === 1;
+                      return (
+                        <tr
+                          key={d.id}
+                          // Delivered stops tint green, so the route visibly fills in over the day. Isolating a stop still
+                          // wins — that's a deliberate pick.
+                          className={`clickable${d.stage === "delivered" && !isolated ? " row-done" : ""}`}
+                          style={isolated ? { background: "var(--accent-soft)" } : resaltada ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined}
+                          data-recien-movida={resaltada ? "" : undefined}
+                          data-entrega={f.etiqueta}
+                          // Stop here: without this the click also reaches the card's "tap outside" handler, which sees a
+                          // selection already set and clears it — so moving from one stop to the next took two clicks.
+                          onClick={(e) => { e.stopPropagation(); setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
+                          title={t("Show this stop on the map", "Ver esta parada en el mapa")}
+                        >
+                          <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}
+                            title={gris || provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
+                          >{f.etiqueta}</td>
+                          {/* Solo la factura, subrayada: abre la orden (D-408). */}
+                          <td className="ordno">{enlaceALaOrden(d)}</td>
+                          {celdaDeCuenta}
+                          {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
+                              manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
+                          {colsParadas.map((c) => {
+                            switch (c.key) {
+                              case "p_type": return <td key={c.key} title={d.order_type || undefined}>{d.order_type || "—"}</td>;
+                              // An estimate is marked so nobody plans capacity on a guess thinking it's counted.
+                              case "p_pallets": return (
+                                <td key={c.key} style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                  {d.actual_pallets != null ? (
+                                    <b title={t("Counted", "Contado")}>{d.actual_pallets}</b>
+                                  ) : d.est_pallets != null ? (
+                                    <span style={{ color: "var(--gray)" }} title={t("Estimate — not counted yet", "Estimado — aún sin contar")}>~{d.est_pallets}</span>
+                                  ) : (
+                                    <span style={{ color: "var(--amber)" }} title={t("No pallet count — this stop adds nothing to the count", "Sin conteo de pallets — esta parada no suma a la cuenta")}>—</span>
+                                  )}
                                 </td>
-                              </tr>
-                            );
+                              );
+                              case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;
+                              case "p_eta": return (
+                                <td key={c.key} style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
+                                  {eta ?? "—"}{late ? " ⚠️" : ""}
+                                </td>
+                              );
+                              case "p_windows": return <td key={c.key}>{fmtWindows(d.delivery_windows)}</td>;
+                              default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
+                            }
                           })}
-                        </Fragment>
+                          {/* Reordering and moving are edits, not "show me this" — they must not also hijack the map. */}
+                          <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>
+                            {flechas}{pasar}
+                            <button className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => unassign(d.id)} title={t("Unassign", "Quitar asignación")}>✕</button>
+                          </td>
+                        </tr>
                       );
                     })}
+                    {filaDeLaBase(u.key, "regreso", cuenta.regreso, capacity, cuenta.totales.finalNoCero)}
                   </tbody>
                 </table>
               </div>

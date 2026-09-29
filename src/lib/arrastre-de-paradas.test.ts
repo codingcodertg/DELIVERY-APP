@@ -60,10 +60,21 @@ describe("soltar dentro de la misma ruta", () => {
     expect(plan.ok && plan.loadNoById).toEqual({ B: null, A: null });
   });
 
-  it("no cabe: soltar en un viaje que pasaría de la capacidad no escribe nada", () => {
+  it("D-NEXT: soltar A MANO en un hueco no mira la capacidad (sin viajes, la cuenta de la tabla avisa en la parada que se pase)", () => {
+    // Hasta D-NEXT esto era «no cabe: soltar en un viaje que pasaría de la capacidad no escribe nada».
     const r = ruta("Ana", [[p("A", -95.3, { pallets: 10 })], [p("B", -95.2, { pallets: 4 })]]);
     const plan = planDeSoltar([r], "B", { tipo: "hueco", ruta: "Ana", viaje: 0, puesto: 1 }, INICIO);
-    expect(plan).toEqual({ ok: false, motivo: "no_cabe" });
+    expect(plan.ok).toBe(true);
+    expect(plan.ok && plan.ids).toEqual(["A", "B"]);
+  });
+  it("D-NEXT: soltar sobre el NOMBRE («Mejor lugar») sí mira la capacidad, parada a parada, con `admite`", () => {
+    // Una sola lista: A, B, C. `admite` solo deja el puesto 3 (al final): ahí va, aunque en línea recta otro fuera mejor.
+    const r = ruta("Ana", [[p("A", -95.3), p("B", -95.2), p("C", -95.1)]], { manual: true, admite: (puesto) => puesto === 3 });
+    const x = ruta("Beto", [[p("X", -95.25)]]);
+    const plan = planDeSoltar([r, x], "X", { tipo: "nombre", ruta: "Ana" }, INICIO);
+    expect(plan.ok && plan.ids).toEqual(["A", "B", "C", "X"]);
+    const libre = planDeSoltar([ruta("Ana", [[p("A", -95.3), p("B", -95.2), p("C", -95.1)]], { manual: true }), x], "X", { tipo: "nombre", ruta: "Ana" }, INICIO);
+    expect(libre.ok && libre.ids).not.toEqual(["A", "B", "C", "X"]);
   });
 
   it("soltar donde ya estaba no es un movimiento", () => {
@@ -280,6 +291,21 @@ describe("deshacer y rehacer", () => {
     expect(choquesAlVolver(mov(), "rehacer", filas(despues), { Ana: ["A", "B"] }).map((c) => c.motivo)).toEqual(["cambio", "cambio"]);
   });
 
+  it("D-NEXT: la recogida (`pickup_seq`) va en la foto — deshacer la devuelve, y si otro la movió, choca", () => {
+    const a = { A: { assigned_driver: "Ana", route_seq: 0, load_no: null, pickup_seq: -0.5 } };
+    const d = { A: { assigned_driver: "Ana", route_seq: 0, load_no: null, pickup_seq: 0.5 } };
+    expect(escriturasHacia(a, d)).toEqual([{ id: "A", parche: { pickup_seq: -0.5 } }]);
+    // La base la devuelve `numeric`: -0.5 y "-0.5000" son lo mismo.
+    expect(escriturasHacia(a, fotoDeFilas([{ id: "A", assigned_driver: "Ana", route_seq: 0, load_no: null, pickup_seq: "-0.5000" as unknown as number }]))).toEqual([]);
+    const m = { etiqueta: { en: "", es: "" }, rutas: ["Ana"], antes: a, despues: d, sellos: null };
+    expect(choquesAlVolver(m, "deshacer", [{ id: "A", assigned_driver: "Ana", route_seq: 0, load_no: null, pickup_seq: 0.25 }], { Ana: ["A"] })).toEqual([{ id: "A", motivo: "cambio" }]);
+    // Sin la columna (154) ninguna foto la lleva: no se escribe (escribirla fallaría) y no choca.
+    const sinColumna = { A: { assigned_driver: "Ana", route_seq: 0, load_no: null } };
+    expect(escriturasHacia(sinColumna, { A: { ...sinColumna.A, route_seq: 1 } })).toEqual([{ id: "A", parche: { route_seq: 0 } }]);
+    // Y la foto de después de guardar la lleva, si se da.
+    expect(fotoTrasReordenar({}, ["X"], { X: null }, 2, { X: 1.5 })).toEqual({ X: { assigned_driver: null, route_seq: 2, load_no: null, pickup_seq: 1.5 } });
+  });
+
   it("deshacer escribe solo lo que difiere, y devuelve la secuencia a `null` si era `null` (reorderStops no podría)", () => {
     expect(escriturasHacia(antes, despues)).toEqual([
       { id: "A", parche: { route_seq: null } },
@@ -353,12 +379,13 @@ describe("la pantalla: el Gestor", () => {
   const rutas = cuerpoDe(pagina, "const rutasDelGantt: RutaDelGantt[] = lanes.map((l) => {", "const ganttRows: GanttRow[]");
   const soltar = cuerpoDe(pagina, "const sueltaEnLaLinea = async", "\n  };\n");
   const volver = cuerpoDe(pagina, "const vuelve = async (dir: Direccion) => {", "\n  };\n");
-  const flechas = cuerpoDe(pagina, "const move = async (laneKey: string, index: number, dir: -1 | 1) => {", "\n  };\n");
+  const flechas = cuerpoDe(pagina, "const guardaLaLista = async (", "\n  };\n");
 
-  it("las rutas del arrastre son las que pinta la tabla de paradas (`buildTrips`), con su capacidad y su candado", () => {
-    expect(rutas).toContain("viajes: buildTrips(stops, capacidad).map((v) => v.map(aParadaDelGantt)), manual: hasManualLoads(stops)");
+  it("las rutas del arrastre son la LISTA que pinta la tabla (D-NEXT: sus entregas, como un solo viaje), con su capacidad, lo que cabe y su candado", () => {
+    expect(rutas).toContain("const lista = lecturaDe(l.key, stops).paradas;");
+    expect(rutas).toContain("viajes: [entregasDeLaLista(lista, stops).map(aParadaDelGantt)], manual: true,");
     expect(rutas).toContain("const capacidad = capacityFor(driverOf(l.key));");
-    expect(rutas).toContain("bloqueada: bloqueada(l.key), base: baseDeLaRuta(l.key)");
+    expect(rutas).toContain("admite: admiteEnLaLista(lista, stops, capacidad), bloqueada: bloqueada(l.key), base: baseDeLaRuta(l.key)");
   });
   it("la línea pinta las barras de `barrasDeLaRuta` con la misma hora de salida que «Mejor lugar»", () => {
     expect(pagina).toContain("barras: barrasDeLaRuta(r.viajes, r.base, DAY_START_MIN), bloqueada: r.bloqueada,");
@@ -367,13 +394,16 @@ describe("la pantalla: el Gestor", () => {
     expect(pagina).toContain("const previaDeSoltar = (movida: string, destino: Destino) => planDeSoltar(rutasDelGantt, movida, destino, DAY_START_MIN);");
     expect(soltar).toContain("const plan = previaDeSoltar(movida, destino);");
   });
-  it("al soltar escribe lo que las flechas: la parada que cambia de chofer, y la secuencia entera con `reorderStops`", () => {
-    expect(soltar).toContain("if (!(await updateDelivery(movida, plan.parcheDeLaMovida))) return;");
-    expect(soltar).toContain("if (!(await reorderStops(plan.ids, plan.loadNoById))) return;");
+  it("al soltar escribe lo que las flechas: la parada que cambia de chofer, y la secuencia entera con `reorderStops` — con la posición de cada recogida (D-NEXT)", () => {
+    expect(soltar).toContain("const lista = listaConEntregasEn(lecturaDe(plan.destino, suyas).paradas, plan.ids, conLaMovida);");
+    expect(soltar).toContain("const recogidas = hayRecogidaGuardada ? escrituraDeLaLista(lista, 0).pickupSeqById : undefined;");
+    expect(soltar).toContain("if (!(await updateDelivery(movida, { ...plan.parcheDeLaMovida, ...(recogidas ? { pickup_seq: recogidas[movida] ?? null } : {}) }))) return;");
+    expect(soltar).toContain("if (!(await reorderStops(plan.ids, plan.loadNoById, undefined, 0, recogidas))) return;");
     expect(soltar.indexOf("if (plan.origen !== plan.destino) {")).toBeLessThan(soltar.indexOf("updateDelivery(movida"));
   });
-  it("al soltar queda en el historial, con las dos rutas si cambió de chofer", () => {
-    expect(soltar).toContain("plan.origen === plan.destino ? [plan.destino] : [plan.origen, plan.destino], plan.antes, plan.despues);");
+  it("al soltar queda en el historial, con las dos rutas si cambió de chofer, y la foto lleva las recogidas", () => {
+    expect(soltar).toContain("if (recogidas) for (const id of plan.ids) despues[id] = { ...despues[id], pickup_seq: recogidas[id] ?? null };");
+    expect(soltar).toContain("plan.origen === plan.destino ? [plan.destino] : [plan.origen, plan.destino], plan.antes, despues);");
   });
   it("no reoptimiza ni llama a nadie de pago", () => {
     for (const c of [soltar, volver]) {
@@ -398,13 +428,13 @@ describe("la pantalla: el Gestor", () => {
     expect(volver).toContain("for (const e of escriturasHacia(objetivo, fotoDeFilas(filas))) {");
     expect(volver).toContain("setHistorial((h) => trasVolver(h, dir, sellos));");
   });
-  it("con base, lo de ahora se lee de la BASE con su `updated_at`", () => {
-    expect(pagina).toContain('.from("deliveries").select("id, assigned_driver, route_seq, load_no, updated_at").in("id", ids);');
+  it("con base, lo de ahora se lee de la BASE con su `updated_at` (y la recogida, si la base la guarda: 154)", () => {
+    expect(pagina).toContain('.from("deliveries").select(`id, assigned_driver, route_seq, load_no, updated_at${hayRecogidaGuardada ? ", pickup_seq" : ""}`).in("id", ids);');
   });
   it("las flechas también entran en el historial, con la foto de lo que escribieron", () => {
-    // D-433: numeradas tras lo ya hecho del chofer (`desde`), y la foto con el mismo `desde`.
-    expect(flechas).toContain("const ok = await reorderStops(ids, loadNoById, undefined, desde);");
-    expect(flechas).toContain("[laneKey], antes, fotoTrasReordenar(antes, ids, loadNoById, desde));");
+    // D-433: numeradas tras lo ya hecho del chofer (`desde`), y la foto con el mismo `desde` (y las recogidas, D-NEXT).
+    expect(flechas).toContain("const ok = await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);");
+    expect(flechas).toContain("await anotaMovimiento(etiqueta, [laneKey], antes, fotoTrasReordenar(antes, e.ids, e.loadNoById, desde, recogidas));");
   });
   it("Ctrl+Z deshace y Ctrl+Y / Ctrl+Mayús+Z rehacen, salvo escribiendo en un campo", () => {
     expect(pagina).toContain('if (k === "z" && !e.shiftKey) { e.preventDefault(); void vuelveRef.current("deshacer"); }');

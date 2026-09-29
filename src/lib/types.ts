@@ -157,10 +157,15 @@ export interface Delivery {
    * set by the Logistics Manager's route optimizer. null = not sequenced yet
    * (newly assigned, or the driver's route hasn't been optimized/reordered). */
   route_seq: number | null;
-  /** Which load/trip of the driver's day this order rides on. A driver can run
-   * several routes in a day, each a separate truckload out from the pickup and
-   * back. null or 1 = the first load. route_seq is sequenced within the load. */
+  /** HISTÓRICO (D-NEXT): which load/trip of the driver's day this order rode on (null or 1 = the first). Since D-NEXT a
+   * driver's day is ONE list with no trips: nothing writes a trip number any more (saving a route leaves it null), and
+   * route_seq is the position in the whole day. Only read to order a route saved with trips that nobody touched since.
+   * Dropping the column is a separate step, pending the owner's approval. */
   load_no: number | null;
+  /** Where this order's PICKUP goes in its driver's list, on the same scale as route_seq (D-NEXT, migration 154): between
+   * the positions of the delivery before and the one after. Optional: absent (not even null) when the database doesn't
+   * have the column yet — then the pickup is placed by the rule in `listaDelChofer`. */
+  pickup_seq?: number | null;
   /** Who decided this order's truckload. true = the optimizer grouped it and
    * may regroup it; false = a person put it there on purpose, so optimizing
    * leaves the grouping alone. Without this the two are indistinguishable and

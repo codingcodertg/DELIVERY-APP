@@ -15,6 +15,9 @@ import type { MiPlan } from "@/lib/route-plan/mis-paradas";
  *
  * Si no hay plan publicado —o la base aún no tiene la función— no pinta nada: «Mi ruta» sigue igual.
  *
+ * Una sola lista (D-NEXT): sin «N viajes» en la cabecera ni raya entre viajes. Cada parada dice cuántos pallets quedan a
+ * bordo después, que es la cuenta que el chofer puede comprobar en el camión.
+ *
  * El plan lo lee la PÁGINA (`usePlanPublicadoDelChofer`) y lo comparte con la lista de abajo, que lo necesita para que las
  * etiquetas de las dos cosas sean las mismas (D-335). Aquí no se pide nada.
  */
@@ -30,14 +33,14 @@ export function MiPlanPublicado({ plan, nombreDeOrden }: { plan: MiPlan | null; 
         <span>{abierto ? "▾" : "▸"}</span>
         <b>{t("Planned order of the day", "Orden planeado del día")}</b>
         <span className="hint" style={{ margin: 0 }}>
-          {plan.entregas} {t("deliveries", "entregas")}{plan.viajes > 1 && ` · ${plan.viajes} ${t("truckloads", "viajes")}`} · ≈ {horaDeReloj(plan.inicio)}–{horaDeReloj(plan.fin)} ({t("estimated", "estimado")})
+          {plan.entregas} {t("deliveries", "entregas")} · ≈ {horaDeReloj(plan.inicio)}–{horaDeReloj(plan.fin)} ({t("estimated", "estimado")})
         </span>
       </button>
       {abierto && (
         <>
           <ol style={{ margin: "8px 0 0", paddingLeft: 0, listStyle: "none", display: "grid", gap: 6 }}>
-            {plan.paradas.map((p, k) => (
-              <li key={p.seq} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "baseline", borderTop: k > 0 && plan.paradas[k - 1].viaje !== p.viaje ? "2px solid var(--amber)" : undefined, paddingTop: k > 0 && plan.paradas[k - 1].viaje !== p.viaje ? 6 : 0 }}>
+            {plan.paradas.map((p) => (
+              <li key={p.seq} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
                 <b style={{ minWidth: 34 }}>{p.label}</b>
                 <span>{p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")} {nombreDeOrden(p.delivery_id, p.order_ref)}{p.place ? ` · ${p.place}` : ""}</span>
                 <span className="hint" style={{ margin: 0 }}>

@@ -240,11 +240,13 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;");
   });
   it("D-376 → D-410: los colSpan cuentan las fijas y las elegidas, y el ancho de la tabla suma las mismas", () => {
-    expect(pagina).toContain("const columnasDeParadas = 3 + colsParadas.length;");
-    // Los tres colSpan de las filas que ocupan la tabla entera (el viaje, el aviso, la fila informativa).
-    expect(pagina.split("<td colSpan={columnasDeParadas}").length - 1).toBe(2);
-    expect(pagina.split("<td colSpan={columnasDeParadas - 2}>").length - 1).toBe(1);
-    expect(pagina).toContain('width: ["_n", "_factura", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0)');
+    // D-NEXT: #, factura, la CUENTA de pallets (fija), las elegidas y las acciones.
+    expect(pagina).toContain("const columnasDeParadas = 4 + colsParadas.length;");
+    // Solo el aviso ocupa la tabla entera (la cabecera de cada viaje se fue con los viajes); las filas P, Base y «otra
+    // carga» ocupan justo las elegidas, tras las tres fijas.
+    expect(pagina.split("<td colSpan={columnasDeParadas}").length - 1).toBe(1);
+    expect(pagina.split("<td colSpan={colsParadas.length}").length - 1).toBe(3);
+    expect(pagina).toContain('width: ["_n", "_factura", "_cuenta", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0)');
   });
   it("D-410: los anchos de paradas van por CLAVE, en la llave nueva, sembrada antes de que el hook la lea", () => {
     expect(pagina).toContain("const stopCols = useColWidthMap(LLAVE_DE_ANCHOS_DE_PARADAS, 100);");
@@ -416,8 +418,8 @@ describe("«Atrasada» en el Gestor lo decide la orden, no el día que se mira (
 describe("la carga y lo libre del viaje van a la décima (D-355, generalizado en D-362)", () => {
   it("el Gestor ya no redondea a mano: usa las funciones compartidas, y ninguna suma de pallets queda cruda", () => {
     const pagina = leer("src/app/(app)/routes/page.tsx");
-    expect(pagina).toContain("const load = sumaPallets(batch);");
-    expect(pagina).toContain("const free = aLaDecima(Math.max(0, capacity - load));");
+    // D-NEXT: la carga de cada parada y lo libre salen de `cuentaDePallets` (lib/lista-unica), en centésimas.
+    expect(pagina).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);");
     // D-362: la página no vuelve a sumar pallets por su cuenta, ni redondeando ni sin redondear.
     expect(pagina).not.toMatch(new RegExp("reduce" + String.fromCharCode(92) + "([^)]*actual_pallets"));
     // Lo que el dueño vio: 12 − (4 + 0.4 + 0.03) en coma flotante.

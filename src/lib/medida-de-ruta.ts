@@ -35,12 +35,13 @@ export function cuerpoDeLaMedida(paradas: readonly PuntoDeLaMedida[], base: read
 export const pintaElTrazoDelPlan = (pendientes: number, fuente: "plan" | "derivada"): boolean => pendientes > 0 && fuente === "plan";
 
 /**
- * La forma de la ruta que se mide: qué paradas, en qué puesto, en qué viaje y dónde. La pantalla mide cada forma UNA vez:
+ * La forma de la ruta que se mide: qué paradas, en qué puesto, en qué viaje (histórico), dónde se recogen (D-NEXT: la recogida
+ * también es una parada medida) y dónde. La pantalla mide cada forma UNA vez:
  * si la medida falla (sin sesión, sin red), no se vuelve a pedir en bucle; si la ruta cambia, es otra forma y se mide.
  */
 export function firmaDeLaMedida(
   fecha: string, clave: string,
-  paradas: readonly { id: string; route_seq?: number | null; load_no?: number | null; delivery_lat?: number | null; delivery_lng?: number | null }[],
+  paradas: readonly { id: string; route_seq?: number | null; load_no?: number | null; pickup_seq?: number | string | null; delivery_lat?: number | null; delivery_lng?: number | null }[],
 ): string {
-  return [fecha, clave, ...paradas.map((p) => `${p.id}:${p.route_seq ?? ""}:${p.load_no ?? ""}:${p.delivery_lat ?? ""},${p.delivery_lng ?? ""}`)].join("|");
+  return [fecha, clave, ...paradas.map((p) => `${p.id}:${p.route_seq ?? ""}:${p.load_no ?? ""}:${p.pickup_seq ?? ""}:${p.delivery_lat ?? ""},${p.delivery_lng ?? ""}`)].join("|");
 }

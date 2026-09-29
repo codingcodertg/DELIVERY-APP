@@ -1,6 +1,11 @@
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
+// D-NEXT: there are no truckloads any more — a driver's day is ONE list of stops
+// (lib/lista-unica). The load helpers that lived here (loadNoOf, groupIntoLoads,
+// hasManualLoads, nextLoadFor) were removed with the trips; load_no is no longer
+// written (targetPatch leaves it null).
+//
 // Route "lanes" — the pure logic behind the Routes Manager's multi-load and
 // merge features. A lane is one truckload of a driver's day (or a route
 // bucket). Its KEY groups the orders: the plain driver name for load 1
@@ -30,11 +35,6 @@ export function loadFromKey(key: string): number {
 
 type OrderLite = Pick<Delivery, "assigned_driver" | "load_no">;
 
-/** An order's effective load number (null/1 → 1). */
-export function loadNoOf(d: Pick<Delivery, "load_no">): number {
-  return d.load_no && d.load_no > 1 ? d.load_no : 1;
-}
-
 /** Which lane an order belongs to — one lane per driver / temp driver. The load
  * number is NOT part of the key: a driver is a single route CARD, and loads are
  * truckload sections inside it (see groupIntoLoads). The `isBucket` arg is
@@ -43,38 +43,12 @@ export function orderLaneKey(d: OrderLite, _isBucket?: (name: string) => boolean
   return d.assigned_driver || null;
 }
 
-/** Split a lane's stops into truckloads by their load number — each distinct
- * load is one truckload/pickup, in ascending order. Used when the dispatcher
- * has manually assigned loads (otherwise the route splits by truck capacity). */
-export function groupIntoLoads<T extends { load_no?: number | null }>(stops: T[]): T[][] {
-  const byLoad = new Map<number, T[]>();
-  for (const d of stops) {
-    const L = d.load_no && d.load_no > 1 ? d.load_no : 1;
-    (byLoad.get(L) ?? byLoad.set(L, []).get(L)!).push(d);
-  }
-  return [...byLoad.keys()].sort((a, b) => a - b).map((L) => byLoad.get(L)!);
-}
-
-/** True when a lane's stops carry manual load assignments (any load ≥ 2). */
-export function hasManualLoads(stops: { load_no?: number | null }[]): boolean {
-  return stops.some((d) => (d.load_no ?? 1) > 1);
-}
-
-/** Next free load number for a driver: 1 if they have no work yet, else one
- * past their highest current load. */
-export function nextLoadFor(orders: OrderLite[], driver: string): number {
-  let max = 0;
-  for (const d of orders) if (d.assigned_driver === driver) max = Math.max(max, loadNoOf(d));
-  return max === 0 ? 1 : max + 1;
-}
-
 export interface LaneTarget { isBucket: boolean; driver: string; load: number; }
 
-/** The order patch that puts a delivery onto a target lane (resets sequence). */
+/** The order patch that puts a delivery onto a target lane (resets sequence). Since D-NEXT there are no trips: the
+ * load is always cleared, whatever `target.load` says. */
 export function targetPatch(target: LaneTarget): Partial<Delivery> {
-  return target.isBucket
-    ? { assigned_driver: target.driver, load_no: null, route_seq: null }
-    : { assigned_driver: target.driver, load_no: target.load > 1 ? target.load : null, route_seq: null };
+  return { assigned_driver: target.driver, load_no: null, route_seq: null };
 }
 
 export interface LaneLite { key: string; isBucket: boolean; driver: string; load: number; }

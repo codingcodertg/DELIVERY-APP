@@ -138,7 +138,7 @@ export async function POST(req: Request) {
     // «base»: el plan respetó los candados compartidos; «sin_tabla»: la 149 no está y el motor no los conoce.
     candados: candados.fuente,
     resumen: resumenDelPlan(borrador.plan, borrador.paradas.length, borrador.plan.input.entrada.ordenes),
-    rutas: vistaDelPlan(borrador.paradas, borrador.plan.input.entrada.ordenes, borrador.plan.result.partes),
+    rutas: vistaDelPlan(borrador.paradas, borrador.plan.input.entrada.ordenes, borrador.plan.result.partes, borrador.plan.input.entrada.choferes),
     choferes: choferesDelPlan(borrador.plan.input.entrada.choferes),
     porque: porQueDelPlan(borrador.plan.result, borrador.plan.input.entrada.choferes, borrador.paradas, borrador.plan.input.entrada.ordenes),
   });
@@ -173,7 +173,7 @@ export async function GET(req: Request) {
   if (alLeerParadas) return NextResponse.json({ error: "Could not read the stops.", detail: alLeerParadas.message }, { status: 500 });
 
   const { data: yo } = await supabase.from("profiles").select("visible_stores").eq("id", user.id).maybeSingle();
-  const plan = fila as unknown as FilaDePlan & { ordenes: { id: string; builder?: boolean; prioridad?: PrioridadDeOrden | null }[] | null; choferes: { id: string; nombre: string }[] | null; id: string; version: number; status: string; published_at: string | null };
+  const plan = fila as unknown as FilaDePlan & { ordenes: { id: string; builder?: boolean; prioridad?: PrioridadDeOrden | null }[] | null; choferes: { id: string; nombre: string; capacidad?: number | null }[] | null; id: string; version: number; status: string; published_at: string | null };
   const filas = (paradas ?? []) as unknown as ParadaGuardada[];
   return NextResponse.json({
     ok: true,
@@ -181,7 +181,7 @@ export async function GET(req: Request) {
       plan_id: plan.id, version: plan.version, status: plan.status, published_at: plan.published_at,
       warnTiendasMarcadas: Array.isArray(yo?.visible_stores) && yo.visible_stores.length > 0,
       resumen: resumenDelPlan(plan, filas.length, plan.ordenes),
-      rutas: vistaDelPlan(filas, plan.ordenes ?? [], plan.result?.partes ?? {}),
+      rutas: vistaDelPlan(filas, plan.ordenes ?? [], plan.result?.partes ?? {}, plan.choferes),
       choferes: choferesDelPlan(plan.choferes),
       porque: porQueDelPlan(plan.result, plan.choferes, filas, plan.ordenes),
       copia: plan.result?.copiaDelPublicado ?? null,
@@ -278,7 +278,7 @@ export async function PATCH(req: Request) {
     ok: true, plan_id: nueva.id, version: nueva.version, status: "draft",
     warnTiendasMarcadas: Array.isArray(yo.visible_stores) && yo.visible_stores.length > 0,
     resumen: resumenDelPlan(ajustado.plan, ajustado.paradas.length, ajustado.plan.input.entrada.ordenes),
-    rutas: vistaDelPlan(ajustado.paradas, ajustado.plan.input.entrada.ordenes, ajustado.plan.result.partes),
+    rutas: vistaDelPlan(ajustado.paradas, ajustado.plan.input.entrada.ordenes, ajustado.plan.result.partes, ajustado.plan.input.entrada.choferes),
     choferes: choferesDelPlan(ajustado.plan.input.entrada.choferes),
     porque: porQueDelPlan(ajustado.plan.result, ajustado.plan.input.entrada.choferes, ajustado.paradas, ajustado.plan.input.entrada.ordenes),
     copia: ajustado.plan.result.copiaDelPublicado ?? null,

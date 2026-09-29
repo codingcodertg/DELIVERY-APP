@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { horaDeReloj, vistaDelPlan, type ParadaGuardada } from "./vista";
+import { textoDeLaCuenta } from "@/lib/lista-unica";
 
 /** La ruta de cada chofer, como se enseña (D-322). Las filas son las que guarda `route_plan_stops`; llegan
  *  DESORDENADAS a propósito, que es como las puede devolver la base. */
@@ -11,7 +12,7 @@ const parada = (driver: string, seq: number, kind: "P" | "D", order_ref: string,
 });
 
 describe("la ruta de un chofer, parada a parada", () => {
-  // Dos viajes: recoge a y b, las entrega (queda vacío), vuelve a recoger c y la entrega.
+  // Una lista con una recarga: recoge a y b, las entrega (queda vacío), vuelve a recoger c y la entrega.
   const filas = [
     parada("z", 5, "D", "c", { load_after: 0, late_min: 12 }),
     parada("z", 0, "P", "a", { load_after: 2 }),
@@ -20,7 +21,7 @@ describe("la ruta de un chofer, parada a parada", () => {
     parada("z", 4, "P", "c", { load_after: 4 }),
     parada("z", 2, "D", "a", { load_after: 3.5 }),
   ];
-  const [ruta] = vistaDelPlan(filas, [{ id: "a", builder: true }, { id: "b" }, { id: "c", builder: false }], {});
+  const [ruta] = vistaDelPlan(filas, [{ id: "a", builder: true }, { id: "b" }, { id: "c", builder: false }], {}, [{ id: "z", capacidad: 5 }]);
 
   it("en el orden de `seq`, lleguen como lleguen", () => {
     expect(ruta.paradas.map((p) => [p.seq, p.kind, p.order_ref])).toEqual([[0, "P", "a"], [1, "P", "b"], [2, "D", "a"], [3, "D", "b"], [4, "P", "c"], [5, "D", "c"]]);
@@ -30,15 +31,28 @@ describe("la ruta de un chofer, parada a parada", () => {
     expect(ruta.paradas.map((p) => [p.aBordoAlLlegar, p.load_after])).toEqual([[0, 2], [2, 5.5], [5.5, 3.5], [3.5, 0], [0, 4], [4, 0]]);
   });
 
-  it("el viaje sube cuando, ya vacío, vuelve a recoger — no al vaciarse", () => {
-    expect(ruta.paradas.map((p) => p.viaje)).toEqual([1, 1, 1, 1, 2, 2]);
-    expect(ruta.totales.viajes).toBe(2);
+  it("D-NEXT: sin viajes — cada parada lleva su CUENTA (antes ± parada = después · libres) con la capacidad del camión", () => {
+    expect(ruta.paradas.some((p) => "viaje" in p)).toBe(false);
+    expect(ruta.paradas.map((p) => textoDeLaCuenta(p.cuenta, true))).toEqual([
+      "0.00 + 2.00 = 2.00 · 3.00 libres", "2.00 + 3.50 = 5.50 · −0.50 libres", "5.50 − 2.00 = 3.50 · 1.50 libres",
+      "3.50 − 3.50 = 0.00 · 5.00 libres", "0.00 + 4.00 = 4.00 · 1.00 libres", "4.00 − 4.00 = 0.00 · 5.00 libres",
+    ]);
+    // En la parada exacta donde se pasa, cuánto; en las demás, nada.
+    expect(ruta.paradas.map((p) => p.cuenta.exceso)).toEqual([0, 0.5, 0, 0, 0, 0]);
+    // Sale de la base con 0 y vuelve con 0.
+    expect([ruta.salida.despues, ruta.regreso.despues, ruta.capacidad]).toEqual([0, 0, 5]);
   });
 
   it("los totales del día", () => {
     expect(ruta.totales).toEqual({
-      paradas: 6, entregas: 3, viajes: 2, inicio: 480, fin: 640, minutos: 160, manejoMin: 100, millas: 36.25, esperaMin: 7, tardeMin: 12, palletsMax: 5.5,
+      paradas: 6, entregas: 3, inicio: 480, fin: 640, minutos: 160, manejoMin: 100, millas: 36.25, esperaMin: 7, tardeMin: 12, palletsMax: 5.5,
+      palletsMovidos: 9.5, paradasConExceso: 1, finalNoCero: false,
     });
+  });
+
+  it("si al volver a la base no da 0, se marca; sin capacidad conocida, no se marca ningún exceso", () => {
+    const [r] = vistaDelPlan([parada("z", 0, "P", "a", { load_after: 3 }), parada("z", 1, "D", "b", { load_after: 1 })], [], {});
+    expect([r.totales.finalNoCero, r.regreso.despues, r.capacidad, r.totales.paradasConExceso]).toEqual([true, 1, null, 0]);
   });
 
   it("builder es de la ORDEN, y se dice en sus dos paradas", () => {
@@ -71,7 +85,7 @@ describe("varios choferes, y lo que la base devuelve", () => {
   it("los `numeric` de la base pueden llegar como texto: se suman como números", () => {
     const comoTexto = { load_after: "2.50" as unknown as number, leg_miles: "7.25" as unknown as number };
     const [r] = vistaDelPlan([parada("z", 0, "P", "a", comoTexto), parada("z", 1, "D", "a", { ...comoTexto, load_after: "0" as unknown as number })], [], {});
-    expect([r.totales.millas, r.totales.palletsMax, r.paradas[1].aBordoAlLlegar, r.totales.viajes]).toEqual([14.5, 2.5, 2.5, 1]);
+    expect([r.totales.millas, r.totales.palletsMax, r.paradas[1].aBordoAlLlegar]).toEqual([14.5, 2.5, 2.5]);
   });
 
   it("una parada cuyo chofer ya no existe (perfil borrado) se agrupa por el nombre guardado, no se pierde", () => {
