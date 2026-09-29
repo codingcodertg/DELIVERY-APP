@@ -30082,6 +30082,13 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
   `box`). Quien no tiene el módulo ERP recibe cero filas por la puerta restrictiva de la 066 y lo escribe a mano: no se abrió
   el catálogo a nadie.
 
+> **Reemplazada en parte por D-NEXT** (2026-09-28): la hoja del cliente ya no pone de «Amount» el total con el $/SF que se
+> cobra, sino el total **a precio regular**, con el «−N%» de la línea si hay un precio más bajo, y debajo *Subtotal → Savings
+> → Tax 8.25% → Estimated Material Total* (el total lleva ahora el impuesto). Y la entrega ya no son cuatro campos
+> (calle/ciudad/estado/zip): es una dirección buscada, con pin, tienda de salida, millas y la calculadora de tarifa de Entregas,
+> todo interno. Lo demás de esta entrada sigue: el cargo de entrega **no** entra en el total ni se imprime, y la hoja no lleva
+> el $/SF.
+
 ### Decisiones mías, para validar
 
 1. **La hoja NO imprime el $/SF.** El ejemplo del apartado 7 del documento pone una columna *Price* con «$1.89», pero todo el
@@ -32695,3 +32702,131 @@ solo sus entregas, sus recogidas y su línea. Los demás choferes no cambian.
 - Los selectores se eligieron con el TECLADO (foco y flechas), porque el desplegable nativo no se abre en Chrome sin
   pantalla. Cada flecha del teclado sobre un `<select>` dispara `change`: P3 bajó un viaje con la primera pulsación. Es lo
   mismo que ya hace el selector «Viaje N» de las paradas.
+
+## D-NEXT · El Estimador: la calculadora de tarifa de Entregas (dirección buscada, pin, lista y descuento) solo para el vendedor, y un precio más bajo por línea con su % de descuento, ahorro e impuesto en la hoja
+
+**Fecha:** 2026-09-28 · **Versión:** la pone el orquestador (toca solo `src/app/estimator` y `src/lib/estimator`, más una
+prueba de `campo-decimal`) · **Migración:** ninguna — todo cabe en los `jsonb` `delivery` y `lines` de `estimator_quotes`
+(148).
+
+**Qué pidió el dueño**, en tres mensajes del mismo día:
+
+1. *«en el estimador la misma funcion de delivery fee y el calculador ponlo cuando es entrega y se pone el address tambien
+   agrega la funcion de pin del mapa and the search of the address just like in the delivery app and it should output the
+   price and discount price for the sales rep but not for the customer in the estimate»*. Y al no verlo aún: *«the discounts
+   options is not in the estimate form»*.
+2. Aclarando que hablaba **también** del descuento del producto: *«no i mean discount of the product with the picture i sent
+   you»*. La imagen dice, literal: *«For each item, the rep enters a regular price and, optionally, a lower price. The system
+   automatically calculates the discount percentage using: Discount % = (Regular Price − Lower Price) / Regular Price × 100»*.
+3. Cómo se enseña en la hoja: *«Last thing for estimate builder: i want to add is that the estimate will show the line total
+   with the regular price they input but then it will show a % discount (not amount) if they provide a secondary lower price.
+   Then at the bottom after the subtotal we will show the amount of savings to then give the final total price with taxes /
+   this are the instructions for the discount»*.
+
+### Qué hay ahora
+
+**A. La entrega, con las piezas de la ficha de Entregas** (`src/app/estimator/EntregaCotizacion.tsx`,
+`src/lib/estimator/entrega.ts`). Con «Delivery» marcado:
+
+- **La dirección se busca con `AddressInput`**, el mismo componente de la ficha de la orden (`/api/geocode`, con pausa de
+  350 ms). Sustituye a los cuatro campos calle/ciudad/estado/zip: `Delivery` guarda ahora `address` (una línea, como
+  `delivery_address`), `lat`/`lng`/`pin_source`, `store` y `miles`. Las cotizaciones guardadas antes se abren con la dirección
+  juntada en una línea (`borradorDeFila`).
+- **El pin**: «📍 Marcar ubicación exacta en el mapa» abre `MapView` con la zona verde (`LOCAL_ZONE_LATLNG`) y las tiendas
+  (`useStoreMarkers` + `tiendasParaElMapa`); el clic derecho suelta el pin y rellena la dirección con `/api/reverse-geocode`,
+  como `dropPin` de la ficha. Aquí el pin entra **directo** en el borrador de la cotización (que a su vez es un borrador
+  hasta «Guardar»), así que no hace falta el `pin-draft` de D-221: «Guardar pin» cierra, «Cancelar» devuelve el pin que había
+  al abrir, «Quitar pin» lo borra.
+- **La calculadora es `suggestDeliveryFee`**, la función de la ficha, llamada desde `tarifaDeLaCotizacion` con los nombres de
+  una orden. Enseña la zona **LOCAL / NO LOCAL** y de dónde sale (pin o ciudad), y los dos botones **Lista** y **Descuento**:
+  pulsar uno lo pone en «Cargo de entrega (interno)», pulsarlo otra vez lo quita (`alternarCargo`, el mismo gesto de la
+  ficha). Fuera de zona: «No local — requiere aprobación del gerente». Por debajo del descuento: «Igualar precio (menor al
+  descuento) — requiere aprobación» (`bajoElDescuento`, la condición de D-303). La fórmula («¿Cómo se calculó?») solo para
+  el admin, como en la ficha (D-244, T-0049).
+- **Las millas cuestan una llamada a Google** (`/api/distance` → Google Routes). Se piden **solo con el botón «🚚 Calcular
+  distancia y tarifa»**, una llamada por pulsación, y se **borran al cambiar la dirección o la tienda** (serían de otro
+  viaje). Esto es más estricto que la ficha, que además lanza la ruta sola 900 ms después de dejar de escribir: una
+  cotización se reescribe más que una orden y cada vuelta costaría una llamada.
+- **La tienda de salida** (el origen de las millas) nace con la del perfil de quien prepara y se puede cambiar. Las tiendas,
+  las ciudades locales y el recargo se leen en el servidor **con la llave de servicio, solo esas tres columnas de
+  `settings`**: la tabla solo la lee quien tiene Entregas (`has_deliveries_access()`, 100), y un vendedor con el Estimador y
+  sin Entregas se quedaría sin tiendas.
+
+**B. El precio más bajo por línea** (`modelo.ts`). Cada línea tiene su **precio regular** (el campo de siempre, `price_per_sf`
+o `unit_price`, que en pantalla pasa de «$/SF interno» a «$/SF regular») y un **precio más bajo opcional**
+(`lower_price_per_sf` / `lower_unit_price`, `CampoDecimal` de D-420). `estadoDelPrecioBajo` decide: `sin` (vacío),
+`aplica` (menor que el regular), `no-menor` (igual o mayor: **no es descuento**, y la pantalla lo dice en rojo) o
+`sin-regular` (sin regular, o regular 0: no se divide por cero). `porcentajeDeDescuento` es la fórmula de la imagen, a un
+decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Descuento: 20% · con el precio más bajo: $800.00».
+
+**C. La hoja del cliente** (`hoja.ts`, `HojaCliente.tsx`):
+
+- Cada **Amount es el total a precio REGULAR**; bajo él, **«−20%»** si la línea tiene un precio más bajo válido. **Nunca** el
+  importe con el precio más bajo, ni el $/SF, ni el precio unitario (D-413).
+- Debajo de la tabla: **«Subtotal: $X»** (suma regular) → **«Savings: −$Y»** (solo si hay ahorro) → **«Tax 8.25%: $Z»** →
+  **«Estimated Material Total: $T»**. El impuesto va sobre el subtotal **ya con el ahorro** y se redondea a centavos
+  (`resumenDeTotales`). El cargo de entrega sigue **fuera** (la función solo recibe líneas) y el texto «Delivery: Available
+  upon request…» y los descargos del final no cambian.
+- **Nada de la entrega del vendedor sale en la hoja**: ni la dirección, ni el pin, ni la tienda, ni las millas, ni la lista,
+  ni el descuento, ni la zona. `hojaDelCliente` solo mira el modo; al imprimir, `@media print` esconde todo lo que no es
+  `.hoja-cliente`.
+
+### Decisiones mías, para validar
+
+1. **La tasa de impuesto es 8.25 % fija en el código** (`TASA_DE_IMPUESTO`): el supuesto es la tasa habitual del Valle (6.25 %
+   del estado + 2 % local). **No es configurable**: no hay en `settings` un `jsonb` del Estimador donde quepa, y una columna
+   nueva es una migración que esta rama no escribe. Si la quiere en Ajustes, es una columna (`settings.estimator_tax_rate`)
+   y una casilla.
+2. **El total final lleva el impuesto y sigue llamándose «Estimated Material Total»**, el texto literal del documento de
+   D-413. Si prefiere «Total (with tax)», es una línea.
+3. **El cargo de entrega elegido NO sale en la hoja**, aunque ahora se elija con Lista/Descuento: D-413 dice que la hoja no lo
+   lleva y el dueño pidió los precios *«for the sales rep but not for the customer»*. Si lo quiere impreso, es otra decisión.
+4. **Sin recargo de mismo día en el Estimador**: `suggestDeliveryFee` solo lo suma si la fecha de entrega es hoy, y una
+   cotización no tiene fecha de entrega. No se añadió un campo de fecha.
+5. **La tarifa sugerida no se guarda**, solo lo que la produce (dirección, pin, tienda, millas) y el cargo elegido: se
+   recalcula al abrir, y guardarla la dejaría vieja el día que cambie la fórmula.
+6. **Un «You save» en la hoja no se añadió aparte**: la línea «Savings» del total es el ahorro que pidió.
+7. Un precio más bajo de **0** cuenta como descuento del 100 % (es menor que el regular); uno negativo no se acepta.
+
+### Verificado
+
+- `node scripts/verify.mjs`: tipos, 5,330 pruebas (+3 saltadas de siempre) y `next build`.
+- Pruebas nuevas con nombre: `entrega.test.ts` (la tarifa es la de `suggestDeliveryFee` con los mismos datos; 23.7 mi
+  locales → lista $125 y descuento $120; 150 mi fuera de zona → $620 / $520 con aprobación; el pin manda sobre la ciudad;
+  sin fecha no hay mismo día; los botones; las millas solo con una llamada y ninguna sin origen; y que la pantalla usa cada
+  pieza), `modelo.test.ts` (10 → 8 = 20 %, 3.50 → 3.15 = 10 %, igual/mayor/vacío y regular 0 sin descuento; dos líneas
+  3×$10→$8 y $385: subtotal 415.00, ahorro 6.00, impuesto 33.74, total 442.74), `hoja.test.ts` (la línea 10→8 y la de lote:
+  amounts $1,000.00 y $385.00, «−20%», subtotal 1,385.00, ahorro 200.00, impuesto 97.76, total 1,282.76; ni el $/SF, ni el
+  bajo, ni el importe con descuento; y ni la dirección, ni el pin, ni la tienda, ni las millas, ni la lista, ni el descuento
+  en los tres niveles, en el objeto y renderizada), `almacen.test.ts` (la entrega y los precios bajos van y vuelven por el
+  `jsonb`; una fila vieja de calle/ciudad/estado/zip se abre en una línea).
+- **Mutantes: 40, caen los 40**, leídos por el nombre de la prueba: el % dividido por el bajo o truncado; igual o mayor como
+  descuento; regular 0; la línea (por SF y por unidad) con el regular; el total regular con el bajo; el impuesto sobre el
+  regular; ahorro cero; total sin impuesto; otra tasa; la hoja con el importe descontado, sin el %, sin ahorro, sin impuesto,
+  con el total sin impuesto, con la dirección o con el cargo; la tarifa sin pin o sin millas; aprobación al cobrar igual al
+  descuento; el botón que no se desmarca; las millas que sobreviven al cambio de dirección o de tienda; llamar sin origen; el
+  origen por nombre; la pantalla sin el aviso de aprobación, escribiendo la dirección sin borrar millas, con el botón
+  Descuento poniendo la lista o con la fórmula para todos; la fila vieja sin dirección; los precios bajos y el pin que no
+  vuelven de la base; la dirección no obligatoria; la pantalla con otra tasa; la tienda de partida sin normalizar.
+- **Demo por CDP** (2026-09-28, puerto propio, `/api/geocode`, `/api/reverse-geocode`, `/api/distance` y
+  `/api/geocode-point` servidos por dobles **en el navegador**; las teselas de OSM y las fuentes de Google, bloqueadas:
+  ninguna llamada salió), como Sam Sales, clics de persona, a **1280 y a 390**: Delivery → tienda Edinburg preelegida, sin
+  los campos viejos; «2400 N 10th» → dos sugerencias → elegida; LOCAL por la ciudad; mapa, clic derecho → pin y dirección
+  del doble; mover el pin; LOCAL por el pin; **0 llamadas a `/api/distance` antes del botón y 1 después**; 23.7 mi →
+  «List $125.00» y «Discount $120.00»; pulsar Descuento → cargo 120 y «✓ Discount»; cargo 100 → «Price match (below
+  discount) — requires approval»; línea 100 SF, 10 SF/caja, $10 → $8 → «Line total $1,000.00 · Discount 20% · $800.00»; lote
+  $385; totales «Subtotal $1,385.00 · Savings −$200.00 · Tax 8.25% $97.76 · Total $1,282.76»; un bajo de 400 sobre 385 →
+  «no discount applied»; desplazamiento lateral 0; y la **emulación de impresión**: la hoja con «−20%», Subtotal, Savings,
+  Tax y Total, y **sin ninguno** de 15 datos buscados (la dirección elegida y la del pin, las millas, la tienda, $125, $120,
+  LOCAL, «Suggested», «List», $10.00, $8.00, $800.00…); la calculadora, la entrega, las líneas y el total de la pantalla,
+  `visibility: hidden`.
+
+### Lo no verificado
+
+- **Nada contra Google ni contra producción**: las millas, las sugerencias y el pin se midieron con dobles. Que Google Routes
+  devuelva millas para «dirección de tienda → dirección elegida» lo dice el código de `/api/distance`, el mismo de la ficha.
+- `useStoreMarkers` pide `/api/geocode-point` para cada tienda **sin `lat`/`lng` en Ajustes** (en el demo, 6 tiendas sin punto y 7
+  llamadas medidas): si las tiendas de producción no tienen el punto guardado, abrir el mapa gasta una geocodificación por
+  tienda la primera vez (luego hay caché). Es lo mismo que pasa en la ficha de la orden.
+- La lectura de `settings` con la llave de servicio no se probó contra la base: sin la llave, la pantalla abre sin tiendas y
+  las millas piden elegir una.
