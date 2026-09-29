@@ -20,19 +20,20 @@ describe("de lo que devuelve la base a lo que pinta «Mi ruta»", () => {
     expect(misParadas([])).toBeNull();
   });
 
-  it("en orden de `seq` lleguen como lleguen, con el viaje y los pallets a bordo — los `numeric` pueden venir como texto", () => {
+  it("en orden de `seq` lleguen como lleguen, con los pallets a bordo, en UNA lista (D-NEXT: sin viajes) — los `numeric` pueden venir como texto", () => {
     const plan = misParadas([fila(3, "D", "b", "0"), fila(0, "P", "a", "2.50"), fila(2, "P", "b", 4, { place: "Tienda Norte" }), fila(1, "D", "a", 0, { window_start: 510, window_end: 600, is_hard: true })])!;
-    expect(plan.paradas.map((p) => [p.seq, p.kind, p.order_ref, p.aBordoAlLlegar, p.load_after, p.viaje])).toEqual([
-      [0, "P", "a", 0, 2.5, 1], [1, "D", "a", 2.5, 0, 1], [2, "P", "b", 0, 4, 2], [3, "D", "b", 4, 0, 2],
+    expect(plan.paradas.map((p) => [p.seq, p.kind, p.order_ref, p.aBordoAlLlegar, p.load_after])).toEqual([
+      [0, "P", "a", 0, 2.5], [1, "D", "a", 2.5, 0], [2, "P", "b", 0, 4], [3, "D", "b", 4, 0],
     ]);
-    expect([plan.version, plan.publishedAt, plan.entregas, plan.viajes, plan.inicio, plan.fin]).toEqual([3, "2026-03-04T12:00:00.123456+00:00", 2, 2, 480, 550]);
+    expect([plan.version, plan.publishedAt, plan.entregas, plan.inicio, plan.fin]).toEqual([3, "2026-03-04T12:00:00.123456+00:00", 2, 480, 550]);
+    expect("viajes" in plan).toBe(false);
     expect(plan.paradas[1]).toMatchObject({ window_start: 510, window_end: 600, is_hard: true, eta: 500, etd: 510 });
     expect(plan.paradas[2].place).toBe("Tienda Norte");
   });
 
   it("lo que se le da al chofer NO lleva minutos tarde, espera ni tramos: son horas sin contrastar", () => {
     const plan = misParadas([fila(0, "P", "a", 1), fila(1, "D", "a", 0)])!;
-    expect(Object.keys(plan.paradas[0]).sort()).toEqual(["aBordoAlLlegar", "delivery_id", "eta", "etd", "is_hard", "kind", "label", "load_after", "order_ref", "place", "seq", "viaje", "window_end", "window_start"]);
+    expect(Object.keys(plan.paradas[0]).sort()).toEqual(["aBordoAlLlegar", "delivery_id", "eta", "etd", "is_hard", "kind", "label", "load_after", "order_ref", "place", "seq", "window_end", "window_start"]);
   });
 });
 

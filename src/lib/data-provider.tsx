@@ -127,7 +127,9 @@ export interface DataState {
   /** `desde` (D-433): el primer `route_seq` —la secuencia va de `desde` a `desde`+n-1—. Las flechas y el selector de viaje
    * del Gestor numeran DESPUÉS de lo que el chofer ya recogió o entregó ese día (`inicioDeLaSecuencia`), para no empatar
    * con ello en «Mi ruta». Sin darlo, 0, como siempre. */
-  reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: number) => Promise<boolean>;
+  /** `pickupSeqById` (D-NEXT): where each order's pickup goes in the list. Only pass it when the database has the column
+   *  (`tienePosicionDeRecogida`): writing a column that doesn't exist fails the whole update. */
+  reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: number, pickupSeqById?: Record<string, number | null>) => Promise<boolean>;
   /** Borra una orden. `true` solo si la base devolvió la fila (D-383): un DELETE que la política no deja
    * pasar vuelve limpio con CERO filas, y entonces la orden se queda en la lista y se avisa. */
   deleteDelivery: (id: string) => Promise<boolean>;
@@ -1160,7 +1162,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // committed sequence. On any failure the previous order is restored, so the
   // list never silently disagrees with the database.
   const reorderStops = useCallback<DataState["reorderStops"]>(
-    async (orderedIds, loadNoById, loadAuto, desde = 0) => {
+    async (orderedIds, loadNoById, loadAuto, desde = 0, pickupSeqById) => {
       if (!orderedIds.length) return true;
       const seqById = new Map(orderedIds.map((id, i) => [id, desde + i]));
       // The full patch for one stop: its new position, plus its truckload when
@@ -1168,6 +1170,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const patchFor = (id: string): Partial<Delivery> => ({
         route_seq: seqById.get(id)!,
         ...(loadNoById ? { load_no: loadNoById[id] ?? null } : {}),
+        ...(pickupSeqById ? { pickup_seq: pickupSeqById[id] ?? null } : {}),
         ...(loadAuto === undefined ? {} : { load_auto: loadAuto }),
       });
       if (teaching) {
@@ -1186,7 +1189,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           const was = prev.find((d) => d.id === id);
           const patch = patchFor(id);
           // Skip rows already exactly where they should be — fewer writes, fewer echoes.
-          if (was && was.route_seq === patch.route_seq && (!loadNoById || (was.load_no ?? null) === (patch.load_no ?? null))) continue;
+          if (was && was.route_seq === patch.route_seq && (!loadNoById || (was.load_no ?? null) === (patch.load_no ?? null))
+            && (!pickupSeqById || Number(was.pickup_seq ?? NaN) === Number(patch.pickup_seq ?? NaN) || (was.pickup_seq == null && patch.pickup_seq == null))) continue;
           const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
           if (error) {
             setDeliveries(prev);          // put the old order back

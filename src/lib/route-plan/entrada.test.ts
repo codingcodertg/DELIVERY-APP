@@ -166,7 +166,8 @@ describe("del plan a las filas que se guardan", () => {
         lat: 26.35, lng: -98.25, window_start: 510, window_end: 600, is_hard: true, eta: 512, etd: 525, wait_min: 0, service_min: 13, late_min: 0,
         load_after: 0, leg_minutes: 12, leg_miles: 7.5, pinned: false },
     ]);
-    expect(escriturasAlPublicar(plan, entrada.choferes)).toEqual([{ id: "a", assigned_driver: "Chofer Norte", load_no: 1, route_seq: 0, load_auto: true }]);
+    // D-NEXT: el puesto de la entrega y dónde va la recogida (justo antes: −0,5); el viaje ya no se escribe.
+    expect(escriturasAlPublicar(plan, entrada.choferes)).toEqual([{ id: "a", assigned_driver: "Chofer Norte", route_seq: 0, pickup_seq: -0.5, load_auto: true }]);
   });
 
   it("`seq` es la posición DENTRO de la ruta de cada chofer: cada uno empieza en 0", () => {

@@ -4,7 +4,8 @@ import { vistaDelPlan, type ParadaGuardada, type ParadaVista } from "./vista";
  * Las paradas del chofer en el plan publicado (D-324), de lo que devuelve `my_published_stops` (134) a lo que
  * pinta «Mi ruta».
  *
- * Reusa `vistaDelPlan` para que «qué viaje es» y «con cuántos pallets llega» se decidan en UN sitio. Lo que la
+ * Reusa `vistaDelPlan` para que «con cuántos pallets llega» se decida en UN sitio (hasta D-NEXT, también «qué viaje es»:
+ * ya no hay viajes). Lo que la
  * función de la base no devuelve a propósito —minutos tarde, espera, tramo— aquí vale cero y NO se enseña: las
  * horas del plan son una estimación que nadie ha contrastado todavía con la realidad.
  */
@@ -14,9 +15,9 @@ export interface ParadaMia {
   place: string | null; window_start: number | null; window_end: number | null; is_hard: boolean; eta: number; etd: number; load_after: number | string;
 }
 
-export type MiParada = Pick<ParadaVista, "seq" | "kind" | "delivery_id" | "order_ref" | "label" | "place" | "window_start" | "window_end" | "is_hard" | "eta" | "etd" | "load_after" | "aBordoAlLlegar" | "viaje">;
+export type MiParada = Pick<ParadaVista, "seq" | "kind" | "delivery_id" | "order_ref" | "label" | "place" | "window_start" | "window_end" | "is_hard" | "eta" | "etd" | "load_after" | "aBordoAlLlegar">;
 
-export interface MiPlan { version: number; publishedAt: string | null; paradas: MiParada[]; entregas: number; viajes: number; inicio: number; fin: number }
+export interface MiPlan { version: number; publishedAt: string | null; paradas: MiParada[]; entregas: number; inicio: number; fin: number }
 
 export function misParadas(filas: readonly ParadaMia[]): MiPlan | null {
   if (!filas.length) return null;
@@ -30,8 +31,8 @@ export function misParadas(filas: readonly ParadaMia[]): MiPlan | null {
     version: filas[0].plan_version, publishedAt: filas[0].published_at,
     paradas: ruta.paradas.map((p): MiParada => ({
       seq: p.seq, kind: p.kind, delivery_id: p.delivery_id, order_ref: p.order_ref, label: p.label, place: p.place, window_start: p.window_start,
-      window_end: p.window_end, is_hard: p.is_hard, eta: p.eta, etd: p.etd, load_after: p.load_after, aBordoAlLlegar: p.aBordoAlLlegar, viaje: p.viaje,
+      window_end: p.window_end, is_hard: p.is_hard, eta: p.eta, etd: p.etd, load_after: p.load_after, aBordoAlLlegar: p.aBordoAlLlegar,
     })),
-    entregas: ruta.totales.entregas, viajes: ruta.totales.viajes, inicio: ruta.totales.inicio, fin: ruta.totales.fin,
+    entregas: ruta.totales.entregas, inicio: ruta.totales.inicio, fin: ruta.totales.fin,
   };
 }

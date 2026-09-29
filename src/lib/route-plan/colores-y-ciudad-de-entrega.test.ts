@@ -54,7 +54,9 @@ describe("la fila entera: recogida en verde muy suave, entrega en amarillo muy s
 
   it("la tabla la usa en la FILA (`<tr>`), no en una celda: se tiñen también la etiqueta, el ID y Ajustar", () => {
     const vista = plano(leer("src/components/RutaDelPlan.tsx"));
-    expect(vista).toContain('<tr className={claseDeLaFilaDelPlan(p.kind)} style={otroViaje ? { borderTop: "2px solid var(--amber)" } : undefined}>');
+    // D-NEXT: sin la raya de viaje que llevaba la fila (`otroViaje`).
+    expect(vista).toContain("<tr className={claseDeLaFilaDelPlan(p.kind)}>");
+    expect(vista).not.toContain("otroViaje");
     // Todas las celdas: la regla va sobre cada `td` de la fila.
     expect(plano(css)).toContain("table.orders tr.fila-plan-recoger td { background: var(--plan-recoger-bg); }");
     expect(plano(css)).toContain("table.orders tr.fila-plan-entregar td { background: var(--plan-entregar-bg); }");

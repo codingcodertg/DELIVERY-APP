@@ -3,6 +3,7 @@
 import { Fragment, useState, type ReactNode } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { horaDeReloj, type ParadaVista, type RutaVista } from "@/lib/route-plan/vista";
+import { dosDecimales, textoDeLaCuenta, textoDelExceso, type FilaDeCuenta } from "@/lib/lista-unica";
 import { cambiaConLaVecina, type Movimiento } from "@/lib/route-plan/ajuste";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { COLUMNAS_DEL_GESTOR, seVeEnLaRecogida, type ColumnaDelGestor } from "@/lib/routes-columns";
@@ -31,6 +32,11 @@ import type { Delivery } from "@/lib/types";
  *
  * D-435: cada fila lleva el color de su parada —recogida verde, entrega amarilla, muy suaves— para distinguirlas de un
  * vistazo (`claseDeLaFilaDelPlan`); y hay «Ciudad de entrega» tras la de recogida, vacía en las P como la dirección.
+ *
+ * D-NEXT: sin viajes. Ni raya entre viajes ni «N viajes» en la cabecera: la ruta es una lista. La cuenta de pallets es una
+ * columna FIJA y visible de partida (antes «Pallets a bordo», escondida en ⚙: D-429/D-434): «a bordo antes ± la parada =
+ * después · libres», con la capacidad del camión; la parada que se pasa lo dice en su fila, y cuánto. Y la ruta empieza y
+ * acaba en la Base con 0 a bordo; si al volver no da 0, se marca.
  */
 
 export interface AjusteDeRuta {
@@ -79,7 +85,6 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
         </td>
       );
       case "pl_tramo": return <td key={c.key}>{k === 0 ? "—" : `${p.leg_minutes} min · ${p.leg_miles} mi`}</td>;
-      case "pl_bordo": return <td key={c.key} title={t("Pallets on board arriving → leaving", "Pallets a bordo al llegar → al salir")}>{p.aBordoAlLlegar} → {p.load_after}</td>;
     }
     // En una recogida, lo que es de la entrega no se pinta: esa parada es en la tienda.
     if (p.kind === "P" && !seVeEnLaRecogida(c)) return <td key={c.key} data-solo-entrega />;
@@ -89,15 +94,39 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
 
   const duracion = (min: number) => `${Math.floor(min / 60)} h ${min % 60} min`;
 
+  /** La celda fija de la cuenta (D-NEXT): la operación entera y, si se pasa, cuánto, en ESTA fila. */
+  const celdaDeCuenta = (f: FilaDeCuenta, capacidad: number | null) => (
+    <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }} title={t("On board before ± this stop = on board after · free", "A bordo antes ± esta parada = a bordo después · libres")}>
+      {capacidad != null ? textoDeLaCuenta(f, lang === "es") : `${dosDecimales(f.antes)} ${f.cambio < 0 ? "−" : "+"} ${dosDecimales(Math.abs(f.cambio))} = ${dosDecimales(f.despues)}`}
+      {f.exceso > 0 && <span data-exceso style={{ color: "var(--red)", fontWeight: 700, marginLeft: 6 }}>{textoDelExceso(f, capacidad, lang === "es")}</span>}
+    </td>
+  );
+  /** La fila de la Base: la salida con 0 a bordo, y el regreso con lo que quede (tiene que ser 0). */
+  const filaDeBase = (ruta: RutaVista, cual: "salida" | "regreso") => {
+    const f = cual === "salida" ? ruta.salida : ruta.regreso;
+    const mal = cual === "regreso" && ruta.totales.finalNoCero;
+    return (
+      <tr key={cual} data-base={cual}>
+        <td><b>{t("Base", "Base")}</b></td>
+        <td>{cual === "salida" ? t("Leaves", "Salida") : t("Returns", "Regreso")}</td>
+        <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", color: mal ? "var(--red)" : undefined, fontWeight: mal ? 700 : undefined }}>
+          {dosDecimales(f.despues)}{ruta.capacidad != null && ` · ${dosDecimales(f.disponible)} ${t("free", "libres")}`}
+          {mal && <span data-no-cuadra> ⚠ {t("doesn’t come back empty: the count doesn’t add up", "no vuelve vacío: la cuenta no cuadra")}</span>}
+        </td>
+        {lista.map((c) => <td key={c.key} />)}
+        {ajuste && <td />}
+      </tr>
+    );
+  };
+
   const fila = (p: ParadaVista, k: number, ruta: RutaVista) => {
-    const otroViaje = k > 0 && ruta.paradas[k - 1].viaje !== p.viaje;
     // La misma regla que aplica el servidor (`aplicaMovimiento`): la flecha se apaga si la parada o su vecina no se mueven.
     const ordenesDeLaRuta = ruta.paradas.map((x) => x.order_ref);
     const quieta = !!ajuste?.noSeMueven.has(ordenDeLaParte(p.order_ref));
     return (
       <Fragment key={`${p.seq}`}>
       {/* D-435: recogida en verde muy suave, entrega en amarillo, la fila entera (los tintes, en `globals.css`). */}
-      <tr className={claseDeLaFilaDelPlan(p.kind)} style={otroViaje ? { borderTop: "2px solid var(--amber)" } : undefined}>
+      <tr className={claseDeLaFilaDelPlan(p.kind)}>
         <td title={p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}
           {quieta && <span data-no-se-mueve title={t("No longer pending that day (picked up, delivered, canceled or moved): it isn't moved or rewritten", "Ya no está pendiente ese día (recogida, entregada, anulada o movida): no se mueve ni se reescribe")}> 🔒</span>}</td>
         <td>
@@ -109,6 +138,7 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
           {/* Una orden partida sale dos veces con el mismo id: sin esto no se sabe cuál carga es cada fila. */}
           {p.carga && <span className="hint" style={{ margin: 0 }}> · {t(`load ${p.carga.numero} of ${p.carga.de}`, `carga ${p.carga.numero} de ${p.carga.de}`)}</span>}
         </td>
+        {celdaDeCuenta(p.cuenta, ruta.capacidad)}
         {lista.map((c) => celda(c, p, k))}
         {ajuste && (
           <td style={{ whiteSpace: "nowrap" }}>
@@ -147,9 +177,11 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
               <b>{ruta.chofer}</b>
               <span className="hint" style={{ margin: 0 }}>
                 {horaDeReloj(x.inicio)}–{horaDeReloj(x.fin)} · {duracion(x.minutos)} · {x.entregas} {t("deliveries", "entregas")} · {x.paradas} {t("stops", "paradas")}
-                {x.viajes > 1 && ` · ${x.viajes} ${t("trips", "viajes")}`} · {x.millas} mi · {t("driving", "manejo")} {duracion(x.manejoMin)} · {t("peak load", "carga máxima")} {x.palletsMax}
+                {" "}· {x.millas} mi · {t("driving", "manejo")} {duracion(x.manejoMin)} · {x.palletsMovidos} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {x.palletsMax}{ruta.capacidad != null ? `/${ruta.capacidad}` : ""}
                 {x.esperaMin > 0 && ` · ${t("waiting", "espera")} ${x.esperaMin} min`}
               </span>
+              {x.paradasConExceso > 0 && <span className="sema" data-rutas-con-exceso style={{ border: "1px solid var(--red)", color: "var(--red)" }}>⚠ {t(`over capacity at ${x.paradasConExceso} stop(s)`, `se pasa en ${x.paradasConExceso} parada(s)`)}</span>}
+              {x.finalNoCero && <span className="sema" style={{ border: "1px solid var(--red)", color: "var(--red)" }}>⚠ {t("doesn’t end at 0", "no acaba en 0")}</span>}
               {x.tardeMin > 0 && <span className="sema" style={{ border: "1px solid var(--red)", color: "var(--red)" }}>{x.tardeMin} {t("min late", "min tarde")}</span>}
             </button>
             {!cerrada && (
@@ -157,12 +189,12 @@ export function RutaDelPlan({ rutas, idDeOrden, abrirOrden, ajuste, columnas }: 
                 <table className="orders" style={{ minWidth: 720 }}>
                   <thead>
                     <tr>
-                      <th>#</th><th data-columna-id>{t("ID", "ID")}</th>
+                      <th>#</th><th data-columna-id>{t("ID", "ID")}</th><th data-columna-cuenta>{t("Pallets: before ± stop = after · free", "Pallets: antes ± parada = después · libres")}</th>
                       {lista.map((c) => <th key={c.key} data-columna-del-plan={c.key}>{rotulo(c)}</th>)}
                       {ajuste && <th>{t("Adjust", "Ajustar")}</th>}
                     </tr>
                   </thead>
-                  <tbody>{ruta.paradas.map((p, k) => fila(p, k, ruta))}</tbody>
+                  <tbody>{filaDeBase(ruta, "salida")}{ruta.paradas.map((p, k) => fila(p, k, ruta))}{filaDeBase(ruta, "regreso")}</tbody>
                 </table>
               </div>
             )}

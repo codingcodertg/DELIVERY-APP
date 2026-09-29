@@ -25,6 +25,11 @@ import { RELOAD_MIN } from "@/lib/trip-timing";
  * **Ventanas, si se puede.** Primero el hueco que añade MENOS minutos tarde a la ruta (sumando todas sus paradas: meter una
  * parada puede retrasar las de detrás); a igualdad, el que añade menos millas; a igualdad, el primero. Llegar antes de que
  * abra la ventana espera a que abra, como en OptimoRoute (`twFrom`).
+ *
+ * **Sin viajes (D-NEXT).** El Gestor ya no parte la ruta en viajes: le pasa la lista entera como UN viaje y, en `admite`,
+ * si en cada puesto cabe la orden nueva recogida justo delante de su entrega (la carga a bordo en ese punto + sus pallets,
+ * contra la capacidad; `cargaAntesDeLaEntrega` de lib/lista-unica). Con `admite` no se mira la suma del «viaje» ni se abre
+ * uno nuevo: si no cabe en ningún puesto, se elige igual el mejor —la cuenta de la tabla avisa en la parada que se pase—.
  */
 
 export interface LatLng { lat: number; lng: number }
@@ -49,6 +54,8 @@ export interface EntradaDeMejorLugar {
   capacidad: number;
   /** A qué hora sale el primer viaje, en minutos desde medianoche. */
   inicioMin: number;
+  /** D-NEXT: ¿cabe en el puesto `puesto` del viaje `viaje`? Si se da, sustituye a la suma por viaje y nunca se abre uno nuevo. */
+  admite?: (viaje: number, puesto: number) => boolean;
 }
 
 /**
@@ -150,15 +157,19 @@ export function mejorLugar(e: EntradaDeMejorLugar): ResultadoDeMejorLugar {
       llegadaMin: despues.llegadas.get(e.nueva.id) ?? e.inicioMin,
     });
   };
-  e.viajes.forEach((viaje, v) => {
-    if (palletsDe(viaje) + (e.nueva.pallets || 0) > e.capacidad) return;
+  const mira = (filtra: boolean) => e.viajes.forEach((viaje, v) => {
+    if (!e.admite && palletsDe(viaje) + (e.nueva.pallets || 0) > e.capacidad) return;
     for (let k = 0; k <= viaje.length; k++) {
+      if (filtra && e.admite && !e.admite(v, k)) continue;
       const viajes = e.viajes.map((x) => [...x]);
       viajes[v].splice(k, 0, e.nueva);
       prueba(v, k, viajes, false);
     }
   });
-  // Un viaje nuevo SOLO si no cabe en ninguno (ver la cabecera: así lo que se escribe es lo que la pantalla vuelve a partir).
+  mira(true);
+  // Con `admite` (lista única): si no cabe en ningún puesto, el mejor de todos igual. Sin él: un viaje nuevo SOLO si no cabe
+  // en ninguno (así lo que se escribe es lo que la pantalla vuelve a partir).
+  if (!huecos.length && e.admite) mira(false);
   if (!huecos.length) prueba(e.viajes.length, 0, [...e.viajes.map((x) => [...x]), [e.nueva]], true);
   const ordenados = [...huecos].sort((a, b) =>
     a.tardeExtraMin - b.tardeExtraMin || a.millasExtra - b.millasExtra || a.viaje - b.viaje || a.puesto - b.puesto);
@@ -212,16 +223,17 @@ export function avisoDelHueco(args: {
     : anterior ? `after #${anterior}` : siguienteParada ? `before #${siguienteParada}` : "alone";
   const entreEs = anterior && siguienteParada ? `entre #${anterior} y #${siguienteParada}`
     : anterior ? `después de #${anterior}` : siguienteParada ? `antes de #${siguienteParada}` : "sola";
-  const viajeEn = hueco.nuevoViaje ? `new truckload ${hueco.viaje + 1} (it didn't fit in any)` : `truckload ${hueco.viaje + 1}`;
-  const viajeEs = hueco.nuevoViaje ? `viaje nuevo ${hueco.viaje + 1} (no cabía en ninguno)` : `viaje ${hueco.viaje + 1}`;
+  // Sin viajes (D-NEXT) el aviso dice solo la parada. Un viaje nuevo solo lo abre quien no pasa `admite`.
+  const viajeEn = hueco.nuevoViaje ? `new truckload ${hueco.viaje + 1} (it didn't fit in any), ` : "";
+  const viajeEs = hueco.nuevoViaje ? `viaje nuevo ${hueco.viaje + 1} (no cabía en ninguno), ` : "";
   const tardeEn = hueco.tardeExtraMin > 0 ? `+${hueco.tardeExtraMin} min late` : "no new lateness";
   const tardeEs = hueco.tardeExtraMin > 0 ? `+${hueco.tardeExtraMin} min tarde` : "sin retrasos nuevos";
-  const altEn = alternativa ? ` Next best: truckload ${alternativa.viaje + 1}, stop ${alternativa.puesto + 1}, +${mi(alternativa.millasExtra)} mi${alternativa.tardeExtraMin > 0 ? `, +${alternativa.tardeExtraMin} min late` : ""}.` : "";
-  const altEs = alternativa ? ` El siguiente mejor: viaje ${alternativa.viaje + 1}, parada ${alternativa.puesto + 1}, +${mi(alternativa.millasExtra)} mi${alternativa.tardeExtraMin > 0 ? `, +${alternativa.tardeExtraMin} min tarde` : ""}.` : "";
-  const cortoEn = masCorto ? ` The shortest (truckload ${masCorto.viaje + 1}, stop ${masCorto.puesto + 1}, +${mi(masCorto.millasExtra)} mi) added ${masCorto.tardeExtraMin} min of lateness to the windows.` : "";
-  const cortoEs = masCorto ? ` El más corto (viaje ${masCorto.viaje + 1}, parada ${masCorto.puesto + 1}, +${mi(masCorto.millasExtra)} mi) sumaba ${masCorto.tardeExtraMin} min de retraso en las ventanas.` : "";
+  const altEn = alternativa ? ` Next best: stop ${alternativa.puesto + 1}, +${mi(alternativa.millasExtra)} mi${alternativa.tardeExtraMin > 0 ? `, +${alternativa.tardeExtraMin} min late` : ""}.` : "";
+  const altEs = alternativa ? ` El siguiente mejor: parada ${alternativa.puesto + 1}, +${mi(alternativa.millasExtra)} mi${alternativa.tardeExtraMin > 0 ? `, +${alternativa.tardeExtraMin} min tarde` : ""}.` : "";
+  const cortoEn = masCorto ? ` The shortest (stop ${masCorto.puesto + 1}, +${mi(masCorto.millasExtra)} mi) added ${masCorto.tardeExtraMin} min of lateness to the windows.` : "";
+  const cortoEs = masCorto ? ` El más corto (parada ${masCorto.puesto + 1}, +${mi(masCorto.millasExtra)} mi) sumaba ${masCorto.tardeExtraMin} min de retraso en las ventanas.` : "";
   return {
-    en: `#${orden} → ${ruta}, ${viajeEn}, stop ${pos} of ${totalDelViaje} (${entreEn}): +${mi(hueco.millasExtra)} mi, ~${horaDe(hueco.llegadaMin)}, ${tardeEn}. Best of ${huecosMirados} slot(s), straight-line estimate.${cortoEn}${altEn}`,
-    es: `#${orden} → ${ruta}, ${viajeEs}, parada ${pos} de ${totalDelViaje} (${entreEs}): +${mi(hueco.millasExtra)} mi, ~${horaDe(hueco.llegadaMin)}, ${tardeEs}. El mejor de ${huecosMirados} hueco(s), estimación en línea recta.${cortoEs}${altEs}`,
+    en: `#${orden} → ${ruta}, ${viajeEn}stop ${pos} of ${totalDelViaje} (${entreEn}): +${mi(hueco.millasExtra)} mi, ~${horaDe(hueco.llegadaMin)}, ${tardeEn}. Best of ${huecosMirados} slot(s), straight-line estimate.${cortoEn}${altEn}`,
+    es: `#${orden} → ${ruta}, ${viajeEs}parada ${pos} de ${totalDelViaje} (${entreEs}): +${mi(hueco.millasExtra)} mi, ~${horaDe(hueco.llegadaMin)}, ${tardeEs}. El mejor de ${huecosMirados} hueco(s), estimación en línea recta.${cortoEs}${altEs}`,
   };
 }

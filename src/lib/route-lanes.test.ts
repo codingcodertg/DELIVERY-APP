@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import type { Delivery } from "@/lib/types";
 import {
-  driverOf, laneKeyFor, loadFromKey, loadNoOf, orderLaneKey, nextLoadFor,
-  targetPatch, planMerge, groupByLane, groupIntoLoads, hasManualLoads, type LaneLite,
+  driverOf, laneKeyFor, loadFromKey, orderLaneKey,
+  targetPatch, planMerge, groupByLane, type LaneLite,
 } from "@/lib/route-lanes";
 
 // A tiny order factory — only the fields the lane logic reads.
@@ -32,22 +32,7 @@ describe("lane key helpers", () => {
     expect(orderLaneKey(mk("x", null), isB)).toBeNull();
     expect(orderLaneKey(mk("x", "Route 1"), isB)).toBe("Route 1");
     expect(orderLaneKey(mk("x", "José", 1), isB)).toBe("José");
-    expect(orderLaneKey(mk("x", "José", 2), isB)).toBe("José"); // same card; load 2 is a truckload inside
-  });
-
-  it("groups a lane's stops into truckloads by load number", () => {
-    const stops = [mk("a", "José", 1), mk("b", "José", 2), mk("c", "José", null), mk("d", "José", 2)];
-    expect(hasManualLoads(stops)).toBe(true);
-    const loads = groupIntoLoads(stops);
-    expect(loads.map((g) => g.map((o) => o.id))).toEqual([["a", "c"], ["b", "d"]]); // load 1, then load 2
-    expect(hasManualLoads([mk("a", "José", 1), mk("b", "José", null)])).toBe(false);
-  });
-
-  it("computes the next free load for a driver", () => {
-    const orders = [mk("a", "José", 1), mk("b", "José", null), mk("c", "María", 1)];
-    expect(nextLoadFor(orders, "José")).toBe(2);   // already has a load-1
-    expect(nextLoadFor(orders, "María")).toBe(2);
-    expect(nextLoadFor(orders, "Empty")).toBe(1);  // no work yet
+    expect(orderLaneKey(mk("x", "José", 2), isB)).toBe("José"); // same card: an old load 2 is just part of the list (D-NEXT)
   });
 });
 
@@ -56,11 +41,11 @@ describe("targetPatch", () => {
     expect(targetPatch({ isBucket: true, driver: "Route 2", load: 1 }))
       .toEqual({ assigned_driver: "Route 2", load_no: null, route_seq: null });
   });
-  it("driver load 1 stores null, load ≥2 stores the number", () => {
+  it("a driver target clears the load too: no trips since D-NEXT", () => {
     expect(targetPatch({ isBucket: false, driver: "José", load: 1 }))
       .toEqual({ assigned_driver: "José", load_no: null, route_seq: null });
     expect(targetPatch({ isBucket: false, driver: "José", load: 2 }))
-      .toEqual({ assigned_driver: "José", load_no: 2, route_seq: null });
+      .toEqual({ assigned_driver: "José", load_no: null, route_seq: null });
   });
 });
 
@@ -75,7 +60,7 @@ describe("routes flow: temp drivers, split loads, merge", () => {
     return out;
   };
 
-  it("assigning a temp driver's orders to a driver groups them in one lane; loads split them into truckloads", () => {
+  it("assigning two temp drivers' orders to a driver puts them in ONE lane (no truckloads since D-NEXT)", () => {
     const isB = bucketSet(["Route 1", "Route 2"]);
     const orders: Delivery[] = [
       mk("a", "Route 1"), mk("b", "Route 1"),
@@ -88,9 +73,7 @@ describe("routes flow: temp drivers, split loads, merge", () => {
     // ONE lane/card for José — not one per load.
     const byLane = groupByLane(orders, isB);
     expect([...byLane.keys()]).toEqual(["José"]);
-    // Inside the card, the stops split into two truckloads by load number.
-    const loads = groupIntoLoads(byLane.get("José")!);
-    expect(loads.map((g) => g.map((o) => o.id))).toEqual([["a", "b"], ["c", "d", "e"]]);
+    expect(byLane.get("José")!.map((o) => o.id)).toEqual(["a", "b", "c", "d", "e"]);
   });
 
   it("merging two temp drivers retires the emptied one", () => {

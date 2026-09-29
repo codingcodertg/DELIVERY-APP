@@ -26,29 +26,34 @@ function planDe(ordenes: OrdenEntrada[], choferes: ChoferEntrada[]): Plan {
 describe("qué escribe publicar en cada orden", () => {
   const choferes = [chofer("id-1", "Chofer Uno")];
 
-  it("el NOMBRE del chofer, el viaje y la posición de la entrega dentro del viaje — y `load_auto`", () => {
+  it("el NOMBRE del chofer, el puesto de la entrega en la lista, dónde va la recogida — y `load_auto`; el viaje ya no (D-NEXT)", () => {
     const plan = planDe([orden("a", { destino: punto(10) }), orden("b", { destino: punto(20) })], choferes);
+    // Las dos se recogen al principio (P a, P b) y se entregan a, b: las recogidas entre −1 y 0, en su orden.
+    expect(plan.rutas[0].paradas.map((p) => `${p.tipo}${p.orden}`)).toEqual(["Pa", "Pb", "Da", "Db"]);
     expect(escriturasAlPublicar(plan, choferes)).toEqual([
-      { id: "a", assigned_driver: "Chofer Uno", load_no: 1, route_seq: 0, load_auto: true },
-      { id: "b", assigned_driver: "Chofer Uno", load_no: 1, route_seq: 1, load_auto: true },
+      { id: "a", assigned_driver: "Chofer Uno", route_seq: 0, pickup_seq: -0.6667, load_auto: true },
+      { id: "b", assigned_driver: "Chofer Uno", route_seq: 1, pickup_seq: -0.3333, load_auto: true },
     ]);
+    // Sin `load_no`: `publish_route_plan` lee `w->>'load_no'`, que es nulo, y lo deja vacío.
+    expect(escriturasAlPublicar(plan, choferes).some((w) => "load_no" in w)).toBe(false);
   });
 
-  it("cuando el camión se vacía y vuelve a cargar, es otro viaje, y la posición vuelve a empezar", () => {
+  it("RECARGA A MEDIA RUTA: cuando el camión se vacía y vuelve a cargar es la MISMA lista — el puesto sigue, y la recogida va entre las dos entregas", () => {
     const plan = planDe([orden("a", { pallets: 6, destino: punto(10) }), orden("b", { pallets: 6, destino: punto(12) })], choferes);
+    expect(plan.rutas[0].paradas.map((p) => `${p.tipo}${p.orden}`)).toEqual(["Pa", "Da", "Pb", "Db"]);
     const e = escriturasAlPublicar(plan, choferes);
-    expect(e.map((x) => [x.load_no, x.route_seq]).sort()).toEqual([[1, 0], [2, 0]]);
+    expect(e.map((x) => [x.id, x.route_seq, x.pickup_seq])).toEqual([["a", 0, -0.5], ["b", 1, 0.5]]);
   });
 
-  it("vaciarse en la ÚLTIMA entrega no abre un viaje que no existe", () => {
+  it("vaciarse en la ÚLTIMA entrega no abre nada", () => {
     const plan = planDe([orden("a")], choferes);
-    expect(escriturasAlPublicar(plan, choferes)).toEqual([{ id: "a", assigned_driver: "Chofer Uno", load_no: 1, route_seq: 0, load_auto: true }]);
+    expect(escriturasAlPublicar(plan, choferes)).toEqual([{ id: "a", assigned_driver: "Chofer Uno", route_seq: 0, pickup_seq: -0.5, load_auto: true }]);
   });
 
-  it("una orden partida en cargas es UNA fila: se queda con el viaje y la posición de su primera entrega", () => {
+  it("una orden partida en cargas es UNA fila: se queda con su primera recogida y la posición de su primera entrega", () => {
     const plan = planDe([orden("grande", { pallets: 25 })], choferes);
     expect(Object.keys(plan.partes)).toEqual(["grande"]);
-    expect(escriturasAlPublicar(plan, choferes)).toEqual([{ id: "grande", assigned_driver: "Chofer Uno", load_no: 1, route_seq: 0, load_auto: true }]);
+    expect(escriturasAlPublicar(plan, choferes)).toEqual([{ id: "grande", assigned_driver: "Chofer Uno", route_seq: 0, pickup_seq: -0.5, load_auto: true }]);
     expect([ordenDeLaParte("grande#b"), ordenDeLaParte("sin-partir")]).toEqual(["grande", "sin-partir"]);
   });
 

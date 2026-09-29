@@ -107,7 +107,7 @@ export function planImportado(
     plan, paradas,
     respuesta: {
       casadas: casamiento.casadas.length, sinCasar, fueraDelPlan, sinAsignarEnHoja, soloEnLaApp, delMotor: hoja.delMotor, comparacion,
-      choferes: choferesDelPlan(entrada.choferes), rutasHoja: vistaDelPlan(paradas, entrada.ordenes, guardado.result.partes), entregasDelMotor: true,
+      choferes: choferesDelPlan(entrada.choferes), rutasHoja: vistaDelPlan(paradas, entrada.ordenes, guardado.result.partes, entrada.choferes), entregasDelMotor: true,
     },
   };
 }

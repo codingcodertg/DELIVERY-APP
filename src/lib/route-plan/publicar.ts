@@ -1,4 +1,5 @@
 import type { ChoferEntrada, Plan } from "@/lib/route-engine";
+import { escrituraDeLaLista, type ParadaDeLaLista } from "@/lib/lista-unica";
 
 /**
  * Publicar una ruta: lo que se DECIDE al publicar, sin red ni base (D-320). Plan en
@@ -19,22 +20,50 @@ export interface EscrituraDeOrden {
   id: string;
   /** El NOMBRE del chofer: es lo que guarda `deliveries.assigned_driver`, y de él cuelga lo que el chofer ve. */
   assigned_driver: string;
-  /** El viaje: un viaje es el tramo entre dos momentos en que el camión va vacío. Empieza en 1. */
-  load_no: number;
-  /** La posición de su entrega DENTRO de su viaje, desde 0 — como lo numera hoy el Gestor (migración 033). */
+  /** El puesto de su entrega en la lista del chofer, desde 0 (D-NEXT: seguida, ya sin viajes). */
   route_seq: number;
+  /** Dónde va su recogida, en la misma escala que `route_seq` (D-NEXT, migración 154). Sin la 154 la base lo ignora. */
+  pickup_seq?: number;
+  /** HISTÓRICO. Hasta D-NEXT era el viaje (1, 2…). Ya no se escribe: `publish_route_plan` lo deja en `null`. Solo lo traen
+   *  los planes publicados antes, en `route_plans.writes`. */
+  load_no?: number | null;
   load_auto: true;
 }
 
+/** La lista del chofer tal como la dejó un plan (sus paradas en orden), de lo mínimo de cada parada. Una orden repartida en
+ *  cargas (`id#a`, `id#b`) es UNA orden: cuenta su PRIMERA recogida y su PRIMERA entrega; las demás cargas no escriben. */
+function listaDelPlan(paradas: readonly { tipo: "P" | "D"; orden: string }[]): ParadaDeLaLista[] {
+  const out: ParadaDeLaLista[] = [];
+  const recogida = new Set<string>(), entregada = new Set<string>();
+  for (const p of paradas) {
+    const id = ordenDeLaParte(p.orden);
+    if (p.tipo === "P") { if (!recogida.has(id)) { recogida.add(id); out.push({ tipo: "P", ordenes: [id], tienda: null }); } }
+    else if (!entregada.has(id)) { entregada.add(id); out.push({ tipo: "D", orden: id }); }
+  }
+  return out;
+}
+
 /**
- * El viaje y el puesto de cada orden en UNA ruta, de sus paradas en orden. Es el corazón de lo que publicar escribe, sacado
- * aparte para que también lo use quien tiene que saber si una ruta SIGUE siendo la que se publicó (`./lectura-de-ruta`):
- * acepta lo mínimo de una parada, que es lo que devuelven tanto el motor como `route_plan_stops` y `my_published_stops`.
+ * El puesto de cada orden en UNA ruta, de sus paradas en orden (D-NEXT: una sola lista, sin viajes). Es el corazón de lo que
+ * publicar escribe, sacado aparte para que también lo use quien tiene que saber si una ruta SIGUE siendo la que se publicó
+ * (`./lectura-de-ruta`): acepta lo mínimo de una parada, que es lo que devuelven tanto el motor como `route_plan_stops` y
+ * `my_published_stops`.
  *
- * Una orden repartida en cargas se queda con el viaje y el puesto de su PRIMERA entrega; las demás cargas ocupan puesto
- * (el camión pasa por ahí) pero no escriben nada.
+ * `route_seq`: el puesto de su entrega, 0, 1, 2… seguido en todo el día. `pickup_seq`: dónde va su recogida, en la misma
+ * escala (`escrituraDeLaLista`): así el Gestor y «Mi ruta» vuelven a leer la recogida donde el motor la puso, también la
+ * recarga a media ruta.
  */
-export function posicionesDeLaRuta(paradas: readonly { tipo: "P" | "D"; orden: string; cargaAlSalir: number }[]): { id: string; load_no: number; route_seq: number }[] {
+export function posicionesDeLaRuta(paradas: readonly { tipo: "P" | "D"; orden: string }[]): { id: string; route_seq: number; pickup_seq: number | null }[] {
+  const e = escrituraDeLaLista(listaDelPlan(paradas), 0);
+  return e.ids.map((id, i) => ({ id, route_seq: i, pickup_seq: e.pickupSeqById[id] ?? null }));
+}
+
+/**
+ * HISTÓRICO: lo que publicar escribía hasta D-NEXT — el viaje (`load_no`, sube cada vez que el camión se vacía) y el puesto
+ * DENTRO de ese viaje. Solo para reconocer una ruta publicada ANTES de D-NEXT que nadie ha tocado (`sigueElPlan`): sus
+ * órdenes siguen guardadas así, y sin esto se leería como «cambió tras publicar» sin que nadie la cambiara.
+ */
+export function posicionesPorViajeHistoricas(paradas: readonly { tipo: "P" | "D"; orden: string; cargaAlSalir: number }[]): { id: string; load_no: number; route_seq: number }[] {
   const r: { id: string; load_no: number; route_seq: number }[] = [];
   const vistas = new Set<string>();
   let viaje = 1, posicion = 0;
@@ -43,18 +72,17 @@ export function posicionesDeLaRuta(paradas: readonly { tipo: "P" | "D"; orden: s
     const id = ordenDeLaParte(p.orden);
     if (!vistas.has(id)) { vistas.add(id); r.push({ id, load_no: viaje, route_seq: posicion }); }
     posicion++;
-    // Vacío: lo que venga después es otro viaje. (Si no viene nada, el número no lo lleva ninguna orden.)
     if (p.cargaAlSalir === 0) { viaje++; posicion = 0; }
   }
   return r;
 }
 
 /**
- * Lo que publicar escribe en cada orden: exactamente las cuatro columnas que ya escribe el Gestor de Rutas,
- * con el mismo significado, para que «Mi ruta», el mapa, almacén y el manifiesto no se enteren del cambio.
+ * Lo que publicar escribe en cada orden: el chofer, el puesto de su entrega y la posición de su recogida (D-NEXT). El viaje
+ * (`load_no`) ya no va: `publish_route_plan` lee `w->>'load_no'`, que ahora es nulo, y lo deja en `null`.
  *
- * Una orden partida en cargas (a/b/c) es UNA fila en la base: se queda con el viaje y la posición de su
- * PRIMERA entrega. Partirla de verdad en filas a/b es otro incremento; el plan guardado sí conserva las partes.
+ * Una orden partida en cargas (a/b/c) es UNA fila en la base: se queda con su PRIMERA recogida y su PRIMERA entrega.
+ * Partirla de verdad en filas a/b es otro incremento; el plan guardado sí conserva las partes.
  */
 export function escriturasAlPublicar(plan: Pick<Plan, "rutas">, choferes: readonly Pick<ChoferEntrada, "id" | "nombre">[]): EscrituraDeOrden[] {
   const nombreDe = new Map(choferes.map((c) => [c.id, c.nombre]));
@@ -62,7 +90,10 @@ export function escriturasAlPublicar(plan: Pick<Plan, "rutas">, choferes: readon
   for (const r of plan.rutas) {
     const nombre = nombreDe.get(r.chofer);
     if (!nombre) continue;
-    for (const x of posicionesDeLaRuta(r.paradas)) if (!escrituras.has(x.id)) escrituras.set(x.id, { id: x.id, assigned_driver: nombre, load_no: x.load_no, route_seq: x.route_seq, load_auto: true });
+    for (const x of posicionesDeLaRuta(r.paradas)) {
+      if (escrituras.has(x.id)) continue;
+      escrituras.set(x.id, { id: x.id, assigned_driver: nombre, route_seq: x.route_seq, ...(x.pickup_seq != null ? { pickup_seq: x.pickup_seq } : {}), load_auto: true });
+    }
   }
   return [...escrituras.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
