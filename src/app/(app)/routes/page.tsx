@@ -2668,10 +2668,13 @@ export default function RoutesPage() {
                             <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{enlaceConElId(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {colsParadas.map((c) => {
-                              if (c.key === "p_type") return <td key={c.key}>{dondeRecoge}</td>;
+                              // D-446: el Tipo de la P es el de su orden, como en la D; «Recoger en …» va en la ciudad de entrega. El
+                              // dueño, 2026-09-29: «ves que dice reocoger en rdz phar ao asi entonces eso quitalo de ahi y ponlo donde dice
+                              // ciudad de entrega».
+                              if (c.key === "p_type") return <td key={c.key} title={o?.order_type || undefined}>{o?.order_type || "—"}</td>;
                               if (c.key === "p_eta") return <td key={c.key} style={{ fontWeight: 600 }}>{etaP ?? "—"}</td>;
                               if (c.key === "p_ciudad_recogida") return <td key={c.key}>{(o && zonaDeLaRecogida(o, settings.stores ?? [], ciudadesQueSeConocen)) || "—"}</td>;
-                              if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}</td>;
+                              if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{dondeRecoge}</td>;
                               if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
                               return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, o)}</td>;
                             })}
