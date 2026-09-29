@@ -139,7 +139,7 @@ describe("fechas", () => {
   });
 });
 
-describe("precio más bajo: Discount % = (Regular − Lower) / Regular × 100 (D-NEXT, la imagen del dueño)", () => {
+describe("precio más bajo: Discount % = (Regular − Lower) / Regular × 100 (D-442, la imagen del dueño)", () => {
   it("10 → 8 es 20 %", () => {
     expect(porcentajeDeDescuento(10, 8)).toBe(20);
   });
@@ -166,7 +166,7 @@ describe("precio más bajo: Discount % = (Regular − Lower) / Regular × 100 (D
   });
 });
 
-describe("la línea se calcula con el precio aplicado, y el total regular aparte (D-NEXT)", () => {
+describe("la línea se calcula con el precio aplicado, y el total regular aparte (D-442)", () => {
   it("por SF: 53 cajas × 23.80 × 1.70 = 2,144.38; a regular 2,384.05", () => {
     const l = carrara({ lower_price_per_sf: 1.7 });
     expect(totalDeLinea(l)).toBe(2144.38);
@@ -184,7 +184,7 @@ describe("la línea se calcula con el precio aplicado, y el total regular aparte
   });
 });
 
-describe("subtotal → ahorro → impuesto → total (D-NEXT)", () => {
+describe("subtotal → ahorro → impuesto → total (D-442)", () => {
   // Dos líneas: una 10 → 8 y otra sin descuento.
   const conDescuento: UnitLine = { ...lineaUnidadVacia(), quantity: 3, unit_price: 10, lower_unit_price: 8 };
   const sinDescuento: UnitLine = { ...lineaUnidadVacia(), quantity: 1, unit_price: 385 };

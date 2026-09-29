@@ -83,7 +83,7 @@ export function loQueFalta(q: QuoteDraft, estado: EstadoDelEstimado, hoy: string
 }
 
 /**
- * Si es entrega, la dirección es obligatoria (y no se imprime). Desde D-NEXT es una línea buscada como en la ficha de
+ * Si es entrega, la dirección es obligatoria (y no se imprime). Desde D-442 es una línea buscada como en la ficha de
  * Entregas, no cuatro campos; basta con que esté escrita, como `delivery_address` en una orden.
  */
 export function direccionCompleta(q: Pick<QuoteDraft, "delivery">): boolean {

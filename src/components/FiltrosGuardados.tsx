@@ -8,7 +8,7 @@ import type { FiltroGuardado } from "@/lib/user-prefs";
 export type RespuestaDeFiltro = { texto: string; mal: boolean };
 
 /**
- * El panel de «★ Filtros guardados» de Órdenes (D-NEXT). El dueño: «create cuztomizable filters that the user sorts different
+ * El panel de «★ Filtros guardados» de Órdenes (D-440). El dueño: «create cuztomizable filters that the user sorts different
  * columns and that stays as a filter».
  *
  * - **Guardar**: guarda lo que se ve ahora —los filtros de columna y el orden, y con la casilla, la pastilla de etapa y el chip

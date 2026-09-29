@@ -1,5 +1,5 @@
 /**
- * La tarifa de entrega en el Estimador (D-NEXT): **la misma calculadora que la ficha de Entregas**, no una copia.
+ * La tarifa de entrega en el Estimador (D-442): **la misma calculadora que la ficha de Entregas**, no una copia.
  *
  * Lo pidió el dueño el 2026-09-28: «en el estimador la misma funcion de delivery fee y el calculador ponlo cuando es
  * entrega y se pone el address tambien agrega la funcion de pin del mapa and the search of the address just like in the

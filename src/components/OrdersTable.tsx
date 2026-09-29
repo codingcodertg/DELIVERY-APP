@@ -403,7 +403,7 @@ export function OrdersTable({
   onAnchos?: (anchos: Record<string, number>) => void;
   /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-409). No abre la orden al pulsarlo. */
   accionDeFila?: (d: Delivery) => React.ReactNode;
-  /** Los filtros de columna y el orden, llevados por la página (D-NEXT): así se pueden guardar con nombre y volver a
+  /** Los filtros de columna y el orden, llevados por la página (D-440): así se pueden guardar con nombre y volver a
    *  poner. Sin `vista` y `onVista`, la tabla los lleva dentro, como siempre (Almacén, chofer…). */
   vista?: VistaDeTabla;
   onVista?: (v: VistaDeTabla) => void;
@@ -427,7 +427,7 @@ export function OrdersTable({
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas };
   const [vistaPropia, setVistaPropia] = useState<VistaDeTabla>({ filtros: {}, orden: null });
-  // Llevada por la página si la pasa (D-NEXT); si no, la de dentro.
+  // Llevada por la página si la pasa (D-440); si no, la de dentro.
   const vistaQueManda = vista && onVista ? vista : vistaPropia;
   const cambiaVista = vista && onVista ? onVista : setVistaPropia;
   const filters = vistaQueManda.filtros;

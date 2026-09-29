@@ -167,7 +167,7 @@ export function filasDelViaje<T extends { id: string }>(lectura: LecturaDeRuta |
 
 /**
  * Las filas de recogida de la ruta, cada una con SU viaje (0 = el primero), recorridas con `filasDelViaje` —lo mismo que
- * pinta la tabla—, para el mapa (D-NEXT).
+ * pinta la tabla—, para el mapa (D-441).
  *
  * Hasta aquí el mapa sacaba las recogidas de `previas` sin saber de qué viaje eran, y las pintaba todas del color del
  * chofer, que es el del viaje 1: en la ruta de Maximo Garza, «P4 — Recoger en Weslaco» (viaje 2, cian en la tabla y en

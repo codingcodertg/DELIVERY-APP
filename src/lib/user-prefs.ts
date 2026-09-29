@@ -134,7 +134,7 @@ export function plantillasValidas(v: unknown): PlantillaDeColumnas[] {
 }
 
 /**
- * Los FILTROS GUARDADOS de Órdenes (D-NEXT), la quinta mitad del mismo `value`: `{ "_filtros": [ { n, f?, p?, c?, s?, l? } ] }`.
+ * Los FILTROS GUARDADOS de Órdenes (D-440), la quinta mitad del mismo `value`: `{ "_filtros": [ { n, f?, p?, c?, s?, l? } ] }`.
  * El dueño: «create cuztomizable filters that the user sorts different columns and that stays as a filter». Un filtro
  * guardado es una FOTO con nombre del estado de la tabla: los filtros de columna (`c`, columna → valores marcados), el orden
  * (`s`, columna y dirección: la tabla ordena por UNA columna), y si la persona quiso, la pastilla de etapa (`f`) y el chip de
@@ -294,7 +294,7 @@ export async function leeColumnas(supabase: ClienteDePrefs, userId: string, clav
 /** `orden` y `anchos`: SIEMPRE lo que se leyó (o lo que la persona acaba de cambiar). La fila se escribe entera, así que
  *  quien no pase una mitad la borra — por eso la página de Órdenes escribe por un solo sitio, con las tres. */
 /** `plantillas` (D-394), igual: quien escribe la fila de una pantalla que tiene plantillas pasa las leídas, o las borra. */
-/** `filtros` (D-NEXT), igual: la página de Órdenes pasa los leídos en cada escritura, o los borra. */
+/** `filtros` (D-440), igual: la página de Órdenes pasa los leídos en cada escritura, o los borra. */
 export async function guardaColumnas(supabase: ClienteDePrefs, userId: string, columnas: ColumnasPorRol, clave: ClaveDePreferencia = CLAVE_DE_COLUMNAS, orden: ColumnasPorRol = {}, anchos: AnchosPorRol = {}, plantillas: PlantillaDeColumnas[] = [], filtros: FiltroGuardado[] = []): Promise<boolean> {
   try {
     const { data, error } = await supabase.from("user_prefs").upsert({ user_id: userId, key: clave, value: valorDeColumnas({ visibles: columnas, orden, anchos, plantillas, filtros }) }, { onConflict: "user_id,key" }).select("user_id");

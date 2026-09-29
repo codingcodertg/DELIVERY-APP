@@ -14,7 +14,7 @@ import { bytesEnLaBase, cabeEnLaFila } from "./plantillas-de-columnas";
 import { comparaCeldas, filtraFilas, type ValorDeCelda } from "./orden-y-filtro";
 
 /**
- * Los filtros guardados de Órdenes (D-NEXT). El dueño, 2026-09-28: «create cuztomizable filters that the user sorts different
+ * Los filtros guardados de Órdenes (D-440). El dueño, 2026-09-28: «create cuztomizable filters that the user sorts different
  * columns and that stays as a filter».
  */
 

@@ -278,7 +278,7 @@ describe("Órdenes usa las plantillas", () => {
     expect(p).toContain("const r = guardaPlantilla(plantillasDeLaBase.current, nombre, { v: cols, o: orden ?? undefined, a: anchosQueSeVen });");
     expect(p).toContain("return r.ok ? cambiaPlantillas(r.lista, true) : Promise.resolve(textoDelRechazo(r.motivo, t));");
     expect(p).toContain("const problema = await persistePlantillas(lista, crece, destinoDePlantillas, t); if (problema) return problema; plantillasDeLaBase.current = lista; setPlantillas(lista);");
-    // Con los filtros guardados (D-NEXT) tal como se leyeron: la guarda del tamaño mide la fila ENTERA.
+    // Con los filtros guardados (D-440) tal como se leyeron: la guarda del tamaño mide la fila ENTERA.
     expect(p).toContain("filaCon: (lista: PlantillaDeColumnas[]) => valorDeColumnas({ visibles: prefsDeLaBase.current ?? {}, orden: ordenDeLaBase.current, anchos: anchosDeLaBase.current, plantillas: lista, filtros: filtrosDeLaBase.current }),");
     expect(p).toContain("baseLeida: prefsDeLaBase.current !== null,");
     expect(p).toContain("const borraPlantillaGuardada = (nombre: string) => cambiaPlantillas(borraPlantilla(plantillasDeLaBase.current, nombre), false);");

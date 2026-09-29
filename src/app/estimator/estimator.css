@@ -58,7 +58,7 @@
 .hc-tabla th { text-align: left; border-bottom: 1px dashed #555; padding: 4px 6px; font-weight: 700; }
 .hc-tabla td { border-bottom: 1px dotted #bbb; padding: 6px; vertical-align: top; }
 .hc-num { text-align: right; white-space: nowrap; }
-/* D-NEXT: el % de descuento bajo el importe regular, y subtotal → ahorro → impuesto antes del total. */
+/* D-442: el % de descuento bajo el importe regular, y subtotal → ahorro → impuesto antes del total. */
 .hc-descuento { font-size: 12px; font-weight: 700; }
 .hc-resumen-totales { text-align: right; margin: 6px 0 0; }
 .hc-resumen-totales > div { margin: 2px 0; }

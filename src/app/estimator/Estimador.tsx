@@ -53,7 +53,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   demo: boolean;
   /** La del expediente de RR. HH. de quien prepara, leída en el servidor (page.tsx). En demo, `extensionDemo`. */
   extension: string | null;
-  /** Tiendas, ciudades locales y recargo de Ajustes: lo que pide la calculadora de tarifa de Entregas (D-NEXT). */
+  /** Tiendas, ciudades locales y recargo de Ajustes: lo que pide la calculadora de tarifa de Entregas (D-442). */
   ajustes: AjustesDeEntrega;
 }) {
   const { t, lang } = usePrefs();
@@ -134,7 +134,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     extAuto.current = p.valor;
   }, [me, demo, extensionServidor]);
 
-  // La tienda de salida de la entrega nace con la del perfil (D-NEXT), como la extensión: solo si nadie eligió otra.
+  // La tienda de salida de la entrega nace con la del perfil (D-442), como la extensión: solo si nadie eligió otra.
   useEffect(() => {
     if (!me) return;
     const tienda = tiendaDePartida(me.store, ajustes.stores);
@@ -165,7 +165,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   });
   const faltas = loQueFalta(draft, estado);
   const cortas = lineasCortas(draft);
-  // Subtotal regular → ahorro → impuesto → total (D-NEXT), el mismo cálculo que la hoja. Solo líneas: sin entrega.
+  // Subtotal regular → ahorro → impuesto → total (D-442), el mismo cálculo que la hoja. Solo líneas: sin entrega.
   const totales = resumenDeTotales(draft.lines);
 
   // ---- acciones -------------------------------------------------------------------------------------
@@ -602,7 +602,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                     <span>{t("Actual SF", "SF real")}: <b data-sfreal>{sfReal(l) !== null ? numero(sfReal(l)!, 2) : "—"}</b></span>
                   </>
                 )}
-                {/* El total de la línea a precio REGULAR es lo que ve el cliente; el % se calcula solo (D-NEXT). */}
+                {/* El total de la línea a precio REGULAR es lo que ve el cliente; el % se calcula solo (D-442). */}
                 <span>{t("Line total", "Total de línea")}: <b data-total-linea>{regularTot !== null ? dinero(regularTot) : "—"}</b></span>
                 {pct !== null && tot !== null && (
                   <span data-descuento-calc>
@@ -638,7 +638,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           <label><input type="radio" name="entrega" checked={draft.delivery.mode === "pickup"} onChange={() => setEntrega({ mode: "pickup" })} /> {t("Pickup", "Recoge")}</label>
           <label><input type="radio" name="entrega" data-entrega checked={draft.delivery.mode === "delivery"} onChange={() => setEntrega({ mode: "delivery" })} /> {t("Delivery", "Entrega")}</label>
         </div>
-        {/* Búsqueda de dirección, pin y calculadora de tarifa de la ficha de Entregas (D-NEXT). Solo para el vendedor. */}
+        {/* Búsqueda de dirección, pin y calculadora de tarifa de la ficha de Entregas (D-442). Solo para el vendedor. */}
         {draft.delivery.mode === "delivery" && (
           <EntregaCotizacion entrega={draft.delivery} onEntrega={ponEntrega} ajustes={ajustes} admin={me.admin} t={t} />
         )}

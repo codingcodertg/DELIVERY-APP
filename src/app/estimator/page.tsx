@@ -42,7 +42,7 @@ async function extensionDelExpediente(userId: string): Promise<string | null> {
   }
 }
 /**
- * Lo que la calculadora de tarifa de Entregas necesita de Ajustes (D-NEXT): las tiendas (el origen de las millas), las
+ * Lo que la calculadora de tarifa de Entregas necesita de Ajustes (D-442): las tiendas (el origen de las millas), las
  * ciudades locales y el recargo de mismo día. **Se lee con la llave de servicio y solo esas tres columnas**, porque
  * `public.settings` solo la lee quien tiene el módulo de Entregas (`has_deliveries_access()`, migración 100) y un
  * vendedor con el Estimador y sin Entregas se quedaría sin tiendas y sin poder calcular. No abre nada sensible: son

@@ -34,7 +34,7 @@ export interface FilaDelCliente {
   descripcion: string;
   /** Una o dos líneas: «Requested Area: 1,250 SF» y, desde Standard, «Quantity: 53 Boxes». */
   cantidad: string[];
-  /** El total de la línea **a precio regular** (D-NEXT). Nunca el importe con el precio más bajo. */
+  /** El total de la línea **a precio regular** (D-442). Nunca el importe con el precio más bajo. */
   importe: number;
   /** «−20%» si hay un precio más bajo válido; null si no. Es un **porcentaje, no un importe** (lo dijo el dueño). */
   descuento: string | null;
@@ -49,7 +49,7 @@ export interface HojaDelCliente {
   representante: string;
   resumen: string | null;
   filas: FilaDelCliente[];
-  /** «Subtotal: $X», la suma a precio regular (D-NEXT). */
+  /** «Subtotal: $X», la suma a precio regular (D-442). */
   textoSubtotal: string;
   /** «Savings: −$Y», o null si no hay ahorro. */
   textoAhorro: string | null;
@@ -89,7 +89,7 @@ export function cantidadParaElCliente(l: QuoteLine, nivel: DisplayLevel): string
   return out;
 }
 
-/** «−20%», «−12.5%»: el descuento de la línea como lo lee el cliente (D-NEXT). Null si no hay. */
+/** «−20%», «−12.5%»: el descuento de la línea como lo lee el cliente (D-442). Null si no hay. */
 export function descuentoParaElCliente(l: QuoteLine): string | null {
   const { regular, bajo } = preciosDeLinea(l);
   const p = porcentajeDeDescuento(regular, bajo);
@@ -103,7 +103,7 @@ export function hojaDelCliente(q: QuoteDraft): HojaDelCliente {
     importe: totalRegularDeLinea(l) ?? 0,
     descuento: descuentoParaElCliente(l),
   }));
-  // Subtotal regular → ahorro → impuesto → total (D-NEXT). Solo con las líneas: la entrega no entra (D-413).
+  // Subtotal regular → ahorro → impuesto → total (D-442). Solo con las líneas: la entrega no entra (D-413).
   const r = resumenDeTotales(q.lines);
   const total = r.total;
   const hayCajas = q.lines.some((l) => l.kind === "sf");

@@ -40,7 +40,7 @@ export interface Customer {
  * La entrega de la cotización. **Todo esto es interno** (D-413): la hoja del cliente solo dice «Delivery: Available upon
  * request…» y no lleva ni la dirección, ni el pin, ni las millas, ni el cargo (`hoja.ts`, y su prueba).
  *
- * Desde D-NEXT la dirección es UNA línea, buscada con el mismo `AddressInput` de la ficha de Entregas, y lleva el pin del
+ * Desde D-442 la dirección es UNA línea, buscada con el mismo `AddressInput` de la ficha de Entregas, y lleva el pin del
  * mapa, la tienda de salida y las millas: lo que necesita `suggestDeliveryFee` (la misma función que la ficha) para dar
  * la tarifa de lista y la de descuento. Las filas guardadas antes traían `street`/`city`/`state`/`zip`; `borradorDeFila`
  * las junta en `address` y se abren igual.
@@ -78,9 +78,9 @@ export interface SfLine {
   /** Lo que escribió el vendedor. Null = las de por defecto, `ceil(requested / sf_per_box)`. */
   boxes: number | null;
   sf_per_box: number | null;
-  /** El **precio regular** por SF (D-NEXT: antes se llamaba «$/SF interno»; la clave del `jsonb` no cambia). */
+  /** El **precio regular** por SF (D-442: antes se llamaba «$/SF interno»; la clave del `jsonb` no cambia). */
   price_per_sf: number | null;
-  /** Un precio más bajo por SF, opcional (D-NEXT). Solo vale si es menor que el regular: `precioAplicado`. */
+  /** Un precio más bajo por SF, opcional (D-442). Solo vale si es menor que el regular: `precioAplicado`. */
   lower_price_per_sf: number | null;
 }
 
@@ -96,7 +96,7 @@ export interface UnitLine {
   unit: string;
   /** El **precio regular** de la unidad. */
   unit_price: number | null;
-  /** Un precio más bajo de la unidad, opcional (D-NEXT). */
+  /** Un precio más bajo de la unidad, opcional (D-442). */
   lower_unit_price: number | null;
 }
 
@@ -148,7 +148,7 @@ export function sfReal(l: SfLine): number | null {
   return aCentavos(cajas * l.sf_per_box);
 }
 
-// ---- El precio más bajo y su % de descuento (D-NEXT) ------------------------------------------------
+// ---- El precio más bajo y su % de descuento (D-442) ------------------------------------------------
 //
 // El dueño, 2026-09-28, sobre su imagen: «For each item, the rep enters a regular price and, optionally, a lower price.
 // The system automatically calculates the discount percentage using: Discount % = (Regular Price − Lower Price) /
@@ -189,7 +189,7 @@ export function preciosDeLinea(l: QuoteLine): { regular: number | null; bajo: nu
  * cliente paga las cajas completas). Sin superficie, cantidad × precio. Null si falta un dato: una
  * línea a medias no suma cero, no suma.
  *
- * El $/SF (o el precio de la unidad) es el **aplicado** (D-NEXT): el más bajo si lo hay y es menor que el regular. El
+ * El $/SF (o el precio de la unidad) es el **aplicado** (D-442): el más bajo si lo hay y es menor que el regular. El
  * regular sigue siendo obligatorio: sin él no hay de qué calcular el descuento.
  */
 export function totalDeLinea(l: QuoteLine): number | null {
@@ -214,7 +214,7 @@ export function totalDeMateriales(lineas: readonly QuoteLine[]): number {
 }
 
 /**
- * El total de la línea **a precio regular** (D-NEXT): es el «Amount» que ve el cliente en la hoja. El dueño, 2026-09-28:
+ * El total de la línea **a precio regular** (D-442): es el «Amount» que ve el cliente en la hoja. El dueño, 2026-09-28:
  * «the estimate will show the line total with the regular price they input but then it will show a % discount (not
  * amount) if they provide a secondary lower price».
  */
@@ -223,7 +223,7 @@ export function totalRegularDeLinea(l: QuoteLine): number | null {
 }
 
 /**
- * El impuesto de venta, en % (D-NEXT). **8.25 % es un supuesto a validar por el dueño**: la tasa de venta habitual del
+ * El impuesto de venta, en % (D-442). **8.25 % es un supuesto a validar por el dueño**: la tasa de venta habitual del
  * Valle del Río Grande en Texas (6.25 % del estado + 2 % local). No es configurable todavía: hacerlo pide una columna
  * nueva en `settings` (no hay un `jsonb` de Ajustes del Estimador donde quepa) y eso es una migración, que esta rama no
  * escribe. Cambiarla es cambiar esta constante; la hoja escribe la tasa que se usó.
@@ -244,7 +244,7 @@ export interface ResumenDeTotales {
 }
 
 /**
- * Subtotal → ahorro → impuesto → total (D-NEXT). El dueño: «at the bottom after the subtotal we will show the amount of
+ * Subtotal → ahorro → impuesto → total (D-442). El dueño: «at the bottom after the subtotal we will show the amount of
  * savings to then give the final total price with taxes». El impuesto va sobre el subtotal **ya con el ahorro**, y se
  * redondea a centavos. Como `totalDeMateriales`, **solo recibe las líneas**: el cargo de entrega no puede entrar.
  */

@@ -108,7 +108,7 @@ describe("dónde se ve", () => {
     expect(fila).toContain('{p.etiquetas.join("·")}');
     expect(fila).toContain("nombraLaOrden(deliveries, id, lang === \"es\")");
     expect(fila).toContain("pallets a bordo");
-    // Desde D-NEXT las de RECOGIDA se mueven —con lo suyo, no con lo de una parada—; las demás siguen sin controles.
+    // Desde D-441 las de RECOGIDA se mueven —con lo suyo, no con lo de una parada—; las demás siguen sin controles.
     expect(fila).not.toMatch(/moveStop|moveTrip/);
     expect(fila).toContain('{p.tipo === "P" && suyas.length > 0 && <>');
   });
@@ -116,7 +116,7 @@ describe("dónde se ve", () => {
     expect(gestor).toContain("{sequenced && ti === (visto ?? 0) && lectura.cambioTrasPublicar && (");
     expect(gestor).toContain("Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.");
   });
-  it("el mapa: las entregas llevan su D y cada tienda donde la ruta recoge su «P1·P2» del color de SU viaje (D-NEXT) — con la misma lectura que la tabla", () => {
+  it("el mapa: las entregas llevan su D y cada tienda donde la ruta recoge su «P1·P2» del color de SU viaje (D-441) — con la misma lectura que la tabla", () => {
     expect(gestor).toContain("const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;");
     expect(gestor).toContain("const viajesDelMapa = buildTrips(list, capacityFor(driverOf(laneKey))); const lectura = lecturaConLoHecho(viajesDelMapa, paradasPublicadasDe(list[0].assigned_driver), hechasDeLaRuta(laneKey, list));");
     expect(gestor).toContain('badge: p.etiquetas.join("·"),');

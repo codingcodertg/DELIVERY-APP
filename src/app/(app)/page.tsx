@@ -115,13 +115,13 @@ export default function OrdersPage() {
   // lo que pinta el menú, y solo cambia cuando la base aceptó la escritura.
   const plantillasDeLaBase = useRef<PlantillaDeColumnas[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDeColumnas[]>([]);
-  // Los FILTROS GUARDADOS (D-NEXT), la quinta mitad: de la persona. La `ref` es lo que se escribe en la base; el estado, lo que
+  // Los FILTROS GUARDADOS (D-440), la quinta mitad: de la persona. La `ref` es lo que se escribe en la base; el estado, lo que
   // pintan las pastillas ★ (y puede venir solo del navegador si la base no contestó).
   const filtrosDeLaBase = useRef<FiltroGuardado[]>([]);
   const [filtrosGuardados, setFiltrosGuardados] = useState<FiltroGuardado[]>([]);
   const [verFiltrosGuardados, setVerFiltrosGuardados] = useState(false);
   const [avisoDeFiltro, setAvisoDeFiltro] = useState<string | null>(null);
-  // Los filtros de columna y el orden de la tabla viven AQUÍ desde D-NEXT (antes, dentro de `OrdersTable`): así se guardan y
+  // Los filtros de columna y el orden de la tabla viven AQUÍ desde D-440 (antes, dentro de `OrdersTable`): así se guardan y
   // se vuelven a poner.
   const [vistaTabla, setVistaTabla] = useState<VistaDeTabla>(VISTA_VACIA);
   // La fila se escribe ENTERA y por UN solo sitio, con las cinco mitades tal como están: así guardar una no borra las otras.
@@ -313,7 +313,7 @@ export default function OrdersPage() {
   };
   const borraPlantillaGuardada = (nombre: string) => cambiaPlantillas(borraPlantilla(plantillasDeLaBase.current, nombre), false);
 
-  // FILTROS GUARDADOS (D-NEXT). El dueño: «create cuztomizable filters that the user sorts different columns and that stays as
+  // FILTROS GUARDADOS (D-440). El dueño: «create cuztomizable filters that the user sorts different columns and that stays as
   // a filter». Qué se guarda, cómo se aplica y qué se ignora lo decide `lib/filtros-guardados`; aquí solo dónde se guarda.
   const destinoDeFiltros = {
     sinBase: SIN_BASE,
@@ -455,7 +455,7 @@ export default function OrdersPage() {
   if (!me) return null;
 
   // Qué pastillas hay, en qué orden y cuál está encendida lo decide `pastillasDeOrdenes` (D-313). Se calcula aquí y no dentro
-  // del JSX porque un filtro guardado (D-NEXT) necesita saber qué pastillas tiene este rol antes de poner la suya.
+  // del JSX porque un filtro guardado (D-440) necesita saber qué pastillas tiene este rol antes de poner la suya.
   const pastillas = pastillasDeOrdenes({
     etapas: filterStagesFor(me.role),
     todasAprueban: autoApproveAll,
@@ -734,7 +734,7 @@ export default function OrdersPage() {
                 {nombreDePastilla(p.key)} <span className="cnt">{p.cuenta}</span>
               </button>
             ))}
-            {/* Los filtros guardados de esta persona (D-NEXT), detrás de las fijas y con su ★: se distinguen de ellas. Se
+            {/* Los filtros guardados de esta persona (D-440), detrás de las fijas y con su ★: se distinguen de ellas. Se
                 encienden cuando lo que se ve es exactamente lo que guardan. */}
             {filtrosGuardados.map((g) => {
               const encendido = coincideConLaVista(g, estadoDeOrdenes);

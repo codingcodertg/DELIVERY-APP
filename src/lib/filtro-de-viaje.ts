@@ -1,5 +1,5 @@
 /**
- * «Ver un viaje» en el Gestor de Rutas (D-NEXT): cada tarjeta de chofer con más de un viaje lleva un selector —«Todos los
+ * «Ver un viaje» en el Gestor de Rutas (D-441): cada tarjeta de chofer con más de un viaje lleva un selector —«Todos los
  * viajes», «Viaje 1», «Viaje 2»…— que filtra A LA VEZ su tabla de paradas y lo suyo en el mapa (entregas, recogidas y
  * líneas). El dueño: «select truckload so it only shows one truckload or all in the logistic manager routes and map».
  *

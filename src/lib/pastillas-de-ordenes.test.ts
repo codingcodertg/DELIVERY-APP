@@ -149,7 +149,7 @@ describe("lo que ya decidía esta fila y no cambia", () => {
 
 describe("la pantalla", () => {
   it("pinta la fila con la función, y no con una lista escrita a mano", () => {
-    // Desde D-NEXT la lista se calcula antes del JSX (un filtro guardado necesita saber qué pastillas tiene el rol) y la fila
+    // Desde D-440 la lista se calcula antes del JSX (un filtro guardado necesita saber qué pastillas tiene el rol) y la fila
     // pinta ESA lista.
     expect(pagina).toContain("const pastillas = pastillasDeOrdenes({");
     expect(pagina).toContain("{pastillas.map((p) => (");

@@ -269,7 +269,7 @@
 /* «Outdated» (D-384): las atrasadas abiertas, en el rojo de la etiqueta «Tarde» de la fila. */
 .chip.chip-late { border-color: var(--red-chip-line); color: var(--red-chip-text); background: var(--red-chip-bg); }
 .chip.chip-late.on { background: var(--red); border-color: var(--red); color: #fff; }
-/* Los filtros guardados de cada persona (D-NEXT): borde discontinuo y en el color de acento, para que no se confundan con
+/* Los filtros guardados de cada persona (D-440): borde discontinuo y en el color de acento, para que no se confundan con
    las pastillas fijas. El nombre largo se corta: la fila se desplaza a lo ancho, pero una pastilla no debe ocuparla entera. */
 .chip.chip-guardado { border-style: dashed; border-color: var(--accent); color: var(--accent); background: var(--accent-soft); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip.chip-guardado.on { background: var(--accent); border-color: var(--accent); border-style: solid; color: #fff; }

@@ -62,7 +62,7 @@ describe("de la fila a la pantalla y de vuelta", () => {
   });
 });
 
-describe("la entrega guarda dirección, pin, tienda y millas en el jsonb que ya había (D-NEXT, sin migración)", () => {
+describe("la entrega guarda dirección, pin, tienda y millas en el jsonb que ya había (D-442, sin migración)", () => {
   it("lo nuevo de la entrega vuelve igual", () => {
     const d = borradorVacio("2026-09-08");
     d.delivery = { mode: "delivery", address: "1 Main St, McAllen, TX 78501", lat: 26.2, lng: -98.23, pin_source: "manual", store: "Pharr", miles: 12.4, charge: 95 };

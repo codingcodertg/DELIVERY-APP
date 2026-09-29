@@ -707,7 +707,7 @@ export default function RoutesPage() {
     const antes = fotoDe(trips.flat().map(aParadaDelGantt));
     await anotaMovimiento({ en: `#${orderLabel(d)} → truckload ${plan.viaje}`, es: `#${orderLabel(d)} → viaje ${plan.viaje}` }, [driver], antes, fotoTrasReordenar(antes, plan.ids, plan.loadNoById, plan.desde));
   };
-  // Las filas de RECOGIDA (P) se mueven (D-NEXT). El dueño: «why i can't rearrenge pickup». No se movían porque la P se
+  // Las filas de RECOGIDA (P) se mueven (D-441). El dueño: «why i can't rearrenge pickup». No se movían porque la P se
   // DERIVA (D-334): una ruta a mano solo guarda viaje y puesto de ENTREGA de cada orden, y las tiendas de un viaje se
   // recogen en el orden de su primera entrega. Así que ↑↓ en una P adelanta la PRIMERA entrega de esa tienda delante de
   // la de la tienda que se salta (`planDeFlechaDeRecogida`, lo mínimo), y se dice. El selector «Viaje N» de la P pasa toda
@@ -1476,7 +1476,7 @@ export default function RoutesPage() {
   const [historial, setHistorial] = useState<Historial>(HISTORIAL_VACIO);
   const [moviendo, setMoviendo] = useState(false);
   useEffect(() => { setHistorial(HISTORIAL_VACIO); }, [date]);
-  // «Ver un viaje» por tarjeta de chofer (D-NEXT): qué viaje se enseña en su tabla y en el mapa (0 = el primero; sin
+  // «Ver un viaje» por tarjeta de chofer (D-441): qué viaje se enseña en su tabla y en el mapa (0 = el primero; sin
   // entrada = todos). Solo mira. Vive mientras se mira ese día: cambiar de fecha lo vacía.
   const [viajeVisto, setViajeVisto] = useState<Record<string, number>>({});
   useEffect(() => { setViajeVisto({}); }, [date]);
@@ -1639,9 +1639,9 @@ export default function RoutesPage() {
     // Color each assigned stop by its TRUCKLOAD (matching the route line),
     // so the map groups stops into the same colors as their loop.
     const stopColor = new Map<string, string>();
-    // El color de cada viaje de cada ruta: el mismo para sus entregas y para sus recogidas (D-NEXT).
+    // El color de cada viaje de cada ruta: el mismo para sus entregas y para sus recogidas (D-441).
     const colorDelViaje = new Map<string, string[]>();
-    // «Ver un viaje» (D-NEXT): la entrega de un viaje que su tarjeta no enseña tampoco sale en el mapa.
+    // «Ver un viaje» (D-441): la entrega de un viaje que su tarjeta no enseña tampoco sale en el mapa.
     const ocultaPorViaje = new Set<string>();
     for (const u of lanes) {
       const stops = byDriver.get(u.key) ?? [];
@@ -1676,7 +1676,7 @@ export default function RoutesPage() {
     }
     const selActive = selectedOrders.size > 0;
     // Las etiquetas P/D de cada ruta (D-334): las entregas pasan de «1, 2, 3» a «D1, D2…», y cada tienda donde la ruta
-    // recoge lleva su «P1·P2». Hasta D-NEXT la P salía del color del CHOFER, que es el del viaje 1: una recogida del viaje 2
+    // recoge lleva su «P1·P2». Hasta D-441 la P salía del color del CHOFER, que es el del viaje 1: una recogida del viaje 2
     // (P4 en Weslaco, en la ruta de Maximo Garza) salía naranja mientras su entrega salía cian. Ahora cada P lleva el color
     // de SU viaje (`recogidasPorViaje`, las mismas filas que la tabla), el mismo que sus entregas y que su línea. Dos
     // recogidas en la misma tienda en viajes distintos son dos visitas: dos marcas, cada una de su color, abiertas en
@@ -1779,7 +1779,7 @@ export default function RoutesPage() {
     let idx = 0;
     // Con plan publicado y su trazo ya pedido, la línea es la del plan (D-352) y no la medida de la tarjeta — mientras la
     // ruta SIGA siendo la publicada y le queden paradas (`sigueSuPlan`, D-437). Si no, la del plan no se pinta.
-    // «Ver un viaje» (D-NEXT): el viaje que enseña la tarjeta de ese chofer, o `null` = todos.
+    // «Ver un viaje» (D-441): el viaje que enseña la tarjeta de ese chofer, o `null` = todos.
     const vistoDe = (driver: string) => viajeEfectivo(viajeVisto[driver], buildTrips(byDriver.get(driver) ?? [], capacityFor(driverOf(driver))).length);
     // El trazo del plan es UNA línea para todo el día, sin cortes por viaje: con un viaje elegido no se pinta, y se pinta
     // la línea medida de ese viaje si la hay.
@@ -2516,7 +2516,7 @@ export default function RoutesPage() {
         // la lectura derivada, y se avisa (D-335). Se decide por chofer.
         const lectura = lecturaConLoHecho(trips, paradasPublicadasDe(u.driver), hechasDeLaRuta(u.key, stops));
         const dDe = lectura.etiquetaDe;
-        // «Ver un viaje» (D-NEXT): qué viaje enseña esta tarjeta (y el mapa, para este chofer), o `null` = todos. Solo mira:
+        // «Ver un viaje» (D-441): qué viaje enseña esta tarjeta (y el mapa, para este chofer), o `null` = todos. Solo mira:
         // flechas, «Viaje N» y el arrastre siguen trabajando sobre `trips` entero.
         const visto = viajeEfectivo(viajeVisto[u.key], trips.length);
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379). A medias, no: D-336.
@@ -2559,7 +2559,7 @@ export default function RoutesPage() {
               {stops.length > 0 && trips.length > 1 && (
                 <span className="sema" style={{ background: "var(--amber)", color: "#fff" }}>{trips.length} {t("truckloads", "viajes")}</span>
               )}
-              {/* «Ver un viaje» (D-NEXT): filtra la tabla de esta tarjeta y lo de este chofer en el mapa. Solo mira. */}
+              {/* «Ver un viaje» (D-441): filtra la tabla de esta tarjeta y lo de este chofer en el mapa. Solo mira. */}
               {stops.length > 0 && trips.length > 1 && (
                 <select data-viaje-visto={u.key} value={visto == null ? "" : String(visto)}
                   onClick={(e) => e.stopPropagation()}
@@ -2745,7 +2745,7 @@ export default function RoutesPage() {
                   </thead>
                   <tbody>
                     {trips.map((batch, ti) => {
-                      // «Ver un viaje» (D-NEXT): el que no se enseña no se pinta; los índices siguen siendo los de la ruta entera.
+                      // «Ver un viaje» (D-441): el que no se enseña no se pinta; los índices siguen siendo los de la ruta entera.
                       if (!pasaElViaje(visto, ti)) return null;
                       const startIdx = trips.slice(0, ti).reduce((n, b) => n + b.length, 0);
                       // A la décima (D-355): los pallets llevan fracciones (0.03) y la suma en coma flotante salía «7.569999999999999».
@@ -2760,7 +2760,7 @@ export default function RoutesPage() {
                       const noCount = batch.filter((d) => d.actual_pallets == null && d.est_pallets == null).length;
                       const estimated = batch.some((d) => d.actual_pallets == null && d.est_pallets != null);
                       // Las filas del viaje, y de ellas las de RECOGIDA con las órdenes que son de ESTE viaje (una P puede
-                      // nombrar lo ya entregado, D-433: eso no se mueve). Es lo que mueven sus flechas y su selector (D-NEXT).
+                      // nombrar lo ya entregado, D-433: eso no se mueve). Es lo que mueven sus flechas y su selector (D-441).
                       const filas = filasDelViaje(lecturaParaLasFilas(lectura, sequenced, provisional), batch, ti === trips.length - 1);
                       const enEsteViaje = new Set(batch.map((d) => d.id));
                       const filasP = filas.filter((f) => f.clase === "informa" && f.fila.tipo === "P");
@@ -2823,7 +2823,7 @@ export default function RoutesPage() {
                           </tr>
                           {/* Las filas que INFORMAN (recogidas, u otra carga de una orden repartida) van justo ANTES de la entrega
                               a la que preceden —donde el plan las puso—, no todas en cabeza del viaje (`filasDelViaje`).
-                              Las de RECOGIDA llevan desde D-NEXT sus flechas ↑↓ (qué tienda se recoge antes) y su «Viaje N»
+                              Las de RECOGIDA llevan desde D-441 sus flechas ↑↓ (qué tienda se recoge antes) y su «Viaje N»
                               (pasar esa carga a otro viaje); hasta entonces no llevaban nada (D-334). */}
                           {sequenced && ti === (visto ?? 0) && lectura.cambioTrasPublicar && (
                             <tr><td colSpan={columnasDeParadas} className="hint" style={{ color: "var(--amber-text)" }}>⚠ {t("This route changed after the plan was published: the P/D labels were recalculated.", "Esta ruta cambió desde que se publicó el plan: las etiquetas P/D se recalcularon.")}</td></tr>
@@ -2837,7 +2837,7 @@ export default function RoutesPage() {
                                 {" — "}{p.ordenes.map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}
                                 <span className="hint" style={{ margin: 0 }}> · {p.sinConteo ? "~" : ""}{p.aBordo} {t("pallets on board", "pallets a bordo")}</span>
                               </td>
-                              {/* Mover la RECOGIDA (D-NEXT): ↑↓ cambian qué tienda se recoge antes en este viaje —adelantando la
+                              {/* Mover la RECOGIDA (D-441): ↑↓ cambian qué tienda se recoge antes en este viaje —adelantando la
                                   primera entrega de esa tienda, que es lo que la decide— y «Viaje N» pasa su carga a otro viaje.
                                   Apagadas cuando no harían nada (la primera no sube, la última no baja). */}
                               <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>

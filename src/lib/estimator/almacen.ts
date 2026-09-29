@@ -84,7 +84,7 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
     phone: texto(c.phone),
     address: texto(c.address),
   };
-  // Antes de D-NEXT la dirección eran cuatro campos (calle, ciudad, estado, zip); se juntan en la línea de hoy para que
+  // Antes de D-442 la dirección eran cuatro campos (calle, ciudad, estado, zip); se juntan en la línea de hoy para que
   // una cotización vieja se abra con su dirección escrita, lista para buscarla.
   const vieja = [texto(d.street), texto(d.city), [texto(d.state), texto(d.zip)].filter((x) => x.trim()).join(" ")]
     .map((x) => x.trim()).filter(Boolean).join(", ");
@@ -115,7 +115,7 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
     return {
       kind: "sf", ...comun,
       requested_sf: num(l.requested_sf), boxes: num(l.boxes), sf_per_box: num(l.sf_per_box), price_per_sf: num(l.price_per_sf),
-      // El precio más bajo (D-NEXT) va en el mismo `jsonb` de líneas; las filas de antes no lo traen y quedan sin descuento.
+      // El precio más bajo (D-442) va en el mismo `jsonb` de líneas; las filas de antes no lo traen y quedan sin descuento.
       lower_price_per_sf: num(l.lower_price_per_sf),
     };
   });

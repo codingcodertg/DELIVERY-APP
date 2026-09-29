@@ -63,7 +63,7 @@ describe("lo que falta antes de generar la copia", () => {
   it("de otro vendedor sin su aprobación, no", () => {
     expect(loQueFalta(completo(), "pendiente", "2026-09-08")).toEqual(["permiso"]);
   });
-  it("si es entrega, la dirección es obligatoria (una línea, como en la ficha de Entregas: D-NEXT)", () => {
+  it("si es entrega, la dirección es obligatoria (una línea, como en la ficha de Entregas: D-442)", () => {
     const d = completo({ delivery: { ...borradorVacio().delivery, mode: "delivery", address: "  " } });
     expect(loQueFalta(d, "nueva", "2026-09-08")).toEqual(["direccion"]);
     const bien = completo({ delivery: { ...d.delivery, address: "1 Main St, McAllen, TX 78501" } });
@@ -178,7 +178,7 @@ describe("la pantalla usa estas reglas, no una copia", () => {
   it("el estado del estimado y lo que falta salen de validar", () => {
     expect(p).toMatch(/const estado = estadoDelEstimado\(\{/);
     expect(p).toContain("const faltas = loQueFalta(draft, estado);");
-    // Los totales de la pantalla salen del mismo resumen que la hoja (D-NEXT): subtotal, ahorro, impuesto y total.
+    // Los totales de la pantalla salen del mismo resumen que la hoja (D-442): subtotal, ahorro, impuesto y total.
     expect(p).toContain("const totales = resumenDeTotales(draft.lines);");
     for (const campo of ["subtotal", "ahorro", "impuesto", "total"]) expect(p).toContain(`dinero(totales.${campo})`);
   });

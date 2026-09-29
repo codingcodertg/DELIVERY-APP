@@ -18,7 +18,7 @@ import {
 type T = (en: string, es: string) => string;
 
 /**
- * La entrega de la cotización (D-NEXT): la búsqueda de dirección, el pin del mapa y la calculadora de tarifa **de la
+ * La entrega de la cotización (D-442): la búsqueda de dirección, el pin del mapa y la calculadora de tarifa **de la
  * ficha de Entregas**, con sus piezas — `AddressInput`, `MapView` con la zona verde (`LOCAL_ZONE_LATLNG`) y las tiendas
  * (`useStoreMarkers` + `tiendasParaElMapa`), `/api/reverse-geocode` al soltar el pin, `/api/distance` con el botón, y
  * `suggestDeliveryFee` (vía `tarifaDeLaCotizacion`) para la lista, el descuento, la zona y el aviso de aprobación.

@@ -130,7 +130,7 @@ describe("OrdersTable: ordenar y filtrar al primer clic en la cabecera", () => {
   it("ordenar cierra el menú, y quitar el orden no deja la columna marcada", () => {
     const ordenar = corta(tabla, "const ordenar = (", "};");
     expect(ordenar).toContain("setOpenFilter(null)");
-    // Desde D-NEXT columna y dirección van juntas en la vista (la lleva la página): sin dirección, sin columna.
+    // Desde D-440 columna y dirección van juntas en la vista (la lleva la página): sin dirección, sin columna.
     expect(ordenar).toContain("orden: dir ? { clave: key, dir } : null");
   });
 

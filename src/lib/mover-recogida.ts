@@ -3,7 +3,7 @@ import { claveDeTienda } from "./secuencia-pd";
 import type { Reescritura } from "./mover-parada";
 
 /**
- * Reordenar las RECOGIDAS (filas P) de un viaje en la tarjeta del chofer del Gestor de Rutas (D-NEXT).
+ * Reordenar las RECOGIDAS (filas P) de un viaje en la tarjeta del chofer del Gestor de Rutas (D-441).
  *
  * El dueño, el 2026-09-28, con la tarjeta de Maximo Garza delante: «why i can't rearrenge pickup check that». Las filas P
  * no tenían flechas porque D-334 las DERIVA: en una ruta hecha a mano lo único que se guarda es el viaje (`load_no`) y el

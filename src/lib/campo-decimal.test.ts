@@ -48,14 +48,14 @@ describe("las pantallas lo usan", () => {
   const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
   it("el Estimador: los 8 campos de número de las líneas van por `CampoDecimal` y ninguno pinta `String(n)` a mano", () => {
     const f = leer("src/app/estimator/Estimador.tsx");
-    // D-NEXT: + los dos precios más bajos; el cargo de entrega se mudó a EntregaCotizacion.
+    // D-442: + los dos precios más bajos; el cargo de entrega se mudó a EntregaCotizacion.
     expect(f.match(/<CampoDecimal /g)?.length).toBe(8);
     for (const campo of ["requested_sf", "sf_per_box", "boxes", "price_per_sf", "lower_price_per_sf", "quantity", "unit_price", "lower_unit_price"]) {
       expect(f).toContain(`onValor={(n) => setLinea(l.id, { ${campo}: n })}`);
     }
     expect(f).not.toMatch(/value=\{num\(/);
   });
-  it("el cargo de entrega del Estimador también (en EntregaCotizacion, D-NEXT)", () => {
+  it("el cargo de entrega del Estimador también (en EntregaCotizacion, D-442)", () => {
     const e = leer("src/app/estimator/EntregaCotizacion.tsx");
     expect(e.match(/<CampoDecimal /g)?.length).toBe(1);
     expect(e).toContain("onValor={(n) => onEntrega({ ...entrega, charge: n })}");

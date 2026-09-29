@@ -1,5 +1,5 @@
 /**
- * Los FILTROS GUARDADOS de la tabla de Órdenes (D-NEXT).
+ * Los FILTROS GUARDADOS de la tabla de Órdenes (D-440).
  *
  * El dueño, literal (2026-09-28): «create cuztomizable filters that the user sorts different columns and that stays as a
  * filter». La tabla ya filtraba y ordenaba por columna desde el menú de cada cabecera (D-275, D-292), pero eso se perdía al
@@ -19,7 +19,7 @@ export { MAX_FILTROS_GUARDADOS, MAX_NOMBRE_DE_FILTRO };
 
 /** El orden de la tabla: una columna y una dirección. `null` = sin ordenar (el orden de entrada). */
 export interface OrdenDeTabla { clave: string; dir: DireccionDeOrden }
-/** Lo que la tabla tiene puesto por columna: filtros (columna → claves marcadas) y orden. Lo guarda la página (D-NEXT). */
+/** Lo que la tabla tiene puesto por columna: filtros (columna → claves marcadas) y orden. Lo guarda la página (D-440). */
 export interface VistaDeTabla { filtros: Record<string, Set<string>>; orden: OrdenDeTabla | null }
 export const VISTA_VACIA: VistaDeTabla = { filtros: {}, orden: null };
 

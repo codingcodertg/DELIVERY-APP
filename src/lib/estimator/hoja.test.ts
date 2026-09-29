@@ -26,7 +26,7 @@ const INTERNO = {
   calle: "12 Camino Oculto",
   ciudad: "Pueblo Falso",
   zip: "78999",
-  // La entrega buscada con el pin (D-NEXT): dirección, tienda de salida y millas reconocibles.
+  // La entrega buscada con el pin (D-442): dirección, tienda de salida y millas reconocibles.
   direccionEntrega: "4321 Calle Del Pin, McAllen, TX 78504",
   tienda: "Pharr",
   millas: 23.7,
@@ -146,7 +146,7 @@ describe("los tres niveles: Basic / Standard / Detailed", () => {
 });
 
 describe("la entrega no entra en el total", () => {
-  it("con cargo de entrega, el total es el de las líneas (más su impuesto, D-NEXT)", () => {
+  it("con cargo de entrega, el total es el de las líneas (más su impuesto, D-442)", () => {
     const q = borrador();
     const hoja = hojaDelCliente(q);
     expect(totalDeMateriales(q.lines)).toBe(2769.05);
@@ -209,7 +209,7 @@ describe("la pantalla imprime ESTA hoja y nada más", () => {
   });
 });
 
-describe("la entrega del vendedor (dirección, pin, millas, lista y descuento) NO sale en la hoja (D-NEXT)", () => {
+describe("la entrega del vendedor (dirección, pin, millas, lista y descuento) NO sale en la hoja (D-442)", () => {
   // El dueño, 2026-09-28: «it should output the price and discount price for the sales rep but not for the customer in
   // the estimate».
   const q = borrador();
@@ -245,7 +245,7 @@ describe("la entrega del vendedor (dirección, pin, millas, lista y descuento) N
   });
 });
 
-describe("el precio más bajo en la hoja: importe regular, «−%», subtotal, ahorro, impuesto y total (D-NEXT)", () => {
+describe("el precio más bajo en la hoja: importe regular, «−%», subtotal, ahorro, impuesto y total (D-442)", () => {
   // El dueño, 2026-09-28: «the estimate will show the line total with the regular price they input but then it will
   // show a % discount (not amount) if they provide a secondary lower price. Then at the bottom after the subtotal we will
   // show the amount of savings to then give the final total price with taxes».

@@ -245,7 +245,7 @@ describe("la pantalla usa todo esto, y no una copia", () => {
   });
 
   it("la pastilla dice «Outdated» / «Expiradas» (D-426)", () => {
-    // Desde D-NEXT el nombre sale de `nombreDePastilla`, que usan la fila de pastillas y el aviso de un filtro guardado.
+    // Desde D-440 el nombre sale de `nombreDePastilla`, que usan la fila de pastillas y el aviso de un filtro guardado.
     expect(pagina).toContain(': key === PESTANA_ATRASADAS ? t("Outdated", "Expiradas")');
     expect(pagina).toContain('{nombreDePastilla(p.key)} <span className="cnt">{p.cuenta}</span>');
   });

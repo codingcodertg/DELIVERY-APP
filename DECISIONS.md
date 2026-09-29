@@ -23199,7 +23199,7 @@ colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y ti
 > **⚠ Reemplazada en parte por D-346** (2026-09-20). «Armar las rutas del día» ya no es imposible de no ver: el dueño
 > lo pidió plegado tras un botón. El resto sigue vigente.
 >
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-28): «Las recogidas no llevan flechas» ya no vale — las filas P llevan ↑↓
+> **⚠ Reemplazada en parte por D-441** (2026-09-28): «Las recogidas no llevan flechas» ya no vale — las filas P llevan ↑↓
 > (qué tienda se recoge antes, adelantando su primera entrega) y un «Viaje N» que pasa su carga a otro viaje. Y la marca P
 > del mapa ya no va «del color del chofer», sino del color de SU viaje (el del chofer es solo el del viaje 1). La numeración
 > y las reglas de lectura no cambian.
@@ -30082,7 +30082,7 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
   `box`). Quien no tiene el módulo ERP recibe cero filas por la puerta restrictiva de la 066 y lo escribe a mano: no se abrió
   el catálogo a nadie.
 
-> **Reemplazada en parte por D-NEXT** (2026-09-28): la hoja del cliente ya no pone de «Amount» el total con el $/SF que se
+> **Reemplazada en parte por D-442** (2026-09-28): la hoja del cliente ya no pone de «Amount» el total con el $/SF que se
 > cobra, sino el total **a precio regular**, con el «−N%» de la línea si hay un precio más bajo, y debajo *Subtotal → Savings
 > → Tax 8.25% → Estimated Material Total* (el total lleva ahora el impuesto). Y la entrega ya no son cuatro campos
 > (calle/ciudad/estado/zip): es una dirección buscada, con pin, tienda de salida, millas y la calculadora de tarifa de Entregas,
@@ -32454,7 +32454,7 @@ salía **vacío para todos, admin incluido**. Se les dio `["deliveries"]`, como 
 - Al pasar de Intertienda a Customer, **«Dropoff» y su dirección se quedan con la tienda del usuario** (la puso Intertienda).
   Ya pasaba al cambiar el tipo a mano; no se tocó.
 
-## D-NEXT · Filtros guardados en Órdenes: guardar los filtros de columna y el orden con un nombre, y volver a ellos desde una pastilla ★
+## D-440 · Filtros guardados en Órdenes: guardar los filtros de columna y el orden con un nombre, y volver a ellos desde una pastilla ★
 
 **Fecha:** 2026-09-28 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna.
 **Pedido por:** el dueño, literal: *«create cuztomizable filters that the user sorts different columns and that stays as a filter»*.
@@ -32561,7 +32561,7 @@ El panel cabe (366 px de ancho) y la página no desborda.
 - Ventas, almacén y chofer: la barra y las pastillas ★ salen a todos los roles (la fila de pastillas es de todos), pero solo se
   midió con admin.
 
-## D-NEXT · Gestor de Rutas: cada recogida del mapa con el color de SU viaje; las filas P se reordenan y cambian de viaje; «Ver un viaje» filtra tabla y mapa
+## D-441 · Gestor de Rutas: cada recogida del mapa con el color de SU viaje; las filas P se reordenan y cambian de viaje; «Ver un viaje» filtra tabla y mapa
 
 **Fecha:** 2026-09-28. **Sin migración.** **Reemplaza en parte a D-334** (recogidas sin flechas; la P del mapa «del color
 del chofer»), que lleva su nota. No toca `OrderModal` (otra rama).
@@ -32703,7 +32703,7 @@ solo sus entregas, sus recogidas y su línea. Los demás choferes no cambian.
   pantalla. Cada flecha del teclado sobre un `<select>` dispara `change`: P3 bajó un viaje con la primera pulsación. Es lo
   mismo que ya hace el selector «Viaje N» de las paradas.
 
-## D-NEXT · El Estimador: la calculadora de tarifa de Entregas (dirección buscada, pin, lista y descuento) solo para el vendedor, y un precio más bajo por línea con su % de descuento, ahorro e impuesto en la hoja
+## D-442 · El Estimador: la calculadora de tarifa de Entregas (dirección buscada, pin, lista y descuento) solo para el vendedor, y un precio más bajo por línea con su % de descuento, ahorro e impuesto en la hoja
 
 **Fecha:** 2026-09-28 · **Versión:** la pone el orquestador (toca solo `src/app/estimator` y `src/lib/estimator`, más una
 prueba de `campo-decimal`) · **Migración:** ninguna — todo cabe en los `jsonb` `delivery` y `lines` de `estimator_quotes`

@@ -10,7 +10,7 @@ import { splitIntoTrips } from "./dispatch";
 import type { Delivery } from "./types";
 
 /**
- * La tarjeta de Maximo Garza del 2026-09-28 (D-NEXT), con tiendas y facturas inventadas del mismo tamaño: viaje 1 recoge en
+ * La tarjeta de Maximo Garza del 2026-09-28 (D-441), con tiendas y facturas inventadas del mismo tamaño: viaje 1 recoge en
  * «Norte» dos órdenes (a, c) y en «Sur» una (b), y entrega a, b, c en ese orden; viaje 2 recoge en «Sur» (d) y la entrega.
  * Es la forma de la captura: P1·P2 Norte, P3 Sur, D1, D3, D2 · P4 Sur, D4 — dos recogidas en la MISMA tienda en viajes
  * distintos, y las D del viaje 1 «fuera de orden».

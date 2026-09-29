@@ -138,7 +138,7 @@ export function planDeCambioDeViaje<T extends Parada>(
 
 /**
  * Lo mismo que `planDeCambioDeViaje`, para VARIAS órdenes de un mismo viaje a la vez: el selector «Viaje N» de una fila de
- * recogida (D-NEXT) pasa toda la carga que se recoge en esa tienda en ese viaje. Las mismas reglas: al final del destino,
+ * recogida (D-441) pasa toda la carga que se recoge en esa tienda en ese viaje. Las mismas reglas: al final del destino,
  * solo si cabe TODO lo que se mueve (si no, no se mueve ninguna), un viaje nuevo siempre, y la ruta entera reescrita.
  * Las órdenes tienen que estar todas en el mismo viaje; si alguna no está en la ruta, no se mueve nada (`no_esta`).
  */
