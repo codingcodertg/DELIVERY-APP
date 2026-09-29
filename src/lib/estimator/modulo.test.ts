@@ -83,7 +83,10 @@ describe("la 148", () => {
     expect(sql).toContain("array['deliveries','recruiting','timetracker','erp','promos','estimator']");
     const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(cuerpo)![1];
     expect(lista).not.toContain("clockin");
-    const claves = MODULE_ACCESS.map((m) => `'${m.key}'`).sort();
+    // Desde la 155 la ÚLTIMA definición de la restricción ya no es la 148 (añade 'surveys'): aquí se compara con
+    // las claves que existían al escribir la 148, y la igualdad con MODULE_ACCESS entero la mira, sobre la última
+    // migración que toca la restricción, `encuestas/modulo.test.ts`.
+    const claves = MODULE_ACCESS.filter((m) => m.key !== "surveys").map((m) => `'${m.key}'`).sort();
     expect(lista.split(",").sort()).toEqual(claves);
   });
   it("una cotización por estimado, sin mayúsculas ni espacios que las separen", () => {

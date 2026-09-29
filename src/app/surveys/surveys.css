@@ -1,0 +1,20 @@
+/* «Encuestas» (/surveys, migración 155). Lo común (card, kpi, bar-*, table.orders, btn) viene de globals.css. */
+.enc-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 80px; }
+.enc-wrap h1 { margin: 0 0 4px; font-size: 22px; }
+.enc-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.enc-filtro { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.enc-filtro label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 4px; }
+.enc-filtro input[type="date"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: inherit; font: inherit; }
+.enc-aviso { border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; }
+.enc-aviso.ambar { background: var(--amber-soft); border: 1px solid var(--amber); }
+.enc-aviso.rojo { background: var(--red-soft); border: 1px solid var(--red); }
+.enc-serie { display: flex; align-items: flex-end; gap: 2px; height: 120px; overflow-x: auto; padding-top: 6px; }
+.enc-serie-col { flex: 1 0 6px; max-width: 28px; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.enc-serie-barra { background: var(--blue); border-radius: 3px 3px 0 0; min-height: 1px; }
+.enc-serie-ejes { display: flex; justify-content: space-between; font-size: 11px; color: var(--gray); margin-top: 4px; }
+.enc-lista { list-style: none; margin: 0; padding: 0; }
+.enc-lista li { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.enc-lista li:last-child { border-bottom: none; }
+table.orders tr.enc-contactado td { color: var(--gray); }
+.enc-area-label { flex-basis: 190px; }
+@media (max-width: 600px) { .enc-area-label { flex-basis: 110px; white-space: normal; } }

@@ -408,6 +408,18 @@ export const MODULES: ModuleInfo[] = [
     desc_en: "Customer quote summaries to print",
     desc_es: "Resúmenes de cotización para el cliente",
   },
+  {
+    // Encuestas (migración 155): los resultados de la encuesta del sitio público de clientes. La clave es
+    // "surveys", la palabra que la 155 añade a `profiles_module_access_known`. NO es la encuesta de la página de
+    // seguimiento (D-418, `delivery_surveys`), que se ve en el Panel de Entregas.
+    key: "surveys",
+    href: "/surveys",
+    emoji: "📋",
+    label_en: "Surveys",
+    label_es: "Encuestas",
+    desc_en: "Customer survey results",
+    desc_es: "Resultados de la encuesta de clientes",
+  },
 ];
 
 // "Deliveries" is kept out of MODULES because HomeSelector and the app switcher need to draw it as the
@@ -892,7 +904,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -1041,6 +1053,19 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleNote: {
       en: "No role of its own: each quote belongs to the rep who created it; others need that rep's approval to edit it. Reps see the quotes of their own store (set above).",
       es: "Sin rol propio: cada cotización es del vendedor que la creó; los demás necesitan su aprobación para editarla. Cada vendedor ve las de su tienda (se pone arriba).",
+    },
+  },
+  {
+    key: "surveys", label_en: "Surveys", label_es: "Encuestas",
+    alwaysOn: false,
+    // Sin escalafón propio: quien tiene la casilla lo ve todo (respuestas y datos de contacto) y marca
+    // «contactado»; el admin entra siempre (`has_surveys_access()`, migración 155). De partida es solo de admins.
+    roleKeys: [],
+    roleLabel: (key) => key,
+    accessColumn: "module_access",
+    roleNote: {
+      en: "No role of its own. Shows customers' names, phones and emails: grant it only to whoever follows up. Admins always have it.",
+      es: "Sin rol propio. Enseña nombre, teléfono y correo de los clientes: concédelo solo a quien les da seguimiento. Los admins lo tienen siempre.",
     },
   },
 ];
