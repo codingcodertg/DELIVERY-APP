@@ -385,12 +385,12 @@ funcionando: new/edit/reactivate/deactivate entran; copy, discontinue y «no lis
 
 ## 9 · Lo que le toca al orquestador (en este orden)
 
-1. Leer §1 y la entrada `D-NEXT` de `DECISIONS.md` (el mapa columna → campo y lo descartado). Si algo no cuadra, parar aquí.
+1. Leer §1 y la entrada `D-453` de `DECISIONS.md` (el mapa columna → campo y lo descartado). Si algo no cuadra, parar aquí.
 2. Respaldo (`pg_dump` reciente o respaldo activo). `node scripts/db/migrate-status.mjs` (saldrán la 156, la 157 y la 158
    pendientes).
 3. Repetir §7 (solo lectura) y la matriz de §6 con ROLLBACK, con los UUID reales. Esperado: 33 OK.
 4. Aplicar `158_erp_solicitud_campos.sql` en una transacción. `migrate-status` después.
-5. Numerar la decisión (`D-NEXT` → `D-0XX`), sin tocar el `.sql` (no lleva el número).
+5. Numerar la decisión (`D-453` → `D-0XX`), sin tocar el `.sql` (no lleva el número).
 6. Probar en vivo con un perfil de staff del ERP (hoy no hay ninguno: los 4 con módulo son admin): una solicitud «no lista»,
    marcarla lista desde «Tus solicitudes recientes», y verla en Aprobaciones con «Aprobar» apagado hasta entonces.
 

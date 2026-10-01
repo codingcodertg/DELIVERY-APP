@@ -33872,9 +33872,9 @@ Escena: la orden `#1083` de Pharr a 15 pallets, hoy, de Diego Driver, camión de
 - Un plan publicado antes de esto con cargas virtuales, leído después (el código no cambió; no se probó con datos reales).
 - Cuántos avisos al cliente salen con una orden partida (dos, por el código de avisos por fila): no se disparó ninguno.
 
-## D-NEXT · La solicitud de artículo del ERP, columna por columna de la hoja del dueño: dos tipos nuevos (copia, descontinuar), REQUESTER STATUS, tienda, y los campos que faltaban (migración 158)
+## D-453 · La solicitud de artículo del ERP, columna por columna de la hoja del dueño: dos tipos nuevos (copia, descontinuar), REQUESTER STATUS, tienda, y los campos que faltaban (migración 158)
 
-**Fecha:** 2026-09-30 · **Versión:** la asigna el orquestador al fusionar · **Migración:** `158_erp_solicitud_campos.sql`,
+**Fecha:** 2026-09-30 · **Versión:** erp 0.14.0, repo 1.328.0 · **Migración:** `158_erp_solicitud_campos.sql`,
 **escrita y NO aplicada** (plan: `docs/PLAN-158-erp-solicitud-campos.md`; ensayada contra producción con ROLLBACK, 33 de 33).
 **No toca ninguna política ni ningún dato de `products`**; las 332 solicitudes que hay cambian de tipo de columna (enum →
 texto) sin cambiar de valor y quedan `ready`.
