@@ -16,7 +16,7 @@
 
 import { haversine, pointInPolygon, distanceToPolygonMeters, type GeoSite } from "./geofence";
 
-/** `stop` = la foto de una visita o de una parada de viaje (`trip_stops`, D-NEXT). */
+/** `stop` = la foto de una visita o de una parada de viaje (`trip_stops`, D-455). */
 export type PhotoKind = "in" | "out" | "left" | "back" | "stop";
 
 export type SitioFoto = GeoSite & { name: string };
@@ -75,7 +75,7 @@ export type FilaExcepcion = {
 
 /**
  * Una parada de viaje con foto (`clockin.trip_stops`). Son las fotos de «visitas y mandados»
- * (D-NEXT): hasta ahora se guardaban —las 11 que hay vienen de la app vieja— y no se veían en
+ * (D-455): hasta ahora se guardaban —las 11 que hay vienen de la app vieja— y no se veían en
  * ninguna pantalla.
  */
 export type FilaParada = {

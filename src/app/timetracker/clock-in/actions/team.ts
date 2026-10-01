@@ -38,7 +38,7 @@ async function miRolDeTimeTracker(ctx: CtxOk): Promise<string | null> {
 }
 
 /**
- * La mitad de Time Tracker de una persona (D-NEXT): su tipo de trabajador y si está activa.
+ * La mitad de Time Tracker de una persona (D-455): su tipo de trabajador y si está activa.
  *
  * Vive en otro esquema (`timetracker.employee_settings`, no `clockin`) y con otra política: la
  * fila de otra persona solo la lee y la escribe un admin de Time Tracker. Por eso se devuelve
@@ -77,7 +77,7 @@ export async function getClockinEmployeeSettings(id: string): Promise<
       } | null;
       sites: { id: string; name: string }[];
       vehicles: { id: string; name: string; plate: string | null; active: boolean }[];
-      /** La otra mitad: tipo de trabajador y activo en Time Tracker (D-NEXT). */
+      /** La otra mitad: tipo de trabajador y activo en Time Tracker (D-455). */
       timetracker: MitadTimeTracker;
     }
   | { ok: false; message: string }
@@ -108,7 +108,7 @@ export async function getClockinEmployeeSettings(id: string): Promise<
 }
 
 /**
- * Presencial o remoto, desde la ficha de Usuarios (D-NEXT). Hasta ahora solo se podía elegir en
+ * Presencial o remoto, desde la ficha de Usuarios (D-455). Hasta ahora solo se podía elegir en
  * Time Tracker › People.
  *
  * Quién puede: un admin de Time Tracker, que es lo que dice la política de la base
@@ -142,7 +142,7 @@ export async function setEmployeeWorkerType(id: string, workerType: TipoDeTrabaj
 }
 
 /**
- * Activa a alguien en Time Tracker desde su ficha (D-NEXT): es el mismo `active` que el botón
+ * Activa a alguien en Time Tracker desde su ficha (D-455): es el mismo `active` que el botón
  * «Activate» de Time Tracker › People, para quien TIENE fila y está apagado. Quien no tiene fila
  * se arregla eligiendo el tipo (arriba), que la crea ya activa — aquí no se inventa una fila sin
  * tipo. Desactivar sigue siendo cosa de People: en la ficha, apagar a alguien es «Contando tiempo».
@@ -323,7 +323,7 @@ export async function setEmployeeExtraStores(id: string, storeIds: string[]) {
 }
 
 /**
- * «Visitas y mandados (con fotos)» en la ficha (D-NEXT; antes «Runner / Repartidor»). La columna
+ * «Visitas y mandados (con fotos)» en la ficha (D-455; antes «Runner / Repartidor»). La columna
  * sigue siendo `is_runner`: sale a visitar clientes o a hacer mandados y registra cada parada con
  * foto y ubicación, en un vehículo de la empresa o en el suyo. Manager/owner.
  */

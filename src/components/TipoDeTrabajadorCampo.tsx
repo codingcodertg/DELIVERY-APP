@@ -6,7 +6,7 @@ import {
 } from "@/lib/timetracker/tipo-trabajador";
 
 // ============================================================
-// «Tipo de trabajador» en la ficha de Usuarios (D-NEXT).
+// «Tipo de trabajador» en la ficha de Usuarios (D-455).
 //
 // El dueño fue a Usuarios a poner a alguien como presencial y la opción no estaba: solo existía
 // en Time Tracker › People. Aquí está el selector, con la frase que explica la diferencia, y

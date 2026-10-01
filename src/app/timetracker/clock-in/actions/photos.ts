@@ -70,7 +70,7 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     .eq("company_id", companyId)
     .gte("created_at", from)
     .lt("created_at", to);
-  // Las fotos de visitas y paradas (D-NEXT). Se guardaban en `trip_stops` y ninguna pantalla
+  // Las fotos de visitas y paradas (D-455). Se guardaban en `trip_stops` y ninguna pantalla
   // las leía: quien revisa el día tiene que verlas donde ve las demás, no en un sitio aparte.
   let stopQ = supabase
     .from("trip_stops")

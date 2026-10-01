@@ -1,5 +1,5 @@
 // ============================================================
-// Visitar clientes y tomar fotos, desde la pantalla de fichar (D-NEXT).
+// Visitar clientes y tomar fotos, desde la pantalla de fichar (D-455).
 //
 // La parte pura de «Voy a salir»: qué se pregunta, qué viaje empieza al decir que sí, con qué
 // nombre se guarda cada foto y qué botones salen mientras dura la salida. Sin red ni Supabase,

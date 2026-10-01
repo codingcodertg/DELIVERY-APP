@@ -33,7 +33,7 @@ import { TipoDeTrabajadorCampo } from "@/components/TipoDeTrabajadorCampo";
 // Everything saves on change, like the rest of this dialog. There is no Save button anywhere in
 // it, and adding one only here would make people wonder what the other fields did.
 //
-// D-NEXT — tres cosas que el dueño buscó aquí y no encontró:
+// D-455 — tres cosas que el dueño buscó aquí y no encontró:
 //
 //  · El TIPO DE TRABAJADOR (presencial / remoto) solo se podía elegir en Time Tracker › People.
 //    Ahora es el primer campo, con el estado de las dos mitades dicho en claro
@@ -234,7 +234,7 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
         />
       )}
 
-      {/* «Visitas y mandados (con fotos)» — antes «Runner / Repartidor» (D-NEXT). Es quien sale a
+      {/* «Visitas y mandados (con fotos)» — antes «Runner / Repartidor» (D-455). Es quien sale a
           visitar clientes o a hacer mandados y registra cada parada con foto y ubicación, en un
           vehículo de la empresa o en el suyo. Managers and owners are not offered it, matching
           the crew screen this replaced. */}

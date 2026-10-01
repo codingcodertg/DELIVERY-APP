@@ -4219,7 +4219,7 @@ otra dejan de valer. Y repuntar el programador externo a las rutas nuevas.
 (*"haz merge el panel de usuarios con el de usuario de hub y elimina ese view y
 solo deja la parte de vehiculo"*)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-01): en la ficha, la casilla «Runner / Repartidor» pasa a llamarse **«Visitas y
+> **Reemplazada en parte por D-455** (2026-10-01): en la ficha, la casilla «Runner / Repartidor» pasa a llamarse **«Visitas y
 > mandados (con fotos)»** (misma columna `is_runner`, misma acción) y el vehículo se rotula **opcional** («sin vehículo asignado =
 > usa el suyo»). Y la sección gana el **tipo de trabajador** (presencial / remoto), que solo estaba en Time Tracker › People, con
 > el estado de las dos mitades dicho en claro. Sale aunque no haya ficha de fichaje.
@@ -5073,7 +5073,7 @@ review todas las fotos y se pueda estar cambiando los días"*, y después *"acu�
 quitar el tab de clock in entonces esas fotos deben ir adentro de audit, solo mete views dentro
 de audit"*)
 
-> **Ampliada por D-NEXT** (2026-10-01): la vista enseña además las fotos de **visitas y paradas** (`clockin.trip_stops`), con la
+> **Ampliada por D-455** (2026-10-01): la vista enseña además las fotos de **visitas y paradas** (`clockin.trip_stops`), con la
 > pastilla «Visita / parada». Ya no son «cuatro por persona y día»: quien visita a un cliente puede tomar las que quiera.
 
 Cada fichaje guarda una foto —entrada, salida, salir del sitio y volver, cuatro por persona y
@@ -5786,7 +5786,7 @@ y unificarlo es una decisión aparte —toca las tres apps— que no se mete en 
 de clock in… lo vamos a poner en el mismo de registrar tiempo… dependiendo de cómo se configure
 es lo que le va a aparecer, y para admin puede ver ambos views"*)
 
-> **Ampliada por D-NEXT** (2026-10-01): `worker_type` ya no se elige solo en Employees (Time Tracker › People): también en
+> **Ampliada por D-455** (2026-10-01): `worker_type` ya no se elige solo en Employees (Time Tracker › People): también en
 > **Usuarios del hub**, en la sección Time Tracker de la ficha, que además dice qué tipo se le aplica a quien nadie configuró.
 
 Una sola entrada para dos formas de trabajar que no se parecen en nada: quien **cronometra** un
@@ -5979,7 +5979,7 @@ significa meter la tienda dentro de las políticas de cada tabla, y va en su pro
 Andrés (*"estoy clock in en un empleado… pero en el trabajando ahora solo aparezco yo"*, *"falta
 voy a salir, empezar almuerzo"*, *"sale 0 de 52"*, *"que tengan un color code"*)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-01): el botón «Voy a salir» ya **no** graba una salida `customer_visit` al
+> **Reemplazada en parte por D-455** (2026-10-01): el botón «Voy a salir» ya **no** graba una salida `customer_visit` al
 > pulsarlo. Abre una ventana que pregunta si va a visitar a un cliente: si **sí**, empieza un viaje con ese motivo y queda el
 > botón «📷 Tomar foto»; si **no**, pregunta el motivo y graba la salida de siempre con el motivo verdadero. Una visita deja de
 > aparecer como fila «🚚 Fuera» en «Fichajes de hoy».
@@ -6350,7 +6350,7 @@ hagan, el módulo se borra entero.
 **Fecha:** 2026-08-30 · **Versión:** v0.39.0 (timetracker) · v0.35.0 (clockin) · **Pedido por:**
 Andrés (*"sí hazlo"*)
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): al rehacer este panel se perdieron la **foto** y la **ubicación** de cada
+> **⚠ Reemplazada en parte por D-455** (2026-10-01): al rehacer este panel se perdieron la **foto** y la **ubicación** de cada
 > parada (`logStop` se llamaba solo con el nombre), y nadie lo notó porque no se ha registrado un solo viaje desde entonces.
 > Ahora «Llegué» abre la cámara y cada paso manda la ubicación. Dos frases de abajo no describían el código: «al runner se le
 > pide el vehículo, al comercial no» (los dos veían el mismo formulario; lo que hoy decide que el viaje nazca **personal** es no
@@ -7294,7 +7294,7 @@ la casa. La ruta `/timetracker/account` no cambia; los enlaces viejos siguen.
 
 ## D-161 · Las fotos SÍ estaban; la pantalla abría en un día vacío
 
-> **Ampliada por D-NEXT** (2026-10-01): el «último día con fotos» mira **tres** fuentes: se suman las fotos de visita y de parada
+> **Ampliada por D-455** (2026-10-01): el «último día con fotos» mira **tres** fuentes: se suman las fotos de visita y de parada
 > (`trip_stops`).
 
 **Fecha:** 2026-09-01 · **Versión:** v0.46.0 (timetracker)
@@ -34154,7 +34154,7 @@ Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
   aunque en el Gestor y en Mi ruta esa orden ya no lo lleve.
 - La tabla de Órdenes (`OrdersTable`), el tablero y el Mapa no llevan la marca: allí se ve la dirección entera.
 
-## D-NEXT · El tipo de trabajador (presencial / remoto) se elige en Usuarios; «Voy a salir» pregunta si es una visita a un cliente y deja tomar fotos todo el rato; las paradas vuelven a llevar foto y ubicación, y esas fotos se ven en Auditoría › Fotos
+## D-455 · El tipo de trabajador (presencial / remoto) se elige en Usuarios; «Voy a salir» pregunta si es una visita a un cliente y deja tomar fotos todo el rato; las paradas vuelven a llevar foto y ubicación, y esas fotos se ven en Auditoría › Fotos
 
 **Fecha:** 2026-10-01 · **Versión:** la asigna el orquestador al fusionar (toca `timetracker` y la ficha de Usuarios del hub) ·
 **Migración:** ninguna · **Pedido por:** el dueño, en dos mensajes del mismo día · **Reemplaza en parte a** D-095 (la casilla

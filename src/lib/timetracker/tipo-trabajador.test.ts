@@ -9,7 +9,7 @@ import {
   type MitadTimeTracker,
 } from "./tipo-trabajador";
 
-// D-NEXT. El dueño fue a Usuarios a poner a Everto Prado como presencial y la opción no estaba.
+// D-455. El dueño fue a Usuarios a poner a Everto Prado como presencial y la opción no estaba.
 // Estas pruebas vigilan tres cosas: QUÉ se escribe al elegir el tipo, QUÉ se le dice al admin de
 // una persona a la que nadie configuró (la ficha renderizada, no solo la función), y que la
 // pantalla y la acción USAN esa lógica (lectura de fuente, como el resto del repo).

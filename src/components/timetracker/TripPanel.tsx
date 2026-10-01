@@ -30,7 +30,7 @@ import { viajePersonalPorDefecto } from "@/lib/clockin/visitas";
  * G-9 (D-202): textos por claves emp.trip.*. Los motivos son un enumerado fijo del código (el
  * valor `v` es lo que se guarda y no cambia); los nombres de vehículo y de parada son dato.
  *
- * **D-NEXT — visitas y mandados, con foto.** Al rehacer este panel (D-136) se perdieron dos cosas
+ * **D-455 — visitas y mandados, con foto.** Al rehacer este panel (D-136) se perdieron dos cosas
  * que el original sí hacía y que las acciones nunca dejaron de aceptar: la FOTO de cada parada y
  * su UBICACIÓN. `logStop` se llamaba solo con el nombre, así que una parada quedaba sin foto, sin
  * GPS, sin dirección y sin millas. Ahora:
@@ -139,7 +139,7 @@ export function TripPanel({
       {!d.trip ? (
         <>
           {/* `.motivo` y no `.perm-opt`: la clase del hub, bajo la hoja de Time Tracker, estiraba la
-              casilla al 100 % y dejaba el texto debajo (medido en el navegador, D-NEXT). */}
+              casilla al 100 % y dejaba el texto debajo (medido en el navegador, D-455). */}
           <label className={"motivo" + (personal ? " on" : "")} style={{ marginTop: 8, textTransform: "none" }}>
             <input type="checkbox" checked={personal} onChange={(e) => setPersonal(e.target.checked)} />
             {t("emp.trip.ownVehicle")}

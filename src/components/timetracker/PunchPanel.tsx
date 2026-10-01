@@ -43,7 +43,7 @@ import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
  * resto de Registrar tiempo. Los motivos siguen siendo pares en/es (el `value` se guarda), elegidos
  * ahora por el idioma de Time Tracker.
  *
- * **D-NEXT — «Voy a salir» pregunta, y la visita lleva fotos.** El botón grababa una salida con
+ * **D-455 — «Voy a salir» pregunta, y la visita lleva fotos.** El botón grababa una salida con
  * el motivo `customer_visit` SIEMPRE, sin preguntar nada y sin foto. Ahora abre una ventana:
  *
  *   · **¿Vas a visitar a un cliente? → Sí.** Empieza un viaje con ese motivo (personal si no
@@ -417,7 +417,7 @@ export function PunchPanel() {
               </button>
             ) : fila === "visita" && viaje?.trip ? (
               <>
-                {/* El botón de foto, visible TODO el rato que dure la salida (D-NEXT): se toca
+                {/* El botón de foto, visible TODO el rato que dure la salida (D-455): se toca
                     cuando quiera y cuantas veces quiera; cada toque abre la cámara. */}
                 <button disabled={!!ocupado} onClick={() => fotoVisitaRef.current?.click()}>
                   📷 {t("emp.visit.takePhoto")}
@@ -439,7 +439,7 @@ export function PunchPanel() {
                   onClick={() => corre(async () => startLeave({ reason: "lunch", geo: await ubicacionOpcional() }))}>
                   🍽 {t("emp.punch.startLunch")}
                 </button>
-                {/* Ya no graba nada al pulsarlo: abre la ventana que pregunta (D-NEXT). */}
+                {/* Ya no graba nada al pulsarlo: abre la ventana que pregunta (D-455). */}
                 <button className="btn-ghost" disabled={!!ocupado} onClick={() => setSalida("pregunta")}>
                   🚚 {t("emp.punch.goingOut")}
                 </button>

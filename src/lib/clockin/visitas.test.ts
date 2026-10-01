@@ -8,7 +8,7 @@ import {
   viajePersonalPorDefecto,
 } from "./visitas";
 
-// D-NEXT. «Voy a salir» pregunta si va a visitar a un cliente; si dice que sí, bajo el reloj queda
+// D-455. «Voy a salir» pregunta si va a visitar a un cliente; si dice que sí, bajo el reloj queda
 // un botón de foto que puede usar cuando quiera, y cada foto se guarda como una parada (foto,
 // hora, ubicación). Estas pruebas cubren la lógica pura y, leyendo el fuente, que las pantallas
 // la USAN: PunchPanel (la ventana y el botón), TripPanel (paradas con foto) y Auditoría › Fotos

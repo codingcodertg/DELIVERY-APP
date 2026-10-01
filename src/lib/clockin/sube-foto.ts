@@ -3,7 +3,7 @@ import { compressImage } from "@/lib/clockin/image";
 import { rutaDeFoto } from "@/lib/clockin/visitas";
 
 /**
- * Subir una foto de fichaje, de salida o de visita (D-NEXT la saca de PunchPanel para que las
+ * Subir una foto de fichaje, de salida o de visita (D-455 la saca de PunchPanel para que las
  * fotos de visita y de parada suban EXACTAMENTE igual que la del fichaje, no «parecido»).
  *
  * Lo que se conserva de D-125, porque no es adorno:
