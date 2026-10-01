@@ -191,7 +191,8 @@ describe("la página del Gestor", () => {
     // is more important») devuelve la factura, que abre la orden, con el ID debajo (`facturaYId`).
     expect(pagina).toContain('<td className="ordno">{facturaConSuId(d)}</td>');
     expect(pagina).toContain("const facturaConSuId = (d: Delivery) => { const n = facturaYId(d); const gesto = abreLaOrden(d);");
-    expect(pagina).toContain("{n.id && <span className=\"hint\" data-id-de-la-orden");
+    // D-459: el ID va AL LADO de la factura, en la misma línea (`.factura-e-id`), no debajo.
+    expect(pagina).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");
     expect(pagina).not.toContain("enlaceConElId");
   });
   it("D-408: sin columna del ID en «Sin asignar»; en paradas, el ID vuelve en el puesto de la factura (D-444)", () => {
@@ -302,7 +303,9 @@ describe("la página del Gestor", () => {
     for (const muerto of ['"scheduled"', "setTab(\"scheduled\")", "colsProgramadas", "ordenProgramadas", "menuProgramadas", "schedCols", "rtg_routes_sched4", "const scheduled ="])
       expect(pagina, muerto).not.toContain(muerto);
     expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline">("routes");');
-    expect(pagina).toContain('{ n: scheduledCount, label: t("Scheduled", "Programadas"), target: "routes" as const },');
+    // D-459: la franja de cuatro casillas de arriba se quitó; la cuenta de programadas va en la pestaña «Rutas».
+    expect(pagina).toContain("<span data-cuenta-programadas>{t(`${scheduledCount} scheduled`, `${scheduledCount} programadas`)}</span>");
+    expect(pagina).not.toContain('label: t("Scheduled", "Programadas")');
   });
   it("el selector marca y desmarca con la función probada, se cierra al hacer clic fuera, y nace con el defecto", () => {
     expect(pagina).toContain("const [colsGestor, setColsGestor] = useState<string[]>([...COLUMNAS_DEL_GESTOR_POR_DEFECTO]);");
@@ -392,18 +395,20 @@ describe("137: la lista cerrada de la base es la del código", () => {
   });
 });
 
-describe("«Armar las rutas del día» nace plegado tras su botón (D-346)", () => {
+describe("«Armar las rutas del día» nace cerrado tras su botón (D-346; desde D-459 el botón es el de la cabecera)", () => {
   const plan = plano(sinComentarios(leer("src/components/PlanDelDia.tsx")));
-  it("plegado por defecto, y plegado sigue diciendo cuántas órdenes no tienen plan", () => {
-    // Nace abierto solo si la página lo pide (D-400: el botón «🧭 Armar rutas» de la cabecera, con la barra cerrada).
-    expect(plan).toContain("const [abierto, setAbierto] = useState(naceAbierto);");
-    expect(plan).toContain("naceAbierto = false, columnas }");
-    const desde = plan.indexOf("if (!abierto) return ("), hasta = plan.indexOf("return ( <div className=\"card\"> <div style");
-    expect(desde).toBeGreaterThan(-1); expect(hasta).toBeGreaterThan(desde);
-    const plegado = plan.slice(desde, hasta);
-    expect(plegado).toContain("onClick={() => setAbierto(true)}");
-    expect(plegado).toContain("{!borrador && sinPlan > 0 &&");
-    expect(plegado).not.toContain("planifica()");
+  const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
+  it("cerrado por defecto, y cerrado sigue diciendo cuántas órdenes no tienen plan: en la pastilla de la cabecera", () => {
+    // D-346 lo plegó tras un botón dentro de una tarjeta; D-459 quitó la tarjeta: cerrado no pinta nada, y lo que decía
+    // plegado («N sin plan», «Borrador vN») lo cuenta a la página, que lo pinta junto a su botón.
+    expect(pagina).toContain("const [planAbierto, setPlanAbierto] = useState(false);");
+    expect(plan).toContain("if (!abierto) return null;");
+    expect(plan).toContain("const estado = estadoDelPlan(borrador, sinPlan);");
+    expect(plan).toContain("useEffect(() => { onEstado?.(estado); }, [firmaDelEstado]);");
+    expect(pagina).toContain("const e = textoDelEstadoDelPlan(estadoPlan, lang === \"es\");");
+    expect(pagina).toContain("<span className=\"sema\" data-estado-del-plan={estadoPlan.tipo} title={e.titulo}");
+    // «Planificar el día» sigue dentro del panel, no fuera.
+    expect(plan.slice(0, plan.indexOf("if (!abierto) return null;"))).not.toContain("onClick={() => void planifica()}");
   });
 });
 

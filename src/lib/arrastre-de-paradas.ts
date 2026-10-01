@@ -400,6 +400,33 @@ export function sellosDe(filas: readonly FilaFresca[] | null): Record<string, st
   return s;
 }
 
+/**
+ * El botón «↶ Deshacer» / «↷ Rehacer» de la tarjeta de UNA ruta (D-459). El dueño, 2026-10-01, con la cabecera de la
+ * tarjeta delante: «aqui pon un undo redo para los movimientos del orden de las cargas para areglar un error si pasa».
+ *
+ * **El historial es UNO, global, no uno por ruta.** Un movimiento entre dos choferes toca dos rutas y se guarda como un solo
+ * movimiento con la foto de las dos: con una pila por ruta se podría deshacer la mitad (la orden vuelve a salir de una ruta
+ * sin volver a entrar en la otra). Así que el botón de la tarjeta llama al MISMO historial que Ctrl+Z y que los botones de
+ * la barra de vistas, y siempre es el último movimiento el que vuelve.
+ *
+ * Lo que sí es de la tarjeta: **solo se enciende si ese último movimiento tocó ESTA ruta**. Si fue en otra, se apaga y el
+ * título dice en cuál: pulsar «Deshacer» en la tarjeta de Ernesto no puede mover la ruta de Julio sin que se vea.
+ */
+export function botonDeVolver(h: Historial, dir: Direccion, ruta: string, nombreDeRuta: (clave: string) => string): { activo: boolean; titulo: { en: string; es: string } } {
+  const pila = dir === "deshacer" ? h.deshacer : h.rehacer;
+  const m = pila[pila.length - 1];
+  const [verboEn, verboEs, tecla] = dir === "deshacer" ? ["Undo", "Deshacer", "Ctrl+Z"] : ["Redo", "Rehacer", "Ctrl+Y"];
+  if (!m) return { activo: false, titulo: dir === "deshacer" ? { en: "Nothing to undo", es: "Nada que deshacer" } : { en: "Nothing to redo", es: "Nada que rehacer" } };
+  if (!m.rutas.includes(ruta)) {
+    const donde = m.rutas.map(nombreDeRuta).join(" + ");
+    return { activo: false, titulo: {
+      en: `The last move was on ${donde} (${m.etiqueta.en}): ${verboEn.toLowerCase()} it from that card, or with ${tecla}`,
+      es: `El último movimiento fue en ${donde} (${m.etiqueta.es}): se ${dir === "deshacer" ? "deshace" : "rehace"} desde esa tarjeta, o con ${tecla}`,
+    } };
+  }
+  return { activo: true, titulo: { en: `${verboEn}: ${m.etiqueta.en} (${tecla})`, es: `${verboEs}: ${m.etiqueta.es} (${tecla})` } };
+}
+
 /** Tras deshacer (o rehacer) con éxito: el movimiento pasa a la otra pila, con los sellos nuevos. */
 export function trasVolver(h: Historial, dir: Direccion, sellos: Record<string, string> | null): Historial {
   const de = dir === "deshacer" ? h.deshacer : h.rehacer;

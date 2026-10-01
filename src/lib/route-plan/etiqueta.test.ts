@@ -84,7 +84,9 @@ describe("la columna ID del plan: solo el id (D-434; reemplaza en parte D-431)",
     expect(ruta).toContain("<th>#</th><th data-columna-factura");
     expect(ruta).toContain("{t(\"Invoice #\", \"Factura #\")}</th>");
     expect(ruta).toContain("const n = facturaDeOrden(p.order_ref);");
-    expect(ruta).toContain("{n.id && <div className=\"hint\" data-id-de-la-orden");
+    // D-459: el ID al lado, en la misma línea, no debajo.
+    expect(ruta).toContain("<span className=\"factura-e-id\"> {abrirOrden");
+    expect(ruta).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");
     expect(ruta).not.toContain("data-columna-id");
     expect(ruta).not.toContain("data-accion-parada");
     expect(ruta).not.toContain("{nombreDeOrden(");

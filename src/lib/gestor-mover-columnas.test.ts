@@ -244,7 +244,8 @@ describe("los anchos de paradas, por clave", () => {
       // D-446: la partida, más pegada (ID 84, Tipo 100, Ciudad de entrega 172 —cabe «Recoger en RDZ McAllen»—, Llegada 60,
       // Ventanas 100). Lo heredado de `stops8` (la prueba de abajo) no cambia: eso es lo que la persona arrastró.
       // D-456: Llegada 84 (era 60): cuando aún no hay hora la celda dice por qué («calculando…», «tienda sin punto»).
-      [40, 84, 100, undefined, 172, 84, 100, 150][i] ?? w));
+      // D-459: la factura 124 (era 84): lleva su ID al lado, en la misma línea. Y el número de parada 46 (era 40): «✓P».
+      [46, 124, 100, undefined, 172, 84, 100, 150][i] ?? w));
     expect(ANCHO_FIJO_DE_PARADAS._cuenta).toBe(100);
     // Las de Órdenes, con el ancho de Órdenes, como antes (`stopExtraCols.widthOf(deOrdenes)`).
     expect(anchoDePartidaDeParada("p_stage", COLUMN_WIDTHS)).toBe(COLUMN_WIDTHS.stage);

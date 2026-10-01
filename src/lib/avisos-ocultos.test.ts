@@ -3,13 +3,16 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { AVISOS_DEL_GESTOR, cierraAviso, claveDeAvisosOcultos, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "./avisos-ocultos";
 
-/** Las ✕ de los avisos del Gestor de Rutas (D-400): cerrados para siempre, por persona, y recuperables. */
+/** Las ✕ de los avisos del Gestor de Rutas (D-400): cerrados para siempre, por persona, y recuperables.
+ *  D-459 (2026-10-01): dos avisos dejaron de serlo —la tarjeta «Armar las rutas» (ahora un solo botón en la cabecera) y la
+ *  ayuda del mapa (ahora un ⓘ)—, y «Mostrar avisos ocultos» bajó al fondo de la página. Las pruebas de aquí que fijaban lo
+ *  de antes se pusieron al día; ninguna se quitó sin sustituirla. */
 
 const almacen = () => {
   const m = new Map<string, string>();
   return { m, getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) };
 };
-const { armarRutas, choferesSinSenal, atrasadas, diaVacio, ayudaDelMapa } = AVISOS_DEL_GESTOR;
+const { choferesSinSenal, atrasadas, diaVacio } = AVISOS_DEL_GESTOR;
 
 describe("lo cerrado se recuerda por persona", () => {
   it("sin nada guardado, no hay nada cerrado", () => {
@@ -23,9 +26,9 @@ describe("lo cerrado se recuerda por persona", () => {
     expect(claveDeAvisosOcultos("u1")).not.toBe(claveDeAvisosOcultos("u2"));
   });
   it("cerrar uno no reabre los que ya estaban cerrados", () => {
-    const antes = new Set<AvisoDelGestor>([armarRutas]);
+    const antes = new Set<AvisoDelGestor>([diaVacio]);
     const despues = cierraAviso(antes, atrasadas);
-    expect([...despues].sort()).toEqual([armarRutas, atrasadas].sort());
+    expect([...despues].sort()).toEqual([diaVacio, atrasadas].sort());
     expect(antes.size).toBe(1);      // no muta lo de antes: React lo necesita nuevo
   });
   it("«Mostrar avisos ocultos» (lista vacía) BORRA la clave, no guarda un vacío", () => {
@@ -41,8 +44,9 @@ describe("lo cerrado se recuerda por persona", () => {
     expect(leeAvisosOcultos(a.getItem, "u1").size).toBe(0);
     a.setItem(claveDeAvisosOcultos("u1"), JSON.stringify({ atrasadas: true }));
     expect(leeAvisosOcultos(a.getItem, "u1").size).toBe(0);
-    a.setItem(claveDeAvisosOcultos("u1"), JSON.stringify(["viejo-aviso", 7, ayudaDelMapa]));
-    expect([...leeAvisosOcultos(a.getItem, "u1")]).toEqual([ayudaDelMapa]);
+    // D-459: «armar-rutas» y «ayuda-del-mapa» ya no son avisos. Quien los tenía cerrados no nota nada: se ignoran al leer.
+    a.setItem(claveDeAvisosOcultos("u1"), JSON.stringify(["viejo-aviso", 7, "armar-rutas", "ayuda-del-mapa", diaVacio]));
+    expect([...leeAvisosOcultos(a.getItem, "u1")]).toEqual([diaVacio]);
   });
   it("un navegador que niega el almacenamiento: nada cerrado al leer, y guardar no lanza", () => {
     const lanza = () => { throw new Error("SecurityError"); };
@@ -51,7 +55,7 @@ describe("lo cerrado se recuerda por persona", () => {
   });
   it("los ids no cambian: son lo que está guardado en los navegadores", () => {
     expect(AVISOS_DEL_GESTOR).toEqual({
-      armarRutas: "armar-rutas", choferesSinSenal: "choferes-sin-senal", atrasadas: "atrasadas", diaVacio: "dia-vacio", ayudaDelMapa: "ayuda-del-mapa",
+      choferesSinSenal: "choferes-sin-senal", atrasadas: "atrasadas", diaVacio: "dia-vacio",
     });
   });
 });
@@ -71,29 +75,35 @@ describe("la pantalla del Gestor usa lo cerrado", () => {
     expect(pagina).toContain("{trackingIssues.length > 0 && !oculto(AVISOS_DEL_GESTOR.choferesSinSenal) && (");
     expect(pagina).toContain("(pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (");
     expect(pagina).toContain("{dayOrders.length === 0 && !oculto(AVISOS_DEL_GESTOR.diaVacio) && (() => {");
-    expect(pagina).toContain("{!oculto(AVISOS_DEL_GESTOR.ayudaDelMapa) && (");
-    for (const id of ["choferesSinSenal", "atrasadas", "diaVacio", "ayudaDelMapa"]) {
+    for (const id of ["choferesSinSenal", "atrasadas", "diaVacio"]) {
       expect(pagina).toContain(`<CerrarAviso aviso={AVISOS_DEL_GESTOR.${id}} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.${id})} />`);
     }
   });
-  it("«Mostrar avisos ocultos» sale solo si hay algo cerrado, y lo devuelve todo (y lo borra de lo guardado)", () => {
-    expect(pagina).toContain("{avisosOcultos != null && avisosOcultos.size > 0 && ( <button className=\"btn btn-ghost btn-sm\" data-mostrar-avisos-ocultos onClick={muestraAvisosOcultos}");
-    expect(pagina).toContain("const muestraAvisosOcultos = () => { setAvisosOcultos(new Set()); setPlanTraidoAMano(false); if (me?.id) guardaAvisosOcultos(() => window.localStorage, me.id, new Set()); };");
+  it("«Mostrar avisos ocultos» sale solo si hay algo cerrado, y lo devuelve todo (y lo borra de lo guardado) — al FONDO, no en la barra de arriba (D-459)", () => {
+    expect(pagina).toContain("{avisosOcultos != null && avisosOcultos.size > 0 && ( <div style={{ textAlign: \"right\", marginTop: 18 }}> <button className=\"notif-clear\" data-mostrar-avisos-ocultos onClick={muestraAvisosOcultos} style={{ fontSize: 11 }}");
+    expect(pagina).toContain("const muestraAvisosOcultos = () => { setAvisosOcultos(new Set()); if (me?.id) guardaAvisosOcultos(() => window.localStorage, me.id, new Set()); };");
+    // Uno solo, y detrás de todas las tarjetas: el dueño, «osea que no aparezca eso de show hidden notices» (estaba junto a «Ocultar mapa»).
+    expect(pagina.split("data-mostrar-avisos-ocultos").length - 1).toBe(1);
+    expect(pagina.indexOf("data-mostrar-avisos-ocultos")).toBeGreaterThan(pagina.indexOf("{!ready && <div className=\"empty\">"));
+    const barra = pagina.slice(pagina.indexOf("{/* ---------- Layout toolbar ---------- */}"), pagina.indexOf("{/* ---------- Driver panel + map ---------- */}"));
+    expect(barra).toContain("Hide map & drivers");
+    for (const fuera of ["avisosOcultos", "setWideRoutes", "Show hidden notices"]) expect(barra, fuera).not.toContain(fuera);
   });
-  it("con la barra «Armar las rutas» cerrada, la acción sigue en la cabecera y la trae abierta", () => {
-    expect(pagina).toContain("const barraDeArmarRutas = puedeArmarRutas && (!oculto(AVISOS_DEL_GESTOR.armarRutas) || planTraidoAMano);");
-    expect(pagina).toContain("{puedeArmarRutas && avisosOcultos != null && !barraDeArmarRutas && ( <button className=\"btn btn-primary btn-sm\" data-traer-armar-rutas onClick={() => setPlanTraidoAMano(true)}");
-    expect(pagina).toContain("{barraDeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} naceAbierto={planTraidoAMano} onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }} onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split(\"#\")[0]); if (d) setOpenOrder(d); }} columnas={{");
+  it("D-459: «Armar rutas» es UN botón, el de la cabecera, que abre y cierra el panel; ya no es un aviso que se cierra", () => {
+    expect(pagina).toContain("{puedeArmarRutas && ( <button className=\"btn btn-primary btn-sm\" data-armar-rutas aria-expanded={planAbierto} onClick={() => setPlanAbierto((v) => !v)}");
+    expect(pagina).toContain("{puedeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} abierto={planAbierto} onCerrar={() => setPlanAbierto(false)} onEstado={setEstadoPlan} onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split(\"#\")[0]); if (d) setOpenOrder(d); }} columnas={{");
+    for (const muerto of ["planTraidoAMano", "barraDeArmarRutas", "data-traer-armar-rutas", "AVISOS_DEL_GESTOR.armarRutas", "AVISOS_DEL_GESTOR.ayudaDelMapa"]) expect(pagina, muerto).not.toContain(muerto);
     // Los mismos que antes pueden planear: admin y logística, con un día concreto.
     expect(pagina).toContain("const puedeArmarRutas = !allDates && !soloPendientes && !!me && [\"admin\", \"logistics\"].includes(me.role);");
   });
 });
 
-describe("la barra de «Armar las rutas» lleva su ✕, plegada y desplegada", () => {
+describe("D-459: el panel de «Armar las rutas» no tiene tarjeta plegada ni ✕; lo abre y lo cierra la página", () => {
   const plan = lee("src/components/PlanDelDia.tsx");
-  it("la ✕ sale en los dos estados, y nace abierta si se trae desde la cabecera", () => {
-    expect(plan.split("{onCerrar && <CerrarAviso aviso={AVISOS_DEL_GESTOR.armarRutas} onCerrar={onCerrar} />}").length - 1).toBe(2);
-    expect(plan).toContain("const [abierto, setAbierto] = useState(naceAbierto);");
+  it("cerrado no pinta nada; abierto, su título lo cierra; y no guarda él si está abierto", () => {
+    expect(plan).toContain("if (!abierto) return null;");
+    expect(plan).toContain("data-cerrar-el-plan aria-expanded onClick={onCerrar}");
+    for (const muerto of ["CerrarAviso", "AVISOS_DEL_GESTOR", "naceAbierto", "setAbierto", "data-abrir-armar-rutas"]) expect(plan, muerto).not.toContain(muerto);
   });
 });
 
