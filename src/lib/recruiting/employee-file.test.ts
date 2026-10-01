@@ -243,7 +243,9 @@ describe("la baja apaga la cuenta, no la borra", () => {
     const fn = src.slice(src.indexOf("export async function deactivateEmployee"));
     const cuerpo = fn.slice(0, fn.indexOf("export async function reactivate"));
     expect(cuerpo.indexOf("parcheBaja")).toBeGreaterThan(0);
-    expect(cuerpo.indexOf("ban_duration")).toBeGreaterThan(cuerpo.indexOf("parcheBaja"));
+    // Puesta al día con la rama `feat/expediente-acciones`: el ban ya no se escribe dentro de la baja, sale
+    // por `ponAcceso` (el único sitio que toca `ban_duration`). La regla es la misma: después de la fecha.
+    expect(cuerpo.indexOf("ponAcceso(")).toBeGreaterThan(cuerpo.lastIndexOf("parcheBaja"));
   });
 
   it("nadie se da de baja a sí mismo", () => {

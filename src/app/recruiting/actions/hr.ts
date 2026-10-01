@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSyntheticEmail } from "@/lib/username";
 import {
-  extensionValida, filasDeExpediente, limpiaExtension, normalizaGrupoDirectorio, parcheAlta, parcheBaja,
-  puedeEditarGrupoDirectorio,
+  esColumnaQueFalta, extensionValida, filaNueva, filasDeExpediente, limpiaExtension, normalizaGrupoDirectorio,
+  normalizaMotivoBaja, parcheAlta, parcheAltaCompleto, parcheBaja, parcheBajaCompleto, puedeDarDeBaja,
+  puedeEditarGrupoDirectorio, sin159, telefonoDeFicha, tiene159,
 } from "@/lib/recruiting/employee-file";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
 
@@ -68,7 +69,29 @@ export type EmployeeFile = {
   directory_group: string | null;
   days_off: number | null;
   notes: string | null;
+  // ---- Migración 159 (null mientras no esté aplicada) ----
+  /** Puesto. */
+  job_title: string | null;
+  /** Teléfono PERSONAL, solo RR. HH. `phone` es el de oficina: el que enseña el directorio. */
+  personal_phone: string | null;
+  personal_email: string | null;
+  emergency_name: string | null;
+  emergency_relation: string | null;
+  emergency_phone: string | null;
+  left_reason: string | null;
+  left_note: string | null;
+  left_by: string | null;
+  /** El nombre de quien registró la baja, ya resuelto. De solo lectura. */
+  left_by_name: string | null;
+  left_recorded_at: string | null;
 };
+
+/** Lo que NO se guarda por «Guardar datos»: la identidad, lo derivado, y la baja, que tiene su botón. */
+type NoEditable =
+  | "id" | "account_store" | "profile_id" | "date_left"
+  | "left_reason" | "left_note" | "left_by" | "left_by_name" | "left_recorded_at";
+const SOLO_POR_SU_BOTON = ["date_left", "left_reason", "left_note", "left_by", "left_by_name", "left_recorded_at"];
+const FALTA_159 = "Migration 159 is not applied yet: the new fields can't be saved.";
 
 export type EmployeeDoc = {
   id: string;
@@ -93,7 +116,8 @@ export type EmployeeDoc = {
  * hay para quien no tiene cuenta.
  */
 export async function listEmployeeFiles(): Promise<
-  { ok: true; rows: (EmployeeFile & { docKinds: string[] })[] } | { ok: false; message: string }
+  // `campos159`: si la tabla ya tiene las columnas de la 159. Sin ellas la pantalla apaga los campos nuevos.
+  { ok: true; rows: (EmployeeFile & { docKinds: string[] })[]; campos159: boolean } | { ok: false; message: string }
 > {
   const supabase = await createClient();
   const yo = await tier(supabase);
@@ -112,6 +136,7 @@ export async function listEmployeeFiles(): Promise<
 
   return {
     ok: true,
+    campos159: tiene159((files ?? []) as Record<string, unknown>[]),
     rows: filasDeExpediente(
       (files ?? []) as Record<string, unknown>[],
       (people ?? []) as { id: string; full_name?: string | null; store?: string | null }[],
@@ -144,7 +169,7 @@ export async function getEmployeeDocs(employeeId: string): Promise<
  * estaba son el mismo numero, porque la migracion conservo cada id. */
 export async function saveEmployeeFile(
   fileId: string,
-  patch: Partial<Omit<EmployeeFile, "id" | "full_name" | "account_store">>,
+  patch: Partial<Omit<EmployeeFile, NoEditable>> & { profile_id?: string | null },
 ): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
   const yo = await tier(supabase);
@@ -187,16 +212,68 @@ export async function saveEmployeeFile(
   if (patch.ringcentral_ext !== undefined && !extensionValida(patch.ringcentral_ext)) {
     return { ok: false, message: "A RingCentral extension is 2 to 6 digits." };
   }
+  // La baja no entra por aquí: tiene su botón, que pide motivo, apunta quién la registró y es solo del
+  // admin de RR. HH. Dejarla pasar por «Guardar datos» sería una segunda puerta sin nada de eso.
+  if (SOLO_POR_SU_BOTON.some((k) => k in patch)) {
+    return { ok: false, message: "Use the Deactivate / Reactivate buttons to change someone's status." };
+  }
+  // El nombre del expediente solo se escribe para quien NO tiene cuenta. Con cuenta manda el del perfil
+  // (`nombreVisible`), que se cambia en Usuarios: escribirlo aquí no se vería y parecería que no guarda.
+  if ("full_name" in patch) {
+    const nombre = (patch.full_name ?? "").trim().replace(/\s+/g, " ");
+    if (!nombre) return { ok: false, message: "The name can't be empty." };
+    const { data: actual, error: errActual } = await supabase
+      .schema("recruiting").from("employee_files").select("profile_id").eq("id", fileId).maybeSingle();
+    if (errActual) return { ok: false, message: errActual.message };
+    if (actual?.profile_id) return { ok: false, message: "This person has an account: change their name in Users." };
+    patch = { ...patch, full_name: nombre };
+  }
 
   // Las fechas vacias se guardan como NULL y no como "": una cadena vacia en una columna de
   // fecha la rechaza Postgres, y el formulario manda "" en cuanto alguien borra el campo.
   const limpio: Record<string, unknown> = { id: fileId, updated_at: new Date().toISOString(), updated_by: yo.userId };
   for (const [k, v] of Object.entries(patch)) limpio[k] = v === "" ? null : v;
   if (patch.ringcentral_ext !== undefined) limpio.ringcentral_ext = limpiaExtension(patch.ringcentral_ext);
+  // Los teléfonos se guardan con la forma de la app, 956-xxx-xxxx (D-432).
+  for (const k of ["phone", "personal_phone", "emergency_phone"] as const) {
+    if (patch[k] !== undefined) limpio[k] = telefonoDeFicha(patch[k]);
+  }
 
   const { error } = await supabase.schema("recruiting").from("employee_files").upsert(limpio);
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: esColumnaQueFalta(error) ? FALTA_159 : error.message };
   return { ok: true };
+}
+
+/**
+ * Agrega a una persona SIN cuenta del hub. Con cuenta no se agrega desde aquí: la cuenta se crea en Usuarios
+ * y el trigger de la 106 le crea el expediente, así que solo hay un sitio donde nacen las cuentas.
+ *
+ * Lo pueden hacer admin y gerente de RR. HH., igual que editar una ficha (la política de la 094 es la misma
+ * para insertar que para actualizar, y un expediente sin cuenta no pasa por el guard del enlace).
+ */
+export async function createEmployeeFile(input: {
+  full_name: string; date_hired?: string | null; department?: string | null; store?: string | null;
+  phone?: string | null; ringcentral_ext?: string | null; job_title?: string | null; personal_phone?: string | null;
+}): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo) return { ok: false, message: "Not signed in." };
+  if (!PUEDE.includes(yo.role)) return { ok: false, message: "Employee files are for HR admins and managers." };
+  if (input.ringcentral_ext && !extensionValida(input.ringcentral_ext)) {
+    return { ok: false, message: "A RingCentral extension is 2 to 6 digits." };
+  }
+  const fila = filaNueva(input, true);
+  if (!fila) return { ok: false, message: "The name can't be empty." };
+
+  const sello = { updated_at: new Date().toISOString(), updated_by: yo.userId };
+  const tabla = () => supabase.schema("recruiting").from("employee_files");
+  let r = await tabla().insert({ ...fila, ...sello }).select("id").single();
+  // Sin la 159 se guarda lo que la tabla sí tiene: agregar a alguien no puede depender de una migración.
+  if (r.error && esColumnaQueFalta(r.error)) {
+    r = await tabla().insert({ ...sin159(fila), ...sello }).select("id").single();
+  }
+  if (r.error) return { ok: false, message: r.error.message };
+  return { ok: true, id: r.data.id as string };
 }
 
 // ============================================================
@@ -225,18 +302,35 @@ async function comoAdminDeHr(): Promise<
   if (!yo) return { ok: false, message: "Not signed in." };
   // Apagar una cuenta es mas que editar una ficha, asi que pide el mismo tramo que
   // enlazarla: el admin de RR. HH. Y es el rol del modulo, no `profiles.role` (D-053/D-057).
-  if (yo.role !== "admin") return { ok: false, message: "Only an HR admin can deactivate or reactivate someone." };
+  if (!puedeDarDeBaja(yo.role)) return { ok: false, message: "Only an HR admin can deactivate or reactivate someone." };
   return { ok: true, supabase, userId: yo.userId };
 }
 
-/** Da de baja: fecha de salida en el expediente y cuenta deshabilitada, si tiene. */
+/** Apaga o enciende la cuenta en Auth. Es el ÚNICO sitio que toca el ban (D-251): no hay otro camino. */
+async function ponAcceso(profileId: string, encendida: boolean): Promise<{ ok: boolean; message?: string }> {
+  let admin;
+  try { admin = createAdminClient(); }
+  catch { return { ok: false, message: "SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+  const { error } = await admin.auth.admin.updateUserById(profileId, { ban_duration: encendida ? "none" : BAN_INDEFINIDO });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
+
+/**
+ * Da de baja: fecha de salida, motivo, nota y quién la registró en el expediente; y, SI SE PIDE, la cuenta
+ * deshabilitada. Sobre alguien que ya está de baja corrige los datos de la baja.
+ *
+ * `quitarAcceso` es la casilla «Quitar también el acceso al hub» de la ventana. Antes la baja apagaba la cuenta
+ * siempre; ahora es una decisión que se ve, porque hay bajas que conservan el acceso unos días.
+ */
 export async function deactivateEmployee(
   fileId: string,
-  dateLeft?: string | null,
-): Promise<{ ok: boolean; message?: string }> {
+  datos: { fecha?: string | null; motivo?: string | null; nota?: string | null; quitarAcceso?: boolean } = {},
+): Promise<{ ok: boolean; message?: string; sinMotivo?: boolean; accesoQuitado?: boolean }> {
   const acceso = await comoAdminDeHr();
   if (!acceso.ok) return acceso;
   const { supabase, userId } = acceso;
+  if (normalizaMotivoBaja(datos.motivo) === undefined) return { ok: false, message: "Unknown reason for leaving." };
 
   const { data: file, error: leer } = await supabase
     .schema("recruiting").from("employee_files").select("id, profile_id").eq("id", fileId).maybeSingle();
@@ -246,22 +340,31 @@ export async function deactivateEmployee(
 
   // La fecha primero: si el ban falla, la baja queda registrada y se puede reintentar. Al
   // reves, cuenta apagada y expediente sin fecha, nadie sabria por que esa persona no entra.
-  const { error } = await supabase.schema("recruiting").from("employee_files")
-    .update({ ...parcheBaja(dateLeft), updated_at: new Date().toISOString(), updated_by: userId })
+  const sello = { updated_at: new Date().toISOString(), updated_by: userId };
+  const tabla = () => supabase.schema("recruiting").from("employee_files");
+  let sinMotivo = false;
+  let { error } = await tabla()
+    .update({ ...parcheBajaCompleto({ fecha: datos.fecha, motivo: datos.motivo, nota: datos.nota, quien: userId }), ...sello })
     .eq("id", fileId);
+  // Sin la 159 no hay dónde guardar el motivo: la baja se registra igual, con su fecha, y se dice.
+  if (error && esColumnaQueFalta(error)) {
+    sinMotivo = true;
+    ({ error } = await tabla().update({ ...parcheBaja(datos.fecha), ...sello }).eq("id", fileId));
+  }
   if (error) return { ok: false, message: error.message };
 
-  if (!file.profile_id) return { ok: true };
-  let admin;
-  try { admin = createAdminClient(); }
-  catch { return { ok: false, message: "Marked as left, but the account could not be disabled: SUPABASE_SERVICE_ROLE_KEY is missing." }; }
-  const { error: banError } = await admin.auth.admin.updateUserById(file.profile_id as string, { ban_duration: BAN_INDEFINIDO });
-  if (banError) return { ok: false, message: `Marked as left, but the account could not be disabled: ${banError.message}` };
-  return { ok: true };
+  if (!file.profile_id || !datos.quitarAcceso) return { ok: true, sinMotivo, accesoQuitado: false };
+  const ban = await ponAcceso(file.profile_id as string, false);
+  if (!ban.ok) return { ok: false, sinMotivo, message: `Marked as left, but the account could not be disabled: ${ban.message}` };
+  return { ok: true, sinMotivo, accesoQuitado: true };
 }
 
-/** Lo contrario: se borra la fecha y la cuenta vuelve a entrar. */
-export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean; message?: string }> {
+/**
+ * Lo contrario: se borra la fecha (y los datos de la baja). **NO devuelve el acceso al hub**: una cuenta
+ * apagada sigue apagada hasta que alguien pulse «Devolver acceso». Reactivar a alguien es decir que vuelve a
+ * trabajar aquí; que vuelva a entrar al hub, con los permisos que tenía, es otra decisión y se toma aparte.
+ */
+export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean; message?: string; tieneCuenta?: boolean }> {
   const acceso = await comoAdminDeHr();
   if (!acceso.ok) return acceso;
   const { supabase, userId } = acceso;
@@ -271,18 +374,32 @@ export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean;
   if (leer) return { ok: false, message: leer.message };
   if (!file) return { ok: false, message: "No such employee file." };
 
-  const { error } = await supabase.schema("recruiting").from("employee_files")
-    .update({ ...parcheAlta(), updated_at: new Date().toISOString(), updated_by: userId })
-    .eq("id", fileId);
+  const sello = { updated_at: new Date().toISOString(), updated_by: userId };
+  const tabla = () => supabase.schema("recruiting").from("employee_files");
+  let { error } = await tabla().update({ ...parcheAltaCompleto(), ...sello }).eq("id", fileId);
+  if (error && esColumnaQueFalta(error)) {
+    ({ error } = await tabla().update({ ...parcheAlta(), ...sello }).eq("id", fileId));
+  }
   if (error) return { ok: false, message: error.message };
+  return { ok: true, tieneCuenta: !!file.profile_id };
+}
 
-  if (!file.profile_id) return { ok: true };
-  let admin;
-  try { admin = createAdminClient(); }
-  catch { return { ok: false, message: "Marked as active, but the account could not be re-enabled: SUPABASE_SERVICE_ROLE_KEY is missing." }; }
-  const { error: banError } = await admin.auth.admin.updateUserById(file.profile_id as string, { ban_duration: "none" });
-  if (banError) return { ok: false, message: `Marked as active, but the account could not be re-enabled: ${banError.message}` };
-  return { ok: true };
+/**
+ * Quita o devuelve el acceso al hub de la cuenta de un expediente, sin tocar su estado. Es el mismo ban de
+ * D-251, con botón propio: lo que «Dar de baja» hace si se marca la casilla, y lo único que devuelve el acceso.
+ */
+export async function setHubAccess(fileId: string, encendida: boolean): Promise<{ ok: boolean; message?: string }> {
+  const acceso = await comoAdminDeHr();
+  if (!acceso.ok) return acceso;
+  const { supabase, userId } = acceso;
+
+  const { data: file, error: leer } = await supabase
+    .schema("recruiting").from("employee_files").select("id, profile_id").eq("id", fileId).maybeSingle();
+  if (leer) return { ok: false, message: leer.message };
+  if (!file) return { ok: false, message: "No such employee file." };
+  if (!file.profile_id) return { ok: false, message: "This person has no hub account." };
+  if (!encendida && file.profile_id === userId) return { ok: false, message: "You can't remove your own access." };
+  return ponAcceso(file.profile_id as string, encendida);
 }
 
 /**
