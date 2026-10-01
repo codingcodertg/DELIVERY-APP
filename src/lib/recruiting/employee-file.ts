@@ -184,6 +184,21 @@ export type FilaExpediente = {
   days_off: number | null;
   notes: string | null;
   docKinds: string[];
+  // ---- Migración 159. Mientras no esté aplicada llegan todas en null. ----
+  /** Puesto. */
+  job_title: string | null;
+  /** Teléfono PERSONAL: solo RR. HH. `phone` es el de oficina, el que enseña el directorio. */
+  personal_phone: string | null;
+  personal_email: string | null;
+  emergency_name: string | null;
+  emergency_relation: string | null;
+  emergency_phone: string | null;
+  left_reason: string | null;
+  left_note: string | null;
+  /** Quién registró la baja (perfil), y su nombre ya resuelto para enseñarlo. */
+  left_by: string | null;
+  left_by_name: string | null;
+  left_recorded_at: string | null;
 };
 
 /**
@@ -235,6 +250,17 @@ export function filasDeExpediente(
     days_off: (f.days_off as number) ?? null,
     notes: (f.notes as string) ?? null,
     docKinds: kindsDe.get(f.id as string) ?? [],
+    job_title: (f.job_title as string) ?? null,
+    personal_phone: (f.personal_phone as string) ?? null,
+    personal_email: (f.personal_email as string) ?? null,
+    emergency_name: (f.emergency_name as string) ?? null,
+    emergency_relation: (f.emergency_relation as string) ?? null,
+    emergency_phone: (f.emergency_phone as string) ?? null,
+    left_reason: (f.left_reason as string) ?? null,
+    left_note: (f.left_note as string) ?? null,
+    left_by: (f.left_by as string) ?? null,
+    left_by_name: f.left_by ? (nombreDePerfil.get(f.left_by as string) || null) : null,
+    left_recorded_at: (f.left_recorded_at as string) ?? null,
   });
 
   const filas = files.map((f) =>
@@ -308,4 +334,241 @@ export function normalizaGrupoDirectorio(v: string | null | undefined): GrupoDir
  */
 export function puedeEditarGrupoDirectorio(recruitingRole: string | null | undefined): boolean {
   return recruitingRole === "admin";
+}
+
+// =============================================================================================
+// Los botones del expediente y los campos de la 159 (dar de baja con motivo, agregar, «incompleto»)
+// =============================================================================================
+// Todo lo de aquí abajo es puro: lo usan la pantalla y las acciones de servidor, y se prueba sin base.
+
+/** Las columnas que añade la migración 159. Mientras no esté aplicada, `select("*")` no las trae. */
+export const COLUMNAS_159 = [
+  "job_title", "personal_phone", "personal_email",
+  "emergency_name", "emergency_relation", "emergency_phone",
+  "left_reason", "left_note", "left_by", "left_recorded_at",
+] as const;
+export type Columna159 = (typeof COLUMNAS_159)[number];
+
+/**
+ * ¿Está aplicada la 159? Se mira en las filas, no en un ajuste: con `select("*")` una columna que no existe
+ * llega AUSENTE (no `null`), así que basta con que una fila traiga la clave. Sin filas no se puede saber y se
+ * contesta que no: la pantalla apaga los campos nuevos, que es el lado seguro.
+ */
+export function tiene159(files: Record<string, unknown>[]): boolean {
+  return files.some((f) => "personal_phone" in f);
+}
+
+/**
+ * ¿Este error es «esa columna no existe»? PostgREST contesta PGRST204 cuando el cuerpo nombra una columna que
+ * no está en su caché de esquema, y Postgres 42703 cuando llega hasta él. Es como se reconoce que falta la 159.
+ */
+export function esColumnaQueFalta(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST204" || error.code === "42703") return true;
+  const m = error.message ?? "";
+  return /could not find the '.+' column/i.test(m) || /column .+ does not exist/i.test(m);
+}
+
+/** La lista corta de motivos de baja. Las claves son las del `check` de la 159; no se traducen. */
+export const MOTIVOS_BAJA = [
+  { key: "resignation", en: "Resigned", es: "Renuncia" },
+  { key: "termination", en: "Terminated", es: "Despido" },
+  { key: "abandonment", en: "Job abandonment", es: "Abandono de trabajo" },
+  { key: "contract_end", en: "End of contract", es: "Fin de contrato" },
+  { key: "other", en: "Other", es: "Otro" },
+] as const;
+export type MotivoBaja = (typeof MOTIVOS_BAJA)[number]["key"];
+
+/** Vacío = sin motivo (`null`); algo que no está en la lista = `undefined`, para rechazarlo con una frase. */
+export function normalizaMotivoBaja(v: string | null | undefined): MotivoBaja | null | undefined {
+  const limpio = (v ?? "").trim();
+  if (!limpio) return null;
+  return MOTIVOS_BAJA.some((m) => m.key === limpio) ? (limpio as MotivoBaja) : undefined;
+}
+
+export function etiquetaMotivoBaja(v: string | null | undefined, lang: "en" | "es"): string {
+  const m = MOTIVOS_BAJA.find((x) => x.key === v);
+  return m ? m[lang] : "";
+}
+
+/**
+ * El parche de una baja CON sus datos (159): fecha, motivo, nota, quién la registró y cuándo. La fecha sale de
+ * `parcheBaja`, que es la regla que ya había. `quien` es el perfil de quien pulsa el botón, no un campo libre.
+ */
+export function parcheBajaCompleto(d: {
+  fecha?: string | null; motivo?: string | null; nota?: string | null; quien: string; ahora?: Date;
+}): { date_left: string; left_reason: MotivoBaja | null; left_note: string | null; left_by: string; left_recorded_at: string } {
+  return {
+    ...parcheBaja(d.fecha),
+    left_reason: normalizaMotivoBaja(d.motivo) ?? null,
+    left_note: (d.nota ?? "").trim() || null,
+    left_by: d.quien,
+    left_recorded_at: (d.ahora ?? new Date()).toISOString(),
+  };
+}
+
+/** El parche de una reactivación con la 159: se va la fecha y con ella todo lo que describía la baja. */
+export function parcheAltaCompleto(): {
+  date_left: null; left_reason: null; left_note: null; left_by: null; left_recorded_at: null;
+} {
+  return { ...parcheAlta(), left_reason: null, left_note: null, left_by: null, left_recorded_at: null };
+}
+
+/** Quita de un parche las columnas de la 159: es lo que se guarda cuando la migración todavía no está. */
+export function sin159<T extends Record<string, unknown>>(patch: T): Partial<T> {
+  const fuera = new Set<string>(COLUMNAS_159);
+  return Object.fromEntries(Object.entries(patch).filter(([k]) => !fuera.has(k))) as Partial<T>;
+}
+
+/** Dar de baja, reactivar y tocar el acceso son del admin de RR. HH. (igual que en las acciones; D-251). */
+export function puedeDarDeBaja(recruitingRole: string | null | undefined): boolean {
+  return ["admin"].includes(recruitingRole ?? "");
+}
+
+/**
+ * La casilla «Quitar también el acceso al hub» de la ventana de baja. Solo se pinta si la persona tiene cuenta
+ * (sin cuenta no hay acceso que quitar), y sale MARCADA al dar de baja. Al corregir una baja que ya estaba
+ * sale sin marcar: quien dejó el acceso a propósito no lo pierde por arreglar el motivo.
+ */
+export function casillaQuitarAcceso(
+  f: { profile_id?: string | null; date_left?: string | null },
+): { visible: boolean; marcada: boolean } {
+  const visible = !!f.profile_id;
+  return { visible, marcada: visible && estadoEmpleado({ date_left: f.date_left ?? null }) === "activo" };
+}
+
+/** Hoy en la hora LOCAL de quien registra, `AAAA-MM-DD`. `toISOString` daría el día UTC, que por la tarde en
+ *  Texas ya es mañana: una baja registrada a las 7 p. m. saldría con fecha del día siguiente. */
+export function hoyLocalISO(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// ---- El filtro Activos / Bajas / Todos ------------------------------------------------------
+
+export type FiltroEstado = "activos" | "bajas" | "todos";
+
+export function filtraPorEstado<T extends Pick<EmployeeFileRow, "date_left">>(filas: T[], filtro: FiltroEstado): T[] {
+  if (filtro === "todos") return filas;
+  const quiere: EstadoEmpleado = filtro === "bajas" ? "baja" : "activo";
+  return filas.filter((f) => estadoEmpleado(f) === quiere);
+}
+
+export function cuentaPorEstado(filas: Pick<EmployeeFileRow, "date_left">[]): Record<FiltroEstado, number> {
+  const bajas = filas.filter((f) => estadoEmpleado(f) === "baja").length;
+  return { activos: filas.length - bajas, bajas, todos: filas.length };
+}
+
+// ---- Teléfonos ------------------------------------------------------------------------------
+
+/**
+ * Un teléfono como lo guarda la ficha: `956-555-0123` (D-432) si es un número de EE. UU. completo —con
+ * paréntesis, espacios, puntos o `+1` delante—, y si no, lo escrito sin tocar. Vacío es `null`.
+ */
+export function telefonoDeFicha(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  const d = v.replace(/\D/g, "");
+  const diez = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
+  // Solo se reescribe si lo tecleado es un número y nada más: «ext. 12» o un texto se dejan como están.
+  if (diez.length !== 10 || /[a-z]/i.test(v)) return v;
+  return `${diez.slice(0, 3)}-${diez.slice(3, 6)}-${diez.slice(6)}`;
+}
+
+// ---- ¿Sale en el directorio? ----------------------------------------------------------------
+
+export type FaltaParaDirectorio = "baja" | "ext" | "phone";
+
+/**
+ * La misma condición que el `where` de `public.phone_book()` (117): activa, CON extensión y CON teléfono de
+ * oficina. Está escrita aquí para que la ficha diga por qué alguien no sale, sin preguntarle a la base. Si esa
+ * función cambia de regla, esta cambia con ella (hay una prueba que lee el `.sql`).
+ */
+export function saleEnDirectorio(
+  f: Pick<EmployeeFileRow, "date_left" | "phone" | "ringcentral_ext">,
+): { sale: boolean; falta: FaltaParaDirectorio[] } {
+  const falta: FaltaParaDirectorio[] = [];
+  if (estadoEmpleado(f) === "baja") falta.push("baja");
+  if (!(f.ringcentral_ext ?? "").trim()) falta.push("ext");
+  if (!(f.phone ?? "").trim()) falta.push("phone");
+  return { sale: falta.length === 0, falta };
+}
+
+// ---- Expediente incompleto ------------------------------------------------------------------
+
+export type CampoQueFalta =
+  | "date_hired" | "department" | "store"
+  | "job_title" | "personal_phone" | "emergency" | "left_reason";
+
+export const ETIQUETAS_CAMPO: Record<CampoQueFalta, { en: string; es: string }> = {
+  date_hired: { en: "Date hired", es: "Fecha de ingreso" },
+  department: { en: "Department", es: "Departamento" },
+  store: { en: "Store", es: "Tienda" },
+  job_title: { en: "Position", es: "Puesto" },
+  personal_phone: { en: "Personal phone", es: "Teléfono personal" },
+  emergency: { en: "Emergency contact", es: "Contacto de emergencia" },
+  left_reason: { en: "Reason for leaving", es: "Motivo de baja" },
+};
+
+type ParaIncompleto = Pick<EmployeeFileRow, "date_hired" | "date_left" | "department" | "store" | "directory_group"> & {
+  account_store?: string | null;
+  job_title?: string | null; personal_phone?: string | null;
+  emergency_name?: string | null; emergency_phone?: string | null; left_reason?: string | null;
+};
+
+/**
+ * Qué le falta a un expediente para estar «bien lleno». Es la lista que se enseña por persona y la que cuenta
+ * el contador de arriba.
+ *
+ * El teléfono de oficina y la extensión NO están aquí a propósito: no tenerlos es un estado válido (almacén,
+ * choferes), y lo que eso cambia —salir o no en el directorio— se dice aparte con `saleEnDirectorio`. La tienda
+ * tampoco se pide a quien va en un grupo especial del directorio («remote», «sin tienda»): no tenerla es su caso.
+ *
+ * Sin la 159 solo se juzga lo que la tabla ya tiene: pedir un campo que no se puede escribir dejaría a todo el
+ * mundo «incompleto» sin remedio.
+ */
+export function camposQueFaltan(f: ParaIncompleto, con159: boolean): CampoQueFalta[] {
+  const vacio = (v: string | null | undefined) => !(v ?? "").trim();
+  const falta: CampoQueFalta[] = [];
+  if (vacio(f.date_hired)) falta.push("date_hired");
+  if (vacio(f.department)) falta.push("department");
+  if (!tiendaVisible(f) && vacio(f.directory_group)) falta.push("store");
+  if (!con159) return falta;
+  if (vacio(f.job_title)) falta.push("job_title");
+  if (vacio(f.personal_phone)) falta.push("personal_phone");
+  if (vacio(f.emergency_name) || vacio(f.emergency_phone)) falta.push("emergency");
+  if (estadoEmpleado(f) === "baja" && vacio(f.left_reason)) falta.push("left_reason");
+  return falta;
+}
+
+/** Cuántos expedientes de la lista están incompletos. */
+export function cuentaIncompletos(filas: ParaIncompleto[], con159: boolean): number {
+  return filas.filter((f) => camposQueFaltan(f, con159).length > 0).length;
+}
+
+// ---- Agregar un empleado --------------------------------------------------------------------
+
+/**
+ * Lo que se inserta al agregar a alguien SIN cuenta del hub. Con cuenta no se inserta nada desde aquí: la
+ * cuenta se crea en Usuarios y el trigger de la 106 le crea su expediente. Devuelve `null` si no hay nombre,
+ * que es lo único obligatorio.
+ */
+export function filaNueva(d: {
+  full_name: string; date_hired?: string | null; department?: string | null; store?: string | null;
+  phone?: string | null; ringcentral_ext?: string | null; job_title?: string | null; personal_phone?: string | null;
+}, con159: boolean): Record<string, unknown> | null {
+  const nombre = (d.full_name ?? "").trim().replace(/\s+/g, " ");
+  if (!nombre) return null;
+  const txt = (v: string | null | undefined) => (v ?? "").trim() || null;
+  const base: Record<string, unknown> = {
+    full_name: nombre,
+    profile_id: null,
+    date_hired: txt(d.date_hired),
+    department: txt(d.department),
+    store: txt(d.store),
+    phone: telefonoDeFicha(d.phone),
+    ringcentral_ext: limpiaExtension(d.ringcentral_ext),
+  };
+  if (!con159) return base;
+  return { ...base, job_title: txt(d.job_title), personal_phone: telefonoDeFicha(d.personal_phone) };
 }
