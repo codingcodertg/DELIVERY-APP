@@ -11,6 +11,10 @@ import { CATALOG_PAGE } from "@/lib/erp/catalog";
 import type { CatalogRow, CatalogQuery } from "@/lib/erp/catalog";
 import type { StoreStats, VendorStats, CategoryStats } from "@/lib/erp/analytics";
 import { fail, type ErpFail } from "@/lib/erp/messages";
+import {
+  filaBorrador, filaDeSolicitud, esMigracionPendiente,
+  type ArticuloNuevo, type TipoDeSolicitud, type EstadoDelSolicitante,
+} from "@/lib/erp/solicitud-campos";
 
 // Un fallo con mensaje propio va como código (ErpFail, G-10b); `error` queda para los mensajes de
 // Supabase, que la pantalla enseña tal cual.
@@ -220,24 +224,21 @@ export async function publishProduct(productId: number): Promise<Result> {
   return { ok: true };
 }
 
-export type NewItemInput = {
-  sku: string;
-  name: string;
-  product_type: string;
-  status: string;
-  category_id?: number | null;
-  vendor_id?: number | null;
-  mpn?: string;
-  material?: string;
-  finish?: string;
-  size_in?: string;
-  base_unit?: string;
-  sf_per_box?: string;
-  store?: string;
-  reason?: string;
-};
+/** Lo que manda el formulario de artículo nuevo / copia (solicitud-campos.ts: la hoja del dueño). */
+export type NewItemInput = ArticuloNuevo;
 
-/** New-item request → creates a draft product (record_status='draft') + logs a product_request. */
+/**
+ * ¿Está aplicada la 158? Una lectura de cero filas sobre la columna nueva: si la columna no existe,
+ * PostgREST contesta 42703 / PGRST204 sin escribir nada. Se pregunta ANTES de crear el borrador en
+ * los casos que la necesitan ('copy', «No lista»), para no dejar un producto sin su solicitud.
+ */
+async function migracion158Aplicada(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+  const { error } = await supabase.from("product_requests").select("requester_status").limit(0);
+  return !error;
+}
+
+/** New-item / copy request → creates a draft product (record_status='draft') + logs a product_request
+ *  that points at it (product_id), with the requester status (READY / NOT READY) of the owner's sheet. */
 export async function submitNewItem(
   input: NewItemInput
 ): Promise<{ ok: true; sku: string } | { ok: false; error: string } | ErpFail> {
@@ -247,68 +248,75 @@ export async function submitNewItem(
   } = await supabase.auth.getUser();
   if (!user) return fail("NOT_SIGNED_IN");
 
-  const sku = (input.sku || "").trim().toUpperCase();
-  if (!sku || !input.name?.trim() || !input.product_type || !input.status) {
+  if (!input.name?.trim() || !input.product_type || !input.status) {
     return fail("NEW_ITEM_FIELDS_REQUIRED");
   }
+  const tipo: TipoDeSolicitud = input.copy_source ? "copy" : "new";
+  if ((tipo === "copy" || input.requester_status === "not_ready") && !(await migracion158Aplicada(supabase))) {
+    return fail("MIGRATION_PENDING");
+  }
 
-  const row = {
-    sku,
-    name: input.name.trim(),
-    status: input.status,
-    record_status: "draft",
-    product_type: input.product_type,
-    category_id: input.category_id || null,
-    vendor_id: input.vendor_id || null,
-    mpn: input.mpn?.trim() || null,
-    material: input.material || null,
-    finish: input.finish || null,
-    size_in: input.size_in?.trim() || null,
-    base_unit: input.base_unit || null,
-    sf_per_box: input.sf_per_box ? Number(input.sf_per_box) : null,
-    needs_review: false,
-    review_tags: [] as string[],
-    taxable: true,
-    created_by: user.id,
-  };
-
+  const row = filaBorrador(input, user.id);
+  // Sin `.select()`: quien pide (staff) no puede LEER su propio borrador (política «products read»:
+  // publicados, o admin/manager), y un INSERT ... RETURNING se lo rechaza la RLS (ensayo 2026-09-30).
+  // La solicitud no lleva product_id; el borrador se encuentra por el SKU del payload (set_request_ready).
   const { error } = await supabase.from("products").insert(row);
   if (error) return { ok: false, error: error.message };
 
-  await supabase.from("product_requests").insert({
-    type: "new",
-    requester: user.id,
-    requester_store: input.store || null,
-    payload: row,
-    reason: input.reason || null,
-  });
+  const { error: reqError } = await supabase.from("product_requests").insert(
+    filaDeSolicitud({
+      type: tipo,
+      requester: user.id,
+      store: input.store,
+      reason: input.reason,
+      payload: { ...row, ...(input.copy_source ? { copy_source: input.copy_source } : {}) },
+      requester_status: input.requester_status,
+    }),
+  );
   revalidatePath("/erp/catalog");
-  return { ok: true, sku };
+  revalidatePath("/erp/request");
+  // El borrador ya existe; si la solicitud no entró, se dice (antes se callaba) pero no se repite el alta.
+  if (reqError) return esMigracionPendiente(reqError) ? fail("MIGRATION_PENDING") : { ok: false, error: reqError.message };
+  return { ok: true, sku: row.sku };
 }
 
-/** Edit / reactivate / deactivate request against an existing product. Edit carries a payload of
- *  proposed field changes; the review UI shows current-vs-proposed and applies it on approve. */
+/** Edit / reactivate / deactivate / discontinue request against an existing product. Edit carries a
+ *  payload of proposed field changes; the review UI shows current-vs-proposed and applies it on approve. */
 export async function submitRequest(input: {
-  type: "edit" | "reactivate" | "deactivate";
+  type: "edit" | "reactivate" | "deactivate" | "discontinue";
   product_id: number;
   reason?: string;
   payload?: Record<string, unknown>;
   store?: string;
+  requester_status?: EstadoDelSolicitante;
 }): Promise<Result> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return fail("NOT_SIGNED_IN");
-  const { error } = await supabase.from("product_requests").insert({
-    type: input.type,
-    product_id: input.product_id,
-    requester: user.id,
-    requester_store: input.store || null,
-    reason: input.reason || null,
-    payload: input.payload || {},
-  });
-  if (error) return { ok: false, error: error.message };
+  const { error } = await supabase.from("product_requests").insert(
+    filaDeSolicitud({
+      type: input.type,
+      product_id: input.product_id,
+      requester: user.id,
+      store: input.store,
+      reason: input.reason,
+      payload: input.payload || {},
+      requester_status: input.requester_status,
+    }),
+  );
+  if (error) return esMigracionPendiente(error) ? fail("MIGRATION_PENDING") : { ok: false, error: error.message };
+  revalidatePath("/erp/request");
+  revalidatePath("/erp/requests");
+  return { ok: true };
+}
+
+/** REQUESTER STATUS: quien pidió marca su solicitud pendiente como lista / no lista (RPC de la 158). */
+export async function setRequestReady(requestId: number, ready: boolean): Promise<Result> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_request_ready", { p_request_id: requestId, p_ready: ready });
+  if (error) return esMigracionPendiente(error) ? fail("MIGRATION_PENDING") : { ok: false, error: error.message };
   revalidatePath("/erp/request");
   revalidatePath("/erp/requests");
   return { ok: true };

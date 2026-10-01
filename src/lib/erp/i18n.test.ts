@@ -222,11 +222,14 @@ describe("G-10b · cada código emitido tiene su par, y ningún par sobra", () =
   const emitidos = codigosEmitidos();
   const codigos = [...new Set(emitidos.map((e) => e.codigo))];
 
-  it("el inventario medido: 13 sitios en actions.ts (11 códigos) y 6 en po-parse.ts (5 códigos)", () => {
+  // 2026-09-30 (solicitud de artículo, hoja del dueño): 13 → 17 sitios y 11 → 12 códigos en actions.ts,
+  // por MIGRATION_PENDING (copy / discontinue / «no lista» sin la 158: dos en submitNewItem, uno en
+  // submitRequest, uno en setRequestReady). El código no lleva dígitos a propósito: `recoger` solo ve [A-Z_].
+  it("el inventario medido: 17 sitios en actions.ts (12 códigos) y 6 en po-parse.ts (5 códigos)", () => {
     const enActions = emitidos.filter((e) => e.donde.startsWith(ACTIONS));
     const enParse = emitidos.filter((e) => e.donde.startsWith(PO_PARSE));
-    expect(enActions).toHaveLength(13);
-    expect(new Set(enActions.map((e) => e.codigo)).size).toBe(11);
+    expect(enActions).toHaveLength(17);
+    expect(new Set(enActions.map((e) => e.codigo)).size).toBe(12);
     expect(enParse).toHaveLength(6);
     expect(new Set(enParse.map((e) => e.codigo)).size).toBe(5);
   });

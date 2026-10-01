@@ -33871,3 +33871,168 @@ Escena: la orden `#1083` de Pharr a 15 pallets, hoy, de Diego Driver, camión de
 - Los botones del Gestor contra la base real (medidos en el demo, que escribe en memoria).
 - Un plan publicado antes de esto con cargas virtuales, leído después (el código no cambió; no se probó con datos reales).
 - Cuántos avisos al cliente salen con una orden partida (dos, por el código de avisos por fila): no se disparó ninguno.
+
+## D-NEXT · La solicitud de artículo del ERP, columna por columna de la hoja del dueño: dos tipos nuevos (copia, descontinuar), REQUESTER STATUS, tienda, y los campos que faltaban (migración 158)
+
+**Fecha:** 2026-09-30 · **Versión:** la asigna el orquestador al fusionar · **Migración:** `158_erp_solicitud_campos.sql`,
+**escrita y NO aplicada** (plan: `docs/PLAN-158-erp-solicitud-campos.md`; ensayada contra producción con ROLLBACK, 33 de 33).
+**No toca ninguna política ni ningún dato de `products`**; las 332 solicitudes que hay cambian de tipo de columna (enum →
+texto) sin cambiar de valor y quedan `ready`.
+
+### Qué pidió el dueño
+
+El 2026-09-30 (literal, tal como lo pasó el orquestador):
+
+> *«en el erp en solicitud quiero que me agregues esa columnas si aun no esta como fields par allenar»*
+
+«Esas columnas» son las de su hoja de Excel de solicitudes de artículos (dos capturas del 2026-09-29): Date · Location ·
+Required by · Executed by · Request Change · Reactivate · Deactivate (if QOH = 0) · Discontinue (same as deactivate but can
+still have QOH) · Create New · Create Copy · Copy Source: Store & Item Code · Requester Comments · REQUESTER STATUS · EXECUTOR
+STATUS · Executor Comments · Category · Type · Material · Style · Color · Preferred Vendor · Manufacturer's part number ·
+Description on purchase transactions · Cost · Shine · Size · SF/Box · U/M · Item Number (if known) · Description on sales
+transactions · Sales price · Fixed Price or Levels. La fila de ejemplo de la hoja: 3/25/2024 · BRO · Gloria S. · Minerva G. ·
+Request Change = X · «New part Num» · NOT READY · DONE · UNCATEGORIZED · EMSER TILE · 0 · «OPUSCAR PEBBLES MOSAIC LIGHT 12 X 12
+1SF» · $5.35 · EACH · E-102 · «OPUSCAR PEBBLES MOSAIC LIGHT 12 X 12 1SF» · $14.99.
+
+### Lo que había, medido (2026-09-30, producción en solo lectura)
+
+`/erp/request` tenía cuatro tipos (`new`, `edit`, `reactivate`, `deactivate`; enum `erp.request_type` de la 063) y en «new»
+pedía SKU (obligatorio), nombre, tipo, estado, categoría, proveedor, MPN, material, acabado, tamaño, SF/caja, unidad base, costo
+(solo admin/manager) y motivo. En la base: **331 solicitudes `new` pendientes** (todas del round-trip del Excel maestro,
+payload `sku`/`name`/`source`) y **1 `edit` aprobada**; `requester_store` **nulo en las 332** (la columna existía desde la
+063, el formulario nunca la mandaba); `products.description` **vacía en las 6.859 filas**, `style` en 961, `color1` en 1.121,
+`price_kind`/`price_mode` nulos en todas; `decide_request` y `product_vocabulary` eran las de la 064 letra por letra.
+
+### El mapa: columna de la hoja → campo del ERP
+
+Vive en `src/lib/erp/solicitud-campos.ts` (`MAPA_DE_LA_HOJA`); una prueba contrasta cada campo con las columnas reales de la
+063 y exige que las 32 columnas estén, en su orden.
+
+| Columna de la hoja | Campo | Dónde | Estado |
+|---|---|---|---|
+| Date | `created_at` | `product_requests` | existía |
+| Location | `requester_store` | `product_requests` | existía la columna; **el formulario no la llenaba** → ahora «Location (store)», selector de `erp.stores` |
+| Required by | `requester` | `product_requests` | existía |
+| Executed by | `decided_by` | `product_requests` | existía |
+| Request Change | tipo `edit` | `type` | existía (rótulo nuevo: «Request change / Solicitar cambio») |
+| Reactivate | tipo `reactivate` | `type` | existía |
+| Deactivate (if QOH = 0) | tipo `deactivate` | `type` | existía; **la regla «QOH = 0» es nueva**: el formulario la bloquea y la revisión la avisa |
+| Discontinue (…can still have QOH) | tipo **`discontinue`** | `type` | **nuevo**: al aprobar, `status = 'discontinued'` (deactivate sigue dando `inactive`) |
+| Create New | tipo `new` | `type` | existía |
+| Create Copy | tipo **`copy`** | `type` | **nuevo**: tienda + código de artículo → precarga el formulario con ese producto (todo menos el SKU) |
+| Copy Source: Store & Item Code | `payload.copy_source` (`store`, `item_code`, `product_id`, `sku`) | `product_requests` | **nuevo**; el código se busca por SKU y, si no, por `store_products.qb_code` de esa tienda |
+| Requester Comments | `reason` | `product_requests` | existía (rótulo «Requester comments») |
+| REQUESTER STATUS | **`requester_status`** (`ready` \| `not_ready`) | `product_requests` | **nuevo** (columna, migración 158) |
+| EXECUTOR STATUS | `status` (pending / approved / rejected) | `product_requests` | existía; se pinta «Executor: Approved» en «Tus solicitudes recientes» |
+| Executor Comments | `decision_note` | `product_requests` | existía; se pinta «Executor comments: “…”» |
+| Category | `category_id` | `products` | existía |
+| Type | `product_type` | `products` | existía |
+| Material | `material` | `products` | existía |
+| Style | `style` | `products` | **nuevo en el formulario** (la columna existía); sugerencias del vocabulario |
+| Color | `color1` | `products` | **nuevo en el formulario**; sugerencias del vocabulario |
+| Preferred Vendor | `vendor_id` | `products` | existía |
+| Manufacturer's part number | `mpn` | `products` | existía |
+| Description on purchase transactions | `description` | `products` | **nuevo en el formulario** (columna vacía en todas las filas) |
+| Cost | `cost` | `products` | existía; solo quien `canSeeCost` |
+| Shine | `finish` | `products` | existía (rótulo «Shine (finish)») |
+| Size | `size_in` | `products` | existía |
+| SF/Box | `sf_per_box` | `products` | existía |
+| U/M | `base_unit` | `products` | existía (rótulo «U/M (base unit)») |
+| Item Number (if known) | `sku` | `products` | existía como **obligatorio**; ahora opcional: sin él, SKU provisional `REQ-…` + etiqueta `NEEDS SKU` |
+| Description on sales transactions | `name` | `products` | existía (es el nombre del catálogo) |
+| Sales price | `price` | `products` | **nuevo en el formulario**; lo ven todos (no es costo) |
+| Fixed Price or Levels | `price_mode` (`fixed` \| `leveled`) | `products` | **nuevo en el formulario**; `price_kind` (general/specific) no está en la hoja y no se añade |
+
+### Qué cambió
+
+- **Migración 158** (plan §1-§9): `product_requests.type` pasa de enum a **texto con CHECK** de seis valores (y el enum se
+  borra: su único dependiente era la columna); columna **`requester_status`** (`ready` por defecto); **`set_request_ready(id,
+  bool)`** DEFINER (solo pendientes; quien la pidió, o admin/manager; en new/copy mueve la etiqueta `NOT READY` del borrador,
+  encontrándolo por `payload->>'sku'`); **`decide_request`** = la 064 + rechazar la aprobación de una `not_ready` + rama
+  `discontinue` + `description`/`price_mode`/`style`/`color1` en la edición; **`product_vocabulary`** = la 064 + `style` y
+  `color`. Autocomprobación al final.
+- **`src/lib/erp/solicitud-campos.ts`** (nuevo, puro): el mapa, los campos del artículo en el orden de la hoja con su rótulo en
+  los dos idiomas, los de edición, qué viaja (`articuloDesdeElFormulario`, `filaBorrador`, `filaDeSolicitud`,
+  `cambiosPropuestos`), los obligatorios (`articuloCompleto`), la regla de desactivar (`puedeDesactivar`) y el reconocimiento
+  de «migración pendiente» (`esMigracionPendiente`).
+- **`/erp/request`** (`request-form.tsx`): seis pestañas; cabecera con **Location** y **Requester status**; en «Create copy»,
+  el origen (tienda + código, «Load») precarga el formulario; los campos del artículo en el orden de la hoja (categoría, tipo,
+  estado, material, estilo, color, proveedor, MPN, descripción en compras, costo, brillo, tamaño, SF/caja, U/M, número de
+  artículo, descripción en ventas, precio de venta, fijo o niveles) con sugerencias (`datalist`) para material, estilo, color,
+  brillo y U/M; «Deactivate» se bloquea con QOH > 0 y manda a «Discontinue»; la edición propone también estilo, color,
+  descripción en compras y fijo/niveles. «Tus solicitudes recientes» enseña tienda, «Requester: Ready/Not ready» con el botón
+  para cambiarlo (`RequestReadyToggle`), «Executor: …» y «Executor comments».
+- **`/erp/requests`** (cola del ejecutor): atiende `edit`/`reactivate`/`deactivate`/`discontinue`; una NO LISTA sale atenuada,
+  con «Aprobar» apagado (y la base también lo rechaza); los campos de una edición salen con su rótulo, no con la clave; el aviso
+  de QOH en un deactivate; cuenta los borradores `new` **y `copy`** que esperan en el Catálogo.
+- **`actions.ts`**: `submitNewItem` crea el borrador **sin `RETURNING`** y registra la solicitud (`copy` si lleva origen); antes
+  de crear nada, si hace falta la 158 (copy o «no lista»), una lectura de cero filas de `requester_status` dice si está;
+  `submitRequest` acepta `discontinue`; `setRequestReady` nuevo. Sin la 158: new/edit/reactivate/deactivate siguen entrando
+  (el `requester_status` por defecto no viaja); copy, discontinue y «no lista» contestan `MIGRATION_PENDING` («esta opción
+  necesita una actualización de la base que aún no está aplicada»), no un 500. Las páginas leen `*` de `product_requests`
+  para no caerse mientras la columna no exista.
+- **`product-detail.tsx`**: el panel de asignar SKU vale también para un borrador con `NEEDS SKU` (antes solo `PO IMPORT`).
+- **`status.ts`**: `copy`, `discontinue`, `ready`, `not_ready`; `new` → «Create new / Crear nuevo», `edit` → «Request change /
+  Solicitar cambio».
+
+### Decisiones y lo descartado
+
+1. **Texto + CHECK en vez de `alter type … add value`.** Un valor nuevo de enum no se puede usar en la misma transacción que lo
+   añade: la matriz con ROLLBACK no habría podido probar `copy` ni `discontinue`. Descartado el enum ampliado por eso.
+2. **`requester_status` como columna, no en el payload.** La cola filtra por ella y `decide_request` la comprueba sin abrir el
+   JSON. Descartada una política de UPDATE para el solicitante (no limita columnas: podría tocar `status` o `decided_by`); en su
+   lugar la función DEFINER que solo toca `requester_status` y la etiqueta.
+3. **«Description on purchase transactions» → `products.description`; «…on sales transactions» → `name`.** `description`
+   existe y está vacía en todas las filas; `name` es lo que el catálogo y la hoja de ventas ya usan. Descartadas dos columnas
+   nuevas: habrían exigido recrear `app_products` (101) y tocar el round-trip del Excel maestro.
+4. **El SKU deja de ser obligatorio** («Item Number (if known)»): sin él, `REQ-<marca>` (cumple `products_sku_check`) y la
+   etiqueta `NEEDS SKU`; el admin lo sustituye con `assign_draft_sku`, que ya existía para los borradores de OC.
+5. **La solicitud `new`/`copy` no lleva `product_id`**: la RLS de lectura de `products` no deja al staff ver su propio borrador
+   y un `INSERT … RETURNING` se lo rechaza (salió en el ensayo). El borrador se encuentra por el SKU del payload.
+6. **Descartado crear borrador y solicitud en una sola función DEFINER**: obligaría a dos caminos (con y sin 158). Con la
+   forma elegida el camino de siempre no depende de la 158.
+7. **`/erp/review` no es la revisión de solicitudes**: es la cola de calidad de datos (M0). Los rótulos «Executor status» y
+   «Executor comments» están donde se decide (`/erp/requests`) y donde se ve el resultado (`/erp/request`).
+8. **Una NO LISTA de tipo new/copy crea el borrador igual** (con la etiqueta `NOT READY` y `needs_review`): el Catálogo no
+   sabe de solicitudes, y la etiqueta es lo que ve el admin antes de publicar. Validar con el dueño si prefiere que el borrador
+   no exista hasta marcarla lista.
+
+### Pruebas y mutantes
+
+`src/lib/erp/solicitud-campos.test.ts` (31): la hoja (32 columnas en orden; cada campo existe en la 063 o lo añade la 158; los
+seis tipos; lo nuevo; el orden; rótulos en dos idiomas; el costo solo para quien lo ve), lo que viaja (costo, obligatorios,
+SKU provisional y etiquetas, `requester_status` solo cuando no es el defecto, cambios propuestos, QOH = 0, «migración
+pendiente»), las pantallas (la prueba se alimenta de quien llama: formulario, acciones, sonda, cola, revisión, página, toggle,
+detalle) y la migración (`decide_request` = 064 + 7 líneas exactas; `type` texto; `set_request_ready` definer y grants;
+`product_vocabulary` = 064 + style/color; sin begin/commit; sin el marcador de la decisión dentro del `.sql`; checksum al día y en el plan). El inventario del
+guardián de i18n sube de 13 a 17 sitios (12 códigos) por `MIGRATION_PENDING`.
+
+**Mutantes: 24 de 24 caen** con una prueba con nombre (tanda en el scratchpad del worker, `w-solicitud-campos/tanda.json`), p. ej.
+M1 «el mapa pierde la columna Style» → «el mapa cubre las 32 columnas de la hoja, en su orden»; M4 «el costo viaja aunque quien
+pide no pueda verlo» → «el costo viaja solo si quien pide puede verlo»; M7 «requester_status viaja siempre (sin la 158 tumbaría
+toda solicitud)» → «requester_status solo viaja cuando es not_ready»; M9 «desactivar se permite con existencia» → «Deactivate (if
+QOH = 0)»; M13 «el formulario deja enviar un deactivate con QOH > 0» → «el formulario pinta los seis tipos…»; M14 «submitNewItem
+registra una copia como new»; M15 «la sonda de la 158 dice siempre que está aplicada»; M17 «“Aprobar” sigue encendido en una NO
+LISTA»; M18 «decide_request aprueba una NO LISTA» y M19 «discontinue pone inactive» → «decide_request es la de la 064 letra por
+letra, más…»; M20 «anon conserva EXECUTE sobre set_request_ready».
+
+### Ensayo de la 158 contra producción (2026-09-30, ROLLBACK): 33 de 33
+
+Con los UUID reales de un admin, un perfil de ventas (que recibe `staff` del ERP dentro de la transacción) y uno de gerente
+(`manager`), y productos `ZZ158A/B/C` creados como postgres: las 332 filas siguen con su tipo y estado y quedan `ready`; el
+staff mete `new` con tienda, `copy` NO LISTA con `copy_source`, `discontinue`; el CHECK rechaza un tipo y un estado inventados;
+marcar lista/no lista mueve `NOT READY` del borrador; el staff no decide, lee solo las suyas, y otro usuario no marca la ajena;
+el gerente no aprueba una NO LISTA (y el producto no cambia), la marca lista y la aprueba (`discontinued`, `decided_by`,
+nota), aplica una edición con description/style/color1/price_mode/price, la base rechaza `price_mode` inválido, rechaza una NO
+LISTA, deactivate → `inactive` y reactivate → `active` siguen, decidir o marcar una ya decidida falla, aprobar un `new` no
+publica; anon no entra; 332 solicitudes, 6.859 productos y 3 políticas antes y después. Tres pasadas previas cayeron y se
+corrigieron (`is_nullable = 'NO'`; el `RETURNING` del staff; el `select *` con `cost` revocada). Comprobado después que no
+quedó nada.
+
+### No verificado
+
+- La app contra la 158 **aplicada** (el formulario mandando copy / discontinue / «no lista» de verdad): la app con pruebas de
+  fuente, la base con la matriz; no las dos juntas.
+- El formulario en el navegador: `/erp/request` exige sesión y lee la base; el ERP no tiene demo.
+- Un perfil `staff` real del ERP: hoy los 4 con el módulo son admin.
+- La caché de esquema de PostgREST tras aplicar (si tarda, `notify pgrst, 'reload schema'`).

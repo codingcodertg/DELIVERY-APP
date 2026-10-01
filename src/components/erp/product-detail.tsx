@@ -193,7 +193,8 @@ export function ProductDetail({
       )}
 
       {dref && <div className="mt-4"><DaltileCard dref={dref} canManage={canManage} /></div>}
-      {showCost && p.record_status === "draft" && Array.isArray(p.review_tags) && p.review_tags.includes("PO IMPORT") && (
+      {/* El panel de asignar SKU vale para los borradores de OC («PO IMPORT») y para una solicitud sin número de artículo («NEEDS SKU», solicitud-campos.ts). */}
+      {showCost && p.record_status === "draft" && Array.isArray(p.review_tags) && (p.review_tags.includes("PO IMPORT") || p.review_tags.includes("NEEDS SKU")) && (
         <PoDraftPanel productId={p.id} mpn={p.mpn} cost={p.cost} vendorName={p.vendor_name} />
       )}
 

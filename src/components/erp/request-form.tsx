@@ -9,40 +9,33 @@ import { statusLabel } from "@/lib/erp/status";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/erp/supabase/client";
 import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
-import { submitNewItem, submitRequest, type NewItemInput } from "@/lib/erp/actions";
+import { submitNewItem, submitRequest } from "@/lib/erp/actions";
 import { failText } from "@/lib/erp/messages";
+import {
+  CAMPOS_DEL_ARTICULO, CAMPOS_DE_EDICION, TIPOS_DE_SOLICITUD, MODOS_DE_PRECIO, ESTADOS_DEL_SOLICITANTE,
+  articuloDesdeElFormulario, articuloCompleto, cambiosPropuestos, camposVisibles, puedeDesactivar,
+  type TipoDeSolicitud, type EstadoDelSolicitante, type OrigenDeCopia, type CampoDeArticulo,
+} from "@/lib/erp/solicitud-campos";
+
+// La hoja de solicitudes del dueño (2026-09-30), columna por columna: el mapa y el orden están en
+// solicitud-campos.ts; aquí solo se pinta. Seis tipos (new, copy, edit, reactivate, deactivate,
+// discontinue), Location (tienda), REQUESTER STATUS (lista / no lista), y en «copy» el origen
+// (tienda + código de artículo) que precarga el formulario.
 
 const PRODUCT_TYPES = ["tile", "trim", "setting_material", "tool", "accessory", "other"];
 const STATUSES = ["active", "special_order", "discontinued", "inactive"];
-const REQ_TYPES = ["new", "edit", "reactivate", "deactivate"] as const;
-type ReqType = (typeof REQ_TYPES)[number];
 
 type T = (en: string, es: string) => string;
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs). Las claves de campo son las que
 // viajan al servidor y no cambian; solo la etiqueta. Tipos de producto, estados y tipos de
 // solicitud son enumerados fijos: su etiqueta sale de statusLabel (status.ts) y se elige con t().
-const EDIT_KEYS: { key: string; cost?: boolean }[] = [
-  { key: "name" }, { key: "price" }, { key: "cost", cost: true }, { key: "base_unit" }, { key: "sf_per_box" },
-  { key: "pieces_per_box" }, { key: "size_in" }, { key: "size_cm" }, { key: "material" }, { key: "finish" }, { key: "mpn" },
-];
-const editFields = (t: T): { key: string; label: string; cost?: boolean }[] => [
-  { key: "name", label: t("Name", "Nombre") },
-  { key: "price", label: t("Price", "Precio") },
-  { key: "cost", label: t("Cost", "Costo"), cost: true },
-  { key: "base_unit", label: t("Base unit", "Unidad base") },
-  { key: "sf_per_box", label: t("SF / box", "SF / caja") },
-  { key: "pieces_per_box", label: t("Pieces / box", "Piezas / caja") },
-  { key: "size_in", label: t("Size (in)", "Tamaño (in)") },
-  { key: "size_cm", label: t("Size (cm)", "Tamaño (cm)") },
-  { key: "material", label: t("Material", "Material") },
-  { key: "finish", label: t("Finish", "Acabado") },
-  { key: "mpn", label: "MPN" },
-];
-const LOOKUP_COLS = "id,sku,name,status," + EDIT_KEYS.map((f) => f.key).filter((k) => k !== "name").join(",");
+const LOOKUP_COLS = "id,sku,name,status,qoh,product_type,category_id,vendor_id," + CAMPOS_DE_EDICION.map((f) => f.key).filter((k) => k !== "name").join(",");
 
 type Cat = { id: number; path: string };
 type Vendor = { id: number; name: string };
-type Match = { id: number; sku: string; name: string; status: string; [k: string]: unknown };
+type Store = { id: string; name: string };
+export type Vocabulario = { base_unit: string[]; material: string[]; finish: string[]; style: string[]; color: string[] };
+type Match = { id: number; sku: string; name: string; status: string; qoh?: number | null; [k: string]: unknown };
 
 const sel =
   "h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500";
@@ -61,30 +54,34 @@ function Field({ label: text, required, children }: { label: string; required?: 
 export function RequestForm({
   categories,
   vendors,
-  baseUnits,
-  materials,
-  finishes,
+  stores,
+  vocab,
   canSeeCost,
 }: {
   categories: Cat[];
   vendors: Vendor[];
-  baseUnits: string[];
-  materials: string[];
-  finishes: string[];
+  stores: Store[];
+  vocab: Vocabulario;
   canSeeCost: boolean;
 }) {
   const router = useRouter();
   const { t } = usePrefs();
-  const EDIT_FIELDS = editFields(t);
   const sl = (v: string) => t(statusLabel(v).en, statusLabel(v).es);
-  const [reqType, setReqType] = useState<ReqType>("new");
+  const [reqType, setReqType] = useState<TipoDeSolicitud>("new");
   const [f, setF] = useState<Record<string, string>>({ product_type: "tile", status: "active" });
+  const [store, setStore] = useState("");
+  const [ready, setReady] = useState<EstadoDelSolicitante>("ready");
   const [dups, setDups] = useState<Match[] | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  // edit/reactivate/deactivate target + edit-field state
+  // copy: de dónde se copia
+  const [copyStore, setCopyStore] = useState("");
+  const [copyCode, setCopyCode] = useState("");
+  const [copySource, setCopySource] = useState<OrigenDeCopia | null>(null);
+
+  // edit/reactivate/deactivate/discontinue target + edit-field state
   const [lookupSku, setLookupSku] = useState("");
   const [target, setTarget] = useState<Match | null>(null);
   const [original, setOriginal] = useState<Record<string, string>>({});
@@ -93,9 +90,10 @@ export function RequestForm({
 
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
   const isTile = f.product_type === "tile";
-  const requiredOk =
-    f.sku?.trim() && f.name?.trim() && f.product_type && f.status && f.category_id &&
-    (!isTile || (f.size_in?.trim() && f.sf_per_box?.trim() && f.base_unit));
+  const creaBorrador = reqType === "new" || reqType === "copy";
+  const requiredOk = articuloCompleto(f) && (reqType !== "copy" || !!copySource);
+  const camposArticulo = camposVisibles(CAMPOS_DEL_ARTICULO, canSeeCost);
+  const camposEdicion = camposVisibles(CAMPOS_DE_EDICION, canSeeCost);
 
   function resetNonNew() {
     setTarget(null);
@@ -103,18 +101,20 @@ export function RequestForm({
     setReason("");
     setOriginal({});
     setEditForm({});
+    setCopySource(null);
+    setCopyCode("");
   }
 
   async function checkDups(): Promise<Match[]> {
     const sb = createClient();
-    const sku = f.sku.trim().toUpperCase();
-    const name = f.name.trim();
+    const sku = (f.sku ?? "").trim().toUpperCase();
+    const name = (f.name ?? "").trim();
     // ARC-02: this is the pre-submit duplicate check. A swallowed error used to read as
     // "no duplicates" and wave a duplicate product straight through, so it now raises and
     // submitNew() reports it instead of submitting blind.
     const empty = { data: [] as Match[], error: null };
     const [a, b, c] = await Promise.all([
-      sb.from("app_products").select("id,sku,name,status").eq("sku", sku),
+      sku ? sb.from("app_products").select("id,sku,name,status").eq("sku", sku) : Promise.resolve(empty),
       f.mpn ? sb.from("app_products").select("id,sku,name,status").eq("mpn", f.mpn.trim()) : Promise.resolve(empty),
       name ? sb.from("app_products").select("id,sku,name,status").ilike("name", `%${name}%`).limit(5) : Promise.resolve(empty),
     ]);
@@ -125,6 +125,8 @@ export function RequestForm({
     ] as Match[];
     const map = new Map<number, Match>();
     for (const r of rows) map.set(r.id, r);
+    // En una copia, el origen no es un duplicado: es de donde se copia.
+    if (copySource) map.delete(copySource.product_id);
     return [...map.values()];
   }
 
@@ -143,20 +145,60 @@ export function RequestForm({
         if (matches.length > 0) return setDups(matches);
       }
       setDups(null);
-      const input: NewItemInput = {
-        sku: f.sku, name: f.name, product_type: f.product_type, status: f.status,
-        category_id: f.category_id ? Number(f.category_id) : null,
-        vendor_id: f.vendor_id ? Number(f.vendor_id) : null,
-        mpn: f.mpn, material: f.material, finish: f.finish, size_in: f.size_in,
-        base_unit: f.base_unit, sf_per_box: f.sf_per_box, reason: f.reason,
-      };
+      const input = articuloDesdeElFormulario(f, { canSeeCost, store, requesterStatus: ready, copySource: reqType === "copy" ? copySource : null });
       const res = await submitNewItem(input);
       if (!res.ok) setErr(failText(res, t));
       else {
-        setDone(t(`Submitted draft ${res.sku} — pending admin publish.`, `Borrador ${res.sku} enviado — pendiente de que un admin lo publique.`));
+        setDone(
+          ready === "ready"
+            ? t(`Submitted draft ${res.sku} — pending admin publish.`, `Borrador ${res.sku} enviado — pendiente de que un admin lo publique.`)
+            : t(`Saved draft ${res.sku} as NOT READY — mark it ready below when it is complete.`, `Borrador ${res.sku} guardado como NO LISTA — márcala lista abajo cuando esté completa.`),
+        );
         setF({ product_type: "tile", status: "active" });
+        setCopySource(null);
+        setCopyCode("");
         router.refresh();
       }
+    });
+  }
+
+  /** Lee un producto publicado por SKU, o por el código de artículo de una tienda (store_products.qb_code). */
+  async function buscarProducto(code: string, storeId: string): Promise<Match | null> {
+    const sb = createClient();
+    const sku = code.trim().toUpperCase();
+    let data = unwrap(await sb.from("app_products").select(LOOKUP_COLS).eq("sku", sku).maybeSingle(), "request-form: sku lookup");
+    if (!data && storeId) {
+      const sp = unwrap(
+        await sb.from("app_store_products").select("product_id").eq("store_id", storeId).eq("qb_code", code.trim()).maybeSingle(),
+        "request-form: store item code lookup",
+      ) as { product_id: number } | null;
+      if (sp?.product_id) {
+        data = unwrap(await sb.from("app_products").select(LOOKUP_COLS).eq("id", sp.product_id).maybeSingle(), "request-form: product by id");
+      }
+    }
+    return (data as unknown as Match | null) ?? null;
+  }
+
+  function cargarOrigen() {
+    setErr(null);
+    setCopySource(null);
+    startTransition(async () => {
+      let m: Match | null;
+      try {
+        m = await buscarProducto(copyCode, copyStore);
+      } catch (e) {
+        return setErr(t(`Lookup failed: ${dbErrorMessage(e)}`, `La búsqueda falló: ${dbErrorMessage(e)}`));
+      }
+      if (!m) return setErr(t(`No published product with code ${copyCode.trim()}${copyStore ? ` in ${copyStore}` : ""}.`, `No hay producto publicado con código ${copyCode.trim()}${copyStore ? ` en ${copyStore}` : ""}.`));
+      // Precarga: todo menos el SKU (la copia es un artículo nuevo).
+      const seed: Record<string, string> = {};
+      for (const c of CAMPOS_DEL_ARTICULO) {
+        if (c.key === "sku") continue;
+        const v = m[c.key];
+        seed[c.key] = v === null || v === undefined ? "" : String(v);
+      }
+      setF(seed);
+      setCopySource({ store: copyStore, item_code: copyCode.trim(), product_id: m.id, sku: m.sku });
     });
   }
 
@@ -164,22 +206,17 @@ export function RequestForm({
     setErr(null);
     setTarget(null);
     startTransition(async () => {
-      const sb = createClient();
       // ARC-02: a failed lookup used to report the honest-looking "No published product…".
-      let data;
+      let m: Match | null;
       try {
-        data = unwrap(
-          await sb.from("app_products").select(LOOKUP_COLS).eq("sku", lookupSku.trim().toUpperCase()).maybeSingle(),
-          "request-form: sku lookup",
-        );
+        m = await buscarProducto(lookupSku, "");
       } catch (e) {
         return setErr(t(`Lookup failed: ${dbErrorMessage(e)}`, `La búsqueda falló: ${dbErrorMessage(e)}`));
       }
-      if (!data) return setErr(t(`No published product with SKU ${lookupSku.trim().toUpperCase()}.`, `No hay producto publicado con SKU ${lookupSku.trim().toUpperCase()}.`));
-      const m = data as unknown as Match;
+      if (!m) return setErr(t(`No published product with SKU ${lookupSku.trim().toUpperCase()}.`, `No hay producto publicado con SKU ${lookupSku.trim().toUpperCase()}.`));
       setTarget(m);
       const seed: Record<string, string> = {};
-      for (const fld of EDIT_FIELDS) {
+      for (const fld of CAMPOS_DE_EDICION) {
         const v = m[fld.key];
         seed[fld.key] = v === null || v === undefined ? "" : String(v);
       }
@@ -188,39 +225,109 @@ export function RequestForm({
     });
   }
 
+  const bloqueoDesactivar = reqType === "deactivate" && target && !puedeDesactivar(target.qoh);
+
   function submitChange() {
     if (!target) return;
     setErr(null);
     setDone(null);
     let payload: Record<string, string> | undefined;
     if (reqType === "edit") {
-      payload = {};
-      for (const fld of EDIT_FIELDS) {
-        if (fld.cost && !canSeeCost) continue;
-        if (editForm[fld.key] !== original[fld.key]) payload[fld.key] = editForm[fld.key];
-      }
-      if (Object.keys(payload).length === 0) return setErr(t("Change at least one field for an edit request.", "Cambia al menos un campo para una solicitud de edición."));
+      payload = cambiosPropuestos(editForm, original, canSeeCost);
+      if (Object.keys(payload).length === 0) return setErr(t("Change at least one field for a change request.", "Cambia al menos un campo para una solicitud de cambio."));
     }
+    if (bloqueoDesactivar) return setErr(t("Deactivate needs QOH = 0 — use Discontinue instead.", "Desactivar exige QOH = 0 — usa Descontinuar."));
     startTransition(async () => {
       const res = await submitRequest({
-        type: reqType as "edit" | "reactivate" | "deactivate",
+        type: reqType as "edit" | "reactivate" | "deactivate" | "discontinue",
         product_id: target.id,
         reason,
         payload,
+        store: store || undefined,
+        requester_status: ready,
       });
       if (!res.ok) setErr(failText(res, t));
       else {
-        setDone(t(`${statusLabel(reqType).en} request submitted for ${target.sku}.`, `Solicitud de ${statusLabel(reqType).es.toLowerCase()} enviada para ${target.sku}.`));
+        setDone(t(`${statusLabel(reqType).en} request submitted for ${target.sku}.`, `Solicitud «${statusLabel(reqType).es}» enviada para ${target.sku}.`));
         resetNonNew();
         router.refresh();
       }
     });
   }
 
+  function pintaCampo(c: CampoDeArticulo) {
+    const label = t(c.en, c.es);
+    const required = c.required === "always" || (c.required === "tile" && isTile);
+    const v = f[c.key] ?? "";
+    const on = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => set(c.key, e.target.value);
+    const opciones = (lista: string[]) => (
+      <>
+        <option value="">{t("— select —", "— elegir —")}</option>
+        {lista.map((x) => (<option key={x} value={x}>{x}</option>))}
+      </>
+    );
+    let control: React.ReactNode;
+    if (c.key === "category_id") {
+      control = (
+        <select className={sel} value={v} onChange={on}>
+          <option value="">{t("— select —", "— elegir —")}</option>
+          {categories.map((x) => (<option key={x.id} value={x.id}>{x.path}</option>))}
+        </select>
+      );
+    } else if (c.key === "vendor_id") {
+      control = (
+        <select className={sel} value={v} onChange={on}>
+          <option value="">{t("— select —", "— elegir —")}</option>
+          {vendors.map((x) => (<option key={x.id} value={x.id}>{x.name}</option>))}
+        </select>
+      );
+    } else if (c.key === "product_type") {
+      control = <select className={sel} value={v} onChange={on}>{PRODUCT_TYPES.map((pt) => (<option key={pt} value={pt}>{sl(pt)}</option>))}</select>;
+    } else if (c.key === "status") {
+      control = <select className={sel} value={v} onChange={on}>{STATUSES.map((s) => (<option key={s} value={s}>{sl(s)}</option>))}</select>;
+    } else if (c.key === "price_mode") {
+      control = (
+        <select className={sel} value={v} onChange={on}>
+          <option value="">{t("— select —", "— elegir —")}</option>
+          {MODOS_DE_PRECIO.map((m) => (<option key={m} value={m}>{m === "fixed" ? t("Fixed price", "Precio fijo") : t("Levels", "Niveles")}</option>))}
+        </select>
+      );
+    } else if (c.kind === "suggest") {
+      const lista = c.key === "base_unit" ? vocab.base_unit : c.key === "material" ? vocab.material : c.key === "finish" ? vocab.finish : c.key === "style" ? vocab.style : vocab.color;
+      control = (
+        <>
+          <Input value={v} onChange={on} list={`sug-${c.key}`} />
+          <datalist id={`sug-${c.key}`}>{opciones(lista)}</datalist>
+        </>
+      );
+    } else if (c.kind === "number") {
+      control = <Input value={v} onChange={on} inputMode="decimal" />;
+    } else {
+      control = <Input value={v} onChange={on} placeholder={c.key === "sku" ? t("e.g. PLG2163 — leave blank if unknown", "p. ej. PLG2163 — en blanco si no se sabe") : c.key === "size_in" ? t("e.g. 24X24", "p. ej. 24X24") : undefined} />;
+    }
+    return <Field key={c.key} label={label} required={required}>{control}</Field>;
+  }
+
+  const cabecera = (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <Field label={t("Location (store)", "Ubicación (tienda)")}>
+        <select className={sel} value={store} onChange={(e) => setStore(e.target.value)}>
+          <option value="">{t("— select —", "— elegir —")}</option>
+          {stores.map((s) => (<option key={s.id} value={s.id}>{s.id} — {s.name}</option>))}
+        </select>
+      </Field>
+      <Field label={t("Requester status", "Estado del solicitante")}>
+        <select className={sel} value={ready} onChange={(e) => setReady(e.target.value as EstadoDelSolicitante)}>
+          {ESTADOS_DEL_SOLICITANTE.map((s) => (<option key={s} value={s}>{sl(s)}</option>))}
+        </select>
+      </Field>
+    </div>
+  );
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-5 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-        {REQ_TYPES.map((rt) => (
+      <div className="mb-5 inline-flex flex-wrap rounded-lg border border-slate-200 bg-slate-50 p-1">
+        {TIPOS_DE_SOLICITUD.map((rt) => (
           <button
             key={rt}
             type="button"
@@ -232,7 +339,7 @@ export function RequestForm({
               resetNonNew();
             }}
             className={cn(
-              "rounded-md px-3 py-1 text-sm capitalize transition-colors",
+              "rounded-md px-3 py-1 text-sm transition-colors",
               reqType === rt ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800"
             )}
           >
@@ -240,78 +347,40 @@ export function RequestForm({
           </button>
         ))}
       </div>
+      <p className="mb-4 text-xs text-slate-500">
+        {reqType === "deactivate" && t("Deactivate: only if QOH = 0.", "Desactivar: solo si QOH = 0.")}
+        {reqType === "discontinue" && t("Discontinue: same as deactivate, but the item can still have QOH.", "Descontinuar: como desactivar, pero el artículo puede seguir con existencia.")}
+        {reqType === "copy" && t("Create copy: pick the source store and item code, load it, then change what differs.", "Crear copia: elige la tienda y el código de origen, cárgalo y cambia lo que sea distinto.")}
+      </p>
 
       {done && <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{done}</p>}
       {err && <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</p>}
 
-      {reqType === "new" ? (
+      {creaBorrador ? (
         <div className="space-y-4">
+          {cabecera}
+          {reqType === "copy" && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <div className="mb-2 text-sm font-medium">{t("Copy source: store & item code", "Origen de la copia: tienda y código de artículo")}</div>
+              <div className="flex flex-wrap gap-2">
+                <select className={cn(sel, "w-auto")} value={copyStore} onChange={(e) => setCopyStore(e.target.value)}>
+                  <option value="">{t("— any store —", "— cualquier tienda —")}</option>
+                  {stores.map((s) => (<option key={s.id} value={s.id}>{s.id} — {s.name}</option>))}
+                </select>
+                <Input className="w-56" value={copyCode} onChange={(e) => setCopyCode(e.target.value)} placeholder={t("SKU or store item code", "SKU o código de la tienda")} />
+                <Button variant="outline" onClick={cargarOrigen} disabled={pending || !copyCode.trim()}>{t("Load", "Cargar")}</Button>
+              </div>
+              {copySource && (
+                <p className="mt-2 text-sm text-slate-600">
+                  {t("Copying from", "Copiando de")} <span className="font-mono">{copySource.sku}</span>{copySource.store ? ` · ${copySource.store}` : ""}
+                </p>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label={t("SKU (unified code)", "SKU (código unificado)")} required>
-              <Input value={f.sku ?? ""} onChange={(e) => set("sku", e.target.value)} placeholder={t("e.g. PLG2163", "p. ej. PLG2163")} />
-            </Field>
-            <Field label={t("Name", "Nombre")} required>
-              <Input value={f.name ?? ""} onChange={(e) => set("name", e.target.value)} />
-            </Field>
-            <Field label={t("Product type", "Tipo de producto")} required>
-              <select className={sel} value={f.product_type} onChange={(e) => set("product_type", e.target.value)}>
-                {PRODUCT_TYPES.map((pt) => (
-                  <option key={pt} value={pt}>{sl(pt)}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t("Commercial status", "Estado comercial")} required>
-              <select className={sel} value={f.status} onChange={(e) => set("status", e.target.value)}>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>{sl(s)}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t("Category", "Categoría")} required>
-              <select className={sel} value={f.category_id ?? ""} onChange={(e) => set("category_id", e.target.value)}>
-                <option value="">{t("— select —", "— elegir —")}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.path}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label={t("Vendor", "Proveedor")}>
-              <select className={sel} value={f.vendor_id ?? ""} onChange={(e) => set("vendor_id", e.target.value)}>
-                <option value="">{t("— select —", "— elegir —")}</option>
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="MPN">
-              <Input value={f.mpn ?? ""} onChange={(e) => set("mpn", e.target.value)} />
-            </Field>
-            <Field label={t("Material", "Material")}>
-              <select className={sel} value={f.material ?? ""} onChange={(e) => set("material", e.target.value)}>
-                <option value="">{t("— select —", "— elegir —")}</option>
-                {materials.map((m) => (<option key={m} value={m}>{m}</option>))}
-              </select>
-            </Field>
-            <Field label={t("Finish", "Acabado")}>
-              <select className={sel} value={f.finish ?? ""} onChange={(e) => set("finish", e.target.value)}>
-                <option value="">{t("— select —", "— elegir —")}</option>
-                {finishes.map((m) => (<option key={m} value={m}>{m}</option>))}
-              </select>
-            </Field>
-            <Field label={t("Size (in)", "Tamaño (in)")} required={isTile}>
-              <Input value={f.size_in ?? ""} onChange={(e) => set("size_in", e.target.value)} placeholder={t("e.g. 24X24", "p. ej. 24X24")} />
-            </Field>
-            <Field label={t("SF / box", "SF / caja")} required={isTile}>
-              <Input value={f.sf_per_box ?? ""} onChange={(e) => set("sf_per_box", e.target.value)} inputMode="decimal" />
-            </Field>
-            <Field label={t("Base unit", "Unidad base")} required={isTile}>
-              <select className={sel} value={f.base_unit ?? ""} onChange={(e) => set("base_unit", e.target.value)}>
-                <option value="">{t("— select —", "— elegir —")}</option>
-                {baseUnits.map((u) => (<option key={u} value={u}>{u}</option>))}
-              </select>
-            </Field>
+            {camposArticulo.map(pintaCampo)}
           </div>
-          <Field label={t("Reason / note", "Motivo / nota")}>
+          <Field label={t("Requester comments", "Comentarios del solicitante")}>
             <Input value={f.reason ?? ""} onChange={(e) => set("reason", e.target.value)} />
           </Field>
 
@@ -336,6 +405,7 @@ export function RequestForm({
         </div>
       ) : (
         <div className="space-y-4">
+          {cabecera}
           <Field label={t("Find product by SKU", "Buscar producto por SKU")}>
             <div className="flex gap-2">
               <Input value={lookupSku} onChange={(e) => setLookupSku(e.target.value)} placeholder={t("e.g. PLG2163", "p. ej. PLG2163")} />
@@ -344,31 +414,43 @@ export function RequestForm({
           </Field>
           {target && (
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
-              <span className="font-mono">{target.sku}</span> — {target.name} ({sl(target.status)})
+              <span className="font-mono">{target.sku}</span> — {target.name} ({sl(target.status)}) · QOH {target.qoh ?? 0}
             </div>
+          )}
+          {bloqueoDesactivar && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              {t(`QOH is ${target?.qoh}: Deactivate needs QOH = 0. Use Discontinue instead.`, `QOH es ${target?.qoh}: Desactivar exige QOH = 0. Usa Descontinuar.`)}
+            </p>
           )}
           {target && reqType === "edit" && (
             <div>
               <div className="mb-1 text-sm font-medium">{t("Proposed changes", "Cambios propuestos")}</div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {EDIT_FIELDS.filter((fld) => !fld.cost || canSeeCost).map((fld) => (
+                {camposEdicion.map((fld) => (
                   <label key={fld.key} className="space-y-1">
-                    <span className="text-xs text-slate-500">{fld.label}</span>
-                    <Input
-                      value={editForm[fld.key] ?? ""}
-                      onChange={(e) => setEditForm({ ...editForm, [fld.key]: e.target.value })}
-                      className={editForm[fld.key] !== original[fld.key] ? "border-clay-400" : ""}
-                    />
+                    <span className="text-xs text-slate-500">{t(fld.en, fld.es)}</span>
+                    {fld.key === "price_mode" ? (
+                      <select className={sel} value={editForm[fld.key] ?? ""} onChange={(e) => setEditForm({ ...editForm, [fld.key]: e.target.value })}>
+                        <option value="">{t("— select —", "— elegir —")}</option>
+                        {MODOS_DE_PRECIO.map((m) => (<option key={m} value={m}>{m === "fixed" ? t("Fixed price", "Precio fijo") : t("Levels", "Niveles")}</option>))}
+                      </select>
+                    ) : (
+                      <Input
+                        value={editForm[fld.key] ?? ""}
+                        onChange={(e) => setEditForm({ ...editForm, [fld.key]: e.target.value })}
+                        className={editForm[fld.key] !== original[fld.key] ? "border-clay-400" : ""}
+                      />
+                    )}
                   </label>
                 ))}
               </div>
             </div>
           )}
-          <Field label={t("Reason", "Motivo")} required>
-            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t(`Why ${reqType}?`, `¿Por qué ${statusLabel(reqType).es.toLowerCase()}?`)} />
+          <Field label={t("Requester comments", "Comentarios del solicitante")} required>
+            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t(`Why ${statusLabel(reqType).en.toLowerCase()}?`, `¿Por qué ${statusLabel(reqType).es.toLowerCase()}?`)} />
           </Field>
-          <Button onClick={submitChange} disabled={pending || !target || !reason.trim()}>
-            {pending ? t("Submitting…", "Enviando…") : t(`Submit ${reqType} request`, `Enviar solicitud de ${statusLabel(reqType).es.toLowerCase()}`)}
+          <Button onClick={submitChange} disabled={pending || !target || !reason.trim() || !!bloqueoDesactivar}>
+            {pending ? t("Submitting…", "Enviando…") : t(`Submit: ${statusLabel(reqType).en}`, `Enviar: ${statusLabel(reqType).es}`)}
           </Button>
         </div>
       )}
