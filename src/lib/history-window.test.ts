@@ -112,7 +112,8 @@ describe("las cinco pantallas preguntan lo mismo", () => {
       const src = sinComentarios(leer(f));
       // Desde D-350 lleva también los permisos de la persona real (la capacidad `history`).
       expect(src, f).toMatch(/seesAllHistory\(realRole, me\?\.permissions\)|veTodoElHistorial/);
-      expect(src, f).toContain("withinRetention(d)");
+      // D-458: almacén la pide sin atrasadas (`withinRetention(d, undefined, false)`); las demás, tal cual.
+      expect(src.includes("withinRetention(d)") || src.includes("withinRetention(d, undefined, false)"), f).toBe(true);
       expect(src, f).not.toMatch(/seesAllHistory\(me\?\.role\)/);
     }
     const tablero = sinComentarios(leer(TABLERO));

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { localISO, todayISO, isToday, isOverdue, deliveryRisk, withinRetention, awaitingDriver } from "@/lib/utils";
 import { mkDelivery } from "@/lib/__fixtures";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // Regression cover for a real bug: dates were derived with toISOString(), which
 // converts to UTC. West of Greenwich that rolls the calendar day forward late in
@@ -194,5 +196,23 @@ describe("awaitingDriver", () => {
 
   it("treats a missing stage as not waiting, rather than guessing", () => {
     expect(awaitingDriver({ assigned_driver: null })).toBe(true);
+  });
+});
+
+// D-458. El dueño, 2026-10-01: «warehouse should not see expried that what he is seeing».
+describe("withinRetention sin atrasadas (almacén, D-458)", () => {
+  const HOY = "2026-07-15";
+  it("una vencida y abierta entra por defecto, y NO entra para almacén", () => {
+    const vieja = mkDelivery({ stage: "ready", delivery_date: "2026-07-01" });
+    expect(withinRetention(vieja, HOY)).toBe(true);
+    expect(withinRetention(vieja, HOY, false)).toBe(false);
+  });
+  it("ayer, hoy, lo que viene y lo sin fecha siguen entrando para almacén", () => {
+    for (const f of ["2026-07-14", "2026-07-15", "2026-07-20"]) expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: f }), HOY, false)).toBe(true);
+    expect(withinRetention(mkDelivery({ stage: "ready", delivery_date: null }), HOY, false)).toBe(true);
+  });
+  it("la pantalla de almacén la pide sin atrasadas", () => {
+    const pagina = readFileSync(join(process.cwd(), "src/app/(app)/warehouse/page.tsx"), "utf8");
+    expect(pagina).toContain("withinRetention(d, undefined, false)");
   });
 });
