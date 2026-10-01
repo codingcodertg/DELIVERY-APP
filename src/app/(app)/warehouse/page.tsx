@@ -132,7 +132,7 @@ export default function WarehousePage() {
   // Quien ve todo el historial (admin y logística, D-239) no se filtra, y se mira el rol REAL: un
   // admin previsualizando almacén sigue viendo todo.
   const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
-  const dentroDeLaVentana = useCallback((d: Delivery) => veTodoElHistorial || withinRetention(d), [veTodoElHistorial]);
+  const dentroDeLaVentana = useCallback((d: Delivery) => veTodoElHistorial || withinRetention(d, undefined, false), [veTodoElHistorial]);   // D-458: sin las expiradas
 
   // El día elegido, en las tiendas que toquen. **Dos listas y no una** (D-380): qué etapas lleva
   // cada una lo decide `lib/ruta-del-dia`, con el porqué escrito allí. En corto: la hoja de carga

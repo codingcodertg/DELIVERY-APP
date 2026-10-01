@@ -34836,3 +34836,25 @@ del repo para comprobar que la pantalla usa la regla). Demuestran que la línea 
 5. Que reactivar **borre** el motivo y la nota de la baja anterior en vez de conservarlos como historial.
 6. Que dar de baja siga siendo solo del admin de RR. HH. (hoy no hay gerentes, así que no cambia nada para nadie).
 7. Los 30 teléfonos guardados como `(956) xxx-xxxx` no se reescriben: cada uno cambia de forma al guardar su ficha.
+
+## D-458 · Almacén no ve las órdenes expiradas
+
+**Fecha:** 2026-10-01 · **Versión:** deliveries 1.246.0, repo 1.332.0 · **Sin migración.** **Reemplaza en parte a** D-239
+y a la regla «ayer, hoy, futuro y atrasadas» (D-374) SOLO en la pantalla de almacén.
+
+**Pedido del dueño**, literal: *«warehouse should not see expried that what he is seeing»* (sobre Baudelio Sepeda, almacén
+de RDZ Pharr, que decía ver más que «ayer, hoy y mañana»).
+
+**Qué pasaba.** La ventana de fechas (`withinRetention`) deja pasar ayer, hoy, lo que viene, lo que no tiene fecha y, por
+decisión anterior del propio dueño, **lo atrasado y abierto de cualquier fecha** («una vencida sin entregar es trabajo
+vivo»). En almacén eso son las expiradas, y son las que sobraban.
+
+**Qué cambió.** `withinRetention` acepta `conAtrasadas` (por defecto `true`, así nadie más cambia) y la pantalla de almacén
+(Cola y Recepción) la pide con `false`. Almacén ve ayer, hoy, lo que viene y lo sin fecha. Buscar por factura sigue
+llegando a cualquier orden (D-239, D-374). El chofer, ventas y oficina no cambian.
+
+**Consecuencia aceptada.** Una orden expirada que almacén todavía tiene que preparar ya no le sale sola: la ve si la busca
+por factura, o cuando alguien la reprograma a hoy.
+
+**Pruebas.** `dates.test.ts`: una vencida abierta entra por defecto y no entra sin atrasadas; ayer, hoy, futuro y sin fecha
+siguen entrando; la pantalla la pide sin atrasadas.

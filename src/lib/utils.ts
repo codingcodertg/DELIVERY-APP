@@ -369,6 +369,9 @@ export const RETENTION_DAYS_BACK = 1;
 export function withinRetention(
   d: { delivery_date?: string | null; stage?: string | null },
   today: string = todayISO(),
+  /** D-458: almacén no ve las expiradas. El dueño, 2026-10-01: «warehouse should not see expried». `false` corta también
+   *  lo atrasado y abierto: queda ayer, hoy y lo que viene. */
+  conAtrasadas: boolean = true,
 ): boolean {
   if (!d.delivery_date) return true;            // undated — still being scheduled
   if (d.delivery_date.slice(0, 10) >= shiftDateISO(today, -RETENTION_DAYS_BACK)) return true;
@@ -384,7 +387,7 @@ export function withinRetention(
   // ventana, que estaba en tres pantallas de tres formas (D-239).
   //
   // Lo que se corta, entonces, es solo el pasado CERRADO: entregada o anulada, y vieja.
-  return isOverdue(d, today);
+  return conAtrasadas && isOverdue(d, today);
 }
 
 /**
