@@ -15156,7 +15156,7 @@ existiendo para lo que es, borrar de verdad. Hay una prueba de que estas accione
 ban y **no** contienen ninguna llamada de borrado — porque un «dar de baja» que acabara llamando
 a `delete-user` destruiría el expediente que esta rama viene a conservar.
 
-> **Reemplazada en parte por D-NEXT (2026-10-01, «Los botones del expediente…»).** Dos cosas de este
+> **Reemplazada en parte por D-457 (2026-10-01, «Los botones del expediente…»).** Dos cosas de este
 > párrafo ya no son así. `deactivateEmployee` deshabilita la cuenta **solo si se marca** «Quitar también
 > el acceso al hub» (antes, siempre). Y `reactivateEmployee` **ya no devuelve el acceso**: borra la fecha
 > y nada más; el acceso se devuelve con su propio botón (`setHubAccess`). El ban sigue siendo el mismo y
@@ -34647,7 +34647,7 @@ importa (230,3 → 190,5 mi puliendo; 273,1 → 243,2 mirando si cabe), se escri
 - **Que el orden de «Optimizar» sea el más corto por calles:** se decide en línea recta.
 - El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
 
-## D-NEXT · Los botones del expediente: «Dar de baja» (con motivo y con la casilla del acceso al hub), «Reactivar», «＋ Agregar empleado», «Editar», el filtro Activos / Bajas / Todos, los campos para llenarlo bien y el aviso de «expediente incompleto» (migración 159)
+## D-457 · Los botones del expediente: «Dar de baja» (con motivo y con la casilla del acceso al hub), «Reactivar», «＋ Agregar empleado», «Editar», el filtro Activos / Bajas / Todos, los campos para llenarlo bien y el aviso de «expediente incompleto» (migración 159)
 
 **Fecha:** 2026-10-01 · **Tarea:** hija de T-0046 (el expediente de RR. HH.) y roza T-0054 (el directorio) · **Migración:**
 `159_expediente_campos.sql`, **escrita y sin aplicar** (plan y ensayo: `docs/PLAN-159-expediente-campos.md`) · **Versión:** la
