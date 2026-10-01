@@ -4219,6 +4219,11 @@ otra dejan de valer. Y repuntar el programador externo a las rutas nuevas.
 (*"haz merge el panel de usuarios con el de usuario de hub y elimina ese view y
 solo deja la parte de vehiculo"*)
 
+> **Reemplazada en parte por D-NEXT** (2026-10-01): en la ficha, la casilla «Runner / Repartidor» pasa a llamarse **«Visitas y
+> mandados (con fotos)»** (misma columna `is_runner`, misma acción) y el vehículo se rotula **opcional** («sin vehículo asignado =
+> usa el suyo»). Y la sección gana el **tipo de trabajador** (presencial / remoto), que solo estaba en Time Tracker › People, con
+> el estado de las dos mitades dicho en claro. Sale aunque no haya ficha de fichaje.
+
 **Cambio:** `/clock-in/team` tenía un alta de empleados y una fila por persona
 con puesto, horario, sitio, vehículo de repartidor, activar/desactivar y
 restablecer contraseña. Todo eso es configuración de **una persona**, y esta app
@@ -5068,6 +5073,9 @@ review todas las fotos y se pueda estar cambiando los días"*, y después *"acu�
 quitar el tab de clock in entonces esas fotos deben ir adentro de audit, solo mete views dentro
 de audit"*)
 
+> **Ampliada por D-NEXT** (2026-10-01): la vista enseña además las fotos de **visitas y paradas** (`clockin.trip_stops`), con la
+> pastilla «Visita / parada». Ya no son «cuatro por persona y día»: quien visita a un cliente puede tomar las que quiera.
+
 Cada fichaje guarda una foto —entrada, salida, salir del sitio y volver, cuatro por persona y
 día— y hasta ahora solo se veían **de una en una**, escarbando dentro del fichaje o de la
 excepción concreta. Con cientos guardadas, *"revisar las fotos de ayer"* no era una tarea que se
@@ -5778,6 +5786,9 @@ y unificarlo es una decisión aparte —toca las tres apps— que no se mete en 
 de clock in… lo vamos a poner en el mismo de registrar tiempo… dependiendo de cómo se configure
 es lo que le va a aparecer, y para admin puede ver ambos views"*)
 
+> **Ampliada por D-NEXT** (2026-10-01): `worker_type` ya no se elige solo en Employees (Time Tracker › People): también en
+> **Usuarios del hub**, en la sección Time Tracker de la ficha, que además dice qué tipo se le aplica a quien nadie configuró.
+
 Una sola entrada para dos formas de trabajar que no se parecen en nada: quien **cronometra** un
 proyecto desde su sitio y quien **ficha** entrada y salida en una tienda, con foto y ubicación.
 
@@ -5967,6 +5978,11 @@ significa meter la tienda dentro de las políticas de cada tabla, y va en su pro
 **Fecha:** 2026-08-30 · **Versión:** v0.32.0 (timetracker) · v0.28.0 (clockin) · **Pedido por:**
 Andrés (*"estoy clock in en un empleado… pero en el trabajando ahora solo aparezco yo"*, *"falta
 voy a salir, empezar almuerzo"*, *"sale 0 de 52"*, *"que tengan un color code"*)
+
+> **Reemplazada en parte por D-NEXT** (2026-10-01): el botón «Voy a salir» ya **no** graba una salida `customer_visit` al
+> pulsarlo. Abre una ventana que pregunta si va a visitar a un cliente: si **sí**, empieza un viaje con ese motivo y queda el
+> botón «📷 Tomar foto»; si **no**, pregunta el motivo y graba la salida de siempre con el motivo verdadero. Una visita deja de
+> aparecer como fila «🚚 Fuera» en «Fichajes de hoy».
 
 ### El almuerzo que nunca terminaba
 
@@ -6333,6 +6349,13 @@ hagan, el módulo se borra entero.
 ## D-136 · Los viajes de vehículo entran en Registrar tiempo
 **Fecha:** 2026-08-30 · **Versión:** v0.39.0 (timetracker) · v0.35.0 (clockin) · **Pedido por:**
 Andrés (*"sí hazlo"*)
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): al rehacer este panel se perdieron la **foto** y la **ubicación** de cada
+> parada (`logStop` se llamaba solo con el nombre), y nadie lo notó porque no se ha registrado un solo viaje desde entonces.
+> Ahora «Llegué» abre la cámara y cada paso manda la ubicación. Dos frases de abajo no describían el código: «al runner se le
+> pide el vehículo, al comercial no» (los dos veían el mismo formulario; lo que hoy decide que el viaje nazca **personal** es no
+> tener vehículo asignado) y el panel ya no carga su estado por su cuenta: se lo pasa `PunchPanel`. Se llama «Visitas, mandados y
+> viajes».
 
 Última pieza del módulo de fichaje. Empezar un viaje, registrar paradas y cerrarlo se hace ya
 dentro de Registrar tiempo, debajo del reloj: el viaje empieza **después** de fichar, y ahí es
@@ -7270,6 +7293,9 @@ llega tocando el propio nombre en la barra, que es donde la gente lo busca y lo 
 la casa. La ruta `/timetracker/account` no cambia; los enlaces viejos siguen.
 
 ## D-161 · Las fotos SÍ estaban; la pantalla abría en un día vacío
+
+> **Ampliada por D-NEXT** (2026-10-01): el «último día con fotos» mira **tres** fuentes: se suman las fotos de visita y de parada
+> (`trip_stops`).
 
 **Fecha:** 2026-09-01 · **Versión:** v0.46.0 (timetracker)
 
@@ -34127,3 +34153,215 @@ Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
 - El aviso bajo el campo no sabe del pin: con un pin a mano sigue diciendo «solo ciudad» en el formulario (el texto lo es),
   aunque en el Gestor y en Mi ruta esa orden ya no lo lleve.
 - La tabla de Órdenes (`OrdersTable`), el tablero y el Mapa no llevan la marca: allí se ve la dirección entera.
+
+## D-NEXT · El tipo de trabajador (presencial / remoto) se elige en Usuarios; «Voy a salir» pregunta si es una visita a un cliente y deja tomar fotos todo el rato; las paradas vuelven a llevar foto y ubicación, y esas fotos se ven en Auditoría › Fotos
+
+**Fecha:** 2026-10-01 · **Versión:** la asigna el orquestador al fusionar (toca `timetracker` y la ficha de Usuarios del hub) ·
+**Migración:** ninguna · **Pedido por:** el dueño, en dos mensajes del mismo día · **Reemplaza en parte a** D-095 (la casilla
+«Runner»), D-128 (el botón «Voy a salir») y D-136 (el panel de viajes), que llevan su nota; **amplía** D-109, D-123 y D-161.
+**No toca ningún dato, ninguna política ni `runner.ts` / `leave.ts`.**
+
+### Qué pidió el dueño
+
+Primer mensaje, literal: *«mira que quiero asignar al time tracker a everto prado pero el es onsite no remote y no me sale la
+opcion al igual que quiero que el tenga la opcion de ir a visitar clientes y que pueda tomar tfotos revisa»*.
+
+Segundo mensaje, literal, con una captura de la pantalla de fichar (cronómetro, «Clock out», «Start lunch», «🚚 Going out»):
+*«ok todfo bien pero aqui quiero que diga going out y salga un pop up visitando un cliente y que pueda tomar fotos en
+cualquier momento, una ves diga que si que ahi apreza para que eset tomando fotos»*.
+
+Son dos cosas: **(A)** poder decir en Usuarios que alguien es presencial, y **(B)** que quien sale a visitar a un cliente pueda
+tomar fotos. Van en una entrada porque son el mismo encargo, pero se cuentan por separado.
+
+### Lo que se midió antes de tocar nada (2026-10-01)
+
+Contra producción, **en solo lectura** (una transacción `READ ONLY` que termina en `ROLLBACK`), y leyendo el código:
+
+**A · El tipo de trabajador**
+
+- `timetracker.employee_settings.worker_type` (`inhouse` | `remote`) solo se podía elegir en **Time Tracker › People**. En la
+  ficha de Usuarios, sección Time Tracker (`ClockinSettings`), había puesto, sitio, horario, «Runner / Repartidor» y «Contando
+  tiempo», y **nada** del tipo. Es donde el dueño lo buscó.
+- Dar acceso a Time Tracker desde Usuarios crea la fila de `clockin.employee_settings` (trigger de la 078/087) pero **no** la de
+  `timetracker.employee_settings`. Sin esa fila la persona cuenta como el defecto (`defaultWorkerType = remote`, leído) y sale
+  **Inactive** en People (`active: s?.active ?? false`), y la ficha no decía ninguna de las dos cosas.
+- De las **12** personas con `timetracker_role` (4 admin, 8 empleados): **2** no tienen fila en `timetracker.employee_settings`
+  (dos admins) y **2** la tienen con el tipo vacío (un admin, una empleada). Las 10 filas que hay están activas; 6 son
+  presenciales y 2 remotas elegidas.
+- Ese `active` de la mitad de Time Tracker **no bloquea nada en el código**: solo pinta la pastilla y atenúa la fila en People.
+  Lo que detiene fichajes y avisos es el otro, `clockin.employee_settings.active` («Contando tiempo»).
+- **Quién puede escribir** `timetracker.employee_settings` de otra persona: solo `is_timetracker_admin()`, que es
+  `timetracker_role = 'admin'` (058/060; la 080 solo lo envolvió en un initplan; leído también de `pg_policies` y
+  `pg_get_functiondef`). Hoy los 4 admins del hub lo son y no hay ningún `manager`. Un gerente de tienda pasa el `managerCtx`
+  de fichaje pero **no** esta política.
+- 1 persona (un remoto) tiene acceso a Time Tracker y **ninguna** fila de fichaje: para ella la sección entera era el aviso
+  «Todavía no tiene ficha de fichaje», sin ningún campo.
+
+**B · Visitar clientes y tomar fotos**
+
+- **«🚚 Going out» grababa una salida y ya**: `startLeave({ reason: "customer_visit" })`, siempre ese motivo, sin preguntar, sin
+  foto, sin vehículo. Desde el 2026-08-30 se ha usado **3 veces** (2 personas; la última, el 2026-10-01), **ninguna con foto**.
+- **El panel de viajes no tomaba fotos.** D-136 lo rehízo y `logStop` quedó llamado solo con el nombre: ni foto ni ubicación,
+  aunque `runner.ts` acepta las dos (`photoPath`, `lat`, `lng`) y la app vieja las mandaba. Además el campo decía «Nombre de la
+  parada (opcional)» y el servidor rechaza una parada sin nombre.
+- **Nadie lo ha usado desde entonces**: en producción hay 8 viajes y 11 paradas, **todos del 22 al 27 de agosto** (la app
+  vieja; las 11 paradas con foto y GPS). **Cero** viajes y **cero** paradas desde D-136 (2026-08-30).
+- **Ninguna pantalla lee los viajes ni las paradas.** `vehicle_trips` y `trip_stops` solo aparecen en `runner.ts`, en las
+  guardas de `clock.ts` y `leave.ts`, en el cron de cierre y en la limpieza de fotos. La pantalla de revisión de recorridos de la
+  app vieja nunca llegó a este repo (solo dos componentes sueltos, `runs/ReviewButton` y `runs/TripMap`, que D-137 borró sin que
+  nadie los usara) y Auditoría › Fotos solo leía fichajes y excepciones. O sea: una foto de parada, de haberse tomado, no se
+  habría visto en ningún sitio.
+- **`is_runner` no es lo que hace salir el panel.** El panel sale a cualquier presencial fichado si la empresa tiene algún
+  vehículo activo (hay 1); `is_runner` solo cambia el `kind` del viaje (`runner` / `sales`) y lo hace salir aunque no haya
+  vehículos. D-136 decía «al runner se le pide el vehículo, al comercial no»: el código no hacía eso, los dos veían el mismo
+  formulario, con el primer vehículo de la empresa preseleccionado y el cuentakilómetros pedido.
+- El panel cargaba su estado **una sola vez, al montarse**: tras fichar la entrada no aparecía hasta recargar la página (leído
+  en el código; no medido en un teléfono).
+
+### Qué se decidió
+
+**A · En la ficha de Usuarios**
+
+1. **«Tipo de trabajador / Worker type» es el primer campo de la sección Time Tracker**, con Presencial y Remoto (por ese
+   orden) y la frase que explica la diferencia: el presencial ficha entrada y salida en la tienda, con foto y ubicación; el
+   remoto usa el cronómetro, con capturas. Sale **aunque no haya ficha de fichaje**: es de la otra mitad.
+2. **El estado de las dos mitades, dicho en claro**: «Time Tracker: activo / inactivo · Fichaje en tienda: contando tiempo /
+   detenido / sin ficha». Y mientras nadie haya elegido el tipo, la primera opción del selector lo dice: «Sin elegir — cuenta
+   como Remoto, el valor por defecto» (el defecto se lee del ajuste, no se supone).
+3. **Elegir el tipo crea la fila si no existe, y la crea activa.** Si la fila ya existe, cambia **solo** el tipo: a quien ya
+   está configurado no se le toca `active`. Para quien tiene fila pero está apagado hay un botón «Activar» aparte. **No** se
+   cambia el defecto global ni se escribe nada a nadie por su cuenta: los 4 que hoy van por defecto siguen igual hasta que
+   alguien elija.
+4. **La acción (`setEmployeeWorkerType`, junto a las de `team.ts`, con el mismo `managerCtx`) no abre nada.** Comprueba que
+   quien llama es admin de Time Tracker **antes** de escribir y, si no, lo dice («Only a Time Tracker admin… / Solo un admin de
+   Time Tracker…»). Y pide la fila de vuelta: un `UPDATE` filtrado por RLS devuelve éxito con cero filas, y sin eso la ficha
+   diría «guardado». A quien no es admin de Time Tracker la ficha ni siquiera le pinta el selector: la base le esconde la fila
+   de los demás y no se puede afirmar «sin configurar» sobre una respuesta que no distingue «no hay» de «no la veo».
+5. **«Runner / Repartidor» pasa a llamarse «Visitas y mandados (con fotos) / Field visits & errands (with photos)»**, con su
+   ayuda (registra cada parada con foto y ubicación; con vehículo de la empresa —odómetro— o en el suyo —«viaje personal»—), y
+   una segunda línea que dice lo que la casilla **no** es: un permiso. Cualquier presencial puede usar «Voy a salir» para una
+   visita con fotos; la casilla es para quien sale como parte de su trabajo o lleva vehículo de la empresa. La columna
+   (`is_runner`) y la acción son las mismas. El vehículo se rotula **opcional**: «Sin vehículo asignado = usa el suyo».
+
+**B · En la pantalla de fichar**
+
+6. **«Voy a salir» abre una ventana y ya no graba nada al pulsarlo.** Pregunta: **«¿Vas a visitar a un cliente? / Are you
+   visiting a customer?»**, con «Sí, visito a un cliente» y «No, es otra cosa».
+7. **Sí → empieza la visita y aparece el botón «📷 Tomar foto»**, bajo el reloj, visible mientras dure. Se puede pulsar cuando
+   quiera y cuantas veces quiera; cada toque abre la cámara del teléfono (`<input capture="environment">`) y la foto se guarda
+   con la hora del servidor y la ubicación. Hay un campo de nota opcional («Nota de la foto»); sin nota, la foto se llama
+   «Visita a cliente».
+8. **La visita es un viaje con motivo `customer_visit`, y cada foto es una parada** (`startTrip` + `logStop` con `photoPath`).
+   Es el único mecanismo que ya existía para «N fotos, cada una con hora y sitio», y trae gratis la dirección y las millas. **No
+   hay tabla, columna ni cubo nuevos.** Sin vehículo de la empresa asignado el viaje es **personal** (nada que rellenar); con
+   uno asignado la ventana pide el cuentakilómetros de salida —`startTrip` lo exige— o marcar «voy en el mío». Una foto suelta
+   se guarda como parada **ya cerrada** (`finishStop` justo después): es un instante, no una estancia, y una parada abierta
+   bloquearía el almuerzo y el cierre.
+9. **«Ya volví» cierra la visita de un toque** si es personal. Con vehículo de la empresa hay que dar el cuentakilómetros de
+   llegada, que se pide en el panel de viajes de abajo, y la pantalla lo dice.
+10. **No → se pregunta por qué sale y se graba la salida de siempre** (`startLeave`), con los demás motivos del enumerado
+    `clockin.leave_reason`: entrega, recoger material, ir de una tienda a otra, emergencia personal, otro (con nota). Antes
+    todas quedaban como «visita a cliente», lo fueran o no.
+11. **El panel de viajes vuelve a llevar foto y ubicación.** «Llegué» pide el nombre (obligatorio, como en el servidor) y abre
+    la cámara; la parada se guarda con la foto. Empezar, salir de la parada y terminar mandan la ubicación si la hay (opcional,
+    como el almuerzo: un GPS que falla no deja a nadie sin registrar). Sin vehículo asignado nace «viaje personal». Se llama
+    «Visitas, mandados y viajes». Y el viaje se carga una vez, en `PunchPanel`, que se lo pasa al panel: el botón de foto y el
+    panel hablan del mismo viaje, y el panel aparece nada más fichar.
+12. **Las fotos se ven en Time Tracker › Auditoría › Fotos**, el día en que se tomaron, junto a las de fichaje, bajo el nombre
+    de la persona, con la pastilla **«Visita / parada»**, la hora, a quién o qué visitó y la dirección, y la ubicación (pulsable,
+    con el mapa de D-213; la distancia es a la tienda más cercana, sin juzgar «fuera del sitio»: una visita lo es por
+    definición). Mismo alcance por tienda que el resto. El «último día con fotos» mira ahora las tres fuentes.
+13. **La foto sube por el mismo camino que la del fichaje** (`subirFotoDeFichaje`, que sale de `PunchPanel`): mismo cubo, misma
+    ruta `empresa/persona/hora.jpg`, comprimida y con su límite de 30 s.
+
+### Lo que se descartó
+
+- **Cambiar el defecto global a presencial**, o crear la fila a todos de golpe: tocaría a gente ya configurada (el encargo lo
+  prohíbe) y a los remotos.
+- **Crear la fila de Time Tracker al dar el acceso** (un trigger como el de fichaje): es una migración, y no arregla lo que
+  confundía, que es no poder elegir el tipo ahí.
+- **Abrir la política** para que un gerente de tienda escriba el tipo: el tipo decide qué pantalla ve la persona y por cuál
+  nómina cobra (D-123, D-190). La acción lo dice en vez de abrirlo.
+- **Guardar las fotos de visita en `exceptions`** (la salida de siempre): esa fila tiene sitio para dos fotos (salir y volver),
+  no para «cuantas quiera», y cada foto habría sido una «excepción» más en la bandeja del gerente.
+- **Grabar a la vez la salida (`startLeave`) y el viaje** para la misma visita: dos registros de una sola cosa, con `startLeave`
+  poniendo en pausa el viaje y `logStop` rechazando paradas en pausa. Consecuencia que hay que saber: **una visita ya no
+  aparece como fila «🚚 Fuera» en «Fichajes de hoy» ni en el historial de excepciones**; aparece como viaje (en el panel, a la
+  persona) y como fotos (en Auditoría, al admin).
+- **Restringir «Voy a salir → visita» a quien tiene la casilla «Visitas y mandados»**: el botón ya lo tenían todos los
+  presenciales y el dueño no pidió quitárselo a nadie.
+- **Tocar `runner.ts`**: no hizo falta. Todo lo que se necesitaba (foto, ubicación, viaje personal, motivo) ya lo aceptaba.
+
+### Ficheros
+
+`src/lib/timetracker/tipo-trabajador.ts` (la lógica de A, pura) · `src/components/TipoDeTrabajadorCampo.tsx` (el campo) ·
+`src/components/ClockinSettings.tsx` · `src/app/timetracker/clock-in/actions/team.ts` (`setEmployeeWorkerType`,
+`activateInTimeTracker`, y la lectura de la mitad de Time Tracker) · `src/lib/clockin/visitas.ts` (la lógica de B, pura) ·
+`src/lib/clockin/sube-foto.ts` · `src/components/timetracker/PunchPanel.tsx` · `src/components/timetracker/TripPanel.tsx` ·
+`src/lib/clockin/day-photos.ts`, `src/app/timetracker/clock-in/actions/photos.ts`, `src/components/timetracker/DayPhotos.tsx`
+(las fotos de visita en Auditoría) · `src/lib/timetracker/i18n.ts` (15 claves nuevas y 4 textos cambiados, en y es).
+
+### Pruebas y mutantes
+
+`src/lib/timetracker/tipo-trabajador.test.ts` (31) y `src/lib/clockin/visitas.test.ts` (43): la lógica pura, **el campo
+renderizado** (lo que ve un admin para una persona sin fila, apagada, ya configurada, y quien no es admin de Time Tracker) y
+lectura de fuente de quien llama (la ficha, la acción, `PunchPanel`, `TripPanel`, la acción de Fotos, la política en la 058/060
+y el enumerado en la 072). Se corrigió una prueba de `day-photos.test.ts` que fijaba la llamada vieja de «Voy a salir».
+
+**Mutantes: 83 de 83 caen** con una prueba con nombre (tanda en el scratchpad del worker, `tipo-trabajador/tanda.json`). Por
+ejemplo: «sin fila, la persona se crea INACTIVA» → *sin fila: se crea con el tipo y ACTIVA*; «con fila, elegir el tipo también
+reactiva a quien estaba apagado» → *con fila: cambia solo el tipo y no toca si está activa*; «un gerente de tienda pasa por
+admin de Time Tracker» → *solo un admin de Time Tracker…*; «la acción no pide la fila de vuelta» → *pide la fila de vuelta — un
+UPDATE filtrado por RLS no pasa por guardado*; «sin ficha de fichaje, la ficha no pinta el tipo» → *sale AUNQUE no haya ficha de
+fichaje*; «“voy a salir” vuelve a grabar customer_visit sin preguntar» → *el botón abre la ventana; ya no llama a startLeave con
+customer_visit*; «la foto se guarda como parada SIN la foto» → *cada foto se guarda como una parada: logStop con photoPath y la
+ubicación*; «el botón de foto no abre la cámara del teléfono (sin capture)» → *es la cámara del teléfono: un input con capture*;
+«un cuentakilómetros vacío se manda como 0» → *…un vacío NO es 0*; «las paradas con foto no llegan a la lista de fotos del
+día» → *una parada con foto sale como foto de visita…*; «un gerente de tienda ve las fotos de visita de otras tiendas» → *la
+acción pide las paradas CON foto del día, con el mismo alcance por tienda…*.
+
+### Visto en el navegador (2026-10-01)
+
+La sección Time Tracker de la ficha **no carga en el demo** (`UserDialog` la esconde con `LOCAL_MODE`) y la pantalla de fichar
+necesita sesión. Se midieron los componentes **reales** (`PunchPanel`, `TripPanel`, `ClockinSettings`) en un arnés temporal, no
+commiteado, que sustituye las acciones de servidor por dobles en memoria, con Chrome por CDP a 430 px, clics de ratón sobre el
+elemento a la vista y la foto entregada por el selector de ficheros que abre el botón:
+
+- «Voy a salir» abre la ventana y **no llama a nada**. «Sí» llama a `startTrip` con `personal: true`, `vehicleId: null`,
+  `odometer: null`, `reason: "customer_visit"` y la posición; quedan bajo el reloj «📷 Tomar foto», «Ya volví» y «Empezar
+  almuerzo».
+- Tres fotos seguidas: tres veces `subirFotoDeFichaje` → `logStop` (con `photoPath`, la posición, y el nombre «Visita a
+  cliente» o la nota escrita) → `finishStop`. El contador pasa de 0 a 3 y las tres salen en el panel de viajes. «Ya volví» llama
+  a `endTrip` y vuelven «Empezar almuerzo» y «Voy a salir».
+- «No» enseña los cinco motivos; «Recogiendo material» → `startLeave` con `picking_up_supplies` y la posición.
+- Con vehículo asignado: la ventana pide el cuentakilómetros y «Sí» está apagado hasta escribirlo; con 51200 → `startTrip` con
+  el vehículo y `odometer: 51200`, y «Ya volví» no sale arriba (se termina abajo).
+- Panel de viajes, sin vehículo asignado: la casilla «Viaje personal» sale marcada y no pide vehículo ni cuentakilómetros;
+  «Llegué» está apagado sin nombre; con nombre abre el selector y la parada queda guardada con su foto y «aquí ahora».
+- La ficha: persona sin fila → «Sin elegir — cuenta como Remoto…», «Time Tracker: inactivo» y el aviso; al elegir Presencial →
+  `setEmployeeWorkerType("inhouse")`, «Time Tracker: activo» y el aviso desaparece. Fila apagada → «Activar» →
+  `activateInTimeTracker`. Sin ficha de fichaje → el tipo sale igual. Quien no es admin de Time Tracker → sin selector.
+- De paso salió, y se arregló, que la casilla «viaje personal» se estiraba al ancho entero con el texto debajo (usaba la clase
+  del hub bajo la hoja de Time Tracker).
+
+### No verificado
+
+- **Nada contra la base de verdad ni en un teléfono.** Las acciones reales (`setEmployeeWorkerType`, `activateInTimeTracker`,
+  la consulta de paradas de Fotos) están probadas por lectura de fuente y contra las políticas leídas, no ejecutadas con sesión.
+  La cámara se probó con un selector de ficheros interceptado en Chrome de escritorio, no con la cámara de un móvil.
+- **Auditoría › Fotos con una foto de visita real**: hoy solo hay 11 paradas con foto, de agosto; la limpieza de fotos puede
+  haberlas borrado ya del cubo (no se comprobó) y, si no tienen firma, la pantalla las descarta en silencio.
+- **Que la subida de una foto de visita pase la política del cubo** (097) con un usuario real: la ruta es la misma que la del
+  fichaje, que sí sube, pero no se ejecutó.
+- El aviso de «desmarca y vuelve a marcar Time Tracker» para quien no tiene ficha de fichaje se apoya en el trigger leído
+  (`profiles_ensure_clockin_settings`, `AFTER INSERT OR UPDATE OF timetracker_role`), no en haberlo hecho.
+- El panel de viajes que «no aparecía tras fichar hasta recargar» se dedujo del código; no se midió antes del cambio.
+
+### Pendiente que no es de esta rama
+
+- **Una pantalla para revisar las salidas** (cuándo empezó y terminó cada visita, sus paradas, las millas): hoy el admin ve las
+  fotos, con hora y sitio, pero no el viaje como tal. Esa pantalla no ha existido nunca en este repo.
+- La persona con acceso a Time Tracker y sin ficha de fichaje (1, remota) y las 4 que van por defecto: son datos; se arreglan
+  desde la ficha, ahora que lo dice.
+- Con el idioma en español, la primera pintura de la pantalla de fichar da un aviso de hidratación en desarrollo («Loading…»
+  del servidor contra «Cargando…» del navegador). Es anterior a esta rama y no se tocó.
