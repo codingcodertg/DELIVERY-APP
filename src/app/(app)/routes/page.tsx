@@ -66,6 +66,7 @@ import {
   cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, mueveEnLaLista, numeroDePallets,
   textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type FilaDeCuenta, type ParadaDeLaLista,
 } from "@/lib/lista-unica";
+import { alRepartir, cargaDe, etiquetaDeCarga, hermanasDe, laOtraCarga, restoPropuesto, sePuedenJuntar, sePuedePartir } from "@/lib/cargas-partidas";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
 import { esDeSuZona, zonaDeLaRecogida } from "@/lib/zonas";
@@ -171,7 +172,7 @@ interface MedidaDeLaRuta {
 }
 
 export default function RoutesPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, reorderStops, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching } = useData();
+  const { me, users, deliveries, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   const [date, setDate] = useState(todayISO());
@@ -1046,6 +1047,58 @@ export default function RoutesPage() {
   // En la tabla de paradas de un chofer, el enlace que abre la orden es su ID, no su factura (D-444). El dueño, 2026-09-29:
   // «en vez de facturas, pongas el ID. Entonces no ocupo la factura». La factura sigue en su columna de Órdenes (⚙).
   const enlaceConElId = (d: Delivery) => <span {...abreLaOrden(d)} data-abre-la-orden>{orderLabel(d)}</span>;
+
+  // ---- Las cargas de una orden (D-452, 157) ----------------------------------------------------------------------
+  // Una orden que no cabe en el camión se parte en órdenes hermanas (#Xa, #Xb): cada carga es una fila, con su P y su D,
+  // sus flechas y su «Pasar a…». Aquí solo lo que la fila enseña y los tres gestos: partir (si no cabe), repartir los
+  // pallets de dos cargas, y volver a juntarlas (si las dos siguen pendientes y la suma cabe). La regla vive en
+  // lib/cargas-partidas; la base la repite (partir_carga, reparte_cargas, juntar_cargas).
+  const cargasDe = (d: Delivery) => { const hermanas = hermanasDe(deliveries, d); return { carga: cargaDe(d, hermanas), otra: laOtraCarga(d, hermanas) }; };
+  const etiquetaDeLaCarga = (d: Delivery) => { const c = cargasDe(d).carga; return c ? <span className="hint" data-carga style={{ margin: 0 }}> · {etiquetaDeCarga(c, lang === "es")}</span> : null; };
+  const parteLaOrden = async (d: Delivery, capacidad: number) => {
+    const total = palletsDeLaOrden(d);
+    const resto = restoPropuesto(total, capacidad);
+    if (resto == null) return;
+    const id = await partirCarga(d.id, resto);
+    if (!id) return;
+    clearRouteFor(orderLaneKey(d) ?? "");
+    // La carga nueva nace sin puesto: va detrás de lo ya ordenado de esta ruta (medido en el demo: con la madre también sin
+    // puesto, las dos salen provisionales y el orden entre ellas es el de llegada). Las flechas la ponen donde toque.
+    notify(t(`#${orderLabel(d)} split in 2 loads: ${numeroDePallets(total - resto)} + ${numeroDePallets(resto)} pallets. The new load has no position yet: use the arrows to place it.`,
+      `#${orderLabel(d)} partida en 2 cargas: ${numeroDePallets(total - resto)} + ${numeroDePallets(resto)} pallets. La carga nueva aún no tiene puesto: colócala con las flechas.`));
+  };
+  const reparteLaOrden = async (d: Delivery, otra: Delivery) => {
+    const total = palletsDeLaOrden(d) + palletsDeLaOrden(otra);
+    const v = window.prompt(t(`Pallets on this load #${orderLabel(d)} (of ${numeroDePallets(total)} in total):`, `Pallets de esta carga #${orderLabel(d)} (de ${numeroDePallets(total)} en total):`), numeroDePallets(palletsDeLaOrden(d)));
+    if (v == null) return;
+    const n = Number(v);
+    if (!Number.isFinite(n) || !alRepartir(d, otra, n)) { notify(t(`Enter a number above 0 and below ${numeroDePallets(total)}.`, `Escribe un número mayor que 0 y menor que ${numeroDePallets(total)}.`)); return; }
+    if (await reparteCargas(d.id, otra.id, n)) notify(t(`#${orderLabel(d)}: ${numeroDePallets(n)} pallets · #${orderLabel(otra)}: ${numeroDePallets(total - n)} pallets`, `#${orderLabel(d)}: ${numeroDePallets(n)} pallets · #${orderLabel(otra)}: ${numeroDePallets(total - n)} pallets`));
+  };
+  const juntaLaOrden = async (d: Delivery, otra: Delivery) => {
+    if (!(await juntarCargas(d.id, otra.id))) return;
+    clearRouteFor(orderLaneKey(d) ?? "");
+    notify(t(`#${orderLabel(otra)} joined back into #${orderLabel(d)}: one order of ${numeroDePallets(palletsDeLaOrden(d) + palletsDeLaOrden(otra))} pallets.`, `#${orderLabel(otra)} juntada en #${orderLabel(d)}: una orden de ${numeroDePallets(palletsDeLaOrden(d) + palletsDeLaOrden(otra))} pallets.`));
+  };
+  /** Los botones de carga de una fila D: ✂ partir (solo si no cabe en ESE camión), ✎ repartir y ⤵ juntar (familias de dos). */
+  const botonesDeCarga = (d: Delivery, capacidad: number) => {
+    const { carga, otra } = cargasDe(d);
+    const estilo = { padding: "2px 6px", minHeight: 0 } as const;
+    return (
+      <>
+        {sePuedePartir(d, capacidad) && (
+          <button className="btn btn-ghost btn-sm" style={estilo} data-partir onClick={() => void parteLaOrden(d, capacidad)}
+            title={t(`Split in 2 loads: ${numeroDePallets(capacidad)} + ${numeroDePallets(restoPropuesto(palletsDeLaOrden(d), capacidad) ?? 0)} pallets (it doesn't fit in this truck)`, `Partir en 2 cargas: ${numeroDePallets(capacidad)} + ${numeroDePallets(restoPropuesto(palletsDeLaOrden(d), capacidad) ?? 0)} pallets (no cabe en este camión)`)}>✂</button>
+        )}
+        {carga && otra && (
+          <button className="btn btn-ghost btn-sm" style={estilo} data-reparte onClick={() => void reparteLaOrden(d, otra)} title={t("Pallets on each load", "Pallets de cada carga")}>✎</button>
+        )}
+        {carga && otra && sePuedenJuntar(d, otra, capacidad) && (
+          <button className="btn btn-ghost btn-sm" style={estilo} data-juntar onClick={() => void juntaLaOrden(d, otra)} title={t(`Join #${orderLabel(otra)} back into this load (it fits)`, `Juntar #${orderLabel(otra)} en esta carga (cabe)`)}>⤵</button>
+        )}
+      </>
+    );
+  };
 
   // Columns for the drag-and-drop board: the unassigned pool, then one per driver.
   const boardColumns: BoardColumn[] = useMemo(() => {
@@ -2666,7 +2719,7 @@ export default function RoutesPage() {
                           <tr key={`P-${fi}-${clave}`} data-recogida={f.etiqueta} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}`}
                             style={resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined} data-recien-movida={resaltada ? "" : undefined}>
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
-                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{enlaceConElId(x)}</Fragment>)}</td>
+                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{enlaceConElId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {colsParadas.map((c) => {
                               // D-446: el Tipo de la P es el de su orden, como en la D. D-447 corrige el sitio de la tienda: va en la
@@ -2727,8 +2780,9 @@ export default function RoutesPage() {
                           <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}
                             title={gris || provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
                           >{f.etiqueta}</td>
-                          {/* El ID, subrayado: abre la orden (D-408; el ID en vez de la factura desde D-444). */}
-                          <td className="ordno">{enlaceConElId(d)}</td>
+                          {/* El ID, subrayado: abre la orden (D-408; el ID en vez de la factura desde D-444); y «carga 1 de 2» si es
+                              una carga de una orden partida (D-452). */}
+                          <td className="ordno">{enlaceConElId(d)}{etiquetaDeLaCarga(d)}</td>
                           {celdaDeCuenta}
                           {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
                               manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
@@ -2748,7 +2802,7 @@ export default function RoutesPage() {
                           })}
                           {/* Reordering and moving are edits, not "show me this" — they must not also hijack the map. */}
                           <td onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 3, justifyContent: "flex-end", alignItems: "center", overflow: "visible" }}>
-                            {flechas}{pasar}
+                            {flechas}{pasar}{botonesDeCarga(d, capacity)}
                             <button className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => unassign(d.id)} title={t("Unassign", "Quitar asignación")}>✕</button>
                           </td>
                         </tr>

@@ -13,6 +13,9 @@ import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria"
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { deviceId } from "@/lib/device-id";
 import { DEMO_USERS, demoDeliveries, demoNotifications, demoSettings, uid } from "@/lib/demo-data";
+import { alJuntar, alRepartir, copiaParaLaCarga, hermanasDe, madreAlPartir, siguienteLetra } from "@/lib/cargas-partidas";
+import { palletsDeLaOrden } from "@/lib/pallets";
+import { orderLabel } from "@/lib/utils";
 
 // ============================================================
 // LOCAL DEMO MODE — no backend. Everything is kept in the browser
@@ -194,6 +197,45 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     });
     return true;
   }, [persist]);
+
+  // ---- Las cargas de una orden (D-452, 157): el demo hace en memoria lo que `partir_carga`, `reparte_cargas` y
+  // `juntar_cargas` hacen en la base, con la MISMA copia (`copiaParaLaCarga`) y las mismas reglas de pallets y letra.
+  const partirCarga = useCallback<DataState["partirCarga"]>(async (id, resto) => {
+    const s = storeRef.current;
+    const madre = s.deliveries.find((c) => c.id === id);
+    const cambio = madre ? madreAlPartir(madre, resto) : null;
+    const letra = madre ? siguienteLetra(hermanasDe(s.deliveries, madre)) : null;
+    if (!madre || !cambio || !letra) { notify("That load can't be split."); return null; }
+    const ahora = new Date().toISOString();
+    const hija = copiaParaLaCarga(madre, { id: uid(), letra, resto, ahora, creador: me.id });
+    const total = palletsDeLaOrden(madre);
+    const etiqueta = `#${orderLabel({ ...madre, order_suffix: cambio.order_suffix ?? null })}`;
+    let next: Store = { ...s, deliveries: [hija, ...s.deliveries.map((c) => (c.id === id ? { ...c, ...cambio, updated_at: ahora } : c))] };
+    next = { ...next, events: addEvent(next, id, "edited", `Split at planning: ${total - resto} of ${total} pallets stay as ${etiqueta}; ${resto} pallets go to #${orderLabel(hija)}`) };
+    next = { ...next, events: addEvent(next, hija.id, "created", `Split of ${etiqueta} at planning: ${resto} pallets`) };
+    persist(next);
+    return hija.id;
+  }, [me, persist, notify]);
+  const reparteCargas = useCallback<DataState["reparteCargas"]>(async (idA, idB, palletsA) => {
+    const s = storeRef.current;
+    const a = s.deliveries.find((c) => c.id === idA), b = s.deliveries.find((c) => c.id === idB);
+    const r = a && b && a.order_no === b.order_no ? alRepartir(a, b, palletsA) : null;
+    if (!a || !b || !r) { notify("Those loads can't be re-split."); return false; }
+    const ahora = new Date().toISOString();
+    persist({ ...s, deliveries: s.deliveries.map((c) => (c.id === a.id ? { ...c, ...r.a, updated_at: ahora } : c.id === b.id ? { ...c, ...r.b, updated_at: ahora } : c)) });
+    return true;
+  }, [persist, notify]);
+  const juntarCargas = useCallback<DataState["juntarCargas"]>(async (idA, idB) => {
+    const s = storeRef.current;
+    const a = s.deliveries.find((c) => c.id === idA), b = s.deliveries.find((c) => c.id === idB);
+    if (!a || !b || a.id === b.id || a.order_no !== b.order_no || !a.order_suffix || !b.order_suffix) { notify("Those loads can't be joined."); return false; }
+    const cambio = alJuntar(a, b, hermanasDe(s.deliveries, a).length - 1);
+    const ahora = new Date().toISOString();
+    let next: Store = { ...s, deliveries: s.deliveries.filter((c) => c.id !== b.id).map((c) => (c.id === a.id ? { ...c, ...cambio, updated_at: ahora } : c)) };
+    next = { ...next, events: addEvent(next, a.id, "edited", `Loads joined: #${orderLabel({ ...a, order_suffix: cambio.order_suffix ?? null })} takes back the ${palletsDeLaOrden(b)} pallets of #${orderLabel(b)}`) };
+    persist(next);
+    return true;
+  }, [me, persist, notify]);   // `me` en las dependencias: `addEvent` firma con `me.id` (D-373)
 
   // Local demo mode: positions live only in this browser session, so the
   // driver view can be exercised without a backend.
@@ -459,7 +501,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       if (ok && nota) addNote(id, nota);
       return ok;
     },
-    reorderStops, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
+    reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
     saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
@@ -468,7 +510,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, deleteDelivery, setStage, eventsFor, addNote, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
 
   return (
     <Ctx.Provider value={value}>

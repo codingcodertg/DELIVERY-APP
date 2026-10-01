@@ -14,6 +14,7 @@ import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-su
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
 import { COLUMNAS_DE_AJUSTES, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, entradaDelDia, leeConOpcionales, leeOrdenesDelDia, type DatosDelDia } from "@/lib/route-plan/entrada";
 import { fotoDeLaCopia, type OrdenAhora } from "@/lib/route-plan/copia";
+import { hayQueReleer, parteEnLaBase, type ClienteDeCargas } from "@/lib/route-plan/partir-antes-de-planificar";
 import type { EscrituraDeOrden } from "@/lib/route-plan/publicar";
 import { rutasBloqueadasDelDia, type ClienteDeCandados } from "@/lib/rutas-bloqueadas";
 
@@ -93,7 +94,14 @@ export async function POST(req: Request) {
 
   const dia = await leeElDia(supabase, fecha);
   if (!dia.ok) return dia.respuesta;
-  const candados = dia.candados;
+
+  // Las órdenes que no caben en el camión se parten EN LA BASE antes de planificar (D-452, 157): cada carga nace como una
+  // orden hermana (#Xa, #Xb) y el motor las reparte como dos órdenes. Sin la 157, como hoy (cargas virtuales). Si algo se
+  // partió, el día se vuelve a leer: las cargas nuevas son filas nuevas.
+  const particion = await parteEnLaBase(supabase as unknown as ClienteDeCargas, dia.datos);
+  const releido = hayQueReleer(particion) ? await leeElDia(supabase, fecha) : dia;
+  if (!releido.ok) return releido.respuesta;
+  const candados = releido.candados;
 
   // Lo que alguien fijó a mano en el borrador vigente de esa fecha: planificar de nuevo lo respeta.
   const { data: borradorVigente } = await supabase.from("route_plans").select("id").eq("plan_date", fecha).eq("status", "draft").neq("source", "manual_import").order("version", { ascending: false }).limit(1).maybeSingle();
@@ -101,7 +109,7 @@ export async function POST(req: Request) {
     ? await supabase.from("route_plan_stops").select("driver_id, seq, kind, order_ref, pinned").eq("plan_id", borradorVigente.id).eq("pinned", true)
     : { data: null };
 
-  const datos: DatosDelDia = { ...dia.datos, fijadas: estadoDeParadas((paradasFijadas ?? []) as Parameters<typeof estadoDeParadas>[0]).secuencias };
+  const datos: DatosDelDia = { ...releido.datos, fijadas: estadoDeParadas((paradasFijadas ?? []) as Parameters<typeof estadoDeParadas>[0]).secuencias };
 
   // Tiempos de viaje: Google si hay llave, y siempre los dos respaldos detrás.
   const admin = createAdminClient();
@@ -137,6 +145,9 @@ export async function POST(req: Request) {
     status: "draft",
     // «base»: el plan respetó los candados compartidos; «sin_tabla»: la 149 no está y el motor no los conoce.
     candados: candados.fuente,
+    // Qué órdenes se partieron en cargas EN LA BASE antes de planificar (D-452, 157); «sin_funcion» = sin la 157, el motor
+    // las partió virtualmente como hoy; «error» = una no se pudo partir (se dice cuál) y el motor la partió virtualmente.
+    particion,
     resumen: resumenDelPlan(borrador.plan, borrador.paradas.length, borrador.plan.input.entrada.ordenes),
     rutas: vistaDelPlan(borrador.paradas, borrador.plan.input.entrada.ordenes, borrador.plan.result.partes, borrador.plan.input.entrada.choferes),
     choferes: choferesDelPlan(borrador.plan.input.entrada.choferes),

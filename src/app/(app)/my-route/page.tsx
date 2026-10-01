@@ -21,6 +21,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
+import { cargaDe, etiquetaDeCarga, hermanasDe } from "@/lib/cargas-partidas";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -67,6 +68,9 @@ export default function MyRoutePage() {
   // La cuenta de pallets de cada parada, la misma del Gestor: «+4 = 4» (D-444; hasta ahí, la operación entera).
   const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);
   const dDe = lectura.etiquetaDe;
+  // «Carga 1 de 2» (D-452, 157): una orden que no cabía en el camión son dos órdenes hermanas, cada una su parada; aquí
+  // solo se dice cuál es esta. Se marca con el botón de siempre, por carga.
+  const etiquetaDeLaCarga = (d: Delivery) => { const c = cargaDe(d, hermanasDe(deliveries, d)); return c ? <span className="hint" data-carga> · {etiquetaDeCarga(c, lang === "es")}</span> : null; };
 
   /**
    * El botón de «Siguiente parada» hace lo que dice (D-218).
@@ -336,7 +340,7 @@ export default function MyRoutePage() {
                 {t("Next stop", "Siguiente parada")} · {stops.indexOf(next) + 1}/{stops.length}
               </div>
               <div style={{ fontWeight: 800, fontSize: 18 }}>
-                {facturasDeLaOrden(next).join(", ") || `#${orderLabel(next)}`}
+                {facturasDeLaOrden(next).join(", ") || `#${orderLabel(next)}`}{etiquetaDeLaCarga(next)}
               </div>
               <div style={{ marginTop: 2 }}>{next.delivery_address || t("(no address)", "(sin dirección)")}</div>
               <div className="hint" style={{ marginTop: 4 }}>
@@ -473,7 +477,7 @@ export default function MyRoutePage() {
                         </span>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ fontWeight: 700, display: "block" }}>
-                            {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}
+                            {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}{etiquetaDeLaCarga(d)}
                           </span>
                           <span className="hint" style={{ display: "block" }}>
                             {d.delivery_address || t("(no address)", "(sin dirección)")}
