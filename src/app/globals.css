@@ -423,7 +423,7 @@ table.orders tr.fila-plan-recoger .hint, table.orders tr.fila-plan-entregar .hin
    fila y pintadas como grupo: un tono más fuerte, y una raya arriba donde empieza cada grupo para separar dos seguidos. */
 table.orders tr.fila-grupo-recoger td { background: var(--grupo-recoger-bg); }
 table.orders tr.fila-grupo-entregar td { background: var(--grupo-entregar-bg); }
-/* La raya de inicio de grupo es una sombra hacia dentro, no un borde (D-NEXT): el borde hacía esas filas medio píxel más
+/* La raya de inicio de grupo es una sombra hacia dentro, no un borde (D-459): el borde hacía esas filas medio píxel más
    altas que las demás, y la tabla de paradas tiene todas sus filas del mismo alto. */
 table.orders tr.fila-grupo-inicio.fila-grupo-recoger td { box-shadow: inset 0 2px 0 var(--green); }
 table.orders tr.fila-grupo-inicio.fila-grupo-entregar td { box-shadow: inset 0 2px 0 var(--amber); }
@@ -432,7 +432,7 @@ table.orders tr.suelta-arriba td { box-shadow: inset 0 3px 0 var(--accent); }
 table.orders tr.suelta-abajo td { box-shadow: inset 0 -3px 0 var(--accent); }
 table.orders tr[data-fila-arrastrable] { -webkit-user-drag: element; }
 .ordno { font-weight: 800; font-family: 'Archivo'; }
-/* La tabla de paradas del Gestor (D-NEXT). Tres pedidos del dueño, 2026-10-01, con capturas:
+/* La tabla de paradas del Gestor (D-459). Tres pedidos del dueño, 2026-10-01, con capturas:
    · «look theres a glitch»: la celda de acciones (flechas, «Pasar a…», ✕) llevaba `display: flex` EN EL td, que deja de ser
      celda de tabla: no tomaba el alto de la fila (medido: 34 px en filas de 38,2) ni su fondo entero, y las rayas no casaban.
      Ahora el td es una celda normal y el flex va en un div dentro (`.acciones-de-parada`).
@@ -443,11 +443,11 @@ table.orders.tabla-de-paradas tbody td { height: 34px; }
 @media (max-width: 640px) { table.orders.tabla-de-paradas tbody td { height: 47px; } }
 table.orders.tabla-de-paradas td.celda-acciones { overflow: visible; }
 .acciones-de-parada { display: flex; gap: 3px; justify-content: flex-end; align-items: center; }
-/* Una fila ya HECHA (D-NEXT): recogida o entregada, sigue en la lista de su chofer, apagada y sin controles. El verde es
+/* Una fila ya HECHA (D-459): recogida o entregada, sigue en la lista de su chofer, apagada y sin controles. El verde es
    el de `row-done`; la entrega de una orden recogida y aún en camino va sin verde, en gris. */
 table.orders tr.fila-hecha td { color: var(--ink-soft); }
 table.orders tr.fila-hecha .ordno span[data-abre-la-orden] { font-weight: 600 !important; }
-/* La factura y, a su derecha en la MISMA línea, el ID (D-NEXT; D-456 lo ponía debajo). El dueño, 2026-10-01: «the id
+/* La factura y, a su derecha en la MISMA línea, el ID (D-459; D-456 lo ponía debajo). El dueño, 2026-10-01: «the id
    looks blurry and awful becuase of those dots dont make the row larger just fix the view». El ID es pequeño, gris y sin
    subrayar —el gesto de enlace es solo de la factura—, y si no cabe es ÉL quien se corta con «…» (encoge 100 veces antes). */
 .factura-e-id { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; min-width: 0; white-space: nowrap; vertical-align: bottom; }

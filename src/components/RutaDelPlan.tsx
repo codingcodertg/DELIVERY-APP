@@ -137,7 +137,7 @@ export function RutaDelPlan({ rutas, facturaDeOrden, abrirOrden, ajuste, columna
         <td>
           {/* D-456: la FACTURA, que abre la ficha (D-428), y el ID; sin factura, el ID en gris. El tipo de cliente y la
               ciudad de recogida van en sus columnas; «Recoger / Entregar» lo dice la etiqueta P/D (y su título).
-              D-NEXT: el ID va AL LADO, en la misma línea, pequeño y gris, y es el que se corta si no cabe (`.factura-e-id`),
+              D-459: el ID va AL LADO, en la misma línea, pequeño y gris, y es el que se corta si no cabe (`.factura-e-id`),
               igual que en la tabla de paradas del Gestor; debajo hacía la fila más alta y se leía mal. */}
           {(() => {
             const n = facturaDeOrden(p.order_ref);

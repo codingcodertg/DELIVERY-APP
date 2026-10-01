@@ -122,7 +122,7 @@ describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona 
 });
 
 describe("lo que se queda, a la vista", () => {
-  it("«Armar las rutas del día»: UN botón, primario, en la cabecera (D-NEXT quitó la tarjeta plegada que lo repetía)", () => {
+  it("«Armar las rutas del día»: UN botón, primario, en la cabecera (D-459 quitó la tarjeta plegada que lo repetía)", () => {
     expect(plano(leer("src/components/PlanDelDia.tsx"))).not.toContain("data-abrir-armar-rutas");
     expect(pagina).toContain("<button className=\"btn btn-primary btn-sm\" data-armar-rutas aria-expanded={planAbierto} onClick={() => setPlanAbierto((v) => !v)}");
     expect(pagina.split("data-armar-rutas").length - 1).toBe(1);
@@ -131,7 +131,7 @@ describe("lo que se queda, a la vista", () => {
     expect(pagina).toContain("onClick={() => { if (conductorElegido) void colocaEnElMejorLugar(conductorElegido); }}");
     expect(pagina).toContain("onClick={() => void mueveParada(u.key, f.indice!, -1)}");
     expect(pagina).toContain("onClick={() => void mueveParada(u.key, f.indice!, 1)}");
-    expect(pagina).toContain("if (v) void pasaA(u.key, ordenesDeLaFila, v);");      // D-NEXT: con la ruta de salida, para deshacer
+    expect(pagina).toContain("if (v) void pasaA(u.key, ordenesDeLaFila, v);");      // D-459: con la ruta de salida, para deshacer
     expect(pagina).toContain("suelta: (id, destino) => void sueltaEnLaLinea(id, destino)");
     for (const x of ["moveStopToLoad(", "moveTrip(", "data-viaje-visto"]) expect(codigoDePagina).not.toContain(x);
   });
@@ -155,7 +155,7 @@ describe("Julio vacío: ni línea en el mapa ni tarjeta", () => {
     expect(pagina).toContain("if (firmaPintada.current[k] !== firmaDe(k, byDriver.get(k) ?? [])) clearRouteFor(k);");
   });
   it("sin paradas no hay tarjeta, aunque esté marcado; se nombra en una línea", () => {
-    // D-NEXT: «sin paradas» es sin pendientes NI hechas: quien ya lo entregó todo conserva su tarjeta, con sus filas hechas.
+    // D-459: «sin paradas» es sin pendientes NI hechas: quien ya lo entregó todo conserva su tarjeta, con sus filas hechas.
     expect(pagina).toContain("const conAlgoQuePintar = (clave: string) => (byDriver.get(clave) ?? []).length > 0 || hechasDe(clave).length > 0;");
     expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter((u) => conAlgoQuePintar(u.key));");
     expect(pagina).toContain("const marcadasSinParadas = lanesDelFiltro.filter((u) => selected.has(u.key) && (byDriver.get(u.key) ?? []).length === 0);");

@@ -4,11 +4,11 @@
  *
  * CERRADO PARA SIEMPRE, no «hasta que cambie lo que dice». Los avisos de choferes sin señal y de atrasadas cambian de
  * texto casi cada día (otro chofer, otro número): cerrarlos «hasta que cambie» los haría volver al día siguiente, que es
- * justo lo que pidió que no pasara. Para recuperarlos, «Mostrar avisos ocultos» — desde D-NEXT al FONDO de la página y en
+ * justo lo que pidió que no pasara. Para recuperarlos, «Mostrar avisos ocultos» — desde D-459 al FONDO de la página y en
  * pequeño; hasta ahí estaba en la barra de herramientas, y el dueño pidió que no saliera («osea que no aparezca eso de
  * show hidden notices», 2026-10-01).
  *
- * D-NEXT quitó dos de la lista, porque dejaron de ser avisos: `armar-rutas` (la tarjeta plegada que repetía el botón de
+ * D-459 quitó dos de la lista, porque dejaron de ser avisos: `armar-rutas` (la tarjeta plegada que repetía el botón de
  * la cabecera; ahora el botón es la única entrada) y `ayuda-del-mapa` (el renglón fijo bajo el mapa; ahora un ⓘ con el
  * texto al pasar). Quien los tenía cerrados no nota nada: un id que ya no se conoce se ignora al leer, y no se reusa.
  *

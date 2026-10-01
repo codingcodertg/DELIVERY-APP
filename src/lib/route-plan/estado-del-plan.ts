@@ -1,6 +1,6 @@
 /**
  * En qué está el plan de «Armar las rutas del día» para una fecha, dicho en una pastilla junto al botón de la cabecera
- * del Gestor (D-NEXT).
+ * del Gestor (D-459).
  *
  * El dueño, 2026-10-01: «el boton de build routes solo ahi dejalo no quiero que siga aparecieron el otro dialog que se
  * abrees inecesario». «El otro» era la tarjeta plegada «🧭 Armar las rutas del día automáticamente ▸ · Borrador v2», que

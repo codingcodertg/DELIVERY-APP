@@ -8,7 +8,7 @@ import { estadoDelPlan, textoDelEstadoDelPlan } from "./route-plan/estado-del-pl
 import { ANCHO_FIJO_DE_PARADAS } from "./routes-columns";
 
 /**
- * D-NEXT (2026-10-01): nueve pedidos del dueño sobre el Gestor de Rutas, el mismo día.
+ * D-459 (2026-10-01): nueve pedidos del dueño sobre el Gestor de Rutas, el mismo día.
  *  1 · lo ya entregado SIGUE en la lista de su chofer            6 · fuera la franja «Programadas · Sin programar · Total · Rutas»
  *  2 · la celda de acciones, descuadrada (`display: flex` en el td) 7 · ↶ ↷ a la vista en la tarjeta de cada ruta
  *  3 · el ID al lado de la factura, no debajo                      8 · fuera el texto de sobra de la tarjeta

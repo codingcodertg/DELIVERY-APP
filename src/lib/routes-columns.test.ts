@@ -191,7 +191,7 @@ describe("la página del Gestor", () => {
     // is more important») devuelve la factura, que abre la orden, con el ID debajo (`facturaYId`).
     expect(pagina).toContain('<td className="ordno">{facturaConSuId(d)}</td>');
     expect(pagina).toContain("const facturaConSuId = (d: Delivery) => { const n = facturaYId(d); const gesto = abreLaOrden(d);");
-    // D-NEXT: el ID va AL LADO de la factura, en la misma línea (`.factura-e-id`), no debajo.
+    // D-459: el ID va AL LADO de la factura, en la misma línea (`.factura-e-id`), no debajo.
     expect(pagina).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");
     expect(pagina).not.toContain("enlaceConElId");
   });
@@ -303,7 +303,7 @@ describe("la página del Gestor", () => {
     for (const muerto of ['"scheduled"', "setTab(\"scheduled\")", "colsProgramadas", "ordenProgramadas", "menuProgramadas", "schedCols", "rtg_routes_sched4", "const scheduled ="])
       expect(pagina, muerto).not.toContain(muerto);
     expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline">("routes");');
-    // D-NEXT: la franja de cuatro casillas de arriba se quitó; la cuenta de programadas va en la pestaña «Rutas».
+    // D-459: la franja de cuatro casillas de arriba se quitó; la cuenta de programadas va en la pestaña «Rutas».
     expect(pagina).toContain("<span data-cuenta-programadas>{t(`${scheduledCount} scheduled`, `${scheduledCount} programadas`)}</span>");
     expect(pagina).not.toContain('label: t("Scheduled", "Programadas")');
   });
@@ -395,11 +395,11 @@ describe("137: la lista cerrada de la base es la del código", () => {
   });
 });
 
-describe("«Armar las rutas del día» nace cerrado tras su botón (D-346; desde D-NEXT el botón es el de la cabecera)", () => {
+describe("«Armar las rutas del día» nace cerrado tras su botón (D-346; desde D-459 el botón es el de la cabecera)", () => {
   const plan = plano(sinComentarios(leer("src/components/PlanDelDia.tsx")));
   const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
   it("cerrado por defecto, y cerrado sigue diciendo cuántas órdenes no tienen plan: en la pastilla de la cabecera", () => {
-    // D-346 lo plegó tras un botón dentro de una tarjeta; D-NEXT quitó la tarjeta: cerrado no pinta nada, y lo que decía
+    // D-346 lo plegó tras un botón dentro de una tarjeta; D-459 quitó la tarjeta: cerrado no pinta nada, y lo que decía
     // plegado («N sin plan», «Borrador vN») lo cuenta a la página, que lo pinta junto a su botón.
     expect(pagina).toContain("const [planAbierto, setPlanAbierto] = useState(false);");
     expect(plan).toContain("if (!abierto) return null;");

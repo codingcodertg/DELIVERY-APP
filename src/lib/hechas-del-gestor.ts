@@ -6,7 +6,7 @@ import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { BUSINESS_TZ } from "@/lib/utils";
 
 /**
- * Lo ya HECHO de un chofer sigue en su lista del Gestor de Rutas (D-NEXT).
+ * Lo ya HECHO de un chofer sigue en su lista del Gestor de Rutas (D-459).
  *
  * El dueño, 2026-10-01: «right now when the order gets delivered it desapears frm the logistic manager view so don't do
  * that». Hasta aquí el Gestor pintaba solo lo pendiente (`ROUTE_STAGES`): al entregar, la orden se iba de la tarjeta de su

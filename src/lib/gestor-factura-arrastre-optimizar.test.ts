@@ -50,10 +50,10 @@ describe("1 · la FACTURA nombra la orden en todas las tablas del Gestor, con el
     expect(celda).toContain("const n = facturaYId(d);");
     expect(celda).toContain("<span {...gesto} data-abre-la-orden data-factura={n.esFactura ? \"\" : undefined}");
     expect(celda).toContain("{n.principal}</span>");
-    // D-NEXT: el ID al lado, en la misma línea (`.factura-e-id`); D-456 lo ponía debajo.
+    // D-459: el ID al lado, en la misma línea (`.factura-e-id`); D-456 lo ponía debajo.
     expect(celda).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");
     expect(celda).toContain(": { ...gesto.style, color: \"var(--gray)\" }");
-    // Las cuatro filas de la tabla la usan: la recogida, la entrega, la entrega de otra carga y, desde D-NEXT, la ya hecha.
+    // Las cuatro filas de la tabla la usan: la recogida, la entrega, la entrega de otra carga y, desde D-459, la ya hecha.
     expect(pagina.split("{facturaConSuId(").length - 1).toBe(4);
     expect(pagina).toContain("<th data-columna-factura");
   });
@@ -77,7 +77,7 @@ describe("1 · la FACTURA nombra la orden en todas las tablas del Gestor, con el
     const ruta = plano(leer("src/components/RutaDelPlan.tsx"));
     expect(ruta).toContain("const n = facturaDeOrden(p.order_ref);");
     expect(ruta).toContain("onClick={() => abrirOrden(p.order_ref)}>{n.principal}</button>");
-    expect(ruta).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");      // D-NEXT: al lado, no debajo
+    expect(ruta).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");      // D-459: al lado, no debajo
     expect(plano(leer("src/components/PlanDelDia.tsx"))).toContain("const facturaDeOrden = (id: string) => facturaYIdDeLaOrden(deliveries, id);");
   });
   it("el tablero y la línea de tiempo nombran la orden por su factura", () => {

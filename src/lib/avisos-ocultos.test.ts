@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { AVISOS_DEL_GESTOR, cierraAviso, claveDeAvisosOcultos, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "./avisos-ocultos";
 
 /** Las ✕ de los avisos del Gestor de Rutas (D-400): cerrados para siempre, por persona, y recuperables.
- *  D-NEXT (2026-10-01): dos avisos dejaron de serlo —la tarjeta «Armar las rutas» (ahora un solo botón en la cabecera) y la
+ *  D-459 (2026-10-01): dos avisos dejaron de serlo —la tarjeta «Armar las rutas» (ahora un solo botón en la cabecera) y la
  *  ayuda del mapa (ahora un ⓘ)—, y «Mostrar avisos ocultos» bajó al fondo de la página. Las pruebas de aquí que fijaban lo
  *  de antes se pusieron al día; ninguna se quitó sin sustituirla. */
 
@@ -44,7 +44,7 @@ describe("lo cerrado se recuerda por persona", () => {
     expect(leeAvisosOcultos(a.getItem, "u1").size).toBe(0);
     a.setItem(claveDeAvisosOcultos("u1"), JSON.stringify({ atrasadas: true }));
     expect(leeAvisosOcultos(a.getItem, "u1").size).toBe(0);
-    // D-NEXT: «armar-rutas» y «ayuda-del-mapa» ya no son avisos. Quien los tenía cerrados no nota nada: se ignoran al leer.
+    // D-459: «armar-rutas» y «ayuda-del-mapa» ya no son avisos. Quien los tenía cerrados no nota nada: se ignoran al leer.
     a.setItem(claveDeAvisosOcultos("u1"), JSON.stringify(["viejo-aviso", 7, "armar-rutas", "ayuda-del-mapa", diaVacio]));
     expect([...leeAvisosOcultos(a.getItem, "u1")]).toEqual([diaVacio]);
   });
@@ -79,7 +79,7 @@ describe("la pantalla del Gestor usa lo cerrado", () => {
       expect(pagina).toContain(`<CerrarAviso aviso={AVISOS_DEL_GESTOR.${id}} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.${id})} />`);
     }
   });
-  it("«Mostrar avisos ocultos» sale solo si hay algo cerrado, y lo devuelve todo (y lo borra de lo guardado) — al FONDO, no en la barra de arriba (D-NEXT)", () => {
+  it("«Mostrar avisos ocultos» sale solo si hay algo cerrado, y lo devuelve todo (y lo borra de lo guardado) — al FONDO, no en la barra de arriba (D-459)", () => {
     expect(pagina).toContain("{avisosOcultos != null && avisosOcultos.size > 0 && ( <div style={{ textAlign: \"right\", marginTop: 18 }}> <button className=\"notif-clear\" data-mostrar-avisos-ocultos onClick={muestraAvisosOcultos} style={{ fontSize: 11 }}");
     expect(pagina).toContain("const muestraAvisosOcultos = () => { setAvisosOcultos(new Set()); if (me?.id) guardaAvisosOcultos(() => window.localStorage, me.id, new Set()); };");
     // Uno solo, y detrás de todas las tarjetas: el dueño, «osea que no aparezca eso de show hidden notices» (estaba junto a «Ocultar mapa»).
@@ -89,7 +89,7 @@ describe("la pantalla del Gestor usa lo cerrado", () => {
     expect(barra).toContain("Hide map & drivers");
     for (const fuera of ["avisosOcultos", "setWideRoutes", "Show hidden notices"]) expect(barra, fuera).not.toContain(fuera);
   });
-  it("D-NEXT: «Armar rutas» es UN botón, el de la cabecera, que abre y cierra el panel; ya no es un aviso que se cierra", () => {
+  it("D-459: «Armar rutas» es UN botón, el de la cabecera, que abre y cierra el panel; ya no es un aviso que se cierra", () => {
     expect(pagina).toContain("{puedeArmarRutas && ( <button className=\"btn btn-primary btn-sm\" data-armar-rutas aria-expanded={planAbierto} onClick={() => setPlanAbierto((v) => !v)}");
     expect(pagina).toContain("{puedeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} abierto={planAbierto} onCerrar={() => setPlanAbierto(false)} onEstado={setEstadoPlan} onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split(\"#\")[0]); if (d) setOpenOrder(d); }} columnas={{");
     for (const muerto of ["planTraidoAMano", "barraDeArmarRutas", "data-traer-armar-rutas", "AVISOS_DEL_GESTOR.armarRutas", "AVISOS_DEL_GESTOR.ayudaDelMapa"]) expect(pagina, muerto).not.toContain(muerto);
@@ -98,7 +98,7 @@ describe("la pantalla del Gestor usa lo cerrado", () => {
   });
 });
 
-describe("D-NEXT: el panel de «Armar las rutas» no tiene tarjeta plegada ni ✕; lo abre y lo cierra la página", () => {
+describe("D-459: el panel de «Armar las rutas» no tiene tarjeta plegada ni ✕; lo abre y lo cierra la página", () => {
   const plan = lee("src/components/PlanDelDia.tsx");
   it("cerrado no pinta nada; abierto, su título lo cierra; y no guarda él si está abierto", () => {
     expect(plan).toContain("if (!abierto) return null;");

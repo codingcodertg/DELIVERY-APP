@@ -24301,7 +24301,7 @@ por fichero) caen cada uno con su prueba.
 
 ## D-346 · El Gestor de Rutas: la dirección de entrega en sus tablas, columnas elegibles donde se cambia el orden, sin sugerencia de chofer, y «Armar las rutas» plegado
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): «Armar las rutas del día» ya no es una tarjeta plegada tras su botón: el botón es el de la cabecera, el panel cerrado no pinta nada, y lo que decía plegado («N sin plan», «Borrador vN») va en una pastilla junto al botón. El dueño: «el boton de build routes solo ahi dejalo no quiero que siga aparecieron el otro dialog».
+> **⚠ Reemplazada en parte por D-459** (2026-10-01): «Armar las rutas del día» ya no es una tarjeta plegada tras su botón: el botón es el de la cabecera, el panel cerrado no pinta nada, y lo que decía plegado («N sin plan», «Borrador vN») va en una pastilla junto al botón. El dueño: «el boton de build routes solo ahi dejalo no quiero que siga aparecieron el otro dialog».
 >
 > **⚠ Reemplazada en parte por D-437** (2026-09-28): «Armar las rutas» sigue naciendo plegada, como pidió aquí el dueño,
 > pero su botón es ahora el primario de la barra: es el único camino automático del Gestor (se quitaron «Optimizar» y
@@ -26404,7 +26404,7 @@ tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
 
 ## D-376 · El Gestor de Rutas enseña las columnas de Órdenes, y se quita la pestaña «Programadas»
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): la franja de cuatro casillas de arriba («Programadas · Sin programar · Total · Rutas») se quitó («remeuve toda esta barra porque ya esta abajo»). La cuenta de programadas, que aquí «lleva a las rutas», vive ahora en la pestaña «Rutas (N) · N programadas».
+> **⚠ Reemplazada en parte por D-459** (2026-10-01): la franja de cuatro casillas de arriba («Programadas · Sin programar · Total · Rutas») se quitó («remeuve toda esta barra porque ya esta abajo»). La cuenta de programadas, que aquí «lleva a las rutas», vive ahora en la pestaña «Rutas (N) · N programadas».
 >
 > **⚠ Corregida por D-379** (2026-09-23): el ⚙ de la tabla de paradas no dejaba marcar las columnas (medido con un clic de
 > persona en la primera tarjeta), y el menú heredaba el estilo de formulario. Lo que abajo se da por «visto al medir» y de aspecto era el
@@ -27692,7 +27692,7 @@ y el rango de fechas del **Panel**.
 
 ## D-393 · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): el filtro de chofer ya no está en la cabecera, junto a la fecha: va en la barra de vistas de abajo, delante de las pestañas («mueve eseo filtro del conducto abajo al lado de timeline»). Misma función y lo mismo guardado. Y una tarjeta de chofer se queda aunque no tenga nada pendiente, si tiene algo ya hecho ese día.
+> **⚠ Reemplazada en parte por D-459** (2026-10-01): el filtro de chofer ya no está en la cabecera, junto a la fecha: va en la barra de vistas de abajo, delante de las pestañas («mueve eseo filtro del conducto abajo al lado de timeline»). Misma función y lo mismo guardado. Y una tarjeta de chofer se queda aunque no tenga nada pendiente, si tiene algo ya hecho ese día.
 >
 > **⚠ Reemplazada en parte por D-437** (2026-09-28): «✨ Auto-asignar» ya no existe, así que lo que esta entrada dice de
 > él (qué reparte, si sigue al filtro) no aplica. El filtro de chofer, el chip «Todas» y las tarjetas plegadas siguen.
@@ -28552,7 +28552,7 @@ siempre, de 4390), `tsc` y build en verde (el aviso de `unpdf` de siempre).
 
 ## D-400 · Gestor de Rutas: los avisos se cierran con una ✕ y no vuelven a salir; «Mostrar avisos ocultos» los devuelve
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): dos de los cinco avisos dejan de serlo —`armar-rutas` (la tarjeta se quitó: «Armar rutas» es un solo botón, en la cabecera) y `ayuda-del-mapa` (ahora un ⓘ con el texto al pasar)—, y «👁 Mostrar avisos ocultos» ya no está en la barra de herramientas: va al fondo de la página, en pequeño («osea que no aparezca eso de show hidden notices»). Los otros tres siguen cerrándose igual.
+> **⚠ Reemplazada en parte por D-459** (2026-10-01): dos de los cinco avisos dejan de serlo —`armar-rutas` (la tarjeta se quitó: «Armar rutas» es un solo botón, en la cabecera) y `ayuda-del-mapa` (ahora un ⓘ con el texto al pasar)—, y «👁 Mostrar avisos ocultos» ya no está en la barra de herramientas: va al fondo de la página, en pequeño («osea que no aparezca eso de show hidden notices»). Los otros tres siguen cerrándose igual.
 >
 > **⚠ Reemplazada en parte por D-437** (2026-09-28): el botón «🧭 Armar rutas» de la cabecera, que trae la barra
 > cerrada, es ahora primario (antes fantasma): donde estaban «Auto-asignar» y «Optimizar todas las rutas» es la acción.
@@ -30704,7 +30704,7 @@ al numerar.)
 
 ## D-417 · Gestor de Rutas: las paradas se arrastran en «📅 Horario» (a otro hueco, a otro chofer o a su nombre = Mejor lugar), con vista previa y deshacer/rehacer
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): deshacer y rehacer tienen además dos botones en la cabecera de la tarjeta de cada ruta, sobre el MISMO historial (encendidos solo si el último movimiento tocó esa ruta), y entran también «Pasar a…» y «Vaciar».
+> **⚠ Reemplazada en parte por D-459** (2026-10-01): deshacer y rehacer tienen además dos botones en la cabecera de la tarjeta de cada ruta, sobre el MISMO historial (encendidos solo si el último movimiento tocó esa ruta), y entran también «Pasar a…» y «Vaciar».
 >
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): el arrastre ve la lista
 > como un solo «viaje». Soltado A MANO en un hueco no mira la capacidad (lo avisa la cuenta de la tabla en la parada que
@@ -32099,7 +32099,7 @@ Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
 
 ## D-433 · Gestor de Rutas: el selector «Viaje N» ya no rompe la tarjeta, mira la capacidad, y las flechas se ven y no empatan con lo entregado
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): lo ya recogido o entregado del chofer ese día SÍ se pinta ahora en su tarjeta («right now when the order gets delivered it desapears frm the logistic manager view so don't do that»), intercalado donde iba y sin controles. Deja de valer «Las filas que se pintan no cambian. La tarjeta sigue recorriendo solo las pendientes». Lo demás sigue: lo hecho no se mueve ni se reescribe, las pendientes se numeran detrás, y la comparación con el plan cuenta lo hecho.
+> **⚠ Reemplazada en parte por D-459** (2026-10-01): lo ya recogido o entregado del chofer ese día SÍ se pinta ahora en su tarjeta («right now when the order gets delivered it desapears frm the logistic manager view so don't do that»), intercalado donde iba y sin controles. Deja de valer «Las filas que se pintan no cambian. La tarjeta sigue recorriendo solo las pendientes». Lo demás sigue: lo hecho no se mueve ni se reescribe, las pendientes se numeran detrás, y la comparación con el plan cuenta lo hecho.
 >
 > **⚠ Reemplazada en parte por D-437** (2026-09-28): «Optimizar» ya no existe, así que el porqué de `load_auto: false` en
 > toda la ruta («Optimizar decide si respeta los viajes…») ya no tiene quién lo lea; se deja, no hace daño. «Unir viajes»
@@ -32416,7 +32416,7 @@ aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio es
 
 ## D-437 · Gestor de Rutas: solo «Armar rutas» (fuera Optimizar, Auto-asignar, Reagrupar y Simular); un chofer vacío ya no deja línea ni tarjeta; «Incidencias» es un botón
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): el botón «🧭 Armar rutas» de la cabecera ya no «trae la barra cerrada»: es la única entrada, sale siempre, y abre y cierra el panel. «Un chofer vacío ya no deja tarjeta» vale para quien no tiene nada pendiente NI hecho ese día. Y «🗑 Vaciar» ya no se lleva lo recogido o entregado.
+> **⚠ Reemplazada en parte por D-459** (2026-10-01): el botón «🧭 Armar rutas» de la cabecera ya no «trae la barra cerrada»: es la única entrada, sale siempre, y abre y cierra el panel. «Un chofer vacío ya no deja tarjeta» vale para quien no tiene nada pendiente NI hecho ese día. Y «🗑 Vaciar» ya no se lleva lo recogido o entregado.
 >
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Unir viajes» y «Dividir en
 > 2» ya no existen: no hay viajes que unir ni dividir.
@@ -34417,7 +34417,7 @@ elemento a la vista y la foto entregada por el selector de ficheros que abre el 
 
 ## D-456 · Gestor de Rutas: la factura en todas las tablas, arrastrar para armar rutas a mano, «🧭 Optimizar» por ruta y la llegada estimada siempre
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): el ID ya no va DEBAJO de la factura sino a su lado, en la misma línea, pequeño, gris y sin subrayar («the id looks blurry and awful becuase of those dots dont make the row larger just fix the view»), y la columna nace con 124 px (era 84). La línea «✋ Arrastre una fila…» de la tarjeta de cada chofer es ahora el `title` de la cabecera de su tabla; en «Sin asignar» sigue. Y el `td` de acciones dejó de llevar `display: flex`.
+> **⚠ Reemplazada en parte por D-459** (2026-10-01): el ID ya no va DEBAJO de la factura sino a su lado, en la misma línea, pequeño, gris y sin subrayar («the id looks blurry and awful becuase of those dots dont make the row larger just fix the view»), y la columna nace con 124 px (era 84). La línea «✋ Arrastre una fila…» de la tarjeta de cada chofer es ahora el `title` de la cabecera de su tabla; en «Sin asignar» sigue. Y el `td` de acciones dejó de llevar `display: flex`.
 
 **Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
 D-007 (sin arrastrar en la pestaña «Rutas»), D-434 (la columna «solo para el id» de la tabla del plan), D-437 («Optimizar
@@ -34875,7 +34875,7 @@ por factura, o cuando alguien la reprograma a hoy.
 **Pruebas.** `dates.test.ts`: una vencida abierta entra por defecto y no entra sin atrasadas; ayer, hoy, futuro y sin fecha
 siguen entrando; la pantalla la pide sin atrasadas.
 
-## D-NEXT · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
+## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
 **Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
 D-433 (lo hecho no se pintaba), D-456 (el ID debajo de la factura; la línea «✋ Arrastre una fila…»), D-400 (la tarjeta de

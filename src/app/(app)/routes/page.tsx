@@ -383,7 +383,7 @@ export default function RoutesPage() {
     setAvisosOcultos(nuevos);
     if (me?.id) guardaAvisosOcultos(() => window.localStorage, me.id, nuevos);
   };
-  // «🧭 Armar rutas» es UN botón, en la cabecera (D-NEXT). El dueño, 2026-10-01: «el boton de build routes solo ahi dejalo
+  // «🧭 Armar rutas» es UN botón, en la cabecera (D-459). El dueño, 2026-10-01: «el boton de build routes solo ahi dejalo
   // no quiero que siga aparecieron el otro dialog que se abrees inecesario». Hasta aquí había además una tarjeta plegada
   // («Armar las rutas del día automáticamente ▸ · Borrador v2», cerrable con ✕, D-400) que repetía el botón. Ahora el botón
   // abre y cierra el panel del plan, y lo que la tarjeta decía plegada —«Borrador vN», «Publicado vN», «N sin plan»— va en
@@ -541,7 +541,7 @@ export default function RoutesPage() {
   const modo: ModoDelGestor = soloPendientes ? "pendientes" : allDates ? "todas" : "dia";
   const dayOrders = useMemo(() => ordenesDelDia(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);
   const pendientes = useMemo(() => pendientesDeOtrosDias(deliveries, ROUTE_STAGES), [deliveries]);
-  // Lo ya HECHO de cada chofer ese día —recogido o entregado— SIGUE en su lista (D-NEXT). El dueño, 2026-10-01: «right now
+  // Lo ya HECHO de cada chofer ese día —recogido o entregado— SIGUE en su lista (D-459). El dueño, 2026-10-01: «right now
   // when the order gets delivered it desapears frm the logistic manager view so don't do that». Hasta aquí solo se pintaba
   // lo pendiente (`ROUTE_STAGES`) y lo hecho contaba para comparar con el plan y para numerar, sin verse (D-433). Se pinta
   // viendo UN día; `dayOrders`, `byDriver` y todo lo que mueve o mide la ruta siguen siendo solo lo pendiente.
@@ -636,7 +636,7 @@ export default function RoutesPage() {
       const bucket = isBucket(d.assigned_driver || "");
       add({ id: `orphan:${key}`, key, driver: key, load: 1, label: key, isBucket: bucket, store: null });
     }
-    // Y quien ya lo entregó todo sin ser un chofer de la lista (una ruta temporal retirada): su tarjeta sigue (D-NEXT).
+    // Y quien ya lo entregó todo sin ser un chofer de la lista (una ruta temporal retirada): su tarjeta sigue (D-459).
     for (const key of hechasPintadas.keys()) {
       if (!seen.has(key)) add({ id: `orphan:${key}`, key, driver: key, load: 1, label: key, isBucket: isBucket(key), store: null });
     }
@@ -755,7 +755,7 @@ export default function RoutesPage() {
   };
   /** «Pasar a…» (D-443, en cada fila P y D): las órdenes de la parada, enteras —recogida y entrega—, a la ruta de otro chofer.
    *  Entran al final de su lista, sin puesto, como «Asignar» (`assignToLane`), y se dice. */
-  // D-NEXT: entra en deshacer/rehacer, como las flechas. La foto lleva las DOS rutas —la de salida y la de llegada—, así
+  // D-459: entra en deshacer/rehacer, como las flechas. La foto lleva las DOS rutas —la de salida y la de llegada—, así
   // que deshacer devuelve la orden a su chofer y a su puesto de una vez: no puede quedar a medias.
   const pasaA = async (origen: string, ids: readonly string[], destino: string) => {
     if (!destino || !ids.length || moviendo) return;
@@ -1002,11 +1002,11 @@ export default function RoutesPage() {
   // Delete a whole route/load: unassign every stop (back to the pool) and, if
   // it was a bucket, retire it.
   const clearLane = async (laneKey: string) => {
-    // Lo ya recogido o entregado NO se vacía (D-NEXT): su puesto es fijo (D-433), sigue en la lista de su chofer, y
+    // Lo ya recogido o entregado NO se vacía (D-459): su puesto es fijo (D-433), sigue en la lista de su chofer, y
     // «devolver a Sin asignar» una orden entregada le quitaba quién la entregó. Hasta aquí Vaciar se las llevaba todas.
     const stops = deliveries.filter((d) => (d.assigned_driver || "") === laneKey && !ETAPAS_HECHAS.has(d.stage));
     const nombreDeLaRuta = laneLabel(laneKey);
-    // La foto para deshacer (D-NEXT): Vaciar es el error más caro de arreglar a mano, una orden cada vez.
+    // La foto para deshacer (D-459): Vaciar es el error más caro de arreglar a mano, una orden cada vez.
     const antes = fotoDe(stops.map(aParadaDelGantt));
     // Confirm first — this sends every stop back to Unassigned (and removes the
     // route if it's a temp route).
@@ -1254,7 +1254,7 @@ export default function RoutesPage() {
   // vuelve a ser lo que nombra y abre la orden en la tabla de paradas, en negrita, y el ID se queda debajo, más pequeño. Una
   // orden sin factura enseña su ID en gris (`facturaYId`). (D-444 decía que la factura seguía «en su columna de Órdenes (⚙)»,
   // pero esa columna no existía en la tabla de paradas: tras D-444 no había forma de verla ahí.)
-  // **D-NEXT** (2026-10-01, «look the id looks blurry and awful becuase of those dots dont make the row larger just fix the
+  // **D-459** (2026-10-01, «look the id looks blurry and awful becuase of those dots dont make the row larger just fix the
   // view»): el ID ya no va DEBAJO —quedaba montado sobre el subrayado de puntos de la factura, y cortado por la celda— sino en
   // la MISMA línea, a su derecha, más pequeño y gris, sin subrayar. Si no cabe, el que se corta con «…» es el ID
   // (`.factura-e-id`, globals.css), y su `title` lo dice entero. Solo la factura lleva el gesto de enlace.
@@ -1928,7 +1928,7 @@ export default function RoutesPage() {
         dimmed: sel ? false : (isDim(laneKey) || selActive),
       });
     }
-    // Lo ya hecho sigue en el mapa (D-NEXT), como hecho: la entregada con ✓ y apagada; la recogida y aún en camino, con 🚚.
+    // Lo ya hecho sigue en el mapa (D-459), como hecho: la entregada con ✓ y apagada; la recogida y aún en camino, con 🚚.
     // No es una parada que se pueda marcar ni mover: su id no es el de la orden, y pulsarla no hace nada.
     for (const [laneKey, lista] of hechasPintadas) {
       if (!pasaFiltro(laneKey)) continue;
@@ -2081,7 +2081,7 @@ export default function RoutesPage() {
     return <div className="empty">{t("You don’t have access to route planning.", "No tienes acceso a la planificación de rutas.")}</div>;
   }
 
-  // Una ruta que ya lo entregó todo sigue siendo una ruta del día (D-NEXT): su tarjeta se queda, con sus filas hechas.
+  // Una ruta que ya lo entregó todo sigue siendo una ruta del día (D-459): su tarjeta se queda, con sus filas hechas.
   const conAlgoQuePintar = (clave: string) => (byDriver.get(clave) ?? []).length > 0 || hechasDe(clave).length > 0;
   const withStops = lanes.filter((u) => conAlgoQuePintar(u.key));
   // Route cards always show every route that has stops, PLUS any lane you've
@@ -2125,7 +2125,7 @@ export default function RoutesPage() {
             🗓 {allDates ? t("All dates ✓", "Todas ✓") : t("All dates", "Todas")}
           </button>
           {/* Aquí iban «✨ Auto-asignar» y «🧭 Optimizar todas las rutas»: se quitaron en D-437 («Quitar los dos; solo Armar
-              rutas»). Lo automático es «Armar las rutas del día», y este botón es su ÚNICA entrada (D-NEXT): abre y cierra el
+              rutas»). Lo automático es «Armar las rutas del día», y este botón es su ÚNICA entrada (D-459): abre y cierra el
               panel del plan, justo debajo. La pastilla dice en qué está el plan de esta fecha sin abrirlo. */}
           {puedeArmarRutas && (
             <button className="btn btn-primary btn-sm" data-armar-rutas aria-expanded={planAbierto} onClick={() => setPlanAbierto((v) => !v)}
@@ -2230,7 +2230,7 @@ export default function RoutesPage() {
       })()}
 
       {/* Aquí iba la franja de cuatro casillas «Programadas · Sin programar · Total · Rutas», que hacían de pestañas. Se
-          quitó (D-NEXT): el dueño, 2026-10-01, «remeuve toda esta barra porque ya esta abajo». Sus cuatro números y el cambio
+          quitó (D-459): el dueño, 2026-10-01, «remeuve toda esta barra porque ya esta abajo». Sus cuatro números y el cambio
           de vista están en las pestañas de abajo: «Rutas (N) · N programadas», «Sin asignar (N)» y «Tablero (N)». */}
 
       {soloPendientes ? (
@@ -2255,8 +2255,8 @@ export default function RoutesPage() {
           title={t("Show or hide the map + driver panel to free up space", "Mostrar u ocultar el mapa y el panel para ganar espacio")}>
           🗺 {showTop ? t("Hide map & drivers", "Ocultar mapa y choferes") : t("Show map & drivers", "Mostrar mapa y choferes")}
         </button>
-        {/* «▦ Cuadrícula» se fue a las pestañas de abajo, junto a «Horario» (D-NEXT): cambia las tarjetas de abajo, no el
-            mapa. Y «👁 Mostrar avisos ocultos» ya no sale aquí (D-NEXT; D-400 lo puso): va al fondo de la página, en pequeño.
+        {/* «▦ Cuadrícula» se fue a las pestañas de abajo, junto a «Horario» (D-459): cambia las tarjetas de abajo, no el
+            mapa. Y «👁 Mostrar avisos ocultos» ya no sale aquí (D-459; D-400 lo puso): va al fondo de la página, en pequeño.
             La explicación del mapa, que era un renglón fijo bajo él (D-400 le dio ✕), es ahora este ⓘ: se lee al pasar. */}
         <span className="hint" data-ayuda-del-mapa tabIndex={0} style={{ margin: 0, cursor: "help" }}
           title={t(
@@ -2372,7 +2372,7 @@ export default function RoutesPage() {
       </>)}
 
       {/* ---------- Tabs ---------- */}
-      {/* El orden de esta barra (D-NEXT): filtro de chofer · las vistas · Cuadrícula · Deshacer/Rehacer · Incidencias. El
+      {/* El orden de esta barra (D-459): filtro de chofer · las vistas · Cuadrícula · Deshacer/Rehacer · Incidencias. El
           filtro estaba en la cabecera, junto a la fecha; el dueño, 2026-10-01: «mueve eseo filtro del conducto abajo al lado
           de timeline». Lo que filtra son las tarjetas de aquí abajo (y el panel y el mapa). Misma función, lo mismo guardado. */}
       <div data-barra-de-vistas style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -2389,7 +2389,7 @@ export default function RoutesPage() {
             {lanes.map((l) => <option key={l.key} value={l.key}>{l.isBucket ? "🧭 " : ""}{l.label}</option>)}
           </select>
       <div className="viewtoggle">
-        {/* Los cuatro números de la franja que iba arriba (D-NEXT) viven aquí: las rutas y cuántas órdenes tienen chofer
+        {/* Los cuatro números de la franja que iba arriba (D-459) viven aquí: las rutas y cuántas órdenes tienen chofer
             («programadas»), las que no («sin asignar», en ámbar si hay alguna, como arriba) y el total del día. */}
         <button className={"vt " + (tab === "routes" ? "on" : "")} data-pestana="routes" onClick={() => setTab("routes")}
           title={t(`${withStops.filter((u) => pasaFiltro(u.key)).length} route(s) · ${scheduledCount} order(s) scheduled (with a driver)`, `${withStops.filter((u) => pasaFiltro(u.key)).length} ruta(s) · ${scheduledCount} orden(es) programadas (con chofer)`)}>
@@ -2404,7 +2404,7 @@ export default function RoutesPage() {
         </button>
         <button className={"vt " + (tab === "timeline" ? "on" : "")} data-pestana="timeline" onClick={() => setTab("timeline")}>📅 {t("Timeline", "Horario")}</button>
       </div>
-        {/* «▦ Cuadrícula» junto a «Horario» (D-NEXT). El dueño, 2026-10-01: «el grid buttom que este al lado de timeline
+        {/* «▦ Cuadrícula» junto a «Horario» (D-459). El dueño, 2026-10-01: «el grid buttom que este al lado de timeline
             prorque afecta directamnete lo de abajo». Estaba arriba, junto a «Ocultar mapa y choferes». Misma función, mismo
             título; sigue saliendo solo en «Rutas», que es lo que cambia. */}
         {tab === "routes" && (
@@ -2721,14 +2721,14 @@ export default function RoutesPage() {
         // avisa (D-335). Se decide por chofer.
         const lectura = lecturaDe(u.key, stops);
         const porId = new Map(stops.map((d) => [d.id, d]));
-        // Lo ya hecho de este chofer hoy (D-NEXT): sus filas se intercalan donde iban, sin índice —nada las mueve—, y no
+        // Lo ya hecho de este chofer hoy (D-459): sus filas se intercalan donde iban, sin índice —nada las mueve—, y no
         // entran en `lectura`, `cuenta` ni la medida, que siguen siendo de lo pendiente.
         const hechas = hechasDe(u.key);
         const hechasPorId = new Map(hechas.map((d) => [d.id, d]));
         const pintadas = filasConLoHecho(lectura, stops, hechas, capacity, paradasPublicadasDe(u.key));
         const entregas = resumenDeEntregas(stops, hechas);
         const hayFilas = stops.length > 0 || hechas.length > 0;
-        // ↶ ↷ en la tarjeta (D-NEXT): el historial es uno, global; el botón se enciende si el último movimiento tocó esta ruta.
+        // ↶ ↷ en la tarjeta (D-459): el historial es uno, global; el botón se enciende si el último movimiento tocó esta ruta.
         const deshace = botonDeVolver(historial, "deshacer", u.key, laneLabel);
         const rehace = botonDeVolver(historial, "rehacer", u.key, laneLabel);
         /** Una fila ya HECHA: la recogida de una orden recogida o entregada, o su entrega. Informa; no lleva flechas, ni
@@ -2807,7 +2807,7 @@ export default function RoutesPage() {
                 <span className="hint" style={{ fontSize: 12 }}>🗺</span>
               </span>
               {needsDriver && <span className="sema" style={{ background: "var(--accent)", color: "#fff" }}>🧭 {t("route (no driver)", "ruta (sin chofer)")}</span>}
-              {/* «⚠ sin base» (D-NEXT): era un renglón entero bajo el nombre; el dueño, 2026-10-01, «remueve todo ese texto
+              {/* «⚠ sin base» (D-459): era un renglón entero bajo el nombre; el dueño, 2026-10-01, «remueve todo ese texto
                   incesario». El dato no se pierde: una pastilla, con la frase entera al pasar el ratón. */}
               {!u.store && stops.length > 0 && (
                 <span className="sema" data-sin-base tabIndex={0} style={{ border: "1px solid var(--amber)", color: "var(--amber-text)", cursor: "help" }}
@@ -2816,7 +2816,7 @@ export default function RoutesPage() {
                     "Este chofer no tiene tienda asignada (Usuarios), así que la ruta no puede anclarse a una base — las millas se miden como ruta abierta en vez de ida y vuelta.",
                   )}>⚠ {t("no base", "sin base")}</span>
               )}
-              {/* «Aún sin orden guardado…» era otro renglón (D-NEXT): ahora una pastilla gris con la frase al pasar. */}
+              {/* «Aún sin orden guardado…» era otro renglón (D-459): ahora una pastilla gris con la frase al pasar. */}
               {stops.length > 0 && !sequenced && (
                 <span className="sema" data-sin-orden-guardado tabIndex={0} style={{ border: "1px solid var(--line)", color: "var(--gray)", cursor: "help" }}
                   title={t(
@@ -2828,7 +2828,7 @@ export default function RoutesPage() {
               {/* Órdenes, no paradas (D-443): cada orden son dos paradas —su recogida y su entrega— y las paradas de la lista
                   las cuenta la línea de totales de al lado. Con las dos diciendo «paradas», 4 y 7 se contradecían. */}
               <span className="count-tag">{stops.length} {t("orders", "órdenes")}</span>
-              {/* «3 de 7 entregadas» (D-NEXT): lo entregado contra todo lo del chofer ese día. Lo de la izquierda sigue siendo lo
+              {/* «3 de 7 entregadas» (D-459): lo entregado contra todo lo del chofer ese día. Lo de la izquierda sigue siendo lo
                   PENDIENTE, que es lo que cuentan los pallets y la carga máxima. */}
               {hechas.length > 0 && (
                 <span className="sema" data-resumen-de-entregas style={{ background: "var(--green-soft)", color: "var(--green)", border: "1px solid var(--green)" }}
@@ -2891,7 +2891,7 @@ export default function RoutesPage() {
                 />
                 {t("plt", "trm")}
               </label>
-              {/* ↶ ↷ (D-NEXT), a la vista junto a Bloquear / Optimizar / Vaciar. El dueño, 2026-10-01: «aqui pon un undo redo
+              {/* ↶ ↷ (D-459), a la vista junto a Bloquear / Optimizar / Vaciar. El dueño, 2026-10-01: «aqui pon un undo redo
                   para los movimientos del orden de las cargas para areglar un error si pasa». Llaman al MISMO historial que
                   Ctrl+Z y que los de la barra de vistas (`vuelve`); el título dice QUÉ deshacen (`botonDeVolver`).
                   Los cinco botones van en UN grupo, para que al faltar sitio bajen juntos y no se separen. */}
@@ -2958,7 +2958,7 @@ export default function RoutesPage() {
                 </div>
               </div>
             )}
-            {/* Tres renglones se fueron de aquí (D-NEXT; el dueño, 2026-10-01, «remueve todo ese texto incesario»): «Total (desde
+            {/* Tres renglones se fueron de aquí (D-459; el dueño, 2026-10-01, «remueve todo ese texto incesario»): «Total (desde
                 la base y de regreso)…», que repetía las millas y la jornada de la cabecera; «Este chofer no tiene tienda
                 asignada…» y «Aún sin orden guardado…», que ahora son las pastillas «⚠ sin base» y «sin orden guardado» junto al
                 nombre, con la frase entera al pasar. Los avisos de problema real de abajo (no llega a su ventana, parada sin
@@ -2991,7 +2991,7 @@ export default function RoutesPage() {
             )}
             {hayFilas && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                {/* La línea «✋ Arrastre una fila…» (D-456) se fue (D-NEXT): es el `title` de la cabecera de la tabla. */}
+                {/* La línea «✋ Arrastre una fila…» (D-456) se fue (D-459): es el `title` de la cabecera de la tabla. */}
                 <SelectorDeColumnas
                   columnas={columnasDelSelector("paradas", ordenGestor)}
                   elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
@@ -3023,7 +3023,7 @@ export default function RoutesPage() {
                   <thead>
                     <tr data-pista-de-arrastre title={t("Drag a row to another position, or onto another driver, to move it. The ↑ ↓ arrows still work.", "Arrastre una fila a otro puesto, o a otro chofer, para moverla. Las flechas ↑ ↓ siguen ahí.")}>
                       <th>#<span className="col-resizer" onMouseDown={asaDeParada("_n")} /></th>
-                      {/* La FACTURA, con el ID al lado (D-NEXT; D-456 lo ponía debajo; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
+                      {/* La FACTURA, con el ID al lado (D-459; D-456 lo ponía debajo; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
                       <th data-columna-factura title={t("The invoice opens the order; its ID goes next to it", "La factura abre la orden; al lado va su ID")}>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
                       <th data-columna-cuenta title={t("What this stop loads (+) or unloads (−) = pallets on board after it", "Lo que carga (+) o descarga (−) esta parada = pallets a bordo después")}>
                         {t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={asaDeParada("_cuenta")} />
@@ -3124,7 +3124,7 @@ export default function RoutesPage() {
                               if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
                               return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, o)}</td>;
                             })}
-                            {/* D-NEXT: el td es una celda normal y el flex va DENTRO (era `display: flex` en el td: el fallo de la captura). */}
+                            {/* D-459: el td es una celda normal y el flex va DENTRO (era `display: flex` en el td: el fallo de la captura). */}
                             <td className="celda-acciones" onClick={(e) => e.stopPropagation()}>
                               <div className="acciones-de-parada">{flechas}{pasar}</div>
                             </td>
@@ -3220,7 +3220,7 @@ export default function RoutesPage() {
 
       {!ready && <div className="empty">{t("Loading…", "Cargando…")}</div>}
 
-      {/* Lo cerrado con las ✕ de los avisos (D-400) se recupera AQUÍ, al fondo y en pequeño (D-NEXT). El dueño, 2026-10-01:
+      {/* Lo cerrado con las ✕ de los avisos (D-400) se recupera AQUÍ, al fondo y en pequeño (D-459). El dueño, 2026-10-01:
           «osea que no aparezca eso de show hidden notices» — estaba arriba, junto a «Ocultar mapa y choferes». Los avisos
           cerrados siguen cerrados; esto queda para quien cerró el de «chofer sin reportar ubicación» y lo quiere de vuelta. */}
       {avisosOcultos != null && avisosOcultos.size > 0 && (

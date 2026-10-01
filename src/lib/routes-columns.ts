@@ -451,7 +451,7 @@ export function preferenciasDelGestorAlLeer(suyas: readonly string[] | undefined
 // `_cuenta` (D-443): la cuenta de pallets de cada parada, fija («8.75 + 3.00 = 11.75 · −1.75 libres»).
 // D-446: más pegadas —el ID ya no es la factura, y la cuenta ya no es la operación entera («+4 = 4»)—. El dueño, 2026-09-29:
 // «haz las oclumnas mas eficiente sy pegasdas». Los anchos que alguien arrastró se quedan: esto es solo la partida.
-// D-NEXT: la factura nace con 124 (era 84): ahora lleva su ID al lado, en la misma línea («147912 #FT570»), no debajo. Es
+// D-459: la factura nace con 124 (era 84): ahora lleva su ID al lado, en la misma línea («147912 #FT570»), no debajo. Es
 // lo justo para una factura de 8 caracteres y un ID de 6; si no cabe, el ID se corta con «…». Y el número de parada con 46
 // (era 40): una fila ya hecha dice «✓P» / «✓D». Quien arrastró sus anchos los conserva.
 export const ANCHO_FIJO_DE_PARADAS: Readonly<Record<string, number>> = { _n: 46, _factura: 124, _cuenta: 100, _acciones: 150 };

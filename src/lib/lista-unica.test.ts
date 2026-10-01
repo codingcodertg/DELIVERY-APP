@@ -260,7 +260,7 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
 
   it("la tabla pinta \`lectura.filas\` con la cuenta de \`cuentaDePallets\` en cada fila, y la Base al principio y al final", () => {
     expect(tarjeta).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);");
-    // D-NEXT: las filas pendientes siguen siendo las de `lectura.filas`, con su índice; entre ellas se intercalan las hechas.
+    // D-459: las filas pendientes siguen siendo las de `lectura.filas`, con su índice; entre ellas se intercalan las hechas.
     expect(tarjeta).toContain("const pintadas = filasConLoHecho(lectura, stops, hechas, capacity, paradasPublicadasDe(u.key));");
     expect(tarjeta).toContain("{pintadas.map((fp) => {");
     expect(tarjeta).toContain("if (fp.hecha) return filaYaHecha(fp);");
@@ -297,7 +297,7 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
   });
   it("«Pasar a…» otro chofer en cada fila, con las órdenes de la parada", () => {
     expect(tarjeta).toContain("const ordenesDeLaFila = f.tipo === \"P\" ? f.ordenes : [f.orden];");
-    expect(tarjeta).toContain("if (v) void pasaA(u.key, ordenesDeLaFila, v);");      // D-NEXT: con la ruta de salida, para deshacer
+    expect(tarjeta).toContain("if (v) void pasaA(u.key, ordenesDeLaFila, v);");      // D-459: con la ruta de salida, para deshacer
   });
   it("el panel de choferes mide la CARGA MÁXIMA de la lista contra el camión, no la suma del día", () => {
     expect(pagina).toContain("const pallets = cuentaDePallets(lecturaDe(u.key, stops).filas.map((f) => f.cambio), capacityFor(u.driver)).totales.cargaMaxima;");

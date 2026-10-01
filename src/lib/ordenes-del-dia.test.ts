@@ -63,7 +63,7 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("onClick={() => setSoloPendientes(false)}");
     // Desde D-400 la barra se puede cerrar con su ✕, pero las condiciones de quién y cuándo son las mismas.
     expect(pagina).toContain('const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);');
-    // D-NEXT: sin la tarjeta que se cerraba (D-400); el panel cuelga solo de quién y cuándo, y lo abre el botón de la cabecera.
+    // D-459: sin la tarjeta que se cerraba (D-400); el panel cuelga solo de quién y cuándo, y lo abre el botón de la cabecera.
     expect(pagina).toContain("{puedeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)}");
     expect(pagina).toContain("{puedeArmarRutas && ( <button className=\"btn btn-primary btn-sm\" data-armar-rutas");
   });

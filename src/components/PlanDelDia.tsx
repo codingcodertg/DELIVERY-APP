@@ -91,7 +91,7 @@ const MOTIVOS: Record<string, [string, string]> = {
 };
 
 /** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla).
- *  `abierto` / `onCerrar` (D-NEXT): el panel lo abre y lo cierra la PÁGINA, con el botón «🧭 Armar rutas» de su cabecera,
+ *  `abierto` / `onCerrar` (D-459): el panel lo abre y lo cierra la PÁGINA, con el botón «🧭 Armar rutas» de su cabecera,
  *  que es la única entrada. Cerrado no pinta nada —la tarjeta plegada de D-346/D-400 repetía ese botón y se quitó—, pero
  *  sigue montado: lee el plan de la fecha y se lo cuenta a la página (`onEstado`) para la pastilla «Borrador vN».
  *  `onEstado`: en qué está el plan de la fecha, cada vez que cambia. */
@@ -133,7 +133,7 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
 
   // Cuántas órdenes ruteables tiene esta fecha: las mismas que leería «planificar» (misma función, mismas etapas).
   const sinPlan = ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES).length;
-  // Lo que la tarjeta plegada decía («Borrador v2», «N sin plan») lo dice ahora la cabecera de la página (D-NEXT).
+  // Lo que la tarjeta plegada decía («Borrador v2», «N sin plan») lo dice ahora la cabecera de la página (D-459).
   const estado = estadoDelPlan(borrador, sinPlan);
   const firmaDelEstado = estado ? `${estado.tipo}:${estado.tipo === "sin_plan" ? estado.ordenes : estado.version}` : "";
   useEffect(() => { onEstado?.(estado); }, [firmaDelEstado]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -218,7 +218,7 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
   // encontraba; ahora lo conoce y le estorba. Plegado sigue diciendo lo que importa: cuántas órdenes no tienen plan.
   // Desde D-437 es el ÚNICO camino automático del Gestor (se quitaron Optimizar y Auto-asignar): sigue naciendo plegado,
   // como pidió el dueño en D-346, pero su botón es el primario, para que se vea que es por aquí.
-  // D-NEXT (el dueño, 2026-10-01: «el boton de build routes solo ahi dejalo no quiero que siga aparecieron el otro dialog»):
+  // D-459 (el dueño, 2026-10-01: «el boton de build routes solo ahi dejalo no quiero que siga aparecieron el otro dialog»):
   // cerrado, NADA. La tarjeta plegada con su botón «Armar las rutas del día automáticamente ▸» y su ✕ se fue.
   if (!abierto) return null;
   return (

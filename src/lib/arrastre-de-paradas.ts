@@ -401,7 +401,7 @@ export function sellosDe(filas: readonly FilaFresca[] | null): Record<string, st
 }
 
 /**
- * El botón «↶ Deshacer» / «↷ Rehacer» de la tarjeta de UNA ruta (D-NEXT). El dueño, 2026-10-01, con la cabecera de la
+ * El botón «↶ Deshacer» / «↷ Rehacer» de la tarjeta de UNA ruta (D-459). El dueño, 2026-10-01, con la cabecera de la
  * tarjeta delante: «aqui pon un undo redo para los movimientos del orden de las cargas para areglar un error si pasa».
  *
  * **El historial es UNO, global, no uno por ruta.** Un movimiento entre dos choferes toca dos rutas y se guarda como un solo
