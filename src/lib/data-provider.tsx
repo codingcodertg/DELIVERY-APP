@@ -131,7 +131,7 @@ export interface DataState {
   /** `pickupSeqById` (D-443): where each order's pickup goes in the list. Only pass it when the database has the column
    *  (`tienePosicionDeRecogida`): writing a column that doesn't exist fails the whole update. */
   reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: number, pickupSeqById?: Record<string, number | null>) => Promise<boolean>;
-  /** Las CARGAS de una orden que no cabe en el camión (D-NEXT, migración 157): órdenes hermanas `#Xa`, `#Xb`.
+  /** Las CARGAS de una orden que no cabe en el camión (D-452, migración 157): órdenes hermanas `#Xa`, `#Xb`.
    *  `partirCarga` mueve `resto` pallets de la orden `id` a una carga hermana NUEVA y devuelve su id (`null` si no se
    *  pudo: la base lo dice, o no tiene la 157). */
   partirCarga: (id: string, resto: number) => Promise<string | null>;
@@ -1216,7 +1216,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify, teaching, deliveries],
   );
 
-  // ---- Las cargas de una orden (D-NEXT, 157): partir, repartir y juntar, por las funciones de la base ---------------
+  // ---- Las cargas de una orden (D-452, 157): partir, repartir y juntar, por las funciones de la base ---------------
   // Las tres son `rpc`: la base decide (quién puede, que sean hermanas, que la suma no cambie) y escribe en UNA
   // transacción. Sin la 157 la función no existe (`esFuncionAusente`): se dice, en vez de fallar a medias. Después se
   // vuelven a leer las órdenes y los eventos, sin esperar al eco del realtime.

@@ -16,7 +16,7 @@ import { parteEnLaBase, hayQueReleer, type ClienteDeCargas } from "./route-plan/
 import type { DatosDelDia } from "./route-plan/entrada";
 
 /**
- * Una orden que no cabe en el camión (D-NEXT, migración 157). El dueño, 2026-09-30: «so if we have an order of more than 10
+ * Una orden que no cabe en el camión (D-452, migración 157). El dueño, 2026-09-30: «so if we have an order of more than 10
  * pallets that will be devided into 2 those 2 orders should assign as 2 p 2 d».
  *
  * Primero, LO QUE PASA HOY, medido con las funciones de verdad: el motor la parte en cargas virtuales (`g#a`, `g#b`) del
@@ -165,6 +165,9 @@ describe("juntar y repartir", () => {
   it("se juntan si son hermanas, las dos pendientes de ruta y la suma cabe en ese camión", () => {
     expect(sePuedenJuntar(a, b, 15)).toBe(true);
     expect(sePuedenJuntar(a, b, 10)).toBe(false);                                  // 10 + 5 no cabe en 10
+    // El borde exacto (D-452, mutante del orquestador): justo lleno cabe; una centésima más, no.
+    expect(sePuedenJuntar(a, b, 15.01)).toBe(true);
+    expect(sePuedenJuntar(a, b, 14.99)).toBe(false);
     expect(sePuedenJuntar(a, { ...b, stage: "picked_up" }, 15)).toBe(false);       // b ya salió
     expect(sePuedenJuntar(a, otra, 15)).toBe(false);                               // no son hermanas
     expect(sePuedenJuntar(a, { ...b, is_training: true }, 15)).toBe(false);

@@ -68,7 +68,7 @@ export default function MyRoutePage() {
   // La cuenta de pallets de cada parada, la misma del Gestor: «+4 = 4» (D-444; hasta ahí, la operación entera).
   const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);
   const dDe = lectura.etiquetaDe;
-  // «Carga 1 de 2» (D-NEXT, 157): una orden que no cabía en el camión son dos órdenes hermanas, cada una su parada; aquí
+  // «Carga 1 de 2» (D-452, 157): una orden que no cabía en el camión son dos órdenes hermanas, cada una su parada; aquí
   // solo se dice cuál es esta. Se marca con el botón de siempre, por carga.
   const etiquetaDeLaCarga = (d: Delivery) => { const c = cargaDe(d, hermanasDe(deliveries, d)); return c ? <span className="hint" data-carga> · {etiquetaDeCarga(c, lang === "es")}</span> : null; };
 

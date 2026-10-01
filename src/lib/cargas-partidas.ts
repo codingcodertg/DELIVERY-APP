@@ -4,7 +4,7 @@ import { ETAPAS_RUTEABLES } from "./route-plan/publicar";
 import type { Delivery } from "./types";
 
 /**
- * Las CARGAS de una orden que no cabe en el camión (D-NEXT, migración 157). El dueño, 2026-09-30: «so if we have an order
+ * Las CARGAS de una orden que no cabe en el camión (D-452, migración 157). El dueño, 2026-09-30: «so if we have an order
  * of more than 10 pallets that will be devided into 2 those 2 orders should assign as 2 p 2 d».
  *
  * El modelo: las cargas son ÓRDENES hermanas —la misma `order_no` y `order_code`, con `order_suffix` a, b, c…—, el

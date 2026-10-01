@@ -96,7 +96,7 @@ describe("qué escribe «Recibir»", () => {
   });
 
   it("la 157 es la última que define el guard, y es la 145 con una sola lista cambiada (si cambia, hay que releer lo de arriba)", () => {
-    // Hasta D-NEXT la última era la 145. La 157 la copia letra por letra y solo deja nacer una carga partida también en
+    // Hasta D-452 la última era la 145. La 157 la copia letra por letra y solo deja nacer una carga partida también en
     // pending (lo compara `cargas-partidas.test.ts`); lo que esta prueba lee de la 145 sigue valiendo tal cual.
     const define = readdirSync("supabase/migrations").filter((f) => /^\d+_.*\.sql$/.test(f))
       .filter((f) => leer(`supabase/migrations/${f}`).includes("function public.guard_delivery_stage()")).sort();

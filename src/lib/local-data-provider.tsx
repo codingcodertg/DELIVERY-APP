@@ -198,7 +198,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return true;
   }, [persist]);
 
-  // ---- Las cargas de una orden (D-NEXT, 157): el demo hace en memoria lo que `partir_carga`, `reparte_cargas` y
+  // ---- Las cargas de una orden (D-452, 157): el demo hace en memoria lo que `partir_carga`, `reparte_cargas` y
   // `juntar_cargas` hacen en la base, con la MISMA copia (`copiaParaLaCarga`) y las mismas reglas de pallets y letra.
   const partirCarga = useCallback<DataState["partirCarga"]>(async (id, resto) => {
     const s = storeRef.current;

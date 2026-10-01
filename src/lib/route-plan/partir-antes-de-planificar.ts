@@ -2,7 +2,7 @@ import { esFuncionAusente, particionesDelDia } from "@/lib/cargas-partidas";
 import { entradaDelDia, type DatosDelDia } from "./entrada";
 
 /**
- * Partir EN LA BASE, antes de planificar, las órdenes que no caben en el camión (D-NEXT, 157).
+ * Partir EN LA BASE, antes de planificar, las órdenes que no caben en el camión (D-452, 157).
  *
  * Hasta aquí el motor las partía en cargas virtuales (`id#a`, `id#b`) del mismo chofer, y publicar escribía una sola
  * fila (medido en `cargas-partidas.test.ts`, bloque «HOY»). Ahora «Armar rutas» mira, con la MISMA regla del motor

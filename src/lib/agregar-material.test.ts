@@ -187,7 +187,7 @@ describe("la 138 dice lo mismo que el código", () => {
     const conGuard = readdirSync(join(process.cwd(), dir))
       .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
       .sort();
-    // La 157 (D-NEXT, partes de una orden) es ahora la última que lo define: la 145 letra por letra con una lista cambiada
+    // La 157 (D-452, partes de una orden) es ahora la última que lo define: la 145 letra por letra con una lista cambiada
     // (una carga partida puede nacer en pending). La 145 (D-397) partía de la 142 (D-377), que partía de la 139 (D-361),
     // que partía de la 138.
     expect(conGuard.at(-1)).toBe("157_partes_de_orden.sql");

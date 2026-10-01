@@ -420,7 +420,7 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
     expect(pagina).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: RELOAD_MIN });");
     expect(tarjeta).toContain("className={`${claseDeLaFilaDelPlan(\"P\")}${claseDeGrupo(f)}`}");
     expect(tarjeta).toContain('" row-done" : ""}${claseDeGrupo(f)}`}');
-    // Desde D-NEXT la fila P dice también «carga 1 de 2» cuando la orden está partida (`etiquetaDeLaCarga`).
+    // Desde D-452 la fila P dice también «carga 1 de 2» cuando la orden está partida (`etiquetaDeLaCarga`).
     expect(tarjeta).toContain("{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && \" · \"}{enlaceConElId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}");
     // Sin «Fact.» en la fila P: el texto de la recogida es solo la tienda.
     expect(tarjeta).not.toContain("nombraLaOrden(deliveries, id, lang === \"es\")).join(\" · \")");

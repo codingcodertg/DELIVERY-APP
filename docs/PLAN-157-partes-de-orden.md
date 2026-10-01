@@ -392,14 +392,14 @@ virtuales al «Armar rutas» y apaga los botones al recibir «función no encont
 
 ## 9 · Lo que le toca al orquestador (en este orden)
 
-1. Leer §1 y la entrada `D-NEXT` de `DECISIONS.md`: el modelo **no** es la tabla `delivery_parts` del encargo, y las
+1. Leer §1 y la entrada `D-452` de `DECISIONS.md`: el modelo **no** es la tabla `delivery_parts` del encargo, y las
    decisiones 2 («la orden pasa a `delivered` cuando todas sus partes…») y 3 se cumplen **por familia**, sin fila madre.
    Si eso no cuadra, parar aquí.
 2. Respaldo (`pg_dump` reciente o respaldo activo). `node scripts/db/migrate-status.mjs` (saldrá la 156 y la 157
    pendientes).
 3. Repetir §7 (solo lectura) y la matriz de §6 con ROLLBACK, con los UUID reales. Esperado: 35 OK.
 4. Aplicar `157_partes_de_orden.sql` en una transacción. `migrate-status` después.
-5. Numerar la decisión (`D-NEXT` → `D-0XX`), sin tocar el `.sql` (no lleva el número).
+5. Numerar la decisión (`D-452` → `D-0XX`), sin tocar el `.sql` (no lleva el número).
 6. Probar en vivo con una orden de prueba (`is_training`, o una real de más de 10 pallets el día que la haya): «Armar
    rutas» debe dejar dos filas `#Xa`/`#Xb` en Órdenes y 2 P + 2 D en el plan; el Gestor con «carga 1 de 2» y los botones;
    «Mi ruta» con las dos paradas.

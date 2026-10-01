@@ -95,7 +95,7 @@ export async function POST(req: Request) {
   const dia = await leeElDia(supabase, fecha);
   if (!dia.ok) return dia.respuesta;
 
-  // Las órdenes que no caben en el camión se parten EN LA BASE antes de planificar (D-NEXT, 157): cada carga nace como una
+  // Las órdenes que no caben en el camión se parten EN LA BASE antes de planificar (D-452, 157): cada carga nace como una
   // orden hermana (#Xa, #Xb) y el motor las reparte como dos órdenes. Sin la 157, como hoy (cargas virtuales). Si algo se
   // partió, el día se vuelve a leer: las cargas nuevas son filas nuevas.
   const particion = await parteEnLaBase(supabase as unknown as ClienteDeCargas, dia.datos);
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
     status: "draft",
     // «base»: el plan respetó los candados compartidos; «sin_tabla»: la 149 no está y el motor no los conoce.
     candados: candados.fuente,
-    // Qué órdenes se partieron en cargas EN LA BASE antes de planificar (D-NEXT, 157); «sin_funcion» = sin la 157, el motor
+    // Qué órdenes se partieron en cargas EN LA BASE antes de planificar (D-452, 157); «sin_funcion» = sin la 157, el motor
     // las partió virtualmente como hoy; «error» = una no se pudo partir (se dice cuál) y el motor la partió virtualmente.
     particion,
     resumen: resumenDelPlan(borrador.plan, borrador.paradas.length, borrador.plan.input.entrada.ordenes),

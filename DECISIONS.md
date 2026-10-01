@@ -32964,7 +32964,7 @@ decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Des
 > dirección). La cuenta de cada fila ya no es la operación entera: «+4 = 4», sin el «antes» ni «libres», y sin decimales
 > de más. Era la decisión 1 de «Decisiones mías que el dueño debe validar»: no la validó.
 >
-> **⚠ Reemplazada en parte por D-NEXT** (2026-09-30): la fila informativa de «la entrega de OTRA carga de una orden que
+> **⚠ Reemplazada en parte por D-452** (2026-09-30): la fila informativa de «la entrega de OTRA carga de una orden que
 > el motor repartió» (`otraCarga`, `indice: null`: se pinta, no se mueve ni se marca) deja de ser el camino normal. Una
 > orden que no cabe en el camión se parte **en la base** en órdenes hermanas (`#Xa`, `#Xb`, migración 157) antes de
 > planificar, y cada carga es una parada completa: su P y su D, sus flechas, su «Pasar a…» y su botón en «Mi ruta». La
@@ -33689,9 +33689,9 @@ descargo final.
   mide tras aplicar, subiendo un PDF pequeño suelto y quitándolo.
 - `window.print()` real: como en D-413, solo se miró la hoja en pantalla.
 
-## D-NEXT · Una orden que no cabe en el camión son DOS órdenes (#Xa, #Xb): 2 P y 2 D, cada carga con su chofer, su puesto y su etapa (migración 157)
+## D-452 · Una orden que no cabe en el camión son DOS órdenes (#Xa, #Xb): 2 P y 2 D, cada carga con su chofer, su puesto y su etapa (migración 157)
 
-**Fecha:** 2026-09-30 · **Versión:** la pone el orquestador · **Migración:** `157_partes_de_orden.sql`, **escrita y NO
+**Fecha:** 2026-09-30 · **Versión:** deliveries 1.243.0, repo 1.327.0 · **Migración:** `157_partes_de_orden.sql`, **escrita y NO
 aplicada** (plan: `docs/PLAN-157-partes-de-orden.md`; ensayada contra producción con ROLLBACK, 30 de 30). **Reemplaza en
 parte a** D-443 (la fila informativa `otraCarga`), que lleva su nota. **No toca ningún dato ni ninguna política.**
 

@@ -1048,7 +1048,7 @@ export default function RoutesPage() {
   // «en vez de facturas, pongas el ID. Entonces no ocupo la factura». La factura sigue en su columna de Órdenes (⚙).
   const enlaceConElId = (d: Delivery) => <span {...abreLaOrden(d)} data-abre-la-orden>{orderLabel(d)}</span>;
 
-  // ---- Las cargas de una orden (D-NEXT, 157) ----------------------------------------------------------------------
+  // ---- Las cargas de una orden (D-452, 157) ----------------------------------------------------------------------
   // Una orden que no cabe en el camión se parte en órdenes hermanas (#Xa, #Xb): cada carga es una fila, con su P y su D,
   // sus flechas y su «Pasar a…». Aquí solo lo que la fila enseña y los tres gestos: partir (si no cabe), repartir los
   // pallets de dos cargas, y volver a juntarlas (si las dos siguen pendientes y la suma cabe). La regla vive en
@@ -2781,7 +2781,7 @@ export default function RoutesPage() {
                             title={gris || provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
                           >{f.etiqueta}</td>
                           {/* El ID, subrayado: abre la orden (D-408; el ID en vez de la factura desde D-444); y «carga 1 de 2» si es
-                              una carga de una orden partida (D-NEXT). */}
+                              una carga de una orden partida (D-452). */}
                           <td className="ordno">{enlaceConElId(d)}{etiquetaDeLaCarga(d)}</td>
                           {celdaDeCuenta}
                           {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
