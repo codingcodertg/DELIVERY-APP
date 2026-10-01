@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { canDeliver } from "@/lib/constants";
@@ -343,6 +344,7 @@ export default function MyRoutePage() {
                 {facturasDeLaOrden(next).join(", ") || `#${orderLabel(next)}`}{etiquetaDeLaCarga(next)}
               </div>
               <div style={{ marginTop: 2 }}>{next.delivery_address || t("(no address)", "(sin dirección)")}</div>
+              <AvisoSoloCiudad orden={next} />
               <div className="hint" style={{ marginTop: 4 }}>
                 {fmtWindows(next.delivery_windows)}
                 {next.actual_pallets ?? next.est_pallets ? ` · ${next.actual_pallets ?? next.est_pallets} ${t("pallets", "pallets")}` : ""}
@@ -482,6 +484,7 @@ export default function MyRoutePage() {
                           <span className="hint" style={{ display: "block" }}>
                             {d.delivery_address || t("(no address)", "(sin dirección)")}
                           </span>
+                          <AvisoSoloCiudad orden={d} />
                           <span className="hint" style={{ display: "block" }}>
                             {fmtWindows(d.delivery_windows)}
                             {d.order_type ? ` · ${d.order_type}` : ""}

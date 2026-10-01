@@ -1,4 +1,5 @@
 import { LOCAL_ZONE_DEFAULT, type Vertice } from "./delivery-zone";
+import { esSoloCiudad } from "./solo-ciudad";
 
 /**
  * Dónde busca el autocompletado de direcciones (D-337).
@@ -55,16 +56,45 @@ export const MINIMO_LOCALES = 3;
 export const TOPE_DE_PLACES = 5;
 
 /**
+ * La CIUDAD como respuesta amplia (D-NEXT). El dueño, el 2026-10-01: «cuando buscas una direccion que puedas selecionar
+ * solo la ciudad si asi lo quieres como broad answer».
+ *
+ * Con las dos llamadas de arriba la ciudad no estaba garantizada: no se pide ningún tipo, así que Places mezcla calles,
+ * negocios y ciudades a su criterio, con tope de 5; y la primera llamada está RESTRINGIDA a la zona verde, así que una
+ * ciudad de fuera («Houston») ni se preguntaba mientras hubiera tres calles locales que casaran («Houston St»).
+ * Por eso va una llamada aparte, solo de ciudades (`(cities)`), a todo Texas.
+ */
+export function cuerpoDeCiudades(q: string): object {
+  return { ...cuerpoDePlaces(q, CAJA_DE_TEXAS), includedPrimaryTypes: ["(cities)"] };
+}
+
+/** Cuántas ciudades se ofrecen como mucho, delante de las direcciones. */
+export const TOPE_DE_CIUDADES = 2;
+
+/** Solo se pregunta por ciudades si lo tecleado no lleva números: quien escribe «1203 N…» busca una calle, y esa llamada
+ *  de más se cobraría en cada pulsación de la búsqueda más corriente. */
+export const puedeSerCiudad = (q: string): boolean => !/\d/.test(q);
+
+/**
  * Places en dos pasos. `pide` hace la llamada de verdad (la ruta) o la finge (las pruebas) y devuelve los textos sugeridos.
  * Una llamada que falla cuenta como vacía: si la local falla se intenta Texas igual, en vez de darse por vencido sin probar.
  * La caja de Texas pisa estados vecinos y México, así que lo que vuelve se filtra SIEMPRE por estado.
+ *
+ * Desde D-NEXT, si lo tecleado puede ser una ciudad, se piden además las ciudades de Texas (a la vez que lo local) y van
+ * DELANTE, hasta `TOPE_DE_CIUDADES`: son la respuesta amplia y el que teclea «Mission» la tiene que ver sin bajar. De esa
+ * llamada solo se acepta lo que es una ciudad a secas (`esSoloCiudad`); si falla, las direcciones salen igual.
  */
 export async function sugerenciasDePlaces(q: string, pide: (cuerpo: object) => Promise<string[]>): Promise<string[]> {
-  const deTexas = async (caja: Caja) => (await pide(cuerpoDePlaces(q, caja)).catch(() => [] as string[])).filter(esTextoDeTexas);
-  const locales = await deTexas(CAJA_DE_LA_ZONA);
-  if (locales.length >= MINIMO_LOCALES) return locales.slice(0, TOPE_DE_PLACES);
-  const resto = await deTexas(CAJA_DE_TEXAS);
-  return [...new Set([...locales, ...resto])].slice(0, TOPE_DE_PLACES);
+  const deTexas = async (cuerpo: object) => (await pide(cuerpo).catch(() => [] as string[])).filter(esTextoDeTexas);
+  const pidiendoCiudades = puedeSerCiudad(q) ? deTexas(cuerpoDeCiudades(q)) : Promise.resolve([] as string[]);
+  const direcciones = async () => {
+    const locales = await deTexas(cuerpoDePlaces(q, CAJA_DE_LA_ZONA));
+    if (locales.length >= MINIMO_LOCALES) return locales.slice(0, TOPE_DE_PLACES);
+    const resto = await deTexas(cuerpoDePlaces(q, CAJA_DE_TEXAS));
+    return [...new Set([...locales, ...resto])].slice(0, TOPE_DE_PLACES);
+  };
+  const [ciudades, calles] = await Promise.all([pidiendoCiudades, direcciones()]);
+  return [...new Set([...ciudades.filter(esSoloCiudad).slice(0, TOPE_DE_CIUDADES), ...calles])];
 }
 
 export function urlDeGoogleGeocode(q: string, key: string): string {

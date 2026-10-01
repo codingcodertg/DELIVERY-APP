@@ -171,36 +171,36 @@ describe("2 · el autocompletado busca en Texas, y antes en la zona verde", () =
     it("con locales suficientes, UNA llamada, y a la zona", async () => {
       expect(LOCALES.length).toBe(MINIMO_LOCALES);
       const f = finge({ zona: LOCALES, texas: [calle(9, "Lejos")] });
-      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual(LOCALES);
+      expect(await sugerenciasDePlaces("1 calle", f.pide)).toEqual(LOCALES);
       expect(f.pedidas).toEqual(["zona"]);
     });
     it("con locales escasas, DOS: las locales primero, luego las de Texas, sin repetir", async () => {
       const f = finge({ zona: LOCALES.slice(0, 2), texas: [calle(9, "Lejos"), LOCALES[1], calle(8, "Más Lejos")] });
-      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual([LOCALES[0], LOCALES[1], calle(9, "Lejos"), calle(8, "Más Lejos")]);
+      expect(await sugerenciasDePlaces("1 calle", f.pide)).toEqual([LOCALES[0], LOCALES[1], calle(9, "Lejos"), calle(8, "Más Lejos")]);
       expect(f.pedidas).toEqual(["zona", "texas"]);
     });
     it("el tope vale en los dos caminos", async () => {
       const muchas = [1, 2, 3, 4, 5, 6, 7].map((n) => calle(n, "Pueblo A"));
-      expect((await sugerenciasDePlaces("c", finge({ zona: muchas, texas: [] }).pide))).toEqual(muchas.slice(0, TOPE_DE_PLACES));
-      expect((await sugerenciasDePlaces("c", finge({ zona: muchas.slice(0, 2), texas: muchas.slice(2) }).pide))).toEqual(muchas.slice(0, TOPE_DE_PLACES));
+      expect((await sugerenciasDePlaces("1 c", finge({ zona: muchas, texas: [] }).pide))).toEqual(muchas.slice(0, TOPE_DE_PLACES));
+      expect((await sugerenciasDePlaces("1 c", finge({ zona: muchas.slice(0, 2), texas: muchas.slice(2) }).pide))).toEqual(muchas.slice(0, TOPE_DE_PLACES));
       expect(TOPE_DE_PLACES).toBe(5);
     });
     it("la caja de Texas pisa otros estados: lo que no es de Texas se filtra, venga de la llamada que venga", async () => {
       const f = finge({ zona: [calle(1, "Pueblo A"), calle(4, "Al Otro Lado", "TAM")], texas: [calle(5, "Texarkana", "AR"), calle(6, "Lejos")] });
-      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual([calle(1, "Pueblo A"), calle(6, "Lejos")]);
+      expect(await sugerenciasDePlaces("1 calle", f.pide)).toEqual([calle(1, "Pueblo A"), calle(6, "Lejos")]);
     });
     it("lo que NO es de Texas no cuenta para «suficientes»: tres locales con una de fuera siguen siendo escasas", async () => {
       const f = finge({ zona: [LOCALES[0], LOCALES[1], calle(4, "Al Otro Lado", "TAM")], texas: [calle(6, "Lejos")] });
-      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual([LOCALES[0], LOCALES[1], calle(6, "Lejos")]);
+      expect(await sugerenciasDePlaces("1 calle", f.pide)).toEqual([LOCALES[0], LOCALES[1], calle(6, "Lejos")]);
       expect(f.pedidas).toEqual(["zona", "texas"]);
     });
     it("si la llamada local FALLA se intenta Texas igual; y si fallan las dos, vacío — para que la ruta pase al siguiente proveedor", async () => {
       const f = finge({ zona: new Error("caída"), texas: [calle(6, "Lejos")] });
-      expect(await sugerenciasDePlaces("calle", f.pide)).toEqual([calle(6, "Lejos")]);
+      expect(await sugerenciasDePlaces("1 calle", f.pide)).toEqual([calle(6, "Lejos")]);
       expect(f.pedidas).toEqual(["zona", "texas"]);
       const g = finge({ zona: LOCALES.slice(0, 1), texas: new Error("caída") });
-      expect(await sugerenciasDePlaces("calle", g.pide)).toEqual(LOCALES.slice(0, 1));
-      expect(await sugerenciasDePlaces("calle", finge({ zona: new Error("x"), texas: new Error("y") }).pide)).toEqual([]);
+      expect(await sugerenciasDePlaces("1 calle", g.pide)).toEqual(LOCALES.slice(0, 1));
+      expect(await sugerenciasDePlaces("1 calle", finge({ zona: new Error("x"), texas: new Error("y") }).pide)).toEqual([]);
     });
   });
   it("Geocoding, Mapbox y Nominatim: Texas como límite; la zona como sesgo donde el proveedor lo admite", () => {

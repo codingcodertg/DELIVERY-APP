@@ -209,10 +209,10 @@ describe("la página del Gestor", () => {
     expect(cuerpo).toContain('<span {...gesto} data-abre-la-orden style={esFactura ? gesto.style : { ...gesto.style, color: "var(--gray)" }}>{texto}</span>');
   });
   it("D-408: la columna de la ciudad pinta `ciudadDeEntrega` (desde D-423, con las ciudades conocidas), con la dirección entera en el title, en las dos tablas", () => {
-    expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</span>').length - 1).toBe(1);
+    expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></span>').length - 1).toBe(1);
     // En paradas, por su clave desde D-410; su rótulo es el del catálogo sin «Stops: » («City / Ciudad»; desde D-445,
     // «Delivery city / Ciudad de entrega»).
-    expect(pagina.split('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;').length - 1).toBe(1);
+    expect(pagina.split('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></td>;').length - 1).toBe(1);
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_address")).toMatchObject({ en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega" });
     // El botón de abrir y cerrar la dirección se fue con ella.
     expect(pagina).not.toMatch(/addrWide|Expand address|Contraer dirección/);
