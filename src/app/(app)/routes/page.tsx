@@ -87,7 +87,7 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 // «📍 Mejor lugar», las flechas, «Pasar a…» y el arrastre de «📅 Horario». La pantalla MIDE la ruta de un chofer elegido
 // (millas, horas, trazo) en el orden guardado, sin reordenarla (`medida-de-ruta.ts`).
 //
-// D-NEXT (el dueño, 2026-10-01) trae de vuelta tres cosas que decisiones anteriores habían quitado, y una nueva:
+// D-456 (el dueño, 2026-10-01) trae de vuelta tres cosas que decisiones anteriores habían quitado, y una nueva:
 //   · la FACTURA nombra la orden en todas las tablas, con el ID al lado (D-444 la había cambiado por el ID en las paradas);
 //   · ARRASTRAR filas: una de «Sin asignar» a un chofer del panel (la asigna), y una parada dentro de su lista o a la de otro
 //     chofer (la mueve). D-007 lo había quitado; las flechas se quedan;
@@ -126,7 +126,7 @@ const DEFAULT_CAPACITY = 12;
 // order's own delivery_duration.
 const DAY_START_MIN = 8 * 60; // 08:00
 
-/** La celda «Llegada» cuando aún no hay hora (D-NEXT): el motivo, pequeño y en gris, en dos renglones si hace falta. */
+/** La celda «Llegada» cuando aún no hay hora (D-456): el motivo, pequeño y en gris, en dos renglones si hace falta. */
 const ESTILO_SIN_LLEGADA = { color: "var(--gray)", fontSize: 11, whiteSpace: "normal", lineHeight: 1.15 } as const;
 
 function fmtMinutes(min: number): string {
@@ -668,7 +668,7 @@ export default function RoutesPage() {
     const e = escrituraDeLaLista(lista, desde);
     const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
     clearRouteFor(laneKey);
-    // Las que LLEGAN de otra ruta (arrastradas, D-NEXT; `stops` ya las trae) cambian de chofer antes de numerar la lista, como
+    // Las que LLEGAN de otra ruta (arrastradas, D-456; `stops` ya las trae) cambian de chofer antes de numerar la lista, como
     // al soltar en «📅 Horario». La ruta de la que salen pierde su medida, y para deshacer cuentan las dos rutas.
     const origenes = [...new Set(traidas.map((d) => orderLaneKey(d)).filter((k): k is string => !!k && k !== laneKey))];
     const quedanEnOrigen = origenes.flatMap((k) => (byDriver.get(k) ?? []).filter((x) => !traidas.some((y) => y.id === x.id)));
@@ -745,7 +745,7 @@ export default function RoutesPage() {
     for (const id of ids) await assignToLane(id, destino);
     notify(t(`${ids.length} order(s) → ${laneLabel(destino)} (at the end of its list)`, `${ids.length} orden(es) → ${laneLabel(destino)} (al final de su lista)`));
   };
-  // ---- ARRASTRAR (D-NEXT) -------------------------------------------------------------------------------------------
+  // ---- ARRASTRAR (D-456) -------------------------------------------------------------------------------------------
   // El dueño, 2026-10-01: «When trying to build the routes manually do the drag option». D-007 (2026-08-12) lo había quitado
   // («no ocupo arrastrar, elimina eso, solo con las flechas»), y además tenía un fallo: pulsar una flecha arrancaba el
   // arrastre de la fila y el clic no se registraba. Vuelve, con las flechas en su sitio, y ese fallo no puede volver: un
@@ -843,7 +843,7 @@ export default function RoutesPage() {
     }
   };
 
-  // ---- «🧭 Optimizar» una ruta (D-NEXT) ---------------------------------------------------------------------------
+  // ---- «🧭 Optimizar» una ruta (D-456) ---------------------------------------------------------------------------
   // El dueño, 2026-10-01: «have the optimize option for every route when selecting a driver and optimize it». D-437 lo había
   // quitado. Vuelve POR RUTA: reordena solo las paradas de esa tarjeta —recogidas y entregas, sin romper «recoger antes de
   // entregar» y sin pasarse de la capacidad si se puede—, para el menor recorrido saliendo de su base. El orden lo decide
@@ -1215,7 +1215,7 @@ export default function RoutesPage() {
 
   // En la tabla de paradas de un chofer, el enlace que abre la orden es su ID, no su factura (D-444). El dueño, 2026-09-29:
   // «en vez de facturas, pongas el ID. Entonces no ocupo la factura». La factura sigue en su columna de Órdenes (⚙).
-  // **Reemplazado por D-NEXT** (2026-10-01): «It's not showing invoice number / Invoice number is more important». La FACTURA
+  // **Reemplazado por D-456** (2026-10-01): «It's not showing invoice number / Invoice number is more important». La FACTURA
   // vuelve a ser lo que nombra y abre la orden en la tabla de paradas, en negrita, y el ID se queda debajo, más pequeño. Una
   // orden sin factura enseña su ID en gris (`facturaYId`). (D-444 decía que la factura seguía «en su columna de Órdenes (⚙)»,
   // pero esa columna no existía en la tabla de paradas: tras D-444 no había forma de verla ahí.)
@@ -1491,7 +1491,7 @@ export default function RoutesPage() {
   // a mitad), esa medida es de la forma de antes y se tira; la nueva forma se mide aparte.
   const formaActual = useRef({ date, byDriver });
   formaActual.current = { date, byDriver };
-  /** La forma de la ruta que se mide (D-NEXT): la de `firmaDeLaMedida` —fecha, paradas, puestos, pines— MÁS la lista tal como
+  /** La forma de la ruta que se mide (D-456): la de `firmaDeLaMedida` —fecha, paradas, puestos, pines— MÁS la lista tal como
    *  se pinta. La misma ruta guardada da otra lista si cambia la capacidad del camión (sin posición guardada, las recogidas se
    *  cortan por lo que cabe) o si llega el plan publicado, y la llegada de cada recogida va por su puesto EN la lista: una
    *  medida guardada de la lista de antes pondría las horas en la fila que no es. */
@@ -1509,7 +1509,7 @@ export default function RoutesPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [byDriver, routeInfo, date, rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity]);
-  // Las medidas de esta visita, por forma de la ruta (D-NEXT): volver a una forma ya medida —deshacer, subir y bajar la misma
+  // Las medidas de esta visita, por forma de la ruta (D-456): volver a una forma ya medida —deshacer, subir y bajar la misma
   // parada— la repinta de aquí, sin llamar a nadie. Una forma cuya medida falló queda como `MEDIDA_FALLIDA` y no se vuelve a
   // pedir sola: la tarjeta lo dice y ofrece «↻» (`reintentaLaMedida`, una llamada por pulsación).
   const medidas = useRef(new Map<string, MedidaDeLaRuta | typeof MEDIDA_FALLIDA>());
@@ -1777,7 +1777,7 @@ export default function RoutesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [byDriver, settings.stores]);
 
-  // TODAS las rutas con paradas que están en pantalla se MIDEN (D-NEXT): millas, horas, trazo y la llegada estimada de cada
+  // TODAS las rutas con paradas que están en pantalla se MIDEN (D-456): millas, horas, trazo y la llegada estimada de cada
   // parada, en el orden guardado, sin tocarlas. El dueño, 2026-10-01: «el eta estimado en el logistic manager, quiero que
   // muestre el eta siempre que aveces no aparece». Hasta aquí (D-437) solo se medía al chofer MARCADO en el panel, y por eso
   // la columna «Llegada» de los demás decía «—». (Antes de D-437 marcar un chofer OPTIMIZABA y escribía el orden; eso no
@@ -2118,7 +2118,7 @@ export default function RoutesPage() {
           onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }}
           onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); if (d) setOpenOrder(d); }}
           columnas={{
-            // Sin «Plan: Factura»: la factura es la columna fija de esa tabla (D-NEXT), y no se repite ni se lista en su ⚙.
+            // Sin «Plan: Factura»: la factura es la columna fija de esa tabla (D-456), y no se repite ni se lista en su ⚙.
             lista: sinLaFacturaDelPlan(columnasDeLaTabla("plan", colsGestor, ordenGestor)), celda: celdaDelPlan, clase: clasePastillas,
             selector: (
               <SelectorDeColumnas
@@ -2279,7 +2279,7 @@ export default function RoutesPage() {
                   <div
                     key={u.id}
                     onClick={() => focusOnly(u.key)}
-                    // Soltar aquí una fila de «Sin asignar» la asigna; una parada de otro chofer, la pasa a esta ruta (D-NEXT).
+                    // Soltar aquí una fila de «Sin asignar» la asigna; una parada de otro chofer, la pasa a esta ruta (D-456).
                     data-suelta-en-ruta={u.key} {...sueltaAqui(u.key, null)}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderTop: "1px solid var(--line)", cursor: "pointer", background: on ? "var(--accent-soft)" : undefined, outline: sobre === claveDeSoltar(u.key, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 }}
                   >
@@ -2684,7 +2684,7 @@ export default function RoutesPage() {
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379); y, fila a fila, lo que aún no tiene puesto.
         const provisional = esProvisional(stops);
         const isC = isCollapsed(u.key);
-        // En qué está la medida de esta ruta, para la columna «Llegada» y la cabecera (D-NEXT).
+        // En qué está la medida de esta ruta, para la columna «Llegada» y la cabecera (D-456).
         const medida = estadoDeLaMedida(u.key, stops);
         const bucket = u.isBucket;
         // A route that isn't on a real driver (a bucket, or one recovered under
@@ -2758,7 +2758,7 @@ export default function RoutesPage() {
                   ⚠ {t("over 8 h day", "más de 8 h")}
                 </span>
               )}
-              {/* La medida de la ruta, a la vista (D-NEXT): mientras llega, «calculando»; si falló, se dice y se puede reintentar. */}
+              {/* La medida de la ruta, a la vista (D-456): mientras llega, «calculando»; si falló, se dice y se puede reintentar. */}
               {medida === "calculando" && <span className="hint" data-medida="calculando" style={{ marginTop: 0 }}>⏳ {t("calculating arrivals…", "calculando llegadas…")}</span>}
               {medida === "fallo" && (
                 <button className="btn btn-ghost btn-sm" data-reintentar-medida={u.key} style={{ color: "var(--amber-text)" }}
@@ -2787,7 +2787,7 @@ export default function RoutesPage() {
                 onClick={(e) => { e.stopPropagation(); void alternaCandado(u.key); }}>
                 {bloqueada(u.key) ? `🔒 ${t("Locked", "Bloqueada")}` : `🔓 ${t("Lock", "Bloquear")}`}
               </button>
-              {/* «🧭 Optimizar» (D-NEXT; D-437 lo había quitado): reordena SOLO esta ruta para el menor recorrido saliendo de su
+              {/* «🧭 Optimizar» (D-456; D-437 lo había quitado): reordena SOLO esta ruta para el menor recorrido saliendo de su
                   base, sin romper «recoger antes de entregar» ni pasarse de la capacidad, y la guarda (Ctrl+Z la deshace). Con
                   candado 🔒 no la toca y lo dice: el botón se ve apagado pero se puede pulsar, para que diga por qué. */}
               {stops.length > 0 && (
@@ -2909,7 +2909,7 @@ export default function RoutesPage() {
                   <thead>
                     <tr>
                       <th>#<span className="col-resizer" onMouseDown={asaDeParada("_n")} /></th>
-                      {/* La FACTURA, con el ID debajo (D-NEXT; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
+                      {/* La FACTURA, con el ID debajo (D-456; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
                       <th data-columna-factura title={t("The invoice opens the order; its ID goes underneath", "La factura abre la orden; debajo va su ID")}>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
                       <th data-columna-cuenta title={t("What this stop loads (+) or unloads (−) = pallets on board after it", "Lo que carga (+) o descarga (−) esta parada = pallets a bordo después")}>
                         {t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={asaDeParada("_cuenta")} />
@@ -2931,7 +2931,7 @@ export default function RoutesPage() {
                       const movible = f.indice != null;
                       const clave = claveDeLaFila(f);
                       const resaltada = recienMovida === clave;
-                      // ARRASTRAR la fila (D-NEXT): cualquier parada que también muevan las flechas. Soltada sobre otra fila toma
+                      // ARRASTRAR la fila (D-456): cualquier parada que también muevan las flechas. Soltada sobre otra fila toma
                       // su puesto; la raya marca dónde cae (arriba, o abajo si viene de más arriba en la misma lista).
                       const seArrastra = movible && (f.tipo === "D" || hayRecogidaGuardada);
                       const arrastre = seArrastra ? filaArrastrable({ tipo: "parada", ruta: u.key, indice: f.indice! }) : {};
@@ -2976,7 +2976,7 @@ export default function RoutesPage() {
                         const o = suyas[0];
                         // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + su puesto en la lista.
                         const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;
-                        // Si no hay hora, por qué (D-NEXT): la tienda sin coordenadas no se mide; con una sola parada y sin base, tampoco.
+                        // Si no hay hora, por qué (D-456): la tienda sin coordenadas no se mide; con una sola parada y sin base, tampoco.
                         const paradaP = f.indice != null ? lectura.paradas[f.indice] : undefined;
                         const motivoP: MotivoSinLlegada | null = !paradaP || paradaP.tipo !== "P" ? null : !coordsDeTienda(paradaP.tienda) ? "sin_tienda" : "sin_base";
                         const llegadaP = textoDeLaLlegada(etaP, f.indice != null ? medida : "sin_pedir", motivoP, lang === "es");
@@ -3031,7 +3031,7 @@ export default function RoutesPage() {
                       const win = parseWindow(d.delivery_windows);
                       const etaMin = eta ? parseInt(eta.slice(0, 2), 10) * 60 + parseInt(eta.slice(3, 5), 10) : null;
                       const late = etaMin != null && win != null && etaMin > win[1];
-                      // Si no hay hora, por qué (D-NEXT): sin pin no se mide; si no, «calculando…» o «sin medida».
+                      // Si no hay hora, por qué (D-456): sin pin no se mide; si no, «calculando…» o «sin medida».
                       const llegada = textoDeLaLlegada(eta, medida, d.delivery_lat == null || d.delivery_lng == null ? "sin_pin" : "sin_base", lang === "es");
                       // Three levels of detail, by where you tap:
                       //   the invoice → open the order itself (the ID until D-408)
@@ -3056,7 +3056,7 @@ export default function RoutesPage() {
                           <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}
                             title={gris || provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
                           >{f.etiqueta}</td>
-                          {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-NEXT; D-444 había dejado solo el ID); y
+                          {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
                               «carga 1 de 2» si es una carga de una orden partida (D-452). */}
                           <td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>
                           {celdaDeCuenta}

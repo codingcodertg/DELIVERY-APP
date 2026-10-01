@@ -59,7 +59,7 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
 
   const nombres = useMemo(() => {
     const m = new Map<string, string>();
-    // D-NEXT: la factura nombra la barra (cabe una cosa); sin factura, su ID con «#». El ID de las que tienen factura, al pasar el ratón.
+    // D-456: la factura nombra la barra (cabe una cosa); sin factura, su ID con «#». El ID de las que tienen factura, al pasar el ratón.
     for (const r of rows) for (const d of r.orders) m.set(d.id, facturaYId(d).principal);
     return m;
   }, [rows]);

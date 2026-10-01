@@ -142,7 +142,7 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
   const nombreDeOrden = (id: string) => nombraLaOrden(deliveries, id, lang === "es");
   // Solo el id, para la columna ID del plan (D-434): la factura va en su columna.
   const idDeOrden = (id: string) => idDeLaOrden(deliveries, id);
-  // La factura primero y el ID al lado, para la columna fija de la tabla del plan (D-NEXT).
+  // La factura primero y el ID al lado, para la columna fija de la tabla del plan (D-456).
   const facturaDeOrden = (id: string) => facturaYIdDeLaOrden(deliveries, id);
 
   const planifica = async () => {

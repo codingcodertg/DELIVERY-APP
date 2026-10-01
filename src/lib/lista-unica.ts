@@ -336,7 +336,7 @@ export function ordenSinRecoger(paradas: readonly ParadaDeLaLista[]): string | n
 }
 
 /**
- * ARRASTRAR una parada dentro de su lista (D-NEXT): la parada `desde` pasa a ocupar el puesto `a` (el de la fila sobre la
+ * ARRASTRAR una parada dentro de su lista (D-456): la parada `desde` pasa a ocupar el puesto `a` (el de la fila sobre la
  * que se suelta), y las de en medio se corren un puesto. Las mismas reglas que las flechas (`mueveEnLaLista`), que son este
  * movimiento de un solo puesto: si con eso una entrega quedara antes que su recogida no se mueve nada y se dice qué orden lo
  * impide; la capacidad NO bloquea (la cuenta avisa en la parada que se pase). Soltar sobre sí misma, o fuera de la lista, es
@@ -353,7 +353,7 @@ export function llevaEnLaLista(paradas: readonly ParadaDeLaLista[], desde: numbe
 }
 
 /**
- * ARRASTRAR una orden a la lista de OTRO chofer (D-NEXT): entra entera —su recogida y, justo detrás, su entrega— en el puesto
+ * ARRASTRAR una orden a la lista de OTRO chofer (D-456): entra entera —su recogida y, justo detrás, su entrega— en el puesto
  * `indice` (el de la fila sobre la que se suelta), o al final si se suelta sobre la tarjeta (`null`). Como va la recogida
  * pegada delante de su entrega, la precedencia no se puede romper. Una orden que ya estaba en la lista no se repite.
  */

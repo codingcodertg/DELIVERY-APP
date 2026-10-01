@@ -9,7 +9,7 @@ import { haversineMi } from "./route-batching";
 import { MEDIDA_FALLIDA, siguienteMedida, textoDeLaLlegada } from "./medida-de-ruta";
 
 /**
- * D-NEXT. El dueño, 2026-10-01: «It's not showing invoice number / Invoice number is more important / When trying to build
+ * D-456. El dueño, 2026-10-01: «It's not showing invoice number / Invoice number is more important / When trying to build
  * the routes manually do the drag option / […] / When doing routes manually it assigned to him but it doesn't optimize have
  * the optimize option for every route when selecting a driver and optimize it», «not showing invoice en el logistic manager
  * en todas las tablas», y «el eta estimado en el logistic manager, quiero que muestre el eta siempre que aveces no aparece».

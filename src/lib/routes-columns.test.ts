@@ -187,7 +187,7 @@ describe("la página del Gestor", () => {
     expect(pagina.split('c.key === "invoice" ? enlaceALaOrden(d)').length - 1).toBe(1);
     expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map(");
     expect(pagina).toContain("{menuSinAsignar.map((c) => <th key={c.key}>");
-    // La tabla de paradas enseñaba la factura en el puesto 1; D-444 puso el ID en su lugar; D-NEXT (2026-10-01, «Invoice number
+    // La tabla de paradas enseñaba la factura en el puesto 1; D-444 puso el ID en su lugar; D-456 (2026-10-01, «Invoice number
     // is more important») devuelve la factura, que abre la orden, con el ID debajo (`facturaYId`).
     expect(pagina).toContain('<td className="ordno">{facturaConSuId(d)}</td>');
     expect(pagina).toContain("const facturaConSuId = (d: Delivery) => { const n = facturaYId(d); const gesto = abreLaOrden(d);");
@@ -199,7 +199,7 @@ describe("la página del Gestor", () => {
       expect(pagina, muerto).not.toContain(muerto);
     expect(pagina).toContain("style={anchoDeTabla([28, ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}");
     expect(pagina).toContain("<td colSpan={colsSinAsignar.length + 2} className=\"empty\">");
-    // El dueño, 2026-09-29: «en vez de facturas, pongas el ID»; y el 2026-10-01 (D-NEXT): «Invoice number is more important».
+    // El dueño, 2026-09-29: «en vez de facturas, pongas el ID»; y el 2026-10-01 (D-456): «Invoice number is more important».
     // La cabecera vuelve a decir «Factura #». La clave del ancho sigue siendo `_factura`.
     expect(pagina).toContain('{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
     expect(pagina).not.toContain('<th>{t("ID", "ID")}');

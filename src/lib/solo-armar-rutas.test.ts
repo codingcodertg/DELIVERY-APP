@@ -73,7 +73,7 @@ describe("medir la ruta sin reordenarla", () => {
     for (const escribe of ["updateDelivery(", "reorderStops("]) expect(pinta).not.toContain(escribe);
   });
   it("cada forma de la ruta se mide una vez (sin bucle si falla); lo que llega tarde, de otra forma, no se pinta", () => {
-    // Hasta D-NEXT esto era un `Set` de formas ya pedidas (`medidasPedidas`), y solo para el chofer elegido. Ahora la medida
+    // Hasta D-456 esto era un `Set` de formas ya pedidas (`medidasPedidas`), y solo para el chofer elegido. Ahora la medida
     // de cada forma se GUARDA (`medidas`) y qué se pide lo decide `siguienteMedida`: ver `gestor-factura-arrastre-optimizar`.
     const efecto = trozo("const seMide = (clave: string) =>", "const estadoDeLaMedida =");
     expect(efecto).toContain("const que = siguienteMedida<MedidaDeLaRuta>(rutas, pintadas, medidas.current);");
@@ -89,8 +89,8 @@ describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona 
   it("el sin-comentarios de la prueba quita los comentarios y deja el código", () => {
     expect(sinComentarios("a /* x */ b {/* y */} c // z\nd \"https://e\"")).toBe("a  b  c \nd \"https://e\"");
   });
-  it("el Gestor no tiene ninguno de sus botones — salvo «🧭 Optimizar» por ruta, que volvió en D-NEXT", () => {
-    // **Reemplazado en parte por D-NEXT** (2026-10-01): el dueño pidió de vuelta optimizar CADA ruta («have the optimize option
+  it("el Gestor no tiene ninguno de sus botones — salvo «🧭 Optimizar» por ruta, que volvió en D-456", () => {
+    // **Reemplazado en parte por D-456** (2026-10-01): el dueño pidió de vuelta optimizar CADA ruta («have the optimize option
     // for every route»). Vuelve un botón por tarjeta, que decide el orden aquí (`optimizaLaLista`) sin pedírselo a Google.
     // «Optimizar todas», Auto-asignar, Reagrupar y Simular siguen fuera, y el código que los movía también (abajo).
     expect(pagina).toContain("data-optimizar={u.key}");

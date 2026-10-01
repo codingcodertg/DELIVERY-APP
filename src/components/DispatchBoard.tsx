@@ -74,7 +74,7 @@ export function DispatchBoard({
                 onDragEnd={() => { setDragId(null); setOver(null); }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 6, alignItems: "center" }}>
-                  {/* D-NEXT: la factura primero y el ID al lado; sin factura, el ID en gris. */}
+                  {/* D-456: la factura primero y el ID al lado; sin factura, el ID en gris. */}
                   {(() => { const n = facturaYId(d); return (
                     <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       <b className="ordno" data-factura={n.esFactura ? "" : undefined} style={n.esFactura ? undefined : { color: "var(--gray)" }}>{n.principal}</b>

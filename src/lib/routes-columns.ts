@@ -34,7 +34,7 @@ import { ORDEN_DE_PARTIDA, mueveColumna, ordenEfectivo } from "./orden-de-column
 export const VISTAS_EN_EL_PLAN: readonly string[] = ["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega", "pl_invoice", "pl_address", "pl_windows"];
 
 /**
- * La factura en la tabla del plan va FIJA (D-NEXT): es la columna que abre la orden, delante, con el ID debajo. El dueño,
+ * La factura en la tabla del plan va FIJA (D-456): es la columna que abre la orden, delante, con el ID debajo. El dueño,
  * 2026-10-01: «It's not showing invoice number / Invoice number is more important». Por eso «Plan: Factura» (`pl_invoice`),
  * que D-434 puso como una columna más del ⚙, ya no se pinta ni se lista: saldría dos veces. La clave SIGUE en el catálogo
  * —está guardada en las listas, los órdenes y las plantillas de todos (la tanda `_v6` la puso), y quitarla no arregla nada—;
@@ -136,7 +136,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   // La ciudad también aquí desde D-408, con la misma clave por la misma razón. Desde D-445 se rotula «Ciudad de entrega»
   // (era «Ciudad» a secas) para que no se confunda con la de recogida que va al lado.
   { key: "p_address", en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega", tablas: ["paradas"], ancho: 172, indice: 4 },
-  // D-NEXT: 84 de ancho de partida (era 60): la llegada sale SIEMPRE, y cuando aún no hay hora la celda dice por qué
+  // D-456: 84 de ancho de partida (era 60): la llegada sale SIEMPRE, y cuando aún no hay hora la celda dice por qué
   // («calculando…», «sin medida», «tienda sin punto»), que en 60 se cortaba. Quien arrastró el suyo lo conserva.
   { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 84, indice: 5 },
   { key: "p_windows", en: "Stops: Windows", es: "Paradas: Ventanas", tablas: ["paradas"], ancho: 100, indice: 6 },

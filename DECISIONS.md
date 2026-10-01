@@ -141,7 +141,7 @@ idioma."*
 > fila) no puede volver porque en «Horario» no hay flechas ni botones sobre lo que se arrastra. (El «Tablero» ya arrastraba
 > tarjetas para asignar desde antes de D-417.)
 >
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): el dueño pidió el arrastre de vuelta («When trying to build the routes
+> **⚠ Reemplazada en parte por D-456** (2026-10-01): el dueño pidió el arrastre de vuelta («When trying to build the routes
 > manually do the drag option»). En la pestaña «Rutas» las filas **se arrastran otra vez** —una de «Sin asignar» a un chofer,
 > una parada a otro puesto o a otro chofer—, y **las flechas ↑/↓ se quedan**. El fallo que motivó esta entrada (pulsar una
 > flecha arrancaba el arrastre de la fila) no vuelve: un arrastre que empieza sobre un botón, un desplegable o un campo se
@@ -32202,7 +32202,7 @@ pendientes de dos tiendas (puestos 0 y 1), una **entregada con puesto 1**, y un 
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Pallets a bordo» ya no es
 > una columna escondida: la cuenta de cada parada es fija y visible de partida.
 >
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): la columna fija de la tabla del plan ya no es «solo el id»: es la
+> **⚠ Reemplazada en parte por D-456** (2026-10-01): la columna fija de la tabla del plan ya no es «solo el id»: es la
 > **factura**, que abre la orden, con el ID debajo (sin factura, el ID en gris). El dueño: «Invoice number is more
 > important». «Plan: Factura» (`pl_invoice`), que aquí era una columna más del ⚙, ya no se pinta ni se lista —saldría dos
 > veces—; la clave sigue en el catálogo, y los pesos de la fila no cambian.
@@ -32401,7 +32401,7 @@ aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio es
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Unir viajes» y «Dividir en
 > 2» ya no existen: no hay viajes que unir ni dividir.
 >
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): el dueño pidió optimizar de vuelta, por ruta («have the optimize option
+> **⚠ Reemplazada en parte por D-456** (2026-10-01): el dueño pidió optimizar de vuelta, por ruta («have the optimize option
 > for every route when selecting a driver and optimize it»). Vuelve **un botón «🧭 Optimizar» en cada tarjeta de chofer**, que
 > reordena solo esa ruta; el orden lo decide el navegador (`optimiza-la-ruta.ts`, en línea recta, con precedencia y
 > capacidad), **no** `computeRoute`/Google como el que aquí se quitó. «Optimizar todas», «Auto-asignar», «Reagrupar» y
@@ -33157,7 +33157,7 @@ con planes del motor, no con datos reales); la recarga a media ruta en el mapa r
 > **Reemplazada en parte por D-446** (2026-09-29): «Recoger en …» sale de la columna Tipo de la fila P y pasa a la de
 > ciudad de entrega; y los anchos de partida de la tabla de paradas son más pegados.
 >
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-01): «el ID en vez de la factura» se deshace. El dueño: «It's not showing
+> **⚠ Reemplazada en parte por D-456** (2026-10-01): «el ID en vez de la factura» se deshace. El dueño: «It's not showing
 > invoice number / Invoice number is more important». La columna fija de la tabla de paradas vuelve a ser la **factura**,
 > que abre la orden, y **el ID se queda debajo**, más pequeño. Y un dato de aquí abajo era falso: «la factura sigue
 > disponible como columna de Órdenes en el ⚙» — la tabla de paradas nunca tuvo esa columna; desde esta entrada la factura
@@ -33317,7 +33317,7 @@ cinco en la página: D sin la celda, D con la tienda, P sin recogida, P con la e
 
 ## D-446 · Gestor de Rutas: «Recoger en …» va en la ciudad de entrega de la fila P, y la tabla de paradas nace más pegada
 
-> **Reemplazada en parte por D-NEXT** (2026-10-01): «Llegada» nace con 84 px, no 60: la llegada se enseña siempre, y cuando
+> **Reemplazada en parte por D-456** (2026-10-01): «Llegada» nace con 84 px, no 60: la llegada se enseña siempre, y cuando
 > aún no hay hora la celda dice por qué («calculando…», «tienda sin punto», «sin medida»), que en 60 se cortaba. Los demás
 > anchos de partida no cambian, y quien arrastró el suyo lo conserva.
 
@@ -34395,7 +34395,7 @@ elemento a la vista y la foto entregada por el selector de ficheros que abre el 
 - Con el idioma en español, la primera pintura de la pantalla de fichar da un aviso de hidratación en desarrollo («Loading…»
   del servidor contra «Cargando…» del navegador). Es anterior a esta rama y no se tocó.
 
-## D-NEXT · Gestor de Rutas: la factura en todas las tablas, arrastrar para armar rutas a mano, «🧭 Optimizar» por ruta y la llegada estimada siempre
+## D-456 · Gestor de Rutas: la factura en todas las tablas, arrastrar para armar rutas a mano, «🧭 Optimizar» por ruta y la llegada estimada siempre
 
 **Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
 D-007 (sin arrastrar en la pestaña «Rutas»), D-434 (la columna «solo para el id» de la tabla del plan), D-437 («Optimizar

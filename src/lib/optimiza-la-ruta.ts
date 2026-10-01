@@ -2,7 +2,7 @@ import { haversineMi } from "./route-batching";
 import { ordenSinRecoger, type ParadaDeLaLista } from "./lista-unica";
 
 /**
- * «🧭 Optimizar» UNA ruta (D-NEXT). El dueño, 2026-10-01: «When doing routes manually it assigned to him but it doesn't
+ * «🧭 Optimizar» UNA ruta (D-456). El dueño, 2026-10-01: «When doing routes manually it assigned to him but it doesn't
  * optimize have the optimize option for every route when selecting a driver and optimize it».
  *
  * D-437 había quitado «Optimizar ruta» (2026-09-28, «Quitar los dos; solo Armar rutas»). Aquel pedía a Google el mejor orden

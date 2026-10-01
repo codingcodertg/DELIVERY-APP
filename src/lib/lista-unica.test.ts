@@ -281,7 +281,7 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
   });
   it("\`mueveParada\` decide con \`mueveEnLaLista\`, dice por qué no mueve si rompe la precedencia, y guarda la lista entera", () => {
     expect(mueve).toContain("const r = mueveEnLaLista(lectura.paradas, indice, dir);");
-    // D-NEXT: el aviso es el mismo para las flechas y para el arrastre (`avisaDeLaPrecedencia`).
+    // D-456: el aviso es el mismo para las flechas y para el arrastre (`avisaDeLaPrecedencia`).
     expect(mueve).toContain("if (r.motivo === \"precedencia\") avisaDeLaPrecedencia(stops, lectura, r.orden);");
     expect(pagina).toContain("se entregaría antes de recogerla");
     expect(mueve).toContain("if (!(await guardaLaLista(laneKey, stops, r.paradas,");
@@ -419,7 +419,7 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
     expect(tarjeta).toContain("const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;");
     // La medida usa la MISMA clave para la recogida.
     expect(pagina).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: RELOAD_MIN });");
-    // D-NEXT: detrás de la clase del grupo va la raya de «aquí cae» mientras se arrastra una fila.
+    // D-456: detrás de la clase del grupo va la raya de «aquí cae» mientras se arrastra una fila.
     expect(tarjeta).toContain("className={`${claseDeLaFilaDelPlan(\"P\")}${claseDeGrupo(f)}${claseDeSoltar}`}");
     expect(tarjeta).toContain('" row-done" : ""}${claseDeGrupo(f)}${claseDeSoltar}`}');
     // Desde D-452 la fila P dice también «carga 1 de 2» cuando la orden está partida (`etiquetaDeLaCarga`).

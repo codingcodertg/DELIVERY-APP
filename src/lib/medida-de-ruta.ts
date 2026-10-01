@@ -47,7 +47,7 @@ export function firmaDeLaMedida(
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// La llegada estimada, SIEMPRE (D-NEXT).
+// La llegada estimada, SIEMPRE (D-456).
 //
 // El dueño, 2026-10-01: «el eta estimado en el logistic manager, quiero que muestre el eta siempre que aveces no aparece».
 // Tres causas, medidas en el código de antes:

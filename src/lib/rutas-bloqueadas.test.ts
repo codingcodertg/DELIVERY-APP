@@ -62,7 +62,7 @@ describe("la pantalla del Gestor respeta el candado", () => {
   };
 
   it("elegir un chofer MIDE su ruta también con candado (medir no la toca); lo que escribía y miraba el candado se quitó (D-437)", () => {
-    // D-NEXT: ya no hace falta elegirlo: se miden todas las rutas con paradas. Sigue sin mirar el candado.
+    // D-456: ya no hace falta elegirlo: se miden todas las rutas con paradas. Sigue sin mirar el candado.
     const efecto = trozo("const seMide = (clave: string) =>", "const estadoDeLaMedida =");
     expect(efecto).toContain("if (midiendo == null && que.pide) void mide(que.pide.clave, byDriver.get(que.pide.clave) ?? []);");
     expect(efecto).not.toContain("bloqueada(");

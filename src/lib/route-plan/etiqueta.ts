@@ -35,7 +35,7 @@ export function idDeLaOrden(ordenes: readonly OrdenParaNombrar[], ref: string): 
 }
 
 /**
- * La FACTURA primero, y el ID al lado (D-NEXT). El dueño, 2026-10-01: «It's not showing invoice number / Invoice number is
+ * La FACTURA primero, y el ID al lado (D-456). El dueño, 2026-10-01: «It's not showing invoice number / Invoice number is
  * more important», y «not showing invoice en el logistic manager en todas las tablas». En todas las tablas del Gestor —las
  * paradas de cada chofer, el plan, el tablero y la línea de tiempo— lo que nombra la orden es su factura (`principal`), y su
  * código va al lado, más pequeño (`id`). Una orden SIN factura (una intertienda, un borrador) se nombra por su código, en gris

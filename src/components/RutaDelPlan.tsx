@@ -39,7 +39,7 @@ import type { Delivery } from "@/lib/types";
  * después · libres», con la capacidad del camión; la parada que se pasa lo dice en su fila, y cuánto. Y la ruta empieza y
  * acaba en la Base con 0 a bordo; si al volver no da 0, se marca.
  *
- * D-NEXT: la columna fija de la parada es la FACTURA, que abre la orden, con el ID debajo, más pequeño; una orden sin factura
+ * D-456: la columna fija de la parada es la FACTURA, que abre la orden, con el ID debajo, más pequeño; una orden sin factura
  * enseña su ID en gris. El dueño, 2026-10-01: «It's not showing invoice number / Invoice number is more important». Reemplaza
  * la «columna solo para el id» de D-434; «Plan: Factura», que era una columna más del ⚙, ya no existe (no se repite).
  */
@@ -135,7 +135,7 @@ export function RutaDelPlan({ rutas, facturaDeOrden, abrirOrden, ajuste, columna
         <td title={p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}
           {quieta && <span data-no-se-mueve title={t("No longer pending that day (picked up, delivered, canceled or moved): it isn't moved or rewritten", "Ya no está pendiente ese día (recogida, entregada, anulada o movida): no se mueve ni se reescribe")}> 🔒</span>}</td>
         <td>
-          {/* D-NEXT: la FACTURA, que abre la ficha (D-428), y el ID debajo; sin factura, el ID en gris. El tipo de cliente y la
+          {/* D-456: la FACTURA, que abre la ficha (D-428), y el ID debajo; sin factura, el ID en gris. El tipo de cliente y la
               ciudad de recogida van en sus columnas; «Recoger / Entregar» lo dice la etiqueta P/D (y su título). */}
           {(() => {
             const n = facturaDeOrden(p.order_ref);
