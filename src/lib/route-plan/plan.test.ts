@@ -372,8 +372,8 @@ describe("la ruta de planificar y la pantalla", () => {
     const gestor = plano(leer("src/app/(app)/routes/page.tsx"));
     // Desde D-400 la barra se puede cerrar con su ✕, pero las condiciones de quién y cuándo son las mismas.
     expect(gestor).toContain('const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);');
-    expect(gestor).toContain("const barraDeArmarRutas = puedeArmarRutas && (");
-    expect(gestor).toContain("{barraDeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)}");
+    // D-NEXT: sin la tarjeta que se cerraba (D-400); el panel cuelga solo de quién y cuándo, y lo abre el botón de la cabecera.
+    expect(gestor).toContain("{puedeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)}");
     expect(panel).not.toMatch(/from\("|supabase|escriturasAlPublicar|avisosAlPublicar/);
     expect(plano(panel)).toContain('body: JSON.stringify({ notification_id: a.notification_id })');
     expect(plano(panel)).toContain("disabled={!!ocupado || r!.ordenes === 0}");

@@ -4,7 +4,13 @@
  *
  * CERRADO PARA SIEMPRE, no «hasta que cambie lo que dice». Los avisos de choferes sin señal y de atrasadas cambian de
  * texto casi cada día (otro chofer, otro número): cerrarlos «hasta que cambie» los haría volver al día siguiente, que es
- * justo lo que pidió que no pasara. Para recuperarlos, «Mostrar avisos ocultos» en la barra de herramientas del Gestor.
+ * justo lo que pidió que no pasara. Para recuperarlos, «Mostrar avisos ocultos» — desde D-NEXT al FONDO de la página y en
+ * pequeño; hasta ahí estaba en la barra de herramientas, y el dueño pidió que no saliera («osea que no aparezca eso de
+ * show hidden notices», 2026-10-01).
+ *
+ * D-NEXT quitó dos de la lista, porque dejaron de ser avisos: `armar-rutas` (la tarjeta plegada que repetía el botón de
+ * la cabecera; ahora el botón es la única entrada) y `ayuda-del-mapa` (el renglón fijo bajo el mapa; ahora un ⓘ con el
+ * texto al pasar). Quien los tenía cerrados no nota nada: un id que ya no se conoce se ignora al leer, y no se reusa.
  *
  * Se recuerda por persona en ESTE navegador (`localStorage`, con el id de la persona en la clave), como el filtro de
  * chofer de D-393 y por la misma razón: `user_prefs` tiene su lista de claves cerrada en la base (136/137/141) y una clave
@@ -14,16 +20,12 @@
 
 /** Los avisos que se pueden cerrar. El id es lo que se guarda: no se renombra sin perder lo cerrado. */
 export const AVISOS_DEL_GESTOR = {
-  /** La barra «🧭 Armar las rutas del día automáticamente» (PlanDelDia) con su pastilla «N orden(es) sin plan». */
-  armarRutas: "armar-rutas",
   /** El recuadro «N chofer(es) en turno no están reportando su ubicación». */
   choferesSinSenal: "choferes-sin-senal",
   /** La línea «N orden(es) atrasadas · N sin fecha — no son de este día. [Verlas]». */
   atrasadas: "atrasadas",
   /** El recuadro «No hay órdenes para programar en esta fecha» del día vacío. */
   diaVacio: "dia-vacio",
-  /** La explicación fija bajo el mapa («Todas las rutas están en el mapa a la vez…»). */
-  ayudaDelMapa: "ayuda-del-mapa",
 } as const;
 
 export type AvisoDelGestor = (typeof AVISOS_DEL_GESTOR)[keyof typeof AVISOS_DEL_GESTOR];

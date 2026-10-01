@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
-import { CerrarAviso } from "@/components/CerrarAviso";
-import { AVISOS_DEL_GESTOR } from "@/lib/avisos-ocultos";
+import { estadoDelPlan, type EstadoDelPlan } from "@/lib/route-plan/estado-del-plan";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
 import { facturaYIdDeLaOrden, idDeLaOrden, nombraLaOrden } from "@/lib/route-plan/etiqueta";
@@ -92,16 +91,17 @@ const MOTIVOS: Record<string, [string, string]> = {
 };
 
 /** `onPublicado`: se llama tras publicar con éxito, para que la página relea el plan publicado (las etiquetas P/D de la tabla).
- *  `onCerrar`: si viene, la barra lleva la ✕ que la cierra para esta persona (D-400); la página decide qué es cerrar.
- *  `naceAbierto`: la barra nace desplegada — cuando se llega a ella desde el botón «🧭 Armar rutas» de la cabecera. */
-export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbierto = false, columnas }: { date: string; onPublicado?: () => void; onCerrar?: () => void; naceAbierto?: boolean; onAbrirOrden?: (id: string) => void;
+ *  `abierto` / `onCerrar` (D-NEXT): el panel lo abre y lo cierra la PÁGINA, con el botón «🧭 Armar rutas» de su cabecera,
+ *  que es la única entrada. Cerrado no pinta nada —la tarjeta plegada de D-346/D-400 repetía ese botón y se quitó—, pero
+ *  sigue montado: lee el plan de la fecha y se lo cuenta a la página (`onEstado`) para la pastilla «Borrador vN».
+ *  `onEstado`: en qué está el plan de la fecha, cada vez que cambia. */
+export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onAbrirOrden, columnas }: { date: string; onPublicado?: () => void; abierto: boolean; onCerrar: () => void; onEstado?: (e: EstadoDelPlan | null) => void; onAbrirOrden?: (id: string) => void;
   /** Las columnas de la tabla de paradas (D-429): las elige la persona en el ⚙ que pone la página, como el resto del Gestor. */
   columnas?: Omit<ColumnasDeLaRuta, "orden"> }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify } = useData();
   const confirmAction = useConfirm();
   const [ocupado, setOcupado] = useState<"planificando" | "publicando" | "ajustando" | null>(null);
-  const [abierto, setAbierto] = useState(naceAbierto);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publicado, setPublicado] = useState<{ escritas: number; avisos: number } | null>(null);
@@ -133,6 +133,10 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
 
   // Cuántas órdenes ruteables tiene esta fecha: las mismas que leería «planificar» (misma función, mismas etapas).
   const sinPlan = ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES).length;
+  // Lo que la tarjeta plegada decía («Borrador v2», «N sin plan») lo dice ahora la cabecera de la página (D-NEXT).
+  const estado = estadoDelPlan(borrador, sinPlan);
+  const firmaDelEstado = estado ? `${estado.tipo}:${estado.tipo === "sin_plan" ? estado.ordenes : estado.version}` : "";
+  useEffect(() => { onEstado?.(estado); }, [firmaDelEstado]); // eslint-disable-line react-hooks/exhaustive-deps
   // La orden de cada parada, para las columnas de Órdenes (D-429). Una parte «id#b» es la orden «id».
   const porId = useMemo(() => new Map(deliveries.map((d) => [d.id, d])), [deliveries]);
   const ordenDeLaParada = (ref: string) => porId.get(ordenDeLaParte(ref));
@@ -214,21 +218,15 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
   // encontraba; ahora lo conoce y le estorba. Plegado sigue diciendo lo que importa: cuántas órdenes no tienen plan.
   // Desde D-437 es el ÚNICO camino automático del Gestor (se quitaron Optimizar y Auto-asignar): sigue naciendo plegado,
   // como pidió el dueño en D-346, pero su botón es el primario, para que se vea que es por aquí.
-  if (!abierto) return (
-    <div className="card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-      <button className="btn btn-primary btn-sm" data-abrir-armar-rutas aria-expanded={false} onClick={() => setAbierto(true)}>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")} ▸</button>
-      {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
-      {borrador && <span className="hint" style={{ margin: 0 }}>{borrador.status === "published" ? t(`Published v${borrador.version}`, `Publicado v${borrador.version}`) : t(`Draft v${borrador.version}`, `Borrador v${borrador.version}`)}</span>}
-      {onCerrar && <CerrarAviso aviso={AVISOS_DEL_GESTOR.armarRutas} onCerrar={onCerrar} />}
-    </div>
-  );
+  // D-NEXT (el dueño, 2026-10-01: «el boton de build routes solo ahi dejalo no quiero que siga aparecieron el otro dialog»):
+  // cerrado, NADA. La tarjeta plegada con su botón «Armar las rutas del día automáticamente ▸» y su ✕ se fue.
+  if (!abierto) return null;
   return (
-    <div className="card">
+    <div className="card" data-panel-del-plan>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         {/* Que no se pueda no ver (D-334): el dueño buscaba P1, P2… D1, D2… y no había pulsado esto nunca. El título dice
             lo que HACE, la frase lo que DA, y sin plan el botón es el primario de la pantalla. «Motor nuevo» era jerga nuestra. */}
-        <button className="btn btn-ghost btn-sm" aria-expanded onClick={() => setAbierto(false)} title={t("Hide", "Ocultar")}><b>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")}</b> ▾</button>
-        {onCerrar && <CerrarAviso aviso={AVISOS_DEL_GESTOR.armarRutas} onCerrar={onCerrar} />}
+        <button className="btn btn-ghost btn-sm" data-cerrar-el-plan aria-expanded onClick={onCerrar} title={t("Hide", "Ocultar")}><b>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")}</b> ▾</button>
         {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
         <span className="hint" style={{ margin: 0, flexBasis: "100%" }}>
           {t("Splits this date's orders among the drivers and sequences pickups (P1, P2…) and deliveries (D1, D2…) with estimated times. It's a draft: nothing is assigned until you publish.",
