@@ -66,15 +66,20 @@ const LABELS: Record<string, Pair> = {
   tool: { en: "Tool", es: "Herramienta" },
   accessory: { en: "Accessory", es: "Accesorio" },
   other: { en: "Other", es: "Otro" },
-  // request type
-  new: { en: "New", es: "Nuevo" },
-  edit: { en: "Edit", es: "Edición" },
+  // request type (los seis de la hoja del dueño, solicitud-campos.ts)
+  new: { en: "Create new", es: "Crear nuevo" },
+  copy: { en: "Create copy", es: "Crear copia" },
+  edit: { en: "Request change", es: "Solicitar cambio" },
   reactivate: { en: "Reactivate", es: "Reactivar" },
   deactivate: { en: "Deactivate", es: "Desactivar" },
-  // request status
+  discontinue: { en: "Discontinue", es: "Descontinuar" },
+  // request status (EXECUTOR STATUS)
   pending: { en: "Pending", es: "Pendiente" },
   approved: { en: "Approved", es: "Aprobada" },
   rejected: { en: "Rejected", es: "Rechazada" },
+  // requester_status (REQUESTER STATUS)
+  ready: { en: "Ready", es: "Lista" },
+  not_ready: { en: "Not ready", es: "No lista" },
 };
 export function statusLabel(s: string | null | undefined): Pair {
   const known = s ? LABELS[s] : undefined;

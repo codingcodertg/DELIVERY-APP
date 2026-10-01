@@ -28,8 +28,12 @@ export const ERP_MESSAGES = {
   SAME_RELATION: { en: "same relation", es: "misma relación" },
   DESCRIBE_FIX: { en: "Describe the fix", es: "Describe el arreglo" },
   NEW_ITEM_FIELDS_REQUIRED: {
-    en: "SKU, name, product type and status are required",
-    es: "SKU, nombre, tipo de producto y estado son obligatorios",
+    en: "Sales description, product type and status are required",
+    es: "Descripción en ventas, tipo de producto y estado son obligatorios",
+  },
+  MIGRATION_PENDING: {
+    en: "This option needs a database update that is not applied yet (migration 158: copy / discontinue / requester status). Ask an admin.",
+    es: "Esta opción necesita una actualización de la base que aún no está aplicada (migración 158: copia / descontinuar / estado del solicitante). Avisa a un admin.",
   },
   NO_UNMATCHED_LINES: { en: "No unmatched lines to import", es: "No hay líneas sin emparejar que importar" },
   NO_PDF_FILE: { en: "No PDF file provided.", es: "No se adjuntó ningún PDF." },

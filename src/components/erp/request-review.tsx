@@ -14,6 +14,7 @@ import { usePrefs } from "@/lib/prefs";
 // (statusLabel); nombre de campo, valores, solicitante, tienda y motivo son dato.
 import { decideRequest } from "@/lib/erp/actions";
 import { failText } from "@/lib/erp/messages";
+import { etiquetaDeCampo, puedeDesactivar } from "@/lib/erp/solicitud-campos";
 
 type Product = {
   id: number;
@@ -32,6 +33,8 @@ export type ReviewRequest = {
   requester: string | null;
   requester_store: string | null;
   created_at: string;
+  /** REQUESTER STATUS (158): 'ready' | 'not_ready'; ausente hasta que la migración esté aplicada. */
+  requester_status?: string | null;
   product: Product | null;
   requester_name: string | null;
 };
@@ -40,6 +43,7 @@ const typePill: Record<string, string> = {
   edit: "border-sky-200 bg-sky-50 text-sky-700",
   reactivate: "border-emerald-200 bg-emerald-50 text-emerald-700",
   deactivate: "border-red-200 bg-red-50 text-red-700",
+  discontinue: "border-slate-200 bg-slate-50 text-slate-500",
 };
 
 function fmt(k: string, v: unknown, canSeeCost: boolean): string {
@@ -91,12 +95,18 @@ export function RequestReview({
       {err && <p className="text-sm text-red-600">{err}</p>}
       {requests.map((r) => {
         const changed = r.type === "edit" ? editable.filter((k) => r.payload && k in r.payload) : [];
+        const noLista = r.requester_status === "not_ready";
         return (
-          <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div key={r.id} className={noLista ? "rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5" : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"}>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <Badge className={typePill[r.type] ?? "border-slate-200 bg-slate-100 text-slate-600"}>
                 {t(statusLabel(r.type).en, statusLabel(r.type).es)}
               </Badge>
+              {r.requester_status && (
+                <Badge className={noLista ? "border-slate-300 bg-slate-100 text-slate-600" : "border-sky-200 bg-sky-50 text-sky-700"}>
+                  {t("Requester", "Solicitante")}: {t(statusLabel(r.requester_status).en, statusLabel(r.requester_status).es)}
+                </Badge>
+              )}
               {r.product ? (
                 <Link href={`/erp/product/${r.product.id}`} className="font-medium hover:text-clay-700">
                   {r.product.name}
@@ -126,7 +136,7 @@ export function RequestReview({
                   <tbody>
                     {changed.map((k) => (
                       <tr key={k} className="border-t border-slate-100">
-                        <td className="py-1 pr-4 text-slate-500">{k}</td>
+                        <td className="py-1 pr-4 text-slate-500">{etiquetaDeCampo(k, t)}</td>
                         <td className="py-1 pr-4">{fmt(k, r.product?.[k], canSeeCost)}</td>
                         <td className="py-1 pr-4 font-medium text-clay-700">{fmt(k, r.payload[k], canSeeCost)}</td>
                       </tr>
@@ -144,7 +154,18 @@ export function RequestReview({
             {r.type === "deactivate" && (
               <p className="mb-3 text-sm">
                 → {t("set commercial status to", "poner estado comercial en")} <span className="font-medium text-red-700">{t(statusLabel("inactive").en, statusLabel("inactive").es).toLowerCase()}</span>
+                {r.product && !puedeDesactivar(r.product.qoh as number | null) && (
+                  <span className="ml-2 text-amber-700">{t(`QOH is ${r.product.qoh} — deactivate needs QOH = 0 (discontinue instead?)`, `QOH es ${r.product.qoh} — desactivar exige QOH = 0 (¿descontinuar?)`)}</span>
+                )}
               </p>
+            )}
+            {r.type === "discontinue" && (
+              <p className="mb-3 text-sm">
+                → {t("set commercial status to", "poner estado comercial en")} <span className="font-medium text-slate-700">{t(statusLabel("discontinued").en, statusLabel("discontinued").es).toLowerCase()}</span> {t("(stock may remain)", "(puede quedar existencia)")}
+              </p>
+            )}
+            {noLista && (
+              <p className="mb-3 text-sm text-slate-500">{t("The requester has not marked this request ready yet — it cannot be approved.", "El solicitante aún no marcó esta solicitud como lista — no se puede aprobar.")}</p>
             )}
 
             {noteFor === r.id ? (
@@ -171,7 +192,7 @@ export function RequestReview({
               </div>
             ) : (
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => act(r.id, true)} disabled={pending}>
+                <Button size="sm" onClick={() => act(r.id, true)} disabled={pending || noLista}>
                   {t("Approve", "Aprobar")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setNoteFor(r.id)} disabled={pending}>

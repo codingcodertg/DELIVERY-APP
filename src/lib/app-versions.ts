@@ -29,7 +29,7 @@ export const APP_VERSIONS = {
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
   // misma razón que recruiting y timetracker — no hay historial independiente que
   // continuar, y un 1.0.0 sería continuidad inventada.
-  erp: "0.13.0",
+  erp: "0.14.0",
   // RTG PROMOS (D-366): modulo nuevo, sin historial que continuar; 0.1.0 como recruiting y el ERP.
   promos: "0.12.0",
   // El Estimador (T-0408): modulo nuevo, sin historial que continuar; 0.1.0 como promos. Lo sube el orquestador.
