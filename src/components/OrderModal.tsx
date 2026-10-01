@@ -1544,7 +1544,7 @@ export function OrderModal({
                       ...((existing.invoices_extra ?? []).length ? [[t("Added invoices", "Facturas agregadas"), (existing.invoices_extra ?? []).join(", ")]] : []),
                       [t("Actual Pallets", "Pallets Reales"), existing.actual_pallets == null ? "—" : String(existing.actual_pallets)],
                       [t("Pickup Address", "Dir. Recolección"), existing.pickup_address || "—"],
-                      // Solo una ciudad (D-NEXT): se dice en la misma fila de la ficha.
+                      // Solo una ciudad (D-454): se dice en la misma fila de la ficha.
                       [t("Delivery Address", "Dir. Entrega"), (existing.delivery_address || "—") + (ordenSoloCiudad(existing) ? ` — ⚠ ${t(AVISO_SOLO_CIUDAD.en, AVISO_SOLO_CIUDAD.es)}` : "")],
                       [t("Route Miles", "Millas"), existing.route_miles == null ? "—" : `${existing.route_miles} mi`],
                       [t("Travel Time", "Tiempo de Viaje"), existing.route_duration || "—"],
@@ -3469,7 +3469,7 @@ function DriverDeliveryScreen({
           {/* Y en la de destino, si el destino es otra tienda nuestra — una Intertienda (D-309).
               En una entrega a cliente no pinta nada. */}
           <AlmacenDeLaParada nombre={order.delivery_name} tiendas={settings.stores} t={t} />
-          {/* La dirección es solo una ciudad (D-NEXT): Navegar lleva al centro de la ciudad, no a la casa. */}
+          {/* La dirección es solo una ciudad (D-454): Navegar lleva al centro de la ciudad, no a la casa. */}
           <AvisoSoloCiudad orden={order} />
           {order.delivery_pin_source === "manual" && (
             <div className="drv-banner-sub" style={{ color: "var(--accent)", fontWeight: 700 }}>

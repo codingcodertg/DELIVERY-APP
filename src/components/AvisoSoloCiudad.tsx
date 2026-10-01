@@ -5,7 +5,7 @@ import type { Delivery } from "@/lib/types";
 import { AVISO_SOLO_CIUDAD, ordenSoloCiudad } from "@/lib/solo-ciudad";
 
 /**
- * El aviso de una orden cuya dirección es solo una ciudad (D-NEXT): «Solo ciudad — dirección por confirmar». No pinta
+ * El aviso de una orden cuya dirección es solo una ciudad (D-454): «Solo ciudad — dirección por confirmar». No pinta
  * nada si la orden no lo es (`ordenSoloCiudad`). `corto` es la pastilla para una celda de tabla del Gestor, con el texto
  * entero al pasar el ratón; sin él, una línea completa (Mi ruta y la parada del chofer).
  */

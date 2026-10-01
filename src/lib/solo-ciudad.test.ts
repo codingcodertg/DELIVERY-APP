@@ -13,7 +13,7 @@ import { missingKeys } from "./required";
 import { AVISO_SOLO_CIUDAD, esSoloCiudad, ordenSoloCiudad } from "./solo-ciudad";
 
 /**
- * D-NEXT · «cuando buscas una direccion que puedas selecionar solo la ciudad si asi lo quieres como broad answer».
+ * D-454 · «cuando buscas una direccion que puedas selecionar solo la ciudad si asi lo quieres como broad answer».
  * Ninguna prueba llama a un proveedor: la llamada a Places se finge.
  */
 

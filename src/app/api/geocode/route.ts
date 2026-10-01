@@ -24,7 +24,7 @@ export const runtime = "nodejs";
 // Uses the current places.googleapis.com endpoint (the legacy
 // maps/api/place/autocomplete one is off for projects on the new Places API).
 // Una o dos llamadas: primero la zona verde, y Texas solo si lo local escasea. Lo decide `sugerenciasDePlaces`.
-// Y, si lo tecleado puede ser una ciudad, una más solo de ciudades de Texas, que van delante (D-NEXT).
+// Y, si lo tecleado puede ser una ciudad, una más solo de ciudades de Texas, que van delante (D-454).
 async function viaGoogle(q: string, key: string): Promise<string[]> {
   return sugerenciasDePlaces(q, async (cuerpo) => {
     const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {

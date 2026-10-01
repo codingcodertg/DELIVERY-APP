@@ -2618,7 +2618,7 @@ export default function RoutesPage() {
                 </div>
               );
             })()}
-            {/* Las paradas de este chofer cuya dirección es SOLO una ciudad (D-NEXT). Va aquí, fuera de la tabla, porque
+            {/* Las paradas de este chofer cuya dirección es SOLO una ciudad (D-454). Va aquí, fuera de la tabla, porque
                 la columna «Ciudad de entrega» se puede quitar y el aviso no puede depender de qué columnas eligió nadie:
                 el punto de esas paradas es el centro de la ciudad, y el chofer no debe salir sin la dirección. */}
             {stops.some(ordenSoloCiudad) && (

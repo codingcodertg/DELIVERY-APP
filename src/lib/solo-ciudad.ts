@@ -2,7 +2,7 @@ import type { Delivery } from "@/lib/types";
 import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 
 /**
- * «Solo ciudad»: una dirección de entrega que es NADA MÁS una ciudad («Mission, TX, USA»), sin calle ni número (D-NEXT).
+ * «Solo ciudad»: una dirección de entrega que es NADA MÁS una ciudad («Mission, TX, USA»), sin calle ni número (D-454).
  *
  * El dueño, el 2026-10-01: «cuando buscas una direccion que puedas selecionar solo la ciudad si asi lo quieres como broad
  * answer». El buscador ofrece ahora la ciudad (`sugerenciasDePlaces`), y la orden que la lleva se guarda como cualquier

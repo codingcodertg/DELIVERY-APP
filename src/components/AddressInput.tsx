@@ -103,7 +103,7 @@ export function AddressInput({
         <div className="addr-menu">
           {suggestions.map((s, i) => (
             <button type="button" key={i} className="addr-opt" onClick={() => pick(s)}>
-              {/* Una ciudad a secas es la respuesta amplia (D-NEXT): se puede elegir, y se dice qué es antes de elegirla. */}
+              {/* Una ciudad a secas es la respuesta amplia (D-454): se puede elegir, y se dice qué es antes de elegirla. */}
               {esSoloCiudad(s)
                 ? <>🏙️ {s} <span className="hint" data-sugerencia-ciudad> · {t(AVISO_SOLO_CIUDAD.en, AVISO_SOLO_CIUDAD.es)}</span></>
                 : <>📍 {s}</>}

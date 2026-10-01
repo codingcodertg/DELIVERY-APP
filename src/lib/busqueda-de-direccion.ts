@@ -56,7 +56,7 @@ export const MINIMO_LOCALES = 3;
 export const TOPE_DE_PLACES = 5;
 
 /**
- * La CIUDAD como respuesta amplia (D-NEXT). El dueño, el 2026-10-01: «cuando buscas una direccion que puedas selecionar
+ * La CIUDAD como respuesta amplia (D-454). El dueño, el 2026-10-01: «cuando buscas una direccion que puedas selecionar
  * solo la ciudad si asi lo quieres como broad answer».
  *
  * Con las dos llamadas de arriba la ciudad no estaba garantizada: no se pide ningún tipo, así que Places mezcla calles,
@@ -80,7 +80,7 @@ export const puedeSerCiudad = (q: string): boolean => !/\d/.test(q);
  * Una llamada que falla cuenta como vacía: si la local falla se intenta Texas igual, en vez de darse por vencido sin probar.
  * La caja de Texas pisa estados vecinos y México, así que lo que vuelve se filtra SIEMPRE por estado.
  *
- * Desde D-NEXT, si lo tecleado puede ser una ciudad, se piden además las ciudades de Texas (a la vez que lo local) y van
+ * Desde D-454, si lo tecleado puede ser una ciudad, se piden además las ciudades de Texas (a la vez que lo local) y van
  * DELANTE, hasta `TOPE_DE_CIUDADES`: son la respuesta amplia y el que teclea «Mission» la tiene que ver sin bajar. De esa
  * llamada solo se acepta lo que es una ciudad a secas (`esSoloCiudad`); si falla, las direcciones salen igual.
  */

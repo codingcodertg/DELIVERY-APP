@@ -23486,7 +23486,7 @@ que pintan los dos mapas; vive en el código, no en Ajustes. `src/lib/busqueda-d
   nadie.
 - No se tocó `/api/geocode-point` (lo que ubica una orden al guardar): el dueño habló de la búsqueda.
 
-> **Reemplazada en parte por D-NEXT (2026-10-01).** Places ya no son «una o dos llamadas»: si lo tecleado no lleva números
+> **Reemplazada en parte por D-454 (2026-10-01).** Places ya no son «una o dos llamadas»: si lo tecleado no lleva números
 > se hace además otra, solo de ciudades de Texas, y esas ciudades (hasta 2) van DELANTE de las locales. El tope pasa de 5 a
 > 5 direcciones más 2 ciudades (la ruta corta en 6). Lo demás de este apartado sigue igual.
 
@@ -34041,7 +34041,7 @@ quedó nada.
 - Un perfil `staff` real del ERP: hoy los 4 con el módulo son admin.
 - La caché de esquema de PostgREST tras aplicar (si tarda, `notify pgrst, 'reload schema'`).
 
-## D-NEXT · En el buscador de direcciones se puede elegir SOLO la ciudad, y la orden queda marcada «solo ciudad — dirección por confirmar»
+## D-454 · En el buscador de direcciones se puede elegir SOLO la ciudad, y la orden queda marcada «solo ciudad — dirección por confirmar»
 
 **Fecha:** 2026-10-01 · **Pedido del dueño (2026-10-01), literal:** «cuando buscas una direccion que puedas selecionar solo la ciudad si asi lo quieres como broad answer».
 
