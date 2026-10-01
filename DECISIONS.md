@@ -23486,6 +23486,10 @@ que pintan los dos mapas; vive en el código, no en Ajustes. `src/lib/busqueda-d
   nadie.
 - No se tocó `/api/geocode-point` (lo que ubica una orden al guardar): el dueño habló de la búsqueda.
 
+> **Reemplazada en parte por D-NEXT (2026-10-01).** Places ya no son «una o dos llamadas»: si lo tecleado no lleva números
+> se hace además otra, solo de ciudades de Texas, y esas ciudades (hasta 2) van DELANTE de las locales. El tope pasa de 5 a
+> 5 direcciones más 2 ciudades (la ruta corta en 6). Lo demás de este apartado sigue igual.
+
 ### 4 · «Misma factura»: el número completo, y una lupa
 
 Antes, al marcar la casilla salía una lista de hasta cien facturas de otras órdenes, con su cuenta. Ahora: un campo, un botón 🔍,
@@ -34036,3 +34040,90 @@ quedó nada.
 - El formulario en el navegador: `/erp/request` exige sesión y lee la base; el ERP no tiene demo.
 - Un perfil `staff` real del ERP: hoy los 4 con el módulo son admin.
 - La caché de esquema de PostgREST tras aplicar (si tarda, `notify pgrst, 'reload schema'`).
+
+## D-NEXT · En el buscador de direcciones se puede elegir SOLO la ciudad, y la orden queda marcada «solo ciudad — dirección por confirmar»
+
+**Fecha:** 2026-10-01 · **Pedido del dueño (2026-10-01), literal:** «cuando buscas una direccion que puedas selecionar solo la ciudad si asi lo quieres como broad answer».
+
+### Qué había (medido en el código, sin llamar a ningún proveedor)
+
+- El buscador es `AddressInput` (`src/components/AddressInput.tsx`): teclea, espera 350 ms, llama a `POST /api/geocode` y
+  pinta textos. Lo usan la ficha de la orden (`OrderModal`, directo y dentro de `LocationCombo`), el Quote Builder
+  (`EntregaCotizacion`) y Datos (los sitios guardados).
+- `/api/geocode` pregunta a Places (New) Autocomplete en dos pasos (D-337): la caja de la zona verde y, si vuelven menos de
+  3 de Texas, la caja de Texas. **No pide ningún tipo** (`includedPrimaryTypes` no se manda) y no filtra por tipo: solo por
+  estado, sobre el texto. Así que nada PROHIBÍA una ciudad, pero nada la garantizaba: Places mezcla calles, negocios y
+  ciudades a su criterio con tope de 5, y —esto es lo que la hacía fallar de verdad— la primera llamada está restringida a
+  la zona verde: al teclear «Houston», si hay tres «Houston St» locales, por Texas ni se pregunta y la ciudad no puede salir.
+- La validación (`missingFields`, `src/lib/required.ts`) solo exige que la dirección de entrega no esté vacía. **No exige
+  pin ni número de calle.** O sea que una orden con «Mission, TX» tecleado a mano ya se podía guardar; lo que no había era
+  ninguna señal de que eso no es una dirección.
+- En el Gestor de Rutas la columna es «Ciudad de entrega» (D-408): una orden con solo la ciudad se veía IGUAL que una con
+  calle. En Mi ruta salía «Mission, TX, USA» como dirección, sin más.
+
+### Qué se hizo
+
+**1 · La ciudad sale al teclearla** (`sugerenciasDePlaces`, `src/lib/busqueda-de-direccion.ts`). Si lo tecleado **no lleva
+números**, además de las llamadas de D-337 se hace una, a la vez que la local, **solo de ciudades** (`includedPrimaryTypes:
+["(cities)"]`) restringida a la caja de Texas (`cuerpoDeCiudades`). De lo que vuelve solo pasa lo que es de Texas y es una
+ciudad a secas, hasta `TOPE_DE_CIUDADES` = 2, y va **delante** de las direcciones. Las direcciones conservan su tope de 5;
+la ruta corta el total en 6 (ya lo hacía). Si esa llamada falla, las direcciones salen igual.
+
+- Con un número en lo tecleado («1203 N…») no se hace: es la búsqueda más corriente y sería una llamada de pago más por
+  pulsación para nada. **Coste nuevo:** una llamada más a Places por búsqueda sin números.
+- Los otros tres proveedores (Geocoding, Mapbox, Nominatim) no se tocaron: solo entran si Places no da nada, y los tres
+  devuelven ciudades por su cuenta.
+- En la lista, la ciudad se distingue: «🏙️ Mission, TX, USA · Solo ciudad — dirección por confirmar», frente a «📍 …» de
+  una calle.
+
+**2 · Elegirla es elegir una dirección como cualquier otra.** No hay camino aparte: el texto «Mission, TX, USA» pasa a
+`delivery_address`; al guardar, `geocode-on-save` (D-223) le busca el punto, que para una ciudad es su centro
+(`delivery_pin_source = "geocoded"`); la zona sale de la ciudad antes de guardar y del punto después (D-219), y las millas
+de `/api/distance` con ese texto. En el Quote Builder igual: las millas se piden con el texto de la ciudad.
+
+**3 · Qué es «solo ciudad», sin columna nueva** (`src/lib/solo-ciudad.ts`). Se DERIVA del texto cada vez que se pinta:
+quitados el país, el código postal, el estado y el condado (con `ciudadDeEntrega`, D-408/D-423), queda un solo trozo y no
+lleva números. Vale para los cuatro formatos de proveedor y para lo tecleado a mano («Mission TX», «Mission»), y por tanto
+también para las órdenes que YA existían así. En cuanto alguien escribe la calle, el aviso se va solo; no hay marca que
+pueda quedarse vieja. «Main St, Mission, TX» (calle sin número) **no** se marca: no es solo ciudad.
+
+- **El pin soltado a mano quita el aviso** (`ordenSoloCiudad`): ahí una persona marcó el punto exacto, y el chofer ya ve
+  «Sin dirección formal… Navegar usa el pin» (D-221). El punto `geocoded` no lo quita: es el centro de la ciudad.
+- No hizo falta migración. **Se descartó una columna** que guardara la precisión de la dirección: habría que mantenerla al
+  día en cada edición, importación CSV e Intertienda, y las órdenes viejas quedarían sin marcar.
+
+**4 · Dónde se ve el aviso** («Solo ciudad — dirección por confirmar» / «City only — address to be confirmed»):
+
+- bajo el campo del buscador, en cuanto lo elegido o tecleado es solo una ciudad (ficha de la orden, Quote Builder, Datos);
+- en la ficha de la orden, en la fila «Dir. Entrega»;
+- **Gestor de Rutas:** una pastilla «⚠ solo ciudad» junto a la ciudad en las tres tablas (Sin asignar, las paradas del
+  chofer y el plan), y además una **tarjeta ámbar en el detalle de cada chofer** que lista sus paradas solo-ciudad. La
+  tarjeta existe porque la columna se puede quitar y el aviso no puede depender de qué columnas eligió nadie;
+- **Mi ruta:** en «Siguiente parada» y en cada parada de la lista; y en la tarjeta de la parada que abre el chofer.
+
+**No bloquea nada.** No se impide asignar ni salir con una orden solo-ciudad: el dueño pidió poder elegirla como respuesta
+amplia, y el momento en que se consigue la dirección no es siempre antes de asignar. Lo que se garantiza es que se VE.
+
+### Pruebas y mutantes
+
+`src/lib/solo-ciudad.test.ts` (21 pruebas; Places siempre fingido, ninguna llamada real). En
+`formulario-orden-limpio.test.ts` (D-337) las búsquedas de la sección de Places pasaron de «calle» a «1 calle»: esas
+pruebas miden la búsqueda de una DIRECCIÓN, que desde hoy es la que lleva número; sin número ahora hay una llamada más, y
+eso lo mide el fichero nuevo. Y en tres pruebas que clavan el texto de la celda «Ciudad de entrega» del Gestor (`ciudad-de-recogida-en-paradas`, `colores-y-ciudad-de-entrega`, `routes-columns`) la cadena esperada lleva ahora la pastilla detrás de la ciudad; siguen midiendo lo mismo. **Mutantes: 30 de 30 caen** con una prueba con nombre (tanda `w-dir-ciudad/tanda.json` en el
+scratchpad): la regla (calle delante, pin a mano, pin geocodificado, sin ciudad legible), la llamada (tipo, caja, siempre,
+nunca, orden, filtro, tope, fallo, repetidas, tope de direcciones, corte de la ruta), el buscador (aviso siempre / nunca,
+sugerencia sin distinguir), el componente (siempre, nunca, corto por entero) y cada pantalla (tarjeta y tres celdas del
+Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
+
+### No verificado
+
+- **Places con `(cities)` y una llamada real.** No se llamó a ningún proveedor desde la rama (API de pago). Falta medir con
+  una llamada que `includedPrimaryTypes: ["(cities)"]` junto a `locationRestriction` contesta 200 y que el texto vuelve como
+  «Mission, TX, USA» (el formato que D-337 midió para calles). Si Places lo rechazara, la llamada cae en el `catch` y todo
+  queda como antes de este cambio: direcciones sí, ciudad garantizada no.
+- **En un navegador:** nada. Ni la lista con la ciudad, ni la tarjeta del Gestor, ni Mi ruta en un teléfono.
+- Que el punto que devuelve `/api/geocode-point` para «Mission, TX, USA» sea el centro de la ciudad: es lo que hacen los
+  tres proveedores con una localidad, pero no se midió.
+- El aviso bajo el campo no sabe del pin: con un pin a mano sigue diciendo «solo ciudad» en el formulario (el texto lo es),
+  aunque en el Gestor y en Mi ruta esa orden ya no lo lleve.
+- La tabla de Órdenes (`OrdersTable`), el tablero y el Mapa no llevan la marca: allí se ve la dirección entera.

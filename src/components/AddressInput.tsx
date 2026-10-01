@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePrefs } from "@/lib/prefs";
+import { AVISO_SOLO_CIUDAD, esSoloCiudad } from "@/lib/solo-ciudad";
 
 // ============================================================
 // Text input with real-time address autocomplete. As the user types (3+ chars),
@@ -30,6 +32,7 @@ export function AddressInput({
   /** Highlight as a missing required field. */
   invalid?: boolean;
 }) {
+  const { t } = usePrefs();
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -100,9 +103,18 @@ export function AddressInput({
         <div className="addr-menu">
           {suggestions.map((s, i) => (
             <button type="button" key={i} className="addr-opt" onClick={() => pick(s)}>
-              📍 {s}
+              {/* Una ciudad a secas es la respuesta amplia (D-NEXT): se puede elegir, y se dice qué es antes de elegirla. */}
+              {esSoloCiudad(s)
+                ? <>🏙️ {s} <span className="hint" data-sugerencia-ciudad> · {t(AVISO_SOLO_CIUDAD.en, AVISO_SOLO_CIUDAD.es)}</span></>
+                : <>📍 {s}</>}
             </button>
           ))}
+        </div>
+      )}
+      {/* Y una vez elegida (o tecleada), el aviso se queda bajo el campo: en la ficha de la orden y en el Quote Builder. */}
+      {esSoloCiudad(text) && (
+        <div className="hint" data-solo-ciudad style={{ color: "var(--amber-text)", fontWeight: 700, marginTop: 4 }}>
+          ⚠ {t(AVISO_SOLO_CIUDAD.en, AVISO_SOLO_CIUDAD.es)}
         </div>
       )}
     </div>
