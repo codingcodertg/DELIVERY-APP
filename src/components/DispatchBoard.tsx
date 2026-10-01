@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { stageInfo, stageLabel } from "@/lib/constants";
-import { fmtWindows, orderLabel } from "@/lib/utils";
+import { fmtWindows } from "@/lib/utils";
+import { facturaYId } from "@/lib/route-plan/etiqueta";
 import type { Delivery } from "@/lib/types";
 
 export interface BoardColumn {
@@ -73,7 +74,13 @@ export function DispatchBoard({
                 onDragEnd={() => { setDragId(null); setOver(null); }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 6, alignItems: "center" }}>
-                  <b className="ordno">#{orderLabel(d)}</b>
+                  {/* D-456: la factura primero y el ID al lado; sin factura, el ID en gris. */}
+                  {(() => { const n = facturaYId(d); return (
+                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <b className="ordno" data-factura={n.esFactura ? "" : undefined} style={n.esFactura ? undefined : { color: "var(--gray)" }}>{n.principal}</b>
+                      {n.id && <span className="hint" data-id-de-la-orden style={{ margin: "0 0 0 6px", fontSize: 11 }}>{n.id}</span>}
+                    </span>
+                  ); })()}
                   <span className="sema" style={{ background: stageInfo(d.stage).color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>
                 </div>
                 <div style={{ fontSize: 13, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

@@ -3,7 +3,7 @@
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { storeScope, NO_MATCH } from "@/lib/clockin/scope";
 import { centralWallToUtc, centralShiftMs } from "@/lib/clockin/tz";
-import { armarFotos, type EntradaTurno, type FilaExcepcion, type FilaFichaje, type FotoCruda, type SitioFoto } from "@/lib/clockin/day-photos";
+import { armarFotos, type EntradaTurno, type FilaExcepcion, type FilaFichaje, type FilaParada, type FotoCruda, type SitioFoto } from "@/lib/clockin/day-photos";
 
 /**
  * Todas las fotos de un día, para revisarlas de una sentada.
@@ -70,9 +70,19 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     .eq("company_id", companyId)
     .gte("created_at", from)
     .lt("created_at", to);
+  // Las fotos de visitas y paradas (D-455). Se guardaban en `trip_stops` y ninguna pantalla
+  // las leía: quien revisa el día tiene que verlas donde ve las demás, no en un sitio aparte.
+  let stopQ = supabase
+    .from("trip_stops")
+    .select("employee_id, label, note, address, photo_path, arrived_at, latitude, longitude")
+    .eq("company_id", companyId)
+    .not("photo_path", "is", null)
+    .gte("arrived_at", from)
+    .lt("arrived_at", to);
   if (inEmp) {
     punchQ = punchQ.in("employee_id", inEmp);
     excQ = excQ.in("employee_id", inEmp);
+    stopQ = stopQ.in("employee_id", inEmp);
   }
 
   // El día más reciente que TIENE fotos. Sin esto, quien abre la pantalla un lunes ve "sin
@@ -97,17 +107,29 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     .not("photo_path", "is", null)
     .order("created_at", { ascending: false })
     .limit(1);
+  // Y las visitas son la tercera fuente: un día en el que solo hubo fotos de visita también es
+  // «un día con fotos».
+  let ultimaStopQ = supabase
+    .from("trip_stops")
+    .select("arrived_at")
+    .eq("company_id", companyId)
+    .not("photo_path", "is", null)
+    .order("arrived_at", { ascending: false })
+    .limit(1);
   if (inEmp) {
     ultimaPunchQ = ultimaPunchQ.in("employee_id", inEmp);
     ultimaExcQ = ultimaExcQ.in("employee_id", inEmp);
+    ultimaStopQ = ultimaStopQ.in("employee_id", inEmp);
   }
 
-  const [{ data: punches }, { data: excs }, { data: people }, { data: ultimaPunch }, { data: ultimaExc }, { data: sites }] = await Promise.all([
+  const [{ data: punches }, { data: excs }, { data: stops }, { data: people }, { data: ultimaPunch }, { data: ultimaExc }, { data: ultimaStop }, { data: sites }] = await Promise.all([
     punchQ,
     excQ,
+    stopQ,
     supabase.from("profiles").select("id, full_name").eq("company_id", companyId),
     ultimaPunchQ,
     ultimaExcQ,
+    ultimaStopQ,
     // Todos los sitios, también los inactivos: una foto de hace meses se mide contra el sitio
     // que había entonces, y borrar un sitio no debe dejar sus fotos "sin ubicación".
     supabase.from("job_sites").select("id, name, latitude, longitude, radius_meters, boundary, padding_meters").eq("company_id", companyId),
@@ -120,7 +142,8 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     iso ? new Date(new Date(iso).getTime() - centralShiftMs(new Date(iso))).toISOString().slice(0, 10) : null;
   const diaPunch = aDiaLocal((ultimaPunch ?? [])[0]?.clock_in_at as string | undefined);
   const diaExc = aDiaLocal((ultimaExc ?? [])[0]?.created_at as string | undefined);
-  const latestWithPhotos = [diaPunch, diaExc].filter(Boolean).sort().pop() ?? null;
+  const diaStop = aDiaLocal((ultimaStop ?? [])[0]?.arrived_at as string | undefined);
+  const latestWithPhotos = [diaPunch, diaExc, diaStop].filter(Boolean).sort().pop() ?? null;
 
   const name = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
 
@@ -145,6 +168,7 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
   const raw = armarFotos({
     punches: filasPunch,
     excs: filasExc,
+    stops: (stops ?? []) as unknown as FilaParada[],
     sites: sitios,
     entradas,
     nombre: name,

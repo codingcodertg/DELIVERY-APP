@@ -434,7 +434,10 @@ describe("la pantalla: el Gestor", () => {
   it("las flechas también entran en el historial, con la foto de lo que escribieron", () => {
     // D-433: numeradas tras lo ya hecho del chofer (`desde`), y la foto con el mismo `desde` (y las recogidas, D-443).
     expect(flechas).toContain("const ok = await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);");
-    expect(flechas).toContain("await anotaMovimiento(etiqueta, [laneKey], antes, fotoTrasReordenar(antes, e.ids, e.loadNoById, desde, recogidas));");
+    // D-456: la foto cuenta también las que llegan arrastradas de otra ruta (y lo que queda en la ruta de la que salen).
+    expect(flechas).toContain("const antes = fotoDe([...stops, ...quedanEnOrigen].map(aParadaDelGantt));");
+    expect(flechas).toContain("const despues = fotoTrasReordenar(antes, e.ids, e.loadNoById, desde, recogidas);");
+    expect(flechas).toContain("await anotaMovimiento(etiqueta, [laneKey, ...origenes], antes, despues);");
   });
   it("Ctrl+Z deshace y Ctrl+Y / Ctrl+Mayús+Z rehacen, salvo escribiendo en un campo", () => {
     expect(pagina).toContain('if (k === "z" && !e.shiftKey) { e.preventDefault(); void vuelveRef.current("deshacer"); }');

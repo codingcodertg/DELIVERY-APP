@@ -12,10 +12,14 @@ import {
   setEmployeeRunner,
   setEmployeeVehicle,
   setEmployeeActive,
+  setEmployeeWorkerType,
+  activateInTimeTracker,
 } from "@/app/timetracker/clock-in/actions/team";
 import { setCustomSchedule } from "@/app/timetracker/clock-in/actions/schedule";
 import type { WeekPattern } from "@/lib/clockin/schedule";
 import type { Position } from "@/lib/clockin/positions";
+import type { MitadTimeTracker } from "@/lib/timetracker/tipo-trabajador";
+import { TipoDeTrabajadorCampo } from "@/components/TipoDeTrabajadorCampo";
 
 // ============================================================
 // One person's clock-in setup, inside the hub's Users dialog (D-095).
@@ -28,6 +32,16 @@ import type { Position } from "@/lib/clockin/positions";
 //
 // Everything saves on change, like the rest of this dialog. There is no Save button anywhere in
 // it, and adding one only here would make people wonder what the other fields did.
+//
+// D-455 — tres cosas que el dueño buscó aquí y no encontró:
+//
+//  · El TIPO DE TRABAJADOR (presencial / remoto) solo se podía elegir en Time Tracker › People.
+//    Ahora es el primer campo, con el estado de las dos mitades dicho en claro
+//    (TipoDeTrabajadorCampo). Sale AUNQUE no haya ficha de fichaje: es de la otra mitad.
+//  · «Runner / Repartidor» no le decía a nadie que es lo que hace falta para visitar clientes y
+//    tomar fotos. Se llama «Visitas y mandados (con fotos)» y lo explica. La columna es la misma
+//    (`is_runner`) y la lógica de los viajes no cambia.
+//  · El vehículo es OPCIONAL y lo dice: sin vehículo asignado, va en el suyo («viaje personal»).
 // ============================================================
 
 type Settings = {
@@ -60,7 +74,7 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
   const { lang, t } = usePrefs();
   const { notify } = useData();
 
-  const [data, setData] = useState<{ settings: Settings | null; sites: Site[]; vehicles: Vehicle[] } | null>(null);
+  const [data, setData] = useState<{ settings: Settings | null; sites: Site[]; vehicles: Vehicle[]; timetracker: MitadTimeTracker } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -68,7 +82,7 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
     const res = await getClockinEmployeeSettings(userId);
     if (!res.ok) { setErr(res.message); return; }
     setErr(null);
-    setData({ settings: res.settings, sites: res.sites, vehicles: res.vehicles });
+    setData({ settings: res.settings, sites: res.sites, vehicles: res.vehicles, timetracker: res.timetracker });
   }, [userId]);
 
   useEffect(() => { void load(); }, [load]);
@@ -87,11 +101,28 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
   if (!data) return <div className="hint">{t("Loading…", "Cargando…")}</div>;
 
   const s = data.settings;
+
+  // El tipo de trabajador va primero y SIEMPRE: vive en Time Tracker, no en fichaje, así que no
+  // depende de que exista la ficha de fichaje de abajo.
+  const tipoDeTrabajador = (
+    <TipoDeTrabajadorCampo
+      tt={data.timetracker}
+      fichaje={s ? { active: s.active } : null}
+      busy={busy}
+      t={t}
+      onElegir={(tipo) => run(() => setEmployeeWorkerType(userId, tipo))}
+      onActivar={() => run(() => activateInTimeTracker(userId))}
+    />
+  );
+
   if (!s) {
     return (
-      <div className="hint">
-        {t("No clock-in row yet — it appears as soon as the access above is saved.",
-           "Todavía no tiene ficha de fichaje — aparece en cuanto se guarde el acceso de arriba.")}
+      <div style={{ marginTop: 10 }}>
+        {tipoDeTrabajador}
+        <div className="hint">
+          {t("No store clock-in setup yet (site, schedule, visits). A remote worker does not need one. It is created when Time Tracker access is saved — if it does not appear, uncheck and re-check Time Tracker above.",
+             "Todavía no tiene ficha de fichaje en tienda (sitio, horario, visitas). Un remoto no la necesita. Se crea al guardar el acceso a Time Tracker — si no aparece, desmarca y vuelve a marcar Time Tracker arriba.")}
+        </div>
       </div>
     );
   }
@@ -101,6 +132,8 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
 
   return (
     <div style={{ marginTop: 10 }}>
+      {tipoDeTrabajador}
+
       <div className="grid g2">
         <div className="field">
           <label>{t("Job position", "Puesto")}</label>
@@ -201,8 +234,10 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
         />
       )}
 
-      {/* Runners are employees who drive a company vehicle and log stops. Managers and owners are
-          not offered it, matching the crew screen this replaced. */}
+      {/* «Visitas y mandados (con fotos)» — antes «Runner / Repartidor» (D-455). Es quien sale a
+          visitar clientes o a hacer mandados y registra cada parada con foto y ubicación, en un
+          vehículo de la empresa o en el suyo. Managers and owners are not offered it, matching
+          the crew screen this replaced. */}
       {clockinRole === "employee" && (
         <div className="card" style={{ marginTop: 10 }}>
           <label className="perm-opt" style={{ marginBottom: s.is_runner ? 10 : 0 }}>
@@ -213,27 +248,35 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
               onChange={(e) => run(() => setEmployeeRunner(userId, e.target.checked))}
             />
             <span>
-              <b>{t("Runner", "Repartidor")}</b>
+              <b>{t("Field visits & errands (with photos)", "Visitas y mandados (con fotos)")}</b>
               <span className="hint" style={{ display: "block" }}>
-                {t("Drives a company vehicle and logs each stop.", "Maneja un vehículo de la empresa y registra cada parada.")}
+                {t("Logs each stop with a photo and their location — in a company vehicle (odometer) or in their own (“personal trip”).",
+                   "Registra cada parada con foto y ubicación; con vehículo de la empresa (odómetro) o en su propio vehículo («viaje personal»).")}
+              </span>
+              {/* Lo que la casilla NO es: un permiso. «Voy a salir» ya le pregunta a cualquier
+                  presencial si va a visitar a un cliente y le deja tomar fotos. Decirlo evita que
+                  alguien crea que sin marcarla no se pueden tomar fotos. */}
+              <span className="hint" style={{ display: "block" }}>
+                {t("Any in-house worker can already use “Going out” for a customer visit with photos. Check this for someone who goes out as part of the job or drives a company vehicle: their trips panel is always there and you can assign the vehicle.",
+                   "Cualquier presencial ya puede usar «Voy a salir» para una visita con fotos. Márcalo para quien sale como parte de su trabajo o lleva un vehículo de la empresa: su panel de viajes sale siempre y se le puede asignar el vehículo.")}
               </span>
             </span>
           </label>
           {s.is_runner && (
             <div className="field">
-              <label>{t("Vehicle", "Vehículo")}</label>
+              <label>{t("Company vehicle (optional)", "Vehículo de la empresa (opcional)")}</label>
               <select
                 value={s.vehicle_id ?? ""}
                 disabled={busy}
                 onChange={(e) => run(() => setEmployeeVehicle(userId, e.target.value || null))}
               >
-                <option value="">{t("None assigned", "Sin asignar")}</option>
+                <option value="">{t("No vehicle assigned = uses their own", "Sin vehículo asignado = usa el suyo")}</option>
                 {data.vehicles.filter((v) => v.active || v.id === s.vehicle_id).map((v) => (
                   <option key={v.id} value={v.id}>{v.name}{v.plate ? ` · ${v.plate}` : ""}</option>
                 ))}
               </select>
               {data.vehicles.length === 0 && (
-                <div className="hint">{t("No vehicles yet — add them in Clock-in › Vehicles.", "Aún no hay vehículos — se agregan en Fichaje › Vehículos.")}</div>
+                <div className="hint">{t("No company vehicles yet — add them in Time Tracker › Settings.", "Aún no hay vehículos de la empresa — se agregan en Time Tracker › Ajustes.")}</div>
               )}
             </div>
           )}

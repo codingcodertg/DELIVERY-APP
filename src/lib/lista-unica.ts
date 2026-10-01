@@ -324,6 +324,50 @@ export function mueveEnLaLista(
   return { ok: true, paradas: unaPorOrden(nuevas) };
 }
 
+/** La primera orden cuya entrega queda ANTES que su recogida, o `null` si la lista respeta «recoger antes de entregar». */
+export function ordenSinRecoger(paradas: readonly ParadaDeLaLista[]): string | null {
+  const recogidas = new Set<string>();
+  const conRecogida = new Set(paradas.flatMap((p) => (p.tipo === "P" ? p.ordenes : [])));
+  for (const p of paradas) {
+    if (p.tipo === "P") p.ordenes.forEach((id) => recogidas.add(id));
+    else if (conRecogida.has(p.orden) && !recogidas.has(p.orden)) return p.orden;
+  }
+  return null;
+}
+
+/**
+ * ARRASTRAR una parada dentro de su lista (D-456): la parada `desde` pasa a ocupar el puesto `a` (el de la fila sobre la
+ * que se suelta), y las de en medio se corren un puesto. Las mismas reglas que las flechas (`mueveEnLaLista`), que son este
+ * movimiento de un solo puesto: si con eso una entrega quedara antes que su recogida no se mueve nada y se dice qué orden lo
+ * impide; la capacidad NO bloquea (la cuenta avisa en la parada que se pase). Soltar sobre sí misma, o fuera de la lista, es
+ * «borde»: no hay nada que guardar.
+ */
+export function llevaEnLaLista(paradas: readonly ParadaDeLaLista[], desde: number, a: number): MovimientoEnLaLista {
+  if (desde < 0 || desde >= paradas.length || a < 0 || a >= paradas.length || a === desde) return { ok: false, motivo: "borde" };
+  const nuevas = [...paradas];
+  const [movida] = nuevas.splice(desde, 1);
+  nuevas.splice(a, 0, movida);
+  const rota = ordenSinRecoger(nuevas);
+  if (rota != null) return { ok: false, motivo: "precedencia", orden: rota };
+  return { ok: true, paradas: unaPorOrden(nuevas) };
+}
+
+/**
+ * ARRASTRAR una orden a la lista de OTRO chofer (D-456): entra entera —su recogida y, justo detrás, su entrega— en el puesto
+ * `indice` (el de la fila sobre la que se suelta), o al final si se suelta sobre la tarjeta (`null`). Como va la recogida
+ * pegada delante de su entrega, la precedencia no se puede romper. Una orden que ya estaba en la lista no se repite.
+ */
+export function listaConOrdenesEn(
+  paradas: readonly ParadaDeLaLista[], nuevas: readonly { id: string; store?: string | null }[], indice: number | null,
+): ParadaDeLaLista[] {
+  const ya = new Set(paradas.flatMap((p) => (p.tipo === "P" ? p.ordenes : [p.orden])));
+  const entran = nuevas.filter((o) => !ya.has(o.id)).flatMap((o): ParadaDeLaLista[] => [
+    { tipo: "P", ordenes: [o.id], tienda: (o.store ?? "").trim() || null }, { tipo: "D", orden: o.id },
+  ]);
+  const i = indice == null ? paradas.length : Math.max(0, Math.min(paradas.length, indice));
+  return unaPorOrden([...paradas.slice(0, i), ...entran, ...paradas.slice(i)]);
+}
+
 /**
  * La lista con las ENTREGAS en otro orden (`ids`: el de «📍 Mejor lugar» o el de soltar en «📅 Horario»), sin decidir de
  * nuevo las recogidas: cada recogida se queda pegada a la entrega que la seguía, y va delante de ella allá donde vaya. Una

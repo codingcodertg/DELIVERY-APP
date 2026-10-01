@@ -16,7 +16,8 @@
 
 import { haversine, pointInPolygon, distanceToPolygonMeters, type GeoSite } from "./geofence";
 
-export type PhotoKind = "in" | "out" | "left" | "back";
+/** `stop` = la foto de una visita o de una parada de viaje (`trip_stops`, D-455). */
+export type PhotoKind = "in" | "out" | "left" | "back" | "stop";
 
 export type SitioFoto = GeoSite & { name: string };
 
@@ -71,6 +72,30 @@ export type FilaExcepcion = {
   returned_lat: number | null;
   returned_lng: number | null;
 };
+
+/**
+ * Una parada de viaje con foto (`clockin.trip_stops`). Son las fotos de «visitas y mandados»
+ * (D-455): hasta ahora se guardaban —las 11 que hay vienen de la app vieja— y no se veían en
+ * ninguna pantalla.
+ */
+export type FilaParada = {
+  employee_id: string;
+  /** El nombre que le puso («Cliente Pérez») o «Visita a cliente» si no escribió nada. */
+  label: string | null;
+  note: string | null;
+  /** La dirección que sacó el servidor del GPS, si la hubo. */
+  address: string | null;
+  photo_path: string | null;
+  arrived_at: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+/** Lo que se lee bajo la foto de una parada: a quién o qué visitó, y dónde. */
+export function notaDeParada(s: Pick<FilaParada, "label" | "note" | "address">): string | null {
+  const partes = [s.label, s.note, s.address].map((x) => x?.trim()).filter((x): x is string => !!x);
+  return partes.length ? partes.join(" · ") : null;
+}
 
 export function distanciaAGeocerca(lat: number, lng: number, site: GeoSite): number {
   if (site.boundary && site.boundary.length >= 3) {
@@ -139,8 +164,10 @@ export function armarFotos(input: {
   sites: SitioFoto[];
   entradas: EntradaTurno[];
   nombre: Map<string, string>;
+  /** Las paradas con foto del día. Opcional: quien no las pida ve lo de siempre. */
+  stops?: FilaParada[];
 }): FotoCruda[] {
-  const { punches, excs, sites, entradas, nombre } = input;
+  const { punches, excs, sites, entradas, nombre, stops = [] } = input;
   const raw: FotoCruda[] = [];
   for (const p of punches) {
     const who = nombre.get(p.employee_id) ?? "—";
@@ -178,6 +205,16 @@ export function armarFotos(input: {
         lat: e.returned_lat, lng: e.returned_lng, ...ubicar(e.returned_lat, e.returned_lng, siteId, sites),
       });
     }
+  }
+  for (const s of stops) {
+    if (!s.photo_path) continue;
+    raw.push({
+      path: s.photo_path, who: nombre.get(s.employee_id) ?? "—", at: s.arrived_at, kind: "stop",
+      // Una visita es fuera del sitio POR DEFINICIÓN: no se juzga (null), solo se sitúa. El sitio
+      // que sale es el más cercano, para que «a 12 km de Pharr» diga por dónde andaba.
+      offSite: null, note: notaDeParada(s),
+      lat: s.latitude, lng: s.longitude, ...ubicar(s.latitude, s.longitude, null, sites),
+    });
   }
   raw.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
   return raw;

@@ -36,12 +36,13 @@ import { etiquetaFoto, type EtiquetaFoto } from "@/lib/clockin/photo-map";
  * responder una pregunta que un enlace responde igual.
  */
 
-const KIND_CLS: Record<PhotoKind, string> = { in: "on", out: "", left: "wait", back: "" };
+const KIND_CLS: Record<PhotoKind, string> = { in: "on", out: "", left: "wait", back: "", stop: "wait" };
 // Claves literales, una por tipo, para que la prueba de claves de D-187 las vea en el fuente.
 function kindLabel(t: ReturnType<typeof useT>, k: PhotoKind): string {
   if (k === "in") return t("mgr.photos.kindIn");
   if (k === "out") return t("mgr.photos.kindOut");
   if (k === "left") return t("mgr.photos.kindLeft");
+  if (k === "stop") return t("mgr.photos.kindStop");
   return t("mgr.photos.kindBack");
 }
 

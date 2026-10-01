@@ -72,13 +72,16 @@ describe("medir la ruta sin reordenarla", () => {
     const pinta = trozo("const pintaLaMedida =", "const mide = async");
     for (const escribe of ["updateDelivery(", "reorderStops("]) expect(pinta).not.toContain(escribe);
   });
-  it("elegir un chofer lo mide una vez por forma (sin bucle si falla); lo que llega tarde, de otra forma, no se pinta", () => {
-    const efecto = trozo("const medidasPedidas = useRef(new Set<string>());", "// eslint-disable-next-line react-hooks/exhaustive-deps");
-    expect(efecto).toContain("const firma = firmaDeLaMedida(date, name, stops);");
-    expect(efecto).toContain("if (medidasPedidas.current.has(firma)) continue;");
-    expect(efecto).toContain("medidasPedidas.current.add(firma);");
+  it("cada forma de la ruta se mide una vez (sin bucle si falla); lo que llega tarde, de otra forma, no se pinta", () => {
+    // Hasta D-456 esto era un `Set` de formas ya pedidas (`medidasPedidas`), y solo para el chofer elegido. Ahora la medida
+    // de cada forma se GUARDA (`medidas`) y qué se pide lo decide `siguienteMedida`: ver `gestor-factura-arrastre-optimizar`.
+    const efecto = trozo("const seMide = (clave: string) =>", "const estadoDeLaMedida =");
+    expect(efecto).toContain("const que = siguienteMedida<MedidaDeLaRuta>(rutas, pintadas, medidas.current);");
+    expect(efecto).toContain("if (midiendo == null && que.pide) void mide(que.pide.clave, byDriver.get(que.pide.clave) ?? []);");
+    expect(codigoDePagina).not.toContain("medidasPedidas");
     const mide = trozo("const mide = async", "const toggleOrder");
-    expect(mide).toContain("if (firmaDeLaMedida(ahora.date, driver, ahora.byDriver.get(driver) ?? []) === firma) { firmaPintada.current[driver] = firma; pintaLaMedida(driver, m); }");
+    expect(mide).toContain("if (firmaAhora.current(driver, formaActual.current.byDriver.get(driver) ?? []) === firma) { firmaPintada.current[driver] = firma; pintaLaMedida(driver, m); }");
+    expect(mide).toContain("medidas.current.set(firma, MEDIDA_FALLIDA);");
   });
 });
 
@@ -86,9 +89,14 @@ describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona 
   it("el sin-comentarios de la prueba quita los comentarios y deja el código", () => {
     expect(sinComentarios("a /* x */ b {/* y */} c // z\nd \"https://e\"")).toBe("a  b  c \nd \"https://e\"");
   });
-  it("el Gestor no tiene ninguno de sus botones", () => {
+  it("el Gestor no tiene ninguno de sus botones — salvo «🧭 Optimizar» por ruta, que volvió en D-456", () => {
+    // **Reemplazado en parte por D-456** (2026-10-01): el dueño pidió de vuelta optimizar CADA ruta («have the optimize option
+    // for every route»). Vuelve un botón por tarjeta, que decide el orden aquí (`optimizaLaLista`) sin pedírselo a Google.
+    // «Optimizar todas», Auto-asignar, Reagrupar y Simular siguen fuera, y el código que los movía también (abajo).
+    expect(pagina).toContain("data-optimizar={u.key}");
+    expect(pagina).toContain("onClick={(e) => { e.stopPropagation(); void optimizaLaRuta(u.key); }}");
     for (const quitado of [
-      "Optimize all routes", "Optimizar todas las rutas", "Optimize route", "Optimizar ruta", "data-optimizar-ruta",
+      "Optimize all routes", "Optimizar todas las rutas", "data-optimizar-ruta",
       "data-auto-asignar", "Auto-assign", "Auto-asignar", "Regroup by area", "Reagrupar por zona",
       "previewAdd", "🔮", "Simulate", "Simular", "AutoAsignarDialogo",
     ]) expect(codigoDePagina, quitado).not.toContain(quitado);
@@ -143,7 +151,7 @@ describe("Julio vacío: ni línea en el mapa ni tarjeta", () => {
   });
   it("la línea medida, solo de quien tiene paradas; y lo medido de una ruta que cambió (también por quitarle) se tira", () => {
     expect(pagina).toContain("const entries = Object.entries(routeLines).filter(([driver]) => pasaFiltro(driver) && (byDriver.get(driver)?.length ?? 0) > 0);");
-    expect(pagina).toContain("if (firmaPintada.current[k] !== firmaDeLaMedida(date, k, byDriver.get(k) ?? [])) clearRouteFor(k);");
+    expect(pagina).toContain("if (firmaPintada.current[k] !== firmaDe(k, byDriver.get(k) ?? [])) clearRouteFor(k);");
   });
   it("sin paradas no hay tarjeta, aunque esté marcado; se nombra en una línea", () => {
     expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter((u) => (byDriver.get(u.key) ?? []).length > 0);");

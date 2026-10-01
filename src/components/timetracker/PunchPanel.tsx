@@ -3,12 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clockIn, clockOut, getMyDay, type ClockInResult } from "@/app/timetracker/clock-in/actions/clock";
 import { startLeave, endLeave } from "@/app/timetracker/clock-in/actions/leave";
-import { createClient } from "@/lib/clockin/supabase/client";
-import { compressImage } from "@/lib/clockin/image";
+import { getMyTrip, startTrip, endTrip, logStop, finishStop } from "@/app/timetracker/clock-in/actions/runner";
+import { subirFotoDeFichaje } from "@/lib/clockin/sube-foto";
+import {
+  MOTIVOS_DE_SALIDA, etiquetaDeFoto, filaDeSalida, planDeVisita, seCierraDeUnToque, type MotivoDeSalida,
+} from "@/lib/clockin/visitas";
 import { APP_SETTINGS, fmtClock } from "@/lib/timetracker/helpers";
 import { getLang, useT } from "@/lib/timetracker/i18n";
+import { Modal } from "@/components/timetracker/Modal";
 import { MySections } from "@/components/timetracker/MySections";
-import { TripPanel } from "@/components/timetracker/TripPanel";
+import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
 
 /**
  * Fichar, dentro de Registrar tiempo (D-125).
@@ -32,12 +36,25 @@ import { TripPanel } from "@/components/timetracker/TripPanel";
  *     se reenvía. Sin eso, un fichaje fuera de la geocerca fallaría sin explicar por qué.
  *
  * Trae también lo que la pantalla vieja enseñaba nada más entrar: el turno de hoy, la semana
- * programada, el almuerzo y las salidas del sitio. Lo que NO trae son los viajes de vehículo
- * (con su selección de camión y kilometraje), que siguen en la pantalla de fichaje.
+ * programada, el almuerzo y las salidas del sitio. Los viajes de vehículo entraron después
+ * (D-136, TripPanel, más abajo).
  *
  * D-206: pasa del idioma del hub (usePrefs) al de Time Tracker (useT, claves emp.punch.*), como el
  * resto de Registrar tiempo. Los motivos siguen siendo pares en/es (el `value` se guarda), elegidos
  * ahora por el idioma de Time Tracker.
+ *
+ * **D-455 — «Voy a salir» pregunta, y la visita lleva fotos.** El botón grababa una salida con
+ * el motivo `customer_visit` SIEMPRE, sin preguntar nada y sin foto. Ahora abre una ventana:
+ *
+ *   · **¿Vas a visitar a un cliente? → Sí.** Empieza un viaje con ese motivo (personal si no
+ *     tiene vehículo de la empresa asignado: nada que rellenar) y bajo el reloj queda, mientras
+ *     dure, el botón **📷 Tomar foto**: de un toque, cuantas veces quiera. Cada foto es una
+ *     parada (`logStop` con `photoPath`): hora del servidor, GPS, dirección. No hay almacén nuevo.
+ *   · **→ No.** Se pregunta por qué sale —los demás motivos del enumerado— y se graba la salida
+ *     de siempre (`startLeave`), ya con el motivo verdadero.
+ *
+ * Por eso el viaje se carga AQUÍ (`getMyTrip`) y se le pasa a TripPanel: el botón de foto y el
+ * panel de viajes hablan del mismo viaje.
  */
 
 /**
@@ -75,6 +92,15 @@ const MOTIVOS: Record<string, { value: string; en: string; es: string }[]> = {
   ],
 };
 
+/** Los motivos de «voy a salir» cuando NO es una visita. Qué valores son lo decide visitas.ts. */
+const MOTIVO_DE_SALIDA: Record<MotivoDeSalida, { en: string; es: string }> = {
+  delivery: { en: "On a delivery", es: "En una entrega" },
+  picking_up_supplies: { en: "Picking up supplies", es: "Recogiendo material" },
+  moving_between_stores: { en: "Moving between stores", es: "Yendo de una tienda a otra" },
+  personal_emergency: { en: "Personal emergency", es: "Emergencia personal" },
+  other: { en: "Other", es: "Otro" },
+};
+
 type Dia = Extract<Awaited<ReturnType<typeof getMyDay>>, { ok: true }>;
 
 const hhmm = (iso: string) =>
@@ -85,6 +111,16 @@ export function PunchPanel() {
   const t = useT();
   const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const [d, setD] = useState<Dia | null>(null);
+  // El viaje abierto (o no) de quien mira. Lo comparten el botón de foto y TripPanel.
+  const [viaje, setViaje] = useState<Viaje | null>(null);
+  // La ventana de «voy a salir»: primero la pregunta, y si dice que no, el motivo.
+  const [salida, setSalida] = useState<null | "pregunta" | "motivo">(null);
+  const [enPropio, setEnPropio] = useState(false);
+  const [odoVisita, setOdoVisita] = useState("");
+  const [motivoSalida, setMotivoSalida] = useState<MotivoDeSalida>(MOTIVOS_DE_SALIDA[0]);
+  const [notaSalida, setNotaSalida] = useState("");
+  const [notaFoto, setNotaFoto] = useState("");
+  const fotoVisitaRef = useRef<HTMLInputElement>(null);
   const [cargando, setCargando] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<null | "in" | "out">(null);
@@ -100,8 +136,10 @@ export function PunchPanel() {
   const pendiente = useRef<"in" | "out" | null>(null);
 
   const load = useCallback(async () => {
-    const res = await getMyDay();
+    const [res, v] = await Promise.all([getMyDay(), getMyTrip()]);
     if (!res.ok) setErr(res.message); else { setErr(null); setD(res); }
+    // El viaje es accesorio: si no se pudo leer, se ficha igual y el panel de viajes no sale.
+    setViaje(v.ok ? v : null);
     setCargando(false);
   }, []);
 
@@ -141,16 +179,10 @@ export function PunchPanel() {
   async function subeFoto(file: File): Promise<string | null> {
     if (!d) return null;
     setPaso(t("emp.punch.uploading"));
-    const supabase = createClient();
-    const body = await compressImage(file);
-    const path = `${d.companyId}/${d.userId}/${Date.now()}.jpg`;
-    const r = await Promise.race([
-      supabase.storage.from("exception-photos").upload(path, body, { contentType: "image/jpeg", upsert: false }),
-      new Promise<"timeout">((res) => setTimeout(() => res("timeout"), 30000)),
-    ]);
-    if (r === "timeout") { setErr(t("emp.punch.photoTimeout")); return null; }
-    if (r.error) { setErr(r.error.message); return null; }
-    return path;
+    const r = await subirFotoDeFichaje(file, { companyId: d.companyId, userId: d.userId });
+    if (r.ok) return r.path;
+    setErr(r.motivo === "timeout" ? t("emp.punch.photoTimeout") : r.message);
+    return null;
   }
 
   async function ficha(accion: "in" | "out", photoPath?: string, razones?: string[], nota?: string) {
@@ -194,6 +226,70 @@ export function PunchPanel() {
     await load();
   }
 
+  /**
+   * Una foto con su hora y su sitio. Es una PARADA del viaje abierto: `logStop` ya guarda foto,
+   * hora del servidor, GPS, dirección y millas — no hay almacén nuevo. `cerrar` la deja cerrada
+   * al momento: una foto suelta es un instante, no una estancia, y una parada abierta bloquearía
+   * el almuerzo y el cierre del viaje. (`finishStop` cierra la ÚLTIMA abierta, que es esta.)
+   *
+   * Sin foto subida no se guarda nada: aquí la foto ES el registro, no un adjunto del fichaje.
+   */
+  async function guardaFoto(file: File, etiqueta: string, cerrar: boolean): Promise<{ ok: true } | { ok: false; message: string }> {
+    if (!d) return { ok: false, message: t("emp.punch.saveFail") };
+    setOcupado("in");
+    try {
+      setPaso(t("emp.punch.uploading"));
+      const subida = await subirFotoDeFichaje(file, { companyId: d.companyId, userId: d.userId });
+      if (!subida.ok) return { ok: false, message: subida.motivo === "timeout" ? t("emp.punch.photoTimeout") : subida.message };
+      setPaso(t("emp.punch.gettingLocation"));
+      const geo = await ubicacionOpcional();
+      setPaso(t("emp.visit.saving"));
+      const r = await logStop({ label: etiqueta, photoPath: subida.path, ...geo });
+      if (!r.ok) return { ok: false, message: r.message };
+      // La foto ya está guardada: si cerrar la parada falla, se dice, pero no se da por perdida.
+      const cierre = cerrar ? await finishStop({ ...geo }) : null;
+      await load();
+      if (cierre && !cierre.ok) setErr(cierre.message);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, message: (e as Error).message };
+    } finally {
+      setOcupado(null);
+      setPaso("");
+    }
+  }
+
+  /** El botón 📷 de la visita: la cámara ya se cerró. Sin fichero (canceló) no pasa nada. */
+  async function alTomarFotoDeVisita(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setErr(null);
+    const r = await guardaFoto(file, etiquetaDeFoto(notaFoto, t("emp.visit.photoLabel")), true);
+    if (r.ok) setNotaFoto(""); else setErr(r.message);
+  }
+
+  const planVisita = planDeVisita({ vehiculoAsignado: viaje?.currentVehicleId ?? null, enPropio, odometro: odoVisita });
+
+  /** «¿Vas a visitar a un cliente?» → Sí. */
+  async function empiezaVisita() {
+    if (!planVisita.ok) return;
+    const plan = planVisita.viaje;
+    setSalida(null);
+    await corre(async () => startTrip({ kind: viaje?.mode ?? "sales", ...plan, ...(await ubicacionOpcional()) }));
+    setOdoVisita("");
+    setEnPropio(false);
+  }
+
+  /** → No: la salida de siempre (`startLeave`), con el motivo que diga. */
+  async function saleSinVisita() {
+    const reason = motivoSalida;
+    const note = reason === "other" ? notaSalida.trim() || undefined : undefined;
+    setSalida(null);
+    await corre(async () => startLeave({ reason, note, geo: await ubicacionOpcional() }));
+    setNotaSalida("");
+  }
+
   /** La cámara se abre primero; el fichaje va después, con la foto ya subida. */
   function pide(accion: "in" | "out") {
     pendiente.current = accion;
@@ -217,6 +313,8 @@ export function PunchPanel() {
   if (!d) return <div className="card"><div className="banner err">{err ?? t("emp.punch.dayFail")}</div></div>;
 
   const dentro = !!d.open;
+  const fila = filaDeSalida({ descansoAbierto: !!d.leave, viajeAbierto: !!viaje?.trip });
+  const vehiculoDeVisita = viaje?.vehicles.find((v) => v.id === viaje.currentVehicleId) ?? null;
   const llevo = d.open ? Math.max(0, Math.floor((ahora - Date.parse(d.open.clockInAt)) / 1000)) : 0;
 
   return (
@@ -312,25 +410,56 @@ export function PunchPanel() {
             dibujan a quien no ha fichado — un botón que va a fallar es peor que no estar. */}
         {dentro && (
           <div className="row" style={{ marginTop: 10 }}>
-            {d.leave ? (
+            {fila === "descanso" && d.leave ? (
               <button className="btn-warn" disabled={!!ocupado}
                 onClick={() => corre(async () => endLeave(d.leave!.id, await ubicacionOpcional()))}>
                 {d.leave.reason === "lunch" ? t("emp.punch.endLunch") : t("emp.punch.imBack")} · {hhmm(d.leave.leftAt)}
               </button>
+            ) : fila === "visita" && viaje?.trip ? (
+              <>
+                {/* El botón de foto, visible TODO el rato que dure la salida (D-455): se toca
+                    cuando quiera y cuantas veces quiera; cada toque abre la cámara. */}
+                <button disabled={!!ocupado} onClick={() => fotoVisitaRef.current?.click()}>
+                  📷 {t("emp.visit.takePhoto")}
+                </button>
+                {seCierraDeUnToque(viaje.trip) && (
+                  <button className="btn-warn" disabled={!!ocupado}
+                    onClick={() => corre(async () => endTrip({ ...(await ubicacionOpcional()) }))}>
+                    {t("emp.punch.imBack")} · {hhmm(viaje.trip.startedAt)}
+                  </button>
+                )}
+                <button className="btn-ghost" disabled={!!ocupado}
+                  onClick={() => corre(async () => startLeave({ reason: "lunch", geo: await ubicacionOpcional() }))}>
+                  🍽 {t("emp.punch.startLunch")}
+                </button>
+              </>
             ) : (
               <>
                 <button className="btn-warn" disabled={!!ocupado}
                   onClick={() => corre(async () => startLeave({ reason: "lunch", geo: await ubicacionOpcional() }))}>
                   🍽 {t("emp.punch.startLunch")}
                 </button>
-                <button className="btn-ghost" disabled={!!ocupado}
-                  onClick={() => corre(async () => startLeave({ reason: "customer_visit", geo: await ubicacionOpcional() }))}>
+                {/* Ya no graba nada al pulsarlo: abre la ventana que pregunta (D-455). */}
+                <button className="btn-ghost" disabled={!!ocupado} onClick={() => setSalida("pregunta")}>
                   🚚 {t("emp.punch.goingOut")}
                 </button>
               </>
             )}
           </div>
         )}
+
+        {dentro && fila === "visita" && viaje?.trip && (
+          <div style={{ marginTop: 8 }}>
+            <input value={notaFoto} onChange={(e) => setNotaFoto(e.target.value)} placeholder={t("emp.visit.notePh")} />
+            <div className="hint">
+              {t("emp.visit.hint", { n: viaje.stops.length })}
+              {!seCierraDeUnToque(viaje.trip) && <> {t("emp.visit.endBelow")}</>}
+            </div>
+          </div>
+        )}
+
+        {/* La cámara de las fotos de visita. Aparte de la del fichaje: aquella ficha al volver. */}
+        <input ref={fotoVisitaRef} type="file" accept="image/*" capture="environment" hidden onChange={alTomarFotoDeVisita} />
 
         {/* capture="environment" abre la cámara trasera directamente en el móvil; en un
             ordenador es un selector de fichero normal. */}
@@ -370,7 +499,62 @@ export function PunchPanel() {
         </div>
       )}
 
-      <TripPanel />
+      <TripPanel
+        d={viaje}
+        recargar={load}
+        ubicacion={ubicacionOpcional}
+        fotoDeParada={(file, etiqueta) => guardaFoto(file, etiqueta, false)}
+      />
+
+      {salida && (
+        <Modal title={`🚚 ${t("emp.punch.goingOut")}`} onClose={() => setSalida(null)} maxWidth={440}>
+          {salida === "pregunta" ? (
+            <>
+              <p style={{ fontSize: 18, fontWeight: 700, margin: "6px 0" }}>{t("emp.visit.ask")}</p>
+              <p className="hint">{t("emp.visit.askHint")}</p>
+              {/* Solo quien tiene vehículo de la empresa asignado ve esto. Los demás van en el
+                  suyo: viaje personal, nada que rellenar (planDeVisita). */}
+              {vehiculoDeVisita && (
+                <div className="box" style={{ marginTop: 8 }}>
+                  <label className={"motivo" + (enPropio ? " on" : "")} style={{ textTransform: "none" }}>
+                    <input type="checkbox" checked={enPropio} onChange={(e) => setEnPropio(e.target.checked)} />
+                    {t("emp.trip.ownVehicle")}
+                  </label>
+                  {!enPropio && (
+                    <>
+                      <label>{t("emp.visit.odoOf", { v: vehiculoDeVisita.name })}</label>
+                      <input inputMode="numeric" value={odoVisita} onChange={(e) => setOdoVisita(e.target.value)} placeholder={t("emp.trip.miles")} />
+                    </>
+                  )}
+                </div>
+              )}
+              <div className="modal-actions">
+                <button className="btn-ghost" onClick={() => setSalida("motivo")}>{t("emp.visit.no")}</button>
+                <button disabled={!planVisita.ok || !!ocupado} onClick={empiezaVisita}>{t("emp.visit.yes")}</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <label>{t("emp.visit.whyOut")}</label>
+              <div className="motivos">
+                {MOTIVOS_DE_SALIDA.map((m) => (
+                  <label key={m} className={"motivo" + (motivoSalida === m ? " on" : "")}>
+                    <input type="radio" name="motivo-salida" checked={motivoSalida === m} onChange={() => setMotivoSalida(m)} />
+                    {lang === "es" ? MOTIVO_DE_SALIDA[m].es : MOTIVO_DE_SALIDA[m].en}
+                  </label>
+                ))}
+              </div>
+              {motivoSalida === "other" && (
+                <input style={{ marginTop: 8 }} value={notaSalida} onChange={(e) => setNotaSalida(e.target.value)} placeholder={t("emp.punch.whatHappened")} />
+              )}
+              <div className="modal-actions">
+                <button className="btn-ghost" onClick={() => setSalida("pregunta")}>{t("emp.visit.backToAsk")}</button>
+                <button disabled={!!ocupado} onClick={saleSinVisita}>{t("emp.punch.goingOut")}</button>
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
 
       <MySections />
 

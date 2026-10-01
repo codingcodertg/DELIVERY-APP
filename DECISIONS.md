@@ -140,6 +140,12 @@ idioma."*
 > se arrastran**, se mueven con las flechas ↑/↓, y el fallo que la motivó (pulsar una flecha arrancaba el arrastre de la
 > fila) no puede volver porque en «Horario» no hay flechas ni botones sobre lo que se arrastra. (El «Tablero» ya arrastraba
 > tarjetas para asignar desde antes de D-417.)
+>
+> **⚠ Reemplazada en parte por D-456** (2026-10-01): el dueño pidió el arrastre de vuelta («When trying to build the routes
+> manually do the drag option»). En la pestaña «Rutas» las filas **se arrastran otra vez** —una de «Sin asignar» a un chofer,
+> una parada a otro puesto o a otro chofer—, y **las flechas ↑/↓ se quedan**. El fallo que motivó esta entrada (pulsar una
+> flecha arrancaba el arrastre de la fila) no vuelve: un arrastre que empieza sobre un botón, un desplegable o un campo se
+> cancela y el clic llega a su control.
 **Fecha:** 2026-08-12 · **Versión:** v0.9.77 · **Pedido por:** Andrés
 
 **Cambio:** Se eliminó arrastrar y soltar filas en la pestaña Rutas. Las paradas
@@ -4219,6 +4225,11 @@ otra dejan de valer. Y repuntar el programador externo a las rutas nuevas.
 (*"haz merge el panel de usuarios con el de usuario de hub y elimina ese view y
 solo deja la parte de vehiculo"*)
 
+> **Reemplazada en parte por D-455** (2026-10-01): en la ficha, la casilla «Runner / Repartidor» pasa a llamarse **«Visitas y
+> mandados (con fotos)»** (misma columna `is_runner`, misma acción) y el vehículo se rotula **opcional** («sin vehículo asignado =
+> usa el suyo»). Y la sección gana el **tipo de trabajador** (presencial / remoto), que solo estaba en Time Tracker › People, con
+> el estado de las dos mitades dicho en claro. Sale aunque no haya ficha de fichaje.
+
 **Cambio:** `/clock-in/team` tenía un alta de empleados y una fila por persona
 con puesto, horario, sitio, vehículo de repartidor, activar/desactivar y
 restablecer contraseña. Todo eso es configuración de **una persona**, y esta app
@@ -5068,6 +5079,9 @@ review todas las fotos y se pueda estar cambiando los días"*, y después *"acu�
 quitar el tab de clock in entonces esas fotos deben ir adentro de audit, solo mete views dentro
 de audit"*)
 
+> **Ampliada por D-455** (2026-10-01): la vista enseña además las fotos de **visitas y paradas** (`clockin.trip_stops`), con la
+> pastilla «Visita / parada». Ya no son «cuatro por persona y día»: quien visita a un cliente puede tomar las que quiera.
+
 Cada fichaje guarda una foto —entrada, salida, salir del sitio y volver, cuatro por persona y
 día— y hasta ahora solo se veían **de una en una**, escarbando dentro del fichaje o de la
 excepción concreta. Con cientos guardadas, *"revisar las fotos de ayer"* no era una tarea que se
@@ -5778,6 +5792,9 @@ y unificarlo es una decisión aparte —toca las tres apps— que no se mete en 
 de clock in… lo vamos a poner en el mismo de registrar tiempo… dependiendo de cómo se configure
 es lo que le va a aparecer, y para admin puede ver ambos views"*)
 
+> **Ampliada por D-455** (2026-10-01): `worker_type` ya no se elige solo en Employees (Time Tracker › People): también en
+> **Usuarios del hub**, en la sección Time Tracker de la ficha, que además dice qué tipo se le aplica a quien nadie configuró.
+
 Una sola entrada para dos formas de trabajar que no se parecen en nada: quien **cronometra** un
 proyecto desde su sitio y quien **ficha** entrada y salida en una tienda, con foto y ubicación.
 
@@ -5967,6 +5984,11 @@ significa meter la tienda dentro de las políticas de cada tabla, y va en su pro
 **Fecha:** 2026-08-30 · **Versión:** v0.32.0 (timetracker) · v0.28.0 (clockin) · **Pedido por:**
 Andrés (*"estoy clock in en un empleado… pero en el trabajando ahora solo aparezco yo"*, *"falta
 voy a salir, empezar almuerzo"*, *"sale 0 de 52"*, *"que tengan un color code"*)
+
+> **Reemplazada en parte por D-455** (2026-10-01): el botón «Voy a salir» ya **no** graba una salida `customer_visit` al
+> pulsarlo. Abre una ventana que pregunta si va a visitar a un cliente: si **sí**, empieza un viaje con ese motivo y queda el
+> botón «📷 Tomar foto»; si **no**, pregunta el motivo y graba la salida de siempre con el motivo verdadero. Una visita deja de
+> aparecer como fila «🚚 Fuera» en «Fichajes de hoy».
 
 ### El almuerzo que nunca terminaba
 
@@ -6333,6 +6355,13 @@ hagan, el módulo se borra entero.
 ## D-136 · Los viajes de vehículo entran en Registrar tiempo
 **Fecha:** 2026-08-30 · **Versión:** v0.39.0 (timetracker) · v0.35.0 (clockin) · **Pedido por:**
 Andrés (*"sí hazlo"*)
+
+> **⚠ Reemplazada en parte por D-455** (2026-10-01): al rehacer este panel se perdieron la **foto** y la **ubicación** de cada
+> parada (`logStop` se llamaba solo con el nombre), y nadie lo notó porque no se ha registrado un solo viaje desde entonces.
+> Ahora «Llegué» abre la cámara y cada paso manda la ubicación. Dos frases de abajo no describían el código: «al runner se le
+> pide el vehículo, al comercial no» (los dos veían el mismo formulario; lo que hoy decide que el viaje nazca **personal** es no
+> tener vehículo asignado) y el panel ya no carga su estado por su cuenta: se lo pasa `PunchPanel`. Se llama «Visitas, mandados y
+> viajes».
 
 Última pieza del módulo de fichaje. Empezar un viaje, registrar paradas y cerrarlo se hace ya
 dentro de Registrar tiempo, debajo del reloj: el viaje empieza **después** de fichar, y ahí es
@@ -7270,6 +7299,9 @@ llega tocando el propio nombre en la barra, que es donde la gente lo busca y lo 
 la casa. La ruta `/timetracker/account` no cambia; los enlaces viejos siguen.
 
 ## D-161 · Las fotos SÍ estaban; la pantalla abría en un día vacío
+
+> **Ampliada por D-455** (2026-10-01): el «último día con fotos» mira **tres** fuentes: se suman las fotos de visita y de parada
+> (`trip_stops`).
 
 **Fecha:** 2026-09-01 · **Versión:** v0.46.0 (timetracker)
 
@@ -32169,6 +32201,11 @@ pendientes de dos tiendas (puestos 0 y 1), una **entregada con puesto 1**, y un 
 >
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Pallets a bordo» ya no es
 > una columna escondida: la cuenta de cada parada es fija y visible de partida.
+>
+> **⚠ Reemplazada en parte por D-456** (2026-10-01): la columna fija de la tabla del plan ya no es «solo el id»: es la
+> **factura**, que abre la orden, con el ID debajo (sin factura, el ID en gris). El dueño: «Invoice number is more
+> important». «Plan: Factura» (`pl_invoice`), que aquí era una columna más del ⚙, ya no se pinta ni se lista —saldría dos
+> veces—; la clave sigue en el catálogo, y los pesos de la fila no cambian.
 
 **Fecha:** 2026-09-28. **Pedido del dueño**, con la captura de la tabla del plan publicado de «Armar las rutas del día»,
 literal: *«quiero que haya una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la
@@ -32363,6 +32400,14 @@ aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio es
 
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Unir viajes» y «Dividir en
 > 2» ya no existen: no hay viajes que unir ni dividir.
+>
+> **⚠ Reemplazada en parte por D-456** (2026-10-01): el dueño pidió optimizar de vuelta, por ruta («have the optimize option
+> for every route when selecting a driver and optimize it»). Vuelve **un botón «🧭 Optimizar» en cada tarjeta de chofer**, que
+> reordena solo esa ruta; el orden lo decide el navegador (`optimiza-la-ruta.ts`, en línea recta, con precedencia y
+> capacidad), **no** `computeRoute`/Google como el que aquí se quitó. «Optimizar todas», «Auto-asignar», «Reagrupar» y
+> «Simular» siguen quitados. Y la medida de §2 («el dibujo al elegir un chofer MIDE») ya no espera a que se elija: se
+> miden **todas** las rutas con paradas del día, y cada medida se guarda por la forma de la ruta en vez de apuntarla solo
+> como «ya pedida».
 
 **Fecha:** 2026-09-28. **Sin migración.** **Reemplaza a D-025, D-401 y D-419, y en parte a D-003 (nota), D-346, D-352, D-393,
 D-395, D-400, D-411, D-412, D-414, D-415, D-418 y D-433**: todas llevan su nota.
@@ -33111,6 +33156,12 @@ con planes del motor, no con datos reales); la recarga a media ruta en el mapa r
 >
 > **Reemplazada en parte por D-446** (2026-09-29): «Recoger en …» sale de la columna Tipo de la fila P y pasa a la de
 > ciudad de entrega; y los anchos de partida de la tabla de paradas son más pegados.
+>
+> **⚠ Reemplazada en parte por D-456** (2026-10-01): «el ID en vez de la factura» se deshace. El dueño: «It's not showing
+> invoice number / Invoice number is more important». La columna fija de la tabla de paradas vuelve a ser la **factura**,
+> que abre la orden, y **el ID se queda debajo**, más pequeño. Y un dato de aquí abajo era falso: «la factura sigue
+> disponible como columna de Órdenes en el ⚙» — la tabla de paradas nunca tuvo esa columna; desde esta entrada la factura
+> no se podía ver ahí. Lo demás (una fila por recogida, los grupos, la cuenta «+4 = 4») sigue igual.
 
 **Fecha:** 2026-09-29 · **Versión:** deliveries 1.236.0 (repo 1.319.0) · **Migración:** ninguna nueva. **Reemplaza en
 parte a** D-443 (las recogidas juntadas y el texto de la cuenta) y D-408 (la factura en la tabla de paradas), que llevan su
@@ -33265,6 +33316,10 @@ escribir, `_v6` sin la de recogida, el orden restablecer/insertar invertido, pla
 cinco en la página: D sin la celda, D con la tienda, P sin recogida, P con la entrega vacía, P con ventanas).
 
 ## D-446 · Gestor de Rutas: «Recoger en …» va en la ciudad de entrega de la fila P, y la tabla de paradas nace más pegada
+
+> **Reemplazada en parte por D-456** (2026-10-01): «Llegada» nace con 84 px, no 60: la llegada se enseña siempre, y cuando
+> aún no hay hora la celda dice por qué («calculando…», «tienda sin punto», «sin medida»), que en 60 se cortaba. Los demás
+> anchos de partida no cambian, y quien arrastró el suyo lo conserva.
 
 > **⚠ Reemplazada en parte por D-447** (2026-09-29): la tienda iba al revés. En la fila P la tienda («RDZ McAllen», sin
 > «Recoger en») va en la **Ciudad de recogida**, y la **Ciudad de entrega** vuelve a decir la de su orden, como en D-445. El
@@ -34127,3 +34182,461 @@ Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
 - El aviso bajo el campo no sabe del pin: con un pin a mano sigue diciendo «solo ciudad» en el formulario (el texto lo es),
   aunque en el Gestor y en Mi ruta esa orden ya no lo lleve.
 - La tabla de Órdenes (`OrdersTable`), el tablero y el Mapa no llevan la marca: allí se ve la dirección entera.
+
+## D-455 · El tipo de trabajador (presencial / remoto) se elige en Usuarios; «Voy a salir» pregunta si es una visita a un cliente y deja tomar fotos todo el rato; las paradas vuelven a llevar foto y ubicación, y esas fotos se ven en Auditoría › Fotos
+
+**Fecha:** 2026-10-01 · **Versión:** la asigna el orquestador al fusionar (toca `timetracker` y la ficha de Usuarios del hub) ·
+**Migración:** ninguna · **Pedido por:** el dueño, en dos mensajes del mismo día · **Reemplaza en parte a** D-095 (la casilla
+«Runner»), D-128 (el botón «Voy a salir») y D-136 (el panel de viajes), que llevan su nota; **amplía** D-109, D-123 y D-161.
+**No toca ningún dato, ninguna política ni `runner.ts` / `leave.ts`.**
+
+### Qué pidió el dueño
+
+Primer mensaje, literal: *«mira que quiero asignar al time tracker a everto prado pero el es onsite no remote y no me sale la
+opcion al igual que quiero que el tenga la opcion de ir a visitar clientes y que pueda tomar tfotos revisa»*.
+
+Segundo mensaje, literal, con una captura de la pantalla de fichar (cronómetro, «Clock out», «Start lunch», «🚚 Going out»):
+*«ok todfo bien pero aqui quiero que diga going out y salga un pop up visitando un cliente y que pueda tomar fotos en
+cualquier momento, una ves diga que si que ahi apreza para que eset tomando fotos»*.
+
+Son dos cosas: **(A)** poder decir en Usuarios que alguien es presencial, y **(B)** que quien sale a visitar a un cliente pueda
+tomar fotos. Van en una entrada porque son el mismo encargo, pero se cuentan por separado.
+
+### Lo que se midió antes de tocar nada (2026-10-01)
+
+Contra producción, **en solo lectura** (una transacción `READ ONLY` que termina en `ROLLBACK`), y leyendo el código:
+
+**A · El tipo de trabajador**
+
+- `timetracker.employee_settings.worker_type` (`inhouse` | `remote`) solo se podía elegir en **Time Tracker › People**. En la
+  ficha de Usuarios, sección Time Tracker (`ClockinSettings`), había puesto, sitio, horario, «Runner / Repartidor» y «Contando
+  tiempo», y **nada** del tipo. Es donde el dueño lo buscó.
+- Dar acceso a Time Tracker desde Usuarios crea la fila de `clockin.employee_settings` (trigger de la 078/087) pero **no** la de
+  `timetracker.employee_settings`. Sin esa fila la persona cuenta como el defecto (`defaultWorkerType = remote`, leído) y sale
+  **Inactive** en People (`active: s?.active ?? false`), y la ficha no decía ninguna de las dos cosas.
+- De las **12** personas con `timetracker_role` (4 admin, 8 empleados): **2** no tienen fila en `timetracker.employee_settings`
+  (dos admins) y **2** la tienen con el tipo vacío (un admin, una empleada). Las 10 filas que hay están activas; 6 son
+  presenciales y 2 remotas elegidas.
+- Ese `active` de la mitad de Time Tracker **no bloquea nada en el código**: solo pinta la pastilla y atenúa la fila en People.
+  Lo que detiene fichajes y avisos es el otro, `clockin.employee_settings.active` («Contando tiempo»).
+- **Quién puede escribir** `timetracker.employee_settings` de otra persona: solo `is_timetracker_admin()`, que es
+  `timetracker_role = 'admin'` (058/060; la 080 solo lo envolvió en un initplan; leído también de `pg_policies` y
+  `pg_get_functiondef`). Hoy los 4 admins del hub lo son y no hay ningún `manager`. Un gerente de tienda pasa el `managerCtx`
+  de fichaje pero **no** esta política.
+- 1 persona (un remoto) tiene acceso a Time Tracker y **ninguna** fila de fichaje: para ella la sección entera era el aviso
+  «Todavía no tiene ficha de fichaje», sin ningún campo.
+
+**B · Visitar clientes y tomar fotos**
+
+- **«🚚 Going out» grababa una salida y ya**: `startLeave({ reason: "customer_visit" })`, siempre ese motivo, sin preguntar, sin
+  foto, sin vehículo. Desde el 2026-08-30 se ha usado **3 veces** (2 personas; la última, el 2026-10-01), **ninguna con foto**.
+- **El panel de viajes no tomaba fotos.** D-136 lo rehízo y `logStop` quedó llamado solo con el nombre: ni foto ni ubicación,
+  aunque `runner.ts` acepta las dos (`photoPath`, `lat`, `lng`) y la app vieja las mandaba. Además el campo decía «Nombre de la
+  parada (opcional)» y el servidor rechaza una parada sin nombre.
+- **Nadie lo ha usado desde entonces**: en producción hay 8 viajes y 11 paradas, **todos del 22 al 27 de agosto** (la app
+  vieja; las 11 paradas con foto y GPS). **Cero** viajes y **cero** paradas desde D-136 (2026-08-30).
+- **Ninguna pantalla lee los viajes ni las paradas.** `vehicle_trips` y `trip_stops` solo aparecen en `runner.ts`, en las
+  guardas de `clock.ts` y `leave.ts`, en el cron de cierre y en la limpieza de fotos. La pantalla de revisión de recorridos de la
+  app vieja nunca llegó a este repo (solo dos componentes sueltos, `runs/ReviewButton` y `runs/TripMap`, que D-137 borró sin que
+  nadie los usara) y Auditoría › Fotos solo leía fichajes y excepciones. O sea: una foto de parada, de haberse tomado, no se
+  habría visto en ningún sitio.
+- **`is_runner` no es lo que hace salir el panel.** El panel sale a cualquier presencial fichado si la empresa tiene algún
+  vehículo activo (hay 1); `is_runner` solo cambia el `kind` del viaje (`runner` / `sales`) y lo hace salir aunque no haya
+  vehículos. D-136 decía «al runner se le pide el vehículo, al comercial no»: el código no hacía eso, los dos veían el mismo
+  formulario, con el primer vehículo de la empresa preseleccionado y el cuentakilómetros pedido.
+- El panel cargaba su estado **una sola vez, al montarse**: tras fichar la entrada no aparecía hasta recargar la página (leído
+  en el código; no medido en un teléfono).
+
+### Qué se decidió
+
+**A · En la ficha de Usuarios**
+
+1. **«Tipo de trabajador / Worker type» es el primer campo de la sección Time Tracker**, con Presencial y Remoto (por ese
+   orden) y la frase que explica la diferencia: el presencial ficha entrada y salida en la tienda, con foto y ubicación; el
+   remoto usa el cronómetro, con capturas. Sale **aunque no haya ficha de fichaje**: es de la otra mitad.
+2. **El estado de las dos mitades, dicho en claro**: «Time Tracker: activo / inactivo · Fichaje en tienda: contando tiempo /
+   detenido / sin ficha». Y mientras nadie haya elegido el tipo, la primera opción del selector lo dice: «Sin elegir — cuenta
+   como Remoto, el valor por defecto» (el defecto se lee del ajuste, no se supone).
+3. **Elegir el tipo crea la fila si no existe, y la crea activa.** Si la fila ya existe, cambia **solo** el tipo: a quien ya
+   está configurado no se le toca `active`. Para quien tiene fila pero está apagado hay un botón «Activar» aparte. **No** se
+   cambia el defecto global ni se escribe nada a nadie por su cuenta: los 4 que hoy van por defecto siguen igual hasta que
+   alguien elija.
+4. **La acción (`setEmployeeWorkerType`, junto a las de `team.ts`, con el mismo `managerCtx`) no abre nada.** Comprueba que
+   quien llama es admin de Time Tracker **antes** de escribir y, si no, lo dice («Only a Time Tracker admin… / Solo un admin de
+   Time Tracker…»). Y pide la fila de vuelta: un `UPDATE` filtrado por RLS devuelve éxito con cero filas, y sin eso la ficha
+   diría «guardado». A quien no es admin de Time Tracker la ficha ni siquiera le pinta el selector: la base le esconde la fila
+   de los demás y no se puede afirmar «sin configurar» sobre una respuesta que no distingue «no hay» de «no la veo».
+5. **«Runner / Repartidor» pasa a llamarse «Visitas y mandados (con fotos) / Field visits & errands (with photos)»**, con su
+   ayuda (registra cada parada con foto y ubicación; con vehículo de la empresa —odómetro— o en el suyo —«viaje personal»—), y
+   una segunda línea que dice lo que la casilla **no** es: un permiso. Cualquier presencial puede usar «Voy a salir» para una
+   visita con fotos; la casilla es para quien sale como parte de su trabajo o lleva vehículo de la empresa. La columna
+   (`is_runner`) y la acción son las mismas. El vehículo se rotula **opcional**: «Sin vehículo asignado = usa el suyo».
+
+**B · En la pantalla de fichar**
+
+6. **«Voy a salir» abre una ventana y ya no graba nada al pulsarlo.** Pregunta: **«¿Vas a visitar a un cliente? / Are you
+   visiting a customer?»**, con «Sí, visito a un cliente» y «No, es otra cosa».
+7. **Sí → empieza la visita y aparece el botón «📷 Tomar foto»**, bajo el reloj, visible mientras dure. Se puede pulsar cuando
+   quiera y cuantas veces quiera; cada toque abre la cámara del teléfono (`<input capture="environment">`) y la foto se guarda
+   con la hora del servidor y la ubicación. Hay un campo de nota opcional («Nota de la foto»); sin nota, la foto se llama
+   «Visita a cliente».
+8. **La visita es un viaje con motivo `customer_visit`, y cada foto es una parada** (`startTrip` + `logStop` con `photoPath`).
+   Es el único mecanismo que ya existía para «N fotos, cada una con hora y sitio», y trae gratis la dirección y las millas. **No
+   hay tabla, columna ni cubo nuevos.** Sin vehículo de la empresa asignado el viaje es **personal** (nada que rellenar); con
+   uno asignado la ventana pide el cuentakilómetros de salida —`startTrip` lo exige— o marcar «voy en el mío». Una foto suelta
+   se guarda como parada **ya cerrada** (`finishStop` justo después): es un instante, no una estancia, y una parada abierta
+   bloquearía el almuerzo y el cierre.
+9. **«Ya volví» cierra la visita de un toque** si es personal. Con vehículo de la empresa hay que dar el cuentakilómetros de
+   llegada, que se pide en el panel de viajes de abajo, y la pantalla lo dice.
+10. **No → se pregunta por qué sale y se graba la salida de siempre** (`startLeave`), con los demás motivos del enumerado
+    `clockin.leave_reason`: entrega, recoger material, ir de una tienda a otra, emergencia personal, otro (con nota). Antes
+    todas quedaban como «visita a cliente», lo fueran o no.
+11. **El panel de viajes vuelve a llevar foto y ubicación.** «Llegué» pide el nombre (obligatorio, como en el servidor) y abre
+    la cámara; la parada se guarda con la foto. Empezar, salir de la parada y terminar mandan la ubicación si la hay (opcional,
+    como el almuerzo: un GPS que falla no deja a nadie sin registrar). Sin vehículo asignado nace «viaje personal». Se llama
+    «Visitas, mandados y viajes». Y el viaje se carga una vez, en `PunchPanel`, que se lo pasa al panel: el botón de foto y el
+    panel hablan del mismo viaje, y el panel aparece nada más fichar.
+12. **Las fotos se ven en Time Tracker › Auditoría › Fotos**, el día en que se tomaron, junto a las de fichaje, bajo el nombre
+    de la persona, con la pastilla **«Visita / parada»**, la hora, a quién o qué visitó y la dirección, y la ubicación (pulsable,
+    con el mapa de D-213; la distancia es a la tienda más cercana, sin juzgar «fuera del sitio»: una visita lo es por
+    definición). Mismo alcance por tienda que el resto. El «último día con fotos» mira ahora las tres fuentes.
+13. **La foto sube por el mismo camino que la del fichaje** (`subirFotoDeFichaje`, que sale de `PunchPanel`): mismo cubo, misma
+    ruta `empresa/persona/hora.jpg`, comprimida y con su límite de 30 s.
+
+### Lo que se descartó
+
+- **Cambiar el defecto global a presencial**, o crear la fila a todos de golpe: tocaría a gente ya configurada (el encargo lo
+  prohíbe) y a los remotos.
+- **Crear la fila de Time Tracker al dar el acceso** (un trigger como el de fichaje): es una migración, y no arregla lo que
+  confundía, que es no poder elegir el tipo ahí.
+- **Abrir la política** para que un gerente de tienda escriba el tipo: el tipo decide qué pantalla ve la persona y por cuál
+  nómina cobra (D-123, D-190). La acción lo dice en vez de abrirlo.
+- **Guardar las fotos de visita en `exceptions`** (la salida de siempre): esa fila tiene sitio para dos fotos (salir y volver),
+  no para «cuantas quiera», y cada foto habría sido una «excepción» más en la bandeja del gerente.
+- **Grabar a la vez la salida (`startLeave`) y el viaje** para la misma visita: dos registros de una sola cosa, con `startLeave`
+  poniendo en pausa el viaje y `logStop` rechazando paradas en pausa. Consecuencia que hay que saber: **una visita ya no
+  aparece como fila «🚚 Fuera» en «Fichajes de hoy» ni en el historial de excepciones**; aparece como viaje (en el panel, a la
+  persona) y como fotos (en Auditoría, al admin).
+- **Restringir «Voy a salir → visita» a quien tiene la casilla «Visitas y mandados»**: el botón ya lo tenían todos los
+  presenciales y el dueño no pidió quitárselo a nadie.
+- **Tocar `runner.ts`**: no hizo falta. Todo lo que se necesitaba (foto, ubicación, viaje personal, motivo) ya lo aceptaba.
+
+### Ficheros
+
+`src/lib/timetracker/tipo-trabajador.ts` (la lógica de A, pura) · `src/components/TipoDeTrabajadorCampo.tsx` (el campo) ·
+`src/components/ClockinSettings.tsx` · `src/app/timetracker/clock-in/actions/team.ts` (`setEmployeeWorkerType`,
+`activateInTimeTracker`, y la lectura de la mitad de Time Tracker) · `src/lib/clockin/visitas.ts` (la lógica de B, pura) ·
+`src/lib/clockin/sube-foto.ts` · `src/components/timetracker/PunchPanel.tsx` · `src/components/timetracker/TripPanel.tsx` ·
+`src/lib/clockin/day-photos.ts`, `src/app/timetracker/clock-in/actions/photos.ts`, `src/components/timetracker/DayPhotos.tsx`
+(las fotos de visita en Auditoría) · `src/lib/timetracker/i18n.ts` (15 claves nuevas y 4 textos cambiados, en y es).
+
+### Pruebas y mutantes
+
+`src/lib/timetracker/tipo-trabajador.test.ts` (31) y `src/lib/clockin/visitas.test.ts` (43): la lógica pura, **el campo
+renderizado** (lo que ve un admin para una persona sin fila, apagada, ya configurada, y quien no es admin de Time Tracker) y
+lectura de fuente de quien llama (la ficha, la acción, `PunchPanel`, `TripPanel`, la acción de Fotos, la política en la 058/060
+y el enumerado en la 072). Se corrigió una prueba de `day-photos.test.ts` que fijaba la llamada vieja de «Voy a salir».
+
+**Mutantes: 83 de 83 caen** con una prueba con nombre (tanda en el scratchpad del worker, `tipo-trabajador/tanda.json`). Por
+ejemplo: «sin fila, la persona se crea INACTIVA» → *sin fila: se crea con el tipo y ACTIVA*; «con fila, elegir el tipo también
+reactiva a quien estaba apagado» → *con fila: cambia solo el tipo y no toca si está activa*; «un gerente de tienda pasa por
+admin de Time Tracker» → *solo un admin de Time Tracker…*; «la acción no pide la fila de vuelta» → *pide la fila de vuelta — un
+UPDATE filtrado por RLS no pasa por guardado*; «sin ficha de fichaje, la ficha no pinta el tipo» → *sale AUNQUE no haya ficha de
+fichaje*; «“voy a salir” vuelve a grabar customer_visit sin preguntar» → *el botón abre la ventana; ya no llama a startLeave con
+customer_visit*; «la foto se guarda como parada SIN la foto» → *cada foto se guarda como una parada: logStop con photoPath y la
+ubicación*; «el botón de foto no abre la cámara del teléfono (sin capture)» → *es la cámara del teléfono: un input con capture*;
+«un cuentakilómetros vacío se manda como 0» → *…un vacío NO es 0*; «las paradas con foto no llegan a la lista de fotos del
+día» → *una parada con foto sale como foto de visita…*; «un gerente de tienda ve las fotos de visita de otras tiendas» → *la
+acción pide las paradas CON foto del día, con el mismo alcance por tienda…*.
+
+### Visto en el navegador (2026-10-01)
+
+La sección Time Tracker de la ficha **no carga en el demo** (`UserDialog` la esconde con `LOCAL_MODE`) y la pantalla de fichar
+necesita sesión. Se midieron los componentes **reales** (`PunchPanel`, `TripPanel`, `ClockinSettings`) en un arnés temporal, no
+commiteado, que sustituye las acciones de servidor por dobles en memoria, con Chrome por CDP a 430 px, clics de ratón sobre el
+elemento a la vista y la foto entregada por el selector de ficheros que abre el botón:
+
+- «Voy a salir» abre la ventana y **no llama a nada**. «Sí» llama a `startTrip` con `personal: true`, `vehicleId: null`,
+  `odometer: null`, `reason: "customer_visit"` y la posición; quedan bajo el reloj «📷 Tomar foto», «Ya volví» y «Empezar
+  almuerzo».
+- Tres fotos seguidas: tres veces `subirFotoDeFichaje` → `logStop` (con `photoPath`, la posición, y el nombre «Visita a
+  cliente» o la nota escrita) → `finishStop`. El contador pasa de 0 a 3 y las tres salen en el panel de viajes. «Ya volví» llama
+  a `endTrip` y vuelven «Empezar almuerzo» y «Voy a salir».
+- «No» enseña los cinco motivos; «Recogiendo material» → `startLeave` con `picking_up_supplies` y la posición.
+- Con vehículo asignado: la ventana pide el cuentakilómetros y «Sí» está apagado hasta escribirlo; con 51200 → `startTrip` con
+  el vehículo y `odometer: 51200`, y «Ya volví» no sale arriba (se termina abajo).
+- Panel de viajes, sin vehículo asignado: la casilla «Viaje personal» sale marcada y no pide vehículo ni cuentakilómetros;
+  «Llegué» está apagado sin nombre; con nombre abre el selector y la parada queda guardada con su foto y «aquí ahora».
+- La ficha: persona sin fila → «Sin elegir — cuenta como Remoto…», «Time Tracker: inactivo» y el aviso; al elegir Presencial →
+  `setEmployeeWorkerType("inhouse")`, «Time Tracker: activo» y el aviso desaparece. Fila apagada → «Activar» →
+  `activateInTimeTracker`. Sin ficha de fichaje → el tipo sale igual. Quien no es admin de Time Tracker → sin selector.
+- De paso salió, y se arregló, que la casilla «viaje personal» se estiraba al ancho entero con el texto debajo (usaba la clase
+  del hub bajo la hoja de Time Tracker).
+
+### No verificado
+
+- **Nada contra la base de verdad ni en un teléfono.** Las acciones reales (`setEmployeeWorkerType`, `activateInTimeTracker`,
+  la consulta de paradas de Fotos) están probadas por lectura de fuente y contra las políticas leídas, no ejecutadas con sesión.
+  La cámara se probó con un selector de ficheros interceptado en Chrome de escritorio, no con la cámara de un móvil.
+- **Auditoría › Fotos con una foto de visita real**: hoy solo hay 11 paradas con foto, de agosto; la limpieza de fotos puede
+  haberlas borrado ya del cubo (no se comprobó) y, si no tienen firma, la pantalla las descarta en silencio.
+- **Que la subida de una foto de visita pase la política del cubo** (097) con un usuario real: la ruta es la misma que la del
+  fichaje, que sí sube, pero no se ejecutó.
+- El aviso de «desmarca y vuelve a marcar Time Tracker» para quien no tiene ficha de fichaje se apoya en el trigger leído
+  (`profiles_ensure_clockin_settings`, `AFTER INSERT OR UPDATE OF timetracker_role`), no en haberlo hecho.
+- El panel de viajes que «no aparecía tras fichar hasta recargar» se dedujo del código; no se midió antes del cambio.
+
+### Pendiente que no es de esta rama
+
+- **Una pantalla para revisar las salidas** (cuándo empezó y terminó cada visita, sus paradas, las millas): hoy el admin ve las
+  fotos, con hora y sitio, pero no el viaje como tal. Esa pantalla no ha existido nunca en este repo.
+- La persona con acceso a Time Tracker y sin ficha de fichaje (1, remota) y las 4 que van por defecto: son datos; se arreglan
+  desde la ficha, ahora que lo dice.
+- Con el idioma en español, la primera pintura de la pantalla de fichar da un aviso de hidratación en desarrollo («Loading…»
+  del servidor contra «Cargando…» del navegador). Es anterior a esta rama y no se tocó.
+
+## D-456 · Gestor de Rutas: la factura en todas las tablas, arrastrar para armar rutas a mano, «🧭 Optimizar» por ruta y la llegada estimada siempre
+
+**Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
+D-007 (sin arrastrar en la pestaña «Rutas»), D-434 (la columna «solo para el id» de la tabla del plan), D-437 («Optimizar
+ruta» quitado, y medir solo al chofer elegido), D-444 (el ID en vez de la factura en la tabla de paradas) y D-446 (el ancho
+de partida de «Llegada»). Cada una lleva su nota.
+
+### Qué pidió el dueño
+
+Mensajes del 2026-10-01 (citas tal como las pasó el orquestador, no extraídas del fichero de sesión):
+
+> It's not showing invoice number / Invoice number is more important / When trying to build the routes manually do the drag
+> option / […] / When doing routes manually it assigned to him but it doesn't optimize have the optimize option for every
+> route when selecting a driver and optimize it
+
+> not showing invoice en el logistic manager en todas las tablas
+
+> el eta estimado en el logistic manager, quiero que muestre el eta siempre que aveces no aparece
+
+(En el mismo mensaje iba «Check driver because it's giving more to Ernesto»: eso es de otra rama y aquí no se tocó.)
+
+**Tres de las cuatro cosas deshacen algo que él mismo pidió quitar.** Se dice aquí para que sea una decisión consciente y no
+un olvido (regla «Antes de cambiar comportamiento» de `CLAUDE.md`):
+
+- **D-444** (2026-09-29): *«en vez de facturas, pongas el ID. Entonces no ocupo la factura»*. Dos días después: *«Invoice
+  number is more important»*.
+- **D-007** (2026-08-12): *«no ocupo arrastrar, elimina eso, solo con las flechas»*. Ahora: *«do the drag option»*.
+- **D-437** (2026-09-28): *«quita lo de optemizar y lo de autoa signar»*, *«Quitar los dos; solo Armar rutas»*. Ahora:
+  *«have the optimize option for every route»*.
+
+### 1 · La factura, en todas las tablas
+
+**Qué fallaba.** D-444 puso el ID en la columna fija de la tabla de paradas de cada chofer y dejó escrito que «la factura
+sigue disponible como columna de Órdenes en el ⚙». **No era verdad**: el catálogo de paradas (`routes-columns.ts`) nunca
+tuvo una columna de factura —su comentario lo dice: «ni la factura, ya sale bajo el ID»—, así que desde D-444 no había
+forma de ver la factura en la tabla donde se arma la ruta. En el plan estaba, pero como quinta columna y sin abrir la orden;
+en el tablero y en la línea de tiempo, nunca.
+
+**Ahora** hay una sola regla, `facturaYId` (`lib/route-plan/etiqueta.ts`): **la factura nombra la orden y la abre; su ID va
+al lado, más pequeño; una orden sin factura enseña su ID en gris.**
+
+| Tabla | Antes | Ahora |
+|---|---|---|
+| Paradas de cada chofer (`/routes`, pestaña Rutas) | columna fija «ID» | columna fija **«Factura #»**: la factura en negrita (abre la orden) y el ID debajo |
+| «Sin asignar» | la factura, fija (D-408), sin ID | igual. No se le añade el ID: D-408 lo quitó ahí a petición suya y nadie lo ha pedido de vuelta |
+| El plan («Armar las rutas del día») | columna fija «ID» + «Plan: Factura» como columna del ⚙ | columna fija **«Factura #»** con el ID debajo; «Plan: Factura» ya no se pinta ni se lista (saldría dos veces) |
+| Tablero | `#ID` | la factura, y el ID al lado |
+| Línea de tiempo («Horario») | `#ID` en la barra | la factura en la barra (cabe una cosa); el ID, al pasar el ratón |
+
+- **Quien tiene columnas guardadas la ve igual, sin tanda `_vN`.** Se miró el mecanismo de marcas (`_v2`…`_v8`) y no hace
+  falta: una marca sirve para que una columna ELEGIBLE nueva llegue a una lista guardada, y aquí la factura no es elegible:
+  es una columna **fija** de la tabla, que no pasa por la lista de nadie. Quien hubiera quitado «Plan: Factura» de su lista
+  también la ve.
+- **`pl_invoice` sigue en el catálogo.** Está en la lista, el orden y las plantillas de todo el que pasó por `_v6`; sacarla
+  del catálogo no arreglaba nada y movía los pesos de la fila de `user_prefs` (D-434/D-435). La pantalla la aparta con
+  `sinLaFacturaDelPlan`, de la tabla y de su ⚙.
+- **Sin ensanchar la tabla por esto:** la columna fija conserva su clave de ancho (`_factura`, 84 px de partida) y el ID va
+  en un segundo renglón.
+- En «Sin asignar» la factura sigue donde la dejó D-402 (el orden de Órdenes visto por ventas: PO, SO, **Factura**…). No
+  se movió al primer puesto: es otra decisión suya, y la columna se puede subir con las flechas del ⚙.
+- Los avisos de las flechas y del arrastre («D2 INV-3009 → parada 3 de 8») nombran también por la factura.
+
+### 2 · Arrastrar para armar rutas a mano
+
+Vuelve el arrastre en la pestaña «Rutas», con el arrastre propio del navegador (HTML5), **sin dependencias nuevas**. Las
+flechas ↑ ↓ y «Pasar a…» se quedan.
+
+- **Una fila de «Sin asignar» → un chofer del panel «Choferes y rutas»** (el panel de arriba, que es lo que se ve a la vez
+  que esa tabla): la asigna, exactamente lo que hace su desplegable «Asignar a…». Si la fila es una de varias marcadas, van
+  todas. Entra al final de su lista, sin puesto, como siempre.
+- **Una parada → otra fila de su misma lista**: pasa a ocupar ESE puesto y las de en medio se corren (`llevaEnLaLista`,
+  `lib/lista-unica`). Es el movimiento de las flechas, de varios puestos de una vez.
+- **Una parada → la tarjeta, la fila del panel o una fila de OTRO chofer**: la **orden entera** —su recogida y, pegada
+  detrás, su entrega— pasa a esa lista, en el puesto de la fila donde se suelta o al final (`listaConOrdenesEn`).
+- **Las reglas son las de `lista-unica`:** una entrega nunca queda antes que su recogida (si el movimiento lo rompería no
+  se mueve nada y el aviso dice qué orden lo impide, igual que las flechas: `avisaDeLaPrecedencia`); **la capacidad avisa y
+  no bloquea** («⚠ se pasa de la capacidad en N parada(s)», y la fila lo marca). Como las flechas, no mira el candado 🔒.
+- **Se guarda por el mismo camino que las flechas** (`guardaLaLista`) **y se deshace con Ctrl+Z.** Para el cambio de
+  chofer, `guardaLaLista` recibe las órdenes que llegan (`traidas`): las cambia de chofer antes de numerar, y la foto de
+  deshacer lleva las DOS rutas —la de llegada y lo que queda en la de salida—; sin eso, deshacer se negaba («entró otra»).
+- **El fallo que motivó D-007 no puede volver.** Entonces, pulsar una flecha arrancaba el arrastre de la fila y el clic no
+  se registraba. Ahora la fila entera se arrastra, pero un arrastre que EMPIEZA sobre un botón, un desplegable, un campo, un
+  enlace o la factura se cancela (`pulsadoEnControl` → `preventDefault` en `dragstart`) y el clic llega a su control.
+- Mientras se arrastra, una raya azul marca dónde cae (`suelta-arriba` / `suelta-abajo`), y el chofer sobre el que se pasa
+  se enmarca. Una línea «✋ Arrastre una fila…» lo dice en las dos tablas.
+- **Qué NO se arrastra:** una recogida si la base no guarda su posición (sin la 154), igual que sus flechas; y las filas que
+  solo informan («otra carga de la misma orden»).
+- **En táctil: no se garantiza.** El arrastre HTML5 en pantallas táctiles depende del navegador (Chrome de Android y Safari
+  de iOS 15+ lo arrancan con una pulsación larga; otros, no). No se añadió una segunda implementación con eventos de
+  puntero: no era barato hacerlo bien con las filas dentro de una caja que se desplaza. En el teléfono quedan las flechas y
+  los desplegables, que ya funcionaban. **No se probó en ningún teléfono.**
+
+### 3 · «🧭 Optimizar» por ruta
+
+Un botón en cada tarjeta de chofer con paradas. Reordena **solo las paradas de esa ruta** y guarda la lista.
+
+- **Cómo era antes de D-437** (`git log -S optimizaEstas`: lo quitó c7c01c2e): pedía a Google el mejor orden de las
+  **entregas** (`/api/optimize-route` con `optimize`) y lo escribía. Entonces la ruta eran entregas en viajes.
+- **Por qué no vuelve así.** Desde D-443 la ruta es una lista de recogidas y entregas intercaladas. El optimizador de Google
+  (y el de OSRM) no sabe que una entrega va después de su recogida ni cuánto cabe en el camión: lo que devolviera habría
+  que deshacerlo a mano, o reducir el problema a «solo las entregas» y recolocar las recogidas con una regla, que es
+  justo lo que el dueño rechazó en D-444 (*«yo quiero cambiar el orden de los pickups»*).
+- **Ahora el orden se decide en el navegador** (`optimizaLaLista`, `lib/optimiza-la-ruta.ts`), sin llamar a nadie:
+  1. las mismas paradas, ni una más ni una menos;
+  2. una entrega nunca antes que su recogida;
+  3. **primero la capacidad**: se minimiza cuánto se pasa el camión (si la lista no se pasaba, la optimizada tampoco; si se
+     pasaba, sale pasándose menos aunque mida más, y el aviso lo dice);
+  4. entre las que cumplen, el **menor recorrido saliendo de la base y volviendo a ella**, medido **en línea recta** (como
+     «📍 Mejor lugar»). No por calles: es una estimación.
+  Es una búsqueda local —el vecino más cercano que se pueda, y luego mover paradas de una en una mientras mejore, partiendo
+  también de la lista que hay—, **no una demostración de óptimo**. Un cambio tiene que acortar más de 0,05 mi para valer.
+- **Cuota:** optimizar cuesta **cero** llamadas. Después, la medida de siempre (la que sigue a cualquier cambio de la ruta)
+  hace **una**: `optimize: false`, en el orden nuevo, y pone las millas por calles y las llegadas. Pulsar otra vez sobre una
+  ruta ya optimizada no escribe ni llama («ya está en el orden más corto que se encontró»).
+- **Candado 🔒:** bloqueada, **no optimiza y lo dice** («🔒 … está bloqueada — Optimizar no la toca»). El botón se ve
+  apagado pero se puede pulsar, para que diga por qué.
+- Se guarda por `guardaLaLista`: **Ctrl+Z la devuelve** a como estaba.
+- Una parada sin punto en el mapa (entrega sin pin, tienda sin coordenadas en Ajustes) no cuenta en el recorrido y se queda
+  donde las reglas la dejen; el aviso dice cuántas son. Sin base (chofer sin tienda), se mide como ruta abierta, y se dice.
+- **Sin la 154** solo se puede guardar el orden de las entregas (no hay dónde guardar la posición de una recogida); el aviso
+  lo dice.
+- «Optimizar todas las rutas», «Auto-asignar», «Reagrupar por zona» y «Simular» **siguen quitados** (D-437).
+
+### 4 · La llegada estimada, siempre
+
+**Por qué «a veces no aparece»: tres causas, las tres en el código de antes.**
+
+1. **Solo se medía la ruta del chofer MARCADO en el panel** (D-437). Las demás tarjetas tenían «—» en toda la columna.
+   Es la causa principal.
+2. **Volver a una forma de la ruta ya medida la dejaba en «—» hasta recargar.** Cada cambio tira lo pintado
+   (`clearRouteFor`), y la forma quedaba apuntada como «ya pedida» (`medidasPedidas`), así que al deshacer, al subir y bajar
+   la misma parada, o al pasar una orden y traerla de vuelta, no se volvía a pedir. Lo mismo al cambiar la capacidad del
+   camión. (Leído en el código; no se reprodujo en el navegador sobre el código viejo.)
+3. **Una medida que fallaba no se reintentaba** —a propósito, para no gastar en bucle— y la celda decía «—» sin decir por qué.
+
+**Ahora:**
+
+- **Se miden todas las rutas con paradas del día que están en pantalla** (las del filtro de chofer), no solo las marcadas;
+  las marcadas, primero. Viendo «todas las fechas» o las pendientes sigue como antes —solo las marcadas—: ahí la lista de
+  un chofer mezcla días y no es una ruta.
+- **Una a la vez, cada forma una sola vez, y lo medido se guarda** mientras la pantalla esté abierta (`medidas`, por la
+  forma de la ruta): volver a una forma conocida la repinta **sin llamar**. Qué se repinta y qué se pide lo decide
+  `siguienteMedida` (`lib/medida-de-ruta.ts`).
+- **La forma incluye la lista tal como se pinta** (`firmaDe`): la misma ruta guardada da otra lista si cambia la capacidad o
+  llega el plan publicado, y la llegada de cada recogida va por su puesto en la lista.
+- **La celda dice qué pasa en vez de «—»** (`textoDeLaLlegada`): «calculando…» mientras llega; «sin pin» si la entrega no
+  tiene punto; «tienda sin punto» si la tienda de la recogida no tiene coordenadas en Ajustes; «sin base» si es una sola
+  parada y el chofer no tiene tienda; «sin medida» si falló. La tarjeta dice «⏳ calculando llegadas…» y, si falló,
+  «↻ sin medida — reintentar»: **una llamada por pulsación, nunca sola**.
+- «Llegada» nace con 84 px (era 60, D-446): los motivos no cabían. Quien arrastró su ancho lo conserva.
+
+**Cuántas llamadas hace** (medido en el demo con un doble de `/api/optimize-route`; ver abajo):
+
+| Cuándo | Antes | Ahora |
+|---|---|---|
+| Al cargar un día | 0 (1 por chofer que se marcara) | **1 por ruta con paradas** |
+| Mover una parada dentro de una ruta | 1 si estaba marcada | **1** |
+| Pasar una orden de un chofer a otro | 1–2 si estaban marcados | **2** (cambian dos rutas) |
+| Volver a una forma ya medida (deshacer…) | 0, y se quedaba en «—» | **0**, y se repinta |
+| Una medida que falla | 0 reintentos | **0** reintentos; 1 por cada «↻» |
+
+**Esto gasta más cuota de Google que antes, y es el precio de «siempre»:** con 6 choferes con ruta, abrir el día son 6
+llamadas en vez de 0, y cada cambio que haga otra persona (llega por tiempo real) vuelve a medir la ruta que cambió. El
+servidor además guarda 10 minutos las respuestas idénticas. **A validar por el dueño** si prefiere medir solo las tarjetas
+abiertas.
+
+**Efecto de lado, a validar:** como todas las rutas se miden, **todas tienen su línea en el mapa** al abrir el día (antes,
+solo las de los choferes que se hubieran marcado). Es lo que ya decía la ayuda del mapa («Todas las rutas están en el mapa
+a la vez»); marcar un chofer sigue atenuando las demás.
+
+### Medido en el demo (2026-10-01, Chrome por CDP, 1440 px, `/api/optimize-route` doblado: ninguna llamada salió a un proveedor)
+
+- **Al cargar:** 4 rutas con paradas → **4 llamadas**, todas `optimize: false`; las 4 tarjetas con sus millas.
+- **Factura:** la cabecera dice «Factura #»; las filas, `INV-3009` con `#1012` debajo; la intertienda sin factura, `#1009`
+  en gris y sin nada debajo. Tablero: «INV-3002 | #1004». Línea de tiempo: barras «INV-3009», y «#1009» la que no tiene.
+  La página no se desborda de lado (0 px).
+- **Arrastrar dentro de la lista** (la recogida de INV-3028, la séptima fila, soltada sobre la tercera): pasa al puesto 3 y
+  las demás se corren —recogidas `#1009 · INV-3028 · INV-3009 · INV-3010`—, con la raya en la fila de destino y el aviso
+  «P4 INV-3028 → parada 3 de 8. ⚠ se pasa de la capacidad en 1 parada(s)» (en inglés en el demo: avisa, no bloquea).
+  **1 llamada.** Deshacer: la lista de antes, **0 llamadas**, y las 4 llegadas siguen pintadas.
+- **Contra la precedencia** (D1 delante de P1): no se mueve, y lo dice.
+- **Una flecha pulsada moviendo el ratón 5 px:** no arranca ningún arrastre y la parada se mueve (el fallo de D-007).
+- **A otro chofer** (una entrega de Diego sobre una fila de Carlos): entra su recogida y su entrega en ese puesto (4/4 →
+  3/5 entregas), **2 llamadas**; deshacer las devuelve (4/4).
+- **«Sin asignar» → Diego en el panel:** 42 → 41 filas y su «📦 4» pasa a «📦 5».
+- **Optimizar:** cambia el orden (aquí, para que el camión deje de pasarse: «se pasaba en 2»), **1 llamada**
+  (`optimize: false`); pulsado otra vez, «ya está en el orden más corto», **0 llamadas**; con candado, «🔒 … Optimizar no
+  la toca», sin cambios.
+- **Con el proveedor caído** (el doble contesta 502): 4 llamadas al cargar y **4 tras esperar 5 s** (sin bucle); todas las
+  celdas dicen «sin medida»; un «↻» → **5**.
+- En el demo las tiendas no tienen coordenadas: las filas P dicen «tienda sin punto», que es el motivo cierto.
+
+### Pruebas y mutantes
+
+Nuevas en `src/lib/gestor-factura-arrastre-optimizar.test.ts` (45): las reglas (`facturaYId`, `llevaEnLaLista`,
+`listaConOrdenesEn`, `ordenSinRecoger`, `optimizaLaLista`, `siguienteMedida`, `textoDeLaLlegada`) y que **la pantalla las
+usa** (se alimentan de quien llama). Puestas al día, con su nota: `routes-columns`, `lista-unica`, `cargas-partidas`,
+`arrastre-de-paradas`, `columnas-del-plan`, `gestor-mover-columnas`, `rutas-bloqueadas`, `solo-armar-rutas` y, en
+`route-plan/`, `etiqueta`, `plan`, `columnas-del-dueno`. La de `solo-armar-rutas` que afirmaba «el Gestor no tiene ningún
+botón de Optimizar» ahora afirma que hay uno por ruta y que los demás siguen fuera.
+
+**Mutantes: 52, caen los 52**, leídos por el nombre de la prueba (`~/.claude/herramientas/mutantes/`). En la primera
+pasada cayeron 49 y **sobrevivieron 3 del optimizador**, que eran pruebas flojas y no código de sobra: «el recorrido no sale
+de la base» (la prueba ponía la primera parada EN la base), «el optimizador no pule» y «el vecino más cercano no mira si
+cabe» (ningún caso de la prueba necesitaba pulir ni mirar la capacidad al arrancar). Se buscaron al azar dos rutas donde sí
+importa (230,3 → 190,5 mi puliendo; 273,1 → 243,2 mirando si cabe), se escribieron como pruebas, y en la segunda pasada los
+7 del optimizador caen. Por punto, con la prueba que tumba cada uno:
+
+- **Factura (9):** nombrar por el ID aunque haya factura; la fila de paradas vuelve al ID; pierde el ID de al lado; el plan
+  repite «Plan: Factura»; `sinLaFacturaDelPlan` no aparta nada; la columna fija del plan pinta el ID; el tablero y la línea de
+  tiempo nombran por el ID; el panel del plan pasa solo el id → caen con «con factura: la factura es lo principal…», «la tabla
+  de PARADAS de cada chofer pinta la factura…», «la tabla del PLAN: la columna fija es la factura…» y «el tablero y la línea
+  de tiempo nombran la orden por su factura».
+- **Arrastre (14):** una entrega antes que su recogida; soltar un puesto más abajo; soltar sobre sí misma; la entrega delante
+  de su recogida al cambiar de chofer; siempre al final sin mirar el puesto; una entrega histórica sin recogida tomada por
+  rota; **el arrastre sobre un control ya no se cancela (el fallo de D-007)**; la pantalla usa la regla de una flecha;
+  deshacer no sabe que cambió de chofer; «Sin asignar» deja de arrastrarse; el panel deja de aceptar; la fila soltada no se
+  asigna; no guarda con las traídas; no avisa de la precedencia → caen con «no deja una entrega antes que su recogida…»,
+  «soltar una parada sobre otra fila…», «a la lista de OTRO chofer entra la orden entera…», «la fila entera se arrastra,
+  pero un arrastre que empieza sobre un control se CANCELA…» y las demás de «la pantalla».
+- **Optimizar (13):** no mira la precedencia; las millas por delante de la capacidad; no cuenta la vuelta a la base; no sale
+  de la base; dice que cambió sin haber nada mejor; no pule; no mira si cabe; **con candado optimiza igual**; el botón no hace
+  nada; escribe aunque no haya cambio; no guarda por `guardaLaLista`; **llama al proveedor**; sin la capacidad del camión →
+  caen con «la capacidad manda sobre las millas…», «una lista que SE PASA sale con menos exceso…», «mide desde la BASE y de
+  vuelta a ella…», «con candado 🔒 no optimiza, y lo dice…», «no llama a ningún proveedor…» y las demás.
+- **Llegada (16):** una fallida se vuelve a pedir sola (**bucle**); lo medido no se repinta al volver; se pide la última; lo
+  pintado se vuelve a pedir; la celda vuelve a la raya mientras calcula; no dice que falta el pin; no dice que falló; **solo
+  se miden las marcadas (como antes)**; un fallo no se apunta; la medida buena no se guarda; las filas D y P vuelven a la raya;
+  «↻» no olvida el fallo; la forma no incluye la lista; pide con otra medida en curso; la tarjeta no ofrece reintentar →
+  caen con «una forma cuya medida FALLÓ no se vuelve a pedir sola…», «volver a una forma YA MEDIDA … la repinta sin llamar…»,
+  «se miden TODAS las rutas con paradas del día…», «la celda: la hora si la hay; si no, POR QUÉ…» y las demás.
+
+### No verificado
+
+- **Nada contra la base ni contra un proveedor de rutas real:** todo en el demo (sin base) y con `/api/optimize-route`
+  doblado. Las horas y millas del demo son las del doble, no de Google.
+- **El arrastre en un teléfono o una tableta**, y en Firefox y Safari de escritorio: solo Chrome.
+- **Con plan publicado** (el demo no tiene): que arrastrar u optimizar una ruta que sigue siendo «la del plan» la deje como
+  «cambiada tras publicar», como hacen las flechas. Va por el mismo `guardaLaLista`, pero no se vio.
+- **Deshacer un «Optimizar»** en el navegador: se probó deshacer un arrastre, que guarda por el mismo camino.
+- **Cuánta cuota gasta en un día real** medir todas las rutas: depende de cuántos cambios lleguen por tiempo real.
+- **La tabla del plan en el navegador** con la factura fija: el demo no tiene servidor que planifique; está cubierto por
+  pruebas de fuente.
+- **Que el orden de «Optimizar» sea el más corto por calles:** se decide en línea recta.
+- El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
