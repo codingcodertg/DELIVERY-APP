@@ -33,3 +33,24 @@ export function idDeLaOrden(ordenes: readonly OrdenParaNombrar[], ref: string): 
   const d = ordenes.find((x) => x.id === ref.split("#")[0]);
   return d ? `#${orderLabel(d)}` : ref.slice(0, 8);
 }
+
+/**
+ * La FACTURA primero, y el ID al lado (D-NEXT). El dueño, 2026-10-01: «It's not showing invoice number / Invoice number is
+ * more important», y «not showing invoice en el logistic manager en todas las tablas». En todas las tablas del Gestor —las
+ * paradas de cada chofer, el plan, el tablero y la línea de tiempo— lo que nombra la orden es su factura (`principal`), y su
+ * código va al lado, más pequeño (`id`). Una orden SIN factura (una intertienda, un borrador) se nombra por su código, en gris
+ * (`esFactura: false`), y entonces no hay nada que poner al lado (`id: null`): la misma regla que «Sin asignar» (D-408).
+ */
+export interface FacturaYId { principal: string; id: string | null; esFactura: boolean }
+export function facturaYId(d: Omit<OrdenParaNombrar, "id">): FacturaYId {
+  const factura = (d.invoice_num ?? "").trim();
+  const codigo = `#${orderLabel(d)}`;
+  return factura ? { principal: factura, id: codigo, esFactura: true } : { principal: codigo, id: null, esFactura: false };
+}
+
+/** Lo mismo desde una referencia del plan (el id de la orden o el de una de sus cargas, `<id>#b`). Una orden que ya no está a
+ *  la vista, por el principio de su referencia, como `nombraLaOrden`. */
+export function facturaYIdDeLaOrden(ordenes: readonly OrdenParaNombrar[], ref: string): FacturaYId {
+  const d = ordenes.find((x) => x.id === ref.split("#")[0]);
+  return d ? facturaYId(d) : { principal: ref.slice(0, 8), id: null, esFactura: false };
+}

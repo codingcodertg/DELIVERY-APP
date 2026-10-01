@@ -94,7 +94,7 @@ describe("la celda: builder, intertienda o mostrador; y la ciudad de la tienda d
   it("la página pinta la tabla del plan con estas celdas, con las tiendas, las reglas y las ciudades del resto del Gestor", () => {
     const pagina = leer("src/app/(app)/routes/page.tsx");
     expect(pagina).toContain('const celdaDelPlan = (clave: string, d: Delivery) => celdaPropiaDelPlan(clave, d, { reglas: settings.order_type_rules, tiendas: settings.stores ?? [], conocidas: ciudadesQueSeConocen, es: lang === "es" }) ?? celdaDeOrdenes(clave, d);');
-    expect(pagina).toContain('lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDelPlan,');
+    expect(pagina).toContain('lista: sinLaFacturaDelPlan(columnasDeLaTabla("plan", colsGestor, ordenGestor)), celda: celdaDelPlan,');
   });
 });
 

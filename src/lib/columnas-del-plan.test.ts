@@ -107,8 +107,9 @@ describe("la pantalla usa esto", () => {
   it("la página le pasa al plan SUS columnas, su ⚙ con las flechas del plan y las MISMAS plantillas del Gestor", () => {
     const bloque = pagina.slice(pagina.indexOf("<PlanDelDia"), pagina.indexOf("}} />", pagina.indexOf("<PlanDelDia")));
     // Desde D-434 la celda es `celdaDelPlan`: las dos propias y, las demás, la de Órdenes (describe de abajo).
-    expect(bloque).toContain('lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDelPlan, clase: clasePastillas');
-    expect(bloque).toContain('columnas={columnasDelSelector("plan", ordenGestor)}');
+    // D-NEXT: sin «Plan: Factura», ni en la tabla ni en su ⚙: la factura es la columna fija de esa tabla.
+    expect(bloque).toContain('lista: sinLaFacturaDelPlan(columnasDeLaTabla("plan", colsGestor, ordenGestor)), celda: celdaDelPlan, clase: clasePastillas');
+    expect(bloque).toContain('columnas={sinLaFacturaDelPlan(columnasDelSelector("plan", ordenGestor))}');
     expect(bloque).toContain("elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}");
     expect(bloque).toContain("plantillas={propsDePlantillas}");
     expect(bloque).toContain('mover={moverEn("plan")}');

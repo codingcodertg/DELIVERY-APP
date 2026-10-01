@@ -15,7 +15,8 @@ import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLabel, shiftDateISO, todayISO } from "@/lib/utils";
 import { serviceMin, RELOAD_MIN } from "@/lib/trip-timing";
-import { cuerpoDeLaMedida, firmaDeLaMedida, pintaElTrazoDelPlan } from "@/lib/medida-de-ruta";
+import { MEDIDA_FALLIDA, cuerpoDeLaMedida, firmaDeLaMedida, pintaElTrazoDelPlan, siguienteMedida, textoDeLaLlegada, type EstadoDeLaMedida, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
+import { optimizaLaLista } from "@/lib/optimiza-la-ruta";
 import { driverOf, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
 import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
@@ -28,12 +29,12 @@ import { esProvisional, esProvisionalLaFila, type FilaDeLaRuta, type LecturaDeRu
 import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
-import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
+import { facturaYId, nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import {
   COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, claveDelOrdenEnElNavegador,
   columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
   mueveEnElGestor, ordenDePlantillaDelGestor, ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas,
-  seVeEnLaRecogida, tieneOrdenPropio, type TablaDelGestor,
+  seVeEnLaRecogida, sinLaFacturaDelPlan, tieneOrdenPropio, type TablaDelGestor,
 } from "@/lib/routes-columns";
 import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
@@ -65,7 +66,7 @@ import {
 } from "@/lib/arrastre-de-paradas";
 import { hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
 import {
-  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, mueveEnLaLista, numeroDePallets,
+  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, numeroDePallets,
   textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type FilaDeCuenta, type ParadaDeLaLista,
 } from "@/lib/lista-unica";
 import { alRepartir, cargaDe, etiquetaDeCarga, hermanasDe, laOtraCarga, restoPropuesto, sePuedenJuntar, sePuedePartir } from "@/lib/cargas-partidas";
@@ -85,6 +86,13 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 // «Reagrupar por zona» ni «Simular»: el dueño, 2026-09-28, «Quitar los dos; solo Armar rutas». A mano quedan asignar,
 // «📍 Mejor lugar», las flechas, «Pasar a…» y el arrastre de «📅 Horario». La pantalla MIDE la ruta de un chofer elegido
 // (millas, horas, trazo) en el orden guardado, sin reordenarla (`medida-de-ruta.ts`).
+//
+// D-NEXT (el dueño, 2026-10-01) trae de vuelta tres cosas que decisiones anteriores habían quitado, y una nueva:
+//   · la FACTURA nombra la orden en todas las tablas, con el ID al lado (D-444 la había cambiado por el ID en las paradas);
+//   · ARRASTRAR filas: una de «Sin asignar» a un chofer del panel (la asigna), y una parada dentro de su lista o a la de otro
+//     chofer (la mueve). D-007 lo había quitado; las flechas se quedan;
+//   · «🧭 Optimizar» en cada tarjeta: reordena SOLO esa ruta (`optimiza-la-ruta.ts`). D-437 lo había quitado;
+//   · la llegada estimada SIEMPRE: se miden todas las rutas con paradas, no solo las marcadas, y la celda dice por qué falta.
 //
 // SIN VIAJES desde D-443 (el dueño, 2026-09-28: «SI ELIMINA VIAJES»). La ruta de un chofer es UNA lista de paradas
 // —recogidas (P) y entregas (D) intercaladas— y el camión puede recoger, entregar una parte, volver a recoger y seguir,
@@ -117,6 +125,9 @@ const DEFAULT_CAPACITY = 12;
 // pickup stop (RELOAD_MIN). Service (unload) time per stop comes from the
 // order's own delivery_duration.
 const DAY_START_MIN = 8 * 60; // 08:00
+
+/** La celda «Llegada» cuando aún no hay hora (D-NEXT): el motivo, pequeño y en gris, en dos renglones si hace falta. */
+const ESTILO_SIN_LLEGADA = { color: "var(--gray)", fontSize: 11, whiteSpace: "normal", lineHeight: 1.15 } as const;
 
 function fmtMinutes(min: number): string {
   const m = Math.round(min);
@@ -652,17 +663,27 @@ export default function RoutesPage() {
   };
   /** Escribe la lista ENTERA de un chofer: el puesto de cada entrega (tras lo ya hecho), la posición de cada recogida si la
    *  base la guarda, y el viaje viejo vacío. Anota el movimiento para deshacer (D-417). Devuelve si se escribió. */
-  const guardaLaLista = async (laneKey: string, stops: Delivery[], lista: readonly ParadaDeLaLista[], etiqueta: { en: string; es: string }): Promise<boolean> => {
+  const guardaLaLista = async (laneKey: string, stops: Delivery[], lista: readonly ParadaDeLaLista[], etiqueta: { en: string; es: string }, traidas: readonly Delivery[] = []): Promise<boolean> => {
     const desde = inicioDeLaRuta(laneKey, stops);
     const e = escrituraDeLaLista(lista, desde);
     const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
     clearRouteFor(laneKey);
+    // Las que LLEGAN de otra ruta (arrastradas, D-NEXT; `stops` ya las trae) cambian de chofer antes de numerar la lista, como
+    // al soltar en «📅 Horario». La ruta de la que salen pierde su medida, y para deshacer cuentan las dos rutas.
+    const origenes = [...new Set(traidas.map((d) => orderLaneKey(d)).filter((k): k is string => !!k && k !== laneKey))];
+    const quedanEnOrigen = origenes.flatMap((k) => (byDriver.get(k) ?? []).filter((x) => !traidas.some((y) => y.id === x.id)));
+    for (const d of traidas) {
+      if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) }))) return false;
+    }
+    origenes.forEach((k) => clearRouteFor(k));
     // One guarded operation for the whole new sequence: the list updates locally right away and is held there until every
     // write lands, so a realtime refetch can't snap the stop back to where it was.
     const ok = await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);
     if (!ok) return false;
-    const antes = fotoDe(stops.map(aParadaDelGantt));
-    await anotaMovimiento(etiqueta, [laneKey], antes, fotoTrasReordenar(antes, e.ids, e.loadNoById, desde, recogidas));
+    const antes = fotoDe([...stops, ...quedanEnOrigen].map(aParadaDelGantt));
+    const despues = fotoTrasReordenar(antes, e.ids, e.loadNoById, desde, recogidas);
+    for (const d of traidas) despues[d.id] = { ...despues[d.id], assigned_driver: laneKey };
+    await anotaMovimiento(etiqueta, [laneKey, ...origenes], antes, despues);
     return true;
   };
   /** La fila de la Base (D-443): la ruta sale de ella con 0 a bordo y vuelve con lo que quede, que tiene que ser 0. */
@@ -686,6 +707,16 @@ export default function RoutesPage() {
    * que una entrega quede antes que su recogida —entonces no mueve nada y se dice por qué—. La capacidad no bloquea: la
    * cuenta avisa en la parada que se pase. Con candado 🔒 también, como las flechas de siempre (D-411).
    */
+  /** «No se movió»: la orden cuya entrega quedaría antes que su recogida. Lo dicen igual las flechas y el arrastre. */
+  const avisaDeLaPrecedencia = (stops: readonly Delivery[], lectura: LecturaDeRuta, orden: string) => {
+    const o = stops.find((x) => x.id === orden);
+    const n = o ? facturaYId(o).principal : "";
+    const d = lectura.filas.find((f) => f.tipo === "D" && f.orden === orden)?.etiqueta ?? "";
+    notify(t(
+      `Not moved: ${d} ${n} would be delivered before it's picked up. A delivery always goes after its pickup.`,
+      `No se movió: ${d} ${n} se entregaría antes de recogerla. Una entrega va siempre después de su recogida.`,
+    ));
+  };
   const mueveParada = async (laneKey: string, indice: number, dir: -1 | 1) => {
     const stops = byDriver.get(laneKey) ?? [];
     const lectura = lecturaDe(laneKey, stops);
@@ -698,18 +729,10 @@ export default function RoutesPage() {
     }
     const r = mueveEnLaLista(lectura.paradas, indice, dir);
     if (!r.ok) {
-      if (r.motivo === "precedencia") {
-        const o = stops.find((x) => x.id === r.orden);
-        const n = o ? `#${orderLabel(o)}` : "";
-        const d = lectura.filas.find((f) => f.tipo === "D" && f.orden === r.orden)?.etiqueta ?? "";
-        notify(t(
-          `Not moved: ${d} ${n} would be delivered before it's picked up. A delivery always goes after its pickup.`,
-          `No se movió: ${d} ${n} se entregaría antes de recogerla. Una entrega va siempre después de su recogida.`,
-        ));
-      }
+      if (r.motivo === "precedencia") avisaDeLaPrecedencia(stops, lectura, r.orden);
       return;
     }
-    const nombre = p.tipo === "D" ? (() => { const o = stops.find((x) => x.id === p.orden); return o ? `#${orderLabel(o)}` : ""; })() : (p.tienda ?? t("(no store)", "(sin tienda)"));
+    const nombre = p.tipo === "D" ? (() => { const o = stops.find((x) => x.id === p.orden); return o ? facturaYId(o).principal : ""; })() : (p.tienda ?? t("(no store)", "(sin tienda)"));
     const etiqueta = etiquetaDe(indice);
     if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `${etiqueta} ${nombre} ${dir < 0 ? "up" : "down"}`, es: `${etiqueta} ${nombre} ${dir < 0 ? "arriba" : "abajo"}` }))) return;
     senalaLaMovida(claveDeLaFila(p));
@@ -722,6 +745,150 @@ export default function RoutesPage() {
     for (const id of ids) await assignToLane(id, destino);
     notify(t(`${ids.length} order(s) → ${laneLabel(destino)} (at the end of its list)`, `${ids.length} orden(es) → ${laneLabel(destino)} (al final de su lista)`));
   };
+  // ---- ARRASTRAR (D-NEXT) -------------------------------------------------------------------------------------------
+  // El dueño, 2026-10-01: «When trying to build the routes manually do the drag option». D-007 (2026-08-12) lo había quitado
+  // («no ocupo arrastrar, elimina eso, solo con las flechas»), y además tenía un fallo: pulsar una flecha arrancaba el
+  // arrastre de la fila y el clic no se registraba. Vuelve, con las flechas en su sitio, y ese fallo no puede volver: un
+  // arrastre que empieza con el dedo o el ratón sobre un botón, un desplegable, un campo o el enlace de la orden se CANCELA
+  // (`pulsadoEnControl`), y el clic llega a su control. Es el arrastre del navegador (HTML5), sin dependencias.
+  //   · una fila de «Sin asignar» → un chofer del panel «Choferes y rutas»: la asigna (lo mismo que «Asignar a…»);
+  //   · una parada → otra fila de su lista: pasa a ese puesto (`llevaEnLaLista`: lo mismo que las flechas, de varios puestos);
+  //   · una parada → la tarjeta, el panel o una fila de OTRO chofer: la orden entera pasa a su lista, en ese puesto o al final.
+  // Se guarda por `guardaLaLista`, como las flechas, y se deshace con Ctrl+Z. La capacidad avisa, no bloquea.
+  type Arrastrado = { tipo: "orden"; id: string } | { tipo: "parada"; ruta: string; indice: number };
+  const [arrastrado, setArrastrado] = useState<Arrastrado | null>(null);
+  // Sobre qué se está pasando: «ruta:<chofer>» (su tarjeta o su fila del panel) o «fila:<chofer>:<puesto>».
+  const [sobre, setSobre] = useState<string | null>(null);
+  const pulsadoEnControl = useRef(false);
+  const filaArrastrable = (a: Arrastrado) => {
+    const mira = (e: React.MouseEvent | React.TouchEvent) => {
+      pulsadoEnControl.current = !!(e.target as HTMLElement).closest("button, select, input, textarea, a, label, [data-abre-la-orden], .col-resizer");
+    };
+    return {
+      draggable: true,
+      onMouseDown: mira,
+      onTouchStart: mira,
+      onDragStart: (e: React.DragEvent) => {
+        if (pulsadoEnControl.current) { e.preventDefault(); return; }
+        e.dataTransfer.setData("text/plain", a.tipo === "orden" ? a.id : `${a.ruta}#${a.indice}`);
+        e.dataTransfer.effectAllowed = "move";
+        setArrastrado(a);
+      },
+      onDragEnd: () => { setArrastrado(null); setSobre(null); },
+    };
+  };
+  const claveDeSoltar = (ruta: string, indice: number | null) => (indice == null ? `ruta:${ruta}` : `fila:${ruta}:${indice}`);
+  /** Lo que hace de un elemento un sitio donde soltar. Sin nada arrastrándose no pone manejadores: no estorba a nada. */
+  const sueltaAqui = (ruta: string, indice: number | null) => {
+    if (!arrastrado) return {};
+    const clave = claveDeSoltar(ruta, indice);
+    return {
+      onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move"; if (sobre !== clave) setSobre(clave); },
+      onDrop: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); void sueltaEnLaRuta(ruta, indice); },
+    };
+  };
+  const sueltaEnLaRuta = async (destino: string, indice: number | null) => {
+    const a = arrastrado;
+    setArrastrado(null);
+    setSobre(null);
+    if (!a || moviendo) return;
+    if (a.tipo === "orden") {
+      const d = deliveries.find((x) => x.id === a.id);
+      if (!d) return;
+      // Si la fila arrastrada es una de varias marcadas, van todas: lo mismo que hace su desplegable «Asignar a…».
+      if (selectedOrders.has(a.id) && poolSelectedCount > 1) { await bulkAssign(destino); return; }
+      manualAssign(a.id, destino);
+      notify(t(`${facturaYId(d).principal} → ${laneLabel(destino)} (at the end of its list)`, `${facturaYId(d).principal} → ${laneLabel(destino)} (al final de su lista)`));
+      return;
+    }
+    const stops = byDriver.get(a.ruta) ?? [];
+    const lectura = lecturaDe(a.ruta, stops);
+    const p = lectura.paradas[a.indice];
+    if (!p) return;
+    const etiqueta = lectura.filas.find((f) => f.indice === a.indice)?.etiqueta ?? "";
+    const ids = p.tipo === "P" ? p.ordenes : [p.orden];
+    const movidas = stops.filter((d) => ids.includes(d.id));
+    const nombre = movidas.map((d) => facturaYId(d).principal).join(" · ");
+    /** «⚠ se pasa en N parada(s)»: la capacidad avisa, no bloquea. */
+    const avisoDeExceso = (lista: readonly ParadaDeLaLista[], suyas: readonly Delivery[], ruta: string) => {
+      const n = cuentaDePallets(cambiosDeLaLista(lista, suyas), capacityFor(driverOf(ruta))).totales.paradasConExceso;
+      return n > 0 ? { en: ` ⚠ over capacity at ${n} stop(s).`, es: ` ⚠ se pasa de la capacidad en ${n} parada(s).` } : { en: "", es: "" };
+    };
+    setMoviendo(true);
+    try {
+      if (a.ruta === destino) {
+        // Sobre la tarjeta o el panel de su propio chofer no hay puesto que tomar.
+        if (indice == null) return;
+        if (p.tipo === "P" && !hayRecogidaGuardada) { notify(t("Moving a pickup needs the database update (migration 154).", "Mover una recogida necesita la actualización de la base (migración 154).")); return; }
+        const r = llevaEnLaLista(lectura.paradas, a.indice, indice);
+        if (!r.ok) { if (r.motivo === "precedencia") avisaDeLaPrecedencia(stops, lectura, r.orden); return; }
+        if (!(await guardaLaLista(destino, stops, r.paradas, { en: `${etiqueta} ${nombre} → stop ${indice + 1}`, es: `${etiqueta} ${nombre} → parada ${indice + 1}` }))) return;
+        senalaLaMovida(claveDeLaFila(p));
+        const ex = avisoDeExceso(r.paradas, stops, destino);
+        notify(t(`${etiqueta} ${nombre} → stop ${indice + 1} of ${r.paradas.length}.${ex.en}`, `${etiqueta} ${nombre} → parada ${indice + 1} de ${r.paradas.length}.${ex.es}`));
+        return;
+      }
+      // A la lista de OTRO chofer: la orden entera (su recogida y su entrega), en el puesto donde se suelta o al final.
+      if (!movidas.length) return;
+      const suyas = byDriver.get(destino) ?? [];
+      const todas = [...suyas, ...movidas];
+      const lista = listaConOrdenesEn(lecturaDe(destino, suyas).paradas, movidas, indice);
+      if (!(await guardaLaLista(destino, todas, lista, { en: `${nombre} → ${laneLabel(destino)}`, es: `${nombre} → ${laneLabel(destino)}` }, movidas))) return;
+      for (const d of movidas) addNote(d.id, `Dragged to ${destino} (from ${a.ruta})`);
+      senalaLaMovida(movidas[0].id);
+      const ex = avisoDeExceso(lista, todas, destino);
+      notify(t(`${nombre} → ${laneLabel(destino)}${indice == null ? " (at the end of its list)" : `, stop ${indice + 1}`}.${ex.en}`, `${nombre} → ${laneLabel(destino)}${indice == null ? " (al final de su lista)" : `, parada ${indice + 1}`}.${ex.es}`));
+    } finally {
+      setMoviendo(false);
+    }
+  };
+
+  // ---- «🧭 Optimizar» una ruta (D-NEXT) ---------------------------------------------------------------------------
+  // El dueño, 2026-10-01: «have the optimize option for every route when selecting a driver and optimize it». D-437 lo había
+  // quitado. Vuelve POR RUTA: reordena solo las paradas de esa tarjeta —recogidas y entregas, sin romper «recoger antes de
+  // entregar» y sin pasarse de la capacidad si se puede—, para el menor recorrido saliendo de su base. El orden lo decide
+  // `optimizaLaLista`, en línea recta y SIN llamar a ningún proveedor; se guarda por `guardaLaLista` (Ctrl+Z lo deshace) y
+  // la medida de siempre (una llamada, la de cualquier cambio) pone las millas por calles y las llegadas. Con candado 🔒 no
+  // optimiza, y lo dice.
+  const [optimizando, setOptimizando] = useState<string | null>(null);
+  const optimizaLaRuta = async (laneKey: string) => {
+    if (optimizando != null || moviendo) return;
+    if (bloqueada(laneKey)) {
+      notify(t(`🔒 ${laneLabel(laneKey)} is locked — Optimize leaves it alone. Unlock it first.`, `🔒 ${laneLabel(laneKey)} está bloqueada — Optimizar no la toca. Desbloquéela primero.`));
+      return;
+    }
+    const stops = byDriver.get(laneKey) ?? [];
+    const lista = lecturaDe(laneKey, stops).paradas;
+    const porId = new Map(stops.map((d) => [d.id, d]));
+    const base = baseDeLaRuta(laneKey);
+    const r = optimizaLaLista({
+      paradas: lista,
+      puntos: lista.map((p) => {
+        if (p.tipo === "P") return coordsDeTienda(p.tienda);
+        const d = porId.get(p.orden);
+        return d?.delivery_lat != null && d.delivery_lng != null ? { lat: d.delivery_lat, lng: d.delivery_lng } : null;
+      }),
+      cambios: cambiosDeLaLista(lista, stops), base, capacidad: capacityFor(driverOf(laneKey)),
+    });
+    const notaEn = (r.sinPunto ? ` ${r.sinPunto} stop(s) have no map pin and don't count.` : "") + (base ? "" : " No base: measured as an open route.");
+    const notaEs = (r.sinPunto ? ` ${r.sinPunto} parada(s) sin punto en el mapa no cuentan.` : "") + (base ? "" : " Sin base: medida como ruta abierta.");
+    if (!r.cambio) {
+      notify(t(`🧭 ${laneLabel(laneKey)}: already in the shortest order found (${r.millasAntes} mi straight-line). Nothing changed.${notaEn}`, `🧭 ${laneLabel(laneKey)}: ya está en el orden más corto que se encontró (${r.millasAntes} mi en línea recta). No se cambió nada.${notaEs}`));
+      return;
+    }
+    setOptimizando(laneKey);
+    try {
+      if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `Optimize ${laneLabel(laneKey)}`, es: `Optimizar ${laneLabel(laneKey)}` }))) return;
+      const sin154 = hayRecogidaGuardada ? { en: "", es: "" } : { en: " Only the delivery order was saved: pickups need the database update (154).", es: " Solo se guardó el orden de las entregas: las recogidas necesitan la actualización de la base (154)." };
+      // La capacidad va primero: si el orden nuevo mide lo mismo es que se cambió para que el camión no se pase, y se dice.
+      const exEn = r.excesoDespues > 0 ? ` ⚠ still over capacity by ${numeroDePallets(r.excesoDespues)} (was ${numeroDePallets(r.excesoAntes)}).` : r.excesoAntes > 0 ? ` The truck no longer goes over capacity (it was over by ${numeroDePallets(r.excesoAntes)}).` : "";
+      const exEs = r.excesoDespues > 0 ? ` ⚠ sigue pasándose de la capacidad en ${numeroDePallets(r.excesoDespues)} (antes ${numeroDePallets(r.excesoAntes)}).` : r.excesoAntes > 0 ? ` El camión ya no se pasa de su capacidad (se pasaba en ${numeroDePallets(r.excesoAntes)}).` : "";
+      notify(t(`🧭 ${laneLabel(laneKey)} optimized: ${r.millasAntes} → ${r.millasDespues} mi straight-line. Ctrl+Z undoes it.${exEn}${notaEn}${sin154.en}`, `🧭 ${laneLabel(laneKey)} optimizada: ${r.millasAntes} → ${r.millasDespues} mi en línea recta. Ctrl+Z lo deshace.${exEs}${notaEs}${sin154.es}`));
+    } finally {
+      setOptimizando(null);
+    }
+  };
+
   // Friendly display name for a lane key.
   const laneLabel = (key: string) => lanes.find((l) => l.key === key)?.label ?? key;
   // 🔒 (D-411): ¿esta ruta está bloqueada en el día que se mira? Desde D-437 lo mira «📍 Mejor lugar» (y el arrastre al
@@ -1048,7 +1215,20 @@ export default function RoutesPage() {
 
   // En la tabla de paradas de un chofer, el enlace que abre la orden es su ID, no su factura (D-444). El dueño, 2026-09-29:
   // «en vez de facturas, pongas el ID. Entonces no ocupo la factura». La factura sigue en su columna de Órdenes (⚙).
-  const enlaceConElId = (d: Delivery) => <span {...abreLaOrden(d)} data-abre-la-orden>{orderLabel(d)}</span>;
+  // **Reemplazado por D-NEXT** (2026-10-01): «It's not showing invoice number / Invoice number is more important». La FACTURA
+  // vuelve a ser lo que nombra y abre la orden en la tabla de paradas, en negrita, y el ID se queda debajo, más pequeño. Una
+  // orden sin factura enseña su ID en gris (`facturaYId`). (D-444 decía que la factura seguía «en su columna de Órdenes (⚙)»,
+  // pero esa columna no existía en la tabla de paradas: tras D-444 no había forma de verla ahí.)
+  const facturaConSuId = (d: Delivery) => {
+    const n = facturaYId(d);
+    const gesto = abreLaOrden(d);
+    return (
+      <>
+        <span {...gesto} data-abre-la-orden data-factura={n.esFactura ? "" : undefined} style={n.esFactura ? { ...gesto.style, fontWeight: 700 } : { ...gesto.style, color: "var(--gray)" }}>{n.principal}</span>
+        {n.id && <span className="hint" data-id-de-la-orden style={{ display: "block", margin: 0, fontSize: 11, lineHeight: 1.2 }}>{n.id}</span>}
+      </>
+    );
+  };
 
   // ---- Las cargas de una orden (D-452, 157) ----------------------------------------------------------------------
   // Una orden que no cabe en el camión se parte en órdenes hermanas (#Xa, #Xb): cada carga es una fila, con su P y su D,
@@ -1311,30 +1491,50 @@ export default function RoutesPage() {
   // a mitad), esa medida es de la forma de antes y se tira; la nueva forma se mide aparte.
   const formaActual = useRef({ date, byDriver });
   formaActual.current = { date, byDriver };
+  /** La forma de la ruta que se mide (D-NEXT): la de `firmaDeLaMedida` —fecha, paradas, puestos, pines— MÁS la lista tal como
+   *  se pinta. La misma ruta guardada da otra lista si cambia la capacidad del camión (sin posición guardada, las recogidas se
+   *  cortan por lo que cabe) o si llega el plan publicado, y la llegada de cada recogida va por su puesto EN la lista: una
+   *  medida guardada de la lista de antes pondría las horas en la fila que no es. */
+  const firmaDe = (clave: string, stops: Delivery[]): string =>
+    `${firmaDeLaMedida(date, clave, stops)}|${lecturaDe(clave, stops).paradas.map((p) => (p.tipo === "P" ? `P${p.ordenes.join("+")}` : `D${p.orden}`)).join(",")}`;
+  const firmaAhora = useRef(firmaDe);
+  firmaAhora.current = firmaDe;
   // De qué forma de la ruta es cada medida pintada. Si la ruta cambia por donde sea —también cuando se le QUITAN paradas
   // desde otra ruta (el tablero y «Asignar» solo limpiaban la de destino)—, lo pintado se tira: así una ruta que se quedó
   // vacía no conserva sus millas ni su línea (Julio, D-437).
   const firmaPintada = useRef<Record<string, string>>({});
   useEffect(() => {
     for (const k of Object.keys(routeInfo)) {
-      if (firmaPintada.current[k] !== firmaDeLaMedida(date, k, byDriver.get(k) ?? [])) clearRouteFor(k);
+      if (firmaPintada.current[k] !== firmaDe(k, byDriver.get(k) ?? [])) clearRouteFor(k);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [byDriver, routeInfo, date]);
+  }, [byDriver, routeInfo, date, rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity]);
+  // Las medidas de esta visita, por forma de la ruta (D-NEXT): volver a una forma ya medida —deshacer, subir y bajar la misma
+  // parada— la repinta de aquí, sin llamar a nadie. Una forma cuya medida falló queda como `MEDIDA_FALLIDA` y no se vuelve a
+  // pedir sola: la tarjeta lo dice y ofrece «↻» (`reintentaLaMedida`, una llamada por pulsación).
+  const medidas = useRef(new Map<string, MedidaDeLaRuta | typeof MEDIDA_FALLIDA>());
+  const [reintentos, setReintentos] = useState(0);
   const mide = async (driver: string, stops: Delivery[]) => {
     setMidiendo(driver);
-    const firma = firmaDeLaMedida(date, driver, stops);
+    const firma = firmaDe(driver, stops);
     try {
       const m = await mideLaRuta(driver, stops);
-      const ahora = formaActual.current;
-      if (firmaDeLaMedida(ahora.date, driver, ahora.byDriver.get(driver) ?? []) === firma) { firmaPintada.current[driver] = firma; pintaLaMedida(driver, m); }
+      medidas.current.set(firma, m);
+      if (firmaAhora.current(driver, formaActual.current.byDriver.get(driver) ?? []) === firma) { firmaPintada.current[driver] = firma; pintaLaMedida(driver, m); }
     } catch {
-      // Sin medida (sin sesión, sin red): la tarjeta se queda sin millas. No se avisa: nadie pidió medir, y la ruta está
-      // igual. No se reintenta en bucle: esa forma de la ruta ya se pidió (`firmaDeLaMedida`).
+      // Sin medida (sin sesión, sin red, el proveedor caído): la tarjeta se queda sin millas y la columna «Llegada» dice
+      // «sin medida». No se reintenta en bucle: esa forma queda apuntada como fallida hasta que alguien pulse «↻».
+      medidas.current.set(firma, MEDIDA_FALLIDA);
     } finally {
       setMidiendo(null);
       setRouterInfo(lastProviderRef.current);
     }
+  };
+
+  /** «↻» de una ruta cuya medida falló: olvida el fallo de ESA forma y la pide otra vez. Una llamada por pulsación. */
+  const reintentaLaMedida = (clave: string) => {
+    medidas.current.delete(firmaDe(clave, byDriver.get(clave) ?? []));
+    setReintentos((n) => n + 1);
   };
 
   const toggleOrder = (id: string) =>
@@ -1577,24 +1777,34 @@ export default function RoutesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [byDriver, settings.stores]);
 
-  // Elegir un chofer MIDE su ruta (D-437): millas, horas y trazo, en el orden guardado, sin tocarla. Hasta D-437 la
-  // OPTIMIZABA y escribía el orden nuevo; y como cada cambio borra la medida (`clearRouteFor`), una flecha con el chofer
-  // elegido volvía a optimizar y deshacía la flecha. Ahora un cambio solo vuelve a MEDIR. Una a la vez; cada forma de la
-  // ruta una sola vez (`firmaDeLaMedida`): si falla, no se reintenta en bucle. Con candado 🔒 también: medir no la toca.
-  const medidasPedidas = useRef(new Set<string>());
+  // TODAS las rutas con paradas que están en pantalla se MIDEN (D-NEXT): millas, horas, trazo y la llegada estimada de cada
+  // parada, en el orden guardado, sin tocarlas. El dueño, 2026-10-01: «el eta estimado en el logistic manager, quiero que
+  // muestre el eta siempre que aveces no aparece». Hasta aquí (D-437) solo se medía al chofer MARCADO en el panel, y por eso
+  // la columna «Llegada» de los demás decía «—». (Antes de D-437 marcar un chofer OPTIMIZABA y escribía el orden; eso no
+  // vuelve: medir no escribe nada, tampoco con candado 🔒.)
+  //   · Viendo UN día, todas las del filtro de chofer; viendo «todas las fechas» o las pendientes, solo las marcadas, como
+  //     antes: ahí la lista de un chofer mezcla días y no es una ruta.
+  //   · Una a la vez, primero las marcadas. Cada FORMA de la ruta se pide una sola vez (`firmaDe`); lo ya medido se repinta
+  //     de `medidas` sin llamar; lo que falló no se reintenta solo (`siguienteMedida`).
+  //   · Llamadas: al cargar un día, UNA por ruta con paradas; por cada cambio, UNA por ruta cuya forma cambió (dos si una
+  //     orden pasa de un chofer a otro), y NINGUNA si se vuelve a una forma ya medida.
+  const seMide = (clave: string) => (byDriver.get(clave) ?? []).length > 0 && pasaFiltro(clave) && (modo === "dia" || selected.has(clave));
+  const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);
   useEffect(() => {
-    if (midiendo != null) return;
-    for (const name of selected) {
-      const stops = byDriver.get(name) ?? [];
-      if (!stops.length || routeInfo[name]) continue;
-      const firma = firmaDeLaMedida(date, name, stops);
-      if (medidasPedidas.current.has(firma)) continue;
-      medidasPedidas.current.add(firma);
-      void mide(name, stops);
-      return;
-    }
+    const rutas = rutasAMedir.map((clave) => ({ clave, firma: firmaDe(clave, byDriver.get(clave) ?? []) }));
+    const pintadas = Object.fromEntries(Object.keys(routeInfo).map((k) => [k, firmaPintada.current[k]]));
+    const que = siguienteMedida<MedidaDeLaRuta>(rutas, pintadas, medidas.current);
+    for (const r of que.repinta) { firmaPintada.current[r.clave] = r.firma; pintaLaMedida(r.clave, r.medida); }
+    if (midiendo == null && que.pide) void mide(que.pide.clave, byDriver.get(que.pide.clave) ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, routeInfo, midiendo, byDriver, date]);
+  }, [selected, routeInfo, midiendo, byDriver, date, modo, filtroChofer, reintentos, rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity]);
+  /** En qué está la medida de una ruta, para que la columna «Llegada» diga algo en vez de «—». */
+  const estadoDeLaMedida = (clave: string, stops: Delivery[]): EstadoDeLaMedida => {
+    const firma = firmaDe(clave, stops);
+    if (routeInfo[clave] && firmaPintada.current[clave] === firma) return "medida";
+    if (medidas.current.get(firma) === MEDIDA_FALLIDA) return "fallo";
+    return seMide(clave) ? "calculando" : "sin_pedir";
+  };
 
   // The whole day is always on the map — a driver focus dims the rest rather
   // than hiding it, so the full picture stays visible.
@@ -1908,10 +2118,11 @@ export default function RoutesPage() {
           onCerrar={() => { setPlanTraidoAMano(false); cierraAvisoDelGestor(AVISOS_DEL_GESTOR.armarRutas); }}
           onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split("#")[0]); if (d) setOpenOrder(d); }}
           columnas={{
-            lista: columnasDeLaTabla("plan", colsGestor, ordenGestor), celda: celdaDelPlan, clase: clasePastillas,
+            // Sin «Plan: Factura»: la factura es la columna fija de esa tabla (D-NEXT), y no se repite ni se lista en su ⚙.
+            lista: sinLaFacturaDelPlan(columnasDeLaTabla("plan", colsGestor, ordenGestor)), celda: celdaDelPlan, clase: clasePastillas,
             selector: (
               <SelectorDeColumnas
-                columnas={columnasDelSelector("plan", ordenGestor)}
+                columnas={sinLaFacturaDelPlan(columnasDelSelector("plan", ordenGestor))}
                 elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
                 rotulo={(c) => (lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
                 titulo={t("Plan columns", "Columnas del plan")} nota={t("Saved for you. Applies to every route.", "Se guarda para usted. Vale para todas las rutas.")}
@@ -2068,7 +2279,9 @@ export default function RoutesPage() {
                   <div
                     key={u.id}
                     onClick={() => focusOnly(u.key)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderTop: "1px solid var(--line)", cursor: "pointer", background: on ? "var(--accent-soft)" : undefined }}
+                    // Soltar aquí una fila de «Sin asignar» la asigna; una parada de otro chofer, la pasa a esta ruta (D-NEXT).
+                    data-suelta-en-ruta={u.key} {...sueltaAqui(u.key, null)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderTop: "1px solid var(--line)", cursor: "pointer", background: on ? "var(--accent-soft)" : undefined, outline: sobre === claveDeSoltar(u.key, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 }}
                   >
                     <input type="checkbox" checked={on} onClick={(e) => e.stopPropagation()} onChange={() => toggleDriver(u.key)} style={{ width: 15, height: 15, flex: "0 0 auto" }} />
                     <span style={{ width: 12, height: 12, borderRadius: "50%", background: colorFor(u.driver), flex: "0 0 auto", border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)" }} />
@@ -2265,6 +2478,11 @@ export default function RoutesPage() {
         ) : (
           <>
           <FiltrosPuestos estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
+          {showTop && (
+            <div className="hint" data-pista-de-arrastre style={{ margin: "0 0 6px" }}>
+              ✋ {t("Drag a row onto a driver in “Drivers & routes” (above) to assign it. Checked rows go together.", "Arrastre una fila a un chofer de «Choferes y rutas» (arriba) para asignarla. Las marcadas van juntas.")}
+            </div>
+          )}
           <BarraSuperior caja={cajaSinAsignarRef} />
           <div className="tbl-scroll tbl-fit tbl-caja" ref={cajaSinAsignarRef} style={estiloDeCaja}>
             <table className="orders tbl-resize" style={anchoDeTabla([28, ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}>
@@ -2300,7 +2518,8 @@ export default function RoutesPage() {
                 )}
                 {ordenSinAsignar.visibles.map((d) => {
                   return (
-                    <tr key={d.id} className={selectedOrders.has(d.id) ? "row-selected" : ""} onClick={() => toggleOrder(d.id)} style={{ cursor: "pointer" }}>
+                    <tr key={d.id} className={selectedOrders.has(d.id) ? "row-selected" : ""} onClick={() => toggleOrder(d.id)} style={{ cursor: "pointer", opacity: arrastrado?.tipo === "orden" && arrastrado.id === d.id ? 0.5 : undefined }}
+                      data-fila-arrastrable="orden" {...filaArrastrable({ tipo: "orden", id: d.id })}>
                       <td>
                         <input type="checkbox" checked={selectedOrders.has(d.id)} readOnly aria-label={`#${orderLabel(d)}`} />
                         {selectedOrders.has(d.id) && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
@@ -2465,6 +2684,8 @@ export default function RoutesPage() {
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379); y, fila a fila, lo que aún no tiene puesto.
         const provisional = esProvisional(stops);
         const isC = isCollapsed(u.key);
+        // En qué está la medida de esta ruta, para la columna «Llegada» y la cabecera (D-NEXT).
+        const medida = estadoDeLaMedida(u.key, stops);
         const bucket = u.isBucket;
         // A route that isn't on a real driver (a bucket, or one recovered under
         // a stale name) can be handed to a driver.
@@ -2482,7 +2703,9 @@ export default function RoutesPage() {
         // single-stop focus, so the map goes back to this driver's whole day.
         // That's the "tap outside" way back out.
         return (
-          <div className="card" key={u.id} style={{ margin: 0 }} onClick={() => setSelectedOrders((prev) => (prev.size ? new Set() : prev))}>
+          <div className="card" key={u.id} data-tarjeta-de-ruta={u.key} {...sueltaAqui(u.key, null)}
+            style={{ margin: 0, outline: sobre === claveDeSoltar(u.key, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 }}
+            onClick={() => setSelectedOrders((prev) => (prev.size ? new Set() : prev))}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
               <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} onClick={() => toggleCollapse(u.key)} title={t("Collapse", "Contraer")}>{isC ? "▸" : "▾"}</button>
               <span
@@ -2535,6 +2758,15 @@ export default function RoutesPage() {
                   ⚠ {t("over 8 h day", "más de 8 h")}
                 </span>
               )}
+              {/* La medida de la ruta, a la vista (D-NEXT): mientras llega, «calculando»; si falló, se dice y se puede reintentar. */}
+              {medida === "calculando" && <span className="hint" data-medida="calculando" style={{ marginTop: 0 }}>⏳ {t("calculating arrivals…", "calculando llegadas…")}</span>}
+              {medida === "fallo" && (
+                <button className="btn btn-ghost btn-sm" data-reintentar-medida={u.key} style={{ color: "var(--amber-text)" }}
+                  title={t("The route couldn't be measured (no network, or the routing service didn't answer). Click to try once more.", "No se pudo medir la ruta (sin red, o el servicio de rutas no contestó). Pulse para probar una vez más.")}
+                  onClick={(e) => { e.stopPropagation(); reintentaLaMedida(u.key); }}>
+                  ↻ {t("not measured — retry", "sin medida — reintentar")}
+                </button>
+              )}
               <span style={{ flex: 1 }} />
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--gray)" }}>
                 🚚 {t("Truck capacity", "Capacidad del camión")}
@@ -2555,8 +2787,19 @@ export default function RoutesPage() {
                 onClick={(e) => { e.stopPropagation(); void alternaCandado(u.key); }}>
                 {bloqueada(u.key) ? `🔒 ${t("Locked", "Bloqueada")}` : `🔓 ${t("Lock", "Bloquear")}`}
               </button>
-              {/* «🧭 Optimizar ruta» iba aquí; se quitó en D-437. El orden lo deciden «Armar las rutas del día», «Mejor
-                  lugar», las flechas y el arrastre. */}
+              {/* «🧭 Optimizar» (D-NEXT; D-437 lo había quitado): reordena SOLO esta ruta para el menor recorrido saliendo de su
+                  base, sin romper «recoger antes de entregar» ni pasarse de la capacidad, y la guarda (Ctrl+Z la deshace). Con
+                  candado 🔒 no la toca y lo dice: el botón se ve apagado pero se puede pulsar, para que diga por qué. */}
+              {stops.length > 0 && (
+                <button className="btn btn-ghost btn-sm" data-optimizar={u.key} disabled={optimizando != null || moviendo} aria-disabled={bloqueada(u.key) || undefined}
+                  style={bloqueada(u.key) ? { opacity: 0.5 } : undefined}
+                  title={bloqueada(u.key)
+                    ? t("Locked 🔒: Optimize leaves this route alone. Unlock it first.", "Bloqueada 🔒: Optimizar no toca esta ruta. Desbloquéela primero.")
+                    : t("Reorder ONLY this route's stops for the shortest run from its base (straight-line estimate), keeping every pickup before its delivery and the truck within capacity. Ctrl+Z undoes it.", "Reordenar SOLO las paradas de esta ruta para el menor recorrido saliendo de su base (estimado en línea recta), con cada recogida antes que su entrega y sin pasarse de la capacidad. Ctrl+Z lo deshace.")}
+                  onClick={(e) => { e.stopPropagation(); void optimizaLaRuta(u.key); }}>
+                  🧭 {optimizando === u.key ? t("Optimizing…", "Optimizando…") : t("Optimize", "Optimizar")}
+                </button>
+              )}
               {needsDriver && (
                 <select
                   defaultValue=""
@@ -2631,7 +2874,10 @@ export default function RoutesPage() {
               </div>
             )}
             {stops.length > 0 && (
-              <div style={{ textAlign: "right" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="hint" data-pista-de-arrastre style={{ margin: 0, flex: 1, textAlign: "left" }}>
+                  ✋ {t("Drag a row to another position, or onto another driver, to move it. The ↑ ↓ arrows still work.", "Arrastre una fila a otro puesto, o a otro chofer, para moverla. Las flechas ↑ ↓ siguen ahí.")}
+                </span>
                 <SelectorDeColumnas
                   columnas={columnasDelSelector("paradas", ordenGestor)}
                   elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
@@ -2663,8 +2909,8 @@ export default function RoutesPage() {
                   <thead>
                     <tr>
                       <th>#<span className="col-resizer" onMouseDown={asaDeParada("_n")} /></th>
-                      {/* El ID, no la factura (D-444). La clave del ancho sigue siendo `_factura`: es la que está guardada. */}
-                      <th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
+                      {/* La FACTURA, con el ID debajo (D-NEXT; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
+                      <th data-columna-factura title={t("The invoice opens the order; its ID goes underneath", "La factura abre la orden; debajo va su ID")}>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
                       <th data-columna-cuenta title={t("What this stop loads (+) or unloads (−) = pallets on board after it", "Lo que carga (+) o descarga (−) esta parada = pallets a bordo después")}>
                         {t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={asaDeParada("_cuenta")} />
                       </th>
@@ -2685,6 +2931,14 @@ export default function RoutesPage() {
                       const movible = f.indice != null;
                       const clave = claveDeLaFila(f);
                       const resaltada = recienMovida === clave;
+                      // ARRASTRAR la fila (D-NEXT): cualquier parada que también muevan las flechas. Soltada sobre otra fila toma
+                      // su puesto; la raya marca dónde cae (arriba, o abajo si viene de más arriba en la misma lista).
+                      const seArrastra = movible && (f.tipo === "D" || hayRecogidaGuardada);
+                      const arrastre = seArrastra ? filaArrastrable({ tipo: "parada", ruta: u.key, indice: f.indice! }) : {};
+                      const soltar = movible ? sueltaAqui(u.key, f.indice!) : {};
+                      const vieneDeArriba = arrastrado?.tipo === "parada" && arrastrado.ruta === u.key && arrastrado.indice < (f.indice ?? 0);
+                      const claseDeSoltar = movible && sobre === claveDeSoltar(u.key, f.indice!) ? (vieneDeArriba ? " suelta-abajo" : " suelta-arriba") : "";
+                      const esLaArrastrada = arrastrado?.tipo === "parada" && arrastrado.ruta === u.key && arrastrado.indice === f.indice;
                       // Las flechas de una fila: cualquier parada, P o D (D-443). Apagadas en el borde de la lista, y en una
                       // recogida si la base no guarda su posición (sin la 154). La precedencia la mira `mueveEnLaLista` al pulsar.
                       const flechas = movible && (
@@ -2722,6 +2976,10 @@ export default function RoutesPage() {
                         const o = suyas[0];
                         // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + su puesto en la lista.
                         const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;
+                        // Si no hay hora, por qué (D-NEXT): la tienda sin coordenadas no se mide; con una sola parada y sin base, tampoco.
+                        const paradaP = f.indice != null ? lectura.paradas[f.indice] : undefined;
+                        const motivoP: MotivoSinLlegada | null = !paradaP || paradaP.tipo !== "P" ? null : !coordsDeTienda(paradaP.tienda) ? "sin_tienda" : "sin_base";
+                        const llegadaP = textoDeLaLlegada(etaP, f.indice != null ? medida : "sin_pedir", motivoP, lang === "es");
                         // La TIENDA donde se recoge, sin «Recoger en» (D-447): va en la columna Ciudad de recogida.
                         const dondeRecoge = (
                           <>
@@ -2730,10 +2988,11 @@ export default function RoutesPage() {
                           </>
                         );
                         return (
-                          <tr key={`P-${fi}-${clave}`} data-recogida={f.etiqueta} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}`}
-                            style={resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined} data-recien-movida={resaltada ? "" : undefined}>
+                          <tr key={`P-${fi}-${clave}`} data-recogida={f.etiqueta} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}${claseDeSoltar}`}
+                            data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
+                            style={{ ...(resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}), ...(seArrastra ? { cursor: "grab" } : {}) }} data-recien-movida={resaltada ? "" : undefined}>
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
-                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{enlaceConElId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
+                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {colsParadas.map((c) => {
                               // D-446: el Tipo de la P es el de su orden, como en la D. D-447 corrige el sitio de la tienda: va en la
@@ -2741,7 +3000,7 @@ export default function RoutesPage() {
                               // 2026-09-29: «la palabra recoger i dont need that y esta mal porque esta en ciudad de entrega eso de rdz
                               // mcallen deberia esta en ciudad de recodiga tienes todo alreves».
                               if (c.key === "p_type") return <td key={c.key} title={o?.order_type || undefined}>{o?.order_type || "—"}</td>;
-                              if (c.key === "p_eta") return <td key={c.key} style={{ fontWeight: 600 }}>{etaP ?? "—"}</td>;
+                              if (c.key === "p_eta") return <td key={c.key} data-llegada={llegadaP.falta ? "falta" : "hora"} title={llegadaP.titulo} style={llegadaP.falta ? ESTILO_SIN_LLEGADA : { fontWeight: 600 }}>{llegadaP.texto}</td>;
                               if (c.key === "p_ciudad_recogida") return <td key={c.key}>{dondeRecoge}</td>;
                               if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}<AvisoSoloCiudad orden={o} corto /></td>;
                               if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
@@ -2760,7 +3019,7 @@ export default function RoutesPage() {
                         return (
                           <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D")}>
                             <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
-                            <td className="ordno">{enlaceConElId(d)}</td>
+                            <td className="ordno">{facturaConSuId(d)}</td>
                             {celdaDeCuenta}
                             <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
                             <td />
@@ -2772,6 +3031,8 @@ export default function RoutesPage() {
                       const win = parseWindow(d.delivery_windows);
                       const etaMin = eta ? parseInt(eta.slice(0, 2), 10) * 60 + parseInt(eta.slice(3, 5), 10) : null;
                       const late = etaMin != null && win != null && etaMin > win[1];
+                      // Si no hay hora, por qué (D-NEXT): sin pin no se mide; si no, «calculando…» o «sin medida».
+                      const llegada = textoDeLaLlegada(eta, medida, d.delivery_lat == null || d.delivery_lng == null ? "sin_pin" : "sin_base", lang === "es");
                       // Three levels of detail, by where you tap:
                       //   the invoice → open the order itself (the ID until D-408)
                       //   the row  → isolate this stop on the map, with its route
@@ -2782,8 +3043,9 @@ export default function RoutesPage() {
                           key={d.id}
                           // Delivered stops tint green, so the route visibly fills in over the day. Isolating a stop still
                           // wins — that's a deliberate pick.
-                          className={`clickable${d.stage === "delivered" && !isolated ? " row-done" : ""}${claseDeGrupo(f)}`}
-                          style={isolated ? { background: "var(--accent-soft)" } : resaltada ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : undefined}
+                          className={`clickable${d.stage === "delivered" && !isolated ? " row-done" : ""}${claseDeGrupo(f)}${claseDeSoltar}`}
+                          data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
+                          style={{ ...(isolated ? { background: "var(--accent-soft)" } : resaltada ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}) }}
                           data-recien-movida={resaltada ? "" : undefined}
                           data-entrega={f.etiqueta}
                           // Stop here: without this the click also reaches the card's "tap outside" handler, which sees a
@@ -2794,9 +3056,9 @@ export default function RoutesPage() {
                           <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}
                             title={gris || provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
                           >{f.etiqueta}</td>
-                          {/* El ID, subrayado: abre la orden (D-408; el ID en vez de la factura desde D-444); y «carga 1 de 2» si es
-                              una carga de una orden partida (D-452). */}
-                          <td className="ordno">{enlaceConElId(d)}{etiquetaDeLaCarga(d)}</td>
+                          {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-NEXT; D-444 había dejado solo el ID); y
+                              «carga 1 de 2» si es una carga de una orden partida (D-452). */}
+                          <td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>
                           {celdaDeCuenta}
                           {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
                               manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
@@ -2806,8 +3068,8 @@ export default function RoutesPage() {
                               case "p_ciudad_recogida": return <td key={c.key}>{zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen) || "—"}</td>;
                               case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></td>;
                               case "p_eta": return (
-                                <td key={c.key} style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
-                                  {eta ?? "—"}{late ? " ⚠️" : ""}
+                                <td key={c.key} data-llegada={llegada.falta ? "falta" : "hora"} style={llegada.falta ? ESTILO_SIN_LLEGADA : { fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : llegada.titulo}>
+                                  {llegada.texto}{late ? " ⚠️" : ""}
                                 </td>
                               );
                               case "p_windows": return <td key={c.key}>{fmtWindows(d.delivery_windows)}</td>;
