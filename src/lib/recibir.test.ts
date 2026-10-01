@@ -95,10 +95,13 @@ describe("qué escribe «Recibir»", () => {
     expect(rama).not.toMatch(/old_stage = 'ready'\s+and new_stage = 'delivered'/);
   });
 
-  it("la 145 sigue siendo la última que define el guard (si cambia, hay que releer lo de arriba)", () => {
+  it("la 157 es la última que define el guard, y es la 145 con una sola lista cambiada (si cambia, hay que releer lo de arriba)", () => {
+    // Hasta D-NEXT la última era la 145. La 157 la copia letra por letra y solo deja nacer una carga partida también en
+    // pending (lo compara `cargas-partidas.test.ts`); lo que esta prueba lee de la 145 sigue valiendo tal cual.
     const define = readdirSync("supabase/migrations").filter((f) => /^\d+_.*\.sql$/.test(f))
       .filter((f) => leer(`supabase/migrations/${f}`).includes("function public.guard_delivery_stage()")).sort();
-    expect(define[define.length - 1]).toBe("145_gerente_hace_bodega.sql");
+    expect(define[define.length - 1]).toBe("157_partes_de_orden.sql");
+    expect(define[define.length - 2]).toBe("145_gerente_hace_bodega.sql");
   });
 });
 

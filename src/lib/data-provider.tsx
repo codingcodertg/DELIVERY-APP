@@ -27,6 +27,7 @@ import { pedirAvisoEnCamino } from "@/lib/avisos-cliente";
 import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
+import { esFuncionAusente } from "@/lib/cargas-partidas";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria";
@@ -130,6 +131,14 @@ export interface DataState {
   /** `pickupSeqById` (D-443): where each order's pickup goes in the list. Only pass it when the database has the column
    *  (`tienePosicionDeRecogida`): writing a column that doesn't exist fails the whole update. */
   reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: number, pickupSeqById?: Record<string, number | null>) => Promise<boolean>;
+  /** Las CARGAS de una orden que no cabe en el camión (D-NEXT, migración 157): órdenes hermanas `#Xa`, `#Xb`.
+   *  `partirCarga` mueve `resto` pallets de la orden `id` a una carga hermana NUEVA y devuelve su id (`null` si no se
+   *  pudo: la base lo dice, o no tiene la 157). */
+  partirCarga: (id: string, resto: number) => Promise<string | null>;
+  /** Cambia cuántos pallets lleva cada una de dos cargas hermanas; la suma no cambia. */
+  reparteCargas: (a: string, b: string, palletsA: number) => Promise<boolean>;
+  /** Devuelve los pallets de `b` a `a` y borra `b` (queda en `deliveries_borradas`, 142). */
+  juntarCargas: (a: string, b: string) => Promise<boolean>;
   /** Borra una orden. `true` solo si la base devolvió la fila (D-383): un DELETE que la política no deja
    * pasar vuelve limpio con CERO filas, y entonces la orden se queda en la lista y se avisa. */
   deleteDelivery: (id: string) => Promise<boolean>;
@@ -1207,6 +1216,36 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify, teaching, deliveries],
   );
 
+  // ---- Las cargas de una orden (D-NEXT, 157): partir, repartir y juntar, por las funciones de la base ---------------
+  // Las tres son `rpc`: la base decide (quién puede, que sean hermanas, que la suma no cambie) y escribe en UNA
+  // transacción. Sin la 157 la función no existe (`esFuncionAusente`): se dice, en vez de fallar a medias. Después se
+  // vuelven a leer las órdenes y los eventos, sin esperar al eco del realtime.
+  const trasLasCargas = useCallback(async (error: { code?: string | null; message: string } | null): Promise<boolean> => {
+    if (error) {
+      notify(esFuncionAusente(error)
+        ? "Splitting loads needs the database update (migration 157). Nothing was changed."
+        : "Error: " + error.message);
+      return false;
+    }
+    await reloadTables(["deliveries", "order_events"]);
+    return true;
+  }, [notify, reloadTables]);
+  const partirCarga = useCallback<DataState["partirCarga"]>(async (id, resto) => {
+    if (teaching) { notify("Not available in teaching mode."); return null; }
+    const { data, error } = await supabase.rpc("partir_carga", { p_id: id, p_resto: resto });
+    return (await trasLasCargas(error)) && typeof data === "string" ? data : null;
+  }, [supabase, teaching, notify, trasLasCargas]);
+  const reparteCargas = useCallback<DataState["reparteCargas"]>(async (a, b, palletsA) => {
+    if (teaching) { notify("Not available in teaching mode."); return false; }
+    const { error } = await supabase.rpc("reparte_cargas", { p_a: a, p_b: b, p_pallets_a: palletsA });
+    return trasLasCargas(error);
+  }, [supabase, teaching, notify, trasLasCargas]);
+  const juntarCargas = useCallback<DataState["juntarCargas"]>(async (a, b) => {
+    if (teaching) { notify("Not available in teaching mode."); return false; }
+    const { error } = await supabase.rpc("juntar_cargas", { p_a: a, p_b: b });
+    return trasLasCargas(error);
+  }, [supabase, teaching, notify, trasLasCargas]);
+
   // Report this device's position. Called on a timer while the driver is on
   // shift (and by the Android app's background service). Deliberately quiet:
   // a dropped fix is not worth a toast on the driver's screen, and the next
@@ -1913,7 +1952,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const value: DataState = {
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, deleteDelivery, setStage, eventsFor, addNote,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,

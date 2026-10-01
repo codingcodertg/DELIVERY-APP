@@ -32963,6 +32963,12 @@ decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Des
 > («P1·P2»): cada recogida en su fila, y el mismo sitio se pinta como grupo (también entregas seguidas a la misma
 > dirección). La cuenta de cada fila ya no es la operación entera: «+4 = 4», sin el «antes» ni «libres», y sin decimales
 > de más. Era la decisión 1 de «Decisiones mías que el dueño debe validar»: no la validó.
+>
+> **⚠ Reemplazada en parte por D-NEXT** (2026-09-30): la fila informativa de «la entrega de OTRA carga de una orden que
+> el motor repartió» (`otraCarga`, `indice: null`: se pinta, no se mueve ni se marca) deja de ser el camino normal. Una
+> orden que no cabe en el camión se parte **en la base** en órdenes hermanas (`#Xa`, `#Xb`, migración 157) antes de
+> planificar, y cada carga es una parada completa: su P y su D, sus flechas, su «Pasar a…» y su botón en «Mi ruta». La
+> fila `otraCarga` se queda solo para leer un plan publicado antes de eso, y como respaldo sin la 157.
 
 **Fecha:** 2026-09-28 · **Versión:** la pone el orquestador · **Migración:** `154_lista_unica.sql`, **escrita y NO
 aplicada** (plan: `docs/PLAN-154-lista-unica.md`). **Reemplaza en parte a** D-016, D-021, D-024, D-025, D-320, D-322,
@@ -33682,3 +33688,186 @@ descargo final.
 - **La 156 no está aplicada**; la subida por la API de Storage (el servicio, no Postgres) contra la base no se probó: se
   mide tras aplicar, subiendo un PDF pequeño suelto y quitándolo.
 - `window.print()` real: como en D-413, solo se miró la hoja en pantalla.
+
+## D-NEXT · Una orden que no cabe en el camión son DOS órdenes (#Xa, #Xb): 2 P y 2 D, cada carga con su chofer, su puesto y su etapa (migración 157)
+
+**Fecha:** 2026-09-30 · **Versión:** la pone el orquestador · **Migración:** `157_partes_de_orden.sql`, **escrita y NO
+aplicada** (plan: `docs/PLAN-157-partes-de-orden.md`; ensayada contra producción con ROLLBACK, 30 de 30). **Reemplaza en
+parte a** D-443 (la fila informativa `otraCarga`), que lleva su nota. **No toca ningún dato ni ninguna política.**
+
+### Qué pidió el dueño
+
+El 2026-09-30 (literal, tal como lo pasó el orquestador):
+
+> so if we have an order of more than 10 pallets that will be devided into 2 those 2 orders should assign as 2 p 2 d
+
+Una orden que no cabe en el camión y se parte en dos cargas tiene que ser **dos paradas completas**: dos recogidas (P) y
+dos entregas (D), con su número, sus flechas y su «Pasar a…», en el Gestor, en el plan y en «Mi ruta».
+
+### Qué pasaba (medido antes de tocar nada; `src/lib/cargas-partidas.test.ts`, bloque «HOY», y producción)
+
+Con una orden `g` de 15 pallets y un camión de 10, con las funciones de verdad:
+
+1. El motor la partía en cargas **virtuales** `g#a` (10) y `g#b` (5), **las dos en el mismo chofer**, con P y D cada una.
+2. **Publicar escribía UNA fila**: el chofer y el puesto de la primera carga. La segunda no escribía nada.
+3. Leída con el plan, la ruta pintaba 4 filas de `g` pero **2 sin índice** (la segunda P y la segunda D, `otraCarga`): se
+   veían y no se movían. En la lista que se mueve y se escribe, una P y una D.
+4. En cuanto alguien tocaba la ruta mandaba lo guardado: `P1 D1 P2 D2` y la cuenta de P1 «+15 = 15 · ⚠ se pasa 5 de 10».
+5. En el plan sí se podía pasar `g#b` a otro chofer; al publicar, `g` se escribía una vez con el chofer de la primera carga.
+6. «Mi ruta» pintaba «Entregar otra carga de» **sin botón**: no se marcaba por separado.
+
+En producción, hoy mismo: el borrador v1 del plan del 2026-09-30 partió `FT197` (14 pallets contados, `RDZ Pharr`,
+camiones de 10) en `#a`/`#b`; solo `#a` tenía paradas (P5/D5 de Julio Jijon) y `writes` llevaba una entrada
+(`route_seq 4`, `pickup_seq 3.5`). Es exactamente el hueco.
+
+### El modelo: las cargas son ÓRDENES hermanas (y por qué no una tabla de partes)
+
+**Cada carga es una fila de `deliveries`**: la misma `order_no` y `order_code` con `order_suffix` `a`, `b`, `c`… —el
+mecanismo que la app **ya tiene desde la 012** (la partición al recoger, cuando el chofer carga menos; usado una vez en
+producción, medido)— llevado al momento de **planificar**. Con eso una carga tiene, sin que ningún lector cambie: su chofer
+(`assigned_driver`), su puesto (`route_seq`, `pickup_seq`), su etapa, su recogida y su entrega, su comprobante, su RLS, su
+realtime y su historial. El Gestor, «Mi ruta», el manifiesto, el almacén, el mapa y publicar ya tratan una carga como una
+parada completa, porque lo es. Y el dueño lo dice así: *«those 2 orders»*.
+
+**Lo que el orquestador pidió evaluar, y se descartó** (el detalle, en el plan, §1):
+
+- **Una tabla `delivery_parts`** (`delivery_id, parte, pallets, assigned_driver, route_seq, pickup_seq, stage…`). El mismo
+  resultado con diez veces más superficie: cada lector de `deliveries` tendría que aprender que una orden puede tener
+  partes (carriles del Gestor, «Mi ruta», manifiesto, mapa, `writes` del plan, `publish_route_plan`, la copia de un
+  publicado, deshacer, «Mejor lugar», el arrastre, `lista-unica` entera); **la política de lectura de `deliveries`
+  tendría que cambiar** (un chofer con solo la parte 2 no vería la orden) —la tabla más leída y el cambio con más riesgo
+  del repo (131)—; haría falta un trigger que derive la etapa de la orden de sus partes, y el guard (145) no deja al chofer
+  volver una `delivered` a `picked_up`, así que des-marcar una parte exigiría otro bypass; realtime en otra tabla; el
+  comprobante y las fotos por parte; la cola sin conexión por parte. Dos fuentes de verdad que cuadrar en cada escritura.
+- **Un `jsonb` de partes en `deliveries`**: lo mismo, sin RLS ni realtime por parte, y cada escritura pisando el array.
+- **Dejar las cargas virtuales y «publicar la segunda»**: publicar escribe por `deliveries.id`; no hay dónde escribir dos
+  puestos ni dos choferes para una fila.
+
+### Las cuatro decisiones del orquestador, y cómo quedan
+
+1. **Choferes distintos para las cargas:** sí, sin más — cada carga tiene su `assigned_driver`. Medido en la matriz (C4/C5:
+   cada chofer ve solo la suya) y en el motor (dos órdenes cualesquiera).
+2. **El chofer marca cada carga por separado, y la etapa de «la orden»:** cada carga tiene su etapa y se marca con el botón
+   de siempre (C6/C7/C8 de la matriz: el chofer 1 recoge `a`, no puede tocar `b`, la familia queda `a = picked_up`,
+   `b = ready`). **No hay fila madre**: «la orden» es la **familia** (las filas con la misma `order_no`), y su etapa se lee
+   (`etapaDeLaFamilia`): **entregada** cuando todas sus cargas vivas están entregadas; **en reparto** cuando alguna salió
+   (recogida o entregada) y no todas llegaron; si no, **pendiente**; una anulada o rechazada no cuenta. La regla del
+   encargo («`delivered` cuando TODAS; `picked_up` cuando alguna recogida y ninguna entregada») se cumple leyendo, no
+   escribiendo: no hay trigger ni fila que actualizar. **Esto es una reinterpretación de la decisión 2 y hay que validarla.**
+3. **El reparto lo propone el sistema y el gestor lo corrige:** `restoPropuesto` llena el camión y manda el resto a la otra
+   (la regla del motor: 15 en 10 → 10 + 5; 15.3 → 10 + 5.3, en centésimas); en el Gestor, «✎» (`reparte_cargas`) cambia
+   cuántos pallets lleva cada una de dos cargas hermanas **sin cambiar la suma** (la base lo exige: `CARGA_BAD_SPLIT`).
+   Cada carga escribe el campo que tiene en uso (recuento si lo hay, si no estimación); con recuento, la estimación de
+   ventas se queda como historia, como la partición al recoger.
+4. **Una orden que cabe no se parte nunca; una partida se vuelve a juntar si cabe:** `partir_carga` solo se llama cuando
+   `parteOrdenesGrandes` la parte (no cabe en el camión más grande de los que pueden llevarla) o a mano en el Gestor, y
+   «✂» solo sale cuando no cabe en el camión de **ese** carril. «⤵» (`juntar_cargas`) solo cuando las dos siguen
+   pendientes de ruta y la suma cabe; `b` se borra y queda en `deliveries_borradas` (142); la orden pierde la letra si no
+   queda otra hermana.
+
+### Qué cambió
+
+- **Migración 157** (plan en papel §1-§9): `guard_delivery_stage` = la 145 letra por letra con **una lista cambiada** (una
+  carga partida puede **nacer** también en `pending`: el motor rutea pendientes); `partir_carga(id, resto) → uuid` y
+  `reparte_cargas(a, b, pallets_a)` **invoker** (valen RLS y guard de quien llama); `juntar_cargas(a, b)` **definer** solo
+  por el borrado (la política de la 142 solo deja borrar borradores), con sus propias comprobaciones: quién llama
+  (`puede_partir_cargas`: admin, logística, gerente, accounting, con el módulo), que **vea** las dos filas (la cláusula de
+  tienda de la política de lectura, `la_ve_quien_llama`), que sean hermanas y pendientes. La carga nueva copia **todo** lo de
+  la madre menos lo suyo (`COLUMNAS_PROPIAS_DE_LA_CARGA`: id, letra, pallets, puesto, sellos, recogida, comprobante,
+  fotos, CSAT; una prueba compara la lista de la app con el `jsonb_build_object` del SQL). Autocomprobación: el guard con
+  la lista nueva en el código, definer y su disparador; partir/repartir no definer, juntar sí; grants; las 4 políticas de
+  `deliveries` intactas; la de borrar sigue siendo la de la 142.
+- **«Armar rutas»** (`POST /api/route-plan`, `partir-antes-de-planificar.ts`): tras leer el día, `particionesDelDia`
+  (la MISMA regla del motor) dice qué órdenes no caben y en cuánto; por cada resto llama `partir_carga` con la sesión de
+  quien planifica (encadenando: para [10, 10, 5] pide 15 a la madre y 5 a la recién nacida); si partió algo, **vuelve a
+  leer el día**; el motor reparte las cargas como dos órdenes. **Sin la 157** (`PGRST202`/`42883` en la primera llamada)
+  no parte nada y planifica como hoy, con cargas virtuales. Un error a medias (la base rechaza una) no para el día: lo
+  partido queda, se dice cuál falló (`particion.detalle`, pintado en el plan), y el motor la parte virtualmente.
+- **Gestor:** «carga 1 de 2» junto al ID en las filas P y D de una familia; en la fila D, «✂» partir (solo si no cabe en
+  ese camión; propone «12 + 3»), «✎» pallets de cada carga (familias de dos; `window.prompt`), «⤵» juntar (si cabe).
+  Cada carga tiene ya sus flechas y su «Pasar a…» porque es una orden.
+- **«Mi ruta»:** «carga 1 de 2» en la siguiente parada y en cada fila; el botón de recoger/entregar es el de siempre, por
+  carga. La fila «Entregar otra carga de» (D-443) queda solo para un plan publicado antes de esto.
+- **Proveedores:** `partirCarga`, `reparteCargas`, `juntarCargas` en `DataState`; el real por `rpc` (y relee órdenes y
+  eventos); el demo en memoria con la misma copia (`copiaParaLaCarga`) y las mismas reglas.
+- **Lo que NO cambió:** `lista-unica`, `lectura-de-ruta`, `publicar`, `publish_route_plan`, `copia`, `vista`: una carga es
+  una orden. El camino de las cargas virtuales (`otraCarga`, `ordenDeLaParte`, «carga N de M» del plan) se queda como
+  respaldo y para leer planes guardados antes.
+
+### Lo que esta forma cuesta, y se asume (para que el dueño lo sepa)
+
+En Órdenes una orden partida son **dos filas** (`#1083a`, `#1083b`), como ya pasa con la partición al recoger. Los avisos
+al cliente salen **por carga** (dos «en camino», dos «entregado»), como hoy con esa partición. La tarifa (`delivery_fee`) y
+la factura **se copian** a la carga nueva, como hace la partición al recoger (012): un informe que sume tarifas por fila
+contaría dos veces; es el comportamiento que ya existía y queda anotado, no arreglado.
+
+### Descartado además
+
+- Partir **al publicar** (dentro de `publish_route_plan`): habría que insertar filas dentro de la función, remapear
+  `route_plan_stops.order_ref` (`id#b` → id nuevo) y `writes`, y la foto `STALE` chocaría con la madre reescrita. Partir
+  **antes** de planificar deja la función de la 154 intacta y las cargas visibles en el Gestor desde el borrador.
+- Partir sin tocar el guard (solo en ready/approved/fulfilling): el motor rutea pendientes y la partición sería a medias.
+- Juntar anulando `b` en vez de borrarla: dejaría una anulada en los informes por un gesto que es «deshacer la partición».
+
+### Pruebas y mutantes
+
+`src/lib/cargas-partidas.test.ts` (33): el bloque «HOY» (medido, se queda como respaldo), la familia (hermanas, «carga 1
+de 2», la letra siguiente, la otra carga), cuándo se parte y en cuánto (15.3 en 10 → 5.3 en centésimas; una recogida no se
+parte; del día entero con la regla del motor), juntar y repartir (la suma no cambia; sin letra no es carga; la letra se
+pierde solo sin hermanas), la copia (qué copia y qué no; la madre con y sin recuento; **la lista de columnas de la app es la
+del SQL**), la etapa de la familia, «Armar rutas» con un cliente simulado (encadena, `sin_funcion`, error a medias, nada
+que partir), las pantallas (la prueba se alimenta de quien llama), y la migración (el guard = 145 + una lista, con solo
+comentarios «157»/«012» de más; tres funciones y nada más; sin begin/commit; checksum al día y el mismo en el plan).
+Tres pruebas de otros ficheros que fijaban «la 145 es la última que define el guard» y la fila P del Gestor se actualizaron
+con su nota (`agregar-material`, `recibir`, `lista-unica`).
+
+**Mutantes: 26 de 26 caen** con una prueba con nombre (tanda en el scratchpad del worker, `w-partes/tanda.json`), p. ej.
+M1 «una orden que cabe entera también se parte» → «15 en un camión de 10…»; M2 «el resto en coma flotante» sobrevivió a
+la primera (15.1 − 10 da 5.1 exacto) y cayó al medir con 15.3; M9 «los restos piden solo la parte siguiente (3 partes
+mal)» → «[10, 10, 5] → 15 a la madre y después 5 a la nueva»; M16 «partir en la base no encadena»; M17 «sin la 157 se
+trata como error»; M21 «parte pero no vuelve a leer el día»; M26 «la 157 deja el guard como la 145».
+
+### Ensayo de la 157 contra producción (2026-09-30, ROLLBACK): 30 de 30
+
+Con los UUID reales de un admin, logística, dos choferes (Steven, Julio Jijon), ventas con el módulo, gerente y almacén,
+y una orden de prueba `ZZ157` (15 pallets, pending, `RDZ Pharr`) creada como postgres dentro de la transacción: logística
+parte 15 en 10 + 5 (la hermana copia factura, tienda, dirección, chofer y etapa; nace sin puesto, sin sellos, con
+`created_by`; dos eventos), rechaza resto = total y 0, reparte 12 + 3, parte la `b` en una `c` y la junta (sigue con
+letra), **publicar escribe las DOS cargas sin tocar la función** (F1/F2); el chofer ve las dos, no parte ni junta, con `b`
+en otro chofer cada uno ve solo la suya, recoge **su** `a` y no puede tocar `b` (0 filas), la familia queda `picked_up` /
+`ready`, juntar con `a` recogida se rechaza; ventas y almacén no parten ni juntan; el gerente y el admin sí (la juntada
+queda en `deliveries_borradas`); ninguna orden ajena cambió (366 antes y después). Dos pasadas previas cayeron y se
+corrigieron en el `.sql`: Supabase concede `EXECUTE` a `authenticated` por defecto (la auxiliar interna se revoca por su
+nombre), y `photos` es **jsonb**, no `text[]`. Comprobado después que no quedó nada.
+
+### Medido en el demo por CDP (2026-09-30, puerto propio, perfil desechable, clics de persona)
+
+Escena: la orden `#1083` de Pharr a 15 pallets, hoy, de Diego Driver, camión de 12 (el defecto del demo). 1280 px:
+- Antes: `P1 1083`, `D1 1083`; un botón ✂ con título «Split in 2 loads: 12 + 3 pallets (it doesn't fit in this truck)»;
+  el panel de choferes, «15/12» en rojo.
+- Clic en ✂: cuatro filas —`P1 1083b · load 2 of 2 | +3 = 3`, `D1 1083b | −3 = 0`, `P2 1083a · load 1 of 2 | +12 = 12`,
+  `D2 1083a | −12 = 0`—, **las dos D con sus 2 flechas y su «Pasar a…»**; ✂ desaparece (las dos caben), ✎ en las dos, ⤵ en
+  ninguna (12 + 3 no cabe en 12: correcto); el panel «12/12» en verde; 0 px de desplazamiento lateral. Órdenes enseña
+  `#1083a` y `#1083b`.
+- «Mi ruta» como Diego, 390 px: «0 of 2 delivered · 4 stops · peak load 12/12»; siguiente parada «INV-4113 · load 2 of 2 ·
+  3 pallets · 🚚 Pick up»; cuatro filas con su carga; ningún «Entregar otra carga de»; 0 px lateral.
+- Hallazgo: la carga nueva salió **primera** (las dos sin puesto: el orden es el de llegada). El aviso decía «va al
+  final»; ahora dice «aún no tiene puesto: colócala con las flechas».
+
+### Decisiones mías que el orquestador y el dueño deben validar
+
+1. **El modelo** (órdenes hermanas, no `delivery_parts`): es lo contrario de lo que el encargo daba por hecho.
+2. **La decisión 2 leída por familia**, sin fila madre ni etapa escrita.
+3. **Partir al «Armar rutas» es una escritura en las órdenes** aunque el borrador se descarte: la partición es un hecho
+   físico (no cabe en ningún camión), no una decisión del plan. Si se prefiere, se puede dejar solo el botón del Gestor.
+4. **Quién parte**: admin, logística, gerente y accounting; el chofer, al recoger por su camino de siempre; ventas y
+   almacén, no.
+5. **La carga nueva copia el chofer de la madre** y entra sin puesto (se mueve con las flechas o «Pasar a…»).
+
+### No verificado
+
+- La app contra la 157 **aplicada** (la ruta de «Armar rutas» llamando `partir_carga` de verdad): la ruta se probó con un
+  cliente simulado y el SQL con la matriz; no las dos juntas.
+- Los botones del Gestor contra la base real (medidos en el demo, que escribe en memoria).
+- Un plan publicado antes de esto con cargas virtuales, leído después (el código no cambió; no se probó con datos reales).
+- Cuántos avisos al cliente salen con una orden partida (dos, por el código de avisos por fila): no se disparó ninguno.
