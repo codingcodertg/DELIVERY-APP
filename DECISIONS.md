@@ -15156,6 +15156,12 @@ existiendo para lo que es, borrar de verdad. Hay una prueba de que estas accione
 ban y **no** contienen ninguna llamada de borrado — porque un «dar de baja» que acabara llamando
 a `delete-user` destruiría el expediente que esta rama viene a conservar.
 
+> **Reemplazada en parte por D-NEXT (2026-10-01, «Los botones del expediente…»).** Dos cosas de este
+> párrafo ya no son así. `deactivateEmployee` deshabilita la cuenta **solo si se marca** «Quitar también
+> el acceso al hub» (antes, siempre). Y `reactivateEmployee` **ya no devuelve el acceso**: borra la fecha
+> y nada más; el acceso se devuelve con su propio botón (`setHubAccess`). El ban sigue siendo el mismo y
+> sigue sin borrarse nada.
+
 Tres detalles del orden y del alcance:
 
 - **La fecha se escribe antes que el ban.** Si el ban falla, la baja queda registrada y se puede
@@ -34640,3 +34646,193 @@ importa (230,3 → 190,5 mi puliendo; 273,1 → 243,2 mirando si cabe), se escri
   pruebas de fuente.
 - **Que el orden de «Optimizar» sea el más corto por calles:** se decide en línea recta.
 - El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
+
+## D-NEXT · Los botones del expediente: «Dar de baja» (con motivo y con la casilla del acceso al hub), «Reactivar», «＋ Agregar empleado», «Editar», el filtro Activos / Bajas / Todos, los campos para llenarlo bien y el aviso de «expediente incompleto» (migración 159)
+
+**Fecha:** 2026-10-01 · **Tarea:** hija de T-0046 (el expediente de RR. HH.) y roza T-0054 (el directorio) · **Migración:**
+`159_expediente_campos.sql`, **escrita y sin aplicar** (plan y ensayo: `docs/PLAN-159-expediente-campos.md`) · **Versión:** la
+asigna el orquestador al fusionar (toca solo `recruiting`). **Reemplaza en parte a D-251** (lleva su nota).
+
+### Qué pidió el dueño
+
+Dos mensajes del 2026-10-01 (citas tal como las pasó el orquestador en el encargo, no extraídas del fichero de sesión):
+
+> ok we need to create an hr expediente crealo con todos los usuarios porque s despidio a uno y quiero poder actualizar eso
+
+Se le contestó que el expediente ya existe (D-145 y D-251: Recruiting › Employees, 56 fichas). Respondió:
+
+> ok bien todo, ahora ve y haz los actions bottoms para darle de baja y agregar mas y asi, para llenar bien el sitema, telefono de poficina, telfono eprsonal y eso
+
+### Lo que había, medido antes de tocar nada
+
+La pantalla (`src/app/recruiting/(recruiting)/employees/page.tsx`) tenía **un buscador, un filtro («Solo con papeles
+pendientes») y un botón por fila, «Abrir ficha»**. Dentro de la ficha, «Guardar datos» y los botones de los papeles. Nada más:
+
+- **No había forma de dar de baja a nadie.** Las acciones `deactivateEmployee` y `reactivateEmployee` existían desde D-251
+  y **ninguna pantalla las llamaba**: D-251 lo dice («este encargo no trae pantalla») y el siguiente nunca llegó. La baja
+  solo se podía hacer por SQL. En producción hay **0 bajas** en 56 expedientes (medido el 2026-10-01), y no porque nadie se
+  haya ido.
+- **No había forma de agregar a nadie.** Los 15 expedientes sin cuenta que hay entraron por SQL.
+- **No había filtro por estado**, ni se veía el estado en ningún sitio.
+- **La ficha no dejaba editar la extensión ni el correo**, que son dos de las tres cosas que enseña el directorio. La
+  extensión (45 de 56 la tienen) también entró por SQL.
+- **En Usuarios no existe «desactivar» una cuenta**: `UserDialog` solo tiene «Eliminar» (`/api/delete-user`, que **borra**
+  la cuenta) y las casillas de módulos (`module_access`). El único camino que apaga una cuenta sin borrarla es el ban de
+  Auth que D-251 dejó en `actions/hr.ts`. Ese es el que se reutiliza; no se inventó otro.
+
+### Qué hay ahora
+
+**En la lista**
+
+- **«＋ Agregar empleado»**, arriba. Dos opciones. *Sin cuenta del hub*: nombre (lo único obligatorio), puesto, fecha de
+  ingreso, departamento, tienda, extensión, teléfono de oficina y teléfono personal; al guardar se abre su ficha para
+  terminar de llenarla. *Con cuenta del hub*: no crea nada aquí; explica que las cuentas nacen en Usuarios y que el
+  expediente aparece solo en cuanto la cuenta existe (el trigger de la 106), y lleva a Usuarios. Así sigue habiendo **un
+  solo sitio** donde nacen las cuentas.
+- **Activos · n / Bajas · n / Todos · n**, con contador en cada uno. Arranca en **Activos**.
+- **«Expedientes incompletos · n»**: contador y filtro a la vez.
+- Por fila: **«Editar»** (lo que antes se llamaba «Abrir ficha») y **«Dar de baja»** o **«Reactivar»** según el estado. Una
+  baja lleva la insignia «Baja» con su fecha. Columnas nuevas: Puesto, Tel. de oficina, Ext., y **Expediente**
+  («completo» o «incompleto · n», con los nombres de lo que falta al pasar el ratón).
+
+**«Dar de baja»** abre una ventana que pide la **fecha** (hoy por defecto, en hora local: a las 7 de la tarde en Texas el día
+UTC ya es mañana), el **motivo** de una lista corta (Renuncia, Despido, Abandono de trabajo, Fin de contrato, Otro) y una
+**nota**. Con la 159 aplicada no se puede confirmar sin motivo. Se guarda también **quién la registró y cuándo**.
+
+**«Quitar también el acceso al hub»** va en esa misma ventana, **marcada por defecto si la persona tiene cuenta** (si no la
+tiene, la ventana lo dice y no hay casilla). Marcada, deshabilita la cuenta con el ban de D-251: no se borra nada. Sin
+marcar, la baja queda registrada y la persona sigue pudiendo entrar; la ficha lo avisa en rojo («está de baja pero todavía
+puede entrar»).
+
+**«Reactivar» NO devuelve el acceso al hub**, y lo dice dos veces: en la ventana de confirmación y en el aviso de después.
+Reactivar borra la fecha y los datos de la baja; el acceso se devuelve con su propio botón, **«Devolver acceso al hub»**, en
+el bloque «Cuenta del hub» de la ficha, que enseña el estado real de la cuenta (leído de Auth al abrir, no guardado) y
+también deja **«Quitar acceso al hub»** sin dar de baja. *Esto cambia lo que D-251 dejó escrito:* allí reactivar levantaba el
+ban solo. El dueño pidió que no.
+
+**Quién puede.** Dar de baja, reactivar y tocar el acceso: **solo el admin de RR. HH.**, igual que antes (D-251). El gerente
+de RR. HH. ve los botones apagados, con el motivo. Agregar y editar: admin y gerente, que es lo que ya permitía la 094. No
+se abrió nada.
+
+**La baja ya no entra por «Guardar datos».** Antes `saveEmployeeFile` aceptaba `date_left` de cualquiera que pudiera editar
+una ficha (un gerente incluido), sin motivo y sin apuntar quién. Ahora la rechaza y manda al botón.
+
+**En la ficha**, los campos para «llenar bien el sistema», en tres bloques:
+
+- *INFO*: nombre (editable solo si no tiene cuenta; con cuenta manda el del perfil), **puesto**, ID, **fecha de ingreso**,
+  cumpleaños, **tienda**, grupo del directorio, **departamento**, días libres.
+- *CONTACTO*: **teléfono de oficina** y **extensión** —etiquetados «(directorio)»—, correo de trabajo, **teléfono
+  personal** y **correo personal** —etiquetados «(solo RR. HH.)»—. Y una línea que dice si la persona **sale en el
+  directorio** o por qué no (está de baja, no tiene extensión, no tiene teléfono de oficina).
+- *CONTACTO DE EMERGENCIA*: **nombre, parentesco y teléfono**.
+
+Los teléfonos toman la forma de la app, **956-xxx-xxxx** (D-432), al salir del campo y otra vez al guardar.
+
+### Cuál teléfono es cuál
+
+`phone`, la columna que ya había, **queda como el teléfono de OFICINA**, y el nuevo es `personal_phone`. No al revés, por
+una razón que no es de gusto: `phone` es lo que `public.phone_book()` enseña a **todo el que tenga sesión** (D-256, D-272).
+Si `phone` pasara a ser «el personal», el directorio publicaría teléfonos personales.
+
+**Pero hay algo que el dueño tiene que mirar.** Medido: 30 expedientes tienen `phone`, y son **29 números distintos**. Eso
+no parece una centralita. Si esos 30 son celulares personales, **hoy ya salen en el directorio**, y habría que moverlos a
+`personal_phone` — un cambio de datos, con su sí, que esta rama no hace.
+
+### «Expediente incompleto»
+
+A un expediente le falta algo si no tiene: fecha de ingreso, departamento, tienda (salvo que vaya en un grupo especial del
+directorio), puesto, teléfono personal, contacto de emergencia (nombre **y** teléfono), y —si es una baja— el motivo.
+
+El teléfono de oficina y la extensión **no** cuentan: no tenerlos es un estado válido (almacén, choferes). Lo que eso cambia
+—salir o no en el directorio— se dice aparte en la ficha.
+
+**El contador va a decir 56 de 56 el primer día**, y es verdad: ningún expediente tiene fecha de ingreso (medido: 0 de 56).
+
+### Sin la migración 159
+
+La pantalla funciona igual antes de aplicarla. Un aviso ámbar arriba dice qué falta; puesto, teléfono y correo personales,
+contacto de emergencia y motivo de baja salen **apagados con «falta la migración 159»**; «Guardar datos» no los manda; dar
+de baja guarda la fecha sola y **dice** que el motivo no se guardó; agregar guarda lo que la tabla sí tiene; y el
+«incompleto» solo juzga lo que se puede escribir. Se sabe si está aplicada mirando si las filas traen la columna
+(`select *` trae una columna que no existe como *ausente*, no como `null`).
+
+### El directorio (T-0054)
+
+Comprobado contra producción, dentro del ensayo con ROLLBACK (casos D1–D5 del plan), como un vendedor sin rol de RR. HH.:
+
+- lo que enseña es `phone` y `ringcentral_ext`, los dos campos que la ficha etiqueta «(directorio)»;
+- **no** enseña teléfono personal, correo personal ni contacto de emergencia (la función lee columnas con nombre, y la
+  autocomprobación de la 159 se cae si algún día nombrara una);
+- **una baja deja de salir**: 28 filas → 27; reactivada, 28 otra vez.
+
+`public.phone_book()` no se toca.
+
+### La migración y su ensayo
+
+`159_expediente_campos.sql`: diez columnas nulas sin valor por defecto (`job_title`, `personal_phone`, `personal_email`,
+`emergency_name`, `emergency_relation`, `emergency_phone`, `left_reason`, `left_note`, `left_by`, `left_recorded_at`) y un
+`check` con los cinco motivos. **Ni una política, ni un permiso, ni un trigger, ni una función.** Sin `begin`/`commit`, con
+`-- @ledger-below` y su checksum.
+
+Ensayada el 2026-10-01 contra producción, en una transacción con `ROLLBACK`: **29 casos, 29 OK**, a la primera, por rol
+(admin de RR. HH., gerente, reclutador, sin rol, `anon`). Hoy no existe ningún gerente ni reclutador de RR. HH. (4 admin, 37
+sin rol), así que esos dos tramos se probaron prestándole el rol a un perfil dentro de la transacción. Comprobado después
+que no quedó nada: 18 columnas, ninguna fila en el registro, ningún expediente de ensayo.
+
+### Pruebas y mutantes
+
+Nuevas en `src/lib/recruiting/expediente-acciones.test.ts` (46): las reglas y que **la pantalla y las acciones las usan**.
+Puestas al día, con su nota: `employee-file.test.ts` (el ban ahora sale por `ponAcceso`; la regla «después de la fecha» es
+la misma) y `phone-label.test.ts` (el canario de «Phone» baja de 13 a 12: con dos teléfonos por persona, «Phone» a secas ya
+no dice cuál). `node scripts/verify.mjs`: **5763 pasados, 3 saltados**, `tsc` y `next build` en verde.
+
+**Mutantes: 70, caen los 70 a la primera**, leídos por el nombre de la prueba (`~/.claude/herramientas/mutantes/`). Por punto:
+
+- **Filtro y contadores (5):** Bajas enseña a los activos; Activos cuenta las bajas; la lista arranca en Todos; la pantalla
+  no filtra; los chips pierden el contador → «cuenta activos, bajas y todos…», «cada filtro deja pasar solo a los suyos…» y
+  «la pantalla filtra y cuenta con esas dos funciones, arranca en Activos…».
+- **Dar de baja (15):** no apunta quién; la nota sin recortar; cualquier motivo vale; la fecha es el día UTC; la ventana no
+  pone hoy; se confirma sin motivo; no manda el motivo; el botón de la lista abre otra cosa; los botones se encienden para
+  cualquiera; un gerente puede; **el servidor deja a quien no es admin**; acepta un motivo desconocido; sin la 159 no dice
+  que el motivo no se guardó; sin la 159 falla; **la baja entra por «Guardar datos»** → «el parche lleva fecha, motivo, nota,
+  quién…», «la fecha por defecto es HOY en hora local…», «la ventana de baja pide fecha…», «la acción de baja escribe el
+  parche completo…», «los botones «Dar de baja» y «Reactivar» están en la lista Y en la ficha…», «la baja no entra por
+  «Guardar datos»…».
+- **Acceso al hub (10):** la casilla se pinta sin cuenta; sale marcada al corregir; arranca sin marcar; **la baja apaga la
+  cuenta aunque no esté marcada**; **reactivar devuelve el acceso solo**; la ventana no avisa; quitar y devolver cruzados; un
+  admin se lo quita a sí mismo; «Devolver» quita; la ficha no lee el estado → «la casilla sale marcada si tiene cuenta…»,
+  «la baja solo apaga la cuenta si la casilla va marcada», «reactivar NO devuelve el acceso…», «se reutiliza el ban de
+  D-251…», «el acceso se quita o se devuelve con su propio botón…».
+- **Agregar (6)**, **teléfonos (4)**, **la 159 y la pantalla sin ella (15)**, **incompleto (9)**, **directorio (5)** y la
+  prueba vieja puesta al día (1: el ban antes que la fecha) → caen con «sin nombre no hay fila…», «un número de EE. UU.
+  completo se guarda 956-xxx-xxxx…», «la migración añade exactamente las columnas que la app nombra…», «la lista de motivos
+  es la misma que el check de la migración 159…», «sin la 159 no se pide lo que no se puede escribir», «dice qué falta, campo
+  por campo», «sale quien está activo, con extensión y con teléfono de oficina…» y las demás.
+
+Un aviso sobre lo que valen: bastantes de esos mutantes caen por pruebas que **leen la fuente** de la pantalla (es el estilo
+del repo para comprobar que la pantalla usa la regla). Demuestran que la línea está, no que el botón funcione al pulsarlo.
+
+### No verificado
+
+- **La pantalla en un navegador. Ni una vez.** RR. HH. no carga en el demo (su `layout` pide sesión en el servidor y no
+  tiene rama de demo), así que no hay capturas ni clics. Hay pruebas, `tsc` y `next build`. **Es lo primero que hay que
+  mirar tras fusionar**, con una sesión de admin de RR. HH.: que las ventanas abren, que la de baja queda por encima de la
+  ficha, y cómo se ve la tabla con nueve columnas en una pantalla estrecha.
+- **Ninguna acción de servidor corrió contra la base**: ni la baja, ni reactivar, ni agregar, ni el ban. Lo que se ensayó
+  con ROLLBACK son las mismas escrituras hechas en SQL, por rol.
+- **El error real de PostgREST** al escribir una columna que no existe (se reconocen `PGRST204`, `42703` y los dos mensajes;
+  no se provocó).
+- **Que el ban corte una sesión ya abierta**, y cuánto tarda: impide entrar y refrescar el token; el token vigente dura
+  hasta que caduca.
+- **Si los 30 teléfonos de hoy son de oficina o personales** (ver arriba).
+- El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
+
+### Para validar
+
+1. `phone` = oficina, `personal_phone` = el nuevo (y qué hacer con los 30 de hoy).
+2. La lista de motivos de baja (cinco).
+3. Qué cuenta como «incompleto» (y que el teléfono de oficina y la extensión no cuenten).
+4. Que «con cuenta del hub» mande a Usuarios en vez de crear la cuenta desde RR. HH.
+5. Que reactivar **borre** el motivo y la nota de la baja anterior en vez de conservarlos como historial.
+6. Que dar de baja siga siendo solo del admin de RR. HH. (hoy no hay gerentes, así que no cambia nada para nadie).
+7. Los 30 teléfonos guardados como `(956) xxx-xxxx` no se reescriben: cada uno cambia de forma al guardar su ficha.
