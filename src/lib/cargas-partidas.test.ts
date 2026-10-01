@@ -303,8 +303,8 @@ describe("las pantallas usan la regla (la prueba se alimenta de quien llama)", (
     expect(demo).toContain("alJuntar(a, b, hermanasDe(s.deliveries, a).length - 1)");
   });
   it("el Gestor: «carga 1 de 2» en las filas P y D, y ✂ ✎ ⤵ en la fila D con la capacidad de ESE camión", () => {
-    expect(gestor).toContain("<td className=\"ordno\">{enlaceConElId(d)}{etiquetaDeLaCarga(d)}</td>");
-    expect(gestor).toContain("{enlaceConElId(x)}{etiquetaDeLaCarga(x)}</Fragment>");
+    expect(gestor).toContain("<td className=\"ordno\">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>");
+    expect(gestor).toContain("{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>");
     expect(gestor).toContain("{flechas}{pasar}{botonesDeCarga(d, capacity)}");
     expect(gestor).toContain("data-partir onClick={() => void parteLaOrden(d, capacidad)}");
     expect(gestor).toContain("{sePuedePartir(d, capacidad) && (");

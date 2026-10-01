@@ -187,17 +187,22 @@ describe("la página del Gestor", () => {
     expect(pagina.split('c.key === "invoice" ? enlaceALaOrden(d)').length - 1).toBe(1);
     expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map(");
     expect(pagina).toContain("{menuSinAsignar.map((c) => <th key={c.key}>");
-    // La tabla de paradas enseñaba la factura en el puesto 1; desde D-444 vuelve el ID, con el mismo gesto que abre la orden.
-    expect(pagina).toContain('<td className="ordno">{enlaceConElId(d)}</td>');
-    expect(pagina).toContain("const enlaceConElId = (d: Delivery) => <span {...abreLaOrden(d)} data-abre-la-orden>{orderLabel(d)}</span>;");
+    // La tabla de paradas enseñaba la factura en el puesto 1; D-444 puso el ID en su lugar; D-NEXT (2026-10-01, «Invoice number
+    // is more important») devuelve la factura, que abre la orden, con el ID debajo (`facturaYId`).
+    expect(pagina).toContain('<td className="ordno">{facturaConSuId(d)}</td>');
+    expect(pagina).toContain("const facturaConSuId = (d: Delivery) => { const n = facturaYId(d); const gesto = abreLaOrden(d);");
+    expect(pagina).toContain("{n.id && <span className=\"hint\" data-id-de-la-orden");
+    expect(pagina).not.toContain("enlaceConElId");
   });
   it("D-408: sin columna del ID en «Sin asignar»; en paradas, el ID vuelve en el puesto de la factura (D-444)", () => {
     for (const muerto of ["COL_ID", "CLAVE_ID", 'poolCols.widthOf("__id")', 'poolCols.startResize("__id")', "#{orderLabel(d)}</td>", '<span className="parada-id">', 'className="parada-factura"'])
       expect(pagina, muerto).not.toContain(muerto);
     expect(pagina).toContain("style={anchoDeTabla([28, ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}");
     expect(pagina).toContain("<td colSpan={colsSinAsignar.length + 2} className=\"empty\">");
-    // El dueño, 2026-09-29: «en vez de facturas, pongas el ID». La clave del ancho sigue siendo `_factura`.
-    expect(pagina).toContain('<th>{t("ID", "ID")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
+    // El dueño, 2026-09-29: «en vez de facturas, pongas el ID»; y el 2026-10-01 (D-NEXT): «Invoice number is more important».
+    // La cabecera vuelve a decir «Factura #». La clave del ancho sigue siendo `_factura`.
+    expect(pagina).toContain('{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
+    expect(pagina).not.toContain('<th>{t("ID", "ID")}');
     expect(pagina).not.toContain('<th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
   });
   it("D-408: el enlace pinta el texto de `textoQueAbreLaOrden`, abre con el gesto de siempre, y va gris sin factura", () => {
@@ -242,8 +247,8 @@ describe("la página del Gestor", () => {
     // Número de parada y factura delante de las elegidas; las acciones, detrás.
     expect(pagina.indexOf('<col style={{ width: anchoDeParada("_factura") }} />')).toBeLessThan(col);
     expect(pagina.indexOf('<col style={{ width: anchoDeParada("_acciones") }} />')).toBeGreaterThan(col);
-    expect(pagina.indexOf('<td className="ordno">{enlaceConElId(d)}</td>')).toBeGreaterThan(-1);
-    expect(pagina.indexOf('<td className="ordno">{enlaceConElId(d)}</td>')).toBeLessThan(td);
+    expect(pagina.indexOf('<td className="ordno">{facturaConSuId(d)}</td>')).toBeGreaterThan(-1);
+    expect(pagina.indexOf('<td className="ordno">{facturaConSuId(d)}</td>')).toBeLessThan(td);
     // Las cinco de siempre, cada una por su clave; y las de Órdenes con la celda de Órdenes.
     for (const k of ["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_windows"]) expect(pagina.split(`case "${k}": return`).length - 1, k).toBe(1);
     expect(pagina).toContain("default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;");

@@ -425,6 +425,10 @@ table.orders tr.fila-grupo-recoger td { background: var(--grupo-recoger-bg); }
 table.orders tr.fila-grupo-entregar td { background: var(--grupo-entregar-bg); }
 table.orders tr.fila-grupo-inicio.fila-grupo-recoger td { border-top: 2px solid var(--green); }
 table.orders tr.fila-grupo-inicio.fila-grupo-entregar td { border-top: 2px solid var(--amber); }
+/* Arrastrar una parada (D-NEXT): la raya dice donde cae la fila que se suelta, arriba o abajo de la que tiene debajo. */
+table.orders tr.suelta-arriba td { box-shadow: inset 0 3px 0 var(--accent); }
+table.orders tr.suelta-abajo td { box-shadow: inset 0 -3px 0 var(--accent); }
+table.orders tr[data-fila-arrastrable] { -webkit-user-drag: element; }
 .ordno { font-weight: 800; font-family: 'Archivo'; }
 /* `.parada-id` y `.parada-factura` (D-379, el código arriba y la factura debajo en la celda del ID de las paradas) se
    quitaron en D-408: esa celda enseña solo la factura, subrayada con el mismo gesto que en «Sin asignar». */

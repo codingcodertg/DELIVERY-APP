@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseWindow } from "@/lib/dispatch";
-import { fmtWindows, orderLabel } from "@/lib/utils";
+import { fmtWindows } from "@/lib/utils";
+import { facturaYId } from "@/lib/route-plan/etiqueta";
 import {
   huecoMasCercano, huecosDeLaFila, porQueNoSuelta, textoDePrevia,
   type BarraDelGantt, type Destino, type PlanDeSoltar,
@@ -58,7 +59,8 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
 
   const nombres = useMemo(() => {
     const m = new Map<string, string>();
-    for (const r of rows) for (const d of r.orders) m.set(d.id, orderLabel(d));
+    // D-NEXT: la factura nombra la barra (cabe una cosa); sin factura, su ID con «#». El ID de las que tienen factura, al pasar el ratón.
+    for (const r of rows) for (const d of r.orders) m.set(d.id, facturaYId(d).principal);
     return m;
   }, [rows]);
   const nombre = (id: string) => nombres.get(id) ?? id.slice(0, 6);
@@ -183,14 +185,14 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
                       <div
                         className={"gantt-bar" + (b.tardeMin > 0 ? " gantt-bar-tarde" : "") + (puedeArrastrar ? " gantt-bar-arrastrable" : "") + (arrastrada ? " gantt-bar-arrastrada" : "")}
                         data-gantt-bar={b.id}
-                        title={`#${nombre(b.id)} · ${t("stop", "parada")} ${b.puesto + 1} · ~${horaDe(b.llegadaMin)}${d ? ` · ${fmtWindows(d.delivery_windows)} · ${d.account || ""}` : ""}${b.tardeMin > 0 ? ` · ⚠ ${b.tardeMin} min ${t("late", "tarde")}` : ""}`}
+                        title={`${nombre(b.id)}${d && facturaYId(d).id ? ` · ${facturaYId(d).id}` : ""} · ${t("stop", "parada")} ${b.puesto + 1} · ~${horaDe(b.llegadaMin)}${d ? ` · ${fmtWindows(d.delivery_windows)} · ${d.account || ""}` : ""}${b.tardeMin > 0 ? ` · ⚠ ${b.tardeMin} min ${t("late", "tarde")}` : ""}`}
                         style={{ left: `${left}%`, width: `${width}%`, background: row.color }}
                         onPointerDown={puedeArrastrar ? (e) => alBajar(e, b.id) : undefined}
                         onPointerMove={puedeArrastrar ? alMover : undefined}
                         onPointerUp={puedeArrastrar ? alSoltar : undefined}
                         onPointerCancel={puedeArrastrar ? cancela : undefined}
                       >
-                        {b.tardeMin > 0 ? "⚠" : ""}#{nombre(b.id)}
+                        {b.tardeMin > 0 ? "⚠" : ""}{nombre(b.id)}
                       </div>
                     </div>
                   );
@@ -205,7 +207,7 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
       </div>
       {arr?.activo && (
         <div className="gantt-fantasma" style={{ left: arr.x + 14, top: arr.y + 14 }} data-gantt-previa>
-          <b>#{nombre(arr.id)}</b>
+          <b>{nombre(arr.id)}</b>
           {objetivo ? (() => { const a = avisoDelObjetivo(objetivo); return <span className={a.mal ? "gantt-previa-mal" : ""}>{a.texto}</span>; })()
             : <span>{t("Drop on a driver's row, or on their name for Best fit", "Suelte en la fila de un chofer, o en su nombre para Mejor lugar")}</span>}
         </div>

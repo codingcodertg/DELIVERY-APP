@@ -53,7 +53,8 @@ describe("abrir la orden desde el plan, y atajos de fecha del Gestor (D-428)", (
   const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
   it("en el borrador, la orden y su factura abren la ficha completa (paradas y «Fuera de este plan»)", () => {
     const ruta = leer("src/components/RutaDelPlan.tsx");
-    expect(ruta).toContain("onClick={() => abrirOrden(p.order_ref)}>{idDeOrden(p.order_ref)}</button>");
+    // D-NEXT: lo que se pulsa es la FACTURA (el ID, en gris, si la orden no tiene).
+    expect(ruta).toContain("onClick={() => abrirOrden(p.order_ref)}>{n.principal}</button>");
     const plan = leer("src/components/PlanDelDia.tsx");
     expect(plan).toContain("abrirOrden={onAbrirOrden}");
     expect(plan).toContain("onClick={() => onAbrirOrden(x.id)}>{nombreDeOrden(x.id)}</button>");
@@ -79,14 +80,19 @@ describe("la columna ID del plan: solo el id (D-434; reemplaza en parte D-431)",
     expect(idDeLaOrden(ORDENES, "b")).toBe("#13b");
     expect(idDeLaOrden(ORDENES, "11111111-2222-3333")).toBe("11111111");
   });
-  it("la celda del id pinta idDeOrden, y el panel le pasa idDeLaOrden", () => {
-    expect(ruta).toContain("<th>#</th><th data-columna-id>{t(\"ID\", \"ID\")}</th>");
+  it("D-NEXT: la celda fija pinta la FACTURA con el ID debajo (era solo el id), y el panel le pasa `facturaYIdDeLaOrden`", () => {
+    expect(ruta).toContain("<th>#</th><th data-columna-factura");
+    expect(ruta).toContain("{t(\"Invoice #\", \"Factura #\")}</th>");
+    expect(ruta).toContain("const n = facturaDeOrden(p.order_ref);");
+    expect(ruta).toContain("{n.id && <div className=\"hint\" data-id-de-la-orden");
+    expect(ruta).not.toContain("data-columna-id");
     expect(ruta).not.toContain("data-accion-parada");
     expect(ruta).not.toContain("{nombreDeOrden(");
     expect(ruta).toContain("<td title={p.kind === \"P\" ? t(\"Pick up\", \"Recoger\") : t(\"Deliver\", \"Entregar\")}><b>{p.label}</b>");
     const panel = readFileSync(join(process.cwd(), "src/components/PlanDelDia.tsx"), "utf8").replace(/\s+/g, " ");
     expect(panel).toContain("const idDeOrden = (id: string) => idDeLaOrden(deliveries, id);");
-    expect(panel).toContain("<RutaDelPlan rutas={borrador!.rutas} idDeOrden={idDeOrden}");
+    expect(panel).toContain("const facturaDeOrden = (id: string) => facturaYIdDeLaOrden(deliveries, id);");
+    expect(panel).toContain("<RutaDelPlan rutas={borrador!.rutas} facturaDeOrden={facturaDeOrden}");
   });
   it("la pastilla Builder y el lugar ya no van junto al id: los dicen «Tipo de cliente» y «Ciudad de recogida»", () => {
     expect(ruta).not.toContain("p.builder &&");
