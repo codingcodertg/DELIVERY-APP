@@ -142,7 +142,11 @@ describe("mutación: la acción selecciona las columnas de posición y pasa por 
   it("el cliente manda posición al salir y al volver (el hueco de este encargo)", () => {
     const pp = readFileSync(join(process.cwd(), "src/components/timetracker/PunchPanel.tsx"), "utf8");
     expect(pp).toMatch(/startLeave\(\{ reason: "lunch", geo: await ubicacionOpcional\(\) \}\)/);
-    expect(pp).toMatch(/startLeave\(\{ reason: "customer_visit", geo: await ubicacionOpcional\(\) \}\)/);
+    // D-NEXT: «voy a salir» ya no graba `customer_visit` a ciegas — pregunta. Si NO es una visita,
+    // la salida es la de siempre con el motivo elegido, y sigue mandando la posición; si SÍ lo es,
+    // es un viaje, que también la manda (lo vigila visitas.test.ts).
+    expect(pp).toMatch(/startLeave\(\{ reason, note, geo: await ubicacionOpcional\(\) \}\)/);
+    expect(pp).not.toMatch(/startLeave\(\{ reason: "customer_visit"/);
     expect(pp).toMatch(/endLeave\(d\.leave!\.id, await ubicacionOpcional\(\)\)/);
   });
 });
