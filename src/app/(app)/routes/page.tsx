@@ -44,6 +44,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { etiquetaDelGestor, textoQueAbreLaOrden, valorDelGestor } from "@/lib/valores-del-gestor";
 import { ciudadDeEntrega, ciudadesConocidas } from "@/lib/ciudad-de-entrega";
+import { AVISO_SOLO_CIUDAD, ordenSoloCiudad } from "@/lib/solo-ciudad";
+import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { celdaPropiaDelPlan, claseDeLaFilaDelPlan } from "@/lib/route-plan/celdas-del-plan";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
@@ -2310,7 +2312,7 @@ export default function RoutesPage() {
                           {c.deOrdenes ? celdaDeOrdenes(c.key, d)
                             : c.key === "invoice" ? enlaceALaOrden(d)
                             : c.key === "account" ? (d.account || "—")
-                            : c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</span>
+                            : c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></span>
                             : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
                             : c.key === "store" ? (d.store || "—")
                             : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
@@ -2616,6 +2618,18 @@ export default function RoutesPage() {
                 </div>
               );
             })()}
+            {/* Las paradas de este chofer cuya dirección es SOLO una ciudad (D-454). Va aquí, fuera de la tabla, porque
+                la columna «Ciudad de entrega» se puede quitar y el aviso no puede depender de qué columnas eligió nadie:
+                el punto de esas paradas es el centro de la ciudad, y el chofer no debe salir sin la dirección. */}
+            {stops.some(ordenSoloCiudad) && (
+              <div className="card" data-solo-ciudad-ruta style={{ marginBottom: 8, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+                <b style={{ color: "var(--amber-text)" }}>⚠ {t(AVISO_SOLO_CIUDAD.en, AVISO_SOLO_CIUDAD.es)}</b>
+                <div className="hint" style={{ marginTop: 2 }}>
+                  {stops.filter(ordenSoloCiudad).map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""} — ${d.delivery_address}`).join(" · ")}
+                  {" — "}{t("the pin is the city centre. Get the street address before the driver leaves.", "el pin es el centro de la ciudad. Consiga la dirección con calle antes de que salga el chofer.")}
+                </div>
+              </div>
+            )}
             {stops.length > 0 && (
               <div style={{ textAlign: "right" }}>
                 <SelectorDeColumnas
@@ -2729,7 +2743,7 @@ export default function RoutesPage() {
                               if (c.key === "p_type") return <td key={c.key} title={o?.order_type || undefined}>{o?.order_type || "—"}</td>;
                               if (c.key === "p_eta") return <td key={c.key} style={{ fontWeight: 600 }}>{etaP ?? "—"}</td>;
                               if (c.key === "p_ciudad_recogida") return <td key={c.key}>{dondeRecoge}</td>;
-                              if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}</td>;
+                              if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}<AvisoSoloCiudad orden={o} corto /></td>;
                               if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
                               return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, o)}</td>;
                             })}
@@ -2790,7 +2804,7 @@ export default function RoutesPage() {
                             switch (c.key) {
                               case "p_type": return <td key={c.key} title={d.order_type || undefined}>{d.order_type || "—"}</td>;
                               case "p_ciudad_recogida": return <td key={c.key}>{zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen) || "—"}</td>;
-                              case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;
+                              case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></td>;
                               case "p_eta": return (
                                 <td key={c.key} style={{ fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : undefined}>
                                   {eta ?? "—"}{late ? " ⚠️" : ""}

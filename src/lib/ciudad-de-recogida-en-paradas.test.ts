@@ -148,13 +148,13 @@ describe("la página: las dos ciudades en las filas P y D", () => {
     expect(ini).toBeGreaterThan(-1);
     expect(fin).toBeGreaterThan(ini);
     expect(filaD).toContain('case "p_ciudad_recogida": return <td key={c.key}>{zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen) || "—"}</td>;');
-    expect(filaD).toContain('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;');
+    expect(filaD).toContain('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></td>;');
     expect(pagina).toContain('import { esDeSuZona, zonaDeLaRecogida } from "@/lib/zonas";');
   });
   it("la fila P: la TIENDA en la ciudad de recogida, sin «Recoger en» (D-447); la ciudad de entrega de su orden; el Tipo de su orden", () => {
     // D-447: el dueño, «eso de rdz mcallen deberia esta en ciudad de recodiga tienes todo alreves».
     const recogida = 'if (c.key === "p_ciudad_recogida") return <td key={c.key}>{dondeRecoge}</td>;';
-    const entrega = 'if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}</td>;';
+    const entrega = 'if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}<AvisoSoloCiudad orden={o} corto /></td>;';
     expect(filaP).not.toContain('{t("Pick up at", "Recoger en")}');
     expect(filaP).toContain('<b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>');
     expect(filaP).toContain('if (c.key === "p_type") return <td key={c.key} title={o?.order_type || undefined}>{o?.order_type || "—"}</td>;');

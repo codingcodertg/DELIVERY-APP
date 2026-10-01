@@ -144,7 +144,7 @@ describe("«Ciudad de entrega» en la tabla del plan", () => {
     });
     it("la página la pinta con las mismas ciudades conocidas que «Sin asignar»", () => {
       const pagina = plano(leer("src/app/(app)/routes/page.tsx"));
-      expect(pagina).toContain('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</span>');
+      expect(pagina).toContain('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></span>');
       expect(pagina).toContain("celdaPropiaDelPlan(clave, d, { reglas: settings.order_type_rules, tiendas: settings.stores ?? [], conocidas: ciudadesQueSeConocen, es: lang === \"es\" })");
     });
   });
