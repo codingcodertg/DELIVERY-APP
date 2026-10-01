@@ -343,7 +343,8 @@ describe("Gestor de Rutas: la ciudad de una dirección sin comas (D-423)", () =>
   const g = plano(leer("src/app/(app)/routes/page.tsx"));
   it("la celda de las dos tablas, el orden y el filtro leen con la MISMA lista de ciudades conocidas", () => {
     expect(g).toContain("() => [...ciudadesConocidas([...deliveries.map((d) => d.delivery_address), ...(settings.stores ?? []).map((s) => s.address)]), ...[...zonasDeChofer.values()].flat()],");
-    expect(g.split("{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || \"—\"}").length).toBe(3);
+    // Tres sitios desde D-NEXT: la fila de entrega, «Sin asignar» y la fila ya HECHA (que sigue en la lista de su chofer).
+    expect(g.split("{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || \"—\"}").length).toBe(4);
     expect(g).not.toContain("{ciudadDeEntrega(d.delivery_address) ||");
     expect(g).toContain("valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen)");
   });
