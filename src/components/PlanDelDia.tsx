@@ -55,6 +55,8 @@ const REMEDIO: Record<string, [string, string]> = {
 type Borrador = { plan_id: string; version: number; status: "draft" | "published"; published_at?: string | null; warnTiendasMarcadas: boolean; resumen: Resumen; rutas: RutaVista[]; choferes?: { id: string; nombre: string }[]; porque?: Record<string, PorQue>;
   /** Solo al planificar (D-414): «base», el plan respetó los candados 🔒 compartidos; «sin_tabla», no los conoce (falta la 149). */
   candados?: "base" | "sin_tabla";
+  /** Solo al planificar (D-NEXT, 157): qué órdenes se partieron en cargas EN LA BASE antes de planificar. */
+  particion?: { fuente: "base" | "sin_funcion" | "error"; detalle?: string; partidas: { id: string; nuevas: string[] }[] };
   /** Solo en la copia de un plan publicado que se está cambiando (D-429): de qué versión salió, qué no se reescribe y qué cambió. */
   copia?: CopiaDelPublicado | null };
 
@@ -278,6 +280,17 @@ export function PlanDelDia({ date, onPublicado, onCerrar, onAbrirOrden, naceAbie
           {Object.keys(r.partes).length > 0 && (
             <div className="hint" style={{ margin: 0 }}>
               {Object.entries(r.partes).map(([id, partes]) => t(`${nombreDeOrden(id)} is split into ${partes.length} loads; in Orders it stays a single order.`, `${nombreDeOrden(id)} se reparte en ${partes.length} cargas; en Órdenes figura una sola.`)).join(" ")}
+            </div>
+          )}
+          {/* Órdenes partidas en cargas EN LA BASE antes de planificar (D-NEXT, 157): cada carga es una orden (#Xa, #Xb). */}
+          {borrador?.particion && borrador.particion.partidas.length > 0 && (
+            <div className="hint" data-plan-partidas style={{ margin: 0 }}>
+              ✂ {t("Split into loads (each load is its own order, with its own pickup and delivery)", "Partidas en cargas (cada carga es una orden, con su recogida y su entrega)")}: {borrador.particion.partidas.map((p) => `${idDeOrden(p.id)} → ${p.nuevas.length + 1}`).join(" · ")}
+            </div>
+          )}
+          {borrador?.particion?.fuente === "error" && (
+            <div className="hint" data-plan-particion-error style={{ margin: 0, color: "var(--amber-text)" }}>
+              ⚠ {t("An order could not be split in the database; the engine split it virtually (one row, first load only).", "Una orden no se pudo partir en la base; el motor la partió virtualmente (una fila, solo la primera carga).")} {borrador.particion.detalle ?? ""}
             </div>
           )}
           {borrador?.candados === "sin_tabla" && (
