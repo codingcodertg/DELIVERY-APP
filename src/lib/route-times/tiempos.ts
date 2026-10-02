@@ -135,6 +135,66 @@ export async function matrizBase(puntos: Readonly<Record<Punto, LatLng>>, deps: 
 }
 
 /**
+ * La matriz base entre los puntos de UNA ruta, en UNA SOLA petición al proveedor (D-NEXT, «🧭 Optimizar» del Gestor).
+ *
+ * `matrizBase` pide lo que falta origen a origen: paga exactamente lo que falta, pero son tantas peticiones como orígenes,
+ * una detrás de otra. Vale para «Armar rutas», que corre una vez por día; para un botón que se pulsa y se espera es lento.
+ * Aquí lo que falta se pide de una vez: los orígenes que tienen algún tramo sin guardar × los destinos que tienen alguno.
+ * Se paga algún elemento de más —la diagonal y lo ya guardado que caiga dentro de ese rectángulo— a cambio de una sola ida y
+ * vuelta. Con todo en la caché, ninguna.
+ *
+ * El freno es el mismo (`Presupuesto`), y cuenta lo que de verdad se paga: el rectángulo entero. Por eso se guarda todo lo
+ * que contesta el proveedor preferido, no solo lo que faltaba: así `gastoDesde` ve el gasto real del día.
+ * `llamadas`: las peticiones que salieron a un proveedor de fuera (el estimado no llama a nadie).
+ */
+export async function matrizDeUnaVez(
+  puntos: Readonly<Record<Punto, LatLng>>, deps: Dependencias,
+): Promise<{ matriz: Matriz; informe: InformeDeTiempos & { llamadas: number } }> {
+  const presupuesto = deps.presupuesto ?? PRESUPUESTO_POR_DEFECTO;
+  const nombres = Object.keys(puntos).sort();
+  const clave = (n: Punto) => claveDePunto(puntos[n]);
+  const pares = nombres.flatMap((a) => nombres.filter((b) => b !== a).map((b) => [a, b] as const));
+
+  const guardadas = (await deps.cache.lee(pares.map(([a, b]) => claveSinTrafico(clave(a), clave(b))))).filter((f) => estaVigente(f, deps.ahoraISO));
+  const porClave = new Map(guardadas.map((f) => [textoDeClave(f), f]));
+  const matriz: Matriz = Object.fromEntries(nombres.map((n) => [n, {}]));
+  const faltan: (readonly [Punto, Punto])[] = [];
+  for (const [a, b] of pares) {
+    const f = porClave.get(textoDeClave(claveSinTrafico(clave(a), clave(b))));
+    if (f) matriz[a][b] = { minutos: f.minutos, millas: f.millas }; else faltan.push([a, b]);
+  }
+  const informe: InformeDeTiempos & { llamadas: number } = { deCache: pares.length - faltan.length, pedidos: 0, proveedor: "cache", presupuestoAgotado: false, llamadas: 0 };
+  if (!faltan.length) return { matriz, informe };
+
+  const origenes = [...new Set(faltan.map(([a]) => a))], destinos = [...new Set(faltan.map(([, b]) => b))];
+  const elementos = origenes.length * destinos.length;
+  const gastado = (await deps.cache.gastoDesde(inicioDelDia(deps.ahoraISO))).elementos;
+  const cabe = elementos <= presupuesto.elementosPorCorrida && gastado + elementos <= presupuesto.elementosPorDia;
+
+  let tabla: (Tramo | null)[][] | null = null;
+  let quien: NombreDeProveedor = "estimado";
+  for (const p of deps.proveedores) {
+    // El de pago, solo si cabe en el tope. Los demás no cuestan.
+    if (p.nombre === "google" && !cabe) { informe.presupuestoAgotado = true; continue; }
+    if (p.nombre !== "estimado") informe.llamadas++;
+    try { tabla = await p.matriz(origenes.map((a) => puntos[a]), destinos.map((b) => puntos[b])); quien = p.nombre; break; }
+    catch { tabla = null; }
+  }
+  if (!tabla) return { matriz, informe };
+  const nuevas: FilaDeCache[] = [];
+  origenes.forEach((a, i) => destinos.forEach((b, j) => {
+    const t = tabla![i]?.[j];
+    if (a === b || !t) return;
+    if (!matriz[a][b]) { matriz[a][b] = t; informe.pedidos++; }
+    // Solo se guarda lo que contestó el proveedor PREFERIDO, como en `matrizBase`.
+    if (quien === deps.proveedores[0]?.nombre) nuevas.push({ ...claveSinTrafico(clave(a), clave(b)), ...t, proveedor: quien, pedidoEl: deps.ahoraISO });
+  }));
+  informe.proveedor = elPeor(informe.proveedor, quien);
+  if (nuevas.length) await deps.cache.escribe(nuevas);
+  return { matriz, informe };
+}
+
+/**
  * El instante UTC de un minuto del día en la zona del negocio, con su cambio de hora. La misma cuenta que
  * `departureTimeFor` (`google-routes.ts`), pero con minutos y sin mirar el reloj.
  */
