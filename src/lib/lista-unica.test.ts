@@ -421,8 +421,9 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
     const tarjeta = cuerpoDe(pagina, "{shownDrivers.map((u) => {", "{!ready && <div className=\"empty\">");
     expect(tarjeta).toContain("const grupos = gruposDeMismoLugar(lectura.paradas, stops);");
     expect(tarjeta).toContain("const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;");
-    // La medida usa la MISMA clave para la recogida.
-    expect(pagina).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: RELOAD_MIN });");
+    // La medida usa la MISMA clave para la recogida. (**Puesto al día por D-NEXT**: lo que la recogida tarda ya no es la recarga
+    // entera por fila, sino lo de su visita a la tienda —`minutosEnCadaParada`—. La clave «P:» + su puesto no cambia.)
+    expect(pagina).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });");
     // D-456: detrás de la clase del grupo va la raya de «aquí cae» mientras se arrastra una fila.
     expect(tarjeta).toContain("className={`${claseDeLaFilaDelPlan(\"P\")}${claseDeGrupo(f)}${claseDeSoltar}`}");
     expect(tarjeta).toContain('" row-done" : ""}${claseDeGrupo(f)}${claseDeSoltar}`}');

@@ -353,6 +353,24 @@ describe("2 · cuando dice «exacta», es el mejor orden que existe", () => {
       expect(esElOptimo(e, r, exhaustiva(e)), `semilla ${s}`).toBe(true);
     }
   }, LARGA);
+  it("la exacta SOLA (sin búsqueda local, partiendo de la lista como está) da el mismo óptimo: no vive de lo que encuentre la local", () => {
+    // Si la búsqueda local ya trae el óptimo, la exacta solo lo confirma y un fallo suyo no se vería. Aquí todo lo hace ella.
+    for (let s = 0; s < 60; s++) {
+      const e = inventa(2 + (s % 3), 100 + s, { sinPunto: s % 5 === 0, sinBase: s % 7 === 0, capacidad: s % 4 === 0 ? 4 : undefined, cierre: s % 3 === 0 ? 700 : undefined });
+      const r = optimizaLaLista({ ...e, sinBusquedaLocal: true });
+      expect(r.exacta, `semilla ${s}`).toBe(true);
+      expect(r.trabajo.medidas, `semilla ${s}`).toBe(0);
+      expect(esElOptimo(e, r, fuerzaBruta(e)), `semilla ${s}`).toBe(true);
+    }
+    for (let s = 0; s < 18; s++) {
+      const e = inventa(5 + (s % 3), 500 + s, { sinPunto: s % 6 === 0, sinBase: s % 9 === 0, capacidad: s % 4 === 0 ? 6 : undefined, cierre: s % 3 === 0 ? 760 : undefined });
+      const r = optimizaLaLista({ ...e, sinBusquedaLocal: true });
+      expect(r.exacta, `semilla ${s}`).toBe(true);
+      expect(esElOptimo(e, r, exhaustiva(e)), `semilla ${s}`).toBe(true);
+    }
+    // Y en las rutas reales de hasta ocho órdenes.
+    for (const c of CASOS.filter((x) => x.paradas.length <= 16)) expect(resumen(optimizaLaLista({ ...entradaDe(c), sinBusquedaLocal: true }).despues), c.id).toEqual(c.medido.optimo);
+  }, LARGA);
   it("la búsqueda local SOLA (con la exacta apagada) también llega al óptimo en listas de 4 a 7 órdenes, y no dice que es exacta", () => {
     for (let s = 0; s < 8; s++) {
       const e = inventa(4 + (s % 4), 800 + s, { cierre: s % 3 === 0 ? 760 : undefined });
@@ -685,6 +703,15 @@ describe("7 · hasta dónde llega la exacta, y lo que tarda", () => {
     expect(menor(despues, antes)).toBe(true);
     expect(ordenSinRecoger(r.paradas)).toBeNull();
   });
+  it("las SACUDIDAS rinden: 14 órdenes (28 paradas) bajan a 679 minutos sin llegar tarde a nada; solo bajando se quedaba en 737", () => {
+    // Medido el 2026-10-02 con y sin sacudidas sobre esta misma lista (y otras 27: mejoraban 18 y no empeoraban ninguna).
+    const e = inventa(14, 31337, { juntas: true, capacidad: 12 });
+    const r = optimizaLaLista(e);
+    expect(r.exacta).toBe(false);
+    expect(notaDeLaMedida(r.despues).slice(0, 3)).toEqual([0, 0, 0]);
+    expect(r.despues.minutos).toBeLessThanOrEqual(679);
+    expect(r.antes.minutos).toBe(1272);
+  }, LARGA);
   it("con el tope a cero la exacta se rinde, y la búsqueda local da igualmente un orden válido y no peor", () => {
     const c = caso("once-ordenes-ventanas");
     const r = optimizaLaLista({ ...entradaDe(c), topeDeLaExacta: 0 });

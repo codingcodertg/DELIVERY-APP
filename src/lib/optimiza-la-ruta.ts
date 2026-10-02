@@ -69,6 +69,9 @@ export interface EntradaDeOptimizar {
   tiempos?: TiemposDeLaRuta | null;
   /** Hasta cuántas etiquetas puede crear la búsqueda exacta antes de rendirse. Por defecto, `TOPE_DE_LA_EXACTA`. */
   topeDeLaExacta?: number;
+  /** Para las pruebas y para medir: sin búsqueda local. La exacta parte de la lista tal como está, y todo lo que mejore lo
+   *  encuentra ella sola. */
+  sinBusquedaLocal?: boolean;
 }
 
 /** Lo que mide una lista en un orden dado. */
@@ -273,10 +276,10 @@ const mejorNota = (a: Nota, b: Nota): boolean => {
 };
 type Criterio = (a: Nota, b: Nota) => boolean;
 /**
- * La vara BLANDA de la búsqueda local: el retraso cuesta minutos (el doble en una ventana estrecha) en vez de mandar sobre
- * todo. Solo para ATRAVESAR: con la vara de verdad, juntar dos visitas a una tienda que ahorra una hora de camino no se
- * acepta si de paso deja una entrega 8 minutos tarde, aunque dos movimientos después ese retraso se quite. Se baja primero
- * con esta y después con la de verdad, y lo que cuenta al final es siempre la de verdad (`mejorNota`).
+ * La vara BLANDA de las sacudidas: el retraso cuesta minutos (el doble en una ventana estrecha) en vez de mandar sobre todo.
+ * Solo para ATRAVESAR: con la vara de verdad, juntar dos visitas a una tienda que ahorra una hora de camino no se acepta si
+ * de paso deja una entrega 8 minutos tarde, aunque dos movimientos después ese retraso se quite. Con ella se decide qué
+ * orden intermedio se acepta para seguir buscando; lo que se da por mejor es siempre con la de verdad (`mejorNota`).
  */
 const valorBlando = (n: Nota): number => n[0] * 1e7 + 2 * n[1] + n[2] + n[3] + n[4] * 1e-7;
 const mejorBlanda: Criterio = (a, b) => valorBlando(a) < valorBlando(b);
@@ -291,6 +294,7 @@ function respeta(pr: Problema, orden: ArrayLike<number>, n: number, pos: Int32Ar
 // La búsqueda local: de un orden, a otro mejor moviendo cosas, hasta que nada lo mejore. Varios arranques.
 
 interface Cuenta { medidas: number; pasos: number; tope: number }
+type Hallado = { orden: number[]; nota: Nota };
 
 /**
  * Bajar: de un orden, a otro mejor moviendo cosas, hasta que ningún movimiento lo mejore. Los movimientos, del más barato al
@@ -299,7 +303,7 @@ interface Cuenta { medidas: number; pasos: number; tope: number }
  * vuelta. En cuanto un movimiento mejora, se hace y se sigue desde ahí (no se busca el mejor de todos: con 36 paradas, mirar
  * todos los vecinos antes de dar un paso gastaba el presupuesto entero en veinte pasos).
  */
-function buscaLocal(pr: Problema, partida: readonly number[], cuenta: Cuenta, mejorQue: Criterio = mejorNota, largoMax = 8): { orden: number[]; nota: Nota } {
+function buscaLocal(pr: Problema, partida: readonly number[], cuenta: Cuenta, mejorQue: Criterio = mejorNota, largoMax = 8): Hallado {
   const m = pr.m;
   const pos = new Int32Array(m);
   const orden = Int32Array.from(partida);
@@ -456,13 +460,10 @@ function respetaParcial(pr: Problema, orden: ArrayLike<number>, n: number, pos: 
   return true;
 }
 
-type Hallado = { orden: number[]; nota: Nota };
-
 /**
  * Los ARRANQUES: de cinco partidas —lo que hay; el vecino más cercano; y la inserción más barata en tres turnos (como está,
- * las ventanas que cierran antes primero, y lo más lejano de la base primero)—, bajar hasta que nada lo mejore, dos veces
- * cada una: con la vara de verdad, y con la blanda primero y la de verdad después. Es rápido y casi siempre da ya el mejor
- * orden; lo que venga después (la exacta, o las sacudidas) parte de aquí.
+ * las ventanas que cierran antes primero, y lo más lejano de la base primero)—, bajar hasta que nada lo mejore. Es rápido y
+ * casi siempre da ya el mejor orden; lo que venga después (la exacta, o las sacudidas) parte de aquí.
  *
  * En una ruta GRANDE (la que la exacta ni intenta) bajar cuesta mucho más y lo que rinde son las sacudidas: aquí se baja
  * solo desde lo que hay y desde el vecino más cercano, con bloques cortos, y sin pasar de una parte del presupuesto.
@@ -474,13 +475,10 @@ function arranques(pr: Problema, actual: readonly number[], cuenta: Cuenta): Hal
   cuenta.tope = grande ? TOPE_DE_PASOS * PARTE_DE_LOS_ARRANQUES : TOPE_DE_PASOS;
   let mejor: Hallado = buscaLocal(pr, actual, cuenta, mejorNota, largo);
   const prueba = (partida: readonly number[]) => {
-    for (const blanda of grande ? [false] : [false, true]) {
-      if (cuenta.pasos >= cuenta.tope) return;
-      const r = buscaLocal(pr, blanda ? buscaLocal(pr, partida, cuenta, mejorBlanda, largo).orden : partida, cuenta, mejorNota, largo);
-      if (mejorNota(r.nota, mejor.nota)) mejor = r;
-    }
+    if (cuenta.pasos >= cuenta.tope) return;
+    const r = buscaLocal(pr, partida, cuenta, mejorNota, largo);
+    if (mejorNota(r.nota, mejor.nota)) mejor = r;
   };
-  if (!grande) prueba(buscaLocal(pr, actual, cuenta, mejorBlanda, largo).orden);
   prueba(vecinoMasCercano(pr));
   if (!grande) {
     const indices = Array.from({ length: m }, (_, i) => i);
@@ -848,9 +846,9 @@ export function optimizaLaLista(e: EntradaDeOptimizar): ResultadoDeOptimizar {
   // Primero los arranques, que dan una buena lista y la cota; después la exacta, que la confirma o la mejora. Y si la exacta
   // no termina (la ruta es grande), las sacudidas: la búsqueda local a fondo.
   const cuenta: Cuenta = { medidas: 0, pasos: 0, tope: TOPE_DE_PASOS };
-  let local = arranques(pr, actual, cuenta);
+  let local: Hallado = e.sinBusquedaLocal ? { orden: actual, nota: antes.nota } : arranques(pr, actual, cuenta);
   const ex = exacta(pr, local.nota, e.topeDeLaExacta ?? TOPE_DE_LA_EXACTA);
-  if (!ex.completa) local = sacudidas(pr, local, cuenta);
+  if (!ex.completa && !e.sinBusquedaLocal) local = sacudidas(pr, local, cuenta);
   let elegida = local.orden, nota = local.nota;
   if (ex.orden) { elegida = ex.orden; nota = medidaDe(pr, e, elegida).nota; }
   const trabajo = { medidas: cuenta.medidas, etiquetas: ex.etiquetas };
