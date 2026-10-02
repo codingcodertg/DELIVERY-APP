@@ -173,7 +173,9 @@ describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D
   });
   it("el número de cada chip sale de `cuentasSinAsignar` con la MISMA búsqueda, y se pinta en el chip", () => {
     expect(pagina).toContain("const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearch)");
-    expect(pagina).toContain("({cuentasDeChips[f]})");
+    // Puesto al día por D-NEXT: los chips los pinta `tablaDeOrdenes` con `vista.cuentas`; «Sin asignar» le pasa `cuentasDeChips`.
+    expect(pagina).toContain("({vista.cuentas[f]})");
+    expect(pagina).toContain("chip: poolFilter, onChip: setPoolFilter, cuentas: cuentasDeChips,");
   });
   it("los cinco chips, con «Todas» detrás de «Este día», y «Este día» por defecto", () => {
     expect(pagina).toContain('{(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (');
@@ -182,7 +184,10 @@ describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D
   it("el resumen y la pestaña cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
     expect(pagina).toContain("const unassigned = useMemo(() => sinAsignarDelGestor(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);");
     // «Auto-asignar», que repartía `unassigned` o las marcadas, se quitó en D-437; lo marcado lo usan «Asignar» y «Mejor lugar».
-    expect(pagina).toContain("const ids = filasDelChip.filter((d) => selectedOrders.has(d.id))");
-    expect(pagina).toContain("separaPorRequisitos(filasDelChip.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));");
+    // Puesto al día por D-NEXT: lo marcado son las filas SIN CHOFER de la tabla que se ve (`filasAsignables`): en «Sin asignar»,
+    // `filasDelChip` como hasta aquí; en «Todas», las sin chofer de su chip.
+    expect(pagina).toContain("const ids = filasAsignables.filter((d) => selectedOrders.has(d.id))");
+    expect(pagina).toContain("separaPorRequisitos(filasAsignables.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));");
+    expect(pagina).toContain('const filasAsignables = useMemo(() => (tab === "todas" ? filasDeTodasDelChip.filter((d) => !d.assigned_driver) : filasDelChip), [tab, filasDeTodasDelChip, filasDelChip]);');
   });
 });

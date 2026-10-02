@@ -75,7 +75,9 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
     expect(pagina).toContain("`${o.paradas} paradas`)} · {o.pallets}/{o.capacidad}");
   });
   it("va DESPUÉS de la tabla y pegado abajo (`sticky`): arriba quedaba debajo del mapa, que también es `sticky`", () => {
-    const menu = pagina.indexOf("<MenuDeColumnaAbierto estado={ordenSinAsignar}");
+    // Puesto al día por D-NEXT: la tabla y el recuadro se pintan desde `tablaDeOrdenes`, para «Sin asignar» y «Todas»; el
+    // estado del menú llega en `vista.orden` (antes `ordenSinAsignar`, que sigue siendo el de «Sin asignar»).
+    const menu = pagina.indexOf("<MenuDeColumnaAbierto estado={orden}");
     expect(menu).toBeGreaterThan(-1);
     expect(pagina.indexOf("data-elige-conductor role=\"group\"")).toBeGreaterThan(menu);
     expect(pagina).toContain("style={{ position: \"sticky\", bottom: 8, zIndex: 6,");
