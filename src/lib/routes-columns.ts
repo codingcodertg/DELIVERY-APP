@@ -313,6 +313,37 @@ export function columnasDelSelector(tabla: TablaDelGestor, guardado: readonly st
   return ordenDeLaTabla(tabla, guardado).map((k) => COLUMNAS_DEL_GESTOR.find((c) => c.key === k)!);
 }
 
+/**
+ * La pestaña «Todas» (D-NEXT): todas las órdenes del día, con chofer o sin él. Sus columnas son LAS DE «SIN ASIGNAR» —las
+ * mismas elegidas, el mismo orden, las mismas plantillas, el mismo ⚙— más dos que esa tabla no necesita y esta sí:
+ *
+ *   · «Chofer», FIJA y delante: es lo que distingue una fila asignada de una sin asignar, que es el punto de la pestaña.
+ *     Toma la celda («—» sin chofer), el valor para ordenar y filtrar, y el ancho de partida de la columna «Chofer» de
+ *     Órdenes (`driver`), como las demás que vienen de allí (D-376).
+ *   · «Etapa», SIEMPRE: una entregada se distingue por su pastilla. Si la persona la tiene elegida sale donde la tenga; si
+ *     la quitó de «Sin asignar», aquí sale igual, en su puesto de partida, y su ⚙ la enseña marcada y apagada.
+ *
+ * No es una tabla más del catálogo (`TablaDelGestor`): una clave propia (`t_…`) habría pedido una tanda `_v9` que
+ * reescribiera lo guardado de todos, un orden aparte, y plantillas que la conocieran; y la persona acabaría con dos
+ * configuraciones de la misma lista. Reutilizar la de «Sin asignar» no toca nada guardado (`preferenciasDelGestorAlLeer`
+ * sigue igual), y lo que se marque en un ⚙ se ve en los dos. «Chofer» queda fuera del catálogo como las fijas de paradas
+ * (`_factura`, `_cuenta`): no se elige, no se mueve, no se guarda.
+ */
+export const CHOFER_DE_TODAS: ColumnaDelGestor = { key: "chofer", en: "Driver", es: "Chofer", tablas: [], ancho: 120, deOrdenes: "driver", fija: true };
+export const ETAPA_EN_TODAS = "status";
+/** Las columnas de la tabla «Todas»: el chofer, y las de «Sin asignar» con la etapa aunque no esté elegida. */
+export function columnasDeTodas(elegidas: readonly string[], guardado?: readonly string[] | null): ColumnaDelGestor[] {
+  return [CHOFER_DE_TODAS, ...columnasDeLaTabla("sinAsignar", [...elegidas, ETAPA_EN_TODAS], guardado)];
+}
+/** Lo que lista el ⚙ de «Todas»: el mismo de «Sin asignar», con la etapa marcada y apagada (aquí sale siempre). */
+export function columnasDelSelectorDeTodas(guardado: readonly string[] | null | undefined): ColumnaDelGestor[] {
+  return columnasDelSelector("sinAsignar", guardado).map((c) => (c.key === ETAPA_EN_TODAS ? { ...c, fija: true } : c));
+}
+
+/** Una columna del Gestor por su clave: las del catálogo, y la «Chofer» de «Todas», que vive fuera de él. */
+export const columnaDelGestor = (clave: string): ColumnaDelGestor | undefined =>
+  COLUMNAS_DEL_GESTOR.find((c) => c.key === clave) ?? (clave === CHOFER_DE_TODAS.key ? CHOFER_DE_TODAS : undefined);
+
 /** El orden que trae una plantilla del Gestor, o `null` si se guardó sin orden propio (las de antes de D-410): entonces
  *  se aplica el de partida. Solo claves que aún existen; lo que quede en su orden de partida no se guarda. */
 export function ordenDePlantillaDelGestor(o: readonly string[] | undefined): string[] | null {
@@ -325,7 +356,8 @@ export function ordenDePlantillaDelGestor(o: readonly string[] | undefined): str
  * Recibe el catálogo de Órdenes en vez de importarlo: ese catálogo vive en un componente con JSX, y esto se prueba sin él.
  */
 export function columnaDeOrdenes<T extends { key: string }>(clave: string, catalogoDeOrdenes: readonly T[]): T | undefined {
-  const deOrdenes = COLUMNAS_DEL_GESTOR.find((c) => c.key === clave)?.deOrdenes;
+  // Por `columnaDelGestor` desde D-NEXT: la «Chofer» de «Todas» toma también su celda y su valor de Órdenes.
+  const deOrdenes = columnaDelGestor(clave)?.deOrdenes;
   return deOrdenes ? catalogoDeOrdenes.find((o) => o.key === deOrdenes) : undefined;
 }
 
@@ -335,7 +367,7 @@ export function columnaDeOrdenes<T extends { key: string }>(clave: string, catal
  * el ancho general de la tabla. Lo que la persona ya arrastró sigue mandando sobre esto.
  */
 export function anchoDePartida(clave: string, anchosDeOrdenes: Readonly<Record<string, number>>): number | undefined {
-  const deOrdenes = COLUMNAS_DEL_GESTOR.find((c) => c.key === clave)?.deOrdenes;
+  const deOrdenes = columnaDelGestor(clave)?.deOrdenes;
   return deOrdenes ? anchosDeOrdenes[deOrdenes] : undefined;
 }
 

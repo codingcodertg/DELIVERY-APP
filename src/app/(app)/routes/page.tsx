@@ -26,8 +26,9 @@ import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
+import { cuentasDeTodas, filasDeTodas, todasDelGestor } from "@/lib/todas-del-gestor";
 import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
-import { PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
+import { PANEL_DE_TODAS, PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
 import { esProvisional, esProvisionalLaFila, type FilaDeLaRuta, type LecturaDeRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
@@ -35,9 +36,9 @@ import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { facturaYId, nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import {
   COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, claveDelOrdenEnElNavegador,
-  columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
+  columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, columnasDelSelectorDeTodas, columnasDeTodas, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
   mueveEnElGestor, ordenDePlantillaDelGestor, ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas,
-  seVeEnLaRecogida, sinLaFacturaDelPlan, tieneOrdenPropio, type TablaDelGestor,
+  seVeEnLaRecogida, sinLaFacturaDelPlan, tieneOrdenPropio, type ColumnaDelGestor, type TablaDelGestor,
 } from "@/lib/routes-columns";
 import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
@@ -45,7 +46,7 @@ import { idsRecibidasPorAlmacen } from "@/lib/recibir";
 import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, valorDeColumnas, type ClienteDePrefs, type ColumnasPorRol, type PlantillaDeColumnas } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
-import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
+import { useOrdenYFiltro, type OrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { etiquetaDelGestor, textoQueAbreLaOrden, valorDelGestor } from "@/lib/valores-del-gestor";
 import { ciudadDeEntrega, ciudadesConocidas } from "@/lib/ciudad-de-entrega";
 import { AVISO_SOLO_CIUDAD, ordenSoloCiudad } from "@/lib/solo-ciudad";
@@ -350,6 +351,9 @@ export default function RoutesPage() {
     onBorrar: (nombre: string) => cambiaPlantillasDelGestor(borraPlantilla(plantillasDelGestor.current, nombre), false),
   };
   const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor, ordenGestor);
+  // «Todas» (D-NEXT): las mismas que «Sin asignar» —elegidas, orden, plantillas y ⚙ compartidos— con el chofer delante y
+  // la etapa siempre. Los anchos también son los mismos (`anchoEnSinAsignar`): son las mismas columnas.
+  const colsTodas = columnasDeTodas(colsGestor, ordenGestor);
   // La tabla de paradas: el número de parada y la factura, fijos delante; las elegidas, en el orden de la persona (D-410;
   // hasta aquí, puestos fijos y las de Órdenes detrás, D-346/D-376); y las acciones, fijas al final.
   const colsParadas = columnasDeLaTabla("paradas", colsGestor, ordenGestor);
@@ -402,7 +406,9 @@ export default function RoutesPage() {
   // su chofer. El dueño: «en gestor de rutas el view programados es innecesario, quítalo».
   // «Incidencias» ya no es pestaña (D-437): el dueño, «incidencias que sea un boton». Es un botón junto a las pestañas que
   // abre una ventana sobre el Gestor. La pestaña no se guardaba en ningún sitio: no hay preferencia vieja que recoger.
-  const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline">("routes");
+  // «Todas» (D-NEXT): todas las órdenes del día, con chofer o sin él, en una tabla. El dueño, 2026-10-02: «agrega el tab
+  // donde se mire la lista de todas las ordenes para ese dia asignanada o no que ahi esten».
+  const [tab, setTab] = useState<"routes" | "orders" | "todas" | "board" | "timeline">("routes");
   const [incidenciasAbiertas, setIncidenciasAbiertas] = useState(false);
   useEffect(() => {
     if (!incidenciasAbiertas) return;
@@ -453,6 +459,9 @@ export default function RoutesPage() {
   const [orderSearch, setOrderSearch] = useState("");
   // «Este día» es el defecto (D-331/D-359); «Todas» es lo sin chofer de cualquier día (D-393).
   const [poolFilter, setPoolFilter] = useState<ChipSinAsignar>("dia");
+  // Lo mismo para la pestaña «Todas» (D-NEXT): su buscador y su chip, aparte de los de «Sin asignar».
+  const [busquedaDeTodas, setBusquedaDeTodas] = useState("");
+  const [chipDeTodas, setChipDeTodas] = useState<ChipSinAsignar>("dia");
   // Cached pickup→dropoff geometry for selected unassigned loads (drawn on the map).
   const [selRouteCache, setSelRouteCache] = useState<Record<string, [number, number][]>>({});
   // Geocoded pickup coords per selected load — lets us show a pickup "P" pin and
@@ -465,6 +474,7 @@ export default function RoutesPage() {
   // Las cajas de «Sin asignar» y de las paradas de cada chofer, que mueve también su barra de arriba (D-398).
   // Las de paradas van una por chofer (se pintan dentro del `.map`), por eso van por clave.
   const cajaSinAsignarRef = useRef<HTMLDivElement>(null);
+  const cajaDeTodasRef = useRef<HTMLDivElement>(null);
   const cajaDeParadas = useCajasPorClave();
   // El mapa y los choferes son `sticky` arriba; una caja de alto normal quedaría con su cabecera debajo de
   // ellos. Se mide el panel y las cajas se acortan a lo que queda libre (`altoMaximoDeCaja`).
@@ -1090,6 +1100,17 @@ export default function RoutesPage() {
   // que sale de la misma función: el número es el de las filas que enseña (patrón de D-380/D-384).
   const filasDelChip = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter), [deliveries, date, modo, poolFilter]);
   const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearch), [deliveries, date, modo, orderSearch]);
+  // «Todas» (D-NEXT): todo lo del día, con chofer o sin él, más lo ya hecho ese día (D-459), por el filtro de chofer de la
+  // barra —con un chofer elegido, las suyas y las sin asignar (`todas-del-gestor.ts` dice por qué)—. La pestaña cuenta
+  // «Este día» sin búsqueda; la tabla y sus chips, con su chip y su búsqueda. Las tres salen de la misma función.
+  const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, filtroChofer), [deliveries, date, modo, filtroChofer]);
+  const filasDeTodasDelChip = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, "", filtroChofer), [deliveries, date, modo, chipDeTodas, filtroChofer]);
+  const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodas, filtroChofer), [deliveries, date, modo, chipDeTodas, busquedaDeTodas, filtroChofer]);
+  const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodas, filtroChofer), [deliveries, date, modo, busquedaDeTodas, filtroChofer]);
+  // Lo que «Asignar», «📍 Mejor lugar» y el recuadro «Elige conductor» pueden tomar de lo marcado: las filas SIN CHOFER de la
+  // tabla que se ve, con su chip (hasta D-NEXT, solo las de «Sin asignar»). En «Todas» una fila con chofer se marca para verla
+  // en el mapa, no para asignarla: eso es «Pasar a…».
+  const filasAsignables = useMemo(() => (tab === "todas" ? filasDeTodasDelChip.filter((d) => !d.assigned_driver) : filasDelChip), [tab, filasDeTodasDelChip, filasDelChip]);
 
   // Draw each selected unassigned load's pickup→dropoff route on the map
   // (throttled, cached), so pressing loads shows where they go.
@@ -1137,8 +1158,8 @@ export default function RoutesPage() {
   // How many of the selected loads are still in the pool — the bulk-assign
   // controls act on these only (a selected assigned load is just a map view).
   const poolSelectedCount = useMemo(
-    () => filasDelChip.reduce((n, d) => n + (selectedOrders.has(d.id) ? 1 : 0), 0),
-    [filasDelChip, selectedOrders],
+    () => filasAsignables.reduce((n, d) => n + (selectedOrders.has(d.id) ? 1 : 0), 0),
+    [filasAsignables, selectedOrders],
   );
   // Sin nada marcado el recuadro se va, y lo que se pulsó en él se olvida: la próxima tanda vuelve a preguntar (D-395).
   useEffect(() => { if (poolSelectedCount === 0) setConductorPulsado(null); }, [poolSelectedCount]);
@@ -1190,7 +1211,7 @@ export default function RoutesPage() {
     capacidadDe: (k) => capacityFor(k),
     noDisponibles: unavailableToday,
     filtro: filtroChofer,
-    enSuZona: (k) => esDeSuZona(k, filasDelChip.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? []),
+    enSuZona: (k) => esDeSuZona(k, filasAsignables.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? []),
   });
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
 
@@ -1209,9 +1230,12 @@ export default function RoutesPage() {
   );
   const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen), [deOrdenes, ciudadesQueSeConocen]);
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
+  // «Todas» (D-NEXT) ordena y filtra igual, con su propio estado: la columna «Chofer» va por la de Órdenes (`driver`).
+  const ordenDeTodas = useOrdenYFiltro(todasConBusqueda, valorDelGestorAqui);
   // Las cabeceras con menú son las del catálogo (la fecha se lista formateada, y el costo como dinero). El ID fijo que iba
   // delante se quitó (D-408): el dueño, «routes manager doesn't need to see id».
   const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
+  const menuDeTodas: ColumnaConMenu[] = colsTodas.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
   /** La celda de una columna que el Gestor toma de Órdenes: la MISMA función que pinta Órdenes, o nada si no viene de allí. */
   const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);
   /** La celda de la tabla del plan (D-434): sus dos columnas propias —tipo de cliente y ciudad de recogida— y, las demás, la de
@@ -1575,8 +1599,8 @@ export default function RoutesPage() {
 
   // Assign every checked order to one driver.
   const bulkAssign = async (driver: string) => {
-    // Lo marcado en la TABLA, con su chip: con «Todas» o «Atrasadas» se marcan órdenes de otros días (D-359, D-393).
-    const ids = filasDelChip.filter((d) => selectedOrders.has(d.id)).map((d) => d.id);
+    // Lo marcado en la TABLA que se ve, con su chip: con «Todas» o «Atrasadas» se marcan órdenes de otros días (D-359, D-393).
+    const ids = filasAsignables.filter((d) => selectedOrders.has(d.id)).map((d) => d.id);
     if (!ids.length || !driver) return;
     setAsignando(true);
     try { for (const id of ids) await assignTo(id, driver); } finally { setAsignando(false); }
@@ -1593,7 +1617,7 @@ export default function RoutesPage() {
       return;
     }
     // El filtro de chofer válido (D-418): lo que su camión no puede llevar ni se coloca ni se asigna al final.
-    const { pueden: marcadas, no: sinCamion } = separaPorRequisitos(filasDelChip.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));
+    const { pueden: marcadas, no: sinCamion } = separaPorRequisitos(filasAsignables.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));
     const noEnEn = sinCamion.map((x) => `#${orderLabel(x.orden)}: ${fraseDeFaltan(x.faltan, "en")}`).join(", ");
     const noEnEs = sinCamion.map((x) => `#${orderLabel(x.orden)}: ${fraseDeFaltan(x.faltan, "es")}`).join(", ");
     if (!marcadas.length) {
@@ -2092,6 +2116,305 @@ export default function RoutesPage() {
   // lleva el botón que la trae.
   const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);
 
+  // ---- La tabla de órdenes: «Sin asignar» y «Todas» (D-NEXT) ----------------------------------------------------
+  // Son UNA tabla con dos vistas: la de siempre —lo del día sin chofer (D-331/D-393)— y «Todas»: todo lo del día, con chofer
+  // o sin él, más lo ya hecho (D-459). Lo que cambia entre las dos va en `VistaDeOrdenes`; la cabecera, el buscador, el ⚙,
+  // los chips, la tabla, cada fila, el recuadro «Elige conductor» y el aviso de «Mejor lugar» se pintan desde aquí para las
+  // dos. Cada fila decide sola qué lleva: sin chofer, la casilla, el arrastre y «Asignar a…» (en «Sin asignar» lo son todas);
+  // con chofer, «Pasar a…» (el de la tabla de paradas, `pasaA`, con deshacer); ya hecha, ✓ y nada que la mueva.
+  interface VistaDeOrdenes {
+    clave: "sinAsignar" | "todas";
+    /** El id del plegado (`toggleCollapse`), y la cabecera: «📦 Órdenes sin asignar · 3». */
+    panel: string; icono: string; titulo: string; total: number;
+    columnas: ColumnaDelGestor[]; menu: ColumnaConMenu[]; selector: ColumnaDelGestor[]; notaDelSelector: string;
+    busqueda: string; onBusqueda: (v: string) => void;
+    chip: ChipSinAsignar; onChip: (c: ChipSinAsignar) => void; cuentas: Record<ChipSinAsignar, number>; rotuloDelChip: (c: ChipSinAsignar) => string;
+    /** Las filas del chip sin búsqueda (para decir «todo tiene chofer») y con ella (para decir «nada coincide»). */
+    filas: Delivery[]; conBusqueda: Delivery[];
+    orden: OrdenYFiltro<Delivery>;
+    vacio: string; nadaCoincide: string; pista: string;
+    /** La última columna: su rótulo y su ancho («Asignar a» cabe en 116; «Asignar / pasar», no). */
+    cabeceraDeAcciones: string; anchoDeAcciones: number;
+    caja: React.RefObject<HTMLDivElement | null>;
+  }
+  const tablaDeOrdenes = (vista: VistaDeOrdenes) => {
+    const { columnas, menu, orden, panel } = vista;
+    // «Seleccionar todo» es lo que se VE (con un filtro de columna puesto, solo esas filas, D-360) y se puede marcar: una ya
+    // hecha no se marca (en «Sin asignar» no hay ninguna).
+    const marcables = orden.visibles.filter((d) => !ETAPAS_HECHAS.has(d.stage));
+    const fila = (d: Delivery) => {
+      const hecha = ETAPAS_HECHAS.has(d.stage);
+      const entregada = d.stage === "delivered";
+      const sinChofer = !d.assigned_driver;
+      const ruta = sinChofer ? null : orderLaneKey(d);
+      const marcada = !hecha && selectedOrders.has(d.id);
+      const hora = entregada ? horaReal(d, "D") : null;
+      const titulo = !hecha ? undefined : entregada
+        ? t(`Delivered${hora ? ` at ${hora}` : ""} — it stays on the list; it can't be moved`, `Entregada${hora ? ` a las ${hora}` : ""} — sigue en la lista; no se mueve`)
+        : t("Picked up, on the truck — it stays on the list; it can't be moved", "Recogida, en el camión — sigue en la lista; no se mueve");
+      return (
+        <tr key={d.id} data-orden={hecha ? "hecha" : sinChofer ? "sin-chofer" : "con-chofer"} title={titulo}
+          className={`${marcada ? "row-selected" : ""}${hecha ? ` fila-hecha${entregada ? " row-done" : ""}` : ""}`}
+          onClick={hecha ? undefined : () => toggleOrder(d.id)}
+          style={{ cursor: hecha ? undefined : "pointer", opacity: arrastrado?.tipo === "orden" && arrastrado.id === d.id ? 0.5 : undefined }}
+          data-fila-arrastrable={sinChofer ? "orden" : undefined} {...(sinChofer ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>
+          <td>
+            {/* Una ya hecha lleva ✓ (entregada) o 🚚 (recogida, en camino) en vez de la casilla: no se marca ni se asigna (D-459). */}
+            {hecha
+              ? <span data-hecha={entregada ? "hecho" : "en_camino"} style={{ fontWeight: 700 }}>{entregada ? "✓" : "🚚"}</span>
+              : <input type="checkbox" checked={marcada} readOnly aria-label={`#${orderLabel(d)}`} />}
+            {marcada && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
+          </td>
+          {/* La factura abre la orden y NO selecciona la fila: `stopPropagation` en `abreLaOrden`. */}
+          {columnas.map((c) => (
+            <td key={c.key} className={clasePastillas(c.key)} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
+              {/* Las que vienen de Órdenes (D-376) —etapa, tipo, SO, PO, costo, contacto, y el chofer de «Todas»— con la celda de Órdenes. */}
+              {c.deOrdenes ? celdaDeOrdenes(c.key, d)
+                : c.key === "invoice" ? enlaceALaOrden(d)
+                : c.key === "account" ? (d.account || "—")
+                : c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></span>
+                : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
+                : c.key === "store" ? (d.store || "—")
+                : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
+                : c.key === "date" ? <DateCell d={d} date={date} onChange={reschedule} t={t} />
+                : c.key === "windows" ? fmtWindows(d.delivery_windows)
+                : "—"}
+            </td>
+          ))}
+          <td onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+              {hecha ? null : sinChofer ? (
+                // Assign is ALWAYS available. «🔮 Simular», que salía al lado con un chofer elegido, se quitó en D-437:
+                // reoptimizaba la ruta entera y la escribía. «📍 Mejor lugar» mete la orden sin mover las demás.
+                <select defaultValue="" data-asignar-a onChange={(e) => {
+                  const v = e.target.value; e.currentTarget.value = "";
+                  if (!v) return;
+                  const target = v === "__newroute__" ? addBucket() : v;
+                  // If this row is part of a multi-selection, assign the WHOLE selection.
+                  if (selectedOrders.has(d.id) && selectedOrders.size > 1) bulkAssign(target);
+                  else manualAssign(d.id, target);
+                }} style={{ width: "auto" }}>
+                  <option value="">{t("Assign to…", "Asignar a…")}</option>
+                  {drivers.length > 0 && (
+                    <optgroup label={t("Drivers", "Choferes")}>
+                      {drivers.map((u) => <option key={u.id} value={u.full_name}>{u.full_name}</option>)}
+                    </optgroup>
+                  )}
+                  <optgroup label={t("Temp drivers / routes", "Choferes temp / rutas")}>
+                    {bucketNames.map((n) => <option key={n} value={n}>🧭 {n}</option>)}
+                    <option value="__newroute__">＋ {t("New route…", "Nueva ruta…")}</option>
+                  </optgroup>
+                </select>
+              ) : ruta && lanes.some((l) => l.key !== ruta) ? (
+                // «Pasar a…» (D-NEXT, solo en «Todas»): la orden entera a la ruta de otro chofer, al final de su lista, como en la
+                // tabla de paradas (D-443) y con su deshacer (D-459).
+                <select value="" data-pasar-a aria-label={t("Move the order to another driver", "Pasar la orden a otro chofer")}
+                  onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v) void pasaA(ruta, [d.id], v); }} style={{ width: "auto" }}>
+                  <option value="">{t("Move to…", "Pasar a…")}</option>
+                  {lanes.filter((l) => l.key !== ruta).map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
+                </select>
+              ) : null}
+              {/* La sugerencia de chofer («💡 nombre») que salía aquí se quitó (D-346), por pedido del dueño. */}
+            </div>
+          </td>
+        </tr>
+      );
+    };
+    return (
+      <div className="card" data-tabla-de-ordenes={vista.clave} style={{ margin: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => toggleCollapse(panel)}>
+          <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} title={t("Collapse", "Contraer")}>{isCollapsed(panel) ? "▸" : "▾"}</button>
+          <h2 style={{ margin: 0 }}>{vista.icono} {vista.titulo}</h2>
+          <span className="count-tag">{vista.total}</span>
+        </div>
+        {!isCollapsed(panel) && <>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "10px 0" }}>
+          <input
+            value={vista.busqueda}
+            onChange={(e) => vista.onBusqueda(e.target.value)}
+            placeholder={t("Search # / customer / address / phone…", "Buscar # / cliente / dirección / teléfono…")}
+            style={{ maxWidth: 300 }}
+          />
+          {/* Las dos vistas comparten las columnas elegidas, el orden, las plantillas y las flechas (`moverEn("sinAsignar")`). */}
+          <SelectorDeColumnas
+            columnas={vista.selector}
+            elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t} alLado="izquierda"
+            rotulo={(c) => (lang === "es" ? c.es : c.en)}
+            titulo={t("Show and order columns", "Mostrar y ordenar columnas")} nota={vista.notaDelSelector}
+            plantillas={propsDePlantillas}
+            mover={moverEn("sinAsignar")}
+          />
+          {/* Chips (D-393): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno lleva su número, que
+              sale de la misma función que sus filas. */}
+          {(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (
+            <button
+              key={f}
+              className={"btn btn-sm " + (vista.chip === f ? "btn-primary" : "btn-ghost")}
+              onClick={() => vista.onChip(f)}
+              data-chip={f}
+              title={f === "todas" ? t("Orders from any day — past, future or undated", "Órdenes de cualquier día — pasadas, futuras o sin fecha") : undefined}
+            >
+              {vista.rotuloDelChip(f)} ({vista.cuentas[f]})
+            </button>
+          ))}
+          {selectedOrders.size > 0 && (
+            <>
+              <span className="count-tag">{selectedOrders.size} {t("selected", "seleccionadas")}</span>
+              <button className="btn btn-ghost btn-sm" onClick={clearSelection}>{t("Clear", "Limpiar")}</button>
+            </>
+          )}
+        </div>
+        {vista.filas.length === 0 ? (
+          <div className="empty">{vista.vacio}</div>
+        ) : vista.conBusqueda.length === 0 ? (
+          <div className="empty">{vista.nadaCoincide}</div>
+        ) : (
+          <>
+          <FiltrosPuestos estado={orden} columnas={menu} lang={lang} t={t} />
+          {showTop && (
+            <div className="hint" data-pista-de-arrastre style={{ margin: "0 0 6px" }}>✋ {vista.pista}</div>
+          )}
+          <BarraSuperior caja={vista.caja} />
+          <div className="tbl-scroll tbl-fit tbl-caja" ref={vista.caja} style={estiloDeCaja}>
+            <table className="orders tbl-resize" style={anchoDeTabla([28, ...columnas.map((c) => anchoEnSinAsignar(c.key)), vista.anchoDeAcciones])}>
+              <colgroup>
+                <col style={{ width: 28 }} />
+                {columnas.map((c) => <col key={c.key} style={{ width: anchoEnSinAsignar(c.key) }} />)}
+                <col style={{ width: vista.anchoDeAcciones }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      aria-label={t("Select all", "Seleccionar todo")}
+                      checked={marcables.length > 0 && marcables.every((d) => selectedOrders.has(d.id))}
+                      onChange={(e) => setSelectedOrders((s) => {
+                        const n = new Set(s);
+                        if (e.target.checked) marcables.forEach((d) => n.add(d.id));
+                        else marcables.forEach((d) => n.delete(d.id));
+                        return n;
+                      })}
+                    />
+                  </th>
+                  {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
+                  {menu.map((c) => <th key={c.key}><CabeceraConMenu estado={orden} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`, anchoDePartida(c.key, COLUMN_WIDTHS))} /></th>)}
+                  <th>{vista.cabeceraDeAcciones}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orden.visibles.length === 0 && (
+                  <tr><td colSpan={columnas.length + 2} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
+                )}
+                {orden.visibles.map(fila)}
+              </tbody>
+            </table>
+          </div>
+          <MenuDeColumnaAbierto estado={orden} columnas={menu} lang={lang} t={t} />
+          </>
+        )}
+        {/* «Elige conductor para N órdenes» (D-395): sustituye al antiguo desplegable «Asignar selección a…» y al botón
+            «Auto-asignar selección» de la barra de arriba (ya no hay Auto-asignar, D-437). Va DESPUÉS de la tabla y pegado al borde de abajo de la ventana
+            (`sticky`): arriba de la tabla quedaba debajo del mapa, que también es `sticky`, en cuanto se bajaba a marcar
+            una fila. Mientras se baja cubre las filas que pasan por detrás, pero al final de la tabla vuelve a su sitio,
+            así que ninguna fila queda tapada para siempre. */}
+        {/* Lo que hizo «📍 Mejor lugar» (D-411): dónde entró cada orden y por qué. Se queda hasta cerrarlo o marcar otra
+            cosa —el aviso de abajo dura 2,6 s y esto es lo que hay que leer—, en el sitio del recuadro, que ya se fue. */}
+        {avisoMejorLugar && poolSelectedCount === 0 && (
+          <div className="card" data-aviso-mejor-lugar role="status"
+            style={{ position: "sticky", bottom: 8, zIndex: 6, margin: "10px 0 0", padding: "10px 14px", border: "2px solid var(--green)", display: "flex", gap: 10, alignItems: "flex-start", maxWidth: "100%", boxSizing: "border-box" }}>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
+              {avisoMejorLugar.map((linea, i) => <div key={i} style={{ marginTop: i ? 4 : 0 }}>📍 {linea}</div>)}
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm" aria-label={t("Close", "Cerrar")} onClick={() => setAvisoMejorLugar(null)}>✕</button>
+          </div>
+        )}
+        {poolSelectedCount > 0 && (
+          <div className="card" data-elige-conductor role="group" aria-label={t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
+            style={{ position: "sticky", bottom: 8, zIndex: 6, margin: "10px 0 0", padding: "12px 14px", border: "2px solid var(--accent)", background: "var(--accent-soft)", maxWidth: "100%", boxSizing: "border-box" }}>
+            <b style={{ display: "block", fontSize: 15, marginBottom: 8 }}>
+              👉 {poolSelectedCount === 1
+                ? t("Choose a driver for 1 order", "Elige conductor para 1 orden")
+                : t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
+            </b>
+            {opcionesDelRecuadro.length === 0 ? (
+              <div className="hint" data-sin-choferes style={{ marginBottom: 8 }}>
+                {t("No drivers or routes available. Use “New route” to build one without a driver.", "No hay choferes ni rutas disponibles. Use «Nueva ruta» para armar una sin chofer.")}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", marginBottom: 10, maxHeight: 132, overflowY: "auto" }}>
+                {opcionesDelRecuadro.map((o) => (
+                  <label key={o.clave} style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, cursor: "pointer", fontSize: 14, fontWeight: o.clave === conductorElegido ? 700 : 500, color: "var(--text)", textTransform: "none", letterSpacing: "normal", minWidth: 0 }}>
+                    <input type="radio" name="elige-conductor" value={o.clave} checked={o.clave === conductorElegido}
+                      onChange={() => setConductorPulsado(o.clave)} style={{ width: 15, height: 15, flex: "0 0 auto" }} />
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: colorFor(o.clave), flex: "0 0 auto", boxShadow: "0 0 0 1px var(--line)" }} />
+                    <span>{o.esRuta ? "🧭 " : ""}{o.etiqueta}{bloqueada(o.clave) ? " 🔒" : ""}</span>
+                    <span className="hint" data-carga-del-conductor>
+                      ({o.paradas === 1 ? t("1 stop", "1 parada") : t(`${o.paradas} stops`, `${o.paradas} paradas`)} · {o.pallets}/{o.capacidad} {t("pallets", "pallets")})
+                    </span>
+                    {o.delFiltro && <span className="sema" style={{ fontSize: 10, background: "var(--card)", color: "var(--accent)", border: "1px solid var(--accent)" }}>{t("filter", "filtro")}</span>}
+                    {o.enSuZona && <span className="sema" data-su-zona title={t("Some checked order is in this driver's preferred zone", "Alguna orden marcada es de la zona preferida de este chofer")} style={{ fontSize: 10, background: "var(--card)", color: "var(--green, var(--accent))", border: "1px solid var(--green, var(--accent))" }}>{t("their zone", "su zona")}</span>}
+                    {o.noDisponible && <span className="sema" style={{ fontSize: 10, background: "var(--red-chip-bg)", color: "var(--red-chip-text)" }}>{t("off today", "no disponible")}</span>}
+                  </label>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button className="btn btn-primary" data-asignar-al-elegido disabled={!conductorElegido || asignando}
+                onClick={() => { if (conductorElegido) bulkAssign(conductorElegido); }}>
+                {t("Assign", "Asignar")}
+              </button>
+              {/* «📍 Mejor lugar» (D-411): la orden entra sola en el hueco más barato de esa ruta, sin reoptimizar el
+                  resto. Con la ruta bloqueada 🔒 se apaga, y la línea de al lado dice por qué. */}
+              <button className="btn btn-primary" data-mejor-lugar disabled={!conductorElegido || asignando || (!!conductorElegido && bloqueada(conductorElegido))}
+                title={t("Put each checked order in the cheapest slot of this driver's route, without reoptimizing the rest", "Poner cada orden marcada en el hueco más barato de la ruta de este chofer, sin reoptimizar lo demás")}
+                onClick={() => { if (conductorElegido) void colocaEnElMejorLugar(conductorElegido); }}>
+                📍 {t("Best fit", "Mejor lugar")}
+              </button>
+              {conductorElegido && bloqueada(conductorElegido) && (
+                <span className="hint" data-mejor-lugar-bloqueada style={{ color: "var(--red-chip-text)" }}>
+                  🔒 {t(`${laneLabel(conductorElegido)}'s route is locked: Best fit won't touch it (“Assign” still adds at the end).`, `La ruta de ${laneLabel(conductorElegido)} está bloqueada: Mejor lugar no la toca («Asignar» sí la añade al final).`)}
+                </span>
+              )}
+              <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
+              {/* «✨ Auto-asignar las marcadas» iba aquí; se quitó en D-437. Repartir automático es «Armar las rutas del día». */}
+            </div>
+          </div>
+        )}
+        </>}
+      </div>
+    );
+  };
+  /** El rótulo del chip del DÍA: lo que la pantalla enseña ahora (el «🗓 Todas» de arriba y «Verlas» cambian el modo). */
+  const rotuloDelChipDelDia = () => (modo === "dia" ? t("This day", "Este día") : modo === "todas" ? t("All dates", "Todas las fechas") : t("Overdue & undated", "Expiradas y sin fecha"));
+  const rotuloDelChip = (f: ChipSinAsignar, cualquierDia: string) =>
+    f === "dia" ? rotuloDelChipDelDia() : f === "todas" ? cualquierDia : f === "overdue" ? t("Overdue", "Expiradas") : f === "windowed" ? t("Windowed", "Con ventana") : t("No location", "Sin ubicación");
+  const vistaDeSinAsignar: VistaDeOrdenes = {
+    clave: "sinAsignar", panel: PANEL_SIN_ASIGNAR, icono: "📦", titulo: t("Unassigned orders", "Órdenes sin asignar"), total: unassigned.length,
+    columnas: colsSinAsignar, menu: menuSinAsignar, selector: columnasDelSelector("sinAsignar", ordenGestor), notaDelSelector: t("Saved for you.", "Se guarda para usted."),
+    busqueda: orderSearch, onBusqueda: setOrderSearch,
+    chip: poolFilter, onChip: setPoolFilter, cuentas: cuentasDeChips, rotuloDelChip: (f) => rotuloDelChip(f, t("All", "Todas")),
+    filas: filasDelChip, conBusqueda: unassignedShown, orden: ordenSinAsignar,
+    vacio: poolFilter === "dia" ? t("Everything on this date has a driver.", "Todo en esta fecha ya tiene chofer.") : t("No unassigned orders with this filter.", "Ninguna orden sin asignar con este filtro."),
+    nadaCoincide: t("No unassigned orders match your search.", "Ninguna orden sin asignar coincide con la búsqueda."),
+    pista: t("Drag a row onto a driver in “Drivers & routes” (above) to assign it. Checked rows go together.", "Arrastre una fila a un chofer de «Choferes y rutas» (arriba) para asignarla. Las marcadas van juntas."),
+    cabeceraDeAcciones: t("Assign to", "Asignar a"), anchoDeAcciones: 116, caja: cajaSinAsignarRef,
+  };
+  // «Todas» (D-NEXT): el chip de cualquier día se llama «Todas las fechas», que «Todas» ya es el nombre de la pestaña.
+  const vistaDeTodas: VistaDeOrdenes = {
+    clave: "todas", panel: PANEL_DE_TODAS, icono: "📋", titulo: t("All orders of the day", "Todas las órdenes del día"), total: todasDelDia.length,
+    columnas: colsTodas, menu: menuDeTodas, selector: columnasDelSelectorDeTodas(ordenGestor),
+    notaDelSelector: t("The same columns as “Unassigned”: saved for you, for both tables.", "Las mismas columnas que «Sin asignar»: se guarda para usted, para las dos tablas."),
+    busqueda: busquedaDeTodas, onBusqueda: setBusquedaDeTodas,
+    chip: chipDeTodas, onChip: setChipDeTodas, cuentas: cuentasDeTodasAqui, rotuloDelChip: (f) => rotuloDelChip(f, t("All dates", "Todas las fechas")),
+    filas: filasDeTodasDelChip, conBusqueda: todasConBusqueda, orden: ordenDeTodas,
+    vacio: chipDeTodas === "dia" ? t("No orders on this date.", "No hay órdenes en esta fecha.") : t("No orders with this filter.", "Ninguna orden con este filtro."),
+    nadaCoincide: t("No orders match your search.", "Ninguna orden coincide con la búsqueda."),
+    pista: t("Drag an unassigned row onto a driver in “Drivers & routes” (above) to assign it; “Move to…” changes an assigned one's driver.", "Arrastre una fila sin chofer a un chofer de «Choferes y rutas» (arriba) para asignarla; «Pasar a…» cambia de chofer una asignada."),
+    cabeceraDeAcciones: t("Assign / move", "Asignar / pasar"), anchoDeAcciones: 136, caja: cajaDeTodasRef,
+  };
+
+
   return (
     <>
       <div className="page-head">
@@ -2381,7 +2704,9 @@ export default function RoutesPage() {
             <option value={TODOS_LOS_CHOFERES}>🚚 {t("All drivers", "Todos los choferes")}</option>
             {lanes.map((l) => <option key={l.key} value={l.key}>{l.isBucket ? "🧭 " : ""}{l.label}</option>)}
           </select>
-      <div className="viewtoggle">
+      {/* `flexWrap` (D-NEXT): con cinco pestañas, a 390 px la última se cortaba 13 px por el `overflow: hidden` de la caja
+          (medido: 377 px de pestañas en 364 de caja; con cuatro cabían justas). Envueltas, bajan de línea dentro de la caja. */}
+      <div className="viewtoggle" style={{ flexWrap: "wrap" }}>
         {/* Los cuatro números de la franja que iba arriba (D-459) viven aquí: las rutas y cuántas órdenes tienen chofer
             («programadas»), las que no («sin asignar», en ámbar si hay alguna, como arriba) y el total del día. */}
         <button className={"vt " + (tab === "routes" ? "on" : "")} data-pestana="routes" onClick={() => setTab("routes")}
@@ -2390,6 +2715,14 @@ export default function RoutesPage() {
         </button>
         <button className={"vt " + (tab === "orders" ? "on" : "")} data-pestana="orders" onClick={() => setTab("orders")}>
           📦 {t("Unassigned", "Sin asignar")} (<span data-cuenta-sin-programar style={unassigned.length > 0 && tab !== "orders" ? { color: "var(--amber)", fontWeight: 800 } : undefined}>{unassigned.length}</span>)
+        </button>
+        {/* «Todas (N)» (D-NEXT): todas las del día, con chofer o sin él, más lo ya hecho. N sigue al filtro de chofer:
+            con uno elegido, las suyas y las sin asignar. */}
+        <button className={"vt " + (tab === "todas" ? "on" : "")} data-pestana="todas" onClick={() => setTab("todas")}
+          title={filtroChofer === TODOS_LOS_CHOFERES
+            ? t(`${todasDelDia.length} order(s) this day, with or without a driver, delivered ones included`, `${todasDelDia.length} orden(es) este día, con chofer o sin él, entregadas incluidas`)
+            : t(`${todasDelDia.length} order(s) this day: ${laneLabel(filtroChofer)}'s and the unassigned ones`, `${todasDelDia.length} orden(es) este día: las de ${laneLabel(filtroChofer)} y las sin asignar`)}>
+          📋 {t("All", "Todas")} (<span data-cuenta-todas>{todasDelDia.length}</span>)
         </button>
         <button className={"vt " + (tab === "board" ? "on" : "")} data-pestana="board" onClick={() => setTab("board")}
           title={t(`${dayOrders.length} order(s) in total this day`, `${dayOrders.length} orden(es) en total este día`)}>
@@ -2465,230 +2798,10 @@ export default function RoutesPage() {
       )}
 
       {/* ---------- Unassigned pool ---------- */}
-      {tab === "orders" && (
-      <div className="card" style={{ margin: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => toggleCollapse(PANEL_SIN_ASIGNAR)}>
-          <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} title={t("Collapse", "Contraer")}>{isCollapsed(PANEL_SIN_ASIGNAR) ? "▸" : "▾"}</button>
-          <h2 style={{ margin: 0 }}>📦 {t("Unassigned orders", "Órdenes sin asignar")}</h2>
-          <span className="count-tag">{unassigned.length}</span>
-        </div>
-        {!isCollapsed(PANEL_SIN_ASIGNAR) && <>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "10px 0" }}>
-          <input
-            value={orderSearch}
-            onChange={(e) => setOrderSearch(e.target.value)}
-            placeholder={t("Search # / customer / address / phone…", "Buscar # / cliente / dirección / teléfono…")}
-            style={{ maxWidth: 300 }}
-          />
-          <SelectorDeColumnas
-            columnas={columnasDelSelector("sinAsignar", ordenGestor)}
-            elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t} alLado="izquierda"
-            rotulo={(c) => (lang === "es" ? c.es : c.en)}
-            titulo={t("Show and order columns", "Mostrar y ordenar columnas")} nota={t("Saved for you.", "Se guarda para usted.")}
-            plantillas={propsDePlantillas}
-            mover={moverEn("sinAsignar")}
-          />
-          {/* Chips de «Sin asignar» (D-393): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno
-              lleva su número, que sale de la misma función que sus filas. */}
-          {(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (
-            <button
-              key={f}
-              className={"btn btn-sm " + (poolFilter === f ? "btn-primary" : "btn-ghost")}
-              onClick={() => setPoolFilter(f)}
-              data-chip-sin-asignar={f}
-              title={f === "todas" ? t("Unassigned orders from any day — past, future or undated", "Órdenes sin asignar de cualquier día — pasadas, futuras o sin fecha") : undefined}
-            >
-              {f === "dia" ? (modo === "dia" ? t("This day", "Este día") : modo === "todas" ? t("All dates", "Todas las fechas") : t("Overdue & undated", "Expiradas y sin fecha"))
-                : f === "todas" ? t("All", "Todas")
-                : f === "overdue" ? t("Overdue", "Expiradas")
-                : f === "windowed" ? t("Windowed", "Con ventana")
-                : t("No location", "Sin ubicación")} ({cuentasDeChips[f]})
-            </button>
-          ))}
-          {selectedOrders.size > 0 && (
-            <>
-              <span className="count-tag">{selectedOrders.size} {t("selected", "seleccionadas")}</span>
-              <button className="btn btn-ghost btn-sm" onClick={clearSelection}>{t("Clear", "Limpiar")}</button>
-            </>
-          )}
-        </div>
-        {filasDelChip.length === 0 ? (
-          <div className="empty">{poolFilter === "dia"
-            ? t("Everything on this date has a driver.", "Todo en esta fecha ya tiene chofer.")
-            : t("No unassigned orders with this filter.", "Ninguna orden sin asignar con este filtro.")}</div>
-        ) : unassignedShown.length === 0 ? (
-          <div className="empty">{t("No unassigned orders match your search.", "Ninguna orden sin asignar coincide con la búsqueda.")}</div>
-        ) : (
-          <>
-          <FiltrosPuestos estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
-          {showTop && (
-            <div className="hint" data-pista-de-arrastre style={{ margin: "0 0 6px" }}>
-              ✋ {t("Drag a row onto a driver in “Drivers & routes” (above) to assign it. Checked rows go together.", "Arrastre una fila a un chofer de «Choferes y rutas» (arriba) para asignarla. Las marcadas van juntas.")}
-            </div>
-          )}
-          <BarraSuperior caja={cajaSinAsignarRef} />
-          <div className="tbl-scroll tbl-fit tbl-caja" ref={cajaSinAsignarRef} style={estiloDeCaja}>
-            <table className="orders tbl-resize" style={anchoDeTabla([28, ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}>
-              <colgroup>
-                <col style={{ width: 28 }} />
-                {colsSinAsignar.map((c) => <col key={c.key} style={{ width: anchoEnSinAsignar(c.key) }} />)}
-                <col style={{ width: 116 }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      aria-label={t("Select all", "Seleccionar todo")}
-                      // «Seleccionar todo» es lo que se VE: con un filtro de columna puesto (D-360), solo esas filas.
-                      checked={ordenSinAsignar.visibles.length > 0 && ordenSinAsignar.visibles.every((d) => selectedOrders.has(d.id))}
-                      onChange={(e) => setSelectedOrders((s) => {
-                        const n = new Set(s);
-                        if (e.target.checked) ordenSinAsignar.visibles.forEach((d) => n.add(d.id));
-                        else ordenSinAsignar.visibles.forEach((d) => n.delete(d.id));
-                        return n;
-                      })}
-                    />
-                  </th>
-                  {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
-                  {menuSinAsignar.map((c) => <th key={c.key}><CabeceraConMenu estado={ordenSinAsignar} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`, anchoDePartida(c.key, COLUMN_WIDTHS))} /></th>)}
-                  <th>{t("Assign to", "Asignar a")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordenSinAsignar.visibles.length === 0 && (
-                  <tr><td colSpan={colsSinAsignar.length + 2} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
-                )}
-                {ordenSinAsignar.visibles.map((d) => {
-                  return (
-                    <tr key={d.id} className={selectedOrders.has(d.id) ? "row-selected" : ""} onClick={() => toggleOrder(d.id)} style={{ cursor: "pointer", opacity: arrastrado?.tipo === "orden" && arrastrado.id === d.id ? 0.5 : undefined }}
-                      data-fila-arrastrable="orden" {...filaArrastrable({ tipo: "orden", id: d.id })}>
-                      <td>
-                        <input type="checkbox" checked={selectedOrders.has(d.id)} readOnly aria-label={`#${orderLabel(d)}`} />
-                        {selectedOrders.has(d.id) && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
-                      </td>
-                      {/* La factura abre la orden y NO selecciona la fila: `stopPropagation` en `abreLaOrden`. */}
-                      {colsSinAsignar.map((c) => (
-                        <td key={c.key} className={clasePastillas(c.key)} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
-                          {/* Las que vienen de Órdenes (D-376) —etapa, tipo, SO, PO, costo, contacto— con la celda de Órdenes. */}
-                          {c.deOrdenes ? celdaDeOrdenes(c.key, d)
-                            : c.key === "invoice" ? enlaceALaOrden(d)
-                            : c.key === "account" ? (d.account || "—")
-                            : c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></span>
-                            : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
-                            : c.key === "store" ? (d.store || "—")
-                            : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
-                            : c.key === "date" ? <DateCell d={d} date={date} onChange={reschedule} t={t} />
-                            : c.key === "windows" ? fmtWindows(d.delivery_windows)
-                            : "—"}
-                        </td>
-                      ))}
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-                          {/* Assign is ALWAYS available. «🔮 Simular», que salía al lado con un chofer elegido, se quitó en D-437:
-                              reoptimizaba la ruta entera y la escribía. «📍 Mejor lugar» mete la orden sin mover las demás. */}
-                          <select defaultValue="" onChange={(e) => {
-                            const v = e.target.value; e.currentTarget.value = "";
-                            if (!v) return;
-                            const target = v === "__newroute__" ? addBucket() : v;
-                            // If this row is part of a multi-selection, assign the WHOLE selection.
-                            if (selectedOrders.has(d.id) && selectedOrders.size > 1) bulkAssign(target);
-                            else manualAssign(d.id, target);
-                          }} style={{ width: "auto" }}>
-                            <option value="">{t("Assign to…", "Asignar a…")}</option>
-                            {drivers.length > 0 && (
-                              <optgroup label={t("Drivers", "Choferes")}>
-                                {drivers.map((u) => <option key={u.id} value={u.full_name}>{u.full_name}</option>)}
-                              </optgroup>
-                            )}
-                            <optgroup label={t("Temp drivers / routes", "Choferes temp / rutas")}>
-                              {bucketNames.map((n) => <option key={n} value={n}>🧭 {n}</option>)}
-                              <option value="__newroute__">＋ {t("New route…", "Nueva ruta…")}</option>
-                            </optgroup>
-                          </select>
-                          {/* La sugerencia de chofer («💡 nombre») que salía aquí se quitó (D-346), por pedido del dueño. */}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <MenuDeColumnaAbierto estado={ordenSinAsignar} columnas={menuSinAsignar} lang={lang} t={t} />
-          </>
-        )}
-        {/* «Elige conductor para N órdenes» (D-395): sustituye al antiguo desplegable «Asignar selección a…» y al botón
-            «Auto-asignar selección» de la barra de arriba (ya no hay Auto-asignar, D-437). Va DESPUÉS de la tabla y pegado al borde de abajo de la ventana
-            (`sticky`): arriba de la tabla quedaba debajo del mapa, que también es `sticky`, en cuanto se bajaba a marcar
-            una fila. Mientras se baja cubre las filas que pasan por detrás, pero al final de la tabla vuelve a su sitio,
-            así que ninguna fila queda tapada para siempre. */}
-        {/* Lo que hizo «📍 Mejor lugar» (D-411): dónde entró cada orden y por qué. Se queda hasta cerrarlo o marcar otra
-            cosa —el aviso de abajo dura 2,6 s y esto es lo que hay que leer—, en el sitio del recuadro, que ya se fue. */}
-        {avisoMejorLugar && poolSelectedCount === 0 && (
-          <div className="card" data-aviso-mejor-lugar role="status"
-            style={{ position: "sticky", bottom: 8, zIndex: 6, margin: "10px 0 0", padding: "10px 14px", border: "2px solid var(--green)", display: "flex", gap: 10, alignItems: "flex-start", maxWidth: "100%", boxSizing: "border-box" }}>
-            <div style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
-              {avisoMejorLugar.map((linea, i) => <div key={i} style={{ marginTop: i ? 4 : 0 }}>📍 {linea}</div>)}
-            </div>
-            <button type="button" className="btn btn-ghost btn-sm" aria-label={t("Close", "Cerrar")} onClick={() => setAvisoMejorLugar(null)}>✕</button>
-          </div>
-        )}
-        {poolSelectedCount > 0 && (
-          <div className="card" data-elige-conductor role="group" aria-label={t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
-            style={{ position: "sticky", bottom: 8, zIndex: 6, margin: "10px 0 0", padding: "12px 14px", border: "2px solid var(--accent)", background: "var(--accent-soft)", maxWidth: "100%", boxSizing: "border-box" }}>
-            <b style={{ display: "block", fontSize: 15, marginBottom: 8 }}>
-              👉 {poolSelectedCount === 1
-                ? t("Choose a driver for 1 order", "Elige conductor para 1 orden")
-                : t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
-            </b>
-            {opcionesDelRecuadro.length === 0 ? (
-              <div className="hint" data-sin-choferes style={{ marginBottom: 8 }}>
-                {t("No drivers or routes available. Use “New route” to build one without a driver.", "No hay choferes ni rutas disponibles. Use «Nueva ruta» para armar una sin chofer.")}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", marginBottom: 10, maxHeight: 132, overflowY: "auto" }}>
-                {opcionesDelRecuadro.map((o) => (
-                  <label key={o.clave} style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, cursor: "pointer", fontSize: 14, fontWeight: o.clave === conductorElegido ? 700 : 500, color: "var(--text)", textTransform: "none", letterSpacing: "normal", minWidth: 0 }}>
-                    <input type="radio" name="elige-conductor" value={o.clave} checked={o.clave === conductorElegido}
-                      onChange={() => setConductorPulsado(o.clave)} style={{ width: 15, height: 15, flex: "0 0 auto" }} />
-                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: colorFor(o.clave), flex: "0 0 auto", boxShadow: "0 0 0 1px var(--line)" }} />
-                    <span>{o.esRuta ? "🧭 " : ""}{o.etiqueta}{bloqueada(o.clave) ? " 🔒" : ""}</span>
-                    <span className="hint" data-carga-del-conductor>
-                      ({o.paradas === 1 ? t("1 stop", "1 parada") : t(`${o.paradas} stops`, `${o.paradas} paradas`)} · {o.pallets}/{o.capacidad} {t("pallets", "pallets")})
-                    </span>
-                    {o.delFiltro && <span className="sema" style={{ fontSize: 10, background: "var(--card)", color: "var(--accent)", border: "1px solid var(--accent)" }}>{t("filter", "filtro")}</span>}
-                    {o.enSuZona && <span className="sema" data-su-zona title={t("Some checked order is in this driver's preferred zone", "Alguna orden marcada es de la zona preferida de este chofer")} style={{ fontSize: 10, background: "var(--card)", color: "var(--green, var(--accent))", border: "1px solid var(--green, var(--accent))" }}>{t("their zone", "su zona")}</span>}
-                    {o.noDisponible && <span className="sema" style={{ fontSize: 10, background: "var(--red-chip-bg)", color: "var(--red-chip-text)" }}>{t("off today", "no disponible")}</span>}
-                  </label>
-                ))}
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button className="btn btn-primary" data-asignar-al-elegido disabled={!conductorElegido || asignando}
-                onClick={() => { if (conductorElegido) bulkAssign(conductorElegido); }}>
-                {t("Assign", "Asignar")}
-              </button>
-              {/* «📍 Mejor lugar» (D-411): la orden entra sola en el hueco más barato de esa ruta, sin reoptimizar el
-                  resto. Con la ruta bloqueada 🔒 se apaga, y la línea de al lado dice por qué. */}
-              <button className="btn btn-primary" data-mejor-lugar disabled={!conductorElegido || asignando || (!!conductorElegido && bloqueada(conductorElegido))}
-                title={t("Put each checked order in the cheapest slot of this driver's route, without reoptimizing the rest", "Poner cada orden marcada en el hueco más barato de la ruta de este chofer, sin reoptimizar lo demás")}
-                onClick={() => { if (conductorElegido) void colocaEnElMejorLugar(conductorElegido); }}>
-                📍 {t("Best fit", "Mejor lugar")}
-              </button>
-              {conductorElegido && bloqueada(conductorElegido) && (
-                <span className="hint" data-mejor-lugar-bloqueada style={{ color: "var(--red-chip-text)" }}>
-                  🔒 {t(`${laneLabel(conductorElegido)}'s route is locked: Best fit won't touch it (“Assign” still adds at the end).`, `La ruta de ${laneLabel(conductorElegido)} está bloqueada: Mejor lugar no la toca («Asignar» sí la añade al final).`)}
-                </span>
-              )}
-              <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
-              {/* «✨ Auto-asignar las marcadas» iba aquí; se quitó en D-437. Repartir automático es «Armar las rutas del día». */}
-            </div>
-          </div>
-        )}
-        </>}
-      </div>
-      )}
+      {tab === "orders" && tablaDeOrdenes(vistaDeSinAsignar)}
+
+      {/* ---------- Todas las del día (D-NEXT) ---------- */}
+      {tab === "todas" && tablaDeOrdenes(vistaDeTodas)}
 
       {/* ---------- Per-driver routes ---------- */}
       {tab === "routes" && (

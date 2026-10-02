@@ -63,7 +63,9 @@ describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () 
     const pagina = plano(leer("src/app/(app)/routes/page.tsx"));
     // Hasta D-410, `columnasElegibles` (sin la factura, D-408). Ahora sale TODA la tabla, factura incluida —se mueve,
     // no se quita—, en el orden de la persona; sin orden propio, el de ventas.
-    expect(pagina).toContain('columnas={columnasDelSelector("sinAsignar", ordenGestor)}');
+    // Puesto al día por D-NEXT: el ⚙ lo pinta `tablaDeOrdenes` con `vista.selector`; «Sin asignar» le pasa esto.
+    expect(pagina).toContain('selector: columnasDelSelector("sinAsignar", ordenGestor)');
+    expect(pagina).toContain("<SelectorDeColumnas columnas={vista.selector}");
     expect(columnasDelSelector("sinAsignar", null).map((c) => c.key))
       .toEqual(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key));
   });

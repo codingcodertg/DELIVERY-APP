@@ -91,6 +91,7 @@ describe("las pantallas que reparten heredan la regla (eran tres; Auto-asignar s
     expect(esDeSuZona("Chofer M", [{ ...o, delivery_address: "5 Uno St, Pueblo Lejos, TX 78501" }], zonas, [TIENDA_N, TIENDA_S])).toBe(false);
     expect(esDeSuZona("Chofer M", [{ ...o, pickup_name: "Tienda Norte", store: "Tienda Norte" }], zonas, [TIENDA_N, TIENDA_S])).toBe(false);
     // Y el Gestor le pasa las tiendas de Ajustes.
-    expect(leer("src/app/(app)/routes/page.tsx").replace(/\s+/g, " ")).toContain("esDeSuZona(k, filasDelChip.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? [])");
+    // Puesto al día por D-NEXT: lo marcado son las filas sin chofer de la tabla que se ve (`filasAsignables`; antes `filasDelChip`).
+    expect(leer("src/app/(app)/routes/page.tsx").replace(/\s+/g, " ")).toContain("esDeSuZona(k, filasAsignables.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? [])");
   });
 });

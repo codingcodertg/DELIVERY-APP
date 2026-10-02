@@ -27692,6 +27692,8 @@ y el rango de fechas del **Panel**.
 
 ## D-393 · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-02): el filtro de chofer manda también en la pestaña nueva «Todas (N)», y allí NO esconde lo sin chofer: con un chofer elegido se ven las suyas y las sin asignar (la razón, en D-NEXT). Y los cinco chips de «Sin asignar» —con el mismo mecanismo, el mismo buscador y el mismo ⚙— están también en «Todas», donde el de cualquier día se llama «Todas las fechas» para no chocar con el nombre de la pestaña.
+>
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el filtro de chofer ya no está en la cabecera, junto a la fecha: va en la barra de vistas de abajo, delante de las pestañas («mueve eseo filtro del conducto abajo al lado de timeline»). Misma función y lo mismo guardado. Y una tarjeta de chofer se queda aunque no tenga nada pendiente, si tiene algo ya hecho ese día.
 >
 > **⚠ Reemplazada en parte por D-437** (2026-09-28): «✨ Auto-asignar» ya no existe, así que lo que esta entrada dice de
@@ -34879,6 +34881,8 @@ siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-02): la barra de vistas (§5, 6 y 9) tiene una pestaña más, «Todas (N)», entre «Sin asignar» y «Tablero»: **filtro de chofer · Rutas / Sin asignar / Todas / Tablero / Horario · Cuadrícula · Deshacer / Rehacer · Incidencias**. Y lo hecho del día (§1) sale también en esa tabla, con ✓, además de en la tarjeta de su chofer.
+>
 > **⚠ Reemplazada en parte por D-461** (2026-10-02): la pastilla «⚠ sin base» (§8) ya no mira la tienda del PERFIL del chofer (`!u.store`), sino si la ruta tiene base de verdad: la de Ajustes → Rutas (`driver_settings.base_store`) y, si no, la del perfil. Dos de los tres choferes la enseñaban teniendo base. Su frase dice ahora las dos tiendas que se miran.
 
 **Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** deliveries 1.247.0, repo 1.333.0. **Reemplaza en parte a**
@@ -35451,3 +35455,168 @@ Por pieza, con la prueba que tumba cada uno:
 Guiones y resultados de la medición (con datos reales, **fuera del repo**): `D:/CLAUDE/entregas/optimizar/` — `q3.mjs` (la
 lectura), `mide.mjs` y `tabla.txt` (la tabla), `detalle.mjs` (una ruta parada a parada), `afina.mjs` / `grandes.mjs` (las
 inventadas), `navegador/` (Chrome y el demo) y `anonimiza.mjs` (de dónde sale el fichero de casos).
+
+## D-NEXT · Gestor de Rutas: pestaña «Todas (N)» con todas las órdenes del día, con chofer o sin él, en una sola tabla
+
+**Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
+D-393 (el filtro de chofer y los chips de «Sin asignar» valen también aquí) y D-459 (el orden de la barra de vistas). Cada
+una lleva su nota. **D-331 se respeta** (cada día es aparte) y **D-459 también** (lo hecho no desaparece).
+
+**Lo que dijo el dueño**, literal (2026-10-02, con la captura `Screenshot 2026-10-02 154901.png` de la barra de vistas y la
+tabla «Órdenes sin asignar»; la cita tal como la pasó el orquestador):
+
+> agrega el tab donde se mire la lista de todas las ordenes para ese dia asignanada o no que ahi esten
+
+### Qué había
+
+El día estaba repartido en tres sitios: lo sin chofer en la pestaña «Sin asignar»; lo de cada chofer, en su tarjeta de
+«Rutas» (una tabla por chofer, plegada de nacimiento, D-393); y el «Tablero», que es por columnas. Para ver el día entero
+en UNA lista —qué hay, de quién es, en qué va— no había dónde.
+
+### Qué hay ahora
+
+Una pestaña nueva en la barra de vistas, **«📋 Todas (N)» / «All (N)»**, entre «Sin asignar» y «Tablero»:
+**filtro de chofer · Rutas / Sin asignar / Todas / Tablero / Horario · Cuadrícula · Deshacer / Rehacer · Incidencias**.
+Lleva su `data-pestana="todas"` y su `data-cuenta-todas`, como las demás.
+
+**La tabla** (`src/lib/todas-del-gestor.ts` decide las filas; la página las pinta):
+
+- **Qué filas, con el chip «Este día» (el defecto):** lo PENDIENTE del día con chofer o sin él (`ordenesDelDia`, las mismas
+  etapas que rutea el Gestor) **más lo ya recogido o entregado ese día** (`hechasQueSePintan`, la misma regla con que la
+  tarjeta del chofer lo pinta desde D-459). Por número de orden, como «Sin asignar».
+- **Las entregadas salen marcadas ✓**, en el verde de `row-done` y con la letra apagada (`fila-hecha`), sin casilla y sin
+  nada que las mueva; su `title` dice la hora real («Entregada a las 10:42 — sigue en la lista; no se mueve»). Una recogida y
+  aún en camino, con 🚚 y sin verde. Es lo mismo que la tarjeta del chofer (D-459), fila por fila.
+- **Las mismas columnas y el mismo mecanismo que «Sin asignar»** —el catálogo `routes-columns.ts`, el ⚙ Columnas con sus
+  marcas `_vN`, las plantillas, las flechas para mover, el buscador, ordenar y filtrar por cabecera (D-360), los anchos
+  arrastrados— **más dos columnas**:
+  - **«Chofer»**, FIJA y delante (es lo que distingue una fila asignada de una sin asignar, que es el punto de la pestaña).
+    Dice «—» si no tiene. Toma la celda, el valor para ordenar y filtrar, y el ancho de partida (120) de la columna «Chofer»
+    de Órdenes (`driver`), como las demás que vienen de allí (D-376).
+  - **«Etapa», siempre.** Si la persona la tiene elegida, sale donde la tenga; si la quitó de «Sin asignar», aquí sale igual,
+    en su puesto de partida, y el ⚙ de «Todas» la enseña marcada y apagada («Siempre visible»).
+- **Los chips** son los cinco de «Sin asignar» (D-393), sin la condición «sin chofer»: **«Este día»** (defecto; con «🗓 Todas»
+  arriba se llama «Todas las fechas» y con «Verlas», «Expiradas y sin fecha», como allí), **«Todas las fechas»** (lo pendiente
+  de cualquier día, con chofer o sin él; se llama así y no «Todas» porque «Todas» ya es el nombre de la pestaña),
+  **«Expiradas»** (lo vencido de cualquier día), **«Con ventana»** y **«Sin ubicación»** (lo del día que cumple eso). Encajan
+  los cinco. Lo hecho entra solo en los chips del DÍA: viendo cualquier fecha, lo entregado sería toda la historia (D-459
+  decidió igual para la tarjeta). El número de cada chip sale de la MISMA función que sus filas, con la misma búsqueda y el
+  mismo filtro (patrón D-380/D-384/D-393).
+- **Cada fila decide sola qué lleva:**
+  - **sin chofer:** la casilla, el arrastre (`filaArrastrable`, el de D-456: soltada en un chofer del panel o en su tarjeta,
+    se asigna; las marcadas van juntas) y el desplegable **«Asignar a…»** (`manualAssign` / `bulkAssign`), exactamente lo que
+    tiene en «Sin asignar»;
+  - **con chofer:** el desplegable **«Pasar a…»** de la tabla de paradas (`pasaA` → `assignToLane`): la orden entera a la
+    ruta de otro chofer, al final de su lista (D-443), con **deshacer** (D-459: la foto lleva las dos rutas). No se arrastra:
+    moverla de puesto es cosa de la tarjeta de su chofer;
+  - **ya hecha:** ✓ o 🚚 en vez de la casilla, y nada. «Seleccionar todo» tampoco la marca.
+- **El recuadro «Elige conductor para N órdenes»** (D-395) y **«📍 Mejor lugar»** (D-411) salen también aquí, y toman lo
+  marcado **sin chofer de la tabla que se ve, con su chip** (`filasAsignables`). Una fila con chofer se marca para verla en el
+  mapa (su P y su D, como un pin), no para asignarla: eso es «Pasar a…».
+
+**N y el filtro de chofer.** N es lo que enseña «Este día» sin búsqueda, y **sigue al filtro de chofer de la barra**
+(D-393): con «Todos», todo lo del día (pendiente, con o sin chofer, y hecho); **con un chofer elegido, LAS SUYAS y LAS SIN
+ASIGNAR.** Por qué las sin asignar: no son de nadie, y son justo lo que la persona que filtró por ese chofer está decidiendo
+si darle (el recuadro «Elige conductor» ya se lo propone a él el primero, D-395); «Sin asignar» tampoco las esconde con el
+filtro puesto; y esconderlas dejaría la pestaña diciendo «todas» y enseñando media jornada. El `title` de la pestaña lo dice
+(«46 orden(es) este día: las de Diego Driver y las sin asignar»). **A validar por el dueño**: es decisión de esta rama.
+
+**La tabla «Todas» nace abierta**, como «Sin asignar» (`PANEL_DE_TODAS` en `nacePlegada`): plegada dejaría la pestaña en blanco.
+
+### Lo decidido, y por qué
+
+- **Las columnas: reutilizar `sinAsignar` + dos fijas, no una clave `todas` en el catálogo.** Una clave propia (`t_…`)
+  habría pedido una tanda `_v9` que reescribiera lo guardado de todos (`conColumnasNuevas`), un orden de partida aparte,
+  plantillas que la conocieran (como hizo D-429 con el plan), y la persona acabaría con DOS configuraciones de la misma
+  lista. Reutilizar la de «Sin asignar» no toca nada guardado —`preferenciasDelGestorAlLeer` y las tandas siguen igual— y lo
+  que se marque, mueva o aplique como plantilla en un ⚙ se ve en los dos; el ⚙ de «Todas» lo dice en su nota. «Chofer» queda
+  FUERA del catálogo (`CHOFER_DE_TODAS`), como las fijas de paradas (`_factura`, `_cuenta`): no se elige, no se mueve, no se
+  guarda; `columnaDelGestor` la resuelve por su clave, y por ahí `columnaDeOrdenes` y `anchoDePartida` le dan la celda, el
+  valor y el ancho de Órdenes. **Lo que no se puede:** esconder «Chofer» o «Etapa» en «Todas», ni mover «Chofer» de delante.
+- **UNA tabla para las dos pestañas, no una copia.** La de «Sin asignar» (226 líneas en la página) se sacó a `tablaDeOrdenes(vista)`,
+  una función de la propia página —no un componente aparte: necesita unas cincuenta cosas de la pantalla (los arrastres,
+  las celdas, los asignar, el recuadro…), y un componente con cincuenta props sería peor de leer que esto—. Lo que cambia
+  entre las dos va en `VistaDeOrdenes` (24 campos: la clave, el plegado, la cabecera, las columnas, el ⚙, el buscador, el
+  chip con sus números y rótulos, las filas, el estado de orden y filtro, los textos y el ancho de la última columna).
+  **Medido:** `tablaDeOrdenes` son **248 líneas comunes** (más 15 de la interfaz y 4 de los rótulos de chip); cada vista,
+  **12 líneas**; y la página las llama dos veces (`{tab === "orders" && tablaDeOrdenes(vistaDeSinAsignar)}` y la de
+  «todas»). El marcado de la tabla, el recuadro y los chips está una sola vez. Cada estado de orden y filtro
+  (`useOrdenYFiltro`) es uno por tabla, como el buscador y el chip: lo que se filtra en una no se lleva a la otra.
+- **«Sin asignar» no cambia** para quien la usa: las mismas filas, los mismos chips (incluido «Todas», que ahí se sigue
+  llamando así), el mismo «Asignar a», el mismo arrastre. Lo único visible: `data-chip` en vez de `data-chip-sin-asignar`
+  (nadie lo leía) y la tarjeta lleva `data-tabla-de-ordenes="sinAsignar"`.
+- **A 390 px, con cinco pestañas la última se cortaba 13 px** (medido: 377 px de pestañas en 364 de caja, por el
+  `overflow: hidden` de `.viewtoggle`; con cuatro cabían justas). La caja de pestañas de esta barra envuelve (`flexWrap`):
+  en el teléfono quedan en dos renglones dentro de la caja; a 1440, en uno, como antes.
+- **La última columna de «Todas» mide 136** (la de «Sin asignar» sigue en 116): «Asignar / pasar» pedía 118 a 1440 y 130 a
+  390, y en 116 salía «ASIGNAR / PAS…».
+
+### Descartado
+
+- **Que el filtro de chofer esconda también lo sin asignar en «Todas»** (como hace en el mapa). Ver arriba: dejaría la
+  pestaña a medias; y el mapa esconde pines, no una lista que se llama «todas».
+- **Arrastrar una fila asignada** desde «Todas» a otro chofer. El arrastre de parada (D-456) va por su puesto en la lista de
+  su chofer (`lecturaDe`, índices), que esta tabla no conoce; «Pasar a…» hace lo mismo sin puesto. No se duplicó el mecanismo.
+- **✕ «Quitar asignación» en las filas con chofer.** No se pidió; la tarjeta del chofer lo tiene.
+- **Un orden de partida por chofer** (sin asignar primero, luego cada chofer). La cabecera «Chofer» ordena y filtra por él,
+  como en Órdenes; de partida, el número de orden, como «Sin asignar».
+
+### Pruebas y mutantes
+
+Nuevas en `src/lib/todas-del-gestor.test.ts` (24): las filas con cada chip, el filtro de chofer (sus + sin asignar, con los
+tres N: 5 / 3 / 3), lo hecho dentro y fuera, la búsqueda y los números de los chips contra sus filas, las columnas (Chofer
+delante, Etapa siempre, el ⚙ con la Etapa fija, «Chofer» fuera del catálogo con celda, valor y ancho de Órdenes), el plegado,
+y que **la pantalla las usa**: la pestaña en su sitio y en orden, N por `todasDelGestor` con el filtro, la tabla y los chips
+por `filasDeTodas` y `cuentasDeTodas`, UNA `tablaDeOrdenes` con dos vistas y el marcado una sola vez, cada fila con lo suyo
+(«Asignar a…» / «Pasar a…» con `pasaA` / ✓ y nada), `filasAsignables` para el recuadro, y el nombre del chip.
+
+Puestas al día, con su nota «Puesto al día por D-NEXT», las que fijaban el marcado de la tabla de «Sin asignar» y ahora lo
+encuentran en `tablaDeOrdenes` (`vista.orden`, `columnas`, `menu`, `vista.selector`, `vista.cuentas`, `marcables`,
+`filasAsignables`): `elige-conductor`, `gestor-factura-arrastre-optimizar`, `gestor-orden-de-ventas`, `ordenes-del-dia`,
+`requisitos`, `routes-columns`, `solo-armar-rutas`, `valores-del-gestor`, `route-plan/zonas-en-el-plan` y
+`route-plan/zona-recogida-en-el-plan`. Ninguna se quitó sin sustituirla; lo que fijaban de «Sin asignar» (seleccionar todo es
+lo visible, la factura abre la orden, el ⚙ junto al buscador, el recuadro tras la tabla…) sigue fijado, con el nombre nuevo.
+
+**Mutantes: 29, caen los 29**, leídos por el nombre de la prueba (`mutantes.mjs`, control en verde: 4 ficheros, 71 pruebas):
+10 sobre las filas (`todas-del-gestor.ts`: el filtro ignorado o escondiendo lo sin chofer, lo hecho fuera o dentro de
+cualquier fecha, «Todas las fechas» mirando solo el día, «Expiradas» sin lo asignado, sin orden por número, los chips sin
+filtrar, N de otro chip, los chips sin la búsqueda), 4 sobre las columnas (`routes-columns.ts`: sin Chofer, sin Etapa, el ⚙
+dejando quitar la Etapa, «Chofer» sin Órdenes), 1 sobre el plegado (`vista-del-gestor.ts`) y 14 sobre la pantalla (la
+pestaña contando sin filtro, N sin filtro, la vista de «Sin asignar» pintada en «Todas», las asignadas sin «Pasar a…»,
+«Pasar a…» sin `pasaA`, una hecha tratada como pendiente, «Seleccionar todo» marcando lo hecho, el recuadro tomando lo de
+«Sin asignar», las columnas sin las dos extra, las filas sin filtro, el chip llamado «Todas», la entregada sin verde, la hecha
+con casilla, el plegado con otro id). Ninguno sobrevivió ni abortó en la primera pasada.
+
+### Medido en el demo (2026-10-02, Chrome por CDP, clics de persona, admin, en español; sin base ni proveedor de rutas)
+
+Con una orden de Diego de hoy marcada entregada a las 10:42 (el demo no trae entregadas de hoy) y las dos recogidas que trae.
+32 comprobaciones, 32 bien; capturas en `tiros/` de la carpeta del worker (`todas-1440`, `todas-1440-entera`,
+`todas-1440-filtro-diego`, `sin-asignar-1440`, `todas-390`, `todas-390-tabla`, `todas-390-barra`).
+
+| | Medido |
+|---|---|
+| Barra de vistas, 1440 | «🧭 Rutas (4) · 14 programadas · 📦 Sin asignar (42) · 📋 Todas (59) · 🗂 Tablero (56) · 📅 Horario», en un renglón |
+| N de «Todas» | 59 = 56 pendientes del día (42 sin chofer + 14 con chofer) + 3 hechas hoy (1 entregada + 2 recogidas) |
+| Cabeceras | ☐ · Chofer · PO # · SO # · Factura # · Tipo · Cuenta · Contacto · Etapa · Tienda · Fecha de entrega · Pallets · Costo · Recogida · Ciudad de entrega · Ventanas · Asignar / pasar |
+| Filas | 42 sin chofer (casilla, «Asignar a…», `draggable`), 14 con chofer («Pasar a…», sin `draggable`), 3 hechas (1 con ✓ y `row-done`, 2 con 🚚; sin casilla ni desplegable) |
+| Columna Chofer | «—» en las 42 sin chofer; el nombre en las 17 con chofer |
+| Chips | «Este día (59) · Todas las fechas (78) · Expiradas (2) · Con ventana (59) · Sin ubicación (5)»; «Todas las fechas» enseña las 78 pendientes de cualquier día y ninguna hecha |
+| «Pasar a…» (INV-3005, de Miguel) | no ofrece a Miguel; a Diego: la fila dice «Diego Driver», la orden guardada tiene `assigned_driver` Diego y `route_seq` nulo; «↶ Deshacer» se enciende y la devuelve a Miguel |
+| Filtro «Diego Driver» | «Todas (46)» = las 4 de Diego (3 pendientes + 1 entregada) + 42 sin asignar; la tabla solo dice «Diego Driver» o «—»; la entregada sigue; el título: «46 orden(es) este día: las de Diego Driver y las sin asignar»; a «Todos», 59 otra vez |
+| Arrastre HTML5 (INV-3001 → Carlos en el panel; `Input.setInterceptDrags` + `dispatchDragEvent`) | el panel se marca (`outline` a rayas), la orden queda en Carlos, la fila pasa a «con chofer» con «Pasar a…», N sigue en 59; «Sin asignar» baja a 41 |
+| «Sin asignar» | su tabla, sus 41 filas, sin la columna Chofer, cabecera «Asignar a», chip «Todas (…)» |
+| 390 px | la página no se desborda (390 = 390); las 59 filas; las cinco pestañas en dos renglones DENTRO de la caja (antes del `flexWrap`, «Horario» se cortaba 13 px) |
+
+### No verificado
+
+- **Nada contra la base de producción**: todo en el demo. Que `pod_delivered_at` venga relleno (si no, el `title` dice
+  «Entregada — sigue en la lista» sin hora).
+- **Las plantillas y el ⚙ en «Todas»** se comprobaron por prueba (el mismo `SelectorDeColumnas`, `moverEn("sinAsignar")`,
+  `propsDePlantillas`), no con clics; en el demo las preferencias viven en el navegador, no en `user_prefs`.
+- **Ordenar y filtrar por la cabecera «Chofer»** en el navegador: solo por prueba (`valorDelGestor("chofer")` da el chofer).
+- **Los desplegables** («Pasar a…», el filtro de chofer) se cambiaron por código en la medición, no con un clic de persona
+  (como en D-459). El arrastre sí fue por CDP, interceptado por Chrome.
+- **Con plan publicado** (el demo no tiene servidor que planifique): las filas hechas solo se vieron sin plan.
+- **El mapa de Google** (el demo pinta Leaflet).
+- **En un teléfono de verdad** y en Firefox o Safari: solo Chrome, a 390 px de ancho.
+- El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
