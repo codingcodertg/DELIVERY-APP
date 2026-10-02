@@ -407,7 +407,7 @@ describe("«📍 Mejor lugar»: los choferes de la zona de lo marcado, primero (
 
   it("el Gestor le pasa `esDeSuZona` con las órdenes marcadas y las zonas leídas de driver_settings", () => {
     const p = plano(leer("src/app/(app)/routes/page.tsx"));
-    // Puesto al día por D-NEXT: lo marcado son las filas sin chofer de la tabla que se ve (`filasAsignables`; antes `filasDelChip`).
+    // Puesto al día por D-462: lo marcado son las filas sin chofer de la tabla que se ve (`filasAsignables`; antes `filasDelChip`).
     expect(p).toContain("enSuZona: (k) => esDeSuZona(k, filasAsignables.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? []),");   // las tiendas: D-427
     expect(p).toContain("const zonasDeChofer = useZonasDeChofer();");
     expect(p).toContain("{o.enSuZona && <span className=\"sema\" data-su-zona");

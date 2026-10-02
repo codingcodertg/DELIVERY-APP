@@ -27692,7 +27692,7 @@ y el rango de fechas del **Panel**.
 
 ## D-393 · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-02): el filtro de chofer manda también en la pestaña nueva «Todas (N)», y allí NO esconde lo sin chofer: con un chofer elegido se ven las suyas y las sin asignar (la razón, en D-NEXT). Y los cinco chips de «Sin asignar» —con el mismo mecanismo, el mismo buscador y el mismo ⚙— están también en «Todas», donde el de cualquier día se llama «Todas las fechas» para no chocar con el nombre de la pestaña.
+> **⚠ Reemplazada en parte por D-462** (2026-10-02): el filtro de chofer manda también en la pestaña nueva «Todas (N)», y allí NO esconde lo sin chofer: con un chofer elegido se ven las suyas y las sin asignar (la razón, en D-462). Y los cinco chips de «Sin asignar» —con el mismo mecanismo, el mismo buscador y el mismo ⚙— están también en «Todas», donde el de cualquier día se llama «Todas las fechas» para no chocar con el nombre de la pestaña.
 >
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el filtro de chofer ya no está en la cabecera, junto a la fecha: va en la barra de vistas de abajo, delante de las pestañas («mueve eseo filtro del conducto abajo al lado de timeline»). Misma función y lo mismo guardado. Y una tarjeta de chofer se queda aunque no tenga nada pendiente, si tiene algo ya hecho ese día.
 >
@@ -34881,7 +34881,7 @@ siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-02): la barra de vistas (§5, 6 y 9) tiene una pestaña más, «Todas (N)», entre «Sin asignar» y «Tablero»: **filtro de chofer · Rutas / Sin asignar / Todas / Tablero / Horario · Cuadrícula · Deshacer / Rehacer · Incidencias**. Y lo hecho del día (§1) sale también en esa tabla, con ✓, además de en la tarjeta de su chofer.
+> **⚠ Reemplazada en parte por D-462** (2026-10-02): la barra de vistas (§5, 6 y 9) tiene una pestaña más, «Todas (N)», entre «Sin asignar» y «Tablero»: **filtro de chofer · Rutas / Sin asignar / Todas / Tablero / Horario · Cuadrícula · Deshacer / Rehacer · Incidencias**. Y lo hecho del día (§1) sale también en esa tabla, con ✓, además de en la tarjeta de su chofer.
 >
 > **⚠ Reemplazada en parte por D-461** (2026-10-02): la pastilla «⚠ sin base» (§8) ya no mira la tienda del PERFIL del chofer (`!u.store`), sino si la ruta tiene base de verdad: la de Ajustes → Rutas (`driver_settings.base_store`) y, si no, la del perfil. Dos de los tres choferes la enseñaban teniendo base. Su frase dice ahora las dos tiendas que se miran.
 
@@ -35456,9 +35456,9 @@ Guiones y resultados de la medición (con datos reales, **fuera del repo**): `D:
 lectura), `mide.mjs` y `tabla.txt` (la tabla), `detalle.mjs` (una ruta parada a parada), `afina.mjs` / `grandes.mjs` (las
 inventadas), `navegador/` (Chrome y el demo) y `anonimiza.mjs` (de dónde sale el fichero de casos).
 
-## D-NEXT · Gestor de Rutas: pestaña «Todas (N)» con todas las órdenes del día, con chofer o sin él, en una sola tabla
+## D-462 · Gestor de Rutas: pestaña «Todas (N)» con todas las órdenes del día, con chofer o sin él, en una sola tabla
 
-**Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
+**Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** deliveries 1.250.0, repo 1.336.0. **Reemplaza en parte a**
 D-393 (el filtro de chofer y los chips de «Sin asignar» valen también aquí) y D-459 (el orden de la barra de vistas). Cada
 una lleva su nota. **D-331 se respeta** (cada día es aparte) y **D-459 también** (lo hecho no desaparece).
 
@@ -35570,7 +35570,7 @@ y que **la pantalla las usa**: la pestaña en su sitio y en orden, N por `todasD
 por `filasDeTodas` y `cuentasDeTodas`, UNA `tablaDeOrdenes` con dos vistas y el marcado una sola vez, cada fila con lo suyo
 («Asignar a…» / «Pasar a…» con `pasaA` / ✓ y nada), `filasAsignables` para el recuadro, y el nombre del chip.
 
-Puestas al día, con su nota «Puesto al día por D-NEXT», las que fijaban el marcado de la tabla de «Sin asignar» y ahora lo
+Puestas al día, con su nota «Puesto al día por D-462», las que fijaban el marcado de la tabla de «Sin asignar» y ahora lo
 encuentran en `tablaDeOrdenes` (`vista.orden`, `columnas`, `menu`, `vista.selector`, `vista.cuentas`, `marcables`,
 `filasAsignables`): `elige-conductor`, `gestor-factura-arrastre-optimizar`, `gestor-orden-de-ventas`, `ordenes-del-dia`,
 `requisitos`, `routes-columns`, `solo-armar-rutas`, `valores-del-gestor`, `route-plan/zonas-en-el-plan` y

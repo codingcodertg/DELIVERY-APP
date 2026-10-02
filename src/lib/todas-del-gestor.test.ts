@@ -9,7 +9,7 @@ import { valorDelGestor } from "./valores-del-gestor";
 import { PANEL_DE_TODAS, PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, nacePlegada } from "./vista-del-gestor";
 
 /**
- * D-NEXT (2026-10-02): la pestaña «Todas (N)» del Gestor de Rutas. El dueño: «agrega el tab donde se mire la lista de
+ * D-462 (2026-10-02): la pestaña «Todas (N)» del Gestor de Rutas. El dueño: «agrega el tab donde se mire la lista de
  * todas las ordenes para ese dia asignanada o no que ahi esten». Las reglas, sin pantalla; y que la pantalla las USA.
  */
 

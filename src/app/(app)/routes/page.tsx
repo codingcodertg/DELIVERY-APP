@@ -351,7 +351,7 @@ export default function RoutesPage() {
     onBorrar: (nombre: string) => cambiaPlantillasDelGestor(borraPlantilla(plantillasDelGestor.current, nombre), false),
   };
   const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor, ordenGestor);
-  // «Todas» (D-NEXT): las mismas que «Sin asignar» —elegidas, orden, plantillas y ⚙ compartidos— con el chofer delante y
+  // «Todas» (D-462): las mismas que «Sin asignar» —elegidas, orden, plantillas y ⚙ compartidos— con el chofer delante y
   // la etapa siempre. Los anchos también son los mismos (`anchoEnSinAsignar`): son las mismas columnas.
   const colsTodas = columnasDeTodas(colsGestor, ordenGestor);
   // La tabla de paradas: el número de parada y la factura, fijos delante; las elegidas, en el orden de la persona (D-410;
@@ -406,7 +406,7 @@ export default function RoutesPage() {
   // su chofer. El dueño: «en gestor de rutas el view programados es innecesario, quítalo».
   // «Incidencias» ya no es pestaña (D-437): el dueño, «incidencias que sea un boton». Es un botón junto a las pestañas que
   // abre una ventana sobre el Gestor. La pestaña no se guardaba en ningún sitio: no hay preferencia vieja que recoger.
-  // «Todas» (D-NEXT): todas las órdenes del día, con chofer o sin él, en una tabla. El dueño, 2026-10-02: «agrega el tab
+  // «Todas» (D-462): todas las órdenes del día, con chofer o sin él, en una tabla. El dueño, 2026-10-02: «agrega el tab
   // donde se mire la lista de todas las ordenes para ese dia asignanada o no que ahi esten».
   const [tab, setTab] = useState<"routes" | "orders" | "todas" | "board" | "timeline">("routes");
   const [incidenciasAbiertas, setIncidenciasAbiertas] = useState(false);
@@ -459,7 +459,7 @@ export default function RoutesPage() {
   const [orderSearch, setOrderSearch] = useState("");
   // «Este día» es el defecto (D-331/D-359); «Todas» es lo sin chofer de cualquier día (D-393).
   const [poolFilter, setPoolFilter] = useState<ChipSinAsignar>("dia");
-  // Lo mismo para la pestaña «Todas» (D-NEXT): su buscador y su chip, aparte de los de «Sin asignar».
+  // Lo mismo para la pestaña «Todas» (D-462): su buscador y su chip, aparte de los de «Sin asignar».
   const [busquedaDeTodas, setBusquedaDeTodas] = useState("");
   const [chipDeTodas, setChipDeTodas] = useState<ChipSinAsignar>("dia");
   // Cached pickup→dropoff geometry for selected unassigned loads (drawn on the map).
@@ -1100,7 +1100,7 @@ export default function RoutesPage() {
   // que sale de la misma función: el número es el de las filas que enseña (patrón de D-380/D-384).
   const filasDelChip = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter), [deliveries, date, modo, poolFilter]);
   const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearch), [deliveries, date, modo, orderSearch]);
-  // «Todas» (D-NEXT): todo lo del día, con chofer o sin él, más lo ya hecho ese día (D-459), por el filtro de chofer de la
+  // «Todas» (D-462): todo lo del día, con chofer o sin él, más lo ya hecho ese día (D-459), por el filtro de chofer de la
   // barra —con un chofer elegido, las suyas y las sin asignar (`todas-del-gestor.ts` dice por qué)—. La pestaña cuenta
   // «Este día» sin búsqueda; la tabla y sus chips, con su chip y su búsqueda. Las tres salen de la misma función.
   const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, filtroChofer), [deliveries, date, modo, filtroChofer]);
@@ -1108,7 +1108,7 @@ export default function RoutesPage() {
   const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodas, filtroChofer), [deliveries, date, modo, chipDeTodas, busquedaDeTodas, filtroChofer]);
   const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodas, filtroChofer), [deliveries, date, modo, busquedaDeTodas, filtroChofer]);
   // Lo que «Asignar», «📍 Mejor lugar» y el recuadro «Elige conductor» pueden tomar de lo marcado: las filas SIN CHOFER de la
-  // tabla que se ve, con su chip (hasta D-NEXT, solo las de «Sin asignar»). En «Todas» una fila con chofer se marca para verla
+  // tabla que se ve, con su chip (hasta D-462, solo las de «Sin asignar»). En «Todas» una fila con chofer se marca para verla
   // en el mapa, no para asignarla: eso es «Pasar a…».
   const filasAsignables = useMemo(() => (tab === "todas" ? filasDeTodasDelChip.filter((d) => !d.assigned_driver) : filasDelChip), [tab, filasDeTodasDelChip, filasDelChip]);
 
@@ -1230,7 +1230,7 @@ export default function RoutesPage() {
   );
   const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen), [deOrdenes, ciudadesQueSeConocen]);
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
-  // «Todas» (D-NEXT) ordena y filtra igual, con su propio estado: la columna «Chofer» va por la de Órdenes (`driver`).
+  // «Todas» (D-462) ordena y filtra igual, con su propio estado: la columna «Chofer» va por la de Órdenes (`driver`).
   const ordenDeTodas = useOrdenYFiltro(todasConBusqueda, valorDelGestorAqui);
   // Las cabeceras con menú son las del catálogo (la fecha se lista formateada, y el costo como dinero). El ID fijo que iba
   // delante se quitó (D-408): el dueño, «routes manager doesn't need to see id».
@@ -2116,7 +2116,7 @@ export default function RoutesPage() {
   // lleva el botón que la trae.
   const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);
 
-  // ---- La tabla de órdenes: «Sin asignar» y «Todas» (D-NEXT) ----------------------------------------------------
+  // ---- La tabla de órdenes: «Sin asignar» y «Todas» (D-462) ----------------------------------------------------
   // Son UNA tabla con dos vistas: la de siempre —lo del día sin chofer (D-331/D-393)— y «Todas»: todo lo del día, con chofer
   // o sin él, más lo ya hecho (D-459). Lo que cambia entre las dos va en `VistaDeOrdenes`; la cabecera, el buscador, el ⚙,
   // los chips, la tabla, cada fila, el recuadro «Elige conductor» y el aviso de «Mejor lugar» se pintan desde aquí para las
@@ -2206,7 +2206,7 @@ export default function RoutesPage() {
                   </optgroup>
                 </select>
               ) : ruta && lanes.some((l) => l.key !== ruta) ? (
-                // «Pasar a…» (D-NEXT, solo en «Todas»): la orden entera a la ruta de otro chofer, al final de su lista, como en la
+                // «Pasar a…» (D-462, solo en «Todas»): la orden entera a la ruta de otro chofer, al final de su lista, como en la
                 // tabla de paradas (D-443) y con su deshacer (D-459).
                 <select value="" data-pasar-a aria-label={t("Move the order to another driver", "Pasar la orden a otro chofer")}
                   onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v) void pasaA(ruta, [d.id], v); }} style={{ width: "auto" }}>
@@ -2400,7 +2400,7 @@ export default function RoutesPage() {
     pista: t("Drag a row onto a driver in “Drivers & routes” (above) to assign it. Checked rows go together.", "Arrastre una fila a un chofer de «Choferes y rutas» (arriba) para asignarla. Las marcadas van juntas."),
     cabeceraDeAcciones: t("Assign to", "Asignar a"), anchoDeAcciones: 116, caja: cajaSinAsignarRef,
   };
-  // «Todas» (D-NEXT): el chip de cualquier día se llama «Todas las fechas», que «Todas» ya es el nombre de la pestaña.
+  // «Todas» (D-462): el chip de cualquier día se llama «Todas las fechas», que «Todas» ya es el nombre de la pestaña.
   const vistaDeTodas: VistaDeOrdenes = {
     clave: "todas", panel: PANEL_DE_TODAS, icono: "📋", titulo: t("All orders of the day", "Todas las órdenes del día"), total: todasDelDia.length,
     columnas: colsTodas, menu: menuDeTodas, selector: columnasDelSelectorDeTodas(ordenGestor),
@@ -2704,7 +2704,7 @@ export default function RoutesPage() {
             <option value={TODOS_LOS_CHOFERES}>🚚 {t("All drivers", "Todos los choferes")}</option>
             {lanes.map((l) => <option key={l.key} value={l.key}>{l.isBucket ? "🧭 " : ""}{l.label}</option>)}
           </select>
-      {/* `flexWrap` (D-NEXT): con cinco pestañas, a 390 px la última se cortaba 13 px por el `overflow: hidden` de la caja
+      {/* `flexWrap` (D-462): con cinco pestañas, a 390 px la última se cortaba 13 px por el `overflow: hidden` de la caja
           (medido: 377 px de pestañas en 364 de caja; con cuatro cabían justas). Envueltas, bajan de línea dentro de la caja. */}
       <div className="viewtoggle" style={{ flexWrap: "wrap" }}>
         {/* Los cuatro números de la franja que iba arriba (D-459) viven aquí: las rutas y cuántas órdenes tienen chofer
@@ -2716,7 +2716,7 @@ export default function RoutesPage() {
         <button className={"vt " + (tab === "orders" ? "on" : "")} data-pestana="orders" onClick={() => setTab("orders")}>
           📦 {t("Unassigned", "Sin asignar")} (<span data-cuenta-sin-programar style={unassigned.length > 0 && tab !== "orders" ? { color: "var(--amber)", fontWeight: 800 } : undefined}>{unassigned.length}</span>)
         </button>
-        {/* «Todas (N)» (D-NEXT): todas las del día, con chofer o sin él, más lo ya hecho. N sigue al filtro de chofer:
+        {/* «Todas (N)» (D-462): todas las del día, con chofer o sin él, más lo ya hecho. N sigue al filtro de chofer:
             con uno elegido, las suyas y las sin asignar. */}
         <button className={"vt " + (tab === "todas" ? "on" : "")} data-pestana="todas" onClick={() => setTab("todas")}
           title={filtroChofer === TODOS_LOS_CHOFERES
@@ -2800,7 +2800,7 @@ export default function RoutesPage() {
       {/* ---------- Unassigned pool ---------- */}
       {tab === "orders" && tablaDeOrdenes(vistaDeSinAsignar)}
 
-      {/* ---------- Todas las del día (D-NEXT) ---------- */}
+      {/* ---------- Todas las del día (D-462) ---------- */}
       {tab === "todas" && tablaDeOrdenes(vistaDeTodas)}
 
       {/* ---------- Per-driver routes ---------- */}

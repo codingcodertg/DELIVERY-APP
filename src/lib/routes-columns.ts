@@ -314,7 +314,7 @@ export function columnasDelSelector(tabla: TablaDelGestor, guardado: readonly st
 }
 
 /**
- * La pestaña «Todas» (D-NEXT): todas las órdenes del día, con chofer o sin él. Sus columnas son LAS DE «SIN ASIGNAR» —las
+ * La pestaña «Todas» (D-462): todas las órdenes del día, con chofer o sin él. Sus columnas son LAS DE «SIN ASIGNAR» —las
  * mismas elegidas, el mismo orden, las mismas plantillas, el mismo ⚙— más dos que esa tabla no necesita y esta sí:
  *
  *   · «Chofer», FIJA y delante: es lo que distingue una fila asignada de una sin asignar, que es el punto de la pestaña.
@@ -356,7 +356,7 @@ export function ordenDePlantillaDelGestor(o: readonly string[] | undefined): str
  * Recibe el catálogo de Órdenes en vez de importarlo: ese catálogo vive en un componente con JSX, y esto se prueba sin él.
  */
 export function columnaDeOrdenes<T extends { key: string }>(clave: string, catalogoDeOrdenes: readonly T[]): T | undefined {
-  // Por `columnaDelGestor` desde D-NEXT: la «Chofer» de «Todas» toma también su celda y su valor de Órdenes.
+  // Por `columnaDelGestor` desde D-462: la «Chofer» de «Todas» toma también su celda y su valor de Órdenes.
   const deOrdenes = columnaDelGestor(clave)?.deOrdenes;
   return deOrdenes ? catalogoDeOrdenes.find((o) => o.key === deOrdenes) : undefined;
 }

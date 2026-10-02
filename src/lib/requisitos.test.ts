@@ -96,7 +96,7 @@ describe("las pantallas usan todo esto", () => {
     const p = plano(leer("src/app/(app)/routes/page.tsx"));
     expect(p).toContain("const { faltanA } = useRequisitosDelCamion();");
     // Auto-asignar (que respetaba los requisitos por el motor, D-419) se quitó en D-437; repartir es «Armar rutas», que es el motor.
-    // Puesto al día por D-NEXT: lo marcado son las filas sin chofer de la tabla que se ve (`filasAsignables`; antes `filasDelChip`).
+    // Puesto al día por D-462: lo marcado son las filas sin chofer de la tabla que se ve (`filasAsignables`; antes `filasDelChip`).
     expect(p).toContain("const { pueden: marcadas, no: sinCamion } = separaPorRequisitos(filasAsignables.filter((d) => selectedOrders.has(d.id)), (d) => faltanA(d, laneKey));");
     // El bucle que coloca (y el que asigna al final) recorre `marcadas`, que ya es SOLO lo que puede ir.
     const cuerpo = p.slice(p.indexOf("const colocaEnElMejorLugar"), p.indexOf("const move = async"));

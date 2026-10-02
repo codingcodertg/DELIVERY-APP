@@ -63,7 +63,7 @@ export function paradasDelChofer<T extends Orden & Pick<Delivery, "assigned_driv
 export const CHIPS_SIN_ASIGNAR = ["dia", "todas", "overdue", "windowed", "noloc"] as const;
 export type ChipSinAsignar = typeof CHIPS_SIN_ASIGNAR[number];
 
-/** Lo que una fila de «Sin asignar» —y, desde D-NEXT, de «Todas» (`todas-del-gestor.ts`)— necesita de la orden. */
+/** Lo que una fila de «Sin asignar» —y, desde D-462, de «Todas» (`todas-del-gestor.ts`)— necesita de la orden. */
 export type OrdenDelPool = Orden & Pick<Delivery, "assigned_driver" | "order_no" | "delivery_windows" | "delivery_lat" | "account" | "delivery_address" | "delivery_phone" | "contact" | "store">;
 
 /** La búsqueda de «Sin asignar»: número, cuenta, dirección, teléfono, contacto o tienda. Vacía, deja pasar todo. */

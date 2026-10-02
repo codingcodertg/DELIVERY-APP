@@ -3,7 +3,7 @@ import { CHIPS_SIN_ASIGNAR, coincideConLaBusqueda, ordenesDelDia, pendientesDeOt
 import { TODOS_LOS_CHOFERES, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
 
 /**
- * La pestaña «Todas (N)» del Gestor de Rutas (D-NEXT): TODAS las órdenes del día elegido, con chofer o sin él, en una
+ * La pestaña «Todas (N)» del Gestor de Rutas (D-462): TODAS las órdenes del día elegido, con chofer o sin él, en una
  * sola tabla. El dueño, 2026-10-02: «agrega el tab donde se mire la lista de todas las ordenes para ese dia asignanada o
  * no que ahi esten». Hasta aquí lo del día estaba repartido: lo sin chofer en «Sin asignar», lo de cada chofer en su
  * tarjeta de «Rutas», y para ver el día entero en una lista no había dónde.

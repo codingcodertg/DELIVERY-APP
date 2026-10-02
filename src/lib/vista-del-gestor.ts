@@ -57,7 +57,7 @@ export function pasaElFiltroDeChofer(filtro: string, ruta: string | null | undef
 /** La tarjeta de «Sin asignar» dentro de su pestaña. */
 export const PANEL_SIN_ASIGNAR = "__unassigned__";
 
-/** La tabla de «Todas» dentro de su pestaña (D-NEXT): nace abierta por la misma razón que «Sin asignar». */
+/** La tabla de «Todas» dentro de su pestaña (D-462): nace abierta por la misma razón que «Sin asignar». */
 export const PANEL_DE_TODAS = "__todas__";
 
 /** Qué nace plegado: toda tarjeta de chofer. «Sin asignar» y «Todas», no: plegadas dejarían su pestaña en blanco. */

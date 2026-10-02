@@ -101,7 +101,7 @@ describe("el Gestor de Rutas usa el menú en «Sin asignar» y abre la orden des
     expect(j, hasta).toBeGreaterThan(i);
     return pagina.slice(i, j);
   };
-  // Puesto al día por D-NEXT: la tabla de «Sin asignar» y la de «Todas» son UNA (`tablaDeOrdenes`), que recibe en `vista.orden`
+  // Puesto al día por D-462: la tabla de «Sin asignar» y la de «Todas» son UNA (`tablaDeOrdenes`), que recibe en `vista.orden`
   // el estado de cada una; `ordenSinAsignar` sigue siendo el de «Sin asignar», y se lo pasa.
   const sinAsignar = () => entre("const tablaDeOrdenes = (vista: VistaDeOrdenes) => {", "const vistaDeSinAsignar: VistaDeOrdenes = {");
 
@@ -128,7 +128,7 @@ describe("el Gestor de Rutas usa el menú en «Sin asignar» y abre la orden des
     expect(tramo).toContain('c.key === "invoice" ? enlaceALaOrden(d)');
   });
   it("en «Sin asignar», seleccionar todo es lo que se ve con los filtros puestos", () => {
-    // Puesto al día por D-NEXT: lo que se ve Y se puede marcar (`marcables`: lo visible menos lo ya hecho, que solo hay en «Todas»).
+    // Puesto al día por D-462: lo que se ve Y se puede marcar (`marcables`: lo visible menos lo ya hecho, que solo hay en «Todas»).
     const casilla = entre('aria-label={t("Select all", "Seleccionar todo")}', "/>");
     expect(casilla).toContain("marcables.every((d) => selectedOrders.has(d.id))");
     expect(casilla).not.toContain("conBusqueda.every");
