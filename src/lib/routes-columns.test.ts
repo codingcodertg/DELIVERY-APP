@@ -186,7 +186,9 @@ describe("la página del Gestor", () => {
     // catálogo: el ID fijo que iba delante ya no está.
     expect(pagina.split('c.key === "invoice" ? enlaceALaOrden(d)').length - 1).toBe(1);
     expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map(");
-    expect(pagina).toContain("{menuSinAsignar.map((c) => <th key={c.key}>");
+    // Puesto al día por D-462: las cabeceras las pinta `tablaDeOrdenes` desde `vista.menu` («Sin asignar» le pasa `menuSinAsignar`).
+    expect(pagina).toContain("{menu.map((c) => <th key={c.key}>");
+    expect(pagina).toContain("columnas: colsSinAsignar, menu: menuSinAsignar,");
     // La tabla de paradas enseñaba la factura en el puesto 1; D-444 puso el ID en su lugar; D-456 (2026-10-01, «Invoice number
     // is more important») devuelve la factura, que abre la orden, con el ID debajo (`facturaYId`).
     expect(pagina).toContain('<td className="ordno">{facturaConSuId(d)}</td>');
@@ -198,8 +200,10 @@ describe("la página del Gestor", () => {
   it("D-408: sin columna del ID en «Sin asignar»; en paradas, el ID vuelve en el puesto de la factura (D-444)", () => {
     for (const muerto of ["COL_ID", "CLAVE_ID", 'poolCols.widthOf("__id")', 'poolCols.startResize("__id")', "#{orderLabel(d)}</td>", '<span className="parada-id">', 'className="parada-factura"'])
       expect(pagina, muerto).not.toContain(muerto);
-    expect(pagina).toContain("style={anchoDeTabla([28, ...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])}");
-    expect(pagina).toContain("<td colSpan={colsSinAsignar.length + 2} className=\"empty\">");
+    // Puesto al día por D-462: `columnas` son las de la vista (`colsSinAsignar` o `colsTodas`), en `tablaDeOrdenes`.
+    expect(pagina).toContain("style={anchoDeTabla([28, ...columnas.map((c) => anchoEnSinAsignar(c.key)), vista.anchoDeAcciones])}");
+    expect(pagina).toContain('cabeceraDeAcciones: t("Assign to", "Asignar a"), anchoDeAcciones: 116,');
+    expect(pagina).toContain("<td colSpan={columnas.length + 2} className=\"empty\">");
     // El dueño, 2026-09-29: «en vez de facturas, pongas el ID»; y el 2026-10-01 (D-456): «Invoice number is more important».
     // La cabecera vuelve a decir «Factura #». La clave del ancho sigue siendo `_factura`.
     expect(pagina).toContain('{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
@@ -291,8 +295,9 @@ describe("la página del Gestor", () => {
   });
   it("D-376: «Sin asignar» usa el ancho de Órdenes en la tabla, en cada col y en el asa; y el hook lo respeta por debajo de lo arrastrado", () => {
     expect(pagina).toContain("const anchoEnSinAsignar = (clave: string) => poolCols.widthOf(`g_${clave}`, anchoDePartida(clave, COLUMN_WIDTHS));");
-    expect(pagina).toContain("...colsSinAsignar.map((c) => anchoEnSinAsignar(c.key)), 116])");
-    expect(pagina).toContain("{colsSinAsignar.map((c) => <col key={c.key} style={{ width: anchoEnSinAsignar(c.key) }} />)}");
+    // Puesto al día por D-462: la tabla la pinta `tablaDeOrdenes` con `columnas` (las de la vista); «Todas» comparte los anchos.
+    expect(pagina).toContain("...columnas.map((c) => anchoEnSinAsignar(c.key)), vista.anchoDeAcciones])");   // la de acciones: 116 en «Sin asignar», 136 en «Todas» (D-462)
+    expect(pagina).toContain("{columnas.map((c) => <col key={c.key} style={{ width: anchoEnSinAsignar(c.key) }} />)}");
     expect(pagina).toContain("onMouseDown={poolCols.startResize(`g_${c.key}`, anchoDePartida(c.key, COLUMN_WIDTHS))}");
     expect(pagina).not.toContain("poolCols.widthOf(`g_${c.key}`)");
     const hook = plano(leer("src/lib/use-col-widths.ts"));
@@ -302,7 +307,8 @@ describe("la página del Gestor", () => {
   it("D-376: la pestaña «Programadas» ya no está, ni lo que colgaba de ella; su cuenta lleva a las rutas", () => {
     for (const muerto of ['"scheduled"', "setTab(\"scheduled\")", "colsProgramadas", "ordenProgramadas", "menuProgramadas", "schedCols", "rtg_routes_sched4", "const scheduled ="])
       expect(pagina, muerto).not.toContain(muerto);
-    expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline">("routes");');
+    // D-462 suma «todas» (todas las del día, con chofer o sin él): no es «Programadas», que repetía lo de cada tarjeta.
+    expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "todas" | "board" | "timeline">("routes");');
     // D-459: la franja de cuatro casillas de arriba se quitó; la cuenta de programadas va en la pestaña «Rutas».
     expect(pagina).toContain("<span data-cuenta-programadas>{t(`${scheduledCount} scheduled`, `${scheduledCount} programadas`)}</span>");
     expect(pagina).not.toContain('label: t("Scheduled", "Programadas")');
@@ -314,7 +320,9 @@ describe("la página del Gestor", () => {
     // Desde D-408 con `columnasElegibles` (sin la factura); desde D-410 con `columnasDelSelector`: toda SU tabla, en el
     // orden de la persona, con la factura fija de casilla apagada.
     expect(pagina).toContain('columnas={columnasDelSelector("paradas", ordenGestor)} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
-    expect(pagina).toContain('columnas={columnasDelSelector("sinAsignar", ordenGestor)} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
+    // Puesto al día por D-462: el ⚙ de «Sin asignar» y el de «Todas» los pinta `tablaDeOrdenes` con el `selector` de su vista.
+    expect(pagina).toContain("columnas={vista.selector} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}");
+    expect(pagina).toContain('selector: columnasDelSelector("sinAsignar", ordenGestor)');
   });
   it("D-379: el ⚙ de paradas se pinta UNA VEZ POR CHOFER, y cada uno tiene su estado y su caja — no uno de la página para todos", () => {
     // El fallo del dueño («no me deja seleccionar la columna»): un solo estado y una sola ref de la página, dentro del map de
@@ -416,10 +424,12 @@ describe("«Sin asignar» tiene su propio ⚙ Columnas (D-349)", () => {
   const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
   it("el selector está junto al buscador, con las columnas de ESA tabla, y usa la misma función que los otros dos", () => {
     // Desde D-379 es un `SelectorDeColumnas`, con su propio estado (lo fija la prueba de «una vez por chofer»).
-    const i = pagina.indexOf('columnas={columnasDelSelector("sinAsignar", ordenGestor)}');
+    // Puesto al día por D-462: lo pinta `tablaDeOrdenes` junto al buscador de la vista (`vista.busqueda`), para las dos tablas.
+    const i = pagina.indexOf("<SelectorDeColumnas columnas={vista.selector}");
     expect(i).toBeGreaterThan(-1);
     expect(pagina.slice(i, i + 400)).toContain("onAlterna={alternaColumnaDelGestor}");
-    expect(pagina.slice(pagina.lastIndexOf("<input", i), i)).toContain("value={orderSearch}");
+    expect(pagina.slice(pagina.lastIndexOf("<input", i), i)).toContain("value={vista.busqueda}");
+    expect(pagina).toContain('selector: columnasDelSelector("sinAsignar", ordenGestor)');
   });
 });
 

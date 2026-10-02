@@ -169,7 +169,8 @@ describe("Julio vacío: ni línea en el mapa ni tarjeta", () => {
 
 describe("«⚠ Incidencias» es un botón que abre una ventana", () => {
   it("ya no es pestaña", () => {
-    expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "board" | "timeline">("routes");');
+    // D-462 suma la pestaña «todas» (todas las del día, con chofer o sin él); «incidents» sigue sin estar.
+    expect(pagina).toContain('const [tab, setTab] = useState<"routes" | "orders" | "todas" | "board" | "timeline">("routes");');
     expect(pagina).not.toContain('setTab("incidents")');
     expect(pagina).not.toContain('tab === "incidents"');
   });

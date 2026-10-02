@@ -157,7 +157,9 @@ describe("2 · arrastrar para armar rutas a mano", () => {
       expect(pagina).toContain("onClick={() => void mueveParada(u.key, f.indice!, 1)}");
     });
     it("se arrastran las filas de «Sin asignar» y las paradas que también mueven las flechas (una recogida, solo con la 154)", () => {
-      expect(pagina).toContain('data-fila-arrastrable="orden" {...filaArrastrable({ tipo: "orden", id: d.id })}>');
+      // Puesto al día por D-462: la fila la pinta `tablaDeOrdenes` para «Sin asignar» y «Todas», y solo se arrastra la que no
+      // tiene chofer (en «Sin asignar», todas; en «Todas», las asignadas van por «Pasar a…»).
+      expect(pagina).toContain('data-fila-arrastrable={sinChofer ? "orden" : undefined} {...(sinChofer ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>');
       expect(pagina).toContain('const seArrastra = movible && (f.tipo === "D" || hayRecogidaGuardada);');
       expect(pagina).toContain('const arrastre = seArrastra ? filaArrastrable({ tipo: "parada", ruta: u.key, indice: f.indice! }) : {};');
       expect(pagina.split('data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}').length - 1).toBe(2);
