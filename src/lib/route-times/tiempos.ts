@@ -155,13 +155,14 @@ export async function matrizDeUnaVez(
   const clave = (n: Punto) => claveDePunto(puntos[n]);
   const pares = nombres.flatMap((a) => nombres.filter((b) => b !== a).map((b) => [a, b] as const));
 
-  const guardadas = (await deps.cache.lee(pares.map(([a, b]) => claveSinTrafico(clave(a), clave(b))))).filter((f) => estaVigente(f, deps.ahoraISO));
-  const porClave = new Map(guardadas.map((f) => [textoDeClave(f), f]));
+  const vigentes = (await deps.cache.lee(pares.map(([a, b]) => claveSinTrafico(clave(a), clave(b))))).filter((f) => estaVigente(f, deps.ahoraISO));
+  const porClave = new Map(vigentes.map((f) => [textoDeClave(f), f]));
   const matriz: Matriz = Object.fromEntries(nombres.map((n) => [n, {}]));
   const faltan: (readonly [Punto, Punto])[] = [];
   for (const [a, b] of pares) {
     const f = porClave.get(textoDeClave(claveSinTrafico(clave(a), clave(b))));
-    if (f) matriz[a][b] = { minutos: f.minutos, millas: f.millas }; else faltan.push([a, b]);
+    if (f) matriz[a][b] = { minutos: f.minutos, millas: f.millas };
+    else faltan.push([a, b]);
   }
   const informe: InformeDeTiempos & { llamadas: number } = { deCache: pares.length - faltan.length, pedidos: 0, proveedor: "cache", presupuestoAgotado: false, llamadas: 0 };
   if (!faltan.length) return { matriz, informe };
@@ -187,7 +188,7 @@ export async function matrizDeUnaVez(
     if (a === b || !t) return;
     if (!matriz[a][b]) { matriz[a][b] = t; informe.pedidos++; }
     // Solo se guarda lo que contestó el proveedor PREFERIDO, como en `matrizBase`.
-    if (quien === deps.proveedores[0]?.nombre) nuevas.push({ ...claveSinTrafico(clave(a), clave(b)), ...t, proveedor: quien, pedidoEl: deps.ahoraISO });
+    if (quien === deps.proveedores[0]?.nombre) nuevas.push({ ...claveSinTrafico(clave(a), clave(b)), minutos: t.minutos, millas: t.millas, proveedor: quien, pedidoEl: deps.ahoraISO });
   }));
   informe.proveedor = elPeor(informe.proveedor, quien);
   if (nuevas.length) await deps.cache.escribe(nuevas);
