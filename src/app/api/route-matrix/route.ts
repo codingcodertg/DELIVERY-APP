@@ -7,7 +7,7 @@ import { matrizDeUnaVez } from "@/lib/route-times/tiempos";
 import { puntosDeLaPeticion } from "@/lib/optimizar-desde-el-gestor";
 
 // ============================================================
-// Los tiempos por calles entre los puntos de UNA ruta, para «🧭 Optimizar» del Gestor (D-NEXT).
+// Los tiempos por calles entre los puntos de UNA ruta, para «🧭 Optimizar» del Gestor (D-461).
 //
 // El dueño, 2026-10-02: «sigamos trabajando en el alrgoritmo de optimizar ruta porque sigue muy mal ineficente». El primer
 // Optimizar (D-456) medía en línea recta. Este da la misma matriz que usa «Armar rutas» —sin tráfico, de la caché compartida

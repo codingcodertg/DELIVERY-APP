@@ -14,7 +14,7 @@ import { cacheEnMemoria, matrizBase, matrizDeUnaVez, PRESUPUESTO_POR_DEFECTO, ty
 import type { NamedLocation } from "./types";
 
 /**
- * Lo que el Gestor pone alrededor del optimizador (D-NEXT). El dueño, 2026-10-02: «sigamos trabajando en el alrgoritmo de
+ * Lo que el Gestor pone alrededor del optimizador (D-461). El dueño, 2026-10-02: «sigamos trabajando en el alrgoritmo de
  * optimizar ruta porque sigue muy mal ineficente».
  *
  * **Ninguna prueba llama a un servicio de verdad**: los proveedores son dobles que apuntan lo que se les pide, y `fetch`, en

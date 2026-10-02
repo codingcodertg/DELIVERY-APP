@@ -6,7 +6,7 @@ import { serviceMin } from "./trip-timing";
 import type { DriverSettings, NamedLocation, Profile } from "./types";
 
 /**
- * Lo que el Gestor de Rutas pone alrededor de `optimizaLaLista` (D-NEXT): de dónde sale el camión, qué se le pasa al
+ * Lo que el Gestor de Rutas pone alrededor de `optimizaLaLista` (D-461): de dónde sale el camión, qué se le pasa al
  * optimizador, de dónde salen los tiempos por calles y qué dice el aviso al terminar. Todo puro —sin pantalla, sin base, sin
  * red: lo que llama a alguien llega inyectado—, para poder probarlo.
  *
@@ -36,7 +36,7 @@ export function basesPorNombre(
  * la misma de la que lo saca «Armar rutas») y, si no la tiene, la tienda de su perfil (Usuarios). Sin ninguna —o si el nombre
  * no es una tienda de Ajustes—, `null`: la ruta se mide abierta y la tarjeta lo dice («⚠ sin base»).
  *
- * Hasta D-NEXT el Gestor usaba como base la dirección de recogida MÁS REPETIDA entre las órdenes de la ruta. Con una ruta que
+ * Hasta D-461 el Gestor usaba como base la dirección de recogida MÁS REPETIDA entre las órdenes de la ruta. Con una ruta que
  * carga sobre todo en otra tienda, el camión «salía» y «volvía» a un sitio que no es el suyo: medido sobre 40 rutas reales,
  * la base era otra en 11, y solo por eso el Optimizar de D-456 las dejaba con 251 minutos y 267 millas de más.
  */

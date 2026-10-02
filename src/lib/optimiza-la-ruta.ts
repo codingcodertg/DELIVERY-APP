@@ -4,14 +4,14 @@ import { FACTOR_DE_RODEO, MILLAS_POR_HORA_ESTIMADAS, millasEnLineaRecta } from "
 import { RELOAD_MIN } from "./trip-timing";
 
 /**
- * «🧭 Optimizar» UNA ruta (D-456, rehecho en D-NEXT). El dueño, 2026-10-01: «When doing routes manually it assigned to him
+ * «🧭 Optimizar» UNA ruta (D-456, rehecho en D-461). El dueño, 2026-10-01: «When doing routes manually it assigned to him
  * but it doesn't optimize have the optimize option for every route when selecting a driver and optimize it». Y al día
  * siguiente, con el primer Optimizar en la calle: «sigamos trabajando en el alrgoritmo de optimizar ruta porque sigue muy mal
  * ineficente».
  *
  * El primero (D-456) decidía el orden con el vecino más cercano y un pulido, midiendo EN LÍNEA RECTA, sin mirar las ventanas
  * de entrega ni lo que se tarda de verdad, y saliendo de «la base» que la pantalla le daba (la tienda de recogida más repetida
- * de la ruta, no la del chofer). Medido sobre 37 rutas reales (DECISIONS.md, D-NEXT): en 20 no daba el mejor orden y en 13
+ * de la ruta, no la del chofer). Medido sobre 37 rutas reales (DECISIONS.md, D-461): en 20 no daba el mejor orden y en 13
  * dejaba la ruta peor de como estaba — por la base, que era otra en 11; por no mirar las ventanas (14 entregas tarde donde el
  * mejor orden deja 3); y porque la búsqueda se atascaba.
  *
@@ -115,7 +115,7 @@ export interface ResultadoDeOptimizar {
 export const SALIDA_POR_DEFECTO_MIN = 8 * 60;
 /**
  * Hasta cuántas etiquetas crea la búsqueda exacta antes de rendirse y dejarle la ruta a la búsqueda local. Medido en Chrome
- * (DECISIONS.md, D-NEXT): con este tope, 36 de las 37 rutas reales salen exactas y la pulsación más lenta es de 358 ms; la
+ * (DECISIONS.md, D-461): con este tope, 36 de las 37 rutas reales salen exactas y la pulsación más lenta es de 358 ms; la
  * peor de todas —una ruta inventada de 10 órdenes, donde la exacta se rinde y siguen las sacudidas—, 796 ms.
  */
 export const TOPE_DE_LA_EXACTA = 600_000;
@@ -410,7 +410,7 @@ function vecinoMasCercano(pr: Problema): number[] {
  * `puestas`: las que ya están, en su orden; no se mueven.
  *
  * (Se probó a medir solo los puestos que menos camino añaden —contado deprisa— para dar muchas más sacudidas en una ruta
- * grande. Salía PEOR: con ventanas, el mejor puesto de una orden casi nunca es el de menos rodeo. Medido en D-NEXT.)
+ * grande. Salía PEOR: con ventanas, el mejor puesto de una orden casi nunca es el de menos rodeo. Medido en D-461.)
  */
 function insercionMasBarata(pr: Problema, turno: readonly number[], puestas: readonly number[], cuenta: Cuenta, mejorQue: Criterio = mejorNota): number[] {
   const m = pr.m;

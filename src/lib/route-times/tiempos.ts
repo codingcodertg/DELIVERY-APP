@@ -135,7 +135,7 @@ export async function matrizBase(puntos: Readonly<Record<Punto, LatLng>>, deps: 
 }
 
 /**
- * La matriz base entre los puntos de UNA ruta, en UNA SOLA petición al proveedor (D-NEXT, «🧭 Optimizar» del Gestor).
+ * La matriz base entre los puntos de UNA ruta, en UNA SOLA petición al proveedor (D-461, «🧭 Optimizar» del Gestor).
  *
  * `matrizBase` pide lo que falta origen a origen: paga exactamente lo que falta, pero son tantas peticiones como orígenes,
  * una detrás de otra. Vale para «Armar rutas», que corre una vez por día; para un botón que se pulsa y se espera es lento.

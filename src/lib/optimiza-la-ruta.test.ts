@@ -10,7 +10,7 @@ import { FACTOR_DE_RODEO, MILLAS_POR_HORA_ESTIMADAS, millasEnLineaRecta } from "
 import REALES from "./optimizar-casos-reales.json";
 
 /**
- * «🧭 Optimizar» una ruta, rehecho (D-NEXT). El dueño, 2026-10-02: «sigamos trabajando en el alrgoritmo de optimizar ruta
+ * «🧭 Optimizar» una ruta, rehecho (D-461). El dueño, 2026-10-02: «sigamos trabajando en el alrgoritmo de optimizar ruta
  * porque sigue muy mal ineficente».
  *
  * Lo que se fija aquí:

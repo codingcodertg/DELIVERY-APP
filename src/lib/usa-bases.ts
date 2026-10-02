@@ -7,7 +7,7 @@ import { basesPorNombre } from "@/lib/optimizar-desde-el-gestor";
 import type { DriverSettings } from "@/lib/types";
 
 /**
- * La tienda base de cada chofer, por NOMBRE, para el Gestor de Rutas (D-NEXT): de dónde sale su camión y a dónde vuelve. Es
+ * La tienda base de cada chofer, por NOMBRE, para el Gestor de Rutas (D-461): de dónde sale su camión y a dónde vuelve. Es
  * la de Ajustes → Rutas (`driver_settings.base_store`, 128), la misma de la que lo saca «Armar rutas».
  *
  * Se lee con una consulta directa, como las zonas y los requisitos (`usa-zonas.ts`, `usa-requisitos.ts`): el `DataProvider`

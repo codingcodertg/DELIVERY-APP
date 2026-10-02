@@ -192,7 +192,7 @@ describe("2 · arrastrar para armar rutas a mano", () => {
 });
 
 // =====================================================================================================================
-// **Reemplazado en parte por D-NEXT** (2026-10-02, el dueño: «sigamos trabajando en el alrgoritmo de optimizar ruta porque sigue
+// **Reemplazado en parte por D-461** (2026-10-02, el dueño: «sigamos trabajando en el alrgoritmo de optimizar ruta porque sigue
 // muy mal ineficente»). El Optimizar de D-456 decidía en LÍNEA RECTA, con el vecino más cercano y un pulido. El de ahora busca
 // el mejor orden por calles, mirando las ventanas: sus pruebas están en `optimiza-la-ruta.test.ts` y
 // `optimizar-desde-el-gestor.test.ts`. Estas se quedan, puestas al día, porque lo que fijaban sigue valiendo: las mismas
@@ -275,7 +275,7 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
     expect(sin.millasAntes).toBeGreaterThan(67 * FACTOR_DE_RODEO);
     expect(sin.millasAntes).toBeLessThan(71 * FACTOR_DE_RODEO);
   });
-  // Dos casos hallados buscando al azar (2026-10-01), para lo que el vecino más cercano no resuelve solo. Con D-NEXT el
+  // Dos casos hallados buscando al azar (2026-10-01), para lo que el vecino más cercano no resuelve solo. Con D-461 el
   // resultado es el mismo recorrido que encontraba D-456 (190,5 y 243,2 mi en línea recta), ahora COMPROBADO como óptimo.
   const caso = (coords: [number, number][], capacidad: number) => {
     const n = coords.length / 2;
@@ -328,13 +328,13 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
       expect(optimizar.indexOf("const r = optimizaLaLista({")).toBeGreaterThan(optimizar.indexOf("return;", candado));
     });
     it("optimiza SOLO la lista de esa ruta, con sus puntos, sus pallets, su base y su capacidad", () => {
-      // **Puesto al día por D-NEXT**: lo que se le pasa lo arma `entradaDeOptimizar` (que añade ventanas y minutos de servicio).
+      // **Puesto al día por D-461**: lo que se le pasa lo arma `entradaDeOptimizar` (que añade ventanas y minutos de servicio).
       expect(optimizar).toContain("const lista = lecturaDe(laneKey, stops).paradas;");
       expect(optimizar).toContain("const base = baseDeLaRuta(laneKey);");
       expect(optimizar).toContain("lista, ordenes: stops, base, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,");
     });
     it("el ORDEN se decide en el navegador, sin pedírselo a nadie; lo único que se pide son los tiempos por calles, una vez", () => {
-      // **Reemplazado en parte por D-NEXT**: D-456 no llamaba a nadie («ni una petición») y medía en línea recta. Ahora pide
+      // **Reemplazado en parte por D-461**: D-456 no llamaba a nadie («ni una petición») y medía en línea recta. Ahora pide
       // UNA matriz de tiempos por pulsación (`/api/route-matrix`); el orden lo sigue decidiendo `optimizaLaLista`, aquí.
       expect(optimizar.split("fetch(").length - 1).toBe(1);
       expect(optimizar).toContain('fetch("/api/route-matrix"');
@@ -343,7 +343,7 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
       expect(plano(leer("src/lib/optimiza-la-ruta.ts"))).not.toContain("fetch(");
     });
     it("guarda por `guardaLaLista` (deshacer incluido), y si no hay nada mejor no escribe", () => {
-      // **Puesto al día por D-NEXT**: el aviso («No se cambió nada») lo escribe ahora `avisoDeOptimizar`.
+      // **Puesto al día por D-461**: el aviso («No se cambió nada») lo escribe ahora `avisoDeOptimizar`.
       expect(optimizar).toContain("if (r.cambio && !(await guardaLaLista(laneKey, stops, r.paradas, {");
       expect(optimizar.split("guardaLaLista(").length - 1).toBe(1);
     });

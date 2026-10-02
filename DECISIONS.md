@@ -34419,7 +34419,7 @@ elemento a la vista y la foto entregada por el selector de ficheros que abre el 
 
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el ID ya no va DEBAJO de la factura sino a su lado, en la misma línea, pequeño, gris y sin subrayar («the id looks blurry and awful becuase of those dots dont make the row larger just fix the view»), y la columna nace con 124 px (era 84). La línea «✋ Arrastre una fila…» de la tarjeta de cada chofer es ahora el `title` de la cabecera de su tabla; en «Sin asignar» sigue. Y el `td` de acciones dejó de llevar `display: flex`.
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-02): «🧭 Optimizar» (§3) ya no decide en línea recta ni «sin llamar a nadie»: mide por calles (una petición de matriz por pulsación, y ninguna si los tramos ya están guardados), mira las ventanas de entrega, sale de la base del chofer —no de la tienda de recogida más repetida— y da el mejor orden que existe en las rutas pequeñas. Medido sobre 37 rutas reales, el de aquí no daba el mejor orden en 20 y dejaba 13 peor de como estaban. Y en la medida de la tarjeta (§4), las recogidas seguidas en una misma tienda cuentan como UNA visita, no la recarga entera por cada fila.
+> **⚠ Reemplazada en parte por D-461** (2026-10-02): «🧭 Optimizar» (§3) ya no decide en línea recta ni «sin llamar a nadie»: mide por calles (una petición de matriz por pulsación, y ninguna si los tramos ya están guardados), mira las ventanas de entrega, sale de la base del chofer —no de la tienda de recogida más repetida— y da el mejor orden que existe en las rutas pequeñas. Medido sobre 37 rutas reales, el de aquí no daba el mejor orden en 20 y dejaba 13 peor de como estaban. Y en la medida de la tarjeta (§4), las recogidas seguidas en una misma tienda cuentan como UNA visita, no la recarga entera por cada fila.
 
 **Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
 D-007 (sin arrastrar en la pestaña «Rutas»), D-434 (la columna «solo para el id» de la tabla del plan), D-437 («Optimizar
@@ -34879,9 +34879,9 @@ siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-02): la pastilla «⚠ sin base» (§8) ya no mira la tienda del PERFIL del chofer (`!u.store`), sino si la ruta tiene base de verdad: la de Ajustes → Rutas (`driver_settings.base_store`) y, si no, la del perfil. Dos de los tres choferes la enseñaban teniendo base. Su frase dice ahora las dos tiendas que se miran.
+> **⚠ Reemplazada en parte por D-461** (2026-10-02): la pastilla «⚠ sin base» (§8) ya no mira la tienda del PERFIL del chofer (`!u.store`), sino si la ruta tiene base de verdad: la de Ajustes → Rutas (`driver_settings.base_store`) y, si no, la del perfil. Dos de los tres choferes la enseñaban teniendo base. Su frase dice ahora las dos tiendas que se miran.
 
-**Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
+**Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** deliveries 1.247.0, repo 1.333.0. **Reemplaza en parte a**
 D-433 (lo hecho no se pintaba), D-456 (el ID debajo de la factura; la línea «✋ Arrastre una fila…»), D-400 (la tarjeta de
 «Armar las rutas» y la ayuda del mapa como avisos cerrables; dónde está «Mostrar avisos ocultos»), D-346 («Armar las
 rutas» plegado tras un botón en su tarjeta), D-437 (el botón de la cabecera «trae» la barra), D-376 (la cuenta de
@@ -35102,9 +35102,9 @@ carrera): es una migración sobre `deliveries` y hoy había que desbloquear a ve
 **Pruebas.** `codigo-de-orden-del-servidor.test.ts`: el choque reproducido con los códigos de un vendedor, la ruta (sesión
 antes que la llave de servicio, sin escrituras) y que crear pide al servidor.
 
-## D-NEXT · «🧭 Optimizar» una ruta, rehecho: por calles, mirando las ventanas, desde la base del chofer, y exacto en las rutas pequeñas
+## D-461 · «🧭 Optimizar» una ruta, rehecho: por calles, mirando las ventanas, desde la base del chofer, y exacto en las rutas pequeñas
 
-**Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
+**Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** deliveries 1.249.0, repo 1.335.0. **Reemplaza en parte a**
 D-456 (§3: «Optimizar» en línea recta y sin llamar a nadie; y, de §4, la recarga entera por cada fila P en la medida) y a
 D-459 (cuándo sale la pastilla «⚠ sin base»). Cada una lleva su nota.
 

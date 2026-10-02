@@ -67,7 +67,7 @@ describe("medir la ruta sin reordenarla", () => {
     // D-443: UNA medida por chofer, la lista entera en su orden —cada recogida en su tienda y cada entrega—, no un lazo por viaje.
     expect(mide).toContain("const lista = lecturaDe(laneKey, stopList).paradas;");
     expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, stopList[0]?.delivery_date ?? date)),");
-    // **Reemplazado en parte por D-NEXT** (2026-10-02): cada fila P sumaba la recarga entera (`servicio: RELOAD_MIN`); desde
+    // **Reemplazado en parte por D-461** (2026-10-02): cada fila P sumaba la recarga entera (`servicio: RELOAD_MIN`); desde
     // D-444 cada recogida es su fila, y cinco cajas de la misma tienda eran 100 minutos. Ahora las recogidas seguidas en la
     // misma tienda son UNA visita (`minutosEnCadaParada`), como en el optimizador y en «Armar rutas». Y la base de la medida es
     // la del chofer (`baseDeLaRuta`), no la dirección de recogida más repetida. Ver `optimizar-desde-el-gestor.test.ts`.

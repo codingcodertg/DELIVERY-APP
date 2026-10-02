@@ -97,7 +97,7 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 //   · ARRASTRAR filas: una de «Sin asignar» a un chofer del panel (la asigna), y una parada dentro de su lista o a la de otro
 //     chofer (la mueve). D-007 lo había quitado; las flechas se quedan;
 //   · «🧭 Optimizar» en cada tarjeta: reordena SOLO esa ruta (`optimiza-la-ruta.ts`). D-437 lo había quitado;
-//     desde D-NEXT busca el mejor orden POR CALLES y mirando las ventanas, saliendo de la base del chofer;
+//     desde D-461 busca el mejor orden POR CALLES y mirando las ventanas, saliendo de la base del chofer;
 //   · la llegada estimada SIEMPRE: se miden todas las rutas con paradas, no solo las marcadas, y la celda dice por qué falta.
 //
 // SIN VIAJES desde D-443 (el dueño, 2026-09-28: «SI ELIMINA VIAJES»). La ruta de un chofer es UNA lista de paradas
@@ -875,7 +875,7 @@ export default function RoutesPage() {
     }
   };
 
-  // ---- «🧭 Optimizar» una ruta (D-456, rehecho en D-NEXT) ---------------------------------------------------------
+  // ---- «🧭 Optimizar» una ruta (D-456, rehecho en D-461) ---------------------------------------------------------
   // El dueño, 2026-10-01: «have the optimize option for every route when selecting a driver and optimize it». D-437 lo había
   // quitado. Vuelve POR RUTA: reordena solo las paradas de esa tarjeta —recogidas y entregas—. Y el 2026-10-02, con el primero
   // en la calle: «sigamos trabajando en el alrgoritmo de optimizar ruta porque sigue muy mal ineficente». Aquel decidía en
@@ -1050,11 +1050,11 @@ export default function RoutesPage() {
     saveSettings({ driver_capacity: { ...(settings.driver_capacity ?? {}), [driver]: capacity } });
   };
 
-  // La BASE de una ruta: de dónde sale el camión y a dónde vuelve (D-NEXT). Es la tienda DEL CHOFER —la de Ajustes → Rutas
+  // La BASE de una ruta: de dónde sale el camión y a dónde vuelve (D-461). Es la tienda DEL CHOFER —la de Ajustes → Rutas
   // (`driver_settings.base_store`, la misma de la que lo saca «Armar rutas») y, si no la tiene, la de su perfil—: lo decide
   // `tiendaBaseDelChofer`. Hasta aquí era la dirección de recogida MÁS REPETIDA entre las órdenes de la ruta: con una ruta
   // que carga sobre todo en otra tienda, el camión «salía» y «volvía» a un sitio que no es el suyo, y con esa base se medían
-  // las millas, las llegadas y el Optimizar (medido en D-NEXT: era otra en 11 de 37 rutas reales). Sin tienda —un chofer sin
+  // las millas, las llegadas y el Optimizar (medido en D-461: era otra en 11 de 37 rutas reales). Sin tienda —un chofer sin
   // base, una ruta temporal—, `null`: la ruta se mide abierta y la tarjeta lo dice («⚠ sin base»).
   // (`pickupAddressFor` conserva el nombre de antes: es la dirección de esa base, para la fila de la Base, el mapa y la medida.)
   const basesDeChofer = useBasesDeChofer();
@@ -1440,12 +1440,12 @@ export default function RoutesPage() {
    * entrega, y vuelta a la base—, en vez de un lazo por viaje. Una recogida en una tienda sin coordenadas en Ajustes, o una
    * entrega sin pin, no se miden (no se inventa un punto). */
   const mideLaRuta = async (laneKey: string, stopList: Delivery[]): Promise<MedidaDeLaRuta> => {
-    // La base del chofer (D-NEXT): sus coordenadas de Ajustes; sin ellas, las de su dirección.
+    // La base del chofer (D-461): sus coordenadas de Ajustes; sin ellas, las de su dirección.
     const base = baseDeLaRuta(laneKey);
     const depot: [number, number] | null = base ? [base.lat, base.lng] : await getDepotCoords(pickupAddressFor(laneKey));
     const byId = new Map(stopList.map((d) => [d.id, d]));
     const lista = lecturaDe(laneKey, stopList).paradas;
-    // Lo que el camión pasa parado en cada parada, contado como el optimizador y el motor (D-NEXT): las recogidas seguidas en
+    // Lo que el camión pasa parado en cada parada, contado como el optimizador y el motor (D-461): las recogidas seguidas en
     // la misma tienda son UNA visita. Hasta aquí cada fila P sumaba la recarga entera.
     const parado = minutosEnCadaParada(lista, lista.map((p) => (p.tipo === "D" ? serviceMin(byId.get(p.orden)?.delivery_duration) : p.ordenes.reduce((n, id) => n + serviceMin(byId.get(id)?.pickup_duration), 0))), RELOAD_MIN);
     // Los puntos en el orden de la lista. El id de una recogida es «P:» + su puesto en la lista (así sale su hora estimada).
@@ -2909,7 +2909,7 @@ export default function RoutesPage() {
                 onClick={(e) => { e.stopPropagation(); void alternaCandado(u.key); }}>
                 {bloqueada(u.key) ? `🔒 ${t("Locked", "Bloqueada")}` : `🔓 ${t("Lock", "Bloquear")}`}
               </button>
-              {/* «🧭 Optimizar» (D-456, rehecho en D-NEXT; D-437 lo había quitado): reordena SOLO esta ruta —por calles, mirando
+              {/* «🧭 Optimizar» (D-456, rehecho en D-461; D-437 lo había quitado): reordena SOLO esta ruta —por calles, mirando
                   las ventanas y saliendo de la base del chofer—, sin romper «recoger antes de entregar» ni pasarse de la
                   capacidad, y la guarda (Ctrl+Z la deshace). Con candado 🔒 no la toca y lo dice: el botón se ve apagado pero
                   se puede pulsar, para que diga por qué. */}

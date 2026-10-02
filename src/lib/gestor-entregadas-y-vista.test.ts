@@ -361,14 +361,14 @@ describe("8 · sin el texto de sobra en la tarjeta de cada ruta («remueve todo 
   it("los tres renglones se fueron: «Total (desde la base…)», «Este chofer no tiene tienda…» y «✋ Arrastre una fila…»", () => {
     expect(sinComentarios).not.toContain("Total (from the base and back)");
     expect(sinComentarios).not.toContain('<span className="hint" data-pista-de-arrastre');
-    // **Puesto al día por D-NEXT**: la frase de la pastilla nombra ahora las dos tiendas que se miran (Ajustes → Rutas y Usuarios).
+    // **Puesto al día por D-461**: la frase de la pastilla nombra ahora las dos tiendas que se miran (Ajustes → Rutas y Usuarios).
     expect(sinComentarios).not.toContain("This driver has no home store assigned (Users)");
     expect(sinComentarios.split("This driver has no base store (Settings → Routes) nor a home store (Users)").length - 1).toBe(1);      // solo en el `title` de la pastilla
     expect(sinComentarios.split("No saved order yet").length - 1).toBe(1);
     expect(sinComentarios.split("Every route is on the map at once.").length - 1).toBe(1);
   });
   it("el aviso «sin base» no se pierde: una pastilla junto al nombre, con la frase entera al pasar", () => {
-    // **Reemplazado en parte por D-NEXT** (2026-10-02): la pastilla salía si el chofer no tenía tienda en su PERFIL (`!u.store`),
+    // **Reemplazado en parte por D-461** (2026-10-02): la pastilla salía si el chofer no tenía tienda en su PERFIL (`!u.store`),
     // aunque tuviera base en Ajustes → Rutas —la que usa «Armar rutas»—, y la medida usaba otra cosa (la recogida más repetida).
     // Ahora sale justo cuando la ruta no tiene base de verdad (`tiendaBaseDe`): ni en Ajustes ni en el perfil.
     expect(pagina).toContain('{!tiendaBaseDe(u.key) && stops.length > 0 && ( <span className="sema" data-sin-base tabIndex={0}');
