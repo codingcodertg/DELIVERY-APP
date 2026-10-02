@@ -115,8 +115,8 @@ export interface ResultadoDeOptimizar {
 export const SALIDA_POR_DEFECTO_MIN = 8 * 60;
 /**
  * Hasta cuántas etiquetas crea la búsqueda exacta antes de rendirse y dejarle la ruta a la búsqueda local. Medido en Chrome
- * (DECISIONS.md, D-NEXT): con este tope, 36 de las 37 rutas reales salen exactas y la pulsación más lenta es de 368 ms; la
- * peor de todas —una ruta inventada de 13 órdenes, donde la exacta se rinde y siguen las sacudidas—, 736 ms.
+ * (DECISIONS.md, D-NEXT): con este tope, 36 de las 37 rutas reales salen exactas y la pulsación más lenta es de 358 ms; la
+ * peor de todas —una ruta inventada de 10 órdenes, donde la exacta se rinde y siguen las sacudidas—, 796 ms.
  */
 export const TOPE_DE_LA_EXACTA = 600_000;
 /** Con más paradas que estas ni se intenta la exacta: no la terminaría dentro del tope, y lo gastado en intentarlo se
