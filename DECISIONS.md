@@ -34419,6 +34419,8 @@ elemento a la vista y la foto entregada por el selector de ficheros que abre el 
 
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el ID ya no va DEBAJO de la factura sino a su lado, en la misma línea, pequeño, gris y sin subrayar («the id looks blurry and awful becuase of those dots dont make the row larger just fix the view»), y la columna nace con 124 px (era 84). La línea «✋ Arrastre una fila…» de la tarjeta de cada chofer es ahora el `title` de la cabecera de su tabla; en «Sin asignar» sigue. Y el `td` de acciones dejó de llevar `display: flex`.
 
+> **⚠ Reemplazada en parte por D-461** (2026-10-02): «🧭 Optimizar» (§3) ya no decide en línea recta ni «sin llamar a nadie»: mide por calles (una petición de matriz por pulsación, y ninguna si los tramos ya están guardados), mira las ventanas de entrega, sale de la base del chofer —no de la tienda de recogida más repetida— y da el mejor orden que existe en las rutas pequeñas. Medido sobre 37 rutas reales, el de aquí no daba el mejor orden en 20 y dejaba 13 peor de como estaban. Y en la medida de la tarjeta (§4), las recogidas seguidas en una misma tienda cuentan como UNA visita, no la recarga entera por cada fila.
+
 **Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
 D-007 (sin arrastrar en la pestaña «Rutas»), D-434 (la columna «solo para el id» de la tabla del plan), D-437 («Optimizar
 ruta» quitado, y medir solo al chofer elegido), D-444 (el ID en vez de la factura en la tabla de paradas) y D-446 (el ancho
@@ -34877,7 +34879,9 @@ siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
-**Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
+> **⚠ Reemplazada en parte por D-461** (2026-10-02): la pastilla «⚠ sin base» (§8) ya no mira la tienda del PERFIL del chofer (`!u.store`), sino si la ruta tiene base de verdad: la de Ajustes → Rutas (`driver_settings.base_store`) y, si no, la del perfil. Dos de los tres choferes la enseñaban teniendo base. Su frase dice ahora las dos tiendas que se miran.
+
+**Fecha:** 2026-10-01 · **Migración:** ninguna · **Versión:** deliveries 1.247.0, repo 1.333.0. **Reemplaza en parte a**
 D-433 (lo hecho no se pintaba), D-456 (el ID debajo de la factura; la línea «✋ Arrastre una fila…»), D-400 (la tarjeta de
 «Armar las rutas» y la ayuda del mapa como avisos cerrables; dónde está «Mostrar avisos ocultos»), D-346 («Armar las
 rutas» plegado tras un botón en su tarjeta), D-437 (el botón de la cabecera «trae» la barra), D-376 (la cuenta de
@@ -35097,3 +35101,353 @@ carrera): es una migración sobre `deliveries` y hoy había que desbloquear a ve
 
 **Pruebas.** `codigo-de-orden-del-servidor.test.ts`: el choque reproducido con los códigos de un vendedor, la ruta (sesión
 antes que la llave de servicio, sin escrituras) y que crear pide al servidor.
+
+## D-461 · «🧭 Optimizar» una ruta, rehecho: por calles, mirando las ventanas, desde la base del chofer, y exacto en las rutas pequeñas
+
+**Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** deliveries 1.249.0, repo 1.335.0. **Reemplaza en parte a**
+D-456 (§3: «Optimizar» en línea recta y sin llamar a nadie; y, de §4, la recarga entera por cada fila P en la medida) y a
+D-459 (cuándo sale la pastilla «⚠ sin base»). Cada una lleva su nota.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-02, literal (como lo pasó el orquestador, no extraído del fichero de sesión):
+
+> sigamos trabajando en el alrgoritmo de optimizar ruta porque sigue muy mal ineficente
+
+Es el botón «🧭 Optimizar» de cada tarjeta del Gestor, que D-456 trajo de vuelta el día anterior.
+
+### Lo primero: se midió por qué salía ineficiente, con rutas reales
+
+Se leyó producción **en solo lectura** (`begin read only`, 2026-10-02 13:33 hora de Texas): las órdenes del 15 de septiembre al
+10 de octubre, los 14 planes de `route_plans` de esas fechas con sus paradas y su matriz de tiempos, Ajustes, los choferes y
+la caché de tiempos. De ahí salen **40 rutas reales** de dos sitios: las 10 que estaban guardadas en `deliveries` con chofer
+(29 de septiembre, 1, 2 y 5 de octubre) y las 30 rutas distintas que escribieron los planes de «Armar rutas» entre el 21 de
+septiembre y el 2 de octubre. De las 40, 3 tienen menos de tres paradas y no hay orden que elegir: quedan **37**.
+
+Cada ruta se midió en cuatro órdenes **con la misma vara**: el guardado, el que daba el Optimizar de D-456 (alimentado como
+lo alimentaba la pantalla), el que da el de ahora, y el óptimo (la búsqueda exacta sin tope de trabajo). **La vara:** el
+camión sale de la base DE VERDAD del chofer (la de Ajustes → Rutas) y vuelve a ella; minutos y millas **por calles**, de la
+matriz que guardaron los planes (913 tramos, de Google y de OSRM; no hizo falta estimar ninguno); ventanas de entrega
+(estrechas: las de Ajustes, `0830-1000` y `0830-1200`); cargas y descargas como las cuenta el motor; y la capacidad del
+Gestor (10). **No se gastó cuota de mapas**: ni una llamada a un proveedor, todo con lo ya guardado.
+
+`⏰ n tarde (m′)`: n entregas que llegan después de cerrar su ventana, m minutos entre todas. `⚠ se pasa`: pallets por encima
+de la capacidad, sumados parada a parada.
+
+| Ruta (fecha · chofer · de dónde sale el orden) | Órd. | Guardado | Optimizar viejo (D-456) | Optimizar nuevo | Óptimo |
+|---|---|---|---|---|---|
+| 2026-09-29 · Ernesto · guardada | 6 | 110.9 mi · 327 min · ⏰ 1 tarde (43′) | 94.2 mi · 299 min · ⏰ 1 tarde (15′) | 96.2 mi · 321 min · ⏰ 1 tarde (3′) | 96.2 mi · 321 min · ⏰ 1 tarde (3′) |
+| 2026-09-29 · Julio · guardada | 11 | 166.8 mi · 498 min · ⏰ 2 tarde (342′) | 126.0 mi · 472 min · ⏰ 2 tarde (431′) | 122.2 mi · 428 min | 122.2 mi · 428 min |
+| 2026-09-29 · Maximo · guardada | 2 | 174.2 mi · 256 min | 174.2 mi · 256 min | 174.2 mi · 256 min | 174.2 mi · 256 min |
+| 2026-10-01 · Ernesto · guardada | 2 | 47.9 mi · 141 min | 47.9 mi · 141 min | 47.9 mi · 141 min | 47.9 mi · 141 min |
+| 2026-10-01 · Julio · guardada | 3 | 49.6 mi · 250 min · ⏰ 1 tarde (22′) | 49.6 mi · 250 min · ⏰ 1 tarde (22′) | 49.6 mi · 250 min · ⏰ 1 tarde (22′) | 49.6 mi · 250 min · ⏰ 1 tarde (22′) |
+| 2026-10-01 · Maximo · guardada | 3 | 114.8 mi · 185 min | 112.8 mi · 183 min | 112.8 mi · 183 min | 112.8 mi · 183 min |
+| 2026-10-02 · Ernesto · guardada | 8 | 55.2 mi · 202 min | 43.7 mi · 158 min | 43.2 mi · 155 min | 43.2 mi · 155 min |
+| 2026-10-02 · Julio · guardada | 8 | 161.4 mi · 424 min · ⏰ 1 tarde (91′) | 243.0 mi · 506 min · ⏰ 2 tarde (394′) | 156.7 mi · 428 min · ⏰ 1 tarde (41′) | 156.7 mi · 428 min · ⏰ 1 tarde (41′) |
+| 2026-09-21 · Ernesto · plan v1 | 2 | 71.6 mi · 159 min | 68.3 mi · 134 min | 68.3 mi · 134 min | 68.3 mi · 134 min |
+| 2026-09-21 · Julio · plan v1 | 4 | 56.2 mi · 195 min | 56.1 mi · 194 min · ⏰ 1 tarde (43′) | 56.2 mi · 195 min | 56.2 mi · 195 min |
+| 2026-09-21 · Maximo · plan v1 | 3 | 128.8 mi · 249 min | 214.6 mi · 319 min · ⏰ 1 tarde (17′) | 128.8 mi · 249 min | 128.8 mi · 249 min |
+| 2026-09-21 · Ernesto · plan v2 | 5 | 82.1 mi · 306 min · ⏰ 1 tarde (7′) | 61.8 mi · 282 min | 61.8 mi · 282 min | 61.8 mi · 282 min |
+| 2026-09-21 · Julio · plan v2 | 2 | 55.8 mi · 167 min | 43.6 mi · 154 min | 42.0 mi · 150 min | 42.0 mi · 150 min |
+| 2026-09-21 · Maximo · plan v2 | 5 | 122.3 mi · 253 min | 98.6 mi · 237 min | 101.6 mi · 215 min | 101.6 mi · 215 min |
+| 2026-09-27 · Ernesto · plan v1 | 12 | 147.3 mi · 343 min · ⚠ se pasa 4.4 | 266.9 mi · 451 min | 153.0 mi · 337 min | 153.0 mi · 337 min |
+| 2026-09-27 · Julio · plan v1 | 6 | 25.1 mi · 130 min | 25.1 mi · 130 min | 25.1 mi · 130 min | 25.1 mi · 130 min |
+| 2026-09-27 · Maximo · plan v1 | 11 | 102.8 mi · 191 min | 102.8 mi · 191 min | 102.8 mi · 191 min | 102.8 mi · 191 min |
+| 2026-09-27 · Ernesto · plan v2 | 2 | 21.0 mi · 82 min | 21.0 mi · 82 min | 21.0 mi · 82 min | 21.0 mi · 82 min |
+| 2026-09-27 · Julio · plan v2 | 18 | 156.6 mi · 394 min · ⚠ se pasa 5.45 | 144.3 mi · 365 min | 144.3 mi · 365 min *(búsqueda local)* | 144.3 mi · 365 min *(sin comprobar)* |
+| 2026-09-27 · Maximo · plan v2 | 9 | 127.3 mi · 239 min | 127.3 mi · 239 min | 127.3 mi · 239 min | 127.3 mi · 239 min |
+| 2026-09-28 · Ernesto · plan v1 | 2 | 52.0 mi · 179 min | 52.0 mi · 179 min | 43.5 mi · 169 min | 43.5 mi · 169 min |
+| 2026-09-28 · Julio · plan v1 | 5 | 112.5 mi · 286 min | 116.3 mi · 296 min | 112.5 mi · 278 min | 112.5 mi · 278 min |
+| 2026-09-29 · Ernesto · plan v1 | 5 | 94.2 mi · 324 min | 89.0 mi · 317 min | 89.0 mi · 317 min | 89.0 mi · 317 min |
+| 2026-09-29 · Julio · plan v1 | 10 | 98.3 mi · 349 min | 75.5 mi · 313 min · ⏰ 1 tarde (166′) | 91.2 mi · 334 min | 91.2 mi · 334 min |
+| 2026-09-29 · Maximo · plan v1 | 4 | 199.6 mi · 373 min | 173.5 mi · 338 min | 173.5 mi · 338 min | 173.5 mi · 338 min |
+| 2026-09-29 · Julio · plan v2 | 10 | 98.3 mi · 349 min | 75.5 mi · 313 min · ⏰ 1 tarde (166′) | 91.2 mi · 334 min | 91.2 mi · 334 min |
+| 2026-09-30 · Ernesto · plan v1 | 4 | 79.5 mi · 240 min | 78.6 mi · 240 min | 78.7 mi · 239 min | 78.7 mi · 239 min |
+| 2026-09-30 · Maximo · plan v1 | 4 | 157.6 mi · 274 min | 144.7 mi · 265 min | 142.7 mi · 262 min | 142.7 mi · 262 min |
+| 2026-10-01 · Ernesto · plan v1 | 6 | 84.1 mi · 302 min | 78.9 mi · 286 min · ⏰ 1 tarde (9′) | 71.9 mi · 281 min | 71.9 mi · 281 min |
+| 2026-10-01 · Julio · plan v1 | 2 | 28.4 mi · 162 min · ⚠ se pasa 2 | 43.4 mi · 192 min · ⏰ 1 tarde (1′) | 43.4 mi · 192 min | 43.4 mi · 192 min |
+| 2026-10-01 · Maximo · plan v1 | 3 | 112.8 mi · 183 min | 112.8 mi · 183 min | 112.8 mi · 183 min | 112.8 mi · 183 min |
+| 2026-10-01 · Ernesto · plan v2 | 5 | 63.5 mi · 213 min | 66.8 mi · 216 min | 63.5 mi · 213 min | 63.5 mi · 213 min |
+| 2026-10-01 · Julio · plan v2 | 2 | 32.7 mi · 138 min | 32.7 mi · 138 min | 32.7 mi · 138 min | 32.7 mi · 138 min |
+| 2026-10-01 · Maximo · plan v2 | 3 | 112.8 mi · 183 min | 112.8 mi · 183 min | 112.8 mi · 183 min | 112.8 mi · 183 min |
+| 2026-10-02 · Ernesto · plan v1 | 3 | 144.6 mi · 299 min | 141.9 mi · 295 min · ⏰ 1 tarde (24′) | 144.6 mi · 299 min | 144.6 mi · 299 min |
+| 2026-10-02 · Julio · plan v1 | 8 | 73.7 mi · 329 min | 67.9 mi · 312 min | 67.9 mi · 312 min | 67.9 mi · 312 min |
+| 2026-10-02 · Maximo · plan v1 | 7 | 242.4 mi · 364 min | 134.8 mi · 252 min · ⏰ 1 tarde (38′) | 156.8 mi · 296 min | 156.8 mi · 296 min |
+| **Las 37** | 205 | **3764.7 mi · 9538 min · ⏰ 6 tarde (505′) · ⚠ 11.85** | **3718.9 mi · 9361 min · ⏰ 14 tarde (1326′)** | **3463.7 mi · 9099 min · ⏰ 3 tarde (66′)** | **3463.7 mi · 9099 min · ⏰ 3 tarde (66′)** |
+
+El óptimo está **comprobado en 36 de las 37** (la búsqueda exacta terminó); la de 18 órdenes (36 paradas) es demasiado grande
+para comprobarlo, y ahí «óptimo» es lo mejor que se conoce. **El de ahora da el óptimo en las 37. El de D-456, en 17: en 20 no
+lo daba, y en 13 dejaba la ruta PEOR de como estaba** (más minutos o más retraso, medido por calles).
+
+**Lo que vio el dueño ese día** es la ruta de Julio del 2 de octubre, ocho órdenes: guardada, 161,4 mi y 424 min, con una
+entrega 91 minutos tarde. El Optimizar de D-456 dijo «209,1 → 111,4 mi en línea recta» y la dejó en **243,0 mi y 506 min, con
+dos entregas tarde (394 minutos)**. El de ahora: 156,7 mi, 428 min, una entrega 41 minutos tarde (y es el mejor orden que
+existe: esa ventana no se puede salvar entera).
+
+### Por qué perdía, causa por causa (cada una medida aparte)
+
+1. **La base no era la del chofer — la mayor.** La pantalla le pasaba como «base» la dirección de recogida MÁS REPETIDA entre
+   las órdenes de la ruta (`pickupAddressFor`), no la tienda del chofer. La ruta de Julio de ese día carga sobre todo en
+   Brownsville: el optimizador la ordenó para salir de Brownsville y volver a Brownsville, y Julio sale de Pharr, a 50 millas.
+   La base era otra en **11 de las 37**. En esas 11, el mismo algoritmo de D-456 da 2.809 min y 1.276,8 mi con la base que
+   le pasaban, y 2.558 min y 1.009,8 mi con la de verdad: **251 minutos y 267 millas, solo por la base**. (La medida de la
+   tarjeta —millas, horas y llegadas— salía de esa misma base equivocada. Y la pastilla «⚠ sin base» miraba la tienda del
+   PERFIL del chofer, que dos de los tres no tienen, aunque los tres tienen base en Ajustes → Rutas.)
+2. **No miraba las ventanas.** Acortaba el camino y llegaba tarde: **14 entregas fuera de ventana (1.326 minutos)**, contra 6
+   (505) en lo guardado y 3 (66) en el óptimo. En 11 rutas dejaba más retraso del necesario.
+3. **La búsqueda se quedaba atascada.** Con SU PROPIA vara (línea recta) y la base de verdad, no llegaba al mejor orden en 11
+   de las 37: 2.676,5 millas rectas contra 2.596,9 (un 3 % de más). Era el vecino más cercano y mover una parada cada vez.
+4. **Línea recta en vez de calles — la menor de las cuatro.** El mejor orden POSIBLE en línea recta, medido por calles, da
+   8.959 min; el mejor por calles sin mirar ventanas, 8.829: medir en línea recta cuesta **130 minutos en 14 rutas** (1,5 %).
+5. **Volver varias veces a la misma tienda no era la causa.** El de D-456 ya juntaba las recogidas: vuelve a una tienda en 10
+   sitios, los mismos que el óptimo (ahí obliga la capacidad, o hay que pasar otra vez para entregar una intertienda). Lo
+   guardado sí: 18.
+6. **La capacidad la respetaba** (0 pallets de exceso, como el óptimo). Lo guardado se pasa en 11,85: son planes de «Armar
+   rutas», que cuenta 12 pallets para dos choferes (`driver_settings.capacity_pallets`) donde el Gestor cuenta 10
+   (`settings.driver_capacity`). No se tocó: ver «A validar».
+
+Llegar a tiempo a las ventanas cuesta jornada: el óptimo por calles SIN ventanas son 8.829 min con 18 entregas tarde (1.615
+minutos); CON ventanas, 9.099 min y 3 tarde (66). Son 270 minutos más de jornada entre las 37 rutas para quitar 1.549 de
+retraso.
+
+### Qué cambia
+
+**El orden lo sigue decidiendo el navegador** (`optimizaLaLista`, `lib/optimiza-la-ruta.ts`), con las mismas reglas de fondo
+—las mismas paradas, ni una más ni una menos; una entrega nunca antes que su recogida; si no hay nada mejor, no toca nada—,
+pero:
+
+- **Qué es «mejor», en este orden y sin pesos:** (1) que el camión no se pase de su capacidad; (2) que ninguna entrega llegue
+  después de cerrar su ventana, y **las estrechas mandan** sobre las demás; (3) la jornada más corta, de que sale de la base
+  a que vuelve: manejo, cargas, descargas y esperas; (4) a igual jornada, menos millas. Un cambio tiene que ganar al menos un
+  minuto, o una décima de milla a igual tiempo.
+- **Las horas se ponen como en «Armar rutas»** (`route-engine/evalua.ts`): sale a las 08:00; una entrega espera si llega
+  antes de que abra su ventana; las recogidas seguidas en la misma tienda son UNA visita, que dura lo mayor entre la recarga
+  mínima (20 min) y la suma de lo que se carga. Por eso recoger de una vez sale más barato que volver, y solo se vuelve si
+  la capacidad o una ventana lo piden — sin una regla aparte. Una prueba compara la cuenta con `evaluaRuta` en las rutas
+  reales: mismos minutos, millas y retraso.
+- **Búsqueda EXACTA** —el mejor orden que existe, comprobado— mientras la ruta se deje: programación dinámica sobre «qué
+  paradas van hechas, dónde está el camión y en qué visita», guardando de cada estado solo las etiquetas que ninguna otra
+  mejora en todo, y podando con una cota (lo mínimo que queda: cada lugar pendiente por su tramo más corto de entrada o de
+  salida, o el árbol más corto que los une; cada carga y descarga pendiente; la vuelta). Se rinde al pasar de 600.000
+  etiquetas, **por cuenta y no por reloj**: la misma lista da el mismo orden en una máquina lenta y en una rápida. Con más de
+  26 paradas ni se intenta.
+- **Y por encima, búsqueda local**, determinista (su «azar» es un generador fijo): arranca de tres listas —lo que hay, el
+  vecino más cercano y la inserción más barata— y baja moviendo órdenes enteras (su recogida y su entrega), bloques de
+  paradas, intercambios y vueltas de un trozo; y si la exacta no termina, **sacudidas**: saca unas órdenes —al azar, o una y
+  las que más se le parecen— y las vuelve a meter donde mejor quepan, aceptando pasos intermedios con una vara blanda (el
+  retraso cuesta minutos en vez de mandar) para poder cruzar un orden peor camino de uno mejor. Tope: 30 millones de paradas
+  medidas.
+- **Tiempos por calles.** Ruta nueva `POST /api/route-matrix` (sesión, y solo admin o logística): la misma matriz sin
+  tráfico que usa «Armar rutas», de la misma caché (`travel_time_cache`, 90 días) y con el mismo freno de gasto. Lo que falte
+  se pide **de una vez** (`matrizDeUnaVez`), no origen a origen como `matrizBase`. Si no contesta, o contesta el estimado, el
+  optimizador estima en línea recta (el rodeo ×1,3 a 30 mph del último escalón del motor) y **el aviso lo dice**.
+- **La base es la del chofer** (`tiendaBaseDelChofer`): la de Ajustes → Rutas (`driver_settings.base_store`, la misma de la
+  que lo saca «Armar rutas») y, si no la tiene, la tienda de su perfil. Sin ninguna —o una ruta temporal—, ruta abierta y
+  pastilla «⚠ sin base», que ahora sale justo en ese caso. De esa base salen el Optimizar **y la medida de la tarjeta**
+  (millas, horas y llegadas), la fila «Base» y el pin del mapa: `pickupAddressFor` ya no cuenta direcciones de recogida.
+- **La medida de la tarjeta cuenta las recogidas como el optimizador** (`minutosEnCadaParada`): desde D-444 cada recogida es
+  su fila y cada fila sumaba la recarga entera; recoger cinco cajas en una tienda eran 100 minutos, y las llegadas de después
+  salían una hora tarde. Ahora es una visita.
+- **El aviso dice lo ganado** (`avisoDeOptimizar`). Para la ruta de Julio de arriba diría: «🧭 Julio Jijon optimizada:
+  −4.7 mi · +4 min (el mejor orden posible). ⚠ Aún llega tarde a 1 entrega(s): (su factura) 41 min — ningún orden lo evita
+  (antes: 1, 91 min). Ctrl+Z lo deshace.» Dice si es el mejor orden posible o el mejor que se encontró; si deja de pasarse o
+  de llegar tarde; qué entrega queda tarde y por cuánto; y si se midió en línea recta.
+
+Lo demás no cambia: con candado 🔒 no optimiza y lo dice; se guarda por `guardaLaLista` y Ctrl+Z lo deshace; sin la 154 solo
+se guarda el orden de las entregas. «Optimizar todas», «Auto-asignar», «Reagrupar» y «Simular» siguen quitados (D-437).
+
+### Hasta dónde llega la exacta, y lo que tarda (medido en Chrome)
+
+Chrome 154 sin cabeza, manejado por CDP, en la máquina de desarrollo; el módulo tal cual, sin la app (una página que lo carga y
+cronometra tres pulsaciones por ruta):
+
+| Rutas | Exacta | La pulsación más lenta |
+|---|---|---|
+| Las 37 reales (hasta 12 órdenes / 24 paradas) | **36 de 37** (todas menos la de 36 paradas) | 358 ms |
+| Inventadas, 6 órdenes (12 paradas) | 6 de 6 | 6 ms |
+| Inventadas, 8 órdenes (16 paradas) | 6 de 6 | 43 ms |
+| Inventadas, 9 órdenes (18 paradas) | 5 de 6 | 716 ms |
+| Inventadas, 10 órdenes (20 paradas) | 2 de 6 | 796 ms |
+| Inventadas, 11 órdenes (22 paradas) | 1 de 6 | 726 ms |
+| Inventadas, 12 y 13 órdenes (24 y 26 paradas) | 0 de 12 | 782 ms |
+| Inventadas, 14 a 18 órdenes (28 a 36 paradas) | no se intenta | 466 ms |
+
+**El límite:** exacta siempre hasta 8 órdenes (16 paradas) y casi siempre hasta 9, en menos de un segundo; las rutas reales,
+que repiten tiendas y destinos, hasta 12 órdenes. Las inventadas son más duras que las reales a propósito: entregas repartidas
+por todo el valle. Una ruta media real (4 a 8 órdenes) tarda de 0 a 30 ms.
+
+**Cuando no es exacta**, cuánto se acerca la búsqueda local sola: en las 36 reales con óptimo comprobado, lo da en las 36; en
+96 inventadas de 8 a 12 órdenes con óptimo comprobado, en 94 (en las otras dos —días imposibles, de 12 y 15 horas— se queda
+a 4 y 7 minutos de retraso del óptimo). En 24 inventadas de 14 a 18 órdenes, comparada con la misma búsqueda con cincuenta
+veces más presupuesto: igual en 15, peor en 9 (un 2,7 % de media; una, un 47 %: un día de 20 horas). **Por encima de 26
+paradas no hay garantía**, y el aviso dice «el mejor orden que se encontró».
+
+### Cuántas llamadas hace una pulsación
+
+- **Del navegador al servidor:** una a `/api/route-matrix`, y **ninguna** si esa forma de la ruta —sus puntos, en el orden
+  que sea— ya se pidió en esta visita (`tiemposDeLaRuta`). Un fallo no se recuerda: la siguiente pulsación lo reintenta.
+- **Del servidor al proveedor:** **ninguna** si los tramos están en la caché compartida —lo normal en un día que pasó por
+  «Armar rutas», que deja guardados todos los del día—; si falta alguno, **UNA petición de matriz a Google** (sin tráfico; con
+  10 puntos, 100 elementos), dentro del tope de siempre (400 elementos por pulsación, 1.500 al día, compartido con «Armar
+  rutas»). Por encima del tope, o si Google falla, una a OSRM (gratis); y si falla también, el estimado, que no llama a nadie.
+- **Después, la medida de siempre** (la de cualquier cambio de la ruta, D-456): una a `/api/optimize-route` si el orden cambió
+  y esa forma no se había medido. Pulsar sobre una ruta ya optimizada: cero y cero.
+
+### Descartado
+
+- **Medir solo los puestos de menos rodeo al devolver una orden** (para dar miles de sacudidas en vez de cientos). Salía peor:
+  22 fallos de 96 contra 2. Con ventanas, el mejor puesto de una orden casi nunca es el de menos camino.
+- **Bajar también con la vara blanda en los arranques, y dos inserciones más** (en el orden de la lista, y lo más lejano
+  primero). Con las sacudidas ya no aportaban: los mismos resultados en las 37 reales y en 60 inventadas, con la tercera parte
+  de trabajo.
+- **Buscar el mejor vecino de todos antes de dar cada paso.** Con 36 paradas gastaba el presupuesto entero en veinte pasos y la
+  ruta grande se quedaba en 391 min; dando el primer paso que mejora, 365.
+- **Pedirle el orden a Google u OSRM**, como antes de D-437: no saben de recogidas antes de entregas ni de capacidad (D-456).
+- **`matrizBase`, la de «Armar rutas», tal cual:** pide origen a origen —tantas peticiones como puntos, una detrás de otra—.
+  Paga lo mismo, pero una pulsación esperaría varios segundos.
+- **Optimizar en el servidor:** no hace falta; lo que cuesta dinero es la matriz, y eso ya está en el servidor.
+
+### A validar por el dueño
+
+1. **La base de una ruta es la del chofer, no donde más carga.** Cambia las millas, las horas y las llegadas de la tarjeta en
+   las rutas donde no coincidían (11 de 37), además del Optimizar. Un chofer sin base ni tienda en su perfil —y una ruta
+   temporal— se mide abierta, sin vuelta.
+2. **El retraso manda sobre la jornada, sin tope.** En la ruta de Ernesto del 29 de septiembre, bajar el retraso de una
+   ventana estrecha de 15 a 3 minutos costó 22 minutos más de jornada y una visita más a la tienda. Es lo que dice «las
+   ventanas estrechas mandan»; si prefiere un cambio —«hasta N minutos de jornada por minuto de retraso»—, es un número.
+3. **Las llegadas de la tarjeta salen antes** en las rutas con varias recogidas seguidas en una tienda (la recarga ya no se
+   suma por fila).
+4. **La capacidad del Gestor (10) y la del motor (12 para dos choferes) no dicen lo mismo.** No se tocó. Optimizar usa la del
+   Gestor, que es la que pinta «se pasa»: una ruta del plan cargada a 11 la reordena para que quepa en 10.
+5. **«Optimizar» gasta del mismo tope diario de Google que «Armar rutas»** cuando los tramos no están guardados. Y una sola
+   petición paga el cuadro entero: si a una ruta ya guardada de 10 puntos se le añade una orden, son 121 elementos y no los
+   20 que faltan (Google cobra por elemento, no por petición). Partirla en dos peticiones lo evitaría; se dejó en una, que es
+   lo que se pidió.
+
+### Medido en el demo (2026-10-02, Chrome por CDP, clics de persona; los tres servicios doblados: nada salió a un proveedor)
+
+- Al cargar: 4 tarjetas con «🧭 Optimize», 4 medidas (una por ruta), 0 matrices.
+- Primera pulsación en una ruta de 4 órdenes: **1 matriz** (5 puntos) y 1 medida; el orden cambia y el aviso dice
+  «🧭 Diego Driver optimized: +2.8 mi · −168 min (the best possible order). No delivery is late any more (3 were, 939 min).
+  Ctrl+Z undoes it. 4 stop(s) have no map pin and don't count.»
+- Segunda pulsación: «already in the best possible order (33.1 mi · 429 min). Nothing changed.» — **0 matrices, 0 medidas**.
+- Ctrl+Z: el orden de antes, 0 peticiones. Con candado: «🔒 … is locked — Optimize leaves it alone», 0 peticiones.
+- Con el servicio de tiempos caído (el doble contesta 502): optimiza igual y el aviso añade «⚠ Measured in a straight line
+  (estimate): street times couldn't be fetched.»; la siguiente pulsación lo vuelve a pedir (1 matriz).
+- La página no se desborda de lado (0 px).
+
+En el demo las tiendas no tienen coordenadas: las recogidas no tienen punto, y lo dice («4 stop(s) have no map pin»).
+
+### Pruebas y mutantes
+
+Dos ficheros nuevos y uno de casos:
+
+- `src/lib/optimiza-la-ruta.test.ts` (41): la cuenta es la de `evaluaRuta`; **cuando dice «exacta» es el mejor orden que
+  existe**, contra la fuerza bruta (todas las permutaciones, 90 listas inventadas de 2 a 4 órdenes y cuatro rutas reales de
+  hasta 5) y contra una búsqueda exhaustiva con memoria escrita aparte, con otra formulación (24 listas de 5 a 7 órdenes y
+  tres rutas reales de 6 a 8); la exacta sola y la búsqueda local sola, cada una por su cuenta; las ocho rutas reales donde
+  D-456 perdía; lo que no se rompe nunca (las mismas paradas, la precedencia, la capacidad, no salir peor de lo que se
+  entró, la misma lista da el mismo orden); el orden de los objetivos; la base, la línea recta y las paradas sin punto; y
+  hasta dónde llega la exacta.
+- `src/lib/optimizar-casos-reales.json`: **ocho rutas reales anonimizadas** —sin nombres de tiendas, choferes ni clientes,
+  sin direcciones, facturas, códigos ni fechas; coordenadas inventadas (el mapa girado, llevado a otro sitio y cada punto
+  movido al azar unos cientos de metros); los tiempos entre puntos, los de verdad—, cada una con el orden guardado, el que
+  devolvía D-456 y lo medido de los dos y del óptimo.
+- `src/lib/optimizar-desde-el-gestor.test.ts` (44): la base del chofer; lo que se le pasa al optimizador; los tiempos (una
+  petición, memoria por forma, lo que no se recuerda); `matrizDeUnaVez`; la ruta `/api/route-matrix` con `fetch` doblado
+  (quién puede, qué valida, cuántas veces llama y a quién); el aviso; y que **la pantalla usa cada pieza** (se alimentan de
+  quien llama).
+
+Puestas al día, con su nota: `gestor-factura-arrastre-optimizar` (la sección 3: las millas son ahora estimadas y el
+resultado, comprobado; «no llama a ningún proveedor» pasa a «una sola petición, la de tiempos»), `gestor-entregadas-y-vista`
+(la pastilla «sin base»), `solo-armar-rutas` y `lista-unica` (la línea de la medida).
+
+**Mutantes: 73, caen los 73**, leídos por el nombre de la prueba (`~/.claude/herramientas/mutantes/`). En la primera pasada
+cayeron 69 y **sobrevivieron 4**:
+
+- «a igual jornada, las millas no deciden» y «la exacta poda lo que empata en tiempo aunque gane en millas»: **prueba floja**.
+  El caso existía, pero la exacta tapaba a la búsqueda local y al revés. Ahora se prueba cada una sola.
+- «los arranques no prueban el vecino más cercano»: **prueba floja**. Solo decide en una ruta grande, y no había ninguna
+  donde se notara: se buscó una (16 órdenes: 684 minutos de retraso con él, 719 sin él) y se fijó.
+- «los arranques no prueban la inserción más barata»: **código de sobra, en parte**. Eran tres inserciones; medidas, dos no
+  cambiaban nada en las 37 reales ni en 60 inventadas, y se quitaron. La tercera se queda: en 280 listas inventadas cambia
+  5, y 4 a mejor; se fijó una (11 órdenes que la exacta no termina: 775 minutos con ella, 937 sin ella).
+
+Por pieza, con la prueba que tumba cada uno:
+
+- **La cuenta (10):** no espera a que abra la ventana; el retraso estrecho cuenta como ancho; cada recogida su visita; la
+  visita sin recarga mínima; no cuenta la vuelta a la base; no sale de la base; la capacidad no se mira; tiendas distintas
+  como una visita; la estimación sin el rodeo; `minutosEnCadaParada` sin recarga mínima → caen con «en las rutas reales… los
+  mismos minutos, millas y retraso que `evaluaRuta`», «la cuenta del módulo es la de la prueba (escrita aparte)…», «recoger
+  en la misma tienda de una vez dura lo MAYOR…», «una entrega espera si llega antes de que abra su ventana…» y «sale de la
+  BASE y vuelve a ella…».
+- **El orden de los objetivos (6):** la jornada por delante del retraso; el retraso por delante de la capacidad; las millas
+  no deciden; cambia por centésimas de milla; dice que cambió sin nada mejor; las recogidas de una tienda ya no salen como
+  estaban → «llegar a tiempo manda sobre la jornada…», «la capacidad manda sobre el retraso y sobre la jornada…», «a igual
+  jornada, menos millas; y un cambio que solo ahorra centésimas de milla no vale la pena», «si lo que hay ya es lo mejor, no
+  cambia nada…» y «recoge en la misma tienda DE UNA VEZ…».
+- **La precedencia (2):** la búsqueda local, y la exacta, dejan una entrega antes que su recogida → «las mismas paradas, ni una
+  más ni una menos; y una entrega nunca antes que su recogida» y «la exacta SOLA… da el mismo óptimo».
+- **La exacta (11):** olvida `v`, u olvida las millas, al decidir qué etiqueta sobra; la cota se pasa (suma entradas y
+  salidas; el doble del árbol); no cuenta el retraso; no cuenta el exceso; cargar otra orden en la visita no alarga; la visita
+  sin recarga mínima; poda lo que empata; dice «exacta» sin haber terminado; se intenta en una ruta enorme → «contra la FUERZA
+  BRUTA…», «contra la búsqueda exhaustiva con memoria…», «la exacta SOLA (sin búsqueda local…) da el mismo óptimo…» y «con más
+  de 26 paradas no se intenta…».
+- **La búsqueda local (4):** sin sacudidas; las sacudidas no paran en el presupuesto; sin el vecino más cercano; sin la
+  inserción más barata → «las SACUDIDAS rinden: 14 órdenes… bajan a 679 minutos…», «con más de 26 paradas no se intenta: la
+  búsqueda local, sin pasar de su presupuesto…», «en una ruta grande se arranca también del VECINO MÁS CERCANO…» y «la
+  INSERCIÓN MÁS BARATA es el tercer arranque, y cuenta…».
+- **Lo que dice el resultado (2):** «real» aunque estime; no cuenta las paradas sin punto → «sin tiempos por calles estima en
+  línea recta… y lo dice» y «una parada sin punto en el mapa no suma camino…».
+- **La base y la entrada (6):** el perfil por delante de Ajustes; sin la tienda del perfil; sin la de Ajustes; las ventanas no
+  llegan; ninguna es estrecha; la descarga con los minutos de la carga → «manda la de Ajustes → Rutas…», «si no la tiene, la
+  tienda de su perfil», «la ventana de cada ENTREGA en minutos…» y «los minutos: cargar… descargar…».
+- **Los tiempos (5) y la matriz de una vez (6):** no se recuerdan; lo estimado se recuerda; la forma depende del orden; no
+  mira la caché; pide el cuadro entero; el freno cuenta solo lo que falta; sin freno; el estimado cuenta como llamada; guarda
+  lo de un respaldo → «pide UNA vez…; la segunda pulsación… no pide nada», «lo ESTIMADO… tampoco se recuerda», «con la caché
+  vacía: UNA petición…», «con todo en la caché: NINGUNA petición», «con parte en la caché: UNA petición, solo con los orígenes
+  y destinos a los que les falta algo…», «si el de pago falla, contesta el siguiente (y NO se guarda…)» y «el freno es el de
+  «Armar rutas»…».
+- **El aviso (4) y la petición (2):** calla la entrega que queda tarde; no dice que fue línea recta; el signo al revés; «el
+  mejor orden posible» sin ser exacta; acepta una latitud imposible; sin tope de puntos → ««−12.4 mi · −18 min»: lo ganado…»,
+  «si queda alguna entrega tarde, dice CUÁL y por cuánto…», «si NO hubo tiempos por calles… dice que es línea recta» y
+  «`puntosDeLaPeticion`: una lista de puntos de verdad…».
+- **La ruta `/api/route-matrix` (4):** sin mirar el rol; sin validar los puntos; sin OSRM de respaldo; con la matriz origen a
+  origen → «sin sesión 401, sin una lista de puntos 400, sin ser admin o logística 403…», «si Google falla contesta OSRM…» y
+  «una pulsación con la caché vacía: UNA petición a Google…».
+- **La pantalla (13):** no pasa los tiempos; con candado optimiza igual; guarda aunque no cambie; la base ignora Ajustes; la
+  medida suma la recarga por fila; la medida no sale de la base del chofer; la pastilla mira el perfil; no dice nada al
+  terminar; pide los tiempos a la medida de siempre; no mira las ventanas duras; no sale de la base; pide los tiempos cada
+  vez; las bases no se leen de `driver_settings` → «la pantalla arma así la entrada…», «con candado 🔒 no optimiza, y lo
+  dice…», «la pantalla dice ESE aviso…; y solo guarda si cambió», «lee las bases de `driver_settings`…», «las recogidas
+  seguidas en la misma tienda son UNA visita también en la medida…», «de esa base salen el Optimizar y la medida de la
+  tarjeta…», «la pastilla «⚠ sin base» sale cuando la ruta no tiene base DE VERDAD…» y «la pantalla pide los tiempos con
+  `tiemposDeLaRuta`, a `/api/route-matrix`, con su memoria por forma».
+
+### No verificado
+
+- **Contra un proveedor de verdad, nada.** La matriz de `/api/route-matrix` solo se probó con `fetch` doblado y, en el demo,
+  doblada por CDP. Que Google conteste como el doble, cuánto tarda de verdad una pulsación con los tramos sin guardar, y el
+  gasto real de un día: sin medir. (No se gastó ni un elemento de cuota.)
+- **Con sesión, en producción:** el botón de punta a punta. El demo no tiene base ni sesión; allí la base del chofer sale de
+  su perfil (el demo no lee `driver_settings`) y las tiendas no tienen coordenadas.
+- **El tráfico.** La matriz es sin tráfico (como la de «Armar rutas»); la medida de la tarjeta, después, la pone Google CON
+  tráfico. Los minutos del aviso y los de la tarjeta no tienen por qué coincidir, y una entrega que el optimizador da por
+  puntual puede salir tarde en la tarjeta.
+- **La tarjeta no espera a que abra la ventana.** El optimizador (y el motor) sí. Con ventanas que abren a las 08:30 apenas se
+  nota; con una que abra a media mañana, las llegadas de la tarjeta van adelantadas respecto a lo que el optimizador contó.
+  No se tocó.
+- **Una ruta ya empezada.** Se optimiza lo pendiente como si saliera de la base a las 08:00, igual que mide la tarjeta: no
+  sabe dónde está el camión ni qué hora es.
+- **La tienda de la recogida:** en una lista que no viene del plan es `store`; para el motor es `pickup_name` y, si falta,
+  `store`. En lo leído coincidían salvo en 2 órdenes. No se tocó.
+- **Por encima de 26 paradas** el resultado no está comprobado (ver la tabla de arriba). La única ruta real de ese tamaño da
+  lo mejor que se conoce.
+- **Al abrir el día la pantalla busca el punto de la base de cada ruta** (`/api/geocode-point`), y en el demo lo pidió 19
+  veces para 4 rutas. Es de antes (el efecto que pinta la «P» de la base en el mapa) y no se tocó.
+- **En un teléfono, y en Firefox o Safari:** solo Chrome.
+- El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
+
+Guiones y resultados de la medición (con datos reales, **fuera del repo**): `D:/CLAUDE/entregas/optimizar/` — `q3.mjs` (la
+lectura), `mide.mjs` y `tabla.txt` (la tabla), `detalle.mjs` (una ruta parada a parada), `afina.mjs` / `grandes.mjs` (las
+inventadas), `navegador/` (Chrome y el demo) y `anonimiza.mjs` (de dónde sale el fichero de casos).

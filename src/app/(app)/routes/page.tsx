@@ -16,7 +16,10 @@ import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLabel, shiftDateISO, todayISO } from "@/lib/utils";
 import { serviceMin, RELOAD_MIN } from "@/lib/trip-timing";
 import { MEDIDA_FALLIDA, cuerpoDeLaMedida, firmaDeLaMedida, pintaElTrazoDelPlan, siguienteMedida, textoDeLaLlegada, type EstadoDeLaMedida, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
-import { optimizaLaLista } from "@/lib/optimiza-la-ruta";
+import { minutosEnCadaParada, optimizaLaLista } from "@/lib/optimiza-la-ruta";
+import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, tiendaBaseDelChofer, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
+import { esVentanaDura } from "@/lib/route-settings";
+import { useBasesDeChofer } from "@/lib/usa-bases";
 import { driverOf, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
 import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
@@ -94,6 +97,7 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 //   · ARRASTRAR filas: una de «Sin asignar» a un chofer del panel (la asigna), y una parada dentro de su lista o a la de otro
 //     chofer (la mueve). D-007 lo había quitado; las flechas se quedan;
 //   · «🧭 Optimizar» en cada tarjeta: reordena SOLO esa ruta (`optimiza-la-ruta.ts`). D-437 lo había quitado;
+//     desde D-461 busca el mejor orden POR CALLES y mirando las ventanas, saliendo de la base del chofer;
 //   · la llegada estimada SIEMPRE: se miden todas las rutas con paradas, no solo las marcadas, y la celda dice por qué falta.
 //
 // SIN VIAJES desde D-443 (el dueño, 2026-09-28: «SI ELIMINA VIAJES»). La ruta de un chofer es UNA lista de paradas
@@ -871,14 +875,20 @@ export default function RoutesPage() {
     }
   };
 
-  // ---- «🧭 Optimizar» una ruta (D-456) ---------------------------------------------------------------------------
+  // ---- «🧭 Optimizar» una ruta (D-456, rehecho en D-461) ---------------------------------------------------------
   // El dueño, 2026-10-01: «have the optimize option for every route when selecting a driver and optimize it». D-437 lo había
-  // quitado. Vuelve POR RUTA: reordena solo las paradas de esa tarjeta —recogidas y entregas, sin romper «recoger antes de
-  // entregar» y sin pasarse de la capacidad si se puede—, para el menor recorrido saliendo de su base. El orden lo decide
-  // `optimizaLaLista`, en línea recta y SIN llamar a ningún proveedor; se guarda por `guardaLaLista` (Ctrl+Z lo deshace) y
-  // la medida de siempre (una llamada, la de cualquier cambio) pone las millas por calles y las llegadas. Con candado 🔒 no
-  // optimiza, y lo dice.
+  // quitado. Vuelve POR RUTA: reordena solo las paradas de esa tarjeta —recogidas y entregas—. Y el 2026-10-02, con el primero
+  // en la calle: «sigamos trabajando en el alrgoritmo de optimizar ruta porque sigue muy mal ineficente». Aquel decidía en
+  // línea recta, sin mirar ventanas, y salía de la tienda de recogida más repetida en vez de la base del chofer. Ahora:
+  //   · sale de la BASE del chofer (`baseDeLaRuta`) y vuelve a ella;
+  //   · mide POR CALLES: una petición de matriz por pulsación (`/api/route-matrix`), y ninguna si esta forma de la ruta ya se
+  //     pidió (`tiemposPedidos`). Si no contesta, estima en línea recta y el aviso lo dice;
+  //   · el orden lo decide `optimizaLaLista`: primero que el camión no se pase, después que ninguna entrega llegue fuera de
+  //     su ventana, y después la jornada más corta. Exacto si la ruta es pequeña; si no, lo mejor que encuentra;
+  //   · se guarda por `guardaLaLista` (Ctrl+Z lo deshace) y la medida de siempre pone las llegadas. Con candado 🔒 no
+  //     optimiza, y lo dice. El aviso dice lo ganado (`avisoDeOptimizar`).
   const [optimizando, setOptimizando] = useState<string | null>(null);
+  const tiemposPedidos = useRef(new Map<string, TiemposPedidos>());
   const optimizaLaRuta = async (laneKey: string) => {
     if (optimizando != null || moviendo) return;
     if (bloqueada(laneKey)) {
@@ -887,31 +897,24 @@ export default function RoutesPage() {
     }
     const stops = byDriver.get(laneKey) ?? [];
     const lista = lecturaDe(laneKey, stops).paradas;
-    const porId = new Map(stops.map((d) => [d.id, d]));
     const base = baseDeLaRuta(laneKey);
-    const r = optimizaLaLista({
-      paradas: lista,
-      puntos: lista.map((p) => {
-        if (p.tipo === "P") return coordsDeTienda(p.tienda);
-        const d = porId.get(p.orden);
-        return d?.delivery_lat != null && d.delivery_lng != null ? { lat: d.delivery_lat, lng: d.delivery_lng } : null;
-      }),
-      cambios: cambiosDeLaLista(lista, stops), base, capacidad: capacityFor(driverOf(laneKey)),
+    const entrada = entradaDeOptimizar({
+      lista, ordenes: stops, base, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,
+      esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN,
     });
-    const notaEn = (r.sinPunto ? ` ${r.sinPunto} stop(s) have no map pin and don't count.` : "") + (base ? "" : " No base: measured as an open route.");
-    const notaEs = (r.sinPunto ? ` ${r.sinPunto} parada(s) sin punto en el mapa no cuentan.` : "") + (base ? "" : " Sin base: medida como ruta abierta.");
-    if (!r.cambio) {
-      notify(t(`🧭 ${laneLabel(laneKey)}: already in the shortest order found (${r.millasAntes} mi straight-line). Nothing changed.${notaEn}`, `🧭 ${laneLabel(laneKey)}: ya está en el orden más corto que se encontró (${r.millasAntes} mi en línea recta). No se cambió nada.${notaEs}`));
-      return;
-    }
     setOptimizando(laneKey);
     try {
-      if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `Optimize ${laneLabel(laneKey)}`, es: `Optimizar ${laneLabel(laneKey)}` }))) return;
-      const sin154 = hayRecogidaGuardada ? { en: "", es: "" } : { en: " Only the delivery order was saved: pickups need the database update (154).", es: " Solo se guardó el orden de las entregas: las recogidas necesitan la actualización de la base (154)." };
-      // La capacidad va primero: si el orden nuevo mide lo mismo es que se cambió para que el camión no se pase, y se dice.
-      const exEn = r.excesoDespues > 0 ? ` ⚠ still over capacity by ${numeroDePallets(r.excesoDespues)} (was ${numeroDePallets(r.excesoAntes)}).` : r.excesoAntes > 0 ? ` The truck no longer goes over capacity (it was over by ${numeroDePallets(r.excesoAntes)}).` : "";
-      const exEs = r.excesoDespues > 0 ? ` ⚠ sigue pasándose de la capacidad en ${numeroDePallets(r.excesoDespues)} (antes ${numeroDePallets(r.excesoAntes)}).` : r.excesoAntes > 0 ? ` El camión ya no se pasa de su capacidad (se pasaba en ${numeroDePallets(r.excesoAntes)}).` : "";
-      notify(t(`🧭 ${laneLabel(laneKey)} optimized: ${r.millasAntes} → ${r.millasDespues} mi straight-line. Ctrl+Z undoes it.${exEn}${notaEn}${sin154.en}`, `🧭 ${laneLabel(laneKey)} optimizada: ${r.millasAntes} → ${r.millasDespues} mi en línea recta. Ctrl+Z lo deshace.${exEs}${notaEs}${sin154.es}`));
+      const tiempos = await tiemposDeLaRuta(puntosDeLaEntrada(entrada), tiemposPedidos.current, (puntos) =>
+        fetch("/api/route-matrix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puntos }) }));
+      const r = optimizaLaLista({ ...entrada, tiempos: tiempos?.tiempos ?? null });
+      const porId = new Map(stops.map((d) => [d.id, d]));
+      const aviso = avisoDeOptimizar({
+        ruta: laneLabel(laneKey), r, tiempos, hayBase: !!base, pallets: numeroDePallets, sinRecogidas: !hayRecogidaGuardada,
+        nombreDe: (id) => { const d = porId.get(id); return d ? facturaYId(d).principal : id.slice(0, 6); },
+      });
+      // Si no hay nada mejor no se escribe: no hay nada que guardar ni que deshacer.
+      if (r.cambio && !(await guardaLaLista(laneKey, stops, r.paradas, { en: `Optimize ${laneLabel(laneKey)}`, es: `Optimizar ${laneLabel(laneKey)}` }))) return;
+      notify(t(aviso.en, aviso.es));
     } finally {
       setOptimizando(null);
     }
@@ -1047,32 +1050,16 @@ export default function RoutesPage() {
     saveSettings({ driver_capacity: { ...(settings.driver_capacity ?? {}), [driver]: capacity } });
   };
 
-  // A driver's route is a loop from the PICKUP point (where they load the
-  // truck), out to the deliveries, and back to the pickup to reload for the
-  // next truckload. The pickup is taken from the orders themselves (their
-  // pickup_address / sold-from store), falling back to the driver's own
-  // home store — whichever we can resolve.
-  const pickupAddressFor = (laneKey: string): string | null => {
-    const driver = driverOf(laneKey);
-    const stops = byDriver.get(laneKey) ?? [];
-    const counts = new Map<string, number>();
-    for (const d of stops) {
-      const a = (d.pickup_address || "").trim();
-      if (a) counts.set(a, (counts.get(a) ?? 0) + 1);
-    }
-    let best: string | null = null;
-    let bestN = 0;
-    for (const [a, n] of counts) if (n > bestN) { best = a; bestN = n; }
-    if (best) return best;
-    // No pickup address on the orders — fall back to a sold-from store's
-    // address, then the driver's assigned home store.
-    for (const d of stops) {
-      const addr = settings.stores.find((s) => s.name === d.store)?.address;
-      if (addr) return addr;
-    }
-    const profile = users.find((u) => u.full_name === driver);
-    return profile?.store ? (settings.stores.find((s) => s.name === profile.store)?.address ?? null) : null;
-  };
+  // La BASE de una ruta: de dónde sale el camión y a dónde vuelve (D-461). Es la tienda DEL CHOFER —la de Ajustes → Rutas
+  // (`driver_settings.base_store`, la misma de la que lo saca «Armar rutas») y, si no la tiene, la de su perfil—: lo decide
+  // `tiendaBaseDelChofer`. Hasta aquí era la dirección de recogida MÁS REPETIDA entre las órdenes de la ruta: con una ruta
+  // que carga sobre todo en otra tienda, el camión «salía» y «volvía» a un sitio que no es el suyo, y con esa base se medían
+  // las millas, las llegadas y el Optimizar (medido en D-461: era otra en 11 de 37 rutas reales). Sin tienda —un chofer sin
+  // base, una ruta temporal—, `null`: la ruta se mide abierta y la tarjeta lo dice («⚠ sin base»).
+  // (`pickupAddressFor` conserva el nombre de antes: es la dirección de esa base, para la fila de la Base, el mapa y la medida.)
+  const basesDeChofer = useBasesDeChofer();
+  const tiendaBaseDe = (laneKey: string) => tiendaBaseDelChofer(driverOf(laneKey), basesDeChofer, users, settings.stores ?? []);
+  const pickupAddressFor = (laneKey: string): string | null => (tiendaBaseDe(laneKey)?.address ?? "").trim() || null;
 
   // Geocode (and cache, keyed by the address string) a pickup/depot address.
   const getDepotCoords = async (address: string | null): Promise<[number, number] | null> => {
@@ -1349,12 +1336,13 @@ export default function RoutesPage() {
   // cada entrega a su hora ESTIMADA (la de «📍 Mejor lugar»: línea recta, sin llamar a Google). Es lo que pinta la línea de
   // tiempo y lo que lee el arrastre: se suelta sobre lo mismo que se ve. Las recogidas no son barras: el arrastre mueve
   // entregas; su recogida la coloca `listaConEntregasEn` al soltar.
-  // La base: las coordenadas de la tienda en Ajustes si las tiene; si no, las que la pantalla ya buscó para pintar la «P».
+  // La base (la tienda del chofer, `tiendaBaseDe`): sus coordenadas de Ajustes si las tiene; si no, las que la pantalla ya
+  // buscó para pintar la «P».
   const baseDeLaRuta = (laneKey: string): { lat: number; lng: number } | null => {
-    const direccion = (pickupAddressFor(laneKey) ?? "").trim();
-    const tienda = settings.stores.find((s) => (s.address || "").trim() === direccion && s.lat != null && s.lng != null);
-    if (tienda) return { lat: tienda.lat!, lng: tienda.lng! };
-    const c = depotCoords[direccion];
+    const tienda = tiendaBaseDe(laneKey);
+    if (!tienda) return null;
+    if (tienda.lat != null && tienda.lng != null) return { lat: tienda.lat, lng: tienda.lng };
+    const c = depotCoords[(tienda.address || "").trim()];
     return c ? { lat: c[0], lng: c[1] } : null;
   };
   /** Las coordenadas de una tienda de recogida, por su nombre, de Ajustes (sin llamar a nadie). */
@@ -1452,18 +1440,23 @@ export default function RoutesPage() {
    * entrega, y vuelta a la base—, en vez de un lazo por viaje. Una recogida en una tienda sin coordenadas en Ajustes, o una
    * entrega sin pin, no se miden (no se inventa un punto). */
   const mideLaRuta = async (laneKey: string, stopList: Delivery[]): Promise<MedidaDeLaRuta> => {
-    const depot = await getDepotCoords(pickupAddressFor(laneKey));
+    // La base del chofer (D-461): sus coordenadas de Ajustes; sin ellas, las de su dirección.
+    const base = baseDeLaRuta(laneKey);
+    const depot: [number, number] | null = base ? [base.lat, base.lng] : await getDepotCoords(pickupAddressFor(laneKey));
     const byId = new Map(stopList.map((d) => [d.id, d]));
     const lista = lecturaDe(laneKey, stopList).paradas;
+    // Lo que el camión pasa parado en cada parada, contado como el optimizador y el motor (D-461): las recogidas seguidas en
+    // la misma tienda son UNA visita. Hasta aquí cada fila P sumaba la recarga entera.
+    const parado = minutosEnCadaParada(lista, lista.map((p) => (p.tipo === "D" ? serviceMin(byId.get(p.orden)?.delivery_duration) : p.ordenes.reduce((n, id) => n + serviceMin(byId.get(id)?.pickup_duration), 0))), RELOAD_MIN);
     // Los puntos en el orden de la lista. El id de una recogida es «P:» + su puesto en la lista (así sale su hora estimada).
     const puntos: { id: string; lat: number; lng: number; servicio: number }[] = [];
     lista.forEach((p, i) => {
       if (p.tipo === "D") {
         const d = byId.get(p.orden);
-        if (d?.delivery_lat != null && d.delivery_lng != null) puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: serviceMin(d.delivery_duration) });
+        if (d?.delivery_lat != null && d.delivery_lng != null) puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: parado[i] });
       } else {
         const c = coordsDeTienda(p.tienda);
-        if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: RELOAD_MIN });
+        if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });
       }
     });
     const vacia: MedidaDeLaRuta = { miles: 0, seconds: 0, traces: [], stat: null, dayMinutes: 0, etas: {} };
@@ -2809,11 +2802,11 @@ export default function RoutesPage() {
               {needsDriver && <span className="sema" style={{ background: "var(--accent)", color: "#fff" }}>🧭 {t("route (no driver)", "ruta (sin chofer)")}</span>}
               {/* «⚠ sin base» (D-459): era un renglón entero bajo el nombre; el dueño, 2026-10-01, «remueve todo ese texto
                   incesario». El dato no se pierde: una pastilla, con la frase entera al pasar el ratón. */}
-              {!u.store && stops.length > 0 && (
+              {!tiendaBaseDe(u.key) && stops.length > 0 && (
                 <span className="sema" data-sin-base tabIndex={0} style={{ border: "1px solid var(--amber)", color: "var(--amber-text)", cursor: "help" }}
                   title={t(
-                    "This driver has no home store assigned (Users), so the route can't be anchored to a base — the miles are measured as an open route instead of a round trip.",
-                    "Este chofer no tiene tienda asignada (Usuarios), así que la ruta no puede anclarse a una base — las millas se miden como ruta abierta en vez de ida y vuelta.",
+                    "This driver has no base store (Settings → Routes) nor a home store (Users), so the route can't be anchored to a base — it is measured and optimized as an open route instead of a round trip.",
+                    "Este chofer no tiene tienda base (Ajustes → Rutas) ni tienda en su perfil (Usuarios), así que la ruta no puede anclarse a una base — se mide y se optimiza como ruta abierta en vez de ida y vuelta.",
                   )}>⚠ {t("no base", "sin base")}</span>
               )}
               {/* «Aún sin orden guardado…» era otro renglón (D-459): ahora una pastilla gris con la frase al pasar. */}
@@ -2916,15 +2909,16 @@ export default function RoutesPage() {
                 onClick={(e) => { e.stopPropagation(); void alternaCandado(u.key); }}>
                 {bloqueada(u.key) ? `🔒 ${t("Locked", "Bloqueada")}` : `🔓 ${t("Lock", "Bloquear")}`}
               </button>
-              {/* «🧭 Optimizar» (D-456; D-437 lo había quitado): reordena SOLO esta ruta para el menor recorrido saliendo de su
-                  base, sin romper «recoger antes de entregar» ni pasarse de la capacidad, y la guarda (Ctrl+Z la deshace). Con
-                  candado 🔒 no la toca y lo dice: el botón se ve apagado pero se puede pulsar, para que diga por qué. */}
+              {/* «🧭 Optimizar» (D-456, rehecho en D-461; D-437 lo había quitado): reordena SOLO esta ruta —por calles, mirando
+                  las ventanas y saliendo de la base del chofer—, sin romper «recoger antes de entregar» ni pasarse de la
+                  capacidad, y la guarda (Ctrl+Z la deshace). Con candado 🔒 no la toca y lo dice: el botón se ve apagado pero
+                  se puede pulsar, para que diga por qué. */}
               {stops.length > 0 && (
                 <button className="btn btn-ghost btn-sm" data-optimizar={u.key} disabled={optimizando != null || moviendo} aria-disabled={bloqueada(u.key) || undefined}
                   style={bloqueada(u.key) ? { opacity: 0.5 } : undefined}
                   title={bloqueada(u.key)
                     ? t("Locked 🔒: Optimize leaves this route alone. Unlock it first.", "Bloqueada 🔒: Optimizar no toca esta ruta. Desbloquéela primero.")
-                    : t("Reorder ONLY this route's stops for the shortest run from its base (straight-line estimate), keeping every pickup before its delivery and the truck within capacity. Ctrl+Z undoes it.", "Reordenar SOLO las paradas de esta ruta para el menor recorrido saliendo de su base (estimado en línea recta), con cada recogida antes que su entrega y sin pasarse de la capacidad. Ctrl+Z lo deshace.")}
+                    : t("Reorder ONLY this route's stops, by street times from the driver's base: first within capacity, then every delivery inside its window, then the shortest day. Every pickup stays before its delivery. Ctrl+Z undoes it.", "Reordenar SOLO las paradas de esta ruta, con tiempos por calles desde la base del chofer: primero sin pasarse de la capacidad, después cada entrega dentro de su ventana, y después la jornada más corta. Cada recogida, antes que su entrega. Ctrl+Z lo deshace.")}
                   onClick={(e) => { e.stopPropagation(); void optimizaLaRuta(u.key); }}>
                   🧭 {optimizando === u.key ? t("Optimizing…", "Optimizando…") : t("Optimize", "Optimizar")}
                 </button>

@@ -6,6 +6,7 @@ import { COLUMNAS_DEL_GESTOR, FACTURA_DEL_PLAN, columnasDeLaTabla, columnasDelSe
 import { cambiosDeLaLista, cuentaDePallets, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, ordenSinRecoger, type ParadaDeLaLista } from "./lista-unica";
 import { optimizaLaLista } from "./optimiza-la-ruta";
 import { haversineMi } from "./route-batching";
+import { FACTOR_DE_RODEO } from "./route-times/proveedores";
 import { MEDIDA_FALLIDA, siguienteMedida, textoDeLaLlegada } from "./medida-de-ruta";
 
 /**
@@ -191,6 +192,12 @@ describe("2 · arrastrar para armar rutas a mano", () => {
 });
 
 // =====================================================================================================================
+// **Reemplazado en parte por D-461** (2026-10-02, el dueño: «sigamos trabajando en el alrgoritmo de optimizar ruta porque sigue
+// muy mal ineficente»). El Optimizar de D-456 decidía en LÍNEA RECTA, con el vecino más cercano y un pulido. El de ahora busca
+// el mejor orden por calles, mirando las ventanas: sus pruebas están en `optimiza-la-ruta.test.ts` y
+// `optimizar-desde-el-gestor.test.ts`. Estas se quedan, puestas al día, porque lo que fijaban sigue valiendo: las mismas
+// paradas, la precedencia, la capacidad por delante, la base, y que lo que hay no se toca si ya es lo mejor. Aquí se llama sin
+// tiempos por calles, así que las millas son las ESTIMADAS (la línea recta por `FACTOR_DE_RODEO`), no la línea recta a secas.
 describe("3 · «🧭 Optimizar» una ruta", () => {
   // Una línea recta hacia el norte desde la base: cuanto mayor la latitud, más lejos.
   const base = { lat: 26.0, lng: -98.0 };
@@ -207,8 +214,11 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
     expect(r.millasDespues).toBeLessThan(r.millasAntes);
     expect([...r.paradas].map((p) => forma([p])).sort()).toEqual([...paradas].map((p) => forma([p])).sort());
     // Sin zigzag: en una recta, lo mínimo es ir hasta la más lejana y volver (varios órdenes lo consiguen; se mide el recorrido).
-    expect(r.millasDespues).toBeCloseTo(Math.round(2 * haversineMi(base, en(26.9)) * 10) / 10, 5);
+    expect(Math.abs(r.millasDespues - 2 * haversineMi(base, en(26.9)) * FACTOR_DE_RODEO)).toBeLessThan(0.11);
     expect(r.millasAntes).toBeGreaterThan(r.millasDespues + 80);
+    // Y ahora es el mejor orden que existe, comprobado; y lo dice.
+    expect(r.exacta).toBe(true);
+    expect(r.medida).toBe("estimada");
     expect(ordenSinRecoger(r.paradas)).toBeNull();
   });
   it("nunca deja una entrega antes que su recogida, aunque así el recorrido fuera más corto", () => {
@@ -258,14 +268,15 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
     const puntos = [en(26.5), en(27.0), en(26.5)];
     const con = optimiza(paradas, puntos, [1, -1, 1]);
     const sin = optimiza(paradas, puntos, [1, -1, 1], 99, null);
-    // Con base: 0,5 (salir) + 0,5 + 0,5 + 0,5 (volver) = 2 grados ≈ 138 mi.
-    expect(con.millasAntes).toBeGreaterThan(136);
-    expect(con.millasAntes).toBeLessThan(140);
-    // Sin base: solo 0,5 + 0,5 = 1 grado ≈ 69 mi.
-    expect(sin.millasAntes).toBeGreaterThan(67);
-    expect(sin.millasAntes).toBeLessThan(71);
+    // Con base: 0,5 (salir) + 0,5 + 0,5 + 0,5 (volver) = 2 grados ≈ 138 mi en línea recta, 179,6 con el rodeo.
+    expect(con.millasAntes).toBeGreaterThan(136 * FACTOR_DE_RODEO);
+    expect(con.millasAntes).toBeLessThan(140 * FACTOR_DE_RODEO);
+    // Sin base: solo 0,5 + 0,5 = 1 grado ≈ 69 mi en línea recta.
+    expect(sin.millasAntes).toBeGreaterThan(67 * FACTOR_DE_RODEO);
+    expect(sin.millasAntes).toBeLessThan(71 * FACTOR_DE_RODEO);
   });
-  // Dos casos hallados buscando al azar (2026-10-01), para lo que el vecino más cercano no resuelve solo.
+  // Dos casos hallados buscando al azar (2026-10-01), para lo que el vecino más cercano no resuelve solo. Con D-461 el
+  // resultado es el mismo recorrido que encontraba D-456 (190,5 y 243,2 mi en línea recta), ahora COMPROBADO como óptimo.
   const caso = (coords: [number, number][], capacidad: number) => {
     const n = coords.length / 2;
     const paradas = [...Array.from({ length: n }, (_, i) => P(String(i + 1), "T")), ...Array.from({ length: n }, (_, i) => D(String(i + 1)))];
@@ -275,17 +286,22 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
     });
   };
   it("después del vecino más cercano PULE: mueve paradas de una en una mientras el recorrido mejore", () => {
-    // El vecino más cercano solo deja esta ruta en 230,3 mi; puliendo, 190,5 (de 253,6 que medía).
+    // El vecino más cercano solo dejaba esta ruta en 230,3 mi; puliendo, 190,5 (de 253,6 que medía). Con el rodeo, 247,6 de 329,7.
     const r = caso([[26.6, -97.7], [26.5, -97], [26.7, -97.5], [26.9, -97.1], [26.1, -97], [26.2, -97.8]], 9);
-    expect(r.millasAntes).toBeGreaterThan(250);
-    expect(r.millasDespues).toBeLessThan(195);
+    expect(r.millasAntes).toBeGreaterThan(250 * FACTOR_DE_RODEO);
+    expect(r.millasDespues).toBeLessThan(195 * FACTOR_DE_RODEO);
+    expect(r.millasDespues).toBe(247.6);
+    expect(r.exacta).toBe(true);
     expect(r.excesoDespues).toBe(0);
     expect(ordenSinRecoger(r.paradas)).toBeNull();
   });
   it("el vecino más cercano solo toma una recogida que QUEPA: así parte de una ruta que no se pasa, y llega más corto", () => {
-    // Camión de 9 y órdenes de 4: caben dos a la vez. Sin mirar si cabe, esta ruta se queda en 273,1 mi; mirándolo, 243,2.
+    // Camión de 9 y órdenes de 4: caben dos a la vez. Sin mirar si cabe, esta ruta se quedaba en 273,1 mi; mirándolo, 243,2
+    // (316,2 con el rodeo).
     const r = caso([[27, -98], [26.8, -97.2], [26, -97.6], [26.1, -97.5], [26.1, -97.7], [26.2, -97.6], [26.8, -97.2], [26.9, -97.6]], 9);
-    expect(r.millasDespues).toBeLessThan(250);
+    expect(r.millasDespues).toBeLessThan(250 * FACTOR_DE_RODEO);
+    expect(r.millasDespues).toBe(316.2);
+    expect(r.exacta).toBe(true);
     expect(r.excesoDespues).toBe(0);
     expect(ordenSinRecoger(r.paradas)).toBeNull();
   });
@@ -312,20 +328,24 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
       expect(optimizar.indexOf("const r = optimizaLaLista({")).toBeGreaterThan(optimizar.indexOf("return;", candado));
     });
     it("optimiza SOLO la lista de esa ruta, con sus puntos, sus pallets, su base y su capacidad", () => {
+      // **Puesto al día por D-461**: lo que se le pasa lo arma `entradaDeOptimizar` (que añade ventanas y minutos de servicio).
       expect(optimizar).toContain("const lista = lecturaDe(laneKey, stops).paradas;");
-      expect(optimizar).toContain("if (p.tipo === \"P\") return coordsDeTienda(p.tienda);");
-      expect(optimizar).toContain("cambios: cambiosDeLaLista(lista, stops), base, capacidad: capacityFor(driverOf(laneKey)),");
+      expect(optimizar).toContain("const base = baseDeLaRuta(laneKey);");
+      expect(optimizar).toContain("lista, ordenes: stops, base, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,");
     });
-    it("no llama a ningún proveedor: ni una petición; la medida de después es la de cualquier cambio", () => {
-      expect(optimizar).not.toContain("fetch(");
+    it("el ORDEN se decide en el navegador, sin pedírselo a nadie; lo único que se pide son los tiempos por calles, una vez", () => {
+      // **Reemplazado en parte por D-461**: D-456 no llamaba a nadie («ni una petición») y medía en línea recta. Ahora pide
+      // UNA matriz de tiempos por pulsación (`/api/route-matrix`); el orden lo sigue decidiendo `optimizaLaLista`, aquí.
+      expect(optimizar.split("fetch(").length - 1).toBe(1);
+      expect(optimizar).toContain('fetch("/api/route-matrix"');
+      expect(optimizar).not.toContain("/api/optimize-route");
       expect(optimizar).not.toContain("mideLaRuta(");
       expect(plano(leer("src/lib/optimiza-la-ruta.ts"))).not.toContain("fetch(");
     });
     it("guarda por `guardaLaLista` (deshacer incluido), y si no hay nada mejor no escribe", () => {
-      expect(optimizar).toContain("if (!(await guardaLaLista(laneKey, stops, r.paradas, {");
-      expect(optimizar.indexOf("if (!r.cambio) {")).toBeGreaterThan(-1);
-      expect(optimizar.indexOf("if (!r.cambio) {")).toBeLessThan(optimizar.indexOf("guardaLaLista("));
-      expect(optimizar).toContain("No se cambió nada.");
+      // **Puesto al día por D-461**: el aviso («No se cambió nada») lo escribe ahora `avisoDeOptimizar`.
+      expect(optimizar).toContain("if (r.cambio && !(await guardaLaLista(laneKey, stops, r.paradas, {");
+      expect(optimizar.split("guardaLaLista(").length - 1).toBe(1);
     });
     it("una pulsación a la vez: mientras guarda, los botones se apagan", () => {
       expect(optimizar).toContain("if (optimizando != null || moviendo) return;");
