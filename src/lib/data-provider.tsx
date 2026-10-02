@@ -971,16 +971,15 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       let error: { code?: string; message: string } | null = null;
       for (let attempt = 0; attempt < 5; attempt++) {
         if (payload.order_code == null) {
-          let codes = deliveries.filter((x) => !x.is_training).map((x) => x.order_code);
-          if (attempt > 0) {
-            // Pull the freshest codes for this band straight from the DB.
-            const band = codeBand(new Date());
-            const { data: rows } = await supabase.from("deliveries")
-              .select("order_code").eq("is_training", false)
-              .gte("order_code", band.prefix + "100").lt("order_code", band.prefix + "999");
-            if (rows) codes = (rows as { order_code: string | null }[]).map((r) => r.order_code);
-          }
-          payload.order_code = nextOrderCode(codes, new Date());
+          // D-460: el código lo da el SERVIDOR, que ve todos los de la banda. Calcularlo aquí con lo que la persona
+          // ve fallaba para ventas (RLS: solo sus órdenes) — su «máximo + 1» ya era de otro, y el reintento leía con la
+          // misma RLS. Si el servidor no contesta, queda el cálculo local de siempre.
+          let delServidor: string | null = null;
+          try {
+            const r = await fetch("/api/next-order-code", { cache: "no-store" });
+            if (r.ok) delServidor = ((await r.json()) as { code?: string }).code ?? null;
+          } catch { /* sin red: cálculo local */ }
+          payload.order_code = delServidor ?? nextOrderCode(deliveries.filter((x) => !x.is_training).map((x) => x.order_code), new Date());
         }
         const res = await supabase.from("deliveries").insert(payload).select().single();
         data = res.data as Delivery | null;
