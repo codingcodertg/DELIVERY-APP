@@ -609,6 +609,10 @@ describe("5 · el orden de los objetivos: capacidad → ventanas (las estrechas 
     expect(gana.despues.minutos).toBe(gana.antes.minutos);
     expect(gana.despues.millas).toBe(36);
     expect(optimizaLaLista(e(20.95)).cambio).toBe(false);
+    // La búsqueda local SOLA también desempata por millas (sin la exacta detrás que lo arregle)…
+    expect(forma(optimizaLaLista({ ...e(15), topeDeLaExacta: 0 }).paradas)).toBe("P1 P2 D2 D1");
+    // …y la exacta SOLA, que parte de un orden que empata en tiempo, encuentra el de menos millas: empatar no es podar.
+    expect(forma(optimizaLaLista({ ...e(15), sinBusquedaLocal: true }).paradas)).toBe("P1 P2 D2 D1");
   });
   it("recoge en la misma tienda DE UNA VEZ, y solo vuelve si la capacidad obliga", () => {
     // Tres órdenes de la misma tienda (que es la base), a entregar por la misma carretera. Guardadas de una en una: tres visitas.
@@ -711,6 +715,21 @@ describe("7 · hasta dónde llega la exacta, y lo que tarda", () => {
     expect(notaDeLaMedida(r.despues).slice(0, 3)).toEqual([0, 0, 0]);
     expect(r.despues.minutos).toBeLessThanOrEqual(679);
     expect(r.antes.minutos).toBe(1272);
+  }, LARGA);
+  it("en una ruta grande se arranca también del VECINO MÁS CERCANO, y cuenta: 16 órdenes con 684 minutos de retraso en ventanas estrechas; sin él, 719", () => {
+    // Medido el 2026-10-02 con y sin ese arranque: en una ruta que la exacta no intenta solo hay dos (lo que hay y este).
+    const r = optimizaLaLista(inventa(16, 42007, { juntas: true, capacidad: 12 }));
+    expect(r.exacta).toBe(false);
+    expect(notaDeLaMedida(r.despues)[0]).toBe(0);
+    expect(notaDeLaMedida(r.despues)[1]).toBeLessThanOrEqual(684);
+  }, LARGA);
+  it("la INSERCIÓN MÁS BARATA es el tercer arranque, y cuenta: 11 órdenes que la exacta no termina quedan en 775 minutos; sin ella, en 937", () => {
+    // Medido el 2026-10-02 con y sin ese arranque sobre 280 listas: cambia 5, y 4 a mejor. Esta es una.
+    const r = optimizaLaLista(inventa(11, 43023, { cierre: 760 }));
+    expect(r.exacta).toBe(false);
+    expect(notaDeLaMedida(r.despues).slice(0, 2)).toEqual([0, 22]);
+    expect(notaDeLaMedida(r.despues)[2]).toBeLessThanOrEqual(764);
+    expect(r.despues.minutos).toBeLessThanOrEqual(775);
   }, LARGA);
   it("con el tope a cero la exacta se rinde, y la búsqueda local da igualmente un orden válido y no peor", () => {
     const c = caso("once-ordenes-ventanas");

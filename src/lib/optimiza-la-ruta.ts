@@ -11,8 +11,9 @@ import { RELOAD_MIN } from "./trip-timing";
  *
  * El primero (D-456) decidía el orden con el vecino más cercano y un pulido, midiendo EN LÍNEA RECTA, sin mirar las ventanas
  * de entrega ni lo que se tarda de verdad, y saliendo de «la base» que la pantalla le daba (la tienda de recogida más repetida
- * de la ruta, no la del chofer). Medido sobre 40 rutas reales (DECISIONS.md, D-NEXT): se quedaba atascado lejos del mejor
- * orden, dejaba entregas fuera de su ventana que cabían dentro, y volvía a la misma tienda varias veces.
+ * de la ruta, no la del chofer). Medido sobre 37 rutas reales (DECISIONS.md, D-NEXT): en 20 no daba el mejor orden y en 13
+ * dejaba la ruta peor de como estaba — por la base, que era otra en 11; por no mirar las ventanas (14 entregas tarde donde el
+ * mejor orden deja 3); y porque la búsqueda se atascaba.
  *
  * Ahora:
  *   · reordena SOLO las paradas de esa lista (las mismas, ni una más ni una menos), y una entrega nunca queda antes que su
@@ -26,8 +27,8 @@ import { RELOAD_MIN } from "./trip-timing";
  *     MAYOR entre la recarga mínima y la suma de lo que se recoge en esa visita, así que recoger en la misma tienda de una
  *     vez sale más barato que volver, y solo se vuelve si la capacidad o una ventana lo piden;
  *   · la búsqueda es EXACTA —el mejor orden que existe, comprobado— mientras la ruta sea lo bastante pequeña para
- *     terminarla (`exacta`), y si no, lo mejor que encuentra una búsqueda local con varios arranques. Determinista: sin azar
- *     ni reloj, se corta por CUENTA.
+ *     terminarla (`exacta`: siempre hasta 8 órdenes, y las rutas reales hasta 12), y si no, lo mejor que encuentra una
+ *     búsqueda local con varios arranques y sacudidas. Determinista: sin azar ni reloj, se corta por CUENTA.
  *
  * Nunca devuelve algo peor que lo que hay: si no encuentra nada mejor, lo dice y no toca nada. Una parada sin punto en el
  * mapa (una entrega sin pin, una tienda sin coordenadas en Ajustes) no suma camino: se queda en la lista, donde las reglas la
@@ -113,8 +114,9 @@ export interface ResultadoDeOptimizar {
 /** A qué hora sale el camión si nadie dice otra cosa: las 08:00, como la medida del Gestor (`DAY_START_MIN`). */
 export const SALIDA_POR_DEFECTO_MIN = 8 * 60;
 /**
- * Hasta cuántas etiquetas crea la búsqueda exacta antes de rendirse y quedarse con la búsqueda local. Medido en Chrome
- * (DECISIONS.md, D-NEXT): con este tope la pulsación más lenta de las 40 rutas reales quedó por debajo de un segundo.
+ * Hasta cuántas etiquetas crea la búsqueda exacta antes de rendirse y dejarle la ruta a la búsqueda local. Medido en Chrome
+ * (DECISIONS.md, D-NEXT): con este tope, 36 de las 37 rutas reales salen exactas y la pulsación más lenta es de 368 ms; la
+ * peor de todas —una ruta inventada de 13 órdenes, donde la exacta se rinde y siguen las sacudidas—, 736 ms.
  */
 export const TOPE_DE_LA_EXACTA = 600_000;
 /** Con más paradas que estas ni se intenta la exacta: no la terminaría dentro del tope, y lo gastado en intentarlo se
@@ -461,15 +463,16 @@ function respetaParcial(pr: Problema, orden: ArrayLike<number>, n: number, pos: 
 }
 
 /**
- * Los ARRANQUES: de cinco partidas —lo que hay; el vecino más cercano; y la inserción más barata en tres turnos (como está,
- * las ventanas que cierran antes primero, y lo más lejano de la base primero)—, bajar hasta que nada lo mejore. Es rápido y
- * casi siempre da ya el mejor orden; lo que venga después (la exacta, o las sacudidas) parte de aquí.
+ * Los ARRANQUES: de tres partidas —lo que hay; el vecino más cercano; y la inserción más barata, metiendo primero las órdenes
+ * cuya ventana cierra antes—, bajar hasta que nada lo mejore. Es rápido y casi siempre da ya el mejor orden; lo que venga
+ * después (la exacta, o las sacudidas) parte de aquí. (Hubo otras dos inserciones —en el orden de la lista, y lo más lejano
+ * primero—: medidas sobre las 37 rutas reales y 60 inventadas, no cambiaban nada, y se quitaron.)
  *
  * En una ruta GRANDE (la que la exacta ni intenta) bajar cuesta mucho más y lo que rinde son las sacudidas: aquí se baja
  * solo desde lo que hay y desde el vecino más cercano, con bloques cortos, y sin pasar de una parte del presupuesto.
  */
 function arranques(pr: Problema, actual: readonly number[], cuenta: Cuenta): Hallado {
-  const m = pr.m, L = pr.lugares;
+  const m = pr.m;
   const grande = m > MAX_PARADAS_DE_LA_EXACTA;
   const largo = grande ? 3 : 8;
   cuenta.tope = grande ? TOPE_DE_PASOS * PARTE_DE_LOS_ARRANQUES : TOPE_DE_PASOS;
@@ -481,17 +484,13 @@ function arranques(pr: Problema, actual: readonly number[], cuenta: Cuenta): Hal
   };
   prueba(vecinoMasCercano(pr));
   if (!grande) {
-    const indices = Array.from({ length: m }, (_, i) => i);
     const cierraLaOrden = (i: number): number => {
       if (!pr.esP[i]) return pr.cierra[i];
       let c = Infinity;
       for (let x = 0; x < m; x++) if (pr.antes[x] === i && pr.cierra[x] < c) c = pr.cierra[x];
       return c;
     };
-    const lejosDeLaBase = (i: number): number => (pr.base >= 0 && pr.sitio[i] >= 0 && pr.sitio[i] !== pr.base ? pr.min[pr.base * L + pr.sitio[i]] : 0);
-    prueba(insercionMasBarata(pr, indices, [], cuenta));
-    prueba(insercionMasBarata(pr, [...indices].sort((a, b) => cierraLaOrden(a) - cierraLaOrden(b) || a - b), [], cuenta));
-    prueba(insercionMasBarata(pr, [...indices].sort((a, b) => lejosDeLaBase(b) - lejosDeLaBase(a) || a - b), [], cuenta));
+    prueba(insercionMasBarata(pr, Array.from({ length: m }, (_, i) => i).sort((a, b) => cierraLaOrden(a) - cierraLaOrden(b) || a - b), [], cuenta));
   }
   cuenta.tope = TOPE_DE_PASOS;
   return mejor;
