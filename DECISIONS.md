@@ -35072,3 +35072,28 @@ vistas pierde su marca» **abortó** porque la prueba hacía un `expect` al cole
 - **Los desplegables** («Pasar a…», el filtro de chofer) se cambiaron por código en la medición, no con un clic de persona.
 - **En un teléfono de verdad** y en Firefox o Safari: solo Chrome, a 390 px de ancho.
 - El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
+
+## D-460 · El código de la orden lo calcula el servidor: ventas no podía crear órdenes («duplicate key»)
+
+**Fecha:** 2026-10-02 · **Versión:** deliveries 1.248.0, repo 1.334.0 · **Sin migración.**
+
+**Lo que dijo el dueño**, literal: *«everto quiere crear orderneeds y le sale errorr duplicate key value varaibles unique
+constraint»*.
+
+**Qué fallaba (medido en producción, solo lectura).** El código de la orden (`FT593`) se calculaba en el navegador como «el
+mayor de los que veo + 1» (`nextOrderCode`). Desde que ventas ve solo SUS órdenes (RLS), el mayor que ve Everto Prado es
+viejo, su «+ 1» ya es de otra persona y el índice único `deliveries_order_code_idx` lo rechaza. El reintento volvía a leer
+los códigos «frescos»… con la misma RLS: el mismo número cinco veces, y el error en pantalla. La secuencia de `order_no`
+saltó de 735 a 766 el 2026-10-02: unos treinta intentos fallidos. A admin, logística y oficina no les pasaba porque ven
+todas las órdenes.
+
+**Qué cambió.** Ruta nueva `GET /api/next-order-code`: exige sesión, lee con la llave de servicio SOLO `order_code` de la
+banda de la semana y devuelve el siguiente. `addDelivery` lo pide en cada intento; si el servidor no contesta, queda el
+cálculo local de antes. No escribe nada: si dos personas crean a la vez, el índice único sigue decidiendo y quien choca
+vuelve a pedir.
+
+**Descartado.** Generar el código en la base con un trigger o una función (es lo correcto a la larga, y quita también la
+carrera): es una migración sobre `deliveries` y hoy había que desbloquear a ventas ya. Queda apuntado.
+
+**Pruebas.** `codigo-de-orden-del-servidor.test.ts`: el choque reproducido con los códigos de un vendedor, la ruta (sesión
+antes que la llave de servicio, sin escrituras) y que crear pide al servidor.
