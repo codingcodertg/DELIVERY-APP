@@ -120,8 +120,8 @@ describe("«Ciudad de entrega» en la tabla del plan", () => {
     expect(partida.indexOf("pl_ciudad_entrega")).toBe(partida.indexOf("pl_ciudad_recogida") + 1);
   });
 
-  it("en una recogida (P) va vacía, como la dirección: es de la entrega", () => {
-    expect(seVeEnLaRecogida(col("pl_ciudad_entrega"))).toBe(false);
+  it("en una recogida (P) SÍ se ve (D-463; D-435 la dejaba vacía): dice a dónde va lo que se carga", () => {
+    expect(seVeEnLaRecogida(col("pl_ciudad_entrega"))).toBe(true);
     expect(seVeEnLaRecogida(col("pl_ciudad_recogida"))).toBe(true);
     expect(seVeEnLaRecogida(col("pl_clase"))).toBe(true);
   });
