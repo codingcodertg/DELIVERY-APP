@@ -32303,6 +32303,8 @@ la página y la función pura; el demo no tiene `user_prefs`.
 
 ## D-435 · La tabla del plan: recogidas en verde, entregas en amarillo, y la ciudad de entrega
 
+> **Reemplazada en parte por D-463** (2026-10-02): la «Ciudad de entrega» del plan ya SÍ se pinta en las filas de recogida.
+
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): el borde ámbar entre viajes
 > ya no existe (no hay viajes); los tintes de fila siguen.
 
@@ -35620,3 +35622,19 @@ Con una orden de Diego de hoy marcada entregada a las 10:42 (el demo no trae ent
 - **El mapa de Google** (el demo pinta Leaflet).
 - **En un teléfono de verdad** y en Firefox o Safari: solo Chrome, a 390 px de ancho.
 - El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
+
+## D-463 · En el plan, la fila de recogida también enseña la ciudad de entrega
+
+**Fecha:** 2026-10-02 · **Versión:** deliveries 1.251.0, repo 1.337.0 · **Sin migración.** **Reemplaza en parte a** D-435.
+
+**Pedido del dueño**, literal, con captura del plan de Julio: *«en los pick up tambien deberia aparecer la ciudad de entrega»*.
+
+**Qué pasaba.** D-435 dejó la «Ciudad de entrega» vacía en las filas P de la tabla del plan, por la misma razón que la
+dirección: «esa parada es en la tienda». Pero en la tabla de paradas del Gestor la fila P ya la enseña desde D-445 (y D-447),
+y el dueño quiere lo mismo aquí: al cargar, saber a dónde va.
+
+**Qué cambió.** `PROPIAS_DE_LA_ENTREGA` queda vacía: la ciudad de entrega se pinta en P y en D. Dirección, ventanas y
+contacto siguen vacíos en la recogida.
+
+**Pruebas.** Las de D-435 que afirmaban el vacío, invertidas con su nota; la lista de columnas de la P incluye ahora
+`pl_ciudad_entrega`.

@@ -212,9 +212,10 @@ function columnasDelPlan(): ColumnaDelGestor[] {
  * contacto del cliente— en una recogida mentiría: esa parada es en la tienda (la dice la columna de la parada). Va vacío.
  */
 export const SOLO_DE_LA_ENTREGA: readonly string[] = ["address", "windows", "contact"];
-/** Las columnas PROPIAS del plan (sin `deOrdenes`) que también son de la entrega (D-435): la ciudad de entrega, que en una
- *  recogida iría vacía por la misma razón que la dirección. */
-export const PROPIAS_DE_LA_ENTREGA: readonly string[] = ["pl_ciudad_entrega"];
+/** Las columnas PROPIAS del plan (sin `deOrdenes`) que son solo de la entrega. D-435 metió aquí la ciudad de entrega;
+ *  D-463 la saca: el dueño quiere ver en la recogida a dónde va lo que se carga («en los pick up tambien deberia aparecer
+ *  la ciudad de entrega», 2026-10-02), igual que ya pasa en la tabla de paradas del Gestor (D-445). Queda vacía a propósito. */
+export const PROPIAS_DE_LA_ENTREGA: readonly string[] = [];
 export const seVeEnLaRecogida = (c: Pick<ColumnaDelGestor, "key" | "deOrdenes">): boolean =>
   c.deOrdenes ? !SOLO_DE_LA_ENTREGA.includes(c.deOrdenes) : !PROPIAS_DE_LA_ENTREGA.includes(c.key);
 
