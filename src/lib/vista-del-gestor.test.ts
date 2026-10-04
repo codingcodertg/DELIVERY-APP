@@ -82,16 +82,21 @@ describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
   });
   it("con un chofer elegido: su fila en el panel, su tarjeta en «Rutas», y en el mapa solo lo suyo", () => {
     expect(pagina).toContain("const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));");
-    expect(pagina).toContain("{lanesDelFiltro.map((u) => {");
+    expect(pagina).toContain("filas={lanesDelFiltro.map((u) => {");
     expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter(");
     // El mapa: la base y las P de cada ruta, sus paradas, lo sin chofer, las líneas y el camión en vivo.
-    expect(pagina).toContain("if (!pasaFiltro(u.key)) continue; const addr = (pickupAddressFor(u.key) ?? \"\").trim();");
-    expect(pagina).toContain("if (!list.some((d) => d.route_seq != null)) continue; if (!pasaFiltro(laneKey)) continue;");
-    expect(pagina).toContain("if (!sel && !pasaFiltro(laneKey)) continue;");
-    expect(pagina).toContain("if (!sel && filtroChofer !== TODOS_LOS_CHOFERES) continue;");
-    expect(pagina).toContain("const entries = Object.entries(routeLines).filter(([driver]) => pasaFiltro(driver) &&");
+    // **Puesto al día por D-467**: los puntos y las líneas los pintan `puntosDeLasRutas` y `lineasDeLasRutas`
+    // (lib/mapa-de-rutas), que comparten el Gestor y «Ruta de hoy»; el Gestor les pasa SU filtro.
+    const mapaDeRutas = readFileSync(join(process.cwd(), "src/lib/mapa-de-rutas.ts"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
+    expect(pagina).toContain("pasaFiltro, soloUnChofer: filtroChofer !== TODOS_LOS_CHOFERES, enfocado: focused, atenuada: isDim,");
+    expect(pagina).toContain("pasaFiltro, sigueSuPlan, colorDe: colorFor, atenuada: isDim,");
+    expect(mapaDeRutas).toContain("if (!e.pasaFiltro(u.key)) continue; const base = e.baseDe(u.key);");
+    expect(mapaDeRutas).toContain("if (!list.some((d) => d.route_seq != null)) continue; if (!e.pasaFiltro(laneKey)) continue;");
+    expect(mapaDeRutas).toContain("if (!sel && !e.pasaFiltro(laneKey)) continue;");
+    expect(mapaDeRutas).toContain("if (!sel && e.soloUnChofer) continue;");
+    expect(mapaDeRutas).toContain("const entries = Object.entries(e.trazos).filter(([driver]) => e.pasaFiltro(driver) &&");
     // Desde D-437 la del plan, además, solo si la ruta sigue siendo la publicada y tiene paradas (`sigueSuPlan`).
-    expect(pagina).toContain("geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver)");
+    expect(mapaDeRutas).toContain("geom.length > 1 && e.pasaFiltro(driver) && e.sigueSuPlan(driver)");
     expect(pagina).toContain("liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))}");
   });
 });

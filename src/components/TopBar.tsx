@@ -8,6 +8,7 @@ import { opcionesDelMenuDeCuenta } from "@/lib/account-menu";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { avatarColor, awaitingDriver, initials } from "@/lib/utils";
+import { pestanaDelAvisoSinChofer } from "@/lib/rutas-del-dia";
 import { HubHomeLink } from "@/components/HubHomeLink";
 import { BotonRecargar } from "@/components/BotonRecargar";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -75,7 +76,9 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // Navigating away closes the menu (covers back/forward too).
   useEffect(() => { setGeneralOpen(false); setMenuCuentaAbierto(false); }, [pathname]);
   // Dispatch nudge (#29): how many orders due today/tomorrow still have no
-  // driver — shown as a badge on the Map tab for the roles that assign drivers.
+  // driver — a badge for the roles that assign drivers. It sat on the Map tab, where they were assigned; since D-467
+  // that tab is the read-only «Today's route», so the badge goes where the work is: the Routes Manager for whoever has
+  // it, and «Today's route» only for who doesn't (the manager). `pestanaDelAvisoSinChofer` decides.
   const dispatchRole = me.role === "admin" || me.role === "manager" || me.role === "logistics";
   const unassignedDue = (() => {
     if (!dispatchRole) return 0;
@@ -100,6 +103,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   const visibleTabs = TABS.filter((tb) => canOpenTab(tb.id, me));
   const mainTabs = visibleTabs.filter((tb) => !vaEnGeneral(tb, me.role));
   const generalTabs = visibleTabs.filter((tb) => vaEnGeneral(tb, me.role));
+  const pestanaDelAviso = pestanaDelAvisoSinChofer(mainTabs.map((tb) => tb.id));
 
   // Match the exact route or a sub-route — never a prefix of another tab
   // (e.g. "/accounts" must not light up the "/account" tab).
@@ -184,7 +188,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
           {mainTabs.map((tb) => (
             <Link key={tb.id} href={tb.href} className={"tab " + (isActive(tb.href) ? "active" : "")} style={{ position: "relative" }}>
               {tabLabel(tb)}
-              {tb.id === "map" && unassignedDue > 0 && (
+              {tb.id === pestanaDelAviso && unassignedDue > 0 && (
                 <span
                   title={t(`${unassignedDue} order(s) due today/tomorrow with no driver`, `${unassignedDue} orden(es) para hoy/mañana sin chofer`)}
                   style={{ marginLeft: 6, background: "var(--amber, #e9a13b)", color: "#fff", borderRadius: 999, padding: "0 6px", fontSize: 11, fontWeight: 800, lineHeight: "16px", display: "inline-block", minWidth: 16, textAlign: "center" }}

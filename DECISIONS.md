@@ -13217,6 +13217,8 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
+> **⚠ Reemplazada en parte por D-467** (2026-10-04): el «Mapa» es ahora «Ruta de hoy». Su selector de día sigue acotado por esta ventana para quien no es exento, y además a hoy±7 para todos (admin y logística incluidos): lee `rutas_del_dia`, que fuera de ese rango no devuelve nada.
+
 > **⚠ Endurecida en Órdenes por D-392** (2026-09-25). Esta entrada dejaba que buscar llegara al historial
 > entero (*«every one of these screens lets an invoice search reach into older history»*). En la pantalla de
 > **Órdenes** ya no: quien no es admin ni logística no encuentra buscando nada anterior a ayer. La Cola de almacén y
@@ -17402,6 +17404,8 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 - **Si `rcapp://` puede marcar una extensión** (ver arriba).
 
 ## D-274 · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
+
+> **⚠ Reemplazada en parte por D-467** (2026-10-04): la leyenda del mapa (§ de la leyenda) ya no explica «la ruta de las órdenes elegidas» ni «la recogida de la orden elegida», porque el Mapa pasó a ser «Ruta de hoy», de solo lectura. Explica las marcas de una ruta: P, D, ✓, la línea del chofer y su regreso; el camión, solo a quien recibe las posiciones.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas y «Mi perfil») · Sin migración.
 **Pedido por el dueño**, cuatro cosas en la barra y el mapa de Entregas: la casa del hub a la derecha,
@@ -32441,6 +32445,8 @@ aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio es
 
 ## D-437 · Gestor de Rutas: solo «Armar rutas» (fuera Optimizar, Auto-asignar, Reagrupar y Simular); un chofer vacío ya no deja línea ni tarjeta; «Incidencias» es un botón
 
+> **⚠ Reemplazada en parte por D-467** (2026-10-04): «en el Mapa queda asignar a mano (una, o todas las marcadas a un chofer)» ya no vale. El Mapa es «Ruta de hoy», para todos los roles y de solo lectura: no asigna. Se asigna en el Gestor de Rutas (y, quien no lo tiene, desde la ficha de la orden).
+
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el botón «🧭 Armar rutas» de la cabecera ya no «trae la barra cerrada»: es la única entrada, sale siempre, y abre y cierra el panel. «Un chofer vacío ya no deja tarjeta» vale para quien no tiene nada pendiente NI hecho ese día. Y «🗑 Vaciar» ya no se lleva lo recogido o entregado.
 >
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Unir viajes» y «Dividir en
@@ -36224,3 +36230,214 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 - El contador de páginas se probó con PDF hechos en la prueba (planos y con «object stream»), no con estimados reales.
 - `maxDuration = 120` de la ruta depende del plan de Vercel.
 - El tracker no se actualizó (un worktree no lleva `.env.local`): la tarea la crea el orquestador.
+
+## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
+
+**Fecha:** 2026-10-04 · **Migración:** `160_rutas_del_dia.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
+`docs/PLAN-160-rutas-del-dia.md`) · **Versión:** deliveries 1.254.0, repo 1.341.0. **Reemplaza en parte a** D-437 (el
+Mapa ya no asigna), D-274 (la leyenda del mapa) y D-239 (el selector de día del Mapa). Las tres llevan su nota.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-04, literal (como lo pasó el orquestador, no extraído del fichero de sesión), con una captura del
+bloque de arriba del Gestor de Rutas —el panel «Choferes y rutas» y el mapa con la ruta de cada chofer en su color—:
+
+> «este mapa lo quiero en el map view que ya esta y que todos los puedan ver y se lo cambias de map a today's route»
+
+Se le preguntó si «todos» era cada rol con lo que ya puede leer, o las rutas enteras. Contestó:
+
+> «si rutas completas pero solo ver nada mas»
+
+### Qué había, medido
+
+- **La pestaña «🗺 Map / Mapa»** (`/map`) la tenían admin, gerente, ventas y logística. Oficina (`accounting`), almacén y
+  chofer, no.
+- **Qué enseñaba:** un punto por entrega del día, del color de su chofer; la ruta punteada recogida→entrega de cada orden
+  SIN chofer (una llamada de mapas por orden); al pulsar una orden, un panel para **asignarle chofer** (una, o varias a la
+  vez); los camiones en vivo; la leyenda (D-274); un resumen del día (desde, hasta, ventana, estado, pallets) y los colores
+  de chofer. Ventas veía los puntos de todos sin rótulo («Delivery») y no podía pulsar. **No pintaba la ruta de ningún
+  chofer**: ni el orden de sus paradas, ni las recogidas, ni millas ni horas. Eso solo estaba en el Gestor, que es de
+  logística y admin.
+- **La pestaña llevaba un aviso** ámbar: cuántas órdenes de hoy y mañana siguen sin chofer (para admin, gerente y logística).
+- **Qué deja leer la RLS de `deliveries`** (131, la que la define hoy): chofer, lo que creó o tiene asignado; almacén, las
+  etapas `approved`…`delivered` (no las pendientes); todos los demás, todo — salvo quien tiene tiendas marcadas
+  (`visible_stores`: 2 vendedores de 14 hoy), que ve solo esas tiendas. O sea: **ventas ya podía leer todas las órdenes**;
+  los que no pueden ver la ruta de otro son el chofer y, a medias, almacén y los dos vendedores con tiendas marcadas.
+
+### Qué se hizo
+
+1. **La pestaña se llama «🗺 Today's route / Ruta de hoy»** y la tienen **los siete roles** de entregas. La ruta sigue siendo
+   `/map` y su `id` `map`: ningún enlace cambia.
+2. **La página es el bloque de arriba del Gestor**: el panel «Choferes y rutas» (cada chofer con su casilla para
+   resaltarlo, sus órdenes, sus horas y millas y su barra de carga) y el mapa con la ruta de cada chofer en su color: la base
+   (P), cada recogida P1, P2… y cada entrega D1, D2… **en el orden de su lista**, la línea por calles (sólida la ida,
+   punteada la vuelta), lo ya entregado con ✓ (D-459) y lo sin chofer en gris. Con selector de día: hoy por defecto, ◀ ▶ y
+   «Hoy».
+3. **Solo lectura.** No asigna, no mueve, no optimiza, no vacía, no tiene «＋ Ruta» ni «Unir». Lo dice arriba: «Solo lectura
+   — las rutas se arman en el Gestor de Rutas». Lo único que se guarda desde aquí es lo que ya se guardaba: el color de un
+   chofer, y solo gerente o admin.
+4. **No es una copia del Gestor: las dos pantallas llaman a lo mismo.** Se sacó del Gestor, sin cambiar una regla:
+   - `src/lib/mapa-de-rutas.ts` — las rutas del día (`carrilesDelDia`), las paradas de cada una en su orden
+     (`rutasPorChofer`), los pines (`puntosDeLasRutas`), el abanico de D-367 (`enAbanico`), las líneas (`lineasDeLasRutas`),
+     el encuadre (`encuadreDeLasRutas`) y la barra de carga (`cargaDelPanel`);
+   - `src/lib/usa-medida-de-rutas.ts` — la medida de D-437/D-456/D-461 entera (`useMedidaDeRutas`, `mideLaLista`): una
+     llamada por ruta y por forma de la ruta, una a la vez, sin reordenar, lo ya medido se repinta sin llamar;
+   - `src/components/PanelDeChoferes.tsx` — el panel. Lo del Gestor que «Ruta de hoy» no tiene (los botones de la cabecera,
+     🔒 ✏ ✕ y soltar una fila encima) entra por sus huecos; «Ruta de hoy» no pasa ninguno.
+   La lectura de la ruta es la de siempre (`lecturaConLoHecho` sobre `lista-unica`). Medido: el Gestor pasó de 3.569 a
+   3.117 líneas (−557, +105); lo compartido son 808 líneas en esos tres ficheros.
+5. **«Rutas completas, pero solo ver»: una función, no una política.** `public.rutas_del_dia(fecha)` (migración 160,
+   `security definer`, EXECUTE solo para `authenticated`, y dentro comprueba el módulo de entregas) devuelve, de las órdenes
+   de un día (hoy±7; sin enseñanza, borradores, rechazadas ni anuladas), **solo estas 23 columnas**: `id`, `order_no`,
+   `order_code`, `order_suffix`, `stage`, `assigned_driver`, `route_seq`, `pickup_seq`, `load_no`, `actual_pallets`,
+   `est_pallets`, `store`, `store_lat`, `store_lng`, `delivery_lat`, `delivery_lng`, `delivery_city`, `delivery_windows`,
+   `delivery_date`, `delivery_duration`, `pickup_duration`, `pod_delivered_at`, `pickup_gps_at`. **Nada de cliente**: ni
+   cuenta, ni contacto, ni teléfono, ni correo, ni factura, ni PO/SO, ni tarifa, ni notas, ni la dirección (solo su ciudad y
+   su punto). **La RLS de `deliveries` no se toca**: sus 4 políticas quedan idénticas (comprobado en el ensayo).
+   La página pinta SOLO lo que viene de ahí (`src/lib/rutas-del-dia.ts` tiene la misma lista y tira cualquier otra clave).
+6. **Al pulsar un pin** (o una fila del resumen) sale un rótulo con la parada (D3), la orden, el chofer, la tienda de
+   recogida, la ciudad de entrega, los pallets, la ventana y la llegada estimada (o la hora real si ya se entregó). La orden
+   entera solo se puede abrir si esa persona **ya** la puede leer por su RLS; y un vendedor, solo las suyas, como antes.
+7. **Sin la 160 la página funciona**: cada quien ve las rutas con lo que su RLS ya le dejaba leer (por la misma proyección,
+   `paradasDeLasOrdenes`), y al admin se le dice en una línea que falta la migración.
+8. **El aviso «N sin chofer»** ya no va en esta pestaña, que no asigna: va en «Gestor de Rutas» para quien lo tiene (admin,
+   logística). El gerente, que no tiene Gestor, lo sigue viendo en «Ruta de hoy» (`pestanaDelAvisoSinChofer`).
+
+### Qué se quedó de «Mapa» y qué se fue
+
+| De «Mapa» | En «Ruta de hoy» |
+|---|---|
+| Selector de día con la ventana de D-239 | **Se queda**, y además acotado a hoy±7 para todos (también admin y logística: fuera de ahí la función no devuelve nada) |
+| Camiones en vivo | **Se quedan**, como capa del mapa y como «EN VIVO» en el panel. Para todos menos ventas (regla de antes); a quien la RLS de `driver_locations` no deja leerlos (oficina; el chofer solo se ve a sí mismo) no le llegan |
+| Leyenda (D-274) | **Se queda**, con las marcas de una ruta: P, D, ✓, la línea y su regreso. Lo de «orden elegida» se fue |
+| Resumen del día | **Se queda**, con chofer, parada (D3), ciudad y llegada. Antes ventas veía en él solo sus órdenes; ahora todos ven todas, con lo mínimo |
+| Colores de chofer | **Se quedan** (los cambia gerente o admin) |
+| Abrir la orden desde el mapa | **Se queda** solo para quien ya puede leerla (el botón del rótulo) |
+| Asignar chofer desde el mapa (una orden, o varias) y su sugerencia «★» | **Se fue.** Se asigna en el Gestor de Rutas. **Ojo: el gerente no tiene Gestor**; le queda asignar desde la ficha de la orden («Chofer asignado»). Hay que decírselo, o darle el Gestor |
+| La ruta punteada recogida→entrega de cada orden sin chofer | **Se fue**: costaba una llamada de mapas por orden y por carga de la página. Lo sin chofer sale como pin gris |
+| La ruta azul y la «P» de la orden elegida | **Se fueron** con el panel de asignar |
+
+### Qué ve cada rol
+
+| Rol | Tenía la pestaña | Con la 160 aplicada | Hasta que se aplique (lo que su RLS ya deja leer) |
+|---|---|---|---|
+| admin | sí | todas las rutas | todas las rutas |
+| logística | sí | todas | todas |
+| gerente | sí | todas | todas |
+| oficina (`accounting`) | **no** | todas; sin camiones en vivo (no los puede leer) | todas |
+| ventas | sí | todas; sin camiones (regla de la app) | todas — salvo los 2 vendedores con tiendas marcadas: solo las paradas de esas tiendas, rutas parciales |
+| almacén | **no** | todas | rutas **sin las paradas pendientes de aprobar** (su RLS no le da la etapa `pending`): parciales cuando las hay |
+| chofer | **no** | todas | **solo su ruta**; los demás choferes salen en el panel con 0 paradas |
+
+Dos cosas que NO dependen de la 160 y que cambian lo que ve ventas y el chofer (no medidas contra un día real, ver abajo):
+el **plan publicado** (`route_plans`) no lo pueden leer, así que su lista sale de lo guardado en las órdenes
+(`route_seq`/`pickup_seq`, la lectura «derivada»); y la **base de cada chofer** de Ajustes → Rutas (`driver_settings`)
+tampoco, así que para ellos la ruta sale de la tienda del perfil del chofer. Donde las dos difieran, sus millas y llegadas
+no serán las del Gestor.
+
+### Llamadas a mapas (por carga de la página, igual para todos los roles)
+
+| Llamada | Cuántas |
+|---|---|
+| `/api/optimize-route` (la medida, sin reordenar) | **una por ruta con paradas pendientes** (medido en producción: 2 rutas el 2026-10-05). Ninguna al releer si la ruta no cambió; una por ruta cuya forma cambió; al cambiar de día, las de ese día |
+| `/api/geocode-point` (la base) | **0** si la tienda base tiene punto en Ajustes (las 7 de producción lo tienen); si no, una por dirección y por visita |
+| Trazo del plan publicado (D-352) | **0** (el Gestor pide uno por chofer marcado; aquí no se pide: la línea medida recorre la misma lista) |
+| Rutas de órdenes sin chofer | **0** (el «Mapa» de antes hacía una por orden sin chofer con punto) |
+
+El servidor guarda 10 minutos las medidas idénticas en memoria (`/api/optimize-route`), así que dos personas que abren el
+mismo día en la misma instancia caliente pagan una. **No hay nada más que lo evite**: ahora la pueden abrir 40 personas y
+no 24. Si pesa, lo siguiente es guardar la medida en la base, no en la memoria de la función.
+
+### Lo medido
+
+- **Ensayo de la 160 contra producción, con ROLLBACK** (2026-10-04, dos veces, la segunda con el bloque extraído del
+  plan): 48 comprobaciones, 48 `OK`. Día de ensayo 2026-09-29, 33 paradas: los ocho roles con el módulo ven las 33 y solo
+  las 23 columnas; de la TABLA cada uno lee lo mismo que antes (chofer 10 de 33, vendedor con tiendas marcadas 17 de 33);
+  pedir `delivery_address` o `account` a la función es error 42703; sin el módulo, sin perfil y `anon`, 42501; fuera de
+  hoy±7, 0 filas; las 4 políticas, las mismas expresiones. Después: 0 funciones, 0 filas de registro, 4 políticas.
+- **Demo por CDP** (modo demo, sin base; Chrome desechable; la medida contestada por un doble en el navegador, sin llamar a
+  mapas), como admin, ventas y chofer, a 1440 y 390 px: la pestaña dice «Ruta de hoy» en los tres; el panel pinta 4 rutas
+  con órdenes, minutos, millas y carga; 54 marcas, con D1…D4 por ruta; 8 líneas; **4 medidas, una por ruta**, todas con
+  `optimize: false`; pulsar un pin abre su rótulo; marcar un chofer atenúa 50 marcas y saca «Mostrar todos»; ▶ y ◀ cambian
+  de día (20 paradas mañana, 2 ayer); 0 desplegables y 0 botones de escribir; a 390 px la página mide 390 de ancho.
+- **Mutantes:** 42 de 42 caen con una prueba con nombre (tabla abajo).
+
+### Mutantes
+
+| Mutante | Prueba que cae |
+|---|---|
+| M01 la pestaña vuelve a llamarse «Map» | 1 · cambia de nombre y conserva su ruta `/map` |
+| M02 el chofer se queda sin la pestaña | 1 · la abren los siete roles |
+| M03 la lista blanca de la app gana la dirección | 2 · la lista de la app es la del `returns table` de la función |
+| M04 `paradaDeLaFila` deja pasar lo que llegue | 2 · `paradaDeLaFila` tira lo que no esté en la lista |
+| M05 sin la función se pintan borradores, rechazadas y anuladas | 3 · solo ese día, sin enseñanza, sin borradores… |
+| M06 sin la función, «ciudad» es la dirección entera | 3 · de la dirección, solo la ciudad |
+| M07 «falta la función» se trata como un error cualquiera | 4 · sin la migración 160 dice «sin_funcion» |
+| M08 sin la función la pantalla se queda vacía | 4 · el gancho: demo → …; sin función → lo que la persona ya leía |
+| M09 la migración deja ejecutar a `anon` | 2 · la función: `security definer`, con el módulo, hoy±7… |
+| M10 la función deja de comprobar el módulo | 2 · (la misma) |
+| M11 la función lee la cuenta del cliente | 2 · ninguna columna privada está en la lista, ni la función la lee |
+| M12 la función devuelve borradores, rechazadas y anuladas | 2 · la función: … |
+| M13 la función deja de limitar el día a hoy±7 | 2 · la función: … |
+| M14 lo entregado pierde su ✓ | 5 · lo ya entregado sigue en el mapa con ✓ y apagado |
+| M15 lo sin chofer deja de ir en gris | 5 · (la misma) |
+| M16 la entrega pierde su etiqueta D de la lista | 5 · los pines: la base, las recogidas P y las entregas D en el orden de la lista |
+| M17 el rótulo del pin sin ciudad, pallets ni llegada | 5 · «Ruta de hoy» añade al rótulo la ciudad, los pallets y la llegada |
+| M18 la barra de carga nunca se pone en rojo | 5 · la barra de carga: la carga MÁXIMA… |
+| M19 las paradas no se ordenan por su puesto | 5 · las paradas de cada chofer, en su orden guardado |
+| M20 una ruta vacía conserva su línea | 5 · las líneas: … una ruta vacía no deja línea |
+| M21 las marcas en el mismo punto no se abren | 5 · las marcas que caen en el mismo punto se abren en abanico |
+| M22 el encuadre olvida la base del chofer marcado | 5 · el encuadre |
+| M23 marcar un chofer no atenúa lo sin chofer | 5 · marcar un chofer lo resalta |
+| M24 la medida pide que se REORDENE la ruta | 6 · UNA llamada por ruta, en el orden de la lista y sin optimizar |
+| M25 se busca la dirección de bases que ya tienen punto | 6 · la página mide con el MISMO gancho que el Gestor |
+| M26 la página deja de pedir «si_falta» | 6 · (la misma) |
+| M27 ventas ve los camiones en vivo | 7 · lo que se quedó del Mapa |
+| M28 un vendedor abre la orden de otro | 7 · al pulsar un pin sale su rótulo; la orden entera solo… |
+| M29 no se avisa al admin de que falta la 160 | 4 · al admin se le dice que falta la 160 |
+| M30 lo hecho se pinta como pendiente | 7 · lee las paradas de `useRutasDelDia` y de ningún otro sitio |
+| M31 el aviso «N sin chofer» se queda en la pestaña de solo lectura | 1 · el aviso «N sin chofer» va donde se asigna |
+| M32 el aviso no va al Gestor | 1 · (la misma) |
+| M33 el rótulo de la parada no dice la ciudad | 7 · el rótulo dice P/D, chofer, recogida, ciudad… |
+| M34 el selector de día llega a ±30 | 3 · el rango del selector es el ±7 de la función |
+| M35 releer lo mismo cambia la lista | 4 · el gancho: … |
+| M36 el Gestor deja de pasar lo hecho al mapa compartido | `gestor-entregadas-y-vista` · en el mapa su pin queda como hecho |
+| M37 el Gestor deja de usar la cuenta de carga compartida | `lista-unica` · el panel de choferes mide la CARGA MÁXIMA; y 7 · las dos pantallas pintan con las mismas piezas |
+| M38 la leyenda nombra los camiones a quien no los recibe | `map-legend` · la leyenda recibe los mismos choferes… |
+| M39 la leyenda sigue explicando «elegir órdenes» | `map-legend` · (la misma) |
+| M40 la medida olvida la base | 6 · UNA llamada por ruta… |
+| M41 el selector de día ignora la ventana de D-239 | `history-window` · los dos selectores de fecha se acotan |
+| M42 la página pinta sin abanico | `abanico-de-marcas` · «Ruta de hoy» pinta todas las rutas a la vez |
+
+(Los números son las secciones de `src/lib/rutas-del-dia.test.ts`.)
+
+### Pruebas que se pusieron al día
+
+Las que leían el texto del Gestor donde estaba la medida y el dibujo ahora leen los tres ficheros compartidos, con una
+nota «Puesto al día por D-467» en cada una: `gestor-entregadas-y-vista`, `gestor-factura-arrastre-optimizar`,
+`lista-unica`, `optimizar-desde-el-gestor`, `rutas-bloqueadas`, `solo-armar-rutas`, `vista-del-gestor`,
+`route-plan/lectura-del-gestor`, `route-plan/trazo-del-plan`. Las que fijaban lo que el Mapa tenía y ya no tiene
+(«Asignar todas a…», las rutas de lo sin chofer, la «P» de la orden elegida, su selector de día, sus cuatro colores a pelo)
+dicen ahora lo contrario, con su nota: `solo-armar-rutas`, `map-legend`, `history-window`, `inline-colors` (el Mapa baja de
+4 a 2; el total, de 75 a 73), `abanico-de-marcas` («Ruta de hoy» también abre el abanico).
+
+### Lo que NO se hizo, y lo no verificado
+
+- **La 160 no está aplicada.** Hasta entonces el chofer ve solo su ruta y almacén las ve sin las pendientes. Aplicarla es del
+  orquestador, con el plan.
+- **No se ha visto con una sesión de verdad.** El demo no tiene base: no llama a la función (pinta las órdenes del demo por
+  la misma proyección), no tiene plan publicado ni camiones, y «Ver como» no aplica ninguna RLS — por eso en el demo el
+  chofer ve las rutas de todos. Que la función se llame bien desde la app (`rpc`) no se ha visto.
+- **La medida no se vio contra mapas**: en el demo la contestó un doble (líneas rectas). Las millas y horas reales salen del
+  mismo código que el Gestor, que no cambió de reglas, pero no se abrió el Gestor contra producción después de sacarle el
+  código. **El Gestor en el demo tampoco se abrió** tras el cambio: lo cubren sus pruebas (todas en verde) y `tsc`.
+- **La base del chofer para ventas y chofer** (no leen `driver_settings`) y **el plan publicado para ventas y chofer** (no
+  leen `route_plans`): pueden dar una lista o unas millas distintas de las del Gestor. Arreglarlo es otra función mínima
+  (o dos columnas más en esta), con su sí.
+- **La ciudad sale vacía en 21 de 418 direcciones** (las escritas sin comas): la función no adivina para no enseñar la calle.
+- **El punto exacto de la entrega a la vista de todos los roles**, y las 7 columnas de más sobre la lista del encargo
+  (`order_no`, `order_suffix`, `load_no`, las dos duraciones y las dos horas reales): decisiones del plan, sin validar.
+- **El gerente pierde asignar desde el mapa** y no tiene Gestor. Sin decidir.
+- **La pestaña es la primera de la barra** para almacén y chofer (va por el orden de `TABS`). No cambia a dónde aterrizan.
+- **Otras ramas en paralelo tocan `routes/page.tsx`**: esta le quita 557 líneas. Habrá conflicto al fusionar la segunda.
+- Guiones, capturas y salidas del ensayo: `…/scratchpad/w-ruta-de-hoy/` (fuera del repo).

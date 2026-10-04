@@ -136,7 +136,7 @@ describe("las cinco pantallas preguntan lo mismo", () => {
   it("los dos selectores de fecha se acotan además de la lista", () => {
     // Filtrar solo la lista dejaría un día vacío sin decir por qué; el `min` del campo
     // lo dice sin escribir un aviso.
-    for (const f of [MAPA, RECORRIDO]) {
+    for (const f of [RECORRIDO]) {
       const src = sinComentarios(leer(f));
       expect(src, f).toContain("retentionFloorISO()");
       expect(src, f).toMatch(/min=\{veTodoElHistorial \? undefined : pisoFecha\}/);
@@ -144,12 +144,24 @@ describe("las cinco pantallas preguntan lo mismo", () => {
       // Y el valor que se pinta es el acotado, no el del estado.
       expect(src, f).toMatch(/value=\{fecha\}/);
     }
+    // **Reemplazado en parte por D-467** (2026-10-04): el Mapa es ahora «Ruta de hoy», que lee `rutas_del_dia` (hoy±7).
+    // Su selector se acota por las dos cosas: la ventana de D-239 para quien no es exento, y el ±7 para todos (los
+    // exentos incluidos: fuera de ahí la función no devuelve nada). Sigue pintando el día acotado, no el del estado.
+    const mapa = sinComentarios(leer(MAPA));
+    expect(mapa).toContain("retentionFloorISO()");
+    expect(mapa).toContain("const rango = rangoDeRutasDelDia(todayISO());");
+    expect(mapa).toContain("const primerDia = veTodoElHistorial || pisoFecha < rango.min ? rango.min : pisoFecha;");
+    expect(mapa).toContain("const fecha = date < primerDia ? primerDia : date > rango.max ? rango.max : date;");
+    expect(mapa).toContain("value={fecha} min={primerDia} max={rango.max}");
   });
 
   it("el mapa y Recorrido consultan por la fecha acotada, no por la del estado", () => {
     // Si la lista se filtrara por `date` y el selector por `fecha`, un estado viejo
     // enseñaría datos de un día que el selector ya no deja elegir.
-    expect(sinComentarios(leer(MAPA))).toMatch(/d\.delivery_date === fecha/);
+    // (D-467: «Ruta de hoy» pide el día acotado a `useRutasDelDia`; el filtro por día vive en la función de la base y, sin
+    // ella, en `paradasDeLasOrdenes`.)
+    expect(sinComentarios(leer(MAPA))).toContain("useRutasDelDia(fecha)");
+    expect(sinComentarios(leer("src/lib/rutas-del-dia.ts"))).toMatch(/d\.delivery_date === fecha/);
     const track = sinComentarios(leer(RECORRIDO));
     expect(track).toMatch(/\$\{fecha\}T00:00/);
     expect(track).toMatch(/\.slice\(0, 10\) === fecha/);

@@ -78,7 +78,10 @@ describe("la pantalla le pasa lo hecho", () => {
     // D-443: un solo sitio, `lecturaDe`, para la tarjeta, el mapa, el arrastre, «Mejor lugar» y las flechas.
     expect(pagina).toContain("lecturaConLoHecho(stops, capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), hechasDeLaRuta(laneKey, stops));");
     expect(pagina).toContain("const lectura = lecturaDe(u.key, stops);");
-    expect(pagina).toContain("const lectura = lecturaDe(laneKey, list);");
+    // **Puesto al día por D-467**: el mapa lo pinta `puntosDeLasRutas` (lib/mapa-de-rutas), con la `lecturaDe` que le pasa
+    // la pantalla — la misma del Gestor en «Ruta de hoy».
+    expect(readFileSync(join(__dirname, "..", "mapa-de-rutas.ts"), "utf8")).toContain("const lectura = e.lecturaDe(laneKey, list);");
+    expect(pagina).toContain("lecturaDe, coordsDeTienda, t,");
     expect(pagina).not.toContain("lecturaDeLaRuta(");
   });
 });

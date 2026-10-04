@@ -178,11 +178,17 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       expect(pagina).toContain('<span className="count-tag">{stops.length} {t("orders", "órdenes")}</span>');
     });
     it("en el mapa su pin queda como hecho: ✓ y apagado; y no es una parada que se pueda marcar", () => {
-      const pines = trozo("for (const [laneKey, lista] of hechasPintadas) {", "// Pickup (\"P\") pin for each selected load");
+      // **Puesto al día por D-467**: los pines del mapa los pinta `puntosDeLasRutas` (lib/mapa-de-rutas), que comparten el
+      // Gestor y «Ruta de hoy». El Gestor le pasa lo hecho (`hechasPintadas`), su filtro y a quién atenúa (`isDim`).
+      const mapaDeRutas = plano(leer("src/lib/mapa-de-rutas.ts"));
+      const pines = trozo("for (const [laneKey, lista] of e.hechas) {", "return pts;", mapaDeRutas);
       expect(pines).toContain("id: `__hecha__${d.id}`");
       expect(pines).toContain('badge: entregada ? "✓" : "🚚"');
-      expect(pines).toContain("dimmed: entregada || isDim(laneKey) || selActive,");
-      expect(pines).toContain("if (!pasaFiltro(laneKey)) continue;");
+      expect(pines).toContain("dimmed: entregada || e.atenuada(laneKey) || selActive,");
+      expect(pines).toContain("if (!e.pasaFiltro(laneKey)) continue;");
+      const llamada = trozo("const pts = puntosDeLasRutas<Delivery>({", "});");
+      expect(llamada).toContain("hechas: hechasPintadas,");
+      expect(llamada).toContain("pasaFiltro, soloUnChofer: filtroChofer !== TODOS_LOS_CHOFERES, enfocado: focused, atenuada: isDim,");
     });
     it("«Vaciar» no se lleva lo ya recogido o entregado", () => {
       const vaciar = trozo("const clearLane = async (laneKey: string) => {", "// Drivers on vacation/sick/maintenance");

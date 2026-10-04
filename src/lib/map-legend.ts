@@ -48,12 +48,16 @@ export type ElementoLeyenda =
  * - `puedeAsignar`: lo que ve quien asigna y ventas no, porque no puede elegir órdenes: la recogida y
  *   la ruta de lo elegido, y los camiones en vivo. Sale aunque aún no haya nada elegido, para que la
  *   leyenda no cambie de tamaño con cada toque.
+ * - `rutasDelDia` (D-467): la página es «Ruta de hoy», que pinta la ruta de cada chofer en su color y no deja elegir
+ *   órdenes. En vez de lo de quien asigna, la leyenda explica las marcas de una ruta: P, D, ✓, la línea y su regreso.
+ *   `camiones`: si esta persona recibe las posiciones en vivo.
  */
 export function leyendaDelMapa(a: {
   choferes: (string | null | undefined)[];
   coloresDeChofer: Record<string, string> | null | undefined;
   rutasSinChofer: boolean;
   puedeAsignar: boolean;
+  rutasDelDia?: { camiones: boolean };
 }): ElementoLeyenda[] {
   const out: ElementoLeyenda[] = [
     { clave: "tienda", forma: "tienda", color: TIENDA_CLASICA.fill, en: "Store", es: "Tienda" },
@@ -74,6 +78,15 @@ export function leyendaDelMapa(a: {
 
   if (a.rutasSinChofer) {
     out.push({ clave: "ruta_sin_chofer", forma: "linea", color: COLOR_SIN_ASIGNAR, discontinua: true, en: "Route of an order with no driver", es: "Ruta de una orden sin chofer" });
+  }
+  if (a.rutasDelDia) {
+    out.push({ clave: "recogida_de_ruta", forma: "pin", color: COLOR_RECOGIDA, insignia: "P", en: "Pickup (P1, P2… in route order)", es: "Recogida (P1, P2… en el orden de la ruta)" });
+    out.push({ clave: "entrega_de_ruta", forma: "pin", color: COLOR_RECOGIDA, insignia: "D", en: "Delivery (D1, D2…), in its driver's color", es: "Entrega (D1, D2…), del color de su chofer" });
+    out.push({ clave: "entregada", forma: "pin", color: COLOR_SIN_ASIGNAR, insignia: "✓", en: "Already delivered", es: "Ya entregada" });
+    out.push({ clave: "ruta_del_chofer", forma: "linea", color: COLOR_RECOGIDA, discontinua: false, en: "The driver's route", es: "La ruta del chofer" });
+    out.push({ clave: "regreso", forma: "linea", color: COLOR_RECOGIDA, discontinua: true, en: "Drive back to base", es: "Regreso a la base" });
+    if (a.rutasDelDia.camiones) out.push({ clave: "camion", forma: "icono", icono: "🚚", en: "Driver, live", es: "Chofer en vivo" });
+    return out;
   }
   if (a.puedeAsignar) {
     out.push({ clave: "ruta_elegida", forma: "linea", color: COLOR_RUTA_ELEGIDA, discontinua: false, en: "Route of the selected orders", es: "Ruta de las órdenes elegidas" });

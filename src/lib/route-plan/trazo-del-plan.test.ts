@@ -45,6 +45,8 @@ describe("el Gestor pide ese trazo SIN optimizar y lo pinta en vez del trazo vie
     expect(pagina).toContain("const puntos = puntosDelTrazoPublicado(paradas, deliveries, settings.stores ?? []);");
     expect(pagina).toContain("body: JSON.stringify({ stops: puntos, roundtrip: false, optimize: false, date }),");
     // Desde D-437 la del plan pisa la medida solo mientras la ruta sigue siendo la publicada (`sigueSuPlan`).
-    expect(pagina).toContain("if (conSuPlan.has(driver)) continue;");
+    // (**Puesto al día por D-467**: las líneas las pinta `lineasDeLasRutas`, en lib/mapa-de-rutas.)
+    expect(readFileSync("src/lib/mapa-de-rutas.ts", "utf8")).toContain("if (conSuPlan.has(driver)) continue;");
+    expect(pagina).toContain("trazos: routeLines, trazosDelPlan,");
   });
 });
