@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CampoDecimal } from "@/components/CampoDecimal";
 import { dinero } from "@/lib/estimator/modelo";
 import {
-  ACCEPT_DE_COMPETENCIA, LIMITES_DE_COMPETENCIA, TOPES_DE_TEXTO, faltaEnSuelto, filtraEstimados, masNuevoPrimero,
+  LIMITES_DE_COMPETENCIA, TOPES_DE_TEXTO, faltaEnSuelto, filtraEstimados, masNuevoPrimero,
   mensajeDeCompetencia, metaSueltaVacia, puedeQuitar, tamanoLegible, validaArchivos,
   type AlmacenDeCompetencia, type EstimadoDeCompetencia, type MetaSuelta,
 } from "@/lib/estimator/competencia";
+import { competidoresUsados, empresaDe, totalDe, type AlmacenDeLecturas, type LecturaGuardada } from "@/lib/estimator/lectura";
+import { BotonesDeArchivo } from "./Competencia";
+import { AvisoSin161, LISTA_DE_COMPETIDORES, ListaDeCompetidores, ProductosDeCompetencia } from "./ProductosCompetencia";
 
 type T = (en: string, es: string) => string;
 type Yo = { id: string; name: string; admin: boolean; store?: string | null };
@@ -28,10 +31,14 @@ export function AvisoSin156({ t }: { t: T }) {
  * La lista de TODOS los estimados de la competencia (D-451): de quién es (cliente o # de estimado), tienda, competidor,
  * su total, nota, quién y cuándo, y el archivo. «Quitar» solo a quien lo subió o al admin (la misma regla que la 156).
  */
-export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado, onAbrir, onQuitar, onConfirmar, filtrando = false }: {
+export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado, onAbrir, onQuitar, onConfirmar, filtrando = false, lecturas, abierto, onProductos, detalle }: {
   estimados: EstimadoDeCompetencia[]; me: Yo; t: T; lang: string; confirmando: string | null; ocupado: boolean;
   /** Hay filtro puesto: una lista vacía dice «nada coincide», no «no hay ninguno». */
   filtrando?: boolean;
+  /** Los productos guardados de cada estimado (161, D-NEXT): la fila dice la empresa, el total y cuántos son. */
+  lecturas?: Record<string, LecturaGuardada>; abierto?: string | null; onProductos?: (id: string | null) => void;
+  /** La tabla de productos del estimado abierto. */
+  detalle?: (e: EstimadoDeCompetencia) => ReactNode;
   onAbrir: (e: EstimadoDeCompetencia) => void; onQuitar: (e: EstimadoDeCompetencia) => void; onConfirmar: (id: string | null) => void;
 }) {
   if (!estimados.length) {
@@ -57,8 +64,9 @@ export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado,
           </div>
           <div className="est-comp-meta">
             {e.customer_name && e.estimate_num && <span>{t("Estimate", "Estimado")} #<b>{e.estimate_num}</b></span>}
-            {e.competitor && <span>{t("Competitor", "Competidor")}: <b>{e.competitor}</b></span>}
-            {e.competitor_total !== null && <span>{t("Their total", "Su total")}: <b>{dinero(e.competitor_total)}</b></span>}
+            {empresaDe(e, lecturas?.[e.id]) && <span>{t("Competitor", "Competidor")}: <b data-estimado-empresa>{empresaDe(e, lecturas?.[e.id])}</b></span>}
+            {totalDe(e, lecturas?.[e.id]) !== null && <span>{t("Their total", "Su total")}: <b data-estimado-total>{dinero(totalDe(e, lecturas?.[e.id])!)}</b></span>}
+            {lecturas?.[e.id] && <span data-estimado-n-productos>{lecturas[e.id].items.length} {t("product(s)", "producto(s)")}</span>}
             {e.note && <span>{t("Note", "Nota")}: {e.note}</span>}
             <span data-estimado-origen>{e.quote_id ? t("Attached to a quote", "Pegado a una cotización") : t("Uploaded on its own", "Subido suelto")}</span>
           </div>
@@ -67,6 +75,12 @@ export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado,
             <button type="button" className="btn btn-ghost btn-sm" data-estimado-abrir onClick={() => onAbrir(e)}>
               {e.mime_type === "application/pdf" ? "📄" : "🖼️"} {e.file_name} · {tamanoLegible(e.size_bytes)}
             </button>
+            {onProductos && (
+              <button type="button" className={"btn btn-sm " + (abierto === e.id ? "btn-primary" : "btn-ghost")} data-estimado-productos
+                aria-expanded={abierto === e.id} onClick={() => onProductos(abierto === e.id ? null : e.id)}>
+                🧾 {t("Products", "Productos")}{lecturas?.[e.id] ? ` (${lecturas[e.id].items.length})` : ""}
+              </button>
+            )}
             {puedeQuitar(e, me) && (confirmando === e.id ? (
               <>
                 <button type="button" className="btn btn-danger btn-sm" data-estimado-confirmar disabled={ocupado} onClick={() => onQuitar(e)}>
@@ -80,6 +94,7 @@ export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado,
               </button>
             ))}
           </div>
+          {abierto === e.id && detalle?.(e)}
         </li>
       ))}
     </ul>
@@ -92,9 +107,15 @@ export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado,
  * SALES REP COULD SEE IT». Arriba se sube uno **suelto** (sin cotización); abajo, **todos**, de todas las tiendas.
  * Quién ve lo decide la 156; esto solo pinta lo que la base devuelve. Interno: nada de aquí llega a la hoja del cliente.
  */
-export function EstimadosCompetencia({ almacen, me, tiendas, tiendaDePartida, t, lang }: {
+export function EstimadosCompetencia({ almacen, lecturas: almacenLecturas, me, tiendas, tiendaDePartida, t, lang }: {
   almacen: AlmacenDeCompetencia; me: Yo; tiendas: string[]; tiendaDePartida: string; t: T; lang: string;
+  /** Dónde viven los productos de cada estimado (161) y quién los lee (D-NEXT). */
+  lecturas: AlmacenDeLecturas;
 }) {
+  /** null = aún no se sabe; false = falta la 161: la lista sigue, sin productos. */
+  const [base161, setBase161] = useState<boolean | null>(null);
+  const [lecturas, setLecturas] = useState<Record<string, LecturaGuardada>>({});
+  const [abierto, setAbierto] = useState<string | null>(null);
   const [estado, setEstado] = useState<"cargando" | "sin-156" | "lista">("cargando");
   const [estimados, setEstimados] = useState<EstimadoDeCompetencia[]>([]);
   const [archivos, setArchivos] = useState<File[]>([]);
@@ -111,14 +132,26 @@ export function EstimadosCompetencia({ almacen, me, tiendas, tiendaDePartida, t,
 
   const cargar = useCallback(async () => {
     const r = await almacen.listarTodos();
-    if (r.ok) { setEstimados(masNuevoPrimero(r.valor)); setEstado("lista"); return; }
+    if (r.ok) {
+      setEstimados(masNuevoPrimero(r.valor));
+      setEstado("lista");
+      const l = await almacenLecturas.cargar(r.valor.map((e) => e.id));
+      if (l.ok) { setBase161(true); setLecturas(l.valor); }
+      else if (l.sinTabla) setBase161(false);
+      return;
+    }
     if (r.sinTabla) { setEstado("sin-156"); return; }
     setEstado("lista");
     setError(`${t("Could not read the competitor estimates", "No se pudieron leer los estimados de la competencia")}: ${r.error}`);
-  }, [almacen, t]);
+  }, [almacen, almacenLecturas, t]);
   useEffect(() => { void cargar(); }, [cargar]);
 
   const visibles = useMemo(() => filtraEstimados(estimados, filtro), [estimados, filtro]);
+  /** Las empresas ya escritas, al subir o al corregir una lectura: se ofrecen al teclear una nueva. */
+  const competidores = useMemo(
+    () => competidoresUsados([...estimados.map((e) => e.competitor), ...Object.values(lecturas).map((l) => l.competitor)]),
+    [estimados, lecturas],
+  );
   const tiendasDelFiltro = useMemo(
     () => [...new Set([...tiendas, ...estimados.map((e) => e.store ?? "").filter(Boolean)])],
     [tiendas, estimados],
@@ -212,8 +245,9 @@ export function EstimadosCompetencia({ almacen, me, tiendas, tiendaDePartida, t,
                   onChange={(e) => setMeta({ ...meta, estimate_num: e.target.value })} />
               </div>
               <div className="field">
-                <label htmlFor="suelto-competidor">{t("Competitor (optional)", "Competidor (opcional)")}</label>
-                <input id="suelto-competidor" value={meta.competitor} maxLength={TOPES_DE_TEXTO.competidor}
+                <label htmlFor="suelto-competidor">{t("Competitor company", "Empresa competidora")}</label>
+                <input id="suelto-competidor" value={meta.competitor} maxLength={TOPES_DE_TEXTO.competidor} list={LISTA_DE_COMPETIDORES} data-suelto-competidor
+                  placeholder={t("Pick one or type a new one", "Elige una o escribe una nueva")}
                   onChange={(e) => setMeta({ ...meta, competitor: e.target.value })} />
               </div>
               <div className="field">
@@ -238,11 +272,7 @@ export function EstimadosCompetencia({ almacen, me, tiendas, tiendaDePartida, t,
               </ul>
             )}
             <div className="est-acciones">
-              <label className="btn btn-ghost btn-sm est-comp-elegir" data-suelto-elegir aria-disabled={ocupado || archivos.length >= max}>
-                📎 {t("Choose files…", "Elegir archivos…")}
-                <input ref={entrada} type="file" multiple accept={ACCEPT_DE_COMPETENCIA} data-suelto-input
-                  disabled={ocupado || archivos.length >= max} onChange={(e) => elegir(e.target.files)} />
-              </label>
+              <BotonesDeArchivo t={t} marca="suelto" refEntrada={entrada} onArchivos={elegir} apagado={ocupado || archivos.length >= max} />
               {archivos.length > 0 && (
                 <button type="button" className="btn btn-primary btn-sm" data-suelto-subir
                   disabled={ocupado || faltaEnSuelto(meta) !== null} onClick={() => void subir()}>
@@ -274,9 +304,16 @@ export function EstimadosCompetencia({ almacen, me, tiendas, tiendaDePartida, t,
                 onChange={(e) => setFiltro({ ...filtro, texto: e.target.value })} />
             </div>
           </div>
+          <ListaDeCompetidores nombres={competidores} />
           <ListaDeEstimados estimados={visibles} me={me} t={t} lang={lang} confirmando={confirmando} ocupado={ocupado}
             filtrando={!!(filtro.tienda || filtro.texto.trim())}
-            onAbrir={(e) => void abrir(e)} onQuitar={(e) => void quitar(e)} onConfirmar={setConfirmando} />
+            onAbrir={(e) => void abrir(e)} onQuitar={(e) => void quitar(e)} onConfirmar={setConfirmando}
+            lecturas={lecturas} abierto={abierto} onProductos={setAbierto}
+            detalle={(e) => (base161 === false ? <AvisoSin161 t={t} /> : (
+              <ProductosDeCompetencia archivo={e} almacen={almacenLecturas} guardada={lecturas[e.id] ?? null}
+                puedeEditar={puedeQuitar(e, me)} t={t}
+                onGuardada={(l) => setLecturas((m) => ({ ...m, [l.file_id]: l }))} onSin161={() => setBase161(false)} />
+            ))} />
         </div>
       )}
     </div>

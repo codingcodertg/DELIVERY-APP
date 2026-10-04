@@ -40,7 +40,20 @@
 .est-comp-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
 .est-wrap .est-comp-elegir { display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink); text-transform: none; letter-spacing: normal; }
 .est-wrap .est-comp-elegir[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.est-wrap .est-comp-elegir.btn-primary { color: #fff; }
 .est-wrap .est-comp-elegir input { display: none; }
+
+/* ---- Los productos del estimado de la competencia (D-NEXT): la tabla se desplaza dentro de su caja, no la página ---- */
+.est-productos { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); min-width: 0; }
+.est-prod-tabla { overflow-x: auto; max-width: 100%; }
+.est-prod-tabla table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.est-prod-tabla th { text-align: left; font-size: 11px; font-weight: 700; color: var(--ink-soft); padding: 4px 6px; white-space: nowrap; }
+.est-prod-tabla td { padding: 3px 6px; vertical-align: middle; border-top: 1px solid var(--line); }
+.est-wrap .est-prod-tabla input, .est-wrap .est-prod-tabla select { width: 100%; padding: 5px 6px; font-size: 13px; }
+.est-prod-fila-lado td { border-top: 0; padding-top: 0; }
+.est-prod-lado { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; padding: 4px 8px; border-radius: 8px; background: var(--card, #f5f5f2); }
+.est-prod-caro { color: var(--red, #d64545); font-weight: 700; }
+.est-prod-barato { color: var(--green, #1f9d6b); font-weight: 700; }
 
 /* ---- La hoja del cliente: aspecto tecleado, a propósito poco oficial ---- */
 .hoja-cliente {
