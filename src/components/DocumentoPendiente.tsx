@@ -3,33 +3,46 @@
 import { useState } from "react";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
-import { campoCapturableEnFila, documentoPendiente, etiquetaDePendiente, otraConLaMismaFactura, valorDeDocumento } from "@/lib/documento-pendiente";
+import { camposCapturablesEnFila, documentosPendientes, etiquetaDePendiente, otraConLaMismaFactura, valorDeDocumento } from "@/lib/documento-pendiente";
+import type { DocumentoDeLaOrden } from "@/lib/order-document";
 import { usePrefs } from "@/lib/prefs";
 import { orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 /**
  * La pastilla «Invoice pending / PO pending / Estimate pending» de una orden, y —para quien puede— el
- * número escrito ahí mismo, sin abrir la orden (D-310). Quién puede y qué campo lo decide
- * `campoCapturableEnFila`; aquí solo se pinta.
+ * número escrito ahí mismo, sin abrir la orden (D-310). Qué falta lo decide `documentosPendientes` y quién
+ * puede escribir qué campo, `camposCapturablesEnFila`; aquí solo se pinta.
+ *
+ * **Una pastilla por documento que falte (D-NEXT).** Desde que la factura se le cuenta a toda orden, a una
+ * Intertienda le pueden faltar dos cosas a la vez —su PO y la factura—, y cada una se escribe en su campo.
  *
  * Vive dentro de una fila que abre la orden al pulsarla, así que todo lo que se pulsa aquí para el
  * clic: escribir una factura no debe abrir la ficha.
  */
 export function DocumentoPendiente({ d, vacio = null }: { d: Delivery; /** Lo que se pinta si no falta nada (el «—» de una celda vacía). */ vacio?: string | null }) {
-  const { me, settings, deliveries, ponerDocumento } = useData();
+  const { me, settings } = useData();
+  const reglas = settings.order_type_rules ?? {};
+  const pendientes = documentosPendientes(d, reglas);
+  if (!pendientes.length) return <>{vacio}</>;
+  const capturables = camposCapturablesEnFila(me, d, reglas);
+  const pastillas = pendientes.map((doc) => <UnDocumentoPendiente key={doc.campo} d={d} doc={doc} capturable={capturables.includes(doc.campo)} />);
+  // Dos pastillas en la misma línea no caben en la columna `#` (medido: la segunda salía cortada, «Invo…»): una debajo de otra.
+  return pendientes.length > 1 ? <span className="doc-pend-varias">{pastillas}</span> : <>{pastillas}</>;
+}
+
+/** Una pastilla, con su captura si `capturable`. El campo que se escribe es SIEMPRE el de la pastilla pulsada. */
+function UnDocumentoPendiente({ d, doc, capturable }: { d: Delivery; doc: DocumentoDeLaOrden; capturable: boolean }) {
+  const { deliveries, ponerDocumento } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   const [abierto, setAbierto] = useState(false);
   const [escrito, setEscrito] = useState("");
   const [guardando, setGuardando] = useState(false);
 
-  const reglas = settings.order_type_rules ?? {};
-  const doc = documentoPendiente(d, reglas);
-  if (!doc) return <>{vacio}</>;
   const etiqueta = etiquetaDePendiente(doc, lang);
-  const campo = campoCapturableEnFila(me, d, reglas);
-  if (!campo) return <span className="doc-pend">{etiqueta}</span>;
+  const campo = doc.campo;
+  if (!capturable) return <span className="doc-pend">{etiqueta}</span>;
 
   if (!abierto) {
     return (

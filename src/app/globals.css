@@ -292,6 +292,7 @@
   background: var(--amber-soft); color: var(--amber-text); border: 1px solid var(--amber);
 }
 .inv-all + .inv-short + .doc-pend, .inv-short + .doc-pend { margin-left: 6px; }
+.doc-pend-varias { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; vertical-align: middle; }
 .doc-pend-btn { cursor: pointer; }
 .doc-pend-btn:hover { background: var(--amber); color: #fff; }
 .doc-pend-form { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
