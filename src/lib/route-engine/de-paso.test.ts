@@ -8,7 +8,7 @@ import {
 import { entradaDelDia } from "../route-plan/entrada";
 
 /**
- * «Entregar antes lo que está de paso» en el motor de «Armar rutas» (D-NEXT, `motor-7`).
+ * «Entregar antes lo que está de paso» en el motor de «Armar rutas» (D-464, `motor-7`).
  *
  * El dueño, 2026-10-02, con el plan de Julio para el 3 (recoge 3 pallets en Pharr para Weslaco y 1 en Brownsville para
  * Pharr; el motor lo dejó P1 P2 D1 D2): «si recoje en pharr porque pharr va a ir hasta brownville recoger y despues

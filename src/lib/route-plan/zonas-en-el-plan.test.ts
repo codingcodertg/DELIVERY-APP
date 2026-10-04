@@ -250,7 +250,7 @@ describe("días reales (18–28 sep, anonimizados), con las zonas de cada chofer
     expect(suma(ANTES, (b, f) => enSuZona(b, f).deAlguien)).toBe(105);
   });
 
-  it("y a cambio de pocas millas: 2.560 sin zonas (2.559 antes de D-NEXT: entregar de paso suma una milla en diez días), no más de un 3 % con ellas", () => {
+  it("y a cambio de pocas millas: 2.560 sin zonas (2.559 antes de D-464: entregar de paso suma una milla en diez días), no más de un 3 % con ellas", () => {
     const antes = suma(ANTES, (b) => Number(b.plan.total_miles)), despues = suma(DESPUES, (b) => Number(b.plan.total_miles));
     expect(Math.round(antes)).toBe(2560);
     expect(despues).toBeLessThanOrEqual(antes * 1.03);

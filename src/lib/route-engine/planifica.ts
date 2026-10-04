@@ -22,7 +22,7 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-7` (D-NEXT): entregar antes lo que está de paso — con `parametros.dePaso`, ya repartido y mejorado el plan, cada
+/** `motor-7` (D-464): entregar antes lo que está de paso — con `parametros.dePaso`, ya repartido y mejorado el plan, cada
  *  ruta se reordena al orden que menos carga pasea de los que miden casi lo mismo (`entregaLoQueEstaDePaso`). Sin el
  *  parámetro, lo mismo que `motor-6`, byte a byte (la misma huella).
  *  `motor-6` (D-427): la zona de la RECOGIDA también cuenta — recoger en la tienda de la zona de otro chofer es una
@@ -454,7 +454,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   while (convergio && vuelveASuZona() > 0) mejoraElPlan(true);
 
   /**
-   * Entregar antes lo que está de paso (D-NEXT, `motor-7`). El dueño, 2026-10-02, con el plan de Julio (recoger 3 pallets
+   * Entregar antes lo que está de paso (D-464, `motor-7`). El dueño, 2026-10-02, con el plan de Julio (recoger 3 pallets
    * en Pharr para Weslaco y 1 en Brownsville para Pharr, que el motor dejó P1 P2 D1 D2): «si recoje en pharr porque pharr
    * va a ir hasta brownville recoger y despues entregar en weslaco, yo se que sale mejor a la venida pero si es una vuelta
    * tan larga como bajar a browville […] ahi seria p1 d1 p2 d2 eso es lo mas eficiente». Los dos órdenes miden casi lo

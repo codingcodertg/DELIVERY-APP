@@ -23,7 +23,7 @@ import REALES from "./optimizar-casos-reales.json";
  *   3. las rutas REALES (anonimizadas) donde el Optimizar de D-456 perdía: cuánto perdía, y que ahora sale el óptimo;
  *   4. lo que no se rompe nunca: las mismas paradas, la precedencia, la capacidad, y no salir peor de lo que se entró;
  *   5. el orden de los objetivos: capacidad → ventanas (las estrechas primero) → jornada → millas;
- *   8. (D-NEXT) entregar antes lo que está de paso: entre órdenes que miden casi lo mismo, el que menos carga pasea.
+ *   8. (D-464) entregar antes lo que está de paso: entre órdenes que miden casi lo mismo, el que menos carga pasea.
  *
  * Las secciones 2 a 4 y 7 fijan la vara de D-461 (jornada y millas) y corren SIN la banda de la carga (`SIN_BANDA`: la
  * carga solo decide a empate exacto, que no cambia ni un minuto ni una décima de milla). La sección 8 prueba la banda.
@@ -47,7 +47,7 @@ const clave = (p: PuntoEnElMapa | null | undefined) => (p ? claveDePunto(p) : nu
 type Nota = [number, number, number, number, number, number];
 /** La vara de D-461: exceso → tarde estrecha → tarde ancha → jornada → millas. La carga no entra. */
 const menor = (a: Nota, b: Nota) => { for (let k = 0; k < 5; k++) if (a[k] !== b[k]) return a[k] < b[k]; return false; };
-/** El criterio entero (D-NEXT), escrito aparte: el mejor por la vara; y de los que caben en su banda, el que menos carga
+/** El criterio entero (D-464), escrito aparte: el mejor por la vara; y de los que caben en su banda, el que menos carga
  *  pasea, si le gana por el margen. Devuelve el índice. */
 function elige(notas: readonly Nota[], t: ToleranciaDePaso = TOLERANCIA_DE_PASO): number {
   let opt = 0;
@@ -131,7 +131,7 @@ function fuerzaBruta(e: EntradaDeOptimizar): Nota {
   const todas = todasLasNotas(e);
   return todas.reduce((m, n) => (menor(n, m) ? n : m));
 }
-/** El que elige el criterio entero (D-NEXT), por fuerza bruta. */
+/** El que elige el criterio entero (D-464), por fuerza bruta. */
 function fuerzaBrutaDePaso(e: EntradaDeOptimizar, t: ToleranciaDePaso = TOLERANCIA_DE_PASO): Nota {
   const todas = todasLasNotas(e);
   return todas[elige(todas, t)];
@@ -778,7 +778,7 @@ describe("7 · hasta dónde llega la exacta, y lo que tarda", () => {
     expect(notaDeLaMedida(r.despues).slice(0, 3)).toEqual([0, 0, 0]);
     expect(r.despues.minutos).toBeLessThanOrEqual(679);
     expect(r.antes.minutos).toBe(1272);
-    // Con la banda de la carga (D-NEXT), de ahí se baja la carga sin salir de ella: 690 minutos, 11 más, por pasear menos.
+    // Con la banda de la carga (D-464), de ahí se baja la carga sin salir de ella: 690 minutos, 11 más, por pasear menos.
     const conBanda = optimizaLaLista({ ...e, tolerancia: TOLERANCIA_DE_PASO });
     expect(conBanda.despues.minutos).toBeLessThanOrEqual(r.despues.minutos + minutosDeBanda(r.despues.minutos));
     expect(conBanda.despues.cargaPalletMi).toBeLessThan(r.despues.cargaPalletMi - MARGEN_PALLET_MI);
@@ -823,7 +823,7 @@ describe("7 · hasta dónde llega la exacta, y lo que tarda", () => {
 });
 
 // =====================================================================================================================
-describe("8 · entregar antes lo que está de paso (D-NEXT): entre órdenes que miden casi lo mismo, el que menos carga pasea", () => {
+describe("8 · entregar antes lo que está de paso (D-464): entre órdenes que miden casi lo mismo, el que menos carga pasea", () => {
   /**
    * La ruta de Julio del 2026-10-03, con otros nombres y puntos inventados, y los tiempos por calles que guardó el plan:
    * recoge 3 pallets en la tienda de la base (Pharr) para «Oeste» (Weslaco, a 14 minutos), y 1 pallet en la tienda «Sur»

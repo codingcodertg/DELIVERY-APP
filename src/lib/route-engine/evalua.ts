@@ -257,7 +257,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
 }
 
 /**
- * La carga transportada de una ruta ya evaluada, en pallet·milla (D-NEXT): en cada tramo, lo que iba a bordo por sus
+ * La carga transportada de una ruta ya evaluada, en pallet·milla (D-464): en cada tramo, lo que iba a bordo por sus
  * millas —lo que ya iba al salir (las recogidas hechas antes), más lo recogido, menos lo entregado—. Es lo que el criterio
  * de «entregar antes lo que está de paso» quiere bajar. Se cuenta en centésimas (de pallet y de milla), como todo aquí, y
  * se devuelve a la centésima de pallet·milla. La vuelta a la base no entra: se vuelve vacío (lo que se recoge en una ruta

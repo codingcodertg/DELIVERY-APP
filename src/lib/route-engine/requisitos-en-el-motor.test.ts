@@ -71,7 +71,7 @@ describe("sin requisitos, el motor planifica EXACTAMENTE lo mismo que antes", ()
     expect(huella(planifica(todos))).toBe(HUELLA_DE_MOTOR_1);
   });
 
-  it("la versión pasó a motor-3 con los requisitos, a motor-4 con las zonas (D-421), a motor-5 con el umbral de zona (D-423) a motor-6 con la zona de la recogida (D-427) y a motor-7 con «lo que está de paso» (D-NEXT)", () => {
+  it("la versión pasó a motor-3 con los requisitos, a motor-4 con las zonas (D-421), a motor-5 con el umbral de zona (D-423) a motor-6 con la zona de la recogida (D-427) y a motor-7 con «lo que está de paso» (D-464)", () => {
     expect(VERSION_DEL_MOTOR).toBe("motor-7");
   });
 });

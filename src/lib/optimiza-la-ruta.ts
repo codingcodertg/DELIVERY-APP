@@ -24,7 +24,7 @@ import { RELOAD_MIN } from "./trip-timing";
  *     sale de la base a que vuelve a ella: manejo, cargas, descargas y esperas; (4) a igual tiempo, menos millas; y (5), entre
  *     órdenes que miden CASI lo mismo (`TOLERANCIA_DE_PASO`: hasta un 5 % más de jornada y 3 millas más que el mejor), el que
  *     menos carga pasea —pallets a bordo por milla—: se entrega antes lo que está de paso en vez de cargarlo ida y vuelta
- *     (D-NEXT; el dueño, con la ruta de Julio: «si es una vuelta tan larga como bajar a browville […] seria p1 d1 p2 d2»);
+ *     (D-464; el dueño, con la ruta de Julio: «si es una vuelta tan larga como bajar a browville […] seria p1 d1 p2 d2»);
  *   · el tiempo es el de las CALLES (`tiempos`: la misma matriz que usa «Armar rutas»); el tramo que falte se estima en línea
  *     recta y se dice (`medida`);
  *   · las horas se ponen como las pone el motor de «Armar rutas» (`route-engine/evalua.ts`): cargar en una tienda dura lo
@@ -306,7 +306,7 @@ const enLaBandaDe = (pr: Problema, a: Nota, ref: Nota): boolean =>
 /** ¿`a` pasea menos carga que `b`? A igual carga, menos jornada; a igual jornada, menos millas. */
 const menosCarga = (a: Nota, b: Nota): boolean => (a[5] !== b[5] ? a[5] < b[5] : a[3] !== b[3] ? a[3] < b[3] : a[4] < b[4]);
 /**
- * El criterio de carga (D-NEXT), entre varias listas: el mejor orden es el de menos jornada y millas (`mejorNota`); y de las
+ * El criterio de carga (D-464), entre varias listas: el mejor orden es el de menos jornada y millas (`mejorNota`); y de las
  * que miden casi lo mismo que él —su banda—, se queda la que menos carga pasea. Devuelve el índice de la elegida. Es una
  * elección ENTRE un conjunto, anclada al mejor, y no un orden entre dos: comparar de dos en dos con una banda no es
  * transitivo (A gana a B por carga, B a C por carga, C a A por jornada) y una búsqueda que lo usara de paso en paso daría vueltas.
@@ -541,7 +541,7 @@ function arranques(pr: Problema, actual: readonly number[], cuenta: Cuenta): Hal
 const PARTE_DE_LOS_ARRANQUES = 0.25;
 
 /**
- * Entregar antes lo que está de paso (D-NEXT): desde lo mejor que se tiene, bajar moviendo cosas —los mismos movimientos de
+ * Entregar antes lo que está de paso (D-464): desde lo mejor que se tiene, bajar moviendo cosas —los mismos movimientos de
  * `buscaLocal`— aceptando solo lo que pasea MENOS carga sin salir de la banda de `partida` (igual exceso y retraso; jornada y
  * millas de más dentro de la tolerancia). La banda es FIJA, la de la partida, y la carga baja en cada paso: termina.
  */
@@ -946,7 +946,7 @@ export function optimizaLaLista(e: EntradaDeOptimizar): ResultadoDeOptimizar {
   const ex = exacta(pr, local.nota, tope);
   let elegida = local.orden, nota = local.nota, etiquetas = ex.etiquetas, etiquetasDeLaBanda = 0, completa = ex.completa;
   if (ex.completa) {
-    // El mejor orden está (es `ex.orden`, o lo que ya se tenía). Ahora, en su banda, el que menos carga pasea (D-NEXT):
+    // El mejor orden está (es `ex.orden`, o lo que ya se tenía). Ahora, en su banda, el que menos carga pasea (D-464):
     // primero bajando desde él, y luego la exacta otra vez, acotada a la banda, que lo confirma o lo mejora si cabe en el tope.
     const mejor: Hallado = ex.orden ? { orden: ex.orden, nota: medidaDe(pr, e, ex.orden).nota } : local;
     const conMenosCarga = e.sinBusquedaLocal ? mejor : bajaLaCarga(pr, mejor, cuenta);

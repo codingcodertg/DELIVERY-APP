@@ -206,7 +206,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     const validas = ruteables.has(chofer) ? paradas.filter((p) => enElPlan.has(ordenDeLaParte(p.orden))) : [];
     if (validas.length) secuenciaFijada[chofer] = validas.map((p) => ({ orden: p.orden, tipo: p.tipo }));
   }
-  // Entregar antes lo que está de paso (D-NEXT): «Armar rutas» lo lleva siempre, con la banda de siempre; el motor solo, no.
+  // Entregar antes lo que está de paso (D-464): «Armar rutas» lo lleva siempre, con la banda de siempre; el motor solo, no.
   const parametros: Parametros = { ...PARAMETROS_POR_DEFECTO, pesos: pesosDeRuta(settings), topeTardeAnchaMin: topeDeRetrasoMin(settings), ...opcionesDeReparto(settings), dePaso: TOLERANCIA_DE_PASO };
   return { entrada: { ordenes, choferes, matriz: {}, ...(Object.keys(secuenciaFijada).length ? { secuenciaFijada } : {}) }, parametros, puntos, fotos, fuera, choferesFuera };
 }

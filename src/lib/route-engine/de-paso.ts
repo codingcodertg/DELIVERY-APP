@@ -1,5 +1,5 @@
 /**
- * «Entregar lo que está de paso» (D-NEXT): el criterio de CARGA TRANSPORTADA, común al Optimizar de una ruta
+ * «Entregar lo que está de paso» (D-464): el criterio de CARGA TRANSPORTADA, común al Optimizar de una ruta
  * (`optimiza-la-ruta.ts`) y al motor de «Armar rutas» (`planifica.ts`).
  *
  * El dueño, 2026-10-02, con la ruta de Julio (recoge 3 pallets en Pharr para Weslaco y 1 en Brownsville para Pharr; el plan
@@ -14,7 +14,7 @@
  * que miden CASI lo mismo: dentro de una banda alrededor del mejor orden (el de menos jornada y millas), gana el que menos
  * carga pasea; fuera de ella, manda la jornada. Nunca se acepta más exceso ni más retraso por esto.
  *
- * La banda, medida sobre las 37 rutas reales de D-461 y la de Julio (DECISIONS.md, D-NEXT): hasta un 5 % más de jornada
+ * La banda, medida sobre las 37 rutas reales de D-461 y la de Julio (DECISIONS.md, D-464): hasta un 5 % más de jornada
  * —y nunca más de 15 minutos— y hasta 3 millas más. La de Julio está a 2 minutos (1,3 %) y 2 millas; con un 3 % se
  * perdía la ruta del 2026-09-28 (+12 minutos y 2 millas por no pasear 659 pallet·milla). Es una BANDA y no un orden entre
  * dos listas a propósito (A gana a B por carga, B a C por carga, C a A por jornada): las búsquedas la usan anclada al

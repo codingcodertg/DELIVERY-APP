@@ -35110,7 +35110,7 @@ antes que la llave de servicio, sin escrituras) y que crear pide al servidor.
 
 ## D-461 · «🧭 Optimizar» una ruta, rehecho: por calles, mirando las ventanas, desde la base del chofer, y exacto en las rutas pequeñas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): el orden de los objetivos tiene un quinto criterio detrás de las millas. Entre órdenes que miden casi lo mismo que el mejor (hasta un 5 % más de jornada —nunca más de 15 minutos— y 3 millas más, con el mismo exceso y el mismo retraso), gana el que menos CARGA pasea (pallets a bordo por milla): se entrega antes lo que está de paso. Así que «el mejor orden» ya no es siempre el de menos jornada: de las 37 rutas de la tabla de abajo, 19 salen con entre 0 y 13 minutos más (95 en total) y un 18 % menos de carga paseada. La búsqueda exacta tiene dos fases, y una ruta de 11 órdenes que aquí salía exacta ya no lo dice. El dueño, con la ruta de Julio: «si es una vuelta tan larga como bajar a browville […] seria p1 d1 p2 d2».
+> **⚠ Reemplazada en parte por D-464** (2026-10-04): el orden de los objetivos tiene un quinto criterio detrás de las millas. Entre órdenes que miden casi lo mismo que el mejor (hasta un 5 % más de jornada —nunca más de 15 minutos— y 3 millas más, con el mismo exceso y el mismo retraso), gana el que menos CARGA pasea (pallets a bordo por milla): se entrega antes lo que está de paso. Así que «el mejor orden» ya no es siempre el de menos jornada: de las 37 rutas de la tabla de abajo, 19 salen con entre 0 y 13 minutos más (95 en total) y un 18 % menos de carga paseada. La búsqueda exacta tiene dos fases, y una ruta de 11 órdenes que aquí salía exacta ya no lo dice. El dueño, con la ruta de Julio: «si es una vuelta tan larga como bajar a browville […] seria p1 d1 p2 d2».
 
 **Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** deliveries 1.249.0, repo 1.335.0. **Reemplaza en parte a**
 D-456 (§3: «Optimizar» en línea recta y sin llamar a nadie; y, de §4, la recarga entera por cada fila P en la medida) y a
@@ -35641,9 +35641,9 @@ contacto siguen vacíos en la recogida.
 **Pruebas.** Las de D-435 que afirmaban el vacío, invertidas con su nota; la lista de columnas de la P incluye ahora
 `pl_ciudad_entrega`.
 
-## D-NEXT · Entregar antes lo que está de paso: entre órdenes que miden casi lo mismo, gana el que menos carga pasea (Optimizar y «Armar rutas»)
+## D-464 · Entregar antes lo que está de paso: entre órdenes que miden casi lo mismo, gana el que menos carga pasea (Optimizar y «Armar rutas»)
 
-**Fecha:** 2026-10-04 (el pedido es del 2026-10-02) · **Migración:** ninguna · **Versión:** la pone el orquestador al
+**Fecha:** 2026-10-04 (el pedido es del 2026-10-02) · **Migración:** ninguna · **Versión:** deliveries 1.252.0, repo 1.338.0 al
 fusionar · **Motor:** `motor-7`. **Reemplaza en parte a** D-461 (el orden de los objetivos de «🧭 Optimizar»: detrás de
 las millas hay ahora un quinto criterio, con una banda). D-461 lleva su nota.
 
@@ -35729,7 +35729,7 @@ Cada celda: minutos de jornada · millas · minutos de retraso · pallet·milla.
 `deliveries`; «(plan)» = el que escribió un plan de «Armar rutas». E, J y M son los tres choferes. Medido el 2026-10-04
 con `compara-carga.mjs` (fuera del repo, junto a `mide.mjs`), sobre el volcado del 2026-10-02.
 
-| Ruta | Órd. | D-461: min · mi · tarde · pallet·mi | D-NEXT: min · mi · tarde · pallet·mi | Cambia | Exacta |
+| Ruta | Órd. | D-461: min · mi · tarde · pallet·mi | D-464: min · mi · tarde · pallet·mi | Cambia | Exacta |
 |---|---|---|---|---|---|
 | 2026-09-29 E (guardada) | 6 | 321 · 96.2 · 3' · 395.8 | 321 · 96.2 · 3' · 395.8 | no | sí |
 | 2026-09-29 J (guardada) | 11 | 428 · 122.2 · 0' · 639.0 | 441 · 122.2 · 0' · 467.7 | +13 min, +0.0 mi, -171.3 p·mi | no |
