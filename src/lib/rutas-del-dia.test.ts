@@ -14,7 +14,7 @@ import { TABS, canOpenTab } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
 
 // ============================================================
-// «Ruta de hoy» (D-NEXT). El dueño, 2026-10-04: «este mapa lo quiero en el map view que ya esta y que todos los puedan
+// «Ruta de hoy» (D-467). El dueño, 2026-10-04: «este mapa lo quiero en el map view que ya esta y que todos los puedan
 // ver y se lo cambias de map a today's route», y «si rutas completas pero solo ver nada mas».
 // ============================================================
 

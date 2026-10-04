@@ -300,7 +300,7 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
     expect(tarjeta).toContain("if (v) void pasaA(u.key, ordenesDeLaFila, v);");      // D-459: con la ruta de salida, para deshacer
   });
   it("el panel de choferes mide la CARGA MÁXIMA de la lista contra el camión, no la suma del día", () => {
-    // **Puesto al día por D-NEXT**: la cuenta es `cargaDelPanel` (lib/mapa-de-rutas) y la pinta `PanelDeChoferes`; las dos
+    // **Puesto al día por D-467**: la cuenta es `cargaDelPanel` (lib/mapa-de-rutas) y la pinta `PanelDeChoferes`; las dos
     // las comparten el Gestor y «Ruta de hoy».
     expect(leer("src/lib/mapa-de-rutas.ts")).toContain("const pallets = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad).totales.cargaMaxima;");
     expect(pagina).toContain("carga: cargaDelPanel(lecturaDe(u.key, stops), capacityFor(u.driver)),");
@@ -426,7 +426,7 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
     expect(tarjeta).toContain("const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;");
     // La medida usa la MISMA clave para la recogida. (**Puesto al día por D-461**: lo que la recogida tarda ya no es la recarga
     // entera por fila, sino lo de su visita a la tienda —`minutosEnCadaParada`—. La clave «P:» + su puesto no cambia.)
-    // (**Puesto al día por D-NEXT**: la medida vive en `lib/usa-medida-de-rutas`, que comparten el Gestor y «Ruta de hoy».)
+    // (**Puesto al día por D-467**: la medida vive en `lib/usa-medida-de-rutas`, que comparten el Gestor y «Ruta de hoy».)
     expect(leer("src/lib/usa-medida-de-rutas.ts")).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });");
     // D-456: detrás de la clase del grupo va la raya de «aquí cae» mientras se arrastra una fila.
     expect(tarjeta).toContain("className={`${claseDeLaFilaDelPlan(\"P\")}${claseDeGrupo(f)}${claseDeSoltar}`}");

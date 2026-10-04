@@ -85,7 +85,7 @@ describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
     expect(pagina).toContain("filas={lanesDelFiltro.map((u) => {");
     expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter(");
     // El mapa: la base y las P de cada ruta, sus paradas, lo sin chofer, las líneas y el camión en vivo.
-    // **Puesto al día por D-NEXT**: los puntos y las líneas los pintan `puntosDeLasRutas` y `lineasDeLasRutas`
+    // **Puesto al día por D-467**: los puntos y las líneas los pintan `puntosDeLasRutas` y `lineasDeLasRutas`
     // (lib/mapa-de-rutas), que comparten el Gestor y «Ruta de hoy»; el Gestor les pasa SU filtro.
     const mapaDeRutas = readFileSync(join(process.cwd(), "src/lib/mapa-de-rutas.ts"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
     expect(pagina).toContain("pasaFiltro, soloUnChofer: filtroChofer !== TODOS_LOS_CHOFERES, enfocado: focused, atenuada: isDim,");

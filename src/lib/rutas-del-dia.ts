@@ -2,7 +2,7 @@ import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 import { fmtWindows, orderLabel, shiftDateISO } from "@/lib/utils";
 
 /**
- * «Ruta de hoy» (D-NEXT): las rutas del día, ENTERAS, para todos los del módulo de entregas — y nada más que eso.
+ * «Ruta de hoy» (D-467): las rutas del día, ENTERAS, para todos los del módulo de entregas — y nada más que eso.
  *
  * El dueño, 2026-10-04: «este mapa lo quiero en el map view que ya esta y que todos los puedan ver y se lo cambias de map a
  * today's route». Y a la pregunta de si cada rol vería solo lo que ya lee o las rutas completas: «si rutas completas pero

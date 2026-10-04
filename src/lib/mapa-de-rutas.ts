@@ -9,7 +9,7 @@ import { orderLabel } from "@/lib/utils";
 
 /**
  * El mapa de las rutas del día y el panel «Choferes y rutas», para las DOS pantallas que los pintan: el Gestor de Rutas y
- * «Ruta de hoy» (D-NEXT).
+ * «Ruta de hoy» (D-467).
  *
  * El dueño, 2026-10-04, con la captura del bloque de arriba del Gestor: «este mapa lo quiero en el map view que ya esta y
  * que todos los puedan ver y se lo cambias de map a today's route». Todo esto estaba escrito dentro de `routes/page.tsx`.

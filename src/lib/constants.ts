@@ -97,7 +97,7 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   { id: "board",     label: "📋 Orders",    label_es: "📋 Órdenes",   href: "/", roles: ["admin", "manager", "sales", "logistics", "accounting"] },
   { id: "dashboard", label: "📊 Dashboard", label_es: "📊 Panel",     href: "/dashboard", roles: ["manager", "admin"], cap: "dashboard", generalFor: ["admin"] },
   { id: "accounts",  label: "🏢 Accounts",  label_es: "🏢 Cuentas",    href: "/accounts", roles: ["admin", "manager"], group: "general" },
-  // «Ruta de hoy» (D-NEXT), antes «Mapa»: las rutas del día de cada chofer, de solo lectura. El dueño, 2026-10-04: «este
+  // «Ruta de hoy» (D-467), antes «Mapa»: las rutas del día de cada chofer, de solo lectura. El dueño, 2026-10-04: «este
   // mapa lo quiero en el map view que ya esta y que todos los puedan ver y se lo cambias de map a today's route». Por eso
   // la tienen TODOS los roles de entregas —también oficina, almacén y chofer, que no la tenían—. El `id` y la ruta `/map`
   // no cambian: los enlaces guardados y las pruebas de la barra siguen valiendo.

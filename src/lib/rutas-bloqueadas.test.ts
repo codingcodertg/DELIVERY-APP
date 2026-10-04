@@ -63,7 +63,7 @@ describe("la pantalla del Gestor respeta el candado", () => {
 
   it("elegir un chofer MIDE su ruta también con candado (medir no la toca); lo que escribía y miraba el candado se quitó (D-437)", () => {
     // D-456: ya no hace falta elegirlo: se miden todas las rutas con paradas. Sigue sin mirar el candado.
-    // **Puesto al día por D-NEXT**: el efecto que mide vive en `useMedidaDeRutas` (lib/usa-medida-de-rutas), que comparten el
+    // **Puesto al día por D-467**: el efecto que mide vive en `useMedidaDeRutas` (lib/usa-medida-de-rutas), que comparten el
     // Gestor y «Ruta de hoy». Ni él ni lo que el Gestor le pasa miran el candado.
     const medida = readFileSync(join(process.cwd(), "src/lib/usa-medida-de-rutas.ts"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
     expect(medida).toContain("if (midiendo == null && que.pide) void mide(que.pide.clave, byDriver.get(que.pide.clave) ?? []);");

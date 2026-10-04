@@ -132,7 +132,7 @@ const ROUTE_STAGES: Delivery["stage"][] = ["pending", "approved", "fulfilling", 
 const DEFAULT_CAPACITY = 12;
 
 // El reloj del día (`DAY_START_MIN`), los tipos de la medida y `fmtMinutes`/`fmtClock` viven en `lib/usa-medida-de-rutas`
-// desde D-NEXT: la medida la comparten esta pantalla y «Ruta de hoy».
+// desde D-467: la medida la comparten esta pantalla y «Ruta de hoy».
 
 /** La celda «Llegada» cuando aún no hay hora (D-456): el motivo, pequeño y en gris, en dos renglones si hace falta. */
 const ESTILO_SIN_LLEGADA = { color: "var(--gray)", fontSize: 11, whiteSpace: "normal", lineHeight: 1.15 } as const;
@@ -362,7 +362,7 @@ export default function RoutesPage() {
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
   }, [incidenciasAbiertas]);
-  // La medida de cada ruta (millas, horas, trazo, llegadas) y las bases ya buscadas: `useMedidaDeRutas`, más abajo (D-NEXT).
+  // La medida de cada ruta (millas, horas, trazo, llegadas) y las bases ya buscadas: `useMedidaDeRutas`, más abajo (D-467).
   // Asignando desde el recuadro («Asignar», «📍 Mejor lugar», «Nueva ruta»): sus botones se apagan mientras tanto.
   const [asignando, setAsignando] = useState(false);
   // Multi-select + search + saved filter for the unassigned pool.
@@ -1251,7 +1251,7 @@ export default function RoutesPage() {
   //   · Viendo UN día, todas las del filtro de chofer; viendo «todas las fechas» o las pendientes, solo las marcadas, como
   //     antes: ahí la lista de un chofer mezcla días y no es una ruta.
   //   · Una a la vez, primero las marcadas. Cómo se mide, cuántas llamadas y qué se guarda: `useMedidaDeRutas`
-  //     (lib/usa-medida-de-rutas), que desde D-NEXT comparte «Ruta de hoy».
+  //     (lib/usa-medida-de-rutas), que desde D-467 comparte «Ruta de hoy».
   const seMide = (clave: string) => (byDriver.get(clave) ?? []).length > 0 && pasaFiltro(clave) && (modo === "dia" || selected.has(clave));
   const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);
   const { routeInfo, routeLines, routeEtas, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
@@ -1568,7 +1568,7 @@ export default function RoutesPage() {
   // than hiding it, so the full picture stays visible.
   const points: MapPoint[] = useMemo(() => {
     // Las bases, las P/D de cada ruta en el orden de su lista, lo sin chofer y lo ya hecho (✓, D-459): `puntosDeLasRutas`
-    // (lib/mapa-de-rutas), lo mismo que pinta «Ruta de hoy» (D-NEXT). Aquí se añade lo que es solo del Gestor: lo marcado ☑.
+    // (lib/mapa-de-rutas), lo mismo que pinta «Ruta de hoy» (D-467). Aquí se añade lo que es solo del Gestor: lo marcado ☑.
     const pts = puntosDeLasRutas<Delivery>({
       carriles: lanes, porChofer: byDriver, delDia: dayOrders, hechas: hechasPintadas,
       pasaFiltro, soloUnChofer: filtroChofer !== TODOS_LOS_CHOFERES, enfocado: focused, atenuada: isDim,
@@ -2172,7 +2172,7 @@ export default function RoutesPage() {
           route cards below and build routes. Capped height + own scroll so it
           never takes over the screen. */}
       <div ref={panelFijoRef} style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 8, position: "sticky", top: 6, zIndex: 5, background: "var(--paper)", paddingBottom: 6 }}>
-        {/* El panel «Choferes y rutas» es `PanelDeChoferes` desde D-NEXT: el mismo que pinta «Ruta de hoy». Lo de aquí que
+        {/* El panel «Choferes y rutas» es `PanelDeChoferes` desde D-467: el mismo que pinta «Ruta de hoy». Lo de aquí que
             aquella no tiene —«Unir», «＋ Ruta», 🔒, ✏, ✕ y soltar una fila encima— entra por sus huecos. */}
         <PanelDeChoferes
           t={t}

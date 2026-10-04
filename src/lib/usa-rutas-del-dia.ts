@@ -11,7 +11,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 const RELEE_CADA_MS = 60_000;
 
 /**
- * Las paradas del día que pinta «Ruta de hoy» (D-NEXT), y de dónde salieron.
+ * Las paradas del día que pinta «Ruta de hoy» (D-467), y de dónde salieron.
  *
  *   · Con la migración 160 aplicada: `rutas_del_dia(fecha)` — las rutas ENTERAS, lo mínimo de cada parada, para cualquier
  *     rol con el módulo. Una consulta al entrar, otra al cambiar de día, al volver a la pestaña, cuando cambia algo de lo

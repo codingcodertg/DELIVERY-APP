@@ -178,7 +178,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       expect(pagina).toContain('<span className="count-tag">{stops.length} {t("orders", "órdenes")}</span>');
     });
     it("en el mapa su pin queda como hecho: ✓ y apagado; y no es una parada que se pueda marcar", () => {
-      // **Puesto al día por D-NEXT**: los pines del mapa los pinta `puntosDeLasRutas` (lib/mapa-de-rutas), que comparten el
+      // **Puesto al día por D-467**: los pines del mapa los pinta `puntosDeLasRutas` (lib/mapa-de-rutas), que comparten el
       // Gestor y «Ruta de hoy». El Gestor le pasa lo hecho (`hechasPintadas`), su filtro y a quién atenúa (`isDim`).
       const mapaDeRutas = plano(leer("src/lib/mapa-de-rutas.ts"));
       const pines = trozo("for (const [laneKey, lista] of e.hechas) {", "return pts;", mapaDeRutas);

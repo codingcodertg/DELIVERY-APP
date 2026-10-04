@@ -6,7 +6,7 @@ import type { InfoDeRuta } from "@/lib/usa-medida-de-rutas";
 
 /**
  * El panel «Choferes y rutas»: cada ruta del día con su casilla, su color, sus órdenes, horas y millas, y la barra de
- * carga. Lo pintan el Gestor de Rutas y «Ruta de hoy» (D-NEXT) — el mismo componente, para que las dos digan lo mismo.
+ * carga. Lo pintan el Gestor de Rutas y «Ruta de hoy» (D-467) — el mismo componente, para que las dos digan lo mismo.
  *
  * Estaba escrito dentro de `routes/page.tsx`. Lo que es solo del Gestor entra por fuera: los botones de la cabecera
  * («Unir», «＋ Ruta»), lo que acompaña al nombre (🔒, ✏, ✕, «ruta») y el destino de arrastre de cada fila. «Ruta de hoy» no

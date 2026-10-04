@@ -76,7 +76,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // Navigating away closes the menu (covers back/forward too).
   useEffect(() => { setGeneralOpen(false); setMenuCuentaAbierto(false); }, [pathname]);
   // Dispatch nudge (#29): how many orders due today/tomorrow still have no
-  // driver — a badge for the roles that assign drivers. It sat on the Map tab, where they were assigned; since D-NEXT
+  // driver — a badge for the roles that assign drivers. It sat on the Map tab, where they were assigned; since D-467
   // that tab is the read-only «Today's route», so the badge goes where the work is: the Routes Manager for whoever has
   // it, and «Today's route» only for who doesn't (the manager). `pestanaDelAvisoSinChofer` decides.
   const dispatchRole = me.role === "admin" || me.role === "manager" || me.role === "logistics";

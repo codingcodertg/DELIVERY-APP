@@ -13217,7 +13217,7 @@ alguien la mide.
 
 ## D-239 · La ventana de ayer-hoy-futuro es para todos menos admin y logística
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): el «Mapa» es ahora «Ruta de hoy». Su selector de día sigue acotado por esta ventana para quien no es exento, y además a hoy±7 para todos (admin y logística incluidos): lee `rutas_del_dia`, que fuera de ese rango no devuelve nada.
+> **⚠ Reemplazada en parte por D-467** (2026-10-04): el «Mapa» es ahora «Ruta de hoy». Su selector de día sigue acotado por esta ventana para quien no es exento, y además a hoy±7 para todos (admin y logística incluidos): lee `rutas_del_dia`, que fuera de ese rango no devuelve nada.
 
 > **⚠ Endurecida en Órdenes por D-392** (2026-09-25). Esta entrada dejaba que buscar llegara al historial
 > entero (*«every one of these screens lets an invoice search reach into older history»*). En la pantalla de
@@ -17405,7 +17405,7 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 
 ## D-274 · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): la leyenda del mapa (§ de la leyenda) ya no explica «la ruta de las órdenes elegidas» ni «la recogida de la orden elegida», porque el Mapa pasó a ser «Ruta de hoy», de solo lectura. Explica las marcas de una ruta: P, D, ✓, la línea del chofer y su regreso; el camión, solo a quien recibe las posiciones.
+> **⚠ Reemplazada en parte por D-467** (2026-10-04): la leyenda del mapa (§ de la leyenda) ya no explica «la ruta de las órdenes elegidas» ni «la recogida de la orden elegida», porque el Mapa pasó a ser «Ruta de hoy», de solo lectura. Explica las marcas de una ruta: P, D, ✓, la línea del chofer y su regreso; el camión, solo a quien recibe las posiciones.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas y «Mi perfil») · Sin migración.
 **Pedido por el dueño**, cuatro cosas en la barra y el mapa de Entregas: la casa del hub a la derecha,
@@ -32445,7 +32445,7 @@ aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio es
 
 ## D-437 · Gestor de Rutas: solo «Armar rutas» (fuera Optimizar, Auto-asignar, Reagrupar y Simular); un chofer vacío ya no deja línea ni tarjeta; «Incidencias» es un botón
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): «en el Mapa queda asignar a mano (una, o todas las marcadas a un chofer)» ya no vale. El Mapa es «Ruta de hoy», para todos los roles y de solo lectura: no asigna. Se asigna en el Gestor de Rutas (y, quien no lo tiene, desde la ficha de la orden).
+> **⚠ Reemplazada en parte por D-467** (2026-10-04): «en el Mapa queda asignar a mano (una, o todas las marcadas a un chofer)» ya no vale. El Mapa es «Ruta de hoy», para todos los roles y de solo lectura: no asigna. Se asigna en el Gestor de Rutas (y, quien no lo tiene, desde la ficha de la orden).
 
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el botón «🧭 Armar rutas» de la cabecera ya no «trae la barra cerrada»: es la única entrada, sale siempre, y abre y cierra el panel. «Un chofer vacío ya no deja tarjeta» vale para quien no tiene nada pendiente NI hecho ese día. Y «🗑 Vaciar» ya no se lleva lo recogido o entregado.
 >
@@ -36231,10 +36231,10 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 - `maxDuration = 120` de la ruta depende del plan de Vercel.
 - El tracker no se actualizó (un worktree no lleva `.env.local`): la tarea la crea el orquestador.
 
-## D-NEXT · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
+## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
 
 **Fecha:** 2026-10-04 · **Migración:** `160_rutas_del_dia.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
-`docs/PLAN-160-rutas-del-dia.md`) · **Versión:** la pone el orquestador al fusionar. **Reemplaza en parte a** D-437 (el
+`docs/PLAN-160-rutas-del-dia.md`) · **Versión:** deliveries 1.254.0, repo 1.341.0. **Reemplaza en parte a** D-437 (el
 Mapa ya no asigna), D-274 (la leyenda del mapa) y D-239 (el selector de día del Mapa). Las tres llevan su nota.
 
 ### Qué pidió el dueño
@@ -36414,7 +36414,7 @@ no 24. Si pesa, lo siguiente es guardar la medida en la base, no en la memoria d
 ### Pruebas que se pusieron al día
 
 Las que leían el texto del Gestor donde estaba la medida y el dibujo ahora leen los tres ficheros compartidos, con una
-nota «Puesto al día por D-NEXT» en cada una: `gestor-entregadas-y-vista`, `gestor-factura-arrastre-optimizar`,
+nota «Puesto al día por D-467» en cada una: `gestor-entregadas-y-vista`, `gestor-factura-arrastre-optimizar`,
 `lista-unica`, `optimizar-desde-el-gestor`, `rutas-bloqueadas`, `solo-armar-rutas`, `vista-del-gestor`,
 `route-plan/lectura-del-gestor`, `route-plan/trazo-del-plan`. Las que fijaban lo que el Mapa tenía y ya no tiene
 («Asignar todas a…», las rutas de lo sin chofer, la «P» de la orden elegida, su selector de día, sus cuatro colores a pelo)

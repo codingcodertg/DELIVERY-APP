@@ -18,7 +18,7 @@ const pagina = plano(leer("src/app/(app)/routes/page.tsx"));
 const codigoDePagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
 const mapa = plano(leer("src/app/(app)/map/page.tsx"));
 const codigoDeMapa = plano(sinComentarios(leer("src/app/(app)/map/page.tsx")));
-// **Puesto al día por D-NEXT**: la medida y el dibujo del mapa salieron del Gestor a estas dos librerías, que comparte con
+// **Puesto al día por D-467**: la medida y el dibujo del mapa salieron del Gestor a estas dos librerías, que comparte con
 // «Ruta de hoy» (antes «Mapa»). Lo que se comprobaba en la página se comprueba donde vive ahora.
 const medida = plano(leer("src/lib/usa-medida-de-rutas.ts"));
 const mapaDeRutas = plano(leer("src/lib/mapa-de-rutas.ts"));
@@ -118,7 +118,7 @@ describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona 
   });
   it("el Mapa ya no tiene «✨ Auto-asignar selección»", () => {
     for (const quitado of ["Auto-assign", "Auto-asignar", "autoAssignSelected", "repartirConElMotor", "pideElReparto", "leeBloqueos"]) expect(codigoDeMapa, quitado).not.toContain(quitado);
-    // **Reemplazado en parte por D-NEXT** (2026-10-04): el «Mapa» es ahora «Ruta de hoy», de solo lectura. Hasta aquí
+    // **Reemplazado en parte por D-467** (2026-10-04): el «Mapa» es ahora «Ruta de hoy», de solo lectura. Hasta aquí
     // conservaba asignar a mano («Asignar todas a…»); ya no asigna nada: ni escribe órdenes ni las anota.
     for (const escribe of ["Assign all to…", "updateDelivery", "addNote(", "reorderStops(", "assignOrders"]) expect(codigoDeMapa, escribe).not.toContain(escribe);
   });
@@ -127,7 +127,7 @@ describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona 
       "src/lib/route-plan/reparto-cliente.ts", "src/app/api/route-plan/reparto/route.ts"]) expect(existsSync(join(process.cwd(), f)), f).toBe(false);
     expect(existsSync(join(process.cwd(), "src/app/api/optimize-route/route.ts"))).toBe(true);
     expect(leer("src/app/(app)/my-route/page.tsx")).toContain('fetch("/api/optimize-route"');
-    // D-NEXT: «Ruta de hoy» ya no llama por su cuenta; mide con `useMedidaDeRutas`, como el Gestor.
+    // D-467: «Ruta de hoy» ya no llama por su cuenta; mide con `useMedidaDeRutas`, como el Gestor.
     expect(mapa).toContain("useMedidaDeRutas<ParadaDelDia>({");
     expect(medida).toContain('e.pide("/api/optimize-route"');
     expect(leer("src/lib/data-provider.tsx")).not.toContain("siNoCambioDesde");

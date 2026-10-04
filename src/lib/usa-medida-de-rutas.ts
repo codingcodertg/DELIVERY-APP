@@ -9,7 +9,7 @@ import type { NamedLocation } from "@/lib/types";
 
 /**
  * La MEDIDA de las rutas del día —millas, horas, trazo y la llegada estimada de cada parada—, para las dos pantallas que
- * las pintan: el Gestor de Rutas y «Ruta de hoy» (D-NEXT).
+ * las pintan: el Gestor de Rutas y «Ruta de hoy» (D-467).
  *
  * Todo esto vivía dentro de `routes/page.tsx` (D-437, D-443, D-456, D-461). Se sacó tal cual, sin cambiar una regla, cuando
  * el dueño pidió el mapa del Gestor en la pestaña «Mapa» para todos: dos pantallas con dos copias de la medida acabarían

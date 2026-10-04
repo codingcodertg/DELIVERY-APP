@@ -31,7 +31,7 @@ import type { Delivery } from "@/lib/types";
 const DEFAULT_CAPACITY = 12;
 
 // ============================================================
-// «Ruta de hoy» / «Today's route» (D-NEXT). Antes, «Mapa».
+// «Ruta de hoy» / «Today's route» (D-467). Antes, «Mapa».
 //
 // El dueño, 2026-10-04, con la captura del bloque de arriba del Gestor de Rutas: «este mapa lo quiero en el map view que ya
 // esta y que todos los puedan ver y se lo cambias de map a today's route». Y sobre qué ve cada rol: «si rutas completas pero

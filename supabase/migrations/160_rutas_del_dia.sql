@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 160 - Las rutas del dia, para todos los del modulo de entregas, SOLO lo minimo (D-NEXT)
+-- 160 - Las rutas del dia, para todos los del modulo de entregas, SOLO lo minimo (D-467)
 -- ===========================================================================
 -- El dueno, 2026-10-04, sobre la pestana «Ruta de hoy» (antes «Mapa»): «este mapa lo quiero en el map
 -- view que ya esta y que todos los puedan ver», y a la pregunta de si rutas enteras o solo lo que cada
@@ -212,4 +212,4 @@ end $$;
 -- al admin.
 -- ===========================================================================
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('160_rutas_del_dia.sql', '1ecff64392cb5d1ef1a4e6437a7fbd581234ca2f4d85ebc9d377ae45cf0122e1') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('160_rutas_del_dia.sql', '5cfe9e9063840e37a876844b9c5846e5dc3ac0d3a2f0e92809a388c153715aa8') on conflict (name) do nothing;

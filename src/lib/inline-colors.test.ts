@@ -136,7 +136,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/app/(app)/audit/page.tsx": 1,
     "src/app/(app)/dashboard/page.tsx": 4,
     "src/app/(app)/data/page.tsx": 4,
-    // 4 hasta D-NEXT: «Mapa» pasó a ser «Ruta de hoy», de solo lectura. Se fueron con el panel de asignar el blanco del
+    // 4 hasta D-467: «Mapa» pasó a ser «Ruta de hoy», de solo lectura. Se fueron con el panel de asignar el blanco del
     // aviso de riesgo y el de «sin conflictos»; quedan los dos de la pastilla de etapa (el rótulo de la parada y el resumen).
     "src/app/(app)/map/page.tsx": 2,
     "src/app/(app)/market/page.tsx": 3,
@@ -233,7 +233,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
       total += h.length;
       blancos += h.filter((x) => x.texto === "#fff").length;
     }
-    // 75 y 61 hasta D-NEXT: −2 blancos del Mapa (ver su techo, arriba).
+    // 75 y 61 hasta D-467: −2 blancos del Mapa (ver su techo, arriba).
     expect(total).toBe(73);
     expect(blancos).toBe(59);
   });

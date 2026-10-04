@@ -144,7 +144,7 @@ describe("las cinco pantallas preguntan lo mismo", () => {
       // Y el valor que se pinta es el acotado, no el del estado.
       expect(src, f).toMatch(/value=\{fecha\}/);
     }
-    // **Reemplazado en parte por D-NEXT** (2026-10-04): el Mapa es ahora «Ruta de hoy», que lee `rutas_del_dia` (hoy±7).
+    // **Reemplazado en parte por D-467** (2026-10-04): el Mapa es ahora «Ruta de hoy», que lee `rutas_del_dia` (hoy±7).
     // Su selector se acota por las dos cosas: la ventana de D-239 para quien no es exento, y el ±7 para todos (los
     // exentos incluidos: fuera de ahí la función no devuelve nada). Sigue pintando el día acotado, no el del estado.
     const mapa = sinComentarios(leer(MAPA));
@@ -158,7 +158,7 @@ describe("las cinco pantallas preguntan lo mismo", () => {
   it("el mapa y Recorrido consultan por la fecha acotada, no por la del estado", () => {
     // Si la lista se filtrara por `date` y el selector por `fecha`, un estado viejo
     // enseñaría datos de un día que el selector ya no deja elegir.
-    // (D-NEXT: «Ruta de hoy» pide el día acotado a `useRutasDelDia`; el filtro por día vive en la función de la base y, sin
+    // (D-467: «Ruta de hoy» pide el día acotado a `useRutasDelDia`; el filtro por día vive en la función de la base y, sin
     // ella, en `paradasDeLasOrdenes`.)
     expect(sinComentarios(leer(MAPA))).toContain("useRutasDelDia(fecha)");
     expect(sinComentarios(leer("src/lib/rutas-del-dia.ts"))).toMatch(/d\.delivery_date === fecha/);

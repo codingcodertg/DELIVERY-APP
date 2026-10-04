@@ -165,7 +165,7 @@ describe("2 · arrastrar para armar rutas a mano", () => {
       expect(pagina.split('data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}').length - 1).toBe(2);
     });
     it("se suelta en la fila del chofer en el panel, en su tarjeta o en una fila de su lista", () => {
-      // **Puesto al día por D-NEXT**: la fila del panel la pinta `PanelDeChoferes` (lo comparte «Ruta de hoy», que no pasa
+      // **Puesto al día por D-467**: la fila del panel la pinta `PanelDeChoferes` (lo comparte «Ruta de hoy», que no pasa
       // esto); el Gestor le da el destino de arrastre por `atributosDe`, y el componente lo pone en la fila.
       expect(pagina).toContain('atributosDe={(clave) => ({ "data-suelta-en-ruta": clave, ...sueltaAqui(clave, null),');
       expect(plano(leer("src/components/PanelDeChoferes.tsx"))).toContain("onClick={() => props.onEnfoca(u.clave)} {...atributos}");
@@ -409,7 +409,7 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
   });
 
   describe("la pantalla", () => {
-    // **Puesto al día por D-NEXT**: la medida (el efecto, `mide`, la forma, «↻») vive en `useMedidaDeRutas`
+    // **Puesto al día por D-467**: la medida (el efecto, `mide`, la forma, «↻») vive en `useMedidaDeRutas`
     // (lib/usa-medida-de-rutas), que comparten el Gestor y «Ruta de hoy». El Gestor sigue decidiendo QUÉ rutas se miden.
     const medida = plano(leer("src/lib/usa-medida-de-rutas.ts"));
     const queSeMide = trozo("const seMide = (clave: string) =>", "const aParadaDelGantt");

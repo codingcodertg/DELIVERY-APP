@@ -48,7 +48,7 @@ export type ElementoLeyenda =
  * - `puedeAsignar`: lo que ve quien asigna y ventas no, porque no puede elegir órdenes: la recogida y
  *   la ruta de lo elegido, y los camiones en vivo. Sale aunque aún no haya nada elegido, para que la
  *   leyenda no cambie de tamaño con cada toque.
- * - `rutasDelDia` (D-NEXT): la página es «Ruta de hoy», que pinta la ruta de cada chofer en su color y no deja elegir
+ * - `rutasDelDia` (D-467): la página es «Ruta de hoy», que pinta la ruta de cada chofer en su color y no deja elegir
  *   órdenes. En vez de lo de quien asigna, la leyenda explica las marcas de una ruta: P, D, ✓, la línea y su regreso.
  *   `camiones`: si esta persona recibe las posiciones en vivo.
  */

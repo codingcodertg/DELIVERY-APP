@@ -90,7 +90,7 @@ describe("dónde está cableado: solo el Gestor", () => {
     expect(gestor).toContain("const abanico = abanicoDeMarcas(pts);");
     expect(gestor).toContain("return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;");
   });
-  it("«Ruta de hoy» (D-NEXT) pinta todas las rutas a la vez, como el Gestor, y abre el mismo abanico", () => {
+  it("«Ruta de hoy» (D-467) pinta todas las rutas a la vez, como el Gestor, y abre el mismo abanico", () => {
     expect(leer("src/lib/mapa-de-rutas.ts")).toContain("const abanico = abanicoDeMarcas(pts);");
     expect(leer("src/app/(app)/map/page.tsx")).toContain("() => enAbanico(puntosDeLasRutas<ParadaDelDia>({");
   });
