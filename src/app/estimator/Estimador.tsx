@@ -20,8 +20,9 @@ import {
 import {
   almacenDeLaBase, buscarEnCatalogo, type AlmacenDeCotizaciones, type AprobacionPendiente, type ProductoDelCatalogo,
 } from "@/lib/estimator/almacen";
-import { almacenDeCompetenciaDemo, almacenDemo, buscarEnCatalogoDemo, extensionDemo } from "@/lib/estimator/demo";
+import { almacenDeCompetenciaDemo, almacenDeLecturasDemo, almacenDemo, buscarEnCatalogoDemo, extensionDemo } from "@/lib/estimator/demo";
 import { almacenDeCompetenciaDeLaBase, type AlmacenDeCompetencia } from "@/lib/estimator/competencia";
+import { almacenDeLecturasDeLaBase, lineasPropias, type AlmacenDeLecturas } from "@/lib/estimator/lectura";
 import {
   POLITICA_CASILLA, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
@@ -82,11 +83,16 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   // ---- dónde se guarda --------------------------------------------------------------------------
   const [sinTablaDemo, setSinTablaDemo] = useState(false);
   const [sin156Demo, setSin156Demo] = useState(false);
+  /** `?sin161=1` y `?sinLlave=1`: el demo como la base sin la 161, o como el servidor sin `ANTHROPIC_API_KEY`. */
+  const [sin161Demo, setSin161Demo] = useState(false);
+  const [sinLlaveDemo, setSinLlaveDemo] = useState(false);
   useEffect(() => {
     if (!demo) return;
     const q = new URLSearchParams(window.location.search);
     setSinTablaDemo(q.get("sinTabla") === "1");
     setSin156Demo(q.get("sin156") === "1");
+    setSin161Demo(q.get("sin161") === "1");
+    setSinLlaveDemo(q.get("sinLlave") === "1");
   }, [demo]);
   const almacen: AlmacenDeCotizaciones = useMemo(
     () => (demo ? almacenDemo(() => meRef.current, sinTablaDemo) : almacenDeLaBase(createClient())),
@@ -96,6 +102,11 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const almacenCompetencia: AlmacenDeCompetencia = useMemo(
     () => (demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo, sin156Demo) : almacenDeCompetenciaDeLaBase(createClient())),
     [demo, sinTablaDemo, sin156Demo],
+  );
+  // Los productos del estimado de la competencia (D-466): su tabla (161) y la ruta que los lee, o el demo en memoria.
+  const almacenLecturas: AlmacenDeLecturas = useMemo(
+    () => (demo ? almacenDeLecturasDemo(() => meRef.current, { sin161: sin161Demo, sinLlave: sinLlaveDemo }) : almacenDeLecturasDeLaBase(createClient())),
+    [demo, sin161Demo, sinLlaveDemo],
   );
   const erp = useMemo(() => (demo ? null : createErpClient()), [demo]);
 
@@ -350,6 +361,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   // La tienda donde se creó (D-451): la de la cotización guardada; si es nueva, la del perfil de quien la prepara.
   const tiendaHoja = tiendaDeLaHoja(tiendaGuardada, me?.store);
   const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja), [draft, tiendaHoja]);
+  // Las líneas propias, para ponerlas al lado de las del competidor que el vendedor empareje. Nunca van a la hoja.
+  const propias = useMemo(() => lineasPropias(draft.lines), [draft.lines]);
 
   if (!me) {
     return <div className="est-wrap"><p className="hint">{t("Loading…", "Cargando…")}</p></div>;
@@ -405,7 +418,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       </div>
 
       {pestana === "competencia" && (
-        <EstimadosCompetencia almacen={almacenCompetencia} me={me} t={t} lang={lang}
+        <EstimadosCompetencia almacen={almacenCompetencia} lecturas={almacenLecturas} me={me} t={t} lang={lang}
           tiendas={ajustes.stores.map((s) => s.name)} tiendaDePartida={tiendaDePartida(me.store, ajustes.stores)} />
       )}
 
@@ -675,7 +688,9 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       </div>
 
       {/* Interno: el estimado de la competencia. Fuera de la hoja del cliente, y escondido al imprimir. */}
-      <SeccionCompetencia almacen={almacenCompetencia} quoteId={quoteId} me={me} baseCotizaciones={baseDisponible} t={t} lang={lang} />
+      <SeccionCompetencia almacen={almacenCompetencia} quoteId={quoteId} me={me} baseCotizaciones={baseDisponible} t={t} lang={lang}
+        lecturas={almacenLecturas} propias={propias}
+        guardarCotizacion={{ puede: !ocupado && puedeGuardar(draft, estado), hacer: () => void guardar() }} />
 
       {/* 5-7. La copia del cliente */}
       <div className="card">

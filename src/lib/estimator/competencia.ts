@@ -44,7 +44,13 @@ export const LIMITES_DE_COMPETENCIA = {
 } as const;
 
 /** Lo que acepta el `<input type="file">`: las extensiones de HEIC van aparte porque Windows no les da tipo. */
-export const ACCEPT_DE_COMPETENCIA = "application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif";
+/**
+ * `image/*,application/pdf` (D-466): en el celular, «image/*» es lo que ofrece la galería y la cámara además de los
+ * archivos. Lo que se cuele y no sea de la lista (un GIF) lo para `validaArchivos` con su mensaje.
+ */
+export const ACCEPT_DE_COMPETENCIA = "image/*,application/pdf,.pdf,.heic,.heif";
+/** El botón «Tomar foto»: con `capture`, el celular abre la cámara directamente. */
+export const ACCEPT_DE_CAMARA = "image/*";
 
 export const TOPES_DE_TEXTO = { competidor: 120, nota: 500, cliente: 120, tienda: 80, estimado: 60 } as const;
 
