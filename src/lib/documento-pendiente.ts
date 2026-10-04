@@ -1,6 +1,6 @@
 import { canEditFields } from "./constants";
-import { documentoPrincipal, type CampoDeDocumento, type DocumentoDeLaOrden } from "./order-document";
-import type { OrderTypeRules } from "./required";
+import { documentoDeFactura, documentoPrincipal, type CampoDeDocumento, type DocumentoDeLaOrden } from "./order-document";
+import { orderTypeRule, type OrderTypeRules } from "./required";
 import type { Delivery, Stage, UserRole } from "./types";
 import { orderOwner } from "./utils";
 import { PESTANA_ATRASADAS } from "./atrasadas";
@@ -13,6 +13,11 @@ import { PESTANA_ATRASADAS } from "./atrasadas";
  *
  * Qué documento cuenta lo decide `documentoPrincipal` —la regla del tipo—, no «la factura» a secas:
  * contado a secas salían 35 órdenes sin `invoice_num`, y 31 eran Intertiendas, cuyo documento es el PO.
+ *
+ * **Desde D-NEXT la factura se cuenta APARTE, y a toda orden.** El dueño, 2026-10-04: «there are orders
+ * without invoice and is not showing, interiteda are pending». El documento del tipo sigue siendo el suyo
+ * (`documentoPendiente`: el PO de una Intertienda), pero **además** a toda orden sin `invoice_num` le falta
+ * la factura (`facturaPendiente`), y las dos cosas se ven en la fila (`documentosPendientes`).
  */
 
 /** El valor de `filter` de la pestaña «Invoice pending». No es una etapa: ninguna se llama así. */
@@ -67,8 +72,31 @@ export function documentoPendiente(d: OrdenConDocumento, reglas: OrderTypeRules)
  * La pestaña se llama así y contaba también las Intertienda sin PO, que no son una factura que perseguir. La pastilla de la
  * FILA sigue diciendo «PO pendiente» donde toque (`documentoPendiente`): eso es de la orden, no de la pestaña.
  */
+/**
+ * **D-NEXT: es de TODA orden sin `invoice_num`, no solo de los tipos cuyo documento es la factura.** El dueño, 2026-10-04:
+ * «invoice number not working there are orders without invoice and is not showing, interiteda are pending». Medido ese día:
+ * 13 Intertiendas abiertas sin factura (todas con su PO) y la pestaña decía 0, porque esto miraba `documentoPendiente`, que
+ * para una Intertienda es el PO. Ya no pasa por el documento del tipo: mira la etapa y la factura.
+ *
+ * La única salida es el tipo configurado como «sin documento» (`docRef: "none"`): ahí alguien dijo a propósito, en Ajustes,
+ * que ese tipo no lleva papel, y perseguirle una factura sería la app discutiendo con un ajuste (hoy no hay ninguno así).
+ */
 export function facturaPendiente(d: OrdenConDocumento, reglas: OrderTypeRules): boolean {
-  return documentoPendiente(d, reglas)?.campo === "invoice_num";
+  if (ETAPAS_SIN_DOCUMENTO.includes(d.stage)) return false;
+  if (String(d.invoice_num ?? "").trim()) return false;
+  return (orderTypeRule(d.order_type, reglas).docRef ?? "invoice") !== "none";
+}
+
+/**
+ * Todo lo que la fila enseña como pendiente (D-NEXT): el documento del tipo si falta, **y** la factura si falta. Una Intertienda
+ * con su PO y sin factura enseña «Factura pendiente»; sin ninguno de los dos, las dos pastillas, el PO primero. Nunca repite
+ * la factura cuando ya es el documento del tipo.
+ */
+export function documentosPendientes(d: OrdenConDocumento, reglas: OrderTypeRules): DocumentoDeLaOrden[] {
+  const principal = documentoPendiente(d, reglas);
+  const salida = principal ? [principal] : [];
+  if (facturaPendiente(d, reglas) && principal?.campo !== "invoice_num") salida.push(documentoDeFactura(d));
+  return salida;
 }
 
 export function etiquetaDePendiente(doc: DocumentoDeLaOrden, lang: "en" | "es"): string {
@@ -77,25 +105,27 @@ export function etiquetaDePendiente(doc: DocumentoDeLaOrden, lang: "en" | "es"):
 }
 
 /**
- * El campo que ESTA persona puede escribir desde la fila, o `null` si solo ve la pastilla.
+ * Los campos que ESTA persona puede escribir desde la fila, de entre los que faltan (`documentosPendientes`).
+ * Vacío si solo ve las pastillas.
  *
- * - Quien ya edita la orden en esa etapa (`canEditFields`): el documento que falte, sea cual sea.
+ * - Quien ya edita la orden en esa etapa (`canEditFields`): todo documento que falte, sea cual sea.
  * - Ventas, fuera de eso: solo `invoice_num`, y solo en SU orden. Es exactamente lo que abre la
- *   migración 125 en `guard_delivery_stage`; un input que la base rechaza es peor que ninguno (D-044).
- *   En una Intertienda con el PO pendiente el vendedor ve la pastilla y no el input.
+ *   migración 125 en `guard_delivery_stage`, que no mira el tipo; un input que la base rechaza es peor
+ *   que ninguno (D-044). En una Intertienda sin PO ni factura el vendedor ve «PO pendiente» sin input y
+ *   escribe la factura (D-NEXT; hasta entonces no podía escribir nada en una Intertienda).
  * - Chofer y almacén, nunca: almacén edita campos en sus etapas, pero el papeleo no es suyo.
  */
-export function campoCapturableEnFila(
+export function camposCapturablesEnFila(
   yo: { id: string; role: UserRole } | null | undefined,
   d: OrdenConDocumento & Pick<Delivery, "created_by" | "assigned_sales_rep">,
   reglas: OrderTypeRules,
-): CampoDeDocumento | null {
-  const pendiente = documentoPendiente(d, reglas);
-  if (!yo || !pendiente) return null;
-  if (yo.role === "driver" || yo.role === "warehouse") return null;
-  if (canEditFields(yo.role, d.stage)) return pendiente.campo;
-  if (yo.role === "sales" && pendiente.campo === "invoice_num" && orderOwner(d) === yo.id) return "invoice_num";
-  return null;
+): CampoDeDocumento[] {
+  const pendientes = documentosPendientes(d, reglas).map((p) => p.campo);
+  if (!yo) return [];
+  if (yo.role === "driver" || yo.role === "warehouse") return [];
+  if (canEditFields(yo.role, d.stage)) return pendientes;
+  if (yo.role === "sales" && orderOwner(d) === yo.id) return pendientes.filter((c) => c === "invoice_num");
+  return [];
 }
 
 /** Lo que se va a guardar: sin espacios alrededor, o `null` si no queda nada. */

@@ -20818,6 +20818,13 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 
 ## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04). El dueño: *«there are orders without invoice and is not showing,
+> interiteda are pending»*. Lo que aquí se decidió **no contar** —las Intertiendas sin `invoice_num`, «pedirle a la gente
+> un papel que ese tipo no lleva»— ahora **sí se cuenta**: la factura pendiente es de toda orden sin `invoice_num`, y va
+> **aparte** del documento del tipo (el PO de una Intertienda sigue siendo su documento). La fila puede enseñar dos
+> pastillas, y ventas escribe la factura de su Intertienda. Sigue igual: las etapas que no cuentan, quién escribe qué
+> (la tabla de abajo, ahora por campo), el camino de guardado y la 125.
+
 > **⚠ Reemplazada en parte el 2026-09-18, por D-313.** La pestaña y su cuenta ya no salen de la
 > lista normal sino de `conPendientes`, que es esa misma lista **más** las órdenes con documento
 > pendiente que solo se caían por la ventana de D-239. Con la lista normal, a office le salía 0 —sus
@@ -23593,6 +23600,10 @@ casa, buscar al teclear, el campo que se abre al enfocar, mostrador reconocido p
 - El aviso de «orden creada» sigue diciendo «enviada a aprobación» cuando va a aprobación: el dueño habló del botón.
 
 ## D-338 · El ancho de las columnas es de la persona; «Factura pendiente» es solo de facturas y empieza por la tienda propia; y la cuenta de una Intertienda deja de pintarse
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04), solo el punto de «solo facturas». La pestaña sigue siendo de
+> FACTURAS y no de POs —una orden con factura a la que solo le falta el PO no entra—, pero «le falta la factura» ya no
+> es «su tipo pide factura y no la tiene»: es toda orden sin `invoice_num`, también una Intertienda.
 
 > **⚠ Reemplazada en parte por D-404** (2026-09-26), solo el punto **h**. El dueño: *«en invoice pending
 > estrictamente solo se pueden ver órdenes de tu tienda, no de otras»*. La pestaña ya no **empieza** por la tienda
@@ -29389,6 +29400,11 @@ respuesta. Una prueba exige que todas las entradas de `vercel.json` sean diarias
 
 
 ## D-407 · Órdenes: las atrasadas vuelven a salir en «Todas» (y siguen en «Outdated»), y «Factura pendiente» solo de ayer en adelante
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04), solo el punto 2. El corte «de ayer en adelante» de «Factura
+> pendiente» vale ahora **solo para la orden ya entregada**. Una orden **abierta** sin factura entra tenga la fecha que
+> tenga: medido ese día, 8 de las 13 Intertiendas abiertas sin factura tenían fecha anterior a ayer y el corte las
+> escondía. Las entregadas viejas siguen fuera, que es lo que el dueño pidió aquí.
 
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
 **Dos pedidos del dueño la misma tarde**, literales:
@@ -35898,3 +35914,119 @@ cabe, y se dice); y `fuerza bruta = exhaustiva` se compara en la vara (a empate 
 - Fuera del repo: `D:/CLAUDE/entregas/optimizar/` (`compara-carga.mjs`, `compara-motor.mjs`, `build-2.mjs`, `d461/` con el
   build y la tabla de D-461). `build-2.mjs` pisó `viejo/` con el código de `origin/main` (ya D-461) y rompió `mide.mjs`;
   se restauró desde `af320339^` (`restaura-viejo.mjs`).
+
+## D-NEXT · La factura pendiente es de toda orden sin número de factura, también de una Intertienda
+
+**Fecha:** 2026-10-04 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
+**Reemplaza en parte a** D-310 (qué cuenta como factura pendiente), D-338 (la pestaña «solo de facturas») y D-407 (la
+ventana de la pestaña); las tres llevan su nota. **No toca** D-399 ni la migración 146: crear una Intertienda sigue sin
+exigir factura.
+
+### Qué pidió el dueño
+
+Literal, 2026-10-04 (como lo pasó el orquestador, no extraído del fichero de sesión): *«invoice number not working there
+are orders without invoice and is not showing, interiteda are pending»*. Y el 2026-10-01: *«It's not showing invoice
+number»*, *«Invoice number is more important»*.
+
+### Qué fallaba, medido
+
+Producción, solo lectura (`begin read only`), 2026-10-04, sin órdenes de entrenamiento:
+
+- `settings.order_type_rules`: **Customer → `invoice`**, **Intertienda → `po`**, **Transfer → `estimate`**.
+- Órdenes sin `invoice_num` (ni anuladas ni rechazadas): Intertienda `approved` **9**, `ready` **4**, `delivered`
+  **44**; Customer `delivered` **5**, `draft` **2**. **Transfer: no existe ninguna orden** (199 Customer, 219
+  Intertienda, 0 Transfer).
+- Las 13 Intertiendas abiertas sin factura **tienen todas su PO**: #435, #405, #266, #293 (09-27), #699, #701 (09-30),
+  #704, #718 (10-01), #794, #795, #787, #793 (10-03) y #790 (10-05).
+- **La pastilla «Factura pendiente» decía 0.** Contaba con `facturaPendiente` = «el documento del tipo es la factura y
+  falta» (D-310, D-338). El documento de una Intertienda es el PO, así que a una Intertienda nunca le «faltaba la
+  factura»; y las 5 Customer que sí contaban están entregadas hace semanas, fuera de la ventana de D-407.
+
+D-310 lo decidió así a propósito («marcarlas *Invoice pending* habría sido pedirle a la gente un papel que ese tipo no
+lleva»). El dueño dice ahora que ese papel sí lo llevan: **es una decisión que cambia, no un fallo.**
+
+### Qué cambia
+
+1. **`facturaPendiente` ya no pasa por el documento del tipo** (`src/lib/documento-pendiente.ts`). Es pendiente si la
+   etapa no es borrador, rechazada ni anulada y `invoice_num` está vacío. De ahí salen el número de la pastilla y la
+   lista (`filas-de-ordenes.ts`, sin cambios: ya llamaba a esta función).
+2. **El PO sigue siendo el documento de la Intertienda** para todo lo demás: `documentoPrincipal`, lo que se resalta en la
+   ficha, lo que se exige al enviar (`missingFields`) y `documentoPendiente`. No se tocó ninguno.
+3. **La fila enseña todo lo que falta** (`documentosPendientes`): el documento del tipo si falta, y además la factura si
+   falta. Una Intertienda con PO y sin factura: «Invoice pending». Sin ninguno de los dos: «PO pending» y debajo «Invoice
+   pending», una pastilla debajo de otra (en la misma línea la segunda salía cortada por el ancho de la columna `#`,
+   medido en el demo). `DocumentoPendiente.tsx` pinta una pastilla por documento y cada una escribe SU campo.
+4. **Quién escribe la factura desde la fila** (`camposCapturablesEnFila`, antes `campoCapturableEnFila`, que devolvía
+   un solo campo): la misma tabla de D-310, ahora por campo.
+
+   | Quién | En una Intertienda sin factura |
+   |---|---|
+   | admin, gerente, office | escriben la factura (y el PO si falta), en cualquier orden |
+   | ventas, en `pending` | lo que falte (ahí edita la orden entera) |
+   | ventas, de `approved` en adelante | **la factura, solo en SU orden**; el PO lo ve y no lo escribe |
+   | chofer, almacén, logística | ven la pastilla, nada más |
+
+   Lo de ventas es nuevo: hasta hoy en una Intertienda no escribía nada desde la fila. **No hace falta migración**: la
+   excepción de la 125 dentro de `guard_delivery_stage` (vigente en la 145) pide rol `sales`, orden suya, etapa viva,
+   factura vacía que deja de estarlo y que sea lo único que cambia — **no mira el tipo de orden** (leído en el `.sql`;
+   no ensayado con `ROLLBACK` sobre una Intertienda, ver abajo).
+5. **La ventana de la pestaña: la orden abierta entra tenga la fecha que tenga** (`pasaLaVentanaDePendientes`,
+   `ordenes-visibles.ts`). D-407 dejó la pestaña «de ayer en adelante» para quitar las entregadas viejas. Pero de las 13
+   abiertas, **8 tienen fecha anterior a ayer** (09-27 a 10-01) y siguen en `approved`/`ready`: con el corte tal cual,
+   la pastilla habría dicho **5** y escondido justo las atrasadas. Ahora el corte de ayer vale **solo para la entregada**.
+   Los cortes por rol y por tienda (D-404, D-405) no cambian.
+
+**Con los datos del 2026-10-04 la pastilla dirá 13** para admin y logística (9 aprobadas + 4 listas; ninguna de las 44
+Intertiendas ni de las 5 Customer entregadas, que son todas anteriores a ayer). Los demás roles verán las de su tienda y
+su grupo. El 13 sale de aplicar la regla a los recuentos de arriba, y de una prueba con la misma forma de datos; **no se
+abrió producción con el código nuevo.**
+
+### Decisiones mías, para validar
+
+- **Transfer y «cualquiera» también cuentan; el tipo «sin documento» (`docRef: "none"`), no.** El pedido dice «orders
+  without invoice», sin excepción de tipo, y hoy da igual: no hay ninguna Transfer. Si algún día una Transfer no debe
+  llevar factura, es una línea. La salida de `none` se deja porque ahí alguien dijo en Ajustes, a propósito, que ese
+  tipo no lleva papel (hoy ningún tipo lo usa).
+- **La orden abierta vieja le sale en la pestaña a todo rol que la vea**, no solo a admin y logística. Choca en parte con
+  D-392 (*«ONLY LOGISTICS AND admin CAN SEE DAYS BEFORE YESTERDAY»*): un gerente verá en «Factura pendiente» una
+  Intertienda abierta de su tienda con fecha de hace una semana, que en «Todas» no ve. Se hizo así porque quien pone la
+  factura es office, el gerente o el vendedor, y esconderles la orden es esconder el trabajo. Si el dueño prefiere D-392
+  a rajatabla, es añadir `veTodoElHistorial` a esa línea.
+- **Las entregadas viejas no vuelven a la pestaña** (44 Intertiendas y 5 Customer). Es lo que pidió en D-407. Pero **la
+  pastilla de la fila sí les sale** allí donde se listen («Todas» de admin, la búsqueda): es verdad que no tienen factura.
+
+### Lo que se revisó y no se cambió
+
+- **Gestor de Rutas**: la columna «Factura #» enseña el ID en gris cuando no hay factura; no decide «pendiente». Bien.
+- **«🚩»** (`OrdersTable`, `attention.ts`) es de la **tarifa** sin cobrar, no de la factura. El panel «Requiere atención»
+  no tiene ningún aviso de factura (atrasada sin chofer, sin tarifa, sin pin, sin prueba). No se añadió uno: la pastilla
+  ya lo dice, y dos avisos del mismo dato acaban discrepando.
+- **`required.ts`** y **`factura-obligatoria.ts` / la 146** (D-399): exigen la factura solo al tipo con `docRef`
+  `invoice`. **No se tocaron.**
+
+### Pregunta abierta para el dueño
+
+**¿La factura debe ser obligatoria al crear o aprobar una Intertienda, como en una Customer (D-399)?** Hoy no lo es: se
+crea con su PO, y la factura queda «pendiente» hasta que alguien la escribe. Hacerla obligatoria es otra decisión —pide
+tocar la regla del tipo o la 146, y dejaría sin poder moverse a las 13 abiertas hasta que se les ponga—, y no se hizo.
+
+### Medido
+
+- **Demo en el navegador** (Chrome headless por CDP, modo demo, clics por coordenadas, como Admin): la pastilla dice
+  «Invoice pending 2» y lista 2 filas —una Intertienda con «Invoice pending ✎» y una Transfer con «Estimate pending ✎» e
+  «Invoice pending ✎»—; pulsar la de la Intertienda abre el input «Invoice #» sin abrir la ficha; escribir y Enter la
+  guarda y la pastilla baja a 1. **No se midió el mismo demo con el código anterior.**
+- **21 mutantes, 21 caen**, leídos por nombre de prueba (`factura-pendiente-de-toda-orden.test.ts` y las de D-310,
+  D-404 y D-407): la regla vieja, sin etapa, sin mirar la factura, solo espacios, el tipo sin documento, la fila sin la
+  factura, la factura dos veces, el orden, ventas escribiendo el PO o la de otro, almacén capturando, la abierta vieja
+  fuera, la entregada vieja dentro, el corte por tienda, y el componente pintando solo una, todas capturables o
+  escribiendo siempre la factura.
+- **Pruebas cambiadas, no borradas** (con su nota): `documento-pendiente.test.ts` (la función devuelve una lista; ventas
+  en una orden de PO ahora puede escribir la factura) e `intertienda-y-columnas.test.ts` (la Intertienda sin nada entra
+  en la pestaña).
+
+### No verificado
+
+- El guardado de ventas sobre una Intertienda **contra la base real** (125/145): leído en el SQL, no ensayado.
+- La fila con dos pastillas en un **teléfono** (tarjeta): no se abrió a ese ancho.
+- El número 13 **en producción con el código nuevo**: calculado, no visto.

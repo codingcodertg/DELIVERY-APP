@@ -130,9 +130,17 @@ export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista): boolean {
  *
  * Consecuencia sabida: las órdenes entregadas hace semanas sin factura dejan de salir en la pestaña.
  * Siguen sin factura en la base; se llega a ellas abriéndolas o buscando (con la ventana de cada uno).
+ *
+ * **D-NEXT: la orden ABIERTA entra tenga la fecha que tenga.** El corte de fechas se pensó para las
+ * entregadas viejas («historial»). Medido el 2026-10-04: de 13 Intertiendas abiertas sin factura, 8
+ * tenían fecha anterior a ayer (09-27 a 10-01) y seguían en `approved`/`ready`; con el corte, la
+ * pestaña las escondía justo a ellas, que son las que aún se pueden facturar antes de salir. Así que el
+ * corte de ayer vale solo para lo ya **entregado**. Aquí no se mira si le falta la factura —eso lo
+ * decide quien filtra la lista, `facturaPendiente`—, solo la etapa.
  */
 export function pasaLaVentanaDePendientes(d: Delivery, ctx: Pick<ContextoDeLista, "teaching">): boolean {
   if (ctx.teaching) return true;
+  if (d.stage !== "delivered") return true;
   return enLaVentanaDeOrdenes(d);
 }
 
@@ -199,7 +207,8 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     if (normal && vaAAtrasadas(d)) atrasadas.push(d);
     if (normal) visibles.push(d);
     // «Factura pendiente» (D-407): de ayer en adelante para TODOS, admin y logística incluidos —no
-    // `normal`, que a ellos no les corta nada—. Y su corte por tienda (D-404).
+    // `normal`, que a ellos no les corta nada—. Y su corte por tienda (D-404). La orden abierta entra
+    // con cualquier fecha (D-NEXT): el corte de ayer es para lo ya entregado.
     if (pasaLaVentanaDePendientes(d, ctx) && esDelAlcance(d, alcancePendientes, ctx.reglas)) conPendientes.push(d);
   }
   return { visibles, conPendientes, atrasadas, alcancePendientes, alcanceLista };

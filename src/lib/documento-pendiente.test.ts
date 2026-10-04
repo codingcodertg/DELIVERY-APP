@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  campoCapturableEnFila, documentoPendiente, etiquetaDePendiente, falloAlGuardarDocumento, gruposPorTienda,
+  camposCapturablesEnFila, documentoPendiente, etiquetaDePendiente, falloAlGuardarDocumento, gruposPorTienda,
   ordenPorTienda, otraConLaMismaFactura, PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, valorDeDocumento,
 } from "./documento-pendiente";
 import { STAGES } from "./constants";
@@ -70,48 +70,55 @@ describe("documentoPendiente: el documento que exige el TIPO, no «la factura» 
   });
 });
 
-describe("campoCapturableEnFila: quién escribe el número sin abrir la orden", () => {
+// Hasta D-NEXT era `campoCapturableEnFila`, UN campo o `null`: solo se miraba el documento del tipo. Ahora
+// la factura le falta a toda orden, así que pueden faltar dos cosas y la respuesta es la lista de las que
+// esta persona puede escribir. Las expectativas son las mismas de D-310, salvo donde se dice.
+describe("camposCapturablesEnFila: quién escribe el número sin abrir la orden", () => {
   const yo = (role: UserRole, id = "vendedor-1") => ({ id, role });
 
   it("ventas: la factura de SU orden, en las etapas en que ya no edita", () => {
     for (const stage of ["approved", "fulfilling", "ready", "picked_up", "delivered"] as Stage[]) {
-      expect(campoCapturableEnFila(yo("sales"), orden({ stage }), reglas), stage).toBe("invoice_num");
+      expect(camposCapturablesEnFila(yo("sales"), orden({ stage }), reglas), stage).toEqual(["invoice_num"]);
     }
   });
 
   it("ventas: suya también es la que le asignaron; la de otro, no", () => {
-    expect(campoCapturableEnFila(yo("sales"), orden({ created_by: "office-1", assigned_sales_rep: "vendedor-1" }), reglas)).toBe("invoice_num");
-    expect(campoCapturableEnFila(yo("sales"), orden({ created_by: "vendedor-2" }), reglas)).toBeNull();
-    expect(campoCapturableEnFila(yo("sales"), orden({ created_by: "vendedor-1", assigned_sales_rep: "vendedor-2" }), reglas)).toBeNull();
+    expect(camposCapturablesEnFila(yo("sales"), orden({ created_by: "office-1", assigned_sales_rep: "vendedor-1" }), reglas)).toEqual(["invoice_num"]);
+    expect(camposCapturablesEnFila(yo("sales"), orden({ created_by: "vendedor-2" }), reglas)).toEqual([]);
+    expect(camposCapturablesEnFila(yo("sales"), orden({ created_by: "vendedor-1", assigned_sales_rep: "vendedor-2" }), reglas)).toEqual([]);
   });
 
-  it("ventas: el PO o la estimación que falte los VE y no los escribe (la 125 solo abre invoice_num)", () => {
-    expect(campoCapturableEnFila(yo("sales"), orden({ order_type: "ConPO" }), reglas)).toBeNull();
-    expect(campoCapturableEnFila(yo("sales"), orden({ order_type: "ConEstimacion" }), reglas)).toBeNull();
+  // D-NEXT cambió el resultado, no la regla: el PO y la estimación siguen sin poder escribirlos, pero a esas
+  // órdenes ahora también les falta la factura, y esa sí es suya (la 125 no mira el tipo). Antes: `null`.
+  it("ventas: el PO o la estimación que falte los VE y no los escribe (la 125 solo abre invoice_num); la factura de esa orden, sí", () => {
+    expect(camposCapturablesEnFila(yo("sales"), orden({ order_type: "ConPO" }), reglas)).toEqual(["invoice_num"]);
+    expect(camposCapturablesEnFila(yo("sales"), orden({ order_type: "ConEstimacion" }), reglas)).toEqual(["invoice_num"]);
+    // Con la factura ya puesta solo queda el PO, y ese no es suyo.
+    expect(camposCapturablesEnFila(yo("sales"), orden({ order_type: "ConPO", invoice_num: "F-1" }), reglas)).toEqual([]);
   });
 
   it("ventas en pendiente ya edita la orden entera: ahí, el documento que sea", () => {
-    expect(campoCapturableEnFila(yo("sales"), orden({ stage: "pending", order_type: "ConPO" }), reglas)).toBe("po2");
+    expect(camposCapturablesEnFila(yo("sales"), orden({ stage: "pending", order_type: "ConPO" }), reglas)).toEqual(["po2", "invoice_num"]);
   });
 
   it("quien ya edita (admin, gerente, office): el documento que falte, en cualquier orden", () => {
     for (const role of ["admin", "manager", "accounting"] as UserRole[]) {
-      expect(campoCapturableEnFila(yo(role, "otro"), orden({ stage: "delivered", order_type: "ConPO" }), reglas), role).toBe("po2");
-      expect(campoCapturableEnFila(yo(role, "otro"), orden({ stage: "delivered" }), reglas), role).toBe("invoice_num");
+      expect(camposCapturablesEnFila(yo(role, "otro"), orden({ stage: "delivered", order_type: "ConPO" }), reglas), role).toEqual(["po2", "invoice_num"]);
+      expect(camposCapturablesEnFila(yo(role, "otro"), orden({ stage: "delivered" }), reglas), role).toEqual(["invoice_num"]);
     }
   });
 
   it("chofer y almacén nunca, ni en las etapas en que almacén edita campos; logística tampoco", () => {
     for (const role of ["driver", "warehouse", "logistics"] as UserRole[]) {
       for (const stage of ["pending", "approved", "ready", "delivered"] as Stage[]) {
-        expect(campoCapturableEnFila(yo(role), orden({ stage }), reglas), `${role} ${stage}`).toBeNull();
+        expect(camposCapturablesEnFila(yo(role), orden({ stage }), reglas), `${role} ${stage}`).toEqual([]);
       }
     }
   });
 
   it("sin nada pendiente, o sin sesión, no hay nada que capturar", () => {
-    expect(campoCapturableEnFila(yo("admin"), orden({ invoice_num: "1" }), reglas)).toBeNull();
-    expect(campoCapturableEnFila(null, orden(), reglas)).toBeNull();
+    expect(camposCapturablesEnFila(yo("admin"), orden({ invoice_num: "1" }), reglas)).toEqual([]);
+    expect(camposCapturablesEnFila(null, orden(), reglas)).toEqual([]);
   });
 });
 
@@ -201,8 +208,9 @@ describe("la pantalla usa la regla, no una copia", () => {
   });
 
   it("la pastilla decide con las dos funciones y no abre la orden al pulsarla", () => {
-    expect(pastilla).toContain("documentoPendiente(d, reglas)");
-    expect(pastilla).toContain("campoCapturableEnFila(me, d, reglas)");
+    // D-NEXT: son las dos de la lista —puede faltar el documento del tipo y además la factura—.
+    expect(pastilla).toContain("documentosPendientes(d, reglas)");
+    expect(pastilla).toContain("camposCapturablesEnFila(me, d, reglas)");
     expect(pastilla).not.toMatch(/\.role\b/);
     // El botón que abre el input, el formulario entero y las teclas: los tres paran el clic.
     expect(pastilla.match(/stopPropagation\(\)/g)?.length).toBe(3);
