@@ -130,8 +130,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
     // for tomorrow gets tomorrow-morning conditions, not tonight's empty roads.
     body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, e.ordenes[0]?.delivery_date ?? e.fecha)),
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (await res.json()) as any;
+  const data = (await res.json()) as { error?: string; provider?: string; traffic?: boolean; legs?: number[]; geometry?: [number, number][]; miles: number; duration_seconds: number };
   if (!res.ok) throw new Error(data.error || "Route measurement failed");
   const proveedor: ProveedorDeRuta | null = data.provider ? { provider: data.provider, traffic: !!data.traffic } : null;
   const legs = (data.legs ?? []) as number[];

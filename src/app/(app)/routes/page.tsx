@@ -571,8 +571,7 @@ export default function RoutesPage() {
   // delivered everything (D-459). La regla vive en `carrilesDelDia` (lib/mapa-de-rutas), que comparte «Ruta de hoy».
   const lanes = useMemo<Lane[]>(
     () => carrilesDelDia(drivers, bucketNames, dayOrders, hechasPintadas.keys()),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [drivers, dayOrders, bucketNames, t, hechasPintadas],
+    [drivers, dayOrders, bucketNames, hechasPintadas],
   );
   // El filtro de chofer que manda ahora (D-393): lo guardado si esa ruta sigue en la pantalla; si no, «Todos».
   const filtroChofer = filtroVigente(filtroGuardado, lanes.map((l) => l.key));
