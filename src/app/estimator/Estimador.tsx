@@ -103,7 +103,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     () => (demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo, sin156Demo) : almacenDeCompetenciaDeLaBase(createClient())),
     [demo, sinTablaDemo, sin156Demo],
   );
-  // Los productos del estimado de la competencia (D-NEXT): su tabla (161) y la ruta que los lee, o el demo en memoria.
+  // Los productos del estimado de la competencia (D-466): su tabla (161) y la ruta que los lee, o el demo en memoria.
   const almacenLecturas: AlmacenDeLecturas = useMemo(
     () => (demo ? almacenDeLecturasDemo(() => meRef.current, { sin161: sin161Demo, sinLlave: sinLlaveDemo }) : almacenDeLecturasDeLaBase(createClient())),
     [demo, sin161Demo, sinLlaveDemo],

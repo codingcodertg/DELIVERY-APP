@@ -45,7 +45,7 @@ export const LIMITES_DE_COMPETENCIA = {
 
 /** Lo que acepta el `<input type="file">`: las extensiones de HEIC van aparte porque Windows no les da tipo. */
 /**
- * `image/*,application/pdf` (D-NEXT): en el celular, «image/*» es lo que ofrece la galería y la cámara además de los
+ * `image/*,application/pdf` (D-466): en el celular, «image/*» es lo que ofrece la galería y la cámara además de los
  * archivos. Lo que se cuele y no sea de la lista (un GIF) lo para `validaArchivos` con su mensaje.
  */
 export const ACCEPT_DE_COMPETENCIA = "image/*,application/pdf,.pdf,.heic,.heif";

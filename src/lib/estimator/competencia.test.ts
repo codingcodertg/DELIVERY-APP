@@ -272,7 +272,7 @@ describe("la pantalla usa estas piezas", () => {
   const pantalla = leer("src/app/estimator/Estimador.tsx");
   const seccion = leer("src/app/estimator/Competencia.tsx");
   it("la sección recibe la cotización abierta y si hay base de cotizaciones", () => {
-    // D-NEXT añadió las lecturas y las líneas propias en la línea siguiente; lo de D-425 sigue igual.
+    // D-466 añadió las lecturas y las líneas propias en la línea siguiente; lo de D-425 sigue igual.
     expect(pantalla).toContain("<SeccionCompetencia almacen={almacenCompetencia} quoteId={quoteId} me={me} baseCotizaciones={baseDisponible} t={t} lang={lang}\n");
     expect(pantalla).toContain("demo ? almacenDeCompetenciaDemo(() => meRef.current, sinTablaDemo, sin156Demo) : almacenDeCompetenciaDeLaBase(createClient())");
   });

@@ -31659,7 +31659,7 @@ estimate upload option»*.
 > cotización»), en una pestaña con todos. Subir a una cotización sigue igual; quitar, quien lo subió o el admin, ya sin
 > exigir ver la cotización.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-04, migración 161): el competidor pasa a «Empresa competidora», con la
+> **Reemplazada en parte por D-466** (2026-10-04, migración 161): el competidor pasa a «Empresa competidora», con la
 > lista de las ya usadas, y **sí se puede corregir después** (en la tabla de productos del estimado; la decisión 4 de aquí
 > decía que no). Hay dos botones para subir («Tomar foto», con la cámara, y «Elegir PDF o foto»), y sin cotización guardada
 > la sección ofrece guardarla. Cada archivo se puede **leer** para sacar sus productos.
@@ -33793,7 +33793,7 @@ descargo final.
   mide tras aplicar, subiendo un PDF pequeño suelto y quitándolo.
 - `window.print()` real: como en D-413, solo se miró la hoja en pantalla.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-04, migración 161): en la pestaña, cada estimado dice además la empresa
+> **Reemplazada en parte por D-466** (2026-10-04, migración 161): en la pestaña, cada estimado dice además la empresa
 > y el total corregidos y cuántos productos tiene, y «Productos» abre su tabla (leída del documento o tecleada). El campo
 > «Competidor (opcional)» pasa a «Empresa competidora», con la lista de las ya usadas, y hay botón de cámara.
 
@@ -36040,9 +36040,9 @@ tocar la regla del tipo o la 146, y dejaría sin poder moverse a las 13 abiertas
 - La fila con dos pastillas en un **teléfono** (tarjeta): no se abrió a ese ancho.
 - El número 13 **en producción con el código nuevo**: calculado, no visto.
 
-## D-NEXT · Quote Builder: el estimado de la competencia se sube con la cámara, lleva la empresa competidora como campo propio, y se LEE (Claude con visión) para sacar sus productos a una tabla que el vendedor corrige, guarda y empareja con sus líneas (migración 161, depende de la 156)
+## D-466 · Quote Builder: el estimado de la competencia se sube con la cámara, lleva la empresa competidora como campo propio, y se LEE (Claude con visión) para sacar sus productos a una tabla que el vendedor corrige, guarda y empareja con sus líneas (migración 161, depende de la 156)
 
-**Fecha:** 2026-10-04 · **Versión:** la pone el orquestador (toca `src/app/estimator/`, `src/lib/estimator/` y una ruta nueva en
+**Fecha:** 2026-10-04 · **Versión:** estimator 0.9.0, repo 1.340.0 (toca `src/app/estimator/`, `src/lib/estimator/` y una ruta nueva en
 `src/app/api/estimator/`: sube `estimator`) · **Migración:** `161_competencia_productos.sql`, **escrita y NO aplicada**; **depende
 de la 156**, que tampoco está aplicada (plan: `docs/PLAN-161-competencia-productos.md`, matriz de 30 casos **ensayada contra
 producción con ROLLBACK: 30/30**, con la 156 aplicada dentro de la misma transacción). **Reemplaza en parte a** D-425 y D-451,

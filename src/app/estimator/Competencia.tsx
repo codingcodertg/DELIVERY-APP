@@ -42,7 +42,7 @@ export function AvisoDeCompetencia({ estado, t }: { estado: EstadoDeCompetencia;
 }
 
 /**
- * Los dos botones para traer el estimado de la competencia (D-NEXT): **«Tomar foto»** (con `capture`: en el celular
+ * Los dos botones para traer el estimado de la competencia (D-466): **«Tomar foto»** (con `capture`: en el celular
  * abre la cámara) y **«Elegir PDF o foto»** (galería y archivos). Son dos porque un solo `<input capture>` obliga a
  * usar la cámara y no deja elegir un PDF.
  */
@@ -68,7 +68,7 @@ export function BotonesDeArchivo({ t, apagado, onArchivos, refEntrada, marca }: 
 
 /**
  * La lista de lo subido: nombre, tamaño, quién y cuándo, y lo opcional. Quitar, solo a quien puede. Con `lecturas`
- * (D-NEXT) cada archivo dice la empresa, el total y cuántos productos tiene guardados, y «Productos» abre su tabla
+ * (D-466) cada archivo dice la empresa, el total y cuántos productos tiene guardados, y «Productos» abre su tabla
  * (`detalle`).
  */
 export function ListaDeCompetencia({ archivos, me, t, lang, confirmando, ocupado, onAbrir, onQuitar, onConfirmar, lecturas, abierto, onProductos, detalle }: {
@@ -142,7 +142,7 @@ type Pendiente = { clave: string; file: File; meta: MetaDeCompetencia };
  */
 export function SeccionCompetencia({ almacen, lecturas: almacenLecturas, propias, quoteId, me, baseCotizaciones, guardarCotizacion, t, lang }: {
   almacen: AlmacenDeCompetencia; quoteId: string | null; me: Yo; baseCotizaciones: boolean | null; t: T; lang: string;
-  /** Dónde viven los productos leídos (161) y quién lee (D-NEXT). */
+  /** Dónde viven los productos leídos (161) y quién lee (D-466). */
   lecturas: AlmacenDeLecturas;
   /** Las líneas de ESTA cotización, para emparejar a mano cada producto de la competencia con la propia. */
   propias: LineaPropia[];

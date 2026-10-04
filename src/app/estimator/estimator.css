@@ -43,7 +43,7 @@
 .est-wrap .est-comp-elegir.btn-primary { color: #fff; }
 .est-wrap .est-comp-elegir input { display: none; }
 
-/* ---- Los productos del estimado de la competencia (D-NEXT): la tabla se desplaza dentro de su caja, no la página ---- */
+/* ---- Los productos del estimado de la competencia (D-466): la tabla se desplaza dentro de su caja, no la página ---- */
 .est-productos { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); min-width: 0; }
 .est-prod-tabla { overflow-x: auto; max-width: 100%; }
 .est-prod-tabla table { border-collapse: collapse; width: 100%; font-size: 13px; }

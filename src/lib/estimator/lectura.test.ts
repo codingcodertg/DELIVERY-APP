@@ -24,7 +24,7 @@ import {
 } from "./lectura-servidor";
 
 /**
- * D-NEXT: leer el estimado de la competencia y sacar sus productos. El dueño, 2026-10-04: «in the quote builder addd
+ * D-466: leer el estimado de la competencia y sacar sus productos. El dueño, 2026-10-04: «in the quote builder addd
  * the compettiton pdf or pcicture upload / compettiros company name and also products from the  and the ocr to
  * recognize the images,».
  *

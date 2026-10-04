@@ -134,7 +134,7 @@ export function TablaDeProductos({ lectura, editable, propias, t, onFila, onQuit
 }
 
 /**
- * Los productos de UN estimado de la competencia (D-NEXT): «Leer productos» pide la lectura al servidor y la deja en
+ * Los productos de UN estimado de la competencia (D-466): «Leer productos» pide la lectura al servidor y la deja en
  * la tabla **sin guardar**; se corrige, se añaden o quitan filas, y «Guardar». Sin la llave de la API (o si la lectura
  * falla) se dice por qué y la tabla sigue ahí para teclear a mano. Interno: nada de esto llega a la hoja del cliente.
  */

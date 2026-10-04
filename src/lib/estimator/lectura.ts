@@ -4,7 +4,7 @@ import { precioAplicado, preciosDeLinea, totalDeLinea, type QuoteLine } from "./
 import { TOPES_DE_TEXTO } from "./competencia";
 
 /**
- * Los PRODUCTOS del estimado de la competencia (D-NEXT, migración 161). El dueño, 2026-10-04: «in the quote builder
+ * Los PRODUCTOS del estimado de la competencia (D-466, migración 161). El dueño, 2026-10-04: «in the quote builder
  * addd the compettiton pdf or pcicture upload / compettiros company name and also products from the  and the ocr to
  * recognize the images,».
  *

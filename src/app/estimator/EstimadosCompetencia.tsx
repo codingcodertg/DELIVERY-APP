@@ -35,7 +35,7 @@ export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado,
   estimados: EstimadoDeCompetencia[]; me: Yo; t: T; lang: string; confirmando: string | null; ocupado: boolean;
   /** Hay filtro puesto: una lista vacía dice «nada coincide», no «no hay ninguno». */
   filtrando?: boolean;
-  /** Los productos guardados de cada estimado (161, D-NEXT): la fila dice la empresa, el total y cuántos son. */
+  /** Los productos guardados de cada estimado (161, D-466): la fila dice la empresa, el total y cuántos son. */
   lecturas?: Record<string, LecturaGuardada>; abierto?: string | null; onProductos?: (id: string | null) => void;
   /** La tabla de productos del estimado abierto. */
   detalle?: (e: EstimadoDeCompetencia) => ReactNode;
@@ -109,7 +109,7 @@ export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado,
  */
 export function EstimadosCompetencia({ almacen, lecturas: almacenLecturas, me, tiendas, tiendaDePartida, t, lang }: {
   almacen: AlmacenDeCompetencia; me: Yo; tiendas: string[]; tiendaDePartida: string; t: T; lang: string;
-  /** Dónde viven los productos de cada estimado (161) y quién los lee (D-NEXT). */
+  /** Dónde viven los productos de cada estimado (161) y quién los lee (D-466). */
   lecturas: AlmacenDeLecturas;
 }) {
   /** null = aún no se sabe; false = falta la 161: la lista sigue, sin productos. */

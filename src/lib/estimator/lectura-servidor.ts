@@ -2,7 +2,7 @@ import { inflateSync } from "node:zlib";
 import { normalizaLectura, type CodigoDeLectura, type LecturaDeCompetencia } from "./lectura";
 
 /**
- * Leer el estimado de la competencia con Claude (D-NEXT): **solo servidor**. La llave `ANTHROPIC_API_KEY` es una
+ * Leer el estimado de la competencia con Claude (D-466): **solo servidor**. La llave `ANTHROPIC_API_KEY` es una
  * variable de servidor (sin `NEXT_PUBLIC_`) y este fichero no lo importa ninguna pantalla.
  *
  * Todo lo que decide está aquí y recibe por parámetro lo que toca el mundo (la base, el cubo, la red, el reloj, las
