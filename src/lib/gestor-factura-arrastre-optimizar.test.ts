@@ -165,7 +165,10 @@ describe("2 · arrastrar para armar rutas a mano", () => {
       expect(pagina.split('data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}').length - 1).toBe(2);
     });
     it("se suelta en la fila del chofer en el panel, en su tarjeta o en una fila de su lista", () => {
-      expect(pagina).toContain("data-suelta-en-ruta={u.key} {...sueltaAqui(u.key, null)}");
+      // **Puesto al día por D-NEXT**: la fila del panel la pinta `PanelDeChoferes` (lo comparte «Ruta de hoy», que no pasa
+      // esto); el Gestor le da el destino de arrastre por `atributosDe`, y el componente lo pone en la fila.
+      expect(pagina).toContain('atributosDe={(clave) => ({ "data-suelta-en-ruta": clave, ...sueltaAqui(clave, null),');
+      expect(plano(leer("src/components/PanelDeChoferes.tsx"))).toContain("onClick={() => props.onEnfoca(u.clave)} {...atributos}");
       expect(pagina).toContain("data-tarjeta-de-ruta={u.key} {...sueltaAqui(u.key, null)}");
       expect(pagina).toContain("const soltar = movible ? sueltaAqui(u.key, f.indice!) : {};");
       expect(arrastre).toContain("onDrop: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); void sueltaEnLaRuta(ruta, indice); },");
@@ -406,10 +409,16 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
   });
 
   describe("la pantalla", () => {
-    const efecto = trozo("const seMide = (clave: string) =>", "const estadoDeLaMedida =");
+    // **Puesto al día por D-NEXT**: la medida (el efecto, `mide`, la forma, «↻») vive en `useMedidaDeRutas`
+    // (lib/usa-medida-de-rutas), que comparten el Gestor y «Ruta de hoy». El Gestor sigue decidiendo QUÉ rutas se miden.
+    const medida = plano(leer("src/lib/usa-medida-de-rutas.ts"));
+    const queSeMide = trozo("const seMide = (clave: string) =>", "const aParadaDelGantt");
+    const efecto = trozo("const queMedir = e.rutasAMedir.join(", "const estadoDeLaMedida =", medida);
     it("se miden TODAS las rutas con paradas del día (no solo las marcadas), las marcadas primero", () => {
-      expect(efecto).toContain("const seMide = (clave: string) => (byDriver.get(clave) ?? []).length > 0 && pasaFiltro(clave) && (modo === \"dia\" || selected.has(clave));");
-      expect(efecto).toContain("const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);");
+      expect(queSeMide).toContain("useMedidaDeRutas<Delivery>({ date, porChofer: byDriver, rutasAMedir, seMide,");
+      expect(efecto).toContain("const rutas = e.rutasAMedir.map((clave) => ({ clave, firma: firmaDe(clave, byDriver.get(clave) ?? []) }));");
+      expect(queSeMide).toContain("const seMide = (clave: string) => (byDriver.get(clave) ?? []).length > 0 && pasaFiltro(clave) && (modo === \"dia\" || selected.has(clave));");
+      expect(queSeMide).toContain("const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);");
     });
     it("qué se pide lo decide `siguienteMedida`: lo conocido se repinta, y solo se pide si no hay otra medida en curso", () => {
       expect(efecto).toContain("const que = siguienteMedida<MedidaDeLaRuta>(rutas, pintadas, medidas.current);");
@@ -417,13 +426,16 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
       expect(efecto).toContain("if (midiendo == null && que.pide) void mide(que.pide.clave, byDriver.get(que.pide.clave) ?? []);");
     });
     it("cada medida se guarda por la forma de la ruta, y un fallo también (para no pedirlo en bucle)", () => {
-      const mide = trozo("const mide = async", "const reintentaLaMedida");
+      const mide = trozo("const mide = async", "const reintentaLaMedida", medida);
       expect(mide).toContain("medidas.current.set(firma, m);");
       expect(mide).toContain("medidas.current.set(firma, MEDIDA_FALLIDA);");
       expect(mide.split("mideLaRuta(").length - 1).toBe(1);
     });
     it("la forma incluye la lista tal como se pinta: otra capacidad u otro plan publicado es otra forma", () => {
-      expect(pagina).toContain("`${firmaDeLaMedida(date, clave, stops)}|${lecturaDe(clave, stops).paradas.map((p) => (p.tipo === \"P\" ? `P${p.ordenes.join(\"+\")}` : `D${p.orden}`)).join(\",\")}`;");
+      expect(medida).toContain("return `${firmaDeLaMedida(fecha, clave, stops)}|${lista.map((p) => (p.tipo === \"P\" ? `P${p.ordenes.join(\"+\")}` : `D${p.orden}`)).join(\",\")}`;");
+      expect(medida).toContain("const firmaDe = (clave: string, stops: T[]): string => firmaDeLaForma(date, clave, stops, e.listaDe(clave, stops));");
+      expect(pagina).toContain("listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,");
+      expect(pagina).toContain("invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],");
     });
     it("la columna «Llegada» de las filas P y D dice el estado o el motivo, no una raya", () => {
       expect(pagina).toContain("const medida = estadoDeLaMedida(u.key, stops);");
@@ -438,7 +450,7 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
     it("la tarjeta dice «calculando…» mientras llega, y si falló ofrece «↻», que olvida ESE fallo y pide una vez", () => {
       expect(pagina).toContain("{medida === \"calculando\" && <span className=\"hint\" data-medida=\"calculando\"");
       expect(pagina).toContain("onClick={(e) => { e.stopPropagation(); reintentaLaMedida(u.key); }}>");
-      const reintenta = trozo("const reintentaLaMedida = (clave: string) => {", "const toggleOrder");
+      const reintenta = trozo("const reintentaLaMedida = (clave: string) => {", "// Resolve every driver's pickup point up front", medida);
       expect(reintenta).toContain("medidas.current.delete(firmaDe(clave, byDriver.get(clave) ?? []));");
       expect(reintenta).toContain("setReintentos((n) => n + 1);");
       expect(reintenta).not.toContain("mide(");

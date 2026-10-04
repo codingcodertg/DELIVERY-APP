@@ -97,7 +97,11 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   { id: "board",     label: "📋 Orders",    label_es: "📋 Órdenes",   href: "/", roles: ["admin", "manager", "sales", "logistics", "accounting"] },
   { id: "dashboard", label: "📊 Dashboard", label_es: "📊 Panel",     href: "/dashboard", roles: ["manager", "admin"], cap: "dashboard", generalFor: ["admin"] },
   { id: "accounts",  label: "🏢 Accounts",  label_es: "🏢 Cuentas",    href: "/accounts", roles: ["admin", "manager"], group: "general" },
-  { id: "map",       label: "🗺 Map",       label_es: "🗺 Mapa",       href: "/map", roles: ["admin", "manager", "sales", "logistics"] },
+  // «Ruta de hoy» (D-NEXT), antes «Mapa»: las rutas del día de cada chofer, de solo lectura. El dueño, 2026-10-04: «este
+  // mapa lo quiero en el map view que ya esta y que todos los puedan ver y se lo cambias de map a today's route». Por eso
+  // la tienen TODOS los roles de entregas —también oficina, almacén y chofer, que no la tenían—. El `id` y la ruta `/map`
+  // no cambian: los enlaces guardados y las pruebas de la barra siguen valiendo.
+  { id: "map",       label: "🗺 Today's route", label_es: "🗺 Ruta de hoy", href: "/map", roles: ["admin", "manager", "sales", "logistics", "accounting", "warehouse", "driver"] },
   { id: "market",    label: "🏪 Market",    label_es: "🏪 Mercado",    href: "/market", roles: ["admin"], group: "general" },
   { id: "warehouse", label: "🏭 Warehouse", label_es: "🏭 Almacén",    href: "/warehouse", roles: ["warehouse", "admin"], cap: "fulfill" },
   { id: "driver",    label: "🚚 Driver",    label_es: "🚚 Chofer",     href: "/driver", roles: ["driver", "admin"], cap: "deliver" },

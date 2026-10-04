@@ -4,456 +4,321 @@ import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
-import { driverNames, stageInfo, stageLabel } from "@/lib/constants";
+import { stageInfo, stageLabel } from "@/lib/constants";
 import { OrderModal } from "@/components/OrderModalLazy";
-import { MapView, type MapPoint, type MapLine } from "@/components/MapView";
+import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { MapLegend } from "@/components/MapLegend";
-import { COLOR_RECOGIDA, COLOR_RUTA_ELEGIDA, COLOR_SIN_ASIGNAR, colorDeChofer, leyendaDelMapa } from "@/lib/map-legend";
-import { cityFromAddress, deliveryRisk, fallbackDriverColor, fmtDate, fmtWindows, orderLabel, orderOwner, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
-import { useAutoGeocode } from "@/lib/useAutoGeocode";
+import { PanelDeChoferes } from "@/components/PanelDeChoferes";
+import { COLOR_SIN_ASIGNAR, colorDeChofer, leyendaDelMapa } from "@/lib/map-legend";
+import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, orderOwner, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { assignmentWarnings, recommendDriver, type AssignWarning } from "@/lib/dispatch";
+import { liveDriverNames } from "@/lib/tracking-health";
+import { driverOf } from "@/lib/route-lanes";
+import { hechasQueSePintan, horaReal } from "@/lib/hechas-del-gestor";
+import { hechasDelChofer } from "@/lib/mover-parada";
+import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
+import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
+import { tiendaBaseDelChofer } from "@/lib/optimizar-desde-el-gestor";
+import { useBasesDeChofer } from "@/lib/usa-bases";
+import { useMedidaDeRutas } from "@/lib/usa-medida-de-rutas";
+import { carrilesDelDia, cargaDelPanel, enAbanico, encuadreDeLasRutas, lineasDeLasRutas, puntosDeLasRutas, rutaDeLaLinea, rutasPorChofer } from "@/lib/mapa-de-rutas";
+import { pendientesDelDia, rangoDeRutasDelDia, rotuloDeLaParada, type ParadaDelDia } from "@/lib/rutas-del-dia";
+import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
+import { aLaDecima, palletsDeLaOrden } from "@/lib/pallets";
 import type { Delivery } from "@/lib/types";
-import { sumaPallets } from "@/lib/pallets";
-import { aLaDecima } from "@/lib/pallets";
 
 // Matches the Routes Manager default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
 
+// ============================================================
+// «Ruta de hoy» / «Today's route» (D-NEXT). Antes, «Mapa».
+//
+// El dueño, 2026-10-04, con la captura del bloque de arriba del Gestor de Rutas: «este mapa lo quiero en el map view que ya
+// esta y que todos los puedan ver y se lo cambias de map a today's route». Y sobre qué ve cada rol: «si rutas completas pero
+// solo ver nada mas».
+//
+// Qué es: el panel «Choferes y rutas» y el mapa del Gestor —cada ruta del día en el color de su chofer, con sus pines P/D en
+// el orden de su lista, lo hecho con ✓, las millas, las horas y la carga—, para TODOS los roles del módulo de entregas y de
+// SOLO LECTURA: aquí no se asigna, no se mueve, no se optimiza, no se vacía y no hay «＋ Ruta». Eso sigue en el Gestor.
+//
+// No es una copia del Gestor: las dos pantallas llaman a lo mismo (`lib/mapa-de-rutas`, `lib/usa-medida-de-rutas`,
+// `PanelDeChoferes`, y la lectura de la ruta de siempre: `lecturaConLoHecho` sobre `lista-unica`).
+//
+// De dónde salen las paradas: de `rutas_del_dia(fecha)` (migración 160), que da a cualquier rol las rutas enteras con lo
+// mínimo de cada parada — sin cliente, sin dirección, sin factura (`lib/rutas-del-dia`). Esta pantalla no enseña de una orden
+// nada que no venga de ahí. Sin la 160, cada quien ve lo que su RLS ya le dejaba leer.
+//
+// Lo que tenía «Mapa» y se quedó: el selector de día (con la ventana de D-239), los choferes en vivo, la leyenda, el resumen
+// del día y los colores de chofer. Lo que se fue: asignar desde el mapa (una orden o varias) y la ruta punteada de cada orden
+// sin chofer, que costaba una llamada de mapas por orden.
+// ============================================================
 export default function MapPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, addNote, notify, ready, driverLocations, realRole } = useData();
+  const { me, users, deliveries, settings, saveSettings, ready, driverLocations, shifts, realRole } = useData();
   const { lang, t } = usePrefs();
   const [date, setDate] = useState(todayISO());
   const [open, setOpen] = useState<Delivery | null>(null);
-
-  // Clicking a pin toggles it in a multi-selection. One order selected → its
-  // detail + assign panel; several → a bulk-assign panel. Selected orders'
-  // pickup→dropoff routes are highlighted.
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [pickupPt, setPickupPt] = useState<{ lat: number; lng: number } | null>(null);
-  const [route, setRoute] = useState<{ positions: [number, number][]; miles: number; duration: string } | null>(null);
-  const [routeBusy, setRouteBusy] = useState(false);
-  const [assignBusy, setAssignBusy] = useState(false);
-  // Draw every unassigned order's pickup→dropoff route on the map, so a
-  // dispatcher sees where the day's open work needs to go at a glance.
-  const [showRoutes, setShowRoutes] = useState(true);
-  // Cached pickup→dropoff geometry per order id (unassigned auto-routes + selected).
-  const [routeCache, setRouteCache] = useState<Record<string, [number, number][]>>({});
+  // Las rutas marcadas en el panel: se resaltan, y el resto se atenúa. Vacío = todas a la vista.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // La parada cuyo pin (o fila) se pulsó: su rótulo sale bajo el mapa.
+  const [elegida, setElegida] = useState<string | null>(null);
+  // «EN VIVO»: dónde está ese chofer ahora.
+  const [locateDriver, setLocateDriver] = useState<string | null>(null);
+  useEffect(() => { setLocateDriver(null); }, [selected]);
 
   const canManageColors = me?.role === "manager" || me?.role === "admin";
-  // Everyone who reaches this page except sales can dispatch (warehouse/driver
-  // are blocked below); sales sees pins but can't assign.
-  const canAssign = !!me && me.role !== "sales";
+  // Los camiones en vivo, para todos menos ventas: un vendedor no tiene por qué seguir al personal (regla de antes de
+  // esta pantalla). A quien la RLS de `driver_locations` no le deja leerlos, sencillamente no le llegan.
+  const veCamiones = !!me && me.role !== "sales";
 
-  // Unlike the Orders page, sales sees every delivery's point on the map —
-  // full situational awareness of the day's dispatch activity. But the Map
-  // view never opens the order detail modal for sales, even for their own
-  // orders — clicking a pin or row is purely visual here; they still edit
-  // their orders from the Orders page as usual.
-  // La ventana también aquí (D-239): esta pantalla es un día de pedidos que un rol
-  // no exento puede abrir, y su selector de fecha llegaba hasta donde uno quisiera.
-  // Se acota el SELECTOR además de la lista: filtrar solo la lista dejaría un día
-  // vacío sin explicación, y el `min` del campo dice por qué sin escribir un aviso.
+  // La ventana también aquí (D-239), y el ±7 de la función: el selector no llega a un día que no se pueda leer.
   const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
   const pisoFecha = retentionFloorISO();
-  const fecha = veTodoElHistorial || date >= pisoFecha ? date : pisoFecha;
+  const rango = rangoDeRutasDelDia(todayISO());
+  const primerDia = veTodoElHistorial || pisoFecha < rango.min ? rango.min : pisoFecha;
+  const fecha = date < primerDia ? primerDia : date > rango.max ? rango.max : date;
 
-  const dayOrders = useMemo(() => {
-    return deliveries.filter((d) => d.delivery_date === fecha && d.stage !== "canceled");
-  }, [deliveries, fecha]);
+  // Las paradas del día: de la función (rutas enteras) o, sin ella, lo que esta persona ya podía leer.
+  const { paradas, origen } = useRutasDelDia(fecha);
+  useEffect(() => { setElegida(null); setSelected(new Set()); }, [fecha]);
 
-  // Unassigned orders that have a delivery point — the ones we auto-route.
-  const unassignedOrders = useMemo(
-    () => dayOrders.filter((d) => !d.assigned_driver && d.delivery_lat != null && d.delivery_lng != null),
-    [dayOrders],
-  );
+  // Lo pendiente y lo ya hecho: lo que el Gestor llama `dayOrders` y `hechasPintadas` (D-459).
+  const dayOrders = useMemo(() => pendientesDelDia(paradas), [paradas]);
+  const hechasPintadas = useMemo(() => hechasQueSePintan(paradas, fecha, "dia"), [paradas, fecha]);
 
-  // Currently multi-selected orders; `selected` is the single one (rich detail).
-  const selectedList = useMemo(() => dayOrders.filter((d) => selectedIds.has(d.id)), [dayOrders, selectedIds]);
-  const selected = selectedList.length === 1 ? selectedList[0] : null;
-  const toggleSelect = (id: string) =>
-    setSelectedIds((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const clearSelection = () => setSelectedIds(new Set());
-
-  const isMine = (d: Delivery) => me?.role !== "sales" || orderOwner(d) === me.id;
-
-  const openPoint = (d: Delivery) => {
-    if (me?.role !== "sales") setOpen(d);
-  };
-
-  // Geocode (and cache) any order on this date that has an address but no
-  // point yet.
-  const geocoding = useAutoGeocode(dayOrders, updateDelivery);
   // Every store as a big red landmark point, always shown on the map.
   const storeMarkers = useStoreMarkers(settings.stores);
 
-  // En `colorDeChofer` desde D-274, para que la leyenda lea el mismo color que se pinta.
+  // En `colorDeChofer` desde D-274, para que la leyenda lea el mismo color que se pinta. Es la misma cuenta del Gestor.
   const colorFor = (driver: string | null) => colorDeChofer(settings.driver_colors, driver);
+  const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
 
-  // Drivers currently reporting from the road. Only office roles get these —
-  // a salesperson has no business tracking staff.
-  const liveDrivers = useMemo(() => {
-    if (!canAssign) return [];
-    const nameById = new Map(users.map((u) => [u.id, u.full_name]));
-    // La regla de qué cuenta como «en vivo» vive en `choferesEnVivo` (D-289): estaba escrita aquí
-    // y otra vez en el gestor de rutas, y ahora la pide también la ruta del día de Almacén.
-    return choferesEnVivo(driverLocations, nameById, colorFor).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverLocations, users, canAssign, settings.driver_colors]);
+  const drivers = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
+  const bucketNames = useMemo(
+    () => (settings.route_buckets ?? []).filter((n) => !drivers.some((d) => d.full_name === n)),
+    [settings.route_buckets, drivers],
+  );
+  const lanes = useMemo(() => carrilesDelDia(drivers, bucketNames, dayOrders, hechasPintadas.keys()), [drivers, bucketNames, dayOrders, hechasPintadas]);
+  const byDriver = useMemo(() => rutasPorChofer(dayOrders), [dayOrders]);
 
-  // Best-effort pickup coordinates for an order: its own captured point, else
-  // geocode the pickup address (or the sold-from store's address).
-  const resolvePickup = async (d: Delivery): Promise<{ lat: number; lng: number } | null> => {
-    if (d.pickup_lat != null && d.pickup_lng != null) return { lat: d.pickup_lat, lng: d.pickup_lng };
-    const addr = (d.pickup_address || settings.stores.find((s) => s.name === d.store)?.address || d.store || "").trim();
-    if (!addr) return null;
-    try {
-      const res = await fetch("/api/geocode-point", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: addr }) });
-      if (!res.ok) return null;
-      const p = await res.json();
-      return typeof p?.lat === "number" && typeof p?.lng === "number" ? p : null;
-    } catch { return null; }
+  // La MISMA lectura que el Gestor (`lecturaDe`): la lista única, con el plan publicado si esta persona puede leerlo y la
+  // ruta lo sigue, y contando lo ya hecho (D-433).
+  const rutasPublicadas = usePlanPublicadoDelGestor(fecha, 0);
+  const paradasPublicadasDe = (chofer: string) => rutasPublicadas?.find((r) => r.chofer === chofer)?.paradas ?? null;
+  const lecturaDe = (laneKey: string, stops: ParadaDelDia[]) =>
+    lecturaConLoHecho(stops, capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), hechasDelChofer(paradas, laneKey, new Set(stops.map((s) => s.delivery_date ?? null))));
+
+  // La base de cada ruta (D-461) y las tiendas de recogida: de Ajustes; si esta persona no las tiene, el punto que trae la parada.
+  const basesDeChofer = useBasesDeChofer();
+  const tiendaBaseDe = (laneKey: string) => tiendaBaseDelChofer(driverOf(laneKey), basesDeChofer, users, settings.stores ?? []);
+  const coordsDeTienda = (nombre: string | null): { lat: number; lng: number } | null => {
+    const n = (nombre ?? "").trim().toLowerCase();
+    if (!n) return null;
+    const s = (settings.stores ?? []).find((x) => x.name.trim().toLowerCase() === n);
+    if (s?.lat != null && s.lng != null) return { lat: s.lat, lng: s.lng };
+    const p = paradas.find((x) => (x.store ?? "").trim().toLowerCase() === n && x.store_lat != null && x.store_lng != null);
+    return p ? { lat: p.store_lat!, lng: p.store_lng! } : null;
   };
 
-  // Resolve an order's pickup→dropoff road route (geometry + distance + time).
-  const fetchOrderRoute = async (d: Delivery): Promise<{ pk: { lat: number; lng: number } | null; positions: [number, number][]; miles: number; duration: string } | null> => {
-    if (d.delivery_lat == null || d.delivery_lng == null) return null;
-    const pk = await resolvePickup(d);
-    if (!pk) return { pk: null, positions: [], miles: 0, duration: "" };
-    try {
-      const res = await fetch("/api/optimize-route", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stops: [{ id: "p", lat: pk.lat, lng: pk.lng }, { id: "d", lat: d.delivery_lat, lng: d.delivery_lng }], roundtrip: false }),
-      });
-      const b = await res.json();
-      if (res.ok && Array.isArray(b.geometry) && b.geometry.length) {
-        return { pk, positions: (b.geometry as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number]), miles: b.miles ?? 0, duration: b.duration_text || "" };
-      }
-    } catch { /* fall through */ }
-    return { pk, positions: [], miles: 0, duration: "" };
-  };
+  // Las millas, las horas, el trazo y la llegada de cada parada: la medida del Gestor (D-456/D-461), sin una llamada de más.
+  // UNA llamada a `/api/optimize-route` por ruta con paradas pendientes al abrir el día; ninguna al releer si la ruta no cambió.
+  const conParadas = lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => u.key);
+  const rutasAMedir = [...conParadas.filter((k) => selected.has(k)), ...conParadas.filter((k) => !selected.has(k))];
+  const { routeInfo, routeLines, routeEtas, baseDeLaRuta, pickupAddressFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<ParadaDelDia>({
+    date: fecha, porChofer: byDriver, rutasAMedir, seMide: (clave) => conParadas.includes(clave),
+    listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,
+    tiendaBaseDe, coordsDeTienda, conParadas, buscaBases: "si_falta",
+    invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],
+  });
 
-  // When exactly one order is selected, compute its route detail (distance/time)
-  // and pickup pin for the panel.
-  useEffect(() => {
-    let cancelled = false;
-    setRoute(null);
-    setPickupPt(null);
-    if (!selected) return;
-    setRouteBusy(true);
-    (async () => {
-      const r = await fetchOrderRoute(selected);
-      if (cancelled) return;
-      setPickupPt(r?.pk ?? null);
-      if (r && r.positions.length) {
-        setRoute({ positions: r.positions, miles: r.miles, duration: r.duration });
-        setRouteCache((prev) => ({ ...prev, [selected.id]: r.positions }));
-      }
-      setRouteBusy(false);
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected?.id]);
+  const focused = selected.size > 0;
+  const isDim = (driver: string | null) => focused && !!driver && !selected.has(driver);
+  const focusOnly = (name: string) => setSelected(new Set([name]));
+  const toggleDriver = (name: string) =>
+    setSelected((prev) => { const next = new Set(prev); if (next.has(name)) next.delete(name); else next.add(name); return next; });
 
-  // Fill in road routes (one at a time, throttled, cached) for the unassigned
-  // pool (when enabled) plus every selected order, so all draw on the map.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const targets = [...(showRoutes ? unassignedOrders : []), ...selectedList];
-      for (const d of targets) {
-        if (cancelled) return;
-        if (routeCache[d.id] || d.delivery_lat == null) continue;
-        const r = await fetchOrderRoute(d);
-        if (cancelled) return;
-        if (r && r.positions.length) setRouteCache((prev) => ({ ...prev, [d.id]: r.positions }));
-        await new Promise((res) => setTimeout(res, 120));
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showRoutes, unassignedOrders, selectedList]);
-
-  // Assign (or unassign) a list of orders to one driver — logs an audit note per
-  // order. The driver's in-app notice comes from `updateDelivery` itself (D-308): this screen
-  // used to push its own «assigned» seeds on top, which would have meant two bells per order
-  // once the provider's notice worked — and it never had (see the decision). Clears the
-  // selection when done.
-  const assignOrders = async (orders: Delivery[], driver: string | null) => {
-    if (!orders.length) return;
-    setAssignBusy(true);
-    for (const d of orders) {
-      const prev = d.assigned_driver;
-      const ok = await updateDelivery(d.id, { assigned_driver: driver });
-      if (!ok) continue;
-      addNote(d.id, driver
-        ? `Assigned to ${driver}${prev && prev !== driver ? ` (from ${prev})` : ""}`
-        : `Unassigned${prev ? ` (was ${prev})` : ""}`);
+  // La etiqueta P/D de cada entrega y su llegada estimada, para el rótulo y el resumen.
+  const etiquetaDe = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const [laneKey, list] of byDriver) {
+      if (!list.some((d) => d.route_seq != null)) continue;
+      for (const [id, etiqueta] of lecturaDe(laneKey, list).etiquetaDe) m.set(id, etiqueta);
     }
-    setAssignBusy(false);
-    clearSelection();
-    notify(driver
-      ? t(`${orders.length} order(s) assigned to ${driver}`, `${orders.length} orden(es) asignadas a ${driver}`)
-      : t(`${orders.length} order(s) unassigned`, `${orders.length} orden(es) sin asignar`));
-  };
-  const assignDriver = (driver: string | null) => assignOrders(selectedList, driver);
-
-  // «✨ Auto-asignar selección» se quitó en D-437: repartir automático es «Armar las rutas del día», en el Gestor de
-  // Rutas. Aquí queda asignar a mano (una, o todas las marcadas a un chofer).
-
-  // Las órdenes que tienen punto: las que se pintan, y de las que sale la leyenda.
-  const conPunto = useMemo(() => dayOrders.filter((d) => d.delivery_lat != null && d.delivery_lng != null), [dayOrders]);
-
-  const points: MapPoint[] = useMemo(
-    () => {
-      const pts: MapPoint[] = conPunto
-        .map((d) => ({
-          id: d.id,
-          lat: d.delivery_lat!,
-          lng: d.delivery_lng!,
-          color: colorFor(d.assigned_driver),
-          // Not your order (sales only): the label reveals nothing beyond
-          // "there's a delivery here" — no account, no driver.
-          label: isMine(d)
-            ? `#${orderLabel(d)} — ${d.account || t("(no account)", "(sin cuenta)")} — ${d.assigned_driver || t("Unassigned", "Sin asignar")}`
-            : t("Delivery", "Entrega"),
-          // Dim everything that isn't selected once a selection exists.
-          dimmed: selectedIds.size > 0 && !selectedIds.has(d.id),
-        }));
-      // A single selected order's pickup point, marked "P".
-      if (selected && pickupPt) {
-        pts.push({ id: "__pickup", lat: pickupPt.lat, lng: pickupPt.lng, color: COLOR_RECOGIDA, label: `${t("Pickup", "Recolección")}: ${selected.store || ""}`, badge: "P" });
-      }
-      return pts;
-    },
+    return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [conPunto, settings.driver_colors, me, selectedIds, selected, pickupPt],
+  }, [byDriver, rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, paradas]);
+  const llegadaDe = (p: ParadaDelDia) => (p.assigned_driver ? routeEtas[p.assigned_driver]?.[p.id] ?? null : null);
+
+  // Los mismos puntos que el Gestor (`puntosDeLasRutas`), sin lo marcado ☑, que aquí no existe.
+  const points: MapPoint[] = useMemo(
+    () => enAbanico(puntosDeLasRutas<ParadaDelDia>({
+      carriles: lanes, porChofer: byDriver, delDia: dayOrders, hechas: hechasPintadas,
+      pasaFiltro: () => true, soloUnChofer: false, enfocado: focused, atenuada: isDim,
+      colorDe: colorFor, colorSinChofer: COLOR_SIN_ASIGNAR,
+      baseDe: (clave) => {
+        const base = baseDeLaRuta(clave);
+        return base ? { coords: [base.lat, base.lng], direccion: tiendaBaseDe(clave)?.name ?? (pickupAddressFor(clave) ?? "") } : null;
+      },
+      lecturaDe, coordsDeTienda, t,
+      // Lo único que se añade al rótulo: la ciudad, los pallets y la llegada. No hay cliente ni dirección que enseñar.
+      detalleDe: (d) => [d.delivery_city, `${palletsDeLaOrden(d)} ${t("pallets", "pallets")}`, llegadaDe(d) ? `${t("ETA", "llegada")} ${llegadaDe(d)}` : ""].filter(Boolean).join(" · "),
+    })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lanes, byDriver, dayOrders, hechasPintadas, selected, settings.driver_colors, settings.driver_capacity, settings.stores, rutasPublicadas, routeEtas, basesDeChofer, users, lang],
   );
 
-  // Selected orders' routes in blue; the unassigned pool in gray (dimmed while
-  // a selection is active).
-  const lines: MapLine[] = useMemo(() => {
-    const out: MapLine[] = [];
-    const hasSel = selectedIds.size > 0;
-    if (showRoutes) {
-      for (const d of unassignedOrders) {
-        if (selectedIds.has(d.id)) continue;
-        const pos = routeCache[d.id];
-        if (pos && pos.length) out.push({ id: `u:${d.id}`, color: COLOR_SIN_ASIGNAR, positions: pos, dashed: true, dimmed: hasSel });
+  // Las líneas medidas de cada ruta. La del plan publicado (D-352) no se pide aquí: sería otra llamada de mapas por chofer
+  // marcado, y la línea medida ya recorre esa misma lista.
+  const lines: MapLine[] = useMemo(
+    () => lineasDeLasRutas({
+      trazos: routeLines, trazosDelPlan: {}, tieneParadas: (clave) => (byDriver.get(clave)?.length ?? 0) > 0,
+      pasaFiltro: () => true, sigueSuPlan: () => false, colorDe: colorFor, atenuada: isDim,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [routeLines, byDriver, selected, settings.driver_colors],
+  );
+
+  // Drivers currently reporting from the road.
+  const liveDrivers = useMemo(() => {
+    if (!veCamiones) return [];
+    const nameById = new Map(users.map((u) => [u.id, u.full_name]));
+    // La regla de qué cuenta como «en vivo» vive en `choferesEnVivo` (D-289).
+    return choferesEnVivo(driverLocations, nameById, colorFor).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [driverLocations, users, veCamiones, settings.driver_colors]);
+  const liveNames = useMemo(() => (veCamiones ? liveDriverNames(users, shifts, driverLocations) : new Set<string>()), [veCamiones, users, shifts, driverLocations]);
+
+  const fitTo = useMemo<[number, number][]>(() => {
+    if (locateDriver) {
+      const loc = driverLocations.find((l) => users.find((x) => x.id === l.driver_id)?.full_name === locateDriver);
+      if (loc) {
+        const pad = 0.004; // ≈ 400 m, so the truck sits in a readable frame
+        return [[loc.lat - pad, loc.lng - pad], [loc.lat + pad, loc.lng + pad]];
       }
     }
-    for (const d of selectedList) {
-      const pos = routeCache[d.id];
-      if (pos && pos.length) out.push({ id: `s:${d.id}`, color: COLOR_RUTA_ELEGIDA, positions: pos });
-    }
-    return out;
-  }, [showRoutes, unassignedOrders, routeCache, selectedIds, selectedList]);
-
-  // Zoom to the selected orders (their delivery points + any drawn routes).
-  const fitTo = useMemo<[number, number][] | undefined>(() => {
-    if (selectedList.length === 0) return undefined;
-    const pts: [number, number][] = [];
-    for (const d of selectedList) {
-      if (d.delivery_lat != null && d.delivery_lng != null) pts.push([d.delivery_lat, d.delivery_lng]);
-      const pos = routeCache[d.id];
-      if (pos) pts.push(...pos);
-    }
-    return pts.length ? pts : undefined;
-  }, [selectedList, routeCache]);
-
-  const drivers = driverNames(users);
-  const missingPoints = dayOrders.length - points.length;
+    return encuadreDeLasRutas(points, selected, byDriver, lanes);
+  }, [points, selected, byDriver, lanes, locateDriver, driverLocations, users]);
 
   // Qué significa cada cosa del mapa (D-274), con el mismo `colorFor` que pinta los puntos.
+  const conPunto = paradas.filter((d) => d.delivery_lat != null && d.delivery_lng != null);
   const leyenda = leyendaDelMapa({
     choferes: conPunto.map((d) => d.assigned_driver),
     coloresDeChofer: settings.driver_colors,
-    rutasSinChofer: showRoutes && unassignedOrders.length > 0,
-    puedeAsignar: canAssign,
+    rutasSinChofer: false,
+    puedeAsignar: false,
+    rutasDelDia: { camiones: veCamiones },
   });
+  const missingPoints = paradas.length - conPunto.length;
 
-  // Smart-assist for the selected order: a recommended driver, plus warnings
-  // (window conflict / over capacity) for whoever is currently assigned.
-  const capacityOf = (n: string) => settings.driver_capacity?.[n] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
-  const recommendation = useMemo(
-    () => (selected ? recommendDriver(selected, drivers, deliveries, capacityOf) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selected, drivers, deliveries, settings.driver_capacity],
-  );
-  const currentWarnings = useMemo(
-    () => (selected?.assigned_driver ? assignmentWarnings(selected, selected.assigned_driver, deliveries, capacityOf(selected.assigned_driver)) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selected, deliveries, settings.driver_capacity],
-  );
-  const warnText = (w: AssignWarning) =>
-    w.kind === "conflict"
-      ? t(
-          `Overlaps ${w.conflicts!.map((c) => `#${orderLabel(c)} (${fmtWindows(c.delivery_windows)})`).join(", ")}`,
-          `Se traslapa con ${w.conflicts!.map((c) => `#${orderLabel(c)} (${fmtWindows(c.delivery_windows)})`).join(", ")}`,
-        )
-      : t(
-          `Over capacity: ${w.used} + ${w.adding} > ${w.capacity} pallets`,
-          `Sobre capacidad: ${w.used} + ${w.adding} > ${w.capacity} pallets`,
-        );
-
-  const riskChip = (risk: "overdue" | "at_risk" | null) => {
-    if (!risk) return null;
-    const over = risk === "overdue";
-    return (
-      <span className="sema" style={{ background: over ? "var(--red, #d64545)" : "var(--amber, #e9a13b)", color: "#fff", marginLeft: 6 }}>
-        {over ? t("Overdue", "Expirada") : t("At risk", "En riesgo")}
-      </span>
-    );
+  // El rótulo de la parada pulsada. La orden entera solo se abre si esta persona YA puede leerla (está entre las que le
+  // carga su RLS) y no es un vendedor mirando la de otro: «solo ver, nada más».
+  const paradaElegida = elegida ? paradas.find((p) => p.id === elegida) ?? null : null;
+  const ordenLegible = (id: string): Delivery | null => {
+    const d = deliveries.find((x) => x.id === id);
+    if (!d || !me) return null;
+    return me.role !== "sales" || orderOwner(d) === me.id ? d : null;
   };
 
-  // From/To/pallets summary for this date — same "own orders only" boundary
-  // as everything else on this page for sales.
-  const cityNames = settings.stores.map((s) => s.name);
-  const summaryRows = useMemo(
-    () =>
-      dayOrders
-        .filter(isMine)
-        .map((d) => ({
-          id: d.id,
-          order_no: d.order_no,
-          label: orderLabel(d),
-          from: d.store || "—",
-          to: cityFromAddress(d.delivery_address, cityNames),
-          pallets: d.actual_pallets ?? d.est_pallets ?? null,
-          windows: d.delivery_windows || "",
-          stage: d.stage,
-          risk: deliveryRisk(d),
-        }))
-        .sort((a, b) => a.windows.localeCompare(b.windows) || a.order_no - b.order_no),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dayOrders, me],
+  // El resumen del día: cada parada con su chofer, su P/D, de dónde sale, a qué ciudad va y cuándo llega.
+  const resumen = useMemo(
+    () => [...paradas].sort((a, b) =>
+      (a.assigned_driver ? 0 : 1) - (b.assigned_driver ? 0 : 1)
+      || (a.assigned_driver ?? "").localeCompare(b.assigned_driver ?? "")
+      || (a.route_seq ?? 1e9) - (b.route_seq ?? 1e9) || a.order_no - b.order_no),
+    [paradas],
   );
-  // A la décima (D-363): las filas ya vienen a la décima de D-362, pero sumarlas en coma
-  // flotante y pintarlas tal cual devolvía la cola — 0,1 + 0,2 es 0.30000000000000004.
-  const totalPallets = aLaDecima(summaryRows.reduce((sum, r) => sum + (r.pallets ?? 0), 0));
+  const totalPallets = aLaDecima(resumen.reduce((sum, r) => sum + palletsDeLaOrden(r), 0));
 
   if (!me) return null;
 
   return (
     <>
       <div className="page-head">
-        <h2>{t("Delivery Map", "Mapa de Entregas")} <span className="count-tag">{points.length}</span></h2>
+        <h2>{t("Today's route", "Ruta de hoy")} <span className="count-tag" data-paradas-del-dia>{paradas.length}</span></h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <div className="viewtoggle">
-            <button className="vt" onClick={() => setDate((d) => { const p = shiftDateISO(d, -1); return veTodoElHistorial || p >= pisoFecha ? p : d; })} title={t("Previous day", "Día anterior")}>◀</button>
-            <input type="date" value={fecha} min={veTodoElHistorial ? undefined : pisoFecha} onChange={(e) => setDate(e.target.value)} style={{ width: "auto" }} />
-            <button className="vt" onClick={() => setDate((d) => shiftDateISO(d, 1))} title={t("Next day", "Día siguiente")}>▶</button>
+            <button className="vt" data-dia-anterior disabled={fecha <= primerDia} onClick={() => setDate(shiftDateISO(fecha, -1))} title={t("Previous day", "Día anterior")}>◀</button>
+            <input type="date" value={fecha} min={primerDia} max={rango.max} onChange={(e) => setDate(e.target.value || todayISO())} style={{ width: "auto" }} />
+            <button className="vt" data-dia-siguiente disabled={fecha >= rango.max} onClick={() => setDate(shiftDateISO(fecha, 1))} title={t("Next day", "Día siguiente")}>▶</button>
           </div>
-          {date !== todayISO() && (
+          {fecha !== todayISO() && (
             <button className="btn btn-ghost btn-sm" onClick={() => setDate(todayISO())}>{t("Today", "Hoy")}</button>
           )}
-          {canAssign && unassignedOrders.length > 0 && (
-            <button
-              className={"btn btn-sm " + (showRoutes ? "btn-primary" : "btn-ghost")}
-              onClick={() => setShowRoutes((v) => !v)}
-              title={t("Show each unassigned order's pickup→dropoff route", "Mostrar la ruta recolección→entrega de cada orden sin asignar")}
-            >
-              🧭 {t("Unassigned routes", "Rutas sin asignar")} ({unassignedOrders.length})
-            </button>
-          )}
-          {geocoding > 0 && <span className="hint">{t("Locating addresses…", "Ubicando direcciones…")}</span>}
+          <span className="hint" style={{ margin: 0 }}>{t("View only — routes are built in the Routes Manager.", "Solo lectura — las rutas se arman en el Gestor de Rutas.")}</span>
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers} fitTo={fitTo} onPointClick={(id) => {
-          if (id === "__pickup") return;
-          const d = dayOrders.find((x) => x.id === id);
-          if (!d) return;
-          // Sales: pins are visual only. Everyone else: toggle it in the selection.
-          if (canAssign) toggleSelect(d.id); else openPoint(d);
-        }} />
-        <MapLegend elementos={leyenda} />
+      {/* Sin la función (falta la migración 160) cada quien ve solo lo que ya podía leer. Se le dice a quien puede arreglarlo. */}
+      {(origen === "sin_funcion" || origen === "error") && me.role === "admin" && (
+        <div className="hint" data-aviso-sin-160 style={{ marginBottom: 8 }}>
+          {origen === "sin_funcion"
+            ? t("Migration 160 (rutas_del_dia) isn't applied yet: each role sees only the orders it could already read, so drivers and warehouse get partial routes.",
+                "La migración 160 (rutas_del_dia) aún no está aplicada: cada rol ve solo las órdenes que ya podía leer, así que choferes y almacén ven rutas parciales.")
+            : t("The day's routes couldn't be read; showing only the orders you can already read.", "No se pudieron leer las rutas del día; se enseñan solo las órdenes que usted ya puede leer.")}
+        </div>
+      )}
+
+      <div data-ruta-de-hoy style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 8 }}>
+        <PanelDeChoferes
+          t={t}
+          sinRutas={lanes.length === 0}
+          vacio={t("No drivers yet.", "Aún sin choferes.")}
+          hayMarcadas={focused}
+          onMuestraTodos={() => setSelected(new Set())}
+          onEnfoca={focusOnly}
+          onAlterna={toggleDriver}
+          onUbica={veCamiones ? (clave) => setLocateDriver(driverOf(clave)) : undefined}
+          filas={lanes.map((u) => {
+            const stops = byDriver.get(u.key) ?? [];
+            return {
+              id: u.id, clave: u.key, etiqueta: u.label, color: colorFor(u.driver), paradas: stops.length, info: routeInfo[u.key],
+              carga: cargaDelPanel(lecturaDe(u.key, stops), capacityFor(u.driver)), marcada: selected.has(u.key), enVivo: liveNames.has(u.driver),
+            };
+          })}
+          extrasDe={(clave) => {
+            const estado = estadoDeLaMedida(clave, byDriver.get(clave) ?? []);
+            if (estado === "calculando") return <span className="hint" data-medida="calculando" style={{ margin: 0, fontWeight: 400 }}>⏳</span>;
+            if (estado === "fallo") return (
+              <button className="notif-clear" data-reintentar-medida={clave} title={t("Not measured — retry", "Sin medida — reintentar")}
+                onClick={(e) => { e.stopPropagation(); reintentaLaMedida(clave); }}>↻</button>
+            );
+            return null;
+          }}
+        />
+        <div className="card" style={{ flex: "3 1 460px", minWidth: 0, margin: 0, padding: 0, overflow: "hidden" }}>
+          <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers} fitTo={fitTo} height={430}
+            onLineClick={(id) => { const ruta = rutaDeLaLinea(id); if (ruta) focusOnly(ruta); }}
+            onPointClick={(id) => {
+              // Solo las paradas tienen rótulo: la base y las recogidas ya lo dicen todo al pasar por encima.
+              const orden = id.startsWith("__hecha__") ? id.slice("__hecha__".length) : id;
+              if (paradas.some((p) => p.id === orden)) setElegida((x) => (x === orden ? null : orden));
+            }} />
+          <MapLegend elementos={leyenda} />
+        </div>
       </div>
 
-      {selected && canAssign && (
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0 }}>
-              #{orderLabel(selected)} — {selected.account || t("(no account)", "(sin cuenta)")}{" "}
-              <span className="sema" style={{ background: stageInfo(selected.stage).color, color: "#fff" }}>{stageLabel(selected.stage, lang)}</span>
-              {riskChip(deliveryRisk(selected))}
-            </h2>
-            <button className="btn btn-ghost btn-sm" onClick={clearSelection}>✕ {t("Close", "Cerrar")}</button>
-          </div>
-          <div className="detail-row"><span className="dk">{t("Route", "Ruta")}</span><span className="dv">{selected.store || "—"} → {cityFromAddress(selected.delivery_address, cityNames) || selected.delivery_address || "—"}</span></div>
-          <div className="detail-row"><span className="dk">{t("Window", "Ventana")}</span><span className="dv">{fmtWindows(selected.delivery_windows)}</span></div>
-          <div className="detail-row"><span className="dk">{t("Pallets", "Pallets")}</span><span className="dv">{selected.actual_pallets ?? selected.est_pallets ?? "—"}</span></div>
-          <div className="detail-row">
-            <span className="dk">{t("Pickup → Dropoff", "Recolección → Entrega")}</span>
-            <span className="dv" style={{ fontWeight: 700 }}>
-              {routeBusy
-                ? t("Calculating…", "Calculando…")
-                : route
-                  ? `${route.miles} mi · ${route.duration}`
-                  : t("Route unavailable", "Ruta no disponible")}
-            </span>
-          </div>
-          {recommendation && recommendation.driver !== selected.assigned_driver && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13.5 }}>
-                {t("Suggested", "Sugerido")}: <b>★ {recommendation.driver}</b>
-                {recommendation.warnings.length === 0
-                  ? <span className="sema" style={{ background: "var(--green)", color: "#fff", marginLeft: 8 }}>{t("clear", "sin conflictos")}</span>
-                  : <span className="hint" style={{ marginLeft: 8 }}>{t("(best available)", "(mejor disponible)")}</span>}
-              </span>
-              <button className="btn btn-sm btn-primary" disabled={assignBusy} onClick={() => assignDriver(recommendation.driver)}>
-                {t("Assign", "Asignar")}
-              </button>
+      {paradaElegida && (() => {
+        const r = rotuloDeLaParada(paradaElegida, { etiqueta: etiquetaDe.get(paradaElegida.id), llegada: llegadaDe(paradaElegida), horaReal: horaReal(paradaElegida, "D") }, t);
+        const legible = ordenLegible(paradaElegida.id);
+        return (
+          <div className="card" data-rotulo-de-parada={paradaElegida.id}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0 }}>
+                {r.titulo}{" "}
+                <span className="sema" style={{ background: stageInfo(paradaElegida.stage).color, color: "#fff" }}>{stageLabel(paradaElegida.stage, lang)}</span>
+              </h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setElegida(null)}>✕ {t("Close", "Cerrar")}</button>
             </div>
-          )}
-
-          <div className="field" style={{ maxWidth: 320, marginTop: 10 }}>
-            <label>{t("Assign driver", "Asignar chofer")}</label>
-            <select value={selected.assigned_driver ?? ""} disabled={assignBusy} onChange={(e) => assignDriver(e.target.value || null)}>
-              <option value="">{t("Unassigned", "Sin asignar")}</option>
-              {drivers.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+            {r.datos.map((x) => (
+              <div className="detail-row" key={x.clave} data-dato={x.clave}><span className="dk">{x.nombre}</span><span className="dv">{x.valor}</span></div>
+            ))}
+            {legible && (
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button className="btn btn-ghost btn-sm" data-abrir-orden onClick={() => setOpen(legible)}>{t("Open full order", "Abrir orden completa")}</button>
+              </div>
+            )}
           </div>
-
-          {currentWarnings.length > 0 && (
-            <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
-              {currentWarnings.map((w, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 12px", borderRadius: 8, background: "color-mix(in srgb, var(--amber, #e9a13b) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--amber, #e9a13b) 45%, transparent)", fontSize: 13.5 }}>
-                  <span aria-hidden>⚠️</span><span>{warnText(w)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => setOpen(selected)}>{t("Open full order", "Abrir orden completa")}</button>
-          </div>
-        </div>
-      )}
-
-      {/* ---------- Multi-select panel ---------- */}
-      {selectedList.length > 1 && canAssign && (
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0 }}>
-              {selectedList.length} {t("loads selected", "cargas seleccionadas")}{" "}
-              <span className="count-tag">{sumaPallets(selectedList)} {t("pallets", "pallets")}</span>
-            </h2>
-            <button className="btn btn-ghost btn-sm" onClick={clearSelection}>✕ {t("Clear", "Limpiar")}</button>
-          </div>
-          <p className="hint" style={{ marginTop: 6 }}>{t("Their routes are highlighted in blue. Assign all to one driver, or plan the day with “Build routes” in the Routes Manager.", "Sus rutas se resaltan en azul. Asigne todas a un chofer, o planifique el día con «Armar rutas» en el Gestor de Rutas.")}</p>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
-            <select defaultValue="" disabled={assignBusy} style={{ width: "auto" }}
-              onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v) assignOrders(selectedList, v); }}>
-              <option value="">{t("Assign all to…", "Asignar todas a…")}</option>
-              {drivers.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-            <button className="btn btn-ghost btn-sm" disabled={assignBusy} onClick={() => assignOrders(selectedList, null)}>{t("Unassign", "Quitar")}</button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {missingPoints > 0 && (
         <div className="hint" style={{ marginTop: 8 }}>
@@ -465,44 +330,51 @@ export default function MapPage() {
       )}
 
       <div className="card">
-        <h2>📋 {t("Summary", "Resumen")} — {fmtDate(date)}</h2>
-        {summaryRows.length === 0 ? (
-          <div className="empty">{t("No orders on this date.", "Sin órdenes en esta fecha.")}</div>
+        <h2>📋 {t("Summary", "Resumen")} — {fmtDate(fecha)}</h2>
+        {resumen.length === 0 ? (
+          <div className="empty">{origen == null ? t("Loading…", "Cargando…") : t("No orders on this date.", "Sin órdenes en esta fecha.")}</div>
         ) : (
           <div className="tbl-scroll" style={{ border: "none" }}>
-            <table className="orders" style={{ minWidth: 420 }}>
+            <table className="orders" data-resumen-del-dia style={{ minWidth: 560 }}>
               <thead>
                 <tr>
+                  <th>{t("Driver", "Chofer")}</th>
+                  <th>{t("Stop", "Parada")}</th>
                   <th>{t("ID", "ID")}</th>
                   <th>{t("From", "Desde")}</th>
                   <th>{t("To", "Hasta")}</th>
                   <th>{t("Windows", "Ventanas")}</th>
+                  <th>{t("Arrival", "Llegada")}</th>
                   <th>{t("Status", "Estado")}</th>
                   <th>{t("Pallets", "Pallets")}</th>
                 </tr>
               </thead>
               <tbody>
-                {summaryRows.map((r) => {
+                {resumen.map((r) => {
                   const s = stageInfo(r.stage);
+                  const hecha = r.stage === "delivered";
                   return (
-                    <tr
-                      key={r.id}
-                      className={me.role === "sales" ? "" : "clickable"}
-                      onClick={() => { const d = dayOrders.find((x) => x.id === r.id); if (d) openPoint(d); }}
-                    >
-                      <td className="ordno">#{r.label}</td>
-                      <td>{r.from}</td>
-                      <td>{r.to}</td>
-                      <td>{r.windows || "—"}</td>
-                      <td><span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(r.stage, lang)}</span>{riskChip(r.risk)}</td>
-                      <td>{r.pallets ?? "—"}</td>
+                    <tr key={r.id} className="clickable" onClick={() => { setElegida(r.id); if (r.assigned_driver) focusOnly(r.assigned_driver); }}
+                      style={elegida === r.id ? { background: "var(--accent-soft)" } : undefined}>
+                      <td>
+                        <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colorFor(r.assigned_driver), marginRight: 6 }} />
+                        {r.assigned_driver || t("Unassigned", "Sin asignar")}
+                      </td>
+                      <td>{hecha ? "✓" : etiquetaDe.get(r.id) ?? "—"}</td>
+                      <td className="ordno">#{orderLabel(r)}</td>
+                      <td>{r.store || "—"}</td>
+                      <td>{r.delivery_city || "—"}</td>
+                      <td>{fmtWindows(r.delivery_windows)}</td>
+                      <td>{hecha ? horaReal(r, "D") ?? "✓" : llegadaDe(r) ?? "—"}</td>
+                      <td><span className="sema" style={{ background: s.color, color: "#fff" }}>{stageLabel(r.stage, lang)}</span></td>
+                      <td>{r.actual_pallets ?? r.est_pallets ?? "—"}</td>
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={5} style={{ fontWeight: 700, textAlign: "right" }}>{t("Total pallets", "Total de pallets")}</td>
+                  <td colSpan={8} style={{ fontWeight: 700, textAlign: "right" }}>{t("Total pallets", "Total de pallets")}</td>
                   <td style={{ fontWeight: 700 }}>{totalPallets}</td>
                 </tr>
               </tfoot>
@@ -518,7 +390,7 @@ export default function MapPage() {
           <div className="empty">{t("No one has the Driver role yet.", "Nadie tiene el rol de Chofer todavía.")}</div>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-            {drivers.map((name) => (
+            {drivers.map(({ full_name: name }) => (
               <div key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ width: 16, height: 16, borderRadius: "50%", background: colorFor(name), border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{name}</span>

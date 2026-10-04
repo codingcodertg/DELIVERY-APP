@@ -18,12 +18,16 @@ const pagina = plano(leer("src/app/(app)/routes/page.tsx"));
 const codigoDePagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
 const mapa = plano(leer("src/app/(app)/map/page.tsx"));
 const codigoDeMapa = plano(sinComentarios(leer("src/app/(app)/map/page.tsx")));
-const trozo = (desde: string, hasta: string) => {
-  const i = pagina.indexOf(desde);
+// **Puesto al día por D-NEXT**: la medida y el dibujo del mapa salieron del Gestor a estas dos librerías, que comparte con
+// «Ruta de hoy» (antes «Mapa»). Lo que se comprobaba en la página se comprueba donde vive ahora.
+const medida = plano(leer("src/lib/usa-medida-de-rutas.ts"));
+const mapaDeRutas = plano(leer("src/lib/mapa-de-rutas.ts"));
+const trozo = (desde: string, hasta: string, de = pagina) => {
+  const i = de.indexOf(desde);
   expect(i, desde).toBeGreaterThan(-1);
-  const j = pagina.indexOf(hasta, i + desde.length);
+  const j = de.indexOf(hasta, i + desde.length);
   expect(j, hasta).toBeGreaterThan(i);
-  return pagina.slice(i, j);
+  return de.slice(i, j);
 };
 
 const p = (id: string, route_seq: number | null = null, load_no: number | null = null) => ({ id, route_seq, load_no, delivery_lat: 26.2, delivery_lng: -98.2 });
@@ -62,28 +66,30 @@ describe("medir la ruta sin reordenarla", () => {
     expect(firmaDeLaMedida("2026-09-28", "Diego", [])).not.toBe(base);
   });
   it("la pantalla mide con ese cuerpo, en el orden guardado, y no escribe nada", () => {
-    const mide = trozo("const mideLaRuta = async", "const pintaLaMedida =");
-    expect(mide).toContain('fetch("/api/optimize-route"');
+    const mide = trozo("export async function mideLaLista", "const pintaLaMedida =", medida);
+    expect(mide).toContain('e.pide("/api/optimize-route"');
+    expect(mide).toContain("pide: (url, init) => fetch(url, init) });");
     // D-443: UNA medida por chofer, la lista entera en su orden —cada recogida en su tienda y cada entrega—, no un lazo por viaje.
-    expect(mide).toContain("const lista = lecturaDe(laneKey, stopList).paradas;");
-    expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, stopList[0]?.delivery_date ?? date)),");
+    expect(mide).toContain("const r = await mideLaLista({ lista: e.listaDe(laneKey, stopList), ordenes: stopList, base: depot,");
+    expect(pagina).toContain("listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,");
+    expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, e.ordenes[0]?.delivery_date ?? e.fecha)),");
     // **Reemplazado en parte por D-461** (2026-10-02): cada fila P sumaba la recarga entera (`servicio: RELOAD_MIN`); desde
     // D-444 cada recogida es su fila, y cinco cajas de la misma tienda eran 100 minutos. Ahora las recogidas seguidas en la
     // misma tienda son UNA visita (`minutosEnCadaParada`), como en el optimizador y en «Armar rutas». Y la base de la medida es
     // la del chofer (`baseDeLaRuta`), no la dirección de recogida más repetida. Ver `optimizar-desde-el-gestor.test.ts`.
     expect(mide).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });");
     for (const escribe of ["updateDelivery(", "reorderStops(", "addNote("]) expect(mide).not.toContain(escribe);
-    const pinta = trozo("const pintaLaMedida =", "const mide = async");
+    const pinta = trozo("const pintaLaMedida =", "const mide = async", medida);
     for (const escribe of ["updateDelivery(", "reorderStops("]) expect(pinta).not.toContain(escribe);
   });
   it("cada forma de la ruta se mide una vez (sin bucle si falla); lo que llega tarde, de otra forma, no se pinta", () => {
     // Hasta D-456 esto era un `Set` de formas ya pedidas (`medidasPedidas`), y solo para el chofer elegido. Ahora la medida
     // de cada forma se GUARDA (`medidas`) y qué se pide lo decide `siguienteMedida`: ver `gestor-factura-arrastre-optimizar`.
-    const efecto = trozo("const seMide = (clave: string) =>", "const estadoDeLaMedida =");
+    const efecto = trozo("const queMedir = e.rutasAMedir.join(", "const estadoDeLaMedida =", medida);
     expect(efecto).toContain("const que = siguienteMedida<MedidaDeLaRuta>(rutas, pintadas, medidas.current);");
     expect(efecto).toContain("if (midiendo == null && que.pide) void mide(que.pide.clave, byDriver.get(que.pide.clave) ?? []);");
     expect(codigoDePagina).not.toContain("medidasPedidas");
-    const mide = trozo("const mide = async", "const toggleOrder");
+    const mide = trozo("const mide = async", "const reintentaLaMedida", medida);
     expect(mide).toContain("if (firmaAhora.current(driver, formaActual.current.byDriver.get(driver) ?? []) === firma) { firmaPintada.current[driver] = firma; pintaLaMedida(driver, m); }");
     expect(mide).toContain("medidas.current.set(firma, MEDIDA_FALLIDA);");
   });
@@ -112,14 +118,18 @@ describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona 
   });
   it("el Mapa ya no tiene «✨ Auto-asignar selección»", () => {
     for (const quitado of ["Auto-assign", "Auto-asignar", "autoAssignSelected", "repartirConElMotor", "pideElReparto", "leeBloqueos"]) expect(codigoDeMapa, quitado).not.toContain(quitado);
-    expect(mapa).toContain("<option value=\"\">{t(\"Assign all to…\", \"Asignar todas a…\")}</option>");
+    // **Reemplazado en parte por D-NEXT** (2026-10-04): el «Mapa» es ahora «Ruta de hoy», de solo lectura. Hasta aquí
+    // conservaba asignar a mano («Asignar todas a…»); ya no asigna nada: ni escribe órdenes ni las anota.
+    for (const escribe of ["Assign all to…", "updateDelivery", "addNote(", "reorderStops(", "assignOrders"]) expect(codigoDeMapa, escribe).not.toContain(escribe);
   });
   it("los ficheros que solo servían a eso ya no existen; `/api/optimize-route` se queda (trazos del Gestor, del Mapa y de «Mi ruta»)", () => {
     for (const f of ["src/components/AutoAsignarDialogo.tsx", "src/lib/auto-asignar.ts", "src/lib/route-plan/reparto.ts",
       "src/lib/route-plan/reparto-cliente.ts", "src/app/api/route-plan/reparto/route.ts"]) expect(existsSync(join(process.cwd(), f)), f).toBe(false);
     expect(existsSync(join(process.cwd(), "src/app/api/optimize-route/route.ts"))).toBe(true);
     expect(leer("src/app/(app)/my-route/page.tsx")).toContain('fetch("/api/optimize-route"');
-    expect(mapa).toContain('fetch("/api/optimize-route"');
+    // D-NEXT: «Ruta de hoy» ya no llama por su cuenta; mide con `useMedidaDeRutas`, como el Gestor.
+    expect(mapa).toContain("useMedidaDeRutas<ParadaDelDia>({");
+    expect(medida).toContain('e.pide("/api/optimize-route"');
     expect(leer("src/lib/data-provider.tsx")).not.toContain("siNoCambioDesde");
     expect("optimizaSinLasBloqueadas" in candados).toBe(false);
   });
@@ -152,11 +162,13 @@ describe("Julio vacío: ni línea en el mapa ni tarjeta", () => {
     expect(sigue).toContain("const paradas = paradasPublicadasDe(laneKey);");
     expect(sigue).toContain("return pintaElTrazoDelPlan(stops.length, lecturaDe(laneKey, stops).fuente);");
     expect(pagina).toContain("if (!paradas || !sigueSuPlan(chofer)) continue;");
-    expect(pagina).toContain("geom.length > 1 && pasaFiltro(driver) && sigueSuPlan(driver)");
+    expect(mapaDeRutas).toContain("geom.length > 1 && e.pasaFiltro(driver) && e.sigueSuPlan(driver)");
+    expect(pagina).toContain("pasaFiltro, sigueSuPlan, colorDe: colorFor, atenuada: isDim,");
   });
   it("la línea medida, solo de quien tiene paradas; y lo medido de una ruta que cambió (también por quitarle) se tira", () => {
-    expect(pagina).toContain("const entries = Object.entries(routeLines).filter(([driver]) => pasaFiltro(driver) && (byDriver.get(driver)?.length ?? 0) > 0);");
-    expect(pagina).toContain("if (firmaPintada.current[k] !== firmaDe(k, byDriver.get(k) ?? [])) clearRouteFor(k);");
+    expect(mapaDeRutas).toContain("const entries = Object.entries(e.trazos).filter(([driver]) => e.pasaFiltro(driver) && e.tieneParadas(driver));");
+    expect(pagina).toContain("trazos: routeLines, trazosDelPlan, tieneParadas: (clave) => (byDriver.get(clave)?.length ?? 0) > 0,");
+    expect(medida).toContain("if (firmaPintada.current[k] !== firmaDe(k, byDriver.get(k) ?? [])) clearRouteFor(k);");
   });
   it("sin paradas no hay tarjeta, aunque esté marcado; se nombra en una línea", () => {
     // D-459: «sin paradas» es sin pendientes NI hechas: quien ya lo entregó todo conserva su tarjeta, con sus filas hechas.
