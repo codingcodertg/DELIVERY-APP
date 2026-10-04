@@ -130,7 +130,16 @@ export interface Parametros {
   /** «Usar todos los choferes disponibles» (OptimoRoute): a cada chofer que rutea se le da al menos una
    *  orden si hay con qué, aunque cueste más manejo. Nunca a costa de dejar una orden fuera. Ausente = no. */
   usarTodos?: boolean;
+  /** Entregar antes lo que está de paso (D-NEXT): ya repartido y mejorado el plan, cada ruta se reordena —sin cambiar
+   *  de chofer ni de órdenes— al orden que menos carga pasea (pallets a bordo por milla) de los que miden casi lo mismo:
+   *  esta banda de jornada y millas de más, sin sumar retraso, minutos-builder ni violaciones. Ausente o `null` = no:
+   *  un plan guardado antes de que existiera se revalida igual (`motor-6`). */
+  dePaso?: ToleranciaDePaso | null;
 }
+
+/** La banda de «casi lo mismo» del criterio de carga: hasta este tanto por ciento de jornada de más —y nunca más de
+ *  `maxMin` minutos— y hasta estas millas de más. La de verdad vive en `de-paso.ts` (`TOLERANCIA_DE_PASO`). */
+export interface ToleranciaDePaso { porcientoDeJornada: number; maxMin: number; millas: number }
 
 export interface Entrada {
   ordenes: OrdenEntrada[];

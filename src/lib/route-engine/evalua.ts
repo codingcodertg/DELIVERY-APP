@@ -257,6 +257,25 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
 }
 
 /**
+ * La carga transportada de una ruta ya evaluada, en pallet·milla (D-NEXT): en cada tramo, lo que iba a bordo por sus
+ * millas —lo que ya iba al salir (las recogidas hechas antes), más lo recogido, menos lo entregado—. Es lo que el criterio
+ * de «entregar antes lo que está de paso» quiere bajar. Se cuenta en centésimas (de pallet y de milla), como todo aquí, y
+ * se devuelve a la centésima de pallet·milla. La vuelta a la base no entra: se vuelve vacío (lo que se recoge en una ruta
+ * se entrega en ella; lo contrario es una violación, y la pasada no acepta ninguna nueva). Estuvo, y un mutante que la
+ * quitaba sobrevivía.
+ */
+export function cargaTransportadaDe(ruta: Pick<RutaEvaluada, "paradas">, ordenes: ReadonlyMap<string, Pick<OrdenEntrada, "pallets" | "recogidaHecha">>): number {
+  let carga = 0, paseo = 0;
+  for (const p of ruta.paradas) if (p.tipo === "D" && ordenes.get(p.orden)?.recogidaHecha) carga += aCentesimas(ordenes.get(p.orden)!.pallets);
+  for (const p of ruta.paradas) {
+    const mi = aCentesimas(p.tramoMillas);
+    if (carga > 0) paseo += carga * mi;
+    carga = aCentesimas(p.cargaAlSalir);
+  }
+  return Math.round(paseo / 100) / 100;
+}
+
+/**
  * Con `balancePor: "ordenes"`, cuánto pesa UNA entrega de diferencia entre dos choferes, en minutos de diferencia.
  * Hace falta un cambio de unidad para que el mismo peso `balance` de Ajustes sirva en los dos modos: sin él, una
  * orden de diferencia pesaría lo que un minuto y repartir por órdenes no repartiría nada. 30 es del orden de lo que

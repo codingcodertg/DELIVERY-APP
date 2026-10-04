@@ -250,15 +250,15 @@ describe("días reales (18–28 sep, anonimizados), con las zonas de cada chofer
     expect(suma(ANTES, (b, f) => enSuZona(b, f).deAlguien)).toBe(105);
   });
 
-  it("y a cambio de pocas millas: 2.559 sin zonas, no más de un 3 % con ellas (2.581 al medirlo)", () => {
+  it("y a cambio de pocas millas: 2.560 sin zonas (2.559 antes de D-NEXT: entregar de paso suma una milla en diez días), no más de un 3 % con ellas", () => {
     const antes = suma(ANTES, (b) => Number(b.plan.total_miles)), despues = suma(DESPUES, (b) => Number(b.plan.total_miles));
-    expect(Math.round(antes)).toBe(2559);
+    expect(Math.round(antes)).toBe(2560);
     expect(despues).toBeLessThanOrEqual(antes * 1.03);
   });
 
   it("el plan guardado lleva la versión nueva y cuenta las entregas fuera de zona en su coste", () => {
     const b = DESPUES["2026-09-27"];
-    expect(b.plan.algorithm_version).toBe("motor-6");
+    expect(b.plan.algorithm_version).toBe("motor-7");
     expect(typeof b.plan.result.coste.fueraDeZona).toBe("number");
     expect("fueraDeZona" in ANTES["2026-09-27"].plan.result.coste).toBe(false);
   });
