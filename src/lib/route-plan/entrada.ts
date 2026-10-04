@@ -8,7 +8,7 @@ import { catalogoDeRequisitos, habilidadesDelChofer, requisitosDeLaOrden } from 
 import { zonaDeLaOrden, zonaDeLaRecogida, zonasDelChofer } from "@/lib/zonas";
 import { leeConOpcionales, type LecturaConError } from "@/lib/columnas-opcionales";
 import {
-  PARAMETROS_POR_DEFECTO, type ChoferEntrada, type Entrada, type OrdenEntrada, type Parametros, type Plan, type Punto,
+  PARAMETROS_POR_DEFECTO, TOLERANCIA_DE_PASO, type ChoferEntrada, type Entrada, type OrdenEntrada, type Parametros, type Plan, type Punto,
 } from "@/lib/route-engine";
 import type { LatLng } from "@/lib/route-times/claves";
 import type { Delivery, DriverSettings, NamedLocation, Profile, Settings } from "@/lib/types";
@@ -206,7 +206,8 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     const validas = ruteables.has(chofer) ? paradas.filter((p) => enElPlan.has(ordenDeLaParte(p.orden))) : [];
     if (validas.length) secuenciaFijada[chofer] = validas.map((p) => ({ orden: p.orden, tipo: p.tipo }));
   }
-  const parametros: Parametros = { ...PARAMETROS_POR_DEFECTO, pesos: pesosDeRuta(settings), topeTardeAnchaMin: topeDeRetrasoMin(settings), ...opcionesDeReparto(settings) };
+  // Entregar antes lo que está de paso (D-464): «Armar rutas» lo lleva siempre, con la banda de siempre; el motor solo, no.
+  const parametros: Parametros = { ...PARAMETROS_POR_DEFECTO, pesos: pesosDeRuta(settings), topeTardeAnchaMin: topeDeRetrasoMin(settings), ...opcionesDeReparto(settings), dePaso: TOLERANCIA_DE_PASO };
   return { entrada: { ordenes, choferes, matriz: {}, ...(Object.keys(secuenciaFijada).length ? { secuenciaFijada } : {}) }, parametros, puntos, fotos, fuera, choferesFuera };
 }
 

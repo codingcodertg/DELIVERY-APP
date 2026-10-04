@@ -413,7 +413,7 @@ describe("4 · `/api/route-matrix`: quién puede, qué valida y cuánto llama", 
 
 // =====================================================================================================================
 describe("5 · el aviso al terminar dice lo ganado, y lo que queda mal", () => {
-  const medida = (millas: number, minutos: number, tarde: ResultadoDeOptimizar["antes"]["tarde"] = [], exceso = 0) => ({ millas, minutos, manejoMin: 0, exceso, tarde });
+  const medida = (millas: number, minutos: number, tarde: ResultadoDeOptimizar["antes"]["tarde"] = [], exceso = 0) => ({ millas, minutos, manejoMin: 0, exceso, tarde, cargaPalletMi: 0 });
   const aviso = (r: Partial<ResultadoDeOptimizar> & Pick<ResultadoDeOptimizar, "antes" | "despues">, extra: Partial<Parameters<typeof avisoDeOptimizar>[0]> = {}) => avisoDeOptimizar({
     ruta: "Chofer Uno", r: { cambio: true, sinPunto: 0, exacta: true, medida: "real", ...r }, tiempos: { proveedor: "google" }, hayBase: true,
     nombreDe: (id) => `F-${id}`, pallets: (n) => String(n), ...extra,

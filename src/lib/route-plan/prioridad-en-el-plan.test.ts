@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PARAMETROS_POR_DEFECTO } from "@/lib/route-engine";
+import { PARAMETROS_POR_DEFECTO, TOLERANCIA_DE_PASO } from "@/lib/route-engine";
 import { cacheEnMemoria } from "@/lib/route-times/tiempos";
 import type { ProveedorDeTiempos } from "@/lib/route-times/proveedores";
 import {
@@ -52,7 +52,7 @@ describe("de la base al motor", () => {
   });
 
   it("las opciones de reparto de Ajustes llegan a los parámetros del motor, y se guardan con el plan", async () => {
-    expect(entradaDelDia(datos([])).parametros).toEqual(PARAMETROS_POR_DEFECTO);
+    expect(entradaDelDia(datos([])).parametros).toEqual({ ...PARAMETROS_POR_DEFECTO, dePaso: TOLERANCIA_DE_PASO });
     const d = datos([], { route_weights: { ...PESOS_DE_RUTA_POR_DEFECTO, balance_por: "ordenes", usar_todos: true } });
     expect(entradaDelDia(d).parametros).toMatchObject({ balancePor: "ordenes", usarTodos: true });
     expect((await planifica(d)).plan.params).toMatchObject({ balancePor: "ordenes", usarTodos: true });

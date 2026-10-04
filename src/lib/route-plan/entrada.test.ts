@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planifica, PARAMETROS_POR_DEFECTO } from "@/lib/route-engine";
+import { planifica, PARAMETROS_POR_DEFECTO, TOLERANCIA_DE_PASO } from "@/lib/route-engine";
 import { entradaDelDia, filasDeParadas, puntoDeOrden, puntoDeTienda, type DatosDelDia } from "./entrada";
 import { escriturasAlPublicar } from "./publicar";
 import type { DriverSettings, NamedLocation } from "@/lib/types";
@@ -68,7 +68,7 @@ describe("las órdenes que entran al motor", () => {
     }]);
     expect(e.puntos[puntoDeOrden("a")]).toEqual({ lat: 26.35, lng: -98.25 });
     expect(e.fotos).toEqual([{ id: "a", updated_at: "2026-03-03T15:00:00.123456+00:00", factura: null }]);
-    expect(e.parametros).toEqual(PARAMETROS_POR_DEFECTO);
+    expect(e.parametros).toEqual({ ...PARAMETROS_POR_DEFECTO, dePaso: TOLERANCIA_DE_PASO });
   });
 
   it("lo que alguien eligió en la orden manda sobre la cuenta; una ventana ancha no es dura", () => {

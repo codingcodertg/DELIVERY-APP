@@ -4,7 +4,10 @@ import {
   MAX_PARADAS_DE_LA_EXACTA, mideLaLista, minutosEnCadaParada, optimizaLaLista, TOPE_DE_PASOS,
   type EntradaDeOptimizar, type MedidaDeLaLista, type PuntoEnElMapa, type TiemposDeLaRuta, type VentanaDeEntrega,
 } from "./optimiza-la-ruta";
-import { evaluaRuta, PARAMETROS_POR_DEFECTO, type ChoferEntrada, type Matriz, type OrdenEntrada, type ParadaRef } from "./route-engine";
+import {
+  evaluaRuta, MARGEN_PALLET_MI, minutosDeBanda, PARAMETROS_POR_DEFECTO, TOLERANCIA_DE_PASO,
+  type ChoferEntrada, type Matriz, type OrdenEntrada, type ParadaRef, type ToleranciaDePaso,
+} from "./route-engine";
 import { claveDePunto } from "./route-times/claves";
 import { FACTOR_DE_RODEO, MILLAS_POR_HORA_ESTIMADAS, millasEnLineaRecta } from "./route-times/proveedores";
 import REALES from "./optimizar-casos-reales.json";
@@ -19,8 +22,15 @@ import REALES from "./optimizar-casos-reales.json";
  *      contra una búsqueda exhaustiva con memoria escrita aparte, con otra formulación;
  *   3. las rutas REALES (anonimizadas) donde el Optimizar de D-456 perdía: cuánto perdía, y que ahora sale el óptimo;
  *   4. lo que no se rompe nunca: las mismas paradas, la precedencia, la capacidad, y no salir peor de lo que se entró;
- *   5. el orden de los objetivos: capacidad → ventanas (las estrechas primero) → jornada → millas.
+ *   5. el orden de los objetivos: capacidad → ventanas (las estrechas primero) → jornada → millas;
+ *   8. (D-464) entregar antes lo que está de paso: entre órdenes que miden casi lo mismo, el que menos carga pasea.
+ *
+ * Las secciones 2 a 4 y 7 fijan la vara de D-461 (jornada y millas) y corren SIN la banda de la carga (`SIN_BANDA`: la
+ * carga solo decide a empate exacto, que no cambia ni un minuto ni una décima de milla). La sección 8 prueba la banda.
  */
+
+/** La banda apagada: la carga solo desempata lo que mide EXACTAMENTE igual. */
+const SIN_BANDA: ToleranciaDePaso = { porcientoDeJornada: 0, maxMin: 0, millas: 0 };
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Aparejos: una cuenta ESCRITA APARTE de la del módulo, la fuerza bruta y la búsqueda exhaustiva con memoria.
@@ -32,9 +42,25 @@ const D = (id: string): ParadaDeLaLista => ({ tipo: "D", orden: id });
 const forma = (ps: readonly ParadaDeLaLista[]) => ps.map((p) => (p.tipo === "P" ? `P${p.ordenes.join("+")}` : `D${p.orden}`)).join(" ");
 const clave = (p: PuntoEnElMapa | null | undefined) => (p ? claveDePunto(p) : null);
 
-/** [exceso en centésimas, minutos tarde en ventana estrecha, en las demás, minutos de jornada, centésimas de milla]. */
-type Nota = [number, number, number, number, number];
+/** [exceso en centésimas, minutos tarde en ventana estrecha, en las demás, minutos de jornada, centésimas de milla, carga
+ *  paseada en centésimas de pallet por centésimas de milla]. */
+type Nota = [number, number, number, number, number, number];
+/** La vara de D-461: exceso → tarde estrecha → tarde ancha → jornada → millas. La carga no entra. */
 const menor = (a: Nota, b: Nota) => { for (let k = 0; k < 5; k++) if (a[k] !== b[k]) return a[k] < b[k]; return false; };
+/** El criterio entero (D-464), escrito aparte: el mejor por la vara; y de los que caben en su banda, el que menos carga
+ *  pasea, si le gana por el margen. Devuelve el índice. */
+function elige(notas: readonly Nota[], t: ToleranciaDePaso = TOLERANCIA_DE_PASO): number {
+  let opt = 0;
+  for (let i = 1; i < notas.length; i++) if (menor(notas[i], notas[opt])) opt = i;
+  const o = notas[opt];
+  const enBanda = (n: Nota) => n[0] === o[0] && n[1] === o[1] && n[2] === o[2] && n[3] <= o[3] + minutosDeBanda(o[3], t) && n[4] <= o[4] + Math.round(t.millas * 100);
+  let mejor = opt;
+  for (let i = 0; i < notas.length; i++) {
+    const n = notas[i], m = notas[mejor];
+    if (i !== mejor && enBanda(n) && (n[5] < m[5] || (n[5] === m[5] && menor(n, m)))) mejor = i;
+  }
+  return notas[mejor][5] <= o[5] - MARGEN_PALLET_MI * 10_000 ? mejor : opt;
+}
 
 /** La cuenta de la prueba. No comparte ni una línea con `optimiza-la-ruta.ts`: si las dos se equivocan, no será igual. */
 function cuenta(e: EntradaDeOptimizar, orden: readonly number[]): Nota {
@@ -47,14 +73,17 @@ function cuenta(e: EntradaDeOptimizar, orden: readonly number[]): Nota {
     const mi = Math.round(millasEnLineaRecta(a, b) * FACTOR_DE_RODEO * 100) / 100;
     return [Math.round((mi / MILLAS_POR_HORA_ESTIMADAS) * 60), Math.round(mi * 100)];
   };
-  let reloj = salida, sitio = e.base, carga = 0, exceso = 0, tE = 0, tA = 0, cmi = 0;
+  // Lo que ya va a bordo al salir: las entregas cuya recogida no está en la lista.
+  let carga = 0;
+  e.paradas.forEach((p, i) => { if (p.tipo === "D" && !e.paradas.some((q) => q.tipo === "P" && q.ordenes.includes(p.orden))) carga += Math.round(-(e.cambios[i] ?? 0) * 100); });
+  let reloj = salida, sitio = e.base, exceso = 0, tE = 0, tA = 0, cmi = 0, paseo = 0;
   const mismaVisita = (a: number, b: number) => {
     const p = e.paradas[a], q = e.paradas[b];
     return p.tipo === "P" && q.tipo === "P" && !!p.tienda && p.tienda === q.tienda && clave(e.puntos[a]) === clave(e.puntos[b]);
   };
   for (let k = 0; k < orden.length; k++) {
     const i = orden[k], p = e.paradas[i], pt = e.puntos[i];
-    if (pt) { if (sitio) { const [min, mi] = tramo(sitio, pt); reloj += min; cmi += mi; } sitio = pt; }
+    if (pt) { if (sitio) { const [min, mi] = tramo(sitio, pt); reloj += min; cmi += mi; paseo += Math.max(0, carga) * mi; } sitio = pt; }
     if (p.tipo === "P") {
       if (!(k > 0 && mismaVisita(orden[k - 1], i))) {
         let suma = 0;
@@ -70,8 +99,8 @@ function cuenta(e: EntradaDeOptimizar, orden: readonly number[]): Nota {
     carga += Math.round((e.cambios[i] ?? 0) * 100);
     if (cap != null && carga > cap) exceso += carga - cap;
   }
-  if (e.base && sitio) { const [min, mi] = tramo(sitio, e.base); reloj += min; cmi += mi; }
-  return [exceso, tE, tA, reloj - salida, cmi];
+  if (e.base && sitio) { const [min, mi] = tramo(sitio, e.base); reloj += min; cmi += mi; paseo += Math.max(0, carga) * mi; }
+  return [exceso, tE, tA, reloj - salida, cmi, paseo];
 }
 const antesDe = (e: EntradaDeOptimizar) => e.paradas.map((p) => (p.tipo === "D" ? e.paradas.findIndex((q) => q.tipo === "P" && q.ordenes.includes(p.orden)) : -1));
 const indicesDe = (e: EntradaDeOptimizar, ps: readonly ParadaDeLaLista[]) => ps.map((p) => e.paradas.indexOf(p));
@@ -79,21 +108,33 @@ const notaDeLaMedida = (m: MedidaDeLaLista): [number, number, number, number, nu
   Math.round(m.exceso * 100), m.tarde.filter((t) => t.estrecha).reduce((s, t) => s + t.minutos, 0),
   m.tarde.filter((t) => !t.estrecha).reduce((s, t) => s + t.minutos, 0), m.minutos, Math.round(m.millas * 10),
 ];
+/** La cuenta de la prueba, en lo que enseña la medida del módulo (para comparar con `mideLaLista`). */
+const comoMedida = (n: Nota) => ({ minutos: n[3], millas: Math.round(n[4] / 10) / 10, cargaPalletMi: Math.round(n[5] / 1000) / 10 });
 
-/** FUERZA BRUTA: todas las permutaciones que no entregan antes de recoger. Para listas de hasta 10 paradas. */
-function fuerzaBruta(e: EntradaDeOptimizar): Nota {
+/** FUERZA BRUTA: todas las permutaciones que no entregan antes de recoger, medidas. Para listas de hasta 10 paradas. */
+function todasLasNotas(e: EntradaDeOptimizar): Nota[] {
   const m = e.paradas.length, antes = antesDe(e);
-  let mejor: Nota | null = null;
+  const todas: Nota[] = [];
   const orden: number[] = [], usada = new Array<boolean>(m).fill(false);
   const baja = () => {
-    if (orden.length === m) { const n = cuenta(e, orden); if (!mejor || menor(n, mejor)) mejor = n; return; }
+    if (orden.length === m) { todas.push(cuenta(e, orden)); return; }
     for (let i = 0; i < m; i++) {
       if (usada[i] || (antes[i] >= 0 && !usada[antes[i]])) continue;
       usada[i] = true; orden.push(i); baja(); orden.pop(); usada[i] = false;
     }
   };
   baja();
-  return mejor!;
+  return todas;
+}
+/** El mejor por la vara de D-461 (jornada y millas). */
+function fuerzaBruta(e: EntradaDeOptimizar): Nota {
+  const todas = todasLasNotas(e);
+  return todas.reduce((m, n) => (menor(n, m) ? n : m));
+}
+/** El que elige el criterio entero (D-464), por fuerza bruta. */
+function fuerzaBrutaDePaso(e: EntradaDeOptimizar, t: ToleranciaDePaso = TOLERANCIA_DE_PASO): Nota {
+  const todas = todasLasNotas(e);
+  return todas[elige(todas, t)];
 }
 
 /**
@@ -102,7 +143,17 @@ function fuerzaBruta(e: EntradaDeOptimizar): Nota {
  * si acaba de cargar ahí— se guardan todas las notas que ninguna otra mejora en todo. Sin cotas ni podas. Llega a 8 órdenes.
  */
 function exhaustiva(e: EntradaDeOptimizar): Nota {
+  return exhaustivaTodas(e).reduce((m, n) => (menor(n, m) ? n : m));
+}
+/** La misma, con el criterio entero: de todas las notas finales que ninguna domina, la que elige la regla. */
+function exhaustivaDePaso(e: EntradaDeOptimizar, t: ToleranciaDePaso = TOLERANCIA_DE_PASO): Nota {
+  const todas = exhaustivaTodas(e);
+  return todas[elige(todas, t)];
+}
+function exhaustivaTodas(e: EntradaDeOptimizar): Nota[] {
   const m = e.paradas.length, antes = antesDe(e);
+  let cargaInicial = 0;
+  e.paradas.forEach((p, i) => { if (p.tipo === "D" && antes[i] < 0) cargaInicial += Math.round(-(e.cambios[i] ?? 0) * 100); });
   const salida = e.salidaMin ?? 480, recarga = e.recargaMinimaMin ?? 20, cap = e.capacidad ? Math.round(e.capacidad * 100) : null;
   const cambio = e.cambios.map((c) => Math.round((c ?? 0) * 100)), serv = e.paradas.map((_, i) => e.servicios?.[i] ?? 0);
   const grupo = e.paradas.map((p, i) => (p.tipo === "P" && p.tienda ? `${p.tienda}|${clave(e.puntos[i])}` : null));
@@ -125,13 +176,13 @@ function exhaustiva(e: EntradaDeOptimizar): Nota {
     est.notas.push(n);
     mapa.set(k, est);
   };
-  pon(0, e.base, null, [0, 0, 0, salida, 0]);
+  pon(0, e.base, null, [0, 0, 0, salida, 0, 0]);
   for (let c = 0; c < m; c++) {
     for (const est of porCuenta[c].values()) {
-      let carga = 0;
+      let carga = cargaInicial;
       for (let i = 0; i < m; i++) if (est.hechas & (1 << i)) carga += cambio[i];
       const libres = e.paradas.map((_, i) => i).filter((i) => !(est.hechas & (1 << i)) && (antes[i] < 0 || est.hechas & (1 << antes[i])));
-      for (const [exc, tE, tA, t, cmi] of est.notas) {
+      for (const [exc, tE, tA, t, cmi, paseo] of est.notas) {
         // Una entrega, o una recogida suelta (sin tienda).
         for (const k of libres) {
           if (grupo[k] != null) continue;
@@ -145,7 +196,7 @@ function exhaustiva(e: EntradaDeOptimizar): Nota {
             fin += serv[k];
           }
           const tras = carga + cambio[k];
-          pon(est.hechas | (1 << k), e.puntos[k] ?? est.sitio, null, [exc + (cap != null && tras > cap ? tras - cap : 0), nE, nA, fin, cmi + mi]);
+          pon(est.hechas | (1 << k), e.puntos[k] ?? est.sitio, null, [exc + (cap != null && tras > cap ? tras - cap : 0), nE, nA, fin, cmi + mi, paseo + Math.max(0, carga) * mi]);
         }
         // Una visita a una tienda: cualquier subconjunto de sus recogidas pendientes, de golpe. (Dos visitas seguidas a la
         // misma tienda son UNA: por eso no se repite la tienda de la que se acaba de cargar.)
@@ -156,18 +207,20 @@ function exhaustiva(e: EntradaDeOptimizar): Nota {
             const van = suyas.filter((_, x) => sub & (1 << x)).sort((a, b) => cambio[a] - cambio[b]);
             let tras = carga, exceso = exc, hechas = est.hechas;
             for (const k of van) { tras += cambio[k]; if (cap != null && tras > cap) exceso += tras - cap; hechas |= 1 << k; }
-            pon(hechas, e.puntos[suyas[0]] ?? est.sitio, g, [exceso, tE, tA, t + min + Math.max(recarga, van.reduce((s, k) => s + serv[k], 0)), cmi + mi]);
+            pon(hechas, e.puntos[suyas[0]] ?? est.sitio, g, [exceso, tE, tA, t + min + Math.max(recarga, van.reduce((s, k) => s + serv[k], 0)), cmi + mi, paseo + Math.max(0, carga) * mi]);
           }
         }
       }
     }
   }
-  let mejor: Nota | null = null;
+  const finales: Nota[] = [];
+  let cargaFinal = cargaInicial;
+  for (let i = 0; i < m; i++) cargaFinal += cambio[i];
   for (const est of porCuenta[m].values()) {
     const [min, mi] = e.base ? viaje(est.sitio, e.base) : [0, 0];
-    for (const [exc, tE, tA, t, cmi] of est.notas) { const n: Nota = [exc, tE, tA, t + min - salida, cmi + mi]; if (!mejor || menor(n, mejor)) mejor = n; }
+    for (const [exc, tE, tA, t, cmi, paseo] of est.notas) finales.push([exc, tE, tA, t + min - salida, cmi + mi, paseo + Math.max(0, cargaFinal) * mi]);
   }
-  return mejor!;
+  return finales;
 }
 
 /** Un generador FIJO (congruencial): las listas inventadas son siempre las mismas. */
@@ -181,7 +234,7 @@ function generador(semilla: number) {
  * Una ruta inventada con la forma de las reales: pocas tiendas (varias órdenes salen de la misma), entregas que coinciden
  * en el mismo sitio o en otra tienda, ventanas estrechas y anchas, y tiempos por calles que no son simétricos.
  */
-function inventa(ordenes: number, semilla: number, o: { sinPunto?: boolean; sinBase?: boolean; capacidad?: number; cierre?: number; juntas?: boolean } = {}): EntradaDeOptimizar {
+function inventa(ordenes: number, semilla: number, o: { sinPunto?: boolean; sinBase?: boolean; capacidad?: number; cierre?: number; juntas?: boolean; tolerancia?: ToleranciaDePaso } = {}): EntradaDeOptimizar {
   const { azar, ent } = generador(semilla);
   const punto = (): PuntoEnElMapa => ({ lat: Math.round((30 + azar() * 0.4) * 1e4) / 1e4, lng: Math.round((-101 - azar() * 0.6) * 1e4) / 1e4 });
   const tiendas = Array.from({ length: 1 + ent(3) }, (_, k) => ({ nombre: `Tienda ${k}`, pt: punto() }));
@@ -217,7 +270,7 @@ function inventa(ordenes: number, semilla: number, o: { sinPunto?: boolean; sinB
     paradas: lista.map(({ x, tipo }) => (tipo === "P" ? P(x.id, x.t.nombre) : D(x.id))), puntos,
     cambios: lista.map(({ x, tipo }) => (tipo === "P" ? x.pallets : -x.pallets)), base, capacidad: o.capacidad ?? [4, 6, 10, 12][ent(4)],
     ventanas: lista.map(({ x, tipo }) => (tipo === "D" ? x.ventana : null)), servicios: lista.map(({ x, tipo }) => (tipo === "P" ? x.carga : x.descarga)),
-    salidaMin: 480, recargaMinimaMin: 20, tiempos,
+    salidaMin: 480, recargaMinimaMin: 20, tiempos, tolerancia: o.tolerancia ?? SIN_BANDA,
   };
 }
 
@@ -225,6 +278,14 @@ function inventa(ordenes: number, semilla: number, o: { sinPunto?: boolean; sinB
 function esElOptimo(e: EntradaDeOptimizar, r: ReturnType<typeof optimizaLaLista>, o: Nota): boolean {
   const suya = cuenta(e, indicesDe(e, r.paradas));
   return suya[0] === o[0] && suya[1] === o[1] && suya[2] === o[2] && suya[3] === o[3] && suya[4] - o[4] < 10;
+}
+/** ¿El resultado es lo que elige el criterio entero? La elegida `o`, a un margen (de millas y de carga); o lo que había, si la
+ *  regla, entre lo que había y la elegida, se queda con lo que había (el margen de carga no vale un cambio). */
+function esLaElegida(e: EntradaDeOptimizar, r: ReturnType<typeof optimizaLaLista>, o: Nota, t: ToleranciaDePaso = TOLERANCIA_DE_PASO): boolean {
+  const suya = cuenta(e, indicesDe(e, r.paradas));
+  if (suya[0] !== o[0] || suya[1] !== o[1] || suya[2] !== o[2]) return false;
+  if (suya[3] === o[3] && Math.abs(suya[4] - o[4]) < 10 && Math.abs(suya[5] - o[5]) <= MARGEN_PALLET_MI * 10_000) return true;
+  return !r.cambio && elige([cuenta(e, e.paradas.map((_, i) => i)), o], t) === 0;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -241,10 +302,10 @@ const caso = (id: string) => CASOS.find((c) => c.id === id)!;
 const tiemposDe = (c: CasoReal): TiemposDeLaRuta =>
   Object.fromEntries(Object.entries(c.tiempos).map(([a, fila]) => [a, Object.fromEntries(Object.entries(fila).map(([b, [minutos, millas]]) => [b, { minutos, millas }]))]));
 /** La entrada de un caso real, con las paradas en el orden `orden` (por defecto, el guardado). */
-function entradaDe(c: CasoReal, orden: readonly number[] = c.paradas.map((_, i) => i)): EntradaDeOptimizar {
+function entradaDe(c: CasoReal, orden: readonly number[] = c.paradas.map((_, i) => i), tolerancia: ToleranciaDePaso = SIN_BANDA): EntradaDeOptimizar {
   return {
     paradas: orden.map((i) => c.paradas[i]), puntos: orden.map((i) => c.puntos[i]), cambios: orden.map((i) => c.cambios[i]), base: c.base, capacidad: c.capacidad,
-    ventanas: orden.map((i) => c.ventanas[i]), servicios: orden.map((i) => c.servicios[i]), salidaMin: 480, recargaMinimaMin: 20, tiempos: tiemposDe(c),
+    ventanas: orden.map((i) => c.ventanas[i]), servicios: orden.map((i) => c.servicios[i]), salidaMin: 480, recargaMinimaMin: 20, tiempos: tiemposDe(c), tolerancia,
   };
 }
 const resumen = (m: MedidaDeLaLista) => ({ millas: m.millas, minutos: m.minutos, exceso: m.exceso, tarde: m.tarde.length, tardeMin: m.tarde.reduce((s, t) => s + t.minutos, 0) });
@@ -341,8 +402,9 @@ describe("2 · cuando dice «exacta», es el mejor orden que existe", () => {
       const r = optimizaLaLista(e), bruta = fuerzaBruta(e);
       expect(r.exacta, `semilla ${s}`).toBe(true);
       expect(esElOptimo(e, r, bruta), `semilla ${s}: ${JSON.stringify(cuenta(e, indicesDe(e, r.paradas)))} contra ${JSON.stringify(bruta)}`).toBe(true);
-      // Y la búsqueda exhaustiva con memoria (el aparejo de las listas grandes) da lo mismo que la fuerza bruta.
-      expect(exhaustiva(e), `semilla ${s}`).toEqual(bruta);
+      // Y la búsqueda exhaustiva con memoria (el aparejo de las listas grandes) da lo mismo que la fuerza bruta (en la vara:
+      // a empate de jornada y millas pueden pasear distinto).
+      expect(exhaustiva(e).slice(0, 5), `semilla ${s}`).toEqual(bruta.slice(0, 5));
     }
   }, LARGA);
   it("contra la búsqueda exhaustiva con memoria: 24 listas de 5 a 7 órdenes (hasta 14 paradas)", () => {
@@ -430,8 +492,8 @@ describe("3 · las rutas reales donde el Optimizar de D-456 perdía", () => {
     expect(resumen(r.antes)).toEqual({ millas: 166.8, minutos: 498, exceso: 0, tarde: 2, tardeMin: 342 });
     expect(resumen(r.despues)).toEqual({ millas: 122.2, minutos: 428, exceso: 0, tarde: 0, tardeMin: 0 });
     expect(c.medido.viejo).toMatchObject({ minutos: 472, tarde: 2, tardeMin: 431 });
-    // 22 paradas: la exacta la termina, y es el mejor orden que existe.
-    expect(r.exacta).toBe(true);
+    // 22 paradas: la exacta la termina en la vara de siempre, y es el mejor orden que existe (la fase de la carga, no: sección 7).
+    expect(r.trabajo.etiquetas - r.trabajo.etiquetasDeLaBanda).toBeLessThan(600_000);
   });
   it("en las de hasta cinco órdenes, el óptimo está comprobado por FUERZA BRUTA, y el nuevo lo da", () => {
     for (const id of ["cinco-ordenes-atascada", "tres-ordenes-base-equivocada", "cuatro-ordenes-ventana", "cinco-ordenes-peor-que-antes"]) {
@@ -693,6 +755,7 @@ describe("6 · de dónde sale, y con qué se mide", () => {
 
 // =====================================================================================================================
 describe("7 · hasta dónde llega la exacta, y lo que tarda", () => {
+  const c11 = caso("once-ordenes-ventanas");
   it(`con más de ${MAX_PARADAS_DE_LA_EXACTA} paradas no se intenta: la búsqueda local, sin pasar de su presupuesto, y lo dice`, () => {
     const e = inventa(16, 31337, { juntas: true, capacidad: 12 });
     expect(e.paradas.length).toBeGreaterThan(MAX_PARADAS_DE_LA_EXACTA);
@@ -715,6 +778,10 @@ describe("7 · hasta dónde llega la exacta, y lo que tarda", () => {
     expect(notaDeLaMedida(r.despues).slice(0, 3)).toEqual([0, 0, 0]);
     expect(r.despues.minutos).toBeLessThanOrEqual(679);
     expect(r.antes.minutos).toBe(1272);
+    // Con la banda de la carga (D-464), de ahí se baja la carga sin salir de ella: 690 minutos, 11 más, por pasear menos.
+    const conBanda = optimizaLaLista({ ...e, tolerancia: TOLERANCIA_DE_PASO });
+    expect(conBanda.despues.minutos).toBeLessThanOrEqual(r.despues.minutos + minutosDeBanda(r.despues.minutos));
+    expect(conBanda.despues.cargaPalletMi).toBeLessThan(r.despues.cargaPalletMi - MARGEN_PALLET_MI);
   }, LARGA);
   it("en una ruta grande se arranca también del VECINO MÁS CERCANO, y cuenta: 16 órdenes con 684 minutos de retraso en ventanas estrechas; sin él, 719", () => {
     // Medido el 2026-10-02 con y sin ese arranque: en una ruta que la exacta no intenta solo hay dos (lo que hay y este).
@@ -737,10 +804,209 @@ describe("7 · hasta dónde llega la exacta, y lo que tarda", () => {
     expect(r.exacta).toBe(false);
     expect(resumen(r.despues)).toEqual(c.medido.optimo);
   });
-  it("una ruta real de once órdenes se resuelve EXACTA sin pasar del tope de etiquetas", () => {
-    const r = optimizaLaLista(entradaDe(caso("once-ordenes-ventanas")));
-    expect(r.exacta).toBe(true);
-    expect(r.trabajo.etiquetas).toBeGreaterThan(1000);
-    expect(r.trabajo.etiquetas).toBeLessThan(600_000);
+  it("una ruta real de once órdenes: la vara de siempre se resuelve EXACTA sin pasar del tope; la banda de la carga, en esta, no cabe, y se dice", () => {
+    // La primera fase (jornada y millas) termina en menos de 600.000 etiquetas, como en D-461. La segunda —la que busca en la
+    // banda la carga, con una dimensión más en las etiquetas— necesita 1,7 millones en esta ruta: se rinde en su tope, el orden
+    // es el que bajó la carga la búsqueda local, y `exacta` dice que no (en el aviso: «el mejor que se encontró»).
+    const r = optimizaLaLista(entradaDe(c11));
+    expect(r.trabajo.etiquetas - r.trabajo.etiquetasDeLaBanda).toBeGreaterThan(1000);
+    expect(r.trabajo.etiquetas - r.trabajo.etiquetasDeLaBanda).toBeLessThan(600_000);
+    expect(r.trabajo.etiquetasDeLaBanda).toBeGreaterThan(600_000);
+    expect(r.exacta).toBe(false);
+    expect(resumen(r.despues)).toEqual(c11.medido.optimo);
+    // Con la banda de verdad: 13 minutos más por 171 pallet·milla menos, y tampoco exacta.
+    const conBanda = optimizaLaLista(entradaDe(c11, undefined, TOLERANCIA_DE_PASO));
+    expect(conBanda.exacta).toBe(false);
+    expect(resumen(conBanda.despues)).toEqual({ ...c11.medido.optimo, minutos: 441 });
+    expect(conBanda.despues.cargaPalletMi).toBeLessThan(r.despues.cargaPalletMi - 150);
   });
+});
+
+// =====================================================================================================================
+describe("8 · entregar antes lo que está de paso (D-464): entre órdenes que miden casi lo mismo, el que menos carga pasea", () => {
+  /**
+   * La ruta de Julio del 2026-10-03, con otros nombres y puntos inventados, y los tiempos por calles que guardó el plan:
+   * recoge 3 pallets en la tienda de la base (Pharr) para «Oeste» (Weslaco, a 14 minutos), y 1 pallet en la tienda «Sur»
+   * (Brownsville, a 47) para la base. El plan la dejó P1 P2 D1 D2 —bajar al Sur con los 3 pallets de Oeste a bordo y
+   * entregarlos a la vuelta—. El dueño: «si es una vuelta tan larga como bajar a browville […] seria p1 d1 p2 d2».
+   */
+  const BASE = { lat: 26.2, lng: -98.2 }, OESTE = { lat: 26.17, lng: -98.0 }, SUR = { lat: 25.96, lng: -97.5 };
+  type Tramos = Record<string, [number, number]>;
+  const tramos = (t: Tramos): TiemposDeLaRuta => {
+    const pts: Record<string, PuntoEnElMapa> = { base: BASE, oeste: OESTE, sur: SUR };
+    const out: Record<string, Record<string, { minutos: number; millas: number }>> = {};
+    for (const [k, [minutos, millas]] of Object.entries(t)) { const [a, b] = k.split(">"); (out[clave(pts[a])!] ??= {})[clave(pts[b])!] = { minutos, millas }; }
+    return out;
+  };
+  const DEL_PLAN: Tramos = { "base>oeste": [14, 12.07], "oeste>base": [14, 10.86], "base>sur": [47, 50.56], "sur>base": [50, 52.21], "oeste>sur": [38, 40.58], "sur>oeste": [39, 41.41] };
+  const TIEMPOS = tramos(DEL_PLAN);
+  type Parada = { p: ParadaDeLaLista; pt: PuntoEnElMapa; cambio: number; servicio: number; ventana?: VentanaDeEntrega | null };
+  const ANCHA: VentanaDeEntrega = { abre: 510, cierra: 930, estrecha: false };
+  const PO = (): Parada => ({ p: P("oeste", "Tienda Base"), pt: BASE, cambio: 3, servicio: 12 });
+  const DO = (ventana: VentanaDeEntrega | null = ANCHA): Parada => ({ p: D("oeste"), pt: OESTE, cambio: -3, servicio: 15, ventana });
+  const PS = (): Parada => ({ p: P("sur", "Tienda Sur"), pt: SUR, cambio: 1, servicio: 4 });
+  const DS = (ventana: VentanaDeEntrega | null = ANCHA): Parada => ({ p: D("sur"), pt: BASE, cambio: -1, servicio: 5, ventana });
+  const julio = (lista: Parada[], extra: Partial<EntradaDeOptimizar> = {}): EntradaDeOptimizar => ({
+    paradas: lista.map((x) => x.p), puntos: lista.map((x) => x.pt), cambios: lista.map((x) => x.cambio), servicios: lista.map((x) => x.servicio),
+    ventanas: lista.map((x) => x.ventana ?? null), base: BASE, capacidad: 12, tiempos: TIEMPOS, salidaMin: 480, recargaMinimaMin: 20, ...extra,
+  });
+  const DEL_MOTOR = () => [PO(), PS(), DO(), DS()], DEL_DUENO = () => [PO(), DO(), PS(), DS()];
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+
+  it("la cuenta de la carga: pallets a bordo por milla, tramo a tramo; el orden del plan pasea 328 pallet·milla y el del dueño 88", () => {
+    const motor = mideLaLista(julio(DEL_MOTOR())), dueno = mideLaLista(julio(DEL_DUENO()));
+    // 3 pallets las 50,56 millas al Sur, 4 las 41,41 a Oeste y 1 las 10,86 de vuelta = 328,2.  Contra 3 × 12,07 + 1 × 52,21 = 88,4.
+    expect(motor).toMatchObject({ minutos: 160, millas: 102.8, cargaPalletMi: r1(3 * 50.56 + 4 * 41.41 + 1 * 10.86), tarde: [], exceso: 0 });
+    expect(dueno).toMatchObject({ minutos: 162, millas: 104.9, cargaPalletMi: r1(3 * 12.07 + 1 * 52.21), tarde: [], exceso: 0 });
+    expect([motor.cargaPalletMi, dueno.cargaPalletMi]).toEqual([328.2, 88.4]);
+    // Y la cuenta de la prueba, escrita aparte, da lo mismo.
+    expect(comoMedida(cuenta(julio(DEL_MOTOR()), [0, 1, 2, 3]))).toEqual({ minutos: 160, millas: 102.8, cargaPalletMi: 328.2 });
+    expect(comoMedida(cuenta(julio(DEL_DUENO()), [0, 1, 2, 3]))).toEqual({ minutos: 162, millas: 104.9, cargaPalletMi: 88.4 });
+  });
+  it("el caso de Julio: del orden del plan (P1 P2 D1 D2, el de menos jornada) sale P1 D1 P2 D2, 2 minutos y 2 millas más por no pasear 240 pallet·milla", () => {
+    const r = optimizaLaLista(julio(DEL_MOTOR()));
+    expect(forma(r.paradas)).toBe("Poeste Doeste Psur Dsur");
+    expect(r.cambio).toBe(true);
+    expect(r.exacta).toBe(true);
+    expect(r.antes).toMatchObject({ minutos: 160, millas: 102.8, cargaPalletMi: 328.2 });
+    expect(r.despues).toMatchObject({ minutos: 162, millas: 104.9, cargaPalletMi: 88.4 });
+    // Y sobre el orden del dueño no hay nada que tocar: es lo elegido.
+    const ya = optimizaLaLista(julio(DEL_DUENO()));
+    expect(ya.cambio).toBe(false);
+    expect(ya.exacta).toBe(true);
+    // Es lo que elige la regla escrita aparte, por fuerza bruta.
+    expect(comoMedida(fuerzaBrutaDePaso(julio(DEL_MOTOR())))).toEqual({ minutos: 162, millas: 104.9, cargaPalletMi: 88.4 });
+  });
+  it("sin la banda (como D-461) ganaba la jornada: el orden del plan se quedaba, y el del dueño se DESHACÍA", () => {
+    expect(optimizaLaLista(julio(DEL_MOTOR(), { tolerancia: SIN_BANDA })).cambio).toBe(false);
+    const deshace = optimizaLaLista(julio(DEL_DUENO(), { tolerancia: SIN_BANDA }));
+    expect(deshace.cambio).toBe(true);
+    expect(forma(deshace.paradas)).toBe("Poeste Psur Doeste Dsur");
+  });
+  it("lo encuentran las tres: la exacta sola, la búsqueda local sola (la bajada de la carga), y las dos juntas", () => {
+    expect(forma(optimizaLaLista(julio(DEL_MOTOR(), { sinBusquedaLocal: true })).paradas)).toBe("Poeste Doeste Psur Dsur");
+    const local = optimizaLaLista(julio(DEL_MOTOR(), { topeDeLaExacta: 0 }));
+    expect(forma(local.paradas)).toBe("Poeste Doeste Psur Dsur");
+    expect(local.exacta).toBe(false);
+  });
+  it("la banda: hasta un 5 % más de jornada (nunca más de 15 minutos) y 3 millas más; fuera de ella manda la jornada", () => {
+    expect(TOLERANCIA_DE_PASO).toEqual({ porcientoDeJornada: 5, maxMin: 15, millas: 3 });
+    expect(minutosDeBanda(160)).toBe(8);
+    expect(minutosDeBanda(239)).toBe(12);
+    expect(minutosDeBanda(400)).toBe(15);
+    expect(minutosDeBanda(9)).toBe(0);
+    expect(minutosDeBanda(160, SIN_BANDA)).toBe(0);
+    // El rodeo de Julio cuesta 2 minutos y 2 millas. Si de Oeste al Sur se tardara 20 minutos más (9 de banda), no vale: se queda el del plan.
+    const lejos = julio(DEL_MOTOR(), { tiempos: tramos({ ...DEL_PLAN, "oeste>sur": [58, 40.58] }) });
+    expect(optimizaLaLista(lejos).cambio).toBe(false);
+    expect(mideLaLista(julio(DEL_DUENO(), { tiempos: lejos.tiempos })).minutos).toBe(182);
+    // Y si fueran 2 minutos pero 4 millas más (3,0 de banda), tampoco.
+    const largo = julio(DEL_MOTOR(), { tiempos: tramos({ ...DEL_PLAN, "oeste>sur": [38, 42.58] }) });
+    expect(optimizaLaLista(largo).cambio).toBe(false);
+    expect(mideLaLista(julio(DEL_DUENO(), { tiempos: largo.tiempos })).millas).toBe(106.9);
+    // Con una banda más ancha, sí: la banda es lo que decide.
+    expect(optimizaLaLista({ ...lejos, tolerancia: { porcientoDeJornada: 15, maxMin: 30, millas: 3 } }).cambio).toBe(true);
+    expect(optimizaLaLista({ ...largo, tolerancia: { porcientoDeJornada: 5, maxMin: 15, millas: 5 } }).cambio).toBe(true);
+  });
+  it("el tope de 15 minutos: en una jornada larga el 5 % no se estira", () => {
+    // Los tiempos por 2,5 (las millas, no) y 12 minutos más de Oeste al Sur: 311 minutos por el plan y 327 por el dueño, 16 más. El 5 %
+    // de 311 son 16: con el tope de 15, no cabe; con un tope de 30, sí.
+    const x25 = (t: Tramos): Tramos => Object.fromEntries(Object.entries(t).map(([k, [m, mi]]) => [k, [m * 2.5, mi]]));
+    const largo = julio(DEL_MOTOR(), { tiempos: tramos({ ...x25(DEL_PLAN), "oeste>sur": [95 + 12, 40.58] }) });
+    const m = mideLaLista(largo), d = mideLaLista(julio(DEL_DUENO(), { tiempos: largo.tiempos }));
+    expect([m.minutos, d.minutos]).toEqual([311, 327]);
+    expect(Math.round(311 * 0.05)).toBe(16);
+    expect(optimizaLaLista(largo).cambio).toBe(false);
+    expect(optimizaLaLista({ ...largo, tolerancia: { porcientoDeJornada: 5, maxMin: 30, millas: 3 } }).cambio).toBe(true);
+  });
+  it("nunca a costa de la puntualidad ni de la capacidad: si entregar Oeste primero llega tarde al Sur, se queda el del plan", () => {
+    // La entrega del Sur cierra a las 10:35: por el plan llega a las 10:35 (640 − 5 de descarga); por el dueño, a las 10:37.
+    const lista = [PO(), PS(), DO(), DS({ abre: 480, cierra: 635, estrecha: false })];
+    expect(mideLaLista(julio(lista)).tarde).toEqual([]);
+    expect(mideLaLista(julio([PO(), DO(), PS(), DS({ abre: 480, cierra: 635, estrecha: false })])).tarde).toEqual([{ orden: "sur", minutos: 2, estrecha: false }]);
+    expect(optimizaLaLista(julio(lista)).cambio).toBe(false);
+    // Y en un camión de 3 pallets, llevar los 3 de Oeste y el del Sur a la vez se pasa: el orden del dueño es el único que cabe, con o sin banda.
+    const chico = optimizaLaLista(julio(DEL_MOTOR(), { capacidad: 3, tolerancia: SIN_BANDA }));
+    expect(forma(chico.paradas)).toBe("Poeste Doeste Psur Dsur");
+    expect(chico.excesoDespues).toBe(0);
+  });
+  it("el margen: un cambio que pasea menos de un pallet·milla no vale la pena, aunque quepa en la banda", () => {
+    // Si Oeste fueran 0,01 pallets, el rodeo ahorraría menos de un pallet·milla (0,9 con el del Sur): no se hace.
+    const poco = [{ ...PO(), cambio: 0.01 }, PS(), { ...DO(), cambio: -0.01 }, DS()];
+    const ahorro = (l: Parada[]) => r1(mideLaLista(julio(l)).cargaPalletMi - mideLaLista(julio([l[0], l[2], l[1], l[3]])).cargaPalletMi);
+    expect(ahorro(poco)).toBeLessThan(MARGEN_PALLET_MI);
+    expect(optimizaLaLista(julio(poco)).cambio).toBe(false);
+    // Con 0,02, más de uno: sí.
+    const algo = [{ ...PO(), cambio: 0.02 }, PS(), { ...DO(), cambio: -0.02 }, DS()];
+    expect(ahorro(algo)).toBeGreaterThan(MARGEN_PALLET_MI);
+    expect(optimizaLaLista(julio(algo)).cambio).toBe(true);
+  });
+  it("lo que ya iba a bordo al salir (una entrega sin su recogida en la lista) también cuenta: se entrega antes si está de paso", () => {
+    // La orden de Oeste ya se recogió ayer: en la lista solo está su entrega. Igual: se entrega de paso, no se pasea al Sur.
+    // (Sin ventana en Oeste: yendo directo llegaría antes de las 08:30 y la espera lo sacaría de la banda.)
+    const lista = [PS(), DO(null), DS()];
+    expect(mideLaLista(julio(lista)).cargaPalletMi).toBe(328.2);
+    const r = optimizaLaLista(julio(lista));
+    expect(forma(r.paradas)).toBe("Doeste Psur Dsur");
+    expect(r.despues.cargaPalletMi).toBe(88.4);
+    // Y la cuenta de la prueba lo mide igual.
+    expect(comoMedida(cuenta(julio(lista), [0, 1, 2])).cargaPalletMi).toBe(328.2);
+  });
+  it("un empate exacto en jornada y millas lo decide la carga, también con la banda apagada", () => {
+    // Una recta: la base en 0 y dos entregas en 10 (1 pallet) y en 20 (5 pallets). Ir y volver mide lo mismo en cualquier orden (40 minutos,
+    // 40 millas). Entregar primero lo de 10 pasea 6 × 10 + 5 × 10 = 110; lo de 20 primero, 6 × 20 + 1 × 10 = 130.
+    const en = (x: number): PuntoEnElMapa => ({ lat: 30 + x / 1000, lng: -101 });
+    const recta: Record<string, Record<string, { minutos: number; millas: number }>> = {};
+    for (const a of [0, 10, 20]) for (const b of [0, 10, 20]) if (a !== b) (recta[clave(en(a))!] ??= {})[clave(en(b))!] = { minutos: Math.abs(a - b), millas: Math.abs(a - b) };
+    const e = (lista: ParadaDeLaLista[], cambios: number[]): EntradaDeOptimizar => ({ paradas: lista, puntos: lista.map((p) => (p.tipo === "P" ? en(0) : p.orden === "a" ? en(10) : en(20))), cambios, base: en(0), capacidad: 10, tiempos: recta, servicios: [5, 5, 5, 5], tolerancia: SIN_BANDA });
+    const ab = e([P("a"), P("b"), D("a"), D("b")], [1, 5, -1, -5]), ba = e([P("a"), P("b"), D("b"), D("a")], [1, 5, -5, -1]);
+    expect(mideLaLista(ab)).toMatchObject({ minutos: mideLaLista(ba).minutos, millas: mideLaLista(ba).millas, cargaPalletMi: 110 });
+    expect(mideLaLista(ba).cargaPalletMi).toBe(130);
+    expect(optimizaLaLista(ab).cambio).toBe(false);
+    const r = optimizaLaLista(ba);
+    expect(r.cambio).toBe(true);
+    expect(forma(r.paradas)).toBe("Pa Pb Da Db");
+    expect(r.despues.cargaPalletMi).toBe(110);
+  });
+  it("contra la FUERZA BRUTA con el criterio entero: 90 listas inventadas de 2 a 4 órdenes, y 24 de 5 a 7 con la exhaustiva", () => {
+    for (let s = 0; s < 90; s++) {
+      const e = inventa(2 + (s % 3), 100 + s, { sinPunto: s % 5 === 0, sinBase: s % 7 === 0, capacidad: s % 4 === 0 ? 4 : undefined, cierre: s % 3 === 0 ? 700 : undefined, tolerancia: TOLERANCIA_DE_PASO });
+      const r = optimizaLaLista(e), elegida = fuerzaBrutaDePaso(e);
+      expect(r.exacta, `semilla ${s}`).toBe(true);
+      expect(esLaElegida(e, r, elegida), `semilla ${s}: ${JSON.stringify(cuenta(e, indicesDe(e, r.paradas)))} contra ${JSON.stringify(elegida)}`).toBe(true);
+      // La exacta sola también.
+      expect(esLaElegida(e, optimizaLaLista({ ...e, sinBusquedaLocal: true }), elegida), `semilla ${s} (exacta sola)`).toBe(true);
+    }
+    for (let s = 0; s < 24; s++) {
+      const e = inventa(5 + (s % 3), 500 + s, { sinPunto: s % 6 === 0, sinBase: s % 9 === 0, capacidad: s % 4 === 0 ? 6 : undefined, cierre: s % 3 === 0 ? 760 : undefined, tolerancia: TOLERANCIA_DE_PASO });
+      const r = optimizaLaLista(e);
+      expect(r.exacta, `semilla ${s}`).toBe(true);
+      expect(esLaElegida(e, r, exhaustivaDePaso(e)), `semilla ${s}`).toBe(true);
+    }
+  }, LARGA);
+  it("y la banda decide de verdad en las inventadas: en varias, el elegido no es el de menos jornada", () => {
+    let distintos = 0;
+    for (let s = 0; s < 90; s++) {
+      const e = inventa(2 + (s % 3), 100 + s, { sinPunto: s % 5 === 0, sinBase: s % 7 === 0, capacidad: s % 4 === 0 ? 4 : undefined, cierre: s % 3 === 0 ? 700 : undefined });
+      const lex = fuerzaBruta(e), elegida = fuerzaBrutaDePaso(e);
+      if (elegida[3] !== lex[3] || elegida[4] !== lex[4]) { distintos++; expect(elegida[3]).toBeLessThanOrEqual(lex[3] + minutosDeBanda(lex[3])); expect(elegida[5]).toBeLessThan(lex[5]); }
+    }
+    expect(distintos).toBeGreaterThan(2);
+  }, LARGA);
+  it("nunca sale peor de lo que entró, tampoco con la banda: ni más exceso ni más retraso; y si dura más, es por pasear menos carga dentro de la banda", () => {
+    for (let s = 0; s < 60; s++) {
+      const e = inventa(2 + (s % 9), 3000 + s, { sinPunto: s % 5 === 0, sinBase: s % 6 === 0, capacidad: s % 3 === 0 ? 5 : undefined, cierre: s % 4 === 0 ? 720 : undefined, juntas: s % 2 === 0, tolerancia: TOLERANCIA_DE_PASO });
+      const r = optimizaLaLista(e);
+      const antes = cuenta(e, e.paradas.map((_, i) => i)), despues = cuenta(e, indicesDe(e, r.paradas));
+      expect(despues[0], `semilla ${s}`).toBeLessThanOrEqual(antes[0]);
+      if (despues[0] === antes[0]) expect(despues[1], `semilla ${s}`).toBeLessThanOrEqual(antes[1]);
+      if (despues[0] === antes[0] && despues[1] === antes[1]) expect(despues[2], `semilla ${s}`).toBeLessThanOrEqual(antes[2]);
+      const mismaPena = despues[0] === antes[0] && despues[1] === antes[1] && despues[2] === antes[2];
+      if (mismaPena && (despues[3] > antes[3] || (despues[3] === antes[3] && despues[4] > antes[4]))) {
+        expect(despues[5], `semilla ${s}`).toBeLessThanOrEqual(antes[5] - MARGEN_PALLET_MI * 10_000);
+        expect(despues[3], `semilla ${s}`).toBeLessThanOrEqual(antes[3] + minutosDeBanda(antes[3]));
+        expect(despues[4], `semilla ${s}`).toBeLessThanOrEqual(antes[4] + 300);
+      }
+    }
+  }, LARGA);
 });

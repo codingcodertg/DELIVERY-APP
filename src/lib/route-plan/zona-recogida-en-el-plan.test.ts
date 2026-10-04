@@ -74,7 +74,7 @@ describe("las pantallas que reparten heredan la regla (eran tres; Auto-asignar s
   it("«Planificar el día»: lo que sale de la tienda de M hacia la zona de J va con M (sin la ciudad de la tienda, con J)", async () => {
     const con = await planificaElDia(datos([ordenDe("o1")]), "2026-10-05", "America/Chicago", deps());
     const sin = await planificaElDia(datos([ordenDe("o1")], SIN_CIUDAD), "2026-10-05", "America/Chicago", deps());
-    expect(con.plan.algorithm_version).toBe("motor-6");
+    expect(con.plan.algorithm_version).toBe("motor-7");
     expect(con.paradas.filter((p) => p.kind === "D").map((p) => p.driver_id)).toEqual(["um"]);
     expect(sin.paradas.filter((p) => p.kind === "D").map((p) => p.driver_id)).toEqual(["uj"]);
   });

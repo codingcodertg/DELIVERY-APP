@@ -35110,6 +35110,8 @@ antes que la llave de servicio, sin escrituras) y que crear pide al servidor.
 
 ## D-461 · «🧭 Optimizar» una ruta, rehecho: por calles, mirando las ventanas, desde la base del chofer, y exacto en las rutas pequeñas
 
+> **⚠ Reemplazada en parte por D-464** (2026-10-04): el orden de los objetivos tiene un quinto criterio detrás de las millas. Entre órdenes que miden casi lo mismo que el mejor (hasta un 5 % más de jornada —nunca más de 15 minutos— y 3 millas más, con el mismo exceso y el mismo retraso), gana el que menos CARGA pasea (pallets a bordo por milla): se entrega antes lo que está de paso. Así que «el mejor orden» ya no es siempre el de menos jornada: de las 37 rutas de la tabla de abajo, 19 salen con entre 0 y 13 minutos más (95 en total) y un 18 % menos de carga paseada. La búsqueda exacta tiene dos fases, y una ruta de 11 órdenes que aquí salía exacta ya no lo dice. El dueño, con la ruta de Julio: «si es una vuelta tan larga como bajar a browville […] seria p1 d1 p2 d2».
+
 **Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** deliveries 1.249.0, repo 1.335.0. **Reemplaza en parte a**
 D-456 (§3: «Optimizar» en línea recta y sin llamar a nadie; y, de §4, la recarga entera por cada fila P en la medida) y a
 D-459 (cuándo sale la pastilla «⚠ sin base»). Cada una lleva su nota.
@@ -35638,3 +35640,261 @@ contacto siguen vacíos en la recogida.
 
 **Pruebas.** Las de D-435 que afirmaban el vacío, invertidas con su nota; la lista de columnas de la P incluye ahora
 `pl_ciudad_entrega`.
+
+## D-464 · Entregar antes lo que está de paso: entre órdenes que miden casi lo mismo, gana el que menos carga pasea (Optimizar y «Armar rutas»)
+
+**Fecha:** 2026-10-04 (el pedido es del 2026-10-02) · **Migración:** ninguna · **Versión:** deliveries 1.252.0, repo 1.338.0 al
+fusionar · **Motor:** `motor-7`. **Reemplaza en parte a** D-461 (el orden de los objetivos de «🧭 Optimizar»: detrás de
+las millas hay ahora un quinto criterio, con una banda). D-461 lleva su nota.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-02, literal (como lo pasó el orquestador, no extraído del fichero de sesión), con una captura del
+plan de Julio para el 2026-10-03 (2 órdenes, 4 paradas, 102,83 mi, 2 h 38 min):
+
+> «mira esto esta mal, porque si recoje en pharr porque pharr va a ir hasta brownville recoger y despues entregar en
+> weslaco, yo se que sale mejor a la venida pero si es una vuelta tan larga como bajar a browville y no hay mas ordenes
+> que entregue en weslaco de un solo ahi seria p1 d1 p2 d2 eso es lo mas eficiente no me arreglaste bien ese optimzador»
+
+La ruta: base RDZ Pharr. **P1** recoge en Pharr 3 pallets que van a Weslaco · **P2** recoge en RDZ Brownsville 1 pallet
+que va a Pharr · **D1** Weslaco · **D2** Pharr. El plan la dejó P1 P2 D1 D2: bajar a Brownsville con los 3 pallets de
+Weslaco a bordo y entregarlos a la vuelta. Él quiere P1 D1 P2 D2: dejar Weslaco de paso, al bajar.
+
+### Qué pasaba, medido con los datos de verdad (producción, solo lectura, 2026-10-02)
+
+**1. El orden de la captura no salió del botón «Optimizar»: salió de «Armar rutas».** El plan `2026-10-03 v1`
+(`route_plans`, `source = engine`) se creó a las 04:23:01 UTC —la hora de la captura— y se publicó a las 04:24:23; las
+dos órdenes (FT604 y FT567) tienen `updated_at` en ese mismo instante, con los `route_seq`/`pickup_seq` que escribió el
+plan. Nadie pulsó Optimizar. Pero **el Optimizar de D-461 habría hecho lo mismo**: corrido sobre esas dos órdenes con la
+matriz que guardó el plan, deja P1 P2 D1 D2 como está, y si se le da P1 D1 P2 D2 **lo deshace**. El arreglo va en los dos.
+
+**2. No era un empate: el orden del plan es, de verdad, el más corto.** Con los tiempos por calles del plan:
+
+| Orden | Tramos | Al volante | Jornada | Millas | Carga paseada |
+|---|---|---|---|---|---|
+| P1 P2 D1 D2 (el plan) | Pharr→Brownsville 47 min / 50,56 mi · Brownsville→Weslaco 39 / 41,41 · Weslaco→Pharr 14 / 10,86 | 100 min | 160 min | 102,83 | **328,2 pallet·mi** |
+| P1 D1 P2 D2 (el dueño) | Pharr→Weslaco 14 / 12,07 · Weslaco→Brownsville 38 / 40,58 · Brownsville→Pharr 50 / 52,21 | 102 min | 162 min | 104,86 | **88,4 pallet·mi** |
+
+Dos minutos y dos millas a favor del plan (un 1,3 %). Los dos objetivos que había —el coste del motor, que pesa manejo y
+millas, y la vara de D-461, jornada y luego millas— eligen el primero sin dudar. Lo que ninguno miraba es lo que ve el
+dueño: en un orden los 3 pallets de Weslaco viajan 92 millas, y en el otro 12.
+
+### Qué se decidió
+
+**Un criterio nuevo, la carga transportada**: la suma, tramo a tramo, de los pallets a bordo por las millas del tramo
+(pallet·milla), contando lo que ya iba en el camión al salir. Va DESPUÉS de todo lo demás (exceso de capacidad → retraso
+en ventanas estrechas → retraso en las demás → jornada → millas) y decide **solo entre órdenes que miden casi lo mismo**:
+
+- se busca el mejor orden por la vara de siempre (el de menos jornada, y a igual jornada menos millas);
+- de los órdenes que caben en su **banda** —mismo exceso y mismo retraso, hasta un **5 % más de jornada (y nunca más de
+  15 minutos)** y hasta **3 millas más**—, se queda el que menos carga pasea;
+- y solo si le gana al mejor por **al menos 1 pallet·milla** (como la décima de milla de D-461: un cambio por menos no
+  vale la pena).
+
+Nunca se acepta más exceso ni un minuto más de retraso por esto: fuera de la banda manda la jornada, como antes.
+
+**Por qué una banda y no «a empate».** A empate exacto (banda 0) el caso de Julio no cambia —no es un empate— y de las 37
+rutas reales solo cambian 3. Y por qué una banda **anclada al mejor orden** y no una comparación de dos en dos: «casi lo
+mismo» no es un orden (A gana a B por carga, B a C por carga, C a A por jornada), y una búsqueda que lo usara de un paso
+al siguiente daría vueltas. Es lo mismo que se aprendió con el umbral de zona (D-423).
+
+**Por qué esos números** (medido sobre las 37 rutas reales de D-461, con la vara de `mide.mjs`):
+
+| Banda | Rutas que cambian respecto a D-461 | Jornada total | Millas | Carga paseada | Retraso / exceso |
+|---|---|---|---|---|---|
+| D-461 (sin criterio) | — | 9.099 min | 3.463,7 | 12.890,6 pallet·mi | 66' / 0 |
+| 0 % y 0 mi (solo empates) | 3 | 9.099 | 3.463,7 | 12.858,2 | igual |
+| **5 % (tope 15 min) y 3 mi** | **19** | **9.194 (+95, +1,0 %)** | **3.478,1 (+14,4, +0,4 %)** | **10.560,1 (−18 %)** | **igual** |
+| 5 % y 5 mi (medido con una versión anterior de este cambio: una fase, sin margen) | 21 | 9.197 | 3.484,8 | 10.885,5 | igual |
+| 10 % y 5 mi (ídem) | 20 | 9.234 | 3.489,0 | 10.555,7 | igual |
+
+El caso de Julio pide 2 minutos (1,3 %) y 2,03 millas. Con un 3 % se perdía la ruta que más se parece a su queja —el plan
+del 2026-09-28 de Julio: +12 minutos (4,3 %) y +2,2 millas por dejar de pasear 659 pallet·milla, una orden que daba toda
+la vuelta a bordo—. Con 5 millas o un 10 % entraban rodeos de 17 y 21 minutos sin ganar carga en el total. El tope de 15
+minutos es para las jornadas largas: en una de nueve horas el 5 % serían 27, más de lo que pidió ninguna ruta real (el
+mayor cambio medido es de +13). Y el margen de 1 pallet·milla quitó un cambio absurdo: una ruta de 12 órdenes cambiaba de
+orden y duraba un minuto más por pasear 0,1 pallet·milla menos.
+
+**Lo que cuesta, dicho claro.** Con este criterio 19 de las 37 rutas salen **a propósito** con algo más de jornada que
+con D-461 (entre 0 y 13 minutos; 95 en total, un 1,0 %) y 14 millas más en total, a cambio de un 18 % menos de carga
+paseada. Ninguna llega más tarde a nada ni se pasa de capacidad. Es lo que pidió el dueño («yo se que sale mejor a la
+venida pero […] eso es lo mas eficiente»), pero la banda es una decisión de este cambio y **hay que validarla con él**:
+los cambios flojos de la tabla (+7 minutos por 20 pallet·milla, +8 por 30) son el precio de una regla simple. Si no le
+convencen, lo siguiente es pedir un mínimo de carga ahorrada por minuto de rodeo; no se hizo porque es un segundo
+número sin ningún dato suyo que lo fije.
+
+### La tabla: las 37 rutas reales, D-461 contra este cambio
+
+Cada celda: minutos de jornada · millas · minutos de retraso · pallet·milla. «(guardada)» = el orden guardado en
+`deliveries`; «(plan)» = el que escribió un plan de «Armar rutas». E, J y M son los tres choferes. Medido el 2026-10-04
+con `compara-carga.mjs` (fuera del repo, junto a `mide.mjs`), sobre el volcado del 2026-10-02.
+
+| Ruta | Órd. | D-461: min · mi · tarde · pallet·mi | D-464: min · mi · tarde · pallet·mi | Cambia | Exacta |
+|---|---|---|---|---|---|
+| 2026-09-29 E (guardada) | 6 | 321 · 96.2 · 3' · 395.8 | 321 · 96.2 · 3' · 395.8 | no | sí |
+| 2026-09-29 J (guardada) | 11 | 428 · 122.2 · 0' · 639.0 | 441 · 122.2 · 0' · 467.7 | +13 min, +0.0 mi, -171.3 p·mi | no |
+| 2026-09-29 M (guardada) | 2 | 256 · 174.2 · 0' · 389.5 | 256 · 174.2 · 0' · 389.5 | no | sí |
+| 2026-10-01 E (guardada) | 2 | 141 · 47.9 · 0' · 102.2 | 141 · 47.9 · 0' · 102.2 | no | sí |
+| 2026-10-01 J (guardada) | 3 | 250 · 49.6 · 22' · 142.2 | 250 · 49.6 · 22' · 142.2 | no | sí |
+| 2026-10-01 M (guardada) | 3 | 183 · 112.8 · 0' · 284.8 | 185 · 114.8 · 0' · 180.5 | +2 min, +2.0 mi, -104.3 p·mi | sí |
+| 2026-10-02 E (guardada) | 8 | 155 · 43.2 · 0' · 151.0 | 163 · 45.7 · 0' · 120.6 | +8 min, +2.5 mi, -30.4 p·mi | sí |
+| 2026-10-02 J (guardada) | 8 | 428 · 156.7 · 41' · 797.5 | 434 · 157.3 · 41' · 772.3 | +6 min, +0.6 mi, -25.2 p·mi | sí |
+| 2026-09-21 v1 E (plan) | 2 | 134 · 68.3 · 0' · 102.1 | 141 · 68.8 · 0' · 82.2 | +7 min, +0.5 mi, -19.9 p·mi | sí |
+| 2026-09-21 v1 J (plan) | 4 | 195 · 56.2 · 0' · 240.0 | 195 · 56.2 · 0' · 240.0 | no | sí |
+| 2026-09-21 v1 M (plan) | 3 | 249 · 128.8 · 0' · 141.5 | 249 · 128.8 · 0' · 141.5 | no | sí |
+| 2026-09-21 v2 E (plan) | 5 | 282 · 61.8 · 0' · 161.3 | 282 · 61.8 · 0' · 161.3 | no | sí |
+| 2026-09-21 v2 J (plan) | 2 | 150 · 42.0 · 0' · 256.9 | 154 · 43.6 · 0' · 136.3 | +4 min, +1.6 mi, -120.6 p·mi | sí |
+| 2026-09-21 v2 M (plan) | 5 | 215 · 101.6 · 0' · 235.3 | 221 · 98.6 · 0' · 142.9 | +6 min, -3.0 mi, -92.4 p·mi | sí |
+| 2026-09-27 v1 E (plan) | 12 | 337 · 153.0 · 0' · 578.8 | 337 · 153.0 · 0' · 578.8 | no | sí |
+| 2026-09-27 v1 J (plan) | 6 | 130 · 25.1 · 0' · 134.6 | 130 · 25.1 · 0' · 134.6 | no | sí |
+| 2026-09-27 v1 M (plan) | 11 | 191 · 102.8 · 0' · 524.0 | 191 · 102.8 · 0' · 524.0 | no | sí |
+| 2026-09-27 v2 E (plan) | 2 | 82 · 21.0 · 0' · 42.3 | 82 · 21.0 · 0' · 42.3 | no | sí |
+| 2026-09-27 v2 J (plan) | 18 | 365 · 144.3 · 0' · 764.1 | 365 · 144.3 · 0' · 764.1 | no | no |
+| 2026-09-27 v2 M (plan) | 9 | 239 · 127.3 · 0' · 686.0 | 244 · 127.9 · 0' · 482.1 | +5 min, +0.6 mi, -203.9 p·mi | sí |
+| 2026-09-28 v1 E (plan) | 2 | 169 · 43.5 · 0' · 194.5 | 169 · 43.5 · 0' · 194.5 | no | sí |
+| 2026-09-28 v1 J (plan) | 5 | 278 · 112.5 · 0' · 863.3 | 290 · 114.7 · 0' · 203.9 | +12 min, +2.2 mi, -659.4 p·mi | sí |
+| 2026-09-29 v1 E (plan) | 5 | 317 · 89.0 · 0' · 368.8 | 318 · 88.0 · 0' · 265.3 | +1 min, -1.0 mi, -103.5 p·mi | sí |
+| 2026-09-29 v1 J (plan) | 10 | 334 · 91.2 · 0' · 382.6 | 336 · 91.6 · 0' · 358.3 | +2 min, +0.4 mi, -24.3 p·mi | sí |
+| 2026-09-29 v1 M (plan) | 4 | 338 · 173.5 · 0' · 645.5 | 338 · 173.5 · 0' · 536.2 | +0 min, +0.0 mi, -109.3 p·mi | sí |
+| 2026-09-29 v2 J (plan) | 10 | 334 · 91.2 · 0' · 382.6 | 336 · 91.6 · 0' · 358.3 | +2 min, +0.4 mi, -24.3 p·mi | sí |
+| 2026-09-30 v1 E (plan) | 4 | 239 · 78.7 · 0' · 375.1 | 240 · 79.5 · 0' · 306.4 | +1 min, +0.8 mi, -68.7 p·mi | sí |
+| 2026-09-30 v1 M (plan) | 4 | 262 · 142.7 · 0' · 489.9 | 265 · 144.7 · 0' · 314.4 | +3 min, +2.0 mi, -175.5 p·mi | sí |
+| 2026-10-01 v1 E (plan) | 6 | 281 · 71.9 · 0' · 214.6 | 287 · 71.5 · 0' · 151.9 | +6 min, -0.4 mi, -62.7 p·mi | sí |
+| 2026-10-01 v1 J (plan) | 2 | 192 · 43.4 · 0' · 125.1 | 192 · 43.4 · 0' · 125.1 | no | sí |
+| 2026-10-01 v1 M (plan) | 3 | 183 · 112.8 · 0' · 284.8 | 185 · 114.8 · 0' · 180.5 | +2 min, +2.0 mi, -104.3 p·mi | sí |
+| 2026-10-01 v2 E (plan) | 5 | 213 · 63.5 · 0' · 229.2 | 213 · 63.5 · 0' · 229.2 | no | sí |
+| 2026-10-01 v2 J (plan) | 2 | 138 · 32.7 · 0' · 36.9 | 138 · 32.7 · 0' · 36.9 | no | sí |
+| 2026-10-01 v2 M (plan) | 3 | 183 · 112.8 · 0' · 284.8 | 185 · 114.8 · 0' · 180.5 | +2 min, +2.0 mi, -104.3 p·mi | sí |
+| 2026-10-02 v1 E (plan) | 3 | 299 · 144.6 · 0' · 336.4 | 299 · 144.6 · 0' · 336.4 | no | sí |
+| 2026-10-02 v1 J (plan) | 8 | 312 · 67.9 · 0' · 285.6 | 325 · 69.1 · 0' · 159.4 | +13 min, +1.2 mi, -126.2 p·mi | sí |
+| 2026-10-02 v1 M (plan) | 7 | 296 · 156.8 · 0' · 622.0 | 296 · 156.8 · 0' · 622.0 | no | sí |
+
+**Total:** D-461 9.099 min · 3.463,7 mi · 12.890,6 pallet·mi → este cambio 9.194 min · 3.478,1 mi · 10.560,1 pallet·mi.
+Cambian 19; en ninguna sube el retraso ni el exceso. La tabla de `mide.mjs` da los mismos totales (3.478,1 mi, 9.194 min,
+3 entregas tarde con 66', las mismas de D-461; y «el nuevo no es el óptimo» en 0 de 37, porque su «óptimo» es ya este
+criterio).
+
+### Cómo está hecho
+
+**«🧭 Optimizar» (`src/lib/optimiza-la-ruta.ts`).**
+
+- La cuenta (`mide`) lleva un sexto número, la carga paseada, y la medida lo enseña (`cargaPalletMi`). Una entrega cuya
+  recogida no está en la lista (ya se recogió) cuenta **a bordo desde la salida**, como en el motor; antes el camión
+  «salía vacío» y esa carga no contaba ni para la capacidad.
+- La vara de las búsquedas (`mejorNota`) **no cambia**: jornada y millas. La carga se decide aparte, con `eligeDePaso`
+  (el mejor, su banda, el que menos pasea, el margen).
+- **Búsqueda local**: `bajaLaCarga`, una bajada con los movimientos de siempre que solo acepta lo que pasea menos sin
+  salir de la banda de la partida. La banda es fija y la carga baja en cada paso: termina.
+- **Búsqueda exacta, en dos fases**. La primera es la de D-461 (el mejor por jornada y millas). La segunda vuelve a
+  recorrer los estados acotada a la banda de ese mejor —poda por minutos, por millas y por la carga que ya lleva
+  paseada— con la carga como una dimensión más de las etiquetas, y devuelve el que menos pasea. En una sola fase (la
+  banda alrededor de la cota, sin conocer aún el mejor) tres rutas reales de 10 a 12 órdenes dejaban de caber en el tope.
+  Cada fase tiene su tope de 600.000 etiquetas: la pulsación más lenta medida en Node, sobre las 37 rutas, es de 663 ms (en Chrome no se midió).
+- `exacta` dice la verdad de las dos fases: si la segunda no termina, el orden es el que bajó la búsqueda local y el
+  aviso dice «el mejor que se encontró». Pasa en UNA ruta real que antes salía exacta (11 órdenes: la segunda fase pide
+  1,7 millones de etiquetas). Siguen siendo 35 exactas de 37.
+- «¿Vale la pena el cambio?» usa el mismo criterio entre lo que había y lo nuevo: sobre un orden que ya es el elegido,
+  pulsar Optimizar no cambia nada (y ya no deshace el P1 D1 P2 D2 del dueño).
+
+**«Armar rutas» (`src/lib/route-engine/planifica.ts`, `motor-7`).** Una pasada al final, `entregaLoQueEstaDePaso`,
+después de la mejora y de la vuelta a la zona: cada ruta, **sin cambiar de chofer ni de órdenes**, se reordena moviendo
+una orden cada vez (su recogida y su entrega, a todos los puestos) al orden que menos carga pasea de los que caben en la
+banda de la ruta que dejó la mejora: misma banda de jornada y millas, **ni un minuto más tarde, ni un minuto-builder
+más, sin violaciones nuevas, sin retrasar a las críticas y altas, y sin mover lo que fijó una persona**. Va después de la
+mejora y no dentro de su comparación por lo mismo que `vuelveASuZona`. Se enciende con `parametros.dePaso`: sin él el
+motor planifica byte a byte como `motor-6` (las huellas de `motor-1` siguen pasando); `entradaDelDia` lo pone siempre,
+así que todo plan nuevo lo lleva y se guarda en `route_plans.params`.
+
+Medido replanificando los 15 planes guardados (38 rutas de 3 o más paradas), `motor-6` contra `motor-7`: **el reparto
+entre choferes y lo que queda fuera es idéntico en los 15**; cambian de orden 13 rutas, ninguna con más retraso, más
+minutos-builder ni más violaciones. Total 9.735 → 9.785 min (+0,5 %), 3.967,2 → 3.977,3 mi, 13.929 → 11.406 pallet·mi
+(−18 %). El plan más grande (29 órdenes) pasa de 4,5 a 5,1 s. Las que cambian:
+
+| Plan · chofer | Órd. | motor-6: min · mi · tarde · pallet·mi | motor-7: min · mi · tarde · pallet·mi | Diferencia |
+|---|---|---|---|---|
+| 2026-09-27 v1 E | 12 | 352 · 144.0 · 0' · 957.1 | 356 · 144.4 · 0' · 612.6 | +4 min, 0.4 mi, -344.5 p·mi |
+| 2026-09-27 v2 J | 18 | 404 · 154.0 · 0' · 832.6 | 407 · 154.6 · 0' · 671.6 | +3 min, 0.6 mi, -160.9 p·mi |
+| 2026-09-27 v2 M | 9 | 256 · 124.0 · 0' · 655.3 | 261 · 124.6 · 0' · 470.8 | +5 min, 0.6 mi, -184.5 p·mi |
+| 2026-09-27 v3 J | 18 | 404 · 154.0 · 0' · 832.6 | 407 · 154.6 · 0' · 671.6 | +3 min, 0.6 mi, -160.9 p·mi |
+| 2026-09-27 v3 M | 9 | 256 · 124.0 · 0' · 655.3 | 261 · 124.6 · 0' · 470.8 | +5 min, 0.6 mi, -184.5 p·mi |
+| 2026-09-28 v1 J | 5 | 285 · 112.5 · 0' · 452.0 | 290 · 114.6 · 0' · 212.3 | +5 min, 2.1 mi, -239.7 p·mi |
+| 2026-09-28 v2 J | 5 | 285 · 112.5 · 0' · 452.0 | 290 · 114.6 · 0' · 212.3 | +5 min, 2.1 mi, -239.7 p·mi |
+| 2026-09-29 v1 J | 10 | 341 · 100.0 · 0' · 441.8 | 346 · 98.5 · 0' · 301.3 | +5 min, -1.5 mi, -140.5 p·mi |
+| 2026-09-29 v2 J | 10 | 341 · 100.0 · 0' · 441.8 | 346 · 98.5 · 0' · 301.3 | +5 min, -1.5 mi, -140.5 p·mi |
+| 2026-10-01 v1 M | 3 | 183 · 112.8 · 0' · 284.8 | 185 · 114.8 · 0' · 180.5 | +2 min, 2.0 mi, -104.3 p·mi |
+| 2026-10-01 v2 M | 3 | 183 · 112.8 · 0' · 284.8 | 185 · 114.8 · 0' · 180.5 | +2 min, 2.0 mi, -104.3 p·mi |
+| 2026-10-02 v1 M | 7 | 367 · 242.4 · 0' · 714.3 | 369 · 242.4 · 0' · 435.1 | +2 min, 0.0 mi, -279.2 p·mi |
+| 2026-10-03 v1 J | 2 | 158 · 102.8 · 0' · 328.2 | 162 · 104.9 · 0' · 88.4 | +4 min, 2.0 mi, -239.8 p·mi |
+
+(La última es la de la captura: P1 D1 P2 D2. Son 158 → 162 y no 160 → 162 porque el plan guardado trae tiempos con
+tráfico por hora.)
+
+La banda, el margen y la cuenta de la carga de una ruta del motor viven en `src/lib/route-engine/de-paso.ts` y
+`evalua.ts` (`cargaTransportadaDe`), compartidos por los dos.
+
+### Pruebas
+
+`src/lib/optimiza-la-ruta.test.ts`, sección 8 (el caso de Julio anonimizado —«base», «oeste», «sur», con los tiempos del
+plan—): la cuenta de la carga; del orden del plan sale P1 D1 P2 D2 y sobre el del dueño no cambia nada; sin la banda se
+quedaba el del plan y se deshacía el del dueño; lo encuentran la exacta sola y la búsqueda local sola; los bordes de la
+banda (minutos, millas, el tope de 15); nunca a costa de la puntualidad ni de la capacidad; el margen; lo que ya iba a
+bordo; el empate exacto; y contra la **fuerza bruta con el criterio entero escrito aparte** (90 listas de 2 a 4 órdenes,
+24 de 5 a 7 con la exhaustiva). Las secciones 2 a 4 y 7 —la vara de D-461— corren con la banda apagada (`SIN_BANDA`) y
+siguen dando sus números. `src/lib/route-engine/de-paso.test.ts`: el plan de Julio con y sin `dePaso`, cada cosa que la
+pasada no rompe, y que «Armar rutas» lo pide.
+
+Pruebas de antes que cambian, y por qué: la versión del motor (`motor-6` → `motor-7`, cuatro ficheros); los parámetros
+que salen de Ajustes (llevan `dePaso`, dos ficheros); las millas de los diez días reales sin zonas (2.559 → 2.560, la
+pasada suma una milla); «una ruta real de once órdenes se resuelve EXACTA» (ahora: la primera fase sí, la de la carga no
+cabe, y se dice); y `fuerza bruta = exhaustiva` se compara en la vara (a empate pueden pasear distinto).
+
+**Mutantes** (`mutantes.mjs`, tanda de 28):
+
+| Mutante (la regla que se rompe) | Resultado | Prueba que lo tumba (de las que caen) |
+|---|---|---|
+| la cuenta deja de sumar la carga paseada en cada tramo | cae (11) | §8 · la cuenta de la carga: pallets a bordo por milla, tramo a tramo; el orden del plan pasea 328 pallet·milla y el del dueño 88 |
+| lo que ya iba a bordo al salir deja de contar | cae (1) | §8 · lo que ya iba a bordo al salir (una entrega sin su recogida en la lista) también cuenta: se entrega antes si está de paso |
+| la banda deja de limitar los minutos de más | cae (10) | §8 · la banda: hasta un 5 % más de jornada (nunca más de 15 minutos) y 3 millas más; fuera de ella manda la jornada |
+| la banda deja de limitar las millas de más | cae (4) | §8 · la banda: hasta un 5 % más de jornada (nunca más de 15 minutos) y 3 millas más; fuera de ella manda la jornada |
+| la banda deja de exigir el mismo exceso y el mismo retraso | cae (22) | §8 · nunca a costa de la puntualidad ni de la capacidad: si entregar Oeste primero llega tarde al Sur, se queda el del plan |
+| el margen de un pallet·milla desaparece | cae (2) | §8 · el margen: un cambio que pasea menos de un pallet·milla no vale la pena, aunque quepa en la banda |
+| eligeDePaso deja de mirar la carga: se queda con el de menos jornada | cae (9) | §8 · el caso de Julio: del orden del plan (P1 P2 D1 D2, el de menos jornada) sale P1 D1 P2 D2, 2 minutos y 2 millas más por no pasear 240 pallet·milla |
+| la ruta que la exacta no termina deja de bajar la carga (búsqueda local sola) | cae (2) | §8 · lo encuentran las tres: la exacta sola, la búsqueda local sola (la bajada de la carga), y las dos juntas |
+| tras la exacta deja de bajarse la carga con la búsqueda local (lo que queda si la segunda fase no cabe) | cae (1) | 7 · hasta dónde llega la exacta, y lo que tarda una ruta real de once órdenes: la vara de siempre se resuelve EXACTA sin pasar del tope; la banda de la carga, en esta, no |
+| la segunda fase de la exacta (la carga en la banda) no corre | cae (11) | §8 · el caso de Julio: del orden del plan (P1 P2 D1 D2, el de menos jornada) sale P1 D1 P2 D2, 2 minutos y 2 millas más por no pasear 240 pallet·milla |
+| «¿vale la pena?» vuelve a mirar solo jornada y millas | cae (8) | §8 · el caso de Julio: del orden del plan (P1 P2 D1 D2, el de menos jornada) sale P1 D1 P2 D2, 2 minutos y 2 millas más por no pasear 240 pallet·milla |
+| la exacta deja de sumar la carga paseada en sus etiquetas | cae (3) | §8 · lo encuentran las tres: la exacta sola, la búsqueda local sola (la bajada de la carga), y las dos juntas |
+| en la banda, una etiqueta domina a otra sin mirar la carga | cae (3) | §8 · lo encuentran las tres: la exacta sola, la búsqueda local sola (la bajada de la carga), y las dos juntas |
+| la exacta en la banda deja de podar por las millas de la banda | **vive** | Ninguna, y es lo esperado: esa poda solo ahorra trabajo; lo que se sale de la banda lo descarta la elección final (`enLaBandaDe`). Se deja por el coste. |
+| el tope de 15 minutos de la banda desaparece | cae (3) | §8 · la banda: hasta un 5 % más de jornada (nunca más de 15 minutos) y 3 millas más; fuera de ella manda la jornada |
+| la banda del motor deja de limitar las millas | cae (2) | la banda y la carga, en números la banda: 5 % de jornada con tope de 15 minutos, y 3 millas; con 0 %, nada |
+| la banda del motor deja de limitar la jornada | cae (2) | la banda y la carga, en números la banda: 5 % de jornada con tope de 15 minutos, y 3 millas; con 0 %, nada |
+| el motor no hace la pasada de «lo que está de paso» | cae (7) | el plan de Julio: de P1 P2 D1 D2 a P1 D1 P2 D2 con `dePaso` entrega Oeste de paso: 2 minutos y 2 millas más, 240 pallet·milla menos, sin dejar nada fuera ni llegar tarde |
+| la pasada corre aunque no se pida (sin `dePaso`) | cae (1) | el plan de Julio: de P1 P2 D1 D2 a P1 D1 P2 D2 sin `dePaso` (motor-6) el plan baja al Sur con los 3 pallets de Oeste a bordo: lo de la captura, 102,83 millas |
+| la pasada acepta llegar más tarde | cae (1) | la banda en el motor: lo que NO se cambia por pasear menos ni un minuto más tarde: si entregar Oeste primero llega tarde al Sur, no se toca |
+| la pasada acepta retrasar a un builder | cae (1) | la banda en el motor: lo que NO se cambia por pasear menos ni un minuto-builder más: si la del Sur es de un builder, entregar Oeste antes la retrasa 2 minutos, y no se ha |
+| la pasada acepta violaciones nuevas (salirse del turno) | cae (1) | la banda en el motor: lo que NO se cambia por pasear menos sin violaciones nuevas: si el turno acaba justo cuando vuelve por el orden corto, los 2 minutos de más lo sacar |
+| la pasada retrasa a una crítica | cae (1) | la banda en el motor: lo que NO se cambia por pasear menos las críticas no se retrasan: si la del Sur es crítica, no se le pone delante la entrega de Oeste |
+| la pasada cambia por menos de un pallet·milla | cae (1) | la banda en el motor: lo que NO se cambia por pasear menos el margen: por menos de un pallet·milla no se cambia nada |
+| la pasada mueve lo que fijó una persona | cae (1) | la banda en el motor: lo que NO se cambia por pasear menos lo que fijó una persona no se mueve |
+| «Armar rutas» deja de pedir la pasada | cae (2) | el plan de Julio: de P1 P2 D1 D2 a P1 D1 P2 D2 «Armar rutas» lo lleva siempre: los parámetros que salen de Ajustes traen la banda, y `planificaElDia` usa esos |
+| la carga de una ruta del motor olvida lo que ya iba a bordo al salir | cae (1) | la banda y la carga, en números la carga transportada de una ruta evaluada: pallets a bordo por milla, tramo a tramo, y lo que ya iba al salir |
+| la carga de una ruta del motor olvida la vuelta a la base | **vivía** → código quitado | La vuelta a la base siempre es en vacío (lo recogido se entrega en la ruta): era código de sobra, y se quitó. |
+
+26 de 28 caen con una prueba con nombre; los dos que vivían, explicados arriba (uno es una poda de rendimiento, el otro era código de sobra y se quitó).
+
+### Lo que NO se hizo, y lo no verificado
+
+- **No se abrió la pantalla.** Todo está medido en Node y en vitest; no se pulsó «Optimizar» ni se armó un plan en el
+  navegador con este cambio, ni se cronometró en Chrome (las cifras de tiempo son de Node en esta máquina).
+- **El aviso de Optimizar no dice la carga.** Cuando el cambio es por carga, el aviso dirá «+2.1 mi · +2 min»: verdad, pero
+  sin el porqué. `cargaPalletMi` ya viene en el resultado; falta decidir cómo se le cuenta al despachador.
+- **La tarjeta del plan no enseña la carga paseada**, ni hay un interruptor en Ajustes para la banda: es una constante.
+- **Los planes ya publicados no cambian**: el del 2026-10-03 de Julio sigue como está hasta que se vuelva a armar o se
+  pulse Optimizar en su ruta.
+- **La banda (5 % / 15 min / 3 mi / 1 pallet·mi) no la ha visto el dueño.** Es lo que hay que validar con él.
+- En rutas grandes (más de 26 paradas) y en la ruta de 11 órdenes la carga la baja la búsqueda local: buena, no comprobada
+  óptima.
+- Fuera del repo: `D:/CLAUDE/entregas/optimizar/` (`compara-carga.mjs`, `compara-motor.mjs`, `build-2.mjs`, `d461/` con el
+  build y la tabla de D-461). `build-2.mjs` pisó `viejo/` con el código de `origin/main` (ya D-461) y rompió `mide.mjs`;
+  se restauró desde `af320339^` (`restaura-viejo.mjs`).
