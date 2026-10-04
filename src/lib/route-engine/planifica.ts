@@ -1,5 +1,6 @@
+import { enLaBanda, MARGEN_PALLET_MI } from "./de-paso";
 import {
-  aCentesimas, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
+  aCentesimas, cargaTransportadaDe, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
   puntasFueraDeZona, UMBRAL_DE_ZONA_POR_DEFECTO_MI, zonasReclamadas, type Contexto,
 } from "./evalua";
 import type {
@@ -21,7 +22,10 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-6` (D-427): la zona de la RECOGIDA también cuenta — recoger en la tienda de la zona de otro chofer es una
+/** `motor-7` (D-NEXT): entregar antes lo que está de paso — con `parametros.dePaso`, ya repartido y mejorado el plan, cada
+ *  ruta se reordena al orden que menos carga pasea de los que miden casi lo mismo (`entregaLoQueEstaDePaso`). Sin el
+ *  parámetro, lo mismo que `motor-6`, byte a byte (la misma huella).
+ *  `motor-6` (D-427): la zona de la RECOGIDA también cuenta — recoger en la tienda de la zona de otro chofer es una
  *  punta fuera de zona, como entregar allí (`puntasFueraDeZona`); y si eso deja más órdenes fuera, se queda el plan que
  *  cuenta solo la entrega. Sin zonas, lo mismo que `motor-5`, byte a byte (la misma huella).
  *  `motor-5` (D-423, T-0413): la zona, antes que el builder y el balance — una entrega fuera de su zona vuelve al chofer
@@ -32,7 +36,7 @@ import type {
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-6";
+export const VERSION_DEL_MOTOR = "motor-7";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -448,6 +452,62 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   // La zona, antes que el builder y el balance (D-423): lo que vuelve a su zona, y otra vuelta de mejora que ya no puede
   // sacarlo. Cada vuelta baja las entregas fuera de zona: se acaba.
   while (convergio && vuelveASuZona() > 0) mejoraElPlan(true);
+
+  /**
+   * Entregar antes lo que está de paso (D-NEXT, `motor-7`). El dueño, 2026-10-02, con el plan de Julio (recoger 3 pallets
+   * en Pharr para Weslaco y 1 en Brownsville para Pharr, que el motor dejó P1 P2 D1 D2): «si recoje en pharr porque pharr
+   * va a ir hasta brownville recoger y despues entregar en weslaco, yo se que sale mejor a la venida pero si es una vuelta
+   * tan larga como bajar a browville […] ahi seria p1 d1 p2 d2 eso es lo mas eficiente». Los dos órdenes miden casi lo
+   * mismo (2 minutos y 2 millas); uno pasea 3 pallets 92 millas y el otro 12.
+   *
+   * Ya repartido y mejorado el plan, cada ruta —sin cambiar de chofer ni de órdenes— se reordena al orden que MENOS CARGA
+   * pasea (pallets a bordo por milla, `cargaTransportadaDe`) de los que miden casi lo mismo que el que dejó la mejora: la
+   * banda `dePaso` de jornada y millas de más, sin ni un minuto más tarde ni de builder, sin violaciones nuevas y sin
+   * adelantar menos a las críticas. Como `vuelveASuZona`, va DESPUÉS de la mejora y no dentro de su comparación, a
+   * propósito: «casi lo mismo» no es un orden entre planes (A gana a B por carga, B a C, C a A por jornada) y la
+   * búsqueda daría vueltas; aquí la banda es FIJA —la de la ruta que dejó la mejora— y la carga baja al menos
+   * `MARGEN_PALLET_MI` en cada cambio, así que termina. Lo mismo que hace «🧭 Optimizar» (`optimiza-la-ruta.ts`): si
+   * un chofer pulsa Optimizar sobre un plan recién armado, no tiene que cambiarle el orden.
+   */
+  function entregaLoQueEstaDePaso(): number {
+    const tol = parametros.dePaso;
+    if (!tol) return 0;
+    let cambios = 0;
+    for (const c of choferes) {
+      const ref = estado.rutas.get(c.id)!;
+      if (ref.paradas.length < 3) continue;
+      const banda = { jornadaMin: ref.duracionMin, centiMillas: aCentesimas(ref.millas) };
+      const adelantoRef = adelanto(ref);
+      let cargaActual = cargaTransportadaDe(ref, porId);
+      for (let mejoro = true; mejoro; ) {
+        mejoro = false;
+        const sec = estado.secuencias.get(c.id)!;
+        const suyas = [...new Set(sec.map((p) => p.orden))].map((id) => porId.get(id)!).filter((o) => o && !ordenesFijadas.has(o.id)).sort(porClave);
+        for (const o of suyas) {
+          const base = estado.secuencias.get(c.id)!.filter((p) => p.orden !== o.id);
+          const n = base.length;
+          let mejor: { secuencia: ParadaRef[]; ruta: RutaEvaluada; carga: number } | null = null;
+          const prueba = (secuencia: ParadaRef[]) => {
+            const ruta = evaluaRuta(c, secuencia, ctx);
+            if (ruta.violaciones.length > ref.violaciones.length || ruta.tardeMin > ref.tardeMin || ruta.builderMin > ref.builderMin) return;
+            if (!enLaBanda(ruta.duracionMin, aCentesimas(ruta.millas), banda, tol) || adelanto(ruta) > adelantoRef) return;
+            const carga = cargaTransportadaDe(ruta, porId);
+            if (carga > cargaActual - MARGEN_PALLET_MI || (mejor && carga >= mejor.carga)) return;
+            mejor = { secuencia, ruta, carga };
+          };
+          if (o.recogidaHecha) { for (let j = 0; j <= n; j++) prueba([...base.slice(0, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]); }
+          else for (let i = 0; i <= n; i++) for (let j = i; j <= n; j++) prueba([...base.slice(0, i), { orden: o.id, tipo: "P" }, ...base.slice(i, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]);
+          if (mejor) {
+            const h = mejor as { secuencia: ParadaRef[]; ruta: RutaEvaluada; carga: number };
+            aplica({ chofer: c.id, secuencia: h.secuencia, ruta: h.ruta, coste: costeCon(c.id, h.ruta), adelanto: adelanto(h.ruta) });
+            cargaActual = h.carga; cambios++; movimientos++; mejoro = true;
+          }
+        }
+      }
+    }
+    return cambios;
+  }
+  entregaLoQueEstaDePaso();
 
   // ---- Por qué quedó fuera cada una ---------------------------------------------------------------
   const ORDEN_DE_MOTIVOS: TipoDeViolacion[] = ["capacidad", "ventana_estrecha", "retraso_sobre_el_tope", "fuera_de_turno", "sin_tiempo_de_viaje"];
