@@ -10,7 +10,7 @@ import { shiftDateISO, todayISO } from "./utils";
 import type { Delivery, NamedLocation, Stage, UserRole } from "./types";
 
 /**
- * D-NEXT · La factura pendiente es de TODA orden sin `invoice_num`, también de una Intertienda.
+ * D-465 · La factura pendiente es de TODA orden sin `invoice_num`, también de una Intertienda.
  *
  * El dueño, 2026-10-04: «invoice number not working there are orders without invoice and is not showing,
  * interiteda are pending». Medido ese día en producción (solo lectura): 13 Intertiendas abiertas sin factura

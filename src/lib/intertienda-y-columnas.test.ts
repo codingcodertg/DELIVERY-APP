@@ -159,7 +159,7 @@ describe("g y h · la pestaña «Factura pendiente»", () => {
   const reglas = { ACliente: { storeToStore: false }, EntreTiendas: { storeToStore: true, docRef: "po" } } as unknown as OrderTypeRules;
   const base = { stage: "delivered" as const, po2: null, so_num: null, invoice_num: null, estimate_num: null };
 
-  // D-NEXT cambió la tercera: a la EntreTiendas sin nada le falta su PO **y** la factura, así que entra en la
+  // D-465 cambió la tercera: a la EntreTiendas sin nada le falta su PO **y** la factura, así que entra en la
   // pestaña (el dueño, 2026-10-04: «interiteda are pending»). Antes se exigía `[true, false, false, false]` y que
   // `facturaPendiente` fuera «el documento del tipo es la factura». Lo de D-338 que sigue: la pestaña es de
   // FACTURAS, y a una orden con factura a la que solo le falta el PO no la mete.
@@ -179,7 +179,7 @@ describe("g y h · la pestaña «Factura pendiente»", () => {
   // Hasta D-407: «la exención de ventana de D-313 usa la misma regla…», y exigía la línea de la
   // exención. D-407 la quitó (*«invoice pending solo muestra yesterday, today y tomorrow y future»*):
   // ahora nada entra en la lista por tener la factura pendiente, así que lo que se exige es que no vuelva.
-  // D-NEXT: la orden ABIERTA sí entra con cualquier fecha, pero por su etapa, no por tener la factura pendiente.
+  // D-465: la orden ABIERTA sí entra con cualquier fecha, pero por su etapa, no por tener la factura pendiente.
   it("ya no hay exención de ventana por factura pendiente (D-407): ninguna orden entra por eso", () => {
     const lib = leer("src/lib/ordenes-visibles.ts");
     expect(lib).not.toContain("pendientesEntran &&");

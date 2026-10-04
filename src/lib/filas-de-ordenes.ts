@@ -27,7 +27,7 @@ export type ListasDeOrdenes = {
   /**
    * Lo que ve la pestaña «Factura pendiente»: de ayer en adelante para todos los roles (D-407; antes
    * entraba lo viejo con factura pendiente, D-313), **cortado a las tiendas de quien mira** (D-404).
-   * Desde D-NEXT la orden abierta entra con cualquier fecha; el corte de ayer es para la entregada.
+   * Desde D-465 la orden abierta entra con cualquier fecha; el corte de ayer es para la entregada.
    */
   conPendientes: readonly Delivery[];
   /** Todas las atrasadas abiertas que la persona ve (`vaAAtrasadas`): ayer incluida. Están también en `visibles`. */
@@ -43,7 +43,7 @@ export function filasDeOrdenes(
 ): Delivery[] {
   // «Outdated» no es una etapa: enseña las atrasadas de TODAS las etapas abiertas.
   if (filtro === PESTANA_ATRASADAS) return listas.atrasadas.filter(pasaElPreset);
-  // Tampoco la de factura pendiente: enseña toda orden sin factura (D-NEXT), de todas las etapas vivas.
+  // Tampoco la de factura pendiente: enseña toda orden sin factura (D-465), de todas las etapas vivas.
   if (filtro === PESTANA_DOCUMENTO_PENDIENTE) {
     return listas.conPendientes.filter((d) => facturaPendiente(d, reglas) && pasaElPreset(d));
   }

@@ -32,7 +32,7 @@ type ConDocumentos = Pick<Partial<Delivery>, "order_type" | CampoDeDocumento>;
 const limpio = (v: unknown) => String(v ?? "").trim();
 const documento = (campo: CampoDeDocumento, d: ConDocumentos): DocumentoDeLaOrden => ({ campo, ...DOCUMENTOS[campo], numero: limpio(d[campo]) });
 
-/** La factura de la orden, tenga o no número: lo que se pinta y se captura cuando falta (D-NEXT). */
+/** La factura de la orden, tenga o no número: lo que se pinta y se captura cuando falta (D-465). */
 export const documentoDeFactura = (d: ConDocumentos): DocumentoDeLaOrden => documento("invoice_num", d);
 
 export function documentoPrincipal(d: ConDocumentos, reglas: OrderTypeRules): DocumentoDeLaOrden | null {

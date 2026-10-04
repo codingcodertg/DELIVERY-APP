@@ -20818,7 +20818,7 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 
 ## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04). El dueño: *«there are orders without invoice and is not showing,
+> **⚠ Reemplazada en parte por D-465** (2026-10-04). El dueño: *«there are orders without invoice and is not showing,
 > interiteda are pending»*. Lo que aquí se decidió **no contar** —las Intertiendas sin `invoice_num`, «pedirle a la gente
 > un papel que ese tipo no lleva»— ahora **sí se cuenta**: la factura pendiente es de toda orden sin `invoice_num`, y va
 > **aparte** del documento del tipo (el PO de una Intertienda sigue siendo su documento). La fila puede enseñar dos
@@ -23601,7 +23601,7 @@ casa, buscar al teclear, el campo que se abre al enfocar, mostrador reconocido p
 
 ## D-338 · El ancho de las columnas es de la persona; «Factura pendiente» es solo de facturas y empieza por la tienda propia; y la cuenta de una Intertienda deja de pintarse
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04), solo el punto de «solo facturas». La pestaña sigue siendo de
+> **⚠ Reemplazada en parte por D-465** (2026-10-04), solo el punto de «solo facturas». La pestaña sigue siendo de
 > FACTURAS y no de POs —una orden con factura a la que solo le falta el PO no entra—, pero «le falta la factura» ya no
 > es «su tipo pide factura y no la tiene»: es toda orden sin `invoice_num`, también una Intertienda.
 
@@ -29401,7 +29401,7 @@ respuesta. Una prueba exige que todas las entradas de `vercel.json` sean diarias
 
 ## D-407 · Órdenes: las atrasadas vuelven a salir en «Todas» (y siguen en «Outdated»), y «Factura pendiente» solo de ayer en adelante
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04), solo el punto 2. El corte «de ayer en adelante» de «Factura
+> **⚠ Reemplazada en parte por D-465** (2026-10-04), solo el punto 2. El corte «de ayer en adelante» de «Factura
 > pendiente» vale ahora **solo para la orden ya entregada**. Una orden **abierta** sin factura entra tenga la fecha que
 > tenga: medido ese día, 8 de las 13 Intertiendas abiertas sin factura tenían fecha anterior a ayer y el corte las
 > escondía. Las entregadas viejas siguen fuera, que es lo que el dueño pidió aquí.
@@ -35915,9 +35915,9 @@ cabe, y se dice); y `fuerza bruta = exhaustiva` se compara en la vara (a empate 
   build y la tabla de D-461). `build-2.mjs` pisó `viejo/` con el código de `origin/main` (ya D-461) y rompió `mide.mjs`;
   se restauró desde `af320339^` (`restaura-viejo.mjs`).
 
-## D-NEXT · La factura pendiente es de toda orden sin número de factura, también de una Intertienda
+## D-465 · La factura pendiente es de toda orden sin número de factura, también de una Intertienda
 
-**Fecha:** 2026-10-04 · **Versión:** la asigna el orquestador al fusionar (Entregas) · **Sin migración.**
+**Fecha:** 2026-10-04 · **Versión:** deliveries 1.253.0, repo 1.339.0 (Entregas) · **Sin migración.**
 **Reemplaza en parte a** D-310 (qué cuenta como factura pendiente), D-338 (la pestaña «solo de facturas») y D-407 (la
 ventana de la pestaña); las tres llevan su nota. **No toca** D-399 ni la migración 146: crear una Intertienda sigue sin
 exigir factura.

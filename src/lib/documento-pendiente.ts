@@ -14,7 +14,7 @@ import { PESTANA_ATRASADAS } from "./atrasadas";
  * Qué documento cuenta lo decide `documentoPrincipal` —la regla del tipo—, no «la factura» a secas:
  * contado a secas salían 35 órdenes sin `invoice_num`, y 31 eran Intertiendas, cuyo documento es el PO.
  *
- * **Desde D-NEXT la factura se cuenta APARTE, y a toda orden.** El dueño, 2026-10-04: «there are orders
+ * **Desde D-465 la factura se cuenta APARTE, y a toda orden.** El dueño, 2026-10-04: «there are orders
  * without invoice and is not showing, interiteda are pending». El documento del tipo sigue siendo el suyo
  * (`documentoPendiente`: el PO de una Intertienda), pero **además** a toda orden sin `invoice_num` le falta
  * la factura (`facturaPendiente`), y las dos cosas se ven en la fila (`documentosPendientes`).
@@ -73,7 +73,7 @@ export function documentoPendiente(d: OrdenConDocumento, reglas: OrderTypeRules)
  * FILA sigue diciendo «PO pendiente» donde toque (`documentoPendiente`): eso es de la orden, no de la pestaña.
  */
 /**
- * **D-NEXT: es de TODA orden sin `invoice_num`, no solo de los tipos cuyo documento es la factura.** El dueño, 2026-10-04:
+ * **D-465: es de TODA orden sin `invoice_num`, no solo de los tipos cuyo documento es la factura.** El dueño, 2026-10-04:
  * «invoice number not working there are orders without invoice and is not showing, interiteda are pending». Medido ese día:
  * 13 Intertiendas abiertas sin factura (todas con su PO) y la pestaña decía 0, porque esto miraba `documentoPendiente`, que
  * para una Intertienda es el PO. Ya no pasa por el documento del tipo: mira la etapa y la factura.
@@ -88,7 +88,7 @@ export function facturaPendiente(d: OrdenConDocumento, reglas: OrderTypeRules): 
 }
 
 /**
- * Todo lo que la fila enseña como pendiente (D-NEXT): el documento del tipo si falta, **y** la factura si falta. Una Intertienda
+ * Todo lo que la fila enseña como pendiente (D-465): el documento del tipo si falta, **y** la factura si falta. Una Intertienda
  * con su PO y sin factura enseña «Factura pendiente»; sin ninguno de los dos, las dos pastillas, el PO primero. Nunca repite
  * la factura cuando ya es el documento del tipo.
  */
@@ -112,7 +112,7 @@ export function etiquetaDePendiente(doc: DocumentoDeLaOrden, lang: "en" | "es"):
  * - Ventas, fuera de eso: solo `invoice_num`, y solo en SU orden. Es exactamente lo que abre la
  *   migración 125 en `guard_delivery_stage`, que no mira el tipo; un input que la base rechaza es peor
  *   que ninguno (D-044). En una Intertienda sin PO ni factura el vendedor ve «PO pendiente» sin input y
- *   escribe la factura (D-NEXT; hasta entonces no podía escribir nada en una Intertienda).
+ *   escribe la factura (D-465; hasta entonces no podía escribir nada en una Intertienda).
  * - Chofer y almacén, nunca: almacén edita campos en sus etapas, pero el papeleo no es suyo.
  */
 export function camposCapturablesEnFila(

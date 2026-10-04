@@ -70,7 +70,7 @@ describe("documentoPendiente: el documento que exige el TIPO, no «la factura» 
   });
 });
 
-// Hasta D-NEXT era `campoCapturableEnFila`, UN campo o `null`: solo se miraba el documento del tipo. Ahora
+// Hasta D-465 era `campoCapturableEnFila`, UN campo o `null`: solo se miraba el documento del tipo. Ahora
 // la factura le falta a toda orden, así que pueden faltar dos cosas y la respuesta es la lista de las que
 // esta persona puede escribir. Las expectativas son las mismas de D-310, salvo donde se dice.
 describe("camposCapturablesEnFila: quién escribe el número sin abrir la orden", () => {
@@ -88,7 +88,7 @@ describe("camposCapturablesEnFila: quién escribe el número sin abrir la orden"
     expect(camposCapturablesEnFila(yo("sales"), orden({ created_by: "vendedor-1", assigned_sales_rep: "vendedor-2" }), reglas)).toEqual([]);
   });
 
-  // D-NEXT cambió el resultado, no la regla: el PO y la estimación siguen sin poder escribirlos, pero a esas
+  // D-465 cambió el resultado, no la regla: el PO y la estimación siguen sin poder escribirlos, pero a esas
   // órdenes ahora también les falta la factura, y esa sí es suya (la 125 no mira el tipo). Antes: `null`.
   it("ventas: el PO o la estimación que falte los VE y no los escribe (la 125 solo abre invoice_num); la factura de esa orden, sí", () => {
     expect(camposCapturablesEnFila(yo("sales"), orden({ order_type: "ConPO" }), reglas)).toEqual(["invoice_num"]);
@@ -208,7 +208,7 @@ describe("la pantalla usa la regla, no una copia", () => {
   });
 
   it("la pastilla decide con las dos funciones y no abre la orden al pulsarla", () => {
-    // D-NEXT: son las dos de la lista —puede faltar el documento del tipo y además la factura—.
+    // D-465: son las dos de la lista —puede faltar el documento del tipo y además la factura—.
     expect(pastilla).toContain("documentosPendientes(d, reglas)");
     expect(pastilla).toContain("camposCapturablesEnFila(me, d, reglas)");
     expect(pastilla).not.toMatch(/\.role\b/);

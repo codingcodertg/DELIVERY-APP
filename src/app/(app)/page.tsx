@@ -399,7 +399,7 @@ export default function OrdersPage() {
    *
    * `visibles` es la de siempre y de ella salen «Todas» y las cuentas por etapa (con las atrasadas
    * dentro, D-407); `conPendientes` es la de «Factura pendiente»: lo abierto con cualquier fecha y lo
-   * entregado de ayer en adelante, para todos (D-407, D-NEXT).
+   * entregado de ayer en adelante, para todos (D-407, D-465).
    */
   const { visibles: visible, conPendientes, atrasadas, alcancePendientes, alcanceLista } = useMemo(
     () => ordenesVisibles(deliveries, {

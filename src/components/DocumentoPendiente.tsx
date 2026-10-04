@@ -14,7 +14,7 @@ import type { Delivery } from "@/lib/types";
  * número escrito ahí mismo, sin abrir la orden (D-310). Qué falta lo decide `documentosPendientes` y quién
  * puede escribir qué campo, `camposCapturablesEnFila`; aquí solo se pinta.
  *
- * **Una pastilla por documento que falte (D-NEXT).** Desde que la factura se le cuenta a toda orden, a una
+ * **Una pastilla por documento que falte (D-465).** Desde que la factura se le cuenta a toda orden, a una
  * Intertienda le pueden faltar dos cosas a la vez —su PO y la factura—, y cada una se escribe en su campo.
  *
  * Vive dentro de una fila que abre la orden al pulsarla, así que todo lo que se pulsa aquí para el

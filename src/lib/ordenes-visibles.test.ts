@@ -196,7 +196,7 @@ describe("las piezas por separado", () => {
     expect(pasaLaVentana(pendienteVieja({ delivery_date: AYER }), ctx())).toBe(true);
   });
 
-  // D-NEXT: esto vale para la ENTREGADA (`pendienteVieja` lo es). La abierta entra con cualquier fecha; se
+  // D-465: esto vale para la ENTREGADA (`pendienteVieja` lo es). La abierta entra con cualquier fecha; se
   // prueba en `factura-pendiente-de-toda-orden.test.ts`.
   it("`pasaLaVentanaDePendientes`: de ayer en adelante y sin fecha, para TODOS; solo el sandbox se la salta (D-407)", () => {
     const vieja = pendienteVieja();
