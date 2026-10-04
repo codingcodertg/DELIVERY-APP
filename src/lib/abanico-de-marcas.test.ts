@@ -90,8 +90,12 @@ describe("dónde está cableado: solo el Gestor", () => {
     expect(gestor).toContain("const abanico = abanicoDeMarcas(pts);");
     expect(gestor).toContain("return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;");
   });
+  it("«Ruta de hoy» (D-NEXT) pinta todas las rutas a la vez, como el Gestor, y abre el mismo abanico", () => {
+    expect(leer("src/lib/mapa-de-rutas.ts")).toContain("const abanico = abanicoDeMarcas(pts);");
+    expect(leer("src/app/(app)/map/page.tsx")).toContain("() => enAbanico(puntosDeLasRutas<ParadaDelDia>({");
+  });
   it("las otras pantallas que montan un mapa no lo usan: allí nada se mueve", () => {
-    for (const ruta of ["src/app/(app)/map/page.tsx", "src/app/(app)/my-route/page.tsx", "src/app/(app)/track/page.tsx",
+    for (const ruta of ["src/app/(app)/my-route/page.tsx", "src/app/(app)/track/page.tsx",
                         "src/app/(app)/warehouse/page.tsx", "src/app/(app)/market/page.tsx", "src/components/OrderModal.tsx"]) {
       expect(leer(ruta), ruta).not.toContain("abanicoDeMarcas");
     }

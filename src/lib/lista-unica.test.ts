@@ -300,8 +300,11 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
     expect(tarjeta).toContain("if (v) void pasaA(u.key, ordenesDeLaFila, v);");      // D-459: con la ruta de salida, para deshacer
   });
   it("el panel de choferes mide la CARGA MÁXIMA de la lista contra el camión, no la suma del día", () => {
-    expect(pagina).toContain("const pallets = cuentaDePallets(lecturaDe(u.key, stops).filas.map((f) => f.cambio), capacityFor(u.driver)).totales.cargaMaxima;");
-    expect(pagina).toContain("{numeroDePallets(pallets)}/{cap}");
+    // **Puesto al día por D-NEXT**: la cuenta es `cargaDelPanel` (lib/mapa-de-rutas) y la pinta `PanelDeChoferes`; las dos
+    // las comparten el Gestor y «Ruta de hoy».
+    expect(leer("src/lib/mapa-de-rutas.ts")).toContain("const pallets = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad).totales.cargaMaxima;");
+    expect(pagina).toContain("carga: cargaDelPanel(lecturaDe(u.key, stops), capacityFor(u.driver)),");
+    expect(leer("src/components/PanelDeChoferes.tsx")).toContain("{numeroDePallets(pallets)}/{cap}");
   });
   it("sin viajes: ni «Viaje N», ni cabecera de viaje, ni «Ver un viaje», ni unir/dividir", () => {
     for (const x of ["🚚 {t(\"Truckload\", \"Viaje\")}", "data-viaje-visto", "data-unir-viajes", "data-dividir-en-dos", "data-recogida-viaje", "tripColor(", "viajeVisto"]) expect(pagina).not.toContain(x);
@@ -423,7 +426,8 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
     expect(tarjeta).toContain("const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;");
     // La medida usa la MISMA clave para la recogida. (**Puesto al día por D-461**: lo que la recogida tarda ya no es la recarga
     // entera por fila, sino lo de su visita a la tienda —`minutosEnCadaParada`—. La clave «P:» + su puesto no cambia.)
-    expect(pagina).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });");
+    // (**Puesto al día por D-NEXT**: la medida vive en `lib/usa-medida-de-rutas`, que comparten el Gestor y «Ruta de hoy».)
+    expect(leer("src/lib/usa-medida-de-rutas.ts")).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });");
     // D-456: detrás de la clase del grupo va la raya de «aquí cae» mientras se arrastra una fila.
     expect(tarjeta).toContain("className={`${claseDeLaFilaDelPlan(\"P\")}${claseDeGrupo(f)}${claseDeSoltar}`}");
     expect(tarjeta).toContain('" row-done" : ""}${claseDeGrupo(f)}${claseDeSoltar}`}');

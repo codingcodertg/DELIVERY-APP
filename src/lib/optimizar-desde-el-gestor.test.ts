@@ -112,20 +112,25 @@ describe("1 · la base de la ruta es la tienda DEL CHOFER, no la recogida más r
       expect(hook).toContain("if (LOCAL_MODE) return;");
     });
     it("la base ya NO es la dirección de recogida más repetida de las órdenes de la ruta", () => {
-      const direccion = trozo("const pickupAddressFor = (laneKey: string): string | null =>", "// Geocode (and cache");
+      const direccion = trozo("const pickupAddressFor = (laneKey: string): string | null =>", "// Lo del día sin chofer.");
       expect(direccion).toContain("(tiendaBaseDe(laneKey)?.address ?? \"\").trim() || null;");
       expect(pagina).not.toContain("counts.set(a, (counts.get(a) ?? 0) + 1)");
       expect(pagina).not.toContain("d.pickup_address || \"\").trim(); if (a) counts");
     });
     it("`baseDeLaRuta`: las coordenadas de ESA tienda; sin tienda, sin base", () => {
-      const base = trozo("const baseDeLaRuta = (laneKey: string): { lat: number; lng: number } | null => {", "/** Las coordenadas de una tienda de recogida");
+      // **Puesto al día por D-NEXT**: `baseDeLaRuta` y la medida viven en `useMedidaDeRutas` (lib/usa-medida-de-rutas), que
+      // comparten el Gestor y «Ruta de hoy»; la tienda base se la sigue diciendo la pantalla (`tiendaBaseDe`).
+      const medida = plano(leer("src/lib/usa-medida-de-rutas.ts"));
+      const base = trozo("const baseDeLaRuta = (laneKey: string): { lat: number; lng: number } | null => {", "// A driver's stops changed", medida);
+      expect(pagina).toContain("tiendaBaseDe, coordsDeTienda,");
       expect(base).toContain("const tienda = tiendaBaseDe(laneKey); if (!tienda) return null;");
       expect(base).toContain("if (tienda.lat != null && tienda.lng != null) return { lat: tienda.lat, lng: tienda.lng };");
     });
     it("de esa base salen el Optimizar y la medida de la tarjeta (millas y llegadas): las dos, de la misma", () => {
       const optimizar = trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.");
       expect(optimizar).toContain("const base = baseDeLaRuta(laneKey);");
-      const mide = trozo("const mideLaRuta = async", "const pintaLaMedida =");
+      const mide = trozo("const mideLaRuta = async", "const pintaLaMedida =", plano(leer("src/lib/usa-medida-de-rutas.ts")));
+      expect(pagina).toContain("getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({");
       expect(mide).toContain("const base = baseDeLaRuta(laneKey);");
       expect(mide).toContain("const depot: [number, number] | null = base ? [base.lat, base.lng] : await getDepotCoords(pickupAddressFor(laneKey));");
     });
@@ -493,7 +498,8 @@ describe("5 · el aviso al terminar dice lo ganado, y lo que queda mal", () => {
 // =====================================================================================================================
 describe("6 · la medida de la tarjeta cuenta las horas como el optimizador", () => {
   it("las recogidas seguidas en la misma tienda son UNA visita también en la medida: ya no suma la recarga entera por fila", () => {
-    const mide = trozo("const mideLaRuta = async", "const pintaLaMedida =");
+    // **Puesto al día por D-NEXT**: la medida de una lista es `mideLaLista` (lib/usa-medida-de-rutas).
+    const mide = trozo("export async function mideLaLista", "/** La forma de la ruta que se mide", plano(leer("src/lib/usa-medida-de-rutas.ts")));
     expect(mide).toContain("const parado = minutosEnCadaParada(lista, lista.map((p) => (p.tipo === \"D\" ? serviceMin(byId.get(p.orden)?.delivery_duration) : p.ordenes.reduce((n, id) => n + serviceMin(byId.get(id)?.pickup_duration), 0))), RELOAD_MIN);");
     expect(mide).toContain("puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: parado[i] });");
     expect(mide).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });");
