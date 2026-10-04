@@ -31659,6 +31659,11 @@ estimate upload option»*.
 > cotización»), en una pestaña con todos. Subir a una cotización sigue igual; quitar, quien lo subió o el admin, ya sin
 > exigir ver la cotización.
 
+> **Reemplazada en parte por D-NEXT** (2026-10-04, migración 161): el competidor pasa a «Empresa competidora», con la
+> lista de las ya usadas, y **sí se puede corregir después** (en la tabla de productos del estimado; la decisión 4 de aquí
+> decía que no). Hay dos botones para subir («Tomar foto», con la cámara, y «Elegir PDF o foto»), y sin cotización guardada
+> la sección ofrece guardarla. Cada archivo se puede **leer** para sacar sus productos.
+
 ## D-426 · En Entregas, «Atrasada» pasa a llamarse «Expirada»
 
 **Fecha:** 2026-09-27. **Pedido del dueño**, literal: *«change atrasado to Expirado in delivery app»*.
@@ -33787,6 +33792,10 @@ descargo final.
 - **La 156 no está aplicada**; la subida por la API de Storage (el servicio, no Postgres) contra la base no se probó: se
   mide tras aplicar, subiendo un PDF pequeño suelto y quitándolo.
 - `window.print()` real: como en D-413, solo se miró la hoja en pantalla.
+
+> **Reemplazada en parte por D-NEXT** (2026-10-04, migración 161): en la pestaña, cada estimado dice además la empresa
+> y el total corregidos y cuántos productos tiene, y «Productos» abre su tabla (leída del documento o tecleada). El campo
+> «Competidor (opcional)» pasa a «Empresa competidora», con la lista de las ya usadas, y hay botón de cámara.
 
 ## D-452 · Una orden que no cabe en el camión son DOS órdenes (#Xa, #Xb): 2 P y 2 D, cada carga con su chofer, su puesto y su etapa (migración 157)
 
@@ -36030,3 +36039,188 @@ tocar la regla del tipo o la 146, y dejaría sin poder moverse a las 13 abiertas
 - El guardado de ventas sobre una Intertienda **contra la base real** (125/145): leído en el SQL, no ensayado.
 - La fila con dos pastillas en un **teléfono** (tarjeta): no se abrió a ese ancho.
 - El número 13 **en producción con el código nuevo**: calculado, no visto.
+
+## D-NEXT · Quote Builder: el estimado de la competencia se sube con la cámara, lleva la empresa competidora como campo propio, y se LEE (Claude con visión) para sacar sus productos a una tabla que el vendedor corrige, guarda y empareja con sus líneas (migración 161, depende de la 156)
+
+**Fecha:** 2026-10-04 · **Versión:** la pone el orquestador (toca `src/app/estimator/`, `src/lib/estimator/` y una ruta nueva en
+`src/app/api/estimator/`: sube `estimator`) · **Migración:** `161_competencia_productos.sql`, **escrita y NO aplicada**; **depende
+de la 156**, que tampoco está aplicada (plan: `docs/PLAN-161-competencia-productos.md`, matriz de 30 casos **ensayada contra
+producción con ROLLBACK: 30/30**, con la 156 aplicada dentro de la misma transacción). **Reemplaza en parte a** D-425 y D-451,
+que llevan su nota.
+
+**Qué pidió el dueño** (2026-10-04, cita tal como la pasó el orquestador; no extraída del fichero de sesión):
+
+```
+in the quote builder addd the compettiton pdf or pcicture upload / compettiros company name and also products from the  and the ocr to recognize the images,
+```
+
+**«products from the » llegó cortado.** Se leyó como «los productos del estimado de la competencia» (lo que sigue, «the ocr to
+recognize the images», lo confirma). Si quería otra cosa —por ejemplo, productos del catálogo propio— hay que preguntárselo.
+
+### Qué había antes de tocar (medido el 2026-10-04)
+
+- Subir el PDF o la foto del estimado de la competencia **ya existía** en dos sitios: pegado a una cotización guardada (D-425,
+  migración 153, aplicada) y suelto en la pestaña «Competitor estimates» (D-451, migración 156, **sin aplicar**: en producción
+  la pestaña dice «falta actualizar la base (migración 156)»).
+- Por archivo se podía escribir «Competidor (opcional)», su total y una nota, **solo al subir** (la tabla no tiene `UPDATE`).
+- **No había** cámara (un solo botón «Elegir archivos…»), ni lista de empresas ya usadas, ni lectura del documento, ni
+  productos, ni comparación con la cotización propia. El repo no tenía ninguna llamada a un modelo de lenguaje.
+- En producción (`begin read only`): **0** archivos de la competencia, **0** objetos en el cubo; con el módulo `estimator`,
+  **4** perfiles, los 4 admin.
+
+### Qué hay ahora
+
+1. **Subir, con cámara.** En la sección de la cotización y en la pestaña hay dos botones: **«📷 Tomar foto»**
+   (`<input accept="image/*" capture="environment">`: en el celular abre la cámara) y **«📎 Elegir PDF o foto…»**
+   (`accept="image/*,application/pdf,.pdf,.heic,.heif"`, varios a la vez). Son dos y no uno porque un `<input capture>` obliga
+   a la cámara y no deja elegir un PDF. Lo que se cuele y no sea de la lista (un GIF) lo sigue parando `validaArchivos`.
+   **En la cotización**, cuando todavía no está guardada, la sección ya no solo dice «guarda primero»: trae el botón
+   **«💾 Guardar la cotización para pegar el estimado de la competencia»** (hace el mismo guardado de siempre).
+2. **La empresa competidora, campo propio.** El campo se llama «Competitor company / Empresa competidora», y al teclear ofrece
+   **las ya usadas** (`<datalist>`: las escritas en cualquier estimado de la competencia y las corregidas en una lectura, sin
+   repetir sin mirar mayúsculas) o se escribe una nueva. Está al subir y dentro de «Productos», donde **se puede corregir
+   después** (antes no se podía: la tabla de archivos no tiene `UPDATE`; la corregida vive en la tabla nueva y la pantalla
+   enseña esa si existe).
+3. **Leer el documento.** Cada estimado tiene un botón **«🧾 Productos»** que abre su tabla. Dentro, **«🔎 Leer productos»**
+   llama a `POST /api/estimator/leer-competencia` con el id del archivo. El servidor comprueba la sesión, el módulo y que el
+   archivo sea de quien pide (o admin), lo baja del cubo con la llave de servicio y se lo pasa a **Claude con visión**. Vuelve:
+   empresa, fecha, número, **productos** (descripción, marca, SKU, cantidad, unidad —`SF` / `box` / `piece`, o lo que diga el
+   papel—, precio unitario, total de línea), subtotal, impuesto y total. **Lo que no se leyó vuelve `null` y se ve en blanco**;
+   al modelo se le prohíbe adivinar o calcular, y lo que llega se vuelve a validar (un texto donde va un número es `null`, una
+   fecha que no es `AAAA-MM-DD` es `null`).
+4. **La tabla se corrige y se guarda.** Lo leído queda en la tabla **sin guardar**: se corrige, se añaden o quitan filas y
+   **«Guardar»**. Sin lectura (sin llave, tope agotado, HEIC, error) la tabla está igual para **teclear a mano**.
+5. **En la lista**, cada estimado dice **empresa, su total y nº de productos**, y «Productos (N)» lo abre con su tabla. Quien
+   no lo subió (y no es admin) la ve en solo lectura, sin «Leer» ni «Guardar».
+6. **Lado a lado, en la cotización.** Cada fila tiene «Nuestra línea»: el vendedor elige **a mano** con qué línea propia va.
+   Entonces sale *«Suyo: $2.19 / SF · total $1,095.00 — Nuestro (1 · DEMO-2448): $2.50 / SF · total $1,250.00 — Estamos
+   $0.31 / SF más caros»*. La diferencia **solo sale si las dos unidades coinciden**: un $/caja contra un $/SF no se compara.
+   La lectura nunca empareja nada (aunque la respuesta trajera un emparejado, se descarta).
+7. **Interno** (D-425): nada de esto entra en `QuoteDraft` ni en `HojaDelCliente`; la tabla vive dentro de la sección que
+   `@media print` quita con `display: none`. La hoja no cambia.
+
+### La llamada a la API
+
+- **Modelo: `claude-opus-5-5`** (el Opus vigente; lee imágenes y PDF). Se cambia sin tocar código con `COMPETENCIA_MODELO`.
+- **Forma:** `POST https://api.anthropic.com/v1/messages`, cabeceras `x-api-key`, `anthropic-version: 2023-06-01` y
+  `anthropic-beta: server-side-fallback-2026-07-01`; cuerpo con `max_tokens: 16000`, `system` (las instrucciones),
+  `output_config: { effort: "medium", format: { type: "json_schema", schema } }` (**salida estructurada**: la API garantiza
+  que la respuesta cumple el esquema, con todos los campos anulables), `fallbacks: "default"` (si el modelo se niega, la API
+  reintenta en otro dentro de la misma llamada) y un mensaje con el archivo en base64 —bloque `document` para PDF, `image`
+  para foto— seguido del texto. Sin `thinking`, sin `temperature`, sin `tool_choice`. Antes de leer el contenido se mira
+  `stop_reason`: `refusal` y `max_tokens` son error, no lectura.
+- **«JSON por herramienta» no se usó:** el encargo sugería sacar el JSON forzando una herramienta, y en este modelo forzar
+  `tool_choice` devuelve 400. La salida estructurada es el camino que da lo mismo.
+- **Con `fetch`, no con el SDK oficial** (`@anthropic-ai/sdk`). La guía de la API pide el SDK; instalarlo en el worktree lo
+  **negó el sistema de permisos** de la sesión, y sin el paquete instalado el código no compila. Toda la llamada está en
+  `peticionAClaude` / `cabecerasDeClaude` / `leerCompetencia` (`src/lib/estimator/lectura-servidor.ts`): pasar al SDK es
+  `npm i @anthropic-ai/sdk` y cambiar el `d.pedir(...)` por `client.beta.messages.create(...)`. **Decisión para validar.**
+
+### Topes, para no gastar de más
+
+| Tope | Valor | Dónde |
+|---|---|---|
+| Tamaño | PDF 10 MB (el del cubo); **foto 5 MB** (límite de la API) | fila y archivo ya bajado |
+| Tipos que se leen | PDF, JPG, PNG, WEBP. **HEIC/HEIF no** (la API no los lee): se teclea a mano | fila |
+| Páginas | **10** por PDF. Se cuentan sin librería (`/Type /Page`, también dentro de «object streams» comprimidos). **Si no se pueden contar, no se manda** | archivo bajado |
+| Lecturas al día | **40** en las últimas 24 h, de todos juntos; `COMPETENCIA_LECTURAS_DIA` lo cambia (0 = apagado). Cuentan también las que fallaron | `estimator_competitor_reads` |
+| Salida | `max_tokens` 16000 | petición |
+| Espera | 90 s | petición |
+
+**Registro de quién leyó qué:** `public.estimator_competitor_reads` (161): archivo, quién, cuándo, modelo, páginas, bytes,
+tokens de entrada y salida, y cómo acabó. Se apunta **antes** de llamar (si no se puede apuntar, no se llama) y se cierra
+después. Solo lo escribe el servidor; lo lee el admin, y cada uno lo suyo.
+
+**Coste por documento: ESTIMADO, no medido** (no se ha hecho ninguna lectura real). A 4 $/M de entrada y 20 $/M de salida
+(precios de `claude-opus-5-5` a 2026-09-25): un estimado de 1-2 páginas son del orden de 4-8 mil tokens de entrada y 2-4 mil
+de salida (razonamiento + JSON) → **entre 0,05 y 0,12 $**. El peor caso que dejan pasar los topes (10 páginas, salida al
+techo) ronda 0,45 $. Con el tope de 40 al día: unos 2-5 $/día si se usara entero con documentos normales, 18 $ en el peor
+caso. La primera lectura real dirá los tokens de verdad (quedan en el registro).
+
+### Variables que hay que poner en Vercel
+
+| Variable | Obligatoria | Qué |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | sí, para leer | Llave de la API de Anthropic. **De servidor** (sin `NEXT_PUBLIC_`). Hoy **no existe** ni en `.env.local` ni en Vercel: la ruta contesta `503 sin-llave` («Falta configurar ANTHROPIC_API_KEY…») y la pantalla dice que se teclee a mano |
+| `COMPETENCIA_LECTURAS_DIA` | no | Tope de lecturas en 24 h. Por defecto 40 |
+| `COMPETENCIA_MODELO` | no | Por defecto `claude-opus-5-5` |
+
+Ojo (CLAUDE.md, regla 4 del flujo de ramas): los **previews de Vercel usan las variables de producción**. Con la llave
+puesta, pulsar «Leer productos» en un preview gasta de verdad.
+
+### La base (161)
+
+- `estimator_competitor_extracts`: **una fila por archivo** (`file_id` clave, `on delete cascade`), con la cabecera y los
+  productos en un `jsonb` (≤ 200). **Ver:** `has_estimator_access()`. **Guardar/corregir:** quien subió el archivo o el
+  admin. Sin `DELETE`. Un disparador pone quién guarda y no deja mudar la fila a otro archivo.
+- `estimator_competitor_reads`: el registro. `authenticated` solo `SELECT` (admin todo; cada uno lo suyo).
+- **Depende de la 156**: empieza comprobándola y, si no está, se para con *«161: falta la migracion 156 (…). Aplica la 156
+  antes que la 161.»* (ensayado contra producción, que no la tiene).
+- **Sin la 161** la pantalla sigue: «Productos» dice *«falta actualizar la base (migración 161)»*, y subir, abrir y quitar
+  archivos funciona igual; la ruta contesta `503 sin-161` sin gastar. **Sin la 156** la pestaña sigue diciendo lo suyo.
+  En demo: `?sin161=1`, `?sinLlave=1`.
+
+### Decisiones mías, para validar
+
+1. **`claude-opus-5-5` y no `claude-fable-5-1`.** El encargo decía «el modelo actual más capaz»; ese es Fable 5.1, a 10/50 $
+   por millón (2,5 veces). Para transcribir un estimado se eligió el Opus vigente, y Fable queda a una variable
+   (`COMPETENCIA_MODELO=claude-fable-5-1`). Si el dueño quiere el más capaz, es poner esa variable.
+2. **`fetch` en vez del SDK** (arriba).
+3. **Leer cuesta, así que solo lee quien subió el archivo o el admin**; ver lo guardado, todo el que tiene el módulo.
+4. **El tope de 40 al día es de todos juntos, no por persona**, y es un número mío.
+5. **10 páginas, 5 MB por foto, y «si no se pueden contar las páginas no se manda».** Un PDF cifrado o raro se teclea a mano.
+6. **Dos botones (foto / elegir)** en vez de un solo `<input capture>`.
+7. **La empresa corregida no reescribe la escrita al subir** (sigue en `files.competitor`); la pantalla enseña la corregida.
+8. **Productos en `jsonb`, una fila por archivo** (plan §1): no se puede buscar por SKU entre estimados con un índice.
+9. **`effort: "medium"`**, el de por defecto del modelo, dicho explícito.
+10. **Conflicto con las reglas del worker:** dicen «no escribas migraciones» y «no toques package.json»; este encargo pedía
+    la 161 escrita, con plan y ensayo. Se siguió el encargo, como en D-425 y D-451. `package.json` no se tocó.
+
+### Verificado
+
+- **Ninguna llamada real a la API de Anthropic**, ni en pruebas ni en desarrollo: en las pruebas el `fetch` de la ruta es un
+  falso, y el demo «lee» un estimado inventado en memoria.
+- **Ensayo de la 156 + 161 contra producción con ROLLBACK** (2026-10-04): las dos migraciones, sus autocomprobaciones y los
+  **30 casos de §6 OK**; la 161 **sola** se para pidiendo la 156; y **8 mutantes de la migración**, cada uno ensayado entero
+  con ROLLBACK, cazados (tabla en el plan). Después se volvió a leer producción: no quedó nada.
+- `node scripts/verify.mjs` (2026-10-04): tipos, **6065 pasadas | 3 saltadas** y `next build` en verde.
+- **Mutantes: 55, caen 54 con una prueba con nombre; el que vivía era código de sobra y se quitó** (M3: la comprobación del
+  día en `fechaIso` — un 30 de febrero ya cae en otro mes y lo para la del mes; rehecho como M3b sobre la que queda, cae).
+  Lo no leído y lo inventado: un texto convertido en número (M1), un negativo (M2), filas en blanco (M4), sin techo de
+  productos (M5), unidades (M6). La lista: la empresa (M7), repetidas (M8). Lado a lado: unidades distintas (M9), sin el
+  descuento (M10), sin emparejar (M42). Guardar: cero filas dado por bueno (M11), sin `upsert` por archivo (M12), un 200 sin
+  forma (M13), solo la empresa (M14). La respuesta: negativa (M15), cortada (M16), emparejado colado (M17). La ruta: sin
+  llave (M18), sin módulo (M19), lo de otro (M20), HEIC (M21), el techo de la foto (M22), el tope (M23, M24, M25), páginas
+  (M26, M27, M31, M32), el tamaño real (M28), llamar sin apuntar (M29), no cerrar el registro (M30), `tool_choice` forzado
+  (M33), otro modelo (M34, M37), el PDF como imagen (M35), instrucciones que dejan adivinar (M36), sin sesión (M38), la fila
+  leída con la llave de servicio (M39). La pantalla: guardar sin poder (M40), sin decir por qué (M41), solo lectura editable
+  (M43), sin nº de productos (M44), todas las tablas abiertas (M45), editar lo de otros (M46), sin líneas propias (M47, M50),
+  sin cámara (M48), sin `image/*` (M49), sin apagar sin la 161 (M55), el demo (M51). La 161: sin exigir la 156 (M52), el
+  registro escribible (M53), 500 productos (M54).
+- **En el navegador** (demo, puerto propio, Chrome headless por CDP con clics de persona, **1280 y 390**, sin
+  desplazamiento lateral en ninguno): la sección nace `sin-cotizacion` con el botón de guardar desactivado; con el # escrito
+  se activa, se pulsa y pasa a `lista`; «Tomar foto» tiene `capture="environment"` y `accept="image/*"`; se elige un PDF
+  inventado (el diálogo del sistema no se pulsa en headless: `DOM.setFileInputFiles`), empresa «rival», subir; «Productos» →
+  0 filas y la empresa de partida «rival»; **«Leer productos»** → *«Read 3 product(s)…»*, empresa «Rival Tiles Demo», fecha
+  2026-10-01, # RT-DEMO-5512, total 1987.47, la fila 1 completa y la 3 con marca, precio y total **en blanco**; «Not saved
+  yet.» y la lista aún sin productos; con una línea propia de 500 SF a $2.50, se empareja la fila 1 (el `<select>` se cambió
+  por código: no se abre con un clic en headless) → *«Theirs: $2.19 / SF · total $1,095.00 | Ours (1 · DEMO-2448): $2.50 / SF
+  · total $1,250.00 | We are $0.31 / SF higher»*; se corrige una marca, se quita una fila, se añade una en blanco, «Guardar»
+  → «Saved.», quedan 2 filas (la en blanco se cae) y la lista dice *«Competitor: Rival Tiles Demo | Their total: $1,987.47 |
+  2 product(s)»*; con `media: print`, el panel y la tabla tienen `display: none`. La pestaña: la fila con empresa, total y
+  «2 product(s)», «Products (2)» abre la tabla (editable para quien lo subió, sin columna de emparejar). Como Sofia Ventas
+  (otra persona): 2 filas, **0 campos**, sin «Leer» ni «Guardar». Con `?sinLlave=1`: *«Automatic reading is not set up yet
+  (ANTHROPIC_API_KEY is missing on the server). Type the products by hand.»*, se teclea una fila y se guarda. Con
+  `?sin161=1`: el aviso de la 161 y el archivo sigue en la lista.
+
+### Lo no verificado
+
+- **Ninguna lectura real.** No se sabe cómo lee de verdad un estimado ni una foto torcida, cuánto tarda ni cuánto cuesta;
+  tampoco que la API acepte la petición tal cual (la forma sale de la documentación de la API, no de una respuesta). Lo
+  primero tras poner la llave: leer UN estimado real y mirar el renglón del registro.
+- **La 161 y la 156 no están aplicadas.** La ruta contra la base, el `upsert` por PostgREST y la bajada del cubo con la
+  llave de servicio no se han ejercitado: se miden tras aplicar.
+- **La cámara en un teléfono de verdad** (solo se comprobó el atributo `capture`), y `window.print()` real.
+- El contador de páginas se probó con PDF hechos en la prueba (planos y con «object stream»), no con estimados reales.
+- `maxDuration = 120` de la ruta depende del plan de Vercel.
+- El tracker no se actualizó (un worktree no lleva `.env.local`): la tarea la crea el orquestador.

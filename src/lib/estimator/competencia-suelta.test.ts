@@ -195,7 +195,7 @@ describe("la pantalla usa estas piezas", () => {
   it("el Quote Builder tiene la pestaña, con el mismo almacén y las tiendas de Ajustes", () => {
     expect(pantalla).toContain('data-pestana="competencia"');
     expect(pantalla).toContain("{pestana === \"competencia\" && (");
-    expect(pantalla).toContain("<EstimadosCompetencia almacen={almacenCompetencia} me={me} t={t} lang={lang}");
+    expect(pantalla).toContain("<EstimadosCompetencia almacen={almacenCompetencia} lecturas={almacenLecturas} me={me} t={t} lang={lang}");
     expect(pantalla).toContain("tiendas={ajustes.stores.map((s) => s.name)} tiendaDePartida={tiendaDePartida(me.store, ajustes.stores)} />");
   });
   it("la pestaña lista todos, sube sueltos a nombre de quien la usa, pide el cliente y filtra", () => {
