@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { almacenDeLaBase, type AlmacenDeLeads, type Res } from "@/lib/leads/almacen";
+import { ALCANCE_SIN_REGLA, eligeTienda, leadsDelBanco, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO } from "@/lib/leads/demo";
 import {
   abiertosDe, bloqueado, colaDeRevision, consecuencia, delExcel, dinero, enlaceSeguro, estadoLabel, eventoLabel, fecha, filtrar,
@@ -26,7 +27,8 @@ const TANDA = 30;
 const DIAS_SIN_TOCAR = [7, 14, 30];
 
 /**
- * «Leads» (migración 162): el banco de leads por tienda, el pool personal con tope, y lo del admin.
+ * «Leads» (migración 162): el banco de leads por tienda (en la pantalla, «Pool General»), el pool personal con tope,
+ * y lo del admin. Quién alcanza los leads de qué tienda lo decide la base (migración 163) y aquí solo se pinta.
  *
  * Todas las reglas viven en `lib/leads/reglas` y están probadas sin navegador; la base las vuelve a exigir (las
  * funciones de la 162). Este componente lee, filtra y pinta, y cada acción va por el almacén, que devuelve el lead
@@ -44,6 +46,7 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [tope, setTope] = useState(10);
+  const [alcance, setAlcance] = useState<Alcance>(ALCANCE_SIN_REGLA);
   const [estado, setEstado] = useState<Estado>({ tipo: "cargando" });
   const [pestana, setPestana] = useState<Pestana>("banco");
   const [pool, setPool] = useState<string | null>(null);
@@ -64,19 +67,25 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
     if (!r.ok) { setEstado(r.sinTabla ? { tipo: "sinTabla" } : { tipo: "error", texto: r.error }); return; }
     setLeads(r.valor.leads);
     setTope(r.valor.tope);
+    setAlcance(r.valor.alcance);
     setEstado({ tipo: "listo" });
   }, [almacen]);
-  useEffect(() => { void cargar(); }, [cargar]);
+  // En el demo, cambiar de persona es cambiar de sesión: se relee, porque cada una alcanza leads distintos.
+  useEffect(() => { void cargar(); }, [cargar, idDemo]);
 
-  const pools = useMemo(() => poolsDe(leads), [leads]);
+  // El banco que se enseña: todas las tiendas a quien las alcanza; a los demás, SOLO la suya. Sus leads de otra
+  // tienda (los que le asignó un admin) están en «Mi pool», y no traen aquí el banco de esa tienda ni su contador.
+  const delBanco = useMemo(() => leadsDelBanco(leads, alcance), [leads, alcance]);
+  const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
+  const elige = eligeTienda(alcance);
   // Se entra en el pool de SU tienda; cambiar de persona en el demo vuelve a elegirlo.
   const tienda = yo?.store ?? null;
   useEffect(() => { setPool((p) => (p && pools.some((x) => x.pool === p) ? p : poolInicial(pools, tienda))); }, [pools, tienda]);
 
-  const delPool = useMemo(() => leads.filter((l) => l.pool === pool), [leads, pool]);
+  const delPool = useMemo(() => delBanco.filter((l) => l.pool === pool), [delBanco, pool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(leads, { pool, vista, categoria, tipo, ciudad, busca }), orden),
-    [leads, pool, vista, categoria, tipo, ciudad, busca, orden],
+    () => ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca }), orden),
+    [delBanco, pool, vista, categoria, tipo, ciudad, busca, orden],
   );
   useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, orden]);
 
@@ -141,9 +150,9 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
             <select data-persona-demo value={idDemo} onChange={(e) => {
               const p = PERSONAS_DEMO.find((x) => x.id === e.target.value) ?? PERSONAS_DEMO[0];
               quien.current = p;
-              setIdDemo(p.id); setPool(poolInicial(pools, p.store)); setPestana("banco"); setAviso(null);
+              setIdDemo(p.id); setPool(null); setPestana("banco"); setAviso(null);
             }}>
-              {PERSONAS_DEMO.map((p) => <option key={p.id} value={p.id}>{p.name}{p.admin ? " (admin)" : ""}</option>)}
+              {PERSONAS_DEMO.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.role}{p.store ? ` · ${p.store}` : ""})</option>)}
             </select>
           </label>
         )}
@@ -166,7 +175,7 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
         <>
           <div className="ld-pestanas" role="tablist">
             <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => setPestana("banco")}>
-              🏦 {t("Bank", "Banco")}
+              🏦 {t("General Pool", "Pool General")}
             </button>
             <button type="button" role="tab" aria-selected={pestana === "mio"} className={`chip${pestana === "mio" ? " on" : ""}`} data-pestana="mio" onClick={() => setPestana("mio")}>
               ⭐ {t("My pool", "Mi pool")} <span className="cnt" data-mi-cuenta>{mios.length}/{tope}</span>
@@ -185,16 +194,26 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
             <>
               <div className="card ld-filtros">
                 <div className="ld-fila">
-                  <label className="ld-ancho">
-                    {t("Pool (nearest store)", "Pool (tienda más cercana)")}
-                    <select data-pool value={pool ?? ""} onChange={(e) => setPool(e.target.value)}>
-                      {pools.map((p) => (
-                        <option key={p.pool} value={p.pool}>
-                          {poolLabel(p.pool, lang)} — {p.libres} {t("free", "libres")} / {p.total}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  {elige ? (
+                    <label className="ld-ancho">
+                      {t("General Pool (nearest store)", "Pool General (tienda más cercana)")}
+                      <select data-pool value={pool ?? ""} onChange={(e) => setPool(e.target.value)}>
+                        {pools.map((p) => (
+                          <option key={p.pool} value={p.pool}>
+                            {poolLabel(p.pool, lang)} — {p.libres} {t("free", "libres")} / {p.total}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
+                    <p className="ld-ancho" data-pool-fijo>
+                      {t("General Pool of your store", "Pool General de tu tienda")}
+                      <br />
+                      <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
+                      {pools[0] ? <> — {pools[0].libres} {t("free", "libres")} / {pools[0].total}</> : null}
+                    </p>
+                  )}
                   <div className="ld-vistas" role="group" aria-label={t("View", "Vista")}>
                     <button type="button" className={`chip${vista === "libres" ? " on" : ""}`} data-vista="libres" onClick={() => setVista("libres")}>{t("Free", "Libres")}</button>
                     <button type="button" className={`chip${vista === "todas" ? " on" : ""}`} data-vista="todas" onClick={() => setVista("todas")}>{t("All", "Todas")}</button>
@@ -241,6 +260,14 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
                   {visibles.length} {t("leads", "leads")} · {t("you have", "te quedan")} <b>{libres}</b> {t("of", "de")} {tope} {t("slots free", "puestos")}
                 </p>
               </div>
+              {!elige && !alcance.tienda && (
+                <div className="ld-aviso ambar" data-aviso-sin-tienda>
+                  {t(
+                    "Your user has no store assigned, so there is no General Pool to show you. Ask an admin to set your store. The leads you already hold are in My pool.",
+                    "Tu usuario no tiene tienda asignada, así que no hay Pool General que enseñarte. Pide a un admin que te ponga tu tienda. Los leads que ya tienes están en Mi pool.",
+                  )}
+                </div>
+              )}
               {libres === 0 && (
                 <div className="ld-aviso ambar" data-aviso-lleno>
                   {t(
@@ -267,7 +294,7 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
                   `Puedes tener hasta ${tope} leads abiertos. Una nota de avance deja el lead abierto; solo cerrarlo con un resultado libera su puesto.`,
                 )}
               </p>
-              {mios.length === 0 && <p className="hint">{t("Your pool is empty. Take leads from the bank.", "Tu pool está vacío. Toma leads del banco.")}</p>}
+              {mios.length === 0 && <p className="hint">{t("Your pool is empty. Take leads from the General Pool.", "Tu pool está vacío. Toma leads del Pool General.")}</p>}
               <div className="ld-lista" data-lista-mia>{ordenar(mios, "distancia").map((l) => tarjeta(l, "mio"))}</div>
               {misVentas.length > 0 && (
                 <>
@@ -482,8 +509,8 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
           {dialogo.tipo === "admin" && (
             <>
               <button type="button" className="btn btn-ghost" data-liberar disabled={enviando || l.status === "free"}
-                onClick={() => void enviar(() => almacen.liberar(l.id, nota), t("Released to the bank.", "Liberado al banco."))}>
-                {t("Release to bank", "Liberar al banco")}
+                onClick={() => void enviar(() => almacen.liberar(l.id, nota), t("Released to the General Pool.", "Liberado al Pool General."))}>
+                {t("Release to General Pool", "Liberar al Pool General")}
               </button>
               <button type="button" className="btn btn-danger" data-archivar disabled={enviando || l.status === "archived"}
                 onClick={() => void enviar(() => almacen.archivar(l.id, nota), t("Archived.", "Archivado."))}>
@@ -562,10 +589,10 @@ function Admin({ leads, tope, almacen, tarjeta, demo, onTope }: {
       </div>
 
       <div className="card">
-        <h2>🏬 {t("By pool", "Por pool")}</h2>
+        <h2>🏬 {t("By General Pool", "Por Pool General")}</h2>
         <div className="tbl-scroll">
           <table className="orders" data-por-pool>
-            <thead><tr><th>Pool</th><th>{t("Free", "Libres")}</th><th>{t("Taken", "Tomados")}</th><th>Total</th></tr></thead>
+            <thead><tr><th>{t("General Pool", "Pool General")}</th><th>{t("Free", "Libres")}</th><th>{t("Taken", "Tomados")}</th><th>Total</th></tr></thead>
             <tbody>{poolsDe(leads).map((p) => <tr key={p.pool}><td>{poolLabel(p.pool, lang)}</td><td>{p.libres}</td><td>{p.tomados}</td><td>{p.total}</td></tr>)}</tbody>
           </table>
         </div>

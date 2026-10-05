@@ -1,4 +1,5 @@
 import type { AlmacenDeLeads, Res } from "./almacen";
+import { alcanceDe, alcanzaElLead, esDeSuBanco, PERMISO_OTRAS_TIENDAS, type Alcance } from "./alcance";
 import {
   aplicarCerrar, aplicarNota, aplicarTomar, notaLimpia, TOPE_POR_DEFECTO,
   type EventoLead, type Lead, type Negativa, type Persona, type Resultado,
@@ -11,10 +12,18 @@ import {
  * nuestra y la pantalla los traduce.
  */
 export const PERSONAS_DEMO: Persona[] = [
-  { id: "demo-ana", name: "Ana Demo", store: "RDZ Brownsville", admin: false },
-  { id: "demo-beto", name: "Beto Demo", store: "RDZ Edinburg", admin: false },
-  { id: "demo-admin", name: "Admin Demo", store: null, admin: true },
+  { id: "demo-ana", name: "Ana Demo", store: "RDZ Brownsville", admin: false, role: "sales" },
+  { id: "demo-beto", name: "Beto Demo", store: "RDZ Edinburg", admin: false, role: "sales" },
+  { id: "demo-admin", name: "Admin Demo", store: null, admin: true, role: "admin" },
+  // Dos managers, para enseñar el interruptor de la 163: una con «ver leads de otras tiendas» y otro sin él.
+  { id: "demo-gema", name: "Gema Demo", store: "RDZ McAllen", admin: false, role: "manager", permissions: [PERMISO_OTRAS_TIENDAS] },
+  { id: "demo-hugo", name: "Hugo Demo", store: "RDZ Weslaco", admin: false, role: "manager" },
 ];
+
+/** El alcance de una persona del demo: la misma cuenta que hace la base (`leads_my_scope()`), con `alcanceDe`. */
+export function alcanceDemo(p: Persona): Alcance {
+  return alcanceDe({ role: p.admin ? "admin" : p.role, permissions: p.permissions, store: p.store });
+}
 
 const TIENDAS = ["RDZ Brownsville", "RDZ Edinburg", "RDZ McAllen", "RDZ Weslaco"];
 const CIUDADES: Record<string, string[]> = {
@@ -75,6 +84,9 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
  * El almacén del demo: en memoria, se pierde al recargar. **Aplica las mismas reglas que la base** por las funciones
  * de `reglas` (tope, solo lo libre, nota obligatoria, solo lo tuyo): lo que el demo deja hacer, la base también.
  * `quien` dice quién está actuando (en el demo se cambia de persona con un desplegable).
+ *
+ * **Y la misma regla por tienda que la base** (migración 163): `leer` devuelve solo lo que esa persona alcanza, el
+ * historial de un lead que no alcanza sale vacío, y tomar uno de otra tienda se rechaza.
  */
 export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
   let leads = leadsDemo();
@@ -100,13 +112,23 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
     return l ? hace(l, yo) : no("no_existe");
   };
   return {
-    async leer() { return { ok: true, valor: { leads: leads.map((l) => ({ ...l })), tope } }; },
-    async historial(leadId) { return { ok: true, valor: eventos.filter((e) => e.lead_id === leadId) }; },
+    async leer() {
+      const yo = quien();
+      const alcance = alcanceDemo(yo);
+      return { ok: true, valor: { leads: leads.filter((l) => alcanzaElLead(l, alcance, yo.id)).map((l) => ({ ...l })), tope, alcance } };
+    },
+    async historial(leadId) {
+      const yo = quien();
+      const l = busca(leadId);
+      if (!l || !alcanzaElLead(l, alcanceDemo(yo), yo.id)) return { ok: true, valor: [] };
+      return { ok: true, valor: eventos.filter((e) => e.lead_id === leadId) };
+    },
     async cierres() { return { ok: true, valor: eventos.filter((e) => e.kind === "closed") }; },
     async personas() { return { ok: true, valor: PERSONAS_DEMO.map((p) => ({ ...p })) }; },
     async tomar(leadId) {
       const l = busca(leadId);
       if (!l) return no("no_existe");
+      if (!esDeSuBanco(l, alcanceDemo(quien()))) return no("otra_tienda");
       const r = aplicarTomar(l, leads, quien(), tope, new Date().toISOString());
       if (!r.ok) return no(r.motivo);
       apunta(l, "taken");
