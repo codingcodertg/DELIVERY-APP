@@ -240,7 +240,7 @@ describe("el cierre de sesión no borra las cuentas recordadas", () => {
 // Se comprueba por texto porque el paro vive dentro de un componente de mil doscientas líneas
 // con `setInterval`, que vitest en node no puede montar. Lo que se puede exigir es que pregunte.
 describe("el cronómetro respeta la misma exención que el middleware", () => {
-  const page = codigoDe(readFileSync("src/app/timetracker/(timetracker)/page.tsx", "utf8"));
+  const page = codigoDe(readFileSync("src/components/timetracker/Cronometro.tsx", "utf8"));
   // El efecto que decide el paro, de su ref al cierre del `useEffect`.
   const bloqueDelCorte = page.slice(page.indexOf("const paradoPorCorteRef"), page.indexOf("const arrancandoRef"));
 
