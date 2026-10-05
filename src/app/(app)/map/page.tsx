@@ -240,9 +240,13 @@ export default function MapPage() {
             <input type="date" value={fecha} min={primerDia} max={rango.max} onChange={(e) => setDate(e.target.value || todayISO())} style={{ width: "auto" }} />
             <button className="vt" data-dia-siguiente disabled={fecha >= rango.max} onClick={() => setDate(shiftDateISO(fecha, 1))} title={t("Next day", "Día siguiente")}>▶</button>
           </div>
-          {fecha !== todayISO() && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setDate(todayISO())}>{t("Today", "Hoy")}</button>
-          )}
+          {/* D-469: ayer, hoy y mañana a un toque, para todos (el dueño, 2026-10-04). */}
+          <div className="viewtoggle" data-ayer-hoy-manana>
+            {([[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]] as const).map(([d, rotulo]) => {
+              const f = shiftDateISO(todayISO(), d);
+              return <button key={d} className={`vt${fecha === f ? " on" : ""}`} disabled={f < primerDia || f > rango.max} onClick={() => setDate(f)}>{rotulo}</button>;
+            })}
+          </div>
           <span className="hint" style={{ margin: 0 }}>{t("View only — routes are built in the Routes Manager.", "Solo lectura — las rutas se arman en el Gestor de Rutas.")}</span>
         </div>
       </div>

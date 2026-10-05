@@ -88,7 +88,7 @@ describe("«Mi ruta» del chofer: mismo criterio", () => {
   it("la página usa la función, enseña la línea de atrasadas aparte, y en esa vista no sale la tarjeta del plan publicado", () => {
     const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
     const pagina = leer("src/app/(app)/my-route/page.tsx").replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n").replace(/\s+/g, " ");
-    expect(pagina).toContain('return routeOrder(paradasDelChofer(deliveries, driverName, todayISO(), verAtrasadas ? "atrasadas" : "dia"));');
+    expect(pagina).toContain('return routeOrder(paradasDelChofer(deliveries, driverName, dia, verAtrasadas ? "atrasadas" : "dia"));');
     expect(pagina).toContain("parada(s) expiradas de días anteriores — no son de hoy.");
     expect(pagina).toContain("{!verAtrasadas && <MiPlanPublicado plan={planPublicado}");
     expect(pagina).not.toMatch(/if \(d\.delivery_date === today\) return true; return isOverdue\(d\);/);
