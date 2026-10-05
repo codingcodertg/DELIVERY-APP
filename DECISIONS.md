@@ -8621,6 +8621,10 @@ escritorio capture.
 
 ## D-195 · El cronómetro sigue contando a través de la actualización, el cierre y el reinicio; huérfana a los 15 min, y un cron que las cierra
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): esta decisión cubrió recargar, cerrar y reiniciar, pero no **cambiar
+> de pestaña dentro de Time Tracker**, que desmontaba la pantalla y mataba el tick igual. El cronómetro ya no es la página:
+> lo monta el layout del módulo (`CronometroAnfitrion`) y la adopción dejó de ser «una vez al montar» — el vigía la repite.
+
 **Fecha:** 2026-09-05 · **Versión:** timetracker 0.56.0, package.json 1.115.0 (timetracker) · **Pedido por:**
 Andrés · **Plan:** `docs/PLAN-timer-sobrevive-actualizacion.md` (diseño corregido tras el dueño: la
 actualización **se hace**, y el reloj no se entera)
@@ -13514,6 +13518,11 @@ de `inline-colors.test.ts`, que ahora ve un componente más).
 
 ## D-241 · Un cronómetro que ya no puede guardar tiene que decirlo, y su cierre tiene que ser reversible
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): el aviso de «sin guardar» solo saltaba cuando una escritura
+> contestaba «no» (sesión caducada, fila cerrada). Si el tick moría o no estaba armado no había escritura que contestara
+> nada, y el silencio seguía. Ahora lo dispara también el vigía (un minuto sin guardado bueno), suena y se ve en todas las
+> pantallas del módulo. Y Stop ya no escribe los contadores de una página que no condujo la sesión (`parcheDeStop`).
+
 **Fecha:** 2026-09-11 · **Versión:** solo `timetracker` (la pone el orquestador) · Sin migración.
 **Pedido por:** el dueño, sobre su propia jornada: el reloj marcaba horas en pantalla y la base
 tenía la sesión cerrada a las **15:24:39**, con `live_note = 'active'`.
@@ -14405,6 +14414,11 @@ que obliga a mirar cada vez en vez de dejar margen «por si acaso».
 (main e371534: 1737 | 3; los +19 son 18 de `switch-user.test.ts` y uno del recorrido por fichero
 de `inline-colors.test.ts`, medido: 104 → 105 con el componente nuevo).
 ## D-248 · La sesión se cierra a las 18:30, y eso es una frontera, no un reloj
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): la regla del cronómetro no cambia —solo un «sí» explícito libra del
+> paro; sin respuesta, para— pero ahora **pregunta antes de parar**. Una pantalla montada pasado el corte paraba en su
+> primer efecto, con la exención todavía sin pedir, y al dueño (exento) le paraba el reloj cada vez que volvía a
+> «Registrar tiempo» después de las 18:30, con los contadores a cero. Ver `pararPorCorteSiToca`.
 
 **Fecha:** 2026-09-11 · **Versión:** las tres apps y `package.json` (las pone el orquestador).
 **Con migración: la 107, y esta rama va ACOPLADA a ella** — el middleware la llama.
@@ -36638,3 +36652,165 @@ se hizo, pueden ver las rutas de ayer, hoy y mañana todas las personas.»*
 **Lo que no cambia.** Los botones de la parada (recoger, entregar) en «Mi ruta» son los mismos en los tres días: no se
 bloqueó marcar una parada de mañana. Queda como pregunta para el dueño. Lo que cada rol ve en el mapa sigue dependiendo de la
 migración 160 (sin aplicar): hasta entonces el chofer ve solo su ruta.
+
+## D-NEXT · El reloj no se para en silencio: el cronómetro vive en el layout, hay un vigía, y Stop no pisa lo que no midió
+
+**Fecha:** 2026-10-04 · **Versión:** timetracker (la pone el orquestador) · **Sin migración.** · Rama `fix/tt-tick-parado`.
+
+**Pedido del dueño**, literal, con captura de «Registrar tiempo» en 0:00:00 Detenido, Today 4.27 h, última captura
+04:16 PM: *«mira hace 3 hroas se paro el reloj porque sigue pasando eso»* · *«y yo no me habia fijado»* · *«como recupero
+ese tiempo ahora»*.
+
+### Qué pasó, medido (no supuesto)
+
+Sesión `f2812387` del dueño, app de escritorio 0.0.45, 2026-10-04, horas de Chicago. Las fuentes son la base (solo
+lectura), el registro del `localStorage` de la app (`%APPDATA%/desktop/Local Storage/leveldb/000261.log`, que guarda cada
+lote de escrituras con su hora) y la caché HTTP de la app (`Cache/Cache_Data`, que guarda cada recurso con su hora de
+creación).
+
+| Hora | Qué | Prueba |
+|---|---|---|
+| 15:25:22 | Start. El tick escribe la marca `tt_resume` cada 10 s. | 65 lotes con la marca, de 15:26:12 a 16:29:12, todos en la rejilla de 10 s desde el arranque |
+| 15:28 – 16:23:55 | 7 capturas subidas y pintadas en «Última captura» | 7 imágenes en la caché, una por captura |
+| 16:14:10 | Despliegue de #278 (deliveries 1.252). `timetracker` sigue en 0.95.0: el banner de versión NO recarga | `/api/version` compara solo la clave de su app |
+| **16:29:28** | **Abre «Capturas» dentro de la app.** La página del cronómetro se descarga | Última marca a las 16:29:28,677 y FUERA de la rejilla (la escribe `pagehide`, no el tick); a las 16:29:28 se cargan los trozos del despliegue nuevo y a las 16:29:30 las SIETE imágenes del día a la vez (eso es «Capturas»; el cronómetro pinta una) |
+| 16:29 – 19:41 | Nada late, nada sube. La fila sigue `is_live` | Ni un lote en `localStorage` en 3 h 12 min; ninguna fila en `screenshots`; el proceso de la app no se reinició (arrancó 15:25:16) ni el equipo se suspendió (sin eventos 42/107) |
+| 19:41:50 | Vuelve a «Registrar tiempo» | Se carga el trozo `page-…js` del cronómetro y una imagen |
+| 19:41:51 | La pantalla recién montada **se para sola** y escribe la fila con ceros | `duration_seconds = 15389` = 19:41:51 − 15:25:22 al segundo; `active_seconds`, `keystrokes` y `clicks` = 0; `live_note` nulo (lo que escribe Stop); la miga y la marca se borran en ese mismo lote |
+
+La captura de las 16:23:55 se subió y se pintó, y ya no está ni en la tabla ni en el almacén: se borró desde «Capturas»,
+que es la única pantalla que borra capturas. Por eso «última captura 04:16 PM».
+
+### Las cuatro causas, cada una con su sitio
+
+1. **El cronómetro era la página.** El tick (`setInterval`), el latido de 10 s, el contador de actividad y el receptor de
+   capturas (`desktopOnShot`) vivían en `(timetracker)/page.tsx`. La barra del módulo navega con `<Link>`, Next desmonta
+   la página, y la limpieza del efecto apaga el tick. No hay error, ni aviso, ni nada que lo vuelva a encender en otra
+   pantalla. D-195 cubrió recargar, cerrar y reiniciar; cambiar de pestaña, no.
+2. **El cascarón de escritorio no se entera.** `desktop/main.js` sigue con su temporizador de capturas y manda `tt:shot`
+   a una página que ya no escucha; antes de mandarlo enseña su aviso flotante «Screenshot captured». O sea que durante
+   tres horas la app siguió diciendo que capturaba.
+3. **El paro de las 18:30 no esperaba la respuesta.** `useCutoffExempt` devuelve `null` hasta que contesta el servidor, y
+   el efecto del corte trataba ese `null` como «no exento» ya en el primer render. Montar «Registrar tiempo» pasadas las
+   18:30 con una sesión viva = Stop inmediato, también para el dueño, que es exento.
+4. **Stop escribía los contadores de una página que no había medido nada.** Recién montada, la pantalla solo tiene la miga
+   de `localStorage` (id y hora de arranque). Su `activeSeconds` vale 0 y su reloj cuenta del arranque a ahora. Stop lo
+   escribía todo con `updateSession` (sin filtro de `is_live`): borró la actividad de 15:25–16:29 y dio por trabajadas
+   las 3 h 12 min sin latido — lo contrario de D-098.
+
+Y una quinta que no es de este incidente pero salió al leer: **5. tras una adopción, la app de escritorio medía la
+actividad como un navegador.** El tick que arma la adopción nace en el primer render, donde el estado `isDesktopClient`
+todavía vale `false`; desde ahí solo contaban las teclas y los clics DENTRO de la ventana de Time Tracker.
+
+Lo que se descartó midiendo: (a) el banner de versión no recargó (`timetracker` no cambió de versión); el despliegue de
+las 16:14 es compatible con que el clic en «Capturas» fuera una carga entera en vez de una navegación de cliente — sin
+despliegue el tick habría muerto igual, y encima sin `pagehide`. (b) `backgroundThrottling` ya está en `false` en el
+0.0.45 instalado (`main.js:359`) y el equipo no se suspendió. (c) No hubo sesión caducada: las capturas subieron hasta
+el último minuto.
+
+### Por qué «sigue pasando»: 30 días (2026-09-04 → 10-04), solo lectura
+
+91 sesiones de escritorio, todas del dueño (es el único que usa la app de escritorio; el otro usuario cronometra en la
+web, que no mide actividad fuera de su pestaña). **8 sesiones de 20 min o más quedaron con 0 s de actividad, 0 teclas y
+0 o 1 clics, con capturas que dicen 26–62 %: 30,9 h.** Siete de las ocho terminan después de las 18:30 y la primera es del
+2026-09-12, el día que entró el paro del corte (D-248): es la causa 3 + 4.
+
+| Día | Tramo | Horas | Capturas (media) | Mayor hueco sin captura |
+|---|---|---|---|---|
+| 09-12 | 19:40–21:16 | 1,60 | 12 (53 %) | 11 min |
+| 09-13 | 18:39–19:46 | 1,12 | 8 (35 %) | 13 min |
+| 09-14 | 20:23–21:02 | 0,65 | 3 (55 %) | 36 min (20:26→21:02) |
+| 09-17 | 19:49–21:10 | 1,34 | 12 (54 %) | 13 min |
+| 09-25 | 10:27–16:05 | 5,63 | 44 (48 %) | 13 min — termina antes del corte, con 1 clic: otra vía, sin demostrar |
+| 09-27 | 16:28–22:47 | 6,31 | 50 (62 %) | 13 min |
+| 09-29 | 10:06–20:03 | 9,94 | 58 (40 %) | **154 min** (17:29→20:03) |
+| 10-04 | 15:25–19:41 | 4,27 | 6 (26 %) | **206 min** (16:16→19:41) |
+
+Además, sin llegar a cero: huecos de más de 25 min sin captura dentro de una sesión en 09-07 (113 min), 09-08 (45),
+09-16 (**245**, 12:58→17:03), 09-18 (29), 09-19 (33), 09-23 (27), 09-25 tarde (39) y 10-02 (**244**, 13:56→17:59);
+actividad muy por debajo de las capturas en 09-04 (0 % contra 29 %) y 09-19 (10 % contra 41 %), que casa con la causa 5;
+y capturas tomadas DESPUÉS del fin de la sesión en 7 sesiones (hasta 9 por sesión): el cascarón sigue capturando con la
+sesión ya cerrada, que es la causa 2 vista por el otro lado. De estas otras solo se midió el patrón, no la causa de
+cada una.
+
+### Qué cambió
+
+- **El cronómetro vive en el layout del módulo.** `(timetracker)/page.tsx` pasó a `components/timetracker/Cronometro.tsx`
+  (movido con `git mv`, la lógica del tick no se reescribió) y lo monta `CronometroAnfitrion` desde
+  `(timetracker)/layout.tsx`. En «Registrar tiempo» se ve; en las demás pantallas sigue montado y oculto, latiendo. La
+  página de la ruta devuelve `null`. Al presencial que no es admin no se le monta fuera de su pantalla: lo suyo es el
+  fichaje, que pide ubicación al montarse.
+- **El vigía.** Cada 5 s, en un intervalo propio: si el reloj enseña «corriendo», la sesión no es del otro cliente y no
+  hay un guardado bueno desde hace más de 60 s, (1) pinta el aviso «Sin guardar desde las HH:MM — N min» — en la pantalla
+  del cronómetro y, con enlace de vuelta, arriba de cualquier otra del módulo —, (2) suena tres pitidos y manda una
+  notificación del sistema, al detectarlo y cada 5 min, y (3) si nadie conduce la sesión, reintenta adoptarla cada 20 s.
+  La adopción dejó de ser el cuerpo de un efecto de una sola vez.
+- **Stop no pisa lo que no midió.** `parcheDeStop`: si esta página no condujo la sesión (solo tiene la miga), Stop escribe
+  `is_live = false` y nada más; la duración y la actividad se quedan como las dejó el último latido.
+- **El corte pregunta antes de parar.** `pararPorCorteSiToca`: con la exención sin pedir, se pide y se espera; un «sí»
+  libra, y `null` DESPUÉS de preguntar sigue parando, como decidió D-248.
+- **El tick pregunta `isDesktop()` en el momento** en vez de leer un estado del primer render, y armar un tick apaga el
+  anterior. Al desmontarse (salir del módulo sin recargar) deja el último latido por `sendBeacon`, igual que `pagehide`.
+- **Start baja la marca de Stop** (`stoppedRef`). Nadie la bajaba; no se notaba porque la pantalla se desmontaba sola.
+- `desktopHeartbeat`: la página le pasa al cascarón cada latido guardado. En el 0.0.45 no existe y no hace nada; es para
+  el vigía del cascarón (abajo).
+
+### Lo que queda en la app de escritorio (otro repo, NO publicado)
+
+Rama local `fix/vigia-latido` de `timetracker-clean`, sin push ni instalador. En `desktop/main.js` y `preload.js`:
+(1) el aviso «Screenshot captured» sale cuando la página confirma que recibió la captura, no antes; (2) un vigía en el
+proceso principal: con sesión arrancada y sin `tt:heartbeat` en 90 s, ventana flotante «NOT recording», `shell.beep()` y
+la ventana principal al frente; (3) sin pulso no se captura la pantalla. Hace falta publicar un 0.0.46 para que llegue.
+
+### Mutantes — 27 de 27 caen con una prueba con nombre (`src/lib/timetracker/vigia.test.ts`)
+
+| Mutante | Prueba que cae |
+|---|---|
+| «Registrar tiempo» pasa a ser cualquier ruta del módulo | 1 · «Registrar tiempo» es /timetracker y nada más |
+| fuera de su pantalla el cronómetro no se monta para nadie | 1 · en Capturas sigue montado (oculto)… |
+| al presencial no admin se le monta el fichaje en todas las pantallas | 1 · al presencial que no es admin no se le monta fuera de su pantalla… |
+| el layout no monta al anfitrión · el anfitrión monta siempre | 1 · el layout monta al anfitrión, y el anfitrión decide con estas dos funciones |
+| la página vuelve a pintar algo | 1 · y la página ya no monta el cronómetro… |
+| oculto se sigue pintando | 1 · oculto no pinta la pantalla, pero el aviso de «no se guarda» sí asoma |
+| el vigía alarma sobre la sesión del otro cliente | 2 · parado no avisa, y la sesión que conduce el otro cliente tampoco (D-096) |
+| el vigía nunca dice sin-latido · el umbral sube a 20 min | 2 · el incidente: 16:30:29, un minuto y un segundo sin latido → avisa (y «avisa mucho antes de que la base la dé por huérfana») |
+| el sonido se repite en cada vuelta | 2 · el sonido: al detectarlo y cada cinco minutos… |
+| se reintenta adoptar aunque ya se conduzca | 2 · reintenta retomar la sesión solo si nadie la conduce… |
+| la pantalla: el vigía no reintenta · no suena | 2 · la pantalla lo usa: vigila en su propio intervalo, suena, avisa y reintenta |
+| la pantalla: al montar con miga no se pone el suelo · adoptar no pasa a conducir | 2 · y el suelo se pone donde toca… |
+| la pantalla: Start no baja la marca de Stop | 2 · un arranque nuevo baja la marca de Stop… |
+| falta el texto del aviso en español | 2 · los textos del aviso existen en los dos idiomas |
+| Stop escribe contadores aunque la página no condujera | 3 · sin conducir: cierra y no toca ni la duración ni la actividad |
+| la pantalla: Stop siempre como si condujera · el modo mirón sigue «conduciendo» | 3 · la pantalla para con parcheDeStop y con su propio «¿conduzco?» |
+| el corte no pregunta | 4 · el incidente: montada pasado el corte, sin haber preguntado, y es exento → NO para |
+| el corte para aunque ya se hubiera parado mientras preguntaba | 4 · si mientras preguntaba se pulsó Stop, no para dos veces |
+| la pantalla: el corte no usa la consulta compartida | 4 · la pantalla para por aquí, con la consulta compartida, y ya no en seco |
+| la pantalla: el tick vuelve a leer el estado del primer render | 5 · el tick pregunta isDesktop() en el momento… |
+| la pantalla: armar un tick no apaga el anterior | 5 · y nunca hay dos ticks… |
+| la pantalla: al desmontarse no deja el último latido | 5 · al salir del módulo sin recargar también deja grabado el último latido |
+
+Las pruebas de «la pantalla» leen el TEXTO del componente: dicen que la pantalla llama a la función, no que el componente
+montado se comporte así. Lo que las funciones hacen sí está medido con las horas reales del incidente.
+
+### Pruebas que se pusieron al día
+
+`session-cutoff.test.ts`, `i18n.test.ts` y `reabrir-tras-carga.test.ts` leen el código del cronómetro por su ruta: ahora
+es `src/components/timetracker/Cronometro.tsx`. Sus afirmaciones no cambiaron.
+
+### Lo que NO se hizo, y lo no verificado
+
+- **No se vio en un navegador ni en la app de escritorio.** El cronómetro es un componente con `setInterval` que vitest
+  en node no monta. Que el componente oculto siga latiendo en «Capturas», que el aviso asome arriba y que el pitido suene
+  en Electron sin gesto previo está sin ver.
+- **El tick sigue siendo un `setInterval` del renderer.** No se movió a un worker ni al proceso principal. Con
+  `backgroundThrottling: false` (ya puesto) Chromium no lo estrangula en el escritorio; en una pestaña de navegador en
+  segundo plano sí puede, y ahí lo que hay ahora es el vigía, que también es un temporizador de esa pestaña.
+- **Salir del MÓDULO sigue parando el tick** (ir a Entregas desde la web). Ahora deja el último latido y la marca, pero
+  nadie avisa: el aviso vive en el módulo. En el escritorio el selector de módulos está escondido (D-076).
+- **El cron de huérfanas sigue corriendo una vez al día** (08:00 UTC, colgado de `roll-schedules`): una fila sin latido
+  puede seguir «viva» horas. No se tocó (Vercel Hobby: dos crons).
+- **`paradoPorCorteRef` no se baja nunca**: «una vez por montaje» era «una vez por visita a la pantalla» y ahora es «una
+  vez hasta recargar». A quien no es exento el corte le cierra la sesión y recarga igual; se deja anotado.
+- **La sesión del 2026-10-04 no se corrigió.** Hay un guion con ensayo por defecto en
+  `D:/CLAUDE/entregas/timetracker-2026-10-04/`; ejecutarlo con `--escribir` es decisión del dueño.
+- Las otras siete sesiones a cero de la tabla tampoco se tocaron.

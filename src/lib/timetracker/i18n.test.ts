@@ -112,7 +112,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     // Y la pantalla del cronómetro, que era el hueco más grande del canario (D-241): usa más
     // claves `track.*` que ninguna otra y no estaba en la lista, así que sus traducciones
     // cuadraban por disciplina y no por prueba.
-    "src/app/timetracker/(timetracker)/page.tsx",
+    "src/components/timetracker/Cronometro.tsx",
     "src/app/timetracker/(timetracker)/insights/page.tsx",
     "src/app/timetracker/(timetracker)/live/page.tsx",
     "src/app/timetracker/(timetracker)/people/page.tsx",
