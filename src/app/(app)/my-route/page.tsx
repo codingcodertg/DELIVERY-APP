@@ -19,7 +19,7 @@ import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, storeTag, todayISO } from "@/lib/utils";
+import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 import { cargaDe, etiquetaDeCarga, hermanasDe } from "@/lib/cargas-partidas";
@@ -52,11 +52,15 @@ export default function MyRoutePage() {
   // CADA DÍA ES APARTE (D-331): hoy son las paradas de hoy. Lo suyo atrasado sigue siendo suyo y sigue a un toque,
   // pero se ve APARTE (`verAtrasadas`), no mezclado en la secuencia del día. Qué entra lo decide `paradasDelChofer`.
   const [verAtrasadas, setVerAtrasadas] = useState(false);
+  // D-469: el chofer mira su ruta de ayer, hoy o mañana. El dueño, 2026-10-04: «que los conductores puedan ver ayer, hoy y
+  // mañana… en donde salen mis rutas». `dia` es un desfase (−1, 0, 1) y no una fecha, para que a medianoche «hoy» siga siendo hoy.
+  const [desfase, setDesfase] = useState<-1 | 0 | 1>(0);
+  const dia = shiftDateISO(todayISO(), desfase);
   const atrasadas = useMemo(() => (me ? paradasDelChofer(deliveries, driverName, todayISO(), "atrasadas") : []), [deliveries, me, driverName]);
   const stops = useMemo(() => {
     if (!me) return [];
-    return routeOrder(paradasDelChofer(deliveries, driverName, todayISO(), verAtrasadas ? "atrasadas" : "dia"));
-  }, [deliveries, me, driverName, verAtrasadas]);
+    return routeOrder(paradasDelChofer(deliveries, driverName, dia, verAtrasadas ? "atrasadas" : "dia"));
+  }, [deliveries, me, driverName, verAtrasadas, dia]);
 
   // La capacidad de su camión: la misma que usa quien despacha, para la misma lista y la misma cuenta.
   const capacidad = settings.driver_capacity?.[driverName] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
@@ -64,7 +68,7 @@ export default function MyRoutePage() {
   // D1, D2… (D-334). Solo lectura. Con un plan PUBLICADO y la ruta tal como el plan la dejó, mandan las paradas y
   // etiquetas del plan —las mismas que enseña la tarjeta de arriba—; si alguien la tocó después, lo guardado, y se dice
   // (D-335). Una sola lectura, compartida.
-  const planPublicado = usePlanPublicadoDelChofer(todayISO());
+  const planPublicado = usePlanPublicadoDelChofer(dia);
   const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, verAtrasadas ? null : planPublicado?.paradas ?? null), [stops, capacidad, planPublicado, verAtrasadas]);
   // La cuenta de pallets de cada parada, la misma del Gestor: «+4 = 4» (D-444; hasta ahí, la operación entera).
   const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);
@@ -278,7 +282,12 @@ export default function MyRoutePage() {
     <>
       <div className="page-head">
         <h2>🧭 {t("My route", "Mi ruta")}</h2>
-        <span className="hint">{fmtDate(todayISO())}</span>
+        <span className="hint">{fmtDate(dia)}</span>
+      </div>
+      <div className="viewtoggle" data-dia-de-mi-ruta style={{ marginBottom: 8 }}>
+        {([[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]] as const).map(([d, rotulo]) => (
+          <button key={d} className={`vt${desfase === d && !verAtrasadas ? " on" : ""}`} onClick={() => { setVerAtrasadas(false); setDesfase(d); }}>{rotulo}</button>
+        ))}
       </div>
 
       {/* El orden planeado por el motor, si hay un plan publicado de hoy (D-324). Solo informa: lo que se

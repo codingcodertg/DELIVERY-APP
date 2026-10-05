@@ -36619,3 +36619,22 @@ reforzaron.)
 - **Notion y el tracker** no se tocaron desde la rama: son del orquestador al fusionar (en el tracker no había ninguna
   tarea parecida: se buscó «leads» en la copia congelada).
 - Guiones, capturas y salidas del ensayo: `…/scratchpad/leads-app/` (fuera del repo).
+
+## D-469 · Ayer, hoy y mañana: en «Mi ruta» del chofer y en «Ruta de hoy»
+
+**Fecha:** 2026-10-04 · **Versión:** deliveries 1.256.0, repo 1.343.0 · **Sin migración.**
+
+**Pedido del dueño**, literal (dictado): *«Quiero también que los conductores puedan ver ayer, hoy y mañana en donde, en
+donde, son, en donde salen mis rutas para que puedan ver las rutas de ayer, hoy y hasta mañana. Al igual que en el mapa que
+se hizo, pueden ver las rutas de ayer, hoy y mañana todas las personas.»*
+
+**Qué cambió.**
+- **«Mi ruta»** (chofer): tres botones, Ayer · Hoy · Mañana. Las paradas (`paradasDelChofer`) y el plan publicado se piden
+  del día elegido; antes era siempre hoy. Se guarda el desfase (−1, 0, 1), no la fecha, para que a medianoche «hoy» siga
+  siendo hoy. «Expiradas» sigue aparte.
+- **«Ruta de hoy»** (D-467): los mismos tres botones junto al selector de fecha, para todos los roles. El selector ya dejaba
+  ir de ayer a hoy + 7; ahora ayer, hoy y mañana están a un toque.
+
+**Lo que no cambia.** Los botones de la parada (recoger, entregar) en «Mi ruta» son los mismos en los tres días: no se
+bloqueó marcar una parada de mañana. Queda como pregunta para el dueño. Lo que cada rol ve en el mapa sigue dependiendo de la
+migración 160 (sin aplicar): hasta entonces el chofer ve solo su ruta.
