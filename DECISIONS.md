@@ -36458,6 +36458,8 @@ dicen ahora lo contrario, con su nota: `solo-armar-rutas`, `map-legend`, `histor
 
 ## D-468 · App «Leads»: el banco de leads de permisos por tienda, el pool personal de hasta 10 y el cierre con resultado y nota (migración 162)
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): quien tiene el módulo ya **no** ve ni toma los leads de todas las tiendas. Con la migración 163, ventas (y oficina y logística) solo ven y toman los del banco de su tienda, más los que tienen a su nombre; el admin lo ve todo; y solo el manager puede ver los de otras tiendas, con un permiso por usuario. Además, en la pantalla «banco» pasa a llamarse «Pool General» («Mi pool» no cambia). Lo demás de esta entrada sigue en pie.
+
 **Fecha:** 2026-10-04 · **Migración:** `162_leads.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
 `docs/PLAN-162-leads.md`, 80 OK / 0 MAL) · **Versión:** leads 0.1.0, deliveries 1.255.0, repo 1.342.0 (la rama solo añade la entrada
 `leads: "0.1.0"` a `APP_VERSIONS`, como hicieron promos, el Estimador y Encuestas: sin ella `/leads` no tiene sello).
@@ -36814,3 +36816,171 @@ es `src/components/timetracker/Cronometro.tsx`. Sus afirmaciones no cambiaron.
 - **La sesión del 2026-10-04 no se corrigió.** Hay un guion con ensayo por defecto en
   `D:/CLAUDE/entregas/timetracker-2026-10-04/`; ejecutarlo con `--escribir` es decisión del dueño.
 - Las otras siete sesiones a cero de la tabla tampoco se tocaron.
+
+## D-NEXT · Leads por tienda: ventas solo ve y toma los leads de su tienda; solo el manager puede ver los de otras, con un permiso por usuario; y «banco» pasa a llamarse «Pool General» (migración 163)
+
+**Fecha:** 2026-10-04 · **Migración:** `163_leads_por_tienda.sql`, **escrita y NO aplicada** (es un cambio de RLS: necesita
+la aprobación del dueño; ensayada contra producción con ROLLBACK, 31 OK / 0 MAL) · **Versión:** la asigna el orquestador
+al fusionar. Reemplaza en parte a D-468 (allí quien tenía el módulo veía y tomaba los leads de todas las tiendas).
+
+### Qué pidió el dueño
+
+Dos mensajes del 2026-10-04, literales (como los pasó el orquestador, no extraídos del fichero de sesión):
+
+> «solo el manager puede ver leads de otras tiendas configurable en user permisions, pero sales solo puede ver su tienda»
+
+> «cambia la palabra banco por Pool General»
+
+### Qué había
+
+D-468 (migración 162, aplicada el 2026-10-04 con 566 leads cargados): cada lead tiene un `pool`, que es el nombre de la
+tienda más cercana (o `No store`). Quien tenía el módulo `leads` leía **todas** las filas de `leads` y `lead_events` y
+podía tomar cualquier lead libre: la tienda solo decidía en qué banco se entraba, y un desplegable dejaba cambiar a
+cualquier otro. Medido en producción el 2026-10-04 (solo lectura): tienen el módulo 4 admin, 12 de ventas, 8 de oficina
+(`accounting`), 6 managers y 1 de logística; los nombres de `profiles.store` coinciden letra por letra con los `pool`
+(`RDZ Brownsville`, `RDZ Edinburg`, `RDZ McAllen`, `RDZ Mission`, `RDZ Pharr`, `RDZ Weslaco`); ningún lead tenía dueño todavía.
+
+### Qué se hizo
+
+**La regla, que vive en la base (163):**
+
+| Quién | Qué lee y qué puede tomar |
+|---|---|
+| `admin` | Todo, siempre. No depende de ningún permiso. |
+| `manager` **con** el permiso «ver leads de otras tiendas» | Todo. |
+| Cualquier otro con el módulo (`sales`, `accounting`, `logistics`, y el `manager` **sin** el permiso) | Lee los leads cuyo `pool` es su `profiles.store`, **más** los que tiene a su nombre (tomados o vendidos) sean de la tienda que sean —p. ej. uno que le asignó un admin—. Solo puede **tomar** del banco de su tienda. |
+| Con el módulo, sin tienda y sin permiso | Solo lo que tenga a su nombre. No puede tomar nada. |
+
+- **Dónde se guarda el permiso.** No hay columna nueva: es una palabra más, `leads_all_stores`, en `profiles.permissions`,
+  la lista de permisos por persona que ya usa Entregas (migración 052) y que solo un admin puede escribir
+  (`guard_profile_privileged_columns`). Se marca en **Usuarios → la persona → Módulos y permisos → Leads → «Ver leads de
+  otras tiendas»**, con el mismo dibujo de casilla que los permisos de Entregas, y cada cambio queda en el registro de
+  seguridad (`permissions_changed`), como los demás.
+- **«Solo el manager».** La casilla solo se dibuja si el rol de la app de esa persona es `manager` (al admin se le
+  enseña marcada y fija, «del rol»). Y no es solo la pantalla: la base solo respeta la palabra si `role = 'manager'`. Un
+  vendedor con la palabra en su lista —escrita a mano, o que le quedó de cuando era manager— sigue viendo solo su tienda
+  (caso P1 del ensayo).
+- **Nace ENCENDIDO para los managers que hay.** La 163 añade la palabra a los 6 perfiles con `role = 'manager'`: hoy lo
+  ven todo y el dueño dice que el manager sí puede, así que al aplicarla ningún manager pierde nada; el admin lo apaga
+  persona por persona. **Un manager dado de alta (o ascendido) después nace sin él**: hay que marcárselo.
+- **RLS.** La política `leads select` pasa de «tiene el módulo» a «tiene el módulo Y (ve todas, O el lead es suyo, O el
+  `pool` es su tienda)». La de `lead_events select`, igual: el historial de un lead lo lee quien puede leer ese lead. La
+  del tope (`lead_settings`) no cambia. Siguen siendo una política por tabla y solo de `SELECT`.
+- **`lead_take`.** Es el cuerpo de la 162 más una comprobación, justo después de la del módulo y antes del candado y del
+  tope: si no ve todas y el `pool` del lead no es su tienda, se rechaza con un código nuevo, `LD005` («ese lead es de
+  otra tienda»). `lead_note` y `lead_close` no cambian (ya exigen que el lead sea de quien llama), ni las del admin.
+- **`leads_my_scope()`.** Función nueva que le dice a la pantalla qué alcanza quien mira (`{"all", "store"}`), con la
+  misma cuenta que usa la política. La pantalla **le pregunta a la base** en vez de recalcularlo.
+
+**La pantalla (`/leads`):**
+
+- A quien no ve todas las tiendas ya no se le dibuja el desplegable de tiendas: sale «Pool General de tu tienda», el
+  nombre de su tienda y su contador (libres / total). Los otros bancos no se nombran ni se cuentan. Un lead suyo de otra
+  tienda está en «Mi pool» y **no** hace aparecer el banco de esa tienda.
+- Sin tienda y sin permiso, un aviso lo dice («tu usuario no tiene tienda asignada… pide a un admin…») en vez de una
+  lista vacía que se leería como «no hay leads».
+- Un rechazo `LD005` se dice con sus palabras, en los dos idiomas.
+- **Despliegue antes que migración:** mientras `leads_my_scope()` no exista (la 163 sin aplicar), la pantalla se
+  comporta exactamente como con la 162 —todas las tiendas, con desplegable—, porque la base sigue devolviéndolo todo.
+  «No existe» son solo los códigos `PGRST202` / `42883`; cualquier otro fallo al preguntar el alcance se enseña como
+  error y no se pinta nada.
+- **Modo demo:** el almacén del demo aplica la misma regla (lee solo lo que la persona alcanza, rechaza tomar de otra
+  tienda, historial vacío de lo que no alcanza). Hay dos personas nuevas, «Gema Demo» (manager con el permiso) y «Hugo
+  Demo» (manager sin él), y el desplegable de persona dice rol y tienda.
+- La nota del módulo en Usuarios ya no dice «ve todos los leads de todas las tiendas».
+
+**«Banco» → «Pool General».** Solo textos visibles; no se renombró ninguna columna, función ni variable, y el pool
+personal del vendedor sigue llamándose «Mi pool» / «My pool». En inglés la pantalla decía «bank»: ahora «General Pool».
+
+| Dónde | Antes (en / es) | Ahora (en / es) |
+|---|---|---|
+| Pestaña | Bank / Banco | General Pool / Pool General |
+| Etiqueta del desplegable | Pool (nearest store) / Pool (tienda más cercana) | General Pool (nearest store) / Pool General (tienda más cercana) |
+| «Mi pool» vacío | Your pool is empty. Take leads from the bank. / Tu pool está vacío. Toma leads del banco. | …from the General Pool. / …del Pool General. |
+| Botón del admin | Release to bank / Liberar al banco | Release to General Pool / Liberar al Pool General |
+| Aviso tras liberar | Released to the bank. / Liberado al banco. | Released to the General Pool. / Liberado al Pool General. |
+| Tablero del admin | By pool / Por pool (y la cabecera «Pool») | By General Pool / Por Pool General (cabecera «General Pool» / «Pool General») |
+| Al cerrar con «venta» | It stays yours, out of the bank. / Se queda contigo, fuera del banco. | …out of the General Pool. / …fuera del Pool General. |
+| Al cerrar con lo demás | It goes back to the bank with this tag and your note. / Vuelve al banco con esta etiqueta y tu nota. | It goes back to the General Pool… / Vuelve al Pool General… |
+
+### Interpretaciones del worker, para que el dueño las confirme
+
+1. **Oficina (`accounting`) y logística se comportan como ventas** —solo su tienda—, y a ellos **no** se les ofrece el
+   interruptor. El dueño solo nombró a ventas y al manager; se tomó «solo el manager» al pie de la letra.
+2. **El interruptor nace encendido** para los managers actuales (ver arriba) y apagado para los que vengan después.
+3. **El pool `No store`** (hoy 1 lead, sin tienda cercana) no es de ninguna tienda: solo lo alcanzan el admin y los
+   managers con el permiso.
+4. **«Ver» incluye «tomar»**: el manager con el permiso también puede tomar leads de las otras tiendas, como hasta hoy.
+5. **Un lead que el vendedor suelta vuelve al banco de SU tienda de origen** (`pool` no cambia nunca): si era de otra
+   tienda —se lo había asignado un admin—, al cerrarlo deja de verlo (casos V11–V12 del ensayo).
+6. La etiqueta del desplegable también pasó a «Pool General (tienda más cercana)» y el tablero a «Por Pool General»:
+   ahí «pool» significaba lo mismo que «banco».
+
+### Quién se queda sin ver nada al aplicar la 163
+
+Con el módulo, sin tienda en su perfil y sin poder tener el permiso (producción, 2026-10-04, solo lectura): **Claudia
+Rodriguez** (`accounting`) y **Andres Ugarte** (`logistics`; es el perfil de logística, no el de admin del mismo nombre).
+Verán el aviso de «sin tienda». Se arregla poniéndoles tienda en Usuarios, o no hace falta si no trabajan leads. Los dos
+managers sin tienda (Raquel Rojas, Roberto Rodriguez) **no** se quedan sin nada: nacen con el permiso y lo ven todo; si
+se les apaga, sí.
+
+### Ensayo de la 163 contra producción, con ROLLBACK (2026-10-04): 31 OK, 0 MAL
+
+`node scripts/leads/ensayo-163.mjs --env <.env.local>`: aplica la migración dentro de una transacción, se pone en la piel
+de perfiles reales elegidos por rol (`set local role authenticated` + `request.jwt.claims`) y termina siempre en ROLLBACK.
+Lo que vio cada uno, literal (566 leads y 566 eventos en la base; Pharr 68, Brownsville 140):
+
+| Caso | Resultado |
+|---|---|
+| A1 admin | ve 566 leads (los 7 pools), 566 eventos, alcance `{"all":true,"store":null}` |
+| V1 ventas de Pharr, con un lead de Brownsville asignado por el admin | ve 69 leads [RDZ Brownsville 1 · RDZ Pharr 68], 70 eventos de 566, alcance `{"all":false,"store":"RDZ Pharr"}` |
+| V5–V6 ventas | un lead libre de Brownsville no lo lee ni por id, ni su historial |
+| V7–V8 ventas: `lead_take` de uno de Brownsville | rechazado con `LD005`; el lead sigue libre |
+| V9 ventas: `lead_take` de uno de Pharr | pasa |
+| V10–V12 ventas: anota y cierra el suyo de Brownsville | pasa; al volver al banco de Brownsville deja de verlo: 68 leads [RDZ Pharr 68] |
+| G1–G2 manager con el permiso (McAllen) | ve 566; toma uno de otra tienda |
+| G3 manager con el permiso y sin tienda | ve 566 |
+| H1–H2 manager con el interruptor apagado (Pharr) | ve 68 leads [RDZ Pharr 68]; `lead_take` de otra tienda → `LD005` |
+| O1 oficina (Brownsville) | ve 140 leads [RDZ Brownsville 140] |
+| P1–P2 ventas con la palabra escrita a mano (Brownsville) | sigue viendo 140, solo su tienda; `lead_take` de otra → `LD005` |
+| T1–T2 con módulo, sin tienda, sin permiso | 0 leads, 0 eventos; `lead_take` → `LD005` |
+| S1–S2 sin el módulo | 0 leads, 0 eventos, 0 ajustes; `lead_take` → `42501` |
+| N1–N2 anon | leer leads y ejecutar las funciones nuevas → `42501` |
+
+Después del rollback: `{"funciones":0,"con_permiso":0,"en_registro":0,"politicas_nuevas":0,"leads_con_dueno":0,"eventos_de_ensayo":0}`.
+El ensayo retiene unos segundos un candado sobre `leads` y `lead_events` (cambiar una política lo pide), con `lock_timeout` de 3 s.
+
+### Reversión
+
+Va escrita, literal, al final de la 163: devuelve las dos políticas y `lead_take` a como las dejó la 162, borra las tres
+funciones nuevas, quita la palabra de `profiles.permissions` y la fila del registro. No borra ningún lead ni evento. Sin
+`leads_my_scope()` la pantalla vuelve sola a comportarse como con la 162.
+
+### Mutantes — 47 de 47 caen con una prueba con nombre (`src/lib/leads/alcance.test.ts`, y dos en `reglas.test.ts`)
+
+| Pieza | Mutantes | Prueba que cae (sección de `alcance.test.ts`) |
+|---|---|---|
+| Quién ve las otras tiendas (`alcance.ts`) | el admin deja de verlas · el interruptor se ofrece a ventas · la palabra le sirve a cualquier rol · el manager las ve sin el permiso · una tienda en blanco cuenta como tienda | 1 · quién ve las otras tiendas |
+| Qué lead alcanza (`alcance.ts`) | quien ve todas no alcanza los otros bancos · cualquier banco es su banco · sin tienda alcanza el pool vacío · no lee lo suyo de otra tienda · el banco de la pantalla no filtra · el selector se enseña a todos | 2 · qué lead alcanza cada alcance |
+| Lo que dice la base (`alcance.ts`, `almacen.ts`, `reglas.ts`) | una respuesta rara abre todo · `all` «truthy» vale · cualquier error es «falta la 163» · la función ausente no lo es · `leer()` ignora el alcance · `leer()` no lo pregunta · un fallo del alcance se traga · `LD005` se traduce a otra cosa | 3 · lo que dice la base |
+| El demo (`demo.ts`) | lee todo para todos · deja tomar de otra tienda · enseña el historial de cualquier lead · el admin deja de serlo para el alcance | 4 · el demo aplica la misma regla que la base |
+| La pantalla (`Leads.tsx`) | el banco son todos los leads leídos · los contadores salen de todos · el selector se dibuja siempre · no guarda el alcance · de entrada supone solo-tienda · el demo no relee al cambiar de persona · la pestaña y «liberar» vuelven a decir banco | 5 · la pantalla pinta lo que el alcance dice |
+| Usuarios (`constants.ts`, `UserDialog.tsx`) | el permiso se ofrece a todos los roles · al admin no le sale fijo · al manager le sale fijo · Leads mira un rol de módulo que no tiene · el diálogo dibuja sin mirar a quién se ofrece · el diálogo no usa el rol de la app | 6 · el interruptor en Usuarios |
+| El texto de la 163 | ventas con la palabra ve todas · el manager sin la palabra ve todas · la política no mira la tienda · olvida los suyos · el historial sin mirar el lead · `lead_take` no comprueba la tienda · la comprueba sin candado después · el permiso para todo el mundo · `all=true` sin módulo | 7 · la 163 |
+
+Las pruebas de «la pantalla», «Usuarios» y «la 163» leen el TEXTO del componente y de la migración: dicen que la pantalla
+llama a la función y que la migración dice lo que promete, no que el componente montado ni la base se comporten así. Lo
+que la base HACE está medido con el ensayo de arriba.
+
+### Lo que NO se hizo, y lo no verificado
+
+- **No se vio en un navegador**: ni `/leads` (el desplegable escondido, el aviso de «sin tienda», los textos nuevos) ni
+  la casilla nueva en el diálogo de Usuarios. `tsc`, las pruebas y el build pasan.
+- **La 163 no está aplicada.** Hasta que se aplique, todo el mundo sigue viendo todas las tiendas, y la casilla de
+  Usuarios se puede marcar pero no cambia nada (y sale desmarcada para los managers, que hoy lo ven todo).
+- En la lista de Usuarios, los 6 managers pasarán a llevar la pastilla «🔑 +1» (permisos extra) al aplicarla: es cierto,
+  pero es una pastilla más que hoy no está.
+- El rol de la persona se cambia en «Identidad»: si un manager con el permiso pasa a ventas, la palabra se queda en su
+  lista sin efecto; no se limpia sola.
+- `docs/PLAN-162-leads.md` y los comentarios de la 162 siguen diciendo que el módulo lo lee todo: son historia y no se reescriben.
+- Notion y el tracker no se tocaron (son del orquestador al fusionar).

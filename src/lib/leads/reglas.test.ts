@@ -143,8 +143,8 @@ describe("3 · cerrar con resultado y nota", () => {
   it("lo que se dice antes de cerrar sale del mismo destino", () => {
     expect(consecuencia("sale", "es")).toMatch(/Se queda contigo/);
     expect(consecuencia("review", "es")).toMatch(/cola del admin/);
-    expect(consecuencia("nothing", "es")).toMatch(/Vuelve al banco/);
-    expect(consecuencia("bad_lead", "en")).toMatch(/back to the bank/);
+    expect(consecuencia("nothing", "es")).toMatch(/Vuelve al Pool General/);
+    expect(consecuencia("bad_lead", "en")).toMatch(/back to the General Pool/);
   });
 });
 
@@ -303,7 +303,7 @@ describe("9 · el demo se comporta como la base", () => {
       expect(l.owner_name).toMatch(/Demo/);
     }
   });
-  it("Ana (9 abiertos) toma uno, y el 11.º se le rechaza por «lleno»; Beto no puede tomar el de Ana", async () => {
+  it("Ana (9 abiertos) toma uno, y el 11.º se le rechaza por «lleno»; nadie más puede tomar el de Ana", async () => {
     let yo = ana;
     const a = almacenDemo(() => yo);
     const r0 = await a.leer();
@@ -314,8 +314,12 @@ describe("9 · el demo se comporta como la base", () => {
     expect(t1.ok && t1.valor.holder).toBe(ana.id);
     const t2 = await a.tomar(libres[1].id);
     expect(t2).toMatchObject({ ok: false, motivo: "lleno" });
+    // Beto es de otra tienda: ni siquiera llega a «no está libre» (163). El admin alcanza todas, y a él sí se le dice.
     yo = beto;
+    expect(await a.tomar(libres[0].id)).toMatchObject({ ok: false, motivo: "otra_tienda" });
+    yo = admin;
     expect(await a.tomar(libres[0].id)).toMatchObject({ ok: false, motivo: "no_libre" });
+    yo = beto;
     expect(await a.cerrar(libres[0].id, "sale", "mío")).toMatchObject({ ok: false, motivo: "no_es_tuyo" });
     yo = ana;
     expect(await a.cerrar(libres[0].id, "nothing", " ")).toMatchObject({ ok: false, motivo: "falta_nota" });
@@ -324,7 +328,8 @@ describe("9 · el demo se comporta como la base", () => {
     const t3 = await a.tomar(libres[1].id);
     expect(t3.ok).toBe(true);
     const h = await a.historial(libres[0].id);
-    expect(h.ok && h.valor.map((e) => e.kind)).toEqual(["taken", "closed"]);
+    // Los dos últimos: el primer libre del banco de Ana puede traer ya un cierre de antes (los devueltos del demo).
+    expect(h.ok && h.valor.map((e) => e.kind).slice(-2)).toEqual(["taken", "closed"]);
   });
   it("lo del admin es solo del admin", async () => {
     let yo = ana;
@@ -367,7 +372,7 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("{donde !== \"mio\" && l.status === \"free\" && (");
   });
   it("el banco se pinta filtrado y ordenado por las funciones, con «libres» y «sirve» de entrada, y en el pool de su tienda", () => {
-    expect(p).toContain("ordenar(filtrar(leads, { pool, vista, categoria, tipo, ciudad, busca }), orden)");
+    expect(p).toContain("ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca }), orden)");
     expect(p).toContain('useState<Vista>("libres")');
     expect(p).toContain('useState<FiltroCategoria>("utiles")');
     expect(p).toContain('useState<Orden>("distancia")');

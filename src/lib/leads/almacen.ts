@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ALCANCE_SIN_REGLA, alcanceDeLaBase, type Alcance } from "./alcance";
 import { negativaDeCodigo, TOPE_POR_DEFECTO, type EstadoLead, type Etiqueta, type EventoLead, type Lead, type Negativa, type Persona, type Resultado } from "./reglas";
 
 /**
  * Dónde viven los leads: `public.leads`, `public.lead_events` y `public.lead_settings` (migración 162). Una interfaz
  * con dos implementaciones —la base y el demo— para que la pantalla sea la misma en las dos.
  *
- * **Se lee con la sesión de quien mira**: la política de la 162 (`has_leads_access()`) decide. **No hay ni una
+ * **Se lee con la sesión de quien mira**: la política decide (`has_leads_access()`, 162; y por tienda, 163). **No hay ni una
  * escritura directa**: las tres tablas no tienen INSERT, UPDATE ni DELETE por la API. Todo va por funciones, y cada
  * una devuelve el lead como quedó: lo que la pantalla pinta después es lo que dijo la base, no lo que se supuso.
  *
@@ -14,8 +15,11 @@ import { negativaDeCodigo, TOPE_POR_DEFECTO, type EstadoLead, type Etiqueta, typ
 export type Res<T> = { ok: true; valor: T } | { ok: false; sinTabla: boolean; motivo: Negativa | null; error: string };
 
 export interface AlmacenDeLeads {
-  /** Todos los leads y el tope vigente. */
-  leer(): Promise<Res<{ leads: Lead[]; tope: number }>>;
+  /**
+   * Los leads que quien mira ALCANZA (los de su tienda y los suyos, o todos: lo decide la base, migración 163),
+   * el tope vigente y ese alcance.
+   */
+  leer(): Promise<Res<{ leads: Lead[]; tope: number; alcance: Alcance }>>;
   /** El historial de UN lead, de lo más viejo a lo más nuevo. */
   historial(leadId: string): Promise<Res<EventoLead[]>>;
   /** Los cierres de todos (para el tablero del admin). */
@@ -35,6 +39,16 @@ export interface AlmacenDeLeads {
 export function faltaLaTabla(error: { code?: string | null } | null | undefined): boolean {
   const code = error?.code ?? "";
   return code === "PGRST205" || code === "PGRST202" || code === "42P01" || code === "42883";
+}
+
+/**
+ * ¿Es «la 163 no está aplicada»? Solo que la FUNCIÓN `leads_my_scope` no exista (PGRST202 de PostgREST, 42883 de
+ * Postgres). El código llega antes que la migración: mientras tanto no hay regla por tienda y se ve como con la 162.
+ * Cualquier otro error NO es esto: se dice, y no se abre nada.
+ */
+export function faltaElAlcance(error: { code?: string | null } | null | undefined): boolean {
+  const code = error?.code ?? "";
+  return code === "PGRST202" || code === "42883";
 }
 
 /** Las columnas que la pantalla usa. No se pide `*`: la dirección postal del dueño no se enseña y no se baja. */
@@ -119,6 +133,10 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       const ajustes = await supabase.from("lead_settings").select("max_open").maybeSingle();
       if (ajustes.error) return fallo(ajustes.error);
       const tope = num((ajustes.data as { max_open?: unknown } | null)?.max_open) ?? TOPE_POR_DEFECTO;
+      // El alcance se le PREGUNTA a la base: es la misma regla que su política aplica a las filas de abajo.
+      const mio = await supabase.rpc("leads_my_scope");
+      if (mio.error && !faltaElAlcance(mio.error)) return fallo(mio.error);
+      const alcance = mio.error ? ALCANCE_SIN_REGLA : alcanceDeLaBase(mio.data);
       const leads: Lead[] = [];
       for (let p = 0; p < MAX_PAGINAS; p++) {
         const { data, error } = await supabase.from("leads").select(COLUMNAS)
@@ -126,7 +144,7 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
         if (error) return fallo(error);
         const filas = (data ?? []) as unknown as Record<string, unknown>[];
         leads.push(...filas.map(leadDeLaBase));
-        if (filas.length < PAGINA) return { ok: true, valor: { leads, tope } };
+        if (filas.length < PAGINA) return { ok: true, valor: { leads, tope, alcance } };
       }
       return { ok: false, sinTabla: false, motivo: null, error: `more than ${PAGINA * MAX_PAGINAS} leads` };
     },
