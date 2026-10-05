@@ -246,6 +246,45 @@ export function categoriaDescartada(categoria: string | null): boolean {
   return (categoria ?? "").trim().toLowerCase().startsWith("no sirve");
 }
 
+/**
+ * Los filtros rápidos por situación del lead (D-473). `""` = sin filtro. Con uno puesto, la vista «Libres / Todas»
+ * no cuenta: «Ocupa revisión», «Tomados» y «Vendidos» no son leads libres y si no nunca saldrían.
+ */
+export const SITUACIONES = ["buenos", "revision", "negados", "nada", "reasignar", "tomados", "vendidos"] as const;
+export type Situacion = (typeof SITUACIONES)[number];
+
+/** ¿La categoría del Excel es de las buenas? Empieza por «Sirve» («Sirve – usa piso»); «Might be useful» no entra. */
+export function categoriaBuena(categoria: string | null): boolean {
+  return (categoria ?? "").trim().toLowerCase().startsWith("sirve");
+}
+
+/**
+ * ¿El lead está en esa situación?
+ * - `buenos`: libre y de categoría buena.
+ * - `revision`: en la cola del admin («Ocupa revisión»).
+ * - `negados`: volvió al Pool General como «No es buen lead».
+ * - `nada`: volvió como «No se logró nada».  · `reasignar`: volvió como «Mejor reasignarlo».
+ * - `tomados`: alguien lo tiene.  · `vendidos`: venta lograda.
+ */
+export function enSituacion(l: Pick<Lead, "status" | "category" | "last_outcome">, s: Situacion): boolean {
+  switch (s) {
+    case "buenos": return l.status === "free" && categoriaBuena(l.category);
+    case "revision": return l.status === "review";
+    case "negados": return l.status === "free" && l.last_outcome === "bad_lead";
+    case "nada": return l.status === "free" && l.last_outcome === "nothing";
+    case "reasignar": return l.status === "free" && l.last_outcome === "reassign";
+    case "tomados": return l.status === "taken";
+    case "vendidos": return l.status === "won";
+  }
+}
+
+/** Cuántos leads hay en cada situación, para el número de cada filtro. */
+export function cuentaPorSituacion(leads: readonly Lead[]): Record<Situacion, number> {
+  const n = { buenos: 0, revision: 0, negados: 0, nada: 0, reasignar: 0, tomados: 0, vendidos: 0 } as Record<Situacion, number>;
+  for (const l of leads) for (const s of SITUACIONES) if (enSituacion(l, s)) n[s]++;
+  return n;
+}
+
 export interface Filtros {
   pool: string | null;
   vista: Vista;
@@ -253,6 +292,7 @@ export interface Filtros {
   tipo: string;
   ciudad: string;
   busca: string;
+  situacion?: Situacion | "";
 }
 
 const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -270,9 +310,15 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
   const q = sinAcentos(f.busca.trim());
   return leads.filter((l) => {
     if (f.pool !== null && l.pool !== f.pool) return false;
-    if (f.vista === "libres" && l.status !== "free") return false;
-    if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
-    else if (f.categoria !== "todas" && l.category !== f.categoria) return false;
+    if (f.situacion) {
+      // Con situación puesta manda ella: ni la vista ni la categoría de entrada esconden lo que se pidió ver.
+      if (!enSituacion(l, f.situacion)) return false;
+      if (f.categoria !== "utiles" && f.categoria !== "todas" && l.category !== f.categoria) return false;
+    } else {
+      if (f.vista === "libres" && l.status !== "free") return false;
+      if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
+      else if (f.categoria !== "todas" && l.category !== f.categoria) return false;
+    }
     if (f.tipo && l.project_type !== f.tipo) return false;
     if (f.ciudad && l.site_city !== f.ciudad) return false;
     if (q && !textoDe(l).includes(q)) return false;
@@ -362,6 +408,17 @@ const RESULTADO_TXT: Record<Etiqueta, { en: string; es: string }> = {
   admin: { en: "Admin note", es: "Nota del admin" },
 };
 export function resultadoLabel(r: Etiqueta, lang: Idioma): string { return RESULTADO_TXT[r][lang]; }
+
+const SITUACION_TXT: Record<Situacion, { en: string; es: string }> = {
+  buenos: { en: "Good leads", es: "Buenos leads" },
+  revision: { en: "Needs review", es: "Ocupa revisión" },
+  negados: { en: "Rejected", es: "Negados" },
+  nada: { en: "Nothing came of it", es: "No se logró nada" },
+  reasignar: { en: "To reassign", es: "Por reasignar" },
+  tomados: { en: "Taken", es: "Tomados" },
+  vendidos: { en: "Sold", es: "Vendidos" },
+};
+export function situacionLabel(s: Situacion, lang: Idioma): string { return SITUACION_TXT[s][lang]; }
 
 /** Qué le pasa al lead con cada resultado, dicho en la pantalla antes de cerrar. Sale de `destinoAlCerrar`. */
 export function consecuencia(r: Resultado, lang: Idioma): string {

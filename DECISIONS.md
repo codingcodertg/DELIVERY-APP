@@ -37016,3 +37016,40 @@ de los dos. La presencial no tiene cuestionario: su rastro son los renglones «I
 - El botón solo sale si hay entrevista por teléfono guardada. Un candidato que solo tuvo presencial no lo trae en las
   listas (interpretación del orquestador; la vista sí sabe enseñar las notas de la presencial).
 - No visto en navegador: `tsc` y vitest.
+
+## D-473 · Leads: filtros rápidos por situación (Buenos leads, Ocupa revisión, Negados…)
+
+**Fecha:** 2026-10-05 · **Versión:** leads (leads 0.3.0, repo 1.347.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d473`.
+
+**Pedido del dueño**, literal: *«agrega filtros que sean ocupa revision, negados, beunas leads y asi en el lead app»*.
+
+### Qué se decidió
+
+Una fila de botones encima de los filtros del Pool General, cada uno con su número (contado sobre el pool que se
+está viendo). Uno a la vez; volver a tocarlo, o «Sin filtro», lo quita. La regla está en `src/lib/leads/reglas.ts`
+(`SITUACIONES`, `enSituacion`, `cuentaPorSituacion`, `categoriaBuena`, `situacionLabel`) y `filtrar` la aplica
+(`Filtros.situacion`, opcional). Pruebas en `src/lib/leads/situacion.test.ts`.
+
+| Botón | Qué trae |
+|---|---|
+| Buenos leads | libres y de categoría «Sirve – usa piso» («Might be useful» no entra) |
+| Ocupa revisión | los que están en la cola del admin (`status = review`) |
+| Negados | los que volvieron al Pool General como «No es buen lead» |
+| No se logró nada | los que volvieron como «No se logró nada» |
+| Por reasignar | los que volvieron como «Mejor reasignarlo» |
+| Tomados | los que alguien tiene |
+| Vendidos | venta lograda |
+
+- **Con un botón puesto, la vista «Libres / Todas» y la categoría de entrada («Sirve + podría servir») no cuentan:**
+  si no, «Ocupa revisión», «Tomados» y «Vendidos» nunca saldrían (no son libres) y un negado de categoría «No
+  sirve» quedaría escondido. Una categoría elegida a mano, el tipo, la ciudad, la búsqueda y el pool sí siguen contando.
+- Un negado que alguien vuelve a tomar sale de «Negados» y pasa a «Tomados».
+- Cada quien filtra sobre lo que ya alcanza a ver (D-471): no enseña leads de otra tienda.
+
+### Interpretaciones del orquestador, a confirmar
+
+- «Buenas leads» = categoría «Sirve – usa piso» y todavía libres.
+- «Negados» = cerrados como «No es buen lead». «No se logró nada» va en su propio botón.
+- El «y así» se cubrió con: No se logró nada, Por reasignar, Tomados y Vendidos.
+
+No visto en navegador: `tsc` y vitest.

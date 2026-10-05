@@ -8,10 +8,10 @@ import { almacenDeLaBase, type AlmacenDeLeads, type Res } from "@/lib/leads/alma
 import { ALCANCE_SIN_REGLA, eligeTienda, leadsDelBanco, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO } from "@/lib/leads/demo";
 import {
-  abiertosDe, bloqueado, colaDeRevision, consecuencia, delExcel, dinero, enlaceSeguro, estadoLabel, eventoLabel, fecha, filtrar,
+  abiertosDe, bloqueado, colaDeRevision, consecuencia, cuentaPorSituacion, delExcel, dinero, enlaceSeguro, estadoLabel, eventoLabel, fecha, filtrar,
   mapsUrl, negativaTexto, notaLimpia, numero, ordenar, poolInicial, poolLabel, poolsDe, puedeTomar, puestosLibres, RESULTADOS,
-  resultadoLabel, sinTocar, tableroPorVendedor, telUrl, valoresDe, veContacto, ventasDe, NOTA_MAX,
-  type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Vista,
+  resultadoLabel, sinTocar, SITUACIONES, situacionLabel, tableroPorVendedor, telUrl, valoresDe, veContacto, ventasDe, NOTA_MAX,
+  type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
 } from "@/lib/leads/reglas";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
@@ -52,6 +52,7 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
   const [pool, setPool] = useState<string | null>(null);
   const [vista, setVista] = useState<Vista>("libres");
   const [categoria, setCategoria] = useState<FiltroCategoria>("utiles");
+  const [situacion, setSituacion] = useState<Situacion | "">("");
   const [tipo, setTipo] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [busca, setBusca] = useState("");
@@ -83,11 +84,12 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
   useEffect(() => { setPool((p) => (p && pools.some((x) => x.pool === p) ? p : poolInicial(pools, tienda))); }, [pools, tienda]);
 
   const delPool = useMemo(() => delBanco.filter((l) => l.pool === pool), [delBanco, pool]);
+  const porSituacion = useMemo(() => cuentaPorSituacion(delPool), [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca }), orden),
-    [delBanco, pool, vista, categoria, tipo, ciudad, busca, orden],
+    () => ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca, situacion }), orden),
+    [delBanco, pool, vista, categoria, tipo, ciudad, busca, situacion, orden],
   );
-  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, orden]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, orden]);
 
   if (!yo) return <div className="ld-wrap"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -218,6 +220,14 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
                     <button type="button" className={`chip${vista === "libres" ? " on" : ""}`} data-vista="libres" onClick={() => setVista("libres")}>{t("Free", "Libres")}</button>
                     <button type="button" className={`chip${vista === "todas" ? " on" : ""}`} data-vista="todas" onClick={() => setVista("todas")}>{t("All", "Todas")}</button>
                   </div>
+                </div>
+                <div className="ld-vistas" role="group" aria-label={t("Status", "Situación")} data-situaciones>
+                  <button type="button" className={`chip${situacion === "" ? " on" : ""}`} data-situacion="" onClick={() => setSituacion("")}>{t("No filter", "Sin filtro")}</button>
+                  {SITUACIONES.map((s) => (
+                    <button key={s} type="button" className={`chip${situacion === s ? " on" : ""}`} data-situacion={s} onClick={() => setSituacion(situacion === s ? "" : s)}>
+                      {situacionLabel(s, lang)} ({porSituacion[s]})
+                    </button>
+                  ))}
                 </div>
                 <div className="ld-fila">
                   <label>

@@ -372,7 +372,7 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("{donde !== \"mio\" && l.status === \"free\" && (");
   });
   it("el banco se pinta filtrado y ordenado por las funciones, con «libres» y «sirve» de entrada, y en el pool de su tienda", () => {
-    expect(p).toContain("ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca }), orden)");
+    expect(p).toContain("ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca, situacion }), orden)");
     expect(p).toContain('useState<Vista>("libres")');
     expect(p).toContain('useState<FiltroCategoria>("utiles")');
     expect(p).toContain('useState<Orden>("distancia")');
