@@ -36984,3 +36984,35 @@ que la base HACE está medido con el ensayo de arriba.
   lista sin efecto; no se limpia sola.
 - `docs/PLAN-162-leads.md` y los comentarios de la 162 siguen diciendo que el módulo lo lee todo: son historia y no se reescriben.
 - Notion y el tracker no se tocaron (son del orquestador al fusionar).
+
+## D-472 · HR: botón «Ver entrevista» para leer la entrevista ya hecha
+
+**Fecha:** 2026-10-05 · **Versión:** recruiting (recruiting 0.38.0, repo 1.346.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d472`.
+
+**Pedido del dueño**, literal: *«quiero en el hr las entrevista que haya el boton para ver la entrevista hecha»*.
+
+### Qué había
+
+La entrevista por teléfono se guarda en `recruiting.candidates.interview` (una por candidato). Para verla solo había
+dos caminos: «Resumen» (`ResumeModal`), que es un texto para copiar al gerente y deja fuera las preguntas sin
+calificar, o «Editar entrevista», que abre el cuestionario editable. Calendario, Hoy y Resultados no tenían ninguno
+de los dos. La presencial no tiene cuestionario: su rastro son los renglones «In person» del registro de contactos.
+
+### Qué se decidió
+
+- Vista nueva de **solo lectura** `InterviewViewModal` (`src/components/recruiting/InterviewView.tsx`): fecha,
+  calificación, recomendación, calificación del reclutador, **todas** las preguntas en su orden con su calificación y
+  lo anotado (las no contestadas salen atenuadas como «Sin contestar»), notas generales y, debajo, lo anotado de la
+  presencial. No guarda nada; trae un botón «Editar entrevista» para quien la quiera cambiar.
+- La lógica vive en `src/lib/recruiting/entrevista-hecha.ts` (`filasDeLaEntrevista`, `cuentaDeContestadas`,
+  `notasDeLaPresencial`, `hayEntrevistaHecha`), con pruebas en `entrevista-hecha.test.ts`.
+- Botón «👁 Ver entrevista» (`ui.openInterviewView`) donde se lista una entrevista y el candidato ya tiene una
+  guardada: fila del candidato, perfil, Calendario («Próximas entrevistas»), Hoy y Resultados.
+
+### Límites, dichos
+
+- Hay una sola entrevista por candidato: una re-entrevista pisa la anterior, así que se ve la última.
+- No se guarda quién entrevistó; la vista no lo enseña.
+- El botón solo sale si hay entrevista por teléfono guardada. Un candidato que solo tuvo presencial no lo trae en las
+  listas (interpretación del orquestador; la vista sí sabe enseñar las notas de la presencial).
+- No visto en navegador: `tsc` y vitest.

@@ -68,6 +68,7 @@ export default function OutcomesPage() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {c.interview && <button className="btn btn-ghost btn-sm" onClick={() => ui.openInterviewView(c.id)}>👁 {t("View interview", "Ver entrevista")}</button>}
           <button className="btn btn-primary btn-sm" onClick={() => ui.openOutcome(c.id)}>
             🤝 {t("Record outcome", "Registrar resultado")}
           </button>

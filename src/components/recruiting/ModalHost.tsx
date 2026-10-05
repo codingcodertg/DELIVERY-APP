@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
+import { InterviewViewModal } from "./InterviewView";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
 import type { Candidate, Contact, Interview, InterviewAnswer, RecruiterRecommendation } from "@/lib/recruiting/types";
 import {
@@ -30,6 +31,8 @@ interface UI {
   openProfile: (id: string) => void;
   openInterview: (id: string) => void;
   openResume: (id: string) => void;
+  /** La entrevista ya hecha, solo para leerla (D-472). */
+  openInterviewView: (id: string) => void;
   openSchedule: (id: string) => void;
   openScheduleInPerson: (id: string) => void;
   openDiscard: (id: string, stageKey: string) => void;
@@ -56,6 +59,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [profileId, setProfileId] = useState<string | null>(null);
   const [interviewId, setInterviewId] = useState<string | null>(null);
   const [resumeId, setResumeId] = useState<string | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
   const [scheduleId, setScheduleId] = useState<string | null>(null);
   const [inPersonId, setInPersonId] = useState<string | null>(null);
   const [discard, setDiscard] = useState<{ id: string; stageKey: string } | null>(null);
@@ -73,6 +77,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     openProfile: setProfileId,
     openInterview: setInterviewId,
     openResume: setResumeId,
+    openInterviewView: setViewId,
     openSchedule: setScheduleId,
     openScheduleInPerson: setInPersonId,
     openDiscard: (id, stageKey) => setDiscard({ id, stageKey }),
@@ -108,6 +113,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         />
       )}
       {resumeId && <ResumeModal id={resumeId} close={() => setResumeId(null)} />}
+      {viewId && <InterviewViewModal id={viewId} close={() => setViewId(null)} edit={setInterviewId} />}
       {msgId && <MessageModal id={msgId} close={() => setMsgId(null)} />}
       {contactId && <ContactModal id={contactId} close={() => setContactId(null)} />}
       {offerId && <OfferModal id={offerId} close={() => setOfferId(null)} />}
@@ -321,6 +327,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
           <button className="btn btn-primary" onClick={() => { close(); ui.openInterview(c.id); }}>🎤 {c.interview ? t("Edit interview", "Editar entrevista") : t("Start interview", "Iniciar entrevista")}</button>
           <button className="btn btn-ghost" onClick={() => { close(); ui.openSchedule(c.id); }}>📅 {t("Schedule call", "Agendar llamada")}</button>
           <button className="btn btn-ghost" onClick={() => { close(); ui.openScheduleInPerson(c.id); }}>🤝 {t("Schedule in-person", "Agendar presencial")}</button>
+          {c.interview && <button className="btn btn-ghost" onClick={() => { close(); ui.openInterviewView(c.id); }}>👁 {t("View interview", "Ver entrevista")}</button>}
           {c.interview && <button className="btn btn-green" onClick={() => { close(); ui.openResume(c.id); }}>📋 {t("Summary", "Resumen")}</button>}
           <button className="btn btn-ghost" onClick={() => { close(); ui.openEdit(c.id); }}>✏️ {t("Edit", "Editar")}</button>
           {/* reversible, so no confirm — but say what happened, since the row
