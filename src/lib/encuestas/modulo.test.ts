@@ -99,15 +99,18 @@ describe("la 155", () => {
   const [cuerpo] = sql.split("-- @ledger-below");
   const sinComentarios = cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 
-  it("es la ÚLTIMA migración que define profiles_module_access_known, y su lista es MODULE_ACCESS entero", () => {
+  // Puesto al día por Leads (migración 162): la ÚLTIMA definición de la restricción ya no es la 155 (la 162 añade
+  // 'leads'). Aquí se compara con las claves que existían al escribir la 155; que la última migración que toca la
+  // restricción lleve MODULE_ACCESS entero lo mira `leads/modulo.test.ts`.
+  it("define profiles_module_access_known con las claves que había al escribirla (todas menos 'leads')", () => {
     const definen = readdirSync("supabase/migrations")
       .filter((f) => f.endsWith(".sql"))
       .sort()
       .filter((f) => leer(`supabase/migrations/${f}`).includes("add constraint profiles_module_access_known"));
-    expect(definen[definen.length - 1]).toBe("155_encuestas.sql");
+    expect(definen).toContain("155_encuestas.sql");
     const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(cuerpo)![1];
     expect(lista).not.toContain("clockin");
-    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.map((m) => `'${m.key}'`).sort());
+    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "leads").map((m) => `'${m.key}'`).sort());
   });
 
   it("las ocho claves de área son las de la app, en el validador de la tabla y en la función", () => {
