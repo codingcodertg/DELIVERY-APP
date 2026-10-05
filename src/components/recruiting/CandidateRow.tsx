@@ -211,6 +211,7 @@ export function CandidateRow({
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openInterview(c.id)}>
           🎤 {c.interview ? t("Edit interview", "Editar entrevista") : t("Start interview", "Iniciar entrevista")}
         </button>
+        {c.interview && <button className="btn btn-ghost btn-sm" onClick={() => ui.openInterviewView(c.id)}>👁 {t("View interview", "Ver entrevista")}</button>}
         {c.interview && <button className="btn btn-green btn-sm" onClick={() => ui.openResume(c.id)}>📋 {t("Summary", "Resumen")}</button>}
         <button className="btn btn-sm" style={{ color: "var(--gray)" }} onClick={() => ui.openEdit(c.id)}>✏️ {t("Edit", "Editar")}</button>
         {c.resume_name ? (

@@ -101,7 +101,10 @@ export default function CalendarPage() {
                 {ev.kind === "inperson" ? "🤝 " + t("In-person", "Presencial") : "☎ " + t("Phone call", "Llamada")} · {fmtDateTime(ev.at)}
               </div>
             </div>
-            {ev.kind === "phone" && <button className="btn btn-primary btn-sm" onClick={() => ui.openInterview(ev.c.id)}>🎤 {t("Interview", "Entrevista")}</button>}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {ev.c.interview && <button className="btn btn-ghost btn-sm" onClick={() => ui.openInterviewView(ev.c.id)}>👁 {t("View interview", "Ver entrevista")}</button>}
+              {ev.kind === "phone" && <button className="btn btn-primary btn-sm" onClick={() => ui.openInterview(ev.c.id)}>🎤 {t("Interview", "Entrevista")}</button>}
+            </div>
           </div>
         ))}
       </div>
