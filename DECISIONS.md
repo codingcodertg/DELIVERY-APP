@@ -36458,7 +36458,7 @@ dicen ahora lo contrario, con su nota: `solo-armar-rutas`, `map-legend`, `histor
 
 ## D-468 · App «Leads»: el banco de leads de permisos por tienda, el pool personal de hasta 10 y el cierre con resultado y nota (migración 162)
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): quien tiene el módulo ya **no** ve ni toma los leads de todas las tiendas. Con la migración 163, ventas (y oficina y logística) solo ven y toman los del banco de su tienda, más los que tienen a su nombre; el admin lo ve todo; y solo el manager puede ver los de otras tiendas, con un permiso por usuario. Además, en la pantalla «banco» pasa a llamarse «Pool General» («Mi pool» no cambia). Lo demás de esta entrada sigue en pie.
+> **⚠ Reemplazada en parte por D-471** (2026-10-04): quien tiene el módulo ya **no** ve ni toma los leads de todas las tiendas. Con la migración 163, ventas (y oficina y logística) solo ven y toman los del banco de su tienda, más los que tienen a su nombre; el admin lo ve todo; y solo el manager puede ver los de otras tiendas, con un permiso por usuario. Además, en la pantalla «banco» pasa a llamarse «Pool General» («Mi pool» no cambia). Lo demás de esta entrada sigue en pie.
 
 **Fecha:** 2026-10-04 · **Migración:** `162_leads.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
 `docs/PLAN-162-leads.md`, 80 OK / 0 MAL) · **Versión:** leads 0.1.0, deliveries 1.255.0, repo 1.342.0 (la rama solo añade la entrada
@@ -36817,10 +36817,10 @@ es `src/components/timetracker/Cronometro.tsx`. Sus afirmaciones no cambiaron.
   `D:/CLAUDE/entregas/timetracker-2026-10-04/`; ejecutarlo con `--escribir` es decisión del dueño.
 - Las otras siete sesiones a cero de la tabla tampoco se tocaron.
 
-## D-NEXT · Leads por tienda: ventas solo ve y toma los leads de su tienda; solo el manager puede ver los de otras, con un permiso por usuario; y «banco» pasa a llamarse «Pool General» (migración 163)
+## D-471 · Leads por tienda: ventas solo ve y toma los leads de su tienda; solo el manager puede ver los de otras, con un permiso por usuario; y «banco» pasa a llamarse «Pool General» (migración 163)
 
 **Fecha:** 2026-10-04 · **Migración:** `163_leads_por_tienda.sql`, **escrita y NO aplicada** (es un cambio de RLS: necesita
-la aprobación del dueño; ensayada contra producción con ROLLBACK, 31 OK / 0 MAL) · **Versión:** la asigna el orquestador
+la aprobación del dueño; ensayada contra producción con ROLLBACK, 31 OK / 0 MAL) · **Versión:** leads 0.2.0, repo 1.345.0
 al fusionar. Reemplaza en parte a D-468 (allí quien tenía el módulo veía y tomaba los leads de todas las tiendas).
 
 ### Qué pidió el dueño
