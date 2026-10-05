@@ -221,11 +221,11 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
                     <button type="button" className={`chip${vista === "todas" ? " on" : ""}`} data-vista="todas" onClick={() => setVista("todas")}>{t("All", "Todas")}</button>
                   </div>
                 </div>
-                <div className="ld-vistas" role="group" aria-label={t("Status", "Situación")} data-situaciones>
+                <div className="ld-situaciones" role="group" aria-label={t("Status", "Situación")} data-situaciones>
                   <button type="button" className={`chip${situacion === "" ? " on" : ""}`} data-situacion="" onClick={() => setSituacion("")}>{t("No filter", "Sin filtro")}</button>
                   {SITUACIONES.map((s) => (
                     <button key={s} type="button" className={`chip${situacion === s ? " on" : ""}`} data-situacion={s} onClick={() => setSituacion(situacion === s ? "" : s)}>
-                      {situacionLabel(s, lang)} ({porSituacion[s]})
+                      {situacionLabel(s, lang)} <span className="ld-cuenta">{porSituacion[s]}</span>
                     </button>
                   ))}
                 </div>
