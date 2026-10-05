@@ -8621,7 +8621,7 @@ escritorio capture.
 
 ## D-195 · El cronómetro sigue contando a través de la actualización, el cierre y el reinicio; huérfana a los 15 min, y un cron que las cierra
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): esta decisión cubrió recargar, cerrar y reiniciar, pero no **cambiar
+> **⚠ Reemplazada en parte por D-470** (2026-10-04): esta decisión cubrió recargar, cerrar y reiniciar, pero no **cambiar
 > de pestaña dentro de Time Tracker**, que desmontaba la pantalla y mataba el tick igual. El cronómetro ya no es la página:
 > lo monta el layout del módulo (`CronometroAnfitrion`) y la adopción dejó de ser «una vez al montar» — el vigía la repite.
 
@@ -13518,7 +13518,7 @@ de `inline-colors.test.ts`, que ahora ve un componente más).
 
 ## D-241 · Un cronómetro que ya no puede guardar tiene que decirlo, y su cierre tiene que ser reversible
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): el aviso de «sin guardar» solo saltaba cuando una escritura
+> **⚠ Reemplazada en parte por D-470** (2026-10-04): el aviso de «sin guardar» solo saltaba cuando una escritura
 > contestaba «no» (sesión caducada, fila cerrada). Si el tick moría o no estaba armado no había escritura que contestara
 > nada, y el silencio seguía. Ahora lo dispara también el vigía (un minuto sin guardado bueno), suena y se ve en todas las
 > pantallas del módulo. Y Stop ya no escribe los contadores de una página que no condujo la sesión (`parcheDeStop`).
@@ -14415,7 +14415,7 @@ que obliga a mirar cada vez en vez de dejar margen «por si acaso».
 de `inline-colors.test.ts`, medido: 104 → 105 con el componente nuevo).
 ## D-248 · La sesión se cierra a las 18:30, y eso es una frontera, no un reloj
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-04): la regla del cronómetro no cambia —solo un «sí» explícito libra del
+> **⚠ Reemplazada en parte por D-470** (2026-10-04): la regla del cronómetro no cambia —solo un «sí» explícito libra del
 > paro; sin respuesta, para— pero ahora **pregunta antes de parar**. Una pantalla montada pasado el corte paraba en su
 > primer efecto, con la exención todavía sin pedir, y al dueño (exento) le paraba el reloj cada vez que volvía a
 > «Registrar tiempo» después de las 18:30, con los contadores a cero. Ver `pararPorCorteSiToca`.
@@ -36653,9 +36653,9 @@ se hizo, pueden ver las rutas de ayer, hoy y mañana todas las personas.»*
 bloqueó marcar una parada de mañana. Queda como pregunta para el dueño. Lo que cada rol ve en el mapa sigue dependiendo de la
 migración 160 (sin aplicar): hasta entonces el chofer ve solo su ruta.
 
-## D-NEXT · El reloj no se para en silencio: el cronómetro vive en el layout, hay un vigía, y Stop no pisa lo que no midió
+## D-470 · El reloj no se para en silencio: el cronómetro vive en el layout, hay un vigía, y Stop no pisa lo que no midió
 
-**Fecha:** 2026-10-04 · **Versión:** timetracker (la pone el orquestador) · **Sin migración.** · Rama `fix/tt-tick-parado`.
+**Fecha:** 2026-10-04 · **Versión:** timetracker (timetracker 0.96.0, repo 1.344.0) · **Sin migración.** · Rama `fix/tt-tick-parado`.
 
 **Pedido del dueño**, literal, con captura de «Registrar tiempo» en 0:00:00 Detenido, Today 4.27 h, última captura
 04:16 PM: *«mira hace 3 hroas se paro el reloj porque sigue pasando eso»* · *«y yo no me habia fijado»* · *«como recupero

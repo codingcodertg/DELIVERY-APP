@@ -63,7 +63,7 @@ const ACTIVE_WINDOW_SEC = 12; // one input keeps you "active" this many seconds 
 const MOVEMENT_THRESHOLD = 0.005; // >=0.5% of the sampled screen changed = "moving" (sensitive: a meeting/video counts)
 
 /**
- * El cronómetro. Ya NO es la página (D-NEXT): lo monta `CronometroAnfitrion` desde el layout
+ * El cronómetro. Ya NO es la página (D-470): lo monta `CronometroAnfitrion` desde el layout
  * del módulo y sigue vivo —oculto— en todas las pantallas de Time Tracker. `visible` dice si
  * se está en «Registrar tiempo»; con `false` no pinta nada salvo el aviso de «no se guarda».
  * El tick, el latido, la actividad y el receptor de capturas son los mismos de antes: lo que
@@ -164,7 +164,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   const sessionIdRef = useRef<string | null>(liveHint?.id ?? null);
   const startMsRef = useRef(liveHint?.startMs ?? 0);
   /**
-   * ¿Esta página CONDUCE la sesión? (D-NEXT)
+   * ¿Esta página CONDUCE la sesión? (D-470)
    *
    * Tener el id no es conducirla: recién montada, la pantalla solo tiene la miga de
    * `localStorage` (id y hora de arranque) y sus contadores valen cero. Se pone a `true` al
@@ -308,7 +308,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   }, [running]);
 
   // Al desmontarse (salir del módulo con una navegación de cliente) también se deja grabado
-  // el último latido y la marca: `pagehide` no dispara en ese caso (D-NEXT).
+  // el último latido y la marca: `pagehide` no dispara en ese caso (D-470).
   useEffect(() => () => { grabarRef.current(); if (tickRef.current) clearInterval(tickRef.current); }, []);
 
   const shotMin = Number(APP_SETTINGS.screenshotIntervalMin) || DESKTOP_SHOT_MIN;
@@ -433,7 +433,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // looking like it did nothing, because a second later the session came back.
   const stoppedRef = useRef(false);
   /**
-   * La adopción, como función que se puede volver a llamar (D-NEXT).
+   * La adopción, como función que se puede volver a llamar (D-470).
    *
    * Antes era el cuerpo de un efecto que corría una vez: si esa única llamada fallaba, la
    * pantalla se quedaba enseñando un reloj que no grababa nada hasta que alguien recargara.
@@ -831,11 +831,11 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
 
   /** The 1s clock. Extracted from start() so a session adopted on mount can resume it too. */
   function beginTicking() {
-      // Nunca dos ticks a la vez (D-NEXT): la adopción ahora puede repetirse.
+      // Nunca dos ticks a la vez (D-470): la adopción ahora puede repetirse.
       if (tickRef.current) clearInterval(tickRef.current);
       tickRef.current = setInterval(async () => {
         const ahora = Date.now();
-        // Se pregunta AHORA y no se lee el estado de React (D-NEXT). El tick que arma la
+        // Se pregunta AHORA y no se lee el estado de React (D-470). El tick que arma la
         // adopción nace en el primer render, donde ese estado todavía vale `false`: toda sesión
         // adoptada en la app de escritorio (tras una recarga, o al reabrir la app) medía la
         // actividad como un navegador —solo teclas y clics DENTRO de esta ventana— y salía con
@@ -1037,7 +1037,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       // reloj corriendo y una huérfana que el cron cierra a los quince minutos (D-241).
       if (exentoDelCorte === true) return;
       if (!runningRef.current || stoppedRef.current) return;
-      // **Se pregunta antes de parar** (D-NEXT). Montada pasado el corte, esta pantalla llegaba
+      // **Se pregunta antes de parar** (D-470). Montada pasado el corte, esta pantalla llegaba
       // aquí en su primer efecto con la respuesta todavía sin pedir, y `null` paraba: al dueño
       // —exento— se le paraba el reloj cada vez que volvía a «Registrar tiempo» después de las
       // 18:30, y con los contadores a cero. `null` DESPUÉS de preguntar sigue parando.
@@ -1060,7 +1060,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   }, [notify, t, exentoDelCorte]);
 
   /**
-   * El vigía (D-NEXT): si el reloj enseña «corriendo» y no hay un guardado bueno desde hace más
+   * El vigía (D-470): si el reloj enseña «corriendo» y no hay un guardado bueno desde hace más
    * de un minuto, se dice —aviso en pantalla, en TODAS las pantallas del módulo, y sonido— y se
    * reintenta retomar la sesión. Va en su propio intervalo a propósito: lo que vigila es
    * precisamente que el tick haya muerto o no esté armado.
@@ -1105,7 +1105,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     // podía salvarlo — cuando corre, la otra fila aún no existe.
     if (arrancandoRef.current) return;
     arrancandoRef.current = true;
-    // Un arranque nuevo deja atrás el Stop anterior (D-NEXT). Nadie bajaba esta marca, y no se
+    // Un arranque nuevo deja atrás el Stop anterior (D-470). Nadie bajaba esta marca, y no se
     // notaba porque la pantalla se desmontaba al cambiar de pestaña; ahora el cronómetro vive
     // todo el rato que el módulo esté abierto, y con la marca puesta el vigía y el paro por
     // solape darían la segunda sesión por parada.
@@ -1217,7 +1217,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     const id = sessionIdRef.current;
     // Read every accumulator before the reset below touches the UI.
     //
-    // Y solo si esta página CONDUJO la sesión (D-NEXT). Recién montada, con solo la miga, los
+    // Y solo si esta página CONDUJO la sesión (D-470). Recién montada, con solo la miga, los
     // contadores valen cero y `el` cuenta desde el arranque hasta ahora: escribirlos fue lo que
     // dejó la sesión del 2026-10-04 con 4,27 h y 0 s de actividad. `parcheDeStop` en ese caso
     // solo cierra, y la fila se queda como la dejó su último latido.
@@ -1297,7 +1297,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // retirar aquella app entera.
   if (presencial && !esAdmin) return visible ? <PunchPanel /> : null;
 
-  // Fuera de «Registrar tiempo» el cronómetro sigue montado pero no se ve (D-NEXT). Lo único
+  // Fuera de «Registrar tiempo» el cronómetro sigue montado pero no se ve (D-470). Lo único
   // que asoma es el aviso de que el reloj no se está guardando, con el camino de vuelta.
   const oculto = visible ? undefined : { display: "none" as const };
   const avisoFuera = !visible && sinGuardarDesde !== null ? (

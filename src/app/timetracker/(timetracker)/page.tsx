@@ -1,4 +1,4 @@
-// «Registrar tiempo». Esta página NO pinta nada, y es a propósito (D-NEXT).
+// «Registrar tiempo». Esta página NO pinta nada, y es a propósito (D-470).
 //
 // El cronómetro vivía aquí, y con él el tick, el latido de diez segundos, el contador de
 // actividad y el receptor de capturas de la app de escritorio. Next desmonta la página al

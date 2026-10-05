@@ -7,7 +7,7 @@ import { debeMontarCronometro, esRutaDelCronometro } from "@/lib/timetracker/vig
 import { Cronometro } from "@/components/timetracker/Cronometro";
 
 /**
- * Quien mantiene vivo el cronómetro en todo el módulo (D-NEXT).
+ * Quien mantiene vivo el cronómetro en todo el módulo (D-470).
  *
  * El 2026-10-04 el dueño perdió el registro de más de tres horas porque abrió «Capturas» con el
  * reloj corriendo: el tick, el latido y el receptor de capturas eran parte de la PÁGINA

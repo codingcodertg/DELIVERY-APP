@@ -39,7 +39,7 @@ type DesktopBridge = {
   getUpdateState?: () => Promise<DesktopUpdateState>;
   checkForUpdates?: () => Promise<boolean>;
   installUpdate?: () => Promise<boolean>;
-  /** Pulso de «el latido se guardó» (D-NEXT). Solo lo tienen los cascarones nuevos; el 0.0.45 no. */
+  /** Pulso de «el latido se guardó» (D-470). Solo lo tienen los cascarones nuevos; el 0.0.45 no. */
   heartbeat?: (h: { sessionId: string; at: number }) => void;
 };
 
@@ -69,7 +69,7 @@ export function desktopStop() {
 }
 
 /**
- * Le dice al cascarón que el latido se guardó de verdad (D-NEXT). Con él, el proceso principal
+ * Le dice al cascarón que el latido se guardó de verdad (D-470). Con él, el proceso principal
  * puede vigilar por su cuenta —y avisar con su ventana flotante y un pitido— cuando la página
  * deja de grabar. En el 0.0.45 instalado no existe y esto no hace nada.
  */

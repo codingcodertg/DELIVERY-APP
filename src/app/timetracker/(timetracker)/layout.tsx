@@ -95,7 +95,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
         <div className="wrap">
           <TopBar deliveriesRole={profile.role} moduleAccess={profile.module_access} />
           <TtUpdateBanner />
-          {/* El cronómetro vive AQUÍ y no en su página (D-NEXT): así el tick, el latido y el
+          {/* El cronómetro vive AQUÍ y no en su página (D-470): así el tick, el latido y el
               receptor de capturas siguen vivos en Capturas, Semana, Nómina… Antes morían al
               salir de «Registrar tiempo», sin avisar. Ver CronometroAnfitrion. */}
           <CronometroAnfitrion />
