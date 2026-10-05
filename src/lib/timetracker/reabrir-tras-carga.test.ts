@@ -124,7 +124,7 @@ describe("el tramo sin latidos no se inventa", () => {
   });
 
   it("y la pantalla adelanta el arranque en vez de contar el hueco", () => {
-    const codigo = readFileSync("src/app/timetracker/(timetracker)/page.tsx", "utf8")
+    const codigo = readFileSync("src/components/timetracker/Cronometro.tsx", "utf8")
       .split(/\r?\n/).filter((l) => !l.trim().startsWith("//")).join("\n");
     expect(codigo).toContain("startMsRef.current = (mine.startMs || Date.now()) + hueco;");
     expect(codigo).toMatch(/const hueco = Math\.max\(0, Date\.now\(\) - ultimoLatido\);/);
@@ -132,7 +132,7 @@ describe("el tramo sin latidos no se inventa", () => {
 });
 
 describe("el orden en la carga: decidir antes de borrar", () => {
-  const codigo = readFileSync("src/app/timetracker/(timetracker)/page.tsx", "utf8")
+  const codigo = readFileSync("src/components/timetracker/Cronometro.tsx", "utf8")
     .split(/\r?\n/).filter((l) => !l.trim().startsWith("//")).join("\n");
   const bloque = codigo.slice(codigo.indexOf("if (esHuerfana(mine, Date.now()))"));
 
