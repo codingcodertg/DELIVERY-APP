@@ -1,0 +1,73 @@
+/* «Leads» (/leads, migración 162). Pensada para el teléfono: una columna, botones grandes. Lo común (card, kpi,
+   chip, badge, btn, table.orders, hint) viene de globals.css. */
+.ld-wrap { max-width: 900px; margin: 0 auto; padding: 16px 12px 96px; }
+.ld-wrap h1 { margin: 10px 0 2px; font-size: 22px; }
+.ld-sub { margin-top: 0; }
+.ld-h2 { font-size: 16px; margin: 20px 0 10px; }
+.ld-cabecera { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.ld-demo { font-size: 12px; font-weight: 700; color: var(--ink-soft); display: flex; flex-direction: column; gap: 4px; }
+.ld-wrap select, .ld-wrap input[type="search"], .ld-wrap input[type="number"], .ld-dialogo select, .ld-dialogo textarea {
+  width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: inherit; font: inherit; font-size: 16px;
+}
+.ld-wrap input[type="number"] { max-width: 120px; }
+.ld-pestanas { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.ld-pestanas .chip { padding: 10px 14px; font-size: 14px; }
+.ld-releer { margin-left: auto; }
+.ld-aviso { border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; }
+.ld-aviso.ambar { background: var(--amber-soft); border: 1px solid var(--amber); }
+.ld-aviso.rojo { background: var(--red-soft); border: 1px solid var(--red); }
+.ld-aviso.verde { background: var(--green-soft); border: 1px solid var(--green); }
+.ld-filtros { padding: 12px; }
+.ld-filtros label, .ld-nota, .ld-asignar label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); flex: 1 1 180px; text-transform: none; letter-spacing: 0; }
+.ld-filtros label.ld-ancho { flex-basis: 100%; }
+.ld-fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
+.ld-vistas { display: flex; gap: 6px; margin-bottom: 4px; }
+.ld-vistas .chip { padding: 10px 16px; font-size: 14px; }
+.ld-lista { display: grid; gap: 12px; }
+.ld-mas { display: block; width: 100%; margin-top: 12px; padding: 12px; }
+
+.ld-tarjeta { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 14px; }
+.ld-tarjeta header { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.ld-tarjeta h3 { margin: 0; font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
+.ld-tarjeta p { margin: 6px 0; overflow-wrap: anywhere; }
+.ld-tarjeta a { color: var(--accent); font-weight: 600; }
+.ld-dist { font-weight: 800; white-space: nowrap; color: var(--ink-soft); }
+.ld-meta { color: var(--ink-soft); font-size: 13px; }
+.ld-cat { background: var(--accent-soft); color: var(--accent); }
+.ld-dueno { font-weight: 700; border-radius: 8px; padding: 6px 10px; background: var(--paper); }
+.ld-dueno.won { background: var(--green-soft); }
+.ld-etiqueta { border-left: 4px solid var(--amber); background: var(--amber-soft); border-radius: 6px; padding: 6px 10px; }
+.ld-etiqueta.bad_lead { border-left-color: var(--red); background: var(--red-soft); }
+.ld-etiqueta.sale { border-left-color: var(--green); background: var(--green-soft); }
+.ld-avance { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 6px 10px; }
+.ld-contacto p { margin: 4px 0; }
+.ld-contacto a, .ld-dir a { display: inline-block; padding: 4px 0; }
+.ld-datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin: 10px 0; }
+.ld-datos dt { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .03em; }
+.ld-datos dd { margin: 0; font-weight: 700; }
+.ld-alcance { color: var(--ink-soft); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ld-tarjeta footer { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.ld-tarjeta footer .btn-primary, .ld-tarjeta footer .btn-green, .ld-tarjeta footer .btn[data-nota] { padding: 10px 16px; font-size: 14px; }
+.ld-tabs { margin: 0 0 0 auto; }
+.ld-historial { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--line); font-size: 13px; }
+.ld-historial li { padding: 4px 0; overflow-wrap: anywhere; }
+/* Lo que tiene otra persona: apagado y bloqueado, pero se sigue leyendo quién lo tiene. */
+.ld-tarjeta.apagado { background: var(--paper); border-style: dashed; }
+.ld-tarjeta.apagado > *:not(.ld-dueno):not(footer):not(.ld-historial):not(.ld-etiqueta) { opacity: .55; }
+
+.ld-velo { position: fixed; inset: 0; background: rgba(10, 20, 40, .55); display: flex; align-items: flex-end; justify-content: center; z-index: 60; }
+.ld-dialogo { background: var(--card); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 16px 16px 24px; }
+.ld-dialogo h2 { margin: 0 0 6px; font-size: 17px; overflow-wrap: anywhere; }
+.ld-resultados { display: grid; gap: 8px; margin: 10px 0; }
+.ld-resultado { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; color: inherit; margin: 0; }
+.ld-resultado.on { border-color: var(--accent); background: var(--accent-soft); }
+.ld-resultado input { margin-top: 3px; width: auto; }
+.ld-resultado small { color: var(--ink-soft); }
+.ld-botones { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-top: 12px; }
+.ld-botones .btn { padding: 10px 16px; font-size: 14px; }
+.ld-asignar { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.ld-comando { display: block; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12px; overflow-x: auto; white-space: nowrap; }
+@media (min-width: 700px) {
+  .ld-velo { align-items: center; }
+  .ld-dialogo { border-radius: 16px; }
+}
