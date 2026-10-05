@@ -36442,10 +36442,10 @@ dicen ahora lo contrario, con su nota: `solo-armar-rutas`, `map-legend`, `histor
 - **Otras ramas en paralelo tocan `routes/page.tsx`**: esta le quita 557 líneas. Habrá conflicto al fusionar la segunda.
 - Guiones, capturas y salidas del ensayo: `…/scratchpad/w-ruta-de-hoy/` (fuera del repo).
 
-## D-NEXT · App «Leads»: el banco de leads de permisos por tienda, el pool personal de hasta 10 y el cierre con resultado y nota (migración 162)
+## D-468 · App «Leads»: el banco de leads de permisos por tienda, el pool personal de hasta 10 y el cierre con resultado y nota (migración 162)
 
 **Fecha:** 2026-10-04 · **Migración:** `162_leads.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
-`docs/PLAN-162-leads.md`, 80 OK / 0 MAL) · **Versión:** la pone el orquestador (la rama solo añade la entrada
+`docs/PLAN-162-leads.md`, 80 OK / 0 MAL) · **Versión:** leads 0.1.0, deliveries 1.255.0, repo 1.342.0 (la rama solo añade la entrada
 `leads: "0.1.0"` a `APP_VERSIONS`, como hicieron promos, el Estimador y Encuestas: sin ella `/leads` no tiene sello).
 No reemplaza ninguna decisión anterior.
 
