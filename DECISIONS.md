@@ -36441,3 +36441,181 @@ dicen ahora lo contrario, con su nota: `solo-armar-rutas`, `map-legend`, `histor
 - **La pestaña es la primera de la barra** para almacén y chofer (va por el orden de `TABS`). No cambia a dónde aterrizan.
 - **Otras ramas en paralelo tocan `routes/page.tsx`**: esta le quita 557 líneas. Habrá conflicto al fusionar la segunda.
 - Guiones, capturas y salidas del ensayo: `…/scratchpad/w-ruta-de-hoy/` (fuera del repo).
+
+## D-468 · App «Leads»: el banco de leads de permisos por tienda, el pool personal de hasta 10 y el cierre con resultado y nota (migración 162)
+
+**Fecha:** 2026-10-04 · **Migración:** `162_leads.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
+`docs/PLAN-162-leads.md`, 80 OK / 0 MAL) · **Versión:** leads 0.1.0, deliveries 1.255.0, repo 1.342.0 (la rama solo añade la entrada
+`leads: "0.1.0"` a `APP_VERSIONS`, como hicieron promos, el Estimador y Encuestas: sin ella `/leads` no tiene sello).
+No reemplaza ninguna decisión anterior.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-04, dictado por voz, literal (como lo pasó el orquestador, no extraído del fichero de sesión):
+
+> «¿Te acuerdas aquel eh, file de Excel que hicimos de leads, que limpiamos y todo eso? Ahora quiero que lo hagamos dentro de una app. Y la app como va a funcionar es que ellos van a estar todas las leads en una lista, ¿verdad? Eh, y quiero que se separen obviamente por ciudad. para poder asignarse, para poder que cada salesperson las pueda ver. Entonces una vez ya esté cada ciudad, entonces el salesperson va a poder ver y ellos van a tener como un pool. Entonces va a estar el pool de Brownsville, de Edinburgh y así. Entonces cada ciudad va a tener sus respectivas leads. Las que ya están así, las que están más cerca de ellos. O sea, así como la que hicimos de la aproximación de, de distancia. Entonces lo que vamos a hacer eh, es eso. Y lo siguiente es... De que esas leads, eh, los salespeople van a tener un personal pool donde ellos van a poder elegir hasta 10 leads y se van a extraer de, del banco eh, principal. O sea, prácticamente van a haber dos views en el banco principal. All y taken. Taken va, eh, o, o libres prácticamente. Y esa, ese va a ser el... el En la view por default, donde se miren o se van a ver así como faded y también como bloqueadas las que ya están taken por cuál empleado y hasta se va a ver qué empleado fue el que lo tuvo. Entonces, cuando esté en el pool, solo puede elegir 10, porque no quiero que elijan 20, 30 y después no las use. Entonces, en esas 10, ellos tienen que llenar notas, como qué fin tuvo. Eh, nota si lo visitó, si se logró una sale, si it's not, it's not a good lead, no se logró nada, eh, ocupa Sync Review, mejor, eh, es mejor reasignarlo a, a son varios y que eso regresa a la pool, pero ya va a ir con esa tag de ese mensaje que él puso. Si él logra una venta y todo eso, pues él se queda con esa lead y así. Y, y, y así, pero hasta que él llene las notas de cada lead, él puede agregar más entonces llega una nota de una, entonces tiene un puesto más y puede agregar otra lead, y solamente así entonces quiero que me hagas eso»
+
+### Qué había
+
+Un Excel (`RTG-permit-leads-CATEGORIAS-2026-09-24.xlsx`, fuera del repo): 566 permisos de obra de TDLR de los condados de
+Cameron e Hidalgo, ya limpios, clasificados en cuatro categorías (286 «Sirve – usa piso», 67 «Might be useful», 54 «No
+sirve – no lleva piso», 159 «No sirve – cadena / franquicia») y con la tienda RTG más cercana y la distancia aproximada de
+cada uno. No había nada en la app: ni tabla, ni pantalla, ni forma de saber quién estaba trabajando qué lead.
+
+### Qué se hizo
+
+Un módulo nuevo del hub, **«Leads»** (`/leads`, clave `leads`), registrado igual que Encuestas: tarjeta en el hub, casilla
+por persona en Usuarios, puerta en el servidor, versión propia, fila en el registro de seguridad al conceder o quitar.
+
+**El banco, por pools.** Cada lead pertenece al pool de su **tienda RTG más cercana** (la columna del Excel, que usa los
+mismos nombres que `profiles.store`: `RDZ Brownsville`, `RDZ Edinburg`, `RDZ McAllen`, `RDZ Mission`, `RDZ Pharr`,
+`RDZ Weslaco`). El vendedor entra en el pool de **su** tienda y puede cambiar a cualquier otro. Dos vistas: **Libres** (la
+de entrada) y **Todas**; en «Todas» lo que tiene otra persona sale **apagado y bloqueado**, diciendo quién lo tiene y desde
+cuándo, sin botón de tomar y sin el contacto. Filtros por categoría, tipo de proyecto, ciudad de la obra y búsqueda; orden
+por distancia (el de entrada), costo estimado o fecha de registro. Cada lead es una tarjeta pensada para el teléfono:
+proyecto, dirección con enlace a Google Maps, dueño y teléfono con enlace `tel:`, costo, pies cuadrados, fechas y enlace a
+TDLR.
+
+**Mi pool, con tope de 10.** «Tomar» saca el lead del banco y lo pone en el pool del vendedor. El tope es de **10 leads
+abiertos por persona** y lo exige **la base**, no la pantalla: la función `lead_take` cuenta los abiertos de quien llama y
+rechaza el 11.º con un mensaje claro, y dos personas no pueden tomar el mismo lead.
+
+**Solo cerrar libera el puesto.** Cada lead del pool se cierra con una **nota obligatoria** y un **resultado**:
+
+| Resultado | Qué le pasa al lead |
+|---|---|
+| Venta lograda | Se queda con quien la logró, para siempre, fuera del banco |
+| No es buen lead | Vuelve al banco con esa etiqueta (roja), la nota y quién la puso |
+| No se logró nada | Vuelve al banco con la etiqueta, la nota y quién la puso |
+| Mejor reasignarlo | Vuelve al banco con la etiqueta, la nota y quién la puso |
+| Ocupa revisión | Va a una cola del admin; nadie lo puede tomar hasta que el admin decida |
+
+Lo que vuelve al banco enseña la etiqueta, la nota, quién la puso y cuándo, y la sigue enseñando cuando el siguiente lo
+toma. El historial completo de cada lead (quién lo tomó, cuándo, cada nota, con qué resultado se cerró) queda en una tabla
+a la que solo se le pueden añadir filas.
+
+**El admin** ve todo, cambia el tope, tiene la cola de «Ocupa revisión», puede liberar, reasignar o archivar cualquier
+lead, y tiene un tablero: por vendedor (abiertos, cerrados, ventas), por pool (libres, tomados) y los leads tomados que
+nadie toca desde hace 7, 14 o 30 días.
+
+**Los datos** los carga un guion aparte (`scripts/leads/importa-leads.mjs`), que dedupe por `TABS Project #`: volver a
+cargar un Excel más nuevo actualiza los datos y añade los leads nuevos sin tocar quién tiene cada uno, su etiqueta ni su
+historial.
+
+### Decisiones que tomó la rama (para validar)
+
+1. **«Visitado – en seguimiento» es una nota de avance, no un cierre, y NO libera puesto.** El dueño pidió que el puesto
+   se libere cuando el lead tiene un fin; una visita no lo es, y si liberara puesto sería la forma de acumular leads sin
+   cerrarlos. La nota queda a la vista en la tarjeta y cuenta como «tocado» para el tablero.
+2. **«No es buen lead» vuelve al banco con la etiqueta; no se archiva solo.** El dueño dijo que «regresa a la pool pero ya
+   va a ir con esa tag», y la opinión de una persona no saca un lead del banco para todos. Archivar es cosa del admin.
+3. **«Separar por ciudad» se hizo por tienda más cercana**, que es lo que el propio mensaje describe después («las que
+   están más cerca de ellos… la aproximación de distancia») y lo que el Excel ya traía. La ciudad de la obra es un filtro.
+   Sale un pool «RDZ Mission» (51 leads) que el encargo no nombraba, y uno «Sin tienda» con el único lead sin distancia.
+4. **Se cargan los 566, también los 213 «No sirve»**, pero la pantalla entra enseñando «Sirve + podría servir» (353). Los
+   demás están a un toque en el filtro de categoría.
+5. **El contacto de un lead tomado por otro no se pinta.** Es una regla de la pantalla: la base deja leer la fila entera a
+   quien tiene el módulo. Y **quien tiene el módulo ve los leads de todas las tiendas**, con nombre y teléfono del dueño
+   de cada obra (registros públicos de TDLR): por eso se concede persona por persona.
+6. **El tope se cambia en la pestaña Admin de la propia app**, no en Ajustes del hub, y bajarlo no le quita leads a nadie.
+7. **Reasignar (admin) no mira el tope.** Quien quede por encima no toma otro hasta bajar.
+8. **Quien devuelve un lead puede volver a tomarlo.** No se prohíbe: el tope ya impide acumular.
+9. **La carga va por guion y no desde la pantalla.** Medido: el lector de Excel que funciona en el navegador (`exceljs`,
+   `workbook.xlsx.load`) revienta con este fichero; el lector por flujo, que solo existe en Node, lo lee bien.
+10. **El módulo no se le concedió a nadie.** Los admins entran siempre; el SQL para darlo a ventas está en el plan.
+
+### Qué se midió
+
+- **La migración, contra producción y con ROLLBACK** (2026-10-04): **80 casos OK, 0 MAL**. Entre ellos: A toma; B no puede
+  tomar ni cerrar lo de A; con 10 abiertos el 11.º se rechaza, también después de una nota de avance; cerrar libera el
+  puesto; la venta queda con su dueño y nadie más la toma; «no se logró nada» vuelve al banco con etiqueta, nota y nombre;
+  sin el módulo no se lee ni una fila ni se ejecuta nada; anon, nada; sin nota (o con una en blanco) no se cierra; el
+  historial no admite `update`, `delete` ni `truncate`; y la autocomprobación de la migración. Después del rollback se
+  comprobó que en producción no quedó nada.
+- **La carga, dentro del mismo ROLLBACK, con el Excel de verdad:** 566 filas nuevas, 0 saltadas. Por pool: Brownsville 140,
+  Edinburg 112, McAllen 79, Mission 51, Pharr 68, Weslaco 115, sin tienda 1. Cargarlo dos veces: 0 nuevas la segunda.
+  Re-importar sobre leads tomados no cambió su estado, su dueño, su etiqueta ni el historial.
+- **La pantalla, en el modo demo, con clics de persona a 390 px de ancho:** 58 medidas, 0 mal. Entra en el pool de la
+  tienda de quien mira, en «Libres»; en «Todas» lo de otro sale apagado (opacidad 0,55), sin botón y sin teléfono; al
+  tomar el décimo el pool queda 10/10, sale el aviso y los botones dicen «Pool lleno»; «Cerrar» no se puede pulsar sin
+  resultado ni con una nota de solo espacios; cerrar baja a 9/10 y el lead reaparece en el banco con su etiqueta; la nota
+  de avance deja 9/10; la venta pasa a «Mis ventas» y a otra persona le sale bloqueada; la pestaña Admin solo la ve el
+  admin. Sin desborde horizontal a 390 ni a 1280 px.
+- **`node scripts/verify.mjs`** (tipos, pruebas, build): en verde; los números, en el informe de la rama.
+
+### Mutantes (39 de 39 caen), por el nombre de la prueba que los tumba
+
+| Mutante | Prueba que cae |
+|---|---|
+| M01 una venta lograda ocupa puesto | 1 · una venta lograda es suya pero NO ocupa puesto |
+| M02 el tope deja pasar al 11.º | 1 · con 9 abiertos toma el décimo; con 10, el 11.º se rechaza por «lleno» |
+| M03 se puede tomar lo que no está libre | 2 · solo se toma lo LIBRE… |
+| M04 los puestos libres pueden ser negativos | 1 · si el admin baja el tope por debajo de lo que tiene… |
+| M05 la venta lograda vuelve al banco | 3 · venta lograda: queda SUYO y fuera del banco |
+| M06 «ocupa revisión» vuelve al banco | 3 · ocupa revisión: a la cola del admin, sin dueño |
+| M07 se cierra sin nota | 3 · sin nota no se cierra… |
+| M08 cierra un lead quien no lo tiene | 3 · solo quien lo tiene ABIERTO lo cierra… |
+| M09 la nota de avance suelta el lead | 4 · deja el lead abierto, a su nombre, con la nota: NO libera puesto |
+| M10 lo que vuelve al banco vuelve sin etiqueta | 3 · no es buen lead, no se logró nada y mejor reasignarlo: vuelven al banco con la etiqueta… |
+| M11 una nota en blanco vale como nota | 3 · sin nota no se cierra… |
+| M12 se enseña el contacto de un lead de otro | 5 · el contacto se enseña si el lead está libre, si es tuyo o si eres admin… |
+| M13 lo de otro no sale bloqueado | 5 · apagado y bloqueado… |
+| M14 «Libres» trae también lo tomado | 6 · «libres» es solo lo que se puede tomar… |
+| M15 tomar no pone el lead a tu nombre | 2 · tomar lo pone a tu nombre… |
+| M16 no se entra en el pool de la tienda propia | 6 · los pools con sus cuentas… y se entra en el de tu tienda |
+| M17 cada pool trae los leads de todos | 6 · cada pool trae solo lo suyo |
+| M18 el tablero cuenta las ventas como abiertos | 7 · por vendedor: abiertos de los leads; cerrados y ventas del historial |
+| M19 pantalla: el botón Tomar no obedece al tope | 11 · el botón «Tomar» obedece a puedeTomar con el tope leído de la base |
+| M20 pantalla: el tope no se lee de la base | 11 · (la misma) |
+| M21 pantalla: el contacto se enseña siempre | 11 · la tarjeta apaga lo bloqueado y esconde el contacto… |
+| M22 pantalla: lo bloqueado no se apaga | 11 · (la misma) |
+| M23 pantalla: se puede pulsar Cerrar sin nota | 11 · cerrar y anotar exigen la nota antes de dejar pulsar… |
+| M24 pantalla: la pestaña del admin se pinta a cualquiera | 11 · lo del admin solo se pinta al admin… |
+| M25 pantalla: mi pool cuenta lo de otros | 11 · mi pool son mis abiertos y mis ventas… |
+| M26 pantalla: tras un rechazo no se relee | 11 · lo que se pinta tras una acción es lo que devolvió la base… |
+| M27 demo: no aplica el tope | 9 · Ana (9 abiertos) toma uno, y el 11.º se le rechaza por «lleno»… |
+| M28 demo: lo del admin lo hace cualquiera | 9 · lo del admin es solo del admin |
+| M29 SQL: `lead_take` toma aunque no esté libre | la 162 · tomar: mira el módulo, pone en fila a la persona, cuenta SUS abiertos contra el tope… |
+| M30 SQL: `lead_take` no compara con el tope | la 162 · (la misma) |
+| M31 SQL: `lead_take` cuenta sin candado por persona | la 162 · (la misma) |
+| M32 SQL: `lead_close` cierra lo de otro | la 162 · cerrar: nota obligatoria, solo lo tuyo y abierto… |
+| M33 SQL: la venta pierde a su dueño | la 162 · (la misma) |
+| M34 SQL: la nota deja de ser obligatoria | la 162 · sin nota: LD003, y la limpia recorta |
+| M35 SQL: re-importar pisa el estado de lo tomado | la 162 · la carga dedupe por TABS y al actualizar NO toca estado, dueño, etiqueta ni historial |
+| M36 SQL: authenticated puede escribir en leads | la 162 · las tres tablas: una política cada una, de SELECT… |
+| M37 SQL: la carga interna la ejecuta cualquiera con sesión | la 162 · el historial solo se añade, y la carga interna no la ejecuta nadie con sesión |
+| M38 SQL: liberar sin ser admin | la 162 · lo del admin comprueba is_admin() antes de tocar nada |
+| M39 puerta: `/leads` deja entrar sin el módulo | la puerta · comprueba el acceso en el servidor; el admin siempre entra |
+
+(Los números son las secciones de `src/lib/leads/reglas.test.ts`; «la 162» y «la puerta» son de
+`src/lib/leads/modulo.test.ts`. Los mutantes de SQL rompen el TEXTO de la migración y los caza una prueba que lee ese
+texto: lo que la migración HACE lo mide el ensayo con ROLLBACK, no los mutantes. La primera pasada dejó vivos M11 y M18:
+eran dos pruebas flojas —no se comprobaba que una nota de solo espacios diera nulo, ni había una venta en el tablero— y se
+reforzaron.)
+
+### Pruebas que se pusieron al día
+
+- `src/lib/encuestas/modulo.test.ts`: decía que la 155 era la **última** migración que define
+  `profiles_module_access_known` y que su lista era `MODULE_ACCESS` entero. Ya no: la última es la 162. Ahora compara la
+  155 con las claves que había al escribirla (todas menos `leads`), y lo de «la última lleva `MODULE_ACCESS` entero» lo
+  mira `leads/modulo.test.ts`. Es lo mismo que hizo Encuestas con la prueba del Estimador.
+- `src/lib/estimator/modulo.test.ts`: su filtro excluye ahora también `leads`.
+- `src/lib/module-access-write.test.ts`: de siete a ocho escrituras de módulo en el provider.
+
+### Lo que NO se hizo, y lo no verificado
+
+- **La 162 no está aplicada y no hay ni un lead en la base.** Hasta entonces `/leads` dice «falta aplicar la migración 162».
+- **El módulo no lo tiene nadie** salvo los admins (que entran siempre). Decidir a quién se le da es del dueño.
+- **No se ha visto con una sesión de verdad.** El demo no tiene base: que las funciones se llamen bien desde la app
+  (`rpc`), que devuelvan el lead como la pantalla lo espera y que el código de error llegue donde se lee, no se ha visto.
+- **La concurrencia no se midió.** «Dos personas no toman el mismo lead» se ensayó en serie; con dos transacciones a la
+  vez se apoya en el diseño (candado de fila y candado por persona), explicado en el plan, sección 5.
+- **No se importa desde la pantalla** (decisión 9): el admin ve el comando, no un botón.
+- **El guion con `--ensayo` y `--aplicar` no se corrió** (necesita la 162 aplicada). Su lectura del Excel, sí.
+- **RDZ Weslaco tiene 115 leads y, hoy, ningún vendedor con esa tienda** (medido en `profiles`: solo un gerente). Su pool
+  se ve igual cambiando de pool; no se hizo nada especial.
+- **Si se borra a un usuario con leads abiertos**, siguen a su nombre hasta que el admin los libere. No se ensayó.
+- **Sin avisos**: nadie recibe una notificación cuando un lead va a revisión o lleva días sin tocar; se ve en el tablero.
+- **Notion y el tracker** no se tocaron desde la rama: son del orquestador al fusionar (en el tracker no había ninguna
+  tarea parecida: se buscó «leads» en la copia congelada).
+- Guiones, capturas y salidas del ensayo: `…/scratchpad/leads-app/` (fuera del repo).

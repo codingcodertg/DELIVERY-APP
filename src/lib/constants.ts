@@ -424,6 +424,17 @@ export const MODULES: ModuleInfo[] = [
     desc_en: "Customer survey results",
     desc_es: "Resultados de la encuesta de clientes",
   },
+  {
+    // Leads (migración 162): el banco de leads de permisos de obra (TDLR) repartido por tienda, y el pool personal
+    // de cada vendedor. La clave es "leads", la palabra que la 162 añade a `profiles_module_access_known`.
+    key: "leads",
+    href: "/leads",
+    emoji: "🎯",
+    label_en: "Leads",
+    label_es: "Leads",
+    desc_en: "Permit leads by store, and your own pool",
+    desc_es: "Leads de permisos por tienda, y tu pool",
+  },
 ];
 
 // "Deliveries" is kept out of MODULES because HomeSelector and the app switcher need to draw it as the
@@ -908,7 +919,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys" | "leads";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -1070,6 +1081,20 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleNote: {
       en: "No role of its own. Shows customers' names, phones and emails: grant it only to whoever follows up. Admins always have it.",
       es: "Sin rol propio. Enseña nombre, teléfono y correo de los clientes: concédelo solo a quien les da seguimiento. Los admins lo tienen siempre.",
+    },
+  },
+  {
+    key: "leads", label_en: "Leads", label_es: "Leads",
+    alwaysOn: false,
+    // Sin escalafón propio: quien tiene la casilla ve el banco entero (todas las tiendas), toma leads hasta el tope
+    // y cierra los suyos; el admin entra siempre y es quien reasigna, libera e importa (`has_leads_access()` e
+    // `is_admin()`, migración 162). De partida no lo tiene nadie que no sea admin.
+    roleKeys: [],
+    roleLabel: (key) => key,
+    accessColumn: "module_access",
+    roleNote: {
+      en: "No role of its own. Whoever has it sees every lead of every store, with the owner's name and phone of each job site (public TDLR records), and can take up to the limit. Admins always have it.",
+      es: "Sin rol propio. Quien lo tiene ve todos los leads de todas las tiendas, con nombre y teléfono del dueño de cada obra (registros públicos de TDLR), y puede tomar hasta el tope. Los admins lo tienen siempre.",
     },
   },
 ];
