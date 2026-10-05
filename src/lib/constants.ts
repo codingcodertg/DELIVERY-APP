@@ -1,6 +1,7 @@
 import type { Stage, UserRole } from "./types";
 import { APK_DOWNLOAD_URL } from "@/lib/app-update";
 import type { Lang } from "./prefs";
+import { PERMISO_OTRAS_TIENDAS, seOfreceOtrasTiendas } from "./leads/alcance";
 
 // App version moved to src/lib/app-versions.ts (D-087) — one number per app
 // (deliveries/recruiting/timetracker) instead of a single global constant.
@@ -968,6 +969,17 @@ export interface ModuleAccessConfig {
    * already uses. */
   capabilities?: { key: string; en: string; es: string; desc_en: string; desc_es: string }[];
   capabilitiesFromRole?: (roleKey: string) => string[];
+  /**
+   * De qué rol dependen los permisos finos de un módulo SIN rol propio. `"role"` = el rol de la app
+   * (`profiles.role`), que se LEE pero no se reclama como `roleColumn` (lo edita Identidad y es de Entregas).
+   * Ausente = el rol del propio módulo, como siempre.
+   */
+  capabilitiesRole?: "role";
+  /**
+   * A qué roles se les OFRECE cada permiso fino. Ausente = a todos. Un permiso que no se ofrece no se dibuja: una
+   * casilla que no surte efecto para ese rol sería una mentira en pantalla (la base tampoco se lo respeta).
+   */
+  capabilityOffered?: (capKey: string, roleKey: string) => boolean;
 }
 
 export const MODULE_ACCESS: ModuleAccessConfig[] = [
@@ -1086,16 +1098,31 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
     key: "leads", label_en: "Leads", label_es: "Leads",
     alwaysOn: false,
-    // Sin escalafón propio: quien tiene la casilla ve el banco entero (todas las tiendas), toma leads hasta el tope
-    // y cierra los suyos; el admin entra siempre y es quien reasigna, libera e importa (`has_leads_access()` e
-    // `is_admin()`, migración 162). De partida no lo tiene nadie que no sea admin.
+    // Sin escalafón propio: quien tiene la casilla toma leads hasta el tope y cierra los suyos; el admin entra
+    // siempre y es quien reasigna, libera e importa (`has_leads_access()` e `is_admin()`, migración 162).
+    //
+    // QUÉ TIENDAS ve cada uno (migración 163): el admin, todas; los demás, solo el banco de SU tienda y lo que
+    // tienen a su nombre. La única excepción es un permiso por persona, «ver leads de otras tiendas», que vive en
+    // `profiles.permissions` como los de Entregas y que SOLO se ofrece —y solo surte efecto en la base— al rol
+    // `manager` de la app. Por eso este bloque lee `profiles.role` (`capabilitiesRole`) sin reclamarlo.
     roleKeys: [],
-    roleLabel: (key) => key,
+    roleLabel: (key, lang) => roleLabel(key as UserRole, lang),
     accessColumn: "module_access",
     roleNote: {
-      en: "No role of its own. Whoever has it sees every lead of every store, with the owner's name and phone of each job site (public TDLR records), and can take up to the limit. Admins always have it.",
-      es: "Sin rol propio. Quien lo tiene ve todos los leads de todas las tiendas, con nombre y teléfono del dueño de cada obra (registros públicos de TDLR), y puede tomar hasta el tope. Los admins lo tienen siempre.",
+      en: "No role of its own. Each person sees the leads of their own store (set above) and the ones they hold, with the owner's name and phone of each job site (public TDLR records), and can take up to the limit. Admins always have it and see every store; a manager can be allowed to see the other stores below.",
+      es: "Sin rol propio. Cada quien ve los leads de su tienda (se pone arriba) y los que tiene a su nombre, con nombre y teléfono del dueño de cada obra (registros públicos de TDLR), y puede tomar hasta el tope. Los admins lo tienen siempre y ven todas las tiendas; a un manager se le puede dejar ver las otras tiendas aquí abajo.",
     },
+    capabilities: [
+      {
+        key: PERMISO_OTRAS_TIENDAS,
+        en: "See leads of other stores", es: "Ver leads de otras tiendas",
+        desc_en: "Sees and can take leads from every store's General Pool, not only their own. Managers only.",
+        desc_es: "Ve y puede tomar leads del Pool General de todas las tiendas, no solo de la suya. Solo para managers.",
+      },
+    ],
+    capabilitiesRole: "role",
+    capabilitiesFromRole: (key) => (key === "admin" ? [PERMISO_OTRAS_TIENDAS] : []),
+    capabilityOffered: (_cap, key) => key === "admin" || seOfreceOtrasTiendas(key),
   },
 ];
 

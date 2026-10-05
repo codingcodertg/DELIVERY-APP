@@ -20,6 +20,7 @@
 .ld-filtros { padding: 12px; }
 .ld-filtros label, .ld-nota, .ld-asignar label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); flex: 1 1 180px; text-transform: none; letter-spacing: 0; }
 .ld-filtros label.ld-ancho { flex-basis: 100%; }
+.ld-filtros p.ld-ancho { flex-basis: 100%; margin: 0; }
 .ld-fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
 .ld-vistas { display: flex; gap: 6px; margin-bottom: 4px; }
 .ld-vistas .chip { padding: 10px 16px; font-size: 14px; }

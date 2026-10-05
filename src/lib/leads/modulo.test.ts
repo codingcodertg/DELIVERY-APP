@@ -24,12 +24,12 @@ describe("la tarjeta y la casilla", () => {
     expect(accessibleModules(["leads"]).map((m) => m.key)).toEqual(["leads"]);
     expect(accessibleModules(["surveys"]).map((m) => m.key)).not.toContain("leads");
   });
-  it("una casilla en module_access, sin escalafón, y la nota avisa de que se ven nombre y teléfono de todas las tiendas", () => {
+  it("una casilla en module_access, sin escalafón, y la nota avisa de que se ven nombre y teléfono, de su tienda", () => {
     expect(enAcceso?.accessColumn).toBe("module_access");
     expect(enAcceso?.roleColumn).toBeUndefined();
     expect(enAcceso?.roleKeys).toEqual([]);
     expect(enAcceso?.alwaysOn).toBe(false);
-    expect(enAcceso?.roleNote?.es).toMatch(/todas las tiendas, con nombre y teléfono/);
+    expect(enAcceso?.roleNote?.es).toMatch(/ve los leads de su tienda .* con nombre y teléfono/);
   });
   it("knownModules no la tira al escribir (D-217)", () => {
     expect(knownModules(["clockin", "leads"])).toEqual(["leads"]);

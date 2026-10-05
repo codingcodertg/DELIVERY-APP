@@ -83,6 +83,10 @@ export interface Persona {
   name: string;
   store: string | null;
   admin: boolean;
+  /** El rol de la app (`profiles.role`) y los permisos por persona. Solo los trae el demo, que no tiene base a la
+   * que preguntarle el alcance (ver `alcance.ts`); con base, el alcance lo dice `leads_my_scope()`. */
+  role?: string;
+  permissions?: string[];
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -104,7 +108,7 @@ export function puestosLibres(leads: readonly Lead[], persona: string, tope: num
   return Math.max(0, tope - abiertosDe(leads, persona).length);
 }
 
-export type Negativa = "lleno" | "no_libre" | "falta_nota" | "no_es_tuyo" | "sin_permiso" | "no_existe" | "dato_invalido";
+export type Negativa = "lleno" | "no_libre" | "falta_nota" | "no_es_tuyo" | "sin_permiso" | "no_existe" | "dato_invalido" | "otra_tienda";
 
 /**
  * ¿Puede esta persona tomar este lead? El orden es el de `lead_take`: primero el tope, después que el lead esté libre.
@@ -188,8 +192,8 @@ export function aplicarCerrar(lead: Lead, yo: Persona, resultado: Resultado, not
  *
  * Sí si el lead está LIBRE (lo necesita para decidir si lo toma), si es SUYO, o si es admin. De un lead que tiene
  * otra persona, o que está en revisión o archivado, la tarjeta sale apagada y sin el contacto: es lo que el dueño
- * pidió («faded y bloqueadas»). **Es una regla de la pantalla, no de la base**: la RLS de la 162 deja leer la fila
- * entera a quien tiene el módulo.
+ * pidió («faded y bloqueadas»). **Es una regla de la pantalla, no de la base**: la RLS deja leer la fila entera a
+ * quien la alcanza (con la 162, todo el que tiene el módulo; con la 163, los de su tienda y los suyos: `alcance.ts`).
  */
 export function veContacto(lead: Lead, yo: Persona): boolean {
   if (yo.admin) return true;
@@ -362,9 +366,9 @@ export function resultadoLabel(r: Etiqueta, lang: Idioma): string { return RESUL
 /** Qué le pasa al lead con cada resultado, dicho en la pantalla antes de cerrar. Sale de `destinoAlCerrar`. */
 export function consecuencia(r: Resultado, lang: Idioma): string {
   const d = destinoAlCerrar(r);
-  if (d.estado === "won") return lang === "es" ? "Se queda contigo, fuera del banco." : "It stays yours, out of the bank.";
+  if (d.estado === "won") return lang === "es" ? "Se queda contigo, fuera del Pool General." : "It stays yours, out of the General Pool.";
   if (d.estado === "review") return lang === "es" ? "Va a la cola del admin." : "It goes to the admin's queue.";
-  return lang === "es" ? "Vuelve al banco con esta etiqueta y tu nota." : "It goes back to the bank with this tag and your note.";
+  return lang === "es" ? "Vuelve al Pool General con esta etiqueta y tu nota." : "It goes back to the General Pool with this tag and your note.";
 }
 
 const ESTADO_TXT: Record<EstadoLead, { en: string; es: string }> = {
@@ -465,16 +469,18 @@ const NEGATIVA_TXT: Record<Negativa, { en: string; es: string }> = {
   sin_permiso: { en: "You do not have permission for that.", es: "No tienes permiso para eso." },
   no_existe: { en: "That lead no longer exists.", es: "Ese lead ya no existe." },
   dato_invalido: { en: "The database rejected that value.", es: "La base rechazó ese dato." },
+  otra_tienda: { en: "That lead belongs to another store: you can only take leads from your own store.", es: "Ese lead es de otra tienda: solo puedes tomar leads de tu tienda." },
 };
 export function negativaTexto(n: Negativa, lang: Idioma): string { return NEGATIVA_TXT[n][lang]; }
 
-/** El código de error de la base (los `LD00x` de la 162 y los de Postgres) como una negativa que se puede traducir. */
+/** El código de error de la base (los `LD00x` de la 162, el `LD005` de la 163 y los de Postgres) como una negativa que se puede traducir. */
 export function negativaDeCodigo(code: string | null | undefined): Negativa | null {
   switch (code) {
     case "LD001": return "lleno";
     case "LD002": return "no_libre";
     case "LD003": return "falta_nota";
     case "LD004": return "no_es_tuyo";
+    case "LD005": return "otra_tienda";
     case "42501": return "sin_permiso";
     case "P0002": return "no_existe";
     case "22023": return "dato_invalido";

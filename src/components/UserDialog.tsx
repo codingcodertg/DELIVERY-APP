@@ -346,6 +346,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
           // nothing chosen yet — matches what recruiting's own invite flow
           // always defaulted to ("recruiter", last in RECRUITING_ROLE_LABELS).
           const defaultRole = m.roleKeys[m.roleKeys.length - 1];
+          // De qué rol dependen los permisos finos: el del módulo, o —si el módulo lo declara (Leads)— el de la app.
+          const capRole = m.capabilitiesRole === "role" ? u.role : (currentRole ?? defaultRole);
+          // Solo se dibujan los que se OFRECEN a ese rol (Leads: «otras tiendas» es solo del manager).
+          const caps = (m.capabilities ?? []).filter((c) => m.capabilityOffered?.(c.key, capRole) ?? true);
 
           return (
             <div key={m.key} className="card" style={{ marginBottom: 10 }}>
@@ -507,17 +511,17 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                       descriptor actually has a catalog (today: deliveries
                       only). Absent for recruiting on purpose: it has no
                       per-permission concept, just the role tier above. */}
-                  {m.capabilities && (
+                  {caps.length > 0 && (
                     <>
                       <div className="hint" style={{ margin: "10px 0 8px" }}>
                         {t(
-                          `On top of what the ${m.roleLabel(currentRole ?? defaultRole, lang)} role already allows. The role's own are locked on.`,
-                          `Además de lo que el rol ${m.roleLabel(currentRole ?? defaultRole, lang)} ya permite. Los del rol están fijos.`,
+                          `On top of what the ${m.roleLabel(capRole, lang)} role already allows. The role's own are locked on.`,
+                          `Además de lo que el rol ${m.roleLabel(capRole, lang)} ya permite. Los del rol están fijos.`,
                         )}
                       </div>
                       <div className="grid g2">
-                        {m.capabilities.map((c) => {
-                          const fromRole = m.capabilitiesFromRole?.(currentRole ?? defaultRole).includes(c.key) ?? false;
+                        {caps.map((c) => {
+                          const fromRole = m.capabilitiesFromRole?.(capRole).includes(c.key) ?? false;
                           const capGranted = fromRole || !!u.permissions?.includes(c.key);
                           return (
                             <label key={c.key} className={"perm-opt " + (fromRole ? "locked" : "")}>
