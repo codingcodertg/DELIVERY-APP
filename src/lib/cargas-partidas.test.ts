@@ -305,7 +305,8 @@ describe("las pantallas usan la regla (la prueba se alimenta de quien llama)", (
   it("el Gestor: «carga 1 de 2» en las filas P y D, y ✂ ✎ ⤵ en la fila D con la capacidad de ESE camión", () => {
     expect(gestor).toContain("<td className=\"ordno\">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>");
     expect(gestor).toContain("{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>");
-    expect(gestor).toContain("{flechas}{pasar}{botonesDeCarga(d, capacity)}");
+    // Puesto al día por D-NEXT: los botones de carga, solo donde hay acciones (no en «Ruta de hoy» ni en la tarjeta compacta).
+    expect(gestor).toContain("{flechas}{pasar}{acciones && botonesDeCarga(d, capacity)}");
     expect(gestor).toContain("data-partir onClick={() => void parteLaOrden(d, capacidad)}");
     expect(gestor).toContain("{sePuedePartir(d, capacidad) && (");
     expect(gestor).toContain("{carga && otra && sePuedenJuntar(d, otra, capacidad) && (");

@@ -53,7 +53,8 @@ describe("1 · la pestaña: «Today's route» / «Ruta de hoy», para todos los 
     expect([...(tab.roles ?? [])].sort()).toEqual([...roles].sort());
   });
   it("el título de la página es el de la pestaña", () => {
-    expect(pagina).toContain('<h2>{t("Today\'s route", "Ruta de hoy")}');
+    // Puesto al día por D-NEXT: «Ruta de hoy» es la página del Gestor en solo lectura; el título lo pone ella.
+    expect(gestor).toContain('<h2>{soloLectura ? t("Today\'s route", "Ruta de hoy") : t("Routes Manager", "Gestor de Rutas")}');
   });
   it("el aviso «N sin chofer» va donde se asigna: el Gestor para quien lo tiene; si no, «Ruta de hoy»", () => {
     expect(pestanaDelAvisoSinChofer(["board", "map", "routes"])).toBe("routes");
@@ -166,12 +167,15 @@ describe("4 · leer las rutas: una consulta, y qué pasa si la función no está
     expect(gancho).toContain('if (SIN_BASE) return { paradas: deLoQueLee, origen: "demo" };');
     expect(gancho).toContain('if (leido.origen === "funcion") return { paradas: leido.paradas, origen: "funcion" };');
     expect(gancho).toContain("return { paradas: deLoQueLee, origen: leido.origen };");
-    expect(gancho).toContain("() => paradasDeLasOrdenes(deliveries, fecha, settings.stores ?? [],");
+    // Puesto al día por D-NEXT: con `activo: false` (el Gestor que asigna) el gancho no consulta ni proyecta nada.
+    expect(gancho).toContain("() => (activo ? paradasDeLasOrdenes(deliveries, fecha, settings.stores ?? [],");
+    expect(gancho).toContain("if (SIN_BASE || !activo) return; let vivo = true;");
+    expect(gancho).toContain("if (!activo) return { paradas: deLoQueLee, origen: null };");
     // Releer lo mismo no cambia la lista: nada de lo que cuelga de ella se vuelve a calcular ni a pedir.
     expect(gancho).toContain("JSON.stringify(antes.paradas) === JSON.stringify(paradas) ? antes : { fecha, origen: r.origen, paradas }");
   });
   it("al admin se le dice que falta la 160; a los demás no", () => {
-    expect(pagina).toContain('{(origen === "sin_funcion" || origen === "error") && me.role === "admin" && ( <div className="hint" data-aviso-sin-160');
+    expect(gestor).toContain('{soloLectura && (origenDeHoy === "sin_funcion" || origenDeHoy === "error") && me.role === "admin" && ( <div className="hint" data-aviso-sin-160');
   });
 });
 
@@ -227,13 +231,14 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
     expect(de("a2")).toMatchObject({ badge: "D2", color: "rojo" });
     expect(de("b1")).toMatchObject({ badge: "D1", color: "verde" });
     expect(pts.filter((p) => p.id.startsWith("__pd__Ana__")).map((p) => p.badge)).toEqual(["P1", "P2"]);
-    expect(de("a1").label).toBe("#FA1 — Ana (Stop D1)");
+    // Puesto al día por D-NEXT (a): el pin nombra la orden por su FACTURA; sin ella, por su ID y «sin factura».
+    expect(de("a1").label).toBe("#FA1 (no invoice) — Ana (Stop D1)");
   });
   it("lo ya entregado sigue en el mapa con ✓ y apagado (D-459); lo sin chofer, en gris y sin etiqueta", () => {
     const pts = puntos();
     expect(pts.find((p) => p.id === "__hecha__h1")).toMatchObject({ badge: "✓", color: "rojo", dimmed: true });
     expect(pts.find((p) => p.id === "__hecha__h1")!.label).toContain("Delivered");
-    expect(pts.find((p) => p.id === "s1")).toMatchObject({ color: "gris", badge: undefined, dimmed: false, label: "#FA5 — Unassigned" });
+    expect(pts.find((p) => p.id === "s1")).toMatchObject({ color: "gris", badge: undefined, dimmed: false, label: "#FA5 (no invoice) — Unassigned" });
   });
   it("marcar un chofer lo resalta: lo de los demás (y lo sin chofer) se atenúa", () => {
     const pts = puntos(new Set(["Ana"]));
@@ -244,9 +249,9 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
   });
   it("«Ruta de hoy» añade al rótulo la ciudad, los pallets y la llegada — y nada más", () => {
     const pts = puntos(new Set(), (d) => `${d.delivery_city} · ${d.est_pallets} pallets`);
-    expect(pts.find((p) => p.id === "a2")!.label).toBe("#FA2 — Ana (Stop D2) · McAllen · 3 pallets");
+    expect(pts.find((p) => p.id === "a2")!.label).toBe("#FA2 (no invoice) — Ana (Stop D2) · McAllen · 3 pallets");
     // El Gestor no pasa `detalleDe`: sus rótulos son los de siempre.
-    expect(puntos().find((p) => p.id === "a2")!.label).toBe("#FA2 — Ana (Stop D2)");
+    expect(puntos().find((p) => p.id === "a2")!.label).toBe("#FA2 (no invoice) — Ana (Stop D2)");
   });
   it("las marcas que caen en el mismo punto se abren en abanico; las demás no se mueven", () => {
     const juntas = enAbanico([{ id: "1", lat: 1, lng: 1, color: "a", label: "" }, { id: "2", lat: 1, lng: 1, color: "b", label: "" }, { id: "3", lat: 2, lng: 2, color: "c", label: "" }]);
@@ -307,70 +312,81 @@ describe("6 · las millas y las horas: la medida del Gestor, sin una llamada de 
     expect(firmaDeLaForma("2026-10-05", "Ana", movida, lecturaDe("Ana", movida).paradas)).not.toBe(firmaDeLaForma("2026-10-05", "Ana", ana, lista));
   });
   it("la página mide con el MISMO gancho que el Gestor; no busca la base que ya tiene punto, ni pide el trazo del plan", () => {
-    expect(pagina).toContain("useMedidaDeRutas<ParadaDelDia>({");
+    // Puesto al día por D-NEXT: «Ruta de hoy» es la página del Gestor (sección 7); aquí, que la medida es el mismo gancho.
+    expect(pagina).toContain("<SoloLectura>");
     expect(gestor).toContain("useMedidaDeRutas<Delivery>({");
-    expect(pagina).toContain('tiendaBaseDe, coordsDeTienda, conParadas, buscaBases: "si_falta",');
+    expect(gestor).toContain('...(soloLectura ? { buscaBases: "si_falta" as const } : {}),');
     expect(plano(leer("src/lib/usa-medida-de-rutas.ts"))).toContain('if (e.buscaBases === "si_falta" && baseDeLaRuta(clave)) continue;');
-    expect(pagina).toContain("trazos: routeLines, trazosDelPlan: {},");
+    expect(gestor).toContain("if (!rutasPublicadas || soloLectura) return;");
     // Ni una llamada propia a mapas: todo pasa por el gancho.
     expect(codigoDePagina).not.toContain("fetch(");
-    expect(codigoDePagina).not.toContain("useAutoGeocode");
+    expect(gestor).toContain("useAutoGeocode(soloLectura ? SIN_ORDENES : dayOrders, updateDelivery)");
   });
 });
 
-describe("7 · la pantalla: lo mismo que el Gestor, y solo lectura", () => {
-  it("las dos pantallas pintan con las mismas piezas", () => {
-    for (const pieza of ["puntosDeLasRutas<", "lineasDeLasRutas({", "encuadreDeLasRutas(points, selected, byDriver, lanes)", "<PanelDeChoferes", "cargaDelPanel(lecturaDe(u.key, stops), capacityFor(u.driver))", "carrilesDelDia(", "rutasPorChofer(dayOrders)", "lecturaConLoHecho(stops, capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey),"]) {
-      expect(pagina, pieza).toContain(pieza);
-      expect(gestor, pieza).toContain(pieza);
-    }
+describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-NEXT)", () => {
+  // **Reemplazado por D-NEXT** (2026-10-06). El dueño: «today srotue is an exact duplicate of routes manager but without any
+  // actionable buttom or action». Hasta aquí «Ruta de hoy» era su propia página (el panel, el mapa, un rótulo por pin y un
+  // resumen) que llamaba a las mismas piezas que el Gestor. Ahora ES el Gestor: `/map` monta `routes/page.tsx` dentro de
+  // `<SoloLectura>`, y todo lo que se escribe o se mueve en el Gestor está cerrado con `soloLectura`. Estas pruebas leen el
+  // Gestor, que es donde vive ahora lo que «Ruta de hoy» enseña.
+  it("las dos pantallas son UNA: /map monta la página del Gestor en solo lectura", () => {
+    expect(pagina).toContain('import RoutesPage from "@/app/(app)/routes/page";');
+    expect(pagina).toContain("<SoloLectura> <RoutesPage /> </SoloLectura>");
+    expect(gestor).toContain("const soloLectura = useSoloLectura();");
   });
-  it("lee las paradas de `useRutasDelDia` y de ningún otro sitio: lo pendiente, lo hecho y el resumen salen de ahí", () => {
-    expect(pagina).toContain("const { paradas, origen } = useRutasDelDia(fecha);");
-    expect(pagina).toContain("const dayOrders = useMemo(() => pendientesDelDia(paradas), [paradas]);");
-    expect(pagina).toContain('const hechasPintadas = useMemo(() => hechasQueSePintan(paradas, fecha, "dia"), [paradas, fecha]);');
-    expect(pagina).toContain("() => [...paradas].sort((a, b) =>");
+  it("lee las paradas de `useRutasDelDia` solo en solo lectura, y las completa con lo que la persona ya lee", () => {
+    expect(gestor).toContain("const { paradas: paradasDeHoy, origen: origenDeHoy } = useRutasDelDia(date, soloLectura);");
+    expect(gestor).toContain("const deliveries = useMemo(() => (soloLectura ? ordenesDeRutaDeHoy(paradasDeHoy, deliveriesLeidas) : deliveriesLeidas), [soloLectura, paradasDeHoy, deliveriesLeidas]);");
   });
-  it("no asigna, no mueve, no optimiza, no vacía y no tiene «＋ Ruta»", () => {
-    for (const escribe of ["updateDelivery", "reorderStops", "addNote", "addBucket", "clearLane", "optimizaLaRuta", "assignTo", "sueltaAqui", "mergeSelectedLanes", "＋", "draggable", "<select"]) {
-      expect(codigoDePagina, escribe).not.toContain(escribe);
-    }
-    // Lo único que se guarda desde aquí es el color de un chofer, como antes, y solo gerente o admin.
-    expect(codigoDePagina.split("saveSettings(").length - 1).toBe(1);
-    expect(pagina).toContain('const canManageColors = me?.role === "manager" || me?.role === "admin";');
+  it("no asigna, no mueve, no optimiza, no vacía, no deshace y no arma rutas: cada acción del Gestor está cerrada con `soloLectura`", () => {
+    for (const cierre of [
+      "const puedeArmarRutas = !soloLectura && !allDates",
+      "const acciones = conAcciones(soloLectura, modoDeTarjeta);",
+      "acciones={soloLectura ? undefined : <>",
+      "atributosDe={soloLectura ? undefined : (clave) => ({",
+      "{!soloLectura && poolSelectedCount > 0 && (",
+      "{!soloLectura && poolSelectedCount === 0 && seleccionDelReparto.length > 0 && recuadroDeReparto()}",
+      "{!soloLectura && tab === \"routes\" && seleccionDelReparto.length > 0 && recuadroDeReparto()}",
+      "const seArrastra = !soloLectura && movible",
+      "arrastre={modo === \"dia\" && !soloLectura ?",
+      "{!soloLectura && (tab === \"timeline\" || historial.deshacer.length > 0 || historial.rehacer.length > 0) && (",
+      "useAutoGeocode(soloLectura ? SIN_ORDENES : dayOrders, updateDelivery)",
+      "{hecha || soloLectura ? null : sinChofer ? (",
+      "{hayFilas && !soloLectura && (",
+      "{!soloLectura && ( <button className={\"vt \" + (tab === \"board\" ? \"on\" : \"\")} data-pestana=\"board\"",
+      "{!soloLectura && ( <button className={\"btn btn-sm \" + (incidents.length ? \"btn-amber\" : \"btn-ghost\")} data-abrir-incidencias",
+      "if (!soloLectura && !canPlanRoutes(me)) {",
+    ]) expect(gestor, cierre).toContain(cierre);
+    // Ctrl+Z / Ctrl+Y no se escuchan, y nada se marca para pintar su recogida (eso pide una llamada de mapas por orden).
+    expect(gestor).toContain("useEffect(() => { if (soloLectura) return; const tecla = (e: KeyboardEvent) => {");
+    expect(gestor).toContain("const toggleOrder = (id: string) => !soloLectura && setSelectedOrders(");
+    expect(gestor).toContain("if (!soloLectura) setSelectedOrders(isolated ? new Set() : new Set([d.id]));");
+    // Lo único que se guarda desde «Ruta de hoy» es el color de un chofer, como antes, y solo gerente o admin.
+    expect(gestor).toContain('const canManageColors = me.role === "manager" || me.role === "admin";');
   });
-  it("el panel no pinta nada del Gestor si no se le pasa: sin botones de cabecera ni destino de arrastre", () => {
-    const uso = pagina.slice(pagina.indexOf("<PanelDeChoferes"), pagina.indexOf("/>", pagina.indexOf("extrasDe=")));
-    expect(uso).not.toContain("acciones=");
-    expect(uso).not.toContain("atributosDe=");
-    expect(gestor).toContain("acciones={<>");
-    expect(gestor).toContain("atributosDe={(clave) => ({");
+  it("la orden entera solo se abre si la persona ya puede leerla (y un vendedor, solo las suyas)", () => {
+    expect(gestor).toContain("const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me) : d;");
   });
-  it("al pulsar un pin sale su rótulo; la orden entera solo se abre si la persona ya puede leerla (y un vendedor, solo las suyas)", () => {
-    expect(pagina).toContain("if (paradas.some((p) => p.id === orden)) setElegida((x) => (x === orden ? null : orden));");
-    expect(pagina).toContain("const d = deliveries.find((x) => x.id === id); if (!d || !me) return null; return me.role !== \"sales\" || orderOwner(d) === me.id ? d : null;");
-    expect(pagina).toContain("{legible && (");
+  it("la medida: el MISMO gancho; en solo lectura no busca la base que ya tiene punto, ni pide el trazo del plan", () => {
+    expect(gestor).toContain("useMedidaDeRutas<Delivery>({");
+    expect(gestor).toContain('...(soloLectura ? { buscaBases: "si_falta" as const } : {}),');
+    expect(gestor).toContain("if (!rutasPublicadas || soloLectura) return;");
+    expect(gestor).toContain("const base = soloLectura ? baseDeLaRuta(clave) : null;");
   });
-  it("el rótulo dice P/D, chofer, recogida, ciudad, pallets, ventana y llegada — en los dos idiomas", () => {
-    const r = rotuloDeLaParada(ana[1], { etiqueta: "D2", llegada: "10:42" }, es);
-    expect(r.titulo).toBe("D2 · #FA2");
-    expect(r.datos.map((d) => `${d.nombre}: ${d.valor}`)).toEqual([
-      "Chofer: Ana", "Recogida: Pharr", "Ciudad de entrega: McAllen", "Pallets: 3", "Ventana: 09:00-12:00", "Llegada estimada: 10:42",
-    ]);
-    expect(rotuloDeLaParada(suelta, {}, t).datos[0]).toEqual({ clave: "chofer", nombre: "Driver", valor: "Unassigned" });
-    expect(rotuloDeLaParada(hecha, { horaReal: "10:42" }, es).datos.at(-1)).toEqual({ clave: "llegada", nombre: "Entregada", valor: "10:42" });
-    expect(rotuloDeLaParada(parada({ id: "x", delivery_city: "", est_pallets: null }), {}, es).datos.map((d) => d.valor).slice(2, 4)).toEqual(["—", "—"]);
+  it("lo que se quedó de «Ruta de hoy»: el día acotado, Ayer/Hoy/Mañana, los camiones (no para ventas), la leyenda, el aviso de la 160 y los colores", () => {
+    expect(gestor).toContain('const veCamiones = me?.role !== "sales";');
+    expect(gestor).toContain("if (!veCamiones) return [];");
+    expect(gestor).toContain("{soloLectura && <MapLegend elementos={leyenda} />}");
+    expect(gestor).toContain("data-colores-de-chofer");
+    expect(gestor).toContain('{t("Driver colors", "Colores de chofer")}');
+    expect(gestor).toContain("data-dia-anterior disabled={allDates || (soloLectura && fecha <= primerDia)}");
+    expect(gestor).toContain("data-dia-siguiente disabled={allDates || (soloLectura && fecha >= rango.max)}");
+    expect(gestor).toContain("data-ayer-hoy-manana");
+    expect(gestor).toContain('{soloLectura && (origenDeHoy === "sin_funcion" || origenDeHoy === "error") && me.role === "admin" && ( <div className="hint" data-aviso-sin-160');
+    expect(gestor).toContain('<h2>{soloLectura ? t("Today\'s route", "Ruta de hoy") : t("Routes Manager", "Gestor de Rutas")}');
   });
   it("la página no nombra ninguna columna privada de la orden", () => {
     for (const c of ["d.account", ".account ", "delivery_address", "invoice_num", "contact_", "phone", "delivery_fee", ".notes", "so_num", "po2"]) expect(codigoDePagina, c).not.toContain(c);
-  });
-  it("lo que se quedó del Mapa: el día con su ventana, los camiones en vivo (no para ventas), la leyenda, el resumen y los colores", () => {
-    expect(pagina).toContain('const veCamiones = !!me && me.role !== "sales";');
-    expect(pagina).toContain("choferesEnVivo(driverLocations, nameById, colorFor)");
-    expect(pagina).toContain("<MapLegend elementos={leyenda} />");
-    expect(pagina).toContain("data-resumen-del-dia");
-    expect(pagina).toContain('{t("Driver colors", "Colores de chofer")}');
-    expect(pagina).toContain("data-dia-anterior disabled={fecha <= primerDia}");
-    expect(pagina).toContain("data-dia-siguiente disabled={fecha >= rango.max}");
   });
 });

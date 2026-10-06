@@ -452,7 +452,8 @@ describe("la pantalla: el Gestor", () => {
     expect(pagina).toContain("useEffect(() => { setHistorial(HISTORIAL_VACIO); }, [date]);");
   });
   it("solo se arrastra viendo UN día (no en «Todas» ni en pendientes)", () => {
-    expect(pagina).toContain('arrastre={modo === "dia" ? { inicioMin: DAY_START_MIN, previa: previaDeSoltar, suelta: (id, destino) => void sueltaEnLaLinea(id, destino), ocupado: moviendo } : undefined}');
+    // Puesto al día por D-NEXT: y nunca en «Ruta de hoy», que es el Gestor en solo lectura.
+    expect(pagina).toContain('arrastre={modo === "dia" && !soloLectura ? { inicioMin: DAY_START_MIN, previa: previaDeSoltar, suelta: (id, destino) => void sueltaEnLaLinea(id, destino), ocupado: moviendo } : undefined}');
   });
 });
 

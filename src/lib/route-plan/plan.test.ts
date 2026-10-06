@@ -371,7 +371,8 @@ describe("la ruta de planificar y la pantalla", () => {
   it("el panel sale solo para admin y logística y con una fecha; no decide nada; y el push va con el id que devuelve publicar", () => {
     const gestor = plano(leer("src/app/(app)/routes/page.tsx"));
     // Desde D-400 la barra se puede cerrar con su ✕, pero las condiciones de quién y cuándo son las mismas.
-    expect(gestor).toContain('const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);');
+    // Puesto al día por D-NEXT: y nunca en «Ruta de hoy» (el Gestor en solo lectura).
+    expect(gestor).toContain('const puedeArmarRutas = !soloLectura && !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);');
     // D-459: sin la tarjeta que se cerraba (D-400); el panel cuelga solo de quién y cuándo, y lo abre el botón de la cabecera.
     expect(gestor).toContain("{puedeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)}");
     expect(panel).not.toMatch(/from\("|supabase|escriturasAlPublicar|avisosAlPublicar/);

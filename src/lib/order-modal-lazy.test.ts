@@ -30,7 +30,8 @@ describe("OrderModal se carga en diferido desde un solo punto", () => {
 
   it("ninguna pantalla importa el componente pesado directo; todas, el diferido", () => {
     const paginas = tsx(join(raiz, "src/app")).filter((p) => /OrderModal/.test(readFileSync(p, "utf8")));
-    expect(paginas.length).toBe(8);
+    // 8 hasta D-NEXT: «Ruta de hoy» (map/page.tsx) monta la página del Gestor, que es quien abre la ficha.
+    expect(paginas.length).toBe(7);
     for (const p of paginas) {
       const src = readFileSync(p, "utf8");
       expect(src, p).toMatch(/from "@\/components\/OrderModalLazy"/);

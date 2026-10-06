@@ -128,7 +128,9 @@ describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona 
     expect(existsSync(join(process.cwd(), "src/app/api/optimize-route/route.ts"))).toBe(true);
     expect(leer("src/app/(app)/my-route/page.tsx")).toContain('fetch("/api/optimize-route"');
     // D-467: «Ruta de hoy» ya no llama por su cuenta; mide con `useMedidaDeRutas`, como el Gestor.
-    expect(mapa).toContain("useMedidaDeRutas<ParadaDelDia>({");
+    // D-NEXT: «Ruta de hoy» monta la página del Gestor en solo lectura, que mide con `useMedidaDeRutas<Delivery>`.
+    expect(mapa).toContain("<SoloLectura>");
+    expect(pagina).toContain("useMedidaDeRutas<Delivery>({");
     expect(medida).toContain('e.pide("/api/optimize-route"');
     expect(leer("src/lib/data-provider.tsx")).not.toContain("siNoCambioDesde");
     expect("optimizaSinLasBloqueadas" in candados).toBe(false);
