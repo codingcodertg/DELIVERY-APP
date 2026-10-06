@@ -36273,11 +36273,9 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 
 ## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
 
-<<<<<<< HEAD
 > **⚠ Puesta al día por D-480** (2026-10-06): en la barra de almacén, «Ruta de hoy» va DETRÁS de su «Órdenes» (`pestanasEnOrden`). Quién la ve no cambia.
-=======
+
 > **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): «Ruta de hoy» ya no es una página propia (panel, mapa, rótulo del pin y resumen): monta la página del Gestor de Rutas en solo lectura (`<SoloLectura>`), con sus tarjetas, tablas, «Cuadrícula» y «Horario», y sin ninguna acción. El dueño: «today srotue is an exact duplicate of routes manager but without any actionable buttom or action». Lo decidido aquí (la función 160, el día acotado, camiones, leyenda, colores, abrir la orden solo si ya se lee) sigue, dentro del Gestor. El rótulo al pulsar un pin y la tabla «Resumen» se fueron.
->>>>>>> 0e206340296342365bc19cc521092d969c051332
 
 **Fecha:** 2026-10-04 · **Migración:** `160_rutas_del_dia.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
 `docs/PLAN-160-rutas-del-dia.md`) · **Versión:** deliveries 1.254.0, repo 1.341.0. **Reemplaza en parte a** D-437 (el
@@ -37459,7 +37457,6 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 - Contra producción con sesión de admin, nada (como en D-476).
 - El Panel no se tocó: el selector sigue escrito en las dos pantallas.
 
-<<<<<<< HEAD
 ## D-479 · La recogida en la tienda de la zona de otro chofer es la punta cara: cada chofer carga en su tienda salvo que no quepa (`motor-8`)
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries 1.259.0, repo 1.352.0 (Entregas) · **Migraciones:** ninguna (el peso nuevo vive en el
@@ -37687,7 +37684,7 @@ no lo nombró.
 - **El chofer** tiene la misma forma que almacén en la barra (Ruta de hoy antes que su «Órdenes»). No se tocó.
 - **Oficina con permisos sueltos** sigue teniendo en la ficha los botones que esos permisos le dan (p. ej. los de
   preparar con `fulfill`); solo se le cerraron las pantallas.
-=======
+
 ## D-NEXT · Gestor de Rutas y «Ruta de hoy»: «Ruta de hoy» es el Gestor sin ninguna acción, el filtro de chofer son las casillas del panel, «Cuadrícula» despliega la tabla abajo, sin choferes vacíos, la factura en el mapa y sin «P1» en una tienda
 
 **Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
@@ -37800,4 +37797,3 @@ f (M09–M12), d (M13–M16), a (M17–M18), e (M19–M24), b (M25–M29: legibl
 - Solo como admin en el navegador; los demás roles, por las pruebas.
 - Los toques de la medición fueron clics por coordenadas con el elemento a la vista (CDP), no un teléfono real.
 - Capturas y guiones: `…/scratchpad/w-gestor-ruta/` (fuera del repo).
->>>>>>> 0e206340296342365bc19cc521092d969c051332
