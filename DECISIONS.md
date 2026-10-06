@@ -37231,7 +37231,7 @@ No visto en navegador: `tsc` y vitest (332 del módulo).
 
 ## D-476 · Quote Builder: una pestaña «Todas las cotizaciones», solo para el admin, con todas las cotizaciones guardadas y todos los estimados de la competencia
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06, sobre una captura: «SE MIR MUY FEO ESOS FILTROS…»): la tabla y los
+> **Reemplazada en parte por D-478** (2026-10-06, sobre una captura: «SE MIR MUY FEO ESOS FILTROS…»): la tabla y los
 > filtros (puntos 2 y 3) se rehicieron con los patrones de la casa: el calendario del Panel y el menú por columna de
 > Órdenes / Gestor de Rutas. Vendedor y tienda ya no van a la base ni hay desplegables; `vendedores()` se quitó. El
 > resto (quién ve, «Abrir», tandas, la competencia debajo, sin migración) sigue.
@@ -37352,9 +37352,9 @@ en el quote builder solo para admin habilita la lista de todas las quotes ya hec
 
 No visto en navegador: `tsc` y vitest (98 de las ventanas y pastillas).
 =======
-## D-NEXT · Quote Builder, pestaña «Todas las cotizaciones (admin)»: los filtros se rehacen con los patrones de la casa — el calendario del Panel y el menú por columna de las tablas
+## D-478 · Quote Builder, pestaña «Todas las cotizaciones (admin)»: los filtros se rehacen con los patrones de la casa — el calendario del Panel y el menú por columna de las tablas
 
-**Fecha:** 2026-10-06 · **Versión:** la asigna el orquestador al fusionar (toca `src/app/estimator/` y `src/lib/estimator/`:
+**Fecha:** 2026-10-06 · **Versión:** estimator 0.11.1, repo 1.351.1 (toca `src/app/estimator/` y `src/lib/estimator/`:
 sube `estimator`) · **Migración:** ninguna. **Reemplaza en parte a** D-476 (sus puntos 2 y 3: la tabla y los filtros), que
 lleva su nota.
 

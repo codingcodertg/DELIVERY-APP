@@ -19,7 +19,7 @@ import { borradorVacio } from "./modelo";
 /**
  * D-476: la lista de TODAS las cotizaciones y de todos los estimados de la competencia, solo para el admin. El dueño,
  * 2026-10-06: «en el quote builder solo para admin habilita la lista de todas las quotes ya hechas y las de los
- * comeptirodes tambien». Y D-NEXT, sobre una captura: «SE MIR MUY FEO ESOS FILTROS PON EL CALENDARIO QUE SIEMPRE HEMOS
+ * comeptirodes tambien». Y D-478, sobre una captura: «SE MIR MUY FEO ESOS FILTROS PON EL CALENDARIO QUE SIEMPRE HEMOS
  * PEUSTO Y LOS FILTROS ASI COMO EN LAS TABLES QUE HEMOS EHCHO»: el calendario del Panel y el menú por columna de Órdenes.
  */
 

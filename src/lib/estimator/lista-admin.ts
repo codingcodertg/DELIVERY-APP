@@ -11,7 +11,7 @@ import {
  *
  * Aquí vive lo que decide, sin red: **quién ve la pestaña** (solo `admin`, la misma palabra que `profiles.role` y que
  * `is_admin()` en la RLS de la 148), el **filtro que va a la base** (fechas y texto), el **orden** (de la más reciente a
- * la más vieja), las **tandas** (de 50 en 50), el **rango de fechas con sus atajos** (el calendario del Panel, D-NEXT) y
+ * la más vieja), las **tandas** (de 50 en 50), el **rango de fechas con sus atajos** (el calendario del Panel, D-478) y
  * **lo que cada columna saca de una fila** para el menú de ordenar y filtrar de las tablas de la casa (D-275/D-360).
  * Vendedor, tienda y estado se filtran por columna sobre lo cargado, como en Órdenes; a la base solo van fechas y texto. La base ya deja al admin leer todas las filas de `estimator_quotes`
  * (148: `is_admin()` en la política de SELECT) y todos los estimados de la competencia (156: `has_estimator_access()`),
@@ -171,7 +171,7 @@ export function aplicaFiltro(q: Consulta, f: FiltroDeCotizaciones): Consulta {
   return c;
 }
 
-// ---- el calendario del Panel: el rango de fechas con sus atajos (D-NEXT) ---------------------------------------------
+// ---- el calendario del Panel: el rango de fechas con sus atajos (D-478) ---------------------------------------------
 //
 // El dueño (2026-10-06): «PON EL CALENDARIO QUE SIEMPRE HEMOS PEUSTO». Es el del Panel (`dashboard/page.tsx`): ◀ Desde
 // Hasta ▶ · Hoy · Esta semana · Este mes · Mes pasado. Aquí, además, «Todo» (sin fechas), que es como nace la lista.
@@ -264,7 +264,7 @@ export function valorDeColumna(clave: string, c: CotizacionResumen, t: (en: stri
 export const fechaDeCelda = (iso: string): string => (iso ? fechaHora(iso) : "—");
 
 /**
- * Los estimados de la competencia, debajo, heredan los mismos filtros que la tabla, sin cajas propias (D-NEXT): el
+ * Los estimados de la competencia, debajo, heredan los mismos filtros que la tabla, sin cajas propias (D-478): el
  * rango de fechas (por cuándo se subió), el texto (cliente, competidor, #, nota, quién, archivo: el de D-451) y los
  * filtros de columna de **Vendedor** (quién lo subió) y **Tienda**. Los demás filtros de columna (#, cliente, total,
  * estado) son de la cotización y no se aplican aquí.

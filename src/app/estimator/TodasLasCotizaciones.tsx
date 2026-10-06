@@ -57,7 +57,7 @@ export function RangoDelPanel({ rango, onRango, t }: { rango: RangoDeFechas; onR
  * La pestaña «All quotes / Todas las cotizaciones» (D-476), **solo para el admin**. El dueño, 2026-10-06: «en el quote
  * builder solo para admin habilita la lista de todas las quotes ya hechas y las de los comeptirodes tambien».
  *
- * Rehecha con los patrones de la casa (D-NEXT, «SE MIR MUY FEO ESOS FILTROS PON EL CALENDARIO QUE SIEMPRE HEMOS PEUSTO Y
+ * Rehecha con los patrones de la casa (D-478, «SE MIR MUY FEO ESOS FILTROS PON EL CALENDARIO QUE SIEMPRE HEMOS PEUSTO Y
  * LOS FILTROS ASI COMO EN LAS TABLES QUE HEMOS EHCHO»): la barra `.filters` con la búsqueda compacta de Órdenes y el
  * calendario del Panel; la tabla `table.orders` con el menú de ordenar y filtrar por columna de Órdenes / Gestor de
  * Rutas (`CabeceraConMenu`, `MenuDeColumnaAbierto`, `FiltrosPuestos`: D-275, D-360) en Fecha, #, Vendedor, Tienda,
