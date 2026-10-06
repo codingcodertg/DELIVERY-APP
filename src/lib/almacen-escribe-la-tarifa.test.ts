@@ -19,7 +19,8 @@ describe("el gate de la tarifa es propio, no el de ventas ni el de almacén", ()
     expect(ficha).toContain("const tarifaEditable = salesFields || whFields;");
   });
   it("almacén NO se mete dentro de `salesFields`, que sigue siendo el de ventas", () => {
-    expect(ficha).toContain('const salesFields = editing && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));');
+    // Desde D-NEXT lleva además `alcance === "todo"`: ventas en «solo fecha» no entra aquí. Almacén sigue sin entrar.
+    expect(ficha).toContain('const salesFields = editing && alcance === "todo" && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));');
     expect(ficha).not.toMatch(/const salesFields = [^;]*warehouse/);
   });
   it("ni ventas dentro del de almacén", () => {
@@ -86,10 +87,10 @@ describe("los dos sitios que el cambio NO toca, dichos para que no parezcan olvi
     // OrderModal tiene DOS veces los botones (D-303 y D-249). La de arriba vive dentro de
     // `{editing && paso === "inicial"}`, que es el alta paso a paso: ahí `salesFields` ya es true por `isNew`,
     // así que meterle el gate no cambiaría nada y sí haría pensar que almacén crea órdenes.
-    const inicial = ficha.slice(ficha.indexOf('{editing && paso === "inicial" && ('), ficha.indexOf('{editing && paso === "completo" && ('));
+    const inicial = ficha.slice(ficha.indexOf('{editing && !soloFecha && paso === "inicial" && ('), ficha.indexOf('{editing && !soloFecha && paso === "completo" && ('));
     expect(inicial).toContain("<BotonesDeTarifa"); // D-450: el mismo componente que la tarjeta y el diálogo
     expect(inicial).not.toContain("tarifaEditable");
-    expect(ficha).toContain("const salesFields = editing && (isNew ||");
+    expect(ficha).toContain('const salesFields = editing && alcance === "todo" && (isNew ||');
   });
   it("el comentario de D-340 ya no dice lo que había dejado de ser verdad", () => {
     // Se corrige con una nota dentro, no borrando: la frase vieja se cita para que se entienda qué se arregla.
