@@ -221,3 +221,28 @@ describe("b · `SoloLectura` enciende el modo de solo lectura de la página que 
     expect(renderToString(createElement(Sonda))).toBe("<i>false</i>");
   });
 });
+
+describe("D-482 · la desplegada pegada a su compacta, sin repetir el nombre", () => {
+  it("la desplegada no lleva cabecera; la compacta y la ancha sí", async () => {
+    const { conCabecera } = await import("./cuadricula");
+    expect(conCabecera("desplegada")).toBe(false);
+    expect(conCabecera("compacta")).toBe(true);
+    expect(conCabecera("ancha")).toBe(true);
+  });
+  it("clases: compacta abierta marcada, desplegada con la animación, el resto «card»", async () => {
+    const { claseDeTarjeta } = await import("./cuadricula");
+    expect(claseDeTarjeta("desplegada", true)).toBe("card tarjeta-desplegada");
+    expect(claseDeTarjeta("compacta", true)).toBe("card tarjeta-abierta");
+    expect(claseDeTarjeta("compacta", false)).toBe("card");
+    expect(claseDeTarjeta("ancha", true)).toBe("card");
+  });
+  it("la página usa las dos piezas y el CSS anima y respeta «reducir movimiento»", async () => {
+    const { readFileSync } = await import("node:fs");
+    const gestor = readFileSync("src/app/(app)/routes/page.tsx", "utf8");
+    expect(gestor).toContain("{conCabecera(modoDeTarjeta) && (<>");
+    expect(gestor).toContain("className={claseDeTarjeta(modoDeTarjeta, desplegadaAqui)}");
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).toContain("@keyframes tarjeta-se-abre");
+    expect(css).toMatch(/prefers-reduced-motion: reduce\) \{ \.tarjeta-desplegada \{ animation: none; \}/);
+  });
+});

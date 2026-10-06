@@ -37687,6 +37687,8 @@ no lo nombró.
 
 ## D-481 · Gestor de Rutas y «Ruta de hoy»: «Ruta de hoy» es el Gestor sin ninguna acción, el filtro de chofer son las casillas del panel, «Cuadrícula» despliega la tabla abajo, sin choferes vacíos, la factura en el mapa y sin «P1» en una tienda
 
+> **Reemplazada en parte por D-482:** en «Cuadrícula» la desplegada ya no repite la cabecera y sale pegada a su compacta, con animación.
+
 **Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** deliveries 1.261.0, repo 1.354.0. **Reemplaza en parte a**
 D-393 (el desplegable de chofer), D-443 (la burbuja «P1» de cada recogida en el mapa), D-459 (§5 «Cuadrícula» y §9 el filtro
 junto a «Horario») y D-467 («Ruta de hoy» como página propia con panel, mapa, rótulo y resumen). Cada una lleva su nota.
@@ -37797,3 +37799,21 @@ f (M09–M12), d (M13–M16), a (M17–M18), e (M19–M24), b (M25–M29: legibl
 - Solo como admin en el navegador; los demás roles, por las pruebas.
 - Los toques de la medición fueron clics por coordenadas con el elemento a la vista (CDP), no un teléfono real.
 - Capturas y guiones: `…/scratchpad/w-gestor-ruta/` (fuera del repo).
+
+## D-482 · Gestor, «Cuadrícula»: la tabla desplegada sale pegada a su tarjeta, con una animación, y sin repetir el nombre
+
+**Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.262.0, repo 1.355.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d482`. **Reemplaza en parte a D-481 (e).**
+
+**Pedido del dueño**, literal, con captura de la tarjeta compacta de «Ernesto Castillo» y, debajo, la desplegada con el mismo nombre y las mismas pastillas: *«si yo abro este conductos quiero que este pegado como una animacion tipo apple y ahi si no va a haber doble nmbre y cosas me entiendfes?»*.
+
+### Qué se decidió
+
+- La tarjeta desplegada ya **no lleva cabecera** (nombre, pastillas, paradas, millas, jornada): todo eso ya está en su
+  compacta de arriba. Trae solo la barra de acciones y la tabla (`conCabecera` en `src/lib/gestor/cuadricula.ts`).
+- Se leen como **una pieza**: la compacta abierta lleva borde de acento y un pico que apunta abajo (`.tarjeta-abierta`), y
+  la desplegada el mismo borde, entrando con un despliegue suave de arriba abajo (0,32 s, `cubic-bezier(.2,.8,.2,1)`,
+  `.tarjeta-desplegada`, `@keyframes tarjeta-se-abre`). Con «reducir movimiento» del sistema no hay animación.
+- Cambiar de chofer vuelve a animar (la tarjeta cambia de `key`). «Ancho» no cambia.
+
+Visto en el demo (CDP, 1280): 1 compacta abierta, 1 desplegada, 0 nombres dentro de la desplegada, su tabla a la vista.
+No visto en un teléfono.

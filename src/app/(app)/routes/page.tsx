@@ -23,7 +23,7 @@ import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-d
 import { guardaMarcados, leeMarcados, marcadosVigentes, pasaElFiltro, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
 import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
 import { esTiendaRtg } from "@/lib/gestor/recogida-en-tienda";
-import { alternaDesplegada, conAcciones, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
+import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
 import { DAY_START_MIN, useMedidaDeRutas } from "@/lib/usa-medida-de-rutas";
@@ -2731,10 +2731,13 @@ export default function RoutesPage() {
         // single-stop focus, so the map goes back to this driver's whole day.
         // That's the "tap outside" way back out.
         return (
-          <div className="card" key={`${modoDeTarjeta}-${u.id}`} data-tarjeta-de-ruta={u.key} data-modo-de-tarjeta={modoDeTarjeta} {...sueltaAqui(u.key, null)}
+          <div className={claseDeTarjeta(modoDeTarjeta, desplegadaAqui)} key={`${modoDeTarjeta}-${u.id}`} data-tarjeta-de-ruta={u.key} data-modo-de-tarjeta={modoDeTarjeta} {...sueltaAqui(u.key, null)}
             style={{ margin: 0, gridColumn: modoDeTarjeta === "desplegada" ? "1 / -1" : undefined, outline: sobre === claveDeSoltar(u.key, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 }}
             onClick={() => setSelectedOrders((prev) => (prev.size ? new Set() : prev))}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+              {/* La desplegada de «Cuadrícula» no repite nombre ni números (D-482): ya están en su tarjeta compacta de arriba, que
+                  queda pegada a ella. Solo trae la barra de acciones y la tabla. */}
+              {conCabecera(modoDeTarjeta) && (<>
               {modoDeTarjeta === "ancha" && (
                 <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} onClick={() => toggleCollapse(u.key)} title={t("Collapse", "Contraer")}>{isC ? "▸" : "▾"}</button>
               )}
@@ -2827,6 +2830,7 @@ export default function RoutesPage() {
                   ↻ {t("not measured — retry", "sin medida — reintentar")}
                 </button>
               )}
+              </>)}
               <span style={{ flex: 1 }} />
               {acciones && (
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--gray)" }}>
