@@ -218,13 +218,16 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
     expect(withinRecent({ delivery_date: "2026-09-20", stage: "delivered" }, hoy)).toBe(false);
     expect(withinRecent({ delivery_date: "2026-09-24" }, hoy)).toBe(false);
   });
-  it("una VENCIDA que sigue abierta entra en «Reciente» aunque sea de hace una semana; entregada o anulada, no (D-351)", () => {
+  it("una VENCIDA abierta ya NO entra en «Reciente», tenga la etapa que tenga (D-477 deshace D-351)", () => {
+    // El dueño, 2026-10-06: «I dont want to see anything but yesterday, today and tomorrow in the Recent tab. Even
+    // the Expired should not show there». Lo vencido se ve en «Outdated» (D-384) y en «Todas».
     const hoy = "2026-09-22";
-    expect(withinRecent({ delivery_date: "2026-09-15", stage: "approved" }, hoy)).toBe(true);
-    expect(withinRecent({ delivery_date: "2026-09-20", stage: "fulfilling" }, hoy)).toBe(true);
+    expect(withinRecent({ delivery_date: "2026-09-15", stage: "approved" }, hoy)).toBe(false);
+    expect(withinRecent({ delivery_date: "2026-09-20", stage: "fulfilling" }, hoy)).toBe(false);
     expect(withinRecent({ delivery_date: "2026-09-15", stage: "delivered" }, hoy)).toBe(false);
     expect(withinRecent({ delivery_date: "2026-09-15", stage: "canceled" }, hoy)).toBe(false);
-    // Mañana abierta entra por la ventana, no por vencida; pasado mañana abierta, no entra.
+    // Ayer abierta sí: está dentro de la ventana, no por vencida.
+    expect(withinRecent({ delivery_date: "2026-09-21", stage: "approved" }, hoy)).toBe(true);
     expect(withinRecent({ delivery_date: "2026-09-24", stage: "approved" }, hoy)).toBe(false);
   });
   it("la pantalla de Órdenes nace en «Reciente», ofrece el chip entre «Todas» y «Hoy», y «Todas» con historial pide todo al proveedor", () => {
