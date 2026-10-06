@@ -114,7 +114,8 @@ describe("OrderModal: donde decía manager, ahora dice office también", () => {
   });
 
   it("edita los campos de ventas", () => {
-    expect(modal).toContain('const salesFields = editing && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));');
+    // Desde D-NEXT lleva además `alcance === "todo"` (ventas en «solo fecha» queda fuera); office sigue dentro.
+    expect(modal).toContain('const salesFields = editing && alcance === "todo" && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));');
   });
 
   it("crea la orden ya aprobada, y el botón lo dice", () => {

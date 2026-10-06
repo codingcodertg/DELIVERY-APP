@@ -13377,6 +13377,8 @@ de las cinco pantallas. Las tres cosas que hay que mirar cuando el dueño lo abr
 
 ## D-240 · Quién entra a una pantalla lo decide la misma pregunta que pinta su pestaña, y se decide una vez
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): para oficina (`accounting`, `ROLES_CON_PESTANAS_FIJAS`) un permiso suelto ya no abre pestaña, y la exención de «Mi ruta» tampoco le abre esa pantalla: solo las de su rol en `TABS` (Órdenes y Ruta de hoy). Para los demás roles esta entrada sigue igual.
+
 **Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** la observación que quedó de D-239 —`accounting` llegaba a Cuentas por URL
 directa—. **El encargo era Cuentas; lo que se encontró es el patrón.**
@@ -18645,6 +18647,8 @@ por la pantalla nueva. Las de `help-attachments.test.ts` siguen siendo 24, con s
 —la ruta ahora guarda antes de mandar—. `main` 21e2b89, medido en un worktree aparte, está en 2460 | 3.
 
 ## D-286 · Un borrador se puede retomar, y duplicar deja de perder cosas
+
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): el borrador lo sigue editando entero cualquiera que lo vea; pero en una orden **pendiente o rechazada** ventas ya no edita el formulario entero, solo la fecha de entrega, y solo si la orden es suya (`orderOwner`). En una ajena, nada.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, dos cosas: *«cuando un sales o cualquiera tiene un borrador no lo puede volver
@@ -36261,6 +36265,8 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 
 ## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
 
+> **⚠ Puesta al día por D-NEXT** (2026-10-06): en la barra de almacén, «Ruta de hoy» va DETRÁS de su «Órdenes» (`pestanasEnOrden`). Quién la ve no cambia.
+
 **Fecha:** 2026-10-04 · **Migración:** `160_rutas_del_dia.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
 `docs/PLAN-160-rutas-del-dia.md`) · **Versión:** deliveries 1.254.0, repo 1.341.0. **Reemplaza en parte a** D-437 (el
 Mapa ya no asigna), D-274 (la leyenda del mapa) y D-239 (el selector de día del Mapa). Las tres llevan su nota.
@@ -37440,3 +37446,114 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 
 - Contra producción con sesión de admin, nada (como en D-476).
 - El Panel no se tocó: el selector sigue escrito en las dos pantallas.
+
+## D-NEXT · Oficina solo con Órdenes y Ruta de hoy (también con permisos sueltos); ventas solo cambia la FECHA de sus órdenes; en almacén, Órdenes antes que Ruta de hoy
+
+**Fecha:** 2026-10-06 · **Versión:** la pone el orquestador (toca `src/components/` y `src/lib/constants.ts`: Entregas)
+· **Migración:** ninguna. **Reemplaza en parte a** D-240 (un permiso suelto ya no le abre pestañas a oficina) y D-286
+(ventas ya no edita el formulario entero de una orden pendiente o rechazada); las dos llevan su nota. D-467 lleva una
+nota sobre el orden de la barra de almacén.
+
+**Qué pidió el dueño** (2026-10-06, dictado, literal tal como lo pasó el orquestador):
+
+```
+a) when in office just to oredr and today route office for now
+b) sales people cna edit only the date of their orders
+c) orders before todays routes for warehouse
+```
+
+### a) Oficina: Órdenes y Ruta de hoy, y nada más, por ahora
+
+**Lo que había.** Por ROL, `TABS` ya le daba a oficina (`accounting`, que se lee «Office», D-279) solo dos pestañas:
+`board` (Órdenes) y `map` (Ruta de hoy, D-467). Lo que le daba más eran los **permisos sueltos** que un admin concede a
+personas concretas: `canOpenTab` (D-240) abre una pestaña si su `cap` está entre los permisos extra de la persona.
+Medido en producción el 2026-10-06 (solo lectura, sin nombres): **9 personas de oficina, 3 con permisos que abren
+pestaña**: `fulfill` en tres (→ Almacén), `deliver` en una (→ Chofer y Mi ruta), `settings` y `dashboard` en otra
+(→ Datos y Panel). Esas tres veían, además de Órdenes y Ruta de hoy, Almacén (las tres), Chofer y la URL de Mi ruta
+(una), y Panel y Datos (una). Esto se dedujo del código de `origin/main`; no se midió en un navegador con ese `main`.
+
+**Lo que hay.** `ROLES_CON_PESTANAS_FIJAS = ["accounting"]` (`constants.ts`): para esos roles, `canOpenTab` solo
+responde lo que dice `TABS` por rol, y un permiso suelto no abre nada más. Es la misma pregunta que pinta la barra y la
+que hace `TabGate`, así que se cierran a la vez la pestaña y la URL. `TabGate` tampoco les aplica la exención de
+«Mi ruta», que existe para el admin (D-240). **Solo cierra pantallas**: los permisos siguen en el perfil y siguen
+valiendo para lo demás (`hasCap`: botones de la ficha y lo que deja la base). Como pide «for now», para volver a lo de
+antes basta con quitar `accounting` de esa lista, sin tocar ningún perfil.
+
+**El demo ahora pasa por `TabGate`.** `LocalApp` nunca lo montó (solo lo montaba el layout de servidor), así que en el
+demo cualquier rol entraba por URL a todo y no se podía medir quién entra a qué. Ahora lo envuelve igual que el layout.
+
+### b) Ventas: solo la fecha de entrega, y solo de sus órdenes
+
+**Lo que había.** `canEditFields("sales", …)` daba el formulario ENTERO en `draft`, `pending` y `rejected`, de
+cualquier orden que el vendedor pudiera abrir.
+
+**Lo que hay.** `alcanceDeEdicion` (`src/lib/edicion-de-ventas.ts`) responde `todo`, `solo_fecha` o `nada`, y de esa
+respuesta salen el botón, los campos y lo que se guarda en la ficha (`OrderModal`):
+- **Ventas, orden suya, `pending` o `rejected` → `solo_fecha`.** «Suya» = `orderOwner` (el vendedor asignado o, si no
+  hay, quien la creó), la misma dueñez que decide qué ve (D-309). El botón dice «Editar fecha»; al pulsarlo la ficha
+  enseña UN campo, «Nueva fecha de entrega», con «Cancelar edición» y «Guardar fecha». Lo que viaja a la base es
+  `parcheSoloFecha` = `{ delivery_date }` y nada más: mandar la orden entera con los campos deshabilitados seguiría
+  mandando todos los campos. Sin fecha no guarda.
+- **Ventas, orden ajena → `nada`**: ni la fecha.
+- **Ventas, borrador → `todo`**, como desde D-286: un borrador del que solo se puede cambiar la fecha no se puede
+  terminar. «Una vez creada la orden» se interpretó como «una vez enviada».
+- **Ventas, `approved` en adelante → `nada`**, como antes: el guard de la base le rechaza ahí cualquier escritura.
+- **Crear sigue igual** (orden nueva → `todo`). **Los demás roles no cambian**: `todo` donde `canEditFields` decía
+  que sí y `nada` donde decía que no (una prueba lo compara rol por rol y etapa por etapa).
+- **Lo que no toca:** «Agregar material» (D-339) y poner la factura que falta (125) siguen siendo de ventas en su orden;
+  son otros botones y la base los permite aparte. El cambio de fecha en bloque del tablero no es de ventas.
+
+**Qué deja la base HOY a ventas** (medido el 2026-10-06 contra producción, como `authenticated` con los claims de un
+vendedor real, dentro de una transacción que terminó en ROLLBACK): la política de UPDATE de `deliveries` solo pide
+`has_deliveries_access()`; lo que manda es el guard `guard_delivery_stage`. En una orden suya **rechazada**, cambiar
+fecha, contacto, dirección, tarifa, ventana o chofer **pasa**, y moverla a `approved` también. En `approved`, `ready` y
+`delivered` **se rechaza todo**, la fecha incluida («You cannot edit an order in the … stage»). El tramo del guard que
+lo permite (`if r in ('sales','driver') and old_stage in ('draft','pending','rejected') then return NEW`) **no mira de
+quién es la orden ni qué columnas cambian**: por API, un vendedor puede cambiar cualquier campo de una orden pendiente o
+rechazada aunque no sea suya. Este cambio **no** lo cierra: lo limita en la pantalla y en la función que guarda. Cerrarlo
+en la base lo decide el dueño (ver «Pendiente»).
+
+### c) Almacén: Órdenes antes que Ruta de hoy
+
+`TABS` tiene un solo orden, el del admin, y en él `map` va antes que `warehouse` (la cola de almacén, que en su barra se
+lee «Órdenes»). `pestanasEnOrden` (`src/lib/orden-de-pestanas.ts`) pone la suya primero solo para almacén; la barra
+(`TopBar`) la llama antes de repartir las pestañas. No se movió la entrada en `TABS` porque eso cambiaría también la
+barra del admin. **El chofer tiene la misma forma** (su «Órdenes» es `driver`, detrás de `map`) y no se tocó: el dueño
+no lo nombró.
+
+### Verificado
+
+- `node scripts/verify.mjs` en verde sobre `origin/main` a30e8abf (los números, en el informe de la rama).
+- **Mutantes: 27, caen los 27**, cada uno con una prueba con nombre (`edicion-de-ventas.test.ts`,
+  `orden-de-pestanas.test.ts`). Ventas: el borrador pasa a solo fecha (M1), fecha de una ajena (M2), vuelve a editar
+  todo (M3), los demás roles con la regla de ventas (M4), fecha de una aprobada (M5), orden nueva cerrada (M6), el
+  parche con la orden entera (M7), «suya» solo por creador (M8). En la ficha: guarda la orden entera (M9), «Editar» por
+  `canEditFields` (M10), campos de ventas abiertos (M11), formulario entero debajo (M12), el guardado no entra (M13),
+  textos de los botones (M19, M20), guarda sin fecha (M21), `editable` por `canEditFields` (M22). Barra: el reorden
+  para todos (M14), almacén sin reordenar (M15), la barra sin llamarlo (M16). Oficina: Gestor en `TABS` (M17), sin
+  Ruta de hoy (M18), el permiso suelto vuelve a abrir (M23), la lista vacía (M24), las pestañas fijas para todos los
+  roles (M25), «Mi ruta» por la exención (M26), el demo sin `TabGate` (M27).
+- **En el navegador** (demo, Chrome headless por CDP, clics de persona, 1440×900):
+  - Oficina: la barra es «📋 Orders · 🗺 Today's route» sin permisos **y** con `fulfill, settings, dashboard, deliver`.
+    Por URL, `/routes`, `/warehouse`, `/dashboard`, `/accounts`, `/driver`, `/my-route`, `/track`, `/data`, `/audit`,
+    `/summary` y `/market` dicen «No disponible para su rol.»; `/` y `/map` abren. Control: el gerente con `fulfill`
+    sigue viendo Almacén.
+  - Ventas (Sam, McAllen), orden #1070 pendiente y suya: la ficha muestra «Edit date» y no «Edit». Al pulsarlo hay
+    **1 campo habilitado** («New delivery date»), ninguno deshabilitado a la vista, y «Cancel edit» / «Save date». En
+    español: se teclea 10/20/2026, «Guardar fecha», aviso «Fecha de entrega guardada»; en el almacén del demo la orden
+    pasó de 2026-10-07 a 2026-10-20, y contacto, tarifa, dirección, ventana, etapa y factura quedaron iguales.
+  - Almacén: la barra es «📋 Orders · 🗺 Today's route» (antes, «Today's route · Orders»).
+  - Capturas: `01-oficina-barra`, `09-oficina-url-dashboard`, `10-oficina-con-permisos-barra`,
+    `11-oficina-con-fulfill-url-almacen`, `03-almacen-barra`, `04-ventas-ficha-vista`, `05-ventas-solo-fecha`,
+    `07-ventas-solo-fecha-es`, `08-ventas-tras-guardar-es`.
+
+### Pendiente (lo decide el dueño)
+
+- **Cerrar en la base lo de b).** Plan propuesto, sin escribir: en el tramo de misma etapa de `guard_delivery_stage`,
+  para `sales` fuera de `draft`, exigir que la orden sea suya (`OLD.created_by = auth.uid() or OLD.assigned_sales_rep =
+  auth.uid()`) y que lo único que cambie sea `delivery_date` (el mismo patrón `probe` de 125 y 138), sin romper esas
+  dos excepciones ni el reenvío de una rechazada. Es un cambio de guard: plan en papel, ensayo con ROLLBACK por rol,
+  respaldo y aprobación antes de aplicarlo (CLAUDE.md).
+- **El chofer** tiene la misma forma que almacén en la barra (Ruta de hoy antes que su «Órdenes»). No se tocó.
+- **Oficina con permisos sueltos** sigue teniendo en la ficha los botones que esos permisos le dan (p. ej. los de
+  preparar con `fulfill`); solo se le cerraron las pantallas.
