@@ -13377,6 +13377,8 @@ de las cinco pantallas. Las tres cosas que hay que mirar cuando el dueño lo abr
 
 ## D-240 · Quién entra a una pantalla lo decide la misma pregunta que pinta su pestaña, y se decide una vez
 
+> **⚠ Reemplazada en parte por D-480** (2026-10-06): para oficina (`accounting`, `ROLES_CON_PESTANAS_FIJAS`) un permiso suelto ya no abre pestaña, y la exención de «Mi ruta» tampoco le abre esa pantalla: solo las de su rol en `TABS` (Órdenes y Ruta de hoy). Para los demás roles esta entrada sigue igual.
+
 **Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** la observación que quedó de D-239 —`accounting` llegaba a Cuentas por URL
 directa—. **El encargo era Cuentas; lo que se encontró es el patrón.**
@@ -18645,6 +18647,8 @@ por la pantalla nueva. Las de `help-attachments.test.ts` siguen siendo 24, con s
 —la ruta ahora guarda antes de mandar—. `main` 21e2b89, medido en un worktree aparte, está en 2460 | 3.
 
 ## D-286 · Un borrador se puede retomar, y duplicar deja de perder cosas
+
+> **⚠ Reemplazada en parte por D-480** (2026-10-06): el borrador lo sigue editando entero cualquiera que lo vea; pero en una orden **pendiente o rechazada** ventas ya no edita el formulario entero, solo la fecha de entrega, y solo si la orden es suya (`orderOwner`). En una ajena, nada.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, dos cosas: *«cuando un sales o cualquiera tiene un borrador no lo puede volver
@@ -31706,6 +31710,8 @@ lista sembrada.
 
 ## D-427 · La zona también mira dónde se RECOGE: ir a la tienda de la zona de otro chofer cuenta como entrar en su zona (`motor-6`)
 
+> **⚠ Reemplazada en parte por D-479** (2026-10-06, `motor-8`): la recogida en la tienda de la zona de otro chofer ya no cuesta lo mismo que la entrega: tiene su propio peso, `route_weights.zonaRecogida`, 120 por defecto contra los 60 de la entrega. Y cuenta SIEMPRE que la tienda tenga dueño, también cuando la entrega va a una ciudad que no es zona de nadie: la excepción de aquí («una entrega a una ciudad sin dueño va al más eficiente, aunque salga de la tienda de la zona de alguien») subió a Maximo de Brownsville a Pharr por una orden para Edcouch sin pagar nada. El dueño: «it giving ernesto an djulio trips to brownville and then it gives pharr to max and he is from brownsville».
+
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (la ciudad de la tienda
 sale de la dirección de la tienda en Ajustes, que ya existía). **Reemplaza en parte** a D-421 (qué es «fuera de zona») y a
 D-423 (a quién devuelve el umbral, y el caso #546); las dos llevan su nota.
@@ -36261,6 +36267,8 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 
 ## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
 
+> **⚠ Puesta al día por D-480** (2026-10-06): en la barra de almacén, «Ruta de hoy» va DETRÁS de su «Órdenes» (`pestanasEnOrden`). Quién la ve no cambia.
+
 **Fecha:** 2026-10-04 · **Migración:** `160_rutas_del_dia.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
 `docs/PLAN-160-rutas-del-dia.md`) · **Versión:** deliveries 1.254.0, repo 1.341.0. **Reemplaza en parte a** D-437 (el
 Mapa ya no asigna), D-274 (la leyenda del mapa) y D-239 (el selector de día del Mapa). Las tres llevan su nota.
@@ -37440,3 +37448,231 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 
 - Contra producción con sesión de admin, nada (como en D-476).
 - El Panel no se tocó: el selector sigue escrito en las dos pantallas.
+
+## D-479 · La recogida en la tienda de la zona de otro chofer es la punta cara: cada chofer carga en su tienda salvo que no quepa (`motor-8`)
+
+**Fecha:** 2026-10-06 · **Versión:** deliveries 1.259.0, repo 1.352.0 (Entregas) · **Migraciones:** ninguna (el peso nuevo vive en el
+mismo `route_weights` jsonb que los demás). **Reemplaza en parte** a D-427 (lleva su nota). D-461 y D-464 no cambian.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-06, literal (como lo pasó el orquestador):
+
+> it giving ernesto an djulio trips to brownville and then it gives pharr to max and he is from brownsville
+
+### Lo que se midió primero (producción en solo lectura, 2026-10-06 13:20 hora de Texas)
+
+- **Ajustes está bien.** `driver_settings`: Ernesto base RDZ McAllen, 12 pallets, zonas McAllen/Mission/Edinburg/Weslaco;
+  Julio base RDZ Pharr, 12, zonas Pharr/Edinburg/Weslaco; Maximo base RDZ Brownsville, 10, zona Brownsville; Steven no rutea.
+  `route_weights` = `{builder 2, manejo 1, millas 0.5, tarde 0.75, balance 0.1, zona 60}`. La entrada guardada del plan
+  lleva la base de Maximo bien (`tienda:rdz brownsville`): la base no era el problema.
+- **Lo que vio el dueño es el borrador de «Armar rutas»** del 2026-10-06 (`route_plans` v1, `motor-7`, creado a las 07:41,
+  sin publicar), no las asignaciones que hay hoy en `deliveries`: esas las puso una persona a mano entre las 07:46 y las 07:50
+  (`order_events`: «Assigned to Maximo Garza»…), después del borrador. El borrador, re-ejecutado en local con el motor de
+  `origin/main` y la matriz y el tráfico guardados con el plan, sale igual (mismas rutas, 2 minutos de manejo de diferencia):
+  **Ernesto** recoge 6 en McAllen y **3 en Brownsville**; **Julio** 6 en Pharr, 1 en Edinburg y **1 en Brownsville** (10
+  pallets); **Maximo** **una sola orden, recogida en Pharr** (121 mi para eso). 435 mi, 0 fuera, 0 tarde.
+
+### Por qué lo hacía (orden a orden, con el «¿por qué aquí?» del propio motor)
+
+1. **#FU118 a Maximo** (builder, 3 pallets, de la tienda de Pharr a Edcouch, ventana dura 08:30–12:00). Edcouch no es zona
+   de nadie, y D-427 decía que entonces la recogida tampoco cuenta: Maximo no pagaba **ninguna** punta por subir a Pharr.
+   Julio no podía (su mañana ya lleva cuatro builders con ventana dura: `ventana_estrecha`). Con Ernesto eran 77,5 mi menos
+   pero 137 minutos-builder más (×2) y peor balance: +181,6 de coste. Así que Maximo.
+2. **#FU113, #FU114, #FU116 a Ernesto** (de la tienda de Brownsville a Edinburg y Pharr). Con D-427 cuestan **una punta con
+   cualquiera de los tres** (Ernesto o Julio pagan la recogida en la tienda de Maximo; Maximo paga la entrega en la zona de
+   ellos): empate de zona, y decide la eficiencia. Con Maximo, #FU113 costaba +33,5 mi y +48 min de manejo más que con
+   Ernesto, que baja una vez a mediodía y carga las tres juntas.
+3. **#FU117 a Julio** (10 pallets, de Brownsville a Pharr): con Maximo +20,8 mi y +22 min, casi empate (+5,6), y gana Julio.
+4. **La capacidad empuja**: la tienda de Brownsville tenía 19 pallets ese día (3+1+5+10) y el camión de Maximo es de 10: que
+   lo cargue todo él son tres vueltas. No es la causa —la causa es que la recogida en la tienda de otro costaba lo mismo que
+   la entrega, y nada si la entrega iba a una ciudad sin dueño—, pero es lo que hace caro el reparto que pide el dueño.
+5. **Lo que NO era**: el balance (con `balance` 0 sale el mismo reparto), la base de Maximo (bien en la entrada), las
+   ventanas fuera de #FU118, y «lo que está de paso» de D-464 (sin `dePaso`, el mismo reparto: solo reordena dentro de una ruta).
+6. **Ningún cambio de dato lo arregla**, medido sobre el borrador con el motor de `origin/main`: `zona` 120, `balance` 0,5,
+   `zonaMillas` 30 o `builder` 0,5 dejan a Julio o a Ernesto en Brownsville; `zona` 240 libera a Ernesto pero Julio sigue
+   bajando a Brownsville (#FU117) y Maximo sigue subiendo a Pharr (#FU118).
+
+### Qué cambia (`motor-8`)
+
+- **La recogida tiene su propio peso**, `route_weights.zonaRecogida`, **120 por defecto** (minutos equivalentes, como `zona`),
+  contra los 60 de la entrega. Ir a cargar a la tienda de otro es el viaje que molesta; entregar en la ciudad de otro desde la
+  tienda propia es solo donde vive el cliente. El desglose separa las puntas: `fueraDeZona` sigue siendo el total (entregas +
+  recogidas) y `recogidasFueraDeZona` dice cuántas de ellas son recogidas; el coste cobra estas a `zonaRecogida` y el resto a
+  `zona`. Un desglose guardado antes, sin la clave nueva, cuesta como entonces.
+- **La recogida cuenta siempre** que la tienda tenga dueño, también si la entrega va a una ciudad que no es de nadie. «El más
+  eficiente» para esas ciudades decide ahora entre los choferes que no pagan la recogida.
+- **Sigue siendo preferencia, no regla**: si el de esa tienda no puede (turno, ventana, capacidad), la lleva otro y paga el
+  peso; y las vueltas de seguridad de D-421/D-427 (sin zonas, solo la entrega) siguen: nunca queda una orden fuera por esto.
+  `zona` en 0 apaga las dos puntas; `zonaRecogida` en 0 hace que la recogida cueste lo mismo que la entrega (lo de `motor-7`,
+  salvo la ciudad sin dueño).
+- **En Ajustes → Motor de rutas**, una casilla nueva, «5 · Zona preferida (por recogida en la tienda de la zona de otro
+  chofer)», junto a la de la entrega (que pasa a llamarse «por entrega fuera de ella»), y la ayuda lo explica.
+- Sin zonas, `motor-8` planifica lo mismo que `motor-7`, byte a byte (lo fijan las huellas de siempre).
+
+### Por qué 120
+
+Barrido sobre el banco de días reales (abajo): con 60 (lo de antes, con la regla nueva) y con 90–100, Julio sigue bajando a
+Brownsville el 2026-10-06; desde 120, el reparto del día de la queja es el mismo con 120, 150, 180, 240 o 360. Y 120 es el que
+menos cuesta en el banco: 3.125 mi (180: 3.144; 240: 3.256; 360: 3.386).
+
+### Antes y después, día por día
+
+Mismo motor, mismas órdenes, misma matriz guardada con cada plan; sin red. Para que todos los días midan lo mismo, cada día
+se planifica con los choferes de HOY (bases, capacidades y zonas de `driver_settings`) y, en los planes viejos que no traían
+la ciudad de la tienda, se pone desde la tienda de origen. Los tres días «aprox» no tienen plan guardado: sus tiempos son en
+línea recta. «Recogidas fuera»: recogidas en la tienda de la zona de otro chofer.
+
+| Día (plan) | Antes (`motor-7`) | Después (`motor-8`) |
+|---|---|---|
+| 2026-09-21 v2 | 252 mi · 713 min · 2 sin ruta · 6 recogidas fuera | 250 mi · 810 min · 0 sin ruta · 2 recogidas fuera |
+| 2026-09-27 v3 | 269 mi · 694 min · 0 · 8 | 388 mi · 825 min · 0 · 0 |
+| 2026-09-28 v3 | 30 mi · 89 min · 0 · 0 | igual |
+| 2026-09-29 v2 | 389 mi · 1021 min · 0 · 7 | 421 mi · 1064 min · 0 · 2 |
+| 2026-09-30 v1 | 502 mi · 974 min · 1 · 2 | 521 mi · 988 min · 1 · 1 |
+| 2026-10-01 v2 | 211 mi · 542 min · 1 · 1 | igual |
+| 2026-10-02 v1 | 463 mi · 997 min · 0 · 5 | 475 mi · 985 min · 0 · 2 |
+| 2026-10-03 v1 | 126 mi · 242 min · 0 · 1 | 147 mi · 265 min · 0 · 0 |
+| 2026-10-05 v1 | 303 mi · 787 min · 0 · 2 | 192 mi · 681 min · 0 · 1 |
+| **2026-10-06 v1 (la queja)** | **435 mi · 1109 min · 0 · 5** | **491 mi · 1138 min · 0 · 1** |
+| **10 días con plan** | **2979 mi · 7168 min · 4 sin ruta · 37 recogidas fuera · 0 tarde** | **3125 mi · 7387 min · 2 sin ruta · 10 recogidas fuera · 0 tarde** |
+| 3 días aprox (24–26 sep) | 903 mi · 3293 min · 4 · 21 | 879 mi · 3228 min · 4 · 17 |
+
+**El precio**: en los 10 días con plan, **+146 mi (+4,9 %) y +219 min de jornada (+3,1 %)**, +334 minutos-builder, a cambio de
+pasar de 37 a 10 recogidas en la tienda de otro y de 4 a 2 órdenes sin ruta. El día más caro es el 27 de septiembre (+119
+mi): Maximo se queda las 13 órdenes de Brownsville (233 mi) en vez de que Ernesto baje a por 5.
+
+**El día de la queja, después**: Ernesto 6 órdenes, todas cargadas en McAllen (56 mi, 4,0 h, acaba 11:57); Julio 7, en Pharr y
+Edinburg (100 mi, 5,7 h); Maximo 5: las 4 de Brownsville (19 pallets, tres vueltas) y #FU111, un builder de Pharr a McAllen con
+ventana dura 08:30–10:00 que ni Ernesto ni Julio pueden hacer a tiempo (335 mi, 9,3 h, acaba 17:19 con turno hasta 17:30).
+Esa última es el «salvo que no quepa»: la explicación del plan lo dice (`ventana_estrecha` con los otros dos).
+
+**Las 37 rutas de D-461** no cambian, por construcción: «🧭 Optimizar» (`optimiza-la-ruta.ts`) ordena una ruta sin cambiar de
+chofer y no usa el coste de zona (solo importa la banda de `de-paso.ts`, que no se tocó).
+
+### Pruebas
+
+`zona-de-la-base.test.ts` (nuevo): el día de la queja real y anonimizado (`zona-base-caso-real.json`: la entrada del borrador
+del 2026-10-06 con su matriz y su tráfico) — con `motor-8` a la tienda de C solo va C y A solo carga en la suya; con
+`zonaRecogida` 0, A o B vuelven a bajar —; las dos puntas por separado; el coste de cada una; una cuadrícula donde la
+eficiencia pide J y la tienda es de M; y el camino de Ajustes al motor (`pesosDeRuta`, `entradaDelDia`, la tarjeta).
+`zona-de-la-recogida.test.ts`: las pruebas de D-427 que fijaban la regla vieja se reescriben con la nueva (la ciudad sin
+dueño, el día inventado 48); las que prueban otra cosa (el umbral de D-423, el día inventado 55) fijan `zonaRecogida: 0` para
+seguir probando lo mismo.
+
+### Lo que no se hizo
+
+- **«📍 Mejor lugar»** (`esDeSuZona`, solo sugerencia en el Gestor) sigue con la regla de D-427 (la tienda solo cuenta si la
+  entrega es de alguien). No reparte; se deja igual a propósito y se dice aquí.
+- No se probó en el navegador ni contra producción con sesión: el cambio es del motor y de una casilla de Ajustes.
+
+## D-480 · Oficina solo con Órdenes y Ruta de hoy (también con permisos sueltos); ventas solo cambia la FECHA de sus órdenes; en almacén, Órdenes antes que Ruta de hoy
+
+**Fecha:** 2026-10-06 · **Versión:** deliveries 1.260.0, repo 1.353.0 (toca `src/components/` y `src/lib/constants.ts`: Entregas)
+· **Migración:** ninguna. **Reemplaza en parte a** D-240 (un permiso suelto ya no le abre pestañas a oficina) y D-286
+(ventas ya no edita el formulario entero de una orden pendiente o rechazada); las dos llevan su nota. D-467 lleva una
+nota sobre el orden de la barra de almacén.
+
+**Qué pidió el dueño** (2026-10-06, dictado, literal tal como lo pasó el orquestador):
+
+```
+a) when in office just to oredr and today route office for now
+b) sales people cna edit only the date of their orders
+c) orders before todays routes for warehouse
+```
+
+### a) Oficina: Órdenes y Ruta de hoy, y nada más, por ahora
+
+**Lo que había.** Por ROL, `TABS` ya le daba a oficina (`accounting`, que se lee «Office», D-279) solo dos pestañas:
+`board` (Órdenes) y `map` (Ruta de hoy, D-467). Lo que le daba más eran los **permisos sueltos** que un admin concede a
+personas concretas: `canOpenTab` (D-240) abre una pestaña si su `cap` está entre los permisos extra de la persona.
+Medido en producción el 2026-10-06 (solo lectura, sin nombres): **9 personas de oficina, 3 con permisos que abren
+pestaña**: `fulfill` en tres (→ Almacén), `deliver` en una (→ Chofer y Mi ruta), `settings` y `dashboard` en otra
+(→ Datos y Panel). Esas tres veían, además de Órdenes y Ruta de hoy, Almacén (las tres), Chofer y la URL de Mi ruta
+(una), y Panel y Datos (una). Esto se dedujo del código de `origin/main`; no se midió en un navegador con ese `main`.
+
+**Lo que hay.** `ROLES_CON_PESTANAS_FIJAS = ["accounting"]` (`constants.ts`): para esos roles, `canOpenTab` solo
+responde lo que dice `TABS` por rol, y un permiso suelto no abre nada más. Es la misma pregunta que pinta la barra y la
+que hace `TabGate`, así que se cierran a la vez la pestaña y la URL. `TabGate` tampoco les aplica la exención de
+«Mi ruta», que existe para el admin (D-240). **Solo cierra pantallas**: los permisos siguen en el perfil y siguen
+valiendo para lo demás (`hasCap`: botones de la ficha y lo que deja la base). Como pide «for now», para volver a lo de
+antes basta con quitar `accounting` de esa lista, sin tocar ningún perfil.
+
+**El demo ahora pasa por `TabGate`.** `LocalApp` nunca lo montó (solo lo montaba el layout de servidor), así que en el
+demo cualquier rol entraba por URL a todo y no se podía medir quién entra a qué. Ahora lo envuelve igual que el layout.
+
+### b) Ventas: solo la fecha de entrega, y solo de sus órdenes
+
+**Lo que había.** `canEditFields("sales", …)` daba el formulario ENTERO en `draft`, `pending` y `rejected`, de
+cualquier orden que el vendedor pudiera abrir.
+
+**Lo que hay.** `alcanceDeEdicion` (`src/lib/edicion-de-ventas.ts`) responde `todo`, `solo_fecha` o `nada`, y de esa
+respuesta salen el botón, los campos y lo que se guarda en la ficha (`OrderModal`):
+- **Ventas, orden suya, `pending` o `rejected` → `solo_fecha`.** «Suya» = `orderOwner` (el vendedor asignado o, si no
+  hay, quien la creó), la misma dueñez que decide qué ve (D-309). El botón dice «Editar fecha»; al pulsarlo la ficha
+  enseña UN campo, «Nueva fecha de entrega», con «Cancelar edición» y «Guardar fecha». Lo que viaja a la base es
+  `parcheSoloFecha` = `{ delivery_date }` y nada más: mandar la orden entera con los campos deshabilitados seguiría
+  mandando todos los campos. Sin fecha no guarda.
+- **Ventas, orden ajena → `nada`**: ni la fecha.
+- **Ventas, borrador → `todo`**, como desde D-286: un borrador del que solo se puede cambiar la fecha no se puede
+  terminar. «Una vez creada la orden» se interpretó como «una vez enviada».
+- **Ventas, `approved` en adelante → `nada`**, como antes: el guard de la base le rechaza ahí cualquier escritura.
+- **Crear sigue igual** (orden nueva → `todo`). **Los demás roles no cambian**: `todo` donde `canEditFields` decía
+  que sí y `nada` donde decía que no (una prueba lo compara rol por rol y etapa por etapa).
+- **Lo que no toca:** «Agregar material» (D-339) y poner la factura que falta (125) siguen siendo de ventas en su orden;
+  son otros botones y la base los permite aparte. El cambio de fecha en bloque del tablero no es de ventas.
+
+**Qué deja la base HOY a ventas** (medido el 2026-10-06 contra producción, como `authenticated` con los claims de un
+vendedor real, dentro de una transacción que terminó en ROLLBACK): la política de UPDATE de `deliveries` solo pide
+`has_deliveries_access()`; lo que manda es el guard `guard_delivery_stage`. En una orden suya **rechazada**, cambiar
+fecha, contacto, dirección, tarifa, ventana o chofer **pasa**, y moverla a `approved` también. En `approved`, `ready` y
+`delivered` **se rechaza todo**, la fecha incluida («You cannot edit an order in the … stage»). El tramo del guard que
+lo permite (`if r in ('sales','driver') and old_stage in ('draft','pending','rejected') then return NEW`) **no mira de
+quién es la orden ni qué columnas cambian**: por API, un vendedor puede cambiar cualquier campo de una orden pendiente o
+rechazada aunque no sea suya. Este cambio **no** lo cierra: lo limita en la pantalla y en la función que guarda. Cerrarlo
+en la base lo decide el dueño (ver «Pendiente»).
+
+### c) Almacén: Órdenes antes que Ruta de hoy
+
+`TABS` tiene un solo orden, el del admin, y en él `map` va antes que `warehouse` (la cola de almacén, que en su barra se
+lee «Órdenes»). `pestanasEnOrden` (`src/lib/orden-de-pestanas.ts`) pone la suya primero solo para almacén; la barra
+(`TopBar`) la llama antes de repartir las pestañas. No se movió la entrada en `TABS` porque eso cambiaría también la
+barra del admin. **El chofer tiene la misma forma** (su «Órdenes» es `driver`, detrás de `map`) y no se tocó: el dueño
+no lo nombró.
+
+### Verificado
+
+- `node scripts/verify.mjs` en verde sobre `origin/main` a30e8abf (los números, en el informe de la rama).
+- **Mutantes: 27, caen los 27**, cada uno con una prueba con nombre (`edicion-de-ventas.test.ts`,
+  `orden-de-pestanas.test.ts`). Ventas: el borrador pasa a solo fecha (M1), fecha de una ajena (M2), vuelve a editar
+  todo (M3), los demás roles con la regla de ventas (M4), fecha de una aprobada (M5), orden nueva cerrada (M6), el
+  parche con la orden entera (M7), «suya» solo por creador (M8). En la ficha: guarda la orden entera (M9), «Editar» por
+  `canEditFields` (M10), campos de ventas abiertos (M11), formulario entero debajo (M12), el guardado no entra (M13),
+  textos de los botones (M19, M20), guarda sin fecha (M21), `editable` por `canEditFields` (M22). Barra: el reorden
+  para todos (M14), almacén sin reordenar (M15), la barra sin llamarlo (M16). Oficina: Gestor en `TABS` (M17), sin
+  Ruta de hoy (M18), el permiso suelto vuelve a abrir (M23), la lista vacía (M24), las pestañas fijas para todos los
+  roles (M25), «Mi ruta» por la exención (M26), el demo sin `TabGate` (M27).
+- **En el navegador** (demo, Chrome headless por CDP, clics de persona, 1440×900):
+  - Oficina: la barra es «📋 Orders · 🗺 Today's route» sin permisos **y** con `fulfill, settings, dashboard, deliver`.
+    Por URL, `/routes`, `/warehouse`, `/dashboard`, `/accounts`, `/driver`, `/my-route`, `/track`, `/data`, `/audit`,
+    `/summary` y `/market` dicen «No disponible para su rol.»; `/` y `/map` abren. Control: el gerente con `fulfill`
+    sigue viendo Almacén.
+  - Ventas (Sam, McAllen), orden #1070 pendiente y suya: la ficha muestra «Edit date» y no «Edit». Al pulsarlo hay
+    **1 campo habilitado** («New delivery date»), ninguno deshabilitado a la vista, y «Cancel edit» / «Save date». En
+    español: se teclea 10/20/2026, «Guardar fecha», aviso «Fecha de entrega guardada»; en el almacén del demo la orden
+    pasó de 2026-10-07 a 2026-10-20, y contacto, tarifa, dirección, ventana, etapa y factura quedaron iguales.
+  - Almacén: la barra es «📋 Orders · 🗺 Today's route» (antes, «Today's route · Orders»).
+  - Capturas: `01-oficina-barra`, `09-oficina-url-dashboard`, `10-oficina-con-permisos-barra`,
+    `11-oficina-con-fulfill-url-almacen`, `03-almacen-barra`, `04-ventas-ficha-vista`, `05-ventas-solo-fecha`,
+    `07-ventas-solo-fecha-es`, `08-ventas-tras-guardar-es`.
+
+### Pendiente (lo decide el dueño)
+
+- **Cerrar en la base lo de b).** Plan propuesto, sin escribir: en el tramo de misma etapa de `guard_delivery_stage`,
+  para `sales` fuera de `draft`, exigir que la orden sea suya (`OLD.created_by = auth.uid() or OLD.assigned_sales_rep =
+  auth.uid()`) y que lo único que cambie sea `delivery_date` (el mismo patrón `probe` de 125 y 138), sin romper esas
+  dos excepciones ni el reenvío de una rechazada. Es un cambio de guard: plan en papel, ensayo con ROLLBACK por rol,
+  respaldo y aprobación antes de aplicarlo (CLAUDE.md).
+- **El chofer** tiene la misma forma que almacén en la barra (Ruta de hoy antes que su «Órdenes»). No se tocó.
+- **Oficina con permisos sueltos** sigue teniendo en la ficha los botones que esos permisos le dan (p. ej. los de
+  preparar con `fulfill`); solo se le cerraron las pantallas.

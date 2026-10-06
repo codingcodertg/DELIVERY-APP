@@ -155,6 +155,8 @@ export function canOpenTab(id: string, u: CapUser | null | undefined): boolean {
   if (!u) return false;
   const tb = TABS.find((t) => t.id === id);
   if (!tb) return false;
+  // Oficina, por ahora, solo con las pestañas de su rol (D-480): un permiso suelto no le abre otra.
+  if (tb.roles && !tb.roles.includes(u.role) && ROLES_CON_PESTANAS_FIJAS.includes(u.role)) return false;
   return !tb.roles || tb.roles.includes(u.role) || (tb.cap ? extraCaps(u).includes(tb.cap) : false);
 }
 
@@ -180,6 +182,21 @@ export function tabForPath(pathname: string): (typeof TABS)[number] | null {
  * for an admin who navigates there directly». Cerrarla es otra decisión y no la de aquí.
  */
 export const TAB_GATE_EXEMPT: string[] = ["myroute"];
+
+/**
+ * Roles cuya barra de Entregas es SOLO la de su rol en `TABS`: un permiso suelto (`permissions`) no les abre otra
+ * pestaña, ni la exención de arriba les abre «Mi ruta» (D-480).
+ *
+ * El dueño (2026-10-06): «when in office just to oredr and today route office for now». Por rol, oficina ya tenía solo
+ * Órdenes y Ruta de hoy desde D-467; lo que le daba más eran los permisos sueltos que un admin concedió a personas
+ * concretas. Medido en producción ese día: 3 de las 9 personas de oficina tenían alguno que abre pestaña —`fulfill`
+ * (Almacén) en tres, `deliver` (Chofer, Mi ruta) en una, `settings` (Datos) y `dashboard` (Panel) en otra—.
+ *
+ * **Solo cierra pantallas.** Los permisos siguen en su perfil y siguen valiendo para lo demás (`hasCap`: los botones
+ * de la ficha, lo que deja la base). Quitar la palabra de esta lista devuelve lo de antes sin tocar ningún perfil, que
+ * es lo que «for now» pide.
+ */
+export const ROLES_CON_PESTANAS_FIJAS: UserRole[] = ["accounting"];
 
 // ---- Role metadata --------------------------------------------------------
 export const ROLE_INFO: Record<UserRole, { label: string; label_es: string; color: string; desc: string; desc_es: string }> = {

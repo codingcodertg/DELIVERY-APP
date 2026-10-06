@@ -10,6 +10,7 @@ import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilit
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
+import { alcanceDeEdicion, parcheSoloFecha, type AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
 import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura, puedeAgregarMaterial } from "@/lib/agregar-material";
 import { avisosDeAgregarMaterial } from "@/lib/agregar-material-avisos";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
@@ -114,7 +115,10 @@ export function OrderModal({
   const existing = abierta ? deliveries.find((x) => x.id === abierta.id) ?? abierta : null;
   const isNew = !existing;
   const stage: Stage = existing?.stage ?? "draft";
-  const editable = isNew || (startEditing && canEditFields(me.role, stage));
+  // Qué puede tocar esta persona en esta orden (D-480): el formulario entero, solo la fecha de entrega (ventas, en
+  // una orden suya fuera del borrador) o nada. Una sola respuesta para el botón «Editar», los campos y lo que se guarda.
+  const alcance: AlcanceDeEdicion = alcanceDeEdicion({ rol: me.role, miId: me.id, orden: existing });
+  const editable = isNew || (startEditing && alcance !== "nada");
   const [editing, setEditing] = useState(editable);
   // A rep assigned to a store starts new orders there (still changeable).
   const [d, setD] = useState<Draft>(existing ?? { ...EMPTY, ...(me.store ? { store: me.store } : {}) });
@@ -559,6 +563,16 @@ export function OrderModal({
   // decide son las coordenadas y la fuente que acaban en la base, no cómo se pintan. Aquí solo se
   // le pasa el estado de la ficha.
   const save = async () => {
+    // Ventas en una orden suya ya enviada: viaja SOLO la fecha (D-480). No pasa por los avisos de campos obligatorios ni
+    // de duplicados: no cambia nada de lo que esos avisos miran.
+    if (!isNew && alcance === "solo_fecha") {
+      if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }
+      setBusy(true);
+      const ok = await updateDelivery(existing!.id, parcheSoloFecha(d));
+      setBusy(false);
+      if (ok) { notify(t("Delivery date saved", "Fecha de entrega guardada")); setEditing(false); }
+      return;
+    }
     // La prioridad (D-412, 147), los avisos (D-416, 150) y los requisitos del camión (D-418, 151) solo viajan si la base
     // ya tiene la columna: mandarlos antes haría fallar la orden entera.
     const payload = conRequisitosSiCabe(conAvisosSiCabe(conPrioridadSiCabe({
@@ -1291,7 +1305,9 @@ export function OrderModal({
   };
 
   // Field editability: sales owns order data, warehouse owns fulfillment data.
-  const salesFields = editing && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));
+  const salesFields = editing && alcance === "todo" && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));
+  /** Ventas cambiando SOLO la fecha de una orden suya (D-480): un campo en vez del formulario. */
+  const soloFecha = editing && !isNew && alcance === "solo_fecha";
   // True when an existing order is being pushed to a LATER delivery date (a
   // reprogram) — the cue to offer the "deliver first thing in the morning" flag.
   const rescheduledForward = !!existing?.delivery_date && !!d.delivery_date && d.delivery_date > existing.delivery_date;
@@ -1354,6 +1370,7 @@ export function OrderModal({
   const stageActions = existing ? (
     <StageActions me={me} stage={stage} busy={busy} pedido={existing}
       onEdit={() => setEditing(true)}
+      edicion={alcance}
       onMove={move}
       etapaDeEnvio={etapaDeEnvio}
       showReject={showReject}
@@ -1701,7 +1718,7 @@ export function OrderModal({
             orden YA nace de ese tipo (gerente y office empiezan en Intertienda, `borradorInicial`). Antes
             solo se saltaba si alguien cambiaba el tipo a mano aquí, así que una Intertienda recién
             abierta enseñaba este paso con su buscador de direcciones: es lo que vio el dueño. */}
-        {editing && paso === "inicial" && (
+        {editing && !soloFecha && paso === "inicial" && (
           <>
             <div className="section-label" style={{ marginTop: 0 }}>{t("New order", "Nueva orden")}</div>
             <div className="grid g2">
@@ -1822,8 +1839,22 @@ export function OrderModal({
           </>
         )}
 
+        {/* ---------- SOLO LA FECHA (ventas, orden suya ya enviada; D-480) ---------- */}
+        {soloFecha && (
+          <>
+            <div className="section-label">{t("Delivery date", "Fecha de entrega")}</div>
+            <div className="sub" style={{ marginBottom: 8 }}>
+              {t("You can only change the delivery date of this order. Everything else stays as it is.",
+                 "Solo puede cambiar la fecha de entrega de esta orden. Lo demás queda como está.")}
+            </div>
+            <div className="grid g2">
+              <Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} invalid={!d.delivery_date} />
+            </div>
+          </>
+        )}
+
         {/* ---------- EDIT MODE (full form) ---------- */}
-        {editing && paso === "completo" && (
+        {editing && !soloFecha && paso === "completo" && (
           <>
             <div className="section-label">{t("Order", "Orden")}</div>
             {/* Sales Rep with the "same invoice as a past order" toggle beside it
@@ -2530,7 +2561,7 @@ export function OrderModal({
         )}
 
         {/* ---------- STILL MISSING (moved to the bottom, right above the buttons) ---------- */}
-        {editing && paso === "completo" && missing.length > 0 && (
+        {editing && !soloFecha && paso === "completo" && missing.length > 0 && (
           <div className="card" style={{ marginTop: 14, marginBottom: 0, background: "var(--red-tint)", borderColor: "var(--red)" }}>
             <b style={{ color: "var(--red)" }}>{t("Still missing", "Faltan")} ({missing.length})</b>
             <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5, lineHeight: 1.5 }}>
@@ -2554,7 +2585,7 @@ export function OrderModal({
 
           {editing ? (
             <>
-              {!isNew && canEditFields(me.role, stage) && (
+              {!isNew && alcance !== "nada" && (
                 <button className="btn btn-ghost" onClick={() => { setEditing(false); setD(existing!); }} disabled={busy}>{t("Cancel edit", "Cancelar edición")}</button>
               )}
               {isNew ? (
@@ -2601,7 +2632,7 @@ export function OrderModal({
                   )}
                 </>
               ) : (
-                <button className="btn btn-primary" onClick={save} disabled={busy}>{t("Save changes", "Guardar cambios")}</button>
+                <button className="btn btn-primary" onClick={save} disabled={busy}>{soloFecha ? t("Save date", "Guardar fecha") : t("Save changes", "Guardar cambios")}</button>
               )}
             </>
           ) : existing && me.role === "driver" ? (
@@ -3040,7 +3071,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 
 /** The workflow buttons shown in view mode, gated by role + current stage. */
 function StageActions({
-  me, stage, busy, pedido, onEdit, onMove, etapaDeEnvio, showReject, setShowReject, rejectReason,
+  me, stage, busy, pedido, onEdit, edicion, onMove, etapaDeEnvio, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
   onAddMaterial, onRequestStart, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
@@ -3050,6 +3081,8 @@ function StageActions({
   /** El pedido, para las acciones que necesitan sus datos y no solo su etapa. */
   pedido: Delivery;
   onEdit: () => void;
+  /** Qué abre «Editar» para esta persona (D-480): el formulario, solo la fecha, o no hay botón. */
+  edicion: AlcanceDeEdicion;
   onMove: (to: Stage, note?: string) => void;
   /** Dónde aterriza esta orden si se envía: `approved` o `pending` (D-313, `etapaAlEnviar`). */
   etapaDeEnvio: Stage;
@@ -3080,8 +3113,10 @@ function StageActions({
     btns.push(<button key="print" className="btn btn-ghost" onClick={onPrint} disabled={busy}>🖨 {t("Slip", "Comprobante")}</button>);
   }
 
-  if (canEditFields(me.role, stage)) {
-    btns.push(<button key="edit" className="btn btn-ghost" onClick={onEdit} disabled={busy}>{t("Edit", "Editar")}</button>);
+  // La misma respuesta que decide los campos (`alcanceDeEdicion`), no `canEditFields` a secas: a ventas, en una orden
+  // suya ya enviada, el botón le dice lo único que va a poder tocar.
+  if (edicion !== "nada") {
+    btns.push(<button key="edit" className="btn btn-ghost" onClick={onEdit} disabled={busy}>{edicion === "solo_fecha" ? t("Edit date", "Editar fecha") : t("Edit", "Editar")}</button>);
   }
 
   // Anyone who can create orders also shepherds their own drafts through submit/resubmit.

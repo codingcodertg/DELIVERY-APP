@@ -110,6 +110,9 @@ export interface Pesos {
   /** Por punta —entrega o recogida (D-427)— que un chofer con zonas hace FUERA de ellas, en una zona que prefiere otro chofer (D-421). En
    *  minutos equivalentes, como `manejo`. Ausente = el de por defecto; 0 = las zonas no deciden nada. */
   zona?: number;
+  /** Por RECOGIDA en la tienda de la zona de otro chofer (D-479, `motor-8`): la punta cara. En minutos equivalentes, como
+   *  `zona`, y en su lugar para esa punta (no encima). Ausente = el de por defecto; 0 = la recogida cuesta lo que `zona`. */
+  zonaRecogida?: number;
   /** El umbral de la zona, en millas (D-423): por debajo, la zona gana al builder y al balance. No es un peso —no entra
    *  en el coste—, pero se guarda con ellos en `route_weights`. Ausente = el de por defecto; 0 = solo el peso `zona`. */
   zonaMillas?: number;
@@ -166,6 +169,9 @@ export interface Desglose {
    *  separado). SOLO está si algún chofer tiene zonas: sin zonas, el desglose es
    *  exactamente el de antes, byte a byte. */
   fueraDeZona?: number;
+  /** De esas puntas, cuántas son RECOGIDAS en la tienda de la zona de otro (D-479): las que cuestan `zonaRecogida`. Va con
+   *  `fueraDeZona`: solo si algún chofer tiene zonas. Un desglose guardado antes no la trae y vale cero (todo a `zona`). */
+  recogidasFueraDeZona?: number;
   /** La suma ponderada, en unidades internas enteras. Solo sirve para comparar dos planes. */
   total: number;
 }
@@ -217,6 +223,8 @@ export interface RutaEvaluada {
   builderMin: number;
   /** Puntas de esta ruta fuera de las zonas de su chofer (D-421, D-427: entrega y recogida). Solo si el chofer tiene zonas. */
   fueraDeZona?: number;
+  /** De esas, las recogidas en la tienda de la zona de otro (D-479). Solo si el chofer tiene zonas. */
+  recogidasFueraDeZona?: number;
   violaciones: Violacion[];
 }
 

@@ -262,7 +262,7 @@ describe("el formulario", () => {
 
   it("y el primer paso ya no enseña su buscador de direcciones en un tipo tienda-a-tienda", () => {
     expect(modal).toContain("const paso = pasoFormulario(isNew, showFullForm, storeToStore);");
-    expect(modal).toContain('{editing && paso === "inicial" && (');
+    expect(modal).toContain('{editing && !soloFecha && paso === "inicial" && ('); // `!soloFecha` desde D-480
     expect(modal).not.toContain("!showFullForm && !storeToStore");
   });
 });

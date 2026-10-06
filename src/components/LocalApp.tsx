@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LocalDataProvider, resetLocalData } from "@/lib/local-data-provider";
+import { TabGate } from "@/components/TabGate";
 import { TopBar } from "@/components/TopBar";
 import { VersionFooter } from "@/components/VersionFooter";
 import { HelpButton } from "@/components/HelpButton";
@@ -69,7 +70,9 @@ export function LocalApp({ children }: { children: React.ReactNode }) {
         </button>
       </div>
       <TopBar me={me} />
-      <div className="wrap"><ErrorBoundary role={me.role}>{children}</ErrorBoundary></div>
+      {/* La misma guarda de pantalla que el layout de servidor (D-240). Sin ella el demo dejaba entrar por URL a lo que
+          la barra no enseña, y no se podía medir aquí quién entra a qué (D-480). */}
+      <div className="wrap"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div>
       <HelpButton me={me} />
       <VersionFooter />
     </LocalDataProvider>

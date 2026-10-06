@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { canOpenTab, tabForPath, TAB_GATE_EXEMPT } from "@/lib/constants";
+import { canOpenTab, ROLES_CON_PESTANAS_FIJAS, tabForPath, TAB_GATE_EXEMPT } from "@/lib/constants";
 
 /**
  * Quién entra a cada pantalla, en un solo sitio (D-240).
@@ -36,7 +36,8 @@ export function TabGate({ children }: { children: React.ReactNode }) {
   // `/settings` ya se guarda sola con admin, y `/users` es un redirect al hub (D-056).
   if (!tab) return <>{children}</>;
   // Y las que la decisión deja abiertas a propósito, por su id y con su motivo.
-  if (TAB_GATE_EXEMPT.includes(tab.id)) return <>{children}</>;
+  // …salvo para los roles con pestañas fijas (D-480): a oficina, «Mi ruta» no se le abre por la URL.
+  if (TAB_GATE_EXEMPT.includes(tab.id) && !(me && ROLES_CON_PESTANAS_FIJAS.includes(me.role))) return <>{children}</>;
   if (canOpenTab(tab.id, me)) return <>{children}</>;
 
   return <div className="empty">{t("Not available for your role.", "No disponible para su rol.")}</div>;

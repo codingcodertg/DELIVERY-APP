@@ -1,5 +1,5 @@
 import { DELIVERY_WINDOW_PRESETS } from "./constants";
-import { PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, PESOS_POR_DEFECTO, UMBRAL_DE_ZONA_POR_DEFECTO_MI, type BalancePor } from "./route-engine";
+import { PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, PESO_DE_ZONA_RECOGIDA_POR_DEFECTO, PESOS_POR_DEFECTO, UMBRAL_DE_ZONA_POR_DEFECTO_MI, type BalancePor } from "./route-engine";
 import type { DriverSettings, NamedLocation, RouteBalanceOptions, RouteWeights, Settings } from "./types";
 
 /** Las columnas de `driver_settings` (128) que leen Ajustes y «Planificar el día». Lo que tiene cada camión (`features`,
@@ -45,12 +45,19 @@ export function pesosDeRuta(settings: Pick<Settings, "route_weights">): RouteWei
   if (numeroValido(guardados.zona)) r.zona = guardados.zona;
   // Y su umbral en millas (D-423), con la misma regla: solo si está guardado y es válido.
   if (numeroValido(guardados.zonaMillas)) r.zonaMillas = guardados.zonaMillas;
+  // Y el de la recogida en la tienda de la zona de otro (D-479), igual.
+  if (numeroValido(guardados.zonaRecogida)) r.zonaRecogida = guardados.zonaRecogida;
   return r;
 }
 
 /** El peso de las zonas vigente (D-421): el guardado en `route_weights.zona`, o el de por defecto. */
 export function pesoDeZona(settings: Pick<Settings, "route_weights">): number {
   return pesosDeRuta(settings).zona ?? PESO_DE_ZONA_POR_DEFECTO;
+}
+
+/** El peso de la recogida fuera de zona vigente (D-479): el guardado en `route_weights.zonaRecogida`, o el de por defecto. */
+export function pesoDeZonaRecogida(settings: Pick<Settings, "route_weights">): number {
+  return pesosDeRuta(settings).zonaRecogida ?? PESO_DE_ZONA_RECOGIDA_POR_DEFECTO;
 }
 
 /** El umbral de la zona vigente, en millas (D-423): el guardado en `route_weights.zonaMillas`, o el de por defecto. */

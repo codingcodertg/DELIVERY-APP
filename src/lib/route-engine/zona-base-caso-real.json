@@ -1,0 +1,2501 @@
+{
+ "nota": "Fixture anonimizado de producción (D-479, motor-8): la entrada del motor del 2026-10-06 tal como la armó «Armar rutas» (motor-7, matriz y tráfico de Google guardados con el plan). Sin direcciones, nombres ni códigos: choferes A/B/C (A sale de la tienda t1 y prefiere Z5, Z6, Z2, Z3; B de t2 y prefiere Z1, Z2, Z3; C de t3 y prefiere solo Z4; Z7 no es de nadie), órdenes o01…, puntos p…/t…, ciudades Z…. Es el día de la queja del dueño: el plan mandaba a A y a B a recoger a la tienda de C (t3) y a C a recoger a la de B (t2).",
+ "tiendaDeC": "t3",
+ "entrada": {
+  "ordenes": [
+   {
+    "id": "o12",
+    "zona": "Z7",
+    "codigo": "o12",
+    "origen": "t2",
+    "builder": true,
+    "destino": "p4",
+    "entrada": "2026-10-05 1551",
+    "pallets": 3,
+    "ventana": [
+     510,
+     720
+    ],
+    "estrecha": true,
+    "choferFijado": null,
+    "zonaRecogida": "Z1",
+    "servicioEntregaMin": 15,
+    "servicioRecogidaMin": 12
+   },
+   {
+    "id": "o05",
+    "zona": "Z5",
+    "codigo": "o05",
+    "origen": "t2",
+    "builder": true,
+    "destino": "p5",
+    "entrada": "2026-10-05 1423",
+    "pallets": 5,
+    "ventana": [
+     510,
+     600
+    ],
+    "estrecha": true,
+    "choferFijado": null,
+    "zonaRecogida": "Z1",
+    "servicioEntregaMin": 25,
+    "servicioRecogidaMin": 20
+   },
+   {
+    "id": "o07",
+    "zona": "Z2",
+    "codigo": "o07",
+    "origen": "t3",
+    "builder": false,
+    "destino": "p6",
+    "entrada": "2026-10-05 1512",
+    "pallets": 3,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z4",
+    "servicioEntregaMin": 15,
+    "servicioRecogidaMin": 12
+   },
+   {
+    "id": "o08",
+    "zona": "Z2",
+    "codigo": "o08",
+    "origen": "t3",
+    "builder": false,
+    "destino": "p7",
+    "entrada": "2026-10-05 1514",
+    "pallets": 1,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z4",
+    "servicioEntregaMin": 5,
+    "servicioRecogidaMin": 4
+   },
+   {
+    "id": "o09",
+    "zona": "Z3",
+    "codigo": "o09",
+    "origen": "t1",
+    "builder": false,
+    "destino": "p8",
+    "entrada": "2026-10-05 1527",
+    "pallets": 1,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z5",
+    "servicioEntregaMin": 5,
+    "servicioRecogidaMin": 4
+   },
+   {
+    "id": "o04",
+    "zona": "Z1",
+    "codigo": "o04",
+    "origen": "t9",
+    "builder": false,
+    "destino": "p10",
+    "entrada": "2026-10-05 1030",
+    "pallets": 0.15,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z2",
+    "servicioEntregaMin": 1,
+    "servicioRecogidaMin": 1
+   },
+   {
+    "id": "o11",
+    "zona": "Z1",
+    "codigo": "o11",
+    "origen": "t3",
+    "builder": false,
+    "destino": "p11",
+    "entrada": "2026-10-05 1550",
+    "pallets": 10,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z4",
+    "servicioEntregaMin": 50,
+    "servicioRecogidaMin": 40
+   },
+   {
+    "id": "o10",
+    "zona": "Z1",
+    "codigo": "o10",
+    "origen": "t3",
+    "builder": false,
+    "destino": "p12",
+    "entrada": "2026-10-05 1534",
+    "pallets": 5,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z4",
+    "servicioEntregaMin": 25,
+    "servicioRecogidaMin": 20
+   },
+   {
+    "id": "o14",
+    "zona": "Z1",
+    "codigo": "o14",
+    "origen": "t1",
+    "builder": true,
+    "destino": "p13",
+    "entrada": "2026-10-05 1615",
+    "pallets": 3,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z5",
+    "servicioEntregaMin": 15,
+    "servicioRecogidaMin": 12
+   },
+   {
+    "id": "o13",
+    "zona": "Z3",
+    "codigo": "o13",
+    "origen": "t2",
+    "builder": false,
+    "destino": "p14",
+    "entrada": "2026-10-05 1613",
+    "pallets": 0.1,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z1",
+    "servicioEntregaMin": 1,
+    "servicioRecogidaMin": 15
+   },
+   {
+    "id": "o16",
+    "zona": "Z1",
+    "codigo": "o16",
+    "origen": "t1",
+    "builder": false,
+    "destino": "p15",
+    "entrada": "2026-10-05 1716",
+    "pallets": 1,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z5",
+    "servicioEntregaMin": 10,
+    "servicioRecogidaMin": 8
+   },
+   {
+    "id": "o01",
+    "zona": "Z2",
+    "codigo": "o01",
+    "origen": "t2",
+    "builder": true,
+    "destino": "p16",
+    "entrada": "2026-10-03 1324",
+    "pallets": 3,
+    "ventana": [
+     510,
+     720
+    ],
+    "estrecha": true,
+    "choferFijado": null,
+    "zonaRecogida": "Z1",
+    "servicioEntregaMin": 15,
+    "servicioRecogidaMin": 12
+   },
+   {
+    "id": "o02",
+    "zona": "Z2",
+    "codigo": "o02",
+    "origen": "t2",
+    "builder": true,
+    "destino": "p17",
+    "entrada": "2026-10-03 1327",
+    "pallets": 2,
+    "ventana": [
+     510,
+     720
+    ],
+    "estrecha": true,
+    "choferFijado": null,
+    "zonaRecogida": "Z1",
+    "servicioEntregaMin": 10,
+    "servicioRecogidaMin": 8
+   },
+   {
+    "id": "o15",
+    "zona": "Z5",
+    "codigo": "o15",
+    "origen": "t1",
+    "builder": true,
+    "destino": "p18",
+    "entrada": "2026-10-05 1640",
+    "pallets": 6,
+    "ventana": [
+     510,
+     600
+    ],
+    "estrecha": true,
+    "choferFijado": null,
+    "zonaRecogida": "Z5",
+    "servicioEntregaMin": 30,
+    "servicioRecogidaMin": 24
+   },
+   {
+    "id": "o18",
+    "zona": "Z5",
+    "codigo": "o18",
+    "origen": "t1",
+    "builder": true,
+    "destino": "p19",
+    "entrada": "2026-10-05 1757",
+    "pallets": 4,
+    "ventana": [
+     510,
+     600
+    ],
+    "estrecha": true,
+    "choferFijado": null,
+    "zonaRecogida": "Z5",
+    "servicioEntregaMin": 20,
+    "servicioRecogidaMin": 16
+   },
+   {
+    "id": "o17",
+    "zona": "Z5",
+    "codigo": "o17",
+    "origen": "t2",
+    "builder": true,
+    "destino": "p20",
+    "entrada": "2026-10-05 1718",
+    "pallets": 6,
+    "ventana": [
+     510,
+     720
+    ],
+    "estrecha": true,
+    "choferFijado": null,
+    "zonaRecogida": "Z1",
+    "servicioEntregaMin": 30,
+    "servicioRecogidaMin": 24
+   },
+   {
+    "id": "o03",
+    "zona": "Z2",
+    "codigo": "o03",
+    "origen": "t2",
+    "builder": true,
+    "destino": "p21",
+    "entrada": "2026-10-05 0909",
+    "pallets": 1,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z1",
+    "servicioEntregaMin": 5,
+    "servicioRecogidaMin": 4
+   },
+   {
+    "id": "o06",
+    "zona": "Z1",
+    "codigo": "o06",
+    "origen": "t1",
+    "builder": false,
+    "destino": "p22",
+    "entrada": "2026-10-05 1447",
+    "pallets": 0.25,
+    "ventana": [
+     510,
+     1050
+    ],
+    "estrecha": false,
+    "choferFijado": null,
+    "zonaRecogida": "Z5",
+    "servicioEntregaMin": 1,
+    "servicioRecogidaMin": 1
+   }
+  ],
+  "choferes": [
+   {
+    "id": "B",
+    "base": "t2",
+    "zonas": [
+     "Z1",
+     "Z2",
+     "Z3"
+    ],
+    "nombre": "B",
+    "salida": 1050,
+    "entrada": 480,
+    "capacidad": 12,
+    "vuelveABase": true
+   },
+   {
+    "id": "C",
+    "base": "t3",
+    "zonas": [
+     "Z4"
+    ],
+    "nombre": "C",
+    "salida": 1050,
+    "entrada": 480,
+    "capacidad": 10,
+    "vuelveABase": true
+   },
+   {
+    "id": "A",
+    "base": "t1",
+    "zonas": [
+     "Z5",
+     "Z6",
+     "Z2",
+     "Z3"
+    ],
+    "nombre": "A",
+    "salida": 1050,
+    "entrada": 480,
+    "capacidad": 12,
+    "vuelveABase": true
+   }
+  ],
+  "matriz": {
+   "t2": {
+    "t1": {
+     "millas": 8.4,
+     "minutos": 11
+    },
+    "t9": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "t3": {
+     "millas": 50.56,
+     "minutos": 47
+    },
+    "p18": {
+     "millas": 9.1,
+     "minutos": 15
+    },
+    "p13": {
+     "millas": 2.17,
+     "minutos": 7
+    },
+    "p21": {
+     "millas": 7.52,
+     "minutos": 15
+    },
+    "p8": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p15": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p14": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p10": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p20": {
+     "millas": 10.51,
+     "minutos": 21
+    },
+    "p12": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p7": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p11": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p5": {
+     "millas": 11.6,
+     "minutos": 24
+    },
+    "p19": {
+     "millas": 11.07,
+     "minutos": 23
+    },
+    "p4": {
+     "millas": 21.49,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 8.6,
+     "minutos": 17
+    },
+    "p6": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p16": {
+     "millas": 9.44,
+     "minutos": 16
+    },
+    "p22": {
+     "millas": 0,
+     "minutos": 0
+    }
+   },
+   "t1": {
+    "t2": {
+     "millas": 7.99,
+     "minutos": 12
+    },
+    "t9": {
+     "millas": 10.44,
+     "minutos": 21
+    },
+    "t3": {
+     "millas": 58.48,
+     "minutos": 57
+    },
+    "p18": {
+     "millas": 2.43,
+     "minutos": 7
+    },
+    "p13": {
+     "millas": 6.61,
+     "minutos": 13
+    },
+    "p21": {
+     "millas": 14.57,
+     "minutos": 23
+    },
+    "p8": {
+     "millas": 19.99,
+     "minutos": 23
+    },
+    "p15": {
+     "millas": 7.99,
+     "minutos": 12
+    },
+    "p14": {
+     "millas": 19.99,
+     "minutos": 23
+    },
+    "p10": {
+     "millas": 7.99,
+     "minutos": 12
+    },
+    "p20": {
+     "millas": 8.91,
+     "minutos": 19
+    },
+    "p12": {
+     "millas": 7.99,
+     "minutos": 12
+    },
+    "p7": {
+     "millas": 10.44,
+     "minutos": 21
+    },
+    "p11": {
+     "millas": 7.99,
+     "minutos": 12
+    },
+    "p5": {
+     "millas": 7.84,
+     "minutos": 17
+    },
+    "p19": {
+     "millas": 8.1,
+     "minutos": 18
+    },
+    "p4": {
+     "millas": 27.31,
+     "minutos": 36
+    },
+    "p17": {
+     "millas": 15.22,
+     "minutos": 23
+    },
+    "p6": {
+     "millas": 10.44,
+     "minutos": 21
+    },
+    "p16": {
+     "millas": 15.26,
+     "minutos": 22
+    },
+    "p22": {
+     "millas": 7.99,
+     "minutos": 12
+    }
+   },
+   "t9": {
+    "t2": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "t1": {
+     "millas": 10.55,
+     "minutos": 20
+    },
+    "t3": {
+     "millas": 63.44,
+     "minutos": 65
+    },
+    "p18": {
+     "millas": 7.56,
+     "minutos": 17
+    },
+    "p13": {
+     "millas": 10.42,
+     "minutos": 25
+    },
+    "p21": {
+     "millas": 10.89,
+     "minutos": 26
+    },
+    "p8": {
+     "millas": 24.95,
+     "minutos": 32
+    },
+    "p15": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p14": {
+     "millas": 24.95,
+     "minutos": 32
+    },
+    "p10": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p20": {
+     "millas": 0.94,
+     "minutos": 3
+    },
+    "p12": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p7": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p11": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p5": {
+     "millas": 2.03,
+     "minutos": 5
+    },
+    "p19": {
+     "millas": 2.29,
+     "minutos": 6
+    },
+    "p4": {
+     "millas": 17.26,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 9.45,
+     "minutos": 22
+    },
+    "p6": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p16": {
+     "millas": 3.38,
+     "minutos": 10
+    },
+    "p22": {
+     "millas": 14.47,
+     "minutos": 22
+    }
+   },
+   "t3": {
+    "t2": {
+     "millas": 52.21,
+     "minutos": 50
+    },
+    "t1": {
+     "millas": 60.09,
+     "minutos": 57
+    },
+    "t9": {
+     "millas": 62.3,
+     "minutos": 67
+    },
+    "p18": {
+     "millas": 60.79,
+     "minutos": 61
+    },
+    "p13": {
+     "millas": 54.37,
+     "minutos": 54
+    },
+    "p21": {
+     "millas": 52.47,
+     "minutos": 55
+    },
+    "p8": {
+     "millas": 41.41,
+     "minutos": 39
+    },
+    "p15": {
+     "millas": 52.21,
+     "minutos": 50
+    },
+    "p14": {
+     "millas": 41.41,
+     "minutos": 39
+    },
+    "p10": {
+     "millas": 52.21,
+     "minutos": 50
+    },
+    "p20": {
+     "millas": 62.15,
+     "minutos": 66
+    },
+    "p12": {
+     "millas": 52.21,
+     "minutos": 50
+    },
+    "p7": {
+     "millas": 62.3,
+     "minutos": 67
+    },
+    "p11": {
+     "millas": 52.21,
+     "minutos": 50
+    },
+    "p5": {
+     "millas": 63.25,
+     "minutos": 69
+    },
+    "p19": {
+     "millas": 62.72,
+     "minutos": 68
+    },
+    "p4": {
+     "millas": 48.79,
+     "minutos": 51
+    },
+    "p17": {
+     "millas": 54.43,
+     "minutos": 57
+    },
+    "p6": {
+     "millas": 62.3,
+     "minutos": 67
+    },
+    "p16": {
+     "millas": 61.09,
+     "minutos": 61
+    },
+    "p22": {
+     "millas": 52.21,
+     "minutos": 50
+    }
+   },
+   "p18": {
+    "t2": {
+     "millas": 9.48,
+     "minutos": 16
+    },
+    "t1": {
+     "millas": 2.43,
+     "minutos": 8
+    },
+    "t9": {
+     "millas": 7.61,
+     "minutos": 17
+    },
+    "t3": {
+     "millas": 59.97,
+     "minutos": 61
+    },
+    "p13": {
+     "millas": 6.13,
+     "minutos": 18
+    },
+    "p21": {
+     "millas": 11.13,
+     "minutos": 27
+    },
+    "p8": {
+     "millas": 21.48,
+     "minutos": 27
+    },
+    "p15": {
+     "millas": 9.48,
+     "minutos": 16
+    },
+    "p14": {
+     "millas": 21.48,
+     "minutos": 27
+    },
+    "p10": {
+     "millas": 9.48,
+     "minutos": 16
+    },
+    "p20": {
+     "millas": 6.63,
+     "minutos": 15
+    },
+    "p12": {
+     "millas": 9.48,
+     "minutos": 16
+    },
+    "p7": {
+     "millas": 7.61,
+     "minutos": 17
+    },
+    "p11": {
+     "millas": 9.48,
+     "minutos": 16
+    },
+    "p5": {
+     "millas": 5.53,
+     "minutos": 13
+    },
+    "p19": {
+     "millas": 5.82,
+     "minutos": 14
+    },
+    "p4": {
+     "millas": 23.87,
+     "minutos": 40
+    },
+    "p17": {
+     "millas": 11.78,
+     "minutos": 27
+    },
+    "p6": {
+     "millas": 7.61,
+     "minutos": 17
+    },
+    "p16": {
+     "millas": 10.44,
+     "minutos": 25
+    },
+    "p22": {
+     "millas": 9.48,
+     "minutos": 16
+    }
+   },
+   "p13": {
+    "t2": {
+     "millas": 2.25,
+     "minutos": 6
+    },
+    "t1": {
+     "millas": 6.42,
+     "minutos": 11
+    },
+    "t9": {
+     "millas": 9.7,
+     "minutos": 25
+    },
+    "t3": {
+     "millas": 53.11,
+     "minutos": 50
+    },
+    "p18": {
+     "millas": 7.12,
+     "minutos": 16
+    },
+    "p21": {
+     "millas": 10.07,
+     "minutos": 18
+    },
+    "p8": {
+     "millas": 14.62,
+     "minutos": 17
+    },
+    "p15": {
+     "millas": 2.25,
+     "minutos": 6
+    },
+    "p14": {
+     "millas": 14.62,
+     "minutos": 17
+    },
+    "p10": {
+     "millas": 2.25,
+     "minutos": 6
+    },
+    "p20": {
+     "millas": 9.52,
+     "minutos": 23
+    },
+    "p12": {
+     "millas": 2.25,
+     "minutos": 6
+    },
+    "p7": {
+     "millas": 9.7,
+     "minutos": 25
+    },
+    "p11": {
+     "millas": 2.25,
+     "minutos": 6
+    },
+    "p5": {
+     "millas": 10.78,
+     "minutos": 25
+    },
+    "p19": {
+     "millas": 10.24,
+     "minutos": 25
+    },
+    "p4": {
+     "millas": 21.69,
+     "minutos": 32
+    },
+    "p17": {
+     "millas": 9.6,
+     "minutos": 19
+    },
+    "p6": {
+     "millas": 9.7,
+     "minutos": 25
+    },
+    "p16": {
+     "millas": 9.64,
+     "minutos": 18
+    },
+    "p22": {
+     "millas": 2.25,
+     "minutos": 6
+    }
+   },
+   "p21": {
+    "t2": {
+     "millas": 7.56,
+     "minutos": 15
+    },
+    "t1": {
+     "millas": 15.45,
+     "minutos": 22
+    },
+    "t9": {
+     "millas": 10.45,
+     "minutos": 25
+    },
+    "t3": {
+     "millas": 50.97,
+     "minutos": 53
+    },
+    "p18": {
+     "millas": 16.15,
+     "minutos": 26
+    },
+    "p13": {
+     "millas": 9.73,
+     "minutos": 19
+    },
+    "p8": {
+     "millas": 12.49,
+     "minutos": 20
+    },
+    "p15": {
+     "millas": 7.56,
+     "minutos": 15
+    },
+    "p14": {
+     "millas": 12.49,
+     "minutos": 20
+    },
+    "p10": {
+     "millas": 7.56,
+     "minutos": 15
+    },
+    "p20": {
+     "millas": 10.3,
+     "minutos": 24
+    },
+    "p12": {
+     "millas": 7.56,
+     "minutos": 15
+    },
+    "p7": {
+     "millas": 10.45,
+     "minutos": 25
+    },
+    "p11": {
+     "millas": 7.56,
+     "minutos": 15
+    },
+    "p5": {
+     "millas": 11.39,
+     "minutos": 27
+    },
+    "p19": {
+     "millas": 10.86,
+     "minutos": 26
+    },
+    "p4": {
+     "millas": 13.19,
+     "minutos": 22
+    },
+    "p17": {
+     "millas": 2.13,
+     "minutos": 5
+    },
+    "p6": {
+     "millas": 10.45,
+     "minutos": 25
+    },
+    "p16": {
+     "millas": 7.59,
+     "minutos": 19
+    },
+    "p22": {
+     "millas": 7.56,
+     "minutos": 15
+    }
+   },
+   "p8": {
+    "t2": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "t1": {
+     "millas": 18.74,
+     "minutos": 20
+    },
+    "t9": {
+     "millas": 20.96,
+     "minutos": 30
+    },
+    "t3": {
+     "millas": 40.58,
+     "minutos": 38
+    },
+    "p18": {
+     "millas": 19.44,
+     "minutos": 25
+    },
+    "p13": {
+     "millas": 13.03,
+     "minutos": 18
+    },
+    "p21": {
+     "millas": 11.12,
+     "minutos": 18
+    },
+    "p15": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "p14": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p10": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "p20": {
+     "millas": 20.81,
+     "minutos": 29
+    },
+    "p12": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "p7": {
+     "millas": 20.96,
+     "minutos": 30
+    },
+    "p11": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "p5": {
+     "millas": 21.9,
+     "minutos": 32
+    },
+    "p19": {
+     "millas": 21.37,
+     "minutos": 32
+    },
+    "p4": {
+     "millas": 11.95,
+     "minutos": 21
+    },
+    "p17": {
+     "millas": 13.08,
+     "minutos": 20
+    },
+    "p6": {
+     "millas": 20.96,
+     "minutos": 30
+    },
+    "p16": {
+     "millas": 19.74,
+     "minutos": 24
+    },
+    "p22": {
+     "millas": 10.86,
+     "minutos": 14
+    }
+   },
+   "p15": {
+    "t2": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "t1": {
+     "millas": 8.4,
+     "minutos": 11
+    },
+    "t9": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "t3": {
+     "millas": 50.56,
+     "minutos": 47
+    },
+    "p18": {
+     "millas": 9.1,
+     "minutos": 15
+    },
+    "p13": {
+     "millas": 2.17,
+     "minutos": 7
+    },
+    "p21": {
+     "millas": 7.52,
+     "minutos": 15
+    },
+    "p8": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p14": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p10": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p20": {
+     "millas": 10.51,
+     "minutos": 21
+    },
+    "p12": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p7": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p11": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p5": {
+     "millas": 11.6,
+     "minutos": 24
+    },
+    "p19": {
+     "millas": 11.07,
+     "minutos": 23
+    },
+    "p4": {
+     "millas": 21.49,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 8.6,
+     "minutos": 17
+    },
+    "p6": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p16": {
+     "millas": 9.44,
+     "minutos": 16
+    },
+    "p22": {
+     "millas": 0,
+     "minutos": 0
+    }
+   },
+   "p14": {
+    "t2": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "t1": {
+     "millas": 18.74,
+     "minutos": 20
+    },
+    "t9": {
+     "millas": 20.96,
+     "minutos": 30
+    },
+    "t3": {
+     "millas": 40.58,
+     "minutos": 38
+    },
+    "p18": {
+     "millas": 19.44,
+     "minutos": 25
+    },
+    "p13": {
+     "millas": 13.03,
+     "minutos": 18
+    },
+    "p21": {
+     "millas": 11.12,
+     "minutos": 18
+    },
+    "p8": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p15": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "p10": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "p20": {
+     "millas": 20.81,
+     "minutos": 29
+    },
+    "p12": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "p7": {
+     "millas": 20.96,
+     "minutos": 30
+    },
+    "p11": {
+     "millas": 10.86,
+     "minutos": 14
+    },
+    "p5": {
+     "millas": 21.9,
+     "minutos": 32
+    },
+    "p19": {
+     "millas": 21.37,
+     "minutos": 32
+    },
+    "p4": {
+     "millas": 11.95,
+     "minutos": 21
+    },
+    "p17": {
+     "millas": 13.08,
+     "minutos": 20
+    },
+    "p6": {
+     "millas": 20.96,
+     "minutos": 30
+    },
+    "p16": {
+     "millas": 19.74,
+     "minutos": 24
+    },
+    "p22": {
+     "millas": 10.86,
+     "minutos": 14
+    }
+   },
+   "p10": {
+    "t2": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "t1": {
+     "millas": 8.4,
+     "minutos": 11
+    },
+    "t9": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "t3": {
+     "millas": 50.56,
+     "minutos": 47
+    },
+    "p18": {
+     "millas": 9.1,
+     "minutos": 15
+    },
+    "p13": {
+     "millas": 2.17,
+     "minutos": 7
+    },
+    "p21": {
+     "millas": 7.52,
+     "minutos": 15
+    },
+    "p8": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p15": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p14": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p20": {
+     "millas": 10.51,
+     "minutos": 21
+    },
+    "p12": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p7": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p11": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p5": {
+     "millas": 11.6,
+     "minutos": 24
+    },
+    "p19": {
+     "millas": 11.07,
+     "minutos": 23
+    },
+    "p4": {
+     "millas": 21.49,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 8.6,
+     "minutos": 17
+    },
+    "p6": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p16": {
+     "millas": 9.44,
+     "minutos": 16
+    },
+    "p22": {
+     "millas": 0,
+     "minutos": 0
+    }
+   },
+   "p20": {
+    "t2": {
+     "millas": 10.4,
+     "minutos": 23
+    },
+    "t1": {
+     "millas": 9.07,
+     "minutos": 19
+    },
+    "t9": {
+     "millas": 0.99,
+     "minutos": 3
+    },
+    "t3": {
+     "millas": 60.81,
+     "minutos": 64
+    },
+    "p18": {
+     "millas": 6.4,
+     "minutos": 15
+    },
+    "p13": {
+     "millas": 9.83,
+     "minutos": 23
+    },
+    "p21": {
+     "millas": 10.3,
+     "minutos": 24
+    },
+    "p8": {
+     "millas": 22.32,
+     "minutos": 31
+    },
+    "p15": {
+     "millas": 10.4,
+     "minutos": 23
+    },
+    "p14": {
+     "millas": 22.32,
+     "minutos": 31
+    },
+    "p10": {
+     "millas": 10.4,
+     "minutos": 23
+    },
+    "p12": {
+     "millas": 10.4,
+     "minutos": 23
+    },
+    "p7": {
+     "millas": 0.99,
+     "minutos": 3
+    },
+    "p11": {
+     "millas": 10.4,
+     "minutos": 23
+    },
+    "p5": {
+     "millas": 1.09,
+     "minutos": 3
+    },
+    "p19": {
+     "millas": 1.35,
+     "minutos": 4
+    },
+    "p4": {
+     "millas": 17.74,
+     "minutos": 31
+    },
+    "p17": {
+     "millas": 8.37,
+     "minutos": 20
+    },
+    "p6": {
+     "millas": 0.99,
+     "minutos": 3
+    },
+    "p16": {
+     "millas": 3.82,
+     "minutos": 11
+    },
+    "p22": {
+     "millas": 10.4,
+     "minutos": 23
+    }
+   },
+   "p12": {
+    "t2": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "t1": {
+     "millas": 8.4,
+     "minutos": 11
+    },
+    "t9": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "t3": {
+     "millas": 50.56,
+     "minutos": 47
+    },
+    "p18": {
+     "millas": 9.1,
+     "minutos": 15
+    },
+    "p13": {
+     "millas": 2.17,
+     "minutos": 7
+    },
+    "p21": {
+     "millas": 7.52,
+     "minutos": 15
+    },
+    "p8": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p15": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p14": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p10": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p20": {
+     "millas": 10.51,
+     "minutos": 21
+    },
+    "p7": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p11": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p5": {
+     "millas": 11.6,
+     "minutos": 24
+    },
+    "p19": {
+     "millas": 11.07,
+     "minutos": 23
+    },
+    "p4": {
+     "millas": 21.49,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 8.6,
+     "minutos": 17
+    },
+    "p6": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p16": {
+     "millas": 9.44,
+     "minutos": 16
+    },
+    "p22": {
+     "millas": 0,
+     "minutos": 0
+    }
+   },
+   "p7": {
+    "t2": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "t1": {
+     "millas": 10.55,
+     "minutos": 20
+    },
+    "t9": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "t3": {
+     "millas": 63.44,
+     "minutos": 65
+    },
+    "p18": {
+     "millas": 7.56,
+     "minutos": 17
+    },
+    "p13": {
+     "millas": 10.42,
+     "minutos": 25
+    },
+    "p21": {
+     "millas": 10.89,
+     "minutos": 26
+    },
+    "p8": {
+     "millas": 24.95,
+     "minutos": 32
+    },
+    "p15": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p14": {
+     "millas": 24.95,
+     "minutos": 32
+    },
+    "p10": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p20": {
+     "millas": 0.94,
+     "minutos": 3
+    },
+    "p12": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p11": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p5": {
+     "millas": 2.03,
+     "minutos": 5
+    },
+    "p19": {
+     "millas": 2.29,
+     "minutos": 6
+    },
+    "p4": {
+     "millas": 17.26,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 9.45,
+     "minutos": 22
+    },
+    "p6": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p16": {
+     "millas": 3.38,
+     "minutos": 10
+    },
+    "p22": {
+     "millas": 14.47,
+     "minutos": 22
+    }
+   },
+   "p11": {
+    "t2": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "t1": {
+     "millas": 8.4,
+     "minutos": 11
+    },
+    "t9": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "t3": {
+     "millas": 50.56,
+     "minutos": 47
+    },
+    "p18": {
+     "millas": 9.1,
+     "minutos": 15
+    },
+    "p13": {
+     "millas": 2.17,
+     "minutos": 7
+    },
+    "p21": {
+     "millas": 7.52,
+     "minutos": 15
+    },
+    "p8": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p15": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p14": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p10": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p20": {
+     "millas": 10.51,
+     "minutos": 21
+    },
+    "p12": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p7": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p5": {
+     "millas": 11.6,
+     "minutos": 24
+    },
+    "p19": {
+     "millas": 11.07,
+     "minutos": 23
+    },
+    "p4": {
+     "millas": 21.49,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 8.6,
+     "minutos": 17
+    },
+    "p6": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p16": {
+     "millas": 9.44,
+     "minutos": 16
+    },
+    "p22": {
+     "millas": 0,
+     "minutos": 0
+    }
+   },
+   "p5": {
+    "t2": {
+     "millas": 13.81,
+     "minutos": 25
+    },
+    "t1": {
+     "millas": 8,
+     "minutos": 17
+    },
+    "t9": {
+     "millas": 2.08,
+     "minutos": 5
+    },
+    "t3": {
+     "millas": 61.91,
+     "minutos": 66
+    },
+    "p18": {
+     "millas": 5.53,
+     "minutos": 13
+    },
+    "p13": {
+     "millas": 11.06,
+     "minutos": 25
+    },
+    "p21": {
+     "millas": 11.4,
+     "minutos": 26
+    },
+    "p8": {
+     "millas": 23.42,
+     "minutos": 33
+    },
+    "p15": {
+     "millas": 13.81,
+     "minutos": 25
+    },
+    "p14": {
+     "millas": 23.42,
+     "minutos": 33
+    },
+    "p10": {
+     "millas": 13.81,
+     "minutos": 25
+    },
+    "p20": {
+     "millas": 1.09,
+     "minutos": 3
+    },
+    "p12": {
+     "millas": 13.81,
+     "minutos": 25
+    },
+    "p7": {
+     "millas": 2.08,
+     "minutos": 5
+    },
+    "p11": {
+     "millas": 13.81,
+     "minutos": 25
+    },
+    "p19": {
+     "millas": 0.63,
+     "minutos": 2
+    },
+    "p4": {
+     "millas": 18.82,
+     "minutos": 33
+    },
+    "p17": {
+     "millas": 9.46,
+     "minutos": 23
+    },
+    "p6": {
+     "millas": 2.08,
+     "minutos": 5
+    },
+    "p16": {
+     "millas": 4.9,
+     "minutos": 13
+    },
+    "p22": {
+     "millas": 13.81,
+     "minutos": 25
+    }
+   },
+   "p19": {
+    "t2": {
+     "millas": 13.27,
+     "minutos": 25
+    },
+    "t1": {
+     "millas": 8.26,
+     "minutos": 18
+    },
+    "t9": {
+     "millas": 2.34,
+     "minutos": 6
+    },
+    "t3": {
+     "millas": 61.37,
+     "minutos": 66
+    },
+    "p18": {
+     "millas": 5.77,
+     "minutos": 14
+    },
+    "p13": {
+     "millas": 10.52,
+     "minutos": 25
+    },
+    "p21": {
+     "millas": 10.86,
+     "minutos": 26
+    },
+    "p8": {
+     "millas": 22.88,
+     "minutos": 33
+    },
+    "p15": {
+     "millas": 13.27,
+     "minutos": 25
+    },
+    "p14": {
+     "millas": 22.88,
+     "minutos": 33
+    },
+    "p10": {
+     "millas": 13.27,
+     "minutos": 25
+    },
+    "p20": {
+     "millas": 1.35,
+     "minutos": 4
+    },
+    "p12": {
+     "millas": 13.27,
+     "minutos": 25
+    },
+    "p7": {
+     "millas": 2.34,
+     "minutos": 6
+    },
+    "p11": {
+     "millas": 13.27,
+     "minutos": 25
+    },
+    "p5": {
+     "millas": 0.63,
+     "minutos": 3
+    },
+    "p4": {
+     "millas": 19.08,
+     "minutos": 34
+    },
+    "p17": {
+     "millas": 8.92,
+     "minutos": 23
+    },
+    "p6": {
+     "millas": 2.34,
+     "minutos": 6
+    },
+    "p16": {
+     "millas": 5.16,
+     "minutos": 13
+    },
+    "p22": {
+     "millas": 13.27,
+     "minutos": 25
+    }
+   },
+   "p4": {
+    "t2": {
+     "millas": 21.97,
+     "minutos": 31
+    },
+    "t1": {
+     "millas": 27.39,
+     "minutos": 36
+    },
+    "t9": {
+     "millas": 17.34,
+     "minutos": 31
+    },
+    "t3": {
+     "millas": 47.28,
+     "minutos": 49
+    },
+    "p18": {
+     "millas": 28.09,
+     "minutos": 40
+    },
+    "p13": {
+     "millas": 24.2,
+     "minutos": 35
+    },
+    "p21": {
+     "millas": 13.19,
+     "minutos": 22
+    },
+    "p8": {
+     "millas": 11.17,
+     "minutos": 20
+    },
+    "p15": {
+     "millas": 21.97,
+     "minutos": 31
+    },
+    "p14": {
+     "millas": 11.17,
+     "minutos": 20
+    },
+    "p10": {
+     "millas": 21.97,
+     "minutos": 31
+    },
+    "p20": {
+     "millas": 17.73,
+     "minutos": 31
+    },
+    "p12": {
+     "millas": 21.97,
+     "minutos": 31
+    },
+    "p7": {
+     "millas": 17.34,
+     "minutos": 31
+    },
+    "p11": {
+     "millas": 21.97,
+     "minutos": 31
+    },
+    "p5": {
+     "millas": 18.81,
+     "minutos": 33
+    },
+    "p19": {
+     "millas": 19.07,
+     "minutos": 34
+    },
+    "p17": {
+     "millas": 11.93,
+     "minutos": 20
+    },
+    "p6": {
+     "millas": 17.34,
+     "minutos": 31
+    },
+    "p16": {
+     "millas": 14.3,
+     "minutos": 26
+    },
+    "p22": {
+     "millas": 21.97,
+     "minutos": 31
+    }
+   },
+   "p17": {
+    "t2": {
+     "millas": 8.64,
+     "minutos": 17
+    },
+    "t1": {
+     "millas": 15.05,
+     "minutos": 21
+    },
+    "t9": {
+     "millas": 8.51,
+     "minutos": 21
+    },
+    "t3": {
+     "millas": 52.92,
+     "minutos": 55
+    },
+    "p18": {
+     "millas": 15.75,
+     "minutos": 26
+    },
+    "p13": {
+     "millas": 11.86,
+     "minutos": 20
+    },
+    "p21": {
+     "millas": 2.13,
+     "minutos": 6
+    },
+    "p8": {
+     "millas": 14.44,
+     "minutos": 22
+    },
+    "p15": {
+     "millas": 8.64,
+     "minutos": 17
+    },
+    "p14": {
+     "millas": 14.44,
+     "minutos": 22
+    },
+    "p10": {
+     "millas": 8.64,
+     "minutos": 17
+    },
+    "p20": {
+     "millas": 8.36,
+     "minutos": 20
+    },
+    "p12": {
+     "millas": 8.64,
+     "minutos": 17
+    },
+    "p7": {
+     "millas": 8.51,
+     "minutos": 21
+    },
+    "p11": {
+     "millas": 8.64,
+     "minutos": 17
+    },
+    "p5": {
+     "millas": 9.46,
+     "minutos": 23
+    },
+    "p19": {
+     "millas": 8.92,
+     "minutos": 22
+    },
+    "p4": {
+     "millas": 12.01,
+     "minutos": 21
+    },
+    "p6": {
+     "millas": 8.51,
+     "minutos": 21
+    },
+    "p16": {
+     "millas": 5.54,
+     "minutos": 15
+    },
+    "p22": {
+     "millas": 8.64,
+     "minutos": 17
+    }
+   },
+   "p6": {
+    "t2": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "t1": {
+     "millas": 10.55,
+     "minutos": 20
+    },
+    "t9": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "t3": {
+     "millas": 63.44,
+     "minutos": 65
+    },
+    "p18": {
+     "millas": 7.56,
+     "minutos": 17
+    },
+    "p13": {
+     "millas": 10.42,
+     "minutos": 25
+    },
+    "p21": {
+     "millas": 10.89,
+     "minutos": 26
+    },
+    "p8": {
+     "millas": 24.95,
+     "minutos": 32
+    },
+    "p15": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p14": {
+     "millas": 24.95,
+     "minutos": 32
+    },
+    "p10": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p20": {
+     "millas": 0.94,
+     "minutos": 3
+    },
+    "p12": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p7": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p11": {
+     "millas": 14.47,
+     "minutos": 22
+    },
+    "p5": {
+     "millas": 2.03,
+     "minutos": 5
+    },
+    "p19": {
+     "millas": 2.29,
+     "minutos": 6
+    },
+    "p4": {
+     "millas": 17.26,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 9.45,
+     "minutos": 22
+    },
+    "p16": {
+     "millas": 3.38,
+     "minutos": 10
+    },
+    "p22": {
+     "millas": 14.47,
+     "minutos": 22
+    }
+   },
+   "p16": {
+    "t2": {
+     "millas": 9.04,
+     "minutos": 17
+    },
+    "t1": {
+     "millas": 15.14,
+     "minutos": 20
+    },
+    "t9": {
+     "millas": 2.99,
+     "minutos": 9
+    },
+    "t3": {
+     "millas": 59.45,
+     "minutos": 58
+    },
+    "p18": {
+     "millas": 10.5,
+     "minutos": 25
+    },
+    "p13": {
+     "millas": 11.95,
+     "minutos": 19
+    },
+    "p21": {
+     "millas": 7.58,
+     "minutos": 18
+    },
+    "p8": {
+     "millas": 20.96,
+     "minutos": 25
+    },
+    "p15": {
+     "millas": 9.04,
+     "minutos": 17
+    },
+    "p14": {
+     "millas": 20.96,
+     "minutos": 25
+    },
+    "p10": {
+     "millas": 9.04,
+     "minutos": 17
+    },
+    "p20": {
+     "millas": 3.89,
+     "minutos": 12
+    },
+    "p12": {
+     "millas": 9.04,
+     "minutos": 17
+    },
+    "p7": {
+     "millas": 2.99,
+     "minutos": 9
+    },
+    "p11": {
+     "millas": 9.04,
+     "minutos": 17
+    },
+    "p5": {
+     "millas": 4.97,
+     "minutos": 13
+    },
+    "p19": {
+     "millas": 5.23,
+     "minutos": 14
+    },
+    "p4": {
+     "millas": 14.09,
+     "minutos": 25
+    },
+    "p17": {
+     "millas": 5.4,
+     "minutos": 14
+    },
+    "p6": {
+     "millas": 2.99,
+     "minutos": 9
+    },
+    "p22": {
+     "millas": 9.04,
+     "minutos": 17
+    }
+   },
+   "p22": {
+    "t2": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "t1": {
+     "millas": 8.4,
+     "minutos": 11
+    },
+    "t9": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "t3": {
+     "millas": 50.56,
+     "minutos": 47
+    },
+    "p18": {
+     "millas": 9.1,
+     "minutos": 15
+    },
+    "p13": {
+     "millas": 2.17,
+     "minutos": 7
+    },
+    "p21": {
+     "millas": 7.52,
+     "minutos": 15
+    },
+    "p8": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p15": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p14": {
+     "millas": 12.07,
+     "minutos": 14
+    },
+    "p10": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p20": {
+     "millas": 10.51,
+     "minutos": 21
+    },
+    "p12": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p7": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p11": {
+     "millas": 0,
+     "minutos": 0
+    },
+    "p5": {
+     "millas": 11.6,
+     "minutos": 24
+    },
+    "p19": {
+     "millas": 11.07,
+     "minutos": 23
+    },
+    "p4": {
+     "millas": 21.49,
+     "minutos": 30
+    },
+    "p17": {
+     "millas": 8.6,
+     "minutos": 17
+    },
+    "p6": {
+     "millas": 10.66,
+     "minutos": 22
+    },
+    "p16": {
+     "millas": 9.44,
+     "minutos": 16
+    }
+   }
+  },
+  "porHora": {
+   "t2": {
+    "p21": {
+     "17": {
+      "millas": 7.52,
+      "minutos": 14
+     }
+    },
+    "p14": {
+     "26": {
+      "millas": 12.07,
+      "minutos": 15
+     }
+    },
+    "p20": {
+     "22": {
+      "millas": 10.51,
+      "minutos": 22
+     }
+    },
+    "p4": {
+     "18": {
+      "millas": 21.49,
+      "minutos": 29
+     }
+    }
+   },
+   "t1": {
+    "p18": {
+     "17": {
+      "millas": 2.43,
+      "minutos": 6
+     }
+    },
+    "p13": {
+     "21": {
+      "millas": 6.61,
+      "minutos": 13
+     }
+    }
+   },
+   "t9": {
+    "p10": {
+     "25": {
+      "millas": 13.03,
+      "minutos": 26
+     }
+    }
+   },
+   "t3": {
+    "t2": {
+     "16": {
+      "millas": 52.21,
+      "minutos": 51
+     }
+    },
+    "p12": {
+     "25": {
+      "millas": 52.21,
+      "minutos": 51
+     }
+    },
+    "p11": {
+     "29": {
+      "millas": 52.21,
+      "minutos": 51
+     }
+    }
+   },
+   "p18": {
+    "p19": {
+     "18": {
+      "millas": 5.81,
+      "minutos": 14
+     }
+    }
+   },
+   "p13": {
+    "p15": {
+     "22": {
+      "millas": 2.25,
+      "minutos": 7
+     }
+    }
+   },
+   "p21": {
+    "p17": {
+     "18": {
+      "millas": 2.13,
+      "minutos": 6
+     }
+    }
+   },
+   "p8": {
+    "t3": {
+     "23": {
+      "millas": 40.58,
+      "minutos": 39
+     }
+    }
+   },
+   "p15": {
+    "p22": {
+     "22": {
+      "millas": 0,
+      "minutos": 0
+     }
+    }
+   },
+   "p14": {
+    "t3": {
+     "26": {
+      "millas": 40.58,
+      "minutos": 39
+     }
+    }
+   },
+   "p10": {
+    "t2": {
+     "25": {
+      "millas": 0,
+      "minutos": 0
+     }
+    }
+   },
+   "p20": {
+    "t9": {
+     "24": {
+      "millas": 0.99,
+      "minutos": 3
+     }
+    }
+   },
+   "p12": {
+    "p6": {
+     "28": {
+      "millas": 10.66,
+      "minutos": 23
+     }
+    }
+   },
+   "p7": {
+    "t1": {
+     "29": {
+      "millas": 10.55,
+      "minutos": 21
+     }
+    }
+   },
+   "p11": {
+    "t2": {
+     "32": {
+      "millas": 0,
+      "minutos": 0
+     }
+    }
+   },
+   "p5": {
+    "p16": {
+     "20": {
+      "millas": 4.9,
+      "minutos": 12
+     }
+    }
+   },
+   "p19": {
+    "t1": {
+     "19": {
+      "millas": 8.26,
+      "minutos": 18
+     }
+    }
+   },
+   "p4": {
+    "t3": {
+     "19": {
+      "millas": 47.28,
+      "minutos": 49
+     }
+    }
+   },
+   "p17": {
+    "p5": {
+     "18": {
+      "millas": 9.46,
+      "minutos": 24
+     }
+    }
+   },
+   "p6": {
+    "p7": {
+     "29": {
+      "millas": 0,
+      "minutos": 0
+     }
+    }
+   },
+   "p16": {
+    "t2": {
+     "21": {
+      "millas": 9.04,
+      "minutos": 18
+     }
+    }
+   },
+   "p22": {
+    "p8": {
+     "22": {
+      "millas": 12.07,
+      "minutos": 14
+     }
+    }
+   }
+  }
+ }
+}
