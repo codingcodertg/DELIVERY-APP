@@ -61,12 +61,13 @@ describe("la zona de la recogida es la ciudad de la tienda de origen", () => {
 });
 
 describe("Ajustes lo dice", () => {
-  it("la etiqueta del peso 5 es «por punta», y la ayuda explica que la tienda de la recogida también cuenta", () => {
+  it("hay dos pesos 5 —por entrega y por recogida (D-NEXT)— y la ayuda explica que la tienda de la recogida también cuenta", () => {
     const s = leer("src/components/RouteEngineSettings.tsx");
-    expect(s).toContain("5 · Zona preferida (por punta fuera de ella: tienda o entrega)");
-    expect(s).toContain("Recoger en la tienda de la zona de otro chofer también cuenta");
-    expect(s).not.toContain("por entrega fuera de ella");
-    expect(s).toContain("Una entrega a una ciudad que no es zona de nadie va al chofer más eficiente");
+    expect(s).toContain("5 · Zona preferida (por entrega fuera de ella)");
+    expect(s).toContain("5 · Zona preferida (por recogida en la tienda de la zona de otro chofer)");
+    expect(s).toContain("Recoger en la tienda de la zona de otro chofer también cuenta, y es la punta cara");
+    // Hasta motor-7 una entrega a una ciudad sin dueño iba al más eficiente «salga de la tienda que salga»; ya no (D-NEXT).
+    expect(s).not.toContain("salga de la tienda que salga");
   });
 });
 
@@ -74,7 +75,7 @@ describe("las pantallas que reparten heredan la regla (eran tres; Auto-asignar s
   it("«Planificar el día»: lo que sale de la tienda de M hacia la zona de J va con M (sin la ciudad de la tienda, con J)", async () => {
     const con = await planificaElDia(datos([ordenDe("o1")]), "2026-10-05", "America/Chicago", deps());
     const sin = await planificaElDia(datos([ordenDe("o1")], SIN_CIUDAD), "2026-10-05", "America/Chicago", deps());
-    expect(con.plan.algorithm_version).toBe("motor-7");
+    expect(con.plan.algorithm_version).toBe("motor-8");
     expect(con.paradas.filter((p) => p.kind === "D").map((p) => p.driver_id)).toEqual(["um"]);
     expect(sin.paradas.filter((p) => p.kind === "D").map((p) => p.driver_id)).toEqual(["uj"]);
   });

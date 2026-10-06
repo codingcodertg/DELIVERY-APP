@@ -28,6 +28,19 @@ export const PESOS_POR_DEFECTO: Pesos = { builder: 2, manejo: 1, millas: 0.5, ta
 export const PESO_DE_ZONA_POR_DEFECTO = 60;
 
 /**
+ * Lo que cuesta IR A RECOGER a la tienda de la zona de otro chofer (D-NEXT, `motor-8`), en minutos equivalentes, por
+ * recogida. Es la punta cara: una orden que sale de la tienda de la zona de uno y va a la de otro cuesta una punta con
+ * cualquiera de los dos (D-427), y con las dos puntas al mismo precio decidían el builder y el balance —y mandaban a
+ * Ernesto y a Julio hasta Brownsville mientras Maximo subía a Pharr por una sola orden—. El dueño, 2026-10-06: «it giving
+ * ernesto an djulio trips to brownville and then it gives pharr to max and he is from brownsville». El viaje a la tienda
+ * de otro es lo que molesta; entregar en la ciudad de otro desde la tienda propia es solo donde vive el cliente. Y se
+ * cuenta SIEMPRE que la tienda tenga dueño —también cuando la entrega va a una ciudad que no es zona de nadie—. Vive en
+ * `route_weights.zonaRecogida`; ausente = este; 0 = la recogida cuesta lo mismo que la entrega (`zona`). Por qué este
+ * número, medido sobre los días reales, en DECISIONS.md.
+ */
+export const PESO_DE_ZONA_RECOGIDA_POR_DEFECTO = 120;
+
+/**
  * El umbral de la zona, en millas (D-423, T-0413). Una entrega que va con un chofer FUERA de su zona vuelve al chofer
  * de su zona si con él el plan hace menos de estas millas de más —aunque el builder o el balance digan otra cosa— y sin
  * que nadie llegue más tarde ni se rompa nada. Si con el de su zona son estas millas o más, la zona es solo el peso de
@@ -50,28 +63,43 @@ export function zonasReclamadas(choferes: readonly Pick<ChoferEntrada, "zonas">[
  * Cuántas puntas de esta orden hace este chofer en la zona de OTRO (D-421; la recogida, desde D-427). Una orden tiene
  * dos puntas: la ciudad de la tienda donde se recoge (`zonaRecogida`) y la de la entrega (`zona`). Cada una cuenta si
  * tiene ciudad, esa ciudad la prefiere algún chofer, y no es de este. Cuentan por separado: recoger en la zona de otro y
- * entregar en esa misma zona son dos puntas (0, 1 o 2). Con la recogida ya hecha, solo queda la entrega. Y la recogida
- * solo cuenta si la ciudad de la ENTREGA la prefiere algún chofer: una entrega a una ciudad sin dueño va al más eficiente,
- * como pidió el dueño («esas ciudades … se le da a los conductores que sea mejor opcion y mas eficiente»), aunque salga de
- * la tienda de la zona de alguien. Un chofer sin zonas nunca está «fuera».
+ * entregar en esa misma zona son dos puntas (0, 1 o 2). Con la recogida ya hecha, solo queda la entrega. Un chofer sin
+ * zonas nunca está «fuera».
  *
  * Por qué la recogida (el dueño, 2026-09-27: «no tiene sentido mandar a julio hasta brownsville si ya te dije que ahi
  * esta maximo»): contando solo la entrega, ir a recoger a la tienda de la zona de otro no costaba nada, y el chofer de
  * esa zona pagaba por la entrega aunque la carga saliera de SU tienda. Contando las dos, una orden que sale de la zona
- * de uno y va a la de otro cuesta una punta con cualquiera de los dos, y decide la eficiencia. Por qué por separado y no
- * una vez por ciudad, medido en DECISIONS.md: una vez por ciudad hacía que a un chofer de fuera le saliera más barata
- * una entrega DENTRO de esa zona que una que sale de ella.
+ * de uno y va a la de otro cuesta una punta con cualquiera de los dos. Por qué por separado y no una vez por ciudad,
+ * medido en DECISIONS.md: una vez por ciudad hacía que a un chofer de fuera le saliera más barata una entrega DENTRO de
+ * esa zona que una que sale de ella.
+ *
+ * Hasta `motor-7` la recogida solo contaba si la ciudad de la ENTREGA tenía dueño (D-427: «una entrega a una ciudad sin
+ * dueño va al más eficiente, aunque salga de la tienda de la zona de alguien»). Desde `motor-8` (D-NEXT) cuenta siempre:
+ * con esa excepción, el 2026-10-06 Maximo subió de Brownsville a Pharr por una orden de 3 pallets para Edcouch (ciudad
+ * sin dueño) sin pagar ninguna punta, mientras Ernesto bajaba a Brownsville a recoger. «El más eficiente» para una ciudad
+ * sin dueño sigue decidiendo ENTRE los que no pagan la recogida; y entre los que la pagan, el coste de siempre.
  */
 export function puntasFueraDeZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zona" | "zonaRecogida" | "recogidaHecha">, reclamadas: ReadonlySet<string>): number {
+  return entregaFueraDeZona(c, o, reclamadas) + recogidaFueraDeZona(c, o, reclamadas);
+}
+
+/** ¿Esta ciudad la prefiere alguien, y no es este chofer? */
+const puntaFuera = (c: Pick<ChoferEntrada, "zonas">, ciudad: string | null | undefined, reclamadas: ReadonlySet<string>): 0 | 1 => {
+  const z = claveDeZona(ciudad);
+  return z && reclamadas.has(z) && !(c.zonas ?? []).some((x) => claveDeZona(x) === z) ? 1 : 0;
+};
+
+/** La punta de la ENTREGA: 1 si la ciudad de entrega es la zona de otro chofer. */
+export function entregaFueraDeZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zona">, reclamadas: ReadonlySet<string>): 0 | 1 {
   if (!c.zonas?.length) return 0;
-  let fuera = 0;
-  // La recogida solo cuenta si la ENTREGA tiene dueño: una entrega a una ciudad sin dueño va por eficiencia pura (D-421).
-  const recogida = o.recogidaHecha || !reclamadas.has(claveDeZona(o.zona)) ? null : o.zonaRecogida;
-  for (const punta of [o.zona, recogida]) {
-    const z = claveDeZona(punta);
-    if (z && reclamadas.has(z) && !c.zonas.some((x) => claveDeZona(x) === z)) fuera++;
-  }
-  return fuera;
+  return puntaFuera(c, o.zona, reclamadas);
+}
+
+/** La punta de la RECOGIDA (D-NEXT, `motor-8`): 1 si la tienda donde se carga está en la zona de otro chofer y la recogida
+ *  no está hecha. Es la que cuesta `zonaRecogida` en vez de `zona`. */
+export function recogidaFueraDeZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zonaRecogida" | "recogidaHecha">, reclamadas: ReadonlySet<string>): 0 | 1 {
+  if (!c.zonas?.length || o.recogidaHecha) return 0;
+  return puntaFuera(c, o.zonaRecogida, reclamadas);
 }
 
 /** ¿Hace este chofer alguna punta de esta orden fuera de su zona? (`puntasFueraDeZona` > 0.) */
@@ -107,7 +135,19 @@ export function costeTotal(d: Omit<Desglose, "total">, pesos: Pesos): number {
     + enMilesimas(pesos.millas) * aCentesimas(d.millas)
     + 100 * enMilesimas(pesos.tarde) * d.tardeMin
     + 100 * enMilesimas(pesos.balance) * d.balanceMin
-    + 100 * enMilesimas(pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) * (d.fueraDeZona ?? 0);
+    // Las puntas fuera de zona: la entrega al peso `zona`; la recogida (D-NEXT), al suyo, que por defecto es más caro.
+    // `recogidasFueraDeZona` es parte de `fueraDeZona`, nunca más: se resta para no cobrarla dos veces.
+    + 100 * enMilesimas(pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) * ((d.fueraDeZona ?? 0) - (d.recogidasFueraDeZona ?? 0))
+    + 100 * enMilesimas(pesoDeRecogida(pesos)) * (d.recogidasFueraDeZona ?? 0);
+}
+
+/** El peso de la recogida fuera de zona vigente: el guardado, o el de por defecto; con 0, el mismo que la entrega (`zona`):
+ *  «0 lo apaga» quiere decir que la recogida deja de ser la punta cara, no que deje de contar (eso lo hace `zona` en 0). */
+export function pesoDeRecogida(pesos: Pick<Pesos, "zona" | "zonaRecogida">): number {
+  // Con `zona` en 0 las zonas están apagadas: la recogida tampoco cuesta nada.
+  const zona = pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO;
+  if (!(zona > 0)) return 0;
+  return (pesos.zonaRecogida ?? PESO_DE_ZONA_RECOGIDA_POR_DEFECTO) || zona;
 }
 
 export function restaDesglose(a: Desglose, b: Desglose): Desglose {
@@ -119,6 +159,7 @@ export function restaDesglose(a: Desglose, b: Desglose): Desglose {
     balanceMin: a.balanceMin - b.balanceMin,
     // Solo si alguno de los dos lo trae: sin zonas, la diferencia es la de antes, sin la clave.
     ...(a.fueraDeZona !== undefined || b.fueraDeZona !== undefined ? { fueraDeZona: (a.fueraDeZona ?? 0) - (b.fueraDeZona ?? 0) } : {}),
+    ...(a.recogidasFueraDeZona !== undefined || b.recogidasFueraDeZona !== undefined ? { recogidasFueraDeZona: (a.recogidasFueraDeZona ?? 0) - (b.recogidasFueraDeZona ?? 0) } : {}),
     total: a.total - b.total,
   };
 }
@@ -159,7 +200,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
 
   let reloj = chofer.entrada;
   let sitio = chofer.base;
-  let manejo = 0, centiMi = 0, tarde = 0, builder = 0, fueraDeZona = 0;
+  let manejo = 0, centiMi = 0, tarde = 0, builder = 0, fueraDeZona = 0, recogidasFueraDeZona = 0;
   const conZonas = !!chofer.zonas?.length;
   let visita = 0;
   let etiquetaSiguiente = 1;
@@ -216,7 +257,12 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
       servicio = Math.max(0, Math.round(o.servicioEntregaMin));
       tarde += tardeAqui;
       if (o.builder) builder += inicio - chofer.entrada;
-      if (conZonas && ctx.zonasReclamadas) fueraDeZona += puntasFueraDeZona(chofer, o, ctx.zonasReclamadas);
+      // Las dos puntas se apuntan en la entrega (una recogida sin su entrega ya es una violación): la de la recogida, aparte.
+      if (conZonas && ctx.zonasReclamadas) {
+        const recogida = recogidaFueraDeZona(chofer, o, ctx.zonasReclamadas);
+        fueraDeZona += entregaFueraDeZona(chofer, o, ctx.zonasReclamadas) + recogida;
+        recogidasFueraDeZona += recogida;
+      }
       carga -= aCentesimas(o.pallets);
       entregadas.add(o.id);
       // Una orden recogida antes de hoy no tuvo su P aquí: se numera al entregarla.
@@ -251,7 +297,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
     chofer: chofer.id, paradas: evaluadas, inicio: chofer.entrada, fin,
     duracionMin: evaluadas.length > 0 ? fin - chofer.entrada : 0,
     manejoMin: manejo, millas: deCentesimas(centiMi), tardeMin: tarde, builderMin: builder,
-    ...(conZonas ? { fueraDeZona } : {}),
+    ...(conZonas ? { fueraDeZona, recogidasFueraDeZona } : {}),
     violaciones,
   };
 }
@@ -292,14 +338,14 @@ const entregasDe = (r: RutaEvaluada): number => r.paradas.filter((p) => p.tipo =
 export function costeDeRutas(rutas: readonly RutaEvaluada[], pesos: Pesos, balancePor: BalancePor = "tiempo"): Desglose {
   let builder = 0, manejoMin = 0, centiMi = 0, tardeMin = 0, max = 0, min = Infinity;
   // Las entregas fuera de zona, solo si alguna ruta las cuenta (algún chofer con zonas): sin eso, el desglose de antes.
-  let fueraDeZona: number | undefined;
+  let fueraDeZona: number | undefined, recogidasFueraDeZona: number | undefined;
   for (const r of rutas) {
-    if (r.fueraDeZona !== undefined) fueraDeZona = (fueraDeZona ?? 0) + r.fueraDeZona;
+    if (r.fueraDeZona !== undefined) { fueraDeZona = (fueraDeZona ?? 0) + r.fueraDeZona; recogidasFueraDeZona = (recogidasFueraDeZona ?? 0) + (r.recogidasFueraDeZona ?? 0); }
     builder += r.builderMin; manejoMin += r.manejoMin; centiMi += aCentesimas(r.millas); tardeMin += r.tardeMin;
     const carga = balancePor === "ordenes" ? entregasDe(r) * MINUTOS_POR_ORDEN_EN_BALANCE : r.duracionMin;
     max = Math.max(max, carga); min = Math.min(min, carga);
   }
-  const d = { builder, manejoMin, millas: deCentesimas(centiMi), tardeMin, balanceMin: rutas.length > 1 ? max - min : 0, ...(fueraDeZona !== undefined ? { fueraDeZona } : {}) };
+  const d = { builder, manejoMin, millas: deCentesimas(centiMi), tardeMin, balanceMin: rutas.length > 1 ? max - min : 0, ...(fueraDeZona !== undefined ? { fueraDeZona, recogidasFueraDeZona } : {}) };
   return { ...d, total: costeTotal(d, pesos) };
 }
 

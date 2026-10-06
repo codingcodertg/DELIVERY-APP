@@ -105,7 +105,7 @@ describe("cuántas puntas de una orden hace un chofer en la zona de otro", () =>
     expect(fueraDeSuZona(J, { zona: "Centro", zonaRecogida: "Norte" }, recl)).toBe(false);
   });
 
-  it("evaluar un plan suma las puntas, y cada una cuesta el peso `zona`", () => {
+  it("evaluar un plan suma las puntas: la entrega cuesta el peso `zona` y, desde motor-8 (D-NEXT), la recogida el suyo, `zonaRecogida`", () => {
     const e = entradaDe([orden("o", { origen: punto(0), destino: punto(10), zona: "Sur", zonaRecogida: "Sur" })],
       [chofer("E", { zonas: ["Este"] }), chofer("S", { zonas: ["Sur"] })]);
     const conE = evaluaPlan({ ...e, secuencias: { E: [{ orden: "o", tipo: "P" }, { orden: "o", tipo: "D" }] } });
@@ -113,7 +113,8 @@ describe("cuántas puntas de una orden hace un chofer en la zona de otro", () =>
     expect(conE.coste.fueraDeZona).toBe(2);
     expect(conE.rutas.find((r) => r.chofer === "E")!.fueraDeZona).toBe(2);
     expect(conS.coste.fueraDeZona).toBe(0);
-    expect(conE.coste.total - conS.coste.total).toBe(2 * 60 * 100_000);
+    expect(conE.coste.recogidasFueraDeZona).toBe(1);
+    expect(conE.coste.total - conS.coste.total).toBe((60 + 120) * 100_000);
   });
 });
 
@@ -180,18 +181,20 @@ describe("las reglas del dueño, una por una", () => {
     expect(choferDe(plan, "o")).toBe("M");
   });
 
-  it("una entrega a una ciudad sin dueño va por eficiencia aunque salga de la tienda de la zona de M: la recogida no cuenta", () => {
-    // El dueño: «esas ciudades para el algortimos se le da a los conductores que sea mejor opcion y mas eficiente». La
-    // tienda de M (Sur) está en x=40 y el pueblo en x=5, al lado de la base de J: con J, J va a por ella y vuelve; con M,
-    // M la lleva desde su tienda. Sea cual sea el más barato, es el mismo que sin zonas, y nadie paga ninguna punta.
+  it("una entrega a una ciudad sin dueño que sale de la tienda de la zona de M: desde motor-8 (D-NEXT) la recogida SÍ cuenta", () => {
+    // Hasta motor-7 aquí no contaba ninguna punta («esas ciudades … se le da a los conductores que sea mejor opcion y mas
+    // eficiente»). El 2026-10-06 eso subió a Maximo de Brownsville a Pharr por una orden para Edcouch sin pagar nada,
+    // mientras Ernesto bajaba a Brownsville. Ahora a J le cuesta la recogida en la tienda de M; a M, nada. «El más
+    // eficiente» decide entre los que no la pagan (lo prueba `zona-de-la-base.test.ts`).
     const e = entradaDe([orden("o", { origen: punto(40), destino: punto(5), zona: "Pueblo", zonaRecogida: "Sur" })], [J, M]);
     const plan = planifica(e, con());
-    expect(choferDe(plan, "o")).toBe(choferDe(planifica(e, con({ zona: 0 })), "o"));
+    expect(choferDe(plan, "o")).toBe("M");
     expect(plan.coste.fueraDeZona).toBe(0);
-    expect(plan.explicaciones[0].alternativas.every((a) => (a.diferencia?.fueraDeZona ?? 0) === 0)).toBe(true);
+    expect(plan.explicaciones[0].alternativas.find((a) => a.chofer === "J")!.diferencia!.fueraDeZona).toBe(1);
     const recl = zonasReclamadas([J, M]);
-    expect(puntasFueraDeZona(J, e.ordenes[0], recl)).toBe(0);
-    // Y si la ciudad fuera de J, la recogida en la tienda de M sí le cuenta a J (y la entrega, a M).
+    expect(puntasFueraDeZona(J, e.ordenes[0], recl)).toBe(1);
+    expect(puntasFueraDeZona(M, e.ordenes[0], recl)).toBe(0);
+    // Y si la ciudad fuera de J, la recogida en la tienda de M le cuenta a J (y la entrega, a M): una y una.
     expect(puntasFueraDeZona(J, { ...e.ordenes[0], zona: "Centro" }, recl)).toBe(1);
   });
 
@@ -234,8 +237,10 @@ describe("el umbral de D-423 con dos puntas: vuelve con quien hace MENOS puntas 
     // Vuelve con N (una punta menos que con E), no con S: S no es de ninguna zona (como en D-423).
     const e = dia();
     const sinZonasS = { ...e, choferes: [...e.choferes.map((c) => (c.id === "S" ? { ...c, zonas: undefined } : c)), chofer("W", { zonas: ["Sur"], salida: 481 })] };
-    expect(choferDe(planifica(sinZonasS, con({ zonaMillas: 0 })), "builder")).toBe("E");
-    expect(choferDe(planifica(sinZonasS, con()), "builder")).toBe("N");
+    // Con la recogida al precio de la entrega (`zonaRecogida: 0`), como se escribió en D-427: con el de por defecto (D-NEXT)
+    // E pagaría 60 + 120 y el builder ya no le compensa.
+    expect(choferDe(planifica(sinZonasS, con({ zonaMillas: 0, zonaRecogida: 0 })), "builder")).toBe("E");
+    expect(choferDe(planifica(sinZonasS, con({ zonaRecogida: 0 })), "builder")).toBe("N");
   });
 });
 
@@ -265,12 +270,14 @@ function diaInventado(sem: number, conZonaDeEntrega = true): Entrada {
 describe("preferencia, no regla: la zona de la recogida nunca deja una orden fuera", () => {
   it("el día inventado 55: contar la recogida dejaba una orden fuera, y el motor se queda con el plan que cuenta solo la entrega", () => {
     // Medido al escribirlo: sin esta vuelta, 28 de 600 días inventados dejaban más fuera (el 55 es el primero). Con ella, ninguno.
+    // Con la recogida al precio de la entrega (`zonaRecogida: 0`), como se escribió en D-427.
+    const P = { ...PARAMETROS_POR_DEFECTO, pesos: { ...PARAMETROS_POR_DEFECTO.pesos, zonaRecogida: 0 } };
     const e = diaInventado(55);
-    expect(planifica(soloEntrega(e)).sinAsignar).toEqual([]);
-    expect(planifica(e).sinAsignar).toEqual([]);
+    expect(planifica(soloEntrega(e), P).sinAsignar).toEqual([]);
+    expect(planifica(e, P).sinAsignar).toEqual([]);
     // Y el que devuelve es ESE plan, no el de sin zonas.
-    expect(planifica(e)).toEqual(planifica(soloEntrega(e)));
-    expect(planifica(e)).not.toEqual(planifica(e, { ...PARAMETROS_POR_DEFECTO, pesos: { ...PARAMETROS_POR_DEFECTO.pesos, zona: 0 } }));
+    expect(planifica(e, P)).toEqual(planifica(soloEntrega(e), P));
+    expect(planifica(e, P)).not.toEqual(planifica(e, { ...P, pesos: { ...P.pesos, zona: 0 } }));
   });
 
   it("el día inventado 67: contar la recogida deja 8 fuera y solo la entrega 7; el motor devuelve el de 7 aunque algo quede fuera", () => {
@@ -280,13 +287,18 @@ describe("preferencia, no regla: la zona de la recogida nunca deja una orden fue
     expect(planifica(e)).toEqual(solo);
   });
 
-  it("el día inventado 48, con zona solo en las tiendas: ninguna entrega tiene dueño, y el plan es el de sin zonas", () => {
-    // La recogida solo cuenta si la entrega tiene dueño: aquí ninguna lo tiene, así que todo va por eficiencia.
+  it("el día inventado 48, con zona solo en las tiendas: desde motor-8 (D-NEXT) las recogidas en la tienda de otro cuentan, y son menos que sin zonas", () => {
+    // Hasta motor-7 la recogida solo contaba si la entrega tenía dueño, y este día salía igual que sin zonas.
     const e = diaInventado(48, false);
     expect(e.ordenes.every((o) => !o.zona)).toBe(true);
     const sinZonas = { ...e, choferes: e.choferes.map(({ zonas: _z, ...c }) => { void _z; return c; }) };
-    expect(planifica(e).rutas.map((r) => r.paradas.map((p) => p.tipo + p.orden))).toEqual(planifica(sinZonas).rutas.map((r) => r.paradas.map((p) => p.tipo + p.orden)));
-    expect(planifica(e).coste.fueraDeZona).toBe(0);
+    const plan = planifica(e), otro = planifica(sinZonas);
+    // Solo pagan las recogidas: ninguna entrega tiene dueño.
+    expect(plan.coste.fueraDeZona).toBe(plan.coste.recogidasFueraDeZona);
+    // El plan de sin zonas, medido con las zonas, recoge más veces en la tienda de otro.
+    const medido = evaluaPlan({ secuencias: Object.fromEntries(otro.rutas.map((r) => [r.chofer, r.paradas.map((p) => ({ orden: p.orden, tipo: p.tipo }))])), ordenes: e.ordenes, choferes: e.choferes, matriz: e.matriz });
+    expect(plan.coste.recogidasFueraDeZona!).toBeLessThan(medido.coste.recogidasFueraDeZona!);
+    expect(plan.sinAsignar.length).toBeLessThanOrEqual(otro.sinAsignar.length);
   });
 
   it("un empate de puntas no se mueve por el umbral: el día inventado 154, la o7 se queda donde la deja el coste", () => {

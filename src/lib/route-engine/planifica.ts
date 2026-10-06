@@ -22,7 +22,11 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-7` (D-464): entregar antes lo que está de paso — con `parametros.dePaso`, ya repartido y mejorado el plan, cada
+/** `motor-8` (D-NEXT): la recogida en la tienda de la zona de otro chofer es la punta CARA (`pesos.zonaRecogida`, por defecto
+ *  120 contra los 60 de la entrega) y cuenta SIEMPRE que esa tienda tenga dueño, también cuando la entrega va a una ciudad
+ *  que no es zona de nadie (hasta `motor-7`, entonces no contaba). El dueño, 2026-10-06: «it giving ernesto an djulio trips
+ *  to brownville and then it gives pharr to max and he is from brownsville». Sin zonas, lo mismo que `motor-7`, byte a byte.
+ *  `motor-7` (D-464): entregar antes lo que está de paso — con `parametros.dePaso`, ya repartido y mejorado el plan, cada
  *  ruta se reordena al orden que menos carga pasea de los que miden casi lo mismo (`entregaLoQueEstaDePaso`). Sin el
  *  parámetro, lo mismo que `motor-6`, byte a byte (la misma huella).
  *  `motor-6` (D-427): la zona de la RECOGIDA también cuenta — recoger en la tienda de la zona de otro chofer es una
@@ -36,7 +40,7 @@ import type {
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-7";
+export const VERSION_DEL_MOTOR = "motor-8";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -139,12 +143,12 @@ export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_
   return sinZonas.sinAsignar.length < mejor.sinAsignar.length ? sinZonas : mejor;
 }
 
-/** ¿Deciden algo las zonas en este día? Hace falta un peso, algún chofer con zonas y alguna entrega de una de ellas. (La
- *  recogida no hace falta mirarla: solo cuenta cuando la entrega tiene dueño, D-427.) */
+/** ¿Deciden algo las zonas en este día? Hace falta un peso, algún chofer con zonas y alguna punta —entrega o, desde
+ *  `motor-8`, recogida por hacer— en una de ellas. */
 function zonasQueDeciden(entrada: Entrada, parametros: Parametros): boolean {
   if ((parametros.pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) <= 0) return false;
   const reclamadas = zonasReclamadas(entrada.choferes);
-  return reclamadas.size > 0 && entrada.ordenes.some((o) => reclamadas.has(claveDeZona(o.zona)));
+  return reclamadas.size > 0 && entrada.ordenes.some((o) => reclamadas.has(claveDeZona(o.zona)) || (!o.recogidaHecha && reclamadas.has(claveDeZona(o.zonaRecogida))));
 }
 
 function planificaConOpciones(entrada: Entrada, parametros: Parametros): Plan {
