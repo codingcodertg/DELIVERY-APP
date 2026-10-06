@@ -104,7 +104,7 @@ export function ComparaConLaHoja({ date, nombreDeOrden }: { date: string; nombre
   };
 
   const signo = (n: number) => `${n > 0 ? "+" : ""}${n}`;
-  const terminos: [Exclude<keyof Desglose, "fueraDeZona">, string][] = [["builder", t("Builder minutes", "Minutos-builder")], ["manejoMin", t("Driving (min)", "Manejo (min)")], ["millas", t("Miles", "Millas")], ["tardeMin", t("Late (min)", "Tarde (min)")], ["balanceMin", t("Balance (min)", "Balance (min)")]];
+  const terminos: [Exclude<keyof Desglose, "fueraDeZona" | "recogidasFueraDeZona">, string][] = [["builder", t("Builder minutes", "Minutos-builder")], ["manejoMin", t("Driving (min)", "Manejo (min)")], ["millas", t("Miles", "Millas")], ["tardeMin", t("Late (min)", "Tarde (min)")], ["balanceMin", t("Balance (min)", "Balance (min)")]];
   const nombreDeChofer = (id: string | null) => r?.choferes.find((c) => c.id === id)?.nombre ?? "—";
 
   return (

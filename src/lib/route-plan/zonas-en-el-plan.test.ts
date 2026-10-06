@@ -258,7 +258,7 @@ describe("días reales (18–28 sep, anonimizados), con las zonas de cada chofer
 
   it("el plan guardado lleva la versión nueva y cuenta las entregas fuera de zona en su coste", () => {
     const b = DESPUES["2026-09-27"];
-    expect(b.plan.algorithm_version).toBe("motor-7");
+    expect(b.plan.algorithm_version).toBe("motor-8");
     expect(typeof b.plan.result.coste.fueraDeZona).toBe("number");
     expect("fueraDeZona" in ANTES["2026-09-27"].plan.result.coste).toBe(false);
   });

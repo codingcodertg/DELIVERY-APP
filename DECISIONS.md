@@ -31706,6 +31706,8 @@ lista sembrada.
 
 ## D-427 · La zona también mira dónde se RECOGE: ir a la tienda de la zona de otro chofer cuenta como entrar en su zona (`motor-6`)
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06, `motor-8`): la recogida en la tienda de la zona de otro chofer ya no cuesta lo mismo que la entrega: tiene su propio peso, `route_weights.zonaRecogida`, 120 por defecto contra los 60 de la entrega. Y cuenta SIEMPRE que la tienda tenga dueño, también cuando la entrega va a una ciudad que no es zona de nadie: la excepción de aquí («una entrega a una ciudad sin dueño va al más eficiente, aunque salga de la tienda de la zona de alguien») subió a Maximo de Brownsville a Pharr por una orden para Edcouch sin pagar nada. El dueño: «it giving ernesto an djulio trips to brownville and then it gives pharr to max and he is from brownsville».
+
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (la ciudad de la tienda
 sale de la dirección de la tienda en Ajustes, que ya existía). **Reemplaza en parte** a D-421 (qué es «fuera de zona») y a
 D-423 (a quién devuelve el umbral, y el caso #546); las dos llevan su nota.
@@ -37440,3 +37442,120 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 
 - Contra producción con sesión de admin, nada (como en D-476).
 - El Panel no se tocó: el selector sigue escrito en las dos pantallas.
+
+## D-NEXT · La recogida en la tienda de la zona de otro chofer es la punta cara: cada chofer carga en su tienda salvo que no quepa (`motor-8`)
+
+**Fecha:** 2026-10-06 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (el peso nuevo vive en el
+mismo `route_weights` jsonb que los demás). **Reemplaza en parte** a D-427 (lleva su nota). D-461 y D-464 no cambian.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-06, literal (como lo pasó el orquestador):
+
+> it giving ernesto an djulio trips to brownville and then it gives pharr to max and he is from brownsville
+
+### Lo que se midió primero (producción en solo lectura, 2026-10-06 13:20 hora de Texas)
+
+- **Ajustes está bien.** `driver_settings`: Ernesto base RDZ McAllen, 12 pallets, zonas McAllen/Mission/Edinburg/Weslaco;
+  Julio base RDZ Pharr, 12, zonas Pharr/Edinburg/Weslaco; Maximo base RDZ Brownsville, 10, zona Brownsville; Steven no rutea.
+  `route_weights` = `{builder 2, manejo 1, millas 0.5, tarde 0.75, balance 0.1, zona 60}`. La entrada guardada del plan
+  lleva la base de Maximo bien (`tienda:rdz brownsville`): la base no era el problema.
+- **Lo que vio el dueño es el borrador de «Armar rutas»** del 2026-10-06 (`route_plans` v1, `motor-7`, creado a las 07:41,
+  sin publicar), no las asignaciones que hay hoy en `deliveries`: esas las puso una persona a mano entre las 07:46 y las 07:50
+  (`order_events`: «Assigned to Maximo Garza»…), después del borrador. El borrador, re-ejecutado en local con el motor de
+  `origin/main` y la matriz y el tráfico guardados con el plan, sale igual (mismas rutas, 2 minutos de manejo de diferencia):
+  **Ernesto** recoge 6 en McAllen y **3 en Brownsville**; **Julio** 6 en Pharr, 1 en Edinburg y **1 en Brownsville** (10
+  pallets); **Maximo** **una sola orden, recogida en Pharr** (121 mi para eso). 435 mi, 0 fuera, 0 tarde.
+
+### Por qué lo hacía (orden a orden, con el «¿por qué aquí?» del propio motor)
+
+1. **#FU118 a Maximo** (builder, 3 pallets, de la tienda de Pharr a Edcouch, ventana dura 08:30–12:00). Edcouch no es zona
+   de nadie, y D-427 decía que entonces la recogida tampoco cuenta: Maximo no pagaba **ninguna** punta por subir a Pharr.
+   Julio no podía (su mañana ya lleva cuatro builders con ventana dura: `ventana_estrecha`). Con Ernesto eran 77,5 mi menos
+   pero 137 minutos-builder más (×2) y peor balance: +181,6 de coste. Así que Maximo.
+2. **#FU113, #FU114, #FU116 a Ernesto** (de la tienda de Brownsville a Edinburg y Pharr). Con D-427 cuestan **una punta con
+   cualquiera de los tres** (Ernesto o Julio pagan la recogida en la tienda de Maximo; Maximo paga la entrega en la zona de
+   ellos): empate de zona, y decide la eficiencia. Con Maximo, #FU113 costaba +33,5 mi y +48 min de manejo más que con
+   Ernesto, que baja una vez a mediodía y carga las tres juntas.
+3. **#FU117 a Julio** (10 pallets, de Brownsville a Pharr): con Maximo +20,8 mi y +22 min, casi empate (+5,6), y gana Julio.
+4. **La capacidad empuja**: la tienda de Brownsville tenía 19 pallets ese día (3+1+5+10) y el camión de Maximo es de 10: que
+   lo cargue todo él son tres vueltas. No es la causa —la causa es que la recogida en la tienda de otro costaba lo mismo que
+   la entrega, y nada si la entrega iba a una ciudad sin dueño—, pero es lo que hace caro el reparto que pide el dueño.
+5. **Lo que NO era**: el balance (con `balance` 0 sale el mismo reparto), la base de Maximo (bien en la entrada), las
+   ventanas fuera de #FU118, y «lo que está de paso» de D-464 (sin `dePaso`, el mismo reparto: solo reordena dentro de una ruta).
+6. **Ningún cambio de dato lo arregla**, medido sobre el borrador con el motor de `origin/main`: `zona` 120, `balance` 0,5,
+   `zonaMillas` 30 o `builder` 0,5 dejan a Julio o a Ernesto en Brownsville; `zona` 240 libera a Ernesto pero Julio sigue
+   bajando a Brownsville (#FU117) y Maximo sigue subiendo a Pharr (#FU118).
+
+### Qué cambia (`motor-8`)
+
+- **La recogida tiene su propio peso**, `route_weights.zonaRecogida`, **120 por defecto** (minutos equivalentes, como `zona`),
+  contra los 60 de la entrega. Ir a cargar a la tienda de otro es el viaje que molesta; entregar en la ciudad de otro desde la
+  tienda propia es solo donde vive el cliente. El desglose separa las puntas: `fueraDeZona` sigue siendo el total (entregas +
+  recogidas) y `recogidasFueraDeZona` dice cuántas de ellas son recogidas; el coste cobra estas a `zonaRecogida` y el resto a
+  `zona`. Un desglose guardado antes, sin la clave nueva, cuesta como entonces.
+- **La recogida cuenta siempre** que la tienda tenga dueño, también si la entrega va a una ciudad que no es de nadie. «El más
+  eficiente» para esas ciudades decide ahora entre los choferes que no pagan la recogida.
+- **Sigue siendo preferencia, no regla**: si el de esa tienda no puede (turno, ventana, capacidad), la lleva otro y paga el
+  peso; y las vueltas de seguridad de D-421/D-427 (sin zonas, solo la entrega) siguen: nunca queda una orden fuera por esto.
+  `zona` en 0 apaga las dos puntas; `zonaRecogida` en 0 hace que la recogida cueste lo mismo que la entrega (lo de `motor-7`,
+  salvo la ciudad sin dueño).
+- **En Ajustes → Motor de rutas**, una casilla nueva, «5 · Zona preferida (por recogida en la tienda de la zona de otro
+  chofer)», junto a la de la entrega (que pasa a llamarse «por entrega fuera de ella»), y la ayuda lo explica.
+- Sin zonas, `motor-8` planifica lo mismo que `motor-7`, byte a byte (lo fijan las huellas de siempre).
+
+### Por qué 120
+
+Barrido sobre el banco de días reales (abajo): con 60 (lo de antes, con la regla nueva) y con 90–100, Julio sigue bajando a
+Brownsville el 2026-10-06; desde 120, el reparto del día de la queja es el mismo con 120, 150, 180, 240 o 360. Y 120 es el que
+menos cuesta en el banco: 3.125 mi (180: 3.144; 240: 3.256; 360: 3.386).
+
+### Antes y después, día por día
+
+Mismo motor, mismas órdenes, misma matriz guardada con cada plan; sin red. Para que todos los días midan lo mismo, cada día
+se planifica con los choferes de HOY (bases, capacidades y zonas de `driver_settings`) y, en los planes viejos que no traían
+la ciudad de la tienda, se pone desde la tienda de origen. Los tres días «aprox» no tienen plan guardado: sus tiempos son en
+línea recta. «Recogidas fuera»: recogidas en la tienda de la zona de otro chofer.
+
+| Día (plan) | Antes (`motor-7`) | Después (`motor-8`) |
+|---|---|---|
+| 2026-09-21 v2 | 252 mi · 713 min · 2 sin ruta · 6 recogidas fuera | 250 mi · 810 min · 0 sin ruta · 2 recogidas fuera |
+| 2026-09-27 v3 | 269 mi · 694 min · 0 · 8 | 388 mi · 825 min · 0 · 0 |
+| 2026-09-28 v3 | 30 mi · 89 min · 0 · 0 | igual |
+| 2026-09-29 v2 | 389 mi · 1021 min · 0 · 7 | 421 mi · 1064 min · 0 · 2 |
+| 2026-09-30 v1 | 502 mi · 974 min · 1 · 2 | 521 mi · 988 min · 1 · 1 |
+| 2026-10-01 v2 | 211 mi · 542 min · 1 · 1 | igual |
+| 2026-10-02 v1 | 463 mi · 997 min · 0 · 5 | 475 mi · 985 min · 0 · 2 |
+| 2026-10-03 v1 | 126 mi · 242 min · 0 · 1 | 147 mi · 265 min · 0 · 0 |
+| 2026-10-05 v1 | 303 mi · 787 min · 0 · 2 | 192 mi · 681 min · 0 · 1 |
+| **2026-10-06 v1 (la queja)** | **435 mi · 1109 min · 0 · 5** | **491 mi · 1138 min · 0 · 1** |
+| **10 días con plan** | **2979 mi · 7168 min · 4 sin ruta · 37 recogidas fuera · 0 tarde** | **3125 mi · 7387 min · 2 sin ruta · 10 recogidas fuera · 0 tarde** |
+| 3 días aprox (24–26 sep) | 903 mi · 3293 min · 4 · 21 | 879 mi · 3228 min · 4 · 17 |
+
+**El precio**: en los 10 días con plan, **+146 mi (+4,9 %) y +219 min de jornada (+3,1 %)**, +334 minutos-builder, a cambio de
+pasar de 37 a 10 recogidas en la tienda de otro y de 4 a 2 órdenes sin ruta. El día más caro es el 27 de septiembre (+119
+mi): Maximo se queda las 13 órdenes de Brownsville (233 mi) en vez de que Ernesto baje a por 5.
+
+**El día de la queja, después**: Ernesto 6 órdenes, todas cargadas en McAllen (56 mi, 4,0 h, acaba 11:57); Julio 7, en Pharr y
+Edinburg (100 mi, 5,7 h); Maximo 5: las 4 de Brownsville (19 pallets, tres vueltas) y #FU111, un builder de Pharr a McAllen con
+ventana dura 08:30–10:00 que ni Ernesto ni Julio pueden hacer a tiempo (335 mi, 9,3 h, acaba 17:19 con turno hasta 17:30).
+Esa última es el «salvo que no quepa»: la explicación del plan lo dice (`ventana_estrecha` con los otros dos).
+
+**Las 37 rutas de D-461** no cambian, por construcción: «🧭 Optimizar» (`optimiza-la-ruta.ts`) ordena una ruta sin cambiar de
+chofer y no usa el coste de zona (solo importa la banda de `de-paso.ts`, que no se tocó).
+
+### Pruebas
+
+`zona-de-la-base.test.ts` (nuevo): el día de la queja real y anonimizado (`zona-base-caso-real.json`: la entrada del borrador
+del 2026-10-06 con su matriz y su tráfico) — con `motor-8` a la tienda de C solo va C y A solo carga en la suya; con
+`zonaRecogida` 0, A o B vuelven a bajar —; las dos puntas por separado; el coste de cada una; una cuadrícula donde la
+eficiencia pide J y la tienda es de M; y el camino de Ajustes al motor (`pesosDeRuta`, `entradaDelDia`, la tarjeta).
+`zona-de-la-recogida.test.ts`: las pruebas de D-427 que fijaban la regla vieja se reescriben con la nueva (la ciudad sin
+dueño, el día inventado 48); las que prueban otra cosa (el umbral de D-423, el día inventado 55) fijan `zonaRecogida: 0` para
+seguir probando lo mismo.
+
+### Lo que no se hizo
+
+- **«📍 Mejor lugar»** (`esDeSuZona`, solo sugerencia en el Gestor) sigue con la regla de D-427 (la tienda solo cuenta si la
+  entrega es de alguien). No reparte; se deja igual a propósito y se dice aquí.
+- No se probó en el navegador ni contra producción con sesión: el cambio es del motor y de una casilla de Ajustes.

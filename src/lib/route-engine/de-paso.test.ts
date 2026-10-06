@@ -81,8 +81,8 @@ describe("el plan de Julio: de P1 P2 D1 D2 a P1 D1 P2 D2", () => {
     expect(plan.rutas[0]).toMatchObject({ duracionMin: 162, millas: 104.86, tardeMin: 0, violaciones: [] });
     expect(carga(plan, e)).toBe(88.42);
     expect(plan.sinAsignar).toEqual([]);
-    expect(plan.version).toBe("motor-7");
-    expect(VERSION_DEL_MOTOR).toBe("motor-7");
+    expect(plan.version).toBe("motor-8");
+    expect(VERSION_DEL_MOTOR).toBe("motor-8");
     // El coste y las explicaciones son los del plan que sale, no los de antes de reordenar.
     expect(plan.coste).toEqual(evaluaPlan({ secuencias: { j: plan.rutas[0].paradas.map((p) => ({ orden: p.orden, tipo: p.tipo })) }, ordenes: e.ordenes, choferes: e.choferes, matriz: MATRIZ, parametros: CON }).coste);
     expect(plan.explicaciones.map((x) => x.orden).sort()).toEqual(["oeste", "sur"]);
