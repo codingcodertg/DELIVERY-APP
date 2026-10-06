@@ -432,20 +432,18 @@ export function seesAllHistory(role: string | null | undefined, permissions?: re
 }
 
 /**
- * La ventana «Reciente» de la pantalla de Órdenes (D-350): ayer, hoy y mañana. Sin fecha entra: sigue programándose.
+ * La ventana «Reciente» de la pantalla de Órdenes (D-350): ayer, hoy y mañana, y nada más. Sin fecha entra: sigue
+ * programándose.
  *
- * Y una orden VENCIDA que sigue abierta entra también, tenga la fecha que tenga (D-351). El dueño: «cuando una orden
- * no se entrega y pasa el día siguiente, antes salía como LATE y se arrastraba para reprogramar». D-350 la escondía
- * al segundo día: una vencida sin entregar es trabajo vivo, no historial, y esconderla es perderla.
- *
- * Desde D-384 la lista normal de Órdenes ya no le trae las anteriores a ayer (van a la pastilla «Outdated»,
- * `vaAAtrasadas`), así que esa cláusula solo actúa dentro de esa pastilla con «Reciente» puesto. Se deja: quitarla
- * no cambiaría la lista normal y haría que «Reciente» dentro de «Outdated» saliera vacío.
+ * Las VENCIDAS abiertas ya NO entran (D-477, que deshace D-351). El dueño, 2026-10-06: «Since Admin can see all
+ * deliveries, I dont want to see anything but yesterday, today and tomorrow in the Recent tab. Even the Expired
+ * should not show there». Desde D-384 lo anterior a ayer vive en la pastilla «Outdated», así que las vencidas no se
+ * pierden: se ven allí (y en «Todas»); «Reciente» dentro de «Outdated» queda vacío a propósito. `stage` se acepta
+ * en la firma para no mover a quien lo pasa, pero ya no decide nada.
  */
 export function withinRecent(d: { delivery_date?: string | null; stage?: string | null }, today: string = todayISO()): boolean {
   if (!d.delivery_date) return true;
   const dia = d.delivery_date.slice(0, 10);
-  if (dia < today && d.stage !== "delivered" && d.stage !== "canceled") return true;
   return dia >= shiftDateISO(today, -1) && dia <= shiftDateISO(today, 1);
 }
 

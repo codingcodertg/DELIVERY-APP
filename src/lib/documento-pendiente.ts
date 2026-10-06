@@ -43,8 +43,8 @@ export const PESTANA_DOCUMENTO_PENDIENTE = "doc_pending";
  *
  * **Y la de «Outdated» (D-384), por la misma razón y hacia el mismo sitio.** Todo lo que lista es
  * de antes de ayer: con «Hoy» puesto enseñaría cero filas con la pastilla diciendo otro número, y
- * con «Reciente» las enseñaría —`withinRecent` deja pasar la vencida abierta (D-351)— pero con
- * «Reciente» encendido sobre órdenes de hace semanas, que es la confusión que D-380 quitó.
+ * con «Reciente» no enseñaría ninguna (desde D-477 `withinRecent` es solo ayer, hoy y mañana) con la
+ * pastilla diciendo otro número: la confusión que D-380 quitó.
  */
 export function presetAlElegirPastilla<P extends string>(clave: string, presetActual: P, todas: P): P {
   return clave === PESTANA_DOCUMENTO_PENDIENTE || clave === PESTANA_ATRASADAS ? todas : presetActual;

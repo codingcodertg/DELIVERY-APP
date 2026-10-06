@@ -24575,6 +24575,8 @@ caen los tres. Suite entera local: 3635 pasados, 3 saltados; la única caída fu
 
 ## D-351 · Una vencida sin entregar entra en «Reciente» hasta que se reprograme
 
+> **Reemplazada por D-477:** «Reciente» vuelve a ser solo ayer, hoy y mañana; las vencidas abiertas se ven en «Outdated» (D-384).
+
 > **⚠ Reemplazada en parte por D-404** (2026-09-26): en **Órdenes**, la vencida abierta de **ayer** tampoco sigue ya
 > en la lista normal (la nota de D-384 de aquí debajo decía que sí): va a «Outdated» como todas. `withinRecent` sigue
 > sin tocarse.
@@ -37326,3 +37328,20 @@ en el quote builder solo para admin habilita la lista de todas las quotes ya hec
   pestaña liste las 3 cotizaciones con el nombre de su dueño.
 - `window.print()` de verdad, como siempre (D-413).
 - No se cerró la lectura entre compañeros de tienda que permite la 148 (arriba).
+
+## D-477 · «Reciente» es solo ayer, hoy y mañana: las vencidas abiertas ya no entran (deshace D-351)
+
+**Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.258.0, repo 1.351.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d477`.
+
+**Pedido del dueño**, literal: *«Since Admin can see all deliveries, I dont want to see anything but yesterday, today and tomorrow in the Recent tab. Even the Expired should not show there»*.
+
+### Qué se decidió
+
+- `withinRecent` (`src/lib/utils.ts`) vuelve a ser la ventana de D-350: ayer, hoy y mañana; sin fecha entra. Se quita
+  la cláusula de D-351 que dejaba pasar cualquier vencida abierta. La firma no cambia (`stage` se acepta y se ignora).
+- Lo vencido no se pierde: desde D-384 vive en la pastilla «Outdated» y sale en «Todas». «Reciente» dentro de
+  «Outdated» queda vacío a propósito (la pastilla ya cambia el chip a «Todas» al elegirla, D-380/D-384).
+- Aplica a todos los roles en la pantalla de Órdenes; a los demás ya los acota la ventana de D-239. No se tocan las
+  listas de almacén ni de chofer (`withinRetention`): el dueño habló de la pestaña «Recent».
+
+No visto en navegador: `tsc` y vitest (98 de las ventanas y pastillas).
