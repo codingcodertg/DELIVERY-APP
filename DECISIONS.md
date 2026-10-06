@@ -37229,6 +37229,11 @@ No visto en navegador: `tsc` y vitest (332 del módulo).
 
 ## D-476 · Quote Builder: una pestaña «Todas las cotizaciones», solo para el admin, con todas las cotizaciones guardadas y todos los estimados de la competencia
 
+> **Reemplazada en parte por D-NEXT** (2026-10-06, sobre una captura: «SE MIR MUY FEO ESOS FILTROS…»): la tabla y los
+> filtros (puntos 2 y 3) se rehicieron con los patrones de la casa: el calendario del Panel y el menú por columna de
+> Órdenes / Gestor de Rutas. Vendedor y tienda ya no van a la base ni hay desplegables; `vendedores()` se quitó. El
+> resto (quién ve, «Abrir», tandas, la competencia debajo, sin migración) sigue.
+
 **Fecha:** 2026-10-06 · **Versión:** estimator 0.11.0, repo 1.350.0 (toca `src/app/estimator/` y `src/lib/estimator/`:
 sube `estimator`) · **Migración:** ninguna. **Reemplaza en parte a** D-413 (que decía «No hay lista de "mis cotizaciones"»)
 y a D-451 (punto 7, «Las cotizaciones propias NO se abrieron … hay que preguntárselo»): el dueño ya lo pidió, y solo para el admin.
@@ -37326,3 +37331,93 @@ en el quote builder solo para admin habilita la lista de todas las quotes ya hec
   pestaña liste las 3 cotizaciones con el nombre de su dueño.
 - `window.print()` de verdad, como siempre (D-413).
 - No se cerró la lectura entre compañeros de tienda que permite la 148 (arriba).
+
+## D-NEXT · Quote Builder, pestaña «Todas las cotizaciones (admin)»: los filtros se rehacen con los patrones de la casa — el calendario del Panel y el menú por columna de las tablas
+
+**Fecha:** 2026-10-06 · **Versión:** la asigna el orquestador al fusionar (toca `src/app/estimator/` y `src/lib/estimator/`:
+sube `estimator`) · **Migración:** ninguna. **Reemplaza en parte a** D-476 (sus puntos 2 y 3: la tabla y los filtros), que
+lleva su nota.
+
+**Qué pidió el dueño** (2026-10-06, con captura de la pestaña, literal, tal como lo pasó el orquestador):
+
+```
+SE MIR MUY FEO ESOS FILTROS PON EL CALENDARIO QUE SIEMPRE HEMOS PEUSTO Y LOS FILTROS ASI COMO EN LAS TABLES QUE HEMOS EHCHO
+```
+
+### Qué había (D-476, lo que salía en la captura)
+
+Cinco cajas grandes en dos filas —VENDEDOR y TIENDA como `<select>`, BUSCAR, y DESDE / HASTA como dos `input type=date`
+sueltos—, un botón «Quitar filtros» aparte, y una tabla propia (`est-prod-tabla`) sin menú en las cabeceras. Nada de eso era
+un patrón de la app: eran campos de formulario (`.field`) puestos en una rejilla.
+
+### Qué hay ahora: dos patrones reusados, ninguno inventado
+
+1. **El calendario «que siempre hemos puesto» = el del Panel** (`src/app/(app)/dashboard/page.tsx`, líneas ~225-240): el
+   mismo marcado y las mismas clases —`◀` · `Desde` `<input type=date style=width:150>` · `Hasta` · `▶` · separador ·
+   `Hoy` · `Esta semana` · `Este mes` · `Mes pasado`, botones `btn btn-sm` con el encendido en `btn-primary`—, con
+   `min`/`max` entre sí y «hasta» acotado a hoy. Se añade **«Todo»** (sin fechas), que es como nace la lista: el Panel
+   siempre tiene rango porque son cifras; una lista de cotizaciones empieza entera. **No hay componente compartido** del
+   selector (cada pantalla lo lleva escrito; Time Tracker y RR. HH. tienen variantes propias), así que se copió el marcado
+   del Panel en `RangoDelPanel` (`TodasLasCotizaciones.tsx`) y **las cuentas** —qué pone cada atajo, cómo saltan ◀ ▶ (un
+   mes de mes en mes, una semana 7 días, uno a mano su propio largo), qué botón está encendido— viven en `lista-admin.ts`
+   (`rangoDeAtajo`, `pasoDeRango`, `atajoEncendido`, `rangoAcotado`) con las mismas funciones de `utils` que usa el Panel
+   (`startOfWeekISO`, `endOfMonthISO`, `shiftMonthISO`, `daysBetween`…). Lo único que cambia respecto al Panel es que
+   están fuera de la pantalla para probarlas.
+2. **Los filtros «como en las tablas que hemos hecho» = el menú por columna de Órdenes** (D-275) **tal como lo comparte el
+   Gestor de Rutas** (D-360): `useOrdenYFiltro` (`src/lib/use-orden-y-filtro.ts`) + `CabeceraConMenu`,
+   `MenuDeColumnaAbierto` y `FiltrosPuestos` (`src/components/CabeceraConMenu.tsx`), que a su vez pintan el
+   `ColumnFilterMenu` de `OrdersTable`. `OrdersTable` no se reusó entero porque está atado a `Delivery` (columnas,
+   contexto, prioridad, documentos); se reusó **exactamente su cabecera y su menú**, que es lo que el Gestor hizo. La
+   tabla es ahora `table.orders` dentro de `.tbl-scroll` (sin `tbl-fit`: esa clase es de las tablas redimensionables, y esta no lo es), con **Fecha, # de estimado, Vendedor, Tienda, Cliente,
+   Total y Estado**, cada una con el menú de ordenar (↑ ↓ ✕) y la lista de casillas por valor en cascada, el ▾ en color
+   cuando filtra, y la barra ámbar «🔎 Filtrado por: Vendedor y Tienda · ✕ Limpiar filtros» de D-297. Lo que cada columna
+   saca de la fila (`valorDeColumna`) está en `lista-admin.ts`: la Fecha ordena y filtra por el **día de Texas** (el menú
+   ofrece días, la celda enseña día y hora), el Total es número (ordena como número y el menú lo enseña como dinero), el
+   Estado es el mismo texto que se pinta («Impresa», «Impresa ×3», «Guardada, sin imprimir»). Hacer clic en la fila la abre.
+3. **La búsqueda** es la caja compacta de Órdenes (`<input style={{ maxWidth: 260 }}>` dentro de `.filters`, D-275), a
+   la izquierda del calendario, en la misma barra. Busca en # de estimado y cliente, en la base, como antes.
+4. **A la base van solo fechas y texto** (`FiltroDeCotizaciones = { desde, hasta, texto }`), por tandas de 50 como en
+   D-476; vendedor, tienda y estado se filtran por columna **sobre lo cargado**, como en Órdenes. Se quitaron del filtro
+   de la base `vendedor`/`tienda`, el método `vendedores()` del almacén (y su consulta a `profiles`) y la segunda
+   cotización del demo sigue. **Límite conocido:** con más de una tanda, el menú de una columna ofrece los valores de las
+   filas ya cargadas, no de todas (igual que Órdenes sobre su ventana); hoy hay 3 cotizaciones.
+5. **Los estimados de la competencia, debajo, heredan los filtros de la tabla sin cajas propias**
+   (`filtraCompetenciaComoLaTabla`): el rango de fechas (por cuándo se subió), la búsqueda (cliente, competidor, #, nota,
+   quién, archivo: la de D-451) y los filtros de columna **Vendedor** (quién lo subió) y **Tienda**. Los de #, cliente,
+   total y estado son de la cotización y no se aplican a los archivos. Lo demás de D-476 sigue (quién ve, «Abrir», «Abrir
+   su cotización», tandas, sin migración).
+
+### Decisiones mías, para validar
+
+1. **«Todo» como quinto atajo** y como estado inicial (el Panel arranca con 30 días; una lista de cotizaciones, entera).
+2. **Copiar el marcado del Panel en vez de extraer un componente compartido** para las dos pantallas: extraerlo tocaría el
+   Panel, que no está en el encargo. Si se quiere uno solo, es un paso aparte.
+3. **No se reusó `OrdersTable` entero** (atado a `Delivery`); se reusó su cabecera y su menú por el camino del Gestor de
+   Rutas (D-360), que existe para esto.
+4. La Fecha filtra por **día**, no por instante: un menú con un instante por fila no filtra nada.
+
+### Verificado
+
+- `node scripts/verify.mjs` (2026-10-06): tipos, vitest y `next build` en verde (los números, en el informe de la rama).
+- **Mutantes: 38, caen los 38**, leídos por el nombre de la prueba que cae. Quién ve: M1, M31-M34. Filtro de la base: sin
+  «desde» (M2), sin «hasta» (M3), UTC (M4), «hasta» sin el día entero (M5), sin texto (M6, M12), texto sin cliente (M7),
+  sin comillas (M13). Orden y tandas: M8-M10, M26. Calendario: «hasta» pasando de hoy (M14), «Esta semana» como rango a
+  mano (M15), «Mes pasado» dando este mes (M16), ◀ ▶ saltando días en un mes (M17), a mano saltando un día (M18), moviéndose
+  sin fechas (M19), «Todo» nunca encendido (M20), sin botón «Todo» (M35), el encendido sin azul (M36). Columnas: Fecha por
+  instante (M21), Estado sin distinguir impresa (M11, M22), la tabla pintando lo cargado y no lo filtrado (M37). La
+  competencia ignorando Tienda (M23), Vendedor (M24) o el rango (M25). Base y demo: la entrega pedida (M27), total sin
+  impuesto (M28), el demo dejando ver todas (M29) o ignorando el texto (M30). «Abrir su cotización» en sueltos (M38).
+- **En el navegador** (demo, Chrome headless por CDP, clics de persona, 1280 y 390): **19 de 19**. La barra `.filters` con
+  la búsqueda compacta y el calendario (2 fechas, ◀ ▶, 5 atajos, 0 `<select>`), «Todo» encendido al abrir; `table.orders`
+  con 7 cabeceras con menú; el menú de Vendedor se abre con sus 2 valores, desmarcar «Sofia Ventas» + Aplicar deja 1 fila
+  y pinta la barra «Filtrado por: Sales rep» y el ▾ en color; «Limpiar filtros» vuelve a 2; ordenar por Total ↑ pone
+  $562.76 primero con ▲; buscar «garza» deja 1; «Mes pasado» deja DEMO-1002 con su botón en azul, «Este mes» DEMO-1001, ◀
+  desde ahí va a septiembre, «Todo» vuelve a 2 y vacía las fechas, una fecha a mano no enciende ningún atajo; «Abrir» va a
+  Cotización con DEMO-1002; el vendedor sin la pestaña; a 390 la tabla se desplaza dentro de su caja y la página no.
+  Capturas con la barra de filtros: `11-admin-barra-filtros`, `12-menu-columna-vendedor`, `13-filtrado-por-vendedor`,
+  `14-calendario-septiembre`, `15-movil-barra-y-tabla`.
+
+### Lo que no se hizo / no se verificó
+
+- Contra producción con sesión de admin, nada (como en D-476).
+- El Panel no se tocó: el selector sigue escrito en las dos pantallas.
