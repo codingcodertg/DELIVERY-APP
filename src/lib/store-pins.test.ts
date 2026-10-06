@@ -215,7 +215,7 @@ describe("el cableado: quién pasa qué, y a quién NO", () => {
     expect(google).not.toContain('<circle cx="13" cy="13" r="9" fill="${TIENDA_CLASICA');
   });
   it("los otros CUATRO mapas que ya pintaban tiendas siguen sin pasar papel", () => {
-    // Puesto al día por D-NEXT: «Ruta de hoy» (map/page.tsx) monta la página del Gestor, que ya está en la lista.
+    // Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor, que ya está en la lista.
     for (const ruta of ["src/app/(app)/routes/page.tsx", "src/app/(app)/my-route/page.tsx", "src/app/(app)/track/page.tsx"]) {
       const src = leer(ruta);
       expect(src, ruta).toContain("useStoreMarkers(settings.stores)");

@@ -75,7 +75,7 @@ describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
     expect(pagina).toContain("const isC = isCollapsed(u.key);");
   });
   it("el filtro se lee de lo guardado por la persona, y elegir lo guarda", () => {
-    // **Reemplazado por D-NEXT** (2026-10-06, «remove the all driver dropdown»): el filtro son las casillas del panel; se
+    // **Reemplazado por D-481** (2026-10-06, «remove the all driver dropdown»): el filtro son las casillas del panel; se
     // leen y se guardan por persona con `leeMarcados` / `guardaMarcados` (lib/gestor/filtro-de-choferes).
     expect(pagina).toContain("setSelected(new Set(leeMarcados((k) => window.localStorage.getItem(k), me.id)));");
     expect(pagina).toContain("guardaMarcados(() => window.localStorage, me.id, selected);");
@@ -84,7 +84,7 @@ describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
   });
   it("con un chofer elegido: su fila en el panel, su tarjeta en «Rutas», y en el mapa solo lo suyo", () => {
     expect(pagina).toContain("const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));");
-    // Puesto al día por D-NEXT: el panel lista las del filtro QUE TIENEN ÓRDENES (`rutasConOrdenes`).
+    // Puesto al día por D-481: el panel lista las del filtro QUE TIENEN ÓRDENES (`rutasConOrdenes`).
     expect(pagina).toContain("const filasDelPanel = rutasConOrdenes(lanesDelFiltro, conAlgoQuePintar);");
     expect(pagina).toContain("filas={filasDelPanel.map((u) => {");
     expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter(");

@@ -53,7 +53,7 @@ describe("1 · la pestaña: «Today's route» / «Ruta de hoy», para todos los 
     expect([...(tab.roles ?? [])].sort()).toEqual([...roles].sort());
   });
   it("el título de la página es el de la pestaña", () => {
-    // Puesto al día por D-NEXT: «Ruta de hoy» es la página del Gestor en solo lectura; el título lo pone ella.
+    // Puesto al día por D-481: «Ruta de hoy» es la página del Gestor en solo lectura; el título lo pone ella.
     expect(gestor).toContain('<h2>{soloLectura ? t("Today\'s route", "Ruta de hoy") : t("Routes Manager", "Gestor de Rutas")}');
   });
   it("el aviso «N sin chofer» va donde se asigna: el Gestor para quien lo tiene; si no, «Ruta de hoy»", () => {
@@ -167,7 +167,7 @@ describe("4 · leer las rutas: una consulta, y qué pasa si la función no está
     expect(gancho).toContain('if (SIN_BASE) return { paradas: deLoQueLee, origen: "demo" };');
     expect(gancho).toContain('if (leido.origen === "funcion") return { paradas: leido.paradas, origen: "funcion" };');
     expect(gancho).toContain("return { paradas: deLoQueLee, origen: leido.origen };");
-    // Puesto al día por D-NEXT: con `activo: false` (el Gestor que asigna) el gancho no consulta ni proyecta nada.
+    // Puesto al día por D-481: con `activo: false` (el Gestor que asigna) el gancho no consulta ni proyecta nada.
     expect(gancho).toContain("() => (activo ? paradasDeLasOrdenes(deliveries, fecha, settings.stores ?? [],");
     expect(gancho).toContain("if (SIN_BASE || !activo) return; let vivo = true;");
     expect(gancho).toContain("if (!activo) return { paradas: deLoQueLee, origen: null };");
@@ -231,7 +231,7 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
     expect(de("a2")).toMatchObject({ badge: "D2", color: "rojo" });
     expect(de("b1")).toMatchObject({ badge: "D1", color: "verde" });
     expect(pts.filter((p) => p.id.startsWith("__pd__Ana__")).map((p) => p.badge)).toEqual(["P1", "P2"]);
-    // Puesto al día por D-NEXT (a): el pin nombra la orden por su FACTURA; sin ella, por su ID y «sin factura».
+    // Puesto al día por D-481 (a): el pin nombra la orden por su FACTURA; sin ella, por su ID y «sin factura».
     expect(de("a1").label).toBe("#FA1 (no invoice) — Ana (Stop D1)");
   });
   it("lo ya entregado sigue en el mapa con ✓ y apagado (D-459); lo sin chofer, en gris y sin etiqueta", () => {
@@ -312,7 +312,7 @@ describe("6 · las millas y las horas: la medida del Gestor, sin una llamada de 
     expect(firmaDeLaForma("2026-10-05", "Ana", movida, lecturaDe("Ana", movida).paradas)).not.toBe(firmaDeLaForma("2026-10-05", "Ana", ana, lista));
   });
   it("la página mide con el MISMO gancho que el Gestor; no busca la base que ya tiene punto, ni pide el trazo del plan", () => {
-    // Puesto al día por D-NEXT: «Ruta de hoy» es la página del Gestor (sección 7); aquí, que la medida es el mismo gancho.
+    // Puesto al día por D-481: «Ruta de hoy» es la página del Gestor (sección 7); aquí, que la medida es el mismo gancho.
     expect(pagina).toContain("<SoloLectura>");
     expect(gestor).toContain("useMedidaDeRutas<Delivery>({");
     expect(gestor).toContain('...(soloLectura ? { buscaBases: "si_falta" as const } : {}),');
@@ -324,8 +324,8 @@ describe("6 · las millas y las horas: la medida del Gestor, sin una llamada de 
   });
 });
 
-describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-NEXT)", () => {
-  // **Reemplazado por D-NEXT** (2026-10-06). El dueño: «today srotue is an exact duplicate of routes manager but without any
+describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
+  // **Reemplazado por D-481** (2026-10-06). El dueño: «today srotue is an exact duplicate of routes manager but without any
   // actionable buttom or action». Hasta aquí «Ruta de hoy» era su propia página (el panel, el mapa, un rótulo por pin y un
   // resumen) que llamaba a las mismas piezas que el Gestor. Ahora ES el Gestor: `/map` monta `routes/page.tsx` dentro de
   // `<SoloLectura>`, y todo lo que se escribe o se mueve en el Gestor está cerrado con `soloLectura`. Estas pruebas leen el

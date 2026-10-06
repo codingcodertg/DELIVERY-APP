@@ -159,7 +159,7 @@ describe("2 · arrastrar para armar rutas a mano", () => {
     it("se arrastran las filas de «Sin asignar» y las paradas que también mueven las flechas (una recogida, solo con la 154)", () => {
       // Puesto al día por D-462: la fila la pinta `tablaDeOrdenes` para «Sin asignar» y «Todas», y solo se arrastra la que no
       // tiene chofer (en «Sin asignar», todas; en «Todas», las asignadas van por «Pasar a…»).
-      // Puesto al día por D-NEXT: en «Ruta de hoy» (solo lectura) no se arrastra nada.
+      // Puesto al día por D-481: en «Ruta de hoy» (solo lectura) no se arrastra nada.
       expect(pagina).toContain('data-fila-arrastrable={sinChofer && !soloLectura ? "orden" : undefined} {...(sinChofer && !soloLectura ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>');
       expect(pagina).toContain('const seArrastra = !soloLectura && movible && (f.tipo === "D" || hayRecogidaGuardada);');
       expect(pagina).toContain('const arrastre = seArrastra ? filaArrastrable({ tipo: "parada", ruta: u.key, indice: f.indice! }) : {};');
@@ -168,7 +168,7 @@ describe("2 · arrastrar para armar rutas a mano", () => {
     it("se suelta en la fila del chofer en el panel, en su tarjeta o en una fila de su lista", () => {
       // **Puesto al día por D-467**: la fila del panel la pinta `PanelDeChoferes` (lo comparte «Ruta de hoy», que no pasa
       // esto); el Gestor le da el destino de arrastre por `atributosDe`, y el componente lo pone en la fila.
-      // Puesto al día por D-NEXT: «Ruta de hoy» (solo lectura) no le pasa destino de arrastre al panel.
+      // Puesto al día por D-481: «Ruta de hoy» (solo lectura) no le pasa destino de arrastre al panel.
       expect(pagina).toContain('atributosDe={soloLectura ? undefined : (clave) => ({ "data-suelta-en-ruta": clave, ...sueltaAqui(clave, null),');
       expect(plano(leer("src/components/PanelDeChoferes.tsx"))).toContain("onClick={() => props.onEnfoca(u.clave)} {...atributos}");
       expect(pagina).toContain("data-tarjeta-de-ruta={u.key} data-modo-de-tarjeta={modoDeTarjeta} {...sueltaAqui(u.key, null)}");

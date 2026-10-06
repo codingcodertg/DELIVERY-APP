@@ -1,5 +1,5 @@
 /**
- * ¿La recogida es en una tienda de RTG? (D-NEXT, d). El dueño, 2026-10-06 (dictado, literal): «if pickup are ina  astore
+ * ¿La recogida es en una tienda de RTG? (D-481, d). El dueño, 2026-10-06 (dictado, literal): «if pickup are ina  astore
  * rmeove the p1 bubble».
  *
  * En el mapa, cada recogida de la lista llevaba su burbuja «P1», «P2»… en el punto de la tienda (D-334/D-443), encima de la

@@ -64,12 +64,12 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
   it("las opciones salen de `opcionesDeConductor`, con los choferes, las rutas temporales, el 📦 y los pallets del panel, y el filtro de arriba", () => {
     expect(pagina).toContain("const opcionesDelRecuadro = opcionesDeConductor({ rutas: [ ...drivers.map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })), ...bucketNames.map((n) => ({ clave: n, etiqueta: n, esRuta: true })), ],");
-    // Puesto al día por D-NEXT: el filtro son las casillas del panel; el recuadro pone primero al chofer si es el ÚNICO marcado.
+    // Puesto al día por D-481: el filtro son las casillas del panel; el recuadro pone primero al chofer si es el ÚNICO marcado.
     expect(pagina).toContain("paradasDe: (k) => (byDriver.get(k) ?? []).length, palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []), capacidadDe: (k) => capacityFor(k), noDisponibles: unavailableToday, filtro: unicoMarcado(filtroChofer), enSuZona: (k) =>");
     expect(pagina).toContain("const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);");
   });
   it("el recuadro sale solo con órdenes marcadas, dice cuántas, y pinta cada opción con sus números", () => {
-    // Puesto al día por D-NEXT: nunca en «Ruta de hoy» (solo lectura).
+    // Puesto al día por D-481: nunca en «Ruta de hoy» (solo lectura).
     expect(pagina).toContain("{!soloLectura && poolSelectedCount > 0 && ( <div className=\"card\" data-elige-conductor");
     expect(pagina).toContain("`Elige conductor para ${poolSelectedCount} órdenes`");
     expect(pagina).toContain("{opcionesDelRecuadro.map((o) => (");

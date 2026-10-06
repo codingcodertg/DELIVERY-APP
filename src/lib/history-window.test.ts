@@ -18,7 +18,7 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "");
 const TABLERO = "src/app/(app)/page.tsx";
 const CHOFER = "src/app/(app)/driver/page.tsx";
 const ALMACEN = "src/app/(app)/warehouse/page.tsx";
-// Puesto al día por D-NEXT: «Ruta de hoy» (map/page.tsx) monta la página del Gestor en solo lectura; el selector acotado vive ahí.
+// Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor en solo lectura; el selector acotado vive ahí.
 const MAPA = "src/app/(app)/routes/page.tsx";
 const RECORRIDO = "src/app/(app)/track/page.tsx";
 

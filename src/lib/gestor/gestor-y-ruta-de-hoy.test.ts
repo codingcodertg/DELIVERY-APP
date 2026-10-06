@@ -14,7 +14,7 @@ import type { ParadaDelDia } from "@/lib/rutas-del-dia";
 import type { Delivery } from "@/lib/types";
 
 /**
- * D-NEXT · seis pedidos del dueño (2026-10-06, dictado) sobre el Gestor de Rutas y «Ruta de hoy».
+ * D-481 · seis pedidos del dueño (2026-10-06, dictado) sobre el Gestor de Rutas y «Ruta de hoy».
  *   a · la factura en el mapa        b · «Ruta de hoy» = el Gestor sin acciones    c · el filtro son las casillas
  *   d · sin «P1» en una tienda        e · «Cuadrícula»: tabla abajo al pulsar       f · sin choferes vacíos en la lista
  */

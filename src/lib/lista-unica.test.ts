@@ -255,7 +255,7 @@ const cuerpoDe = (fuente: string, desde: string, hasta: string) => {
 };
 
 describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la vista", () => {
-  // Puesto al día por D-NEXT: las tarjetas salen de `tarjetasDeRuta` (en «Cuadrícula», la compacta y la desplegada).
+  // Puesto al día por D-481: las tarjetas salen de `tarjetasDeRuta` (en «Cuadrícula», la compacta y la desplegada).
   const tarjeta = cuerpoDe(pagina, "{tarjetasDeRuta.map(([u, modoDeTarjeta]) => {", "{!ready && <div className=\"empty\">");
   const mueve = cuerpoDe(pagina, "const mueveParada = async (", "\n  };\n");
 

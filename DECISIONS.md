@@ -27727,7 +27727,7 @@ y el rango de fechas del **Panel**.
 
 ## D-393 · Gestor de Rutas: filtro de chofer, chip «Todas» en «Sin asignar», y las tarjetas nacen plegadas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): el desplegable de chofer (§1) se fue. El dueño: «remove the all driver dropdown». El filtro son las casillas del panel «Choferes y rutas»: marcar un chofer enseña solo a ese; ninguno, todos. Se recuerda por persona en otra clave (`rtg_routes_marcados_<id>`). Lo plegado sigue igual.
+> **⚠ Reemplazada en parte por D-481** (2026-10-06): el desplegable de chofer (§1) se fue. El dueño: «remove the all driver dropdown». El filtro son las casillas del panel «Choferes y rutas»: marcar un chofer enseña solo a ese; ninguno, todos. Se recuerda por persona en otra clave (`rtg_routes_marcados_<id>`). Lo plegado sigue igual.
 
 > **⚠ Reemplazada en parte por D-462** (2026-10-02): el filtro de chofer manda también en la pestaña nueva «Todas (N)», y allí NO esconde lo sin chofer: con un chofer elegido se ven las suyas y las sin asignar (la razón, en D-462). Y los cinco chips de «Sin asignar» —con el mismo mecanismo, el mismo buscador y el mismo ⚙— están también en «Todas», donde el de cualquier día se llama «Todas las fechas» para no chocar con el nombre de la pestaña.
 >
@@ -33088,7 +33088,7 @@ decimal. La pantalla enseña en cada línea el total regular y, si aplica, «Des
 
 ## D-443 · Una sola lista por camión: se eliminan los viajes del Gestor, del plan y de «Mi ruta», con la cuenta de pallets en cada parada
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): en el MAPA, una recogida en una tienda de RTG (Ajustes → Tiendas) ya no lleva su burbuja «P1·P2»: la casita de la tienda y la base ya están ahí. El dueño: «if pickup are ina  astore rmeove the p1 bubble». La fila P de la tabla y su cuenta no cambian.
+> **⚠ Reemplazada en parte por D-481** (2026-10-06): en el MAPA, una recogida en una tienda de RTG (Ajustes → Tiendas) ya no lleva su burbuja «P1·P2»: la casita de la tienda y la base ya están ahí. El dueño: «if pickup are ina  astore rmeove the p1 bubble». La fila P de la tabla y su cuenta no cambian.
 
 > **⚠ Reemplazada en parte por D-444** (2026-09-29): recogidas seguidas en la misma tienda ya **no** son una fila
 > («P1·P2»): cada recogida en su fila, y el mismo sitio se pinta como grupo (también entregas seguidas a la misma
@@ -34949,7 +34949,7 @@ siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): §9, el filtro de chofer junto a «Horario», ya no es un desplegable: son las casillas del panel, y en la barra queda una pastilla con los marcados y su ✕. §5, «Cuadrícula»: ya no son las tarjetas enteras en dos columnas, sino compactas arriba (sin tabla ni botones) y, al pulsar el nombre, la tarjeta entera desplegada abajo a todo el ancho.
+> **⚠ Reemplazada en parte por D-481** (2026-10-06): §9, el filtro de chofer junto a «Horario», ya no es un desplegable: son las casillas del panel, y en la barra queda una pastilla con los marcados y su ✕. §5, «Cuadrícula»: ya no son las tarjetas enteras en dos columnas, sino compactas arriba (sin tabla ni botones) y, al pulsar el nombre, la tarjeta entera desplegada abajo a todo el ancho.
 
 > **⚠ Reemplazada en parte por D-462** (2026-10-02): la barra de vistas (§5, 6 y 9) tiene una pestaña más, «Todas (N)», entre «Sin asignar» y «Tablero»: **filtro de chofer · Rutas / Sin asignar / Todas / Tablero / Horario · Cuadrícula · Deshacer / Rehacer · Incidencias**. Y lo hecho del día (§1) sale también en esa tabla, con ✓, además de en la tarjeta de su chofer.
 >
@@ -36275,7 +36275,7 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 
 > **⚠ Puesta al día por D-480** (2026-10-06): en la barra de almacén, «Ruta de hoy» va DETRÁS de su «Órdenes» (`pestanasEnOrden`). Quién la ve no cambia.
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): «Ruta de hoy» ya no es una página propia (panel, mapa, rótulo del pin y resumen): monta la página del Gestor de Rutas en solo lectura (`<SoloLectura>`), con sus tarjetas, tablas, «Cuadrícula» y «Horario», y sin ninguna acción. El dueño: «today srotue is an exact duplicate of routes manager but without any actionable buttom or action». Lo decidido aquí (la función 160, el día acotado, camiones, leyenda, colores, abrir la orden solo si ya se lee) sigue, dentro del Gestor. El rótulo al pulsar un pin y la tabla «Resumen» se fueron.
+> **⚠ Reemplazada en parte por D-481** (2026-10-06): «Ruta de hoy» ya no es una página propia (panel, mapa, rótulo del pin y resumen): monta la página del Gestor de Rutas en solo lectura (`<SoloLectura>`), con sus tarjetas, tablas, «Cuadrícula» y «Horario», y sin ninguna acción. El dueño: «today srotue is an exact duplicate of routes manager but without any actionable buttom or action». Lo decidido aquí (la función 160, el día acotado, camiones, leyenda, colores, abrir la orden solo si ya se lee) sigue, dentro del Gestor. El rótulo al pulsar un pin y la tabla «Resumen» se fueron.
 
 **Fecha:** 2026-10-04 · **Migración:** `160_rutas_del_dia.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
 `docs/PLAN-160-rutas-del-dia.md`) · **Versión:** deliveries 1.254.0, repo 1.341.0. **Reemplaza en parte a** D-437 (el
@@ -37685,9 +37685,9 @@ no lo nombró.
 - **Oficina con permisos sueltos** sigue teniendo en la ficha los botones que esos permisos le dan (p. ej. los de
   preparar con `fulfill`); solo se le cerraron las pantallas.
 
-## D-NEXT · Gestor de Rutas y «Ruta de hoy»: «Ruta de hoy» es el Gestor sin ninguna acción, el filtro de chofer son las casillas del panel, «Cuadrícula» despliega la tabla abajo, sin choferes vacíos, la factura en el mapa y sin «P1» en una tienda
+## D-481 · Gestor de Rutas y «Ruta de hoy»: «Ruta de hoy» es el Gestor sin ninguna acción, el filtro de chofer son las casillas del panel, «Cuadrícula» despliega la tabla abajo, sin choferes vacíos, la factura en el mapa y sin «P1» en una tienda
 
-**Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar. **Reemplaza en parte a**
+**Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** deliveries 1.261.0, repo 1.354.0. **Reemplaza en parte a**
 D-393 (el desplegable de chofer), D-443 (la burbuja «P1» de cada recogida en el mapa), D-459 (§5 «Cuadrícula» y §9 el filtro
 junto a «Horario») y D-467 («Ruta de hoy» como página propia con panel, mapa, rótulo y resumen). Cada una lleva su nota.
 
@@ -37777,7 +37777,7 @@ sitio. Pasaba ya en el Gestor; con «Ruta de hoy» siendo el Gestor, lo iban a s
 ### Pruebas y mutantes
 
 Nuevas en `src/lib/gestor/gestor-y-ruta-de-hoy.test.ts` (una sección por letra, y que la pantalla usa cada pieza; `SoloLectura`
-se prueba renderizándolo). Puestas al día con su nota «Puesto al día por D-NEXT» las que leían el texto de `map/page.tsx` (que
+se prueba renderizándolo). Puestas al día con su nota «Puesto al día por D-481» las que leían el texto de `map/page.tsx` (que
 ya no tiene código propio) o del desplegable: `rutas-del-dia` (la sección 7 se reescribió entera: lee el Gestor),
 `history-window`, `map-legend`, `choferes-en-vivo`, `store-pins`, `abanico-de-marcas`, `ayer-hoy-manana`, `solo-armar-rutas`,
 `inline-colors` (map/page.tsx de 2 a 0 colores a pelo; total de 73 a 71, blancos de 59 a 57), `order-modal-lazy` (8 → 7

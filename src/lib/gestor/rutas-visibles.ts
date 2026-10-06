@@ -1,5 +1,5 @@
 /**
- * Qué rutas se LISTAN en el panel «Choferes y rutas» (D-NEXT, f). El dueño, 2026-10-06 (dictado, literal): «if a driver
+ * Qué rutas se LISTAN en el panel «Choferes y rutas» (D-481, f). El dueño, 2026-10-06 (dictado, literal): «if a driver
  * doesnt have an order he doesnt appear on the list».
  *
  * Un chofer sin ninguna orden ese día —ni pendiente ni ya hecha (D-459)— no sale en el panel ni en las tarjetas, ni en el

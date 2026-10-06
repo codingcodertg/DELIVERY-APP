@@ -6,7 +6,7 @@ import { SoloLectura } from "@/lib/gestor/solo-lectura";
 // ============================================================
 // «Ruta de hoy» / «Today's route» (D-467; antes, «Mapa»).
 //
-// D-NEXT (el dueño, 2026-10-06, dictado): «today srotue is an exact duplicate of routes manager but without any actionable
+// D-481 (el dueño, 2026-10-06, dictado): «today srotue is an exact duplicate of routes manager but without any actionable
 // buttom or action». Hasta aquí era el bloque de arriba del Gestor (panel y mapa) con un resumen propio. Ahora ES el Gestor
 // de Rutas —las mismas tarjetas por chofer, la misma tabla de paradas, el mismo mapa, Cuadrícula y Horario, el mismo filtro
 // de chofer— en SOLO LECTURA: ni asignar, ni mover, ni optimizar, ni deshacer, ni casillas, ni arrastre, ni «Armar rutas».

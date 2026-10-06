@@ -162,7 +162,7 @@ describe("las pantallas que la llevan", () => {
   });
   it("el Gestor acorta sus cajas a lo que deja el mapa fijo, midiéndolo", () => {
     const rutas = leer("src/app/(app)/routes/page.tsx");
-    // Puesto al día por D-NEXT: fijo solo en pantalla ancha (en el teléfono, panel y mapa apilados tapaban todo lo de abajo):
+    // Puesto al día por D-481: fijo solo en pantalla ancha (en el teléfono, panel y mapa apilados tapaban todo lo de abajo):
     // la clase `.panel-fijo-del-gestor` lleva el `sticky` dentro de `@media (min-width: 900px)`, y sin fijar se mide 0.
     expect(rutas).toContain('<div ref={panelFijoRef} className="panel-fijo-del-gestor" style={{');
     expect(leer("src/app/globals.css")).toContain("@media (min-width: 900px) { .panel-fijo-del-gestor { position: sticky; top: 6px; z-index: 5; } }");

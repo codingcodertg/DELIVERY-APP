@@ -92,7 +92,7 @@ describe("dónde está cableado: solo el Gestor", () => {
   });
   it("«Ruta de hoy» (D-467) pinta todas las rutas a la vez, como el Gestor, y abre el mismo abanico", () => {
     expect(leer("src/lib/mapa-de-rutas.ts")).toContain("const abanico = abanicoDeMarcas(pts);");
-    // Puesto al día por D-NEXT: «Ruta de hoy» monta la página del Gestor, que abre el abanico con `abanicoDeMarcas`.
+    // Puesto al día por D-481: «Ruta de hoy» monta la página del Gestor, que abre el abanico con `abanicoDeMarcas`.
     expect(leer("src/app/(app)/map/page.tsx")).toContain("<SoloLectura>");
     expect(leer("src/app/(app)/routes/page.tsx")).toContain("const abanico = abanicoDeMarcas(pts);");
   });

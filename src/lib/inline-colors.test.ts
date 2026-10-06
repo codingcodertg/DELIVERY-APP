@@ -138,7 +138,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/app/(app)/data/page.tsx": 4,
     // 4 hasta D-467: «Mapa» pasó a ser «Ruta de hoy», de solo lectura. Se fueron con el panel de asignar el blanco del
     // aviso de riesgo y el de «sin conflictos»; quedan los dos de la pastilla de etapa (el rótulo de la parada y el resumen).
-    // 0 desde D-NEXT: «Ruta de hoy» monta la página del Gestor y ya no pinta nada propio (−2 blancos de la pastilla de etapa).
+    // 0 desde D-481: «Ruta de hoy» monta la página del Gestor y ya no pinta nada propio (−2 blancos de la pastilla de etapa).
     "src/app/(app)/market/page.tsx": 3,
     "src/app/(app)/my-route/page.tsx": 1,
     // 11 hasta D-376: −1 blanco, la pastilla de etapa que «Sin asignar» pintaba a mano; ahora la pinta la celda de Órdenes.
@@ -234,7 +234,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
       blancos += h.filter((x) => x.texto === "#fff").length;
     }
     // 75 y 61 hasta D-467: −2 blancos del Mapa (ver su techo, arriba).
-    // 73 y 59 hasta D-NEXT: −2 blancos de «Ruta de hoy», que ya no tiene código propio.
+    // 73 y 59 hasta D-481: −2 blancos de «Ruta de hoy», que ya no tiene código propio.
     expect(total).toBe(71);
     expect(blancos).toBe(57);
   });

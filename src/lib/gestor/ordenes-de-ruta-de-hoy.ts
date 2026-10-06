@@ -4,7 +4,7 @@ import type { Delivery } from "@/lib/types";
 import { orderOwner } from "@/lib/utils";
 
 /**
- * «Ruta de hoy» es el Gestor de Rutas en SOLO LECTURA (D-NEXT, b). El dueño, 2026-10-06 (dictado, literal): «today srotue
+ * «Ruta de hoy» es el Gestor de Rutas en SOLO LECTURA (D-481, b). El dueño, 2026-10-06 (dictado, literal): «today srotue
  * is an exact duplicate of routes manager but without any actionable buttom or action».
  *
  * La pantalla es la misma (`routes/page.tsx` con `soloLectura`): las mismas tarjetas, la misma tabla de paradas, el mismo

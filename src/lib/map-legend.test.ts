@@ -73,7 +73,7 @@ describe("qué sale en la leyenda", () => {
 });
 
 describe("la página pinta con lo mismo que lee la leyenda", () => {
-  // Puesto al día por D-NEXT: «Ruta de hoy» (map/page.tsx) monta la página del Gestor en solo lectura; la leyenda vive ahí.
+  // Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor en solo lectura; la leyenda vive ahí.
   const pagina = sinComentarios(leer("src/app/(app)/routes/page.tsx"));
   const mapa = sinComentarios(leer("src/app/(app)/map/page.tsx"));
 
@@ -110,7 +110,7 @@ describe("la página pinta con lo mismo que lee la leyenda", () => {
   });
 
   it("ninguno de los tres colores queda suelto en la página", () => {
-    // Puesto al día por D-NEXT: «Ruta de hoy» ya no tiene código propio (el Gestor guarda sus colores de antes).
+    // Puesto al día por D-481: «Ruta de hoy» ya no tiene código propio (el Gestor guarda sus colores de antes).
     for (const hex of [COLOR_SIN_ASIGNAR, COLOR_RECOGIDA, COLOR_RUTA_ELEGIDA]) expect(mapa, hex).not.toContain(hex);
   });
 

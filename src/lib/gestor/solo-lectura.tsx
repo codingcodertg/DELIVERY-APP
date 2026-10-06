@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 /**
- * «Ruta de hoy» = el Gestor de Rutas en SOLO LECTURA (D-NEXT, b). El dueño, 2026-10-06 (dictado, literal): «today srotue is
+ * «Ruta de hoy» = el Gestor de Rutas en SOLO LECTURA (D-481, b). El dueño, 2026-10-06 (dictado, literal): «today srotue is
  * an exact duplicate of routes manager but without any actionable buttom or action».
  *
  * `/map` monta la MISMA página que `/routes` dentro de `<SoloLectura>`. Va por contexto, no por prop: Next no deja que una

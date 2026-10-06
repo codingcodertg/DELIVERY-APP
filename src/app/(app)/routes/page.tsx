@@ -126,7 +126,7 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 // viaje» (D-433), «Dividir en 2» / «Unir viajes» (D-437), «Ver un viaje» (D-441), la cabecera y la raya de cada viaje, sus
 // flechas, y sus colores.
 //
-// D-NEXT (el dueño, 2026-10-06, seis pedidos de un dictado):
+// D-481 (el dueño, 2026-10-06, seis pedidos de un dictado):
 //   · «Ruta de hoy» (/map) ES esta pantalla con `soloLectura`: las mismas tarjetas, tablas, mapa, Cuadrícula y Horario, y
 //     ningún botón ni acción (nada se asigna, se mueve, se optimiza ni se vacía). Sus órdenes salen de `useRutasDelDia`
 //     (D-467) y se completan con lo que la persona ya lee (`lib/gestor/ordenes-de-ruta-de-hoy`).
@@ -164,14 +164,14 @@ const SIN_ORDENES: Delivery[] = [];
 const ESTILO_SIN_LLEGADA = { color: "var(--gray)", fontSize: 11, whiteSpace: "normal", lineHeight: 1.15 } as const;
 
 export default function RoutesPage() {
-  // «Ruta de hoy» (/map) monta ESTA pantalla dentro de `SoloLectura` (D-NEXT): sin botones ni acciones. Va por contexto y no
+  // «Ruta de hoy» (/map) monta ESTA pantalla dentro de `SoloLectura` (D-481): sin botones ni acciones. Va por contexto y no
   // por prop porque Next no deja a una página declarar props propias.
   const soloLectura = useSoloLectura();
   const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching, realRole } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   const [fechaElegida, setDate] = useState(todayISO());
-  // «Ruta de hoy» (`soloLectura`, D-NEXT) acota el día como lo acotaba su pantalla de antes (D-467/D-469): la ventana de
+  // «Ruta de hoy» (`soloLectura`, D-481) acota el día como lo acotaba su pantalla de antes (D-467/D-469): la ventana de
   // D-239 y el ±7 de la función `rutas_del_dia`. El Gestor no acota: ve cualquier fecha.
   const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
   const pisoFecha = retentionFloorISO();
@@ -352,7 +352,7 @@ export default function RoutesPage() {
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Lo marcado ES el filtro (D-NEXT, c). El dueño, 2026-10-06: «so when clickin the checkbox just show the driver dont show
+  // Lo marcado ES el filtro (D-481, c). El dueño, 2026-10-06: «so when clickin the checkbox just show the driver dont show
   // any other drivers and the checkbox, remove the all driver dropdown». Hasta aquí había un desplegable «Todos los choferes»
   // (D-393/D-459) que escondía, y las casillas solo resaltaban. Ahora marcar un chofer enseña SOLO a ese (su fila, su
   // tarjeta, su ruta en el mapa); sin ninguno marcado se ven todos. Se recuerda por persona en este navegador, como aquel.
@@ -366,7 +366,7 @@ export default function RoutesPage() {
     if (!me?.id || !marcadosLeidos.current) return;
     guardaMarcados(() => window.localStorage, me.id, selected);
   }, [selected, me?.id]);
-  // «▦ Cuadrícula» (D-NEXT, e): la ruta cuyo nombre se pulsó, desplegada abajo. `null`: ninguna.
+  // «▦ Cuadrícula» (D-481, e): la ruta cuyo nombre se pulsó, desplegada abajo. `null`: ninguna.
   const [desplegada, setDesplegada] = useState<string | null>(null);
   // Los avisos que esta persona cerró con su ✕ (D-400): cerrados para siempre en este navegador, hasta que pulse
   // «Mostrar avisos ocultos». `null` = aún no se ha leído lo guardado: mientras, no se pinta ninguno, para que un aviso
@@ -471,7 +471,7 @@ export default function RoutesPage() {
   useEffect(() => {
     const el = panelFijoRef.current;
     if (!showTop || !el) { setAltoPanelFijo(0); return; }
-    // Solo fijo en pantalla ancha (D-NEXT, `.panel-fijo-del-gestor`): en el teléfono el panel y el mapa miden más que la
+    // Solo fijo en pantalla ancha (D-481, `.panel-fijo-del-gestor`): en el teléfono el panel y el mapa miden más que la
     // pantalla, y fijos tapaban todo lo de abajo. Sin fijar, las cajas no tienen que dejarle sitio.
     const mide = () => setAltoPanelFijo(getComputedStyle(el).position === "sticky" ? Math.round(el.getBoundingClientRect().height) : 0);
     mide();
@@ -628,7 +628,7 @@ export default function RoutesPage() {
     () => carrilesDelDia(drivers, bucketNames, dayOrders, hechasPintadas.keys()),
     [drivers, dayOrders, bucketNames, hechasPintadas],
   );
-  // El filtro de chofer que manda ahora (D-NEXT): lo marcado en el panel, si esas rutas siguen en la pantalla; vacío = todos.
+  // El filtro de chofer que manda ahora (D-481): lo marcado en el panel, si esas rutas siguen en la pantalla; vacío = todos.
   const filtroChofer = useMemo(() => marcadosVigentes(selected, lanes.map((l) => l.key)), [selected, lanes]);
   const pasaFiltro = (ruta: string | null | undefined) => pasaElFiltro(filtroChofer, ruta);
   const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));
@@ -1183,7 +1183,7 @@ export default function RoutesPage() {
   const clasePastillas = (clave: string) => (columnaDeOrdenes(clave, ORDER_COLUMNS)?.pastillas ? "td-pastillas" : undefined);
   // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-360). Para el
   // dueño «still pending the clicking on the ID or invoice # to view the full order details».
-  // En solo lectura (D-NEXT), la orden ENTERA solo se abre si esta persona YA la puede leer, y un vendedor solo las suyas
+  // En solo lectura (D-481), la orden ENTERA solo se abre si esta persona YA la puede leer, y un vendedor solo las suyas
   // (`ordenLegible`, la regla de D-467); si no, la factura es texto sin gesto.
   const abreLaOrden = (d: Delivery): { onClick?: (e: React.MouseEvent) => void; style: React.CSSProperties; title?: string } => {
     const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me) : d;
@@ -1358,7 +1358,7 @@ export default function RoutesPage() {
       barras: barrasDeLaRuta(r.viajes, r.base, DAY_START_MIN), bloqueada: r.bloqueada,
     };
   });
-  // En solo lectura no se suelta nada en una ruta vacía: las filas sin órdenes sobran (D-NEXT, f). En el Gestor se quedan.
+  // En solo lectura no se suelta nada en una ruta vacía: las filas sin órdenes sobran (D-481, f). En el Gestor se quedan.
   const filasDelGantt = soloLectura ? ganttRows.filter((r) => r.orders.length > 0) : ganttRows;
 
   const assignTo = (id: string, driver: string) => {
@@ -1808,7 +1808,7 @@ export default function RoutesPage() {
       carriles: lanes, porChofer: byDriver, delDia: dayOrders, hechas: hechasPintadas,
       pasaFiltro, soloUnChofer: soloAlgunos(filtroChofer), enfocado: focused, atenuada: isDim,
       colorDe: colorFor, colorSinChofer: UNASSIGNED_COLOR,
-      // D-NEXT (d): una recogida en una tienda de RTG no lleva burbuja «P1»: la casita y la base ya están ahí.
+      // D-481 (d): una recogida en una tienda de RTG no lleva burbuja «P1»: la casita y la base ya están ahí.
       recogidaEnTienda: (lugar) => esTiendaRtg(lugar, settings.stores ?? []),
       baseDe: (clave) => {
         const addr = (pickupAddressFor(clave) ?? "").trim();
@@ -1934,10 +1934,10 @@ export default function RoutesPage() {
   // que sí pinta las rutas vacías—; renombrar o quitar una ruta temporal vacía sigue en el panel. Las marcadas vacías se
   // nombran en una línea (`marcadasSinParadas`).
   const shownDrivers = lanesDelFiltro.filter((u) => conAlgoQuePintar(u.key));
-  // El panel «Choferes y rutas» (D-NEXT, f): un chofer sin ninguna orden ese día no sale; una ruta temporal vacía sí.
+  // El panel «Choferes y rutas» (D-481, f): un chofer sin ninguna orden ese día no sale; una ruta temporal vacía sí.
   const filasDelPanel = rutasConOrdenes(lanesDelFiltro, conAlgoQuePintar);
   const marcadasSinParadas = lanesDelFiltro.filter((u) => selected.has(u.key) && (byDriver.get(u.key) ?? []).length === 0);
-  // «▦ Cuadrícula» (D-NEXT, e): arriba, una tarjeta COMPACTA por ruta (nombre, números, pastillas; sin tabla ni botones);
+  // «▦ Cuadrícula» (D-481, e): arriba, una tarjeta COMPACTA por ruta (nombre, números, pastillas; sin tabla ni botones);
   // abajo, DESPLEGADA a todo el ancho, la del nombre pulsado. En «▭ Ancho», las tarjetas enteras, como siempre.
   const rutaDesplegada = desplegadaVigente(desplegada, shownDrivers.map((u) => u.key));
   const tarjetasDeRuta: [Lane, ModoDeTarjeta][] = wideRoutes
@@ -2518,7 +2518,7 @@ export default function RoutesPage() {
           filtro estaba en la cabecera, junto a la fecha; el dueño, 2026-10-01: «mueve eseo filtro del conducto abajo al lado
           de timeline». Lo que filtra son las tarjetas de aquí abajo (y el panel y el mapa). Misma función, lo mismo guardado. */}
       <div data-barra-de-vistas style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          {/* El desplegable «Todos los choferes» (D-393/D-459) se fue (D-NEXT): el filtro son las casillas del panel «Choferes y
+          {/* El desplegable «Todos los choferes» (D-393/D-459) se fue (D-481): el filtro son las casillas del panel «Choferes y
               rutas». Aquí solo se dice con quién se está, y se quita de un toque. */}
           {filtroChofer.size > 0 && (
             <span className="sema" data-filtro-de-chofer style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--accent)", color: "var(--accent)", background: "var(--card)" }}
@@ -2645,7 +2645,7 @@ export default function RoutesPage() {
         </div>
       )}
       {tarjetasDeRuta.map(([u, modoDeTarjeta]) => {
-        // Qué lleva esta tarjeta (D-NEXT, e): la compacta, solo la cabecera sin botones; la desplegada, todo; la ancha, lo de siempre.
+        // Qué lleva esta tarjeta (D-481, e): la compacta, solo la cabecera sin botones; la desplegada, todo; la ancha, lo de siempre.
         const acciones = conAcciones(soloLectura, modoDeTarjeta);
         const desplegadaAqui = modoDeTarjeta === "desplegada" || (modoDeTarjeta === "compacta" && rutaDesplegada === u.key);
         const stops = byDriver.get(u.key) ?? [];
@@ -2710,7 +2710,7 @@ export default function RoutesPage() {
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379); y, fila a fila, lo que aún no tiene puesto.
         const provisional = esProvisional(stops);
         const isC = isCollapsed(u.key);
-        // La compacta de «Cuadrícula» no lleva cuerpo; la desplegada, siempre; la ancha, si no está plegada (D-NEXT, e).
+        // La compacta de «Cuadrícula» no lleva cuerpo; la desplegada, siempre; la ancha, si no está plegada (D-481, e).
         const sinCuerpo = !conCuerpo(modoDeTarjeta, isC);
         // En qué está la medida de esta ruta, para la columna «Llegada» y la cabecera (D-456).
         const medida = estadoDeLaMedida(u.key, stops);
@@ -2738,7 +2738,7 @@ export default function RoutesPage() {
               {modoDeTarjeta === "ancha" && (
                 <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} onClick={() => toggleCollapse(u.key)} title={t("Collapse", "Contraer")}>{isC ? "▸" : "▾"}</button>
               )}
-              {/* El NOMBRE (D-NEXT, e): en «Ancho», resalta la ruta en el mapa, como siempre; en «Cuadrícula», despliega su tabla
+              {/* El NOMBRE (D-481, e): en «Ancho», resalta la ruta en el mapa, como siempre; en «Cuadrícula», despliega su tabla
                   abajo (otro nombre la cambia; el mismo la pliega). */}
               <span
                 data-nombre-de-ruta={u.key}

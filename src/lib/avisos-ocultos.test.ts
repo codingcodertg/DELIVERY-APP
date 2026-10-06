@@ -94,7 +94,7 @@ describe("la pantalla del Gestor usa lo cerrado", () => {
     expect(pagina).toContain("{puedeArmarRutas && ( <PlanDelDia date={date} onPublicado={() => setPublicaciones((n) => n + 1)} abierto={planAbierto} onCerrar={() => setPlanAbierto(false)} onEstado={setEstadoPlan} onAbrirOrden={(id) => { const d = deliveries.find((x) => x.id === id.split(\"#\")[0]); if (d) setOpenOrder(d); }} columnas={{");
     for (const muerto of ["planTraidoAMano", "barraDeArmarRutas", "data-traer-armar-rutas", "AVISOS_DEL_GESTOR.armarRutas", "AVISOS_DEL_GESTOR.ayudaDelMapa"]) expect(pagina, muerto).not.toContain(muerto);
     // Los mismos que antes pueden planear: admin y logística, con un día concreto.
-    // Puesto al día por D-NEXT: y nunca en «Ruta de hoy» (el Gestor en solo lectura).
+    // Puesto al día por D-481: y nunca en «Ruta de hoy» (el Gestor en solo lectura).
     expect(pagina).toContain("const puedeArmarRutas = !soloLectura && !allDates && !soloPendientes && !!me && [\"admin\", \"logistics\"].includes(me.role);");
   });
 });

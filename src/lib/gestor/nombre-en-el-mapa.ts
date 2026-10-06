@@ -1,7 +1,7 @@
 import { facturaYId } from "@/lib/route-plan/etiqueta";
 
 /**
- * Cómo se nombra una orden en el MAPA (D-NEXT, a): por su FACTURA. El dueño, 2026-10-06 (dictado, literal): «remove id and
+ * Cómo se nombra una orden en el MAPA (D-481, a): por su FACTURA. El dueño, 2026-10-06 (dictado, literal): «remove id and
  * have invoice in the map view».
  *
  * Los pines del mapa decían «#1013 — Diego (Parada D2)»: el ID. En las tablas del Gestor la factura manda desde D-456 («Invoice

@@ -1,5 +1,5 @@
 /**
- * El filtro de chofer del Gestor de Rutas y de «Ruta de hoy» son las CASILLAS del panel «Choferes y rutas» (D-NEXT).
+ * El filtro de chofer del Gestor de Rutas y de «Ruta de hoy» son las CASILLAS del panel «Choferes y rutas» (D-481).
  *
  * El dueño, 2026-10-06 (dictado, literal): «so when clickin the checkbox just show the driver dont show any other drivers
  * and the checkbox, remove the all driver dropdown».

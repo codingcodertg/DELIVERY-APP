@@ -28,7 +28,7 @@ import { pasaElFiltro } from "@/lib/gestor/filtro-de-choferes";
 /** Lo que una fila de «Todas» necesita de la orden: lo de «Sin asignar» y lo que distingue una ya hecha (`hechasQueSePintan`). */
 export type OrdenDeTodas = OrdenDelPool & { route_seq?: number | null };
 
-/** El filtro de chofer: UN chofer (el desplegable de D-393, "" = todos) o, desde D-NEXT, los MARCADOS en el panel (vacío = todos). */
+/** El filtro de chofer: UN chofer (el desplegable de D-393, "" = todos) o, desde D-481, los MARCADOS en el panel (vacío = todos). */
 export type FiltroDeChofer = string | ReadonlySet<string>;
 
 /** ¿Entra esta orden en «Todas» con este filtro de chofer? Las de ESE chofer (o de esos), y las que no tienen ninguno. */

@@ -1498,7 +1498,7 @@ table.orders th { text-align: left; }
 @media (max-width: 640px) { .lb-nav { width: 36px; height: 52px; font-size: 24px; } }
 
 /* El panel «Choferes y rutas» y el mapa del Gestor / «Ruta de hoy» quedan fijos arriba al bajar (D-346), solo en pantalla ancha
-   (D-NEXT): en un teléfono los dos, apilados, miden más que la pantalla y fijos tapaban las tarjetas de abajo. */
+   (D-481): en un teléfono los dos, apilados, miden más que la pantalla y fijos tapaban las tarjetas de abajo. */
 @media (min-width: 900px) { .panel-fijo-del-gestor { position: sticky; top: 6px; z-index: 5; } }
 
 /* Un botón por fila al lado del número (OrdersTable `accionDeFila`, D-409: «Recibir» en Recepción). */

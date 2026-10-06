@@ -21,7 +21,7 @@ const RELEE_CADA_MS = 60_000;
  *   · En el demo (sin base): las órdenes del demo, por la misma proyección.
  */
 /**
- * `activo` (D-NEXT): «Ruta de hoy» es ahora el Gestor de Rutas en solo lectura, y es el Gestor quien llama a este gancho.
+ * `activo` (D-481): «Ruta de hoy» es ahora el Gestor de Rutas en solo lectura, y es el Gestor quien llama a este gancho.
  * El Gestor de verdad (quien asigna) pinta sus propias órdenes y NO necesita la función: con `activo: false` el gancho no
  * consulta nada, no relee nada y devuelve vacío. Los ganchos de React no pueden ser condicionales; esto sí.
  */

@@ -222,7 +222,7 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(seccion).toContain("const elegidos = choferesDelReparto.filter((c) => c.puede && elegidosDelReparto.has(c.id));");
   });
   it("dónde sale: dentro del recuadro «Elige conductor» (plegada), sola cuando no hay nada sin asignar marcado, y en «Rutas» con algo marcado; nunca una barra arriba (D-459)", () => {
-    // Puesto al día por D-NEXT: nada de esto en «Ruta de hoy» (solo lectura).
+    // Puesto al día por D-481: nada de esto en «Ruta de hoy» (solo lectura).
     const recuadro = trozo("{!soloLectura && poolSelectedCount > 0 && ( <div className=\"card\" data-elige-conductor", "{!soloLectura && poolSelectedCount === 0 && seleccionDelReparto.length > 0 && recuadroDeReparto()}");
     expect(recuadro).toContain("{seleccionDelReparto.length > 0 && seccionDeReparto(false)}");
     expect(recuadro.indexOf("data-nueva-ruta-del-recuadro")).toBeLessThan(recuadro.indexOf("seccionDeReparto(false)"));

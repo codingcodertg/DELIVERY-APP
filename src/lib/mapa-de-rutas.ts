@@ -25,7 +25,7 @@ export interface OrdenDelMapa extends OrdenAsignada {
   order_no: number;
   order_code?: string | null;
   order_suffix?: string | null;
-  /** D-NEXT (a): el pin nombra la orden por su factura; sin ella, por su ID y «sin factura». */
+  /** D-481 (a): el pin nombra la orden por su factura; sin ella, por su ID y «sin factura». */
   invoice_num?: string | null;
   stage: string;
   assigned_driver: string | null;
@@ -125,7 +125,7 @@ export interface EntradaDeLosPuntos<T extends OrdenDelMapa> {
   marcadas?: { tiene: (id: string) => boolean; colorDe: (id: string) => string | undefined; cuantas: number };
   /** Lo que se añade al rótulo de una entrega («Ruta de hoy»: la ciudad, los pallets y la llegada). */
   detalleDe?: (d: T) => string;
-  /** D-NEXT (d): la recogida es en una tienda de RTG → su burbuja «P1» no se pinta (la casita y la base ya están ahí). */
+  /** D-481 (d): la recogida es en una tienda de RTG → su burbuja «P1» no se pinta (la casita y la base ya están ahí). */
   recogidaEnTienda?: (lugar: string) => boolean;
 }
 
@@ -167,7 +167,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
     for (const [id, etiqueta] of lectura.etiquetaDe) dDeTodas.set(id, etiqueta);
     for (const p of lectura.filas) {
       if (p.tipo !== "P" || !p.lugar) continue;
-      // D-NEXT (d): «if pickup are in a store remove the p1 bubble». En una tienda de RTG la burbuja sobra.
+      // D-481 (d): «if pickup are in a store remove the p1 bubble». En una tienda de RTG la burbuja sobra.
       if (e.recogidaEnTienda?.(p.lugar)) continue;
       const tienda = e.coordsDeTienda(p.lugar);
       if (!tienda) continue;
