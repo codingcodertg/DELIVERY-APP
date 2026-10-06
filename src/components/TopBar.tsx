@@ -101,7 +101,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // La condición vive en `canOpenTab` (D-240), no aquí: es la misma pregunta que hacen
   // las páginas para decidir si se abren, y tenerla en dos sitios es como una pantalla
   // acabó dejando entrar a quien no tenía pestaña.
-  // Y en el orden de cada rol (D-NEXT): para almacén, su «Órdenes» antes que «Ruta de hoy».
+  // Y en el orden de cada rol (D-480): para almacén, su «Órdenes» antes que «Ruta de hoy».
   const visibleTabs = pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, me)), me.role);
   const mainTabs = visibleTabs.filter((tb) => !vaEnGeneral(tb, me.role));
   const generalTabs = visibleTabs.filter((tb) => vaEnGeneral(tb, me.role));

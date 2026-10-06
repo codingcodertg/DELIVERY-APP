@@ -3,7 +3,7 @@ import { canEditFields } from "@/lib/constants";
 import { orderOwner } from "@/lib/utils";
 
 /**
- * Qué puede tocar cada persona en la ficha de una orden YA creada (D-NEXT).
+ * Qué puede tocar cada persona en la ficha de una orden YA creada (D-480).
  *
  * El dueño (2026-10-06): «sales people cna edit only the date of their orders». Hasta aquí ventas editaba el
  * formulario ENTERO mientras la orden estaba pendiente o rechazada (`canEditFields`, D-286), y la base lo deja

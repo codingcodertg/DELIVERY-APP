@@ -115,7 +115,7 @@ export function OrderModal({
   const existing = abierta ? deliveries.find((x) => x.id === abierta.id) ?? abierta : null;
   const isNew = !existing;
   const stage: Stage = existing?.stage ?? "draft";
-  // Qué puede tocar esta persona en esta orden (D-NEXT): el formulario entero, solo la fecha de entrega (ventas, en
+  // Qué puede tocar esta persona en esta orden (D-480): el formulario entero, solo la fecha de entrega (ventas, en
   // una orden suya fuera del borrador) o nada. Una sola respuesta para el botón «Editar», los campos y lo que se guarda.
   const alcance: AlcanceDeEdicion = alcanceDeEdicion({ rol: me.role, miId: me.id, orden: existing });
   const editable = isNew || (startEditing && alcance !== "nada");
@@ -563,7 +563,7 @@ export function OrderModal({
   // decide son las coordenadas y la fuente que acaban en la base, no cómo se pintan. Aquí solo se
   // le pasa el estado de la ficha.
   const save = async () => {
-    // Ventas en una orden suya ya enviada: viaja SOLO la fecha (D-NEXT). No pasa por los avisos de campos obligatorios ni
+    // Ventas en una orden suya ya enviada: viaja SOLO la fecha (D-480). No pasa por los avisos de campos obligatorios ni
     // de duplicados: no cambia nada de lo que esos avisos miran.
     if (!isNew && alcance === "solo_fecha") {
       if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }
@@ -1306,7 +1306,7 @@ export function OrderModal({
 
   // Field editability: sales owns order data, warehouse owns fulfillment data.
   const salesFields = editing && alcance === "todo" && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));
-  /** Ventas cambiando SOLO la fecha de una orden suya (D-NEXT): un campo en vez del formulario. */
+  /** Ventas cambiando SOLO la fecha de una orden suya (D-480): un campo en vez del formulario. */
   const soloFecha = editing && !isNew && alcance === "solo_fecha";
   // True when an existing order is being pushed to a LATER delivery date (a
   // reprogram) — the cue to offer the "deliver first thing in the morning" flag.
@@ -1839,7 +1839,7 @@ export function OrderModal({
           </>
         )}
 
-        {/* ---------- SOLO LA FECHA (ventas, orden suya ya enviada; D-NEXT) ---------- */}
+        {/* ---------- SOLO LA FECHA (ventas, orden suya ya enviada; D-480) ---------- */}
         {soloFecha && (
           <>
             <div className="section-label">{t("Delivery date", "Fecha de entrega")}</div>
@@ -3081,7 +3081,7 @@ function StageActions({
   /** El pedido, para las acciones que necesitan sus datos y no solo su etapa. */
   pedido: Delivery;
   onEdit: () => void;
-  /** Qué abre «Editar» para esta persona (D-NEXT): el formulario, solo la fecha, o no hay botón. */
+  /** Qué abre «Editar» para esta persona (D-480): el formulario, solo la fecha, o no hay botón. */
   edicion: AlcanceDeEdicion;
   onMove: (to: Stage, note?: string) => void;
   /** Dónde aterriza esta orden si se envía: `approved` o `pending` (D-313, `etapaAlEnviar`). */

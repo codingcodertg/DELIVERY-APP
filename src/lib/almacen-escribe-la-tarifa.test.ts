@@ -19,7 +19,7 @@ describe("el gate de la tarifa es propio, no el de ventas ni el de almacén", ()
     expect(ficha).toContain("const tarifaEditable = salesFields || whFields;");
   });
   it("almacén NO se mete dentro de `salesFields`, que sigue siendo el de ventas", () => {
-    // Desde D-NEXT lleva además `alcance === "todo"`: ventas en «solo fecha» no entra aquí. Almacén sigue sin entrar.
+    // Desde D-480 lleva además `alcance === "todo"`: ventas en «solo fecha» no entra aquí. Almacén sigue sin entrar.
     expect(ficha).toContain('const salesFields = editing && alcance === "todo" && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));');
     expect(ficha).not.toMatch(/const salesFields = [^;]*warehouse/);
   });

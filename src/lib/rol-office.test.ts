@@ -114,7 +114,7 @@ describe("OrderModal: donde decía manager, ahora dice office también", () => {
   });
 
   it("edita los campos de ventas", () => {
-    // Desde D-NEXT lleva además `alcance === "todo"` (ventas en «solo fecha» queda fuera); office sigue dentro.
+    // Desde D-480 lleva además `alcance === "todo"` (ventas en «solo fecha» queda fuera); office sigue dentro.
     expect(modal).toContain('const salesFields = editing && alcance === "todo" && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));');
   });
 

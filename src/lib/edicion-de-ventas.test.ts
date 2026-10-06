@@ -6,7 +6,7 @@ import { canEditFields, STAGES } from "./constants";
 import type { Stage, UserRole } from "./types";
 
 /**
- * Ventas solo cambia la FECHA de sus órdenes (D-NEXT). El dueño, 2026-10-06: «sales people cna edit only the
+ * Ventas solo cambia la FECHA de sus órdenes (D-480). El dueño, 2026-10-06: «sales people cna edit only the
  * date of their orders».
  *
  * La regla vive en `alcanceDeEdicion`; que la ficha la USA —botón, campos y lo que guarda— se comprueba leyendo

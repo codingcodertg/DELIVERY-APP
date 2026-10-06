@@ -1,7 +1,7 @@
 import type { UserRole } from "@/lib/types";
 
 /**
- * En qué orden se pintan las pestañas de la barra para un rol (D-NEXT).
+ * En qué orden se pintan las pestañas de la barra para un rol (D-480).
  *
  * `TABS` tiene UN orden, el del admin, y la barra de cada rol es ese orden filtrado. Para almacén eso
  * ponía «Ruta de hoy» (`map`, que D-467 dio a todos) por delante de su propia cola, que es la pestaña que

@@ -71,7 +71,7 @@ export function LocalApp({ children }: { children: React.ReactNode }) {
       </div>
       <TopBar me={me} />
       {/* La misma guarda de pantalla que el layout de servidor (D-240). Sin ella el demo dejaba entrar por URL a lo que
-          la barra no enseña, y no se podía medir aquí quién entra a qué (D-NEXT). */}
+          la barra no enseña, y no se podía medir aquí quién entra a qué (D-480). */}
       <div className="wrap"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div>
       <HelpButton me={me} />
       <VersionFooter />

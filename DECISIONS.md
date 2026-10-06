@@ -13377,7 +13377,7 @@ de las cinco pantallas. Las tres cosas que hay que mirar cuando el dueño lo abr
 
 ## D-240 · Quién entra a una pantalla lo decide la misma pregunta que pinta su pestaña, y se decide una vez
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): para oficina (`accounting`, `ROLES_CON_PESTANAS_FIJAS`) un permiso suelto ya no abre pestaña, y la exención de «Mi ruta» tampoco le abre esa pantalla: solo las de su rol en `TABS` (Órdenes y Ruta de hoy). Para los demás roles esta entrada sigue igual.
+> **⚠ Reemplazada en parte por D-480** (2026-10-06): para oficina (`accounting`, `ROLES_CON_PESTANAS_FIJAS`) un permiso suelto ya no abre pestaña, y la exención de «Mi ruta» tampoco le abre esa pantalla: solo las de su rol en `TABS` (Órdenes y Ruta de hoy). Para los demás roles esta entrada sigue igual.
 
 **Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
 **Pedido por:** la observación que quedó de D-239 —`accounting` llegaba a Cuentas por URL
@@ -18648,7 +18648,7 @@ por la pantalla nueva. Las de `help-attachments.test.ts` siguen siendo 24, con s
 
 ## D-286 · Un borrador se puede retomar, y duplicar deja de perder cosas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): el borrador lo sigue editando entero cualquiera que lo vea; pero en una orden **pendiente o rechazada** ventas ya no edita el formulario entero, solo la fecha de entrega, y solo si la orden es suya (`orderOwner`). En una ajena, nada.
+> **⚠ Reemplazada en parte por D-480** (2026-10-06): el borrador lo sigue editando entero cualquiera que lo vea; pero en una orden **pendiente o rechazada** ventas ya no edita el formulario entero, solo la fecha de entrega, y solo si la orden es suya (`orderOwner`). En una ajena, nada.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, dos cosas: *«cuando un sales o cualquiera tiene un borrador no lo puede volver
@@ -36267,7 +36267,7 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 
 ## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
 
-> **⚠ Puesta al día por D-NEXT** (2026-10-06): en la barra de almacén, «Ruta de hoy» va DETRÁS de su «Órdenes» (`pestanasEnOrden`). Quién la ve no cambia.
+> **⚠ Puesta al día por D-480** (2026-10-06): en la barra de almacén, «Ruta de hoy» va DETRÁS de su «Órdenes» (`pestanasEnOrden`). Quién la ve no cambia.
 
 **Fecha:** 2026-10-04 · **Migración:** `160_rutas_del_dia.sql`, **escrita y NO aplicada** (plan y ensayo con ROLLBACK:
 `docs/PLAN-160-rutas-del-dia.md`) · **Versión:** deliveries 1.254.0, repo 1.341.0. **Reemplaza en parte a** D-437 (el
@@ -37566,9 +37566,9 @@ seguir probando lo mismo.
   entrega es de alguien). No reparte; se deja igual a propósito y se dice aquí.
 - No se probó en el navegador ni contra producción con sesión: el cambio es del motor y de una casilla de Ajustes.
 
-## D-NEXT · Oficina solo con Órdenes y Ruta de hoy (también con permisos sueltos); ventas solo cambia la FECHA de sus órdenes; en almacén, Órdenes antes que Ruta de hoy
+## D-480 · Oficina solo con Órdenes y Ruta de hoy (también con permisos sueltos); ventas solo cambia la FECHA de sus órdenes; en almacén, Órdenes antes que Ruta de hoy
 
-**Fecha:** 2026-10-06 · **Versión:** la pone el orquestador (toca `src/components/` y `src/lib/constants.ts`: Entregas)
+**Fecha:** 2026-10-06 · **Versión:** deliveries 1.260.0, repo 1.353.0 (toca `src/components/` y `src/lib/constants.ts`: Entregas)
 · **Migración:** ninguna. **Reemplaza en parte a** D-240 (un permiso suelto ya no le abre pestañas a oficina) y D-286
 (ventas ya no edita el formulario entero de una orden pendiente o rechazada); las dos llevan su nota. D-467 lleva una
 nota sobre el orden de la barra de almacén.

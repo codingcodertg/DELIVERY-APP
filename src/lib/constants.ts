@@ -155,7 +155,7 @@ export function canOpenTab(id: string, u: CapUser | null | undefined): boolean {
   if (!u) return false;
   const tb = TABS.find((t) => t.id === id);
   if (!tb) return false;
-  // Oficina, por ahora, solo con las pestañas de su rol (D-NEXT): un permiso suelto no le abre otra.
+  // Oficina, por ahora, solo con las pestañas de su rol (D-480): un permiso suelto no le abre otra.
   if (tb.roles && !tb.roles.includes(u.role) && ROLES_CON_PESTANAS_FIJAS.includes(u.role)) return false;
   return !tb.roles || tb.roles.includes(u.role) || (tb.cap ? extraCaps(u).includes(tb.cap) : false);
 }
@@ -185,7 +185,7 @@ export const TAB_GATE_EXEMPT: string[] = ["myroute"];
 
 /**
  * Roles cuya barra de Entregas es SOLO la de su rol en `TABS`: un permiso suelto (`permissions`) no les abre otra
- * pestaña, ni la exención de arriba les abre «Mi ruta» (D-NEXT).
+ * pestaña, ni la exención de arriba les abre «Mi ruta» (D-480).
  *
  * El dueño (2026-10-06): «when in office just to oredr and today route office for now». Por rol, oficina ya tenía solo
  * Órdenes y Ruta de hoy desde D-467; lo que le daba más eran los permisos sueltos que un admin concedió a personas

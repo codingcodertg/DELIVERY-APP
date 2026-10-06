@@ -6,7 +6,7 @@ import { canOpenTab, ROLE_INFO, TABS, vaEnGeneral } from "./constants";
 import type { UserRole } from "./types";
 
 /**
- * Lo que ve cada rol en la barra de Entregas (D-NEXT). El dueño, 2026-10-06:
+ * Lo que ve cada rol en la barra de Entregas (D-480). El dueño, 2026-10-06:
  *   «when in office just to oredr and today route office for now»
  *   «orders before todays routes for warehouse»
  */
