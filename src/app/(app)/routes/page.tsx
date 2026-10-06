@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { useSoloLectura } from "@/lib/gestor/solo-lectura";
 import { PlanDelDia } from "@/components/PlanDelDia";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
@@ -13,7 +14,16 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
 import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
-import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLabel, shiftDateISO, todayISO } from "@/lib/utils";
+import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
+import { MapLegend } from "@/components/MapLegend";
+import { colorDeChofer, leyendaDelMapa } from "@/lib/map-legend";
+import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
+import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
+import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
+import { guardaMarcados, leeMarcados, marcadosVigentes, pasaElFiltro, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
+import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
+import { esTiendaRtg } from "@/lib/gestor/recogida-en-tienda";
+import { alternaDesplegada, conAcciones, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
 import { DAY_START_MIN, useMedidaDeRutas } from "@/lib/usa-medida-de-rutas";
@@ -36,7 +46,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
 import { cuentasDeTodas, filasDeTodas, todasDelGestor } from "@/lib/todas-del-gestor";
 import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
-import { PANEL_DE_TODAS, PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, filtroVigente, guardaFiltroDeChofer, leeFiltroDeChofer, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
+import { PANEL_DE_TODAS, PANEL_SIN_ASIGNAR, estaPlegada } from "@/lib/vista-del-gestor";
 import { esProvisional, esProvisionalLaFila, type FilaDeLaRuta, type LecturaDeRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
@@ -116,8 +126,17 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 // viaje» (D-433), «Dividir en 2» / «Unir viajes» (D-437), «Ver un viaje» (D-441), la cabecera y la raya de cada viaje, sus
 // flechas, y sus colores.
 //
-// The page is driven by a driver switcher: pick one driver to see just
-// their pins and routes (or "All" for the whole day at once).
+// D-481 (el dueño, 2026-10-06, seis pedidos de un dictado):
+//   · «Ruta de hoy» (/map) ES esta pantalla con `soloLectura`: las mismas tarjetas, tablas, mapa, Cuadrícula y Horario, y
+//     ningún botón ni acción (nada se asigna, se mueve, se optimiza ni se vacía). Sus órdenes salen de `useRutasDelDia`
+//     (D-467) y se completan con lo que la persona ya lee (`lib/gestor/ordenes-de-ruta-de-hoy`).
+//   · El filtro de chofer son las CASILLAS del panel (`lib/gestor/filtro-de-choferes`): marcar uno enseña solo a ese. El
+//     desplegable «Todos los choferes» (D-393/D-459) se fue.
+//   · En «▦ Cuadrícula», las tarjetas compactas arriba y, al pulsar un nombre, su tabla desplegada abajo a tamaño normal;
+//     los botones de acción solo en la desplegada (`lib/gestor/cuadricula`).
+//   · Un chofer sin órdenes ese día no sale en el panel ni en las tarjetas (`lib/gestor/rutas-visibles`).
+//   · El pin del mapa nombra la orden por su factura (`lib/gestor/nombre-en-el-mapa`), y una recogida en una tienda de RTG
+//     no lleva burbuja «P1» (`lib/gestor/recogida-en-tienda`).
 // ============================================================
 
 const UNASSIGNED_COLOR = "#6b7686";
@@ -135,6 +154,8 @@ const SEL_PALETTE = ["#2456c9", "#0f8a8a", "#d1782e", "#7c4dbc", "#1f9d61", "#d6
 const ROUTE_STAGES: Delivery["stage"][] = ["pending", "approved", "fulfilling", "ready"];
 // Used whenever a driver has no capacity set yet in Settings.
 const DEFAULT_CAPACITY = 12;
+/** En solo lectura no se ubica ninguna dirección: nada se escribe desde «Ruta de hoy». */
+const SIN_ORDENES: Delivery[] = [];
 
 // El reloj del día (`DAY_START_MIN`), los tipos de la medida y `fmtMinutes`/`fmtClock` viven en `lib/usa-medida-de-rutas`
 // desde D-467: la medida la comparten esta pantalla y «Ruta de hoy».
@@ -143,10 +164,27 @@ const DEFAULT_CAPACITY = 12;
 const ESTILO_SIN_LLEGADA = { color: "var(--gray)", fontSize: 11, whiteSpace: "normal", lineHeight: 1.15 } as const;
 
 export default function RoutesPage() {
-  const { me, users, deliveries, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching } = useData();
+  // «Ruta de hoy» (/map) monta ESTA pantalla dentro de `SoloLectura` (D-481): sin botones ni acciones. Va por contexto y no
+  // por prop porque Next no deja a una página declarar props propias.
+  const soloLectura = useSoloLectura();
+  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching, realRole } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
-  const [date, setDate] = useState(todayISO());
+  const [fechaElegida, setDate] = useState(todayISO());
+  // «Ruta de hoy» (`soloLectura`, D-481) acota el día como lo acotaba su pantalla de antes (D-467/D-469): la ventana de
+  // D-239 y el ±7 de la función `rutas_del_dia`. El Gestor no acota: ve cualquier fecha.
+  const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
+  const pisoFecha = retentionFloorISO();
+  const rango = rangoDeRutasDelDia(todayISO());
+  const primerDia = veTodoElHistorial || pisoFecha < rango.min ? rango.min : pisoFecha;
+  const fecha = fechaElegida < primerDia ? primerDia : fechaElegida > rango.max ? rango.max : fechaElegida;
+  const date = soloLectura ? fecha : fechaElegida;
+  // Las paradas de «Ruta de hoy» (D-467, `useRutasDelDia`: con la 160, las rutas enteras de cualquier rol): solo en solo
+  // lectura; el Gestor pinta lo que ya lee. Cada parada se completa con la orden entera si esta persona ya la tiene.
+  const { paradas: paradasDeHoy, origen: origenDeHoy } = useRutasDelDia(date, soloLectura);
+  const deliveries = useMemo(() => (soloLectura ? ordenesDeRutaDeHoy(paradasDeHoy, deliveriesLeidas) : deliveriesLeidas), [soloLectura, paradasDeHoy, deliveriesLeidas]);
+  // Los camiones en vivo, para todos menos ventas (regla de «Ruta de hoy», D-467; al Gestor ventas no entra).
+  const veCamiones = me?.role !== "sales";
   // "All dates" ignores the date filter so every routable order (and the routes
   // built on them) shows regardless of delivery date — handy when a route was
   // built for another day and seems to have vanished.
@@ -314,20 +352,22 @@ export default function RoutesPage() {
   // set = "no drivers selected" → everything shown at full strength (like
   // OptimoRoute). Selecting some highlights them and dims the rest.
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // El FILTRO de chofer (D-393), distinto de `selected`: aquel resalta y atenúa; este esconde a los demás en la lista de
-  // choferes, en las tarjetas de «Rutas» y en el mapa. «Todos» es el defecto. Se recuerda por persona en este navegador;
-  // lo que manda en cada momento es `filtroChofer` (más abajo), que vuelve a «Todos» si ese chofer ya no está.
-  const [filtroGuardado, setFiltroGuardado] = useState<string>(TODOS_LOS_CHOFERES);
+  // Lo marcado ES el filtro (D-481, c). El dueño, 2026-10-06: «so when clickin the checkbox just show the driver dont show
+  // any other drivers and the checkbox, remove the all driver dropdown». Hasta aquí había un desplegable «Todos los choferes»
+  // (D-393/D-459) que escondía, y las casillas solo resaltaban. Ahora marcar un chofer enseña SOLO a ese (su fila, su
+  // tarjeta, su ruta en el mapa); sin ninguno marcado se ven todos. Se recuerda por persona en este navegador, como aquel.
+  const marcadosLeidos = useRef(false);
   useEffect(() => {
     if (!me?.id) return;
-    setFiltroGuardado(leeFiltroDeChofer((k) => window.localStorage.getItem(k), me.id));
+    setSelected(new Set(leeMarcados((k) => window.localStorage.getItem(k), me.id)));
+    marcadosLeidos.current = true;
   }, [me?.id]);
-  const eligeFiltroDeChofer = (chofer: string) => {
-    setFiltroGuardado(chofer);
-    // Lo marcado en el panel se suelta: un chofer escondido y marcado seguiría contando para «Unir» sin verse.
-    setSelected(new Set());
-    if (me?.id) guardaFiltroDeChofer(() => window.localStorage, me.id, chofer);
-  };
+  useEffect(() => {
+    if (!me?.id || !marcadosLeidos.current) return;
+    guardaMarcados(() => window.localStorage, me.id, selected);
+  }, [selected, me?.id]);
+  // «▦ Cuadrícula» (D-481, e): la ruta cuyo nombre se pulsó, desplegada abajo. `null`: ninguna.
+  const [desplegada, setDesplegada] = useState<string | null>(null);
   // Los avisos que esta persona cerró con su ✕ (D-400): cerrados para siempre en este navegador, hasta que pulse
   // «Mostrar avisos ocultos». `null` = aún no se ha leído lo guardado: mientras, no se pinta ninguno, para que un aviso
   // cerrado no parpadee al recargar.
@@ -431,7 +471,9 @@ export default function RoutesPage() {
   useEffect(() => {
     const el = panelFijoRef.current;
     if (!showTop || !el) { setAltoPanelFijo(0); return; }
-    const mide = () => setAltoPanelFijo(Math.round(el.getBoundingClientRect().height));
+    // Solo fijo en pantalla ancha (D-481, `.panel-fijo-del-gestor`): en el teléfono el panel y el mapa miden más que la
+    // pantalla, y fijos tapaban todo lo de abajo. Sin fijar, las cajas no tienen que dejarle sitio.
+    const mide = () => setAltoPanelFijo(getComputedStyle(el).position === "sticky" ? Math.round(el.getBoundingClientRect().height) : 0);
     mide();
     const ro = new ResizeObserver(mide);
     ro.observe(el);
@@ -479,7 +521,7 @@ export default function RoutesPage() {
   const [trazosDelPlan, setTrazosDelPlan] = useState<Record<string, [number, number][]>>({});
   useEffect(() => { setTrazosDelPlan({}); }, [date, rutasPublicadas]);
   useEffect(() => {
-    if (!rutasPublicadas) return;
+    if (!rutasPublicadas || soloLectura) return;
     for (const chofer of selected) {
       if (trazosDelPlan[chofer] !== undefined) continue;
       const paradas = paradasPublicadasDe(chofer);
@@ -514,7 +556,7 @@ export default function RoutesPage() {
   // delivery date up to today, or leave it — either way it's on this list.
   const reschedule = (id: string, delivery_date: string) => updateDelivery(id, { delivery_date });
 
-  const geocoding = useAutoGeocode(dayOrders, updateDelivery);
+  const geocoding = useAutoGeocode(soloLectura ? SIN_ORDENES : dayOrders, updateDelivery);
   // Every store as a big red landmark point, always shown on the route map.
   const storeMarkers = useStoreMarkers(settings.stores);
 
@@ -534,9 +576,9 @@ export default function RoutesPage() {
   // same minute tick so the tag clears by itself when a phone goes quiet, not
   // only when a new position happens to arrive.
   const liveNames = useMemo(
-    () => liveDriverNames(users, shifts, driverLocations),
+    () => (veCamiones ? liveDriverNames(users, shifts, driverLocations) : new Set<string>()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [users, shifts, driverLocations, healthTick],
+    [users, shifts, driverLocations, healthTick, veCamiones],
   );
   // Set by tapping a driver's LIVE tag: frame the map on where they are right
   // now. Cleared as soon as anything else takes over the map, so it's a
@@ -550,13 +592,14 @@ export default function RoutesPage() {
   // Where each driver's phone last reported from, so the dispatcher can see
   // the fleet against the routes they planned.
   const liveDrivers = useMemo(() => {
+    if (!veCamiones) return [];
     const nameById = new Map(users.map((u) => [u.id, u.full_name]));
     // Misma regla que el mapa de despacho y que la ruta del día de Almacén (D-289). El color se
     // pasa como estaba aquí: esta pantalla no usa `colorDeChofer`.
     const color = (n: string) => settings.driver_colors?.[n] || fallbackDriverColor(n);
     return choferesEnVivo(driverLocations, nameById, color).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverLocations, users, settings.driver_colors]);
+  }, [driverLocations, users, settings.driver_colors, veCamiones]);
 
   const drivers = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
   const realDriverNames = useMemo(() => new Set(drivers.map((d) => d.full_name)), [drivers]);
@@ -585,9 +628,9 @@ export default function RoutesPage() {
     () => carrilesDelDia(drivers, bucketNames, dayOrders, hechasPintadas.keys()),
     [drivers, dayOrders, bucketNames, hechasPintadas],
   );
-  // El filtro de chofer que manda ahora (D-393): lo guardado si esa ruta sigue en la pantalla; si no, «Todos».
-  const filtroChofer = filtroVigente(filtroGuardado, lanes.map((l) => l.key));
-  const pasaFiltro = (ruta: string | null | undefined) => pasaElFiltroDeChofer(filtroChofer, ruta);
+  // El filtro de chofer que manda ahora (D-481): lo marcado en el panel, si esas rutas siguen en la pantalla; vacío = todos.
+  const filtroChofer = useMemo(() => marcadosVigentes(selected, lanes.map((l) => l.key)), [selected, lanes]);
+  const pasaFiltro = (ruta: string | null | undefined) => pasaElFiltro(filtroChofer, ruta);
   const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));
 
   // Desde qué puesto se numera la ruta de un chofer al moverla a mano: tras lo que ya recogió o entregó en esas fechas, que
@@ -976,7 +1019,8 @@ export default function RoutesPage() {
     () => unavailableDriverNames(availability, new Map(users.map((u) => [u.id, u.full_name])), date),
     [availability, users, date],
   );
-  const colorFor = (driver: string | null) => (driver ? settings.driver_colors?.[driver] || fallbackDriverColor(driver) : UNASSIGNED_COLOR);
+  // En `colorDeChofer` (D-274): la leyenda lee el mismo color que se pinta. Sin chofer, el gris de siempre (`UNASSIGNED_COLOR`).
+  const colorFor = (driver: string | null) => colorDeChofer(settings.driver_colors, driver);
   // A driver's own capacity, else the fleet-wide default, else the built-in.
   const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
   // Requisitos del camión (D-418): «Mejor lugar» no le da a un chofer una orden que pide algo que su camión no tiene.
@@ -1027,6 +1071,7 @@ export default function RoutesPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (soloLectura) return;
       const chosen = dayOrders.filter((d) => selectedOrders.has(d.id) && d.delivery_lat != null && d.delivery_lng != null);
       for (const d of chosen) {
         if (cancelled) return;
@@ -1102,7 +1147,7 @@ export default function RoutesPage() {
     palletsDe: (k) => sumaPallets(byDriver.get(k) ?? []),
     capacidadDe: (k) => capacityFor(k),
     noDisponibles: unavailableToday,
-    filtro: filtroChofer,
+    filtro: unicoMarcado(filtroChofer),
     enSuZona: (k) => esDeSuZona(k, filasAsignables.filter((d) => selectedOrders.has(d.id)), zonasDeChofer, settings.stores ?? []),
   });
   const conductorElegido = eleccionVigente(conductorPulsado, opcionesDelRecuadro);
@@ -1138,11 +1183,17 @@ export default function RoutesPage() {
   const clasePastillas = (clave: string) => (columnaDeOrdenes(clave, ORDER_COLUMNS)?.pastillas ? "td-pastillas" : undefined);
   // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-360). Para el
   // dueño «still pending the clicking on the ID or invoice # to view the full order details».
-  const abreLaOrden = (d: Delivery) => ({
-    onClick: (e: React.MouseEvent) => { e.stopPropagation(); setOpenOrder(d); },
-    style: { cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 } as const,
-    title: t("Open this order", "Abrir esta orden"),
-  });
+  // En solo lectura (D-481), la orden ENTERA solo se abre si esta persona YA la puede leer, y un vendedor solo las suyas
+  // (`ordenLegible`, la regla de D-467); si no, la factura es texto sin gesto.
+  const abreLaOrden = (d: Delivery): { onClick?: (e: React.MouseEvent) => void; style: React.CSSProperties; title?: string } => {
+    const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me) : d;
+    if (!legible) return { style: {} };
+    return {
+      onClick: (e: React.MouseEvent) => { e.stopPropagation(); setOpenOrder(legible); },
+      style: { cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 },
+      title: t("Open this order", "Abrir esta orden"),
+    };
+  };
   // Sin la columna del ID (D-408), el enlace que abre la orden es la FACTURA, en «Sin asignar» y en las paradas. Una orden
   // sin factura enseña su código en gris (`textoQueAbreLaOrden`), para que ninguna fila se quede sin nada que pulsar.
   const enlaceALaOrden = (d: Delivery) => {
@@ -1274,6 +1325,8 @@ export default function RoutesPage() {
     listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,
     tiendaBaseDe, coordsDeTienda,
     conParadas: lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => u.key),
+    // «Ruta de hoy» (D-467): no se busca la dirección de una base que ya tiene punto en Ajustes. Ahora la abren todos.
+    ...(soloLectura ? { buscaBases: "si_falta" as const } : {}),
     invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],
   });
   const aParadaDelGantt = (x: Delivery): ParadaDelGantt => ({
@@ -1305,6 +1358,8 @@ export default function RoutesPage() {
       barras: barrasDeLaRuta(r.viajes, r.base, DAY_START_MIN), bloqueada: r.bloqueada,
     };
   });
+  // En solo lectura no se suelta nada en una ruta vacía: las filas sin órdenes sobran (D-481, f). En el Gestor se quedan.
+  const filasDelGantt = soloLectura ? ganttRows.filter((r) => r.orders.length > 0) : ganttRows;
 
   const assignTo = (id: string, driver: string) => {
     clearRouteFor(driver);
@@ -1349,7 +1404,7 @@ export default function RoutesPage() {
   };
 
   const toggleOrder = (id: string) =>
-    setSelectedOrders((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+    !soloLectura && setSelectedOrders((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const clearSelection = () => setSelectedOrders(new Set());
 
   // Assign every checked order to one driver.
@@ -1683,6 +1738,7 @@ export default function RoutesPage() {
   const hayOrdenAbierta = useRef(false);
   hayOrdenAbierta.current = !!openOrder;
   useEffect(() => {
+    if (soloLectura) return;
     const tecla = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || hayOrdenAbierta.current) return;
       const el = e.target as HTMLElement | null;
@@ -1693,7 +1749,7 @@ export default function RoutesPage() {
     };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
-  }, []);
+  }, [soloLectura]);
 
   // Soltar una parada en «📅 Horario» (D-417). Qué se escribe lo decide `planDeSoltar` (lo mismo que las flechas y que
   // «📍 Mejor lugar»); la vista previa mientras se arrastra es ese mismo plan, sin escribir. D-443: el orden nuevo de las
@@ -1750,12 +1806,16 @@ export default function RoutesPage() {
     // (lib/mapa-de-rutas), lo mismo que pinta «Ruta de hoy» (D-467). Aquí se añade lo que es solo del Gestor: lo marcado ☑.
     const pts = puntosDeLasRutas<Delivery>({
       carriles: lanes, porChofer: byDriver, delDia: dayOrders, hechas: hechasPintadas,
-      pasaFiltro, soloUnChofer: filtroChofer !== TODOS_LOS_CHOFERES, enfocado: focused, atenuada: isDim,
+      pasaFiltro, soloUnChofer: soloAlgunos(filtroChofer), enfocado: focused, atenuada: isDim,
       colorDe: colorFor, colorSinChofer: UNASSIGNED_COLOR,
+      // D-481 (d): una recogida en una tienda de RTG no lleva burbuja «P1»: la casita y la base ya están ahí.
+      recogidaEnTienda: (lugar) => esTiendaRtg(lugar, settings.stores ?? []),
       baseDe: (clave) => {
         const addr = (pickupAddressFor(clave) ?? "").trim();
-        const coords = addr ? depotCoords[addr] : undefined;
-        return coords ? { coords, direccion: addr } : null;
+        // En solo lectura la base sale de Ajustes (con `buscaBases: "si_falta"` no se busca su dirección): `baseDeLaRuta`.
+        const base = soloLectura ? baseDeLaRuta(clave) : null;
+        const coords: [number, number] | undefined = base ? [base.lat, base.lng] : addr ? depotCoords[addr] : undefined;
+        return coords ? { coords, direccion: tiendaBaseDe(clave)?.name ?? addr } : null;
       },
       lecturaDe, coordsDeTienda, t,
       marcadas: { tiene: (id) => selectedOrders.has(id), colorDe: (id) => selColorById.get(id), cuantas: selectedOrders.size },
@@ -1858,7 +1918,7 @@ export default function RoutesPage() {
   }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, driverLocations, users]);
 
   if (!me) return null;
-  if (!canPlanRoutes(me)) {
+  if (!soloLectura && !canPlanRoutes(me)) {
     return <div className="empty">{t("You don’t have access to route planning.", "No tienes acceso a la planificación de rutas.")}</div>;
   }
 
@@ -1874,11 +1934,25 @@ export default function RoutesPage() {
   // que sí pinta las rutas vacías—; renombrar o quitar una ruta temporal vacía sigue en el panel. Las marcadas vacías se
   // nombran en una línea (`marcadasSinParadas`).
   const shownDrivers = lanesDelFiltro.filter((u) => conAlgoQuePintar(u.key));
+  // El panel «Choferes y rutas» (D-481, f): un chofer sin ninguna orden ese día no sale; una ruta temporal vacía sí.
+  const filasDelPanel = rutasConOrdenes(lanesDelFiltro, conAlgoQuePintar);
   const marcadasSinParadas = lanesDelFiltro.filter((u) => selected.has(u.key) && (byDriver.get(u.key) ?? []).length === 0);
+  // «▦ Cuadrícula» (D-481, e): arriba, una tarjeta COMPACTA por ruta (nombre, números, pastillas; sin tabla ni botones);
+  // abajo, DESPLEGADA a todo el ancho, la del nombre pulsado. En «▭ Ancho», las tarjetas enteras, como siempre.
+  const rutaDesplegada = desplegadaVigente(desplegada, shownDrivers.map((u) => u.key));
+  const tarjetasDeRuta: [Lane, ModoDeTarjeta][] = wideRoutes
+    ? shownDrivers.map((u) => [u, "ancha"])
+    : [...shownDrivers.map((u): [Lane, ModoDeTarjeta] => [u, "compacta"]), ...shownDrivers.filter((u) => u.key === rutaDesplegada).map((u): [Lane, ModoDeTarjeta] => [u, "desplegada"])];
   const scheduledCount = dayOrders.length - unassigned.length;
+  // La leyenda del mapa (D-274), solo en «Ruta de hoy» (D-467): con el mismo `colorFor` que pinta los puntos.
+  const leyenda = leyendaDelMapa({
+    choferes: dayOrders.filter((d) => d.delivery_lat != null && d.delivery_lng != null).map((d) => d.assigned_driver),
+    coloresDeChofer: settings.driver_colors, rutasSinChofer: false, puedeAsignar: false, rutasDelDia: { camiones: veCamiones },
+  });
+  const canManageColors = me.role === "manager" || me.role === "admin";
   // El motor nuevo (D-320) es para quien puede publicar, y con un día concreto. Con su barra cerrada (D-400), la cabecera
-  // lleva el botón que la trae.
-  const puedeArmarRutas = !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);
+  // lleva el botón que la trae. Nunca en solo lectura.
+  const puedeArmarRutas = !soloLectura && !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);
 
   // ---- La tabla de órdenes: «Sin asignar» y «Todas» (D-462) ----------------------------------------------------
   // Son UNA tabla con dos vistas: la de siempre —lo del día sin chofer (D-331/D-393)— y «Todas»: todo lo del día, con chofer
@@ -1921,12 +1995,12 @@ export default function RoutesPage() {
           className={`${marcada ? "row-selected" : ""}${hecha ? ` fila-hecha${entregada ? " row-done" : ""}` : ""}`}
           onClick={hecha ? undefined : () => toggleOrder(d.id)}
           style={{ cursor: hecha ? undefined : "pointer", opacity: arrastrado?.tipo === "orden" && arrastrado.id === d.id ? 0.5 : undefined }}
-          data-fila-arrastrable={sinChofer ? "orden" : undefined} {...(sinChofer ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>
+          data-fila-arrastrable={sinChofer && !soloLectura ? "orden" : undefined} {...(sinChofer && !soloLectura ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>
           <td>
             {/* Una ya hecha lleva ✓ (entregada) o 🚚 (recogida, en camino) en vez de la casilla: no se marca ni se asigna (D-459). */}
             {hecha
               ? <span data-hecha={entregada ? "hecho" : "en_camino"} style={{ fontWeight: 700 }}>{entregada ? "✓" : "🚚"}</span>
-              : <input type="checkbox" checked={marcada} readOnly aria-label={`#${orderLabel(d)}`} />}
+              : soloLectura ? null : <input type="checkbox" checked={marcada} readOnly aria-label={`#${orderLabel(d)}`} />}
             {marcada && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
           </td>
           {/* La factura abre la orden y NO selecciona la fila: `stopPropagation` en `abreLaOrden`. */}
@@ -1947,7 +2021,7 @@ export default function RoutesPage() {
           ))}
           <td onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-              {hecha ? null : sinChofer ? (
+              {hecha || soloLectura ? null : sinChofer ? (
                 // Assign is ALWAYS available. «🔮 Simular», que salía al lado con un chofer elegido, se quitó en D-437:
                 // reoptimizaba la ruta entera y la escribía. «📍 Mejor lugar» mete la orden sin mover las demás.
                 <select defaultValue="" data-asignar-a onChange={(e) => {
@@ -2000,6 +2074,7 @@ export default function RoutesPage() {
             style={{ maxWidth: 300 }}
           />
           {/* Las dos vistas comparten las columnas elegidas, el orden, las plantillas y las flechas (`moverEn("sinAsignar")`). */}
+          {!soloLectura && (
           <SelectorDeColumnas
             columnas={vista.selector}
             elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t} alLado="izquierda"
@@ -2008,6 +2083,7 @@ export default function RoutesPage() {
             plantillas={propsDePlantillas}
             mover={moverEn("sinAsignar")}
           />
+          )}
           {/* Chips (D-393): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno lleva su número, que
               sale de la misma función que sus filas. */}
           {(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (
@@ -2035,7 +2111,7 @@ export default function RoutesPage() {
         ) : (
           <>
           <FiltrosPuestos estado={orden} columnas={menu} lang={lang} t={t} />
-          {showTop && (
+          {showTop && !soloLectura && (
             <div className="hint" data-pista-de-arrastre style={{ margin: "0 0 6px" }}>✋ {vista.pista}</div>
           )}
           <BarraSuperior caja={vista.caja} />
@@ -2049,7 +2125,7 @@ export default function RoutesPage() {
               <thead>
                 <tr>
                   <th>
-                    <input
+                    {!soloLectura && <input
                       type="checkbox"
                       aria-label={t("Select all", "Seleccionar todo")}
                       checked={marcables.length > 0 && marcables.every((d) => selectedOrders.has(d.id))}
@@ -2059,11 +2135,11 @@ export default function RoutesPage() {
                         else marcables.forEach((d) => n.delete(d.id));
                         return n;
                       })}
-                    />
+                    />}
                   </th>
                   {/* Cada cabecera abre el menú de ordenar y filtrar (D-360); el tirador del ancho sigue en su sitio. */}
                   {menu.map((c) => <th key={c.key}><CabeceraConMenu estado={orden} col={c} lang={lang} t={t} /><span className="col-resizer" onMouseDown={poolCols.startResize(`g_${c.key}`, anchoDePartida(c.key, COLUMN_WIDTHS))} /></th>)}
-                  <th>{vista.cabeceraDeAcciones}</th>
+                  <th>{soloLectura ? "" : vista.cabeceraDeAcciones}</th>
                 </tr>
               </thead>
               <tbody>
@@ -2093,7 +2169,7 @@ export default function RoutesPage() {
             <button type="button" className="btn btn-ghost btn-sm" aria-label={t("Close", "Cerrar")} onClick={() => setAvisoMejorLugar(null)}>✕</button>
           </div>
         )}
-        {poolSelectedCount > 0 && (
+        {!soloLectura && poolSelectedCount > 0 && (
           <div className="card" data-elige-conductor role="group" aria-label={t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
             style={{ position: "sticky", bottom: 8, zIndex: 6, margin: "10px 0 0", padding: "12px 14px", border: "2px solid var(--accent)", background: "var(--accent-soft)", maxWidth: "100%", boxSizing: "border-box" }}>
             <b style={{ display: "block", fontSize: 15, marginBottom: 8 }}>
@@ -2149,7 +2225,7 @@ export default function RoutesPage() {
             {seleccionDelReparto.length > 0 && seccionDeReparto(false)}
           </div>
         )}
-        {poolSelectedCount === 0 && seleccionDelReparto.length > 0 && recuadroDeReparto()}
+        {!soloLectura && poolSelectedCount === 0 && seleccionDelReparto.length > 0 && recuadroDeReparto()}
         </>}
       </div>
     );
@@ -2187,21 +2263,25 @@ export default function RoutesPage() {
   return (
     <>
       <div className="page-head">
-        <h2>{t("Routes Manager", "Gestor de Rutas")} <span className="count-tag">{dayOrders.length}</span></h2>
+        <h2>{soloLectura ? t("Today's route", "Ruta de hoy") : t("Routes Manager", "Gestor de Rutas")} <span className="count-tag">{dayOrders.length}</span></h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <div className="viewtoggle">
-            <button className="vt" disabled={allDates} onClick={() => setDate((d) => shiftDateISO(d, -1))} title={t("Previous day", "Día anterior")}>◀</button>
-            <input type="date" value={date} disabled={allDates} onChange={(e) => setDate(e.target.value)} style={{ width: "auto" }} />
-            <button className="vt" disabled={allDates} onClick={() => setDate((d) => shiftDateISO(d, 1))} title={t("Next day", "Día siguiente")}>▶</button>
+            <button className="vt" data-dia-anterior disabled={allDates || (soloLectura && fecha <= primerDia)} onClick={() => setDate((d) => shiftDateISO(d, -1))} title={t("Previous day", "Día anterior")}>◀</button>
+            <input type="date" value={date} disabled={allDates} min={soloLectura ? primerDia : undefined} max={soloLectura ? rango.max : undefined} onChange={(e) => setDate(e.target.value || todayISO())} style={{ width: "auto" }} />
+            <button className="vt" data-dia-siguiente disabled={allDates || (soloLectura && fecha >= rango.max)} onClick={() => setDate((d) => shiftDateISO(d, 1))} title={t("Next day", "Día siguiente")}>▶</button>
           </div>
-          {/* D-428: atajos de fecha, siempre a la vista; el día que se mira sale marcado. */}
+          {/* D-428: atajos de fecha, siempre a la vista; el día que se mira sale marcado. D-469: también en «Ruta de hoy». */}
+          <span data-ayer-hoy-manana style={{ display: "contents" }}>
           {!allDates && ([[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]] as const).map(([dias, etiqueta]) => {
             const dia = shiftDateISO(todayISO(), dias);
             return (
               <button key={dias} data-atajo-fecha={dias} className={"btn btn-sm " + (date === dia ? "btn-primary" : "btn-ghost")}
+                disabled={soloLectura && (dia < primerDia || dia > rango.max)}
                 aria-pressed={date === dia} onClick={() => setDate(dia)}>{etiqueta}</button>
             );
           })}
+          </span>
+          {!soloLectura && (
           <button
             className={"btn btn-sm " + (allDates ? "btn-primary" : "btn-ghost")}
             onClick={() => { setSoloPendientes(false); setAllDates((v) => !v); }}
@@ -2209,6 +2289,8 @@ export default function RoutesPage() {
           >
             🗓 {allDates ? t("All dates ✓", "Todas ✓") : t("All dates", "Todas")}
           </button>
+          )}
+          {soloLectura && <span className="hint" data-solo-lectura style={{ margin: 0 }}>{t("View only — routes are built in the Routes Manager.", "Solo lectura — las rutas se arman en el Gestor de Rutas.")}</span>}
           {/* Aquí iban «✨ Auto-asignar» y «🧭 Optimizar todas las rutas»: se quitaron en D-437 («Quitar los dos; solo Armar
               rutas»). Lo automático es «Armar las rutas del día», y este botón es su ÚNICA entrada (D-459): abre y cierra el
               panel del plan, justo debajo. La pastilla dice en qué está el plan de esta fecha sin abrirlo. */}
@@ -2245,6 +2327,16 @@ export default function RoutesPage() {
           )}
         </div>
       </div>
+
+      {/* Sin la función (falta la migración 160) cada quien ve solo lo que ya podía leer. Se le dice a quien puede arreglarlo (D-467). */}
+      {soloLectura && (origenDeHoy === "sin_funcion" || origenDeHoy === "error") && me.role === "admin" && (
+        <div className="hint" data-aviso-sin-160 style={{ marginBottom: 8 }}>
+          {origenDeHoy === "sin_funcion"
+            ? t("Migration 160 (rutas_del_dia) isn't applied yet: each role sees only the orders it could already read, so drivers and warehouse get partial routes.",
+                "La migración 160 (rutas_del_dia) aún no está aplicada: cada rol ve solo las órdenes que ya podía leer, así que choferes y almacén ven rutas parciales.")
+            : t("The day's routes couldn't be read; showing only the orders you can already read.", "No se pudieron leer las rutas del día; se enseñan solo las órdenes que usted ya puede leer.")}
+        </div>
+      )}
 
       {/* El motor nuevo (D-320): planifica en BORRADOR y publica. Convive con todo lo de abajo, que sigue
           igual: «sustituye al actual» se cumple al final, no el primer día. Solo para quien puede publicar
@@ -2323,7 +2415,7 @@ export default function RoutesPage() {
           <b>{t("Viewing overdue and undated orders only", "Viendo solo órdenes expiradas y sin fecha")}</b> — {t("they belong to no day until you give them one. Set a date and the order moves to that day.", "no son de ningún día hasta que se les pone uno. Póngale fecha y la orden pasa a ese día.")}{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setSoloPendientes(false)}>{t("Back to the day", "Volver al día")}</button>
         </div>
-      ) : (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (
+      ) : !soloLectura && (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (
         <div className="hint" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span>{t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) expiradas · ${pendientes.sinFecha.length} sin fecha`)}
           {" — "}{t("not part of this day.", "no son de este día.")}</span>
@@ -2355,19 +2447,21 @@ export default function RoutesPage() {
       {/* Sticky so the driver pool (and map) stay visible while you scroll the
           route cards below and build routes. Capped height + own scroll so it
           never takes over the screen. */}
-      <div ref={panelFijoRef} style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 8, position: "sticky", top: 6, zIndex: 5, background: "var(--paper)", paddingBottom: 6 }}>
+      <div ref={panelFijoRef} className="panel-fijo-del-gestor" style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 8, background: "var(--paper)", paddingBottom: 6 }}>
         {/* El panel «Choferes y rutas» es `PanelDeChoferes` desde D-467: el mismo que pinta «Ruta de hoy». Lo de aquí que
             aquella no tiene —«Unir», «＋ Ruta», 🔒, ✏, ✕ y soltar una fila encima— entra por sus huecos. */}
         <PanelDeChoferes
           t={t}
-          sinRutas={lanes.length === 0}
-          vacio={t("No drivers yet — tap “＋ Route” to build a route without one.", "Aún sin choferes — toca “＋ Ruta” para armar una ruta sin uno.")}
+          sinRutas={filasDelPanel.length === 0}
+          vacio={soloLectura
+            ? t("No routes with orders this day.", "Sin rutas con órdenes este día.")
+            : t("No routes with orders this day — assign orders, or tap “＋ Route” to build a route without a driver.", "Sin rutas con órdenes este día — asigna órdenes, o toca “＋ Ruta” para armar una ruta sin chofer.")}
           hayMarcadas={focused}
           onMuestraTodos={() => setSelected(new Set())}
           onEnfoca={focusOnly}
           onAlterna={toggleDriver}
-          onUbica={(clave) => setLocateDriver(driverOf(clave))}
-          acciones={<>
+          onUbica={veCamiones ? (clave) => setLocateDriver(driverOf(clave)) : undefined}
+          acciones={soloLectura ? undefined : <>
             {selected.size >= 2 && (
               <button className="btn btn-primary btn-sm" onClick={mergeSelectedLanes}
                 title={t("Combine the checked routes into one (merges into the top-most checked one)", "Combinar las rutas marcadas en una (se unen en la primera marcada)")}>
@@ -2376,7 +2470,7 @@ export default function RoutesPage() {
             )}
             <button className="btn btn-ghost btn-sm" onClick={() => addBucket()} title={t("Add a numbered route (Route 1, Route 2…) to build on, then hand it to a driver later", "Agrega una ruta numerada (Ruta 1, Ruta 2…) para armar, y entrégala a un chofer después")}>＋ {t("Route", "Ruta")}</button>
           </>}
-          filas={lanesDelFiltro.map((u) => {
+          filas={filasDelPanel.map((u) => {
             const stops = byDriver.get(u.key) ?? [];
             // La CARGA MÁXIMA de su lista contra el camión (D-443): lo más cargado que va en algún punto del día. Hasta
             // D-443 era la suma del día, en rojo si pasaba del camión («hace falta otro viaje»); con la lista única el camión
@@ -2387,7 +2481,7 @@ export default function RoutesPage() {
             };
           })}
           // Soltar aquí una fila de «Sin asignar» la asigna; una parada de otro chofer, la pasa a esta ruta (D-456).
-          atributosDe={(clave) => ({
+          atributosDe={soloLectura ? undefined : (clave) => ({
             "data-suelta-en-ruta": clave, ...sueltaAqui(clave, null),
             style: { outline: sobre === claveDeSoltar(clave, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 },
           })}
@@ -2397,11 +2491,11 @@ export default function RoutesPage() {
             return (<>
               {!isRealDriver(u.driver) && <span className="sema" style={{ background: "var(--accent)", color: "#fff", fontSize: 10 }}>🧭 {t("route", "ruta")}</span>}
               {bloqueada(u.key) && <span data-candado-en-el-panel title={t("Locked for this day", "Bloqueada este día")}>🔒</span>}
-              {u.isBucket && (
+              {u.isBucket && !soloLectura && (
                 <button className="notif-clear" title={t("Rename temp driver", "Renombrar chofer temp")}
                   onClick={(e) => { e.stopPropagation(); renameBucket(u.key); }}>✏</button>
               )}
-              {u.isBucket && (
+              {u.isBucket && !soloLectura && (
                 <button className="notif-clear" title={t("Remove this route", "Quitar esta ruta")}
                   onClick={(e) => { e.stopPropagation(); clearLane(u.key); }}>✕</button>
               )}
@@ -2414,6 +2508,7 @@ export default function RoutesPage() {
             const d = dayOrders.find((x) => x.id === id);
             if (d) toggleOrder(d.id);
           }} />
+          {soloLectura && <MapLegend elementos={leyenda} />}
         </div>
       </div>
       </>)}
@@ -2423,18 +2518,15 @@ export default function RoutesPage() {
           filtro estaba en la cabecera, junto a la fecha; el dueño, 2026-10-01: «mueve eseo filtro del conducto abajo al lado
           de timeline». Lo que filtra son las tarjetas de aquí abajo (y el panel y el mapa). Misma función, lo mismo guardado. */}
       <div data-barra-de-vistas style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          {/* Con qué chofer se trabaja (D-393). «Todos» es el defecto; se recuerda por persona. */}
-          <select
-            aria-label={t("Driver to work with", "Chofer con el que trabajar")}
-            title={t("Show only this driver's card, routes and map — remembered for you", "Ver solo la tarjeta, las rutas y el mapa de este chofer — se recuerda para usted")}
-            value={filtroChofer}
-            onChange={(e) => eligeFiltroDeChofer(e.target.value)}
-            data-filtro-de-chofer
-            style={{ width: "auto", fontWeight: filtroChofer !== TODOS_LOS_CHOFERES ? 700 : undefined }}
-          >
-            <option value={TODOS_LOS_CHOFERES}>🚚 {t("All drivers", "Todos los choferes")}</option>
-            {lanes.map((l) => <option key={l.key} value={l.key}>{l.isBucket ? "🧭 " : ""}{l.label}</option>)}
-          </select>
+          {/* El desplegable «Todos los choferes» (D-393/D-459) se fue (D-481): el filtro son las casillas del panel «Choferes y
+              rutas». Aquí solo se dice con quién se está, y se quita de un toque. */}
+          {filtroChofer.size > 0 && (
+            <span className="sema" data-filtro-de-chofer style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--accent)", color: "var(--accent)", background: "var(--card)" }}
+              title={t("Only the drivers checked in “Drivers & routes” are shown", "Solo se ven los choferes marcados en «Choferes y rutas»")}>
+              🚚 {[...filtroChofer].map(laneLabel).join(", ")}
+              <button className="notif-clear" data-quita-filtro onClick={() => setSelected(new Set())} title={t("Show every driver", "Ver todos los choferes")}>✕</button>
+            </span>
+          )}
       {/* `flexWrap` (D-462): con cinco pestañas, a 390 px la última se cortaba 13 px por el `overflow: hidden` de la caja
           (medido: 377 px de pestañas en 364 de caja; con cuatro cabían justas). Envueltas, bajan de línea dentro de la caja. */}
       <div className="viewtoggle" style={{ flexWrap: "wrap" }}>
@@ -2450,15 +2542,18 @@ export default function RoutesPage() {
         {/* «Todas (N)» (D-462): todas las del día, con chofer o sin él, más lo ya hecho. N sigue al filtro de chofer:
             con uno elegido, las suyas y las sin asignar. */}
         <button className={"vt " + (tab === "todas" ? "on" : "")} data-pestana="todas" onClick={() => setTab("todas")}
-          title={filtroChofer === TODOS_LOS_CHOFERES
+          title={filtroChofer.size === 0
             ? t(`${todasDelDia.length} order(s) this day, with or without a driver, delivered ones included`, `${todasDelDia.length} orden(es) este día, con chofer o sin él, entregadas incluidas`)
-            : t(`${todasDelDia.length} order(s) this day: ${laneLabel(filtroChofer)}'s and the unassigned ones`, `${todasDelDia.length} orden(es) este día: las de ${laneLabel(filtroChofer)} y las sin asignar`)}>
+            : t(`${todasDelDia.length} order(s) this day: ${[...filtroChofer].map(laneLabel).join(", ")}'s and the unassigned ones`, `${todasDelDia.length} orden(es) este día: las de ${[...filtroChofer].map(laneLabel).join(", ")} y las sin asignar`)}>
           📋 {t("All", "Todas")} (<span data-cuenta-todas>{todasDelDia.length}</span>)
         </button>
+        {/* El tablero es arrastrar para asignar: no en solo lectura. */}
+        {!soloLectura && (
         <button className={"vt " + (tab === "board" ? "on" : "")} data-pestana="board" onClick={() => setTab("board")}
           title={t(`${dayOrders.length} order(s) in total this day`, `${dayOrders.length} orden(es) en total este día`)}>
           🗂 {t("Board", "Tablero")} (<span data-cuenta-total>{dayOrders.length}</span>)
         </button>
+        )}
         <button className={"vt " + (tab === "timeline" ? "on" : "")} data-pestana="timeline" onClick={() => setTab("timeline")}>📅 {t("Timeline", "Horario")}</button>
       </div>
         {/* «▦ Cuadrícula» junto a «Horario» (D-459). El dueño, 2026-10-01: «el grid buttom que este al lado de timeline
@@ -2471,7 +2566,7 @@ export default function RoutesPage() {
           </button>
         )}
         {/* Deshacer / rehacer los movimientos a mano de esta sesión (D-417): arrastrar en «Horario» y las flechas. */}
-        {(tab === "timeline" || historial.deshacer.length > 0 || historial.rehacer.length > 0) && (
+        {!soloLectura && (tab === "timeline" || historial.deshacer.length > 0 || historial.rehacer.length > 0) && (
           <span style={{ display: "inline-flex", gap: 6 }}>
             <button className="btn btn-ghost btn-sm" data-deshacer disabled={moviendo || !historial.deshacer.length} onClick={() => void vuelve("deshacer")}
               title={historial.deshacer.length ? t(`Undo: ${historial.deshacer[historial.deshacer.length - 1].etiqueta.en} (Ctrl+Z)`, `Deshacer: ${historial.deshacer[historial.deshacer.length - 1].etiqueta.es} (Ctrl+Z)`) : undefined}>
@@ -2485,10 +2580,12 @@ export default function RoutesPage() {
         )}
         {/* ⚠ Incidencias (D-437): un botón, a la derecha de las pestañas, que abre la ventana. Ámbar si hay alguna
             registrada (las incidencias no tienen estado «abierta»: se registran y se borran). */}
+        {!soloLectura && (
         <button className={"btn btn-sm " + (incidents.length ? "btn-amber" : "btn-ghost")} data-abrir-incidencias
           style={{ marginLeft: "auto" }} aria-haspopup="dialog" onClick={() => setIncidenciasAbiertas(true)}>
           ⚠ {t("Incidents", "Incidencias")} ({incidents.length})
         </button>
+        )}
       </div>
 
       {incidenciasAbiertas && (
@@ -2509,12 +2606,12 @@ export default function RoutesPage() {
           <p className="hint" style={{ marginTop: 0 }}>
             {t("Each driver's day in route order: every stop at its estimated arrival (straight-line estimate, leaving at 08:00), its window as the thin line underneath; ⚠ = late.",
               "El día de cada chofer en el orden de su ruta: cada parada a su llegada estimada (en línea recta, saliendo a las 08:00), y su ventana en la raya fina de abajo; ⚠ = tarde.")}
-            {modo === "dia" && <> {t("Drag a stop to another slot or driver, or onto a driver's name for 📍 Best fit. Ctrl+Z undoes.", "Arrastre una parada a otro hueco o chofer, o al nombre de un chofer para 📍 Mejor lugar. Ctrl+Z deshace.")}</>}
+            {modo === "dia" && !soloLectura && <> {t("Drag a stop to another slot or driver, or onto a driver's name for 📍 Best fit. Ctrl+Z undoes.", "Arrastre una parada a otro hueco o chofer, o al nombre de un chofer para 📍 Mejor lugar. Ctrl+Z deshace.")}</>}
           </p>
-          {ganttRows.every((r) => r.barras.length === 0)
+          {filasDelGantt.every((r) => r.barras.length === 0)
             ? <div className="empty">{t("No assigned orders to show yet.", "Aún no hay órdenes asignadas.")}</div>
-            : <GanttTimeline rows={ganttRows} t={t}
-                arrastre={modo === "dia" ? { inicioMin: DAY_START_MIN, previa: previaDeSoltar, suelta: (id, destino) => void sueltaEnLaLinea(id, destino), ocupado: moviendo } : undefined} />}
+            : <GanttTimeline rows={filasDelGantt} t={t}
+                arrastre={modo === "dia" && !soloLectura ? { inicioMin: DAY_START_MIN, previa: previaDeSoltar, suelta: (id, destino) => void sueltaEnLaLinea(id, destino), ocupado: moviendo } : undefined} />}
         </div>
       )}
 
@@ -2536,7 +2633,7 @@ export default function RoutesPage() {
 
       {/* ---------- Per-driver routes ---------- */}
       {tab === "routes" && (
-      <div style={{ display: "grid", gridTemplateColumns: wideRoutes ? "minmax(0, 1fr)" : "repeat(auto-fit, minmax(440px, 1fr))", gap: 14, alignItems: "start" }}>
+      <div data-tarjetas-de-ruta={wideRoutes ? "ancho" : "cuadricula"} style={{ display: "grid", gridTemplateColumns: wideRoutes ? "minmax(0, 1fr)" : "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, alignItems: "start" }}>
       {shownDrivers.length === 0 && (
         <div className="card" style={{ margin: 0 }}>
           <div className="empty">{t("No routes yet — assign orders to drivers in the Unassigned tab, or use “Build routes”.", "Aún sin rutas — asigna órdenes a los choferes en la pestaña Sin asignar, o usa «Armar rutas».")}</div>
@@ -2547,7 +2644,10 @@ export default function RoutesPage() {
           {t(`No stops this day: ${marcadasSinParadas.map((u) => u.label).join(", ")}`, `Sin paradas este día: ${marcadasSinParadas.map((u) => u.label).join(", ")}`)}
         </div>
       )}
-      {shownDrivers.map((u) => {
+      {tarjetasDeRuta.map(([u, modoDeTarjeta]) => {
+        // Qué lleva esta tarjeta (D-481, e): la compacta, solo la cabecera sin botones; la desplegada, todo; la ancha, lo de siempre.
+        const acciones = conAcciones(soloLectura, modoDeTarjeta);
+        const desplegadaAqui = modoDeTarjeta === "desplegada" || (modoDeTarjeta === "compacta" && rutaDesplegada === u.key);
         const stops = byDriver.get(u.key) ?? [];
         const sequenced = stops.length > 0 && stops.every((d) => d.route_seq != null);
         const missingPins = stops.filter((d) => d.delivery_lat == null).length;
@@ -2610,6 +2710,8 @@ export default function RoutesPage() {
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379); y, fila a fila, lo que aún no tiene puesto.
         const provisional = esProvisional(stops);
         const isC = isCollapsed(u.key);
+        // La compacta de «Cuadrícula» no lleva cuerpo; la desplegada, siempre; la ancha, si no está plegada (D-481, e).
+        const sinCuerpo = !conCuerpo(modoDeTarjeta, isC);
         // En qué está la medida de esta ruta, para la columna «Llegada» y la cabecera (D-456).
         const medida = estadoDeLaMedida(u.key, stops);
         const bucket = u.isBucket;
@@ -2629,19 +2731,26 @@ export default function RoutesPage() {
         // single-stop focus, so the map goes back to this driver's whole day.
         // That's the "tap outside" way back out.
         return (
-          <div className="card" key={u.id} data-tarjeta-de-ruta={u.key} {...sueltaAqui(u.key, null)}
-            style={{ margin: 0, outline: sobre === claveDeSoltar(u.key, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 }}
+          <div className="card" key={`${modoDeTarjeta}-${u.id}`} data-tarjeta-de-ruta={u.key} data-modo-de-tarjeta={modoDeTarjeta} {...sueltaAqui(u.key, null)}
+            style={{ margin: 0, gridColumn: modoDeTarjeta === "desplegada" ? "1 / -1" : undefined, outline: sobre === claveDeSoltar(u.key, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 }}
             onClick={() => setSelectedOrders((prev) => (prev.size ? new Set() : prev))}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-              <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} onClick={() => toggleCollapse(u.key)} title={t("Collapse", "Contraer")}>{isC ? "▸" : "▾"}</button>
+              {modoDeTarjeta === "ancha" && (
+                <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} onClick={() => toggleCollapse(u.key)} title={t("Collapse", "Contraer")}>{isC ? "▸" : "▾"}</button>
+              )}
+              {/* El NOMBRE (D-481, e): en «Ancho», resalta la ruta en el mapa, como siempre; en «Cuadrícula», despliega su tabla
+                  abajo (otro nombre la cambia; el mismo la pliega). */}
               <span
-                onClick={() => focusOnly(u.key)}
-                title={t("Show this route on the map", "Mostrar esta ruta en el mapa")}
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+                data-nombre-de-ruta={u.key}
+                aria-expanded={modoDeTarjeta === "ancha" ? undefined : desplegadaAqui}
+                onClick={() => (modoDeTarjeta === "ancha" ? focusOnly(u.key) : setDesplegada((x) => alternaDesplegada(x, u.key)))}
+                title={modoDeTarjeta === "ancha" ? t("Show this route on the map", "Mostrar esta ruta en el mapa")
+                  : desplegadaAqui ? t("Hide this route's stops", "Plegar las paradas de esta ruta") : t("Show this route's stops below", "Desplegar las paradas de esta ruta abajo")}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", ...(modoDeTarjeta === "compacta" && desplegadaAqui ? { textDecoration: "underline", textUnderlineOffset: 4 } : {}) }}
               >
                 <span style={{ width: 14, height: 14, borderRadius: "50%", background: colorFor(u.driver), border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
                 <h2 style={{ margin: 0 }}>{u.label}</h2>
-                <span className="hint" style={{ fontSize: 12 }}>🗺</span>
+                <span className="hint" style={{ fontSize: 12 }}>{modoDeTarjeta === "ancha" ? "🗺" : desplegadaAqui ? "▾" : "▸"}</span>
               </span>
               {needsDriver && <span className="sema" style={{ background: "var(--accent)", color: "#fff" }}>🧭 {t("route (no driver)", "ruta (sin chofer)")}</span>}
               {/* «⚠ sin base» (D-459): era un renglón entero bajo el nombre; el dueño, 2026-10-01, «remueve todo ese texto
@@ -2661,7 +2770,7 @@ export default function RoutesPage() {
                     "Aún sin orden guardado — póngalo con las flechas ↑/↓ o 📍 Mejor lugar, o planifique el día con «Armar rutas». Las etiquetas P/D en gris siguen el orden de ahora.",
                   )}>{t("no saved order", "sin orden guardado")}</span>
               )}
-              {bucket && <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} title={t("Rename temp driver", "Renombrar chofer temp")} onClick={() => renameBucket(u.key)}>✏</button>}
+              {bucket && acciones && <button className="btn btn-ghost btn-sm" style={{ padding: "0 6px" }} title={t("Rename temp driver", "Renombrar chofer temp")} onClick={() => renameBucket(u.key)}>✏</button>}
               {/* Órdenes, no paradas (D-443): cada orden son dos paradas —su recogida y su entrega— y las paradas de la lista
                   las cuenta la línea de totales de al lado. Con las dos diciendo «paradas», 4 y 7 se contradecían. */}
               <span className="count-tag">{stops.length} {t("orders", "órdenes")}</span>
@@ -2719,6 +2828,7 @@ export default function RoutesPage() {
                 </button>
               )}
               <span style={{ flex: 1 }} />
+              {acciones && (
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--gray)" }}>
                 🚚 {t("Truck capacity", "Capacidad del camión")}
                 <input
@@ -2728,10 +2838,12 @@ export default function RoutesPage() {
                 />
                 {t("plt", "trm")}
               </label>
+              )}
               {/* ↶ ↷ (D-459), a la vista junto a Bloquear / Optimizar / Vaciar. El dueño, 2026-10-01: «aqui pon un undo redo
                   para los movimientos del orden de las cargas para areglar un error si pasa». Llaman al MISMO historial que
                   Ctrl+Z y que los de la barra de vistas (`vuelve`); el título dice QUÉ deshacen (`botonDeVolver`).
                   Los cinco botones van en UN grupo, para que al faltar sitio bajen juntos y no se separen. */}
+              {acciones && (
               <span data-acciones-de-la-ruta style={{ display: "inline-flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
               <span style={{ display: "inline-flex", gap: 4 }}>
                 <button className="btn btn-ghost btn-sm" data-deshacer-en-ruta={u.key} disabled={moviendo || !deshace.activo}
@@ -2785,8 +2897,9 @@ export default function RoutesPage() {
                   onClick={() => clearLane(u.key)}>🗑 {t("Clear", "Vaciar")}</button>
               )}
               </span>
+              )}
             </div>
-            {!isC && <>
+            {!sinCuerpo && <>
             {lateStops.length > 0 && (
               <div className="card" style={{ marginBottom: 8, background: "var(--red-soft)", borderColor: "var(--red)" }}>
                 <b style={{ color: "var(--red)" }}>⚠️ {t(`${lateStops.length} stop(s) will miss their delivery window`, `${lateStops.length} parada(s) no llegarán a tiempo a su ventana`)}</b>
@@ -2827,7 +2940,7 @@ export default function RoutesPage() {
                 </div>
               </div>
             )}
-            {hayFilas && (
+            {hayFilas && !soloLectura && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                 {/* La línea «✋ Arrastre una fila…» (D-456) se fue (D-459): es el `title` de la cabecera de la tabla. */}
                 <SelectorDeColumnas
@@ -2862,10 +2975,10 @@ export default function RoutesPage() {
                     <tr data-pista-de-arrastre title={t("Drag a row to another position, or onto another driver, to move it. The ↑ ↓ arrows still work.", "Arrastre una fila a otro puesto, o a otro chofer, para moverla. Las flechas ↑ ↓ siguen ahí.")}>
                       <th style={{ whiteSpace: "nowrap" }}>
                         {/* «Seleccionar todas las visibles» de esta ruta (D-474): lo pendiente de la tarjeta; lo hecho no se marca. */}
-                        <input type="checkbox" data-marca-todas={u.key} checked={stops.length > 0 && stops.every((d) => marcadas.has(d.id))} disabled={stops.length === 0}
+                        {!soloLectura && <input type="checkbox" data-marca-todas={u.key} checked={stops.length > 0 && stops.every((d) => marcadas.has(d.id))} disabled={stops.length === 0}
                           onClick={(e) => e.stopPropagation()}
                           onChange={() => setMarcadas((s) => { const n = new Set(s); const todas = stops.every((d) => n.has(d.id)); for (const d of stops) { if (todas) n.delete(d.id); else n.add(d.id); } return n; })}
-                          aria-label={t(`Select every order of ${u.label}`, `Marcar todas las órdenes de ${u.label}`)} style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />
+                          aria-label={t(`Select every order of ${u.label}`, `Marcar todas las órdenes de ${u.label}`)} style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />}
                         #<span className="col-resizer" onMouseDown={asaDeParada("_n")} />
                       </th>
                       {/* La FACTURA, con el ID al lado (D-459; D-456 lo ponía debajo; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
@@ -2896,7 +3009,7 @@ export default function RoutesPage() {
                       const resaltada = recienMovida === clave;
                       // ARRASTRAR la fila (D-456): cualquier parada que también muevan las flechas. Soltada sobre otra fila toma
                       // su puesto; la raya marca dónde cae (arriba, o abajo si viene de más arriba en la misma lista).
-                      const seArrastra = movible && (f.tipo === "D" || hayRecogidaGuardada);
+                      const seArrastra = !soloLectura && movible && (f.tipo === "D" || hayRecogidaGuardada);
                       const arrastre = seArrastra ? filaArrastrable({ tipo: "parada", ruta: u.key, indice: f.indice! }) : {};
                       const soltar = movible ? sueltaAqui(u.key, f.indice!) : {};
                       const vieneDeArriba = arrastrado?.tipo === "parada" && arrastrado.ruta === u.key && arrastrado.indice < (f.indice ?? 0);
@@ -2904,7 +3017,7 @@ export default function RoutesPage() {
                       const esLaArrastrada = arrastrado?.tipo === "parada" && arrastrado.ruta === u.key && arrastrado.indice === f.indice;
                       // Las flechas de una fila: cualquier parada, P o D (D-443). Apagadas en el borde de la lista, y en una
                       // recogida si la base no guarda su posición (sin la 154). La precedencia la mira `mueveEnLaLista` al pulsar.
-                      const flechas = movible && (
+                      const flechas = acciones && movible && (
                         <>
                           <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-sube-parada
                             disabled={f.indice === 0 || (f.tipo === "P" && !hayRecogidaGuardada)} onClick={() => void mueveParada(u.key, f.indice!, -1)}
@@ -2916,7 +3029,7 @@ export default function RoutesPage() {
                       );
                       // «Pasar a…» otro chofer (D-443, en las P y en las D): las órdenes de la parada, enteras.
                       const ordenesDeLaFila = f.tipo === "P" ? f.ordenes : [f.orden];
-                      const pasar = movible && lanes.length > 1 && (
+                      const pasar = acciones && movible && lanes.length > 1 && (
                         <select value="" data-pasar-a aria-label={t("Move the order(s) to another driver", "Pasar la(s) orden(es) a otro chofer")}
                           onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v) void pasaA(u.key, ordenesDeLaFila, v); }}
                           style={{ width: "auto", maxWidth: 84, padding: "2px 2px", fontSize: 12 }}>
@@ -3014,7 +3127,7 @@ export default function RoutesPage() {
                           data-entrega={f.etiqueta}
                           // Stop here: without this the click also reaches the card's "tap outside" handler, which sees a
                           // selection already set and clears it — so moving from one stop to the next took two clicks.
-                          onClick={(e) => { e.stopPropagation(); setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
+                          onClick={(e) => { e.stopPropagation(); if (!soloLectura) setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
                           title={t("Show this stop on the map", "Ver esta parada en el mapa")}
                         >
                           <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}
@@ -3022,9 +3135,9 @@ export default function RoutesPage() {
                           >
                             {/* La casilla de «Asignar a…» varios (D-474): marca la ORDEN (su entrega es su fila), aparte de aislarla en el
                                 mapa, que es lo que hace pulsar la fila. El clic no sube a la fila ni a la tarjeta. */}
-                            <input type="checkbox" data-marca-orden={d.id} checked={marcadas.has(d.id)} onChange={() => alternaMarca(d.id)} onClick={(e) => e.stopPropagation()}
+                            {acciones && <input type="checkbox" data-marca-orden={d.id} checked={marcadas.has(d.id)} onChange={() => alternaMarca(d.id)} onClick={(e) => e.stopPropagation()}
                               aria-label={t(`Select ${facturaYId(d).principal} to assign it to another driver`, `Marcar ${facturaYId(d).principal} para asignarla a otro chofer`)}
-                              style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />
+                              style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />}
                             {f.etiqueta}
                           </td>
                           {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
@@ -3050,8 +3163,8 @@ export default function RoutesPage() {
                           {/* Reordering and moving are edits, not "show me this" — they must not also hijack the map. */}
                           <td className="celda-acciones" onClick={(e) => e.stopPropagation()}>
                             <div className="acciones-de-parada">
-                              {flechas}{pasar}{botonesDeCarga(d, capacity)}
-                              <button className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => unassign(d.id)} title={t("Unassign", "Quitar asignación")}>✕</button>
+                              {flechas}{pasar}{acciones && botonesDeCarga(d, capacity)}
+                              {acciones && <button className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => unassign(d.id)} title={t("Unassign", "Quitar asignación")}>✕</button>}
                             </div>
                           </td>
                         </tr>
@@ -3071,7 +3184,40 @@ export default function RoutesPage() {
       )}
       {/* «Asignar a…» varios choferes desde las tarjetas (D-474): con algo marcado, el recuadro pegado abajo, como el de
           «Elige conductor» en «Sin asignar». */}
-      {tab === "routes" && seleccionDelReparto.length > 0 && recuadroDeReparto()}
+      {!soloLectura && tab === "routes" && seleccionDelReparto.length > 0 && recuadroDeReparto()}
+
+      {/* 🎨 Los colores de chofer vivían en «Mapa» / «Ruta de hoy» desde antes de D-467: se quedan ahí, solo en solo lectura.
+          Lo único que se guarda desde «Ruta de hoy» es esto, y solo gerente o admin. */}
+      {soloLectura && (
+        <div className="card" data-colores-de-chofer>
+          <h2>🎨 {t("Driver colors", "Colores de chofer")}</h2>
+          {!canManageColors && <p className="hint" style={{ marginTop: 0 }}>{t("Assigned by a manager or admin.", "Asignados por un gerente o administrador.")}</p>}
+          {drivers.length === 0 ? (
+            <div className="empty">{t("No one has the Driver role yet.", "Nadie tiene el rol de Chofer todavía.")}</div>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              {drivers.map(({ full_name: name }) => (
+                <div key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 16, height: 16, borderRadius: "50%", background: colorFor(name), border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{name}</span>
+                  {canManageColors && (
+                    <input
+                      type="color"
+                      value={/^#[0-9a-f]{6}$/i.test(settings.driver_colors?.[name] || "") ? settings.driver_colors![name] : fallbackDriverColor(name)}
+                      onChange={(e) => saveSettings({ driver_colors: { ...(settings.driver_colors ?? {}), [name]: e.target.value } })}
+                      style={{ width: 28, height: 28, padding: 0, border: "none", background: "none", cursor: "pointer" }}
+                    />
+                  )}
+                </div>
+              ))}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 16, height: 16, borderRadius: "50%", background: UNASSIGNED_COLOR, border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)" }} />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{t("Unassigned", "Sin asignar")}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {!ready && <div className="empty">{t("Loading…", "Cargando…")}</div>}
 

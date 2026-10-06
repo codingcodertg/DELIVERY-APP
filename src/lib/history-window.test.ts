@@ -18,7 +18,8 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "");
 const TABLERO = "src/app/(app)/page.tsx";
 const CHOFER = "src/app/(app)/driver/page.tsx";
 const ALMACEN = "src/app/(app)/warehouse/page.tsx";
-const MAPA = "src/app/(app)/map/page.tsx";
+// Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor en solo lectura; el selector acotado vive ahí.
+const MAPA = "src/app/(app)/routes/page.tsx";
 const RECORRIDO = "src/app/(app)/track/page.tsx";
 
 describe("quién ve el historial entero", () => {
@@ -151,8 +152,9 @@ describe("las cinco pantallas preguntan lo mismo", () => {
     expect(mapa).toContain("retentionFloorISO()");
     expect(mapa).toContain("const rango = rangoDeRutasDelDia(todayISO());");
     expect(mapa).toContain("const primerDia = veTodoElHistorial || pisoFecha < rango.min ? rango.min : pisoFecha;");
-    expect(mapa).toContain("const fecha = date < primerDia ? primerDia : date > rango.max ? rango.max : date;");
-    expect(mapa).toContain("value={fecha} min={primerDia} max={rango.max}");
+    expect(mapa).toContain("const fecha = fechaElegida < primerDia ? primerDia : fechaElegida > rango.max ? rango.max : fechaElegida;");
+    expect(mapa).toContain("const date = soloLectura ? fecha : fechaElegida;");
+    expect(mapa).toContain("min={soloLectura ? primerDia : undefined} max={soloLectura ? rango.max : undefined}");
   });
 
   it("el mapa y Recorrido consultan por la fecha acotada, no por la del estado", () => {
@@ -160,7 +162,7 @@ describe("las cinco pantallas preguntan lo mismo", () => {
     // enseñaría datos de un día que el selector ya no deja elegir.
     // (D-467: «Ruta de hoy» pide el día acotado a `useRutasDelDia`; el filtro por día vive en la función de la base y, sin
     // ella, en `paradasDeLasOrdenes`.)
-    expect(sinComentarios(leer(MAPA))).toContain("useRutasDelDia(fecha)");
+    expect(sinComentarios(leer(MAPA))).toContain("useRutasDelDia(date, soloLectura)");
     expect(sinComentarios(leer("src/lib/rutas-del-dia.ts"))).toMatch(/d\.delivery_date === fecha/);
     const track = sinComentarios(leer(RECORRIDO));
     expect(track).toMatch(/\$\{fecha\}T00:00/);

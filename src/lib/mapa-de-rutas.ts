@@ -5,7 +5,7 @@ import { cuentaDePallets } from "@/lib/lista-unica";
 import { driverOf } from "@/lib/route-lanes";
 import type { LecturaDeRuta, OrdenAsignada } from "@/lib/route-plan/lectura-de-ruta";
 import type { TripTrace } from "@/lib/usa-medida-de-rutas";
-import { orderLabel } from "@/lib/utils";
+import { nombreEnElMapa } from "@/lib/gestor/nombre-en-el-mapa";
 
 /**
  * El mapa de las rutas del día y el panel «Choferes y rutas», para las DOS pantallas que los pintan: el Gestor de Rutas y
@@ -25,6 +25,8 @@ export interface OrdenDelMapa extends OrdenAsignada {
   order_no: number;
   order_code?: string | null;
   order_suffix?: string | null;
+  /** D-481 (a): el pin nombra la orden por su factura; sin ella, por su ID y «sin factura». */
+  invoice_num?: string | null;
   stage: string;
   assigned_driver: string | null;
   delivery_lat: number | null;
@@ -123,6 +125,8 @@ export interface EntradaDeLosPuntos<T extends OrdenDelMapa> {
   marcadas?: { tiene: (id: string) => boolean; colorDe: (id: string) => string | undefined; cuantas: number };
   /** Lo que se añade al rótulo de una entrega («Ruta de hoy»: la ciudad, los pallets y la llegada). */
   detalleDe?: (d: T) => string;
+  /** D-481 (d): la recogida es en una tienda de RTG → su burbuja «P1» no se pinta (la casita y la base ya están ahí). */
+  recogidaEnTienda?: (lugar: string) => boolean;
 }
 
 /** The whole day is always on the map — a driver focus dims the rest rather than hiding it, so the full picture stays visible. */
@@ -163,6 +167,8 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
     for (const [id, etiqueta] of lectura.etiquetaDe) dDeTodas.set(id, etiqueta);
     for (const p of lectura.filas) {
       if (p.tipo !== "P" || !p.lugar) continue;
+      // D-481 (d): «if pickup are in a store remove the p1 bubble». En una tienda de RTG la burbuja sobra.
+      if (e.recogidaEnTienda?.(p.lugar)) continue;
       const tienda = e.coordsDeTienda(p.lugar);
       if (!tienda) continue;
       pts.push({
@@ -186,7 +192,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
         lng: d.delivery_lng,
         color: sel ? colorMarcada(d.id) : e.colorSinChofer,
         badge: sel ? "D" : undefined,
-        label: `#${orderLabel(d)} — ${sel ? t("Delivery", "Entrega") : t("Unassigned", "Sin asignar")}${detalle(d)}`,
+        label: `${nombreEnElMapa(d, t)} — ${sel ? t("Delivery", "Entrega") : t("Unassigned", "Sin asignar")}${detalle(d)}`,
         dimmed: sel ? false : (e.enfocado || selActive),
       });
       continue;
@@ -205,7 +211,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       // marked "D" so it pairs with its "P" pickup pin.
       color: sel ? colorMarcada(d.id) : e.colorDe(d.assigned_driver),
       badge: sel ? "D" : badge,
-      label: `#${orderLabel(d)} — ${d.assigned_driver}${badge ? ` (${t("Stop", "Parada")} ${badge})` : ""}${detalle(d)}`,
+      label: `${nombreEnElMapa(d, t)} — ${d.assigned_driver}${badge ? ` (${t("Stop", "Parada")} ${badge})` : ""}${detalle(d)}`,
       dimmed: sel ? false : (e.atenuada(laneKey) || selActive),
     });
   }
@@ -220,7 +226,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       pts.push({
         id: `__hecha__${d.id}`, lat: d.delivery_lat, lng: d.delivery_lng,
         color: e.colorDe(d.assigned_driver), badge: entregada ? "✓" : "🚚",
-        label: `#${orderLabel(d)} — ${d.assigned_driver} (${entregada ? t("Delivered", "Entregada") + (hora ? ` ${hora}` : "") : t("On its way", "En camino")})${detalle(d)}`,
+        label: `${nombreEnElMapa(d, t)} — ${d.assigned_driver} (${entregada ? t("Delivered", "Entregada") + (hora ? ` ${hora}` : "") : t("On its way", "En camino")})${detalle(d)}`,
         dimmed: entregada || e.atenuada(laneKey) || selActive,
       });
     }

@@ -79,7 +79,8 @@ describe("choferesEnVivo: quién está reportando ahora", () => {
 });
 
 describe("la regla vive en un solo sitio", () => {
-  const pantallas = ["src/app/(app)/map/page.tsx", "src/app/(app)/routes/page.tsx", "src/app/(app)/warehouse/page.tsx"];
+  // Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor; ya no tiene código propio.
+  const pantallas = ["src/app/(app)/routes/page.tsx", "src/app/(app)/warehouse/page.tsx"];
 
   it("las tres pantallas la importan, y ninguna se escribe la suya", () => {
     for (const p of pantallas) {

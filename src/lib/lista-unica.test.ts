@@ -255,7 +255,8 @@ const cuerpoDe = (fuente: string, desde: string, hasta: string) => {
 };
 
 describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la vista", () => {
-  const tarjeta = cuerpoDe(pagina, "{shownDrivers.map((u) => {", "{!ready && <div className=\"empty\">");
+  // Puesto al día por D-481: las tarjetas salen de `tarjetasDeRuta` (en «Cuadrícula», la compacta y la desplegada).
+  const tarjeta = cuerpoDe(pagina, "{tarjetasDeRuta.map(([u, modoDeTarjeta]) => {", "{!ready && <div className=\"empty\">");
   const mueve = cuerpoDe(pagina, "const mueveParada = async (", "\n  };\n");
 
   it("la tabla pinta \`lectura.filas\` con la cuenta de \`cuentaDePallets\` en cada fila, y la Base al principio y al final", () => {
@@ -421,7 +422,7 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
     expect(gruposDeMismoLugar(l, [{ id: "a", delivery_address: "T" }])).toEqual([null, null, null, null]);
   });
   it("el Gestor: cada fila P con su ID, su llegada (la de la medida, «P:» + su puesto) y la clase de su grupo; las D también", () => {
-    const tarjeta = cuerpoDe(pagina, "{shownDrivers.map((u) => {", "{!ready && <div className=\"empty\">");
+    const tarjeta = cuerpoDe(pagina, "{tarjetasDeRuta.map(([u, modoDeTarjeta]) => {", "{!ready && <div className=\"empty\">");
     expect(tarjeta).toContain("const grupos = gruposDeMismoLugar(lectura.paradas, stops);");
     expect(tarjeta).toContain("const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;");
     // La medida usa la MISMA clave para la recogida. (**Puesto al día por D-461**: lo que la recogida tarda ya no es la recarga

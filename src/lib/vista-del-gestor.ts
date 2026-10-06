@@ -16,6 +16,12 @@
  * NO se guardaba en ningún sitio (era estado de la pantalla), así que no hay nada guardado que pueda mandar sobre esto.
  * «Sin asignar» (su propia pestaña) sigue naciendo abierta: no es una tarjeta de chofer, y plegarla dejaría la pestaña en
  * blanco al pulsarla.
+ *
+ * **Reemplazado en parte por D-481** (2026-10-06): el desplegable del punto 1 se fue. El dueño: «remove the all driver
+ * dropdown». El filtro son las CASILLAS del panel «Choferes y rutas» (`lib/gestor/filtro-de-choferes.ts`): marcar un chofer
+ * enseña solo a ese. `TODOS_LOS_CHOFERES`, `leeFiltroDeChofer`, `guardaFiltroDeChofer`, `filtroVigente` y
+ * `pasaElFiltroDeChofer` se quedan para `todas-del-gestor` (que acepta las dos formas) y sus pruebas; la pantalla ya no
+ * los llama. El punto 2 (todo nace plegado) sigue en pie.
  */
 
 export const TODOS_LOS_CHOFERES = "";

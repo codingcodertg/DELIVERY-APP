@@ -73,26 +73,26 @@ describe("qué sale en la leyenda", () => {
 });
 
 describe("la página pinta con lo mismo que lee la leyenda", () => {
-  const pagina = sinComentarios(leer("src/app/(app)/map/page.tsx"));
+  // Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor en solo lectura; la leyenda vive ahí.
+  const pagina = sinComentarios(leer("src/app/(app)/routes/page.tsx"));
+  const mapa = sinComentarios(leer("src/app/(app)/map/page.tsx"));
 
   it("los puntos: `colorFor` es `colorDeChofer` con `settings.driver_colors`, y los puntos salen de `conPunto`", () => {
     expect(pagina).toContain("const colorFor = (driver: string | null) => colorDeChofer(settings.driver_colors, driver);");
     // **Reemplazado en parte por D-467** (2026-10-04): la página es «Ruta de hoy» y sus puntos los pinta
     // `puntosDeLasRutas` (lib/mapa-de-rutas), el mismo del Gestor, con el `colorFor` que ella le pasa.
-    expect(pagina).toContain("colorDe: colorFor, colorSinChofer: COLOR_SIN_ASIGNAR,");
+    expect(pagina).toContain("colorDe: colorFor, colorSinChofer: UNASSIGNED_COLOR,");
+    expect(pagina).toContain(`const UNASSIGNED_COLOR = "${COLOR_SIN_ASIGNAR}";`);
     expect(leer("src/lib/mapa-de-rutas.ts")).toContain("color: sel ? colorMarcada(d.id) : e.colorDe(d.assigned_driver),");
-    expect(pagina).toContain("const conPunto = paradas.filter((d) => d.delivery_lat != null && d.delivery_lng != null);");
   });
 
   it("la leyenda recibe los mismos choferes, los mismos colores y las mismas condiciones que el dibujo", () => {
-    const llamada = pagina.slice(pagina.indexOf("leyendaDelMapa({"), pagina.indexOf("leyendaDelMapa({") + 260);
-    expect(llamada).toContain("choferes: conPunto.map((d) => d.assigned_driver),");
+    const llamada = pagina.slice(pagina.indexOf("leyendaDelMapa({"), pagina.indexOf("leyendaDelMapa({") + 420);
+    expect(llamada).toContain("choferes: dayOrders.filter((d) => d.delivery_lat != null && d.delivery_lng != null).map((d) => d.assigned_driver),");
     expect(llamada).toContain("coloresDeChofer: settings.driver_colors,");
     // D-467: ya no hay rutas punteadas de lo sin chofer (costaban una llamada de mapas por orden) ni se asigna desde aquí;
     // la leyenda explica las marcas de una ruta (`rutasDelDia`) y nombra los camiones solo a quien los recibe (`veCamiones`).
-    expect(llamada).toContain("rutasSinChofer: false,");
-    expect(llamada).toContain("puedeAsignar: false,");
-    expect(llamada).toContain("rutasDelDia: { camiones: veCamiones },");
+    expect(llamada).toContain("rutasSinChofer: false, puedeAsignar: false, rutasDelDia: { camiones: veCamiones },");
     const deRutas = leyendaDelMapa({ choferes: ["Ana", null], coloresDeChofer: {}, rutasSinChofer: false, puedeAsignar: false, rutasDelDia: { camiones: true } });
     expect(deRutas.map((e) => e.clave)).toEqual(["tienda", "chofer:Ana", "sin_chofer", "recogida_de_ruta", "entrega_de_ruta", "entregada", "ruta_del_chofer", "regreso", "camion"]);
     expect(deRutas.find((e) => e.clave === "regreso")).toEqual(expect.objectContaining({ forma: "linea", discontinua: true }));
@@ -110,7 +110,8 @@ describe("la página pinta con lo mismo que lee la leyenda", () => {
   });
 
   it("ninguno de los tres colores queda suelto en la página", () => {
-    for (const hex of [COLOR_SIN_ASIGNAR, COLOR_RECOGIDA, COLOR_RUTA_ELEGIDA]) expect(pagina, hex).not.toContain(hex);
+    // Puesto al día por D-481: «Ruta de hoy» ya no tiene código propio (el Gestor guarda sus colores de antes).
+    for (const hex of [COLOR_SIN_ASIGNAR, COLOR_RECOGIDA, COLOR_RUTA_ELEGIDA]) expect(mapa, hex).not.toContain(hex);
   });
 
   it("los dos motores pintan la tienda sin papel con `TIENDA_CLASICA`, el color de la leyenda", () => {

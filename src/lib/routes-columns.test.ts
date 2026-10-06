@@ -327,7 +327,8 @@ describe("la página del Gestor", () => {
   it("D-379: el ⚙ de paradas se pinta UNA VEZ POR CHOFER, y cada uno tiene su estado y su caja — no uno de la página para todos", () => {
     // El fallo del dueño («no me deja seleccionar la columna»): un solo estado y una sola ref de la página, dentro del map de
     // choferes. Abría los cuatro a la vez y la ref era la caja del ÚLTIMO: la casilla de otro contaba como clic fuera.
-    const mapa = pagina.slice(pagina.indexOf("{shownDrivers.map((u) => {"));
+    // Puesto al día por D-481: las tarjetas salen de `tarjetasDeRuta` (en «Cuadrícula», la compacta y la desplegada).
+    const mapa = pagina.slice(pagina.indexOf("{tarjetasDeRuta.map(([u, modoDeTarjeta]) => {"));
     expect(mapa.indexOf("<SelectorDeColumnas")).toBeGreaterThan(-1);
     expect(pagina).not.toMatch(/verColsParadas|cajaDeColsParadas|verColsPool|cajaDeColsPool|useCierraAlSalir/);
     // Tres desde D-429: el del plan va UNO para todas las rutas (fuera del `map` de choferes de `RutaDelPlan`).

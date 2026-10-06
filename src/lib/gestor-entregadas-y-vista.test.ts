@@ -188,7 +188,8 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       expect(pines).toContain("if (!e.pasaFiltro(laneKey)) continue;");
       const llamada = trozo("const pts = puntosDeLasRutas<Delivery>({", "});");
       expect(llamada).toContain("hechas: hechasPintadas,");
-      expect(llamada).toContain("pasaFiltro, soloUnChofer: filtroChofer !== TODOS_LOS_CHOFERES, enfocado: focused, atenuada: isDim,");
+      // Puesto al día por D-481: el filtro son las casillas del panel (`soloAlgunos`: hay alguno marcado).
+      expect(llamada).toContain("pasaFiltro, soloUnChofer: soloAlgunos(filtroChofer), enfocado: focused, atenuada: isDim,");
     });
     it("«Vaciar» no se lleva lo ya recogido o entregado", () => {
       const vaciar = trozo("const clearLane = async (laneKey: string) => {", "// Drivers on vacation/sick/maintenance");
@@ -208,7 +209,8 @@ describe("2 · la celda de acciones es una celda de tabla: el flex va DENTRO («
   it("las filas con botones (P y D) envuelven sus acciones en un div; las que no (otra carga, Base, hecha) llevan la celda vacía", () => {
     expect(pagina.split('<td className="celda-acciones" onClick={(e) => e.stopPropagation()}> <div className="acciones-de-parada">').length - 1).toBe(2);
     expect(pagina).toContain('<div className="acciones-de-parada">{flechas}{pasar}</div>');
-    expect(pagina).toContain('<div className="acciones-de-parada"> {flechas}{pasar}{botonesDeCarga(d, capacity)}');
+    // Puesto al día por D-481: los botones, solo donde hay acciones.
+    expect(pagina).toContain('<div className="acciones-de-parada"> {flechas}{pasar}{acciones && botonesDeCarga(d, capacity)}');
     expect(pagina.split('<td className="celda-acciones" />').length - 1).toBe(3);
     // La última celda de TODAS las filas de la tabla de paradas es `celda-acciones`: ninguna se quedó con un <td /> suelto.
     const tabla = trozo('<table className="orders tbl-resize tabla-de-paradas"', "</table>");
@@ -288,7 +290,12 @@ describe("5, 6 y 9 · la barra de vistas de abajo lleva el filtro de chofer, los
   it("9 · el filtro de chofer está abajo y NO en la cabecera, con la misma función y lo mismo guardado", () => {
     expect(pagina.split("data-filtro-de-chofer").length - 1).toBe(1);
     expect(cabecera).not.toContain("data-filtro-de-chofer");
-    expect(barra).toContain("value={filtroChofer} onChange={(e) => eligeFiltroDeChofer(e.target.value)} data-filtro-de-chofer");
+    // **Reemplazado por D-481** (2026-10-06, «remove the all driver dropdown»): el desplegable se fue; en la barra queda solo
+    // una pastilla con los choferes marcados en el panel, y su ✕ los suelta todos.
+    expect(barra).not.toContain("All drivers");
+    expect(barra).not.toContain("eligeFiltroDeChofer");
+    expect(barra).toContain("{filtroChofer.size > 0 && ( <span className=\"sema\" data-filtro-de-chofer");
+    expect(barra).toContain("data-quita-filtro onClick={() => setSelected(new Set())}");
     // En la cabecera quedan la fecha, los atajos, «Todas» y «Armar rutas».
     for (const queda of ['type="date"', "data-atajo-fecha={dias}", "All dates", "data-armar-rutas"]) expect(cabecera, queda).toContain(queda);
   });
@@ -340,7 +347,8 @@ describe("7 · ↶ Deshacer / ↷ Rehacer a la vista en la tarjeta de cada ruta"
   it("la tarjeta: los dos botones junto a Bloquear / Optimizar / Vaciar, sobre el MISMO historial que Ctrl+Z", () => {
     expect(pagina).toContain('const deshace = botonDeVolver(historial, "deshacer", u.key, laneLabel);');
     expect(pagina).toContain('const rehace = botonDeVolver(historial, "rehacer", u.key, laneLabel);');
-    const grupo = trozo("<span data-acciones-de-la-ruta", "{!isC && <>");
+    // Puesto al día por D-481: el cuerpo de la tarjeta cuelga de `sinCuerpo` (la compacta de «Cuadrícula» no lo lleva).
+    const grupo = trozo("<span data-acciones-de-la-ruta", "{!sinCuerpo && <>");
     expect(grupo).toContain('data-deshacer-en-ruta={u.key} disabled={moviendo || !deshace.activo} title={t(deshace.titulo.en, deshace.titulo.es)} onClick={(e) => { e.stopPropagation(); void vuelve("deshacer"); }}>');
     expect(grupo).toContain('data-rehacer-en-ruta={u.key} disabled={moviendo || !rehace.activo} title={t(rehace.titulo.en, rehace.titulo.es)} onClick={(e) => { e.stopPropagation(); void vuelve("rehacer"); }}>');
     const orden = ["data-deshacer-en-ruta", "data-rehacer-en-ruta", "data-candado={u.key}", "data-optimizar={u.key}", "onClick={() => clearLane(u.key)}"].map((x) => grupo.indexOf(x));
