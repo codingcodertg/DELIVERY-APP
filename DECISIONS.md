@@ -37334,7 +37334,6 @@ en el quote builder solo para admin habilita la lista de todas las quotes ya hec
 - `window.print()` de verdad, como siempre (D-413).
 - No se cerró la lectura entre compañeros de tienda que permite la 148 (arriba).
 
-<<<<<<< HEAD
 ## D-477 · «Reciente» es solo ayer, hoy y mañana: las vencidas abiertas ya no entran (deshace D-351)
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.258.0, repo 1.351.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d477`.
@@ -37351,7 +37350,7 @@ en el quote builder solo para admin habilita la lista de todas las quotes ya hec
   listas de almacén ni de chofer (`withinRetention`): el dueño habló de la pestaña «Recent».
 
 No visto en navegador: `tsc` y vitest (98 de las ventanas y pastillas).
-=======
+
 ## D-478 · Quote Builder, pestaña «Todas las cotizaciones (admin)»: los filtros se rehacen con los patrones de la casa — el calendario del Panel y el menú por columna de las tablas
 
 **Fecha:** 2026-10-06 · **Versión:** estimator 0.11.1, repo 1.351.1 (toca `src/app/estimator/` y `src/lib/estimator/`:
@@ -37441,4 +37440,3 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 
 - Contra producción con sesión de admin, nada (como en D-476).
 - El Panel no se tocó: el selector sigue escrito en las dos pantallas.
->>>>>>> 37fb3d7f9697ae1a7aa3f67966ec9290c21b12bf
