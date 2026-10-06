@@ -239,7 +239,7 @@ describe("la entrega del vendedor (dirección, pin, millas, lista y descuento) N
   });
 });
 
-describe("el precio con descuento en la hoja: importe regular, «Discount price: $», subtotal, ahorro, impuesto y total (D-442, D-451)", () => {
+describe("el descuento en la hoja: importe regular, «Discount: N%», subtotal, ahorro, impuesto y total (D-442, D-451, D-475)", () => {
   // El dueño, 2026-09-28: «the estimate will show the line total with the regular price they input but then it will
   // show a % discount (not amount) if they provide a secondary lower price. Then at the bottom after the subtotal we will
   // show the amount of savings to then give the final total price with taxes».
@@ -254,17 +254,18 @@ describe("el precio con descuento en la hoja: importe regular, «Discount price:
   const hoja = hojaDelCliente(q);
   const html = renderToStaticMarkup(createElement(HojaCliente, { hoja }));
 
-  it("cada Amount es el total a precio REGULAR, y la línea con descuento lleva su PRECIO, no un porcentaje (D-451)", () => {
-    // El dueño, 2026-09-29: «descuento is a price not a percentage». 100 SF × $8 = $800.00.
+  it("cada Amount es el total a precio REGULAR, y la línea con descuento lleva su PORCENTAJE, no el precio (D-475)", () => {
+    // El dueño, 2026-10-06, con foto de la hoja: «Instead of discount price I want it to be discount %». ($10 − $8) / $10 = 20 %.
     expect(hoja.filas.map((f) => f.importe)).toEqual([1000, 385]);
-    expect(hoja.filas.map((f) => f.precioConDescuento)).toEqual(["Discount price: $800.00", null]);
+    expect(hoja.filas.map((f) => f.precioConDescuento)).toEqual(["Discount: 20%", null]);
     expect(html).toContain("$1,000.00");
-    expect(html).toContain("Discount price: $800.00");
+    expect(html).toContain("Discount: 20%");
+    expect(html).not.toContain("Discount price");
+    expect(html).not.toContain("$800.00");
   });
-  it("ningún porcentaje en la hoja (D-451 revierte el «−20%» de D-442)", () => {
-    expect(JSON.stringify(hoja)).not.toMatch(/\d%(?!:)/);
-    expect(html).not.toContain("−20%");
-    expect(html).not.toContain("20%");
+  it("el porcentaje va con un decimal si lo tiene, y es el mismo que ve el vendedor", () => {
+    const h = hojaDelCliente(borrador({ lines: [{ ...conDescuento, price_per_sf: 12, lower_price_per_sf: 11 }] }));
+    expect(h.filas[0].precioConDescuento).toBe("Discount: 8.3%");
   });
   it("subtotal regular 1,385.00 → ahorro 200.00 → impuesto 8.25 % sobre 1,185.00 = 97.76 → total 1,282.76", () => {
     expect(hoja.textoSubtotal).toBe("Subtotal: $1,385.00");
