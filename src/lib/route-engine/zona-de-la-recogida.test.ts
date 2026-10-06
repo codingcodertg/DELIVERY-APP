@@ -105,7 +105,7 @@ describe("cuántas puntas de una orden hace un chofer en la zona de otro", () =>
     expect(fueraDeSuZona(J, { zona: "Centro", zonaRecogida: "Norte" }, recl)).toBe(false);
   });
 
-  it("evaluar un plan suma las puntas: la entrega cuesta el peso `zona` y, desde motor-8 (D-NEXT), la recogida el suyo, `zonaRecogida`", () => {
+  it("evaluar un plan suma las puntas: la entrega cuesta el peso `zona` y, desde motor-8 (D-479), la recogida el suyo, `zonaRecogida`", () => {
     const e = entradaDe([orden("o", { origen: punto(0), destino: punto(10), zona: "Sur", zonaRecogida: "Sur" })],
       [chofer("E", { zonas: ["Este"] }), chofer("S", { zonas: ["Sur"] })]);
     const conE = evaluaPlan({ ...e, secuencias: { E: [{ orden: "o", tipo: "P" }, { orden: "o", tipo: "D" }] } });
@@ -181,7 +181,7 @@ describe("las reglas del dueño, una por una", () => {
     expect(choferDe(plan, "o")).toBe("M");
   });
 
-  it("una entrega a una ciudad sin dueño que sale de la tienda de la zona de M: desde motor-8 (D-NEXT) la recogida SÍ cuenta", () => {
+  it("una entrega a una ciudad sin dueño que sale de la tienda de la zona de M: desde motor-8 (D-479) la recogida SÍ cuenta", () => {
     // Hasta motor-7 aquí no contaba ninguna punta («esas ciudades … se le da a los conductores que sea mejor opcion y mas
     // eficiente»). El 2026-10-06 eso subió a Maximo de Brownsville a Pharr por una orden para Edcouch sin pagar nada,
     // mientras Ernesto bajaba a Brownsville. Ahora a J le cuesta la recogida en la tienda de M; a M, nada. «El más
@@ -237,7 +237,7 @@ describe("el umbral de D-423 con dos puntas: vuelve con quien hace MENOS puntas 
     // Vuelve con N (una punta menos que con E), no con S: S no es de ninguna zona (como en D-423).
     const e = dia();
     const sinZonasS = { ...e, choferes: [...e.choferes.map((c) => (c.id === "S" ? { ...c, zonas: undefined } : c)), chofer("W", { zonas: ["Sur"], salida: 481 })] };
-    // Con la recogida al precio de la entrega (`zonaRecogida: 0`), como se escribió en D-427: con el de por defecto (D-NEXT)
+    // Con la recogida al precio de la entrega (`zonaRecogida: 0`), como se escribió en D-427: con el de por defecto (D-479)
     // E pagaría 60 + 120 y el builder ya no le compensa.
     expect(choferDe(planifica(sinZonasS, con({ zonaMillas: 0, zonaRecogida: 0 })), "builder")).toBe("E");
     expect(choferDe(planifica(sinZonasS, con({ zonaRecogida: 0 })), "builder")).toBe("N");
@@ -287,7 +287,7 @@ describe("preferencia, no regla: la zona de la recogida nunca deja una orden fue
     expect(planifica(e)).toEqual(solo);
   });
 
-  it("el día inventado 48, con zona solo en las tiendas: desde motor-8 (D-NEXT) las recogidas en la tienda de otro cuentan, y son menos que sin zonas", () => {
+  it("el día inventado 48, con zona solo en las tiendas: desde motor-8 (D-479) las recogidas en la tienda de otro cuentan, y son menos que sin zonas", () => {
     // Hasta motor-7 la recogida solo contaba si la entrega tenía dueño, y este día salía igual que sin zonas.
     const e = diaInventado(48, false);
     expect(e.ordenes.every((o) => !o.zona)).toBe(true);

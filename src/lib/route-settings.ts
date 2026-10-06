@@ -45,7 +45,7 @@ export function pesosDeRuta(settings: Pick<Settings, "route_weights">): RouteWei
   if (numeroValido(guardados.zona)) r.zona = guardados.zona;
   // Y su umbral en millas (D-423), con la misma regla: solo si está guardado y es válido.
   if (numeroValido(guardados.zonaMillas)) r.zonaMillas = guardados.zonaMillas;
-  // Y el de la recogida en la tienda de la zona de otro (D-NEXT), igual.
+  // Y el de la recogida en la tienda de la zona de otro (D-479), igual.
   if (numeroValido(guardados.zonaRecogida)) r.zonaRecogida = guardados.zonaRecogida;
   return r;
 }
@@ -55,7 +55,7 @@ export function pesoDeZona(settings: Pick<Settings, "route_weights">): number {
   return pesosDeRuta(settings).zona ?? PESO_DE_ZONA_POR_DEFECTO;
 }
 
-/** El peso de la recogida fuera de zona vigente (D-NEXT): el guardado en `route_weights.zonaRecogida`, o el de por defecto. */
+/** El peso de la recogida fuera de zona vigente (D-479): el guardado en `route_weights.zonaRecogida`, o el de por defecto. */
 export function pesoDeZonaRecogida(settings: Pick<Settings, "route_weights">): number {
   return pesosDeRuta(settings).zonaRecogida ?? PESO_DE_ZONA_RECOGIDA_POR_DEFECTO;
 }

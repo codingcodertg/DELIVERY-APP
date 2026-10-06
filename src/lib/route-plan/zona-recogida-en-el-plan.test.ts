@@ -61,12 +61,12 @@ describe("la zona de la recogida es la ciudad de la tienda de origen", () => {
 });
 
 describe("Ajustes lo dice", () => {
-  it("hay dos pesos 5 —por entrega y por recogida (D-NEXT)— y la ayuda explica que la tienda de la recogida también cuenta", () => {
+  it("hay dos pesos 5 —por entrega y por recogida (D-479)— y la ayuda explica que la tienda de la recogida también cuenta", () => {
     const s = leer("src/components/RouteEngineSettings.tsx");
     expect(s).toContain("5 · Zona preferida (por entrega fuera de ella)");
     expect(s).toContain("5 · Zona preferida (por recogida en la tienda de la zona de otro chofer)");
     expect(s).toContain("Recoger en la tienda de la zona de otro chofer también cuenta, y es la punta cara");
-    // Hasta motor-7 una entrega a una ciudad sin dueño iba al más eficiente «salga de la tienda que salga»; ya no (D-NEXT).
+    // Hasta motor-7 una entrega a una ciudad sin dueño iba al más eficiente «salga de la tienda que salga»; ya no (D-479).
     expect(s).not.toContain("salga de la tienda que salga");
   });
 });

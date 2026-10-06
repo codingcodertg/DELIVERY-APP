@@ -422,7 +422,7 @@ export interface RouteWeights {
    *  `route_weights` guardado antes no lo trae, y entonces vale el de por defecto (`PESO_DE_ZONA_POR_DEFECTO`). Vive
    *  dentro del mismo jsonb que los otros cinco: no hace falta columna. */
   zona?: number;
-  /** Por RECOGIDA en la tienda de la zona de otro chofer (D-NEXT, `motor-8`): la punta cara. Opcional, como `zona`, y en el
+  /** Por RECOGIDA en la tienda de la zona de otro chofer (D-479, `motor-8`): la punta cara. Opcional, como `zona`, y en el
    *  mismo jsonb: sin él, `PESO_DE_ZONA_RECOGIDA_POR_DEFECTO`. */
   zonaRecogida?: number;
   /** El umbral de la zona, en millas (D-423): por debajo, la zona gana al builder y al balance. Opcional, como `zona`, y

@@ -28,7 +28,7 @@ export const PESOS_POR_DEFECTO: Pesos = { builder: 2, manejo: 1, millas: 0.5, ta
 export const PESO_DE_ZONA_POR_DEFECTO = 60;
 
 /**
- * Lo que cuesta IR A RECOGER a la tienda de la zona de otro chofer (D-NEXT, `motor-8`), en minutos equivalentes, por
+ * Lo que cuesta IR A RECOGER a la tienda de la zona de otro chofer (D-479, `motor-8`), en minutos equivalentes, por
  * recogida. Es la punta cara: una orden que sale de la tienda de la zona de uno y va a la de otro cuesta una punta con
  * cualquiera de los dos (D-427), y con las dos puntas al mismo precio decidían el builder y el balance —y mandaban a
  * Ernesto y a Julio hasta Brownsville mientras Maximo subía a Pharr por una sola orden—. El dueño, 2026-10-06: «it giving
@@ -74,7 +74,7 @@ export function zonasReclamadas(choferes: readonly Pick<ChoferEntrada, "zonas">[
  * esa zona que una que sale de ella.
  *
  * Hasta `motor-7` la recogida solo contaba si la ciudad de la ENTREGA tenía dueño (D-427: «una entrega a una ciudad sin
- * dueño va al más eficiente, aunque salga de la tienda de la zona de alguien»). Desde `motor-8` (D-NEXT) cuenta siempre:
+ * dueño va al más eficiente, aunque salga de la tienda de la zona de alguien»). Desde `motor-8` (D-479) cuenta siempre:
  * con esa excepción, el 2026-10-06 Maximo subió de Brownsville a Pharr por una orden de 3 pallets para Edcouch (ciudad
  * sin dueño) sin pagar ninguna punta, mientras Ernesto bajaba a Brownsville a recoger. «El más eficiente» para una ciudad
  * sin dueño sigue decidiendo ENTRE los que no pagan la recogida; y entre los que la pagan, el coste de siempre.
@@ -95,7 +95,7 @@ export function entregaFueraDeZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<Orde
   return puntaFuera(c, o.zona, reclamadas);
 }
 
-/** La punta de la RECOGIDA (D-NEXT, `motor-8`): 1 si la tienda donde se carga está en la zona de otro chofer y la recogida
+/** La punta de la RECOGIDA (D-479, `motor-8`): 1 si la tienda donde se carga está en la zona de otro chofer y la recogida
  *  no está hecha. Es la que cuesta `zonaRecogida` en vez de `zona`. */
 export function recogidaFueraDeZona(c: Pick<ChoferEntrada, "zonas">, o: Pick<OrdenEntrada, "zonaRecogida" | "recogidaHecha">, reclamadas: ReadonlySet<string>): 0 | 1 {
   if (!c.zonas?.length || o.recogidaHecha) return 0;
@@ -135,7 +135,7 @@ export function costeTotal(d: Omit<Desglose, "total">, pesos: Pesos): number {
     + enMilesimas(pesos.millas) * aCentesimas(d.millas)
     + 100 * enMilesimas(pesos.tarde) * d.tardeMin
     + 100 * enMilesimas(pesos.balance) * d.balanceMin
-    // Las puntas fuera de zona: la entrega al peso `zona`; la recogida (D-NEXT), al suyo, que por defecto es más caro.
+    // Las puntas fuera de zona: la entrega al peso `zona`; la recogida (D-479), al suyo, que por defecto es más caro.
     // `recogidasFueraDeZona` es parte de `fueraDeZona`, nunca más: se resta para no cobrarla dos veces.
     + 100 * enMilesimas(pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) * ((d.fueraDeZona ?? 0) - (d.recogidasFueraDeZona ?? 0))
     + 100 * enMilesimas(pesoDeRecogida(pesos)) * (d.recogidasFueraDeZona ?? 0);

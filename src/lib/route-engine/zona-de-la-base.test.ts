@@ -11,7 +11,7 @@ import { pesoDeZonaRecogida, pesosDeRuta } from "@/lib/route-settings";
 import { entradaDelDia, type DatosDelDia } from "@/lib/route-plan/entrada";
 
 /**
- * La recogida en la tienda de la zona de otro chofer es la punta CARA (D-NEXT, `motor-8`). El dueño, 2026-10-06, con el
+ * La recogida en la tienda de la zona de otro chofer es la punta CARA (D-479, `motor-8`). El dueño, 2026-10-06, con el
  * borrador de ese día: *«it giving ernesto an djulio trips to brownville and then it gives pharr to max and he is from
  * brownsville»*.
  *

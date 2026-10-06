@@ -22,7 +22,7 @@ import type {
  * sitio» en la mejora. Y dentro de una ruta, a igual coste, las críticas y altas van antes (D-415, como OptimoRoute).
  */
 
-/** `motor-8` (D-NEXT): la recogida en la tienda de la zona de otro chofer es la punta CARA (`pesos.zonaRecogida`, por defecto
+/** `motor-8` (D-479): la recogida en la tienda de la zona de otro chofer es la punta CARA (`pesos.zonaRecogida`, por defecto
  *  120 contra los 60 de la entrega) y cuenta SIEMPRE que esa tienda tenga dueño, también cuando la entrega va a una ciudad
  *  que no es zona de nadie (hasta `motor-7`, entonces no contaba). El dueño, 2026-10-06: «it giving ernesto an djulio trips
  *  to brownville and then it gives pharr to max and he is from brownsville». Sin zonas, lo mismo que `motor-7`, byte a byte.

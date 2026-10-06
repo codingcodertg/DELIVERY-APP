@@ -1,5 +1,5 @@
 {
- "nota": "Fixture anonimizado de producción (D-NEXT, motor-8): la entrada del motor del 2026-10-06 tal como la armó «Armar rutas» (motor-7, matriz y tráfico de Google guardados con el plan). Sin direcciones, nombres ni códigos: choferes A/B/C (A sale de la tienda t1 y prefiere Z5, Z6, Z2, Z3; B de t2 y prefiere Z1, Z2, Z3; C de t3 y prefiere solo Z4; Z7 no es de nadie), órdenes o01…, puntos p…/t…, ciudades Z…. Es el día de la queja del dueño: el plan mandaba a A y a B a recoger a la tienda de C (t3) y a C a recoger a la de B (t2).",
+ "nota": "Fixture anonimizado de producción (D-479, motor-8): la entrada del motor del 2026-10-06 tal como la armó «Armar rutas» (motor-7, matriz y tráfico de Google guardados con el plan). Sin direcciones, nombres ni códigos: choferes A/B/C (A sale de la tienda t1 y prefiere Z5, Z6, Z2, Z3; B de t2 y prefiere Z1, Z2, Z3; C de t3 y prefiere solo Z4; Z7 no es de nadie), órdenes o01…, puntos p…/t…, ciudades Z…. Es el día de la queja del dueño: el plan mandaba a A y a B a recoger a la tienda de C (t3) y a C a recoger a la de B (t2).",
  "tiendaDeC": "t3",
  "entrada": {
   "ordenes": [

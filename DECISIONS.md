@@ -31706,7 +31706,7 @@ lista sembrada.
 
 ## D-427 · La zona también mira dónde se RECOGE: ir a la tienda de la zona de otro chofer cuenta como entrar en su zona (`motor-6`)
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06, `motor-8`): la recogida en la tienda de la zona de otro chofer ya no cuesta lo mismo que la entrega: tiene su propio peso, `route_weights.zonaRecogida`, 120 por defecto contra los 60 de la entrega. Y cuenta SIEMPRE que la tienda tenga dueño, también cuando la entrega va a una ciudad que no es zona de nadie: la excepción de aquí («una entrega a una ciudad sin dueño va al más eficiente, aunque salga de la tienda de la zona de alguien») subió a Maximo de Brownsville a Pharr por una orden para Edcouch sin pagar nada. El dueño: «it giving ernesto an djulio trips to brownville and then it gives pharr to max and he is from brownsville».
+> **⚠ Reemplazada en parte por D-479** (2026-10-06, `motor-8`): la recogida en la tienda de la zona de otro chofer ya no cuesta lo mismo que la entrega: tiene su propio peso, `route_weights.zonaRecogida`, 120 por defecto contra los 60 de la entrega. Y cuenta SIEMPRE que la tienda tenga dueño, también cuando la entrega va a una ciudad que no es zona de nadie: la excepción de aquí («una entrega a una ciudad sin dueño va al más eficiente, aunque salga de la tienda de la zona de alguien») subió a Maximo de Brownsville a Pharr por una orden para Edcouch sin pagar nada. El dueño: «it giving ernesto an djulio trips to brownville and then it gives pharr to max and he is from brownsville».
 
 **Fecha:** 2026-09-27 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (la ciudad de la tienda
 sale de la dirección de la tienda en Ajustes, que ya existía). **Reemplaza en parte** a D-421 (qué es «fuera de zona») y a
@@ -37443,9 +37443,9 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 - Contra producción con sesión de admin, nada (como en D-476).
 - El Panel no se tocó: el selector sigue escrito en las dos pantallas.
 
-## D-NEXT · La recogida en la tienda de la zona de otro chofer es la punta cara: cada chofer carga en su tienda salvo que no quepa (`motor-8`)
+## D-479 · La recogida en la tienda de la zona de otro chofer es la punta cara: cada chofer carga en su tienda salvo que no quepa (`motor-8`)
 
-**Fecha:** 2026-10-06 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna (el peso nuevo vive en el
+**Fecha:** 2026-10-06 · **Versión:** deliveries 1.259.0, repo 1.352.0 (Entregas) · **Migraciones:** ninguna (el peso nuevo vive en el
 mismo `route_weights` jsonb que los demás). **Reemplaza en parte** a D-427 (lleva su nota). D-461 y D-464 no cambian.
 
 ### Qué pidió el dueño
