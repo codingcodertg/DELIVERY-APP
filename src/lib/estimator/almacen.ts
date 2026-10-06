@@ -1,9 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EstimadoHallado, AprobacionEstado } from "./validar";
 import {
-  DEFAULT_DISPLAY_LEVEL, DEFAULT_SALUTATION, DISPLAY_LEVELS, SALUTATIONS, hoyLocal,
+  DEFAULT_DISPLAY_LEVEL, DEFAULT_SALUTATION, DISPLAY_LEVELS, SALUTATIONS, hoyLocal, resumenDeTotales,
   type Customer, type Delivery, type DisplayLevel, type QuoteDraft, type QuoteLine,
 } from "./modelo";
+import {
+  aplicaFiltro, cortaTanda, rangoDeTanda, type Consulta, type CotizacionResumen, type FiltroDeCotizaciones, type Vendedor,
+} from "./lista-admin";
 
 /**
  * Dónde se guardan las cotizaciones: `public.estimator_quotes` y `public.estimator_approvals`
@@ -46,6 +49,14 @@ export interface AlmacenDeCotizaciones {
   pendientes(): Promise<Resultado<AprobacionPendiente[]>>;
   decidir(approvalId: string, estado: "approved" | "denied"): Promise<Resultado<null>>;
   marcarImpresa(quoteId: string, printCount: number): Promise<Resultado<null>>;
+  /**
+   * TODAS las cotizaciones (D-476, solo admin), filtradas y de la más reciente a la más vieja, por tandas de `TANDA`.
+   * Quién ve cuántas lo decide la RLS de la 148 (el admin, todas; un vendedor, las suyas y las de su tienda): esto
+   * devuelve lo que la base deja, y la pantalla solo lo pide si `puedeVerTodas`.
+   */
+  listarTodas(filtro: FiltroDeCotizaciones, tanda: number): Promise<Resultado<{ filas: CotizacionResumen[]; hayMas: boolean }>>;
+  /** Quiénes pueden tener cotizaciones (admin o la casilla `estimator`), para el desplegable del filtro. */
+  vendedores(): Promise<Resultado<Vendedor[]>>;
 }
 
 /**
@@ -132,6 +143,34 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
     display_level: (DISPLAY_LEVELS as readonly string[]).includes(nivel) ? (nivel as DisplayLevel) : DEFAULT_DISPLAY_LEVEL,
     valid_through: texto(fila.valid_through) || hoyLocal(),
     project_summary: texto(fila.project_summary),
+  };
+}
+
+/** Las columnas de la lista de todas: sin `delivery` (lleva la dirección) y con el dueño por su clave foránea. */
+export const COLUMNAS_DE_LA_LISTA =
+  "id, estimate_num, owner_id, store, customer, lines, print_count, printed_at, created_at, updated_at, owner:profiles!estimator_quotes_owner_id_fkey(full_name)";
+
+/**
+ * De una fila de `estimator_quotes` (con el dueño embebido) a lo que lista la pestaña de todas. El total se calcula
+ * aquí con las mismas reglas que la pantalla (`resumenDeTotales` sobre las líneas leídas con `borradorDeFila`): la
+ * base no guarda el total, y guardarlo sería una segunda verdad que caduca con cada cambio de impuesto.
+ */
+export function resumenDeFila(fila: Record<string, unknown>): CotizacionResumen {
+  const borrador = borradorDeFila(fila);
+  const dueno = fila.owner as { full_name?: unknown } | { full_name?: unknown }[] | null | undefined;
+  const nombre = Array.isArray(dueno) ? dueno[0]?.full_name : dueno?.full_name;
+  return {
+    id: String(fila.id ?? ""),
+    estimate_num: borrador.estimate_num,
+    owner_id: typeof fila.owner_id === "string" ? fila.owner_id : null,
+    owner_name: typeof nombre === "string" && nombre.trim() ? nombre.trim() : null,
+    store: typeof fila.store === "string" && fila.store.trim() ? fila.store.trim() : null,
+    customer_name: borrador.customer.full_name.trim(),
+    total: resumenDeTotales(borrador.lines).total,
+    print_count: num(fila.print_count) ?? 0,
+    printed_at: typeof fila.printed_at === "string" ? fila.printed_at : null,
+    created_at: typeof fila.created_at === "string" ? fila.created_at : "",
+    updated_at: typeof fila.updated_at === "string" ? fila.updated_at : "",
   };
 }
 
@@ -233,6 +272,29 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
       if (error) return fallo(error);
       if (!(data as unknown[] | null)?.length) return { ok: false, sinTabla: false, error: "0 rows" };
       return { ok: true, valor: null };
+    },
+
+    async listarTodas(filtro, tanda) {
+      const { desde, hasta } = rangoDeTanda(tanda);
+      const base = supabase.from("estimator_quotes").select(COLUMNAS_DE_LA_LISTA);
+      // El filtro se aplica por la interfaz mínima (`Consulta`): con los genéricos de PostgREST, `tsc` se pierde (TS2589).
+      const filtrada = aplicaFiltro(base as unknown as Consulta, filtro) as unknown as typeof base;
+      const { data, error } = await filtrada
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(desde, hasta);
+      if (error) return fallo(error);
+      return { ok: true, valor: cortaTanda(((data ?? []) as Record<string, unknown>[]).map(resumenDeFila)) };
+    },
+
+    async vendedores() {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, store")
+        .or("role.eq.admin,module_access.cs.{estimator}")
+        .order("full_name");
+      if (error) return fallo(error);
+      return { ok: true, valor: (data ?? []) as Vendedor[] };
     },
   };
 }
