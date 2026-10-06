@@ -37,3 +37,22 @@ export function conCuerpo(modo: ModoDeTarjeta, plegada: boolean): boolean {
   if (modo === "desplegada") return true;
   return !plegada;
 }
+
+/**
+ * ¿Lleva la tarjeta su cabecera (nombre, pastillas, números)? La desplegada NO (D-482). El dueño, 2026-10-06, con captura del
+ * nombre repetido arriba y abajo: «si yo abro este conductos quiero que este pegado como una animacion tipo apple y ahi si no va
+ * a haber doble nmbre y cosas». El nombre y los números ya están en su tarjeta compacta, que queda pegada encima.
+ */
+export function conCabecera(modo: ModoDeTarjeta): boolean {
+  return modo !== "desplegada";
+}
+
+/**
+ * Las clases de la tarjeta (D-482): la compacta abierta se marca (`tarjeta-abierta`, con su pico hacia abajo) y la desplegada
+ * entra pegada a ella con la animación de abrir (`tarjeta-desplegada`). Ver `globals.css`.
+ */
+export function claseDeTarjeta(modo: ModoDeTarjeta, abierta: boolean): string {
+  if (modo === "desplegada") return "card tarjeta-desplegada";
+  if (modo === "compacta" && abierta) return "card tarjeta-abierta";
+  return "card";
+}

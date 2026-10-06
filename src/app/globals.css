@@ -1504,3 +1504,21 @@ table.orders th { text-align: left; }
 /* Un botón por fila al lado del número (OrdersTable `accionDeFila`, D-409: «Recibir» en Recepción). */
 .accion-de-fila { display: block; margin-top: 4px; }
 .accion-de-fila .btn { padding: 2px 8px; min-height: 0; }
+
+/* Gestor, «Cuadrícula» (D-482): la tarjeta compacta abierta y su tabla desplegada se leen como UNA pieza — la de arriba con
+   borde de acento y un pico que apunta abajo, la de abajo pegada con el mismo borde y entrando con un despliegue suave. */
+.tarjeta-abierta { position: relative; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 6px 18px rgba(0, 0, 0, .08); }
+.tarjeta-abierta::after {
+  content: ""; position: absolute; left: 50%; bottom: -9px; width: 16px; height: 16px; transform: translateX(-50%) rotate(45deg);
+  background: var(--card); border-right: 1px solid var(--accent); border-bottom: 1px solid var(--accent);
+  box-shadow: 1px 1px 0 0 var(--accent);
+}
+.tarjeta-desplegada {
+  border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 28px rgba(0, 0, 0, .10);
+  transform-origin: top center; animation: tarjeta-se-abre .32s cubic-bezier(.2, .8, .2, 1);
+}
+@keyframes tarjeta-se-abre {
+  from { opacity: 0; transform: translateY(-10px) scale(.98); clip-path: inset(0 0 100% 0 round 12px); }
+  to { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 12px); }
+}
+@media (prefers-reduced-motion: reduce) { .tarjeta-desplegada { animation: none; } }
