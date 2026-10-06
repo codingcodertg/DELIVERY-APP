@@ -4,9 +4,7 @@ import {
   DEFAULT_DISPLAY_LEVEL, DEFAULT_SALUTATION, DISPLAY_LEVELS, SALUTATIONS, hoyLocal, resumenDeTotales,
   type Customer, type Delivery, type DisplayLevel, type QuoteDraft, type QuoteLine,
 } from "./modelo";
-import {
-  aplicaFiltro, cortaTanda, rangoDeTanda, type Consulta, type CotizacionResumen, type FiltroDeCotizaciones, type Vendedor,
-} from "./lista-admin";
+import { aplicaFiltro, cortaTanda, rangoDeTanda, type Consulta, type CotizacionResumen, type FiltroDeCotizaciones } from "./lista-admin";
 
 /**
  * Dónde se guardan las cotizaciones: `public.estimator_quotes` y `public.estimator_approvals`
@@ -55,8 +53,6 @@ export interface AlmacenDeCotizaciones {
    * devuelve lo que la base deja, y la pantalla solo lo pide si `puedeVerTodas`.
    */
   listarTodas(filtro: FiltroDeCotizaciones, tanda: number): Promise<Resultado<{ filas: CotizacionResumen[]; hayMas: boolean }>>;
-  /** Quiénes pueden tener cotizaciones (admin o la casilla `estimator`), para el desplegable del filtro. */
-  vendedores(): Promise<Resultado<Vendedor[]>>;
 }
 
 /**
@@ -285,16 +281,6 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
         .range(desde, hasta);
       if (error) return fallo(error);
       return { ok: true, valor: cortaTanda(((data ?? []) as Record<string, unknown>[]).map(resumenDeFila)) };
-    },
-
-    async vendedores() {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, store")
-        .or("role.eq.admin,module_access.cs.{estimator}")
-        .order("full_name");
-      if (error) return fallo(error);
-      return { ok: true, valor: (data ?? []) as Vendedor[] };
     },
   };
 }

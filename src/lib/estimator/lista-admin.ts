@@ -1,13 +1,19 @@
 import { centralWallToUtc } from "@/lib/clockin/tz";
-import { shiftDateISO } from "@/lib/utils";
+import { fechaHora } from "@/lib/encuestas/resumen";
+import { claveDeFiltro, type FiltrosPorColumna, type ValorDeCelda } from "@/lib/orden-y-filtro";
+import {
+  daysBetween, endOfMonthISO, endOfWeekISO, isoInTZ, shiftDateISO, shiftMonthISO, startOfMonthISO, startOfWeekISO, todayISO,
+} from "@/lib/utils";
 
 /**
  * La lista de TODAS las cotizaciones, solo para el admin (D-476). El dueño, 2026-10-06: «en el quote builder solo
  * para admin habilita la lista de todas las quotes ya hechas y las de los comeptirodes tambien».
  *
  * Aquí vive lo que decide, sin red: **quién ve la pestaña** (solo `admin`, la misma palabra que `profiles.role` y que
- * `is_admin()` en la RLS de la 148), el **filtro** (vendedor, tienda, fechas y texto), el **orden** (de la más reciente a
- * la más vieja) y las **tandas** (de 50 en 50). La base ya deja al admin leer todas las filas de `estimator_quotes`
+ * `is_admin()` en la RLS de la 148), el **filtro que va a la base** (fechas y texto), el **orden** (de la más reciente a
+ * la más vieja), las **tandas** (de 50 en 50), el **rango de fechas con sus atajos** (el calendario del Panel, D-NEXT) y
+ * **lo que cada columna saca de una fila** para el menú de ordenar y filtrar de las tablas de la casa (D-275/D-360).
+ * Vendedor, tienda y estado se filtran por columna sobre lo cargado, como en Órdenes; a la base solo van fechas y texto. La base ya deja al admin leer todas las filas de `estimator_quotes`
  * (148: `is_admin()` en la política de SELECT) y todos los estimados de la competencia (156: `has_estimator_access()`),
  * así que no hace falta migración: la pantalla solo pinta lo que la RLS devuelve, y a quien no es admin ni le ofrece
  * la pestaña.
@@ -44,28 +50,19 @@ export interface CotizacionResumen {
   updated_at: string;
 }
 
-export interface Vendedor {
-  id: string;
-  full_name: string | null;
-  store: string | null;
-}
-
+/** Lo que se le pide a la base: fechas y texto. Vendedor, tienda y estado se filtran por columna sobre lo cargado. */
 export interface FiltroDeCotizaciones {
-  /** El id del dueño; vacío = todos. */
-  vendedor: string;
-  /** La tienda de la cotización; vacío = todas. */
-  tienda: string;
   /** Días de Texas, `YYYY-MM-DD`, los dos incluidos; vacío = sin límite. */
   desde: string;
   hasta: string;
-  /** Busca en el # de estimado y en el nombre del cliente (el vendedor tiene su desplegable). */
+  /** Busca en el # de estimado y en el nombre del cliente. */
   texto: string;
 }
 
-export const filtroVacio = (): FiltroDeCotizaciones => ({ vendedor: "", tienda: "", desde: "", hasta: "", texto: "" });
+export const filtroVacio = (): FiltroDeCotizaciones => ({ desde: "", hasta: "", texto: "" });
 
 export function hayFiltro(f: FiltroDeCotizaciones): boolean {
-  return !!(f.vendedor || f.tienda || f.desde || f.hasta || f.texto.trim());
+  return !!(f.desde || f.hasta || f.texto.trim());
 }
 
 /** Cuántas se cargan por tanda. Hoy (2026-10-06) hay 3 en producción; con 50 la lista se lee entera de un golpe. */
@@ -102,14 +99,17 @@ export function textoCoincide(c: Pick<CotizacionResumen, "estimate_num" | "custo
   return [c.estimate_num, c.customer_name].some((v) => v.toLowerCase().includes(t));
 }
 
+/** ¿El instante cae dentro del rango de fechas del filtro? Un extremo vacío no limita. */
+export function enElRango(iso: string, f: Pick<FiltroDeCotizaciones, "desde" | "hasta">): boolean {
+  const { desde, hasta } = limitesDeFechas(f);
+  if (desde && iso < desde) return false;
+  if (hasta && iso >= hasta) return false;
+  return true;
+}
+
 /** El filtro sobre filas que ya se tienen (el demo, y la prueba de que la base pide lo mismo). */
 export function cumpleFiltro(c: CotizacionResumen, f: FiltroDeCotizaciones): boolean {
-  if (f.vendedor && c.owner_id !== f.vendedor) return false;
-  if (f.tienda && (c.store ?? "") !== f.tienda) return false;
-  const { desde, hasta } = limitesDeFechas(f);
-  if (desde && c.created_at < desde) return false;
-  if (hasta && c.created_at >= hasta) return false;
-  return textoCoincide(c, f.texto);
+  return enElRango(c.created_at, f) && textoCoincide(c, f.texto);
 }
 
 /** De la más reciente a la más vieja, por cuándo se creó; a igual instante, por id, para que las tandas no bailen. */
@@ -163,8 +163,6 @@ export type Consulta = ConsultaFiltrable<Consulta>;
 /** El mismo filtro que `cumpleFiltro`, dicho a la base. */
 export function aplicaFiltro(q: Consulta, f: FiltroDeCotizaciones): Consulta {
   let c = q;
-  if (f.vendedor) c = c.eq("owner_id", f.vendedor);
-  if (f.tienda) c = c.eq("store", f.tienda);
   const { desde, hasta } = limitesDeFechas(f);
   if (desde) c = c.gte("created_at", desde);
   if (hasta) c = c.lt("created_at", hasta);
@@ -173,7 +171,112 @@ export function aplicaFiltro(q: Consulta, f: FiltroDeCotizaciones): Consulta {
   return c;
 }
 
-/** Las tiendas para el desplegable: las de Ajustes más las que traen las filas cargadas, sin repetir ni vacías. */
-export function tiendasDelFiltro(deAjustes: readonly string[], filas: readonly { store: string | null }[]): string[] {
-  return [...new Set([...deAjustes, ...filas.map((c) => c.store ?? "")])].filter(Boolean);
+// ---- el calendario del Panel: el rango de fechas con sus atajos (D-NEXT) ---------------------------------------------
+//
+// El dueño (2026-10-06): «PON EL CALENDARIO QUE SIEMPRE HEMOS PEUSTO». Es el del Panel (`dashboard/page.tsx`): ◀ Desde
+// Hasta ▶ · Hoy · Esta semana · Este mes · Mes pasado. Aquí, además, «Todo» (sin fechas), que es como nace la lista.
+// Las cuentas son las mismas que allí, con las funciones de `utils`; lo único que cambia es que viven fuera de la pantalla
+// para probarlas.
+
+/** Cómo se mueve el rango con ◀ ▶: una semana salta 7 días, un mes salta de mes en mes, uno a mano salta su propio largo. */
+export type ModoDeRango = "week" | "month" | "custom";
+
+export interface RangoDeFechas { desde: string; hasta: string; modo: ModoDeRango }
+
+/** El rango tal como lo deja el Panel: «hasta» nunca pasa de hoy. */
+export function rangoAcotado(desde: string, hasta: string, modo: ModoDeRango, hoy: string = todayISO()): RangoDeFechas {
+  return { desde, hasta: hasta > hoy ? hoy : hasta, modo };
+}
+
+export type AtajoDeRango = "hoy" | "semana" | "mes" | "mes-pasado" | "todo";
+
+/** Lo que pone cada botón de atajo. `ahora` solo para fijar «hoy» en una prueba. */
+export function rangoDeAtajo(atajo: AtajoDeRango, ahora: Date = new Date()): RangoDeFechas {
+  const hoy = isoInTZ(ahora);
+  if (atajo === "todo") return { desde: "", hasta: "", modo: "custom" };
+  if (atajo === "hoy") return rangoAcotado(hoy, hoy, "custom", hoy);
+  if (atajo === "semana") return rangoAcotado(startOfWeekISO(ahora), endOfWeekISO(ahora), "week", hoy);
+  if (atajo === "mes") return rangoAcotado(startOfMonthISO(ahora), endOfMonthISO(ahora), "month", hoy);
+  const ancla = new Date(shiftMonthISO(startOfMonthISO(ahora), -1) + "T12:00:00");
+  return rangoAcotado(startOfMonthISO(ancla), endOfMonthISO(ancla), "month", hoy);
+}
+
+/** ◀ ▶ sobre el rango actual, como `step` del Panel. Sin fechas no hay por dónde moverse: se queda igual. */
+export function pasoDeRango(r: RangoDeFechas, dir: 1 | -1, hoy: string = todayISO()): RangoDeFechas {
+  if (!r.desde || !r.hasta) return r;
+  if (r.modo === "month") {
+    const a = new Date(shiftMonthISO(r.desde, dir) + "T12:00:00");
+    return rangoAcotado(startOfMonthISO(a), endOfMonthISO(a), "month", hoy);
+  }
+  if (r.modo === "week") return rangoAcotado(shiftDateISO(r.desde, dir * 7), shiftDateISO(r.hasta, dir * 7), "week", hoy);
+  const largo = daysBetween(r.hasta, r.desde) + 1;
+  return rangoAcotado(shiftDateISO(r.desde, dir * largo), shiftDateISO(r.hasta, dir * largo), "custom", hoy);
+}
+
+/** Qué atajo está encendido con este rango (para pintar su botón en azul), o null si es uno a mano. */
+export function atajoEncendido(r: Pick<RangoDeFechas, "desde" | "hasta" | "modo">, ahora: Date = new Date()): AtajoDeRango | null {
+  if (!r.desde && !r.hasta) return "todo";
+  for (const a of ["hoy", "semana", "mes", "mes-pasado"] as const) {
+    const x = rangoDeAtajo(a, ahora);
+    if (x.desde === r.desde && x.hasta === r.hasta && (a === "hoy" || x.modo === r.modo)) return a;
+  }
+  return null;
+}
+
+// ---- las columnas, con el menú de ordenar y filtrar de las tablas de la casa (D-275 / D-360) -------------------------
+
+export type ClaveDeColumna = "fecha" | "estimado" | "vendedor" | "tienda" | "cliente" | "total" | "estado";
+
+export const COLUMNAS_DE_LA_TABLA: readonly { key: ClaveDeColumna; en: string; es: string }[] = [
+  { key: "fecha", en: "Date", es: "Fecha" },
+  { key: "estimado", en: "Estimate #", es: "# de estimado" },
+  { key: "vendedor", en: "Sales rep", es: "Vendedor" },
+  { key: "tienda", en: "Store", es: "Tienda" },
+  { key: "cliente", en: "Customer", es: "Cliente" },
+  { key: "total", en: "Total", es: "Total" },
+  { key: "estado", en: "Status", es: "Estado" },
+];
+
+/** El texto del estado en el idioma de la pantalla; es lo que filtra y lo que se pinta, una sola cosa. */
+export function textoDeEstado(c: Pick<CotizacionResumen, "print_count" | "printed_at">, t: (en: string, es: string) => string): string {
+  if (estadoDeCotizacion(c) === "guardada") return t("Saved, not printed", "Guardada, sin imprimir");
+  return `${t("Printed", "Impresa")}${c.print_count > 1 ? ` ×${c.print_count}` : ""}`;
+}
+
+/**
+ * Lo que cada columna saca de una fila, para ordenar y filtrar (`useOrdenYFiltro`). La fecha ordena y filtra por el
+ * día de Texas (así el menú ofrece días, no instantes); el total es número; lo vacío es null («—» en el menú).
+ */
+export function valorDeColumna(clave: string, c: CotizacionResumen, t: (en: string, es: string) => string): ValorDeCelda {
+  switch (clave as ClaveDeColumna) {
+    case "fecha": return c.created_at ? isoInTZ(new Date(c.created_at)) : null;
+    case "estimado": return c.estimate_num || null;
+    case "vendedor": return c.owner_name;
+    case "tienda": return c.store;
+    case "cliente": return c.customer_name || null;
+    case "total": return c.total;
+    case "estado": return textoDeEstado(c, t);
+    default: return null;
+  }
+}
+
+/** La fecha y hora que se pinta en la celda (la columna filtra por el día). */
+export const fechaDeCelda = (iso: string): string => (iso ? fechaHora(iso) : "—");
+
+/**
+ * Los estimados de la competencia, debajo, heredan los mismos filtros que la tabla, sin cajas propias (D-NEXT): el
+ * rango de fechas (por cuándo se subió), el texto (cliente, competidor, #, nota, quién, archivo: el de D-451) y los
+ * filtros de columna de **Vendedor** (quién lo subió) y **Tienda**. Los demás filtros de columna (#, cliente, total,
+ * estado) son de la cotización y no se aplican aquí.
+ */
+export function filtraCompetenciaComoLaTabla<E extends { uploaded_at: string; uploaded_by_name: string | null; store: string | null }>(
+  estimados: readonly E[], f: FiltroDeCotizaciones, filtros: FiltrosPorColumna, textoCasa: (e: E, texto: string) => boolean,
+): E[] {
+  const vendedores = filtros.vendedor?.size ? filtros.vendedor : null;
+  const tiendas = filtros.tienda?.size ? filtros.tienda : null;
+  return estimados.filter((e) =>
+    enElRango(e.uploaded_at, f)
+    && textoCasa(e, f.texto)
+    && (!vendedores || vendedores.has(claveDeFiltro(e.uploaded_by_name)))
+    && (!tiendas || tiendas.has(claveDeFiltro(e.store))));
 }
