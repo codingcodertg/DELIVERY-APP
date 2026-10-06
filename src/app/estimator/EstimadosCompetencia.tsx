@@ -31,8 +31,10 @@ export function AvisoSin156({ t }: { t: T }) {
  * La lista de TODOS los estimados de la competencia (D-451): de quién es (cliente o # de estimado), tienda, competidor,
  * su total, nota, quién y cuándo, y el archivo. «Quitar» solo a quien lo subió o al admin (la misma regla que la 156).
  */
-export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado, onAbrir, onQuitar, onConfirmar, filtrando = false, lecturas, abierto, onProductos, detalle }: {
+export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado, onAbrir, onQuitar, onConfirmar, filtrando = false, lecturas, abierto, onProductos, detalle, onAbrirCotizacion }: {
   estimados: EstimadoDeCompetencia[]; me: Yo; t: T; lang: string; confirmando: string | null; ocupado: boolean;
+  /** Abrir la cotización a la que va pegado (la pestaña de todas, D-NEXT: el admin la puede leer entera). */
+  onAbrirCotizacion?: (quoteId: string) => void;
   /** Hay filtro puesto: una lista vacía dice «nada coincide», no «no hay ninguno». */
   filtrando?: boolean;
   /** Los productos guardados de cada estimado (161, D-466): la fila dice la empresa, el total y cuántos son. */
@@ -75,6 +77,11 @@ export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado,
             <button type="button" className="btn btn-ghost btn-sm" data-estimado-abrir onClick={() => onAbrir(e)}>
               {e.mime_type === "application/pdf" ? "📄" : "🖼️"} {e.file_name} · {tamanoLegible(e.size_bytes)}
             </button>
+            {onAbrirCotizacion && e.quote_id && (
+              <button type="button" className="btn btn-ghost btn-sm" data-estimado-abrir-cotizacion onClick={() => onAbrirCotizacion(e.quote_id!)}>
+                🧮 {t("Open its quote", "Abrir su cotización")}
+              </button>
+            )}
             {onProductos && (
               <button type="button" className={"btn btn-sm " + (abierto === e.id ? "btn-primary" : "btn-ghost")} data-estimado-productos
                 aria-expanded={abierto === e.id} onClick={() => onProductos(abierto === e.id ? null : e.id)}>

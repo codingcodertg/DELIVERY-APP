@@ -26,10 +26,12 @@ import { almacenDeLecturasDeLaBase, lineasPropias, type AlmacenDeLecturas } from
 import {
   POLITICA_CASILLA, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
+import { puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
 import { HojaCliente } from "./HojaCliente";
 import { SeccionCompetencia } from "./Competencia";
 import { EntregaCotizacion } from "./EntregaCotizacion";
 import { EstimadosCompetencia } from "./EstimadosCompetencia";
+import { TodasLasCotizaciones } from "./TodasLasCotizaciones";
 
 /** Donde el modo demo guarda quién eres: la misma clave que escribe «Ver como» (y que lee promos). */
 const ME_DEMO = "rtg_deliveries_local_me";
@@ -134,8 +136,12 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const [politicaAbierta, setPoliticaAbierta] = useState(false);
   const [politicaMarcada, setPoliticaMarcada] = useState(false);
   const [vistaPrevia, setVistaPrevia] = useState(false);
-  /** Las dos pestañas (D-451): la cotización de siempre, y todos los estimados de la competencia. */
-  const [pestana, setPestana] = useState<"cotizacion" | "competencia">("cotizacion");
+  /**
+   * Las pestañas: la cotización de siempre, todos los estimados de la competencia (D-451) y, SOLO para el admin, todas
+   * las cotizaciones (D-NEXT). Si «Ver como» (demo) deja de ser admin estando en esa pestaña, se vuelve a la primera.
+   */
+  const [pestana, setPestana] = useState<Pestana>("cotizacion");
+  useEffect(() => { if (pestana === "todas" && !puedeVerTodas(me)) setPestana("cotizacion"); }, [pestana, me]);
 
   // La extensión sale sola (D-432, «should be automatic»): la del expediente de quien prepara; si no tiene, la que
   // escribió la última vez en este navegador. Se reemplaza mientras nadie la toque (en demo «Ver como» cambia de
@@ -199,6 +205,13 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     setOfertaAbrir(null);
     setAviso({ tipo: "verde", texto: t("Saved quote opened. Changes replace it: one quote per estimate.", "Cotización guardada abierta. Los cambios la reemplazan: una cotización por estimado.") });
     return true;
+  };
+
+  /** Desde la lista de todas (admin): se abre en la pestaña Cotización, donde se ve entera y se imprime como siempre. */
+  const abrirDesdeLista = async (id: string) => {
+    setPestana("cotizacion");
+    setVistaPrevia(false);
+    await abrirGuardada(id);
   };
 
   /**
@@ -415,7 +428,18 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           className={"btn btn-sm " + (pestana === "competencia" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("competencia")}>
           🕵️ {t("Competitor estimates", "Estimados de la competencia")}
         </button>
+        {puedeVerTodas(me) && (
+          <button type="button" role="tab" aria-selected={pestana === "todas"} data-pestana="todas"
+            className={"btn btn-sm " + (pestana === "todas" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("todas")}>
+            📚 {t("All quotes (admin)", "Todas las cotizaciones (admin)")}
+          </button>
+        )}
       </div>
+
+      {pestana === "todas" && puedeVerTodas(me) && (
+        <TodasLasCotizaciones almacen={almacen} competencia={almacenCompetencia} me={me} t={t} lang={lang}
+          tiendas={ajustes.stores.map((s) => s.name)} onAbrir={(id) => void abrirDesdeLista(id)} />
+      )}
 
       {pestana === "competencia" && (
         <EstimadosCompetencia almacen={almacenCompetencia} lecturas={almacenLecturas} me={me} t={t} lang={lang}

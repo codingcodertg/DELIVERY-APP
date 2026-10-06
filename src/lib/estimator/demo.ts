@@ -6,6 +6,9 @@ import {
   validaArchivos, type AlmacenDeCompetencia, type EstimadoDeCompetencia,
 } from "./competencia";
 import { filaDeLectura, normalizaLectura, type AlmacenDeLecturas, type LecturaGuardada } from "./lectura";
+import { tandaEnMemoria, type CotizacionResumen, type Vendedor } from "./lista-admin";
+import { resumenDeTotales } from "./modelo";
+import { DEMO_USERS } from "@/lib/demo-data";
 
 /**
  * El Estimador en **modo demo**: datos inventados, en memoria, con la misma interfaz que la base.
@@ -42,8 +45,14 @@ export function buscarEnCatalogoDemo(codigo: string): ProductoDelCatalogo[] {
   return CATALOGO_DEMO.filter((p) => p.sku.startsWith(c));
 }
 
-interface FilaDemo { id: string; owner_id: string; owner_name: string; store: string | null; print_count: number; draft: QuoteDraft }
+interface FilaDemo {
+  id: string; owner_id: string; owner_name: string; store: string | null; print_count: number; draft: QuoteDraft;
+  created_at: string; printed_at: string | null;
+}
 interface AprobDemo { id: string; quote_id: string; requested_by: string; requester_name: string; status: AprobacionEstado; requested_at: string }
+
+/** La segunda cotización del demo (D-NEXT): de otro vendedor y otra tienda, ya impresa, para que la lista del admin tenga qué filtrar. */
+export const DEMO_ESTIMADO_IMPRESO = "DEMO-1002";
 
 function semilla(): { cotizaciones: FilaDemo[]; aprobaciones: AprobDemo[] } {
   const draft = borradorVacio();
@@ -51,9 +60,26 @@ function semilla(): { cotizaciones: FilaDemo[]; aprobaciones: AprobDemo[] } {
   draft.sales_ext = "201";
   draft.customer = { salutation: "Mr.", full_name: "Demo Customer", company: "Demo Builders", phone: "956-555-0100" };
   draft.lines = [{ ...lineaSfVacia(), customer_category: "12x24 Tile", requested_sf: 400, sf_per_box: 15.5, price_per_sf: 1.29, item_code: "DEMO-1224", internal_description: "Demo Ceramic Wood-look 12x24 Matte" }];
+  const impresa = borradorVacio();
+  impresa.estimate_num = DEMO_ESTIMADO_IMPRESO;
+  impresa.sales_ext = "214";
+  impresa.customer = { salutation: "Ms.", full_name: "Ana Garza", company: "", phone: "956-555-0101" };
+  impresa.lines = [{ ...lineaSfVacia(), customer_category: "24x48 Tile", requested_sf: 1250, sf_per_box: 23.8, price_per_sf: 1.89, item_code: "DEMO-2448", internal_description: "Demo Porcelain Marble-look 24x48 Polished" }];
   return {
-    cotizaciones: [{ id: "demo-q-1", owner_id: DEMO_OTRO_VENDEDOR.id, owner_name: DEMO_OTRO_VENDEDOR.name, store: "Weslaco", print_count: 0, draft }],
+    cotizaciones: [
+      { id: "demo-q-1", owner_id: DEMO_OTRO_VENDEDOR.id, owner_name: DEMO_OTRO_VENDEDOR.name, store: "Weslaco", print_count: 0, draft, created_at: "2026-10-05T20:30:00.000Z", printed_at: null },
+      { id: "demo-q-0", owner_id: "u-sales", owner_name: "Sam Sales", store: "Edinburg", print_count: 1, draft: impresa, created_at: "2026-09-28T15:00:00.000Z", printed_at: "2026-09-28T15:20:00.000Z" },
+    ],
     aprobaciones: [],
+  };
+}
+
+/** Una fila del demo como la lista la pestaña de todas: el mismo resumen que haría `resumenDeFila` sobre la base. */
+function resumenDemo(q: FilaDemo): CotizacionResumen {
+  return {
+    id: q.id, estimate_num: q.draft.estimate_num, owner_id: q.owner_id, owner_name: q.owner_name, store: q.store,
+    customer_name: q.draft.customer.full_name.trim(), total: resumenDeTotales(q.draft.lines).total,
+    print_count: q.print_count, printed_at: q.printed_at, created_at: q.created_at, updated_at: q.created_at,
   };
 }
 
@@ -108,7 +134,10 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       n += 1;
       const id = `demo-q-${n}`;
       // Como el disparador de la 148: la tienda es la del perfil de quien la crea.
-      db.cotizaciones.push({ id, owner_id: yo.id, owner_name: yo.name, store: yo.store?.trim() || null, print_count: 0, draft: structuredClone(draft) });
+      db.cotizaciones.push({
+        id, owner_id: yo.id, owner_name: yo.name, store: yo.store?.trim() || null, print_count: 0, draft: structuredClone(draft),
+        created_at: new Date().toISOString(), printed_at: null,
+      });
       return bien(id);
     },
 
@@ -147,8 +176,24 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
     async marcarImpresa(quoteId, printCount) {
       if (sinTabla) return SIN_TABLA;
       const q = db.cotizaciones.find((c) => c.id === quoteId);
-      if (q) q.print_count = printCount;
+      if (q) { q.print_count = printCount; q.printed_at = new Date().toISOString(); }
       return bien(null);
+    },
+
+    async listarTodas(filtro, tanda) {
+      if (sinTabla) return SIN_TABLA;
+      const yo = me();
+      // La misma regla que la política de SELECT de la 148: el admin todas; un vendedor, las suyas y las de su tienda.
+      const visibles = db.cotizaciones.filter((c) => yo.admin || c.owner_id === yo.id || (!!c.store && c.store === (yo.store?.trim() || null)));
+      return bien(tandaEnMemoria(visibles.map(resumenDemo), filtro, tanda));
+    },
+
+    async vendedores() {
+      if (sinTabla) return SIN_TABLA;
+      const out: Vendedor[] = DEMO_USERS
+        .filter((u) => u.role === "admin" || u.role === "sales" || u.role === "manager")
+        .map((u) => ({ id: u.id, full_name: u.full_name, store: u.store ?? null }));
+      return bien(out);
     },
   };
 }

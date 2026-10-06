@@ -30315,6 +30315,9 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
   `printToPDF`.
 - No hay lista de «mis cotizaciones»: se llega a una buscando su estimado.
 
+> **Reemplazada en parte por D-NEXT** (2026-10-06): el admin tiene una pestaña con la lista de TODAS las cotizaciones
+> guardadas (y todos los estimados de la competencia). Los demás roles siguen sin lista.
+
 > **Nota (2026-09-28): reemplazada en parte por D-432**, sobre una captura con observaciones del dueño. Cambian cuatro
 > cosas de esta entrada, y el resto sigue: (a) **«Buscar» deja de ser un botón que hay que pulsar**: el estimado se comprueba
 > solo (pausa al teclear, al salir del campo, antes de guardar). La regla de la política —*«Search the estimate number
@@ -33764,6 +33767,8 @@ descargo final.
    - **Ambigüedad:** «SHOW ALL ESTIAMTES IN A TAB» se leyó como los estimados **de la competencia** (el tema de la frase).
      **Las cotizaciones propias NO se abrieron**: siguen con la RLS de la 148. Si quería también una lista de todas las
      cotizaciones para todos los vendedores, es otra decisión (y otra migración): hay que preguntárselo.
+     > **Reemplazada en parte por D-NEXT** (2026-10-06): el dueño pidió la lista de todas las cotizaciones **solo para el
+     > admin**; la RLS de la 148 no cambia (el admin ya las leía todas).
 
 ### Decisiones mías, para validar
 
@@ -37221,3 +37226,103 @@ El dueño señaló la hoja, así que cambié solo lo impreso. Si lo que quiere e
 otro cambio (el campo de captura) y hay que pedirlo.
 
 No visto en navegador: `tsc` y vitest (332 del módulo).
+
+## D-NEXT · Quote Builder: una pestaña «Todas las cotizaciones», solo para el admin, con todas las cotizaciones guardadas y todos los estimados de la competencia
+
+**Fecha:** 2026-10-06 · **Versión:** la asigna el orquestador al fusionar (toca `src/app/estimator/` y `src/lib/estimator/`:
+sube `estimator`) · **Migración:** ninguna. **Reemplaza en parte a** D-413 (que decía «No hay lista de "mis cotizaciones"»)
+y a D-451 (punto 7, «Las cotizaciones propias NO se abrieron … hay que preguntárselo»): el dueño ya lo pidió, y solo para el admin.
+
+**Qué pidió el dueño** (2026-10-06, literal, tal como lo pasó el orquestador):
+
+```
+en el quote builder solo para admin habilita la lista de todas las quotes ya hechas y las de los comeptirodes tambien
+```
+
+### Qué había antes de tocar (medido el 2026-10-06 contra producción, `begin … rollback`, sin escribir nada)
+
+- **No había ninguna lista de cotizaciones**: a una guardada se llegaba escribiendo su # de estimado (D-413, D-432). La única
+  lista era la de estimados de la competencia (pestaña de D-451), que ya ve todo el que tiene el módulo.
+- **La RLS de la 148 ya deja al admin leer TODAS las filas de `estimator_quotes`** (`is_admin()` en la política de SELECT) y
+  la 156 (aplicada, igual que la 161: `migrate-status` dice «todo al día», 162 de 162) deja a todo el que tiene el módulo
+  leer todos los estimados de la competencia. **Por eso no hace falta migración.**
+- **Lo que ve hoy cada rol, medido** poniéndose en la piel de cada sesión (`set local role authenticated` +
+  `request.jwt.claims`): hay **3 cotizaciones** (2 dueños, las 3 **sin tienda**: sus dueños son admin sin tienda en el
+  perfil), **0** archivos de la competencia, **0** lecturas. **Admin**: ve 3 de 3. **Vendedor sin el módulo** (de cualquier
+  tienda): 0, y `has_estimator_access()` = false. **Vendedor CON el módulo** (concedido dentro de la transacción y deshecho):
+  0 de 3, porque ninguna es suya ni de su tienda. Con el módulo hoy: 4 perfiles, los 4 admin; 0 vendedores.
+- **Lo que la RLS de la 148 PERMITE a un vendedor con el módulo, por la letra de la política**: las suyas, **las de su
+  tienda** (`store = estimator_my_store()`), y las que le aprobaron. O sea, un vendedor puede leer las cotizaciones de sus
+  compañeros de tienda, con nombre, teléfono y precios del cliente. **No se cerró en este cambio** (es decisión del dueño,
+  aparte): la pestaña nueva solo sale al admin, y la base no cambia.
+
+### Qué hay ahora
+
+1. **Una tercera pestaña, «All quotes (admin) / Todas las cotizaciones (admin)»** (`TodasLasCotizaciones.tsx`), que
+   **solo se pinta si `puedeVerTodas(me)`** = `me.admin` = `profiles.role === 'admin'`, lo mismo que decide `page.tsx` y
+   `layout.tsx` y lo que `is_admin()` mira en la base. Un gerente o un vendedor con el módulo **no** la ven, y si en demo
+   «Ver como» deja de ser admin estando en ella, vuelve a «Cotización». La pestaña tampoco pide nada a la base si no es
+   admin (y aunque lo pidiera, la RLS le daría solo lo suyo).
+2. **La tabla**: fecha (hora de Texas), # de estimado, vendedor (por `profiles!estimator_quotes_owner_id_fkey`, que la 099
+   deja leer a cualquier sesión), tienda, cliente, **total** (el de materiales con impuesto, calculado con las mismas
+   reglas que la pantalla: la base no guarda el total) y **estado**: «Impresa» (con ×N si más de una vez) o «Guardada, sin
+   imprimir». **De la más reciente a la más vieja** (`created_at desc, id desc`), por **tandas de 50** con «Cargar 50 más»
+   (se piden 51 para saber si hay más sin segunda consulta). La lista **no pide `delivery`** (lleva la dirección) ni
+   necesita las líneas más que para el total.
+3. **Filtros**: vendedor (desplegable con admin + quien tenga la casilla `estimator`), tienda (las de Ajustes más las que
+   traigan las filas), **desde / hasta** (días de Texas, los dos incluidos: una cotización de las 9 de la noche es de ese
+   día, no del siguiente en UTC) y texto (# de estimado y nombre del cliente, por `ilike` dentro del `jsonb`). El mismo
+   objeto de filtro lo aplican la base (`aplicaFiltro`, por PostgREST) y el demo (`cumpleFiltro`, en memoria), y una
+   prueba fija que piden lo mismo columna a columna.
+4. **«Abrir»** carga la cotización en la pestaña «Cotización», como «Abrir la cotización guardada» de siempre: el admin la ve
+   entera, la puede editar e **imprimir** por el camino que ya existía (D-413). No hay un visor aparte.
+5. **Debajo, todos los estimados de la competencia** (los de 156/161), con la misma `ListaDeEstimados` de D-451: quién lo
+   subió, cuándo, empresa competidora (la corregida en la lectura si la hay, D-466), su total, nota, «Pegado a una
+   cotización» / «Subido suelto», el archivo (enlace firmado de 60 s, como antes) y, en los pegados, un botón nuevo
+   **«Abrir su cotización»**. Los filtros de tienda y texto de arriba valen aquí también. Quitar: como en D-451.
+6. **Sin la 148** la pestaña dice que falta (`sinTabla`); **sin la 156**, la parte de la competencia dice lo suyo
+   (`AvisoSin156`) y la lista de cotizaciones sigue. Cualquier otro error se enseña como error.
+7. **Demo**: una segunda cotización en la semilla (`DEMO-1002`, de Sam Sales, Edinburg, ya impresa, $2,580.73) para que
+   la lista tenga qué filtrar; `vendedores()` son los del demo; el demo imita la política de SELECT de la 148 (un vendedor
+   solo ve las suyas y las de su tienda aunque pida todas). `?sinTabla=1` sigue valiendo.
+
+### Decisiones mías, para validar
+
+1. **«Solo para admin» = `role = 'admin'`**, no «quien tenga el módulo». Un gerente con la casilla no la ve.
+2. **«Todas las quotes ya hechas» = todas las guardadas**, impresas o no, con su estado. No se distingue «borrador» de otra
+   cosa porque la 148 no tiene más estados que el contador de impresiones.
+3. **La RLS no se tocó** (ni para abrir ni para cerrar): el admin ya lo veía todo. Lo que un vendedor de la misma tienda
+   puede leer queda anotado arriba, para que el dueño decida.
+4. **Las fechas del filtro son días de Texas**, como las encuestas (D-449), no UTC.
+5. **Tandas de 50.** Con 3 cotizaciones en producción, el número no tiene medición detrás.
+6. **El total de la lista se calcula en el navegador** a partir de las líneas, no se guarda en la base: evita una segunda
+   verdad que caducaría con cada cambio de impuesto. Son las mismas funciones que la pantalla (`resumenDeTotales`).
+7. **Conflicto con las reglas del worker:** dicen «no escribas migraciones»; el encargo permitía escribirla si hacía falta.
+   No hizo falta: se midió antes de escribir nada.
+
+### Verificado
+
+- **RLS en producción** (arriba), con `ROLLBACK`; el guion no imprime nombres ni datos de clientes.
+- `node scripts/verify.mjs` (2026-10-06): tipos, vitest y `next build` en verde (los números, en el informe de la rama).
+- **Mutantes: 28, caen los 28**, leídos por el nombre de la prueba que cae. Quién ve: `puedeVerTodas` para cualquiera con
+  sesión (M1), la pestaña ofrecida a todos (M23), el contenido sin la puerta (M24), la pestaña pintando (M25) o pidiendo
+  (M26) sin ser admin, el demo dejando ver todas a un vendedor (M21). Filtro: sin vendedor (M2), sin tienda (M3), sin
+  «desde» (M4), sin «hasta» (M5), fechas en UTC (M6), «hasta» sin el día entero (M7), sin texto (M8), texto sin mirar el
+  cliente (M9), la base sin tienda (M14) ni texto (M15), el texto sin comillas (M16), el demo ignorando el texto (M22).
+  Orden y tandas: al revés en memoria (M10) y en la base (M17), TANDA en vez de TANDA+1 (M11), `hayMas` siempre falso
+  (M12). Lo que se pinta y se pide: todo «guardada» (M13), la entrega pedida a la base (M18), el total sin impuesto (M19),
+  todos los perfiles como vendedores (M20), el estado al revés (M27), «Abrir su cotización» en los sueltos (M28).
+- **En el navegador** (demo, Chrome headless por CDP, clics de persona, 1280 y 390 de ancho): **16 de 16**. Admin: tres
+  pestañas; la lista con las 2 del demo, la más reciente primero, con vendedor, tienda, cliente, total y estado; buscar
+  «garza» deja 1; quitar filtros vuelve a 2; tienda Weslaco deja 1; vendedor + tienda que no cuadran dice «nada
+  coincide»; «desde 2026-10-01» deja la del 5 de octubre; «Abrir» va a Cotización con `DEMO-1002` cargada, dueño «Sam
+  Sales», aviso de abierta y «Generar copia» habilitado. Vendedor y gerente: dos pestañas, sin «Todas». A 390: las 2 filas
+  y sin desplazamiento horizontal.
+
+### Lo que no se hizo / no se verificó
+
+- **Contra producción con sesión de admin, nada**: la consulta real por PostgREST (el embebido `profiles!…_fkey` y el `or`
+  con `customer->>full_name`) solo se probó con un cliente falso. Lo primero que hay que mirar tras desplegar es que la
+  pestaña liste las 3 cotizaciones con el nombre de su dueño.
+- `window.print()` de verdad, como siempre (D-413).
+- No se cerró la lectura entre compañeros de tienda que permite la 148 (arriba).
