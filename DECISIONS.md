@@ -33681,6 +33681,8 @@ A 390 px de ancho el diálogo entra entero, con los botones en su fila. Los dato
 
 ## D-451 · Quote Builder, sobre la hoja impresa: sin «Dirección» del cliente, el descuento como precio, la tienda en la cotización, una sola validez y un solo cargo de entrega, nada tras «Delivery: Available», y los estimados de la competencia sueltos en una pestaña que ven todos (migración 156)
 
+> **Reemplazada en parte por D-475:** el descuento de la línea vuelve a salir en la hoja como porcentaje («Discount: 20%»), no como precio.
+
 **Fecha:** 2026-09-29 · **Versión:** estimator 0.7.0, repo 1.326.0 · **Migración:** `156_competencia_suelta.sql`, **escrita y NO aplicada** (plan: `docs/PLAN-156-competencia-suelta.md`,
 matriz de 26 casos **ensayada contra producción con ROLLBACK: 26/26**). **Reemplaza en parte a** D-413, D-425 y D-442,
 que llevan su nota.
@@ -37196,3 +37198,26 @@ ninguna orden). Ninguno era código de sobra.
 - **Con plan publicado**: que «Mi ruta» del chofer lea las posiciones escritas igual que tras las flechas (mismo camino, no
   medido aquí).
 - El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
+
+## D-475 · Quote Builder: en la hoja, el descuento de la línea sale como porcentaje («Discount: 20%»), no como precio
+
+**Fecha:** 2026-10-06 · **Versión:** estimator (estimator 0.10.0, repo 1.349.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d475`.
+
+**Pedido del dueño**, literal, con foto de la hoja impresa señalando «Discount price: $2,247.35»: *«Instead of discount price I want it to be discount %»*.
+
+### Qué se decidió
+
+- La línea bajo el Amount dice ahora **«Discount: 20%»** (el porcentaje a un decimal si lo tiene: «Discount: 8.3%»). Es
+  el mismo número que ya ve el vendedor en la pantalla (`porcentajeDeDescuento`, D-442). Reemplaza en parte a D-451,
+  que lo ponía como precio («descuento is a price not a percentage»): el dueño cambió de idea viendo la hoja.
+- No cambia nada más: el vendedor sigue escribiendo el precio con descuento ($/SF o unitario, opcional) y el sistema
+  calcula el %; el Amount sigue siendo el total a precio regular; Subtotal → Savings → Tax → Total igual (D-442).
+- `precioConDescuentoParaElCliente` y el campo `precioConDescuento` conservan el nombre para no mover la pantalla ni
+  las pruebas que los nombran; el texto es lo que cambió.
+
+### Interpretación del orquestador
+
+El dueño señaló la hoja, así que cambié solo lo impreso. Si lo que quiere es **escribir** el % en vez del precio, es
+otro cambio (el campo de captura) y hay que pedirlo.
+
+No visto en navegador: `tsc` y vitest (332 del módulo).

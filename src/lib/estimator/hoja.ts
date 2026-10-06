@@ -1,5 +1,5 @@
 import {
-  cajasDeLinea, dinero, fechaLarga, numero, paraQuienSeImprime, preciosDeLinea, resumenDeTotales, estadoDelPrecioBajo,
+  cajasDeLinea, dinero, fechaLarga, numero, paraQuienSeImprime, porcentajeDeDescuento, preciosDeLinea, resumenDeTotales, estadoDelPrecioBajo,
   totalDeLinea, totalRegularDeLinea, type DisplayLevel, type QuoteDraft, type QuoteLine,
 } from "./modelo";
 
@@ -37,8 +37,9 @@ export interface FilaDelCliente {
   /** El total de la línea **a precio regular** (D-442). */
   importe: number;
   /**
-   * «Discount price: $800.00» si hay un precio con descuento válido; null si no. Es un **precio** (el total de la línea
-   * con el precio con descuento), no un porcentaje: D-451, «descuento is a price not a percentage». Nunca el $/SF.
+   * «Discount: 20%» si hay un precio con descuento válido; null si no. Es el **porcentaje** (D-475, con foto de la hoja:
+   * «Instead of discount price I want it to be discount %»; reemplaza en parte a D-451, que lo ponía como precio). El
+   * nombre del campo se queda para no mover la pantalla ni las pruebas que lo nombran.
    */
   precioConDescuento: string | null;
 }
@@ -95,14 +96,14 @@ export function cantidadParaElCliente(l: QuoteLine, nivel: DisplayLevel): string
 }
 
 /**
- * «Discount price: $800.00»: el total de la línea con el precio con descuento, como lo lee el cliente (D-451). Null si
- * la línea no tiene un precio con descuento que valga (vacío, igual o mayor que el regular, o sin regular).
+ * «Discount: 20%»: el porcentaje de descuento de la línea, como lo lee el cliente (D-475; antes el precio, D-451). Null
+ * si la línea no tiene un precio con descuento que valga (vacío, igual o mayor que el regular, o sin regular). El
+ * porcentaje es el mismo que ve el vendedor en la pantalla (`porcentajeDeDescuento`, a un decimal).
  */
 export function precioConDescuentoParaElCliente(l: QuoteLine): string | null {
   const { regular, bajo } = preciosDeLinea(l);
-  if (estadoDelPrecioBajo(regular, bajo) !== "aplica") return null;
-  const t = totalDeLinea(l);
-  return t === null ? null : `Discount price: ${dinero(t)}`;
+  const pct = porcentajeDeDescuento(regular, bajo);
+  return pct === null ? null : `Discount: ${numero(pct, 0)}%`;
 }
 
 /**
