@@ -3,7 +3,7 @@ import type { Entrada, OrdenEntrada, ParadaRef, Parametros, Plan, RutaEvaluada, 
 
 /**
  * «Asignar a…» varios choferes desde el Gestor de Rutas: repartir UN SUBCONJUNTO de órdenes entre LOS choferes que eligió
- * la persona, con el mismo motor y las mismas reglas que «Armar rutas» (D-NEXT).
+ * la persona, con el mismo motor y las mismas reglas que «Armar rutas» (D-474).
  *
  * El dueño, 2026-10-06: «en routes manager quiero que puede select multiple orders y asignarla a los ocnductos que yo elija
  * asi como el autoassign entonces elijo 10 ordenes y las asigno a 2 conductos y el sistema automaticmaente sabe a quien

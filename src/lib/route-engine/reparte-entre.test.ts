@@ -6,7 +6,7 @@ import { TOLERANCIA_DE_PASO } from "./de-paso";
 import type { ChoferEntrada, Entrada, Matriz, OrdenEntrada, ParadaRef, Parametros } from "./types";
 
 /**
- * «Asignar a…» varios choferes desde el Gestor (D-NEXT). El dueño, 2026-10-06: «elijo 10 ordenes y las asigno a 2 conductos
+ * «Asignar a…» varios choferes desde el Gestor (D-474). El dueño, 2026-10-06: «elijo 10 ordenes y las asigno a 2 conductos
  * y el sistema automaticmaente sabe a quien darselas». Un mapa inventado: dos tiendas (norte y sur) y entregas cerca de una
  * o de otra; tiempos en línea recta, para que «quién la lleva» se pueda razonar a mano.
  */

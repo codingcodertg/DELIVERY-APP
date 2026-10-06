@@ -8,7 +8,7 @@ import { FACTOR_DE_RODEO, MILLAS_POR_HORA_ESTIMADAS, millasEnLineaRecta } from "
 import type { DriverSettings, Profile } from "./types";
 
 /**
- * Lo que el Gestor de Rutas pone alrededor de `reparteEntre` (D-NEXT, «Asignar a…» varios choferes): con qué choferes se
+ * Lo que el Gestor de Rutas pone alrededor de `reparteEntre` (D-474, «Asignar a…» varios choferes): con qué choferes se
  * puede repartir y por qué no con los demás, qué puntos hay que medir, cómo se vuelve matriz lo que contesta
  * `/api/route-matrix` (y qué se estima en línea recta si falta), cómo se pasa de la lista del Gestor a las paradas del motor
  * y de vuelta, y qué dice el resumen antes de confirmar. Todo puro: sin pantalla, sin base, sin red.

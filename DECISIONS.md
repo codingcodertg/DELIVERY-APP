@@ -32461,7 +32461,7 @@ aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio es
 
 > **⚠ Reemplazada en parte por D-467** (2026-10-04): «en el Mapa queda asignar a mano (una, o todas las marcadas a un chofer)» ya no vale. El Mapa es «Ruta de hoy», para todos los roles y de solo lectura: no asigna. Se asigna en el Gestor de Rutas (y, quien no lo tiene, desde la ficha de la orden).
 >
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): vuelve un reparto automático de LO MARCADO en el Gestor —«Asignar a…» varios choferes—, pero no es el «Auto-asignar selección» que se quitó: usa el motor de «Armar rutas» tal cual, solo entre los choferes que elige la persona, enseña el resumen antes de escribir y entra en deshacer como un lote. El dueño: «elijo 10 ordenes y las asigno a 2 conductos y el sistema automaticmaente sabe a quien darselas».
+> **⚠ Reemplazada en parte por D-474** (2026-10-06): vuelve un reparto automático de LO MARCADO en el Gestor —«Asignar a…» varios choferes—, pero no es el «Auto-asignar selección» que se quitó: usa el motor de «Armar rutas» tal cual, solo entre los choferes que elige la persona, enseña el resumen antes de escribir y entra en deshacer como un lote. El dueño: «elijo 10 ordenes y las asigno a 2 conductos y el sistema automaticmaente sabe a quien darselas».
 
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el botón «🧭 Armar rutas» de la cabecera ya no «trae la barra cerrada»: es la única entrada, sale siempre, y abre y cierra el panel. «Un chofer vacío ya no deja tarjeta» vale para quien no tiene nada pendiente NI hecho ese día. Y «🗑 Vaciar» ya no se lleva lo recogido o entregado.
 >
@@ -35054,7 +35054,7 @@ Entre la cabecera y el mapa quedan: los avisos cerrables (sin señal, día vací
 
 ### 7 · ↶ Deshacer / ↷ Rehacer en cada tarjeta
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): entra también «Asignar a…» varios choferes, como UN movimiento del lote con la foto de todas las rutas que tocó (las de los elegidos y las de donde salieron las movidas); el botón de cada una de esas tarjetas se enciende.
+> **⚠ Reemplazada en parte por D-474** (2026-10-06): entra también «Asignar a…» varios choferes, como UN movimiento del lote con la foto de todas las rutas que tocó (las de los elegidos y las de donde salieron las movidas); el botón de cada una de esas tarjetas se enciende.
 
 Ya había deshacer y rehacer (D-417: Ctrl+Z, y dos botones en la barra de vistas que solo salen si hay algo). El dueño los
 pidió «aquí», en la cabecera de la tarjeta. Ahora están **en los dos sitios**, sobre **un solo historial**.
@@ -35394,7 +35394,7 @@ paradas no hay garantía**, y el aviso dice «el mejor orden que se encontró».
 - La página no se desborda de lado (0 px).
 
 En el demo las tiendas no tienen coordenadas: las recogidas no tienen punto, y lo dice («4 stop(s) have no map pin»).
-*(Nota, D-NEXT, 2026-10-06: ya no. Las seis tiendas del demo llevan coordenadas aproximadas de su ciudad, para que los choferes del demo ruteen; las recogidas del demo ya tienen punto.)*
+*(Nota, D-474, 2026-10-06: ya no. Las seis tiendas del demo llevan coordenadas aproximadas de su ciudad, para que los choferes del demo ruteen; las recogidas del demo ya tienen punto.)*
 
 ### Pruebas y mutantes
 
@@ -37059,9 +37059,9 @@ está viendo). Uno a la vez; volver a tocarlo, o «Sin filtro», lo quita. La re
 
 No visto en navegador: `tsc` y vitest.
 
-## D-NEXT · Gestor de Rutas: marcar varias órdenes y «Asignar a…» los choferes que uno elija — el motor de «Armar rutas» reparte solo entre ellos
+## D-474 · Gestor de Rutas: marcar varias órdenes y «Asignar a…» los choferes que uno elija — el motor de «Armar rutas» reparte solo entre ellos
 
-**Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** la asigna el orquestador al fusionar · **Motor:** `motor-7`, sin cambios.
+**Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** deliveries 1.257.0, repo 1.348.0 · **Motor:** `motor-7`, sin cambios.
 **Reemplaza en parte a** D-437 (que quitó «Auto-asignar selección» del Gestor: vuelve un reparto automático de lo marcado, pero
 con el motor de «Armar rutas» y SOLO entre los choferes que elige la persona), a D-459 §7 (qué entra en deshacer: también este
 lote) y a D-461 (la nota del demo: las tiendas del demo ya tienen coordenadas). Cada una lleva su nota.

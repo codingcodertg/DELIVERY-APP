@@ -372,7 +372,7 @@ export default function RoutesPage() {
   const [asignando, setAsignando] = useState(false);
   // Multi-select + search + saved filter for the unassigned pool.
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
-  // Lo marcado con la casilla en las TARJETAS de ruta (D-NEXT, «Asignar a…» varios choferes). Aparte de `selectedOrders`
+  // Lo marcado con la casilla en las TARJETAS de ruta (D-474, «Asignar a…» varios choferes). Aparte de `selectedOrders`
   // a propósito: en la tarjeta, pulsar una fila aísla ESA parada en el mapa (una sola), y pulsar fuera lo quita; una marca
   // para repartir tiene que sobrevivir a eso. Lo que se reparte es la unión de las dos (`seleccionDelReparto`).
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
@@ -997,7 +997,7 @@ export default function RoutesPage() {
   // (`pickupAddressFor` conserva el nombre de antes: es la dirección de esa base, para la fila de la Base, el mapa y la medida.)
   const basesDeChofer = useBasesDeChofer();
   // Las filas enteras de Ajustes → Rutas, para que «Asignar a…» varios choferes entre al motor con los mismos choferes que
-  // «Armar rutas» (D-NEXT): base, capacidad, turno, si vuelve, si rutea, lo que tiene el camión y sus zonas.
+  // «Armar rutas» (D-474): base, capacidad, turno, si vuelve, si rutea, lo que tiene el camión y sus zonas.
   const ajustesDeChofer = useAjustesDeChofer();
   const tiendaBaseDe = (laneKey: string) => tiendaBaseDelChofer(driverOf(laneKey), basesDeChofer, users, settings.stores ?? []);
   const pickupAddressFor = (laneKey: string): string | null => (tiendaBaseDe(laneKey)?.address ?? "").trim() || null;
@@ -1450,7 +1450,7 @@ export default function RoutesPage() {
     setAvisoMejorLugar([...colocadas.map((a) => t(a.en, a.es)), ...(aMano.length || sinCamion.length ? [t(extraEn.trim(), extraEs.trim())] : [])]);
   };
 
-  // ---- «Asignar a…» varios choferes (D-NEXT) ------------------------------------------------------------------------
+  // ---- «Asignar a…» varios choferes (D-474) ------------------------------------------------------------------------
   // El dueño, 2026-10-06: «en routes manager quiero que puede select multiple orders y asignarla a los ocnductos que yo
   // elija asi como el autoassign entonces elijo 10 ordenes y las asigno a 2 conductos y el sistema automaticmaente sabe a
   // quien darselas». Lo marcado —en «Sin asignar», en «Todas» (con chofer o sin él) y en las tarjetas de ruta
@@ -2143,7 +2143,7 @@ export default function RoutesPage() {
               <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
               {/* «✨ Auto-asignar las marcadas» iba aquí; se quitó en D-437. Repartir automático es «Armar las rutas del día». */}
             </div>
-            {/* «Asignar a…» varios choferes (D-NEXT): el mismo recuadro, plegado tras un botón; lo marcado se reparte entre los
+            {/* «Asignar a…» varios choferes (D-474): el mismo recuadro, plegado tras un botón; lo marcado se reparte entre los
                 elegidos con el motor de «Armar rutas». Sin nada sin asignar marcado (en «Todas», solo filas con chofer), el
                 recuadro de arriba no sale y esta sección va sola, abajo. */}
             {seleccionDelReparto.length > 0 && seccionDeReparto(false)}
@@ -2861,7 +2861,7 @@ export default function RoutesPage() {
                   <thead>
                     <tr data-pista-de-arrastre title={t("Drag a row to another position, or onto another driver, to move it. The ↑ ↓ arrows still work.", "Arrastre una fila a otro puesto, o a otro chofer, para moverla. Las flechas ↑ ↓ siguen ahí.")}>
                       <th style={{ whiteSpace: "nowrap" }}>
-                        {/* «Seleccionar todas las visibles» de esta ruta (D-NEXT): lo pendiente de la tarjeta; lo hecho no se marca. */}
+                        {/* «Seleccionar todas las visibles» de esta ruta (D-474): lo pendiente de la tarjeta; lo hecho no se marca. */}
                         <input type="checkbox" data-marca-todas={u.key} checked={stops.length > 0 && stops.every((d) => marcadas.has(d.id))} disabled={stops.length === 0}
                           onClick={(e) => e.stopPropagation()}
                           onChange={() => setMarcadas((s) => { const n = new Set(s); const todas = stops.every((d) => n.has(d.id)); for (const d of stops) { if (todas) n.delete(d.id); else n.add(d.id); } return n; })}
@@ -3020,7 +3020,7 @@ export default function RoutesPage() {
                           <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}
                             title={gris || provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
                           >
-                            {/* La casilla de «Asignar a…» varios (D-NEXT): marca la ORDEN (su entrega es su fila), aparte de aislarla en el
+                            {/* La casilla de «Asignar a…» varios (D-474): marca la ORDEN (su entrega es su fila), aparte de aislarla en el
                                 mapa, que es lo que hace pulsar la fila. El clic no sube a la fila ni a la tarjeta. */}
                             <input type="checkbox" data-marca-orden={d.id} checked={marcadas.has(d.id)} onChange={() => alternaMarca(d.id)} onClick={(e) => e.stopPropagation()}
                               aria-label={t(`Select ${facturaYId(d).principal} to assign it to another driver`, `Marcar ${facturaYId(d).principal} para asignarla a otro chofer`)}
@@ -3069,7 +3069,7 @@ export default function RoutesPage() {
       })}
       </div>
       )}
-      {/* «Asignar a…» varios choferes desde las tarjetas (D-NEXT): con algo marcado, el recuadro pegado abajo, como el de
+      {/* «Asignar a…» varios choferes desde las tarjetas (D-474): con algo marcado, el recuadro pegado abajo, como el de
           «Elige conductor» en «Sin asignar». */}
       {tab === "routes" && seleccionDelReparto.length > 0 && recuadroDeReparto()}
 

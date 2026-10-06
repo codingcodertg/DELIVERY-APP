@@ -41,7 +41,7 @@ export function demoSettings(): Settings {
     id: 1,
     app_name: "RTG·HUB",
     stores: [
-      // Con punto en el mapa (D-NEXT): sin él ningún chofer del demo «rutea» —«Armar rutas» y «Asignar a…» exigen una base
+      // Con punto en el mapa (D-474): sin él ningún chofer del demo «rutea» —«Armar rutas» y «Asignar a…» exigen una base
       // con coordenadas— y las recogidas no se podían medir. Coordenadas aproximadas de cada ciudad, no de una dirección real.
       { name: "Brownsville", address: "3000 Central Blvd, Brownsville TX", lat: 25.9290, lng: -97.4890 },
       { name: "Weslaco", address: "1000 W Expressway 83, Weslaco TX", lat: 26.1630, lng: -97.9960 },

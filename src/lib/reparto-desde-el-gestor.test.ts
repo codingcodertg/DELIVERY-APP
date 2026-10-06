@@ -12,7 +12,7 @@ import type { Reparto, RutaEvaluada } from "./route-engine";
 import type { DriverSettings } from "./types";
 
 /**
- * «Asignar a…» varios choferes desde el Gestor (D-NEXT): lo que la pantalla pone alrededor de `reparteEntre`, y que la pantalla
+ * «Asignar a…» varios choferes desde el Gestor (D-474): lo que la pantalla pone alrededor de `reparteEntre`, y que la pantalla
  * lo USA (las pruebas se alimentan de quien llama). El dueño, 2026-10-06: «en routes manager quiero que puede select multiple
  * orders y asignarla a los ocnductos que yo elija asi como el autoassign».
  */
