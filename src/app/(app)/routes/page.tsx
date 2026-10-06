@@ -23,6 +23,11 @@ import { optimizaLaLista } from "@/lib/optimiza-la-ruta";
 import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, tiendaBaseDelChofer, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
 import { esVentanaDura } from "@/lib/route-settings";
 import { useBasesDeChofer } from "@/lib/usa-bases";
+import { useAjustesDeChofer } from "@/lib/usa-ajustes-de-chofer";
+import { entradaDelDia } from "@/lib/route-plan/entrada";
+import { entradaDelReparto, reparteEntre, type Reparto } from "@/lib/route-engine";
+import { ajustesConBaseDelPerfil, choferesParaRepartir, etiquetaDelReparto, listaDeLasParadas, matrizDelGestor, movimientosDelReparto, paradasDeLaLista, puntosDelReparto, resumenDelReparto, textoDeNoRepartir } from "@/lib/reparto-desde-el-gestor";
+import type { Foto } from "@/lib/arrastre-de-paradas";
 import { driverOf, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
 import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
@@ -367,6 +372,13 @@ export default function RoutesPage() {
   const [asignando, setAsignando] = useState(false);
   // Multi-select + search + saved filter for the unassigned pool.
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  // Lo marcado con la casilla en las TARJETAS de ruta (D-NEXT, «Asignar a…» varios choferes). Aparte de `selectedOrders`
+  // a propósito: en la tarjeta, pulsar una fila aísla ESA parada en el mapa (una sola), y pulsar fuera lo quita; una marca
+  // para repartir tiene que sobrevivir a eso. Lo que se reparte es la unión de las dos (`seleccionDelReparto`).
+  const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  const [elegidosDelReparto, setElegidosDelReparto] = useState<Set<string>>(new Set());
+  const [repartoAbierto, setRepartoAbierto] = useState(false);
+  const [repartiendo, setRepartiendo] = useState(false);
   // El chofer pulsado en «Elige conductor para N órdenes» (D-395). `null`: nada pulsado (manda el filtro, si hay).
   const [conductorPulsado, setConductorPulsado] = useState<string | null>(null);
   // 🔒 Rutas bloqueadas (D-411): por día y por ruta. Desde D-414, en la base (`route_locks`, 149) si tiene la tabla —lo ve
@@ -984,6 +996,9 @@ export default function RoutesPage() {
   // base, una ruta temporal—, `null`: la ruta se mide abierta y la tarjeta lo dice («⚠ sin base»).
   // (`pickupAddressFor` conserva el nombre de antes: es la dirección de esa base, para la fila de la Base, el mapa y la medida.)
   const basesDeChofer = useBasesDeChofer();
+  // Las filas enteras de Ajustes → Rutas, para que «Asignar a…» varios choferes entre al motor con los mismos choferes que
+  // «Armar rutas» (D-NEXT): base, capacidad, turno, si vuelve, si rutea, lo que tiene el camión y sus zonas.
+  const ajustesDeChofer = useAjustesDeChofer();
   const tiendaBaseDe = (laneKey: string) => tiendaBaseDelChofer(driverOf(laneKey), basesDeChofer, users, settings.stores ?? []);
   const pickupAddressFor = (laneKey: string): string | null => (tiendaBaseDe(laneKey)?.address ?? "").trim() || null;
 
@@ -1434,6 +1449,170 @@ export default function RoutesPage() {
     notify(t(colocadas.map((a) => a.en).join(" · ") + extraEn, colocadas.map((a) => a.es).join(" · ") + extraEs));
     setAvisoMejorLugar([...colocadas.map((a) => t(a.en, a.es)), ...(aMano.length || sinCamion.length ? [t(extraEn.trim(), extraEs.trim())] : [])]);
   };
+
+  // ---- «Asignar a…» varios choferes (D-NEXT) ------------------------------------------------------------------------
+  // El dueño, 2026-10-06: «en routes manager quiero que puede select multiple orders y asignarla a los ocnductos que yo
+  // elija asi como el autoassign entonces elijo 10 ordenes y las asigno a 2 conductos y el sistema automaticmaente sabe a
+  // quien darselas». Lo marcado —en «Sin asignar», en «Todas» (con chofer o sin él) y en las tarjetas de ruta
+  // (`marcadas`)— se reparte entre los choferes ELEGIDOS con el MISMO motor que «Armar rutas» (`reparteEntre` →
+  // `planifica`, motor-7), restringido a esos choferes y a esas órdenes: cada elegido conserva lo que ya lleva, en su
+  // orden, y las seleccionadas se insertan donde el motor decide (a quién y en qué puesto). Una seleccionada que estaba
+  // con otro chofer se mueve. Antes de escribir se enseña el resumen (cuántas a cada quien, qué no cabe y por qué); se
+  // guarda por el camino de siempre (chofer, `route_seq`, `pickup_seq`: lo que lee «Mi ruta») y entra en deshacer como UN
+  // movimiento con todas las rutas que tocó.
+  /** Las órdenes que se reparten: lo marcado en cualquier tabla, pendiente y de ESTE día (el motor planifica un día). */
+  const seleccionDelReparto = useMemo(
+    () => dayOrders.filter((d) => d.delivery_date === date && ROUTE_STAGES.includes(d.stage) && (selectedOrders.has(d.id) || marcadas.has(d.id))),
+    [dayOrders, date, selectedOrders, marcadas],
+  );
+  const alternaMarca = (id: string) => setMarcadas((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const alternaElegido = (id: string) => setElegidosDelReparto((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  useEffect(() => { setMarcadas(new Set()); setElegidosDelReparto(new Set()); }, [date]);
+  /** El día como lo ve «Armar rutas» (`entradaDelDia`, las mismas reglas: tienda y pin, ventanas, builder, prioridad,
+   *  requisitos, zonas), con las seleccionadas LIBRES —sin chofer— para que entren al motor aunque hoy estén en una ruta
+   *  temporal o con un chofer que no rutea. Los choferes, con la base del perfil si no tienen la de Ajustes (D-461). */
+  const diaParaElMotor = useMemo(() => {
+    const sel = new Set(seleccionDelReparto.map((d) => d.id));
+    return entradaDelDia({
+      ordenes: deliveries.filter((d) => d.delivery_date === date && ROUTE_STAGES.includes(d.stage)).map((d) => (sel.has(d.id) ? { ...d, assigned_driver: null } : d)),
+      choferes: drivers, ajustesDeChofer: ajustesConBaseDelPerfil(ajustesDeChofer, drivers), settings,
+    });
+  }, [deliveries, date, seleccionDelReparto, drivers, ajustesDeChofer, settings]);
+  /** Con quién se puede repartir: los que entran al motor y no tienen la ruta bloqueada 🔒; los demás, apagados con su porqué. */
+  const choferesDelReparto = choferesParaRepartir(diaParaElMotor, drivers, bloqueada, unavailableToday);
+  /**
+   * Escribe el reparto: la lista ENTERA de cada chofer elegido que recibió algo, por el camino de `guardaLaLista` (las mismas
+   * escrituras: el chofer y el puesto de las que llegan, `reorderStops` con las recogidas si la base las guarda), y UNA
+   * anotación en deshacer con la foto de TODAS las rutas tocadas —las de los elegidos y las de donde salieron las movidas—,
+   * para que ↶ devuelva el lote entero de una vez. Si una escritura falla, para ahí y lo dice el proveedor.
+   */
+  const guardaElReparto = async (r: Reparto): Promise<boolean> => {
+    const porId = new Map(dayOrders.map((d) => [d.id, d]));
+    const rutas = r.rutas.filter((x) => x.nuevas.length > 0);
+    const afectadas = new Map<string, Delivery>();
+    for (const x of rutas) for (const d of byDriver.get(x.nombre) ?? []) afectadas.set(d.id, d);
+    for (const x of rutas) for (const id of x.nuevas) { const d = porId.get(id); if (d) afectadas.set(d.id, d); }
+    const antes: Foto = fotoDe([...afectadas.values()].map(aParadaDelGantt));
+    let despues: Foto = { ...antes };
+    const tocadas = new Set<string>();
+    for (const x of rutas) {
+      const laneKey = x.nombre;
+      const suyas = byDriver.get(laneKey) ?? [];
+      const traidas = x.nuevas.filter((id) => !suyas.some((d) => d.id === id)).map((id) => porId.get(id)).filter((d): d is Delivery => !!d);
+      const stops = [...suyas, ...traidas];
+      const lista = listaDeLasParadas(x.paradas, (id) => porId.get(id)?.store ?? null, suyas.map((d) => d.id));
+      const desde = inicioDeLaRuta(laneKey, stops);
+      const e = escrituraDeLaLista(lista, desde);
+      const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
+      clearRouteFor(laneKey);
+      tocadas.add(laneKey);
+      for (const d of traidas) {
+        const origen = orderLaneKey(d);
+        if (origen && origen !== laneKey) { tocadas.add(origen); clearRouteFor(origen); }
+        if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) }))) return false;
+        addNote(d.id, `Assigned to ${laneKey} by “Assign to…” (engine)${d.assigned_driver ? ` (from ${d.assigned_driver})` : ""}`);
+      }
+      if (!(await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas))) return false;
+      despues = fotoTrasReordenar(despues, e.ids, e.loadNoById, desde, recogidas);
+      for (const d of traidas) despues[d.id] = { ...despues[d.id], assigned_driver: laneKey };
+    }
+    await anotaMovimiento(etiquetaDelReparto(rutas.reduce((n, x) => n + x.nuevas.length, 0), rutas.map((x) => x.nombre)), [...tocadas], antes, despues);
+    return true;
+  };
+  /** «🧭 Asignar N entre…»: pide los tiempos, reparte con el motor, enseña el resumen y, si se confirma, escribe. */
+  const reparte = async () => {
+    const elegidos = choferesDelReparto.filter((c) => c.puede && elegidosDelReparto.has(c.id));
+    const seleccionadas = seleccionDelReparto.map((d) => d.id);
+    if (!elegidos.length || !seleccionadas.length || repartiendo || moviendo) return;
+    setRepartiendo(true);
+    try {
+      // Lo que cada elegido ya lleva hoy, en el orden de su tarjeta (lo pendiente: lo hecho no se mueve ni cuenta, D-459).
+      const yaLlevan = Object.fromEntries(elegidos.map((c) => [c.id, paradasDeLaLista(lecturaDe(c.nombre, byDriver.get(c.nombre) ?? []).paradas)]));
+      const peticion = { entrada: diaParaElMotor.entrada, seleccionadas, elegidos: elegidos.map((c) => c.id), yaLlevan };
+      // Los tiempos por calles de los puntos que entran, como «🧭 Optimizar» (D-461): UNA petición a `/api/route-matrix`, con
+      // memoria por forma mientras la pantalla esté abierta; lo que no conteste se estima en línea recta y el resumen lo dice.
+      const puntos = puntosDelReparto(entradaDelReparto(peticion).entrada, diaParaElMotor.puntos);
+      const tiempos = await tiemposDeLaRuta(Object.values(puntos), tiemposPedidos.current, (pts) =>
+        fetch("/api/route-matrix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puntos: pts }) }));
+      const medida = matrizDelGestor(puntos, tiempos?.tiempos ?? null);
+      const r = reparteEntre({ ...peticion, entrada: { ...diaParaElMotor.entrada, matriz: medida.matriz }, parametros: diaParaElMotor.parametros });
+      const porId = new Map(dayOrders.map((d) => [d.id, d]));
+      const nombreDe = (id: string) => { const d = porId.get(id); return d ? facturaYId(d).principal : id.slice(0, 6); };
+      const movimientos = movimientosDelReparto(r, (id) => porId.get(id)?.assigned_driver ?? null);
+      const resumen = resumenDelReparto({ r, nombreDe, movimientos, medida, totalSeleccionadas: seleccionadas.length });
+      // Nada que asignar: se dice y no se escribe nada. Algo sí: se confirma con el resumen delante (lo que no cabe se queda donde está).
+      if (!r.rutas.some((x) => x.nuevas.length)) { await confirmAction(t(resumen.en, resumen.es), { alertOnly: true }); return; }
+      if (!(await confirmAction(t(resumen.en, resumen.es), { confirmLabel: t("Assign", "Asignar") }))) return;
+      if (!(await guardaElReparto(r))) return;
+      setMarcadas(new Set()); clearSelection(); setElegidosDelReparto(new Set());
+      const n = r.rutas.reduce((s, x) => s + x.nuevas.length, 0);
+      notify(t(`🧭 ${n} order(s) assigned to ${r.rutas.filter((x) => x.nuevas.length).map((x) => `${x.nombre} (+${x.nuevas.length})`).join(", ")}. Ctrl+Z undoes it.`,
+        `🧭 ${n} orden(es) asignadas a ${r.rutas.filter((x) => x.nuevas.length).map((x) => `${x.nombre} (+${x.nuevas.length})`).join(", ")}. Ctrl+Z lo deshace.`));
+    } finally {
+      setRepartiendo(false);
+    }
+  };
+  /** La sección de «Asignar a…» varios: la cuenta de seleccionadas, los choferes con su casilla y el botón. Dentro del recuadro
+   *  «Elige conductor» va plegada tras un botón; sola (en «Rutas», o en «Todas» sin nada sin asignar marcado), abierta. */
+  const seccionDeReparto = (sola: boolean) => {
+    const n = seleccionDelReparto.length;
+    const abierto = sola || repartoAbierto;
+    const elegidos = choferesDelReparto.filter((c) => c.puede && elegidosDelReparto.has(c.id));
+    return (
+      <div data-reparte-entre={sola ? "sola" : "en-el-recuadro"} style={sola ? undefined : { marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--line)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <b data-cuenta-seleccionadas style={{ fontSize: sola ? 15 : 13 }}>🧭 {n === 1 ? t("1 selected", "1 seleccionada") : t(`${n} selected`, `${n} seleccionadas`)}</b>
+          {sola
+            ? <span className="hint" style={{ margin: 0 }}>{t("Assign to the drivers you choose: the engine decides who gets each one and where it goes in their route.", "Asignar a los choferes que elija: el motor decide a quién le toca cada una y en qué puesto de su ruta.")}</span>
+            : <button className="btn btn-ghost btn-sm" data-abre-reparto aria-expanded={abierto} onClick={() => setRepartoAbierto((v) => !v)}
+                title={t("Hand the checked orders to several drivers at once; the engine decides who gets each one and where", "Repartir las marcadas entre varios choferes de una vez; el motor decide a quién le toca cada una y dónde")}>
+                {abierto ? "▾" : "▸"} {t("Assign to several drivers…", "Asignar a varios choferes…")}
+              </button>}
+        </div>
+        {abierto && (
+          <>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", margin: "8px 0 10px", maxHeight: 132, overflowY: "auto" }}>
+              {choferesDelReparto.map((c) => {
+                const porque = c.motivo ? textoDeNoRepartir(c.motivo) : null;
+                return (
+                  <label key={c.id} title={porque ? t(porque.en, porque.es) : undefined}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, cursor: c.puede ? "pointer" : "not-allowed", fontSize: 14, fontWeight: elegidosDelReparto.has(c.id) && c.puede ? 700 : 500, color: "var(--text)", textTransform: "none", letterSpacing: "normal", minWidth: 0, opacity: c.puede ? 1 : 0.6 }}>
+                    <input type="checkbox" data-elige-para-repartir={c.id} disabled={!c.puede || repartiendo} checked={c.puede && elegidosDelReparto.has(c.id)}
+                      onChange={() => alternaElegido(c.id)} style={{ width: 15, height: 15, flex: "0 0 auto" }} />
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: colorFor(c.nombre), flex: "0 0 auto", boxShadow: "0 0 0 1px var(--line)" }} />
+                    <span>{c.nombre}{c.motivo === "ruta_bloqueada" ? " 🔒" : ""}</span>
+                    <span className="hint" data-carga-del-conductor>
+                      ({(byDriver.get(c.nombre) ?? []).length === 1 ? t("1 stop", "1 parada") : t(`${(byDriver.get(c.nombre) ?? []).length} stops`, `${(byDriver.get(c.nombre) ?? []).length} paradas`)} · {sumaPallets(byDriver.get(c.nombre) ?? [])}/{capacityFor(c.nombre)} {t("pallets", "pallets")})
+                    </span>
+                    {porque && c.motivo !== "ruta_bloqueada" && <span className="sema" data-no-rutea style={{ fontSize: 10, background: "var(--card)", color: "var(--amber-text)", border: "1px solid var(--amber)" }}>{t(porque.en, porque.es)}</span>}
+                    {c.noDisponible && <span className="sema" style={{ fontSize: 10, background: "var(--red-chip-bg)", color: "var(--red-chip-text)" }}>{t("off today", "no disponible")}</span>}
+                  </label>
+                );
+              })}
+              {choferesDelReparto.length === 0 && (
+                <span className="hint" data-sin-choferes-para-repartir style={{ margin: 0 }}>{t("No driver can be routed today: each needs a base store with a map point (Settings → Routes, or their profile store).", "Ningún chofer rutea hoy: cada uno necesita una tienda base con punto en el mapa (Ajustes → Rutas, o la tienda de su perfil).")}</span>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button className="btn btn-primary" data-reparte disabled={!elegidos.length || n === 0 || repartiendo || moviendo} onClick={() => void reparte()}
+                title={t("Same engine and rules as Build routes, limited to these orders and these drivers; what each driver already has stays with them, in order", "El mismo motor y las mismas reglas que Armar rutas, limitado a estas órdenes y estos choferes; lo que cada uno ya lleva se queda con él, en su orden")}>
+                🧭 {repartiendo ? t("Assigning…", "Asignando…")
+                  : elegidos.length <= 1 ? t(`Assign ${n} to ${elegidos[0]?.nombre ?? "…"}`, `Asignar ${n} a ${elegidos[0]?.nombre ?? "…"}`)
+                  : t(`Assign ${n} among ${elegidos.length} drivers`, `Asignar ${n} entre ${elegidos.length} choferes`)}
+              </button>
+              <button className="btn btn-ghost btn-sm" data-quita-seleccion disabled={repartiendo} onClick={() => { setMarcadas(new Set()); clearSelection(); }}>✕ {t("Clear selection", "Quitar selección")}</button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+  const recuadroDeReparto = () => (
+    <div className="card" data-recuadro-de-reparto role="group" aria-label={t(`Assign ${seleccionDelReparto.length} selected orders to drivers`, `Asignar ${seleccionDelReparto.length} órdenes seleccionadas a choferes`)}
+      style={{ position: "sticky", bottom: 8, zIndex: 6, margin: "10px 0 0", padding: "12px 14px", border: "2px solid var(--accent)", background: "var(--accent-soft)", maxWidth: "100%", boxSizing: "border-box" }}>
+      {seccionDeReparto(true)}
+    </div>
+  );
 
   // Las flechas ↑ ↓ de cada parada son `mueveParada` (arriba, D-443): P o D, sobre la lista única. La de antes (`move`,
   // D-433) movía solo entregas y, con viajes a mano, sellaba el viaje de cada una por posición; se fue con los viajes.
@@ -1964,8 +2143,13 @@ export default function RoutesPage() {
               <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
               {/* «✨ Auto-asignar las marcadas» iba aquí; se quitó en D-437. Repartir automático es «Armar las rutas del día». */}
             </div>
+            {/* «Asignar a…» varios choferes (D-NEXT): el mismo recuadro, plegado tras un botón; lo marcado se reparte entre los
+                elegidos con el motor de «Armar rutas». Sin nada sin asignar marcado (en «Todas», solo filas con chofer), el
+                recuadro de arriba no sale y esta sección va sola, abajo. */}
+            {seleccionDelReparto.length > 0 && seccionDeReparto(false)}
           </div>
         )}
+        {poolSelectedCount === 0 && seleccionDelReparto.length > 0 && recuadroDeReparto()}
         </>}
       </div>
     );
@@ -2676,7 +2860,14 @@ export default function RoutesPage() {
                   </colgroup>
                   <thead>
                     <tr data-pista-de-arrastre title={t("Drag a row to another position, or onto another driver, to move it. The ↑ ↓ arrows still work.", "Arrastre una fila a otro puesto, o a otro chofer, para moverla. Las flechas ↑ ↓ siguen ahí.")}>
-                      <th>#<span className="col-resizer" onMouseDown={asaDeParada("_n")} /></th>
+                      <th style={{ whiteSpace: "nowrap" }}>
+                        {/* «Seleccionar todas las visibles» de esta ruta (D-NEXT): lo pendiente de la tarjeta; lo hecho no se marca. */}
+                        <input type="checkbox" data-marca-todas={u.key} checked={stops.length > 0 && stops.every((d) => marcadas.has(d.id))} disabled={stops.length === 0}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => setMarcadas((s) => { const n = new Set(s); const todas = stops.every((d) => n.has(d.id)); for (const d of stops) { if (todas) n.delete(d.id); else n.add(d.id); } return n; })}
+                          aria-label={t(`Select every order of ${u.label}`, `Marcar todas las órdenes de ${u.label}`)} style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />
+                        #<span className="col-resizer" onMouseDown={asaDeParada("_n")} />
+                      </th>
                       {/* La FACTURA, con el ID al lado (D-459; D-456 lo ponía debajo; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
                       <th data-columna-factura title={t("The invoice opens the order; its ID goes next to it", "La factura abre la orden; al lado va su ID")}>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
                       <th data-columna-cuenta title={t("What this stop loads (+) or unloads (−) = pallets on board after it", "Lo que carga (+) o descarga (−) esta parada = pallets a bordo después")}>
@@ -2826,9 +3017,16 @@ export default function RoutesPage() {
                           onClick={(e) => { e.stopPropagation(); setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
                           title={t("Show this stop on the map", "Ver esta parada en el mapa")}
                         >
-                          <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}
+                          <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}
                             title={gris || provisional ? t("Provisional: follows the current order, none saved yet", "Provisional: sigue el orden de ahora, aún sin orden guardado") : undefined}
-                          >{f.etiqueta}</td>
+                          >
+                            {/* La casilla de «Asignar a…» varios (D-NEXT): marca la ORDEN (su entrega es su fila), aparte de aislarla en el
+                                mapa, que es lo que hace pulsar la fila. El clic no sube a la fila ni a la tarjeta. */}
+                            <input type="checkbox" data-marca-orden={d.id} checked={marcadas.has(d.id)} onChange={() => alternaMarca(d.id)} onClick={(e) => e.stopPropagation()}
+                              aria-label={t(`Select ${facturaYId(d).principal} to assign it to another driver`, `Marcar ${facturaYId(d).principal} para asignarla a otro chofer`)}
+                              style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />
+                            {f.etiqueta}
+                          </td>
                           {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
                               «carga 1 de 2» si es una carga de una orden partida (D-452). */}
                           <td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>
@@ -2871,6 +3069,9 @@ export default function RoutesPage() {
       })}
       </div>
       )}
+      {/* «Asignar a…» varios choferes desde las tarjetas (D-NEXT): con algo marcado, el recuadro pegado abajo, como el de
+          «Elige conductor» en «Sin asignar». */}
+      {tab === "routes" && seleccionDelReparto.length > 0 && recuadroDeReparto()}
 
       {!ready && <div className="empty">{t("Loading…", "Cargando…")}</div>}
 

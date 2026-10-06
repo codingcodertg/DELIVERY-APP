@@ -41,12 +41,14 @@ export function demoSettings(): Settings {
     id: 1,
     app_name: "RTG·HUB",
     stores: [
-      { name: "Brownsville", address: "3000 Central Blvd, Brownsville TX" },
-      { name: "Weslaco", address: "1000 W Expressway 83, Weslaco TX" },
-      { name: "Pharr", address: "1201 W US-83, Pharr TX" },
-      { name: "McAllen", address: "2400 N 23rd St, McAllen TX" },
-      { name: "Mission", address: "1100 E Expressway 83, Mission TX" },
-      { name: "Edinburg", address: "2500 W University Dr, Edinburg TX" },
+      // Con punto en el mapa (D-NEXT): sin él ningún chofer del demo «rutea» —«Armar rutas» y «Asignar a…» exigen una base
+      // con coordenadas— y las recogidas no se podían medir. Coordenadas aproximadas de cada ciudad, no de una dirección real.
+      { name: "Brownsville", address: "3000 Central Blvd, Brownsville TX", lat: 25.9290, lng: -97.4890 },
+      { name: "Weslaco", address: "1000 W Expressway 83, Weslaco TX", lat: 26.1630, lng: -97.9960 },
+      { name: "Pharr", address: "1201 W US-83, Pharr TX", lat: 26.1950, lng: -98.1860 },
+      { name: "McAllen", address: "2400 N 23rd St, McAllen TX", lat: 26.2240, lng: -98.2360 },
+      { name: "Mission", address: "1100 E Expressway 83, Mission TX", lat: 26.2080, lng: -98.3050 },
+      { name: "Edinburg", address: "2500 W University Dr, Edinburg TX", lat: 26.3060, lng: -98.1870 },
     ],
     order_types: ["Customer", "Intertienda", "Transfer"],
     order_type_rules: {
