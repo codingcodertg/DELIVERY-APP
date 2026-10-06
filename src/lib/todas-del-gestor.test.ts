@@ -162,7 +162,8 @@ describe("la pantalla", () => {
   });
   it("N sale de `todasDelGestor` con el filtro de chofer de la barra, y el título lo dice", () => {
     expect(pagina).toContain("const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, filtroChofer), [deliveries, date, modo, filtroChofer]);");
-    expect(barra).toContain("`${todasDelDia.length} orden(es) este día: las de ${laneLabel(filtroChofer)} y las sin asignar`");
+    // Puesto al día por D-NEXT: el filtro son los choferes marcados en el panel (uno o varios).
+    expect(barra).toContain("`${todasDelDia.length} orden(es) este día: las de ${[...filtroChofer].map(laneLabel).join(\", \")} y las sin asignar`");
     expect(barra).toContain("`${todasDelDia.length} orden(es) este día, con chofer o sin él, entregadas incluidas`");
   });
   it("la tabla y sus chips salen de `filasDeTodas` y `cuentasDeTodas` con su chip, su búsqueda y el mismo filtro", () => {
@@ -199,12 +200,13 @@ describe("la pantalla", () => {
   it("cada fila decide: sin chofer, casilla, arrastre y «Asignar a…»; con chofer, «Pasar a…» (`pasaA`, con deshacer); hecha, ✓ y nada", () => {
     expect(fila).toContain("const hecha = ETAPAS_HECHAS.has(d.stage);");
     expect(fila).toContain("const sinChofer = !d.assigned_driver;");
-    expect(fila).toContain('data-fila-arrastrable={sinChofer ? "orden" : undefined} {...(sinChofer ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>');
+    // Puesto al día por D-NEXT: en «Ruta de hoy» (solo lectura) ni arrastre, ni casilla, ni «Asignar a…», ni «Pasar a…».
+    expect(fila).toContain('data-fila-arrastrable={sinChofer && !soloLectura ? "orden" : undefined} {...(sinChofer && !soloLectura ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>');
     expect(fila).toContain("onClick={hecha ? undefined : () => toggleOrder(d.id)}");
     expect(fila).toContain('<span data-hecha={entregada ? "hecho" : "en_camino"} style={{ fontWeight: 700 }}>{entregada ? "✓" : "🚚"}</span>');
     expect(fila).toContain('className={`${marcada ? "row-selected" : ""}${hecha ? ` fila-hecha${entregada ? " row-done" : ""}` : ""}`}');
     expect(fila).toContain("const hora = entregada ? horaReal(d, \"D\") : null;");
-    expect(fila).toContain("{hecha ? null : sinChofer ? (");
+    expect(fila).toContain("{hecha || soloLectura ? null : sinChofer ? (");
     expect(fila).toContain("<select defaultValue=\"\" data-asignar-a onChange={(e) => {");
     expect(fila).toContain("else manualAssign(d.id, target);");
     expect(fila).toContain("ruta && lanes.some((l) => l.key !== ruta) ? (");

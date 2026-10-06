@@ -26,8 +26,10 @@ describe("ayer, hoy y mañana (D-469)", () => {
     expect(p).toContain('[[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]]');
   });
   it("«Ruta de hoy» tiene los tres botones, para cualquier rol", () => {
-    const m = leer("src/app/(app)/map/page.tsx");
+    // Puesto al día por D-NEXT: «Ruta de hoy» es la página del Gestor en solo lectura; los atajos son los suyos (D-428).
+    expect(leer("src/app/(app)/map/page.tsx")).toContain("<SoloLectura>");
+    const m = leer("src/app/(app)/routes/page.tsx");
     expect(m).toContain("data-ayer-hoy-manana");
-    expect(m).toContain("const f = shiftDateISO(todayISO(), d);");
+    expect(m).toContain("const dia = shiftDateISO(todayISO(), dias);");
   });
 });

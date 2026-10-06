@@ -75,20 +75,24 @@ describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
     expect(pagina).toContain("const isC = isCollapsed(u.key);");
   });
   it("el filtro se lee de lo guardado por la persona, y elegir lo guarda", () => {
-    expect(pagina).toContain("setFiltroGuardado(leeFiltroDeChofer((k) => window.localStorage.getItem(k), me.id));");
-    expect(pagina).toContain("guardaFiltroDeChofer(() => window.localStorage, me.id, chofer);");
-    expect(pagina).toContain("value={filtroChofer} onChange={(e) => eligeFiltroDeChofer(e.target.value)}");
-    expect(pagina).toContain("const filtroChofer = filtroVigente(filtroGuardado, lanes.map((l) => l.key));");
+    // **Reemplazado por D-NEXT** (2026-10-06, «remove the all driver dropdown»): el filtro son las casillas del panel; se
+    // leen y se guardan por persona con `leeMarcados` / `guardaMarcados` (lib/gestor/filtro-de-choferes).
+    expect(pagina).toContain("setSelected(new Set(leeMarcados((k) => window.localStorage.getItem(k), me.id)));");
+    expect(pagina).toContain("guardaMarcados(() => window.localStorage, me.id, selected);");
+    expect(pagina).not.toContain("eligeFiltroDeChofer");
+    expect(pagina).toContain("const filtroChofer = useMemo(() => marcadosVigentes(selected, lanes.map((l) => l.key)), [selected, lanes]);");
   });
   it("con un chofer elegido: su fila en el panel, su tarjeta en «Rutas», y en el mapa solo lo suyo", () => {
     expect(pagina).toContain("const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));");
-    expect(pagina).toContain("filas={lanesDelFiltro.map((u) => {");
+    // Puesto al día por D-NEXT: el panel lista las del filtro QUE TIENEN ÓRDENES (`rutasConOrdenes`).
+    expect(pagina).toContain("const filasDelPanel = rutasConOrdenes(lanesDelFiltro, conAlgoQuePintar);");
+    expect(pagina).toContain("filas={filasDelPanel.map((u) => {");
     expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter(");
     // El mapa: la base y las P de cada ruta, sus paradas, lo sin chofer, las líneas y el camión en vivo.
     // **Puesto al día por D-467**: los puntos y las líneas los pintan `puntosDeLasRutas` y `lineasDeLasRutas`
     // (lib/mapa-de-rutas), que comparten el Gestor y «Ruta de hoy»; el Gestor les pasa SU filtro.
     const mapaDeRutas = readFileSync(join(process.cwd(), "src/lib/mapa-de-rutas.ts"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
-    expect(pagina).toContain("pasaFiltro, soloUnChofer: filtroChofer !== TODOS_LOS_CHOFERES, enfocado: focused, atenuada: isDim,");
+    expect(pagina).toContain("pasaFiltro, soloUnChofer: soloAlgunos(filtroChofer), enfocado: focused, atenuada: isDim,");
     expect(pagina).toContain("pasaFiltro, sigueSuPlan, colorDe: colorFor, atenuada: isDim,");
     expect(mapaDeRutas).toContain("if (!e.pasaFiltro(u.key)) continue; const base = e.baseDe(u.key);");
     expect(mapaDeRutas).toContain("if (!list.some((d) => d.route_seq != null)) continue; if (!e.pasaFiltro(laneKey)) continue;");

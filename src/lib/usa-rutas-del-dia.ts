@@ -20,7 +20,12 @@ const RELEE_CADA_MS = 60_000;
  *     El chofer verá solo su ruta y almacén no verá las pendientes; la pantalla se lo dice al admin.
  *   · En el demo (sin base): las órdenes del demo, por la misma proyección.
  */
-export function useRutasDelDia(fecha: string): { paradas: ParadaDelDia[]; origen: OrigenDeLasRutas | null } {
+/**
+ * `activo` (D-NEXT): «Ruta de hoy» es ahora el Gestor de Rutas en solo lectura, y es el Gestor quien llama a este gancho.
+ * El Gestor de verdad (quien asigna) pinta sus propias órdenes y NO necesita la función: con `activo: false` el gancho no
+ * consulta nada, no relee nada y devuelve vacío. Los ganchos de React no pueden ser condicionales; esto sí.
+ */
+export function useRutasDelDia(fecha: string, activo = true): { paradas: ParadaDelDia[]; origen: OrigenDeLasRutas | null } {
   const { deliveries, settings } = useData();
   const [leido, setLeido] = useState<{ fecha: string; origen: OrigenDeLasRutas; paradas: ParadaDelDia[] } | null>(null);
   const [vuelta, setVuelta] = useState(0);
@@ -29,22 +34,22 @@ export function useRutasDelDia(fecha: string): { paradas: ParadaDelDia[]; origen
   // Algo de lo que esta persona recibe en vivo cambió (una orden suya, o cualquiera si las lee todas): se relee, sin prisa.
   const primera = useRef(true);
   useEffect(() => {
-    if (SIN_BASE) return;
+    if (SIN_BASE || !activo) return;
     if (primera.current) { primera.current = false; return; }
     const id = setTimeout(relee, 1500);
     return () => clearTimeout(id);
-  }, [deliveries, relee]);
+  }, [deliveries, relee, activo]);
   useEffect(() => {
-    if (SIN_BASE) return;
+    if (SIN_BASE || !activo) return;
     const alVolver = () => { if (document.visibilityState === "visible") relee(); };
     window.addEventListener("focus", alVolver);
     document.addEventListener("visibilitychange", alVolver);
     const id = setInterval(alVolver, RELEE_CADA_MS);
     return () => { window.removeEventListener("focus", alVolver); document.removeEventListener("visibilitychange", alVolver); clearInterval(id); };
-  }, [relee]);
+  }, [relee, activo]);
 
   useEffect(() => {
-    if (SIN_BASE) return;
+    if (SIN_BASE || !activo) return;
     let vivo = true;
     void leeRutasDelDia(createClient() as unknown as ClienteDeRutas, fecha).then((r) => {
       if (!vivo) return;
@@ -54,14 +59,15 @@ export function useRutasDelDia(fecha: string): { paradas: ParadaDelDia[]; origen
       setLeido((antes) => (antes && antes.fecha === fecha && antes.origen === r.origen && JSON.stringify(antes.paradas) === JSON.stringify(paradas) ? antes : { fecha, origen: r.origen, paradas }));
     });
     return () => { vivo = false; };
-  }, [fecha, vuelta]);
+  }, [fecha, vuelta, activo]);
 
   // Lo que ya se podía leer, por la misma proyección: el demo, y el respaldo cuando la función no está.
   const deLoQueLee = useMemo(
-    () => paradasDeLasOrdenes(deliveries, fecha, settings.stores ?? [], ciudadesConocidas(deliveries.map((d) => d.delivery_address))),
-    [deliveries, fecha, settings.stores],
+    () => (activo ? paradasDeLasOrdenes(deliveries, fecha, settings.stores ?? [], ciudadesConocidas(deliveries.map((d) => d.delivery_address))) : []),
+    [deliveries, fecha, settings.stores, activo],
   );
 
+  if (!activo) return { paradas: deLoQueLee, origen: null };
   if (SIN_BASE) return { paradas: deLoQueLee, origen: "demo" };
   // Otro día aún sin leer: nada que pintar todavía (no se enseña el día anterior con la fecha nueva).
   if (!leido || leido.fecha !== fecha) return { paradas: [], origen: null };

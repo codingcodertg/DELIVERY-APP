@@ -222,10 +222,11 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(seccion).toContain("const elegidos = choferesDelReparto.filter((c) => c.puede && elegidosDelReparto.has(c.id));");
   });
   it("dónde sale: dentro del recuadro «Elige conductor» (plegada), sola cuando no hay nada sin asignar marcado, y en «Rutas» con algo marcado; nunca una barra arriba (D-459)", () => {
-    const recuadro = trozo("{poolSelectedCount > 0 && ( <div className=\"card\" data-elige-conductor", "{poolSelectedCount === 0 && seleccionDelReparto.length > 0 && recuadroDeReparto()}");
+    // Puesto al día por D-NEXT: nada de esto en «Ruta de hoy» (solo lectura).
+    const recuadro = trozo("{!soloLectura && poolSelectedCount > 0 && ( <div className=\"card\" data-elige-conductor", "{!soloLectura && poolSelectedCount === 0 && seleccionDelReparto.length > 0 && recuadroDeReparto()}");
     expect(recuadro).toContain("{seleccionDelReparto.length > 0 && seccionDeReparto(false)}");
     expect(recuadro.indexOf("data-nueva-ruta-del-recuadro")).toBeLessThan(recuadro.indexOf("seccionDeReparto(false)"));
-    expect(pagina).toContain("{tab === \"routes\" && seleccionDelReparto.length > 0 && recuadroDeReparto()}");
+    expect(pagina).toContain("{!soloLectura && tab === \"routes\" && seleccionDelReparto.length > 0 && recuadroDeReparto()}");
     expect(pagina).toContain("<div className=\"card\" data-recuadro-de-reparto role=\"group\"");
     expect(pagina).toContain("style={{ position: \"sticky\", bottom: 8, zIndex: 6, margin: \"10px 0 0\", padding: \"12px 14px\", border: \"2px solid var(--accent)\", background: \"var(--accent-soft)\", maxWidth: \"100%\", boxSizing: \"border-box\" }}> {seccionDeReparto(true)}");
     expect(seccion).toContain(": <button className=\"btn btn-ghost btn-sm\" data-abre-reparto aria-expanded={abierto} onClick={() => setRepartoAbierto((v) => !v)}");

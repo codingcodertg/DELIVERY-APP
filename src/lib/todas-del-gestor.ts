@@ -1,6 +1,7 @@
 import { hechasQueSePintan } from "@/lib/hechas-del-gestor";
 import { CHIPS_SIN_ASIGNAR, coincideConLaBusqueda, ordenesDelDia, pendientesDeOtrosDias, type ChipSinAsignar, type ModoDelGestor, type OrdenDelPool } from "@/lib/ordenes-del-dia";
 import { TODOS_LOS_CHOFERES, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor";
+import { pasaElFiltro } from "@/lib/gestor/filtro-de-choferes";
 
 /**
  * La pestaña «Todas (N)» del Gestor de Rutas (D-462): TODAS las órdenes del día elegido, con chofer o sin él, en una
@@ -27,12 +28,16 @@ import { TODOS_LOS_CHOFERES, pasaElFiltroDeChofer } from "@/lib/vista-del-gestor
 /** Lo que una fila de «Todas» necesita de la orden: lo de «Sin asignar» y lo que distingue una ya hecha (`hechasQueSePintan`). */
 export type OrdenDeTodas = OrdenDelPool & { route_seq?: number | null };
 
-/** ¿Entra esta orden en «Todas» con este filtro de chofer? Las de ESE chofer, y las que no tienen ninguno. */
-export const entraEnTodas = (filtro: string, chofer: string | null | undefined): boolean => !chofer || pasaElFiltroDeChofer(filtro, chofer);
+/** El filtro de chofer: UN chofer (el desplegable de D-393, "" = todos) o, desde D-NEXT, los MARCADOS en el panel (vacío = todos). */
+export type FiltroDeChofer = string | ReadonlySet<string>;
+
+/** ¿Entra esta orden en «Todas» con este filtro de chofer? Las de ESE chofer (o de esos), y las que no tienen ninguno. */
+export const entraEnTodas = (filtro: FiltroDeChofer, chofer: string | null | undefined): boolean =>
+  !chofer || (typeof filtro === "string" ? pasaElFiltroDeChofer(filtro, chofer) : pasaElFiltro(filtro, chofer));
 
 /** Las filas que enseña un chip de «Todas», antes de los filtros por columna (D-360), por número de orden como «Sin asignar». */
 export function filasDeTodas<T extends OrdenDeTodas>(
-  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], chip: ChipSinAsignar, busqueda = "", filtro: string = TODOS_LOS_CHOFERES,
+  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], chip: ChipSinAsignar, busqueda = "", filtro: FiltroDeChofer = TODOS_LOS_CHOFERES,
 ): T[] {
   const deOtrosDias = chip === "overdue" || chip === "todas";
   const pendientes: T[] = chip === "overdue" ? pendientesDeOtrosDias(deliveries, etapas).atrasadas
@@ -47,13 +52,13 @@ export function filasDeTodas<T extends OrdenDeTodas>(
 }
 
 /** Lo que cuenta la pestaña «Todas (N)»: las filas de «Este día» sin búsqueda, con el filtro de chofer. */
-export function todasDelGestor<T extends OrdenDeTodas>(deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], filtro: string = TODOS_LOS_CHOFERES): T[] {
+export function todasDelGestor<T extends OrdenDeTodas>(deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], filtro: FiltroDeChofer = TODOS_LOS_CHOFERES): T[] {
   return filasDeTodas(deliveries, fecha, modo, etapas, "dia", "", filtro);
 }
 
 /** El número de cada chip de «Todas»: el largo de SUS filas, con la misma búsqueda y el mismo filtro. Nunca otra cuenta. */
 export function cuentasDeTodas<T extends OrdenDeTodas>(
-  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], busqueda = "", filtro: string = TODOS_LOS_CHOFERES,
+  deliveries: readonly T[], fecha: string, modo: ModoDelGestor, etapas: readonly string[], busqueda = "", filtro: FiltroDeChofer = TODOS_LOS_CHOFERES,
 ): Record<ChipSinAsignar, number> {
   const r = {} as Record<ChipSinAsignar, number>;
   for (const chip of CHIPS_SIN_ASIGNAR) r[chip] = filasDeTodas(deliveries, fecha, modo, etapas, chip, busqueda, filtro).length;
