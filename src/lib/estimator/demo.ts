@@ -6,9 +6,8 @@ import {
   validaArchivos, type AlmacenDeCompetencia, type EstimadoDeCompetencia,
 } from "./competencia";
 import { filaDeLectura, normalizaLectura, type AlmacenDeLecturas, type LecturaGuardada } from "./lectura";
-import { tandaEnMemoria, type CotizacionResumen, type Vendedor } from "./lista-admin";
+import { tandaEnMemoria, type CotizacionResumen } from "./lista-admin";
 import { resumenDeTotales } from "./modelo";
-import { DEMO_USERS } from "@/lib/demo-data";
 
 /**
  * El Estimador en **modo demo**: datos inventados, en memoria, con la misma interfaz que la base.
@@ -186,14 +185,6 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       // La misma regla que la política de SELECT de la 148: el admin todas; un vendedor, las suyas y las de su tienda.
       const visibles = db.cotizaciones.filter((c) => yo.admin || c.owner_id === yo.id || (!!c.store && c.store === (yo.store?.trim() || null)));
       return bien(tandaEnMemoria(visibles.map(resumenDemo), filtro, tanda));
-    },
-
-    async vendedores() {
-      if (sinTabla) return SIN_TABLA;
-      const out: Vendedor[] = DEMO_USERS
-        .filter((u) => u.role === "admin" || u.role === "sales" || u.role === "manager")
-        .map((u) => ({ id: u.id, full_name: u.full_name, store: u.store ?? null }));
-      return bien(out);
     },
   };
 }

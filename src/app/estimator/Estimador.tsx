@@ -438,7 +438,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
 
       {pestana === "todas" && puedeVerTodas(me) && (
         <TodasLasCotizaciones almacen={almacen} competencia={almacenCompetencia} me={me} t={t} lang={lang}
-          tiendas={ajustes.stores.map((s) => s.name)} onAbrir={(id) => void abrirDesdeLista(id)} />
+          onAbrir={(id) => void abrirDesdeLista(id)} />
       )}
 
       {pestana === "competencia" && (

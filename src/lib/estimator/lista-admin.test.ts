@@ -3,13 +3,15 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { TablaDeCotizaciones } from "@/app/estimator/TodasLasCotizaciones";
+import { RangoDelPanel } from "@/app/estimator/TodasLasCotizaciones";
 import { ListaDeEstimados } from "@/app/estimator/EstimadosCompetencia";
+import { SIN_VALOR } from "@/lib/orden-y-filtro";
 import { COLUMNAS_DE_LA_LISTA, almacenDeLaBase, resumenDeFila } from "./almacen";
 import { almacenDemo, DEMO_ESTIMADO_AJENO, DEMO_ESTIMADO_IMPRESO, DEMO_OTRO_VENDEDOR } from "./demo";
 import {
-  TANDA, aplicaFiltro, cortaTanda, cumpleFiltro, estadoDeCotizacion, filtroDeTextoPostgrest, filtroVacio, hayFiltro, limitesDeFechas,
-  masRecientePrimero, puedeVerTodas, rangoDeTanda, tandaEnMemoria, textoCoincide, tiendasDelFiltro,
+  COLUMNAS_DE_LA_TABLA, TANDA, aplicaFiltro, atajoEncendido, cortaTanda, cumpleFiltro, enElRango, estadoDeCotizacion, fechaDeCelda,
+  filtraCompetenciaComoLaTabla, filtroDeTextoPostgrest, filtroVacio, hayFiltro, limitesDeFechas, masRecientePrimero, pasoDeRango,
+  puedeVerTodas, rangoDeAtajo, rangoDeTanda, tandaEnMemoria, textoCoincide, textoDeEstado, valorDeColumna,
   type Consulta, type CotizacionResumen, type FiltroDeCotizaciones,
 } from "./lista-admin";
 import { borradorVacio } from "./modelo";
@@ -17,7 +19,8 @@ import { borradorVacio } from "./modelo";
 /**
  * D-476: la lista de TODAS las cotizaciones y de todos los estimados de la competencia, solo para el admin. El dueño,
  * 2026-10-06: «en el quote builder solo para admin habilita la lista de todas las quotes ya hechas y las de los
- * comeptirodes tambien».
+ * comeptirodes tambien». Y D-478, sobre una captura: «SE MIR MUY FEO ESOS FILTROS PON EL CALENDARIO QUE SIEMPRE HEMOS
+ * PEUSTO Y LOS FILTROS ASI COMO EN LAS TABLES QUE HEMOS EHCHO»: el calendario del Panel y el menú por columna de Órdenes.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
@@ -40,16 +43,7 @@ describe("quién ve la lista de todas", () => {
   });
 });
 
-describe("el filtro", () => {
-  it("por vendedor y por tienda; vacío = todos", () => {
-    const c = cotizacion();
-    expect(cumpleFiltro(c, f())).toBe(true);
-    expect(cumpleFiltro(c, f({ vendedor: "u1" }))).toBe(true);
-    expect(cumpleFiltro(c, f({ vendedor: "u2" }))).toBe(false);
-    expect(cumpleFiltro(c, f({ tienda: "RDZ Pharr" }))).toBe(true);
-    expect(cumpleFiltro(c, f({ tienda: "RDZ McAllen" }))).toBe(false);
-    expect(cumpleFiltro(cotizacion({ store: null }), f({ tienda: "RDZ Pharr" }))).toBe(false);
-  });
+describe("el filtro que va a la base: fechas y texto", () => {
   it("las fechas son días de Texas, los dos incluidos: las 9 de la noche del 5 son del 5, no del 6 en UTC", () => {
     // 2026-10-06T02:30Z = 2026-10-05 21:30 en Texas (CDT, UTC-5).
     const noche = cotizacion({ created_at: "2026-10-06T02:30:00.000Z" });
@@ -59,6 +53,7 @@ describe("el filtro", () => {
     expect(cumpleFiltro(noche, f({ hasta: "2026-10-04" }))).toBe(false);
     expect(cumpleFiltro(noche, f({ desde: "2026-10-05" }))).toBe(true);
     expect(cumpleFiltro(noche, f({ hasta: "2026-10-05" }))).toBe(true);
+    expect(enElRango("2026-10-06T02:30:00.000Z", { desde: "", hasta: "" })).toBe(true);
     // Un extremo mal escrito no limita.
     expect(limitesDeFechas({ desde: "ayer", hasta: "" })).toEqual({ desde: null, hasta: null });
   });
@@ -71,11 +66,103 @@ describe("el filtro", () => {
     expect(cumpleFiltro(c, f({ texto: "pena" }))).toBe(true);
     expect(cumpleFiltro(c, f({ texto: "nadie" }))).toBe(false);
   });
-  it("hayFiltro y las tiendas del desplegable", () => {
+  it("hayFiltro: solo fechas y texto", () => {
     expect(hayFiltro(f())).toBe(false);
     expect(hayFiltro(f({ texto: "  " }))).toBe(false);
     expect(hayFiltro(f({ desde: "2026-10-01" }))).toBe(true);
-    expect(tiendasDelFiltro(["RDZ Pharr", "RDZ McAllen"], [{ store: "Weslaco" }, { store: null }, { store: "RDZ Pharr" }])).toEqual(["RDZ Pharr", "RDZ McAllen", "Weslaco"]);
+    expect(Object.keys(filtroVacio()).sort()).toEqual(["desde", "hasta", "texto"]);
+  });
+});
+
+describe("el calendario del Panel: los atajos y las flechas", () => {
+  // Un martes a las 10 de la mañana en Texas, para que «hoy», «esta semana» y «este mes» tengan respuesta fija.
+  const ahora = new Date("2026-10-06T15:00:00.000Z");
+  it("Hoy, Esta semana, Este mes (acotado a hoy), Mes pasado y Todo", () => {
+    expect(rangoDeAtajo("hoy", ahora)).toEqual({ desde: "2026-10-06", hasta: "2026-10-06", modo: "custom" });
+    expect(rangoDeAtajo("semana", ahora)).toEqual({ desde: "2026-10-05", hasta: "2026-10-06", modo: "week" });
+    expect(rangoDeAtajo("mes", ahora)).toEqual({ desde: "2026-10-01", hasta: "2026-10-06", modo: "month" });
+    expect(rangoDeAtajo("mes-pasado", ahora)).toEqual({ desde: "2026-09-01", hasta: "2026-09-30", modo: "month" });
+    expect(rangoDeAtajo("todo", ahora)).toEqual({ desde: "", hasta: "", modo: "custom" });
+  });
+  it("◀ ▶: un mes salta de mes en mes, una semana 7 días, uno a mano su propio largo; sin fechas no se mueve", () => {
+    const hoy = "2026-10-06";
+    expect(pasoDeRango({ desde: "2026-09-01", hasta: "2026-09-30", modo: "month" }, -1, hoy)).toEqual({ desde: "2026-08-01", hasta: "2026-08-31", modo: "month" });
+    expect(pasoDeRango({ desde: "2026-09-01", hasta: "2026-09-30", modo: "month" }, 1, hoy)).toEqual({ desde: "2026-10-01", hasta: "2026-10-06", modo: "month" });
+    expect(pasoDeRango({ desde: "2026-09-28", hasta: "2026-10-04", modo: "week" }, -1, hoy)).toEqual({ desde: "2026-09-21", hasta: "2026-09-27", modo: "week" });
+    expect(pasoDeRango({ desde: "2026-10-01", hasta: "2026-10-03", modo: "custom" }, -1, hoy)).toEqual({ desde: "2026-09-28", hasta: "2026-09-30", modo: "custom" });
+    expect(pasoDeRango({ desde: "2026-10-01", hasta: "2026-10-03", modo: "custom" }, 1, hoy)).toEqual({ desde: "2026-10-04", hasta: "2026-10-06", modo: "custom" });
+    expect(pasoDeRango({ desde: "", hasta: "", modo: "custom" }, 1, hoy)).toEqual({ desde: "", hasta: "", modo: "custom" });
+  });
+  it("qué botón se enciende", () => {
+    expect(atajoEncendido({ desde: "", hasta: "", modo: "custom" }, ahora)).toBe("todo");
+    expect(atajoEncendido({ desde: "2026-10-06", hasta: "2026-10-06", modo: "custom" }, ahora)).toBe("hoy");
+    expect(atajoEncendido({ desde: "2026-10-01", hasta: "2026-10-06", modo: "month" }, ahora)).toBe("mes");
+    expect(atajoEncendido({ desde: "2026-09-01", hasta: "2026-09-30", modo: "month" }, ahora)).toBe("mes-pasado");
+    expect(atajoEncendido({ desde: "2026-10-02", hasta: "2026-10-06", modo: "custom" }, ahora)).toBeNull();
+  });
+  it("se pinta como el del Panel: ◀ Desde Hasta ▶ y los cinco atajos, con el encendido en azul", () => {
+    const h = renderToStaticMarkup(createElement(RangoDelPanel, { rango: { desde: "", hasta: "", modo: "custom" }, onRango: () => {}, t }));
+    expect(h.match(/type="date"/g) ?? []).toHaveLength(2);
+    expect(h).toContain('data-rango-paso="-1"');
+    expect(h).toContain('data-rango-paso="1"');
+    for (const a of ["hoy", "semana", "mes", "mes-pasado", "todo"]) expect(h).toContain(`data-atajo="${a}"`);
+    expect(h).toMatch(/btn btn-sm btn-primary" data-atajo="todo"/);
+    expect(h).toContain(">Today<");
+    expect(h).toContain(">Last month<");
+  });
+});
+
+describe("las columnas, con el menú de ordenar y filtrar de las tablas de la casa", () => {
+  it("siete columnas en el orden de la tabla, en los dos idiomas", () => {
+    expect(COLUMNAS_DE_LA_TABLA.map((c) => c.key)).toEqual(["fecha", "estimado", "vendedor", "tienda", "cliente", "total", "estado"]);
+    expect(COLUMNAS_DE_LA_TABLA.every((c) => c.en && c.es)).toBe(true);
+  });
+  it("lo que cada columna saca: la fecha por el día de Texas, el total como número, lo vacío como null", () => {
+    const c = cotizacion({ created_at: "2026-10-06T02:30:00.000Z", print_count: 2, printed_at: "x" });
+    expect(valorDeColumna("fecha", c, t)).toBe("2026-10-05");
+    expect(valorDeColumna("estimado", c, t)).toBe("104582");
+    expect(valorDeColumna("vendedor", c, t)).toBe("Ana Garza");
+    expect(valorDeColumna("tienda", c, t)).toBe("RDZ Pharr");
+    expect(valorDeColumna("cliente", c, t)).toBe("Luis Pena");
+    expect(valorDeColumna("total", c, t)).toBe(100);
+    expect(valorDeColumna("estado", c, t)).toBe("Printed ×2");
+    const vacia = cotizacion({ created_at: "", estimate_num: "", owner_name: null, store: null, customer_name: "" });
+    for (const k of ["fecha", "estimado", "vendedor", "tienda", "cliente"]) expect(valorDeColumna(k, vacia, t), k).toBeNull();
+    expect(valorDeColumna("otra", c, t)).toBeNull();
+    expect(fechaDeCelda("")).toBe("—");
+    expect(fechaDeCelda("2026-10-06T02:30:00.000Z")).toBe("2026-10-05 21:30");
+  });
+  it("el estado: impresa si se generó la copia alguna vez (×N si más de una); si no, guardada sin imprimir", () => {
+    expect(estadoDeCotizacion({ print_count: 0, printed_at: null })).toBe("guardada");
+    expect(estadoDeCotizacion({ print_count: 2, printed_at: "2026-10-05T10:00:00Z" })).toBe("impresa");
+    expect(estadoDeCotizacion({ print_count: 0, printed_at: "2026-10-05T10:00:00Z" })).toBe("impresa");
+    expect(textoDeEstado({ print_count: 0, printed_at: null }, t)).toBe("Saved, not printed");
+    expect(textoDeEstado({ print_count: 1, printed_at: "x" }, t)).toBe("Printed");
+    expect(textoDeEstado({ print_count: 3, printed_at: "x" }, t)).toBe("Printed ×3");
+  });
+});
+
+describe("los estimados de la competencia heredan los filtros de la tabla", () => {
+  const base = {
+    id: "e1", quote_id: null as string | null, path: "general/u1/x.pdf", file_name: "x.pdf", mime_type: "application/pdf", size_bytes: 10,
+    competitor: "Rival", competitor_total: null, note: null, uploaded_by: "u1", uploaded_by_name: "Ana Garza" as string | null,
+    uploaded_at: "2026-10-05T20:30:00.000Z", customer_name: "Luis Pena" as string | null, store: "RDZ Pharr" as string | null, estimate_num: null as string | null,
+  };
+  const lista = [
+    base,
+    { ...base, id: "e2", uploaded_by_name: "Beto", store: null, uploaded_at: "2026-09-01T10:00:00.000Z", customer_name: "Otro" },
+    { ...base, id: "e3", uploaded_by_name: null, store: "RDZ McAllen", quote_id: "q1", estimate_num: "104582" },
+  ];
+  const texto = (e: typeof base, s: string) => [e.customer_name, e.competitor, e.estimate_num, e.uploaded_by_name].some((v) => (v ?? "").toLowerCase().includes(s.trim().toLowerCase()));
+  it("fechas (por cuándo se subió), texto, y los filtros de columna Vendedor y Tienda; los demás no", () => {
+    expect(filtraCompetenciaComoLaTabla(lista, f(), {}, texto).map((e) => e.id)).toEqual(["e1", "e2", "e3"]);
+    expect(filtraCompetenciaComoLaTabla(lista, f({ desde: "2026-10-01" }), {}, texto).map((e) => e.id)).toEqual(["e1", "e3"]);
+    expect(filtraCompetenciaComoLaTabla(lista, f({ texto: "otro" }), {}, texto).map((e) => e.id)).toEqual(["e2"]);
+    expect(filtraCompetenciaComoLaTabla(lista, f(), { vendedor: new Set(["Beto", SIN_VALOR]) }, texto).map((e) => e.id)).toEqual(["e2", "e3"]);
+    expect(filtraCompetenciaComoLaTabla(lista, f(), { tienda: new Set(["RDZ Pharr"]) }, texto).map((e) => e.id)).toEqual(["e1"]);
+    expect(filtraCompetenciaComoLaTabla(lista, f(), { tienda: new Set(["RDZ Pharr"]), vendedor: new Set(["Beto"]) }, texto)).toEqual([]);
+    // Un filtro vacío no filtra; los de # / cliente / total / estado son de la cotización y aquí no cuentan.
+    expect(filtraCompetenciaComoLaTabla(lista, f(), { vendedor: new Set(), estado: new Set(["Printed"]), cliente: new Set(["nadie"]) }, texto)).toHaveLength(3);
   });
 });
 
@@ -101,7 +188,7 @@ describe("el orden y las tandas", () => {
     expect(cortaTanda([])).toEqual({ filas: [], hayMas: false });
   });
   it("en memoria: filtra, ordena y corta por tandas", () => {
-    const muchas = Array.from({ length: 120 }, (_, i) => cotizacion({ id: `q${String(i).padStart(3, "0")}`, created_at: `2026-0${1 + (i % 9)}-15T10:00:00Z`, store: i % 2 ? "A" : "B" }));
+    const muchas = Array.from({ length: 120 }, (_, i) => cotizacion({ id: `q${String(i).padStart(3, "0")}`, created_at: `2026-0${1 + (i % 9)}-15T10:00:00Z`, customer_name: i % 2 ? "A" : "B" }));
     const t0 = tandaEnMemoria(muchas, f(), 0);
     expect(t0.filas).toHaveLength(50);
     expect(t0.hayMas).toBe(true);
@@ -109,18 +196,10 @@ describe("el orden y las tandas", () => {
     const t2 = tandaEnMemoria(muchas, f(), 2);
     expect(t2.filas).toHaveLength(20);
     expect(t2.hayMas).toBe(false);
-    const soloA = tandaEnMemoria(muchas, f({ tienda: "A" }), 1);
+    const soloA = tandaEnMemoria(muchas, f({ texto: "a" }), 1);
     expect(soloA.filas).toHaveLength(10);
-    expect(soloA.filas.every((c) => c.store === "A")).toBe(true);
+    expect(soloA.filas.every((c) => c.customer_name === "A")).toBe(true);
     expect(soloA.hayMas).toBe(false);
-  });
-});
-
-describe("el estado", () => {
-  it("impresa si se generó la copia alguna vez; si no, guardada sin imprimir", () => {
-    expect(estadoDeCotizacion({ print_count: 0, printed_at: null })).toBe("guardada");
-    expect(estadoDeCotizacion({ print_count: 2, printed_at: "2026-10-05T10:00:00Z" })).toBe("impresa");
-    expect(estadoDeCotizacion({ print_count: 0, printed_at: "2026-10-05T10:00:00Z" })).toBe("impresa");
   });
 });
 
@@ -140,10 +219,8 @@ describe("lo que se le pide a la base", () => {
     aplicaFiltro(vacia.q, f());
     expect(vacia.llamadas).toEqual([]);
     const llena = consultaFalsa();
-    aplicaFiltro(llena.q, f({ vendedor: "u1", tienda: "RDZ Pharr", desde: "2026-10-05", hasta: "2026-10-05", texto: "pena" }));
+    aplicaFiltro(llena.q, f({ desde: "2026-10-05", hasta: "2026-10-05", texto: "pena" }));
     expect(llena.llamadas).toEqual([
-      "eq owner_id u1",
-      "eq store RDZ Pharr",
       "gte created_at 2026-10-05T05:00:00.000Z",
       "lt created_at 2026-10-06T05:00:00.000Z",
       'or estimate_num.ilike."*pena*",customer->>full_name.ilike."*pena*"',
@@ -179,11 +256,12 @@ describe("lo que se le pide a la base", () => {
     for (const m of ["select", "eq", "gte", "lt", "or", "order"]) tabla[m] = vi.fn((...a: unknown[]) => { llamadas.push(`${m} ${a.map(String).join(" ")}`); return tabla; });
     tabla.range = vi.fn(async (a: number, b: number) => { llamadas.push(`range ${a} ${b}`); return { data: filas, error: null }; });
     const sb = { from: vi.fn(() => tabla) } as unknown as SupabaseClient;
-    const r = await almacenDeLaBase(sb).listarTodas(f({ tienda: "RDZ Pharr" }), 1);
+    const r = await almacenDeLaBase(sb).listarTodas(f({ texto: "e-" }), 1);
     expect(r.ok && r.valor.filas).toHaveLength(50);
     expect(r.ok && r.valor.hayMas).toBe(true);
     expect(llamadas).toEqual([
-      `select ${COLUMNAS_DE_LA_LISTA}`, "eq store RDZ Pharr", "order created_at [object Object]", "order id [object Object]", "range 50 100",
+      `select ${COLUMNAS_DE_LA_LISTA}`, 'or estimate_num.ilike."*e-*",customer->>full_name.ilike."*e-*"',
+      "order created_at [object Object]", "order id [object Object]", "range 50 100",
     ]);
     const orden = (tabla.order as ReturnType<typeof vi.fn>).mock.calls;
     expect(orden[0]).toEqual(["created_at", { ascending: false }]);
@@ -200,15 +278,6 @@ describe("lo que se le pide a la base", () => {
     expect(sin.ok === false && sin.sinTabla).toBe(true);
     const otro = await almacenDeLaBase(con({ code: "42501", message: "permission denied" })).listarTodas(f(), 0);
     expect(otro.ok === false && !otro.sinTabla && otro.error).toBe("permission denied");
-  });
-  it("los vendedores del desplegable: admin o la casilla estimator", async () => {
-    const llamadas: string[] = [];
-    const tabla: Record<string, unknown> = {};
-    for (const m of ["select", "or"]) tabla[m] = vi.fn((...a: unknown[]) => { llamadas.push(`${m} ${a.join(" ")}`); return tabla; });
-    tabla.order = vi.fn(async () => ({ data: [{ id: "u1", full_name: "Ana", store: null }], error: null }));
-    const r = await almacenDeLaBase({ from: vi.fn(() => tabla) } as unknown as SupabaseClient).vendedores();
-    expect(r.ok && r.valor).toEqual([{ id: "u1", full_name: "Ana", store: null }]);
-    expect(llamadas).toEqual(["select id, full_name, store", "or role.eq.admin,module_access.cs.{estimator}"]);
   });
 });
 
@@ -228,14 +297,12 @@ describe("el demo hace lo que haría la 148 con la lista", () => {
   });
   it("el filtro del demo es el mismo que el de la base", async () => {
     const a = almacenDemo(() => admin, false);
-    const porVendedor = await a.listarTodas(f({ vendedor: DEMO_OTRO_VENDEDOR.id }), 0);
-    expect(porVendedor.ok && porVendedor.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_AJENO]);
-    const porTienda = await a.listarTodas(f({ tienda: "Edinburg" }), 0);
-    expect(porTienda.ok && porTienda.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_IMPRESO]);
     const porTexto = await a.listarTodas(f({ texto: "garza" }), 0);
     expect(porTexto.ok && porTexto.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_IMPRESO]);
     const porFecha = await a.listarTodas(f({ desde: "2026-10-01" }), 0);
     expect(porFecha.ok && porFecha.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_AJENO]);
+    const hasta = await a.listarTodas(f({ hasta: "2026-09-30" }), 0);
+    expect(hasta.ok && hasta.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_IMPRESO]);
   });
   it("un vendedor solo ve las suyas y las de su tienda (la política de SELECT de la 148), aunque pida todas", async () => {
     let yo = { id: "u-nadie", name: "Nadie", admin: false, store: "Mission" as string | null };
@@ -259,9 +326,7 @@ describe("el demo hace lo que haría la 148 con la lista", () => {
     const lista = await a.listarTodas(filtroVacio(), 0);
     expect(lista.ok && lista.valor.filas[0].estimate_num).toBe("N-9");
   });
-  it("los vendedores del demo, y con ?sinTabla=1 nada", async () => {
-    const v = await almacenDemo(() => admin, false).vendedores();
-    expect(v.ok && v.valor.map((x) => x.id)).toContain("u-sales");
+  it("con ?sinTabla=1 nada", async () => {
     const sin = await almacenDemo(() => admin, true).listarTodas(filtroVacio(), 0);
     expect(sin.ok === false && sin.sinTabla).toBe(true);
   });
@@ -289,26 +354,25 @@ describe("la pantalla", () => {
     expect(pestana).toContain("onClick={() => void cargar(filtro, tanda + 1)}");
     expect(pestana).toContain("if (r.sinTabla) { setEstado(\"sin-base\"); return; }");
     expect(pestana).toContain("const e = await competencia.listarTodos();");
-    expect(pestana).toContain("filtraEstimados(estimados, { tienda: filtro.tienda, texto: filtro.texto })");
     expect(pestana).toContain("onAbrirCotizacion={onAbrir} />");
   });
-  it("la tabla pinta fecha, vendedor, tienda, cliente, total, estado y «Abrir»; vacía, lo dice", () => {
-    const h = renderToStaticMarkup(createElement(TablaDeCotizaciones, {
-      filas: [cotizacion(), cotizacion({ id: "q2", owner_name: null, owner_id: null, store: null, print_count: 3, printed_at: "x", total: 2580.73 })],
-      t, filtrando: false, onAbrir: () => {},
-    }));
-    expect(h).toContain("Ana Garza");
-    expect(h).toContain("RDZ Pharr");
-    expect(h).toContain("Luis Pena");
-    expect(h).toContain("$100.00");
-    expect(h).toContain("$2,580.73");
-    expect(h).toContain("Saved, not printed");
-    expect(h).toContain("Printed ×3");
-    expect(h).toContain("(no owner)");
-    expect(h).toContain("No store");
-    expect(h.match(/data-cotizacion-abrir/g) ?? []).toHaveLength(2);
-    expect(renderToStaticMarkup(createElement(TablaDeCotizaciones, { filas: [], t, filtrando: true, onAbrir: () => {} }))).toContain("Nothing matches the filter.");
-    expect(renderToStaticMarkup(createElement(TablaDeCotizaciones, { filas: [], t, filtrando: false, onAbrir: () => {} }))).toContain("No saved quotes yet.");
+  it("los patrones de la casa: la barra .filters con la búsqueda compacta y el calendario del Panel, y la tabla .orders con el menú por columna de Órdenes", () => {
+    expect(pestana).toContain('<div className="filters">');
+    expect(pestana).toContain('<input style={{ maxWidth: 260 }} value={filtro.texto} data-todas-texto');
+    expect(pestana).toContain("<RangoDelPanel rango={rango} onRango={ponRango} t={t} />");
+    expect(pestana).toContain("const orden = useOrdenYFiltro(filas, valorDe);");
+    expect(pestana).toContain("const valorDe = useCallback((clave: string, c: CotizacionResumen) => valorDeColumna(clave, c, t), [t]);");
+    expect(pestana).toContain("<FiltrosPuestos estado={orden} columnas={columnas} lang={lang} t={t} />");
+    expect(pestana).toContain("{columnas.map((c) => <th key={c.key}><CabeceraConMenu estado={orden} col={c} lang={lang} t={t} /></th>)}");
+    expect(pestana).toContain("<MenuDeColumnaAbierto estado={orden} columnas={columnas} lang={lang} t={t} />");
+    expect(pestana).toContain('<table className="orders" data-todas-tabla');
+    expect(pestana).toContain(") : orden.visibles.map((c) => (");
+    expect(pestana).toContain("<td data-cotizacion-estado>{textoDeEstado(c, t)}</td>");
+    // Sin desplegables ni cajas propias: ni <select> ni etiquetas de campo.
+    expect(pestana).not.toContain("<select");
+    expect(pestana).not.toContain('className="field"');
+    // La competencia hereda los filtros de la tabla.
+    expect(pestana).toContain("filtraCompetenciaComoLaTabla(estimados, filtro, orden.filtros,");
   });
   it("en la lista de la competencia, «Abrir su cotización» solo en los pegados a una, y solo si se pide", () => {
     const base = {
