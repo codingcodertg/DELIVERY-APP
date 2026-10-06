@@ -32460,6 +32460,8 @@ aprobación» (D-303), que no impide guardar. Se preguntó al dueño qué vio es
 ## D-437 · Gestor de Rutas: solo «Armar rutas» (fuera Optimizar, Auto-asignar, Reagrupar y Simular); un chofer vacío ya no deja línea ni tarjeta; «Incidencias» es un botón
 
 > **⚠ Reemplazada en parte por D-467** (2026-10-04): «en el Mapa queda asignar a mano (una, o todas las marcadas a un chofer)» ya no vale. El Mapa es «Ruta de hoy», para todos los roles y de solo lectura: no asigna. Se asigna en el Gestor de Rutas (y, quien no lo tiene, desde la ficha de la orden).
+>
+> **⚠ Reemplazada en parte por D-474** (2026-10-06): vuelve un reparto automático de LO MARCADO en el Gestor —«Asignar a…» varios choferes—, pero no es el «Auto-asignar selección» que se quitó: usa el motor de «Armar rutas» tal cual, solo entre los choferes que elige la persona, enseña el resumen antes de escribir y entra en deshacer como un lote. El dueño: «elijo 10 ordenes y las asigno a 2 conductos y el sistema automaticmaente sabe a quien darselas».
 
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el botón «🧭 Armar rutas» de la cabecera ya no «trae la barra cerrada»: es la única entrada, sale siempre, y abre y cierra el panel. «Un chofer vacío ya no deja tarjeta» vale para quien no tiene nada pendiente NI hecho ese día. Y «🗑 Vaciar» ya no se lleva lo recogido o entregado.
 >
@@ -35052,6 +35054,8 @@ Entre la cabecera y el mapa quedan: los avisos cerrables (sin señal, día vací
 
 ### 7 · ↶ Deshacer / ↷ Rehacer en cada tarjeta
 
+> **⚠ Reemplazada en parte por D-474** (2026-10-06): entra también «Asignar a…» varios choferes, como UN movimiento del lote con la foto de todas las rutas que tocó (las de los elegidos y las de donde salieron las movidas); el botón de cada una de esas tarjetas se enciende.
+
 Ya había deshacer y rehacer (D-417: Ctrl+Z, y dos botones en la barra de vistas que solo salen si hay algo). El dueño los
 pidió «aquí», en la cabecera de la tarjeta. Ahora están **en los dos sitios**, sobre **un solo historial**.
 
@@ -35390,6 +35394,7 @@ paradas no hay garantía**, y el aviso dice «el mejor orden que se encontró».
 - La página no se desborda de lado (0 px).
 
 En el demo las tiendas no tienen coordenadas: las recogidas no tienen punto, y lo dice («4 stop(s) have no map pin»).
+*(Nota, D-474, 2026-10-06: ya no. Las seis tiendas del demo llevan coordenadas aproximadas de su ciudad, para que los choferes del demo ruteen; las recogidas del demo ya tienen punto.)*
 
 ### Pruebas y mutantes
 
@@ -37053,3 +37058,141 @@ está viendo). Uno a la vez; volver a tocarlo, o «Sin filtro», lo quita. La re
 - El «y así» se cubrió con: No se logró nada, Por reasignar, Tomados y Vendidos.
 
 No visto en navegador: `tsc` y vitest.
+
+## D-474 · Gestor de Rutas: marcar varias órdenes y «Asignar a…» los choferes que uno elija — el motor de «Armar rutas» reparte solo entre ellos
+
+**Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** deliveries 1.257.0, repo 1.348.0 · **Motor:** `motor-7`, sin cambios.
+**Reemplaza en parte a** D-437 (que quitó «Auto-asignar selección» del Gestor: vuelve un reparto automático de lo marcado, pero
+con el motor de «Armar rutas» y SOLO entre los choferes que elige la persona), a D-459 §7 (qué entra en deshacer: también este
+lote) y a D-461 (la nota del demo: las tiendas del demo ya tienen coordenadas). Cada una lleva su nota.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-06, literal (como lo pasó el orquestador, no extraído del fichero de sesión):
+
+> en routes manager quiero que puede select multiple orders y asignarla a los ocnductos que yo elija asi como el autoassign entonces elijo 10 ordenes y las asigno a 2 conductos y el sistema automaticmaente sabe  a quien darselas
+
+### Qué había
+
+Tres formas de dar órdenes a un chofer en el Gestor, y ninguna hacía esto: **«Armar rutas»** reparte TODO el día entre TODOS
+los choferes (D-320, D-464); **«Asignar a…» / «Elige conductor»** (D-395) mete las marcadas con UN chofer, al final de su lista;
+**«📍 Mejor lugar»** (D-411) las mete con UN chofer en el hueco más barato, en línea recta y una a una. «Auto-asignar selección»
+se quitó en D-437 porque reoptimizaba y escribía sin preguntar. Para «estas diez entre estos dos» había que decidir a mano a
+quién iba cada una.
+
+### Qué hay ahora
+
+1. **Casillas en las tarjetas de ruta.** Cada fila D (la orden) lleva una casilla en la columna «#», y la cabecera «#» de cada
+   tarjeta marca o desmarca todas las pendientes de esa ruta. Marcar NO aísla la parada en el mapa ni limpia la tarjeta (el clic
+   no sube a la fila). Lo hecho no se marca. Las de «Sin asignar» y «Todas» siguen siendo las de siempre; lo marcado en
+   cualquiera de las tres cuenta junto: **«N seleccionadas»**.
+2. **«Asignar a…» varios choferes.** En «Sin asignar» y «Todas», dentro del recuadro «Elige conductor para N órdenes», una
+   línea plegada «▸ Asignar a varios choferes…»; en «Rutas» (y en «Todas» cuando solo hay filas con chofer marcadas), un recuadro
+   propio pegado abajo, como aquel. Sin barras nuevas arriba (D-459). Dentro: cada chofer con su casilla y su carga del día
+   (paradas y pallets/capacidad, como en «Elige conductor»); los que no pueden salen apagados con su porqué —«sin tienda base»,
+   «su tienda base no tiene punto», «no rutea», «ruta bloqueada 🔒»—, el no disponible ese día sale marcado y se deja elegir
+   (como en D-395). El botón: «🧭 Asignar N a Diego» con uno, «🧭 Asignar N entre 2 choferes» con varios.
+3. **El reparto lo hace el motor de «Armar rutas», tal cual.** `reparteEntre` (`src/lib/route-engine/reparte-entre.ts`) no tiene
+   una regla de reparto propia: llama a `planifica` (motor-7) con una ENTRADA restringida —solo los choferes elegidos; solo las
+   órdenes seleccionadas más lo que esos choferes ya llevan hoy— y con los MISMOS parámetros del día (`entradaDelDia`: pesos y
+   balance de `route_weights`, tope de retraso, ventanas estrechas de Ajustes, builder, prioridad, requisitos del camión, zonas,
+   capacidad, turno, y «de paso» D-464). Así «a quién le toca cada una» sale del mismo criterio que «Armar rutas» (inserción con
+   arrepentimiento, mejora, balance entre los elegidos) y «en qué puesto» también.
+   - **Lo que cada elegido ya lleva se queda con él y EN SU ORDEN** (`choferFijado` + `secuenciaFijada`): las seleccionadas se
+     INSERTAN donde el motor decide; nada se le quita ni se le reordena. Con UN solo elegido, el motor solo decide el orden.
+   - **Una seleccionada que estaba con otro chofer se mueve** (entra libre, sin chofer), esté ese chofer elegido o no, y aunque
+     esté en una ruta temporal. El resumen dice de dónde sale.
+   - **Lo que no cabe se queda donde estaba, y se dice por qué** con los motivos del motor (capacidad, ventana dura, retraso,
+     turno, sin punto, requisito que el camión no tiene). Nunca se asigna a medias en silencio: si nada se puede asignar, solo
+     se avisa y no se escribe.
+4. **Antes de escribir, el resumen** (cuadro de confirmación): cuántas a cada quien y cómo queda su ruta (órdenes, millas,
+   jornada, retraso si lo hay), qué se mueve de otra ruta, qué no cabe y por qué, y si se midió en línea recta. «Asignar»
+   confirma; «Cancelar» no toca nada.
+5. **Se guarda por el camino de siempre**: `assigned_driver`, `route_seq` tras lo ya hecho (D-433) y `pickup_seq` si la base la
+   guarda (154), con `updateDelivery` para las que llegan y `reorderStops` con la lista ENTERA de cada chofer — lo mismo que
+   escriben las flechas, el arrastre y «Optimizar» (`guardaLaLista`). El chofer lo ve en «Mi ruta» igual que cualquier
+   movimiento del Gestor. No se crea ningún plan en `route_plans`: no es un plan, es una asignación. Nota de auditoría en cada
+   orden que cambia de chofer.
+6. **Deshacer: UN movimiento para el lote** (D-459: el historial es global; por tarjeta se enciende si el último movimiento tocó
+   esa ruta). La foto lleva TODAS las rutas tocadas —las de los elegidos y las de donde salieron las movidas—, así que ↶ (en
+   cualquiera de esas tarjetas, en la barra o con Ctrl+Z) devuelve el lote entero de una vez; no puede quedar a medias. Con el
+   mismo guardia de siempre: si otra persona tocó algo, no se escribe nada.
+7. **Los tiempos por calles, como «🧭 Optimizar»** (D-461): UNA petición a `/api/route-matrix` con los puntos que entran (las
+   bases de los elegidos, la tienda y el pin de cada orden), con la misma memoria por forma mientras la pantalla esté abierta,
+   de la misma caché y con el mismo freno de gasto que «Armar rutas». Lo que no conteste (sin sesión, más de 60 puntos, el
+   demo) se estima en línea recta con el mismo escalón del motor (`proveedorEstimado`), y el resumen lo dice.
+
+### En qué se diferencia de «Armar rutas», dicho claro
+
+| | «Armar rutas» | «Asignar a…» varios |
+|---|---|---|
+| Qué órdenes | todas las pendientes del día | las marcadas (+ lo que los elegidos ya llevan, fijado) |
+| Qué choferes | todos los que rutean (menos 🔒 y ausentes) | los elegidos (🔒 no se deja elegir; ausente sí, marcado) |
+| Lo que ya llevaban | lo recoloca (salvo lo que una persona fijó) | se queda con su chofer y en su orden |
+| Base del chofer | solo la de Ajustes → Rutas | la de Ajustes y, si no, la tienda del perfil (D-461) |
+| Tráfico por hora | sí (`planificaConTrafico`) | no: la matriz base sin tráfico, como «Optimizar» |
+| Dónde se guarda | `route_plans` (borrador → publicar) | directamente en las órdenes, como las flechas |
+| Capacidad | `driver_settings.capacity_pallets` → `driver_capacity` → flota → 12 | la misma cadena (`choferParaElMotor`) |
+
+Esa última fila es la discrepancia que D-461 §4 ya dejó «a validar»: el Gestor pinta «se pasa» con `settings.driver_capacity`
+(10 en producción para dos choferes) y el motor cuenta `capacity_pallets` (12). Aquí se sigue al motor, como «Armar rutas».
+
+### Lo decidido, y por qué
+
+- **El mismo motor y no una regla aparte.** El dueño dijo «asi como el autoassign». Un reparto «a mano» (vecino más cercano,
+  ronda entre choferes) daría otra respuesta que «Armar rutas» para las mismas órdenes, y habría que explicar dos criterios.
+  Restringir la ENTRADA son 40 líneas; la lógica de rutas sigue viviendo en un sitio.
+- **Lo que ya llevan, fijado y en su orden.** «Se insertan en sus rutas de hoy» (el pedido del orquestador). Reordenar también lo
+  que el chofer ya tenía es un cambio de una línea (no pasar `secuenciaFijada`), pero deshace lo que alguien puso con las
+  flechas sin que lo haya pedido. **A validar por el dueño**: si prefiere que al asignar se reoptimice la ruta entera del
+  elegido, es eso.
+- **Dos conjuntos de marcas, no uno.** En la tarjeta, pulsar una fila aísla ESA parada en el mapa (`selectedOrders`, una sola) y
+  pulsar fuera lo quita; una marca para repartir tiene que sobrevivir a eso. Por eso las casillas de las tarjetas van en
+  `marcadas`, aparte, y lo que se reparte es la unión. Cambiar de día olvida las dos.
+- **Solo lo de ESTE día.** El motor planifica un día. Lo marcado de otra fecha (chips «Todas las fechas», «Expiradas») no entra y el
+  resumen lo dice («no está en la lista de este día»); para eso sigue «Asignar a…» de un chofer, que no mira fechas.
+- **La base del perfil como respaldo** (como Optimizar, D-461) y no solo Ajustes (como «Armar rutas»): sin eso, un chofer que el
+  Gestor ya mide desde su tienda no se podría elegir, y en el demo nadie.
+- **El demo tiene ahora coordenadas en sus seis tiendas** (`demo-data.ts`, aproximadas a cada ciudad). Sin ellas ningún chofer del
+  demo «rutea» y la función no se podía ni probar; de paso, las recogidas del demo ya tienen punto (D-461 decía que no).
+- **Sin refactor de `guardaLaLista`.** Cinco ficheros de pruebas fijan su cuerpo literal; el lote escribe con las mismas
+  sentencias en `guardaElReparto` y anota UNA vez. Es duplicación de ocho líneas a propósito.
+
+### Descartado
+
+- **Hacerlo en el servidor** (una ruta como `/api/route-plan` que guarde un plan parcial). Habría que inventar cómo convive un
+  plan de «parte del día» con el publicado, y el demo no tiene servidor. El Gestor ya escribe asignaciones directamente.
+- **Convertir los radios de «Elige conductor» en casillas.** D-395 los fijó; con uno elegido «Asignar» y «Mejor lugar» siguen
+  siendo lo de siempre. La sección de varios va aparte y plegada.
+- **Permitir elegir una ruta bloqueada 🔒.** Es automático, como «Mejor lugar» (D-411): el candado protege de lo automático.
+
+### Pruebas y mutantes
+
+- `src/lib/route-engine/reparte-entre.test.ts` (19): la entrada restringida (solo elegidos; seleccionadas libres; lo que llevan,
+  fijado y en orden; lo de un no elegido, fuera; ignoradas); el reparto es byte a byte `planifica` sobre esa entrada; «10 a 2»
+  por zona de base; solo entre elegidos; uno solo decide el orden; lo que llevaba sigue en su orden; la movida de otro chofer;
+  lo que no cabe (requisito) con `completo: false`; con otro elegido que sí puede; la capacidad (vuelve a la tienda, nunca se
+  pasa); las partes; sin elegidos; sin punto; los parámetros del día deciden (tope de retraso 0); determinismo.
+- `src/lib/reparto-desde-el-gestor.test.ts` (24): la base del perfil; quién se puede elegir y por qué no; los puntos (la base de
+  un elegido entra aunque ninguna orden salga de ahí); la matriz (por calles, estimado como el motor, mismo sitio); la lista ida
+  y vuelta con lo obligatorio; qué se mueve; el resumen en los dos idiomas; la etiqueta de deshacer; y que **la pantalla usa cada
+  pieza** (la selección del día, `entradaDelDia` con las seleccionadas libres y la base del perfil, el hook con las columnas del
+  servidor, una petición de tiempos, confirmar antes de escribir, el camino de escritura y UNA anotación, las casillas sin subir
+  el clic, la sección y dónde sale, el demo con punto).
+
+**Mutantes: 34, caen los 34**, leídos por el nombre de la prueba (`mutantes.mjs`; la tanda, en la carpeta del worker): 12 sobre
+el motor (`reparte-entre.ts`), 13 sobre el puente (`reparto-desde-el-gestor.ts`), 8 sobre la pantalla (`page.tsx`) y 1 sobre el
+demo. En la primera pasada **sobrevivieron 2**, los dos por prueba floja: «el reparto no usa los parámetros del día» (ninguna
+prueba cambiaba un parámetro: ahora una con tope de retraso 0 deja fuera lo que con 60 cabe) y «los puntos que entran olvidan la
+base de los elegidos» (la base del único elegido era también la tienda de una orden: ahora hay un elegido cuya base no usa
+ninguna orden). Ninguno era código de sobra.
+
+### No verificado
+
+- **En el navegador**: no se arrancó el demo ni se midió con CDP. Las casillas a 46 px de columna, el recuadro pegado abajo, el
+  cuadro de confirmación con el resumen y el ↶ del lote están cubiertos por prueba de la regla y del marcado, no vistos.
+- **Nada contra producción**: ni `/api/route-matrix` real ni `driver_settings` reales. Que la lectura de `driver_settings` desde
+  el navegador pase la RLS para logística (las otras tres lecturas de la misma tabla, D-418/D-421/D-461, sí pasan).
+- **Con plan publicado**: que «Mi ruta» del chofer lea las posiciones escritas igual que tras las flechas (mismo camino, no
+  medido aquí).
+- El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.

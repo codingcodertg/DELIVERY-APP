@@ -5,3 +5,4 @@ export {
 } from "./evalua";
 export { faltanEnElCamion, parteOrdenesGrandes, planifica, VERSION_DEL_MOTOR } from "./planifica";
 export { cargaTransportada, centiMillasDeBanda, enLaBanda, MARGEN_PALLET_MI, minutosDeBanda, TOLERANCIA_DE_PASO } from "./de-paso";
+export { entradaDelReparto, paradasSinPartes, reparteEntre, type PeticionDeReparto, type Reparto, type RutaRepartida } from "./reparte-entre";
