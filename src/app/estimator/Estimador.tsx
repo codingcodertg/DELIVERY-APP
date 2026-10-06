@@ -138,7 +138,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const [vistaPrevia, setVistaPrevia] = useState(false);
   /**
    * Las pestañas: la cotización de siempre, todos los estimados de la competencia (D-451) y, SOLO para el admin, todas
-   * las cotizaciones (D-NEXT). Si «Ver como» (demo) deja de ser admin estando en esa pestaña, se vuelve a la primera.
+   * las cotizaciones (D-476). Si «Ver como» (demo) deja de ser admin estando en esa pestaña, se vuelve a la primera.
    */
   const [pestana, setPestana] = useState<Pestana>("cotizacion");
   useEffect(() => { if (pestana === "todas" && !puedeVerTodas(me)) setPestana("cotizacion"); }, [pestana, me]);

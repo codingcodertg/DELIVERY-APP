@@ -71,7 +71,7 @@ export function TablaDeCotizaciones({ filas, t, filtrando, onAbrir }: {
 }
 
 /**
- * La pestaña «All quotes / Todas las cotizaciones» (D-NEXT), **solo para el admin**. El dueño, 2026-10-06: «en el quote
+ * La pestaña «All quotes / Todas las cotizaciones» (D-476), **solo para el admin**. El dueño, 2026-10-06: «en el quote
  * builder solo para admin habilita la lista de todas las quotes ya hechas y las de los comeptirodes tambien».
  *
  * Arriba, todas las cotizaciones guardadas, de todos los vendedores y tiendas, de la más reciente a la más vieja, con

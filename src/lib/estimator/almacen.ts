@@ -50,7 +50,7 @@ export interface AlmacenDeCotizaciones {
   decidir(approvalId: string, estado: "approved" | "denied"): Promise<Resultado<null>>;
   marcarImpresa(quoteId: string, printCount: number): Promise<Resultado<null>>;
   /**
-   * TODAS las cotizaciones (D-NEXT, solo admin), filtradas y de la más reciente a la más vieja, por tandas de `TANDA`.
+   * TODAS las cotizaciones (D-476, solo admin), filtradas y de la más reciente a la más vieja, por tandas de `TANDA`.
    * Quién ve cuántas lo decide la RLS de la 148 (el admin, todas; un vendedor, las suyas y las de su tienda): esto
    * devuelve lo que la base deja, y la pantalla solo lo pide si `puedeVerTodas`.
    */

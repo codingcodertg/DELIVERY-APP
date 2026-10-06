@@ -51,7 +51,7 @@ interface FilaDemo {
 }
 interface AprobDemo { id: string; quote_id: string; requested_by: string; requester_name: string; status: AprobacionEstado; requested_at: string }
 
-/** La segunda cotización del demo (D-NEXT): de otro vendedor y otra tienda, ya impresa, para que la lista del admin tenga qué filtrar. */
+/** La segunda cotización del demo (D-476): de otro vendedor y otra tienda, ya impresa, para que la lista del admin tenga qué filtrar. */
 export const DEMO_ESTIMADO_IMPRESO = "DEMO-1002";
 
 function semilla(): { cotizaciones: FilaDemo[]; aprobaciones: AprobDemo[] } {

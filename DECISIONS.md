@@ -30315,7 +30315,7 @@ obligatoria, y una hoja que **a propósito no parece un documento oficial**.
   `printToPDF`.
 - No hay lista de «mis cotizaciones»: se llega a una buscando su estimado.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): el admin tiene una pestaña con la lista de TODAS las cotizaciones
+> **Reemplazada en parte por D-476** (2026-10-06): el admin tiene una pestaña con la lista de TODAS las cotizaciones
 > guardadas (y todos los estimados de la competencia). Los demás roles siguen sin lista.
 
 > **Nota (2026-09-28): reemplazada en parte por D-432**, sobre una captura con observaciones del dueño. Cambian cuatro
@@ -33767,7 +33767,7 @@ descargo final.
    - **Ambigüedad:** «SHOW ALL ESTIAMTES IN A TAB» se leyó como los estimados **de la competencia** (el tema de la frase).
      **Las cotizaciones propias NO se abrieron**: siguen con la RLS de la 148. Si quería también una lista de todas las
      cotizaciones para todos los vendedores, es otra decisión (y otra migración): hay que preguntárselo.
-     > **Reemplazada en parte por D-NEXT** (2026-10-06): el dueño pidió la lista de todas las cotizaciones **solo para el
+     > **Reemplazada en parte por D-476** (2026-10-06): el dueño pidió la lista de todas las cotizaciones **solo para el
      > admin**; la RLS de la 148 no cambia (el admin ya las leía todas).
 
 ### Decisiones mías, para validar
@@ -37227,9 +37227,9 @@ otro cambio (el campo de captura) y hay que pedirlo.
 
 No visto en navegador: `tsc` y vitest (332 del módulo).
 
-## D-NEXT · Quote Builder: una pestaña «Todas las cotizaciones», solo para el admin, con todas las cotizaciones guardadas y todos los estimados de la competencia
+## D-476 · Quote Builder: una pestaña «Todas las cotizaciones», solo para el admin, con todas las cotizaciones guardadas y todos los estimados de la competencia
 
-**Fecha:** 2026-10-06 · **Versión:** la asigna el orquestador al fusionar (toca `src/app/estimator/` y `src/lib/estimator/`:
+**Fecha:** 2026-10-06 · **Versión:** estimator 0.11.0, repo 1.350.0 (toca `src/app/estimator/` y `src/lib/estimator/`:
 sube `estimator`) · **Migración:** ninguna. **Reemplaza en parte a** D-413 (que decía «No hay lista de "mis cotizaciones"»)
 y a D-451 (punto 7, «Las cotizaciones propias NO se abrieron … hay que preguntárselo»): el dueño ya lo pidió, y solo para el admin.
 

@@ -15,7 +15,7 @@ import {
 import { borradorVacio } from "./modelo";
 
 /**
- * D-NEXT: la lista de TODAS las cotizaciones y de todos los estimados de la competencia, solo para el admin. El dueño,
+ * D-476: la lista de TODAS las cotizaciones y de todos los estimados de la competencia, solo para el admin. El dueño,
  * 2026-10-06: «en el quote builder solo para admin habilita la lista de todas las quotes ya hechas y las de los
  * comeptirodes tambien».
  */

@@ -2,7 +2,7 @@ import { centralWallToUtc } from "@/lib/clockin/tz";
 import { shiftDateISO } from "@/lib/utils";
 
 /**
- * La lista de TODAS las cotizaciones, solo para el admin (D-NEXT). El dueño, 2026-10-06: «en el quote builder solo
+ * La lista de TODAS las cotizaciones, solo para el admin (D-476). El dueño, 2026-10-06: «en el quote builder solo
  * para admin habilita la lista de todas las quotes ya hechas y las de los comeptirodes tambien».
  *
  * Aquí vive lo que decide, sin red: **quién ve la pestaña** (solo `admin`, la misma palabra que `profiles.role` y que

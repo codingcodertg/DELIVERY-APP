@@ -33,7 +33,7 @@ export function AvisoSin156({ t }: { t: T }) {
  */
 export function ListaDeEstimados({ estimados, me, t, lang, confirmando, ocupado, onAbrir, onQuitar, onConfirmar, filtrando = false, lecturas, abierto, onProductos, detalle, onAbrirCotizacion }: {
   estimados: EstimadoDeCompetencia[]; me: Yo; t: T; lang: string; confirmando: string | null; ocupado: boolean;
-  /** Abrir la cotización a la que va pegado (la pestaña de todas, D-NEXT: el admin la puede leer entera). */
+  /** Abrir la cotización a la que va pegado (la pestaña de todas, D-476: el admin la puede leer entera). */
   onAbrirCotizacion?: (quoteId: string) => void;
   /** Hay filtro puesto: una lista vacía dice «nada coincide», no «no hay ninguno». */
   filtrando?: boolean;
