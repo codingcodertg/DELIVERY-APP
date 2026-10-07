@@ -219,6 +219,16 @@ describe("6 · el banco: pools, vistas, filtros y orden", () => {
     expect(ordenar(lista, "fecha").map((l) => l.id)).toEqual([e.id, b.id, a.id, d.id]);
     expect(lista.map((l) => l.id)).toEqual([a.id, b.id, d.id, e.id]);
   });
+  it("pies²: lo más grande primero, sin dato al final, a igualdad por TABS; y es el orden de entrada (D-491)", async () => {
+    const { ORDEN_INICIAL } = await import("./reglas");
+    expect(ORDEN_INICIAL).toBe("pies");
+    const g = lead({ square_footage: 5000 });
+    const m = lead({ square_footage: 1200 });
+    const s = lead({ square_footage: null });
+    const m2 = lead({ square_footage: 1200 });
+    const esperado = [g.id, ...[m, m2].sort((x, y) => x.tabs_project.localeCompare(y.tabs_project)).map((l) => l.id), s.id];
+    expect(ordenar([s, m2, g, m], "pies").map((l) => l.id)).toEqual(esperado);
+  });
   it("los pools con sus cuentas, el de «sin tienda» al final; y se entra en el de tu tienda", () => {
     const sin = lead({ pool: POOL_SIN_TIENDA });
     const ps = poolsDe([sin, ...todos]);
@@ -375,7 +385,9 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca, situacion }), orden)");
     expect(p).toContain('useState<Vista>("libres")');
     expect(p).toContain('useState<FiltroCategoria>("utiles")');
-    expect(p).toContain('useState<Orden>("distancia")');
+    // D-491: nace ordenado por pies², de mayor a menor.
+    expect(p).toContain("useState<Orden>(ORDEN_INICIAL)");
+    expect(p).toContain('<option value="pies">');
     expect(p).toContain("poolInicial(pools, tienda)");
     expect(p).toContain("const tienda = yo?.store ?? null;");
   });

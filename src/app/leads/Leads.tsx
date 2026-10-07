@@ -11,7 +11,7 @@ import {
   abiertosDe, bloqueado, colaDeRevision, consecuencia, cuentaPorSituacion, delExcel, dinero, enlaceSeguro, estadoLabel, eventoLabel, fecha, filtrar,
   mapsUrl, negativaTexto, notaLimpia, numero, ordenar, poolInicial, poolLabel, poolsDe, puedeTomar, puestosLibres, RESULTADOS,
   resultadoLabel, sinTocar, SITUACIONES, situacionLabel, tableroPorVendedor, telUrl, valoresDe, veContacto, ventasDe, NOTA_MAX,
-  type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
+  ORDEN_INICIAL, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
 } from "@/lib/leads/reglas";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
@@ -56,7 +56,7 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
   const [tipo, setTipo] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [busca, setBusca] = useState("");
-  const [orden, setOrden] = useState<Orden>("distancia");
+  const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL);
   const [cuantos, setCuantos] = useState(TANDA);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tono: "rojo" | "verde"; texto: string } | null>(null);
@@ -255,6 +255,7 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
                   <label>
                     {t("Sort by", "Ordenar por")}
                     <select data-orden value={orden} onChange={(e) => setOrden(e.target.value as Orden)}>
+                      <option value="pies">{t("Square feet (largest first)", "Pies² (lo más grande)")}</option>
                       <option value="distancia">{t("Distance (nearest first)", "Distancia (lo más cerca)")}</option>
                       <option value="costo">{t("Estimated cost (highest first)", "Costo estimado (lo más alto)")}</option>
                       <option value="fecha">{t("Registered (newest first)", "Registro (lo más nuevo)")}</option>

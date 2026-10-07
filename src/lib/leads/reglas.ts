@@ -326,15 +326,20 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
   });
 }
 
-export type Orden = "distancia" | "costo" | "fecha";
+export type Orden = "pies" | "distancia" | "costo" | "fecha";
+
+/** El orden con el que nace el Pool General (D-491). El dueño, 2026-10-07: «sorted by square ft en leads se hizo?». */
+export const ORDEN_INICIAL: Orden = "pies";
 
 /**
- * Ordena sin tocar la lista que recibe. Distancia: lo más cerca primero. Costo: lo más caro primero. Fecha: lo
- * registrado más reciente primero. Lo que no tiene el dato va al final en los tres; a igualdad, por TABS (estable).
+ * Ordena sin tocar la lista que recibe. Pies²: los más grandes primero (D-491). Distancia: lo más cerca primero. Costo:
+ * lo más caro primero. Fecha: lo registrado más reciente primero. Lo que no tiene el dato va al final en todos; a
+ * igualdad, por TABS (estable).
  */
 export function ordenar(leads: readonly Lead[], orden: Orden): Lead[] {
   const clave = (l: Lead): number | null =>
-    orden === "distancia" ? l.distance_miles
+    orden === "pies" ? (l.square_footage === null ? null : -l.square_footage)
+    : orden === "distancia" ? l.distance_miles
     : orden === "costo" ? (l.estimated_cost === null ? null : -l.estimated_cost)
     : l.registered_date ? -Date.parse(l.registered_date) : null;
   return [...leads].sort((a, b) => {

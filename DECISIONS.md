@@ -38684,3 +38684,19 @@ clics de ratón sobre el elemento a la vista. Capturas en `scratchpad/barra-tt/t
   (`prefers-color-scheme`), no se vio en un aparato.
 - **Las pantallas del gerente en práctica** solo se probaron por sus piezas (la guarda del servidor, el corte del cliente,
   la tabla del proveedor), no una a una en el navegador.
+
+## D-491 · Leads: el Pool General se ordena por pies², de mayor a menor
+
+**Fecha:** 2026-10-07 · **Versión:** leads (leads 0.4.0, repo 1.364.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d491`.
+
+**Pedido del dueño**, literal: *«sorted by square ft en leads se hizo?»*. Venía del dictado del 2026-10-06 *«quiero que en el Eats app el sort sea por square feet»*, que el orquestador aplicó entonces a la lista de cotizaciones del Quote Builder (D-484): el dueño lo quería **también** en Leads.
+
+### Qué se decidió
+
+- `Orden` gana **«pies»** (`square_footage` del lead, el dato del Excel de permisos): lo más grande primero, lo que no
+  trae el dato al final, a igualdad por TABS (como los otros órdenes de `ordenar`, `src/lib/leads/reglas.ts`).
+- Es el **orden de entrada** del Pool General (`ORDEN_INICIAL = "pies"`); el desplegable «Ordenar por» lo ofrece primero
+  y sigue dejando elegir distancia, costo o fecha. «Mi pool» sigue por distancia.
+- D-484 (cotizaciones por pies²) no cambia.
+
+No visto en navegador: `tsc` y vitest del módulo (124).
