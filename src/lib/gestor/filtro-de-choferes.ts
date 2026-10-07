@@ -41,6 +41,8 @@ export function guardaMarcados(almacen: () => { setItem(k: string, v: string): v
  * marcado NO se borra por esto: cuando vuelva, vuelve a valer.
  */
 export function marcadosVigentes(marcados: ReadonlySet<string>, rutas: readonly string[]): Set<string> {
+  // «Ninguno» (D-488) se conserva: es una elección, no un chofer que se fue.
+  if (marcados.has(NINGUNO)) return new Set([NINGUNO]);
   const enPantalla = new Set(rutas);
   return new Set([...marcados].filter((m) => enPantalla.has(m)));
 }
@@ -62,5 +64,51 @@ export function alternaMarcado(marcados: ReadonlySet<string>, clave: string): Se
 
 /** Para quien solo entiende UN chofer de filtro (el recuadro «Elige conductor», D-395): el único marcado, o ninguno (""). */
 export function unicoMarcado(marcados: ReadonlySet<string>): string {
-  return marcados.size === 1 ? [...marcados][0] : "";
+  return marcados.size === 1 && !marcados.has(NINGUNO) ? [...marcados][0] : "";
+}
+
+/*
+ * D-488. El dueño, 2026-10-06 (dictado): «cuando elijo un conductor […] solo se elige uno. Pero quiero que estén los tres y
+ * que yo pueda apretar uno. Y si quiero elegir los tres y que los tres vayan apareciendo. Y si no los elijo, no aparece en el
+ * mapa. Hay una opción arriba que diga elegir todos».
+ *
+ * Lo que fallaba: al marcar un chofer el PANEL también escondía a los demás (D-481), así que no quedaba casilla para marcar
+ * un segundo. Ahora el panel siempre lista a todos, y su casilla dice si esa ruta SE VE: marcada se ve, desmarcada no. Sin
+ * nada guardado se ven todas (todas marcadas). Desmarcarlas todas es posible —«Ninguno»— y entonces no se ve ninguna.
+ * Arriba, la casilla «Todos» las marca o desmarca de una vez.
+ */
+
+/** Lo guardado cuando se desmarcaron todas: no es una clave de ruta. */
+export const NINGUNO = "__ninguno__";
+
+/** Las rutas que se ven: sin nada guardado, todas; con «Ninguno», ninguna; si no, las marcadas. */
+export function rutasVisibles(marcados: ReadonlySet<string>, rutas: readonly string[]): Set<string> {
+  if (marcados.has(NINGUNO)) return new Set();
+  if (marcados.size === 0) return new Set(rutas);
+  return new Set(rutas.filter((r) => marcados.has(r)));
+}
+
+/** La casilla de una ruta: se ve <-> no se ve. Todas a la vista se guardan como nada (el defecto); ninguna, como «Ninguno». */
+export function alternaVisible(marcados: ReadonlySet<string>, rutas: readonly string[], clave: string): Set<string> {
+  const v = rutasVisibles(marcados, rutas);
+  if (v.has(clave)) v.delete(clave); else v.add(clave);
+  if (rutas.length > 0 && rutas.every((r) => v.has(r))) return new Set();
+  if (v.size === 0) return new Set([NINGUNO]);
+  return v;
+}
+
+/** ¿Se ven todas? Es lo que marca la casilla «Todos». */
+export function seVenTodas(marcados: ReadonlySet<string>, rutas: readonly string[]): boolean {
+  const v = rutasVisibles(marcados, rutas);
+  return rutas.every((r) => v.has(r));
+}
+
+/** La casilla «Todos»: si se ven todas, ninguna; si no, todas. */
+export function alternaTodas(marcados: ReadonlySet<string>, rutas: readonly string[]): Set<string> {
+  return seVenTodas(marcados, rutas) ? new Set([NINGUNO]) : new Set();
+}
+
+/** Las rutas marcadas a propósito (para «Unir»): sin «Ninguno». */
+export function marcadasAProposito(marcados: ReadonlySet<string>): Set<string> {
+  return new Set([...marcados].filter((m) => m !== NINGUNO));
 }

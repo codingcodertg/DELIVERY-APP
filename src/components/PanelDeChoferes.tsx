@@ -36,9 +36,9 @@ export function PanelDeChoferes(props: {
   onEnfoca: (clave: string) => void;
   /** La casilla: marcar o desmarcar la ruta. */
   onAlterna: (clave: string) => void;
-  /** Hay rutas marcadas: sale «Mostrar todos». */
-  hayMarcadas: boolean;
-  onMuestraTodos: () => void;
+  /** La casilla «Todos» de la cabecera (D-488): marcada si se ven todas; pulsarla las marca o desmarca de una vez. */
+  todas: boolean;
+  onAlternaTodas: () => void;
   /** «EN VIVO»: dónde está ese chofer ahora. Sin esto, la etiqueta no se pinta. */
   onUbica?: (clave: string) => void;
   /** Botones de la cabecera, delante de «Mostrar todos» (solo el Gestor). */
@@ -58,7 +58,10 @@ export function PanelDeChoferes(props: {
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--line)" }}>
         <b style={{ flex: 1 }}>🚚 {t("Drivers & routes", "Choferes y rutas")}</b>
         {props.acciones}
-        {props.hayMarcadas && <button className="notif-clear" onClick={props.onMuestraTodos}>{t("Show all", "Mostrar todos")}</button>}
+        <label data-todos-los-choferes style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+          <input type="checkbox" checked={props.todas} onChange={props.onAlternaTodas} style={{ width: 15, height: 15 }} />
+          {t("All", "Todos")}
+        </label>
       </div>
       {props.sinRutas ? (
         <div className="empty">{props.vacio}</div>

@@ -4,6 +4,8 @@ import {
   type OrdenParaAviso, type TipoDeAviso,
 } from "@/lib/avisos-cliente";
 import { routeOrder } from "@/lib/dispatch";
+import { marcasDeParadas } from "@/lib/acciones-parada";
+import { todayISO } from "@/lib/utils";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
 import type { Proveedor, ResultadoDeEnvio } from "@/lib/mensajeria";
 import type { Delivery } from "@/lib/types";
@@ -171,7 +173,14 @@ export async function ejecutarEnCamino(ctx: Contexto, deliveryId: string): Promi
     .eq("delivery_date", o.data.delivery_date)) as Resultado<Delivery[]>;
   if (ruta.error) return { ok: false, error: `deliveries: ${ruta.error.message}` };
   const ordenadas = routeOrder(paradasDelChofer(ruta.data ?? [], o.data.assigned_driver, o.data.delivery_date, "dia"));
-  const siguiente = siguienteParada(ordenadas);
+  // Las saltadas y las rechazadas por el cliente (D-487) no son «la siguiente», igual que en «Mi ruta». Salen del
+  // historial de esas órdenes; si no se puede leer, la regla de siempre (avisar de más es menos malo que no avisar).
+  const ev = ordenadas.length
+    ? (await ctx.db.from("order_events").select("delivery_id, kind, created_at, note").in("delivery_id", ordenadas.map((d) => d.id))) as
+      Resultado<{ delivery_id: string; kind: string; created_at: string; note: string | null }[]>
+    : { data: [], error: null };
+  const apartadas = ev.error ? undefined : marcasDeParadas(ev.data ?? [], todayISO());
+  const siguiente = siguienteParada(ordenadas, apartadas);
   if (!siguiente) return { ok: true, siguiente: null };
 
   const bajas = await leerBajas(ctx.db, contactosDe([siguiente]));

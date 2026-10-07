@@ -82,7 +82,7 @@ describe("f · un chofer sin órdenes no sale en la lista", () => {
     expect(rutasConOrdenes(rutas, () => true).map((r) => r.key)).toEqual(["Ana", "Beto", "Ruta 1"]);
   });
   it("la pantalla: el panel lista `filasDelPanel`, las tarjetas solo quien tiene algo; donde se asigna siguen todos", () => {
-    expect(gestor).toContain("const filasDelPanel = rutasConOrdenes(lanesDelFiltro, conAlgoQuePintar);");
+    expect(gestor).toContain("const filasDelPanel = rutasConOrdenes(lanes, conAlgoQuePintar);");
     expect(gestor).toContain("filas={filasDelPanel.map((u) => {");
     expect(gestor).toContain("sinRutas={filasDelPanel.length === 0}");
     // «Asignar a…», «Elige conductor» y «Asignar a varios» salen de `drivers`, no del panel.
@@ -232,5 +232,47 @@ describe("D-482 · la desplegada pegada a su compacta, sin repetir el nombre", (
     const css = readFileSync("src/app/globals.css", "utf8");
     expect(css).toContain("@keyframes tarjeta-se-abre");
     expect(css).toMatch(/prefers-reduced-motion: reduce\) \{ \.tarjeta-desplegada \{ animation: none; \}/);
+  });
+});
+
+describe("D-488 · el filtro de choferes: el panel lista a todos, la casilla dice si se ve, y «Todos»", async () => {
+  const { NINGUNO, alternaTodas, alternaVisible, marcadasAProposito, marcadosVigentes, pasaElFiltro, rutasVisibles, seVenTodas, unicoMarcado } = await import("./filtro-de-choferes");
+  const R = ["Ana", "Beto", "Carla"];
+  it("sin nada guardado se ven todas, y la casilla «Todos» sale marcada", () => {
+    expect([...rutasVisibles(new Set(), R)]).toEqual(R);
+    expect(seVenTodas(new Set(), R)).toBe(true);
+  });
+  it("desmarcar una la esconde; las otras siguen y se pueden marcar varias", () => {
+    const sinBeto = alternaVisible(new Set(), R, "Beto");
+    expect([...rutasVisibles(sinBeto, R)]).toEqual(["Ana", "Carla"]);
+    expect(pasaElFiltro(marcadosVigentes(sinBeto, R), "Beto")).toBe(false);
+    expect(pasaElFiltro(marcadosVigentes(sinBeto, R), "Ana")).toBe(true);
+    expect(seVenTodas(sinBeto, R)).toBe(false);
+    // volver a marcar a Beto: todas a la vista = el defecto
+    expect(alternaVisible(sinBeto, R, "Beto").size).toBe(0);
+  });
+  it("desmarcarlas todas no vuelve a «todas»: no se ve ninguna", () => {
+    let s = new Set<string>();
+    for (const r of R) s = alternaVisible(s, R, r);
+    expect([...s]).toEqual([NINGUNO]);
+    expect(rutasVisibles(s, R).size).toBe(0);
+    const v = marcadosVigentes(s, R);
+    for (const r of R) expect(pasaElFiltro(v, r)).toBe(false);
+    expect(unicoMarcado(s)).toBe("");
+    expect(marcadasAProposito(s).size).toBe(0);
+  });
+  it("«Todos»: con todas a la vista las quita; si falta alguna, las pone todas", () => {
+    expect([...alternaTodas(new Set(), R)]).toEqual([NINGUNO]);
+    expect(alternaTodas(new Set([NINGUNO]), R).size).toBe(0);
+    expect(alternaTodas(new Set(["Ana"]), R).size).toBe(0);
+  });
+  it("la pantalla: el panel lista todas y su casilla es «se ve»; la confirmación va encima del panel de Switch user", async () => {
+    const { readFileSync } = await import("node:fs");
+    const gestor = readFileSync("src/app/(app)/routes/page.tsx", "utf8");
+    expect(gestor).toContain("const filasDelPanel = rutasConOrdenes(lanes, conAlgoQuePintar);");
+    expect(gestor).toContain("marcada: visiblesEnPanel.has(u.key)");
+    expect(gestor).toContain("onAlterna={(clave) => setSelected((s) => alternaVisible(s, clavesDelPanel, clave))}");
+    expect(readFileSync("src/components/PanelDeChoferes.tsx", "utf8")).toContain("data-todos-los-choferes");
+    expect(readFileSync("src/lib/confirm.tsx", "utf8")).toContain('style={{ zIndex: 10000 }}');
   });
 });

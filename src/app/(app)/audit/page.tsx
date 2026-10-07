@@ -7,6 +7,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { stageInfo, stageLabel } from "@/lib/constants";
 import { KIND_RECIBIDA, RECIBIDO_COLOR } from "@/lib/recibir";
+import { etiquetaDeEventoDeParada } from "@/lib/acciones-parada";
 import { fmtDateTime, orderLabel } from "@/lib/utils";
 
 // ============================================================
@@ -21,6 +22,8 @@ function actionLabel(kind: string, lang: "en" | "es"): string {
   if (kind === "note") return lang === "es" ? "Nota" : "Note";
   // «Recibir» de almacén (D-409): es una entrega, y se dice quién la cerró.
   if (kind === KIND_RECIBIDA) return lang === "es" ? "Recibida por almacén" : "Received by warehouse";
+  const deParada = etiquetaDeEventoDeParada(kind, lang);
+  if (deParada) return deParada;
   const s = stageInfo(kind);
   return s.key === kind ? stageLabel(kind, lang) : kind;
 }
