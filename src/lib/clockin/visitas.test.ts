@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { DICT } from "@/lib/timetracker/i18n";
 import { armarFotos, notaDeParada, type FilaParada, type SitioFoto } from "./day-photos";
 import {
-  MOTIVOS_DE_SALIDA, MOTIVO_VISITA, etiquetaDeFoto, filaDeSalida, planDeVisita, rutaDeFoto, seCierraDeUnToque,
-  viajePersonalPorDefecto,
+  MOTIVOS_DE_SALIDA, MOTIVO_VISITA, etiquetaDeFoto, filaDeSalida, motivoDeViaje, planDeSalida, rutaDeFoto,
+  seCierraDeUnToque, vehiculoDeEmpresaPorDefecto, viajePersonalPorDefecto,
 } from "./visitas";
 
 // D-455. «Voy a salir» pregunta si va a visitar a un cliente; si dice que sí, bajo el reloj queda
@@ -17,6 +17,7 @@ import {
 const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8").split("\r\n").join("\n");
 const punch = leer("src/components/timetracker/PunchPanel.tsx");
 const trip = leer("src/components/timetracker/TripPanel.tsx");
+const pregunta = leer("src/components/timetracker/PreguntaDeVehiculo.tsx");
 
 describe("«voy a salir» ya no graba nada a ciegas: pregunta", () => {
   it("el botón abre la ventana; ya no llama a startLeave con customer_visit", () => {
@@ -30,12 +31,14 @@ describe("«voy a salir» ya no graba nada a ciegas: pregunta", () => {
     expect(DICT.en["emp.visit.ask"]).toBe("Are you visiting a customer?");
     expect(DICT.es["emp.visit.ask"]).toBe("¿Vas a visitar a un cliente?");
   });
-  it("Sí: empieza un viaje con el plan de la visita, y manda la ubicación si la hay", () => {
-    expect(punch).toContain("const planVisita = planDeVisita({ vehiculoAsignado: viaje?.currentVehicleId ?? null, enPropio, odometro: odoVisita });");
-    expect(punch).toContain('await corre(async () => startTrip({ kind: viaje?.mode ?? "sales", ...plan, ...(await ubicacionOpcional()) }));');
+  it("Sí y No pasan por el MISMO plan (D-NEXT), con lo que contestó del vehículo, y mandan la ubicación si la hay", () => {
+    expect(punch).toContain("vehiculo, vehicleId: vehiculoIdEfectivo, odometro: odoSalida, visita, motivo: motivoSalida, nota: notaSalida,");
+    expect(punch).toContain("await grabaSalida(planDe(true));");
+    expect(punch).toContain("await grabaSalida(planDe(false));");
+    expect(punch).toContain('await corre(async () => startTrip({ kind: viaje?.mode ?? "sales", ...v, ...(await ubicacionOpcional()) }));');
   });
-  it("No: graba la salida de siempre (startLeave) con el motivo que eligió", () => {
-    expect(punch).toContain("const reason = motivoSalida;");
+  it("una salida que no es viaje se graba como siempre (startLeave) con el motivo y la nota del plan", () => {
+    expect(punch).toContain("const { reason, note } = plan.salida;");
     expect(punch).toContain("await corre(async () => startLeave({ reason, note, geo: await ubicacionOpcional() }));");
   });
   it("los motivos del NO son valores del enumerado leave_reason, sin customer_visit ni lunch", () => {
@@ -56,31 +59,84 @@ describe("«voy a salir» ya no graba nada a ciegas: pregunta", () => {
   });
 });
 
-describe("el plan de la visita", () => {
-  it("sin vehículo asignado: viaje personal — ni vehículo ni cuentakilómetros — con motivo customer_visit", () => {
-    expect(planDeVisita({ vehiculoAsignado: null, enPropio: false, odometro: "" })).toEqual({
-      ok: true, viaje: { personal: true, vehicleId: null, odometer: null, reason: "customer_visit" },
+describe("«voy a salir» pregunta por el vehículo: personal o de la empresa (D-NEXT)", () => {
+  const base = { vehiculo: "personal" as const, vehicleId: null, odometro: "", visita: true, motivo: "delivery" as const, nota: "" };
+  it("sin contestar no se graba nada: es una pregunta, no un defecto escondido", () => {
+    expect(planDeSalida({ ...base, vehiculo: null })).toEqual({ ok: false, falta: "eleccion" });
+    expect(planDeSalida({ ...base, vehiculo: null, visita: false })).toEqual({ ok: false, falta: "eleccion" });
+  });
+  it("personal + visita: viaje personal — ni vehículo ni cuentakilómetros — con motivo customer_visit", () => {
+    expect(planDeSalida(base)).toEqual({
+      ok: true, accion: "viaje", viaje: { personal: true, vehicleId: null, odometer: null, reason: "customer_visit", note: null },
     });
   });
-  it("con vehículo de la empresa: lleva ese vehículo y su cuentakilómetros", () => {
-    expect(planDeVisita({ vehiculoAsignado: "v1", enPropio: false, odometro: " 51200 " })).toEqual({
-      ok: true, viaje: { personal: false, vehicleId: "v1", odometer: 51200, reason: "customer_visit" },
+  it("personal + no es visita: la salida de siempre, con su motivo y sin pedir cuentakilómetros", () => {
+    expect(planDeSalida({ ...base, visita: false })).toEqual({ ok: true, accion: "salida", salida: { reason: "delivery", note: undefined } });
+    expect(planDeSalida({ ...base, visita: false, motivo: "other", nota: "  banco  " })).toEqual({ ok: true, accion: "salida", salida: { reason: "other", note: "banco" } });
+    // La nota solo va con «otro»: con otro motivo lo escrito no se manda.
+    expect(planDeSalida({ ...base, visita: false, motivo: "delivery", nota: "banco" })).toEqual({ ok: true, accion: "salida", salida: { reason: "delivery", note: undefined } });
+  });
+  it("empresa + visita: lleva ese vehículo y su cuentakilómetros", () => {
+    expect(planDeSalida({ ...base, vehiculo: "empresa", vehicleId: "v1", odometro: " 51200 " })).toEqual({
+      ok: true, accion: "viaje", viaje: { personal: false, vehicleId: "v1", odometer: 51200, reason: "customer_visit", note: null },
     });
   });
-  it("con vehículo asignado y el cuentakilómetros vacío: falta, y un vacío NO es 0", () => {
-    expect(planDeVisita({ vehiculoAsignado: "v1", enPropio: false, odometro: "" })).toEqual({ ok: false, falta: "odometro" });
-    expect(planDeVisita({ vehiculoAsignado: "v1", enPropio: false, odometro: "   " })).toEqual({ ok: false, falta: "odometro" });
-    expect(planDeVisita({ vehiculoAsignado: "v1", enPropio: false, odometro: "abc" })).toEqual({ ok: false, falta: "odometro" });
-  });
-  it("con vehículo asignado pero «voy en el mío»: personal, sin pedir nada", () => {
-    expect(planDeVisita({ vehiculoAsignado: "v1", enPropio: true, odometro: "" })).toEqual({
-      ok: true, viaje: { personal: true, vehicleId: null, odometer: null, reason: "customer_visit" },
+  it("empresa + no es visita: TAMBIÉN es un viaje, porque el cuentakilómetros solo cabe en un viaje", () => {
+    expect(planDeSalida({ ...base, vehiculo: "empresa", vehicleId: "v1", odometro: "100", visita: false, motivo: "picking_up_supplies" })).toEqual({
+      ok: true, accion: "viaje", viaje: { personal: false, vehicleId: "v1", odometer: 100, reason: "pickup", note: null },
+    });
+    expect(planDeSalida({ ...base, vehiculo: "empresa", vehicleId: "v1", odometro: "100", visita: false, motivo: "other", nota: " banco " })).toEqual({
+      ok: true, accion: "viaje", viaje: { personal: false, vehicleId: "v1", odometer: 100, reason: "other", note: "banco" },
     });
   });
-  it("la ventana solo pide el cuentakilómetros a quien tiene vehículo asignado, y no deja decir que sí sin él", () => {
-    expect(punch).toContain("const vehiculoDeVisita = viaje?.vehicles.find((v) => v.id === viaje.currentVehicleId) ?? null;");
-    expect(punch).toContain("{vehiculoDeVisita && (");
-    expect(punch).toContain("<button disabled={!planVisita.ok || !!ocupado} onClick={empiezaVisita}>");
+  it("empresa sin cuentakilómetros: falta, y un vacío NO es 0", () => {
+    for (const odometro of ["", "   ", "abc"]) {
+      expect(planDeSalida({ ...base, vehiculo: "empresa", vehicleId: "v1", odometro })).toEqual({ ok: false, falta: "odometro" });
+      expect(planDeSalida({ ...base, vehiculo: "empresa", vehicleId: "v1", odometro, visita: false })).toEqual({ ok: false, falta: "odometro" });
+    }
+  });
+  it("empresa sin vehículo elegido: falta el vehículo", () => {
+    expect(planDeSalida({ ...base, vehiculo: "empresa", vehicleId: null, odometro: "100" })).toEqual({ ok: false, falta: "vehiculo" });
+  });
+  it("el vehículo de la empresa que sale elegido: el asignado si sigue activo; si no, el primero; sin flota, ninguno", () => {
+    const flota = [{ id: "v1" }, { id: "v2" }];
+    expect(vehiculoDeEmpresaPorDefecto("v2", flota)).toBe("v2");
+    expect(vehiculoDeEmpresaPorDefecto("v9", flota)).toBe("v1");
+    expect(vehiculoDeEmpresaPorDefecto(null, flota)).toBe("v1");
+    expect(vehiculoDeEmpresaPorDefecto("v1", [])).toBeNull();
+  });
+  it("«recoger material» se guarda en el viaje como pickup, el nombre que ya usa el panel de viajes", () => {
+    expect(motivoDeViaje("picking_up_supplies")).toBe("pickup");
+    expect(motivoDeViaje("delivery")).toBe("delivery");
+    expect(trip).toContain('{ v: "pickup", l: t("emp.trip.reasonPickup") },');
+  });
+  it("la ventana pregunta el vehículo ANTES que la visita, a todos, y no deja seguir sin contestar", () => {
+    const ventana = punch.slice(punch.indexOf('{salida === "pregunta" ? ('), punch.indexOf('<label>{t("emp.visit.whyOut")}</label>'));
+    // El componente de verdad, con la respuesta conectada al estado que lee el plan.
+    expect(ventana).toMatch(/<PreguntaDeVehiculo\s+nombre="vehiculo-salida"\s+valor=\{vehiculo\} onValor=\{setVehiculo\}\s+vehiculos=\{flota\} vehiculoId=\{vehiculoIdEfectivo\} onVehiculoId=\{setVehiculoId\}\s+odometro=\{odoSalida\} onOdometro=\{setOdoSalida\}/);
+    expect(punch).toContain('import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo";');
+    expect(ventana.indexOf("<PreguntaDeVehiculo")).toBeLessThan(ventana.indexOf('{t("emp.visit.ask")}'));
+    expect(ventana).not.toContain("{vehiculoDeVisita && (");
+    expect(ventana).toContain('<button className="btn-ghost" disabled={!planDe(false).ok} onClick={() => setSalida("motivo")}>');
+    expect(ventana).toContain("<button disabled={!planVisita.ok || !!ocupado} onClick={empiezaVisita}>");
+    expect(punch).toContain("<button disabled={!planDe(false).ok || !!ocupado} onClick={saleSinVisita}>");
+    expect(punch).toContain("const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);");
+  });
+  it("la pregunta tiene las dos respuestas, y el cuentakilómetros solo con la de la empresa", () => {
+    expect(pregunta).toContain('onChange={() => onValor("personal")} />');
+    expect(pregunta).toContain('disabled={sinFlota} checked={valor === "empresa"} onChange={() => onValor("empresa")} />');
+    expect(pregunta).toContain('{valor === "empresa" && !sinFlota && (');
+    expect(DICT.en["emp.out.vehicleAsk"]).toBe("Are you going in your personal vehicle or a company vehicle?");
+    expect(DICT.es["emp.out.vehicleAsk"]).toBe("¿Vas en tu vehículo personal o en un vehículo de la empresa?");
+    for (const k of ["emp.out.personal", "emp.out.company", "emp.out.noFleet"]) {
+      expect(DICT.en[k], k).toBeTruthy();
+      expect(DICT.es[k], k).toBeTruthy();
+    }
+  });
+  it("la ventana y el panel de viajes usan grupos de radios DISTINTOS (si no, marcar uno desmarca el otro)", () => {
+    expect(punch).toContain('nombre="vehiculo-salida"');
+    expect(trip).toContain('nombre="vehiculo-viaje"');
+    expect(pregunta).toContain("name={nombre}");
   });
 });
 
@@ -164,17 +220,17 @@ describe("el panel de viajes: visitas y mandados, con foto", () => {
     expect(viajePersonalPorDefecto("")).toBe(true);
     expect(viajePersonalPorDefecto("v1")).toBe(false);
   });
-  it("TripPanel usa ese defecto hasta que la persona toque la casilla", () => {
+  it("TripPanel usa ese defecto hasta que la persona conteste la pregunta", () => {
     expect(trip).toContain("const personal = personalElegido ?? viajePersonalPorDefecto(d.currentVehicleId);");
     expect(trip).toContain("const [personalElegido, setPersonal] = useState<boolean | null>(null);");
   });
-  it("la casilla de viaje personal es la de Time Tracker (.motivo), aquí y en la ventana de «voy a salir»", () => {
-    expect(trip).toContain('<label className={"motivo" + (personal ? " on" : "")} style={{ marginTop: 8, textTransform: "none" }}>');
-    expect(punch).toContain('<label className={"motivo" + (enPropio ? " on" : "")} style={{ textTransform: "none" }}>');
+  it("el panel de viajes hace la MISMA pregunta que la ventana (D-NEXT), con las opciones de Time Tracker (.motivo)", () => {
+    expect(trip).toContain('valor={personal ? "personal" : "empresa"}');
+    expect(trip).toContain('onValor={(v) => setPersonal(v === "personal")}');
+    expect(pregunta).toContain('<label className={"motivo" + (valor === "personal" ? " on" : "")}>');
     expect(trip).not.toContain('className="perm-opt"');
   });
   it("un viaje personal no pide vehículo ni cuentakilómetros y el botón de empezar no espera a un vehículo", () => {
-    expect(trip).toContain("{!personal && (");
     expect(trip).toContain("disabled={busy || (!personal && !vehiculo)}");
     expect(trip).toContain("vehicleId: personal ? null : vehiculo,");
     expect(trip).toContain("odometer: personal ? null : num(odoIni),");

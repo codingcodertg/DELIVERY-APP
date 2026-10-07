@@ -345,7 +345,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
           >
             🗄 {c.archived ? t("Unarchive", "Desarchivar") : t("Archive", "Archivar")}
           </button>
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{t("Close", "Cerrar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{t("Close", "Cerrar")}</button>
         </div>
       </div>
     </div>
@@ -397,7 +397,7 @@ function ScheduleModal({ id, kind, close }: { id: string; kind: "phone" | "inper
               {t("Remove date", "Quitar fecha")}
             </button>
           )}
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>
+          <button className="btn btn-ghost" onClick={close}>
             {t("Cancel", "Cancelar")}
           </button>
         </div>
@@ -645,7 +645,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
                   {t("Tomorrow 9:00", "Mañana 9:00")}
                 </button>
                 {phoneDt && (
-                  <button className="chip" style={{ color: "var(--gray)" }} onClick={() => setPhoneDt("")}>
+                  <button className="chip" onClick={() => setPhoneDt("")}>
                     ✕ {t("Clear", "Quitar")}
                   </button>
                 )}
@@ -659,7 +659,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
                   <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style={{ display: "none" }}
                     onChange={(e) => { const file = e.target.files?.[0]; if (file) setResume(file); e.target.value = ""; }} />
                 </label>
-                {resume && <button className="btn btn-sm" style={{ color: "var(--gray)" }} onClick={() => setResume(null)}>{t("Remove", "Quitar")}</button>}
+                {resume && <button className="btn btn-ghost btn-sm" onClick={() => setResume(null)}>{t("Remove", "Quitar")}</button>}
               </div>
             </div>
           </div>
@@ -716,7 +716,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
           <button className="btn btn-green" disabled={saving || !!blockingDup} onClick={() => save(true)}>
             🎤 {t("Save & start interview", "Guardar e iniciar entrevista")}
           </button>
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={guardedClose}>{t("Cancel", "Cancelar")}</button>
+          <button className="btn btn-ghost" onClick={guardedClose}>{t("Cancel", "Cancelar")}</button>
         </div>
       </div>
     </div>
@@ -871,7 +871,7 @@ function DiscardModal({ id, stageKey, close }: { id: string; stageKey: string; c
           <button className="btn btn-danger" disabled={!reason.trim()} onClick={save}>
             {fillingIn ? t("Save reason", "Guardar motivo") : t("Discard", "Descartar")}
           </button>
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{t("Cancel", "Cancelar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{t("Cancel", "Cancelar")}</button>
           {!reason.trim() && (
             <span className="hint" style={{ margin: 0 }}>
               {t("Write a reason to continue.", "Escribe un motivo para continuar.")}
@@ -1022,7 +1022,7 @@ function EditModal({ id, close }: { id: string; close: () => void }) {
             {c.resume_name ? (
               <>
                 <button className="btn btn-ghost btn-sm" onClick={() => openResumeFile(c.id)}>📎 {c.resume_name}</button>
-                <button className="btn btn-sm" style={{ color: "var(--gray)" }} onClick={() => { if (confirm(t("Remove attached CV?", "¿Quitar el CV adjunto?"))) removeResume(c.id); }}>{t("Remove", "Quitar")}</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { if (confirm(t("Remove attached CV?", "¿Quitar el CV adjunto?"))) removeResume(c.id); }}>{t("Remove", "Quitar")}</button>
               </>
             ) : (
               <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer", margin: 0 }}>
@@ -1039,7 +1039,7 @@ function EditModal({ id, close }: { id: string; close: () => void }) {
             {files.map((a) => (
               <div key={a.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <button className="btn btn-ghost btn-sm" style={{ flex: 1, textAlign: "left" }} onClick={() => openAttachment(a.id)}>📎 {a.name}</button>
-                <button className="btn btn-sm" style={{ color: "var(--gray)" }} title={t("Remove", "Quitar")} onClick={() => { if (confirm(t("Remove ", "¿Quitar ") + a.name + "?")) removeAttachment(a.id); }}>✕</button>
+                <button className="btn btn-ghost btn-sm" title={t("Remove", "Quitar")} onClick={() => { if (confirm(t("Remove ", "¿Quitar ") + a.name + "?")) removeAttachment(a.id); }}>✕</button>
               </div>
             ))}
             <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer", margin: 0, alignSelf: "flex-start" }}>
@@ -1052,7 +1052,7 @@ function EditModal({ id, close }: { id: string; close: () => void }) {
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
           <button className="btn btn-primary" onClick={saveEdit}>{t("Save changes", "Guardar cambios")}</button>
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>
+          <button className="btn btn-ghost" onClick={close}>
             {t("Cancel", "Cancelar")}
           </button>
         </div>
@@ -1311,7 +1311,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
                 {t("— unsaved answers from ", "— respuestas sin guardar del ")}{restored ? fmtDateTime(restored.at) : ""}.{" "}
                 {t("Review them and press Save.", "Revísalas y presiona Guardar.")}
               </span>
-              <button className="btn btn-sm" style={{ color: "var(--gray)" }} onClick={discardDraft}>
+              <button className="btn btn-ghost btn-sm" onClick={discardDraft}>
                 {t("Discard draft", "Descartar borrador")}
               </button>
             </div>
@@ -1354,10 +1354,10 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
           const prescreenKey = q.category ? PRESCREEN_KEY_BY_CATEGORY[q.category] : undefined;
           const prescreenAnswer = prescreenKey ? c.prescreen?.[prescreenKey] : undefined;
           return (
-            <div key={q.id} className="q-block" style={{ opacity: a.skipped ? 0.55 : 1 }}>
+            <div key={q.id} className={"q-block" + (a.skipped ? " atenuado" : "")}>
               <div className="q-text" style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <span>{q.category && <span className="badge" style={{ marginRight: 6, background: "var(--tint-indigo)", color: "var(--indigo)", fontWeight: 700 }}>🏷 {q.category}</span>}{i + 1}. {qText(q, lang)}{a.skipped && <span className="badge" style={{ marginLeft: 6, background: "var(--track)", color: "var(--gray)" }}>{t("Skipped", "Omitida")}</span>}</span>
-                <button className="btn btn-sm" style={{ color: a.skipped ? "var(--accent)" : "var(--gray)" }} onClick={() => toggleSkip(q.id)}>
+                <button className="btn btn-ghost btn-sm" onClick={() => toggleSkip(q.id)}>
                   {a.skipped ? "↩ " + t("Un-skip", "Deshacer") : "⤼ " + t("Skip / N/A", "Omitir / N/A")}
                 </button>
               </div>
@@ -1471,7 +1471,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
                 🚫 {t("Discard", "Descartar")}
               </button>
             )}
-            <button className="btn" style={{ color: "var(--gray)" }} onClick={guardedClose}>{t("Close", "Cerrar")}</button>
+            <button className="btn btn-ghost" onClick={guardedClose}>{t("Close", "Cerrar")}</button>
           </div>
         </div>
       </div>
@@ -1646,7 +1646,7 @@ function ResumeModal({ id, close }: { id: string; close: () => void }) {
               ➡ {t("Move to", "Mover a")} {inPersonStage.label}
             </button>
           )}
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{t("Close", "Cerrar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{t("Close", "Cerrar")}</button>
         </div>
       </div>
     </div>
@@ -1712,7 +1712,7 @@ function MessageModal({ id, close }: { id: string; close: () => void }) {
           <button className="btn btn-ghost" onClick={() => { navigator.clipboard?.writeText(msg); notify(tr("Copied ✓", "Copiado ✓")); }}>
             📄 {tr("Copy", "Copiar")}
           </button>
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{tr("Close", "Cerrar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{tr("Close", "Cerrar")}</button>
         </div>
       </div>
     </div>
@@ -1771,7 +1771,7 @@ function ContactModal({ id, close }: { id: string; close: () => void }) {
               {t("Clear follow-up", "Quitar seguimiento")}
             </button>
           )}
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{t("Close", "Cerrar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{t("Close", "Cerrar")}</button>
         </div>
         {history.length > 0 && (
           <div style={{ marginTop: 16 }}>
@@ -1843,7 +1843,7 @@ function OfferModal({ id, close }: { id: string; close: () => void }) {
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
           <button className="btn btn-primary" onClick={save}>{t("Save offer", "Guardar oferta")}</button>
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{t("Cancel", "Cancelar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{t("Cancel", "Cancelar")}</button>
         </div>
       </div>
     </div>
@@ -1925,7 +1925,7 @@ function TimelineModal({ id, close }: { id: string; close: () => void }) {
         <h3>🕓 {t("Timeline", "Cronología")} — {c.name}</h3>
         <ActivityLog id={id} />
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{t("Close", "Cerrar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{t("Close", "Cerrar")}</button>
         </div>
       </div>
     </div>
@@ -1974,7 +1974,7 @@ function CompareModal({ ids, close, clear }: { ids: string[]; close: () => void;
           </table>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{t("Close", "Cerrar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{t("Close", "Cerrar")}</button>
           <button className="btn btn-danger" onClick={clear}>{t("Clear selection", "Limpiar selección")}</button>
         </div>
       </div>

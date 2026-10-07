@@ -8,6 +8,10 @@ import {
   thisWeekStart, weekIsFinished, weekLabel, weekStartISO,
 } from "@/lib/timetracker/helpers";
 import type { Assignment, Session } from "@/lib/timetracker/types";
+import { effWorkerType } from "@/lib/timetracker/helpers";
+import { esAdminDeTt, horasDeLaSemana, seccionesDeMiSemana, verTablasDelCronometro } from "@/lib/timetracker/vista-empleado";
+import { MiBoletinSec } from "@/components/timetracker/MySections";
+import { FichajesDeHoy, useMiDiaDeFichaje } from "@/components/timetracker/FichajesDeHoy";
 
 // Ported (D-066, pass 2) from timetracker-clean's employee/EmployeeWeek.jsx —
 // read-only weekly timesheet + estimated pay, grouped by day. No desktop-
@@ -16,9 +20,22 @@ import type { Assignment, Session } from "@/lib/timetracker/types";
 //
 // G-9 (D-202): el resto de textos pasa a claves emp.week.*. fmtDayLong/weekLabel/breaksText
 // (helpers, con LOCALE fijo) no se tocan: las fechas largas siguen en inglés.
+//
+// D-NEXT (pedido del dueño, 2026-10-06), SOLO para el empleado —el admin la ve igual que antes—:
+//   · Sin dinero: ni «Pago estimado», ni «Pagado hasta hoy», ni la columna de pago, ni el aviso
+//     de lo pagado. Solo las horas.
+//   · Las horas que se ven son las suyas: las del cronómetro para el remoto y las FICHADAS para el
+//     presencial (horasDeLaSemana), que no usa el cronómetro y aquí veía 0,00 h.
+//   · «Mi boletín» y «Fichajes de hoy» se mudan aquí desde Registrar tiempo (presencial).
+// Quién ve qué: seccionesDeMiSemana (vista-empleado.ts).
 export default function MyWeekPage() {
-  const { myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince } = useData();
+  const { me, myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince } = useData();
   const t = useT();
+  const presencial = effWorkerType(me) === "inhouse";
+  const quien = { esAdmin: esAdminDeTt(me.role), presencial };
+  const secciones = seccionesDeMiSemana(quien);
+  // El día de fichaje (horas de la semana en curso, fichajes de hoy): solo si se va a enseñar.
+  const dia = useMiDiaDeFichaje(secciones.fichajesDeHoy);
   const [week, setWeek] = useState(thisWeekStart());
   // G-17: the provider holds SESSIONS_WINDOW_DAYS of my sessions; paging back past that asks
   // for the older weeks on demand (idempotent).
@@ -72,8 +89,13 @@ export default function MyWeekPage() {
   });
 
   const projectName = (a: Assignment | undefined) => a ? a.project.name : "—";
+  const tablas = verTablasDelCronometro(quien, weekSessions.length > 0);
+  const horas = secciones.dinero
+    ? totalSec / 3600
+    : horasDeLaSemana({ presencial, esSemanaEnCurso: week === thisWeekStart(), segundosDeCronometro: totalSec, minutosFichados: dia ? dia.weekMinutes : null });
 
   return (
+    <>
     <div className="card">
       <div className="between">
         <div className="row" style={{ alignItems: "center", gap: 8 }}>
@@ -90,15 +112,22 @@ export default function MyWeekPage() {
       {status === "review" && !isPaid && weekSessions.length > 0 && (
         <div className="banner info" style={{ marginTop: 12 }}>{t("emp.week.reviewNote")}</div>
       )}
-      {paidTotal > 0 && <div className="banner ok" style={{ marginTop: 12 }}>{t("emp.week.paidThisWeek", { money: money(paidTotal) })}</div>}
+      {secciones.dinero && paidTotal > 0 && <div className="banner ok" style={{ marginTop: 12 }}>{t("emp.week.paidThisWeek", { money: money(paidTotal) })}</div>}
 
-      <div className="grid g3" style={{ marginTop: 14 }}>
-        <div className="stat"><div className="n">{(totalSec / 3600).toFixed(2)} h</div><div className="l">{t("emp.week.totalHours")}</div></div>
-        <div className="stat"><div className="n">{money(totalPay)}</div><div className="l">{t("emp.week.estPay")}</div></div>
-        <div className="stat"><div className="n">{money(paidTotal)}</div><div className="l">{t("emp.week.paidSoFar")}</div></div>
+      <div className={secciones.dinero ? "grid g3" : "grid"} style={{ marginTop: 14 }}>
+        <div className="stat">
+          <div className="n">{horas == null ? "—" : `${horas.toFixed(2)} h`}</div>
+          <div className="l">{t("emp.week.totalHours")}</div>
+          {/* Para el presencial, de dónde sale la cifra: sus fichajes de la semana de pago. */}
+          {!secciones.dinero && presencial && dia && week === thisWeekStart() && (
+            <div className="l">{t("emp.week.fromPunches", { desde: dia.periodStart, hasta: dia.periodEnd })}</div>
+          )}
+        </div>
+        {secciones.dinero && <div className="stat"><div className="n">{money(totalPay)}</div><div className="l">{t("emp.week.estPay")}</div></div>}
+        {secciones.dinero && <div className="stat"><div className="n">{money(paidTotal)}</div><div className="l">{t("emp.week.paidSoFar")}</div></div>}
       </div>
 
-      {rows.length === 0 ? (
+      {!tablas ? null : rows.length === 0 ? (
         <p className="muted" style={{ marginTop: 14 }}>{t("emp.week.noTime")}</p>
       ) : (
         <table style={{ marginTop: 14 }}>
@@ -109,7 +138,7 @@ export default function MyWeekPage() {
               <th className="right">{t("emp.week.colRegular")}</th>
               <th className="right">{t("emp.week.colOvertime")}</th>
               <th className="right">{t("emp.week.colOverLimit")}</th>
-              <th className="right">{t("emp.week.colPay")}</th>
+              {secciones.dinero && <th className="right">{t("emp.week.colPay")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -120,13 +149,14 @@ export default function MyWeekPage() {
                 <td className="right nowrap">{r.calc.reg.toFixed(2)}</td>
                 <td className="right nowrap">{r.calc.ot.toFixed(2)}</td>
                 <td className="right nowrap" style={{ color: r.calc.overLimit > 0 ? "var(--tt-danger)" : "inherit" }}>{r.calc.overLimit.toFixed(2)}</td>
-                <td className="right nowrap">{money(r.calc.pay)}</td>
+                {secciones.dinero && <td className="right nowrap">{money(r.calc.pay)}</td>}
               </tr>
             ))}
           </tbody>
         </table>
       )}
 
+      {tablas && <>
       <div className="hr" />
       <h3 style={{ color: "var(--tt-muted)" }}>{t("emp.week.entriesTitle")}</h3>
       {dayGroups.length === 0 ? (
@@ -176,6 +206,12 @@ export default function MyWeekPage() {
           ? t("emp.week.activeNote")
           : t("emp.week.lockedNote")}
       </p>
+      </>}
     </div>
+
+    {/* Mudados aquí desde Registrar tiempo, para el empleado presencial (D-NEXT). */}
+    {secciones.boletin && <MiBoletinSec />}
+    {secciones.fichajesDeHoy && dia && <FichajesDeHoy d={dia} semanaDePago={false} />}
+    </>
   );
 }

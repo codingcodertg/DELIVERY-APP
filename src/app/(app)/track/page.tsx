@@ -221,8 +221,7 @@ export default function TrackPage() {
           return (
             <button
               key={d}
-              className={"chip" + (d === fecha ? " on" : "")}
-              style={!has && d !== fecha ? { opacity: 0.45 } : undefined}
+              className={"chip" + (d === fecha ? " on" : "") + (!has && d !== fecha ? " chip-vacio" : "")}
               title={has ? d : t(`${d} — nothing reported`, `${d} — sin reportes`)}
               onClick={() => setDate(d)}
             >

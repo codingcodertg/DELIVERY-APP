@@ -265,7 +265,7 @@ export default function CandidatesPage() {
             <textarea rows={4} value={csv} onChange={(e) => setCsv(e.target.value)} placeholder="John Doe, +50499998888, john@mail.com, Sales, Indeed, Houston TX" />
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <button className="btn btn-primary btn-sm" onClick={importCsv}>{t("Import", "Importar")}</button>
-              <button className="btn btn-sm" style={{ color: "var(--gray)" }} onClick={() => { setShowCsv(false); setCsv(""); }}>{t("Cancel", "Cancelar")}</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setShowCsv(false); setCsv(""); }}>{t("Cancel", "Cancelar")}</button>
             </div>
           </div>
         )}
@@ -306,7 +306,7 @@ export default function CandidatesPage() {
           {views.map((v) => (
             <span key={v.name} className="chip" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
               <button onClick={() => applyView(v)} style={{ background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit" }}>{v.name}</button>
-              <button onClick={() => deleteView(v.name)} title={t("Delete view", "Eliminar vista")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--gray)" }}>✕</button>
+              <button onClick={() => deleteView(v.name)} title={t("Delete view", "Eliminar vista")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text)" }}>✕</button>
             </span>
           ))}
           <button className="btn btn-ghost btn-sm" onClick={saveView}>＋ {t("Save current", "Guardar actual")}</button>
@@ -358,7 +358,7 @@ export default function CandidatesPage() {
               <button className="btn btn-danger btn-sm" disabled={busy} onClick={bulkDelete}>
                 🗑 {t("Delete", "Eliminar")}
               </button>
-              <button className="btn btn-sm" style={{ color: "var(--gray)" }} disabled={busy} onClick={clearSelection}>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={clearSelection}>
                 {t("Clear", "Limpiar")}
               </button>
               {busy && <span className="hint" style={{ margin: 0 }}>{t("Working…", "Trabajando…")}</span>}

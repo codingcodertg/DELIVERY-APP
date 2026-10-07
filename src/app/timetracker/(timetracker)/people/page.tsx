@@ -70,7 +70,7 @@ export default function ManagerPeoplePage() {
               const inactive = u.active === false;
               return (
                 <Fragment key={u.id}>
-                <tr style={inactive ? { opacity: 0.55 } : undefined}>
+                <tr className={inactive ? "atenuado" : undefined}>
                   <td className="nowrap">
                     {/* Presencial contra remoto de un vistazo (D-128). Son dos nóminas
                         distintas —asistencia contra tiempo cronometrado— y hasta ahora había
