@@ -130,7 +130,7 @@ export async function updateSession(
   // que una sesión que no existe, y aquí el `error` se descartaba — que es cómo se sigue con
   // datos incompletos sin que nada falle.
   let sinUsuarioConfirmado: boolean;
-  // La marca de «cambia tu contraseña al entrar» (D-NEXT), leída del mismo `getUser()`: no cuesta
+  // La marca de «cambia tu contraseña al entrar» (D-486), leída del mismo `getUser()`: no cuesta
   // ninguna ida más al servidor.
   let debeCambiar = false;
   let leerPuerta: (() => Promise<PuertaDeSesion | null>) | null = null;
@@ -219,7 +219,7 @@ export async function updateSession(
   // pero es justo lo que esta rama promete que no pasa.
   const barrer = barrerHuerfana || (!!cruda && sinUsuarioConfirmado);
 
-  // Cambiar la contraseña temporal (D-NEXT). Aquí por lo mismo que el cierre de las 18:30: es el
+  // Cambiar la contraseña temporal (D-486). Aquí por lo mismo que el cierre de las 18:30: es el
   // único punto por el que pasa cada navegación de todas las apps, así que no hay URL que lo salte.
   // Va después del cierre (una sesión cerrada va al login, da igual su marca) y antes del guard.
   // Un admin dentro de «Entrar como» pasa: la cookie de retorno ya se validó arriba (`vuelta`).

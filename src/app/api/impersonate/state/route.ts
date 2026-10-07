@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     // que se lee aquí es el del impersonado, así que saldría `false` solo — se deja explícito
     // para que no dependa de esa coincidencia.
     habilitado: false,
-    // Si esa persona tiene que cambiar su contraseña al entrar (D-NEXT). Al admin no se le obliga
+    // Si esa persona tiene que cambiar su contraseña al entrar (D-486). Al admin no se le obliga
     // —el middleware le deja pasar—, pero se le dice, para que no le extrañe que ella sí lo vea.
     cambiaContrasena: debeCambiarContrasena(user),
   });

@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   if (!target?.user) return NextResponse.json({ error: "No such user." }, { status: 404 });
 
   const password = generatePassword();
-  // Y con la marca de «cámbiala al entrar» (D-NEXT), en la misma llamada: esta contraseña la ha
+  // Y con la marca de «cámbiala al entrar» (D-486), en la misma llamada: esta contraseña la ha
   // visto el admin, así que no se queda. `user_metadata` se fusiona, no se reemplaza.
   const { error } = await admin.auth.admin.updateUserById(id, { password, user_metadata: PONER_MARCA });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

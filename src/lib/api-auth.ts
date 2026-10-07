@@ -25,6 +25,6 @@ export async function requireUser(): Promise<
   if (!user) {
     return { ok: false, response: NextResponse.json({ error: "Not signed in." }, { status: 401 }) };
   }
-  // `user_metadata` viaja para quien lo necesita: la marca de «cambia tu contraseña» (D-NEXT).
+  // `user_metadata` viaja para quien lo necesita: la marca de «cambia tu contraseña» (D-486).
   return { ok: true, user: { id: user.id, email: user.email ?? undefined, user_metadata: user.user_metadata }, supabase };
 }

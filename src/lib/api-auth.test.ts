@@ -38,7 +38,7 @@ describe("requireUser", () => {
     expect(r.supabase).toBeTruthy();
   });
 
-  it("devuelve también user_metadata: de ahí se lee la marca de cambiar la contraseña (D-NEXT)", async () => {
+  it("devuelve también user_metadata: de ahí se lee la marca de cambiar la contraseña (D-486)", async () => {
     usuario = { id: "u-1", user_metadata: { must_change_password: true } };
     const r = await requireUser();
     expect(r.ok && r.user.user_metadata).toEqual({ must_change_password: true });

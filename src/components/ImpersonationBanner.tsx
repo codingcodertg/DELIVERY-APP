@@ -130,7 +130,7 @@ export function ImpersonationBanner() {
       <span className="small" style={{ fontWeight: 700 }}>
         👤 Estás como {estado.como}
       </span>
-      {/* D-NEXT: esa persona tiene una contraseña temporal. A ella la app le obliga a cambiarla al
+      {/* D-486: esa persona tiene una contraseña temporal. A ella la app le obliga a cambiarla al
           entrar; al admin no, porque no es suya. Se le avisa, corto (D-483: el aviso, en una línea). */}
       {estado.cambiaContrasena && (
         <span className="small" data-aviso="cambio-contrasena">

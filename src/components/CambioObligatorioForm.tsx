@@ -12,7 +12,7 @@ import {
 import { mensajeDeContrasena, type CodigoContrasena, type MotivoDebil } from "@/lib/profile-password";
 
 /**
- * El formulario de `/change-password` (D-NEXT). Pensado para el teléfono del chofer: una columna,
+ * El formulario de `/change-password` (D-486). Pensado para el teléfono del chofer: una columna,
  * botones a todo el ancho, y nada más que hacer en la pantalla que esto o salir.
  */
 export function CambioObligatorioForm({ nombre, destino, demo = false }: { nombre: string | null; destino: string; demo?: boolean }) {

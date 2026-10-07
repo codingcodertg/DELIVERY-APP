@@ -9,7 +9,7 @@ import { estadoDeLectura } from "@/lib/profile-read";
 export const dynamic = "force-dynamic";
 
 /**
- * «Cambia tu contraseña» (D-NEXT): adonde el middleware manda a quien entró con una contraseña
+ * «Cambia tu contraseña» (D-486): adonde el middleware manda a quien entró con una contraseña
  * temporal (`user_metadata.must_change_password`), venga de la app que venga.
  *
  * La pantalla vuelve a mirar la marca por su cuenta: quien llega sin ella —ya la cambió, o pegó la

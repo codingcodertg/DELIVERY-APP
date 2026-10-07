@@ -260,7 +260,7 @@ describe("la contraseña se cambia en un solo sitio", () => {
     );
     // `/reset-password` es la página a la que lleva el correo de «¿Olvidaste tu contraseña?»:
     // quien llega ahí NO sabe la actual, y por eso existe. No es un formulario de perfil.
-    // `/api/profile/password/forced` (D-NEXT) cambia la temporal que dio la oficina sin pedir la
+    // `/api/profile/password/forced` (D-486) cambia la temporal que dio la oficina sin pedir la
     // actual, y SOLO con la marca `must_change_password`: sus pruebas, en cambio-obligatorio-rutas.
     expect(conPassword.sort()).toEqual([
       "src/app/api/profile/password/forced/route.ts",

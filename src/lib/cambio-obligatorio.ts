@@ -2,7 +2,7 @@ import { isPublicPath, type Decision } from "@/lib/route-guard";
 import { safeNext } from "@/lib/auth-redirect";
 
 /**
- * Cambiar la contraseña al entrar, obligatorio (D-NEXT).
+ * Cambiar la contraseña al entrar, obligatorio (D-486).
  *
  * El dueño, 2026-10-06: «ellos tienen su username, pero no tienen email … quiero que me le hagas un
  * password genérico … que sea tracker … Ellos lo van a tener que cambiar cuando hagan first login».

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 /**
- * El middleware con el cliente de Supabase simulado, no con `deps` (D-NEXT): es el camino de
+ * El middleware con el cliente de Supabase simulado, no con `deps` (D-486): es el camino de
  * producción. Fija dos cosas que con `deps` no se ven:
  *   · la marca se lee del `user_metadata` que devuelve `getUser()`;
  *   · si `getUser()` acaba de renovar las cookies, la redirección a la pantalla de cambiarla las

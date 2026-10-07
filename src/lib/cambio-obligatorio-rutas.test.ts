@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { empaquetar } from "@/lib/impersonation-cookie";
 
 /**
- * Las piezas de servidor de «cambia tu contraseña al entrar» (D-NEXT), llamadas de verdad con Auth
+ * Las piezas de servidor de «cambia tu contraseña al entrar» (D-486), llamadas de verdad con Auth
  * falso. Nada de esto toca Supabase: se mira con qué se llama a `updateUser`, a `updateUserById` y
  * al registro de seguridad.
  */

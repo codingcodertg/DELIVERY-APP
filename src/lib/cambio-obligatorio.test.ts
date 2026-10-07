@@ -18,7 +18,7 @@ import {
 } from "./cambio-obligatorio";
 
 /**
- * Cambiar la contraseña temporal al entrar (D-NEXT). Tres clases de prueba:
+ * Cambiar la contraseña temporal al entrar (D-486). Tres clases de prueba:
  *   1. Lo que se decide sin red: la marca, quién pasa, a dónde vuelve, qué contraseña vale.
  *   2. El middleware de verdad (`updateSession`) con la sesión simulada: que ninguna app se salta
  *      la puerta, que la salida queda abierta, y que «Entrar como» pasa.

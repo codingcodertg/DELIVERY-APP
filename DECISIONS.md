@@ -16529,7 +16529,7 @@ prueba no fije el formato.
 
 ## D-265 · «Mi perfil» en el lobby, y la contraseña se cambia solo ahí
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): «solo ahí» deja de ser cierto en un caso. Quien entra con una
+> **⚠ Reemplazada en parte por D-486** (2026-10-06): «solo ahí» deja de ser cierto en un caso. Quien entra con una
 > contraseña temporal (marca `must_change_password` en `user_metadata`) la cambia en `/change-password`, sin pedir la actual,
 > por `POST /api/profile/password/forced`. Fuera de ese caso, «Mi perfil» sigue siendo el único sitio.
 
@@ -37977,7 +37977,7 @@ de todos por decisión de D-451.
 
 ## D-485 · Gestor de Rutas y «Ruta de hoy»: la ruta se numera por PARADAS (1, 2, 3…), y varias recogidas seguidas en la misma tienda son una sola parada
 
-**Fecha:** 2026-10-06 · **Versión:** la pone el orquestador (Entregas) · **Migración:** ninguna. **No cambia el orden ni el
+**Fecha:** 2026-10-06 · **Versión:** deliveries 1.264.0, repo 1.358.0 (Entregas) · **Migración:** ninguna. **No cambia el orden ni el
 motor:** solo cómo se numera y se pinta lo que ya hay. **Reemplaza en parte a** D-334 (la etiqueta de las burbujas del mapa) y
 D-481 (d) (sin burbuja en una tienda de RTG), que llevan su nota.
 
@@ -38073,9 +38073,9 @@ pero con la suya en otra) y se le escribió su prueba.
 - El texto en español del mapa y de la tabla, solo por las pruebas (el demo se midió en inglés).
 - Una ruta con un plan publicado (etiquetas del plan, cargas repartidas): solo por la prueba; el demo no tiene planes.
 
-## D-NEXT · Contraseña temporal: quien entra con ella tiene que cambiarla antes de usar ninguna app
+## D-486 · Contraseña temporal: quien entra con ella tiene que cambiarla antes de usar ninguna app
 
-**Fecha:** 2026-10-06 · **Versión:** la pone el orquestador al fusionar (toca código compartido: middleware, `src/app/api`,
+**Fecha:** 2026-10-06 · **Versión:** deliveries 1.265.0, repo 1.359.0 (toca código compartido: middleware, `src/app/api`,
 el banner de «Entrar como»; criterio de CLAUDE.md, las tres) · **Sin migración** (la marca vive en `auth.users`) ·
 Rama `feat/cambiar-password-al-entrar`. **Reemplaza en parte a D-265** (nota dentro).
 

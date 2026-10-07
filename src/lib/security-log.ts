@@ -22,7 +22,7 @@ export type SecurityKind =
   | "title_changed"
   | "email_changed"
   | "password_reset"
-  // La propia persona cambió la temporal al entrar (D-NEXT). Es otra clase y no un `password_reset`
+  // La propia persona cambió la temporal al entrar (D-486). Es otra clase y no un `password_reset`
   // porque lo hace otra persona: el reset lo hace un admin, esto el dueño de la cuenta.
   | "password_changed"
   | "recruiting_access_changed"

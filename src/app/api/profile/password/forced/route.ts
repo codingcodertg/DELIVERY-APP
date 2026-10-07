@@ -7,7 +7,7 @@ import { logSecurity } from "@/lib/security-log-server";
 import { debeCambiarContrasena, QUITAR_MARCA, validaNuevaObligatoria } from "@/lib/cambio-obligatorio";
 
 /**
- * Cambiar la contraseña temporal al entrar (D-NEXT). La llama solo la pantalla `/change-password`.
+ * Cambiar la contraseña temporal al entrar (D-486). La llama solo la pantalla `/change-password`.
  *
  * **Sin pedir la actual, y por eso solo con la marca.** «Mi perfil» (`/api/profile/password`, D-265)
  * pide la actual para que una sesión abierta en un teléfono ajeno no baste para quedarse con la
