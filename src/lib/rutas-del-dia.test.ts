@@ -47,9 +47,10 @@ describe("1 · la pestaña: «Today's route» / «Ruta de hoy», para todos los 
     expect(tab.label_es).toBe("🗺 Ruta de hoy");
     expect(tab.href).toBe("/map");
   });
-  it("la abren los siete roles; antes, solo admin, gerente, ventas y logística", () => {
-    const roles: UserRole[] = ["admin", "logistics", "manager", "accounting", "sales", "warehouse", "driver"];
+  it("la abren gerente, ventas, oficina y almacén; admin, logística (tienen el Gestor) y chofer (tiene Mi ruta) no (D-494)", () => {
+    const roles: UserRole[] = ["manager", "accounting", "sales", "warehouse"];
     for (const role of roles) expect(canOpenTab("map", { role, permissions: [] } as never), role).toBe(true);
+    for (const role of ["admin", "logistics", "driver"] as UserRole[]) expect(canOpenTab("map", { role, permissions: [] } as never), role).toBe(false);
     expect([...(tab.roles ?? [])].sort()).toEqual([...roles].sort());
   });
   it("el título de la página es el de la pestaña", () => {

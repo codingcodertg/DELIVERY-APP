@@ -51,8 +51,9 @@ describe("almacén: Órdenes antes que Ruta de hoy", () => {
       const sinOrdenar = TABS.filter((tb) => canOpenTab(tb.id, { role, permissions: [] }));
       expect([role, barraDe(role).map((tb) => tb.id)]).toEqual([role, sinOrdenar.map((tb) => tb.id)]);
     }
-    // El admin sigue con el orden de TABS (todo menos «Mi ruta», que es solo del chofer).
-    expect(barraDe("admin").map((tb) => tb.id)).toEqual(TABS.filter((tb) => tb.id !== "myroute").map((tb) => tb.id));
+    // El admin sigue con el orden de TABS (todo menos «Mi ruta», que es solo del chofer, y desde D-494 «Ruta de hoy»,
+    // porque tiene el Gestor).
+    expect(barraDe("admin").map((tb) => tb.id)).toEqual(TABS.filter((tb) => tb.id !== "myroute" && tb.id !== "map").map((tb) => tb.id));
   });
 
   it("no devuelve el mismo arreglo ni lo muta", () => {

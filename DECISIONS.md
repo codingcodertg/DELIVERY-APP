@@ -38904,3 +38904,18 @@ rol y tipo por cookie), Chrome por CDP, 390 y 1280 px, claro y oscuro, en españ
 - Aprobar de verdad la solicitud sin proyecto de un presencial (el `insertSession` con proyecto nulo) no se ejecutó contra la
   base ni en el arnés; la columna admite nulo (059).
 - El CSV y el recibo de Nómina › Remoto se comprobaron por el fuente, no descargando ni imprimiendo.
+
+## D-494 · «Ruta de hoy» fuera para chofer, admin y logística
+
+**Fecha:** 2026-10-07 · **Versión:** deliveries (deliveries 1.269.0, repo 1.366.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d494`. **Reemplaza en parte a D-467** (que la dio a los siete roles).
+
+**Pedido del dueño**, literal: *«de driver elimina today's route»* · *«si admin y logistic manager ya tienen el gestor de ruta entonces quye no les paartezca ruta de hoy»*.
+
+### Qué se decidió
+
+- La pestaña «🗺 Ruta de hoy» (`/map`) queda para **gerente, ventas, oficina y almacén** (`TABS` en `src/lib/constants.ts`).
+- **Chofer:** tiene «Mi ruta». **Admin y logística:** tienen el Gestor de Rutas, que desde D-481 es la misma pantalla con
+  acciones. Para ellos la pestaña desaparece y la URL `/map` queda cerrada por `TabGate` como cualquier pestaña ajena.
+- El aviso «sin chofer» (`pestanaDelAvisoSinChofer`) ya prefería el Gestor; no cambia.
+
+No visto en navegador: `tsc` y vitest.
