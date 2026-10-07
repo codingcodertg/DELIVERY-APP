@@ -2753,6 +2753,8 @@ aparece como página real (4.34 kB) en la salida del build.
 ## D-067 · Etapa 2, tramo 2 — "Mi semana"
 **Fecha:** 2026-08-20 · **Versión:** v1.16.1 · **Pedido por:** Andrés
 
+> **Reemplazada en parte por D-NEXT** (2026-10-06): al EMPLEADO «Mi semana» ya no le enseña dinero (ni pago estimado, ni pagado, ni la columna de pago) y al presencial le cuenta las horas fichadas; el admin la ve como aquí.
+
 **Cambio:** `/timetracker/week`, portada de `employee/EmployeeWeek.jsx` —
 hoja de horas semanal de solo lectura: total por proyecto (regular/extra/
 sobre el límite), entradas agrupadas por día (acordeón), estado de la
@@ -2805,6 +2807,8 @@ requests` aparece como página real (2.43 kB).
 
 ## D-069 · Etapa 2, tramo 4 — Diario de trabajo y Mi cuenta (lado empleado completo)
 **Fecha:** 2026-08-20 · **Versión:** v1.16.3 · **Pedido por:** Andrés
+
+> **Reemplazada en parte por D-NEXT** (2026-10-06): «Mi diario» ya no es pestaña del empleado; solo el admin la tiene, y `/timetracker/diary` devuelve a quien no lo es a «Registrar tiempo».
 
 **Cambio:** `/timetracker/diary` (portada de `employee/
 EmployeeScreenshots.jsx` + el componente compartido `WorkDiary.jsx`) y
@@ -5438,6 +5442,8 @@ retirarla de golpe y dejar sus pantallas sin puerta.
 **Fecha:** 2026-08-28 · **Versión:** v0.22.0 (timetracker) · v0.22.0 (clockin) · **Pedido por:**
 Andrés (*"el tab de tiempo libre, merge it con el de My Requests"*)
 
+> **Reemplazada en parte por D-NEXT** (2026-10-06): las pestañas van al revés — primero «Tiempo libre», después «Tiempo» — y se abre en «Tiempo libre».
+
 La pantalla de tiempo libre de fichaje tenía **la misma forma que la de excepciones**: dos
 mitades que se usan en momentos distintos, metidas en una pestaña. Se parte igual (D-115):
 
@@ -5839,6 +5845,8 @@ sitios donde fichar y ninguno que mande es peor que un enlace.
 que lo lleves a otra view, en el mismo template que ya está, con cuándo inició, cuándo terminó,
 cuánto trabajado hoy y cuánto esta semana… para que ya eliminemos el clock in app"*)
 
+> **Reemplazada en parte por D-NEXT** (2026-10-06): al empleado ya no se le enseña bajo el reloj la tarjeta «Turno de hoy · Esta semana de pago» ni «Fichajes de hoy» (que se mudan a «Mi semana»); el admin sí.
+
 D-123 repartía por tipo de trabajador, pero al presencial lo **mandaba** a la app de fichaje.
 Funcionaba y no rompía nada, pero dejaba **dos sitios donde trabajar**, que es justo lo que hay
 que quitar para poder retirar aquella app.
@@ -6038,6 +6046,8 @@ había que abrir el desplegable de cada fila para saber cuál era cuál.
 Andrés (*"no quiero lo mande a otro view, ahí mismo que se display como que esté oculto"*, *"lo
 de notificaciones también que pase al time tracker"*, *"que se mire igual a la card de Andrés
 Ugarte"*)
+
+> **Reemplazada en parte por D-NEXT** (2026-10-06): bajo el reloj, el empleado solo ve «Mi horario» y «Notas del día»; «Mi boletín» se muda a «Mi semana». El admin lo sigue viendo aquí.
 
 ### Tres pantallas que pasan a ser tres desplegables
 
@@ -6355,6 +6365,8 @@ hagan, el módulo se borra entero.
 ## D-136 · Los viajes de vehículo entran en Registrar tiempo
 **Fecha:** 2026-08-30 · **Versión:** v0.39.0 (timetracker) · v0.35.0 (clockin) · **Pedido por:**
 Andrés (*"sí hazlo"*)
+
+> **Reemplazada en parte por D-NEXT** (2026-10-06): la casilla «Viaje personal» del panel pasa a ser la pregunta «¿vehículo personal o de la empresa?», la misma que hace «Voy a salir».
 
 > **⚠ Reemplazada en parte por D-455** (2026-10-01): al rehacer este panel se perdieron la **foto** y la **ubicación** de cada
 > parada (`logStop` se llamaba solo con el nombre), y nadie lo notó porque no se ha registrado un solo viaje desde entonces.
@@ -34289,6 +34301,8 @@ Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
 «Runner»), D-128 (el botón «Voy a salir») y D-136 (el panel de viajes), que llevan su nota; **amplía** D-109, D-123 y D-161.
 **No toca ningún dato, ninguna política ni `runner.ts` / `leave.ts`.**
 
+> **Reemplazada en parte por D-NEXT** (2026-10-06): la ventana de «Voy a salir» pregunta primero, a todos, «¿vehículo personal o de la empresa?» (antes, solo una casilla a quien tenía vehículo asignado); con el de la empresa pide el cuentakilómetros y cualquier salida —visita o no— se graba como viaje.
+
 ### Qué pidió el dueño
 
 Primer mensaje, literal: *«mira que quiero asignar al time tracker a everto prado pero el es onsite no remote y no me sale la
@@ -38244,3 +38258,186 @@ No probado contra la base real (la inserción en `order_events` como chofer se a
 - La confirmación (`src/lib/confirm.tsx`) se pinta con `z-index: 10000`: encima de todo, en todas las apps.
 
 No visto en navegador: `tsc` y vitest.
+
+## D-NEXT · Time Tracker, vista del empleado: sin «Mi diario»; «Mi semana» solo con horas y con el boletín y los fichajes de hoy; bajo el reloj solo «Mi horario» y «Notas del día»; «Tiempo libre» antes que «Tiempo»; «Voy a salir» pregunta vehículo personal o de la empresa; y fuera los botones que parecían desactivados sin estarlo, en toda la app
+
+**Fecha:** 2026-10-06 · **Versión:** la asigna el orquestador al fusionar (toca `timetracker` sobre todo, y de paso
+`deliveries` y `recruiting` por la auditoría de botones, y una línea del ERP) · **Migración:** ninguna ·
+**Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-067, D-069, D-116, D-125, D-129, D-136 y D-455, que llevan
+su nota.
+
+### Qué pidió el dueño
+
+Literal, dictado el 2026-10-06, mirando Time Tracker como empleado:
+
+> «En el time tracker vamos a hacer lo siguientes cambios. Vamos a quitar eso que dice mi diario. Eso se le quita al, a los empleados, ¿verdad? Segundo, my request va a ser primero time off y después time. Y así va a ser el orden. Y ya no quiero que queden esos botones así como faded, porque parecen que estuvieran desactivados. Entonces quita eso en toda la app, hace una, una audición de eso y quita todo eso para que no haya botones más faded al menos que si estén bloqueados. En esa gente cuando esté viendo My Week, y le vas a quitar ojo, esto es en Time Tracker y estoy en el, en, en el carro fuente, estoy viendo Employee. Entonces en My Week solo a ellos, a los employees, le vas a quitar Estimated Pay y Pay So Far. En My Week solo vas a dar todo el hours. Y ahí mismo en My Week vas a mover lo que es eh, My Scorecard y Today's Punches. Lo vas a mover ahí. Después en Time Tracker cuando dice This Pay Weeks eso lo vas a eliminar. Solo vas a dejar que ellos miren My Schedule y Daily Notes. También cuando ellos le hacen Clocking eh, Ellos van a poder ven, venir y cuando le pongan going out, ahí le va a preguntar acá abajo si dice visiting errands, trips, eso no quítalo. Eso cuando ellos le pongan going out, ahí le va a aparecer eso. Si es su vehículo personal o vehículo de la empresa. Eh, y así. Entonces quiero que me hagas esas modificaciones.»
+
+Son seis cosas. Todo lo de la vista del empleado (1, 4 y 5) deja al **admin** como estaba: la decisión pasa por
+`timetracker_role === "admin"`, como la barra desde D-066. Un gerente (`manager`) ve la vista del empleado, igual que hoy
+ve la barra del empleado.
+
+### Lo que se midió antes de tocar nada (2026-10-06, en el navegador, demo con arnés)
+
+Time Tracker no tiene modo demo (el layout pide sesión). Se midió con un **arnés temporal, no commiteado**: en `next dev`
+con `ARNES_TT=1`, `next.config.mjs` sustituía `@/lib/supabase/server`, `@/lib/timetracker-data-provider` y las acciones
+de fichaje (`clock`, `leave`, `runner`, `myday`, `notes`, `notifications`, `timeoff`) por dobles en memoria; el rol y el
+tipo de trabajador salían de una cookie. Chrome por CDP, a 390 y 1280 px, temas claro y oscuro, clics de ratón sobre el
+elemento a la vista. Antes de los cambios (código de `main`), como empleado presencial:
+
+- La barra: `Track Time | My Week | My Requests | My Diary`.
+- Debajo del reloj: `Visits, errands & trips | My schedule | Daily notes | My scorecard | Today | This pay week | Today's
+  punches`, más la tarjeta «Today's shift · This pay week 32h 30m / 40h 00m».
+- «Mi semana»: `Total hours 0.00 h | Estimated pay $0.00 | Paid so far $0.00` y «No time logged this week». **El 0,00 h
+  es de verdad lo que veía un presencial**: la pantalla suma sesiones del CRONÓMETRO, y el presencial ficha, no
+  cronometra. Sus horas de la semana solo salían en «This pay week», debajo del reloj — justo lo que hay que quitar.
+- «Mis solicitudes»: `⏱ Time` (activa) y `🗓 Time off`; en tema claro la inactiva salía **casi invisible** (#c6cede sobre
+  blanco: el gris pensado para la barra oscura).
+- Los botones secundarios de Time Tracker (`.btn-ghost`: «Going out», «← Previous», «Cancel», «Adjust time»…) eran un
+  relleno gris `--tt-chip` (#e6ebf5 en claro) con el texto normal: un botón gris claro, que es como se ve uno deshabilitado.
+- En Entregas › Driver track, los días sin reportes de la tira de fechas tenían `opacity: .45` y se pueden pulsar
+  (medido: `op=0.45` en los siete).
+
+### Qué se decidió
+
+**1 · «Mi diario» ya no es del empleado.** Sale de `TABS` (la barra del empleado); el admin la conserva en
+`MANAGER_TABS`. Quien no es admin y abre `/timetracker/diary` (un marcador, un enlace) vuelve a «Registrar tiempo» y no
+ve nada (`puedeVerMiDiario`). Las capturas no se borran ni cambia ningún permiso: es solo la pantalla.
+
+**2 · «Mis solicitudes»: primero «🗓 Tiempo libre», después «⏱ Tiempo», y se abre en «Tiempo libre».** Para todos: es la
+misma pantalla para el admin. El orden vive en `PESTANAS_DE_SOLICITUDES`.
+
+**3 · Botones «desvanecidos»: se corrige en el origen, y apagado solo queda lo que de verdad no se puede pulsar** (o
+está bloqueado, como dijo él). Lista completa en *Auditoría de botones*, abajo.
+
+**4 · «Mi semana» del empleado.**
+- **Sin dinero**: fuera «Pago estimado», «Pagado hasta hoy», la columna «Pago» de la tabla y el aviso «Pagado esta
+  semana». Queda **una cifra: horas totales**.
+- **Las horas son las suyas** (`horasDeLaSemana`): para el remoto, las del cronómetro, como siempre; para el presencial,
+  las **fichadas** de la semana de pago en curso (`getMyDay().weekMinutes`, la misma cifra que salía en «Esta semana de
+  pago»), con la línea «De tus fichajes, viernes → jueves». De una **semana pasada** el presencial ve **«—»** y no un
+  0,00: sus fichajes de semanas pasadas no se leen desde aquí, y un cero se cree (D-136). Las dos mitades no se suman
+  (D-102).
+- La tabla por proyecto y «Entradas de esta semana» son del cronómetro: al presencial **sin sesiones** se le esconden
+  (`verTablasDelCronometro`), porque «No hay tiempo registrado» justo debajo de sus 32,5 h fichadas era contradecirse. Si
+  tiene sesiones (pidió tiempo por «Mis solicitudes»), salen.
+- **«Mi boletín» y «Fichajes de hoy» se mudan aquí**, debajo de la tarjeta de la semana, para el presencial. Al remoto no:
+  nunca los tuvo (el cronómetro no los pinta) y no le dicen nada. La tabla de fichajes es ahora un componente propio,
+  `FichajesDeHoy`, que usan las dos pantallas; aquí sale con «Hoy» y **sin** «Esta semana de pago».
+
+**5 · Debajo del reloj, el empleado solo ve «Mi horario» y «Notas del día»** (`seccionesDeFichar`). Se van la tarjeta
+«Turno de hoy · Esta semana de pago», «Mi boletín» y «Fichajes de hoy». Se queda la tarjeta del reloj y el panel
+«Visitas, mandados y viajes» (el punto 6 dice que eso no se quita). El turno de hoy sigue en «Mi horario», en negrita.
+
+**6 · «Voy a salir» pregunta por el vehículo.** Se lee «acá abajo… visiting errands, trips, eso no quítalo» como el panel
+**«🚗 Visitas, mandados y viajes»**, que sigue donde estaba; y «cuando le pongan going out… si es su vehículo personal o
+vehículo de la empresa» como una pregunta nueva en la ventana de «Voy a salir».
+- La ventana pregunta **primero, a todos**: «¿Vas en tu vehículo personal o en un vehículo de la empresa?», con dos
+  respuestas grandes (`PreguntaDeVehiculo`, las `.motivo` de D-163). **Sin contestar, ni «Sí» ni «No» siguen**: es una
+  pregunta, no un defecto escondido. Antes solo veía algo quien tenía vehículo **asignado** (una casilla «voy en el mío»).
+- **Empresa** → el vehículo (sale elegido el asignado si sigue activo; si no, el primero) y el **cuentakilómetros de
+  salida**, obligatorio y nunca un vacío convertido en 0. **Personal** → nada más. Es la regla del dueño: *«si el
+  empleado está usando el clock in app y se le asigna un vehiculo que si ponga el odometro pero si es su carro personal no
+  need»*.
+- Después, la pregunta de siempre: «¿Vas a visitar a un cliente?». **Sí** → un viaje con `customer_visit` (personal o con
+  el vehículo). **No** → el motivo; con vehículo **personal**, la salida de siempre (`startLeave`); con vehículo **de la
+  empresa**, un **viaje** con ese motivo (`picking_up_supplies` se guarda como `pickup`, el nombre que ya usa el panel).
+- Si la empresa no tiene ningún vehículo activo, «Vehículo de la empresa» sale **deshabilitado de verdad** (`disabled`)
+  y una línea dice por qué. Es el único caso en que esa opción se ve apagada.
+- El panel «Visitas, mandados y viajes» hace **la misma pregunta**, con el mismo componente, en vez de su casilla «Viaje
+  personal»; allí sí sale contestada con el defecto de D-455 (sin vehículo asignado → personal), porque el panel está
+  siempre a la vista y «Empezar viaje» ya se pulsa a propósito. Los dos grupos de radios llevan nombre distinto: con el
+  mismo, marcar uno desmarcaba el otro.
+- Toda la lógica es `planDeSalida` (`src/lib/clockin/visitas.ts`), que sustituye a `planDeVisita`.
+
+### Por qué no hace falta columna nueva (punto 6)
+
+La respuesta queda guardada sin tocar la base. **«Empresa» siempre deja un viaje** (`clockin.vehicle_trips`) con su
+`vehicle_id` y su `start_odometer`; **«personal» con visita** deja un viaje con `vehicle_id` nulo (el «viaje personal»
+de D-136); **«personal» sin visita** deja la salida de siempre (`exceptions`), y una salida sin viaje es, por
+construcción, sin vehículo de la empresa. No se escribió migración ni se ensayó nada contra la base.
+
+Consecuencia que hay que saber: un mandado **en vehículo de la empresa** (antes una salida «🚚 Fuera» en «Fichajes de
+hoy» y en el historial de excepciones) ahora es un **viaje**, como ya pasaba con las visitas desde D-455: sale en el panel
+de viajes y no como fila «Fuera». Es lo único que puede guardar el cuentakilómetros que el dueño pidió.
+
+### Auditoría de botones (punto 3)
+
+Se buscó en todo `src/`: `opacity` en CSS y en estilos en línea, `aria-disabled`, botones con el texto en gris, y las
+clases base de cada app. Lo cambiado, y por qué:
+
+| Dónde | Antes | Ahora | Por qué |
+|---|---|---|---|
+| `timetracker.css` `.btn-ghost` (todo Time Tracker: «Voy a salir», «← Anterior», «Cancelar», tipos de solicitud…) | relleno gris `--tt-chip` | tinte y borde del color de acento | un botón gris claro es como se ve uno deshabilitado; en la barra oscura el borde no se pinta (`.topbar .btn-ghost`) |
+| `timetracker.css` `.tabs button` (pestañas dentro de una pantalla: Tiempo libre/Tiempo, Cronómetro/Fichar, Nómina, Auditoría…) | `#c6cede`, sin fondo | color de texto y borde fino | el gris era el de la barra oscura; sobre blanco la inactiva casi no se veía. Los enlaces de la barra no cambian |
+| `timetracker.css` `.motivo` (opciones de casilla/radio: motivos, vehículo) | heredaban el `label` gris (y en mayúsculas del hub) | texto normal, sin mayúsculas | la opción NO marcada se leía gris, como apagada; ahora la marcada se distingue por borde y fondo |
+| `timetracker.css` `.motivo:has(input:disabled)` | — | `opacity .5` | lo que de verdad no se puede elegir sí se ve apagado |
+| `timetracker.css` `a.tt-me` (tu nombre → Mi cuenta) | `opacity .8` | opaco | es un enlace que funciona |
+| Filas inactivas: Time Tracker › Empleados, Vehículos, Geocercas; Recruiting › Empleados (bajas) | `opacity` sobre la fila entera | clase `.atenuado`: solo el TEXTO en gris | la opacidad apagaba también «Editar», «Encender», «Reactivar», que funcionan |
+| Recruiting › Preguntas (inactivas) y la entrevista (omitidas) | `opacity` sobre el bloque | `.atenuado` | apagaba ▲▼ y «Deshacer» |
+| Recruiting: «Cancelar», «Cerrar», «Quitar», «Editar», «Omitir» (21 botones `btn` con el texto en `--gray`) | texto gris sin fondo | `btn-ghost` | eran botones activos que se leían como deshabilitados |
+| Recruiting: 📌 sin fijar, ✕ de vista guardada, «✕» del teléfono | gris | color de texto | ídem |
+| Entregas › Driver track, días sin reportes | `opacity .45` | borde discontinuo (`.chip-vacio`) | se pueden pulsar; el punto «•» ya dice cuáles tienen datos |
+| Entregas › Mi ruta, paradas entregadas | `opacity .6` sobre el botón de la parada | opaco | se abre igual; el ✓ verde ya dice que está entregada |
+| Aviso de versión nueva, «✕» | `opacity .85` | opaco | es un botón |
+| ERP: «Cancelar»/«cambiar» del enlace a OC, quitar línea de OC | `text-slate-400` | `text-slate-600` | gris muy claro sobre blanco |
+
+**Se dejó apagado a propósito:** todo `:disabled` (`.btn:disabled`, `button:disabled`, Tailwind `disabled:opacity-50`),
+«🧭 Optimizar» con la ruta **bloqueada** 🔒 (D-461: está bloqueada, que es la excepción que dijo el dueño), las tarjetas de
+Leads que tiene otra persona (`.ld-tarjeta.apagado`, bloqueadas; sus botones van en el pie, que no se apaga), el
+estimado de la competencia sin cotización guardada (`aria-disabled` + `pointer-events: none`: bloqueado de verdad),
+`.perm-opt.locked`, la fila que se está **arrastrando** (sombra del gesto) y lo que no es botón (marcas de agua de
+versión, pistas, marcadores del mapa). **No se tocó** `.btn-ghost` del hub (`--accent-soft` con texto de acento): se lee
+como botón en los dos temas. Los ficheros que fusionaron D-487 y D-488 (`AccionesDeParada`, `PanelDeChoferes`,
+`confirm.tsx`, `OrdersTable`, `OrderModal`) se revisaron: usan las clases del hub y no tienen nada apagado.
+
+### Ficheros
+
+`src/lib/timetracker/vista-empleado.ts` (quién ve qué, puro) · `src/lib/timetracker/constants.ts` ·
+`src/components/timetracker/TopBar.tsx` · `src/app/timetracker/(timetracker)/diary/page.tsx` · `…/requests/page.tsx` ·
+`…/week/page.tsx` · `src/components/timetracker/PunchPanel.tsx` · `MySections.tsx` · `FichajesDeHoy.tsx` (nuevo) ·
+`PreguntaDeVehiculo.tsx` (nuevo) · `TripPanel.tsx` · `src/lib/clockin/visitas.ts` (`planDeSalida`) ·
+`src/lib/timetracker/i18n.ts` (5 claves, en y es) · la auditoría: `timetracker.css`, `globals.css`, `people/page.tsx`,
+`VehiclesSection.tsx`, `GeofenceSection.tsx`, `recruiting/(recruiting)/{page,employees/page,questions/page}.tsx`,
+`CandidateRow.tsx`, `InterviewView.tsx`, `ModalHost.tsx`, `(app)/track/page.tsx`, `(app)/my-route/page.tsx`,
+`AppUpdateBanner.tsx`, `erp/po-ingest.tsx`, `erp/po-line-link.tsx`.
+
+### Pruebas y mutantes
+
+`src/lib/timetracker/vista-empleado.test.ts` (23), `src/lib/clockin/visitas.test.ts` (rehecho el bloque del plan: 50) y
+`src/lib/botones-apagados.test.ts` (9, incluida una guarda que recorre todo `src/` buscando `opacity` en línea sobre filas,
+botones y pastillas). Lógica pura y lectura del fuente de quien llama.
+
+**Mutantes: 58 de 58 caen** con una prueba con nombre (tanda en el scratchpad del worker, `tt-empleado/tanda.json`). Uno
+sobrevivió en la primera pasada —«la ventana ya no pregunta el vehículo» (renombrar `<PreguntaDeVehiculo`)— porque la
+prueba solo buscaba el prefijo del nombre; se endureció para exigir el componente con la respuesta y el cuentakilómetros
+conectados al estado del plan, y se añadieron dos mutantes más sobre esa conexión. Ejemplos: «el empleado vuelve a tener la
+barra del admin» → *la barra del empleado no tiene «Mi diario»*; «un gerente cuenta como admin» → *solo el admin es
+admin*; «el presencial vuelve a ver las horas del cronómetro (0,00 h)» → *las horas: el cronómetro para el remoto; los
+fichajes… para el presencial*; «la columna de pago sale sin guarda» → *esconde TODO el dinero detrás de `dinero`*;
+«PunchPanel decide como si todos fueran admin» → *PunchPanel decide con seccionesDeFichar y el rol*; «el vehículo de la
+empresa se trata como personal» → *empresa + visita: lleva ese vehículo y su cuentakilómetros*; «un cuentakilómetros vacío
+pasa como 0» → *…un vacío NO es 0*; «la pregunta nace contestada personal» → *no deja seguir sin contestar*; «.btn-ghost
+vuelve al relleno gris» → *.btn-ghost ya no es el relleno gris*; «la fila inactiva de Empleados vuelve a opacity» →
+*ninguna fila… se apaga con opacity en línea*.
+
+### Visto en el navegador (2026-10-06, arnés de arriba)
+
+Después de los cambios, como empleado presencial (390 y 1280, claro y oscuro): barra `Track Time | My Week | My
+Requests`; debajo del reloj `Visits, errands & trips | My schedule | Daily notes` y nada más; «Mi semana» `32.50 h ·
+Total hours · From your clock-ins, 2026-10-02 → 2026-10-08`, «My scorecard», «Today's punches» con «Today 4h 05m» y sin
+dinero; «Mis solicitudes» `🗓 Time off* | ⏱ Time`. La ventana de «Going out» abre con la pregunta del vehículo, las dos
+opciones en texto normal y «Sí»/«No» deshabilitados hasta contestar. Como **admin**: su barra con «My Diary», «Mi semana»
+con `Total hours | Estimated pay | Paid so far` y la columna «Pay», y debajo del reloj (vista Fichar) la semana de pago,
+el boletín y los fichajes de hoy — como antes. En Entregas › Driver track, los días sin reportes pasan de `opacity 0.45`
+a borde discontinuo y opacos.
+
+### No verificado
+
+- **Nada contra la base de verdad ni en un teléfono.** Las acciones (`startTrip`, `startLeave`, `getMyDay`) se
+  ejercitaron con dobles; las reales no cambiaron. Que `startTrip` acepte un `reason` como `delivery`/`pickup` desde la
+  ventana se apoya en que la columna es `text` (072), leído, no ejecutado.
+- **Recruiting y el ERP no se vieron en el navegador** (no tienen modo demo): sus cambios son de clase/color y los cubren
+  las pruebas de fuente.
+- El «—» de semanas pasadas del presencial es deliberado pero no ideal: para enseñarle sus horas fichadas de semanas
+  anteriores haría falta una acción nueva que lea sus `time_entries` por periodo (hoy `getEmployeeWeek` es solo de gerente).
+- El aviso de hidratación «Loading…/Cargando…» de la pantalla de fichar en español (D-455) sigue igual.

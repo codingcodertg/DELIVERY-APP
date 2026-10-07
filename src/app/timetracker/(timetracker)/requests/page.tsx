@@ -7,6 +7,7 @@ import { APP_SETTINGS, dateISO, fmtClock, weekIsFinished, weekStartISO } from "@
 import { endOptions, mmhh, rangeOverlapsAny, startOptions, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import type { RequestType } from "@/lib/timetracker/types";
 import { TimeOffRequests } from "@/components/timetracker/TimeOffRequests";
+import { PESTANA_DE_SOLICITUD_INICIAL, PESTANAS_DE_SOLICITUDES, type PestanaDeSolicitud } from "@/lib/timetracker/vista-empleado";
 
 // Ported (D-066, pass 3) from timetracker-clean's employee/EmployeeRequests.jsx —
 // a form to ask a manager to add/adjust/delete a time entry, plus a list of
@@ -42,7 +43,9 @@ export default function MyRequestsPage() {
   // Claves literales (no construidas) para que la prueba de claves de D-187 las vea.
   const label = (rt: RequestType) => rt === "add" ? t("emp.req.typeAdd") : rt === "adjust" ? t("emp.req.typeAdjust") : t("emp.req.typeDelete");
   const aMap = new Map(assignments.map((a) => [a.id, a]));
-  const [tab, setTab] = useState<"time" | "off">("time");
+  // Primero «Tiempo libre» y después «Tiempo» (D-NEXT, pedido del dueño): el orden y la que se
+  // abre salen de PESTANAS_DE_SOLICITUDES.
+  const [tab, setTab] = useState<PestanaDeSolicitud>(PESTANA_DE_SOLICITUD_INICIAL);
   const [type, setType] = useState<RequestType>("add");
   const blank: FormState = { assignmentId: "", date: dateISO(new Date()), fromTime: "", toTime: "", sessionId: "", reason: "" };
   const [f, setF] = useState<FormState>(blank);
@@ -139,8 +142,11 @@ export default function MyRequestsPage() {
   return (
     <>
       <div className="tabs" style={{ marginBottom: 12 }}>
-        <button className={tab === "time" ? "active" : ""} onClick={() => setTab("time")}>{t("emp.req.tabTime")}</button>
-        <button className={tab === "off" ? "active" : ""} onClick={() => setTab("off")}>{t("emp.req.tabOff")}</button>
+        {PESTANAS_DE_SOLICITUDES.map((p) => (
+          <button key={p} className={tab === p ? "active" : ""} onClick={() => setTab(p)}>
+            {p === "off" ? t("emp.req.tabOff") : t("emp.req.tabTime")}
+          </button>
+        ))}
       </div>
 
       {tab === "off" ? <TimeOffRequests /> : (

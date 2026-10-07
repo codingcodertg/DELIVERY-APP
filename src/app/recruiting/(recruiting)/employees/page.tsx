@@ -164,7 +164,7 @@ export default function EmployeeFilesPage() {
                 const sinLlenar = camposQueFaltan(r, con159);
                 const deBaja = estadoEmpleado(r) === "baja";
                 return (
-                  <tr key={r.id} data-fila={r.id} style={deBaja ? { opacity: 0.75 } : undefined}>
+                  <tr key={r.id} data-fila={r.id} className={deBaja ? "atenuado" : undefined}>
                     <td style={{ fontWeight: 700 }}>
                       {r.full_name}
                       {deBaja && (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MANAGER_TABS, TABS } from "@/lib/timetracker/constants";
+import { pestanasPara } from "@/lib/timetracker/vista-empleado";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { usePrefs } from "@/lib/prefs";
@@ -29,7 +29,8 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
   // El idioma también sale de aquí (D-266): es uno para todas las apps y lo guarda el proveedor.
   // Cambiarlo avisa a useT(), que vuelve a pintar esta barra y el resto de Time Tracker.
   const { theme, toggleTheme, lang, toggleLang } = usePrefs();
-  const tabs = me.role === "admin" ? MANAGER_TABS : TABS;
+  // Admin: MANAGER_TABS. Empleado: TABS, ya sin «Mi diario» (D-NEXT).
+  const tabs = pestanasPara(me.role);
 
   return (
     <div className="topbar">

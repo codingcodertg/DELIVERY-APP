@@ -366,7 +366,7 @@ export function PoIngest({ vendors }: { vendors: Vendor[] }) {
                     <button
                       type="button"
                       onClick={() => setLines((p) => p.filter((_, j) => j !== i))}
-                      className="rounded px-2 py-1 text-xs text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-red-50 hover:text-red-600"
                       aria-label={t("Remove line", "Quitar línea")}
                     >
                       ✕

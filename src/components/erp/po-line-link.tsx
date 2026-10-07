@@ -108,7 +108,7 @@ export function PoLineLink({
         {t("Remember this vendor SKU → product (auto-match future imports)", "Recordar este SKU del proveedor → producto (casa solo las próximas importaciones)")}
       </label>
       {err && <p className="px-1 text-xs text-red-600">{err}</p>}
-      <button type="button" onClick={() => setOpen(false)} className="mt-1 px-1 text-[11px] text-slate-400 hover:text-slate-600">{t("Cancel", "Cancelar")}</button>
+      <button type="button" onClick={() => setOpen(false)} className="mt-1 px-1 text-[11px] text-slate-600 hover:text-slate-800">{t("Cancel", "Cancelar")}</button>
     </div>
   );
 
@@ -116,7 +116,7 @@ export function PoLineLink({
     return (
       <span className="relative inline-flex items-center gap-1">
         <Link href={`/erp/product/${productId}`} className="text-clay-700 hover:underline">{label} ↗</Link>
-        {canEdit && <button type="button" onClick={openPicker} className="text-[11px] text-slate-400 hover:text-slate-600">{t("change", "cambiar")}</button>}
+        {canEdit && <button type="button" onClick={openPicker} className="text-[11px] text-slate-600 hover:text-slate-800">{t("change", "cambiar")}</button>}
         {picker}
       </span>
     );

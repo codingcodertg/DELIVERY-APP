@@ -5,6 +5,7 @@ import { startTrip, endTrip, finishStop, type getMyTrip } from "@/app/timetracke
 import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
 import { viajePersonalPorDefecto } from "@/lib/clockin/visitas";
+import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo";
 
 /**
  * Los viajes de vehículo, dentro de Registrar tiempo (D-136).
@@ -138,27 +139,20 @@ export function TripPanel({
 
       {!d.trip ? (
         <>
-          {/* `.motivo` y no `.perm-opt`: la clase del hub, bajo la hoja de Time Tracker, estiraba la
-              casilla al 100 % y dejaba el texto debajo (medido en el navegador, D-455). */}
-          <label className={"motivo" + (personal ? " on" : "")} style={{ marginTop: 8, textTransform: "none" }}>
-            <input type="checkbox" checked={personal} onChange={(e) => setPersonal(e.target.checked)} />
-            {t("emp.trip.ownVehicle")}
-          </label>
-
-          {!personal && (
-            <div className="grid g2">
-              <div>
-                <label>{t("emp.trip.vehicle")}</label>
-                <select value={vehiculo} onChange={(e) => setVehiculo(e.target.value)}>
-                  {d.vehicles.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label>{t("emp.trip.odoOut")}</label>
-                <input inputMode="numeric" value={odoIni} onChange={(e) => setOdoIni(e.target.value)} placeholder={t("emp.trip.miles")} />
-              </div>
-            </div>
-          )}
+          {/* La misma pregunta que la ventana de «Voy a salir» (D-NEXT): personal o de la empresa,
+              con dos respuestas y no una casilla. Aquí sí sale contestada de entrada con el
+              defecto de D-455 (sin vehículo asignado → personal), porque el panel se ve siempre y
+              el botón «Empezar viaje» ya pide pulsarlo a propósito. */}
+          <PreguntaDeVehiculo
+            nombre="vehiculo-viaje"
+            valor={personal ? "personal" : "empresa"}
+            onValor={(v) => setPersonal(v === "personal")}
+            vehiculos={d.vehicles}
+            vehiculoId={vehiculo || null}
+            onVehiculoId={setVehiculo}
+            odometro={odoIni}
+            onOdometro={setOdoIni}
+          />
 
           <div className="grid g2">
             <div>

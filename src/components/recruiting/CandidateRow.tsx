@@ -213,13 +213,13 @@ export function CandidateRow({
         </button>
         {c.interview && <button className="btn btn-ghost btn-sm" onClick={() => ui.openInterviewView(c.id)}>👁 {t("View interview", "Ver entrevista")}</button>}
         {c.interview && <button className="btn btn-green btn-sm" onClick={() => ui.openResume(c.id)}>📋 {t("Summary", "Resumen")}</button>}
-        <button className="btn btn-sm" style={{ color: "var(--gray)" }} onClick={() => ui.openEdit(c.id)}>✏️ {t("Edit", "Editar")}</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => ui.openEdit(c.id)}>✏️ {t("Edit", "Editar")}</button>
         {c.resume_name ? (
           <span style={{ display: "inline-flex", gap: 4 }}>
             <button className="btn btn-ghost btn-sm" title={c.resume_name} onClick={() => openResumeFile(c.id)}>
               📎 CV
             </button>
-            <button className="btn btn-sm" style={{ color: "var(--gray)" }} title={t("Remove CV", "Quitar CV")} onClick={() => { if (confirm(t("Remove attached CV?", "¿Quitar el CV adjunto?"))) removeResume(c.id); }}>✕</button>
+            <button className="btn btn-ghost btn-sm" title={t("Remove CV", "Quitar CV")} onClick={() => { if (confirm(t("Remove attached CV?", "¿Quitar el CV adjunto?"))) removeResume(c.id); }}>✕</button>
           </span>
         ) : (
           <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer", margin: 0 }}>
@@ -239,7 +239,7 @@ export function CandidateRow({
         >
           ⚖ {inCompare ? t("Selected", "Elegido") : t("Compare", "Comparar")}
         </button>
-        <button className="btn btn-sm" style={{ color: c.pinned ? "var(--accent)" : "var(--gray)" }} title={t("Pin to top", "Fijar arriba")} onClick={() => updateCandidate(c.id, { pinned: !c.pinned })}>
+        <button className="btn btn-sm" style={{ color: c.pinned ? "var(--accent)" : "var(--text)" }} title={t("Pin to top", "Fijar arriba")} onClick={() => updateCandidate(c.id, { pinned: !c.pinned })}>
           📌 {c.pinned ? t("Pinned", "Fijado") : t("Pin", "Fijar")}
         </button>
         {recruiters.length > 0 && (

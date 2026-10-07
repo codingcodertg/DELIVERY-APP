@@ -215,7 +215,7 @@ export default function QuestionsPage() {
                 <input value={rename} autoFocus onChange={(e) => setRename(e.target.value)} style={{ width: 220 }}
                   onKeyDown={(e) => { if (e.key === "Enter") { updateQuestionSet(activeSet.id, { name: rename.trim() || activeSet.name }); setRenaming(false); } }} />
                 <button className="btn btn-primary btn-sm" onClick={() => { updateQuestionSet(activeSet.id, { name: rename.trim() || activeSet.name }); setRenaming(false); }}>{t("Save", "Guardar")}</button>
-                <button className="btn btn-sm" style={{ color: "var(--gray)" }} onClick={() => setRenaming(false)}>{t("Cancel", "Cancelar")}</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setRenaming(false)}>{t("Cancel", "Cancelar")}</button>
               </>
             ) : (
               <>
@@ -272,7 +272,7 @@ export default function QuestionsPage() {
               placeholder={"English\tSpanish\tRole\nTell me about your experience\tCuéntame sobre tu experiencia\tSales"} />
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <button className="btn btn-primary btn-sm" onClick={runImport}>{t("Import into this set", "Importar a este conjunto")}</button>
-              <button className="btn btn-sm" style={{ color: "var(--gray)" }} onClick={() => { setShowImport(false); setImportText(""); }}>{t("Cancel", "Cancelar")}</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setShowImport(false); setImportText(""); }}>{t("Cancel", "Cancelar")}</button>
             </div>
           </div>
         )}
@@ -297,8 +297,7 @@ export default function QuestionsPage() {
           {setQuestions.map((q, i) => (
             <div
               key={q.id}
-              className="q-block"
-              style={{ opacity: q.active ? 1 : 0.5 }}
+              className={"q-block" + (q.active ? "" : " atenuado")}
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <div style={{ flex: "0 0 20px", display: "flex", flexDirection: "column", gap: 2, alignSelf: "flex-start", paddingTop: 2 }}>
