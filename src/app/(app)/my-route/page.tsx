@@ -8,6 +8,8 @@ import { canDeliver } from "@/lib/constants";
 import { captureLocationSplit } from "@/lib/geo";
 import { accionParada, escrituraRecogida, extraEntrega } from "@/lib/one-tap-stop";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
+import { AccionesDeParada } from "@/components/AccionesDeParada";
+import { marcasDeParadas } from "@/lib/acciones-parada";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
 import { routeOrder } from "@/lib/dispatch";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
@@ -40,7 +42,7 @@ import { cargaDe, etiquetaDeCarga, hermanasDe } from "@/lib/cargas-partidas";
 const DEFAULT_CAPACITY = 12;
 
 export default function MyRoutePage() {
-  const { me, deliveries, settings, driverLocations, ready, setStage, updateDelivery, notify } = useData();
+  const { me, deliveries, events, settings, driverLocations, ready, setStage, updateDelivery, notify } = useData();
   const { t, lang } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
   // Un solo disparo por toque: mientras la escritura va, el botón queda deshabilitado. Guarda
@@ -131,7 +133,9 @@ export default function MyRoutePage() {
   const done = stops.filter((d) => d.stage === "delivered").length;
   // The one stop that matters right now: first in sequence still to finish. La MISMA función decide a quién va el
   // aviso «en camino» en el servidor (D-416): lo que el chofer ve como siguiente es lo que se avisa.
-  const next = siguienteParada(stops);
+  // Saltadas y rechazadas (D-NEXT) salen del historial: una saltada cede el turno, una rechazada no es «siguiente».
+  const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
+  const next = siguienteParada(stops, marcas);
 
   const storeMarkers = useStoreMarkers(settings.stores);
 
@@ -234,6 +238,10 @@ export default function MyRoutePage() {
     });
     return out;
   }, [stops, next, dDe]);
+  // Los botones de cada parada (D-NEXT): qué sale lo decide `accionesDeParada`, dentro del componente.
+  const accionesDe = (d: Delivery, tipo: "P" | "D", sinPrincipal = false) => (
+    <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} guardando={guardando === d.id} cerrar={(x) => void cerrarParada(x)} sinPrincipal={sinPrincipal} />
+  );
 
   // Their own truck, so they can see where they are against the plan.
   const liveDrivers = useMemo(() => {
@@ -387,6 +395,8 @@ export default function MyRoutePage() {
                   es la excepción, no la acción normal, y el pulgar del chofer va al botón verde.
                   El control se enseña solo si procede —pedido en el camión y suyo—, así que aquí
                   no se repite ninguna condición. */}
+              {/* Saltar y Rechazado (D-NEXT), con su marca si la tiene. El verde de arriba sigue siendo la acción principal. */}
+              {accionesDe(next, next.stage === "picked_up" ? "D" : "P", true)}
               {me && (
                 <div style={{ display: "flex", marginTop: 8 }}>
                   <LeaveAtStore pedido={next} me={me} style={{ flex: 1, justifyContent: "center" }} />
@@ -457,7 +467,23 @@ export default function MyRoutePage() {
                         <b style={{ flex: "0 0 auto", minWidth: 26 }}>{f.etiqueta}</b>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
-                          <span className="hint" style={{ display: "block" }}>{(f.tipo === "P" ? f.ordenes : [f.orden]).map((id) => nombraLaOrden(deliveries, id, lang === "es")).join(" · ")}</span>
+                          {f.tipo === "P" ? (
+                            // Cada carga de la recogida, con sus botones (D-NEXT): «Recogido» y «Saltar», orden por orden.
+                            f.ordenes.map((id) => {
+                              const d = stops.find((x) => x.id === id);
+                              return (
+                                <span key={id} data-recogida={id} style={{ display: "block", marginTop: 6 }}>
+                                  <span className="hint" style={{ display: "block" }}>
+                                    {d && (d.stage === "picked_up" || d.stage === "delivered") ? "✓ " : ""}{nombraLaOrden(deliveries, id, lang === "es")}
+                                    {d && d.stage !== "ready" && d.stage !== "picked_up" && d.stage !== "delivered" ? ` · ${t("not ready yet", "aún no está lista")}` : ""}
+                                  </span>
+                                  {d && accionesDe(d, "P")}
+                                </span>
+                              );
+                            })
+                          ) : (
+                            <span className="hint" style={{ display: "block" }}>{nombraLaOrden(deliveries, f.orden, lang === "es")}</span>
+                          )}
                           {lineaDeCuenta}
                         </span>
                       </div>
@@ -467,13 +493,15 @@ export default function MyRoutePage() {
                     const n = dDe.get(d.id) ?? f.etiqueta;
                     const isDone = d.stage === "delivered";
                     const isNext = next?.id === d.id;
+                    // La fila ya no es un solo botón: lleva los suyos (D-NEXT), y un botón dentro de otro no existe en HTML.
+                    // Tocar el número o el texto sigue abriendo la orden.
                     return (
-                      <button
+                      <div
                         key={d.id}
                         className="acct-row"
-                        onClick={() => setOpen(d)}
+                        data-entrega={d.id}
                         style={{
-                          textAlign: "left", cursor: "pointer", alignItems: "flex-start",
+                          alignItems: "flex-start",
                           background: isNext ? "var(--accent-soft)" : undefined,
                           opacity: isDone ? 0.6 : 1,
                         }}
@@ -487,6 +515,7 @@ export default function MyRoutePage() {
                           {isDone ? "✓" : n}
                         </span>
                         <span style={{ flex: 1, minWidth: 0 }}>
+                          <button onClick={() => setOpen(d)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
                           <span style={{ fontWeight: 700, display: "block" }}>
                             {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}{etiquetaDeLaCarga(d)}
                           </span>
@@ -499,8 +528,10 @@ export default function MyRoutePage() {
                             {d.order_type ? ` · ${d.order_type}` : ""}
                           </span>
                           {lineaDeCuenta}
+                          </button>
+                          {accionesDe(d, "D")}
                         </span>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

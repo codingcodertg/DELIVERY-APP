@@ -186,11 +186,11 @@ describe("las pantallas", () => {
 
   it("Órdenes (y Recepción, la Cola y el Gestor, que usan su tabla): las dos pastillas de la fila salen de `pastillaDeEtapa`", () => {
     expect(tabla).toContain("const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);");
-    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas };");
+    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas };");
     // la columna Etapa
-    expect(tabla).toContain("cell: (d, { lang, motivos, recibidas }) => { const p = pastillaDeEtapa(d, recibidas, lang);");
+    expect(tabla).toContain("cell: (d, { lang, motivos, recibidas, marcas }) => { const p = pastillaDeEtapa(d, recibidas, lang);");
     // la cabecera de la fila (la tarjeta del teléfono)
-    expect(tabla).toContain("cell: (d, { lang, byInvoice, recibidas }) => { const s = pastillaDeEtapa(d, recibidas, lang);");
+    expect(tabla).toContain("cell: (d, { lang, byInvoice, recibidas, marcas }) => { const s = pastillaDeEtapa(d, recibidas, lang);");
     expect(tabla).not.toContain("stageInfo(d.stage)");
   });
 

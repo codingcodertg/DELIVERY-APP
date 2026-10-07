@@ -280,7 +280,7 @@ describe("la página del Gestor", () => {
   it("D-376: «Sin asignar» pinta, ordena y filtra las de Órdenes con las funciones de Órdenes", () => {
     expect(pagina).toContain('import { ORDER_COLUMNS } from "@/components/OrdersTable";');
     // D-409: el contexto lleva además `recibidas`, para que la columna de Etapa pinte «Received» como en Órdenes.
-    expect(pagina).toContain("const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas }), [lang, t, settings, recibidas]);");
+    expect(pagina).toContain("const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas, marcas: marcasDeParada }), [lang, t, settings, recibidas, marcasDeParada]);");
     expect(pagina).toContain("const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);");
     expect(pagina).toContain("const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);");
     // D-423: con las ciudades conocidas, las mismas que la celda.

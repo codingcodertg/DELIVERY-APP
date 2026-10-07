@@ -157,6 +157,9 @@ export interface DataState {
   eventsFor: (deliveryId: string) => OrderEvent[];
   /** Append a free-text note to an order's activity thread. */
   addNote: (deliveryId: string, text: string) => Promise<void>;
+  /** Deja en el historial un gesto del chofer que NO cambia la etapa: saltar, retomar o «rechazada por el cliente»
+   *  (D-NEXT, `lib/acciones-parada.ts`). `true` si quedó guardado. */
+  marcarParada: (deliveryId: string, kind: string, note: string | null) => Promise<boolean>;
 
   // settings
   saveSettings: (patch: Partial<Settings>) => Promise<void>;
@@ -1488,6 +1491,26 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, me, notify, teaching],
   );
 
+  const marcarParada = useCallback<DataState["marcarParada"]>(
+    async (deliveryId, kind, note) => {
+      const ev: OrderEvent = {
+        id: `teach-ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        delivery_id: deliveryId, kind, note, created_by: me?.id ?? null, created_at: new Date().toISOString(),
+      };
+      // Modo enseñanza: solo en la capa local, como las notas.
+      if (teaching) { setOverlay((o) => ({ ...o, events: [ev, ...o.events] })); return true; }
+      const { data, error } = await supabase
+        .from("order_events")
+        .insert({ delivery_id: deliveryId, kind, note, created_by: me?.id ?? null })
+        .select()
+        .single();
+      if (error) { notify("Error: " + error.message); return false; }
+      setEvents((prev) => (prev.some((e) => e.id === (data as OrderEvent).id) ? prev : [data as OrderEvent, ...prev]));
+      return true;
+    },
+    [supabase, me, notify, teaching],
+  );
+
   // ---------------- Notifications ----------------
   const markNotifRead = useCallback<DataState["markNotifRead"]>(
     async (id) => {
@@ -1969,7 +1992,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const value: DataState = {
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,

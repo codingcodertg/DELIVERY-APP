@@ -61,6 +61,7 @@ import {
 import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
 import { idsRecibidasPorAlmacen } from "@/lib/recibir";
+import { marcasDeParadas } from "@/lib/acciones-parada";
 import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, valorDeColumnas, type ClienteDePrefs, type ColumnasPorRol, type PlantillaDeColumnas } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -1157,7 +1158,9 @@ export default function RoutesPage() {
   // con el mismo contexto con que Órdenes las llama (idioma, traducción y motivos de anulación).
   // `recibidas`: la columna de Etapa pinta «Received» en las que recibió almacén (D-409), como en Órdenes.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
-  const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas }), [lang, t, settings, recibidas]);
+  // Saltadas hoy y rechazadas por el cliente (D-NEXT): la misma pastilla que en Órdenes, en la columna de Etapa.
+  const marcasDeParada = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
+  const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas, marcas: marcasDeParada }), [lang, t, settings, recibidas, marcasDeParada]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
   // Las ciudades conocidas para leer una dirección escrita sin comas (D-423, `ciudadDeEntrega`): las que salen limpias de
   // las órdenes cargadas y de las tiendas, y las zonas de los choferes. La misma lista para la celda, el orden y el filtro.
