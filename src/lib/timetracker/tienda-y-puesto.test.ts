@@ -8,7 +8,7 @@ import {
   necesitaProyecto, nombreDeLinea, resolverTiendaYPuesto, seOfreceParaAsignar, tiendaYPuesto,
 } from "./tienda-y-puesto";
 
-// D-NEXT. El dueño, 2026-10-07: «la gente que está presencial, no ocupa que se les asignen proyectos
+// D-493. El dueño, 2026-10-07: «la gente que está presencial, no ocupa que se les asignen proyectos
 // […] el proyecto de ellos prácticamente es la tienda y el puesto que ellos tienen». La regla pura y,
 // leyendo el fuente, que cada pantalla que pedía, avisaba o listaba un proyecto la USA.
 

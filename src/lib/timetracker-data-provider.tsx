@@ -424,7 +424,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const reloadAdmin = useCallback(async () => {
     if (!isAdmin) return;
     await ensureSession();
-    // Las dos últimas son la tienda y el puesto de FICHAJE de cada persona (D-NEXT): el «proyecto»
+    // Las dos últimas son la tienda y el puesto de FICHAJE de cada persona (D-493): el «proyecto»
     // del presencial, que sale donde al remoto le sale el proyecto. Misma regla que el layout para la
     // propia persona (`resolverTiendaYPuesto`), así que el gerente y el empleado leen lo mismo.
     const [pf, es, pr, asn, rq, au, fichas, sitios] = await Promise.all([

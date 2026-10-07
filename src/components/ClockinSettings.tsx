@@ -59,7 +59,7 @@ type Site = { id: string; name: string };
 type Vehicle = { id: string; name: string; plate: string | null; active: boolean };
 
 // Los textos de los puestos y el que se enseña cuando nadie lo puso viven en `tienda-y-puesto.ts`
-// desde D-NEXT: para un presencial, «tienda · puesto» es su proyecto en Time Tracker, y lo que se ve
+// desde D-493: para un presencial, «tienda · puesto» es su proyecto en Time Tracker, y lo que se ve
 // aquí tiene que ser exactamente lo que sale allí.
 const POSITION_LABELS = ETIQUETAS_DE_PUESTO;
 

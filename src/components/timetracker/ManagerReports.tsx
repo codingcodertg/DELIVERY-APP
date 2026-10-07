@@ -86,7 +86,7 @@ export function ManagerReports({ period }: { period: string }) {
   const pMap = new Map(projects.map((p) => [p.id, p]));
   const aMap = new Map(assignments.map((a) => [a.id, a]));
 
-  // Las horas de un presencial sin proyecto salen bajo su tienda y su puesto (D-NEXT), en la tabla,
+  // Las horas de un presencial sin proyecto salen bajo su tienda y su puesto (D-493), en la tabla,
   // el detalle, el CSV y el recibo; las de un remoto sin proyecto, «(deleted)» como siempre.
   const lang = getLang();
   const nombreDe = (a: Assignment | undefined, uid: string, sinProyecto: string) =>
@@ -227,7 +227,7 @@ export function ManagerReports({ period }: { period: string }) {
   }
   async function addManualEntry(uid: string) {
     const emp = uMap.get(uid);
-    // Al presencial no se le pide proyecto (D-NEXT): sin elegir, la entrada va a su tienda y su puesto.
+    // Al presencial no se le pide proyecto (D-493): sin elegir, la entrada va a su tienda y su puesto.
     if ((!nadd.assignmentId && necesitaProyecto(emp)) || !nadd.from || !nadd.to) { alert(t("mgr.rep.addPrompt")); return; }
     const a = nadd.assignmentId ? aMap.get(nadd.assignmentId) : undefined;
     if (nadd.assignmentId && !a) return;

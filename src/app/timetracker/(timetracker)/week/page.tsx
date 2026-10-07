@@ -86,7 +86,7 @@ export default function MyWeekPage() {
     const hours = v.sec / 3600;
     const calc = a ? computePay(hours, a) : { pay: 0, reg: 0, ot: 0, overLimit: 0 };
     totalPay += calc.pay; totalSec += v.sec;
-    // Sin proyecto, el presencial ve su tienda y su puesto (D-NEXT); el remoto, «(proyecto eliminado)».
+    // Sin proyecto, el presencial ve su tienda y su puesto (D-493); el remoto, «(proyecto eliminado)».
     const proj = { name: nombreDeLinea(a?.project.name, me, lang, t("emp.week.deletedProject")) };
     return { aid, proj, sec: v.sec, calc };
   });

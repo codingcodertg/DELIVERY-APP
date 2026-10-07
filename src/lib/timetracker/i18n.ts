@@ -496,7 +496,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.req.typeAdjust': 'Adjust time',
     'emp.req.typeDelete': 'Delete time',
     'emp.req.pickProject': 'Pick a project.',
-    // El presencial no necesita proyecto (D-NEXT): su proyecto es su tienda y su puesto.
+    // El presencial no necesita proyecto (D-493): su proyecto es su tienda y su puesto.
     'emp.req.yourStore': '{label} — your store and your position',
     'emp.req.inhouseHint': "You work in-house, so you don't need a project: your time goes to your store and your position.",
     'mgr.asn.inhouseTitle': 'In-house — their store and their position',
@@ -1387,7 +1387,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.req.typeAdjust': 'Ajustar tiempo',
     'emp.req.typeDelete': 'Borrar tiempo',
     'emp.req.pickProject': 'Elige un proyecto.',
-    // El presencial no necesita proyecto (D-NEXT): su proyecto es su tienda y su puesto.
+    // El presencial no necesita proyecto (D-493): su proyecto es su tienda y su puesto.
     'emp.req.yourStore': '{label} — tu tienda y tu puesto',
     'emp.req.inhouseHint': 'Trabajas presencial, así que no necesitas proyecto: tu tiempo va a tu tienda y tu puesto.',
     'mgr.asn.inhouseTitle': 'Presencial — su tienda y su puesto',

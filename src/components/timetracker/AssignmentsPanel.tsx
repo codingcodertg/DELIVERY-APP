@@ -25,7 +25,7 @@ import { Modal } from "./Modal";
  * `timetracker_role`, sin filtro de tienda y sin excluir inactivos. La sección de Horario
  * usa OTRA lista, acotada por tienda (D-127). No se unifican a propósito: ver D-186.
  *
- * Con una excepción, a propósito (D-NEXT): el desplegable de «Nueva asignación» no ofrece al
+ * Con una excepción, a propósito (D-493): el desplegable de «Nueva asignación» no ofrece al
  * PRESENCIAL, que no necesita proyecto —su proyecto es su tienda y su puesto—. No desaparece en
  * silencio, que es lo que D-186 temía: sale en su propia tarjeta, debajo, con su tienda y su
  * puesto; y si ya tuviera una asignación, se ve marcada y se puede editar o quitar.
@@ -84,7 +84,7 @@ export function AssignmentsPanel() {
   const pMap = new Map(projects.map((p) => [p.id, p]));
   const uMap = new Map(users.map((u) => [u.id, u]));
 
-  // El presencial no necesita proyecto (D-NEXT): para él el proyecto es su tienda y su puesto. No se
+  // El presencial no necesita proyecto (D-493): para él el proyecto es su tienda y su puesto. No se
   // le ofrece en «Nueva asignación» —sale aparte, con los dos— salvo para editar una que ya tenga.
   const lang = getLang();
   const editandoA = editId ? assignments.find((a) => a.id === editId)?.employeeUid ?? null : null;

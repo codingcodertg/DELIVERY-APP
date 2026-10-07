@@ -44,7 +44,7 @@ export default function MyRequestsPage() {
   // Claves literales (no construidas) para que la prueba de claves de D-187 las vea.
   const label = (rt: RequestType) => rt === "add" ? t("emp.req.typeAdd") : rt === "adjust" ? t("emp.req.typeAdjust") : t("emp.req.typeDelete");
   const aMap = new Map(assignments.map((a) => [a.id, a]));
-  // El presencial no necesita proyecto (D-NEXT): «Agregar tiempo» no se lo pide y, donde al remoto le
+  // El presencial no necesita proyecto (D-493): «Agregar tiempo» no se lo pide y, donde al remoto le
   // sale el proyecto, a él le sale su tienda y su puesto. Al remoto no le cambia nada.
   const lang = getLang();
   const campo = campoDeProyecto(me, assignments.length);

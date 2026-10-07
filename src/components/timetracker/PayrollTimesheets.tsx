@@ -93,7 +93,7 @@ export function PayrollTimesheets({ period, revisar }: {
   const tiendaNombre = new Map(d.stores.map((s) => [s.key, s.name]));
   const gente = new Map(d.people.map((p) => [p.id, p]));
   // Las horas del presencial ya van bajo su tienda (el «📍» del grupo); al lado del nombre, su puesto:
-  // tienda y puesto son su proyecto (D-NEXT). Al remoto que ficha no se le pone nada.
+  // tienda y puesto son su proyecto (D-493). Al remoto que ficha no se le pone nada.
   const lang = getLang();
   const empleados = new Map(allEmployees.map((u) => [u.id, u]));
   const puestoDe = (id: string) => {

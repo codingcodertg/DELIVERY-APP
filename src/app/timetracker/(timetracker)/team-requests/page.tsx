@@ -42,7 +42,7 @@ export default function TeamRequestsPage() {
     type === "add" ? t("reqtype.add") : type === "adjust" ? t("reqtype.adjust") : type === "delete" ? t("reqtype.delete") : "—";
   const aMap = new Map(assignments.map((a) => [a.id, a]));
   const pMap = new Map(projects.map((p) => [p.id, p]));
-  // Sin proyecto: el presencial pide tiempo sin él (D-NEXT) y aquí sale su tienda y su puesto; el
+  // Sin proyecto: el presencial pide tiempo sin él (D-493) y aquí sale su tienda y su puesto; el
   // remoto, «—» como siempre.
   const uMap = new Map(allEmployees.map((u) => [u.id, u]));
   const lang = getLang();

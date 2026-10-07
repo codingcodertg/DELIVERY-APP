@@ -4239,7 +4239,7 @@ solo deja la parte de vehiculo"*)
 > usa el suyo»). Y la sección gana el **tipo de trabajador** (presencial / remoto), que solo estaba en Time Tracker › People, con
 > el estado de las dos mitades dicho en claro. Sale aunque no haya ficha de fichaje.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-07): `position` ya no la lee solo el tablero de Cobertura. En Time Tracker es la
+> **Reemplazada en parte por D-493** (2026-10-07): `position` ya no la lee solo el tablero de Cobertura. En Time Tracker es la
 > mitad «puesto» de «tienda · puesto», que es el proyecto del presencial. Y el puesto vacío —que la ficha pinta como «Ventas»— es
 > ahora una constante compartida (`PUESTO_POR_DEFECTO`, en `tienda-y-puesto.ts`) para que la ficha y Time Tracker digan lo mismo.
 
@@ -5810,7 +5810,7 @@ es lo que le va a aparecer, y para admin puede ver ambos views"*)
 > **Ampliada por D-455** (2026-10-01): `worker_type` ya no se elige solo en Employees (Time Tracker › People): también en
 > **Usuarios del hub**, en la sección Time Tracker de la ficha, que además dice qué tipo se le aplica a quien nadie configuró.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-07): un admin **presencial** abre «Registrar tiempo» en el reloj de fichaje, no en
+> **Reemplazada en parte por D-493** (2026-10-07): un admin **presencial** abre «Registrar tiempo» en el reloj de fichaje, no en
 > el cronómetro (el selector sigue arriba), y en el cronómetro no le sale el aviso «pídele a tu gerente que te asigne un
 > proyecto»: el presencial no necesita proyecto. El admin remoto, como aquí.
 
@@ -7990,7 +7990,7 @@ memoria y listeners, no comportamiento.
 
 **Fecha:** 2026-09-04 · **Versión:** las cinco apps (deliveries 1.57.0, recruiting 0.14.0, timetracker 0.52.0, clockin 0.39.0, erp 0.4.0), package.json 1.112.0 (timetracker y package.json) · **Pedido por:** Andrés · **Plan previo:** `docs/PLAN-horario-en-asignaciones.md`
 
-> **Reemplazada en parte por D-NEXT** (2026-10-07): el desplegable de «Nueva asignación» (Tarifas) ya no ofrece al
+> **Reemplazada en parte por D-493** (2026-10-07): el desplegable de «Nueva asignación» (Tarifas) ya no ofrece al
 > **presencial**, que según el dueño no necesita proyecto. No desaparece en silencio —el miedo de este punto—: sale en su propia
 > tarjeta, «Presencial — su tienda y su puesto», y si ya tuviera una asignación se ve marcada y se puede editar o quitar. Las dos
 > listas de personas siguen sin unificarse.
@@ -38739,9 +38739,9 @@ la app»**. El chofer volvía, seguía «Faltan 1», y no había nada en pantall
 
 No visto en un teléfono: `tsc` y vitest.
 
-## D-NEXT · Time Tracker: el presencial no necesita proyecto — su proyecto es su tienda y su puesto: no se le pide, no se le avisa, no se le ofrece para asignar, y sus horas sin proyecto salen como «Pharr · Ventas»
+## D-493 · Time Tracker: el presencial no necesita proyecto — su proyecto es su tienda y su puesto: no se le pide, no se le avisa, no se le ofrece para asignar, y sus horas sin proyecto salen como «Pharr · Ventas»
 
-**Fecha:** 2026-10-07 · **Versión:** la asigna el orquestador al fusionar (toca `timetracker` y, por `ClockinSettings`, la
+**Fecha:** 2026-10-07 · **Versión:** timetracker 0.99.0, deliveries 1.268.2, repo 1.365.0 (toca `timetracker` y, por `ClockinSettings`, la
 ficha de Usuarios del hub) · **Migración:** ninguna · **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-095,
 D-123 y D-186, que llevan su nota.
 

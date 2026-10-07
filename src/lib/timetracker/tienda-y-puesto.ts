@@ -1,5 +1,5 @@
 // ============================================================
-// El presencial no necesita proyecto: su «proyecto» es su tienda y su puesto (D-NEXT).
+// El presencial no necesita proyecto: su «proyecto» es su tienda y su puesto (D-493).
 //
 // El dueño, dictado el 2026-10-07: «la gente que está presencial, no ocupa que se les asignen
 // proyectos. […] con el proyecto de ellos prácticamente es la tienda y el puesto que ellos tienen.

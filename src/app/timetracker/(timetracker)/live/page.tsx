@@ -58,7 +58,7 @@ export default function LiveMonitorPage() {
   const pMap = new Map(projects.map((p) => [p.id, p]));
   const rows = liveSessions.slice().sort((a, b) => (a.startMs || 0) - (b.startMs || 0));
   // En la línea donde la tarjeta del remoto lleva su proyecto, la del presencial lleva su tienda y su
-  // puesto (D-NEXT): es su proyecto.
+  // puesto (D-493): es su proyecto.
   const lang = getLang();
 
   function status(note: string | null) {

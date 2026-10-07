@@ -77,7 +77,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   } = useData();
   const t = useT();
   // Qué mira un admin: su cronómetro o su reloj de fichaje. Para todos los demás lo decide
-  // `worker_type` y no hay nada que elegir. Un admin PRESENCIAL abre en su reloj de fichaje (D-NEXT):
+  // `worker_type` y no hay nada que elegir. Un admin PRESENCIAL abre en su reloj de fichaje (D-493):
   // no necesita proyecto, y abrirle el cronómetro era abrirle «Proyecto» vacío y el aviso de pedirlo.
   // El selector sigue arriba para quien quiera el cronómetro.
   const [vista, setVista] = useState<"timer" | "punch">(() => (necesitaProyecto(me) ? "timer" : "punch"));
@@ -1338,7 +1338,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         </div>
       )}
       {/* «Pídele a tu gerente que te asigne uno»: solo a quien necesita proyecto. El presencial no
-          (D-NEXT): su proyecto es su tienda y su puesto. */}
+          (D-493): su proyecto es su tienda y su puesto. */}
       {assignments.length === 0 && necesitaProyecto(me) && (
         <div className="banner info">{t("track.noProjects")}</div>
       )}

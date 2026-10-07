@@ -91,7 +91,7 @@ export default function InsightsPage() {
   });
   const maxHours = Math.max(1, ...empRows.map((r) => r.hours));
 
-  // Las horas de un presencial sin proyecto cuentan bajo su tienda y su puesto (D-NEXT), una fila por
+  // Las horas de un presencial sin proyecto cuentan bajo su tienda y su puesto (D-493), una fila por
   // «tienda · puesto»; las demás, por proyecto como siempre («(deleted)» si ya no existe).
   const lang = getLang();
   const byProj = new Map<string, { name: string; hours: number }>();

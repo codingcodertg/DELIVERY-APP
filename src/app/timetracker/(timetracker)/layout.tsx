@@ -70,7 +70,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
   // who hasn't been configured yet — default in-memory rather than writing a
   // row nobody asked for.
   //
-  // Junto a ella, en la misma ida, su tienda y su puesto de fichaje (D-NEXT): son el «proyecto» del
+  // Junto a ella, en la misma ida, su tienda y su puesto de fichaje (D-493): son el «proyecto» del
   // presencial y salen donde al remoto le sale el proyecto. Si estas dos lecturas fallan, la etiqueta
   // dice «sin tienda ni puesto» y nada más: no bloquean la entrada.
   const [{ data: es }, { data: ficha }, { data: sitios }] = await Promise.all([
