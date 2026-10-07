@@ -6,6 +6,7 @@ import { driverOf } from "@/lib/route-lanes";
 import type { LecturaDeRuta, OrdenAsignada } from "@/lib/route-plan/lectura-de-ruta";
 import type { TripTrace } from "@/lib/usa-medida-de-rutas";
 import { nombreEnElMapa } from "@/lib/gestor/nombre-en-el-mapa";
+import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 
 /**
  * El mapa de las rutas del día y el panel «Choferes y rutas», para las DOS pantallas que los pintan: el Gestor de Rutas y
@@ -23,6 +24,8 @@ import { nombreEnElMapa } from "@/lib/gestor/nombre-en-el-mapa";
 /** Lo que hace falta de una orden para pintarla. `Delivery` lo cumple, y la parada mínima de `rutas_del_dia` (160) también. */
 export interface OrdenDelMapa extends OrdenAsignada {
   order_no: number;
+  /** D-485: dos entregas seguidas a la misma dirección son UNA parada (`gruposDeMismoLugar`). */
+  delivery_address?: string | null;
   order_code?: string | null;
   order_suffix?: string | null;
   /** D-481 (a): el pin nombra la orden por su factura; sin ella, por su ID y «sin factura». */
@@ -125,8 +128,6 @@ export interface EntradaDeLosPuntos<T extends OrdenDelMapa> {
   marcadas?: { tiene: (id: string) => boolean; colorDe: (id: string) => string | undefined; cuantas: number };
   /** Lo que se añade al rótulo de una entrega («Ruta de hoy»: la ciudad, los pallets y la llegada). */
   detalleDe?: (d: T) => string;
-  /** D-481 (d): la recogida es en una tienda de RTG → su burbuja «P1» no se pinta (la casita y la base ya están ahí). */
-  recogidaEnTienda?: (lugar: string) => boolean;
 }
 
 /** The whole day is always on the map — a driver focus dims the rest rather than hiding it, so the full picture stays visible. */
@@ -156,28 +157,49 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       dimmed: e.atenuada(u.key) || selActive,
     });
   }
-  // Las etiquetas P/D de cada ruta (D-334): las entregas pasan de «1, 2, 3» a «D1, D2…», y cada parada de recogida de la
-  // lista lleva su «P1·P2» en su tienda, del color del chofer (D-443: sin viajes). Dos recogidas en la misma tienda en
-  // puntos distintos de la lista —una recarga a media ruta— son dos visitas: dos marcas, abiertas en abanico (D-367).
-  const dDeTodas = new Map<string, string>();
+  // Las PARADAS de cada ruta (D-485; antes, una burbuja por recogida con su «P1», D-334/D-443): una burbuja por parada,
+  // con su número (1, 2, 3…) en el color del chofer, en el orden de la lista. Tres recogidas seguidas en la misma tienda
+  // son UNA burbuja, «1», y al pasar el ratón dice qué se hace ahí («Parada 1 — recoger P1, P2, P3 · INV-…»). Entregas
+  // seguidas a la misma dirección, igual: la burbuja la lleva la primera que se pinta; las demás no salen aparte.
+  // La parada en una tienda de RTG SÍ lleva su burbuja (D-481 d la quitaba: sin número no decía nada que la casita no
+  // dijera; con número, sin ella el mapa empezaría a contar en 2). La misma tienda más adelante es otra parada: otra
+  // burbuja, abierta en abanico (D-367).
+  /** Por orden de entrega con burbuja: sus números de parada y lo que dice cada una. */
+  const paradaDe = new Map<string, { numeros: number[]; textos: string[] }>();
+  /** Entregas que ya van dentro de la burbuja de otra orden de su misma parada. */
+  const dentroDeOtra = new Set<string>();
+  /** El número de parada de cada entrega (también de una marcada ☑, para su rótulo). */
+  const numeroDe = new Map<string, number[]>();
   for (const [laneKey, list] of porChofer) {
     if (!list.some((d) => d.route_seq != null)) continue;
     if (!e.pasaFiltro(laneKey)) continue;
     const lectura = e.lecturaDe(laneKey, list);
-    for (const [id, etiqueta] of lectura.etiquetaDe) dDeTodas.set(id, etiqueta);
-    for (const p of lectura.filas) {
-      if (p.tipo !== "P" || !p.lugar) continue;
-      // D-481 (d): «if pickup are in a store remove the p1 bubble». En una tienda de RTG la burbuja sobra.
-      if (e.recogidaEnTienda?.(p.lugar)) continue;
-      const tienda = e.coordsDeTienda(p.lugar);
-      if (!tienda) continue;
-      pts.push({
-        id: `__pd__${laneKey}__${p.etiqueta}`, lat: tienda.lat, lng: tienda.lng,
-        color: e.colorDe(list[0].assigned_driver),
-        badge: p.etiqueta,
-        label: `${list[0].assigned_driver} — ${t("Pick up", "Recoger")} ${p.etiqueta} · ${p.lugar}`,
-        dimmed: e.atenuada(laneKey) || selActive,
-      });
+    const porId = new Map(list.map((d) => [d.id, d]));
+    const nombres = (ids: readonly string[]) => ids.flatMap((id) => { const d = porId.get(id); return d ? [nombreEnElMapa(d, t)] : []; });
+    for (const p of paradasDeLaRuta(lectura.filas, list).paradas) {
+      const texto = textoDeLaParada(p, nombres(p.ordenes), t);
+      if (p.tipo === "P") {
+        if (!p.lugar) continue;
+        const tienda = e.coordsDeTienda(p.lugar);
+        if (!tienda) continue;
+        pts.push({
+          id: `__parada__${laneKey}__${p.numero}`, lat: tienda.lat, lng: tienda.lng,
+          color: e.colorDe(list[0].assigned_driver),
+          badge: String(p.numero),
+          label: `${texto} — ${list[0].assigned_driver} · ${p.lugar}`,
+          dimmed: e.atenuada(laneKey) || selActive,
+        });
+        continue;
+      }
+      for (const id of p.ordenes) numeroDe.set(id, [...(numeroDe.get(id) ?? []), p.numero]);
+      // La burbuja la lleva la primera orden de la parada que tenga punto y no esté marcada ☑ (una marcada se pinta aparte,
+      // en su color de selección).
+      const pintables = p.ordenes.filter((id) => { const d = porId.get(id); return !!d && d.route_seq != null && d.delivery_lat != null && d.delivery_lng != null && !tiene(id); });
+      const [lleva, ...resto] = pintables;
+      if (!lleva) continue;
+      const ya = paradaDe.get(lleva) ?? { numeros: [], textos: [] };
+      paradaDe.set(lleva, { numeros: [...ya.numeros, p.numero], textos: [...ya.textos, texto] });
+      for (const id of resto) dentroDeOtra.add(id);
     }
   }
   for (const d of e.delDia) {
@@ -200,9 +222,22 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
     const sel = tiene(d.id);
     const laneKey = d.assigned_driver;
     if (!sel && !e.pasaFiltro(laneKey)) continue;
+    // Va dentro de la burbuja de otra orden de su misma parada (y no lleva una propia).
+    if (!sel && dentroDeOtra.has(d.id) && !paradaDe.has(d.id)) continue;
     const list = porChofer.get(laneKey) ?? [];
     const idx = list.findIndex((x) => x.id === d.id);
-    const badge = d.route_seq != null ? (dDeTodas.get(d.id) ?? String(idx + 1)) : undefined;
+    const parada = paradaDe.get(d.id);
+    const badge = d.route_seq != null ? (numeroDe.get(d.id)?.join("·") ?? String(idx + 1)) : undefined;
+    if (parada && !sel) {
+      pts.push({
+        id: d.id, lat: d.delivery_lat, lng: d.delivery_lng,
+        color: e.colorDe(d.assigned_driver),
+        badge,
+        label: `${parada.textos.join(" / ")} — ${d.assigned_driver}${detalle(d)}`,
+        dimmed: e.atenuada(laneKey) || selActive,
+      });
+      continue;
+    }
     pts.push({
       id: d.id,
       lat: d.delivery_lat,

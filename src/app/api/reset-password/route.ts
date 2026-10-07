@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logSecurity } from "@/lib/security-log-server";
+import { PONER_MARCA } from "@/lib/cambio-obligatorio";
 
 // ============================================================
 // An admin sets a new password for someone who can't reset their own.
@@ -49,7 +50,9 @@ export async function POST(req: Request) {
   if (!target?.user) return NextResponse.json({ error: "No such user." }, { status: 404 });
 
   const password = generatePassword();
-  const { error } = await admin.auth.admin.updateUserById(id, { password });
+  // Y con la marca de «cámbiala al entrar» (D-486), en la misma llamada: esta contraseña la ha
+  // visto el admin, así que no se queda. `user_metadata` se fusiona, no se reemplaza.
+  const { error } = await admin.auth.admin.updateUserById(id, { password, user_metadata: PONER_MARCA });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // The record is that a reset HAPPENED, never what it produced.

@@ -4,6 +4,7 @@ import { decide, skipsSession } from "@/lib/route-guard";
 import { impersonacionCaducada } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { debeCerrarSesion } from "@/lib/session-cutoff";
+import { debeCambiarContrasena, decideCambioObligatorio } from "@/lib/cambio-obligatorio";
 
 // La lista de públicas vive ahora en lib/route-guard.ts; se reexporta para quien la importaba
 // de aquí (public-paths.test.ts, D-156).
@@ -74,6 +75,8 @@ export async function updateSession(
     getUser?: (req: NextRequest) => Promise<boolean | null>;
     gate?: (req: NextRequest) => Promise<PuertaDeSesion | null>;
     ahora?: Date;
+    /** Solo pruebas: si el usuario de `getUser` lleva la marca de cambiar la contraseña. */
+    debeCambiar?: boolean;
   } = {},
 ) {
   // Local demo mode: skip all auth — the app has no backend.
@@ -127,12 +130,16 @@ export async function updateSession(
   // que una sesión que no existe, y aquí el `error` se descartaba — que es cómo se sigue con
   // datos incompletos sin que nada falle.
   let sinUsuarioConfirmado: boolean;
+  // La marca de «cambia tu contraseña al entrar» (D-486), leída del mismo `getUser()`: no cuesta
+  // ninguna ida más al servidor.
+  let debeCambiar = false;
   let leerPuerta: (() => Promise<PuertaDeSesion | null>) | null = null;
   if (deps.getUser) {
     const v = await deps.getUser(request);
     hasUser = v === true;
     // `null` es «no pude preguntar»: ni hay usuario ni está confirmado que no lo haya.
     sinUsuarioConfirmado = v === false;
+    debeCambiar = hasUser && deps.debeCambiar === true;
   } else {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -156,6 +163,7 @@ export async function updateSession(
     const { data: { user }, error: errUsuario } = await supabase.auth.getUser();
     hasUser = !!user;
     sinUsuarioConfirmado = !user && !errUsuario;
+    debeCambiar = debeCambiarContrasena(user);
     if (user) leerPuerta = async () => {
       const { data, error } = await supabase.rpc("session_gate").single<PuertaDeSesion>();
       // Cualquier fallo —la función no existe todavía, la red, un permiso— vale `null`, y
@@ -210,6 +218,25 @@ export async function updateSession(
   // sesión de la otra persona todavía viva. Tiene salida —el login— así que no es una trampa,
   // pero es justo lo que esta rama promete que no pasa.
   const barrer = barrerHuerfana || (!!cruda && sinUsuarioConfirmado);
+
+  // Cambiar la contraseña temporal (D-486). Aquí por lo mismo que el cierre de las 18:30: es el
+  // único punto por el que pasa cada navegación de todas las apps, así que no hay URL que lo salte.
+  // Va después del cierre (una sesión cerrada va al login, da igual su marca) y antes del guard.
+  // Un admin dentro de «Entrar como» pasa: la cookie de retorno ya se validó arriba (`vuelta`).
+  const cambio = decideCambioObligatorio({
+    pathWithSearch: path + request.nextUrl.search,
+    debeCambiar: hasUser && debeCambiar,
+    suplantando: !!vuelta,
+  });
+  if (cambio.kind === "redirect") {
+    const salto = NextResponse.redirect(new URL(cambio.to, request.nextUrl.origin));
+    // Las cookies que acaba de renovar `getUser()` viajan en la redirección. Sin esto, un token
+    // refrescado justo en esta petición se perdería (rotación: el viejo ya quedó quemado) y la
+    // persona acabaría fuera, en el login, en vez de en la pantalla de cambiarla (D-119).
+    for (const c of response.cookies.getAll()) salto.cookies.set(c);
+    if (barrer) salto.cookies.delete(COOKIE_RETORNO);
+    return salto;
+  }
 
   const d = decide(path + request.nextUrl.search, request.nextUrl.searchParams.get("next"), hasUser);
   if (barrer) response.cookies.delete(COOKIE_RETORNO);

@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * llamaban; la prueba de que la llaman está en la prueba en vivo de cada ruta (D-172), no
  * aquí. Aquí se garantiza que, llamada, hace lo que dice.
  */
-let usuario: { id: string; email?: string } | null = null;
+let usuario: { id: string; email?: string; user_metadata?: Record<string, unknown> } | null = null;
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
@@ -36,6 +36,12 @@ describe("requireUser", () => {
     if (!r.ok) return;
     expect(r.user.id).toBe(usuario.id);
     expect(r.supabase).toBeTruthy();
+  });
+
+  it("devuelve también user_metadata: de ahí se lee la marca de cambiar la contraseña (D-486)", async () => {
+    usuario = { id: "u-1", user_metadata: { must_change_password: true } };
+    const r = await requireUser();
+    expect(r.ok && r.user.user_metadata).toEqual({ must_change_password: true });
   });
 
   it("no mira el rol: eso es de cada ruta", async () => {

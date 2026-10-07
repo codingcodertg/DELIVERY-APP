@@ -16529,6 +16529,10 @@ prueba no fije el formato.
 
 ## D-265 · «Mi perfil» en el lobby, y la contraseña se cambia solo ahí
 
+> **⚠ Reemplazada en parte por D-486** (2026-10-06): «solo ahí» deja de ser cierto en un caso. Quien entra con una
+> contraseña temporal (marca `must_change_password` en `user_metadata`) la cambia en `/change-password`, sin pedir la actual,
+> por `POST /api/profile/password/forced`. Fuera de ese caso, «Mi perfil» sigue siendo el único sitio.
+
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia código de las tres
 apps y del hub · **Sin migración** · **Pedido por:** el dueño: *«los usuarios en el RTG Hub
 deberían poder acceder a su perfil y setear todo desde el hub para todas las apps; es un solo
@@ -23312,6 +23316,10 @@ colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y ti
 > recogidas no van «delante de las entregas de su viaje» sino donde las pone la lista (`listaDelChofer`: la posición
 > guardada, 154, o la regla de bloques por capacidad). La numeración (P por orden de recogida, `Dk` = entrega de `Pk`) y
 > «una tienda seguida = una parada» siguen.
+>
+> **Reemplazada en parte por D-485** (2026-10-06, la ruta por paradas): en el Gestor (y «Ruta de hoy») el mapa ya no
+> pinta «D1, D2…» ni «P1·P2» en las burbujas: pinta el NÚMERO DE PARADA (1, 2, 3…), una burbuja por parada, del color del
+> chofer; la tabla lleva ese número delante de la P/D de cada fila. Las etiquetas P/D y sus reglas no cambian.
 
 **Fecha:** 2026-09-19 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** ninguna. **No cambia ninguna
 asignación ni escribe nada:** es solo cómo se LEE lo que ya hay.
@@ -37698,6 +37706,10 @@ no lo nombró.
 ## D-481 · Gestor de Rutas y «Ruta de hoy»: «Ruta de hoy» es el Gestor sin ninguna acción, el filtro de chofer son las casillas del panel, «Cuadrícula» despliega la tabla abajo, sin choferes vacíos, la factura en el mapa y sin «P1» en una tienda
 
 > **Reemplazada en parte por D-482:** en «Cuadrícula» la desplegada ya no repite la cabecera y sale pegada a su compacta, con animación.
+>
+> **Reemplazada en parte por D-485** (2026-10-06): (d) se deshace. Con la ruta numerada por paradas, la recogida en una
+> tienda de RTG vuelve a llevar burbuja —ahora con su número de parada («1»), una por parada, no una «P1» por orden—: sin
+> ella el mapa empezaba a contar en 2. `lib/gestor/recogida-en-tienda.ts` se quitó.
 
 **Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** deliveries 1.261.0, repo 1.354.0. **Reemplaza en parte a**
 D-393 (el desplegable de chofer), D-443 (la burbuja «P1» de cada recogida en el mapa), D-459 (§5 «Cuadrícula» y §9 el filtro
@@ -37962,3 +37974,180 @@ de todos por decisión de D-451.
   vea solo las suyas.
 - La RLS no se cerró (arriba, el plan).
 - Los textos en español no se vieron: el demo y las pruebas corren en inglés; están escritos al lado de cada texto en `t(en, es)`.
+
+## D-485 · Gestor de Rutas y «Ruta de hoy»: la ruta se numera por PARADAS (1, 2, 3…), y varias recogidas seguidas en la misma tienda son una sola parada
+
+**Fecha:** 2026-10-06 · **Versión:** deliveries 1.264.0, repo 1.358.0 (Entregas) · **Migración:** ninguna. **No cambia el orden ni el
+motor:** solo cómo se numera y se pinta lo que ya hay. **Reemplaza en parte a** D-334 (la etiqueta de las burbujas del mapa) y
+D-481 (d) (sin burbuja en una tienda de RTG), que llevan su nota.
+
+### Qué pidió el dueño
+
+Dictado por voz, 2026-10-06, literal (como lo pasó el orquestador, no extraído del fichero de sesión):
+
+> «Ok, quiero que cuando se entregue en las órdenes del Route Manager, lo que va a pasar es que ahora, si todo, hay varias rutas, hay varias pickups en una sola tienda, entonces va, vamos a hacerlo ahora por stops, like stop. 1, 2, 3, 4, 5, 6, en vez de P1, P2, P3, así no, sino que es stops. Entonces, por ejemplo, en stop 1 va a recoger P1, P2, P3. Y después, la segunda stop va a ser D1. La tercera stop, D3. Y así va a estar por número, porque así va a ser mejor.»
+
+**Interpretación:** «La tercera stop, D3» se leyó como «la siguiente entrega», no como un salto: la parada sigue el orden de la
+lista, sea cual sea la etiqueta de la orden que se entrega ahí.
+
+### Qué pasaba
+
+Desde D-444 cada recogida va en su fila y la tabla del Gestor numeraba solo por orden: «P1, P2, P3, D1…». Tres recogidas en la
+misma tienda se veían como grupo de color, pero no había un número de PARADA: el chofer para una vez en la tienda y la lista
+no lo decía. En el mapa, cada recogida llevaba su burbuja «P1», «P2»… en la tienda (varias encimadas, abiertas en abanico),
+salvo en una tienda de RTG, donde D-481 (d) la había quitado; las entregas decían «D1», «D2»… Y «N paradas» de la cabecera
+contaba FILAS: tres recogidas en la misma tienda contaban 3.
+
+### Qué se decidió
+
+**Una parada es un sitio donde el camión se detiene.** Filas SEGUIDAS de la lista en el MISMO sitio son una parada. «El mismo
+sitio» es la regla que ya pinta los grupos de color (`gruposDeMismoLugar`, D-444), sin otra: recogidas seguidas en la misma
+tienda, o entregas seguidas a la misma dirección (sin mayúsculas ni espacios). La misma tienda más adelante es otra parada; una
+P y una D en el mismo sitio no se juntan. Las paradas se numeran 1, 2, 3… en el orden de la lista. Las etiquetas P/D de la
+orden se quedan (`Dk` sigue siendo la entrega de `Pk`): la parada dice DÓNDE se para; la etiqueta, QUÉ orden.
+
+- **`src/lib/gestor/paradas-numeradas.ts`** (pura): `paradasDeLaRuta(filas, ordenes)` agrupa las filas de la lectura de la ruta
+  (`lecturaDe`, la misma del Gestor, del mapa y de «Ruta de hoy») en paradas y da el número de cada fila; `textoDeLaParada` dice
+  qué se hace ahí: «Stop 1 — pick up P1, P2, P3 · INV-…» / «Parada 1 — recoger P1, P2, P3 · INV-…».
+- **La tabla de paradas:** la columna «#» pasa a llamarse «Stop / Parada». La PRIMERA fila de cada parada lleva el número en
+  un círculo del color del chofer (como la burbuja del mapa), delante de su «P1»; las demás filas de la misma parada llevan una
+  raya vertical del mismo color en ese sitio, que las une. Cada orden sigue en su fila, con sus flechas, su cuenta y su llegada
+  (D-444: el dueño pidió una fila por recogida para poder moverlas). **Se descartó** una sola celda de número que abarque las
+  filas (`rowSpan`): las filas se arrastran una a una y lo ya hecho se intercala entre ellas (D-459), y un `rowSpan` se rompe
+  con las dos cosas. Al pasar el ratón por el número: «Stop 1 — pick up P1, P2, P3».
+- **Lo ya hecho no se numera** (✓P, 🚚D, D-459): el número es de lo que queda por hacer, igual que la cuenta de pallets y el
+  mapa, que solo pintan lo pendiente.
+- **La cabecera** («N paradas») cuenta paradas con esta definición, no filas. «Se pasa en N parada(s)» sigue contando filas
+  (es por fila donde se dice el exceso).
+- **El mapa (Gestor y «Ruta de hoy»):** una burbuja por PARADA con su número, en el color del chofer. Tres recogidas en la misma
+  tienda son una burbuja «1»; al pasar el ratón, «Stop 1 — pick up P1, P2, P3 · INV-3005, INV-3023, INV-3024 — Miguel A. ·
+  Pharr». Dos entregas seguidas a la misma dirección, una burbuja: la lleva la primera orden de la parada que tenga punto y no
+  esté marcada ☑ (una marcada se pinta aparte, en su color de selección, como siempre, y su rótulo dice su número de parada).
+  La leyenda de «Ruta de hoy» explica los números en vez de «P1, P2…» y «D1, D2…».
+- **La burbuja en una tienda de RTG vuelve** (se deshace D-481 d). D-481 la quitó porque una «P1» encima de la casita no decía
+  nada más. Ahora dice el número de parada, y sin ella la numeración del mapa empezaría en 2 cuando la ruta arranca recogiendo
+  en la tienda — que es lo normal. **A validar con el dueño:** él pidió quitarla esta misma mañana.
+- **La columna del número nace con 96 px** (era 46): lleva la casilla, el número de parada y la P/D. Medido en el demo a 390:
+  «☐ 2 D1» pide 80 px; con dos cifras, ~94. **Y no baja de 96** aunque alguien la guardara más estrecha (D-410 guarda los
+  anchos por clave): con 46 guardados cada entrega se leía «☐ …» y el número no se veía (`anchoDelNumeroDeParada`).
+
+### Lo que NO cambia
+
+- El motor (`src/lib/route-engine/`), la lista y su orden, las flechas, el arrastre, la cuenta, la medida y lo que se guarda.
+- **«Mi ruta» del chofer (`my-route`) no se tocó.** Comparte con el Gestor la lectura (`lecturaDeLaRuta`, las etiquetas P/D) y
+  la cuenta de pallets, pero no la numeración, que es nueva y vive en la pantalla del Gestor y en el mapa. Consecuencia: su «N
+  stops» sigue contando FILAS, y para la misma ruta puede decir más paradas que el Gestor. Si el dueño lo quiere igual allí,
+  es aplicar `paradasDeLaRuta` a su lista y a esa cuenta.
+- En «Ruta de hoy», una entrega cuya orden no se puede leer entera (D-467/D-481 b) no trae dirección: ahí dos entregas a la
+  misma dirección no se juntan (la regla de D-444 compara la dirección, no las coordenadas).
+- El plan del día (`RutaDelPlan`, «Plan del día») sigue con sus etiquetas P/D por fila. No se pidió.
+
+### Medido en el demo (CDP, 2026-10-06, 1280 y 390, como admin)
+
+Miguel A. (base RDZ Pharr): se bajó D1 dos puestos con ↓ —clics de persona— para que sus tres recogidas en Pharr quedaran
+seguidas (en el demo eso lo pasa de la capacidad: 18 de 12, que la tabla avisa, como siempre). Resultado: la tabla dice
+«1 P1 · │ P2 · │ P3 · 2 D1 · 3 D2 · 4 D3 · 5 P4 · 6 D4», la cabecera «6 stops» (8 filas), el mapa 6 burbujas «1»…«6», y al
+pasar el ratón por la «1»: «Stop 1 — pick up P1, P2, P3 · INV-3005, INV-3023, INV-3024 — Miguel A. · Pharr». A 390 la página
+mide 390 y la celda del número 96 (le hacen falta 94). En «Ruta de hoy», las mismas 6 burbujas y la leyenda nueva.
+
+### Pruebas y mutantes
+
+Nueva `src/lib/gestor/paradas-numeradas.test.ts`: el ejemplo del dueño (P1·P2·P3 = 1, D1 = 2…), entregas a la misma dirección,
+la misma tienda más adelante, P y D sin juntar, una recogida sin tienda sola, el texto en/es, el mapa (una burbuja por parada,
+la de la tienda con su número, la marcada aparte, una orden repartida en dos cargas), y que la pantalla, el mapa y la leyenda
+usan las piezas. Puestas al día con su nota «D-485»: `rutas-del-dia` (las burbujas y sus rótulos), `gestor-y-ruta-de-hoy`
+(la sección d, al revés), `lista-unica` (la cabecera), `routes-columns`, `gestor-mover-columnas` y
+`gestor-entregadas-y-vista` (el ancho del número).
+
+Tanda de 22 mutantes, **caen los 22** con prueba con nombre (agrupar, numerar, la tienda, las órdenes sin repetir, el texto,
+la burbuja con número, la de la tienda, la marcada, la parada de dos entregas, la repartida en dos cargas, la cabecera, la
+tabla, el ancho mínimo y la leyenda). Uno sobrevivió en la primera vuelta (una orden dentro de la burbuja de otra en una parada
+pero con la suya en otra) y se le escribió su prueba.
+
+### No verificado
+
+- Nada con sesión ni contra producción: todo en el demo, solo como admin.
+- El mapa de Google: solo Leaflet (el demo no lleva llave).
+- En el demo la «P» de la base no sale en el Gestor (es de antes, D-481); en producción la burbuja «1» de la tienda base cae en
+  el mismo punto que esa «P» y se abren en abanico (D-367).
+- El texto en español del mapa y de la tabla, solo por las pruebas (el demo se midió en inglés).
+- Una ruta con un plan publicado (etiquetas del plan, cargas repartidas): solo por la prueba; el demo no tiene planes.
+
+## D-486 · Contraseña temporal: quien entra con ella tiene que cambiarla antes de usar ninguna app
+
+**Fecha:** 2026-10-06 · **Versión:** deliveries 1.265.0, repo 1.359.0 (toca código compartido: middleware, `src/app/api`,
+el banner de «Entrar como»; criterio de CLAUDE.md, las tres) · **Sin migración** (la marca vive en `auth.users`) ·
+Rama `feat/cambiar-password-al-entrar`. **Reemplaza en parte a D-265** (nota dentro).
+
+**Pedido del dueño**, literal: *«Quiero que me le hagas un password temporario a lo que es Máximo, Julio y Ernesto, porque
+ellos tienen su username, pero no tienen email. Entonces, quiero que me le hagas un password genérico y me lo des, que sea
+tracker. Ese va a ser el password. Ellos lo van a tener que cambiar cuando hagan first login en el app, pero para que ellos
+puedan usar el app.»*
+
+### Qué había
+
+El orquestador ya puso en producción, a mano, la contraseña `tracker` a `maximogarza`, `juliojijon` y `ernestocastillo`
+(entran con usuario, correo inventado de `src/lib/username.ts`) y la marca `raw_user_meta_data.must_change_password = true`
+(`auth.admin.updateUserById`). En la app **nada miraba esa marca**: con `tracker` entraban y se quedaban con ella.
+
+### Qué se decidió
+
+- **La puerta va en el middleware** (`src/lib/supabase/middleware.ts`), igual que el cierre de las 18:30 (D-248): es el único
+  punto por el que pasa cada navegación de las cinco apps, así que escribir otra URL no la salta. La marca sale del mismo
+  `getUser()` que ya se hacía: **cero idas más al servidor**. Con la marca, toda página va a
+  `/change-password?next=<a dónde iba>`. Pasan: la propia pantalla, lo público (`/login`, `/auth/signout`, `/track`…) y
+  las `/api/` (el middleware ya las salta, cada una se autentica sola). La decisión es pura, en
+  `src/lib/cambio-obligatorio.ts` (`decideCambioObligatorio`).
+- **Orden:** primero la caducidad de «Entrar como», luego el cierre de las 18:30 (una sesión cerrada va al login, tenga o
+  no la marca), luego esta puerta, luego el guard de siempre.
+- **La redirección lleva las cookies que `getUser()` acaba de renovar.** Sin eso, con la rotación de refresh tokens, un
+  refresco en esa misma petición quemaba el token viejo y perdía el nuevo: la persona acababa en el login en vez de en la
+  pantalla (el fallo de D-119). Los otros dos `redirect` del middleware no lo hacen y no se tocaron.
+- **La pantalla** `/change-password` (inglés, como `/reset-password`): nueva + repetirla, mínimo **8** caracteres (no los 6
+  de «Mi perfil»: esta es la que se queda una cuenta que tenía una que sabía todo el mundo) y **que no contenga `tracker`**,
+  sin distinguir mayúsculas — `tracker` tiene 7 letras, así que «no sea tracker» a secas ya lo cubría «8+»; se pide que no la
+  *contenga* para que `tracker2026` no valga. Una columna, botones a todo el ancho, en/es con su botón, y «Cerrar sesión».
+  Si se llega sin la marca, sigue al destino.
+- **Guardar** es `POST /api/profile/password/forced`: contraseña **y** `must_change_password: false` en **la misma**
+  llamada a `updateUser` (o las dos o ninguna; `data` se fusiona con el resto de `user_metadata`). **No pide la actual** —es
+  la temporal que acaba de teclear para entrar— y por eso **solo funciona con la marca puesta** (si no, 409 y no cambia
+  nada; para lo demás sigue «Mi perfil», que sí la pide). Deja una fila en el registro de seguridad, clase nueva
+  `password_changed` («Cambió su contraseña temporal»), actor = la propia persona, nunca la contraseña. Los fallos de
+  Supabase (débil, igual a la anterior) se dicen con los textos de D-271. Al terminar, recarga entera hacia `next` (por
+  defecto `/home`, que manda al chofer a «Mi ruta», D-173).
+- **«Poner contraseña nueva» de Usuarios** (`/api/reset-password`) sigue generándola aleatoria y ahora **pone la marca** en la
+  misma llamada. El diálogo se lo dice al admin: «Al entrar se le pedirá que elija una suya».
+- **«Entrar como» (D-243):** al admin dentro de la sesión de alguien con la marca **no se le obliga**: el middleware y la
+  pantalla le dejan pasar (cookie de retorno válida) y la ruta forzada le contesta 403. El aviso naranja le añade, en la misma línea corta de D-483:
+  «🔑 Contraseña temporal: la cambia ella al entrar, a ti no se te pide» (`/api/impersonate/state` devuelve
+  `cambiaContrasena`). Solo en español, como el resto del aviso desde D-483.
+- `requireUser()` devuelve ahora también `user_metadata`.
+- **Demo:** el middleware no corre; `/change-password` enseña el formulario y al guardar dice «No disponible en el modo demo».
+
+### Lo que la marca NO es
+
+`user_metadata` lo puede escribir **el propio usuario** (`auth.updateUser({ data })` desde la consola del navegador). Esto no
+es una barrera contra la persona, sino contra que la oficina entera siga entrando con `tracker`: quien se la quita a mano solo
+se queda con la temporal. Si algún día tiene que ser inviolable, la marca va en `app_metadata` (solo la escribe service-role)
+y la ruta forzada tendría que quitarla con la llave de servicio. Se dejó así porque es donde la puso el orquestador.
+
+### Medido
+
+- Pruebas: `cambio-obligatorio.test.ts` (lógica, middleware con `deps`, que la pantalla/formulario/banner usan las
+  funciones), `cambio-obligatorio-rutas.test.ts` (ruta forzada, `/api/reset-password`, `/api/impersonate/state` y la
+  página, llamadas con Auth falso), `cambio-obligatorio-middleware.test.ts` (middleware con `@supabase/ssr` simulado:
+  marca desde `user_metadata` y cookies renovadas en la redirección), y `api-auth.test.ts`. El barrido de
+  `profile-password.test.ts` pasa de dos a tres sitios que ponen contraseña con `updateUser`.
+- Mutantes: **34 de 34 caen** con una prueba con nombre.
+- Demo (CDP, 390×844): `tracker` → «no puede llevar la temporal»; `camion1` → «al menos 8»; distintas → «no coinciden»;
+  válidas → «No disponible en el modo demo»; cambiar a español traduce también el aviso; `scrollWidth` 390 (sin scroll
+  lateral).
+
+### No verificado
+
+- **Nada contra producción ni con sesión real**: ni la redirección de verdad de un chofer con la marca, ni que Supabase
+  acepte la nueva y quite la marca, ni la fila en `security_events`. Lo primero que hay que mirar al desplegar: entrar como
+  `maximogarza` con `tracker` en un teléfono.
+- Si el proyecto de Supabase tiene «Secure password change» (reautenticar sesiones de más de 24 h), `updateUser` podría
+  pedirlo; afecta igual a «Mi perfil» y aquí la sesión es recién abierta.
+- El aviso del banner de «Entrar como» no se vio en pantalla (el demo no tiene impersonación).

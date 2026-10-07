@@ -275,7 +275,8 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
     expect(tarjeta.split("{celdaDeCuenta}").length - 1).toBe(3);
   });
   it("la cabecera: paradas, pallets movidos, carga máxima contra el camión; el aviso de exceso y el de «no acaba en 0»", () => {
-    expect(tarjeta).toContain("{cuenta.totales.paradas} {t(\"stops\", \"paradas\")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t(\"pallets moved\", \"pallets movidos\")} · {t(\"peak load\", \"carga máxima\")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}");
+    // Puesto al día por D-485: «N paradas» cuenta PARADAS (filas seguidas en el mismo sitio son una), no filas.
+    expect(tarjeta).toContain("{numeradas.paradas.length} {t(\"stops\", \"paradas\")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t(\"pallets moved\", \"pallets movidos\")} · {t(\"peak load\", \"carga máxima\")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}");
     expect(tarjeta).toContain("{cuenta.totales.paradasConExceso > 0 && (");
     expect(tarjeta).toContain("{stops.length > 0 && cuenta.totales.finalNoCero && (");
   });

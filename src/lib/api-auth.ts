@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/server";
  * No mira el rol: eso lo decide cada ruta. Lo único que dice es "has entrado".
  */
 export async function requireUser(): Promise<
-  | { ok: true; user: { id: string; email?: string }; supabase: Awaited<ReturnType<typeof createClient>> }
+  | { ok: true; user: { id: string; email?: string; user_metadata?: Record<string, unknown> }; supabase: Awaited<ReturnType<typeof createClient>> }
   | { ok: false; response: NextResponse }
 > {
   const supabase = await createClient();
@@ -25,5 +25,6 @@ export async function requireUser(): Promise<
   if (!user) {
     return { ok: false, response: NextResponse.json({ error: "Not signed in." }, { status: 401 }) };
   }
-  return { ok: true, user: { id: user.id, email: user.email ?? undefined }, supabase };
+  // `user_metadata` viaja para quien lo necesita: la marca de «cambia tu contraseña» (D-486).
+  return { ok: true, user: { id: user.id, email: user.email ?? undefined, user_metadata: user.user_metadata }, supabase };
 }

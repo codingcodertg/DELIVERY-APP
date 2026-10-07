@@ -22,6 +22,9 @@ export type SecurityKind =
   | "title_changed"
   | "email_changed"
   | "password_reset"
+  // La propia persona cambió la temporal al entrar (D-486). Es otra clase y no un `password_reset`
+  // porque lo hace otra persona: el reset lo hace un admin, esto el dueño de la cuenta.
+  | "password_changed"
   | "recruiting_access_changed"
   | "timetracker_access_changed"
   | "erp_access_changed"
@@ -66,6 +69,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     title_changed: "Badge title changed",
     email_changed: "Email changed",
     password_reset: "Password reset",
+    password_changed: "Changed their temporary password",
     recruiting_access_changed: "Recruiting access changed",
     timetracker_access_changed: "Timetracker access changed",
     erp_access_changed: "ERP access changed",
@@ -91,6 +95,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     title_changed: "Título de la pastilla cambiado",
     email_changed: "Correo cambiado",
     password_reset: "Contraseña restablecida",
+    password_changed: "Cambió su contraseña temporal",
     recruiting_access_changed: "Acceso a Recruiting cambiado",
     timetracker_access_changed: "Acceso a Timetracker cambiado",
     erp_access_changed: "Acceso al ERP cambiado",

@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { alternaMarcado, claveDeMarcados, guardaMarcados, leeMarcados, marcadosVigentes, pasaElFiltro, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
 import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
-import { esTiendaRtg } from "@/lib/gestor/recogida-en-tienda";
 import { nombreEnElMapa } from "@/lib/gestor/nombre-en-el-mapa";
 import { alternaDesplegada, conAcciones, conCuerpo, desplegadaVigente } from "@/lib/gestor/cuadricula";
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
@@ -93,15 +92,10 @@ describe("f · un chofer sin órdenes no sale en la lista", () => {
   });
 });
 
-describe("d · sin burbuja «P1» si la recogida es en una tienda de RTG", () => {
-  const tiendas = [{ name: "RDZ Pharr" }, { name: "RDZ McAllen" }];
-  it("tienda de Ajustes, sin mirar mayúsculas ni espacios; otro sitio, no", () => {
-    expect(esTiendaRtg("RDZ Pharr", tiendas)).toBe(true);
-    expect(esTiendaRtg("  rdz mcallen ", tiendas)).toBe(true);
-    expect(esTiendaRtg("Proveedor X", tiendas)).toBe(false);
-    expect(esTiendaRtg("", tiendas)).toBe(false);
-    expect(esTiendaRtg(null, tiendas)).toBe(false);
-  });
+// Puesto al día por D-485 (la ruta por paradas): la burbuja de una recogida en una tienda de RTG VUELVE, ahora con su número
+// de parada («1»), una por parada. Sin ella el mapa empezaba a contar en 2. `esTiendaRtg` (lib/gestor/recogida-en-tienda) se
+// quitó: nadie más la usaba. Lo de las paradas se prueba en `paradas-numeradas.test.ts`.
+describe("d · (D-485) la parada en una tienda de RTG lleva su número en el mapa", () => {
   const p = (x: Partial<ParadaDelDia> & { id: string }): ParadaDelDia => ({
     order_no: 1, order_code: null, order_suffix: null, stage: "approved", assigned_driver: "Ana", route_seq: 0, pickup_seq: null, load_no: null,
     actual_pallets: null, est_pallets: 2, store: "RDZ Pharr", store_lat: 26.19, store_lng: -98.18, delivery_lat: 26.3, delivery_lng: -98.2,
@@ -109,25 +103,19 @@ describe("d · sin burbuja «P1» si la recogida es en una tienda de RTG", () =>
     pod_delivered_at: null, pickup_gps_at: null, ...x,
   });
   const ordenes = [p({ id: "a1", order_code: "A1" }), p({ id: "a2", order_code: "A2", route_seq: 1, store: "Proveedor X" })];
-  const puntos = (recogidaEnTienda?: (l: string) => boolean) => puntosDeLasRutas<ParadaDelDia>({
-    carriles: carrilesDelDia([{ id: "u-ana", full_name: "Ana" }], [], ordenes, []), porChofer: rutasPorChofer(ordenes), delDia: ordenes, hechas: new Map(),
-    pasaFiltro: () => true, soloUnChofer: false, enfocado: false, atenuada: () => false, colorDe: () => "rojo", colorSinChofer: "gris",
-    baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), lecturaDe: (_k, s) => lecturaConLoHecho(s, 12, null, []),
-    coordsDeTienda: () => ({ lat: 26.19, lng: -98.18 }), t, recogidaEnTienda,
-  });
-  it("con la regla: la P en la tienda no se pinta; la del proveedor sí; la base y las D siguen", () => {
-    const sin = puntos((l) => esTiendaRtg(l, tiendas));
-    const recogidas = sin.filter((x) => x.id.startsWith("__pd__"));
-    expect(recogidas).toHaveLength(1);
-    expect(recogidas[0].label).toContain("Proveedor X");
-    expect(sin.some((x) => x.id === "__depot__u-ana")).toBe(true);
-    expect(sin.filter((x) => x.id === "a1" || x.id === "a2")).toHaveLength(2);
-    // Sin la regla (lo de antes), las dos recogidas llevaban su burbuja.
-    expect(puntos().filter((x) => x.id.startsWith("__pd__"))).toHaveLength(2);
-  });
-  it("la pantalla le pasa la regla con las tiendas de Ajustes", () => {
-    expect(gestor).toContain("recogidaEnTienda: (lugar) => esTiendaRtg(lugar, settings.stores ?? []),");
-    expect(plano(leer("src/lib/mapa-de-rutas.ts"))).toContain("if (e.recogidaEnTienda?.(p.lugar)) continue;");
+  it("la recogida en la tienda y la del proveedor llevan su burbuja con número; la base y las D siguen", () => {
+    const pts = puntosDeLasRutas<ParadaDelDia>({
+      carriles: carrilesDelDia([{ id: "u-ana", full_name: "Ana" }], [], ordenes, []), porChofer: rutasPorChofer(ordenes), delDia: ordenes, hechas: new Map(),
+      pasaFiltro: () => true, soloUnChofer: false, enfocado: false, atenuada: () => false, colorDe: () => "rojo", colorSinChofer: "gris",
+      baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), lecturaDe: (_k, s) => lecturaConLoHecho(s, 12, null, []),
+      coordsDeTienda: () => ({ lat: 26.19, lng: -98.18 }), t,
+    });
+    const recogidas = pts.filter((x) => x.id.startsWith("__parada__"));
+    expect(recogidas.map((x) => x.label.split(" — ")[0])).toEqual(["Stop 1", "Stop 2"]);
+    expect(recogidas[0].label).toContain("RDZ Pharr");
+    expect(pts.some((x) => x.id === "__depot__u-ana")).toBe(true);
+    expect(pts.filter((x) => x.id === "a1" || x.id === "a2")).toHaveLength(2);
+    expect(gestor).not.toContain("recogidaEnTienda");
   });
 });
 

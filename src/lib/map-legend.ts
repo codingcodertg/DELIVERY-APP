@@ -80,8 +80,10 @@ export function leyendaDelMapa(a: {
     out.push({ clave: "ruta_sin_chofer", forma: "linea", color: COLOR_SIN_ASIGNAR, discontinua: true, en: "Route of an order with no driver", es: "Ruta de una orden sin chofer" });
   }
   if (a.rutasDelDia) {
-    out.push({ clave: "recogida_de_ruta", forma: "pin", color: COLOR_RECOGIDA, insignia: "P", en: "Pickup (P1, P2… in route order)", es: "Recogida (P1, P2… en el orden de la ruta)" });
-    out.push({ clave: "entrega_de_ruta", forma: "pin", color: COLOR_RECOGIDA, insignia: "D", en: "Delivery (D1, D2…), in its driver's color", es: "Entrega (D1, D2…), del color de su chofer" });
+    // D-485: las burbujas de una ruta llevan el número de PARADA (1, 2, 3…), no «P1»/«D1»: una parada en la tienda recoge
+    // una o varias órdenes; una en el cliente las entrega. Las claves no cambian.
+    out.push({ clave: "recogida_de_ruta", forma: "pin", color: COLOR_RECOGIDA, insignia: "1", en: "Stop 1, 2, 3… in route order: pick up at the store", es: "Parada 1, 2, 3… en el orden de la ruta: recoger en la tienda" });
+    out.push({ clave: "entrega_de_ruta", forma: "pin", color: COLOR_RECOGIDA, insignia: "2", en: "Stop: deliver, in its driver's color", es: "Parada: entregar, del color de su chofer" });
     out.push({ clave: "entregada", forma: "pin", color: COLOR_SIN_ASIGNAR, insignia: "✓", en: "Already delivered", es: "Ya entregada" });
     out.push({ clave: "ruta_del_chofer", forma: "linea", color: COLOR_RECOGIDA, discontinua: false, en: "The driver's route", es: "La ruta del chofer" });
     out.push({ clave: "regreso", forma: "linea", color: COLOR_RECOGIDA, discontinua: true, en: "Drive back to base", es: "Regreso a la base" });
