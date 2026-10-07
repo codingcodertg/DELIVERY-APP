@@ -12,7 +12,7 @@ import {
   COLUMNAS_DE_LA_TABLA, TANDA, aplicaFiltro, atajoEncendido, cortaTanda, cumpleFiltro, enElRango, estadoDeCotizacion, fechaDeCelda,
   filtraCompetenciaComoLaTabla, filtroDeTextoPostgrest, filtroVacio, hayFiltro, limitesDeFechas, masRecientePrimero, pasoDeRango,
   puedeVerTodas, rangoDeAtajo, rangoDeTanda, tandaEnMemoria, textoCoincide, textoDeEstado, valorDeColumna,
-  type Consulta, type CotizacionResumen, type FiltroDeCotizaciones,
+  type AlcanceDeLista, type Consulta, type CotizacionResumen, type FiltroDeCotizaciones,
 } from "./lista-admin";
 import { borradorVacio } from "./modelo";
 
@@ -29,10 +29,12 @@ const t = (en: string) => en;
 function cotizacion(p: Partial<CotizacionResumen> = {}): CotizacionResumen {
   return {
     id: "q1", estimate_num: "104582", owner_id: "u1", owner_name: "Ana Garza", store: "RDZ Pharr", customer_name: "Luis Pena",
-    total: 100, print_count: 0, printed_at: null, created_at: "2026-10-05T20:30:00.000Z", updated_at: "2026-10-05T20:30:00.000Z", ...p,
+    sf: 0, total: 100, print_count: 0, printed_at: null, created_at: "2026-10-05T20:30:00.000Z", updated_at: "2026-10-05T20:30:00.000Z", ...p,
   };
 }
 const f = (p: Partial<FiltroDeCotizaciones> = {}): FiltroDeCotizaciones => ({ ...filtroVacio(), ...p });
+/** El alcance del admin (D-NEXT): las pruebas de D-476/D-478 piden todas, como antes. */
+const TODAS: AlcanceDeLista = { todas: true };
 
 describe("quién ve la lista de todas", () => {
   it("solo el admin; ni un vendedor, ni un gerente con el módulo, ni nadie sin sesión", () => {
@@ -113,8 +115,8 @@ describe("el calendario del Panel: los atajos y las flechas", () => {
 });
 
 describe("las columnas, con el menú de ordenar y filtrar de las tablas de la casa", () => {
-  it("siete columnas en el orden de la tabla, en los dos idiomas", () => {
-    expect(COLUMNAS_DE_LA_TABLA.map((c) => c.key)).toEqual(["fecha", "estimado", "vendedor", "tienda", "cliente", "total", "estado"]);
+  it("ocho columnas en el orden de la tabla, en los dos idiomas (D-NEXT añade SF entre Cliente y Total)", () => {
+    expect(COLUMNAS_DE_LA_TABLA.map((c) => c.key)).toEqual(["fecha", "estimado", "vendedor", "tienda", "cliente", "sf", "total", "estado"]);
     expect(COLUMNAS_DE_LA_TABLA.every((c) => c.en && c.es)).toBe(true);
   });
   it("lo que cada columna saca: la fecha por el día de Texas, el total como número, lo vacío como null", () => {
@@ -189,14 +191,14 @@ describe("el orden y las tandas", () => {
   });
   it("en memoria: filtra, ordena y corta por tandas", () => {
     const muchas = Array.from({ length: 120 }, (_, i) => cotizacion({ id: `q${String(i).padStart(3, "0")}`, created_at: `2026-0${1 + (i % 9)}-15T10:00:00Z`, customer_name: i % 2 ? "A" : "B" }));
-    const t0 = tandaEnMemoria(muchas, f(), 0);
+    const t0 = tandaEnMemoria(muchas, f(), 0, TODAS);
     expect(t0.filas).toHaveLength(50);
     expect(t0.hayMas).toBe(true);
     expect(t0.filas[0].created_at >= t0.filas[49].created_at).toBe(true);
-    const t2 = tandaEnMemoria(muchas, f(), 2);
+    const t2 = tandaEnMemoria(muchas, f(), 2, TODAS);
     expect(t2.filas).toHaveLength(20);
     expect(t2.hayMas).toBe(false);
-    const soloA = tandaEnMemoria(muchas, f({ texto: "a" }), 1);
+    const soloA = tandaEnMemoria(muchas, f({ texto: "a" }), 1, TODAS);
     expect(soloA.filas).toHaveLength(10);
     expect(soloA.filas.every((c) => c.customer_name === "A")).toBe(true);
     expect(soloA.hayMas).toBe(false);
@@ -256,7 +258,7 @@ describe("lo que se le pide a la base", () => {
     for (const m of ["select", "eq", "gte", "lt", "or", "order"]) tabla[m] = vi.fn((...a: unknown[]) => { llamadas.push(`${m} ${a.map(String).join(" ")}`); return tabla; });
     tabla.range = vi.fn(async (a: number, b: number) => { llamadas.push(`range ${a} ${b}`); return { data: filas, error: null }; });
     const sb = { from: vi.fn(() => tabla) } as unknown as SupabaseClient;
-    const r = await almacenDeLaBase(sb).listarTodas(f({ texto: "e-" }), 1);
+    const r = await almacenDeLaBase(sb).listarTodas(f({ texto: "e-" }), 1, TODAS);
     expect(r.ok && r.valor.filas).toHaveLength(50);
     expect(r.ok && r.valor.hayMas).toBe(true);
     expect(llamadas).toEqual([
@@ -274,9 +276,9 @@ describe("lo que se le pide a la base", () => {
       tabla.range = vi.fn(async () => ({ data: null, error }));
       return { from: vi.fn(() => tabla) } as unknown as SupabaseClient;
     };
-    const sin = await almacenDeLaBase(con({ code: "PGRST205", message: "no table" })).listarTodas(f(), 0);
+    const sin = await almacenDeLaBase(con({ code: "PGRST205", message: "no table" })).listarTodas(f(), 0, TODAS);
     expect(sin.ok === false && sin.sinTabla).toBe(true);
-    const otro = await almacenDeLaBase(con({ code: "42501", message: "permission denied" })).listarTodas(f(), 0);
+    const otro = await almacenDeLaBase(con({ code: "42501", message: "permission denied" })).listarTodas(f(), 0, TODAS);
     expect(otro.ok === false && !otro.sinTabla && otro.error).toBe("permission denied");
   });
 });
@@ -285,7 +287,7 @@ describe("el demo hace lo que haría la 148 con la lista", () => {
   const admin = { id: "u-admin", name: "You (Admin)", admin: true, store: null };
   it("el admin ve las dos de la semilla, la más reciente primero, con vendedor, tienda, cliente, total y estado", async () => {
     const a = almacenDemo(() => admin, false);
-    const r = await a.listarTodas(filtroVacio(), 0);
+    const r = await a.listarTodas(filtroVacio(), 0, TODAS);
     expect(r.ok && r.valor.hayMas).toBe(false);
     expect(r.ok && r.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_AJENO, DEMO_ESTIMADO_IMPRESO]);
     const impresa = r.ok ? r.valor.filas[1] : cotizacion();
@@ -297,23 +299,23 @@ describe("el demo hace lo que haría la 148 con la lista", () => {
   });
   it("el filtro del demo es el mismo que el de la base", async () => {
     const a = almacenDemo(() => admin, false);
-    const porTexto = await a.listarTodas(f({ texto: "garza" }), 0);
+    const porTexto = await a.listarTodas(f({ texto: "garza" }), 0, TODAS);
     expect(porTexto.ok && porTexto.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_IMPRESO]);
-    const porFecha = await a.listarTodas(f({ desde: "2026-10-01" }), 0);
+    const porFecha = await a.listarTodas(f({ desde: "2026-10-01" }), 0, TODAS);
     expect(porFecha.ok && porFecha.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_AJENO]);
-    const hasta = await a.listarTodas(f({ hasta: "2026-09-30" }), 0);
+    const hasta = await a.listarTodas(f({ hasta: "2026-09-30" }), 0, TODAS);
     expect(hasta.ok && hasta.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_IMPRESO]);
   });
   it("un vendedor solo ve las suyas y las de su tienda (la política de SELECT de la 148), aunque pida todas", async () => {
     let yo = { id: "u-nadie", name: "Nadie", admin: false, store: "Mission" as string | null };
     const a = almacenDemo(() => yo, false);
-    const nada = await a.listarTodas(filtroVacio(), 0);
+    const nada = await a.listarTodas(filtroVacio(), 0, TODAS);
     expect(nada.ok && nada.valor.filas).toEqual([]);
     yo = { id: "u-otro", name: "Otro", admin: false, store: "Edinburg" };
-    const tienda = await a.listarTodas(filtroVacio(), 0);
+    const tienda = await a.listarTodas(filtroVacio(), 0, TODAS);
     expect(tienda.ok && tienda.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_IMPRESO]);
     yo = { id: DEMO_OTRO_VENDEDOR.id, name: DEMO_OTRO_VENDEDOR.name, admin: false, store: null };
-    const mias = await a.listarTodas(filtroVacio(), 0);
+    const mias = await a.listarTodas(filtroVacio(), 0, TODAS);
     expect(mias.ok && mias.valor.filas.map((c) => c.estimate_num)).toEqual([DEMO_ESTIMADO_AJENO]);
   });
   it("una guardada nueva entra en la lista con su fecha; imprimirla la marca impresa", async () => {
@@ -321,13 +323,13 @@ describe("el demo hace lo que haría la 148 con la lista", () => {
     const g = await a.guardar(null, { ...borradorVacio(), estimate_num: "N-9" });
     const id = g.ok ? g.valor : "";
     expect((await a.marcarImpresa(id, 1)).ok).toBe(true);
-    const r = await a.listarTodas(f({ texto: "n-9" }), 0);
+    const r = await a.listarTodas(f({ texto: "n-9" }), 0, TODAS);
     expect(r.ok && r.valor.filas.map((c) => [c.estimate_num, estadoDeCotizacion(c)])).toEqual([["N-9", "impresa"]]);
-    const lista = await a.listarTodas(filtroVacio(), 0);
+    const lista = await a.listarTodas(filtroVacio(), 0, TODAS);
     expect(lista.ok && lista.valor.filas[0].estimate_num).toBe("N-9");
   });
   it("con ?sinTabla=1 nada", async () => {
-    const sin = await almacenDemo(() => admin, true).listarTodas(filtroVacio(), 0);
+    const sin = await almacenDemo(() => admin, true).listarTodas(filtroVacio(), 0, TODAS);
     expect(sin.ok === false && sin.sinTabla).toBe(true);
   });
 });
@@ -335,32 +337,32 @@ describe("el demo hace lo que haría la 148 con la lista", () => {
 describe("la pantalla", () => {
   const pantalla = leer("src/app/estimator/Estimador.tsx");
   const pestana = leer("src/app/estimator/TodasLasCotizaciones.tsx");
-  it("la pestaña y su contenido solo se pintan si puedeVerTodas, con el mismo almacén y el de la competencia", () => {
-    expect(pantalla).toContain("{puedeVerTodas(me) && (");
+  it("la pestaña y su contenido se pintan si puedeVerLista (D-NEXT: ya no solo el admin), con el mismo almacén y el de la competencia", () => {
+    expect(pantalla).toContain("{puedeVerLista(me) && (");
     expect(pantalla).toContain('data-pestana="todas"');
-    expect(pantalla).toContain("{pestana === \"todas\" && puedeVerTodas(me) && (");
-    expect(pantalla).toContain("<TodasLasCotizaciones almacen={almacen} competencia={almacenCompetencia} me={me} t={t} lang={lang}");
+    expect(pantalla).toContain("{pestana === \"todas\" && puedeVerLista(me) && (");
+    expect(pantalla).toContain("almacen={almacen} competencia={almacenCompetencia} me={me} t={t} lang={lang}");
     expect(pantalla).toContain("onAbrir={(id) => void abrirDesdeLista(id)} />");
-    // Si «Ver como» deja de ser admin estando en la pestaña, se vuelve a la cotización.
-    expect(pantalla).toContain("useEffect(() => { if (pestana === \"todas\" && !puedeVerTodas(me)) setPestana(\"cotizacion\"); }, [pestana, me]);");
+    // Si nadie tiene sesión conocida estando en la pestaña, se vuelve a la cotización.
+    expect(pantalla).toContain("useEffect(() => { if (pestana === \"todas\" && !puedeVerLista(me)) setPestana(\"cotizacion\"); }, [pestana, me]);");
   });
   it("abrir desde la lista va a la pestaña Cotización y carga la guardada (donde se imprime como siempre)", () => {
     expect(pantalla).toContain("const abrirDesdeLista = async (id: string) => {\n    setPestana(\"cotizacion\");\n    setVistaPrevia(false);\n    await abrirGuardada(id);\n  };");
   });
-  it("la pestaña pide por tandas con el filtro, no pide nada si no es admin, y lista la competencia con «Abrir su cotización»", () => {
-    expect(pestana).toContain("if (!puedeVerTodas(me)) return;\n    setOcupado(true);\n    const r = await almacen.listarTodas(f, n);");
-    expect(pestana).toContain("if (!puedeVerTodas(me)) return null;");
+  it("la pestaña pide por tandas con el filtro y el alcance, no pide nada sin alcance, y lista la competencia con «Abrir su cotización»", () => {
+    expect(pestana).toContain("if (!alcance) return;\n    setOcupado(true);\n    const r = await almacen.listarTodas(f, n, alcance);");
+    expect(pestana).toContain("if (!alcance) return null;");
     expect(pestana).toContain("setFilas((previas) => (n === 0 ? r.valor.filas : [...previas, ...r.valor.filas]));");
     expect(pestana).toContain("onClick={() => void cargar(filtro, tanda + 1)}");
     expect(pestana).toContain("if (r.sinTabla) { setEstado(\"sin-base\"); return; }");
-    expect(pestana).toContain("const e = await competencia.listarTodos();");
+    expect(pestana).toContain("const e = await competencia.listarTodos(subidoPorDelAlcance(alcance));");
     expect(pestana).toContain("onAbrirCotizacion={onAbrir} />");
   });
   it("los patrones de la casa: la barra .filters con la búsqueda compacta y el calendario del Panel, y la tabla .orders con el menú por columna de Órdenes", () => {
     expect(pestana).toContain('<div className="filters">');
     expect(pestana).toContain('<input style={{ maxWidth: 260 }} value={filtro.texto} data-todas-texto');
     expect(pestana).toContain("<RangoDelPanel rango={rango} onRango={ponRango} t={t} />");
-    expect(pestana).toContain("const orden = useOrdenYFiltro(filas, valorDe);");
+    expect(pestana).toContain("const orden = useOrdenYFiltro(filas, valorDe, ORDEN_INICIAL);");
     expect(pestana).toContain("const valorDe = useCallback((clave: string, c: CotizacionResumen) => valorDeColumna(clave, c, t), [t]);");
     expect(pestana).toContain("<FiltrosPuestos estado={orden} columnas={columnas} lang={lang} t={t} />");
     expect(pestana).toContain("{columnas.map((c) => <th key={c.key}><CabeceraConMenu estado={orden} col={c} lang={lang} t={t} /></th>)}");
