@@ -21,7 +21,7 @@
 // bajar nada (D-029/D-087) y se queda con codigo viejo sin que nadie lo note.
 // Ver "Flujo de ramas" en CLAUDE.md y docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
-  deliveries: "1.268.0",
+  deliveries: "1.268.1",
   recruiting: "0.39.0",
   timetracker: "0.98.0",
   clockin: "0.44.0",

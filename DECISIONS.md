@@ -38700,3 +38700,28 @@ clics de ratón sobre el elemento a la vista. Capturas en `scratchpad/barra-tt/t
 - D-484 (cotizaciones por pies²) no cambia.
 
 No visto en navegador: `tsc` y vitest del módulo (124).
+
+## D-492 · Chofer, «No pausar la app»: el botón abre «Info de la app» y la pantalla dice los pasos
+
+**Fecha:** 2026-10-07 · **Versión:** deliveries (deliveries 1.268.1, repo 1.364.1) · **Sin migración. Sin APK nueva.** · Hecho directo por el orquestador en `release-d492`.
+
+**Pedido del dueño**, literal, con video del teléfono de Julio Jijon atascado en «Tu teléfono aún no puede reportar · Faltan 1 · No pausar la app»: *«mira no saben como hacer eso de open setting»*.
+
+### Qué pasaba (visto en el video)
+
+«Open setting» llamaba a `requestHibernationExemption` (APK: `Intent.ACTION_AUTO_REVOKE_PERMISSIONS`). En ese teléfono
+(Android 13/14) ese intent aterriza en **«Uso de batería»** (Sin restricciones / Optimizada / Restringida), que ya estaba
+bien y **no tiene** el interruptor que falta. El interruptor «Pausar actividad de la app si no se usa» vive en **«Info de
+la app»**. El chofer volvía, seguía «Faltan 1», y no había nada en pantalla que le dijera dónde buscar.
+
+### Qué se decidió
+
+- El botón del paso pasa a **«Abrir info de la app»** y llama a `openAppSettingsPage` (APK:
+  `Settings.ACTION_APPLICATION_DETAILS_SETTINGS`, ya existe desde la APK de agosto; la instalada es la 5).
+- Debajo del paso, a la vista, **cuatro pasos numerados**: tocar el botón; bajar hasta «Pausar actividad de la app si no
+  se usa» (o «Quitar permisos si no se usa» / «Administrar app si no se usa», según la marca); apagarlo; regresar a la app,
+  que se vuelve a revisar sola.
+- La pantalla dedicada de antes queda como segundo botón: «¿No está ahí? Prueba la otra pantalla».
+- Es solo web: llega a los teléfonos al recargar, sin instalar nada.
+
+No visto en un teléfono: `tsc` y vitest.
