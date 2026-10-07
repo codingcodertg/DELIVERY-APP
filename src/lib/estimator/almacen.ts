@@ -4,7 +4,10 @@ import {
   DEFAULT_DISPLAY_LEVEL, DEFAULT_SALUTATION, DISPLAY_LEVELS, SALUTATIONS, hoyLocal, resumenDeTotales,
   type Customer, type Delivery, type DisplayLevel, type QuoteDraft, type QuoteLine,
 } from "./modelo";
-import { aplicaFiltro, cortaTanda, rangoDeTanda, type Consulta, type CotizacionResumen, type FiltroDeCotizaciones } from "./lista-admin";
+import {
+  aplicaAlcance, aplicaFiltro, cortaTanda, piesCuadradosPedidos, rangoDeTanda,
+  type AlcanceDeLista, type Consulta, type CotizacionResumen, type FiltroDeCotizaciones,
+} from "./lista-admin";
 
 /**
  * Dónde se guardan las cotizaciones: `public.estimator_quotes` y `public.estimator_approvals`
@@ -48,11 +51,11 @@ export interface AlmacenDeCotizaciones {
   decidir(approvalId: string, estado: "approved" | "denied"): Promise<Resultado<null>>;
   marcarImpresa(quoteId: string, printCount: number): Promise<Resultado<null>>;
   /**
-   * TODAS las cotizaciones (D-476, solo admin), filtradas y de la más reciente a la más vieja, por tandas de `TANDA`.
-   * Quién ve cuántas lo decide la RLS de la 148 (el admin, todas; un vendedor, las suyas y las de su tienda): esto
-   * devuelve lo que la base deja, y la pantalla solo lo pide si `puedeVerTodas`.
+   * La lista de cotizaciones (D-476; D-NEXT: también para el no-admin, solo las suyas), filtradas y de la más reciente a
+   * la más vieja, por tandas de `TANDA`. El `alcance` va EN LA CONSULTA: el no-admin pide `owner_id = su id`. La RLS de
+   * la 148 le dejaría leer además las de su tienda y las que le aprobaron; la pantalla no las pide.
    */
-  listarTodas(filtro: FiltroDeCotizaciones, tanda: number): Promise<Resultado<{ filas: CotizacionResumen[]; hayMas: boolean }>>;
+  listarTodas(filtro: FiltroDeCotizaciones, tanda: number, alcance: AlcanceDeLista): Promise<Resultado<{ filas: CotizacionResumen[]; hayMas: boolean }>>;
 }
 
 /**
@@ -162,6 +165,7 @@ export function resumenDeFila(fila: Record<string, unknown>): CotizacionResumen 
     owner_name: typeof nombre === "string" && nombre.trim() ? nombre.trim() : null,
     store: typeof fila.store === "string" && fila.store.trim() ? fila.store.trim() : null,
     customer_name: borrador.customer.full_name.trim(),
+    sf: piesCuadradosPedidos(borrador.lines),
     total: resumenDeTotales(borrador.lines).total,
     print_count: num(fila.print_count) ?? 0,
     printed_at: typeof fila.printed_at === "string" ? fila.printed_at : null,
@@ -270,11 +274,11 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
       return { ok: true, valor: null };
     },
 
-    async listarTodas(filtro, tanda) {
+    async listarTodas(filtro, tanda, alcance) {
       const { desde, hasta } = rangoDeTanda(tanda);
       const base = supabase.from("estimator_quotes").select(COLUMNAS_DE_LA_LISTA);
       // El filtro se aplica por la interfaz mínima (`Consulta`): con los genéricos de PostgREST, `tsc` se pierde (TS2589).
-      const filtrada = aplicaFiltro(base as unknown as Consulta, filtro) as unknown as typeof base;
+      const filtrada = aplicaFiltro(aplicaAlcance(base as unknown as Consulta, alcance), filtro) as unknown as typeof base;
       const { data, error } = await filtrada
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })

@@ -11,10 +11,16 @@ import { filtraFilas, opcionesDeFiltro, ordenaFilas, type FiltrosPorColumna, typ
  *
  * `valorDe(clave, fila)` es lo que la columna `clave` extrae de una fila; debe ser estable entre renders
  * (`useCallback`), porque la lista ordenada se recalcula cuando cambia.
+ *
+ * `inicial` (opcional) es el orden con el que nace la tabla —p. ej. la lista del Quote Builder, por pies cuadrados de
+ * mayor a menor (D-NEXT)—; el menú de la columna lo cambia o lo quita como cualquier otro. Sin él, nace sin orden.
  */
-export function useOrdenYFiltro<T>(filas: readonly T[], valorDe: (clave: string, fila: T) => ValorDeCelda) {
-  const [claveDeOrden, setClaveDeOrden] = useState<string | null>(null);
-  const [direccion, setDireccion] = useState<"asc" | "desc" | null>(null);
+export function useOrdenYFiltro<T>(
+  filas: readonly T[], valorDe: (clave: string, fila: T) => ValorDeCelda,
+  inicial?: { clave: string; direccion: "asc" | "desc" },
+) {
+  const [claveDeOrden, setClaveDeOrden] = useState<string | null>(inicial?.clave ?? null);
+  const [direccion, setDireccion] = useState<"asc" | "desc" | null>(inicial?.direccion ?? null);
   const [filtros, setFiltros] = useState<FiltrosPorColumna>({});
   const [abierta, setAbierta] = useState<string | null>(null);
   // El menú se pinta en un portal (como en Órdenes: un `.tbl-scroll` con barra horizontal recorta lo que

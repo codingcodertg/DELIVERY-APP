@@ -9,7 +9,10 @@ import {
  * La lista de TODAS las cotizaciones, solo para el admin (D-476). El dueño, 2026-10-06: «en el quote builder solo
  * para admin habilita la lista de todas las quotes ya hechas y las de los comeptirodes tambien».
  *
- * Aquí vive lo que decide, sin red: **quién ve la pestaña** (solo `admin`, la misma palabra que `profiles.role` y que
+ * D-NEXT: la ven todos los del módulo; el admin con todas, los demás solo con las suyas (`alcanceDeLista`), y nace ordenada
+ * por pies cuadrados (`ORDEN_INICIAL`, columna `sf`).
+ *
+ * Aquí vive lo que decide, sin red: **quién ve todas** (solo `admin`, la misma palabra que `profiles.role` y que
  * `is_admin()` en la RLS de la 148), el **filtro que va a la base** (fechas y texto), el **orden** (de la más reciente a
  * la más vieja), las **tandas** (de 50 en 50), el **rango de fechas con sus atajos** (el calendario del Panel, D-478) y
  * **lo que cada columna saca de una fila** para el menú de ordenar y filtrar de las tablas de la casa (D-275/D-360).
@@ -33,6 +36,46 @@ export function puedeVerTodas(me: { admin: boolean } | null | undefined): boolea
   return me?.admin === true;
 }
 
+// ---- quién ve qué en la lista (D-NEXT) ---------------------------------------------------------------------------------
+//
+// El dueño (2026-10-06): «esa misma, donde uno se mete para ver todas las órdenes que se han hecho, pero cada user también
+// va a tener acceso a eso, pero ese user solo va a poder ver las órdenes que él ha hecho». La pestaña deja de ser solo del
+// admin: todo el que entra al Quote Builder (el `layout` ya exige el módulo `estimator`) la ve; el admin, con TODAS; los
+// demás, solo con las que ellos crearon (`owner_id`) y los estimados de la competencia que ellos subieron.
+
+/** Qué filas pide la lista: todas (admin) o solo las de un dueño. Nunca «todas» por olvido: el no-admin lleva su id. */
+export type AlcanceDeLista = { todas: true } | { todas: false; dueno: string };
+
+/**
+ * El alcance de la lista para quien mira, o null si no se le enseña (sin sesión conocida). Un no-admin sin id NO cae
+ * en «todas»: se queda sin lista. Lo que decide «admin» es lo mismo que `puedeVerTodas`.
+ */
+export function alcanceDeLista(me: { id?: string | null; admin: boolean } | null | undefined): AlcanceDeLista | null {
+  if (puedeVerTodas(me)) return { todas: true };
+  const id = me?.id?.trim();
+  return id ? { todas: false, dueno: id } : null;
+}
+
+/** ¿Se ofrece la pestaña? A quien tenga alcance: el admin, o cualquiera con sesión dentro del módulo. */
+export function puedeVerLista(me: { id?: string | null; admin: boolean } | null | undefined): boolean {
+  return alcanceDeLista(me) !== null;
+}
+
+/** ¿Esta cotización entra en el alcance? (el demo, y la prueba de que la base pide lo mismo). */
+export function enElAlcance(c: Pick<CotizacionResumen, "owner_id">, a: AlcanceDeLista): boolean {
+  return a.todas || c.owner_id === a.dueno;
+}
+
+/** El alcance dicho a la base: el no-admin pide `owner_id = su id`, en la consulta, no solo en pantalla. */
+export function aplicaAlcance(q: Consulta, a: AlcanceDeLista): Consulta {
+  return a.todas ? q : q.eq("owner_id", a.dueno);
+}
+
+/** Los estimados de la competencia que entran: todos (admin) o los que subió el dueño del alcance. */
+export function subidoPorDelAlcance(a: AlcanceDeLista): string | null {
+  return a.todas ? null : a.dueno;
+}
+
 /** Una cotización como la lista la pestaña: lo justo para reconocerla, sin las líneas ni el teléfono del cliente. */
 export interface CotizacionResumen {
   id: string;
@@ -42,6 +85,8 @@ export interface CotizacionResumen {
   owner_name: string | null;
   store: string | null;
   customer_name: string;
+  /** Los pies cuadrados pedidos: la suma de `requested_sf` de sus líneas por SF (D-NEXT, `piesCuadradosPedidos`). */
+  sf: number;
   /** El total estimado de materiales, con impuesto: el mismo que ve el vendedor bajo la hoja (D-442). */
   total: number;
   print_count: number;
@@ -67,6 +112,21 @@ export function hayFiltro(f: FiltroDeCotizaciones): boolean {
 
 /** Cuántas se cargan por tanda. Hoy (2026-10-06) hay 3 en producción; con 50 la lista se lee entera de un golpe. */
 export const TANDA = 50;
+
+/**
+ * Los pies cuadrados pedidos de una cotización (D-NEXT, «el sort sea por square feet»): la suma de `requested_sf` de las
+ * líneas por SF. Las de unidad («Installation Materials, 1 Lot») no tienen superficie y no suman; una línea sin SF
+ * escrito, o con un número que no es positivo, tampoco. Son los pedidos, no los que salen en cajas completas (`sfReal`).
+ */
+export function piesCuadradosPedidos(lineas: readonly { kind: string; requested_sf?: number | null }[]): number {
+  let total = 0;
+  for (const l of lineas) {
+    if (l.kind !== "sf") continue;
+    const sf = l.requested_sf;
+    if (typeof sf === "number" && Number.isFinite(sf) && sf > 0) total += sf;
+  }
+  return Math.round(total * 100) / 100;
+}
 
 export type EstadoDeCotizacion = "impresa" | "guardada";
 
@@ -131,9 +191,11 @@ export function cortaTanda<T>(filas: readonly T[]): { filas: T[]; hayMas: boolea
 }
 
 /** Una tanda de la lista, ya filtrada y ordenada, sobre filas en memoria (el demo). */
-export function tandaEnMemoria(todas: readonly CotizacionResumen[], f: FiltroDeCotizaciones, n: number): { filas: CotizacionResumen[]; hayMas: boolean } {
+export function tandaEnMemoria(
+  todas: readonly CotizacionResumen[], f: FiltroDeCotizaciones, n: number, a: AlcanceDeLista,
+): { filas: CotizacionResumen[]; hayMas: boolean } {
   const { desde, hasta } = rangoDeTanda(n);
-  return cortaTanda(masRecientePrimero(todas.filter((c) => cumpleFiltro(c, f))).slice(desde, hasta + 1));
+  return cortaTanda(masRecientePrimero(todas.filter((c) => enElAlcance(c, a) && cumpleFiltro(c, f))).slice(desde, hasta + 1));
 }
 
 /**
@@ -225,7 +287,7 @@ export function atajoEncendido(r: Pick<RangoDeFechas, "desde" | "hasta" | "modo"
 
 // ---- las columnas, con el menú de ordenar y filtrar de las tablas de la casa (D-275 / D-360) -------------------------
 
-export type ClaveDeColumna = "fecha" | "estimado" | "vendedor" | "tienda" | "cliente" | "total" | "estado";
+export type ClaveDeColumna = "fecha" | "estimado" | "vendedor" | "tienda" | "cliente" | "sf" | "total" | "estado";
 
 export const COLUMNAS_DE_LA_TABLA: readonly { key: ClaveDeColumna; en: string; es: string }[] = [
   { key: "fecha", en: "Date", es: "Fecha" },
@@ -233,9 +295,21 @@ export const COLUMNAS_DE_LA_TABLA: readonly { key: ClaveDeColumna; en: string; e
   { key: "vendedor", en: "Sales rep", es: "Vendedor" },
   { key: "tienda", en: "Store", es: "Tienda" },
   { key: "cliente", en: "Customer", es: "Cliente" },
+  { key: "sf", en: "SF", es: "Pies²" },
   { key: "total", en: "Total", es: "Total" },
   { key: "estado", en: "Status", es: "Estado" },
 ];
+
+/** Las columnas según el alcance: quien solo ve las suyas no tiene columna (ni filtro) de Vendedor, siempre sería él. */
+export function columnasDeLaLista(a: AlcanceDeLista): readonly { key: ClaveDeColumna; en: string; es: string }[] {
+  return a.todas ? COLUMNAS_DE_LA_TABLA : COLUMNAS_DE_LA_TABLA.filter((c) => c.key !== "vendedor");
+}
+
+/**
+ * Cómo nace ordenada la lista (D-NEXT): por pies cuadrados, de mayor a menor. El menú de cada columna lo cambia; «✕»
+ * en el orden vuelve al de la base (la más reciente primero).
+ */
+export const ORDEN_INICIAL = { clave: "sf", direccion: "desc" } as const satisfies { clave: ClaveDeColumna; direccion: "asc" | "desc" };
 
 /** El texto del estado en el idioma de la pantalla; es lo que filtra y lo que se pinta, una sola cosa. */
 export function textoDeEstado(c: Pick<CotizacionResumen, "print_count" | "printed_at">, t: (en: string, es: string) => string): string {
@@ -254,6 +328,7 @@ export function valorDeColumna(clave: string, c: CotizacionResumen, t: (en: stri
     case "vendedor": return c.owner_name;
     case "tienda": return c.store;
     case "cliente": return c.customer_name || null;
+    case "sf": return c.sf;
     case "total": return c.total;
     case "estado": return textoDeEstado(c, t);
     default: return null;
