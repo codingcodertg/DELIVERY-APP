@@ -42,7 +42,9 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     <ConfirmContext.Provider value={confirmAction}>
       {children}
       {pending && (
-        <div className="overlay" onClick={(e) => e.target === e.currentTarget && settle(false)}>
+        // Encima de todo (D-488): el panel de «Switch user» va a z-index 9990 y el aviso naranja a 9999; con el 50 de
+        // `.overlay` la pregunta «¿Cambiar a…?» quedaba debajo de la lista y no se podía pulsar. El dueño: «mira no puedo elegir».
+        <div className="overlay" style={{ zIndex: 10000 }} onClick={(e) => e.target === e.currentTarget && settle(false)}>
           <div className="modal" style={{ maxWidth: 440 }}>
             <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{pending.message}</p>
             <div className="modal-actions">

@@ -20,7 +20,7 @@ import { colorDeChofer, leyendaDelMapa } from "@/lib/map-legend";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
 import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
-import { guardaMarcados, leeMarcados, marcadosVigentes, pasaElFiltro, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
+import { NINGUNO, alternaTodas, alternaVisible, guardaMarcados, leeMarcados, marcadasAProposito, marcadosVigentes, pasaElFiltro, rutasVisibles, seVenTodas, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
 import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
 import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
@@ -503,12 +503,6 @@ export default function RoutesPage() {
   useEffect(() => { setErr(null); }, [date]);
 
   const focusOnly = (name: string) => setSelected(new Set([name]));
-  const toggleDriver = (name: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
-      return next;
-    });
 
   // CADA DÍA ES APARTE (D-331). Viendo hoy, esta lista arrastraba también lo atrasado y lo que no tenía fecha,
   // mezclado con lo del día en la tabla, los totales, las rutas y el mapa. El dueño lo rechazó. Ahora el día es
@@ -1939,7 +1933,11 @@ export default function RoutesPage() {
   // nombran en una línea (`marcadasSinParadas`).
   const shownDrivers = lanesDelFiltro.filter((u) => conAlgoQuePintar(u.key));
   // El panel «Choferes y rutas» (D-481, f): un chofer sin ninguna orden ese día no sale; una ruta temporal vacía sí.
-  const filasDelPanel = rutasConOrdenes(lanesDelFiltro, conAlgoQuePintar);
+  // El panel lista SIEMPRE todas las rutas del día (D-488): su casilla dice si se ve. Antes listaba solo las filtradas y,
+  // marcado un chofer, no quedaba casilla para marcar otro.
+  const filasDelPanel = rutasConOrdenes(lanes, conAlgoQuePintar);
+  const clavesDelPanel = filasDelPanel.map((u) => u.key);
+  const visiblesEnPanel = rutasVisibles(selected, clavesDelPanel);
   const marcadasSinParadas = lanesDelFiltro.filter((u) => selected.has(u.key) && (byDriver.get(u.key) ?? []).length === 0);
   // «▦ Cuadrícula» (D-481, e): arriba, una tarjeta COMPACTA por ruta (nombre, números, pastillas; sin tabla ni botones);
   // abajo, DESPLEGADA a todo el ancho, la del nombre pulsado. En «▭ Ancho», las tarjetas enteras, como siempre.
@@ -2460,16 +2458,16 @@ export default function RoutesPage() {
           vacio={soloLectura
             ? t("No routes with orders this day.", "Sin rutas con órdenes este día.")
             : t("No routes with orders this day — assign orders, or tap “＋ Route” to build a route without a driver.", "Sin rutas con órdenes este día — asigna órdenes, o toca “＋ Ruta” para armar una ruta sin chofer.")}
-          hayMarcadas={focused}
-          onMuestraTodos={() => setSelected(new Set())}
+          todas={seVenTodas(selected, clavesDelPanel)}
+          onAlternaTodas={() => setSelected((s) => alternaTodas(s, clavesDelPanel))}
           onEnfoca={focusOnly}
-          onAlterna={toggleDriver}
+          onAlterna={(clave) => setSelected((s) => alternaVisible(s, clavesDelPanel, clave))}
           onUbica={veCamiones ? (clave) => setLocateDriver(driverOf(clave)) : undefined}
           acciones={soloLectura ? undefined : <>
-            {selected.size >= 2 && (
+            {marcadasAProposito(selected).size >= 2 && (
               <button className="btn btn-primary btn-sm" onClick={mergeSelectedLanes}
                 title={t("Combine the checked routes into one (merges into the top-most checked one)", "Combinar las rutas marcadas en una (se unen en la primera marcada)")}>
-                🔀 {t("Merge", "Unir")} ({selected.size})
+                🔀 {t("Merge", "Unir")} ({marcadasAProposito(selected).size})
               </button>
             )}
             <button className="btn btn-ghost btn-sm" onClick={() => addBucket()} title={t("Add a numbered route (Route 1, Route 2…) to build on, then hand it to a driver later", "Agrega una ruta numerada (Ruta 1, Ruta 2…) para armar, y entrégala a un chofer después")}>＋ {t("Route", "Ruta")}</button>
@@ -2481,7 +2479,7 @@ export default function RoutesPage() {
             // recarga a media ruta y la suma del día no dice nada. Rojo solo si en alguna parada se pasa (`cargaDelPanel`).
             return {
               id: u.id, clave: u.key, etiqueta: u.label, color: colorFor(u.driver), paradas: stops.length, info: routeInfo[u.key],
-              carga: cargaDelPanel(lecturaDe(u.key, stops), capacityFor(u.driver)), marcada: selected.has(u.key), enVivo: liveNames.has(u.driver),
+              carga: cargaDelPanel(lecturaDe(u.key, stops), capacityFor(u.driver)), marcada: visiblesEnPanel.has(u.key), enVivo: liveNames.has(u.driver),
             };
           })}
           // Soltar aquí una fila de «Sin asignar» la asigna; una parada de otro chofer, la pasa a esta ruta (D-456).
@@ -2527,7 +2525,7 @@ export default function RoutesPage() {
           {filtroChofer.size > 0 && (
             <span className="sema" data-filtro-de-chofer style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--accent)", color: "var(--accent)", background: "var(--card)" }}
               title={t("Only the drivers checked in “Drivers & routes” are shown", "Solo se ven los choferes marcados en «Choferes y rutas»")}>
-              🚚 {[...filtroChofer].map(laneLabel).join(", ")}
+              🚚 {filtroChofer.has(NINGUNO) ? t("no driver", "ningún chofer") : [...filtroChofer].map(laneLabel).join(", ")}
               <button className="notif-clear" data-quita-filtro onClick={() => setSelected(new Set())} title={t("Show every driver", "Ver todos los choferes")}>✕</button>
             </span>
           )}

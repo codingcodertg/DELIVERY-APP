@@ -37706,6 +37706,8 @@ no lo nombró.
 
 ## D-481 · Gestor de Rutas y «Ruta de hoy»: «Ruta de hoy» es el Gestor sin ninguna acción, el filtro de chofer son las casillas del panel, «Cuadrícula» despliega la tabla abajo, sin choferes vacíos, la factura en el mapa y sin «P1» en una tienda
 
+> **Reemplazada en parte por D-488:** el panel de choferes ya no esconde a los demás al marcar uno; la casilla dice si la ruta se ve, y hay «Todos».
+
 > **Reemplazada en parte por D-482:** en «Cuadrícula» la desplegada ya no repite la cabecera y sale pegada a su compacta, con animación.
 >
 > **Reemplazada en parte por D-485** (2026-10-06): (d) se deshace. Con la ruta numerada por paradas, la recogida en una
@@ -38155,7 +38157,7 @@ y la ruta forzada tendría que quitarla con la llave de servicio. Se dejó así 
 
 ## D-487 · «Mi ruta»: cada parada lleva sus botones — Recogido · Saltar en cada carga de una recogida; Entregado · Saltar · Rechazado (con razón obligatoria) en cada entrega
 
-**Fecha:** 2026-10-06 · **Sin migración.** · Rama `feat/chofer-acciones-por-parada`. **Reemplaza en parte a D-334** (las recogidas de «Mi ruta» ya no son solo informativas).
+**Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.266.0, repo 1.360.0) · **Sin migración.** · Rama `feat/chofer-acciones-por-parada`. **Reemplaza en parte a D-334** (las recogidas de «Mi ruta» ya no son solo informativas).
 
 **Pedido del dueño**, literal (dictado): *«a los drivers en el, de, en el delivery app cuando estén en, el, en, el, en la aplicación móvil, en la parte de ellos de routes, entonces quiero que ahí salga un por cada carga, cada pickup y los deliveries también que diga pickup en nosotros obviamente va a ser deliver, skip y en los deliveries puede ser hasta rejected y él tiene que poner una, una razón va porque fue rejected»*
 
@@ -38218,3 +38220,27 @@ texto encendido; tras confirmar, la parada enseña la razón y «Dejar en tienda
 la pastilla en Órdenes, en «All» del Gestor y en la cabecera de la ficha; 2 avisos en la campana (admin y logística). Como admin:
 el historial de la ficha con «⏭ Stop skipped», «Picked Up» y «⛔ Rejected by customer — …razón». Página a 390 px sin scroll lateral.
 No probado contra la base real (la inserción en `order_events` como chofer se apoya en la política 100, leída, no ensayada).
+
+## D-488 · Gestor: el panel de choferes lista a todos, la casilla dice si se ve, y «Todos» arriba; y la pregunta de «Cambiar usuario» encima de la lista
+
+**Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.267.0, repo 1.361.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d487`. **Reemplaza en parte a D-481 (c).**
+
+**Pedido del dueño**, literal (dictado): *«En el Route Manager, cuando elijo un conductor, que dice chofer, el router es un conductor, solo se elige uno. Pero quiero que estén los tres y que yo pueda apretar uno. Y si quiero elegir los tres y que los tres vayan apareciendo. Y si no los elijo, no aparece en el mapa. Hay una opción arriba que diga elegir todos. Entonces quiero que me ayudes a hacer eso.»* · Y, con captura de la lista de «Cambiar usuario» tapando la pregunta: *«mira no puedo elegir»*.
+
+### Qué fallaba
+
+- **Choferes:** desde D-481 (c), marcar un chofer escondía a los demás también en el PANEL («Choferes y rutas»), así que no
+  quedaba casilla para marcar un segundo: en la práctica solo se elegía uno.
+- **Cambiar usuario:** el panel de la lista va a `z-index: 9990` (y el aviso naranja a 9999); la pregunta «¿Cambiar a…?»
+  usaba el `.overlay` normal (`z-index: 50`) y quedaba DEBAJO de la lista, sin poder pulsar «Cambiar».
+
+### Qué se decidió
+
+- El panel lista **siempre** todas las rutas con algo ese día (`rutasConOrdenes(lanes, …)`). Su casilla dice si esa ruta
+  **se ve** (tarjetas, tabla, mapa): marcada se ve, desmarcada no. Sin nada guardado se ven todas (todas marcadas).
+- Desmarcarlas todas es posible: se guarda «Ninguno» (`NINGUNO` en `src/lib/gestor/filtro-de-choferes.ts`) y no se ve
+  ninguna. Arriba del panel, la casilla **«Todos / All»** las marca o desmarca de una vez (`alternaTodas`, `seVenTodas`).
+- Pulsar el nombre de la fila sigue dejando solo esa ruta (atajo). «Unir» cuenta solo lo marcado a propósito.
+- La confirmación (`src/lib/confirm.tsx`) se pinta con `z-index: 10000`: encima de todo, en todas las apps.
+
+No visto en navegador: `tsc` y vitest.
