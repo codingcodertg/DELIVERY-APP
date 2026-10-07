@@ -37817,3 +37817,25 @@ f (M09–M12), d (M13–M16), a (M17–M18), e (M19–M24), b (M25–M29: legibl
 
 Visto en el demo (CDP, 1280): 1 compacta abierta, 1 desplegada, 0 nombres dentro de la desplegada, su tabla a la vista.
 No visto en un teléfono.
+
+## D-483 · «📱 Vista móvil» al lado de «⇄ Switch user» en la barra de Entregas; el aviso «Estás como…» en una línea corta y sin los minutos
+
+**Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.263.0, repo 1.356.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d483`. **Reemplaza en parte a D-306 y D-333** (la vista móvil vuelve a la barra) y a D-243 (lo que pinta el aviso).
+
+**Pedido del dueño**, literal (dictado): *«El switch de mobile view también agrégalo en ahí donde dice switch user. El switch user ahora va a ser dos botones. Uno va a ser switch user y users y el otro va a ser switch eh, a mobile view. Y ahora quiero que quites ese timeout. Que lo único que salga ahí es, ok, estás login como, como Robert y ya. Pero no quiero ese timeout y esa cosa porque quita mucho espacio.»*
+
+### Qué se decidió
+
+- **Barra de Entregas**, solo para el admin real: junto a «⇄ Switch user» (que sigue igual), un segundo botón
+  **«📱 Mobile view / Vista móvil»** que abre la pantalla en la que se está dentro del marco de teléfono del hub
+  (`enlaceAVistaMovil(pathname)`, la página `/home/vista-movil`, que sigue siendo solo de admin). No vuelve al menú del nombre.
+- **El aviso naranja** al estar dentro de la cuenta de otra persona: una sola línea, «👤 Estás como Robert», y dos botones
+  cortos («↩ Volver a mi cuenta», «⇄ Cambiar usuario»). Fuera el texto en dos idiomas y los **minutos que quedan**; menos
+  relleno.
+- **La vuelta automática a los 60 minutos se queda** (en el aviso y en el middleware): es la red de seguridad de D-243 para
+  no seguir escribiendo como otra persona sin darse cuenta. Solo deja de pintarse el contador. Si el dueño quiere quitar el
+  límite mismo, es otra decisión.
+
+Interpretación: «quita ese timeout» = el contador que se ve, no el límite (lo pidió «porque quita mucho espacio»).
+
+No visto en navegador: `tsc` y vitest (6350).

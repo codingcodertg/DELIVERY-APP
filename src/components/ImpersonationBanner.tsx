@@ -31,7 +31,6 @@ type Estado = { como: string; inicio: number } | null;
 export function ImpersonationBanner() {
   const [estado, setEstado] = useState<Estado>(null);
   const [volviendo, setVolviendo] = useState(false);
-  const [quedan, setQuedan] = useState<number | null>(null);
   // «Cambiar a otro usuario» (D-307): el dueño, «si estoy en otro usuario ya con el switch, que siga
   // la opción para seguir switcheando». Los candidatos se piden SOLO al pulsar: una carga normal sigue
   // costando la petición de siempre. Aquí no hay `DataProvider` —el banner va en el layout raíz— y
@@ -81,7 +80,6 @@ export function ImpersonationBanner() {
     if (!estado) return;
     const tic = () => {
       const restan = estado.inicio + IMPERSONACION_MINUTOS * 60_000 - Date.now();
-      setQuedan(Math.max(0, Math.ceil(restan / 60_000)));
       if (restan <= 0 && !volviendo) void volver("expired");
     };
     tic();
@@ -118,27 +116,25 @@ export function ImpersonationBanner() {
       role="alert"
       style={{
         position: "sticky", top: 0, zIndex: 9999,
-        display: "flex", gap: 12, alignItems: "center", justifyContent: "center",
-        flexWrap: "wrap", padding: "8px 16px",
+        display: "flex", gap: 10, alignItems: "center", justifyContent: "center",
+        flexWrap: "wrap", padding: "4px 12px",
         background: "var(--amber, #fbf1df)", color: "var(--ink, #152238)",
         borderBottom: "2px solid var(--red, #c0392b)",
       }}
     >
+      {/* D-483: una sola línea corta. El dueño, 2026-10-06: «lo único que salga ahí es, ok, estás login como Robert y ya.
+          Pero no quiero ese timeout y esa cosa porque quita mucho espacio». Los minutos ya no se pintan; la vuelta
+          automática a la hora sigue (abajo y en el middleware), que es la red de seguridad de D-243. */}
       <span className="small" style={{ fontWeight: 700 }}>
-        Estás como {estado.como} · You are signed in as {estado.como}
+        👤 Estás como {estado.como}
       </span>
-      {quedan !== null && (
-        <span className="small muted">
-          {quedan} min
-        </span>
-      )}
       <button
         type="button"
         className="btn btn-danger btn-sm"
         disabled={volviendo}
         onClick={() => void volver("manual")}
       >
-        {volviendo ? "Volviendo…" : "Volver a mi cuenta / Back to my account"}
+        {volviendo ? "Volviendo…" : "↩ Volver a mi cuenta"}
       </button>
       <div style={{ position: "relative" }}>
         <button
@@ -148,7 +144,7 @@ export function ImpersonationBanner() {
           aria-expanded={saltando}
           onClick={() => { if (saltando) setSaltando(false); else void abrirSalto(); }}
         >
-          ⇄ Cambiar a otro usuario / Switch to another user
+          ⇄ Cambiar usuario
         </button>
         {/* El banner vive en el layout raíz, FUERA de `PrefsProvider` y sin `ConfirmProvider` (a propósito:
             habla en dos idiomas y no depende de nadie). El panel sí usa `usePrefs` y `useConfirm`, y sin

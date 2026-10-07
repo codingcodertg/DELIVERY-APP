@@ -18,8 +18,9 @@ const panel = sinComentarios(leer("src/components/SwitchUserPanel.tsx"));
 
 describe("el aviso naranja", () => {
   it("tiene el botón junto a «Volver a mi cuenta», y sigue en el layout raíz para las cinco apps", () => {
-    expect(banner).toContain("Cambiar a otro usuario / Switch to another user");
-    expect(banner.indexOf("Volver a mi cuenta / Back to my account")).toBeLessThan(banner.indexOf("Cambiar a otro usuario"));
+    // Textos acortados por D-483 (el aviso ocupaba demasiado): mismo orden, mismos dos botones.
+    expect(banner).toContain("⇄ Cambiar usuario");
+    expect(banner.indexOf("↩ Volver a mi cuenta")).toBeLessThan(banner.indexOf("⇄ Cambiar usuario"));
     expect(leer("src/app/layout.tsx")).toContain("<ImpersonationBanner />");
   });
 

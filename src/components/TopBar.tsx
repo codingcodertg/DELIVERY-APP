@@ -17,6 +17,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
 import { SwitchUserPanel } from "@/components/SwitchUserPanel";
+import { enlaceAVistaMovil } from "@/lib/mobile-preview";
 import type { Profile, UserRole } from "@/lib/types";
 
 /** Los botones del aviso de modo enseñanza, «Salir» y «Reiniciar práctica», con un mismo estilo
@@ -376,7 +377,8 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         )}
         {/* «Switch usuario» vivió aquí de D-247 a D-306, que lo pasó al hub. El dueño lo quiere en los DOS sitios
             («add the switch user also in the deliveries app as a duplicate»): vuelve aquí, y la herramienta del hub
-            (/home/switch-user) se queda tal cual. La vista móvil NO vuelve: sigue siendo solo del hub. */}
+            (/home/switch-user) se queda tal cual. D-483: al lado, «📱 Vista móvil», que abre esta misma pantalla en el marco
+            de teléfono del hub (solo admin, igual que la página). */}
         {realRole === "admin" && puedeSwitch && (
           <div style={{ position: "relative" }}>
             <button className="tab" onClick={() => setSwitchAbierto((v) => !v)} aria-expanded={switchAbierto}>
@@ -384,6 +386,12 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </button>
             {switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)} />}
           </div>
+        )}
+        {realRole === "admin" && (
+          <a className="tab" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}
+            title={t("See this screen as it looks on a phone", "Ver esta pantalla como se ve en un teléfono")}>
+            📱 {t("Mobile view", "Vista móvil")}
+          </a>
         )}
       </div>
     </div>
