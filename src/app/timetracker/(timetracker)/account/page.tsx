@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, effBreaks, effTrackMode, effWorkerType } from "@/lib/timetracker/helpers";
@@ -81,11 +82,12 @@ export default function MyAccountPage() {
       </div>
       {/* El idioma de los avisos tenía selector propio aquí (D-106), aparte del de la pantalla. Ya
           no: el idioma es uno solo para todas las apps y para los avisos, y se elige en «Mi
-          perfil» (D-266). Dos selectores que guardan idiomas distintos es lo que se quitó. */}
+          perfil» (D-266). Dos selectores que guardan idiomas distintos es lo que se quitó. Desde
+          D-NEXT el idioma y el tema se eligen en «Personalizar», en el hub, y el enlace va allí. */}
       <div className="hr" />
       <h3 style={{ color: "var(--tt-muted)" }}>{t("emp.acc.notifications")}</h3>
       <div className="hint">{t("emp.acc.notifLangUnified")}</div>
-      <Link href="/home/profile" className="btn">{t("emp.acc.langMoved")}</Link>
+      <Link href={RUTA_PERSONALIZAR} className="btn">{t("emp.acc.langMoved")}</Link>
 
       <PasswordEnMiPerfil />
     </div>

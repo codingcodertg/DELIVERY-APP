@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { COOKIE_RETORNO } from "@/lib/impersonation-cookie";
+import { COOKIE_CAPACITACION, RUTA_DE_LA_COOKIE } from "@/lib/timetracker/capacitacion";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -16,5 +17,9 @@ export async function POST(request: Request) {
   // y un botón que le da la sesión del admin. Es `httpOnly`, así que borrarla es cosa del
   // servidor y de nadie más.
   (await cookies()).delete(COOKIE_RETORNO);
+  // El modo capacitación de Time Tracker (D-NEXT) no sobrevive a cerrar sesión: en un equipo
+  // compartido, quien entre después tiene que fichar de verdad. La cookie vive en `/timetracker`, y
+  // por eso se borra con esa ruta: borrarla solo por nombre no tocaría la del navegador.
+  (await cookies()).delete({ name: COOKIE_CAPACITACION, path: RUTA_DE_LA_COOKIE });
   return NextResponse.redirect(new URL("/login", request.url), { status: 303 });
 }

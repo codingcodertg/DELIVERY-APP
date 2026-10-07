@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
@@ -31,6 +32,8 @@ export async function submitTimeOff(input: {
   endDate: string;
   note?: string;
 }): Promise<TimeOffResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   if (!TYPES.includes(input.type)) return { ok: false, message: "Invalid type." };
@@ -56,6 +59,8 @@ export async function reviewTimeOff(input: {
   decision: "approved" | "denied";
   comment?: string;
 }): Promise<TimeOffResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   if (ctx.profile.role !== "manager" && ctx.profile.role !== "owner") {

@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import type { AnySupabase } from "@/lib/clockin/supabase/types";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { payPeriodDates, currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cleanPattern, centralDateStr, type WeekPattern, type PresetType } from "@/lib/clockin/schedule";
@@ -84,6 +85,8 @@ export async function createShift(input: {
   lunchStart?: string | null; // HH:MM — optional lunch break start
   siteId?: string | null;
 }): Promise<ShiftResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
 
@@ -124,6 +127,8 @@ export async function createShifts(input: {
   lunchStart?: string | null;
   siteId?: string | null;
 }): Promise<ShiftResult & { count?: number }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   if (!input.employeeId || input.dates.length === 0 || !input.start || !input.end) {
@@ -155,6 +160,8 @@ export async function createShifts(input: {
 
 /** Lay out an employee's standard week (A/B/C or custom) for this + next week. */
 export async function applySchedule(input: { employeeId: string }): Promise<ShiftResult & { count?: number }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   if (!(await canManageEmployee(ctx.supabase, ctx.me, input.employeeId))) return { ok: false, message: DENY_SCOPE };
@@ -205,6 +212,8 @@ export async function setCustomSchedule(
   employeeId: string,
   pattern: WeekPattern,
 ): Promise<ShiftResult & { count?: number }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   if (!(await canManageEmployee(ctx.supabase, ctx.me, employeeId))) return { ok: false, message: DENY_SCOPE };
@@ -236,6 +245,8 @@ export async function setCustomSchedule(
 }
 
 export async function deleteShift(id: string): Promise<ShiftResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const { data: sh } = await ctx.supabase

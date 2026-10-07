@@ -18,6 +18,8 @@ import { olvidarExencion } from "@/lib/use-cutoff-exempt";
 import type { AuditEntry, Assignment, Employee, Payroll, Project, RequestType, Screenshot, Session, TimeRequest } from "@/lib/timetracker/types";
 import { checkSession, SESSION_EXPIRED, isAuthDenied } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
+import { useCapacitacion } from "@/components/timetracker/Capacitacion";
+import { conPractica, funcionesDePractica } from "@/lib/timetracker/capacitacion-datos";
 
 // ============================================================
 // Etapa 2, pass 1 (D-066): foundation + the Track Time screen only. This
@@ -33,7 +35,7 @@ import { SessionExpired } from "@/components/SessionExpired";
 // comment on that module for why.
 // ============================================================
 
-interface DataState {
+export interface DataState {
   ready: boolean;
   me: Employee;
   settings: AppSettings;
@@ -836,9 +838,18 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // en la cola y sale media hora tarde no es un dato, es ruido tardío: aplicado sobre una fila
   // ya cerrada le pisaba `end_ms` y `live_note`, y con ello borraba la marca `closed:cron` de
   // la que depende reabrir en D-197. Con la guarda de `is_live`, ese parche no encuentra fila.
-  useEffect(() => { initOfflineQueue({ updateLiveSession, uploadScreenshot }); }, [updateLiveSession, uploadScreenshot]);
+  //
+  // En modo capacitación (D-NEXT) la cola NO arranca: lo que haya en ella es trabajo REAL de antes, y
+  // vaciarla por la vía de práctica lo tiraría (la práctica no tiene filas reales vivas, D-242 lo
+  // contaría como «descartado»). Se queda guardada y sale al apagar la práctica, que vuelve a montar
+  // este proveedor en real.
+  const capacitacion = useCapacitacion();
+  useEffect(() => {
+    if (capacitacion.activa) return;
+    initOfflineQueue({ updateLiveSession, uploadScreenshot });
+  }, [capacitacion.activa, updateLiveSession, uploadScreenshot]);
 
-  const value: DataState = {
+  const real: DataState = {
     ready, me, settings, projects, myAssignments: assignments, mySessions: sessions, ensureSessionsSince, myPayrolls: payrolls,
     myRequests: requests, addRequest,
     toast, notify,
@@ -853,6 +864,17 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     insertProject, updateProject, insertAssignment, updateAssignment, removeAssignment,
     claimRequest, resetRequestToPending, updateEmployeeSettings, updateSettings,
   };
+  // Modo capacitación (D-NEXT): cada función clasificada en `capacitacion-datos.ts` —pasa, se practica
+  // o se bloquea—. Ninguna escritura llega a la base desde aquí mientras dure. Las funciones se crean
+  // UNA vez por práctica y leen el proveedor de cada momento por `realRef`: con identidades nuevas en
+  // cada pintado, los efectos del cronómetro que dependen de ellas se volverían a montar sin parar.
+  const realRef = useRef(real);
+  realRef.current = real;
+  const funcionesDeLaPractica = useMemo(
+    () => (capacitacion.activa ? funcionesDePractica(() => realRef.current, capacitacion.libreta, capacitacion.activa) : null),
+    [capacitacion.activa, capacitacion.libreta],
+  );
+  const value: DataState = funcionesDeLaPractica ? conPractica(real, funcionesDeLaPractica, capacitacion.practica) : real;
 
   return (
     <Ctx.Provider value={value}>

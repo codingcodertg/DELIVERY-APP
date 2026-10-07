@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 
@@ -32,6 +33,8 @@ export async function addSite(input: {
   boundary?: { lat: number; lng: number }[] | null;
   padding?: number;
 }): Promise<SiteResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await ownerCtx();
   if (!ctx.ok) return ctx;
   if (!input.name.trim()) return { ok: false, message: "Site name is required." };
@@ -68,6 +71,8 @@ export async function updateSite(
   id: string,
   input: { name: string; lat: number; lng: number; radius: number; boundary?: { lat: number; lng: number }[] | null; padding?: number },
 ): Promise<SiteResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await ownerCtx();
   if (!ctx.ok) return ctx;
   if (!input.name.trim()) return { ok: false, message: "Site name is required." };
@@ -94,6 +99,8 @@ export async function updateSite(
 }
 
 export async function setSiteActive(id: string, active: boolean): Promise<SiteResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await ownerCtx();
   if (!ctx.ok) return ctx;
   const { error } = await ctx.supabase.from("job_sites").update({ active }).eq("id", id).eq("company_id", ctx.companyId);

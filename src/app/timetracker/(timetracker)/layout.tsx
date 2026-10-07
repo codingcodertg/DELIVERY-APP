@@ -8,6 +8,8 @@ import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { TtUpdateBanner } from "@/components/timetracker/UpdateBanner";
 import { OfflineIndicator } from "@/components/timetracker/OfflineIndicator";
 import { CronometroAnfitrion } from "@/components/timetracker/CronometroAnfitrion";
+import { CapacitacionProvider } from "@/components/timetracker/Capacitacion";
+import { capacitacionDeLaPeticion } from "@/lib/timetracker/capacitacion-servidor";
 import type { Employee } from "@/lib/timetracker/types";
 import "../timetracker.css";
 import { ProfileReadError } from "@/components/ProfileReadError";
@@ -88,20 +90,28 @@ export default async function TimetrackerLayout({ children }: { children: React.
     deletedAt: es?.deleted_at ?? null,
   };
 
+  // Modo capacitación (D-NEXT): la cookie se lee aquí para que la página llegue ya en práctica, con
+  // su aviso, y no se pinte un instante «de verdad» antes de saberlo el navegador.
+  const capacitacion = await capacitacionDeLaPeticion();
+
   return (
     <div className="timetracker-module">
       <AppUpdateBanner app="timetracker" />
-      <DataProvider me={me}>
-        <div className="wrap">
-          <TopBar deliveriesRole={profile.role} moduleAccess={profile.module_access} />
-          <TtUpdateBanner />
-          {/* El cronómetro vive AQUÍ y no en su página (D-470): así el tick, el latido y el
-              receptor de capturas siguen vivos en Capturas, Semana, Nómina… Antes morían al
-              salir de «Registrar tiempo», sin avisar. Ver CronometroAnfitrion. */}
-          <CronometroAnfitrion />
-          {children}
-        </div>
-      </DataProvider>
+      {/* Por FUERA del proveedor de datos: el proveedor pregunta por la práctica, y encenderla o
+          apagarla lo vuelve a montar entero, con el cronómetro y cada pantalla. */}
+      <CapacitacionProvider inicial={capacitacion} uid={me.id}>
+        <DataProvider me={me}>
+          <div className="wrap">
+            <TopBar deliveriesRole={profile.role} moduleAccess={profile.module_access} />
+            <TtUpdateBanner />
+            {/* El cronómetro vive AQUÍ y no en su página (D-470): así el tick, el latido y el
+                receptor de capturas siguen vivos en Capturas, Semana, Nómina… Antes morían al
+                salir de «Registrar tiempo», sin avisar. Ver CronometroAnfitrion. */}
+            <CronometroAnfitrion />
+            {children}
+          </div>
+        </DataProvider>
+      </CapacitacionProvider>
       <OfflineIndicator />
     </div>
   );

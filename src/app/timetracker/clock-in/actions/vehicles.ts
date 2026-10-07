@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 
 export type VehicleResult = { ok: true } | { ok: false; message: string };
@@ -17,6 +18,8 @@ async function managerCtx() {
 }
 
 export async function addVehicle(input: { name: string; plate?: string }): Promise<VehicleResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const name = input.name.trim();
@@ -31,6 +34,8 @@ export async function addVehicle(input: { name: string; plate?: string }): Promi
 }
 
 export async function setVehicleActive(id: string, active: boolean): Promise<VehicleResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const { error } = await ctx.supabase.from("vehicles").update({ active }).eq("id", id).eq("company_id", ctx.companyId);

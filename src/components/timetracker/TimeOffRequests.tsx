@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getMyTimeOff, submitTimeOff } from "@/app/timetracker/clock-in/actions/timeoff";
+import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { dateISO, fmtDayLong } from "@/lib/timetracker/helpers";
 
@@ -42,6 +42,8 @@ type Row = {
 
 export function TimeOffRequests() {
   const t = useT();
+  // Reales o de práctica (modo capacitación, D-NEXT): en práctica la solicitud se ve, pero no se manda.
+  const { getMyTimeOff, submitTimeOff } = useAccionesDeFichar();
   const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const hoy = dateISO(new Date());
   const [rows, setRows] = useState<Row[]>([]);
@@ -58,7 +60,7 @@ export function TimeOffRequests() {
     if (!res.ok) { setErr(res.message); return; }
     setErr(null);
     setRows(res.rows);
-  }, []);
+  }, [getMyTimeOff]);
 
   useEffect(() => { void load(); }, [load]);
 

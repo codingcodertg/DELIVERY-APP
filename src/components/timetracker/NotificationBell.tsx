@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getMyNotifications, countUnread } from "@/app/timetracker/clock-in/actions/myday";
-import { markAllRead } from "@/app/timetracker/clock-in/actions/notifications";
+import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { useT } from "@/lib/timetracker/i18n";
 
 /**
@@ -21,12 +20,14 @@ import { useT } from "@/lib/timetracker/i18n";
  */
 export function NotificationBell() {
   const t = useT();
+  // Reales o de práctica (modo capacitación, D-NEXT): en práctica, «leídos» no llega a la base.
+  const { getMyNotifications, countUnread, markAllRead } = useAccionesDeFichar();
   const [n, setN] = useState(0);
   const [abierto, setAbierto] = useState(false);
   const [items, setItems] = useState<{ id: string; message: string; read: boolean; created_at: string }[] | null>(null);
   const caja = useRef<HTMLDivElement>(null);
 
-  const contar = useCallback(() => { void countUnread().then(setN); }, []);
+  const contar = useCallback(() => { void countUnread().then(setN); }, [countUnread]);
 
   useEffect(() => {
     contar();

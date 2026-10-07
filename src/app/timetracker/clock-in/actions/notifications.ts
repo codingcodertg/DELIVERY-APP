@@ -1,9 +1,12 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 
 /** Mark all of the current user's notifications as read. */
 export async function markAllRead(): Promise<{ ok: boolean }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   if (!isSupabaseConfigured) return { ok: false };
   const supabase = await createClient();
   const {

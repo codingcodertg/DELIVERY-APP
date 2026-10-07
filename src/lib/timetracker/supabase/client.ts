@@ -1,6 +1,7 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
+import { capacitacionDelNavegador, fetchConCorte } from "@/lib/timetracker/capacitacion";
 
 /** Supabase client for use in Client Components (browser).
  * Defaults every .from() call to the `timetracker` schema (see D-064) — the
@@ -13,6 +14,9 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       db: { schema: "timetracker" },
+      // Modo capacitación (D-NEXT): con la cookie de práctica puesta, ninguna escritura sale del
+      // navegador. Se pregunta en cada petición (`capacitacionDelNavegador`), no al crear el cliente.
+      global: { fetch: fetchConCorte((i, o) => fetch(i, o), capacitacionDelNavegador) },
       // Without this, createBrowserClient returns ONE cached client per browser (the
       // `cachedBrowserClient` module variable in @supabase/ssr) and ignores the options of
       // every later caller. Whichever module ran first wins: with HR loaded first this client

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getMyDay } from "@/app/timetracker/clock-in/actions/clock";
+import type { getMyDay } from "@/app/timetracker/clock-in/actions/clock";
+import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
 
@@ -91,11 +92,13 @@ export function FichajesDeHoy({ d, semanaDePago }: { d: DiaDeFichaje; semanaDePa
  */
 export function useMiDiaDeFichaje(activo: boolean): DiaDeFichaje | null {
   const [d, setD] = useState<DiaDeFichaje | null>(null);
+  // En práctica (D-NEXT), el día real con lo practicado encima, igual que bajo el reloj.
+  const { getMyDay } = useAccionesDeFichar();
   useEffect(() => {
     if (!activo) return;
     let vivo = true;
     void getMyDay().then((r) => { if (vivo && r.ok) setD(r); });
     return () => { vivo = false; };
-  }, [activo]);
+  }, [activo, getMyDay]);
   return d;
 }

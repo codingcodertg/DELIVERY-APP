@@ -156,16 +156,24 @@
 /* Una opción que de verdad no se puede elegir (p. ej. «vehículo de la empresa» sin flota): esa sí
    se ve apagada, porque lo está (D-489). */
 .timetracker-module .motivo:has(input:disabled){opacity:.5;cursor:not-allowed}
-/* El nombre de quien ha entrado, que lleva a Mi cuenta (D-160). Se parece a una pestaña
-   -mismo tamaño, mismo activo- pero sin el color del resto: es tu nombre, no una sección.
-   El subrayado al pasar por encima es lo que dice que se puede pulsar; sin él, un nombre
-   suelto en una barra no invita a tocarlo. */
 /* El ⟳ de recargar, solo dentro de la app de escritorio (D-280). Mismo aire que los botones de
    idioma y tema de esa barra, que llevan su fondo translúcido en línea. */
 .timetracker-module .topbar .tt-recargar{background:rgba(255,255,255,.1);color:#fff;font-size:15px;line-height:1;padding:5px 9px}
-.timetracker-module .topbar a.tt-me{color:#fff;font-size:12px;font-weight:600;text-decoration:none;padding:6px 10px;border-radius:8px;white-space:nowrap}
-.timetracker-module .topbar a.tt-me:hover{text-decoration:underline;background:rgba(255,255,255,.08)}
-.timetracker-module .topbar a.tt-me.active{background:var(--tt-accent);text-decoration:none}
+/* La cabecera (D-NEXT): el aviso del modo capacitación y la barra, pegados arriba JUNTOS. Antes la
+   pegajosa era la barra sola; con el aviso encima, dos pegajosas en el mismo sitio se taparían. */
+.timetracker-module .tt-cabecera{position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;margin-bottom:6px}
+.timetracker-module .tt-cabecera .topbar{position:static;margin-bottom:0}
+/* El aviso fijo del modo capacitación: el mismo violeta que el modo enseñanza de Entregas. */
+.timetracker-module .tt-capacitacion{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+  background:var(--teaching-bg);color:#fff;text-align:center;padding:8px 12px;font-size:13px;font-weight:800;letter-spacing:.02em}
+.timetracker-module .tt-capacitacion button{background:rgba(255,255,255,.25);color:#fff;padding:3px 12px;border-radius:6px;font-size:12.5px;font-weight:700}
+/* El nombre que abre el menú (D-NEXT, el mismo `MenuDeCuenta` de Entregas). Las reglas de abajo deshacen
+   el botón azul que este módulo pone a todo `button`: el nombre va sin fondo, como en Entregas, y las
+   opciones del menú son filas, no botones. Los colores del menú son los de la casa (`.col-menu`). */
+.timetracker-module .topbar .account-link{background:transparent;color:#fff;font-weight:600;white-space:nowrap}
+.timetracker-module .topbar .account-link:hover,.timetracker-module .topbar .account-link.active{background:rgba(255,255,255,.14)}
+.timetracker-module .col-menu .col-opt{background:transparent;color:var(--text);padding:6px 8px;font-size:13px;font-weight:500;border-radius:6px;text-decoration:none}
+.timetracker-module .col-menu .col-opt:hover{background:var(--card-hover);filter:none}
 .timetracker-module .badge{position:absolute;top:-6px;right:-6px;background:var(--tt-danger);color:#fff;border-radius:999px;
      font-size:11px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 5px}
 
