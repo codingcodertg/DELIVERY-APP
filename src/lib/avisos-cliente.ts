@@ -148,7 +148,7 @@ export function tocaNocheAntes(ahora: Date, horaElegida: number | null | undefin
 /** La parada que toca AHORA en una ruta ya ordenada: la primera sin entregar. Es la misma que «Mi ruta» enseña como
  * «Siguiente parada», y la usan las dos (la pantalla y el aviso «en camino»), para que no puedan discrepar.
  *
- * `apartadas` (D-NEXT): las marcas de `marcasDeParadas` (lib/acciones-parada). Una parada **saltada** cede el turno a la
+ * `apartadas` (D-487): las marcas de `marcasDeParadas` (lib/acciones-parada). Una parada **saltada** cede el turno a la
  * siguiente y solo vuelve cuando no queda otra; una **rechazada** por el cliente nunca es la siguiente (no hay nada que
  * entregar ahí). Sin marcas, la regla de siempre. */
 export function siguienteParada<T extends { stage: string; id?: string }>(

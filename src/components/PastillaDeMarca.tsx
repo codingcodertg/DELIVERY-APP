@@ -1,6 +1,6 @@
 import { pastillaDeMarca, type MarcaDeParada } from "@/lib/acciones-parada";
 
-/** «Rechazada: razón» / «Saltada», junto a la etapa (D-NEXT). Órdenes, el Gestor (con su tabla) y la ficha. La razón
+/** «Rechazada: razón» / «Saltada», junto a la etapa (D-487). Órdenes, el Gestor (con su tabla) y la ficha. La razón
  *  también va en el `title`, por si no cabe. Colores del tema, no a pelo. */
 export function PastillaDeMarca({ m, lang }: { m: MarcaDeParada | undefined; lang: "en" | "es" }) {
   const p = pastillaDeMarca(m, lang);

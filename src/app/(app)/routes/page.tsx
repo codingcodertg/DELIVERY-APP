@@ -1161,7 +1161,7 @@ export default function RoutesPage() {
   // con el mismo contexto con que Órdenes las llama (idioma, traducción y motivos de anulación).
   // `recibidas`: la columna de Etapa pinta «Received» en las que recibió almacén (D-409), como en Órdenes.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
-  // Saltadas hoy y rechazadas por el cliente (D-NEXT): la misma pastilla que en Órdenes, en la columna de Etapa.
+  // Saltadas hoy y rechazadas por el cliente (D-487): la misma pastilla que en Órdenes, en la columna de Etapa.
   const marcasDeParada = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
   const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas, marcas: marcasDeParada }), [lang, t, settings, recibidas, marcasDeParada]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);

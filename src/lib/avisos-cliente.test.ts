@@ -439,7 +439,7 @@ describe("ejecutarEnCamino", () => {
     expect((await ejecutarEnCamino(ctx, "r1")).siguiente).toBeNull();
     expect(proveedor.envios).toEqual([]);
   });
-  it("una saltada hoy o rechazada por el cliente no es «siguiente» (D-NEXT): avisa a la que de verdad va", async () => {
+  it("una saltada hoy o rechazada por el cliente no es «siguiente» (D-487): avisa a la que de verdad va", async () => {
     const hoy = new Date().toISOString();
     const { db, proveedor, ctx } = montar(ruta(["delivered", "picked_up", "picked_up", "picked_up"]));
     db.tablas.order_events = [

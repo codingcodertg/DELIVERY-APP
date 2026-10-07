@@ -5,7 +5,7 @@ import { KIND_RECIBIDA } from "@/lib/recibir";
 import { EVENTO_DEJADO } from "@/lib/leave-at-store";
 
 // ============================================================
-// Botones por parada en «Mi ruta» (D-NEXT): Recogido · Saltar en cada recogida; Entregado · Saltar · Rechazado en
+// Botones por parada en «Mi ruta» (D-487): Recogido · Saltar en cada recogida; Entregado · Saltar · Rechazado en
 // cada entrega.
 //
 // El dueño, 2026-10-06: «quiero que ahí salga un por cada carga, cada pickup y los deliveries también que diga pickup

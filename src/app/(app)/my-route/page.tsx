@@ -133,7 +133,7 @@ export default function MyRoutePage() {
   const done = stops.filter((d) => d.stage === "delivered").length;
   // The one stop that matters right now: first in sequence still to finish. La MISMA función decide a quién va el
   // aviso «en camino» en el servidor (D-416): lo que el chofer ve como siguiente es lo que se avisa.
-  // Saltadas y rechazadas (D-NEXT) salen del historial: una saltada cede el turno, una rechazada no es «siguiente».
+  // Saltadas y rechazadas (D-487) salen del historial: una saltada cede el turno, una rechazada no es «siguiente».
   const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
   const next = siguienteParada(stops, marcas);
 
@@ -238,7 +238,7 @@ export default function MyRoutePage() {
     });
     return out;
   }, [stops, next, dDe]);
-  // Los botones de cada parada (D-NEXT): qué sale lo decide `accionesDeParada`, dentro del componente.
+  // Los botones de cada parada (D-487): qué sale lo decide `accionesDeParada`, dentro del componente.
   const accionesDe = (d: Delivery, tipo: "P" | "D", sinPrincipal = false) => (
     <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} guardando={guardando === d.id} cerrar={(x) => void cerrarParada(x)} sinPrincipal={sinPrincipal} />
   );
@@ -395,7 +395,7 @@ export default function MyRoutePage() {
                   es la excepción, no la acción normal, y el pulgar del chofer va al botón verde.
                   El control se enseña solo si procede —pedido en el camión y suyo—, así que aquí
                   no se repite ninguna condición. */}
-              {/* Saltar y Rechazado (D-NEXT), con su marca si la tiene. El verde de arriba sigue siendo la acción principal. */}
+              {/* Saltar y Rechazado (D-487), con su marca si la tiene. El verde de arriba sigue siendo la acción principal. */}
               {accionesDe(next, next.stage === "picked_up" ? "D" : "P", true)}
               {me && (
                 <div style={{ display: "flex", marginTop: 8 }}>
@@ -468,7 +468,7 @@ export default function MyRoutePage() {
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
                           {f.tipo === "P" ? (
-                            // Cada carga de la recogida, con sus botones (D-NEXT): «Recogido» y «Saltar», orden por orden.
+                            // Cada carga de la recogida, con sus botones (D-487): «Recogido» y «Saltar», orden por orden.
                             f.ordenes.map((id) => {
                               const d = stops.find((x) => x.id === id);
                               return (
@@ -493,7 +493,7 @@ export default function MyRoutePage() {
                     const n = dDe.get(d.id) ?? f.etiqueta;
                     const isDone = d.stage === "delivered";
                     const isNext = next?.id === d.id;
-                    // La fila ya no es un solo botón: lleva los suyos (D-NEXT), y un botón dentro de otro no existe en HTML.
+                    // La fila ya no es un solo botón: lleva los suyos (D-487), y un botón dentro de otro no existe en HTML.
                     // Tocar el número o el texto sigue abriendo la orden.
                     return (
                       <div

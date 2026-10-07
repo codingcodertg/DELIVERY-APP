@@ -13,7 +13,7 @@ import { orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// Los botones de UNA parada en «Mi ruta» (D-NEXT): qué sale lo decide `accionesDeParada`; aquí solo se pinta y se
+// Los botones de UNA parada en «Mi ruta» (D-487): qué sale lo decide `accionesDeParada`; aquí solo se pinta y se
 // escribe. «Recogido» y «Entregado» llaman a `cerrar`, que es el mismo `cerrarParada` de la tarjeta de «Siguiente
 // parada» (D-218): una sola vía para la etapa. Saltar, Retomar y Rechazado dejan un evento y no tocan la etapa.
 // ============================================================

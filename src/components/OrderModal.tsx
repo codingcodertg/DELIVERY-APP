@@ -1434,7 +1434,7 @@ export function OrderModal({
               {isNew ? t("Fill in the order details, then save as draft or submit for approval.", "Complete los datos de la orden, luego guárdela como borrador o envíela a aprobación.") : (
                 <>
                   <span className="sema" style={{ background: info.color, color: "#fff" }}>{info.texto}</span>
-                  {/* Saltada hoy o rechazada por el cliente (D-NEXT), con la razón: lo primero que logística tiene que ver. */}
+                  {/* Saltada hoy o rechazada por el cliente (D-487), con la razón: lo primero que logística tiene que ver. */}
                   {existing && <PastillaDeMarca m={marcasDeParadas(events, todayISO()).get(existing.id)} lang={lang} />}
                   {/* The two things a driver reads off the paperwork, right at
                       the top instead of buried in the detail rows below. Both
@@ -3737,7 +3737,7 @@ function eventLabel(kind: string, lang: "en" | "es"): string {
   if (kind === "edited") return lang === "es" ? "Editada" : "Edited";
   if (kind === "note") return lang === "es" ? "💬 Nota" : "💬 Note";
   if (kind === KIND_RECIBIDA) return lang === "es" ? "📥 Recibida por almacén" : "📥 Received by warehouse";
-  // Saltada / retomada / rechazada por el cliente (D-NEXT): la razón del rechazo va en la nota del evento.
+  // Saltada / retomada / rechazada por el cliente (D-487): la razón del rechazo va en la nota del evento.
   const deParada = etiquetaDeEventoDeParada(kind, lang);
   if (deParada) return deParada;
   const s = stageInfo(kind);

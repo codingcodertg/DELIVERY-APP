@@ -23346,7 +23346,7 @@ actual»: para él el Gestor ES donde tiene que verse. Fue un hueco de un diseñ
   que es lo que distingue una ruta de otra con varias a la vista. Dos choferes que recogen en la misma tienda dan dos marcas
   en el mismo punto, una de cada color.
 - **«Mi ruta» del chofer:** lo mismo, solo lectura (D-021): recogidas por tienda que informan y no se pulsan, y cada entrega con su D.
-  > **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): en «Mi ruta» cada carga de una recogida lleva ahora sus botones («Recogido», «Saltar») y cada entrega los suyos («Entregado», «Saltar», «Rechazado»). La numeración P/D y el orden siguen siendo los del plan, sin cambios.
+  > **⚠ Reemplazada en parte por D-487** (2026-10-06): en «Mi ruta» cada carga de una recogida lleva ahora sus botones («Recogido», «Saltar») y cada entrega los suyos («Entregado», «Saltar», «Rechazado»). La numeración P/D y el orden siguen siendo los del plan, sin cambios.
 
 ### Las reglas, y de dónde sale cada una
 
@@ -38153,7 +38153,7 @@ y la ruta forzada tendría que quitarla con la llave de servicio. Se dejó así 
   pedirlo; afecta igual a «Mi perfil» y aquí la sesión es recién abierta.
 - El aviso del banner de «Entrar como» no se vio en pantalla (el demo no tiene impersonación).
 
-## D-NEXT · «Mi ruta»: cada parada lleva sus botones — Recogido · Saltar en cada carga de una recogida; Entregado · Saltar · Rechazado (con razón obligatoria) en cada entrega
+## D-487 · «Mi ruta»: cada parada lleva sus botones — Recogido · Saltar en cada carga de una recogida; Entregado · Saltar · Rechazado (con razón obligatoria) en cada entrega
 
 **Fecha:** 2026-10-06 · **Sin migración.** · Rama `feat/chofer-acciones-por-parada`. **Reemplaza en parte a D-334** (las recogidas de «Mi ruta» ya no son solo informativas).
 

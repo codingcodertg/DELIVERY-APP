@@ -158,7 +158,7 @@ export interface DataState {
   /** Append a free-text note to an order's activity thread. */
   addNote: (deliveryId: string, text: string) => Promise<void>;
   /** Deja en el historial un gesto del chofer que NO cambia la etapa: saltar, retomar o «rechazada por el cliente»
-   *  (D-NEXT, `lib/acciones-parada.ts`). `true` si quedó guardado. */
+   *  (D-487, `lib/acciones-parada.ts`). `true` si quedó guardado. */
   marcarParada: (deliveryId: string, kind: string, note: string | null) => Promise<boolean>;
 
   // settings
