@@ -264,7 +264,7 @@ export interface AlmacenDeCompetencia {
   quitar(a: ArchivoDeCompetencia): Promise<Resultado<null>>;
   /** TODOS los estimados de la competencia, sueltos y pegados (156). Sin la 156, `sinTabla`. */
   /**
-   * Con `subidoPor`, solo los que subió esa persona, en la consulta (D-NEXT, la lista de «Mis cotizaciones»); sin él,
+   * Con `subidoPor`, solo los que subió esa persona, en la consulta (D-484, la lista de «Mis cotizaciones»); sin él,
    * todos los que la 156 deja ver (la pestaña de la competencia, D-451, y la lista del admin).
    */
   listarTodos(subidoPor?: string | null): Promise<Resultado<EstimadoDeCompetencia[]>>;

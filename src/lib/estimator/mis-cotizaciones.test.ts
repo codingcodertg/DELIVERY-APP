@@ -16,7 +16,7 @@ import {
 } from "./lista-admin";
 
 /**
- * D-NEXT. El dueño, 2026-10-06 (dictado): «quiero que en el Eats app el sort sea por square feet. Y quiero también, esa
+ * D-484. El dueño, 2026-10-06 (dictado): «quiero que en el Eats app el sort sea por square feet. Y quiero también, esa
  * misma, donde uno se mete para ver todas las órdenes que se han hecho, pero cada user también va a tener acceso a eso,
  * pero ese user solo va a poder ver las órdenes que él ha hecho.»
  *
@@ -37,7 +37,7 @@ function cotizacion(p: Partial<CotizacionResumen> = {}): CotizacionResumen {
   };
 }
 
-describe("quién ve qué en la lista (D-NEXT)", () => {
+describe("quién ve qué en la lista (D-484)", () => {
   it("el admin, todas; cualquier otro con sesión, solo las suyas; sin id, nada (nunca «todas» por olvido)", () => {
     expect(alcanceDeLista({ id: "a1", admin: true })).toEqual({ todas: true });
     expect(alcanceDeLista({ id: "u1", admin: false })).toEqual({ todas: false, dueno: "u1" });
@@ -129,7 +129,7 @@ describe("quién ve qué en la lista (D-NEXT)", () => {
   });
 });
 
-describe("pies cuadrados (D-NEXT, «el sort sea por square feet»)", () => {
+describe("pies cuadrados (D-484, «el sort sea por square feet»)", () => {
   it("suma requested_sf de las líneas por SF; las de unidad, las vacías y las no positivas no suman", () => {
     expect(piesCuadradosPedidos([
       { kind: "sf", requested_sf: 400 },

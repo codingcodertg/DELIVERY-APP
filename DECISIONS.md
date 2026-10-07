@@ -37247,7 +37247,7 @@ No visto en navegador: `tsc` y vitest (332 del módulo).
 
 ## D-476 · Quote Builder: una pestaña «Todas las cotizaciones», solo para el admin, con todas las cotizaciones guardadas y todos los estimados de la competencia
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06, dictado: «…cada user también va a tener acceso a eso, pero ese user
+> **Reemplazada en parte por D-484** (2026-10-06, dictado: «…cada user también va a tener acceso a eso, pero ese user
 > solo va a poder ver las órdenes que él ha hecho»): la pestaña ya no es solo del admin. Todo el que entra al Quote
 > Builder la ve; el no-admin como «Mis cotizaciones», con solo las que él creó (`owner_id`, pedido así a la base) y los
 > estimados de la competencia que él subió, sin columna de Vendedor. El admin sigue con «Todas». Y la lista nace
@@ -37375,7 +37375,7 @@ No visto en navegador: `tsc` y vitest (98 de las ventanas y pastillas).
 
 ## D-478 · Quote Builder, pestaña «Todas las cotizaciones (admin)»: los filtros se rehacen con los patrones de la casa — el calendario del Panel y el menú por columna de las tablas
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): la tabla gana una columna **SF / Pies²** (entre Cliente y Total) y
+> **Reemplazada en parte por D-484** (2026-10-06): la tabla gana una columna **SF / Pies²** (entre Cliente y Total) y
 > **nace ordenada por ella, de mayor a menor** (antes, sin orden de columna: el de la base, la más reciente primero).
 > Para el no-admin la tabla no lleva Vendedor. El calendario, la búsqueda y el menú por columna siguen igual.
 
@@ -37850,9 +37850,9 @@ Interpretación: «quita ese timeout» = el contador que se ve, no el límite (l
 
 No visto en navegador: `tsc` y vitest (6350).
 
-## D-NEXT · Quote Builder: cada vendedor ve «Mis cotizaciones» (solo las suyas) y la lista se ordena por pies cuadrados
+## D-484 · Quote Builder: cada vendedor ve «Mis cotizaciones» (solo las suyas) y la lista se ordena por pies cuadrados
 
-**Fecha:** 2026-10-06 · **Versión:** la asigna el orquestador al fusionar (toca `src/app/estimator/`, `src/lib/estimator/` y
+**Fecha:** 2026-10-06 · **Versión:** estimator 0.12.0, repo 1.357.0 (toca `src/app/estimator/`, `src/lib/estimator/` y
 el hook compartido `src/lib/use-orden-y-filtro.ts`) · **Migración:** ninguna. **Reemplaza en parte a** D-476 (quién ve la
 pestaña) y a D-478 (las columnas y el orden de la tabla), que llevan su nota.
 

@@ -9,7 +9,7 @@ import {
  * La lista de TODAS las cotizaciones, solo para el admin (D-476). El dueño, 2026-10-06: «en el quote builder solo
  * para admin habilita la lista de todas las quotes ya hechas y las de los comeptirodes tambien».
  *
- * D-NEXT: la ven todos los del módulo; el admin con todas, los demás solo con las suyas (`alcanceDeLista`), y nace ordenada
+ * D-484: la ven todos los del módulo; el admin con todas, los demás solo con las suyas (`alcanceDeLista`), y nace ordenada
  * por pies cuadrados (`ORDEN_INICIAL`, columna `sf`).
  *
  * Aquí vive lo que decide, sin red: **quién ve todas** (solo `admin`, la misma palabra que `profiles.role` y que
@@ -36,7 +36,7 @@ export function puedeVerTodas(me: { admin: boolean } | null | undefined): boolea
   return me?.admin === true;
 }
 
-// ---- quién ve qué en la lista (D-NEXT) ---------------------------------------------------------------------------------
+// ---- quién ve qué en la lista (D-484) ---------------------------------------------------------------------------------
 //
 // El dueño (2026-10-06): «esa misma, donde uno se mete para ver todas las órdenes que se han hecho, pero cada user también
 // va a tener acceso a eso, pero ese user solo va a poder ver las órdenes que él ha hecho». La pestaña deja de ser solo del
@@ -85,7 +85,7 @@ export interface CotizacionResumen {
   owner_name: string | null;
   store: string | null;
   customer_name: string;
-  /** Los pies cuadrados pedidos: la suma de `requested_sf` de sus líneas por SF (D-NEXT, `piesCuadradosPedidos`). */
+  /** Los pies cuadrados pedidos: la suma de `requested_sf` de sus líneas por SF (D-484, `piesCuadradosPedidos`). */
   sf: number;
   /** El total estimado de materiales, con impuesto: el mismo que ve el vendedor bajo la hoja (D-442). */
   total: number;
@@ -114,7 +114,7 @@ export function hayFiltro(f: FiltroDeCotizaciones): boolean {
 export const TANDA = 50;
 
 /**
- * Los pies cuadrados pedidos de una cotización (D-NEXT, «el sort sea por square feet»): la suma de `requested_sf` de las
+ * Los pies cuadrados pedidos de una cotización (D-484, «el sort sea por square feet»): la suma de `requested_sf` de las
  * líneas por SF. Las de unidad («Installation Materials, 1 Lot») no tienen superficie y no suman; una línea sin SF
  * escrito, o con un número que no es positivo, tampoco. Son los pedidos, no los que salen en cajas completas (`sfReal`).
  */
@@ -306,7 +306,7 @@ export function columnasDeLaLista(a: AlcanceDeLista): readonly { key: ClaveDeCol
 }
 
 /**
- * Cómo nace ordenada la lista (D-NEXT): por pies cuadrados, de mayor a menor. El menú de cada columna lo cambia; «✕»
+ * Cómo nace ordenada la lista (D-484): por pies cuadrados, de mayor a menor. El menú de cada columna lo cambia; «✕»
  * en el orden vuelve al de la base (la más reciente primero).
  */
 export const ORDEN_INICIAL = { clave: "sf", direccion: "desc" } as const satisfies { clave: ClaveDeColumna; direccion: "asc" | "desc" };

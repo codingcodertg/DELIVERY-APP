@@ -13,7 +13,7 @@ import { filtraFilas, opcionesDeFiltro, ordenaFilas, type FiltrosPorColumna, typ
  * (`useCallback`), porque la lista ordenada se recalcula cuando cambia.
  *
  * `inicial` (opcional) es el orden con el que nace la tabla —p. ej. la lista del Quote Builder, por pies cuadrados de
- * mayor a menor (D-NEXT)—; el menú de la columna lo cambia o lo quita como cualquier otro. Sin él, nace sin orden.
+ * mayor a menor (D-484)—; el menú de la columna lo cambia o lo quita como cualquier otro. Sin él, nace sin orden.
  */
 export function useOrdenYFiltro<T>(
   filas: readonly T[], valorDe: (clave: string, fila: T) => ValorDeCelda,

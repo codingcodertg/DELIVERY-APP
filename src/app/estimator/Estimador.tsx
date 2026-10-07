@@ -139,7 +139,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   /**
    * Las pestañas: la cotización de siempre, todos los estimados de la competencia (D-451) y la lista de cotizaciones:
    * el admin, «Todas las cotizaciones» (D-476); cualquier otro con el módulo, «Mis cotizaciones», solo las suyas
-   * (D-NEXT). Si nadie tiene sesión conocida, no se ofrece y se vuelve a la primera.
+   * (D-484). Si nadie tiene sesión conocida, no se ofrece y se vuelve a la primera.
    */
   const [pestana, setPestana] = useState<Pestana>("cotizacion");
   useEffect(() => { if (pestana === "todas" && !puedeVerLista(me)) setPestana("cotizacion"); }, [pestana, me]);

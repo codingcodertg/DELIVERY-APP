@@ -51,7 +51,7 @@ export interface AlmacenDeCotizaciones {
   decidir(approvalId: string, estado: "approved" | "denied"): Promise<Resultado<null>>;
   marcarImpresa(quoteId: string, printCount: number): Promise<Resultado<null>>;
   /**
-   * La lista de cotizaciones (D-476; D-NEXT: también para el no-admin, solo las suyas), filtradas y de la más reciente a
+   * La lista de cotizaciones (D-476; D-484: también para el no-admin, solo las suyas), filtradas y de la más reciente a
    * la más vieja, por tandas de `TANDA`. El `alcance` va EN LA CONSULTA: el no-admin pide `owner_id = su id`. La RLS de
    * la 148 le dejaría leer además las de su tienda y las que le aprobaron; la pantalla no las pide.
    */

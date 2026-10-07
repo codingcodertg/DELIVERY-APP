@@ -183,7 +183,7 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       if (sinTabla) return SIN_TABLA;
       const yo = me();
       // La misma regla que la política de SELECT de la 148: el admin todas; un vendedor, las suyas y las de su tienda.
-      // Encima, el alcance que pide la pantalla (D-NEXT), como `aplicaAlcance` en la base: el no-admin, solo las suyas.
+      // Encima, el alcance que pide la pantalla (D-484), como `aplicaAlcance` en la base: el no-admin, solo las suyas.
       const visibles = db.cotizaciones.filter((c) => yo.admin || c.owner_id === yo.id || (!!c.store && c.store === (yo.store?.trim() || null)));
       return bien(tandaEnMemoria(visibles.map(resumenDemo), filtro, tanda, alcance));
     },
@@ -243,7 +243,7 @@ export function almacenDeCompetenciaDemo(
     async listarTodos(subidoPor) {
       if (sinTabla || sin156) return SIN_TABLA_COMPETENCIA;
       // Como la 156: todo el que tiene el módulo ve todos, de todas las tiendas. Con `subidoPor` (la lista de «Mis
-      // cotizaciones», D-NEXT), solo los de esa persona, como `.eq("uploaded_by", ...)` en la base.
+      // cotizaciones», D-484), solo los de esa persona, como `.eq("uploaded_by", ...)` en la base.
       return bien(masNuevoPrimero(filas).filter((f) => !subidoPor || f.uploaded_by === subidoPor).map((f) => ({ ...f })));
     },
     async subirSuelto(yoId, f, meta) {

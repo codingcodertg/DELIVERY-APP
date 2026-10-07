@@ -55,9 +55,9 @@ export function RangoDelPanel({ rango, onRango, t }: { rango: RangoDeFechas; onR
 
 /**
  * La pestaña «All quotes / Todas las cotizaciones» (D-476) para el admin, y «My quotes / Mis cotizaciones» para todos los
- * demás con el módulo (D-NEXT: «cada user también va a tener acceso a eso, pero ese user solo va a poder ver las órdenes
+ * demás con el módulo (D-484: «cada user también va a tener acceso a eso, pero ese user solo va a poder ver las órdenes
  * que él ha hecho»): el no-admin pide a la base solo las suyas (`owner_id`) y los estimados de la competencia que subió,
- * sin columna de Vendedor. Nace ordenada por pies cuadrados, de mayor a menor (D-NEXT, `ORDEN_INICIAL`).
+ * sin columna de Vendedor. Nace ordenada por pies cuadrados, de mayor a menor (D-484, `ORDEN_INICIAL`).
  * El dueño, 2026-10-06 (D-476): «en el quote builder solo para admin habilita la lista de todas las quotes ya hechas y
  * las de los comeptirodes tambien».
  *
@@ -91,7 +91,7 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
   const rango: RangoDeFechas = { desde: filtro.desde, hasta: filtro.hasta, modo };
   const ponRango = (r: RangoDeFechas) => { setModo(r.modo); setFiltro((f) => ({ ...f, desde: r.desde, hasta: r.hasta })); };
 
-  // Quién ve qué (D-NEXT): el admin todas; cualquier otro, solo las suyas. Va en la consulta, no solo en pantalla.
+  // Quién ve qué (D-484): el admin todas; cualquier otro, solo las suyas. Va en la consulta, no solo en pantalla.
   const alcance = useMemo(() => alcanceDeLista(me), [me]);
   const todas = alcance?.todas === true;
 

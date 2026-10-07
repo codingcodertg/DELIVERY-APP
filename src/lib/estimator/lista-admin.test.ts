@@ -33,7 +33,7 @@ function cotizacion(p: Partial<CotizacionResumen> = {}): CotizacionResumen {
   };
 }
 const f = (p: Partial<FiltroDeCotizaciones> = {}): FiltroDeCotizaciones => ({ ...filtroVacio(), ...p });
-/** El alcance del admin (D-NEXT): las pruebas de D-476/D-478 piden todas, como antes. */
+/** El alcance del admin (D-484): las pruebas de D-476/D-478 piden todas, como antes. */
 const TODAS: AlcanceDeLista = { todas: true };
 
 describe("quién ve la lista de todas", () => {
@@ -115,7 +115,7 @@ describe("el calendario del Panel: los atajos y las flechas", () => {
 });
 
 describe("las columnas, con el menú de ordenar y filtrar de las tablas de la casa", () => {
-  it("ocho columnas en el orden de la tabla, en los dos idiomas (D-NEXT añade SF entre Cliente y Total)", () => {
+  it("ocho columnas en el orden de la tabla, en los dos idiomas (D-484 añade SF entre Cliente y Total)", () => {
     expect(COLUMNAS_DE_LA_TABLA.map((c) => c.key)).toEqual(["fecha", "estimado", "vendedor", "tienda", "cliente", "sf", "total", "estado"]);
     expect(COLUMNAS_DE_LA_TABLA.every((c) => c.en && c.es)).toBe(true);
   });
@@ -337,7 +337,7 @@ describe("el demo hace lo que haría la 148 con la lista", () => {
 describe("la pantalla", () => {
   const pantalla = leer("src/app/estimator/Estimador.tsx");
   const pestana = leer("src/app/estimator/TodasLasCotizaciones.tsx");
-  it("la pestaña y su contenido se pintan si puedeVerLista (D-NEXT: ya no solo el admin), con el mismo almacén y el de la competencia", () => {
+  it("la pestaña y su contenido se pintan si puedeVerLista (D-484: ya no solo el admin), con el mismo almacén y el de la competencia", () => {
     expect(pantalla).toContain("{puedeVerLista(me) && (");
     expect(pantalla).toContain('data-pestana="todas"');
     expect(pantalla).toContain("{pestana === \"todas\" && puedeVerLista(me) && (");
