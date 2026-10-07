@@ -254,13 +254,19 @@ describe("la contraseña se cambia en un solo sitio", () => {
     expect(argumentosDe(partida, "updateUser")).toEqual(["{ password: nueva },"]);
   });
 
-  it("solo dos sitios ponen contraseña con updateUser: Mi perfil y el enlace del correo", () => {
+  it("solo tres sitios ponen contraseña con updateUser: Mi perfil, el enlace del correo y la temporal", () => {
     const conPassword = ficheros.filter((f) =>
       argumentosDe(readFileSync(f, "utf8"), "updateUser").some((a) => /\bpassword\b/.test(a)),
     );
     // `/reset-password` es la página a la que lleva el correo de «¿Olvidaste tu contraseña?»:
     // quien llega ahí NO sabe la actual, y por eso existe. No es un formulario de perfil.
-    expect(conPassword.sort()).toEqual(["src/app/api/profile/password/route.ts", "src/app/reset-password/page.tsx"]);
+    // `/api/profile/password/forced` (D-NEXT) cambia la temporal que dio la oficina sin pedir la
+    // actual, y SOLO con la marca `must_change_password`: sus pruebas, en cambio-obligatorio-rutas.
+    expect(conPassword.sort()).toEqual([
+      "src/app/api/profile/password/forced/route.ts",
+      "src/app/api/profile/password/route.ts",
+      "src/app/reset-password/page.tsx",
+    ]);
   });
 
   it("y solo el login y Mi perfil inician sesión con contraseña", () => {
