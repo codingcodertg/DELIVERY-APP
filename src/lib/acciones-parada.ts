@@ -95,7 +95,9 @@ export function accionesDeParada(tipo: "P" | "D", etapa: string | null | undefin
     if (etapa === "picked_up") return [];
     return etapa === "ready" ? ["recoger", salto] : [salto];
   }
-  if (etapa === "picked_up") return ["entregar", salto, "rechazar"];
+  // Ya en el camión no se salta (D-495). El dueño, 2026-10-07: «si aceptas una delivery no puedes skipped it solo delivered
+  // or rejected». Una marca de salto de antes se puede retomar, pero no se ofrece saltar.
+  if (etapa === "picked_up") return marca?.marca === "saltada" ? ["entregar", "retomar", "rechazar"] : ["entregar", "rechazar"];
   return [salto];
 }
 
@@ -131,6 +133,31 @@ export function razonDeRechazo(clave: string | null | undefined, texto: string |
 /** La nota del evento: la razón, con el prefijo que la hace legible en el historial y en Auditoría. */
 export function notaDeRechazo(razon: string, lang: "en" | "es"): string {
   return `${lang === "es" ? "Rechazada por el cliente" : "Rejected by customer"}: ${razon}`;
+}
+
+// ---- Rechazo: qué se hace con el material (D-495) ----------------------------
+//
+// El dueño, 2026-10-07: «al ser rejecte te pregunta que paso y donde las vas a dejar o si la dejaras de vuetla». El material
+// sigue en el camión: el chofer dice si lo REGRESA a la tienda de donde salió o lo DEJA en otra tienda, y el rechazo se
+// guarda junto con ese «Dejar en tienda» (D-224), que es lo que lo devuelve a la lista con su nuevo origen.
+
+/** A dónde va el material rechazado: de vuelta a su tienda de origen, o a otra tienda. */
+export type DestinoDelRechazo = { tipo: "origen" } | { tipo: "tienda"; nombre: string };
+
+/** La tienda donde queda, o `null` si aún no se eligió o no existe. «Origen» es `store` del pedido. */
+export function tiendaDelRechazo<T extends { name: string }>(
+  destino: DestinoDelRechazo | null, origen: string | null | undefined, tiendas: readonly T[],
+): T | null {
+  if (!destino) return null;
+  const buscada = (destino.tipo === "origen" ? origen ?? "" : destino.nombre).trim().toLowerCase();
+  if (!buscada) return null;
+  return tiendas.find((s) => s.name.trim().toLowerCase() === buscada) ?? null;
+}
+
+/** La línea que se añade a la nota del rechazo: qué se hizo con el material. */
+export function notaDelDestino(destino: DestinoDelRechazo, tienda: string, lang: "en" | "es"): string {
+  if (destino.tipo === "origen") return lang === "es" ? `Lo regresa a ${tienda}` : `Taking it back to ${tienda}`;
+  return lang === "es" ? `Lo deja en ${tienda}` : `Leaving it at ${tienda}`;
 }
 
 /** La razón tal como se guardó, sin el prefijo de `notaDeRechazo` (para la pastilla). */

@@ -38919,3 +38919,24 @@ rol y tipo por cookie), Chrome por CDP, 390 y 1280 px, claro y oscuro, en españ
 - El aviso «sin chofer» (`pestanaDelAvisoSinChofer`) ya prefería el Gestor; no cambia.
 
 No visto en navegador: `tsc` y vitest.
+
+## D-495 · «Mi ruta»: con la entrega ya cargada no se salta, y rechazar pregunta qué pasó y a dónde va el material
+
+**Fecha:** 2026-10-07 · **Versión:** deliveries (deliveries 1.270.0, repo 1.367.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d495`. **Reemplaza en parte a D-487.**
+
+**Pedido del dueño**, literal: *«en driver si aceptas una delivery no puedes skipped it solo delivered or rejected y al ser rejecte te pregunta que paso y donde las vas a dejar o si la dejaras de vuetla?»*.
+
+### Qué se decidió
+
+- Una entrega (D) con el material en el camión (`picked_up`) ofrece solo **Entregado** y **Rechazado** (`accionesDeParada`,
+  `src/lib/acciones-parada.ts`). Antes de recogerla sigue pudiéndose saltar; una marca de salto vieja se puede retomar.
+- **Rechazado** pide, además de la razón (D-487), **qué se hace con el material**: «↩ Regresarlo a <tienda de origen>»
+  (`store` del pedido) o «🏬 Dejarlo en una tienda» (cualquiera de Ajustes → Tiendas). «Confirmar» queda apagado hasta tener
+  las dos (`tiendaDelRechazo`).
+- Al confirmar se guarda el rechazo (evento `customer_rejected`, con «Lo regresa a X» / «Lo deja en X» en la nota) y en
+  seguida el mismo **«Dejar en tienda»** de D-224 (`escrituraDejarEnTienda` + `setStage(…, "ready", …, EVENTO_DEJADO)`): la
+  orden vuelve a la lista con esa tienda como origen. Si eso fallara, el rechazo ya quedó y la parada sigue ofreciendo
+  «Dejar en tienda».
+
+Visto en el demo como chofer (CDP, 390): con la entrega cargada, «entregar+rechazar»; el diálogo con motivo y sin destino no
+deja confirmar; con «Regresarlo a McAllen» sí; tras confirmar la orden sale de la ruta y vuelve a la lista. Sin scroll lateral.
