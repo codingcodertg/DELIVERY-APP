@@ -93,11 +93,14 @@ describe("la barra de Entregas: el switch vuelve como duplicado, la vista móvil
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
   const plana = barra.replace(/\s+/g, " ");
 
-  it("la vista móvil NO vuelve: ni en el menú del nombre ni en la barra", () => {
+  // D-483 la devuelve a la barra, como botón al lado de «Switch user» (el dueño, 2026-10-06: «El switch de mobile view
+  // también agrégalo ahí donde dice switch user»). Sigue fuera del menú del nombre.
+  it("la vista móvil vuelve como botón de la barra, solo para el admin real, y no en el menú del nombre (D-483)", () => {
     expect(OPCIONES_DEL_MENU as readonly string[]).not.toContain("vistamovil");
     expect(barra).not.toContain('case "vistamovil":');
-    expect(barra).not.toContain("enlaceAVistaMovil");
-    expect(barra).not.toMatch(/vista-movil|MobilePreview/);
+    expect(plana).toContain('{realRole === "admin" && ( <a className="tab" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}');
+    expect(plana).toContain('📱 {t("Mobile view", "Vista móvil")}');
+    expect(barra.split("enlaceAVistaMovil(").length - 1).toBe(1);
   });
 
   it("el botón «⇄ Switch user» está, y SOLO para el admin real con la función encendida", () => {
