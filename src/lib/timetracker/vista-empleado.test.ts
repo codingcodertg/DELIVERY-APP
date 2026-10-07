@@ -8,7 +8,7 @@ import {
   seccionesDeFichar, seccionesDeMiSemana, verTablasDelCronometro,
 } from "./vista-empleado";
 
-// D-NEXT. Lo que el dueño pidió el 2026-10-06 para la vista del EMPLEADO en Time Tracker, y que el
+// D-489. Lo que el dueño pidió el 2026-10-06 para la vista del EMPLEADO en Time Tracker, y que el
 // admin siga viendo lo de antes. Lógica pura y, leyendo el fuente, que cada pantalla la USA.
 
 const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8").split("\r\n").join("\n");

@@ -12,7 +12,7 @@ export const TABS: { id: string; href: string }[] = [
   { id: "track", href: "/timetracker" },
   { id: "week", href: "/timetracker/week" },
   { id: "requests", href: "/timetracker/requests" },
-  // "Mi diario" ya no es pestaña del empleado (D-NEXT): lo pidió quitar el dueño el 2026-10-06.
+  // "Mi diario" ya no es pestaña del empleado (D-489): lo pidió quitar el dueño el 2026-10-06.
   // El admin la conserva en MANAGER_TABS, y /timetracker/diary devuelve a quien no lo es a
   // «Registrar tiempo» (puedeVerMiDiario, vista-empleado.ts).
   // "Mi cuenta" ya no es pestaña (D-160): se llega tocando el propio nombre en la barra,

@@ -29,7 +29,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
   // El idioma también sale de aquí (D-266): es uno para todas las apps y lo guarda el proveedor.
   // Cambiarlo avisa a useT(), que vuelve a pintar esta barra y el resto de Time Tracker.
   const { theme, toggleTheme, lang, toggleLang } = usePrefs();
-  // Admin: MANAGER_TABS. Empleado: TABS, ya sin «Mi diario» (D-NEXT).
+  // Admin: MANAGER_TABS. Empleado: TABS, ya sin «Mi diario» (D-489).
   const tabs = pestanasPara(me.role);
 
   return (

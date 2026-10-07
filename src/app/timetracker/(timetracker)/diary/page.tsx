@@ -16,7 +16,7 @@ export default function WorkDiaryPage() {
   const t = useT();
   const { me, myScreenshots, mySessions, deleteScreenshot } = useData();
   const [busy, setBusy] = useState(false);
-  // «Mi diario» ya no es del empleado (D-NEXT): sin pestaña, y quien llegue aquí por un enlace
+  // «Mi diario» ya no es del empleado (D-489): sin pestaña, y quien llegue aquí por un enlace
   // viejo vuelve a «Registrar tiempo». El admin la sigue teniendo.
   const router = useRouter();
   const permitido = puedeVerMiDiario(me.role);

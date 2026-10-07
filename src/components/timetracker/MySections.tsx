@@ -44,7 +44,7 @@ const hhmm = (t: string) => t.slice(0, 5);
 const horas = (min: number) => `${Math.floor(min / 60)}h ${String(Math.round(min % 60)).padStart(2, "0")}m`;
 
 /**
- * `boletin` (D-NEXT): el empleado ya no ve «Mi boletín» aquí, debajo del reloj —se mudó a «Mi
+ * `boletin` (D-489): el empleado ya no ve «Mi boletín» aquí, debajo del reloj —se mudó a «Mi
  * semana»—; solo «Mi horario» y «Notas del día». El admin lo sigue viendo aquí. Quién ve qué lo
  * decide `seccionesDeFichar` (vista-empleado.ts), no este componente.
  */

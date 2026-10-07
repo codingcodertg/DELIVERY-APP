@@ -4,7 +4,7 @@ import { useT } from "@/lib/timetracker/i18n";
 import type { Vehiculo } from "@/lib/clockin/visitas";
 
 /**
- * «¿Vas en tu vehículo personal o en uno de la empresa?» (D-NEXT).
+ * «¿Vas en tu vehículo personal o en uno de la empresa?» (D-489).
  *
  * La misma pregunta en los dos sitios donde empieza una salida: la ventana de «Voy a salir» y el
  * panel «Visitas, mandados y viajes». Dos respuestas del tamaño de un pulgar (las `.motivo` de

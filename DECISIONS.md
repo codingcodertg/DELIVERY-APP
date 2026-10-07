@@ -2753,7 +2753,7 @@ aparece como página real (4.34 kB) en la salida del build.
 ## D-067 · Etapa 2, tramo 2 — "Mi semana"
 **Fecha:** 2026-08-20 · **Versión:** v1.16.1 · **Pedido por:** Andrés
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): al EMPLEADO «Mi semana» ya no le enseña dinero (ni pago estimado, ni pagado, ni la columna de pago) y al presencial le cuenta las horas fichadas; el admin la ve como aquí.
+> **Reemplazada en parte por D-489** (2026-10-06): al EMPLEADO «Mi semana» ya no le enseña dinero (ni pago estimado, ni pagado, ni la columna de pago) y al presencial le cuenta las horas fichadas; el admin la ve como aquí.
 
 **Cambio:** `/timetracker/week`, portada de `employee/EmployeeWeek.jsx` —
 hoja de horas semanal de solo lectura: total por proyecto (regular/extra/
@@ -2808,7 +2808,7 @@ requests` aparece como página real (2.43 kB).
 ## D-069 · Etapa 2, tramo 4 — Diario de trabajo y Mi cuenta (lado empleado completo)
 **Fecha:** 2026-08-20 · **Versión:** v1.16.3 · **Pedido por:** Andrés
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): «Mi diario» ya no es pestaña del empleado; solo el admin la tiene, y `/timetracker/diary` devuelve a quien no lo es a «Registrar tiempo».
+> **Reemplazada en parte por D-489** (2026-10-06): «Mi diario» ya no es pestaña del empleado; solo el admin la tiene, y `/timetracker/diary` devuelve a quien no lo es a «Registrar tiempo».
 
 **Cambio:** `/timetracker/diary` (portada de `employee/
 EmployeeScreenshots.jsx` + el componente compartido `WorkDiary.jsx`) y
@@ -5442,7 +5442,7 @@ retirarla de golpe y dejar sus pantallas sin puerta.
 **Fecha:** 2026-08-28 · **Versión:** v0.22.0 (timetracker) · v0.22.0 (clockin) · **Pedido por:**
 Andrés (*"el tab de tiempo libre, merge it con el de My Requests"*)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): las pestañas van al revés — primero «Tiempo libre», después «Tiempo» — y se abre en «Tiempo libre».
+> **Reemplazada en parte por D-489** (2026-10-06): las pestañas van al revés — primero «Tiempo libre», después «Tiempo» — y se abre en «Tiempo libre».
 
 La pantalla de tiempo libre de fichaje tenía **la misma forma que la de excepciones**: dos
 mitades que se usan en momentos distintos, metidas en una pestaña. Se parte igual (D-115):
@@ -5845,7 +5845,7 @@ sitios donde fichar y ninguno que mande es peor que un enlace.
 que lo lleves a otra view, en el mismo template que ya está, con cuándo inició, cuándo terminó,
 cuánto trabajado hoy y cuánto esta semana… para que ya eliminemos el clock in app"*)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): al empleado ya no se le enseña bajo el reloj la tarjeta «Turno de hoy · Esta semana de pago» ni «Fichajes de hoy» (que se mudan a «Mi semana»); el admin sí.
+> **Reemplazada en parte por D-489** (2026-10-06): al empleado ya no se le enseña bajo el reloj la tarjeta «Turno de hoy · Esta semana de pago» ni «Fichajes de hoy» (que se mudan a «Mi semana»); el admin sí.
 
 D-123 repartía por tipo de trabajador, pero al presencial lo **mandaba** a la app de fichaje.
 Funcionaba y no rompía nada, pero dejaba **dos sitios donde trabajar**, que es justo lo que hay
@@ -6047,7 +6047,7 @@ Andrés (*"no quiero lo mande a otro view, ahí mismo que se display como que es
 de notificaciones también que pase al time tracker"*, *"que se mire igual a la card de Andrés
 Ugarte"*)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): bajo el reloj, el empleado solo ve «Mi horario» y «Notas del día»; «Mi boletín» se muda a «Mi semana». El admin lo sigue viendo aquí.
+> **Reemplazada en parte por D-489** (2026-10-06): bajo el reloj, el empleado solo ve «Mi horario» y «Notas del día»; «Mi boletín» se muda a «Mi semana». El admin lo sigue viendo aquí.
 
 ### Tres pantallas que pasan a ser tres desplegables
 
@@ -6366,7 +6366,7 @@ hagan, el módulo se borra entero.
 **Fecha:** 2026-08-30 · **Versión:** v0.39.0 (timetracker) · v0.35.0 (clockin) · **Pedido por:**
 Andrés (*"sí hazlo"*)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): la casilla «Viaje personal» del panel pasa a ser la pregunta «¿vehículo personal o de la empresa?», la misma que hace «Voy a salir».
+> **Reemplazada en parte por D-489** (2026-10-06): la casilla «Viaje personal» del panel pasa a ser la pregunta «¿vehículo personal o de la empresa?», la misma que hace «Voy a salir».
 
 > **⚠ Reemplazada en parte por D-455** (2026-10-01): al rehacer este panel se perdieron la **foto** y la **ubicación** de cada
 > parada (`logStop` se llamaba solo con el nombre), y nadie lo notó porque no se ha registrado un solo viaje desde entonces.
@@ -34301,7 +34301,7 @@ Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
 «Runner»), D-128 (el botón «Voy a salir») y D-136 (el panel de viajes), que llevan su nota; **amplía** D-109, D-123 y D-161.
 **No toca ningún dato, ninguna política ni `runner.ts` / `leave.ts`.**
 
-> **Reemplazada en parte por D-NEXT** (2026-10-06): la ventana de «Voy a salir» pregunta primero, a todos, «¿vehículo personal o de la empresa?» (antes, solo una casilla a quien tenía vehículo asignado); con el de la empresa pide el cuentakilómetros y cualquier salida —visita o no— se graba como viaje.
+> **Reemplazada en parte por D-489** (2026-10-06): la ventana de «Voy a salir» pregunta primero, a todos, «¿vehículo personal o de la empresa?» (antes, solo una casilla a quien tenía vehículo asignado); con el de la empresa pide el cuentakilómetros y cualquier salida —visita o no— se graba como viaje.
 
 ### Qué pidió el dueño
 
@@ -38259,9 +38259,9 @@ No probado contra la base real (la inserción en `order_events` como chofer se a
 
 No visto en navegador: `tsc` y vitest.
 
-## D-NEXT · Time Tracker, vista del empleado: sin «Mi diario»; «Mi semana» solo con horas y con el boletín y los fichajes de hoy; bajo el reloj solo «Mi horario» y «Notas del día»; «Tiempo libre» antes que «Tiempo»; «Voy a salir» pregunta vehículo personal o de la empresa; y fuera los botones que parecían desactivados sin estarlo, en toda la app
+## D-489 · Time Tracker, vista del empleado: sin «Mi diario»; «Mi semana» solo con horas y con el boletín y los fichajes de hoy; bajo el reloj solo «Mi horario» y «Notas del día»; «Tiempo libre» antes que «Tiempo»; «Voy a salir» pregunta vehículo personal o de la empresa; y fuera los botones que parecían desactivados sin estarlo, en toda la app
 
-**Fecha:** 2026-10-06 · **Versión:** la asigna el orquestador al fusionar (toca `timetracker` sobre todo, y de paso
+**Fecha:** 2026-10-06 · **Versión:** timetracker 0.97.0, clockin 0.43.0, recruiting 0.38.1, deliveries 1.267.1, erp 0.14.1, repo 1.362.0 (toca `timetracker` sobre todo, y de paso
 `deliveries` y `recruiting` por la auditoría de botones, y una línea del ERP) · **Migración:** ninguna ·
 **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-067, D-069, D-116, D-125, D-129, D-136 y D-455, que llevan
 su nota.

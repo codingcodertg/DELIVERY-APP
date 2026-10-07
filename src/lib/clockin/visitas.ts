@@ -33,7 +33,7 @@ export function viajePersonalPorDefecto(vehiculoAsignado: string | null | undefi
 }
 
 /**
- * **D-NEXT — «Voy a salir» pregunta también por el VEHÍCULO.** El dueño, el 2026-10-06: al pulsar
+ * **D-489 — «Voy a salir» pregunta también por el VEHÍCULO.** El dueño, el 2026-10-06: al pulsar
  * «Voy a salir» tiene que salir la pregunta de visitas/mandados/viajes —que NO se quita— y además
  * si va en su vehículo personal o en uno de la empresa. Y su regla de antes: «si se le asigna un
  * vehículo, que sí ponga el odómetro; si es su carro personal, no need».

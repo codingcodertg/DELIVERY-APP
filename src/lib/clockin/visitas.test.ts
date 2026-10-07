@@ -31,7 +31,7 @@ describe("«voy a salir» ya no graba nada a ciegas: pregunta", () => {
     expect(DICT.en["emp.visit.ask"]).toBe("Are you visiting a customer?");
     expect(DICT.es["emp.visit.ask"]).toBe("¿Vas a visitar a un cliente?");
   });
-  it("Sí y No pasan por el MISMO plan (D-NEXT), con lo que contestó del vehículo, y mandan la ubicación si la hay", () => {
+  it("Sí y No pasan por el MISMO plan (D-489), con lo que contestó del vehículo, y mandan la ubicación si la hay", () => {
     expect(punch).toContain("vehiculo, vehicleId: vehiculoIdEfectivo, odometro: odoSalida, visita, motivo: motivoSalida, nota: notaSalida,");
     expect(punch).toContain("await grabaSalida(planDe(true));");
     expect(punch).toContain("await grabaSalida(planDe(false));");
@@ -59,7 +59,7 @@ describe("«voy a salir» ya no graba nada a ciegas: pregunta", () => {
   });
 });
 
-describe("«voy a salir» pregunta por el vehículo: personal o de la empresa (D-NEXT)", () => {
+describe("«voy a salir» pregunta por el vehículo: personal o de la empresa (D-489)", () => {
   const base = { vehiculo: "personal" as const, vehicleId: null, odometro: "", visita: true, motivo: "delivery" as const, nota: "" };
   it("sin contestar no se graba nada: es una pregunta, no un defecto escondido", () => {
     expect(planDeSalida({ ...base, vehiculo: null })).toEqual({ ok: false, falta: "eleccion" });
@@ -224,7 +224,7 @@ describe("el panel de viajes: visitas y mandados, con foto", () => {
     expect(trip).toContain("const personal = personalElegido ?? viajePersonalPorDefecto(d.currentVehicleId);");
     expect(trip).toContain("const [personalElegido, setPersonal] = useState<boolean | null>(null);");
   });
-  it("el panel de viajes hace la MISMA pregunta que la ventana (D-NEXT), con las opciones de Time Tracker (.motivo)", () => {
+  it("el panel de viajes hace la MISMA pregunta que la ventana (D-489), con las opciones de Time Tracker (.motivo)", () => {
     expect(trip).toContain('valor={personal ? "personal" : "empresa"}');
     expect(trip).toContain('onValor={(v) => setPersonal(v === "personal")}');
     expect(pregunta).toContain('<label className={"motivo" + (valor === "personal" ? " on" : "")}>');

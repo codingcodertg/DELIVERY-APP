@@ -6,7 +6,7 @@ import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
 
 /**
- * «Fichajes de hoy» (Today's punches), como tarjeta suelta (D-NEXT).
+ * «Fichajes de hoy» (Today's punches), como tarjeta suelta (D-489).
  *
  * Vivía dentro de PunchPanel, debajo del reloj. El dueño pidió (2026-10-06) que al EMPLEADO le
  * salga en «Mi semana», junto a «Mi boletín», y que debajo del reloj solo queden «Mi horario» y

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-// D-NEXT. El dueño, 2026-10-06: «ya no quiero que queden esos botones así como faded, porque
+// D-489. El dueño, 2026-10-06: «ya no quiero que queden esos botones así como faded, porque
 // parecen que estuvieran desactivados… quita eso en toda la app… para que no haya botones más
 // faded al menos que sí estén bloqueados». Se corrigió en el ORIGEN —las clases— y estas pruebas
 // vigilan que no vuelva: que lo apagado sea solo lo deshabilitado (o bloqueado de verdad).

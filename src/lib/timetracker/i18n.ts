@@ -462,7 +462,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.trip.arrivedStop': 'Arrived — take the photo',
     'emp.trip.stopPhotoHint': 'Name the stop, then take the photo: it is saved with the time and your location.',
     'emp.visit.ask': 'Are you visiting a customer?',
-    // «Voy a salir» pregunta por el vehículo (D-NEXT).
+    // «Voy a salir» pregunta por el vehículo (D-489).
     'emp.out.vehicleAsk': 'Are you going in your personal vehicle or a company vehicle?',
     'emp.out.personal': 'My personal vehicle (no odometer)',
     'emp.out.company': 'Company vehicle',
@@ -1336,7 +1336,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.trip.arrivedStop': 'Llegué — tomar la foto',
     'emp.trip.stopPhotoHint': 'Pon el nombre de la parada y toma la foto: se guarda con la hora y tu ubicación.',
     'emp.visit.ask': '¿Vas a visitar a un cliente?',
-    // «Voy a salir» pregunta por el vehículo (D-NEXT).
+    // «Voy a salir» pregunta por el vehículo (D-489).
     'emp.out.vehicleAsk': '¿Vas en tu vehículo personal o en un vehículo de la empresa?',
     'emp.out.personal': 'Mi vehículo personal (sin cuentakilómetros)',
     'emp.out.company': 'Vehículo de la empresa',

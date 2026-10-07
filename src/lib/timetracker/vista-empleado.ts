@@ -1,5 +1,5 @@
 // ============================================================
-// Qué ve un EMPLEADO en Time Tracker, y qué sigue viendo el admin (D-NEXT).
+// Qué ve un EMPLEADO en Time Tracker, y qué sigue viendo el admin (D-489).
 //
 // El dueño, el 2026-10-06, mirando la app como empleado: fuera «Mi diario»; en «Mi semana» solo
 // las horas (ni pago estimado ni pagado hasta hoy), y ahí se mudan «Mi boletín» y «Fichajes de

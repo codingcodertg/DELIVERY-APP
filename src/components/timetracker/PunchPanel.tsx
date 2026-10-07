@@ -61,7 +61,7 @@ import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
  * Por eso el viaje se carga AQUÍ (`getMyTrip`) y se le pasa a TripPanel: el botón de foto y el
  * panel de viajes hablan del mismo viaje.
  *
- * **D-NEXT — la vista del empleado, y el vehículo.** (1) La ventana de «Voy a salir» pregunta
+ * **D-489 — la vista del empleado, y el vehículo.** (1) La ventana de «Voy a salir» pregunta
  * ANTES que nada «¿vehículo personal o de la empresa?» (PreguntaDeVehiculo), a todos; con el de la
  * empresa pide el cuentakilómetros, con el personal nada (`planDeSalida`). La pregunta de la
  * visita y el panel de viajes siguen. (2) Al empleado, debajo del reloj, solo le quedan «Mi
@@ -130,7 +130,7 @@ export function PunchPanel() {
   const [viaje, setViaje] = useState<Viaje | null>(null);
   // La ventana de «voy a salir»: primero la pregunta, y si dice que no, el motivo.
   const [salida, setSalida] = useState<null | "pregunta" | "motivo">(null);
-  // La respuesta a «¿vehículo personal o de la empresa?»: null hasta que contesta (D-NEXT).
+  // La respuesta a «¿vehículo personal o de la empresa?»: null hasta que contesta (D-489).
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
   const [vehiculoId, setVehiculoId] = useState<string | null>(null);
   const [odoSalida, setOdoSalida] = useState("");
@@ -499,7 +499,7 @@ export function PunchPanel() {
       {/* El turno de hoy y la semana programada. Es la pregunta que se hace cualquiera nada
           más entrar —¿a qué hora salgo y cuánto llevo de lo mío?— y estaba solo en la app de
           fichaje. */}
-      {/* Solo el admin (D-NEXT): al empleado el dueño le quitó «Esta semana de pago». */}
+      {/* Solo el admin (D-489): al empleado el dueño le quitó «Esta semana de pago». */}
       {secciones.semanaDePago && (d.shift || d.scheduledMinutes > 0) && (
         <div className="card">
           <div className="between">
@@ -541,7 +541,7 @@ export function PunchPanel() {
         <Modal title={`🚚 ${t("emp.punch.goingOut")}`} onClose={() => setSalida(null)} maxWidth={440}>
           {salida === "pregunta" ? (
             <>
-              {/* Primero el vehículo (D-NEXT), a todos: personal → nada más; empresa → vehículo y
+              {/* Primero el vehículo (D-489), a todos: personal → nada más; empresa → vehículo y
                   cuentakilómetros. Sin contestar, ni «Sí» ni «No» siguen (planDeSalida). */}
               <PreguntaDeVehiculo
                 nombre="vehiculo-salida"
@@ -582,7 +582,7 @@ export function PunchPanel() {
 
       <MySections boletin={secciones.boletin} />
 
-      {/* «Fichajes de hoy»: aquí solo para el admin; al empleado le sale en «Mi semana» (D-NEXT). */}
+      {/* «Fichajes de hoy»: aquí solo para el admin; al empleado le sale en «Mi semana» (D-489). */}
       {secciones.fichajesDeHoy && <FichajesDeHoy d={d} semanaDePago />}
     </>
   );

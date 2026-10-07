@@ -21,7 +21,7 @@ import { FichajesDeHoy, useMiDiaDeFichaje } from "@/components/timetracker/Ficha
 // G-9 (D-202): el resto de textos pasa a claves emp.week.*. fmtDayLong/weekLabel/breaksText
 // (helpers, con LOCALE fijo) no se tocan: las fechas largas siguen en inglés.
 //
-// D-NEXT (pedido del dueño, 2026-10-06), SOLO para el empleado —el admin la ve igual que antes—:
+// D-489 (pedido del dueño, 2026-10-06), SOLO para el empleado —el admin la ve igual que antes—:
 //   · Sin dinero: ni «Pago estimado», ni «Pagado hasta hoy», ni la columna de pago, ni el aviso
 //     de lo pagado. Solo las horas.
 //   · Las horas que se ven son las suyas: las del cronómetro para el remoto y las FICHADAS para el
@@ -209,7 +209,7 @@ export default function MyWeekPage() {
       </>}
     </div>
 
-    {/* Mudados aquí desde Registrar tiempo, para el empleado presencial (D-NEXT). */}
+    {/* Mudados aquí desde Registrar tiempo, para el empleado presencial (D-489). */}
     {secciones.boletin && <MiBoletinSec />}
     {secciones.fichajesDeHoy && dia && <FichajesDeHoy d={dia} semanaDePago={false} />}
     </>

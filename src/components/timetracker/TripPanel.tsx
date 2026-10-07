@@ -139,7 +139,7 @@ export function TripPanel({
 
       {!d.trip ? (
         <>
-          {/* La misma pregunta que la ventana de «Voy a salir» (D-NEXT): personal o de la empresa,
+          {/* La misma pregunta que la ventana de «Voy a salir» (D-489): personal o de la empresa,
               con dos respuestas y no una casilla. Aquí sí sale contestada de entrada con el
               defecto de D-455 (sin vehículo asignado → personal), porque el panel se ve siempre y
               el botón «Empezar viaje» ya pide pulsarlo a propósito. */}

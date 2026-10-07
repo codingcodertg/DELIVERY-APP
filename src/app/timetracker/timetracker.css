@@ -44,7 +44,7 @@
      background:var(--tt-accent);color:#fff;transition:.15s filter}
 .timetracker-module button:hover{filter:brightness(1.08)}
 .timetracker-module button:disabled{opacity:.5;cursor:not-allowed}
-/* Botón secundario (D-NEXT). Era un relleno gris (--tt-chip) con el texto normal: sobre el panel
+/* Botón secundario (D-489). Era un relleno gris (--tt-chip) con el texto normal: sobre el panel
    blanco del tema claro era un botón gris claro, que es justo cómo se ve un botón DESHABILITADO, y
    el dueño lo dijo así: «parecen que estuvieran desactivados». Ahora lleva un borde y un tinte del
    color de acento: se lee como pulsable en los dos temas. Apagado (opacidad) solo queda
@@ -138,7 +138,7 @@
 .timetracker-module .tabs a.active,.timetracker-module .tabs button.active{background:var(--tt-accent);color:#fff}
 /* Las pestañas DENTRO de una pantalla (Tiempo libre / Tiempo, Cronómetro / Fichar…) son botones,
    no los enlaces de la barra. Heredaban el gris claro #c6cede pensado para la barra oscura: en el
-   tema claro, sobre blanco, casi no se veían y la inactiva parecía apagada (D-NEXT). Texto normal
+   tema claro, sobre blanco, casi no se veían y la inactiva parecía apagada (D-489). Texto normal
    y un borde fino; la activa sigue con el relleno de acento. La barra (enlaces `a`) no cambia. */
 .timetracker-module .tabs button{color:var(--tt-txt)}
 .timetracker-module .tabs button:not(.active){box-shadow:inset 0 0 0 1px var(--tt-line)}
@@ -148,13 +148,13 @@
 .timetracker-module .motivos{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .timetracker-module .motivo{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:1px solid var(--tt-line);border-radius:10px;cursor:pointer;font-size:14px;font-weight:600}
 /* Una opción es un label, y el label del módulo es la etiqueta gris de un campo (y el del hub va en
-   mayúsculas): la opción NO marcada salía gris, como desactivada (D-NEXT). Texto normal; lo que
+   mayúsculas): la opción NO marcada salía gris, como desactivada (D-489). Texto normal; lo que
    distingue la marcada es su borde y su fondo. */
 .timetracker-module .motivo{color:var(--tt-txt);text-transform:none;letter-spacing:normal}
 .timetracker-module .motivo input{width:18px;height:18px;flex:0 0 18px;margin:0}
 .timetracker-module .motivo.on{border-color:var(--tt-accent);background:color-mix(in srgb, var(--tt-accent) 14%, transparent)}
 /* Una opción que de verdad no se puede elegir (p. ej. «vehículo de la empresa» sin flota): esa sí
-   se ve apagada, porque lo está (D-NEXT). */
+   se ve apagada, porque lo está (D-489). */
 .timetracker-module .motivo:has(input:disabled){opacity:.5;cursor:not-allowed}
 /* El nombre de quien ha entrado, que lleva a Mi cuenta (D-160). Se parece a una pestaña
    -mismo tamaño, mismo activo- pero sin el color del resto: es tu nombre, no una sección.
@@ -259,7 +259,7 @@
 .timetracker-module .rev-loc{white-space:nowrap;flex-shrink:0;order:-1}
 .timetracker-module button.rev-loc{border:0;cursor:pointer;font:inherit;font-size:11px;line-height:inherit}
 .timetracker-module .pill.neutral{background:var(--tt-chip);color:var(--tt-muted)}
-/* Fila inactiva (D-NEXT): en el módulo, el gris es --tt-muted. Ver `.atenuado` en globals.css. */
+/* Fila inactiva (D-489): en el módulo, el gris es --tt-muted. Ver `.atenuado` en globals.css. */
 .timetracker-module .atenuado,.timetracker-module .atenuado td{color:var(--tt-muted)}
 
 /* Historial de excepciones (Auditoría → Exceptions, D-115). */

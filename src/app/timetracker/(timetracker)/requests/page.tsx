@@ -43,7 +43,7 @@ export default function MyRequestsPage() {
   // Claves literales (no construidas) para que la prueba de claves de D-187 las vea.
   const label = (rt: RequestType) => rt === "add" ? t("emp.req.typeAdd") : rt === "adjust" ? t("emp.req.typeAdjust") : t("emp.req.typeDelete");
   const aMap = new Map(assignments.map((a) => [a.id, a]));
-  // Primero «Tiempo libre» y después «Tiempo» (D-NEXT, pedido del dueño): el orden y la que se
+  // Primero «Tiempo libre» y después «Tiempo» (D-489, pedido del dueño): el orden y la que se
   // abre salen de PESTANAS_DE_SOLICITUDES.
   const [tab, setTab] = useState<PestanaDeSolicitud>(PESTANA_DE_SOLICITUD_INICIAL);
   const [type, setType] = useState<RequestType>("add");
