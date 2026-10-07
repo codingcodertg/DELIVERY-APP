@@ -60,6 +60,8 @@ import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
 import { almacenDeLaTienda, codigoDeTienda } from "@/lib/almacen-de-tienda";
 import { idsRecibidasPorAlmacen, KIND_RECIBIDA, pastillaDeEtapa, puedeRecibir, recibirOrden } from "@/lib/recibir";
+import { etiquetaDeEventoDeParada, marcasDeParadas } from "@/lib/acciones-parada";
+import { PastillaDeMarca } from "@/components/PastillaDeMarca";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
 const MOSTRAR_CONFLICTO_DE_PROGRAMACION = false;
@@ -1432,6 +1434,8 @@ export function OrderModal({
               {isNew ? t("Fill in the order details, then save as draft or submit for approval.", "Complete los datos de la orden, luego guárdela como borrador o envíela a aprobación.") : (
                 <>
                   <span className="sema" style={{ background: info.color, color: "#fff" }}>{info.texto}</span>
+                  {/* Saltada hoy o rechazada por el cliente (D-NEXT), con la razón: lo primero que logística tiene que ver. */}
+                  {existing && <PastillaDeMarca m={marcasDeParadas(events, todayISO()).get(existing.id)} lang={lang} />}
                   {/* The two things a driver reads off the paperwork, right at
                       the top instead of buried in the detail rows below. Both
                       wrap fully — an order can carry several invoices, and a
@@ -3733,6 +3737,9 @@ function eventLabel(kind: string, lang: "en" | "es"): string {
   if (kind === "edited") return lang === "es" ? "Editada" : "Edited";
   if (kind === "note") return lang === "es" ? "💬 Nota" : "💬 Note";
   if (kind === KIND_RECIBIDA) return lang === "es" ? "📥 Recibida por almacén" : "📥 Received by warehouse";
+  // Saltada / retomada / rechazada por el cliente (D-NEXT): la razón del rechazo va en la nota del evento.
+  const deParada = etiquetaDeEventoDeParada(kind, lang);
+  if (deParada) return deParada;
   const s = stageInfo(kind);
   if (s.key === kind) return stageLabel(kind, lang);
   return kind.charAt(0).toUpperCase() + kind.slice(1);

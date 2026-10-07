@@ -215,7 +215,7 @@ describe("la siguiente parada es la de «Mi ruta»", () => {
   });
   it("«Mi ruta» la usa para su «Siguiente parada» (la pantalla y el aviso no pueden discrepar)", () => {
     const src = leer("src/app/(app)/my-route/page.tsx");
-    expect(src).toMatch(/const next = siguienteParada\(stops\);/);
+    expect(src).toMatch(/const next = siguienteParada\(stops, marcas\);/);
     expect(src).not.toMatch(/stops\.find\(\(d\) => d\.stage !== "delivered"\)/);
   });
 });
@@ -438,6 +438,17 @@ describe("ejecutarEnCamino", () => {
     const { proveedor, ctx } = montar(filas);
     expect((await ejecutarEnCamino(ctx, "r1")).siguiente).toBeNull();
     expect(proveedor.envios).toEqual([]);
+  });
+  it("una saltada hoy o rechazada por el cliente no es «siguiente» (D-NEXT): avisa a la que de verdad va", async () => {
+    const hoy = new Date().toISOString();
+    const { db, proveedor, ctx } = montar(ruta(["delivered", "picked_up", "picked_up", "picked_up"]));
+    db.tablas.order_events = [
+      { delivery_id: "r2", kind: "skipped", created_at: hoy, note: null },
+      { delivery_id: "r3", kind: "customer_rejected", created_at: hoy, note: "Rejected by customer: Cerrado" },
+    ];
+    const r = await ejecutarEnCamino(ctx, "r1");
+    expect(r.siguiente).toBe("r4");
+    expect(proveedor.envios.map((e) => e.to)).toEqual(["+19565550113"]);
   });
   it("apagado en Ajustes: no lee la ruta ni manda", async () => {
     const { db, proveedor, ctx } = montar(ruta(["delivered", "picked_up"]), ajustes({ notify_on_the_way_enabled: false }));

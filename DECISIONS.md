@@ -23346,6 +23346,7 @@ actual»: para él el Gestor ES donde tiene que verse. Fue un hueco de un diseñ
   que es lo que distingue una ruta de otra con varias a la vista. Dos choferes que recogen en la misma tienda dan dos marcas
   en el mismo punto, una de cada color.
 - **«Mi ruta» del chofer:** lo mismo, solo lectura (D-021): recogidas por tienda que informan y no se pulsan, y cada entrega con su D.
+  > **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): en «Mi ruta» cada carga de una recogida lleva ahora sus botones («Recogido», «Saltar») y cada entrega los suyos («Entregado», «Saltar», «Rechazado»). La numeración P/D y el orden siguen siendo los del plan, sin cambios.
 
 ### Las reglas, y de dónde sale cada una
 
@@ -38151,3 +38152,69 @@ y la ruta forzada tendría que quitarla con la llave de servicio. Se dejó así 
 - Si el proyecto de Supabase tiene «Secure password change» (reautenticar sesiones de más de 24 h), `updateUser` podría
   pedirlo; afecta igual a «Mi perfil» y aquí la sesión es recién abierta.
 - El aviso del banner de «Entrar como» no se vio en pantalla (el demo no tiene impersonación).
+
+## D-NEXT · «Mi ruta»: cada parada lleva sus botones — Recogido · Saltar en cada carga de una recogida; Entregado · Saltar · Rechazado (con razón obligatoria) en cada entrega
+
+**Fecha:** 2026-10-06 · **Sin migración.** · Rama `feat/chofer-acciones-por-parada`. **Reemplaza en parte a D-334** (las recogidas de «Mi ruta» ya no son solo informativas).
+
+**Pedido del dueño**, literal (dictado): *«a los drivers en el, de, en el delivery app cuando estén en, el, en, el, en la aplicación móvil, en la parte de ellos de routes, entonces quiero que ahí salga un por cada carga, cada pickup y los deliveries también que diga pickup en nosotros obviamente va a ser deliver, skip y en los deliveries puede ser hasta rejected y él tiene que poner una, una razón va porque fue rejected»*
+
+### Qué había
+
+- «Recoger» y «Entregar» de un toque, pero **solo en la tarjeta de «Siguiente parada»** (D-218, `lib/one-tap-stop.ts`); la
+  lista de abajo solo abría la ficha, y las recogidas (P) no se pulsaban (D-334).
+- «Dejar en tienda» (D-224): descargar en una tienda del grupo lo que no se pudo entregar (`picked_up → ready`).
+- **No había** «saltar» ni «rechazada por el cliente». La etapa `rejected` que existe es otra cosa: el gerente rechaza una
+  orden al aprobarla (`pending → rejected`), y no se reusa. «Incidencias» (D-437) es un registro que escribe logística, no el
+  chofer.
+
+### Qué se decidió
+
+- **Cada parada de «Mi ruta» lleva sus botones**, grandes (44 px de alto, a lo ancho), y qué sale lo decide una sola función,
+  `accionesDeParada(tipo, etapa, marca)` (`lib/acciones-parada.ts`):
+  - **Recogida (P)**, carga por carga (una P puede llevar varias órdenes de la misma tienda): «🚚 Recogido» si está lista
+    (`ready`) y «⏭ Saltar». Si el almacén aún no la preparó, solo «Saltar» y el aviso «aún no está lista».
+  - **Entrega (D)**, con el material en el camión (`picked_up`): «✅ Entregado», «⏭ Saltar» y «⛔ Rechazado». Antes de
+    recogerla, solo «Saltar»: no se entrega ni se rechaza lo que no se cargó.
+  - En la tarjeta de «Siguiente parada» se añaden «Saltar» y «Rechazado» junto al botón verde que ya estaba (no se repite).
+- **«Recogido» y «Entregado» son los de siempre**: llaman al mismo `cerrarParada` de D-218 (GPS sin bloquear, comprobante si
+  hace falta, que abre la ficha). No hay una segunda vía para la etapa.
+- **Saltar no cambia la etapa.** Deja un evento `skipped` en `order_events`. La parada se ve «⏭ Saltada — hazla después», cede
+  el turno de «Siguiente parada» a la que sigue y vuelve cuando no queda otra; «↩ Retomar» (`resumed`) la devuelve a su sitio.
+  Un salto **vale el día en que se hizo** (zona del negocio): mañana la parada sale normal. Lo borra también moverla de etapa.
+  La lista **no se reordena**: el orden y los números P/D son los del plan.
+- **Rechazado obliga a dar razón**: un motivo de un toque (Material dañado, Material equivocado, La obra no estaba lista, El
+  cliente cambió de opinión) o «Otro» + texto (mínimo 3 letras); «Confirmar rechazo» queda apagado hasta entonces
+  (`razonDeRechazo`). Deja un evento `customer_rejected` con la nota «Rechazada por el cliente: <razón>». **La etapa se queda
+  en `picked_up`** —el material sigue en el camión— y la parada ofrece solo «Dejar en tienda» (D-224), que ya existía.
+  Una rechazada nunca es «Siguiente parada». La marca dura hasta que la orden se vuelva a recoger o se entregue (sobrevive a
+  «Dejar en tienda», para que logística la vea al reprogramarla).
+- **Quién lo ve**: logística y admin reciben un aviso en la campana («Order #… was rejected by the customer (chofer): razón»);
+  en **Órdenes**, en la tabla del **Gestor** («All», que usa la misma columna de Etapa) y en la **cabecera de la ficha** sale
+  una pastilla «Rejected: razón» / «Skipped» junto a la etapa; en el historial de la ficha (que ven admin, gerente y quien la
+  creó, regla anterior) y en Auditoría salen «⏭ Parada saltada», «↩ Parada retomada» y «⛔ Rechazada por el cliente» con la
+  razón.
+- **El aviso «en camino» al cliente** (D-416) usa la misma regla: `siguienteParada(ordenadas, marcas)` en «Mi ruta» y en el
+  servidor (`ejecutarEnCamino` lee los eventos de las paradas de esa ruta). Si no puede leerlos, la regla de antes.
+
+### Por qué eventos y no una etapa o columna
+
+Es el camino de «Received» (D-409): `order_events.kind` es texto libre, el chofer ya puede insertar sus propios eventos (100:
+`created_by = auth.uid()`), y la app ya carga los últimos 1000 eventos para todos los roles. **Cero migraciones**, y el guard
+de etapas (`guard_delivery_stage`) no interviene porque nadie cambia de etapa. El precio, el mismo que D-409: una marca cuyo
+evento quedó fuera de los 1000 más recientes deja de pintarse (lo de hoy siempre está dentro).
+
+### Lo que no hace
+
+- Sin conexión, Saltar y Rechazado **no** van a la cola de reintento (el outbox es de etapas): fallan con su error a la vista.
+- En el modo enseñanza los eventos van a la capa local, pero la pantalla lee los eventos reales, así que la marca no se pinta ahí.
+- No reordena la lista ni toca la numeración P/D del Gestor.
+
+**Medido:** vitest 32 pruebas nuevas en `acciones-parada.test.ts` (incluye pintar el componente) + 1 en `avisos-cliente.test.ts`
+(el servidor avisa a la que de verdad va). Mutantes: 31 de 31 caen con prueba con nombre (M6, «el salto manda sobre el rechazo», sobrevivió a la primera y pidió la prueba del salto posterior a un rechazo). Demo en navegador (CDP, 390 px, «Ver
+como → Driver»): 9 grupos de botones en la lista; «Saltar» en la tarjeta movió «Siguiente parada» de INV-3009 a INV-3028;
+«Recogido» dejó la entrega con Entregado · Saltar · Rechazado; el diálogo con «Otro» y sin texto deja «Confirmar» apagado, con
+texto encendido; tras confirmar, la parada enseña la razón y «Dejar en tienda», y la siguiente pasa a INV-3028. Como logística:
+la pastilla en Órdenes, en «All» del Gestor y en la cabecera de la ficha; 2 avisos en la campana (admin y logística). Como admin:
+el historial de la ficha con «⏭ Stop skipped», «Picked Up» y «⛔ Rejected by customer — …razón». Página a 390 px sin scroll lateral.
+No probado contra la base real (la inserción en `order_events` como chofer se apoya en la política 100, leída, no ensayada).

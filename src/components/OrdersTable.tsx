@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { stageLabel } from "@/lib/constants";
 import { idsRecibidasPorAlmacen, pastillaDeEtapa } from "@/lib/recibir";
+import { marcasDeParadas, type MarcaDeParada } from "@/lib/acciones-parada";
+import { PastillaDeMarca } from "@/components/PastillaDeMarca";
 import { motivoDeAnulacion, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
-import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag } from "@/lib/utils";
+import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag, todayISO } from "@/lib/utils";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { ANCHO_MINIMO } from "@/lib/user-prefs";
 import { columnasEnOrden, enOrdenDePartida, ordenEfectivo } from "@/lib/orden-de-columnas";
@@ -31,7 +33,10 @@ type Ctx = {
   motivos?: CancelReason[];
   /** Las entregadas que recibió almacén (D-409): su pastilla dice «Received» y no «Delivered». */
   recibidas?: ReadonlySet<string>;
+  /** Paradas que el chofer saltó hoy o que el cliente rechazó (D-NEXT): una pastilla junto a la etapa. */
+  marcas?: ReadonlyMap<string, MarcaDeParada>;
 };
+
 type CellValue = ValorDeCelda;
 
 // ---- Column registry (#13 column customization) ---------------------------
@@ -56,7 +61,7 @@ export interface OrderColumn {
 export const ORDER_COLUMNS: OrderColumn[] = [
   // El VALOR (orden y filtro de columna) sigue siendo la etapa: «Received» va dentro de «Delivered» también
   // en el filtro de la columna, porque es lo mismo (D-409). Solo la pastilla cambia.
-  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos, recibidas }) => {
+  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos, recibidas, marcas }) => {
       const p = pastillaDeEtapa(d, recibidas, lang);
       // Una anulada lleva su motivo al lado, no escondido en la ficha: en la lista es donde se ve que
       // media tarde de órdenes se cayó por duplicadas (122).
@@ -65,6 +70,7 @@ export const ORDER_COLUMNS: OrderColumn[] = [
         <>
           <span className="sema" title={p.texto} style={{ background: p.color, color: "#fff" }}>{p.texto}</span>
           {porQue && <span style={{ color: "var(--gray)", marginLeft: 6, fontSize: 12 }}>{porQue}</span>}
+          <PastillaDeMarca m={marcas?.get(d.id)} lang={lang} />
         </>
       );
     } },
@@ -157,7 +163,7 @@ const ID_COLUMN: OrderColumn = {
   en: "ID",
   es: "ID",
   value: (d, { byInvoice }) => (byInvoice ? (d.invoice_num || orderLabel(d)) : orderLabel(d)),
-  cell: (d, { lang, byInvoice, recibidas }) => {
+  cell: (d, { lang, byInvoice, recibidas, marcas }) => {
     const s = pastillaDeEtapa(d, recibidas, lang);
     const tag = storeTag(d.store);
     const late = isOverdue(d);
@@ -187,6 +193,7 @@ const ID_COLUMN: OrderColumn = {
           <span className="drv-head">
             <span className="drv-l">
               <span className="sema" style={{ background: s.color, color: "#fff" }}>{s.texto}</span>
+              <PastillaDeMarca m={marcas?.get(d.id)} lang={lang} />
             </span>
             {/* An order can carry several invoices ("177966, 177987"). A driver
                 matches paperwork against this, so it wraps rather than
@@ -425,7 +432,8 @@ export function OrdersTable({
   const byInvoice = true;
   // Qué entregadas recibió almacén (D-409): un índice sobre los eventos que el proveedor ya tiene cargados.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
-  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas };
+  const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
+  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas };
   const [vistaPropia, setVistaPropia] = useState<VistaDeTabla>({ filtros: {}, orden: null });
   // Llevada por la página si la pasa (D-440); si no, la de dentro.
   const vistaQueManda = vista && onVista ? vista : vistaPropia;

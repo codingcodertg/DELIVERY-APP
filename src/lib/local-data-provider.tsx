@@ -326,6 +326,12 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     persist({ ...s, events: addEvent(s, deliveryId, "note", body) });
   }, [me, persist]);           // idem: la nota la firma quien la escribe (D-373)
 
+  const marcarParada = useCallback<DataState["marcarParada"]>(async (deliveryId, kind, note) => {
+    const s = storeRef.current;
+    persist({ ...s, events: addEvent(s, deliveryId, kind, note ?? undefined) });
+    return true;
+  }, [me, persist]);           // el evento lo firma quien lo marca, como las notas
+
   const markNotifRead = useCallback<DataState["markNotifRead"]>(async (id) => {
     const s = storeRef.current;
     persist({ ...s, notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)) });
@@ -506,7 +512,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       if (ok && nota) addNote(id, nota);
       return ok;
     },
-    reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, setUserIdentity, resetUserPassword,
+    reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
     saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut,
@@ -515,7 +521,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
 
   return (
     <Ctx.Provider value={value}>
