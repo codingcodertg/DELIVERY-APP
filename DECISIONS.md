@@ -16529,6 +16529,10 @@ prueba no fije el formato.
 
 ## D-265 · «Mi perfil» en el lobby, y la contraseña se cambia solo ahí
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-06): «solo ahí» deja de ser cierto en un caso. Quien entra con una
+> contraseña temporal (marca `must_change_password` en `user_metadata`) la cambia en `/change-password`, sin pedir la actual,
+> por `POST /api/profile/password/forced`. Fuera de ese caso, «Mi perfil» sigue siendo el único sitio.
+
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia código de las tres
 apps y del hub · **Sin migración** · **Pedido por:** el dueño: *«los usuarios en el RTG Hub
 deberían poder acceder a su perfil y setear todo desde el hub para todas las apps; es un solo
@@ -37839,3 +37843,82 @@ No visto en un teléfono.
 Interpretación: «quita ese timeout» = el contador que se ve, no el límite (lo pidió «porque quita mucho espacio»).
 
 No visto en navegador: `tsc` y vitest (6350).
+
+## D-NEXT · Contraseña temporal: quien entra con ella tiene que cambiarla antes de usar ninguna app
+
+**Fecha:** 2026-10-06 · **Versión:** la pone el orquestador al fusionar (toca código compartido: middleware, `src/app/api`,
+el banner de «Entrar como»; criterio de CLAUDE.md, las tres) · **Sin migración** (la marca vive en `auth.users`) ·
+Rama `feat/cambiar-password-al-entrar`. **Reemplaza en parte a D-265** (nota dentro).
+
+**Pedido del dueño**, literal: *«Quiero que me le hagas un password temporario a lo que es Máximo, Julio y Ernesto, porque
+ellos tienen su username, pero no tienen email. Entonces, quiero que me le hagas un password genérico y me lo des, que sea
+tracker. Ese va a ser el password. Ellos lo van a tener que cambiar cuando hagan first login en el app, pero para que ellos
+puedan usar el app.»*
+
+### Qué había
+
+El orquestador ya puso en producción, a mano, la contraseña `tracker` a `maximogarza`, `juliojijon` y `ernestocastillo`
+(entran con usuario, correo inventado de `src/lib/username.ts`) y la marca `raw_user_meta_data.must_change_password = true`
+(`auth.admin.updateUserById`). En la app **nada miraba esa marca**: con `tracker` entraban y se quedaban con ella.
+
+### Qué se decidió
+
+- **La puerta va en el middleware** (`src/lib/supabase/middleware.ts`), igual que el cierre de las 18:30 (D-248): es el único
+  punto por el que pasa cada navegación de las cinco apps, así que escribir otra URL no la salta. La marca sale del mismo
+  `getUser()` que ya se hacía: **cero idas más al servidor**. Con la marca, toda página va a
+  `/change-password?next=<a dónde iba>`. Pasan: la propia pantalla, lo público (`/login`, `/auth/signout`, `/track`…) y
+  las `/api/` (el middleware ya las salta, cada una se autentica sola). La decisión es pura, en
+  `src/lib/cambio-obligatorio.ts` (`decideCambioObligatorio`).
+- **Orden:** primero la caducidad de «Entrar como», luego el cierre de las 18:30 (una sesión cerrada va al login, tenga o
+  no la marca), luego esta puerta, luego el guard de siempre.
+- **La redirección lleva las cookies que `getUser()` acaba de renovar.** Sin eso, con la rotación de refresh tokens, un
+  refresco en esa misma petición quemaba el token viejo y perdía el nuevo: la persona acababa en el login en vez de en la
+  pantalla (el fallo de D-119). Los otros dos `redirect` del middleware no lo hacen y no se tocaron.
+- **La pantalla** `/change-password` (inglés, como `/reset-password`): nueva + repetirla, mínimo **8** caracteres (no los 6
+  de «Mi perfil»: esta es la que se queda una cuenta que tenía una que sabía todo el mundo) y **que no contenga `tracker`**,
+  sin distinguir mayúsculas — `tracker` tiene 7 letras, así que «no sea tracker» a secas ya lo cubría «8+»; se pide que no la
+  *contenga* para que `tracker2026` no valga. Una columna, botones a todo el ancho, en/es con su botón, y «Cerrar sesión».
+  Si se llega sin la marca, sigue al destino.
+- **Guardar** es `POST /api/profile/password/forced`: contraseña **y** `must_change_password: false` en **la misma**
+  llamada a `updateUser` (o las dos o ninguna; `data` se fusiona con el resto de `user_metadata`). **No pide la actual** —es
+  la temporal que acaba de teclear para entrar— y por eso **solo funciona con la marca puesta** (si no, 409 y no cambia
+  nada; para lo demás sigue «Mi perfil», que sí la pide). Deja una fila en el registro de seguridad, clase nueva
+  `password_changed` («Cambió su contraseña temporal»), actor = la propia persona, nunca la contraseña. Los fallos de
+  Supabase (débil, igual a la anterior) se dicen con los textos de D-271. Al terminar, recarga entera hacia `next` (por
+  defecto `/home`, que manda al chofer a «Mi ruta», D-173).
+- **«Poner contraseña nueva» de Usuarios** (`/api/reset-password`) sigue generándola aleatoria y ahora **pone la marca** en la
+  misma llamada. El diálogo se lo dice al admin: «Al entrar se le pedirá que elija una suya».
+- **«Entrar como» (D-243):** al admin dentro de la sesión de alguien con la marca **no se le obliga**: el middleware y la
+  pantalla le dejan pasar (cookie de retorno válida) y la ruta forzada le contesta 403. El aviso naranja le añade, en la misma línea corta de D-483:
+  «🔑 Contraseña temporal: la cambia ella al entrar, a ti no se te pide» (`/api/impersonate/state` devuelve
+  `cambiaContrasena`). Solo en español, como el resto del aviso desde D-483.
+- `requireUser()` devuelve ahora también `user_metadata`.
+- **Demo:** el middleware no corre; `/change-password` enseña el formulario y al guardar dice «No disponible en el modo demo».
+
+### Lo que la marca NO es
+
+`user_metadata` lo puede escribir **el propio usuario** (`auth.updateUser({ data })` desde la consola del navegador). Esto no
+es una barrera contra la persona, sino contra que la oficina entera siga entrando con `tracker`: quien se la quita a mano solo
+se queda con la temporal. Si algún día tiene que ser inviolable, la marca va en `app_metadata` (solo la escribe service-role)
+y la ruta forzada tendría que quitarla con la llave de servicio. Se dejó así porque es donde la puso el orquestador.
+
+### Medido
+
+- Pruebas: `cambio-obligatorio.test.ts` (lógica, middleware con `deps`, que la pantalla/formulario/banner usan las
+  funciones), `cambio-obligatorio-rutas.test.ts` (ruta forzada, `/api/reset-password`, `/api/impersonate/state` y la
+  página, llamadas con Auth falso), `cambio-obligatorio-middleware.test.ts` (middleware con `@supabase/ssr` simulado:
+  marca desde `user_metadata` y cookies renovadas en la redirección), y `api-auth.test.ts`. El barrido de
+  `profile-password.test.ts` pasa de dos a tres sitios que ponen contraseña con `updateUser`.
+- Mutantes: **34 de 34 caen** con una prueba con nombre.
+- Demo (CDP, 390×844): `tracker` → «no puede llevar la temporal»; `camion1` → «al menos 8»; distintas → «no coinciden»;
+  válidas → «No disponible en el modo demo»; cambiar a español traduce también el aviso; `scrollWidth` 390 (sin scroll
+  lateral).
+
+### No verificado
+
+- **Nada contra producción ni con sesión real**: ni la redirección de verdad de un chofer con la marca, ni que Supabase
+  acepte la nueva y quite la marca, ni la fila en `security_events`. Lo primero que hay que mirar al desplegar: entrar como
+  `maximogarza` con `tracker` en un teléfono.
+- Si el proyecto de Supabase tiene «Secure password change» (reautenticar sesiones de más de 24 h), `updateUser` podría
+  pedirlo; afecta igual a «Mi perfil» y aquí la sesión es recién abierta.
+- El aviso del banner de «Entrar como» no se vio en pantalla (el demo no tiene impersonación).

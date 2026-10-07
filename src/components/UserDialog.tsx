@@ -562,8 +562,8 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
                   <span className="dv" style={{ fontFamily: "monospace", fontSize: 17 }}>{newPass}</span>
                 </div>
                 <div className="hint">
-                  {t("Shown once. Their old password stopped working when you pressed the button.",
-                     "Se muestra una sola vez. La anterior dejó de servir al presionar el botón.")}
+                  {t("Shown once. Their old password stopped working when you pressed the button. They'll be asked to choose their own the next time they sign in.",
+                     "Se muestra una sola vez. La anterior dejó de servir al presionar el botón. Al entrar se le pedirá que elija una suya.")}
                 </div>
                 <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }}
                   onClick={() => navigator.clipboard?.writeText(newPass)}>📋 {t("Copy", "Copiar")}</button>

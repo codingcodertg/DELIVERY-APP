@@ -26,7 +26,7 @@ import type { NamedLocation, Profile } from "@/lib/types";
  * que nadie está mirando.
  */
 
-type Estado = { como: string; inicio: number } | null;
+type Estado = { como: string; inicio: number; cambiaContrasena?: boolean } | null;
 
 export function ImpersonationBanner() {
   const [estado, setEstado] = useState<Estado>(null);
@@ -54,8 +54,10 @@ export function ImpersonationBanner() {
     let vivo = true;
     fetch("/api/impersonate/state")
       .then((r) => r.json())
-      .then((d: { como?: string; inicio?: number }) => {
-        if (vivo && d?.como && typeof d.inicio === "number") setEstado({ como: d.como, inicio: d.inicio });
+      .then((d: { como?: string; inicio?: number; cambiaContrasena?: boolean }) => {
+        if (vivo && d?.como && typeof d.inicio === "number") {
+          setEstado({ como: d.como, inicio: d.inicio, cambiaContrasena: d.cambiaContrasena === true });
+        }
       })
       .catch(() => { /* sin respuesta no se pinta nada: no hay nada que prometer */ });
     return () => { vivo = false; };
@@ -128,6 +130,13 @@ export function ImpersonationBanner() {
       <span className="small" style={{ fontWeight: 700 }}>
         👤 Estás como {estado.como}
       </span>
+      {/* D-NEXT: esa persona tiene una contraseña temporal. A ella la app le obliga a cambiarla al
+          entrar; al admin no, porque no es suya. Se le avisa, corto (D-483: el aviso, en una línea). */}
+      {estado.cambiaContrasena && (
+        <span className="small" data-aviso="cambio-contrasena">
+          🔑 Contraseña temporal: la cambia ella al entrar, a ti no se te pide
+        </span>
+      )}
       <button
         type="button"
         className="btn btn-danger btn-sm"
