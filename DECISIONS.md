@@ -37247,6 +37247,12 @@ No visto en navegador: `tsc` y vitest (332 del módulo).
 
 ## D-476 · Quote Builder: una pestaña «Todas las cotizaciones», solo para el admin, con todas las cotizaciones guardadas y todos los estimados de la competencia
 
+> **Reemplazada en parte por D-484** (2026-10-06, dictado: «…cada user también va a tener acceso a eso, pero ese user
+> solo va a poder ver las órdenes que él ha hecho»): la pestaña ya no es solo del admin. Todo el que entra al Quote
+> Builder la ve; el no-admin como «Mis cotizaciones», con solo las que él creó (`owner_id`, pedido así a la base) y los
+> estimados de la competencia que él subió, sin columna de Vendedor. El admin sigue con «Todas». Y la lista nace
+> ordenada por pies cuadrados (columna SF nueva), no por fecha.
+
 > **Reemplazada en parte por D-478** (2026-10-06, sobre una captura: «SE MIR MUY FEO ESOS FILTROS…»): la tabla y los
 > filtros (puntos 2 y 3) se rehicieron con los patrones de la casa: el calendario del Panel y el menú por columna de
 > Órdenes / Gestor de Rutas. Vendedor y tienda ya no van a la base ni hay desplegables; `vendedores()` se quitó. El
@@ -37368,6 +37374,10 @@ en el quote builder solo para admin habilita la lista de todas las quotes ya hec
 No visto en navegador: `tsc` y vitest (98 de las ventanas y pastillas).
 
 ## D-478 · Quote Builder, pestaña «Todas las cotizaciones (admin)»: los filtros se rehacen con los patrones de la casa — el calendario del Panel y el menú por columna de las tablas
+
+> **Reemplazada en parte por D-484** (2026-10-06): la tabla gana una columna **SF / Pies²** (entre Cliente y Total) y
+> **nace ordenada por ella, de mayor a menor** (antes, sin orden de columna: el de la base, la más reciente primero).
+> Para el no-admin la tabla no lleva Vendedor. El calendario, la búsqueda y el menú por columna siguen igual.
 
 **Fecha:** 2026-10-06 · **Versión:** estimator 0.11.1, repo 1.351.1 (toca `src/app/estimator/` y `src/lib/estimator/`:
 sube `estimator`) · **Migración:** ninguna. **Reemplaza en parte a** D-476 (sus puntos 2 y 3: la tabla y los filtros), que
@@ -37839,3 +37849,116 @@ No visto en un teléfono.
 Interpretación: «quita ese timeout» = el contador que se ve, no el límite (lo pidió «porque quita mucho espacio»).
 
 No visto en navegador: `tsc` y vitest (6350).
+
+## D-484 · Quote Builder: cada vendedor ve «Mis cotizaciones» (solo las suyas) y la lista se ordena por pies cuadrados
+
+**Fecha:** 2026-10-06 · **Versión:** estimator 0.12.0, repo 1.357.0 (toca `src/app/estimator/`, `src/lib/estimator/` y
+el hook compartido `src/lib/use-orden-y-filtro.ts`) · **Migración:** ninguna. **Reemplaza en parte a** D-476 (quién ve la
+pestaña) y a D-478 (las columnas y el orden de la tabla), que llevan su nota.
+
+**Qué pidió el dueño** (2026-10-06, dictado, literal tal como lo pasó el orquestador):
+
+```
+quiero que en el Eats app el sort sea por square feet. Y quiero también, esa misma, donde uno se mete para ver todas las órdenes que se han hecho, pero cada user también va a tener acceso a eso, pero ese user solo va a poder ver las órdenes que él ha hecho.
+```
+
+**Cómo se leyó** (del orquestador; a validar): «Eats app» = el **Estimator / Quote Builder** (es dictado); «órdenes» = las
+**cotizaciones**; «esa misma, donde uno se mete para ver todas» = la pestaña «Todas las cotizaciones (admin)» de D-476/D-478.
+«El sort por square feet» se aplicó a **esa lista**. En el Quote Builder no hay otra lista que se ordene: las líneas de la
+cotización van en el orden en que el vendedor las escribe (y así se imprimen), el autocompletar del catálogo trae 8 por
+prefijo de código, y los estimados de la competencia van por fecha. Si el dueño hablaba de las líneas, es otro cambio.
+
+### Qué había
+
+- La pestaña solo la veía `role = 'admin'` (`puedeVerTodas`); a un vendedor ni se le ofrecía.
+- La tabla (D-478): Fecha, #, Vendedor, Tienda, Cliente, Total, Estado; sin orden de columna al abrir (el de la base: la
+  más reciente primero). Ninguna columna de superficie.
+
+### Qué hay ahora
+
+1. **Quién ve qué** (`alcanceDeLista` en `lista-admin.ts`):
+   - **Admin**: pestaña «All quotes (admin) / Todas las cotizaciones (admin)», todas las cotizaciones y todos los estimados de
+     la competencia, como antes.
+   - **Cualquier otro que entra al Quote Builder** (el `layout` ya exige el módulo `estimator`): pestaña **«My quotes / Mis
+     cotizaciones»**, con **solo las que él creó** y debajo **«Estimados de la competencia que tú subiste»**, solo los suyos.
+     **Sin columna ni filtro de Vendedor** (siempre sería él).
+   - **Sin sesión conocida** (un no-admin sin id): ni pestaña ni consulta. Un no-admin **nunca** cae en «todas» por un id
+     vacío: `alcanceDeLista` devuelve null.
+2. **El filtro por dueño va en la CONSULTA**, no solo en pantalla: `listarTodas(filtro, tanda, alcance)` añade
+   `.eq("owner_id", <su id>)` (`aplicaAlcance`) y `competencia.listarTodos(subidoPor)` añade `.eq("uploaded_by", <su id>)`.
+   El parámetro `alcance` es obligatorio en `listarTodas` (no hay valor por defecto que signifique «todas»). La pestaña de la
+   competencia de D-451 sigue llamando `listarTodos()` sin filtro, como antes.
+3. **Columna «SF» / «Pies²»** entre Cliente y Total: los **pies cuadrados pedidos** de la cotización =
+   `piesCuadradosPedidos(lines)` = suma de `requested_sf` de las líneas por SF; las de unidad no suman, ni las vacías ni las
+   no positivas. Son los **pedidos**, no los que salen en cajas completas (`sfReal`). Tiene el mismo menú de columna
+   (ordenar ↑ ↓ ✕ y filtrar por valor) que las demás.
+4. **La lista nace ordenada por SF, de mayor a menor** (`ORDEN_INICIAL`), con el ▼ puesto en la cabecera. El menú de
+   cualquier columna lo cambia; «✕» en el orden vuelve al de la base (la más reciente primero). Para eso
+   `useOrdenYFiltro` acepta un tercer parámetro opcional `inicial`; sin él se comporta como siempre (Órdenes, Gestor y Promos
+   no cambian).
+5. «Ver como» en el demo: la lista se monta de nuevo al cambiar de persona (`key` por alcance), para no arrastrar filtros
+   ni filas de la persona anterior.
+
+### Qué permite la RLS hoy (leído de producción el 2026-10-06, `begin read only … rollback`, sin escribir nada)
+
+- `estimator_quotes`, política de SELECT (la de la 148, tal cual en `pg_policies`): `has_estimator_access() and (is_admin()
+  or owner_id = auth.uid() or (store is not null and store = estimator_my_store()) or estimator_has_approval(id))`. Es
+  decir, **un vendedor con el módulo puede leer, por la base, las suyas, las de su tienda y las que le aprobaron**. Esta
+  pantalla solo le pide las suyas; **la base no se lo impide a otra consulta** (la consola del navegador, por ejemplo).
+- `estimator_competitor_files`, SELECT (la 156): `has_estimator_access()`, o sea **todos los archivos de todos**. Ya era así
+  y lo usa a propósito la pestaña de la competencia de D-451 («todo el que tiene el módulo ve todos»).
+- Datos hoy: **3 cotizaciones** de 2 dueños, **0 con tienda**; **0 archivos** de la competencia; con el módulo, **4 perfiles,
+  los 4 admin**. O sea, hoy ningún vendedor ve nada distinto por la base; el cambio de pantalla es lo que el dueño verá.
+- SF de las 3 en producción: 2,500, 1,200 y 0 (una sin líneas por SF).
+
+**No se cerró la RLS en este cambio** (el encargo lo prohíbe y las reglas del worker también). Si el dueño quiere que «solo
+puede ver las suyas» valga también contra la base, el plan es una migración que quite de la política de SELECT la rama
+`store = estimator_my_store()` (y decidir qué hacer con `estimator_has_approval(id)`, que es leer la de otro
+porque él lo aprobó). **No medí qué del flujo de D-413/D-432 depende hoy de esa rama** (buscar el estimado de un compañero
+va por `estimator_find_estimate`, `security definer`, que no la necesita; abrir una ajena sin aprobación quizá sí): eso es
+lo primero del plan. Hay que hacer el inventario de lecturas, la matriz por rol con `ROLLBACK` y el SQL de
+reversión (`docs/PLAN-A-2a-profiles-rls.md`) antes de tocarla. Lo mismo para los archivos de la competencia, que hoy son
+de todos por decisión de D-451.
+
+### Decisiones mías, para validar
+
+1. **«Cada user» = todo el que entra al Quote Builder** (admin, o la casilla `estimator`), sin mirar el rol: un gerente con
+   el módulo ve también solo las suyas. El único que ve todas es `role = 'admin'`, como en D-476.
+2. **SF = pies cuadrados pedidos** (`requested_sf`), no los de cajas completas. Es lo que el vendedor escribe y lo que el
+   cliente pide; la diferencia es el redondeo a cajas.
+3. **La competencia del no-admin = la que él subió** (no la pegada a sus cotizaciones que haya subido otro).
+4. **El orden por SF es sobre lo cargado** (tandas de 50, como el resto de filtros de columna de D-478): con más de 50
+   cotizaciones, «la más grande» es la más grande de las cargadas, no de todas. Hoy hay 3. Ordenar en la base exigiría una
+   columna calculada (migración), que no se hizo.
+5. El texto bajo el título cambió de «newest first / de la más reciente a la más vieja» a «largest square footage first /
+   de más a menos pies cuadrados».
+
+### Verificado
+
+- `node scripts/verify.mjs` (2026-10-06, sobre `origin/main` = D-483): tipos, vitest (**6428 pasadas, 3 saltadas**) y
+  `next build` en verde. Una primera corrida dio 11 *timeouts* de 5 s en pruebas ajenas que recorren todo `src` (máquina
+  cargada con otros agentes); la segunda, limpia.
+- **Mutantes: 30, caen los 30**, leídos por el nombre de la prueba que cae (`mis-cotizaciones.test.ts` y
+  `lista-admin.test.ts`). Quién ve: el no-admin con alcance «todas» (M1), sin id cayendo en «todas» (M2), la pestaña solo
+  al admin (M3, M21), las de otro pasando el alcance (M4, M7), la base sin `owner_id` (M5, M6), la pantalla pidiendo sin
+  alcance (M29) o con el de otro (M26) o creyendo a todos admin (M23), el título siempre «All quotes» (M22), la competencia
+  sin filtro de quien la subió en la lógica (M8), la base (M9), el demo (M10) o la pantalla (M24), la columna y la celda
+  de Vendedor para el vendedor (M11, M25, M30), sin `key` al cambiar de persona (M27). SF y orden: unidades sumando (M12),
+  negativos sumando (M13), sin redondeo (M14), nacer de menor a mayor (M15), la pantalla sin orden inicial (M16), el hook
+  ignorándolo (M17), la columna sin valor (M18), la fila de la base (M19) o del demo (M20) sin SF, la celda vacía (M28).
+- **En el navegador** (demo, Chrome headless por CDP, clics de persona, 1280 y 390 de ancho): **14 de 14**. Admin: pestaña
+  «All quotes (admin)», título «All quotes (2)», 8 cabeceras con Sales rep y «SF ▼», DEMO-1002 (1,250.00) antes que
+  DEMO-1001 (400.00); el menú de SF → «Sort ascending» las invierte con ▲. Sam Sales (dueño de DEMO-1002, tienda Edinburg):
+  pestaña y título «My quotes (1)», solo DEMO-1002, 7 cabeceras sin Sales rep, «Competitor estimates you uploaded (0)».
+  Sofia Ventas: solo DEMO-1001, y «Open» la lleva a la pestaña Cotización. Maria Manager (sin cotizaciones): «No saved
+  quotes yet.», ninguna ajena. A 390 la página no se desplaza a lo ancho. Capturas `01-admin-todas-por-sf`,
+  `02-admin-menu-sf`, `03-admin-sf-ascendente`, `04-vendedor-sam-mis-cotizaciones`, `05-vendedor-sofia`,
+  `06-gerente-sin-cotizaciones`, `07-movil-sam`.
+
+### Lo que no se hizo / no se verificó
+
+- **Contra producción con sesión, nada**: el `.eq("owner_id", …)` y el `.eq("uploaded_by", …)` reales solo se probaron con
+  un cliente falso. Lo primero tras desplegar: entrar como un admin y ver las 3; y si se le da el módulo a un vendedor, que
+  vea solo las suyas.
+- La RLS no se cerró (arriba, el plan).
+- Los textos en español no se vieron: el demo y las pruebas corren en inglés; están escritos al lado de cada texto en `t(en, es)`.

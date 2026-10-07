@@ -6,7 +6,7 @@ import {
   validaArchivos, type AlmacenDeCompetencia, type EstimadoDeCompetencia,
 } from "./competencia";
 import { filaDeLectura, normalizaLectura, type AlmacenDeLecturas, type LecturaGuardada } from "./lectura";
-import { tandaEnMemoria, type CotizacionResumen } from "./lista-admin";
+import { piesCuadradosPedidos, tandaEnMemoria, type CotizacionResumen } from "./lista-admin";
 import { resumenDeTotales } from "./modelo";
 
 /**
@@ -77,7 +77,7 @@ function semilla(): { cotizaciones: FilaDemo[]; aprobaciones: AprobDemo[] } {
 function resumenDemo(q: FilaDemo): CotizacionResumen {
   return {
     id: q.id, estimate_num: q.draft.estimate_num, owner_id: q.owner_id, owner_name: q.owner_name, store: q.store,
-    customer_name: q.draft.customer.full_name.trim(), total: resumenDeTotales(q.draft.lines).total,
+    customer_name: q.draft.customer.full_name.trim(), sf: piesCuadradosPedidos(q.draft.lines), total: resumenDeTotales(q.draft.lines).total,
     print_count: q.print_count, printed_at: q.printed_at, created_at: q.created_at, updated_at: q.created_at,
   };
 }
@@ -179,12 +179,13 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       return bien(null);
     },
 
-    async listarTodas(filtro, tanda) {
+    async listarTodas(filtro, tanda, alcance) {
       if (sinTabla) return SIN_TABLA;
       const yo = me();
       // La misma regla que la política de SELECT de la 148: el admin todas; un vendedor, las suyas y las de su tienda.
+      // Encima, el alcance que pide la pantalla (D-484), como `aplicaAlcance` en la base: el no-admin, solo las suyas.
       const visibles = db.cotizaciones.filter((c) => yo.admin || c.owner_id === yo.id || (!!c.store && c.store === (yo.store?.trim() || null)));
-      return bien(tandaEnMemoria(visibles.map(resumenDemo), filtro, tanda));
+      return bien(tandaEnMemoria(visibles.map(resumenDemo), filtro, tanda, alcance));
     },
   };
 }
@@ -239,10 +240,11 @@ export function almacenDeCompetenciaDemo(
       if (!b || typeof URL.createObjectURL !== "function") return { ok: false, sinTabla: false, error: "demo: not found" };
       return bien(URL.createObjectURL(b));
     },
-    async listarTodos() {
+    async listarTodos(subidoPor) {
       if (sinTabla || sin156) return SIN_TABLA_COMPETENCIA;
-      // Como la 156: todo el que tiene el módulo ve todos, de todas las tiendas.
-      return bien(masNuevoPrimero(filas).map((f) => ({ ...f })));
+      // Como la 156: todo el que tiene el módulo ve todos, de todas las tiendas. Con `subidoPor` (la lista de «Mis
+      // cotizaciones», D-484), solo los de esa persona, como `.eq("uploaded_by", ...)` en la base.
+      return bien(masNuevoPrimero(filas).filter((f) => !subidoPor || f.uploaded_by === subidoPor).map((f) => ({ ...f })));
     },
     async subirSuelto(yoId, f, meta) {
       if (sinTabla || sin156) return SIN_TABLA_COMPETENCIA;

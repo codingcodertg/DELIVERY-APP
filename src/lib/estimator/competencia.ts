@@ -263,7 +263,11 @@ export interface AlmacenDeCompetencia {
   abrir(a: ArchivoDeCompetencia): Promise<Resultado<string>>;
   quitar(a: ArchivoDeCompetencia): Promise<Resultado<null>>;
   /** TODOS los estimados de la competencia, sueltos y pegados (156). Sin la 156, `sinTabla`. */
-  listarTodos(): Promise<Resultado<EstimadoDeCompetencia[]>>;
+  /**
+   * Con `subidoPor`, solo los que subió esa persona, en la consulta (D-484, la lista de «Mis cotizaciones»); sin él,
+   * todos los que la 156 deja ver (la pestaña de la competencia, D-451, y la lista del admin).
+   */
+  listarTodos(subidoPor?: string | null): Promise<Resultado<EstimadoDeCompetencia[]>>;
   /** Sube uno suelto, sin cotización, a la carpeta de `yoId` (156). */
   subirSuelto(yoId: string, f: File, meta: MetaSuelta): Promise<Resultado<EstimadoDeCompetencia>>;
 }
@@ -321,9 +325,10 @@ export function almacenDeCompetenciaDeLaBase(supabase: SupabaseClient): AlmacenD
       return { ok: true, valor: data.signedUrl };
     },
 
-    async listarTodos() {
-      const { data, error } = await supabase
-        .from("estimator_competitor_files").select(COLUMNAS_156).order("uploaded_at", { ascending: false }).limit(TOPE_DE_LA_LISTA);
+    async listarTodos(subidoPor) {
+      const base = supabase.from("estimator_competitor_files").select(COLUMNAS_156);
+      const q = subidoPor ? base.eq("uploaded_by", subidoPor) : base;
+      const { data, error } = await q.order("uploaded_at", { ascending: false }).limit(TOPE_DE_LA_LISTA);
       if (error) return { ok: false, sinTabla: faltaLa156(error), error: error.message ?? "error" };
       return { ok: true, valor: (data ?? []) as EstimadoDeCompetencia[] };
     },

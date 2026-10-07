@@ -6,11 +6,11 @@ import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import type { AlmacenDeCotizaciones } from "@/lib/estimator/almacen";
 import { filtraEstimados, masNuevoPrimero, type AlmacenDeCompetencia, type EstimadoDeCompetencia } from "@/lib/estimator/competencia";
 import {
-  COLUMNAS_DE_LA_TABLA, TANDA, atajoEncendido, fechaDeCelda, filtraCompetenciaComoLaTabla, filtroVacio, pasoDeRango, puedeVerTodas,
-  rangoAcotado, rangoDeAtajo, textoDeEstado, valorDeColumna,
+  ORDEN_INICIAL, TANDA, alcanceDeLista, atajoEncendido, columnasDeLaLista, fechaDeCelda, filtraCompetenciaComoLaTabla, filtroVacio,
+  pasoDeRango, rangoAcotado, rangoDeAtajo, subidoPorDelAlcance, textoDeEstado, valorDeColumna,
   type AtajoDeRango, type CotizacionResumen, type FiltroDeCotizaciones, type RangoDeFechas,
 } from "@/lib/estimator/lista-admin";
-import { dinero } from "@/lib/estimator/modelo";
+import { dinero, numero } from "@/lib/estimator/modelo";
 import { todayISO } from "@/lib/utils";
 import { AvisoSin156, ListaDeEstimados } from "./EstimadosCompetencia";
 
@@ -54,8 +54,12 @@ export function RangoDelPanel({ rango, onRango, t }: { rango: RangoDeFechas; onR
 }
 
 /**
- * La pestaña «All quotes / Todas las cotizaciones» (D-476), **solo para el admin**. El dueño, 2026-10-06: «en el quote
- * builder solo para admin habilita la lista de todas las quotes ya hechas y las de los comeptirodes tambien».
+ * La pestaña «All quotes / Todas las cotizaciones» (D-476) para el admin, y «My quotes / Mis cotizaciones» para todos los
+ * demás con el módulo (D-484: «cada user también va a tener acceso a eso, pero ese user solo va a poder ver las órdenes
+ * que él ha hecho»): el no-admin pide a la base solo las suyas (`owner_id`) y los estimados de la competencia que subió,
+ * sin columna de Vendedor. Nace ordenada por pies cuadrados, de mayor a menor (D-484, `ORDEN_INICIAL`).
+ * El dueño, 2026-10-06 (D-476): «en el quote builder solo para admin habilita la lista de todas las quotes ya hechas y
+ * las de los comeptirodes tambien».
  *
  * Rehecha con los patrones de la casa (D-478, «SE MIR MUY FEO ESOS FILTROS PON EL CALENDARIO QUE SIEMPRE HEMOS PEUSTO Y
  * LOS FILTROS ASI COMO EN LAS TABLES QUE HEMOS EHCHO»): la barra `.filters` con la búsqueda compacta de Órdenes y el
@@ -87,10 +91,14 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
   const rango: RangoDeFechas = { desde: filtro.desde, hasta: filtro.hasta, modo };
   const ponRango = (r: RangoDeFechas) => { setModo(r.modo); setFiltro((f) => ({ ...f, desde: r.desde, hasta: r.hasta })); };
 
+  // Quién ve qué (D-484): el admin todas; cualquier otro, solo las suyas. Va en la consulta, no solo en pantalla.
+  const alcance = useMemo(() => alcanceDeLista(me), [me]);
+  const todas = alcance?.todas === true;
+
   const cargar = useCallback(async (f: FiltroDeCotizaciones, n: number) => {
-    if (!puedeVerTodas(me)) return;
+    if (!alcance) return;
     setOcupado(true);
-    const r = await almacen.listarTodas(f, n);
+    const r = await almacen.listarTodas(f, n, alcance);
     setOcupado(false);
     if (!r.ok) {
       if (r.sinTabla) { setEstado("sin-base"); return; }
@@ -103,30 +111,34 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
     setFilas((previas) => (n === 0 ? r.valor.filas : [...previas, ...r.valor.filas]));
     setHayMas(r.valor.hayMas);
     setTanda(n);
-  }, [almacen, me, t]);
+  }, [almacen, alcance, t]);
 
   // Fechas o texto reinician la lista a la primera tanda, tras una pausa para no pedir en cada tecla.
   useEffect(() => {
-    if (!puedeVerTodas(me)) return;
+    if (!alcance) return;
     const id = setTimeout(() => { void cargar(filtro, 0); }, 300);
     return () => clearTimeout(id);
-  }, [filtro, cargar, me]);
+  }, [filtro, cargar, alcance]);
 
   const cargarCompetencia = useCallback(async () => {
-    const e = await competencia.listarTodos();
+    if (!alcance) return;
+    const e = await competencia.listarTodos(subidoPorDelAlcance(alcance));
     if (e.ok) { setEstimados(masNuevoPrimero(e.valor)); setEstadoCompetencia("lista"); return; }
     if (e.sinTabla) { setEstadoCompetencia("sin-156"); return; }
     setEstadoCompetencia("lista");
     setErrorCompetencia(`${t("Could not read the competitor estimates", "No se pudieron leer los estimados de la competencia")}: ${e.error}`);
-  }, [competencia, t]);
-  useEffect(() => { if (puedeVerTodas(me)) void cargarCompetencia(); }, [cargarCompetencia, me]);
+  }, [competencia, alcance, t]);
+  useEffect(() => { void cargarCompetencia(); }, [cargarCompetencia]);
 
   // El menú por columna de Órdenes (D-275) sobre lo cargado: `valorDe` estable, como pide el hook.
   const valorDe = useCallback((clave: string, c: CotizacionResumen) => valorDeColumna(clave, c, t), [t]);
-  const orden = useOrdenYFiltro(filas, valorDe);
+  const orden = useOrdenYFiltro(filas, valorDe, ORDEN_INICIAL);
   const columnas: ColumnaConMenu[] = useMemo(
-    () => COLUMNAS_DE_LA_TABLA.map((c) => (c.key === "total" ? { ...c, etiqueta: (v) => (typeof v === "number" ? dinero(v) : "—") } : { ...c })),
-    [],
+    () => (alcance ? columnasDeLaLista(alcance) : []).map((c) => (
+      c.key === "total" ? { ...c, etiqueta: (v) => (typeof v === "number" ? dinero(v) : "—") }
+        : c.key === "sf" ? { ...c, etiqueta: (v) => (typeof v === "number" ? numero(v, 2) : "—") }
+          : { ...c })),
+    [alcance],
   );
 
   const estimadosVisibles = useMemo(
@@ -148,17 +160,22 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
     await cargarCompetencia();
   };
 
-  // Nunca para quien no es admin: la pestaña no se ofrece, y si alguien llegara aquí igual, no pide nada.
-  if (!puedeVerTodas(me)) return null;
+  // Sin alcance (nadie con sesión conocida) no se pinta ni se pide nada.
+  if (!alcance) return null;
 
   const filtrando = !!(filtro.desde || filtro.hasta || filtro.texto.trim());
 
   return (
     <div data-pestana-todas={estado}>
       <div className="card">
-        <h2>📚 {t("All quotes", "Todas las cotizaciones")} <span className="hint">({orden.visibles.length}{hayMas ? "+" : ""})</span></h2>
+        <h2 data-todas-titulo={todas ? "todas" : "mias"}>
+          📚 {todas ? t("All quotes", "Todas las cotizaciones") : t("My quotes", "Mis cotizaciones")}{" "}
+          <span className="hint">({orden.visibles.length}{hayMas ? "+" : ""})</span>
+        </h2>
         <p className="hint" style={{ marginTop: 0 }}>
-          {t("Admin only: every saved quote, from every sales rep and store, newest first.", "Solo admin: todas las cotizaciones guardadas, de todos los vendedores y tiendas, de la más reciente a la más vieja.")}
+          {todas
+            ? t("Admin only: every saved quote, from every sales rep and store, largest square footage first.", "Solo admin: todas las cotizaciones guardadas, de todos los vendedores y tiendas, de más a menos pies cuadrados.")
+            : t("The quotes you created, largest square footage first.", "Las cotizaciones que tú creaste, de más a menos pies cuadrados.")}
         </p>
         {estado === "sin-base" && (
           <p className="hint" data-todas-sin-base>
@@ -197,9 +214,10 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
                       <tr key={c.id} data-cotizacion={c.id} className="clickable" onClick={() => onAbrir(c.id)}>
                         <td>{fechaDeCelda(c.created_at)}</td>
                         <td><b>{c.estimate_num || "—"}</b></td>
-                        <td data-cotizacion-vendedor>{c.owner_name ?? (c.owner_id ? "?" : t("(no owner)", "(sin dueño)"))}</td>
+                        {todas && <td data-cotizacion-vendedor>{c.owner_name ?? (c.owner_id ? "?" : t("(no owner)", "(sin dueño)"))}</td>}
                         <td data-cotizacion-tienda>{c.store ?? t("No store", "Sin tienda")}</td>
                         <td data-cotizacion-cliente>{c.customer_name || "—"}</td>
+                        <td style={{ textAlign: "right" }} data-cotizacion-sf>{c.sf > 0 ? numero(c.sf, 2) : "—"}</td>
                         <td style={{ textAlign: "right" }} data-cotizacion-total>{dinero(c.total)}</td>
                         <td data-cotizacion-estado>{textoDeEstado(c, t)}</td>
                         <td>
@@ -226,9 +244,11 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
       </div>
 
       <div className="card">
-        <h2>🕵️ {t("All competitor estimates", "Todos los estimados de la competencia")} <span className="hint">({estimadosVisibles.length})</span></h2>
+        <h2>🕵️ {todas ? t("All competitor estimates", "Todos los estimados de la competencia") : t("Competitor estimates you uploaded", "Estimados de la competencia que tú subiste")} <span className="hint">({estimadosVisibles.length})</span></h2>
         <p className="hint" style={{ marginTop: 0 }}>
-          {t("Who uploaded it, when, the competitor company and which quote it belongs to. The dates, the search and the Sales rep / Store column filters above apply here too.", "Quién lo subió, cuándo, la empresa competidora y a qué cotización pertenece. Las fechas, la búsqueda y los filtros de columna Vendedor / Tienda de arriba valen aquí también.")}
+          {todas
+            ? t("Who uploaded it, when, the competitor company and which quote it belongs to. The dates, the search and the Sales rep / Store column filters above apply here too.", "Quién lo subió, cuándo, la empresa competidora y a qué cotización pertenece. Las fechas, la búsqueda y los filtros de columna Vendedor / Tienda de arriba valen aquí también.")
+            : t("When, the competitor company and which quote it belongs to. The dates, the search and the Store column filter above apply here too.", "Cuándo, la empresa competidora y a qué cotización pertenece. Las fechas, la búsqueda y el filtro de columna Tienda de arriba valen aquí también.")}
         </p>
         {estadoCompetencia === "sin-156" && <AvisoSin156 t={t} />}
         {errorCompetencia && <div className="est-aviso rojo" data-todas-competencia-error>{errorCompetencia}</div>}
