@@ -11,6 +11,7 @@ import { CronometroAnfitrion } from "@/components/timetracker/CronometroAnfitrio
 import { CapacitacionProvider } from "@/components/timetracker/Capacitacion";
 import { capacitacionDeLaPeticion } from "@/lib/timetracker/capacitacion-servidor";
 import type { Employee } from "@/lib/timetracker/types";
+import { resolverTiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import "../timetracker.css";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
@@ -46,7 +47,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("id, full_name, role, avatar_url, timetracker_role, module_access")
+    .select("id, full_name, role, avatar_url, timetracker_role, module_access, store")
     .eq("id", user.id)
     .maybeSingle();
   // Tres desenlaces, no dos (D-234): si la CONSULTA fallo no se redirige, porque el
@@ -68,12 +69,20 @@ export default async function TimetrackerLayout({ children }: { children: React.
   // more columns on public.profiles). Absent for someone just granted access
   // who hasn't been configured yet — default in-memory rather than writing a
   // row nobody asked for.
-  const { data: es } = await supabase
-    .schema("timetracker")
-    .from("employee_settings")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+  //
+  // Junto a ella, en la misma ida, su tienda y su puesto de fichaje (D-493): son el «proyecto» del
+  // presencial y salen donde al remoto le sale el proyecto. Si estas dos lecturas fallan, la etiqueta
+  // dice «sin tienda ni puesto» y nada más: no bloquean la entrada.
+  const [{ data: es }, { data: ficha }, { data: sitios }] = await Promise.all([
+    supabase.schema("timetracker").from("employee_settings").select("*").eq("id", user.id).maybeSingle(),
+    supabase.schema("clockin").from("employee_settings").select("store_id, position").eq("id", user.id).maybeSingle(),
+    supabase.schema("clockin").from("job_sites").select("id, name"),
+  ]);
+  const { tienda, puesto } = resolverTiendaYPuesto({
+    fichaje: ficha,
+    tiendas: new Map((sitios ?? []).map((s) => [s.id as string, s.name as string])),
+    tiendaDelHub: profile.store,
+  });
 
   const me: Employee = {
     id: profile.id,
@@ -88,6 +97,8 @@ export default async function TimetrackerLayout({ children }: { children: React.
     breaksEnabled: es?.breaks_enabled ?? null,
     active: es?.active ?? false,
     deletedAt: es?.deleted_at ?? null,
+    tienda,
+    puesto,
   };
 
   // Modo capacitación (D-490): la cookie se lee aquí para que la página llegue ya en práctica, con

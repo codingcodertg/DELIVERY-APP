@@ -24,6 +24,7 @@ import {
   tickContinuo,
 } from "@/lib/timetracker/live-session";
 import { PunchPanel } from "@/components/timetracker/PunchPanel";
+import { necesitaProyecto } from "@/lib/timetracker/tienda-y-puesto";
 import {
   estadoVigia, parcheDeStop, pararPorCorteSiToca, tocaReintentar, tocaSonar, VIGIA_CADA_MS,
 } from "@/lib/timetracker/vigia";
@@ -76,8 +77,10 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   } = useData();
   const t = useT();
   // Qué mira un admin: su cronómetro o su reloj de fichaje. Para todos los demás lo decide
-  // `worker_type` y no hay nada que elegir.
-  const [vista, setVista] = useState<"timer" | "punch">("timer");
+  // `worker_type` y no hay nada que elegir. Un admin PRESENCIAL abre en su reloj de fichaje (D-493):
+  // no necesita proyecto, y abrirle el cronómetro era abrirle «Proyecto» vacío y el aviso de pedirlo.
+  // El selector sigue arriba para quien quiera el cronómetro.
+  const [vista, setVista] = useState<"timer" | "punch">(() => (necesitaProyecto(me) ? "timer" : "punch"));
   // Matches SSR (no window) on first render, flips true on mount if the page
   // is running inside the Electron shell — see the module comment.
   const [isDesktopClient, setIsDesktopClient] = useState(false);
@@ -1334,7 +1337,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
           <button onClick={() => setVista("punch")}>{t("track.viewPunch")}</button>
         </div>
       )}
-      {assignments.length === 0 && (
+      {/* «Pídele a tu gerente que te asigne uno»: solo a quien necesita proyecto. El presencial no
+          (D-493): su proyecto es su tienda y su puesto. */}
+      {assignments.length === 0 && necesitaProyecto(me) && (
         <div className="banner info">{t("track.noProjects")}</div>
       )}
       <div className="card">

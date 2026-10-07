@@ -4239,6 +4239,10 @@ solo deja la parte de vehiculo"*)
 > usa el suyo»). Y la sección gana el **tipo de trabajador** (presencial / remoto), que solo estaba en Time Tracker › People, con
 > el estado de las dos mitades dicho en claro. Sale aunque no haya ficha de fichaje.
 
+> **Reemplazada en parte por D-493** (2026-10-07): `position` ya no la lee solo el tablero de Cobertura. En Time Tracker es la
+> mitad «puesto» de «tienda · puesto», que es el proyecto del presencial. Y el puesto vacío —que la ficha pinta como «Ventas»— es
+> ahora una constante compartida (`PUESTO_POR_DEFECTO`, en `tienda-y-puesto.ts`) para que la ficha y Time Tracker digan lo mismo.
+
 **Cambio:** `/clock-in/team` tenía un alta de empleados y una fila por persona
 con puesto, horario, sitio, vehículo de repartidor, activar/desactivar y
 restablecer contraseña. Todo eso es configuración de **una persona**, y esta app
@@ -5805,6 +5809,10 @@ es lo que le va a aparecer, y para admin puede ver ambos views"*)
 
 > **Ampliada por D-455** (2026-10-01): `worker_type` ya no se elige solo en Employees (Time Tracker › People): también en
 > **Usuarios del hub**, en la sección Time Tracker de la ficha, que además dice qué tipo se le aplica a quien nadie configuró.
+
+> **Reemplazada en parte por D-493** (2026-10-07): un admin **presencial** abre «Registrar tiempo» en el reloj de fichaje, no en
+> el cronómetro (el selector sigue arriba), y en el cronómetro no le sale el aviso «pídele a tu gerente que te asigne un
+> proyecto»: el presencial no necesita proyecto. El admin remoto, como aquí.
 
 Una sola entrada para dos formas de trabajar que no se parecen en nada: quien **cronometra** un
 proyecto desde su sitio y quien **ficha** entrada y salida en una tienda, con foto y ubicación.
@@ -7981,6 +7989,11 @@ memoria y listeners, no comportamiento.
 ## D-186 · El horario pasa a vivir dentro de Asignaciones, como segunda sección; las dos listas de personas NO se unifican
 
 **Fecha:** 2026-09-04 · **Versión:** las cinco apps (deliveries 1.57.0, recruiting 0.14.0, timetracker 0.52.0, clockin 0.39.0, erp 0.4.0), package.json 1.112.0 (timetracker y package.json) · **Pedido por:** Andrés · **Plan previo:** `docs/PLAN-horario-en-asignaciones.md`
+
+> **Reemplazada en parte por D-493** (2026-10-07): el desplegable de «Nueva asignación» (Tarifas) ya no ofrece al
+> **presencial**, que según el dueño no necesita proyecto. No desaparece en silencio —el miedo de este punto—: sale en su propia
+> tarjeta, «Presencial — su tienda y su puesto», y si ya tuviera una asignación se ve marcada y se puede editar o quitar. Las dos
+> listas de personas siguen sin unificarse.
 
 ### Qué se pidió
 
@@ -38725,3 +38738,169 @@ la app»**. El chofer volvía, seguía «Faltan 1», y no había nada en pantall
 - Es solo web: llega a los teléfonos al recargar, sin instalar nada.
 
 No visto en un teléfono: `tsc` y vitest.
+
+## D-493 · Time Tracker: el presencial no necesita proyecto — su proyecto es su tienda y su puesto: no se le pide, no se le avisa, no se le ofrece para asignar, y sus horas sin proyecto salen como «Pharr · Ventas»
+
+**Fecha:** 2026-10-07 · **Versión:** timetracker 0.99.0, deliveries 1.268.2, repo 1.365.0 (toca `timetracker` y, por `ClockinSettings`, la
+ficha de Usuarios del hub) · **Migración:** ninguna · **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-095,
+D-123 y D-186, que llevan su nota.
+
+### Qué pidió el dueño
+
+Literal, dictado el 2026-10-07:
+
+> «Ok, eh, quiero obviamente la gente que está presencial, no ocupa que se les asignen proyectos. Desde que están proyectos, con el proyecto de ellos prácticamente es la tienda y el puesto que ellos tienen. Entonces, para ellos tienen esa, esa excepción para el time tracker, las personas que están presenciales.»
+
+Se lee como una regla con dos caras: **(1)** a un presencial no se le pide, no se le exige ni se le avisa de un proyecto, y
+no se le ofrece para asignarle uno; **(2)** donde a un remoto le sale su proyecto, al presencial le sale **su tienda y su
+puesto**. Al remoto no le cambia nada.
+
+### Lo que se midió antes de tocar nada (2026-10-07)
+
+Contra producción, **en solo lectura** (`BEGIN READ ONLY … ROLLBACK`, con un guion en el scratchpad que lee la conexión del
+checkout principal; nada se copió al worktree), sin nombres:
+
+- **12 personas** con acceso a Time Tracker: **6 presenciales** (las 6 `employee`, activas, ningún admin presencial) y 6
+  remotas (4 admins —3 sin tipo elegido, que cuentan como remoto, el defecto de la empresa— y 2 empleados).
+- **Los 6 presenciales: 0 asignaciones, 0 sesiones del cronómetro (con o sin proyecto), 0 solicitudes de tiempo, 0 pagos
+  en la nómina de sesiones.** 2 de los 6 ficharon en los últimos 30 días (5 fichajes). En la empresa hay 4 proyectos (3
+  activos) y 3 asignaciones, de 2 remotos.
+- **Avisos por falta de proyecto: 0.** Ningún aviso de `clockin.notifications` menciona proyecto ni asignación (los tipos
+  que hay son de fichaje: fuera del sitio, sin almuerzo, tarde, nómina…), y en `timetracker.audit` no hay ninguna entrada de
+  proyecto. Tampoco existe en el código ningún aviso, correo ni cron de «sin proyecto».
+- O sea: **hoy nadie está atascado**, pero solo porque ningún presencial lo ha intentado: si uno pedía tiempo en «Mis
+  solicitudes › Tiempo», la pantalla le contestaba «Elige un proyecto.» con un desplegable vacío y no había forma de enviarla.
+- Las fuentes de tienda y puesto de los 6 presenciales: ver más abajo.
+
+### Dónde se pedía, se exigía, se avisaba o se listaba un proyecto, y qué se hizo en cada sitio
+
+Se buscó en todo `src/` (proyecto, asignación, `assignment`, `project`, «sin proyecto», `noProjects`, `pickProject`,
+«(deleted)», `deletedProject`) y en las acciones de servidor y los cron de fichaje.
+
+| Sitio | Antes, para un presencial | Ahora |
+|---|---|---|
+| Registrar tiempo, empleado (`Cronometro` → `PunchPanel`) | ya no veía el cronómetro (D-123): nada que pedir | igual |
+| Registrar tiempo, **admin presencial** (`Cronometro`) | abría en el cronómetro, con «Proyecto» vacío y el aviso «Aún no tienes proyectos asignados. Pídele a tu gerente que te asigne uno.» | abre en **Fichar** (el selector sigue); el aviso solo sale a quien necesita proyecto. Hoy no hay ningún admin presencial |
+| **Mis solicitudes › Tiempo › Añadir** (`requests/page.tsx`) | «Proyecto» obligatorio: «Elige un proyecto.» y no se podía enviar | sin proyectos: se dice **«Pharr · Ventas — tu tienda y tu puesto»** en lugar del desplegable, y se envía sin proyecto (`projectId`/`assignmentId` = null). Con alguno, el desplegable es opcional y su primera opción es la tienda y el puesto |
+| Mis solicitudes: la lista y «Ajustar/Borrar» | el hueco del proyecto vacío o «—» | su tienda y su puesto |
+| **Pendientes** › solicitudes de tiempo del equipo (`team-requests`) | «—» | su tienda y su puesto (pendientes e historial) |
+| **Mi semana** (`week/page.tsx`): tabla por proyecto y entradas del día | «(proyecto eliminado)» y «—» | su tienda y su puesto |
+| **Nómina › Remoto** (`ManagerReports`): la tabla de cada pago, el detalle, el **CSV** (columnas *Project* y *Location*) y el **recibo** | «(deleted)», lugar vacío | su tienda y su puesto; el lugar es su tienda |
+| Nómina › Remoto › «+ Agregar entrada» | proyecto obligatorio («Elige un proyecto, hora de inicio y fin.») | sin elegir, va a su tienda y su puesto (primera opción «Pharr · Ventas — tienda y puesto») |
+| **Nómina › En sitio** (`PayrollTimesheets`) | sus horas ya iban por tienda («📍 Pharr»): nunca hubo proyecto | al lado del nombre, su puesto («Everto Prado · Ventas») |
+| **Panel** › proyectos principales (`insights`) | sus sesiones sin proyecto, en «(deleted)» | una fila por «tienda · puesto» |
+| **Trabajando ahora** (`live`) | su tarjeta tenía en blanco la línea donde la del remoto lleva el proyecto; una sesión sin proyecto, «—» | esa línea lleva su tienda y su puesto |
+| **Asignaciones y horario › Tarifas** (`AssignmentsPanel`) | se le ofrecía en «Nueva asignación», como a todos | no se le ofrece; sale en una tarjeta aparte, **«Presencial — su tienda y su puesto»**, con la de cada uno. Si ya tuviera una asignación (hoy 0), la fila lleva la pastilla «Presencial — no le hace falta» y se puede editar o quitar |
+
+**Lo que se buscó y no existe** (se dice para que nadie lo vuelva a buscar): Empleados/People no tiene ningún aviso de
+proyecto; no hay alertas, correos, push ni cron de «sin proyecto»; los avisos de límite semanal (`notify.limitBody`…) son
+del cronómetro y solo los ve quien lo usa; las exportaciones de fichaje no tienen columna de proyecto (el Excel va por tienda, una
+hoja cada una; los CSV, por persona); Horario, Proyectos y Auditoría no piden proyecto a nadie.
+
+**Asignar un proyecto a un presencial, opcional:** el código lo hacía natural dejarlo posible y se dejó así **solo por el
+lado de lo que ya existe**: una asignación que un presencial ya tuviera se ve, se edita y se quita, y su proyecto sale en sus
+listas por su nombre. Lo que se quita es **ofrecerlo**: el desplegable de «Nueva asignación» no lo lista. Si el dueño quiere
+poder asignarle uno de vez en cuando, es una línea (`seOfreceParaAsignar`).
+
+### De dónde sale «tienda · puesto»
+
+La lógica está en `src/lib/timetracker/tienda-y-puesto.ts` (pura). La leen igual el layout (para la propia persona) y el
+proveedor de datos (para todas, en las pantallas del gerente), con la misma función (`resolverTiendaYPuesto`): el empleado y
+el gerente ven la misma etiqueta.
+
+- **Tienda: la de fichaje** —`clockin.employee_settings.store_id` → `clockin.job_sites.name` («Pharr»)—. Es donde ficha (su
+  geocerca), la que agrupa Nómina › En sitio y las exportaciones, y la que se cambia en **Usuarios › Time Tracker**. Si no
+  tiene, la del hub (`public.profiles.store`, «RDZ Pharr»). Medido: 5 de 6 presenciales tienen las dos y dicen la misma
+  tienda; el sexto no tiene ninguna.
+- **Puesto: el de fichaje** (`clockin.employee_settings.position`: Oficina, Ventas, Almacén, Gerente, Dueño), el campo
+  «Puesto» de esa misma sección de Usuarios. **Sin poner cuenta como «Ventas», porque es lo que esa ficha ya enseña** para un
+  puesto vacío (`s.position ?? "sales"`): ahora las dos leen la misma constante (`PUESTO_POR_DEFECTO`) y los mismos textos
+  (`ETIQUETAS_DE_PUESTO`), así que lo que se ve en Usuarios es lo que sale en Time Tracker y se corrige en un solo sitio.
+  Medido: solo **2 de 6** tienen el puesto puesto; los otros 3 que tienen ficha y no lo tienen figuran en su expediente de
+  RR. HH. como «Ventas», así que el defecto no contradice a nadie hoy. Sin ficha de fichaje no hay puesto.
+- **Descartados:** el rol del hub (`profiles.role`: «sales», «accounting»… decide qué pantallas de Entregas ve, no qué
+  hace) y el departamento del expediente (`recruiting.employee_files.department`, 5 de 6: solo lo lee el gerente de RR. HH.
+  —094—, así que el empleado no vería su propia etiqueta y las dos vistas dirían cosas distintas). `job_title` del
+  expediente y `profiles.title`: 0 de 6.
+- Con los datos de hoy, las 6 etiquetas serían: «Brownsville · Ventas» ×2, «Pharr · Oficina», «Pharr · Ventas» ×2 y «Ventas»
+  (la persona sin tienda). Sin tienda ni puesto, la etiqueta lo dice: «Presencial — sin tienda ni puesto».
+
+### Lo que hay que saber (y validar)
+
+1. **Una solicitud de tiempo de un presencial, aprobada, sigue siendo una SESIÓN del cronómetro** (como la de cualquiera),
+   ahora sin proyecto. Sale en Nómina › Remoto bajo «Pharr · Ventas», con **0 $** —sin asignación no hay tarifa— y con la
+   marca «revisar» si ese periodo también fichó (D-102: las dos mitades no se suman). Lo natural para un presencial sería que
+   la solicitud acabara como un **fichaje** (su nómina es la de En sitio), pero eso cambia por qué vía cobra y es decisión del
+   dueño, no de esta rama. Hoy: 0 solicitudes de presenciales.
+2. Las columnas Regular / Horas extra / Pago de una línea sin asignación siguen a 0 (no hay tarifa ni umbral), como estaban
+   para «(deleted)». No se tocó ningún cálculo de pago.
+3. «Pharr» y no «RDZ Pharr»: el nombre de la tienda de fichaje, el mismo que ya enseña el resto de Time Tracker.
+4. Si en Usuarios se cambia la tienda o el puesto, una pestaña del gerente ya abierta no se entera hasta recargar (el
+   proveedor escucha `profiles` y las tablas de Time Tracker en vivo, no `clockin.employee_settings`).
+5. **No hizo falta base**: `sessions.project_id` y `assignment_id` ya admitían nulo (059), la solicitud es un `jsonb`, y la
+   vista `period_hours` (086) cuenta todas las sesiones, con proyecto o sin él. No se escribió ni se ensayó ninguna migración.
+
+### Ficheros
+
+Nuevo: `src/lib/timetracker/tienda-y-puesto.ts` (+ su prueba). Cambiados: `src/lib/timetracker/types.ts` (`tienda` y
+`puesto` en `Employee`), el layout de Time Tracker y `src/lib/timetracker-data-provider.tsx` (la lectura),
+`src/components/ClockinSettings.tsx` (la constante y los textos compartidos, y la ayuda del campo Puesto),
+`Cronometro.tsx`, `requests/page.tsx`, `team-requests/page.tsx`, `week/page.tsx`, `insights/page.tsx`, `live/page.tsx`,
+`ManagerReports.tsx`, `PayrollTimesheets.tsx`, `AssignmentsPanel.tsx` y `src/lib/timetracker/i18n.ts` (7 claves, en y es).
+
+### Pruebas y mutantes
+
+`src/lib/timetracker/tienda-y-puesto.test.ts` (39): la regla y la etiqueta, puras, y leyendo el fuente de cada pantalla que
+la llama. **Mutantes: 40 de 40 caen** con una prueba con nombre (tanda en el scratchpad del worker,
+`tt-sin-proyecto/tanda.json`): 16 sobre la regla pura y 24 sobre quien la llama. Ejemplos, mutante → prueba que lo tumba:
+«el presencial vuelve a necesitar proyecto» → *el presencial no necesita proyecto*; «nadie necesita proyecto, tampoco el
+remoto» → *el remoto sí, como siempre*; «el remoto sin proyecto también sale como tienda · puesto» → *sin proyecto y remoto:
+lo de siempre, no cambia nada*; «el puesto sin poner queda vacío en vez de lo que enseña la ficha» → *el puesto: … sin poner,
+el que enseña la ficha de Usuarios (Ventas)*; «la ficha de Usuarios enseña un puesto por defecto distinto del de Time
+Tracker» → *la ficha pinta el puesto vacío con PUESTO_POR_DEFECTO…*; «Mis solicitudes vuelve a exigir proyecto al presencial»
+→ *«Elige un proyecto» solo cuando es obligatorio*; «la solicitud sin proyecto se manda con un proyecto que no hay» → *sin
+proyecto elegido, la solicitud va sin proyecto (null)*; «Nómina › Remoto: la tabla del grupo vuelve a "(deleted)"» → *cada
+línea se nombra con nombreDeLinea…* (que cuenta las DOS apariciones, la tabla y el recibo: con una sola, el mutante habría
+sobrevivido); «"Nueva asignación" vuelve a listar a todos» → *el desplegable … solo lista a quien se le ofrece*; «al editar
+la asignación vieja de un presencial, desaparece del desplegable» → *… salvo al editar la suya*; «vuelve el aviso "pídele a
+tu gerente un proyecto" al presencial» → *el aviso … solo sale a quien necesita proyecto*.
+
+### Visto en el navegador (2026-10-07)
+
+Con un **arnés temporal, no commiteado** (el de D-489/D-490: `ARNES_TT=1` en `next dev`, que sustituye
+`@/lib/supabase/server`, el proveedor de datos y las acciones de fichaje —más `exceptions` y `reports`— por dobles en memoria;
+rol y tipo por cookie), Chrome por CDP, 390 y 1280 px, claro y oscuro, en español, clics de ratón sobre el elemento a la vista
+(y las horas elegidas con el teclado). Capturas en el scratchpad del worker, `tt-sin-proyecto/tiros/`.
+
+- **Presencial, Mis solicitudes › Tiempo:** «PROYECTO · Pharr · Ventas — tu tienda y tu puesto» y la línea «Trabajas
+  presencial, así que no necesitas proyecto…», sin desplegable; elegir horas y «Enviar solicitud» → «Solicitud enviada» y
+  `addRequest` con `projectId: null, assignmentId: null`. En su lista: «Pharr · Ventas · 2026-10-07 · 07:00-09:00 (2 h)». A
+  390 px, sin desborde (0 px). **Remoto, la misma pantalla:** el desplegable «Elegir… / Showroom McAllen» y, sin elegir,
+  «Elige un proyecto.» — como antes.
+- **Mi semana (presencial con una sesión aprobada):** la tabla por proyecto y la entrada del día dicen «Pharr · Ventas».
+- **Asignaciones (admin):** la tabla de siempre y, debajo, «Presencial — su tienda y su puesto»: «Brownsville · Oficina»,
+  «Pharr · Ventas», «Presencial — sin tienda ni puesto». «Nueva asignación» → el desplegable ofrece «Andres Admin (gerente) |
+  Nick Remoto», sin presenciales. Con una asignación vieja de una presencial: su fila con la pastilla «Presencial — no le hace
+  falta», y «Editar» la deja elegida en el desplegable.
+- **Pendientes:** «Pharr · Ventas · 2026-10-07 · 07:00–09:00 (2 h) · "olvidé fichar"» junto a la de un remoto con «Showroom
+  McAllen». **Nómina › Remoto:** la línea del presencial «Pharr · Ventas 2.00 … $0.00»; «+ Agregar entrada» abre con «Pharr ·
+  Ventas — tienda y puesto». **Nómina › En sitio:** «Carla Brownsville · Oficina», «Everto Prado · Ventas». **Panel:**
+  «Showroom McAllen | Pharr · Ventas». **Trabajando ahora:** la tarjeta del que ficha, «PHARR · VENTAS».
+- **Admin presencial en Registrar tiempo:** «⏱ Cronómetro | ⏰ Fichar*» (abre en Fichar) y, al pasar al cronómetro sin
+  proyectos, ningún aviso; admin remoto: «⏱ Cronómetro*».
+- Lo que se arregló por verlo: la pastilla de la fila se hizo primero con la clase `live-tag`, y la global de Entregas con ese
+  nombre **late con opacidad** (parecía apagada, lo que D-489 quitó de toda la app): pasó a `pill on`. Y la columna de la
+  tarjeta de presenciales repetía el título; ahora dice «Tienda · puesto».
+- Consola en inglés, en las siete pantallas: sin errores (comprobado que la captura funciona metiendo un error de control). En
+  español `next dev` enseña «1 Issue», que D-489 y D-490 describen como el aviso de hidratación del diccionario; no se abrió
+  para confirmarlo.
+
+### No verificado
+
+- **Nada contra la base de verdad.** Las lecturas nuevas (`clockin.employee_settings` y `clockin.job_sites` desde el layout y
+  desde el proveedor del navegador) se apoyan en las políticas leídas —`employee_settings read` = `has_clockin_access()` (074),
+  `job_sites_read` por empresa— y en que hoy los 4 admins y los 6 presenciales tienen ficha con empresa (medido); no se
+  ejecutaron con una sesión real. Si fallaran, la etiqueta diría «sin tienda ni puesto»: no bloquean nada.
+- Aprobar de verdad la solicitud sin proyecto de un presencial (el `insertSession` con proyecto nulo) no se ejecutó contra la
+  base ni en el arnés; la columna admite nulo (059).
+- El CSV y el recibo de Nómina › Remoto se comprobaron por el fuente, no descargando ni imprimiendo.

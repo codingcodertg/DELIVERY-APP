@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
-import { useT } from "@/lib/timetracker/i18n";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 import { addWeeks, computePay, fmtISOday, money, thisWeekStart, weekStartISO } from "@/lib/timetracker/helpers";
 import type { Session } from "@/lib/timetracker/types";
+import { necesitaProyecto, nombreDeLinea } from "@/lib/timetracker/tienda-y-puesto";
 
 const WEEKS = 8;
 
@@ -90,9 +91,20 @@ export default function InsightsPage() {
   });
   const maxHours = Math.max(1, ...empRows.map((r) => r.hours));
 
-  const byProj = new Map<string, number>();
-  wk.forEach((s) => { const pid = s.projectId ?? ""; byProj.set(pid, (byProj.get(pid) ?? 0) + (s.durationSeconds || 0) / 3600); });
-  const projRowsAll = Array.from(byProj.entries()).map(([id, h]) => ({ name: pMap.get(id)?.name || "(deleted)", hours: h })).sort((a, b) => b.hours - a.hours);
+  // Las horas de un presencial sin proyecto cuentan bajo su tienda y su puesto (D-493), una fila por
+  // «tienda · puesto»; las demás, por proyecto como siempre («(deleted)» si ya no existe).
+  const lang = getLang();
+  const byProj = new Map<string, { name: string; hours: number }>();
+  wk.forEach((s) => {
+    const proj = s.projectId ? pMap.get(s.projectId)?.name : null;
+    const u = uMap.get(s.employeeUid);
+    const name = nombreDeLinea(proj, u, lang, "(deleted)");
+    const key = !proj && u && !necesitaProyecto(u) ? "t:" + name : "p:" + (s.projectId ?? "");
+    const g = byProj.get(key) ?? { name, hours: 0 };
+    g.hours += (s.durationSeconds || 0) / 3600;
+    byProj.set(key, g);
+  });
+  const projRowsAll = Array.from(byProj.values()).sort((a, b) => b.hours - a.hours);
   const topProj = projRowsAll.slice(0, 6);
   const otherProj = projRowsAll.slice(6).reduce((n, r) => n + r.hours, 0);
   if (otherProj > 0) topProj.push({ name: t("mgr.ins.other"), hours: otherProj });

@@ -7,8 +7,10 @@ import {
 } from "@/app/timetracker/clock-in/actions/reports";
 import { entryMinutes, hrs, summarize, type PayEntry } from "@/lib/clockin/payroll";
 import { utcToCentralInput } from "@/lib/clockin/tz";
-import { useT } from "@/lib/timetracker/i18n";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS } from "@/lib/timetracker/helpers";
+import { useData } from "@/lib/timetracker-data-provider";
+import { etiquetaDePuesto, necesitaProyecto } from "@/lib/timetracker/tienda-y-puesto";
 
 /**
  * Los partes de fichaje de un periodo: aprobar, corregir y cerrar la nómina (D-117).
@@ -46,6 +48,7 @@ export function PayrollTimesheets({ period, revisar }: {
   revisar: string[];
 }) {
   const t = useT();
+  const { allEmployees } = useData();
   const dobles = useMemo(() => new Set(revisar), [revisar]);
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -89,6 +92,14 @@ export function PayrollTimesheets({ period, revisar }: {
   const aprobados = new Set(d.approved);
   const tiendaNombre = new Map(d.stores.map((s) => [s.key, s.name]));
   const gente = new Map(d.people.map((p) => [p.id, p]));
+  // Las horas del presencial ya van bajo su tienda (el «📍» del grupo); al lado del nombre, su puesto:
+  // tienda y puesto son su proyecto (D-493). Al remoto que ficha no se le pone nada.
+  const lang = getLang();
+  const empleados = new Map(allEmployees.map((u) => [u.id, u]));
+  const puestoDe = (id: string) => {
+    const u = empleados.get(id);
+    return u && !necesitaProyecto(u) ? etiquetaDePuesto(u.puesto, lang) : null;
+  };
 
   // Solo sale quien tenga fichajes en el periodo: una fila con cero horas no es información,
   // es ruido entre las que sí hay que revisar.
@@ -234,6 +245,7 @@ export function PayrollTimesheets({ period, revisar }: {
                       <div className="between">
                         <div>
                           <strong>{p.name}</strong>
+                          {puestoDe(id) && <span className="muted small"> · {puestoDe(id)}</span>}
                           {/* Quien ADEMÁS cronometró este periodo: sus horas pueden estar
                               contadas dos veces, una aquí y otra en sus sesiones. La marca está
                               para que quien aprueba lo vea antes de darle a aprobar, no después.

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
-import { useT } from "@/lib/timetracker/i18n";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, dateISO, fmtClock, weekIsFinished, weekStartISO } from "@/lib/timetracker/helpers";
+import { campoDeProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { endOptions, mmhh, rangeOverlapsAny, startOptions, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import type { RequestType } from "@/lib/timetracker/types";
 import { TimeOffRequests } from "@/components/timetracker/TimeOffRequests";
@@ -43,6 +44,13 @@ export default function MyRequestsPage() {
   // Claves literales (no construidas) para que la prueba de claves de D-187 las vea.
   const label = (rt: RequestType) => rt === "add" ? t("emp.req.typeAdd") : rt === "adjust" ? t("emp.req.typeAdjust") : t("emp.req.typeDelete");
   const aMap = new Map(assignments.map((a) => [a.id, a]));
+  // El presencial no necesita proyecto (D-493): «Agregar tiempo» no se lo pide y, donde al remoto le
+  // sale el proyecto, a él le sale su tienda y su puesto. Al remoto no le cambia nada.
+  const lang = getLang();
+  const campo = campoDeProyecto(me, assignments.length);
+  const miTienda = tiendaYPuesto(me, lang);
+  const nombreDelProyecto = (aid: unknown, sinProyecto: string) =>
+    nombreDeLinea(aMap.get(typeof aid === "string" ? aid : "")?.project.name, me, lang, sinProyecto);
   // Primero «Tiempo libre» y después «Tiempo» (D-489, pedido del dueño): el orden y la que se
   // abre salen de PESTANAS_DE_SOLICITUDES.
   const [tab, setTab] = useState<PestanaDeSolicitud>(PESTANA_DE_SOLICITUD_INICIAL);
@@ -105,7 +113,7 @@ export default function MyRequestsPage() {
     try {
       let payload: Record<string, unknown>;
       if (type === "add") {
-        if (!f.assignmentId) { setMsg(t("emp.req.pickProject")); return; }
+        if (!f.assignmentId && campo === "obligatorio") { setMsg(t("emp.req.pickProject")); return; }
         if (!f.fromTime || !f.toTime) { setMsg(t("emp.req.enterTimes")); return; }
         if (hrs <= 0) { setMsg(t("emp.req.endAfterStart")); return; }
         // The real guarantee -- the dropdowns only express one gap at a
@@ -115,8 +123,9 @@ export default function MyRequestsPage() {
           setMsg(t("emp.req.overlap"));
           return;
         }
-        const a = aMap.get(f.assignmentId)!;
-        payload = { employeeName: me.fullName, projectId: a.projectId, assignmentId: a.id, date: f.date, fromTime: f.fromTime, toTime: f.toTime, hours: Number(hrs.toFixed(2)), reason: f.reason.trim() };
+        // Sin proyecto elegido (solo puede pasar al presencial) va sin proyecto: es su tienda y su puesto.
+        const a = f.assignmentId ? aMap.get(f.assignmentId) : undefined;
+        payload = { employeeName: me.fullName, projectId: a ? a.projectId : null, assignmentId: a ? a.id : null, date: f.date, fromTime: f.fromTime, toTime: f.toTime, hours: Number(hrs.toFixed(2)), reason: f.reason.trim() };
       } else if (type === "adjust") {
         if (!f.sessionId) { setMsg(t("emp.req.pickEntry")); return; }
         if (!f.fromTime || !f.toTime) { setMsg(t("emp.req.enterNewTimes")); return; }
@@ -166,10 +175,16 @@ export default function MyRequestsPage() {
             <div className="grid g2" style={{ marginTop: 10 }}>
               <div>
                 <label>{t("emp.req.project")}</label>
-                <select value={f.assignmentId} onChange={(e) => upd("assignmentId", e.target.value)}>
-                  <option value="">{t("emp.req.pick")}</option>
-                  {assignments.map((a) => <option key={a.id} value={a.id}>{a.project.name}</option>)}
-                </select>
+                {campo === "fijo" ? (
+                  // Nada que elegir: su proyecto es su tienda y su puesto, y se dice cuál.
+                  <div style={{ padding: "8px 0", fontWeight: 700 }}>{t("emp.req.yourStore", { label: miTienda })}</div>
+                ) : (
+                  <select value={f.assignmentId} onChange={(e) => upd("assignmentId", e.target.value)}>
+                    <option value="">{campo === "opcional" ? t("emp.req.yourStore", { label: miTienda }) : t("emp.req.pick")}</option>
+                    {assignments.map((a) => <option key={a.id} value={a.id}>{a.project.name}</option>)}
+                  </select>
+                )}
+                {campo !== "obligatorio" && <div className="hint">{t("emp.req.inhouseHint")}</div>}
               </div>
               <div>
                 <label>{t("emp.req.date")}</label>
@@ -212,10 +227,9 @@ export default function MyRequestsPage() {
             <label style={{ marginTop: 10 }}>{t("emp.req.entryToFix")}</label>
             <select value={f.sessionId} onChange={(e) => pickSession(e.target.value)}>
               <option value="">{t("emp.req.pickEntryPh")}</option>
-              {mySessions.map((s) => {
-                const a = aMap.get(s.assignmentId ?? "");
-                return <option key={s.id} value={s.id}>{s.date} · {a ? a.project.name : "—"} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>;
-              })}
+              {mySessions.map((s) => (
+                <option key={s.id} value={s.id}>{s.date} · {nombreDelProyecto(s.assignmentId, "—")} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>
+              ))}
             </select>
             <div className="grid g2" style={{ marginTop: 8 }}>
               <div><label>{t("emp.req.date")}</label><input type="date" value={f.date} onChange={(e) => upd("date", e.target.value)} /></div>
@@ -233,10 +247,9 @@ export default function MyRequestsPage() {
             <label style={{ marginTop: 10 }}>{t("emp.req.entryToDelete")}</label>
             <select value={f.sessionId} onChange={(e) => upd("sessionId", e.target.value)}>
               <option value="">{t("emp.req.pickEntryPh")}</option>
-              {mySessions.map((s) => {
-                const a = aMap.get(s.assignmentId ?? "");
-                return <option key={s.id} value={s.id}>{s.date} · {a ? a.project.name : "—"} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>;
-              })}
+              {mySessions.map((s) => (
+                <option key={s.id} value={s.id}>{s.date} · {nombreDelProyecto(s.assignmentId, "—")} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>
+              ))}
             </select>
           </>
         )}
@@ -257,8 +270,7 @@ export default function MyRequestsPage() {
             <tbody>
               {sorted.map((r) => {
                 const p = (r.payload || {}) as Record<string, unknown>;
-                const a = aMap.get((p.assignmentId as string) ?? "");
-                const proj = a ? a.project.name : "";
+                const proj = nombreDelProyecto(p.assignmentId, "");
                 const det = r.type === "delete"
                   ? `${proj} · ${p.date}`
                   : `${proj} · ${p.date} · ${p.fromTime || ""}-${p.toTime || ""} (${p.hours} h)`;
