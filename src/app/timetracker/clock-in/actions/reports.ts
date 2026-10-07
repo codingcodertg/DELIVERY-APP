@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { canManageEmployee, isPeriodLocked, periodStartOf, type Me } from "@/lib/clockin/mgrScope";
@@ -77,6 +78,8 @@ export async function editEntry(input: {
   lunch: number;
   note?: string;
 }): Promise<ReportResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   const { data: old } = await ctx.supabase
@@ -127,6 +130,8 @@ export async function addEntry(input: {
   lunch: number;
   note?: string;
 }): Promise<ReportResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   if (!(await canManageEmployee(ctx.supabase, ctx.me, input.employeeId))) return { ok: false, message: DENY_SCOPE };
@@ -165,6 +170,8 @@ export async function addEntry(input: {
 
 /** Manager removes an erroneous punch (hard delete; the snapshot lives in audit_log). */
 export async function deleteEntry(id: string): Promise<ReportResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   const { data: old } = await ctx.supabase
@@ -187,6 +194,8 @@ export async function approveTimesheet(input: {
   periodStart: string;
   note?: string;
 }): Promise<ReportResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   if (!(await canManageEmployee(ctx.supabase, ctx.me, input.employeeId))) return { ok: false, message: DENY_SCOPE };
@@ -215,6 +224,8 @@ export async function approveTimesheet(input: {
 }
 
 export async function unapproveTimesheet(input: { employeeId: string; periodStart: string }): Promise<ReportResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   if (!(await canManageEmployee(ctx.supabase, ctx.me, input.employeeId))) return { ok: false, message: DENY_SCOPE };
@@ -231,6 +242,8 @@ export async function unapproveTimesheet(input: { employeeId: string; periodStar
 
 /** Owner signs off the whole period after reviewing totals (2nd protection layer). */
 export async function ownerSignoff(input: { periodStart: string }): Promise<ReportResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   if (ctx.role !== "owner") return { ok: false, message: "Only the owner can sign off." };
@@ -248,6 +261,8 @@ export async function ownerSignoff(input: { periodStart: string }): Promise<Repo
 }
 
 export async function revokeSignoff(input: { periodStart: string }): Promise<ReportResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   if (ctx.role !== "owner") return { ok: false, message: "Only the owner can undo a sign-off." };

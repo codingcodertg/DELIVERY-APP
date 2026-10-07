@@ -110,18 +110,21 @@ describe("los enlaces que SÍ tienen que salir al sistema siguen saliendo", () =
 });
 
 describe("las navegaciones de página completa que hay HOY en la app", () => {
-  it("los CINCO `signout` son POST de página completa, y todos fallaban por lo mismo", () => {
+  it("los TRES `signout` son POST de página completa, y todos fallaban por lo mismo", () => {
     // Medido en esta rama: no era solo el del hub. Cada app tiene el suyo y todas comparten el
     // fallo, porque el fallo no estaba en el formulario sino en qué consideraba suyo la ventana.
     // Eran SEIS hasta D-274: la barra de Entregas tenía dos (la burbuja del rol y el botón del
     // admin) y ahora tiene uno, en el menú del nombre. El fallo de la ventana no cambia con eso.
+    // Eran CINCO hasta D-NEXT: Entregas, Time Tracker y RR. HH. comparten desde entonces el menú del
+    // nombre (`MenuDeCuenta`), con UN formulario de salida para las tres (`OpcionSalir`).
     const formularios = [
-      "src/components/TopBar.tsx",                    // Entregas: uno, en el menú del nombre
+      "src/components/MenuDeCuenta.tsx",              // Entregas, Time Tracker y RR. HH.: uno, en el menú del nombre
       "src/components/HomeSelector.tsx",
       "src/components/erp/side-nav.tsx",
-      "src/components/recruiting/TopBar.tsx",
-      "src/components/timetracker/TopBar.tsx",
     ];
+    for (const barra of ["src/components/TopBar.tsx", "src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx"]) {
+      expect(leer(barra), barra).toContain("<OpcionSalir key={o} />");
+    }
     let total = 0;
     for (const ruta of formularios) {
       // El `[^>]*` no es descuido: uno lleva `className` (`HomeSelector`) y el de Entregas `key`,
@@ -130,7 +133,7 @@ describe("las navegaciones de página completa que hay HOY en la app", () => {
       expect(n, ruta).toBeGreaterThanOrEqual(1);
       total += n;
     }
-    expect(total).toBe(5);
+    expect(total).toBe(3);
   });
   it("la sesión caducada también era una salida al navegador, y también queda cerrada", () => {
     // `SessionExpired` manda a `/login` con `window.location.href`, o sea otra navegación de

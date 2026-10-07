@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { centralShiftMs } from "@/lib/clockin/tz";
 import { pushToManagers } from "@/lib/clockin/notify";
@@ -37,6 +38,8 @@ export async function startLeave(input: {
   expectedReturn?: string | null; // "HH:MM" (today, Central)
   geo?: PunchGeo;
 }): Promise<LeaveResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   const { supabase, user } = ctx;
@@ -129,6 +132,8 @@ export async function startLeave(input: {
 
 /** Mark a leave as returned, stamping the BACK punch's GPS + photo. */
 export async function endLeave(id: string, geo?: PunchGeo): Promise<{ ok: boolean; message?: string }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   // Grab the break first — we need its reason + start to spot a long lunch.

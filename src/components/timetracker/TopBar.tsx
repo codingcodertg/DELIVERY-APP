@@ -5,13 +5,32 @@ import { usePathname } from "next/navigation";
 import { pestanasPara } from "@/lib/timetracker/vista-empleado";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
-import { usePrefs } from "@/lib/prefs";
+import { OPCIONES_DEL_MENU_TT } from "@/lib/account-menu";
 import { BotonRecargar } from "@/components/BotonRecargar";
+import { HubHomeLink } from "@/components/HubHomeLink";
+import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
 import { NotificationBell } from "@/components/timetracker/NotificationBell";
-import { ModuleSwitcher } from "@/components/ModuleSwitcher";
 import { TtCheckUpdateLink } from "@/components/timetracker/UpdateBanner";
+import { AvisoDeCapacitacion, useCapacitacion } from "@/components/timetracker/Capacitacion";
 import type { UserRole } from "@/lib/types";
 
+/**
+ * La barra de Time Tracker, como la de Entregas (D-NEXT).
+ *
+ * El dueño, el 2026-10-07, mirando el perfil de un empleado: «hay demasiados botones […] quiero que sea
+ * igual que el Delivery app. Que […] si aprietas el nombre de Carlos Fuentes, te sale Sign Out. Y
+ * teaching mode […] Eso que sale employee, tampoco quiero que se mire. Y las notificaciones, eso sí, se
+ * queda. Pero el botón para español y dark mode […] todo eso se elige desde su personalizar».
+ *
+ * Lo que queda en la barra: el nombre de la app con la casa al lado (como Entregas, D-274), las
+ * pestañas, recargar (como Entregas), la campana, el ⟳ del escritorio, y **el nombre, que abre el menú**
+ * de Entregas —el mismo componente, `MenuDeCuenta`— con lo que dice `OPCIONES_DEL_MENU_TT`: modo
+ * capacitación, Mi cuenta, Personalizar y Cerrar sesión.
+ *
+ * Lo que se fue: la pastilla «Employee»/«Manager», el ES/EN, el 🌙 (al personalizador del hub), el
+ * «Sign out» suelto (al menú) y el selector de módulos ⇄ (como en Entregas: se cambia de app desde el
+ * hub, y la casa sigue). Encima de la barra, pegado a ella, el aviso del modo capacitación mientras dure.
+ */
 // deliveriesRole/moduleAccess threaded through separately from `me`
 // (timetracker's own Employee type, where `role` means timetracker_role) —
 // same pattern recruiting/TopBar.tsx already uses, same reason: `me.role`
@@ -19,88 +38,93 @@ import type { UserRole } from "@/lib/types";
 // #1/#2 bug class).
 export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserRole; moduleAccess: string[] | null | undefined }) {
   const pathname = usePathname();
-  const { me, settings } = useData();
+  const { me, settings, listLiveSessions, notify } = useData();
   const t = useT();
-  // Shared with deliveries/recruiting (usePrefs(), not timetracker's own
-  // useT() — theme is a container-wide concern, D-080). Nothing here used
-  // to expose a way to change it; the desktop shell now defaults to dark
-  // (layout.tsx's inline theme script + prefs.tsx's defaultTheme()), but
-  // this toggle lets anyone — web or desktop — switch either way.
-  // El idioma también sale de aquí (D-266): es uno para todas las apps y lo guarda el proveedor.
-  // Cambiarlo avisa a useT(), que vuelve a pintar esta barra y el resto de Time Tracker.
-  const { theme, toggleTheme, lang, toggleLang } = usePrefs();
+  const capacitacion = useCapacitacion();
   // Admin: MANAGER_TABS. Empleado: TABS, ya sin «Mi diario» (D-489).
   const tabs = pestanasPara(me.role);
 
+  /**
+   * Encender la práctica con el cronómetro corriendo de verdad no se deja: encenderla vuelve a montar
+   * Time Tracker, y un cronómetro real que se desmonta deja de latir —es el registro que el dueño
+   * perdió en D-470—. Si no se puede comprobar, tampoco: ante la duda, lo real manda.
+   */
+  const alternaCapacitacion = async () => {
+    if (capacitacion.activa) { capacitacion.apagar(); return; }
+    try {
+      if ((await listLiveSessions()).length > 0) { notify(t("training.timerRunning")); return; }
+    } catch {
+      notify(t("training.checkFail"));
+      return;
+    }
+    capacitacion.encender();
+  };
+
   return (
-    <div className="topbar">
-      <div className="brand">{settings.appName || "TimeTracker"}</div>
-      <div className="row" style={{ alignItems: "center", flexWrap: "wrap" }}>
-        <div className="tabs">
-          {tabs.map((tb, i) => {
-            const active = tb.href === "/timetracker" ? pathname === "/timetracker" : pathname.startsWith(tb.href);
-            // For an admin, MANAGER_TABS packs 10 manager screens ahead of
-            // the 5 personal ones everyone gets — a thin divider marks
-            // where "manager tools" ends and "my own stuff" begins, so 15
-            // flat tabs don't read as one undifferentiated wall.
-            const startsPersonal = tb.id === "track" && i > 0;
-            return (
-              <span key={tb.id} style={{ display: "inline-flex", alignItems: "center" }}>
-                {startsPersonal && <span style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.15)", margin: "0 6px" }} />}
-                <Link href={tb.href} className={active ? "active" : ""}>
-                  {t("tab." + tb.id)}
-                </Link>
-              </span>
-            );
-          })}
+    <div className="tt-cabecera">
+      <AvisoDeCapacitacion />
+      <div className="topbar">
+        {/* La casa va pegada al nombre de la app, como en Entregas (D-274). */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+          <div className="brand">{settings.appName || "TimeTracker"}</div>
+          <HubHomeLink deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />
         </div>
-        <ModuleSwitcher current="timetracker" deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />
-        {/* El nombre ES la puerta a Mi cuenta (D-160).
-            -------------------------------------------------------------------
-            Antes era una pestaña más. Dos motivos para moverla:
-
-              · A un admin la barra le pone QUINCE pestañas. "Mi cuenta" es la
-                que menos se abre de las quince —se entra a cambiar la contraseña
-                o el idioma, no todos los días— y estaba ocupando el mismo sitio
-                que Payroll o Auditoría.
-              · Tocar tu propio nombre para llegar a lo tuyo es donde la gente ya
-                lo busca: es lo que hace el resto de la casa y lo que hacen las
-                aplicaciones de las que viene la cuadrilla.
-
-            El nombre se queda donde estaba, al lado de su etiqueta de rol; lo
-            único que cambia es que ahora se puede pulsar. */}
-        <Link
-          href="/timetracker/account"
-          className={"tt-me" + (pathname.startsWith("/timetracker/account") ? " active" : "")}
-          title={t("tab.account")}
-        >
-          {me.fullName}
-        </Link>
-        <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }}>
-          {me.role === "admin" ? t("shell.manager") : t("shell.employee")}
-        </span>
-        <BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />
-        <NotificationBell />
-        <button
-          className="btn-ghost btn-sm"
-          style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}
-          onClick={toggleLang}
-          title={t("lang.label")}
-        >
-          {lang === "es" ? "🇬🇧 EN" : "🇪🇸 ES"}
-        </button>
-        <button
-          className="btn-ghost btn-sm"
-          style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}
-          onClick={toggleTheme}
-          title={theme === "dark" ? t("shell.lightMode") : t("shell.darkMode")}
-        >
-          {theme === "dark" ? "☀️" : "🌙"}
-        </button>
-        <TtCheckUpdateLink />
-        <form action="/auth/signout" method="post">
-          <button className="btn-ghost btn-sm" style={{ background: "rgba(255,255,255,.1)", color: "#fff" }} type="submit">{t("shell.signOut")}</button>
-        </form>
+        <div className="row" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <div className="tabs">
+            {tabs.map((tb, i) => {
+              const active = tb.href === "/timetracker" ? pathname === "/timetracker" : pathname.startsWith(tb.href);
+              // For an admin, MANAGER_TABS packs 10 manager screens ahead of
+              // the 5 personal ones everyone gets — a thin divider marks
+              // where "manager tools" ends and "my own stuff" begins, so 15
+              // flat tabs don't read as one undifferentiated wall.
+              const startsPersonal = tb.id === "track" && i > 0;
+              return (
+                <span key={tb.id} style={{ display: "inline-flex", alignItems: "center" }}>
+                  {startsPersonal && <span style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.15)", margin: "0 6px" }} />}
+                  <Link href={tb.href} className={active ? "active" : ""}>
+                    {t("tab." + tb.id)}
+                  </Link>
+                </span>
+              );
+            })}
+          </div>
+          <BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />
+          <NotificationBell />
+          <TtCheckUpdateLink />
+          {/* El nombre abre el menú (D-NEXT). De D-160 a D-NEXT llevaba a «Mi cuenta», que ahora es
+              una opción del menú; y al lado iba la pastilla del rol, que el dueño pidió quitar. */}
+          <MenuDeCuenta nombre={me.fullName}>
+            {(cierraMenu) => OPCIONES_DEL_MENU_TT.map((o) => {
+              switch (o) {
+                case "capacitacion":
+                  return (
+                    <button
+                      key={o}
+                      type="button"
+                      className="col-opt"
+                      role="menuitemcheckbox"
+                      aria-checked={!!capacitacion.activa}
+                      style={{ width: "100%", textAlign: "left" }}
+                      title={t("training.menuHint")}
+                      onClick={() => { cierraMenu(); void alternaCapacitacion(); }}
+                    >
+                      {capacitacion.activa ? t("training.menuOff") : t("training.menu")}
+                    </button>
+                  );
+                case "cuenta":
+                  return (
+                    <Link key={o} href="/timetracker/account" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
+                      {t("menu.account")}
+                    </Link>
+                  );
+                case "personalizar":
+                  return <OpcionPersonalizar key={o} alPulsar={cierraMenu} />;
+                case "salir":
+                  return <OpcionSalir key={o} />;
+              }
+            })}
+          </MenuDeCuenta>
+        </div>
       </div>
     </div>
   );

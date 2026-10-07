@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
+import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 import { createClient } from "@/lib/supabase/client";
 import { guardaMiNombre, hayCambioDeNombre } from "@/lib/profile-name";
 import { mensajeDeContrasena, validaCambioDeContrasena, type CodigoContrasena, type MotivoDebil } from "@/lib/profile-password";
@@ -17,13 +18,11 @@ import { PasswordInput } from "@/components/PasswordInput";
  *     pantalla de Cuenta de Entregas se fue (D-274); el correo y el usuario no, porque de ellos
  *     cuelga el inicio de sesión y los cambia un admin en Usuarios;
  *   · la contraseña, que es una sola;
- *   · el idioma, que es uno para todas las apps y para los avisos, y sigue a la persona entre
- *     equipos (`public.profiles.language`, `lib/idioma.ts`). Al principio no estaba, porque Time
- *     Tracker tenía el suyo (D-206); el dueño pidió unificarlo;
- *   · el tema, que vive en `rtg_prefs` y lo aplican todas, Time Tracker incluido.
+ *   · el idioma y el tema estuvieron aquí (D-265/D-266) hasta D-NEXT. Ahora se eligen en
+ *     «Personalizar» (`/home/personalizar`), el único sitio para los dos, y aquí queda el enlace.
  */
 export function ProfileView({ id, nombre, correo, usuario }: { id: string | null; nombre: string | null; correo: string | null; usuario: string | null }) {
-  const { t, lang, setLang, theme, setTheme } = usePrefs();
+  const { t } = usePrefs();
   const sinDato = <span className="hint">—</span>;
 
   return (
@@ -64,29 +63,13 @@ export function ProfileView({ id, nombre, correo, usuario }: { id: string | null
         <CambiarContrasena />
       </div>
 
+      {/* El idioma y el tema se fueron al personalizador (D-NEXT): uno solo para todas las apps. */}
       <div className="card">
-        <h2>{t("Language", "Idioma")}</h2>
+        <h2>🎨 {t("Language and theme", "Idioma y tema")}</h2>
         <p className="hint" style={{ marginTop: 0 }}>
-          {t(
-            "Every app and every notification, on every device you sign in to.",
-            "Todas las apps y todos los avisos, en cualquier equipo en el que entres.",
-          )}
+          {t("They are chosen in one place for every app.", "Se eligen en un solo sitio para todas las apps.")}
         </p>
-        <div className="toggle-group">
-          <button className={"toggle-btn " + (lang === "en" ? "on" : "")} onClick={() => setLang("en")}>🇬🇧 English</button>
-          <button className={"toggle-btn " + (lang === "es" ? "on" : "")} onClick={() => setLang("es")}>🇪🇸 Español</button>
-        </div>
-      </div>
-
-      <div className="card">
-        <h2>{t("Theme", "Tema")}</h2>
-        <p className="hint" style={{ marginTop: 0 }}>
-          {t("Applies to every app, on this device.", "Vale para todas las apps, en este equipo.")}
-        </p>
-        <div className="toggle-group">
-          <button className={"toggle-btn " + (theme === "light" ? "on" : "")} onClick={() => setTheme("light")}>☀️ {t("Light", "Claro")}</button>
-          <button className={"toggle-btn " + (theme === "dark" ? "on" : "")} onClick={() => setTheme("dark")}>🌙 {t("Dark", "Oscuro")}</button>
-        </div>
+        <Link href={RUTA_PERSONALIZAR} className="btn btn-primary">{t("Customize →", "Personalizar →")}</Link>
       </div>
     </>
   );

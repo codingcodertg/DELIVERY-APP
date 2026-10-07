@@ -9,6 +9,7 @@ import { VersionFooter } from "@/components/VersionFooter";
 import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { veAppsParaInstalar } from "@/lib/hub-apps";
+import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
@@ -56,6 +57,12 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
             no llega (D-173), entra desde la «Cuenta» de Entregas. */}
         <Link href="/home/profile" className="hub-profile-link">
           👤 {t("My profile · password", "Mi perfil · contraseña")}
+        </Link>
+        {/* El personalizador (D-NEXT): idioma y tema de TODAS las apps, elegidos solo aquí. Al lado de
+            Mi perfil porque es lo mismo —lo tuyo, para todas las apps—, y las barras de cada app ya no
+            tienen botón de idioma ni de tema: enlazan hasta aquí desde el menú del nombre. */}
+        <Link href={RUTA_PERSONALIZAR} className="hub-profile-link" data-hub-personalizar>
+          🎨 {t("Customize · language, theme", "Personalizar · idioma, tema")}
         </Link>
         <p style={{ color: "var(--ink-soft)", marginBottom: 20 }}>
           {t("Which one do you want to open?", "¿Cuál quieres abrir?")}

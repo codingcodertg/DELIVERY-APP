@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { clockinManagerCtx, type ClockinCtx } from "@/lib/clockin/managerCtx";
 import {
   SIN_FILA_TT, SOLO_ADMIN_TT, esTipoDeTrabajador, planDeTipo, puedeEscribirTipo, tipoPorDefecto,
@@ -119,6 +120,8 @@ export async function getClockinEmployeeSettings(id: string): Promise<
  * Qué escribe lo decide `planDeTipo`: sin fila la crea ACTIVA; con fila cambia solo el tipo.
  */
 export async function setEmployeeWorkerType(id: string, workerType: TipoDeTrabajador) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   if (!esTipoDeTrabajador(workerType)) return { ok: false as const, message: "Invalid worker type." };
@@ -148,6 +151,8 @@ export async function setEmployeeWorkerType(id: string, workerType: TipoDeTrabaj
  * tipo. Desactivar sigue siendo cosa de People: en la ficha, apagar a alguien es «Contando tiempo».
  */
 export async function activateInTimeTracker(id: string) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   if (!puedeEscribirTipo(await miRolDeTimeTracker(ctx))) return { ok: false as const, message: SOLO_ADMIN_TT };
@@ -165,6 +170,8 @@ export async function activateInTimeTracker(id: string) {
 
 /** Assign an employee's default schedule type (A / B / C / custom, or null). Manager/owner. */
 export async function setEmployeeSchedule(id: string, schedule: string | null) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const value = schedule && ["A", "B", "C", "custom"].includes(schedule) ? schedule : null;
@@ -202,6 +209,8 @@ export async function setEmployeeSchedule(id: string, schedule: string | null) {
 export async function resetEmployeePassword(
   id: string,
 ): Promise<{ ok: true; tempPassword: string } | { ok: false; message: string }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
 
@@ -262,6 +271,8 @@ export async function resetEmployeePassword(
 // admin-only and written to the security log (/api/delete-user).
 
 export async function setEmployeeActive(id: string, active: boolean) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const { error } = await ctx.supabase.from("profiles").update({ active }).eq("id", id);
@@ -289,6 +300,8 @@ export async function setEmployeeActive(id: string, active: boolean) {
  * why it is no longer owner-only or forbidden on yourself.
  */
 export async function setEmployeePosition(id: string, position: Position) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   if (!POSITIONS.includes(position)) return { ok: false as const, message: "Invalid position." };
@@ -299,6 +312,8 @@ export async function setEmployeePosition(id: string, position: Position) {
 
 /** Assign an employee/manager to a store (or clear it with null). */
 export async function setEmployeeStore(id: string, storeId: string | null) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const { error } = await ctx.supabase.from("profiles").update({ store_id: storeId }).eq("id", id);
@@ -313,6 +328,8 @@ export async function setEmployeeStore(id: string, storeId: string | null) {
  * mismo sería un permiso que se otorga solo.
  */
 export async function setEmployeeExtraStores(id: string, storeIds: string[]) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   if (ctx.role !== "owner") return { ok: false as const, message: "Only an admin can grant stores." };
@@ -328,6 +345,8 @@ export async function setEmployeeExtraStores(id: string, storeIds: string[]) {
  * foto y ubicación, en un vehículo de la empresa o en el suyo. Manager/owner.
  */
 export async function setEmployeeRunner(id: string, isRunner: boolean) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const { error } = await ctx.supabase.from("profiles").update({ is_runner: isRunner }).eq("id", id);
@@ -337,6 +356,8 @@ export async function setEmployeeRunner(id: string, isRunner: boolean) {
 
 /** El vehículo de la empresa que lleva (o null = sin vehículo asignado: usa el suyo). Manager/owner. */
 export async function setEmployeeVehicle(id: string, vehicleId: string | null) {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   const { error } = await ctx.supabase.from("profiles").update({ vehicle_id: vehicleId }).eq("id", id);

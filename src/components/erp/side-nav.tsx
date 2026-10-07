@@ -8,6 +8,7 @@ import type { AppRole } from "@/lib/erp/domain/roles";
 import { hasCatalogAccess } from "@/lib/erp/domain/modules";
 import { useErpNav } from "@/components/erp/nav-state";
 import { usePrefs } from "@/lib/prefs";
+import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 
 const roleStyles: Record<string, string> = {
   admin: "border-clay-200 bg-clay-50 text-clay-700",
@@ -65,7 +66,7 @@ export function SideNav({
   hubReachable: boolean;
 }) {
   const pathname = usePathname();
-  const { t, lang, setLang } = usePrefs();
+  const { t } = usePrefs();
   const managerPlus = role === "admin" || role === "manager";
   // Catalog nav is hidden entirely from the delivery-floor roles the merge added (ADR 0010): a
   // driver has no reason to browse the product master, and a list of links that all redirect is
@@ -100,18 +101,20 @@ export function SideNav({
       )}
     </div>
   );
-  // El conmutador de idioma, como en las barras de HR y Time Tracker: un botón que alterna y
-  // enseña el idioma AL QUE se cambia. Es la preferencia del hub: cambiarla aquí cambia también
-  // Entregas y HR, y al revés, que es lo que se quiere de una sola preferencia.
-  const langToggle = (
-    <button
-      type="button"
-      onClick={() => setLang(lang === "es" ? "en" : "es")}
-      title={t("Switch to Spanish", "Cambiar a inglés")}
-      className="rounded-md px-2 py-1.5 text-slate-500 hover:bg-slate-100"
+  // Aquí iba el conmutador de idioma ES/EN, como en las barras de HR y Time Tracker. Desde D-NEXT el
+  // idioma y el tema se eligen en UN sitio, «Personalizar», en el hub, y las barras enlazan hasta allí.
+  // La página solo pide sesión: le vale también a quien tiene el ERP como única app (`hubReachable` no).
+  // En la cabecera del teléfono va solo el 🎨 (con su nombre para el lector de pantalla): con el texto
+  // entero no cabía al lado de «Todas las apps» y del rol a 390 px, medido en el navegador.
+  const personalizar = (soloIcono: boolean) => (
+    <Link
+      href={RUTA_PERSONALIZAR}
+      title={t("Customize: language and theme", "Personalizar: idioma y tema")}
+      aria-label={t("Customize: language and theme", "Personalizar: idioma y tema")}
+      className="whitespace-nowrap rounded-md px-2 py-1.5 text-slate-500 hover:bg-slate-100"
     >
-      {lang === "es" ? "🇬🇧 EN" : "🇪🇸 ES"}
-    </button>
+      🎨{soloIcono ? null : <> {t("Customize", "Personalizar")}</>}
+    </Link>
   );
   const signout = (
     <form action="/auth/signout" method="post">
@@ -217,7 +220,7 @@ export function SideNav({
             <div className="truncate font-medium">{fullName ?? email}</div>
             <div className="truncate text-xs text-slate-400">{email}</div>
           </div>
-          <div className="mt-2 flex items-center gap-1">{langToggle}{signout}</div>
+          <div className="mt-2 flex items-center gap-1">{personalizar(false)}{signout}</div>
         </div>
       </aside>
 
@@ -233,7 +236,7 @@ export function SideNav({
           {brand}
           <div className="ml-auto flex items-center gap-2">
             <Badge className={roleStyles[role] ?? roleStyles.staff}>{role}</Badge>
-            {langToggle}
+            {personalizar(true)}
             {signout}
           </div>
         </div>

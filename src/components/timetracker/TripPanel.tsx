@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { startTrip, endTrip, finishStop, type getMyTrip } from "@/app/timetracker/clock-in/actions/runner";
+import type { getMyTrip } from "@/app/timetracker/clock-in/actions/runner";
+import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
 import { viajePersonalPorDefecto } from "@/lib/clockin/visitas";
@@ -77,6 +78,8 @@ export function TripPanel({
   ubicacion: () => Promise<Punto>;
 }) {
   const t = useT();
+  // Reales o de práctica (modo capacitación, D-NEXT).
+  const { startTrip, endTrip, finishStop } = useAccionesDeFichar();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);

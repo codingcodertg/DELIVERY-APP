@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { firstMatch, type GeoSite } from "@/lib/clockin/geofence";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
@@ -76,6 +77,8 @@ async function getAuthed() {
  * open shift. The browser only REPORTS coordinates — the server decides on-site.
  */
 export async function clockIn(input: ClockInput): Promise<ClockInResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await getAuthed();
   if (!ctx.ok) {
     const msg =
@@ -252,6 +255,8 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
  * home, clock out from the couch."
  */
 export async function clockOut(entryId: string, input: ClockOutInput): Promise<ClockOutResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await getAuthed();
   if (!ctx.ok) return { ok: false, message: "Not signed in." };
   const { supabase, user, profile } = ctx;
@@ -394,6 +399,8 @@ export async function clockOut(entryId: string, input: ClockOutInput): Promise<C
  * turn the rule off: an hour later they get asked again.
  */
 export async function stillWorking(): Promise<{ ok: true } | { ok: false; message: string }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await getAuthed();
   if (!ctx.ok) return { ok: false, message: "Not signed in." };
   const { supabase, user } = ctx;
@@ -423,6 +430,8 @@ export async function adminClock(input: {
   action: "in" | "out";
   reason: string;
 }): Promise<AdminClockResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await getAuthed();
   if (!ctx.ok) return { ok: false, message: "Not signed in." };
   const { supabase, user, profile } = ctx;

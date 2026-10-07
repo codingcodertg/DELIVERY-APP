@@ -4,6 +4,7 @@ import { PrefsProvider } from "@/lib/prefs";
 import { VersionStamp } from "@/components/VersionStamp";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { CierreDiario } from "@/components/CierreDiario";
+import { GUION_DE_TEMA } from "@/lib/tema";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
 // timetracker desktop shell (window.ttDesktop, injected by its Electron
@@ -13,7 +14,9 @@ import { CierreDiario } from "@/components/CierreDiario";
 // browser profile — wrong for a dedicated, always-dark-by-design client
 // (D-080). Defaults to dark there when nothing's been explicitly chosen yet;
 // an explicit choice (light or dark, saved once toggled) always wins.
-const themeScript = `try{var p=JSON.parse(localStorage.getItem('rtg_prefs')||'{}');var isDesktop=!!(window.ttDesktop&&window.ttDesktop.isDesktop);var theme=p.theme==='dark'||p.theme==='light'?p.theme:(isDesktop?'dark':'light');document.documentElement.setAttribute('data-theme',theme);if(p.lang){document.documentElement.setAttribute('lang',p.lang);}}catch(e){}`;
+// D-NEXT: el guion vive en `lib/tema.ts` (GUION_DE_TEMA) porque ahora hay una tercera opción, «el del
+// equipo» (`system`), que pregunta a `matchMedia`; allí una prueba lo ejecuta contra `temaEfectivo`.
+const themeScript = GUION_DE_TEMA;
 
 export const metadata: Metadata = {
   title: "RTG Hub | Order & Dispatch",

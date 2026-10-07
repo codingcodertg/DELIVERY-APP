@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { capacitacionDelNavegador, fetchConCorte } from "@/lib/timetracker/capacitacion";
 
 /** Browser-side Supabase client (uses the public anon key + the user's session). */
 export function createClient() {
@@ -10,6 +11,9 @@ export function createClient() {
       // (072), so every .from() has to default there. The shared `profiles` table stays in
       // public and needs .schema("public") on the calls that read it.
       db: { schema: "clockin" },
+      // Modo capacitación (D-NEXT): con la cookie de práctica puesta, ninguna escritura sale del
+      // navegador. Se pregunta en cada petición (`capacitacionDelNavegador`), no al crear el cliente.
+      global: { fetch: fetchConCorte((i, o) => fetch(i, o), capacitacionDelNavegador) },
       // createBrowserClient caches a MODULE-LEVEL SINGLETON in the browser unless this is
       // false. Every module calls it with the same URL and anon key, so whichever runs first
       // wins and the rest silently get a client bound to the WRONG schema. That produced
