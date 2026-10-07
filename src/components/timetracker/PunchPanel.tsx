@@ -6,12 +6,17 @@ import { startLeave, endLeave } from "@/app/timetracker/clock-in/actions/leave";
 import { getMyTrip, startTrip, endTrip, logStop, finishStop } from "@/app/timetracker/clock-in/actions/runner";
 import { subirFotoDeFichaje } from "@/lib/clockin/sube-foto";
 import {
-  MOTIVOS_DE_SALIDA, etiquetaDeFoto, filaDeSalida, planDeVisita, seCierraDeUnToque, type MotivoDeSalida,
+  MOTIVOS_DE_SALIDA, etiquetaDeFoto, filaDeSalida, planDeSalida, seCierraDeUnToque, vehiculoDeEmpresaPorDefecto,
+  type MotivoDeSalida, type PlanDeSalida, type Vehiculo,
 } from "@/lib/clockin/visitas";
 import { APP_SETTINGS, fmtClock } from "@/lib/timetracker/helpers";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { Modal } from "@/components/timetracker/Modal";
 import { MySections } from "@/components/timetracker/MySections";
+import { FichajesDeHoy } from "@/components/timetracker/FichajesDeHoy";
+import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo";
+import { useData } from "@/lib/timetracker-data-provider";
+import { esAdminDeTt, seccionesDeFichar } from "@/lib/timetracker/vista-empleado";
 import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
 
 /**
@@ -55,6 +60,14 @@ import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
  *
  * Por eso el viaje se carga AQUÍ (`getMyTrip`) y se le pasa a TripPanel: el botón de foto y el
  * panel de viajes hablan del mismo viaje.
+ *
+ * **D-489 — la vista del empleado, y el vehículo.** (1) La ventana de «Voy a salir» pregunta
+ * ANTES que nada «¿vehículo personal o de la empresa?» (PreguntaDeVehiculo), a todos; con el de la
+ * empresa pide el cuentakilómetros, con el personal nada (`planDeSalida`). La pregunta de la
+ * visita y el panel de viajes siguen. (2) Al empleado, debajo del reloj, solo le quedan «Mi
+ * horario» y «Notas del día»: la tarjeta «Turno de hoy · Esta semana de pago» se va, y «Mi
+ * boletín» y «Fichajes de hoy» se mudan a «Mi semana». El admin lo sigue viendo todo aquí
+ * (`seccionesDeFichar`).
  */
 
 /**
@@ -109,14 +122,18 @@ const horas = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padS
 
 export function PunchPanel() {
   const t = useT();
+  const { me } = useData();
+  const secciones = seccionesDeFichar({ esAdmin: esAdminDeTt(me.role) });
   const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const [d, setD] = useState<Dia | null>(null);
   // El viaje abierto (o no) de quien mira. Lo comparten el botón de foto y TripPanel.
   const [viaje, setViaje] = useState<Viaje | null>(null);
   // La ventana de «voy a salir»: primero la pregunta, y si dice que no, el motivo.
   const [salida, setSalida] = useState<null | "pregunta" | "motivo">(null);
-  const [enPropio, setEnPropio] = useState(false);
-  const [odoVisita, setOdoVisita] = useState("");
+  // La respuesta a «¿vehículo personal o de la empresa?»: null hasta que contesta (D-489).
+  const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
+  const [vehiculoId, setVehiculoId] = useState<string | null>(null);
+  const [odoSalida, setOdoSalida] = useState("");
   const [motivoSalida, setMotivoSalida] = useState<MotivoDeSalida>(MOTIVOS_DE_SALIDA[0]);
   const [notaSalida, setNotaSalida] = useState("");
   const [notaFoto, setNotaFoto] = useState("");
@@ -269,25 +286,39 @@ export function PunchPanel() {
     if (r.ok) setNotaFoto(""); else setErr(r.message);
   }
 
-  const planVisita = planDeVisita({ vehiculoAsignado: viaje?.currentVehicleId ?? null, enPropio, odometro: odoVisita });
+  const flota = viaje?.vehicles ?? [];
+  // El vehículo de la empresa que sale elegido si no ha tocado el selector: el asignado, o el primero.
+  const vehiculoIdEfectivo = vehiculoId ?? vehiculoDeEmpresaPorDefecto(viaje?.currentVehicleId, flota);
+  const planDe = (visita: boolean) => planDeSalida({
+    vehiculo, vehicleId: vehiculoIdEfectivo, odometro: odoSalida, visita, motivo: motivoSalida, nota: notaSalida,
+  });
+  const planVisita = planDe(true);
+
+  /** Graba lo que diga el plan: un viaje (visita, o cualquier salida en vehículo de la empresa) o la salida de siempre. */
+  async function grabaSalida(plan: PlanDeSalida) {
+    if (!plan.ok) return;
+    setSalida(null);
+    if (plan.accion === "viaje") {
+      const v = plan.viaje;
+      await corre(async () => startTrip({ kind: viaje?.mode ?? "sales", ...v, ...(await ubicacionOpcional()) }));
+    } else {
+      const { reason, note } = plan.salida;
+      await corre(async () => startLeave({ reason, note, geo: await ubicacionOpcional() }));
+    }
+    setVehiculo(null);
+    setVehiculoId(null);
+    setOdoSalida("");
+    setNotaSalida("");
+  }
 
   /** «¿Vas a visitar a un cliente?» → Sí. */
   async function empiezaVisita() {
-    if (!planVisita.ok) return;
-    const plan = planVisita.viaje;
-    setSalida(null);
-    await corre(async () => startTrip({ kind: viaje?.mode ?? "sales", ...plan, ...(await ubicacionOpcional()) }));
-    setOdoVisita("");
-    setEnPropio(false);
+    await grabaSalida(planDe(true));
   }
 
-  /** → No: la salida de siempre (`startLeave`), con el motivo que diga. */
+  /** → No: con el motivo que diga. En su vehículo, la salida de siempre (`startLeave`); en el de la empresa, un viaje. */
   async function saleSinVisita() {
-    const reason = motivoSalida;
-    const note = reason === "other" ? notaSalida.trim() || undefined : undefined;
-    setSalida(null);
-    await corre(async () => startLeave({ reason, note, geo: await ubicacionOpcional() }));
-    setNotaSalida("");
+    await grabaSalida(planDe(false));
   }
 
   /** La cámara se abre primero; el fichaje va después, con la foto ya subida. */
@@ -314,7 +345,6 @@ export function PunchPanel() {
 
   const dentro = !!d.open;
   const fila = filaDeSalida({ descansoAbierto: !!d.leave, viajeAbierto: !!viaje?.trip });
-  const vehiculoDeVisita = viaje?.vehicles.find((v) => v.id === viaje.currentVehicleId) ?? null;
   const llevo = d.open ? Math.max(0, Math.floor((ahora - Date.parse(d.open.clockInAt)) / 1000)) : 0;
 
   return (
@@ -469,7 +499,8 @@ export function PunchPanel() {
       {/* El turno de hoy y la semana programada. Es la pregunta que se hace cualquiera nada
           más entrar —¿a qué hora salgo y cuánto llevo de lo mío?— y estaba solo en la app de
           fichaje. */}
-      {(d.shift || d.scheduledMinutes > 0) && (
+      {/* Solo el admin (D-489): al empleado el dueño le quitó «Esta semana de pago». */}
+      {secciones.semanaDePago && (d.shift || d.scheduledMinutes > 0) && (
         <div className="card">
           <div className="between">
             <span className="muted">{t("emp.punch.todayShift")}</span>
@@ -510,26 +541,19 @@ export function PunchPanel() {
         <Modal title={`🚚 ${t("emp.punch.goingOut")}`} onClose={() => setSalida(null)} maxWidth={440}>
           {salida === "pregunta" ? (
             <>
+              {/* Primero el vehículo (D-489), a todos: personal → nada más; empresa → vehículo y
+                  cuentakilómetros. Sin contestar, ni «Sí» ni «No» siguen (planDeSalida). */}
+              <PreguntaDeVehiculo
+                nombre="vehiculo-salida"
+                valor={vehiculo} onValor={setVehiculo}
+                vehiculos={flota} vehiculoId={vehiculoIdEfectivo} onVehiculoId={setVehiculoId}
+                odometro={odoSalida} onOdometro={setOdoSalida}
+              />
+              <div className="hr" />
               <p style={{ fontSize: 18, fontWeight: 700, margin: "6px 0" }}>{t("emp.visit.ask")}</p>
               <p className="hint">{t("emp.visit.askHint")}</p>
-              {/* Solo quien tiene vehículo de la empresa asignado ve esto. Los demás van en el
-                  suyo: viaje personal, nada que rellenar (planDeVisita). */}
-              {vehiculoDeVisita && (
-                <div className="box" style={{ marginTop: 8 }}>
-                  <label className={"motivo" + (enPropio ? " on" : "")} style={{ textTransform: "none" }}>
-                    <input type="checkbox" checked={enPropio} onChange={(e) => setEnPropio(e.target.checked)} />
-                    {t("emp.trip.ownVehicle")}
-                  </label>
-                  {!enPropio && (
-                    <>
-                      <label>{t("emp.visit.odoOf", { v: vehiculoDeVisita.name })}</label>
-                      <input inputMode="numeric" value={odoVisita} onChange={(e) => setOdoVisita(e.target.value)} placeholder={t("emp.trip.miles")} />
-                    </>
-                  )}
-                </div>
-              )}
               <div className="modal-actions">
-                <button className="btn-ghost" onClick={() => setSalida("motivo")}>{t("emp.visit.no")}</button>
+                <button className="btn-ghost" disabled={!planDe(false).ok} onClick={() => setSalida("motivo")}>{t("emp.visit.no")}</button>
                 <button disabled={!planVisita.ok || !!ocupado} onClick={empiezaVisita}>{t("emp.visit.yes")}</button>
               </div>
             </>
@@ -549,72 +573,17 @@ export function PunchPanel() {
               )}
               <div className="modal-actions">
                 <button className="btn-ghost" onClick={() => setSalida("pregunta")}>{t("emp.visit.backToAsk")}</button>
-                <button disabled={!!ocupado} onClick={saleSinVisita}>{t("emp.punch.goingOut")}</button>
+                <button disabled={!planDe(false).ok || !!ocupado} onClick={saleSinVisita}>{t("emp.punch.goingOut")}</button>
               </div>
             </>
           )}
         </Modal>
       )}
 
-      <MySections />
+      <MySections boletin={secciones.boletin} />
 
-      <div className="card">
-        <div className="grid g2">
-          <div className="stat">
-            <div className="small muted">{t("emp.punch.today")}</div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{horas(d.todayMinutes)}</div>
-          </div>
-          <div className="stat">
-            <div className="small muted">{t("emp.punch.payWeek")}</div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{horas(d.weekMinutes)}</div>
-          </div>
-        </div>
-
-        <h2 style={{ marginTop: 16 }}>{t("emp.punch.todayPunches")}</h2>
-        {d.today.length === 0 && d.breaks.length === 0 ? (
-          <p className="muted">{t("emp.punch.nothingToday")}</p>
-        ) : (
-          <table>
-            <thead><tr><th>{t("emp.punch.colWhat")}</th><th>{t("emp.punch.colIn")}</th><th>{t("emp.punch.colOut")}</th><th style={{ textAlign: "right" }}>{t("emp.punch.colTime")}</th></tr></thead>
-            <tbody>
-              {/* Fichajes y descansos EN UNA SOLA tabla, ordenados por hora. Antes solo salían
-                  los fichajes, así que un almuerzo de 40 minutos no aparecía por ninguna parte.
-                  En dos tablas habría que reconstruir el día mentalmente; así se lee de arriba
-                  abajo tal como pasó: entré, comí, volví, salí a repartir. */}
-              {[
-                ...d.today.map((e) => ({
-                  k: e.id, orden: e.clockInAt, que: t("emp.punch.shift"), cls: "on",
-                  desde: e.clockInAt, hasta: e.clockOutAt, min: e.minutes,
-                })),
-                ...d.breaks.map((b) => ({
-                  k: b.id, orden: b.leftAt,
-                  que: b.reason === "lunch" ? t("emp.punch.lunchRow") : t("emp.punch.outRow"),
-                  cls: b.reason === "lunch" ? "wait" : "",
-                  desde: b.leftAt, hasta: b.returnedAt, min: b.minutes,
-                })),
-              ]
-                .sort((a, b) => a.orden.localeCompare(b.orden))
-                .map((r) => (
-                  <tr key={r.k}>
-                    <td className="nowrap"><span className={`pill ${r.cls}`}>{r.que}</span></td>
-                    <td className="nowrap">{hhmm(r.desde)}</td>
-                    <td className="nowrap">{r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("emp.punch.open")}</span>}</td>
-                    <td className="nowrap" style={{ textAlign: "right" }}>{horas(r.min)}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        )}
-        {(d.lunchMinutes > 0 || d.outMinutes > 0) && (
-          // El total del día, por separado: comer y salir a repartir no son lo mismo ni para
-          // la nómina ni para quien revisa.
-          <p className="small muted" style={{ marginTop: 8 }}>
-            {d.lunchMinutes > 0 && <>🍽 {t("emp.punch.lunch")} {d.lunchMinutes} min</>}
-            {d.lunchMinutes > 0 && d.outMinutes > 0 && " · "}
-            {d.outMinutes > 0 && <>🚚 {t("emp.punch.out")} {d.outMinutes} min</>}
-          </p>
-        )}
-      </div>
+      {/* «Fichajes de hoy»: aquí solo para el admin; al empleado le sale en «Mi semana» (D-489). */}
+      {secciones.fichajesDeHoy && <FichajesDeHoy d={d} semanaDePago />}
     </>
   );
 }

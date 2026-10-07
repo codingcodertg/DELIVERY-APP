@@ -250,6 +250,14 @@
 .btn-amber { background: #fbf1df; color: #b9791a; }
 .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
 .btn:disabled { opacity: .5; cursor: default; }
+/* Algo INACTIVO —una fila dada de baja, una pregunta apagada, una omitida— se apaga en su TEXTO,
+   nunca con `opacity` sobre el bloque entero (D-489). La opacidad también apagaba los botones de
+   dentro («Editar», «Reactivar», «Encender», ▲▼, «Deshacer»), que siguen funcionando, y el dueño
+   pidió que no quede ningún botón que parezca desactivado sin estarlo. Los botones y las
+   pastillas llevan su propio color y no lo heredan. */
+.atenuado, .atenuado td { color: var(--gray); }
+/* Un día sin reportes en la tira de fechas: borde discontinuo, no apagado — se puede pulsar. */
+.chip.chip-vacio { border-style: dashed; }
 
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
 .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }

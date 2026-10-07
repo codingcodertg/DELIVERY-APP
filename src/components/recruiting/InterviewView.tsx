@@ -93,7 +93,7 @@ export function InterviewViewModal({ id, close, edit }: { id: string; close: () 
 
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
           {it && <button className="btn btn-ghost" onClick={() => { close(); edit(c.id); }}>🎤 {t("Edit interview", "Editar entrevista")}</button>}
-          <button className="btn" style={{ color: "var(--gray)" }} onClick={close}>{t("Close", "Cerrar")}</button>
+          <button className="btn btn-ghost" onClick={close}>{t("Close", "Cerrar")}</button>
         </div>
       </div>
     </div>

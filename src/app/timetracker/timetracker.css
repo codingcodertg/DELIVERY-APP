@@ -44,7 +44,13 @@
      background:var(--tt-accent);color:#fff;transition:.15s filter}
 .timetracker-module button:hover{filter:brightness(1.08)}
 .timetracker-module button:disabled{opacity:.5;cursor:not-allowed}
-.timetracker-module .btn-ghost{background:var(--tt-chip);color:var(--tt-txt)}
+/* Botón secundario (D-489). Era un relleno gris (--tt-chip) con el texto normal: sobre el panel
+   blanco del tema claro era un botón gris claro, que es justo cómo se ve un botón DESHABILITADO, y
+   el dueño lo dijo así: «parecen que estuvieran desactivados». Ahora lleva un borde y un tinte del
+   color de acento: se lee como pulsable en los dos temas. Apagado (opacidad) solo queda
+   `button:disabled`, de arriba. */
+.timetracker-module .btn-ghost{background:color-mix(in srgb, var(--tt-accent) 12%, transparent);color:var(--tt-txt);box-shadow:inset 0 0 0 1.5px var(--tt-accent)}
+.timetracker-module .topbar .btn-ghost{box-shadow:none}
 .timetracker-module .btn-danger{background:var(--tt-danger)}
 .timetracker-module .btn-ok{background:var(--tt-accent2);color:#08251b}
 .timetracker-module .btn-warn{background:var(--tt-warn);color:#3a2800}
@@ -130,13 +136,26 @@
 .timetracker-module .tabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:0}
 .timetracker-module .tabs button,.timetracker-module .tabs a{background:none;color:#c6cede;font-weight:600;font-size:13px;padding:8px 12px;border-radius:8px;position:relative;text-decoration:none;display:inline-block}
 .timetracker-module .tabs a.active,.timetracker-module .tabs button.active{background:var(--tt-accent);color:#fff}
+/* Las pestañas DENTRO de una pantalla (Tiempo libre / Tiempo, Cronómetro / Fichar…) son botones,
+   no los enlaces de la barra. Heredaban el gris claro #c6cede pensado para la barra oscura: en el
+   tema claro, sobre blanco, casi no se veían y la inactiva parecía apagada (D-489). Texto normal
+   y un borde fino; la activa sigue con el relleno de acento. La barra (enlaces `a`) no cambia. */
+.timetracker-module .tabs button{color:var(--tt-txt)}
+.timetracker-module .tabs button:not(.active){box-shadow:inset 0 0 0 1px var(--tt-line)}
 /* Los motivos de una excepción, en casillas (D-163). Cada una es del tamaño de un pulgar:
    esto se marca de pie, en la calle y a veces con guantes. Marcada cambia de fondo y no
    solo de casilla — un tic de 12 px a pleno sol no se ve. */
 .timetracker-module .motivos{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .timetracker-module .motivo{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:1px solid var(--tt-line);border-radius:10px;cursor:pointer;font-size:14px;font-weight:600}
+/* Una opción es un label, y el label del módulo es la etiqueta gris de un campo (y el del hub va en
+   mayúsculas): la opción NO marcada salía gris, como desactivada (D-489). Texto normal; lo que
+   distingue la marcada es su borde y su fondo. */
+.timetracker-module .motivo{color:var(--tt-txt);text-transform:none;letter-spacing:normal}
 .timetracker-module .motivo input{width:18px;height:18px;flex:0 0 18px;margin:0}
 .timetracker-module .motivo.on{border-color:var(--tt-accent);background:color-mix(in srgb, var(--tt-accent) 14%, transparent)}
+/* Una opción que de verdad no se puede elegir (p. ej. «vehículo de la empresa» sin flota): esa sí
+   se ve apagada, porque lo está (D-489). */
+.timetracker-module .motivo:has(input:disabled){opacity:.5;cursor:not-allowed}
 /* El nombre de quien ha entrado, que lleva a Mi cuenta (D-160). Se parece a una pestaña
    -mismo tamaño, mismo activo- pero sin el color del resto: es tu nombre, no una sección.
    El subrayado al pasar por encima es lo que dice que se puede pulsar; sin él, un nombre
@@ -144,9 +163,9 @@
 /* El ⟳ de recargar, solo dentro de la app de escritorio (D-280). Mismo aire que los botones de
    idioma y tema de esa barra, que llevan su fondo translúcido en línea. */
 .timetracker-module .topbar .tt-recargar{background:rgba(255,255,255,.1);color:#fff;font-size:15px;line-height:1;padding:5px 9px}
-.timetracker-module .topbar a.tt-me{color:#fff;opacity:.8;font-size:12px;font-weight:600;text-decoration:none;padding:6px 10px;border-radius:8px;white-space:nowrap}
-.timetracker-module .topbar a.tt-me:hover{opacity:1;text-decoration:underline;background:rgba(255,255,255,.08)}
-.timetracker-module .topbar a.tt-me.active{opacity:1;background:var(--tt-accent);text-decoration:none}
+.timetracker-module .topbar a.tt-me{color:#fff;font-size:12px;font-weight:600;text-decoration:none;padding:6px 10px;border-radius:8px;white-space:nowrap}
+.timetracker-module .topbar a.tt-me:hover{text-decoration:underline;background:rgba(255,255,255,.08)}
+.timetracker-module .topbar a.tt-me.active{background:var(--tt-accent);text-decoration:none}
 .timetracker-module .badge{position:absolute;top:-6px;right:-6px;background:var(--tt-danger);color:#fff;border-radius:999px;
      font-size:11px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 5px}
 
@@ -240,6 +259,8 @@
 .timetracker-module .rev-loc{white-space:nowrap;flex-shrink:0;order:-1}
 .timetracker-module button.rev-loc{border:0;cursor:pointer;font:inherit;font-size:11px;line-height:inherit}
 .timetracker-module .pill.neutral{background:var(--tt-chip);color:var(--tt-muted)}
+/* Fila inactiva (D-489): en el módulo, el gris es --tt-muted. Ver `.atenuado` en globals.css. */
+.timetracker-module .atenuado,.timetracker-module .atenuado td{color:var(--tt-muted)}
 
 /* Historial de excepciones (Auditoría → Exceptions, D-115). */
 .timetracker-module .exc-list{list-style:none;margin:6px 0 0;padding:0}

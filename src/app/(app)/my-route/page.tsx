@@ -503,7 +503,6 @@ export default function MyRoutePage() {
                         style={{
                           alignItems: "flex-start",
                           background: isNext ? "var(--accent-soft)" : undefined,
-                          opacity: isDone ? 0.6 : 1,
                         }}
                       >
                         <span style={{

@@ -77,7 +77,7 @@ export function VehiclesSection() {
           <thead><tr><th>{t("mgr.veh.colVehicle")}</th><th>{t("mgr.veh.colPlate")}</th><th /><th /></tr></thead>
           <tbody>
             {flota.map((v) => (
-              <tr key={v.id} style={v.active ? undefined : { opacity: 0.55 }}>
+              <tr key={v.id} className={v.active ? undefined : "atenuado"}>
                 <td>{v.name}</td>
                 <td className="small muted">{v.plate || "—"}</td>
                 <td>{v.active ? <span className="pill on">{t("mgr.veh.active")}</span> : <span className="pill off">{t("mgr.veh.off")}</span>}</td>

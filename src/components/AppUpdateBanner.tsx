@@ -170,7 +170,7 @@ function Dismiss({ onClick, label }: { onClick: () => void; label: string }) {
     <button
       onClick={onClick}
       title={label}
-      style={{ background: "none", border: "none", color: "#fff", opacity: 0.85, cursor: "pointer", fontSize: 15, padding: "0 4px" }}
+      style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 15, padding: "0 4px" }}
     >
       ✕
     </button>

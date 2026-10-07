@@ -80,7 +80,7 @@ export function GeofenceSection() {
             </thead>
             <tbody>
               {sites.map((f) => (
-                <tr key={f.id} style={f.active ? undefined : { opacity: 0.55 }}>
+                <tr key={f.id} className={f.active ? undefined : "atenuado"}>
                   <td>{f.name}</td>
                   <td className="small muted">
                     {f.boundary && f.boundary.length >= 3
