@@ -273,7 +273,8 @@ describe("la página del Gestor", () => {
     const siembra = pagina.indexOf('useState(() => { if (typeof window !== "undefined") siembraAnchosDeParadas(window.localStorage); return 0; });');
     expect(siembra).toBeGreaterThan(-1);
     expect(siembra).toBeLessThan(pagina.indexOf("const stopCols = useColWidthMap(LLAVE_DE_ANCHOS_DE_PARADAS"));
-    expect(pagina).toContain("const anchoDeParada = (clave: string) => stopCols.widthOf(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));");
+    // Puesto al día por D-NEXT: el de `_n` no baja de su partida (`anchoDelNumeroDeParada`); los demás, igual que antes.
+    expect(pagina).toContain("const anchoDeParada = (clave: string) => { const w = stopCols.widthOf(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS)); return clave === \"_n\" ? anchoDelNumeroDeParada(w) : w; };");
     expect(pagina).toContain("const asaDeParada = (clave: string) => stopCols.startResize(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));");
     expect(pagina).toContain('<span className="col-resizer" onMouseDown={asaDeParada(c.key)} />');
   });

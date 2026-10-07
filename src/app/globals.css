@@ -443,6 +443,12 @@ table.orders tr[data-fila-arrastrable] { -webkit-user-drag: element; }
 table.orders.tabla-de-paradas tbody td { height: 34px; }
 @media (max-width: 640px) { table.orders.tabla-de-paradas tbody td { height: 47px; } }
 table.orders.tabla-de-paradas td.celda-acciones { overflow: visible; }
+/* D-NEXT: el número de PARADA delante de la P/D de la orden. La primera fila de la parada, un círculo del color del chofer
+   con el número (como la burbuja del mapa); las siguientes de la misma parada, una raya del mismo color que las une. */
+.numero-de-parada { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 20px;
+  height: 20px; padding: 0 5px; margin-right: 5px; border-radius: 10px; color: #fff; font-size: 11px; font-weight: 800;
+  line-height: 1; vertical-align: middle; font-variant-numeric: tabular-nums; }
+.numero-de-parada.sigue { background: linear-gradient(currentColor, currentColor) center / 2px 100% no-repeat; }
 .acciones-de-parada { display: flex; gap: 3px; justify-content: flex-end; align-items: center; }
 /* Una fila ya HECHA (D-459): recogida o entregada, sigue en la lista de su chofer, apagada y sin controles. El verde es
    el de `row-done`; la entrega de una orden recogida y aún en camino va sin verde, en gris. */

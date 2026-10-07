@@ -249,7 +249,8 @@ describe("3 · el ID al lado de la factura, en la misma línea, sin subrayar («
     expect(css).toContain(".factura-e-id > :first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }");
   });
   it("la columna nace con el ancho justo para los dos (era 84), y la del número de parada cabe «✓P»", () => {
-    expect(ANCHO_FIJO_DE_PARADAS).toEqual({ _n: 46, _factura: 124, _cuenta: 100, _acciones: 150 });
+    // Puesto al día por D-NEXT: el número de parada nace con 96 (era 46): lleva el número de PARADA delante de la P/D.
+    expect(ANCHO_FIJO_DE_PARADAS).toEqual({ _n: 96, _factura: 124, _cuenta: 100, _acciones: 150 });
   });
 });
 
