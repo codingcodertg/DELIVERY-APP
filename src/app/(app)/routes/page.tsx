@@ -22,7 +22,7 @@ import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
 import { guardaMarcados, leeMarcados, marcadosVigentes, pasaElFiltro, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
 import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
-import { esTiendaRtg } from "@/lib/gestor/recogida-en-tienda";
+import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
@@ -53,7 +53,7 @@ import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { facturaYId, nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import {
-  COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, claveDelOrdenEnElNavegador,
+  COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, anchoDelNumeroDeParada, claveDelOrdenEnElNavegador,
   columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, columnasDelSelectorDeTodas, columnasDeTodas, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
   mueveEnElGestor, ordenDePlantillaDelGestor, ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas,
   seVeEnLaRecogida, sinLaFacturaDelPlan, tieneOrdenPropio, type ColumnaDelGestor, type TablaDelGestor,
@@ -135,8 +135,10 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 //   · En «▦ Cuadrícula», las tarjetas compactas arriba y, al pulsar un nombre, su tabla desplegada abajo a tamaño normal;
 //     los botones de acción solo en la desplegada (`lib/gestor/cuadricula`).
 //   · Un chofer sin órdenes ese día no sale en el panel ni en las tarjetas (`lib/gestor/rutas-visibles`).
-//   · El pin del mapa nombra la orden por su factura (`lib/gestor/nombre-en-el-mapa`), y una recogida en una tienda de RTG
-//     no lleva burbuja «P1» (`lib/gestor/recogida-en-tienda`).
+//   · El pin del mapa nombra la orden por su factura (`lib/gestor/nombre-en-el-mapa`).
+//   · D-NEXT: la ruta se numera por PARADAS (`lib/gestor/paradas-numeradas`): filas seguidas en el mismo sitio (la regla de
+//     los grupos de D-444) son UNA parada, «1», «2»…; la tabla lleva el número delante de la P/D de cada orden, y el mapa
+//     una burbuja por parada con su número —también la de una tienda de RTG, que D-481 (d) había quitado—.
 // ============================================================
 
 const UNASSIGNED_COLOR = "#6b7686";
@@ -212,7 +214,8 @@ export default function RoutesPage() {
   // lea la llave nueva — por eso va en un inicializador de estado justo delante, que corre antes en el primer render.
   useState(() => { if (typeof window !== "undefined") siembraAnchosDeParadas(window.localStorage); return 0; });
   const stopCols = useColWidthMap(LLAVE_DE_ANCHOS_DE_PARADAS, 100);
-  const anchoDeParada = (clave: string) => stopCols.widthOf(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));
+  // D-NEXT: el número de parada nunca más estrecho que su partida (lleva el número de parada y la P/D de la orden).
+  const anchoDeParada = (clave: string) => { const w = stopCols.widthOf(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS)); return clave === "_n" ? anchoDelNumeroDeParada(w) : w; };
   const asaDeParada = (clave: string) => stopCols.startResize(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));
   // Qué columnas ve esta persona en el Gestor. Nace con el defecto —todas, con la FACTURA— y se guarda por persona en
   // `user_prefs` (`routes_columns`). Aquí no hay nada en el navegador que sembrar.
@@ -1808,8 +1811,6 @@ export default function RoutesPage() {
       carriles: lanes, porChofer: byDriver, delDia: dayOrders, hechas: hechasPintadas,
       pasaFiltro, soloUnChofer: soloAlgunos(filtroChofer), enfocado: focused, atenuada: isDim,
       colorDe: colorFor, colorSinChofer: UNASSIGNED_COLOR,
-      // D-481 (d): una recogida en una tienda de RTG no lleva burbuja «P1»: la casita y la base ya están ahí.
-      recogidaEnTienda: (lugar) => esTiendaRtg(lugar, settings.stores ?? []),
       baseDe: (clave) => {
         const addr = (pickupAddressFor(clave) ?? "").trim();
         // En solo lectura la base sale de Ajustes (con `buscaBases: "si_falta"` no se busca su dirección): `baseDeLaRuta`.
@@ -2701,6 +2702,18 @@ export default function RoutesPage() {
         const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);
         // Filas SEGUIDAS en el mismo sitio (D-444): cada una en su fila, pintadas como grupo con un tono más fuerte.
         const grupos = gruposDeMismoLugar(lectura.paradas, stops);
+        // La ruta por PARADAS (D-NEXT): filas seguidas en el mismo sitio —la misma regla de los grupos— son una parada, con un
+        // número. La primera fila de cada parada lleva el número; las demás, la raya de que sigue. Las ya hechas no cuentan.
+        const numeradas = paradasDeLaRuta(lectura.filas, stops);
+        const numeroDeParada = (fi: number) => {
+          const n = numeradas.deFila[fi];
+          const p = n != null ? numeradas.paradas[n - 1] : undefined;
+          if (!p) return null;
+          const titulo = textoDeLaParada(p, [], t);
+          return numeradas.primera[fi]
+            ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorFor(u.driver) }}>{n}</span>
+            : <span className="numero-de-parada sigue" data-sigue-la-parada={n} title={titulo} style={{ color: colorFor(u.driver) }} />;
+        };
         const claseDeGrupo = (f: FilaDeLaRuta): string => {
           const g = f.indice != null ? grupos[f.indice] : null;
           if (g == null || f.indice == null) return "";
@@ -2789,7 +2802,7 @@ export default function RoutesPage() {
                   Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión. */}
               {stops.length > 0 && (
                 <span className="hint" data-totales-de-la-lista style={{ marginTop: 0 }}>
-                  {cuenta.totales.paradas} {t("stops", "paradas")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}
+                  {numeradas.paradas.length} {t("stops", "paradas")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}
                 </span>
               )}
               {cuenta.totales.paradasConExceso > 0 && (
@@ -2983,7 +2996,7 @@ export default function RoutesPage() {
                           onClick={(e) => e.stopPropagation()}
                           onChange={() => setMarcadas((s) => { const n = new Set(s); const todas = stops.every((d) => n.has(d.id)); for (const d of stops) { if (todas) n.delete(d.id); else n.add(d.id); } return n; })}
                           aria-label={t(`Select every order of ${u.label}`, `Marcar todas las órdenes de ${u.label}`)} style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />}
-                        #<span className="col-resizer" onMouseDown={asaDeParada("_n")} />
+                        {t("Stop", "Parada")}<span className="col-resizer" onMouseDown={asaDeParada("_n")} />
                       </th>
                       {/* La FACTURA, con el ID al lado (D-459; D-456 lo ponía debajo; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
                       <th data-columna-factura title={t("The invoice opens the order; its ID goes next to it", "La factura abre la orden; al lado va su ID")}>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>
@@ -3071,7 +3084,7 @@ export default function RoutesPage() {
                           <tr key={`P-${fi}-${clave}`} data-recogida={f.etiqueta} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}${claseDeSoltar}`}
                             data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
                             style={{ ...(resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}), ...(seArrastra ? { cursor: "grab" } : {}) }} data-recien-movida={resaltada ? "" : undefined}>
-                            <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
+                            <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(fi)}{f.etiqueta}</td>
                             <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {colsParadas.map((c) => {
@@ -3099,7 +3112,7 @@ export default function RoutesPage() {
                         // La entrega de OTRA carga de una orden que el motor repartió: informa, no se mueve.
                         return (
                           <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D")}>
-                            <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{f.etiqueta}</td>
+                            <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(fi)}{f.etiqueta}</td>
                             <td className="ordno">{facturaConSuId(d)}</td>
                             {celdaDeCuenta}
                             <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
@@ -3142,7 +3155,7 @@ export default function RoutesPage() {
                             {acciones && <input type="checkbox" data-marca-orden={d.id} checked={marcadas.has(d.id)} onChange={() => alternaMarca(d.id)} onClick={(e) => e.stopPropagation()}
                               aria-label={t(`Select ${facturaYId(d).principal} to assign it to another driver`, `Marcar ${facturaYId(d).principal} para asignarla a otro chofer`)}
                               style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />}
-                            {f.etiqueta}
+                            {numeroDeParada(fi)}{f.etiqueta}
                           </td>
                           {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
                               «carga 1 de 2» si es una carga de una orden partida (D-452). */}
