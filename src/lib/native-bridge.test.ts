@@ -65,3 +65,15 @@ describe("missingPermissions", () => {
     expect(missingPermissions(s)[0]).toBe("location");
   });
 });
+
+describe("D-492 · «No pausar la app»: abre «Info de la app» y dice los pasos", () => {
+  it("el botón abre la info de la app; la pantalla dedicada queda de segundo botón; los pasos se ven", async () => {
+    const { readFileSync } = await import("node:fs");
+    const gate = readFileSync("src/components/DriverGate.tsx", "utf8");
+    expect(gate).toContain('else if (k === "hibernation") await openAppSettingsPage();');
+    expect(gate).toContain('action: t("Open app info", "Abrir info de la app")');
+    expect(gate).toContain("data-pasos-no-pausar");
+    expect(gate).toContain("onClick={() => void requestHibernationExemption()}");
+    expect(gate).toContain("Pausar actividad de la app si no se usa");
+  });
+});

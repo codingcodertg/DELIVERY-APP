@@ -83,7 +83,11 @@ export function DriverGate({ children }: { children: React.ReactNode }) {
     else if (k === "backgroundLocation") await requestBackgroundLocationPermission();
     else if (k === "notifications") await requestNotificationPermission();
     else if (k === "battery") await requestBatteryExemption();
-    else if (k === "hibernation") await requestHibernationExemption();
+    // D-492: «Info de la app», no la pantalla dedicada. En Android 13/14 (el Motorola de Julio, 2026-10-07) el intent de
+    // auto-revocación aterriza en «Uso de batería», que NO tiene el interruptor, y el chofer se queda dando vueltas. El
+    // interruptor «Pausar actividad de la app si no se usa» vive en «Info de la app». La pantalla dedicada queda como
+    // segundo botón por si algún teléfono la tiene y la de info no.
+    else if (k === "hibernation") await openAppSettingsPage();
     const after = await refresh();
     setBusy(null);
     setStuck((n) => (JSON.stringify(after) === before ? n + 1 : 0));
@@ -125,9 +129,21 @@ export function DriverGate({ children }: { children: React.ReactNode }) {
         "Android pauses apps you don't OPEN — and a phone working all day in a cradle is never opened. This is the one that takes your permissions back.",
         "Android pausa las apps que no ABRES — y un teléfono trabajando todo el día en el soporte nunca se abre. Este es el que te quita los permisos.",
       ),
-      action: t("Open setting", "Abrir ajuste"),
+      action: t("Open app info", "Abrir info de la app"),
     },
   };
+
+  // Los pasos de «No pausar la app», a la vista (D-492). El dueño, 2026-10-07, con video del teléfono de Julio: «mira no
+  // saben como hacer eso de open setting». El nombre del interruptor cambia según la marca; se dicen los tres.
+  const pasosDeNoPausar = [
+    t("Tap “Open app info”.", "Toca «Abrir info de la app»."),
+    t(
+      "Scroll down to “Pause app activity if unused” (on some phones “Remove permissions if app is unused” or “Manage app if unused”).",
+      "Baja hasta «Pausar actividad de la app si no se usa» (en algunos teléfonos «Quitar permisos si no se usa» o «Administrar app si no se usa»).",
+    ),
+    t("Turn it OFF.", "Apágalo."),
+    t("Come back to this app — it checks again by itself.", "Regresa a esta app — se vuelve a revisar sola."),
+  ];
 
   const order: Key[] = ["location", "backgroundLocation", "notifications", "battery", "hibernation"];
   const pending = order.filter((k) => missing.includes(k));
@@ -169,6 +185,16 @@ export function DriverGate({ children }: { children: React.ReactNode }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700 }}>{copy[k].title}</div>
                 {denied && <div className="hint" style={{ marginTop: 2 }}>{copy[k].why}</div>}
+                {isCurrent && k === "hibernation" && (
+                  <div data-pasos-no-pausar style={{ marginTop: 8 }}>
+                    <ol style={{ margin: "0 0 8px", paddingLeft: 20, fontSize: 14, lineHeight: 1.45 }}>
+                      {pasosDeNoPausar.map((p) => <li key={p}>{p}</li>)}
+                    </ol>
+                    <button className="btn btn-ghost btn-sm" onClick={() => void requestHibernationExemption()}>
+                      {t("Not there? Try the other screen", "¿No está ahí? Prueba la otra pantalla")}
+                    </button>
+                  </div>
+                )}
               </div>
               {isCurrent && (
                 <button className="btn btn-primary" disabled={busy !== null} onClick={() => void fix(k)}>
