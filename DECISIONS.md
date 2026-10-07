@@ -23313,7 +23313,7 @@ colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y ti
 > guardada, 154, o la regla de bloques por capacidad). La numeración (P por orden de recogida, `Dk` = entrega de `Pk`) y
 > «una tienda seguida = una parada» siguen.
 >
-> **Reemplazada en parte por D-NEXT** (2026-10-06, la ruta por paradas): en el Gestor (y «Ruta de hoy») el mapa ya no
+> **Reemplazada en parte por D-485** (2026-10-06, la ruta por paradas): en el Gestor (y «Ruta de hoy») el mapa ya no
 > pinta «D1, D2…» ni «P1·P2» en las burbujas: pinta el NÚMERO DE PARADA (1, 2, 3…), una burbuja por parada, del color del
 > chofer; la tabla lleva ese número delante de la P/D de cada fila. Las etiquetas P/D y sus reglas no cambian.
 
@@ -37703,7 +37703,7 @@ no lo nombró.
 
 > **Reemplazada en parte por D-482:** en «Cuadrícula» la desplegada ya no repite la cabecera y sale pegada a su compacta, con animación.
 >
-> **Reemplazada en parte por D-NEXT** (2026-10-06): (d) se deshace. Con la ruta numerada por paradas, la recogida en una
+> **Reemplazada en parte por D-485** (2026-10-06): (d) se deshace. Con la ruta numerada por paradas, la recogida en una
 > tienda de RTG vuelve a llevar burbuja —ahora con su número de parada («1»), una por parada, no una «P1» por orden—: sin
 > ella el mapa empezaba a contar en 2. `lib/gestor/recogida-en-tienda.ts` se quitó.
 
@@ -37971,7 +37971,7 @@ de todos por decisión de D-451.
 - La RLS no se cerró (arriba, el plan).
 - Los textos en español no se vieron: el demo y las pruebas corren en inglés; están escritos al lado de cada texto en `t(en, es)`.
 
-## D-NEXT · Gestor de Rutas y «Ruta de hoy»: la ruta se numera por PARADAS (1, 2, 3…), y varias recogidas seguidas en la misma tienda son una sola parada
+## D-485 · Gestor de Rutas y «Ruta de hoy»: la ruta se numera por PARADAS (1, 2, 3…), y varias recogidas seguidas en la misma tienda son una sola parada
 
 **Fecha:** 2026-10-06 · **Versión:** la pone el orquestador (Entregas) · **Migración:** ninguna. **No cambia el orden ni el
 motor:** solo cómo se numera y se pinta lo que ya hay. **Reemplaza en parte a** D-334 (la etiqueta de las burbujas del mapa) y
@@ -38051,7 +38051,7 @@ mide 390 y la celda del número 96 (le hacen falta 94). En «Ruta de hoy», las 
 Nueva `src/lib/gestor/paradas-numeradas.test.ts`: el ejemplo del dueño (P1·P2·P3 = 1, D1 = 2…), entregas a la misma dirección,
 la misma tienda más adelante, P y D sin juntar, una recogida sin tienda sola, el texto en/es, el mapa (una burbuja por parada,
 la de la tienda con su número, la marcada aparte, una orden repartida en dos cargas), y que la pantalla, el mapa y la leyenda
-usan las piezas. Puestas al día con su nota «D-NEXT»: `rutas-del-dia` (las burbujas y sus rótulos), `gestor-y-ruta-de-hoy`
+usan las piezas. Puestas al día con su nota «D-485»: `rutas-del-dia` (las burbujas y sus rótulos), `gestor-y-ruta-de-hoy`
 (la sección d, al revés), `lista-unica` (la cabecera), `routes-columns`, `gestor-mover-columnas` y
 `gestor-entregadas-y-vista` (el ancho del número).
 

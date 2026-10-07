@@ -136,7 +136,7 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 //     los botones de acción solo en la desplegada (`lib/gestor/cuadricula`).
 //   · Un chofer sin órdenes ese día no sale en el panel ni en las tarjetas (`lib/gestor/rutas-visibles`).
 //   · El pin del mapa nombra la orden por su factura (`lib/gestor/nombre-en-el-mapa`).
-//   · D-NEXT: la ruta se numera por PARADAS (`lib/gestor/paradas-numeradas`): filas seguidas en el mismo sitio (la regla de
+//   · D-485: la ruta se numera por PARADAS (`lib/gestor/paradas-numeradas`): filas seguidas en el mismo sitio (la regla de
 //     los grupos de D-444) son UNA parada, «1», «2»…; la tabla lleva el número delante de la P/D de cada orden, y el mapa
 //     una burbuja por parada con su número —también la de una tienda de RTG, que D-481 (d) había quitado—.
 // ============================================================
@@ -214,7 +214,7 @@ export default function RoutesPage() {
   // lea la llave nueva — por eso va en un inicializador de estado justo delante, que corre antes en el primer render.
   useState(() => { if (typeof window !== "undefined") siembraAnchosDeParadas(window.localStorage); return 0; });
   const stopCols = useColWidthMap(LLAVE_DE_ANCHOS_DE_PARADAS, 100);
-  // D-NEXT: el número de parada nunca más estrecho que su partida (lleva el número de parada y la P/D de la orden).
+  // D-485: el número de parada nunca más estrecho que su partida (lleva el número de parada y la P/D de la orden).
   const anchoDeParada = (clave: string) => { const w = stopCols.widthOf(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS)); return clave === "_n" ? anchoDelNumeroDeParada(w) : w; };
   const asaDeParada = (clave: string) => stopCols.startResize(clave, anchoDePartidaDeParada(clave, COLUMN_WIDTHS));
   // Qué columnas ve esta persona en el Gestor. Nace con el defecto —todas, con la FACTURA— y se guarda por persona en
@@ -2702,7 +2702,7 @@ export default function RoutesPage() {
         const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);
         // Filas SEGUIDAS en el mismo sitio (D-444): cada una en su fila, pintadas como grupo con un tono más fuerte.
         const grupos = gruposDeMismoLugar(lectura.paradas, stops);
-        // La ruta por PARADAS (D-NEXT): filas seguidas en el mismo sitio —la misma regla de los grupos— son una parada, con un
+        // La ruta por PARADAS (D-485): filas seguidas en el mismo sitio —la misma regla de los grupos— son una parada, con un
         // número. La primera fila de cada parada lleva el número; las demás, la raya de que sigue. Las ya hechas no cuentan.
         const numeradas = paradasDeLaRuta(lectura.filas, stops);
         const numeroDeParada = (fi: number) => {

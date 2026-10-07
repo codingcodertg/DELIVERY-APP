@@ -245,7 +245,7 @@ describe("los anchos de paradas, por clave", () => {
       // Ventanas 100). Lo heredado de `stops8` (la prueba de abajo) no cambia: eso es lo que la persona arrastró.
       // D-456: Llegada 84 (era 60): cuando aún no hay hora la celda dice por qué («calculando…», «tienda sin punto»).
       // D-459: la factura 124 (era 84): lleva su ID al lado, en la misma línea. Y el número de parada 46 (era 40): «✓P».
-      // D-NEXT: el número de parada 96 (era 46): el número de PARADA va delante de la P/D de la orden.
+      // D-485: el número de parada 96 (era 46): el número de PARADA va delante de la P/D de la orden.
       [96, 124, 100, undefined, 172, 84, 100, 150][i] ?? w));
     expect(ANCHO_FIJO_DE_PARADAS._cuenta).toBe(100);
     // Las de Órdenes, con el ancho de Órdenes, como antes (`stopExtraCols.widthOf(deOrdenes)`).

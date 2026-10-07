@@ -10,7 +10,7 @@ import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import type { ParadaDelDia } from "@/lib/rutas-del-dia";
 
 /**
- * D-NEXT · la ruta del Gestor numerada por PARADAS. El dueño, 2026-10-06 (dictado): «vamos a hacerlo ahora por stops, like
+ * D-485 · la ruta del Gestor numerada por PARADAS. El dueño, 2026-10-06 (dictado): «vamos a hacerlo ahora por stops, like
  * stop. 1, 2, 3, 4, 5, 6, en vez de P1, P2, P3 […] en stop 1 va a recoger P1, P2, P3. Y después, la segunda stop va a ser D1».
  */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");

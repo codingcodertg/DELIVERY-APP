@@ -487,13 +487,13 @@ export function preferenciasDelGestorAlLeer(suyas: readonly string[] | undefined
 // D-459: la factura nace con 124 (era 84): ahora lleva su ID al lado, en la misma línea («147912 #FT570»), no debajo. Es
 // lo justo para una factura de 8 caracteres y un ID de 6; si no cabe, el ID se corta con «…». Y el número de parada con 46
 // (era 40): una fila ya hecha dice «✓P» / «✓D». Quien arrastró sus anchos los conserva.
-// D-NEXT: el número de parada nace con 96 (era 46): la celda lleva el número de PARADA («1», en un círculo del color del
+// D-485: el número de parada nace con 96 (era 46): la celda lleva el número de PARADA («1», en un círculo del color del
 // chofer) delante de la etiqueta de la orden («P1»), y en una entrega también la casilla de «Asignar a…». Medido en el demo
 // a 390 (relleno de 12 px por lado): «☐ 2 D1» pide 80; con dos cifras («☐ 12 D10») hacen falta ~94.
 export const ANCHO_FIJO_DE_PARADAS: Readonly<Record<string, number>> = { _n: 96, _factura: 124, _cuenta: 100, _acciones: 150 };
 
 /**
- * D-NEXT: lo MENOS que mide la columna del número de parada, aunque alguien la haya arrastrado más estrecha antes (D-410
+ * D-485: lo MENOS que mide la columna del número de parada, aunque alguien la haya arrastrado más estrecha antes (D-410
  * guarda los anchos por clave): con 46 guardados, cada entrega se leía «☐ …» y el número de parada no se veía.
  */
 export function anchoDelNumeroDeParada(guardado: number): number {

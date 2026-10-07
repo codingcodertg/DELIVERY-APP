@@ -227,14 +227,14 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
     expect(de("__depot__u-ana")).toMatchObject({ badge: "P", color: "rojo", lat: 26.19 });
     // Caro no tiene paradas: sin base en el mapa.
     expect(pts.some((p) => p.id === "__depot__u-caro")).toBe(false);
-    // Puesto al día por D-NEXT (la ruta por paradas): la burbuja lleva el NÚMERO DE PARADA, no «D1»/«P1». Ana recoge sus
+    // Puesto al día por D-485 (la ruta por paradas): la burbuja lleva el NÚMERO DE PARADA, no «D1»/«P1». Ana recoge sus
     // dos órdenes en Pharr, seguidas: UNA parada, «1» (antes dos burbujas, «P1» y «P2»); después D1 es la parada 2 y D2 la 3.
     expect(de("a1")).toMatchObject({ badge: "2", color: "rojo", dimmed: false });
     expect(de("a2")).toMatchObject({ badge: "3", color: "rojo" });
     expect(de("b1")).toMatchObject({ badge: "2", color: "verde" });
     expect(pts.filter((p) => p.id.startsWith("__parada__Ana__")).map((p) => p.badge)).toEqual(["1"]);
     expect(pts.find((p) => p.id === "__parada__Ana__1")!.label).toBe("Stop 1 — pick up P1, P2 · #FA1 (no invoice), #FA2 (no invoice) — Ana · Pharr");
-    // Puesto al día por D-481 (a): el pin nombra la orden por su FACTURA; sin ella, por su ID y «sin factura». Y por D-NEXT,
+    // Puesto al día por D-481 (a): el pin nombra la orden por su FACTURA; sin ella, por su ID y «sin factura». Y por D-485,
     // dice qué se hace en esa parada.
     expect(de("a1").label).toBe("Stop 2 — deliver D1 · #FA1 (no invoice) — Ana");
   });
@@ -253,7 +253,7 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
   });
   it("«Ruta de hoy» añade al rótulo la ciudad, los pallets y la llegada — y nada más", () => {
     const pts = puntos(new Set(), (d) => `${d.delivery_city} · ${d.est_pallets} pallets`);
-    // Puesto al día por D-NEXT: el rótulo empieza por la parada y lo que se hace en ella.
+    // Puesto al día por D-485: el rótulo empieza por la parada y lo que se hace en ella.
     expect(pts.find((p) => p.id === "a2")!.label).toBe("Stop 3 — deliver D2 · #FA2 (no invoice) — Ana · McAllen · 3 pallets");
     // El Gestor no pasa `detalleDe`: sus rótulos son los de siempre.
     expect(puntos().find((p) => p.id === "a2")!.label).toBe("Stop 3 — deliver D2 · #FA2 (no invoice) — Ana");

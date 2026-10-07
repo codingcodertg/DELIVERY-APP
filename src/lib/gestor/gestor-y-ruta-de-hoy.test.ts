@@ -92,10 +92,10 @@ describe("f · un chofer sin órdenes no sale en la lista", () => {
   });
 });
 
-// Puesto al día por D-NEXT (la ruta por paradas): la burbuja de una recogida en una tienda de RTG VUELVE, ahora con su número
+// Puesto al día por D-485 (la ruta por paradas): la burbuja de una recogida en una tienda de RTG VUELVE, ahora con su número
 // de parada («1»), una por parada. Sin ella el mapa empezaba a contar en 2. `esTiendaRtg` (lib/gestor/recogida-en-tienda) se
 // quitó: nadie más la usaba. Lo de las paradas se prueba en `paradas-numeradas.test.ts`.
-describe("d · (D-NEXT) la parada en una tienda de RTG lleva su número en el mapa", () => {
+describe("d · (D-485) la parada en una tienda de RTG lleva su número en el mapa", () => {
   const p = (x: Partial<ParadaDelDia> & { id: string }): ParadaDelDia => ({
     order_no: 1, order_code: null, order_suffix: null, stage: "approved", assigned_driver: "Ana", route_seq: 0, pickup_seq: null, load_no: null,
     actual_pallets: null, est_pallets: 2, store: "RDZ Pharr", store_lat: 26.19, store_lng: -98.18, delivery_lat: 26.3, delivery_lng: -98.2,

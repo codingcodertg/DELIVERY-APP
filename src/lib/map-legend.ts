@@ -80,7 +80,7 @@ export function leyendaDelMapa(a: {
     out.push({ clave: "ruta_sin_chofer", forma: "linea", color: COLOR_SIN_ASIGNAR, discontinua: true, en: "Route of an order with no driver", es: "Ruta de una orden sin chofer" });
   }
   if (a.rutasDelDia) {
-    // D-NEXT: las burbujas de una ruta llevan el número de PARADA (1, 2, 3…), no «P1»/«D1»: una parada en la tienda recoge
+    // D-485: las burbujas de una ruta llevan el número de PARADA (1, 2, 3…), no «P1»/«D1»: una parada en la tienda recoge
     // una o varias órdenes; una en el cliente las entrega. Las claves no cambian.
     out.push({ clave: "recogida_de_ruta", forma: "pin", color: COLOR_RECOGIDA, insignia: "1", en: "Stop 1, 2, 3… in route order: pick up at the store", es: "Parada 1, 2, 3… en el orden de la ruta: recoger en la tienda" });
     out.push({ clave: "entrega_de_ruta", forma: "pin", color: COLOR_RECOGIDA, insignia: "2", en: "Stop: deliver, in its driver's color", es: "Parada: entregar, del color de su chofer" });

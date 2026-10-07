@@ -24,7 +24,7 @@ import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas
 /** Lo que hace falta de una orden para pintarla. `Delivery` lo cumple, y la parada mínima de `rutas_del_dia` (160) también. */
 export interface OrdenDelMapa extends OrdenAsignada {
   order_no: number;
-  /** D-NEXT: dos entregas seguidas a la misma dirección son UNA parada (`gruposDeMismoLugar`). */
+  /** D-485: dos entregas seguidas a la misma dirección son UNA parada (`gruposDeMismoLugar`). */
   delivery_address?: string | null;
   order_code?: string | null;
   order_suffix?: string | null;
@@ -157,7 +157,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       dimmed: e.atenuada(u.key) || selActive,
     });
   }
-  // Las PARADAS de cada ruta (D-NEXT; antes, una burbuja por recogida con su «P1», D-334/D-443): una burbuja por parada,
+  // Las PARADAS de cada ruta (D-485; antes, una burbuja por recogida con su «P1», D-334/D-443): una burbuja por parada,
   // con su número (1, 2, 3…) en el color del chofer, en el orden de la lista. Tres recogidas seguidas en la misma tienda
   // son UNA burbuja, «1», y al pasar el ratón dice qué se hace ahí («Parada 1 — recoger P1, P2, P3 · INV-…»). Entregas
   // seguidas a la misma dirección, igual: la burbuja la lleva la primera que se pinta; las demás no salen aparte.

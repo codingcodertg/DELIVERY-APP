@@ -2,7 +2,7 @@ import { gruposDeMismoLugar, type ParadaDeLaLista } from "@/lib/lista-unica";
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 
 /**
- * La ruta de un chofer numerada por PARADAS (D-NEXT). El dueño, 2026-10-06 (dictado): «vamos a hacerlo ahora por stops,
+ * La ruta de un chofer numerada por PARADAS (D-485). El dueño, 2026-10-06 (dictado): «vamos a hacerlo ahora por stops,
  * like stop. 1, 2, 3, 4, 5, 6, en vez de P1, P2, P3 […] en stop 1 va a recoger P1, P2, P3. Y después, la segunda stop va a
  * ser D1».
  *
