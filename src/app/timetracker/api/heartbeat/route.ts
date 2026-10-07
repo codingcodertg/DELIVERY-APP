@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { capacitacionDeLaPeticion } from "@/lib/timetracker/capacitacion-servidor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,9 @@ const SNAKE: Record<(typeof NUM)[number], string> = {
 };
 
 export async function POST(req: Request) {
+  // Modo capacitación (D-490): el cronómetro de práctica también late al cerrar la página, con su id
+  // de práctica. No se escribe nada; se contesta sin error para que el navegador no reintente.
+  if (await capacitacionDeLaPeticion()) return NextResponse.json({ ok: true, capacitacion: true });
   let body: Record<string, unknown>;
   try { body = JSON.parse(await req.text()); } catch { return NextResponse.json({ error: "bad_json" }, { status: 400 }); }
   const id = typeof body.id === "string" ? body.id : "";

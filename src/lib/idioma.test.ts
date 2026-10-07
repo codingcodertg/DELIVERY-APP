@@ -231,10 +231,14 @@ describe("el idioma se escribe en un solo sitio", () => {
     expect(prefs).toMatch(/leerAvisos:[\s\S]*?\.schema\("clockin"\)\s*\.from\("profiles"\)\s*\.select\("language"\)/);
   });
 
-  it("Mi perfil elige el idioma con el mismo setLang que todos", () => {
+  // Hasta D-490 esto era «Mi perfil elige el idioma con el mismo setLang que todos». El idioma se
+  // mudó al personalizador del hub, el único sitio donde se elige; Mi perfil solo enlaza hasta allí.
+  it("el personalizador elige el idioma con el mismo setLang que todos, y Mi perfil ya no lo elige", () => {
+    const pers = sinComentarios(readFileSync("src/components/profile/Personalizador.tsx", "utf8"));
+    expect(pers).toContain("onClick={() => setLang(o.valor)}");
     const perfil = sinComentarios(readFileSync("src/components/profile/ProfileView.tsx", "utf8"));
-    expect(perfil).toContain('setLang("en")');
-    expect(perfil).toContain('setLang("es")');
+    expect(perfil).not.toContain("setLang");
+    expect(perfil).toContain("href={RUTA_PERSONALIZAR}");
   });
 });
 

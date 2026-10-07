@@ -3472,6 +3472,11 @@ algún momento, no dejarla así por accidente.
 ---
 
 ## D-080 · El desktop siempre caía en modo claro — nunca tuvo forma de estar oscuro
+
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): el botón ☀️/🌙 de la barra de Time Tracker ya no existe; el tema
+> se elige en «Personalizar», en el hub (`/home/personalizar`), que añade una tercera opción, «Como mi equipo». El guion de
+> antes de pintar sigue arrancando el escritorio en oscuro sin elección guardada; ahora vive en `src/lib/tema.ts`.
+
 **Fecha:** 2026-08-21 · **Versión:** v1.20.0 (deliveries-app) · v0.0.45
 (desktop) · **Pedido por:** Andrés (*"quiero que este al mismo tamano
 del window y quiero que crees un darkmode muy agradable y eficiente"*)
@@ -7303,6 +7308,9 @@ pantallas de gerente.
 
 ## D-160 · A "Mi cuenta" se entra tocando tu nombre
 
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): tocar tu nombre ya no lleva a «Mi cuenta»: abre el menú de la
+> cuenta (el mismo de Entregas), y «Mi cuenta» es una de sus opciones. La ruta `/timetracker/account` no cambia.
+
 **Fecha:** 2026-09-01 · **Versión:** v0.45.0 (timetracker)
 
 Era una pestaña más, y a un admin la barra le pone quince. "Mi cuenta" es la que menos se abre —se
@@ -9303,6 +9311,9 @@ prefijo borrado. Regla que queda: **una clave construida en el código no se pue
 buscando literales**; la prueba de D-187 solo ve claves literales, y así hay que escribirlas.
 
 ## D-203 · Auditoría 2026-09-05, lote 5a (el ERP en dos idiomas, primera mitad): el mecanismo, el conmutador y las cinco pantallas de más uso
+
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): el conmutador ES/EN de `side-nav.tsx` ya no existe; en su sitio va
+> un enlace a «Personalizar», en el hub, donde se elige el idioma de todas las apps. El ERP sigue el idioma del hub como antes.
 
 **Fecha:** 2026-09-05 · **Versión:** erp 0.6.0, package.json 1.120.0 (solo `erp` se toca) ·
 **Pedido por:** Andrés, sobre `docs/AUDIT-2026-09-05.md` (G-10), dividido en dos ramas para que el
@@ -16545,6 +16556,9 @@ prueba no fije el formato.
 > contraseña temporal (marca `must_change_password` en `user_metadata`) la cambia en `/change-password`, sin pedir la actual,
 > por `POST /api/profile/password/forced`. Fuera de ese caso, «Mi perfil» sigue siendo el único sitio.
 
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): el idioma y el tema ya no se eligen en «Mi perfil» sino en
+> «Personalizar» (`/home/personalizar`), el único sitio para los dos; «Mi perfil» enlaza allí. La contraseña no cambia.
+
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia código de las tres
 apps y del hub · **Sin migración** · **Pedido por:** el dueño: *«los usuarios en el RTG Hub
 deberían poder acceder a su perfil y setear todo desde el hub para todas las apps; es un solo
@@ -16648,6 +16662,10 @@ Quince cambios: **catorce caen y un gemelo se queda en verde**.
   cambio.
 
 ## D-266 · Un solo idioma para todas las apps y los avisos, que sigue a la persona
+
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): el idioma ya no se cambia desde las barras (Time Tracker, RR. HH.,
+> ERP) ni desde «Mi perfil», sino solo en «Personalizar», en el hub. Dónde se guarda (`profiles.language`) y cómo lo sigue
+> Time Tracker no cambian.
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia el proveedor de
 preferencias del hub, Time Tracker y «Mi perfil» · **Migración: `112_profile_language.sql`**, que
@@ -17438,6 +17456,10 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 ## D-274 · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
 
 > **⚠ Reemplazada en parte por D-467** (2026-10-04): la leyenda del mapa (§ de la leyenda) ya no explica «la ruta de las órdenes elegidas» ni «la recogida de la orden elegida», porque el Mapa pasó a ser «Ruta de hoy», de solo lectura. Explica las marcas de una ruta: P, D, ✓, la línea del chofer y su regreso; el camión, solo a quien recibe las posiciones.
+
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): (1) el menú del nombre lleva «Personalizar» para todos, justo antes
+> de salir, y «Salir» se llama «Cerrar sesión»; su armazón pasó a `MenuDeCuenta`, que comparten Time Tracker y RR. HH. (2)
+> Time Tracker ya no «sigue con los dos botones»: deja el selector de módulos y monta la casa sola, como Entregas.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas y «Mi perfil») · Sin migración.
 **Pedido por el dueño**, cuatro cosas en la barra y el mapa de Entregas: la casa del hub a la derecha,
@@ -38261,6 +38283,9 @@ No visto en navegador: `tsc` y vitest.
 
 ## D-489 · Time Tracker, vista del empleado: sin «Mi diario»; «Mi semana» solo con horas y con el boletín y los fichajes de hoy; bajo el reloj solo «Mi horario» y «Notas del día»; «Tiempo libre» antes que «Tiempo»; «Voy a salir» pregunta vehículo personal o de la empresa; y fuera los botones que parecían desactivados sin estarlo, en toda la app
 
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): la fila `a.tt-me` de la auditoría de botones ya no aplica: el
+> nombre de la barra de Time Tracker dejó de ser un enlace a «Mi cuenta» y abre el menú de la cuenta.
+
 **Fecha:** 2026-10-06 · **Versión:** timetracker 0.97.0, clockin 0.43.0, recruiting 0.38.1, deliveries 1.267.1, erp 0.14.1, repo 1.362.0 (toca `timetracker` sobre todo, y de paso
 `deliveries` y `recruiting` por la auditoría de botones, y una línea del ERP) · **Migración:** ninguna ·
 **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-067, D-069, D-116, D-125, D-129, D-136 y D-455, que llevan
@@ -38441,3 +38466,221 @@ a borde discontinuo y opacos.
 - El «—» de semanas pasadas del presencial es deliberado pero no ideal: para enseñarle sus horas fichadas de semanas
   anteriores haría falta una acción nueva que lea sus `time_entries` por periodo (hoy `getEmployeeWeek` es solo de gerente).
 - El aviso de hidratación «Loading…/Cargando…» de la pantalla de fichar en español (D-455) sigue igual.
+
+## D-490 · Time Tracker: la barra como la de Entregas (el nombre abre el menú; fuera el rol, el ES/EN, el 🌙 y el «Sign out» suelto), un modo capacitación para todos donde nada se guarda, y un solo «Personalizar» en el hub para el idioma y el tema de todas las apps
+
+**Fecha:** 2026-10-07 · **Versión:** timetracker 0.98.0, clockin 0.44.0, deliveries 1.268.0, recruiting 0.39.0, erp 0.15.0, repo 1.363.0 (toca `timetracker` sobre todo; `deliveries` por la
+barra, el hub y el proveedor de preferencias, que son compartidos; `recruiting` y `erp` por sus barras) · **Migración:**
+ninguna · **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-080, D-160, D-203, D-265, D-266, D-274 y D-489,
+que llevan su nota.
+
+### Qué pidió el dueño
+
+Literal, dictado el 2026-10-07, mirando Time Tracker como un empleado:
+
+> «Ok, quiero también estoy en el perfil de Carlos Fuentes de Time Tracker, ¿verdad? Ahora, hay demasiados botones. Hay demasiados. Entonces, quiero que sea igual que el Delivery app. Que lo que es, si, usted, si aprietas el nombre de Carlos Fuentes, te sale Sign Out. Y teaching mode, quiero que hagas un teaching mode en, en, en modo de capacitación y en el time tracker también para todos.
+>
+> Eso que sale employee. Eh, tampoco quiero que se mire. Y las notificaciones, eso sí, se queda. Pero el botón para español y dark mode y todo eso, todo eso se elige desde su personalizar, personalizador en el, en el RTG Hub. ¿Me entiendes? En el RTG Hub tiene que estar un personalizador, personalizador de toda la aplicación, si es en español, si es en inglés, si es dark mode, y ahí todo es ahí, tiene que ser ahí. Entonces quiero que me hagas eso.»
+
+La barra de un empleado antes de este cambio, según la captura del dueño a 390 px y el código de origin/main (no se
+volvió a fotografiar): «⏱ Track Time · 📅 My Week · 📝 My Requests», 🏠, el nombre (un enlace a «Mi cuenta»), la
+pastilla «Employee», 🔔, «🇪🇸 ES», 🌙 y «Sign out».
+
+### 1 · La barra de Time Tracker, como la de Entregas
+
+- **Se fueron** la pastilla del rol («Employee»/«Manager»), el «🇪🇸 ES/🇬🇧 EN», el ☀️/🌙 (los dos, al personalizador) y el
+  «Sign out» suelto (al menú). También el selector de módulos ⇄: «igual que el Delivery app» se leyó como D-274, que en
+  Entregas dejó la casa sola junto al nombre de la app. Se cambia de app desde el hub.
+- **Se quedan** las pestañas, la 🏠 (ahora `HubHomeLink`, la misma de Entregas, pegada al nombre de la app), recargar
+  (Entregas también lo tiene), la 🔔 y el ⟳ del escritorio.
+- **El nombre abre el menú de Entregas** —el mismo componente, no una copia—. El armazón de D-274 (botón con la inicial,
+  capa que cierra al pulsar fuera, volteo en el borde, cierre al navegar) sale de `TopBar.tsx` a
+  `src/components/MenuDeCuenta.tsx`, con las dos opciones que son iguales en todas las apps: `OpcionPersonalizar` y
+  `OpcionSalir` (el único formulario de salida de las tres barras). Qué opciones lleva cada app lo dice
+  `src/lib/account-menu.ts`:
+
+| App | Menú del nombre |
+|---|---|
+| Entregas | Modo enseñanza · (Ver como · Ajustes · Mi perfil · Tutoriales, según D-274) · **Personalizar** · Cerrar sesión |
+| Time Tracker (todos los roles) | **Modo capacitación** · **Mi cuenta** · **Personalizar** · Cerrar sesión |
+| RR. HH. | **Personalizar** · Cerrar sesión |
+
+- **«Mi cuenta» entra en el menú** porque el nombre era su puerta desde D-160; sin la opción, la cuenta de Time Tracker
+  (forma de pago, ciudad) se quedaba sin entrada.
+- El texto de salir es «Cerrar sesión / Sign out» en las tres (en Entregas decía «Salir»): es el componente compartido.
+
+### 2 · El modo capacitación de Time Tracker
+
+**Qué hace el de Entregas (D-274, `data-provider.tsx`), que es el modelo:** un interruptor por equipo
+(`localStorage rtg_teaching`) y una capa local (`rtg_teaching_overlay`) encima de las órdenes reales: crear, editar,
+borrar, cambiar de etapa y las notas van a esa capa y **nunca** a la base; lo real sigue llegando por debajo; un aviso
+violeta lo dice y trae «Reiniciar práctica». El corte está **en cada función** del proveedor (`if (teaching) …`).
+
+**Qué hace el de Time Tracker.** Se enciende y se apaga desde el menú del nombre, igual para todos los roles. Mientras
+está encendido:
+
+- **Arriba, pegado a la barra y fijo al bajar**, el aviso violeta (el mismo `--teaching-bg` de Entregas):
+  «🎓 MODO CAPACITACIÓN — nada se guarda. Lo que hagas aquí es solo práctica.» con «Salir de capacitación».
+- **Lo que hace el empleado se ve como si se hubiera guardado, y no se guarda**: fichar entrada y salida, la comida,
+  «Voy a salir» (con o sin vehículo, con visita o sin ella), los viajes y sus paradas, las fotos (la cámara se abre; la
+  foto no sale del equipo), «Notas del día», «Tiempo libre», marcar los avisos como leídos, el cronómetro y «Mis
+  solicitudes». Se pinta encima del día real (`diaConPractica`, `viajeConPractica`): si de verdad está dentro desde las 8
+  y practica «salida», ve el turno cerrado; lo real sigue abierto.
+- **Lo que no tiene práctica se bloquea con un mensaje**, no en silencio: las pantallas del gerente (aprobar, horarios,
+  geocercas, vehículos, nómina, proyectos…), la cuenta y borrar capturas contestan «Modo capacitación: esto no se guardó.
+  Apágalo en el menú de tu nombre para hacerlo de verdad.»
+- **Al apagarlo** se tira lo practicado y todo Time Tracker se vuelve a montar en real (`key` en `CapacitacionProvider`):
+  proveedor, cronómetro y pantallas leen otra vez de la base.
+
+**Dónde se corta, en tres capas, para que una escritura no pueda escaparse** (`src/lib/timetracker/capacitacion.ts`):
+
+1. **La pantalla no llama a nadie.** Las pantallas del empleado (`PunchPanel`, `TripPanel`, «Notas del día», «Tiempo
+   libre», «Fichajes de hoy», la campana) ya no importan las acciones de servidor: las piden a
+   `useAccionesDeFichar()`, que en práctica da `accionesDePractica` (`capacitacion-fichar.ts`). El proveedor de datos se
+   envuelve con `funcionesDePractica` + `conPractica` (`capacitacion-datos.ts`), que **se construye desde una tabla** con
+   cada función clasificada —pasa, se practica, se bloquea—; `satisfies` no deja compilar una función nueva sin clase.
+   Las funciones se crean una vez por práctica (`useMemo`) y leen el proveedor de cada momento: con identidades nuevas
+   en cada pintado, los efectos del cronómetro que dependen de ellas se volverían a montar sin parar.
+2. **El navegador no deja salir una escritura.** Los dos clientes de Supabase del navegador (Time Tracker y fichaje)
+   llevan `fetchConCorte`: con la cookie puesta, todo `POST/PATCH/PUT/DELETE` a `/rest/v1/` y toda subida o borrado en
+   `/storage/v1/object/` vuelve con un 403 sin salir del equipo (firmar una URL y listar, que leen, pasan; el refresco
+   de sesión también). Cubre las escrituras directas que nadie envolvió (p. ej. `TeamDiary`).
+3. **El servidor no escribe.** Las 45 acciones de servidor de fichaje que escriben empiezan con
+   `const corte = await corteDeCapacitacion(); if (corte) return corte;` **antes** de crear el cliente, leer nada o
+   avisar a nadie (el aviso al gerente, la geocodificación de la parada, el push). Una prueba recorre todas las acciones
+   y exige esas dos líneas en cada una que no esté en su lista de 19 lecturas, y que las lecturas no escriban. Además,
+   el cliente de servidor de fichaje lleva el mismo `fetchConCorte` cuando la petición trae la cookie, y el latido del
+   cronómetro (`/timetracker/api/heartbeat`) contesta sin escribir.
+
+**La cookie es la fuente de verdad:** `rtg_capacitacion_tt`, con el idioma dentro (para que el servidor conteste en el de
+la persona), en la ruta **`/timetracker`**: el navegador solo la manda a Time Tracker, así que la práctica no frena nada
+en el hub ni en otras apps (los ajustes de fichaje que el admin cambia desde Usuarios siguen siendo de verdad). La lee el
+layout en el servidor (la página llega ya en práctica, con su aviso) y el navegador en cada petición; al volver a la
+pestaña se relee, por si otra pestaña la cambió. Dura hasta apagarla, como `rtg_teaching`; **cerrar sesión la borra**
+(`/auth/signout`), para que en un equipo compartido quien entre después fiche de verdad.
+
+**Tres decisiones de seguridad que conviene conocer:**
+- **No se enciende con un cronómetro real en marcha** (ni si no se puede comprobar): encenderla vuelve a montar Time
+  Tracker y un cronómetro que se desmonta deja de latir, que es el registro que se perdió en D-470.
+- **La cola sin conexión no arranca en práctica**: lo que tenga es trabajo REAL de antes, y vaciarla por la vía de
+  práctica lo habría tirado (D-242 lo cuenta como «descartado»). Sale al apagar.
+- **Es distinta de la de Entregas**: encender una no enciende la otra. Allí es un entorno de órdenes; aquí, la jornada.
+
+### 3 · Un solo «Personalizar», en el hub
+
+`/home/personalizar` (`Personalizador.tsx`): **idioma** (Español / English) y **tema** (Claro / Oscuro / **Como mi
+equipo**, la opción nueva, que sigue al sistema del teléfono o del PC en vivo). Solo pide sesión, como «Mi perfil», así
+que le vale también al chofer (que no llega al lobby, D-173) desde su menú de Entregas.
+
+- **Dónde se guarda, sin migración:** el idioma, en `public.profiles.language`, por persona y para todos los equipos
+  (D-266, sin cambios); el tema, en `localStorage rtg_prefs.theme`, por equipo, como siempre, ahora también con `system`.
+  No se inventó tabla. La regla del tema (`temaEfectivo`) y el guion de antes de pintar (`GUION_DE_TEMA`, que ahora vive
+  en `src/lib/tema.ts`) se prueban juntos: la prueba ejecuta el guion con las 16 combinaciones y lo compara con la regla.
+- **Todas las apps lo leen del mismo sitio**: el idioma lo da `usePrefs` (Entregas, hub, RR. HH., ERP, Quote Builder,
+  Leads, Encuestas, Promociones) y Time Tracker lo sigue por su copia `tt_lang` y el aviso `rtg:idioma`; el tema es el
+  atributo `data-theme` de `<html>`, que pinta el CSS de todas, el de Time Tracker incluido.
+- **Se quitaron los selectores** de: la barra de Time Tracker (ES/EN y 🌙), la de RR. HH. (ES/EN; su «Salir» suelto pasó
+  al menú del nombre, nuevo allí), la barra lateral y la cabecera móvil del ERP (ES/EN → «🎨 Personalizar»; en el teléfono,
+  solo 🎨, porque el texto no cabía a 390 px), y «Mi perfil» (sus tarjetas de idioma y tema → un enlace). La cuenta de
+  Time Tracker enlaza aquí para el idioma. El lobby lleva «🎨 Personalizar · idioma, tema» junto a «Mi perfil».
+- **Se dejaron, a propósito:** el ES/EN de la pantalla de contraseña obligatoria (D-486), que se ve antes de poder entrar
+  a ninguna app, como el login; las páginas públicas (login, encuesta externa, `/track`); y los chips English/Español del
+  resumen de un candidato en RR. HH., que eligen el idioma del texto que se copia con un `useState` propio, no el de la app.
+  Quote Builder, Leads, Encuestas y Promociones no tenían selector. Una prueba recorre todo `src/` y exige que solo
+  `Personalizador.tsx` y `CambioObligatorioForm.tsx` pidan a `usePrefs` cambiar el idioma o el tema.
+
+### 4 · Lo que se encontró al medir: abrir Time Tracker en español borraba el tema y el idioma guardados
+
+Medido en el navegador el 2026-10-07, **con el `prefs.tsx` de origin/main y con el de esta rama**: con «es/oscuro»
+guardado, abrir `/timetracker` dejaba `rtg_prefs` en «en/claro». La causa son dos cosas que ya estaban:
+- el efecto que guarda las preferencias corría en el primer pintado con los valores de arranque (inglés, claro) **antes**
+  de que la lectura de lo guardado llegara a aplicarse;
+- Time Tracker en español **nunca** hidrata limpio (su diccionario no sabe el idioma en el servidor y pinta inglés), y
+  React rehace el árbol justo entonces: la segunda lectura ya encontraba «en/claro».
+
+En producción el idioma volvía después, desde la base; **el tema no vuelve de ningún sitio**. Arreglado con una guarda:
+el proveedor no pinta ni guarda nada hasta haber leído lo guardado (`cargado`). Después: «es/oscuro» y «es/system»
+sobreviven a abrir Time Tracker. **El aviso de hidratación de Time Tracker en español sigue** (es de antes y no es de
+este encargo; se ve como «1 Issue» en `next dev`).
+
+### Ficheros
+
+Nuevos: `src/lib/tema.ts`, `src/lib/personalizar.ts`, `src/lib/timetracker/capacitacion.ts`,
+`capacitacion-servidor.ts`, `capacitacion-fichar.ts`, `capacitacion-datos.ts`, `src/components/MenuDeCuenta.tsx`,
+`src/components/timetracker/Capacitacion.tsx`, `src/components/profile/Personalizador.tsx`,
+`src/app/home/personalizar/{layout,page}.tsx`. Cambiados: las tres barras (`TopBar.tsx` de Entregas, Time Tracker y RR.
+HH.), `erp/side-nav.tsx`, `prefs.tsx`, `app/layout.tsx`, `account-menu.ts`, `HomeSelector.tsx`, `ProfileView.tsx`, el
+layout y el proveedor de Time Tracker, las 13 `clock-in/actions/*.ts` que escriben (45 guardas), los dos clientes del
+navegador y el de servidor de fichaje, el latido, `/auth/signout`, `PunchPanel`, `TripPanel`, `MySections`,
+`TimeOffRequests`, `NotificationBell`, `FichajesDeHoy`, la cuenta de Time Tracker, `timetracker.css`, `globals.css` y
+`timetracker/i18n.ts` (8 claves nuevas, en y es).
+
+### Pruebas y mutantes
+
+Nuevas: `tema.test.ts`, `personalizar.test.ts`, `timetracker/capacitacion.test.ts` (incluye supabase-js de verdad con el
+corte: insertar, cambiar, borrar y subir salen como error con el mensaje y sin red), `capacitacion-fichar.test.ts`,
+`capacitacion-datos.test.ts`, `capacitacion-acciones.test.ts` (el barrido de las 66 acciones, y 15 acciones llamadas con
+la cookie: ninguna crea el cliente ni avisa) y `barra-tt.test.ts`. Ajustadas, cada una con su razón escrita:
+`entregas-barra` (Personalizar en el menú, Time Tracker sin ⇄, Salir es `OpcionSalir`), `desktop-origins` (los
+formularios de salida pasan de 5 a 3), `erp-hub-link` (Time Tracker con `HubHomeLink`), `idioma` (el idioma lo elige el
+personalizador), `inline-colors` (RR. HH. de 3 a 1) y `cierre-sesion-local` (salir borra la cookie de práctica).
+
+**Mutantes:** **98 de 98 caen** con una prueba con nombre, en cuatro tandas (`scratchpad/barra-tt/tanda.json` a `tanda4.json`). En la
+primera, uno no se pudo aplicar —su ancla no existía en el fichero— y se rehízo en la segunda, donde cayó. La cuarta repite
+los diez del proveedor de datos sobre su versión final (las funciones de práctica pasaron a crearse una vez por práctica,
+ver abajo) y añade cuatro. Ejemplos, mutante → prueba que lo tumba: «el corte no corta nada» → *encendida, una escritura vuelve con 403 y el
+mensaje SIN llegar a salir*; «el cliente de Time Tracker sin corte» → *los dos del navegador… preguntando a la cookie en
+cada petición*; «fichar entrada en práctica llama a la real» → *clockIn: contesta ok sin llamar a la real*; «cerrar una
+sesión REAL en práctica llega a la base» → *no ve —ni puede cerrar— una sesión real viva*; «la guarda de la comida va
+DESPUÉS de crear el cliente» → *toda acción que no es lectura empieza con la guarda, antes que nada* y *startLeave* (con la
+cookie, sin crear el cliente); «una "lectura" empieza a escribir» → *las lecturas no escriben, no avisan…*; «se enciende con
+un cronómetro real corriendo» → *no se enciende con un cronómetro real en marcha…*; «la cola sin conexión arranca en
+práctica» → *…NO arranca: lo que tenga es trabajo real de antes*; «se pinta y se guarda antes de leer lo guardado» → *no
+pinta ni guarda NADA antes de leer lo guardado*; «Time Tracker vuelve a tener ES/EN» → *sin conmutadores…* y *sin ES/EN,
+sin 🌙 y sin el «Sign out» suelto*; «en RR. HH. el menú vuelve a blanco sobre blanco» → *sus opciones se leen…*.
+
+### Visto en el navegador
+
+Con un **arnés temporal, no commiteado** (el de D-489: con `ARNES_TT=1`, `next.config.mjs` sustituía `@/lib/supabase/server`,
+el proveedor de Time Tracker y las acciones de fichaje por dobles en memoria que apuntan cada llamada en
+`window.__arnes`; más una página suelta con la barra del ERP), en `next dev` con modo demo, Chrome por CDP, 390 y 1280 px,
+clics de ratón sobre el elemento a la vista. Capturas en `scratchpad/barra-tt/tiros/`.
+
+- **Barra del empleado** (es): `🏠 | ⏱ Registrar tiempo | 📅 Mi semana | 📝 Mis solicitudes | 🔔 | CF Carlos Fuentes ▾`, sin
+  desborde a 390 (0 px). **Menú**: `🎓 Modo capacitación | 👤 Mi cuenta | 🎨 Personalizar | Cerrar sesión` (en inglés,
+  `Training mode | My account | Customize | Sign out`).
+- **Capacitación, de punta a punta**: al encenderla, cookie `rtg_capacitacion_tt=es` y el aviso «🎓 MODO CAPACITACIÓN —
+  nada se guarda…»; «Empezar almuerzo» → el botón pasa a «Terminar almuerzo · 12:26 PM»; terminarla; lo practicado
+  guardado `descanso,fin-descanso`; **ninguna escritura llegó a las acciones** (`window.__arnes` solo con lecturas
+  `countUnread`). El aviso sigue arriba al bajar (a 390: `top=0`, 86 px de alto). Al apagarlo: sin cookie, sin aviso, sin
+  lo practicado, y el reloj otra vez con «🍽 Empezar almuerzo» (lo real). **Control**: apagada, la misma comida sí llamó a
+  `startLeave`.
+- **Personalizar**: `🇪🇸 Español* | 🇬🇧 English | ☀️ Claro* | 🌙 Oscuro | 🖥️ Como mi equipo`, sin desborde a 390. «Oscuro» →
+  `data-theme=dark`, guardado `{"lang":"es","theme":"dark"}`. «Como mi equipo» con el sistema en oscuro → `dark`; el
+  sistema pasa a claro **sin recargar** → `light`; recargando con el sistema en oscuro, el guion de antes de pintar →
+  `dark`. «English» → título «Customize» y `tt_lang=en`, y **Time Tracker lo sigue**: `dark · ⏱ Track Time | 📅 My Week |
+  📝 My Requests`.
+- **Otras barras**: el ERP (lateral: `… | 🎨 Personalizar | Salir`; teléfono: `⌂ All apps | manager | 🎨 | Sign out`, sin
+  ES/EN); RR. HH. sin ES/EN ni «Salir» suelto, con su menú `🎨 Personalizar | Cerrar sesión`; Entregas (demo) con
+  `🎓 Modo enseñanza | ⚙️ Ajustes | 🎨 Personalizar | Cerrar sesión`; el lobby con `👤 Mi perfil · contraseña` y
+  `🎨 Personalizar · idioma, tema → /home/personalizar`.
+- **Lo que se arregló por verlo**: en RR. HH. «Personalizar» salía blanco sobre blanco y las opciones sin relleno (su
+  `a { color: inherit }` y su `* { padding: 0 }`); en Time Tracker el nombre y las opciones salían como botones azules;
+  en el teléfono del ERP «🎨 Personalizar» no cabía; y el fallo de preferencias del punto 4.
+- La consola en Time Tracker **en inglés**: sin errores. **En español**: un único error, la hidratación de su diccionario
+  (punto 4), que ya estaba.
+
+### No verificado
+
+- **Nada contra la base de verdad.** Las acciones y el proveedor de Time Tracker se ejercitaron con dobles (arnés); el
+  barrido y las pruebas de acciones las llaman con Supabase falso. Que PostgREST y Storage contesten el 403 de
+  `fetchConCorte` como error se probó con supabase-js de verdad, sin red.
+- **El cronómetro en práctica no se vio en un navegador** (el arnés sustituye al proveedor de datos): se apoya en las
+  pruebas de `datosDePractica`. Tampoco la app de escritorio: en práctica sus capturas se hacen y no se suben.
+- **Lo que lee y no tiene capa de práctica no la refleja:** «Mi horario», «Mi boletín» y las pantallas del gerente leen la
+  base tal cual. Lo que el empleado ve de su jornada sí la refleja: el reloj, «Fichajes de hoy» y las horas de «Mi semana»
+  salen de `getMyDay`, que en práctica lleva lo practicado encima.
+- **Un teléfono de verdad** y el modo «Como mi equipo» cambiando con el atardecer del sistema: se emuló con CDP
+  (`prefers-color-scheme`), no se vio en un aparato.
+- **Las pantallas del gerente en práctica** solo se probaron por sus piezas (la guarda del servidor, el corte del cliente,
+  la tabla del proveedor), no una a una en el navegador.

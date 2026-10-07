@@ -54,6 +54,11 @@
 .recruiting-module, .recruiting-module * { box-sizing: border-box; margin: 0; padding: 0; }
 .recruiting-module h1, .recruiting-module h2, .recruiting-module h3, .recruiting-module .display { font-family: 'Archivo', system-ui, sans-serif; }
 .recruiting-module a { color: inherit; }
+/* El menú del nombre (D-490, `MenuDeCuenta`) cuelga de la barra, que pinta en blanco: sus enlaces llevan el color
+   de la tarjeta del menú, no el de la barra, y su relleno, que el `* { padding: 0 }` de arriba borraba. Sin esto
+   «Personalizar» salía blanco sobre blanco y las opciones pegadas al borde (visto en el navegador). */
+.recruiting-module .col-menu { padding: 6px; }
+.recruiting-module .col-menu .col-opt { color: var(--text); padding: 6px 8px; }
 .recruiting-module button { font-family: inherit; cursor: pointer; border: none; background: none; font-size: 13px; }
 .recruiting-module input, .recruiting-module select, .recruiting-module textarea { font-family: inherit; font-size: 14px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; background: var(--card); color: var(--ink); }
 .recruiting-module input:focus, .recruiting-module select:focus, .recruiting-module textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }

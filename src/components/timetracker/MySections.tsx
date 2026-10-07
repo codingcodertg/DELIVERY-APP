@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getMySchedule, getMyNotes, getMyScorecard, type MiHorario, type MiBoletin } from "@/app/timetracker/clock-in/actions/myday";
-import { addNote } from "@/app/timetracker/clock-in/actions/notes";
+import { getMySchedule, getMyScorecard, type MiHorario, type MiBoletin } from "@/app/timetracker/clock-in/actions/myday";
+import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { fmtDayLong } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
 
@@ -110,10 +110,12 @@ function MiHorarioSec() {
 
 function MisNotasSec() {
   const t = useT();
+  // Reales o de práctica (modo capacitación, D-490): en práctica la nota se ve, pero no se guarda.
+  const { getMyNotes, addNote } = useAccionesDeFichar();
   const traer = useCallback(async () => {
     const r = await getMyNotes();
     return r.ok ? r.notes : null;
-  }, []);
+  }, [getMyNotes]);
   const { datos, cargando, abrir, recargar } = useAlAbrir<{ id: string; note: string; created_at: string }[]>(traer);
   const [texto, setTexto] = useState("");
   const [busy, setBusy] = useState(false);

@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { sendPush } from "@/lib/clockin/push";
 
@@ -16,6 +17,8 @@ async function getUser() {
 
 /** Save (or refresh) a browser push subscription for the signed-in employee. */
 export async function saveSubscription(sub: Sub): Promise<{ ok: boolean; message?: string }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await getUser();
   if (!ctx) return { ok: false, message: "Not signed in." };
   const { supabase, user } = ctx;
@@ -39,6 +42,8 @@ export async function saveSubscription(sub: Sub): Promise<{ ok: boolean; message
 }
 
 export async function deleteSubscription(endpoint: string): Promise<{ ok: boolean }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await getUser();
   if (!ctx) return { ok: false };
   await ctx.supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
@@ -47,6 +52,8 @@ export async function deleteSubscription(endpoint: string): Promise<{ ok: boolea
 
 /** Send a test push to all of the signed-in user's devices. */
 export async function sendTestPush(): Promise<{ ok: boolean; sent: number }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return { ok: false, sent: 0 };
   const ctx = await getUser();
   if (!ctx) return { ok: false, sent: 0 };
   const { supabase, user } = ctx;

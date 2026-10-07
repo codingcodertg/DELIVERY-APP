@@ -1,11 +1,14 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { canManageEmployee, type Me } from "@/lib/clockin/mgrScope";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { storeScope, NO_MATCH } from "@/lib/clockin/scope";
 
 export async function resolveException(id: string): Promise<{ ok: boolean; message?: string }> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   if (!isSupabaseConfigured) return { ok: false, message: "Not configured." };
   const supabase = await createClient();
   const {

@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { clockIn, clockOut, getMyDay, type ClockInResult } from "@/app/timetracker/clock-in/actions/clock";
-import { startLeave, endLeave } from "@/app/timetracker/clock-in/actions/leave";
-import { getMyTrip, startTrip, endTrip, logStop, finishStop } from "@/app/timetracker/clock-in/actions/runner";
-import { subirFotoDeFichaje } from "@/lib/clockin/sube-foto";
+import type { getMyDay, ClockInResult } from "@/app/timetracker/clock-in/actions/clock";
+import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import {
   MOTIVOS_DE_SALIDA, etiquetaDeFoto, filaDeSalida, planDeSalida, seCierraDeUnToque, vehiculoDeEmpresaPorDefecto,
   type MotivoDeSalida, type PlanDeSalida, type Vehiculo,
@@ -123,6 +121,12 @@ const horas = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padS
 export function PunchPanel() {
   const t = useT();
   const { me } = useData();
+  // Reales o de práctica (modo capacitación, D-490): la pantalla es la misma, cambia a quién se llama.
+  // La foto, también: en práctica no sale del equipo (el nombre se queda, es el mismo paso de siempre).
+  const {
+    clockIn, clockOut, getMyDay, startLeave, endLeave, getMyTrip, startTrip, endTrip, logStop, finishStop,
+    subirFoto: subirFotoDeFichaje,
+  } = useAccionesDeFichar();
   const secciones = seccionesDeFichar({ esAdmin: esAdminDeTt(me.role) });
   const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const [d, setD] = useState<Dia | null>(null);
@@ -158,7 +162,7 @@ export function PunchPanel() {
     // El viaje es accesorio: si no se pudo leer, se ficha igual y el panel de viajes no sale.
     setViaje(v.ok ? v : null);
     setCargando(false);
-  }, []);
+  }, [getMyDay, getMyTrip]);
 
   useEffect(() => { void load(); }, [load]);
   // El contador de "llevo trabajando" tiene que moverse solo; si no, parece parado.

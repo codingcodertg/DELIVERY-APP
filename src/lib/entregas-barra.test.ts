@@ -26,30 +26,31 @@ describe("el menú del nombre, con la entrada de la barra", () => {
     expect(canReachHub({ role: "sales", module_access: soloEntregas })).toBe(true);
   });
 
-  it("un vendedor: modo enseñanza y salir, nada más", () => {
+  // Desde D-490 todos llevan además «Personalizar» (idioma y tema, en el hub), justo antes de Salir.
+  it("un vendedor: modo enseñanza, personalizar y salir, nada más", () => {
     expect(opcionesDelMenuDeCuenta({ realRole: "sales", me: { role: "sales", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "salir"]);
+      .toEqual(["ensenanza", "personalizar", "salir"]);
   });
 
   it("el chofer, que no ve la casa, tiene aquí Mi perfil y Tutoriales", () => {
     expect(opcionesDelMenuDeCuenta({ realRole: "driver", me: { role: "driver", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "perfil", "tutoriales", "salir"]);
+      .toEqual(["ensenanza", "perfil", "tutoriales", "personalizar", "salir"]);
   });
 
   it("el admin: ver como, vista móvil y ajustes, y salir el último", () => {
     // Sin «vistamovil» desde D-306: se fue al hub con «Cambiar de usuario».
     expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "admin", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "vercomo", "ajustes", "salir"]);
+      .toEqual(["ensenanza", "vercomo", "ajustes", "personalizar", "salir"]);
   });
 
   it("el admin viendo como vendedor: conserva «ver como» para volver, y pierde Ajustes como un vendedor", () => {
     expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "sales", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "vercomo", "salir"]);
+      .toEqual(["ensenanza", "vercomo", "personalizar", "salir"]);
   });
 
   it("el admin viendo como chofer ve lo que ve el chofer, más «ver como»", () => {
     expect(opcionesDelMenuDeCuenta({ realRole: "admin", me: { role: "driver", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "vercomo", "perfil", "tutoriales", "salir"]);
+      .toEqual(["ensenanza", "vercomo", "perfil", "tutoriales", "personalizar", "salir"]);
   });
 
   it("la vista móvil ya no está en este menú para nadie: es una herramienta del hub (D-306)", () => {
@@ -64,11 +65,11 @@ describe("el menú del nombre, con la entrada de la barra", () => {
 describe("la barra de Entregas", () => {
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
 
-  it("no monta el selector de módulos; las barras de RR. HH. y Time Tracker, sí", () => {
+  // Time Tracker lo dejó también en D-490 («quiero que sea igual que el Delivery app»): la casa sola.
+  it("no monta el selector de módulos, ni Time Tracker; la barra de RR. HH., sí", () => {
     expect(barra).not.toContain("ModuleSwitcher");
-    for (const f of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx"]) {
-      expect(sinComentarios(leer(f)), f).toContain("<ModuleSwitcher");
-    }
+    expect(sinComentarios(leer("src/components/timetracker/TopBar.tsx"))).not.toContain("ModuleSwitcher");
+    expect(sinComentarios(leer("src/components/recruiting/TopBar.tsx"))).toContain("<ModuleSwitcher");
   });
 
   it("la casa va justo después del nombre de la app, con el rol y los módulos efectivos", () => {
@@ -96,12 +97,16 @@ describe("la barra de Entregas", () => {
     for (const o of OPCIONES_DEL_MENU) expect(barra, o).toContain(`case "${o}":`);
   });
 
+  // Desde D-490 el formulario es `OpcionSalir`, del menú compartido con Time Tracker y RR. HH.
   it("Salir es un solo formulario, dentro del menú", () => {
-    const formularios = barra.match(/<form action="\/auth\/signout" method="post"[^>]*>/g) ?? [];
-    expect(formularios).toHaveLength(1);
+    expect(barra.match(/<form action="\/auth\/signout"/g) ?? []).toHaveLength(0);
     const salir = barra.slice(barra.indexOf('case "salir":'));
-    expect(salir.indexOf('<form action="/auth/signout"')).toBeGreaterThan(0);
-    expect(salir.indexOf('<form action="/auth/signout"')).toBeLessThan(200);
+    expect(salir.indexOf("<OpcionSalir key={o} />")).toBeGreaterThan(0);
+    expect(salir.indexOf("<OpcionSalir key={o} />")).toBeLessThan(200);
+    const menu = sinComentarios(leer("src/components/MenuDeCuenta.tsx"));
+    expect(menu.match(/<form action="\/auth\/signout" method="post"[^>]*>/g) ?? []).toHaveLength(1);
+    const opcionSalir = menu.slice(menu.indexOf("export function OpcionSalir("));
+    expect(opcionSalir).toContain('<form action="/auth/signout" method="post">');
   });
 
   it("Mi perfil, Tutoriales y Ajustes llevan a sus rutas", () => {
@@ -114,7 +119,7 @@ describe("la barra de Entregas", () => {
   it("modo enseñanza lo enciende y lo apaga; «ver como» cambia la vista", () => {
     const entre = (a: string, b: string) => barra.slice(barra.indexOf(a), barra.indexOf(b));
     expect(entre('case "ensenanza":', 'case "vercomo":')).toContain("onClick={() => { setTeaching(!teaching); cierraMenu(); }}");
-    expect(entre('case "vercomo":', 'case "ajustes":')).toContain("onChange={(e) => cambiaVista(e.target.value)}");
+    expect(entre('case "vercomo":', 'case "ajustes":')).toContain("onChange={(e) => { cambiaVista(e.target.value); cierraMenu(); }}");
     expect(barra).toMatch(/const cambiaVista = \(valor: string\) => \{\n\s*const next = valor === "admin" \? null : \(valor as UserRole\);\n\s*setViewAs\(next\);/);
   });
 

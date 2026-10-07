@@ -8,7 +8,7 @@ import { pestanasEnOrden } from "@/lib/orden-de-pestanas";
 import { opcionesDelMenuDeCuenta } from "@/lib/account-menu";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { avatarColor, awaitingDriver, initials } from "@/lib/utils";
+import { awaitingDriver } from "@/lib/utils";
 import { pestanaDelAvisoSinChofer } from "@/lib/rutas-del-dia";
 import { HubHomeLink } from "@/components/HubHomeLink";
 import { BotonRecargar } from "@/components/BotonRecargar";
@@ -17,6 +17,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
 import { SwitchUserPanel } from "@/components/SwitchUserPanel";
+import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
 import { enlaceAVistaMovil } from "@/lib/mobile-preview";
 import type { Profile, UserRole } from "@/lib/types";
 
@@ -51,16 +52,8 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // El desplegable del nombre (D-274). Sustituye a la burbuja del rol de D-089, que llevaba
   // «Salir» dentro para quien no era admin, y a la píldora «ver como» del admin, que ahora es una
   // opción más del menú. Qué opciones salen lo decide `opcionesDelMenuDeCuenta`, no esta barra.
-  const [menuCuentaAbierto, setMenuCuentaAbierto] = useState(false);
-  const menuCuentaRef = useRef<HTMLDivElement>(null);
-  const [menuCuentaFlip, setMenuCuentaFlip] = useState(false);
-  useEffect(() => {
-    if (!menuCuentaAbierto) { setMenuCuentaFlip(false); return; }
-    const el = menuCuentaRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    if (r.left < 8) setMenuCuentaFlip(true);
-  }, [menuCuentaAbierto]);
+  // El armazón (botón, capa, volteo, cierre al navegar) es `MenuDeCuenta` desde D-490, el mismo
+  // que usan Time Tracker y RR. HH.; aquí solo se pinta cada opción.
   // The menu hangs from the button's RIGHT edge and grows leftwards, which
   // runs it off the window whenever the button sits near the left edge — and
   // on a wrapped tab row it always does. Measured once on open and flipped to
@@ -75,8 +68,8 @@ export function TopBar({ me: propMe }: { me: Profile }) {
     // 8px so it never sits flush against the edge either.
     if (r.left < 8) setGeneralFlip(true);
   }, [generalOpen]);
-  // Navigating away closes the menu (covers back/forward too).
-  useEffect(() => { setGeneralOpen(false); setMenuCuentaAbierto(false); }, [pathname]);
+  // Navigating away closes the menu (covers back/forward too). El del nombre lo cierra `MenuDeCuenta`.
+  useEffect(() => { setGeneralOpen(false); }, [pathname]);
   // Dispatch nudge (#29): how many orders due today/tomorrow still have no
   // driver — a badge for the roles that assign drivers. It sat on the Map tab, where they were assigned; since D-467
   // that tab is the read-only «Today's route», so the badge goes where the work is: the Routes Manager for whoever has
@@ -129,7 +122,6 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   const cambiaVista = (valor: string) => {
     const next = valor === "admin" ? null : (valor as UserRole);
     setViewAs(next);
-    setMenuCuentaAbierto(false);
     router.push(roleHome(next ?? "admin"));
   };
   const opcionesDeRol = ROLE_ORDER.map((r) => (
@@ -148,7 +140,6 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // Con el rol EFECTIVO, como la casa de `HubHomeLink`: quien no ve la casa encuentra en el menú
   // lo que antes le daba la pantalla de Cuenta.
   const opcionesMenu = opcionesDelMenuDeCuenta({ realRole, me });
-  const cierraMenu = () => setMenuCuentaAbierto(false);
 
   return (
     <>
@@ -262,98 +253,67 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         <NotificationBell />
         {/* Tu nombre abre el menú de la cuenta (D-274). Antes llevaba a la pantalla de Cuenta y
             al lado iba la etiqueta del rol; el dueño pidió quitar las dos cosas. */}
-        <div style={{ position: "relative" }}>
-          <button
-            className={"account-link" + (menuCuentaAbierto ? " active" : "")}
-            onClick={() => setMenuCuentaAbierto((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={menuCuentaAbierto}
-            style={{ fontSize: 12, opacity: 0.95, display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "4px 8px", borderRadius: 8, color: "inherit" }}
-          >
-            <span className="avatar sm" style={{ background: avatarColor(me.full_name || "?") }}>
-              {initials(me.full_name || "?")}
-            </span>
-            {me.full_name} <span aria-hidden>▾</span>
-          </button>
-          {menuCuentaAbierto && (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 70 }} onClick={cierraMenu} />
-              <div
-                ref={menuCuentaRef}
-                className="col-menu"
-                style={{
-                  zIndex: 71,
-                  minWidth: 210,
-                  ...(menuCuentaFlip ? { left: 0, right: "auto" } : { right: 0, left: "auto" }),
-                }}
-                role="menu"
-              >
-                {opcionesMenu.map((o) => {
-                  switch (o) {
-                    case "ensenanza":
-                      return (
-                        <button
-                          key={o}
-                          className="col-opt"
-                          role="menuitemcheckbox"
-                          aria-checked={teaching}
-                          style={{ width: "100%", textAlign: "left" }}
-                          title={t(
-                            "A private practice sandbox on top of the real orders: nothing you do is saved or seen by anyone else.",
-                            "Un entorno de práctica privado sobre las órdenes reales: nada de lo que hagas se guarda ni lo ve nadie más.",
-                          )}
-                          onClick={() => { setTeaching(!teaching); cierraMenu(); }}
-                        >
-                          🎓 {teaching ? t("Turn teaching mode off", "Apagar modo enseñanza") : t("Teaching mode", "Modo enseñanza")}
-                        </button>
-                      );
-                    case "vercomo":
-                      return (
-                        <label key={o} className="col-opt" style={{ justifyContent: "space-between" }}>
-                          <span>👁 {t("View as", "Ver como")}</span>
-                          <select
-                            value={viewAs ?? "admin"}
-                            aria-label={t("View the app as another role", "Ver la app como otro rol")}
-                            onChange={(e) => cambiaVista(e.target.value)}
-                            style={{ width: "auto", padding: "4px 6px", fontSize: 12.5 }}
-                          >
-                            {opcionesDeRol}
-                          </select>
-                        </label>
-                      );
-                    case "ajustes":
-                      return (
-                        <Link key={o} href="/settings" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
-                          ⚙️ {t("Settings", "Ajustes")}
-                        </Link>
-                      );
-                    case "perfil":
-                      return (
-                        <Link key={o} href="/home/profile" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
-                          👤 {t("My profile", "Mi perfil")}
-                        </Link>
-                      );
-                    case "tutoriales":
-                      return (
-                        <Link key={o} href="/home/tutorials" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
-                          🎬 {t("Tutorials", "Tutoriales")}
-                        </Link>
-                      );
-                    case "salir":
-                      return (
-                        <form action="/auth/signout" method="post" key={o}>
-                          <button className="col-opt" type="submit" style={{ width: "100%", textAlign: "left" }} role="menuitem">
-                            {t("Sign out", "Salir")}
-                          </button>
-                        </form>
-                      );
-                  }
-                })}
-              </div>
-            </>
-          )}
-        </div>
+        <MenuDeCuenta nombre={me.full_name}>
+          {(cierraMenu) => opcionesMenu.map((o) => {
+            switch (o) {
+              case "ensenanza":
+                return (
+                  <button
+                    key={o}
+                    className="col-opt"
+                    role="menuitemcheckbox"
+                    aria-checked={teaching}
+                    style={{ width: "100%", textAlign: "left" }}
+                    title={t(
+                      "A private practice sandbox on top of the real orders: nothing you do is saved or seen by anyone else.",
+                      "Un entorno de práctica privado sobre las órdenes reales: nada de lo que hagas se guarda ni lo ve nadie más.",
+                    )}
+                    onClick={() => { setTeaching(!teaching); cierraMenu(); }}
+                  >
+                    🎓 {teaching ? t("Turn teaching mode off", "Apagar modo enseñanza") : t("Teaching mode", "Modo enseñanza")}
+                  </button>
+                );
+              case "vercomo":
+                return (
+                  <label key={o} className="col-opt" style={{ justifyContent: "space-between" }}>
+                    <span>👁 {t("View as", "Ver como")}</span>
+                    <select
+                      value={viewAs ?? "admin"}
+                      aria-label={t("View the app as another role", "Ver la app como otro rol")}
+                      onChange={(e) => { cambiaVista(e.target.value); cierraMenu(); }}
+                      style={{ width: "auto", padding: "4px 6px", fontSize: 12.5 }}
+                    >
+                      {opcionesDeRol}
+                    </select>
+                  </label>
+                );
+              case "ajustes":
+                return (
+                  <Link key={o} href="/settings" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
+                    ⚙️ {t("Settings", "Ajustes")}
+                  </Link>
+                );
+              case "perfil":
+                return (
+                  <Link key={o} href="/home/profile" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
+                    👤 {t("My profile", "Mi perfil")}
+                  </Link>
+                );
+              case "tutoriales":
+                return (
+                  <Link key={o} href="/home/tutorials" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
+                    🎬 {t("Tutorials", "Tutoriales")}
+                  </Link>
+                );
+              case "personalizar":
+                // Idioma y tema, en el hub (D-490). La misma opción que en Time Tracker y RR. HH.
+                return <OpcionPersonalizar key={o} alPulsar={cierraMenu} />;
+              case "salir":
+                // El único formulario de salida de la barra, el mismo de Time Tracker y RR. HH. (D-490).
+                return <OpcionSalir key={o} />;
+            }
+          })}
+        </MenuDeCuenta>
         {/* Mientras el admin ve la app como otro rol, la barra lo dice (D-274). Es la píldora de
             siempre, con el mismo selector dentro, y solo existe mientras dura: fuera de eso la barra
             no lleva ninguna etiqueta de rol. Sin ella, quien olvidó que estaba previsualizando

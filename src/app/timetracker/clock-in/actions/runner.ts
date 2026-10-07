@@ -1,5 +1,6 @@
 "use server";
 
+import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 
 export type RunnerResult<T = unknown> = { ok: true; data?: T } | { ok: false; message: string };
@@ -89,6 +90,8 @@ async function reverseGeocode(lat: number, lng: number): Promise<string | null> 
  * a salesman logs short ad-hoc trips. One open trip at a time.
  */
 export async function startTrip(input: DashInput & { kind: TripKind }): Promise<RunnerResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   const { supabase, user, profile } = ctx;
@@ -147,6 +150,8 @@ export async function startTrip(input: DashInput & { kind: TripKind }): Promise<
 
 /** Log a stop on the current open trip (photo + GPS + server-time; auto leg mileage). */
 export async function logStop(input: { label?: string; note?: string } & Geo): Promise<RunnerResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   const { supabase, user, profile, es } = ctx;
@@ -236,6 +241,8 @@ export async function logStop(input: { label?: string; note?: string } & Geo): P
  * review shows how long they were actually at each place.
  */
 export async function finishStop(input: Geo): Promise<RunnerResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   const { supabase, user } = ctx;
@@ -282,6 +289,8 @@ export async function finishStop(input: Geo): Promise<RunnerResult> {
  * this at the end of the day (before/at clock-out); a salesman when they're back.
  */
 export async function endTrip(input: DashInput): Promise<RunnerResult> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return corte;
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   const { supabase, user, es } = ctx;
