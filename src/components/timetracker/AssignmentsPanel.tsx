@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
-import { useT } from "@/lib/timetracker/i18n";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, money } from "@/lib/timetracker/helpers";
+import { necesitaProyecto, seOfreceParaAsignar, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { Modal } from "./Modal";
 
 /**
@@ -23,6 +24,11 @@ import { Modal } from "./Modal";
  * OJO: la lista de personas de aquí es `allEmployees` del proveedor — TODO el que tiene
  * `timetracker_role`, sin filtro de tienda y sin excluir inactivos. La sección de Horario
  * usa OTRA lista, acotada por tienda (D-127). No se unifican a propósito: ver D-186.
+ *
+ * Con una excepción, a propósito (D-NEXT): el desplegable de «Nueva asignación» no ofrece al
+ * PRESENCIAL, que no necesita proyecto —su proyecto es su tienda y su puesto—. No desaparece en
+ * silencio, que es lo que D-186 temía: sale en su propia tarjeta, debajo, con su tienda y su
+ * puesto; y si ya tuviera una asignación, se ve marcada y se puede editar o quitar.
  */
 interface FormState { employeeUid: string; projectId: string; hourlyRate: string; overtimeRate: string; overtimeThreshold: string; weeklyLimit: string; paymentMethod: string }
 
@@ -78,6 +84,13 @@ export function AssignmentsPanel() {
   const pMap = new Map(projects.map((p) => [p.id, p]));
   const uMap = new Map(users.map((u) => [u.id, u]));
 
+  // El presencial no necesita proyecto (D-NEXT): para él el proyecto es su tienda y su puesto. No se
+  // le ofrece en «Nueva asignación» —sale aparte, con los dos— salvo para editar una que ya tenga.
+  const lang = getLang();
+  const editandoA = editId ? assignments.find((a) => a.id === editId)?.employeeUid ?? null : null;
+  const asignables = users.filter((u) => seOfreceParaAsignar(u, editandoA));
+  const presenciales = users.filter((u) => !necesitaProyecto(u));
+
   return (
     <>
       {abierta && (
@@ -88,7 +101,7 @@ export function AssignmentsPanel() {
               <label>{t("mgr.asn.employee")}</label>
               <select value={f.employeeUid} onChange={(e) => upd("employeeUid", e.target.value)}>
                 <option value="">{t("mgr.asn.pick")}</option>
-                {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}{u.role === "admin" ? t("mgr.asn.managerSuffix") : ""}</option>)}
+                {asignables.map((u) => <option key={u.id} value={u.id}>{u.fullName}{u.role === "admin" ? t("mgr.asn.managerSuffix") : ""}</option>)}
               </select>
             </div>
             <div>
@@ -134,7 +147,12 @@ export function AssignmentsPanel() {
             <tbody>
               {assignments.map((a) => (
                 <tr key={a.id}>
-                  <td>{uMap.get(a.employeeUid)?.fullName || "—"}</td>
+                  <td>
+                    {uMap.get(a.employeeUid)?.fullName || "—"}
+                    {uMap.has(a.employeeUid) && !necesitaProyecto(uMap.get(a.employeeUid)) && (
+                      <span className="pill on" style={{ marginLeft: 6 }}>{t("mgr.asn.inhousePill")}</span>
+                    )}
+                  </td>
                   <td>{pMap.get(a.projectId)?.name || t("mgr.asn.deletedProject")}</td>
                   <td className="right nowrap">{money(a.hourlyRate)}</td>
                   <td className="right nowrap">{money(a.overtimeRate)}</td>
@@ -151,6 +169,27 @@ export function AssignmentsPanel() {
           </table>
         )}
       </div>
+
+      {/* Los presenciales, aparte y sin nada que asignar: su proyecto es su tienda y su puesto. */}
+      {presenciales.length > 0 && (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>{t("mgr.asn.inhouseTitle")}</h2>
+          <p className="small muted" style={{ marginTop: 0 }}>{t("mgr.asn.inhouseNote")}</p>
+          <table>
+            <thead>
+              <tr><th>{t("mgr.asn.employee")}</th><th>{t("mgr.asn.colStore")}</th></tr>
+            </thead>
+            <tbody>
+              {presenciales.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.fullName}</td>
+                  <td>{tiendaYPuesto(u, lang)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </>
   );
 }

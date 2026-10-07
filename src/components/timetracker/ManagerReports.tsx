@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
-import { useT } from "@/lib/timetracker/i18n";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 import {
   APP_SETTINGS, LOCALE, breaksText, computePay, dateISO, fmtClock, fmtDT, fmtHM,
   money, periodEndISO, periodLabel, projectWeekStart, weekIsFinished, weekStartISO,
 } from "@/lib/timetracker/helpers";
 import type { Assignment, Employee, Payroll, PayrollAdjustment, Session } from "@/lib/timetracker/types";
+import { necesitaProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { Modal } from "./Modal";
 
@@ -84,6 +85,18 @@ export function ManagerReports({ period }: { period: string }) {
   const uMap = new Map(users.map((u) => [u.id, u]));
   const pMap = new Map(projects.map((p) => [p.id, p]));
   const aMap = new Map(assignments.map((a) => [a.id, a]));
+
+  // Las horas de un presencial sin proyecto salen bajo su tienda y su puesto (D-NEXT), en la tabla,
+  // el detalle, el CSV y el recibo; las de un remoto sin proyecto, «(deleted)» como siempre.
+  const lang = getLang();
+  const nombreDe = (a: Assignment | undefined, uid: string, sinProyecto: string) =>
+    nombreDeLinea(a ? pMap.get(a.projectId)?.name : null, uMap.get(uid), lang, sinProyecto);
+  const lugarDe = (a: Assignment | undefined, uid: string) => {
+    const p = a ? pMap.get(a.projectId) : undefined;
+    if (p) return p.location || "";
+    const u = uMap.get(uid);
+    return u && !necesitaProyecto(u) ? u.tienda ?? "" : "";
+  };
 
   const drafts = batches.filter((b) => b.draft);
   const draftMap = new Map(drafts.map((d) => [d.employeeUid, d]));
@@ -213,14 +226,15 @@ export function ManagerReports({ period }: { period: string }) {
     }
   }
   async function addManualEntry(uid: string) {
-    if (!nadd.assignmentId || !nadd.from || !nadd.to) { alert(t("mgr.rep.addPrompt")); return; }
-    const a = aMap.get(nadd.assignmentId);
-    if (!a) return;
     const emp = uMap.get(uid);
+    // Al presencial no se le pide proyecto (D-NEXT): sin elegir, la entrada va a su tienda y su puesto.
+    if ((!nadd.assignmentId && necesitaProyecto(emp)) || !nadd.from || !nadd.to) { alert(t("mgr.rep.addPrompt")); return; }
+    const a = nadd.assignmentId ? aMap.get(nadd.assignmentId) : undefined;
+    if (nadd.assignmentId && !a) return;
     const d = fromRange(nadd.date, nadd.from, nadd.to);
     try {
       await insertSession({
-        employeeUid: uid, employeeName: emp ? emp.fullName : "", projectId: a.projectId, assignmentId: a.id,
+        employeeUid: uid, employeeName: emp ? emp.fullName : "", projectId: a ? a.projectId : null, assignmentId: a ? a.id : null,
         memo: "[Manual]", weekOf: weekStartISO(nadd.date), date: nadd.date, startMs: d.startMs, endMs: d.endMs,
         durationSeconds: d.durationSeconds, activeSeconds: 0, keystrokes: 0, clicks: 0, lunchSeconds: 0, breakSeconds: 0,
         breakEvents: [], manual: true, source: "manual", isLive: false,
@@ -255,8 +269,7 @@ export function ManagerReports({ period }: { period: string }) {
         const status = b ? (b.paid ? "Paid" : "Closed-unpaid") : "Open";
         const total = (b ? b.total || 0 : pay) + adj;
         lines.forEach((l) => {
-          const proj = l.a && pMap.get(l.a.projectId) ? pMap.get(l.a.projectId)! : { name: "(deleted)", location: "" };
-          rows.push([emp ? emp.fullName : "", b ? "Payment" : "Current", status, proj.name, proj.location || "", (l.g.sec / 3600).toFixed(2), l.calc.reg.toFixed(2), l.calc.ot.toFixed(2), l.calc.pay.toFixed(2), adj.toFixed(2), total.toFixed(2), (b && b.method) || "", periodLabel(week, payPeriod)]);
+          rows.push([emp ? emp.fullName : "", b ? "Payment" : "Current", status, nombreDe(l.a, uid, "(deleted)"), lugarDe(l.a, uid), (l.g.sec / 3600).toFixed(2), l.calc.reg.toFixed(2), l.calc.ot.toFixed(2), l.calc.pay.toFixed(2), adj.toFixed(2), total.toFixed(2), (b && b.method) || "", periodLabel(week, payPeriod)]);
         });
         adjs.forEach((ad) => rows.push([emp ? emp.fullName : "", b ? "Payment" : "Current", status, ad.label, "", "", "", "", ad.amount, "", "", (b && b.method) || "", periodLabel(week, payPeriod)]));
       });
@@ -313,7 +326,7 @@ export function ManagerReports({ period }: { period: string }) {
             <tbody>
               {lines.map((l) => (
                 <tr key={l.aid}>
-                  <td>{l.a && pMap.get(l.a.projectId) ? pMap.get(l.a.projectId)!.name : "(deleted)"}</td>
+                  <td>{nombreDe(l.a, uid, "(deleted)")}</td>
                   <td className="right nowrap">{(l.g.sec / 3600).toFixed(2)}</td>
                   <td className="right nowrap">{l.calc.reg.toFixed(2)}</td>
                   <td className="right nowrap">{l.calc.ot.toFixed(2)}</td>
@@ -350,7 +363,7 @@ export function ManagerReports({ period }: { period: string }) {
                 <div className="small muted" style={{ marginBottom: 6 }}>{t("mgr.rep.addEntryTitle")}</div>
                 <div className="row">
                   <select value={nadd.assignmentId} onChange={(e) => setNadd((p) => ({ ...p, assignmentId: e.target.value }))} style={{ flex: 2, minWidth: 130 }}>
-                    <option value="">{t("mgr.rep.projectOpt")}</option>
+                    <option value="">{necesitaProyecto(uMap.get(uid)) ? t("mgr.rep.projectOpt") : t("mgr.rep.inhouseOpt", { label: tiendaYPuesto(uMap.get(uid)!, lang) })}</option>
                     {assignments.filter((x) => x.employeeUid === uid).map((x) => <option key={x.id} value={x.id}>{pMap.get(x.projectId) ? pMap.get(x.projectId)!.name : "(deleted)"}</option>)}
                   </select>
                   <input type="date" value={nadd.date} onChange={(e) => setNadd((p) => ({ ...p, date: e.target.value }))} style={{ flex: 1, minWidth: 120 }} />
@@ -371,7 +384,7 @@ export function ManagerReports({ period }: { period: string }) {
             <thead><tr><th>{t("mgr.rep.colDay")}</th><th>{t("mgr.rep.colProject")}</th><th>{t("mgr.rep.colNote")}</th><th className="right">{t("mgr.rep.colDuration")}</th></tr></thead>
             <tbody>
               {sess.slice().sort((a, c) => (a.startMs || 0) - (c.startMs || 0)).map((s) => {
-                const proj = s.projectId && pMap.get(s.projectId) ? pMap.get(s.projectId)!.name : "—";
+                const proj = nombreDeLinea(s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, "—");
                 if (editId === s.id) return (
                   <tr key={s.id}>
                     <td className="small nowrap"><input type="date" value={ed.date} onChange={(e) => setEd((p) => ({ ...p, date: e.target.value }))} style={{ padding: "4px 6px" }} /></td>
@@ -528,8 +541,8 @@ export function ManagerReports({ period }: { period: string }) {
               <thead><tr><th>{t("mgr.rep.colProject")}</th><th>{t("mgr.rep.rcptLocation")}</th><th className="right">{t("mgr.rep.colHours")}</th><th className="right">{t("mgr.rep.rcptAmount")}</th></tr></thead>
               <tbody>
                 {receipt.lines.map((l) => {
-                  const p: { name: string; location: string } = l.a && pMap.get(l.a.projectId) ? pMap.get(l.a.projectId)! : { name: "(deleted)", location: "" };
-                  return <tr key={l.aid}><td>{p.name}</td><td>{p.location || "—"}</td><td className="right">{(l.g.sec / 3600).toFixed(2)}</td><td className="right">{money(l.calc.pay)}</td></tr>;
+                  const uid = receipt.emp ? receipt.emp.id : "";
+                  return <tr key={l.aid}><td>{nombreDe(l.a, uid, "(deleted)")}</td><td>{lugarDe(l.a, uid) || "—"}</td><td className="right">{(l.g.sec / 3600).toFixed(2)}</td><td className="right">{money(l.calc.pay)}</td></tr>;
                 })}
                 {receipt.adjustments.map((ad, i) => <tr key={"a" + i}><td>{ad.label}</td><td>—</td><td className="right">—</td><td className="right">{money(ad.amount)}</td></tr>)}
               </tbody>
