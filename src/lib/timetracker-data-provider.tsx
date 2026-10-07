@@ -20,6 +20,7 @@ import { checkSession, SESSION_EXPIRED, isAuthDenied } from "@/lib/session-guard
 import { SessionExpired } from "@/components/SessionExpired";
 import { useCapacitacion } from "@/components/timetracker/Capacitacion";
 import { conPractica, funcionesDePractica } from "@/lib/timetracker/capacitacion-datos";
+import { resolverTiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 
 // ============================================================
 // Etapa 2, pass 1 (D-066): foundation + the Track Time screen only. This
@@ -423,9 +424,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const reloadAdmin = useCallback(async () => {
     if (!isAdmin) return;
     await ensureSession();
-    const [pf, es, pr, asn, rq, au] = await Promise.all([
+    // Las dos últimas son la tienda y el puesto de FICHAJE de cada persona (D-NEXT): el «proyecto»
+    // del presencial, que sale donde al remoto le sale el proyecto. Misma regla que el layout para la
+    // propia persona (`resolverTiendaYPuesto`), así que el gerente y el empleado leen lo mismo.
+    const [pf, es, pr, asn, rq, au, fichas, sitios] = await Promise.all([
       supabase.schema("public").from("profiles")
-        .select("id, full_name, timetracker_role")
+        .select("id, full_name, timetracker_role, store")
         .not("timetracker_role", "is", null)
         .order("full_name"),
       supabase.from("employee_settings").select("*"),
@@ -433,17 +437,24 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       supabase.from("assignments").select("*"),
       supabase.from("requests").select("*").order("created_at", { ascending: false }),
       supabase.from("audit").select("*").order("at", { ascending: false }).limit(300),
+      supabase.schema("clockin").from("employee_settings").select("id, store_id, position"),
+      supabase.schema("clockin").from("job_sites").select("id, name"),
     ]);
     const esById = new Map(
       ((es.data as Record<string, unknown>[] | null) ?? []).map((r) => [r.id as string, rowToCamel<Omit<Employee, "id" | "fullName" | "role" | "email">>(r)!]),
     );
-    const employees = ((pf.data as { id: string; full_name: string | null; timetracker_role: string }[] | null) ?? []).map((p) => {
+    const fichaPorId = new Map(
+      ((fichas.data as { id: string; store_id: string | null; position: string | null }[] | null) ?? []).map((f) => [f.id, f]),
+    );
+    const nombreDeTienda = new Map(((sitios.data as { id: string; name: string }[] | null) ?? []).map((s) => [s.id, s.name]));
+    const employees = ((pf.data as { id: string; full_name: string | null; timetracker_role: string; store: string | null }[] | null) ?? []).map((p) => {
       const s = esById.get(p.id);
       const emp: Employee = {
         id: p.id, fullName: p.full_name ?? "—", email: null, role: p.timetracker_role as Employee["role"],
         city: s?.city ?? null, payMethod: s?.payMethod ?? null, payDetails: s?.payDetails ?? null,
         workerType: s?.workerType ?? null, trackMode: s?.trackMode ?? null, breaksEnabled: s?.breaksEnabled ?? null,
         active: s?.active ?? false, deletedAt: s?.deletedAt ?? null,
+        ...resolverTiendaYPuesto({ fichaje: fichaPorId.get(p.id), tiendas: nombreDeTienda, tiendaDelHub: p.store }),
       };
       return emp;
     });

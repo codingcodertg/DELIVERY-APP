@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
-import { useT } from "@/lib/timetracker/i18n";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 import {
   addWeeks, breaksText, computePay, dateISO, fmtClock, fmtDayLong, fmtTime, money,
   thisWeekStart, weekIsFinished, weekLabel, weekStartISO,
 } from "@/lib/timetracker/helpers";
 import type { Assignment, Session } from "@/lib/timetracker/types";
+import { nombreDeLinea } from "@/lib/timetracker/tienda-y-puesto";
 import { effWorkerType } from "@/lib/timetracker/helpers";
 import { esAdminDeTt, horasDeLaSemana, seccionesDeMiSemana, verTablasDelCronometro } from "@/lib/timetracker/vista-empleado";
 import { MiBoletinSec } from "@/components/timetracker/MySections";
@@ -31,6 +32,7 @@ import { FichajesDeHoy, useMiDiaDeFichaje } from "@/components/timetracker/Ficha
 export default function MyWeekPage() {
   const { me, myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince } = useData();
   const t = useT();
+  const lang = getLang();
   const presencial = effWorkerType(me) === "inhouse";
   const quien = { esAdmin: esAdminDeTt(me.role), presencial };
   const secciones = seccionesDeMiSemana(quien);
@@ -84,11 +86,12 @@ export default function MyWeekPage() {
     const hours = v.sec / 3600;
     const calc = a ? computePay(hours, a) : { pay: 0, reg: 0, ot: 0, overLimit: 0 };
     totalPay += calc.pay; totalSec += v.sec;
-    const proj = a ? a.project : { name: t("emp.week.deletedProject") };
+    // Sin proyecto, el presencial ve su tienda y su puesto (D-NEXT); el remoto, «(proyecto eliminado)».
+    const proj = { name: nombreDeLinea(a?.project.name, me, lang, t("emp.week.deletedProject")) };
     return { aid, proj, sec: v.sec, calc };
   });
 
-  const projectName = (a: Assignment | undefined) => a ? a.project.name : "—";
+  const projectName = (a: Assignment | undefined) => nombreDeLinea(a?.project.name, me, lang, "—");
   const tablas = verTablasDelCronometro(quien, weekSessions.length > 0);
   const horas = secciones.dinero
     ? totalSec / 3600

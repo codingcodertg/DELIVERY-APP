@@ -2,8 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
-import { useT } from "@/lib/timetracker/i18n";
+import { getLang, useT } from "@/lib/timetracker/i18n";
 import { fmtClock, weekStartISO } from "@/lib/timetracker/helpers";
+import { nombreDeLinea } from "@/lib/timetracker/tienda-y-puesto";
 import { rangeOverlapsAny, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import type { RequestType } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
@@ -32,7 +33,7 @@ function fromRange(date: string, fromTime: string, toTime: string) {
 function msToMin(ms: number): number { const d = new Date(ms); return d.getHours() * 60 + d.getMinutes(); }
 
 export default function TeamRequestsPage() {
-  const { me, allRequests: requests, allProjects: projects, allAssignments: assignments, insertSession, updateSession, removeSession, claimRequest, resetRequestToPending, logAudit, sessionsSince } = useData();
+  const { me, allRequests: requests, allProjects: projects, allAssignments: assignments, allEmployees, insertSession, updateSession, removeSession, claimRequest, resetRequestToPending, logAudit, sessionsSince } = useData();
   const t = useT();
   // Claves literales, no construidas: D-202 borro reqtype.* como "muertas" porque la medicion solo
   // buscaba literales y esta clave se construia con "reqtype." + type; la cola ensenaba la clave cruda.
@@ -41,7 +42,14 @@ export default function TeamRequestsPage() {
     type === "add" ? t("reqtype.add") : type === "adjust" ? t("reqtype.adjust") : type === "delete" ? t("reqtype.delete") : "—";
   const aMap = new Map(assignments.map((a) => [a.id, a]));
   const pMap = new Map(projects.map((p) => [p.id, p]));
-  const projName = (aid: string | undefined) => { const a = aid ? aMap.get(aid) : undefined; return a ? pMap.get(a.projectId)?.name ?? "—" : "—"; };
+  // Sin proyecto: el presencial pide tiempo sin él (D-NEXT) y aquí sale su tienda y su puesto; el
+  // remoto, «—» como siempre.
+  const uMap = new Map(allEmployees.map((u) => [u.id, u]));
+  const lang = getLang();
+  const projName = (aid: string | undefined, uid: string) => {
+    const a = aid ? aMap.get(aid) : undefined;
+    return nombreDeLinea(a ? pMap.get(a.projectId)?.name : null, uMap.get(uid), lang, "—");
+  };
 
   const pending = requests.filter((r) => r.status === "pending").sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
   const history = requests.filter((r) => r.status !== "pending").sort((a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()).slice(0, 30);
@@ -166,7 +174,7 @@ export default function TeamRequestsPage() {
                 <div>
                   <div style={{ fontWeight: 700 }}>{p.employeeName as string} · {rLabel(r.type)}</div>
                   <div className="small muted">
-                    {projName(p.assignmentId as string)} · {p.date as string}
+                    {projName(p.assignmentId as string, r.employeeUid)} · {p.date as string}
                     {r.type === "add" && (p.fromTime ? <> · {p.fromTime as string}–{p.toTime as string} (<b>{p.hours as number} h</b>)</> : <> · <b>{p.hours as number} h</b></>)}
                     {r.type === "adjust" && <> · {fmtClock((p.oldSeconds as number) || 0)} → {p.fromTime ? <>{p.fromTime as string}–{p.toTime as string} (<b>{p.hours as number} h</b>)</> : <b>{p.hours as number} h</b>}</>}
                     {p.reason ? <> · &quot;{p.reason as string}&quot;</> : null}
@@ -194,7 +202,7 @@ export default function TeamRequestsPage() {
                   <tr key={r.id}>
                     <td>{p.employeeName as string}</td>
                     <td>{rLabel(r.type)}</td>
-                    <td className="small muted">{projName(p.assignmentId as string)} · {p.date as string}{r.type !== "delete" && p.hours ? " · " + p.hours + " h" : ""}</td>
+                    <td className="small muted">{projName(p.assignmentId as string, r.employeeUid)} · {p.date as string}{r.type !== "delete" && p.hours ? " · " + p.hours + " h" : ""}</td>
                     <td>{r.status === "approved" ? <span className="pill on">{t("mgr.req.approved")}</span> : <span className="pill off">{t("mgr.req.rejected")}</span>}</td>
                   </tr>
                 );

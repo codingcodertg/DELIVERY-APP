@@ -26,6 +26,11 @@ export interface Employee {
    * whether they even HAVE the module (see employee_settings.active, 059). */
   active: boolean;
   deletedAt: string | null;
+  /** Su tienda: la de fichaje (`clockin.job_sites` por su `store_id`) o, sin ella, la del hub
+   * (`profiles.store`). Es el «proyecto» del presencial (D-NEXT): ver `tienda-y-puesto.ts`. */
+  tienda?: string | null;
+  /** Su puesto de fichaje (`clockin.employee_settings.position`: sales, office…). Ídem. */
+  puesto?: string | null;
 }
 
 export interface Project {

@@ -20,6 +20,7 @@ import type { WeekPattern } from "@/lib/clockin/schedule";
 import type { Position } from "@/lib/clockin/positions";
 import type { MitadTimeTracker } from "@/lib/timetracker/tipo-trabajador";
 import { TipoDeTrabajadorCampo } from "@/components/TipoDeTrabajadorCampo";
+import { ETIQUETAS_DE_PUESTO, PUESTO_POR_DEFECTO } from "@/lib/timetracker/tienda-y-puesto";
 
 // ============================================================
 // One person's clock-in setup, inside the hub's Users dialog (D-095).
@@ -57,13 +58,10 @@ type Settings = {
 type Site = { id: string; name: string };
 type Vehicle = { id: string; name: string; plate: string | null; active: boolean };
 
-const POSITION_LABELS: Record<string, { en: string; es: string }> = {
-  office: { en: "Office", es: "Oficina" },
-  sales: { en: "Sales", es: "Ventas" },
-  warehouse: { en: "Warehouse", es: "Almacén" },
-  manager: { en: "Manager", es: "Gerente" },
-  owner: { en: "Owner", es: "Dueño" },
-};
+// Los textos de los puestos y el que se enseña cuando nadie lo puso viven en `tienda-y-puesto.ts`
+// desde D-NEXT: para un presencial, «tienda · puesto» es su proyecto en Time Tracker, y lo que se ve
+// aquí tiene que ser exactamente lo que sale allí.
+const POSITION_LABELS = ETIQUETAS_DE_PUESTO;
 
 const DOW = {
   en: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -138,7 +136,7 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
         <div className="field">
           <label>{t("Job position", "Puesto")}</label>
           <select
-            value={s.position ?? "sales"}
+            value={s.position ?? PUESTO_POR_DEFECTO}
             disabled={busy}
             onChange={(e) => run(() => setEmployeePosition(userId, e.target.value as Position))}
           >
@@ -147,8 +145,8 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
             ))}
           </select>
           <div className="hint">
-            {t("Groups them on the Coverage board. The role above is what governs what they can see.",
-               "Los agrupa en el tablero de Cobertura. Lo que pueden ver lo decide el rol de arriba.")}
+            {t("Groups them on the Coverage board and, for an in-house worker, it is their project in Time Tracker together with the store (they need no other). The role above is what governs what they can see.",
+               "Los agrupa en el tablero de Cobertura y, para un presencial, es su proyecto en Time Tracker junto con la tienda (no necesita otro). Lo que pueden ver lo decide el rol de arriba.")}
           </div>
         </div>
 
