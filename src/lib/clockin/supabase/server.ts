@@ -8,7 +8,7 @@ import { COOKIE_CAPACITACION, fetchConCorte, valorDeCapacitacion } from "@/lib/t
  */
 export async function createClient() {
   const cookieStore = await cookies();
-  // Modo capacitación (D-NEXT): con la cookie de práctica en la petición, este cliente no deja salir
+  // Modo capacitación (D-490): con la cookie de práctica en la petición, este cliente no deja salir
   // ninguna escritura. Es la red de debajo: las acciones que escriben ya contestan antes, con
   // `corteDeCapacitacion()`; esto cubre la que se escape a esa guarda.
   const practica = valorDeCapacitacion(cookieStore.get(COOKIE_CAPACITACION)?.value);

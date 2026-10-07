@@ -4,7 +4,7 @@ import { OPCIONES_DEL_MENU_TT } from "@/lib/account-menu";
 import { DICT } from "./i18n";
 
 /**
- * La barra de Time Tracker como la de Entregas, y el modo capacitación en ella (D-NEXT).
+ * La barra de Time Tracker como la de Entregas, y el modo capacitación en ella (D-490).
  *
  * El dueño: «hay demasiados botones […] si aprietas el nombre […] te sale Sign Out. Y teaching mode […]
  * Eso que sale employee, tampoco quiero que se mire. Y las notificaciones, eso sí, se queda. Pero el botón

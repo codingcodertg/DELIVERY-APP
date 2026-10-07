@@ -7,7 +7,7 @@ import type { DataState } from "@/lib/timetracker-data-provider";
 import type { Session } from "./types";
 
 /**
- * El proveedor de datos de Time Tracker en práctica (D-NEXT). Cada función está clasificada —pasa, se
+ * El proveedor de datos de Time Tracker en práctica (D-490). Cada función está clasificada —pasa, se
  * practica, se bloquea— y aquí se comprueba con un proveedor «real» de mentira cuyas funciones avisan si
  * alguien las llama.
  */

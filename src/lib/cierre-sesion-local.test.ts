@@ -39,7 +39,7 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: () => (falso.galletaRetorno === null ? undefined : { value: falso.galletaRetorno }),
-    // Por nombre, o con sus opciones (la del modo capacitación lleva su ruta, D-NEXT).
+    // Por nombre, o con sus opciones (la del modo capacitación lleva su ruta, D-490).
     delete: (c: string | { name: string; path?: string }) => { falso.borradas.push(typeof c === "string" ? c : `${c.name}@${c.path}`); },
   }),
 }));
@@ -74,7 +74,7 @@ describe("«Cerrar sesión» cierra este equipo, no la cuenta en todos", () => {
     expect(r.status).toBe(303);
   });
 
-  it("y apaga el modo capacitación de Time Tracker, con la ruta de su cookie (D-NEXT)", async () => {
+  it("y apaga el modo capacitación de Time Tracker, con la ruta de su cookie (D-490)", async () => {
     await salir(new Request("http://localhost/auth/signout", { method: "POST" }));
     expect(falso.borradas).toContain("rtg_capacitacion_tt@/timetracker");
   });

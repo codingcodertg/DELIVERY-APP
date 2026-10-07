@@ -92,7 +92,7 @@ export function FichajesDeHoy({ d, semanaDePago }: { d: DiaDeFichaje; semanaDePa
  */
 export function useMiDiaDeFichaje(activo: boolean): DiaDeFichaje | null {
   const [d, setD] = useState<DiaDeFichaje | null>(null);
-  // En práctica (D-NEXT), el día real con lo practicado encima, igual que bajo el reloj.
+  // En práctica (D-490), el día real con lo practicado encima, igual que bajo el reloj.
   const { getMyDay } = useAccionesDeFichar();
   useEffect(() => {
     if (!activo) return;

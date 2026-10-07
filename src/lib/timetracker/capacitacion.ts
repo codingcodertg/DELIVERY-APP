@@ -1,7 +1,7 @@
 import type { Idioma } from "@/lib/idioma";
 
 /**
- * El modo capacitación de Time Tracker (D-NEXT).
+ * El modo capacitación de Time Tracker (D-490).
  *
  * El dueño, el 2026-10-07: «teaching mode, quiero que hagas un teaching mode en modo de capacitación y
  * en el time tracker también para todos». Es el modo enseñanza de Entregas (D-274, `rtg_teaching`)

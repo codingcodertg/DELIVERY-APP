@@ -28,7 +28,7 @@ const SNAKE: Record<(typeof NUM)[number], string> = {
 };
 
 export async function POST(req: Request) {
-  // Modo capacitación (D-NEXT): el cronómetro de práctica también late al cerrar la página, con su id
+  // Modo capacitación (D-490): el cronómetro de práctica también late al cerrar la página, con su id
   // de práctica. No se escribe nada; se contesta sin error para que el navegador no reintente.
   if (await capacitacionDeLaPeticion()) return NextResponse.json({ ok: true, capacitacion: true });
   let body: Record<string, unknown>;

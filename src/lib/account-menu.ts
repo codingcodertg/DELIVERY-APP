@@ -25,7 +25,7 @@ import type { UserRole } from "./types";
  *   fue al hub con «Cambiar de usuario»: son del hub, no de Entregas. Con ella se fue `enMarco`, que
  *   solo existía para no ofrecerla dentro de su iframe.
  *
- * - **Personalizar** (D-NEXT), para todo el mundo, justo antes de Salir: el idioma y el tema se eligen
+ * - **Personalizar** (D-490), para todo el mundo, justo antes de Salir: el idioma y el tema se eligen
  *   en un solo sitio del hub (`/home/personalizar`) y ninguna barra tiene ya botón propio. La página
  *   solo pide sesión, así que también le vale al chofer.
  *
@@ -50,7 +50,7 @@ export function opcionesDelMenuDeCuenta(a: {
 }
 
 /**
- * El menú del nombre en Time Tracker (D-NEXT).
+ * El menú del nombre en Time Tracker (D-490).
  *
  * El dueño, el 2026-10-07: «hay demasiados botones […] quiero que sea igual que el Delivery app. Que
  * […] si aprietas el nombre de Carlos Fuentes, te sale Sign Out. Y teaching mode […] en el time tracker
@@ -66,7 +66,7 @@ export const OPCIONES_DEL_MENU_TT = ["capacitacion", "cuenta", "personalizar", "
 export type OpcionDelMenuTt = (typeof OPCIONES_DEL_MENU_TT)[number];
 
 /**
- * El menú del nombre en RR. HH. (D-NEXT): su botón ES/EN y su «Salir» suelto se mudan aquí, como en
+ * El menú del nombre en RR. HH. (D-490): su botón ES/EN y su «Salir» suelto se mudan aquí, como en
  * Entregas. RR. HH. no tiene modo de práctica, así que solo lleva lo que se quitó de la barra.
  */
 export const OPCIONES_DEL_MENU_RRHH = ["personalizar", "salir"] as const;

@@ -3,7 +3,7 @@ import { COOKIE_CAPACITACION, mensajeDeCapacitacion, valorDeCapacitacion } from 
 import type { Idioma } from "@/lib/idioma";
 
 /**
- * La tercera capa del modo capacitación (D-NEXT, ver `capacitacion.ts`): el servidor.
+ * La tercera capa del modo capacitación (D-490, ver `capacitacion.ts`): el servidor.
  *
  * Toda acción de servidor de fichaje que escribe (`app/timetracker/clock-in/actions/*.ts`) empieza así:
  *

@@ -54,7 +54,7 @@
 .recruiting-module, .recruiting-module * { box-sizing: border-box; margin: 0; padding: 0; }
 .recruiting-module h1, .recruiting-module h2, .recruiting-module h3, .recruiting-module .display { font-family: 'Archivo', system-ui, sans-serif; }
 .recruiting-module a { color: inherit; }
-/* El menú del nombre (D-NEXT, `MenuDeCuenta`) cuelga de la barra, que pinta en blanco: sus enlaces llevan el color
+/* El menú del nombre (D-490, `MenuDeCuenta`) cuelga de la barra, que pinta en blanco: sus enlaces llevan el color
    de la tarjeta del menú, no el de la barra, y su relleno, que el `* { padding: 0 }` de arriba borraba. Sin esto
    «Personalizar» salía blanco sobre blanco y las opciones pegadas al borde (visto en el navegador). */
 .recruiting-module .col-menu { padding: 6px; }

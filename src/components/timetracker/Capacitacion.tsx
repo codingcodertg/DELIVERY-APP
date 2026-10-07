@@ -19,7 +19,7 @@ import {
 import { accionesDePractica, type AccionesDeFichar, type Libreta } from "@/lib/timetracker/capacitacion-fichar";
 
 /**
- * El modo capacitación en la pantalla (D-NEXT). La regla y las tres capas están en
+ * El modo capacitación en la pantalla (D-490). La regla y las tres capas están en
  * `lib/timetracker/capacitacion.ts`; aquí vive lo que necesita React:
  *
  * - **el estado**: si está encendida (la cookie, que el layout ya leyó en el servidor) y lo practicado,

@@ -6,7 +6,7 @@ import { PREFERENCIAS_DE_TEMA } from "./tema";
 import { OPCIONES_DEL_MENU, OPCIONES_DEL_MENU_RRHH, OPCIONES_DEL_MENU_TT, opcionesDelMenuDeCuenta } from "./account-menu";
 
 /**
- * El personalizador del hub (D-NEXT): el idioma y el tema se eligen ahí y en ningún otro sitio de las
+ * El personalizador del hub (D-490): el idioma y el tema se eligen ahí y en ningún otro sitio de las
  * apps; cada barra que tenía un botón deja en su lugar un enlace hasta él.
  */
 

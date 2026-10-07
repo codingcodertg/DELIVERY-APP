@@ -101,7 +101,7 @@ export function SideNav({
       )}
     </div>
   );
-  // Aquí iba el conmutador de idioma ES/EN, como en las barras de HR y Time Tracker. Desde D-NEXT el
+  // Aquí iba el conmutador de idioma ES/EN, como en las barras de HR y Time Tracker. Desde D-490 el
   // idioma y el tema se eligen en UN sitio, «Personalizar», en el hub, y las barras enlazan hasta allí.
   // La página solo pide sesión: le vale también a quien tiene el ERP como única app (`hubReachable` no).
   // En la cabecera del teléfono va solo el 🎨 (con su nombre para el lector de pantalla): con el texto

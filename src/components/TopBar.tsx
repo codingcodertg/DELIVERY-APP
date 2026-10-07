@@ -52,7 +52,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // El desplegable del nombre (D-274). Sustituye a la burbuja del rol de D-089, que llevaba
   // «Salir» dentro para quien no era admin, y a la píldora «ver como» del admin, que ahora es una
   // opción más del menú. Qué opciones salen lo decide `opcionesDelMenuDeCuenta`, no esta barra.
-  // El armazón (botón, capa, volteo, cierre al navegar) es `MenuDeCuenta` desde D-NEXT, el mismo
+  // El armazón (botón, capa, volteo, cierre al navegar) es `MenuDeCuenta` desde D-490, el mismo
   // que usan Time Tracker y RR. HH.; aquí solo se pinta cada opción.
   // The menu hangs from the button's RIGHT edge and grows leftwards, which
   // runs it off the window whenever the button sits near the left edge — and
@@ -306,10 +306,10 @@ export function TopBar({ me: propMe }: { me: Profile }) {
                   </Link>
                 );
               case "personalizar":
-                // Idioma y tema, en el hub (D-NEXT). La misma opción que en Time Tracker y RR. HH.
+                // Idioma y tema, en el hub (D-490). La misma opción que en Time Tracker y RR. HH.
                 return <OpcionPersonalizar key={o} alPulsar={cierraMenu} />;
               case "salir":
-                // El único formulario de salida de la barra, el mismo de Time Tracker y RR. HH. (D-NEXT).
+                // El único formulario de salida de la barra, el mismo de Time Tracker y RR. HH. (D-490).
                 return <OpcionSalir key={o} />;
             }
           })}

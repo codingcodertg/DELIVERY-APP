@@ -49,7 +49,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'shell.lightMode': 'Switch to light mode',
     'shell.darkMode': 'Switch to dark mode',
     'shell.reload': 'Reload the app',
-    // Modo capacitación y menú del nombre (D-NEXT).
+    // Modo capacitación y menú del nombre (D-490).
     'training.menu': '🎓 Training mode',
     'training.menuOff': '🎓 Turn training mode off',
     'training.menuHint': 'Practice clocking in and out, lunch, going out, trips and requests: nothing you do is saved.',
@@ -932,7 +932,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'shell.lightMode': 'Cambiar a modo claro',
     'shell.darkMode': 'Cambiar a modo oscuro',
     'shell.reload': 'Recargar la app',
-    // Modo capacitación y menú del nombre (D-NEXT).
+    // Modo capacitación y menú del nombre (D-490).
     'training.menu': '🎓 Modo capacitación',
     'training.menuOff': '🎓 Apagar modo capacitación',
     'training.menuHint': 'Practica fichar, la comida, «Voy a salir», viajes y solicitudes: nada de lo que hagas se guarda.',

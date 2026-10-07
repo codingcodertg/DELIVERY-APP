@@ -115,7 +115,7 @@ describe("las navegaciones de página completa que hay HOY en la app", () => {
     // fallo, porque el fallo no estaba en el formulario sino en qué consideraba suyo la ventana.
     // Eran SEIS hasta D-274: la barra de Entregas tenía dos (la burbuja del rol y el botón del
     // admin) y ahora tiene uno, en el menú del nombre. El fallo de la ventana no cambia con eso.
-    // Eran CINCO hasta D-NEXT: Entregas, Time Tracker y RR. HH. comparten desde entonces el menú del
+    // Eran CINCO hasta D-490: Entregas, Time Tracker y RR. HH. comparten desde entonces el menú del
     // nombre (`MenuDeCuenta`), con UN formulario de salida para las tres (`OpcionSalir`).
     const formularios = [
       "src/components/MenuDeCuenta.tsx",              // Entregas, Time Tracker y RR. HH.: uno, en el menú del nombre

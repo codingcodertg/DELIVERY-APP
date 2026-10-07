@@ -8,7 +8,7 @@ import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 import { avatarColor, initials } from "@/lib/utils";
 
 /**
- * El menú que se abre al tocar tu nombre en la barra (D-274 lo hizo para Entregas; D-NEXT lo saca
+ * El menú que se abre al tocar tu nombre en la barra (D-274 lo hizo para Entregas; D-490 lo saca
  * aquí para que Time Tracker y RR. HH. usen EL MISMO, no una copia).
  *
  * Esto es solo el armazón: el botón con la inicial y el nombre, la capa que lo cierra al pulsar fuera,
@@ -83,7 +83,7 @@ export function MenuDeCuenta({
   );
 }
 
-/** «Personalizar»: idioma y tema de todas las apps, en el hub (D-NEXT). */
+/** «Personalizar»: idioma y tema de todas las apps, en el hub (D-490). */
 export function OpcionPersonalizar({ alPulsar }: { alPulsar: () => void }) {
   const { t } = usePrefs();
   return (

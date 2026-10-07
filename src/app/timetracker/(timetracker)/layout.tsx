@@ -90,7 +90,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
     deletedAt: es?.deleted_at ?? null,
   };
 
-  // Modo capacitación (D-NEXT): la cookie se lee aquí para que la página llegue ya en práctica, con
+  // Modo capacitación (D-490): la cookie se lee aquí para que la página llegue ya en práctica, con
   // su aviso, y no se pinte un instante «de verdad» antes de saberlo el navegador.
   const capacitacion = await capacitacionDeLaPeticion();
 

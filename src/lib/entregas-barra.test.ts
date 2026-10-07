@@ -26,7 +26,7 @@ describe("el menú del nombre, con la entrada de la barra", () => {
     expect(canReachHub({ role: "sales", module_access: soloEntregas })).toBe(true);
   });
 
-  // Desde D-NEXT todos llevan además «Personalizar» (idioma y tema, en el hub), justo antes de Salir.
+  // Desde D-490 todos llevan además «Personalizar» (idioma y tema, en el hub), justo antes de Salir.
   it("un vendedor: modo enseñanza, personalizar y salir, nada más", () => {
     expect(opcionesDelMenuDeCuenta({ realRole: "sales", me: { role: "sales", module_access: soloEntregas } }))
       .toEqual(["ensenanza", "personalizar", "salir"]);
@@ -65,7 +65,7 @@ describe("el menú del nombre, con la entrada de la barra", () => {
 describe("la barra de Entregas", () => {
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
 
-  // Time Tracker lo dejó también en D-NEXT («quiero que sea igual que el Delivery app»): la casa sola.
+  // Time Tracker lo dejó también en D-490 («quiero que sea igual que el Delivery app»): la casa sola.
   it("no monta el selector de módulos, ni Time Tracker; la barra de RR. HH., sí", () => {
     expect(barra).not.toContain("ModuleSwitcher");
     expect(sinComentarios(leer("src/components/timetracker/TopBar.tsx"))).not.toContain("ModuleSwitcher");
@@ -97,7 +97,7 @@ describe("la barra de Entregas", () => {
     for (const o of OPCIONES_DEL_MENU) expect(barra, o).toContain(`case "${o}":`);
   });
 
-  // Desde D-NEXT el formulario es `OpcionSalir`, del menú compartido con Time Tracker y RR. HH.
+  // Desde D-490 el formulario es `OpcionSalir`, del menú compartido con Time Tracker y RR. HH.
   it("Salir es un solo formulario, dentro del menú", () => {
     expect(barra.match(/<form action="\/auth\/signout"/g) ?? []).toHaveLength(0);
     const salir = barra.slice(barra.indexOf('case "salir":'));

@@ -110,7 +110,7 @@ function MiHorarioSec() {
 
 function MisNotasSec() {
   const t = useT();
-  // Reales o de práctica (modo capacitación, D-NEXT): en práctica la nota se ve, pero no se guarda.
+  // Reales o de práctica (modo capacitación, D-490): en práctica la nota se ve, pero no se guarda.
   const { getMyNotes, addNote } = useAccionesDeFichar();
   const traer = useCallback(async () => {
     const r = await getMyNotes();

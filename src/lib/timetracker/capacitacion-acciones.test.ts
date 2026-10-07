@@ -5,7 +5,7 @@ import { COOKIE_CAPACITACION, mensajeDeCapacitacion } from "./capacitacion";
 import { rechazoDeCapacitacion } from "./capacitacion-servidor";
 
 /**
- * La tercera capa del modo capacitación (D-NEXT): el servidor.
+ * La tercera capa del modo capacitación (D-490): el servidor.
  *
  * Dos clases de prueba:
  *   1. **El barrido**: cada acción de servidor de fichaje que no esté en la lista de lecturas empieza

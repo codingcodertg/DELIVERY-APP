@@ -58,7 +58,7 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
         <Link href="/home/profile" className="hub-profile-link">
           👤 {t("My profile · password", "Mi perfil · contraseña")}
         </Link>
-        {/* El personalizador (D-NEXT): idioma y tema de TODAS las apps, elegidos solo aquí. Al lado de
+        {/* El personalizador (D-490): idioma y tema de TODAS las apps, elegidos solo aquí. Al lado de
             Mi perfil porque es lo mismo —lo tuyo, para todas las apps—, y las barras de cada app ya no
             tienen botón de idioma ni de tema: enlazan hasta aquí desde el menú del nombre. */}
         <Link href={RUTA_PERSONALIZAR} className="hub-profile-link" data-hub-personalizar>

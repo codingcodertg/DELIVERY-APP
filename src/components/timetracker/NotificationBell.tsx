@@ -20,7 +20,7 @@ import { useT } from "@/lib/timetracker/i18n";
  */
 export function NotificationBell() {
   const t = useT();
-  // Reales o de práctica (modo capacitación, D-NEXT): en práctica, «leídos» no llega a la base.
+  // Reales o de práctica (modo capacitación, D-490): en práctica, «leídos» no llega a la base.
   const { getMyNotifications, countUnread, markAllRead } = useAccionesDeFichar();
   const [n, setN] = useState(0);
   const [abierto, setAbierto] = useState(false);

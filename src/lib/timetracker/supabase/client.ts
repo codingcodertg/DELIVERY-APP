@@ -14,7 +14,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       db: { schema: "timetracker" },
-      // Modo capacitación (D-NEXT): con la cookie de práctica puesta, ninguna escritura sale del
+      // Modo capacitación (D-490): con la cookie de práctica puesta, ninguna escritura sale del
       // navegador. Se pregunta en cada petición (`capacitacionDelNavegador`), no al crear el cliente.
       global: { fetch: fetchConCorte((i, o) => fetch(i, o), capacitacionDelNavegador) },
       // Without this, createBrowserClient returns ONE cached client per browser (the

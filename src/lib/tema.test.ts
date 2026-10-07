@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { GUION_DE_TEMA, PREFERENCIAS_DE_TEMA, esPreferenciaDeTema, preferenciaDeTemaGuardada, temaEfectivo, type PreferenciaDeTema } from "./tema";
 
 /**
- * El tema, con la tercera opción del personalizador: «como mi equipo» (D-NEXT).
+ * El tema, con la tercera opción del personalizador: «como mi equipo» (D-490).
  *
  * Se prueba la regla con datos (`temaEfectivo`), el guion que corre antes de pintar EJECUTÁNDOLO contra
  * la misma regla, y que quien pinta de verdad —el layout y el proveedor— usa esas dos piezas.

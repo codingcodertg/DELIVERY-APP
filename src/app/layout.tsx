@@ -14,7 +14,7 @@ import { GUION_DE_TEMA } from "@/lib/tema";
 // browser profile — wrong for a dedicated, always-dark-by-design client
 // (D-080). Defaults to dark there when nothing's been explicitly chosen yet;
 // an explicit choice (light or dark, saved once toggled) always wins.
-// D-NEXT: el guion vive en `lib/tema.ts` (GUION_DE_TEMA) porque ahora hay una tercera opción, «el del
+// D-490: el guion vive en `lib/tema.ts` (GUION_DE_TEMA) porque ahora hay una tercera opción, «el del
 // equipo» (`system`), que pregunta a `matchMedia`; allí una prueba lo ejecuta contra `temaEfectivo`.
 const themeScript = GUION_DE_TEMA;
 

@@ -1,5 +1,5 @@
 /**
- * El tema de la pantalla: claro, oscuro o **el del equipo** (D-NEXT, el personalizador del hub).
+ * El tema de la pantalla: claro, oscuro o **el del equipo** (D-490, el personalizador del hub).
  *
  * Hasta ahora solo había dos valores, `light` y `dark`, guardados en `localStorage` `rtg_prefs.theme`
  * y elegidos en «Mi perfil» o con el botón 🌙 de la barra de Time Tracker. El dueño pidió que el

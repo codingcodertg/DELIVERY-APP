@@ -83,7 +83,7 @@ export default function MyAccountPage() {
       {/* El idioma de los avisos tenía selector propio aquí (D-106), aparte del de la pantalla. Ya
           no: el idioma es uno solo para todas las apps y para los avisos, y se elige en «Mi
           perfil» (D-266). Dos selectores que guardan idiomas distintos es lo que se quitó. Desde
-          D-NEXT el idioma y el tema se eligen en «Personalizar», en el hub, y el enlace va allí. */}
+          D-490 el idioma y el tema se eligen en «Personalizar», en el hub, y el enlace va allí. */}
       <div className="hr" />
       <h3 style={{ color: "var(--tt-muted)" }}>{t("emp.acc.notifications")}</h3>
       <div className="hint">{t("emp.acc.notifLangUnified")}</div>

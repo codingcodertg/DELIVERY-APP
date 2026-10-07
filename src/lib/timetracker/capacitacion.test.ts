@@ -8,7 +8,7 @@ import {
 } from "./capacitacion";
 
 /**
- * El modo capacitación de Time Tracker (D-NEXT): la cookie, el corte del navegador y la capa de práctica
+ * El modo capacitación de Time Tracker (D-490): la cookie, el corte del navegador y la capa de práctica
  * del día y del viaje. Las acciones y el proveedor tienen sus pruebas al lado
  * (`capacitacion-fichar.test.ts`, `capacitacion-datos.test.ts`, `capacitacion-acciones.test.ts`).
  */

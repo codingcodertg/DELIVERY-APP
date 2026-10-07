@@ -5,7 +5,7 @@ import type { Libreta } from "./capacitacion-fichar";
 import type { Idioma } from "@/lib/idioma";
 
 /**
- * El proveedor de datos de Time Tracker en modo capacitación (D-NEXT).
+ * El proveedor de datos de Time Tracker en modo capacitación (D-490).
  *
  * Todo lo que el proveedor ofrece está clasificado aquí, función por función, y el objeto de práctica
  * se CONSTRUYE desde esta tabla: no se copia el real y se tapan huecos, que es justo como una función

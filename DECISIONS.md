@@ -3473,7 +3473,7 @@ algún momento, no dejarla así por accidente.
 
 ## D-080 · El desktop siempre caía en modo claro — nunca tuvo forma de estar oscuro
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-07): el botón ☀️/🌙 de la barra de Time Tracker ya no existe; el tema
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): el botón ☀️/🌙 de la barra de Time Tracker ya no existe; el tema
 > se elige en «Personalizar», en el hub (`/home/personalizar`), que añade una tercera opción, «Como mi equipo». El guion de
 > antes de pintar sigue arrancando el escritorio en oscuro sin elección guardada; ahora vive en `src/lib/tema.ts`.
 
@@ -7308,7 +7308,7 @@ pantallas de gerente.
 
 ## D-160 · A "Mi cuenta" se entra tocando tu nombre
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-07): tocar tu nombre ya no lleva a «Mi cuenta»: abre el menú de la
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): tocar tu nombre ya no lleva a «Mi cuenta»: abre el menú de la
 > cuenta (el mismo de Entregas), y «Mi cuenta» es una de sus opciones. La ruta `/timetracker/account` no cambia.
 
 **Fecha:** 2026-09-01 · **Versión:** v0.45.0 (timetracker)
@@ -9312,7 +9312,7 @@ buscando literales**; la prueba de D-187 solo ve claves literales, y así hay qu
 
 ## D-203 · Auditoría 2026-09-05, lote 5a (el ERP en dos idiomas, primera mitad): el mecanismo, el conmutador y las cinco pantallas de más uso
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-07): el conmutador ES/EN de `side-nav.tsx` ya no existe; en su sitio va
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): el conmutador ES/EN de `side-nav.tsx` ya no existe; en su sitio va
 > un enlace a «Personalizar», en el hub, donde se elige el idioma de todas las apps. El ERP sigue el idioma del hub como antes.
 
 **Fecha:** 2026-09-05 · **Versión:** erp 0.6.0, package.json 1.120.0 (solo `erp` se toca) ·
@@ -16556,7 +16556,7 @@ prueba no fije el formato.
 > contraseña temporal (marca `must_change_password` en `user_metadata`) la cambia en `/change-password`, sin pedir la actual,
 > por `POST /api/profile/password/forced`. Fuera de ese caso, «Mi perfil» sigue siendo el único sitio.
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-07): el idioma y el tema ya no se eligen en «Mi perfil» sino en
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): el idioma y el tema ya no se eligen en «Mi perfil» sino en
 > «Personalizar» (`/home/personalizar`), el único sitio para los dos; «Mi perfil» enlaza allí. La contraseña no cambia.
 
 **Fecha:** 2026-09-16 · **Versión:** la pone el orquestador al fusionar. Cambia código de las tres
@@ -16663,7 +16663,7 @@ Quince cambios: **catorce caen y un gemelo se queda en verde**.
 
 ## D-266 · Un solo idioma para todas las apps y los avisos, que sigue a la persona
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-07): el idioma ya no se cambia desde las barras (Time Tracker, RR. HH.,
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): el idioma ya no se cambia desde las barras (Time Tracker, RR. HH.,
 > ERP) ni desde «Mi perfil», sino solo en «Personalizar», en el hub. Dónde se guarda (`profiles.language`) y cómo lo sigue
 > Time Tracker no cambian.
 
@@ -17457,7 +17457,7 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 
 > **⚠ Reemplazada en parte por D-467** (2026-10-04): la leyenda del mapa (§ de la leyenda) ya no explica «la ruta de las órdenes elegidas» ni «la recogida de la orden elegida», porque el Mapa pasó a ser «Ruta de hoy», de solo lectura. Explica las marcas de una ruta: P, D, ✓, la línea del chofer y su regreso; el camión, solo a quien recibe las posiciones.
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-07): (1) el menú del nombre lleva «Personalizar» para todos, justo antes
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): (1) el menú del nombre lleva «Personalizar» para todos, justo antes
 > de salir, y «Salir» se llama «Cerrar sesión»; su armazón pasó a `MenuDeCuenta`, que comparten Time Tracker y RR. HH. (2)
 > Time Tracker ya no «sigue con los dos botones»: deja el selector de módulos y monta la casa sola, como Entregas.
 
@@ -38283,7 +38283,7 @@ No visto en navegador: `tsc` y vitest.
 
 ## D-489 · Time Tracker, vista del empleado: sin «Mi diario»; «Mi semana» solo con horas y con el boletín y los fichajes de hoy; bajo el reloj solo «Mi horario» y «Notas del día»; «Tiempo libre» antes que «Tiempo»; «Voy a salir» pregunta vehículo personal o de la empresa; y fuera los botones que parecían desactivados sin estarlo, en toda la app
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-07): la fila `a.tt-me` de la auditoría de botones ya no aplica: el
+> **⚠ Reemplazada en parte por D-490** (2026-10-07): la fila `a.tt-me` de la auditoría de botones ya no aplica: el
 > nombre de la barra de Time Tracker dejó de ser un enlace a «Mi cuenta» y abre el menú de la cuenta.
 
 **Fecha:** 2026-10-06 · **Versión:** timetracker 0.97.0, clockin 0.43.0, recruiting 0.38.1, deliveries 1.267.1, erp 0.14.1, repo 1.362.0 (toca `timetracker` sobre todo, y de paso
@@ -38467,9 +38467,9 @@ a borde discontinuo y opacos.
   anteriores haría falta una acción nueva que lea sus `time_entries` por periodo (hoy `getEmployeeWeek` es solo de gerente).
 - El aviso de hidratación «Loading…/Cargando…» de la pantalla de fichar en español (D-455) sigue igual.
 
-## D-NEXT · Time Tracker: la barra como la de Entregas (el nombre abre el menú; fuera el rol, el ES/EN, el 🌙 y el «Sign out» suelto), un modo capacitación para todos donde nada se guarda, y un solo «Personalizar» en el hub para el idioma y el tema de todas las apps
+## D-490 · Time Tracker: la barra como la de Entregas (el nombre abre el menú; fuera el rol, el ES/EN, el 🌙 y el «Sign out» suelto), un modo capacitación para todos donde nada se guarda, y un solo «Personalizar» en el hub para el idioma y el tema de todas las apps
 
-**Fecha:** 2026-10-07 · **Versión:** la pone el orquestador al fusionar (toca `timetracker` sobre todo; `deliveries` por la
+**Fecha:** 2026-10-07 · **Versión:** timetracker 0.98.0, clockin 0.44.0, deliveries 1.268.0, recruiting 0.39.0, erp 0.15.0, repo 1.363.0 (toca `timetracker` sobre todo; `deliveries` por la
 barra, el hub y el proveedor de preferencias, que son compartidos; `recruiting` y `erp` por sus barras) · **Migración:**
 ninguna · **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-080, D-160, D-203, D-265, D-266, D-274 y D-489,
 que llevan su nota.

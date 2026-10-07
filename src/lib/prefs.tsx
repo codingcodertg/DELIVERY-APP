@@ -6,9 +6,9 @@ import { CLAVE_TT, EVENTO_IDIOMA, idiomaDeRtgPrefs, sincronizaIdiomaAlCargar, ty
 import { CONSULTA_OSCURO, esPreferenciaDeTema, temaEfectivo, type PreferenciaDeTema, type Tema } from "@/lib/tema";
 
 // ============================================================
-// UI preferences: language (EN/ES) + theme (light/dark, or the device's — D-NEXT).
+// UI preferences: language (EN/ES) + theme (light/dark, or the device's — D-490).
 // Theme: persisted to localStorage, applied to <html> via data-theme.
-// Both are CHOSEN in one place only, the hub's «Personalizar» (/home/personalizar, D-NEXT);
+// Both are CHOSEN in one place only, the hub's «Personalizar» (/home/personalizar, D-490);
 // every app just reads them from here.
 // Language: ONE for every app, per person, in public.profiles.language (D-266).
 // localStorage keeps a copy (rtg_prefs.lang, and tt_lang for Time Tracker) so the
@@ -23,7 +23,7 @@ interface Prefs {
   /** El tema que se está pintando ahora, ya resuelto: nunca `system`. */
   theme: Theme;
   /**
-   * Lo que la persona eligió en el personalizador, `system` incluido (D-NEXT). Sin elección guardada
+   * Lo que la persona eligió en el personalizador, `system` incluido (D-490). Sin elección guardada
    * es el tema efectivo, para que el personalizador marque lo que se ve.
    */
   themePref: PreferenciaDeTema;
@@ -88,7 +88,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
   const theme = temaEfectivo(themeElegido, { sistemaOscuro: oscuroDelSistema, escritorio: enEscritorio() });
   // De quién es la sesión, para guardar el idioma sin volver a preguntar.
   const usuario = useRef<string | null>(null);
-  // ¿Ya se leyó lo guardado? Hasta entonces NO se pinta ni se guarda nada (D-NEXT). Sin esta guarda,
+  // ¿Ya se leyó lo guardado? Hasta entonces NO se pinta ni se guarda nada (D-490). Sin esta guarda,
   // el primer pintado guardaba los valores de arranque —inglés y claro— ENCIMA de lo elegido, antes
   // de que la lectura de arriba llegara a aplicarse; y si React rehacía el árbol justo entonces (lo
   // hace cuando el HTML del servidor no coincide, y Time Tracker en español no coincide nunca: su
@@ -173,7 +173,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
   }, [cargado, lang, theme, themeElegido]);
 
   /**
-   * Elegir idioma. Desde D-NEXT se elige en UN sitio de la pantalla, el personalizador del hub
+   * Elegir idioma. Desde D-490 se elige en UN sitio de la pantalla, el personalizador del hub
    * (antes también en «Mi perfil» y en el conmutador de cada barra), más la pantalla de contraseña
    * obligatoria. Todos llaman a esto, y esto escribe en UN sitio: es lo que impide que dos pantallas
    * guarden idiomas distintos.
@@ -194,7 +194,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
   const setTheme = useCallback((t: PreferenciaDeTema) => setThemeElegido(t), []);
-  // Sin `toggleTheme` desde D-NEXT: el único que lo usaba era el 🌙 de la barra de Time Tracker, que
+  // Sin `toggleTheme` desde D-490: el único que lo usaba era el 🌙 de la barra de Time Tracker, que
   // se fue al personalizador. `toggleLang` queda para la pantalla de contraseña obligatoria, que se
   // ve ANTES de poder entrar al hub (D-486) y es como el login.
   const toggleLang = useCallback(() => setLang(lang === "en" ? "es" : "en"), [lang, setLang]);

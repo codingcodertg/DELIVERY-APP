@@ -121,7 +121,7 @@ const horas = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padS
 export function PunchPanel() {
   const t = useT();
   const { me } = useData();
-  // Reales o de práctica (modo capacitación, D-NEXT): la pantalla es la misma, cambia a quién se llama.
+  // Reales o de práctica (modo capacitación, D-490): la pantalla es la misma, cambia a quién se llama.
   // La foto, también: en práctica no sale del equipo (el nombre se queda, es el mismo paso de siempre).
   const {
     clockIn, clockOut, getMyDay, startLeave, endLeave, getMyTrip, startTrip, endTrip, logStop, finishStop,

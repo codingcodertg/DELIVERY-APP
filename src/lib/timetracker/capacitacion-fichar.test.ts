@@ -5,7 +5,7 @@ import { accionesDePractica, CLASE_DE_ACCION, type AccionesDeFichar, type Libret
 import { practicaVacia, type Practica } from "./capacitacion";
 
 /**
- * Las acciones de fichar en práctica (D-NEXT): lo que escribe no llama a la acción real; lo que lee la
+ * Las acciones de fichar en práctica (D-490): lo que escribe no llama a la acción real; lo que lee la
  * llama y le pinta encima lo practicado. Y las pantallas del empleado las piden al hook, no a las
  * acciones de servidor.
  */

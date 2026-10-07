@@ -164,7 +164,7 @@
 /* Mi perfil, bajo el saludo: visible sin competir con los módulos. */
 .hub-profile-link { display: inline-block; font-size: 13px; font-weight: 600; color: var(--gray); margin: 2px 0 10px; padding: 4px 8px; border-radius: 8px; text-decoration: none; }
 .hub-profile-link:hover { background: var(--card-hover); color: var(--text); }
-/* El personalizador (D-NEXT): cada opción es un botón grande, y se parten en filas en un teléfono
+/* El personalizador (D-490): cada opción es un botón grande, y se parten en filas en un teléfono
    («Como mi equipo» no cabe al lado de las otras dos a 390 px). */
 .pers-opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; max-width: 560px; }
 .pers-opcion { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;

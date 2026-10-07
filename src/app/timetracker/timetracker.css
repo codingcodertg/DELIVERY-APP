@@ -159,7 +159,7 @@
 /* El ⟳ de recargar, solo dentro de la app de escritorio (D-280). Mismo aire que los botones de
    idioma y tema de esa barra, que llevan su fondo translúcido en línea. */
 .timetracker-module .topbar .tt-recargar{background:rgba(255,255,255,.1);color:#fff;font-size:15px;line-height:1;padding:5px 9px}
-/* La cabecera (D-NEXT): el aviso del modo capacitación y la barra, pegados arriba JUNTOS. Antes la
+/* La cabecera (D-490): el aviso del modo capacitación y la barra, pegados arriba JUNTOS. Antes la
    pegajosa era la barra sola; con el aviso encima, dos pegajosas en el mismo sitio se taparían. */
 .timetracker-module .tt-cabecera{position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;margin-bottom:6px}
 .timetracker-module .tt-cabecera .topbar{position:static;margin-bottom:0}
@@ -167,7 +167,7 @@
 .timetracker-module .tt-capacitacion{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
   background:var(--teaching-bg);color:#fff;text-align:center;padding:8px 12px;font-size:13px;font-weight:800;letter-spacing:.02em}
 .timetracker-module .tt-capacitacion button{background:rgba(255,255,255,.25);color:#fff;padding:3px 12px;border-radius:6px;font-size:12.5px;font-weight:700}
-/* El nombre que abre el menú (D-NEXT, el mismo `MenuDeCuenta` de Entregas). Las reglas de abajo deshacen
+/* El nombre que abre el menú (D-490, el mismo `MenuDeCuenta` de Entregas). Las reglas de abajo deshacen
    el botón azul que este módulo pone a todo `button`: el nombre va sin fondo, como en Entregas, y las
    opciones del menú son filas, no botones. Los colores del menú son los de la casa (`.col-menu`). */
 .timetracker-module .topbar .account-link{background:transparent;color:#fff;font-weight:600;white-space:nowrap}

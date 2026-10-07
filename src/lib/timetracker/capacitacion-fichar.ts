@@ -9,7 +9,7 @@ import type { subirFotoDeFichaje } from "@/lib/clockin/sube-foto";
 import { diaConPractica, viajeConPractica, type EventoDeFichar, type Practica } from "./capacitacion";
 
 /**
- * Las acciones de fichar de la pantalla del empleado, en real o en práctica (modo capacitación, D-NEXT).
+ * Las acciones de fichar de la pantalla del empleado, en real o en práctica (modo capacitación, D-490).
  *
  * `PunchPanel`, `TripPanel`, «Notas del día», «Tiempo libre», «Fichajes de hoy» y la campana ya no
  * importan las acciones de servidor: piden este juego a `useAccionesDeFichar()`. Con la práctica

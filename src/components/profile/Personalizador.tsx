@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { OPCIONES_DE_IDIOMA, OPCIONES_DE_TEMA } from "@/lib/personalizar";
 
 /**
- * «Personalizar» (D-NEXT): el único sitio donde se eligen el idioma y el tema de todas las apps.
+ * «Personalizar» (D-490): el único sitio donde se eligen el idioma y el tema de todas las apps.
  *
  * Las opciones salen de `lib/personalizar.ts` y se guardan por el proveedor de siempre (`usePrefs`):
  * el idioma en la base, por persona (D-266), y el tema en este equipo (`lib/tema.ts`). Entregas, Time

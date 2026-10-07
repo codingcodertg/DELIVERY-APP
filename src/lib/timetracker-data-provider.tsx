@@ -839,7 +839,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // ya cerrada le pisaba `end_ms` y `live_note`, y con ello borraba la marca `closed:cron` de
   // la que depende reabrir en D-197. Con la guarda de `is_live`, ese parche no encuentra fila.
   //
-  // En modo capacitación (D-NEXT) la cola NO arranca: lo que haya en ella es trabajo REAL de antes, y
+  // En modo capacitación (D-490) la cola NO arranca: lo que haya en ella es trabajo REAL de antes, y
   // vaciarla por la vía de práctica lo tiraría (la práctica no tiene filas reales vivas, D-242 lo
   // contaría como «descartado»). Se queda guardada y sale al apagar la práctica, que vuelve a montar
   // este proveedor en real.
@@ -864,7 +864,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     insertProject, updateProject, insertAssignment, updateAssignment, removeAssignment,
     claimRequest, resetRequestToPending, updateEmployeeSettings, updateSettings,
   };
-  // Modo capacitación (D-NEXT): cada función clasificada en `capacitacion-datos.ts` —pasa, se practica
+  // Modo capacitación (D-490): cada función clasificada en `capacitacion-datos.ts` —pasa, se practica
   // o se bloquea—. Ninguna escritura llega a la base desde aquí mientras dure. Las funciones se crean
   // UNA vez por práctica y leen el proveedor de cada momento por `realRef`: con identidades nuevas en
   // cada pintado, los efectos del cronómetro que dependen de ellas se volverían a montar sin parar.

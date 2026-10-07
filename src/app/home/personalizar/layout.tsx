@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 
 /**
- * «Personalizar» es de cualquiera que tenga cuenta (D-NEXT), así que la puerta solo pregunta si hay
+ * «Personalizar» es de cualquiera que tenga cuenta (D-490), así que la puerta solo pregunta si hay
  * sesión, igual que «Mi perfil» (D-265).
  *
  * **No usa `canReachHub`, a propósito y por lo mismo que «Mi perfil»:** el chofer no entra al lobby

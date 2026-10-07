@@ -42,7 +42,7 @@ type Row = {
 
 export function TimeOffRequests() {
   const t = useT();
-  // Reales o de práctica (modo capacitación, D-NEXT): en práctica la solicitud se ve, pero no se manda.
+  // Reales o de práctica (modo capacitación, D-490): en práctica la solicitud se ve, pero no se manda.
   const { getMyTimeOff, submitTimeOff } = useAccionesDeFichar();
   const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const hoy = dateISO(new Date());

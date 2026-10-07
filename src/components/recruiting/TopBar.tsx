@@ -50,7 +50,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
           })}
         </div>
         <ModuleSwitcher current="recruiting" deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />
-        {/* El nombre abre el menú de la cuenta, el mismo de Entregas y Time Tracker (D-NEXT). Se llevó
+        {/* El nombre abre el menú de la cuenta, el mismo de Entregas y Time Tracker (D-490). Se llevó
             el botón ES/EN —el idioma se elige en «Personalizar», en el hub— y el «Salir» suelto. La
             etiqueta del rol se queda: el dueño pidió quitarla en Time Tracker, no aquí. */}
         <MenuDeCuenta nombre={me.full_name ?? ""} foto={avatar}>

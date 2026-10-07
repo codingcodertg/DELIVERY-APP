@@ -231,7 +231,7 @@ describe("el idioma se escribe en un solo sitio", () => {
     expect(prefs).toMatch(/leerAvisos:[\s\S]*?\.schema\("clockin"\)\s*\.from\("profiles"\)\s*\.select\("language"\)/);
   });
 
-  // Hasta D-NEXT esto era «Mi perfil elige el idioma con el mismo setLang que todos». El idioma se
+  // Hasta D-490 esto era «Mi perfil elige el idioma con el mismo setLang que todos». El idioma se
   // mudó al personalizador del hub, el único sitio donde se elige; Mi perfil solo enlaza hasta allí.
   it("el personalizador elige el idioma con el mismo setLang que todos, y Mi perfil ya no lo elige", () => {
     const pers = sinComentarios(readFileSync("src/components/profile/Personalizador.tsx", "utf8"));

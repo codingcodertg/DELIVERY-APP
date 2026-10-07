@@ -78,7 +78,7 @@ export function TripPanel({
   ubicacion: () => Promise<Punto>;
 }) {
   const t = useT();
-  // Reales o de práctica (modo capacitación, D-NEXT).
+  // Reales o de práctica (modo capacitación, D-490).
   const { startTrip, endTrip, finishStop } = useAccionesDeFichar();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

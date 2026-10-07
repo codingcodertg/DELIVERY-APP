@@ -2,7 +2,7 @@ import type { Idioma } from "./idioma";
 import type { PreferenciaDeTema } from "./tema";
 
 /**
- * El personalizador del hub (D-NEXT).
+ * El personalizador del hub (D-490).
  *
  * El dueño, el 2026-10-07: «el botón para español y dark mode y todo eso, todo eso se elige desde su
  * personalizar […] En el RTG Hub tiene que estar un personalizador de toda la aplicación, si es en

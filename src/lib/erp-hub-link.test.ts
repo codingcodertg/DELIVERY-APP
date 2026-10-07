@@ -88,7 +88,7 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
 describe("los otros módulos: medidos, no supuestos", () => {
   it("HR y Time Tracker no tienen enlace propio al hub — lo pone `ModuleSwitcher` o `HubHomeLink`", () => {
     // Y los dos se esconden solos con la misma regla, así que nunca tuvieron el fallo. Time Tracker
-    // cambió `ModuleSwitcher` por la casa sola en D-NEXT, como Entregas en D-274.
+    // cambió `ModuleSwitcher` por la casa sola en D-490, como Entregas en D-274.
     for (const ruta of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx"]) {
       expect(leer(ruta), ruta).not.toContain('href="/home"');
     }

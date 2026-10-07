@@ -15,7 +15,7 @@ import { AvisoDeCapacitacion, useCapacitacion } from "@/components/timetracker/C
 import type { UserRole } from "@/lib/types";
 
 /**
- * La barra de Time Tracker, como la de Entregas (D-NEXT).
+ * La barra de Time Tracker, como la de Entregas (D-490).
  *
  * El dueño, el 2026-10-07, mirando el perfil de un empleado: «hay demasiados botones […] quiero que sea
  * igual que el Delivery app. Que […] si aprietas el nombre de Carlos Fuentes, te sale Sign Out. Y
@@ -91,7 +91,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
           <BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />
           <NotificationBell />
           <TtCheckUpdateLink />
-          {/* El nombre abre el menú (D-NEXT). De D-160 a D-NEXT llevaba a «Mi cuenta», que ahora es
+          {/* El nombre abre el menú (D-490). De D-160 a D-490 llevaba a «Mi cuenta», que ahora es
               una opción del menú; y al lado iba la pastilla del rol, que el dueño pidió quitar. */}
           <MenuDeCuenta nombre={me.fullName}>
             {(cierraMenu) => OPCIONES_DEL_MENU_TT.map((o) => {

@@ -18,7 +18,7 @@ import { PasswordInput } from "@/components/PasswordInput";
  *     pantalla de Cuenta de Entregas se fue (D-274); el correo y el usuario no, porque de ellos
  *     cuelga el inicio de sesión y los cambia un admin en Usuarios;
  *   · la contraseña, que es una sola;
- *   · el idioma y el tema estuvieron aquí (D-265/D-266) hasta D-NEXT. Ahora se eligen en
+ *   · el idioma y el tema estuvieron aquí (D-265/D-266) hasta D-490. Ahora se eligen en
  *     «Personalizar» (`/home/personalizar`), el único sitio para los dos, y aquí queda el enlace.
  */
 export function ProfileView({ id, nombre, correo, usuario }: { id: string | null; nombre: string | null; correo: string | null; usuario: string | null }) {
@@ -63,7 +63,7 @@ export function ProfileView({ id, nombre, correo, usuario }: { id: string | null
         <CambiarContrasena />
       </div>
 
-      {/* El idioma y el tema se fueron al personalizador (D-NEXT): uno solo para todas las apps. */}
+      {/* El idioma y el tema se fueron al personalizador (D-490): uno solo para todas las apps. */}
       <div className="card">
         <h2>🎨 {t("Language and theme", "Idioma y tema")}</h2>
         <p className="hint" style={{ marginTop: 0 }}>

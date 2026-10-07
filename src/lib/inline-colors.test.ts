@@ -71,7 +71,7 @@ describe("TSX de HR: colores a pelo por fichero, techo de la decisión", () => {
   // de una cabecera solo de impresión. Cada uno está en la decisión.
   const TECHO: Record<string, number> = {
     "src/components/recruiting/GlobalSearch.tsx": 6,
-    // 3 → 1 en D-NEXT: el nombre y su inicial pasaron al menú compartido (`MenuDeCuenta`, sin colores a
+    // 3 → 1 en D-490: el nombre y su inicial pasaron al menú compartido (`MenuDeCuenta`, sin colores a
     // pelo) y el botón ES/EN se fue al personalizador. Queda el blanco de la etiqueta del rol.
     "src/components/recruiting/TopBar.tsx": 1,
     "src/app/recruiting/(recruiting)/outcomes/page.tsx": 3,
