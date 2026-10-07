@@ -78,7 +78,8 @@ describe("accionesDeParada", () => {
     expect(accionesDeParada("P", "picked_up", null)).toEqual([]);
   });
   it("entrega en el camión: Entregado, Saltar y Rechazado", () => {
-    expect(accionesDeParada("D", "picked_up", null)).toEqual(["entregar", "saltar", "rechazar"]);
+    // D-495: ya en el camión, solo Entregado o Rechazado.
+    expect(accionesDeParada("D", "picked_up", null)).toEqual(["entregar", "rechazar"]);
     expect(accionesDeParada("D", "picked_up", salto)).toEqual(["entregar", "retomar", "rechazar"]);
   });
   it("entrega sin recoger: solo Saltar (no se entrega ni se rechaza lo que no se cargó)", () => {
@@ -165,11 +166,11 @@ describe("pantalla: los botones llegan a cada parada", async () => {
     renderToStaticMarkup(createElement(AccionesDeParada, { pedido: pedido(stage), tipo, marca, guardando: false, cerrar: () => {}, sinPrincipal }));
   const acciones = (html: string) => [...html.matchAll(/data-accion="([a-z]+)"/g)].map((m) => m[1]);
 
-  it("entrega en el camión: Delivered, Skip, Rejected", () => {
+  it("entrega en el camión: solo Delivered y Rejected, sin Skip (D-495)", () => {
     const html = pinta("D", "picked_up");
-    expect(acciones(html)).toEqual(["entregar", "saltar", "rechazar"]);
+    expect(acciones(html)).toEqual(["entregar", "rechazar"]);
     expect(html).toContain("Delivered");
-    expect(html).toContain("Skip");
+    expect(html).not.toContain("Skip");
     expect(html).toContain("Rejected");
   });
   it("recogida lista: Picked up y Skip", () => {
@@ -187,7 +188,7 @@ describe("pantalla: los botones llegan a cada parada", async () => {
     expect(acciones(html)).toEqual([]);
   });
   it("en la tarjeta de Siguiente parada no repite el botón verde", () => {
-    expect(acciones(pinta("D", "picked_up", null, true))).toEqual(["saltar", "rechazar"]);
+    expect(acciones(pinta("D", "picked_up", null, true))).toEqual(["rechazar"]);
   });
   it("«Mi ruta» pone los botones en recogidas, entregas y Siguiente parada, y la siguiente salta las apartadas", () => {
     const src = leer("src/app/(app)/my-route/page.tsx");
@@ -207,5 +208,26 @@ describe("pantalla: los botones llegan a cada parada", async () => {
   it("Órdenes y el Gestor pintan la pastilla", () => {
     expect(leer("src/components/OrdersTable.tsx")).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas };");
     expect(leer("src/app/(app)/routes/page.tsx")).toContain("recibidas, marcas: marcasDeParada }");
+  });
+});
+
+describe("D-495 · rechazo: qué pasó y a dónde va el material", () => {
+  it("la tienda del destino: origen = `store` del pedido; otra = la elegida; sin elegir o inexistente, nada", async () => {
+    const { tiendaDelRechazo, notaDelDestino } = await import("./acciones-parada");
+    const tiendas = [{ name: "RDZ Pharr" }, { name: "RDZ McAllen" }];
+    expect(tiendaDelRechazo({ tipo: "origen" }, "rdz pharr ", tiendas)?.name).toBe("RDZ Pharr");
+    expect(tiendaDelRechazo({ tipo: "tienda", nombre: "RDZ McAllen" }, "RDZ Pharr", tiendas)?.name).toBe("RDZ McAllen");
+    expect(tiendaDelRechazo(null, "RDZ Pharr", tiendas)).toBeNull();
+    expect(tiendaDelRechazo({ tipo: "origen" }, null, tiendas)).toBeNull();
+    expect(tiendaDelRechazo({ tipo: "tienda", nombre: "Otra" }, "RDZ Pharr", tiendas)).toBeNull();
+    expect(notaDelDestino({ tipo: "origen" }, "RDZ Pharr", "es")).toBe("Lo regresa a RDZ Pharr");
+    expect(notaDelDestino({ tipo: "tienda", nombre: "RDZ McAllen" }, "RDZ McAllen", "en")).toBe("Leaving it at RDZ McAllen");
+  });
+  it("la pantalla pregunta el destino, no confirma sin él, y al confirmar deja el material en la tienda", async () => {
+    const { readFileSync } = await import("node:fs");
+    const c = readFileSync("src/components/AccionesDeParada.tsx", "utf8");
+    expect(c).toContain("data-destino-rechazo");
+    expect(c).toContain("disabled={!razon || !destinoListo || ocupado}");
+    expect(c).toContain('const dejado = await setStage(pedido.id, "ready", note, patch, EVENTO_DEJADO);');
   });
 });
