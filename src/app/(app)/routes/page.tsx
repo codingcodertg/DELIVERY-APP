@@ -29,6 +29,8 @@ import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/
 import { DAY_START_MIN, useMedidaDeRutas } from "@/lib/usa-medida-de-rutas";
 import { carrilesDelDia, cargaDelPanel, encuadreDeLasRutas, lineasDeLasRutas, puntosDeLasRutas, rutaDeLaLinea, rutasPorChofer, type CarrilDeRuta } from "@/lib/mapa-de-rutas";
 import { PanelDeChoferes } from "@/components/PanelDeChoferes";
+import { ReprogramarOrden } from "@/components/ReprogramarOrden";
+import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { optimizaLaLista } from "@/lib/optimiza-la-ruta";
 import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, tiendaBaseDelChofer, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
 import { esVentanaDura } from "@/lib/route-settings";
@@ -2057,6 +2059,10 @@ export default function RoutesPage() {
                   {lanes.filter((l) => l.key !== ruta).map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
                 </select>
               ) : null}
+              {/* «📅 Reprogramar» (D-500): la fecha siguiente y una nota, ahí mismo. */}
+              {!hecha && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
+                <ReprogramarOrden pedido={d} lang={lang} t={t} updateDelivery={updateDelivery} addNote={addNote} notify={notify} />
+              )}
               {/* La sugerencia de chofer («💡 nombre») que salía aquí se quitó (D-346), por pedido del dueño. */}
             </div>
           </td>
