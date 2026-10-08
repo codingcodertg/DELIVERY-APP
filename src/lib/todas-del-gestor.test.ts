@@ -160,16 +160,15 @@ describe("la pantalla", () => {
     expect(barra).toContain('📋 {t("All", "Todas")} (<span data-cuenta-todas>{todasDelDia.length}</span>)');
     expect(pagina).toContain('useState<"routes" | "orders" | "todas" | "board" | "timeline">("routes")');
   });
-  it("N sale de `todasDelGestor` con el filtro de chofer de la barra, y el título lo dice", () => {
-    expect(pagina).toContain("const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, filtroChofer), [deliveries, date, modo, filtroChofer]);");
-    // Puesto al día por D-481: el filtro son los choferes marcados en el panel (uno o varios).
-    expect(barra).toContain("`${todasDelDia.length} orden(es) este día: las de ${[...filtroChofer].map(laneLabel).join(\", \")} y las sin asignar`");
+  it("N sale de `todasDelGestor` SIN el filtro de choferes: todas son todas (D-499)", () => {
+    expect(pagina).toContain("const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, sinFiltroDeChofer), [deliveries, date, modo, sinFiltroDeChofer]);");
+    expect(barra).not.toContain("y las sin asignar`");
     expect(barra).toContain("`${todasDelDia.length} orden(es) este día, con chofer o sin él, entregadas incluidas`");
   });
   it("la tabla y sus chips salen de `filasDeTodas` y `cuentasDeTodas` con su chip, su búsqueda y el mismo filtro", () => {
-    expect(pagina).toContain('const filasDeTodasDelChip = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, "", filtroChofer)');
-    expect(pagina).toContain("const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodas, filtroChofer)");
-    expect(pagina).toContain("const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodas, filtroChofer)");
+    expect(pagina).toContain('const filasDeTodasDelChip = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, "", sinFiltroDeChofer)');
+    expect(pagina).toContain("const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodas, sinFiltroDeChofer)");
+    expect(pagina).toContain("const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodas, sinFiltroDeChofer)");
     expect(pagina).toContain("filas: filasDeTodasDelChip, conBusqueda: todasConBusqueda, orden: ordenDeTodas,");
     expect(pagina).toContain("const ordenDeTodas = useOrdenYFiltro(todasConBusqueda, valorDelGestorAqui);");
     expect(pagina).toContain('useState<ChipSinAsignar>("dia")');

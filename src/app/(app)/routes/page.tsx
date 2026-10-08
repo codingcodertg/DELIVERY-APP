@@ -1055,10 +1055,13 @@ export default function RoutesPage() {
   // «Todas» (D-462): todo lo del día, con chofer o sin él, más lo ya hecho ese día (D-459), por el filtro de chofer de la
   // barra —con un chofer elegido, las suyas y las sin asignar (`todas-del-gestor.ts` dice por qué)—. La pestaña cuenta
   // «Este día» sin búsqueda; la tabla y sus chips, con su chip y su búsqueda. Las tres salen de la misma función.
-  const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, filtroChofer), [deliveries, date, modo, filtroChofer]);
-  const filasDeTodasDelChip = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, "", filtroChofer), [deliveries, date, modo, chipDeTodas, filtroChofer]);
-  const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodas, filtroChofer), [deliveries, date, modo, chipDeTodas, busquedaDeTodas, filtroChofer]);
-  const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodas, filtroChofer), [deliveries, date, modo, busquedaDeTodas, filtroChofer]);
+  // «Todas» es TODAS (D-499): no sigue el filtro de choferes del panel. El dueño, 2026-10-08, con captura de «Todas (3)» y el
+  // filtro en «ningún chofer»: «todas son todas si apreto driver me aparecen 20 y si no en 3 pero son todas».
+  const sinFiltroDeChofer = useMemo(() => new Set<string>(), []);
+  const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, sinFiltroDeChofer), [deliveries, date, modo, sinFiltroDeChofer]);
+  const filasDeTodasDelChip = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, "", sinFiltroDeChofer), [deliveries, date, modo, chipDeTodas, sinFiltroDeChofer]);
+  const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodas, sinFiltroDeChofer), [deliveries, date, modo, chipDeTodas, busquedaDeTodas, sinFiltroDeChofer]);
+  const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodas, sinFiltroDeChofer), [deliveries, date, modo, busquedaDeTodas, sinFiltroDeChofer]);
   // Lo que «Asignar», «📍 Mejor lugar» y el recuadro «Elige conductor» pueden tomar de lo marcado: las filas SIN CHOFER de la
   // tabla que se ve, con su chip (hasta D-462, solo las de «Sin asignar»). En «Todas» una fila con chofer se marca para verla
   // en el mapa, no para asignarla: eso es «Pasar a…».
@@ -2541,12 +2544,10 @@ export default function RoutesPage() {
         <button className={"vt " + (tab === "orders" ? "on" : "")} data-pestana="orders" onClick={() => setTab("orders")}>
           📦 {t("Unassigned", "Sin asignar")} (<span data-cuenta-sin-programar style={unassigned.length > 0 && tab !== "orders" ? { color: "var(--amber)", fontWeight: 800 } : undefined}>{unassigned.length}</span>)
         </button>
-        {/* «Todas (N)» (D-462): todas las del día, con chofer o sin él, más lo ya hecho. N sigue al filtro de chofer:
-            con uno elegido, las suyas y las sin asignar. */}
+        {/* «Todas (N)» (D-462): todas las del día, con chofer o sin él, más lo ya hecho. Desde D-499 NO sigue el filtro de
+            choferes: todas son todas. */}
         <button className={"vt " + (tab === "todas" ? "on" : "")} data-pestana="todas" onClick={() => setTab("todas")}
-          title={filtroChofer.size === 0
-            ? t(`${todasDelDia.length} order(s) this day, with or without a driver, delivered ones included`, `${todasDelDia.length} orden(es) este día, con chofer o sin él, entregadas incluidas`)
-            : t(`${todasDelDia.length} order(s) this day: ${[...filtroChofer].map(laneLabel).join(", ")}'s and the unassigned ones`, `${todasDelDia.length} orden(es) este día: las de ${[...filtroChofer].map(laneLabel).join(", ")} y las sin asignar`)}>
+          title={t(`${todasDelDia.length} order(s) this day, with or without a driver, delivered ones included`, `${todasDelDia.length} orden(es) este día, con chofer o sin él, entregadas incluidas`)}>
           📋 {t("All", "Todas")} (<span data-cuenta-todas>{todasDelDia.length}</span>)
         </button>
         {/* El tablero es arrastrar para asignar: no en solo lectura. */}
