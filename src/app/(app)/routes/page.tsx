@@ -23,6 +23,7 @@ import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-d
 import { NINGUNO, alternaTodas, alternaVisible, guardaMarcados, leeMarcados, marcadasAProposito, marcadosVigentes, pasaElFiltro, rutasVisibles, seVenTodas, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
 import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
 import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-horario";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
@@ -1355,16 +1356,23 @@ export default function RoutesPage() {
       capacidad, admite: admiteEnLaLista(lista, stops, capacidad), bloqueada: bloqueada(l.key), base: baseDeLaRuta(l.key),
     };
   });
-  // Una fila por ruta, también las vacías: se puede soltar una parada en un chofer que aún no tiene nada.
+  // Una fila por ruta; cuáles se PINTAN lo decide `filasDelHorario`, abajo. `rutasDelGantt` sigue teniendo todas: el plan de
+  // soltar (`planDeSoltar`) las mira enteras.
   const ganttRows: GanttRow[] = rutasDelGantt.map((r) => {
     const l = lanes.find((x) => x.key === r.clave)!;
+    const stops = byDriver.get(r.clave) ?? [];
+    // El número de parada de cada barra es el de la tabla y el mapa (D-485): la misma lectura y la misma numeración.
+    const filas = lecturaDe(r.clave, stops).filas;
     return {
-      key: r.clave, title: l.label, color: colorFor(l.driver), orders: byDriver.get(r.clave) ?? [],
+      key: r.clave, title: l.label, color: colorFor(l.driver), orders: stops,
       barras: barrasDeLaRuta(r.viajes, r.base, DAY_START_MIN), bloqueada: r.bloqueada,
+      paradaDe: paradaDeCadaEntrega(filas, paradasDeLaRuta(filas, stops).deFila),
     };
   });
-  // En solo lectura no se suelta nada en una ruta vacía: las filas sin órdenes sobran (D-481, f). En el Gestor se quedan.
-  const filasDelGantt = soloLectura ? ganttRows.filter((r) => r.orders.length > 0) : ganttRows;
+  // D-503: en el horario salen solo las rutas con alguna parada ese día y que pasan el filtro de choferes del panel (D-488),
+  // también en el Gestor. El dueño, 2026-10-08: «si stevene no tiene nada que no salga». Antes el Gestor pintaba las vacías
+  // para poder soltar en ellas (D-417, D-481 f); a un chofer sin nada se le asigna desde «Sin asignar», «Asignar a…» o el tablero.
+  const filasDelGantt = filasDelHorario(ganttRows, pasaFiltro);
 
   const assignTo = (id: string, driver: string) => {
     clearRouteFor(driver);
@@ -1933,9 +1941,9 @@ export default function RoutesPage() {
   // focusing a driver on the map, never makes the other routes disappear.
   // Con el filtro de chofer (D-393), solo la suya.
   // Desde D-437, solo las que tienen paradas: una marcada ☑ sin paradas sacaba una tarjeta entera «0 paradas» (Julio). Esa
-  // tarjeta no era destino de nada —se asigna desde «Sin asignar», el recuadro o el tablero, y se arrastra en «Horario»,
-  // que sí pinta las rutas vacías—; renombrar o quitar una ruta temporal vacía sigue en el panel. Las marcadas vacías se
-  // nombran en una línea (`marcadasSinParadas`).
+  // tarjeta no era destino de nada —se asigna desde «Sin asignar», el recuadro o el tablero—; renombrar o quitar una ruta
+  // temporal vacía sigue en el panel. Las marcadas vacías se nombran en una línea (`marcadasSinParadas`). («Horario» pintaba
+  // las rutas vacías para soltar en ellas; desde D-503 tampoco.)
   const shownDrivers = lanesDelFiltro.filter((u) => conAlgoQuePintar(u.key));
   // El panel «Choferes y rutas» (D-481, f): un chofer sin ninguna orden ese día no sale; una ruta temporal vacía sí.
   // El panel lista SIEMPRE todas las rutas del día (D-488): su casilla dice si se ve. Antes listaba solo las filtradas y,
@@ -2617,8 +2625,10 @@ export default function RoutesPage() {
               "El día de cada chofer en el orden de su ruta: cada parada a su llegada estimada (en línea recta, saliendo a las 08:00), y su ventana en la raya fina de abajo; ⚠ = tarde.")}
             {modo === "dia" && !soloLectura && <> {t("Drag a stop to another slot or driver, or onto a driver's name for 📍 Best fit. Ctrl+Z undoes.", "Arrastre una parada a otro hueco o chofer, o al nombre de un chofer para 📍 Mejor lugar. Ctrl+Z deshace.")}</>}
           </p>
-          {filasDelGantt.every((r) => r.barras.length === 0)
-            ? <div className="empty">{t("No assigned orders to show yet.", "Aún no hay órdenes asignadas.")}</div>
+          {filasDelGantt.length === 0
+            ? <div className="empty" data-horario-vacio>{ganttRows.some((r) => r.barras.length > 0)
+                ? t("No driver with stops is ticked in “Drivers & routes”.", "Ningún chofer con paradas está marcado en «Choferes y rutas».")
+                : t("No assigned orders to show yet.", "Aún no hay órdenes asignadas.")}</div>
             : <GanttTimeline rows={filasDelGantt} t={t}
                 arrastre={modo === "dia" && !soloLectura ? { inicioMin: DAY_START_MIN, previa: previaDeSoltar, suelta: (id, destino) => void sueltaEnLaLinea(id, destino), ocupado: moviendo } : undefined} />}
         </div>

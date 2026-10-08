@@ -89,7 +89,9 @@ describe("f · un chofer sin órdenes no sale en la lista", () => {
     // «Asignar a…», «Elige conductor» y «Asignar a varios» salen de `drivers`, no del panel.
     expect(gestor).toContain("...drivers.map((u) => ({ clave: u.full_name, etiqueta: u.full_name, esRuta: false })),");
     expect(gestor).toContain("{drivers.map((u) => <option key={u.id} value={u.full_name}>{u.full_name}</option>)}");
-    expect(gestor).toContain("const filasDelGantt = soloLectura ? ganttRows.filter((r) => r.orders.length > 0) : ganttRows;");
+    // Puesto al día por D-503: el horario tampoco pinta choferes vacíos en el Gestor (antes solo en «Ruta de hoy»), y sigue
+    // el filtro del panel. Ver `zoom-del-horario.test.ts`.
+    expect(gestor).toContain("const filasDelGantt = filasDelHorario(ganttRows, pasaFiltro);");
   });
 });
 

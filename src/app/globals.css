@@ -1128,16 +1128,26 @@ table.orders th { text-align: left; }
 .dboard-card.dragging { opacity: .5; }
 
 /* ---------- Gantt / day-timeline ---------- */
+/* El eje es el tramo con paradas y llena el ancho; ＋/－/Ajustar cambian la escala (D-503). Sin `min-width`: en el
+   teléfono el ancho lo pone la escala (2 px/min como poco) y la caja se desplaza de lado. Los nombres se quedan fijos a la
+   izquierda al desplazarse. */
 .gantt-scroll { overflow-x: auto; }
-.gantt { display: grid; gap: 6px; min-width: 620px; }
-.gantt-axis, .gantt-row { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 10px; }
-.gantt-rowlabel { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gantt { --gantt-nombre: 150px; display: grid; gap: 6px; }
+.gantt-axis, .gantt-row { display: grid; grid-template-columns: var(--gantt-nombre) 1fr; align-items: center; gap: 10px; }
+.gantt-rowlabel { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: sticky; left: 0; z-index: 3; background: var(--card); align-self: stretch; }
+@media (max-width: 760px) { .gantt { --gantt-nombre: 96px; } }
+.gantt-zoom { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin: 0 0 6px; }
+.gantt-zoom .hint { margin-right: auto; }
+.gantt-zoom .btn-sm { min-width: 32px; justify-content: center; }
 .gantt-rowlabel .hint { margin-left: auto; }
 .gantt-track { position: relative; height: 30px; }
 .gantt-hours { height: 18px; }
-.gantt-hour { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--gray); }
+.gantt-hour { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--gray); white-space: nowrap; }
+.gantt-hour-inicio { transform: none; }
+.gantt-hour-fin { transform: translateX(-100%); }
 .gantt-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
-.gantt-bar { position: absolute; top: 4px; height: 22px; border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; padding: 0 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.28); }
+.gantt-grid-fin { margin-left: -1px; }
+.gantt-bar { position: absolute; top: 4px; height: 22px; border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; padding: 0 6px; overflow: hidden; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,.28); }
 /* Arrastrar paradas en la línea de tiempo (D-417). La ventana de cada parada es la raya fina de abajo. */
 .gantt-ventana { position: absolute; bottom: 0; height: 3px; border-radius: 2px; opacity: .35; pointer-events: none; }
 .gantt-bar-tarde { outline: 2px solid var(--red); outline-offset: -1px; }
