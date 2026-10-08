@@ -102,8 +102,12 @@ describe("la ficha (OrderModal) usa la regla, no canEditFields a secas", () => {
   });
 
   it("el botón «Editar» y «Cancelar edición» salen del alcance, y el botón dice «Editar fecha» cuando es solo eso", () => {
-    expect(ficha).toContain('if (edicion !== "nada") {');
-    expect(ficha).toContain('{edicion === "solo_fecha" ? t("Edit date", "Editar fecha") : t("Edit", "Editar")}');
+    // Nota D-497: «Editar» es una opción del menú «Acciones ▾»; su condición y su texto viven en
+    // `lib/acciones-de-la-ficha.ts`, que la ficha llama con `edicion`. Allí se buscan.
+    const acciones = sinComentarios(leer("src/lib/acciones-de-la-ficha.ts"));
+    expect(acciones).toContain('if (e.edicion !== "nada") {');
+    expect(acciones).toContain('texto: e.edicion === "solo_fecha" ? { en: "Edit date", es: "Editar fecha" } : { en: "Edit", es: "Editar" },');
+    expect(ficha).toContain("editar: onEdit,");
     expect(ficha).toContain("edicion={alcance}");
     expect(ficha).toContain('{!isNew && alcance !== "nada" && (');
     expect(ficha).toContain('{soloFecha ? t("Save date", "Guardar fecha") : t("Save changes", "Guardar cambios")}');

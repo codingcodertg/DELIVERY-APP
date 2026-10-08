@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { esEnvioDeBorrador, etapaAlEnviar, laBaseAceptaElEnvioAprobado } from "./enviar-borrador";
 import { canTransition } from "./constants";
+import { accionesDeLaFicha, type EntradaDeAcciones } from "./acciones-de-la-ficha";
 import type { QuienCrea } from "./cuenta-aprobacion";
 import type { Stage, UserRole } from "./types";
 
@@ -140,29 +141,34 @@ describe("la pantalla llama a la decisión, no la copia", () => {
     }
   });
 
+  // Nota D-497: los botones de la ficha son la principal y un menú «Acciones ▾». Qué acción hay y qué dice lo decide
+  // `accionesDeLaFicha` (`lib/acciones-de-la-ficha.ts`) y la ficha enchufa cada una (`alPulsar`). Las dos pruebas de
+  // abajo miran eso mismo en sus dos mitades: lo que hace el botón en la ficha, y lo que dice en la función.
+  const entrada = (stage: Stage, etapaDeEnvio: Stage): EntradaDeAcciones => ({
+    yo: { id: "u1", role: "sales", full_name: "Vendedor", permissions: null },
+    pedido: { stage, created_by: "u1", assigned_sales_rep: null, assigned_driver: null, store: "Pharr" },
+    edicion: "todo", etapaDeEnvio, puedeRecibirla: false, deshaceAqui: false, borraAqui: false, ocupado: false,
+    salidaEn: null, llegadaEn: null,
+    abierto: { anular: false, rechazar: false, recoger: false, dejar: false, pod: false, motivoDeSalto: false, reentrega: false },
+  });
+
   it("enviar y reenviar mandan la orden a esa etapa, no a `pending` a secas", () => {
-    expect(llano).toContain('if (stage === "draft") btns.push(<button key="submit"');
-    expect(llano).toContain('if (stage === "rejected") btns.push(<button key="resub"');
+    expect(accionesDeLaFicha(entrada("draft", "pending")).principal?.id).toBe("enviar");
+    expect(accionesDeLaFicha(entrada("rejected", "pending")).principal?.id).toBe("reenviar");
     // El mutante que devuelve `onMove("pending")` a cualquiera de los dos cae aquí.
-    const enviar = llano.slice(llano.indexOf('<button key="submit"'));
-    const reenviar = llano.slice(llano.indexOf('<button key="resub"'));
-    expect(enviar.slice(0, enviar.indexOf("</button>"))).toContain("onClick={() => onMove(etapaDeEnvio)}");
-    expect(reenviar.slice(0, reenviar.indexOf("</button>"))).toContain("onClick={() => onMove(etapaDeEnvio)}");
+    expect(llano).toContain("enviar: () => onMove(etapaDeEnvio),");
+    expect(llano).toContain("reenviar: () => onMove(etapaDeEnvio),");
   });
 
   it("y el botón dice cuál de las dos va a pasar", () => {
     // Un botón que aprueba y sigue diciendo «Enviar a aprobación» miente sobre lo que hace: detrás
     // no queda nadie por revisarla.
-    expect(llano).toContain("const aprueba = etapaDeEnvio === \"approved\";");
-    const enviar = llano.slice(llano.indexOf('<button key="submit"'));
-    const etiqueta = enviar.slice(enviar.indexOf("disabled={busy}>"), enviar.indexOf("</button>"));
-    expect(etiqueta).toContain("aprueba ?");
-    expect(etiqueta).toContain('t("Submit (approved)", "Enviar (aprobada)")');
-    expect(etiqueta).toContain('t("Submit for approval", "Enviar a aprobación")');
-    const reenviar = llano.slice(llano.indexOf('<button key="resub"'));
-    const etiqueta2 = reenviar.slice(reenviar.indexOf("disabled={busy}>"), reenviar.indexOf("</button>"));
-    expect(etiqueta2).toContain('t("Resubmit (approved)", "Reenviar (aprobada)")');
-    expect(etiqueta2).toContain('t("Resubmit", "Reenviar")');
+    const texto = (stage: Stage, envio: Stage) => accionesDeLaFicha(entrada(stage, envio)).principal?.texto;
+    expect(texto("draft", "approved")).toEqual({ en: "Submit (approved)", es: "Enviar (aprobada)" });
+    expect(texto("draft", "pending")).toEqual({ en: "Submit for approval", es: "Enviar a aprobación" });
+    expect(texto("rejected", "approved")).toEqual({ en: "Resubmit (approved)", es: "Reenviar (aprobada)" });
+    expect(texto("rejected", "pending")).toEqual({ en: "Resubmit", es: "Reenviar" });
+    expect(llano).toContain("etapaDeEnvio={etapaDeEnvio}");
   });
 
   it("el corte duro de D-049 se mira por de dónde sale, no por a dónde va", () => {

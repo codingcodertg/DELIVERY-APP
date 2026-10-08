@@ -189,22 +189,29 @@ describe("la ficha y la base dicen lo mismo, rol por rol", () => {
 
 describe("la ficha pinta los botones con las funciones probadas", () => {
   const acciones = sinComentarios(modal.slice(modal.indexOf("function StageActions(")));
+  // Nota D-497: los botones de la ficha son la principal y un menú «Acciones ▾». QUÉ acciones salen lo decide
+  // `accionesDeLaFicha` (`lib/acciones-de-la-ficha.ts`), que `StageActions` llama; las condiciones se buscan allí,
+  // y en la ficha solo a qué se enchufa cada una.
+  const logica = leer("src/lib/acciones-de-la-ficha.ts");
 
   it("preparar y listo salen con `preparaEnLaFicha`, y recoger con `recogeEnLaFicha`", () => {
-    expect(acciones).toContain("if (preparaEnLaFicha(me)) {");
-    expect(acciones).toContain('if (recogeEnLaFicha(me) && stage === "ready") {');
+    expect(acciones).toContain("const fa = accionesDeLaFicha({");
+    expect(logica).toContain("if (preparaEnLaFicha(yo)) {");
+    expect(logica).toContain('if (recogeEnLaFicha(yo) && stage === "ready") {');
     // Ya no queda la puerta vieja: una segunda condición con `canFulfill` volvería a dejar fuera al gerente.
     expect(sinComentarios(modal)).not.toContain("canFulfill(");
   });
 
   it("«Iniciar viaje» y «En camino» siguen siendo de quien entrega, no del gerente", () => {
-    expect(acciones).toContain("if (canDeliver(me) && !departedAt) {");
-    expect(acciones).toContain("} else if (canDeliver(me) && departedAt) {");
+    expect(logica).toContain("if (canDeliver(yo) && !e.salidaEn) {");
+    expect(logica).toContain("} else if (canDeliver(yo) && e.salidaEn) {");
+    expect(acciones).toContain("salidaEn: departedAt, llegadaEn: arrivedAt,");
     // Y el gerente recoge con el recuento en dos pasos, no con el toque único del chofer.
-    expect(acciones).toContain('onClick={me.role === "driver" ? onQuickPickup : onRequestPickup}');
+    expect(acciones).toContain('recoger: me.role === "driver" ? onQuickPickup : onRequestPickup,');
   });
 
   it("«Marcar entregado» (con su prueba de entrega) sigue siendo solo de quien entrega", () => {
-    expect(acciones).toContain('if (canDeliver(me) && stage === "picked_up" && !podOpen) {');
+    expect(logica).toContain('} else if (canDeliver(yo) && stage === "picked_up" && !abierto.pod) {');
+    expect(acciones).toContain("marcar_entregado: onRequestDeliver,");
   });
 });

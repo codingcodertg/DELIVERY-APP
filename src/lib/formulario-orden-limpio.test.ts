@@ -252,8 +252,12 @@ describe("8, 9 y 10 · textos y columnas", () => {
   it("8 · en una orden NUEVA el botón CREA; enviar un borrador que ya existe sigue siendo «enviar»", () => {
     expect(formulario).toContain('? t("Create (goes to approval)", "Crear (va a aprobación)")');
     expect(formulario).toContain('? t("Create order (approved)", "Crear orden (aprobada)")');
-    expect(formulario).toContain('t("Submit for approval", "Enviar a aprobación")');                  // el borrador guardado
-    expect(formulario.split('t("Submit for approval", "Enviar a aprobación")').length - 1).toBe(1);
+    // Nota D-497: el texto del botón del borrador guardado vive en `lib/acciones-de-la-ficha.ts` desde que los
+    // botones de la ficha son la principal y un menú «Acciones ▾»; la orden NUEVA sigue sin decir «Enviar».
+    const acciones = leer("src/lib/acciones-de-la-ficha.ts");
+    expect(acciones).toContain('{ en: "Submit for approval", es: "Enviar a aprobación" }');            // el borrador guardado
+    expect(acciones.split('{ en: "Submit for approval", es: "Enviar a aprobación" }').length - 1).toBe(1);
+    expect(formulario).not.toContain('t("Submit for approval", "Enviar a aprobación")');
   });
   it("9 · «Almacén de recolección», en el formulario, en lo que falta, en la vista de la orden y en el volante", () => {
     expect(formulario).toContain('nameLabel={t("Pickup warehouse", "Almacén de recolección")}');

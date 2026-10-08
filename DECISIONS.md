@@ -38957,3 +38957,104 @@ deja confirmar; con «Regresarlo a McAllen» sí; tras confirmar la orden sale d
   anulación y el asignado siguen a la vista.
 
 Interpretación: «form view» = la ficha de la orden en Entregas. No visto en navegador: `tsc` y vitest.
+
+## D-497 · La ficha de la orden: los botones de acción en un menú «Acciones ▾»; fuera solo el paso principal (y Guardar/Cancelar al editar)
+
+**Fecha:** 2026-10-07 · **Versión:** deliveries 1.271.0, repo 1.369.0 · **Sin migración.** · Rama `feat/ficha-acciones-en-menu`.
+
+**Pedido del dueño**, literal: *«The action buttons will be a drop-down in the form view in the delivery app because is taking to many buttoms so now make it a dropdown»*
+
+Interpretación: «form view» es la ficha de la orden de Entregas (`OrderModal.tsx`), la misma de D-496.
+
+### Qué había
+
+Viendo una orden, cada acción era un botón suelto, y salían en tres sitios: el pie (`StageActions`, más «Eliminar» y
+«⧉ Duplicar» a la izquierda), una fila encima del pie con «✓ Marcar entregada ya» y «↩ Deshacer etapa» (D-361/D-383), y otra
+con «🔁 Registrar reentrega» y su explicación. Un gerente en una orden programada veía **ocho**: Comprobante, Editar,
+Desbloquear, Comenzar preparación, Cancelar orden, Duplicar, Marcar entregada ya y Deshacer etapa; en un teléfono eran tres
+renglones de botones. El chofer los tenía en su tarjeta (bajo las notas), no en el pie.
+
+### Qué se decidió
+
+- **Un solo botón «Actions ▾ / Acciones ▾»** con todas las acciones dentro, y **fuera, a la vista, solo la principal**: el
+  paso que hace avanzar la orden para quien la mira. La decide `accionPrincipal` (`src/lib/acciones-de-la-ficha.ts`):
+
+  | etapa | quién tiene el botón | principal (fuera) |
+  |---|---|---|
+  | `draft` | quien crea órdenes | Enviar a aprobación / Enviar (aprobada) |
+  | `rejected` | quien crea órdenes | Reenviar |
+  | `pending` | quien aprueba (gerente, office, logística, admin) | Aprobar |
+  | `approved` | almacén, gerente (D-397), admin | Comenzar preparación |
+  | `fulfilling` | almacén, gerente, admin | Marcar listo |
+  | `ready` | chofer, almacén, gerente, admin | Recoger |
+  | `picked_up` | almacén de la tienda que la recibe (D-409) | Recibir |
+  | `picked_up` | chofer, almacén, admin | Marcar entregado |
+
+  Quien no tiene ninguno de esos en esa etapa (ventas en su pendiente, cualquiera en una entregada o anulada) no tiene
+  principal: solo «Acciones ▾». Se eligió así porque el dueño se queja de que son demasiados: en la duda, menos fuera.
+- **Dentro del menú**, en este orden: Editar / Editar fecha (D-480), Agregar material (D-339), Iniciar viaje, Llegué a la
+  parada, Dejar en tienda (D-224), Desbloquear, Marcar entregada ya, Deshacer etapa, Registrar reentrega, Comprobante, Duplicar;
+  y **al final, tras una raya y en rojo**, Rechazar…, Cancelar orden y Eliminar. Siguen pidiendo lo mismo que antes: el
+  rechazo y la anulación abren su motivo (ahora con el foco puesto en él) y, fuera, «Atrás · Confirmar rechazo/cancelación»;
+  Eliminar sigue preguntando «¿Eliminar la orden…?».
+- **Mientras hay un paso a medio hacer** (el motivo de anular o de rechazar, el recuento de la carga de la oficina, la tienda
+  de «Dejar en tienda») fuera solo están su «Atrás» y su «Confirmar», y la principal pasa al menú hasta que se cierre.
+- **Qué opciones salen y cuándo están apagadas no cambia**: son las condiciones de cada botón, copiadas a
+  `accionesDeLaFicha`. Una prueba reconstruye la ficha de antes (lo que se quitó, tal cual) y la compara con la de ahora en
+  más de 30 000 combinaciones de rol, etapa, permisos y cosas abiertas: mismas acciones, mismos pasos y mismos avisos
+  («🚗 En camino desde…», «🚦 Llegó…», que siguen a la vista porque no son botones). Mientras se guarda, cada opción y la
+  principal salen apagadas **con su motivo en el `title`** («Espere — todavía se está guardando el último cambio»); antes se
+  apagaban sin decirlo. «Registrar reentrega» nunca se apagaba y sigue igual.
+- **No cambia qué hace ninguna**: la ficha enchufa cada opción a la misma función que tenía su botón (`alPulsar`, un `Record`
+  que no compila si falta una). «Dejar en tienda» es el mismo control compartido con Mi ruta (`LeaveAtStore`), que ahora se
+  puede abrir desde fuera (`abierto` / `onAbierto`); en Mi ruta no cambia.
+- **Editando, el pie es el de siempre**: Cancelar edición + Guardar cambios / Guardar fecha (y, si se puede, «Eliminar» a la
+  izquierda, como estaba); en una orden nueva, Descartar · Guardar borrador · Crear; en el paso inicial, «Siguiente →». El
+  «✎ Continuar la orden» de arriba en un borrador (D-299) se queda. Cerrar: la ✕ de arriba, y «Cerrar» en el pie del chofer.
+- **El chofer** tiene el mismo menú en su tarjeta, donde estaban sus botones: «Recoger» o «Marcar entregado» fuera, y dentro
+  «Iniciar viaje», «Llegué a la parada» y «Dejar en tienda». Un menú de una sola opción (chofer con una lista: solo «Iniciar
+  viaje») se deja como menú por coherencia — **a validar**: si «Iniciar viaje» escondido baja el uso del KPI de tiempo
+  muerto, se puede sacar.
+
+### El menú
+
+`src/components/MenuDeAcciones.tsx`, con el aspecto del menú de cuenta (`MenuDeCuenta`: `.col-menu`, `.col-opt`, el ▾ y
+`aria-expanded`) y el cierre de los menús de Órdenes (`useCierraAlSalir`: clic fuera y Escape). Lo que añade, porque una lista
+de acciones lo necesita:
+
+- `aria-haspopup="menu"`, `role="menu"` / `menuitem` / `separator`; una apagada es `aria-disabled` (no `disabled`), para que
+  las flechas la encuentren y su `title` salga.
+- Teclado: ↓/↑ en el botón lo abren con el foco en la primera/última; dentro ↓ ↑ Inicio Fin (`focoAlTeclear`); Escape y Tab
+  lo cierran y el foco vuelve al botón. Elegir cierra antes de hacer la acción.
+- Opciones de **44 px** de alto. Va en un portal con `position: fixed`, colocado por `colocacionDelMenu` (que usa
+  `posicionDelMenu` de Órdenes, al que se le añadió un tercer parámetro opcional con el tamaño; sin él, igual que antes):
+  abre debajo si cabe y si no encima, con su borde derecho en el del botón, 260 px de ancho (o la ventana menos 16), y si no
+  cabe en ningún lado se desplaza por dentro. Si la ficha se desplaza o la ventana cambia, se cierra.
+
+### Pruebas que se tocaron, y por qué
+
+Once ficheros leían el texto de `StageActions` (`btns.push(<button key="…"`) o de las filas sueltas: `agregar-material`,
+`anular-con-motivo`, `arreglos-vistos-en-navegador`, `deshacer-y-borrar`, `edicion-de-ventas`, `entregar-ya-y-deshacer`,
+`enviar-borrador`, `formulario-orden-limpio`, `gerente-hace-bodega`, `recibir` y `ruta-del-dia`. Cada uno lleva una «Nota
+D-497»: la condición se busca ahora en `lib/acciones-de-la-ficha.ts` y en la ficha solo a qué se enchufa; ninguna afirmación
+se quitó sin poner la equivalente.
+
+**Medido:** vitest 50 pruebas nuevas (`acciones-de-la-ficha.test.ts`, 30; `menu-de-acciones.test.ts`, 20, que incluye pintar
+el menú con `renderToStaticMarkup`). Mutantes: 49 de 49 caen con prueba con nombre (la lógica, la colocación, el teclado, el
+componente, el enchufe en la ficha y el modo controlado de `LeaveAtStore`). `node scripts/verify.mjs` en verde.
+
+**Visto en el demo** (CDP, clics de persona y teclas de verdad, a 1280 y a 390): admin en una pendiente (#1003) — fuera
+«Actions ▾ · Approve», dentro Edit, Slip, Duplicate | Reject…, Cancel order, Delete (las tres en rojo tras la raya); gerente en
+una programada (#1089) — «Start preparing» fuera y siete dentro; ventas en su pendiente (#1085) — solo «Actions ▾», con Edit
+date, Add material, Slip, Duplicate; almacén en una de su tienda en preparación (#1034) — «Mark ready» fuera, Edit, Undo stage
+y Slip dentro; chofer con una lista (#1013) — «Pick up» fuera, «Start drive» dentro; chofer en reparto (#1012, puesta en
+reparto en el demo local) — «Mark delivered» fuera, «Arrived at stop» y «Leave at store» dentro. En las doce escenas: cada
+opción mide 44 px, el menú queda dentro de la ventana (a 390, siempre entre x = 8 y x = 376, y su borde de abajo como mucho en 788 de 844), ↓ mueve el
+foco, Escape lo cierra y devuelve el foco al botón, ↑ lo abre en la última, Tab y el clic fuera lo cierran; 0 px de scroll
+lateral. Elegir «Cancel order» deja el motivo con el foco y fuera «Back · Confirm cancel» (apagado hasta elegir motivo);
+«Back» vuelve a «Actions ▾ · Start preparing». «Reject…» igual, con el foco en el motivo. «Leave at store» pinta la tienda,
+«Back» y «Confirm drop-off» en el sitio de los botones del chofer.
+
+**No visto:** las opciones apagadas en pantalla (el demo no se queda «guardando» el tiempo suficiente; está probado en vitest),
+el modo oscuro, un lector de pantalla de verdad, y ningún paso confirmado hasta el final (no se aprobó, anuló ni dejó nada:
+solo se abrió y se volvió atrás).

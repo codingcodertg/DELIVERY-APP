@@ -5,13 +5,13 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
-import { canApprove, canCreate, canDeliver, canEditFields, DELIVERY_WINDOW_PRESETS, driverNames, puedeAnular, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager, etapaAnterior, puedeDeshacer, puedeEntregarYa, preparaEnLaFicha, recogeEnLaFicha } from "@/lib/constants";
+import { canCreate, canDeliver, canEditFields, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager, etapaAnterior, puedeDeshacer, puedeEntregarYa } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { alcanceDeEdicion, parcheSoloFecha, type AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
-import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura, puedeAgregarMaterial } from "@/lib/agregar-material";
+import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura } from "@/lib/agregar-material";
 import { avisosDeAgregarMaterial } from "@/lib/agregar-material-avisos";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
@@ -36,6 +36,8 @@ import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { SignaturePad } from "@/components/SignaturePad";
 import { MapView } from "@/components/MapView";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
+import { MenuDeAcciones } from "@/components/MenuDeAcciones";
+import { accionesDeLaFicha, type IdDeAccion, type Texto } from "@/lib/acciones-de-la-ficha";
 import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import { fuenteAlAplicar, pinDraftParaGuardar, type PinSource } from "@/lib/pin-draft";
 import { tiendasParaElMapa } from "@/lib/store-pins";
@@ -1369,6 +1371,8 @@ export function OrderModal({
   // The workflow buttons for the order being viewed. Built once here because
   // they render in two different places: the modal footer for office roles, and
   // inside the driver's delivery card (under the notes) for drivers.
+  // Desde D-497 son UN botón principal y el menú «Acciones ▾» con todo lo demás —también Duplicar, Eliminar,
+  // Marcar entregada ya, Deshacer etapa y Registrar reentrega, que eran botones sueltos fuera de aquí—.
   const stageActions = existing ? (
     <StageActions me={me} stage={stage} busy={busy} pedido={existing}
       onEdit={() => setEditing(true)}
@@ -1386,10 +1390,7 @@ export function OrderModal({
       podOpen={showPod}
       onAddMaterial={() => { setMatFactura(""); setMatPallets(String(existing.est_pallets ?? "")); setShowAddMaterial(true); }}
       onRequestStart={comenzarPreparacion}
-      readyConfirmOpen={showReadyConfirm}
       onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowReadyConfirm(true); }}
-      onConfirmReady={confirmReady}
-      onCancelReady={() => setShowReadyConfirm(false)}
       pickupConfirmOpen={showPickupConfirm}
       onRequestPickup={() => { setPickupPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowPickupConfirm(true); }}
       onConfirmPickup={() => confirmPickup()}
@@ -1401,6 +1402,15 @@ export function OrderModal({
       onArrive={arrive}
       puedeRecibirla={puedeRecibirla}
       onReceive={() => void recibir()}
+      deshaceAqui={deshaceAqui}
+      borraAqui={borraAqui}
+      motivoDeSaltoAbierto={showEntregarYa || showDeshacer}
+      onEntregarYa={() => { setMotivoDeSalto(""); setShowEntregarYa(true); }}
+      onDeshacer={() => { setMotivoDeSalto(""); setShowDeshacer(true); }}
+      reentregaAbierta={showRedeliver}
+      onReentrega={() => setShowRedeliver(true)}
+      onDuplicate={() => void duplicate()}
+      onDelete={() => void remove()}
     />
   ) : null;
 
@@ -2403,7 +2413,7 @@ export function OrderModal({
         {showReject && (
           <div className="field" style={{ marginTop: 14 }}>
             <label>{t("Rejection reason (sent back to sales)", "Motivo del rechazo (se envía a ventas)")}</label>
-            <textarea rows={2} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("What needs to change?", "¿Qué se necesita cambiar?")} />
+            <textarea rows={2} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} autoFocus placeholder={t("What needs to change?", "¿Qué se necesita cambiar?")} />
           </div>
         )}
 
@@ -2466,7 +2476,7 @@ export function OrderModal({
             <label>{t("Cancellation reason (recorded for reporting)", "Motivo de cancelación (registrado para reportes)")}</label>
             {/* Se guarda la CLAVE, no la etiqueta: antes viajaba el texto traducido y el mismo motivo
                 quedaba escrito en dos idiomas según quien anulara (122). */}
-            <select value={cancelReason} onChange={(e) => { setCancelReason(e.target.value); setCancelNote(""); }}>
+            <select value={cancelReason} onChange={(e) => { setCancelReason(e.target.value); setCancelNote(""); }} autoFocus>
               <option value="">{t("Select a reason…", "Seleccione un motivo…")}</option>
               {motivos.map((r) => <option key={r.key} value={r.key}>{t(r.en, r.es)}</option>)}
             </select>
@@ -2499,78 +2509,60 @@ export function OrderModal({
             D-383 (142): almacén también deshace aquí —`delivered`, `ready` y `fulfilling`, un paso— pero solo en
             órdenes de sus tiendas (`deshaceAqui`), y con el mismo motivo obligatorio. Es el que sustituye al
             «Volver a preparando» de D-287. */}
-        {!editing && existing && (puedeEntregarYa(me.role, existing.stage) || deshaceAqui) && (
-          showEntregarYa || showDeshacer ? (
-            <div className="field" style={{ marginTop: 14 }}>
-              <label>{showEntregarYa
-                ? t("Why is this being marked delivered without a signature?", "¿Por qué se marca entregada sin firma?")
-                : t("Why is this stage being undone?", "¿Por qué se deshace esta etapa?")}</label>
-              <textarea rows={2} value={motivoDeSalto} onChange={(e) => setMotivoDeSalto(e.target.value)}
-                placeholder={showEntregarYa
-                  ? t("e.g. customer picked it up at the counter", "ej. el cliente se lo llevó del mostrador")
-                  : t("e.g. marked by mistake", "ej. se marcó por error")} />
-              {showEntregarYa && (
-                <div className="hint" style={{ color: "var(--amber-text)" }}>
-                  ⚠ {t("No signature or GPS is recorded. The order closes as delivered and leaves the working queues.",
-                        "No se registra firma ni GPS. La orden se cierra como entregada y sale de las colas de trabajo.")}
-                </div>
-              )}
-              {showDeshacer && etapaAnterior(existing.stage) && (
-                <div className="hint">{t(`It goes back to ${stageLabel(etapaAnterior(existing.stage)!, lang)}.`, `Vuelve a ${stageLabel(etapaAnterior(existing.stage)!, lang)}.`)}</div>
-              )}
-              {showDeshacer && existing.stage === "delivered" && (
-                <div className="hint">{t("What was signed is kept; only the stage goes back.", "Lo que se firmó se conserva; solo vuelve la etapa.")}</div>
-              )}
-              {/* Lo que avisaba el «Volver a preparando» de D-287: puede haber un chofer ya en camino. */}
-              {showDeshacer && existing.stage === "ready" && (
-                <div className="hint" style={{ color: "var(--amber-text)" }}>
-                  ⚠ {t("It stops being ready to load: a driver may already be on the way to pick it up.",
-                        "Deja de estar lista para cargar: puede haber un chofer ya en camino a recogerla.")}
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setShowEntregarYa(false); setShowDeshacer(false); setMotivoDeSalto(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
-                <button className="btn btn-primary btn-sm" disabled={busy || !motivoDeSalto.trim()} onClick={() => void (showEntregarYa ? entregarYa() : deshacerEtapa())}>
-                  {showEntregarYa ? t("Mark delivered without signature", "Marcar entregada sin firma") : t("Undo stage", "Deshacer etapa")}
-                </button>
+        {/* Sus dos botones («✓ Marcar entregada ya», «↩ Deshacer etapa») están en el menú «Acciones ▾» desde D-497;
+            aquí queda el motivo, que se abre desde allí. */}
+        {!editing && existing && (puedeEntregarYa(me.role, existing.stage) || deshaceAqui) && (showEntregarYa || showDeshacer) && (
+          <div className="field" style={{ marginTop: 14 }}>
+            <label>{showEntregarYa
+              ? t("Why is this being marked delivered without a signature?", "¿Por qué se marca entregada sin firma?")
+              : t("Why is this stage being undone?", "¿Por qué se deshace esta etapa?")}</label>
+            <textarea rows={2} value={motivoDeSalto} onChange={(e) => setMotivoDeSalto(e.target.value)} autoFocus
+              placeholder={showEntregarYa
+                ? t("e.g. customer picked it up at the counter", "ej. el cliente se lo llevó del mostrador")
+                : t("e.g. marked by mistake", "ej. se marcó por error")} />
+            {showEntregarYa && (
+              <div className="hint" style={{ color: "var(--amber-text)" }}>
+                ⚠ {t("No signature or GPS is recorded. The order closes as delivered and leaves the working queues.",
+                      "No se registra firma ni GPS. La orden se cierra como entregada y sale de las colas de trabajo.")}
               </div>
+            )}
+            {showDeshacer && etapaAnterior(existing.stage) && (
+              <div className="hint">{t(`It goes back to ${stageLabel(etapaAnterior(existing.stage)!, lang)}.`, `Vuelve a ${stageLabel(etapaAnterior(existing.stage)!, lang)}.`)}</div>
+            )}
+            {showDeshacer && existing.stage === "delivered" && (
+              <div className="hint">{t("What was signed is kept; only the stage goes back.", "Lo que se firmó se conserva; solo vuelve la etapa.")}</div>
+            )}
+            {/* Lo que avisaba el «Volver a preparando» de D-287: puede haber un chofer ya en camino. */}
+            {showDeshacer && existing.stage === "ready" && (
+              <div className="hint" style={{ color: "var(--amber-text)" }}>
+                ⚠ {t("It stops being ready to load: a driver may already be on the way to pick it up.",
+                      "Deja de estar lista para cargar: puede haber un chofer ya en camino a recogerla.")}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setShowEntregarYa(false); setShowDeshacer(false); setMotivoDeSalto(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
+              <button className="btn btn-primary btn-sm" disabled={busy || !motivoDeSalto.trim()} onClick={() => void (showEntregarYa ? entregarYa() : deshacerEtapa())}>
+                {showEntregarYa ? t("Mark delivered without signature", "Marcar entregada sin firma") : t("Undo stage", "Deshacer etapa")}
+              </button>
             </div>
-          ) : (
-            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-              {puedeEntregarYa(me.role, existing.stage) && (
-                <button className="btn btn-ghost btn-sm" onClick={() => { setMotivoDeSalto(""); setShowEntregarYa(true); }} disabled={busy}
-                  title={t("Close it as delivered, without a signature", "Cerrarla como entregada, sin firma")}
-                >✓ {t("Mark delivered now", "Marcar entregada ya")}</button>
-              )}
-              {deshaceAqui && (
-                <button className="btn btn-ghost btn-sm" onClick={() => { setMotivoDeSalto(""); setShowDeshacer(true); }} disabled={busy}
-                  title={t(`Back to ${stageLabel(etapaAnterior(existing.stage)!, lang)}`, `Volver a ${stageLabel(etapaAnterior(existing.stage)!, lang)}`)}
-                >↩ {t("Undo stage", "Deshacer etapa")}</button>
-              )}
-            </div>
-          )
+          </div>
         )}
 
+        {/* «🔁 Registrar reentrega» está en el menú «Acciones ▾» desde D-497 (su explicación, en el `title` de la opción);
+            aquí queda el formulario, que se abre desde allí. */}
         {!editing && existing && existing.stage === "delivered"
-          && (["admin", "warehouse", "driver"].includes(me.role) || ordersLikeOfficeManager(me.role)) && (
-          showRedeliver ? (
-            <div className="field" style={{ marginTop: 14 }}>
-              <label>{t("Why does this order need to be delivered again?", "¿Por qué debe entregarse esta orden de nuevo?")}</label>
-              <textarea rows={2} value={redeliverReason} onChange={(e) => setRedeliverReason(e.target.value)} placeholder={t("e.g. wrong pallet loaded, damaged in transit…", "ej. pallet equivocada, dañado en tránsito…")} />
-              <label style={{ marginTop: 10 }}>{t("Was there an additional charge to the customer for this re-delivery? ($)", "¿Hubo un cargo adicional al cliente por esta reentrega? ($)")}</label>
-              <input type="number" min={0} step="0.01" value={redeliverCharge} onChange={(e) => setRedeliverCharge(e.target.value)} placeholder={t("0 = no extra charge", "0 = sin cargo adicional")} style={{ maxWidth: 200 }} />
-              <div className="hint">{t("Leave 0 (or blank) if the re-delivery is free. This becomes the delivery fee on the new linked order.", "Deje 0 (o vacío) si la reentrega es gratis. Esto será el costo de entrega en la nueva orden vinculada.")}</div>
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setShowRedeliver(false); setRedeliverReason(""); setRedeliverCharge(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
-                <button className="btn btn-amber btn-sm" disabled={busy || !redeliverReason.trim()} onClick={recordRedelivery}>{t("Create re-delivery", "Crear reentrega")}</button>
-              </div>
+          && (["admin", "warehouse", "driver"].includes(me.role) || ordersLikeOfficeManager(me.role)) && showRedeliver && (
+          <div className="field" style={{ marginTop: 14 }}>
+            <label>{t("Why does this order need to be delivered again?", "¿Por qué debe entregarse esta orden de nuevo?")}</label>
+            <textarea rows={2} value={redeliverReason} onChange={(e) => setRedeliverReason(e.target.value)} autoFocus placeholder={t("e.g. wrong pallet loaded, damaged in transit…", "ej. pallet equivocada, dañado en tránsito…")} />
+            <label style={{ marginTop: 10 }}>{t("Was there an additional charge to the customer for this re-delivery? ($)", "¿Hubo un cargo adicional al cliente por esta reentrega? ($)")}</label>
+            <input type="number" min={0} step="0.01" value={redeliverCharge} onChange={(e) => setRedeliverCharge(e.target.value)} placeholder={t("0 = no extra charge", "0 = sin cargo adicional")} style={{ maxWidth: 200 }} />
+            <div className="hint">{t("Leave 0 (or blank) if the re-delivery is free. This becomes the delivery fee on the new linked order.", "Deje 0 (o vacío) si la reentrega es gratis. Esto será el costo de entrega en la nueva orden vinculada.")}</div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setShowRedeliver(false); setRedeliverReason(""); setRedeliverCharge(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
+              <button className="btn btn-amber btn-sm" disabled={busy || !redeliverReason.trim()} onClick={recordRedelivery}>{t("Create re-delivery", "Crear reentrega")}</button>
             </div>
-          ) : (
-            <div style={{ marginTop: 14 }}>
-              <button className="btn btn-amber btn-sm" onClick={() => setShowRedeliver(true)}>🔁 {t("Record re-delivery", "Registrar reentrega")}</button>
-              <div className="hint">{t("Log a repeat of this delivery (warehouse error, damage…) as a new linked order.", "Registra una repetición de esta entrega (error de almacén, daño…) como una nueva orden vinculada.")}</div>
-            </div>
-          )
+          </div>
         )}
 
         {/* ---------- STILL MISSING (moved to the bottom, right above the buttons) ---------- */}
@@ -2586,15 +2578,15 @@ export function OrderModal({
 
         {/* ---------- ACTIONS ---------- */}
         {/* Hidden during the initial new-order step (which has its own Next). */}
+        {/* Viendo la orden (D-497): el menú «Acciones ▾» y la principal (`stageActions`), sin nada más — «Duplicar» y
+            «Eliminar», que iban aquí a la izquierda, están dentro del menú. Editando, el pie es el de siempre: Guardar y
+            Cancelar (y Eliminar, si se puede, como hasta ahora). */}
         {paso === "completo" && (
         <div className="modal-actions">
-          {existing && borraAqui && (
+          {editing && existing && borraAqui && (
             <button className="btn btn-danger" onClick={remove} disabled={busy}>{t("Delete", "Eliminar")}</button>
           )}
-          {existing && !editing && canCreate(me) && (
-            <button className="btn btn-ghost" onClick={duplicate} disabled={busy} title={t("Create a new draft order from this one", "Crear una nueva orden borrador a partir de esta")}>⧉ {t("Duplicate", "Duplicar")}</button>
-          )}
-          <span style={{ flex: 1 }} />
+          {editing && <span style={{ flex: 1 }} />}
 
           {editing ? (
             <>
@@ -3082,13 +3074,21 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
   );
 }
 
-/** The workflow buttons shown in view mode, gated by role + current stage. */
+/**
+ * Los botones de acción de la ficha (vista, no edición): **la principal fuera y todo lo demás en «Acciones ▾»** (D-497).
+ *
+ * Qué acciones hay, cuál es la principal y en qué orden salen lo decide `accionesDeLaFicha` (`lib/acciones-de-la-ficha.ts`),
+ * con las mismas condiciones que tenía cada botón cuando eran botones sueltos. Aquí solo se enchufa cada una a lo que
+ * hacía (`alPulsar`) y se pinta: los avisos («En camino desde…»), el menú, los pasos a medio hacer con su Atrás y su
+ * Confirmar, y la principal a la derecha.
+ */
 function StageActions({
   me, stage, busy, pedido, onEdit, edicion, onMove, etapaDeEnvio, showReject, setShowReject, rejectReason,
   showCancel, setShowCancel, cancelListo, onPrint, onRequestDeliver, podOpen,
-  onAddMaterial, onRequestStart, readyConfirmOpen, onRequestReady, onConfirmReady, onCancelReady,
+  onAddMaterial, onRequestStart, onRequestReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive, puedeRecibirla, onReceive,
+  deshaceAqui, borraAqui, motivoDeSaltoAbierto, onEntregarYa, onDeshacer, reentregaAbierta, onReentrega, onDuplicate, onDelete,
 }: {
   me: Profile; stage: Stage; busy: boolean;
   /** El pedido, para las acciones que necesitan sus datos y no solo su etapa. */
@@ -3108,7 +3108,8 @@ function StageActions({
   onAddMaterial: () => void;
   /** «Comenzar preparación» (D-450): abre la confirmación del monto, o mueve la etapa si el tipo no cobra tarifa. */
   onRequestStart: () => void;
-  readyConfirmOpen: boolean; onRequestReady: () => void; onConfirmReady: () => void; onCancelReady: () => void;
+  /** «Marcar listo»: abre la confirmación de pallets (el confirmar/descartar vive allí). */
+  onRequestReady: () => void;
   pickupConfirmOpen: boolean; onRequestPickup: () => void; onConfirmPickup: () => void; onCancelPickup: () => void;
   /** Driver's one-tap pickup: takes the full load, no count prompt. */
   onQuickPickup: () => void;
@@ -3116,141 +3117,107 @@ function StageActions({
   arrivedAt: string | null; onArrive: () => void;
   /** Almacén, en `picked_up`, y la orden va a su tienda (`puedeRecibir`, D-409). */
   puedeRecibirla: boolean; onReceive: () => void;
+  /** Deshacer un paso (D-361/D-383) y borrar (D-383): necesitan las tiendas, los calcula la ficha. */
+  deshaceAqui: boolean; borraAqui: boolean;
+  /** El motivo de «Marcar entregada ya» / «Deshacer etapa» está abierto: sus dos opciones salen del menú. */
+  motivoDeSaltoAbierto: boolean; onEntregarYa: () => void; onDeshacer: () => void;
+  /** El formulario de reentrega está abierto: su opción sale del menú. */
+  reentregaAbierta: boolean; onReentrega: () => void;
+  onDuplicate: () => void; onDelete: () => void;
 }) {
   const { t } = usePrefs();
-  const btns: React.ReactNode[] = [];
+  // «Dejar en tienda» (D-224) se abre desde el menú; su formulario se pinta aquí, en el sitio de su botón de antes.
+  const [dejarAbierto, setDejarAbierto] = useState(false);
+  const fa = accionesDeLaFicha({
+    yo: me, pedido: { ...pedido, stage }, edicion, etapaDeEnvio, puedeRecibirla, deshaceAqui, borraAqui, ocupado: busy,
+    salidaEn: departedAt, llegadaEn: arrivedAt,
+    abierto: {
+      anular: showCancel, rechazar: showReject, recoger: pickupConfirmOpen, dejar: dejarAbierto, pod: podOpen,
+      motivoDeSalto: motivoDeSaltoAbierto, reentrega: reentregaAbierta,
+    },
+  });
+  // Lo que hace cada acción: lo MISMO que hacía su botón. Un `Record` completo: una acción nueva sin enchufar no compila.
+  const alPulsar: Record<IdDeAccion, () => void> = {
+    enviar: () => onMove(etapaDeEnvio),
+    reenviar: () => onMove(etapaDeEnvio),
+    aprobar: () => onMove("approved"),
+    comenzar: onRequestStart,
+    marcar_listo: onRequestReady,
+    // El chofer recoge con un toque, la carga entera; la oficina confirma el recuento (y parte una carga corta).
+    recoger: me.role === "driver" ? onQuickPickup : onRequestPickup,
+    recibir: onReceive,
+    marcar_entregado: onRequestDeliver,
+    editar: onEdit,
+    agregar_material: onAddMaterial,
+    iniciar_viaje: onDepart,
+    llegue: onArrive,
+    dejar_en_tienda: () => setDejarAbierto(true),
+    desbloquear: () => onMove("pending"),
+    entregar_ya: onEntregarYa,
+    deshacer: onDeshacer,
+    reentrega: onReentrega,
+    imprimir: onPrint,
+    duplicar: onDuplicate,
+    rechazar: () => setShowReject(true),
+    anular: () => setShowCancel(true),
+    eliminar: onDelete,
+  };
+  const tx = (x: Texto) => t(x.en, x.es);
+  const hora = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const p = fa.principal;
 
-  // Printable delivery slip / packing list. Not for drivers — there's no
-  // printer in the truck, and it only crowded the buttons they actually use.
-  if (me.role !== "driver") {
-    btns.push(<button key="print" className="btn btn-ghost" onClick={onPrint} disabled={busy}>🖨 {t("Slip", "Comprobante")}</button>);
-  }
-
-  // La misma respuesta que decide los campos (`alcanceDeEdicion`), no `canEditFields` a secas: a ventas, en una orden
-  // suya ya enviada, el botón le dice lo único que va a poder tocar.
-  if (edicion !== "nada") {
-    btns.push(<button key="edit" className="btn btn-ghost" onClick={onEdit} disabled={busy}>{edicion === "solo_fecha" ? t("Edit date", "Editar fecha") : t("Edit", "Editar")}</button>);
-  }
-
-  // Anyone who can create orders also shepherds their own drafts through submit/resubmit.
-  if (canCreate(me)) {
-    // Aterriza donde diga `etapaDeEnvio` (D-313), no siempre en `pending`. Y el botón lo DICE: quien
-    // lo pulsa tiene que saber que detrás no queda nadie por revisarla.
-    const aprueba = etapaDeEnvio === "approved";
-    if (stage === "draft") btns.push(<button key="submit" className="btn btn-primary" onClick={() => onMove(etapaDeEnvio)} disabled={busy}>{aprueba ? t("Submit (approved)", "Enviar (aprobada)") : t("Submit for approval", "Enviar a aprobación")}</button>);
-    if (stage === "rejected") btns.push(<button key="resub" className="btn btn-primary" onClick={() => onMove(etapaDeEnvio)} disabled={busy}>{aprueba ? t("Resubmit (approved)", "Reenviar (aprobada)") : t("Resubmit", "Reenviar")}</button>);
-  }
-
-  // Anular ya no es «lo que hace el que creó el borrador»: quién anula y desde qué etapa es una regla
-  // compartida con el guard de la base (`puedeAnular`, 122). Logística veía el botón de anular en la lista
-  // y la base le rechazaba la escritura; ahora las dos dicen lo mismo.
-  if (puedeAnular(me.role, stage)) {
-    if (!showCancel) {
-      btns.push(<button key="cancel" className="btn btn-danger" onClick={() => setShowCancel(true)} disabled={busy}>{t("Cancel order", "Cancelar orden")}</button>);
-    } else {
-      btns.push(<button key="cancelback" className="btn btn-ghost" onClick={() => setShowCancel(false)} disabled={busy}>{t("Back", "Atrás")}</button>);
-      btns.push(<button key="docancel" className="btn btn-danger" disabled={busy || !cancelListo} onClick={() => onMove("canceled")}>{t("Confirm cancel", "Confirmar cancelación")}</button>);
-    }
-  }
-
-  // Manager
-  if (canApprove(me) && stage === "pending") {
-    if (!showReject) {
-      btns.push(<button key="reject" className="btn btn-danger" onClick={() => setShowReject(true)} disabled={busy}>{t("Reject…", "Rechazar…")}</button>);
-      btns.push(<button key="approve" className="btn btn-green" onClick={() => onMove("approved")} disabled={busy}>{t("Approve", "Aprobar")}</button>);
-    } else {
-      btns.push(<button key="cancelrej" className="btn btn-ghost" onClick={() => setShowReject(false)} disabled={busy}>{t("Back", "Atrás")}</button>);
-      btns.push(<button key="dorej" className="btn btn-danger" disabled={busy || !rejectReason.trim()} onClick={() => onMove("rejected", rejectReason.trim())}>{t("Confirm reject", "Confirmar rechazo")}</button>);
-    }
-  }
-  if (canApprove(me) && stage === "approved") {
-    btns.push(<button key="unlock" className="btn btn-amber" onClick={() => onMove("pending")} disabled={busy}>{t("Unlock (back to pending)", "Desbloquear (volver a pendiente)")}</button>);
-  }
-
-  // El vendedor agrega material a SU orden (D-339): más facturas y más pallets, nada más. Quién y
-  // en qué etapa lo decide `puedeAgregarMaterial`, que es la misma regla que hace cumplir el guard
-  // de la 138; aquí no se vuelve a decidir.
-  if (puedeAgregarMaterial(me, pedido)) {
-    btns.push(<button key="material" className="btn btn-ghost" onClick={onAddMaterial} disabled={busy}>➕ {t("Add material", "Agregar material")}</button>);
-  }
-
-  // Warehouse — y el gerente, que hace el proceso de bodega cuando hace falta (D-397, 145). Quién lo decide
-  // `preparaEnLaFicha`, espejo del guard; no se vuelve a decidir aquí con una lista de roles.
-  if (preparaEnLaFicha(me)) {
-    // Agarrar la orden mueve la etapa y ya (D-340). Entre D-146 y hoy, este botón abría el
-    // diálogo de tarifa y el cambio de etapa salía de allí; el dueño lo quitó: «quítale el
-    // bloqueo a warehouse con lo de la tarifa». Almacén no confirma ni corrige la tarifa.
-    // Nota D-450: vuelve a abrir la confirmación del MONTO, sin bloqueo —«they just need to confirm the amount»—.
-    // Sale para quien pulse el botón (almacén, o el gerente que hace bodega, D-397): es el paso del almacén.
-    if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={onRequestStart} disabled={busy}>{t("Start preparing", "Comenzar preparación")}</button>);
-    if (stage === "fulfilling") {
-      // Opens the confirm-pallets popup (the actual confirm/discard lives there).
-      btns.push(<button key="ready" className="btn btn-green" onClick={onRequestReady} disabled={busy}>{t("Mark ready", "Marcar listo")}</button>);
-    }
-    // El camino de vuelta de `listo` (D-287) ya no se pinta aquí: desde D-383 es el «↩ Deshacer etapa»
-    // general de la ficha, con motivo, y solo en órdenes de sus tiendas (142). Dos botones para el mismo
-    // salto, uno con motivo y otro sin él, dejarían el historial a medias.
-  }
-
-  // Driver (and warehouse/admin): pick up a ready order, then mark it delivered.
-  // El gerente también recoge (D-397, 145) —`recogeEnLaFicha`—, con el recuento en dos pasos de la oficina,
-  // pero sin «Iniciar viaje»: es un tiempo del chofer, y estamparlo desde la oficina falsearía el KPI.
-  if (recogeEnLaFicha(me) && stage === "ready") {
-    if (!pickupConfirmOpen) {
-      // Drive-to-pickup: stamp "on my way" so the drive counts as active time. Solo quien entrega: el
-      // gerente que recoge desde la oficina no conduce hasta la recogida.
-      if (canDeliver(me) && !departedAt) {
-        btns.push(<button key="depart" className="btn btn-ghost" onClick={onDepart} disabled={busy} title={t("Start the drive to the pickup point", "Iniciar el viaje al punto de recolección")}>🚗 {t("Start drive", "Iniciar viaje")}</button>);
-      } else if (canDeliver(me) && departedAt) {
-        btns.push(
-          <span key="enroute" className="hint" style={{ alignSelf: "center" }}>
-            🚗 {t("En route since", "En camino desde")} {new Date(departedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </span>,
-        );
-      }
-      // A driver gets ONE button that marks it picked up on the spot. Their
-      // hands are full and the truck is loaded — a second "confirm the count"
-      // screen only stands between them and the road. The office keeps the
-      // two-step flow, where confirming a partial load and splitting the
-      // remainder is the point.
-      btns.push(
+  return (
+    <>
+      {fa.avisos.map((a) => (
+        <span key={a.id} className="hint" style={{ alignSelf: "center" }}>
+          {a.id === "en_camino"
+            ? <>🚗 {t("En route since", "En camino desde")} {hora(a.desde)}</>
+            : <>🚦 {t("Arrived", "Llegó")} {hora(a.desde)}</>}
+        </span>
+      ))}
+      <MenuDeAcciones
+        rotulo={t("Actions", "Acciones")}
+        opciones={fa.menu.map((a) => ({
+          id: a.id,
+          texto: tx(a.texto),
+          titulo: a.titulo && tx(a.titulo),
+          peligro: a.peligro,
+          deshabilitada: a.deshabilitada && tx(a.deshabilitada),
+          alPulsar: alPulsar[a.id],
+        }))}
+      />
+      {fa.pasos.includes("anular") && (
+        <>
+          <button className="btn btn-ghost" onClick={() => setShowCancel(false)} disabled={busy}>{t("Back", "Atrás")}</button>
+          <button className="btn btn-danger" disabled={busy || !cancelListo} onClick={() => onMove("canceled")}>{t("Confirm cancel", "Confirmar cancelación")}</button>
+        </>
+      )}
+      {fa.pasos.includes("rechazar") && (
+        <>
+          <button className="btn btn-ghost" onClick={() => setShowReject(false)} disabled={busy}>{t("Back", "Atrás")}</button>
+          <button className="btn btn-danger" disabled={busy || !rejectReason.trim()} onClick={() => onMove("rejected", rejectReason.trim())}>{t("Confirm reject", "Confirmar rechazo")}</button>
+        </>
+      )}
+      {fa.pasos.includes("recoger") && (
+        <>
+          <button className="btn btn-ghost" onClick={onCancelPickup} disabled={busy}>{t("Back", "Atrás")}</button>
+          <button className="btn btn-primary" onClick={onConfirmPickup} disabled={busy}>🚚 {t("Confirm load & go", "Confirmar carga y salir")}</button>
+        </>
+      )}
+      {fa.pasos.includes("dejar") && (
+        <LeaveAtStore pedido={pedido} me={me} disabled={busy} abierto={dejarAbierto} onAbierto={setDejarAbierto} />
+      )}
+      {p && (
         <button
-          key="pickup"
-          className="btn btn-primary"
-          onClick={me.role === "driver" ? onQuickPickup : onRequestPickup}
-          disabled={busy}
-          title={t("Mark loaded and go out for delivery", "Marcar cargada y salir en reparto")}
-        >🚚 {t("Pick up", "Recoger")}</button>,
-      );
-    } else {
-      btns.push(<button key="pickupback" className="btn btn-ghost" onClick={onCancelPickup} disabled={busy}>{t("Back", "Atrás")}</button>);
-      btns.push(<button key="dopickup" className="btn btn-primary" onClick={onConfirmPickup} disabled={busy}>🚚 {t("Confirm load & go", "Confirmar carga y salir")}</button>);
-    }
-  }
-  // Almacén RECIBE la Intertienda que llega a su tienda (D-409): «Recibir» ocupa el sitio de «Marcar
-  // entregado». Si almacén la cerrara con el POD de chofer se pintaría «Delivered», y el dueño quiere
-  // distinguir quién la cerró. Una que NO va a su tienda sigue como antes (hallazgo en la entrada).
-  if (puedeRecibirla && stage === "picked_up" && !podOpen) {
-    btns.push(<button key="receive" className="btn btn-green" onClick={onReceive} disabled={busy}>📥 {t("Receive", "Recibir")}</button>);
-  } else if (canDeliver(me) && stage === "picked_up" && !podOpen) {
-    // Arrival: stamp when the driver reaches the stop, so transit splits into
-    // driving vs dwell/service time. Optional — delivery works without it.
-    if (!arrivedAt) {
-      btns.push(<button key="arrive" className="btn btn-ghost" onClick={onArrive} disabled={busy}>🚦 {t("Arrived at stop", "Llegué a la parada")}</button>);
-    } else {
-      btns.push(
-        <span key="arrived" className="hint" style={{ alignSelf: "center" }}>
-          🚦 {t("Arrived", "Llegó")} {new Date(arrivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </span>,
-      );
-    }
-    // No pudo entregarlo: lo descarga en una tienda del grupo y el pedido vuelve a la lista
-    // (D-224). El control decide solo si se enseña —y a quién—, y escribe por el módulo puro.
-    btns.push(<LeaveAtStore key="drop" pedido={pedido} me={me} disabled={busy} />);
-    btns.push(<button key="deliv" className="btn btn-green" onClick={onRequestDeliver} disabled={busy}>{t("Mark delivered", "Marcar entregado")}</button>);
-  }
-
-  return <>{btns}</>;
+          className={"btn " + p.estilo}
+          onClick={alPulsar[p.id]}
+          disabled={!!p.deshabilitada}
+          title={p.deshabilitada ? tx(p.deshabilitada) : p.titulo ? tx(p.titulo) : undefined}
+          data-accion-principal={p.id}
+        >{tx(p.texto)}</button>
+      )}
+    </>
+  );
 }
 
 // Click-to-call the customer via RingCentral RingOut: rings the agent's line

@@ -74,13 +74,22 @@ export type Ancla = { top: number; bottom: number; right: number };
  * headless con el CSS real (2026-09-17): en una ventana de 673px, el menú que abría hacia arriba
  * quedaba en `top=679`, fuera de la pantalla; con `top: auto`, en `top=203`.
  */
-export function posicionDelMenu(ancla: Ancla, ventana: { ancho: number; alto: number }) {
+export function posicionDelMenu(
+  ancla: Ancla,
+  ventana: { ancho: number; alto: number },
+  /**
+   * El tamaño del menú, si no es el de una cabecera. El menú «Acciones ▾» de la ficha (D-497) es más
+   * ancho y su alto depende de cuántas opciones lleva; sin esto, abriría hacia arriba o hacia abajo según
+   * los 400 px de una cabecera, que no son los suyos.
+   */
+  medidas: { ancho: number; alto: number } = { ancho: ANCHO_MENU, alto: ALTO_PREVISTO },
+) {
   const debajo = ventana.alto - ancla.bottom;
-  const haciaArriba = debajo < ALTO_PREVISTO && ancla.top > debajo;
+  const haciaArriba = debajo < medidas.alto && ancla.top > debajo;
   return {
     position: "fixed" as const,
     right: "auto" as const,
-    left: Math.max(8, Math.min(ancla.right - ANCHO_MENU, ventana.ancho - ANCHO_MENU - 8)),
+    left: Math.max(8, Math.min(ancla.right - medidas.ancho, ventana.ancho - medidas.ancho - 8)),
     top: haciaArriba ? ("auto" as const) : ancla.bottom + 6,
     bottom: haciaArriba ? ventana.alto - ancla.top + 6 : ("auto" as const),
   };

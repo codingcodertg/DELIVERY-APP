@@ -215,13 +215,18 @@ describe("las pantallas", () => {
     expect(ficha).toContain("const puedeRecibirla = !!existing && puedeRecibir(me, { ...existing, stage }, orderTypeRule(existing.order_type, settings.order_type_rules), settings.stores);");
     expect(ficha).toContain("const ok = await recibirOrden(setStage, existing.id);");
     expect(ficha).toContain("puedeRecibirla={puedeRecibirla}");
-    const i = ficha.indexOf('if (puedeRecibirla && stage === "picked_up" && !podOpen) {');
+    // Nota D-497: los botones de la ficha son la principal y un menú «Acciones ▾»; qué sale lo decide
+    // `lib/acciones-de-la-ficha.ts` (la ficha le pasa `puedeRecibirla`). El bloque se busca allí, con la misma forma.
+    const logica = plano(leer("src/lib/acciones-de-la-ficha.ts"));
+    const i = logica.indexOf('if (e.puedeRecibirla && stage === "picked_up" && !abierto.pod) {');
     expect(i).toBeGreaterThan(-1);
-    const bloque = ficha.slice(i, ficha.indexOf("return <>{btns}</>;", i));
-    expect(bloque).toContain('<button key="receive" className="btn btn-green" onClick={onReceive}');
+    const bloque = logica.slice(i, logica.indexOf("// Entregar ya / deshacer un paso", i));
+    expect(bloque).toContain('hay.push({ id: "recibir", texto: { en: "📥 Receive", es: "📥 Recibir" }, estilo: "btn-green" });');
     // «Marcar entregado» con POD va en el `else`: a almacén, en SU carga, no le sale.
-    expect(bloque.indexOf('} else if (canDeliver(me) && stage === "picked_up" && !podOpen) {')).toBeGreaterThan(bloque.indexOf('key="receive"'));
-    expect(bloque.indexOf('key="deliv"')).toBeGreaterThan(bloque.indexOf("} else if (canDeliver(me)"));
+    expect(bloque.indexOf('} else if (canDeliver(yo) && stage === "picked_up" && !abierto.pod) {')).toBeGreaterThan(bloque.indexOf('id: "recibir"'));
+    expect(bloque.indexOf('id: "marcar_entregado"')).toBeGreaterThan(bloque.indexOf("} else if (canDeliver(yo)"));
+    expect(ficha).toContain("recibir: onReceive,");
+    expect(ficha).toContain("onReceive={() => void recibir()}");
   });
 
   it("la ficha: la pastilla de la cabecera y el historial («Recibida por almacén»)", () => {

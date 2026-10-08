@@ -34,7 +34,11 @@ describe("1 · la ficha abierta lee la orden VIVA, no la foto que le pasaron", (
   it("el botón de D-361 ya no se llama igual que el verde del pie, que es otra cosa", () => {
     // El del pie abre la firma (POD); el de D-361 cierra la orden SIN firma. Se veían los dos a la vez en `picked_up`.
     expect(ficha).toContain('t("Mark delivered without signature", "Marcar entregada sin firma")');
-    expect(ficha).toContain('t("Mark delivered", "Marcar entregado")');            // el del pie, intacto
+    // Nota D-497: los textos de los botones de la ficha viven en `lib/acciones-de-la-ficha.ts` desde que son un menú
+    // «Acciones ▾» (el de D-361 es la opción «✓ Marcar entregada ya»); el verde del pie sigue diciendo lo mismo, allí.
+    const acciones = leer("src/lib/acciones-de-la-ficha.ts");
+    expect(acciones).toContain('{ en: "Mark delivered", es: "Marcar entregado" }');            // el del pie, intacto
+    expect(acciones).toContain('{ en: "✓ Mark delivered now", es: "✓ Marcar entregada ya" }');
     expect(ficha).not.toContain('showEntregarYa ? t("Mark delivered", "Marcar entregada")');
   });
 });
