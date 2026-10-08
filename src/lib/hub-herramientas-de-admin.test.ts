@@ -98,15 +98,18 @@ describe("la barra de Entregas: el switch vuelve como duplicado, la vista móvil
   it("la vista móvil vuelve como botón de la barra, solo para el admin real, y no en el menú del nombre (D-483)", () => {
     expect(OPCIONES_DEL_MENU as readonly string[]).not.toContain("vistamovil");
     expect(barra).not.toContain('case "vistamovil":');
-    expect(plana).toContain('{realRole === "admin" && ( <a className="tab" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}');
-    expect(plana).toContain('📱 {t("Mobile view", "Vista móvil")}');
-    expect(barra.split("enlaceAVistaMovil(").length - 1).toBe(1);
+    // D-501: va DENTRO del panel de «Cambiar usuario»; suelta solo si esa función está apagada.
+    expect(plana).toContain('<a className="btn btn-ghost btn-sm" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}');
+    expect(plana).toContain('📱 {t("Mobile view of this screen", "Vista móvil de esta pantalla")}');
+    expect(plana).toContain('{realRole === "admin" && !puedeSwitch && ( <a className="tab" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}');
+    expect(barra.split("enlaceAVistaMovil(").length - 1).toBe(2);
   });
 
   it("el botón «⇄ Switch user» está, y SOLO para el admin real con la función encendida", () => {
     expect(plana).toContain('{realRole === "admin" && puedeSwitch && ( <div style={{ position: "relative" }}> <button className="tab"');
     expect(plana).toContain('⇄ {t("Switch user", "Cambiar usuario")}');
-    expect(plana).toContain("{switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)} />}");
+    // D-501: el panel lleva además «📱 Vista móvil» arriba (`extra`).
+    expect(plana).toContain("{switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)} extra={");
     // Un solo botón y un solo panel: no hay una segunda entrada escondida en otra rama de la barra.
     expect(barra.split("⇄").length - 1).toBe(1);
     expect(barra.split("<SwitchUserPanel").length - 1).toBe(1);
@@ -176,7 +179,8 @@ describe("la página de cambiar de usuario", () => {
   it("el panel recibe lo que pinta y ya no lee `useData`", () => {
     expect(panel).not.toContain("useData");
     // Con `modo` desde el encargo siguiente (saltar de usuario): las props de D-306 siguen ahí.
-    expect(panel).toContain('export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar" }');
+    // D-501 añade `extra` (lo que va arriba de la lista).
+    expect(panel).toContain('export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar", extra }');
     expect(panel).toContain("agruparPorTienda(users, tiendas, filtro)");
     expect(pagina).toContain("<SwitchUserPanel users={users} tiendas={settings.stores ?? []} enPagina");
   });
