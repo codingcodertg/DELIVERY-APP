@@ -39058,3 +39058,25 @@ lateral. Elegir «Cancel order» deja el motivo con el foco y fuera «Back · Co
 **No visto:** las opciones apagadas en pantalla (el demo no se queda «guardando» el tiempo suficiente; está probado en vitest),
 el modo oscuro, un lector de pantalla de verdad, y ningún paso confirmado hasta el final (no se aprobó, anuló ni dejó nada:
 solo se abrió y se volvió atrás).
+
+## D-498 · Ficha de la orden: para oficina, «Editar» queda afuera del menú
+
+**Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.271.1, repo 1.369.1) · **Sin migración.** · Hecho directo por el orquestador en `release-d498`. **Reemplaza en parte a D-497.**
+
+**Pedido del dueño**, literal: *«dice carlos fuetnets que no puede editar ordenes»*.
+
+### Qué pasaba (medido)
+
+- Carlos Fuentes es oficina (`accounting`, RDZ Pharr, permisos `create` y `fulfill`). En 30 días tiene 173 ediciones; las
+  últimas a mano, hoy a las 8 y 9 de la mañana. La base le deja editar (`guard_delivery_stage`: `manager`/`accounting`
+  editan en cualquier etapa) y la regla de la app también (`canEditFields` → `ordersLikeOfficeManager`).
+- A las 11:30 se publicó D-497, que metió «Editar» en el menú «Acciones ▾». Para oficina en una orden programada no había
+  ningún botón afuera (o, con `fulfill`, salía «Comenzar preparación»): «Editar» quedó escondido. Desde entonces no tiene
+  ninguna edición a mano. Probado en el demo como oficina: «Acciones ▾ → Editar» sí abre el formulario.
+
+### Qué se decidió
+
+- `accionPrincipal` recibe el rol: para **oficina**, si tiene «Editar», ese es su botón de afuera (antes que «Comenzar
+  preparación» u otro paso). Los demás roles no cambian. Con un paso abierto (anular, rechazar…) sigue sin principal.
+
+No visto en navegador tras el cambio: `tsc` y vitest (la prueba que recorre todas las combinaciones de rol y etapa, ajustada).

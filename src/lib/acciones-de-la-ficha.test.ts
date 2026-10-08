@@ -90,7 +90,13 @@ describe("la principal: el paso que hace avanzar la orden para quien la mira", (
   it("`accionPrincipal`: la primera de su lista que esté, y ninguna con un paso abierto", () => {
     expect(accionPrincipal(["imprimir", "marcar_entregado", "editar"], [])).toBe("marcar_entregado");
     expect(accionPrincipal(["recibir", "marcar_entregado"], [])).toBe("recibir");
+    // D-498: oficina tiene «Editar» afuera aunque tenga otro paso; los demás roles, como antes.
     expect(accionPrincipal(["imprimir", "editar"], [])).toBeNull();
+    expect(accionPrincipal(["imprimir", "editar"], [], "accounting")).toBe("editar");
+    expect(accionPrincipal(["comenzar", "editar"], [], "accounting")).toBe("editar");
+    expect(accionPrincipal(["comenzar", "editar"], [], "manager")).toBe("comenzar");
+    expect(accionPrincipal(["comenzar"], [], "accounting")).toBe("comenzar");
+    expect(accionPrincipal(["editar"], ["anular"], "accounting")).toBeNull();
     expect(accionPrincipal(["aprobar"], ["anular"])).toBeNull();
     expect(ORDEN_DE_PRINCIPAL).toEqual(["enviar", "reenviar", "aprobar", "comenzar", "marcar_listo", "recoger", "recibir", "marcar_entregado"]);
   });
@@ -327,7 +333,11 @@ describe("las mismas condiciones de antes, en todas las fichas posibles", () => 
       if (fa.principal) {
         if (ids.includes(fa.principal.id)) fallos.push(donde + ": la principal también en el menú");
         if (fa.pasos.length) fallos.push(donde + ": principal con un paso abierto");
-        if (ORDEN_DE_PRINCIPAL.find((id) => id === fa.principal!.id || ids.includes(id)) !== fa.principal.id) fallos.push(donde + ": no es la primera que toca");
+        // D-498: oficina lleva «Editar» de principal cuando lo tiene; para el resto, la primera que toca.
+        const esperada = e.yo.role === "accounting" && (fa.principal.id === "editar" || ids.includes("editar"))
+          ? "editar"
+          : ORDEN_DE_PRINCIPAL.find((id) => id === fa.principal!.id || ids.includes(id));
+        if (esperada !== fa.principal.id) fallos.push(donde + ": no es la primera que toca");
       } else if (fa.pasos.length === 0 && ids.some((id) => ORDEN_DE_PRINCIPAL.includes(id))) {
         fallos.push(donde + ": sin principal habiendo una");
       }
