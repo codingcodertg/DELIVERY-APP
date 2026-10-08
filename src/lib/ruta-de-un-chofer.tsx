@@ -12,7 +12,7 @@ import type { ChoferVisto } from "./vista-de-chofer";
  */
 const Contexto = createContext<ChoferVisto | null>(null);
 
-export function RutaDeUnChofer({ chofer, children }: { chofer: ChoferVisto; children: ReactNode }) {
+export function RutaDeUnChofer({ chofer, children }: { chofer: ChoferVisto; children?: ReactNode }) {
   return <Contexto.Provider value={chofer}>{children}</Contexto.Provider>;
 }
 

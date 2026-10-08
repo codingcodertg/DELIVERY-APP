@@ -211,7 +211,7 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
   const pinta = async (chofer: typeof CARLOS | null) => {
     const { default: MyRoutePage } = await import("@/app/(app)/my-route/page");
     const pagina = createElement(MyRoutePage);
-    return renderToStaticMarkup(chofer ? createElement(RutaDeUnChofer, { chofer, children: pagina }) : pagina);
+    return renderToStaticMarkup(chofer ? createElement(RutaDeUnChofer, { chofer }, pagina) : pagina);
   };
 
   it("el admin ve las paradas del elegido, y solo las suyas", async () => {
