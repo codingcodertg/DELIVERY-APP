@@ -257,8 +257,13 @@ describe("la pantalla llama a la regla, no la copia", () => {
   const modal = plano(leer("src/components/OrderModal.tsx"));
 
   it("el botón sale de `puedeAgregarMaterial`, no de una condición escrita a mano", () => {
-    expect(modal).toContain("if (puedeAgregarMaterial(me, pedido)) {");
-    expect(modal).toContain('btns.push(<button key="material"');
+    // Nota D-NEXT: los botones de la ficha son ahora un menú «Acciones ▾», y QUÉ opciones salen lo decide
+    // `lib/acciones-de-la-ficha.ts`; la ficha lo llama y enchufa cada opción a lo que hacía su botón. Por eso la
+    // condición se busca allí, y aquí solo que la opción abre el mismo diálogo de antes.
+    const acciones = plano(leer("src/lib/acciones-de-la-ficha.ts"));
+    expect(acciones).toContain("if (puedeAgregarMaterial(yo, pedido)) {");
+    expect(acciones).toContain('hay.push({ id: "agregar_material"');
+    expect(modal).toContain("agregar_material: onAddMaterial,");
   });
 
   it("y lo que se guarda sale de `escrituraDeAgregarMaterial`, en UNA llamada", () => {

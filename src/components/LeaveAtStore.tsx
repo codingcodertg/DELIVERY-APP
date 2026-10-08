@@ -27,6 +27,8 @@ export function LeaveAtStore({
   onDone,
   className = "btn btn-amber",
   style,
+  abierto: abiertoDeFuera,
+  onAbierto,
 }: {
   pedido: Delivery;
   me: Profile;
@@ -35,10 +37,20 @@ export function LeaveAtStore({
   onDone?: () => void;
   className?: string;
   style?: React.CSSProperties;
+  /**
+   * Abierto desde fuera (D-NEXT). La ficha lleva «🏬 Dejar en tienda» en su menú «Acciones ▾»: el botón vive
+   * allí y aquí solo queda el formulario (la tienda, Atrás y Confirmar). Con `abierto` puesto, cerrado no pinta
+   * nada; «Atrás» y dejarlo avisan con `onAbierto(false)`. Sin él (Mi ruta), funciona como siempre.
+   */
+  abierto?: boolean;
+  onAbierto?: (abierto: boolean) => void;
 }) {
   const { settings, setStage, notify } = useData();
   const { t } = usePrefs();
-  const [abierto, setAbierto] = useState(false);
+  const [abiertoPropio, setAbiertoPropio] = useState(false);
+  const deFuera = abiertoDeFuera !== undefined;
+  const abierto = deFuera ? abiertoDeFuera : abiertoPropio;
+  const setAbierto = (v: boolean) => { if (deFuera) onAbierto?.(v); else setAbiertoPropio(v); };
   const [tienda, setTienda] = useState("");
   const [guardando, setGuardando] = useState(false);
 
@@ -66,6 +78,7 @@ export function LeaveAtStore({
   };
 
   if (!abierto) {
+    if (deFuera) return null;
     return (
       <button
         className={className}

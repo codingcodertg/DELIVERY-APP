@@ -249,7 +249,11 @@ describe("no queda ningún camino que anule sin motivo", () => {
   });
 
   it("el botón de anular de la ficha usa la regla compartida", () => {
-    expect(modal).toContain("if (puedeAnular(me.role, stage)) {");
+    // Nota D-NEXT: «Cancelar orden» es una opción del menú «Acciones ▾»; quién la ve lo decide
+    // `lib/acciones-de-la-ficha.ts`, así que la regla se busca allí. El motivo y su «Confirmar» siguen en la ficha.
+    const acciones = leer("src/lib/acciones-de-la-ficha.ts");
+    expect(acciones).toContain("if (puedeAnular(yo.role, stage)) {");
+    expect(modal).toContain("anular: () => setShowCancel(true),");
     expect(modal).toContain("disabled={busy || !cancelListo}");
   });
 

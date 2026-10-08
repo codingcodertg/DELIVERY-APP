@@ -239,11 +239,15 @@ describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve
   it("el botón abre la confirmación del monto, no mueve la etapa por su cuenta (D-450)", () => {
     // Desde D-397 (145) el bloque se abre con `preparaEnLaFicha` (almacén, o el gerente que hace bodega).
     // Se afirma primero que está: un `indexOf` de -1 cortaría desde el final y la prueba mediría otra cosa.
-    const inicio = modal.indexOf("if (preparaEnLaFicha(me)) {");
+    // Nota D-NEXT: los botones de la ficha son la principal y un menú «Acciones ▾»; QUÉ acción sale lo decide
+    // `lib/acciones-de-la-ficha.ts` y la ficha enchufa cada una en `alPulsar`. Se mira cada mitad en su sitio.
+    const logica = plano(leer("src/lib/acciones-de-la-ficha.ts"));
+    const inicio = logica.indexOf("if (preparaEnLaFicha(yo)) {");
     expect(inicio).toBeGreaterThan(-1);
-    const bloque = modal.slice(inicio, modal.indexOf('if (stage === "fulfilling") {', inicio));
-    expect(bloque).toContain('if (stage === "approved") btns.push(<button key="start" className="btn btn-primary" onClick={onRequestStart}');
-    expect(bloque).not.toContain('onMove("fulfilling")');
+    const bloque = logica.slice(inicio, logica.indexOf('if (stage === "fulfilling")', inicio));
+    expect(bloque).toContain('if (stage === "approved") hay.push({ id: "comenzar"');
+    expect(modal).toContain("comenzar: onRequestStart,");
+    expect(modal).not.toContain('comenzar: () => onMove("fulfilling")');
     expect(modal).toContain("onRequestStart={comenzarPreparacion}");
   });
 
@@ -268,9 +272,10 @@ describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve
     // Sin esto, «se quitó el diálogo» podría significar que se quitaron los dos. Se cita la
     // GUARDA además del botón: dejar el botón escrito pero inalcanzable —`if (false)`— pasaba
     // una prueba que solo buscara el `onClick`. Medido con ese mutante.
-    expect(modal).toContain('if (stage === "fulfilling") {');
-    const listo = modal.slice(modal.indexOf('if (stage === "fulfilling") {'));
-    expect(listo.slice(0, listo.indexOf("</button>"))).toContain("onClick={onRequestReady}");
+    // Nota D-NEXT: la guarda está en `lib/acciones-de-la-ficha.ts`, y a qué se enchufa «Marcar listo», en la ficha.
+    const logica = plano(leer("src/lib/acciones-de-la-ficha.ts"));
+    expect(logica).toContain('if (stage === "fulfilling") hay.push({ id: "marcar_listo"');
+    expect(modal).toContain("marcar_listo: onRequestReady,");
     const confirmar = modal.slice(modal.indexOf("const confirmReady"), modal.indexOf("const confirmPickup"));
     expect(confirmar).toContain('setStage(existing.id, "ready"');
     expect(confirmar).toContain("{ actual_pallets: n }");
