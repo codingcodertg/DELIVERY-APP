@@ -296,7 +296,13 @@ describe("los dos proveedores y la ficha usan lo probado", () => {
   it("«Eliminar» sale con `puedeBorrar`, pregunta antes, y solo cierra si se borró", () => {
     const modal = leer("src/components/OrderModal.tsx");
     expect(modal).toContain("const borraAqui = !!existing && puedeBorrar(me, existing, settings.stores);");
-    expect(modal).toContain("{existing && borraAqui && (");
+    // Nota D-NEXT: viendo la orden, «Eliminar» es la última opción del menú «Acciones ▾» (`lib/acciones-de-la-ficha.ts`
+    // la pone con `borraAqui`); editando, sigue siendo el botón de siempre a la izquierda del pie.
+    expect(modal).toContain("{editing && existing && borraAqui && (");
+    expect(modal).toContain("borraAqui={borraAqui}");
+    expect(modal).toContain("eliminar: onDelete,");
+    expect(modal).toContain("onDelete={() => void remove()}");
+    expect(leer("src/lib/acciones-de-la-ficha.ts")).toContain('if (e.borraAqui) hay.push({ id: "eliminar"');
     expect(modal).not.toContain('{existing && me.role === "admin" && (');
     const remove = tramo("src/components/OrderModal.tsx", "const remove = async () => {", "const deshaceAqui");
     expect(remove).toMatch(/if \(!\(await confirmAction\(/);
