@@ -39094,3 +39094,23 @@ No visto en navegador tras el cambio: `tsc` y vitest (la prueba que recorre toda
 - El filtro de choferes (D-488) sigue mandando en las tarjetas de «Rutas», el mapa y «Sin asignar».
 
 No visto en navegador: `tsc` y vitest.
+
+## D-500 · Gestor: «📅 Reprogramar» en cada fila — la siguiente fecha y una nota
+
+**Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.0, repo 1.370.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d500`.
+
+**Pedido del dueño**, literal: *«agrega el boton en las ordenes de rescheduled ahi mismo en el gestor de rutas por si toca y uno solo elije la siguiente fehchay una nota»*.
+
+### Qué se decidió
+
+- En las tablas de órdenes del Gestor («Sin asignar» y «Todas»), cada fila que se puede reprogramar lleva **«📅 Reprogramar»**
+  junto a «Asignar a… / Pasar a…». Abre un cuadro con la **nueva fecha** (propone el día siguiente al más tarde entre hoy y la
+  que tiene) y una **nota obligatoria** (3 letras mínimo). Al guardar: `updateDelivery({ delivery_date })` y la nota
+  «Reprogramada de X a Y: …» en el historial (`addNote`). Regla en `src/lib/reprogramar-orden.ts`, pantalla en
+  `src/components/ReprogramarOrden.tsx`.
+- **Quién y cuándo** (`puedeReprogramar`): logística, gerente y oficina en borrador, pendiente, aprobada, preparando y lista —
+  las etapas en que el guard de la base les deja editar—; el admin también en camino. Nunca en entregada ni anulada, ni en
+  «Ruta de hoy» (solo lectura). No cambia el chofer asignado.
+
+Interpretación: «las órdenes de rescheduled» = cualquier orden del Gestor que haga falta mover de día. No visto en navegador:
+`tsc` y vitest.
