@@ -30807,6 +30807,8 @@ al numerar.)
 
 ## D-417 · Gestor de Rutas: las paradas se arrastran en «📅 Horario» (a otro hueco, a otro chofer o a su nombre = Mejor lugar), con vista previa y deshacer/rehacer
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-08): el eje ya no va de 07:00 a 19:00 ni lo estiran las ventanas: es el tramo con paradas, con 30 min de margen, y llena el ancho, con «＋ / － / Ajustar». Y ya **no salen las rutas vacías** (ni las que el filtro del panel deja fuera): desde el horario no se suelta en un chofer sin nada. El dueño: «si stevene no tiene nada que no salga».
+
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): deshacer y rehacer tienen además dos botones en la cabecera de la tarjeta de cada ruta, sobre el MISMO historial (encendidos solo si el último movimiento tocó esa ruta), y entran también «Pasar a…» y «Vaciar».
 >
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): el arrastre ve la lista
@@ -34545,6 +34547,8 @@ elemento a la vista y la foto entregada por el selector de ficheros que abre el 
 
 ## D-456 · Gestor de Rutas: la factura en todas las tablas, arrastrar para armar rutas a mano, «🧭 Optimizar» por ruta y la llegada estimada siempre
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-08): en la barra de la línea de tiempo la factura sale entera solo si cabe; si no, una forma corta («17938 +1», «…7938», el número de parada, «⚠») y entera en el `title`.
+
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el ID ya no va DEBAJO de la factura sino a su lado, en la misma línea, pequeño, gris y sin subrayar («the id looks blurry and awful becuase of those dots dont make the row larger just fix the view»), y la columna nace con 124 px (era 84). La línea «✋ Arrastre una fila…» de la tarjeta de cada chofer es ahora el `title` de la cabecera de su tabla; en «Sin asignar» sigue. Y el `td` de acciones dejó de llevar `display: flex`.
 
 > **⚠ Reemplazada en parte por D-461** (2026-10-02): «🧭 Optimizar» (§3) ya no decide en línea recta ni «sin llamar a nadie»: mide por calles (una petición de matriz por pulsación, y ninguna si los tramos ya están guardados), mira las ventanas de entrega, sale de la base del chofer —no de la tienda de recogida más repetida— y da el mejor orden que existe en las rutas pequeñas. Medido sobre 37 rutas reales, el de aquí no daba el mejor orden en 20 y dejaba 13 peor de como estaban. Y en la medida de la tarjeta (§4), las recogidas seguidas en una misma tienda cuentan como UNA visita, no la recarga entera por cada fila.
@@ -37755,6 +37759,8 @@ no lo nombró.
 
 ## D-481 · Gestor de Rutas y «Ruta de hoy»: «Ruta de hoy» es el Gestor sin ninguna acción, el filtro de chofer son las casillas del panel, «Cuadrícula» despliega la tabla abajo, sin choferes vacíos, la factura en el mapa y sin «P1» en una tienda
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-08): (f) en el Gestor el horario tampoco pinta las rutas vacías —ya no «se suelta en un chofer vacío»— y sigue el filtro de choferes del panel.
+
 > **Reemplazada en parte por D-488:** el panel de choferes ya no esconde a los demás al marcar uno; la casilla dice si la ruta se ve, y hay «Todos».
 
 > **Reemplazada en parte por D-482:** en «Cuadrícula» la desplegada ya no repite la cabecera y sale pegada a su compacta, con animación.
@@ -39227,3 +39233,141 @@ admin sigue sin «Mi ruta» propia; lo que ve en «Chofer» es la de otro. `/my-
   leída, no ensayada). El demo no tiene servidor ni planes, así que la tarjeta «Orden planeado del día» y el aviso de D-341
   no se vieron con datos de otro chofer; la lógica está probada con la función pura.
 - En un teléfono de verdad (solo Chrome headless a 390).
+
+## D-NEXT · Gestor de Rutas, «📅 Horario»: el eje es el tramo con paradas y llena el ancho (＋ / － / Ajustar), cada barra escribe lo que le cabe, y no salen choferes sin paradas ni los que el panel deja fuera
+
+**Fecha:** 2026-10-08 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** **Reemplaza en parte a** D-417 (el eje
+de 07:00 a 19:00 y «salen todas las rutas, también las vacías, para poder soltar»), D-481 f («en el Gestor, el horario: se
+suelta en un chofer vacío») y D-456 (la factura en la barra de la línea de tiempo). Cada una lleva su nota. No toca el motor
+ni las horas: solo la escala y lo que se pinta.
+
+### Qué pidió el dueño
+
+2026-10-08, literal (como lo pasó el orquestador, no extraído del fichero de sesión), con una captura de la pestaña «Horario»:
+
+> «mira que fe se  mira si todos estan concentados ahi pues que se haga un zoom y si stevene no tiene nada que no salga»
+
+En la captura: el eje de 07:00 a 13:00 y más, con desplazamiento lateral; todas las paradas apretadas entre 08:30 y 10:00, los
+bloques encimados y las etiquetas cortadas («99», «14», «17938 / 17942», «#!»); y una fila «Steven» vacía.
+
+### Qué fallaba (medido en el demo antes del cambio)
+
+- **El eje era un día fijo**: de 07:00 a 19:00, o más tarde si una ruta acababa más tarde, y lo estiraban también las
+  VENTANAS (una ventana hasta las 17:00 bastaba). Daba igual dónde estuvieran las paradas: a 1280 px una descarga de 15 min
+  medía ~21 px. Con todo entre 08:00 y 10:00, el 80 % de la pista quedaba vacío.
+- **Desplazamiento lateral también en pantalla grande**: `.gantt { min-width: 620px }` y la etiqueta «19:00», centrada en el
+  borde, se salía media: 1160 px de contenido en 1146 de caja a 1280, y «19:» cortado.
+- **Etiquetas cortadas**: el texto de la barra se partía en dos renglones («INV-» / «4112») y `overflow: hidden` lo cortaba. A
+  1280: 9 de 15 barras cortadas hoy, 5 de 6 mañana; a 390, 15 de 15.
+- **Filas vacías**: el Gestor pintaba todas las rutas, también las vacías, a propósito (D-417: para poder soltar en un chofer
+  sin nada). Mañana en el demo, «Diego Driver» sin ninguna barra: el «Steven» de la captura.
+- **El filtro de choferes del panel (D-488) no llegaba al horario**: las filas salían de `lanes` (todas), no de las que pasan
+  el filtro. Desmarcar «Fleet Truck 3» dejaba su fila —y la de Diego, vacía— en el horario.
+
+### Qué se decidió
+
+`src/lib/gestor/zoom-del-horario.ts` (pura):
+
+1. **El tramo** (`tramoDelHorario`): de la primera llegada al último fin de descarga del día, con **30 min de margen** a cada
+   lado, redondeado **hacia fuera** a la media hora. La captura del dueño (08:35 a 10:00) da **08:00–10:30**. **Las ventanas no
+   lo estiran** —una de 08:00 a 17:00 deshacía el zoom entero—: su raya fina se corta en el borde y la ventana entera sigue en
+   el `title` de la barra. **La salida de la base (08:00) tampoco**: con la primera parada a las 14:00 (esperando a que abra su
+   ventana) la mañana entera sería pista vacía; el hueco «antes de la primera» del arrastre cae 1 min antes de ella, dentro
+   del margen. Sin ninguna parada, 07:00–19:00 (no se llega a pintar: sale el aviso de vacío).
+2. **La escala** (`vistaDelEje`): el tramo **llena el ancho** que hay (la caja menos la columna de nombres), sin
+   desplazamiento lateral en pantalla grande —también un día de 12 h a 1280 px—. Con pocas paradas muy juntas, el minuto
+   crece hasta un **tope de 8 px/min** (una descarga de 15 min = 120 px); pasado el tope, el tramo se abre por los dos lados,
+   sin salirse del día, para seguir llenando el ancho. **En el teléfono** (pista de menos de 480 px) no baja de **2 px/min**
+   (15 min = 30 px) y la línea se desplaza de lado dentro de su caja, como antes (D-417).
+3. **＋ / － / Ajustar** (encima del eje, a la derecha; a la izquierda, el tramo que se ve, «07:30–10:30»). El zoom es un factor
+   sobre lo ajustado: **＋** multiplica por 1,5 hasta **24 px/min** (más ancho que la caja: se desplaza de lado); **－** divide por
+   1,5 hasta ver **12 horas** (o el tramo entero, si es más largo); **Ajustar** vuelve al ajuste y al principio. Cada botón se
+   apaga en su tope, y el zoom se guarda ya dentro de sus topes (pasado el tope, el contrario responde a la primera). ＋ y －
+   acercan sobre el minuto que está en el centro de lo que se ve (`minutoEnElCentro` / `desplazamientoParaCentrar`). El zoom no
+   se recuerda: es de la pantalla abierta. Los nombres de chofer se quedan fijos a la izquierda al desplazarse (`sticky`).
+4. **Las marcas de hora** (`marcasDelEje`): cada 15, 30, 60, 120, 180 o 240 min, el paso más corto con el que dos etiquetas
+   quedan a 56 px o más. La del borde se alinea hacia dentro (adiós a «19:» cortado y a su desplazamiento de 14 px).
+5. **La etiqueta de cada barra** (`formasDeLaEtiqueta`, `etiquetaQueCabe`, `anchosParaElTexto`): la forma más larga que cabe,
+   de esta lista: la factura entera (D-456) → con varias facturas, la primera y cuántas más («17938 +1») → los últimos 4 y 3
+   caracteres con «…» delante («…7938», «…938») → el **número de parada** («3», el de la tabla y del mapa, D-485) → «⚠» sola
+   (si llega tarde) → nada. La que llega tarde lleva «⚠» delante en todas. «Cabe» = el texto medido de verdad en el navegador
+   (lienzo, Inter 700 a 11 px, +1 px) más 14 px de relleno, contra el ancho de la barra **o hasta donde empieza la siguiente, si
+   la pisa**. Nunca un texto cortado a la mitad: si no cabe nada, la barra va en blanco y el texto entero está en el `title`. El
+   texto ya no se parte en dos renglones (`white-space: nowrap`).
+6. **Quién sale** (`filasDelHorario`): solo las rutas con **alguna parada que pintar** ese día **y** que pasan el filtro de
+   choferes del panel (D-488). Igual en el Gestor y en «Ruta de hoy». Si hay rutas con paradas pero el panel no deja ver
+   ninguna, lo dice: «Ningún chofer con paradas está marcado en «Choferes y rutas».» (antes habría dicho «Aún no hay órdenes
+   asignadas»).
+7. **El número de parada del `title`** de la barra pasa a ser el de la tabla y el mapa (D-485, `paradasDeLaRuta` sobre la misma
+   lectura de la ruta, `paradaDeCadaEntrega`). Hasta hoy decía su puesto entre las ENTREGAS («stop 1»), que desde D-485 no
+   coincidía con la tabla cuando la ruta empieza recogiendo («Stop 3» en la tabla). La etiqueta del arrastre («parada N» del
+   hueco, D-417) no se tocó: sigue contando entregas.
+
+### Esto revierte en parte D-417 y D-481 f, y se dice
+
+D-417 (2026-09-27) pintaba **todas** las rutas en el horario, también las vacías, **para poder soltar una parada en un chofer
+que aún no tiene nada**, y D-481 f lo confirmó para el Gestor («se suelta en un chofer vacío»). El dueño pide ahora lo
+contrario, con sus palabras: «si stevene no tiene nada que no salga». **Consecuencia:** desde el horario ya no se puede soltar en
+un chofer sin paradas ese día, ni en uno que el panel deja fuera. A un chofer sin nada se le asigna desde «Sin asignar»
+(«Asignar a…», arrastrar al panel), el tablero, o «Pasar a…» en la tabla de otro. **A validar con el dueño.** Se descartó
+pintar las vacías solo mientras se arrastra: las filas cambiarían de sitio bajo el puntero a mitad del arrastre.
+
+### Lo que NO cambia
+
+El motor y las horas (`barrasDeLaRuta`, salida a las 08:00, línea recta × 1,3 a 30 mph), el plan del arrastre
+(`planDeSoltar`, `huecosDeLaFila`, Mejor lugar), deshacer/rehacer, el teléfono que solo mira (D-417), la raya de la ventana, el
+borde rojo y la «⚠» de la que llega tarde, y el `title` con factura, ID, hora, ventana y cuenta.
+
+### Dónde está
+
+`src/lib/gestor/zoom-del-horario.ts` (todo lo de arriba, puro); `src/components/GanttTimeline.tsx` (mide la caja con
+`ResizeObserver`, el zoom y sus botones, las marcas, la etiqueta que cabe, el minuto bajo el puntero con la misma escala);
+`src/app/(app)/routes/page.tsx` (`filasDelHorario(ganttRows, pasaFiltro)`, el número de parada de cada fila, el aviso de
+vacío); `src/app/globals.css` (`.gantt-*`: sin `min-width`, nombres fijos, `nowrap`, `.gantt-zoom`, marcas de borde).
+
+### Medido en el demo (2026-10-08, CDP, admin, en inglés, puerto propio, clics de persona con el elemento a la vista)
+
+Para ver el caso de la captura —todo por la mañana— se ensancharon a 08:00–17:00 las ventanas de las 6 órdenes asignadas de
+mañana (10/09) en el almacén del demo del Chrome desechable: nadie espera a que abra su ventana.
+
+| | Antes | Después |
+|---|---|---|
+| 1280, mañana, todo por la mañana | eje 07:00–19:00 cada hora · 4 filas (Diego vacía) · barras de 21 px la más estrecha, 34 la mediana · 5 de 6 cortadas (en la captura) · contenido 1160 en 1146 | eje 07:30–14:30 cada 30 min · 3 filas · 0 cortadas · 1146 en 1146 · «…112 · …4116 · INV-4113 · 4 · …105 · …4107» |
+| lo mismo, «Fleet Truck 3» desmarcado en el panel | igual: 4 filas, Fleet Truck 3 y Diego siguen | 2 filas (Carlos, Miguel) · eje **07:30–10:30 cada 15 min** · barras de 82 px o más · «INV-4112 · INV-4116 · INV-4113 · INV-4118», enteras |
+| ＋ ＋ / － ×4 / Ajustar | — | 2378 px en 1146 (se desplaza), marcas cada 15 min, las 6 facturas enteras, centrado en las 11:00 · 05:00–17:00 (12 h), «－» apagado · otra vez 07:30–14:30, «Ajustar» apagado |
+| 1280, hoy (paradas de 08:30 a 19:30) | 07:00–19:00 · 9 de 15 cortadas | 08:30–19:30 · 0 cortadas · 1146 en 1146 · las más estrechas, «⚠», «⚠6», «…3005», «4» o en blanco |
+| 390 | página 390 · horario 634 en 336 · 15 de 15 cortadas (hoy); 5 de 6 (mañana) | página 390 · el horario se desplaza en su caja (946 en 336 mañana, 1426 hoy) · 0 cortadas · nombres fijos |
+
+**Arrastrar con la escala nueva** (1280, mañana, todo por la mañana): «…112» de Carlos (08:01) detrás de «…4116» (08:36). A
+mitad: la marca del hueco en x = 441, justo tras la segunda (que acaba en 440), y la etiqueta «INV-4112 · stop 2 · +0.0 mi ·
+no new lateness». Al soltar: «…4116 · stop 2 · ~08:16», «…112 · stop 4 · ~08:55». **Ctrl+Z:** como al principio (stop 3 ·
+~08:01 y stop 4 · ~08:36).
+
+### Pruebas y mutantes
+
+Nueva `src/lib/gestor/zoom-del-horario.test.ts` (38 pruebas): el tramo (la captura del dueño, sin ventanas, margen y
+redondeo, el fin de la descarga, los bordes del día, sin paradas), la escala (llena, 12 h a 1280, el tope y el tramo que se
+abre, el teléfono, sin medir), ＋/－/Ajustar (topes, el contrario a la primera, sin salirse del día, el centro), las marcas, la
+etiqueta (las formas, la que cabe, **ningún ancho de 0 a 160 px da un texto más ancho que la barra**, la que pisa a la
+siguiente, el número de parada) y quién sale; y que la pantalla usa cada pieza. Puesta al día con su nota «D-NEXT»:
+`gestor-y-ruta-de-hoy.test.ts` (f), que fijaba la línea de las filas vacías.
+
+**Mutantes: 59, caen los 59** con prueba con nombre: el tramo (6: margen, redondeo, ventanas, fin de descarga, sin paradas,
+fin del día), la escala (11: tope, mínimo del teléfono y fuera de él, abrir el tramo, abrirlo por los dos lados, los dos
+bordes del día, topes de ＋ y －, el zoom guardado, sin medir), ＋/－ al revés, las marcas (3), la etiqueta (10: cada forma, el
+relleno, el texto entero, la siguiente, el orden), quién sale (2), el número de parada, el centro y los bordes (4), y la
+pantalla (17: las filas, el filtro, el aviso de vacío, el número, el eje fijo, el zoom, la medida, el arrastre, la etiqueta,
+la siguiente, el ancho de la pista, los dos topes, «Ajustar», el centro, el zoom de la lib, el `title`, las marcas) y el CSS
+(4: `min-width`, `nowrap`, `sticky`, la última hora).
+
+### No verificado
+
+- **Nada con sesión ni contra producción**: todo en el demo, como admin. Los datos de la captura (Steven, «17938 / 17942») no
+  están en el demo: el caso se reprodujo ensanchando ventanas; «17938 +1» y «…7938» solo por las pruebas.
+- **«Ruta de hoy» no se abrió en el navegador**: el admin del demo ya no la tiene (D-494). Usa el mismo componente y la misma
+  `filasDelHorario`; por las pruebas.
+- El texto en español, solo por las pruebas (el demo se midió en inglés).
+- La medida del texto usa la fuente que haya al medir: si Inter aún no cargó, mide con la de reserva (de ancho parecido); hay
+  1 px + 2 px de holgura.
+- Arrastrar con el dedo en una tableta, con zoom: no probado (sí con el ratón a 1280).
+- Capturas y guiones: `…/scratchpad/horario-zoom/` (fuera del repo).
