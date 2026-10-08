@@ -39080,3 +39080,17 @@ solo se abrió y se volvió atrás).
   preparación» u otro paso). Los demás roles no cambian. Con un paso abierto (anular, rechazar…) sigue sin principal.
 
 No visto en navegador tras el cambio: `tsc` y vitest (la prueba que recorre todas las combinaciones de rol y etapa, ajustada).
+
+## D-499 · Gestor: la pestaña «Todas» enseña todas las órdenes del día, sin el filtro de choferes
+
+**Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.271.2, repo 1.369.2) · **Sin migración.** · Hecho directo por el orquestador en `release-d499`. **Reemplaza en parte a D-462** (que la hacía seguir el filtro de chofer).
+
+**Pedido del dueño**, literal, con captura del Gestor con el filtro en «ningún chofer» y «Todas (3)»: *«todas son todas si apreto driver me aparecen 20 y si no en 3 pero son todas»*.
+
+### Qué se decidió
+
+- «📋 Todas (N)» —la cuenta, la tabla, sus chips y la búsqueda— se calcula con un filtro de choferes vacío
+  (`sinFiltroDeChofer`): todas las del día, con chofer o sin él, entregadas incluidas, marque lo que marque el panel.
+- El filtro de choferes (D-488) sigue mandando en las tarjetas de «Rutas», el mapa y «Sin asignar».
+
+No visto en navegador: `tsc` y vitest.

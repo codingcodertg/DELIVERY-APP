@@ -71,7 +71,8 @@ describe("c · el filtro de chofer son las casillas del panel", () => {
     expect(gestor).toContain("pasaFiltro, soloUnChofer: soloAlgunos(filtroChofer),");
     expect(gestor).not.toContain("All drivers");
     expect(gestor).not.toContain("TODOS_LOS_CHOFERES");
-    expect(gestor).toContain("const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, filtroChofer)");
+    // D-499: «Todas» ya no sigue el filtro de choferes.
+    expect(gestor).toContain("const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, sinFiltroDeChofer)");
   });
 });
 
