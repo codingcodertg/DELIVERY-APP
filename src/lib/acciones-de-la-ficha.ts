@@ -147,8 +147,12 @@ export const ORDEN_DEL_MENU: readonly IdDeAccion[] = [
 const PELIGRO: ReadonlySet<IdDeAccion> = new Set<IdDeAccion>(["rechazar", "anular", "eliminar"]);
 
 /** La principal, si la hay: la primera de `ORDEN_DE_PRINCIPAL` que esté. Con un paso abierto, ninguna. */
-export function accionPrincipal(ids: readonly IdDeAccion[], pasos: readonly PasoAbierto[]): IdDeAccion | null {
+export function accionPrincipal(ids: readonly IdDeAccion[], pasos: readonly PasoAbierto[], rol?: string | null): IdDeAccion | null {
   if (pasos.length > 0) return null;
+  // Oficina vive de editar (D-498): Carlos Fuentes, 173 ediciones en 30 días, dejó de encontrar «Editar» cuando D-497 lo
+  // metió en el menú. El dueño, 2026-10-08: «dice carlos fuetnets que no puede editar ordenes». Para oficina, «Editar»
+  // es su botón de afuera. Los demás roles no cambian.
+  if (rol === "accounting" && ids.includes("editar")) return "editar";
   return ORDEN_DE_PRINCIPAL.find((id) => ids.includes(id)) ?? null;
 }
 
@@ -297,7 +301,7 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
     }))
     .sort((a, b) => ORDEN_DEL_MENU.indexOf(a.id) - ORDEN_DEL_MENU.indexOf(b.id));
 
-  const idPrincipal = accionPrincipal(acciones.map((a) => a.id), pasos);
+  const idPrincipal = accionPrincipal(acciones.map((a) => a.id), pasos, yo.role);
   return {
     principal: acciones.find((a) => a.id === idPrincipal) ?? null,
     menu: acciones.filter((a) => a.id !== idPrincipal),
