@@ -1701,14 +1701,23 @@ export function OrderModal({
                 "Approved" were pinned on top ascending, then the events ran
                 newest-first underneath, so a delivery at 1:32pm appeared ABOVE
                 the pickup at 10:21am that made it possible. */}
-            {orderTimeline.map((row) => (
-              <div className="log-row" key={row.key}>
-                <span style={{ fontWeight: 700, minWidth: 90 }}>{row.label}</span>
-                <span style={{ color: "var(--gray)" }}>{userName(row.by)}{roleTag(row.by)}</span>
-                <span style={{ color: "var(--gray)" }}>{fmtDateTime(row.at)}</span>
-                {row.note && <span>— {row.note}</span>}
-              </div>
-            ))}
+            {/* Plegada de entrada (D-496). El dueño, 2026-10-07: «All the activity notes Collpased in the form view because
+                is taking to much space». Un toque la abre; el motivo de anulación y el asignado siguen a la vista arriba. */}
+            {orderTimeline.length > 0 && (
+              <details data-historia-de-la-orden style={{ marginTop: 4 }}>
+                <summary style={{ cursor: "pointer", fontWeight: 700, padding: "6px 0" }}>
+                  {t(`Activity (${orderTimeline.length})`, `Actividad (${orderTimeline.length})`)}
+                </summary>
+                {orderTimeline.map((row) => (
+                  <div className="log-row" key={row.key}>
+                    <span style={{ fontWeight: 700, minWidth: 90 }}>{row.label}</span>
+                    <span style={{ color: "var(--gray)" }}>{userName(row.by)}{roleTag(row.by)}</span>
+                    <span style={{ color: "var(--gray)" }}>{fmtDateTime(row.at)}</span>
+                    {row.note && <span>— {row.note}</span>}
+                  </div>
+                ))}
+              </details>
+            )}
               </>
             )}
           </>

@@ -38940,3 +38940,20 @@ No visto en navegador: `tsc` y vitest.
 
 Visto en el demo como chofer (CDP, 390): con la entrega cargada, «entregar+rechazar»; el diálogo con motivo y sin destino no
 deja confirmar; con «Regresarlo a McAllen» sí; tras confirmar la orden sale de la ruta y vuelve a la lista. Sin scroll lateral.
+
+## D-496 · Encuestas con su enlace y su QR a la vista; la «Actividad» de la ficha de la orden, plegada
+
+**Fecha:** 2026-10-07 · **Versión:** surveys 0.2.0, deliveries 1.270.1, repo 1.368.0 · **Sin migración.** · Hecho directo por el orquestador en `release-d496`.
+
+**Pedidos del dueño**, literales: *«Have the survey link in the survey tab»* · *«All the eactivity notes Collpased in the form view because is taking to much space»*.
+
+### Qué se decidió
+
+- **Encuestas** (`src/app/surveys/Encuestas.tsx`): una tarjeta arriba con el QR, el enlace público
+  `https://rtg-encuesta.vercel.app` (el sitio de D-449) y tres botones: «Copiar enlace», «Abrir», «Descargar QR». El QR es el
+  mismo PNG que se imprimió (D-449), servido como `public/encuesta-qr.png`.
+- **Ficha de la orden** (`OrderModal.tsx`): la historia de la orden (la línea de tiempo bajo «Notas privadas») va dentro de un
+  `<details>` **plegado** con su cuenta, «Actividad (N)»; un toque la abre. El campo para escribir una nota, el motivo de
+  anulación y el asignado siguen a la vista.
+
+Interpretación: «form view» = la ficha de la orden en Entregas. No visto en navegador: `tsc` y vitest.

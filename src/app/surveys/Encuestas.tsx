@@ -15,6 +15,13 @@ import {
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 
+/**
+ * El enlace público de la encuesta (D-449: sitio aparte, `rtg2/rtg-encuesta` en Vercel) y su QR, a la vista en esta pestaña
+ * (D-496). El dueño, 2026-10-07: «Have the survey link in the survey tab».
+ */
+export const ENLACE_DE_LA_ENCUESTA = "https://rtg-encuesta.vercel.app";
+export const QR_DE_LA_ENCUESTA = "/encuesta-qr.png";
+
 /** Los atajos del filtro de fechas, en días hacia atrás desde hoy (incluido). null = sin límite. */
 const ATAJOS: { dias: number | null; en: string; es: string }[] = [
   { dias: 7, en: "7 days", es: "7 días" },
@@ -38,6 +45,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
 
   const [filas, setFilas] = useState<RespuestaEncuesta[]>([]);
   const [estado, setEstado] = useState<Estado>({ tipo: "cargando" });
+  const [copiado, setCopiado] = useState(false);
   const [hasta, setHasta] = useState<string>(() => todayISO());
   const [desde, setDesde] = useState<string>(() => shiftDateISO(todayISO(), -29));
   const [marcando, setMarcando] = useState<string | null>(null);
@@ -94,6 +102,22 @@ export function Encuestas({ demo }: { demo: boolean }) {
             {t("Answers from the public survey site.", "Las respuestas del sitio público de la encuesta.")}
             {demo ? ` ${t("Demo data.", "Datos de demostración.")}` : ""}
           </p>
+        </div>
+      </div>
+
+      <div className="card" data-enlace-encuesta style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+        <img src={QR_DE_LA_ENCUESTA} alt={t("Survey QR code", "Código QR de la encuesta")} width={96} height={96}
+          style={{ borderRadius: 8, border: "1px solid var(--line)", background: "#fff", flex: "0 0 auto" }} />
+        <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+          <div style={{ fontWeight: 700 }}>🔗 {t("Survey link", "Enlace de la encuesta")}</div>
+          <a href={ENLACE_DE_LA_ENCUESTA} target="_blank" rel="noopener noreferrer" style={{ wordBreak: "break-all", fontSize: 15 }}>{ENLACE_DE_LA_ENCUESTA}</a>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <button className="btn btn-primary btn-sm" data-copiar-enlace onClick={() => {
+              void navigator.clipboard?.writeText(ENLACE_DE_LA_ENCUESTA).then(() => setCopiado(true), () => setCopiado(false));
+            }}>{copiado ? `✓ ${t("Copied", "Copiado")}` : `📋 ${t("Copy link", "Copiar enlace")}`}</button>
+            <a className="btn btn-ghost btn-sm" href={ENLACE_DE_LA_ENCUESTA} target="_blank" rel="noopener noreferrer">↗ {t("Open", "Abrir")}</a>
+            <a className="btn btn-ghost btn-sm" href={QR_DE_LA_ENCUESTA} download="RTG-encuesta-QR.png">⬇ {t("Download QR", "Descargar QR")}</a>
+          </div>
         </div>
       </div>
 
