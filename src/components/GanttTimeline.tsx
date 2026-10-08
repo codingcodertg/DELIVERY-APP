@@ -15,7 +15,7 @@ import {
 } from "@/lib/gestor/zoom-del-horario";
 import type { Delivery } from "@/lib/types";
 
-// El eje ya no es un día fijo de 07:00 a 19:00: es el tramo con paradas, con su margen, y llena el ancho (D-NEXT,
+// El eje ya no es un día fijo de 07:00 a 19:00: es el tramo con paradas, con su margen, y llena el ancho (D-503,
 // `lib/gestor/zoom-del-horario`). ＋ / － / Ajustar cambian la escala; nada de esto toca las horas.
 /** El hueco entre la columna de nombres y la pista (`gap` de `.gantt-row`). */
 const HUECO_COLUMNAS_PX = 10;
@@ -56,7 +56,7 @@ interface Objetivo { fila: string; destino: Destino; plan: PlanDeSoltar; marcaMi
  * order, with its window drawn under it. Stops are dragged with the mouse or a finger (pointer events) to another slot or
  * another driver; dropping on a driver's NAME places it with Best fit. */
 export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en: string, es: string) => string; arrastre?: ArrastreDelGantt }) {
-  // El tramo con paradas (D-NEXT): de la primera llegada al último fin, con margen. Las ventanas no lo estiran.
+  // El tramo con paradas (D-503): de la primera llegada al último fin, con margen. Las ventanas no lo estiran.
   const tramo = useMemo(() => tramoDelHorario(rows.flatMap((r) => r.barras)), [rows]);
   // El ancho que hay para la pista: lo que mide la caja menos la columna de nombres. Se mide antes de pintar y al cambiar.
   const caja = useRef<HTMLDivElement>(null);
@@ -220,7 +220,7 @@ export function GanttTimeline({ rows, t, arrastre }: { rows: GanttRow[]; t: (en:
           const noWindow = row.orders.filter((d) => !parseWindow(d.delivery_windows)).length;
           const aqui = arr?.activo && objetivo?.fila === row.key ? objetivo : null;
           const marca = aqui ? avisoDelObjetivo(aqui) : null;
-          // Lo que cabe escrito en cada barra (D-NEXT): completo, o una forma corta; el texto entero, en el `title`.
+          // Lo que cabe escrito en cada barra (D-503): completo, o una forma corta; el texto entero, en el `title`.
           const anchoDelTexto = vista.pxPorMin > 0 ? anchosParaElTexto(row.barras.map(pxDeBarra)) : null;
           return (
             <div className="gantt-row" key={row.key} data-gantt-row={row.key}>

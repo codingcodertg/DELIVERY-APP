@@ -1128,7 +1128,7 @@ table.orders th { text-align: left; }
 .dboard-card.dragging { opacity: .5; }
 
 /* ---------- Gantt / day-timeline ---------- */
-/* El eje es el tramo con paradas y llena el ancho; ＋/－/Ajustar cambian la escala (D-NEXT). Sin `min-width`: en el
+/* El eje es el tramo con paradas y llena el ancho; ＋/－/Ajustar cambian la escala (D-503). Sin `min-width`: en el
    teléfono el ancho lo pone la escala (2 px/min como poco) y la caja se desplaza de lado. Los nombres se quedan fijos a la
    izquierda al desplazarse. */
 .gantt-scroll { overflow-x: auto; }

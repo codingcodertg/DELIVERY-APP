@@ -1,5 +1,5 @@
 /**
- * La escala de la pestaña «📅 Horario» del Gestor de Rutas y de «Ruta de hoy» (D-NEXT). Solo decide QUÉ TRAMO del día se
+ * La escala de la pestaña «📅 Horario» del Gestor de Rutas y de «Ruta de hoy» (D-503). Solo decide QUÉ TRAMO del día se
  * pinta, CUÁNTOS píxeles lleva cada minuto, qué texto cabe en cada barra y qué filas salen. No toca el motor ni las horas:
  * las barras siguen saliendo de `barrasDeLaRuta` (D-417) con la misma hora de salida.
  *

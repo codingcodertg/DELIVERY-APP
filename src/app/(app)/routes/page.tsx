@@ -1369,7 +1369,7 @@ export default function RoutesPage() {
       paradaDe: paradaDeCadaEntrega(filas, paradasDeLaRuta(filas, stops).deFila),
     };
   });
-  // D-NEXT: en el horario salen solo las rutas con alguna parada ese día y que pasan el filtro de choferes del panel (D-488),
+  // D-503: en el horario salen solo las rutas con alguna parada ese día y que pasan el filtro de choferes del panel (D-488),
   // también en el Gestor. El dueño, 2026-10-08: «si stevene no tiene nada que no salga». Antes el Gestor pintaba las vacías
   // para poder soltar en ellas (D-417, D-481 f); a un chofer sin nada se le asigna desde «Sin asignar», «Asignar a…» o el tablero.
   const filasDelGantt = filasDelHorario(ganttRows, pasaFiltro);
@@ -1943,7 +1943,7 @@ export default function RoutesPage() {
   // Desde D-437, solo las que tienen paradas: una marcada ☑ sin paradas sacaba una tarjeta entera «0 paradas» (Julio). Esa
   // tarjeta no era destino de nada —se asigna desde «Sin asignar», el recuadro o el tablero—; renombrar o quitar una ruta
   // temporal vacía sigue en el panel. Las marcadas vacías se nombran en una línea (`marcadasSinParadas`). («Horario» pintaba
-  // las rutas vacías para soltar en ellas; desde D-NEXT tampoco.)
+  // las rutas vacías para soltar en ellas; desde D-503 tampoco.)
   const shownDrivers = lanesDelFiltro.filter((u) => conAlgoQuePintar(u.key));
   // El panel «Choferes y rutas» (D-481, f): un chofer sin ninguna orden ese día no sale; una ruta temporal vacía sí.
   // El panel lista SIEMPRE todas las rutas del día (D-488): su casilla dice si se ve. Antes listaba solo las filtradas y,

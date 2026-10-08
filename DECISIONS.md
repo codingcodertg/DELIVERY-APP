@@ -30807,7 +30807,7 @@ al numerar.)
 
 ## D-417 · Gestor de Rutas: las paradas se arrastran en «📅 Horario» (a otro hueco, a otro chofer o a su nombre = Mejor lugar), con vista previa y deshacer/rehacer
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-08): el eje ya no va de 07:00 a 19:00 ni lo estiran las ventanas: es el tramo con paradas, con 30 min de margen, y llena el ancho, con «＋ / － / Ajustar». Y ya **no salen las rutas vacías** (ni las que el filtro del panel deja fuera): desde el horario no se suelta en un chofer sin nada. El dueño: «si stevene no tiene nada que no salga».
+> **⚠ Reemplazada en parte por D-503** (2026-10-08): el eje ya no va de 07:00 a 19:00 ni lo estiran las ventanas: es el tramo con paradas, con 30 min de margen, y llena el ancho, con «＋ / － / Ajustar». Y ya **no salen las rutas vacías** (ni las que el filtro del panel deja fuera): desde el horario no se suelta en un chofer sin nada. El dueño: «si stevene no tiene nada que no salga».
 
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): deshacer y rehacer tienen además dos botones en la cabecera de la tarjeta de cada ruta, sobre el MISMO historial (encendidos solo si el último movimiento tocó esa ruta), y entran también «Pasar a…» y «Vaciar».
 >
@@ -34547,7 +34547,7 @@ elemento a la vista y la foto entregada por el selector de ficheros que abre el 
 
 ## D-456 · Gestor de Rutas: la factura en todas las tablas, arrastrar para armar rutas a mano, «🧭 Optimizar» por ruta y la llegada estimada siempre
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-08): en la barra de la línea de tiempo la factura sale entera solo si cabe; si no, una forma corta («17938 +1», «…7938», el número de parada, «⚠») y entera en el `title`.
+> **⚠ Reemplazada en parte por D-503** (2026-10-08): en la barra de la línea de tiempo la factura sale entera solo si cabe; si no, una forma corta («17938 +1», «…7938», el número de parada, «⚠») y entera en el `title`.
 
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): el ID ya no va DEBAJO de la factura sino a su lado, en la misma línea, pequeño, gris y sin subrayar («the id looks blurry and awful becuase of those dots dont make the row larger just fix the view»), y la columna nace con 124 px (era 84). La línea «✋ Arrastre una fila…» de la tarjeta de cada chofer es ahora el `title` de la cabecera de su tabla; en «Sin asignar» sigue. Y el `td` de acciones dejó de llevar `display: flex`.
 
@@ -37759,7 +37759,7 @@ no lo nombró.
 
 ## D-481 · Gestor de Rutas y «Ruta de hoy»: «Ruta de hoy» es el Gestor sin ninguna acción, el filtro de chofer son las casillas del panel, «Cuadrícula» despliega la tabla abajo, sin choferes vacíos, la factura en el mapa y sin «P1» en una tienda
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-08): (f) en el Gestor el horario tampoco pinta las rutas vacías —ya no «se suelta en un chofer vacío»— y sigue el filtro de choferes del panel.
+> **⚠ Reemplazada en parte por D-503** (2026-10-08): (f) en el Gestor el horario tampoco pinta las rutas vacías —ya no «se suelta en un chofer vacío»— y sigue el filtro de choferes del panel.
 
 > **Reemplazada en parte por D-488:** el panel de choferes ya no esconde a los demás al marcar uno; la casilla dice si la ruta se ve, y hay «Todos».
 
@@ -39234,9 +39234,9 @@ admin sigue sin «Mi ruta» propia; lo que ve en «Chofer» es la de otro. `/my-
   no se vieron con datos de otro chofer; la lógica está probada con la función pura.
 - En un teléfono de verdad (solo Chrome headless a 390).
 
-## D-NEXT · Gestor de Rutas, «📅 Horario»: el eje es el tramo con paradas y llena el ancho (＋ / － / Ajustar), cada barra escribe lo que le cabe, y no salen choferes sin paradas ni los que el panel deja fuera
+## D-503 · Gestor de Rutas, «📅 Horario»: el eje es el tramo con paradas y llena el ancho (＋ / － / Ajustar), cada barra escribe lo que le cabe, y no salen choferes sin paradas ni los que el panel deja fuera
 
-**Fecha:** 2026-10-08 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** **Reemplaza en parte a** D-417 (el eje
+**Fecha:** 2026-10-08 · **Versión:** deliveries 1.274.0, repo 1.372.0 (Entregas) · **Sin migración.** **Reemplaza en parte a** D-417 (el eje
 de 07:00 a 19:00 y «salen todas las rutas, también las vacías, para poder soltar»), D-481 f («en el Gestor, el horario: se
 suelta en un chofer vacío») y D-456 (la factura en la barra de la línea de tiempo). Cada una lleva su nota. No toca el motor
 ni las horas: solo la escala y lo que se pinta.
@@ -39349,7 +39349,7 @@ Nueva `src/lib/gestor/zoom-del-horario.test.ts` (38 pruebas): el tramo (la captu
 redondeo, el fin de la descarga, los bordes del día, sin paradas), la escala (llena, 12 h a 1280, el tope y el tramo que se
 abre, el teléfono, sin medir), ＋/－/Ajustar (topes, el contrario a la primera, sin salirse del día, el centro), las marcas, la
 etiqueta (las formas, la que cabe, **ningún ancho de 0 a 160 px da un texto más ancho que la barra**, la que pisa a la
-siguiente, el número de parada) y quién sale; y que la pantalla usa cada pieza. Puesta al día con su nota «D-NEXT»:
+siguiente, el número de parada) y quién sale; y que la pantalla usa cada pieza. Puesta al día con su nota «D-503»:
 `gestor-y-ruta-de-hoy.test.ts` (f), que fijaba la línea de las filas vacías.
 
 **Mutantes: 59, caen los 59** con prueba con nombre: el tramo (6: margen, redondeo, ventanas, fin de descarga, sin paradas,

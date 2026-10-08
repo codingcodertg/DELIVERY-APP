@@ -8,7 +8,7 @@ import {
 } from "@/lib/gestor/zoom-del-horario";
 
 /**
- * D-NEXT · «📅 Horario»: zoom al tramo con paradas, etiquetas que caben y sin choferes vacíos. El dueño, 2026-10-08, con una
+ * D-503 · «📅 Horario»: zoom al tramo con paradas, etiquetas que caben y sin choferes vacíos. El dueño, 2026-10-08, con una
  * captura: «mira que fe se  mira si todos estan concentados ahi pues que se haga un zoom y si stevene no tiene nada que no
  * salga».
  */
