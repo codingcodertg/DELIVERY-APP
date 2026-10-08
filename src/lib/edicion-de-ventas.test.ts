@@ -102,7 +102,7 @@ describe("la ficha (OrderModal) usa la regla, no canEditFields a secas", () => {
   });
 
   it("el botón «Editar» y «Cancelar edición» salen del alcance, y el botón dice «Editar fecha» cuando es solo eso", () => {
-    // Nota D-NEXT: «Editar» es una opción del menú «Acciones ▾»; su condición y su texto viven en
+    // Nota D-497: «Editar» es una opción del menú «Acciones ▾»; su condición y su texto viven en
     // `lib/acciones-de-la-ficha.ts`, que la ficha llama con `edicion`. Allí se buscan.
     const acciones = sinComentarios(leer("src/lib/acciones-de-la-ficha.ts"));
     expect(acciones).toContain('if (e.edicion !== "nada") {');

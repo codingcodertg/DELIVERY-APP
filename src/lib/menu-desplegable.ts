@@ -78,7 +78,7 @@ export function posicionDelMenu(
   ancla: Ancla,
   ventana: { ancho: number; alto: number },
   /**
-   * El tamaño del menú, si no es el de una cabecera. El menú «Acciones ▾» de la ficha (D-NEXT) es más
+   * El tamaño del menú, si no es el de una cabecera. El menú «Acciones ▾» de la ficha (D-497) es más
    * ancho y su alto depende de cuántas opciones lleva; sin esto, abriría hacia arriba o hacia abajo según
    * los 400 px de una cabecera, que no son los suyos.
    */

@@ -228,7 +228,7 @@ describe("la ficha de la orden pide motivo y avisa de lo que se pierde", () => {
     expect(tramo).toContain("puedeEntregarYa(me.role, existing.stage)");
     expect(tramo).toContain("deshaceAqui");
     expect(tramo).toContain("etapaAnterior(existing.stage)!");
-    // Nota D-NEXT: los dos botones son ahora opciones del menú «Acciones ▾», y quién las ve lo decide
+    // Nota D-497: los dos botones son ahora opciones del menú «Acciones ▾», y quién las ve lo decide
     // `lib/acciones-de-la-ficha.ts` con las MISMAS dos reglas; en la ficha queda el motivo, que se abre desde allí.
     const logica = leer("src/lib/acciones-de-la-ficha.ts");
     expect(logica).toContain("if (puedeEntregarYa(yo.role, stage)) {");

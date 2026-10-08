@@ -8,7 +8,7 @@ import type { AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
 import type { Delivery, Profile, Stage } from "@/lib/types";
 
 // ============================================================
-// Los botones de acción de la ficha, en UN menú «Acciones ▾» (D-NEXT).
+// Los botones de acción de la ficha, en UN menú «Acciones ▾» (D-497).
 //
 // El dueño (2026-10-07): «The action buttons will be a drop-down in the form view in the delivery app
 // because is taking to many buttoms so now make it a dropdown».

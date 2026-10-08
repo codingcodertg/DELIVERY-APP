@@ -57,7 +57,7 @@ export function OpcionesDelMenu({ opciones, onElegir }: { opciones: readonly Opc
 }
 
 /**
- * El botón «Acciones ▾» y su menú (D-NEXT). Imita el menú de cuenta (`MenuDeCuenta`): las mismas clases
+ * El botón «Acciones ▾» y su menú (D-497). Imita el menú de cuenta (`MenuDeCuenta`): las mismas clases
  * (`.col-menu`, `.col-opt`), el ▾ y `aria-expanded`; y usa el cierre de los menús de Órdenes
  * (`useCierraAlSalir`: clic fuera y Escape). Añade lo que aquel no tiene y una lista de acciones necesita:
  *

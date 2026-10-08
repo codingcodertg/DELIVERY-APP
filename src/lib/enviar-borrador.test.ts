@@ -141,7 +141,7 @@ describe("la pantalla llama a la decisión, no la copia", () => {
     }
   });
 
-  // Nota D-NEXT: los botones de la ficha son la principal y un menú «Acciones ▾». Qué acción hay y qué dice lo decide
+  // Nota D-497: los botones de la ficha son la principal y un menú «Acciones ▾». Qué acción hay y qué dice lo decide
   // `accionesDeLaFicha` (`lib/acciones-de-la-ficha.ts`) y la ficha enchufa cada una (`alPulsar`). Las dos pruebas de
   // abajo miran eso mismo en sus dos mitades: lo que hace el botón en la ficha, y lo que dice en la función.
   const entrada = (stage: Stage, etapaDeEnvio: Stage): EntradaDeAcciones => ({

@@ -694,7 +694,7 @@ table.orders td.td-pastillas .sema {
 .col-menu-search { width: 100%; margin: 2px 0 4px; padding: 6px 8px; font-size: 12.5px; box-sizing: border-box; }
 .col-menu-actions { display: flex; gap: 6px; padding: 6px 4px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
 .col-menu-actions .btn { flex: 1; }
-/* «Acciones ▾» de la ficha (D-NEXT): el mismo `.col-menu` / `.col-opt` del menú de cuenta y de Órdenes, con opciones de
+/* «Acciones ▾» de la ficha (D-497): el mismo `.col-menu` / `.col-opt` del menú de cuenta y de Órdenes, con opciones de
    44 px de alto (un dedo) y lo destructivo al final, en rojo, tras una raya. Posición, ancho y alto máximo los pone
    `colocacionDelMenu` en línea. Una opción apagada se apaga en su TEXTO, no con `opacity` (D-489). */
 .menu-accion { width: 100%; min-height: 44px; text-align: left; font-size: 14px; line-height: 1.25; }

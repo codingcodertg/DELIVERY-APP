@@ -1,7 +1,7 @@
 import { posicionDelMenu, type Ancla } from "@/lib/menu-desplegable";
 
 /**
- * La mecánica del menú «Acciones ▾» (D-NEXT): dónde se pinta y a qué opción va el foco con el teclado.
+ * La mecánica del menú «Acciones ▾» (D-497): dónde se pinta y a qué opción va el foco con el teclado.
  *
  * QUÉ opciones lleva lo decide quien lo usa (la ficha: `lib/acciones-de-la-ficha.ts`). Aquí solo lo que
  * vale para cualquier lista de acciones, en funciones puras porque las pruebas corren sin navegador.

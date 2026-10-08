@@ -296,7 +296,7 @@ describe("los dos proveedores y la ficha usan lo probado", () => {
   it("«Eliminar» sale con `puedeBorrar`, pregunta antes, y solo cierra si se borró", () => {
     const modal = leer("src/components/OrderModal.tsx");
     expect(modal).toContain("const borraAqui = !!existing && puedeBorrar(me, existing, settings.stores);");
-    // Nota D-NEXT: viendo la orden, «Eliminar» es la última opción del menú «Acciones ▾» (`lib/acciones-de-la-ficha.ts`
+    // Nota D-497: viendo la orden, «Eliminar» es la última opción del menú «Acciones ▾» (`lib/acciones-de-la-ficha.ts`
     // la pone con `borraAqui`); editando, sigue siendo el botón de siempre a la izquierda del pie.
     expect(modal).toContain("{editing && existing && borraAqui && (");
     expect(modal).toContain("borraAqui={borraAqui}");

@@ -215,7 +215,7 @@ describe("las pantallas", () => {
     expect(ficha).toContain("const puedeRecibirla = !!existing && puedeRecibir(me, { ...existing, stage }, orderTypeRule(existing.order_type, settings.order_type_rules), settings.stores);");
     expect(ficha).toContain("const ok = await recibirOrden(setStage, existing.id);");
     expect(ficha).toContain("puedeRecibirla={puedeRecibirla}");
-    // Nota D-NEXT: los botones de la ficha son la principal y un menú «Acciones ▾»; qué sale lo decide
+    // Nota D-497: los botones de la ficha son la principal y un menú «Acciones ▾»; qué sale lo decide
     // `lib/acciones-de-la-ficha.ts` (la ficha le pasa `puedeRecibirla`). El bloque se busca allí, con la misma forma.
     const logica = plano(leer("src/lib/acciones-de-la-ficha.ts"));
     const i = logica.indexOf('if (e.puedeRecibirla && stage === "picked_up" && !abierto.pod) {');

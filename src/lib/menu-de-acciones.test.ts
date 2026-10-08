@@ -7,7 +7,7 @@ import { ALTO_OPCION, ALTO_RAYA, ANCHO_MENU_ACCIONES, altoDelMenu, colocacionDel
 import { posicionDelMenu } from "./menu-desplegable";
 import { MenuDeAcciones, OpcionesDelMenu, type OpcionDelMenu } from "@/components/MenuDeAcciones";
 
-// D-NEXT · El menú «Acciones ▾» de la ficha: dónde se pinta, el teclado, y lo que lee un lector de pantalla.
+// D-497 · El menú «Acciones ▾» de la ficha: dónde se pinta, el teclado, y lo que lee un lector de pantalla.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");

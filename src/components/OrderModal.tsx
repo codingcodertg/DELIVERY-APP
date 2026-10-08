@@ -1371,7 +1371,7 @@ export function OrderModal({
   // The workflow buttons for the order being viewed. Built once here because
   // they render in two different places: the modal footer for office roles, and
   // inside the driver's delivery card (under the notes) for drivers.
-  // Desde D-NEXT son UN botón principal y el menú «Acciones ▾» con todo lo demás —también Duplicar, Eliminar,
+  // Desde D-497 son UN botón principal y el menú «Acciones ▾» con todo lo demás —también Duplicar, Eliminar,
   // Marcar entregada ya, Deshacer etapa y Registrar reentrega, que eran botones sueltos fuera de aquí—.
   const stageActions = existing ? (
     <StageActions me={me} stage={stage} busy={busy} pedido={existing}
@@ -2509,7 +2509,7 @@ export function OrderModal({
             D-383 (142): almacén también deshace aquí —`delivered`, `ready` y `fulfilling`, un paso— pero solo en
             órdenes de sus tiendas (`deshaceAqui`), y con el mismo motivo obligatorio. Es el que sustituye al
             «Volver a preparando» de D-287. */}
-        {/* Sus dos botones («✓ Marcar entregada ya», «↩ Deshacer etapa») están en el menú «Acciones ▾» desde D-NEXT;
+        {/* Sus dos botones («✓ Marcar entregada ya», «↩ Deshacer etapa») están en el menú «Acciones ▾» desde D-497;
             aquí queda el motivo, que se abre desde allí. */}
         {!editing && existing && (puedeEntregarYa(me.role, existing.stage) || deshaceAqui) && (showEntregarYa || showDeshacer) && (
           <div className="field" style={{ marginTop: 14 }}>
@@ -2548,7 +2548,7 @@ export function OrderModal({
           </div>
         )}
 
-        {/* «🔁 Registrar reentrega» está en el menú «Acciones ▾» desde D-NEXT (su explicación, en el `title` de la opción);
+        {/* «🔁 Registrar reentrega» está en el menú «Acciones ▾» desde D-497 (su explicación, en el `title` de la opción);
             aquí queda el formulario, que se abre desde allí. */}
         {!editing && existing && existing.stage === "delivered"
           && (["admin", "warehouse", "driver"].includes(me.role) || ordersLikeOfficeManager(me.role)) && showRedeliver && (
@@ -2578,7 +2578,7 @@ export function OrderModal({
 
         {/* ---------- ACTIONS ---------- */}
         {/* Hidden during the initial new-order step (which has its own Next). */}
-        {/* Viendo la orden (D-NEXT): el menú «Acciones ▾» y la principal (`stageActions`), sin nada más — «Duplicar» y
+        {/* Viendo la orden (D-497): el menú «Acciones ▾» y la principal (`stageActions`), sin nada más — «Duplicar» y
             «Eliminar», que iban aquí a la izquierda, están dentro del menú. Editando, el pie es el de siempre: Guardar y
             Cancelar (y Eliminar, si se puede, como hasta ahora). */}
         {paso === "completo" && (
@@ -3075,7 +3075,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 }
 
 /**
- * Los botones de acción de la ficha (vista, no edición): **la principal fuera y todo lo demás en «Acciones ▾»** (D-NEXT).
+ * Los botones de acción de la ficha (vista, no edición): **la principal fuera y todo lo demás en «Acciones ▾»** (D-497).
  *
  * Qué acciones hay, cuál es la principal y en qué orden salen lo decide `accionesDeLaFicha` (`lib/acciones-de-la-ficha.ts`),
  * con las mismas condiciones que tenía cada botón cuando eran botones sueltos. Aquí solo se enchufa cada una a lo que

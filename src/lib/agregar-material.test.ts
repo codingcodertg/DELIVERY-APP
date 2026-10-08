@@ -257,7 +257,7 @@ describe("la pantalla llama a la regla, no la copia", () => {
   const modal = plano(leer("src/components/OrderModal.tsx"));
 
   it("el botón sale de `puedeAgregarMaterial`, no de una condición escrita a mano", () => {
-    // Nota D-NEXT: los botones de la ficha son ahora un menú «Acciones ▾», y QUÉ opciones salen lo decide
+    // Nota D-497: los botones de la ficha son ahora un menú «Acciones ▾», y QUÉ opciones salen lo decide
     // `lib/acciones-de-la-ficha.ts`; la ficha lo llama y enchufa cada opción a lo que hacía su botón. Por eso la
     // condición se busca allí, y aquí solo que la opción abre el mismo diálogo de antes.
     const acciones = plano(leer("src/lib/acciones-de-la-ficha.ts"));

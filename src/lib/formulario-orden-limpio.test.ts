@@ -252,7 +252,7 @@ describe("8, 9 y 10 · textos y columnas", () => {
   it("8 · en una orden NUEVA el botón CREA; enviar un borrador que ya existe sigue siendo «enviar»", () => {
     expect(formulario).toContain('? t("Create (goes to approval)", "Crear (va a aprobación)")');
     expect(formulario).toContain('? t("Create order (approved)", "Crear orden (aprobada)")');
-    // Nota D-NEXT: el texto del botón del borrador guardado vive en `lib/acciones-de-la-ficha.ts` desde que los
+    // Nota D-497: el texto del botón del borrador guardado vive en `lib/acciones-de-la-ficha.ts` desde que los
     // botones de la ficha son la principal y un menú «Acciones ▾»; la orden NUEVA sigue sin decir «Enviar».
     const acciones = leer("src/lib/acciones-de-la-ficha.ts");
     expect(acciones).toContain('{ en: "Submit for approval", es: "Enviar a aprobación" }');            // el borrador guardado

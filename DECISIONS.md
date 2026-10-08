@@ -38958,9 +38958,9 @@ deja confirmar; con «Regresarlo a McAllen» sí; tras confirmar la orden sale d
 
 Interpretación: «form view» = la ficha de la orden en Entregas. No visto en navegador: `tsc` y vitest.
 
-## D-NEXT · La ficha de la orden: los botones de acción en un menú «Acciones ▾»; fuera solo el paso principal (y Guardar/Cancelar al editar)
+## D-497 · La ficha de la orden: los botones de acción en un menú «Acciones ▾»; fuera solo el paso principal (y Guardar/Cancelar al editar)
 
-**Fecha:** 2026-10-07 · **Versión:** la asigna el orquestador · **Sin migración.** · Rama `feat/ficha-acciones-en-menu`.
+**Fecha:** 2026-10-07 · **Versión:** deliveries 1.271.0, repo 1.369.0 · **Sin migración.** · Rama `feat/ficha-acciones-en-menu`.
 
 **Pedido del dueño**, literal: *«The action buttons will be a drop-down in the form view in the delivery app because is taking to many buttoms so now make it a dropdown»*
 
@@ -39036,7 +39036,7 @@ de acciones lo necesita:
 Once ficheros leían el texto de `StageActions` (`btns.push(<button key="…"`) o de las filas sueltas: `agregar-material`,
 `anular-con-motivo`, `arreglos-vistos-en-navegador`, `deshacer-y-borrar`, `edicion-de-ventas`, `entregar-ya-y-deshacer`,
 `enviar-borrador`, `formulario-orden-limpio`, `gerente-hace-bodega`, `recibir` y `ruta-del-dia`. Cada uno lleva una «Nota
-D-NEXT»: la condición se busca ahora en `lib/acciones-de-la-ficha.ts` y en la ficha solo a qué se enchufa; ninguna afirmación
+D-497»: la condición se busca ahora en `lib/acciones-de-la-ficha.ts` y en la ficha solo a qué se enchufa; ninguna afirmación
 se quitó sin poner la equivalente.
 
 **Medido:** vitest 50 pruebas nuevas (`acciones-de-la-ficha.test.ts`, 30; `menu-de-acciones.test.ts`, 20, que incluye pintar

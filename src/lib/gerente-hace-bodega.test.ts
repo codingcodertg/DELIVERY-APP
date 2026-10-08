@@ -189,7 +189,7 @@ describe("la ficha y la base dicen lo mismo, rol por rol", () => {
 
 describe("la ficha pinta los botones con las funciones probadas", () => {
   const acciones = sinComentarios(modal.slice(modal.indexOf("function StageActions(")));
-  // Nota D-NEXT: los botones de la ficha son la principal y un menú «Acciones ▾». QUÉ acciones salen lo decide
+  // Nota D-497: los botones de la ficha son la principal y un menú «Acciones ▾». QUÉ acciones salen lo decide
   // `accionesDeLaFicha` (`lib/acciones-de-la-ficha.ts`), que `StageActions` llama; las condiciones se buscan allí,
   // y en la ficha solo a qué se enchufa cada una.
   const logica = leer("src/lib/acciones-de-la-ficha.ts");

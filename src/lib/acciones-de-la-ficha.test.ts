@@ -13,7 +13,7 @@ import { puedeDejarEnTienda } from "./leave-at-store";
 import type { AlcanceDeEdicion } from "./edicion-de-ventas";
 import type { Stage, UserRole } from "./types";
 
-// D-NEXT · Los botones de acción de la ficha en UN menú «Acciones ▾», con la principal fuera.
+// D-497 · Los botones de acción de la ficha en UN menú «Acciones ▾», con la principal fuera.
 // El dueño (2026-10-07): «The action buttons will be a drop-down in the form view in the delivery app because is taking
 // to many buttoms so now make it a dropdown».
 
@@ -232,7 +232,7 @@ describe("guardando: todo apagado y diciendo por qué", () => {
 // ---------------------------------------------------------------------------------------------------------------
 
 /**
- * Qué botones pintaba la ficha ANTES de D-NEXT, copiado de lo que se quitó: `StageActions` entero, el pie
+ * Qué botones pintaba la ficha ANTES de D-497, copiado de lo que se quitó: `StageActions` entero, el pie
  * («Eliminar», «Duplicar»), la fila de D-361 y el bloque de la reentrega. Es la referencia: si la función nueva
  * enseña algo que antes no se enseñaba, o se deja algo, esta comparación lo dice.
  */
