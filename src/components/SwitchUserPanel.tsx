@@ -26,11 +26,13 @@ import type { NamedLocation, Profile, UserRole } from "@/lib/types";
  * página del hub —que se lo pasa desde su proveedor— y donde no hay proveedor. `enPagina` lo
  * pinta estático, no como desplegable colgando de un botón.
  */
-export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar" }: {
+export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar", extra }: {
   users: Profile[];
   tiendas: NamedLocation[];
   onClose: () => void;
   enPagina?: boolean;
+  /** Lo que va arriba de la lista, dentro del mismo panel (D-501: «📱 Vista móvil» desde la barra de Entregas). */
+  extra?: React.ReactNode;
   /** «entrar»: desde la propia cuenta (`POST /api/impersonate`). «saltar»: desde dentro de otra
    *  identidad (`POST /api/impersonate/switch`), que restaura al admin antes de nada (D-307). */
   modo?: "entrar" | "saltar";
@@ -103,6 +105,7 @@ export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, mod
         <button className="btn btn-ghost btn-sm" onClick={onClose}>{t("Close", "Cerrar")}</button>
       </div>
 
+      {extra}
       {error && <div className="hint" style={{ color: "var(--red)", fontWeight: 600, marginBottom: 6 }}>{error}</div>}
 
       {totalFilas(grupos) === 0 ? (

@@ -344,10 +344,20 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             <button className="tab" onClick={() => setSwitchAbierto((v) => !v)} aria-expanded={switchAbierto}>
               ⇄ {t("Switch user", "Cambiar usuario")}
             </button>
-            {switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)} />}
+            {switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)}
+              extra={
+                // «📱 Vista móvil» dentro del mismo botón de «Cambiar usuario» (D-501). El dueño, 2026-10-08: «vista movil que
+                // vaya en el mismo voton de cambiar usuario». Arriba de la lista, a todo el ancho del panel.
+                <a className="btn btn-ghost btn-sm" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}
+                  style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}
+                  title={t("See this screen as it looks on a phone", "Ver esta pantalla como se ve en un teléfono")}>
+                  📱 {t("Mobile view of this screen", "Vista móvil de esta pantalla")}
+                </a>
+              } />}
           </div>
         )}
-        {realRole === "admin" && (
+        {/* Sin la función de cambiar usuario encendida, la vista móvil sigue teniendo su botón suelto. */}
+        {realRole === "admin" && !puedeSwitch && (
           <a className="tab" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}
             title={t("See this screen as it looks on a phone", "Ver esta pantalla como se ve en un teléfono")}>
             📱 {t("Mobile view", "Vista móvil")}

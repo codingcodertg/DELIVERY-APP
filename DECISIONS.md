@@ -39114,3 +39114,17 @@ No visto en navegador: `tsc` y vitest.
 
 Interpretación: «las órdenes de rescheduled» = cualquier orden del Gestor que haga falta mover de día. No visto en navegador:
 `tsc` y vitest.
+
+## D-501 · «📱 Vista móvil» dentro del botón «⇄ Cambiar usuario»
+
+**Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.1, repo 1.370.1) · **Sin migración.** · Hecho directo por el orquestador en `release-d501`. **Reemplaza en parte a D-483** (que la puso como botón suelto al lado).
+
+**Pedido del dueño**, literal: *«vista movil que vaya en el mismo voton de cambiar usuario»*.
+
+### Qué se decidió
+
+- En la barra de Entregas (admin) queda un solo botón, «⇄ Cambiar usuario». Al abrirlo, arriba de la lista de personas sale
+  **«📱 Vista móvil de esta pantalla»** (`SwitchUserPanel` gana la prop `extra`, que pinta lo que se le pase arriba de la lista).
+- Si la función de cambiar usuario está apagada, «📱 Vista móvil» sigue con su botón suelto, para no perderla.
+
+No visto en navegador: `tsc` y vitest.
