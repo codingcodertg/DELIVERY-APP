@@ -39128,3 +39128,102 @@ Interpretación: «las órdenes de rescheduled» = cualquier orden del Gestor qu
 - Si la función de cambiar usuario está apagada, «📱 Vista móvil» sigue con su botón suelto, para no perderla.
 
 No visto en navegador: `tsc` y vitest.
+
+## D-502 · La pestaña «🚚 Chofer» del admin es «Mi ruta» de un chofer que se elige arriba, tal como la ve él en su teléfono, y de solo lectura
+
+**Fecha:** 2026-10-08 · **Versión:** deliveries 1.273.0, repo 1.371.0 (deliveries) · **Sin migración.** · Rama `feat/vista-de-chofer`.
+
+**Pedido del dueño**, literal: *«la vista de chofer quiero que sea exactamente el view de cada chofer asi como lo miran ellos el que sale en el admin»*.
+
+### Cómo se leyó
+
+El chofer tiene dos pestañas: «📋 Órdenes» (es `/driver`, que la barra le rotula así a él, `TopBar`) y «🧭 Mi ruta»
+(`/my-route`). Su trabajo del día está en «Mi ruta»: la siguiente parada, la lista P/D, y desde D-487/D-495 los botones de
+cada parada. El admin, en cambio, tenía en «🚚 Chofer» otra cosa (abajo). Se leyó «el view de cada chofer» como **«Mi ruta»
+de un chofer, la que él ve**, con un selector para elegir de quién (interpretación del orquestador). Si el dueño se refería a
+la lista «Órdenes» del chofer, sería otro cambio: esa lista está plegada debajo, pero con TODAS las órdenes, no las de ese chofer.
+
+### Qué había en «🚚 Chofer» para el admin
+
+La lista de órdenes por etapa del chofer, pero con **todas** las órdenes (`adminAllAccess`) y sin la ventana de historial
+(D-239): fichas «Preparación pendiente · Iniciado · Preparado · En reparto · Entregadas · Todas» con su cuenta, filtro por
+tienda, búsqueda por factura (que sale de la ventana), «+ Nueva orden» y «📇 Directorio». Nada de eso estaba en «Mi ruta».
+
+### Qué se decidió
+
+- **Para el admin** (rol efectivo, `pestanaChoferEsRutaDeUnChofer`), la pestaña es: un selector de chofer, un aviso
+  «👁 Viendo la ruta de X como la ve él — solo lectura», y debajo **«Mi ruta» de ese chofer** en una columna del ancho de un
+  teléfono.
+- **La misma página, no una copia.** `/driver` importa la página de `/my-route` y la monta dentro de
+  `<RutaDeUnChofer chofer={…}>` (`lib/ruta-de-un-chofer.tsx`), por contexto y no por prop por lo mismo que `<SoloLectura>`
+  de D-481: Next no deja que una página tenga props propias. «Mi ruta» lee `useChoferDeLaRuta()`; sin ese contexto —el chofer
+  en su teléfono— el chofer es `me` y **no cambia nada**. Lo que antes salía de `me` y es del chofer ahora sale del elegido:
+  sus paradas (`paradasDelChofer`), la capacidad de su camión, su plan publicado y su camión en el mapa. Al cambiar de chofer la
+  página se monta de nuevo (`key`), para que el día elegido y la ruta trazada del anterior no se queden puestos.
+- **Su plan publicado.** `/api/route-plan/mine` filtra por quien llama (134): al admin le daría cero paradas. Mirando a otro,
+  «Mi ruta» lee el publicado entero (`GET /api/route-plan?status=published`, el mismo que lee el Gestor, RLS de la 133) y saca
+  la ruta de ese chofer con `planDeOtroChofer`, que pasa por el **mismo** `misParadas` con las mismas columnas que devuelve
+  `my_published_stops`. Qué se pide y qué se saca: `urlDelPlanPublicado` y `planDeLaRespuesta` (`route-plan/mis-paradas.ts`).
+  Ninguna ruta nueva, ninguna migración.
+- **El selector**: todos los de rol chofer con nombre, por nombre, cada uno con «N paradas hoy» (la misma `paradasDelChofer`
+  que pinta «Mi ruta»). «Ruteables» se leyó como los del panel de choferes del Gestor, que los lista a todos (D-488): no se
+  filtra por `driver_settings.routable`, porque un chofer que el motor no rutea sigue teniendo «Mi ruta» con lo que se le
+  asigna a mano, y el `DataProvider` no carga esa tabla. **Recuerda la última elección** por persona en ese navegador
+  (`localStorage`, `rtg_vista_de_chofer_<id de quien mira>`), como el filtro del Gestor de D-393; si ese chofer ya no está,
+  sale el primero. Se lee al montar (en el servidor no hay `localStorage`) y hasta entonces no se pinta ninguna ruta.
+- **Solo lectura** (`rutaDeSoloLectura`: quien mira no es el dueño de la ruta). Los botones se ven igual pero apagados: el
+  verde de «Siguiente parada» (Recoger / Entregar / Prueba de entrega / Ver orden), y en cada parada Recogido, Entregado,
+  Saltar, Retomar, Rechazado y los dos «Dejar en tienda». Segunda puerta en `cerrarParada` y en `marcar`, por si alguno se
+  colara encendido. **No se dejaron acciones al admin** porque lo que escribe «Mi ruta» sale de la sesión y del teléfono de
+  quien pulsa: el evento lleva su `created_by`, el aviso de rechazo dice «(su nombre)» y el punto GPS de la recogida y de la
+  entrega es el de su navegador. Un «Entregado» del admin quedaría firmado por el admin con el GPS de la oficina. Para actuar
+  en nombre del chofer está «⇄ Cambiar usuario» (D-243), y el aviso lo dice.
+- **Lo que sigue encendido**, porque no escribe nada: Ayer / Hoy / Mañana, «Verlas» (las atrasadas), «🧭 Navegar» (abre
+  Google Maps), «Tu ruta» (traza la ruta en el mapa: una llamada a `/api/optimize-route`, igual que al chofer) y tocar una
+  parada o un pin, que abre **la ficha del admin**, con sus permisos, la misma que abre desde Órdenes. Eso no es actuar en
+  nombre del chofer; es decisión a validar.
+- **Que se vea como en el teléfono**: columna centrada de 420 px como máximo, con marco (`.vista-de-chofer`,
+  `.como-telefono` en `globals.css`). Dentro se repiten las reglas de teléfono que «Mi ruta» usa (las de `@media (max-width:
+  760px)` y `640px`), porque en una pantalla grande esos `@media` no saltan; en un teléfono saltan solas y esto no cambia nada.
+- **Lo de antes no se pierde**: va debajo, plegado, «📋 Todas las órdenes por etapa — lo que enseñaba antes esta pestaña», igual
+  que era (todas las órdenes, tienda, búsqueda, «+ Nueva orden», «📇 Directorio»), sin su título repetido. No se monta hasta
+  abrirlo. Casi todo está también en Órdenes; si el dueño no lo usa, se puede quitar.
+- **No cambia para nadie más**: el chofer ve sus «Órdenes» y su «Mi ruta» igual que antes; quien tiene el permiso suelto
+  `deliver`, su lista de siempre; y un admin con «Ver como → Chofer» ve la pestaña como un chofer (rol efectivo), como hasta hoy.
+
+### Con D-058
+
+D-058 sacó «Mi ruta» de la barra del admin (*«yo no soy conductor…»*): era SU ruta, siempre vacía. Esto no la revierte: el
+admin sigue sin «Mi ruta» propia; lo que ve en «Chofer» es la de otro. `/my-route` tecleado sigue abriéndole la suya, vacía.
+
+### Diferencias conocidas con el teléfono del chofer
+
+- La barra de arriba es la del admin, y no salen las piezas que viven fuera de «Mi ruta»: el reloj de turno, el rastreo y la
+  puerta de permisos del APK (D-492).
+- Los datos son los que tiene cargados el admin: todas las órdenes y los últimos 1000 eventos de todas (D-487). Una orden que
+  le quitaron al chofer y él ya no puede leer, el admin la ve nombrada entera; y en un día de mucho movimiento una marca de
+  «Saltada» vieja podría quedar fuera de la ventana del admin antes que de la del chofer.
+- El pin de su camión en el mapa dice «Aquí estás», como lo ve él.
+
+### Medido (2026-10-08)
+
+- **vitest**: 21 pruebas nuevas en `vista-de-chofer.test.ts` —las reglas, el plan de otro igual al de `/mine`, y **las dos
+  pantallas pintadas** (`renderToStaticMarkup`): el admin ve las paradas de Carlos y no las de Miguel, todos los botones de
+  acción apagados (también los dos «Dejar en tienda»), el plan pedido de Carlos y el camión del mapa de Carlos; el chofer
+  mismo, todo encendido y su plan por `/mine`; la pestaña del admin con el selector y lo de antes plegado sin montar; la del
+  chofer, su lista. Dos pruebas puestas al día por las líneas que cambian (`one-tap-stop`, `ayer-hoy-manana`).
+- **Mutantes**: 44 de 44 caen con una prueba con nombre (la elección y su memoria, el solo lectura en cada botón y en las
+  dos segundas puertas, el plan de otro, el camión del mapa, el `key`, lo plegado, el ancho de la columna).
+- **Navegador** (demo, CDP, admin y chofer): a 1280 la columna mide 420 px centrada (x = 430) sin scroll lateral; a 390,
+  366 px sin scroll lateral. Carlos R.: 13 botones de acción, 13 apagados; Diego Driver: 12 de 12. Pulsar «Saltar» apagado:
+  0 eventos antes y después. Recargar recuerda a Diego. Lo plegado, abierto: las 6 fichas (30 · 18 · 21 · 2 · 4 · 89), 21
+  filas y «+ Nueva orden». **El admin mirando a Diego a 390 y Diego en su «Mi ruta» a 390 pintan las mismas 8 filas, con el
+  mismo texto, la misma siguiente parada y los mismos 12 botones** (0 apagados en el de Diego). La pestaña «Órdenes» de Diego,
+  la de siempre. En español y en tema oscuro, los textos en español.
+
+### No verificado
+
+- Contra la base real: que el admin lea el plan publicado de otro con `GET /api/route-plan?status=published` (RLS de la 133,
+  leída, no ensayada). El demo no tiene servidor ni planes, así que la tarjeta «Orden planeado del día» y el aviso de D-341
+  no se vieron con datos de otro chofer; la lógica está probada con la función pura.
+- En un teléfono de verdad (solo Chrome headless a 390).

@@ -152,7 +152,8 @@ describe("las dos pantallas usan el módulo, y el botón no dispara dos veces", 
     expect(ruta).toMatch(/accionSiguiente\.kind === "pod"/);
   });
   it("un toque, no dos: se deshabilita mientras guarda y la función se cierra a sí misma", () => {
-    expect(ruta).toMatch(/disabled=\{guardando === next\.id\}/);
+    // D-502: y apagado del todo cuando la ruta es de otro (la pestaña «Chofer» del admin).
+    expect(ruta).toMatch(/disabled=\{soloLectura \|\| guardando === next\.id\}/);
     expect(ruta).toMatch(/if \(guardando\) return;/);
     expect(ruta).toMatch(/setGuardando\(d\.id\);/);
     expect(ruta).toMatch(/setGuardando\(null\);/);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { MiPlan } from "./mis-paradas";
+import { planDeLaRespuesta, urlDelPlanPublicado, type MiPlan } from "./mis-paradas";
 import type { RutaVista } from "./vista";
 
 /**
@@ -30,16 +30,22 @@ export function usePlanPublicadoDelGestor(date: string | null, publicaciones: nu
   return rutas;
 }
 
-export function usePlanPublicadoDelChofer(date: string): MiPlan | null {
+/**
+ * `deOtro` (D-502): el id del chofer cuya ruta se mira desde la pestaña «Chofer» del admin. Entonces no vale `/mine`
+ * (devuelve las de quien llama: ninguna) y se lee el publicado entero, como el Gestor, y de ahí sus paradas
+ * (`planDeOtroChofer`, que pasa por el mismo `misParadas`). Sin `deOtro` —el chofer en su teléfono— es lo de siempre.
+ * Qué se pide y qué se saca lo deciden `urlDelPlanPublicado` y `planDeLaRespuesta` (`./mis-paradas`, con sus pruebas).
+ */
+export function usePlanPublicadoDelChofer(date: string, deOtro: string | null = null): MiPlan | null {
   const [plan, setPlan] = useState<MiPlan | null>(null);
   useEffect(() => {
     let vivo = true;
     setPlan(null);
-    fetch(`/api/route-plan/mine?date=${encodeURIComponent(date)}`)
+    fetch(urlDelPlanPublicado(date, deOtro))
       .then((r) => (r.ok ? r.json() : null))
-      .then((b) => { if (vivo) setPlan(b?.ok && b.plan ? (b.plan as MiPlan) : null); })
+      .then((b) => { if (vivo) setPlan(planDeLaRespuesta(b, deOtro)); })
       .catch(() => undefined);
     return () => { vivo = false; };
-  }, [date]);
+  }, [date, deOtro]);
   return plan;
 }

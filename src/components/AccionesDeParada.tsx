@@ -22,7 +22,7 @@ import type { Delivery } from "@/lib/types";
 const BOTON: React.CSSProperties = { flex: "1 1 0", minHeight: 44, justifyContent: "center", fontSize: 15, minWidth: 0 };
 
 export function AccionesDeParada({
-  pedido, tipo, marca, guardando, cerrar, sinPrincipal = false,
+  pedido, tipo, marca, guardando, cerrar, sinPrincipal = false, soloLectura = false,
 }: {
   pedido: Delivery;
   tipo: "P" | "D";
@@ -33,18 +33,24 @@ export function AccionesDeParada({
   cerrar: (d: Delivery) => void;
   /** En la tarjeta de «Siguiente parada» el botón verde ya existe: aquí solo van los demás. */
   sinPrincipal?: boolean;
+  /**
+   * La ruta de OTRO chofer, mirada desde la pestaña «Chofer» del admin (D-502): los mismos botones, todos apagados. Se
+   * pintan igual para que el admin vea lo que ve el chofer; no se pulsan porque escribirían en nombre de quien mira.
+   */
+  soloLectura?: boolean;
 }) {
   const { me, users, settings, marcarParada, pushNotifs, notify, setStage } = useData();
   const { t, lang } = usePrefs();
   const [ocupado, setOcupado] = useState(false);
   const [rechazando, setRechazando] = useState(false);
   const es = lang === "es";
+  const apagado = soloLectura || guardando || ocupado;
 
   const todas = accionesDeParada(tipo, pedido.stage, marca);
   const acciones = sinPrincipal ? todas.filter((a) => a !== "recoger" && a !== "entregar" && a !== "dejar") : todas;
 
   const marcar = async (kind: string, note: string | null, aviso: string) => {
-    if (ocupado) return false;
+    if (ocupado || soloLectura) return false;
     setOcupado(true);
     const ok = await marcarParada(pedido.id, kind, note);
     setOcupado(false);
@@ -72,26 +78,26 @@ export function AccionesDeParada({
       {acciones.length > 0 && (
         <div data-acciones-de-parada style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
           {acciones.map((a) => {
-            if (a === "dejar") return me ? <LeaveAtStore key={a} pedido={pedido} me={me} style={BOTON} /> : null;
+            if (a === "dejar") return me ? <LeaveAtStore key={a} pedido={pedido} me={me} disabled={soloLectura} style={BOTON} /> : null;
             if (a === "recoger" || a === "entregar") return (
-              <button key={a} data-accion={a} className="btn btn-green" style={BOTON} disabled={guardando || ocupado} onClick={() => cerrar(pedido)}>
+              <button key={a} data-accion={a} className="btn btn-green" style={BOTON} disabled={apagado} onClick={() => cerrar(pedido)}>
                 {guardando ? t("Saving…", "Guardando…") : etiquetaPrincipal(a)}
               </button>
             );
             if (a === "saltar") return (
-              <button key={a} data-accion={a} className="btn btn-amber" style={BOTON} disabled={guardando || ocupado}
+              <button key={a} data-accion={a} className="btn btn-amber" style={BOTON} disabled={apagado}
                 onClick={() => void marcar(KIND_SALTADA, null, t("Stop skipped", "Parada saltada"))}>
                 ⏭ {t("Skip", "Saltar")}
               </button>
             );
             if (a === "retomar") return (
-              <button key={a} data-accion={a} className="btn btn-ghost" style={BOTON} disabled={guardando || ocupado}
+              <button key={a} data-accion={a} className="btn btn-ghost" style={BOTON} disabled={apagado}
                 onClick={() => void marcar(KIND_RETOMADA, null, t("Stop resumed", "Parada retomada"))}>
                 ↩ {t("Resume", "Retomar")}
               </button>
             );
             return (
-              <button key={a} data-accion={a} className="btn btn-danger" style={BOTON} disabled={guardando || ocupado} onClick={() => setRechazando(true)}>
+              <button key={a} data-accion={a} className="btn btn-danger" style={BOTON} disabled={apagado} onClick={() => setRechazando(true)}>
                 ⛔ {t("Rejected", "Rechazado")}
               </button>
             );

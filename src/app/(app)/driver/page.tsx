@@ -1,7 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import MyRoutePage from "@/app/(app)/my-route/page";
+import { RutaDeUnChofer } from "@/lib/ruta-de-un-chofer";
+import {
+  choferVigente, choferesParaVer, etiquetaDeOpcion, guardaChoferVisto, leeChoferVisto, pestanaChoferEsRutaDeUnChofer,
+} from "@/lib/vista-de-chofer";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { canCreate, canDeliver, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
@@ -9,7 +14,7 @@ import { routeOrder } from "@/lib/dispatch";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ShiftClock } from "@/components/ShiftClock";
-import { seesAllHistory, withinRetention } from "@/lib/utils";
+import { seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // Full workflow visible to drivers now, in order: an order is approved but
@@ -26,7 +31,87 @@ const TABS = [
   { key: "all", label: "All", label_es: "Todas" },
 ] as const;
 
+// ============================================================
+// La pestaña «🚚 Chofer» (D-502).
+//
+// El dueño, 2026-10-08: «la vista de chofer quiero que sea exactamente el view de cada chofer asi como lo miran ellos el
+// que sale en el admin». Para el ADMIN, esta pestaña es «Mi ruta» de un chofer que elige arriba —la MISMA página de
+// `/my-route`, montada dentro de `<RutaDeUnChofer>`, no una copia—, en una columna del ancho de un teléfono y de solo
+// lectura. Lo que la pestaña enseñaba antes al admin (todas las órdenes por etapa) sigue debajo, plegado.
+//
+// Para el chofer —y para quien tenga el permiso suelto `deliver`— no cambia nada: su lista de órdenes por etapa
+// (`ListaDelChofer`), que es donde aterriza al entrar.
+// ============================================================
 export default function DriverPage() {
+  const { me } = useData();
+  if (pestanaChoferEsRutaDeUnChofer(me)) return <RutaDeUnChoferParaElAdmin />;
+  return <ListaDelChofer />;
+}
+
+function RutaDeUnChoferParaElAdmin() {
+  const { me, users, deliveries } = useData();
+  const { t, lang } = usePrefs();
+  // De quién se puede mirar: todo chofer, por nombre, con sus paradas de hoy al lado (`choferesParaVer`).
+  const opciones = useMemo(() => choferesParaVer(users, deliveries, todayISO()), [users, deliveries]);
+  // El último elegido en ESTE navegador. Se lee al montar —en el servidor no hay `localStorage`—, y hasta entonces no se
+  // pinta ninguna ruta: así no se pide el plan de un chofer para, un instante después, pedir el del guardado.
+  const quienMira = me?.id ?? "";
+  const [guardado, setGuardado] = useState<string | null | undefined>(undefined);
+  useEffect(() => { setGuardado(leeChoferVisto((k) => window.localStorage.getItem(k), quienMira)); }, [quienMira]);
+  const elegidoId = guardado === undefined ? null : choferVigente(guardado, opciones);
+  const elegido = users.find((u) => u.id === elegidoId) ?? null;
+  const elegir = (id: string) => { setGuardado(id); guardaChoferVisto(() => window.localStorage, quienMira, id); };
+  // Lo de antes, plegado: no se monta hasta que se abre (una tabla con todas las órdenes, escondida, sería trabajo de más).
+  const [verLista, setVerLista] = useState(false);
+
+  return (
+    <>
+      <div className="vista-de-chofer" data-vista-de-chofer>
+        <div className="page-head">
+          <h2>🚚 {t("Driver", "Chofer")}</h2>
+          {opciones.length > 0 && (
+            <select data-elige-chofer value={elegidoId ?? ""} onChange={(e) => elegir(e.target.value)}
+              aria-label={t("Whose route to view", "De qué chofer ver la ruta")} style={{ width: "auto", maxWidth: "100%" }}>
+              {opciones.map((o) => <option key={o.id} value={o.id}>{etiquetaDeOpcion(o, lang === "es")}</option>)}
+            </select>
+          )}
+        </div>
+        {opciones.length === 0 ? (
+          <div className="empty">{t("There are no drivers yet. They are added in Users, with the Driver role.", "Aún no hay choferes. Se agregan en Usuarios, con el rol Chofer.")}</div>
+        ) : elegido && (
+          <>
+            <div className="banner info" role="status" data-aviso-solo-lectura>
+              <b>👁 {t(`Viewing ${elegido.full_name}'s route as they see it — read-only`, `Viendo la ruta de ${elegido.full_name} como la ve él — solo lectura`)}</b>
+              <div className="hint" style={{ marginTop: 2 }}>
+                {t("The buttons look the same but are off. To act on their behalf, use ⇄ Switch user.", "Los botones se ven igual pero están apagados. Para actuar en su nombre, usa ⇄ Cambiar usuario.")}
+              </div>
+            </div>
+            {/* `key`: otro chofer es otra pantalla. Sin él, el día elegido y la ruta trazada en el mapa del anterior se
+                quedarían puestos sobre las paradas del nuevo. */}
+            <div className="como-telefono" data-como-telefono>
+              <RutaDeUnChofer chofer={elegido}>
+                <MyRoutePage key={elegido.id} />
+              </RutaDeUnChofer>
+            </div>
+          </>
+        )}
+      </div>
+
+      <details className="card" data-lista-anterior style={{ marginTop: 16 }} onToggle={(e) => setVerLista((e.currentTarget as HTMLDetailsElement).open)}>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+          📋 {t("All orders by stage — what this tab showed before", "Todas las órdenes por etapa — lo que enseñaba antes esta pestaña")}
+        </summary>
+        {verLista && <div style={{ marginTop: 12 }}><ListaDelChofer plegada /></div>}
+      </details>
+    </>
+  );
+}
+
+/**
+ * La lista de órdenes por etapa: la pestaña del chofer de siempre y, desde D-502, lo plegado bajo la ruta en la del admin
+ * (`plegada`: sin su propio título, que ya lo dice el desplegable).
+ */
+function ListaDelChofer({ plegada = false }: { plegada?: boolean }) {
   const { me, deliveries, settings, ready, realRole } = useData();
   // An admin previewing the driver role sees EVERY order (no own-assignment or
   // date-window scoping), so they can test with all data.
@@ -89,7 +174,7 @@ export default function DriverPage() {
           both taking space and answering nothing. The office roles that share
           this screen still get the filter. */}
       <div className="page-head">
-        {me.role === "driver" ? <span /> : (
+        {me.role === "driver" || plegada ? <span /> : (
           <h2>{t("Driver", "Chofer")} <span className="count-tag">{rows.length}</span></h2>
         )}
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
