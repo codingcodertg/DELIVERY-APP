@@ -34,7 +34,7 @@ export function AccionesDeParada({
   /** En la tarjeta de «Siguiente parada» el botón verde ya existe: aquí solo van los demás. */
   sinPrincipal?: boolean;
   /**
-   * La ruta de OTRO chofer, mirada desde la pestaña «Chofer» del admin (D-NEXT): los mismos botones, todos apagados. Se
+   * La ruta de OTRO chofer, mirada desde la pestaña «Chofer» del admin (D-502): los mismos botones, todos apagados. Se
    * pintan igual para que el admin vea lo que ve el chofer; no se pulsan porque escribirían en nombre de quien mira.
    */
   soloLectura?: boolean;

@@ -31,7 +31,7 @@ export function usePlanPublicadoDelGestor(date: string | null, publicaciones: nu
 }
 
 /**
- * `deOtro` (D-NEXT): el id del chofer cuya ruta se mira desde la pestaña «Chofer» del admin. Entonces no vale `/mine`
+ * `deOtro` (D-502): el id del chofer cuya ruta se mira desde la pestaña «Chofer» del admin. Entonces no vale `/mine`
  * (devuelve las de quien llama: ninguna) y se lee el publicado entero, como el Gestor, y de ahí sus paradas
  * (`planDeOtroChofer`, que pasa por el mismo `misParadas`). Sin `deOtro` —el chofer en su teléfono— es lo de siempre.
  * Qué se pide y qué se saca lo deciden `urlDelPlanPublicado` y `planDeLaRespuesta` (`./mis-paradas`, con sus pruebas).

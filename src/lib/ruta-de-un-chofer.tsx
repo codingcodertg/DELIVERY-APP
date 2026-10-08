@@ -4,7 +4,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { ChoferVisto } from "./vista-de-chofer";
 
 /**
- * «Mi ruta» de OTRO chofer (D-NEXT): la pestaña «Chofer» del admin monta la MISMA página de `/my-route` dentro de
+ * «Mi ruta» de OTRO chofer (D-502): la pestaña «Chofer» del admin monta la MISMA página de `/my-route` dentro de
  * `<RutaDeUnChofer chofer={…}>`, y la página pinta la ruta de ese chofer en vez de la de quien está en la sesión.
  *
  * Va por contexto, no por prop, por lo mismo que `<SoloLectura>` del Gestor (D-481): Next no deja que una página declare

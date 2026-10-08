@@ -1553,7 +1553,7 @@ table.orders th { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) { .tarjeta-desplegada { animation: none; } }
 
-/* La pestaña «Chofer» del admin (D-NEXT): «Mi ruta» de un chofer, como la ve él en su teléfono. Una columna del ancho de
+/* La pestaña «Chofer» del admin (D-502): «Mi ruta» de un chofer, como la ve él en su teléfono. Una columna del ancho de
    un teléfono, centrada, con su marco. Dentro, las reglas de teléfono que «Mi ruta» usa (las de @media max-width 760px y
    640px de arriba): en una pantalla grande esos @media no saltan, y sin repetirlas aquí la columna sería un escritorio
    estrecho y no el teléfono del chofer. En un teléfono de verdad ya saltan solas y esto no cambia nada. */

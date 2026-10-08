@@ -32,7 +32,7 @@ const TABS = [
 ] as const;
 
 // ============================================================
-// La pestaña «🚚 Chofer» (D-NEXT).
+// La pestaña «🚚 Chofer» (D-502).
 //
 // El dueño, 2026-10-08: «la vista de chofer quiero que sea exactamente el view de cada chofer asi como lo miran ellos el
 // que sale en el admin». Para el ADMIN, esta pestaña es «Mi ruta» de un chofer que elige arriba —la MISMA página de
@@ -108,7 +108,7 @@ function RutaDeUnChoferParaElAdmin() {
 }
 
 /**
- * La lista de órdenes por etapa: la pestaña del chofer de siempre y, desde D-NEXT, lo plegado bajo la ruta en la del admin
+ * La lista de órdenes por etapa: la pestaña del chofer de siempre y, desde D-502, lo plegado bajo la ruta en la del admin
  * (`plegada`: sin su propio título, que ya lo dice el desplegable).
  */
 function ListaDelChofer({ plegada = false }: { plegada?: boolean }) {

@@ -51,7 +51,7 @@ export default function MyRoutePage() {
   // el id y no un booleano para que se vea cuál es la parada que está guardándose.
   const [guardando, setGuardando] = useState<string | null>(null);
 
-  // De QUIÉN es la ruta (D-NEXT). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
+  // De QUIÉN es la ruta (D-502). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
   // chofer elegido; sin ese contexto —el chofer en su teléfono— es `me` y no cambia nada. Mirando la de otro, nada se puede
   // pulsar en su nombre (`rutaDeSoloLectura`): los botones se ven igual, apagados.
   const ajeno = useChoferDeLaRuta();
@@ -100,7 +100,7 @@ export default function MyRoutePage() {
    * un sótano no puede quedarse sin poder cerrar la parada.
    */
   const cerrarParada = async (d: Delivery) => {
-    // La ruta de otro (D-NEXT): sus botones están apagados, y esto es la segunda puerta por si alguno no lo estuviera.
+    // La ruta de otro (D-502): sus botones están apagados, y esto es la segunda puerta por si alguno no lo estuviera.
     if (soloLectura) return;
     const accion = accionParada(d.stage, settings, d.photos);
     if (accion.kind === "pod" || accion.kind === "open") { setOpen(d); return; }

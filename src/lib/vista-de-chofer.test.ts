@@ -15,7 +15,7 @@ import { shiftDateISO, todayISO } from "@/lib/utils";
 import type { Delivery, Profile } from "@/lib/types";
 
 // ============================================================
-// La pestaña «🚚 Chofer» del admin = «Mi ruta» de un chofer elegido, de solo lectura (D-NEXT).
+// La pestaña «🚚 Chofer» del admin = «Mi ruta» de un chofer elegido, de solo lectura (D-502).
 // Las reglas sueltas, y la PANTALLA de verdad pintada con ellas: que la ruta es la del elegido, que sus botones salen
 // apagados, que el plan se pide del elegido, y que el chofer en su teléfono sigue exactamente igual.
 // ============================================================

@@ -20,7 +20,7 @@ export type MiParada = Pick<ParadaVista, "seq" | "kind" | "delivery_id" | "order
 export interface MiPlan { version: number; publishedAt: string | null; paradas: MiParada[]; entregas: number; inicio: number; fin: number }
 
 /**
- * Las paradas de OTRO chofer en el plan publicado, para la pestaña «Chofer» del admin (D-NEXT), que pinta «Mi ruta» de un
+ * Las paradas de OTRO chofer en el plan publicado, para la pestaña «Chofer» del admin (D-502), que pinta «Mi ruta» de un
  * chofer elegido. `/api/route-plan/mine` no sirve: filtra por quien llama (134) y al admin le daría cero filas.
  *
  * Sale de lo que ya lee quien despacha (`GET /api/route-plan?status=published`, RLS de la 133: admin y logística) y pasa
@@ -42,7 +42,7 @@ export function planDeOtroChofer(
   })));
 }
 
-/** De dónde lee «Mi ruta» su plan publicado: el chofer, `/mine`; mirando la de otro (`deOtro`, D-NEXT), el publicado entero. */
+/** De dónde lee «Mi ruta» su plan publicado: el chofer, `/mine`; mirando la de otro (`deOtro`, D-502), el publicado entero. */
 export function urlDelPlanPublicado(date: string, deOtro: string | null): string {
   const d = encodeURIComponent(date);
   return deOtro ? `/api/route-plan?date=${d}&status=published` : `/api/route-plan/mine?date=${d}`;

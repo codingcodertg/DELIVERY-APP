@@ -2,7 +2,7 @@ import { paradasDelChofer } from "./ordenes-del-dia";
 import type { Delivery, Profile, UserRole } from "./types";
 
 /**
- * La pestaña «🚚 Chofer» del admin es la pantalla «Mi ruta» de UN chofer, tal como la ve él en su teléfono (D-NEXT).
+ * La pestaña «🚚 Chofer» del admin es la pantalla «Mi ruta» de UN chofer, tal como la ve él en su teléfono (D-502).
  *
  * El dueño, 2026-10-08: «la vista de chofer quiero que sea exactamente el view de cada chofer asi como lo miran ellos el que
  * sale en el admin».

@@ -39129,9 +39129,9 @@ Interpretación: «las órdenes de rescheduled» = cualquier orden del Gestor qu
 
 No visto en navegador: `tsc` y vitest.
 
-## D-NEXT · La pestaña «🚚 Chofer» del admin es «Mi ruta» de un chofer que se elige arriba, tal como la ve él en su teléfono, y de solo lectura
+## D-502 · La pestaña «🚚 Chofer» del admin es «Mi ruta» de un chofer que se elige arriba, tal como la ve él en su teléfono, y de solo lectura
 
-**Fecha:** 2026-10-08 · **Versión:** la asigna el orquestador al fusionar (deliveries) · **Sin migración.** · Rama `feat/vista-de-chofer`.
+**Fecha:** 2026-10-08 · **Versión:** deliveries 1.273.0, repo 1.371.0 (deliveries) · **Sin migración.** · Rama `feat/vista-de-chofer`.
 
 **Pedido del dueño**, literal: *«la vista de chofer quiero que sea exactamente el view de cada chofer asi como lo miran ellos el que sale en el admin»*.
 
