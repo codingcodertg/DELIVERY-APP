@@ -25,6 +25,8 @@ import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, shiftDateISO, sto
 import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 import { cargaDe, etiquetaDeCarga, hermanasDe } from "@/lib/cargas-partidas";
+import { useChoferDeLaRuta } from "@/lib/ruta-de-un-chofer";
+import { rutaDeSoloLectura } from "@/lib/vista-de-chofer";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -49,7 +51,13 @@ export default function MyRoutePage() {
   // el id y no un booleano para que se vea cuál es la parada que está guardándose.
   const [guardando, setGuardando] = useState<string | null>(null);
 
-  const driverName = me?.full_name ?? "";
+  // De QUIÉN es la ruta (D-NEXT). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
+  // chofer elegido; sin ese contexto —el chofer en su teléfono— es `me` y no cambia nada. Mirando la de otro, nada se puede
+  // pulsar en su nombre (`rutaDeSoloLectura`): los botones se ven igual, apagados.
+  const ajeno = useChoferDeLaRuta();
+  const chofer = ajeno ?? me;
+  const soloLectura = rutaDeSoloLectura(me, chofer);
+  const driverName = chofer?.full_name ?? "";
 
   // CADA DÍA ES APARTE (D-331): hoy son las paradas de hoy. Lo suyo atrasado sigue siendo suyo y sigue a un toque,
   // pero se ve APARTE (`verAtrasadas`), no mezclado en la secuencia del día. Qué entra lo decide `paradasDelChofer`.
@@ -70,7 +78,7 @@ export default function MyRoutePage() {
   // D1, D2… (D-334). Solo lectura. Con un plan PUBLICADO y la ruta tal como el plan la dejó, mandan las paradas y
   // etiquetas del plan —las mismas que enseña la tarjeta de arriba—; si alguien la tocó después, lo guardado, y se dice
   // (D-335). Una sola lectura, compartida.
-  const planPublicado = usePlanPublicadoDelChofer(dia);
+  const planPublicado = usePlanPublicadoDelChofer(dia, ajeno?.id ?? null);
   const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, verAtrasadas ? null : planPublicado?.paradas ?? null), [stops, capacidad, planPublicado, verAtrasadas]);
   // La cuenta de pallets de cada parada, la misma del Gestor: «+4 = 4» (D-444; hasta ahí, la operación entera).
   const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);
@@ -92,6 +100,8 @@ export default function MyRoutePage() {
    * un sótano no puede quedarse sin poder cerrar la parada.
    */
   const cerrarParada = async (d: Delivery) => {
+    // La ruta de otro (D-NEXT): sus botones están apagados, y esto es la segunda puerta por si alguno no lo estuviera.
+    if (soloLectura) return;
     const accion = accionParada(d.stage, settings, d.photos);
     if (accion.kind === "pod" || accion.kind === "open") { setOpen(d); return; }
     if (guardando) return;
@@ -240,13 +250,13 @@ export default function MyRoutePage() {
   }, [stops, next, dDe]);
   // Los botones de cada parada (D-487): qué sale lo decide `accionesDeParada`, dentro del componente.
   const accionesDe = (d: Delivery, tipo: "P" | "D", sinPrincipal = false) => (
-    <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} guardando={guardando === d.id} cerrar={(x) => void cerrarParada(x)} sinPrincipal={sinPrincipal} />
+    <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} guardando={guardando === d.id} cerrar={(x) => void cerrarParada(x)} sinPrincipal={sinPrincipal} soloLectura={soloLectura} />
   );
 
-  // Their own truck, so they can see where they are against the plan.
+  // Their own truck, so they can see where they are against the plan. (Mirada desde fuera, el camión de ESE chofer.)
   const liveDrivers = useMemo(() => {
-    if (!me) return [];
-    const loc = driverLocations.find((l) => l.driver_id === me.id);
+    if (!chofer) return [];
+    const loc = driverLocations.find((l) => l.driver_id === chofer.id);
     if (!loc) return [];
     const ageMin = (Date.now() - new Date(loc.recorded_at).getTime()) / 60000;
     if (ageMin > 60) return [];
@@ -260,7 +270,7 @@ export default function MyRoutePage() {
       label: t("You are here", "Aquí estás"),
     }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverLocations, me, driverName, settings.driver_colors]);
+  }, [driverLocations, chofer, driverName, settings.driver_colors]);
 
   const fitTo = useMemo<[number, number][] | undefined>(() => {
     const pts = points.map((p) => [p.lat, p.lng] as [number, number]);
@@ -379,7 +389,7 @@ export default function MyRoutePage() {
                 <button
                   className="btn btn-green"
                   style={{ flex: "1 1 140px", justifyContent: "center" }}
-                  disabled={guardando === next.id}
+                  disabled={soloLectura || guardando === next.id}
                   onClick={() => void cerrarParada(next)}
                 >
                   {guardando === next.id
@@ -399,7 +409,7 @@ export default function MyRoutePage() {
               {accionesDe(next, next.stage === "picked_up" ? "D" : "P", true)}
               {me && (
                 <div style={{ display: "flex", marginTop: 8 }}>
-                  <LeaveAtStore pedido={next} me={me} style={{ flex: 1, justifyContent: "center" }} />
+                  <LeaveAtStore pedido={next} me={me} disabled={soloLectura} style={{ flex: 1, justifyContent: "center" }} />
                 </div>
               )}
             </div>

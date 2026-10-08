@@ -1552,3 +1552,16 @@ table.orders th { text-align: left; }
   to { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 12px); }
 }
 @media (prefers-reduced-motion: reduce) { .tarjeta-desplegada { animation: none; } }
+
+/* La pestaña «Chofer» del admin (D-NEXT): «Mi ruta» de un chofer, como la ve él en su teléfono. Una columna del ancho de
+   un teléfono, centrada, con su marco. Dentro, las reglas de teléfono que «Mi ruta» usa (las de @media max-width 760px y
+   640px de arriba): en una pantalla grande esos @media no saltan, y sin repetirlas aquí la columna sería un escritorio
+   estrecho y no el teléfono del chofer. En un teléfono de verdad ya saltan solas y esto no cambia nada. */
+.vista-de-chofer { max-width: 420px; margin: 0 auto; }
+.como-telefono { border: 1px solid var(--line); border-radius: 22px; padding: 14px 12px; background: var(--paper); }
+.como-telefono .card { padding: 14px; margin-bottom: 12px; }
+.como-telefono .page-head h2 { font-size: 18px; }
+.como-telefono .btn, .como-telefono .chip { min-height: 36px; display: inline-flex; align-items: center; }
+.como-telefono .btn-sm { min-height: 32px; }
+.como-telefono .section-label { margin: 12px 0 8px; padding-bottom: 5px; }
+.como-telefono input, .como-telefono select, .como-telefono textarea { font-size: 16px; }

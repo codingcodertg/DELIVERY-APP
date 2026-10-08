@@ -22,7 +22,8 @@ describe("ayer, hoy y mañana (D-469)", () => {
     const p = leer("src/app/(app)/my-route/page.tsx");
     expect(p).toContain("const dia = shiftDateISO(todayISO(), desfase);");
     expect(p).toContain('paradasDelChofer(deliveries, driverName, dia, verAtrasadas ? "atrasadas" : "dia")');
-    expect(p).toContain("usePlanPublicadoDelChofer(dia)");
+    // D-NEXT: con el chofer mirado desde fuera, si lo hay (la pestaña «Chofer» del admin); el día es el mismo.
+    expect(p).toContain("usePlanPublicadoDelChofer(dia, ajeno?.id ?? null)");
     expect(p).toContain('[[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]]');
   });
   it("«Ruta de hoy» tiene los tres botones, para cualquier rol", () => {
