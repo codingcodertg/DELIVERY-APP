@@ -1,0 +1,89 @@
+{
+  "_": "Ejemplo real: la tanda con la que se midio la rama visibilidad-almacen-y-ventana el 2026-09-23 (12 de 12 caen). Sirve de molde: `nombre` dice QUE regla se rompe, `viejo` es un ancla que aparece UNA vez, y `pruebas` son solo los ficheros que pueden cazarlo.",
+  "mutantes": [
+    {
+      "nombre": "M1  esParaRecibir deja de exigir «y no sale»",
+      "fichero": "src/lib/almacen.ts",
+      "viejo": "  return !sale;",
+      "nuevo": "  return true;",
+      "pruebas": ["src/lib/almacen.test.ts"]
+    },
+    {
+      "nombre": "M2  esParaRecibir deja de exigir que el tipo sea tienda-a-tienda",
+      "fichero": "src/lib/almacen.ts",
+      "viejo": "  if (regla.storeToStore !== true || misTiendas.length === 0) return false;",
+      "nuevo": "  if (misTiendas.length === 0) return false;",
+      "pruebas": ["src/lib/almacen.test.ts"]
+    },
+    {
+      "nombre": "M3  el reparto mete la de Recepcion TAMBIEN en la cola (se cae el `continue`)",
+      "fichero": "src/lib/almacen.ts",
+      "viejo": "    if (esParaRecibir(d, regla, misTiendas)) { recepcion.push(d); continue; }",
+      "nuevo": "    if (esParaRecibir(d, regla, misTiendas)) { recepcion.push(d); }",
+      "pruebas": ["src/lib/almacen.test.ts"]
+    },
+    {
+      "nombre": "M4  el reparto deja de contar las Intertiendas sin destino",
+      "fichero": "src/lib/almacen.ts",
+      "viejo": "    if (intertiendaSinDestino(d, regla)) sinDestino.push(d);",
+      "nuevo": "",
+      "pruebas": ["src/lib/almacen.test.ts"]
+    },
+    {
+      "nombre": "M5  sin tiendas propias, el reparto lo manda todo a Recepcion",
+      "fichero": "src/lib/almacen.ts",
+      "viejo": "  if (misTiendas.length === 0) return { cola: [...ordenes], recepcion: [], sinDestino: [] };",
+      "nuevo": "  if (misTiendas.length === 0) return { cola: [], recepcion: [...ordenes], sinDestino: [] };",
+      "pruebas": ["src/lib/almacen.test.ts"]
+    },
+    {
+      "nombre": "M6  tiendasDeAlmacen se olvida del grupo (D-293)",
+      "fichero": "src/lib/almacen.ts",
+      "viejo": "  return tiendasDelGrupo(miTienda, tiendas).map(normalizaLugar).filter(Boolean);",
+      "nuevo": "  return [normalizaLugar(miTienda)].filter(Boolean);",
+      "pruebas": ["src/lib/almacen.test.ts"]
+    },
+    {
+      "nombre": "M7  el tablero deja de cortar almacen por tienda",
+      "fichero": "src/lib/ordenes-visibles.ts",
+      "viejo": "    if (ctx.tiendasDeAlmacen.length > 0\n      && !esDeMisTiendas(d, orderTypeRule(d.order_type, ctx.reglas), ctx.tiendasDeAlmacen)) return false;",
+      "nuevo": "",
+      "pruebas": ["src/lib/ordenes-visibles.test.ts"]
+    },
+    {
+      "nombre": "M8  el corte de almacen se aplica TAMBIEN sin tienda asignada",
+      "fichero": "src/lib/ordenes-visibles.ts",
+      "viejo": "    if (ctx.tiendasDeAlmacen.length > 0\n      && !esDeMisTiendas(",
+      "nuevo": "    if (ctx.tiendasDeAlmacen.length >= 0\n      && !esDeMisTiendas(",
+      "pruebas": ["src/lib/ordenes-visibles.test.ts"]
+    },
+    {
+      "nombre": "M9  ventas vuelve a ver la orden de cualquiera",
+      "fichero": "src/lib/visibilidad-ventas.ts",
+      "viejo": "  return orderOwner(orden) === miId;",
+      "nuevo": "  return true;",
+      "pruebas": ["src/lib/intertienda-dos-tiendas.test.ts", "src/lib/ordenes-visibles.test.ts"]
+    },
+    {
+      "nombre": "M10 ventas deja de ver los borradores (se revierte D-286 en silencio)",
+      "fichero": "src/lib/visibilidad-ventas.ts",
+      "viejo": "  if (orden.stage === \"draft\") return true;",
+      "nuevo": "",
+      "pruebas": ["src/lib/intertienda-dos-tiendas.test.ts", "src/lib/ordenes-visibles.test.ts"]
+    },
+    {
+      "nombre": "M11 almacen recupera `history` de fabrica (vuelve D-356 a medias)",
+      "fichero": "src/lib/constants.ts",
+      "viejo": "  warehouse: [\"fulfill\", \"deliver\"],",
+      "nuevo": "  warehouse: [\"fulfill\", \"deliver\", \"history\"],",
+      "pruebas": ["src/lib/history-window.test.ts", "src/lib/rol-office.test.ts", "src/lib/ordenes-visibles.test.ts"]
+    },
+    {
+      "nombre": "M12 la Cola de la pantalla vuelve a pintarse con `scoped`",
+      "fichero": "src/app/(app)/warehouse/page.tsx",
+      "viejo": "      ? [...reparto.cola].sort((a, b) => b.order_no - a.order_no)\n      : reparto.cola.filter((d) => d.stage === tab)),",
+      "nuevo": "      ? [...scoped].sort((a, b) => b.order_no - a.order_no)\n      : scoped.filter((d) => d.stage === tab)),",
+      "pruebas": ["src/lib/almacen.test.ts"]
+    }
+  ]
+}
