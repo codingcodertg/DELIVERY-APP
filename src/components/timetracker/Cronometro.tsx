@@ -29,6 +29,7 @@ import {
   estadoVigia, parcheDeStop, pararPorCorteSiToca, tocaReintentar, tocaSonar, VIGIA_CADA_MS,
 } from "@/lib/timetracker/vigia";
 import { avisoDeSistema, sonarAlarma } from "@/lib/timetracker/alarma";
+import { accionDeEnergia } from "@/lib/timetracker/pausa-de-energia";
 import Link from "next/link";
 
 // ============================================================
@@ -193,7 +194,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   const activeSecondsRef = useRef(0);
   const secHadEventRef = useRef(false);
   const lastActTotalRef = useRef(0); // last keystrokes+clicks+moves total (desktop delta)
-  const idleRef = useRef(0); // kept at 0 in this pass — no idle-limit auto-stop yet
+  // Segundos que no se pagan sin ser comida ni descanso. Sigue sin haber límite de inactividad
+  // que pare solo; lo único que lo mueve es una pausa de energía (D-NEXT), y `netSeconds` lo resta.
+  const idleRef = useRef(0);
   const activeWindowRef = useRef(0);
   const [isIdle, setIsIdle] = useState(false);
   const [ctxApp, setCtxApp] = useState(""); // app recognized via on-screen motion (desktop smart-idle)
@@ -349,22 +352,37 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     });
   }, [me.id, uploadScreenshot, insertBlankScreenshot]);
 
-  // Auto-stop on lock/sleep (desktop): if the machine locks or sleeps while
-  // tracking, stop the timer so away-from-keyboard time isn't counted. Live
-  // refs (updated every render, below) avoid both a stale closure and
-  // re-subscribing on every render.
+  // Bloqueo y suspensión (escritorio): el tiempo fuera del teclado no se paga, pero un parpadeo
+  // de energía NO termina la jornada (D-NEXT). La regla, con sus medidas, está en
+  // `src/lib/timetracker/pausa-de-energia.ts`; aquí solo se obedece. Live refs (updated every
+  // render, below) avoid both a stale closure and re-subscribing on every render.
   const stopRef = useRef<() => void>(() => {});
   // Live mirror of remoteOwner, for the callbacks that run outside React's render (the lock/sleep
   // hook and the tick) and would otherwise close over a stale value.
   const remoteOwnerRef = useRef<"desktop" | "web" | null>(null);
   remoteOwnerRef.current = remoteOwner;
+  const pausaDeEnergiaRef = useRef<number | null>(null);
   useEffect(() => {
     return desktopOnPower((reason) => {
-      if (reason !== "suspend" && reason !== "lock-screen") return;
-      if (runningRef.current) {
-        notify("Tracking stopped — your screen locked or the computer went to sleep.");
-        stopRef.current();
+      const accion = accionDeEnergia({
+        evento: reason,
+        ahoraMs: Date.now(),
+        pausadoDesdeMs: pausaDeEnergiaRef.current,
+        corriendo: runningRef.current,
+      });
+      if (accion.tipo === "nada") return;
+      if (accion.tipo === "pausa") { pausaDeEnergiaRef.current = accion.desdeMs; return; }
+
+      pausaDeEnergiaRef.current = null;
+      // Los segundos de fuera se descuentan SIEMPRE, también al parar: `netSeconds` resta
+      // `idleRef` de `durationSeconds`, y tras un `suspend` el reloj de pared ha saltado.
+      idleRef.current += accion.fueraSegundos;
+      if (accion.tipo === "sigue") {
+        notify(`Welcome back — ${accion.fueraSegundos}s away wasn't counted. Still on the clock.`);
+        return;
       }
+      notify("Tracking stopped — your screen locked or the computer went to sleep.");
+      stopRef.current();
     });
   }, [notify]);
 
@@ -1127,6 +1145,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     lunchRef.current = 0; brkRef.current = 0; onBreakRef.current = null; breakEventsRef.current = [];
     keystrokesRef.current = 0; clicksRef.current = 0; activeSecondsRef.current = 0;
     secHadEventRef.current = false; lastActTotalRef.current = 0; idleRef.current = 0; activeWindowRef.current = 0;
+    // Una pausa de energía que quedó abierta al parar la sesión anterior no se hereda: si se
+    // heredara, el primer desbloqueo de ESTA jornada mediría el tiempo fuera desde la de ayer.
+    pausaDeEnergiaRef.current = null;
     ctxRef.current = null; ctxProbeRef.current = 0; setCtxApp(""); setIsIdle(false);
     reiniciarContinuidad();
     startMsRef.current = Date.now();
