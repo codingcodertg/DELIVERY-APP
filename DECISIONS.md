@@ -39662,3 +39662,204 @@ permanente, y la que no se respetó al verificar D-172.
   fichero de cada mutante: `mutantes.mjs` corrió los dos primeros en más de diez minutos y dio uno
   por «SOBREVIVE, corrieron 0 pruebas» — rehecho a mano, ese mutante tumba 5 pruebas con nombre. La
   máquina tenía otras dos sesiones compilando.
+
+## D-506 · El chofer mira EL MISMO mapa del Gestor de Rutas, acotado a SUS rutas, desde «Mi ruta»
+
+**Fecha:** 2026-10-10 · **Versión:** Entregas 1.276.0, repo 1.376.0 · **Sin migración.** · Rama `chofer-mapa-del-gestor`.
+
+**Pedido del dueño**, literal: *«drivers view needs to look like to logistic manager view with the
+routes and everything the map view i mean change it and updat eit»* y, preguntado por qué pantalla y
+qué alcance: *«quiero que el chofer mire el mapa con sus rutas asi como el logistic manager ese mismo
+mapa»*.
+
+### Cómo se leyó
+
+«Ese mismo mapa» se leyó literalmente: **no una copia del mapa del Gestor, sino la página del Gestor**
+— el mapa con todas las rutas trazadas y sus pines numerados, el panel «Choferes y rutas» con las
+millas y la carga, la tabla de paradas, «▦ Cuadrícula» y «📅 Horario» —, pero con **sus** rutas y no
+las de la flota. «Con sus rutas» se leyó como el límite duro del encargo: el chofer no puede ver las
+de los demás.
+
+No se reconstruyó nada. Las tres piezas ya existían:
+
+- `/map` («Ruta de hoy») ya era el Gestor montado en solo lectura: diez líneas que hacen
+  `<SoloLectura><RoutesPage /></SoloLectura>` (D-481).
+- El Gestor ya filtraba por chofer con las casillas del panel (D-481/D-488, `filtro-de-choferes.ts`).
+- «Mi ruta» ya tenía su propio mapa, más pobre: pines de sus entregas y un trazo bajo demanda.
+
+### Qué se decidió
+
+- **Una pantalla nueva, `/my-route/mapa`**, que monta la **MISMA** página del Gestor
+  (`src/app/(app)/routes/page.tsx`) dentro de `<SoloLectura>` y de `<SoloMisRutas chofer={…}>`. Nada
+  propio: ni mapa, ni panel, ni paradas. Si mañana cambia el mapa del Gestor, cambia el del chofer, que
+  es lo que pidió.
+- **Se entra desde «Mi ruta»**, con un botón «🗺 Mapa de mi ruta». **No es una pestaña de la barra**:
+  `TABS` no cambia. Como la URL cae bajo `/my-route`, `TabGate` la abre o la cierra exactamente igual
+  que «Mi ruta» (`tabForPath`, D-240; y a oficina no se le abre, D-480).
+- **El acotado es forzado, y va en el ORIGEN, no en el filtro de casillas.** `<SoloMisRutas>` es un
+  contexto (como `<SoloLectura>` de D-481 y `<RutaDeUnChofer>` de D-502: Next no deja que una página
+  declare props propias) y la página acota con él **cuatro** cosas, cada una en una línea:
+  - las **órdenes** que la pantalla recibe (`deliveries`): de ahí cuelga todo lo demás — las paradas,
+    los carriles, el mapa, las tablas, las cuentas, Cuadrícula y Horario;
+  - los **carriles** (`lanes`): solo el suyo, así que en el panel no hay ninguna otra ruta que marcar
+    — ni un chofer vacío, ni una ruta temporal («Ruta 1»);
+  - los **camiones en vivo** del mapa: solo el suyo;
+  - el aviso de **rastreo** («N choferes en turno no están reportando»): solo si es él. Que a un
+    compañero se le muriera la batería no es asunto del chofer; que se le muera la suya, sí.
+
+  Por qué en el origen y no con el filtro que ya había: un filtro de pantalla decide entre lo que la
+  pantalla **tiene**. Si la orden de otro chofer estuviera cargada, desmarcar una casilla, teclear otra
+  URL o tocar el estado guardado la traería de vuelta. Acotando el origen, **no está**: no hay nada que
+  traer. La regla de qué es «mío» vive en una función pura, `src/lib/gestor/mis-rutas.ts`.
+- **Qué es «mía»:** la ruta cuya clave es **exactamente** mi nombre. Las órdenes se asignan por nombre
+  (`assigned_driver`) y la clave de un carril es ese mismo nombre, así que la comparación es la misma
+  igualdad exacta que hace «Mi ruta» con `paradasDelChofer` — si una normalizara y la otra no, la lista
+  y el mapa del mismo chofer podrían no coincidir. **Sin nombre se acota a NADA, nunca a todas**: es el
+  lado seguro, el mismo que `rutaDeSoloLectura` (D-502), y además es la verdad, porque a una persona sin
+  nombre no se le puede asignar ninguna orden.
+- **Acotada es SIEMPRE de solo lectura**, y lo decide la propia página
+  (`soloLectura = soloLecturaDeclarada || miChofer != null`), no el sitio donde se monta. Montarla sin
+  `<SoloLectura>` por olvido no le daría acciones al chofer. Con eso no asigna, no mueve, no reprograma,
+  no optimiza, no deshace, no vacía, no arma rutas, no arrastra, no marca órdenes y no entra al Tablero
+  ni a Incidencias: todo eso ya estaba cerrado con `soloLectura` desde D-481.
+- **Lo que sí se cerró además, leyendo el código**: la tarjeta «🎨 Colores de chofer», que sale en solo
+  lectura desde antes de D-467, lista a **todos** los choferes por nombre — es la leyenda de rutas que él
+  no ve, y su editor es de gerente o admin de todas formas. Acotada, no sale. Su color sigue a la vista
+  en su fila del panel y en su tarjeta.
+
+### «Mi ruta» no pierde nada
+
+Se inventarió antes de tocar. `/my-route` **sigue entera y es donde se trabaja**; la pantalla nueva no
+sustituye ninguna de sus secciones, las **añade al lado**:
+
+| Lo que «Mi ruta» da hoy | Qué pasa |
+|---|---|
+| Ayer · Hoy · Mañana (D-469) | se queda |
+| Aviso de paradas atrasadas y «Verlas» (D-331) | se queda |
+| «Orden planeado del día», el plan publicado (D-324) | se queda |
+| Aviso «tu ruta cambió desde que se publicó el plan» (D-341) | se queda |
+| Barra de progreso «N de M entregadas» | se queda |
+| Tarjeta «Siguiente parada» con 🧭 Navegar y el botón verde (D-218) | se queda |
+| «Dejar en tienda» (D-224) | se queda |
+| Botones de cada parada: Recogido · Saltar · Entregado · Rechazado (D-487) | se quedan |
+| Rechazar preguntando qué pasó y a dónde va el material (D-495) | se queda |
+| Su lista única P1…D1… con la cuenta de pallets (D-443/D-444) | se queda |
+| «Carga 1 de 2» de una orden partida (D-452) | se queda |
+| Su mapa propio: pines de sus entregas y «Tu ruta» con millas y horas | se queda |
+
+**Nada se sustituye.** Lo que la pantalla nueva añade es lo que «Mi ruta» no tenía: el mapa del Gestor
+con la ruta trazada, el panel con millas, horas y carga máxima, la tabla de paradas con las columnas del
+Gestor, «▦ Cuadrícula» y «📅 Horario». **Desde el mapa no se cierra ninguna parada** — para eso se
+vuelve a «Mi ruta», y el botón «◀ Mi ruta» está arriba.
+
+Dos diferencias a propósito: en el mapa el día se mueve en la ventana de la función `rutas_del_dia`
+(±7 días, recortada por la retención de D-239) en vez de los tres botones Ayer/Hoy/Mañana de «Mi ruta»,
+porque es la misma cabecera del Gestor; y el enlace **no sale** cuando se está mirando «Mi ruta» de otro
+chofer (la pestaña «🚚 Chofer» del admin, D-502), porque abriría el mapa de quien mira y no el del chofer
+elegido.
+
+### Por qué esto NO contradice la decisión que quitó «Ruta de hoy» al chofer
+
+Aquella decisión (D-494, 2026-10-07) quitó al chofer la pestaña «🗺 Ruta de hoy» porque *«de driver
+elimina today's route»*: ya tenía «Mi ruta», y aquella pantalla enseñaba **las rutas de todos**. Esto no
+la revierte, y por tres cosas medibles:
+
+1. **La pestaña sigue fuera.** `TABS` no cambia; el chofer no recupera «Ruta de hoy» en la barra, y
+   `/map` le sigue cerrada por `TabGate`.
+2. **No ve las rutas de los demás**, que era el fondo del asunto: aquí solo están las suyas, y no por
+   un filtro que pueda cambiar.
+3. **Sigue siendo una sola entrada**, «Mi ruta», desde donde se abre el mapa. No hay dos pantallas
+   compitiendo, que es lo que D-494 estaba limpiando.
+
+Si el dueño lo lee de otra forma — que a un chofer no se le dé ninguna vista tipo Gestor, ni acotada —
+este cambio se retira quitando el botón de «Mi ruta» y la pantalla nueva; el acotado y sus funciones
+puras se quedarían sin usar y no estorban a nadie.
+
+### Medido (2026-10-10)
+
+Worktree `.claude/worktrees/chofer-mapa`, sin `.env.local`: **nada contra la base, nada contra
+producción, ningún SMS ni llamada.**
+
+- **`npx tsc --noEmit`**: limpio.
+- **`npx eslint`** de los siete ficheros tocados: 0 errores, 1 aviso — y es el de siempre, un
+  `eslint-disable` de más en la línea 463 de `routes/page.tsx`, que ya sale igual en `main` (comprobado
+  corriendo eslint en el checkout principal). No se tocó.
+- **`npx vitest run`** de los **56** ficheros de prueba que leen `routes/page.tsx` o
+  `my-route/page.tsx` como texto: **1.444 pruebas, todas pasan**. Y de los **56** que recorren
+  directorios o miran las pestañas (los que podría romper un fichero de página nuevo, entre ellos el
+  guardián de colores a pelo y el de `TabGate`): **1.499 pruebas, todas pasan**.
+- **14 pruebas nuevas** en `src/lib/gestor/mapa-del-chofer.test.ts`. Seis de ellas **pintan la página
+  del Gestor de verdad** (`renderToStaticMarkup`), que no se había pintado nunca en una prueba de este
+  repo:
+  - **el control, primero**: la misma página **sin acotar** («Ruta de hoy») pinta las paradas de los
+    DOS choferes en el mapa, las tres rutas en el panel (Carlos, Miguel y «Ruta 1») y los dos camiones
+    en vivo. Sin este control, las pruebas de abajo pasarían también con una pantalla que no pintara
+    nada;
+  - **acotada a Carlos**: en el mapa está su parada y **no** la de Miguel, el HTML no contiene
+    «INV-M1» ni «Miguel A.» — y la orden de Miguel **estaba cargada en la sesión**, a propósito: lo que
+    se mide es que la pantalla la esconde, no que la base no se la haya dado. Una prueba con solo lo
+    suyo cargado pasaría sin que la pantalla filtrara nada;
+  - **el panel tiene UNA ruta, la suya**, así que no hay otra casilla que marcar;
+  - **en el mapa va su camión**, no el del compañero;
+  - **es de solo lectura**: no hay «Armar rutas», ni Tablero, ni Incidencias, ni botones de la ruta, ni
+    el recuadro de reparto, ni las casillas de «marcar todas»;
+  - **y lo sigue siendo montada SIN `<SoloLectura>`**, que es lo que prueba que lo decide el acotado.
+
+  Las otras ocho miden las reglas sueltas (incluido que el filtro de casillas no puede deshacer el
+  acotado) y el montaje por texto.
+- **Mutantes: 11, caen los 11**, uno a uno a mano (`mutantes.mjs` se ha colgado en esta máquina), cada
+  uno con su prueba **por nombre**:
+
+| mutante | prueba que cae |
+|---|---|
+| `esMiRuta` sin la guarda de «sin nombre» | «sin nombre se acota a NADA, nunca a todas: es el lado seguro» |
+| `soloMisOrdenes` invertida | «mis órdenes, mi carril y lo rotulado con mi nombre: solo lo mío» (+5) |
+| `soloMisCarriles` no mira la clave | «mis órdenes, mi carril y lo rotulado con mi nombre: solo lo mío» (+2) |
+| `soloLoMioPorChofer` no mira el chofer | «mis órdenes, mi carril y lo rotulado con mi nombre: solo lo mío» (+1) |
+| el Gestor no acota las ÓRDENES | «acotada a Carlos: su parada en el mapa; la de Miguel no está, y su orden SÍ estaba cargada» (+2) |
+| el Gestor no acota los CARRILES | «en el panel «Choferes y rutas» hay UNA ruta —la suya— así que no hay otra que marcar» (+1) |
+| el Gestor no acota los CAMIONES en vivo | «en el mapa sale SU camión, no el de su compañero» (+1) |
+| el Gestor no acota el aviso de RASTREO | «el acotado está en el ORIGEN —órdenes, carriles, camiones y rastreo— y no en el filtro de casillas» |
+| acotada ya no implica solo lectura | «acotada SIN `<SoloLectura>` sigue siendo de solo lectura: lo decide el acotado, no quien la monta» (+1) |
+| los colores de chofer vuelven a salir acotada | «acotada a Carlos: su parada en el mapa; la de Miguel no está…» (+2) |
+| «Mi ruta» enseña el enlace también mirando la de otro | ««Mi ruta» lleva a ese mapa, y no cuando se mira la ruta de otro (D-502)» |
+
+  De los once, **diez caen con una prueba de comportamiento** (la pantalla pintada o la función pura).
+  El del aviso de rastreo cae **solo con la prueba de texto**, y hay un motivo: el aviso no se pinta al
+  pintar en el servidor, porque los avisos cerrados se leen de `localStorage` en un efecto y hasta
+  entonces ninguno sale. Queda dicho, no disimulado.
+
+### No verificado
+
+- **No se abrió el navegador.** Ni demo ni producción: no se vio la pantalla con ojos, solo pintada en
+  una prueba y leída en el código. Lo que no se ha visto nunca: cómo queda el mapa del Gestor en la
+  pantalla de un **teléfono** —es la pantalla de un chofer, y el Gestor está pensado para un escritorio
+  (panel fijo, tabla de paradas con columnas, Horario)—. Que **quepa** y se pueda usar con el pulgar
+  está **sin medir**, y es lo primero que habría que mirar.
+- **El acotado es de PANTALLA; la base no lo respalda.** La función `rutas_del_dia()` se le sirve a
+  cualquiera con el módulo de Entregas, **el chofer incluido** — lo dice el hallazgo S-9 de la auditoría
+  del 2026-10-09 (`docs/AUDIT-2026-10-09.md`), porque D-494 solo quitó la pestaña. O sea: un chofer que
+  llame a la función desde la consola del navegador sigue recibiendo las rutas de todos, igual que
+  **antes** de este cambio. Esta rama **no** toca la base a propósito (sería migración, y va aparte con
+  el sí del dueño), y este cambio **no empeora** esa situación: lo único que podría decirse es que una
+  pantalla que usa la función la pone más a la vista.
+- **La orden entera que se abre desde un pin** sigue decidiéndola `ordenLegible` (D-467): solo si esta
+  persona ya la puede leer. Que para un chofer eso sea exactamente «las suyas» depende de su RLS, que
+  aquí **no se ensayó** (no hay base en el worktree).
+- **El plan publicado del Gestor** (`usePlanPublicadoDelGestor`, la línea punteada del plan en el mapa)
+  se pide entero y se acota al dibujar por carril, que ya está acotado. Que la RLS de la 133 le dé o no
+  le dé a un chofer el plan de los demás **no se midió**; si se lo da, lo recibe el navegador aunque la
+  pantalla solo dibuje el suyo. Es el mismo caso que la función de arriba y la misma respuesta: base.
+- **El aviso de rastreo acotado no se vio pintado** (ver el mutante de arriba).
+- **Nada de esto se probó con dos ventanas a la vez** ni con un chofer real en la calle.
+
+### Medido en el navegador por el orquestador (demo local, 2026-10-10)
+
+Se abrió `/my-route/mapa` en Chrome con la sesión de un chofer del demo: la pantalla carga, el panel «Choferes y
+rutas» enseña **una sola ruta, la suya**, y arriba sale el rótulo de solo lectura y el enlace «◀ Mi ruta». O sea que
+el acotado se ve, no solo se prueba.
+
+**Lo del teléfono sigue a medias.** Chrome no dejó reducir la ventana por debajo de 1536 px (dos intentos), así que
+**no se renderizó a ancho de teléfono**. Lo que sí se midió sobre la página pintada: **ningún elemento fuerza un ancho
+mínimo mayor de 420 px**, y las tablas van dentro de `.tbl-scroll` con su propio desplazamiento, así que no debería
+desbordarse. Que se use cómodo con el pulgar —el tamaño de los botones, el panel, el Horario— **no está medido**.
