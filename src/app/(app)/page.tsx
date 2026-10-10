@@ -32,6 +32,7 @@ import { tiendasDeAlmacen } from "@/lib/almacen";
 import { orderTypeRule } from "@/lib/required";
 import { resumenSinFactura } from "@/lib/factura-obligatoria";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
+import { presetInicialDe } from "@/lib/preset-inicial";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
 type Preset = "all" | "recent" | "today" | "overdue" | "unassigned" | "mine";
@@ -87,7 +88,16 @@ export default function OrdersPage() {
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<string>("all");
   // «Reciente» por defecto (D-350): ayer, hoy y mañana. «Todas» es todo lo que la persona puede ver.
+  // Desde D-507 ventas nace en «Todas»: su cartera es pequeña y lo que necesita ver de entrada es todo lo suyo.
+  // Se aplica UNA vez, cuando llega el perfil —al montar, `me` todavía puede ser null—, y nunca después: a partir
+  // de ahí manda lo que la persona haya pulsado.
   const [preset, setPreset] = useState<Preset>("recent");
+  const presetPuesto = useRef(false);
+  useEffect(() => {
+    if (presetPuesto.current || !me) return;
+    presetPuesto.current = true;
+    setPreset(presetInicialDe(me.role));
+  }, [me]);
   const [q, setQ] = useState("");
   // G-16: the provider keeps a window of orders; an admin typing a search may be looking for an
   // old one, so the first non-empty search asks for the whole history (once; idempotent). Sales

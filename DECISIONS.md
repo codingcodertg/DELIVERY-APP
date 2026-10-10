@@ -24589,6 +24589,9 @@ por persona (`routes_columns`, D-331). Medido en el demo: ofrece las ocho, y qui
 
 ## D-350 · «Ver todas las órdenes» es una capacidad por persona, y la pantalla de Órdenes nace en «Reciente»
 
+> **⚠ Reemplazada en parte por D-507** (2026-10-10): para **ventas** la pantalla nace en «Todas», no en «Reciente».
+> Los demás roles siguen igual.
+
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.174.0, repo 1.238.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«HAZ QUE TODOS LOS USUARIOS PUEDAN VER TODAS LAS ORDENES, NO SOLO AYER HOY Y
 PASADO PER SOLO QUE TENGAN QUE VER SU TIENDA, OSEA QUE SALGAN DE SU TIENDA Y QUE EN INTERTIENDA TENGA QUE VER CON SU
@@ -39863,3 +39866,40 @@ el acotado se ve, no solo se prueba.
 **no se renderizó a ancho de teléfono**. Lo que sí se midió sobre la página pintada: **ningún elemento fuerza un ancho
 mínimo mayor de 420 px**, y las tablas van dentro de `.tbl-scroll` con su propio desplazamiento, así que no debería
 desbordarse. Que se use cómodo con el pulgar —el tamaño de los botones, el panel, el Horario— **no está medido**.
+
+## D-507 · Para ventas, Órdenes nace en «Todas»
+
+**Fecha:** 2026-10-10 · **Versión:** Entregas 1.277.0, repo 1.377.0 · **Sin migración.**
+**Pedido por el dueño**, literal: *«el view de sales en orders quier que sea all por defautl en ves de recietnes haz
+ese cambio»*.
+
+**Reemplaza en parte a D-350**, que puso «Reciente» —ayer, hoy y mañana— como punto de partida para todos. Ventas
+trabaja sobre su propia cartera, que es mucho más pequeña que la del despacho, y lo que necesita ver al entrar es
+**todo lo suyo**, no los tres días de alrededor. D-350 lleva su nota.
+
+El resto de roles no cambia. Y es solo el punto de **partida**: cualquiera cambia de pestaña con un clic, y lo que
+elija manda desde ahí. Por eso se aplica **una sola vez**, cuando llega el perfil —al montar la pantalla `me`
+todavía puede ser `null`— y nunca después: si se aplicara en cada render, le pisaría la pestaña a quien acabara de
+pulsarla.
+
+La decisión de qué pestaña le toca a cada rol vive en `src/lib/preset-inicial.ts`, no en la pantalla.
+
+### Lo que esto arrastra, y conviene saberlo
+
+Desde **D-356** todos los roles tienen la capacidad de ver el historial entero, así que para ventas «Todas» ya no
+son «de ayer en adelante»: es **todo su historial**. Y la pantalla, al ponerse en «Todas» con esa capacidad, le pide
+al proveedor el historial completo (el efecto de D-350). Ahora eso pasará **al entrar**, no cuando alguien pulse.
+
+**Lo que eso pesa para un vendedor con mucha cartera no está medido** — ya se dijo sin medir en D-350 y se sigue
+sin medir aquí. Si alguien se queja de que Órdenes tarda en abrir, esto es lo primero que hay que mirar.
+
+### Verificado
+
+`preset-inicial.test.ts`: ventas en «Todas», y **todos los demás roles recorriendo `ROLE_ORDER`** en vez de
+escribirlos a mano, para que un rol nuevo entre por el lado que menos carga. Dos mutantes, caen los dos: «ventas
+sigue en Reciente» y «se aplica cada vez, pisando lo que pulse la persona».
+
+### Lo no verificado
+
+- **Nada abierto en un navegador con sesión de ventas.**
+- Cuánto tarda en abrir para un vendedor real, que es justo lo de arriba.
