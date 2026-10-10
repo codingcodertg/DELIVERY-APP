@@ -195,7 +195,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   const secHadEventRef = useRef(false);
   const lastActTotalRef = useRef(0); // last keystrokes+clicks+moves total (desktop delta)
   // Segundos que no se pagan sin ser comida ni descanso. Sigue sin haber límite de inactividad
-  // que pare solo; lo único que lo mueve es una pausa de energía (D-NEXT), y `netSeconds` lo resta.
+  // que pare solo; lo único que lo mueve es una pausa de energía (D-510), y `netSeconds` lo resta.
   const idleRef = useRef(0);
   const activeWindowRef = useRef(0);
   const [isIdle, setIsIdle] = useState(false);
@@ -353,7 +353,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   }, [me.id, uploadScreenshot, insertBlankScreenshot]);
 
   // Bloqueo y suspensión (escritorio): el tiempo fuera del teclado no se paga, pero un parpadeo
-  // de energía NO termina la jornada (D-NEXT). La regla, con sus medidas, está en
+  // de energía NO termina la jornada (D-510). La regla, con sus medidas, está en
   // `src/lib/timetracker/pausa-de-energia.ts`; aquí solo se obedece. Live refs (updated every
   // render, below) avoid both a stale closure and re-subscribing on every render.
   const stopRef = useRef<() => void>(() => {});

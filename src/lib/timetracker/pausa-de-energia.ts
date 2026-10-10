@@ -1,5 +1,5 @@
 /**
- * Un parpadeo de energía no termina la jornada (D-NEXT).
+ * Un parpadeo de energía no termina la jornada (D-510).
  *
  * El escritorio reenvía cuatro avisos de `powerMonitor` a la página: `lock-screen`, `suspend`,
  * `unlock-screen` y `resume`. Hasta ahora la página reaccionaba a los dos primeros parando el

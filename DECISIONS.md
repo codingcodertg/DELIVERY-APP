@@ -40111,7 +40111,7 @@ degradado completo, medido.
 **Lo que sigue sin medir:** el camino bueno —fotograma real, imagen, recuadro y adjunto— necesita una pestaña
 visible, y la automatización no la tiene. Eso lo confirma el dueño en un navegador normal.
 
-## D-NEXT — Un parpadeo de energía no termina la jornada
+## D-510 — Un parpadeo de energía no termina la jornada
 
 **Fecha:** 2026-10-10 · **Estado:** Vigente
 

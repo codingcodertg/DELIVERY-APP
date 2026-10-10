@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { accionDeEnergia, GRACIA_DE_ENERGIA_MS, SE_VA, VUELVE } from "./pausa-de-energia";
 
 /**
- * D-NEXT · Un parpadeo de energía no termina la jornada.
+ * D-510 · Un parpadeo de energía no termina la jornada.
  *
  * El caso que se mide primero es el real: los dos cortes del 2026-10-10 en la laptop del dueño,
  * de nueve y de seis segundos, que costaron 16 y 31 minutos sin grabar.
