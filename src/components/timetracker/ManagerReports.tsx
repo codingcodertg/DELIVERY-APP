@@ -8,6 +8,7 @@ import {
   money, periodEndISO, periodLabel, projectWeekStart, weekIsFinished, weekStartISO,
 } from "@/lib/timetracker/helpers";
 import type { Assignment, Employee, Payroll, PayrollAdjustment, Session } from "@/lib/timetracker/types";
+import { sumaDeAjustes, totalConAjustes, totalPagado } from "@/lib/timetracker/total-de-nomina";
 import { necesitaProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { Modal } from "./Modal";
@@ -37,7 +38,9 @@ function fromRange(date: string, from: string, to: string) {
   return { durationSeconds, startMs, endMs: startMs + durationSeconds * 1000 };
 }
 const paidAtMs = (b: Payroll | null) => (b && b.paidAt ? new Date(b.paidAt).getTime() : 0);
-const adjOf = (list: PayrollAdjustment[] | null | undefined) => (list || []).reduce((n, a) => n + Number(a.amount || 0), 0);
+// El `adjOf` que estuvo aquí —y la suma `total + ajustes` de los cinco sitios de abajo— se ha
+// mudado a `total-de-nomina.ts` sin cambiarla, para que «Mi semana» responda la misma cifra que
+// esta pantalla a la misma pregunta (C-2 de la auditoría del 2026-10-09, D-504).
 
 /**
  * Informes y pago, ahora DENTRO de Nómina (D-164).
@@ -185,7 +188,7 @@ export function ManagerReports({ period }: { period: string }) {
       });
       if (sess.length) await Promise.all(sess.map((s) => updateSession(s.id, { payrollId: row.id })));
       if (draft) await removePayroll(draft.id);
-      await logAudit("Marked paid", (emp ? emp.fullName : "") + " · " + money(Number(pay.toFixed(2)) + adjOf(adjustments)));
+      await logAudit("Marked paid", (emp ? emp.fullName : "") + " · " + money(totalConAjustes(Number(pay.toFixed(2)), adjustments)));
       sessionsSince(start, end).then(setSessions);
       payrollsForWeek(week).then(setBatches);
     } catch (e) { const err = e as { message?: string } | null; alert(t("mgr.rep.paidFail", { e: err?.message || "unknown error" })); }
@@ -265,9 +268,9 @@ export function ManagerReports({ period }: { period: string }) {
         const b = k === "live" ? null : batchMap.get(k) ?? null;
         const { lines, pay } = calcLinesFor(sess);
         const adjs = b ? b.adjustments || [] : draftMap.get(uid) ? draftMap.get(uid)!.adjustments || [] : [];
-        const adj = adjOf(adjs);
+        const adj = sumaDeAjustes(adjs);
         const status = b ? (b.paid ? "Paid" : "Closed-unpaid") : "Open";
-        const total = (b ? b.total || 0 : pay) + adj;
+        const total = b ? totalPagado(b) : totalConAjustes(pay, adjs);
         lines.forEach((l) => {
           rows.push([emp ? emp.fullName : "", b ? "Payment" : "Current", status, nombreDe(l.a, uid, "(deleted)"), lugarDe(l.a, uid), (l.g.sec / 3600).toFixed(2), l.calc.reg.toFixed(2), l.calc.ot.toFixed(2), l.calc.pay.toFixed(2), adj.toFixed(2), total.toFixed(2), (b && b.method) || "", periodLabel(week, payPeriod)]);
         });
@@ -287,7 +290,9 @@ export function ManagerReports({ period }: { period: string }) {
     const emp = uMap.get(uid);
     const { lines, pay } = calcLinesFor(sess);
     const adjs = b.adjustments || [];
-    setReceipt({ emp, batch: b, lines, adjustments: adjs, total: (b.total || pay) + adjOf(adjs) });
+    // Aquí la base es `b.total || pay` —no `|| 0`—: el recibo de un lote sin total cae en las
+    // horas calculadas. Se conserva tal cual; lo único compartido es la suma de los ajustes.
+    setReceipt({ emp, batch: b, lines, adjustments: adjs, total: totalConAjustes(b.total || pay, adjs) });
   }
 
   function renderGroup(uid: string, key: string, sess: Session[]) {
@@ -295,8 +300,8 @@ export function ManagerReports({ period }: { period: string }) {
     const orphan = key !== "live" && !batchMap.get(key);
     const { lines, pay, sec } = calcLinesFor(sess);
     const adjs = b ? b.adjustments || [] : (key === "live" && draftMap.get(uid) ? draftMap.get(uid)!.adjustments || [] : []);
-    const adjTotal = adjOf(adjs);
-    const total = (b ? b.total || 0 : pay) + adjTotal;
+    const adjTotal = sumaDeAjustes(adjs);
+    const total = b ? totalPagado(b) : totalConAjustes(pay, adjs);
     const paid = b ? b.paid : false;
     const gid = uid + "__" + key;
     const when = b && paidAtMs(b) ? fmtDT(paidAtMs(b), { day: "2-digit", month: "short" }) : "";
@@ -499,7 +504,7 @@ export function ManagerReports({ period }: { period: string }) {
           const { pay, sec } = calcLinesFor(groups.get(k)!);
           const adjs = b ? b.adjustments || [] : (draftMap.get(uid)?.adjustments || []);
           empSec += sec;
-          empTotal += (b ? b.total || 0 : pay) + adjOf(adjs);
+          empTotal += b ? totalPagado(b) : totalConAjustes(pay, adjs);
           if (!b ? sec > 0 || adjs.length > 0 : !b.paid) hasUnpaid = true;
         });
         return (

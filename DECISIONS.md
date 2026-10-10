@@ -39371,3 +39371,137 @@ la siguiente, el ancho de la pista, los dos topes, «Ajustar», el centro, el zo
   1 px + 2 px de holgura.
 - Arrastrar con el dedo en una tableta, con zoom: no probado (sí con el ratón a 1280).
 - Capturas y guiones: `…/scratchpad/horario-zoom/` (fuera del repo).
+
+## D-504 · «Cuánto se pagó» se calcula en un solo sitio (`total-de-nomina.ts`), y la aritmética de nómina de fichaje por fin se ejecuta en pruebas
+
+**Fecha:** 2026-10-10 · **Versión:** Time Tracker 1.00.0, repo 1.374.0 · **Sin migración.** · Rama `arreglo-nomina`.
+
+Sale de dos hallazgos de `docs/AUDIT-2026-10-09.md`: **C-2** (la misma cifra de nómina calculada de dos formas) y **T-3** (la
+aritmética que decide dinero y permisos en fichaje, sin una sola prueba que la llame).
+
+### Qué fallaba (C-2)
+
+`timetracker.payrolls.total` **no incluye los ajustes**. El bono, el adelanto y la deducción viven aparte, en la columna
+`adjustments` (`PayrollAdjustment[]`, ver `src/lib/timetracker/types.ts`), y así se escribe la fila al marcar pagado: `total`
+es solo el dinero de las horas. Dos pantallas respondían «cuánto se pagó» con dos fórmulas:
+
+- Informes (`ManagerReports.tsx`): `(b ? b.total || 0 : pay) + adjOf(adjs)` — **suma los ajustes**, en cinco sitios distintos
+  (el CSV, la tarjeta del grupo, el total por empleado, el recibo y la línea de auditoría de «Marcar pagado»).
+- «Mi semana» (`week/page.tsx:53`): `reduce((n, b) => n + (b.total || 0), 0)` — **no los suma**. La palabra «adjust» no
+  aparecía en ningún cálculo de ese fichero.
+
+Con un bono de 150 sobre 800 una pantalla decía 950 y la otra 800; con una deducción de 120, 680 y 800. Las dos se formatean
+a dos decimales, así que las dos se ven igual de limpias y ninguna chirría. Es el patrón de D-362 —la misma magnitud sumada
+en dos sitios— con dinero y en nómina.
+
+### Un dato de la auditoría que no es cierto hoy, y conviene saberlo antes de leer el título de C-2
+
+C-2 se titula «al **empleado** se le enseña la nómina sin los ajustes». **Hoy el empleado no ve esa cifra en absoluto:** D-489
+(2026-10-06) le quitó el dinero entero de «Mi semana», y las dos cifras cuelgan de `secciones.dinero`, que
+`seccionesDeMiSemana` solo pone a `true` para el admin de Time Tracker (`src/lib/timetracker/vista-empleado.ts:69-72`). Así
+que quien veía el número corto es **un admin mirando su propia semana**, no un empleado.
+
+Eso no quita el fallo —la cifra estaba mal para quien la viera, y volvería a estar mal para el empleado el día que se revise
+D-489—, pero sí cambia a quién afectaba. Se anota aquí porque el hallazgo se citará por su título; el documento de la
+auditoría no se ha reescrito (se corrige con una nota, no reescribiendo, regla 2 de la documentación).
+
+### Qué se decidió
+
+**Una sola aritmética, en `src/lib/timetracker/total-de-nomina.ts`**, pura y sin React, tres funciones:
+
+- `sumaDeAjustes(list)` — el `adjOf` de Informes, movido tal cual: un bono suma, una deducción (importe negativo) resta.
+- `totalConAjustes(base, list)` — **la única suma del cálculo**: `base + sumaDeAjustes(list)`. La base la decide la pantalla
+  (el `total` de un lote cerrado, o el pago calculado de un grupo abierto); que se sumen los ajustes, no.
+- `totalPagado(lote)` — `totalConAjustes(lote.total || 0, lote.adjustments)`: la respuesta que las dos pantallas tienen que
+  dar para la misma fila.
+
+«Mi semana» suma lo pagado con `totalPagado`. Informes llama a `totalPagado` para un lote cerrado y a `totalConAjustes` para
+un grupo abierto, en los tres sitios que daban el total de un grupo, y a `sumaDeAjustes` donde necesita el ajuste por
+separado (la columna del CSV, el «incl. ajustes» de la tarjeta). Un lote cerrado pasa por la **misma función** en las dos
+pantallas: es lo que ata las dos cifras, no un comentario que diga que son espejo.
+
+### Lo que NO cambia
+
+**Lo que ve el gerente, nada.** Las fórmulas se movieron con sus `|| 0` dentro, y los dos casos raros se conservan a
+propósito:
+
+- El recibo usa `b.total || pay` —no `|| 0`—: un lote sin total cae en las horas calculadas. Sigue igual; lo único compartido
+  ahí es la suma de los ajustes.
+- El total por empleado y el del grupo siguen distinguiendo lote cerrado (su `total`) de grupo abierto (el pago calculado).
+
+Tampoco se tocan `payroll.ts` ni `mgrScope.ts`: la mitad de T-3 es que nadie los ejecutaba, y para ejecutarlos no hacía falta
+cambiarlos. Cero líneas de los dos.
+
+### Lo que se deja medido y NO se arregla
+
+Tres cosas, con su número, para que quien decida no tenga que redescubrirlas:
+
+1. **Un importe que no es un número envenena el total del grupo.** `Number(a.amount || 0)` da `NaN` si el jsonb trae texto no
+   numérico, el `NaN` se arrastra, y `money()` lo pinta **«0.00»** porque `NaN || 0` es `0`. Viene del `adjOf` original. Está
+   probado como defecto (una prueba afirma el `NaN`), y arreglarlo cambiaría la cifra del gerente, que es la que hoy está
+   bien: no se toca en esta tanda.
+2. **«Pago estimado» de «Mi semana» no suma los ajustes del borrador**, y el grupo abierto de Informes sí
+   (`totalConAjustes(pay, adjs)` con los ajustes del borrador de ese empleado). Es el mismo desajuste de C-2 un paso más
+   arriba, pero en una cifra que C-2 no cita y que es otra pregunta («lo estimado de las horas» frente a «el total del grupo
+   abierto»): se deja como está, dicho aquí y sin tocar.
+3. **La guarda de entrada abierta de `entryMinutes` no decide nada por su valor de retorno.** Medido: `new Date(null)` es la
+   época, así que sin la guarda la resta sale muy negativa y el `Math.max(0, …)` la deja en 0 igualmente — el mismo 0. Quien
+   sí decide sobre las entradas abiertas es `summarize`, con su `openCount` y su `continue`, y eso sí tiene prueba y mutante.
+   La guarda se queda (documenta la intención y evita una cuenta absurda), pero no se le inventa un mutante que no existe.
+
+### La aritmética de fichaje que no tenía pruebas (T-3)
+
+Dos módulos que el auditor marcó export por export, y que ahora se **ejecutan**, no se citan:
+
+- **`src/lib/clockin/payroll.ts`** — la aritmética que comparten la pantalla de hojas de horas, el CSV, el XLSX y el marcador
+  de asistencia. La regla del almuerzo es la que no tenía ni una prueba: **una pausa fichada** (fila de `exceptions` con
+  `reason=lunch` y `time_entry_id`) **manda sobre la columna heredada `lunch_minutes`**, que solo es el respaldo de las
+  entradas sin pausa fichada. Los casos van en los dos sentidos: con fila y sin ella, con la columna diciendo lo contrario
+  (15 fichados contra 60 heredados, y 75 contra 30, para que no se lea como «se elige la menor»), dos pausas el mismo día
+  que se suman, filas a medias, una pausa de duración cero —que no cuenta, y por eso no desplaza al respaldo— y una pausa
+  fichada de **0 minutos** que sí es un dato y gana al 30 de la columna, que es la diferencia entre `??` y `||` y vale dinero.
+- **`src/lib/clockin/mgrScope.ts`** — `canManageEmployee` e `isPeriodLocked`, que es justo lo que S-3 se salta por la base.
+  Lo único que había era un grep que comprueba que otros ficheros las **mencionan**. Se ejecutan con una base de mentira que
+  **filtra de verdad y proyecta solo las columnas pedidas**: si una de las dos se dejara un `.eq` o una columna del `select`,
+  una base que devuelve siempre la primera fila entera contestaría bien igual y la prueba no mediría nada. Datos que
+  contradicen: empleados de otra tienda y de otra empresa (ni el dueño puede con esos), un gerente sin tienda (D-237),
+  tiendas concedidas (089), alguien sin tienda, alguien que no existe, un período firmado y uno abierto, y una firma de otra
+  empresa que no cierra la mía.
+
+### Pruebas y mutantes
+
+**51 pruebas nuevas** en tres ficheros: `src/lib/timetracker/total-de-nomina.test.ts` (18), `src/lib/clockin/payroll.test.ts`
+(20) y `src/lib/clockin/mgrScope.test.ts` (13). Las horas de las entradas se escriben con la `Z` puesta, para que el
+resultado no dependa de la zona de quien corre.
+
+**Mutantes: 24, caen los 24**, cada uno con una prueba con nombre. El total (7): la suma de los ajustes deja de sumar · un
+ajuste sin importe envenena el total (se cae el `|| 0`) · el total pasa a ser la base sin ajustes · un lote sin total vale 0
+en vez de su ajuste suelto · **«Mi semana» vuelve a sumar solo el `total`** (el fallo de C-2, en la pantalla) · la tarjeta del
+grupo de Informes se escribe otra vez su propia fórmula · el total por empleado deja de pasar por la lib. El almuerzo y las
+horas (10): la columna heredada manda sobre la pausa fichada · una pausa de 0 se lee como «no hay dato» (`??` por `||`) · el
+almuerzo puede salir negativo · sin pausa fichada el campo queda en 0 y tapa al respaldo · dos pausas se quedan en la última
+· una pausa de duración cero cuenta · una fila a medias cuenta · el almuerzo deja de descontarse · una entrada abierta se
+cuenta como trabajada · las extras empiezan a las 35 y no a las 40. Los permisos (7): deja de comprobar la empresa · el dueño
+pasa a no poder con nadie · las tiendas concedidas dejan de contar · al gerente le basta que el empleado tenga tienda · no se
+lee la tienda del empleado · el cierre se busca sin mirar la empresa · un período sin firmar sale como cerrado.
+
+### Dónde está
+
+`src/lib/timetracker/total-de-nomina.ts` (las tres funciones y el por qué); `src/components/timetracker/ManagerReports.tsx`
+(los cinco sitios que tenían la fórmula a mano, y sin su `adjOf`); `src/app/timetracker/(timetracker)/week/page.tsx` (el
+`reduce` de lo pagado).
+
+### No verificado
+
+- **Nada en un navegador, ni con sesión, ni contra producción.** Ninguna cifra se ha visto en pantalla: lo medido es la
+  función y, leyendo el fuente, que las dos pantallas la llaman. En particular **no** se ha abierto «Mi semana» de un admin
+  con un lote pagado que tenga ajustes, que es el caso exacto de C-2.
+- **Cuántas filas de `payrolls` tienen hoy ajustes, y de qué signo.** Pide una consulta a producción que no se hizo, así que
+  no se sabe a cuánta gente le cuadraba mal la cifra ni por cuánto.
+- **La suite entera no se corrió** (la máquina tenía otras dos sesiones compilando): se corrieron los tres ficheros nuevos,
+  los cuatro que leen como texto los ficheros tocados (`vista-empleado`, `tienda-y-puesto`, `i18n`, `clockin/sin-tienda`) y
+  los tres que recorren `src` entero (`banner-panel-providers`, `botones-apagados`, `inline-colors`). Tipos y `eslint`,
+  limpios. **`next build` no se corrió.**
+- **Ninguna prueba nueva lee `src/app/timetracker/clock-in/actions/**`**, aunque es quien llama a `mgrScope`: esa carpeta la
+  estaba cambiando otra rama a la vez y una aserción de texto sobre ella habría medido un fichero en movimiento. El grep que
+  ya existe (`clockin/sin-tienda.test.ts`) sigue cubriendo que esos ficheros la mencionan.
