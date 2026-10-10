@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub",
-  "version": "1.376.0",
+  "version": "1.377.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
