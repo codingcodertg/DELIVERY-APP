@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import RoutesPage from "@/app/(app)/routes/page";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { canDeliver } from "@/lib/constants";
 import { SoloLectura } from "@/lib/gestor/solo-lectura";
 import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
+import { choferDelMapa } from "@/lib/gestor/chofer-del-mapa";
 
 // ============================================================
 // «🗺 El mapa de mi ruta» (D-506) — el MISMO mapa del Gestor de Rutas, con SUS rutas.
@@ -29,10 +31,15 @@ import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
 // la vista de mapa del Gestor, que allí no había. Desde aquí no se cierra ninguna parada — para eso se vuelve.
 // ============================================================
 export default function MiMapaPage() {
-  const { me } = useData();
+  const { me, users } = useData();
   const { t } = usePrefs();
+  const searchParams = useSearchParams();
+  // De quién es este mapa (D-508). Va en la URL porque el enlace cruza de pantalla y el contexto de React no viaja con
+  // él. Quién puede pedir el de OTRO no lo decide el enlace: lo vuelve a decidir aquí `choferDelMapa`, con la misma
+  // regla que abre la pestaña «Chofer» (D-502). Quien no pueda, recibe el suyo.
+  const delMapa = choferDelMapa(me, searchParams.get("chofer"), users);
 
-  if (!me) return null;
+  if (!me || !delMapa) return null;
   // La misma puerta que «Mi ruta»: esta pantalla es la suya, en mapa. Almacén tiene su propia Ruta del día (D-380).
   if (!canDeliver(me) || me.role === "warehouse") {
     return <div className="empty">{t("Not available for your role.", "No disponible para tu rol.")}</div>;
@@ -44,8 +51,14 @@ export default function MiMapaPage() {
         <Link className="btn btn-ghost btn-sm" data-volver-a-mi-ruta href="/my-route">
           ◀ {t("My route", "Mi ruta")}
         </Link>
+        {/* De quién es, cuando no es la propia: el admin revisando la pestaña «Chofer» tiene que saber a quién mira. */}
+        {delMapa.id !== me.id && (
+          <span className="hint" style={{ marginLeft: 8 }}>
+            {t(`Route of ${delMapa.full_name}`, `Ruta de ${delMapa.full_name}`)}
+          </span>
+        )}
       </div>
-      <SoloMisRutas chofer={me.full_name}>
+      <SoloMisRutas chofer={delMapa.full_name}>
         <SoloLectura><RoutesPage /></SoloLectura>
       </SoloMisRutas>
     </>

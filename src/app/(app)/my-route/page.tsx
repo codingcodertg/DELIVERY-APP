@@ -310,11 +310,15 @@ export default function MyRoutePage() {
       </div>
       {/* «🗺 El mapa de mi ruta» (D-506): el MISMO mapa del Gestor de Rutas —panel, paradas, Cuadrícula y Horario— acotado a
           SUS rutas, en `/my-route/mapa`. De aquí no se quita nada: allí solo se mira, y lo que cierra una parada sigue
-          estando solo aquí. No sale al mirar la ruta de OTRO (la pestaña «Chofer» del admin, D-502): el enlace abriría el
-          mapa de quien mira, no el del chofer elegido. */}
-      {!ajeno && (
+          estando solo aquí.
+
+          D-508: también sale al mirar la ruta de OTRO (la pestaña «Chofer» del admin, D-502), y entonces lleva SU id.
+          D-506 lo escondía ahí para que no abriera el mapa de quien mira, y el efecto fue que el admin —que es quien
+          revisa esa pestaña— no veía el mapa nuevo por ninguna parte: «aun miro el mismo mapa en drivers». Quién puede
+          abrir el de otro lo decide `choferDelMapa` en la propia pantalla del mapa, no este enlace. */}
+      {(
         <div style={{ marginBottom: 8 }}>
-          <Link className="btn btn-ghost btn-sm" data-mapa-de-mi-ruta href="/my-route/mapa">
+          <Link className="btn btn-ghost btn-sm" data-mapa-de-mi-ruta href={ajeno ? `/my-route/mapa?chofer=${ajeno.id}` : "/my-route/mapa"}>
             🗺 {t("Route map", "Mapa de mi ruta")}
           </Link>
         </div>

@@ -39668,6 +39668,9 @@ permanente, y la que no se respetó al verificar D-172.
 
 ## D-506 · El chofer mira EL MISMO mapa del Gestor de Rutas, acotado a SUS rutas, desde «Mi ruta»
 
+> **⚠ Corregida por D-508** (2026-10-10, el mismo día): esconder el enlace al mirar la ruta de otro dejaba al admin
+> —que revisa la vista del chofer por esa pestaña— sin poder abrir el mapa nuevo por ningún camino.
+
 **Fecha:** 2026-10-10 · **Versión:** Entregas 1.276.0, repo 1.376.0 · **Sin migración.** · Rama `chofer-mapa-del-gestor`.
 
 **Pedido del dueño**, literal: *«drivers view needs to look like to logistic manager view with the
@@ -39903,3 +39906,55 @@ sigue en Reciente» y «se aplica cada vez, pisando lo que pulse la persona».
 
 - **Nada abierto en un navegador con sesión de ventas.**
 - Cuánto tarda en abrir para un vendedor real, que es justo lo de arriba.
+
+## D-508 · El mapa del Gestor también se abre para el chofer que el admin está mirando
+
+**Fecha:** 2026-10-10 · **Versión:** Entregas 1.278.0, repo 1.378.0 · **Sin migración.**
+**Reportado por el dueño**, literal, al probar D-506: *«aun miro el mismo mapa en drivers»*.
+
+### Qué estaba mal, y era mío
+
+D-506 escondió el enlace al mapa nuevo cuando se mira la ruta de OTRO —la pestaña «Chofer» del admin (D-502)—, con
+un motivo razonable: el enlace llevaba a `/my-route/mapa`, que se acotaba a `me.full_name`, así que habría abierto
+el mapa de **quien mira**, no el del chofer elegido.
+
+El efecto no lo vi: **el dueño es admin**, y la forma en que él revisa la vista del chofer es justamente esa
+pestaña. O sea que la pantalla que pidió existía y él no podía llegar a ella por ningún camino. Pidió «la vista del
+chofer» y se le entregó algo que solo ve un chofer.
+
+### Qué cambia
+
+El enlace sale siempre, y cuando se mira la ruta de otro lleva su id (`?chofer=<id>`). **Quién puede abrir el de
+otro no lo decide el enlace**: lo vuelve a decidir la pantalla del mapa con `choferDelMapa`
+(`src/lib/gestor/chofer-del-mapa.ts`), usando la misma regla que abre la pestaña «Chofer»
+(`pestanaChoferEsRutaDeUnChofer`, hoy solo el admin). Quien pida una ruta que no le toca **recibe la suya**, no un
+error: pedir lo que no te corresponde no es un fallo que haya que explicar.
+
+Va en la URL y no en un contexto de React porque el enlace cruza de pantalla y el contexto no viaja con él. Por eso
+el permiso se recomprueba en destino: **una URL es una petición, no una credencial.**
+
+Arriba del mapa, cuando no es la propia, se dice de quién es.
+
+### Lo que no cambia
+
+El acotado sigue yendo en el **origen** de los datos (D-506): órdenes, carriles, camiones en vivo y avisos. Una
+orden de otro chofer no llega a la página. Y sigue sin revertir D-494: no hay pestaña nueva ni se ven las rutas de
+todos.
+
+### Verificado
+
+`chofer-del-mapa.test.ts`, con **dos** choferes y el pedido apuntando al segundo: si la función devolviera siempre
+el primero de la lista, o siempre el propio, caería una de las dos pruebas. Los roles que no pueden se recorren
+desde `ROLE_ORDER` en vez de escribirlos a mano. Tres mutantes caen por nombre: «cualquiera puede pedir el de otro»,
+«devuelve el primero de la lista» y «el mapa vuelve a acotarse a quien mira».
+
+**Un cuarto mutante sobrevivió y resultó ser código de sobra, no una prueba floja:** el atajo `id === me.id` daba el
+mismo resultado que el camino largo, así que se quitó en vez de inventarle una prueba.
+
+Las dos pruebas de D-506 que fijaban lo contrario —el enlace escondido y el acotado a `me`— se reescribieron con su
+motivo al lado.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador con la pestaña «Chofer» de un admin**, que es justo el caso que esto arregla.
+- Sigue en pie lo de D-506: el acotado es de pantalla; la base no lo respalda (S-9 de la auditoría).
