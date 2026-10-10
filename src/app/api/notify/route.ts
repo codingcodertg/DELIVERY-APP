@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { emailConfigured } from "@/lib/email";
 import { proveedorReal } from "@/lib/mensajeria";
 
-import { requireUser } from "@/lib/api-auth";
+import { requireDeliveries } from "@/lib/api-auth";
 
 // ============================================================
 // Outbound customer notifications (#21) — email / SMS at key delivery stages.
@@ -34,7 +34,9 @@ interface NotifyBody {
 // right send path and show accurate guidance.
 export async function GET() {
   // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
-  const auth = await requireUser();
+  // Y sin el módulo de Entregas tampoco (D-505): quién puede mandar, y qué proveedor hay puesto,
+  // es cosa de Entregas — la pantalla que lo pregunta solo existe dentro de una ficha de orden.
+  const auth = await requireDeliveries();
   if (!auth.ok) return auth.response;
 
   const ringcentral = !!(process.env.RINGCENTRAL_CLIENT_ID && process.env.RINGCENTRAL_JWT && process.env.RINGCENTRAL_FROM);
@@ -47,8 +49,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
-  const auth = await requireUser();
+  // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet. Y sin el módulo de
+  // Entregas tampoco (D-505): esto manda un SMS o un correo DE VERDAD, desde el número y el
+  // dominio de la empresa, y hasta ahora valía cualquier sesión — la de quien solo ficha incluida.
+  const auth = await requireDeliveries();
   if (!auth.ok) return auth.response;
 
   let body: NotifyBody;
