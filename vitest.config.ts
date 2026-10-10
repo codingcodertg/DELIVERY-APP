@@ -21,6 +21,11 @@ export default defineConfig({
     // `tracker/` vive fuera de `src/` —es una herramienta, no la app— pero sus pruebas corren en la
     // misma suite a propósito: una herramienta que CI no vigila se pudre sin que nadie se entere, y
     // esta guarda la regla de que «Completado» no se pone solo.
-    include: ["src/**/*.test.ts", "tracker/**/*.test.mjs"],
+    //
+    // `scripts/` entra por lo mismo (D-512), y con más motivo: ahí vive lo que decide si una
+    // migración se aplica a producción. Los dos errores que paga ese guarda —la 124 aplicándose en
+    // un ensayo con ROLLBACK, y un checksum declarado que dejó de ser el del cuerpo— ya pasaron de
+    // verdad, y una herramienta que nadie vigila los deja volver.
+    include: ["src/**/*.test.ts", "tracker/**/*.test.mjs", "scripts/**/*.test.mjs"],
   },
 });
