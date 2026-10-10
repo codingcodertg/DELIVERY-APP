@@ -9,6 +9,12 @@ import { APP_VERSIONS } from "@/lib/app-versions";
 import { telClean } from "@/lib/utils";
 import Link from "next/link";
 import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
+import {
+  conAyudaOculta, falloDeCaptura, mensajeDeFalloDeCaptura, soportaCaptura, validaCaptura, type Rect,
+} from "@/lib/help-captura";
+import {
+  EditorDeCaptura, esperaUnRepintado, ficheroDeCaptura, tomaFotograma, type FotogramaDeCaptura,
+} from "@/components/CapturaDeAyuda";
 import { enviaSolicitudDeAyuda } from "@/lib/help-send";
 import { RUTA_MIS_SOLICITUDES } from "@/lib/help-thread";
 import type { Profile } from "@/lib/types";
@@ -29,18 +35,69 @@ export function HelpButton({ me }: { me: Profile }) {
   // Documentos y fotos (D-284): se eligen aquí, se suben al cubo privado al enviar, y al correo van
   // sus enlaces firmados. Lo que se acepta lo dice `help-attachments`, el mismo sitio que mira la ruta.
   const [ficheros, setFicheros] = useState<File[]>([]);
+  // La captura de pantalla (D-NEXT). `ocultoParaCapturar` esconde Ayuda ENTERA mientras se toma la
+  // foto; `fotograma` es la captura esperando a que se señale el problema.
+  const [ocultoParaCapturar, setOcultoParaCapturar] = useState(false);
+  const [fotograma, setFotograma] = useState<FotogramaDeCaptura | null>(null);
+  const [adjuntando, setAdjuntando] = useState(false);
 
   const to = settings.help_email?.trim() || DEFAULT_HELP_EMAIL;
+  // Un navegador viejo, o un móvil, no sabe capturar: entonces no se ofrece y se dice por qué. Se mide,
+  // no se adivina por el agente de usuario. Solo se lee dentro del panel, que nunca se pinta en el
+  // servidor (nace cerrado), así que no hay nada que hidratar distinto.
+  const puedeCapturar = soportaCaptura(typeof navigator === "undefined" ? null : navigator);
 
-  const close = () => { if (!busy) { setOpen(false); setMsg(""); setFicheros([]); } };
+  const close = () => { if (!busy) { setOpen(false); setMsg(""); setFicheros([]); setFotograma(null); } };
 
-  const eligeFicheros = (lista: FileList | null) => {
-    const elegidos = [...(lista ?? [])];
+  const agregaFicheros = (elegidos: File[]) => {
     if (!elegidos.length) return;
     const juntos = [...ficheros, ...elegidos];
     const fallo = validaAdjuntos(juntos);
     if (fallo) { notify(mensajeDeAdjunto(fallo, t)); return; }
     setFicheros(juntos);
+  };
+
+  const eligeFicheros = (lista: FileList | null) => agregaFicheros([...(lista ?? [])]);
+
+  /**
+   * «Sin que la parte de help aparezca»: Ayuda se deja de dibujar —el panel **y** el botón flotante—,
+   * se espera a que el navegador haya repintado sin ella, y solo entonces se pide la pantalla. El orden
+   * y el regreso viven en `conAyudaOculta`, con sus pruebas; esto son los cuatro cables.
+   *
+   * El diálogo del navegador es inevitable: capturar la pantalla exige un gesto y su propia
+   * confirmación. Si se cancela, no pasa nada: se dice y queda el camino de adjuntar a mano.
+   */
+  const capturaPantalla = async () => {
+    if (!puedeCapturar) { notify(mensajeDeFalloDeCaptura("no-soportado", t)); return; }
+    try {
+      setFotograma(await conAyudaOculta({
+        esconde: () => setOcultoParaCapturar(true),
+        esperaUnRepintado,
+        captura: tomaFotograma,
+        devuelve: () => setOcultoParaCapturar(false),
+      }));
+    } catch (e) {
+      notify(mensajeDeFalloDeCaptura(falloDeCaptura(e), t));
+    }
+  };
+
+  /** Lo que se adjunta es la imagen con el recuadro ya pintado, y entra por la misma puerta que un
+   *  fichero elegido a mano: las mismas reglas, el mismo cubo, el mismo correo. */
+  const adjuntaCaptura = async (recuadro: Rect | null) => {
+    const tomada = fotograma;
+    if (!tomada) return;
+    setAdjuntando(true);
+    try {
+      const imagen = await ficheroDeCaptura(tomada, recuadro, new Date());
+      const malo = validaCaptura(imagen);
+      if (malo) { notify(mensajeDeAdjunto(malo, t)); return; }
+      agregaFicheros([imagen]);
+      setFotograma(null);
+    } catch (e) {
+      notify(mensajeDeFalloDeCaptura(falloDeCaptura(e), t));
+    } finally {
+      setAdjuntando(false);
+    }
   };
 
   const send = async () => {
@@ -74,6 +131,13 @@ export function HelpButton({ me }: { me: Profile }) {
       notify(t("Couldn't send — please try again.", "No se pudo enviar — intente de nuevo."));
     }
   };
+
+  // Ayuda fuera de la foto, en una sola línea: mientras se captura, este componente no dibuja NADA —ni
+  // el botón flotante, ni el panel, ni el editor—. No se le baja la opacidad ni se saca con CSS: lo que
+  // no está en el DOM no puede salir en el fotograma. Una condición, y no cuatro, para que no se quede
+  // una pieza dentro. El estado —el mensaje a medio escribir, los adjuntos— sobrevive: devolver `null`
+  // no desmonta el componente.
+  if (ocultoParaCapturar) return null;
 
   return (
     <>
@@ -131,6 +195,28 @@ export function HelpButton({ me }: { me: Profile }) {
                   `Hasta ${LIMITES_DE_ADJUNTOS.maxFicheros} archivos de ${Math.round(LIMITES_DE_ADJUNTOS.maxBytes / (1024 * 1024))} MB. Viajan como enlaces privados que caducan.`,
                 )}
               </div>
+              {/* La captura de la pantalla (D-NEXT). Es una forma más de llenar esta misma lista de
+                  adjuntos: no hay un camino aparte ni un cubo aparte. */}
+              {puedeCapturar ? (
+                <>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ marginTop: 8 }}
+                    disabled={busy}
+                    onClick={capturaPantalla}
+                  >
+                    📸 {t("Capture this screen", "Capturar esta pantalla")}
+                  </button>
+                  <div className="hint">
+                    {t(
+                      "Help disappears from the screen while the photo is taken, so it won't be in it. Your browser will ask what to share — that's its own dialog and we can't skip it.",
+                      "Ayuda desaparece de la pantalla mientras se toma la foto, así que no sale en ella. El navegador le preguntará qué compartir — ese diálogo es suyo y no se puede saltar.",
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="hint">{mensajeDeFalloDeCaptura("no-soportado", t)}</div>
+              )}
               {ficheros.length > 0 && (
                 <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "grid", gap: 4 }}>
                   {ficheros.map((f, i) => (
@@ -162,6 +248,18 @@ export function HelpButton({ me }: { me: Profile }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Señalar el problema. Va encima del panel y el panel se queda detrás con el mensaje intacto. */}
+      {fotograma && (
+        <EditorDeCaptura
+          fotograma={fotograma}
+          t={t}
+          ocupado={adjuntando}
+          onUsar={adjuntaCaptura}
+          onDescartar={() => setFotograma(null)}
+          onDeNuevo={() => { setFotograma(null); void capturaPantalla(); }}
+        />
       )}
     </>
   );

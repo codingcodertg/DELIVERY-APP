@@ -39958,3 +39958,127 @@ motivo al lado.
 
 - **Nada abierto en un navegador con la pestaña «Chofer» de un admin**, que es justo el caso que esto arregla.
 - Sigue en pie lo de D-506: el acotado es de pantalla; la base no lo respalda (S-9 de la auditoría).
+
+## D-NEXT · Una captura de la pantalla desde Ayuda, con un recuadro sobre el problema, y Ayuda fuera de la foto
+
+**Fecha:** 2026-10-10 · **Sin migración.**
+**Pedido por el dueño**, literal: *«quiero hacer una opcion de help que sea como un snipping tool para poder agregar
+screenshots directo de la app que ellos en help apretene eso y automticamnete sin que la parte de help aparezca le
+tomen foto y enfoquen donde esta el priblema y se suba al help request hagamos eso»*.
+
+Dentro del panel de Ayuda, junto a «Fotos o documentos», hay **📸 Capturar esta pantalla**. Al pulsarlo Ayuda
+desaparece de la pantalla, el navegador pregunta qué compartir, se toma **un** fotograma, y vuelve el panel con la
+captura en un editor: se **arrastra un recuadro** sobre lo que está mal y se adjunta. La imagen que se sube es el
+fotograma **con el recuadro ya pintado**, en PNG, y entra en la misma lista de adjuntos que un fichero elegido a
+mano.
+
+### Se captura la pantalla de verdad, no el DOM dibujado en un lienzo
+
+La otra forma de hacer esto es recorrer el DOM y repintarlo en un `<canvas>` (`html2canvas` y los suyos). No se
+eligió, y el motivo es concreto: **así el mapa sale en blanco**. Google Maps y Leaflet no pintan HTML, pintan en su
+propio contexto, y una copia del DOM no lo lee. El mapa es justo donde está la mitad de lo que la gente reporta en
+este app, así que una captura que no lo incluya no sirve para lo que se pidió. Tampoco se instaló ninguna librería:
+esto se hace con `navigator.mediaDevices.getDisplayMedia`, que ya está en el navegador.
+
+### El diálogo del navegador no se puede saltar, y eso no es un fallo
+
+El dueño pidió que sea *«automáticamente»*. Hasta donde se puede, lo es: no hay que elegir carpeta, ni abrir una
+herramienta aparte, ni volver a adjuntar nada a mano. Lo que **no** se puede quitar es que, por diseño del
+navegador, capturar la pantalla exige **un gesto de la persona** y enseña **su propio diálogo** con la lista de
+pantallas, ventanas y pestañas. Ninguna página web puede fotografiar la pantalla sin pasar por ahí, y una que
+pudiera sería un agujero de seguridad. Con `preferCurrentTab: true` el diálogo **propone esta pestaña**, que es la
+que tiene el problema, así que lo normal son dos clics; proponer, no imponer, porque a veces el problema está en
+otra ventana.
+
+Queda dicho aquí para que no se intente rodear más adelante: no se rodea.
+
+Si la persona cierra ese diálogo —`NotAllowedError`, o `AbortError` si lo corta el sistema— **no se cuenta como
+avería**: se dice «captura cancelada» y el panel sigue en pie, con el mensaje a medio escribir intacto y el camino
+de siempre disponible. Si el navegador no sabe capturar (uno viejo, o un móvil), **el botón no se ofrece** y en su
+sitio hay una frase que lo explica y manda a adjuntar una foto. Se **mide**, no se adivina por el agente de
+usuario: `typeof navigator.mediaDevices?.getDisplayMedia === "function"`.
+
+### Ayuda no sale en la foto, y por eso es UNA línea
+
+La garantía que pidió explícitamente —*«sin que la parte de help aparezca»*— es esta línea de `HelpButton`:
+
+```
+if (ocultoParaCapturar) return null;
+```
+
+Mientras se captura, el componente **no dibuja nada**: ni el panel, ni el botón flotante, ni el editor. Dos cosas
+que se descartaron a propósito:
+
+- **Esconderlo con CSS** (`display:none`, opacidad, sacarlo de la ventana). Lo que está en el DOM puede salir en el
+  fotograma, porque lo que se fotografía es la pantalla, no el DOM; y una regla de CSS que no gane a otra falla en
+  silencio.
+- **Esconder pieza por pieza.** Son tres sitios hoy y serán cuatro mañana, y el que se quede fuera sale en la foto
+  sin que nadie se entere. Una condición, delante del único `return`, no se puede quedar a medias.
+
+Devolver `null` **no desmonta el componente**, así que el mensaje a medio escribir y los adjuntos ya elegidos
+sobreviven a la captura.
+
+El **orden** es la otra mitad de la garantía, y vive en `conAyudaOculta` (`src/lib/help-captura.ts`): se esconde, se
+espera a que el navegador haya **repintado** sin Ayuda (dos `requestAnimationFrame`), y solo entonces se pide la
+pantalla. Sin esa espera se pediría la captura en el mismo tic en que React aún no ha pintado el cambio. Y devolver
+Ayuda va en `finally`: si el diálogo se cancela o la captura revienta, el panel **vuelve igual**. Las dos cosas
+—el orden y el regreso— tienen prueba y mutante.
+
+### Por dónde sube: por donde ya subía
+
+No hay cubo nuevo, ni ruta nueva, ni migración. La captura se convierte en un `File` y se mete en la **misma** lista
+`ficheros` que el `<input type="file">`, por la **misma** función (`agregaFicheros`, con `validaAdjuntos` dentro), y
+de ahí sigue el camino de D-284 y D-311: `enviaSolicitudDeAyuda` → cubo privado `help-files` (migración 119) →
+`/api/help`, que firma el enlace y lo pone en el correo. `src/app/api/help/route.ts` **no se tocó**.
+
+Lo que sí se comprueba antes de subir, en `validaCaptura`: 10 MB y PNG/JPEG, que es lo que acepta el cubo. Y por eso
+el fotograma se **encoge a 1920 px por el lado largo** (nunca se agranda): una pantalla 4K en PNG se acerca al tope
+de 10 MB, y a 1920 el texto de la app sigue leyéndose, que es para lo que sirve la foto.
+
+### Lo que no se hizo, a propósito
+
+Un recuadro y nada más: no hay flechas, ni texto, ni resaltado, ni borrador. Se puede rehacer (arrastrar otra vez
+reemplaza el que haya), quitar («Quitar recuadro») o volver a capturar. El recuadro es **opcional**: se pidió poder
+señalar, no obligar a señalar. Un arrastre de menos de 8 px es un clic, no un recuadro, para que pulsar sin querer
+no deje una marca.
+
+El recuadro se guarda en píxeles del fotograma y se pinta encima en **porcentajes**, no en píxeles de la vista: la
+imagen se reescala con la ventana y el modal, y un recuadro en píxeles de vista se iría de sitio al girar el
+teléfono.
+
+### Verificado
+
+`src/lib/help-captura.test.ts` (30 pruebas) mide **todo lo que decide**, sin abrir un navegador: el arrastre en las
+cuatro direcciones da el mismo rect; el acotado a la imagen; el mínimo de 8 px; el escalado por cada eje con
+proporciones distintas (×2 en x, ×3 en y, para que un eje no pueda tapar al otro); el encogido a 1920 y que **nunca
+agranda**; los porcentajes de cada lado contra su propio eje; el nombre, que pasa **intacto** por `nombreSaneado` y
+que `validaAdjuntos` acepta como un adjunto cualquiera; que los tipos de la captura son un **subconjunto** de los
+del cubo y no una lista paralela; que cancelar se reconoce **antes** de mirar nuestro propio error; y el orden
+completo de `conAyudaOculta`, incluido que Ayuda vuelve cuando la captura falla.
+
+Lo que se pinta se mide renderizando los componentes (`renderToStaticMarkup`): el recuadro en porcentajes, y que el
+editor abre sin recuadro con «Quitar recuadro» apagado y «Adjuntar» encendido.
+
+**18 mutantes, y caen los 18 con una prueba con nombre.** Entre ellos los tres que importan aquí: «Ayuda se queda
+pintada mientras se toma la foto», «se captura sin esperar a que el navegador repinte sin Ayuda» y «Ayuda no vuelve
+si la captura se cancela o revienta». Y uno que vigila la puerta de entrada: «la captura se mete en la lista sin
+pasar por las reglas de los adjuntos».
+
+### Lo no verificado
+
+- **Nada abierto en un navegador. No hay ni una captura real tomada.** `getDisplayMedia`, el `<video>`, el lienzo y
+  el blob —o sea, la foto— no se prueban en vitest y **no se finge** que sí: no hay dobles de esas APIs. Lo que está
+  medido es el contorno; lo de dentro, no.
+- Y en particular: **que el panel no aparezca en una foto real está razonado, no fotografiado.** El razonamiento es
+  que un componente que devuelve `null` no deja DOM, y el orden está medido. Falta mirarlo.
+- No se midió en este worktree porque la máquina tenía **978 MB de RAM libres de 7980** con cuatro sesiones más
+  trabajando, y levantar `next dev` ahí se las habría llevado por delante.
+- Receta para medirlo sin disparar nada: en el demo, sustituir `navigator.mediaDevices.getDisplayMedia` por un
+  doble que (a) apunte si el panel de Ayuda sigue en el DOM en el momento de la llamada —tiene que estar fuera— y
+  (b) devuelva el `captureStream()` de un lienzo pintado a mano. Con eso se recorre el camino entero —vídeo, lienzo,
+  blob, `File`, lista de adjuntos— sin diálogos, sin fotografiar la pantalla de nadie y sin tocar el cubo.
+- **No está medido cuánto pesa un PNG de 1920 de esta app.** El tope de 10 MB se comprueba, y si se pasa se avisa y
+  no se sube; pero si resultara que una captura normal se acerca al tope, lo que hay que bajar es `MAX_LADO_DE_CAPTURA`
+  o pasar a JPEG, y eso no se decide sin el número.
+- La captura solo está en el panel de Ayuda de Entregas (`HelpButton`). **«Mis solicitudes» del hub, que también
+  abre solicitudes (D-311), no la tiene**: no se pidió y no se añadió.
