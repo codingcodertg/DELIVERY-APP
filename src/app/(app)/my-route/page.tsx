@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -307,6 +308,17 @@ export default function MyRoutePage() {
           <button key={d} className={`vt${desfase === d && !verAtrasadas ? " on" : ""}`} onClick={() => { setVerAtrasadas(false); setDesfase(d); }}>{rotulo}</button>
         ))}
       </div>
+      {/* «🗺 El mapa de mi ruta» (D-NEXT): el MISMO mapa del Gestor de Rutas —panel, paradas, Cuadrícula y Horario— acotado a
+          SUS rutas, en `/my-route/mapa`. De aquí no se quita nada: allí solo se mira, y lo que cierra una parada sigue
+          estando solo aquí. No sale al mirar la ruta de OTRO (la pestaña «Chofer» del admin, D-502): el enlace abriría el
+          mapa de quien mira, no el del chofer elegido. */}
+      {!ajeno && (
+        <div style={{ marginBottom: 8 }}>
+          <Link className="btn btn-ghost btn-sm" data-mapa-de-mi-ruta href="/my-route/mapa">
+            🗺 {t("Route map", "Mapa de mi ruta")}
+          </Link>
+        </div>
+      )}
 
       {/* El orden planeado por el motor, si hay un plan publicado de hoy (D-324). Solo informa: lo que se
           hace sigue saliendo de las órdenes asignadas, abajo. */}
