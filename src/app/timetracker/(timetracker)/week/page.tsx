@@ -52,7 +52,7 @@ export default function MyWeekPage() {
   const weekSessions = sessions.filter((s) => weekStartISO(s.date ?? "") === week);
   const weekBatches = batches.filter((b) => b.weekOf === week);
   // `totalPagado` y no `b.total`: el total de la fila son solo las horas, y el bono o la
-  // deducción van aparte en `adjustments` (C-2 de la auditoría del 2026-10-09, D-NEXT). Es la
+  // deducción van aparte en `adjustments` (C-2 de la auditoría del 2026-10-09, D-504). Es la
   // misma función con la que el gerente pinta esa fila en Informes, así que la cifra cuadra.
   const paidTotal = weekBatches.filter((b) => b.paid).reduce((n, b) => n + totalPagado(b), 0);
 

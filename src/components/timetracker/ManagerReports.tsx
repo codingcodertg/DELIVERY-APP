@@ -40,7 +40,7 @@ function fromRange(date: string, from: string, to: string) {
 const paidAtMs = (b: Payroll | null) => (b && b.paidAt ? new Date(b.paidAt).getTime() : 0);
 // El `adjOf` que estuvo aquí —y la suma `total + ajustes` de los cinco sitios de abajo— se ha
 // mudado a `total-de-nomina.ts` sin cambiarla, para que «Mi semana» responda la misma cifra que
-// esta pantalla a la misma pregunta (C-2 de la auditoría del 2026-10-09, D-NEXT).
+// esta pantalla a la misma pregunta (C-2 de la auditoría del 2026-10-09, D-504).
 
 /**
  * Informes y pago, ahora DENTRO de Nómina (D-164).

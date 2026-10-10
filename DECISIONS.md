@@ -39372,9 +39372,9 @@ la siguiente, el ancho de la pista, los dos topes, «Ajustar», el centro, el zo
 - Arrastrar con el dedo en una tableta, con zoom: no probado (sí con el ratón a 1280).
 - Capturas y guiones: `…/scratchpad/horario-zoom/` (fuera del repo).
 
-## D-NEXT · «Cuánto se pagó» se calcula en un solo sitio (`total-de-nomina.ts`), y la aritmética de nómina de fichaje por fin se ejecuta en pruebas
+## D-504 · «Cuánto se pagó» se calcula en un solo sitio (`total-de-nomina.ts`), y la aritmética de nómina de fichaje por fin se ejecuta en pruebas
 
-**Fecha:** 2026-10-10 · **Versión:** la asigna el orquestador al fusionar. · **Sin migración.** · Rama `arreglo-nomina`.
+**Fecha:** 2026-10-10 · **Versión:** Time Tracker 1.00.0, repo 1.374.0 · **Sin migración.** · Rama `arreglo-nomina`.
 
 Sale de dos hallazgos de `docs/AUDIT-2026-10-09.md`: **C-2** (la misma cifra de nómina calculada de dos formas) y **T-3** (la
 aritmética que decide dinero y permisos en fichaje, sin una sola prueba que la llame).

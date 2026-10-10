@@ -1,5 +1,5 @@
 // ============================================================
-// Cuánto se paga: la aritmética del total de nómina, en UN solo sitio (D-NEXT).
+// Cuánto se paga: la aritmética del total de nómina, en UN solo sitio (D-504).
 //
 // La misma pregunta —cuánto se le pagó a esta persona esta semana— se respondía con dos fórmulas
 // distintas: la del gerente (`ManagerReports`) sumaba los ajustes y la de «Mi semana» no.
