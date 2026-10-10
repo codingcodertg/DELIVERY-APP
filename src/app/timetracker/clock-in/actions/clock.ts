@@ -2,7 +2,7 @@
 
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
-import { firstMatch, type GeoSite } from "@/lib/clockin/geofence";
+import { sitioDelFichaje, type ClienteDeSitios } from "@/lib/clockin/sitio-del-fichaje";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
 import { canManageEmployee, type Me } from "@/lib/clockin/mgrScope";
 import { centralShiftMs } from "@/lib/clockin/tz";
@@ -21,13 +21,19 @@ import { centralWallToUtc } from "@/lib/clockin/tz";
 const DEV_BYPASS_GEOFENCE =
   process.env.DEV_BYPASS_GEOFENCE === "1" && process.env.NODE_ENV !== "production";
 
+/**
+ * `onSite` tiene TRES valores, no dos (D-NEXT): `true` en el sitio, `false` fuera, y `null`
+ * cuando la geocerca no se pudo leer. `null` es el mismo «no se midió» que ya escribe un fichaje
+ * puesto a mano por un gerente (`adminClock`, `clock_in_in_radius: null`) y que las pantallas ya
+ * saben leer — avisan con `onSite === false`, nunca con un `null`.
+ */
 export type ClockInResult =
-  | { ok: true; entryId: string; clockInAt: string; onSite: boolean; earlyMin?: number }
+  | { ok: true; entryId: string; clockInAt: string; onSite: boolean | null; earlyMin?: number }
   | { ok: false; code: "needs_reason"; context: "offsite" | "unscheduled" | "other_site" }
   | { ok: false; code: "already_open"; entryId: string; clockInAt: string }
   | { ok: false; code: "not_configured" | "not_signed_in" | "error"; message: string };
 
-export type ClockOutResult = { ok: true; onSite: boolean } | { ok: false; message: string };
+export type ClockOutResult = { ok: true; onSite: boolean | null } | { ok: false; message: string };
 
 type ClockOutInput = {
   // Required: location is recorded on the way OUT as well as IN. The client's
@@ -106,13 +112,20 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
 
   // Server-side geofence: which (if any) active site is this within?
   // Supports polygon (property outline + padding) and circle sites.
-  const { data: sites } = await supabase
-    .from("job_sites")
-    .select("id, latitude, longitude, radius_meters, boundary, padding_meters")
-    .eq("company_id", profile.company_id)
-    .eq("active", true);
-  const siteId = firstMatch(input.lat, input.lng, (sites ?? []) as GeoSite[]);
-  const onSite = !!siteId || DEV_BYPASS_GEOFENCE;
+  //
+  // Si la lectura FALLA no se sabe dónde está, y eso no es «fuera» (D-NEXT): `onSite` se queda en
+  // `null` y, de aquí abajo, nada de lo que depende de la geocerca ocurre — no se le pide motivo,
+  // no se le insertan excepciones y no sale aviso a los gerentes. El GPS sí se guarda, así que el
+  // veredicto se puede recalcular después; lo que no se puede deshacer es haberlo inventado.
+  const geocerca = await sitioDelFichaje(
+    supabase as unknown as ClienteDeSitios,
+    profile.company_id,
+    input.lat,
+    input.lng,
+    DEV_BYPASS_GEOFENCE,
+  );
+  const siteId = geocerca.medido ? geocerca.siteId : null;
+  const onSite: boolean | null = geocerca.medido ? geocerca.onSite : null;
 
   // Los motivos, en una sola forma para todo lo de abajo (D-163). Se acepta `reasons` (lo
   // que manda la pantalla nueva) o `reason` (una llamada vieja, o un cliente sin actualizar
@@ -123,8 +136,10 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
   const listaMotivos = motivos.length ? motivos : null;
   const hayMotivo = motivos.length > 0;
 
-  // Off-site punches always need a reason (existing rule).
-  if (!onSite && !hayMotivo) {
+  // Off-site punches always need a reason (existing rule). `=== false` y no `!onSite`: preguntarle
+  // «¿por qué estás fuera?» a quien no se ha podido medir ya es medio reproche, y además la
+  // pregunta no tiene respuesta posible — la persona no sabe que la lectura falló.
+  if (onSite === false && !hayMotivo) {
     return { ok: false, code: "needs_reason", context: "offsite" };
   }
 
@@ -155,7 +170,10 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
   // Unscheduled clock-in: on-site but no shift today. Only enforce a reason once
   // scheduling is actually in use company-wide today — otherwise early rollout
   // (before any schedules exist) would nag on every single punch.
-  if (onSite && !todayShift && !hayMotivo) {
+  //
+  // `=== true` por lo mismo que arriba: «en el sitio y sin turno» no se puede afirmar de un fichaje
+  // cuya geocerca no se leyó. Sin medir no se pregunta nada y no se apunta nada.
+  if (onSite === true && !todayShift && !hayMotivo) {
     const { count: scheduledToday } = await supabase
       .from("scheduled_shifts")
       .select("id", { count: "exact", head: true })
@@ -165,7 +183,7 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
       return { ok: false, code: "needs_reason", context: "unscheduled" };
     }
   }
-  const isUnscheduled = onSite && !todayShift && hayMotivo;
+  const isUnscheduled = onSite === true && !todayShift && hayMotivo;
 
   const { data: entry, error } = await supabase
     .from("time_entries")
@@ -188,7 +206,8 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
     return { ok: false, code: "error", message: error?.message ?? "Could not record entry." };
   }
 
-  if (!onSite) {
+  // `=== false`, nunca `!onSite`: esta es la fila que acusa, y con `null` (sin medir) no se escribe.
+  if (onSite === false) {
     await supabase.from("exceptions").insert({
       company_id: profile.company_id,
       employee_id: user.id,
@@ -237,7 +256,7 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
 
   // Early-arrival rule: how many minutes before the scheduled start (if on site)?
   let earlyMin: number | undefined;
-  if (onSite && todayShift?.start_time) {
+  if (onSite === true && todayShift?.start_time) {
     const nowCentral = new Date(Date.now() - centralShiftMs(new Date()));
     const nowMin = nowCentral.getUTCHours() * 60 + nowCentral.getUTCMinutes();
     const [sh, sm] = todayShift.start_time.split(":").map(Number);
@@ -304,14 +323,19 @@ export async function clockOut(entryId: string, input: ClockOutInput): Promise<C
     };
   }
 
-  // Server-side geofence (never trust the client's verdict).
-  const { data: sites } = await supabase
-    .from("job_sites")
-    .select("id, latitude, longitude, radius_meters, boundary, padding_meters")
-    .eq("company_id", profile.company_id)
-    .eq("active", true);
-  const siteId = firstMatch(input.lat, input.lng, (sites ?? []) as GeoSite[]);
-  const onSite = !!siteId || DEV_BYPASS_GEOFENCE;
+  // Server-side geofence (never trust the client's verdict). La misma pieza que en la entrada, y
+  // por eso ya no está copiada: el bloque de aquí era idéntico al de allí, el `error` descartado
+  // incluido. Aquí el fallo de lectura era PEOR, porque la salida no tiene puerta que preguntar:
+  // escribía `clock_out_in_radius: false` sin más (D-NEXT).
+  const geocerca = await sitioDelFichaje(
+    supabase as unknown as ClienteDeSitios,
+    profile.company_id,
+    input.lat,
+    input.lng,
+    DEV_BYPASS_GEOFENCE,
+  );
+  const siteId = geocerca.medido ? geocerca.siteId : null;
+  const onSite: boolean | null = geocerca.medido ? geocerca.onSite : null;
 
   const { data: closed, error } = await supabase
     .from("time_entries")
@@ -339,7 +363,8 @@ export async function clockOut(entryId: string, input: ClockOutInput): Promise<C
   // tener sitio, no el rol (084).
   const homeBound = !!profile.store_id;
   const atWrongSite = homeBound && !!siteId && siteId !== profile.store_id;
-  if (!onSite) {
+  // `=== false`: la «classic fraud signal» solo se escribe cuando se midió que estaba fuera.
+  if (onSite === false) {
     await supabase.from("exceptions").insert({
       company_id: profile.company_id,
       employee_id: user.id,
