@@ -1,4 +1,4 @@
-import { isStoreToStore, type OrderTypeRules } from "./required";
+import { hayClienteDetras, type OrderTypeRules } from "./required";
 import type { CustomerType, Delivery } from "./types";
 
 /**
@@ -26,9 +26,19 @@ export const TIPOS_DE_CLIENTE: { key: CustomerType; en: string; es: string }[] =
 
 const esValido = (v: unknown): v is CustomerType => v === "builder" || v === "counter_sale";
 
-/** ¿Este tipo de orden va a un cliente? Lo contrario de tienda-a-tienda; sin tipo todavía, no. */
+/**
+ * ¿Este tipo de orden va a un cliente? Sin tipo todavía, no.
+ *
+ * Era «lo contrario de tienda-a-tienda», y eso dejaba de valer con el tipo **proveedor**
+ * (D-511): su destino es una dirección libre, así que no es tienda-a-tienda, pero el proveedor
+ * no es un cliente. Sin este cambio se le habría puesto `customer_type` —y con él la prioridad
+ * de *builder* en el motor de rutas— a una orden que no tiene cliente ninguno.
+ *
+ * `hayClienteDetras` responde `!storeToStore` para cualquier tipo que no declare `hasCustomer`,
+ * así que los tres que existen hoy siguen contestando lo mismo.
+ */
 export function esTipoDeCliente(orderType: string | null | undefined, reglas?: OrderTypeRules): boolean {
-  return !!(orderType ?? "").trim() && !isStoreToStore(orderType, reglas);
+  return !!(orderType ?? "").trim() && hayClienteDetras(orderType, reglas);
 }
 
 /**

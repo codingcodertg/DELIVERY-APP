@@ -504,8 +504,8 @@ function AvisosAlCliente({ settings, saveSettings, notify, t }: {
       <h2>📨 {t("Customer notifications", "Avisos al cliente")}</h2>
       <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
         {t(
-          "Texts or emails the customer before and during the delivery, with the live tracking link and a link to stop them. Only Customer orders with a valid phone or email — never Transfer, Intertienda or training orders. Each order can choose SMS, email, both or none. They cost money and reach customers, so they stay OFF until you switch them on.",
-          "Manda al cliente un SMS o correo antes y durante la entrega, con el enlace de seguimiento y uno para darse de baja. Solo órdenes Customer con teléfono o correo válido — nunca Transfer, Intertienda ni órdenes de práctica. Cada orden elige SMS, correo, ambos o ninguno. Cuestan dinero y llegan a clientes, por eso quedan APAGADOS hasta que los encienda.",
+          "Texts or emails the customer before and during the delivery, with the live tracking link and a link to stop them. Only order types that have a customer behind them, with a valid phone or email — never a store-to-store move (Transfer, Intertienda), never a supplier run (Proveedor), never training orders. Each order can choose SMS, email, both or none. They cost money and reach customers, so they stay OFF until you switch them on.",
+          "Manda al cliente un SMS o correo antes y durante la entrega, con el enlace de seguimiento y uno para darse de baja. Solo los tipos de orden que tienen un cliente detrás, con teléfono o correo válido — nunca un movimiento entre tiendas (Transfer, Intertienda), nunca una salida a un proveedor (Proveedor), nunca órdenes de práctica. Cada orden elige SMS, correo, ambos o ninguno. Cuestan dinero y llegan a clientes, por eso quedan APAGADOS hasta que los encienda.",
         )}
       </p>
       {!hayColumnas ? (

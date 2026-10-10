@@ -24,8 +24,8 @@ export function claseDeLaFilaDelPlan(kind: "P" | "D"): "fila-plan-recoger" | "fi
   return kind === "P" ? "fila-plan-recoger" : "fila-plan-entregar";
 }
 
-/** Builder, Intertienda o Venta al mostrador. `null`: la orden aún no tiene tipo de orden, y no se sabe. */
-export type ClaseDeOrden = "builder" | "counter_sale" | "intertienda";
+/** Builder, Intertienda, Venta al mostrador o Proveedor. `null`: la orden aún no tiene tipo de orden, y no se sabe. */
+export type ClaseDeOrden = "builder" | "counter_sale" | "intertienda" | "proveedor";
 
 /**
  * La clase de una orden: Intertienda si su tipo de orden va de tienda a tienda (`isStoreToStore`, las reglas de Ajustes);
@@ -35,14 +35,20 @@ export type ClaseDeOrden = "builder" | "counter_sale" | "intertienda";
 export function claseDeLaOrden(d: Pick<Partial<Delivery>, "order_type" | "account" | "customer_type">, reglas: OrderTypeRules): ClaseDeOrden | null {
   const cliente = tipoDeClienteDeLaOrden(d, reglas);
   if (cliente) return cliente;
-  // Sin tipo de orden, `isStoreToStore` dice que no: queda `null`, no se inventa.
-  return isStoreToStore(d.order_type, reglas) ? "intertienda" : null;
+  if (isStoreToStore(d.order_type, reglas)) return "intertienda";
+  // Ni cliente ni tienda-a-tienda, pero CON tipo: es una salida a alguien que no es cliente nuestro ni
+  // una de nuestras tiendas — hoy, un proveedor (D-511). Se deduce de las banderas, no del nombre del
+  // tipo, para que valga igual si mañana se llama de otra forma. Sin tipo de orden sigue siendo `null`:
+  // no se inventa.
+  if (String(d.order_type ?? "").trim()) return "proveedor";
+  return null;
 }
 
 const TEXTO_DE_CLASE: Record<ClaseDeOrden, [string, string]> = {
   builder: ["Builder", "Builder"],
   intertienda: ["Intertienda", "Intertienda"],
   counter_sale: ["Counter sale", "Venta al mostrador"],
+  proveedor: ["Supplier", "Proveedor"],
 };
 
 export interface ContextoDelPlan {

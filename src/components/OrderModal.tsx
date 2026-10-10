@@ -2155,7 +2155,10 @@ export function OrderModal({
             )}
 
             {/* ---- Document references ---- */}
-            {docRef === "estimate" ? (
+            {/* `hidden` no pinta ninguno (D-511): el tipo proveedor no lleva papel, y dejar los tres
+                campos ahí «por si acaso» es lo que hacía `none` — invitaba a escribir un número que
+                luego nada lee. Va PRIMERO en la cadena porque es la única rama que no pinta nada. */}
+            {docRef === "hidden" ? null : docRef === "estimate" ? (
               // Transfer: a single internal estimate number, no customer paperwork.
               <div className="grid g2">
                 <Txt label={t("Estimate #", "Estimación #")} val={d.estimate_num} on={(v) => set("estimate_num", v)} disabled={!salesFields} invalid={missingSet.has("estimate_num")} />

@@ -40212,3 +40212,121 @@ El caso real medido es la primera prueba del fichero, con sus nueve segundos.
   cinco días sin avisar de nada. Eso es una publicación 0.0.46 pendiente, en otro repo.
 - **El corte de las 14:20:29 CT no tiene causa medida**: ningún registro de Windows a esa hora. Este cambio lo
   cubriría si vino de un aviso de energía, y no lo cubre si vino de otra parte.
+
+## D-511 — El tipo de orden «Proveedor», y la bandera que faltaba para poder describirlo
+
+**Fecha:** 2026-10-10 · **Estado:** Vigente
+
+El dueño: *«mira que hay que agregar un tipo de orden diferente que es para cuando se lleva producto
+a un proveedor, sale de una tienda y se lleva a un proveedor obviamente no lleva invoice ni nada de
+eso se va a llamar proveedor»*.
+
+### Lo primero que hay que saber: no había nada que migrar
+
+No existe ninguna unión, enum ni constante de tipos de orden en este repo. `deliveries.order_type`
+es **`text` libre, sin `check` y sin enum** —la crea `014_sync_delivery_columns.sql:20` y nadie la
+altera después— y la lista de tipos válidos vive **en datos**: `settings.order_types` (text[]) y
+`settings.order_type_rules` (jsonb), editables desde la pantalla Datos. Todo el comportamiento por
+tipo se deriva de las banderas de la regla, no del nombre.
+
+Leído en producción el 2026-10-10:
+
+| tipo | docRef | storeToStore | homeIsDestination | órdenes |
+|---|---|---|---|---|
+| Customer | invoice | false | — | 272 |
+| Intertienda | po | true | true | 283 |
+| Transfer | estimate | true | — | 0 |
+
+Así que añadir el tipo **no necesita tocar el esquema**. Lo que sí hacía falta era algo que no
+existía.
+
+### Por qué no se podía describir con lo que había
+
+Ninguna combinación de las tres banderas sirve para una orden a un proveedor, y son **dos huecos
+distintos**:
+
+1. **`docRef: "none"` no esconde nada.** Deja de *exigir* factura, PO y SO, pero `OrderModal.tsx`
+   los sigue **pintando** — no había rama que los quitara. Para un pickup eso está bien (la factura
+   puede llegar después); para un proveedor es invitar a escribir un número que nada va a leer.
+2. **`storeToStore` hacía dos cosas a la vez:** (a) esconder cuenta, contacto y teléfono de cliente,
+   y (b) forzar que el destino sea **una de nuestras tiendas**, elegida de un desplegable, y repartir
+   la visibilidad de la orden a tres tiendas. Un proveedor necesita algo de (a) y **nada** de (b):
+   su dirección es libre.
+
+### Qué cambia
+
+**`docRef: "hidden"`**, valor nuevo. No lleva papel **y** no se pinta ninguno de los tres campos. Se
+añadió en vez de redefinir `"none"` porque `"none"` es configurable desde Datos y cambiarle el
+significado alteraría en silencio lo que alguien ya hubiera elegido.
+
+**`hasCustomer`**, bandera nueva, y es la que parte el hueco 2. Responde «¿hay un cliente detrás?»,
+que hasta ahora se preguntaba como `!storeToStore` repartido por media app. Sin declarar vale
+`!storeToStore`, **así que los tres tipos de producción no cambian de comportamiento** — eso es lo
+que hace el cambio seguro, y tiene prueba propia.
+
+`hayClienteDetras()` (`src/lib/required.ts`) es ahora el único sitio que lo decide, y de ahí cuelgan:
+
+- **No se le manda el aviso de cliente** (`avisos-cliente.ts`). Sin esto, un proveedor con teléfono
+  recibiría el SMS de «su entrega llega mañana».
+- **No se le pone tipo de cliente** (`customer-type.ts`), y por tanto **no hereda prioridad de
+  *builder*** en el motor de rutas, que es lo que le habría tocado por defecto.
+- **En el plan de rutas se llama «Proveedor»** (`celdas-del-plan.ts`), no «Builder» ni
+  «Intertienda», que es lo que habría salido. La clase se deduce de las banderas, no del nombre del
+  tipo, para que valga igual si mañana se llama de otra forma.
+- **No sale en «Factura pendiente»** (`documento-pendiente.ts`). Si no, la contradicción sería
+  visible: una orden que no enseña dónde escribir la factura, reclamándola en una pestaña.
+- **`documentoPrincipal` devuelve `null`**, también si la orden arrastra una factura de cuando era
+  de otro tipo: enseñarla pondría en la fila justo el número que el tipo dice que no existe.
+
+**Sí sigue pidiendo contacto y teléfono.** Un proveedor no es un cliente, pero el chofer necesita a
+quién llamar al llegar.
+
+El respaldo por palabras clave (`fallbackRule`) reconoce `proveedor|supplier|vendor`, y va **antes**
+que el de `/intra|tienda/`: sin esa línea, «proveedor» caía en el último `return` y acababa exigiendo
+factura y tarifa — justo lo que el dueño dijo que no lleva. Importa para cuando la fila de `settings`
+no esté o el tipo llegue de un CSV.
+
+La migración **164** siembra el tipo con `||` (merge), no reemplazando el objeto: `order_type_rules`
+lleva tres claves y la autocomprobación de `146_customer_siempre_con_factura.sql:139-143` exige que
+Customer conserve `docRef = 'invoice'`. Un `set order_type_rules = '{...}'` entero lo borraría y
+rompería esa guarda. Lleva su propia comprobación al final y **no** lleva `begin`/`commit` (la
+lección de la 124).
+
+Un cambio de nombre, de paso: el motivo `tienda_a_tienda` de `decidirAviso` pasa a **`sin_cliente`**.
+Era mentira para un proveedor, que no es tienda-a-tienda. `motivo` es `string` abierto, así que
+`tsc` no lo habría visto; lo vieron las pruebas, que lo afirman literal.
+
+### Lo que no cambia
+
+El trigger `guard_factura_obligatoria()` (la 146) **no se toca**: `146:32-39` ya dice que un tipo
+cuya regla no pide factura pasa sin más. Y la RLS tampoco: `131_visibilidad_por_tienda.sql:239` y
+`:409` advierten contra leer `order_type_rules` por fila en una política.
+
+### Verificado
+
+`tipo-proveedor.test.ts`, 15 pruebas. Las reglas de la prueba son **las leídas de producción**, no
+inventadas. Cada afirmación lleva su gemelo con la **misma orden** cambiándole solo el tipo: si el
+código tratara Proveedor como Customer caería una mitad, y si lo tratara como Intertienda, la otra.
+Los tres tipos que ya existen tienen prueba de que `hayClienteDetras` les responde exactamente
+`!storeToStore`, que es lo que protege a los clientes de verdad.
+
+Dos errores míos que las pruebas cazaron antes de subir, y los dos son de los que ya tenían nombre:
+
+- **Afirmé `toEqual([])`** sobre lo que falta, y hay campos que se exigen siempre (tienda, recogida,
+  `est_pallets`) sin que el tipo tenga nada que ver. Se afirma ahora que ninguno de los de papel ni
+  la tarifa está, que es lo que este cambio decide.
+- **La prueba que lee el `.sql` la tumbaba mi propio comentario**, porque el comentario *cita* el
+  anti-patrón que la comprobación prohíbe. Se filtran los comentarios: se mide el SQL que corre, no
+  la prosa que lo rodea.
+
+### Lo no verificado
+
+- **Nada abierto en un navegador.** El modal no se puede renderizar en estas pruebas (vitest corre
+  en `environment: "node"` y el repo no tiene jsdom), así que lo del trío de campos escondidos es un
+  **ancla de texto** sobre el discriminador exacto, y se dice que lo es.
+- **La migración 164 no está aplicada** al escribir esto: hasta que lo esté, el tipo no aparece en el
+  desplegable de producción. Los respaldos de `data-provider.tsx` y `demo-data.ts` sí lo llevan, así
+  que en el demo y con la base caída existe.
+- **Una orden a un proveedor sin `delivery_lat/lng` se queda fuera del plan de rutas**
+  (`route-plan/entrada.ts:176-179`): solo los tipos tienda-a-tienda caen de vuelta a la tienda. No es
+  regresión —una Customer sin geocodificar hace lo mismo— pero tampoco está resuelto.

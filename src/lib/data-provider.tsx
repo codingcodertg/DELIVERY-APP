@@ -49,11 +49,14 @@ const DEFAULT_SETTINGS: Settings = {
     { name: "Mission", address: "" },
     { name: "Edinburg", address: "" },
   ],
-  order_types: ["Customer", "Intertienda", "Transfer"],
+  order_types: ["Customer", "Intertienda", "Transfer", "Proveedor"],
   order_type_rules: {
     Customer:    { storeToStore: false, docRef: "invoice" },
     Intertienda: { storeToStore: true,  docRef: "any", homeIsDestination: true },
     Transfer:    { storeToStore: true,  docRef: "estimate" },
+    // Sale de una tienda y va a un proveedor (D-511): no es tienda-a-tienda —su dirección es
+    // libre— y no tiene cliente detrás, así que no lleva papel ni recibe el aviso de cliente.
+    Proveedor:   { storeToStore: false, hasCustomer: false, docRef: "hidden" },
   },
   pickup_min_per_pallet: 4,
   delivery_min_per_pallet: 5,
