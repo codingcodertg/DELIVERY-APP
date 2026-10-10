@@ -339,7 +339,7 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
   it("las dos pantallas son UNA: /map monta la página del Gestor en solo lectura", () => {
     expect(pagina).toContain('import RoutesPage from "@/app/(app)/routes/page";');
     expect(pagina).toContain("<SoloLectura> <RoutesPage /> </SoloLectura>");
-    // Puesto al día por D-NEXT: `soloLectura` ya no es solo lo que dice `<SoloLectura>`. Una pantalla acotada a un chofer
+    // Puesto al día por D-506: `soloLectura` ya no es solo lo que dice `<SoloLectura>`. Una pantalla acotada a un chofer
     // («El mapa de mi ruta») es de solo lectura por ser acotada, aunque quien la monte se olvidara del contexto. Lo que esta
     // prueba vigila sigue siendo lo mismo: que `/map` entra en solo lectura por el contexto.
     expect(gestor).toContain("const soloLecturaDeclarada = useSoloLectura();");
@@ -347,7 +347,7 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
   });
   it("lee las paradas de `useRutasDelDia` solo en solo lectura, y las completa con lo que la persona ya lee", () => {
     expect(gestor).toContain("const { paradas: paradasDeHoy, origen: origenDeHoy } = useRutasDelDia(date, soloLectura);");
-    // Puesto al día por D-NEXT: la lista que sale de aquí es ahora `todasLasDelDia`, y `deliveries` es esa lista acotada al
+    // Puesto al día por D-506: la lista que sale de aquí es ahora `todasLasDelDia`, y `deliveries` es esa lista acotada al
     // chofer cuando la pantalla va acotada. Sin acotar —el Gestor y «Ruta de hoy»— `deliveries` es exactamente lo de antes.
     expect(gestor).toContain("const todasLasDelDia = useMemo(() => (soloLectura ? ordenesDeRutaDeHoy(paradasDeHoy, deliveriesLeidas) : deliveriesLeidas), [soloLectura, paradasDeHoy, deliveriesLeidas]);");
     expect(gestor).toContain("const deliveries = useMemo(() => (miChofer == null ? todasLasDelDia : soloMisOrdenes(todasLasDelDia, miChofer)), [todasLasDelDia, miChofer]);");

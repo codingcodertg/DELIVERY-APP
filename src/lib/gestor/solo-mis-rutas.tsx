@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 /**
- * «🗺 El mapa de mi ruta» (D-NEXT) monta la MISMA página del Gestor de Rutas (`routes/page.tsx`) dentro de `<SoloLectura>`
+ * «🗺 El mapa de mi ruta» (D-506) monta la MISMA página del Gestor de Rutas (`routes/page.tsx`) dentro de `<SoloLectura>`
  * —sin ninguna acción, D-481— y de `<SoloMisRutas chofer={…}>`, que la acota a las rutas de ese chofer.
  *
  * Va por contexto y no por prop por lo mismo que `<SoloLectura>` (D-481) y `<RutaDeUnChofer>` (D-502): Next no deja que una

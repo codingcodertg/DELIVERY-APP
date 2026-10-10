@@ -10,7 +10,7 @@ import type { ParadaDelDia } from "@/lib/rutas-del-dia";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// «🗺 El mapa de mi ruta» (D-NEXT). El dueño, 2026-10-09 (dictado, literal): «drivers view needs to look like to logistic
+// «🗺 El mapa de mi ruta» (D-506). El dueño, 2026-10-09 (dictado, literal): «drivers view needs to look like to logistic
 // manager view with the routes and everything the map view i mean change it and updat eit» y, preguntado por la pantalla y
 // el alcance: «quiero que el chofer mire el mapa con sus rutas asi como el logistic manager ese mismo mapa».
 //

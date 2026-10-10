@@ -308,7 +308,7 @@ export default function MyRoutePage() {
           <button key={d} className={`vt${desfase === d && !verAtrasadas ? " on" : ""}`} onClick={() => { setVerAtrasadas(false); setDesfase(d); }}>{rotulo}</button>
         ))}
       </div>
-      {/* «🗺 El mapa de mi ruta» (D-NEXT): el MISMO mapa del Gestor de Rutas —panel, paradas, Cuadrícula y Horario— acotado a
+      {/* «🗺 El mapa de mi ruta» (D-506): el MISMO mapa del Gestor de Rutas —panel, paradas, Cuadrícula y Horario— acotado a
           SUS rutas, en `/my-route/mapa`. De aquí no se quita nada: allí solo se mira, y lo que cierra una parada sigue
           estando solo aquí. No sale al mirar la ruta de OTRO (la pestaña «Chofer» del admin, D-502): el enlace abriría el
           mapa de quien mira, no el del chofer elegido. */}

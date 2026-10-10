@@ -175,7 +175,7 @@ export default function RoutesPage() {
   // «Ruta de hoy» (/map) monta ESTA pantalla dentro de `SoloLectura` (D-481): sin botones ni acciones. Va por contexto y no
   // por prop porque Next no deja a una página declarar props propias.
   const soloLecturaDeclarada = useSoloLectura();
-  // «🗺 El mapa de mi ruta» (D-NEXT) monta ESTA pantalla, en solo lectura, ACOTADA a las rutas de un chofer: el suyo. `null`
+  // «🗺 El mapa de mi ruta» (D-506) monta ESTA pantalla, en solo lectura, ACOTADA a las rutas de un chofer: el suyo. `null`
   // = sin acotar (el Gestor del gerente y «Ruta de hoy», que ven a todos). El acotado se hace en el ORIGEN —las órdenes que
   // la pantalla recibe, los carriles que pinta, los camiones en vivo y el aviso de rastreo—, no con el filtro de casillas:
   // una orden de otro chofer no llega a esta página, así que ninguna casilla, URL ni estado la puede traer.
@@ -199,7 +199,7 @@ export default function RoutesPage() {
   // lectura; el Gestor pinta lo que ya lee. Cada parada se completa con la orden entera si esta persona ya la tiene.
   const { paradas: paradasDeHoy, origen: origenDeHoy } = useRutasDelDia(date, soloLectura);
   const todasLasDelDia = useMemo(() => (soloLectura ? ordenesDeRutaDeHoy(paradasDeHoy, deliveriesLeidas) : deliveriesLeidas), [soloLectura, paradasDeHoy, deliveriesLeidas]);
-  // El acotado de D-NEXT, en UN sitio: todo lo que esta pantalla pinta cuelga de `deliveries`, así que acotarlo aquí acota
+  // El acotado de D-506, en UN sitio: todo lo que esta pantalla pinta cuelga de `deliveries`, así que acotarlo aquí acota
   // las paradas, los carriles, el mapa, las tablas, las cuentas, Cuadrícula y Horario de una vez.
   const deliveries = useMemo(() => (miChofer == null ? todasLasDelDia : soloMisOrdenes(todasLasDelDia, miChofer)), [todasLasDelDia, miChofer]);
   // Los camiones en vivo, para todos menos ventas (regla de «Ruta de hoy», D-467; al Gestor ventas no entra).
@@ -581,7 +581,7 @@ export default function RoutesPage() {
     const id = setInterval(() => setHealthTick((n) => n + 1), 60_000);
     return () => clearInterval(id);
   }, []);
-  // Acotada (D-NEXT), solo la SUYA: que a un compañero se le muriera la batería no es asunto del chofer, y la suya sí.
+  // Acotada (D-506), solo la SUYA: que a un compañero se le muriera la batería no es asunto del chofer, y la suya sí.
   const trackingIssues = useMemo(
     () => { const todos = trackingGaps(users, shifts, driverLocations); return miChofer == null ? todos : soloLoMioPorChofer(todos, miChofer); },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -613,7 +613,7 @@ export default function RoutesPage() {
     // pasa como estaba aquí: esta pantalla no usa `colorDeChofer`.
     const color = (n: string) => settings.driver_colors?.[n] || fallbackDriverColor(n);
     const todos = choferesEnVivo(driverLocations, nameById, color);
-    // Acotada (D-NEXT), solo SU camión: dónde está otro chofer ahora tampoco se le enseña.
+    // Acotada (D-506), solo SU camión: dónde está otro chofer ahora tampoco se le enseña.
     return (miChofer == null ? todos : soloLoMioPorChofer(todos, miChofer)).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, settings.driver_colors, veCamiones, miChofer]);
@@ -641,7 +641,7 @@ export default function RoutesPage() {
   // Lanes = each real driver's load(s) + each bucket, used everywhere we DISPLAY or build routes. One lane / card per
   // driver and per temp driver, plus (safety net) any assigned group that matches neither, plus whoever already
   // delivered everything (D-459). La regla vive en `carrilesDelDia` (lib/mapa-de-rutas), que comparte «Ruta de hoy».
-  // Acotada (D-NEXT), solo SU carril: los demás choferes no salen ni vacíos, y tampoco las rutas temporales («Ruta 1»), que
+  // Acotada (D-506), solo SU carril: los demás choferes no salen ni vacíos, y tampoco las rutas temporales («Ruta 1»), que
   // `rutasConOrdenes` deja en el panel aunque estén vacías porque el Gestor las renombra y las vacía — él no.
   const lanes = useMemo<Lane[]>(
     () => { const todos = carrilesDelDia(drivers, bucketNames, dayOrders, hechasPintadas.keys()); return miChofer == null ? todos : soloMisCarriles(todos, miChofer); },
@@ -3241,7 +3241,7 @@ export default function RoutesPage() {
 
       {/* 🎨 Los colores de chofer vivían en «Mapa» / «Ruta de hoy» desde antes de D-467: se quedan ahí, solo en solo lectura.
           Lo único que se guarda desde «Ruta de hoy» es esto, y solo gerente o admin.
-          Acotada a un chofer (D-NEXT) no sale: es la lista de TODOS los choferes por nombre —la leyenda de rutas que él no
+          Acotada a un chofer (D-506) no sale: es la lista de TODOS los choferes por nombre —la leyenda de rutas que él no
           ve— y un editor que de todas formas es de gerente o admin. Su color ya está en su fila del panel y en su tarjeta. */}
       {soloLectura && miChofer == null && (
         <div className="card" data-colores-de-chofer>

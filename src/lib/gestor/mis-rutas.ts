@@ -1,7 +1,7 @@
 import type { Delivery } from "@/lib/types";
 
 /**
- * «🗺 El mapa de mi ruta» (D-NEXT): el chofer mira EL MISMO Gestor de Rutas que el gerente de logística —el mismo mapa, el
+ * «🗺 El mapa de mi ruta» (D-506): el chofer mira EL MISMO Gestor de Rutas que el gerente de logística —el mismo mapa, el
  * mismo panel «Choferes y rutas», la misma tabla de paradas, Cuadrícula y Horario— pero acotado a SUS rutas.
  *
  * El dueño (dictado, literal): «drivers view needs to look like to logistic manager view with the routes and

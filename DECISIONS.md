@@ -39663,9 +39663,9 @@ permanente, y la que no se respetó al verificar D-172.
   por «SOBREVIVE, corrieron 0 pruebas» — rehecho a mano, ese mutante tumba 5 pruebas con nombre. La
   máquina tenía otras dos sesiones compilando.
 
-## D-NEXT · El chofer mira EL MISMO mapa del Gestor de Rutas, acotado a SUS rutas, desde «Mi ruta»
+## D-506 · El chofer mira EL MISMO mapa del Gestor de Rutas, acotado a SUS rutas, desde «Mi ruta»
 
-**Fecha:** 2026-10-10 · **Versión:** pendiente · **Sin migración.** · Rama `chofer-mapa-del-gestor`.
+**Fecha:** 2026-10-10 · **Versión:** Entregas 1.276.0, repo 1.376.0 · **Sin migración.** · Rama `chofer-mapa-del-gestor`.
 
 **Pedido del dueño**, literal: *«drivers view needs to look like to logistic manager view with the
 routes and everything the map view i mean change it and updat eit»* y, preguntado por qué pantalla y
@@ -39852,3 +39852,14 @@ producción, ningún SMS ni llamada.**
   pantalla solo dibuje el suyo. Es el mismo caso que la función de arriba y la misma respuesta: base.
 - **El aviso de rastreo acotado no se vio pintado** (ver el mutante de arriba).
 - **Nada de esto se probó con dos ventanas a la vez** ni con un chofer real en la calle.
+
+### Medido en el navegador por el orquestador (demo local, 2026-10-10)
+
+Se abrió `/my-route/mapa` en Chrome con la sesión de un chofer del demo: la pantalla carga, el panel «Choferes y
+rutas» enseña **una sola ruta, la suya**, y arriba sale el rótulo de solo lectura y el enlace «◀ Mi ruta». O sea que
+el acotado se ve, no solo se prueba.
+
+**Lo del teléfono sigue a medias.** Chrome no dejó reducir la ventana por debajo de 1536 px (dos intentos), así que
+**no se renderizó a ancho de teléfono**. Lo que sí se midió sobre la página pintada: **ningún elemento fuerza un ancho
+mínimo mayor de 420 px**, y las tablas van dentro de `.tbl-scroll` con su propio desplazamiento, así que no debería
+desbordarse. Que se use cómodo con el pulgar —el tamaño de los botones, el panel, el Horario— **no está medido**.

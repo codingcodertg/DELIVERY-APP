@@ -9,7 +9,7 @@ import { SoloLectura } from "@/lib/gestor/solo-lectura";
 import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
 
 // ============================================================
-// «🗺 El mapa de mi ruta» (D-NEXT) — el MISMO mapa del Gestor de Rutas, con SUS rutas.
+// «🗺 El mapa de mi ruta» (D-506) — el MISMO mapa del Gestor de Rutas, con SUS rutas.
 //
 // El dueño (dictado, literal): «drivers view needs to look like to logistic manager view with the routes and
 // everything the map view i mean change it and updat eit»; preguntado por la pantalla y el alcance: «quiero que el chofer
