@@ -1,4 +1,4 @@
-import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
+import { hayClienteDetras, type OrderTypeRules } from "@/lib/required";
 import { BUSINESS_TZ, fmtDateShort, isoInTZ, orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -84,8 +84,10 @@ export type Decision =
 /**
  * La decisión entera para una orden y un tipo de aviso. En orden:
  * 1. Nunca una orden de enseñanza (`is_training`).
- * 2. Solo lo que va a un CLIENTE: con tipo, y que no sea tienda-a-tienda (Transfer, Intertienda) según las reglas de
- *    Ajustes (`isStoreToStore`, la misma que decide si la ficha pide contacto). Sin tipo, no: no se sabe a quién va.
+ * 2. Solo lo que va a un CLIENTE: con tipo, y que tenga un cliente detrás según las reglas de Ajustes
+ *    (`hayClienteDetras`). Lo deja fuera tienda-a-tienda (Transfer, Intertienda) y también el tipo **proveedor**, que
+ *    no es tienda-a-tienda pero tampoco tiene cliente: avisarle sería mandarle a un proveedor el SMS de un cliente
+ *    (D-511). Sin tipo, no: no se sabe a quién va.
  * 3. En una etapa del aviso (`ETAPAS_DEL_AVISO`).
  * 4. Preferencia `none` → nada.
  * 5. Los canales que pida la preferencia, solo con un contacto válido y que no se haya dado de baja (`bajas`: teléfonos
@@ -99,7 +101,7 @@ export function decidirAviso(
 ): Decision {
   if (o.is_training === true) return { ok: false, motivo: "training" };
   if (!String(o.order_type ?? "").trim()) return { ok: false, motivo: "sin_tipo" };
-  if (isStoreToStore(o.order_type, reglas)) return { ok: false, motivo: "tienda_a_tienda" };
+  if (!hayClienteDetras(o.order_type, reglas)) return { ok: false, motivo: "sin_cliente" };
   if (!ETAPAS_DEL_AVISO[tipo].includes(String(o.stage ?? ""))) return { ok: false, motivo: "etapa" };
   const pref = preferenciaDe(o);
   if (pref === "none") return { ok: false, motivo: "no_avisar" };

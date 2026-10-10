@@ -46,6 +46,10 @@ export function documentoPrincipal(d: ConDocumentos, reglas: OrderTypeRules): Do
       return documento(primero ?? "po2", d);
     }
     case "none": return limpio(d.invoice_num) ? documento("invoice_num", d) : null;
+    // "hidden" no tiene documento principal ni de rebote: este tipo no lleva papel, y si una
+    // orden vieja arrastrara una factura de cuando era de otro tipo, enseñarla aquí pondría en
+    // la fila justo el número que el tipo dice que no existe (D-511).
+    case "hidden": return null;
   }
 }
 

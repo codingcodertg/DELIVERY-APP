@@ -59,8 +59,8 @@ describe("decidirAviso: a quién sí y a quién no", () => {
     expect(decidirAviso(orden(), "night_before", REGLAS, SIN_BAJAS)).toEqual({ ok: true, sms: "+19565550101", email: null });
   });
   it("nunca Transfer ni Intertienda (tienda-a-tienda, según Ajustes)", () => {
-    expect(decidirAviso(orden({ order_type: "Transfer" }), "night_before", REGLAS, SIN_BAJAS)).toEqual({ ok: false, motivo: "tienda_a_tienda" });
-    expect(decidirAviso(orden({ order_type: "Intertienda" }), "night_before", REGLAS, SIN_BAJAS)).toEqual({ ok: false, motivo: "tienda_a_tienda" });
+    expect(decidirAviso(orden({ order_type: "Transfer" }), "night_before", REGLAS, SIN_BAJAS)).toEqual({ ok: false, motivo: "sin_cliente" });
+    expect(decidirAviso(orden({ order_type: "Intertienda" }), "night_before", REGLAS, SIN_BAJAS)).toEqual({ ok: false, motivo: "sin_cliente" });
   });
   it("sin tipo no se sabe a quién va: nada", () => {
     expect(decidirAviso(orden({ order_type: "" }), "night_before", REGLAS, SIN_BAJAS)).toEqual({ ok: false, motivo: "sin_tipo" });
@@ -357,7 +357,7 @@ describe("ejecutarNocheAntes", () => {
     expect(proveedor.envios[0].texto).toContain(`https://rtg-hub.vercel.app/unsubscribe/${registro[0].unsub_token}`);
     expect(proveedor.envios[0].texto).toContain("https://rtg-hub.vercel.app/track/a");
     expect((r.resultados ?? []).filter((x) => x.estado === "omitida").map((x) => `${x.id}:${"motivo" in x ? x.motivo : ""}`).sort())
-      .toEqual(["b:tienda_a_tienda", "g:dado_de_baja"]);
+      .toEqual(["b:sin_cliente", "g:dado_de_baja"]);
     // La pendiente (f) ni se lee: la consulta ya pide solo las etapas del aviso; la de enseñanza (c), tampoco.
     expect((r.resultados ?? []).map((x) => x.id)).not.toContain("f");
     expect((r.resultados ?? []).map((x) => x.id)).not.toContain("c");

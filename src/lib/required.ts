@@ -39,6 +39,11 @@ export type OrderTypeRules = Record<string, OrderTypeRule> | undefined;
  * deliberately NOT treated as a pickup here — it's the standard delivery type. */
 function fallbackRule(orderType: string): OrderTypeRule {
   const s = orderType.toLowerCase();
+  // El proveedor va ANTES que el de «tienda», porque «sale de una tienda y se lleva a un
+  // proveedor» no es un movimiento entre tiendas: el destino es la dirección del proveedor
+  // (D-511). Sin esta línea, «proveedor» caía en el último `return` y acababa exigiendo
+  // factura y tarifa, que es justo lo que el dueño dijo que no lleva.
+  if (/proveedor|supplier|vendor/.test(s)) return { storeToStore: false, hasCustomer: false, docRef: "hidden" };
   if (/intra|tienda/.test(s)) return { storeToStore: true, docRef: "any" };
   if (/pick\s*-?\s*up|will\s*call|transfer|^\s*pu\s*$/.test(s)) return { storeToStore: true, docRef: "none" };
   return { storeToStore: false, docRef: "invoice" };
@@ -58,6 +63,21 @@ export function orderTypeRule(orderType: string | null | undefined, rules?: Orde
  * external customer contact is collected. */
 export const isStoreToStore = (orderType: string | null | undefined, rules?: OrderTypeRules) =>
   orderTypeRule(orderType, rules).storeToStore === true;
+
+/**
+ * ¿Hay un cliente detrás? (D-511)
+ *
+ * Esto era `!isStoreToStore` repartido por media app, y mientras «no hay cliente» y «el destino es
+ * una de mis tiendas» fueran la misma pregunta no se podía describir una orden a un **proveedor**:
+ * no es un cliente, pero su destino tampoco es una de nuestras tiendas.
+ *
+ * El respaldo `?? storeToStore !== true` es lo que hace que esto no cambie nada de lo que ya hay:
+ * un tipo que no declare `hasCustomer` responde igual que antes.
+ */
+export const hayClienteDetras = (orderType: string | null | undefined, rules?: OrderTypeRules) => {
+  const regla = orderTypeRule(orderType, rules);
+  return regla.hasCustomer ?? regla.storeToStore !== true;
+};
 
 const filled = (v: unknown) => !!String(v ?? "").trim();
 
@@ -124,7 +144,8 @@ export function missingFields(d: Partial<Delivery>, rules?: OrderTypeRules): Mis
       out.push({ key: "delivery_fee", en: "Delivery Fee charged ($)", es: "Costo de Entrega cobrado ($)" });
     }
   }
-  // docRef === "none": no document reference required.
+  // docRef === "none": no document reference required (los campos se siguen pintando).
+  // docRef === "hidden": tampoco, y además no se pinta ninguno (D-511).
 
   return out;
 }

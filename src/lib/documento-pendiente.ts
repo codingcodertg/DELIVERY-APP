@@ -78,13 +78,19 @@ export function documentoPendiente(d: OrdenConDocumento, reglas: OrderTypeRules)
  * 13 Intertiendas abiertas sin factura (todas con su PO) y la pestaña decía 0, porque esto miraba `documentoPendiente`, que
  * para una Intertienda es el PO. Ya no pasa por el documento del tipo: mira la etapa y la factura.
  *
- * La única salida es el tipo configurado como «sin documento» (`docRef: "none"`): ahí alguien dijo a propósito, en Ajustes,
- * que ese tipo no lleva papel, y perseguirle una factura sería la app discutiendo con un ajuste (hoy no hay ninguno así).
+ * Las salidas son los dos tipos que alguien configuró a propósito como sin papel: `docRef: "none"` (no se exige, pero los
+ * campos se pintan) y `docRef: "hidden"` (no se pinta ninguno, D-511). En los dos casos alguien dijo en Ajustes que ese tipo
+ * no lleva factura, y perseguírsela sería la app discutiendo con un ajuste.
+ *
+ * `"hidden"` tiene que estar aquí o la contradicción es visible: una orden a un proveedor no enseñaría dónde escribir la
+ * factura y a la vez aparecería en la pestaña «Factura pendiente» reclamándola.
  */
+const SIN_PAPEL: readonly string[] = ["none", "hidden"];
+
 export function facturaPendiente(d: OrdenConDocumento, reglas: OrderTypeRules): boolean {
   if (ETAPAS_SIN_DOCUMENTO.includes(d.stage)) return false;
   if (String(d.invoice_num ?? "").trim()) return false;
-  return (orderTypeRule(d.order_type, reglas).docRef ?? "invoice") !== "none";
+  return !SIN_PAPEL.includes(orderTypeRule(d.order_type, reglas).docRef ?? "invoice");
 }
 
 /**

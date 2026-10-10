@@ -396,8 +396,9 @@ function OrderTypesRulesEditor({
                     <option value="invoice">{t("Invoice # required", "Factura # requerida")}</option>
                     <option value="any">{t("Any one of PO# / SO# / Invoice#", "Cualquiera de PO# / SO# / Factura #")}</option>
                     <option value="po">{t("PO # required", "PO # requerido")}</option>
-                    <option value="none">{t("No document required", "Sin documento requerido")}</option>
+                    <option value="none">{t("No document required (fields still shown)", "Sin documento requerido (los campos se siguen viendo)")}</option>
                     <option value="estimate">{t("Estimate # (single field)", "Estimación # (campo único)")}</option>
+                    <option value="hidden">{t("No paperwork — hide Invoice/PO/SO", "Sin papeles — esconder Factura/PO/SO")}</option>
                   </select>
                 </td>
                 <td style={{ textAlign: "center" }}>{usage.get(r.name.trim()) ?? 0}</td>

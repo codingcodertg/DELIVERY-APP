@@ -50,11 +50,12 @@ export function demoSettings(): Settings {
       { name: "Mission", address: "1100 E Expressway 83, Mission TX", lat: 26.2080, lng: -98.3050 },
       { name: "Edinburg", address: "2500 W University Dr, Edinburg TX", lat: 26.3060, lng: -98.1870 },
     ],
-    order_types: ["Customer", "Intertienda", "Transfer"],
+    order_types: ["Customer", "Intertienda", "Transfer", "Proveedor"],
     order_type_rules: {
       Customer:    { storeToStore: false, docRef: "invoice" }, // external customer delivery
       Intertienda: { storeToStore: true,  docRef: "any", homeIsDestination: true }, // receiving branch: any one doc, rep's store is the destination
       Transfer:    { storeToStore: true,  docRef: "estimate" }, // branch-to-branch: single Estimate #
+      Proveedor:   { storeToStore: false, hasCustomer: false, docRef: "hidden" }, // store -> supplier: free address, no customer, no paperwork
     },
     pickup_locations: [
       { name: "Rio Supply Yard", address: "800 S Main St, McAllen TX" },

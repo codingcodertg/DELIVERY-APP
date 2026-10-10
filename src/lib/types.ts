@@ -477,13 +477,34 @@ export interface OrderTypeRule {
    *  - "any": any one of PO # / SO # / Invoice #
    *  - "po": PO # required, specifically
    *  - "none": no document reference required (shows the PO/SO/Invoice fields)
-   *  - "estimate": shows a single optional Estimate # field instead */
-  docRef?: "invoice" | "any" | "po" | "none" | "estimate";
+   *  - "estimate": shows a single optional Estimate # field instead
+   *  - "hidden": no document at all — the PO/SO/Invoice fields are NOT shown
+   *    (D-511). Distinto de "none" a propósito: "none" dice «no lo exijas» y
+   *    sigue pintando los tres campos, que es lo que quiere un pickup donde la
+   *    factura puede llegar después. "hidden" dice «este tipo no lleva papel»,
+   *    y es para una orden que sale a un proveedor. Se añadió en vez de cambiar
+   *    el significado de "none" porque "none" es configurable desde Datos y
+   *    redefinirlo cambiaría en silencio lo que ya hubiera elegido alguien. */
+  docRef?: "invoice" | "any" | "po" | "none" | "estimate" | "hidden";
   /** The rep's own store is the DESTINATION, not the origin (a "receiving"
    * branch move, e.g. Intertienda). On a new order the delivery defaults to the
    * rep's store and the rep chooses the "Sold From" (origin) store instead of
    * it being auto-locked to their own. */
   homeIsDestination?: boolean;
+  /**
+   * ¿Hay un cliente detrás de esta orden? (D-511)
+   *
+   * Hasta ahora «no hay cliente» y «el destino es una de mis tiendas» eran la
+   * misma bandera, `storeToStore`, y por eso no se podía describir una orden a
+   * un **proveedor**: necesita lo primero (no es un cliente — no se le manda el
+   * aviso de cliente, no se le pone tipo de cliente, no entra en Cuentas) y
+   * **no** lo segundo (la dirección del proveedor es libre, no es una de
+   * nuestras tiendas, y su destino no se elige de un desplegable).
+   *
+   * Sin declarar vale `!storeToStore`, que es exactamente lo que se hacía
+   * antes: los tres tipos que existen hoy no cambian de comportamiento.
+   */
+  hasCustomer?: boolean;
 }
 
 /** La app de un tutorial, para agruparlo en el hub (D-268). Sin app = General. */
