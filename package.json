@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub",
-  "version": "1.381.0",
+  "version": "1.382.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -45,6 +45,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.24",
     "husky": "^9.1.7",
+    "pg": "^8.23.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5",
     "vitest": "^4.1.10"

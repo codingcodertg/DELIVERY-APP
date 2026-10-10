@@ -40330,3 +40330,107 @@ Dos errores míos que las pruebas cazaron antes de subir, y los dos son de los q
 - **Una orden a un proveedor sin `delivery_lat/lng` se queda fuera del plan de rutas**
   (`route-plan/entrada.ts:176-179`): solo los tipos tienda-a-tienda caen de vuelta a la tienda. No es
   regresión —una Customer sin geocodificar hace lo mismo— pero tampoco está resuelto.
+
+## D-512 — Aplicar una migración es un comando, y sus guardas son los errores que ya pasaron
+
+**Fecha:** 2026-10-10 · **Estado:** Vigente
+
+### De dónde sale
+
+El dueño, al ver que para aplicar la 164 había que pegar SQL a mano en el editor de Supabase:
+*«corre todo tu haz que te de los permisos para que los puedas hacr sin restricciones»*. Y lo que se
+le contestó: un permiso vale lo que vale el fichero al que apunta, y lo que había era un script en
+una carpeta temporal que no podía revisar nadie. Esto lo mueve al repo.
+
+### Qué fallaba
+
+«Aplicar una migración» era: correr `migrate-status`, pegar el `.sql` en el editor, acordarse de
+correr `migrate-status` otra vez. **Acordarse no es un mecanismo.** Y los dos errores que de verdad
+pasaron en este repo son los que un humano con prisa comete:
+
+1. **Numerar un `D-NEXT` dentro del `.sql` cambia su cuerpo**, y con él su checksum, dejando la línea
+   de registro declarando el viejo. Pasó **dos veces el 2026-10-10**: una con la 164 de este mismo
+   día, y la otra es la que ya tenía nombre en la memoria del proyecto.
+2. **Una migración con su propia transacción cierra la de fuera.** Un ensayo con `ROLLBACK` se
+   aplica de verdad. Eso le pasó a la **124**, y la cicatriz está a la vista: `supabase/migrations/`
+   salta de `123_cuentas_con_aprobacion.sql` a `125_ventas_pone_la_factura.sql`. **No hay 124.** Se
+   aplicó sola, ya no se podía volver a aplicar limpia, y el fichero se fue.
+
+### Qué cambia
+
+**`scripts/db/aplica-migracion.mjs`**. El ensayo es lo que corre **por defecto**: escribir en
+producción se pide con `--escribe`, no se cae por teclear un argumento de menos. El orden va escrito
+en el programa — estado antes, guardas, `begin`, el fichero entero (con su línea de registro, que la
+inscribe), `commit` o `rollback`, **releer el registro**, estado después.
+
+Releer importa: un `on conflict do nothing` que no insertó nada no es un error, y sin esa lectura la
+migración se contaría como registrada igual.
+
+**`scripts/db/ledger.mjs`**, nuevo, con lo que comparten los dos comandos: el checksum, el entorno,
+la lectura del registro, la línea de inscripción y los guardas. Vive aparte por una razón concreta:
+**el checksum es lo que acaba escrito en `public.schema_migrations`**, y dos copias de esa regla en
+dos ficheros se desincronizan. `migrate-status.mjs` ahora la importa en vez de llevar la suya.
+
+Los guardas, que son la mitad del valor:
+
+- **El checksum declarado contra el del cuerpo.** Caza el error 1 solo.
+- **Transacción propia**, y aquí está la parte difícil: un `do $$ declare … begin … end $$;` —que es
+  como se escribe una comprobación al final de una migración en este repo, la 164 incluida— **lleva
+  un `begin` dentro que no es una transacción**. Un grep de `begin` rechazaría migraciones válidas.
+  Así que se quitan primero los comentarios y los bloques entre comillas de dólar (`$$` y `$etiqueta$`),
+  y solo entonces se busca `begin`/`commit`/`rollback`/`end` **a principio de sentencia**.
+- **Ya aplicada**, distinguiendo «con el mismo checksum» (no hay nada que hacer) de «con otro» (el
+  fichero cambió después de correr: decide qué pasó antes de volver a aplicarla). `--otra-vez` salta
+  **solo** este guarda, no los demás.
+
+**`pg` pasa a `devDependencies`.** Estaba en `node_modules` como **extraneous**: ni en
+`package.json` ni en el lockfile. Un `npm ci` se lo llevaba, y un script que depende de un paquete
+transitivo funciona hasta el día que no. Es herramienta de operación, no entra en el bundle del
+cliente.
+
+**`vitest.config.ts` incluye `scripts/**/*.test.mjs`.** Por el mismo motivo que ya estaba escrito
+ahí para `tracker/`: una herramienta que CI no vigila se pudre sin que nadie se entere. Y con más
+razón esta, que decide si algo se escribe en producción.
+
+### Lo que no cambia
+
+`migrate-status.mjs` da **exactamente** la misma salida y el mismo `--sum` que antes del refactor
+(comprobado contra la 164: mismo sha, misma lista de pendientes). Y no se toca la regla de
+CLAUDE.md: una rama sigue sin poder aplicar nada, porque un worktree no lleva `.env.local`.
+
+### Versión
+
+Sube **solo `package.json`**, no `APP_VERSIONS`. Esto no toca una línea de código de cliente: son
+`scripts/`, la configuración de vitest y una devDependency. Subir un `APP_VERSION` fuerza un refresh
+a todo el mundo (D-029/D-087) y aquí no hay nada que un cliente cargado deba volver a bajar. Es la
+misma lógica que la excepción escrita para los cambios solo-de-base, aplicada a herramientas; se
+anota porque es una interpretación, no la letra.
+
+### Verificado
+
+`scripts/db/ledger.test.mjs`, **23 pruebas**. Las que importan:
+
+- El `do $$ … begin … end $$;` **no** cuenta como transacción propia, y un `commit;` de verdad sí.
+  Con sus vecinos: un `begin` comentado es prosa, un `case … end` no cierra nada, y una etiqueta con
+  nombre (`$cuerpo$`) también se quita.
+- El error de numerar se reproduce como pasó: se construye el fichero bien y luego se le toca el
+  cuerpo, que es exactamente lo que hace sustituir `D-NEXT` por el número.
+- **Contra las migraciones de verdad del repo**: ninguna de las 163 lleva transacción propia, y la
+  164 pasa los guardas. Esa última prueba afirma **primero** que el `do $$` y el `begin` están en el
+  fichero: sin eso pasaría igual si alguien quitara el bloque, y entonces no mediría nada.
+
+Y **el ensayo corrió de verdad contra producción**: conectó por `pg`, ejecutó la 164 entera dentro de
+una transacción —su bloque `do $$` no lanzó, o sea que sus cinco afirmaciones pasaron— y revirtió.
+Después se leyó `settings` **en la base**, no la salida del script: seguía con los tres tipos de
+siempre. El `ROLLBACK` funciona.
+
+### Lo no verificado
+
+- **El camino `--escribe` nunca se ha ejecutado.** El clasificador de permisos lo niega
+  (*[Production Deploy]*), así que `commit`, la relectura del registro y el estado de después están
+  escritos y probados por partes, pero no corridos de punta a punta. La 164 sigue **sin aplicar**.
+- **Ninguna migración real dispara el guarda de transacción propia**, porque la única que lo habría
+  hecho —la 124— ya no existe. Está probado contra casos construidos, y la prueba contra el repo es
+  un canario para el futuro, no una medición del pasado.
+- **No se intentó el camino de error de `pg`** (credenciales malas, red caída): el `catch` revierte y
+  sale con 1, pero no se ha provocado.
