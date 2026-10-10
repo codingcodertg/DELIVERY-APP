@@ -40110,3 +40110,105 @@ degradado completo, medido.
 
 **Lo que sigue sin medir:** el camino bueno —fotograma real, imagen, recuadro y adjunto— necesita una pestaña
 visible, y la automatización no la tiene. Eso lo confirma el dueño en un navegador normal.
+
+## D-510 — Un parpadeo de energía no termina la jornada
+
+**Fecha:** 2026-10-10 · **Estado:** Vigente
+
+El dueño: *«se me sigue deteniendo el time tracker desktop app»*, después de *«se me apagó y perdí 2 horas»*.
+
+### Qué fallaba
+
+El escritorio reenvía a la página cuatro avisos de `powerMonitor`. La página reaccionaba a `lock-screen` y
+`suspend` **parando el cronómetro**, y a `unlock-screen` y `resume` **no reaccionaba en absoluto**. Así que
+cualquier bloqueo, por corto que fuera, cerraba la sesión para siempre: sin nota que lo distinguiera de un Stop a
+mano, sin aviso, y sin reanudar al volver. La jornada seguía parada hasta que la persona se diera cuenta sola.
+
+Medido el 2026-10-10 cruzando el registro de sucesos de Windows de la laptop del dueño con las filas de
+`timetracker.sessions` (hora local = Chicago − 1 h):
+
+| la sesión cortó | qué registró Windows |
+|---|---|
+| 12:16:40 CT | `Critical Battery Trigger Met` 11:16:38 → bloqueo 11:16:39 → **desbloqueo 11:16:48** |
+| 14:20:29 CT | nada en ningún registro; 29 s después, `BatterySaverStateChange true` |
+| 14:57:00 CT | `Critical Battery Trigger Met` 13:56:58 → bloqueo 13:56:59 → **desbloqueo 13:57:05** |
+
+Nueve segundos bloqueado, y seis. Con `Kernel-Power 506` y `507` en el mismo segundo: entró y salió de standby de
+golpe. Esos dos parpadeos costaron **16 y 31 minutos** sin grabar.
+
+Hay una segunda señal en las mismas filas: las teclas registradas cayeron de 632.390 (06/10), 256.257 (07/10) y
+346.804 (08/10) a **50, 315, 288 y 847** el 10/10 — tres órdenes de magnitud, desde el arranque del proceso de
+ese día. **No se concluye que eso sea una avería nueva**, y por dos medidas: 632.390 en 9 h 18 son 18,9 teclas por
+segundo sostenidas, que no las teclea una persona; y el app instalado es del **2026-08-21** y no menciona
+`uiohook-napi` en ninguna parte de su `app.asar` (0 coincidencias) ni trae su binario en `app.asar.unpacked`, que
+es de donde el repo saca el conteo global. Así que el número alto tampoco era creíble y la caída puede ser una
+corrección, no una regresión. Queda abajo como no explicado, en los dos sentidos.
+
+Lo que sí se puede afirmar: esto **no toca la paga**. `duration_seconds` sale de `netSeconds`, que no mira las
+teclas; lo que se ve afectado es el porcentaje de actividad que enseñan los informes.
+
+### Lo que no es nuestro
+
+Entre las 11:19 y las 14:13 Windows registró **14 `Power source change`**, algunos a dos y tres segundos uno de
+otro, y dos veces batería crítica. El cargador o la batería de esa máquina no aguantaban. Eso es avería de
+hardware. Lo que sí era nuestro es el precio que el app le cobraba.
+
+### Qué cambia
+
+`src/lib/timetracker/pausa-de-energia.ts` — `accionDeEnergia()`, sin React y sin Electron, porque decide
+segundos que acaban en `duration_seconds`, que es de lo que se cobra:
+
+- `lock-screen` / `suspend` → **se anota el instante y no se para.** Lo que se para es pagar.
+- `unlock-screen` / `resume` **dentro de cinco minutos** → **sigue la misma sesión**, y los segundos de fuera se
+  suman a `idleRef`, que `netSeconds` resta de `durationSeconds`. No se cobran; la jornada no se rompe.
+- Pasada la gracia → se para, que es lo que ya hacía.
+- **Los segundos de fuera se suman también al parar.** Esto no es un detalle: un `suspend` congela la página, y al
+  volver el reloj de pared ha saltado horas. Sin restarlas, el cierre pagaría el sueño entero.
+- Si la máquina nunca vuelve, no llega ningún aviso y la cierra el cron por falta de latido, en el último que
+  hubo — como mucho diez segundos después del bloqueo.
+
+Cinco minutos de gracia y no uno: lo que se protege es «estaba sentado ahí», y una suspensión por batería crítica
+o un cambio de cargador tardan en resolverse más de lo que uno cree. A los cinco minutos de pantalla bloqueada, la
+persona se fue de verdad y parar es lo correcto.
+
+Una pausa abierta **no se hereda**: al arrancar sesión se pone a `null`, o el primer desbloqueo de la jornada
+nueva mediría el tiempo fuera desde la de ayer.
+
+### Lo que no cambia
+
+La intención original del auto-stop al bloquear —escrita solo en el comentario de
+`Cronometro.tsx:352`, *«so away-from-keyboard time isn't counted»*, sin decisión numerada que la respalde:
+se buscó en `DECISIONS.md` por bloqueo, sueño y suspensión y no hay ninguna— **se respeta**: el tiempo fuera
+del teclado sigue sin pagarse. Lo único que cambia es que ya no se paga con la jornada entera. No se toca el
+cron (`LATIDO_MAX_MS`, 15 min), ni la nota `closed:cron`, ni `closed:orphan-page`.
+
+### Verificado
+
+`pausa-de-energia.test.ts`, 9 pruebas, y **8 mutantes de 8 caen, leídos por nombre**: gracia con `<` en vez de
+`<=`, los dos brazos al revés, sin `Math.max(0)` en el tiempo fuera, un segundo `lock-screen` reiniciando la
+pausa, la guarda de «no corre» quitada, un `resume` sin pausa inventando tiempo, el componente sin sumar el tiempo
+fuera a inactividad, y el componente sin parar nunca.
+
+Dos de ellos sobrevivieron a la primera tanda y se arreglaron por lo que cada uno enseñaba:
+
+- **«no corre» estaba enmascarado:** la prueba pasaba `pausadoDesdeMs: T0` también para los avisos de «se va», y
+  por ahí ya devolvía `"nada"` por otro camino. Datos que no contradicen. Ahora los de «se va» van con pausa a
+  `null`.
+- **«nunca para, siempre sigue» no lo veía ningún ancla:** vitest corre en `environment: "node"` y este repo no
+  tiene jsdom ni testing-library, así que el componente no se puede renderizar. El ancla fija ahora el texto
+  exacto del discriminador y el orden de los dos caminos. Es un ancla de texto y se dice que lo es.
+
+El caso real medido es la primera prueba del fichero, con sus nueve segundos.
+
+### Lo no verificado
+
+- **Nada probado contra un bloqueo de verdad en una máquina.** La regla se midió como función; el puente de
+  Electron que la alimenta (`desktop/main.js:504`) no se tocó y no se ejecutó en esta sesión.
+- **El contador de teclas sigue sin explicar en las dos direcciones**: ni por qué daba 18,9/s antes, ni por qué
+  da cientos ahora. No se leyó la consola del app (está grabando una sesión viva y reiniciarlo la cortaría), y el
+  binario instalado es de agosto, anterior al código que se puede leer en `codingcodertg/timetracker`.
+- **El 0.0.45 instalado no lleva el vigía de latidos.** El tag `v0.0.45` apunta a `6587123`; el commit del vigía
+  (`9f19d1c`, rama `fix/vigia-latido` de `codingcodertg/timetracker`) **no es ancestro suyo**, así que llevaba
+  cinco días sin avisar de nada. Eso es una publicación 0.0.46 pendiente, en otro repo.
+- **El corte de las 14:20:29 CT no tiene causa medida**: ningún registro de Windows a esa hora. Este cambio lo
+  cubriría si vino de un aviso de energía, y no lo cubre si vino de otra parte.
