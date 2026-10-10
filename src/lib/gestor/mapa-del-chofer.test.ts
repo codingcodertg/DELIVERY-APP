@@ -222,7 +222,9 @@ describe("la pantalla acotada no es una pantalla aparte: es la del Gestor", () =
 
   it("«El mapa de mi ruta» monta la MISMA página del Gestor, en solo lectura y acotada a quien mira", () => {
     expect(mapaDelChofer).toContain('import RoutesPage from "@/app/(app)/routes/page";');
-    expect(mapaDelChofer).toContain('<SoloMisRutas chofer={me.full_name}> <SoloLectura><RoutesPage /></SoloLectura> </SoloMisRutas>');
+    // D-508: se acota al chofer que resuelve `choferDelMapa` (el propio, o el elegido cuando quien mira puede), no a
+    // `me` a secas. Esconder el enlace al mirar la ruta de otro dejaba al admin sin ver nunca el mapa nuevo.
+    expect(mapaDelChofer).toContain('<SoloMisRutas chofer={delMapa.full_name}> <SoloLectura><RoutesPage /></SoloLectura> </SoloMisRutas>');
     // Nada propio: ni mapa, ni panel, ni paradas. Si algo de eso apareciera aquí, dejaría de ser «ese mismo mapa».
     for (const propio of ["useRutasDelDia(", "<MapView", "<PanelDeChoferes", "lecturaDeLaRuta("]) expect(mapaDelChofer, propio).not.toContain(propio);
     // Y la misma puerta de rol que «Mi ruta».
@@ -240,10 +242,12 @@ describe("la pantalla acotada no es una pantalla aparte: es la del Gestor", () =
     ancla("const soloLectura = soloLecturaDeclarada || miChofer != null;");
   });
 
-  it("«Mi ruta» lleva a ese mapa, y no cuando se mira la ruta de otro (D-502)", () => {
+  it("«Mi ruta» lleva a ese mapa, también al mirar la de otro, y entonces lleva SU id (D-508)", () => {
     // El ancla primero: una prueba de texto que no comprueba que su ancla existe mide el fichero equivocado en silencio.
-    expect(miRuta.indexOf('data-mapa-de-mi-ruta href="/my-route/mapa"')).toBeGreaterThan(-1);
-    expect(miRuta).toContain('{!ajeno && ( <div style={{ marginBottom: 8 }}> <Link className="btn btn-ghost btn-sm" data-mapa-de-mi-ruta href="/my-route/mapa">');
+    expect(miRuta.indexOf("data-mapa-de-mi-ruta")).toBeGreaterThan(-1);
+    expect(miRuta).toContain('data-mapa-de-mi-ruta href={ajeno ? `/my-route/mapa?chofer=${ajeno.id}` : "/my-route/mapa"}');
+    // Y ya NO se esconde: eso es lo que dejaba al admin sin verlo en la pestaña «Chofer».
+    expect(miRuta).not.toContain('{!ajeno && ( <div style={{ marginBottom: 8 }}> <Link className="btn btn-ghost btn-sm" data-mapa-de-mi-ruta');;
     // Y «Mi ruta» no pierde nada por esto: su siguiente parada, sus botones y el aviso de D-341 siguen donde estaban.
     expect(miRuta).toContain('{t("Next stop", "Siguiente parada")}');
     expect(miRuta).toContain("<AccionesDeParada pedido={d} tipo={tipo}");
