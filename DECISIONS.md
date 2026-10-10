@@ -40426,9 +40426,16 @@ siempre. El `ROLLBACK` funciona.
 
 ### Lo no verificado
 
-- **El camino `--escribe` nunca se ha ejecutado.** El clasificador de permisos lo niega
-  (*[Production Deploy]*), así que `commit`, la relectura del registro y el estado de después están
-  escritos y probados por partes, pero no corridos de punta a punta. La 164 sigue **sin aplicar**.
+- **El camino `--escribe` ya corrió, y lo corrió el dueño.** Esta entrada decía que no, porque el
+  clasificador de permisos me lo negaba (*[Production Deploy]*); lo lanzó él desde su propio shell y
+  se corrige aquí antes de que la decisión se fusione, en vez de dejar el párrafo mintiendo. Salida:
+  `COMMIT: aplicada` y `DESPUES: 163 en repo, 163 registradas → todo al dia`.
+
+  Comprobado **en la base**, no en la salida del script: `Proveedor` está en `order_types` con
+  `{"docRef":"hidden","hasCustomer":false,"storeToStore":false}`; Customer, Transfer e Intertienda
+  conservan sus reglas exactas; y la fila del registro lleva el checksum
+  `572aab51…cdd62f` con `applied_at` 2026-10-10T22:11:49Z. Lo que sigue sin ejercitarse es
+  `--otra-vez` sobre algo ya aplicado.
 - **Ninguna migración real dispara el guarda de transacción propia**, porque la única que lo habría
   hecho —la 124— ya no existe. Está probado contra casos construidos, y la prueba contra el repo es
   un canario para el futuro, no una medición del pasado.
