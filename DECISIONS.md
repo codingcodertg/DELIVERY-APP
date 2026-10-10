@@ -39505,3 +39505,160 @@ lee la tienda del empleado · el cierre se busca sin mirar la empresa · un per�
 - **Ninguna prueba nueva lee `src/app/timetracker/clock-in/actions/**`**, aunque es quien llama a `mgrScope`: esa carpeta la
   estaba cambiando otra rama a la vez y una aserción de texto sobre ella habría medido un fichero en movimiento. El grep que
   ya existe (`clockin/sin-tienda.test.ts`) sigue cubriendo que esos ficheros la mencionan.
+
+## D-505 · Un fallo de lectura no se escribe contra una persona: la geocerca sin medir es `null`, y mandar SMS o llamar exige el módulo de Entregas con el número de origen del servidor
+
+**Fecha:** 2026-10-10 · **Versión:** Time Tracker 1.01.0, Entregas 1.275.0, repo 1.375.0 · **Sin migración.** · Rama `arreglo-geocerca-y-terceros`.
+
+Dos hallazgos de la auditoría del 2026-10-09 (`docs/AUDIT-2026-10-09.md`), C-3 y S-5. Son el mismo
+error visto desde dos sitios: un dato que no se comprobó se trató como si se hubiera comprobado.
+
+### C-3 · La app acusaba al empleado de fraude cuando lo que fallaba era la base
+
+`app/timetracker/clock-in/actions/clock.ts` leía la geocerca así, dos veces —una en la entrada y
+otra en la salida, copiado línea a línea—, con el `error` del SELECT descartado en las dos:
+
+```ts
+const { data: sites } = await supabase.from("job_sites")...
+const siteId = firstMatch(input.lat, input.lng, (sites ?? []) as GeoSite[]);
+const onSite = !!siteId || DEV_BYPASS_GEOFENCE;
+```
+
+Si ese SELECT fallaba —RLS, un timeout, PostgREST—, `sites` quedaba en `null`, `sites ?? []` lo
+convertía en una lista vacía, `firstMatch` no casaba con nada y `onSite` salía **`false`**: el mismo
+valor exacto que si la persona estuviera fuera de toda geocerca. Con ese `false` se le insertaba una
+fila de `exceptions` tipo `out_of_radius` y salía un aviso a los gerentes; en la salida era peor,
+porque allí no hay puerta que preguntar nada: se grababa `clock_out_in_radius: false` sin más. El
+comentario del propio fichero llama a eso *«the classic fraud signal»*.
+
+Lo grave no es el `false`: es que **la fila que dejaba un fallo de red era byte a byte la misma que
+la de un fraude real**. Después, nadie podía distinguirlas — ni el gerente al revisar, ni la persona
+al defenderse.
+
+**Lo que se decidió: sin medir no es «fuera», es `null`.** `onSite` tiene ahora tres valores. Con
+`null`, de ahí abajo no ocurre nada que dependa de la geocerca: no se le pide motivo, no se insertan
+excepciones, no sale aviso, y en la base se guarda `clock_in_in_radius` / `clock_out_in_radius` a
+`null`.
+
+**Por qué `null` y no cortar el fichaje con un error**, que era la otra opción:
+
+1. **El estado ya existía en el esquema y ya se lee bien.** Un fichaje puesto a mano por un gerente
+   escribe `clock_in_in_radius: null` desde siempre (`adminClock`), y las pantallas avisan con
+   `=== false`, nunca con un `null`: `lib/clockin/day-photos.ts:177`, `EmployeeWeek.tsx:51`,
+   `live/page.tsx:183`, y `getCrewNow`/`reports.ts` lo pasan como `?? null`. No hay que enseñarle
+   a nadie a leer este caso: ya está leído.
+2. **El GPS sí se guarda.** Lo único que no se pudo calcular es el veredicto, y el veredicto se
+   puede recalcular mañana con las coordenadas que quedaron. Cortar el fichaje, en cambio, pierde el
+   registro de la jornada — que es la cosa que esta app existe para guardar y la que se paga.
+3. **Cortar la salida sería peor que cortar la entrada.** Quien no puede cerrar su turno se queda
+   abierto y lo cierra el cron de las 8 PM con `auto_closed: true`: la caída de la base acabaría
+   dejando otra marca falsa, solo que distinta.
+4. **No se le pregunta lo que no puede contestar.** La persona no sabe que el SELECT falló;
+   «¿por qué estás fuera del sitio?» ya es medio reproche, y no tiene respuesta posible.
+
+Lo que esto NO hace: no avisa a nadie de que la lectura falló. Un fichaje con `null` se ve en las
+pantallas como «sin dato», igual que uno puesto a mano. Queda apuntado abajo como no hecho.
+
+El bloque duplicado se fue a `lib/clockin/sitio-del-fichaje.ts` (`sitioDelFichaje`), que devuelve
+`{ medido: true, siteId, onSite }` o `{ medido: false, detalle }`. Lo usan la entrada y la salida.
+Un detalle que cambia: el bypass de desarrollo (`DEV_BYPASS_GEOFENCE`) ya solo se aplica sobre una
+lectura que **sí** se hizo. Antes tapaba también el fallo, así que en local un SELECT roto se veía
+como «en el sitio» y nadie se enteraba de que estaba roto.
+
+### S-5 · Cualquiera con sesión mandaba SMS y llamaba a cualquier número
+
+`POST /api/notify` validaba que los tres campos existieran y llamaba al proveedor **real** —SMS por
+RingCentral, correo por Resend, desde el número y el dominio de la empresa—. `POST /api/call`
+iniciaba un RingOut de verdad y, además, **el número de origen lo elegía el cliente**
+(`body?.from?.trim() || …`). Tras `requireUser()` no había nada más: ni rol, ni módulo, ni vínculo
+con una orden, ni tope. Alcanzable por cualquier sesión, incluida una que solo tenga fichaje.
+
+Era el estado previsto por D-172 (`lib/api-auth.ts`: *«No mira el rol: eso lo decide cada ruta»*),
+solo que estas dos rutas no lo decidieron nunca. Y era la única superficie de la app que, llamada a
+mano, rompía por diseño la regla permanente del proyecto de no provocar efectos en terceros.
+
+**Lo que se decidió:** las dos rutas, en sus cuatro manejadores (GET y POST de avisos; GET, POST y
+DELETE de llamada), piden `requireDeliveries()` — sesión **y** módulo de Entregas. Es
+`tieneAccesoAEntregas`, el espejo en el cliente de `has_deliveries_access()` (083): admin siempre, y
+el resto solo con `'deliveries'` concedido en `module_access`. Y el `from` de la llamada sale
+siempre del servidor (`RINGCENTRAL_RINGOUT_FROM`, si no `RINGCENTRAL_FROM`); si llega en el cuerpo,
+se ignora.
+
+**Por qué el corte es el módulo y no una lista de roles.** Se contó quién llama hoy a esas rutas
+desde `src/`: solo `components/OrderModal.tsx`, en tres sitios. Y dentro de Entregas **todos** los
+roles tienen un botón real que llega allí — el chofer llama al cliente desde su ficha
+(`OrderModal.tsx:3521`), y crear una orden dispara el SMS de seguimiento (`autoSendTracking`), que
+pueden hacer admin, manager, sales y accounting. Una lista de roles sería «todos menos almacén», y
+a un almacenista con el permiso `create` concedido le rompería el SMS que su propia orden dispara.
+El módulo es el corte que de verdad separa: una sesión de solo fichaje ya no manda nada.
+
+Un fallo al **leer** el perfil contesta 503, no 403: no concede nada, pero tampoco le dice a nadie
+que no tiene permiso cuando lo que pasó es que no se pudo comprobar. Es el criterio de C-3 aplicado
+en el otro extremo de la app, y por eso las dos cosas van en la misma decisión.
+
+`requireDeliveries` se añadió **al lado** de `requireUser`, sin tocarlo: las otras veinte rutas que
+importan `lib/api-auth.ts` siguen pidiendo solo sesión, exactamente como antes.
+
+Lo que **no** cubre, y sigue abierto del hallazgo S-5: el **vínculo con una orden** (que solo se
+pueda escribir o llamar al teléfono de una orden que quien llama puede ver) y el **tope** por
+persona y por día. Lo primero necesita que la pantalla mande el id de la orden, o casar el número
+contra `deliveries` — y los teléfonos están guardados con formatos distintos, que desde el repo no
+se puede medir; lo segundo necesita dónde contar. Las dos cosas tocan ficheros fuera de este cambio.
+
+### Pruebas y mutantes
+
+Ninguna prueba toca un proveedor real: `mensajeria` y `ringcentral` están stubbeados, y lo que se
+mide es con qué se les **habría** llamado, o que no se les llamó. Es la forma que exige la regla
+permanente, y la que no se respetó al verificar D-172.
+
+- `src/lib/clockin/sitio-del-fichaje.test.ts` (10): dentro, fuera, la lista vacía como respuesta
+  válida, el SELECT con error, el error con filas de todas formas, el `data` nulo sin error, el
+  detalle, el bypass y lo que se le pregunta a la tabla.
+- `src/lib/fichaje-sin-geocerca.test.ts` (11): `clockIn` y `clockOut` **corridos de verdad** con una
+  base falsa, mirando lo que se escribe. Con la geocerca ilegible: `clock_in_in_radius: null`, cero
+  excepciones, cero avisos, ninguna pregunta. Y lo que ya funcionaba, igual: fuera de radio de
+  verdad se apunta `out_of_radius` y se avisa; sin motivo se sigue pidiendo; sin turno con horarios
+  en uso se sigue pidiendo.
+- `src/lib/sms-y-llamadas-con-permiso.test.ts` (18): sin sesión 401, con sesión y sin módulo 403 y
+  el proveedor sin llamar, con módulo pasa, el admin pasa sin casilla, el chofer pasa, el fallo de
+  lectura 503, y el `from` del cliente ignorado.
+
+**Mutantes: 13, caen los 13**, cada uno con su prueba por nombre:
+
+| mutante | prueba que cae |
+|---|---|
+| un SELECT fallido con filas vuelve a contarse como medido | «un error con filas de todas formas tampoco se mide» |
+| el fallo de lectura vuelve a contestar «fuera» | «si el SELECT falla NO dice que esté fuera» (+4) |
+| la entrada vuelve a insertar `out_of_radius` con `!onSite` | «no se le inserta ninguna excepción ni sale aviso a los gerentes» (+1) |
+| la salida vuelve a insertar `out_of_radius` con `!onSite` | «con la geocerca ilegible, la salida se cierra SIN la «classic fraud signal»» |
+| la entrada guarda `false` donde no se midió | «el fichaje se guarda, pero «en radio» queda SIN MEDIR — no en `false`» |
+| la salida guarda `false` donde no se midió | «con la geocerca ilegible, la salida se cierra SIN la «classic fraud signal»» |
+| sin medir, se le vuelve a pedir motivo de estar fuera | «y no se le pide un motivo que no puede dar» (+2) |
+| sin medir, se le vuelve a pedir motivo por no tener turno | «ni se le pregunta por el turno» |
+| el módulo de Entregas deja de exigirse | «con sesión pero SIN el módulo de Entregas: 403 y el SMS no sale» (+5) |
+| un fallo al leer el perfil se cuenta como «no tienes permiso» | «si no se pudo LEER el perfil: 503, no un 403…» |
+| el «from» del cliente vuelve a elegir quién llama | «el número de ORIGEN lo pone el servidor: el del cliente se ignora» |
+| la ruta de llamada se queda sin puerta | «sin el módulo de Entregas: 403 y no se marca ningún número» (+1) |
+| la ruta de avisos se queda sin puerta | «sin sesión: 401 y no se manda nada» (+4) |
+
+### No verificado
+
+- **Nada con sesión, nada contra producción, ningún SMS, ningún correo y ninguna llamada.** No hay
+  `.env.local` en el worktree. Las rutas solo se corrieron con el proveedor stubbeado.
+- **Con qué frecuencia falla de verdad la lectura de `job_sites`** sigue sin medirse: lo pedía ya la
+  auditoría. El mecanismo está arreglado; la frecuencia se mide en la base, no aquí.
+- **El fallo de lectura no avisa a nadie.** Un fichaje sin medir se ve como «sin dato» y no hay nada
+  que le diga a un gerente «esto no es un dato que falte, es un dato que no se pudo tomar». Para
+  distinguirlo haría falta columna o una excepción de otro tipo — base, y fuera de este cambio.
+- **No se abrió el navegador**: el panel de fichaje no lee `onSite` del resultado (solo `res.ok` y
+  `res.code`, `PunchPanel.tsx:217`), así que no hay nada nuevo que mirar en pantalla; medido por
+  lectura del fichero, no en vivo.
+- **El `rc_calls_enabled` / `rc_auto_sms_enabled` de Ajustes no se comprueba en el servidor.** Se
+  descartó a propósito: esas columnas existen en producción pero **no en ninguna migración del
+  repo** (lo dice la 130 de pasada), y una ruta que las lea se cae del lado de no llamar si la
+  columna no está. Se habría apagado el botón entero por una premisa que desde aquí no se puede
+  medir.
+- El informe de la tanda de mutantes se midió **a mano**, uno por uno, con `npx vitest run` del
+  fichero de cada mutante: `mutantes.mjs` corrió los dos primeros en más de diez minutos y dio uno
+  por «SOBREVIVE, corrieron 0 pruebas» — rehecho a mano, ese mutante tumba 5 pruebas con nombre. La
+  máquina tenía otras dos sesiones compilando.
