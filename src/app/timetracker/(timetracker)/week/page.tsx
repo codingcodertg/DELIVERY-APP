@@ -8,6 +8,7 @@ import {
   thisWeekStart, weekIsFinished, weekLabel, weekStartISO,
 } from "@/lib/timetracker/helpers";
 import type { Assignment, Session } from "@/lib/timetracker/types";
+import { totalPagado } from "@/lib/timetracker/total-de-nomina";
 import { nombreDeLinea } from "@/lib/timetracker/tienda-y-puesto";
 import { effWorkerType } from "@/lib/timetracker/helpers";
 import { esAdminDeTt, horasDeLaSemana, seccionesDeMiSemana, verTablasDelCronometro } from "@/lib/timetracker/vista-empleado";
@@ -50,7 +51,10 @@ export default function MyWeekPage() {
 
   const weekSessions = sessions.filter((s) => weekStartISO(s.date ?? "") === week);
   const weekBatches = batches.filter((b) => b.weekOf === week);
-  const paidTotal = weekBatches.filter((b) => b.paid).reduce((n, b) => n + (b.total || 0), 0);
+  // `totalPagado` y no `b.total`: el total de la fila son solo las horas, y el bono o la
+  // deducción van aparte en `adjustments` (C-2 de la auditoría del 2026-10-09, D-NEXT). Es la
+  // misma función con la que el gerente pinta esa fila en Informes, así que la cifra cuadra.
+  const paidTotal = weekBatches.filter((b) => b.paid).reduce((n, b) => n + totalPagado(b), 0);
 
   const isPaid = weekBatches.some((b) => b.paid);
   const finished = weekIsFinished(week, "weekly");
