@@ -153,11 +153,13 @@ export function VistaDeCaptura({ fotograma, recuadro, t }: {
       {recuadro && (
         <div
           aria-hidden
+          // El resplandor blanco de dentro vive en `globals.css` (`.recuadro-de-captura`): es un color a pelo, y los
+          // colores a pelo no van en línea (lo fija la prueba `inline-colors`).
+          className="recuadro-de-captura"
           style={{
             position: "absolute",
             ...porcentajesDelRecuadro(recuadro, fotograma),
             border: `2px solid ${COLOR_DEL_RECUADRO}`,
-            boxShadow: `0 0 0 1px rgba(255,255,255,.7) inset`,
             pointerEvents: "none",
           }}
         />
