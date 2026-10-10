@@ -1,7 +1,7 @@
 import { LIMITES_DE_ADJUNTOS, type FalloDeAdjunto, type FicheroElegido } from "@/lib/help-attachments";
 
 /**
- * Capturar la pantalla desde Ayuda, y señalar dónde está el problema (D-NEXT).
+ * Capturar la pantalla desde Ayuda, y señalar dónde está el problema (D-509).
  *
  * El dueño: «una opción de help que sea como un snipping tool para poder agregar screenshots directo de
  * la app, que aprieten eso y automáticamente, sin que la parte de help aparezca, le tomen foto y enfoquen
@@ -181,9 +181,12 @@ export async function conAyudaOculta<T>(pasos: {
   captura: () => Promise<T>;
   devuelve: () => void;
 }): Promise<T> {
-  pasos.esconde();
-  await pasos.esperaUnRepintado();
+  // Esconder y esperar van DENTRO del `try`: si la espera se cuelga o revienta, `devuelve()` tiene que
+  // correr igual. Estaban fuera, y medido en Chrome con la pestaña en segundo plano —donde
+  // `requestAnimationFrame` no se dispara— Ayuda desaparecía de la app para siempre.
   try {
+    pasos.esconde();
+    await pasos.esperaUnRepintado();
     return await pasos.captura();
   } finally {
     pasos.devuelve();

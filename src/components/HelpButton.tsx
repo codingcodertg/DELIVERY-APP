@@ -35,7 +35,7 @@ export function HelpButton({ me }: { me: Profile }) {
   // Documentos y fotos (D-284): se eligen aquí, se suben al cubo privado al enviar, y al correo van
   // sus enlaces firmados. Lo que se acepta lo dice `help-attachments`, el mismo sitio que mira la ruta.
   const [ficheros, setFicheros] = useState<File[]>([]);
-  // La captura de pantalla (D-NEXT). `ocultoParaCapturar` esconde Ayuda ENTERA mientras se toma la
+  // La captura de pantalla (D-509). `ocultoParaCapturar` esconde Ayuda ENTERA mientras se toma la
   // foto; `fotograma` es la captura esperando a que se señale el problema.
   const [ocultoParaCapturar, setOcultoParaCapturar] = useState(false);
   const [fotograma, setFotograma] = useState<FotogramaDeCaptura | null>(null);
@@ -195,7 +195,7 @@ export function HelpButton({ me }: { me: Profile }) {
                   `Hasta ${LIMITES_DE_ADJUNTOS.maxFicheros} archivos de ${Math.round(LIMITES_DE_ADJUNTOS.maxBytes / (1024 * 1024))} MB. Viajan como enlaces privados que caducan.`,
                 )}
               </div>
-              {/* La captura de la pantalla (D-NEXT). Es una forma más de llenar esta misma lista de
+              {/* La captura de la pantalla (D-509). Es una forma más de llenar esta misma lista de
                   adjuntos: no hay un camino aparte ni un cubo aparte. */}
               {puedeCapturar ? (
                 <>

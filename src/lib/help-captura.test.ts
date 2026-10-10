@@ -13,7 +13,7 @@ import {
 import { COLOR_DEL_RECUADRO, EditorDeCaptura, VistaDeCaptura } from "@/components/CapturaDeAyuda";
 
 /**
- * Capturar la pantalla desde Ayuda y señalar el problema (D-NEXT).
+ * Capturar la pantalla desde Ayuda y señalar el problema (D-509).
  *
  * **Nada de esto abre un navegador.** `getDisplayMedia`, el `<video>`, el lienzo y el blob viven en
  * `CapturaDeAyuda.tsx` y NO se prueban aquí: no se pueden medir en vitest y una prueba que los finja no
@@ -347,5 +347,30 @@ describe("la pantalla: Ayuda no sale en la foto y la captura entra por la puerta
     // El mapa es la razón: `html2canvas` y los suyos no lo pintan. Si algún día se cambia de camino,
     // que no sea por descuido.
     expect(captura).not.toContain("html2canvas");
+  });
+});
+
+describe("Ayuda vuelve aunque la espera se cuelgue (medido en Chrome, D-509)", () => {
+  it("si `esperaUnRepintado` no termina nunca, Ayuda NO se queda escondida: el fallo sube y devuelve corre", async () => {
+    // El caso real: pestaña en segundo plano, `requestAnimationFrame` congelado. Antes, esconder y esperar
+    // iban FUERA del try, así que `devuelve()` no corría y el panel desaparecía hasta recargar.
+    const pasos: string[] = [];
+    const colgada = conAyudaOculta({
+      esconde: () => { pasos.push("esconde"); },
+      esperaUnRepintado: () => new Promise<void>(() => { /* no termina jamás */ }),
+      captura: async () => { pasos.push("captura"); return "foto"; },
+      devuelve: () => { pasos.push("devuelve"); },
+    });
+    // No se resuelve; lo que importa es que, si la espera FALLA, devuelve corre.
+    const conFallo = conAyudaOculta({
+      esconde: () => { pasos.push("esconde2"); },
+      esperaUnRepintado: async () => { throw new Error("rAF congelado"); },
+      captura: async () => { pasos.push("captura2"); return "foto"; },
+      devuelve: () => { pasos.push("devuelve2"); },
+    });
+    await expect(conFallo).rejects.toThrow("rAF congelado");
+    expect(pasos).toEqual(["esconde", "esconde2", "devuelve2"]);
+    expect(pasos).not.toContain("captura2");
+    void colgada;
   });
 });

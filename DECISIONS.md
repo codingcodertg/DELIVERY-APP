@@ -39959,7 +39959,9 @@ motivo al lado.
 - **Nada abierto en un navegador con la pestaña «Chofer» de un admin**, que es justo el caso que esto arregla.
 - Sigue en pie lo de D-506: el acotado es de pantalla; la base no lo respalda (S-9 de la auditoría).
 
-## D-NEXT · Una captura de la pantalla desde Ayuda, con un recuadro sobre el problema, y Ayuda fuera de la foto
+## D-509 · Una captura de la pantalla desde Ayuda, con un recuadro sobre el problema, y Ayuda fuera de la foto
+
+**Fecha:** 2026-10-10 · **Versión:** Entregas 1.279.0, repo 1.379.0 · **Sin migración.**
 
 **Fecha:** 2026-10-10 · **Sin migración.**
 **Pedido por el dueño**, literal: *«quiero hacer una opcion de help que sea como un snipping tool para poder agregar
@@ -40082,3 +40084,29 @@ pasar por las reglas de los adjuntos».
   o pasar a JPEG, y eso no se decide sin el número.
 - La captura solo está en el panel de Ayuda de Entregas (`HelpButton`). **«Mis solicitudes» del hub, que también
   abre solicitudes (D-311), no la tiene**: no se pidió y no se añadió.
+
+### Medido en Chrome por el orquestador (demo local, 2026-10-10) — y encontró un fallo
+
+Se abrió el demo y se sustituyó `getDisplayMedia` por un doble que apunta **si Ayuda sigue en el DOM en el momento
+exacto de la foto** y devuelve el flujo de un lienzo pintado a mano. Ni un diálogo, ni una foto de la pantalla de
+nadie, ni una escritura en el cubo.
+
+**Resultado: `ayudaEnPantallaAlCapturar === false`.** Que el panel no sale en la foto deja de estar razonado y pasa a
+estar medido. Y las opciones llegan como se diseñaron: `{video:{frameRate:1}, audio:false, preferCurrentTab:true}`.
+
+**El fallo que encontró, que ninguna prueba de vitest podía cazar.** La pestaña estaba en segundo plano
+(`document.visibilityState === "hidden"`), y ahí Chrome **congela `requestAnimationFrame`: no se dispara nunca**
+(medido: 0 disparos en 1.971 ms). La espera de repintado no terminaba, así que no se capturaba — y como esconder
+Ayuda ya había ocurrido **fuera** del `try`, `devuelve()` no corría: **el panel y su botón desaparecían de la app
+hasta recargar**, con el mensaje a medio escribir dentro. Dos arreglos:
+
+1. `esperaUnRepintado` corre contra un tope (`TOPE_DE_REPINTADO_MS`, 400 ms). Pasar de largo sin repintar es peor
+   foto; quedarse colgado es perder Ayuda.
+2. En `conAyudaOculta`, esconder y esperar pasan **dentro** del `try`, para que `devuelve()` corra pase lo que pase.
+
+Con el arreglo, en esa misma pestaña oculta: se llama a la captura sin Ayuda en pantalla, el lienzo no da fotograma
+(no los hay en segundo plano), se agota el tope de 3 s, se avisa de que salió vacía y **Ayuda vuelve**. El camino
+degradado completo, medido.
+
+**Lo que sigue sin medir:** el camino bueno —fotograma real, imagen, recuadro y adjunto— necesita una pestaña
+visible, y la automatización no la tiene. Eso lo confirma el dueño en un navegador normal.

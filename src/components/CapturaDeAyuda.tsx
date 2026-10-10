@@ -8,7 +8,7 @@ import {
 } from "@/lib/help-captura";
 
 /**
- * La captura de pantalla de Ayuda: lo que toca el navegador (D-NEXT).
+ * La captura de pantalla de Ayuda: lo que toca el navegador (D-509).
  *
  * Aquí está todo lo que no se puede medir en vitest —`getDisplayMedia`, el `<video>`, el lienzo y el
  * blob— a propósito y en un solo sitio. Las decisiones que sí se miden (el rectángulo, el escalado, el
@@ -36,12 +36,26 @@ export class ErrorDeCaptura extends Error {
  *  proponga **esta** pestaña, que es la que tiene el problema; proponer, no imponer. */
 type OpcionesDeCaptura = DisplayMediaStreamOptions & { preferCurrentTab?: boolean };
 
-/** Dos repintados: el primero deja que React suelte a la pantalla el cambio que esconde Ayuda, el
- *  segundo ocurre ya sin ella pintada. Es lo que `conAyudaOculta` espera antes de capturar. */
+/** Cuánto se espera un repintado como mucho. Ver `esperaUnRepintado`. */
+export const TOPE_DE_REPINTADO_MS = 400;
+
+/**
+ * Dos repintados: el primero deja que React suelte a la pantalla el cambio que esconde Ayuda, el
+ * segundo ocurre ya sin ella pintada. Es lo que `conAyudaOculta` espera antes de capturar.
+ *
+ * **Con tope, y no por prudencia: medido.** Al probarlo en Chrome con la pestaña en segundo plano
+ * (`document.visibilityState === "hidden"`), `requestAnimationFrame` **no se dispara nunca** — el
+ * navegador lo congela. Sin tope, la espera no termina: no se captura, y como esconder Ayuda ya había
+ * ocurrido, **el panel y su botón desaparecen de la app hasta recargar**, con el mensaje a medio
+ * escribir dentro. Pasar de largo sin repintar es peor foto; quedarse colgado es perder Ayuda.
+ */
 export function esperaUnRepintado(): Promise<void> {
-  return new Promise<void>((listo) => {
-    requestAnimationFrame(() => requestAnimationFrame(() => listo()));
-  });
+  return Promise.race([
+    new Promise<void>((listo) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => listo()));
+    }),
+    new Promise<void>((listo) => setTimeout(listo, TOPE_DE_REPINTADO_MS)),
+  ]);
 }
 
 /** El primer fotograma que mande el flujo, con tope: si no llega ninguno se sigue y lo caza el alto 0. */
