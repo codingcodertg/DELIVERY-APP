@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub",
-  "version": "1.382.0",
+  "version": "1.383.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -20,6 +20,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.10",
     "@vercel/blob": "^2.8.0",
+    "@zumer/snapdom": "3.3.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "decimal.js": "^10.6.0",

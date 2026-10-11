@@ -39963,6 +39963,17 @@ motivo al lado.
 
 **Fecha:** 2026-10-10 · **Versión:** Entregas 1.279.0, repo 1.379.0 · **Sin migración.**
 
+> **Reemplazada en parte por D-513, el mismo día.** El dueño la probó y la rechazó: *«EL SCREENSHOT NO FUNCIONA
+> COMO YO QUIERO, QUIERO ALGO MAS RAPIDO SIN QUE ESTE PIDIENDO TANTO PERMISO Y ASI»*. El botón ya **no** usa
+> `getDisplayMedia` por defecto: clona la página, sin diálogo. Lo de abajo sigue siendo cierto para el **respaldo**,
+> que solo aparece si la foto rápida falla.
+>
+> Y una corrección que esta entrada se merece en su propio sitio: su razón principal —*«el mapa no se puede dibujar
+> desde el DOM»*— **era falsa en este app y no se midió**. Es cierto con un mapa de Google pintado en WebGL; aquí
+> todos los mapas son Leaflet con mosaicos en `<img>`, y los tres servidores mandan `Access-Control-Allow-Origin`.
+> Medido en D-513: el mapa sale entero. Se construyó una función con un diálogo en cada uso sobre una premisa
+> heredada que nadie comprobó.
+
 **Fecha:** 2026-10-10 · **Sin migración.**
 **Pedido por el dueño**, literal: *«quiero hacer una opcion de help que sea como un snipping tool para poder agregar
 screenshots directo de la app que ellos en help apretene eso y automticamnete sin que la parte de help aparezca le
@@ -40441,3 +40452,131 @@ siempre. El `ROLLBACK` funciona.
   un canario para el futuro, no una medición del pasado.
 - **No se intentó el camino de error de `pg`** (credenciales malas, red caída): el `catch` revierte y
   sale con 1, pero no se ha provocado.
+
+## D-513 — La foto de Ayuda sin permiso: un clic, lo que se ve, en menos de un segundo
+
+**Fecha:** 2026-10-10 · **Estado:** Vigente · **Reemplaza en parte a D-509** · **Sin migración.**
+
+El dueño, sobre D-509 el mismo día: *«EL SCREENSHOT NO FUNCIONA COMO YO QUIERO, QUIERO ALGO MAS RAPIDO SIN QUE ESTE
+PIDIENDO TANTO PERMISO Y ASI»*.
+
+### Qué fallaba
+
+D-509 capturaba con `getDisplayMedia`, y ese método **obliga al navegador a enseñar su selector de pantalla cada
+vez**: no hay permiso que se recuerde ni forma de saltarlo. Para un botón pensado para usarse a menudo, cada uso era
+un diálogo.
+
+D-509 lo había elegido por una razón: *«el mapa no se puede dibujar desde el DOM»*. **Era falsa en este app, y no se
+había medido.** Se midió ahora:
+
+| servidor de mosaicos | `Access-Control-Allow-Origin` |
+|---|---|
+| `tile.openstreetmap.org` | `*` |
+| `server.arcgisonline.com` (satélite) | `*` |
+| `tile.googleapis.com` | el origen que pide, incluso con una llave falsa (sin gastar cuota) |
+
+No hay ningún mapa de Google pintado en WebGL: `grep` de `new google.maps.Map` da cero, y el demo pinta Leaflet. Con
+CORS en los tres, una copia del DOM puede leer los mosaicos.
+
+### Qué se midió antes de decidir
+
+Contra el demo local (`NEXT_PUBLIC_LOCAL_MODE`, sin base ni llaves), Chrome headless a 1440×900, con guiones en
+`~/.claude/herramientas/revision-visual/medir-captura*.mjs`:
+
+**El método de copia importa más que el método de captura.** `modern-screenshot` copia cada estilo calculado de
+cada elemento como estilo en línea:
+
+| Órdenes, 2 680 nodos | modern-screenshot | **snapdom** |
+|---|---|---|
+| todo el documento | 16,9 s | 1,2 s |
+| solo lo visible | 4,0 s | **0,60 s** (mediana de 5) |
+| con scroll | 5,4 s | 0,74 s |
+| la primera de cada carga | — | 1,6–2,2 s |
+
+`html2canvas` quedó fuera sin medirlo: revienta con `color-mix()`, que el CSS del app usa dos veces.
+
+**Las fuentes salían cambiadas.** La primera foto partía las pastillas en dos líneas («57 with no / plan») donde la
+pantalla las tenía en una: la letra era la del sistema, más ancha. La hoja de Google Fonts se cargaba sin
+`crossorigin`, y una hoja de otro dominio así no deja leer sus `@font-face`, así que nada podía incrustarlas. Google
+Fonts manda `Access-Control-Allow-Origin: *` en la hoja y en los `.woff2`. Con `crossorigin`, la foto sale idéntica.
+
+### Qué cambia
+
+**`tomaFotogramaDeLaPagina`** (`src/components/CapturaDeAyuda.tsx`) es el botón de siempre. Clona la página con
+**`snapdom` 3.3.3** y:
+
+- **`clip: "viewport"`**: lo que la persona ve, con el scroll donde lo tenga, no la página desde arriba. Medido con
+  scroll en Órdenes: las mismas filas en el mismo sitio que pinta Chrome, y dos avisos fijos de prueba
+  (`position: fixed`, como salen los errores) en su sitio.
+- **`exclude` con `excludeMode: "hide"`**: Ayuda se deja fuera **al clonar**, con su hueco, así que no hay que
+  esconderla de la pantalla ni esperar un repintado. Eso quita de en medio el mecanismo de D-509 que tenía el fallo de
+  la pestaña en segundo plano. Lo excluido es un atributo, `data-fuera-de-la-captura`, y no una clase de estilo: una
+  clase se cambia al retocar el aspecto sin pensar que de ella dependía esto. Lo llevan el botón flotante, el panel y
+  el editor del recuadro (este, porque al «Capturar de nuevo» sigue montado en el instante en que empieza la foto).
+- **Se calienta al abrir Ayuda** (`calientaCaptura`), con `fast: false` para que ceda el hilo y no trabe el teclado:
+  lo lento de la primera captura pasa mientras se escribe.
+- **Se carga con `import()`**, no estático: pesa 89 KB comprimida y Ayuda está en todas las páginas.
+
+**`layout.tsx`**: `crossOrigin="anonymous"` en la hoja de Google Fonts **y en su preconnect**, porque una conexión
+anónima y una con credenciales van por piscinas distintas y sin él el preconnect no serviría a la hoja.
+
+**El método de D-509 queda de respaldo**, y solo aparece si la rápida falla: fotografía la pantalla real, así que no
+depende de cómo esté hecha la página.
+
+**Y de paso, el móvil.** La rápida no depende de `getDisplayMedia`, así que el botón se ofrece siempre. Antes un
+teléfono no podía capturar; ahora un chofer puede mandar foto.
+
+### Lo que no cambia
+
+El editor del recuadro, el recuadro pintado en la imagen, el PNG, el escalado a 1 920 por el lado largo, la validación
+y el cubo: todo lo que viene después de tener la foto es lo mismo de D-509. Las dos maneras de capturar terminan en
+la misma función, `aFotograma`.
+
+### Verificado
+
+**El flujo real, de punta a punta**, en el demo con el código de esta rama: abrir Ayuda, esperar 4 s (lo que tarda
+alguien en escribir), pulsar «Capturar esta pantalla», cronometrar hasta que el editor sale con la imagen, y **un
+espía sobre `navigator.mediaDevices.getDisplayMedia` que cuenta las llamadas**:
+
+| página | 1.er clic | 2.º clic | `getDisplayMedia` |
+|---|---|---|---|
+| Gestor (mapa), 1440 | 4 966 ms* | 887 ms | **0** |
+| Órdenes, 1440 | 770 ms | 1 155 ms | **0** |
+| Órdenes, teléfono 390 | 328 ms | 436 ms | **0** |
+
+\* Incluye compilar el trozo de `snapdom` en modo desarrollo, que en producción ya viene hecho. El servidor de
+desarrollo iba a 20 s por petición en este portátil: los tiempos de producción serán menores, no mayores.
+
+Las imágenes se miraron una por una: el panel de Ayuda, abierto con su fondo oscuro encima de la página, **no sale**;
+el botón flotante tampoco; el mapa sale entero; las fuentes, bien.
+
+`captura-sin-permiso.test.ts` y la prueba reescrita de `help-captura.test.ts` fijan las piezas de las que depende,
+cada una por lo que rompería: la marca y el selector con la **misma** constante (importada, no leída como texto); el
+`crossOrigin` de la hoja y del preconnect; el `import()` dinámico y ningún import estático; que la foto normal no toque
+`getDisplayMedia`; el calentamiento al abrir; y que el respaldo solo aparezca en el `catch` de la rápida.
+
+**15 mutantes de 15 caen, leídos por nombre**, con el control en verde (`~/.claude/herramientas/mutantes`, tanda
+`tanda-captura-sin-permiso.json`): cada una de las tres piezas de Ayuda sin su marca; el clon sin `exclude`; la marca
+y el selector separados de nombre; sin `clip: "viewport"`; `snapdom` importado estático; sin calentar al abrir; el
+calentamiento sin ceder el hilo; la hoja y el preconnect sin `crossOrigin`; el botón principal de vuelta al método
+del navegador; el `catch` sin ofrecer el respaldo; sin el freno de doble clic; y `setCapturando(false)` fuera del
+`finally`.
+
+Dos pruebas mías cayeron solas antes de la tanda, y las dos por lecciones que ya tenían nombre: **mi propio
+comentario** cita literalmente `<div {...marcaFueraDeLaCaptura}>` y la prueba que lee el fuente lo contaba como
+código (2 donde hay 1) —ahora cuenta sin las líneas de comentario—; y un recorte que buscaba el `>` del final de una
+etiqueta se cortaba en el `>` de la flecha `=>`.
+
+Y un error de medición que estuvo a punto de pasar: el guion convertía un argumento vacío en `routes`, así que **las
+dos primeras corridas que llamé «Órdenes» fueron otra vez en el Gestor**. Se detectó al ver que el fichero de imagen
+se llamaba `flujo-routes-…`; la tabla de arriba es la de después del arreglo.
+
+### Lo no verificado
+
+- **Nada en un navegador de verdad con sesión.** Todo lo medido es el demo, en Chrome headless. No se abrió en el
+  Chrome de Windows del dueño, ni en Safari de iPhone, donde `snapdom` documenta rodeos propios para `foreignObject`.
+- **Falta el pie «v1.280.0» de abajo** en la foto de Órdenes con scroll. Es un elemento normal (`static`), no fijo, y
+  el número también sale arriba a la derecha; no se averiguó por qué.
+- **Una imagen de otro dominio sin CORS saldría como hueco.** Hoy no hay ninguna medida que lo sea, pero un logo o una
+  foto subida a un sitio sin CORS lo sería; para eso está el respaldo.
+- **La foto del iframe de otro sitio**, si alguna pantalla lo tuviera, sale vacía. No se buscó si alguna lo tiene.

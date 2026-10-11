@@ -296,20 +296,34 @@ describe("la pantalla: Ayuda no sale en la foto y la captura entra por la puerta
     expect((boton.match(/setOcultoParaCapturar\(/g) ?? []).length).toBe(2);
   });
 
-  it("si el navegador no sabe capturar, no se ofrece el botón y se dice por qué", () => {
+  it("el botón de siempre es la foto rápida, y no depende de que el navegador sepa capturar la pantalla", () => {
+    // D-513: «Capturar esta pantalla» llama a la rápida y se pinta SIEMPRE. Antes iba dentro de
+    // `{puedeCapturar ? (`, y un móvil sin `getDisplayMedia` se quedaba sin botón.
+    const texto = boton.indexOf('t("Capture this screen", "Capturar esta pantalla")');
+    expect(texto).toBeGreaterThan(-1);
+    const suBoton = boton.slice(boton.lastIndexOf("<button", texto), texto);
+    expect(suBoton).toContain("onClick={capturaRapida}");
+    // Que no quede ningún `puedeCapturar ?` envolviendo el botón principal.
+    expect(boton.slice(0, texto)).not.toContain("{puedeCapturar ? (");
+  });
+
+  it("el método del navegador solo aparece si la rápida falló, y sin soporte se dice por qué", () => {
     expect(boton).toContain("soportaCaptura(typeof navigator === \"undefined\" ? null : navigator)");
-    const ini = boton.indexOf("{puedeCapturar ? (");
+    const ini = boton.indexOf("{respaldoVisible && (puedeCapturar ? (");
     expect(ini).toBeGreaterThan(-1);
     // Las dos ramas, cada una acotada: el `)}` de un `t(...)` de dentro serviría de ancla falsa.
     const medio = boton.indexOf("\n              ) : (", ini);
-    const fin = boton.indexOf("\n              )}", medio);
+    const fin = boton.indexOf("\n              ))}", medio);
     expect(medio).toBeGreaterThan(ini);
     expect(fin).toBeGreaterThan(medio);
-    expect(boton.slice(ini, medio)).toContain("Capturar esta pantalla");
-    expect(boton.slice(ini, medio)).toContain("onClick={capturaPantalla}");
+    expect(boton.slice(ini, medio)).toContain("onClick={capturaConElNavegador}");
     // Sin soporte no hay botón que no funcione: hay una frase que explica por qué.
     expect(boton.slice(medio, fin)).toContain('{mensajeDeFalloDeCaptura("no-soportado", t)}');
     expect(boton.slice(medio, fin)).not.toContain("<button");
+    // Y lo que lo enciende es exactamente el fallo de la rápida, en su `catch`.
+    const rapida = boton.slice(boton.indexOf("const capturaRapida = async"), boton.indexOf("const capturaConElNavegador = async"));
+    const elCatch = rapida.slice(rapida.indexOf("} catch {"), rapida.indexOf("} finally {"));
+    expect(elCatch).toContain("setRespaldoVisible(true);");
   });
 
   it("un fallo de captura se cuenta con el mensaje que le toca, sin romper el panel", () => {

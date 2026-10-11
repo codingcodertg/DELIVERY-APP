@@ -8,15 +8,28 @@ import {
 } from "@/lib/help-captura";
 
 /**
- * La captura de pantalla de Ayuda: lo que toca el navegador (D-509).
+ * La captura de pantalla de Ayuda: lo que toca el navegador (D-509, D-513).
  *
- * Aquí está todo lo que no se puede medir en vitest —`getDisplayMedia`, el `<video>`, el lienzo y el
- * blob— a propósito y en un solo sitio. Las decisiones que sí se miden (el rectángulo, el escalado, el
- * nombre, qué se acepta y el orden en que Ayuda se esconde) están en `src/lib/help-captura.ts`, con sus
- * pruebas.
+ * Aquí está todo lo que no se puede medir en vitest —el clon del DOM, `getDisplayMedia`, el lienzo y
+ * el blob— a propósito y en un solo sitio. Las decisiones que sí se miden (el rectángulo, el escalado,
+ * el nombre, qué se acepta y el orden en que Ayuda se esconde) están en `src/lib/help-captura.ts`.
  *
- * Se captura la pantalla **de verdad**, con el diálogo del navegador por delante, porque el mapa no se
- * puede dibujar desde el DOM. El motivo largo está en `help-captura.ts` y en la entrada de decisiones.
+ * **Dos maneras de tomar la foto, y la rápida va primero (D-513).** D-509 solo tenía la de
+ * `getDisplayMedia`, y el dueño: *«EL SCREENSHOT NO FUNCIONA COMO YO QUIERO, QUIERO ALGO MAS RAPIDO
+ * SIN QUE ESTE PIDIENDO TANTO PERMISO Y ASI»*. Ese método obliga al navegador a enseñar su selector de
+ * pantalla **cada vez**, y no se puede saltar.
+ *
+ * D-509 lo justificaba con que «el mapa no se puede dibujar desde el DOM». **Era falso en este app, y
+ * no se había medido.** Es cierto con un mapa de Google en WebGL; aquí todos los mapas son Leaflet con
+ * mosaicos en `<img>`, y los tres servidores (OpenStreetMap, Esri y Google tiles) mandan
+ * `Access-Control-Allow-Origin`. Medido el 2026-10-10 contra el demo: el mapa sale entero.
+ *
+ * - `tomaFotogramaDeLaPagina` — la de por defecto: clona el DOM con `snapdom`, solo lo visible
+ *   (`clip: "viewport"`, con scroll), sin diálogo. Medido en el demo a 1440×900: mediana 0,25 s en el
+ *   Gestor con mapa y 0,60 s en Órdenes, en caliente. Ayuda se deja fuera **al clonar** (`exclude`),
+ *   así que no hay que esconderla ni esperar un repintado.
+ * - `tomaFotograma` — la de D-509, por `getDisplayMedia`: queda de respaldo, y solo se ofrece si la
+ *   rápida falla. Fotografía la pantalla real, así que esa sí necesita esconder Ayuda antes.
  */
 
 /** El rojo del recuadro: el mismo `--red` de la app no sirve aquí, el lienzo no lee variables de CSS. */
@@ -75,12 +88,90 @@ function decodifica(url: string): Promise<HTMLImageElement> {
   });
 }
 
+/** Una imagen cualquiera (el vídeo de `getDisplayMedia` o el lienzo de snapdom) a fotograma: encogida a
+ *  `MAX_LADO_DE_CAPTURA` por el lado largo y en PNG. Las dos maneras de capturar terminan aquí, así que
+ *  lo que llega al editor tiene siempre la misma forma. */
+function aFotograma(fuente: CanvasImageSource, origen: Tamano): FotogramaDeCaptura {
+  const fotograma = tamanoDeCaptura(origen);
+  if (!fotograma.ancho || !fotograma.alto) throw new ErrorDeCaptura("sin-fotograma");
+  const lienzo = document.createElement("canvas");
+  lienzo.width = fotograma.ancho;
+  lienzo.height = fotograma.alto;
+  const ctx = lienzo.getContext("2d");
+  if (!ctx) throw new ErrorDeCaptura("sin-fotograma");
+  ctx.drawImage(fuente, 0, 0, fotograma.ancho, fotograma.alto);
+  return { url: lienzo.toDataURL(TIPO_DE_CAPTURA), ancho: fotograma.ancho, alto: fotograma.alto };
+}
+
 /**
- * Pide la pantalla al navegador y se queda con UN fotograma, ya escalado.
+ * Lo que se queda fuera de la foto rápida. Un atributo y no una clase de estilo, a propósito: una
+ * clase se cambia al retocar el aspecto y nadie piensa que de ella dependía que Ayuda no saliera en
+ * la foto. Lo llevan el botón de Ayuda, su panel y el editor del recuadro.
+ */
+export const FUERA_DE_LA_CAPTURA = "data-fuera-de-la-captura";
+
+/** Para esparcir en el JSX: `<div {...marcaFueraDeLaCaptura}>`. El nombre vive en un solo sitio. */
+export const marcaFueraDeLaCaptura = { [FUERA_DE_LA_CAPTURA]: "" };
+
+type Snapdom = (typeof import("@zumer/snapdom"))["snapdom"];
+let cargando: Promise<Snapdom> | null = null;
+
+/** snapdom pesa 89 KB comprimida y Ayuda está en todas las páginas: se descarga la primera vez que
+ *  alguien abre Ayuda, no con cada página. */
+function cargaSnapdom(): Promise<Snapdom> {
+  if (!cargando) {
+    cargando = import("@zumer/snapdom").then((m) => m.snapdom);
+    // Si la descarga falla (red), el siguiente intento la vuelve a pedir en vez de heredar el fallo.
+    cargando.catch(() => { cargando = null; });
+  }
+  return cargando;
+}
+
+/**
+ * - `clip: "viewport"`: lo que la persona está viendo, con el scroll donde lo tenga — no la página
+ *   desde arriba. Medido con scroll en Órdenes: las mismas filas en el mismo sitio que pinta Chrome, y
+ *   los avisos fijos (`position: fixed`, que es como salen los errores) en su sitio.
+ * - `excludeMode: "hide"`: Ayuda se quita dejando su hueco, así que nada de alrededor se mueve.
+ * - `fast`: `true` clona de un tirón, que es lo más rápido; `false` cede el hilo cada fotograma, que
+ *   es lo que se quiere al calentar mientras la persona escribe.
+ */
+function opcionesDeLaPagina(deUnTiron: boolean) {
+  return {
+    clip: "viewport" as const,
+    exclude: [`[${FUERA_DE_LA_CAPTURA}]`],
+    excludeMode: "hide" as const,
+    backgroundColor: getComputedStyle(document.body).backgroundColor,
+    fast: deUnTiron,
+  };
+}
+
+/**
+ * Calentar la foto rápida. La primera captura de cada carga de página tarda 1,6–2,2 s —descubre e
+ * incrusta las fuentes—, y las siguientes 0,25–0,6 s (medido en el demo). Se llama al abrir Ayuda,
+ * así que lo lento ocurre mientras la persona escribe y no cuando pulsa el botón. Un fallo aquí se
+ * calla: es un adelanto, y la captura de verdad lo volverá a intentar y dirá qué pasó.
+ */
+export function calientaCaptura(): void {
+  void cargaSnapdom()
+    .then((snapdom) => snapdom.toCanvas(document.body, opcionesDeLaPagina(false)))
+    .catch(() => {});
+}
+
+/** La foto rápida: sin diálogo del navegador, solo lo que se ve, y con Ayuda fuera. */
+export async function tomaFotogramaDeLaPagina(): Promise<FotogramaDeCaptura> {
+  const snapdom = await cargaSnapdom();
+  const lienzo = await snapdom.toCanvas(document.body, opcionesDeLaPagina(true));
+  return aFotograma(lienzo, { ancho: lienzo.width, alto: lienzo.height });
+}
+
+/**
+ * El respaldo de D-509: pide la pantalla al navegador y se queda con UN fotograma, ya escalado. Solo
+ * se ofrece si la foto rápida falla, porque obliga al diálogo del navegador cada vez.
  *
  * El flujo se corta siempre (`finally`): con los carriles vivos, el navegador deja puesta la barra de
  * «estás compartiendo tu pantalla», y una barra que no se va asusta más que el problema que se iba a
- * reportar. Quien llama envuelve esto en `conAyudaOculta`, que es lo que mantiene a Ayuda fuera de la foto.
+ * reportar. Quien llama envuelve esto en `conAyudaOculta`, que es lo que mantiene a Ayuda fuera de la
+ * foto: aquí sí hace falta, porque lo que se fotografía es la pantalla real.
  */
 export async function tomaFotograma(): Promise<FotogramaDeCaptura> {
   const opciones: OpcionesDeCaptura = { video: { frameRate: 1 }, audio: false, preferCurrentTab: true };
@@ -92,15 +183,7 @@ export async function tomaFotograma(): Promise<FotogramaDeCaptura> {
     // Un `play()` rechazado no hunde la captura: con `srcObject` puesto, el fotograma llega igual.
     await video.play().catch(() => {});
     await esperaFotograma(video);
-    const fotograma = tamanoDeCaptura({ ancho: video.videoWidth, alto: video.videoHeight });
-    if (!fotograma.ancho || !fotograma.alto) throw new ErrorDeCaptura("sin-fotograma");
-    const lienzo = document.createElement("canvas");
-    lienzo.width = fotograma.ancho;
-    lienzo.height = fotograma.alto;
-    const ctx = lienzo.getContext("2d");
-    if (!ctx) throw new ErrorDeCaptura("sin-fotograma");
-    ctx.drawImage(video, 0, 0, fotograma.ancho, fotograma.alto);
-    return { url: lienzo.toDataURL(TIPO_DE_CAPTURA), ancho: fotograma.ancho, alto: fotograma.alto };
+    return aFotograma(video, { ancho: video.videoWidth, alto: video.videoHeight });
   } finally {
     for (const carril of flujo.getTracks()) carril.stop();
   }
@@ -213,7 +296,8 @@ export function EditorDeCaptura({ fotograma, t, ocupado, onUsar, onDescartar, on
   const alSoltar = () => { inicio.current = null; };
 
   return (
-    <div className="overlay" style={{ zIndex: 60 }}>
+    // Fuera de la foto: con «Capturar de nuevo», el editor sigue montado en el instante en que empieza.
+    <div className="overlay" style={{ zIndex: 60 }} {...marcaFueraDeLaCaptura}>
       <div className="modal" style={{ maxWidth: 900 }}>
         <h3 style={{ margin: "0 0 4px" }}>{t("Mark the problem", "Señale el problema")}</h3>
         <p className="hint" style={{ marginTop: 0 }}>

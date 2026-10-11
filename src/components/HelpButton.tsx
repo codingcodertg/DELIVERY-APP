@@ -13,7 +13,8 @@ import {
   conAyudaOculta, falloDeCaptura, mensajeDeFalloDeCaptura, soportaCaptura, validaCaptura, type Rect,
 } from "@/lib/help-captura";
 import {
-  EditorDeCaptura, esperaUnRepintado, ficheroDeCaptura, tomaFotograma, type FotogramaDeCaptura,
+  EditorDeCaptura, calientaCaptura, esperaUnRepintado, ficheroDeCaptura, marcaFueraDeLaCaptura,
+  tomaFotograma, tomaFotogramaDeLaPagina, type FotogramaDeCaptura,
 } from "@/components/CapturaDeAyuda";
 import { enviaSolicitudDeAyuda } from "@/lib/help-send";
 import { RUTA_MIS_SOLICITUDES } from "@/lib/help-thread";
@@ -35,16 +36,24 @@ export function HelpButton({ me }: { me: Profile }) {
   // Documentos y fotos (D-284): se eligen aquí, se suben al cubo privado al enviar, y al correo van
   // sus enlaces firmados. Lo que se acepta lo dice `help-attachments`, el mismo sitio que mira la ruta.
   const [ficheros, setFicheros] = useState<File[]>([]);
-  // La captura de pantalla (D-509). `ocultoParaCapturar` esconde Ayuda ENTERA mientras se toma la
-  // foto; `fotograma` es la captura esperando a que se señale el problema.
+  // La captura de pantalla (D-509, D-513). `fotograma` es la captura esperando a que se señale el
+  // problema. `ocultoParaCapturar` esconde Ayuda ENTERA, pero solo en el respaldo del navegador: la foto
+  // rápida no la esconde, la deja fuera al clonar.
   const [ocultoParaCapturar, setOcultoParaCapturar] = useState(false);
   const [fotograma, setFotograma] = useState<FotogramaDeCaptura | null>(null);
   const [adjuntando, setAdjuntando] = useState(false);
+  // La foto rápida (D-513) tarda 0,25–0,6 s en caliente y hasta 2 s la primera vez: el botón se
+  // apaga mientras tanto, o un segundo clic lanzaría una segunda captura encima de la primera.
+  const [capturando, setCapturando] = useState(false);
+  // El método del navegador (D-509) solo aparece si la rápida falla: pide permiso cada vez, y eso
+  // es justo lo que el dueño no quiere ver en el camino normal.
+  const [respaldoVisible, setRespaldoVisible] = useState(false);
 
   const to = settings.help_email?.trim() || DEFAULT_HELP_EMAIL;
-  // Un navegador viejo, o un móvil, no sabe capturar: entonces no se ofrece y se dice por qué. Se mide,
-  // no se adivina por el agente de usuario. Solo se lee dentro del panel, que nunca se pinta en el
-  // servidor (nace cerrado), así que no hay nada que hidratar distinto.
+  // ¿Sabe este navegador capturar la pantalla con `getDisplayMedia`? Solo decide el RESPALDO: la foto
+  // rápida no lo necesita y se ofrece siempre, también en el móvil (D-513). Se mide, no se adivina por
+  // el agente de usuario. Solo se lee dentro del panel, que nunca se pinta en el servidor (nace
+  // cerrado), así que no hay nada que hidratar distinto.
   const puedeCapturar = soportaCaptura(typeof navigator === "undefined" ? null : navigator);
 
   const close = () => { if (!busy) { setOpen(false); setMsg(""); setFicheros([]); setFotograma(null); } };
@@ -60,14 +69,39 @@ export function HelpButton({ me }: { me: Profile }) {
   const eligeFicheros = (lista: FileList | null) => agregaFicheros([...(lista ?? [])]);
 
   /**
-   * «Sin que la parte de help aparezca»: Ayuda se deja de dibujar —el panel **y** el botón flotante—,
-   * se espera a que el navegador haya repintado sin ella, y solo entonces se pide la pantalla. El orden
-   * y el regreso viven en `conAyudaOculta`, con sus pruebas; esto son los cuatro cables.
+   * La foto de siempre (D-513): un clic, sin diálogo del navegador, lo que se ve ahora. Ayuda no sale
+   * porque se deja fuera al clonar (`marcaFueraDeLaCaptura`), no porque se esconda: no parpadea y no
+   * hay que esperar un repintado.
    *
-   * El diálogo del navegador es inevitable: capturar la pantalla exige un gesto y su propia
-   * confirmación. Si se cancela, no pasa nada: se dice y queda el camino de adjuntar a mano.
+   * Si falla, se dice y aparece el método del navegador, que es más lento pero fotografía la pantalla
+   * real y por eso no depende de cómo esté hecha la página.
    */
-  const capturaPantalla = async () => {
+  const capturaRapida = async () => {
+    if (capturando) return;
+    setCapturando(true);
+    try {
+      setFotograma(await tomaFotogramaDeLaPagina());
+      setRespaldoVisible(false);
+    } catch {
+      setRespaldoVisible(true);
+      notify(t(
+        "The quick screenshot didn't work. You can take it with the browser instead — it will ask what to share.",
+        "La captura rápida no salió. Puede tomarla con el navegador — le preguntará qué compartir.",
+      ));
+    } finally {
+      setCapturando(false);
+    }
+  };
+
+  /**
+   * El respaldo (D-509). «Sin que la parte de help aparezca»: Ayuda se deja de dibujar —el panel **y**
+   * el botón flotante—, se espera a que el navegador haya repintado sin ella, y solo entonces se pide
+   * la pantalla. El orden y el regreso viven en `conAyudaOculta`, con sus pruebas.
+   *
+   * El diálogo del navegador es inevitable por esta vía: capturar la pantalla exige un gesto y su
+   * propia confirmación. Si se cancela, no pasa nada: se dice y queda el camino de adjuntar a mano.
+   */
+  const capturaConElNavegador = async () => {
     if (!puedeCapturar) { notify(mensajeDeFalloDeCaptura("no-soportado", t)); return; }
     try {
       setFotograma(await conAyudaOculta({
@@ -143,7 +177,9 @@ export function HelpButton({ me }: { me: Profile }) {
     <>
       <button
         className="help-fab no-print"
-        onClick={() => setOpen(true)}
+        {...marcaFueraDeLaCaptura}
+        // Al abrir se calienta la foto rápida: lo lento de la primera (fuentes) pasa mientras se escribe.
+        onClick={() => { setOpen(true); calientaCaptura(); }}
         title={t("Need help?", "¿Necesita ayuda?")}
         aria-label={t("Need help?", "¿Necesita ayuda?")}
       >
@@ -152,7 +188,7 @@ export function HelpButton({ me }: { me: Profile }) {
       </button>
 
       {open && (
-        <div className="overlay" onClick={(e) => e.target === e.currentTarget && close()}>
+        <div className="overlay" {...marcaFueraDeLaCaptura} onClick={(e) => e.target === e.currentTarget && close()}>
           <div className="modal" style={{ maxWidth: 480 }}>
             <h3 style={{ margin: "0 0 4px" }}>{t("Need help?", "¿Necesita ayuda?")}</h3>
             <p className="hint" style={{ marginTop: 0 }}>
@@ -195,28 +231,43 @@ export function HelpButton({ me }: { me: Profile }) {
                   `Hasta ${LIMITES_DE_ADJUNTOS.maxFicheros} archivos de ${Math.round(LIMITES_DE_ADJUNTOS.maxBytes / (1024 * 1024))} MB. Viajan como enlaces privados que caducan.`,
                 )}
               </div>
-              {/* La captura de la pantalla (D-509). Es una forma más de llenar esta misma lista de
-                  adjuntos: no hay un camino aparte ni un cubo aparte. */}
-              {puedeCapturar ? (
+              {/* La captura de la pantalla (D-509, D-513). Es una forma más de llenar esta misma lista
+                  de adjuntos: no hay un camino aparte ni un cubo aparte. La rápida no depende de
+                  `getDisplayMedia`, así que se ofrece siempre — también en el móvil, que antes no podía. */}
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ marginTop: 8 }}
+                disabled={busy || capturando}
+                onClick={capturaRapida}
+              >
+                📸 {capturando ? t("Capturing…", "Capturando…") : t("Capture this screen", "Capturar esta pantalla")}
+              </button>
+              <div className="hint">
+                {t(
+                  "Takes what you're seeing right now, without this Help window. No permission needed.",
+                  "Toma lo que está viendo ahora mismo, sin esta ventana de Ayuda. No pide permiso.",
+                )}
+              </div>
+              {respaldoVisible && (puedeCapturar ? (
                 <>
                   <button
                     className="btn btn-ghost btn-sm"
                     style={{ marginTop: 8 }}
                     disabled={busy}
-                    onClick={capturaPantalla}
+                    onClick={capturaConElNavegador}
                   >
-                    📸 {t("Capture this screen", "Capturar esta pantalla")}
+                    🖥️ {t("Capture with the browser", "Capturar con el navegador")}
                   </button>
                   <div className="hint">
                     {t(
-                      "Help disappears from the screen while the photo is taken, so it won't be in it. Your browser will ask what to share — that's its own dialog and we can't skip it.",
-                      "Ayuda desaparece de la pantalla mientras se toma la foto, así que no sale en ella. El navegador le preguntará qué compartir — ese diálogo es suyo y no se puede saltar.",
+                      "Your browser will ask what to share — that's its own dialog and we can't skip it.",
+                      "El navegador le preguntará qué compartir — ese diálogo es suyo y no se puede saltar.",
                     )}
                   </div>
                 </>
               ) : (
                 <div className="hint">{mensajeDeFalloDeCaptura("no-soportado", t)}</div>
-              )}
+              ))}
               {ficheros.length > 0 && (
                 <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "grid", gap: 4 }}>
                   {ficheros.map((f, i) => (
@@ -258,7 +309,7 @@ export function HelpButton({ me }: { me: Profile }) {
           ocupado={adjuntando}
           onUsar={adjuntaCaptura}
           onDescartar={() => setFotograma(null)}
-          onDeNuevo={() => { setFotograma(null); void capturaPantalla(); }}
+          onDeNuevo={() => { setFotograma(null); void capturaRapida(); }}
         />
       )}
     </>
