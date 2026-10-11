@@ -1,0 +1,19 @@
+{
+  "_que_es": "La tabla de Ordenes medida como REFERENCIA (el dueno: «make it the style of the order table»).",
+  "_cuando": "2026-09-23",
+  "_commit": "6a69b34 (= main 7f5b2d3 tras fusionar D-367)",
+  "_como": "modo demo local en un worktree, puerto 3917, medir-tabla.mjs -> MEDIDA",
+  "_ojo": "Es una FOTO con fecha. Al comparar otra tabla, volver a medir ESTA desde el mismo commit que aquella: si Ordenes cambia, comparar contra estos numeros seria comparar contra el pasado.",
+  "1280_y_1440_identicos": {
+    "scrollHorizontalDeLaPagina": 0,
+    "scrollVerticalDeLaPagina": 2742,
+    "cabecera": { "position": "sticky", "top": "0px", "fondo": "rgb(244, 246, 249)" },
+    "cajaDeLaTabla": { "desplazaHorizontal": true, "desplazaVertical": false },
+    "densidad": { "altoDeFila": 37, "letra": "12.5px", "relleno": "5px 8px", "corta": "ellipsis", "envuelve": "nowrap" },
+    "anchoDeLaTabla": 1430,
+    "columnas": 12, "asas": 11, "menusDeColumna": 22, "filas": 86,
+    "altoAntesDeLaTabla": 274,
+    "porcentajeDePantallaAntesDeLaTabla": 30,
+    "seSalenDeSuCelda": []
+  }
+}
