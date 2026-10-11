@@ -38,10 +38,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        {/* `crossOrigin` en los dos, y no por costumbre (D-513): la foto rápida de Ayuda clona la
+            página e incrusta las fuentes leyendo las reglas `@font-face` de esta hoja. Una hoja de
+            otro dominio cargada SIN crossorigin no deja leer sus reglas, y entonces la foto sale con
+            la fuente del sistema, más ancha: medido en el demo, las pastillas partían el texto en dos
+            líneas («57 with no / plan») donde la pantalla lo tenía en una. Google Fonts manda
+            `Access-Control-Allow-Origin: *` en la hoja y en los .woff2 (medido el 2026-10-10). El
+            preconnect lo lleva también porque una conexión anónima y una con credenciales van por
+            piscinas distintas: sin él, el preconnect no serviría a esta hoja. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link
           href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
+          crossOrigin="anonymous"
         />
       </head>
       <body>
