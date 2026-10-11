@@ -275,6 +275,45 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(cuerpo).toContain("if (soloLectura) return;");
     expect(leer("src/components/AccionesDeParada.tsx")).toContain("if (ocupado || soloLectura) return false;");
   });
+  it("la lista va numerada por PARADAS como el Gestor, no con P1 y D1 (D-515)", async () => {
+    // El dueño: «QUIERO EN EL DRIVER VIEW QUE EN VEZ DE LOS P1 Y D1 SE VEA IGUAL QUE LOGISTIC MANAGER CON NUMEROS EN VES DE ESO».
+    // Con los datos de aquí: C1, C2 y C5 se recogen las tres en McAllen —UNA parada, la 1, con la raya de que sigue en
+    // las otras dos filas— y luego tres entregas, cada una su parada.
+    estado.me = CARLOS;
+    const html = await pinta(null);
+    const numeros = [...html.matchAll(/data-numero-de-parada="(\d+)"/g)].map((m) => m[1]);
+    const sigue = [...html.matchAll(/data-sigue-la-parada="(\d+)"/g)].map((m) => m[1]);
+    expect(numeros).toEqual(["1", "2", "3", "4"]);
+    expect(sigue).toEqual(["1", "1"]);
+    // Ni una P1 ni una D1 sueltas en la lista: solo quedan dentro del título del círculo, como en el Gestor.
+    expect(html.match(/>[PD]\d+</g) ?? []).toEqual([]);
+    expect(html).toContain('title="Stop 1 — pick up P1, P2, P3"');
+  });
+  it("una entrega ya hecha conserva su sitio y lleva ✓ en su círculo, no su número", async () => {
+    // Los datos de arriba no traen ninguna entregada: sin este caso, quitar el ✓ no lo vería nadie.
+    estado.me = CARLOS;
+    estado.deliveries = [...ORDENES, orden("C6", "Carlos R.", "delivered", HOY, { delivery_address: "6 Elm St" })];
+    const html = await pinta(null);
+    const circulos = [...html.matchAll(/data-numero-de-parada="(\d+)"[^>]*>([^<]*)</g)].map((m) => `${m[1]}:${m[2]}`);
+    expect(circulos.filter((c) => c.endsWith(":✓"))).toHaveLength(1);
+    // Y sigue contando en la numeración del día: su parada tiene número aunque enseñe ✓.
+    expect(circulos.length).toBe(5);
+  });
+  it("y numera con la MISMA función que el Gestor: antes de recoger nada, los mismos números en las dos pantallas", async () => {
+    // Lo que el Gestor llama a esa ruta, con sus funciones de verdad, sobre el mismo día y sin nada hecho todavía.
+    const { lecturaConLoHecho } = await import("@/lib/route-plan/lectura-del-gestor");
+    const { lecturaDeLaRuta } = await import("@/lib/route-plan/lectura-de-ruta");
+    const { paradasDeLaRuta } = await import("@/lib/gestor/paradas-numeradas");
+    const dia = ["A1", "A2", "A3"].map((id, i) => orden(id, "Carlos R.", "ready", HOY, { route_seq: i, delivery_address: `${id} St` }));
+    const delGestor = paradasDeLaRuta(lecturaConLoHecho(dia, 12, null, []).filas, dia).deFila;
+    const deMiRuta = paradasDeLaRuta(lecturaDeLaRuta(dia, 12, null).filas, dia).deFila;
+    expect(deMiRuta).toEqual(delGestor);
+    // Y que esto no compara dos listas vacías.
+    expect(delGestor.length).toBeGreaterThan(3);
+    // La pantalla llama a la función con su lectura, no a otra cosa.
+    const ruta = leer("src/app/(app)/my-route/page.tsx");
+    expect(ruta).toContain("const numeradas = useMemo(() => paradasDeLaRuta(lectura.filas, stops), [lectura, stops]);");
+  });
   it("el chofer en su teléfono: su ruta, sus botones encendidos y su plan de siempre (`/mine`)", async () => {
     estado.me = CARLOS;
     const html = await pinta(null);
