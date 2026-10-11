@@ -31,6 +31,8 @@ const estado = vi.hoisted(() => ({
   events: [] as unknown[],
   driverLocations: [] as unknown[],
   mapa: null as null | { liveDrivers: { driver: string }[] },
+  // D-514: el mapa de «Mi ruta» es el del Gestor, montado solo-el-mapa. Lo que se registra es lo que «Mi ruta» le pasa.
+  gestor: null as null | { chofer: string | null; dia: string | null; soloLectura: boolean },
 }));
 
 vi.mock("@/lib/data-provider", () => ({
@@ -53,6 +55,20 @@ vi.mock("@/components/LeaveAtStore", () => ({
   },
 }));
 vi.mock("@/components/MapView", () => ({ MapView: (p: { liveDrivers: { driver: string }[] }) => { estado.mapa = p; return createElement("div", { "data-mapa": "1" }); } }));
+// La página del Gestor se sustituye por una que solo apunta qué le llegó por contexto (D-514). No se pinta entera aquí: pide
+// `useConfirm`, que pone el layout, y lo que su mapa enseña acotado —el camión del elegido, sus paradas— ya lo prueba
+// `gestor/mapa-del-chofer.test.ts` sobre la página de verdad. Lo que decide «Mi ruta» es A QUIÉN y QUÉ DÍA le pide el mapa.
+vi.mock("@/app/(app)/routes/page", async () => {
+  const { useSoloMisRutas } = await import("@/lib/gestor/solo-mis-rutas");
+  const { useSoloElMapa } = await import("@/lib/gestor/solo-el-mapa");
+  const { useSoloLectura } = await import("@/lib/gestor/solo-lectura");
+  return {
+    default: function GestorSimulado() {
+      estado.gestor = { chofer: useSoloMisRutas(), dia: useSoloElMapa()?.dia ?? null, soloLectura: useSoloLectura() };
+      return createElement("div", { "data-mapa-del-gestor": "1" });
+    },
+  };
+});
 vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
 vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [] }));
 vi.mock("@/components/OrdersTable", () => ({ OrdersTable: (p: { rows: unknown[] }) => createElement("div", { "data-tabla-de-ordenes": p.rows.length }) }));
@@ -92,6 +108,7 @@ beforeEach(() => {
   estado.events = [{ id: "e1", delivery_id: "C5", kind: KIND_RECHAZADA, note: "Rejected by customer: Damaged material", created_by: "u-carlos", created_at: AHORA }];
   estado.driverLocations = [{ driver_id: "u-carlos", lat: 26.2, lng: -98.2, accuracy_m: 10, recorded_at: AHORA }];
   estado.mapa = null;
+  estado.gestor = null;
 });
 
 describe("a quién le toca la vista nueva", () => {
@@ -242,10 +259,15 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     await pinta(CARLOS);
     expect(estado.planPedido.at(-1)).toEqual([HOY, "u-carlos"]);
   });
-  it("en el mapa sale el camión DEL ELEGIDO, no el de quien mira", async () => {
+  it("el mapa es el del Gestor, acotado AL ELEGIDO y no a quien mira, en su día y de solo lectura", async () => {
+    // D-514: antes «Mi ruta» pintaba su propio mapa y aquí se miraba su camión. Ahora le pide el mapa al Gestor; lo que
+    // hay que fijar es a quién se lo pide. Si dijera «You (Admin)», el admin vería SU mapa en la ruta de Carlos.
+    // Que ese mapa enseñe solo el camión de Carlos lo prueba `gestor/mapa-del-chofer.test.ts` («Carlos R.», línea 194).
     estado.me = ADMIN;
     await pinta(CARLOS);
-    expect(estado.mapa?.liveDrivers.map((l) => l.driver)).toEqual(["Carlos R."]);
+    expect(estado.gestor).toEqual({ chofer: "Carlos R.", dia: HOY, soloLectura: true });
+    // Y el mapa viejo ya no se pinta: un solo mapa en la pantalla.
+    expect(estado.mapa).toBeNull();
   });
   it("y si un botón se colara encendido, la acción tampoco escribe: la segunda puerta está en las dos funciones", () => {
     const ruta = leer("src/app/(app)/my-route/page.tsx");
@@ -264,7 +286,8 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(estado.dejarEnTienda.length).toBeGreaterThan(0);
     expect(estado.dejarEnTienda.every((d) => !d.disabled)).toBe(true);
     expect(estado.planPedido.at(-1)).toEqual([HOY, null]);
-    expect(estado.mapa?.liveDrivers.map((l) => l.driver)).toEqual(["Carlos R."]);
+    // D-514: su mapa es el del Gestor acotado a ÉL — igual que cuando el admin mira el suyo, con su propio nombre.
+    expect(estado.gestor).toEqual({ chofer: "Carlos R.", dia: HOY, soloLectura: true });
   });
 });
 
