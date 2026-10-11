@@ -25,6 +25,8 @@ import { SoloLectura } from "@/lib/gestor/solo-lectura";
 import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
 import { SoloElMapa } from "@/lib/gestor/solo-el-mapa";
 import { ordenDelPunto } from "@/lib/mapa-de-rutas";
+import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { colorDeChofer } from "@/lib/map-legend";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
@@ -90,7 +92,24 @@ export default function MyRoutePage() {
   const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, verAtrasadas ? null : planPublicado?.paradas ?? null), [stops, capacidad, planPublicado, verAtrasadas]);
   // La cuenta de pallets de cada parada, la misma del Gestor: «+4 = 4» (D-444; hasta ahí, la operación entera).
   const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);
-  const dDe = lectura.etiquetaDe;
+  // La lista numerada por PARADAS, como el Gestor (D-485 allí; aquí D-515). El dueño: «QUIERO EN EL DRIVER VIEW QUE EN VEZ
+  // DE LOS P1 Y D1 SE VEA IGUAL QUE LOGISTIC MANAGER CON NUMEROS EN VES DE ESO». Filas seguidas en el mismo sitio —varias recogidas en
+  // la misma tienda, varias entregas a la misma dirección— son UNA parada con UN número: la MISMA función del Gestor, así
+  // que la «parada 3» del chofer es la «parada 3» que ve logística.
+  const numeradas = useMemo(() => paradasDeLaRuta(lectura.filas, stops), [lectura, stops]);
+  // El color del chofer, el mismo que pinta el Gestor en su círculo y en el mapa.
+  const colorDelChofer = colorDeChofer(settings.driver_colors, driverName);
+  /** El círculo de la fila `fi`: el número en la primera fila de su parada; en las demás, la raya de que sigue. Una entrega
+   *  ya hecha lleva ✓ en su círculo, como en el Gestor. El título dice qué se hace ahí («Parada 1 — recoger P1, P2»). */
+  const numeroDeParada = (fi: number, hecha = false) => {
+    const n = numeradas.deFila[fi];
+    const p = n != null ? numeradas.paradas[n - 1] : undefined;
+    if (!p) return null;
+    const titulo = textoDeLaParada(p, [], t);
+    return numeradas.primera[fi]
+      ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorDelChofer, opacity: hecha ? 0.55 : 1 }}>{hecha ? "✓" : n}</span>
+      : <span className="numero-de-parada sigue" data-sigue-la-parada={n} title={titulo} style={{ color: colorDelChofer }} />;
+  };
   // «Carga 1 de 2» (D-452, 157): una orden que no cabía en el camión son dos órdenes hermanas, cada una su parada; aquí
   // solo se dice cuál es esta. Se marca con el botón de siempre, por carga.
   const etiquetaDeLaCarga = (d: Delivery) => { const c = cargaDe(d, hermanasDe(deliveries, d)); return c ? <span className="hint" data-carga> · {etiquetaDeCarga(c, lang === "es")}</span> : null; };
@@ -361,7 +380,7 @@ export default function MyRoutePage() {
                     );
                     if (f.tipo === "P" || f.otraCarga) return (
                       <div key={`${f.tipo}-${fi}-${f.etiqueta}`} className="acct-row" style={{ alignItems: "flex-start" }}>
-                        <b style={{ flex: "0 0 auto", minWidth: 26 }}>{f.etiqueta}</b>
+                        <span style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center" }}>{numeroDeParada(fi)}</span>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
                           {f.tipo === "P" ? (
@@ -387,7 +406,6 @@ export default function MyRoutePage() {
                     );
                     const d = stops.find((x) => x.id === f.orden);
                     if (!d) return null;
-                    const n = dDe.get(d.id) ?? f.etiqueta;
                     const isDone = d.stage === "delivered";
                     const isNext = next?.id === d.id;
                     // La fila ya no es un solo botón: lleva los suyos (D-487), y un botón dentro de otro no existe en HTML.
@@ -402,14 +420,9 @@ export default function MyRoutePage() {
                           background: isNext ? "var(--accent-soft)" : undefined,
                         }}
                       >
-                        <span style={{
-                          flex: "0 0 26px", height: 26, borderRadius: "50%", display: "inline-flex",
-                          alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12,
-                          background: isDone ? "var(--green)" : isNext ? "var(--accent)" : "var(--line)",
-                          color: isDone || isNext ? "#fff" : "var(--ink-soft)",
-                        }}>
-                          {isDone ? "✓" : n}
-                        </span>
+                        {/* El círculo del Gestor (D-515): número de parada en el color del chofer, no «D1» en un círculo pintado
+                            por estado. Lo que el estado decía sigue: la entregada, con ✓; la siguiente, por el fondo de la fila. */}
+                        <span style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center" }}>{numeroDeParada(fi, isDone)}</span>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <button onClick={() => setOpen(d)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
                           <span style={{ fontWeight: 700, display: "block" }}>

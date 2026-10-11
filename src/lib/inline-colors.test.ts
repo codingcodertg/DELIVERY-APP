@@ -142,7 +142,8 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // aviso de riesgo y el de «sin conflictos»; quedan los dos de la pastilla de etapa (el rótulo de la parada y el resumen).
     // 0 desde D-481: «Ruta de hoy» monta la página del Gestor y ya no pinta nada propio (−2 blancos de la pastilla de etapa).
     "src/app/(app)/market/page.tsx": 3,
-    "src/app/(app)/my-route/page.tsx": 1,
+    // «Mi ruta»: 1 hasta D-515 (el blanco del círculo de cada entrega, pintado a mano por estado). 0 desde que la lista
+    // numera por paradas con el círculo del Gestor, `.numero-de-parada`, que lleva su color por clase.
     // 11 hasta D-376: −1 blanco, la pastilla de etapa que «Sin asignar» pintaba a mano; ahora la pinta la celda de Órdenes.
     "src/app/(app)/routes/page.tsx": 10,
     "src/app/(app)/settings/page.tsx": 1,
@@ -237,8 +238,9 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     }
     // 75 y 61 hasta D-467: −2 blancos del Mapa (ver su techo, arriba).
     // 73 y 59 hasta D-481: −2 blancos de «Ruta de hoy», que ya no tiene código propio.
-    expect(total).toBe(71);
-    expect(blancos).toBe(57);
+    // 71 y 57 hasta D-515: −1 blanco, el círculo de la entrega en «Mi ruta», que pasa a ser el número de parada del Gestor.
+    expect(total).toBe(70);
+    expect(blancos).toBe(56);
   });
 });
 

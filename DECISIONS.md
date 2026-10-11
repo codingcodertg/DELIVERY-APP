@@ -40681,3 +40681,56 @@ día de hoy y no lo distingue.
 - **Nada con un mapa de Google**: el demo pinta Leaflet. En producción el mapa es de Google, y es el mismo `MapView`.
 - **Una entrega hecha abriéndose**, de punta a punta en el navegador: el demo no tenía ninguna hecha ese día. Está
   probado con los ids de verdad de `puntosDeLasRutas`, no tocándola.
+
+## D-515 — «Mi ruta» numera por paradas como el Gestor: 1, 2, 3… en vez de P1 y D1
+
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Extiende D-485 a la vista del chofer** · **Sin migración.**
+
+El dueño: *«QUIERO EN EL DRIVER VIEW QUE EN VEZ DE LOS P1 Y D1 SE VEA IGUAL QUE LOGISTIC MANAGER CON NUMEROS EN VES DE
+ESO»*.
+
+### Qué cambia
+
+D-485 numeró por **paradas** el Gestor y «Ruta de hoy» (T-0484): filas seguidas en el mismo sitio —varias recogidas en la
+misma tienda, varias entregas a la misma dirección— son **una** parada con **un** número. «Mi ruta» se quedó fuera y
+seguía enseñando P1, P2, D1… Ahora usa **la misma función** (`paradasDeLaRuta`) y **el mismo círculo** del Gestor
+(`.numero-de-parada`, en el color del chofer por `colorDeChofer`): el número en la primera fila de cada parada, la raya
+de que sigue en las demás, y las etiquetas P/D solo en el título del círculo («Parada 1 — recoger P1, P2, P3»), como allí.
+
+La entrega ya hecha lleva ✓ en su círculo. La siguiente parada sigue resaltada por el fondo de la fila, como antes: lo
+que el círculo propio decía por color (verde/azul/gris) no se pierde, cambia de sitio.
+
+### Lo que se midió antes de decidir, y que no se arregla aquí
+
+Las dos pantallas **no numeran lo mismo a media jornada**, y no es nuevo: ya pasaba con las P1/D1. Medido con las
+funciones de verdad de cada una sobre los mismos datos (una orden sin recoger y dos ya recogidas):
+
+| «Mi ruta» | el Gestor |
+|---|---|
+| **1** recoger las tres (misma tienda) | ✓ recogida · *en camino* (sin número) |
+| **2**, **3**, **4** entregar | ✓ recogida · *en camino* (sin número) |
+| | **1** recoger la pendiente · **2** entregarla |
+
+El Gestor numera solo lo pendiente (`ROUTE_STAGES`: pending, approved, fulfilling, ready); lo recogido y lo entregado
+lo pinta aparte, **sin número**, y vuelve a numerar desde 1 lo que queda. «Mi ruta» numera **el día entero** del chofer.
+Antes de recoger nada **dan los mismos números** (probado: la misma función con la misma lectura). Después, no.
+
+Se dejó «Mi ruta» con la numeración del día entero, y a propósito: es la que le sirve a quien conduce —cada parada
+conserva su número de la mañana a la tarde— y la del Gestor deja **sin número** las entregas que van en camino, que son
+justo sus siguientes paradas. Alinear el Gestor a esto es otra decisión, y se le propone al dueño aparte.
+
+### Verificado
+
+Sobre la pantalla **renderizada de verdad**: con las tres recogidas en la misma tienda, círculos 1, 2, 3, 4 y dos rayas
+de «sigue» en la parada 1; **ninguna** P1/D1 suelta; y con una entrega hecha, su ✓ en el círculo sin perder su sitio.
+Antes de escribir las afirmaciones se sacó lo que la pantalla pinta de verdad con una sonda, y se quitó.
+
+**6 mutantes de 6 caen por nombre.** Uno, «se numera sin las órdenes», solo lo caza el ancla de texto: los datos de la
+prueba no tienen dos entregas seguidas a la misma dirección. `inline-colors` baja de 71 a 70 colores a pelo: el blanco
+del círculo propio de cada entrega ya no existe.
+
+### Lo no verificado
+
+- **Nada en un navegador.** La prueba renderiza la pantalla, pero sin estilos: que el círculo se vea igual que en el
+  Gestor descansa en que es la misma clase CSS.
+- **La tarjeta de arriba** sigue diciendo «Siguiente parada · 1/4», que cuenta órdenes, no paradas. No se tocó.
