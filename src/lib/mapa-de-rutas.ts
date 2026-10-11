@@ -259,7 +259,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       const entregada = d.stage === "delivered";
       const hora = entregada ? horaReal(d, "D") : null;
       pts.push({
-        id: `__hecha__${d.id}`, lat: d.delivery_lat, lng: d.delivery_lng,
+        id: `${PREFIJO_HECHA}${d.id}`, lat: d.delivery_lat, lng: d.delivery_lng,
         color: e.colorDe(d.assigned_driver), badge: entregada ? "✓" : "🚚",
         label: `${nombreEnElMapa(d, t)} — ${d.assigned_driver} (${entregada ? t("Delivered", "Entregada") + (hora ? ` ${hora}` : "") : t("On its way", "En camino")})${detalle(d)}`,
         dimmed: entregada || e.atenuada(laneKey) || selActive,
@@ -333,6 +333,23 @@ export function lineasDeLasRutas(e: EntradaDeLasLineas): MapLine[] {
 export function rutaDeLaLinea(id: string): string | null {
   const m = id.match(/^(?:line|ret):(.+)#\d+$/);
   return m ? m[1] : null;
+}
+
+/**
+ * La ORDEN de un punto que se pulsó en el mapa, o `null` si el punto no es una orden (D-514).
+ *
+ * `puntosDeLasRutas` le pone a cada entrega pendiente el id de su orden, pero a la ya HECHA le pone `__hecha__<id>` —son
+ * dos marcas distintas en el mismo sitio y necesitan claves distintas—. Quien abre la orden al tocarla («Mi ruta», desde
+ * que monta este mapa) tiene que quitar ese prefijo, o una entrega hecha dejaría de abrirse, y antes se abría (para ver
+ * la firma o la foto). La base (`__depot__`) y la recogida en tienda (`__parada__`, que puede juntar varias órdenes) no
+ * son una orden.
+ */
+export const PREFIJO_HECHA = "__hecha__";
+
+export function ordenDelPunto(id: string): string | null {
+  if (id.startsWith(PREFIJO_HECHA)) return id.slice(PREFIJO_HECHA.length) || null;
+  if (id.startsWith("__")) return null;
+  return id || null;
 }
 
 /** What the map frames: the focused drivers' stops + pickups when any are focused, otherwise the whole day. */

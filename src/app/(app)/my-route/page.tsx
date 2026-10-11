@@ -19,10 +19,14 @@ import { lecturaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { cuentaDePallets, numeroDePallets, textoDeLaCuenta, textoDelExceso } from "@/lib/lista-unica";
 import { usePlanPublicadoDelChofer } from "@/lib/route-plan/usePlanPublicado";
 import { nombraLaOrden } from "@/lib/route-plan/etiqueta";
-import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
+// El mapa es el del Gestor (D-514): la página del Gestor, montada solo-el-mapa y acotada a este chofer.
+import RoutesPage from "@/app/(app)/routes/page";
+import { SoloLectura } from "@/lib/gestor/solo-lectura";
+import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
+import { SoloElMapa } from "@/lib/gestor/solo-el-mapa";
+import { ordenDelPunto } from "@/lib/mapa-de-rutas";
 import { OrderModal } from "@/components/OrderModalLazy";
-import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { fallbackDriverColor, fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO } from "@/lib/utils";
+import { fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 import { cargaDe, etiquetaDeCarga, hermanasDe } from "@/lib/cargas-partidas";
@@ -38,6 +42,9 @@ import { rutaDeSoloLectura } from "@/lib/vista-de-chofer";
 // day's sequence to plan ahead, and never offers reordering, reassignment or
 // optimisation — those stay logistics' job.
 //
+// The MAP is the exception, on purpose (D-514): it IS the dispatcher's map, mounted map-only and narrowed to this
+// driver, because that is what the owner asked for three times — «ese mismo mapa». The screen stays the driver's.
+//
 // What it does let them do is finish the work: each stop opens the same order
 // screen they already use to pick up and deliver.
 // ============================================================
@@ -45,7 +52,7 @@ import { rutaDeSoloLectura } from "@/lib/vista-de-chofer";
 const DEFAULT_CAPACITY = 12;
 
 export default function MyRoutePage() {
-  const { me, deliveries, events, settings, driverLocations, ready, setStage, updateDelivery, notify } = useData();
+  const { me, deliveries, events, settings, ready, setStage, updateDelivery, notify } = useData();
   const { t, lang } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
   // Un solo disparo por toque: mientras la escritura va, el botón queda deshabilitado. Guarda
@@ -148,135 +155,11 @@ export default function MyRoutePage() {
   const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
   const next = siguienteParada(stops, marcas);
 
-  const storeMarkers = useStoreMarkers(settings.stores);
-
-  // Whether the route's drive is drawn, and what we know about it. Loaded on demand — each ask costs a routing call, so
-  // nothing is fetched until they tap. Since D-443 it's ONE route (the whole list), index 0; until then, one per truckload.
-  const [openTrip, setOpenTrip] = useState<number | null>(null);
-  const [tripRoutes, setTripRoutes] = useState<Record<number, { positions: [number, number][]; miles: number; duration: string; traffic: boolean }>>({});
-  const [tripBusy, setTripBusy] = useState<number | null>(null);
-  const [tripError, setTripError] = useState<string | null>(null);
-
-  /** Where the route starts — the orders' own pickup, else their store. */
-  const pickupFor = async (batch: Delivery[]): Promise<{ lat: number; lng: number } | null> => {
-    const addr = batch.map((d) => (d.pickup_address || "").trim()).find(Boolean)
-      ?? batch.map((d) => settings.stores.find((s) => s.name === d.store)?.address).find(Boolean)
-      ?? "";
-    if (!addr) return null;
-    try {
-      const res = await fetch("/api/geocode-point", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: addr }),
-      });
-      if (!res.ok) return null;
-      const p = await res.json();
-      return typeof p?.lat === "number" && typeof p?.lng === "number" ? p : null;
-    } catch { return null; }
-  };
-
-  const toggleTrip = async (ti: number, batch: Delivery[]) => {
-    if (openTrip === ti) { setOpenTrip(null); return; }
-    setOpenTrip(ti);
-    setTripError(null);
-    if (tripRoutes[ti]) return;                    // already drawn once today
-    const withPin = batch.filter((d) => d.delivery_lat != null && d.delivery_lng != null);
-    if (withPin.length === 0) {
-      setTripError(t("These stops aren't on the map yet.", "Estas paradas aún no están en el mapa."));
-      return;
-    }
-    setTripBusy(ti);
-    try {
-      const depot = await pickupFor(batch);
-      const stopsForCall = [
-        ...(depot ? [{ id: "__pickup__", lat: depot.lat, lng: depot.lng }] : []),
-        ...withPin.map((d) => ({ id: d.id, lat: d.delivery_lat!, lng: d.delivery_lng! })),
-      ];
-      const res = await fetch("/api/optimize-route", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stops: stopsForCall,
-          roundtrip: !!depot,
-          date: batch[0]?.delivery_date ?? todayISO(),
-          // Draw the route they were ASSIGNED. Re-solving it here would show a
-          // different order than the one they're following.
-          optimize: false,
-        }),
-      });
-      const b = await res.json();
-      if (!res.ok) throw new Error(b.error || "Route failed");
-      setTripRoutes((prev) => ({
-        ...prev,
-        [ti]: {
-          positions: ((b.geometry ?? []) as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number]),
-          miles: b.miles ?? 0,
-          duration: b.duration_text || "",
-          traffic: !!b.traffic,
-        },
-      }));
-    } catch (e) {
-      setTripError(e instanceof Error ? e.message : "Route failed");
-    } finally {
-      setTripBusy(null);
-    }
-  };
-
-  // Only the open truckload is traced, so the map answers one question.
-  const lines: MapLine[] = useMemo(() => {
-    if (openTrip == null) return [];
-    const r = tripRoutes[openTrip];
-    if (!r || r.positions.length < 2) return [];
-    return [{ id: `trip:${openTrip}`, color: "#2456c9", positions: r.positions }];
-  }, [openTrip, tripRoutes]);
-
-  // Numbered pins in visiting order. Colour carries state at a glance: done,
-  // the one you're heading to, and the rest.
-  const points: MapPoint[] = useMemo(() => {
-    const out: MapPoint[] = [];
-    stops.forEach((d, i) => {
-      if (d.delivery_lat == null || d.delivery_lng == null) return;
-      const isDone = d.stage === "delivered";
-      const isNext = next?.id === d.id;
-      out.push({
-        id: d.id,
-        lat: d.delivery_lat,
-        lng: d.delivery_lng,
-        color: isDone ? "#1f9d61" : isNext ? "#d1782e" : "#6b7686",
-        badge: dDe.get(d.id) ?? String(i + 1),
-        // Todas las facturas (D-339): el chofer casa lo que lleva con lo que le firman.
-        label: `${dDe.get(d.id) ?? i + 1}. ${facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}${d.delivery_address ? ` — ${d.delivery_address}` : ""}`,
-        dimmed: isDone,
-      });
-    });
-    return out;
-  }, [stops, next, dDe]);
   // Los botones de cada parada (D-487): qué sale lo decide `accionesDeParada`, dentro del componente.
   const accionesDe = (d: Delivery, tipo: "P" | "D", sinPrincipal = false) => (
     <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} guardando={guardando === d.id} cerrar={(x) => void cerrarParada(x)} sinPrincipal={sinPrincipal} soloLectura={soloLectura} />
   );
 
-  // Their own truck, so they can see where they are against the plan. (Mirada desde fuera, el camión de ESE chofer.)
-  const liveDrivers = useMemo(() => {
-    if (!chofer) return [];
-    const loc = driverLocations.find((l) => l.driver_id === chofer.id);
-    if (!loc) return [];
-    const ageMin = (Date.now() - new Date(loc.recorded_at).getTime()) / 60000;
-    if (ageMin > 60) return [];
-    return [{
-      driver: driverName,
-      lat: loc.lat,
-      lng: loc.lng,
-      color: settings.driver_colors?.[driverName] || fallbackDriverColor(driverName),
-      accuracy_m: loc.accuracy_m,
-      ageMin,
-      label: t("You are here", "Aquí estás"),
-    }];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverLocations, chofer, driverName, settings.driver_colors]);
-
-  const fitTo = useMemo<[number, number][] | undefined>(() => {
-    const pts = points.map((p) => [p.lat, p.lng] as [number, number]);
-    return pts.length ? pts : undefined;
-  }, [points]);
 
   const navigateTo = (d: Delivery) => {
     const dest = d.delivery_lat != null && d.delivery_lng != null
@@ -308,7 +191,10 @@ export default function MyRoutePage() {
           <button key={d} className={`vt${desfase === d && !verAtrasadas ? " on" : ""}`} onClick={() => { setVerAtrasadas(false); setDesfase(d); }}>{rotulo}</button>
         ))}
       </div>
-      {/* «🗺 El mapa de mi ruta» (D-506): el MISMO mapa del Gestor de Rutas —panel, paradas, Cuadrícula y Horario— acotado a
+      {/* **Puesto al día por D-514:** el mapa del Gestor ya está EN esta pantalla, más abajo, en lugar del mapa propio que
+          D-506 dejó aquí («MIRA EL MAPA SIGUE IGUAL»). Este enlace queda para la vista entera, y se llama por lo que abre.
+
+          «🗺 El mapa de mi ruta» (D-506): el MISMO mapa del Gestor de Rutas —panel, paradas, Cuadrícula y Horario— acotado a
           SUS rutas, en `/my-route/mapa`. De aquí no se quita nada: allí solo se mira, y lo que cierra una parada sigue
           estando solo aquí.
 
@@ -319,7 +205,9 @@ export default function MyRoutePage() {
       {(
         <div style={{ marginBottom: 8 }}>
           <Link className="btn btn-ghost btn-sm" data-mapa-de-mi-ruta href={ajeno ? `/my-route/mapa?chofer=${ajeno.id}` : "/my-route/mapa"}>
-            🗺 {t("Route map", "Mapa de mi ruta")}
+            {/* D-514: el mapa ya está aquí abajo. Este enlace abre la vista ENTERA del Gestor —panel, cuadrícula y
+                horario—, y se llama por lo que abre: «Mapa de mi ruta» al lado de un mapa no dice qué hay detrás. */}
+            🗓 {t("Full route view", "Ver la ruta completa")}
           </Link>
         </div>
       )}
@@ -431,53 +319,36 @@ export default function MyRoutePage() {
             </div>
           )}
 
-          <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 12 }}>
-            <MapView
-              points={points}
-              lines={lines}
-              stores={storeMarkers}
-              liveDrivers={liveDrivers}
-              fitTo={fitTo}
-              height={280}
-              onPointClick={(id) => { const d = stops.find((x) => x.id === id); if (d) setOpen(d); }}
-            />
+          {/* EL MAPA DEL GESTOR, no uno parecido (D-514). El dueño, tres veces: «quiero que el chofer mire el mapa con sus
+              rutas asi como el logistic manager ese mismo mapa», y después de D-506: «MIRA EL MAPA SIGUE IGUAL». D-506 había
+              dejado aquí el mapa propio de esta pantalla —sin la línea de la ruta, que solo se trazaba al tocar el título, y
+              con las paradas pintadas por estado— y puesto el del Gestor en otra página, detrás de un botón.
+              Ahora es la MISMA tarjeta del Gestor (`routes/page.tsx`), montada solo-el-mapa y acotada a este chofer: su línea
+              medida en su color, la vuelta a la base en punteado, las casitas, el camión y la leyenda. Tocar una parada abre
+              su orden, como antes. */}
+          <div style={{ marginBottom: 12 }}>
+            <SoloMisRutas chofer={driverName}>
+              <SoloLectura>
+                {/* `ordenDelPunto`: una entrega ya hecha llega como `__hecha__<id>`; sin quitarlo, dejaría de abrirse. */}
+                <SoloElMapa dia={dia} alto={300} alPulsarParada={(id) => { const orden = ordenDelPunto(id); const d = orden ? stops.find((x) => x.id === orden) : undefined; if (d) setOpen(d); }}>
+                  <RoutesPage />
+                </SoloElMapa>
+              </SoloLectura>
+            </SoloMisRutas>
           </div>
 
           {/* The whole day in order, so they can plan ahead: ONE list (D-443, no truckloads), recogidas y entregas en el
-              orden en que se hacen, cada una con su cuenta de pallets. Tapping the title traces the whole route on the map. */}
+              orden en que se hacen, cada una con su cuenta de pallets. El título ya no traza la ruta al tocarlo (D-514): el
+              mapa de arriba es el del Gestor y la trae siempre. */}
           {(() => {
-            const entregas = lectura.filas.flatMap((f) => (f.tipo === "D" && !f.otraCarga ? stops.filter((d) => d.id === f.orden) : []));
             return (
               <div className="card" style={{ marginBottom: 12 }}>
-                <button
-                  onClick={() => void toggleTrip(0, entregas)}
+                <div
                   className="section-label"
-                  style={{
-                    marginTop: 0, width: "100%", textAlign: "left", display: "flex",
-                    alignItems: "center", gap: 8, flexWrap: "wrap", cursor: "pointer",
-                    background: "none", border: "none", padding: 0,
-                    color: openTrip === 0 ? "var(--accent)" : undefined,
-                  }}
-                  aria-expanded={openTrip === 0}
+                  style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
                 >
-                  <span>{openTrip === 0 ? "▾" : "▸"}</span>
                   <span>🚚 {t("Your route", "Tu ruta")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")}</span>
-                  {tripBusy === 0 && <span className="hint">{t("measuring…", "midiendo…")}</span>}
-                  {tripRoutes[0] && (
-                    <span className="hint" style={{ textTransform: "none", letterSpacing: 0 }}>
-                      · {tripRoutes[0].miles} mi · {tripRoutes[0].duration}
-                      {tripRoutes[0].traffic ? ` · ${t("with traffic", "con tráfico")}` : ""}
-                    </span>
-                  )}
-                </button>
-                {openTrip === 0 && tripError && (
-                  <div className="hint" style={{ color: "var(--amber)", marginBottom: 6 }}>⚠ {tripError}</div>
-                )}
-                {openTrip === 0 && !tripRoutes[0] && tripBusy !== 0 && !tripError && (
-                  <div className="hint" style={{ marginBottom: 6 }}>
-                    {t("Tap again to hide the route.", "Toca de nuevo para ocultar la ruta.")}
-                  </div>
-                )}
+                </div>
                 <div className="bar-list">
                   {/* Cada recogida va donde está en la lista: al principio, o a media ruta si el camión recarga. Informa; no se pulsa. */}
                   {lectura.filas.map((f, fi) => {

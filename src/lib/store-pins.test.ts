@@ -214,14 +214,19 @@ describe("el cableado: quién pasa qué, y a quién NO", () => {
     for (const motor of [google, leaflet]) expect(motor).not.toContain("border-radius:50%;background:${TIENDA_CLASICA.fill}");
     expect(google).not.toContain('<circle cx="13" cy="13" r="9" fill="${TIENDA_CLASICA');
   });
-  it("los otros CUATRO mapas que ya pintaban tiendas siguen sin pasar papel", () => {
+  it("los otros mapas que ya pintaban tiendas siguen sin pasar papel", () => {
     // Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor, que ya está en la lista.
-    for (const ruta of ["src/app/(app)/routes/page.tsx", "src/app/(app)/my-route/page.tsx", "src/app/(app)/track/page.tsx"]) {
+    // Y por D-514: «Mi ruta» tampoco pinta mapa propio — monta el del Gestor (solo el mapa), que ya está en la lista.
+    // El título decía «CUATRO» y la lista tenía ya tres: no se cuenta en el título, que es lo que se queda atrás.
+    for (const ruta of ["src/app/(app)/routes/page.tsx", "src/app/(app)/track/page.tsx"]) {
       const src = leer(ruta);
       expect(src, ruta).toContain("useStoreMarkers(settings.stores)");
       expect(src, ruta).not.toContain("papel");
       expect(src, ruta).not.toContain("store-pins");
     }
+    const miRuta = leer("src/app/(app)/my-route/page.tsx");
+    expect(miRuta).toContain("<RoutesPage />");
+    expect(miRuta).not.toContain("useStoreMarkers(");
   });
   it("`papel` es opcional en el tipo: un mapa que no lo pase compila igual", () => {
     expect(leaflet).toMatch(/papel\?: PapelTienda;/);

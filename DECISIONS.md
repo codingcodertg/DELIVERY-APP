@@ -39671,6 +39671,12 @@ permanente, y la que no se respetó al verificar D-172.
 > **⚠ Corregida por D-508** (2026-10-10, el mismo día): esconder el enlace al mirar la ruta de otro dejaba al admin
 > —que revisa la vista del chofer por esa pestaña— sin poder abrir el mapa nuevo por ningún camino.
 
+> **⚠ Reemplazada en parte por D-514** (2026-10-10, el mismo día otra vez): **esta entrada leyó mal el pedido.** El
+> dueño quería que el mapa que el chofer YA ve en «Mi ruta» fuera el del Gestor; esta puso el del Gestor en OTRA página,
+> detrás de un botón, y dejó aquí el de siempre —se dice abajo: «De aquí no se quita nada»—. Él volvió con una captura de
+> «Mi ruta»: *«MIRA EL MAPA SIGUE IGUAL»*. Desde D-514 el mapa de «Mi ruta» ES la tarjeta del Gestor; la página de este
+> enlace se queda como la vista entera (panel, cuadrícula, horario), con el nombre cambiado a lo que abre.
+
 **Fecha:** 2026-10-10 · **Versión:** Entregas 1.276.0, repo 1.376.0 · **Sin migración.** · Rama `chofer-mapa-del-gestor`.
 
 **Pedido del dueño**, literal: *«drivers view needs to look like to logistic manager view with the
@@ -39911,6 +39917,12 @@ sigue en Reciente» y «se aplica cada vez, pisando lo que pulse la persona».
 
 **Fecha:** 2026-10-10 · **Versión:** Entregas 1.278.0, repo 1.378.0 · **Sin migración.**
 **Reportado por el dueño**, literal, al probar D-506: *«aun miro el mismo mapa en drivers»*.
+
+> **⚠ Esta entrada arregló el síntoma equivocado** (nota de D-514, 2026-10-10). Leyó *«aun miro el mismo mapa»* como
+> «el admin no encuentra el enlace» y lo hizo visible también mirando a otro chofer. Lo que el dueño decía era más simple:
+> que el mapa de «Mi ruta» seguía siendo el mismo de antes —y lo era, porque D-506 lo había dejado ahí—. Lo de abajo sigue
+> siendo cierto para el enlace (y `choferDelMapa` decide igual a quién se abre), pero no era lo que se pedía. D-514
+> cambia el mapa de «Mi ruta» por el del Gestor.
 
 ### Qué estaba mal, y era mío
 
@@ -40580,3 +40592,92 @@ se llamaba `flujo-routes-…`; la tabla de arriba es la de después del arreglo.
 - **Una imagen de otro dominio sin CORS saldría como hueco.** Hoy no hay ninguna medida que lo sea, pero un logo o una
   foto subida a un sitio sin CORS lo sería; para eso está el respaldo.
 - **La foto del iframe de otro sitio**, si alguna pantalla lo tuviera, sale vacía. No se buscó si alguna lo tiene.
+
+## D-514 — El mapa de «Mi ruta» ES el del Gestor, no uno parecido
+
+**Fecha:** 2026-10-10 · **Estado:** Vigente · **Reemplaza en parte a D-506 y corrige a D-508** · **Sin migración.**
+
+El dueño lo pidió tres veces —*«drivers view needs to look like to logistic manager view with the routes and everything
+the map view i mean change it and updat eit»*, *«quiero que el chofer mire el mapa con sus rutas asi como el logistic
+manager ese mismo mapa»*, *«aun miro el mismo mapa en drivers»*— y volvió con una captura de «Mi ruta»:
+*«MIRA EL MAPA SIGUE IGUAL»*.
+
+### Qué falló, y fue mío dos veces
+
+**D-506 leyó mal el pedido.** Puso el mapa del Gestor en OTRA página (`/my-route/mapa`), detrás de un botón
+«🗺 Mapa de mi ruta», y dejó en «Mi ruta» su mapa de siempre; lo dice su propio comentario: *«De aquí no se quita
+nada»*. **D-508 arregló el síntoma equivocado**: leyó *«aun miro el mismo mapa»* como «el admin no encuentra el enlace»
+y lo hizo visible también mirando a otro chofer. El mapa que el chofer mira siguió siendo el mismo.
+
+Y el mapa de siempre no era «el mismo con otro aspecto»: **no tenía la línea de la ruta**. La trazaba solo si el chofer
+tocaba el título «▸ TU RUTA», cosa que nadie sabía, y desde D-443 ni eso servía de mucho. Pintaba las paradas por estado
+(verde entregada, naranja la siguiente, gris el resto) y no con el color del chofer, y no tenía leyenda.
+
+### Qué cambia
+
+**El mapa de «Mi ruta» es la tarjeta del mapa del Gestor**, la de verdad:
+
+- **`<SoloElMapa>`** (`src/lib/gestor/solo-el-mapa.tsx`), contexto nuevo como `<SoloLectura>` (D-481) y
+  `<SoloMisRutas>` (D-506): la página del Gestor, montada así, **devuelve solo su tarjeta del mapa** —los mismos
+  `points`, `lines`, tiendas, camiones y leyenda— justo antes de su `return` principal, **después de todos los hooks**
+  (devolver antes rompería su orden). No es una copia: es el mismo código, así que no se pueden separar.
+- **«Mi ruta» la monta** dentro de `<SoloMisRutas chofer={driverName}>` y `<SoloLectura>`, en lugar de su `MapView`
+  propio. `driverName` es el de la ruta que se mira (el chofer en su teléfono, o el elegido en la pestaña «Chofer» del
+  admin), no el de quien mira.
+- **El día** es el «Ayer/Hoy/Mañana» de «Mi ruta», y entra en el Gestor **como su fecha elegida**: así pasa por el mismo
+  acotado de la ventana de historial (D-239) y del ±7 de `rutas_del_dia` que ya estaba probado. La primera versión lo
+  pasaba por fuera; lo cazó `history-window.test.ts`, y era un fallo de verdad, no una prueba vieja.
+- **Tocar una parada abre su orden**, como antes. Con un detalle que el navegador destapó: el Gestor le pone a la
+  entrega ya HECHA la clave `__hecha__<id>`, y «Mi ruta» no la habría encontrado —una entrega hecha dejaba de abrirse,
+  y antes se abría para ver la firma—. `ordenDelPunto` (`lib/mapa-de-rutas`) la traduce, y el prefijo es ahora una
+  constante, `PREFIJO_HECHA`, que usan el que pinta y el que traduce.
+- El título «▸ TU RUTA» **deja de ser un botón**: el mapa ya trae la línea siempre.
+- El botón de D-506 se llama ahora **«🗓 Ver la ruta completa»**, por lo que abre (panel, cuadrícula, horario):
+  «Mapa de mi ruta» al lado de un mapa no decía qué había detrás.
+
+### El costo, dicho antes de cambiarlo
+
+El trazo al tocar el título era **a propósito**: su comentario decía que cada petición cuesta una llamada de rutas. No
+lo fijaba ninguna decisión numerada; venía del commit `96eb1af9` del **2026-08-13** («My route: tap a truckload, see its
+drive», v1.2.1), y D-443 solo lo adaptó a una lista. Ahora la ruta del chofer se mide **sola, al entrar**, con
+`useMedidaDeRutas`: una llamada a `/api/optimize-route` por ruta y por forma, y volver a una forma ya medida no llama.
+Son unas pocas llamadas por chofer al día, centavos, y el Gestor ya hace lo mismo con todas las rutas cada vez que se
+abre.
+
+### Lo que no cambia
+
+La pantalla del chofer sigue siendo la del chofer: la siguiente parada primero, la lista con sus botones, sin reordenar
+ni asignar. Solo el mapa es el del Gestor. La página `/my-route/mapa` sigue igual, con su nuevo nombre.
+
+### Verificado
+
+**En el navegador**, contra el demo, entrando como chofer («Ver como → Driver»), a 1440 y a 390 de ancho:
+
+- en «Mi ruta» hay **una** tarjeta `data-mapa-del-gestor` y **ningún** mapa propio;
+- el mapa de Leaflet se pinta con 11 marcas: la «P» de la base en el color del chofer, sus entregas en su color y las
+  casitas de las tiendas, y debajo **la leyenda del Gestor** («Store · Delivery · Diego Driver · ① Stop · ⇢ Drive back to
+  base · 🚚 Driver, live»);
+- **tocar una entrega abrió su orden** (Order #1034, «Deliver to Casa Bella», INV-3028), y tocar la «P» de la base no
+  abrió nada, que es lo correcto.
+
+`mapa-de-mi-ruta.test.ts`, 9 pruebas. La más importante: **los ids salen de `puntosDeLasRutas` de verdad**, con una
+entrega pendiente y una hecha, y antes de traducirlos se afirma que la clave `__hecha__` existe —si no, la prueba no
+mediría nada—. Cuatro pruebas que fijaban el mapa viejo se pusieron al día con su motivo: `vista-de-chofer` (ahora fija
+que el mapa se pide **acotado al chofer elegido y no a quien mira**, en su día y de solo lectura; que ese mapa enseñe
+solo el camión del elegido ya lo prueba `mapa-del-chofer.test.ts` sobre la página del Gestor de verdad), `solo-armar-rutas`,
+`store-pins` (cuyo título decía «CUATRO» con tres en la lista: ya no cuenta) y `gestor-entregadas-y-vista` (el literal
+del prefijo pasó a constante).
+
+**11 mutantes de 11 caen, leídos por nombre**, con el control en verde: el mapa acotado a quien mira; sin `SoloLectura`;
+la entrega hecha sin traducir; la base tomada por una orden; «Mi ruta» buscando sin traducir; el día saltándose el
+acotado; solo-el-mapa pintando la página entera; la tarjeta sin leyenda; un mapa propio de vuelta; y el pin hecho con
+otro prefijo. **Uno, «el mapa ignora el Ayer/Hoy/Mañana», solo lo caza un ancla de texto**: la prueba de render usa el
+día de hoy y no lo distingue.
+
+### Lo no verificado
+
+- **La línea de la ruta no se ve en el demo**: sin llave de Google, el demo no mide rutas, y el Gestor del demo tampoco
+  la dibuja. Es el mismo código que la dibuja en producción, pero aquí no se vio.
+- **Nada con un mapa de Google**: el demo pinta Leaflet. En producción el mapa es de Google, y es el mismo `MapView`.
+- **Una entrega hecha abriéndose**, de punta a punta en el navegador: el demo no tenía ninguna hecha ese día. Está
+  probado con los ids de verdad de `puntosDeLasRutas`, no tocándola.

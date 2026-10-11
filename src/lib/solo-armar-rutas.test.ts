@@ -126,7 +126,12 @@ describe("lo que se quitó (D-437): Optimizar, Auto-asignar, Reagrupar por zona 
     for (const f of ["src/components/AutoAsignarDialogo.tsx", "src/lib/auto-asignar.ts", "src/lib/route-plan/reparto.ts",
       "src/lib/route-plan/reparto-cliente.ts", "src/app/api/route-plan/reparto/route.ts"]) expect(existsSync(join(process.cwd(), f)), f).toBe(false);
     expect(existsSync(join(process.cwd(), "src/app/api/optimize-route/route.ts"))).toBe(true);
-    expect(leer("src/app/(app)/my-route/page.tsx")).toContain('fetch("/api/optimize-route"');
+    // D-514: «Mi ruta» ya no llama por su cuenta (trazaba al tocar el título): monta el MAPA del Gestor, que mide con
+    // `useMedidaDeRutas<Delivery>`, comprobado abajo. Y no se queda con una segunda copia de la medida.
+    const miRuta = leer("src/app/(app)/my-route/page.tsx");
+    expect(miRuta).toContain("<RoutesPage />");
+    expect(miRuta).toContain("<SoloElMapa ");
+    expect(miRuta).not.toContain('fetch("/api/optimize-route"');
     // D-467: «Ruta de hoy» ya no llama por su cuenta; mide con `useMedidaDeRutas`, como el Gestor.
     // D-481: «Ruta de hoy» monta la página del Gestor en solo lectura, que mide con `useMedidaDeRutas<Delivery>`.
     expect(mapa).toContain("<SoloLectura>");

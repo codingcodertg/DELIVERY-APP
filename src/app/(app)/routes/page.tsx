@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useData } from "@/lib/data-provider";
 import { useSoloLectura } from "@/lib/gestor/solo-lectura";
 import { useSoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
+import { useSoloElMapa } from "@/lib/gestor/solo-el-mapa";
 import { soloLoMioPorChofer, soloMisCarriles, soloMisOrdenes } from "@/lib/gestor/mis-rutas";
 import { PlanDelDia } from "@/components/PlanDelDia";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
@@ -183,10 +184,16 @@ export default function RoutesPage() {
   // Acotada a un chofer es SIEMPRE de solo lectura, aunque quien la monte se olvide de `<SoloLectura>`: el chofer no asigna,
   // no mueve, no optimiza ni publica. Que lo decida esta línea y no el sitio donde se monta es lo que lo hace estructural.
   const soloLectura = soloLecturaDeclarada || miChofer != null;
+  // «Mi ruta» monta ESTA pantalla y se queda solo con su mapa (D-514): el mismo mapa, no una copia. Manda su día.
+  const soloElMapa = useSoloElMapa();
   const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching, realRole } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
-  const [fechaElegida, setDate] = useState(todayISO());
+  const [fechaDelEstado, setDate] = useState(todayISO());
+  // Solo el mapa (D-514): el día lo elige la pantalla que lo monta («Mi ruta», su «Ayer/Hoy/Mañana»), no este selector,
+  // que ahí no se pinta. Entra COMO la fecha elegida, así que pasa por el MISMO acotado de abajo: la ventana de D-239 y el
+  // ±7 de `rutas_del_dia`. Un mapa montado no puede enseñar un día que esta pantalla no dejaría elegir.
+  const fechaElegida = soloElMapa ? soloElMapa.dia : fechaDelEstado;
   // «Ruta de hoy» (`soloLectura`, D-481) acota el día como lo acotaba su pantalla de antes (D-467/D-469): la ventana de
   // D-239 y el ±7 de la función `rutas_del_dia`. El Gestor no acota: ve cualquier fecha.
   const veTodoElHistorial = seesAllHistory(realRole, me?.permissions);
@@ -2296,6 +2303,19 @@ export default function RoutesPage() {
     cabeceraDeAcciones: t("Assign / move", "Asignar / pasar"), anchoDeAcciones: 136, caja: cajaDeTodasRef,
   };
 
+  // Solo el mapa (D-514): la MISMA tarjeta de abajo —`points`, `lines`, tiendas, camiones y leyenda, calculados arriba
+  // como siempre—, sin cabecera, panel ni pestañas. Va aquí, después de todos los hooks: devolver antes rompería su orden.
+  // Lo único que cambia es qué pasa al tocar una parada: lo decide quien monta el mapa.
+  if (soloElMapa) {
+    return (
+      <div className="card" data-mapa-del-gestor style={{ margin: 0, padding: 0, overflow: "hidden" }}>
+        {/* El toque va entero a quien monta el mapa: «Mi ruta» busca la parada en su propia lista, y lo que no sea una
+            parada suya (la casita de una tienda, la base) no abre nada. */}
+        <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={soloElMapa.alto ?? 430} onPointClick={(id) => soloElMapa.alPulsarParada?.(id)} />
+        <MapLegend elementos={leyenda} />
+      </div>
+    );
+  }
 
   return (
     <>

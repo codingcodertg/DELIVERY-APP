@@ -6,6 +6,7 @@ import { botonDeVolver, HISTORIAL_VACIO, type Historial, type Movimiento } from 
 import { lecturaDeLaRuta, type OrdenAsignada, type ParadaDelPlanMinima } from "./route-plan/lectura-de-ruta";
 import { estadoDelPlan, textoDelEstadoDelPlan } from "./route-plan/estado-del-plan";
 import { ANCHO_FIJO_DE_PARADAS } from "./routes-columns";
+import { PREFIJO_HECHA } from "./mapa-de-rutas";
 
 /**
  * D-459 (2026-10-01): nueve pedidos del dueño sobre el Gestor de Rutas, el mismo día.
@@ -182,7 +183,11 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       // Gestor y «Ruta de hoy». El Gestor le pasa lo hecho (`hechasPintadas`), su filtro y a quién atenúa (`isDim`).
       const mapaDeRutas = plano(leer("src/lib/mapa-de-rutas.ts"));
       const pines = trozo("for (const [laneKey, lista] of e.hechas) {", "return pts;", mapaDeRutas);
-      expect(pines).toContain("id: `__hecha__${d.id}`");
+      // Puesto al día por D-514: el prefijo es una constante (`PREFIJO_HECHA`) porque «Mi ruta», que monta este mapa, lo
+      // quita para abrir la orden al tocarla (`ordenDelPunto`). Dos copias del literal se separarían; se fijan las dos cosas:
+      // que el pin lo usa, y que vale lo que valía.
+      expect(pines).toContain("id: `${PREFIJO_HECHA}${d.id}`");
+      expect(PREFIJO_HECHA).toBe("__hecha__");
       expect(pines).toContain('badge: entregada ? "✓" : "🚚"');
       expect(pines).toContain("dimmed: entregada || e.atenuada(laneKey) || selActive,");
       expect(pines).toContain("if (!e.pasaFiltro(laneKey)) continue;");
