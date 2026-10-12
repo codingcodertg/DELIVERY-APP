@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { APP_VERSIONS } from "@/lib/app-versions";
-import { DEFAULT_HELP_EMAIL, roleLabel } from "@/lib/constants";
+import { roleLabel } from "@/lib/constants";
 import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
 import { asomoDelMensaje, type SolicitudDeAyuda } from "@/lib/help-requests";
 import { enviaSolicitudDeAyuda } from "@/lib/help-send";
@@ -89,11 +89,11 @@ export default function MisSolicitudesPage() {
     if (!texto || !yo || ocupada) return;
     setOcupada(true);
     setAviso(null);
-    // A dónde va el correo lo dice Ajustes; se lee aquí, al enviar, y no al cargar la página.
-    const { data: ajustes } = await supabase.from("settings").select("help_email").eq("id", 1).maybeSingle();
-    const to = String((ajustes as { help_email?: string | null } | null)?.help_email ?? "").trim() || DEFAULT_HELP_EMAIL;
+    // A dónde va el correo lo decide el servidor con Ajustes (D-530, `destinoDeAyuda`): aquí se leía
+    // `settings` con la sesión, y quien no tiene Entregas no puede leerla, así que su solicitud se iba a la
+    // dirección por defecto.
     const r = await enviaSolicitudDeAyuda({
-      userId: yo.id, message: texto, ficheros, to, page: RUTA_MIS_SOLICITUDES, senderName: yo.nombre,
+      userId: yo.id, message: texto, ficheros, page: RUTA_MIS_SOLICITUDES, senderName: yo.nombre,
       role: roleLabel(yo.role, lang),
       // El hub se versiona con Entregas (D-087).
       appVersion: APP_VERSIONS.deliveries,

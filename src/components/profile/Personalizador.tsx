@@ -15,7 +15,7 @@ import { OPCIONES_DE_IDIOMA, OPCIONES_DE_TEMA } from "@/lib/personalizar";
  * Cada grupo es un `radiogroup`: se ve cuál está puesto sin tener que adivinarlo por el color.
  */
 export function Personalizador() {
-  const { t, lang, setLang, themePref, setTheme } = usePrefs();
+  const { t, lang, setLang, theme, setTheme } = usePrefs();
 
   return (
     <>
@@ -57,10 +57,7 @@ export function Personalizador() {
       <div className="card" data-personalizar="tema">
         <h2>{t("Theme", "Tema")}</h2>
         <p className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
-          {t(
-            "Applies to every app, on this device. «Same as my device» follows your phone or computer, day and night.",
-            "Vale para todas las apps, en este equipo. «Como mi equipo» sigue a tu teléfono o tu computadora, de día y de noche.",
-          )}
+          {t("Applies to every app, on this device.", "Vale para todas las apps, en este equipo.")}
         </p>
         <div className="pers-opciones" role="radiogroup" aria-label={t("Theme", "Tema")}>
           {OPCIONES_DE_TEMA.map((o) => (
@@ -68,8 +65,8 @@ export function Personalizador() {
               key={o.valor}
               type="button"
               role="radio"
-              aria-checked={themePref === o.valor}
-              className={"pers-opcion" + (themePref === o.valor ? " on" : "")}
+              aria-checked={theme === o.valor}
+              className={"pers-opcion" + (theme === o.valor ? " on" : "")}
               onClick={() => setTheme(o.valor)}
             >
               <span aria-hidden>{o.emoji}</span> {lang === "es" ? o.es : o.en}

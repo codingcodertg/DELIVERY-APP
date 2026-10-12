@@ -5,7 +5,6 @@ import { LocalDataProvider, resetLocalData } from "@/lib/local-data-provider";
 import { TabGate } from "@/components/TabGate";
 import { TopBar } from "@/components/TopBar";
 import { VersionFooter } from "@/components/VersionFooter";
-import { HelpButton } from "@/components/HelpButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ROLE_ORDER, roleLabel } from "@/lib/constants";
 import { usePrefs } from "@/lib/prefs";
@@ -73,7 +72,7 @@ export function LocalApp({ children }: { children: React.ReactNode }) {
       {/* La misma guarda de pantalla que el layout de servidor (D-240). Sin ella el demo dejaba entrar por URL a lo que
           la barra no enseña, y no se podía medir aquí quién entra a qué (D-480). */}
       <div className="wrap"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div>
-      <HelpButton me={me} />
+      {/* La burbuja de Ayuda la pone el layout raíz, también en el demo (D-530). */}
       <VersionFooter />
     </LocalDataProvider>
   );

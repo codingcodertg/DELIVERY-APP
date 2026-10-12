@@ -33,7 +33,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
   if (SIN_BASE) {
     const demo = RONDAS_DEMO.find((r) => r.id === id) ?? RONDAS_DEMO[0];
     return (
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px var(--hueco-de-ayuda)" }}>
         <VolverAlHub />
         <RondaDemo ronda={{ id: demo.id, label: demo.label, closed_at: demo.closed_at }} />
       </div>
@@ -85,7 +85,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
   );
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px var(--hueco-de-ayuda)" }}>
         <VolverAlHub />
       <TablaDeRonda
         ronda={{

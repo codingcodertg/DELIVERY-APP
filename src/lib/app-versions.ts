@@ -21,25 +21,25 @@
 // bajar nada (D-029/D-087) y se queda con codigo viejo sin que nadie lo note.
 // Ver "Flujo de ramas" en CLAUDE.md y docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
-  deliveries: "1.290.0",
-  recruiting: "0.39.0",
-  timetracker: "1.03.0",
-  clockin: "0.44.0",
+  deliveries: "1.291.0",
+  recruiting: "0.40.0",
+  timetracker: "1.4.0",
+  clockin: "0.45.0",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
   // misma razón que recruiting y timetracker — no hay historial independiente que
   // continuar, y un 1.0.0 sería continuidad inventada.
-  erp: "0.15.0",
+  erp: "0.16.0",
   // RTG PROMOS (D-366): modulo nuevo, sin historial que continuar; 0.1.0 como recruiting y el ERP.
-  promos: "0.12.0",
+  promos: "0.13.0",
   // El Estimador (T-0408): modulo nuevo, sin historial que continuar; 0.1.0 como promos. Lo sube el orquestador.
-  estimator: "0.12.0",
+  estimator: "0.13.0",
   // Encuestas (migración 155): modulo nuevo, sin historial que continuar; 0.1.0 como el Estimador. La entrada la
   // pone la rama porque sin ella /surveys no tiene sello de version; los siguientes numeros, el orquestador.
-  surveys: "0.2.0",
+  surveys: "0.3.0",
   // Leads (migración 162): modulo nuevo, sin historial que continuar; 0.1.0 como Encuestas. La entrada la pone la
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
-  leads: "0.4.0",
+  leads: "0.5.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;
