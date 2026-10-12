@@ -15,6 +15,11 @@ export type OpcionDelMenu = {
   peligro?: boolean;
   /** Por qué no se puede pulsar ahora. Sale en el `title` y la opción no hace nada. `null` = se puede. */
   deshabilitada?: string | null;
+  /**
+   * La pantalla en la que se está, cuando el menú lleva a pantallas (el «👤 Mío ▾» de Time Tracker, D-NEXT): sale
+   * resaltada y con `aria-current="page"`, como la pestaña encendida de una barra.
+   */
+  actual?: boolean;
   alPulsar: () => void;
 };
 
@@ -41,7 +46,8 @@ export function OpcionesDelMenu({ opciones, onElegir }: { opciones: readonly Opc
             role="menuitem"
             tabIndex={-1}
             data-accion={o.id}
-            className={"col-opt menu-accion" + (o.peligro ? " menu-accion-peligro" : "")}
+            className={"col-opt menu-accion" + (o.peligro ? " menu-accion-peligro" : "") + (o.actual ? " menu-accion-actual" : "")}
+            aria-current={o.actual ? "page" : undefined}
             // `aria-disabled` y no `disabled`: una opción apagada sigue recibiendo el foco con las flechas (así se
             // descubre que existe) y su `title` sale al pasar el ratón, cosa que un `disabled` no garantiza.
             aria-disabled={o.deshabilitada ? true : undefined}

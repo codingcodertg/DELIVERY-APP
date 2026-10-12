@@ -26,6 +26,10 @@ export const TABS: { id: string; href: string }[] = [
 // personal ones every employee gets (an admin can track their own time too;
 // the original's "View as employee" toggle covered the same ground, just
 // as a mode switch instead of separate routes).
+//
+// Desde D-NEXT no van todas en fila: la barra pinta las ocho de gestión y mete Ajustes, Registrar tiempo, Mi semana,
+// Mis solicitudes y Mi diario en un solo «👤 Mío ▾» (`barraDeTt`, lib/timetracker/barra.ts). Esta lista sigue siendo
+// la de TODAS las pantallas del admin, en su orden: quitar una de aquí la quita de la barra y del menú.
 export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "insights", href: "/timetracker/insights" },
   { id: "live", href: "/timetracker/live" },

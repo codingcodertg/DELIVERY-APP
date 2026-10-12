@@ -34,7 +34,9 @@ describe("lo que se fue de la barra", () => {
 
 describe("lo que se queda", () => {
   it("las pestañas, recargar, la campana y el ⟳ del escritorio", () => {
-    expect(barra).toContain("const tabs = pestanasPara(me.role);");
+    // Nota D-NEXT: las pestañas ya no salen directamente de `pestanasPara`, sino de `barraDeTt` (que la llama): el admin
+    // lleva Ajustes y sus cuatro personales en «👤 Mío ▾». Lo prueba `barra.test.ts`.
+    expect(barra).toContain("const barra = barraDeTt(me.role, pathname);");
     expect(barra).toContain('<BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />');
     expect(barra).toContain("<NotificationBell />");
     expect(barra).toContain("<TtCheckUpdateLink />");
