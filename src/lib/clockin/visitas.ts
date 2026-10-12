@@ -24,15 +24,6 @@ export const MOTIVOS_DE_SALIDA: readonly MotivoDeSalida[] = [
 ];
 
 /**
- * Sin vehículo de la empresa asignado, la persona va en el suyo: el viaje nace «personal» (ni
- * vehículo ni cuentakilómetros). Es lo que dice la ficha de Usuarios: «sin vehículo asignado =
- * usa el suyo». Con uno asignado nace con ese vehículo, y puede desmarcarlo.
- */
-export function viajePersonalPorDefecto(vehiculoAsignado: string | null | undefined): boolean {
-  return !vehiculoAsignado;
-}
-
-/**
  * **D-489 — «Voy a salir» pregunta también por el VEHÍCULO.** El dueño, el 2026-10-06: al pulsar
  * «Voy a salir» tiene que salir la pregunta de visitas/mandados/viajes —que NO se quita— y además
  * si va en su vehículo personal o en uno de la empresa. Y su regla de antes: «si se le asigna un

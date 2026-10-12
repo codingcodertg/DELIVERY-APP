@@ -5,8 +5,7 @@ import type { getMyTrip } from "@/app/timetracker/clock-in/actions/runner";
 import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
-import { odometroDeRegreso, viajePersonalPorDefecto } from "@/lib/clockin/visitas";
-import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo";
+import { odometroDeRegreso } from "@/lib/clockin/visitas";
 
 /**
  * Los viajes de vehículo, dentro de Registrar tiempo (D-136).
@@ -20,9 +19,8 @@ import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo"
  *   · El cuentakilómetros **no se manda si está vacío** — se manda `null`. Un campo en blanco
  *     convertido en `0` es un viaje de cero millas que nadie hizo, y es peor que no tener dato:
  *     un hueco se ve, un cero se cree.
- *   · **Se avisa si el de llegada es menor que el de salida.** No se bloquea —un dígito mal
- *     tecleado se corrige, y a veces el vehículo cambia— pero pasar de largo sin decir nada
- *     dejaría una diferencia negativa en la factura.
+ *   · **El de llegada no puede ser menor que el de salida** (D-524; antes solo se avisaba): pasar
+ *     de largo dejaría una diferencia negativa en la factura. Se compara con la lectura guardada.
  *   · **Viaje personal** significa vehículo propio: ni vehículo, ni cuentakilómetros, ni
  *     combustible. Pedirlos sería inventarse datos de un coche que no es de la empresa.
  *
@@ -41,9 +39,8 @@ import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo"
  *     guarda con foto, hora y sitio. Sin foto no hay parada: es justo lo que se viene a registrar.
  *   · **Cada paso manda la ubicación si la hay** (empezar, llegar, salir, terminar). Opcional,
  *     como el almuerzo: un GPS que falla no puede dejar a nadie sin registrar su parada.
- *   · **Sin vehículo asignado, el viaje nace «personal»** (`viajePersonalPorDefecto`): antes salía
- *     preseleccionado el primer vehículo de la empresa y pedía un cuentakilómetros de un coche
- *     que la persona no lleva.
+ *   · **Solo se ve con un viaje abierto** (D-525). Se sale por la ventana de «Voy a salir» (D-489),
+ *     que ya pregunta personal o de la empresa; este panel ya no tiene su propio «Empezar viaje».
  *   · **El estado viene de PunchPanel**, no de una carga propia. El botón de foto de arriba y
  *     este panel hablan del MISMO viaje; con dos cargas, uno de los dos iba siempre un paso
  *     por detrás (y el panel no aparecía tras fichar hasta recargar la página).
@@ -51,17 +48,6 @@ import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo"
 
 export type Viaje = Extract<Awaited<ReturnType<typeof getMyTrip>>, { ok: true }>;
 type Punto = { lat: number; lng: number } | undefined;
-
-// Claves literales, una por motivo, para que la prueba de claves de D-187 las vea en el fuente.
-function motivos(t: ReturnType<typeof useT>) {
-  return [
-    { v: "delivery", l: t("emp.trip.reasonDelivery") },
-    { v: "customer_visit", l: t("emp.trip.reasonCustomerVisit") },
-    { v: "moving_between_stores", l: t("emp.trip.reasonBetweenStores") },
-    { v: "pickup", l: t("emp.trip.reasonPickup") },
-    { v: "other", l: t("emp.trip.reasonOther") },
-  ];
-}
 
 const hhmm = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone /* G-25: la zona del ajuste, no America/Chicago a pelo */ });
@@ -79,18 +65,12 @@ export function TripPanel({
 }) {
   const t = useT();
   // Reales o de práctica (modo capacitación, D-490).
-  const { startTrip, endTrip, finishStop } = useAccionesDeFichar();
+  const { endTrip, finishStop } = useAccionesDeFichar();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
-  const [vehiculoElegido, setVehiculo] = useState("");
-  // null = no ha tocado la casilla: manda el defecto, que depende de si tiene vehículo asignado.
-  const [personalElegido, setPersonal] = useState<boolean | null>(null);
   const camara = useRef<HTMLInputElement>(null);
-  const [motivo, setMotivo] = useState("delivery");
-  const [nota, setNota] = useState("");
-  const [odoIni, setOdoIni] = useState("");
   const [odoFin, setOdoFin] = useState("");
   const [parada, setParada] = useState("");
 
@@ -111,15 +91,16 @@ export function TripPanel({
   // Sin fichaje abierto no hay viaje: se conduce estando de alta, y ofrecerlo antes solo daría
   // un error del servidor con otras palabras.
   if (!d.clockedIn) return null;
-  // Un comercial sin vehículos y sin viaje abierto no tiene nada que hacer aquí.
-  if (d.mode === "sales" && d.vehicles.length === 0 && !d.trip) return null;
+  // Solo mientras hay un viaje abierto (D-525). El dueño, 2026-10-11: «when press going out and press im back is still
+  // showing the vistis and errands aand if press ogin out to collapse it shows me the form and is not hdiing it». Antes
+  // el panel se veía siempre con su propio formulario de «Empezar viaje», que repetía la ventana de «Voy a salir» (D-489);
+  // ahora se sale SOLO por esa ventana, y este panel es el del viaje en curso: paradas, cuentakilómetros y terminar.
+  if (!d.trip) return null;
 
-  const personal = personalElegido ?? viajePersonalPorDefecto(d.currentVehicleId);
   // La lectura de salida del viaje abierto (D-524): la GUARDADA, aunque el viaje se empezara en «Voy a salir» o la página se
-  // recargara. Antes se comparaba con lo tecleado en este panel, que en esos dos casos estaba vacío y no avisaba de nada.
-  const salida = d.trip?.vehicleId ? (d.trip.startOdometer ?? num(odoIni)) : null;
+  // recargara.
+  const salida = d.trip.vehicleId ? d.trip.startOdometer : null;
   const regreso = odometroDeRegreso(salida, num(odoFin));
-  const vehiculo = vehiculoElegido || d.currentVehicleId || d.vehicles[0]?.id || "";
 
   /** La cámara ya se cerró: con foto se guarda la parada; sin foto no hay nada que guardar. */
   async function alTomarFoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -138,136 +119,84 @@ export function TripPanel({
     <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("emp.trip.title")}</h2>
-        {d.trip && <span className="pill on">{t("emp.trip.onTrip", { time: hhmm(d.trip.startedAt) })}</span>}
+        <span className="pill on">{t("emp.trip.onTrip", { time: hhmm(d.trip.startedAt) })}</span>
       </div>
 
       {err && <div className="banner err">{err}</div>}
       {aviso && <div className="banner warn">{aviso}</div>}
 
-      {!d.trip ? (
-        <>
-          {/* La misma pregunta que la ventana de «Voy a salir» (D-489): personal o de la empresa,
-              con dos respuestas y no una casilla. Aquí sí sale contestada de entrada con el
-              defecto de D-455 (sin vehículo asignado → personal), porque el panel se ve siempre y
-              el botón «Empezar viaje» ya pide pulsarlo a propósito. */}
-          <PreguntaDeVehiculo
-            nombre="vehiculo-viaje"
-            valor={personal ? "personal" : "empresa"}
-            onValor={(v) => setPersonal(v === "personal")}
-            vehiculos={d.vehicles}
-            vehiculoId={vehiculo || null}
-            onVehiculoId={setVehiculo}
-            odometro={odoIni}
-            onOdometro={setOdoIni}
-          />
+      {d.stops.length > 0 && (
+        <table style={{ marginTop: 10 }}>
+          <tbody>
+            {d.stops.map((s) => (
+              <tr key={s.id}>
+                <td>{s.label || t("emp.trip.stop")}</td>
+                <td className="small muted nowrap">
+                  {hhmm(s.arrivedAt)}{s.departedAt ? ` – ${hhmm(s.departedAt)}` : ""}
+                </td>
+                <td>{!s.departedAt && <span className="pill wait">{t("emp.trip.hereNow")}</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
-          <div className="grid g2">
-            <div>
-              <label>{t("emp.trip.reason")}</label>
-              <select value={motivo} onChange={(e) => setMotivo(e.target.value)}>
-                {motivos(t).map((m) => <option key={m.v} value={m.v}>{m.l}</option>)}
-              </select>
-            </div>
-            {motivo === "other" && (
-              <div>
-                <label>{t("emp.trip.note")}</label>
-                <input value={nota} onChange={(e) => setNota(e.target.value)} />
-              </div>
-            )}
-          </div>
-
-          <button
-            style={{ marginTop: 12 }}
-            disabled={busy || (!personal && !vehiculo)}
-            onClick={() => corre(async () => startTrip({
-              kind: d.mode,
-              personal,
-              vehicleId: personal ? null : vehiculo,
-              odometer: personal ? null : num(odoIni),
-              reason: motivo,
-              note: motivo === "other" ? nota || null : null,
-              ...(await ubicacion()),
-            }))}
-          >
-            {t("emp.trip.start")}
-          </button>
-        </>
+      {/* Llegar y salir de una parada son dos botones distintos a propósito: el tiempo
+          EN la parada es el dato que se quiere, y un solo botón lo perdería. */}
+      {d.stops.some((s) => !s.departedAt) ? (
+        <button className="btn-ghost" style={{ marginTop: 10 }} disabled={busy}
+          onClick={() => corre(async () => finishStop({ ...(await ubicacion()) }))}>
+          {t("emp.trip.leavingStop")}
+        </button>
       ) : (
         <>
-          {d.stops.length > 0 && (
-            <table style={{ marginTop: 10 }}>
-              <tbody>
-                {d.stops.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.label || t("emp.trip.stop")}</td>
-                    <td className="small muted nowrap">
-                      {hhmm(s.arrivedAt)}{s.departedAt ? ` – ${hhmm(s.departedAt)}` : ""}
-                    </td>
-                    <td>{!s.departedAt && <span className="pill wait">{t("emp.trip.hereNow")}</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {/* Llegar y salir de una parada son dos botones distintos a propósito: el tiempo
-              EN la parada es el dato que se quiere, y un solo botón lo perdería. */}
-          {d.stops.some((s) => !s.departedAt) ? (
-            <button className="btn-ghost" style={{ marginTop: 10 }} disabled={busy}
-              onClick={() => corre(async () => finishStop({ ...(await ubicacion()) }))}>
-              {t("emp.trip.leavingStop")}
+          <div className="row" style={{ marginTop: 10 }}>
+            <input value={parada} onChange={(e) => setParada(e.target.value)} placeholder={t("emp.trip.stopNamePh")} />
+            {/* El nombre va primero y es obligatorio: el servidor rechaza una parada sin nombre
+                (antes el campo decía «opcional» y el botón fallaba). Con nombre, el botón abre
+                la cámara; la parada se guarda al volver con la foto. */}
+            <button className="btn-ghost" disabled={busy || !parada.trim()} onClick={() => camara.current?.click()}>
+              📷 {t("emp.trip.arrivedStop")}
             </button>
-          ) : (
-            <>
-              <div className="row" style={{ marginTop: 10 }}>
-                <input value={parada} onChange={(e) => setParada(e.target.value)} placeholder={t("emp.trip.stopNamePh")} />
-                {/* El nombre va primero y es obligatorio: el servidor rechaza una parada sin nombre
-                    (antes el campo decía «opcional» y el botón fallaba). Con nombre, el botón abre
-                    la cámara; la parada se guarda al volver con la foto. */}
-                <button className="btn-ghost" disabled={busy || !parada.trim()} onClick={() => camara.current?.click()}>
-                  📷 {t("emp.trip.arrivedStop")}
-                </button>
-              </div>
-              <div className="hint">{t("emp.trip.stopPhotoHint")}</div>
-              {/* capture="environment": la cámara trasera en el móvil; en un ordenador, un fichero. */}
-              <input ref={camara} type="file" accept="image/*" capture="environment" hidden onChange={alTomarFoto} />
-            </>
-          )}
-
-          <div className="hr" />
-          <div className="grid g2">
-            {d.trip.vehicleId && (
-              <div>
-                <label>{t("emp.trip.odoIn")}</label>
-                <input inputMode="numeric" value={odoFin} onChange={(e) => setOdoFin(e.target.value)} placeholder={t("emp.trip.miles")}
-                  min={salida ?? undefined} aria-invalid={regreso === "menor" || undefined} />
-                {/* D-524: la lectura de salida a la vista, y el aviso en cuanto el regreso es menor. */}
-                {salida != null && <div className="hint" data-odometro-salida>{t("emp.trip.odoOutWas", { a: salida })}</div>}
-                {regreso === "menor" && salida != null && (
-                  <div className="hint" data-odometro-menor style={{ color: "var(--red, #c0392b)" }}>{t("emp.trip.odoWarn", { a: salida, b: num(odoFin) ?? "" })}</div>
-                )}
-              </div>
-            )}
           </div>
-          <button
-            className="btn-danger"
-            style={{ marginTop: 10 }}
-            disabled={busy || regreso === "menor"}
-            onClick={() => {
-              // Menor que la salida no se manda (D-524; el servidor tampoco lo acepta): pasar de largo dejaría una
-              // diferencia negativa en la factura. Vacío sí se manda, y el servidor contesta qué falta, como antes.
-              if (regreso === "menor" && salida != null) {
-                setAviso(t("emp.trip.odoWarn", { a: salida, b: num(odoFin) ?? "" }));
-                return;
-              }
-              setAviso(null);
-              void corre(async () => endTrip({ odometer: num(odoFin), ...(await ubicacion()) }));
-            }}
-          >
-            {t("emp.trip.end")}
-          </button>
+          <div className="hint">{t("emp.trip.stopPhotoHint")}</div>
+          {/* capture="environment": la cámara trasera en el móvil; en un ordenador, un fichero. */}
+          <input ref={camara} type="file" accept="image/*" capture="environment" hidden onChange={alTomarFoto} />
         </>
       )}
+
+      <div className="hr" />
+      <div className="grid g2">
+        {d.trip.vehicleId && (
+          <div>
+            <label>{t("emp.trip.odoIn")}</label>
+            <input inputMode="numeric" value={odoFin} onChange={(e) => setOdoFin(e.target.value)} placeholder={t("emp.trip.miles")}
+              min={salida ?? undefined} aria-invalid={regreso === "menor" || undefined} />
+            {/* D-524: la lectura de salida a la vista, y el aviso en cuanto el regreso es menor. */}
+            {salida != null && <div className="hint" data-odometro-salida>{t("emp.trip.odoOutWas", { a: salida })}</div>}
+            {regreso === "menor" && salida != null && (
+              <div className="hint" data-odometro-menor style={{ color: "var(--red, #c0392b)" }}>{t("emp.trip.odoWarn", { a: salida, b: num(odoFin) ?? "" })}</div>
+            )}
+          </div>
+        )}
+      </div>
+      <button
+        className="btn-danger"
+        style={{ marginTop: 10 }}
+        disabled={busy || regreso === "menor"}
+        onClick={() => {
+          // Menor que la salida no se manda (D-524; el servidor tampoco lo acepta): pasar de largo dejaría una
+          // diferencia negativa en la factura. Vacío sí se manda, y el servidor contesta qué falta, como antes.
+          if (regreso === "menor" && salida != null) {
+            setAviso(t("emp.trip.odoWarn", { a: salida, b: num(odoFin) ?? "" }));
+            return;
+          }
+          setAviso(null);
+          void corre(async () => endTrip({ odometer: num(odoFin), ...(await ubicacion()) }));
+        }}
+      >
+        {t("emp.trip.end")}
+      </button>
     </div>
   );
 }

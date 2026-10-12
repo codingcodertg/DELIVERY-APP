@@ -309,6 +309,10 @@ describe("5, 6 y 9 · la barra de vistas de abajo lleva el filtro de chofer, los
     expect(pagina.split("setWideRoutes((v) => !v)").length - 1).toBe(1);
     expect(barra).toContain('{tab === "routes" && ( <button className="btn btn-ghost btn-sm" data-cuadricula aria-pressed={!wideRoutes} onClick={() => setWideRoutes((v) => !v)} title={t("Toggle full-width route cards vs a compact grid", "Alternar tarjetas de ruta a ancho completo o cuadrícula compacta")}>');
     expect(barra).toContain('{wideRoutes ? "▦ " + t("Grid", "Cuadrícula") : "▭ " + t("Wide", "Ancho")}');
+    // D-526: nace en Cuadrícula («make grid view in route manager default»).
+    expect(pagina).toContain("const [wideRoutes, setWideRoutes] = useState(false);");
+    // D-526: en cuadrícula, las de una fila miden lo mismo («everyhting should be equal»).
+    expect(pagina).toContain('gap: 14, alignItems: wideRoutes ? "start" : "stretch" }}>');
   });
   it("6 · la franja de cuatro casillas ya no está, y sus cuatro números viven en las pestañas", () => {
     for (const muerto of ['label: t("Scheduled", "Programadas")', 'label: t("Unscheduled", "Sin programar")', 'label: t("Total", "Total")', 'label: t("Routes", "Rutas"), target']) expect(pagina, muerto).not.toContain(muerto);

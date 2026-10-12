@@ -5,7 +5,7 @@ import { DICT } from "@/lib/timetracker/i18n";
 import { armarFotos, notaDeParada, type FilaParada, type SitioFoto } from "./day-photos";
 import {
   MOTIVOS_DE_SALIDA, MOTIVO_VISITA, etiquetaDeFoto, filaDeSalida, motivoDeViaje, planDeSalida, rutaDeFoto,
-  odometroDeRegreso, seCierraDeUnToque, VEHICULO_POR_DEFECTO, vehiculoDeEmpresaPorDefecto, viajePersonalPorDefecto,
+  odometroDeRegreso, seCierraDeUnToque, VEHICULO_POR_DEFECTO, vehiculoDeEmpresaPorDefecto,
 } from "./visitas";
 
 // D-455. «Voy a salir» pregunta si va a visitar a un cliente; si dice que sí, bajo el reloj queda
@@ -111,7 +111,7 @@ describe("«voy a salir» pregunta por el vehículo: personal o de la empresa (D
   it("«recoger material» se guarda en el viaje como pickup, el nombre que ya usa el panel de viajes", () => {
     expect(motivoDeViaje("picking_up_supplies")).toBe("pickup");
     expect(motivoDeViaje("delivery")).toBe("delivery");
-    expect(trip).toContain('{ v: "pickup", l: t("emp.trip.reasonPickup") },');
+    // D-525: el panel de viajes ya no tiene su lista de motivos (ni su «Empezar viaje»): el motivo sale de la ventana.
   });
   it("la ventana pregunta el vehículo ANTES que la visita, a todos, y no deja seguir sin contestar", () => {
     const ventana = punch.slice(punch.indexOf('{salida === "pregunta" ? ('), punch.indexOf('<label>{t("emp.visit.whyOut")}</label>'));
@@ -143,9 +143,9 @@ describe("«voy a salir» pregunta por el vehículo: personal o de la empresa (D
       expect(DICT.es[k], k).toBeTruthy();
     }
   });
-  it("la ventana y el panel de viajes usan grupos de radios DISTINTOS (si no, marcar uno desmarca el otro)", () => {
+  it("la pregunta va solo en la ventana, con su grupo de radios (D-525: el panel de viajes ya no la hace)", () => {
     expect(punch).toContain('nombre="vehiculo-salida"');
-    expect(trip).toContain('nombre="vehiculo-viaje"');
+    expect(trip).not.toContain('nombre="vehiculo-viaje"');
     expect(pregunta).toContain("name={nombre}");
   });
 });
@@ -230,26 +230,18 @@ describe("qué botones salen bajo el reloj", () => {
 });
 
 describe("el panel de viajes: visitas y mandados, con foto", () => {
-  it("sin vehículo asignado el viaje nace personal; con uno, no", () => {
-    expect(viajePersonalPorDefecto(null)).toBe(true);
-    expect(viajePersonalPorDefecto(undefined)).toBe(true);
-    expect(viajePersonalPorDefecto("")).toBe(true);
-    expect(viajePersonalPorDefecto("v1")).toBe(false);
+  // D-525. El dueño, 2026-10-11: «when press going out and press im back is still showing the vistis and errands aand if
+  // press ogin out to collapse it shows me the form and is not hdiing it».
+  it("D-525: el panel solo sale con un viaje abierto; al «Ya volví» desaparece", () => {
+    expect(trip).toContain("if (!d.trip) return null;");
+    expect(trip.indexOf("if (!d.trip) return null;")).toBeLessThan(trip.indexOf("<h2 style={{ margin: 0 }}>{t(\"emp.trip.title\")}</h2>"));
   });
-  it("TripPanel usa ese defecto hasta que la persona conteste la pregunta", () => {
-    expect(trip).toContain("const personal = personalElegido ?? viajePersonalPorDefecto(d.currentVehicleId);");
-    expect(trip).toContain("const [personalElegido, setPersonal] = useState<boolean | null>(null);");
-  });
-  it("el panel de viajes hace la MISMA pregunta que la ventana (D-489), con las opciones de Time Tracker (.motivo)", () => {
-    expect(trip).toContain('valor={personal ? "personal" : "empresa"}');
-    expect(trip).toContain('onValor={(v) => setPersonal(v === "personal")}');
-    expect(pregunta).toContain('<label className={"motivo" + (valor === "personal" ? " on" : "")}>');
-    expect(trip).not.toContain('className="perm-opt"');
-  });
-  it("un viaje personal no pide vehículo ni cuentakilómetros y el botón de empezar no espera a un vehículo", () => {
-    expect(trip).toContain("disabled={busy || (!personal && !vehiculo)}");
-    expect(trip).toContain("vehicleId: personal ? null : vehiculo,");
-    expect(trip).toContain("odometer: personal ? null : num(odoIni),");
+  it("D-525: ya no tiene su propio «Empezar viaje»: se sale solo por la ventana de «Voy a salir»", () => {
+    expect(trip).not.toContain("startTrip(");
+    expect(trip).not.toContain("<PreguntaDeVehiculo");
+    expect(trip).not.toContain('t("emp.trip.start")');
+    expect(punch).toContain('voySalir: () => setSalida("pregunta"),');
+    expect(punch).toContain("startTrip({ kind: viaje?.mode ?? \"sales\", ...v, ...(await ubicacionOpcional()) })");
   });
   it("llegar a una parada exige el nombre y abre la cámara; la parada se guarda con la foto", () => {
     expect(trip).toContain('<button className="btn-ghost" disabled={busy || !parada.trim()} onClick={() => camara.current?.click()}>');
@@ -259,8 +251,7 @@ describe("el panel de viajes: visitas y mandados, con foto", () => {
     expect(trip).not.toContain("logStop(");
     expect(punch).toContain("fotoDeParada={(file, etiqueta) => guardaFoto(file, etiqueta, false)}");
   });
-  it("manda la ubicación al empezar, al salir de la parada y al terminar", () => {
-    expect(trip).toContain("              ...(await ubicacion()),\n            }))}");
+  it("manda la ubicación al salir de la parada y al terminar (al empezar la manda la ventana de «Voy a salir», D-525)", () => {
     expect(trip).toContain("onClick={() => corre(async () => finishStop({ ...(await ubicacion()) }))}>");
     expect(trip).toContain("void corre(async () => endTrip({ odometer: num(odoFin), ...(await ubicacion()) }));");
     expect(punch).toContain("ubicacion={ubicacionOpcional}");
@@ -383,7 +374,7 @@ describe("D-524: el cuentakilómetros de regreso tiene que tener sentido", () =>
   });
 
   it("el panel compara con la lectura GUARDADA (aunque el viaje se empezara en «Voy a salir»), la enseña, y no deja terminar con menos", () => {
-    expect(trip).toContain("const salida = d.trip?.vehicleId ? (d.trip.startOdometer ?? num(odoIni)) : null;");
+    expect(trip).toContain("const salida = d.trip.vehicleId ? d.trip.startOdometer : null;"); // D-525: sin «Empezar viaje», solo la guardada
     expect(trip).toContain("const regreso = odometroDeRegreso(salida, num(odoFin));");
     expect(trip).toContain('{salida != null && <div className="hint" data-odometro-salida>{t("emp.trip.odoOutWas", { a: salida })}</div>}');
     expect(trip).toContain('{regreso === "menor" && salida != null && (');

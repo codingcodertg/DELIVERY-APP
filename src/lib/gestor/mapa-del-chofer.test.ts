@@ -255,8 +255,7 @@ describe("la pantalla acotada no es una pantalla aparte: es la del Gestor", () =
     expect(miRuta).toContain("<LeaveAtStore pedido={next} me={me}");
   });
 
-  it("acotada, los colores de chofer —la lista de TODOS por nombre— no salen", () => {
-    expect(gestor.indexOf("data-colores-de-chofer")).toBeGreaterThan(-1);
-    expect(gestor).toContain("{soloLectura && miChofer == null && ( <div className=\"card\" data-colores-de-chofer>");
+  it("la tarjeta de colores de chofer —la lista de TODOS por nombre— ya no sale para nadie (D-526)", () => {
+    expect(gestor).not.toContain("data-colores-de-chofer");
   });
 });
