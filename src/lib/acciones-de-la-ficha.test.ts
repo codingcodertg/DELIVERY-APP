@@ -10,6 +10,7 @@ import {
 } from "./constants";
 import { puedeAgregarMaterial } from "./agregar-material";
 import { puedeDejarEnTienda } from "./leave-at-store";
+import { puedeRecogerSinListo } from "./recogida-del-chofer";
 import type { AlcanceDeEdicion } from "./edicion-de-ventas";
 import type { Stage, UserRole } from "./types";
 
@@ -20,7 +21,8 @@ import type { Stage, UserRole } from "./types";
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");
 
-const CERRADO = { anular: false, rechazar: false, recoger: false, dejar: false, pod: false, motivoDeSalto: false, reentrega: false };
+// Nota D-527: con `recogerSinListo`, el paso de «Recoger de todos modos» del chofer.
+const CERRADO = { anular: false, rechazar: false, recoger: false, dejar: false, pod: false, motivoDeSalto: false, reentrega: false, recogerSinListo: false };
 
 function entrada(role: UserRole, stage: Stage, cambios: Partial<EntradaDeAcciones> = {}): EntradaDeAcciones {
   return {
@@ -98,7 +100,8 @@ describe("la principal: el paso que hace avanzar la orden para quien la mira", (
     expect(accionPrincipal(["comenzar"], [], "accounting")).toBe("comenzar");
     expect(accionPrincipal(["editar"], ["anular"], "accounting")).toBeNull();
     expect(accionPrincipal(["aprobar"], ["anular"])).toBeNull();
-    expect(ORDEN_DE_PRINCIPAL).toEqual(["enviar", "reenviar", "aprobar", "comenzar", "marcar_listo", "recoger", "recibir", "marcar_entregado"]);
+    // Nota D-527: «Recoger de todos modos…» del chofer, justo detrás de «Recoger».
+    expect(ORDEN_DE_PRINCIPAL).toEqual(["enviar", "reenviar", "aprobar", "comenzar", "marcar_listo", "recoger", "recoger_sin_listo", "recibir", "marcar_entregado"]);
   });
 });
 
@@ -272,6 +275,10 @@ function botonesDeAntes(e: EntradaDeAcciones): Set<string> {
     if (e.deshaceAqui) b.add("deshacer");
   }
   if (stage === "delivered" && (["admin", "warehouse", "driver"].includes(me.role) || ordersLikeOfficeManager(me.role)) && !ab.reentrega) b.add("reentrega");
+  // Nota D-527: lo que se sumó después de D-497, con su condición, para que la comparación siga midiendo todo lo demás:
+  // «Recoger de todos modos…» (el chofer, en SU orden aprobada sin preparar) y «↩ Deshacer recogido».
+  if (puedeRecogerSinListo(me, e.pedido)) b.add(ab.recogerSinListo ? "paso:recoger_sin_listo" : "recoger_sin_listo");
+  if (e.deshacerRecogida && stage === "picked_up" && !ab.pod) b.add("deshacer_recogida");
   return b;
 }
 
@@ -417,5 +424,65 @@ describe("la ficha (OrderModal) pinta lo que dice la función", () => {
     // Las filas sueltas de D-361 y de la reentrega quedan solo con su formulario.
     expect(ficha).not.toContain('>✓ {t("Mark delivered now", "Marcar entregada ya")}</button>');
     expect(ficha).not.toContain('🔁 {t("Record re-delivery", "Registrar reentrega")}</button>');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// 6 · D-527: la recogida del chofer en su ficha — «Recoger de todos modos…» y «↩ Deshacer recogido»
+// ---------------------------------------------------------------------------------------------------------------
+
+describe("D-527 · el chofer recoge aunque no esté lista, y deshace su recogida", () => {
+  const ficha = plano(leer("src/components/OrderModal.tsx"));
+  const acciones = ficha.slice(ficha.indexOf("function StageActions({"), ficha.indexOf("// Click-to-call the customer via RingCentral"));
+
+  it("SU orden en approved/fulfilling: «Recoger de todos modos…» es su principal; abierta, su paso", () => {
+    for (const etapa of ["approved", "fulfilling"] as Stage[]) {
+      const fa = accionesDeLaFicha(entrada("driver", etapa));
+      expect(fa.principal?.id, etapa).toBe("recoger_sin_listo");
+      expect(fa.principal?.texto).toEqual({ en: "🚚 Pick up anyway…", es: "🚚 Recoger de todos modos…" });
+      const abierta = accionesDeLaFicha(entrada("driver", etapa, { abierto: { ...CERRADO, recogerSinListo: true } }));
+      expect([abierta.principal, abierta.pasos]).toEqual([null, ["recoger_sin_listo"]]);
+    }
+  });
+  it("no: la orden de otro chofer, una sin aprobar, una lista (la de siempre), ni otro rol", () => {
+    const deOtro = entrada("driver", "approved");
+    expect([...botonesDeAhora({ ...deOtro, pedido: { ...deOtro.pedido, assigned_driver: "Otro" } })]).not.toContain("recoger_sin_listo");
+    expect([...botonesDeAhora({ ...deOtro, pedido: { ...deOtro.pedido, assigned_driver: null } })]).not.toContain("recoger_sin_listo");
+    expect([...botonesDeAhora(entrada("driver", "pending"))]).not.toContain("recoger_sin_listo");
+    expect(accionesDeLaFicha(entrada("driver", "ready")).principal?.id).toBe("recoger");
+    for (const rol of ["admin", "manager", "warehouse", "logistics", "accounting", "sales"] as UserRole[]) {
+      expect([...botonesDeAhora(entrada(rol, "approved"))], rol).not.toContain("recoger_sin_listo");
+    }
+  });
+  it("«↩ Deshacer recogido» en el menú del chofer, en reparto; apagado con el motivo cuando es un lío", () => {
+    const si = accionesDeLaFicha(entrada("driver", "picked_up", { deshacerRecogida: { bloqueo: null } }));
+    expect(si.menu.find((a) => a.id === "deshacer_recogida")).toMatchObject({ texto: { en: "↩ Undo pickup", es: "↩ Deshacer recogido" }, deshabilitada: null });
+    const lio = { en: "ask the office", es: "pídeselo a la oficina" };
+    expect(accionesDeLaFicha(entrada("driver", "picked_up", { deshacerRecogida: { bloqueo: lio } })).menu.find((a) => a.id === "deshacer_recogida")?.deshabilitada).toEqual(lio);
+    expect(menu(entrada("driver", "picked_up"))).not.toContain("deshacer_recogida");
+    expect(menu(entrada("driver", "picked_up", { deshacerRecogida: { bloqueo: null }, abierto: { ...CERRADO, pod: true } }))).not.toContain("deshacer_recogida");
+    expect(menu(entrada("driver", "delivered", { deshacerRecogida: { bloqueo: null } }))).not.toContain("deshacer_recogida");
+  });
+  it("la ficha lo enchufa: el paso con su nota obligatoria, la escritura de la recogida, el aviso, y el deshacer", () => {
+    expect(acciones).toContain("recoger_sin_listo: sinListo.abrir,");
+    expect(acciones).toContain("deshacer_recogida: onDeshacerRecogida,");
+    expect(acciones).toContain("deshacerRecogida: deshacerLaRecogida,");
+    expect(acciones).toContain("reentrega: reentregaAbierta, recogerSinListo: sinListo.abierto,");
+    expect(acciones).toContain('{fa.pasos.includes("recoger_sin_listo") && (');
+    expect(acciones).toContain("disabled={busy || !notaValida}");
+    expect(ficha).toContain('const ok = await setStage(existing.id, "picked_up", notaDeRecogidaSinListo(nota, escritura.note, lang), escritura.extra);');
+    expect(ficha).toContain("void pushNotifs(avisosDeRecogidaSinListo({");
+    expect(ficha).toContain("deshacerRecogida={deshacerRecogida({ pedido: { ...existing, stage }, yo: me, eventos: events, rechazada: marcasDeParadas(events).has(existing.id) })}");
+    expect(ficha).toContain('const ok = await setStage(existing.id, "ready", note, patch);');
+    // Abierta desde «Recogido» de «Mi ruta» con la orden sin lista: nace con la nota abierta.
+    expect(ficha).toContain('useState(abrirEn === "recoger" && !!existing && puedeRecogerSinListo(me, existing))');
+  });
+  it("«Marcar entregado» del chofer abre la cámara LO PRIMERO del toque, y a la vez la prueba de entrega", () => {
+    expect(ficha).toContain("if (entregaConCamara(me.role)) { camara.abrir(); setShowPod(true); return; }");
+    expect(ficha).toContain('useState(abrirEn === "entregar" && existing?.stage === "picked_up")');
+    // Las fotos de la entrega van en la escritura de la entrega, firmadas por quien entrega.
+    expect(ficha).toContain("...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, existing.photo_meta, me.id, ahora) } : {}),");
+    expect(ficha).toContain("disabled={busy || !!podBlocker || fotoEnCamino || camara.procesando}");
+    expect(ficha).toContain("{camara.input}");
   });
 });

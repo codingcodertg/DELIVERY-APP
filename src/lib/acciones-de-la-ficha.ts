@@ -4,6 +4,7 @@ import {
 } from "@/lib/constants";
 import { puedeAgregarMaterial } from "@/lib/agregar-material";
 import { puedeDejarEnTienda } from "@/lib/leave-at-store";
+import { puedeRecogerSinListo, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import type { AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
 import type { Delivery, Profile, Stage } from "@/lib/types";
 
@@ -27,10 +28,10 @@ import type { Delivery, Profile, Stage } from "@/lib/types";
 
 export type IdDeAccion =
   // Las que pueden ser la principal: el paso que hace avanzar la orden.
-  | "enviar" | "reenviar" | "aprobar" | "comenzar" | "marcar_listo" | "recoger" | "recibir" | "marcar_entregado"
+  | "enviar" | "reenviar" | "aprobar" | "comenzar" | "marcar_listo" | "recoger" | "recoger_sin_listo" | "recibir" | "marcar_entregado"
   // Las del menú.
   | "editar" | "agregar_material" | "iniciar_viaje" | "llegue" | "dejar_en_tienda" | "desbloquear"
-  | "entregar_ya" | "deshacer" | "reentrega" | "imprimir" | "duplicar"
+  | "entregar_ya" | "deshacer" | "deshacer_recogida" | "reentrega" | "imprimir" | "duplicar"
   // Las destructivas: al final, en rojo.
   | "rechazar" | "anular" | "eliminar";
 
@@ -58,8 +59,10 @@ export interface AccionDeLaFicha {
  *   - `rechazar`: el motivo del rechazo (Atrás · Confirmar rechazo).
  *   - `recoger`: el recuento de pallets de la oficina (Atrás · Confirmar carga y salir).
  *   - `dejar`: la tienda donde se deja (D-224: Atrás · Confirmar entrega en tienda).
+ *   - `recoger_sin_listo`: la nota del chofer que recoge lo que el almacén no marcó listo (D-527: Atrás · Confirmar
+ *     recogida).
  */
-export type PasoAbierto = "anular" | "rechazar" | "recoger" | "dejar";
+export type PasoAbierto = "anular" | "rechazar" | "recoger" | "dejar" | "recoger_sin_listo";
 
 /** Un dato de la etapa, no un botón: «En camino desde 10:21», «Llegó 11:05». Se queda a la vista. */
 export type Aviso = { id: "en_camino" | "llego"; desde: string };
@@ -75,6 +78,9 @@ export interface EntradaDeAcciones {
   puedeRecibirla: boolean;
   /** Puede deshacer un paso en esta orden (D-361/D-383). Necesita las tiendas: lo calcula la ficha. */
   deshaceAqui: boolean;
+  /** «↩ Deshacer recogido» del chofer (D-527): necesita el historial, lo calcula la ficha con `deshacerRecogida`.
+   *  `null` u omitido: no se ofrece. */
+  deshacerRecogida?: DeshacerRecogida;
   /** Puede borrarla (D-383, espejo de la 142). Necesita las tiendas: lo calcula la ficha. */
   borraAqui: boolean;
   /** Se está guardando algo: todos los botones que antes llevaban `disabled={busy}`, apagados. */
@@ -95,6 +101,8 @@ export interface EntradaDeAcciones {
     motivoDeSalto: boolean;
     /** El formulario de reentrega. */
     reentrega: boolean;
+    /** La nota de «Recoger de todos modos» (D-527). */
+    recogerSinListo?: boolean;
   };
 }
 
@@ -133,14 +141,15 @@ export const MOTIVO_OCUPADO: Texto = {
  * El orden de esta lista solo desempata si a alguien le tocaran dos a la vez; por etapa no pasa.
  */
 export const ORDEN_DE_PRINCIPAL: readonly IdDeAccion[] = [
-  "enviar", "reenviar", "aprobar", "comenzar", "marcar_listo", "recoger", "recibir", "marcar_entregado",
+  // D-527: «Recoger de todos modos…» es la principal del CHOFER en `approved`/`fulfilling` (su orden): la única que tiene.
+  "enviar", "reenviar", "aprobar", "comenzar", "marcar_listo", "recoger", "recoger_sin_listo", "recibir", "marcar_entregado",
 ];
 
 /** Orden del menú: lo de su etapa primero, luego lo que se usa de vez en cuando, y lo destructivo al final. */
 export const ORDEN_DEL_MENU: readonly IdDeAccion[] = [
   ...ORDEN_DE_PRINCIPAL,
   "editar", "agregar_material", "iniciar_viaje", "llegue", "dejar_en_tienda",
-  "desbloquear", "entregar_ya", "deshacer", "reentrega", "imprimir", "duplicar",
+  "desbloquear", "entregar_ya", "deshacer", "deshacer_recogida", "reentrega", "imprimir", "duplicar",
   "rechazar", "anular", "eliminar",
 ];
 
@@ -169,7 +178,7 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
   const { yo, pedido, abierto } = e;
   const stage = pedido.stage;
   const esChofer = yo.role === "driver";
-  const hay: { id: IdDeAccion; texto: Texto; titulo?: Texto; estilo: EstiloDeBoton; siempreActiva?: true }[] = [];
+  const hay: { id: IdDeAccion; texto: Texto; titulo?: Texto; estilo: EstiloDeBoton; siempreActiva?: true; bloqueo?: Texto | null }[] = [];
   const pasos: PasoAbierto[] = [];
   const avisos: Aviso[] = [];
 
@@ -245,6 +254,17 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
     }
   }
 
+  // D-527: el chofer recoge SU orden aunque el almacén no la haya marcado lista, con una nota obligatoria. Quién y desde
+  // qué etapa, `puedeRecogerSinListo`: espejo de la cláusula de la 168. Es su única acción en esa etapa, así que sale fuera.
+  if (puedeRecogerSinListo(yo, pedido)) {
+    if (abierto.recogerSinListo) {
+      pasos.push("recoger_sin_listo");
+    } else {
+      hay.push({ id: "recoger_sin_listo", texto: { en: "🚚 Pick up anyway…", es: "🚚 Recoger de todos modos…" }, estilo: "btn-amber",
+        titulo: { en: "The warehouse hasn't marked it ready: say what's missing", es: "El almacén no la marcó lista: di qué falta" } });
+    }
+  }
+
   // En reparto. Almacén RECIBE la que llega a su tienda (D-409) en lugar de marcarla entregada.
   if (e.puedeRecibirla && stage === "picked_up" && !abierto.pod) {
     hay.push({ id: "recibir", texto: { en: "📥 Receive", es: "📥 Recibir" }, estilo: "btn-green" });
@@ -261,6 +281,13 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
         titulo: { en: "Drop it at one of our stores so another driver can take it", es: "Déjelo en una de nuestras tiendas para que otro chofer lo lleve" } });
     }
     hay.push({ id: "marcar_entregado", texto: { en: "Mark delivered", es: "Marcar entregado" }, estilo: "btn-green" });
+  }
+
+  // D-527: el chofer deshace SU «Recogido» (vuelve a `ready`). Apagado, con el motivo, cuando deshacerlo desde el teléfono
+  // sería un lío (`deshacerRecogida`: carga partida, recogida sin estar lista, o marcada por otra persona).
+  if (e.deshacerRecogida && stage === "picked_up" && !abierto.pod) {
+    hay.push({ id: "deshacer_recogida", texto: { en: "↩ Undo pickup", es: "↩ Deshacer recogido" }, estilo: "btn-ghost",
+      titulo: { en: "Back to ready at the store", es: "Vuelve a lista en la tienda" }, bloqueo: e.deshacerRecogida.bloqueo });
   }
 
   // Entregar ya / deshacer un paso (D-361, D-383): estaban en su propia fila, encima del pie.
@@ -297,7 +324,7 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
       titulo: a.titulo ?? null,
       peligro: PELIGRO.has(a.id),
       estilo: a.estilo,
-      deshabilitada: e.ocupado && !a.siempreActiva ? MOTIVO_OCUPADO : null,
+      deshabilitada: e.ocupado && !a.siempreActiva ? MOTIVO_OCUPADO : a.bloqueo ?? null,
     }))
     .sort((a, b) => ORDEN_DEL_MENU.indexOf(a.id) - ORDEN_DEL_MENU.indexOf(b.id));
 

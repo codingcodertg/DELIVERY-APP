@@ -1213,9 +1213,12 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   // (D-361, 139). Faltaba desde D-361: la base lo dejaba y los DOS proveedores lo rechazaban antes de salir
   // («This order must be approved by a manager first.»), así que solo funcionaba desde `picked_up`. Medido en el
   // demo como gerente el 2026-09-25 (D-397). Quién lo da lo sigue diciendo `puedeEntregarYa`.
-  approved:   ["fulfilling", "pending", "canceled", "delivered"],   // pending = manager "unlock"
+  // `picked_up` desde `approved` y `fulfilling` es «Recoger de todos modos» del chofer, con nota (D-527, migración 168).
+  // Quién lo da lo dice `puedeRecogerSinListo` (recogida-del-chofer.ts), espejo del guard; sin la 168 la base lo rechaza
+  // y el chofer lee «Aún no disponible… avisa a la oficina» (`mensajeDelGuard`), no un error de Postgres.
+  approved:   ["fulfilling", "pending", "canceled", "delivered", "picked_up"],   // pending = manager "unlock"
   // `approved` es el paso atrás de office/gerente (D-361, 139); quién lo da lo dice `puedeDeshacer`.
-  fulfilling: ["ready", "approved", "canceled", "delivered"],
+  fulfilling: ["ready", "approved", "canceled", "delivered", "picked_up"],
   // `fulfilling` es la vuelta de almacén cuando marcó listo por error (D-287). La base ya la
   // permitía —la rama de warehouse del guard acepta ready → fulfilling— y era esta lista la que
   // no la tenía, así que el camino de vuelta no existía en la app.
