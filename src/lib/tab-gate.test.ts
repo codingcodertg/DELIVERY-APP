@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { TABS, TAB_GATE_EXEMPT, canOpenTab, tabForPath, ROLE_INFO } from "./constants";
+import { TABS, TAB_GATE_EXEMPT, canOpenTab, inicioSiNoPuede, tabForPath, ROLE_INFO } from "./constants";
 import type { UserRole } from "./types";
 
 // La pestaña era la única barrera: ni `middleware.ts` ni el layout de `(app)` filtran rutas
@@ -129,6 +129,56 @@ describe("el guard está en un solo sitio y cubre todas las pestañas", () => {
       const src = sinComentarios(leer(f));
       expect(src, f).toMatch(/const TABS\b/);
       expect(src.includes("canOpenTab"), `${f} no debe traer el guard: vive en el layout`).toBe(false);
+    }
+  });
+});
+
+// D-NEXT: quien abre una pantalla que no es para su rol va a SU inicio (`roleHome`), en vez de quedarse delante de «No
+// disponible para su rol». Lo destapó la vista móvil: abre «/» (Órdenes) en el marco, y como chofer enseñaba ese aviso.
+describe("sin permiso, a su pantalla de inicio (D-NEXT)", () => {
+  it("el chofer en «/» (lo que abre la vista móvil) va a su pestaña «Chofer»", () => {
+    expect(canOpenTab("board", u("driver"))).toBe(false);
+    expect(inicioSiNoPuede("/", u("driver"))).toBe("/driver");
+    expect(inicioSiNoPuede("/routes", u("warehouse"))).toBe("/warehouse");
+    expect(inicioSiNoPuede("/accounts/", u("logistics"))).toBe("/routes");
+  });
+  it("para cada rol y cada pestaña que no puede abrir, el destino SÍ se le abre y no es donde está: ni bucles ni de un «no» a otro", () => {
+    let casos = 0;
+    for (const role of ROLES) {
+      for (const tb of TABS) {
+        if (canOpenTab(tb.id, u(role))) continue;
+        const destino = inicioSiNoPuede(tb.href, u(role));
+        expect(destino, `${role} en ${tb.href}`).not.toBeNull();
+        const suya = tabForPath(destino!);
+        expect(suya && canOpenTab(suya.id, u(role)), `${role} → ${destino}`).toBe(true);
+        expect(destino, `${role} en ${tb.href}`).not.toBe(tb.href);
+        casos++;
+      }
+    }
+    expect(casos).toBeGreaterThan(20);
+  });
+  it("un rol cuyo inicio tampoco se le abre se queda con el aviso: no se le manda de un «no» a otro", () => {
+    // Hoy todos los roles abren su inicio (lo prueba la de arriba). Un rol que no esté en `TABS` cae en el inicio por
+    // defecto («/», Órdenes), que no se le abre: ahí no hay a dónde mandarlo.
+    const raro = u("sin-rol" as UserRole);
+    expect(canOpenTab("board", raro)).toBe(false);
+    expect(inicioSiNoPuede("/routes", raro)).toBeNull();
+  });
+  it("sin sesión, o ya en su inicio, se queda el aviso", () => {
+    expect(inicioSiNoPuede("/", null)).toBeNull();
+    expect(inicioSiNoPuede("/driver", u("driver"))).toBeNull();
+    expect(inicioSiNoPuede("/driver/", u("driver"))).toBeNull();
+  });
+  it("el guard y las páginas con su propia puerta llevan a la persona con `IrAlInicio`, que usa la función y `replace`", () => {
+    const gate = sinComentarios(leer("src/components/TabGate.tsx"));
+    expect(gate).toContain("if (canOpenTab(tab.id, me)) return <>{children}</>;\n\n  return <IrAlInicio />;");
+    expect(gate).toContain("const destino = inicioSiNoPuede(pathname, me);");
+    expect(gate).toContain("const espera = setTimeout(() => router.replace(destino), 0);");
+    expect(gate).toContain("return () => clearTimeout(espera);");
+    for (const f of ["src/app/(app)/my-route/page.tsx", "src/app/(app)/my-route/mapa/page.tsx"]) {
+      const src = sinComentarios(leer(f));
+      expect(src, f).toMatch(/if \(!canDeliver\(me\) \|\| me\.role === "warehouse"\)( \{\n\s*|\s)return <IrAlInicio \/>;/);
+      expect(src, f).not.toContain("Not available for your role");
     }
   });
 });

@@ -242,13 +242,19 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(deMiguel).toContain("INV-M1");
     expect(deMiguel).not.toContain("INV-C1");
   });
-  it("los botones se ven igual, pero apagados: Recogido, Entregado, Saltar, Rechazado y Dejar en tienda", async () => {
+  // Nota D-NEXT: decía «Recogido, Entregado, Saltar, Rechazado y Dejar en tienda» y fijaba que salía `saltar`. «Saltar» se
+  // quitó; en su lugar están «📍 Llegué» y «⏸ Registrar parada», y también se ven apagados.
+  it("los botones se ven igual, pero apagados: Recogido, Entregado, Rechazado, Dejar en tienda, Llegué y Registrar parada", async () => {
     estado.me = ADMIN;
     const html = await pinta(CARLOS);
     const botones = botonesDeAccion(html);
     expect(botones.length).toBeGreaterThanOrEqual(4);
     for (const b of botones) expect(b, b).toContain("disabled");
-    expect(html).toContain('data-accion="saltar"');
+    expect(html).not.toContain('data-accion="saltar"');
+    const llegue = html.match(/<button[^>]*data-accion="llegue"[^>]*>/g) ?? [];
+    expect(llegue.length).toBeGreaterThanOrEqual(1);
+    for (const b of llegue) expect(b, b).toContain("disabled");
+    expect(html).toMatch(/<button[^>]*data-registrar-parada="true"[^>]*disabled=""/);
     // «Dejar en tienda»: el de la parada rechazada (en la lista) y el de la tarjeta de «Siguiente parada», los dos apagados.
     expect(estado.dejarEnTienda.some((d) => d.id === "C5" && d.enLaLista)).toBe(true);
     expect(estado.dejarEnTienda.some((d) => !d.enLaLista)).toBe(true);
@@ -279,12 +285,19 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     // El dueño: «QUIERO EN EL DRIVER VIEW QUE EN VEZ DE LOS P1 Y D1 SE VEA IGUAL QUE LOGISTIC MANAGER CON NUMEROS EN VES DE ESO».
     // Con los datos de aquí: C1, C2 y C5 se recogen las tres en McAllen —UNA parada, la 1, con la raya de que sigue en
     // las otras dos filas— y luego tres entregas, cada una su parada.
+    // Nota D-NEXT: la lista va en dos secciones. C2 y C5 ya van en el camión, así que sus filas de recogida pasan a
+    // «Entregadas» y C1, que falta, se queda en «Pendientes»: la parada 1 queda partida, y su número sale en las dos
+    // (la primera fila de la parada DENTRO de cada sección). Antes: números 1, 2, 3, 4 y dos rayas en la lista entera.
     estado.me = CARLOS;
     const html = await pinta(null);
-    const numeros = [...html.matchAll(/data-numero-de-parada="(\d+)"/g)].map((m) => m[1]);
-    const sigue = [...html.matchAll(/data-sigue-la-parada="(\d+)"/g)].map((m) => m[1]);
-    expect(numeros).toEqual(["1", "2", "3", "4"]);
-    expect(sigue).toEqual(["1", "1"]);
+    const [pendientes, hechas] = html.split('data-seccion="hechas"');
+    const numerosDe = (h: string) => [...h.matchAll(/data-numero-de-parada="(\d+)"/g)].map((m) => m[1]);
+    const sigueDe = (h: string) => [...h.matchAll(/data-sigue-la-parada="(\d+)"/g)].map((m) => m[1]);
+    expect(hechas).toBeDefined();
+    expect(numerosDe(pendientes)).toEqual(["1", "2", "3", "4"]);
+    expect(sigueDe(pendientes)).toEqual([]);
+    expect(numerosDe(hechas)).toEqual(["1"]);
+    expect(sigueDe(hechas)).toEqual(["1"]);
     // Ni una P1 ni una D1 sueltas en la lista: solo quedan dentro del título del círculo, como en el Gestor.
     expect(html.match(/>[PD]\d+</g) ?? []).toEqual([]);
     expect(html).toContain('title="Stop 1 — pick up P1, P2, P3"');
@@ -295,9 +308,13 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     estado.deliveries = [...ORDENES, orden("C6", "Carlos R.", "delivered", HOY, { delivery_address: "6 Elm St" })];
     const html = await pinta(null);
     const circulos = [...html.matchAll(/data-numero-de-parada="(\d+)"[^>]*>([^<]*)</g)].map((m) => `${m[1]}:${m[2]}`);
-    expect(circulos.filter((c) => c.endsWith(":✓"))).toHaveLength(1);
-    // Y sigue contando en la numeración del día: su parada tiene número aunque enseñe ✓.
-    expect(circulos.length).toBe(5);
+    expect(circulos.filter((c) => c.endsWith(":✓"))).toEqual(["5:✓"]);
+    // Y sigue contando en la numeración del día: su parada tiene número aunque enseñe ✓. Nota D-NEXT: eran 5 círculos; son
+    // 6 porque la parada 1 (recogida partida entre Pendientes y Entregadas) lleva su número en las dos secciones.
+    expect(circulos.length).toBe(6);
+    // Y la entregada está en «Entregadas», no en «Pendientes».
+    expect(html.split('data-seccion="hechas"')[1]).toContain("INV-C6");
+    expect(html.split('data-seccion="hechas"')[0]).not.toContain("INV-C6");
   });
   it("y numera con la MISMA función que el Gestor: antes de recoger nada, los mismos números en las dos pantallas", async () => {
     // Lo que el Gestor llama a esa ruta, con sus funciones de verdad, sobre el mismo día y sin nada hecho todavía.

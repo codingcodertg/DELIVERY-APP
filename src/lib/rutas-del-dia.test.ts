@@ -387,10 +387,13 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
     expect(gestor).toContain("if (!rutasPublicadas || soloLectura) return;");
     expect(gestor).toContain("const base = soloLectura ? baseDeLaRuta(clave) : null;");
   });
-  it("lo que se quedó de «Ruta de hoy»: el día acotado, Ayer/Hoy/Mañana, los camiones (no para ventas), la leyenda, el aviso de la 160 y los colores", () => {
+  // Nota D-NEXT: la leyenda se quitó de toda la app («delete the lEGEND ON THE MAP of the app»): donde esto fijaba que
+  // «Ruta de hoy» la pintaba, ahora fija que no.
+  it("lo que se quedó de «Ruta de hoy»: el día acotado, Ayer/Hoy/Mañana, los camiones (no para ventas), el aviso de la 160 y los colores; sin leyenda (D-NEXT)", () => {
     expect(gestor).toContain('const veCamiones = me?.role !== "sales";');
     expect(gestor).toContain("if (!veCamiones) return [];");
-    expect(gestor).toContain("{soloLectura && <MapLegend elementos={leyenda} />}");
+    expect(gestor).not.toContain("MapLegend");
+    expect(gestor).not.toContain("leyendaDelMapa");
     expect(gestor).toContain("data-colores-de-chofer");
     expect(gestor).toContain('{t("Driver colors", "Colores de chofer")}');
     expect(gestor).toContain("data-dia-anterior disabled={allDates || (soloLectura && fecha <= primerDia)}");

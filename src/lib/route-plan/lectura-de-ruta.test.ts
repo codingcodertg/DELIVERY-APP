@@ -278,9 +278,12 @@ describe("«Mi ruta» pinta el aviso de D-341", () => {
     expect(aviso).toBeLessThan(lista);
   });
   it("«Mi ruta» lee la MISMA lista que el Gestor, con la capacidad del camión, y la pinta con su cuenta (D-443)", () => {
-    expect(pagina).toContain("const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, verAtrasadas ? null : planPublicado?.paradas ?? null), [stops, capacidad, planPublicado, verAtrasadas]);");
+    // Nota D-NEXT: sin la vista de atrasadas, el plan publicado manda siempre; y la lista se pinta en dos secciones
+    // (Pendientes / Entregadas) con la MISMA `fila(fi)` sobre `lectura.filas`, en vez de un solo `lectura.filas.map`.
+    expect(pagina).toContain("const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, planPublicado?.paradas ?? null), [stops, capacidad, planPublicado]);");
     expect(pagina).toContain("const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);");
-    expect(pagina).toContain("{lectura.filas.map((f, fi) => {");
+    expect(pagina).toContain("const f = lectura.filas[fi];");
+    expect(pagina).toContain("<div className=\"bar-list\">{filas.map(fila)}</div>");
     for (const x of ["truckloads`", "groupIntoLoads", "splitIntoTrips", "filasDelViaje", "trips.map("]) expect(pagina).not.toContain(x);
   });
 });
