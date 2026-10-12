@@ -288,7 +288,8 @@ export function personBadge(
 export function roleHome(role: UserRole): string {
   switch (role) {
     case "warehouse": return "/warehouse";
-    case "driver": return "/driver";
+    // «Mi ruta» (D-523). El dueño, 2026-10-11: «my route in driver view should be default».
+    case "driver": return "/my-route";
     case "logistics": return "/routes";
     default: return "/"; // admin / manager / sales work from the Orders board
   }
@@ -315,7 +316,7 @@ export function inicioSiNoPuede(pathname: string, u: CapUser | null | undefined)
  * the one exception is a person with access to 2+ modules (deliveries plus
  * something else, e.g. recruiting), who gets the module selector instead.
  *
- * A driver ALWAYS goes straight to `/driver`, full stop — never the
+ * A driver ALWAYS goes straight to «Mi ruta» (`/my-route`, D-523; before, `/driver`), full stop — never the
  * selector, regardless of what `module_access` says. Driving is their whole
  * job; nothing about a module grant should ever put a choice in front of
  * them that isn't on their route. (See D-050/D-051.)
@@ -343,7 +344,8 @@ export function landingRoute(me: { role: UserRole; module_access?: string[] | nu
   const granted = normalizeModules(me.module_access);
   // Un chofer con Entregas va siempre a su ruta, sin pasar por el selector (D-050/051).
   // Si NO tiene Entregas, la ruta no existe para él y la condición de abajo decide.
-  if (me.role === "driver" && granted.includes("deliveries")) return "/driver";
+  // Desde D-523 su ruta es «Mi ruta» (`roleHome`), no la lista de órdenes de `/driver`.
+  if (me.role === "driver" && granted.includes("deliveries")) return roleHome("driver");
   if (granted.length > 1) return "/home";
   // Un solo módulo: directo a él. Ya no se da por hecho que ese módulo sea Entregas
   // (D-100) — alguien que solo ficha entra a fichar, no a un tablero de pedidos que

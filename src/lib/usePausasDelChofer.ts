@@ -72,21 +72,23 @@ export function usePausasDelChofer(driverId: string | null | undefined, dia: str
     }
   }, [local]);
 
-  const empezar = useCallback(async (inicio: { motivo: MotivoDePausa; nota: string | null }, gps: Ubicacion | null): Promise<ResultadoDePausa> => {
+  // `recibo_foto` (D-523): la del recibo de gasolina, si la tomó al registrar la parada. La base solo la admite en una de
+  // gasolina (`pausas_recibo_solo_gasolina`, 167); quien llama la manda `null` en las demás.
+  const empezar = useCallback(async (inicio: { motivo: MotivoDePausa; nota: string | null; recibo_foto?: string | null }, gps: Ubicacion | null): Promise<ResultadoDePausa> => {
     if (!driverId) return { ok: false, sinTabla: false, mensaje: "no driver" };
     const ubicacion = { lat: gps?.lat ?? null, lng: gps?.lng ?? null, precision_m: gps?.accuracy ?? null };
     if (local) {
       const ahora = new Date().toISOString();
       const p: PausaDelChofer = {
         id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, driver_id: driverId, ...inicio, ...ubicacion,
-        empezo_at: ahora, termino_at: null, recibo_foto: null, recibo_monto: null, recibo_galones: null, sin_recibo: false, created_at: ahora,
+        empezo_at: ahora, termino_at: null, recibo_foto: inicio.recibo_foto ?? null, recibo_monto: null, recibo_galones: null, sin_recibo: false, created_at: ahora,
       };
       pon(p);
       return { ok: true, pausa: p };
     }
     // La hora de inicio la pone la base (`default now()`): la de un teléfono puede ir adelantada o atrasada.
     const { data, error } = await createClient().from(TABLA_DE_PAUSAS)
-      .insert({ driver_id: driverId, ...inicio, ...ubicacion }).select("*").single();
+      .insert({ driver_id: driverId, ...inicio, recibo_foto: inicio.recibo_foto ?? null, ...ubicacion }).select("*").single();
     if (error || !data) return fallo(error);
     pon(data as PausaDelChofer);
     if (estado !== "lista") setEstado("lista");

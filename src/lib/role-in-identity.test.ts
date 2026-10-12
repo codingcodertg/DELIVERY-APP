@@ -59,8 +59,8 @@ describe("un rol sin su módulo no crea un callejón", () => {
     expect(landingRoute({ role: "driver", module_access: ["timetracker", "recruiting"] })).toBe("/home");
   });
   it("y con Entregas sí, que es la excepción del chofer de D-050/051", () => {
-    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/driver");
-    expect(landingRoute({ role: "driver", module_access: ["deliveries", "timetracker"] })).toBe("/driver");
+    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
+    expect(landingRoute({ role: "driver", module_access: ["deliveries", "timetracker"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
   });
 });
 

@@ -223,9 +223,9 @@ describe("la página: sin ruta, el marco abre el inicio del rol de la sesión (D
   const props = async (q: { ruta?: string }) =>
     ((await VistaMovilPage({ searchParams: Promise.resolve(q) })) as unknown as { props: Record<string, unknown> }).props;
 
-  it("dentro de la cuenta de un chofer, `/driver`; para el admin, la portada de siempre", async () => {
-    expect(await props({})).toMatchObject({ rutaInicial: "/driver", rutaDeInicio: "/driver" });
-    expect(await props({ ruta: "//evil.com" })).toMatchObject({ rutaInicial: "/driver" });
+  it("dentro de la cuenta de un chofer, «Mi ruta» (D-523; antes `/driver`); para el admin, la portada de siempre", async () => {
+    expect(await props({})).toMatchObject({ rutaInicial: "/my-route", rutaDeInicio: "/my-route" });
+    expect(await props({ ruta: "//evil.com" })).toMatchObject({ rutaInicial: "/my-route" });
     expect(await props({ ruta: "/my-route" })).toMatchObject({ rutaInicial: "/my-route" });
     f.rolSesion = "admin";
     expect(await props({})).toMatchObject({ rutaInicial: "/", rutaDeInicio: "/" });

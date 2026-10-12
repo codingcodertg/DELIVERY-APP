@@ -5,7 +5,7 @@ import { DICT } from "@/lib/timetracker/i18n";
 import { armarFotos, notaDeParada, type FilaParada, type SitioFoto } from "./day-photos";
 import {
   MOTIVOS_DE_SALIDA, MOTIVO_VISITA, etiquetaDeFoto, filaDeSalida, motivoDeViaje, planDeSalida, rutaDeFoto,
-  seCierraDeUnToque, vehiculoDeEmpresaPorDefecto, viajePersonalPorDefecto,
+  odometroDeRegreso, seCierraDeUnToque, VEHICULO_POR_DEFECTO, vehiculoDeEmpresaPorDefecto, viajePersonalPorDefecto,
 } from "./visitas";
 
 // D-455. «Voy a salir» pregunta si va a visitar a un cliente; si dice que sí, bajo el reloj queda
@@ -123,7 +123,14 @@ describe("«voy a salir» pregunta por el vehículo: personal o de la empresa (D
     expect(ventana).toContain('<button className="btn-ghost" disabled={!planDe(false).ok} onClick={() => setSalida("motivo")}>');
     expect(ventana).toContain("<button disabled={!planVisita.ok || !!ocupado} onClick={empiezaVisita}>");
     expect(punch).toContain("<button disabled={!planDe(false).ok || !!ocupado} onClick={saleSinVisita}>");
-    expect(punch).toContain("const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);");
+    // D-524: ya no nace sin contestar: nace en «personal», y vuelve a «personal» después de cada salida.
+    expect(punch).toContain("const [vehiculo, setVehiculo] = useState<Vehiculo | null>(VEHICULO_POR_DEFECTO);");
+    expect(punch).toContain("setVehiculo(VEHICULO_POR_DEFECTO);\n    setVehiculoId(null);");
+    expect(punch).not.toContain("setVehiculo(null)");
+    expect(VEHICULO_POR_DEFECTO).toBe("personal");
+  });
+  it("D-524: con el defecto, la salida sin visita se puede empezar sin tocar la pregunta", () => {
+    expect(planDeSalida({ vehiculo: VEHICULO_POR_DEFECTO, vehicleId: null, odometro: "", visita: false, motivo: MOTIVOS_DE_SALIDA[0], nota: "" }).ok).toBe(true);
   });
   it("la pregunta tiene las dos respuestas, y el cuentakilómetros solo con la de la empresa", () => {
     expect(pregunta).toContain('onChange={() => onValor("personal")} />');
@@ -350,5 +357,46 @@ describe("las fotos de visita se ven donde el admin revisa el día: Auditoría �
     expect(pantalla).toContain('if (k === "stop") return t("mgr.photos.kindStop");');
     expect(DICT.en["mgr.photos.kindStop"]).toBe("Visit / stop");
     expect(DICT.es["mgr.photos.kindStop"]).toBe("Visita / parada");
+  });
+});
+
+describe("D-524: el cuentakilómetros de regreso tiene que tener sentido", () => {
+  // El dueño, 2026-10-11: «the odometer should make sense like going out 2000 and coming in 2010 not less».
+  const runner = leer("src/app/timetracker/clock-in/actions/runner.ts");
+  const fichar = leer("src/lib/timetracker/capacitacion-fichar.ts");
+
+  it("salir con 2000 y volver con 2010 vale; con 2000 también; con 1990 no; vacío falta", () => {
+    expect(odometroDeRegreso(2000, 2010)).toBeNull();
+    expect(odometroDeRegreso(2000, 2000)).toBeNull();
+    expect(odometroDeRegreso(2000, 1990)).toBe("menor");
+    expect(odometroDeRegreso(2000, null)).toBe("falta");
+    expect(odometroDeRegreso(2000, Number.NaN)).toBe("falta");
+    expect(odometroDeRegreso(null, 5)).toBeNull();
+  });
+
+  it("el servidor rechaza con la misma regla, y le manda al panel la lectura de salida guardada", () => {
+    expect(runner).toContain('import { odometroDeRegreso } from "@/lib/clockin/visitas";');
+    expect(runner).toContain("const malo = odometroDeRegreso(trip.start_odometer as number | null, input.odometer);");
+    expect(runner).toContain(`if (malo === "menor") return { ok: false, message: "Odometer can't be lower than when you started." };`);
+    expect(runner).toContain('.select("id, started_at, vehicle_id, paused_at, start_odometer")');
+    expect(runner).toContain("startOdometer: openTrip.start_odometer == null ? null : Number(openTrip.start_odometer),");
+  });
+
+  it("el panel compara con la lectura GUARDADA (aunque el viaje se empezara en «Voy a salir»), la enseña, y no deja terminar con menos", () => {
+    expect(trip).toContain("const salida = d.trip?.vehicleId ? (d.trip.startOdometer ?? num(odoIni)) : null;");
+    expect(trip).toContain("const regreso = odometroDeRegreso(salida, num(odoFin));");
+    expect(trip).toContain('{salida != null && <div className="hint" data-odometro-salida>{t("emp.trip.odoOutWas", { a: salida })}</div>}');
+    expect(trip).toContain('{regreso === "menor" && salida != null && (');
+    expect(trip).toContain('disabled={busy || regreso === "menor"}');
+    expect(trip).not.toContain("const a = num(odoIni), b = num(odoFin);");
+  });
+
+  it("en práctica el viaje también guarda la lectura de salida", () => {
+    expect(fichar).toContain("odometer: input.personal ? null : (input.odometer ?? null) });");
+  });
+
+  it("el texto nuevo, en los dos idiomas", () => {
+    expect(DICT.en["emp.trip.odoOutWas"]).toBe("Out: {a}. Coming back it must be {a} or more.");
+    expect(DICT.es["emp.trip.odoOutWas"]).toBe("Salida: {a}. Al volver tiene que ser {a} o más.");
   });
 });

@@ -1616,6 +1616,9 @@ viejo.
 ---
 
 ## D-051 · Cimientos del selector de módulo: landingRoute() y /home
+
+> **Reemplazada en parte por D-523** (2026-10-11): el chofer aterriza en «Mi ruta» (`/my-route`), no en `/driver` («my route in driver view should be default»). `landingRoute` sigue mandándolo directo, sin selector; solo cambia el destino, que ahora sale de `roleHome`.
+
 **Fecha:** 2026-08-19 · **Versión:** v1.9.7 · **Pedido por:** Andrés
 
 **Cambio:** dos piezas, sin portar todavía nada de la interfaz de recruiting
@@ -6376,6 +6379,9 @@ hagan, el módulo se borra entero.
 ---
 
 ## D-136 · Los viajes de vehículo entran en Registrar tiempo
+
+> **Reemplazada en parte por D-524** (2026-10-11): un cuentakilómetros de llegada menor que el de salida ya **no se puede mandar** desde el panel (el botón se apaga y lo dice); el servidor ya lo rechazaba. Y la comparación es con la lectura de salida guardada en el viaje, no con lo tecleado en el panel.
+
 **Fecha:** 2026-08-30 · **Versión:** v0.39.0 (timetracker) · v0.35.0 (clockin) · **Pedido por:**
 Andrés (*"sí hazlo"*)
 
@@ -37686,6 +37692,8 @@ seguir probando lo mismo.
 
 ## D-480 · Oficina solo con Órdenes y Ruta de hoy (también con permisos sueltos); ventas solo cambia la FECHA de sus órdenes; en almacén, Órdenes antes que Ruta de hoy
 
+> **Reemplazada en parte por D-523** (2026-10-11): `pestanasEnOrden` también reordena al chofer: «Mi ruta» primero y su «Órdenes» (`driver`) al final («my routes in driver will be 1st and orders last in  the row»). Lo que esta decisión dejó como pregunta («el chofer tiene la misma forma… el dueño no lo nombró») ya está contestado.
+
 **Fecha:** 2026-10-06 · **Versión:** deliveries 1.260.0, repo 1.353.0 (toca `src/components/` y `src/lib/constants.ts`: Entregas)
 · **Migración:** ninguna. **Reemplaza en parte a** D-240 (un permiso suelto ya no le abre pestañas a oficina) y D-286
 (ventas ya no edita el formulario entero de una orden pendiente o rechazada); las dos llevan su nota. D-467 lleva una
@@ -38348,6 +38356,8 @@ No probado contra la base real (la inserción en `order_events` como chofer se a
 No visto en navegador: `tsc` y vitest.
 
 ## D-489 · Time Tracker, vista del empleado: sin «Mi diario»; «Mi semana» solo con horas y con el boletín y los fichajes de hoy; bajo el reloj solo «Mi horario» y «Notas del día»; «Tiempo libre» antes que «Tiempo»; «Voy a salir» pregunta vehículo personal o de la empresa; y fuera los botones que parecían desactivados sin estarlo, en toda la app
+
+> **Reemplazada en parte por D-524** (2026-10-11): en la ventana de «Voy a salir», «¿vehículo personal o de la empresa?» ya nace marcada en **personal** («in time tracker personal vehicle should be in default when chossing a car to go out»), y vuelve a personal tras cada salida.
 
 > **⚠ Reemplazada en parte por D-490** (2026-10-07): la fila `a.tt-me` de la auditoría de botones ya no aplica: el
 > nombre de la barra de Time Tracker dejó de ser un enlace a «Mi cuenta» y abre el menú de la cuenta.
@@ -41579,6 +41589,8 @@ Capturas: `1280-1-panel-antes`, `1280-2-sale-de-brownsville`, `1280-3-mapa-P-y-F
 
 ## D-520 — «Mi ruta»: sin «Saltar»; «📍 Llegué» y «Recogido» en cada parada; Pendientes y Entregadas; sin leyenda, sin «Ver la ruta completa» ni el aviso de vencidas; y «⏸ Registrar parada» con el recibo de la gasolina
 
+> **Reemplazada en parte por D-523** (2026-10-11): la foto del recibo de gasolina también se puede tomar al registrar la parada (opcional), y «▶ Seguir» la trae puesta; en los dos sitios hay «📷 Cámara» y «🖼 Galería» por separado.
+
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.287.0, repo 1.390.0 · Rama `feat/mi-ruta-botones-y-secciones` · **Migración 167 escrita, SIN aplicar**
 (el código funciona sin ella). **Reemplaza en parte a D-240, D-274, D-331, D-467, D-487, D-495, D-497, D-506, D-508, D-514
 y D-515** (cada una lleva su nota).
@@ -41773,3 +41785,45 @@ Capturas (ANTES `antes-*`, DESPUÉS `despues-*`) en la carpeta de trabajo de la 
 - Mismas filas, misma numeración (D-515) y mismas cuentas de D-520 (`seccionesDeMiRuta`). Vale para el chofer y para la pestaña Chofer del admin, que monta la misma página.
 
 No visto en navegador: `tsc` y vitest.
+
+## D-523 · El chofer entra a «Mi ruta», con «Mi ruta» primero y «Órdenes» al final; y la cámara del recibo de gasolina
+
+**Fecha:** 2026-10-11 · **Versión:** deliveries 1.288.0, repo 1.391.0 · **Sin migración** (la foto al empezar usa la columna `recibo_foto` de la 167, aún sin aplicar) · Hecho directo por el orquestador en `feat/chofer-inicio-y-recibo`. **Reemplaza en parte a D-051, D-480 y D-520** (cada una lleva su nota).
+
+**Pedidos del dueño** (2026-10-11), literales:
+- *«my route in driver view should be default»*
+- *«my routes in driver will be 1st and orders last in  the row»*
+- *«gas stop add the option for the camera of the receipt»*
+
+**Inicio del chofer.** `roleHome("driver")` pasa de `/driver` a `/my-route`, y `landingRoute` lo toma de ahí. Con eso cambian a la vez los tres sitios que preguntan «¿cuál es la pantalla de un chofer?»: al entrar, «Ver como» / «Cambiar usuario», y quien abre una pantalla que no es la suya (`inicioSiNoPuede`, D-520), que es también lo que abre el marco de la vista móvil (D-516). La pestaña «Órdenes» del chofer (`/driver`) sigue igual; solo deja de ser la primera.
+
+**Orden de la barra.** `pestanasEnOrden` (D-480) ya reordenaba a almacén; ahora también al chofer: «🧭 Mi ruta», «✅ Inspección pre-viaje», «📋 Órdenes». Se hace ahí y no moviendo las entradas de `TABS`, por lo mismo que en D-480: `TABS` es el orden del admin. Lo que le concedan de más queda en medio.
+
+**El recibo de gasolina.** Dos cambios:
+1. `PhotoUpload` acepta `galeria`: en vez de un botón «📷 Agregar foto» salen dos, «📷 Cámara» (entrada con `capture="environment"`: en el teléfono abre la cámara directo) y «🖼 Galería» (otra entrada sin `capture`, para una foto ya tomada). Sin `galeria`, todo queda como antes (fotos de entrega, etc.).
+2. Al registrar la parada y elegir «⛽ Gasolina», el cuadro ya ofrece la foto del recibo, **opcional**: quien paga dentro ya lo tiene en la mano. Se guarda con la parada (`recibo_foto` al insertar; la base solo la admite en una de gasolina, `pausas_recibo_solo_gasolina`). Al pulsar «▶ Seguir», el cuadro del recibo la trae puesta y se puede seguir sin volver a pedirla. Si no la tomó, «▶ Seguir» la pide como en D-520 (o «No tengo recibo»).
+
+**Pruebas:** `recibo-de-gasolina-camara.test.ts` (render de `PhotoUpload` con y sin `galeria`, y del cuadro del recibo con y sin foto ya tomada; lectura de la fuente para el insert y el cuadro de la parada), `orden-de-pestanas.test.ts` (la barra del chofer y su inicio) y las de aterrizaje que esperaban `/driver`. Mutantes: 11 de 11 caen con una prueba con nombre.
+
+**No medido:** nada se vio en navegador (solo `tsc` y vitest); ni la cámara en un teléfono de verdad (en una PC, `capture` se ignora y los dos botones abren el selector de archivos); ni el guardado real de la foto al empezar, porque la 167 sigue sin aplicar.
+
+## D-524 · Time Tracker: «Voy a salir» nace en vehículo personal, y el cuentakilómetros de regreso no puede ser menor que el de salida
+
+**Fecha:** 2026-10-11 · **Versión:** timetracker 1.02.1, repo 1.391.0 · **Sin migración.** · Hecho directo por el orquestador en `feat/chofer-inicio-y-recibo`, junto con D-523. **Reemplaza en parte a D-136 y D-489** (cada una lleva su nota).
+
+**Pedidos del dueño** (2026-10-11), literales:
+- *«in time tracker personal vehicle should be in default when chossing a car to go out»*
+- *«the odometer should make sense like going out 2000 and coming in 2010 not less»*
+
+**Vehículo personal por defecto.** En la ventana de «Voy a salir» (`PunchPanel`), la pregunta de D-489 nacía sin contestar y no dejaba seguir hasta tocar una. Ahora nace en `VEHICULO_POR_DEFECTO` = `"personal"` (`lib/clockin/visitas.ts`), a la vista, y vuelve a personal después de cada salida. Quien va en uno de la empresa lo cambia y se le piden el vehículo y el cuentakilómetros, como antes. El panel de viajes (`TripPanel`) no cambia: ya nacía en personal salvo para quien tiene un vehículo de la empresa asignado (D-455).
+
+**Cuentakilómetros.** Medido al hacerlo: el servidor (`endTrip`) ya rechazaba un regreso menor que la salida, pero con un mensaje solo en inglés; y el panel comparaba con la lectura de salida **tecleada en ese mismo panel** (`odoIni`), que está vacía si el viaje se empezó desde la ventana de «Voy a salir» (D-489) o si la página se recargó. En esos casos el panel no avisaba de nada. Ahora:
+- La regla es una función pura, `odometroDeRegreso(salida, regreso)`: igual vale (no se movió una milla entera), menos no (`"menor"`), vacío o no numérico falta. La usan el panel y el servidor.
+- `getMyTrip` le pasa al panel la lectura de salida **guardada** (`start_odometer` → `trip.startOdometer`); también en práctica (D-490), donde el viaje de práctica la apunta.
+- Debajo de «Cuentakilómetros al llegar» sale «Salida: 2000. Al volver tiene que ser 2000 o más.»; si lo tecleado es menor, el aviso en rojo y «Terminar viaje» apagado.
+
+**No hecho:** la lectura de SALIDA no se compara con el último regreso de ese vehículo (salir con 1990 cuando el último viaje volvió con 2010). Es la misma idea de «que tenga sentido», pero el dueño dio el ejemplo de salida y regreso; queda como pregunta.
+
+**Pruebas:** `visitas.test.ts` (la regla con 2000/2010/2000/1990/vacío/NaN; el servidor y el panel la usan; la lectura guardada viaja; el defecto de la ventana) y `capacitacion.test.ts` (el viaje de práctica). Mutantes: 10 de 10 caen con una prueba con nombre.
+
+**No medido:** nada en navegador (`tsc` y vitest); nada contra producción.

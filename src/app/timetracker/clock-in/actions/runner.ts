@@ -2,6 +2,7 @@
 
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
+import { odometroDeRegreso } from "@/lib/clockin/visitas";
 
 export type RunnerResult<T = unknown> = { ok: true; data?: T } | { ok: false; message: string };
 
@@ -308,10 +309,9 @@ export async function endTrip(input: DashInput): Promise<RunnerResult> {
   // Personal trips (no vehicle) just close — no odometer needed.
   const personal = trip.vehicle_id == null;
   if (!personal) {
-    if (input.odometer == null || !Number.isFinite(input.odometer))
-      return { ok: false, message: "Enter the odometer reading." };
-    if (trip.start_odometer != null && input.odometer < trip.start_odometer)
-      return { ok: false, message: "Odometer can't be lower than when you started." };
+    const malo = odometroDeRegreso(trip.start_odometer as number | null, input.odometer);
+    if (malo === "falta") return { ok: false, message: "Enter the odometer reading." };
+    if (malo === "menor") return { ok: false, message: "Odometer can't be lower than when you started." };
   }
 
   // Can't finish the run with a stop still open — otherwise we'd have to invent a
@@ -369,7 +369,8 @@ export async function getMyTrip(): Promise<
       ok: true;
       mode: "runner" | "sales";
       vehicles: { id: string; name: string }[];
-      trip: { id: string; startedAt: string; vehicleId: string | null; paused: boolean } | null;
+      /** `startOdometer` (D-524): la lectura de salida, para que el panel compare con ella el regreso. */
+      trip: { id: string; startedAt: string; vehicleId: string | null; paused: boolean; startOdometer: number | null } | null;
       stops: { id: string; label: string | null; arrivedAt: string; departedAt: string | null }[];
       currentVehicleId: string | null;
       /** Sin fichaje abierto no hay viaje posible: se conduce estando de alta. */
@@ -392,7 +393,7 @@ export async function getMyTrip(): Promise<
     supabase.from("vehicles").select("id, name").eq("company_id", profile.company_id).eq("active", true).order("name"),
     supabase
       .from("vehicle_trips")
-      .select("id, started_at, vehicle_id, paused_at")
+      .select("id, started_at, vehicle_id, paused_at, start_odometer")
       .eq("employee_id", user.id)
       .is("ended_at", null)
       .order("started_at", { ascending: false })
@@ -425,6 +426,7 @@ export async function getMyTrip(): Promise<
           startedAt: openTrip.started_at as string,
           vehicleId: (openTrip.vehicle_id as string) ?? null,
           paused: !!openTrip.paused_at,
+          startOdometer: openTrip.start_odometer == null ? null : Number(openTrip.start_odometer),
         }
       : null,
     stops,

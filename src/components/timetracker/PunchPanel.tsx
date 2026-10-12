@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { getMyDay, ClockInResult } from "@/app/timetracker/clock-in/actions/clock";
 import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import {
-  MOTIVOS_DE_SALIDA, etiquetaDeFoto, filaDeSalida, planDeSalida, seCierraDeUnToque, vehiculoDeEmpresaPorDefecto,
+  MOTIVOS_DE_SALIDA, VEHICULO_POR_DEFECTO, etiquetaDeFoto, filaDeSalida, planDeSalida, seCierraDeUnToque, vehiculoDeEmpresaPorDefecto,
   type MotivoDeSalida, type PlanDeSalida, type Vehiculo,
 } from "@/lib/clockin/visitas";
 import { APP_SETTINGS, fmtClock } from "@/lib/timetracker/helpers";
@@ -149,8 +149,9 @@ export function PunchPanel() {
   const [viaje, setViaje] = useState<Viaje | null>(null);
   // La ventana de «voy a salir»: primero la pregunta, y si dice que no, el motivo.
   const [salida, setSalida] = useState<null | "pregunta" | "motivo">(null);
-  // La respuesta a «¿vehículo personal o de la empresa?»: null hasta que contesta (D-489).
-  const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
+  // La respuesta a «¿vehículo personal o de la empresa?» (D-489). Desde D-524 nace en «personal», y vuelve a «personal» al
+  // salir. El dueño, 2026-10-11: «in time tracker personal vehicle should be in default when chossing a car to go out».
+  const [vehiculo, setVehiculo] = useState<Vehiculo | null>(VEHICULO_POR_DEFECTO);
   const [vehiculoId, setVehiculoId] = useState<string | null>(null);
   const [odoSalida, setOdoSalida] = useState("");
   const [motivoSalida, setMotivoSalida] = useState<MotivoDeSalida>(MOTIVOS_DE_SALIDA[0]);
@@ -330,7 +331,7 @@ export function PunchPanel() {
       const { reason, note } = plan.salida;
       await corre(async () => startLeave({ reason, note, geo: await ubicacionOpcional() }));
     }
-    setVehiculo(null);
+    setVehiculo(VEHICULO_POR_DEFECTO);
     setVehiculoId(null);
     setOdoSalida("");
     setNotaSalida("");

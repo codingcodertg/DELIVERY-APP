@@ -136,9 +136,9 @@ describe("el guard está en un solo sitio y cubre todas las pestañas", () => {
 // D-520: quien abre una pantalla que no es para su rol va a SU inicio (`roleHome`), en vez de quedarse delante de «No
 // disponible para su rol». Lo destapó la vista móvil: abre «/» (Órdenes) en el marco, y como chofer enseñaba ese aviso.
 describe("sin permiso, a su pantalla de inicio (D-520)", () => {
-  it("el chofer en «/» (lo que abre la vista móvil) va a su pestaña «Chofer»", () => {
+  it("el chofer en «/» (lo que abre la vista móvil) va a «Mi ruta» (D-523; antes a su pestaña «Chofer»)", () => {
     expect(canOpenTab("board", u("driver"))).toBe(false);
-    expect(inicioSiNoPuede("/", u("driver"))).toBe("/driver");
+    expect(inicioSiNoPuede("/", u("driver"))).toBe("/my-route");
     expect(inicioSiNoPuede("/routes", u("warehouse"))).toBe("/warehouse");
     expect(inicioSiNoPuede("/accounts/", u("logistics"))).toBe("/routes");
   });
@@ -166,8 +166,8 @@ describe("sin permiso, a su pantalla de inicio (D-520)", () => {
   });
   it("sin sesión, o ya en su inicio, se queda el aviso", () => {
     expect(inicioSiNoPuede("/", null)).toBeNull();
-    expect(inicioSiNoPuede("/driver", u("driver"))).toBeNull();
-    expect(inicioSiNoPuede("/driver/", u("driver"))).toBeNull();
+    expect(inicioSiNoPuede("/my-route", u("driver"))).toBeNull();
+    expect(inicioSiNoPuede("/my-route/", u("driver"))).toBeNull();
   });
   it("el guard y las páginas con su propia puerta llevan a la persona con `IrAlInicio`, que usa la función y `replace`", () => {
     const gate = sinComentarios(leer("src/components/TabGate.tsx"));
