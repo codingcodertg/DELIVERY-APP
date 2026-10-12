@@ -1,5 +1,5 @@
 // ============================================================
-// «Mis acciones ▾»: las acciones personales de fichar del ADMIN, en un desplegable (D-NEXT).
+// «Mis acciones ▾»: las acciones personales de fichar del ADMIN, en un desplegable (D-517).
 //
 // El dueño, el 2026-10-11: «IN THE CLOCK IN THE PERSONAL ACTIONS BUTTOMS FOR THE ADMIN GOES INTO A
 // DROPDOWN». En «Registrar tiempo › ⏰ Fichar» el admin ve SU tarjeta de fichar, con los mismos

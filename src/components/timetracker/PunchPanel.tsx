@@ -69,7 +69,7 @@ import { MenuDeAcciones, type OpcionDelMenu } from "@/components/MenuDeAcciones"
  * boletín» y «Fichajes de hoy» se mudan a «Mi semana». El admin lo sigue viendo todo aquí
  * (`seccionesDeFichar`).
  *
- * **D-NEXT — el admin, con «Mis acciones ▾»; el empleado, sin el contador.** (1) El dueño: «in the clock
+ * **D-517 — el admin, con «Mis acciones ▾»; el empleado, sin el contador.** (1) El dueño: «in the clock
  * in the personal actions buttons for the admin goes into a dropdown». Para el admin, los botones de
  * esta tarjeta (entrada, salida, almuerzo, voy a salir, foto, ya volví) van en un solo desplegable, el
  * mismo `MenuDeAcciones` de la ficha de Entregas (D-497); QUÉ opciones hay lo decide
@@ -141,7 +141,7 @@ export function PunchPanel() {
     subirFoto: subirFotoDeFichaje,
   } = useAccionesDeFichar();
   const secciones = seccionesDeFichar({ esAdmin: esAdminDeTt(me.role) });
-  // El admin, con sus acciones en «Mis acciones ▾»; el empleado y el gerente, con botones (D-NEXT).
+  // El admin, con sus acciones en «Mis acciones ▾»; el empleado y el gerente, con botones (D-517).
   const enMenu = accionesEnMenu(me.role);
   const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const [d, setD] = useState<Dia | null>(null);
@@ -181,7 +181,7 @@ export function PunchPanel() {
 
   useEffect(() => { void load(); }, [load]);
   // El contador de "llevo trabajando" tiene que moverse solo; si no, parece parado. Solo hay contador
-  // para el admin (D-NEXT): sin él no hay nada que repintar cada segundo.
+  // para el admin (D-517): sin él no hay nada que repintar cada segundo.
   const conContador = secciones.contador;
   useEffect(() => {
     if (!conContador) return;
@@ -372,7 +372,7 @@ export function PunchPanel() {
   const fila = filaDeSalida({ descansoAbierto: !!d.leave, viajeAbierto: !!viaje?.trip });
   const llevo = d.open ? Math.max(0, Math.floor((ahora - Date.parse(d.open.clockInAt)) / 1000)) : 0;
 
-  // Lo que hace cada acción, escrito UNA vez (D-NEXT): lo llaman los botones del empleado y las
+  // Lo que hace cada acción, escrito UNA vez (D-517): lo llaman los botones del empleado y las
   // opciones de «Mis acciones ▾» del admin. Así el menú no puede hacer otra cosa que el botón.
   const hacer: Record<AccionPersonal, () => void> = {
     entrar: () => pide("in"),
@@ -416,7 +416,7 @@ export function PunchPanel() {
             : <span className="pill wait">{t("emp.punch.notClockedIn")}</span>}
         </div>
 
-        {/* El contador, solo el admin (D-NEXT): al empleado el dueño no quiere enseñarle el tiempo. */}
+        {/* El contador, solo el admin (D-517): al empleado el dueño no quiere enseñarle el tiempo. */}
         {secciones.contador && (
           <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 1, margin: "8px 0" }}>
             {dentro ? fmtClock(llevo) : "0:00:00"}
@@ -499,7 +499,7 @@ export function PunchPanel() {
           </div>
         )}
 
-        {/* El admin: todas sus acciones personales en un solo «Mis acciones ▾» (D-NEXT), el menú de la
+        {/* El admin: todas sus acciones personales en un solo «Mis acciones ▾» (D-517), el menú de la
             ficha de Entregas (D-497). Las mismas que los botones de abajo, y cada una hace lo mismo. */}
         {enMenu && misAcciones.length > 0 && (
           // A la derecha: el menú se abre alineado con el borde derecho de su botón (D-497), y así cae

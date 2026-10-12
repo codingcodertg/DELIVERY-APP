@@ -15,7 +15,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * tabla, la tarjeta sale de aquí y la usan las dos pantallas.
  *
  * `cifras` decide si lleva encima las dos cifras de horas, «Hoy» y «Esta semana de pago». Las ve solo
- * el admin, debajo de su reloj. Al empleado D-489 ya le quitó «Esta semana de pago», y D-NEXT le quita
+ * el admin, debajo de su reloj. Al empleado D-489 ya le quitó «Esta semana de pago», y D-517 le quita
  * también «Hoy · 0h 00m» (el dueño: «total hours remove it and also hours worked today»). La tabla
  * de fichajes se queda para los dos.
  */

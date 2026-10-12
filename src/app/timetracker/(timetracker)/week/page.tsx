@@ -28,9 +28,9 @@ import { FichajesDeHoy, useMiDiaDeFichaje } from "@/components/timetracker/Ficha
 //     de lo pagado. Solo las horas.
 //   · Las horas que se ven son las suyas: las del cronómetro para el remoto y las FICHADAS para el
 //     presencial (horasDeLaSemana), que no usa el cronómetro y aquí veía 0,00 h. (Reemplazado en parte por
-//     D-NEXT: al presencial ya no se le enseña esa cifra, y `horasDeLaSemana` se quitó.)
+//     D-517: al presencial ya no se le enseña esa cifra, y `horasDeLaSemana` se quitó.)
 //   · «Mi boletín» y «Fichajes de hoy» se mudan aquí desde Registrar tiempo (presencial).
-// D-NEXT (el dueño, 2026-10-11: «total hours remove it and also hours worked today»), para el
+// D-517 (el dueño, 2026-10-11: «total hours remove it and also hours worked today»), para el
 // PRESENCIAL: fuera la cifra «Horas totales» (eran sus horas fichadas) y fuera «Hoy · 0h 00m» encima de
 // «Fichajes de hoy»; la tabla de fichajes se queda. El remoto conserva «Horas totales» (la suma de su
 // tabla del cronómetro, que ve debajo) y el admin no cambia.
@@ -123,7 +123,7 @@ export default function MyWeekPage() {
       )}
       {secciones.dinero && paidTotal > 0 && <div className="banner ok" style={{ marginTop: 12 }}>{t("emp.week.paidThisWeek", { money: money(paidTotal) })}</div>}
 
-      {/* «Horas totales»: el admin (con el dinero al lado) y el remoto. Al presencial no (D-NEXT). */}
+      {/* «Horas totales»: el admin (con el dinero al lado) y el remoto. Al presencial no (D-517). */}
       {secciones.totalDeHoras && (
       <div className={secciones.dinero ? "grid g3" : "grid"} style={{ marginTop: 14 }}>
         <div className="stat">
@@ -219,7 +219,7 @@ export default function MyWeekPage() {
 
     {/* Mudados aquí desde Registrar tiempo, para el empleado presencial (D-489). */}
     {secciones.boletin && <MiBoletinSec />}
-    {/* Sin las cifras de horas encima («Hoy», «Esta semana de pago»): solo la tabla (D-NEXT). */}
+    {/* Sin las cifras de horas encima («Hoy», «Esta semana de pago»): solo la tabla (D-517). */}
     {secciones.fichajesDeHoy && dia && <FichajesDeHoy d={dia} cifras={false} />}
     </>
   );

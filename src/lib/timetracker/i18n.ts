@@ -421,7 +421,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.punch.dayScheduled': '{n} day scheduled',
     'emp.punch.daysScheduled': '{n} days scheduled',
     'emp.punch.today': 'Today',
-    // D-NEXT: el admin, con sus acciones de fichar en un desplegable, y la pastilla que dice su estado.
+    // D-517: el admin, con sus acciones de fichar en un desplegable, y la pastilla que dice su estado.
     'emp.menu.mine': 'My actions',
     'emp.menu.busy': 'Wait — the last action is still saving',
     'emp.state.working': 'Working since {time}',
@@ -1318,7 +1318,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'emp.punch.dayScheduled': '{n} día programado',
     'emp.punch.daysScheduled': '{n} días programados',
     'emp.punch.today': 'Hoy',
-    // D-NEXT: el admin, con sus acciones de fichar en un desplegable, y la pastilla que dice su estado.
+    // D-517: el admin, con sus acciones de fichar en un desplegable, y la pastilla que dice su estado.
     'emp.menu.mine': 'Mis acciones',
     'emp.menu.busy': 'Espera — todavía se está guardando lo último',
     'emp.state.working': 'Trabajando desde {time}',

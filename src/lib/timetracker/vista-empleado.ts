@@ -39,7 +39,7 @@ export function puedeVerMiDiario(role: string | null | undefined): boolean {
 export type SeccionesDeFichar = {
   /**
    * El contador grande que corre («4:05:12», «0:00:00») en la tarjeta de fichar. Solo el admin
-   * (D-NEXT): el dueño, mirando la de un empleado, «quita el tiempo y solo deja clock in y not active,
+   * (D-517): el dueño, mirando la de un empleado, «quita el tiempo y solo deja clock in y not active,
    * no queremos que miren el tiempo». Es solo el NÚMERO de esta tarjeta: el cronómetro de D-470
    * (`Cronometro`, su latido y su vigía) no es esto y sigue montado y grabando igual.
    */
@@ -64,7 +64,7 @@ export type SeccionesDeMiSemana = {
   /** Pago estimado, pagado hasta hoy, la columna de pago y el aviso de lo pagado. */
   dinero: boolean;
   /**
-   * La cifra «Horas totales» de arriba. Fuera para el presencial (D-NEXT, el dueño: «TOTAL HOURS
+   * La cifra «Horas totales» de arriba. Fuera para el presencial (D-517, el dueño: «TOTAL HOURS
    * REMOVE IT»): la suya eran sus horas FICHADAS de la semana de pago (D-489). El remoto la conserva:
    * es la suma de su propia tabla del cronómetro, que sigue viendo justo debajo. El admin, como siempre.
    */
@@ -95,7 +95,7 @@ export function verTablasDelCronometro(q: QuienMira, haySesiones: boolean): bool
   return haySesiones;
 }
 
-// `horasDeLaSemana` (D-489) se quitó en D-NEXT: daba las horas FICHADAS al presencial para «Horas
+// `horasDeLaSemana` (D-489) se quitó en D-517: daba las horas FICHADAS al presencial para «Horas
 // totales», y esa cifra ya no se le enseña. Al remoto y al admin la cifra les sale de su cronómetro
 // (`totalSec`), que es lo que la función devolvía para ellos.
 

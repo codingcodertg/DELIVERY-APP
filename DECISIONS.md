@@ -34348,7 +34348,7 @@ Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
 
 > **Reemplazada en parte por D-489** (2026-10-06): la ventana de «Voy a salir» pregunta primero, a todos, «¿vehículo personal o de la empresa?» (antes, solo una casilla a quien tenía vehículo asignado); con el de la empresa pide el cuentakilómetros y cualquier salida —visita o no— se graba como viaje.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): para el **admin**, «📷 Tomar foto» y «Ya volví» de la visita (puntos 7 y
+> **Reemplazada en parte por D-517** (2026-10-11): para el **admin**, «📷 Tomar foto» y «Ya volví» de la visita (puntos 7 y
 > 9) ya no son botones bajo el reloj: van, con las demás acciones de fichar, dentro de «Mis acciones ▾». Hacen lo mismo.
 > El empleado sigue con sus botones.
 
@@ -38324,7 +38324,7 @@ No visto en navegador: `tsc` y vitest.
 > **⚠ Reemplazada en parte por D-490** (2026-10-07): la fila `a.tt-me` de la auditoría de botones ya no aplica: el
 > nombre de la barra de Time Tracker dejó de ser un enlace a «Mi cuenta» y abre el menú de la cuenta.
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11), a pedido del dueño: (4) en «Mi semana» el **presencial** ya no ve
+> **⚠ Reemplazada en parte por D-517** (2026-10-11), a pedido del dueño: (4) en «Mi semana» el **presencial** ya no ve
 > «Horas totales» (sus horas fichadas, con «De tus fichajes…»; `horasDeLaSemana` se quitó) ni la cifra «Hoy» encima de
 > «Fichajes de hoy» (la tabla se queda); el remoto conserva «Horas totales». (5) En la tarjeta de fichar, el empleado ya no
 > ve el contador que corre («0:00:00»): solo el título, la pastilla y los botones. El admin, como estaba.
@@ -40894,9 +40894,9 @@ Y, añadido el mismo día al mismo encargo:
   enseñando «📱 Vista móvil» (D-501), que mete la vista móvil dentro del marco. Y «Personalizar» durante una suplantación
   guarda el idioma en la fila de la otra persona (por el código: `setLang` escribe en la fila de la sesión; no medido).
 
-## D-NEXT — Time Tracker: las acciones de fichar del admin, en «Mis acciones ▾»; y el empleado ya no ve correr su tiempo (ni el contador al fichar, ni «Horas totales» y «Hoy» en «Mi semana»)
+## D-517 — Time Tracker: las acciones de fichar del admin, en «Mis acciones ▾»; y el empleado ya no ve correr su tiempo (ni el contador al fichar, ni «Horas totales» y «Hoy» en «Mi semana»)
 
-**Fecha:** 2026-10-11 · **Versión:** la asigna el orquestador al fusionar (toca solo `timetracker`) · **Migración:** ninguna ·
+**Fecha:** 2026-10-11 · **Versión:** timetracker 1.02.0, repo 1.387.0 (toca solo `timetracker`) · **Migración:** ninguna ·
 **Pedido por:** el dueño, en tres mensajes del mismo día · **Reemplaza en parte a** D-455 y D-489, que llevan su nota ·
 Rama `feat/clockin-acciones-admin`.
 
@@ -41042,7 +41042,7 @@ el dueño lo quiere también recogido (por ejemplo, plegable como «Mi horario»
   - `src/app/timetracker/(timetracker)/week/page.tsx`;
   - `src/lib/timetracker/vista-empleado.ts`: `contador` y `totalDeHoras`; se quita `horasDeLaSemana`;
   - `src/lib/timetracker/i18n.ts`: 6 claves nuevas en y es; se quita `emp.week.fromPunches`.
-- **Pruebas ajustadas**, cada una con su «Nota D-NEXT»:
+- **Pruebas ajustadas**, cada una con su «Nota D-517»:
   - `src/lib/timetracker/vista-empleado.test.ts`: se quitaron las de `horasDeLaSemana` y `fromPunches` junto con lo que
     probaban; `semanaDePago` pasa a `cifras`; `contador` entra en `seccionesDeFichar`;
   - `src/lib/clockin/visitas.test.ts`: los botones llaman a `hacer.*`, y lo que hacen se busca en `hacer`.

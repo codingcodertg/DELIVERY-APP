@@ -12,7 +12,7 @@ import { seccionesDeFichar, seccionesDeMiSemana } from "./vista-empleado";
 import { debeMontarCronometro } from "./vigia";
 import { OpcionesDelMenu, type OpcionDelMenu } from "@/components/MenuDeAcciones";
 
-// D-NEXT · Tres pedidos del dueño del 2026-10-11 sobre Time Tracker:
+// D-517 · Tres pedidos del dueño del 2026-10-11 sobre Time Tracker:
 //   1. «IN THE CLOCK IN THE PERSONAL ACTIONS BUTTOMS FOR THE ADMIN GOES INTO A DROPDOWN»
 //   2. «TOTAL HOURS REMOVE IT AND ALSO HOURS WORKED TODAY LIKE IN THE SCREENSHOT» («Mi semana» del presencial)
 //   3. «IN HERE QUITA EL TIEMPO Y SOLO DEJA CLOCK IN Y NOT ACTIVE NO QUEREMOS QUE MIREN EL TIEMPO»
