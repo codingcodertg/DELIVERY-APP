@@ -17,6 +17,12 @@ const raiz = sinComentarios(leer("src/app/layout.tsx"));
 
 /** Los hooks que lanzan si no tienen su proveedor encima, y el proveedor que piden. */
 const HOOKS: Record<string, string> = { usePrefs: "PrefsProvider", useConfirm: "ConfirmProvider", useData: "DataProvider" };
+/**
+ * En el banner, `usePrefs` lo sirve `PrefsConIdioma` (D-NEXT): el MISMO contexto, con el idioma del aviso puesto y
+ * sin leer ni guardar nada. Un `PrefsProvider` ahí cargaría el idioma de la persona en la que se entró. Que el
+ * panel funcione de verdad debajo de él se comprueba pintándolo, en `aviso-de-suplantacion.test.ts`.
+ */
+const EN_EL_BANNER: Record<string, string> = { ...HOOKS, usePrefs: "PrefsConIdioma" };
 
 describe("el panel que se monta dentro del banner tiene encima lo que necesita", () => {
   it("control: el banner sigue fuera de PrefsProvider en el layout raíz (si entra, esta prueba sobra)", () => {
@@ -32,8 +38,9 @@ describe("el panel que se monta dentro del banner tiene encima lo que necesita",
     const i = banner.indexOf("<SwitchUserPanel");
     expect(i).toBeGreaterThan(-1);
     for (const hook of Object.keys(HOOKS).filter((h) => new RegExp(`\\b${h}\\(`).test(panel))) {
-      const prov = HOOKS[hook];
-      const abre = banner.lastIndexOf(`<${prov}>`, i), cierra = banner.indexOf(`</${prov}>`, i);
+      const prov = EN_EL_BANNER[hook];
+      // `<Prov` y no `<Prov>`: `PrefsConIdioma` lleva el idioma como atributo.
+      const abre = banner.lastIndexOf(`<${prov}`, i), cierra = banner.indexOf(`</${prov}>`, i);
       expect(abre, `${prov} abre antes del panel (lo pide ${hook})`).toBeGreaterThan(-1);
       expect(cierra, `${prov} cierra después del panel`).toBeGreaterThan(i);
       // y no se cerró antes de llegar al panel
@@ -41,9 +48,13 @@ describe("el panel que se monta dentro del banner tiene encima lo que necesita",
     }
   });
 
-  it("ConfirmProvider va DENTRO de PrefsProvider: él mismo usa usePrefs", () => {
+  it("ConfirmProvider va DENTRO de PrefsConIdioma: él mismo usa usePrefs", () => {
     const i = banner.indexOf("<SwitchUserPanel");
-    expect(banner.lastIndexOf("<PrefsProvider>", i)).toBeLessThan(banner.lastIndexOf("<ConfirmProvider>", i));
+    // Hasta D-NEXT era `<PrefsProvider>`. El banner ya no lo monta: si volviera, el panel hablaría el idioma de la
+    // persona en la que se entró, no el del admin.
+    expect(banner).not.toContain("<PrefsProvider");
+    expect(banner.lastIndexOf("<PrefsConIdioma lang={estado.idioma}>", i)).toBeGreaterThan(-1);
+    expect(banner.lastIndexOf("<PrefsConIdioma lang={estado.idioma}>", i)).toBeLessThan(banner.lastIndexOf("<ConfirmProvider>", i));
   });
 
   it("el propio banner no usa ninguno de esos hooks: por eso puede vivir fuera", () => {

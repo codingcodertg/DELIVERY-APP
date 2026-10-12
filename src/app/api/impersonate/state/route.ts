@@ -5,12 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 import { impersonacionActiva } from "@/lib/impersonation-flag";
 import { esAdmin } from "@/lib/impersonation";
 import { debeCambiarContrasena } from "@/lib/cambio-obligatorio";
+import { esIdioma } from "@/lib/idioma";
 
 /**
  * ¿Estoy dentro de la sesión de otra persona? (D-243)
  *
  * La pregunta del banner, y solo eso. Devuelve el nombre de la persona en la que se entró y
- * cuándo empezó; nada de ids, ni del admin, ni de la cookie.
+ * cuándo empezó; nada de ids, ni del admin, ni de la cookie. Del admin solo su idioma (D-NEXT), para
+ * que el aviso le hable en el suyo y no en el de la persona en la que entró.
  *
  * **No está detrás de la bandera**, por lo mismo que la ruta de volver: si `IMPERSONATION_ENABLED`
  * se apaga con una sesión impersonada viva, el banner tiene que seguir apareciendo. Un aviso que
@@ -46,11 +48,17 @@ export async function GET(request: Request) {
   const { data: { user } } = await ssr.auth.getUser();
   if (!user) return NextResponse.json({});
 
-  const { data: perfil } = await ssr
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Dentro de una suplantación se pide a la vez el idioma del ADMIN que entró (D-NEXT): el aviso le habla a
+  // él, y la sesión es la de la otra persona. `profiles` se deja leer a cualquier sesión (099), así que no hace
+  // falta la llave de servicio; y fuera de una suplantación no se pide.
+  const [{ data: perfil }, delAdmin] = await Promise.all([
+    ssr
+      .from("profiles")
+      .select("full_name, role")
+      .eq("id", user.id)
+      .maybeSingle(),
+    guardado ? ssr.from("profiles").select("language").eq("id", guardado.adminId).maybeSingle() : null,
+  ]);
 
   if (!guardado) {
     // Solo se le dice a un admin, y con el rol leído de la base. A cualquier otro se le contesta
@@ -72,5 +80,8 @@ export async function GET(request: Request) {
     // Si esa persona tiene que cambiar su contraseña al entrar (D-486). Al admin no se le obliga
     // —el middleware le deja pasar—, pero se le dice, para que no le extrañe que ella sí lo vea.
     cambiaContrasena: debeCambiarContrasena(user),
+    // El idioma en que habla el aviso: el que eligió el admin en «Personalizar» (D-490). Sin elegir, `null`, y
+    // el aviso usa la copia de pantalla de ese equipo (`idiomaDelAviso`).
+    idioma: esIdioma(delAdmin?.data?.language) ? delAdmin.data.language : null,
   });
 }
