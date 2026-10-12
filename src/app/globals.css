@@ -1096,9 +1096,17 @@ table.orders th { text-align: left; }
 .admin-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gray); }
 .admin-status select { width: auto; padding: 6px 8px; font-size: 13px; }
 
-/* ---------- Floating Help button (app-wide) ---------- */
+/* ---------- La burbuja de Ayuda, la misma en TODAS las apps (D-NEXT) ----------
+   Se monta una vez, en el layout raíz, fuera del contenedor de cada app: por eso estas reglas son las únicas que
+   la pintan, y ninguna hoja de una app (`timetracker.css`, `recruiting.css`, `erp.css`…) la redefine. Mismo sitio,
+   mismo tamaño y mismo color en Entregas, el hub, Time Tracker, RR. HH., el ERP, Quote Builder, Leads, Encuestas y
+   Promociones. */
 .help-fab {
-  position: fixed; right: 20px; bottom: 20px; z-index: 40;
+  /* z-index 5 y no 40 (D-NEXT): POR DEBAJO de lo que cada app pega al fondo de la pantalla —los recuadros de
+     «Elige conductor» del Gestor (6), la barra de seleccionados del ERP (40), la de comparar de RR. HH. (60), los
+     avisos (99) y las ventanas—, para que nunca tape uno de sus botones; y por ENCIMA del contenido que pasa por
+     debajo al bajar (tablas, tarjetas, mapas: `.leaflet-container` aísla los suyos). */
+  position: fixed; right: 20px; bottom: 20px; z-index: 5;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 11px 16px 11px 13px; border: none; border-radius: 999px;
   background: var(--accent); color: #fff; font-weight: 800; font-size: 14px;
@@ -1116,6 +1124,21 @@ table.orders th { text-align: left; }
   .help-fab { right: 14px; bottom: 14px; padding: 12px; }
   .help-fab-label { display: none; }
 }
+
+/* El hueco de la burbuja (D-NEXT). La burbuja está fija abajo a la derecha, así que lo ÚLTIMO de una página tiene
+   que poder subir por encima de ella: si no, el último botón se queda debajo y no hay forma de pulsarlo. Medido en
+   el demo a 390 px antes de esto: al final de Promociones la ✕ de la última fila quedaba tapada un 36 %, y en la
+   Nómina de Time Tracker «Edit» un 66 %. Entregas, el hub y RR. HH. ya lo dejaban con el `.wrap` (80 px; 72 en el
+   teléfono), y Leads con el suyo (96 px); Time Tracker (12 px) y Promociones (24 px) no.
+   Es el relleno de ABAJO del contenedor de cada app y no un espacio después de la página: Time Tracker y el ERP
+   miden al menos la pantalla entera (`min-height: 100vh`), y un espacio añadido detrás haría bajar 72 px de nada
+   a cualquier pantalla corta. Un relleno de dentro solo se nota cuando la página ya baja.
+   La burbuja ocupa 14 + 44 = 58 px en el teléfono y 20 + 42 = 62 px en el ordenador: el hueco deja algo más. */
+:root { --hueco-de-ayuda: 80px; }
+@media (max-width: 640px) { :root { --hueco-de-ayuda: 72px; } }
+/* `body` delante para ganarle a `timetracker.css`, que pone `padding: 18px` (y 12 px en el teléfono) con la misma
+   especificidad y se carga después. Va aquí, junto a la burbuja, y no allí: es el hueco de la burbuja. */
+body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 
 /* Selected rows in the dispatch bulk-assign table */
 .orders tr.row-selected td { background: var(--accent-soft); }

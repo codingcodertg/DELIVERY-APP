@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { DEFAULT_HELP_EMAIL } from "@/lib/constants";
 import { resendFrom } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUBO_DE_ADJUNTOS, LIMITES_DE_ADJUNTOS, VALIDEZ_DEL_ENLACE, esMiRuta, lineasDeAdjuntos } from "@/lib/help-attachments";
+import { destinoDeAyuda, type ContactoDeAyuda } from "@/lib/ayuda-flotante";
 
 import { requireUser } from "@/lib/api-auth";
 
@@ -24,7 +24,9 @@ export const runtime = "nodejs";
 
 interface HelpBody {
   message: string;
-  to?: string;          // help recipient (Settings.help_email); server clamps to a default
+  /** Lo mandaban los clientes leído de `settings`. Desde D-NEXT se IGNORA: el destino lo decide el servidor
+   *  (`destinoDeAyuda`), porque quien no tiene Entregas no puede leer `settings` y su solicitud se iba a otro sitio. */
+  to?: string;
   page?: string;        // where the user was when they tapped Help
   senderName?: string;
   senderEmail?: string;
@@ -36,6 +38,41 @@ interface HelpBody {
 }
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/**
+ * Los ajustes de ayuda, leídos con la llave de servicio (D-NEXT). Con la sesión de la persona no vale: `settings`
+ * solo la lee quien tiene Entregas (`has_deliveries_access()`, migración 100), y la burbuja está en todas las apps.
+ * Solo se sacan estas dos columnas, y solo el teléfono vuelve al navegador. Si la lectura falla, `null`: el teléfono
+ * no se enseña y el correo va a la dirección por defecto, que es lo que pasaba antes con quien no podía leerla.
+ */
+async function ajustesDeAyuda(): Promise<{ help_email: string | null; help_phone: string | null } | null> {
+  try {
+    const { data } = await createAdminClient().from("settings").select("help_email, help_phone").eq("id", 1).maybeSingle();
+    return (data as { help_email: string | null; help_phone: string | null } | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lo que la burbuja de Ayuda necesita y antes sacaba del `DataProvider` de Entregas (D-NEXT): el teléfono de ayuda
+ * y quién escribe. Con sesión, como el POST; sin ella, 401 y la burbuja no puede mandar nada.
+ */
+export async function GET() {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+  const [ajustes, { data: perfil }] = await Promise.all([
+    ajustesDeAyuda(),
+    auth.supabase.from("profiles").select("full_name, role").eq("id", auth.user.id).maybeSingle(),
+  ]);
+  const contacto: ContactoDeAyuda = {
+    id: auth.user.id,
+    telefono: ajustes?.help_phone?.trim() || null,
+    nombre: (perfil?.full_name as string | null | undefined)?.trim() || null,
+    rol: (perfil?.role as string | null | undefined) ?? null,
+  };
+  return NextResponse.json(contacto);
+}
 
 export async function POST(req: Request) {
   // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
@@ -54,7 +91,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "A message is required." }, { status: 400 });
   }
 
-  const to = EMAIL_RE.test((body.to || "").trim()) ? body.to!.trim() : DEFAULT_HELP_EMAIL;
+  // El destino lo decide el servidor, no el navegador (D-NEXT): ver `destinoDeAyuda`.
+  const to = destinoDeAyuda((await ajustesDeAyuda())?.help_email);
   const senderEmail = (body.senderEmail || "").trim();
   const who = body.senderName?.trim() || senderEmail || "A user";
   const roleLabel = body.role ? ` (${body.role})` : "";

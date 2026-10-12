@@ -3,10 +3,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CLAVE_TT, EVENTO_IDIOMA, idiomaDeRtgPrefs, sincronizaIdiomaAlCargar, type Idioma } from "@/lib/idioma";
-import { CONSULTA_OSCURO, esPreferenciaDeTema, temaEfectivo, type PreferenciaDeTema, type Tema } from "@/lib/tema";
+import { CONSULTA_OSCURO, preferenciaDeTemaGuardada, temaEfectivo, type PreferenciaDeTema, type Tema } from "@/lib/tema";
 
 // ============================================================
-// UI preferences: language (EN/ES) + theme (light/dark, or the device's — D-490).
+// UI preferences: language (EN/ES) + theme (light/dark). D-490 added «the device's» as a third
+// theme and D-NEXT took it out again (the owner: «that same as my device remove it»).
 // Theme: persisted to localStorage, applied to <html> via data-theme.
 // Both are CHOSEN in one place only, the hub's «Personalizar» (/home/personalizar, D-490);
 // every app just reads them from here.
@@ -20,13 +21,12 @@ export type Theme = Tema;
 
 interface Prefs {
   lang: Lang;
-  /** El tema que se está pintando ahora, ya resuelto: nunca `system`. */
-  theme: Theme;
   /**
-   * Lo que la persona eligió en el personalizador, `system` incluido (D-490). Sin elección guardada
-   * es el tema efectivo, para que el personalizador marque lo que se ve.
+   * El tema que se está pintando ahora. Es también lo que el personalizador marca como elegido: desde que
+   * no existe «Same as my device» (D-NEXT), lo elegido y lo pintado son lo mismo, y `themePref` —que
+   * existía para separarlos— se fue.
    */
-  themePref: PreferenciaDeTema;
+  theme: Theme;
   setLang: (l: Lang) => void;
   setTheme: (t: PreferenciaDeTema) => void;
   toggleLang: () => void;
@@ -52,7 +52,10 @@ export function usePrefs(): Prefs {
 function enEscritorio(): boolean {
   return typeof window !== "undefined" && !!window.ttDesktop?.isDesktop;
 }
-/** Si el sistema está en oscuro ahora mismo. Sin `matchMedia` (pruebas, navegadores viejos), no. */
+/**
+ * Si el sistema está en oscuro ahora mismo. Sin `matchMedia` (pruebas, navegadores viejos), no. Ya solo sirve
+ * para convertir, una vez, lo que guardaba «Same as my device» (`temaDeLoGuardado`, D-NEXT).
+ */
 function sistemaOscuro(): boolean {
   try {
     return typeof window !== "undefined" && !!window.matchMedia?.(CONSULTA_OSCURO).matches;
@@ -81,11 +84,10 @@ function copiaLocal(l: Lang) {
 
 export function PrefsProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>("en");
-  // Lo ELEGIDO (null = nada guardado todavía) y lo que dice el sistema; el tema que se pinta sale de
-  // los dos con `temaEfectivo`, la misma función que prueba el guion de antes de pintar.
+  // Lo ELEGIDO (null = nada guardado todavía); el tema que se pinta sale de ahí con `temaEfectivo`, la
+  // misma función que prueba el guion de antes de pintar.
   const [themeElegido, setThemeElegido] = useState<PreferenciaDeTema | null>(null);
-  const [oscuroDelSistema, setOscuroDelSistema] = useState<boolean>(sistemaOscuro);
-  const theme = temaEfectivo(themeElegido, { sistemaOscuro: oscuroDelSistema, escritorio: enEscritorio() });
+  const theme = temaEfectivo(themeElegido, { escritorio: enEscritorio() });
   // De quién es la sesión, para guardar el idioma sin volver a preguntar.
   const usuario = useRef<string | null>(null);
   // ¿Ya se leyó lo guardado? Hasta entonces NO se pinta ni se guarda nada (D-490). Sin esta guarda,
@@ -107,8 +109,10 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
       if (raw) {
         const p = JSON.parse(raw) as Partial<Prefs>;
         if (p.lang === "en" || p.lang === "es") setLangState(p.lang);
-        const guardado = (p as { theme?: unknown }).theme;
-        if (esPreferenciaDeTema(guardado)) setThemeElegido(guardado);
+        // Lo que guardaba «Same as my device» (`system`, D-490) se convierte aquí en lo que el equipo
+        // pinta ahora mismo, y el efecto de abajo lo guarda ya convertido: la pantalla no cambia (D-NEXT).
+        const guardado = preferenciaDeTemaGuardada(raw, { sistemaOscuro: sistemaOscuro() });
+        if (guardado) setThemeElegido(guardado);
       }
     } catch {
       /* ignore */
@@ -147,30 +151,21 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // «El del equipo» sigue al sistema EN VIVO: si el teléfono pasa a oscuro al anochecer, la app
-  // también, sin recargar. Solo se escucha mientras esa es la elección.
-  useEffect(() => {
-    if (themeElegido !== "system" || typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia(CONSULTA_OSCURO);
-    const cambia = () => setOscuroDelSistema(mq.matches);
-    cambia();
-    mq.addEventListener?.("change", cambia);
-    return () => mq.removeEventListener?.("change", cambia);
-  }, [themeElegido]);
-
-  // Apply + persist whenever they change. Se guarda lo ELEGIDO (`system` incluido), no lo resuelto:
-  // si se guardara el resuelto, «el del equipo» se convertiría en «oscuro» la primera noche.
+  // Apply + persist whenever they change. Se guarda el tema que se pinta, que con elección es lo elegido y
+  // sin ella el de siempre (claro; oscuro en el escritorio, D-080). Desde D-NEXT es siempre claro u oscuro:
+  // `system` ya no se escribe nunca. (Hasta D-NEXT se guardaba `themeElegido ?? theme`, porque lo elegido
+  // podía ser `system` y lo pintado no; hoy las dos expresiones dan lo mismo.)
   useEffect(() => {
     // Antes de leer lo guardado, el guion de antes de pintar ya dejó `data-theme` y `lang` bien.
     if (!cargado) return;
     document.documentElement.setAttribute("data-theme", theme);
     document.documentElement.setAttribute("lang", lang);
     try {
-      localStorage.setItem(KEY, JSON.stringify({ lang, theme: themeElegido ?? theme }));
+      localStorage.setItem(KEY, JSON.stringify({ lang, theme }));
     } catch {
       /* ignore */
     }
-  }, [cargado, lang, theme, themeElegido]);
+  }, [cargado, lang, theme]);
 
   /**
    * Elegir idioma. Desde D-490 se elige en UN sitio de la pantalla, el personalizador del hub
@@ -201,7 +196,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
   const t = useCallback((en: string, es: string) => (lang === "es" ? es : en), [lang]);
 
   return (
-    <Ctx.Provider value={{ lang, theme, themePref: themeElegido ?? theme, setLang, setTheme, toggleLang, t }}>
+    <Ctx.Provider value={{ lang, theme, setLang, setTheme, toggleLang, t }}>
       {children}
     </Ctx.Provider>
   );
@@ -222,7 +217,7 @@ export function PrefsConIdioma({ lang, children }: { lang: Lang; children: React
   const nada = useCallback(() => {}, []);
   const t = useCallback((en: string, es: string) => (lang === "es" ? es : en), [lang]);
   return (
-    <Ctx.Provider value={{ lang, theme, themePref: theme, setLang: nada, setTheme: nada, toggleLang: nada, t }}>
+    <Ctx.Provider value={{ lang, theme, setLang: nada, setTheme: nada, toggleLang: nada, t }}>
       {children}
     </Ctx.Provider>
   );

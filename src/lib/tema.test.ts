@@ -1,55 +1,67 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { GUION_DE_TEMA, PREFERENCIAS_DE_TEMA, esPreferenciaDeTema, preferenciaDeTemaGuardada, temaEfectivo, type PreferenciaDeTema } from "./tema";
+import {
+  GUION_DE_TEMA, PREFERENCIAS_DE_TEMA, TEMA_VIEJO_DEL_EQUIPO, esPreferenciaDeTema, preferenciaDeTemaGuardada,
+  temaDeLoGuardado, temaEfectivo, type Tema,
+} from "./tema";
 
 /**
- * El tema, con la tercera opción del personalizador: «como mi equipo» (D-490).
+ * El tema: Claro u Oscuro. D-490 añadió «Same as my device» (`system`) y D-NEXT la quitó —el dueño: «that same as
+ * my device remove it»—.
  *
- * Se prueba la regla con datos (`temaEfectivo`), el guion que corre antes de pintar EJECUTÁNDOLO contra
- * la misma regla, y que quien pinta de verdad —el layout y el proveedor— usa esas dos piezas.
+ * Se prueba la regla con datos (`temaEfectivo`, `temaDeLoGuardado`), el guion que corre antes de pintar
+ * EJECUTÁNDOLO contra la misma regla, y que quien pinta de verdad —el layout y el proveedor— usa esas piezas.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 
 describe("temaEfectivo", () => {
-  const claro = { sistemaOscuro: false, escritorio: false };
-  const sistemaOscuro = { sistemaOscuro: true, escritorio: false };
-  const escritorio = { sistemaOscuro: false, escritorio: true };
-
-  it("claro u oscuro elegidos mandan, diga lo que diga el sistema o el escritorio", () => {
-    expect(temaEfectivo("light", { sistemaOscuro: true, escritorio: true })).toBe("light");
-    expect(temaEfectivo("dark", claro)).toBe("dark");
-  });
-
-  it("«como mi equipo» sigue al sistema, en los dos sentidos", () => {
-    expect(temaEfectivo("system", sistemaOscuro)).toBe("dark");
-    expect(temaEfectivo("system", claro)).toBe("light");
-    // Y el escritorio no lo cambia: quien eligió seguir al sistema, sigue al sistema.
-    expect(temaEfectivo("system", escritorio)).toBe("light");
+  it("claro u oscuro elegidos mandan, también en el escritorio", () => {
+    expect(temaEfectivo("light", { escritorio: true })).toBe("light");
+    expect(temaEfectivo("dark", { escritorio: false })).toBe("dark");
   });
 
   it("sin elección, lo de siempre: claro, y oscuro en el escritorio de Time Tracker (D-080)", () => {
-    expect(temaEfectivo(null, claro)).toBe("light");
-    expect(temaEfectivo(undefined, sistemaOscuro)).toBe("light");
-    expect(temaEfectivo(null, escritorio)).toBe("dark");
+    expect(temaEfectivo(null, { escritorio: false })).toBe("light");
+    expect(temaEfectivo(undefined, { escritorio: false })).toBe("light");
+    expect(temaEfectivo(null, { escritorio: true })).toBe("dark");
   });
 
-  it("las tres opciones, y nada más, son preferencias válidas", () => {
-    expect([...PREFERENCIAS_DE_TEMA]).toEqual(["light", "dark", "system"]);
+  it("solo Claro y Oscuro son elecciones: «system» ya no lo es (D-NEXT)", () => {
+    expect([...PREFERENCIAS_DE_TEMA]).toEqual(["light", "dark"]);
     for (const p of PREFERENCIAS_DE_TEMA) expect(esPreferenciaDeTema(p), p).toBe(true);
-    for (const v of ["auto", "", null, undefined, 1, "Dark"]) expect(esPreferenciaDeTema(v), String(v)).toBe(false);
+    for (const v of ["system", "auto", "", null, undefined, 1, "Dark"]) expect(esPreferenciaDeTema(v), String(v)).toBe(false);
+  });
+});
+
+describe("quien tenía guardado «Same as my device» (D-NEXT)", () => {
+  it("se queda con lo que su equipo le está pintando ahora: oscuro con el sistema en oscuro, claro si no", () => {
+    expect(TEMA_VIEJO_DEL_EQUIPO).toBe("system");
+    expect(temaDeLoGuardado("system", { sistemaOscuro: true })).toBe("dark");
+    expect(temaDeLoGuardado("system", { sistemaOscuro: false })).toBe("light");
+  });
+
+  it("claro y oscuro guardados no se tocan, diga lo que diga el sistema", () => {
+    expect(temaDeLoGuardado("light", { sistemaOscuro: true })).toBe("light");
+    expect(temaDeLoGuardado("dark", { sistemaOscuro: false })).toBe("dark");
+  });
+
+  it("nada guardado, o algo raro, es «sin elección»", () => {
+    for (const v of [null, undefined, "", "auto", "Dark", 1]) expect(temaDeLoGuardado(v, { sistemaOscuro: true }), String(v)).toBeNull();
   });
 });
 
 describe("lo guardado en rtg_prefs", () => {
-  it("lee las tres opciones", () => {
-    expect(preferenciaDeTemaGuardada('{"lang":"es","theme":"system"}')).toBe("system");
-    expect(preferenciaDeTemaGuardada('{"theme":"dark"}')).toBe("dark");
-    expect(preferenciaDeTemaGuardada('{"theme":"light"}')).toBe("light");
+  const oscuro = { sistemaOscuro: true };
+  it("lee claro y oscuro tal cual, y convierte «system»", () => {
+    expect(preferenciaDeTemaGuardada('{"lang":"es","theme":"system"}', oscuro)).toBe("dark");
+    expect(preferenciaDeTemaGuardada('{"lang":"es","theme":"system"}', { sistemaOscuro: false })).toBe("light");
+    expect(preferenciaDeTemaGuardada('{"theme":"dark"}', { sistemaOscuro: false })).toBe("dark");
+    expect(preferenciaDeTemaGuardada('{"theme":"light"}', oscuro)).toBe("light");
   });
   it("cualquier duda es null: vacío, roto o un valor raro", () => {
     for (const raw of [null, undefined, "", "{", '{"theme":"auto"}', "null", '{"lang":"es"}']) {
-      expect(preferenciaDeTemaGuardada(raw), String(raw)).toBeNull();
+      expect(preferenciaDeTemaGuardada(raw, oscuro), String(raw)).toBeNull();
     }
   });
 });
@@ -67,14 +79,16 @@ function correGuion(a: { guardado: string | null; sistemaOscuro: boolean; escrit
   return { tema: attrs["data-theme"] ?? null, lang: attrs.lang ?? null };
 }
 
-describe("el guion de antes de pintar hace lo mismo que temaEfectivo", () => {
-  const elecciones: (PreferenciaDeTema | null)[] = ["light", "dark", "system", null];
-  for (const pref of elecciones) {
+describe("el guion de antes de pintar pinta lo mismo que el proveedor va a guardar", () => {
+  // `system` sigue en la lista: es lo que tendrá guardado quien lo eligió, la primera vez que abra la app.
+  const guardados: (Tema | "system" | null)[] = ["light", "dark", "system", null];
+  for (const guardado of guardados) {
     for (const sistemaOscuro of [false, true]) {
       for (const escritorio of [false, true]) {
-        it(`${pref ?? "sin elegir"} · sistema ${sistemaOscuro ? "oscuro" : "claro"} · ${escritorio ? "escritorio" : "web"}`, () => {
-          const guardado = pref ? JSON.stringify({ lang: "es", theme: pref }) : null;
-          expect(correGuion({ guardado, sistemaOscuro, escritorio }).tema).toBe(temaEfectivo(pref, { sistemaOscuro, escritorio }));
+        it(`${guardado ?? "sin elegir"} · sistema ${sistemaOscuro ? "oscuro" : "claro"} · ${escritorio ? "escritorio" : "web"}`, () => {
+          const raw = guardado ? JSON.stringify({ lang: "es", theme: guardado }) : null;
+          const loQueGuardaElProveedor = temaEfectivo(preferenciaDeTemaGuardada(raw, { sistemaOscuro }), { escritorio });
+          expect(correGuion({ guardado: raw, sistemaOscuro, escritorio }).tema).toBe(loQueGuardaElProveedor);
         });
       }
     }
@@ -96,41 +110,40 @@ describe("el guion de antes de pintar hace lo mismo que temaEfectivo", () => {
   });
 });
 
-describe("el proveedor pinta con la misma regla y guarda lo ELEGIDO", () => {
+describe("el proveedor pinta con la misma regla y convierte «system» al leer", () => {
   const prefs = leer("src/lib/prefs.tsx");
 
-  it("el tema que se pinta sale de temaEfectivo con la elección y el sistema", () => {
-    expect(prefs).toContain("const theme = temaEfectivo(themeElegido, { sistemaOscuro: oscuroDelSistema, escritorio: enEscritorio() });");
+  it("el tema que se pinta sale de temaEfectivo con la elección", () => {
+    expect(prefs).toContain("const theme = temaEfectivo(themeElegido, { escritorio: enEscritorio() });");
     expect(prefs).toContain('document.documentElement.setAttribute("data-theme", theme);');
   });
 
-  it("guarda la elección (también «system»), no el tema resuelto", () => {
-    expect(prefs).toContain("localStorage.setItem(KEY, JSON.stringify({ lang, theme: themeElegido ?? theme }));");
+  it("al cargar, lee lo guardado con preferenciaDeTemaGuardada y lo que el sistema pinta AHORA", () => {
+    expect(prefs).toContain("const guardado = preferenciaDeTemaGuardada(raw, { sistemaOscuro: sistemaOscuro() });");
+    expect(prefs).toContain("if (guardado) setThemeElegido(guardado);");
   });
 
-  it("lee las tres opciones al cargar", () => {
-    expect(prefs).toContain("if (esPreferenciaDeTema(guardado)) setThemeElegido(guardado);");
+  it("guarda el tema que se pinta, que ya nunca es «system»", () => {
+    expect(prefs).toContain("localStorage.setItem(KEY, JSON.stringify({ lang, theme }));");
   });
 
-  it("con «system», escucha los cambios del sistema en vivo y deja de escuchar al cambiar", () => {
-    const efecto = prefs.slice(prefs.indexOf('if (themeElegido !== "system"'), prefs.indexOf("}, [themeElegido]);"));
-    expect(efecto).toContain("window.matchMedia(CONSULTA_OSCURO)");
-    expect(efecto).toContain('mq.addEventListener?.("change", cambia);');
-    expect(efecto).toContain('return () => mq.removeEventListener?.("change", cambia);');
+  it("ya no escucha al sistema en vivo ni ofrece «system»: sin addEventListener de matchMedia", () => {
+    expect(prefs).not.toContain('addEventListener?.("change"');
+    expect(prefs).not.toMatch(/themeElegido !== "system"/);
   });
 
   it("no pinta ni guarda NADA antes de leer lo guardado: si no, lo de arranque pisaba lo elegido", () => {
     // Medido en el navegador el 2026-10-07: abrir Time Tracker con «es/dark» guardado lo dejaba en
     // «en/light» (su HTML de servidor nunca coincide en español y React rehace el árbol justo entonces).
-    const persistir = prefs.slice(prefs.indexOf("// Apply + persist whenever they change."), prefs.indexOf("}, [cargado, lang, theme, themeElegido]);"));
+    const persistir = prefs.slice(prefs.indexOf("// Apply + persist whenever they change."), prefs.indexOf("}, [cargado, lang, theme]);"));
     expect(persistir).toMatch(/useEffect\(\(\) => \{\n[^\n]*\n\s*if \(!cargado\) return;\n\s*document\.documentElement\.setAttribute\("data-theme", theme\);/);
     const cargar = prefs.slice(prefs.indexOf("// Load saved prefs on mount."), prefs.indexOf("if (LOCAL_MODE) return;"));
     expect(cargar).toContain("setCargado(true);");
     expect(cargar.indexOf("setCargado(true);")).toBeGreaterThan(cargar.indexOf("setThemeElegido(guardado);"));
   });
 
-  it("al personalizador le da lo elegido; a todas las apps, el tema resuelto", () => {
-    expect(prefs).toContain("themePref: themeElegido ?? theme");
+  it("al personalizador le da el tema que se pinta, y elegir lo guarda tal cual", () => {
+    expect(prefs).not.toMatch(/themePref[:;]/);
     expect(prefs).toContain("const setTheme = useCallback((t: PreferenciaDeTema) => setThemeElegido(t), []);");
   });
 });
