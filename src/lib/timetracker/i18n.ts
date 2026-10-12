@@ -44,6 +44,14 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'tab.team-diary': '🗂 Team Diary',
     'tab.audit': '📜 Audit',
     'tab.settings': '⚙️ Settings',
+    // El botón de la barra del admin que recoge Registrar tiempo, Mi semana, Mis solicitudes, Mi diario y
+    // Ajustes (D-528). Con una de esas pantallas abierta dice su nombre, no esto (`claveDelRotulo`).
+    'tab.mine': '👤 Mine',
+    // El nombre CORTO de las pestañas del empleado, el que llevan en el teléfono para caber las tres en una fila
+    // (D-528, `claveCorta`). En inglés caben enteras; en español se acortan las dos largas.
+    'tab.corta.track': '⏱ Track Time',
+    'tab.corta.week': '📅 My Week',
+    'tab.corta.requests': '📝 My Requests',
     'shell.employee': 'Employee',
     'shell.signOut': 'Sign out',
     'shell.lightMode': 'Switch to light mode',
@@ -942,6 +950,10 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'tab.team-diary': '🗂 Diario del equipo',
     'tab.audit': '📜 Auditoría',
     'tab.settings': '⚙️ Ajustes',
+    'tab.mine': '👤 Mío',
+    'tab.corta.track': '⏱ Registrar',
+    'tab.corta.week': '📅 Mi semana',
+    'tab.corta.requests': '📝 Solicitudes',
     'shell.employee': 'Empleado',
     'shell.signOut': 'Cerrar sesión',
     'shell.lightMode': 'Cambiar a modo claro',

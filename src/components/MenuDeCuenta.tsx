@@ -63,7 +63,9 @@ export function MenuDeCuenta({
             {initials(nombre || "?")}
           </span>
         )}
-        {nombre} <span aria-hidden>▾</span>
+        {/* El nombre y el ▾ llevan clase para que una barra pueda dejar solo la burbuja en el teléfono: Time Tracker
+            lo hace (D-528) y esconde el nombre solo a la vista, para que un lector de pantalla lo siga diciendo. */}
+        <span className="menu-cuenta-nombre">{nombre}</span> <span aria-hidden className="menu-cuenta-flecha">▾</span>
       </button>
       {abierto && (
         <>

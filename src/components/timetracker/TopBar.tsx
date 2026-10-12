@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { pestanasPara } from "@/lib/timetracker/vista-empleado";
+import { usePathname, useRouter } from "next/navigation";
+import { barraDeTt, claveCorta, claveDelRotulo, esPestanaActiva, opcionesDelMenuMio } from "@/lib/timetracker/barra";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { OPCIONES_DEL_MENU_TT } from "@/lib/account-menu";
 import { BotonRecargar } from "@/components/BotonRecargar";
 import { HubHomeLink } from "@/components/HubHomeLink";
 import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
+import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 import { NotificationBell } from "@/components/timetracker/NotificationBell";
 import { TtCheckUpdateLink } from "@/components/timetracker/UpdateBanner";
 import { AvisoDeCapacitacion, useCapacitacion } from "@/components/timetracker/Capacitacion";
@@ -30,6 +31,10 @@ import type { UserRole } from "@/lib/types";
  * Lo que se fue: la pastilla «Employee»/«Manager», el ES/EN, el 🌙 (al personalizador del hub), el
  * «Sign out» suelto (al menú) y el selector de módulos ⇄ (como en Entregas: se cambia de app desde el
  * hub, y la casa sigue). Encima de la barra, pegado a ella, el aviso del modo capacitación mientras dure.
+ *
+ * Las pestañas del admin, desde D-528: las ocho de gestión en fila y, en lugar de Ajustes y sus cuatro personales
+ * sueltas, un solo «👤 Mío ▾» (`barraDeTt`, `lib/timetracker/barra.ts`). El dueño, el 2026-10-11: «ajustes, tegistrar
+ * tiempo mi semana mi solicitus y mi diaro que vayan en un solo boton dropdwow».
  */
 // deliveriesRole/moduleAccess threaded through separately from `me`
 // (timetracker's own Employee type, where `role` means timetracker_role) —
@@ -38,11 +43,13 @@ import type { UserRole } from "@/lib/types";
 // #1/#2 bug class).
 export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserRole; moduleAccess: string[] | null | undefined }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { me, settings, listLiveSessions, notify } = useData();
   const t = useT();
   const capacitacion = useCapacitacion();
-  // Admin: MANAGER_TABS. Empleado: TABS, ya sin «Mi diario» (D-489).
-  const tabs = pestanasPara(me.role);
+  // Empleado (y gerente): TABS en fila, ya sin «Mi diario» (D-489). Admin: las ocho de gestión de MANAGER_TABS en
+  // fila, y sus cuatro personales y Ajustes dentro de «👤 Mío ▾» (D-528).
+  const barra = barraDeTt(me.role, pathname);
 
   /**
    * Encender la práctica con el cronómetro corriendo de verdad no se deja: encenderla vuelve a montar
@@ -64,29 +71,37 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
     <div className="tt-cabecera">
       <AvisoDeCapacitacion />
       <div className="topbar">
-        {/* La casa va pegada al nombre de la app, como en Entregas (D-274). */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        {/* La casa va pegada al nombre de la app, como en Entregas (D-274).
+            En el teléfono (≤ 520 px, timetracker.css) la barra va en DOS filas (D-528): arriba el nombre de la app, la
+            casa, la campana y solo la burbuja con las iniciales; debajo, las pestañas. Para eso `.tt-barra-resto` deja
+            de ser una caja (`display: contents`) y sus piezas se colocan con `order`. En el escritorio, como estaba. */}
+        <div className="tt-marca">
           <div className="brand">{settings.appName || "TimeTracker"}</div>
           <HubHomeLink deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />
         </div>
-        <div className="row" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <div className="tabs">
-            {tabs.map((tb, i) => {
-              const active = tb.href === "/timetracker" ? pathname === "/timetracker" : pathname.startsWith(tb.href);
-              // For an admin, MANAGER_TABS packs 10 manager screens ahead of
-              // the 5 personal ones everyone gets — a thin divider marks
-              // where "manager tools" ends and "my own stuff" begins, so 15
-              // flat tabs don't read as one undifferentiated wall.
-              const startsPersonal = tb.id === "track" && i > 0;
-              return (
-                <span key={tb.id} style={{ display: "inline-flex", alignItems: "center" }}>
-                  {startsPersonal && <span style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,.15)", margin: "0 6px" }} />}
-                  <Link href={tb.href} className={active ? "active" : ""}>
-                    {t("tab." + tb.id)}
-                  </Link>
-                </span>
-              );
-            })}
+        <div className="row tt-barra-resto" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <div className={"tabs" + (barra.enUnaFila ? " tt-una-fila" : "")}>
+            {barra.fila.map((tb) => (
+              <Link key={tb.id} href={tb.href} className={esPestanaActiva(tb.href, pathname) ? "active" : ""}>
+                {barra.enUnaFila ? (
+                  // Los dos nombres; el CSS enseña el corto solo en el teléfono, donde las tres van en una fila.
+                  <>
+                    <span className="tt-nombre-largo">{t("tab." + tb.id)}</span>
+                    <span className="tt-nombre-corto">{t(claveCorta(tb.id))}</span>
+                  </>
+                ) : t("tab." + tb.id)}
+              </Link>
+            ))}
+            {/* «👤 Mío ▾» (D-528): Registrar tiempo, Mi semana, Mis solicitudes, Mi diario y Ajustes del admin,
+                en un solo desplegable —el `MenuDeAcciones` de la ficha (D-497) y de «Mis acciones» (D-517)—.
+                Ocupa el sitio de la raya que separaba las de gestión de las personales. Dentro de una de esas
+                pantallas dice su nombre y se resalta como la pestaña activa. Sin opciones no pinta nada: el
+                empleado y el gerente siguen con sus tres pestañas sueltas. */}
+            <MenuDeAcciones
+              rotulo={t(claveDelRotulo(barra))}
+              className={"tt-menu-mio" + (barra.activaDelMenu ? " active" : "")}
+              opciones={opcionesDelMenuMio(barra, t, (href) => router.push(href))}
+            />
           </div>
           <BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />
           <NotificationBell />

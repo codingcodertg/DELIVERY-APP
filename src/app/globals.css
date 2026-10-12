@@ -709,6 +709,9 @@ table.orders td.td-pastillas .sema {
 .menu-accion[aria-disabled="true"] { color: var(--gray); cursor: not-allowed; }
 .menu-accion[aria-disabled="true"]:hover { background: none; }
 .menu-acciones-raya { height: 1px; background: var(--line); margin: 4px 2px; }
+/* Cuando el menú lleva a pantallas («👤 Mío ▾» de Time Tracker, D-528), la de la pantalla abierta: en negrita y con
+   una raya de acento a la izquierda, que se ve igual en claro y en oscuro sin depender solo del color del texto. */
+.menu-accion-actual { font-weight: 700; box-shadow: inset 3px 0 0 var(--accent); }
 /* Las plantillas de ⚙ Columnas (D-394): el mismo bloque en Órdenes y en el Gestor. Arriba del todo, separado de las
    casillas por una raya; cada plantilla es una pastilla que se aplica con un clic, con su ✕ al lado. */
 .plantillas-cols { padding: 4px 4px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }

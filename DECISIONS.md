@@ -38383,6 +38383,10 @@ No visto en navegador: `tsc` y vitest.
 > «Fichajes de hoy» (la tabla se queda); el remoto conserva «Horas totales». (5) En la tarjeta de fichar, el empleado ya no
 > ve el contador que corre («0:00:00»): solo el título, la pastilla y los botones. El admin, como estaba.
 
+> **⚠ Reemplazada en parte por D-528** (2026-10-11): (1) «Mi diario» del admin sigue en `MANAGER_TABS`, pero ya no
+> es una pestaña suelta: va dentro de «👤 Mío ▾», con Registrar tiempo, Mi semana, Mis solicitudes y Ajustes. La
+> barra del empleado no cambia.
+
 **Fecha:** 2026-10-06 · **Versión:** timetracker 0.97.0, clockin 0.43.0, recruiting 0.38.1, deliveries 1.267.1, erp 0.14.1, repo 1.362.0 (toca `timetracker` sobre todo, y de paso
 `deliveries` y `recruiting` por la auditoría de botones, y una línea del ERP) · **Migración:** ninguna ·
 **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-067, D-069, D-116, D-125, D-129, D-136 y D-455, que llevan
@@ -38565,6 +38569,11 @@ a borde discontinuo y opacos.
 - El aviso de hidratación «Loading…/Cargando…» de la pantalla de fichar en español (D-455) sigue igual.
 
 ## D-490 · Time Tracker: la barra como la de Entregas (el nombre abre el menú; fuera el rol, el ES/EN, el 🌙 y el «Sign out» suelto), un modo capacitación para todos donde nada se guarda, y un solo «Personalizar» en el hub para el idioma y el tema de todas las apps
+
+> **⚠ Reemplazada en parte por D-528** (2026-10-11), a pedido del dueño: (1) en el teléfono (hasta 520 px) la barra
+> de Time Tracker va en dos filas. Arriba, el nombre de la app, la casa, la campana y, del nombre de la persona, solo la
+> burbuja con las iniciales: el nombre se esconde a la vista, no a un lector de pantalla. Abajo, las pestañas. La burbuja
+> abre el mismo menú. En el escritorio, como aquí se describe.
 
 **Fecha:** 2026-10-07 · **Versión:** timetracker 0.98.0, clockin 0.44.0, deliveries 1.268.0, recruiting 0.39.0, erp 0.15.0, repo 1.363.0 (toca `timetracker` sobre todo; `deliveries` por la
 barra, el hub y el proveedor de preferencias, que son compartidos; `recruiting` y `erp` por sus barras) · **Migración:**
@@ -40964,6 +40973,11 @@ Y, añadido el mismo día al mismo encargo:
 
 ## D-517 — Time Tracker: las acciones de fichar del admin, en «Mis acciones ▾»; y el empleado ya no ve correr su tiempo (ni el contador al fichar, ni «Horas totales» y «Hoy» en «Mi semana»)
 
+> **⚠ Reemplazada en parte por D-528** (2026-10-11), a pedido del dueño: el segundo candidato de «personal
+> actions» que aquí quedó «descrito y no hecho» —las pestañas personales de la barra del admin— se hizo. Ajustes,
+> Registrar tiempo, Mi semana, Mis solicitudes y Mi diario del admin van ahora en un solo «👤 Mío ▾» de la barra.
+> «Mis acciones ▾» de la tarjeta de fichar no cambia.
+
 **Fecha:** 2026-10-11 · **Versión:** timetracker 1.02.0, repo 1.387.0 (toca solo `timetracker`) · **Migración:** ninguna ·
 **Pedido por:** el dueño, en tres mensajes del mismo día · **Reemplaza en parte a** D-455 y D-489, que llevan su nota ·
 Rama `feat/clockin-acciones-admin`.
@@ -42097,3 +42111,283 @@ lo midió el navegador (arriba).
   contesta).
 - La campana del almacén de la tienda en el demo (su único almacenista es de otra tienda); la regla está probada aparte.
 - Modo oscuro.
+
+## D-528 — Time Tracker: la barra del admin con «👤 Mío ▾» (Ajustes, Registrar tiempo, Mi semana, Mis solicitudes y Mi diario); y en el teléfono, la barra en dos filas: arriba el nombre, la casa, la campana y solo la burbuja, y abajo las tres pestañas del empleado en una fila
+
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** timetracker 1.03.0, repo 1.393.0. Toca `timetracker`; y,
+sin cambio visible fuera de Time Tracker, tres piezas compartidas con Entregas y RR. HH.: `globals.css`, una propiedad
+opcional de `MenuDeAcciones` y dos clases en `MenuDeCuenta` · **Migración:** ninguna · Rama `feat/tt-barra-admin-menu` ·
+**Reemplaza en parte a** D-489, D-490 y D-517, que llevan su nota.
+
+### Qué pidió el dueño
+
+Tres pedidos del 2026-10-11, literales, sobre la misma barra:
+
+1. > «en el clock in app, ajustes, tegistrar tiempo mi semana mi solicitus y mi diaro que vayan en un solo boton dropdwow»
+2. > «those 3 things should be in the same row make it fit»
+
+   Con una captura de la vista móvil (unos 330 px de contenido) entrando como Carlos Fuentes, usuario normal: la barra
+   oscura «TimeTracker RTG 🏠», debajo «⏱ Track Time» (activa) y «📅 My Week», y «📝 My Requests» sola en otra fila.
+3. > «besited timetracker rtg house notifications and just CF bubble in the same row make it efficiently»
+
+   Con otra captura de la vista móvil, Carlos Fuentes en modo práctica: arriba «TimeTracker RTG 🏠»; abajo las
+   pestañas; y más abajo, en su propia fila, la campana «🔔 4» y «CF Carlos Fuentes ▾». Quiere en la primera fila, junto
+   al nombre de la app y la casa, la campana con su número y **solo** la burbuja «CF», sin el nombre; el menú de la
+   cuenta se sigue abriendo al tocarla. Debajo, las tres pestañas en una fila.
+
+Las descripciones de las capturas son del orquestador, que las vio; el worker no.
+
+**Cómo se leyeron.**
+
+- (1) «El clock in app» es Time Tracker: así la llama el dueño desde que la app de fichaje se fundió en ella (D-489,
+  D-517). Las cinco cosas que nombra son, en el mismo orden, las cinco últimas pestañas de la barra del **admin**:
+  «⚙️ Settings» y, tras una raya, «⏱ Track Time · 📅 My Week · 📝 My Requests · 🗂 My Diary». Es el segundo candidato que
+  D-517 dejó descrito y sin hacer («las pestañas personales de la barra del admin»).
+- (2) y (3) son la barra del **teléfono**. Se aplican en pantallas de hasta 520 px, que incluye los tres tamaños de la
+  vista móvil (360, 390 y 430). En el escritorio la barra no cambia.
+
+### Qué había (medido en el arnés, 2026-10-11)
+
+- **Admin:** trece pestañas en fila. Primero las ocho de gestión (Dashboard, Working Now, Payroll, Pending, Projects,
+  Assignments & Schedule, Employees, Audit), luego Settings, una raya y las cuatro personales. Detrás, 🔔 y el nombre.
+  - A 1280 px: la barra en 4 filas y 188 px de alto (el nombre de la app; 2 de pestañas; la campana y el nombre).
+  - A 390 px: 7 filas y 309 px en inglés; 8 filas y 346 px en español. A 330 px, 10 filas y 420 px.
+- **Empleado:** Track Time · My Week · My Requests.
+  - En el escritorio, 1 fila de 63 px.
+  - En el teléfono, de 330 a 390 px, 4 filas y 199 px, en los dos idiomas: el nombre de la app con la casa; dos pestañas;
+    la tercera sola; la campana y «EP Everto Prado ▾». A 430 px, 3 filas en inglés y 4 en español.
+
+### 1 · «👤 Mío ▾» del admin
+
+- **Admin.** Las ocho de gestión siguen en fila, igual que antes. En lugar de Settings, la raya y las cuatro personales
+  hay **un solo botón «👤 Mine ▾» / «👤 Mío ▾»**, al final de la fila, donde estaba la raya.
+  - Dentro, en este orden: ⏱ Registrar tiempo · 📅 Mi semana · 📝 Mis solicitudes · 🗂 Mi diario · ⚙️ Ajustes. Cada
+    opción lleva el mismo texto y la misma ruta que tenía su pestaña.
+  - **Dice dónde se está.** Dentro de una de esas cinco pantallas, el botón lleva su nombre («📅 My Week ▾») y el relleno
+    azul de la pestaña activa. Al abrirlo, esa opción sale en negrita, con una raya azul a la izquierda y con
+    `aria-current="page"`. En cualquier otra pantalla el botón dice «👤 Mine ▾» y no se resalta.
+- **Por qué «Mío / Mine». A validar con el dueño.**
+  - Cuatro de las cinco son «mi …»: lo que el admin hace para sí mismo, el mismo grupo que la raya ya separaba de la
+    gestión.
+  - Es corto: cabe en la fila a 390 px.
+  - La pega: Ajustes no es «mío», es de la empresa.
+  - Lo que se pensó y no se eligió:
+    - «⋯ Más / More»: encaja con todo, pero no dice qué hay dentro;
+    - «Personal»: en español, «el personal» es la plantilla;
+    - «Mi tiempo / My time»: deja fuera a Ajustes igual que «Mío».
+
+  Cambiarlo es una línea por idioma: `tab.mine` en `src/lib/timetracker/i18n.ts`.
+- **Por qué Ajustes va al final. También a validar.** En la barra iba antes que las personales porque cerraba las de
+  gestión. En un menú que se llama «Mío», lo de uno va primero y los ajustes al final, como en casi cualquier menú. El
+  dueño las nombró en el orden de la barra; si las quiere así, es cambiar el orden de `PESTANAS_DEL_MENU_MIO`.
+- **Es el menú que ya había, no otro.** Se usó `MenuDeAcciones`: el de la ficha de Entregas (D-497) y el de «Mis
+  acciones ▾» de fichar (D-517). Trae lo que se pedía sin escribir nada nuevo:
+  - `aria-haspopup="menu"`, `aria-expanded` y `aria-controls`;
+  - teclado: ↓/↑ sobre el botón lo abren con el foco en la primera o la última opción; dentro, ↓ ↑ Inicio Fin; Enter
+    elige; Escape y Tab lo cierran y el foco vuelve al botón;
+  - se cierra al elegir, al pulsar fuera y al desplazarse;
+  - opciones de 44 px de alto;
+  - colocado para no salirse de la ventana.
+
+  Se descartó `MenuDeCuenta`, el del nombre (D-490): su botón es el avatar con el nombre, y no tiene las flechas ni esa
+  colocación.
+- **Lo único que se le añadió a `MenuDeAcciones`:** una propiedad opcional `actual` en cada opción, que marca la pantalla
+  abierta (`aria-current="page"` y la clase `menu-accion-actual`). La ficha de Entregas y «Mis acciones» no la usan y no
+  cambian.
+- **Las opciones son botones que navegan** (`router.push`), como cualquier acción de ese menú. No son enlaces: Ctrl+clic
+  no abre la pantalla en otra pestaña. Se aceptó para no hacer otro menú.
+- **Empleado y gerente: sin menú.** Siguen con sus tres pestañas sueltas. El gerente cuenta como empleado
+  (`esAdminDeTt`, D-489), y ninguno de los dos tiene Ajustes ni Mi diario: no hay nada que recoger.
+- **Se quita la raya** que separaba la gestión de lo personal: ya no quedan pestañas personales sueltas.
+- **Cuándo se enciende una pestaña** se decide ahora en un solo sitio, `esPestanaActiva`, para la fila y para el menú.
+  - Es la regla de antes: «Registrar tiempo» (`/timetracker`) solo con la ruta exacta, y las demás con su ruta o una
+    subruta.
+  - Con un arreglo: cuenta por tramos enteros. `/timetracker/requests` ya no encendería una ruta como
+    `/timetracker/requests-viejo`.
+  - Con las rutas que existen hoy da lo mismo que antes.
+- **`MANAGER_TABS` y `pestanasPara` no cambian.** Siguen siendo la lista de todas las pantallas del admin; `barraDeTt`
+  las reparte entre la fila y el menú.
+
+### 2 · En el teléfono, las tres pestañas del empleado en una fila
+
+- **Cuánto miden.** Con la letra de la barra (13 px), «⏱ Track Time · 📅 My Week · 📝 My Requests» ocupan 252 px de
+  texto; «⏱ Registrar tiempo · 📅 Mi semana · 📝 Mis solicitudes», 307. Cada pestaña lleva además 24 px de relleno.
+  - En un teléfono de 390 px a la fila le quedaban 326 px. En el de 360, 296.
+  - Dentro de la vista móvil, Windows pone su barra de desplazamiento y quita unos 15 px más: el marco de 390 deja 375 y
+    el de 360 deja 345. Por eso se midió también a 330, 345 y 375.
+- **Qué se decidió**, solo para las pestañas sueltas del empleado y del gerente (`barraDeTt(...).enUnaFila`):
+  - las tres en **una sola fila que no se parte**, repartiéndose el ancho entero, con el texto centrado;
+  - letra de 12 px y menos relleno a los lados (6 px en vez de 12);
+  - un **nombre corto** (`claveCorta`, claves `tab.corta.*`). En inglés es el mismo, porque cabe entero hasta en 330 px:
+    «⏱ Track Time · 📅 My Week · 📝 My Requests». En español se acortan los dos largos: «⏱ Registrar · 📅 Mi semana ·
+    📝 Solicitudes». Enteros, en español necesitan 324 px a 12 px, y en un teléfono de 360 px hay 312;
+  - y por si un nombre de la app o un ancho más raro no dejara sitio: cada pestaña se corta con «…» antes que partirse en
+    dos filas o salirse por el lado. En las medidas no se cortó ninguna.
+- **En el escritorio**, el nombre de siempre («⏱ Registrar tiempo», «📝 Mis solicitudes»). La barra pinta los dos nombres
+  y el CSS enseña uno u otro.
+- **El admin no**: sus ocho pestañas y su botón siguen partiéndose en filas, con su nombre entero.
+
+### 3 · En el teléfono, arriba: el nombre de la app, la casa, la campana y solo la burbuja
+
+- **La barra queda en dos filas.**
+  - Arriba, el nombre de la app (`settings.appName`), la 🏠, la 🔔 con su número y la burbuja con las iniciales.
+  - Abajo, las pestañas.
+
+  Para el empleado: de 4 filas a 2. Para el admin: la campana y la burbuja ya no ocupan una fila propia al final.
+- **De la cuenta, solo la burbuja.** El nombre se esconde a la vista, pero no a un lector de pantalla, que sigue diciendo
+  «Carlos Fuentes». El ▾ se quita. La burbuja abre el mismo menú de siempre: Modo capacitación · Mi cuenta · Personalizar
+  · Cerrar sesión.
+- **Para que quepa en 330 px con «9+» avisos**, en el teléfono:
+  - el nombre de la app va a 14 px, y se corta con «…» antes que empujar la campana a otra fila;
+  - la casa a 20 px;
+  - menos aire en la campana, en su número y entre las piezas;
+  - el relleno de la barra baja a 10/12 px, como el de Entregas en el teléfono.
+- **El panel de la campana**, en el teléfono, cuelga a lo ancho de la cabecera, justo debajo. Colgado del borde derecho de
+  la campana, como en el escritorio, ahora que la campana está en la esquina medía 320 px y se salía por la izquierda. En
+  el escritorio cuelga de la campana, como antes. Ese sitio estaba escrito en línea en `NotificationBell`; pasa al CSS
+  (`.tt-campana`, `.tt-campana-panel`) para poder cambiarlo en el teléfono.
+- **Cómo, sin duplicar la barra.** El orden de las piezas en la página no cambia. En el teléfono, la caja que agrupaba
+  pestañas, campana y cuenta (`.tt-barra-resto`) deja de ser una caja (`display: contents`). La campana y la burbuja
+  suben junto al nombre, que ocupa el sitio libre y las empuja a la derecha. Las pestañas bajan a su fila con `order`.
+- **`MenuDeCuenta`** (compartido con Entregas y RR. HH.) solo gana dos clases: `menu-cuenta-nombre` en el nombre y
+  `menu-cuenta-flecha` en el ▾. Solo Time Tracker les pone estilo.
+
+### Ficheros
+
+- **Nuevos:**
+  - `src/lib/timetracker/barra.ts`, sin React: `PESTANAS_DEL_MENU_MIO`, `barraDeTt` (con `enUnaFila`), `claveDelRotulo`,
+    `opcionesDelMenuMio`, `esPestanaActiva` y `claveCorta`;
+  - `src/lib/timetracker/barra.test.ts`.
+- **Cambiados:**
+  - `src/components/timetracker/TopBar.tsx`;
+  - `src/components/MenuDeAcciones.tsx`: la propiedad `actual`;
+  - `src/components/MenuDeCuenta.tsx`: las dos clases;
+  - `src/components/timetracker/NotificationBell.tsx`: el sitio del panel, al CSS;
+  - `src/app/timetracker/timetracker.css`:
+    - el botón «👤 Mío ▾» como una pestaña de la barra: cerrado, gris claro y sin borde; abierto, blanco sobre fondo
+      translúcido; con una de sus pantallas abierta, el azul de la pestaña activa;
+    - `.tt-marca` y la campana, que estaban en línea;
+    - el bloque del teléfono (`@media(max-width:520px)`);
+  - `src/app/globals.css`: `.menu-accion-actual`;
+  - `src/lib/timetracker/i18n.ts`: `tab.mine` y `tab.corta.*`, en inglés y en español;
+  - `src/lib/timetracker/constants.ts`: solo un comentario.
+- **Pruebas ajustadas**, con su «Nota D-528»: `barra-tt.test.ts` y `vista-empleado.test.ts`. Esperaban
+  `const tabs = pestanasPara(me.role);` en la barra; ahora la barra llama a `barraDeTt`, y `barraDeTt` llama a
+  `pestanasPara`.
+
+### Pruebas y mutantes
+
+`barra.test.ts` tiene 30 pruebas:
+
+- qué va a la fila y qué al menú según el rol: admin, empleado, gerente y rol vacío;
+- que no se pierde ni se repite ninguna pantalla;
+- cuál está activa en cada ruta, y qué dice el botón;
+- que «Pendientes» no enciende «Mis solicitudes»;
+- las opciones: su texto, la actual y a dónde lleva cada una;
+- lo que se pinta de verdad (`renderToStaticMarkup`): cinco `menuitem`, un solo `aria-current`, sin raya; el botón
+  cerrado, con `aria-expanded="false"`; y la burbuja de `MenuDeCuenta`, con el nombre y el ▾ en sus clases;
+- quién lleva sus pestañas en una fila, y los nombres cortos en los dos idiomas;
+- leyendo el fuente, que `TopBar`, `NotificationBell` y el CSS del teléfono usan cada pieza.
+
+**Mutantes: 51 de 51 caen** con una prueba con nombre (la tanda está en el scratchpad del worker,
+`tt-barra-admin/tanda-todo.json`). Ejemplos, mutante → prueba que lo tumba:
+
+- «el gerente también recibe el menú» → *el gerente y un rol vacío ven lo del empleado*;
+- «Ajustes se queda en la fila» y «Ajustes primero en el menú» → *admin: las ocho de gestión en fila…*;
+- «las del menú siguen también en la fila» → *no se pierde ni se repite ninguna pantalla*;
+- «Registrar tiempo encendida en todas las pantallas» → *«Registrar tiempo» es la raíz: solo exacta…*;
+- «el botón siempre dice "Mío", también dentro de Mi semana» → *en cada pantalla del menú, el menú sabe que es esa (y el
+  botón la nombra)*;
+- «todas las opciones marcadas como actuales» y «la opción actual sin `aria-current`» → *pintadas: cinco `menuitem`, la
+  actual con `aria-current="page"`…*;
+- «todas las opciones llevan a la primera pantalla» → *pulsar una lleva a SU pantalla*;
+- «la barra vuelve a pintar todas las pestañas en fila», «el botón no se resalta dentro de sus pantallas» y «el menú sin
+  opciones» → *el desplegable es `MenuDeAcciones`, dentro de la fila…*;
+- «el empleado no lleva sus pestañas en una fila» y «el admin también» → *el empleado y el gerente las llevan en una
+  fila; el admin no*;
+- «el nombre corto en español es el largo» → *el nombre corto: en inglés el mismo (cabe), en español se acortan los dos
+  largos*;
+- «las tres pestañas se vuelven a partir» y «las pestañas del teléfono con la letra y el relleno de siempre» → *en el
+  teléfono: una sola fila que se reparte el ancho…*;
+- «la campana y la cuenta no suben a la fila del nombre» → *la campana y la cuenta suben a la fila del nombre; las
+  pestañas bajan a la suya*;
+- «el nombre se esconde también al lector de pantalla» → *de la cuenta, solo la burbuja: el nombre se esconde a la vista
+  (no a un lector de pantalla)…*;
+- «en el teléfono el panel de la campana vuelve a colgar de la campana» → *el panel de la campana: en el escritorio cuelga
+  de la campana, como antes; en el teléfono, a lo ancho de la cabecera*.
+
+`node scripts/verify.mjs` en verde (tsc, vitest y build) sobre origin/main con D-527.
+
+### Visto en el navegador (2026-10-11)
+
+Time Tracker no tiene demo. Se usó el arnés temporal de D-517, no commiteado: con `ARNES_TT=1`, dobles en memoria del
+cliente de servidor, del proveedor de datos y de los avisos, con el rol, el tipo y el número de avisos en cookies.
+Chrome por CDP, con clics de ratón sobre el elemento a la vista y teclas de verdad. Las capturas de antes y después están
+en el scratchpad del worker, `tt-barra-admin/tiros/`. La vista móvil se midió como lo que es para la página, una ventana
+de ese ancho: a 330, 345, 360, 375, 390 y 430 px. El marco en sí (`/home/vista-movil`) no se abrió: pide la sesión del
+hub.
+
+**La barra, antes y después** (alto en px y filas; antes sin avisos, después con 4):
+
+| | antes | después |
+|---|---|---|
+| Empleado, 330–390 px, inglés y español | 199 px, 4 filas | 99 px, 2 filas |
+| Empleado, 430 px | 162 / 199 px, 3 / 4 filas (en / es) | 99 px, 2 filas |
+| Empleado, 1280 px | 63 px, 1 fila | 63 px, 1 fila (igual) |
+| Admin, 390 px, inglés | 309 px, 7 filas | 211 px, 5 filas |
+| Admin, 330 px, español | 420 px, 10 filas | 284 px, 7 filas |
+| Admin, 1280 px | 188 px, 4 filas | 151 px, 3 filas |
+
+- **Ningún desborde lateral** en ninguna de las 28 medidas: 2 roles × 2 idiomas × 7 anchos.
+- **Ninguna pestaña cortada.**
+- **Las pestañas del empleado a 330 px** (la fila va de x = 24 a x = 306):
+  - en inglés, «⏱ Track Time» 24–112, «📅 My Week» 114–200 y «📝 My Requests» 202–306;
+  - en español, «⏱ Registrar» 24–106, «📅 Mi semana» 108–206 y «📝 Solicitudes» 208–306.
+- **El nombre de la app** sale entero de 330 a 430 px, también con «9+» avisos. Ese es el caso justo: a 330 px «RTG Time
+  Tracker» necesita 127 px y tiene 127; «TimeTracker RTG», el nombre de la captura, 123 de 123. Con un nombre más largo,
+  se cortaría con «…».
+- **La burbuja** mide 40 px. Tocarla abre el menú: `aria-expanded="true"`, y el menú ocupa de x = 156 a x = 366 a 390 px
+  y de x = 96 a x = 306 a 330 px, dentro de la ventana.
+- **La campana** con 4 avisos: su panel ocupa de x = 24 a x = 366 a 390 px y de x = 24 a x = 306 a 330 px, debajo de la
+  barra. En el escritorio cuelga de la campana como antes (x = 687 a 1007 a 1280 px).
+- **Tocar «My Week»** en el teléfono → `/timetracker/week`, y la pestaña queda encendida.
+- **En modo capacitación** (español, 330 px): el aviso violeta encima, la barra de 99 px, sin desborde.
+- **«👤 Mine ▾» del admin**, a 390 px y abierto con un clic en el Panel:
+  - el botón pasa a `aria-expanded="true"`;
+  - el menú ocupa de x = 8 a x = 268, debajo de la barra;
+  - cinco opciones de 44 px.
+- **Elegir en «👤 Mine ▾»:**
+  - «My Week» → `/timetracker/week`, el menú se cierra y el botón dice «📅 My Week ▾», en azul;
+  - abierto de nuevo, «My Week» sale marcada como la actual;
+  - «Settings», «Track Time», «My Diary» y «My Requests» llevan cada una a su ruta, y el botón toma su nombre;
+  - «Payroll», en la fila, devuelve el botón a «👤 Mine ▾» sin resaltar.
+- **Pulsar fuera** lo cierra.
+- **Teclado:**
+  - con el foco en el botón, ↓ lo abre con el foco en «Track Time»;
+  - Escape lo cierra y el foco vuelve al botón;
+  - ↑ lo abre en «Settings»;
+  - Inicio, ↓ ↓ y Enter → `/timetracker/requests`, con el foco de vuelta en el botón.
+- **En español** (1280, en «Mis solicitudes»): el botón dice «📝 Mis solicitudes ▾». El menú: «⏱ Registrar tiempo · 📅
+  Mi semana · 📝 Mis solicitudes (actual) · 🗂 Mi diario · ⚙️ Ajustes», de x = 16 a x = 276.
+- **Modo oscuro** (390): el menú sale con el fondo y el texto del tema oscuro.
+- **La consola.** En inglés, sin errores. En español, un único error: la hidratación del diccionario de Time Tracker, que
+  ya anotaron D-490 y D-517. Sale igual con el menú y sin él.
+
+### No verificado
+
+- **Nada contra la base de verdad ni en un teléfono de verdad.** Las pantallas se cargaron con dobles (el arnés), y el
+  teléfono se imitó con el ancho de la ventana de Chrome. Las fuentes de iOS y Android no son las de Windows: los anchos
+  pueden variar unos píxeles. Para eso está el «…» de las pestañas y del nombre de la app.
+- **El marco de la vista móvil** en sí: pide la sesión del hub, que el arnés no tiene.
+- **Un lector de pantalla de verdad.** Lo que lee se comprobó en el DOM (`aria-*`, `role`, el nombre escondido solo a la
+  vista), no con un lector.
+- **La precarga.** Las pestañas (`Link`) precargan su pantalla en producción; las opciones de «👤 Mío ▾» navegan con
+  `router.push` y no precargan. La primera vez que se entra desde el menú puede tardar algo más. No se midió.
+- **El gerente**, en el navegador. Se apoya en `esAdminDeTt`, que está probado en vitest.
+- **La app de escritorio**: su ⟳ y su «Buscar actualizaciones» solo salen en ella, y en el teléfono no existen.
+
+### A validar con el dueño
+
+- El nombre del botón: «👤 Mío / Mine». La alternativa más clara es «⋯ Más / More».
+- Ajustes al final del menú, o primero, como en la barra.
+- Los nombres cortos en español en el teléfono: «⏱ Registrar · 📅 Mi semana · 📝 Solicitudes».
