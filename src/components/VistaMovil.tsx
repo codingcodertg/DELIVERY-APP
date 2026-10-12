@@ -14,7 +14,7 @@ import { TAMANOS_MOVIL, enlaceAVistaMovil, rutaParaElMarco } from "@/lib/mobile-
  * carga de datos y otros canales en vivo mientras está abierta, «ver como» e idioma compartidos con la
  * pestaña de fuera, y los avisos de versión y las notificaciones push por duplicado.
  */
-export function VistaMovil({ rutaInicial, anchoInicial }: { rutaInicial: string; anchoInicial: number }) {
+export function VistaMovil({ rutaInicial, rutaDeInicio = "/", anchoInicial }: { rutaInicial: string; rutaDeInicio?: string; anchoInicial: number }) {
   const { t } = usePrefs();
   const router = useRouter();
   const marco = useRef<HTMLIFrameElement>(null);
@@ -26,7 +26,8 @@ export function VistaMovil({ rutaInicial, anchoInicial }: { rutaInicial: string;
   const tamano = TAMANOS_MOVIL.find((x) => x.ancho === ancho) ?? TAMANOS_MOVIL[1];
 
   const ir = (nuevaRuta: string, nuevoAncho = ancho) => {
-    const segura = rutaParaElMarco(nuevaRuta);
+    // Un campo vacío o una ruta que no vale abren la pantalla de inicio del rol, no siempre la portada (D-NEXT).
+    const segura = rutaParaElMarco(nuevaRuta, rutaDeInicio);
     setRuta(segura);
     setCampo(segura);
     setAncho(nuevoAncho);

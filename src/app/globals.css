@@ -1433,6 +1433,11 @@ table.orders th { text-align: left; }
   box-sizing: content-box; flex: 0 0 auto;
   border: 10px solid var(--ink); border-radius: 28px; background: var(--card);
 }
+/* El botón de vista del aviso amarillo de «Entrar como» (D-NEXT): en un ancho de teléfono —y dentro del marco
+   de arriba, que mide 360, 390 o 430— solo el icono, 📱 o 🖥; el nombre va en `aria-label` y `title`. Con el
+   texto, el aviso pasaba de dos filas a tres: medido a 390 px en inglés, de 71 a 113 px de alto (D-483 pidió
+   que ocupe poco). */
+@media (max-width: 640px) { .aviso-vista-texto { display: none; } }
 
 /* The document number an order's type asks for (invoice, PO or estimate), highlighted at the top
    of the order view (D-278, más discreto en D-294: el dueño pidió resaltarlo, no agrandarlo). Tokens only, so it follows the theme; `user-select: all` so one click

@@ -206,3 +206,24 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     </Ctx.Provider>
   );
 }
+
+/**
+ * Unas preferencias con el idioma PUESTO, que no leen ni guardan nada (D-NEXT).
+ *
+ * Para lo que vive fuera de `PrefsProvider` y tiene que hablar en un idioma que no es el de la sesión: el
+ * panel de «⇄ Cambiar usuario» que se abre desde el aviso amarillo de «Entrar como». Ahí la sesión es la de
+ * la otra persona, y un `PrefsProvider` cargaría SU idioma de `profiles.language` —y además lo copiaría a
+ * `localStorage` y a `<html lang>`—; el aviso, en cambio, habla el del admin que entró. Este no escribe en
+ * ningún sitio: elegir idioma desde aquí no hace nada, que para eso está «Personalizar» (D-490).
+ */
+export function PrefsConIdioma({ lang, children }: { lang: Lang; children: React.ReactNode }) {
+  const theme: Theme =
+    typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  const nada = useCallback(() => {}, []);
+  const t = useCallback((en: string, es: string) => (lang === "es" ? es : en), [lang]);
+  return (
+    <Ctx.Provider value={{ lang, theme, themePref: theme, setLang: nada, setTheme: nada, toggleLang: nada, t }}>
+      {children}
+    </Ctx.Provider>
+  );
+}
