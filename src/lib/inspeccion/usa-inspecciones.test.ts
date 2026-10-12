@@ -5,7 +5,7 @@ import { useInspecciones } from "./usa-inspecciones";
 import type { InspeccionNueva } from "./reglas";
 
 /**
- * El gancho de la inspección pre-viaje (D-NEXT) decide DÓNDE se escribe. En el modo práctica (`teaching`) nada sale del
+ * El gancho de la inspección pre-viaje (D-518) decide DÓNDE se escribe. En el modo práctica (`teaching`) nada sale del
  * navegador: ni la inspección ni la corrección de un defecto llegan a la base.
  */
 

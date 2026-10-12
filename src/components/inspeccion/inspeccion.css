@@ -1,4 +1,4 @@
-/* Inspección pre-viaje (D-NEXT). Pensada para el teléfono: botones grandes, una columna, secciones plegables.
+/* Inspección pre-viaje (D-518). Pensada para el teléfono: botones grandes, una columna, secciones plegables.
    Solo tokens del tema (var(--…)): se ve igual en claro y en oscuro. Todo lleva el prefijo `insp-`. */
 
 .insp-progreso {

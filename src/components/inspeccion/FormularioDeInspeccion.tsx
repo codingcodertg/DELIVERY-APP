@@ -18,7 +18,7 @@ import { useInspecciones, useVehiculos } from "@/lib/inspeccion/usa-inspecciones
 import { fmtDate, todayISO } from "@/lib/utils";
 
 /**
- * La inspección pre-viaje del chofer (D-NEXT): vehículo y cuentakilómetros, la lista por zonas del camión con
+ * La inspección pre-viaje del chofer (D-518): vehículo y cuentakilómetros, la lista por zonas del camión con
  * OK / Defecto / No aplica, la foto y la nota de cada defecto, y la firma. Una por chofer, por día y por vehículo:
  * hecha, se ve hecha con su hora. Qué cuenta, qué falta y si es seguro salir lo decide `lib/inspeccion/reglas.ts`.
  */

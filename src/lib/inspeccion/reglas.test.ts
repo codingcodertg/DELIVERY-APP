@@ -9,7 +9,7 @@ import {
 } from "./reglas";
 
 /**
- * La inspección pre-viaje (D-NEXT). El dueño, 2026-10-11: «AGREGA UN NUEVO VIEW QUE SE LLAMARA PRE TRIP INSPECTION
+ * La inspección pre-viaje (D-518). El dueño, 2026-10-11: «AGREGA UN NUEVO VIEW QUE SE LLAMARA PRE TRIP INSPECTION
  * CHECKLIST Y INVESTIGAME ALGO PARA HACER UN FIRST DRAFT».
  */
 

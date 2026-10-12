@@ -8,7 +8,7 @@ import { useInspecciones } from "@/lib/inspeccion/usa-inspecciones";
 import { todayISO } from "@/lib/utils";
 
 /**
- * «Haz tu inspección pre-viaje» al principio de «Mi ruta» (D-NEXT), mientras hoy no haya ninguna. **Avisa, no
+ * «Haz tu inspección pre-viaje» al principio de «Mi ruta» (D-518), mientras hoy no haya ninguna. **Avisa, no
  * bloquea**: la ruta se ve y se trabaja igual. Cuándo sale lo decide `debeAvisar` (sin la migración 165, no sale).
  */
 export function AvisoDeInspeccion() {

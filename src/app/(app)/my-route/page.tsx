@@ -206,7 +206,7 @@ export default function MyRoutePage() {
         <h2>🧭 {t("My route", "Mi ruta")}</h2>
         <span className="hint">{fmtDate(dia)}</span>
       </div>
-      {/* D-NEXT: «Haz tu inspección pre-viaje» mientras hoy no haya una. Avisa, no bloquea. Solo en su propia ruta. */}
+      {/* D-518: «Haz tu inspección pre-viaje» mientras hoy no haya una. Avisa, no bloquea. Solo en su propia ruta. */}
       {!ajeno && <AvisoDeInspeccion />}
       <div className="viewtoggle" data-dia-de-mi-ruta style={{ marginBottom: 8 }}>
         {([[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]] as const).map(([d, rotulo]) => (

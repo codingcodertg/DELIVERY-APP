@@ -41132,10 +41132,9 @@ están en el scratchpad del worker, `clockin-admin/tiros/`.
   «Tiempo» de «Fichajes de hoy» y la línea del almuerzo también deben irse; y si el panel de viajes del admin también
   debe recogerse.
 
-## D-NEXT — «Inspección pre-viaje» (Pre-trip inspection checklist): primer borrador para el chofer, la lista del día para logística, y la tabla `vehicle_inspections` escrita y sin aplicar (165)
+## D-518 — «Inspección pre-viaje» (Pre-trip inspection checklist): primer borrador para el chofer, la lista del día para logística, y la tabla `vehicle_inspections` escrita y sin aplicar (165)
 
-**Fecha:** 2026-10-11 · **Estado:** Borrador (primer draft, pendiente de que el dueño lo vea) · **Versión:** la asigna el
-orquestador al fusionar (toca `deliveries`) · **Migración:** `165_inspeccion_pre_viaje.sql`, **escrita y NO aplicada**
+**Fecha:** 2026-10-11 · **Estado:** Borrador (primer draft, pendiente de que el dueño lo vea) · **Versión:** deliveries 1.285.0, repo 1.388.0 (toca `deliveries`) · **Migración:** `165_inspeccion_pre_viaje.sql`, **escrita y NO aplicada**
 (plan: `docs/PLAN-165-inspeccion-pre-viaje.md`) · **Pedido por:** el dueño.
 
 ### Qué pidió el dueño

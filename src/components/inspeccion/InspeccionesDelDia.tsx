@@ -16,7 +16,7 @@ import { useInspecciones } from "@/lib/inspeccion/usa-inspecciones";
 import { shiftDateISO, todayISO } from "@/lib/utils";
 
 /**
- * Las inspecciones pre-viaje del día, para logística y el admin (D-NEXT): quién, con qué vehículo, a qué hora, si es
+ * Las inspecciones pre-viaje del día, para logística y el admin (D-518): quién, con qué vehículo, a qué hora, si es
  * seguro salir, y cada defecto con su foto. Lo que pide acción va arriba (`ordenParaLogistica`); un defecto abierto se
  * marca «corregido» aquí. Y quién tiene ruta ese día y aún no inspeccionó.
  */

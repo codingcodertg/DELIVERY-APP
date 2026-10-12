@@ -1,5 +1,5 @@
 /**
- * La lista de la inspección pre-viaje (D-NEXT). **Es el único sitio donde vive**: la pantalla del chofer, la de
+ * La lista de la inspección pre-viaje (D-518). **Es el único sitio donde vive**: la pantalla del chofer, la de
  * logística, el progreso y la regla de «seguro para salir» la leen de aquí. Para cambiar un punto, se cambia aquí.
  *
  * El dueño (2026-10-11): «AGREGA UN NUEVO VIEW QUE SE LLAMARA PRE TRIP INSPECTION CHECKLIST Y INVESTIGAME ALGO PARA HACER

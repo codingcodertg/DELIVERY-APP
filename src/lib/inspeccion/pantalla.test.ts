@@ -16,7 +16,7 @@ import { ROLES_QUE_REVISAN, claveDeVehiculo, ordenParaLogistica, type Inspeccion
 import type { UserRole } from "@/lib/types";
 
 /**
- * Las pantallas de la inspección pre-viaje (D-NEXT) USAN las reglas de `reglas.ts`: se renderizan con los datos que les
+ * Las pantallas de la inspección pre-viaje (D-518) USAN las reglas de `reglas.ts`: se renderizan con los datos que les
  * daría el gancho y se mira lo que pintan. Y la migración 165 dice lo mismo que el código (roles, nombres, la clave de
  * «una por día»).
  */
@@ -307,7 +307,7 @@ describe("la migración de la inspección (165) dice lo mismo que el código", (
   it("sin UPDATE ni DELETE para nadie; sin el número de la decisión dentro", () => {
     expect(desnudo).toContain("grant select, insert on public.vehicle_inspections to authenticated;");
     expect(desnudo).not.toMatch(/grant[^;]*(update|delete)[^;]*vehicle_inspections/i);
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-518");
   });
 
   it("pasa los guardas de aplica-migracion (sin transacción propia, checksum del cuerpo)", async () => {

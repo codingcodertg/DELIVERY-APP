@@ -8,7 +8,7 @@ import { FormularioDeInspeccion } from "@/components/inspeccion/FormularioDeInsp
 import { InspeccionesDelDia } from "@/components/inspeccion/InspeccionesDelDia";
 
 // ============================================================
-// «Pre-trip inspection checklist» / «Inspección pre-viaje» (D-NEXT).
+// «Pre-trip inspection checklist» / «Inspección pre-viaje» (D-518).
 //
 // El dueño, 2026-10-11: «AGREGA UN NUEVO VIEW QUE SE LLAMARA PRE TRIP INSPECTION CHECKLIST Y INVESTIGAME ALGO PARA
 // HACER UN FIRST DRAFT».

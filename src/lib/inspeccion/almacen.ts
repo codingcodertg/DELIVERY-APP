@@ -1,7 +1,7 @@
 import { claveDeVehiculo, etiquetaDeVehiculo, type EstadoDeLectura, type Inspeccion, type InspeccionNueva, type Reparaciones } from "@/lib/inspeccion/reglas";
 
 /**
- * Dónde viven las inspecciones pre-viaje (D-NEXT). Todo lo que lee o escribe una pasa por aquí; la pantalla no sabe
+ * Dónde viven las inspecciones pre-viaje (D-518). Todo lo que lee o escribe una pasa por aquí; la pantalla no sabe
  * dónde están.
  *
  *   · **En la base**: `public.vehicle_inspections` (migración 165). El chofer inserta y lee las suyas; logística y el

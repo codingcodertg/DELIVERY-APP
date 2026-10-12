@@ -2,7 +2,7 @@ import { BUSINESS_TZ } from "@/lib/utils";
 import { PUNTOS, SECCIONES, VERSION_DE_LA_LISTA, puntoPorId, type Punto, type Seccion } from "@/lib/inspeccion/puntos";
 
 /**
- * Las reglas de la inspección pre-viaje (D-NEXT), sin React y sin base: qué cuenta como contestado, cuándo el camión
+ * Las reglas de la inspección pre-viaje (D-518), sin React y sin base: qué cuenta como contestado, cuándo el camión
  * es «seguro para salir», qué falta para enviarla, «una por chofer, por día y por vehículo», y cómo se ordena la lista
  * de logística. La pantalla del chofer, la de logística y el aviso de «Mi ruta» preguntan aquí; no deciden nada solos.
  */

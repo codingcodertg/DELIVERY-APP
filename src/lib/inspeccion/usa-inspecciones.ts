@@ -16,7 +16,7 @@ const navegador = () => (typeof window === "undefined" ? null : window.localStor
 const cliente = () => createClient() as unknown as ClienteDeInspecciones;
 
 /**
- * Las inspecciones de un día (D-NEXT): las de `choferId`, o todas con `null` (logística y admin; la RLS decide qué
+ * Las inspecciones de un día (D-518): las de `choferId`, o todas con `null` (logística y admin; la RLS decide qué
  * llega de verdad). En el demo y en el modo práctica, las de este navegador (`almacen.ts`).
  *
  * Se relee al volver a la pestaña: logística deja la lista abierta mientras los choferes salen.
