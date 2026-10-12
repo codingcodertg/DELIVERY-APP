@@ -17,7 +17,7 @@ const MAX_DIM = 1280;
 const QUALITY = 0.7;
 
 /** Downscale + compress an image file to a JPEG data: URL. */
-function compress(file: File): Promise<string> {
+export function compress(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("read failed"));

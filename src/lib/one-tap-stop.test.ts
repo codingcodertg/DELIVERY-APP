@@ -137,37 +137,29 @@ describe("lo que se escribe al recoger: una sola construcción para las dos vía
   });
 });
 
-describe("las dos pantallas usan el módulo, y el botón no dispara dos veces", () => {
+// **Nota D-NEXT (2026-10-11):** aquí había cuatro pruebas de «Mi ruta» que fijaban D-218 —el botón verde de «Siguiente
+// parada» ejecutaba la acción de un toque, su etiqueta salía de `accionParada`, se apagaba con `guardando` y adjuntaba el GPS
+// tardío—. El dueño lo cambió: «when i press the pickup in the driver view the order should also popo up as in the delivery
+// part» y «when you pres deliverd it should open the camera». «Mi ruta» ya no cierra paradas: abre la ficha en su paso (y la
+// cámara al entregar), y la escritura —con su GPS sin bloquear— es la de la ficha, que sigue usando este módulo. Lo nuevo lo
+// prueban `mi-ruta-pantalla.test.ts` y `recogida-del-chofer.test.ts`. `accionParada` y `extraEntrega` siguen aquí probadas
+// porque siguen exportadas; hoy no las llama ninguna pantalla.
+describe("la ficha usa el módulo; «Mi ruta» ya no cierra la parada por su cuenta (D-NEXT)", () => {
   const ruta = leer("src/app/(app)/my-route/page.tsx");
   const modal = leer("src/components/OrderModal.tsx");
 
-  it("Mi ruta: el botón ejecuta la acción, ya no abre la ficha sin más", () => {
-    expect(ruta).toMatch(/onClick=\{\(\) => void cerrarParada\(next\)\}/);
-    expect(ruta).not.toMatch(/next\.stage === "ready" \? `🚚/);
+  it("Mi ruta: ni escritura de la recogida, ni de la entrega, ni GPS: solo abre la ficha (y la cámara)", () => {
+    expect(ruta).not.toContain("escrituraRecogida");
+    expect(ruta).not.toContain("extraEntrega");
+    expect(ruta).not.toContain("captureLocationSplit");
+    expect(ruta).toMatch(/abrirOrden\(d, accion\);/);
   });
-  it("la etiqueta sale de la misma decisión que la acción", () => {
-    expect(ruta).toMatch(/const accionSiguiente = accionParada\(next\?\.stage, settings, next\?\.photos\)/);
-    expect(ruta).toMatch(/accionSiguiente\.kind === "pickup"/);
-    expect(ruta).toMatch(/accionSiguiente\.kind === "deliver"/);
-    expect(ruta).toMatch(/accionSiguiente\.kind === "pod"/);
-  });
-  it("un toque, no dos: se deshabilita mientras guarda y la función se cierra a sí misma", () => {
-    // D-502: y apagado del todo cuando la ruta es de otro (la pestaña «Chofer» del admin).
-    expect(ruta).toMatch(/disabled=\{soloLectura \|\| guardando === next\.id\}/);
-    expect(ruta).toMatch(/if \(guardando\) return;/);
-    expect(ruta).toMatch(/setGuardando\(d\.id\);/);
-    expect(ruta).toMatch(/setGuardando\(null\);/);
-  });
-  it("el GPS no bloquea: se espera el inmediato y el tardío se adjunta en silencio", () => {
-    expect(ruta).toMatch(/const \{ immediate, eventual \} = captureLocationSplit\(\);/);
-    expect(ruta).toMatch(/void adjuntarTardio\(d\.id, eventual, "pickup"\)/);
-    expect(ruta).toMatch(/void adjuntarTardio\(d\.id, eventual, "pod"\)/);
-    expect(ruta).toMatch(/\{ quiet: true \}/);
-  });
-  it("la ficha usa el mismo módulo: la escritura de la recogida y las DOS guardas del comprobante", () => {
+  it("la ficha usa el mismo módulo: la escritura de la recogida (también la de sin estar lista) y las DOS guardas del comprobante", () => {
     expect(modal).toMatch(/escrituraRecogida\(\{ pedido:/);
+    expect(modal.match(/escrituraRecogida\(\{ pedido: existing, me, gps, t/g)).toHaveLength(2);
     expect(modal).toMatch(/const podFormNeeded = pruebaPendiente\(settings, existing\?\.photos\)/);
-    expect(modal).toMatch(/if \(podSinCumplir\(settings, existing\.photos, podSig\)\)/);
+    // D-NEXT: con las fotos tomadas al entregar, que aún no están en la orden.
+    expect(modal).toMatch(/if \(podSinCumplir\(settings, fotosAlEntregar\(existing\.photos, fotosDeLaEntrega\), podSig\)\)/);
     // Y ya no quedan las dos reglas escritas a mano.
     expect(modal).not.toMatch(/const podOwed = /);
     expect(modal).not.toMatch(/settings\.require_pod && !podSig && !\(existing\.photos\?\.length\)/);

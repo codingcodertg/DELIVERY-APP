@@ -62,8 +62,14 @@ import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
 import { almacenDeLaTienda, codigoDeTienda } from "@/lib/almacen-de-tienda";
 import { idsRecibidasPorAlmacen, KIND_RECIBIDA, pastillaDeEtapa, puedeRecibir, recibirOrden } from "@/lib/recibir";
-import { etiquetaDeEventoDeParada, llegadasDeParadas, marcasDeParadas } from "@/lib/acciones-parada";
+import { etiquetaDeEventoDeParada, llegadasDeParadas, marcasDeParadas, NO_ESTA_LISTA } from "@/lib/acciones-parada";
 import { PastillaDeMarca } from "@/components/PastillaDeMarca";
+import {
+  avisosDeRecogidaSinListo, deshacerRecogida, entregaConCamara, escrituraDeshacerRecogida, notaDeRecogidaSinListo,
+  notaSinListoValida, puedeRecogerSinListo, MINIMO_NOTA_SIN_LISTO, type DeshacerRecogida,
+} from "@/lib/recogida-del-chofer";
+import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
+import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
 const MOSTRAR_CONFLICTO_DE_PROGRAMACION = false;
@@ -89,13 +95,25 @@ export function OrderModal({
   existing: abiertaPorLaLista,
   startEditing,
   onClose,
+  abrirEn,
+  fotosDeEntrega,
+  fotoEnCamino = false,
 }: {
   me: Profile;
   existing: Delivery | null;
   startEditing: boolean;
   onClose: () => void;
+  /**
+   * Abrir ya en un paso (D-NEXT), desde «Mi ruta»: `recoger` —la recogida del chofer: «🚚 Recoger» a la vista, o la nota de
+   * «Recoger de todos modos» ya abierta si el almacén no la marcó lista— o `entregar` —la prueba de entrega abierta—.
+   */
+  abrirEn?: "recoger" | "entregar";
+  /** Las fotos que se tomaron con la cámara al pulsar «Entregado» en «Mi ruta», antes de que la ficha existiera (D-NEXT). */
+  fotosDeEntrega?: readonly string[];
+  /** La foto de la cámara aún se está comprimiendo: «Confirmar entregado» espera, para no entregar sin ella. */
+  fotoEnCamino?: boolean;
 }) {
-  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, saveSettings, notify, realRole } =
+  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, saveSettings, notify, realRole, pushNotifs } =
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -162,7 +180,20 @@ export function OrderModal({
   const [showRedeliver, setShowRedeliver] = useState(false);
   const [routing, setRouting] = useState(false);
   const [routeErr, setRouteErr] = useState("");
-  const [showPod, setShowPod] = useState(false);
+  // D-NEXT: desde «✅ Entregado» de «Mi ruta» la ficha nace con la prueba de entrega abierta.
+  const [showPod, setShowPod] = useState(abrirEn === "entregar" && existing?.stage === "picked_up");
+  // «Recoger de todos modos» (D-NEXT, 168): la nota del chofer, y si su paso está abierto. Desde «🚚 Recogido» de «Mi ruta»
+  // en una orden que el almacén no marcó lista, la ficha nace con la nota abierta: es a lo que venía.
+  const [showSinListo, setShowSinListo] = useState(abrirEn === "recoger" && !!existing && puedeRecogerSinListo(me, existing));
+  const [notaSinListo, setNotaSinListo] = useState("");
+  // Las fotos que se toman AL ENTREGAR (D-NEXT): se guardan en la MISMA escritura que la entrega, no antes. El guard (157)
+  // no le deja al chofer tocar las fotos de una orden en `picked_up` sin cambiar de etapa; al pasar a `delivered`, sí.
+  const [fotosDeLaEntrega, setFotosDeLaEntrega] = useState<string[]>(() => [...(fotosDeEntrega ?? [])]);
+  const camara = useCamaraDeEntrega((nuevas) => setFotosDeLaEntrega((antes) => fotosAlEntregar(antes, nuevas)));
+  // Las que llegan de «Mi ruta» después de abrir la ficha (la cámara vuelve cuando la ficha ya está pintada).
+  useEffect(() => {
+    if (fotosDeEntrega?.length) setFotosDeLaEntrega((antes) => fotosAlEntregar(antes, fotosDeEntrega));
+  }, [fotosDeEntrega]);
   // Pallet confirmations: warehouse confirms the count on "Mark ready";
   // the driver confirms what actually fit on the truck at pickup (a short
   // load splits the order into #Na / #Nb).
@@ -244,6 +275,18 @@ export function OrderModal({
   // otherwise a click whose mouseup lands on the just-opened overlay (or a drag
   // release) would instantly close the modal that the same click just opened.
   const overlayDownRef = useRef(false);
+  // Abierta desde «🚚 Recogido» de «Mi ruta» (D-NEXT): la recogida a la vista, sin buscarla. En un teléfono los botones del
+  // chofer van debajo de los dos pasos, el contacto y las notas, y pueden quedar fuera de la pantalla.
+  const fichaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (abrirEn !== "recoger") return;
+    const id = setTimeout(() => {
+      fichaRef.current?.querySelector("[data-paso-sin-listo], [data-accion-principal]")?.scrollIntoView({ block: "center" });
+    }, 50);
+    return () => clearTimeout(id);
+    // Solo al abrir: después manda el chofer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Local mirrors of the drive-to-pickup / arrival stamps, so the "En route" /
   // "Arrived" indicator updates instantly (the `existing` prop isn't re-synced
   // from the store while the modal stays open).
@@ -918,6 +961,52 @@ export function OrderModal({
     if (ok) { setShowDeshacer(false); setMotivoDeSalto(""); notify(t("Stage undone", "Etapa deshecha")); }
   };
 
+  /**
+   * «Recoger de todos modos» (D-NEXT, migración 168). El dueño: «have the driver be able to override a pickup even if the
+   * warheouse doesnt have it ready just put a note down for it». La misma escritura que una recogida normal
+   * (`escrituraRecogida`: GPS sin bloquear, recuento, claim) con la nota del chofer delante en el evento, y un aviso en la
+   * campana al almacén de esa tienda y a logística. Sin la 168 la base lo rechaza y el proveedor enseña
+   * «Aún no disponible… avisa a la oficina» (`mensajeDelGuard`): aquí no se avisa a nadie ni se cierra la ficha.
+   */
+  const recogerSinListo = async () => {
+    const nota = notaSinListoValida(notaSinListo);
+    if (!existing || !nota) return;
+    setBusy(true);
+    const { immediate, eventual } = captureLocationSplit();
+    const gps = await immediate;
+    const escritura = escrituraRecogida({ pedido: existing, me, gps, t });
+    const ok = await setStage(existing.id, "picked_up", notaDeRecogidaSinListo(nota, escritura.note, lang), escritura.extra);
+    setBusy(false);
+    if (!ok) return;
+    if (!gps) void attachLateFix(existing.id, eventual, "pickup");
+    void pushNotifs(avisosDeRecogidaSinListo({
+      users, actorId: me.id, pedido: existing, tiendas: settings.stores,
+      etiqueta: `#${orderLabel(existing)}`, nota, chofer: me.full_name,
+    }));
+    setShowSinListo(false); setNotaSinListo("");
+    notify(t("Out for delivery — the warehouse and logistics were notified", "En reparto — se avisó al almacén y a logística"));
+    onClose();
+  };
+
+  /**
+   * «↩ Deshacer recogido» del chofer (D-NEXT). El dueño: «the driver can undo an arrive or a pickup». `picked_up → ready`,
+   * que el guard ya le deja (157), con confirmación y borrando los sellos de la recogida (`escrituraDeshacerRecogida`).
+   * Cuándo se puede lo dice `deshacerRecogida`, la misma regla que el botón de «Mi ruta».
+   */
+  const deshacerRecogidaDelChofer = async () => {
+    if (!existing) return;
+    if (!(await confirmAction(
+      t(`Undo the pickup of #${orderLabel(existing)}? It goes back to ready at the store, as if you hadn't loaded it.`,
+        `¿Deshacer «Recogido» de #${orderLabel(existing)}? Vuelve a «lista» en la tienda, como si no la hubieras cargado.`),
+      { danger: true, confirmLabel: t("Undo pickup", "Deshacer recogido") },
+    ))) return;
+    setBusy(true);
+    const { patch, note } = escrituraDeshacerRecogida(t);
+    const ok = await setStage(existing.id, "ready", note, patch);
+    setBusy(false);
+    if (ok) notify(t("Pickup undone — back to ready", "Recogida deshecha — vuelve a lista"));
+  };
+
   // Warehouse confirms the real pallet count as part of marking the order
   // ready — actual_pallets is stamped in the same write as the stage move.
   const confirmReady = async () => {
@@ -1109,7 +1198,8 @@ export function OrderModal({
     if (deliveredElsewhere && !deliveredAddress.trim()) {
       return t("Enter the address where you actually delivered.", "Ingrese la dirección donde entregó realmente.");
     }
-    if (podSinCumplir(settings, existing.photos, podSig)) {
+    // D-NEXT: cuentan también las fotos tomadas al entregar, que aún no están en la orden (se guardan con la entrega).
+    if (podSinCumplir(settings, fotosAlEntregar(existing.photos, fotosDeLaEntrega), podSig)) {
       // With signatures switched off there's only one way to satisfy this, so
       // say that rather than offering a choice the driver doesn't have.
       return signatureOn
@@ -1125,6 +1215,8 @@ export function OrderModal({
     // kept in one place so the two can't drift apart and leave a driver
     // pressing a button that silently refuses.
     if (podBlocker) { notify(podBlocker); return; }
+    // La foto de la cámara aún se está comprimiendo (D-NEXT): entregar ahora la dejaría fuera.
+    if (fotoEnCamino || camara.procesando) return;
     setBusy(true);
     // Stamp where the driver actually is. Never blocks: resolves to null if the
     // device refuses, has no signal, or the page isn't served over HTTPS — and
@@ -1133,14 +1225,19 @@ export function OrderModal({
     const gps = await immediate;
     if (!gps) void attachLateFix(existing.id, eventual, "pod");
     const altAddr = deliveredElsewhere ? deliveredAddress.trim() : "";
+    // Las fotos tomadas al entregar (D-NEXT) van en ESTA escritura, firmadas por quien entrega: es la única en la que el
+    // guard le deja al chofer tocar las fotos (al pasar de `picked_up` a `delivered`).
+    const ahora = new Date().toISOString();
+    const fotos = fotosDeLaEntrega.length ? fotosAlEntregar(existing.photos, fotosDeLaEntrega) : null;
     const pod = {
       pod_received_by: podName.trim() || null,
       pod_signature: podSig,
-      pod_delivered_at: new Date().toISOString(),
+      pod_delivered_at: ahora,
       pod_lat: gps?.lat ?? null,
       pod_lng: gps?.lng ?? null,
       pod_accuracy: gps?.accuracy ?? null,
       delivered_address: altAddr || null,
+      ...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, existing.photo_meta, me.id, ahora) } : {}),
     };
     // The audit note reports an off-address delivery loudly so the office sees it.
     const note = altAddr
@@ -1386,7 +1483,12 @@ export function OrderModal({
       setShowCancel={setShowCancel}
       cancelListo={!faltaParaAnular(cancelReason, cancelNote, motivos, lang)}
       onPrint={() => printDeliverySlip(existing, settings, users, lang)}
-      onRequestDeliver={() => { if (podFormNeeded) setShowPod(true); else void deliverWithPod(); }}
+      // D-NEXT: el chofer, al pulsar «Marcar entregado», abre la cámara —lo PRIMERO del toque: después de un `await` el
+      // navegador ya no la abre— y a la vez la prueba de entrega, donde aparece la foto al volver. Los demás, como antes.
+      onRequestDeliver={() => {
+        if (entregaConCamara(me.role)) { camara.abrir(); setShowPod(true); return; }
+        if (podFormNeeded) setShowPod(true); else void deliverWithPod();
+      }}
       podOpen={showPod}
       onAddMaterial={() => { setMatFactura(""); setMatPallets(String(existing.est_pallets ?? "")); setShowAddMaterial(true); }}
       onRequestStart={comenzarPreparacion}
@@ -1404,6 +1506,15 @@ export function OrderModal({
       onArrive={arrive}
       puedeRecibirla={puedeRecibirla}
       onReceive={() => void recibir()}
+      // «↩ Deshacer recogido» del chofer (D-NEXT): la misma regla que el botón de «Mi ruta», con el historial de esta orden.
+      deshacerRecogida={deshacerRecogida({ pedido: { ...existing, stage }, yo: me, eventos: events, rechazada: marcasDeParadas(events).has(existing.id) })}
+      onDeshacerRecogida={() => void deshacerRecogidaDelChofer()}
+      // «Recoger de todos modos» (D-NEXT, 168): su paso, con la nota obligatoria.
+      sinListo={{
+        abierto: showSinListo, nota: notaSinListo, setNota: setNotaSinListo,
+        abrir: () => setShowSinListo(true), cerrar: () => { setShowSinListo(false); setNotaSinListo(""); },
+        confirmar: () => void recogerSinListo(), tienda: existing.pickup_name || existing.store || null,
+      }}
       deshaceAqui={deshaceAqui}
       borraAqui={borraAqui}
       motivoDeSaltoAbierto={showEntregarYa || showDeshacer}
@@ -1424,7 +1535,7 @@ export function OrderModal({
     <div className="overlay"
       onMouseDown={(e) => { overlayDownRef.current = e.target === e.currentTarget; }}
       onClick={(e) => { if (e.target === e.currentTarget && overlayDownRef.current && !isNew && !editing) requestClose(); }}>
-      <div className="modal">
+      <div className="modal" ref={fichaRef}>
         {/* DOS filas, y solo dos (D-152).
             -------------------------------------------------------------------
             La primera es el número de orden y la ✕. La segunda es TODO lo demás
@@ -2657,6 +2768,9 @@ export function OrderModal({
       </div>
     </div>
 
+    {/* La cámara de «Marcar entregado» del chofer (D-NEXT): pintada siempre, para que el toque la encuentre. */}
+    {camara.input}
+
     {viewSig && existing?.pod_signature && (
       <PhotoLightbox
         photos={[existing.pod_signature]}
@@ -2695,25 +2809,28 @@ export function OrderModal({
                   photo is required" had nowhere in it to take one — so he
                   typed the name, pressed Confirm, and nothing happened. The
                   requirement has to be satisfiable where it is demanded. */}
-              {!!settings.require_pod && (
-                <div style={{ marginTop: 12 }}>
+              {/* D-NEXT: el chofer llega aquí con la cámara ya abierta («when you pres deliverd it should open the
+                  camera»), y la foto que toma sale aquí. Las fotos de este paso se guardan CON la entrega, en la misma
+                  escritura, y no al tomarlas: el guard (157) no le deja al chofer tocar las fotos de una orden en reparto
+                  sin cambiar de etapa —ese `updateDelivery` le contestaba «You cannot edit an order in the picked_up
+                  stage»—, y al pasar a entregada sí. Cancelar este paso no las pierde mientras la ficha siga abierta. */}
+              {(!!settings.require_pod || entregaConCamara(me.role) || fotosDeLaEntrega.length > 0) && (
+                <div style={{ marginTop: 12 }} data-fotos-de-la-entrega>
                   <label>
-                    📷 {t("Material photo", "Foto del material")}
-                    {!existing.photos?.length && (
+                    📷 {t("Delivery photo", "Foto de la entrega")}
+                    {podSinCumplir(settings, fotosAlEntregar(existing.photos, fotosDeLaEntrega), podSig) && (
                       <span style={{ color: "var(--amber)", marginLeft: 6 }}>· {t("required", "requerida")}</span>
                     )}
                   </label>
-                  <PhotoUpload
-                    photos={existing.photos ?? []}
-                    credits={photoCredits}
-                    disabled={photoBusy}
-                    onChange={async (next) => {
-                      setPhotoBusy(true);
-                      await updateDelivery(existing.id, { photos: next });
-                      setPhotoBusy(false);
-                    }}
-                    t={t}
-                  />
+                  {(existing.photos?.length ?? 0) > 0 && (
+                    <div className="hint" style={{ marginTop: 0, marginBottom: 4 }}>
+                      {t(`The order already has ${existing.photos!.length} photo(s).`, `La orden ya tiene ${existing.photos!.length} foto(s).`)}
+                    </div>
+                  )}
+                  <PhotoUpload photos={fotosDeLaEntrega} disabled={busy} onChange={setFotosDeLaEntrega} t={t} />
+                  {(fotoEnCamino || camara.procesando) && (
+                    <div className="hint" data-foto-en-camino style={{ marginTop: 4 }}>📷 {t("Processing the photo…", "Procesando la foto…")}</div>
+                  )}
                 </div>
               )}
 
@@ -2754,7 +2871,7 @@ export function OrderModal({
               {/* Full-size targets: this is tapped standing at a tailgate. */}
               <div className="modal-actions" style={{ marginTop: 14 }}>
                 <button className="btn btn-ghost" onClick={() => { setShowPod(false); setPodName(""); setPodSig(null); setDeliveredElsewhere(false); setDeliveredAddress(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
-                <button className="btn btn-green" disabled={busy || !!podBlocker} onClick={deliverWithPod}>{t("Confirm delivered", "Confirmar entregado")}</button>
+                <button className="btn btn-green" data-confirmar-entregado disabled={busy || !!podBlocker || fotoEnCamino || camara.procesando} onClick={deliverWithPod}>{t("Confirm delivered", "Confirmar entregado")}</button>
               </div>
         </div>
       </div>
@@ -3093,7 +3210,8 @@ function StageActions({
   onAddMaterial, onRequestStart, onRequestReady,
   pickupConfirmOpen, onRequestPickup, onConfirmPickup, onCancelPickup, onQuickPickup,
   departedAt, onDepart, arrivedAt, onArrive, puedeRecibirla, onReceive,
-  deshaceAqui, borraAqui, motivoDeSaltoAbierto, onEntregarYa, onDeshacer, reentregaAbierta, onReentrega, onDuplicate, onDelete,
+  deshaceAqui, deshacerRecogida: deshacerLaRecogida, onDeshacerRecogida, sinListo,
+  borraAqui, motivoDeSaltoAbierto, onEntregarYa, onDeshacer, reentregaAbierta, onReentrega, onDuplicate, onDelete,
 }: {
   me: Profile; stage: Stage; busy: boolean;
   /** El pedido, para las acciones que necesitan sus datos y no solo su etapa. */
@@ -3124,6 +3242,15 @@ function StageActions({
   puedeRecibirla: boolean; onReceive: () => void;
   /** Deshacer un paso (D-361/D-383) y borrar (D-383): necesitan las tiendas, los calcula la ficha. */
   deshaceAqui: boolean; borraAqui: boolean;
+  /** «↩ Deshacer recogido» del chofer (D-NEXT): `deshacerRecogida` con el historial; `null`, no se ofrece. */
+  deshacerRecogida: DeshacerRecogida; onDeshacerRecogida: () => void;
+  /** «Recoger de todos modos» (D-NEXT, 168): el paso con su nota obligatoria, que se pinta aquí, donde está su botón. */
+  sinListo: {
+    abierto: boolean; nota: string; setNota: (v: string) => void;
+    abrir: () => void; cerrar: () => void; confirmar: () => void;
+    /** Dónde se recoge: el aviso dice a qué almacén se avisa. */
+    tienda: string | null;
+  };
   /** El motivo de «Marcar entregada ya» / «Deshacer etapa» está abierto: sus dos opciones salen del menú. */
   motivoDeSaltoAbierto: boolean; onEntregarYa: () => void; onDeshacer: () => void;
   /** El formulario de reentrega está abierto: su opción sale del menú. */
@@ -3135,12 +3262,14 @@ function StageActions({
   const [dejarAbierto, setDejarAbierto] = useState(false);
   const fa = accionesDeLaFicha({
     yo: me, pedido: { ...pedido, stage }, edicion, etapaDeEnvio, puedeRecibirla, deshaceAqui, borraAqui, ocupado: busy,
+    deshacerRecogida: deshacerLaRecogida,
     salidaEn: departedAt, llegadaEn: arrivedAt,
     abierto: {
       anular: showCancel, rechazar: showReject, recoger: pickupConfirmOpen, dejar: dejarAbierto, pod: podOpen,
-      motivoDeSalto: motivoDeSaltoAbierto, reentrega: reentregaAbierta,
+      motivoDeSalto: motivoDeSaltoAbierto, reentrega: reentregaAbierta, recogerSinListo: sinListo.abierto,
     },
   });
+  const notaValida = notaSinListoValida(sinListo.nota);
   // Lo que hace cada acción: lo MISMO que hacía su botón. Un `Record` completo: una acción nueva sin enchufar no compila.
   const alPulsar: Record<IdDeAccion, () => void> = {
     enviar: () => onMove(etapaDeEnvio),
@@ -3150,6 +3279,8 @@ function StageActions({
     marcar_listo: onRequestReady,
     // El chofer recoge con un toque, la carga entera; la oficina confirma el recuento (y parte una carga corta).
     recoger: me.role === "driver" ? onQuickPickup : onRequestPickup,
+    recoger_sin_listo: sinListo.abrir,
+    deshacer_recogida: onDeshacerRecogida,
     recibir: onReceive,
     marcar_entregado: onRequestDeliver,
     editar: onEdit,
@@ -3211,6 +3342,31 @@ function StageActions({
       )}
       {fa.pasos.includes("dejar") && (
         <LeaveAtStore pedido={pedido} me={me} disabled={busy} abierto={dejarAbierto} onAbierto={setDejarAbierto} />
+      )}
+      {/* «Recoger de todos modos» (D-NEXT): la nota es obligatoria y va en el evento; se avisa al almacén y a logística. */}
+      {fa.pasos.includes("recoger_sin_listo") && (
+        <div data-paso-sin-listo style={{ flex: "1 1 100%", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="hint" style={{ color: "var(--amber-text)", fontWeight: 700, marginTop: 0 }}>⚠ {t(NO_ESTA_LISTA.en, NO_ESTA_LISTA.es)}</div>
+          <label style={{ fontSize: 14, fontWeight: 600 }} htmlFor="nota-sin-listo">
+            {t("What's missing, or why are you taking it now? (required)", "¿Qué falta, o por qué la recoges así? (obligatorio)")}
+          </label>
+          <textarea id="nota-sin-listo" data-nota-sin-listo rows={3} value={sinListo.nota} autoFocus disabled={busy}
+            onChange={(e) => sinListo.setNota(e.target.value)} style={{ width: "100%" }}
+            placeholder={t("e.g. 2 boxes of grout still missing; the customer needs the tile today", "ej. faltan 2 cajas de boquilla; el cliente necesita el piso hoy")} />
+          <div className="hint" style={{ marginTop: 0 }}>
+            {sinListo.tienda
+              ? t(`The warehouse at ${sinListo.tienda} and logistics will be notified in the app.`, `Se avisa en la app al almacén de ${sinListo.tienda} y a logística.`)
+              : t("Logistics will be notified in the app.", "Se avisa en la app a logística.")}
+            {!notaValida && sinListo.nota.trim() !== "" && ` ${t(`At least ${MINIMO_NOTA_SIN_LISTO} letters.`, `Al menos ${MINIMO_NOTA_SIN_LISTO} letras.`)}`}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-ghost" style={{ flex: 1, minHeight: 44, justifyContent: "center" }} onClick={sinListo.cerrar} disabled={busy}>{t("Back", "Atrás")}</button>
+            <button data-confirmar-sin-listo className="btn btn-amber" style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+              onClick={sinListo.confirmar} disabled={busy || !notaValida}>
+              {busy ? t("Saving…", "Guardando…") : `🚚 ${t("Confirm pickup", "Confirmar recogida")}`}
+            </button>
+          </div>
+        </div>
       )}
       {p && (
         <button

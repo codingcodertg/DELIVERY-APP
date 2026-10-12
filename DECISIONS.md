@@ -10547,6 +10547,14 @@ arreglo hace que ese clic funcione, no lo da por hecho. `verify.mjs`: en verde s
 
 ## D-218 · En Mi ruta, «Recoger» y «Entregar» cierran la parada de un toque (y dejan de prometer etapas imposibles)
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): en «Mi ruta», «🚚 Recogido» y «✅ Entregado» **ya no cierran la parada de
+> un toque**. El dueño: «when i press the pickup in the driver view the order should also popo up as in the delivery part» y
+> «when you pres deliverd it should open the camera so you can add the proof of delikvery for the driver». Los dos abren la
+> ficha en su paso (y «Entregado», además, la cámara del teléfono); lo que se escribe es lo de la ficha, que sigue usando
+> `escrituraRecogida` y `podSinCumplir` de aquí. El botón verde propio de la tarjeta de «Siguiente parada» (con su
+> «📋 Ver orden») se fue: la tarjeta pinta la misma fila que la lista y la orden se abre tocándola. `accionParada` y
+> `extraEntrega` quedan exportadas y probadas, sin pantalla que las llame.
+
 **Fecha:** 2026-09-08 · **Versión:** la asigna el orquestador al fusionar (solo Entregas) ·
 **Pedido por:** Andrés, literal: *«pickup and delivered needs 2 taps: en Mi ruta, si no he abierto la
 orden, el botón de Pickup o Deliver en vez de cambiar la etapa me abre el formulario y me toca volver
@@ -39040,6 +39048,8 @@ Interpretación: «form view» = la ficha de la orden en Entregas. No visto en n
 
 > **Reemplazada en parte por D-520** (2026-10-11): la ficha da por llegado («🚦 Llegó…») también a quien marcó «📍 Llegué» en «Mi ruta» (un evento `arrived_delivery`) y ya no le vuelve a ofrecer «Llegué a la parada». Medido al hacerlo: ese botón de la ficha escribe `arrived_at`, y para un CHOFER el guard de etapas (157) lo rechaza; ver D-520.
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): el CHOFER tiene una principal más en la tabla —«🚚 Recoger de todos modos…» en SU orden en `approved`/`fulfilling`, con nota obligatoria (migración 168)— y una opción más en el menú —«↩ Deshacer recogido» en `picked_up`, apagada con su motivo cuando deshacerla sería un lío—. Y su «Marcar entregado» abre la cámara del teléfono a la vez que la prueba de entrega.
+
 **Fecha:** 2026-10-07 · **Versión:** deliveries 1.271.0, repo 1.369.0 · **Sin migración.** · Rama `feat/ficha-acciones-en-menu`.
 
 **Pedido del dueño**, literal: *«The action buttons will be a drop-down in the form view in the delivery app because is taking to many buttoms so now make it a dropdown»*
@@ -41597,7 +41607,15 @@ Capturas: `1280-1-panel-antes`, `1280-2-sale-de-brownsville`, `1280-3-mapa-P-y-F
 
 ## D-520 — «Mi ruta»: sin «Saltar»; «📍 Llegué» y «Recogido» en cada parada; Pendientes y Entregadas; sin leyenda, sin «Ver la ruta completa» ni el aviso de vencidas; y «⏸ Registrar parada» con el recibo de la gasolina
 
+<<<<<<< HEAD
 > **Reemplazada en parte por D-523** (2026-10-11): la foto del recibo de gasolina también se puede tomar al registrar la parada (opcional), y «▶ Seguir» la trae puesta; en los dos sitios hay «📷 Cámara» y «🖼 Galería» por separado.
+=======
+> **Reemplazada en parte por D-NEXT** (2026-10-11): (2) «Recogido» **ya no sale apagado** cuando el almacén no tiene la carga
+> lista: abre la ficha, donde el chofer la recoge de todos modos con una nota obligatoria (migración 168); solo se apaga si la
+> orden ni siquiera está aprobada («⏳ Aún no está aprobada»). «📍 Llegué» deja su renglón propio: va **al principio de la
+> fila de botones** de la primera orden de su tramo («📍 Llegué · 🚚 Recogido», «📍 Llegué · ✅ Entregado · ⛔ Rechazado»), y
+> hecha se ve «✓ Llegaste 10:42 · ↩ Deshacer», que la deshace. La tarjeta de «Siguiente parada» pinta esa misma fila.
+>>>>>>> 14f34ddc
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.287.0, repo 1.390.0 · Rama `feat/mi-ruta-botones-y-secciones` · **Migración 167 escrita, SIN aplicar**
 (el código funciona sin ella). **Reemplaza en parte a D-240, D-274, D-331, D-467, D-487, D-495, D-497, D-506, D-508, D-514
@@ -41794,6 +41812,7 @@ Capturas (ANTES `antes-*`, DESPUÉS `despues-*`) en la carpeta de trabajo de la 
 
 No visto en navegador: `tsc` y vitest.
 
+<<<<<<< HEAD
 ## D-523 · El chofer entra a «Mi ruta», con «Mi ruta» primero y «Órdenes» al final; y la cámara del recibo de gasolina
 
 **Fecha:** 2026-10-11 · **Versión:** deliveries 1.288.0, repo 1.391.0 · **Sin migración** (la foto al empezar usa la columna `recibo_foto` de la 167, aún sin aplicar) · Hecho directo por el orquestador en `feat/chofer-inicio-y-recibo`. **Reemplaza en parte a D-051, D-480 y D-520** (cada una lleva su nota).
@@ -41866,3 +41885,220 @@ No visto en navegador: `tsc` y vitest.
 **Pruebas:** `gestor-entregadas-y-vista.test.ts` (nace en cuadrícula; el estirado), `rutas-del-dia.test.ts` y `gestor/mapa-del-chofer.test.ts` (la tarjeta ya no está). Mutantes: 2 de 2 caen.
 
 **No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
+=======
+## D-NEXT — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
+
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** la asigna el orquestador al fusionar · Rama `feat/recogida-chofer` ·
+**Migración `168_chofer_recoge_sin_listo.sql` escrita, SIN aplicar ni ensayar** (excepción autorizada por el orquestador a «no
+escribas migraciones»; sin ella funciona todo menos «Recoger de todos modos», que le dice al chofer «Aún no disponible…»).
+**Reemplaza en parte a D-218, D-497 y D-520** (cada una lleva su nota).
+
+**Pedido del dueño**, literal (2026-10-11):
+
+> «when i press the pickup in the driver view the order should also popo up as in the delivery part»
+> «the driver can undo an arrive or a pickup»
+> «have the driver be able to override a pickup even if the warheouse doesnt have it ready just put a note down for it»
+> «the driver view, arrived and pickuped up showuld be in the same row»
+
+Y el mismo día, llegado por el orquestador a mitad del trabajo: *«when you pres deliverd it should open the camera so you can
+add the proof of delikvery for the driver»*.
+
+### Qué había (visto en el demo, a 390 px, como chofer, antes de tocar nada)
+
+- Cada recogida de «Mi ruta»: «📍 Arrived» en un renglón a lo ancho (278 × 44 px) y **debajo**, en otro, «🚚 Picked up»
+  (278 × 44). En la entrega, igual: «Llegué» encima y «Entregado · Rechazado» debajo. Captura `antes-lista-390`.
+- «Picked up» de una orden lista la recogía **de un toque**, sin abrir nada (D-218). La de una orden que el almacén no tenía
+  lista (`approved`, `fulfilling`) salía **apagada** con «⏳ The warehouse doesn't have it ready yet» (D-520), y la base no le
+  deja al chofer pasarla a `picked_up` (guard de la 157).
+- «Delivered» entregaba de un toque si la oficina no exigía prueba, y abría la ficha si la exigía (D-218).
+- La tarjeta de «Siguiente parada»: «🧭 Navigate» y el verde («🚚 Pick up» / «✅ Deliver» / «📋 Open order») en una fila, y
+  «📍 Arrived» en otra. Captura `antes-mi-ruta-390`.
+- No había forma de deshacer ni una llegada ni una recogida desde el teléfono. «↩ Deshacer etapa» (D-361/D-383) es de la
+  oficina y del almacén.
+
+### Qué se decidió
+
+1. **«📍 Llegué» en la misma fila** (pedido 4). Va **al principio de la fila de botones** de la orden, no en un renglón
+   propio: «📍 Llegué · 🚚 Recogido» en la recogida, «📍 Llegué · ✅ Entregado · ⛔ Rechazado» en la entrega. Una llegada es
+   de la PARADA (D-520): si la parada tiene varias órdenes, el botón va en la fila de **la primera orden de la parada que sigue
+   en ese tramo** (`ordenDeLaLlegada` = `llegada.ordenes[0]`); las demás llevan solo su «Recogido». Se eligió así y no «en la
+   fila del número» porque la primera orden de la parada puede estar ya recogida (sin botones) y «Llegué» habría vuelto a
+   quedarse solo en su renglón. Para que tres botones quepan a 390 px, cada botón de la fila lleva **el icono arriba y la
+   palabra debajo** (14 px, mínimo 52 px de alto): ninguno corta palabras. La tarjeta de «Siguiente parada» pinta **la misma
+   fila** que la lista (el mismo componente), con «🧭 Navegar» solo en su renglón encima; su botón verde propio se fue, y la
+   orden se abre tocando la tarjeta (antes lo hacía «📋 Ver orden»).
+2. **«Recogido» abre la orden, como «Entregado»** (pedido 1). En la lista y en la tarjeta, «🚚 Recogido» ya no recoge de un
+   toque: abre la ficha **en el paso de recoger** (`abrirEn="recoger"`). Si está lista, la ficha baja sola hasta «🚚 Recoger»
+   (la recogida del chofer en la ficha sigue siendo de un toque, la carga entera, `onQuickPickup`); si el almacén no la marcó
+   lista, la ficha **nace con la nota de «Recoger de todos modos» abierta** (punto 6). Solo sale apagado, con «⏳ Aún no está
+   aprobada», en una orden `draft`/`pending`/`rejected`.
+3. **«Entregado» abre la cámara** (el pedido de la tarde). Para el chofer, «✅ Entregado» —en la lista, en la tarjeta y
+   «Marcar entregado» dentro de la ficha— abre **la cámara trasera del teléfono en el mismo toque** y, a la vez, la ficha con
+   la **prueba de entrega abierta** debajo. Al volver con la foto, sale ya puesta en la prueba («📷 Foto de la entrega») y se
+   pulsa «Confirmar entregado». Si cancela la cámara, la prueba ya está abierta: si la oficina exige prueba (`require_pod`,
+   `podSinCumplir`) la sigue pidiendo como hoy; si no, deja confirmar sin foto. Decisiones de cómo:
+   - El navegador solo abre la cámara si el `.click()` del `<input type="file" accept="image/*" capture="environment">` ocurre
+     **dentro del toque**, sin nada asíncrono antes (en iOS Safari un `useEffect` o un `await` antes no la abren, y no hay
+     error que ver). Por eso el `<input>` vive en la PÁGINA (`useCamaraDeEntrega`, `CamaraDeEntrega.tsx`) y se pinta siempre,
+     y `cerrarParada` lo pulsa lo primero, síncrona: la ficha todavía no existe en ese momento (se carga diferida, D-209).
+   - Las fotos se comprimen igual que en `PhotoUpload` (la MISMA `compress`, 1280 px, JPEG 0,7; único cambio en ese fichero:
+     `export`).
+   - **Las fotos de la entrega se guardan en la misma escritura que la entrega** (`setStage(…, "delivered", …, { photos,
+     photo_meta })`), firmadas por quien entrega (`autoresDeFotos`, la regla que antes vivía dentro de `updateDelivery`). Antes
+     la prueba subía cada foto aparte con `updateDelivery`, y eso **a un chofer el guard (157) se lo rechaza**: sin cambiar de
+     etapa, en `picked_up` solo le deja tocar las coordenadas («You cannot edit an order in the picked_up stage»). Al pasar a
+     `delivered`, sí. Cancelar la prueba no pierde las fotos mientras la ficha siga abierta; cerrar la ficha sin entregar, sí.
+   - «Confirmar entregado» espera mientras la foto se comprime («📷 Procesando la foto…»), para no entregar sin ella.
+   - La oficina, el almacén y el admin, en su ficha, siguen como estaban (`entregaConCamara` es solo `driver`). En «Mi ruta»,
+     que es la vista del chofer, «Entregado» abre la cámara a quien la use.
+4. **Deshacer «Llegué»** (pedido 2). Hecha la llegada, en el sitio del botón queda **«✓ Llegaste 10:42 / ↩ Deshacer»**; pide
+   confirmación y deja un evento propio en cada orden de esa parada y ese tramo **que tenía la llegada** (`conLlegada`):
+   `arrived_pickup_undone` (la tienda) o `arrived_delivery_undone` (el cliente). `llegadasDeParadas` lo respeta: borra la
+   llegada de SU tramo y no la del otro, y una llegada posterior vuelve a contar. Un evento y no un borrado: en el historial
+   quedan la llegada y su vuelta («↩ Llegada a la tienda deshecha»). Sin migración (el chofer ya inserta sus eventos, 100).
+5. **Deshacer «Recogido»** (pedido 2). `picked_up → ready`, que el guard ya le deja al chofer, con diálogo de confirmación
+   («¿Deshacer «Recogido» de INV-…? Vuelve a «lista» en la tienda, como si no la hubieras cargado.»). **Dónde:** en la fila de
+   la recogida —que al recogerse pasa a la lista «✓ Entregadas» (D-520/D-522: una recogida con todas sus cargas en el camión
+   está hecha)— y en el menú «Acciones ▾» de su ficha. Solo en **SU** orden (`assigned_driver`) y mientras va en el camión;
+   entregada no, y rechazada por el cliente tampoco (lo suyo es «Dejar en tienda», D-495). Decisiones:
+   - **Los sellos de la recogida se borran** (`pickup_lat`, `pickup_lng`, `pickup_gps_at` a nulo), como hace «Dejar en tienda»
+     (D-224): una recogida que no pasó no puede seguir contando en los tiempos de recogida y tránsito, ni pintarse «📍 Recogido
+     en…» en una orden lista, ni hacer creer a `juntar_cargas` (157) que esa carga ya salió. La siguiente recogida los vuelve a
+     poner. `actual_pallets` **se queda**: la recogida escribió el recuento que ya tenía la orden y no se sabe si antes estaba
+     vacío; borrarlo podría quitar un recuento que el almacén sí confirmó.
+   - **Se apaga, con el motivo y «pídeselo a la oficina», cuando sería un lío** (`deshacerRecogida`). Mira la ÚLTIMA recogida
+     del historial de la orden: si no está en lo cargado (no se sabe qué se deshace); si **la marcó otra persona** (la oficina
+     o el almacén: no la deshace el chofer); si **partió la carga** («Carga parcial / Partial load», la orden hermana nació en
+     esa recogida: solo la oficina parte al recoger, `confirmPickup`); o si fue **una recogida sin estar lista** (volver a
+     `ready` diría que el almacén la tiene lista, y no la tenía; la base solo le deja al chofer `picked_up → ready`).
+6. **Recoger aunque no esté lista, con nota** (pedido 3). En la ficha, para el chofer y **su** orden en `approved` o
+   `fulfilling`: «🚚 Recoger de todos modos…» (su principal: es lo único que puede hacer ahí). Abre su paso: «⚠ El almacén aún no
+   la tiene lista · ¿Qué falta, o por qué la recoges así? (obligatorio)», con «Confirmar recogida» apagado hasta 3 letras
+   (`notaSinListoValida`, como la razón de un rechazo). Escribe lo mismo que una recogida normal (`escrituraRecogida`: GPS sin
+   bloquear, recuento, claim) y la nota del evento `picked_up` es «Recogida sin estar lista: <nota> · Cargadas: N pallets»
+   (`notaDeRecogidaSinListo`; en inglés, «Picked up before it was ready: …»). Y **avisa en la app** (campana, `pushNotifs`,
+   evento `picked_up_not_ready`; nada de SMS ni correo) a **logística** y al **almacén de esa tienda** —el almacenista cuya
+   tienda es, o es del grupo de, la de la orden (`pickup_name` o `store`; D-293)—. Un almacenista sin tienda no es «el de esa
+   tienda» y no se avisa; el admin tampoco (el pedido nombró almacén y logística; el rechazo, D-487, sí avisa al admin).
+   - `LEGAL_TRANSITIONS` gana `approved → picked_up` y `fulfilling → picked_up`: esa lista dice qué saltos EXISTEN (y los dos
+     proveedores la miran antes de escribir); quién los da lo dice `puedeRecogerSinListo`, espejo de la 168.
+   - **Mientras la 168 no esté aplicada** la base contesta «driver cannot move an order from approved to picked_up». El
+     proveedor lo traduce (`mensajeDelGuard`): **«Aún no disponible: falta una actualización del sistema — avisa a la
+     oficina»**, también si la recogida se hizo sin señal y la cola la manda después. No se avisa a nadie ni se cierra la ficha.
+7. **La vista de solo lectura del admin** (pestaña «Chofer», D-502): todo pintado igual y apagado, también lo nuevo («↩ Deshacer»
+   de la llegada y de la recogida, «Recogido» encendido para el chofer). El «↩ Deshacer recogido» se calcula con **el chofer de
+   la ruta**, no con quien mira: con el admin, la regla («solo el chofer, solo su orden») lo habría escondido en vez de apagarlo.
+
+### La migración 168, en papel (para el orquestador; NO se aplicó ni se ensayó contra nada)
+
+- **Qué cambia:** `guard_delivery_stage` copiada **letra por letra** de la 157 (la última que la define), con UNA cláusula más,
+  marcada «168», en la rama de ventas/chofer/gerente/office, justo antes de `picked_up → ready` del chofer:
+
+  ```sql
+  or (r = 'driver' and old_stage in ('approved','fulfilling') and new_stage = 'picked_up'
+      and OLD.assigned_driver = (select p.full_name from public.profiles p where p.id = auth.uid()))
+  ```
+- **Una corrección al encargo, a validar:** el orquestador pidió `OLD.assigned_driver = auth.uid()`. **`assigned_driver` es
+  TEXTO con el nombre del chofer** (014; la 128 y la 133 lo comprueban; `claimDelChofer` escribe `me.full_name`), no un uuid.
+  `text = uuid` no daría falso: Postgres no tiene ese operador, así que reventaría con «operator does not exist: text = uuid»
+  al evaluar la condición, y como va dentro de UNA expresión `or` con todas las demás de esa rama, **cualquier cambio de etapa
+  de ventas, chofer, gerente u office** fallaría. Se compara con el `full_name` de quien escribe, igual que la política de
+  lectura (011, 083, 131). La prueba `recogida-del-chofer.test.ts` fija que no vuelva el `= auth.uid()`.
+- **Una orden sin chofer no entra** (dicho, no metido): «Mi ruta» solo pinta las asignadas, y abrir la recogida forzada a
+  cualquier orden sin dueño (como `claimDelChofer` hace con las listas) es otra decisión: se saltaría al almacén Y a logística.
+- **Qué no cambia:** ninguna otra rama del guard (almacén, logística, gerente, office, la anulación, borradores, cargas
+  partidas); ni tabla, ni columna, ni política, ni disparador, ni dato. Sin `begin`/`commit` propios. La nota obligatoria NO la
+  puede exigir la base (va en `order_events`, que la app escribe después de la etapa): la exige la pantalla.
+- **Autocomprobación** al aplicarla (mira el catálogo, sin comentarios): la cláusula está, lo de la 157 sigue, `security
+  definer`, y el disparador `deliveries_guard_stage` existe.
+- **Ensayo por rol, con ROLLBACK** (la matriz va en el .sql, no ejecutable): chofer en SU orden `approved`/`fulfilling` →
+  pasa; la de otro o sin chofer → rechazado; `pending`/`draft` → rechazado; `approved → delivered` saltándose la recogida →
+  rechazado; almacén/logística `approved → picked_up` → rechazado como antes; lo de siempre del chofer y de ventas/office →
+  igual (su expresión ya no puede reventar: la condición nueva es texto = texto).
+- **Cómo se revierte:** volver a aplicar SOLO el bloque `create or replace function public.guard_delivery_stage() … end
+  $function$;` de la 157, y `delete from public.schema_migrations where name = '168_chofer_recoge_sin_listo.sql';`. Las
+  órdenes ya recogidas sin estar listas se quedan como están (en reparto, con su evento).
+- Checksum del registro: `681337b77c1b43d564ae9fd695e12bf62f28342ac223fb72818a652a2670cfeb` (`migrate-status.mjs --sum`).
+- Para aplicarla (orquestador, checkout principal, con respaldo): `migrate-status` antes y después, como siempre.
+
+### Encontrado al hacerlo, y no arreglado aquí
+
+- **«📷 Fotos del material» de la ficha del chofer probablemente no le funciona en producción.** Sube con `updateDelivery({
+  photos })`, y el guard (157) le rechaza al chofer cualquier cambio sin cambio de etapa salvo las coordenadas (en `ready`,
+  ninguno). Leído en el SQL, **no ensayado**. Lo mismo valía para la foto que pedía la prueba de entrega cuando la oficina
+  exige prueba; eso sí queda arreglado aquí (las fotos van con la entrega). El bloque suelto de «Fotos del material» no se
+  tocó: arreglarlo pide decidir si el chofer puede añadir fotos sin entregar (un cambio de guard, plan en papel).
+- «🚗 Iniciar viaje» y «🚦 Llegué a la parada» de la ficha siguen escribiendo columnas que el guard le niega al chofer (lo dijo
+  D-520).
+
+### Medido
+
+**`node scripts/verify.mjs` en verde** (tsc, vitest y build con placeholders): **vitest 7466 pasadas, 0 fallidas, 3 saltadas**
+(las de `pdf.test.ts`, como siempre); build con el único aviso de siempre (`unpdf`); `/my-route` 410 B / 463 kB. Pruebas nuevas: `recogida-del-chofer.test.ts`
+(20: las reglas puras, la 168 contra la 157 línea a línea, el checksum, el proveedor y la cámara), y en `acciones-parada`
+(45 → 52), `mi-ruta-pantalla` (9 → 12), `vista-de-chofer` (24 → 25), `acciones-de-la-ficha` (30 → 35); `one-tap-stop`
+pasa de 25 a 22 (las cuatro de «Mi ruta» de D-218 dejan una que fija lo contrario; la de la ficha se puso al día). Puestas al día, cada una con su «Nota
+D-NEXT»: `acciones-parada` (Recogido encendido, «Llegué» dentro de la fila, la llegada hecha es un botón), `mi-ruta-pantalla`
+(la tarjeta), `one-tap-stop` (las cuatro de «Mi ruta» de D-218), `vista-de-chofer` (la puerta de solo lectura),
+`acciones-de-la-ficha` (la principal nueva del chofer y su paso), `agregar-material` y `recibir` (la 168 es ahora la última
+que define el guard).
+
+**Demo en el navegador** (CDP, demo local en 3047, clics de persona sobre el elemento a la vista), como chofer a 390 × 844:
+
+- **Misma fila:** recogida «📍 Arrived · 🚚 Picked up», los dos a 136 × 52 px y a la misma altura; entrega «📍 Arrived ·
+  ✅ Delivered · ⛔ Rejected», los tres a 89 × 52; con la llegada hecha, «✓ Arrived 09:43 PM ↩ Undo · Delivered · Rejected» a
+  90/88/88 × 61 (el texto de la hora parte en dos renglones; el de la llegada lleva un borde fino para que se vea botón sobre
+  el fondo azul de la siguiente), ninguno cortado; tarjeta de «Siguiente parada» «📍 Arrived · 🚚 Picked up» a 164 × 52 bajo
+  «🧭 Navigate». 0 px de scroll lateral. Capturas `despues-lista-390`, `despues-tarjeta-390`,
+  `flujo-5-entrega-tres-en-una-fila`, `despues-entrega-llegue-hecho-con-borde`.
+- **Recogido abre la ficha:** «Picked up» de INV-3009 (lista) → «Order #1012» con «🚚 Pick up» a la vista (arriba 371 px, alto
+  46); pulsado, la ficha se cierra y la orden queda `picked_up` con «Loaded: 4 pallets». `flujo-1-recogido-abre-la-ficha`.
+- **Deshacer recogido:** en «✓ Delivered», la recogida con «↩ Undo pickup» (278 × 52); el diálogo «Undo the pickup of
+  INV-3009? It goes back to ready at the store…»; confirmado: `ready`, `pickup_gps_at` nulo, evento «ready: Pickup undone by the
+  driver — back to ready at the store»; vuelve a «Pending» con «Arrived · Picked up». `flujo-2-…`.
+- **Deshacer llegada:** «📍 Arrived» → «✓ Arrived 09:43 PM ↩ Undo» → diálogo «Undo your 09:43 PM arrival?…» → otra vez
+  «📍 Arrived»; historial `arrived_pickup` y `arrived_pickup_undone`. `flujo-3-llegue-hecho`.
+- **Recoger sin estar lista:** «Picked up» de INV-3028 (`fulfilling`) → la ficha abre con el paso a la vista y el foco en la
+  nota; con «ab», «Confirm pickup» apagado; con nota, encendido; confirmado: `picked_up`, evento «Picked up before it was
+  ready: … · Loaded: 5 pallets», aviso `picked_up_not_ready` a logística (el único almacenista del demo es de Pharr y la
+  orden de McAllen: no se le avisó, como debe). `flujo-4-…`.
+- **Entregado con cámara:** «✅ Delivered» → **el selector de archivo se abrió en el mismo toque** (CDP lo intercepta con
+  `Page.setInterceptFileChooserDialog`; Chrome solo lo abre con activación de usuario) y detrás ya estaba «✅ Confirm
+  delivery»; con un fichero de imagen: 1 foto en la prueba, «Confirm delivered» encendido; confirmado: `delivered` con 1 foto
+  firmada por el chofer (`photo_meta` → `u-drv`). Cancelando la cámara: la prueba abierta sin foto y «Confirm delivered»
+  encendido (el demo no exige prueba); entregada sin foto. Dentro de la ficha, «Mark delivered» del chofer: lo mismo (selector
+  abierto en el toque, foto en la prueba), y «Actions ▾» del chofer en reparto: `llegue · dejar_en_tienda ·
+  deshacer_recogida`. `flujo-6-…`, `flujo-7-…`, `ficha-a-…`.
+- **Admin, pestaña «Chofer»** (Diego, en el mismo navegador tras recoger una y llegar a otra): 13 botones en las dos listas
+  —entre ellos `deshacer_llegada` y `deshacer_recogida`—, **0 encendidos**. `admin-chofer-solo-lectura`.
+
+**Mutantes: 62 de 62 caen con una prueba con nombre** (control en verde: 6 ficheros, 166 pruebas). Por pieza: quién recoge
+sin estar lista (que sea suya, solo el chofer, solo approved/fulfilling, la nota de 3 letras, el prefijo en los dos idiomas);
+el aviso (sin logística, a cualquier almacén, a quien recogió, la tienda solo por `pickup_name`); el error del guard
+traducido; deshacer la recogida (quién la marcó, carga partida, sin estar lista, sin evento, la primera y no la última,
+rechazada, los tres sellos); la cámara solo del chofer; «Recogido» apagado otra vez, sin «Deshacer», «Deshacer» que no se
+apaga; las llegadas (deshacer que no borra, que borra las dos, en todas las del tramo, en la última orden, el historial); la
+fila (Llegué fuera, sin icono arriba, < 44 px); «Mi ruta» (sin cámara, sin paso, Llegué en todas las órdenes, el deshacer
+calculado con el admin, la cámara fuera de la página, la tarjeta sin Llegué); la ficha (sin cámara, fotos fuera de la
+entrega, sin aviso, nota fuera del evento, confirmar sin nota, sin abrir la nota o la prueba, la foto nueva no cuenta,
+confirmar con la foto en camino, sin «Recoger de todos modos», bloqueo ignorado ×2, no puede ser principal); `canTransition`;
+`autoresDeFotos` y `fotosAlEntregar`; el `<input>` sin `capture` y el clic asíncrono; y la 168 (con `auth.uid()` a pelo,
+sin la cláusula, para cualquier chofer). **Diecinueve solo los caza un ancla de texto**, y se dice: el cableado de los dos
+«Deshacer» y de `cerrar` en `AccionesDeParada` (M31-M34), `cerrarParada` síncrona con la cámara primero (M35, M36), el de la
+ficha (M41-M47, M49: no hay ficha pintada en las pruebas), la guarda del comprobante (M48), el proveedor (M55), el clic sin
+nada asíncrono (M59) y las tres de la 168 (M60-M62, texto del .sql; la base no se tocó). Lo que esos anclas no pueden medir
+lo midió el navegador (arriba).
+
+### Lo no verificado
+
+- **Nada contra producción, a propósito.** Ni la 168 (ni aplicada ni ensayada: lo pidió así el orquestador), ni el mensaje
+  «Aún no disponible…» con el error real del guard (el demo no tiene guard; está probado con el texto del error), ni la
+  inserción de los eventos nuevos como chofer (se apoya en la política 100, como D-487/D-520), ni la entrega con fotos en la
+  misma escritura contra el guard real (leído en el SQL).
+- **Una cámara de verdad.** En el demo el `<input capture>` abre el selector de archivos; en un teléfono abre la cámara. Que iOS
+  Safari la abra sin pasar por el selector depende de que el clic sea síncrono dentro del toque, que es lo que está hecho y
+  probado en el código, no visto en un iPhone. El permiso de ubicación y la ubicación tardía, tampoco (en el demo el GPS no
+  contesta).
+- La campana del almacén de la tienda en el demo (su único almacenista es de otra tienda); la regla está probada aparte.
+- Modo oscuro.
+>>>>>>> 14f34ddc

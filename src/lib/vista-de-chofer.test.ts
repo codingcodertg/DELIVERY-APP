@@ -71,6 +71,8 @@ vi.mock("@/app/(app)/routes/page", async () => {
 });
 vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
 vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [] }));
+// D-NEXT: «↩ Deshacer» de la llegada y de la recogida preguntan con `useConfirm`, que en la app pone el layout.
+vi.mock("@/lib/confirm", () => ({ useConfirm: () => async () => true }));
 vi.mock("@/components/OrdersTable", () => ({ OrdersTable: (p: { rows: unknown[] }) => createElement("div", { "data-tabla-de-ordenes": p.rows.length }) }));
 vi.mock("@/components/ShiftClock", () => ({ ShiftClock: () => null }));
 vi.mock("next/link", () => ({ default: (p: { href: string; children: unknown }) => createElement("a", { href: p.href }, p.children as never) }));
@@ -260,6 +262,26 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(estado.dejarEnTienda.some((d) => !d.enLaLista)).toBe(true);
     expect(estado.dejarEnTienda.every((d) => d.disabled === true)).toBe(true);
   });
+  it("D-NEXT: los «↩ Deshacer» nuevos (la recogida y la llegada) también se ven igual y apagados; el chofer los ve encendidos", async () => {
+    // C2 la recogió Carlos (puede deshacerla); C1 sigue en la tienda y Carlos ya llegó.
+    estado.events = [
+      ...estado.events,
+      { id: "e2", delivery_id: "C2", kind: "picked_up", note: "Loaded: 4 pallets", created_by: "u-carlos", created_at: AHORA },
+      { id: "e3", delivery_id: "C1", kind: "arrived_pickup", note: null, created_by: "u-carlos", created_at: AHORA },
+    ];
+    estado.me = ADMIN;
+    const admin = await pinta(CARLOS);
+    for (const accion of ["deshacer_recogida", "deshacer_llegada", "recoger", "llegue"]) {
+      const botones = admin.match(new RegExp(`<button[^>]*data-accion="${accion}"[^>]*>`, "g")) ?? [];
+      if (accion === "llegue") { expect(botones.every((b) => b.includes("disabled"))).toBe(true); continue; }
+      expect(botones.length, accion).toBeGreaterThanOrEqual(1);
+      for (const b of botones) expect(b, b).toContain("disabled");
+    }
+    estado.me = CARLOS;
+    const suya = await pinta(null);
+    expect(suya).toMatch(/<button[^>]*data-accion="deshacer_recogida"(?![^>]*disabled)[^>]*>/);
+    expect(suya).toMatch(/<button[^>]*data-accion="deshacer_llegada"(?![^>]*disabled)[^>]*>/);
+  });
   it("y pide el plan publicado DEL ELEGIDO, no el de quien mira", async () => {
     estado.me = ADMIN;
     await pinta(CARLOS);
@@ -277,9 +299,13 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
   });
   it("y si un botón se colara encendido, la acción tampoco escribe: la segunda puerta está en las dos funciones", () => {
     const ruta = leer("src/app/(app)/my-route/page.tsx");
-    const cuerpo = ruta.slice(ruta.indexOf("const cerrarParada = async (d: Delivery) => {"), ruta.indexOf("const accion = accionParada(d.stage, settings, d.photos);"));
+    // Nota D-NEXT: `cerrarParada` ya no escribe (abre la ficha y, al entregar, la cámara) y dejó de ser `async`; la puerta
+    // sigue siendo lo primero, antes de abrir la cámara. Y los dos «↩ Deshacer» nuevos llevan la suya.
+    const cuerpo = ruta.slice(ruta.indexOf('const cerrarParada = (d: Delivery, accion: "recoger" | "entregar") => {'), ruta.indexOf("camara.abrir();"));
     expect(cuerpo).toContain("if (soloLectura) return;");
-    expect(leer("src/components/AccionesDeParada.tsx")).toContain("if (ocupado || soloLectura) return false;");
+    const acciones = leer("src/components/AccionesDeParada.tsx");
+    expect(acciones).toContain("if (ocupado || soloLectura) return false;");
+    expect(acciones.match(/if \(ocupado \|\| soloLectura\) return;/g)).toHaveLength(3);
   });
   it("la lista va numerada por PARADAS como el Gestor, no con P1 y D1 (D-515)", async () => {
     // El dueño: «QUIERO EN EL DRIVER VIEW QUE EN VEZ DE LOS P1 Y D1 SE VEA IGUAL QUE LOGISTIC MANAGER CON NUMEROS EN VES DE ESO».
