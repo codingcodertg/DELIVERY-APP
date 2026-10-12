@@ -60,7 +60,10 @@ export function NotificationBell() {
   }
 
   return (
-    <div ref={caja} style={{ position: "relative" }}>
+    // Dónde cuelga el panel lo dice el CSS (`.tt-campana`, `.tt-campana-panel`): en el escritorio, del borde derecho de la
+    // campana, como siempre; en el teléfono, a lo ancho de la barra (D-NEXT), porque la campana pasó a la esquina de
+    // arriba a la derecha y un panel de 320 px colgado de ella se salía de la pantalla por la izquierda.
+    <div ref={caja} className="tt-campana">
       <button
         className="btn-ghost btn-sm"
         style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}
@@ -72,9 +75,9 @@ export function NotificationBell() {
 
       {abierto && (
         <div
+          className="tt-campana-panel"
           style={{
-            position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 60,
-            width: 320, maxHeight: 380, overflowY: "auto",
+            maxHeight: 380, overflowY: "auto",
             background: "var(--tt-panel)", border: "1px solid var(--tt-line)",
             // El color HAY que declararlo: el panel cuelga de la barra superior, que es cromo
             // oscuro con texto blanco, y sin esto heredaba blanco sobre fondo claro — ilegible

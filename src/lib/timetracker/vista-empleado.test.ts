@@ -40,7 +40,10 @@ describe("1 · «Mi diario» ya no es del empleado", () => {
     expect(esAdminDeTt(null)).toBe(false);
   });
   it("la barra pinta las pestañas de pestanasPara", () => {
-    expect(topbar).toContain("const tabs = pestanasPara(me.role);");
+    // Nota D-NEXT: la barra ya no llama a `pestanasPara` directamente: llama a `barraDeTt` (lib/timetracker/barra.ts),
+    // que parte las de `pestanasPara` en la fila y «👤 Mío ▾». Las del empleado siguen saliendo de aquí, todas en fila.
+    expect(topbar).toContain("const barra = barraDeTt(me.role, pathname);");
+    expect(leer("src/lib/timetracker/barra.ts")).toContain("const todas = pestanasPara(role);");
   });
   it("quien no es admin y entra a /timetracker/diary vuelve a Registrar tiempo y no ve nada", () => {
     expect(puedeVerMiDiario("employee")).toBe(false);

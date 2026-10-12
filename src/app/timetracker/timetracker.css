@@ -142,6 +142,12 @@
    y un borde fino; la activa sigue con el relleno de acento. La barra (enlaces `a`) no cambia. */
 .timetracker-module .tabs button{color:var(--tt-txt)}
 .timetracker-module .tabs button:not(.active){box-shadow:inset 0 0 0 1px var(--tt-line)}
+/* «👤 Mío ▾» del admin (D-NEXT): un botón en la fila de la barra que se ve como una pestaña más —gris claro sobre la
+   barra oscura y sin borde—, no como las pestañas-botón de DENTRO de una pantalla (justo arriba). Abierto, el fondo del
+   nombre al abrir su menú; con una de sus pantallas abierta, el relleno de acento de la pestaña activa. */
+.timetracker-module .topbar .tabs button.tt-menu-mio{color:#c6cede;box-shadow:none}
+.timetracker-module .topbar .tabs button.tt-menu-mio[aria-expanded="true"]{background:rgba(255,255,255,.14);color:#fff}
+.timetracker-module .topbar .tabs button.tt-menu-mio.active{background:var(--tt-accent);color:#fff}
 /* Los motivos de una excepción, en casillas (D-163). Cada una es del tamaño de un pulgar:
    esto se marca de pie, en la calle y a veces con guantes. Marcada cambia de fondo y no
    solo de casilla — un tic de 12 px a pleno sol no se ve. */
@@ -174,6 +180,43 @@
 .timetracker-module .topbar .account-link:hover,.timetracker-module .topbar .account-link.active{background:rgba(255,255,255,.14)}
 .timetracker-module .col-menu .col-opt{background:transparent;color:var(--text);padding:6px 8px;font-size:13px;font-weight:500;border-radius:6px;text-decoration:none}
 .timetracker-module .col-menu .col-opt:hover{background:var(--card-hover);filter:none}
+/* La campana: su panel cuelga del borde derecho de la campana. Hasta D-NEXT iba escrito en línea en NotificationBell. */
+.timetracker-module .tt-campana{position:relative}
+.timetracker-module .tt-campana-panel{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:320px}
+/* El nombre de la app con la casa pegada (D-274). Iba en línea en TopBar hasta D-NEXT, que en el teléfono lo junta más. */
+.timetracker-module .tt-marca{display:flex;align-items:center;gap:6px;min-width:0}
+/* El nombre CORTO de las pestañas del empleado solo sale en el teléfono (abajo). */
+.timetracker-module .tabs .tt-nombre-corto{display:none}
+/* La barra en el teléfono (D-NEXT). El dueño, el 2026-10-11, mirando la de Carlos Fuentes en la vista móvil: «those 3
+   things should be in the same row make it fit» y «besited timetracker rtg house notifications and just CF bubble in
+   the same row make it efficiently». Eran cuatro filas —el nombre de la app; dos de pestañas; la campana y el nombre—
+   y quedan dos:
+   · arriba, el nombre de la app (con «…» si no cabe), la casa, la campana y solo la burbuja de las iniciales: el
+     nombre sigue ahí para un lector de pantalla, y la burbuja abre el mismo menú;
+   · abajo, las pestañas. Las tres del empleado (`.tt-una-fila`) en UNA fila: se reparten el ancho con letra de 12 px,
+     menos relleno y su nombre corto; si aun así no cupieran, cada una se corta con «…» antes que partirse o salirse.
+     Las del admin se parten en filas como siempre.
+   `.tt-barra-resto` deja de ser una caja (`display: contents`): la campana y la burbuja suben a la fila del nombre y
+   las pestañas bajan con `order`. El relleno de la barra baja a 10/12 px, como el de Entregas en el teléfono. El panel
+   de la campana cuelga de toda la cabecera, a lo ancho: colgado de la campana, en la esquina, se salía por la izquierda. */
+@media(max-width:520px){
+  .timetracker-module .topbar{padding:10px 12px;gap:8px 6px}
+  .timetracker-module .topbar .tt-marca{flex:1 1 0;gap:3px}
+  .timetracker-module .topbar .brand{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .timetracker-module .topbar .tab-casa{font-size:20px;padding:2px 4px}
+  .timetracker-module .topbar .tt-campana>button{padding:5px 6px}
+  .timetracker-module .topbar .tt-campana>button .pill{padding:1px 6px}
+  .timetracker-module .topbar .tt-barra-resto{display:contents}
+  .timetracker-module .topbar .tabs{order:2;flex:1 1 100%;min-width:0}
+  .timetracker-module .topbar .tabs.tt-una-fila{flex-wrap:nowrap}
+  .timetracker-module .topbar .tabs.tt-una-fila a{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:12px;padding:8px 6px}
+  .timetracker-module .topbar .tabs.tt-una-fila .tt-nombre-largo{display:none}
+  .timetracker-module .topbar .tabs.tt-una-fila .tt-nombre-corto{display:inline}
+  .timetracker-module .topbar .account-link .menu-cuenta-nombre{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .timetracker-module .topbar .account-link .menu-cuenta-flecha{display:none}
+  .timetracker-module .topbar .tt-campana{position:static}
+  .timetracker-module .topbar .tt-campana-panel{left:12px;right:12px;width:auto}
+}
 .timetracker-module .badge{position:absolute;top:-6px;right:-6px;background:var(--tt-danger);color:#fff;border-radius:999px;
      font-size:11px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 5px}
 
