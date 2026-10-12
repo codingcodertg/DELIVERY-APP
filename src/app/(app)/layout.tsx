@@ -6,7 +6,6 @@ import { ConfirmProvider } from "@/lib/confirm";
 import { LocalApp } from "@/components/LocalApp";
 import { TopBar } from "@/components/TopBar";
 import { VersionFooter } from "@/components/VersionFooter";
-import { HelpButton } from "@/components/HelpButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DriverGate } from "@/components/DriverGate";
 import { AssignmentPing } from "@/components/AssignmentPing";
@@ -84,7 +83,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ) : (
           <div className="wrap"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div>
         )}
-        <HelpButton me={me} />
+        {/* La burbuja de Ayuda ya no se monta aquí: está en el layout raíz, la misma para todas las apps (D-NEXT). */}
         <VersionFooter />
       </DataProvider>
     </ConfirmProvider>

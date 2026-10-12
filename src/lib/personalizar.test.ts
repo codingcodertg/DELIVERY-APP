@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { OPCIONES_DE_IDIOMA, OPCIONES_DE_TEMA, RUTA_PERSONALIZAR } from "./personalizar";
 import { PREFERENCIAS_DE_TEMA } from "./tema";
 import { OPCIONES_DEL_MENU, OPCIONES_DEL_MENU_RRHH, OPCIONES_DEL_MENU_TT, opcionesDelMenuDeCuenta } from "./account-menu";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { PrefsConIdioma } from "./prefs";
+import { Personalizador } from "@/components/profile/Personalizador";
 
 /**
  * El personalizador del hub (D-490): el idioma y el tema se eligen ahí y en ningún otro sitio de las
@@ -34,9 +38,16 @@ describe("las opciones", () => {
     expect(OPCIONES_DE_IDIOMA.find((o) => o.valor === "es")?.es).toBe("Español");
     expect(OPCIONES_DE_IDIOMA.find((o) => o.valor === "en")?.en).toBe("English");
   });
-  it("los tres temas, los mismos que entiende el proveedor, con texto distinto en cada idioma", () => {
+  it("los dos temas, Claro y Oscuro, los mismos que entiende el proveedor, con texto distinto en cada idioma", () => {
     expect(OPCIONES_DE_TEMA.map((o) => o.valor)).toEqual([...PREFERENCIAS_DE_TEMA]);
+    expect(OPCIONES_DE_TEMA.map((o) => o.en)).toEqual(["Light", "Dark"]);
     for (const o of OPCIONES_DE_TEMA) expect(o.en, o.valor).not.toBe(o.es);
+  });
+  it("sin «Same as my device» (D-NEXT): el dueño, «that same as my device remove it»", () => {
+    expect(OPCIONES_DE_TEMA.map((o) => o.valor)).not.toContain("system");
+    // Ni en la lista ni en el texto que la explicaba, en ningún fichero de las apps.
+    const conElTexto = tsxDeSrc().filter((f) => /Same as my device|Como mi equipo|follows your phone/.test(sinComentarios(readFileSync(f, "utf8"))));
+    expect(conElTexto).toEqual([]);
   });
 });
 
@@ -50,10 +61,9 @@ describe("la pantalla", () => {
     expect(pers).toContain("onClick={() => setTheme(o.valor)}");
   });
 
-  it("marca lo puesto: el idioma, y el tema ELEGIDO (también «como mi equipo»), no el resuelto", () => {
+  it("marca lo puesto: el idioma y el tema (desde D-NEXT, lo elegido y lo pintado son lo mismo)", () => {
     expect(pers).toContain("aria-checked={lang === o.valor}");
-    expect(pers).toContain("aria-checked={themePref === o.valor}");
-    expect(pers).not.toContain("aria-checked={theme ===");
+    expect(pers).toContain("aria-checked={theme === o.valor}");
   });
 
   it("vive en /home/personalizar y solo pide sesión, como Mi perfil: el chofer también entra", () => {
@@ -73,6 +83,28 @@ describe("la pantalla", () => {
     const perfil = sinComentarios(leer("src/components/profile/ProfileView.tsx"));
     expect(perfil).not.toMatch(/setLang|setTheme/);
     expect(perfil).toContain("<Link href={RUTA_PERSONALIZAR} className=\"btn btn-primary\">");
+  });
+});
+
+describe("la pantalla, pintada (D-NEXT)", () => {
+  const pinta = (lang: "es" | "en") => renderToStaticMarkup(createElement(PrefsConIdioma, { lang } as Parameters<typeof PrefsConIdioma>[0], createElement(Personalizador)));
+  const temas = (html: string) => {
+    const grupo = html.slice(html.indexOf('data-personalizar="tema"'));
+    return [...grupo.matchAll(/role="radio" aria-checked="(true|false)"[^>]*>(?:<span[^>]*>[^<]*<\/span>)?\s*([^<]+)</g)].map((m) => `${m[1] === "true" ? "*" : ""}${m[2].trim()}`);
+  };
+
+  it("el tema tiene dos opciones, Claro y Oscuro, y está marcada la que se pinta", () => {
+    // Sin `document` (la prueba corre en node) `PrefsConIdioma` pinta claro.
+    expect(temas(pinta("es"))).toEqual(["*Claro", "Oscuro"]);
+    expect(temas(pinta("en"))).toEqual(["*Light", "Dark"]);
+  });
+
+  it("ni «Same as my device» ni el texto que lo explicaba", () => {
+    for (const lang of ["es", "en"] as const) {
+      const html = pinta(lang);
+      expect(html).not.toMatch(/Same as my device|Como mi equipo|follows your phone|sigue a tu teléfono|🖥/);
+    }
+    expect(pinta("en")).toContain("Applies to every app, on this device.");
   });
 });
 

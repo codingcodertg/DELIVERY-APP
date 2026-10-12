@@ -37,7 +37,7 @@ describe("la marca que deja a Ayuda fuera de la foto", () => {
     expect(captura).toContain("exclude: [`[${FUERA_DE_LA_CAPTURA}]`],");
   });
 
-  it("la llevan las tres piezas de Ayuda: el botón flotante, su panel y el editor del recuadro", () => {
+  it("la llevan las cuatro piezas de Ayuda: el botón flotante, su panel, su aviso y el editor del recuadro", () => {
     const fab = boton.indexOf('className="help-fab no-print"');
     expect(fab).toBeGreaterThan(-1);
     expect(boton.slice(fab, boton.indexOf(">", fab))).toContain("{...marcaFueraDeLaCaptura}");
@@ -46,8 +46,13 @@ describe("la marca que deja a Ayuda fuera de la foto", () => {
     expect(panel).toBeGreaterThan(-1);
 
     expect(captura).toContain('<div className="overlay" style={{ zIndex: 60 }} {...marcaFueraDeLaCaptura}>');
-    // Exactamente esas: una de más escondería algo que la persona quería enseñar.
-    expect((soloCodigo(boton).match(/\{\.\.\.marcaFueraDeLaCaptura\}/g) ?? []).length).toBe(2);
+    // El aviso de abajo es de la burbuja desde D-NEXT (antes era el de Entregas): «enviada», «no se pudo»… no
+    // tiene que salir en una foto que se toma justo después.
+    expect(boton).toContain('{aviso && <div className="toast no-print" role="status" {...marcaFueraDeLaCaptura}>{aviso}</div>}');
+
+    // Exactamente esas: una de más escondería algo que la persona quería enseñar. (Eran 2 en el botón hasta
+    // D-NEXT; la tercera es el aviso, que antes no era suyo.)
+    expect((soloCodigo(boton).match(/\{\.\.\.marcaFueraDeLaCaptura\}/g) ?? []).length).toBe(3);
     expect((soloCodigo(captura).match(/\{\.\.\.marcaFueraDeLaCaptura\}/g) ?? []).length).toBe(1);
   });
 });
@@ -76,9 +81,10 @@ describe("la foto rápida", () => {
 
   it("se calienta al abrir Ayuda, en el mismo clic que abre el panel", () => {
     const fab = boton.indexOf('className="help-fab no-print"');
-    // Acotado por longitud y no por el primer `>`: el `=>` de la flecha lo cortaría a la mitad.
-    const suTag = boton.slice(fab, fab + 400);
-    expect(suTag).toContain("onClick={() => { setOpen(true); calientaCaptura(); }}");
+    // Acotado por longitud y no por el primer `>`: el `=>` de la flecha lo cortaría a la mitad. Desde D-NEXT el
+    // mismo clic pide también quién escribe y el teléfono (`traeContacto`).
+    const suTag = boton.slice(fab, fab + 700);
+    expect(suTag).toContain("onClick={() => { setOpen(true); calientaCaptura(); void traeContacto(); }}");
   });
 
   it("el calentamiento cede el hilo y la captura de verdad no", () => {

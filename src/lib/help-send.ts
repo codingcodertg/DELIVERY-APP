@@ -1,12 +1,19 @@
 import { createClient } from "@/lib/supabase/client";
 import { CUBO_DE_ADJUNTOS, rutaDeAdjunto } from "@/lib/help-attachments";
+import type { ContactoDeAyuda } from "@/lib/ayuda-flotante";
+import { ROLE_INFO, roleLabel } from "@/lib/constants";
+import type { UserRole } from "@/lib/types";
 
 /**
  * Subir adjuntos y mandar una solicitud de ayuda, en un solo sitio (D-311).
  *
  * Vivía dentro de `HelpButton`. Salió de ahí porque «Mis solicitudes» del hub también abre
  * solicitudes, y el hub no monta el `DataProvider` de Entregas: aquí no se usa nada de él. Quien
- * llama trae el correo de destino y decide qué decirle a la persona con el resultado.
+ * llama decide qué decirle a la persona con el resultado.
+ *
+ * El correo de destino ya no lo trae quien llama (D-NEXT): lo decide el servidor (`destinoDeAyuda`, en
+ * `lib/ayuda-flotante.ts`), porque quien no tiene Entregas no puede leer `settings` y la burbuja de
+ * Ayuda está ahora en todas las apps.
  */
 
 export type AdjuntoSubido = { path: string; nombre: string };
@@ -35,7 +42,7 @@ export type ResultadoDeSolicitud =
   | { tipo: "red" };
 
 export async function enviaSolicitudDeAyuda(args: {
-  userId: string; message: string; ficheros: readonly File[]; to: string; page: string;
+  userId: string; message: string; ficheros: readonly File[]; page: string;
   senderName: string | null; role: string; appVersion: string; lang: string;
 }): Promise<ResultadoDeSolicitud> {
   try {
@@ -45,7 +52,7 @@ export async function enviaSolicitudDeAyuda(args: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: args.message, to: args.to, page: args.page, senderName: args.senderName,
+        message: args.message, page: args.page, senderName: args.senderName,
         role: args.role, appVersion: args.appVersion, lang: args.lang, archivos: subida.subidos,
       }),
     });
@@ -56,4 +63,30 @@ export async function enviaSolicitudDeAyuda(args: {
   } catch {
     return { tipo: "red" };
   }
+}
+
+/**
+ * Lo que la burbuja de Ayuda necesita antes de mandar (D-NEXT): el teléfono de ayuda y quién escribe. Lo contesta
+ * `GET /api/help` con la sesión, igual desde cualquier app (ver `ContactoDeAyuda`). Sin sesión, o sin red, `null`:
+ * la burbuja dice que no se pudo mandar en vez de mandar una solicitud sin dueño.
+ */
+export async function pideContactoDeAyuda(): Promise<ContactoDeAyuda | null> {
+  try {
+    const res = await fetch("/api/help", { method: "GET" });
+    // Sin sesión contesta 401 con `{ error }`: sin id, y por eso sin dueño. No hace falta mirar `res.ok` aparte.
+    const c = (await res.json()) as Partial<ContactoDeAyuda> | null;
+    if (!c?.id) return null;
+    return { id: c.id, telefono: c.telefono ?? null, nombre: c.nombre ?? null, rol: c.rol ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * El rol de quien escribe, en palabras, para el correo. Lo que llega de `profiles.role` es texto: si no es uno de los
+ * roles que conoce el app, va tal cual en vez de romper `roleLabel`.
+ */
+export function rolDeQuienEscribe(rol: string | null, lang: "en" | "es"): string {
+  if (!rol) return "";
+  return rol in ROLE_INFO ? roleLabel(rol as UserRole, lang) : rol;
 }

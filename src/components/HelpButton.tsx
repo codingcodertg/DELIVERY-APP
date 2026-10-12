@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { DEFAULT_HELP_EMAIL, roleLabel } from "@/lib/constants";
 import { APP_VERSIONS } from "@/lib/app-versions";
+import { appForPath } from "@/lib/app-for-path";
+import { ayudaEnLaRuta, type ContactoDeAyuda } from "@/lib/ayuda-flotante";
 import { telClean } from "@/lib/utils";
 import Link from "next/link";
 import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
@@ -16,19 +16,47 @@ import {
   EditorDeCaptura, calientaCaptura, esperaUnRepintado, ficheroDeCaptura, marcaFueraDeLaCaptura,
   tomaFotograma, tomaFotogramaDeLaPagina, type FotogramaDeCaptura,
 } from "@/components/CapturaDeAyuda";
-import { enviaSolicitudDeAyuda } from "@/lib/help-send";
+import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
 import { RUTA_MIS_SOLICITUDES } from "@/lib/help-thread";
-import type { Profile } from "@/lib/types";
 
-/** Floating "Help" button, mounted app-wide. Any user can tap it to email a
- * question to the support address an admin sets in Settings (help_email,
- * default DEFAULT_HELP_EMAIL). We attach who/where/version context so the
- * recipient can act without a back-and-forth. Delivery goes through /api/help
- * (Resend); until email is configured it reports a dry-run and we say so. */
-export function HelpButton({ me }: { me: Profile }) {
-  const { settings, notify } = useData();
+/** Cuánto se ve el aviso de abajo (enviada, no se pudo…), como el de Entregas. */
+const DURACION_DEL_AVISO_MS = 4000;
+
+/**
+ * La burbuja de Ayuda, la MISMA en todas las apps (D-NEXT): «? Help» abajo a la derecha, su panel, la foto de la
+ * pantalla (D-509, D-513) y el enlace a «Mis solicitudes» (D-311). Cualquiera la pulsa y manda un correo a la
+ * dirección de ayuda de Ajustes, con quién es, en qué página está y la versión de esa app, para que quien la lee
+ * pueda actuar sin preguntar. Va por `/api/help` (Resend); sin correo configurado lo dice.
+ *
+ * **Se monta UNA vez, en el layout raíz** (`app/layout.tsx`), que es el único por el que pasan todas las apps: así
+ * es el mismo componente —no una copia por app— en Entregas, el hub, Time Tracker, RR. HH., el ERP, Quote Builder,
+ * Leads, Encuestas y Promociones, y una app nueva la tiene sin acordarse. Dónde NO sale lo dice `ayudaEnLaRuta`
+ * (las pantallas sin sesión: login, el enlace del cliente…).
+ *
+ * Hasta D-NEXT vivía solo en Entregas y sacaba dos cosas de su `DataProvider`: los ajustes de ayuda y el aviso de
+ * abajo. Ya no depende de ninguna app: quién escribe y el teléfono los pide a `/api/help` al abrirse
+ * (`pideContactoDeAyuda`), y el aviso es suyo. Por eso se ve y se comporta igual en todas.
+ */
+export function HelpButton() {
   const { lang, t } = usePrefs();
   const pathname = usePathname();
+  // El aviso de abajo es de la burbuja, no de la app en la que está: así dice lo mismo, en el mismo sitio, en
+  // todas. Antes era el `notify` de Entregas, que fuera de Entregas no existe.
+  const [aviso, setAviso] = useState<string | null>(null);
+  const notify = (m: string) => setAviso(m);
+  useEffect(() => {
+    if (!aviso) return;
+    const id = setTimeout(() => setAviso(null), DURACION_DEL_AVISO_MS);
+    return () => clearTimeout(id);
+  }, [aviso]);
+  // Quién escribe y el teléfono de ayuda: se piden al abrir (ver `pideContactoDeAyuda`), una vez por carga.
+  const [contacto, setContacto] = useState<ContactoDeAyuda | null>(null);
+  const traeContacto = async (): Promise<ContactoDeAyuda | null> => {
+    if (contacto) return contacto;
+    const c = await pideContactoDeAyuda();
+    if (c) setContacto(c);
+    return c;
+  };
 
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState("");
@@ -49,7 +77,6 @@ export function HelpButton({ me }: { me: Profile }) {
   // es justo lo que el dueño no quiere ver en el camino normal.
   const [respaldoVisible, setRespaldoVisible] = useState(false);
 
-  const to = settings.help_email?.trim() || DEFAULT_HELP_EMAIL;
   // ¿Sabe este navegador capturar la pantalla con `getDisplayMedia`? Solo decide el RESPALDO: la foto
   // rápida no lo necesita y se ofrece siempre, también en el móvil (D-513). Se mide, no se adivina por
   // el agente de usuario. Solo se lee dentro del panel, que nunca se pinta en el servidor (nace
@@ -138,12 +165,23 @@ export function HelpButton({ me }: { me: Profile }) {
     const message = msg.trim();
     if (!message) return;
     setBusy(true);
-    // Subir y mandar viven en `help-send`, que también usa «Mis solicitudes» del hub (D-311).
+    // Quién escribe lo dice la sesión, no la app en la que está la burbuja (D-NEXT). Sin sesión no se manda.
+    const quien = await traeContacto();
+    if (!quien) {
+      setBusy(false);
+      notify(t(
+        "Couldn't send — your session may have expired. Sign in again and retry.",
+        "No se pudo enviar — puede que su sesión haya caducado. Vuelva a entrar e inténtelo de nuevo.",
+      ));
+      return;
+    }
+    // Subir y mandar viven en `help-send`, que también usa «Mis solicitudes» del hub (D-311). El destino del
+    // correo lo pone el servidor (`destinoDeAyuda`).
     const r = await enviaSolicitudDeAyuda({
-      userId: me.id, message, ficheros, to, page: pathname, senderName: me.full_name,
-      role: roleLabel(me.role, lang),
-      // HelpButton only ever mounts inside deliveries' own layout/LocalApp.
-      appVersion: APP_VERSIONS.deliveries,
+      userId: quien.id, message, ficheros, page: pathname, senderName: quien.nombre,
+      role: rolDeQuienEscribe(quien.rol, lang),
+      // La versión de la app en la que está, no siempre la de Entregas: el número que sale arriba a la derecha.
+      appVersion: APP_VERSIONS[appForPath(pathname)],
       lang,
     });
     setBusy(false);
@@ -172,14 +210,17 @@ export function HelpButton({ me }: { me: Profile }) {
   // una pieza dentro. El estado —el mensaje a medio escribir, los adjuntos— sobrevive: devolver `null`
   // no desmonta el componente.
   if (ocultoParaCapturar) return null;
+  // Las pantallas de antes (o de fuera) de las apps no la llevan: el login, el enlace del cliente… (D-NEXT).
+  if (!ayudaEnLaRuta(pathname)) return null;
 
   return (
     <>
       <button
         className="help-fab no-print"
         {...marcaFueraDeLaCaptura}
-        // Al abrir se calienta la foto rápida: lo lento de la primera (fuentes) pasa mientras se escribe.
-        onClick={() => { setOpen(true); calientaCaptura(); }}
+        // Al abrir se calienta la foto rápida (lo lento de la primera, las fuentes, pasa mientras se escribe) y se
+        // pide quién escribe y el teléfono, para que el «📞 Llámanos» salga ya con el panel.
+        onClick={() => { setOpen(true); calientaCaptura(); void traeContacto(); }}
         title={t("Need help?", "¿Necesita ayuda?")}
         aria-label={t("Need help?", "¿Necesita ayuda?")}
       >
@@ -197,13 +238,13 @@ export function HelpButton({ me }: { me: Profile }) {
                 "Describa lo que sucede y enviaremos un correo a soporte. Incluiremos su nombre, rol y la página en la que está.",
               )}
             </p>
-            {settings.help_phone?.trim() && (
+            {contacto?.telefono && (
               <a
-                href={`tel:${telClean(settings.help_phone)}`}
+                href={`tel:${telClean(contacto.telefono)}`}
                 className="btn btn-green"
                 style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 12 }}
               >
-                📞 {t("Call us", "Llámanos")} · {settings.help_phone}
+                📞 {t("Call us", "Llámanos")} · {contacto.telefono}
               </a>
             )}
             <textarea
@@ -312,6 +353,9 @@ export function HelpButton({ me }: { me: Profile }) {
           onDeNuevo={() => { setFotograma(null); void capturaRapida(); }}
         />
       )}
+
+      {/* El aviso de la burbuja: fuera de la foto, como lo demás de Ayuda. */}
+      {aviso && <div className="toast no-print" role="status" {...marcaFueraDeLaCaptura}>{aviso}</div>}
     </>
   );
 }
