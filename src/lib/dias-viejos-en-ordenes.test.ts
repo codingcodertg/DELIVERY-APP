@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { enLaVentanaDeOrdenes, ordenesVisibles, type ContextoDeLista } from "./ordenes-visibles";
+import { DIAS_DE_BORRADOR, enLaVentanaDeOrdenes, ordenesVisibles, type ContextoDeLista } from "./ordenes-visibles";
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "./pastillas-de-ordenes";
 import { PESTANA_ATRASADAS } from "./atrasadas";
 import { ROLE_INFO } from "./constants";
@@ -74,6 +74,32 @@ const CON_DIAS_VIEJOS = TODOS.filter((r) => seesAllHistory(r));
 describe("quién ve los días anteriores a ayer", () => {
   it("de fábrica, solo admin y logística", () => {
     expect([...CON_DIAS_VIEJOS].sort()).toEqual(["admin", "logistics"]);
+  });
+});
+
+describe("D-NEXT · un BORRADOR dura 7 días en Órdenes («draft quedan hata 7 dias es lo unico que no tiene la reglas de ayer hoyy y manana»)", () => {
+  const HOY_FIJO = "2026-10-12"; // lunes: el caso medido (borrador del sábado 10)
+  it("el borrador del sábado sigue el lunes, y hasta 7 días atrás", () => {
+    expect(DIAS_DE_BORRADOR).toBe(7);
+    expect(enLaVentanaDeOrdenes({ stage: "draft", delivery_date: "2026-10-10" }, HOY_FIJO)).toBe(true);
+    expect(enLaVentanaDeOrdenes({ stage: "draft", delivery_date: "2026-10-05" }, HOY_FIJO)).toBe(true);  // justo 7
+    expect(enLaVentanaDeOrdenes({ stage: "draft", delivery_date: "2026-10-04" }, HOY_FIJO)).toBe(false); // 8: fuera
+  });
+  it("solo el borrador: la misma fecha en cualquier otra etapa sigue con el corte de ayer", () => {
+    for (const stage of ["pending", "approved", "ready", "picked_up", "delivered", "canceled", "rejected"]) {
+      expect(enLaVentanaDeOrdenes({ stage, delivery_date: "2026-10-10" }, HOY_FIJO), stage).toBe(false);
+      expect(enLaVentanaDeOrdenes({ stage, delivery_date: "2026-10-11" }, HOY_FIJO), stage).toBe(true);
+    }
+  });
+  it("sin fecha, el borrador sigue saliendo siempre, como antes", () => {
+    expect(enLaVentanaDeOrdenes({ stage: "draft", delivery_date: null }, HOY_FIJO)).toBe(true);
+  });
+  it("la lista de Órdenes de un vendedor lo aplica (pasa por `pasaLaVentana`)", () => {
+    const sabado = mkDelivery({ id: "b", stage: "draft", delivery_date: "2026-10-10", created_by: "u-ventas", store: "RDZ McAllen" });
+    const src = readFileSync("src/lib/ordenes-visibles.ts", "utf8");
+    expect(src).toContain("if (d.stage === \"draft\") return d.delivery_date.slice(0, 10) >= shiftDateISO(hoy, -DIAS_DE_BORRADOR);");
+    expect(src).toMatch(/export function pasaLaVentana[\s\S]*?return enLaVentanaDeOrdenes\(d\);/);
+    expect(sabado.stage).toBe("draft");
   });
 });
 

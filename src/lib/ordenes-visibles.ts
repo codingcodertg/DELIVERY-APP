@@ -1,5 +1,5 @@
 import type { Delivery, NamedLocation, Profile, UserRole } from "@/lib/types";
-import { retentionFloorISO, todayISO } from "@/lib/utils";
+import { retentionFloorISO, shiftDateISO, todayISO } from "@/lib/utils";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { esDeMisTiendas } from "@/lib/almacen";
@@ -91,12 +91,20 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
  * Órdenes.
  */
 export function enLaVentanaDeOrdenes(
-  d: { delivery_date?: string | null },
+  d: { delivery_date?: string | null; stage?: string | null },
   hoy: string = todayISO(),
 ): boolean {
   if (!d.delivery_date) return true;
+  // Un BORRADOR dura 7 días, no «ayer, hoy y mañana» (D-NEXT). El dueño, 2026-10-12: «draft quedan hata 7 dias es lo
+  // unico que no tiene la reglas de ayer hoyy y manana». Medido ese día: un vendedor guardó el sábado una orden como
+  // borrador con fecha del sábado; el lunes ya no la veía y la volvió a capturar (duplicada). Se cuenta desde la
+  // fecha de entrega del borrador (lo único que la ventana mira; sin fecha, siempre).
+  if (d.stage === "draft") return d.delivery_date.slice(0, 10) >= shiftDateISO(hoy, -DIAS_DE_BORRADOR);
   return d.delivery_date.slice(0, 10) >= retentionFloorISO(hoy);
 }
+
+/** Cuántos días atrás sigue viéndose un borrador en Órdenes (D-NEXT): «draft quedan hata 7 dias». */
+export const DIAS_DE_BORRADOR = 7;
 
 /**
  * ¿Pasa el corte de fechas?
