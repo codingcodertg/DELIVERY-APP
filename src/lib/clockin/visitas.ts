@@ -45,6 +45,27 @@ export function viajePersonalPorDefecto(vehiculoAsignado: string | null | undefi
 export type Vehiculo = "personal" | "empresa";
 
 /**
+ * Con qué respuesta nace «¿vehículo personal o de la empresa?» en la ventana de «Voy a salir» (D-524): personal. El dueño,
+ * 2026-10-11: «in time tracker personal vehicle should be in default when chossing a car to go out». Quien va en uno de
+ * la empresa lo cambia, y entonces se le piden el vehículo y el cuentakilómetros, como en D-489.
+ */
+export const VEHICULO_POR_DEFECTO: Vehiculo = "personal";
+
+/**
+ * ¿Tiene sentido el cuentakilómetros de regreso de un viaje en vehículo de la empresa? (D-524). El dueño, 2026-10-11: «the
+ * odometer should make sense like going out 2000 and coming in 2010 not less». Igual sí vale (no se movió una milla
+ * entera); menos, no. `falta`: vacío o no es un número (un vacío no es 0, D-136). `null`: está bien.
+ *
+ * La usan el panel de viajes —que ahora compara con la lectura de salida GUARDADA en el viaje, no con la que se tecleó en
+ * esa misma pantalla— y el servidor (`endTrip`), que ya lo rechazaba.
+ */
+export function odometroDeRegreso(salida: number | null | undefined, regreso: number | null | undefined): "falta" | "menor" | null {
+  if (regreso == null || !Number.isFinite(regreso)) return "falta";
+  if (salida != null && Number.isFinite(salida) && regreso < salida) return "menor";
+  return null;
+}
+
+/**
  * El vehículo de la empresa que sale elegido: el asignado si sigue activo; si no, el primero de
  * la lista. `null` si la empresa no tiene ninguno activo — entonces «de la empresa» no se puede
  * elegir y la pantalla lo dice.
@@ -81,8 +102,8 @@ export type PlanDeSalida =
 /**
  * Qué se graba al pulsar «Voy a salir», con lo que contestó.
  *
- *  · **Sin contestar personal / empresa: nada** (`falta: "eleccion"`). Es una pregunta, no un
- *    defecto escondido.
+ *  · **Sin contestar personal / empresa: nada** (`falta: "eleccion"`). Desde D-524 la ventana ya nace
+ *    contestada con `VEHICULO_POR_DEFECTO` (personal), a la vista; esto queda para quien llame sin respuesta.
  *  · **Empresa**: hace falta el vehículo y el cuentakilómetros de salida — `startTrip` los exige,
  *    y un vacío NO es 0 (D-136: un hueco se ve, un cero se cree). Y se graba SIEMPRE como viaje,
  *    sea o no visita: el cuentakilómetros solo tiene sitio en un viaje (`vehicle_trips`), y una

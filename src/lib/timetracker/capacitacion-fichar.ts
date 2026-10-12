@@ -110,7 +110,7 @@ export function accionesDePractica(reales: AccionesDeFichar, l: Libreta): Accion
       return { ok: true };
     },
     startTrip: async (input) => {
-      apunta(l, { k: "viaje", id: l.nuevoId(), at: iso(), vehicleId: input.personal ? null : (input.vehicleId ?? null) });
+      apunta(l, { k: "viaje", id: l.nuevoId(), at: iso(), vehicleId: input.personal ? null : (input.vehicleId ?? null), odometer: input.personal ? null : (input.odometer ?? null) });
       return { ok: true };
     },
     endTrip: async () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pestanasEnOrden, PESTANAS_DE_OFICINA_POR_AHORA } from "./orden-de-pestanas";
-import { canOpenTab, ROLE_INFO, TABS, vaEnGeneral } from "./constants";
+import { canOpenTab, landingRoute, roleHome, ROLE_INFO, TABS, tabForPath, vaEnGeneral } from "./constants";
 import type { UserRole } from "./types";
 
 /**
@@ -47,7 +47,7 @@ describe("almacén: Órdenes antes que Ruta de hoy", () => {
   });
 
   it("a los demás roles no les cambia el orden ni les quita nada", () => {
-    for (const role of ROLES.filter((r) => r !== "warehouse")) {
+    for (const role of ROLES.filter((r) => r !== "warehouse" && r !== "driver")) {
       const sinOrdenar = TABS.filter((tb) => canOpenTab(tb.id, { role, permissions: [] }));
       expect([role, barraDe(role).map((tb) => tb.id)]).toEqual([role, sinOrdenar.map((tb) => tb.id)]);
     }
@@ -61,6 +61,28 @@ describe("almacén: Órdenes antes que Ruta de hoy", () => {
     const salida = pestanasEnOrden(entrada, "warehouse");
     expect(salida).not.toBe(entrada);
     expect(entrada.map((t) => t.id)).toEqual(["map", "warehouse"]);
+  });
+});
+
+describe("chofer: «Mi ruta» primero y «Órdenes» al final (D-523)", () => {
+  // El dueño, 2026-10-11: «my routes in driver will be 1st and orders last in  the row».
+  it("su barra es Mi ruta, Inspección, Órdenes", () => {
+    expect(barraDe("driver").map((tb) => tb.id)).toEqual(["myroute", "inspection", "driver"]);
+  });
+
+  it("sin reordenar, TABS pondría su «Órdenes» primero: por eso el chofer entra en pestanasEnOrden", () => {
+    expect(TABS.filter((tb) => canOpenTab(tb.id, { role: "driver", permissions: [] })).map((tb) => tb.id)).toEqual(["driver", "myroute", "inspection"]);
+  });
+
+  it("lo que le concedan de más queda en medio, en el orden de TABS", () => {
+    const con = pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, { role: "driver", permissions: ["fulfill", "route_plan"] })), "driver");
+    expect(con.map((tb) => tb.id)).toEqual(["myroute", "warehouse", "inspection", "routes", "driver"]);
+  });
+
+  it("y es su pantalla de inicio: al entrar y desde «Ver como»", () => {
+    expect(roleHome("driver")).toBe("/my-route");
+    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/my-route");
+    expect(canOpenTab(tabForPath("/my-route")!.id, { role: "driver", permissions: [] })).toBe(true);
   });
 });
 

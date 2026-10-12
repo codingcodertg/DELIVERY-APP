@@ -5,7 +5,7 @@ import type { getMyTrip } from "@/app/timetracker/clock-in/actions/runner";
 import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
-import { viajePersonalPorDefecto } from "@/lib/clockin/visitas";
+import { odometroDeRegreso, viajePersonalPorDefecto } from "@/lib/clockin/visitas";
 import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo";
 
 /**
@@ -115,6 +115,10 @@ export function TripPanel({
   if (d.mode === "sales" && d.vehicles.length === 0 && !d.trip) return null;
 
   const personal = personalElegido ?? viajePersonalPorDefecto(d.currentVehicleId);
+  // La lectura de salida del viaje abierto (D-524): la GUARDADA, aunque el viaje se empezara en «Voy a salir» o la página se
+  // recargara. Antes se comparaba con lo tecleado en este panel, que en esos dos casos estaba vacío y no avisaba de nada.
+  const salida = d.trip?.vehicleId ? (d.trip.startOdometer ?? num(odoIni)) : null;
+  const regreso = odometroDeRegreso(salida, num(odoFin));
   const vehiculo = vehiculoElegido || d.currentVehicleId || d.vehicles[0]?.id || "";
 
   /** La cámara ya se cerró: con foto se guarda la parada; sin foto no hay nada que guardar. */
@@ -235,20 +239,25 @@ export function TripPanel({
             {d.trip.vehicleId && (
               <div>
                 <label>{t("emp.trip.odoIn")}</label>
-                <input inputMode="numeric" value={odoFin} onChange={(e) => setOdoFin(e.target.value)} placeholder={t("emp.trip.miles")} />
+                <input inputMode="numeric" value={odoFin} onChange={(e) => setOdoFin(e.target.value)} placeholder={t("emp.trip.miles")}
+                  min={salida ?? undefined} aria-invalid={regreso === "menor" || undefined} />
+                {/* D-524: la lectura de salida a la vista, y el aviso en cuanto el regreso es menor. */}
+                {salida != null && <div className="hint" data-odometro-salida>{t("emp.trip.odoOutWas", { a: salida })}</div>}
+                {regreso === "menor" && salida != null && (
+                  <div className="hint" data-odometro-menor style={{ color: "var(--red, #c0392b)" }}>{t("emp.trip.odoWarn", { a: salida, b: num(odoFin) ?? "" })}</div>
+                )}
               </div>
             )}
           </div>
           <button
             className="btn-danger"
             style={{ marginTop: 10 }}
-            disabled={busy}
+            disabled={busy || regreso === "menor"}
             onClick={() => {
-              const a = num(odoIni), b = num(odoFin);
-              // Se avisa, no se bloquea: un dígito mal tecleado se corrige, pero pasar de
-              // largo dejaría una diferencia negativa en la factura.
-              if (a != null && b != null && b < a) {
-                setAviso(t("emp.trip.odoWarn", { a, b }));
+              // Menor que la salida no se manda (D-524; el servidor tampoco lo acepta): pasar de largo dejaría una
+              // diferencia negativa en la factura. Vacío sí se manda, y el servidor contesta qué falta, como antes.
+              if (regreso === "menor" && salida != null) {
+                setAviso(t("emp.trip.odoWarn", { a: salida, b: num(odoFin) ?? "" }));
                 return;
               }
               setAviso(null);

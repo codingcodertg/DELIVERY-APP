@@ -49,6 +49,7 @@ export function PhotoUpload({
   max = 6,
   credits,
   t,
+  galeria = false,
 }: {
   photos: string[];
   onChange: (next: string[]) => void;
@@ -58,8 +59,14 @@ export function PhotoUpload({
    * has one — the point of a delivery photo is partly who stands behind it. */
   credits?: Record<string, { name: string; role: string } | undefined>;
   t: (en: string, es: string) => string;
+  /**
+   * Dos botones en vez de uno (D-523): «📷 Cámara», que en el teléfono abre la cámara directo (`capture`), y «🖼 Galería»,
+   * que abre el selector de fotos sin `capture`, para una foto ya tomada. Sin esto, uno solo que abre la cámara.
+   */
+  galeria?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const galeriaRef = useRef<HTMLInputElement>(null);
   const [viewing, setViewing] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -81,6 +88,7 @@ export function PhotoUpload({
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
+      if (galeriaRef.current) galeriaRef.current.value = "";
     }
   };
 
@@ -108,8 +116,13 @@ export function PhotoUpload({
           </div>
         ))}
         {!disabled && !full && (
-          <button className="photo-add" onClick={() => inputRef.current?.click()} disabled={busy}>
-            {busy ? "…" : <>📷<span>{t("Add photo", "Agregar foto")}</span></>}
+          <button className="photo-add" data-foto-camara={galeria ? "" : undefined} onClick={() => inputRef.current?.click()} disabled={busy}>
+            {busy ? "…" : <>📷<span>{galeria ? t("Camera", "Cámara") : t("Add photo", "Agregar foto")}</span></>}
+          </button>
+        )}
+        {galeria && !disabled && !full && !busy && (
+          <button className="photo-add" data-foto-galeria onClick={() => galeriaRef.current?.click()}>
+            🖼<span>{t("Gallery", "Galería")}</span>
           </button>
         )}
       </div>
@@ -123,6 +136,9 @@ export function PhotoUpload({
         hidden
         onChange={(e) => add(e.target.files)}
       />
+      {galeria && (
+        <input ref={galeriaRef} type="file" accept="image/*" multiple hidden data-entrada-galeria onChange={(e) => add(e.target.files)} />
+      )}
 
       {err && <div className="hint" style={{ color: "var(--red)" }}>{err}</div>}
       {full && <div className="hint">{t(`Maximum ${max} photos.`, `Máximo ${max} fotos.`)}</div>}

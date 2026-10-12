@@ -6,8 +6,8 @@ import { accessibleModules, canReachHub, HUB_TOOLS, landingRoute, MODULE_ACCESS,
 // en el tablero"— ahora sería un fallo: la base le devolvería cero filas.
 describe("landingRoute", () => {
   it("manda al chofer a su ruta, aunque tenga otro módulo", () => {
-    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/driver");
-    expect(landingRoute({ role: "driver", module_access: ["deliveries", "recruiting"] })).toBe("/driver");
+    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
+    expect(landingRoute({ role: "driver", module_access: ["deliveries", "recruiting"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
   });
 
   it("un chofer SIN Entregas no va al tablero de choferes", () => {

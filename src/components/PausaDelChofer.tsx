@@ -19,6 +19,10 @@ import {
 //
 // El recibo de la gasolina se pide al pulsar «▶ Seguir», no al registrar la parada: el recibo sale de la bomba al terminar
 // de cargar, y pedirlo antes obligaría a volver a abrir la parada para añadirlo.
+//
+// D-523: la cámara del recibo también sale al elegir «⛽ Gasolina» al registrar la parada, OPCIONAL —quien paga antes
+// dentro ya tiene el recibo—, y si ya la tomó, «▶ Seguir» la trae puesta y no la vuelve a pedir. En los dos sitios hay
+// «📷 Cámara» y «🖼 Galería». El dueño, 2026-10-11: «gas stop add the option for the camera of the receipt».
 // ============================================================
 
 const BOTON: React.CSSProperties = { flex: "1 1 0", minHeight: 44, justifyContent: "center", fontSize: 15, minWidth: 0 };
@@ -45,14 +49,14 @@ export function PausaDelChofer({ driverId, soloLectura = false }: {
     ? t("Couldn't save it: stops can't be logged yet (the database is missing an update). Tell logistics.", "No se pudo guardar: aún no se pueden registrar paradas (a la base le falta una actualización). Avísale a logística.")
     : t(`Couldn't save it: ${r.mensaje}`, `No se pudo guardar: ${r.mensaje}`);
 
-  const alEmpezar = async (motivo: MotivoDePausa, nota: string | null) => {
+  const alEmpezar = async (motivo: MotivoDePausa, nota: string | null, foto: string | null) => {
     if (soloLectura || ocupado) return;
     setOcupado(true);
     setError(null);
     // La ubicación como en «Recogido» (D-218): se espera poco y, si no llega, se guarda igual y se añade después.
     const { immediate, eventual } = captureLocationSplit();
     const gps = await immediate;
-    const r = await empezar({ motivo, nota }, gps);
+    const r = await empezar({ motivo, nota, recibo_foto: pideRecibo(motivo) ? foto : null }, gps);
     setOcupado(false);
     if (!r.ok) { setError(avisoDeFallo(r)); notify(avisoDeFallo(r)); return; }
     setRegistrando(false);
@@ -95,10 +99,10 @@ export function PausaDelChofer({ driverId, soloLectura = false }: {
       {error && !registrando && !cerrando && <div className="hint" data-error-de-pausa style={{ color: "var(--red)", marginTop: 4 }}>{error}</div>}
       {registrando && (
         <DialogoDeParada es={es} t={t} ocupado={ocupado} error={error}
-          onCancelar={() => setRegistrando(false)} onConfirmar={(m, n) => void alEmpezar(m, n)} />
+          onCancelar={() => setRegistrando(false)} onConfirmar={(m, n, f) => void alEmpezar(m, n, f)} />
       )}
       {cerrando && abierta && (
-        <DialogoDeRecibo t={t} ocupado={ocupado} error={error}
+        <DialogoDeRecibo t={t} ocupado={ocupado} error={error} fotoYaTomada={abierta.recibo_foto}
           onCancelar={() => setCerrando(false)} onConfirmar={(entrada) => void alSeguir(abierta, entrada)} />
       )}
     </div>
@@ -108,10 +112,11 @@ export function PausaDelChofer({ driverId, soloLectura = false }: {
 /** El motivo de un toque y una nota; «Otro» obliga a escribir qué. Confirmar queda apagado hasta entonces (`inicioDePausa`). */
 function DialogoDeParada({ es, t, ocupado, error, onCancelar, onConfirmar }: {
   es: boolean; t: (en: string, es: string) => string; ocupado: boolean; error: string | null;
-  onCancelar: () => void; onConfirmar: (motivo: MotivoDePausa, nota: string | null) => void;
+  onCancelar: () => void; onConfirmar: (motivo: MotivoDePausa, nota: string | null, foto: string | null) => void;
 }) {
   const [motivo, setMotivo] = useState<MotivoDePausa | null>(null);
   const [texto, setTexto] = useState("");
+  const [fotos, setFotos] = useState<string[]>([]);
   const inicio = inicioDePausa(motivo, texto);
   const titulo = `⏸ ${t("Log a stop", "Registrar parada")}`;
   return (
@@ -131,11 +136,19 @@ function DialogoDeParada({ es, t, ocupado, error, onCancelar, onConfirmar }: {
           <label>{motivo === "other" ? t("What is it? (required)", "¿Qué es? (obligatorio)") : t("Note (optional)", "Nota (opcional)")}</label>
           <textarea data-nota-pausa value={texto} rows={2} onChange={(e) => setTexto(e.target.value)} style={{ width: "100%" }} />
         </div>
+        {motivo && pideRecibo(motivo) && (
+          <div data-foto-recibo-al-empezar style={{ marginTop: 8 }}>
+            <div className="hint" style={{ marginBottom: 4 }}>
+              🧾 {t("Receipt photo — now if you have it, or when you press ▶ Continue.", "Foto del recibo — ahora si ya lo tienes, o al pulsar ▶ Seguir.")}
+            </div>
+            <PhotoUpload photos={fotos} onChange={(n) => setFotos(n.slice(0, 1))} max={1} t={t} disabled={ocupado} galeria />
+          </div>
+        )}
         {error && <div className="hint" data-error-de-pausa style={{ color: "var(--red)", marginTop: 6 }}>{error}</div>}
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button className="btn" style={BOTON} onClick={onCancelar}>{t("Cancel", "Cancelar")}</button>
           <button data-confirmar-parada className="btn btn-primary" style={BOTON} disabled={!inicio || ocupado}
-            onClick={() => { if (inicio) onConfirmar(inicio.motivo, inicio.nota); }}>
+            onClick={() => { if (inicio) onConfirmar(inicio.motivo, inicio.nota, fotos[0] ?? null); }}>
             {ocupado ? t("Saving…", "Guardando…") : `⏸ ${t("Start stop", "Empezar parada")}`}
           </button>
         </div>
@@ -148,11 +161,13 @@ function DialogoDeParada({ es, t, ocupado, error, onCancelar, onConfirmar }: {
  * Al seguir tras cargar gasolina: la foto del recibo (la cámara del teléfono, o un archivo), y si quiere, el monto y los
  * galones. Sin foto solo se sigue marcando «No tengo recibo», que queda anotado.
  */
-function DialogoDeRecibo({ t, ocupado, error, onCancelar, onConfirmar }: {
+export function DialogoDeRecibo({ t, ocupado, error, fotoYaTomada, onCancelar, onConfirmar }: {
   t: (en: string, es: string) => string; ocupado: boolean; error: string | null;
+  /** La que tomó al registrar la parada (D-523): sale puesta y no se vuelve a pedir; puede cambiarla. */
+  fotoYaTomada: string | null;
   onCancelar: () => void; onConfirmar: (entrada: { foto: string | null; monto: string; galones: string; sinRecibo: boolean }) => void;
 }) {
-  const [fotos, setFotos] = useState<string[]>([]);
+  const [fotos, setFotos] = useState<string[]>(fotoYaTomada ? [fotoYaTomada] : []);
   const [monto, setMonto] = useState("");
   const [galones, setGalones] = useState("");
   const [sinRecibo, setSinRecibo] = useState(false);
@@ -166,7 +181,7 @@ function DialogoDeRecibo({ t, ocupado, error, onCancelar, onConfirmar }: {
         <h3 style={{ marginTop: 0 }}>{titulo}</h3>
         <div className="hint" style={{ marginBottom: 8 }}>{t("Take a photo of the receipt before you continue.", "Toma una foto del recibo antes de seguir.")}</div>
         <div data-foto-recibo>
-          <PhotoUpload photos={fotos} onChange={(n) => { setFotos(n.slice(0, 1)); if (n.length) setSinRecibo(false); }} max={1} t={t} disabled={ocupado} />
+          <PhotoUpload photos={fotos} onChange={(n) => { setFotos(n.slice(0, 1)); if (n.length) setSinRecibo(false); }} max={1} t={t} disabled={ocupado} galeria />
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           <div className="field" style={{ flex: 1, minWidth: 0 }}>

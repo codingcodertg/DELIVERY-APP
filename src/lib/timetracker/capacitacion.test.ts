@@ -257,7 +257,7 @@ describe("el día en práctica", () => {
 
 const viajeReal = () => ({
   ok: true as const, mode: "sales" as const, vehicles: [], currentVehicleId: null,
-  trip: null as { id: string; startedAt: string; vehicleId: string | null; paused: boolean } | null,
+  trip: null as { id: string; startedAt: string; vehicleId: string | null; paused: boolean; startOdometer: number | null } | null,
   stops: [] as { id: string; label: string | null; arrivedAt: string; departedAt: string | null }[],
   clockedIn: true,
 });
@@ -265,12 +265,12 @@ const viajeReal = () => ({
 describe("el viaje en práctica", () => {
   it("empezar, una parada que se cierra, y volver", () => {
     const ev: EventoDeFichar[] = [
-      { k: "viaje", id: "practica-v", at: H(10), vehicleId: "v1" },
+      { k: "viaje", id: "practica-v", at: H(10), vehicleId: "v1", odometer: 2000 },
       { k: "parada", id: "practica-p", at: H(10, 30), label: "Cliente" },
       { k: "fin-parada", at: H(11) },
     ];
     const v = viajeConPractica(viajeReal(), ev);
-    expect(v.trip).toEqual({ id: "practica-v", startedAt: H(10), vehicleId: "v1", paused: false });
+    expect(v.trip).toEqual({ id: "practica-v", startedAt: H(10), vehicleId: "v1", paused: false, startOdometer: 2000 }); // D-524: la lectura de salida viaja con el viaje
     expect(v.stops).toEqual([{ id: "practica-p", label: "Cliente", arrivedAt: H(10, 30), departedAt: H(11) }]);
     const fin = viajeConPractica(viajeReal(), [...ev, { k: "fin-viaje", at: H(12) }]);
     expect(fin.trip).toBeNull();
@@ -294,7 +294,7 @@ describe("el viaje en práctica", () => {
   });
 
   it("volver de un viaje REAL lo esconde en la vista, sin tocarlo", () => {
-    const real = { ...viajeReal(), trip: { id: "real-v", startedAt: H(9), vehicleId: null, paused: false } };
+    const real = { ...viajeReal(), trip: { id: "real-v", startedAt: H(9), vehicleId: null, paused: false, startOdometer: null } };
     expect(viajeConPractica(real, [{ k: "fin-viaje", at: H(10) }]).trip).toBeNull();
     expect(real.trip?.id).toBe("real-v");
   });

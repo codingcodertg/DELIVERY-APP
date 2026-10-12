@@ -142,7 +142,7 @@ export type EventoDeFichar =
   | { k: "salida"; at: string }
   | { k: "descanso"; id: string; at: string; reason: string }
   | { k: "fin-descanso"; at: string }
-  | { k: "viaje"; id: string; at: string; vehicleId: string | null }
+  | { k: "viaje"; id: string; at: string; vehicleId: string | null; odometer?: number | null }
   | { k: "parada"; id: string; at: string; label: string | null }
   | { k: "fin-parada"; at: string }
   | { k: "fin-viaje"; at: string };
@@ -246,7 +246,7 @@ export function diaConPractica<D extends DiaBase>(dia: D, eventos: readonly Even
 }
 
 type ViajeBase = {
-  trip: { id: string; startedAt: string; vehicleId: string | null; paused: boolean } | null;
+  trip: { id: string; startedAt: string; vehicleId: string | null; paused: boolean; startOdometer: number | null } | null;
   stops: { id: string; label: string | null; arrivedAt: string; departedAt: string | null }[];
   clockedIn: boolean;
 };
@@ -271,7 +271,7 @@ export function viajeConPractica<V extends ViajeBase>(v: V, eventos: readonly Ev
         break;
       case "viaje":
         if (!clockedIn || trip) break;
-        trip = { id: ev.id, startedAt: ev.at, vehicleId: ev.vehicleId, paused: false };
+        trip = { id: ev.id, startedAt: ev.at, vehicleId: ev.vehicleId, paused: false, startOdometer: ev.odometer ?? null };
         stops = [];
         break;
       case "parada":

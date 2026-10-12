@@ -9,13 +9,21 @@ import type { UserRole } from "@/lib/types";
  * routes for warehouse». Se reordena aquí y no moviendo la entrada en `TABS`: moverla cambiaría también la
  * barra del admin, que nadie pidió.
  *
- * Solo almacén, a propósito: el chofer tiene la misma forma (su «Órdenes» es `driver`, detrás de `map`) y
- * el dueño no lo nombró; es una pregunta para él, no una decisión de aquí.
+ * El chofer (D-523), al revés: «Mi ruta» primero y su «Órdenes» (`driver`) al final. El dueño, 2026-10-11: «my routes in
+ * driver will be 1st and orders last in  the row». Lo demás que tenga (la inspección, algo concedido de más) queda en
+ * medio, en el orden de `TABS`. Los otros roles, sin tocar.
  */
 export function pestanasEnOrden<T extends { id: string }>(pestanas: readonly T[], rol: UserRole): T[] {
-  if (rol !== "warehouse") return [...pestanas];
-  const suya = pestanas.filter((tb) => tb.id === "warehouse");
-  return [...suya, ...pestanas.filter((tb) => tb.id !== "warehouse")];
+  if (rol === "warehouse") {
+    const suya = pestanas.filter((tb) => tb.id === "warehouse");
+    return [...suya, ...pestanas.filter((tb) => tb.id !== "warehouse")];
+  }
+  if (rol === "driver") {
+    const primera = pestanas.filter((tb) => tb.id === "myroute");
+    const ultima = pestanas.filter((tb) => tb.id === "driver");
+    return [...primera, ...pestanas.filter((tb) => tb.id !== "myroute" && tb.id !== "driver"), ...ultima];
+  }
+  return [...pestanas];
 }
 
 /**
