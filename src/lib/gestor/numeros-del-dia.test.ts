@@ -241,8 +241,12 @@ vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
 vi.mock("@/components/LeaveAtStore", () => ({ LeaveAtStore: () => null }));
 vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [] }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({}) }));
-// Las tarjetas de chofer nacen plegadas (D-393) y al pintar en el servidor no hay clic: se pintan como tras pulsar ▸.
+// Al pintar en el servidor no hay clic. Las tarjetas nacen plegadas en «Ancho» (D-393) y compactas en «Cuadrícula» (D-526,
+// el modo de partida): se pintan como tras pulsar ▸ o el nombre del chofer, que despliega su tabla abajo.
 vi.mock("@/lib/vista-del-gestor", async (original) => ({ ...(await original<typeof import("@/lib/vista-del-gestor")>()), estaPlegada: () => false }));
+vi.mock("@/lib/gestor/cuadricula", async (original) => ({
+  ...(await original<typeof import("@/lib/gestor/cuadricula")>()), desplegadaVigente: (_actual: string | null, rutas: readonly string[]) => rutas[0] ?? null,
+}));
 vi.mock("@/lib/usePausasDelChofer", () => ({
   usePausasDelChofer: () => ({ pausas: [], estado: "lista", empezar: async () => ({ ok: true }), seguir: async () => ({ ok: true }), ubicarTarde: async () => {} }),
 }));
