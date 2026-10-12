@@ -13413,6 +13413,8 @@ de las cinco pantallas. Las tres cosas que hay que mirar cuando el dueño lo abr
 
 ## D-240 · Quién entra a una pantalla lo decide la misma pregunta que pinta su pestaña, y se decide una vez
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): quien abre una pantalla que no es para su rol ya no se queda delante de «No disponible para su rol»: se le lleva a su pantalla de inicio (`inicioSiNoPuede` → `roleHome`), si esa sí se le abre. Quién entra a cada una no cambia.
+
 > **⚠ Reemplazada en parte por D-480** (2026-10-06): para oficina (`accounting`, `ROLES_CON_PESTANAS_FIJAS`) un permiso suelto ya no abre pestaña, y la exención de «Mi ruta» tampoco le abre esa pantalla: solo las de su rol en `TABS` (Órdenes y Ruta de hoy). Para los demás roles esta entrada sigue igual.
 
 **Fecha:** 2026-09-11 · **Versión:** solo `deliveries` (la pone el orquestador) · Sin migración.
@@ -17467,6 +17469,8 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 - **Si `rcapp://` puede marcar una extensión** (ver arriba).
 
 ## D-274 · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
+
+> **Reemplazada en parte por D-NEXT** (2026-10-11): la leyenda del mapa se quitó de toda la app («delete the lEGEND ON THE MAP of the app»); `MapLegend.tsx` y `leyendaDelMapa` se borraron. El color de cada chofer (`colorDeChofer`) sigue.
 
 > **⚠ Reemplazada en parte por D-467** (2026-10-04): la leyenda del mapa (§ de la leyenda) ya no explica «la ruta de las órdenes elegidas» ni «la recogida de la orden elegida», porque el Mapa pasó a ser «Ruta de hoy», de solo lectura. Explica las marcas de una ruta: P, D, ✓, la línea del chofer y su regreso; el camión, solo a quien recibe las posiciones.
 
@@ -23168,6 +23172,8 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 - Nada abierto en un navegador.
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
+
+> **Reemplazada en parte por D-NEXT** (2026-10-11): en «Mi ruta» ya no sale la línea «N parada(s) expiradas de días anteriores · Verlas» ni su vista aparte («QUITA ESO DEL OVERVIEW TAMBIEN»). Lo atrasado sigue siendo del chofer —lo ve en su pestaña «Chofer», por etapa— y de logística (Gestor, Órdenes).
 
 > **⚠ Reemplazada en parte por D-408** (2026-09-26): la columna fija del código de orden (`#`/ID) ya no está en ninguna
 > tabla del Gestor. La factura deja de ser elegible: es **fija** (no sale en el ⚙) porque ahora es lo que abre la orden.
@@ -36347,6 +36353,8 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 
 ## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): «Ruta de hoy» ya no lleva leyenda bajo el mapa.
+
 > **⚠ Puesta al día por D-480** (2026-10-06): en la barra de almacén, «Ruta de hoy» va DETRÁS de su «Órdenes» (`pestanasEnOrden`). Quién la ve no cambia.
 
 > **⚠ Reemplazada en parte por D-481** (2026-10-06): «Ruta de hoy» ya no es una página propia (panel, mapa, rótulo del pin y resumen): monta la página del Gestor de Rutas en solo lectura (`<SoloLectura>`), con sus tarjetas, tablas, «Cuadrícula» y «Horario», y sin ninguna acción. El dueño: «today srotue is an exact duplicate of routes manager but without any actionable buttom or action». Lo decidido aquí (la función 160, el día acotado, camiones, leyenda, colores, abrir la orden solo si ya se lee) sigue, dentro del Gestor. El rótulo al pulsar un pin y la tabla «Resumen» se fueron.
@@ -38231,6 +38239,8 @@ y la ruta forzada tendría que quitarla con la llave de servicio. Se dejó así 
 
 ## D-487 · «Mi ruta»: cada parada lleva sus botones — Recogido · Saltar en cada carga de una recogida; Entregado · Saltar · Rechazado (con razón obligatoria) en cada entrega
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): fuera «Saltar» y «Retomar» («remove the skip buittom in driver view»); los saltos ya escritos dejan de contar (la parada vuelve a su sitio, sin pastilla «Saltada»). Entra «📍 Llegué» por parada, y «Recogido» sale a la vista y apagado, con su motivo, cuando el almacén no tiene la carga lista.
+
 **Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.266.0, repo 1.360.0) · **Sin migración.** · Rama `feat/chofer-acciones-por-parada`. **Reemplaza en parte a D-334** (las recogidas de «Mi ruta» ya no son solo informativas).
 
 **Pedido del dueño**, literal (dictado): *«a los drivers en el, de, en el delivery app cuando estén en, el, en, el, en la aplicación móvil, en la parte de ellos de routes, entonces quiero que ahí salga un por cada carga, cada pickup y los deliveries también que diga pickup en nosotros obviamente va a ser deliver, skip y en los deliveries puede ser hasta rejected y él tiene que poner una, una razón va porque fue rejected»*
@@ -38952,6 +38962,8 @@ No visto en navegador: `tsc` y vitest.
 
 ## D-495 · «Mi ruta»: con la entrega ya cargada no se salta, y rechazar pregunta qué pasó y a dónde va el material
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): una entrega sin cargar ya no ofrece «Saltar» (no hay saltos): no ofrece nada hasta que va en el camión. Lo demás sigue.
+
 **Fecha:** 2026-10-07 · **Versión:** deliveries (deliveries 1.270.0, repo 1.367.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d495`. **Reemplaza en parte a D-487.**
 
 **Pedido del dueño**, literal: *«en driver si aceptas una delivery no puedes skipped it solo delivered or rejected y al ser rejecte te pregunta que paso y donde las vas a dejar o si la dejaras de vuetla?»*.
@@ -38989,6 +39001,8 @@ deja confirmar; con «Regresarlo a McAllen» sí; tras confirmar la orden sale d
 Interpretación: «form view» = la ficha de la orden en Entregas. No visto en navegador: `tsc` y vitest.
 
 ## D-497 · La ficha de la orden: los botones de acción en un menú «Acciones ▾»; fuera solo el paso principal (y Guardar/Cancelar al editar)
+
+> **Reemplazada en parte por D-NEXT** (2026-10-11): la ficha da por llegado («🚦 Llegó…») también a quien marcó «📍 Llegué» en «Mi ruta» (un evento `arrived_delivery`) y ya no le vuelve a ofrecer «Llegué a la parada». Medido al hacerlo: ese botón de la ficha escribe `arrived_at`, y para un CHOFER el guard de etapas (157) lo rechaza; ver D-NEXT.
 
 **Fecha:** 2026-10-07 · **Versión:** deliveries 1.271.0, repo 1.369.0 · **Sin migración.** · Rama `feat/ficha-acciones-en-menu`.
 
@@ -39689,6 +39703,8 @@ permanente, y la que no se respetó al verificar D-172.
 
 ## D-506 · El chofer mira EL MISMO mapa del Gestor de Rutas, acotado a SUS rutas, desde «Mi ruta»
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): «Mi ruta» ya no enlaza `/my-route/mapa` («FULL ROUTE VIEW PLEASE QUITALO DEL DRIVER VIEW»). La pantalla sigue existiendo; ya no la enlaza nadie.
+
 > **⚠ Corregida por D-508** (2026-10-10, el mismo día): esconder el enlace al mirar la ruta de otro dejaba al admin
 > —que revisa la vista del chofer por esa pestaña— sin poder abrir el mapa nuevo por ningún camino.
 
@@ -39935,6 +39951,8 @@ sigue en Reciente» y «se aplica cada vez, pisando lo que pulse la persona».
 - Cuánto tarda en abrir para un vendedor real, que es justo lo de arriba.
 
 ## D-508 · El mapa del Gestor también se abre para el chofer que el admin está mirando
+
+> **Reemplazada en parte por D-NEXT** (2026-10-11): el enlace que esta decisión hizo visible también al mirar la ruta de otro se quitó de «Mi ruta», para el chofer y para la pestaña «Chofer» del admin.
 
 **Fecha:** 2026-10-10 · **Versión:** Entregas 1.278.0, repo 1.378.0 · **Sin migración.**
 **Reportado por el dueño**, literal, al probar D-506: *«aun miro el mismo mapa en drivers»*.
@@ -40616,6 +40634,8 @@ se llamaba `flujo-routes-…`; la tabla de arriba es la de después del arreglo.
 
 ## D-514 — El mapa de «Mi ruta» ES el del Gestor, no uno parecido
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): el mapa de «Mi ruta» (la tarjeta del Gestor) va sin leyenda, y el botón «🗓 Ver la ruta completa» se quitó.
+
 **Fecha:** 2026-10-10 · **Estado:** Vigente · **Reemplaza en parte a D-506 y corrige a D-508** · **Sin migración.**
 
 El dueño lo pidió tres veces —*«drivers view needs to look like to logistic manager view with the routes and everything
@@ -40704,6 +40724,8 @@ día de hoy y no lo distingue.
   probado con los ids de verdad de `puntosDeLasRutas`, no tocándola.
 
 ## D-515 — «Mi ruta» numera por paradas como el Gestor: 1, 2, 3… en vez de P1 y D1
+
+> **Reemplazada en parte por D-NEXT** (2026-10-11): la lista va en dos secciones, «Pendientes» y «Entregadas». El número de cada parada es el mismo, pero lo lleva la primera fila de la parada DENTRO de su sección: una parada partida entre las dos (una recogida a medias) enseña su número en las dos.
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Extiende D-485 a la vista del chofer** · **Sin migración.**
 
@@ -41375,3 +41397,179 @@ propósito para que el choque sea mínimo.
 6. **¿Cuánto se guarda?** §396.11 pide tres meses; la tabla no borra nada (ni hay poda).
 7. **¿«Todo OK» por zona de un toque?** No se puso: acelera, pero invita a marcar sin mirar.
 8. **¿Que el chofer vea el último reporte del camión antes de salir** (§396.13 lo pide)? Hoy solo ve los suyos.
+
+## D-NEXT — «Mi ruta»: sin «Saltar»; «📍 Llegué» y «Recogido» en cada parada; Pendientes y Entregadas; sin leyenda, sin «Ver la ruta completa» ni el aviso de vencidas; y «⏸ Registrar parada» con el recibo de la gasolina
+
+**Fecha:** 2026-10-11 · **Estado:** Vigente · Rama `feat/mi-ruta-botones-y-secciones` · **Migración 167 escrita, SIN aplicar**
+(el código funciona sin ella). **Reemplaza en parte a D-240, D-274, D-331, D-467, D-487, D-495, D-497, D-506, D-508, D-514
+y D-515** (cada una lleva su nota).
+
+**Pedido del dueño**, literal, dictado con capturas de «Mi ruta» de Ernesto Castillo en la vista móvil:
+
+> « remove the skip buittom in driver view
+> arrived and pickup buttom to be added DRIVER VIEW
+> delete the lEGEND ON THE MAP of the app
+> delivered orders go to do  DELIVERED DROPDOWN TO SEE ALL THE DONE ORDERS BY DEFAULT WILL BE CLOSE AND THE PENDIGN ORDERS AS WELL BU TPENDING ON THE DRIVER VIEW»
+
+Y el mismo día, sobre la misma pantalla: *«AGREGA A BUTTOM TO LOG A STOP PUEDE SER RESTROOM, STOP FOR GAS Y ASI»*;
+*«AND WHEN STOPPED FOR GAS ASK TO UPLOAD DE GAS RECEIPT»*; con una captura de la cabecera («🗓 Full route view» bajo
+Ayer/Hoy/Mañana y debajo «1 overdue stop(s) from earlier days — not part of today. View them»): *«FULL ROUTE VIEW PLEASE
+QUITALO DEL DRIVER VIEW»* y *«QUITA ESO DEL OVERVIEW TAMBIEN»*.
+
+### Qué había (visto en el demo antes de tocar nada, a 390)
+
+Cada parada de «Mi ruta» con un botón grande «⏭ Skip» (D-487); las recogidas que el almacén no tenía listas, SOLO «Skip» y
+un «· not ready yet» en gris; bajo el mapa, la leyenda del Gestor («Store · Delivery · Stop 1, 2, 3… · Already delivered ·
+The driver's route · Drive back to base · Driver, live»); una sola lista con todo, lo hecho mezclado con lo pendiente; y en la
+cabecera «🗓 Full route view» y la línea de vencidas. Abriendo «/» como chofer (lo que hace la vista móvil desde Órdenes):
+«Not available for your role.»
+
+### Qué se decidió
+
+1. **Fuera «Saltar» y «Retomar»**, en la lista y en «Siguiente parada». Un salto ya escrito **deja de contar**: no hay
+   pastilla «Saltada», no cede el turno, la parada sale en su sitio de siempre. Se eligió así y no «se puede seguir
+   retomando» porque un salto solo valía el día en que se hizo (D-487): dejar el «Retomar» vivo era código para unas horas,
+   y con esto ninguna parada queda apartada sin forma de volver. Los eventos `skipped`/`resumed` viejos siguen en el
+   historial de la orden con su nombre. El aviso «en camino» del servidor usa la misma regla (`siguienteParada`), así que
+   tampoco salta a nadie.
+2. **«📍 Llegué / Arrived» por PARADA** (la tienda donde se recoge, la dirección donde se entrega; varias órdenes seguidas en
+   el mismo sitio son una parada, D-485/D-515), en la fila que lleva el número y en la tarjeta de «Siguiente parada». Se
+   pulsa una vez y deja un evento en cada orden de la parada que esté en ese tramo: `arrived_pickup` en la tienda (también
+   las que el almacén no tiene listas: es justo el chofer que llega y espera) o `arrived_delivery` con el cliente (solo lo
+   que va en el camión; antes de cargarlo no se llega a entregar nada). Hecho, se ve «✓ Llegaste 10:42 / ✓ Arrived 10:42» y
+   no se repite. Vale el día en que se hizo y su tramo: «Dejar en tienda» y anular la borran; recoger borra la llegada con
+   el cliente de un tramo anterior; que el almacén la marque lista NO la borra (`llegadasDeParadas`, `llegadaDeLaParada`).
+   **«Recogido» sale siempre en cada carga de una recogida**: si la carga aún no está lista (`approved`, `fulfilling`…),
+   visible y **apagado**, con el motivo escrito debajo: «⏳ El almacén aún no la tiene lista». El guard de la base no se
+   tocó (solo deja al chofer `ready → picked_up`). Las entregas, como D-495: con el material en el camión, «Entregado» y
+   «Rechazado»; antes, nada.
+3. **Fuera la leyenda del mapa en toda la app**: «Mi ruta», la pestaña «Chofer» del admin (monta «Mi ruta»), «Ruta de hoy»
+   y la pantalla `/my-route/mapa`. El Gestor de logística ya no la tenía (salía solo en solo lectura). Se borraron
+   `MapLegend.tsx`, `leyendaDelMapa` y los dos colores que solo usaba ella; en `routes/page.tsx` se tocaron SOLO esas líneas
+   (otra rama trabaja ahí). `map-legend.ts` conserva el nombre y lo que el mapa sigue usando: `colorDeChofer`.
+4. **Dos secciones plegables**: «🕒 Pendientes (N)» **abierta** y «✓ Entregadas (N) / Delivered (N)» **plegada**; el chofer
+   puede plegar Pendientes. Hecho = entregada; una recogida, cuando TODAS sus cargas van en el camión o se entregaron (a
+   medias sigue pendiente). Las filas no se reordenan ni se renumeran: cada una en su sección, en el orden de la ruta y con
+   su número de D-515; la primera fila de cada parada DENTRO de su sección lleva el número, así que una parada partida
+   (una recogida a medias) enseña su número en las dos. (N) son las paradas —los números— de la sección
+   (`seccionesDeMiRuta`). La tarjeta «Siguiente parada» no cambia. **Interpretación:** «Entregadas» incluye las recogidas ya
+   hechas, como pidió el orquestador; con un día empezado puede salir «Delivered (1)» con solo una recogida dentro. Si al
+   dueño le confunde, el título puede pasar a «Hechas / Done» sin tocar nada más.
+5. **Sin permiso, a su inicio**: `TabGate` (y la puerta propia de «Mi ruta» y de `/my-route/mapa`) ya no deja «No
+   disponible para su rol»: lleva a `roleHome` del rol con `replace` (`inicioSiNoPuede` + `IrAlInicio`). Si su inicio es la
+   misma pantalla o tampoco se le abre, se queda el aviso (no hay bucles). **Medido en el demo:** el `router.replace` dentro
+   del efecto de montaje se perdía en silencio durante la hidratación (la ruta seguía en «/» 40 s después); diferido con
+   `setTimeout(…, 0)` cambia al momento. No hay motivo para no hacerlo: la pestaña no se abre más que antes, solo se cambia
+   el callejón sin salida por la pantalla de esa persona. Completa D-516 (fusionada mientras tanto): allí el marco SIN ruta abre ya el inicio del rol, y
+   una ruta que vale se abre tal cual dejando a `TabGate` decidir; con esto, «/» abierto desde Órdenes dentro de la cuenta de
+   un chofer acaba en `/driver`.
+6. **Fuera «🗓 Ver la ruta completa»** de «Mi ruta» (también de la pestaña «Chofer» del admin). Su pantalla,
+   `/my-route/mapa`, sigue existiendo pero **ya no la enlaza nadie**: no se borró; borrarla es otra decisión.
+7. **Fuera el aviso de vencidas** de la cabecera, y con él la vista aparte (`verAtrasadas`). Las vencidas no se pierden:
+   logística las sigue viendo en el Gestor y en Órdenes; **el chofer las ve en su pestaña «🚚 Chofer»**, por etapa (la ventana
+   de dos días atrás a mañana, y por factura más allá), y «Ayer» en «Mi ruta» enseña las de ayer. El modo `"atrasadas"` de
+   `paradasDelChofer` queda sin uso en pantalla (sigue probado; se dejó para no tocar una firma que usan el servidor y la
+   vista del admin).
+8. **«⏸ Registrar parada / Log a stop»**, arriba en «Mi ruta», bajo Ayer/Hoy/Mañana. Abre un cuadro con motivos de un toque
+   —🚻 Baño, ⛽ Gasolina, 🍔 Comida, 🚦 Tráfico o espera, 📝 Otro (con texto obligatorio, 3 letras)— y una nota opcional.
+   Guarda quién, cuándo, motivo, nota y la ubicación si el teléfono la da (la misma captura que «Recogido»: espera 1,2 s y
+   si llega tarde se añade después). Mientras dura: «⏸ En parada: ⛽ Gasolina · 10:42» con «▶ Seguir», que pone la hora de
+   fin. **El recibo se pide al pulsar «▶ Seguir»** y no al registrar: sale de la bomba al terminar de cargar, y pedirlo antes
+   obligaría a reabrir la parada. Foto (cámara del teléfono o archivo, con el mismo `PhotoUpload` de las fotos de entrega:
+   JPEG comprimido), y opcionales monto y galones. **No se sigue sin foto** salvo marcando «No tengo recibo», que queda
+   anotado (`sin_recibo`). Una sola abierta a la vez. En la pestaña «Chofer» del admin se ve si el chofer está parado, con
+   todo apagado.
+   **Dónde lo ve logística/admin:** en el **Recorrido del chofer** (`/track`), tarjeta «⏸ Paradas que registró el chofer»,
+   encima de las paradas que se deducen del GPS: motivo, desde, hasta (o «sigue parado»), minutos, nota, enlace al mapa, y el
+   recibo en miniatura (se abre en grande), con monto y galones, o «Sin recibo (lo dijo el chofer)».
+
+### Dónde se guarda «Registrar parada», y por qué en una tabla nueva
+
+Se miró antes lo que había: `order_events` es de UNA orden (parar a cargar gasolina no es de ninguna); `driver_shifts` es el
+turno entero; `driver_incidents` lo escribe logística y es de costos; `driver_locations` es un punto sin motivo ni fin; y las
+paradas de «Voy a salir» (`clockin.trip_stops`, D-455) son del Time Tracker, de otra empresa lógica, y piden viaje y fichaje
+abiertos. **Tabla nueva `public.pausas_del_chofer`, migración `167_pausas_del_chofer.sql`** (la 165 y la 166 ya estaban
+tomadas). En el código se llama «pausa» para no confundirla con las paradas de la ruta; en pantalla dice «parada».
+
+- Columnas: `driver_id` (por defecto `auth.uid()`), `motivo` (los cinco), `nota` (≤ 500), `empezo_at` (la pone la base),
+  `termino_at`, `lat`/`lng`/`precision_m`, `recibo_foto` (texto `data:image/…`, ≤ 2 000 000 caracteres), `recibo_monto`,
+  `recibo_galones`, `sin_recibo`.
+- Las reglas de la pantalla, también en la base: «Otro» con texto; gasolina cerrada solo con foto o `sin_recibo`; recibo,
+  monto y galones solo en la gasolina; fin ≥ inicio (el cliente nunca manda un fin anterior: `horaDeCierre`); **una abierta
+  por chofer** (índice único parcial).
+- **RLS:** el chofer crea y lee las suyas y solo puede tocar la que tiene ABIERTA (una cerrada no se reescribe);
+  **admin, logística y gerentes leen todas** —se añadió `manager` a lo pedido (logística/admin) porque el Recorrido es
+  también pantalla del gerente y las posiciones (043) siguen esa misma regla; **a validar**—. Nadie borra.
+- **Por qué la foto va en la fila y no en Storage:** es como ya se guardan las fotos de una entrega (`deliveries.photos`),
+  no pide un cubo nuevo con sus políticas, y el demo (sin base) lo enseña igual.
+- **Antes de aplicarla:** sin la tabla, la escritura y la lectura contestan «no existe» (`faltaLaTabla`): el chofer ve «No se
+  pudo guardar: aún no se pueden registrar paradas (a la base le falta una actualización). Avísale a logística.» y la
+  pantalla sigue; el Recorrido dice «Aún no disponible: … (migración 167)». En el demo y en el modo enseñanza todo va al
+  `localStorage` (nada de lo practicado llega a la base).
+- **Ensayo:** NO contra producción. El worktree no lleva `.env.local` a propósito y, según el orquestador, el
+  `SUPABASE_DB_URL` de esta PC tiene la contraseña vieja. Se ensayó en un **Postgres 17 local desechable** (`initdb` en la
+  carpeta de trabajo, puerto propio) con lo mínimo de Supabase imitado (roles `anon`/`authenticated`, `auth.uid()` por GUC,
+  `profiles`, `current_user_role()`, `schema_migrations` y los permisos por defecto de Supabase): se aplica, es idempotente
+  (segunda pasada OK) y **23 de 23 casos de RLS y reglas como se esperaba** (el chofer no abre dos ni escribe por otro, no
+  cierra la gasolina sin recibo, no reescribe una cerrada, no borra; logística ve todas y no escribe; ventas no ve ninguna;
+  anon no lee; foto que no es imagen y fin antes del inicio, rechazados). **Para aplicarla** (orquestador, desde el checkout
+  principal y con la contraseña buena): `node scripts/db/aplica-migracion.mjs 167_pausas_del_chofer.sql` (ensayo) y luego con
+  `--escribe`. **Reversa:** `drop table if exists public.pausas_del_chofer;` y borrar su fila de `schema_migrations` (está en
+  la cabecera del .sql).
+
+### Encontrado al hacerlo, y no arreglado aquí: «Llegué a la parada» de la ficha no le funciona a un chofer
+
+El pedido decía reusar el «Arrived at stop» de la ficha (D-497). Ese botón escribe `deliveries.arrived_at` con
+`updateDelivery`, y **el guard de etapas (`guard_delivery_stage`, última versión en la 157) se lo rechaza a un chofer**: sin
+cambiar de etapa, a un chofer solo le deja tocar las coordenadas de una parada ya cerrada (048), así que la escritura
+contesta «You cannot edit an order in the picked_up stage». Lo mismo «🚗 Iniciar viaje» (`departed_at` en `ready`). Leído en
+el SQL, **no ensayado** contra producción. Por eso «📍 Llegué» de «Mi ruta» va por **eventos** (el camino de «Received» y de
+«Rechazado», que el chofer sí puede escribir, política 100) y no por la columna; y la ficha ahora da por llegado a quien marcó
+«Llegué» en «Mi ruta» (no le vuelve a ofrecer el botón). Consecuencia: el KPI de «tiempo en la parada» (`analytics.ts`, que
+lee `arrived_at`) no se alimenta de estas llegadas — tampoco se alimentaba antes desde el teléfono del chofer. **Propuesta
+aparte** (toca un guard: plan en papel primero): dejar al chofer escribir `arrived_at`/`departed_at` de SU orden sin cambiar
+de etapa, o que el KPI lea los eventos.
+
+### Medido
+
+**`node scripts/verify.mjs` en verde** sobre origin/main con D-518 (tsc, vitest 7384 + 3 saltados, build). Pruebas nuevas: `secciones-de-mi-ruta.test.ts`
+(9), `mi-ruta-pantalla.test.ts` (9, la pantalla pintada de verdad), `pausas-del-chofer.test.ts` (26), y en
+`acciones-parada.test.ts` (reescrito, 45) y `tab-gate.test.ts` (+5). Pruebas que fijaban lo de antes y se pusieron al día,
+cada una con su «Nota D-NEXT»: `acciones-parada`, `avisos-cliente` (la saltada ya no se aparta), `ayer-hoy-manana`,
+`ordenes-del-dia` y `lectura-de-ruta` (sin vista de atrasadas), `vista-de-chofer` (sin Saltar; números por sección),
+`chofer-del-mapa` y `mapa-del-chofer` (sin el enlace), `mapa-de-mi-ruta`, `rutas-del-dia`, `paradas-numeradas`,
+`store-pins` y `map-legend` (sin leyenda), `inline-colors` (de 70 a 69 colores a pelo: el blanco de `MapLegend`).
+
+**Mutantes:** **62 de 62 caen con una prueba con nombre**, leídos por nombre, con el control en verde (11 ficheros, 248 pruebas): qué botones salen (Recogido apagado o encendido, Entregado/Rechazado solo en el camión, Llegué por parada, nunca en lo hecho ni dos veces, apagado al mirar la de otro), en qué sección cae cada parada (recogida a medias, entrega en el camión, abierta/plegada por defecto, el número por sección, el (N)), las llegadas (de ayer, por tramo, la primera hora), la siguiente parada (rechazadas fuera, un salto viejo no aparta), la puerta sin permiso (sin bucles ni de un «no» a otro), «Registrar parada» (Otro con texto, gasolina sin recibo, «No tengo recibo» anotado, números, solo lectura, el banner) y el Recorrido (recibo, «sin recibo», sin tabla). **Doce solo los caza un ancla de texto**, y se dice: el `replace` diferido (lo midió el navegador), la puerta de `TabGate`, «Llegué» en cada orden de la parada, el cableado de los dos cuadros de la parada (confirmar con la regla, «Seguir» abre el recibo), el montaje en el Recorrido, el modo enseñanza y el «sin-tabla» del gancho, las dos reglas de la 167 (además ensayadas en el Postgres local) y la llegada en la ficha.
+
+**Demo en el navegador** (CDP, demo local, puerto propio, clics de persona), a 390 como chofer («Ver como → Driver») y como
+admin en la pestaña «Chofer», y a 1440 como logística y gerente:
+- Cabecera: sin «Full route view», sin la línea de vencidas (con una vencida preparada en el demo, la misma que en el ANTES
+  sí salía), con «⏸ Log a stop». Mapa sin leyenda. 0 px de scroll lateral a 390.
+- Lista: «🕒 Pending (7) [abierta]» y «✓ Delivered (0) [plegada]»; 4 «📍 Arrived»; las dos recogidas no listas con «Picked up»
+  apagado y «⏳ The warehouse doesn't have it ready yet»; ningún «Skip».
+- «📍 Arrived» en la tienda → «✓ Arrived 06:44 PM» en la parada y en la tarjeta. «Picked up» en una lista → su entrega pasa a
+  «📍 Arrived · ✅ Delivered · ⛔ Rejected» y su recogida a «Delivered (1)»; «Arrived» con el cliente → «✓ Arrived».
+  «Delivered» se abre y «Pending» se pliega con un toque.
+- «⏸ Log a stop»: «Start stop» apagado sin motivo, encendido con «Gas»; luego «⏸ Stopped: ⛽ Gas · 06:44 PM · ▶ Continue»;
+  «Continue» abre «⛽ Gas receipt» con «Continue» apagado; con «I don't have a receipt» se enciende; guardado con
+  `sin_recibo` y $54.30. Otra vez con foto (el `<input type=file>` de la cámara, con un fichero): miniatura, $54.30, 15.2 gal.
+  Una de baño se cierra sin preguntar nada.
+- Logística en el Recorrido de Diego: la tarjeta con «⛽ Gas · … · No receipt (driver said) $54.30», «🚻 Restroom», y la de
+  la foto con su miniatura, que se abre en grande.
+- «/» como chofer: lleva a `/driver` (antes, «Not available for your role.»).
+- Admin, pestaña «Chofer»: la misma pantalla de Diego con todo apagado (Llegué, Recogido, Rechazado, Registrar parada) y
+  «✓ Arrived …» donde él llegó. «Ruta de hoy» y el Gestor, sin leyenda.
+
+Capturas (ANTES `antes-*`, DESPUÉS `despues-*`) en la carpeta de trabajo de la rama.
+
+### Lo no verificado
+
+- **Nada contra producción**: ni la 167 aplicada de verdad (solo el Postgres local), ni la inserción de los eventos de
+  llegada como chofer (se apoya en la política 100, como D-487, leída y no ensayada), ni el guard que rechaza el `arrived_at`
+  de la ficha (leído en el SQL).
+- **La vista móvil de verdad** (`/home/vista-movil`, el marco): en el demo el hub pide sesión y manda a `/login`. Se midió lo
+  que el marco carga —«/» como chofer— y lleva a `/driver`.
+- **Un teléfono de verdad**: la cámara, el permiso de ubicación y la ubicación tardía de una parada; en el demo el GPS no
+  contesta y la parada se guarda sin ubicación. Las horas se pintan con el reloj del dispositivo, como la ficha.
+- **Modo oscuro** y **Google Maps** (el demo pinta Leaflet).
