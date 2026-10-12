@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DICT } from "@/lib/timetracker/i18n";
 import { MANAGER_TABS, TABS } from "@/lib/timetracker/constants";
 import {
-  PESTANAS_DE_SOLICITUDES, PESTANA_DE_SOLICITUD_INICIAL, esAdminDeTt, horasDeLaSemana, pestanasPara, puedeVerMiDiario,
+  PESTANAS_DE_SOLICITUDES, PESTANA_DE_SOLICITUD_INICIAL, esAdminDeTt, pestanasPara, puedeVerMiDiario,
   seccionesDeFichar, seccionesDeMiSemana, verTablasDelCronometro,
 } from "./vista-empleado";
 
@@ -74,15 +74,9 @@ describe("4 · «Mi semana» del empleado: solo horas, y ahí el boletín y los 
     expect(seccionesDeMiSemana(remoto)).toMatchObject({ boletin: false, fichajesDeHoy: false });
     expect(seccionesDeMiSemana(admin)).toMatchObject({ boletin: false, fichajesDeHoy: false });
   });
-  it("las horas: el cronómetro para el remoto; los fichajes de la semana en curso para el presencial", () => {
-    expect(horasDeLaSemana({ presencial: false, esSemanaEnCurso: true, segundosDeCronometro: 7200, minutosFichados: 999 })).toBe(2);
-    expect(horasDeLaSemana({ presencial: true, esSemanaEnCurso: true, segundosDeCronometro: 7200, minutosFichados: 1950 })).toBe(32.5);
-  });
-  it("de una semana pasada, o sin haber leído sus fichajes, el presencial ve «—» y no un 0 falso", () => {
-    expect(horasDeLaSemana({ presencial: true, esSemanaEnCurso: false, segundosDeCronometro: 0, minutosFichados: 1950 })).toBeNull();
-    expect(horasDeLaSemana({ presencial: true, esSemanaEnCurso: true, segundosDeCronometro: 0, minutosFichados: null })).toBeNull();
-    expect(horasDeLaSemana({ presencial: true, esSemanaEnCurso: true, segundosDeCronometro: 0, minutosFichados: 0 })).toBe(0);
-  });
+  // Nota D-517: aquí había dos pruebas de `horasDeLaSemana` (las horas fichadas del presencial en
+  // «Horas totales», y «—» de una semana pasada). El dueño pidió quitar esa cifra al presencial y la
+  // función se fue con ella; lo que vigila ahora que no vuelva está en mis-acciones.test.ts («2 · …»).
   it("las tablas del cronómetro: al presencial solo si tiene sesiones; al remoto y al admin siempre", () => {
     expect(verTablasDelCronometro(empleado, false)).toBe(false);
     expect(verTablasDelCronometro(empleado, true)).toBe(true);
@@ -100,9 +94,10 @@ describe("4 · «Mi semana» del empleado: solo horas, y ahí el boletín y los 
     const sueltos = semana.split("\n").filter((l) => l.includes("money(") && !l.includes("secciones.dinero") && !l.includes("import"));
     expect(sueltos.filter((l) => !l.includes("paidThisWeek"))).toEqual([]);
   });
-  it("la cifra de horas sale de horasDeLaSemana con los fichajes leídos, y el admin sigue con el cronómetro", () => {
-    expect(semana).toContain("const horas = secciones.dinero\n    ? totalSec / 3600\n    : horasDeLaSemana({ presencial, esSemanaEnCurso: week === thisWeekStart(), segundosDeCronometro: totalSec, minutosFichados: dia ? dia.weekMinutes : null });");
-    expect(semana).toContain('{horas == null ? "—" : `${horas.toFixed(2)} h`}');
+  it("la cifra de horas es la del cronómetro, para quien la ve (admin y remoto); el día fichado solo se lee para los fichajes", () => {
+    // Nota D-517: antes la cifra pasaba por `horasDeLaSemana` (fichajes para el presencial). Al
+    // presencial ya no se le enseña; a los demás `horasDeLaSemana` les daba justo `totalSec / 3600`.
+    expect(semana).toContain("<div className=\"n\">{`${(totalSec / 3600).toFixed(2)} h`}</div>");
     expect(semana).toContain("const dia = useMiDiaDeFichaje(secciones.fichajesDeHoy);");
   });
   it("las tablas del cronómetro pasan por verTablasDelCronometro", () => {
@@ -111,31 +106,31 @@ describe("4 · «Mi semana» del empleado: solo horas, y ahí el boletín y los 
     expect(semana).toContain("{tablas && <>");
   });
   it("el boletín y los fichajes de hoy se pintan en Mi semana, sin la cifra de la semana de pago", () => {
+    // Nota D-517: el parámetro `semanaDePago` pasó a llamarse `cifras` (ahora quita también «Hoy»).
     expect(semana).toContain("{secciones.boletin && <MiBoletinSec />}");
-    expect(semana).toContain("{secciones.fichajesDeHoy && dia && <FichajesDeHoy d={dia} semanaDePago={false} />}");
+    expect(semana).toContain("{secciones.fichajesDeHoy && dia && <FichajesDeHoy d={dia} cifras={false} />}");
   });
   it("la tarjeta de fichajes solo pone «Esta semana de pago» si se le pide", () => {
-    expect(fichajes).toContain("{semanaDePago && (");
+    expect(fichajes).toContain("{cifras && (");
     expect(fichajes).toContain('{t("emp.punch.payWeek")}');
   });
-  it("de dónde sale la cifra del presencial, en los dos idiomas", () => {
-    expect(DICT.en["emp.week.fromPunches"]).toContain("{desde}");
-    expect(DICT.es["emp.week.fromPunches"]).toContain("{hasta}");
-  });
+  // Nota D-517: aquí estaba «de dónde sale la cifra del presencial, en los dos idiomas»
+  // (`emp.week.fromPunches`). La línea y su clave se quitaron con la cifra.
 });
 
 describe("5 · Registrar tiempo del empleado: sin «Esta semana de pago», solo Mi horario y Notas del día", () => {
   it("el empleado: ni la tarjeta de la semana de pago, ni los fichajes, ni el boletín", () => {
-    expect(seccionesDeFichar({ esAdmin: false })).toEqual({ semanaDePago: false, fichajesDeHoy: false, boletin: false, horarioYNotas: true });
+    // Nota D-517: y sin el contador de la tarjeta (`contador`).
+    expect(seccionesDeFichar({ esAdmin: false })).toEqual({ contador: false, semanaDePago: false, fichajesDeHoy: false, boletin: false, horarioYNotas: true });
   });
   it("el admin: todo, como antes", () => {
-    expect(seccionesDeFichar({ esAdmin: true })).toEqual({ semanaDePago: true, fichajesDeHoy: true, boletin: true, horarioYNotas: true });
+    expect(seccionesDeFichar({ esAdmin: true })).toEqual({ contador: true, semanaDePago: true, fichajesDeHoy: true, boletin: true, horarioYNotas: true });
   });
   it("PunchPanel decide con seccionesDeFichar y el rol de quien mira", () => {
     expect(punch).toContain("const secciones = seccionesDeFichar({ esAdmin: esAdminDeTt(me.role) });");
     expect(punch).toContain("{secciones.semanaDePago && (d.shift || d.scheduledMinutes > 0) && (");
     expect(punch).toContain("<MySections boletin={secciones.boletin} />");
-    expect(punch).toContain("{secciones.fichajesDeHoy && <FichajesDeHoy d={d} semanaDePago />}");
+    expect(punch).toContain("{secciones.fichajesDeHoy && <FichajesDeHoy d={d} cifras />}");
   });
   it("MySections pinta siempre horario y notas, y el boletín solo si se le pide", () => {
     expect(secciones).toContain("      <MiHorarioSec />\n      <MisNotasSec />\n      {boletin && <MiBoletinSec />}");

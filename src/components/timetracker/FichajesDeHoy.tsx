@@ -12,8 +12,12 @@ import { useT } from "@/lib/timetracker/i18n";
  * Vivía dentro de PunchPanel, debajo del reloj. El dueño pidió (2026-10-06) que al EMPLEADO le
  * salga en «Mi semana», junto a «Mi boletín», y que debajo del reloj solo queden «Mi horario» y
  * «Notas del día». El admin lo sigue viendo donde estaba. Para no tener dos copias de la misma
- * tabla, la tarjeta sale de aquí y la usan las dos pantallas; `semanaDePago` decide si lleva
- * encima la cifra «Esta semana de pago», que al empleado ya no se le enseña.
+ * tabla, la tarjeta sale de aquí y la usan las dos pantallas.
+ *
+ * `cifras` decide si lleva encima las dos cifras de horas, «Hoy» y «Esta semana de pago». Las ve solo
+ * el admin, debajo de su reloj. Al empleado D-489 ya le quitó «Esta semana de pago», y D-517 le quita
+ * también «Hoy · 0h 00m» (el dueño: «total hours remove it and also hours worked today»). La tabla
+ * de fichajes se queda para los dos.
  */
 export type DiaDeFichaje = Extract<Awaited<ReturnType<typeof getMyDay>>, { ok: true }>;
 
@@ -21,24 +25,24 @@ const hhmm = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone /* G-25: la zona del ajuste, no America/Chicago a pelo */ });
 export const horasYMinutos = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, "0")}m`;
 
-export function FichajesDeHoy({ d, semanaDePago }: { d: DiaDeFichaje; semanaDePago: boolean }) {
+export function FichajesDeHoy({ d, cifras }: { d: DiaDeFichaje; cifras: boolean }) {
   const t = useT();
   return (
     <div className="card">
-      <div className={semanaDePago ? "grid g2" : "grid"}>
-        <div className="stat">
-          <div className="small muted">{t("emp.punch.today")}</div>
-          <div style={{ fontSize: 24, fontWeight: 800 }}>{horasYMinutos(d.todayMinutes)}</div>
-        </div>
-        {semanaDePago && (
+      {cifras && (
+        <div className="grid g2" style={{ marginBottom: 16 }}>
+          <div className="stat">
+            <div className="small muted">{t("emp.punch.today")}</div>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{horasYMinutos(d.todayMinutes)}</div>
+          </div>
           <div className="stat">
             <div className="small muted">{t("emp.punch.payWeek")}</div>
             <div style={{ fontSize: 24, fontWeight: 800 }}>{horasYMinutos(d.weekMinutes)}</div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <h2 style={{ marginTop: 16 }}>{t("emp.punch.todayPunches")}</h2>
+      <h2>{t("emp.punch.todayPunches")}</h2>
       {d.today.length === 0 && d.breaks.length === 0 ? (
         <p className="muted">{t("emp.punch.nothingToday")}</p>
       ) : (

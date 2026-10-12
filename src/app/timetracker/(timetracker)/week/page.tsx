@@ -11,7 +11,7 @@ import type { Assignment, Session } from "@/lib/timetracker/types";
 import { totalPagado } from "@/lib/timetracker/total-de-nomina";
 import { nombreDeLinea } from "@/lib/timetracker/tienda-y-puesto";
 import { effWorkerType } from "@/lib/timetracker/helpers";
-import { esAdminDeTt, horasDeLaSemana, seccionesDeMiSemana, verTablasDelCronometro } from "@/lib/timetracker/vista-empleado";
+import { esAdminDeTt, seccionesDeMiSemana, verTablasDelCronometro } from "@/lib/timetracker/vista-empleado";
 import { MiBoletinSec } from "@/components/timetracker/MySections";
 import { FichajesDeHoy, useMiDiaDeFichaje } from "@/components/timetracker/FichajesDeHoy";
 
@@ -27,8 +27,13 @@ import { FichajesDeHoy, useMiDiaDeFichaje } from "@/components/timetracker/Ficha
 //   · Sin dinero: ni «Pago estimado», ni «Pagado hasta hoy», ni la columna de pago, ni el aviso
 //     de lo pagado. Solo las horas.
 //   · Las horas que se ven son las suyas: las del cronómetro para el remoto y las FICHADAS para el
-//     presencial (horasDeLaSemana), que no usa el cronómetro y aquí veía 0,00 h.
+//     presencial (horasDeLaSemana), que no usa el cronómetro y aquí veía 0,00 h. (Reemplazado en parte por
+//     D-517: al presencial ya no se le enseña esa cifra, y `horasDeLaSemana` se quitó.)
 //   · «Mi boletín» y «Fichajes de hoy» se mudan aquí desde Registrar tiempo (presencial).
+// D-517 (el dueño, 2026-10-11: «total hours remove it and also hours worked today»), para el
+// PRESENCIAL: fuera la cifra «Horas totales» (eran sus horas fichadas) y fuera «Hoy · 0h 00m» encima de
+// «Fichajes de hoy»; la tabla de fichajes se queda. El remoto conserva «Horas totales» (la suma de su
+// tabla del cronómetro, que ve debajo) y el admin no cambia.
 // Quién ve qué: seccionesDeMiSemana (vista-empleado.ts).
 export default function MyWeekPage() {
   const { me, myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince } = useData();
@@ -37,7 +42,7 @@ export default function MyWeekPage() {
   const presencial = effWorkerType(me) === "inhouse";
   const quien = { esAdmin: esAdminDeTt(me.role), presencial };
   const secciones = seccionesDeMiSemana(quien);
-  // El día de fichaje (horas de la semana en curso, fichajes de hoy): solo si se va a enseñar.
+  // El día de fichaje («Fichajes de hoy»): solo si se va a enseñar.
   const dia = useMiDiaDeFichaje(secciones.fichajesDeHoy);
   const [week, setWeek] = useState(thisWeekStart());
   // G-17: the provider holds SESSIONS_WINDOW_DAYS of my sessions; paging back past that asks
@@ -97,9 +102,6 @@ export default function MyWeekPage() {
 
   const projectName = (a: Assignment | undefined) => nombreDeLinea(a?.project.name, me, lang, "—");
   const tablas = verTablasDelCronometro(quien, weekSessions.length > 0);
-  const horas = secciones.dinero
-    ? totalSec / 3600
-    : horasDeLaSemana({ presencial, esSemanaEnCurso: week === thisWeekStart(), segundosDeCronometro: totalSec, minutosFichados: dia ? dia.weekMinutes : null });
 
   return (
     <>
@@ -121,18 +123,17 @@ export default function MyWeekPage() {
       )}
       {secciones.dinero && paidTotal > 0 && <div className="banner ok" style={{ marginTop: 12 }}>{t("emp.week.paidThisWeek", { money: money(paidTotal) })}</div>}
 
+      {/* «Horas totales»: el admin (con el dinero al lado) y el remoto. Al presencial no (D-517). */}
+      {secciones.totalDeHoras && (
       <div className={secciones.dinero ? "grid g3" : "grid"} style={{ marginTop: 14 }}>
         <div className="stat">
-          <div className="n">{horas == null ? "—" : `${horas.toFixed(2)} h`}</div>
+          <div className="n">{`${(totalSec / 3600).toFixed(2)} h`}</div>
           <div className="l">{t("emp.week.totalHours")}</div>
-          {/* Para el presencial, de dónde sale la cifra: sus fichajes de la semana de pago. */}
-          {!secciones.dinero && presencial && dia && week === thisWeekStart() && (
-            <div className="l">{t("emp.week.fromPunches", { desde: dia.periodStart, hasta: dia.periodEnd })}</div>
-          )}
         </div>
         {secciones.dinero && <div className="stat"><div className="n">{money(totalPay)}</div><div className="l">{t("emp.week.estPay")}</div></div>}
         {secciones.dinero && <div className="stat"><div className="n">{money(paidTotal)}</div><div className="l">{t("emp.week.paidSoFar")}</div></div>}
       </div>
+      )}
 
       {!tablas ? null : rows.length === 0 ? (
         <p className="muted" style={{ marginTop: 14 }}>{t("emp.week.noTime")}</p>
@@ -218,7 +219,8 @@ export default function MyWeekPage() {
 
     {/* Mudados aquí desde Registrar tiempo, para el empleado presencial (D-489). */}
     {secciones.boletin && <MiBoletinSec />}
-    {secciones.fichajesDeHoy && dia && <FichajesDeHoy d={dia} semanaDePago={false} />}
+    {/* Sin las cifras de horas encima («Hoy», «Esta semana de pago»): solo la tabla (D-517). */}
+    {secciones.fichajesDeHoy && dia && <FichajesDeHoy d={dia} cifras={false} />}
     </>
   );
 }

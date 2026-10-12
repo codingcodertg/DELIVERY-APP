@@ -15,7 +15,9 @@ import { FichajesDeHoy } from "@/components/timetracker/FichajesDeHoy";
 import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo";
 import { useData } from "@/lib/timetracker-data-provider";
 import { esAdminDeTt, seccionesDeFichar } from "@/lib/timetracker/vista-empleado";
+import { accionesEnMenu, accionesPersonales, estadoDelFichaje, textoDeAccion, type AccionPersonal } from "@/lib/timetracker/mis-acciones";
 import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
+import { MenuDeAcciones, type OpcionDelMenu } from "@/components/MenuDeAcciones";
 
 /**
  * Fichar, dentro de Registrar tiempo (D-125).
@@ -66,6 +68,17 @@ import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
  * horario» y «Notas del día»: la tarjeta «Turno de hoy · Esta semana de pago» se va, y «Mi
  * boletín» y «Fichajes de hoy» se mudan a «Mi semana». El admin lo sigue viendo todo aquí
  * (`seccionesDeFichar`).
+ *
+ * **D-517 — el admin, con «Mis acciones ▾»; el empleado, sin el contador.** (1) El dueño: «in the clock
+ * in the personal actions buttons for the admin goes into a dropdown». Para el admin, los botones de
+ * esta tarjeta (entrada, salida, almuerzo, voy a salir, foto, ya volví) van en un solo desplegable, el
+ * mismo `MenuDeAcciones` de la ficha de Entregas (D-497); QUÉ opciones hay lo decide
+ * `accionesPersonales` con las mismas condiciones que los botones, y cada opción llama a la MISMA
+ * función que su botón (`hacer`). La pastilla dice el estado que antes llevaban los botones
+ * («Almorzando desde 12:00», `estadoDelFichaje`). El empleado y el gerente, con sus botones de siempre.
+ * (2) El dueño, mirando la de un empleado: «quita el tiempo y solo deja clock in y not active, no
+ * queremos que miren el tiempo». El contador grande («0:00:00») solo lo ve el admin
+ * (`secciones.contador`). Es el número de ESTA tarjeta, no el cronómetro de D-470, que no se toca.
  */
 
 /**
@@ -128,6 +141,8 @@ export function PunchPanel() {
     subirFoto: subirFotoDeFichaje,
   } = useAccionesDeFichar();
   const secciones = seccionesDeFichar({ esAdmin: esAdminDeTt(me.role) });
+  // El admin, con sus acciones en «Mis acciones ▾»; el empleado y el gerente, con botones (D-517).
+  const enMenu = accionesEnMenu(me.role);
   const lang = getLang(); // useT() ya fuerza el re-render al cambiar el idioma
   const [d, setD] = useState<Dia | null>(null);
   // El viaje abierto (o no) de quien mira. Lo comparten el botón de foto y TripPanel.
@@ -165,8 +180,14 @@ export function PunchPanel() {
   }, [getMyDay, getMyTrip]);
 
   useEffect(() => { void load(); }, [load]);
-  // El contador de "llevo trabajando" tiene que moverse solo; si no, parece parado.
-  useEffect(() => { const i = setInterval(() => setAhora(Date.now()), 1000); return () => clearInterval(i); }, []);
+  // El contador de "llevo trabajando" tiene que moverse solo; si no, parece parado. Solo hay contador
+  // para el admin (D-517): sin él no hay nada que repintar cada segundo.
+  const conContador = secciones.contador;
+  useEffect(() => {
+    if (!conContador) return;
+    const i = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(i);
+  }, [conContador]);
 
   /** Coordenadas del navegador. Sin ellas no se ficha: el servidor las exige. */
   function ubicacion(): Promise<{ lat: number; lng: number; accuracy?: number }> {
@@ -351,19 +372,56 @@ export function PunchPanel() {
   const fila = filaDeSalida({ descansoAbierto: !!d.leave, viajeAbierto: !!viaje?.trip });
   const llevo = d.open ? Math.max(0, Math.floor((ahora - Date.parse(d.open.clockInAt)) / 1000)) : 0;
 
+  // Lo que hace cada acción, escrito UNA vez (D-517): lo llaman los botones del empleado y las
+  // opciones de «Mis acciones ▾» del admin. Así el menú no puede hacer otra cosa que el botón.
+  const hacer: Record<AccionPersonal, () => void> = {
+    entrar: () => pide("in"),
+    salir: () => pide("out"),
+    terminarDescanso: () => void corre(async () => endLeave(d.leave!.id, await ubicacionOpcional())),
+    foto: () => fotoVisitaRef.current?.click(),
+    yaVolvi: () => void corre(async () => endTrip({ ...(await ubicacionOpcional()) })),
+    almuerzo: () => void corre(async () => startLeave({ reason: "lunch", geo: await ubicacionOpcional() })),
+    // Ya no graba nada al pulsarlo: abre la ventana que pregunta (D-455).
+    voySalir: () => setSalida("pregunta"),
+  };
+
+  // El admin: qué acciones hay ahora (las mismas condiciones que los botones) y qué dice su pastilla.
+  const jornada = { dentro, pideMotivo: !!pideMotivo, descanso: d.leave, viaje: viaje?.trip ?? null };
+  const estado = estadoDelFichaje({ entrada: d.open?.clockInAt ?? null, descanso: d.leave, viaje: viaje?.trip ?? null });
+  const misAcciones: OpcionDelMenu[] = accionesPersonales(jornada).map((a) => {
+    const x = textoDeAccion(a, jornada);
+    return {
+      id: a,
+      texto: (x.icono ? x.icono + " " : "") + t(x.clave) + (x.hora ? " · " + hhmm(x.hora) : ""),
+      peligro: x.peligro,
+      // Como los botones: mientras se guarda lo último, nada se pulsa (y el motivo sale en el title).
+      deshabilitada: ocupado ? t("emp.menu.busy") : null,
+      alPulsar: hacer[a],
+    };
+  });
+
   return (
     <>
       <div className="card">
         <div className="between">
           <h2 style={{ margin: 0 }}>{dentro ? t("emp.punch.onClock") : t("emp.punch.clockIn")}</h2>
-          {dentro
+          {/* El admin: la pastilla dice lo que antes decían los botones que ahora van en el menú
+              («Almorzando desde 12:00»). El empleado, la de siempre. */}
+          {enMenu
+            ? <span className={"pill " + estado.tono}>
+                {estado.icono ? estado.icono + " " : ""}{estado.desde ? t(estado.clave, { time: hhmm(estado.desde) }) : t(estado.clave)}
+              </span>
+            : dentro
             ? <span className="pill on">{t("emp.punch.since")} {hhmm(d.open!.clockInAt)}</span>
             : <span className="pill wait">{t("emp.punch.notClockedIn")}</span>}
         </div>
 
-        <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 1, margin: "8px 0" }}>
-          {dentro ? fmtClock(llevo) : "0:00:00"}
-        </div>
+        {/* El contador, solo el admin (D-517): al empleado el dueño no quiere enseñarle el tiempo. */}
+        {secciones.contador && (
+          <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 1, margin: "8px 0" }}>
+            {dentro ? fmtClock(llevo) : "0:00:00"}
+          </div>
+        )}
 
         {err && <div className="banner err">{err}</div>}
         {paso && <div className="hint">{paso}</div>}
@@ -428,53 +486,60 @@ export function PunchPanel() {
               </button>
             </div>
           </div>
-        ) : (
-          <div className="row" style={{ marginTop: 6 }}>
+        ) : !enMenu && (
+          // Sin el contador encima (el empleado), un poco más de aire bajo la pastilla.
+          <div className="row" style={{ marginTop: secciones.contador ? 6 : 12 }}>
             {dentro
-              ? <button className="btn-danger" disabled={!!ocupado} onClick={() => pide("out")}>
+              ? <button className="btn-danger" disabled={!!ocupado} onClick={hacer.salir}>
                   {ocupado === "out" ? "…" : t("emp.punch.clockOut")}
                 </button>
-              : <button disabled={!!ocupado} onClick={() => pide("in")}>
+              : <button disabled={!!ocupado} onClick={hacer.entrar}>
                   {ocupado === "in" ? "…" : t("emp.punch.clockIn")}
                 </button>}
           </div>
         )}
 
+        {/* El admin: todas sus acciones personales en un solo «Mis acciones ▾» (D-517), el menú de la
+            ficha de Entregas (D-497). Las mismas que los botones de abajo, y cada una hace lo mismo. */}
+        {enMenu && misAcciones.length > 0 && (
+          // A la derecha: el menú se abre alineado con el borde derecho de su botón (D-497), y así cae
+          // debajo de él, dentro de la tarjeta, y no asomando por la izquierda.
+          <div className="row" style={{ marginTop: 6, justifyContent: "flex-end" }}>
+            <MenuDeAcciones rotulo={t("emp.menu.mine")} opciones={misAcciones} className="btn" />
+          </div>
+        )}
+
         {/* Almuerzo y salidas del sitio: solo tienen sentido estando dentro, así que no se
             dibujan a quien no ha fichado — un botón que va a fallar es peor que no estar. */}
-        {dentro && (
+        {!enMenu && dentro && (
           <div className="row" style={{ marginTop: 10 }}>
             {fila === "descanso" && d.leave ? (
-              <button className="btn-warn" disabled={!!ocupado}
-                onClick={() => corre(async () => endLeave(d.leave!.id, await ubicacionOpcional()))}>
+              <button className="btn-warn" disabled={!!ocupado} onClick={hacer.terminarDescanso}>
                 {d.leave.reason === "lunch" ? t("emp.punch.endLunch") : t("emp.punch.imBack")} · {hhmm(d.leave.leftAt)}
               </button>
             ) : fila === "visita" && viaje?.trip ? (
               <>
                 {/* El botón de foto, visible TODO el rato que dure la salida (D-455): se toca
                     cuando quiera y cuantas veces quiera; cada toque abre la cámara. */}
-                <button disabled={!!ocupado} onClick={() => fotoVisitaRef.current?.click()}>
+                <button disabled={!!ocupado} onClick={hacer.foto}>
                   📷 {t("emp.visit.takePhoto")}
                 </button>
                 {seCierraDeUnToque(viaje.trip) && (
-                  <button className="btn-warn" disabled={!!ocupado}
-                    onClick={() => corre(async () => endTrip({ ...(await ubicacionOpcional()) }))}>
+                  <button className="btn-warn" disabled={!!ocupado} onClick={hacer.yaVolvi}>
                     {t("emp.punch.imBack")} · {hhmm(viaje.trip.startedAt)}
                   </button>
                 )}
-                <button className="btn-ghost" disabled={!!ocupado}
-                  onClick={() => corre(async () => startLeave({ reason: "lunch", geo: await ubicacionOpcional() }))}>
+                <button className="btn-ghost" disabled={!!ocupado} onClick={hacer.almuerzo}>
                   🍽 {t("emp.punch.startLunch")}
                 </button>
               </>
             ) : (
               <>
-                <button className="btn-warn" disabled={!!ocupado}
-                  onClick={() => corre(async () => startLeave({ reason: "lunch", geo: await ubicacionOpcional() }))}>
+                <button className="btn-warn" disabled={!!ocupado} onClick={hacer.almuerzo}>
                   🍽 {t("emp.punch.startLunch")}
                 </button>
                 {/* Ya no graba nada al pulsarlo: abre la ventana que pregunta (D-455). */}
-                <button className="btn-ghost" disabled={!!ocupado} onClick={() => setSalida("pregunta")}>
+                <button className="btn-ghost" disabled={!!ocupado} onClick={hacer.voySalir}>
                   🚚 {t("emp.punch.goingOut")}
                 </button>
               </>
@@ -587,7 +652,7 @@ export function PunchPanel() {
       <MySections boletin={secciones.boletin} />
 
       {/* «Fichajes de hoy»: aquí solo para el admin; al empleado le sale en «Mi semana» (D-489). */}
-      {secciones.fichajesDeHoy && <FichajesDeHoy d={d} semanaDePago />}
+      {secciones.fichajesDeHoy && <FichajesDeHoy d={d} cifras />}
     </>
   );
 }

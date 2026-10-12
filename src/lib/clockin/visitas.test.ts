@@ -21,7 +21,10 @@ const pregunta = leer("src/components/timetracker/PreguntaDeVehiculo.tsx");
 
 describe("«voy a salir» ya no graba nada a ciegas: pregunta", () => {
   it("el botón abre la ventana; ya no llama a startLeave con customer_visit", () => {
-    expect(punch).toContain('<button className="btn-ghost" disabled={!!ocupado} onClick={() => setSalida("pregunta")}>');
+    // Nota D-517: lo que hace cada botón vive ahora una sola vez en `hacer` (lo comparten los botones
+    // del empleado y «Mis acciones ▾» del admin); el botón llama a `hacer.voySalir`.
+    expect(punch).toContain('<button className="btn-ghost" disabled={!!ocupado} onClick={hacer.voySalir}>');
+    expect(punch).toContain('voySalir: () => setSalida("pregunta"),');
     expect(punch).not.toContain('startLeave({ reason: "customer_visit"');
   });
   it("la ventana pregunta si va a visitar a un cliente, con Sí y No, en los dos idiomas", () => {
@@ -162,7 +165,9 @@ describe("la foto: en cualquier momento, cuantas veces quiera", () => {
   });
   it("es la cámara del teléfono: un input con capture, propio de la visita", () => {
     expect(punch).toContain('<input ref={fotoVisitaRef} type="file" accept="image/*" capture="environment" hidden onChange={alTomarFotoDeVisita} />');
-    expect(punch).toContain("<button disabled={!!ocupado} onClick={() => fotoVisitaRef.current?.click()}>");
+    // Nota D-517: el botón llama a `hacer.foto`, que abre esta cámara (y también la opción del admin).
+    expect(punch).toContain("<button disabled={!!ocupado} onClick={hacer.foto}>");
+    expect(punch).toContain("foto: () => fotoVisitaRef.current?.click(),");
   });
   it("cancelar la cámara no guarda nada", () => {
     const g = punch.slice(punch.indexOf("async function alTomarFotoDeVisita("), punch.indexOf("const planVisita ="));
@@ -201,7 +206,9 @@ describe("qué botones salen bajo el reloj", () => {
   it("el botón de foto está en la fila de la visita, visible mientras dure", () => {
     const fila = punch.slice(punch.indexOf(') : fila === "visita" && viaje?.trip ? ('), punch.indexOf("{/* Ya no graba nada al pulsarlo"));
     expect(fila).toContain('📷 {t("emp.visit.takePhoto")}');
-    expect(fila).toContain("fotoVisitaRef.current?.click()");
+    // Nota D-517: el clic va a `hacer.foto`, que es el que abre la cámara.
+    expect(fila).toContain("onClick={hacer.foto}");
+    expect(punch).toContain("foto: () => fotoVisitaRef.current?.click(),");
     expect(DICT.en["emp.visit.takePhoto"]).toBe("Take photo");
     expect(DICT.es["emp.visit.takePhoto"]).toBe("Tomar foto");
   });
@@ -209,7 +216,9 @@ describe("qué botones salen bajo el reloj", () => {
     expect(seCierraDeUnToque({ vehicleId: null })).toBe(true);
     expect(seCierraDeUnToque({ vehicleId: "v1" })).toBe(false);
     expect(punch).toContain("{seCierraDeUnToque(viaje.trip) && (");
-    expect(punch).toContain("onClick={() => corre(async () => endTrip({ ...(await ubicacionOpcional()) }))}>");
+    // Nota D-517: el botón llama a `hacer.yaVolvi`, y ahí está el endTrip de un toque.
+    expect(punch).toContain('<button className="btn-warn" disabled={!!ocupado} onClick={hacer.yaVolvi}>');
+    expect(punch).toContain("yaVolvi: () => void corre(async () => endTrip({ ...(await ubicacionOpcional()) })),");
   });
 });
 
