@@ -84,6 +84,10 @@ export interface ChoferEntrada {
   entrada: number;
   salida: number;
   vuelveABase: boolean;
+  /** Dónde TERMINA la jornada si vuelve (`vuelveABase`), cuando no es donde sale: la tienda que se eligió para ese día
+   *  (166, `driver_day_bases`; `src/lib/base-del-dia.ts`). Sin él, vuelve a `base`, como siempre: una entrada sin fin
+   *  planifica byte a byte lo mismo que antes. */
+  fin?: Punto;
   /** Lo que tiene su camión (D-418, 151; OptimoRoute `vehicleFeatures`). Se compara sin mayúsculas. */
   habilidades?: string[] | null;
   /** Sus zonas preferidas (D-421, 152): ciudades de entrega. Es PREFERENCIA, no regla: llevar una entrega de una zona que

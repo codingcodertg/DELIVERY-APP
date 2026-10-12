@@ -121,6 +121,9 @@ export interface EntradaDeLosPuntos<T extends OrdenDelMapa> {
   colorSinChofer: string;
   /** La base de la ruta, ya con coordenadas, y su dirección para el rótulo. */
   baseDe: (clave: string) => { coords: [number, number]; direccion: string } | null;
+  /** Dónde TERMINA la ruta ese día, si no es donde sale (166, `base-del-dia.ts`): su marca «F». Sin esto, o con `null` (termina
+   *  donde sale, o no vuelve), no se pinta: la «P» ya es la vuelta. */
+  finDe?: (clave: string) => { coords: [number, number]; direccion: string } | null;
   lecturaDe: (clave: string, paradas: T[]) => Pick<LecturaDeRuta, "etiquetaDe" | "filas">;
   coordsDeTienda: (nombre: string | null) => Coords | null;
   t: T2;
@@ -156,6 +159,19 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       label: `${t("Pickup / base", "Recolección / base")} (${u.label}) — ${base.direccion}`,
       dimmed: e.atenuada(u.key) || selActive,
     });
+    // Termina en otra tienda ese día (166): su marca, del mismo color, con «F» de fin.
+    const fin = e.finDe?.(u.key);
+    if (fin && (fin.coords[0] !== base.coords[0] || fin.coords[1] !== base.coords[1])) {
+      pts.push({
+        id: `__fin__${u.id}`,
+        lat: fin.coords[0],
+        lng: fin.coords[1],
+        color: e.colorDe(u.driver),
+        badge: "F",
+        label: `${t("Ends the day here", "Termina el día aquí")} (${u.label}) — ${fin.direccion}`,
+        dimmed: e.atenuada(u.key) || selActive,
+      });
+    }
   }
   // Las PARADAS de cada ruta (D-485; antes, una burbuja por recogida con su «P1», D-334/D-443): una burbuja por parada,
   // con su número (1, 2, 3…) en el color del chofer, en el orden de la lista. Tres recogidas seguidas en la misma tienda
@@ -361,7 +377,7 @@ export function encuadreDeLasRutas(
   for (const key of marcados) {
     for (const d of porChofer.get(key) ?? []) ids.add(d.id);
     const lane = carriles.find((l) => l.key === key);
-    if (lane) ids.add(`__depot__${lane.id}`);
+    if (lane) { ids.add(`__depot__${lane.id}`); ids.add(`__fin__${lane.id}`); }
   }
   return points.filter((p) => ids.has(p.id)).map((p) => [p.lat, p.lng] as [number, number]);
 }

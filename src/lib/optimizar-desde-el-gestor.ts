@@ -4,6 +4,7 @@ import type { EntradaDeOptimizar, PuntoEnElMapa, ResultadoDeOptimizar, TiemposDe
 import { claveDePunto } from "./route-times/claves";
 import { serviceMin } from "./trip-timing";
 import type { DriverSettings, NamedLocation, Profile } from "./types";
+import { extremosDelChofer } from "./base-del-dia";
 
 /**
  * Lo que el Gestor de Rutas pone alrededor de `optimizaLaLista` (D-461): de dónde sale el camión, qué se le pasa al
@@ -15,8 +16,6 @@ import type { DriverSettings, NamedLocation, Profile } from "./types";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // La base del chofer.
-
-const igual = (a: string | null | undefined, b: string | null | undefined) => (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
 
 /** De las filas de `driver_settings` a «cuál es la tienda base de cada chofer», por NOMBRE (como se asigna en el Gestor). */
 export function basesPorNombre(
@@ -45,13 +44,8 @@ export function tiendaBaseDelChofer(
 ): NamedLocation | null {
   const nombre = (chofer ?? "").trim();
   if (!nombre) return null;
-  const deAjustes = bases.get(nombre);
-  const dePerfil = usuarios.find((u) => (u.full_name ?? "").trim() === nombre)?.store;
-  for (const candidata of [deAjustes, dePerfil]) {
-    const t = (candidata ?? "").trim() ? tiendas.find((s) => igual(s.name, candidata)) : undefined;
-    if (t) return t;
-  }
-  return null;
+  // La misma regla que decide los extremos de cada día (`base-del-dia.ts`), sin lo del día: es la base DE SIEMPRE.
+  return extremosDelChofer({ deAjustes: bases.get(nombre), dePerfil: usuarios.find((u) => (u.full_name ?? "").trim() === nombre)?.store, tiendas }).base?.tienda ?? null;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -71,6 +65,8 @@ export function entradaDeOptimizar(args: {
   lista: readonly ParadaDeLaLista[];
   ordenes: readonly OrdenDeLaRuta[];
   base: PuntoEnElMapa | null;
+  /** Dónde termina, si no es la base (166); `null` = no vuelve. Sin él, vuelve a la base. */
+  fin?: PuntoEnElMapa | null;
   capacidad: number | null;
   /** Las coordenadas de una tienda de recogida, por su nombre (Ajustes). */
   coordsDeTienda: (nombre: string | null) => PuntoEnElMapa | null;
@@ -95,6 +91,7 @@ export function entradaDeOptimizar(args: {
   }
   return {
     paradas: args.lista, puntos, cambios: cambiosDeLaLista(args.lista, args.ordenes), base: args.base, capacidad: args.capacidad,
+    ...(args.fin !== undefined ? { fin: args.fin } : {}),
     ventanas, servicios, salidaMin: args.salidaMin,
   };
 }
@@ -106,9 +103,10 @@ export function entradaDeOptimizar(args: {
 export const MAX_PUNTOS_DE_UNA_RUTA = 60;
 
 /** Los puntos DISTINTOS de una ruta —la base y cada parada con punto—, por su clave (lat,lng a 5 decimales). */
-export function puntosDeLaEntrada(e: Pick<EntradaDeOptimizar, "base" | "puntos">): PuntoEnElMapa[] {
+export function puntosDeLaEntrada(e: Pick<EntradaDeOptimizar, "base" | "fin" | "puntos">): PuntoEnElMapa[] {
   const vistos = new Map<string, PuntoEnElMapa>();
-  for (const p of [e.base, ...e.puntos]) if (p && Number.isFinite(p.lat) && Number.isFinite(p.lng) && !vistos.has(claveDePunto(p))) vistos.set(claveDePunto(p), { lat: p.lat, lng: p.lng });
+  // El fin (166) también: sin su tramo, la vuelta se mediría en línea recta.
+  for (const p of [e.base, e.fin, ...e.puntos]) if (p && Number.isFinite(p.lat) && Number.isFinite(p.lng) && !vistos.has(claveDePunto(p))) vistos.set(claveDePunto(p), { lat: p.lat, lng: p.lng });
   return [...vistos.values()];
 }
 

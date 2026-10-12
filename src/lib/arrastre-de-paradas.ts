@@ -42,6 +42,8 @@ export interface RutaDelGantt {
   bloqueada: boolean;
   /** La recogida / base, para la estimación en línea recta. `null`: ruta abierta. */
   base: LatLng | null;
+  /** Dónde termina ese día, si no es la base (166); `null` = no vuelve. Solo cambia las millas de «📍 Mejor lugar». */
+  fin?: LatLng | null;
 }
 
 export type Destino =
@@ -183,7 +185,7 @@ export function planDeSoltar(rutas: readonly RutaDelGantt[], movida: string, des
   let viaje: number;
   let puesto: number;
   if (destino.tipo === "nombre") {
-    const r = mejorLugar({ viajes: sin, nueva: laMovida, base: dest.base, capacidad: dest.capacidad, inicioMin, admite: dest.admite ? (_v, puesto) => dest.admite!(puesto, laMovida.pallets || 0) : undefined });
+    const r = mejorLugar({ viajes: sin, nueva: laMovida, base: dest.base, fin: dest.fin, capacidad: dest.capacidad, inicioMin, admite: dest.admite ? (_v, puesto) => dest.admite!(puesto, laMovida.pallets || 0) : undefined });
     if (!r.ok) return { ok: false, motivo: "sin_punto" };
     viaje = r.hueco.viaje;
     puesto = r.hueco.puesto;

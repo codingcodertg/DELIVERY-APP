@@ -36,7 +36,10 @@ import { PanelDeChoferes } from "@/components/PanelDeChoferes";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { optimizaLaLista } from "@/lib/optimiza-la-ruta";
-import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, tiendaBaseDelChofer, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
+import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
+import { baseTrasElCambio, basesPorNombreDelDia, extremosDeLaRuta, type BaseDelDia } from "@/lib/base-del-dia";
+import { useBasesDelDia } from "@/lib/usa-base-del-dia";
+import { BaseDelDiaDelChofer } from "@/components/BaseDelDiaDelChofer";
 import { esVentanaDura } from "@/lib/route-settings";
 import { useBasesDeChofer } from "@/lib/usa-bases";
 import { useAjustesDeChofer } from "@/lib/usa-ajustes-de-chofer";
@@ -713,16 +716,26 @@ export default function RoutesPage() {
     return true;
   };
   /** La fila de la Base (D-443): la ruta sale de ella con 0 a bordo y vuelve con lo que quede, que tiene que ser 0. */
+  /** Dónde acaba la ruta ESE día, para la fila del regreso (166): la tienda del fin si es otra que la de salida («Termina en»),
+   *  o «no vuelve» si el chofer no vuelve a base. Sin salida, `null` (lo dice la fila de la salida). */
+  const finDeLaFila = (laneKey: string): { otra: boolean; texto: string } | null => {
+    const sale = tiendaBaseDe(laneKey);
+    if (!sale) return null;
+    const fin = tiendaFinDe(laneKey);
+    if (!fin) return { otra: true, texto: t("(doesn’t return to base: the route ends at its last stop)", "(no vuelve a base: la ruta acaba en su última parada)") };
+    const otra = fin.name !== sale.name, dir = (fin.address ?? "").trim() || fin.name;
+    return { otra, texto: otra ? `${fin.name} — ${dir}` : dir };
+  };
   const filaDeLaBase = (laneKey: string, cual: "salida" | "regreso", f: FilaDeCuenta, noCuadra: boolean) => (
     <tr key={`base-${cual}`} data-base={cual}>
       <td style={{ fontWeight: 700 }} title={t("Base", "Base")} aria-label={t("Base", "Base")}>🏠</td>
-      <td className="hint" style={{ margin: 0 }}>{cual === "salida" ? t("Base: leaves", "Base: salida") : t("Base: returns", "Base: regreso")}</td>
+      <td className="hint" style={{ margin: 0 }}>{cual === "salida" ? t("Base: leaves", "Base: salida") : finDeLaFila(laneKey)?.otra ? t("Ends at", "Termina en") : t("Base: returns", "Base: regreso")}</td>
       <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12, color: noCuadra ? "var(--red)" : undefined, fontWeight: noCuadra ? 700 : undefined }}>
         {/* Solo cuántos van a bordo (D-444): «0». Sin «libres» ni «/ capacidad»: el dueño, «no quiero que pongas libre». */}
         {numeroDePallets(f.despues)}
         {noCuadra && <div data-no-cuadra>⚠ {t("doesn’t come back empty: the count doesn’t add up", "no vuelve vacío: la cuenta no cuadra")}</div>}
       </td>
-      <td colSpan={colsParadas.length} className="hint" style={{ margin: 0 }}>{pickupAddressFor(laneKey) ?? t("(no base: the driver has no store)", "(sin base: el chofer no tiene tienda)")}</td>
+      <td colSpan={colsParadas.length} className="hint" style={{ margin: 0 }}>{(cual === "regreso" ? finDeLaFila(laneKey)?.texto : null) ?? pickupAddressFor(laneKey) ?? t("(no base: the driver has no store)", "(sin base: el chofer no tiene tienda)")}</td>
       <td className="celda-acciones" />
     </tr>
   );
@@ -906,7 +919,7 @@ export default function RoutesPage() {
     const lista = lecturaDe(laneKey, stops).paradas;
     const base = baseDeLaRuta(laneKey);
     const entrada = entradaDeOptimizar({
-      lista, ordenes: stops, base, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,
+      lista, ordenes: stops, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,
       esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN,
     });
     setOptimizando(laneKey);
@@ -1069,7 +1082,24 @@ export default function RoutesPage() {
   // Las filas enteras de Ajustes → Rutas, para que «Asignar a…» varios choferes entre al motor con los mismos choferes que
   // «Armar rutas» (D-474): base, capacidad, turno, si vuelve, si rutea, lo que tiene el camión y sus zonas.
   const ajustesDeChofer = useAjustesDeChofer();
-  const tiendaBaseDe = (laneKey: string) => tiendaBaseDelChofer(driverOf(laneKey), basesDeChofer, users, settings.stores ?? []);
+  // De qué tienda SALE y en cuál TERMINA cada chofer EL DÍA QUE SE MIRA (166, `base-del-dia.ts`). El dueño, 2026-10-11:
+  // «choose the driver strarting position LOGISTIC MANAGER, DEFAULT IS THE ONE HE ALREADY WORKS ON» y «Need to be able to
+  // assign store where driver is starting/ ending at». Lo elige el gerente de logística (o el admin) en el panel; sin elegir
+  // nada, su base de siempre. QUÉ MANDA lo decide `extremosDeLaRuta`: la salida, la elegida para ese día > Ajustes > perfil;
+  // el fin, el elegido > donde sale ese día; sin fin si no vuelve a base. De ahí salen la medida (millas, horas, llegadas), el
+  // Optimizar, «Asignar a…», «📍 Mejor lugar», el horario y las marcas del mapa. Solo viendo UN día: «todas las fechas»
+  // mezcla días, y ahí cada ruta sale de su base.
+  const basesDelDia = useBasesDelDia(date, modo === "dia");
+  const [guardandoBase, setGuardandoBase] = useState(false);
+  const basesDelDiaPorNombre = useMemo(() => (modo === "dia" ? basesPorNombreDelDia(basesDelDia.bases, users) : new Map<string, BaseDelDia>()), [basesDelDia.bases, users, modo]);
+  const noVuelven = useMemo(() => {
+    const nombreDe = new Map(users.map((u) => [u.id, (u.full_name ?? "").trim()]));
+    return new Set(ajustesDeChofer.filter((f) => f.returns_to_base === false).map((f) => nombreDe.get(f.profile_id) ?? "").filter(Boolean));
+  }, [ajustesDeChofer, users]);
+  const extremosDe = (laneKey: string) => extremosDeLaRuta(driverOf(laneKey), { delDia: basesDelDiaPorNombre, deAjustes: basesDeChofer, usuarios: users, noVuelven, tiendas: settings.stores ?? [] });
+  const tiendaBaseDe = (laneKey: string) => extremosDe(laneKey).salida?.tienda ?? null;
+  /** Dónde termina ese día (166); `null` = no vuelve (o no tiene salida). */
+  const tiendaFinDe = (laneKey: string) => extremosDe(laneKey).fin?.tienda ?? null;
   const pickupAddressFor = (laneKey: string): string | null => (tiendaBaseDe(laneKey)?.address ?? "").trim() || null;
 
   // Lo del día sin chofer. Es lo que cuentan el resumen, la pestaña y el tablero (y contaba «Auto-asignar», quitado en
@@ -1351,15 +1381,20 @@ export default function RoutesPage() {
   //     (lib/usa-medida-de-rutas), que desde D-467 comparte «Ruta de hoy».
   const seMide = (clave: string) => (byDriver.get(clave) ?? []).length > 0 && pasaFiltro(clave) && (modo === "dia" || selected.has(clave));
   const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);
-  const { routeInfo, routeLines, routeEtas, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
+  const { finDeLaRuta, routeInfo, routeLines, routeEtas, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
     date, porChofer: byDriver, rutasAMedir, seMide,
     listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,
     tiendaBaseDe, coordsDeTienda,
+    // Dónde termina cada ruta ese día (166): la vuelta va ahí. Cambiar la salida o el fin vuelve a medir esa ruta.
+    tiendaFinDe,
     conParadas: lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => u.key),
     // «Ruta de hoy» (D-467): no se busca la dirección de una base que ya tiene punto en Ajustes. Ahora la abren todos.
     ...(soloLectura ? { buscaBases: "si_falta" as const } : {}),
     invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],
   });
+  /** Dónde termina la ruta para lo que ESTIMA en el navegador (Optimizar, «📍 Mejor lugar», horario), en coordenadas: sin
+   *  fin (no vuelve), `null`; un fin cuyo punto aún no se sabe, `undefined` (vuelve a la base, como antes de la 166). */
+  const finParaEstimar = (laneKey: string): { lat: number; lng: number } | null | undefined => (tiendaFinDe(laneKey) ? finDeLaRuta(laneKey) ?? undefined : null);
   const aParadaDelGantt = (x: Delivery): ParadaDelGantt => ({
     id: x.id, lat: x.delivery_lat, lng: x.delivery_lng, pallets: palletsDeLaOrden(x),
     ventana: parseWindow(x.delivery_windows), servicioMin: serviceMin(x.delivery_duration),
@@ -1378,7 +1413,7 @@ export default function RoutesPage() {
     const lista = lecturaDe(l.key, stops).paradas;
     return {
       clave: l.key, viajes: [entregasDeLaLista(lista, stops).map(aParadaDelGantt)], manual: true,
-      capacidad, admite: admiteEnLaLista(lista, stops, capacidad), bloqueada: bloqueada(l.key), base: baseDeLaRuta(l.key),
+      capacidad, admite: admiteEnLaLista(lista, stops, capacidad), bloqueada: bloqueada(l.key), base: baseDeLaRuta(l.key), fin: finParaEstimar(l.key),
     };
   });
   // Una fila por ruta; cuáles se PINTAN lo decide `filasDelHorario`, abajo. `rutasDelGantt` sigue teniendo todas: el plan de
@@ -1498,7 +1533,7 @@ export default function RoutesPage() {
         const cabe = admiteEnLaLista(lista, paradas, capacidad);
         // De otro día (chip «Todas»), o sin pin: se asigna como «Asignar», al final, y se dice.
         const r = delDia.has(d.id)
-          ? mejorLugar({ viajes: [entregas.map(aParada)], nueva: aParada(d), base, capacidad, inicioMin: DAY_START_MIN, admite: (_v, puesto) => cabe(puesto, palletsDeLaOrden(d)) })
+          ? mejorLugar({ viajes: [entregas.map(aParada)], nueva: aParada(d), base, fin: finParaEstimar(laneKey), capacidad, inicioMin: DAY_START_MIN, admite: (_v, puesto) => cabe(puesto, palletsDeLaOrden(d)) })
           : null;
         if (!r || !r.ok) {
           await assignTo(d.id, laneKey);
@@ -1569,8 +1604,10 @@ export default function RoutesPage() {
     return entradaDelDia({
       ordenes: deliveries.filter((d) => d.delivery_date === date && ROUTE_STAGES.includes(d.stage)).map((d) => (sel.has(d.id) ? { ...d, assigned_driver: null } : d)),
       choferes: drivers, ajustesDeChofer: ajustesConBaseDelPerfil(ajustesDeChofer, drivers), settings,
+      // De qué tienda sale y en cuál termina cada uno ESE día (166), como en «Armar rutas».
+      basesDelDia: basesDelDia.bases,
     });
-  }, [deliveries, date, seleccionDelReparto, drivers, ajustesDeChofer, settings]);
+  }, [deliveries, date, seleccionDelReparto, drivers, ajustesDeChofer, settings, basesDelDia.bases]);
   /** Con quién se puede repartir: los que entran al motor y no tienen la ruta bloqueada 🔒; los demás, apagados con su porqué. */
   const choferesDelReparto = choferesParaRepartir(diaParaElMotor, drivers, bloqueada, unavailableToday);
   /**
@@ -1853,6 +1890,11 @@ export default function RoutesPage() {
         const coords: [number, number] | undefined = base ? [base.lat, base.lng] : addr ? depotCoords[addr] : undefined;
         return coords ? { coords, direccion: tiendaBaseDe(clave)?.name ?? addr } : null;
       },
+      // Dónde termina ese día, si es otra tienda (166): su marca «F».
+      finDe: (clave) => {
+        const tienda = tiendaFinDe(clave), fin = finDeLaRuta(clave);
+        return tienda && fin ? { coords: [fin.lat, fin.lng], direccion: tienda.name } : null;
+      },
       lecturaDe, coordsDeTienda, t,
       marcadas: { tiene: (id) => selectedOrders.has(id), colorDe: (id) => selColorById.get(id), cuantas: selectedOrders.size },
     });
@@ -1878,7 +1920,7 @@ export default function RoutesPage() {
     const abanico = abanicoDeMarcas(pts);
     return abanico.size ? pts.map((p) => { const o = abanico.get(p.id); return o ? { ...p, offset: o } : p; }) : pts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas, deliveries, hechasPintadas]);
+  }, [dayOrders, byDriver, settings.driver_colors, settings.driver_capacity, selected, selectedOrders, selColorById, selPickup, filtroChofer, depotCoords, lanes, rutasPublicadas, deliveries, hechasPintadas, basesDelDiaPorNombre, basesDeChofer]);
 
   // Every measured driver's routes are always drawn; a focus just dims the
   // others. Clicking a route focuses its driver (see onLineClick below).
@@ -1974,6 +2016,39 @@ export default function RoutesPage() {
   // El panel lista SIEMPRE todas las rutas del día (D-488): su casilla dice si se ve. Antes listaba solo las filtradas y,
   // marcado un chofer, no quedaba casilla para marcar otro.
   const filasDelPanel = rutasConOrdenes(lanes, conAlgoQuePintar);
+  // «Sale de · Termina en» (166): lo cambian el gerente de logística y el admin (los que escriben la 166), en el Gestor y
+  // viendo UN día. En «Ruta de hoy» se lee. Los choferes sin órdenes ese día no tienen fila en el panel (D-481 f), pero hay
+  // que poder elegirles la salida ANTES de «Armar rutas» (mañana, por ejemplo): van plegados debajo.
+  const puedeElegirBase = !soloLectura && modo === "dia" && !!me && ["admin", "logistics"].includes(me.role);
+  const choferesSinRutaHoy = drivers.filter((d) => !filasDelPanel.some((u) => u.key === d.full_name));
+  const porQueNoSeElige = (): string | null => {
+    if (guardandoBase) return t("Saving…", "Guardando…");
+    if (basesDelDia.fuente === "cargando") return t("Loading…", "Cargando…");
+    if (basesDelDia.fuente === "sin_tabla") return t("Needs migration 166 (driver_day_bases): until it is applied every driver starts and ends at their base.", "Falta la migración 166 (driver_day_bases): hasta aplicarla, cada chofer sale y termina en su base.");
+    if (basesDelDia.fuente === "error") return t(`Couldn't read the start/end stores: ${basesDelDia.detalle ?? ""}`, `No se pudo leer la salida y el fin: ${basesDelDia.detalle ?? ""}`);
+    return null;
+  };
+  const cambiaBaseDelDia = async (chofer: string, cambio: Partial<BaseDelDia>) => {
+    const perfil = drivers.find((d) => d.full_name === chofer);
+    if (!perfil || guardandoBase) return;
+    const ex = extremosDe(chofer);
+    const nueva = baseTrasElCambio(basesDelDiaPorNombre.get(chofer), cambio, ex.base?.tienda ?? null);
+    setGuardandoBase(true);
+    try {
+      const r = await basesDelDia.guarda(perfil.id, nueva);
+      if (!r.ok) { notify(t(`🏠 Couldn't save where ${chofer} starts/ends: ${r.detalle}`, `🏠 No se pudo guardar de dónde sale/termina ${chofer}: ${r.detalle}`)); return; }
+      clearRouteFor(chofer);
+      const sale = nueva?.salida ?? ex.base?.tienda.name ?? "—", termina = nueva?.fin ?? sale;
+      notify(t(`🏠 ${chofer} on ${date}: starts at ${sale}, ends at ${termina}. Their route is measured again.`, `🏠 ${chofer} el ${date}: sale de ${sale} y termina en ${termina}. Su ruta se vuelve a medir.`));
+    } finally {
+      setGuardandoBase(false);
+    }
+  };
+  /** «Sale de · Termina en» de un chofer: con selectores para quien puede elegir; si no, solo se lee. */
+  const baseDelDiaDe = (chofer: string) => (
+    <BaseDelDiaDelChofer t={t} extremos={extremosDe(chofer)} tiendas={settings.stores ?? []} editable={puedeElegirBase}
+      apagado={puedeElegirBase ? porQueNoSeElige() : null} onCambia={(c) => void cambiaBaseDelDia(chofer, c)} />
+  );
   const clavesDelPanel = filasDelPanel.map((u) => u.key);
   const visiblesEnPanel = rutasVisibles(selected, clavesDelPanel);
   const marcadasSinParadas = lanesDelFiltro.filter((u) => selected.has(u.key) && (byDriver.get(u.key) ?? []).length === 0);
@@ -2542,6 +2617,20 @@ export default function RoutesPage() {
             "data-suelta-en-ruta": clave, ...sueltaAqui(clave, null),
             style: { outline: sobre === claveDeSoltar(clave, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 },
           })}
+          extremosDe={(clave) => (isRealDriver(driverOf(clave)) ? baseDelDiaDe(driverOf(clave)) : null)}
+          pie={puedeElegirBase && choferesSinRutaHoy.length > 0 ? (
+            <details data-bases-sin-ordenes style={{ borderTop: "1px solid var(--line)", padding: "6px 12px" }}>
+              <summary className="hint" style={{ cursor: "pointer", margin: 0 }}>
+                🏠 {t(`Start / end store of drivers with no orders this day (${choferesSinRutaHoy.length})`, `Salida y fin de choferes sin órdenes este día (${choferesSinRutaHoy.length})`)}
+              </summary>
+              {choferesSinRutaHoy.map((d) => (
+                <div key={d.id} data-base-sin-ordenes={d.full_name} style={{ padding: "4px 0" }}>
+                  <b style={{ fontSize: 12 }}>{d.full_name}</b>
+                  {baseDelDiaDe(d.full_name)}
+                </div>
+              ))}
+            </details>
+          ) : undefined}
           extrasDe={(clave) => {
             const u = lanes.find((l) => l.key === clave);
             if (!u) return null;

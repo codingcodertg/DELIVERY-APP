@@ -45,6 +45,11 @@ export function PanelDeChoferes(props: {
   acciones?: ReactNode;
   /** Lo que acompaña al nombre de una ruta (solo el Gestor). */
   extrasDe?: (clave: string) => ReactNode;
+  /** De qué tienda sale y en cuál termina esa ruta el día que se mira (166, `BaseDelDiaDelChofer`): en el Gestor se elige, en
+   *  «Ruta de hoy» se lee. Sin esto, nada. */
+  extremosDe?: (clave: string) => ReactNode;
+  /** Debajo de las filas (solo el Gestor): la salida y el fin de los choferes que ese día aún no tienen órdenes. */
+  pie?: ReactNode;
   /** Atributos de la fila: el destino de arrastre del Gestor. */
   atributosDe?: (clave: string) => HTMLAttributes<HTMLDivElement> & Record<`data-${string}`, string | undefined>;
   /** Lo que se dice cuando no hay ninguna ruta. */
@@ -115,12 +120,14 @@ export function PanelDeChoferes(props: {
                       {numeroDePallets(pallets)}/{cap}
                     </span>
                   </div>
+                  {props.extremosDe?.(u.clave)}
                 </div>
               </div>
             );
           })}
         </div>
       )}
+      {props.pie}
     </div>
   );
 }
