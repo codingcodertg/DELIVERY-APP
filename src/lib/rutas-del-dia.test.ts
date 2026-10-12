@@ -375,8 +375,9 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
     expect(gestor).toContain("useEffect(() => { if (soloLectura) return; const tecla = (e: KeyboardEvent) => {");
     expect(gestor).toContain("const toggleOrder = (id: string) => !soloLectura && setSelectedOrders(");
     expect(gestor).toContain("if (!soloLectura) setSelectedOrders(isolated ? new Set() : new Set([d.id]));");
-    // Lo único que se guarda desde «Ruta de hoy» es el color de un chofer, como antes, y solo gerente o admin.
-    expect(gestor).toContain('const canManageColors = me.role === "manager" || me.role === "admin";');
+    // D-526: ya no se guarda nada desde «Ruta de hoy»: la tarjeta de colores de chofer, lo único que guardaba, se quitó.
+    expect(gestor).not.toContain("canManageColors");
+    expect(gestor).not.toContain("saveSettings({ driver_colors:");
   });
   it("la orden entera solo se abre si la persona ya puede leerla (y un vendedor, solo las suyas)", () => {
     expect(gestor).toContain("const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me) : d;");
@@ -394,8 +395,9 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
     expect(gestor).toContain("if (!veCamiones) return [];");
     expect(gestor).not.toContain("MapLegend");
     expect(gestor).not.toContain("leyendaDelMapa");
-    expect(gestor).toContain("data-colores-de-chofer");
-    expect(gestor).toContain('{t("Driver colors", "Colores de chofer")}');
+    // D-526: la tarjeta de colores de chofer se quitó («remove this driver colors»).
+    expect(gestor).not.toContain("data-colores-de-chofer");
+    expect(gestor).not.toContain('{t("Driver colors", "Colores de chofer")}');
     expect(gestor).toContain("data-dia-anterior disabled={allDates || (soloLectura && fecha <= primerDia)}");
     expect(gestor).toContain("data-dia-siguiente disabled={allDates || (soloLectura && fecha >= rango.max)}");
     expect(gestor).toContain("data-ayer-hoy-manana");

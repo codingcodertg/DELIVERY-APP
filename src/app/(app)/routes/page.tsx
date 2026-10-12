@@ -221,7 +221,8 @@ export default function RoutesPage() {
   const [soloPendientes, setSoloPendientes] = useState(false);
   // Layout: full-width route cards (see all info) and a collapsible map/driver
   // panel so the route detail can use the whole screen.
-  const [wideRoutes, setWideRoutes] = useState(true);
+  // Nace en «Cuadrícula» (D-526). El dueño, 2026-10-11: «make grid view in route manager default». «▭ Ancho» la cambia.
+  const [wideRoutes, setWideRoutes] = useState(false);
   const [showTop, setShowTop] = useState(true);
   // La tabla de paradas tenía un botón para abrir y cerrar la dirección (D-346 la hizo nacer abierta). Desde D-408 esa
   // columna enseña solo la ciudad, que cabe siempre: el botón se fue con la dirección.
@@ -2060,7 +2061,6 @@ export default function RoutesPage() {
   const scheduledCount = dayOrders.length - unassigned.length;
   // Aquí se armaba la leyenda del mapa (D-274; en «Ruta de hoy», D-467, y en «Mi ruta», D-514). Fuera en toda la app desde
   // D-520. El dueño, 2026-10-11: «delete the lEGEND ON THE MAP of the app».
-  const canManageColors = me.role === "manager" || me.role === "admin";
   // El motor nuevo (D-320) es para quien puede publicar, y con un día concreto. Con su barra cerrada (D-400), la cabecera
   // lleva el botón que la trae. Nunca en solo lectura.
   const puedeArmarRutas = !soloLectura && !allDates && !soloPendientes && !!me && ["admin", "logistics"].includes(me.role);
@@ -2772,8 +2772,10 @@ export default function RoutesPage() {
       {tab === "todas" && tablaDeOrdenes(vistaDeTodas)}
 
       {/* ---------- Per-driver routes ---------- */}
+      {/* En cuadrícula, las tarjetas de una fila miden lo mismo: se estiran a la más alta (D-526). El dueño, 2026-10-11: «why
+          does this has differtent heights everyhting should be equal». En ancho, cada una lo suyo, como antes. */}
       {tab === "routes" && (
-      <div data-tarjetas-de-ruta={wideRoutes ? "ancho" : "cuadricula"} style={{ display: "grid", gridTemplateColumns: wideRoutes ? "minmax(0, 1fr)" : "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, alignItems: "start" }}>
+      <div data-tarjetas-de-ruta={wideRoutes ? "ancho" : "cuadricula"} style={{ display: "grid", gridTemplateColumns: wideRoutes ? "minmax(0, 1fr)" : "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, alignItems: wideRoutes ? "start" : "stretch" }}>
       {shownDrivers.length === 0 && (
         <div className="card" style={{ margin: 0 }}>
           <div className="empty">{t("No routes yet — assign orders to drivers in the Unassigned tab, or use “Build routes”.", "Aún sin rutas — asigna órdenes a los choferes en la pestaña Sin asignar, o usa «Armar rutas».")}</div>
@@ -3342,40 +3344,8 @@ export default function RoutesPage() {
           «Elige conductor» en «Sin asignar». */}
       {!soloLectura && tab === "routes" && seleccionDelReparto.length > 0 && recuadroDeReparto()}
 
-      {/* 🎨 Los colores de chofer vivían en «Mapa» / «Ruta de hoy» desde antes de D-467: se quedan ahí, solo en solo lectura.
-          Lo único que se guarda desde «Ruta de hoy» es esto, y solo gerente o admin.
-          Acotada a un chofer (D-506) no sale: es la lista de TODOS los choferes por nombre —la leyenda de rutas que él no
-          ve— y un editor que de todas formas es de gerente o admin. Su color ya está en su fila del panel y en su tarjeta. */}
-      {soloLectura && miChofer == null && (
-        <div className="card" data-colores-de-chofer>
-          <h2>🎨 {t("Driver colors", "Colores de chofer")}</h2>
-          {!canManageColors && <p className="hint" style={{ marginTop: 0 }}>{t("Assigned by a manager or admin.", "Asignados por un gerente o administrador.")}</p>}
-          {drivers.length === 0 ? (
-            <div className="empty">{t("No one has the Driver role yet.", "Nadie tiene el rol de Chofer todavía.")}</div>
-          ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-              {drivers.map(({ full_name: name }) => (
-                <div key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 16, height: 16, borderRadius: "50%", background: colorFor(name), border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>{name}</span>
-                  {canManageColors && (
-                    <input
-                      type="color"
-                      value={/^#[0-9a-f]{6}$/i.test(settings.driver_colors?.[name] || "") ? settings.driver_colors![name] : fallbackDriverColor(name)}
-                      onChange={(e) => saveSettings({ driver_colors: { ...(settings.driver_colors ?? {}), [name]: e.target.value } })}
-                      style={{ width: 28, height: 28, padding: 0, border: "none", background: "none", cursor: "pointer" }}
-                    />
-                  )}
-                </div>
-              ))}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 16, height: 16, borderRadius: "50%", background: UNASSIGNED_COLOR, border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)" }} />
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{t("Unassigned", "Sin asignar")}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Sin la tarjeta «🎨 Colores de chofer» (D-526). El dueño, 2026-10-11: «remove this driver colors». Los colores siguen
+          (los guardados en `settings.driver_colors` y, si no hay, `fallbackDriverColor`); solo se quita la tarjeta. */}
 
       {!ready && <div className="empty">{t("Loading…", "Cargando…")}</div>}
 

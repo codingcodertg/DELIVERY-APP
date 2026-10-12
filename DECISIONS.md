@@ -34357,6 +34357,8 @@ Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
 
 ## D-455 · El tipo de trabajador (presencial / remoto) se elige en Usuarios; «Voy a salir» pregunta si es una visita a un cliente y deja tomar fotos todo el rato; las paradas vuelven a llevar foto y ubicación, y esas fotos se ven en Auditoría › Fotos
 
+> **Reemplazada en parte por D-525** (2026-10-11): el panel «Visitas, mandados y viajes» ya no tiene su propio «Empezar viaje» ni el defecto `viajePersonalPorDefecto` (se borró): solo sale con un viaje abierto, y se sale por la ventana de «Voy a salir».
+
 **Fecha:** 2026-10-01 · **Versión:** la asigna el orquestador al fusionar (toca `timetracker` y la ficha de Usuarios del hub) ·
 **Migración:** ninguna · **Pedido por:** el dueño, en dos mensajes del mismo día · **Reemplaza en parte a** D-095 (la casilla
 «Runner»), D-128 (el botón «Voy a salir») y D-136 (el panel de viajes), que llevan su nota; **amplía** D-109, D-123 y D-161.
@@ -35038,6 +35040,8 @@ por factura, o cuando alguien la reprograma a hoy.
 siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
+
+> **Reemplazada en parte por D-526** (2026-10-11): las tarjetas de ruta nacen en «Cuadrícula» («make grid view in route manager default»), y en cuadrícula las de una fila miden lo mismo.
 
 > **⚠ Reemplazada en parte por D-481** (2026-10-06): §9, el filtro de chofer junto a «Horario», ya no es un desplegable: son las casillas del panel, y en la barra queda una pastilla con los marcados y su ✕. §5, «Cuadrícula»: ya no son las tarjetas enteras en dos columnas, sino compactas arriba (sin tabla ni botones) y, al pulsar el nombre, la tarjeta entera desplegada abajo a todo el ancho.
 
@@ -36368,6 +36372,8 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 - El tracker no se actualizó (un worktree no lleva `.env.local`): la tarea la crea el orquestador.
 
 ## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
+
+> **Reemplazada en parte por D-526** (2026-10-11): la tarjeta «🎨 Colores de chofer» de «Ruta de hoy» se quitó («remove this driver colors»). Los colores siguen; ya no hay pantalla para cambiarlos.
 
 > **Reemplazada en parte por D-520** (2026-10-11): «Ruta de hoy» ya no lleva leyenda bajo el mapa.
 
@@ -38356,6 +38362,8 @@ No probado contra la base real (la inserción en `order_events` como chofer se a
 No visto en navegador: `tsc` y vitest.
 
 ## D-489 · Time Tracker, vista del empleado: sin «Mi diario»; «Mi semana» solo con horas y con el boletín y los fichajes de hoy; bajo el reloj solo «Mi horario» y «Notas del día»; «Tiempo libre» antes que «Tiempo»; «Voy a salir» pregunta vehículo personal o de la empresa; y fuera los botones que parecían desactivados sin estarlo, en toda la app
+
+> **Reemplazada en parte por D-525** (2026-10-11): la pregunta personal / empresa ya solo está en la ventana de «Voy a salir»; el panel de viajes dejó de hacerla (y su grupo de radios `vehiculo-viaje` se fue).
 
 > **Reemplazada en parte por D-524** (2026-10-11): en la ventana de «Voy a salir», «¿vehículo personal o de la empresa?» ya nace marcada en **personal** («in time tracker personal vehicle should be in default when chossing a car to go out»), y vuelve a personal tras cada salida.
 
@@ -41827,3 +41835,34 @@ No visto en navegador: `tsc` y vitest.
 **Pruebas:** `visitas.test.ts` (la regla con 2000/2010/2000/1990/vacío/NaN; el servidor y el panel la usan; la lectura guardada viaja; el defecto de la ventana) y `capacitacion.test.ts` (el viaje de práctica). Mutantes: 10 de 10 caen con una prueba con nombre.
 
 **No medido:** nada en navegador (`tsc` y vitest); nada contra producción.
+
+## D-525 · Time Tracker: «Visitas, mandados y viajes» solo mientras hay un viaje abierto
+
+**Fecha:** 2026-10-11 · **Versión:** timetracker 1.02.2, repo 1.391.1 · **Sin migración.** · Hecho directo por el orquestador en `fix/viajes-solo-fuera`. **Reemplaza en parte a D-455 y D-489** (cada una lleva su nota).
+
+**Pedido del dueño**, literal: *«when press going out and press im back is still showing the vistis and errands aand if press ogin out to collapse it shows me the form and is not hdiing it»*.
+
+**Qué pasaba.** El panel «🚗 Visitas, mandados y viajes» (`TripPanel`) se veía SIEMPRE que la persona estaba dentro (salvo un comercial sin vehículos), y sin viaje abierto enseñaba su propio formulario de «Empezar viaje»: la misma pregunta personal / empresa, el motivo y el cuentakilómetros que ya hace la ventana de «Voy a salir» (D-489). Así, después de «Ya volví» el panel seguía ahí con ese formulario, y quien pulsaba «Voy a salir» para «plegarlo» se encontraba la ventana.
+
+**Ahora.** El panel solo sale **con un viaje abierto** (`if (!d.trip) return null`): paradas con foto, cuentakilómetros de regreso y «Terminar viaje». Al volver desaparece. Se sale **solo** por la ventana de «Voy a salir», que ya graba el viaje con su motivo (`motivoDeViaje`) y su ubicación. Se borró lo que solo servía al formulario: `motivos(t)`, el estado de vehículo / motivo / nota / cuentakilómetros de salida, y `viajePersonalPorDefecto` (`lib/clockin/visitas.ts`), que ya no usaba nadie. La lectura de salida que compara el regreso (D-524) es solo la guardada en el viaje.
+
+**Pruebas:** `visitas.test.ts` (el panel vuelve vacío sin viaje; no tiene `startTrip`, ni la pregunta, ni «Empezar viaje»; la ventana sí empieza el viaje). Mutantes: 2 de 2 caen con una prueba con nombre.
+
+**No medido:** nada en navegador (`tsc` y vitest).
+
+## D-526 · Gestor de Rutas: nace en «Cuadrícula», con tarjetas de la misma altura, y sin la tarjeta de colores de chofer
+
+**Fecha:** 2026-10-11 · **Versión:** deliveries 1.288.1, repo 1.391.1 · **Sin migración.** · Hecho directo por el orquestador en `fix/viajes-solo-fuera`. **Reemplaza en parte a D-459 y D-467** (cada una lleva su nota).
+
+**Pedidos del dueño** (2026-10-11), literales:
+- *«make grid view in route manager default»*
+- *«why does this has differtent heights everyhting should be equal»* (captura: tres tarjetas de ruta en cuadrícula, cada una de un alto)
+- *«remove this driver colors»* (captura: la tarjeta «🎨 Driver colors · Assigned by a manager or admin.» con un punto de color por chofer)
+
+- `wideRoutes` nace en `false`: las tarjetas de ruta salen en cuadrícula; «▭ Ancho» sigue cambiándolo.
+- En cuadrícula la rejilla estira las tarjetas (`alignItems: "stretch"`): las de una misma fila miden lo que la más alta. En ancho, cada una lo suyo, como antes.
+- Fuera la tarjeta «🎨 Colores de chofer» del fondo de «Ruta de hoy» (era lo único que salía en solo lectura y lo único que se guardaba desde ahí) y `canManageColors`. **Los colores no cambian**: los guardados en `settings.driver_colors` siguen pintándose, y quien no tiene uno guardado lleva `fallbackDriverColor`. Lo que se pierde es la pantalla para cambiarlos (era la única); si hiciera falta, iría en Ajustes.
+
+**Pruebas:** `gestor-entregadas-y-vista.test.ts` (nace en cuadrícula; el estirado), `rutas-del-dia.test.ts` y `gestor/mapa-del-chofer.test.ts` (la tarjeta ya no está). Mutantes: 2 de 2 caen.
+
+**No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
