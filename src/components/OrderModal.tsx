@@ -644,7 +644,7 @@ export function OrderModal({
       const row = await addDelivery(payload);
       setBusy(false);
       if (row) {
-        // Un borrador NO queda programado, y hay que decirlo (D-NEXT). Medido el 2026-10-12: un vendedor guardó el sábado
+        // Un borrador NO queda programado, y hay que decirlo (D-531). Medido el 2026-10-12: un vendedor guardó el sábado
         // una orden con «Guardar borrador», leyó «Orden creada», y el lunes preguntó por qué no estaba programada.
         if ((payload.stage ?? "draft") === "draft") {
           notify(t(`Order #${orderLabel(row)} saved as a DRAFT: it is NOT scheduled. Open it and press Submit to schedule it. Drafts are kept ${DIAS_DE_BORRADOR} days.`,

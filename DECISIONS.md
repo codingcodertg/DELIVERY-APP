@@ -27693,7 +27693,7 @@ excepción de lo tecleado, tuvo su propia tanda de 16; se descartó con el códi
 
 ## D-392 · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-12): un BORRADOR dura 7 días en Órdenes («draft quedan hata 7 dias es lo unico que no tiene la reglas de ayer hoyy y manana»); el resto sigue con ayer, hoy y futuro.
+> **Reemplazada en parte por D-531** (2026-10-12): un BORRADOR dura 7 días en Órdenes («draft quedan hata 7 dias es lo unico que no tiene la reglas de ayer hoyy y manana»); el resto sigue con ayer, hoy y futuro.
 
 > **⚠ Reemplazada en parte por D-407** (2026-09-26): lo que abajo «se quedó en pie a sabiendas» —la exención de
 > D-313 en «Factura pendiente»— **se quitó**. El dueño: *«invoice pending solo muestra yesterday, today y tomorrow y
@@ -41934,7 +41934,7 @@ No visto en navegador: `tsc` y vitest.
 **No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
 ## D-527 — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
 
-> **Completada por D-NEXT** (2026-10-12): la migración 169 (la 168 letra por letra con un bloque más) deja al chofer guardar `photos`/`photo_meta` y `departed_at`/`arrived_at` en SU orden sin cambiar de etapa; hasta entonces «📷 Fotos del material» desde el chofer no se guardaba.
+> **Completada por D-531** (2026-10-12): la migración 169 (la 168 letra por letra con un bloque más) deja al chofer guardar `photos`/`photo_meta` y `departed_at`/`arrived_at` en SU orden sin cambiar de etapa; hasta entonces «📷 Fotos del material» desde el chofer no se guardaba.
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.289.0, repo 1.392.0 · Rama `feat/recogida-chofer` ·
 **Migración `168_chofer_recoge_sin_listo.sql` escrita, SIN aplicar ni ensayar** (excepción autorizada por el orquestador a «no
@@ -42764,9 +42764,9 @@ las pruebas citadas arriba.
   Promociones se vio la burbuja, no la foto.
 - El tema oscuro de cada app con la burbuja: solo se miró en Personalizar.
 
-## D-NEXT · El chofer guarda las fotos del material y salida/llegada en su orden (169); un borrador dura 7 días y avisa que NO queda programado
+## D-531 · El chofer guarda las fotos del material y salida/llegada en su orden (169); un borrador dura 7 días y avisa que NO queda programado
 
-**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · **Migración 169** (`169_fotos_del_chofer.sql`, plan en `docs/PLAN-169-fotos-del-chofer.md`) · Hecho directo por el orquestador en `feat/fotos-chofer-y-borrador-7-dias`. **Reemplaza en parte a D-392** y completa D-527 (cada una lleva su nota).
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.292.0, repo 1.396.0 · **Migración 169** (`169_fotos_del_chofer.sql`, plan en `docs/PLAN-169-fotos-del-chofer.md`) · Hecho directo por el orquestador en `feat/fotos-chofer-y-borrador-7-dias`. **Reemplaza en parte a D-392** y completa D-527 (cada una lleva su nota).
 
 **Pedidos del dueño**, literales:
 - *«haz el 5, 6 y 7»* sobre la lista de pendientes del día, donde el 5 era *«Fotos del material desde el chofer: en la ficha de orden el botón «📷 Fotos del material» usa una actualización que el guardia de la base rechaza al chofer (…) Lo mismo para `arrived_at` / `departed_at` del chofer»* y el 6 *«Aviso al guardar borrador que diga claro "esta orden NO queda programada", por el caso de Pablo»*. (El 7 era limpieza de worktrees: sin cambio de código.)

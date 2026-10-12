@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
 // ============================================================
-// D-NEXT · El chofer guarda las fotos del material y sus marcas de salida / llegada en SU orden (migración 169), y el
+// D-531 · El chofer guarda las fotos del material y sus marcas de salida / llegada en SU orden (migración 169), y el
 // aviso al guardar un borrador dice que NO queda programado.
 //
 // El dueño, 2026-10-12: «haz el 5, 6 y 7» sobre la lista de pendientes («Fotos del material desde el chofer: (...) el

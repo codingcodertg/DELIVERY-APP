@@ -95,7 +95,7 @@ export function enLaVentanaDeOrdenes(
   hoy: string = todayISO(),
 ): boolean {
   if (!d.delivery_date) return true;
-  // Un BORRADOR dura 7 días, no «ayer, hoy y mañana» (D-NEXT). El dueño, 2026-10-12: «draft quedan hata 7 dias es lo
+  // Un BORRADOR dura 7 días, no «ayer, hoy y mañana» (D-531). El dueño, 2026-10-12: «draft quedan hata 7 dias es lo
   // unico que no tiene la reglas de ayer hoyy y manana». Medido ese día: un vendedor guardó el sábado una orden como
   // borrador con fecha del sábado; el lunes ya no la veía y la volvió a capturar (duplicada). Se cuenta desde la
   // fecha de entrega del borrador (lo único que la ventana mira; sin fecha, siempre).
@@ -103,7 +103,7 @@ export function enLaVentanaDeOrdenes(
   return d.delivery_date.slice(0, 10) >= retentionFloorISO(hoy);
 }
 
-/** Cuántos días atrás sigue viéndose un borrador en Órdenes (D-NEXT): «draft quedan hata 7 dias». */
+/** Cuántos días atrás sigue viéndose un borrador en Órdenes (D-531): «draft quedan hata 7 dias». */
 export const DIAS_DE_BORRADOR = 7;
 
 /**

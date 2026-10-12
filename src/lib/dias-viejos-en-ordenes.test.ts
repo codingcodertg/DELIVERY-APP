@@ -77,7 +77,7 @@ describe("quién ve los días anteriores a ayer", () => {
   });
 });
 
-describe("D-NEXT · un BORRADOR dura 7 días en Órdenes («draft quedan hata 7 dias es lo unico que no tiene la reglas de ayer hoyy y manana»)", () => {
+describe("D-531 · un BORRADOR dura 7 días en Órdenes («draft quedan hata 7 dias es lo unico que no tiene la reglas de ayer hoyy y manana»)", () => {
   const HOY_FIJO = "2026-10-12"; // lunes: el caso medido (borrador del sábado 10)
   it("el borrador del sábado sigue el lunes, y hasta 7 días atrás", () => {
     expect(DIAS_DE_BORRADOR).toBe(7);
