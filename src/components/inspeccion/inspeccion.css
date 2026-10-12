@@ -1,0 +1,74 @@
+/* Inspección pre-viaje (D-518). Pensada para el teléfono: botones grandes, una columna, secciones plegables.
+   Solo tokens del tema (var(--…)): se ve igual en claro y en oscuro. Todo lleva el prefijo `insp-`. */
+
+.insp-progreso {
+  /* Debajo del aviso «Estás como…» de la suplantación cuando está puesto (su alto lo publica ImpersonationBanner). */
+  position: sticky; top: var(--banner-impersonacion, 0px); z-index: 4;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 14px; margin-bottom: 12px;
+}
+.insp-progreso-fila { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.insp-progreso-num { font-size: 17px; font-weight: 800; }
+.insp-barra { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 8px; }
+.insp-barra > div { height: 100%; background: var(--green); transition: width .2s; }
+
+.insp-seccion { border: 1px solid var(--line); border-radius: 12px; background: var(--card); margin-bottom: 10px; overflow: hidden; scroll-margin-top: calc(96px + var(--banner-impersonacion, 0px)); }
+.insp-seccion-cab {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 14px; min-height: 52px;
+  font-size: 15px; font-weight: 700; text-align: left; background: none; color: inherit;
+}
+.insp-seccion-cab .insp-cuenta { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--gray); white-space: nowrap; }
+.insp-seccion-cab .insp-cuenta.completa { color: var(--green); }
+.insp-seccion-cab .insp-cuenta.defecto { color: var(--red); }
+.insp-seccion-cab .insp-flecha { font-size: 12px; color: var(--gray); }
+.insp-seccion.con-defecto { border-color: var(--red); }
+
+.insp-punto { padding: 12px 14px; border-top: 1px solid var(--line); }
+.insp-punto.falta { background: var(--red-soft); }
+.insp-punto-texto { font-size: 14.5px; font-weight: 600; margin-bottom: 8px; line-height: 1.3; }
+.insp-critico {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; vertical-align: 1px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--red); border: 1px solid var(--red);
+}
+.insp-opciones { display: grid; grid-template-columns: repeat(var(--insp-n, 3), 1fr); gap: 8px; }
+.insp-op {
+  min-height: 48px; border-radius: 10px; border: 2px solid var(--line); background: var(--card); color: var(--ink-soft, inherit);
+  font-size: 15px; font-weight: 700;
+}
+.insp-op.ok.on { border-color: var(--green); background: var(--green); color: var(--card); }
+.insp-op.defecto.on { border-color: var(--red); background: var(--red); color: var(--card); }
+.insp-op.na.on { border-color: var(--gray); background: var(--gray); color: var(--card); }
+.insp-defecto { margin-top: 10px; display: grid; gap: 8px; }
+.insp-defecto textarea { width: 100%; min-height: 64px; font-size: 15px; }
+
+.insp-campo { display: grid; gap: 6px; margin-bottom: 12px; }
+.insp-campo label { font-size: 13px; font-weight: 700; }
+.insp-campo select, .insp-campo input[type="text"], .insp-campo textarea { width: 100%; min-height: 44px; font-size: 16px; }
+
+/* El `label` de la casa va en mayúsculas y gris; la certificación es una frase que se firma: se lee normal. */
+.insp-certifico { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; font-weight: 600; padding: 10px 0; cursor: pointer; text-transform: none; letter-spacing: normal; color: inherit; }
+.insp-certifico input { width: 24px; height: 24px; flex: none; margin-top: 1px; }
+.insp-enviar { width: 100%; min-height: 52px; font-size: 16px; justify-content: center; }
+
+.insp-veredicto { border-radius: 10px; padding: 10px 14px; font-weight: 800; font-size: 15px; margin: 8px 0 12px; border: 2px solid; }
+.insp-veredicto.seguro { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+.insp-veredicto.no-seguro { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.insp-veredicto.pendiente { border-color: var(--line); color: var(--gray); }
+
+.insp-faltas { margin: 0 0 12px; padding-left: 18px; color: var(--red); font-size: 13.5px; font-weight: 600; }
+
+/* La lista de logística */
+.insp-resumen { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.insp-tarjeta { border-left: 5px solid var(--green); }
+.insp-tarjeta.abierta { border-left-color: var(--amber); }
+.insp-tarjeta.no-segura { border-left-color: var(--red); }
+.insp-tarjeta-cab { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.insp-tarjeta-cab b { font-size: 16px; }
+.insp-badge-seguro { background: var(--green-soft); color: var(--green); }
+.insp-badge-no-seguro { background: var(--red-soft); color: var(--red); border: 1px solid var(--red); }
+.insp-defectos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.insp-defecto-fila { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.insp-defecto-fila.abierto { border-color: var(--red); background: var(--red-soft); }
+.insp-defecto-fila .photo-grid { margin-top: 8px; }
+.insp-corregido { color: var(--green); font-weight: 700; font-size: 13px; }

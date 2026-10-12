@@ -34,6 +34,7 @@ import { facturasDeLaOrden } from "@/lib/agregar-material";
 import { cargaDe, etiquetaDeCarga, hermanasDe } from "@/lib/cargas-partidas";
 import { useChoferDeLaRuta } from "@/lib/ruta-de-un-chofer";
 import { rutaDeSoloLectura } from "@/lib/vista-de-chofer";
+import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -205,6 +206,8 @@ export default function MyRoutePage() {
         <h2>🧭 {t("My route", "Mi ruta")}</h2>
         <span className="hint">{fmtDate(dia)}</span>
       </div>
+      {/* D-518: «Haz tu inspección pre-viaje» mientras hoy no haya una. Avisa, no bloquea. Solo en su propia ruta. */}
+      {!ajeno && <AvisoDeInspeccion />}
       <div className="viewtoggle" data-dia-de-mi-ruta style={{ marginBottom: 8 }}>
         {([[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]] as const).map(([d, rotulo]) => (
           <button key={d} className={`vt${desfase === d && !verAtrasadas ? " on" : ""}`} onClick={() => { setVerAtrasadas(false); setDesfase(d); }}>{rotulo}</button>
