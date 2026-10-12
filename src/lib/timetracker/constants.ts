@@ -27,7 +27,7 @@ export const TABS: { id: string; href: string }[] = [
 // the original's "View as employee" toggle covered the same ground, just
 // as a mode switch instead of separate routes).
 //
-// Desde D-NEXT no van todas en fila: la barra pinta las ocho de gestión y mete Ajustes, Registrar tiempo, Mi semana,
+// Desde D-528 no van todas en fila: la barra pinta las ocho de gestión y mete Ajustes, Registrar tiempo, Mi semana,
 // Mis solicitudes y Mi diario en un solo «👤 Mío ▾» (`barraDeTt`, lib/timetracker/barra.ts). Esta lista sigue siendo
 // la de TODAS las pantallas del admin, en su orden: quitar una de aquí la quita de la barra y del menú.
 export const MANAGER_TABS: { id: string; href: string }[] = [

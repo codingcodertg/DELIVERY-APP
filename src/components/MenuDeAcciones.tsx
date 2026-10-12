@@ -16,7 +16,7 @@ export type OpcionDelMenu = {
   /** Por qué no se puede pulsar ahora. Sale en el `title` y la opción no hace nada. `null` = se puede. */
   deshabilitada?: string | null;
   /**
-   * La pantalla en la que se está, cuando el menú lleva a pantallas (el «👤 Mío ▾» de Time Tracker, D-NEXT): sale
+   * La pantalla en la que se está, cuando el menú lleva a pantallas (el «👤 Mío ▾» de Time Tracker, D-528): sale
    * resaltada y con `aria-current="page"`, como la pestaña encendida de una barra.
    */
   actual?: boolean;

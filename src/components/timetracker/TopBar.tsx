@@ -32,7 +32,7 @@ import type { UserRole } from "@/lib/types";
  * «Sign out» suelto (al menú) y el selector de módulos ⇄ (como en Entregas: se cambia de app desde el
  * hub, y la casa sigue). Encima de la barra, pegado a ella, el aviso del modo capacitación mientras dure.
  *
- * Las pestañas del admin, desde D-NEXT: las ocho de gestión en fila y, en lugar de Ajustes y sus cuatro personales
+ * Las pestañas del admin, desde D-528: las ocho de gestión en fila y, en lugar de Ajustes y sus cuatro personales
  * sueltas, un solo «👤 Mío ▾» (`barraDeTt`, `lib/timetracker/barra.ts`). El dueño, el 2026-10-11: «ajustes, tegistrar
  * tiempo mi semana mi solicitus y mi diaro que vayan en un solo boton dropdwow».
  */
@@ -48,7 +48,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
   const t = useT();
   const capacitacion = useCapacitacion();
   // Empleado (y gerente): TABS en fila, ya sin «Mi diario» (D-489). Admin: las ocho de gestión de MANAGER_TABS en
-  // fila, y sus cuatro personales y Ajustes dentro de «👤 Mío ▾» (D-NEXT).
+  // fila, y sus cuatro personales y Ajustes dentro de «👤 Mío ▾» (D-528).
   const barra = barraDeTt(me.role, pathname);
 
   /**
@@ -72,7 +72,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
       <AvisoDeCapacitacion />
       <div className="topbar">
         {/* La casa va pegada al nombre de la app, como en Entregas (D-274).
-            En el teléfono (≤ 520 px, timetracker.css) la barra va en DOS filas (D-NEXT): arriba el nombre de la app, la
+            En el teléfono (≤ 520 px, timetracker.css) la barra va en DOS filas (D-528): arriba el nombre de la app, la
             casa, la campana y solo la burbuja con las iniciales; debajo, las pestañas. Para eso `.tt-barra-resto` deja
             de ser una caja (`display: contents`) y sus piezas se colocan con `order`. En el escritorio, como estaba. */}
         <div className="tt-marca">
@@ -92,7 +92,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
                 ) : t("tab." + tb.id)}
               </Link>
             ))}
-            {/* «👤 Mío ▾» (D-NEXT): Registrar tiempo, Mi semana, Mis solicitudes, Mi diario y Ajustes del admin,
+            {/* «👤 Mío ▾» (D-528): Registrar tiempo, Mi semana, Mis solicitudes, Mi diario y Ajustes del admin,
                 en un solo desplegable —el `MenuDeAcciones` de la ficha (D-497) y de «Mis acciones» (D-517)—.
                 Ocupa el sitio de la raya que separaba las de gestión de las personales. Dentro de una de esas
                 pantallas dice su nombre y se resalta como la pestaña activa. Sin opciones no pinta nada: el

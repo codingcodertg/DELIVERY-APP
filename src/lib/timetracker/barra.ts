@@ -1,5 +1,5 @@
 // ============================================================
-// Qué pestañas pinta la barra de Time Tracker, y cuáles van dentro del botón «👤 Mío ▾» (D-NEXT).
+// Qué pestañas pinta la barra de Time Tracker, y cuáles van dentro del botón «👤 Mío ▾» (D-528).
 //
 // El dueño, el 2026-10-11: «en el clock in app, ajustes, tegistrar tiempo mi semana mi solicitus y
 // mi diaro que vayan en un solo boton dropdwow». La barra del ADMIN tenía trece pestañas en fila

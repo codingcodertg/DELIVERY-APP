@@ -38383,7 +38383,7 @@ No visto en navegador: `tsc` y vitest.
 > «Fichajes de hoy» (la tabla se queda); el remoto conserva «Horas totales». (5) En la tarjeta de fichar, el empleado ya no
 > ve el contador que corre («0:00:00»): solo el título, la pastilla y los botones. El admin, como estaba.
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): (1) «Mi diario» del admin sigue en `MANAGER_TABS`, pero ya no
+> **⚠ Reemplazada en parte por D-528** (2026-10-11): (1) «Mi diario» del admin sigue en `MANAGER_TABS`, pero ya no
 > es una pestaña suelta: va dentro de «👤 Mío ▾», con Registrar tiempo, Mi semana, Mis solicitudes y Ajustes. La
 > barra del empleado no cambia.
 
@@ -38570,7 +38570,7 @@ a borde discontinuo y opacos.
 
 ## D-490 · Time Tracker: la barra como la de Entregas (el nombre abre el menú; fuera el rol, el ES/EN, el 🌙 y el «Sign out» suelto), un modo capacitación para todos donde nada se guarda, y un solo «Personalizar» en el hub para el idioma y el tema de todas las apps
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11), a pedido del dueño: (1) en el teléfono (hasta 520 px) la barra
+> **⚠ Reemplazada en parte por D-528** (2026-10-11), a pedido del dueño: (1) en el teléfono (hasta 520 px) la barra
 > de Time Tracker va en dos filas. Arriba, el nombre de la app, la casa, la campana y, del nombre de la persona, solo la
 > burbuja con las iniciales: el nombre se esconde a la vista, no a un lector de pantalla. Abajo, las pestañas. La burbuja
 > abre el mismo menú. En el escritorio, como aquí se describe.
@@ -40973,7 +40973,7 @@ Y, añadido el mismo día al mismo encargo:
 
 ## D-517 — Time Tracker: las acciones de fichar del admin, en «Mis acciones ▾»; y el empleado ya no ve correr su tiempo (ni el contador al fichar, ni «Horas totales» y «Hoy» en «Mi semana»)
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11), a pedido del dueño: el segundo candidato de «personal
+> **⚠ Reemplazada en parte por D-528** (2026-10-11), a pedido del dueño: el segundo candidato de «personal
 > actions» que aquí quedó «descrito y no hecho» —las pestañas personales de la barra del admin— se hizo. Ajustes,
 > Registrar tiempo, Mi semana, Mis solicitudes y Mi diario del admin van ahora en un solo «👤 Mío ▾» de la barra.
 > «Mis acciones ▾» de la tarjeta de fichar no cambia.
@@ -42112,9 +42112,9 @@ lo midió el navegador (arriba).
 - La campana del almacén de la tienda en el demo (su único almacenista es de otra tienda); la regla está probada aparte.
 - Modo oscuro.
 
-## D-NEXT — Time Tracker: la barra del admin con «👤 Mío ▾» (Ajustes, Registrar tiempo, Mi semana, Mis solicitudes y Mi diario); y en el teléfono, la barra en dos filas: arriba el nombre, la casa, la campana y solo la burbuja, y abajo las tres pestañas del empleado en una fila
+## D-528 — Time Tracker: la barra del admin con «👤 Mío ▾» (Ajustes, Registrar tiempo, Mi semana, Mis solicitudes y Mi diario); y en el teléfono, la barra en dos filas: arriba el nombre, la casa, la campana y solo la burbuja, y abajo las tres pestañas del empleado en una fila
 
-**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** la asigna el orquestador al fusionar. Toca `timetracker`; y,
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** timetracker 1.03.0, repo 1.393.0. Toca `timetracker`; y,
 sin cambio visible fuera de Time Tracker, tres piezas compartidas con Entregas y RR. HH.: `globals.css`, una propiedad
 opcional de `MenuDeAcciones` y dos clases en `MenuDeCuenta` · **Migración:** ninguna · Rama `feat/tt-barra-admin-menu` ·
 **Reemplaza en parte a** D-489, D-490 y D-517, que llevan su nota.
@@ -42271,7 +42271,7 @@ Las descripciones de las capturas son del orquestador, que las vio; el worker no
   - `src/app/globals.css`: `.menu-accion-actual`;
   - `src/lib/timetracker/i18n.ts`: `tab.mine` y `tab.corta.*`, en inglés y en español;
   - `src/lib/timetracker/constants.ts`: solo un comentario.
-- **Pruebas ajustadas**, con su «Nota D-NEXT»: `barra-tt.test.ts` y `vista-empleado.test.ts`. Esperaban
+- **Pruebas ajustadas**, con su «Nota D-528»: `barra-tt.test.ts` y `vista-empleado.test.ts`. Esperaban
   `const tabs = pestanasPara(me.role);` en la barra; ahora la barra llama a `barraDeTt`, y `barraDeTt` llama a
   `pestanasPara`.
 

@@ -61,7 +61,7 @@ export function NotificationBell() {
 
   return (
     // Dónde cuelga el panel lo dice el CSS (`.tt-campana`, `.tt-campana-panel`): en el escritorio, del borde derecho de la
-    // campana, como siempre; en el teléfono, a lo ancho de la barra (D-NEXT), porque la campana pasó a la esquina de
+    // campana, como siempre; en el teléfono, a lo ancho de la barra (D-528), porque la campana pasó a la esquina de
     // arriba a la derecha y un panel de 320 px colgado de ella se salía de la pantalla por la izquierda.
     <div ref={caja} className="tt-campana">
       <button

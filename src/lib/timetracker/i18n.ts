@@ -45,10 +45,10 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'tab.audit': '📜 Audit',
     'tab.settings': '⚙️ Settings',
     // El botón de la barra del admin que recoge Registrar tiempo, Mi semana, Mis solicitudes, Mi diario y
-    // Ajustes (D-NEXT). Con una de esas pantallas abierta dice su nombre, no esto (`claveDelRotulo`).
+    // Ajustes (D-528). Con una de esas pantallas abierta dice su nombre, no esto (`claveDelRotulo`).
     'tab.mine': '👤 Mine',
     // El nombre CORTO de las pestañas del empleado, el que llevan en el teléfono para caber las tres en una fila
-    // (D-NEXT, `claveCorta`). En inglés caben enteras; en español se acortan las dos largas.
+    // (D-528, `claveCorta`). En inglés caben enteras; en español se acortan las dos largas.
     'tab.corta.track': '⏱ Track Time',
     'tab.corta.week': '📅 My Week',
     'tab.corta.requests': '📝 My Requests',

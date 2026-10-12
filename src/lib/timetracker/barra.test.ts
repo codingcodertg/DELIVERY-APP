@@ -9,7 +9,7 @@ import { MenuDeAcciones, OpcionesDelMenu } from "@/components/MenuDeAcciones";
 import { MenuDeCuenta } from "@/components/MenuDeCuenta";
 import { PESTANAS_DEL_MENU_MIO, barraDeTt, claveCorta, claveDelRotulo, esPestanaActiva, opcionesDelMenuMio } from "./barra";
 
-// D-NEXT. El dueño, el 2026-10-11: «en el clock in app, ajustes, tegistrar tiempo mi semana mi solicitus y mi diaro
+// D-528. El dueño, el 2026-10-11: «en el clock in app, ajustes, tegistrar tiempo mi semana mi solicitus y mi diaro
 // que vayan en un solo boton dropdwow». La barra del ADMIN: las ocho de gestión en fila, y Ajustes y sus cuatro
 // personales dentro de «👤 Mío ▾». Lógica pura, lo que pinta el menú, y leyendo el fuente, que la barra la USA.
 
@@ -194,7 +194,7 @@ describe("la barra lo usa (se lee el código que se ejecuta)", () => {
   });
 });
 
-// D-NEXT, segunda y tercera parte. El dueño, el 2026-10-11, mirando la barra de Carlos Fuentes (empleado) en la vista
+// D-528, segunda y tercera parte. El dueño, el 2026-10-11, mirando la barra de Carlos Fuentes (empleado) en la vista
 // móvil: «those 3 things should be in the same row make it fit» y «besited timetracker rtg house notifications and just
 // CF bubble in the same row make it efficiently». En el teléfono la barra pasa de cuatro filas a dos.
 

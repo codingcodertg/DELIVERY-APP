@@ -142,7 +142,7 @@
    y un borde fino; la activa sigue con el relleno de acento. La barra (enlaces `a`) no cambia. */
 .timetracker-module .tabs button{color:var(--tt-txt)}
 .timetracker-module .tabs button:not(.active){box-shadow:inset 0 0 0 1px var(--tt-line)}
-/* «👤 Mío ▾» del admin (D-NEXT): un botón en la fila de la barra que se ve como una pestaña más —gris claro sobre la
+/* «👤 Mío ▾» del admin (D-528): un botón en la fila de la barra que se ve como una pestaña más —gris claro sobre la
    barra oscura y sin borde—, no como las pestañas-botón de DENTRO de una pantalla (justo arriba). Abierto, el fondo del
    nombre al abrir su menú; con una de sus pantallas abierta, el relleno de acento de la pestaña activa. */
 .timetracker-module .topbar .tabs button.tt-menu-mio{color:#c6cede;box-shadow:none}
@@ -180,14 +180,14 @@
 .timetracker-module .topbar .account-link:hover,.timetracker-module .topbar .account-link.active{background:rgba(255,255,255,.14)}
 .timetracker-module .col-menu .col-opt{background:transparent;color:var(--text);padding:6px 8px;font-size:13px;font-weight:500;border-radius:6px;text-decoration:none}
 .timetracker-module .col-menu .col-opt:hover{background:var(--card-hover);filter:none}
-/* La campana: su panel cuelga del borde derecho de la campana. Hasta D-NEXT iba escrito en línea en NotificationBell. */
+/* La campana: su panel cuelga del borde derecho de la campana. Hasta D-528 iba escrito en línea en NotificationBell. */
 .timetracker-module .tt-campana{position:relative}
 .timetracker-module .tt-campana-panel{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:320px}
-/* El nombre de la app con la casa pegada (D-274). Iba en línea en TopBar hasta D-NEXT, que en el teléfono lo junta más. */
+/* El nombre de la app con la casa pegada (D-274). Iba en línea en TopBar hasta D-528, que en el teléfono lo junta más. */
 .timetracker-module .tt-marca{display:flex;align-items:center;gap:6px;min-width:0}
 /* El nombre CORTO de las pestañas del empleado solo sale en el teléfono (abajo). */
 .timetracker-module .tabs .tt-nombre-corto{display:none}
-/* La barra en el teléfono (D-NEXT). El dueño, el 2026-10-11, mirando la de Carlos Fuentes en la vista móvil: «those 3
+/* La barra en el teléfono (D-528). El dueño, el 2026-10-11, mirando la de Carlos Fuentes en la vista móvil: «those 3
    things should be in the same row make it fit» y «besited timetracker rtg house notifications and just CF bubble in
    the same row make it efficiently». Eran cuatro filas —el nombre de la app; dos de pestañas; la campana y el nombre—
    y quedan dos:
