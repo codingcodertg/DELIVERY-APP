@@ -35,8 +35,15 @@ export function puedeVerMiDiario(role: string | null | undefined): boolean {
   return esAdminDeTt(role);
 }
 
-/** Lo que sale debajo del reloj de fichar (PunchPanel). */
+/** Lo que sale en la tarjeta de fichar y debajo de ella (PunchPanel). */
 export type SeccionesDeFichar = {
+  /**
+   * El contador grande que corre («4:05:12», «0:00:00») en la tarjeta de fichar. Solo el admin
+   * (D-NEXT): el dueño, mirando la de un empleado, «quita el tiempo y solo deja clock in y not active,
+   * no queremos que miren el tiempo». Es solo el NÚMERO de esta tarjeta: el cronómetro de D-470
+   * (`Cronometro`, su latido y su vigía) no es esto y sigue montado y grabando igual.
+   */
+  contador: boolean;
   /** La tarjeta «Turno de hoy · Esta semana de pago». */
   semanaDePago: boolean;
   /** «Fichajes de hoy», con «Hoy» y «Esta semana de pago» encima. */
@@ -48,14 +55,20 @@ export type SeccionesDeFichar = {
 };
 
 export function seccionesDeFichar(q: Pick<QuienMira, "esAdmin">): SeccionesDeFichar {
-  if (q.esAdmin) return { semanaDePago: true, fichajesDeHoy: true, boletin: true, horarioYNotas: true };
-  return { semanaDePago: false, fichajesDeHoy: false, boletin: false, horarioYNotas: true };
+  if (q.esAdmin) return { contador: true, semanaDePago: true, fichajesDeHoy: true, boletin: true, horarioYNotas: true };
+  return { contador: false, semanaDePago: false, fichajesDeHoy: false, boletin: false, horarioYNotas: true };
 }
 
 /** Lo que sale en «Mi semana». */
 export type SeccionesDeMiSemana = {
   /** Pago estimado, pagado hasta hoy, la columna de pago y el aviso de lo pagado. */
   dinero: boolean;
+  /**
+   * La cifra «Horas totales» de arriba. Fuera para el presencial (D-NEXT, el dueño: «TOTAL HOURS
+   * REMOVE IT»): la suya eran sus horas FICHADAS de la semana de pago (D-489). El remoto la conserva:
+   * es la suma de su propia tabla del cronómetro, que sigue viendo justo debajo. El admin, como siempre.
+   */
+  totalDeHoras: boolean;
   /** «Mi boletín», mudado desde Registrar tiempo. */
   boletin: boolean;
   /** «Fichajes de hoy», mudado desde Registrar tiempo. */
@@ -67,8 +80,8 @@ export type SeccionesDeMiSemana = {
  * dicen nada —nunca los vio, ni antes de esta mudanza— y se le quedan fuera.
  */
 export function seccionesDeMiSemana(q: QuienMira): SeccionesDeMiSemana {
-  if (q.esAdmin) return { dinero: true, boletin: false, fichajesDeHoy: false };
-  return { dinero: false, boletin: q.presencial, fichajesDeHoy: q.presencial };
+  if (q.esAdmin) return { dinero: true, totalDeHoras: true, boletin: false, fichajesDeHoy: false };
+  return { dinero: false, totalDeHoras: !q.presencial, boletin: q.presencial, fichajesDeHoy: q.presencial };
 }
 
 /**
@@ -82,29 +95,9 @@ export function verTablasDelCronometro(q: QuienMira, haySesiones: boolean): bool
   return haySesiones;
 }
 
-/**
- * Las horas totales de «Mi semana».
- *
- * La pantalla suma las sesiones del CRONÓMETRO. Un presencial no usa el cronómetro: sus horas son
- * sus fichajes, y la suma de sesiones le daba 0,00 h toda la semana. Antes eso no importaba
- * porque sus horas de la semana salían en «Esta semana de pago», debajo del reloj; ahora que
- * esa tarjeta se va, el único total que le queda tiene que ser el bueno.
- *
- * Los fichajes solo se tienen de la semana de pago EN CURSO (`getMyDay`): de una semana pasada
- * un presencial ve «—» y no un cero, porque un cero se cree (D-136) y aquí sería falso. Las dos
- * mitades nunca se suman (D-102).
- */
-export function horasDeLaSemana(e: {
-  presencial: boolean;
-  esSemanaEnCurso: boolean;
-  segundosDeCronometro: number;
-  /** Minutos fichados de la semana de pago en curso; null si aún no se han leído o fallaron. */
-  minutosFichados: number | null;
-}): number | null {
-  if (!e.presencial) return e.segundosDeCronometro / 3600;
-  if (!e.esSemanaEnCurso || e.minutosFichados == null) return null;
-  return e.minutosFichados / 60;
-}
+// `horasDeLaSemana` (D-489) se quitó en D-NEXT: daba las horas FICHADAS al presencial para «Horas
+// totales», y esa cifra ya no se le enseña. Al remoto y al admin la cifra les sale de su cronómetro
+// (`totalSec`), que es lo que la función devolvía para ellos.
 
 /**
  * «Mis solicitudes»: primero Tiempo libre, después Tiempo. Para todos —es la misma pantalla para
