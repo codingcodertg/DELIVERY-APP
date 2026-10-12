@@ -80,8 +80,11 @@ describe("la pantalla le pasa lo hecho", () => {
     expect(pagina).toContain("const lectura = lecturaDe(u.key, stops);");
     // **Puesto al día por D-467**: el mapa lo pinta `puntosDeLasRutas` (lib/mapa-de-rutas), con la `lecturaDe` que le pasa
     // la pantalla — la misma del Gestor en «Ruta de hoy».
-    expect(readFileSync(join(__dirname, "..", "mapa-de-rutas.ts"), "utf8")).toContain("const lectura = e.lecturaDe(laneKey, list);");
-    expect(pagina).toContain("lecturaDe, coordsDeTienda, t,");
+    // **Nota D-NEXT**: el mapa ya no recibe la lectura sino las paradas del DÍA de esa ruta (`diaDe`, que parte de la MISMA
+    // `lecturaDe` y le añade lo hecho donde iba), para numerar como la tabla y «Mi ruta».
+    expect(readFileSync(join(__dirname, "..", "mapa-de-rutas.ts"), "utf8")).toContain("e.paradasDe(laneKey, porChofer.get(laneKey) ?? [])");
+    expect(pagina).toContain("const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops)) =>");
+    expect(pagina).toContain("paradasDe: (clave, stops) => diaDe(clave, stops).paradas, coordsDeTienda, t,");
     expect(pagina).not.toContain("lecturaDeLaRuta(");
   });
 });

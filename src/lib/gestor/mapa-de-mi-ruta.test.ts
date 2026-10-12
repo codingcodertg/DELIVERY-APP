@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PREFIJO_HECHA, carrilesDelDia, ordenDelPunto, puntosDeLasRutas, rutasPorChofer } from "@/lib/mapa-de-rutas";
 import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
+import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
 
 /**
  * D-514 · El mapa de «Mi ruta» ES el del Gestor.
@@ -35,7 +36,7 @@ describe("tocar una parada abre SU orden, también si ya está entregada", () =>
     carriles: carrilesDelDia([{ id: "u-ana", full_name: "Ana" }], [], [pendiente], ["Ana"]),
     porChofer: rutasPorChofer([pendiente]), delDia: [pendiente], hechas: new Map([["Ana", [hecha]]]),
     pasaFiltro: () => true, soloUnChofer: true, enfocado: false, atenuada: () => false, colorDe: () => "azul", colorSinChofer: "gris",
-    baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), lecturaDe: (_k, s) => lecturaConLoHecho(s, 12, null, []),
+    baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), paradasDe: (k, s) => diaDeLaRuta(lecturaConLoHecho(s, 12, null, []), s, k === "Ana" ? [hecha] : [], 12, null).paradas,
     coordsDeTienda: () => ({ lat: 26.19, lng: -98.18 }), t,
   });
 
