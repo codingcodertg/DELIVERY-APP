@@ -262,9 +262,11 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
   it("la tabla pinta \`lectura.filas\` con la cuenta de \`cuentaDePallets\` en cada fila, y la Base al principio y al final", () => {
     expect(tarjeta).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);");
     // D-459: las filas pendientes siguen siendo las de `lectura.filas`, con su índice; entre ellas se intercalan las hechas.
-    expect(tarjeta).toContain("const pintadas = filasConLoHecho(lectura, stops, hechas, capacity, paradasPublicadasDe(u.key));");
-    expect(tarjeta).toContain("{pintadas.map((fp) => {");
-    expect(tarjeta).toContain("if (fp.hecha) return filaYaHecha(fp);");
+    // Nota D-529: la lista pintada sale de `diaDe` (dentro, la misma `filasConLoHecho`), y cada fila lleva su índice `k`.
+    expect(tarjeta).toContain("const dia = diaDe(u.key, stops, lectura);");
+    expect(tarjeta).toContain("const pintadas = dia.pintadas;");
+    expect(tarjeta).toContain("{pintadas.map((fp, k) => {");
+    expect(tarjeta).toContain("if (fp.hecha) return filaYaHecha(fp, k);");
     expect(tarjeta).toContain("const fi = fp.i;");
     expect(tarjeta).toContain("const cu = cuenta.paradas[fi];");
     expect(tarjeta).toContain("{cu.sinConteo ? \"~\" : \"\"}{textoDeLaCuenta(cu)}");
@@ -276,7 +278,8 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
   });
   it("la cabecera: paradas, pallets movidos, carga máxima contra el camión; el aviso de exceso y el de «no acaba en 0»", () => {
     // Puesto al día por D-485: «N paradas» cuenta PARADAS (filas seguidas en el mismo sitio son una), no filas.
-    expect(tarjeta).toContain("{numeradas.paradas.length} {t(\"stops\", \"paradas\")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t(\"pallets moved\", \"pallets movidos\")} · {t(\"peak load\", \"carga máxima\")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}");
+    // Nota D-529: las que aún tienen algo PENDIENTE (`dia.quedan`), con los números del día entero.
+    expect(tarjeta).toContain("{dia.quedan} {t(\"stops\", \"paradas\")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t(\"pallets moved\", \"pallets movidos\")} · {t(\"peak load\", \"carga máxima\")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}");
     expect(tarjeta).toContain("{cuenta.totales.paradasConExceso > 0 && (");
     expect(tarjeta).toContain("{stops.length > 0 && cuenta.totales.finalNoCero && (");
   });
@@ -288,7 +291,8 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
   it("\`mueveParada\` decide con \`mueveEnLaLista\`, dice por qué no mueve si rompe la precedencia, y guarda la lista entera", () => {
     expect(mueve).toContain("const r = mueveEnLaLista(lectura.paradas, indice, dir);");
     // D-456: el aviso es el mismo para las flechas y para el arrastre (`avisaDeLaPrecedencia`).
-    expect(mueve).toContain("if (r.motivo === \"precedencia\") avisaDeLaPrecedencia(stops, lectura, r.orden);");
+    // Nota D-529: con la ruta, para decir la etiqueta del DÍA de la entrega (la que pinta su fila).
+    expect(mueve).toContain("if (r.motivo === \"precedencia\") avisaDeLaPrecedencia(laneKey, stops, lectura, r.orden);");
     expect(pagina).toContain("se entregaría antes de recogerla");
     expect(mueve).toContain("if (!(await guardaLaLista(laneKey, stops, r.paradas,");
   });

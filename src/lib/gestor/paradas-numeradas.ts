@@ -37,9 +37,15 @@ export interface ParadasDeLaRuta {
   paradas: ParadaFisica[];
 }
 
+/** Lo que hace falta de una fila para numerarla: qué es, de qué orden(es), dónde y su etiqueta P/D. Una `FilaDeLaRuta` lo
+ *  cumple; también una fila ya HECHA del Gestor, que no está en la lectura (D-529, `numeros-del-dia.ts`). */
+export type FilaQueSeNumera =
+  | Pick<Extract<FilaDeLaRuta, { tipo: "P" }>, "tipo" | "ordenes" | "lugar" | "etiqueta">
+  | Pick<Extract<FilaDeLaRuta, { tipo: "D" }>, "tipo" | "orden" | "etiqueta">;
+
 /** Agrupa las filas de la ruta en paradas. `ordenes` da la dirección de cada entrega. */
 export function paradasDeLaRuta(
-  filas: readonly FilaDeLaRuta[], ordenes: readonly { id: string; store?: string | null; delivery_address?: string | null }[],
+  filas: readonly FilaQueSeNumera[], ordenes: readonly { id: string; store?: string | null; delivery_address?: string | null }[],
 ): ParadasDeLaRuta {
   const comoLista: ParadaDeLaLista[] = filas.map((f) => (f.tipo === "P" ? { tipo: "P", ordenes: f.ordenes, tienda: f.lugar } : { tipo: "D", orden: f.orden }));
   const grupos = gruposDeMismoLugar(comoLista, ordenes);

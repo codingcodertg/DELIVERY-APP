@@ -24,7 +24,8 @@ import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
 import { NINGUNO, alternaTodas, alternaVisible, guardaMarcados, leeMarcados, marcadasAProposito, marcadosVigentes, pasaElFiltro, rutasVisibles, seVenTodas, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
 import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
-import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
 import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-horario";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { serviceMin } from "@/lib/trip-timing";
@@ -96,7 +97,7 @@ import {
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
 import { ETAPAS_HECHAS, hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
-import { filasConLoHecho, hechasQueSePintan, horaReal, resumenDeEntregas, type FilaPintada } from "@/lib/hechas-del-gestor";
+import { hechasQueSePintan, horaReal, resumenDeEntregas, type FilaPintada } from "@/lib/hechas-del-gestor";
 import { textoDelEstadoDelPlan, type EstadoDelPlan } from "@/lib/route-plan/estado-del-plan";
 import {
   cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, numeroDePallets,
@@ -148,6 +149,8 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 //   · D-485: la ruta se numera por PARADAS (`lib/gestor/paradas-numeradas`): filas seguidas en el mismo sitio (la regla de
 //     los grupos de D-444) son UNA parada, «1», «2»…; la tabla lleva el número delante de la P/D de cada orden, y el mapa
 //     una burbuja por parada con su número —también la de una tienda de RTG, que D-481 (d) había quitado—.
+//   · D-529: el número (y la etiqueta P/D) es del DÍA entero, como en «Mi ruta»: lo recogido, en camino o entregado
+//     conserva el suyo y lo pendiente no vuelve a contar desde 1 (`lib/gestor/numeros-del-dia`, `diaDe`).
 // ============================================================
 
 const UNASSIGNED_COLOR = "#6b7686";
@@ -685,6 +688,17 @@ export default function RoutesPage() {
    *  plan publicado y la ruta tal como el plan la dejó, las paradas y etiquetas del plan (D-335); si no, lo guardado. */
   const lecturaDe = (laneKey: string, stops: Delivery[]): LecturaDeRuta =>
     lecturaConLoHecho(stops, capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), hechasDeLaRuta(laneKey, stops));
+  /** La ruta del DÍA de un chofer (D-529): lo pendiente de la lectura, con lo ya hecho donde iba (D-459), numerado por
+   *  paradas (D-485) y etiquetado P/D sobre el día entero, como «Mi ruta» (D-515). El dueño, 2026-10-11: «when a order is
+   *  delviered dont take the number of the stop away». Lo leen la tabla, el mapa, el horario y los avisos de mover, para que
+   *  los cuatro digan el mismo número; lo que se MUEVE sigue siendo la lectura de lo pendiente. */
+  const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops)) =>
+    diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey));
+  /** La etiqueta del DÍA («P3») de la fila pendiente que cumple `cual`, para los avisos de mover: la misma que pinta la fila. */
+  const etiquetaDelDia = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta, cual: (f: FilaDeLaRuta) => boolean): string => {
+    const fi = lectura.filas.findIndex(cual);
+    return fi < 0 ? "" : diaDe(laneKey, stops, lectura).etiquetaDePendiente[fi] ?? "";
+  };
   /** Las entregas en el orden de la lista. */
   const entregasDeLaLista = (lista: readonly ParadaDeLaLista[], stops: readonly Delivery[]): Delivery[] => {
     const porId = new Map(stops.map((d) => [d.id, d]));
@@ -747,10 +761,10 @@ export default function RoutesPage() {
    * cuenta avisa en la parada que se pase. Con candado 🔒 también, como las flechas de siempre (D-411).
    */
   /** «No se movió»: la orden cuya entrega quedaría antes que su recogida. Lo dicen igual las flechas y el arrastre. */
-  const avisaDeLaPrecedencia = (stops: readonly Delivery[], lectura: LecturaDeRuta, orden: string) => {
+  const avisaDeLaPrecedencia = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta, orden: string) => {
     const o = stops.find((x) => x.id === orden);
     const n = o ? facturaYId(o).principal : "";
-    const d = lectura.filas.find((f) => f.tipo === "D" && f.orden === orden)?.etiqueta ?? "";
+    const d = etiquetaDelDia(laneKey, stops, lectura, (f) => f.tipo === "D" && f.orden === orden);
     notify(t(
       `Not moved: ${d} ${n} would be delivered before it's picked up. A delivery always goes after its pickup.`,
       `No se movió: ${d} ${n} se entregaría antes de recogerla. Una entrega va siempre después de su recogida.`,
@@ -761,14 +775,14 @@ export default function RoutesPage() {
     const lectura = lecturaDe(laneKey, stops);
     const p = lectura.paradas[indice];
     if (!p) return;
-    const etiquetaDe = (i: number) => lectura.filas.find((f) => f.indice === i)?.etiqueta ?? "";
+    const etiquetaDe = (i: number) => etiquetaDelDia(laneKey, stops, lectura, (f) => f.indice === i);
     if (p.tipo === "P" && !hayRecogidaGuardada) {
       notify(t("Moving a pickup needs the database update (migration 154). Deliveries can be moved; pickups follow the usual rule.", "Mover una recogida necesita la actualización de la base (migración 154). Las entregas sí se mueven; las recogidas siguen la regla de siempre."));
       return;
     }
     const r = mueveEnLaLista(lectura.paradas, indice, dir);
     if (!r.ok) {
-      if (r.motivo === "precedencia") avisaDeLaPrecedencia(stops, lectura, r.orden);
+      if (r.motivo === "precedencia") avisaDeLaPrecedencia(laneKey, stops, lectura, r.orden);
       return;
     }
     const nombre = p.tipo === "D" ? (() => { const o = stops.find((x) => x.id === p.orden); return o ? facturaYId(o).principal : ""; })() : (p.tienda ?? t("(no store)", "(sin tienda)"));
@@ -857,7 +871,7 @@ export default function RoutesPage() {
     const lectura = lecturaDe(a.ruta, stops);
     const p = lectura.paradas[a.indice];
     if (!p) return;
-    const etiqueta = lectura.filas.find((f) => f.indice === a.indice)?.etiqueta ?? "";
+    const etiqueta = etiquetaDelDia(a.ruta, stops, lectura, (f) => f.indice === a.indice);
     const ids = p.tipo === "P" ? p.ordenes : [p.orden];
     const movidas = stops.filter((d) => ids.includes(d.id));
     const nombre = movidas.map((d) => facturaYId(d).principal).join(" · ");
@@ -873,7 +887,7 @@ export default function RoutesPage() {
         if (indice == null) return;
         if (p.tipo === "P" && !hayRecogidaGuardada) { notify(t("Moving a pickup needs the database update (migration 154).", "Mover una recogida necesita la actualización de la base (migración 154).")); return; }
         const r = llevaEnLaLista(lectura.paradas, a.indice, indice);
-        if (!r.ok) { if (r.motivo === "precedencia") avisaDeLaPrecedencia(stops, lectura, r.orden); return; }
+        if (!r.ok) { if (r.motivo === "precedencia") avisaDeLaPrecedencia(a.ruta, stops, lectura, r.orden); return; }
         if (!(await guardaLaLista(destino, stops, r.paradas, { en: `${etiqueta} ${nombre} → stop ${indice + 1}`, es: `${etiqueta} ${nombre} → parada ${indice + 1}` }))) return;
         senalaLaMovida(claveDeLaFila(p));
         const ex = avisoDeExceso(r.paradas, stops, destino);
@@ -1421,12 +1435,13 @@ export default function RoutesPage() {
   const ganttRows: GanttRow[] = rutasDelGantt.map((r) => {
     const l = lanes.find((x) => x.key === r.clave)!;
     const stops = byDriver.get(r.clave) ?? [];
-    // El número de parada de cada barra es el de la tabla y el mapa (D-485): la misma lectura y la misma numeración.
-    const filas = lecturaDe(r.clave, stops).filas;
+    // El número de parada de cada barra es el de la tabla y el mapa (D-485): la misma lectura y la misma numeración, la del
+    // DÍA entero (D-529): una barra pendiente no vuelve a contar desde 1 porque el chofer ya entregó otras.
+    const lectura = lecturaDe(r.clave, stops);
     return {
       key: r.clave, title: l.label, color: colorFor(l.driver), orders: stops,
       barras: barrasDeLaRuta(r.viajes, r.base, DAY_START_MIN), bloqueada: r.bloqueada,
-      paradaDe: paradaDeCadaEntrega(filas, paradasDeLaRuta(filas, stops).deFila),
+      paradaDe: paradaDeCadaEntrega(lectura.filas, diaDe(r.clave, stops, lectura).dePendiente),
     };
   });
   // D-503: en el horario salen solo las rutas con alguna parada ese día y que pasan el filtro de choferes del panel (D-488),
@@ -1895,7 +1910,8 @@ export default function RoutesPage() {
         const tienda = tiendaFinDe(clave), fin = finDeLaRuta(clave);
         return tienda && fin ? { coords: [fin.lat, fin.lng], direccion: tienda.name } : null;
       },
-      lecturaDe, coordsDeTienda, t,
+      // Los números del DÍA (D-529), los mismos de la tabla: `diaDe` (lo pendiente con lo hecho donde iba).
+      paradasDe: (clave, stops) => diaDe(clave, stops).paradas, coordsDeTienda, t,
       marcadas: { tiene: (id) => selectedOrders.has(id), colorDe: (id) => selColorById.get(id), cuantas: selectedOrders.size },
     });
     // Pickup ("P") pin for each selected load (assigned or pool), in its own
@@ -2804,7 +2820,9 @@ export default function RoutesPage() {
         // entran en `lectura`, `cuenta` ni la medida, que siguen siendo de lo pendiente.
         const hechas = hechasDe(u.key);
         const hechasPorId = new Map(hechas.map((d) => [d.id, d]));
-        const pintadas = filasConLoHecho(lectura, stops, hechas, capacity, paradasPublicadasDe(u.key));
+        // La lista que se pinta (lo pendiente con lo hecho donde iba) y su numeración del DÍA (D-529): la misma de «Mi ruta».
+        const dia = diaDe(u.key, stops, lectura);
+        const pintadas = dia.pintadas;
         const entregas = resumenDeEntregas(stops, hechas);
         const hayFilas = stops.length > 0 || hechas.length > 0;
         // ↶ ↷ en la tarjeta (D-459): el historial es uno, global; el botón se enciende si el último movimiento tocó esta ruta.
@@ -2812,16 +2830,18 @@ export default function RoutesPage() {
         const rehace = botonDeVolver(historial, "rehacer", u.key, laneLabel);
         /** Una fila ya HECHA: la recogida de una orden recogida o entregada, o su entrega. Informa; no lleva flechas, ni
          *  «Pasar a…», ni ✕, ni se arrastra, ni es sitio donde soltar. La factura sigue abriendo la orden. */
-        const filaYaHecha = (fp: Extract<FilaPintada, { hecha: true }>) => {
+        const filaYaHecha = (fp: Extract<FilaPintada, { hecha: true }>, k: number) => {
           const d = hechasPorId.get(fp.orden);
           if (!d) return null;
           const hecho = fp.estado === "hecho";
           const hora = hecho ? horaReal(d, fp.tipo) : null;
           const que = fp.tipo === "P" ? { en: "Picked up", es: "Recogida" } : hecho ? { en: "Delivered", es: "Entregada" } : { en: "On the truck, on its way", es: "En el camión, en camino" };
           return (
-            <tr key={`hecha-${fp.tipo}-${d.id}`} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} className={hecho ? "row-done fila-hecha" : "fila-hecha"}
+            <tr key={`hecha-${fp.tipo}-${d.id}`} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className={hecho ? "row-done fila-hecha" : "fila-hecha"}
               title={t(`${que.en}${hora ? ` at ${hora}` : ""} — it stays on the list; it can't be moved`, `${que.es}${hora ? ` a las ${hora}` : ""} — sigue en la lista; no se mueve`)}>
-              <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700 }}>{hecho ? "✓" : "🚚"}{fp.tipo}</td>
+              {/* Su número de parada del día y su etiqueta (D-529; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
+                  delviered dont take the number of the stop away». El ✓ o el 🚚 siguen diciendo que está hecha o en camino. */}
+              <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k, hecho)}{hecho ? "✓" : "🚚"}{dia.etiqueta[k]}</td>
               <td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>
               {/* Lo que movió, sin el «= a bordo»: no cuenta en la carga pendiente. */}
               <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>{fp.tipo === "P" ? "+" : "−"}{numeroDePallets(palletsDeLaOrden(d))}</td>
@@ -2844,15 +2864,16 @@ export default function RoutesPage() {
         // Filas SEGUIDAS en el mismo sitio (D-444): cada una en su fila, pintadas como grupo con un tono más fuerte.
         const grupos = gruposDeMismoLugar(lectura.paradas, stops);
         // La ruta por PARADAS (D-485): filas seguidas en el mismo sitio —la misma regla de los grupos— son una parada, con un
-        // número. La primera fila de cada parada lleva el número; las demás, la raya de que sigue. Las ya hechas no cuentan.
-        const numeradas = paradasDeLaRuta(lectura.filas, stops);
-        const numeroDeParada = (fi: number) => {
-          const n = numeradas.deFila[fi];
-          const p = n != null ? numeradas.paradas[n - 1] : undefined;
+        // número. La primera fila de cada parada lleva el número; las demás, la raya de que sigue. Desde D-529, sobre la
+        // lista PINTADA (`dia`): lo ya hecho cuenta y conserva su número, y lo pendiente no vuelve a contar desde 1. `k` es el
+        // índice de la fila en `pintadas`; lo ya entregado o recogido, con el círculo apagado, como en «Mi ruta».
+        const numeroDeParada = (k: number, hecha = false) => {
+          const n = dia.deFila[k];
+          const p = n != null ? dia.paradas[n - 1] : undefined;
           if (!p) return null;
           const titulo = textoDeLaParada(p, [], t);
-          return numeradas.primera[fi]
-            ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorFor(u.driver) }}>{n}</span>
+          return dia.primera[k]
+            ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorFor(u.driver), opacity: hecha ? 0.55 : undefined }}>{n}</span>
             : <span className="numero-de-parada sigue" data-sigue-la-parada={n} title={titulo} style={{ color: colorFor(u.driver) }} />;
         };
         const claseDeGrupo = (f: FilaDeLaRuta): string => {
@@ -2940,10 +2961,11 @@ export default function RoutesPage() {
                 </span>
               )}
               {/* Sin viajes (D-443): ni «N viajes», ni «Ver un viaje» (D-441), ni «viajes fijados / agrupado automáticamente».
-                  Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión. */}
+                  Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión.
+                  «N paradas» son las que aún tienen algo PENDIENTE, como «N órdenes» (D-529: los números ya cuentan lo hecho). */}
               {stops.length > 0 && (
                 <span className="hint" data-totales-de-la-lista style={{ marginTop: 0 }}>
-                  {numeradas.paradas.length} {t("stops", "paradas")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}
+                  {dia.quedan} {t("stops", "paradas")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}
                 </span>
               )}
               {cuenta.totales.paradasConExceso > 0 && (
@@ -3156,10 +3178,12 @@ export default function RoutesPage() {
                     {/* La Base (D-443): la ruta sale de ella con 0 a bordo y vuelve a ella con 0. Si al volver no da 0, se marca. */}
                     {filaDeLaBase(u.key, "salida", cuenta.salida, false)}
                     {/* Las pendientes, que son las de siempre (`lectura.filas`, con su índice), y las ya hechas donde iban. */}
-                    {pintadas.map((fp) => {
-                      if (fp.hecha) return filaYaHecha(fp);
+                    {pintadas.map((fp, k) => {
+                      if (fp.hecha) return filaYaHecha(fp, k);
                       const f = fp.fila;
                       const fi = fp.i;
+                      // Su etiqueta P/D del DÍA (D-529): sin plan, numerada con lo ya hecho dentro; con plan, la del plan.
+                      const etiquetaDeLaFila = dia.etiqueta[k];
                       const cu = cuenta.paradas[fi];
                       const gris = esProvisionalLaFila(f, porId);
                       const movible = f.indice != null;
@@ -3222,10 +3246,10 @@ export default function RoutesPage() {
                           </>
                         );
                         return (
-                          <tr key={`P-${fi}-${clave}`} data-recogida={f.etiqueta} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}${claseDeSoltar}`}
+                          <tr key={`P-${fi}-${clave}`} data-recogida={etiquetaDeLaFila} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}${claseDeSoltar}`}
                             data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
                             style={{ ...(resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}), ...(seArrastra ? { cursor: "grab" } : {}) }} data-recien-movida={resaltada ? "" : undefined}>
-                            <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(fi)}{f.etiqueta}</td>
+                            <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
                             <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {colsParadas.map((c) => {
@@ -3253,7 +3277,7 @@ export default function RoutesPage() {
                         // La entrega de OTRA carga de una orden que el motor repartió: informa, no se mueve.
                         return (
                           <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D")}>
-                            <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(fi)}{f.etiqueta}</td>
+                            <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
                             <td className="ordno">{facturaConSuId(d)}</td>
                             {celdaDeCuenta}
                             <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
@@ -3282,7 +3306,7 @@ export default function RoutesPage() {
                           data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
                           style={{ ...(isolated ? { background: "var(--accent-soft)" } : resaltada ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}) }}
                           data-recien-movida={resaltada ? "" : undefined}
-                          data-entrega={f.etiqueta}
+                          data-entrega={etiquetaDeLaFila}
                           // Stop here: without this the click also reaches the card's "tap outside" handler, which sees a
                           // selection already set and clears it — so moving from one stop to the next took two clicks.
                           onClick={(e) => { e.stopPropagation(); if (!soloLectura) setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
@@ -3296,7 +3320,7 @@ export default function RoutesPage() {
                             {acciones && <input type="checkbox" data-marca-orden={d.id} checked={marcadas.has(d.id)} onChange={() => alternaMarca(d.id)} onClick={(e) => e.stopPropagation()}
                               aria-label={t(`Select ${facturaYId(d).principal} to assign it to another driver`, `Marcar ${facturaYId(d).principal} para asignarla a otro chofer`)}
                               style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />}
-                            {numeroDeParada(fi)}{f.etiqueta}
+                            {numeroDeParada(k)}{etiquetaDeLaFila}
                           </td>
                           {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
                               «carga 1 de 2» si es una carga de una orden partida (D-452). */}

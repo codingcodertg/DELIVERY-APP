@@ -6,6 +6,7 @@ import { carrilesDelDia, puntosDeLasRutas, rutasPorChofer } from "@/lib/mapa-de-
 import { ANCHO_FIJO_DE_PARADAS, anchoDelNumeroDeParada } from "@/lib/routes-columns";
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
+import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
 import type { ParadaDelDia } from "@/lib/rutas-del-dia";
 
 /**
@@ -80,7 +81,7 @@ describe("el mapa: una burbuja por parada, con su número", () => {
   const puntos = (marcadas?: Set<string>) => puntosDeLasRutas({
     carriles: carrilesDelDia([{ id: "u-ana", full_name: "Ana" }], [], tres, []), porChofer: rutasPorChofer(tres), delDia: tres, hechas: new Map(),
     pasaFiltro: () => true, soloUnChofer: false, enfocado: false, atenuada: () => false, colorDe: () => "rojo", colorSinChofer: "gris",
-    baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), lecturaDe: (_k, s) => lecturaConLoHecho(s, 12, null, []),
+    baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), paradasDe: (_k, s) => diaDeLaRuta(lecturaConLoHecho(s, 12, null, []), s, [], 12, null).paradas,
     coordsDeTienda: () => ({ lat: 26.19, lng: -98.18 }), t,
     marcadas: marcadas && { tiene: (id) => marcadas.has(id), colorDe: () => "azul", cuantas: marcadas.size },
   });
@@ -114,7 +115,7 @@ describe("el mapa: una orden repartida en dos cargas (plan del motor)", () => {
     const pts = puntosDeLasRutas({
       carriles: carrilesDelDia([{ id: "u-ana", full_name: "Ana" }], [], dos, []), porChofer: rutasPorChofer(dos), delDia: dos, hechas: new Map(),
       pasaFiltro: () => true, soloUnChofer: false, enfocado: false, atenuada: () => false, colorDe: () => "rojo", colorSinChofer: "gris",
-      baseDe: () => null, lecturaDe: () => ({ etiquetaDe: new Map(), filas }), coordsDeTienda: () => ({ lat: 26.19, lng: -98.18 }), t,
+      baseDe: () => null, paradasDe: () => paradasDeLaRuta(filas, dos).paradas, coordsDeTienda: () => ({ lat: 26.19, lng: -98.18 }), t,
     });
     expect(pts.find((x) => x.id === "b")).toMatchObject({ badge: "2" });
     expect(pts.find((x) => x.id === "a")).toMatchObject({ badge: "2·4", label: "Stop 4 — deliver D1 · INV-1 — Ana" });
@@ -124,10 +125,12 @@ describe("el mapa: una orden repartida en dos cargas (plan del motor)", () => {
 describe("la pantalla usa las paradas", () => {
   const gestor = plano(leer("src/app/(app)/routes/page.tsx"));
   it("la tabla: el número delante de la P/D de cada fila, primera fila con el número y las demás con la raya", () => {
-    expect(gestor).toContain("const numeradas = paradasDeLaRuta(lectura.filas, stops);");
-    expect(gestor).toContain("return numeradas.primera[fi] ? <span className=\"numero-de-parada\" data-numero-de-parada={n}");
+    // Nota D-529: la numeración es la de la lista PINTADA del día (`dia`, de `diaDeLaRuta`, que llama a `paradasDeLaRuta`),
+    // por su índice `k` en ella; y la etiqueta, la del día. Lo hecho lleva también su número (`numeros-del-dia.test.ts`).
+    expect(gestor).toContain("const dia = diaDe(u.key, stops, lectura);");
+    expect(gestor).toContain("return dia.primera[k] ? <span className=\"numero-de-parada\" data-numero-de-parada={n}");
     expect(gestor).toContain(": <span className=\"numero-de-parada sigue\" data-sigue-la-parada={n}");
-    expect(gestor.split("{numeroDeParada(fi)}{f.etiqueta}").length - 1).toBe(3);
+    expect(gestor.split("{numeroDeParada(k)}{etiquetaDeLaFila}").length - 1).toBe(3);
     expect(gestor).toContain("{t(\"Stop\", \"Parada\")}<span className=\"col-resizer\" onMouseDown={asaDeParada(\"_n\")} />");
   });
   it("la columna del número no baja de su partida aunque se guardara más estrecha (46 de antes → 96)", () => {
@@ -137,11 +140,14 @@ describe("la pantalla usa las paradas", () => {
     expect(gestor).toContain("return clave === \"_n\" ? anchoDelNumeroDeParada(w) : w;");
   });
   it("la cabecera cuenta paradas, no filas", () => {
-    expect(gestor).toContain("{numeradas.paradas.length} {t(\"stops\", \"paradas\")} ·");
+    // Nota D-529: las paradas que aún tienen algo pendiente, con la numeración del día (`quedan`).
+    expect(gestor).toContain("{dia.quedan} {t(\"stops\", \"paradas\")} ·");
     expect(gestor).not.toContain("{cuenta.totales.paradas} {t(\"stops\"");
   });
   it("el mapa numera con la misma función, sobre la misma lectura", () => {
-    expect(plano(leer("src/lib/mapa-de-rutas.ts"))).toContain("for (const p of paradasDeLaRuta(lectura.filas, list).paradas) {");
+    // Nota D-529: sobre las paradas del DÍA que le da la página (`diaDe(…).paradas`, las de la tabla).
+    expect(plano(leer("src/lib/mapa-de-rutas.ts"))).toContain("for (const p of paradasDelDia(laneKey)) {");
+    expect(gestor).toContain("paradasDe: (clave, stops) => diaDe(clave, stops).paradas,");
   });
   // Nota D-520: aquí había «la leyenda de “Ruta de hoy” explica los números» (`leyendaDelMapa`). La leyenda se quitó de
   // toda la app («delete the lEGEND ON THE MAP of the app») y la función con ella; los números siguen en el mapa y en la

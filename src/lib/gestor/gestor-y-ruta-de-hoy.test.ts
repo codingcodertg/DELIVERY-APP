@@ -8,6 +8,7 @@ import { alternaDesplegada, conAcciones, conCuerpo, desplegadaVigente } from "@/
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
 import { carrilesDelDia, puntosDeLasRutas, rutasPorChofer } from "@/lib/mapa-de-rutas";
 import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
+import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
 import { entraEnTodas } from "@/lib/todas-del-gestor";
 import type { ParadaDelDia } from "@/lib/rutas-del-dia";
 import type { Delivery } from "@/lib/types";
@@ -110,7 +111,7 @@ describe("d · (D-485) la parada en una tienda de RTG lleva su número en el map
     const pts = puntosDeLasRutas<ParadaDelDia>({
       carriles: carrilesDelDia([{ id: "u-ana", full_name: "Ana" }], [], ordenes, []), porChofer: rutasPorChofer(ordenes), delDia: ordenes, hechas: new Map(),
       pasaFiltro: () => true, soloUnChofer: false, enfocado: false, atenuada: () => false, colorDe: () => "rojo", colorSinChofer: "gris",
-      baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), lecturaDe: (_k, s) => lecturaConLoHecho(s, 12, null, []),
+      baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), paradasDe: (_k, s) => diaDeLaRuta(lecturaConLoHecho(s, 12, null, []), s, [], 12, null).paradas,
       coordsDeTienda: () => ({ lat: 26.19, lng: -98.18 }), t,
     });
     const recogidas = pts.filter((x) => x.id.startsWith("__parada__"));
