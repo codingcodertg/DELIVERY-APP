@@ -85,7 +85,8 @@ export function textoDeNoRepartir(motivo: MotivoDeNoRepartir): { en: string; es:
 export function puntosDelReparto(entrada: Pick<Entrada, "ordenes" | "choferes">, puntos: Readonly<Record<Punto, LatLng>>): Record<Punto, LatLng> {
   const r: Record<Punto, LatLng> = {};
   const pon = (p: Punto | null | undefined) => { if (p && puntos[p]) r[p] = puntos[p]; };
-  for (const c of entrada.choferes) pon(c.base);
+  // Y dónde termina ESE día, si no es la base (166): sin su tramo, la vuelta se estimaría en línea recta.
+  for (const c of entrada.choferes) { pon(c.base); pon(c.fin); }
   for (const o of entrada.ordenes) { pon(o.origen); pon(o.destino); }
   return r;
 }

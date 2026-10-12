@@ -225,7 +225,8 @@ export function tramosDelPlan(plan: Pick<Plan, "rutas">, entrada: Pick<Entrada, 
       if (p.punto !== sitio) tramos.push({ a: sitio, b: p.punto, salidaMin: salida });
       sitio = p.punto; salida = p.salida;
     }
-    if (c.vuelveABase && sitio !== c.base) tramos.push({ a: sitio, b: c.base, salidaMin: salida });
+    const meta = c.fin ?? c.base;
+    if (c.vuelveABase && sitio !== meta) tramos.push({ a: sitio, b: meta, salidaMin: salida });
   }
   return tramos;
 }

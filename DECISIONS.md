@@ -22061,6 +22061,10 @@ tiene que salir **pendiente** y no puede aparecer ninguna huérfana llamada `124
 
 ## D-316 · Motor de rutas, incremento 1: el modelo — base y camión de cada chofer, builder o mostrador, y los pesos en Ajustes
 
+> **⚠ Reemplazada en parte por D-519** (2026-10-11): la base de Ajustes es la de SIEMPRE, pero para un día concreto el gerente
+> de logística puede hacer salir y terminar al chofer en otra tienda (migración 166, `driver_day_bases`). La vuelta a base
+> (`returns_to_base`) va a la tienda del fin de ese día.
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** `128_driver_settings`,
 `129_customer_type`, `130_route_settings` — escritas y **no aplicadas**.
 **Plan:** `docs/PLAN-128-130-motor-rutas-modelo.md` · **Diseño:** `docs/route-algorithm-design.md` (§6 y §11).
@@ -35254,6 +35258,12 @@ antes que la llave de servicio, sin escrituras) y que crear pide al servidor.
 
 ## D-461 · «🧭 Optimizar» una ruta, rehecho: por calles, mirando las ventanas, desde la base del chofer, y exacto en las rutas pequeñas
 
+> **⚠ Reemplazada en parte por D-519** (2026-10-11): «la base es la del chofer» sigue, pero ya no es fija: el gerente de logística
+> (o el admin) elige en el panel de choferes de qué tienda SALE y en cuál TERMINA cada chofer un día concreto (migración 166,
+> `driver_day_bases`). Manda lo elegido para ese día; sin elegir nada, la de Ajustes → Rutas y, si no, la del perfil, como aquí.
+> Optimizar, la medida de la tarjeta (millas, horas, llegadas), la «P» del mapa y la vuelta salen de esa tienda, y la vuelta va
+> a la del fin del día (sin vuelta si el chofer no vuelve a base). `tiendaBaseDelChofer` sigue siendo la base DE SIEMPRE.
+
 > **⚠ Reemplazada en parte por D-464** (2026-10-04): el orden de los objetivos tiene un quinto criterio detrás de las millas. Entre órdenes que miden casi lo mismo que el mejor (hasta un 5 % más de jornada —nunca más de 15 minutos— y 3 millas más, con el mismo exceso y el mismo retraso), gana el que menos CARGA pasea (pallets a bordo por milla): se entrega antes lo que está de paso. Así que «el mejor orden» ya no es siempre el de menos jornada: de las 37 rutas de la tabla de abajo, 19 salen con entre 0 y 13 minutos más (95 en total) y un 18 % menos de carga paseada. La búsqueda exacta tiene dos fases, y una ruta de 11 órdenes que aquí salía exacta ya no lo dice. El dueño, con la ruta de Julio: «si es una vuelta tan larga como bajar a browville […] seria p1 d1 p2 d2».
 
 **Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** deliveries 1.249.0, repo 1.335.0. **Reemplaza en parte a**
@@ -37160,6 +37170,10 @@ No visto en navegador: `tsc` y vitest.
 
 ## D-474 · Gestor de Rutas: marcar varias órdenes y «Asignar a…» los choferes que uno elija — el motor de «Armar rutas» reparte solo entre ellos
 
+> **⚠ Reemplazada en parte por D-519** (2026-10-11): la base de cada elegido (fila «Base del chofer» de la tabla de abajo) es la
+> tienda de la que sale ESE día si se eligió en el panel (migración 166), y vuelve a la del fin del día; si no, la de siempre.
+> Lo mismo en «Armar rutas», que hasta aquí solo miraba Ajustes.
+
 **Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** deliveries 1.257.0, repo 1.348.0 · **Motor:** `motor-7`, sin cambios.
 **Reemplaza en parte a** D-437 (que quitó «Auto-asignar selección» del Gestor: vuelve un reparto automático de lo marcado, pero
 con el motor de «Armar rutas» y SOLO entre los choferes que elige la persona), a D-459 §7 (qué entra en deshacer: también este
@@ -37542,6 +37556,10 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 - El Panel no se tocó: el selector sigue escrito en las dos pantallas.
 
 ## D-479 · La recogida en la tienda de la zona de otro chofer es la punta cara: cada chofer carga en su tienda salvo que no quepa (`motor-8`)
+
+> **⚠ Reemplazada en parte por D-519** (2026-10-11): «su tienda» sigue a la SALIDA del día. Si un chofer sale ese día de otra
+> tienda (migración 166), en sus zonas la ciudad de su base se cambia por la de la tienda de la que sale, solo ese día: así no
+> paga la punta cara por cargar donde tomó el camión. Un chofer sin zonas sigue sin zonas. «📍 Mejor lugar» sigue sin cambiar.
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries 1.259.0, repo 1.352.0 (Entregas) · **Migraciones:** ninguna (el peso nuevo vive en el
 mismo `route_weights` jsonb que los demás). **Reemplaza en parte** a D-427 (lleva su nota). D-461 y D-464 no cambian.
@@ -41375,3 +41393,164 @@ propósito para que el choque sea mínimo.
 6. **¿Cuánto se guarda?** §396.11 pide tres meses; la tabla no borra nada (ni hay poda).
 7. **¿«Todo OK» por zona de un toque?** No se puso: acelera, pero invita a marcar sin mirar.
 8. **¿Que el chofer vea el último reporte del camión antes de salir** (§396.13 lo pide)? Hoy solo ve los suyos.
+
+## D-519 — El gerente de logística elige de qué tienda SALE y en cuál TERMINA cada chofer, un día concreto (migración 166)
+
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Migración:** `166_base_del_dia.sql` — escrita y **no aplicada**; la app funciona sin
+ella · **Motor:** sigue siendo `motor-8` (sin fin elegido, planifica byte a byte lo mismo) · **Reemplaza en parte a** D-316, D-461,
+D-474 y D-479 (cada una lleva su nota).
+
+### Qué pidió el dueño
+
+Dos mensajes del 2026-10-11, literales (como los pasó el orquestador, dictados):
+
+> choose the driver strarting position LOGISTIC MANAGER, DEFAULT IS THE ONE HE ALREADY WORKS ON
+
+> Need to be able to assign store where driver is starting/ ending at. For example, Julio will start in mcallen 10/12/26 to use other truck since his is in maintenance
+
+### Qué había
+
+La tienda de la que sale el camión de un chofer y a la que vuelve era **una y fija**: la base de Ajustes → Rutas
+(`driver_settings.base_store`, D-316) o, si no tenía, la tienda de su perfil (D-461). Para decir «mañana Julio sale de McAllen»
+había que cambiar su base en Ajustes —para siempre, y acordarse de devolverla— o no había forma. Medido en producción en solo
+lectura (2026-10-11, por PostgREST): Ernesto base RDZ McAllen, Julio RDZ Pharr, Maximo RDZ Brownsville, Steven sin base (no
+rutea); los cuatro con «vuelve a base» marcado; siete tiendas en Ajustes, todas con punto.
+
+### Qué hay ahora
+
+1. **En el panel «Choferes y rutas» del Gestor, cada chofer lleva «🏠 Sale de: [▾] · Termina en: [▾]»** para el día que se está
+   mirando (Hoy, Mañana, Ayer o la fecha elegida). Sin barras nuevas arriba. La primera opción de «Sale de» es **su base, marcada
+   «(su base)»**; la de «Termina en», **donde sale ese día** («(como la salida)», o «(su base)» si sale de ella). Lo cambiado para
+   ese día sale resaltado y dice cuál es su base. Una tienda sin punto en el mapa sale apagada. Lo cambian **el gerente de logística
+   y el admin**, viendo UN día (en «todas las fechas» cada ruta sale de su base); los demás roles que abren el Gestor lo leen.
+2. **Los choferes sin órdenes ese día no tienen fila en el panel** (D-481 f), pero a ellos hay que poder elegirles la salida ANTES
+   de «Armar rutas» (el caso del dueño es justo ese: Julio, mañana). Van debajo de las filas, plegados: «🏠 Salida y fin de
+   choferes sin órdenes este día (N)».
+3. **Es de ESE día.** Mañana vuelve a su base salvo que se cambie también. Elegir otra vez su base (y el fin «como la salida»)
+   borra la fila: ese día vuelve a ser como cualquier otro.
+4. **En «Ruta de hoy» (D-481) se ve, sin selector:** «🏠 Sale de RDZ McAllen · Termina en RDZ McAllen», resaltado si es del día.
+5. **En la tarjeta de la ruta**, la fila «🏠 Base: salida» dice la dirección de la tienda de la que sale ese día, y la del regreso,
+   si termina en otra, pasa a «🏠 Termina en · RDZ Pharr — (su dirección)»; si no vuelve a base, «(no vuelve a base: la ruta acaba
+   en su última parada)».
+
+### Qué manda — `src/lib/base-del-dia.ts`
+
+- **La salida:** la elegida para ese día > la base de Ajustes → Rutas > la tienda del perfil. Sin ninguna, sin base (ruta abierta
+  y «⚠ sin base», como siempre). Un nombre que ya no es una tienda de Ajustes se salta.
+- **El fin:** el elegido para ese día > **donde sale ese día**. Sin elegir nada, su base (sale de ella y vuelve a ella, como
+  siempre). **Si el chofer no vuelve a base** (Ajustes, `returns_to_base` en falso), **no hay fin**: la ruta acaba en su última
+  parada, el selector dice «no vuelve» y el mapa no pinta la «F». Hoy los cuatro choferes vuelven.
+- **Por qué el fin sigue a la SALIDA y no a la base** cuando no se elige: el ejemplo del dueño. Julio sale de McAllen porque allí
+  está el otro camión; el camión tiene que volver allí. Con el fin pegado a la base, cambiar la salida dejaría el camión en Pharr
+  sin que nadie lo pidiera, y el gerente tendría que acordarse de cambiar las dos. Con esta regla el ejemplo del dueño es UN cambio.
+  **A validar** (el orquestador había escrito «las dos por defecto su base»): sin elegir nada las dos son su base; la diferencia es
+  solo cuando se elige la salida y no el fin.
+
+### Quién usa la salida y el fin del día
+
+Todo lo que sacaba al camión de la base y lo volvía a ella:
+
+| Dónde | Cómo |
+|---|---|
+| **«Armar rutas»** (servidor, `/api/route-plan`) | `leeElDia` lee la 166 (`leeBasesDelDia`) y `entradaDelDia` pone en cada chofer la base del día y, si termina en otra tienda, `fin` (un punto más en la matriz). Sin la tabla planifica como antes; con otro fallo de lectura NO planifica (500), como con los candados de la 149. |
+| **El motor** (`evaluaRuta`, `tramosDelPlan`) | La vuelta va a `chofer.fin ?? chofer.base`. `ChoferEntrada.fin` es opcional: sin él, todo igual. |
+| **«Asignar a…» varios** (D-474) | La misma `entradaDelDia`, con lo del día; el punto del fin entra en lo que se pide por calles (`puntosDelReparto`). |
+| **«🧭 Optimizar»** (D-461) | `fin` en `EntradaDeOptimizar`: la cuenta, la búsqueda exacta (cotas incluidas) y la local vuelven al fin; `null` = no vuelve. |
+| **La medida de la tarjeta** (millas, horas, llegadas) | `cuerpoDeLaMedida`: con otro fin, una parada `__fin__` al final y sin ida y vuelta; sin vuelta, abierta. Cambiar la salida o el fin es otra forma de la ruta (`firmaDeLaForma`) y se vuelve a medir: UNA llamada, como cualquier cambio. |
+| **El mapa** | La «P» va a la tienda de la que sale; si termina en otra, una marca «F» del mismo color en ella (`puntosDeLasRutas`, `finDe`). |
+| **«📍 Mejor lugar» y el horario** | Las millas en línea recta vuelven al fin (`costeDeLaRuta`, `mejorLugar`, `planDeSoltar`). |
+| **«Mi ruta»** (D-514) | Monta el mapa del Gestor: ve su «P» y su «F» del día. La RLS le deja leer solo su fila. No se tocó `my-route/`. |
+
+### La zona de D-479 sigue a la SALIDA del día
+
+D-479 (`motor-8`) cobra cara la recogida en la tienda de la zona de OTRO chofer: «cada chofer carga en su tienda». Las zonas son
+ciudades (`preferred_zones`), no la base; pero la base de cada uno está en sus zonas (Julio: Pharr, Edinburg, Weslaco). Si el 12
+Julio sale de McAllen y sus zonas no cambian, cargar en McAllen —donde tomó el camión— es la zona de Ernesto y le cuesta la punta
+cara: el motor lo mandaría vacío a Pharr a cargar. Por eso, **ese día**, la ciudad de su base se cambia por la de la tienda de la
+que sale (`zonasDelDia`): Julio queda con Edinburg, Weslaco y McAllen. Pharr se queda sin dueño ese día si nadie más la tiene, y
+nadie paga por ir. Un chofer SIN zonas sigue sin zonas (darle una le haría pagar por las de los demás). Se sigue a la salida y no
+al fin: la zona es dónde carga. «📍 Mejor lugar» (`esDeSuZona`, solo sugerencia) no se tocó, como en D-479.
+
+### Dónde se guarda: `public.driver_day_bases` (migración 166)
+
+Se buscó primero algo por día que sirviera: `driver_settings` no tiene fecha; `route_plans` es la foto de un plan (y «Asignar a…»
+no crea plan); `route_locks` (149) dice «no tocar»; `driver_availability`, «no disponible»; `settings` lo escribe solo el admin.
+Tabla nueva, **una fila por chofer y día, con la salida y el fin en la misma fila**: `(plan_date, driver_id)` clave; `start_store`
+y `end_store`, el NOMBRE de una tienda de Ajustes o `null` («lo de siempre»), con un check que prohíbe las dos en `null`;
+`set_by`/`set_at` los pone un disparador. Por `driver_id` (y no por nombre, como `route_locks`) para que el chofer lea la suya por
+`auth.uid()`. RLS, una política por comando: **leen** quien tiene Entregas y no es chofer (el Gestor y «Ruta de hoy») y **el chofer,
+solo su fila**; **escriben** admin y logística. Plan, autocomprobación y reversión, en la cabecera del `.sql`.
+
+**Sin aplicar, la app funciona:** sin la tabla (`PGRST205`/`42P01`), cada chofer sale y termina en su base, el selector sale
+apagado con «Falta la migración 166…», y «Armar rutas» planifica como antes.
+
+**El número es 166 y no 165**: la 165 es `165_inspeccion_pre_viaje.sql` (D-518), de otra rama; el orquestador avisó a mitad de
+trabajo y se renumeró (fichero, cuerpo, registro y referencias).
+
+**Ensayo.** Contra producción NO se pudo: `node scripts/db/aplica-migracion.mjs` llega al estado (la migración pendiente, las demás
+al día) y Postgres rechaza la contraseña de `SUPABASE_DB_URL` del `.env.local` de esta PC («password authentication failed»,
+2026-10-11; el orquestador confirma que es la vieja). Se ensayó en un **Postgres 17 local y desechable** (un `initdb` nuevo en la
+carpeta del worker, puerto 55466, parado al acabar) con el esqueleto de Supabase que la migración usa —los roles `anon` y
+`authenticated`, `auth.uid()` por `request.jwt.claim.sub`, `profiles`, `has_deliveries_access()` y `current_user_role()` copiadas
+de la 083 y de `roles.sql`, `schema_migrations`, y los privilegios por defecto que Supabase da a `anon`/`authenticated` sobre cada
+tabla nueva—: la migración corre entera con su autocomprobación, se inscribe, y **29 de 29 comprobaciones** de la matriz por rol, con
+ROLLBACK: logística y admin insertan, actualizan, hacen el upsert de la app y borran; gerente, almacén, ventas y el chofer no
+escriben nada (42501 o 0 filas); admin, logística, gerente, almacén y ventas leen las dos filas del día; el chofer, solo la suya;
+sin el módulo de Entregas, ninguna; `anon`, permiso denegado; una fila sin salida ni fin no entra (23514); `set_by` lo pone la base;
+tras el ROLLBACK no queda la tabla; y aplicada dos veces seguidas no falla. Guion y resultado fuera del repo (`ensayo-local.mjs`,
+`ensayo-local.txt`). **Falta** el ensayo contra producción con la cadena buena antes de aplicar.
+
+### Medido en el navegador (demo, 2026-10-11)
+
+Chrome por CDP (copia privada de `cdp.mjs`, puerto 9371; el demo en el 3971), **como el gerente de logística del demo** («Laura
+Logistics»), clics de persona (el `<select>` se abre con un clic y se elige con flechas y Enter). Los servicios de mapas van
+doblados por CDP: la medida es línea recta con el rodeo del motor, nada salió a Google ni a OSRM (17 medidas y 15 geocodificaciones
+dobladas, 0 matrices).
+
+- Diego Driver (base McAllen en su perfil): **49,1 mi · 1 h 38 min** de manejo. «Sale de» → Brownsville: se vuelve a medir sola
+  (una petición, ida y vuelta desde Brownsville): **177,2 mi · 5 h 54 min**, y la «P» del mapa pasa a la casita de Brownsville.
+  «Termina en» → Pharr: una petición más, ya sin ida y vuelta y con `__fin__` al final: **116,6 mi · 3 h 53 min**, y una «F» azul
+  en la casita de Pharr (mapa: 4 «P», 1 «F»). Volver a «su base» en las dos: 49,1 mi otra vez, sin «F».
+- **Mañana**: Diego no tiene órdenes; sale plegado debajo y se le elige Weslaco desde ahí. De vuelta a hoy, lo de hoy sigue igual.
+- **«Ruta de hoy» como almacén**: cuatro líneas «🏠 Starts at … · Ends at …» (la de Diego, «Brownsville · Pharr», resaltada),
+  **0 selectores**; el mapa con su «F».
+- La página no se desborda de lado: 1280 de 1280, 390 de 390; a 390 el selector cabe en su fila (de 72 a 339 px).
+- **La tarjeta** de Diego, saliendo de Brownsville y terminando en Pharr: «Base: leaves · 3000 Central Blvd, Brownsville TX» arriba,
+  «Ends at · Pharr — 1201 W US-83, Pharr TX» abajo, y las llegadas contadas desde Brownsville (la primera recogida, a las 10:12).
+
+Capturas: `1280-1-panel-antes`, `1280-2-sale-de-brownsville`, `1280-3-mapa-P-y-F`, `1280-4-manana-sin-ordenes`,
+`1280-5-ruta-de-hoy-lectura`, `1280-6-tarjeta-termina-en`, `390-1-panel` (en la carpeta del worker, fuera del repo).
+
+### Pruebas
+
+- `src/lib/base-del-dia.test.ts` (nuevo): qué manda (salida, fin, sin vuelta, nombres que ya no son tienda, por el nombre de la
+  ruta); el caso del dueño anonimizado —el chofer «A», base «Pharr», el 2026-10-12 sale y termina en «McAllen», el 13 vuelve a su
+  base— por `extremosDeLaRuta`, por `entradaDelDia` y por `planificaElDia`; la zona (con la punta de D-479 que el 12 no paga y el 13
+  sí); la vuelta del motor al fin; lo que se ofrece y lo que se guarda; la base de datos con un cliente falso; la migración (con su
+  checksum); el selector y el panel renderizados; y que **cada consumidor la usa** (medida, Optimizar, «Mejor lugar», horario,
+  «Asignar a…», mapa, servidor).
+- `src/lib/optimiza-la-ruta.test.ts`, sección 9: el fin en Optimizar, contra la fuerza bruta (60 listas) y la exhaustiva (16), la
+  exacta sola y la local sola. La cuenta escrita aparte de la prueba (`cuenta`, `exhaustiva`) aprendió el fin.
+- **Mutantes: 67, caen los 67**, leídos por el nombre de la prueba (`mutantes.mjs`; la tanda, en la carpeta del worker), a la
+  primera: qué manda (8), la zona y las filas del día (7), lo que se guarda y se ofrece (6), el motor y el servidor (8),
+  Optimizar (7, uno sobre la cota de la búsqueda exacta, que solo caza la fuerza bruta con fin), la medida (8), el mapa y «Mejor
+  lugar» (5), la pantalla (13) y los componentes (5). Ninguno sobrevivió; varios de la pantalla los caza un ancla de texto (la
+  prueba lee la página), no una pantalla pintada.
+- Puestas al día, con su nota («Puesto al día por la base del día»): `optimizar-desde-el-gestor`, `gestor-factura-arrastre-optimizar`,
+  `solo-armar-rutas`, `reparto-desde-el-gestor` y `mejor-lugar` — anclas de texto de la página y de la medida que ahora llevan el fin.
+
+### Lo que no se hizo, y lo no verificado
+
+- **Una dirección libre** como salida o fin: no. El motor necesita un punto, una dirección libre pide geocodificar (una llamada de
+  pago) y no tiene zona; y el caso del dueño es una tienda. Si hace falta, es una columna de coordenadas más en la 166.
+- **El ensayo de la 166 contra producción** (arriba): no se pudo; la RLS se probó en un Postgres local con el esqueleto de
+  Supabase, no en el de verdad.
+- **Nada con sesión ni contra producción**: «Armar rutas» con la base del día se probó con `planificaElDia` en la prueba (sin red);
+  la ruta del servidor, por su texto. Que un chofer lea su fila desde «Mi ruta», tampoco.
+- **Google Maps**: el demo pinta Leaflet.
+- **Un aviso**: la primera tanda del demo se arrancó con el `.env.local` copiado en el worktree para la lectura de producción, así
+  que el servidor de `next dev` cargó las llaves (Supabase apuntaba a `localhost:1` por el entorno, las rutas de mapas estaban
+  dobladas en el navegador y las de la API exigen una sesión que sin base no hay). El navegador intentó cargar Google Maps con la
+  llave pública y falló («no ha cargado Google Maps correctamente»). Las capturas buenas son de una segunda tanda con todas esas
+  variables en blanco.
+- El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
