@@ -10,6 +10,7 @@ import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilit
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
+import { DIAS_DE_BORRADOR } from "@/lib/ordenes-visibles";
 import { alcanceDeEdicion, parcheSoloFecha, type AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
 import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura } from "@/lib/agregar-material";
 import { avisosDeAgregarMaterial } from "@/lib/agregar-material-avisos";
@@ -642,7 +643,17 @@ export function OrderModal({
     if (isNew) {
       const row = await addDelivery(payload);
       setBusy(false);
-      if (row) { notify(t(`Order #${orderLabel(row)} created`, `Orden #${orderLabel(row)} creada`)); await autoSendTracking(row); onClose(); }
+      if (row) {
+        // Un borrador NO queda programado, y hay que decirlo (D-531). Medido el 2026-10-12: un vendedor guardó el sábado
+        // una orden con «Guardar borrador», leyó «Orden creada», y el lunes preguntó por qué no estaba programada.
+        if ((payload.stage ?? "draft") === "draft") {
+          notify(t(`Order #${orderLabel(row)} saved as a DRAFT: it is NOT scheduled. Open it and press Submit to schedule it. Drafts are kept ${DIAS_DE_BORRADOR} days.`,
+            `Orden #${orderLabel(row)} guardada como BORRADOR: NO queda programada. Ábrela y pulsa Enviar para programarla. Los borradores se conservan ${DIAS_DE_BORRADOR} días.`));
+        } else {
+          notify(t(`Order #${orderLabel(row)} created`, `Orden #${orderLabel(row)} creada`));
+        }
+        await autoSendTracking(row); onClose();
+      }
     } else {
       const ok = await updateDelivery(existing!.id, payload);
       setBusy(false);

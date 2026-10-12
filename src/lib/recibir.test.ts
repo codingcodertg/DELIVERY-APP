@@ -97,14 +97,17 @@ describe("qué escribe «Recibir»", () => {
 
   // Nota D-527: la última es ahora la 168 (la 157 letra por letra con una cláusula más en la rama del CHOFER: recoger su
   // orden en approved/fulfilling). La rama de almacén que lee esta prueba no se tocó (lo compara `recogida-del-chofer.test.ts`).
-  it("la 168 es la última que define el guard; la 157 la de antes, y es la 145 con una sola lista cambiada (si cambia, hay que releer lo de arriba)", () => {
+  // Nota D-531 (2026-10-12): la última es ahora la 169 (la 168 letra por letra con un bloque más en el tramo de misma
+  // etapa del CHOFER: fotos del material y salida/llegada en su orden; lo compara `fotos-del-chofer.test.ts`).
+  it("la 169 es la última que define el guard; la 168 y la 157 las de antes, y la 157 es la 145 con una sola lista cambiada (si cambia, hay que releer lo de arriba)", () => {
     // Hasta D-452 la última era la 145. La 157 la copia letra por letra y solo deja nacer una carga partida también en
     // pending (lo compara `cargas-partidas.test.ts`); lo que esta prueba lee de la 145 sigue valiendo tal cual.
     const define = readdirSync("supabase/migrations").filter((f) => /^\d+_.*\.sql$/.test(f))
       .filter((f) => leer(`supabase/migrations/${f}`).includes("function public.guard_delivery_stage()")).sort();
-    expect(define[define.length - 1]).toBe("168_chofer_recoge_sin_listo.sql");
-    expect(define[define.length - 2]).toBe("157_partes_de_orden.sql");
-    expect(define[define.length - 3]).toBe("145_gerente_hace_bodega.sql");
+    expect(define[define.length - 1]).toBe("169_fotos_del_chofer.sql");
+    expect(define[define.length - 2]).toBe("168_chofer_recoge_sin_listo.sql");
+    expect(define[define.length - 3]).toBe("157_partes_de_orden.sql");
+    expect(define[define.length - 4]).toBe("145_gerente_hace_bodega.sql");
   });
 });
 

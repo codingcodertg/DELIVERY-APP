@@ -27693,6 +27693,8 @@ excepción de lo tecleado, tuvo su propia tanda de 16; se descartó con el códi
 
 ## D-392 · Órdenes: solo admin y logística ven días anteriores a ayer (y la pastilla «Outdated» es solo suya)
 
+> **Reemplazada en parte por D-531** (2026-10-12): un BORRADOR dura 7 días en Órdenes («draft quedan hata 7 dias es lo unico que no tiene la reglas de ayer hoyy y manana»); el resto sigue con ayer, hoy y futuro.
+
 > **⚠ Reemplazada en parte por D-407** (2026-09-26): lo que abajo «se quedó en pie a sabiendas» —la exención de
 > D-313 en «Factura pendiente»— **se quitó**. El dueño: *«invoice pending solo muestra yesterday, today y tomorrow y
 > future»*. La pestaña ya cumple la letra de esta entrada («nada anterior a ayer») y va más allá: tampoco admin y
@@ -41932,6 +41934,8 @@ No visto en navegador: `tsc` y vitest.
 **No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
 ## D-527 — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
 
+> **Completada por D-531** (2026-10-12): la migración 169 (la 168 letra por letra con un bloque más) deja al chofer guardar `photos`/`photo_meta` y `departed_at`/`arrived_at` en SU orden sin cambiar de etapa; hasta entonces «📷 Fotos del material» desde el chofer no se guardaba.
+
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.289.0, repo 1.392.0 · Rama `feat/recogida-chofer` ·
 **Migración `168_chofer_recoge_sin_listo.sql` escrita, SIN aplicar ni ensayar** (excepción autorizada por el orquestador a «no
 escribas migraciones»; sin ella funciona todo menos «Recoger de todos modos», que le dice al chofer «Aún no disponible…»).
@@ -42759,3 +42763,26 @@ las pruebas citadas arriba.
 - La foto de la pantalla solo se tomó en Time Tracker, RR. HH. y Entregas; en el ERP, Leads, Quote Builder, Encuestas y
   Promociones se vio la burbuja, no la foto.
 - El tema oscuro de cada app con la burbuja: solo se miró en Personalizar.
+
+## D-531 · El chofer guarda las fotos del material y salida/llegada en su orden (169); un borrador dura 7 días y avisa que NO queda programado
+
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.292.0, repo 1.396.0 · **Migración 169** (`169_fotos_del_chofer.sql`, plan en `docs/PLAN-169-fotos-del-chofer.md`) · Hecho directo por el orquestador en `feat/fotos-chofer-y-borrador-7-dias`. **Reemplaza en parte a D-392** y completa D-527 (cada una lleva su nota).
+
+**Pedidos del dueño**, literales:
+- *«haz el 5, 6 y 7»* sobre la lista de pendientes del día, donde el 5 era *«Fotos del material desde el chofer: en la ficha de orden el botón «📷 Fotos del material» usa una actualización que el guardia de la base rechaza al chofer (…) Lo mismo para `arrived_at` / `departed_at` del chofer»* y el 6 *«Aviso al guardar borrador que diga claro "esta orden NO queda programada", por el caso de Pablo»*. (El 7 era limpieza de worktrees: sin cambio de código.)
+- *«draft quedan hata 7 dias es lo unico que no tiene la reglas de ayer hoyy y manana»*.
+
+**El caso medido (2026-10-12).** Un vendedor de McAllen capturó el sábado 10 a las 15:02 la orden FU231 (factura 148129) con «Guardar borrador» y fecha del sábado; leyó «Orden creada». El lunes no la veía en Órdenes (el borrador con fecha del sábado ya no pasaba la ventana de ayer-hoy-futuro, D-392), la volvió a capturar como FU503 y preguntó por qué la primera no estaba programada. Dos cosas fallaban: el aviso no decía que un borrador no se programa, y la ventana escondía el borrador al día siguiente.
+
+**Qué cambia.**
+1. **Migración 169** (`guard_delivery_stage`, la 168 letra por letra con UN bloque más en el tramo de misma etapa): el chofer, en SU orden (asignada a su nombre, comparado con `profiles.full_name` como en la 168) y desde `approved` hasta `delivered`, puede escribir **solo** `photos`, `photo_meta`, `departed_at` y `arrived_at` (y `updated_at`). Cualquier otra columna cae al resto del guard, que contesta como antes. Sin cambio de etapa, sin RLS, sin esquema. Hasta hoy la base le contestaba «You cannot edit an order in the % stage» a las tres escrituras de la ficha (`{ photos }`, `{ departed_at }`, `{ arrived_at }`), por eso D-520 marcó «Llegué» con eventos; la ficha no cambia, solo deja de fallar.
+2. **Ventana de Órdenes** (`enLaVentanaDeOrdenes`, `ordenes-visibles.ts`): un borrador se ve mientras su fecha de entrega esté a ≤ 7 días atrás (`DIAS_DE_BORRADOR = 7`); sin fecha, siempre, como antes. Las demás etapas siguen con el suelo de ayer. Se cuenta desde la **fecha de entrega** del borrador, no desde su creación (es lo único que la ventana mira; en el caso medido coinciden).
+3. **Aviso al crear**: si la orden nace en `draft`, dice «Orden #X guardada como BORRADOR: NO queda programada. Ábrela y pulsa Enviar para programarla. Los borradores se conservan 7 días.» (en/es). Si no, «Orden #X creada» como antes. Los 7 días del aviso salen de la misma constante que corta la ventana.
+
+**Qué no cambia.** Almacén, ventas, office y logística: sus ramas del guard, letra por letra. El chofer sigue sin poder tocar otra columna ni una orden de otro. Quién ve historial entero (admin, logística) no cambia.
+
+**Pruebas:** `fotos-del-chofer.test.ts` (la 169 es la 168 sin el bloque; el bloque una sola vez y en el tramo de misma etapa; solo esas columnas; nombre vs `auth.uid()`; autocomprobación; línea de registro; las tres escrituras de la ficha caben; el aviso), `dias-viejos-en-ordenes.test.ts` (borrador del sábado el lunes, justo 7, 8 fuera; otras etapas no), y las que fijan la última migración del guard (`recibir`, `agregar-material`). Mutantes: 6 de 6 caen con una prueba con nombre (7 días → 1; la cláusula del borrador fuera; la cláusula para toda etapa; el bloque 169 sin «su orden»; el bloque con `delivery_notes`; el aviso invertido).
+
+**Aplicación:** ensayada con rollback el 2026-10-12 (autocomprobación incluida) y aplicada por el orquestador tras el merge, con respaldo del mismo día (`rtg-prod-20261012-095300.dump`), `migrate-status` antes y después.
+
+**No medido:** nada en navegador (`tsc` y vitest). No se probó con un chofer real que la foto del material se guarde: se infiere del guard y de la escritura literal de la ficha.
