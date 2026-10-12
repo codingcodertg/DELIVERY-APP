@@ -124,7 +124,7 @@ export interface EntradaDeLosPuntos<T extends OrdenDelMapa> {
   /** Dónde TERMINA la ruta ese día, si no es donde sale (166, `base-del-dia.ts`): su marca «F». Sin esto, o con `null` (termina
    *  donde sale, o no vuelve), no se pinta: la «P» ya es la vuelta. */
   finDe?: (clave: string) => { coords: [number, number]; direccion: string } | null;
-  /** Las paradas del DÍA de la ruta, numeradas (D-NEXT): las de la lista que pinta su tarjeta —lo pendiente con lo hecho
+  /** Las paradas del DÍA de la ruta, numeradas (D-529): las de la lista que pinta su tarjeta —lo pendiente con lo hecho
    *  donde iba—, para que la burbuja diga el número de la tabla y el de «Mi ruta». En la página, `diaDe(…).paradas`. */
   paradasDe: (clave: string, paradas: T[]) => readonly ParadaFisica[];
   coordsDeTienda: (nombre: string | null) => Coords | null;
@@ -188,7 +188,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
   const dentroDeOtra = new Set<string>();
   /** El número de parada de cada entrega (también de una marcada ☑, para su rótulo). */
   const numeroDe = new Map<string, number[]>();
-  // Los números son los del DÍA entero (D-NEXT): los de la tabla y los de «Mi ruta», que cuentan también lo ya recogido o
+  // Los números son los del DÍA entero (D-529): los de la tabla y los de «Mi ruta», que cuentan también lo ya recogido o
   // entregado. Hasta aquí se numeraba solo lo pendiente, y a media jornada la burbuja «1» era la parada ③ de la tabla.
   const delDia = new Map<string, readonly ParadaFisica[]>();
   const paradasDelDia = (laneKey: string) => {
@@ -278,7 +278,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
   }
   // Lo ya hecho sigue en el mapa (D-459), como hecho: la entregada con ✓ y apagada; la recogida y aún en camino, con 🚚.
   // No es una parada que se pueda marcar ni mover: su id no es el de la orden, y pulsarla no hace nada. Conserva su número de
-  // parada del día en el rótulo (D-NEXT), el de la tabla: «(Parada 5 · Entregada 10:42)».
+  // parada del día en el rótulo (D-529), el de la tabla: «(Parada 5 · Entregada 10:42)».
   for (const [laneKey, lista] of e.hechas) {
     if (!e.pasaFiltro(laneKey)) continue;
     for (const d of lista) {

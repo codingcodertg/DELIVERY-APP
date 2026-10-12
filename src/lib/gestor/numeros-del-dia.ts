@@ -5,7 +5,7 @@ import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { paradasDeLaRuta, type FilaQueSeNumera, type ParadaFisica } from "./paradas-numeradas";
 
 /**
- * El Gestor de Rutas (y «Ruta de hoy», que es la misma página) numera el DÍA ENTERO del chofer, como «Mi ruta» (D-NEXT).
+ * El Gestor de Rutas (y «Ruta de hoy», que es la misma página) numera el DÍA ENTERO del chofer, como «Mi ruta» (D-529).
  *
  * El dueño, 2026-10-11, con la captura de una ruta desplegada —«① P1», «② D1», «✓P» sin número, «③ P2», «④ D2», «🚚D» sin
  * número—: *«when a order is delviered dont take the number of the stop away»*.

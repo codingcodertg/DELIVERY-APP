@@ -125,7 +125,7 @@ describe("el mapa: una orden repartida en dos cargas (plan del motor)", () => {
 describe("la pantalla usa las paradas", () => {
   const gestor = plano(leer("src/app/(app)/routes/page.tsx"));
   it("la tabla: el número delante de la P/D de cada fila, primera fila con el número y las demás con la raya", () => {
-    // Nota D-NEXT: la numeración es la de la lista PINTADA del día (`dia`, de `diaDeLaRuta`, que llama a `paradasDeLaRuta`),
+    // Nota D-529: la numeración es la de la lista PINTADA del día (`dia`, de `diaDeLaRuta`, que llama a `paradasDeLaRuta`),
     // por su índice `k` en ella; y la etiqueta, la del día. Lo hecho lleva también su número (`numeros-del-dia.test.ts`).
     expect(gestor).toContain("const dia = diaDe(u.key, stops, lectura);");
     expect(gestor).toContain("return dia.primera[k] ? <span className=\"numero-de-parada\" data-numero-de-parada={n}");
@@ -140,12 +140,12 @@ describe("la pantalla usa las paradas", () => {
     expect(gestor).toContain("return clave === \"_n\" ? anchoDelNumeroDeParada(w) : w;");
   });
   it("la cabecera cuenta paradas, no filas", () => {
-    // Nota D-NEXT: las paradas que aún tienen algo pendiente, con la numeración del día (`quedan`).
+    // Nota D-529: las paradas que aún tienen algo pendiente, con la numeración del día (`quedan`).
     expect(gestor).toContain("{dia.quedan} {t(\"stops\", \"paradas\")} ·");
     expect(gestor).not.toContain("{cuenta.totales.paradas} {t(\"stops\"");
   });
   it("el mapa numera con la misma función, sobre la misma lectura", () => {
-    // Nota D-NEXT: sobre las paradas del DÍA que le da la página (`diaDe(…).paradas`, las de la tabla).
+    // Nota D-529: sobre las paradas del DÍA que le da la página (`diaDe(…).paradas`, las de la tabla).
     expect(plano(leer("src/lib/mapa-de-rutas.ts"))).toContain("for (const p of paradasDelDia(laneKey)) {");
     expect(gestor).toContain("paradasDe: (clave, stops) => diaDe(clave, stops).paradas,");
   });

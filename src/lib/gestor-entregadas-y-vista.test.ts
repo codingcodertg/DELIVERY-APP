@@ -145,7 +145,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
     it("pinta lo hecho del día de cada chofer, intercalado en su lista, y la tarjeta sigue aunque no quede nada pendiente", () => {
       expect(pagina).toContain("const hechasPintadas = useMemo(() => hechasQueSePintan(deliveries, date, modo), [deliveries, date, modo]);");
       expect(pagina).toContain("const hechasDe = (laneKey: string): Delivery[] => hechasPintadas.get(laneKey) ?? [];");
-      // Nota D-NEXT: la lista pintada sale de `diaDe` (la misma `filasConLoHecho`, dentro de `diaDeLaRuta`), que además la
+      // Nota D-529: la lista pintada sale de `diaDe` (la misma `filasConLoHecho`, dentro de `diaDeLaRuta`), que además la
       // numera sobre el día entero; cada fila lleva su índice `k` en ella para su número.
       expect(pagina).toContain("diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey));");
       expect(pagina).toContain("const dia = diaDe(u.key, stops, lectura); const pintadas = dia.pintadas;");
@@ -157,7 +157,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
     it("la fila hecha: ✓, el verde de `row-done`, la hora real, y NINGÚN control —ni flechas, ni «Pasar a…», ni ✕, ni arrastre, ni sitio donde soltar—", () => {
       const fila = trozo("const filaYaHecha = (fp: Extract<FilaPintada, { hecha: true }>, k: number) => {", "// Nadie la ordenó");
       expect(fila).toContain('className={hecho ? "row-done fila-hecha" : "fila-hecha"}');
-      // Nota D-NEXT: con su número de parada del día y su etiqueta («③ ✓P2»), no solo «✓P».
+      // Nota D-529: con su número de parada del día y su etiqueta («③ ✓P2»), no solo «✓P».
       expect(fila).toContain('{numeroDeParada(k, hecho)}{hecho ? "✓" : "🚚"}{dia.etiqueta[k]}</td>');
       expect(fila).toContain("const hora = hecho ? horaReal(d, fp.tipo) : null;");
       expect(fila).toContain("data-hora-real={hora ?? \"\"}");

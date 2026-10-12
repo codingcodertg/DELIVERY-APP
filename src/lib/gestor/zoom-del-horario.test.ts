@@ -230,7 +230,7 @@ describe("la pantalla usa las piezas", () => {
     expect(gestor).toContain('<div className="empty" data-horario-vacio>{ganttRows.some((r) => r.barras.length > 0) ? t("No driver with stops is ticked in “Drivers & routes”.", "Ningún chofer con paradas está marcado en «Choferes y rutas».")');
   });
   it("cada fila lleva el número de parada de la tabla (`paradasDeLaRuta` sobre la misma lectura)", () => {
-    // Nota D-NEXT: el número del DÍA de cada fila pendiente (`dePendiente`), el mismo de la tabla, que cuenta lo ya hecho.
+    // Nota D-529: el número del DÍA de cada fila pendiente (`dePendiente`), el mismo de la tabla, que cuenta lo ya hecho.
     expect(gestor).toContain("const lectura = lecturaDe(r.clave, stops);");
     expect(gestor).toContain("paradaDe: paradaDeCadaEntrega(lectura.filas, diaDe(r.clave, stops, lectura).dePendiente),");
   });

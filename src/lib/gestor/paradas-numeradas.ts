@@ -38,7 +38,7 @@ export interface ParadasDeLaRuta {
 }
 
 /** Lo que hace falta de una fila para numerarla: qué es, de qué orden(es), dónde y su etiqueta P/D. Una `FilaDeLaRuta` lo
- *  cumple; también una fila ya HECHA del Gestor, que no está en la lectura (D-NEXT, `numeros-del-dia.ts`). */
+ *  cumple; también una fila ya HECHA del Gestor, que no está en la lectura (D-529, `numeros-del-dia.ts`). */
 export type FilaQueSeNumera =
   | Pick<Extract<FilaDeLaRuta, { tipo: "P" }>, "tipo" | "ordenes" | "lugar" | "etiqueta">
   | Pick<Extract<FilaDeLaRuta, { tipo: "D" }>, "tipo" | "orden" | "etiqueta">;

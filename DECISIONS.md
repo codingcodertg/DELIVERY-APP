@@ -23380,7 +23380,7 @@ colores porque heredaba el blanco de la barra oscura; eso sigue en el panel y ti
 
 ## D-334 · El Gestor de Rutas lee las rutas asignadas a mano como P1, P2… D1, D2… — y «Plan del día» dice lo que hace
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): en el Gestor (y «Ruta de hoy») las etiquetas P/D se cuentan sobre el
+> **Reemplazada en parte por D-529** (2026-10-11): en el Gestor (y «Ruta de hoy») las etiquetas P/D se cuentan sobre el
 > DÍA entero del chofer —lo pendiente más lo ya recogido o entregado, en el sitio en que iba—, como en «Mi ruta». Hasta aquí,
 > sin plan, lo pendiente se volvía a etiquetar desde P1 en cuanto el chofer recogía o entregaba algo. La regla (orden de
 > recogida, `Dk` = entrega de `Pk`) no cambia: cambia sobre qué lista se cuenta.
@@ -35054,7 +35054,7 @@ siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): §1, la fila hecha ya no es «✓P» / «✓D» / «🚚D» a secas: lleva su número
+> **Reemplazada en parte por D-529** (2026-10-11): §1, la fila hecha ya no es «✓P» / «✓D» / «🚚D» a secas: lleva su número
 > de parada del día (en su círculo, apagado si ya está hecha) y su etiqueta P/D («③ ✓P2», «⑦ 🚚D3»). Sigue sin flechas, sin
 > arrastre y sin índice. En el mapa, el pin ✓ / 🚚 dice su número de parada en el rótulo. El dueño: «when a order is
 > delviered dont take the number of the stop away».
@@ -38109,7 +38109,7 @@ de todos por decisión de D-451.
 
 ## D-485 · Gestor de Rutas y «Ruta de hoy»: la ruta se numera por PARADAS (1, 2, 3…), y varias recogidas seguidas en la misma tienda son una sola parada
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): «Lo ya hecho no se numera» ya no vale. El Gestor y «Ruta de hoy» numeran
+> **Reemplazada en parte por D-529** (2026-10-11): «Lo ya hecho no se numera» ya no vale. El Gestor y «Ruta de hoy» numeran
 > el DÍA entero —la lista que pinta la tarjeta, con lo recogido, en camino o entregado donde iba (`numeros-del-dia.ts`)— con la
 > misma `paradasDeLaRuta`: lo hecho conserva su número y lo pendiente no vuelve a contar desde 1, como en «Mi ruta» (D-515).
 > El mapa y el horario dan esos mismos números, y «N paradas» de la cabecera cuenta las que aún tienen algo pendiente.
@@ -40795,7 +40795,7 @@ día de hoy y no lo distingue.
 
 ## D-515 — «Mi ruta» numera por paradas como el Gestor: 1, 2, 3… en vez de P1 y D1
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): «Lo que se midió antes de decidir, y que no se arregla aquí» se arregla:
+> **Reemplazada en parte por D-529** (2026-10-11): «Lo que se midió antes de decidir, y que no se arregla aquí» se arregla:
 > el Gestor numera también el día entero, y a media jornada da los mismos números que «Mi ruta». El dueño lo contestó con una
 > captura del Gestor: «when a order is delviered dont take the number of the stop away». El mapa de «Mi ruta» (el del Gestor,
 > D-514), que también contaba solo lo pendiente, da ya los números de la lista.
@@ -42412,9 +42412,9 @@ hub.
 - Ajustes al final del menú, o primero, como en la barra.
 - Los nombres cortos en español en el teléfono: «⏱ Registrar · 📅 Mi semana · 📝 Solicitudes».
 
-## D-NEXT · Gestor de Rutas y «Ruta de hoy»: lo recogido, en camino o entregado conserva su número de parada (y su etiqueta P/D), y lo pendiente no vuelve a contar desde 1 — los mismos números que «Mi ruta»
+## D-529 · Gestor de Rutas y «Ruta de hoy»: lo recogido, en camino o entregado conserva su número de parada (y su etiqueta P/D), y lo pendiente no vuelve a contar desde 1 — los mismos números que «Mi ruta»
 
-**Fecha:** 2026-10-11 · **Versión:** la pone el orquestador (Entregas) · **Migración:** ninguna · Rama `feat/numeros-gestor`.
+**Fecha:** 2026-10-11 · **Versión:** deliveries 1.290.0, repo 1.394.0 (Entregas) · **Migración:** ninguna · Rama `feat/numeros-gestor`.
 **No cambia el orden, lo que se guarda ni lo que se mueve:** solo qué número y qué etiqueta lleva cada fila. **Reemplaza en
 parte a** D-334, D-459, D-485 y D-515 (cada una lleva su nota).
 
@@ -42515,7 +42515,7 @@ nada hecho y todo entregado, con plan publicado (sus etiquetas, con un sitio del
 números y etiquetas que «Mi ruta» con las funciones de «Mi ruta»** (sin plan antes, a media jornada y al final; con plan), el
 mapa, y **las pantallas pintadas** con `renderToStaticMarkup`: «Ruta de hoy» y el Gestor de logística con la misma ruta
 («1 ✓P1 · │ P2 · 2 ✓D1 · 3 D2 · 4 ✓P3 · 5 P4 · 6 D4 · 7 🚚D3», lo hecho sin flechas ni arrastre), «Mi ruta» pintada dando a
-cada parada el mismo número que el Gestor, y el mapa de «Mi ruta». Puestas al día, con su «Nota D-NEXT»: `gestor-entregadas-y-vista`,
+cada parada el mismo número que el Gestor, y el mapa de «Mi ruta». Puestas al día, con su «Nota D-529»: `gestor-entregadas-y-vista`,
 `lista-unica`, `gestor-factura-arrastre-optimizar`, `paradas-numeradas`, `zoom-del-horario`, `rutas-del-dia` (Ana ya entregó FA4:
 sus burbujas pasan de 2 y 3 a 3 y 4), `lectura-del-gestor`, y la entrada nueva del mapa en `gestor-y-ruta-de-hoy`,
 `mapa-de-mi-ruta` y `base-del-dia`.
@@ -42557,3 +42557,5 @@ ancla de texto**, y se dice: G8 (el horario numera solo lo pendiente: el horario
 - **Nada en producción ni con sesión.** El mapa de Google no (el demo pinta Leaflet). Con plan publicado, solo en las pruebas (el
   demo no tiene planes).
 - El texto en español de la tabla y del mapa, solo por las pruebas (el demo se midió en inglés).
+
+**Añadido por el orquestador al fusionar:** en «Mi ruta», la entrega ya hecha también conserva su número en el círculo (antes pintaba «✓» en vez del número: `{hecha ? "✓" : n}` → `{n}`); el círculo apagado ya la distingue. Es el mismo pedido del dueño, en la otra pantalla.

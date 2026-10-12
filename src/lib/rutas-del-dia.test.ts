@@ -197,7 +197,7 @@ const choferes = [{ id: "u-ana", full_name: "Ana", store: "Pharr" }, { id: "u-be
 const carriles = carrilesDelDia(choferes, ["Ruta 1"], pendientes, hechas.keys());
 const porChofer = rutasPorChofer(pendientes);
 const lecturaDe = (_clave: string, stops: ParadaDelDia[]) => lecturaConLoHecho(stops, 10, null, []);
-// Las paradas del DÍA, como la página (`diaDe`, D-NEXT): lo pendiente con lo hecho de esa ruta donde iba.
+// Las paradas del DÍA, como la página (`diaDe`, D-529): lo pendiente con lo hecho de esa ruta donde iba.
 const paradasDe = (clave: string, stops: ParadaDelDia[]) => diaDeLaRuta(lecturaDe(clave, stops), stops, hechas.get(clave) ?? [], 10, null).paradas;
 const coordsDeTienda = (n: string | null) => ((n ?? "").trim().toLowerCase() === "pharr" ? { lat: 26.19, lng: -98.18 } : null);
 const puntos = (marcados: Set<string> = new Set(), detalleDe?: (d: ParadaDelDia) => string) => puntosDeLasRutas<ParadaDelDia>({
@@ -233,7 +233,7 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
     expect(pts.some((p) => p.id === "__depot__u-caro")).toBe(false);
     // Puesto al día por D-485 (la ruta por paradas): la burbuja lleva el NÚMERO DE PARADA, no «D1»/«P1». Ana recoge sus
     // dos órdenes en Pharr, seguidas: UNA parada, «1» (antes dos burbujas, «P1» y «P2»); después D1 es la parada 2 y D2 la 3.
-    // Nota D-NEXT: los números son los del DÍA entero, y Ana ya entregó FA4 (h1, también recogida en Pharr y con el mismo
+    // Nota D-529: los números son los del DÍA entero, y Ana ya entregó FA4 (h1, también recogida en Pharr y con el mismo
     // puesto 0 que a1: lo hecho va delante en el empate, D-459). Su día: recoger FA1, FA2 y FA4 en Pharr (parada 1, «P1, P2,
     // P3»), entregar FA4 (2, ya hecha: su pin es el ✓), FA1 (3) y FA2 (4). Antes, solo lo pendiente: 1, 2 y 3.
     expect(de("a1")).toMatchObject({ badge: "3", color: "rojo", dimmed: false });
@@ -263,7 +263,7 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
   it("«Ruta de hoy» añade al rótulo la ciudad, los pallets y la llegada — y nada más", () => {
     const pts = puntos(new Set(), (d) => `${d.delivery_city} · ${d.est_pallets} pallets`);
     // Puesto al día por D-485: el rótulo empieza por la parada y lo que se hace en ella.
-    // Nota D-NEXT: «Stop 4», el número del día (FA4, entregada, es la parada 2).
+    // Nota D-529: «Stop 4», el número del día (FA4, entregada, es la parada 2).
     expect(pts.find((p) => p.id === "a2")!.label).toBe("Stop 4 — deliver D2 · #FA2 (no invoice) — Ana · McAllen · 3 pallets");
     // El Gestor no pasa `detalleDe`: sus rótulos son los de siempre.
     expect(puntos().find((p) => p.id === "a2")!.label).toBe("Stop 4 — deliver D2 · #FA2 (no invoice) — Ana");

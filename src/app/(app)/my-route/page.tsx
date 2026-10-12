@@ -134,7 +134,7 @@ export default function MyRoutePage() {
     if (!p) return null;
     const titulo = textoDeLaParada(p, [], t);
     return secciones.conNumero[fi]
-      ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorDelChofer, opacity: hecha ? 0.55 : 1 }}>{hecha ? "✓" : n}</span>
+      ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorDelChofer, opacity: hecha ? 0.55 : 1 }}>{n}</span>
       : <span className="numero-de-parada sigue" data-sigue-la-parada={n} title={titulo} style={{ color: colorDelChofer }} />;
   };
   // «Carga 1 de 2» (D-452, 157): una orden que no cabía en el camión son dos órdenes hermanas, cada una su parada; aquí

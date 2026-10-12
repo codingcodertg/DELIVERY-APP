@@ -149,7 +149,7 @@ import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, 
 //   · D-485: la ruta se numera por PARADAS (`lib/gestor/paradas-numeradas`): filas seguidas en el mismo sitio (la regla de
 //     los grupos de D-444) son UNA parada, «1», «2»…; la tabla lleva el número delante de la P/D de cada orden, y el mapa
 //     una burbuja por parada con su número —también la de una tienda de RTG, que D-481 (d) había quitado—.
-//   · D-NEXT: el número (y la etiqueta P/D) es del DÍA entero, como en «Mi ruta»: lo recogido, en camino o entregado
+//   · D-529: el número (y la etiqueta P/D) es del DÍA entero, como en «Mi ruta»: lo recogido, en camino o entregado
 //     conserva el suyo y lo pendiente no vuelve a contar desde 1 (`lib/gestor/numeros-del-dia`, `diaDe`).
 // ============================================================
 
@@ -688,7 +688,7 @@ export default function RoutesPage() {
    *  plan publicado y la ruta tal como el plan la dejó, las paradas y etiquetas del plan (D-335); si no, lo guardado. */
   const lecturaDe = (laneKey: string, stops: Delivery[]): LecturaDeRuta =>
     lecturaConLoHecho(stops, capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), hechasDeLaRuta(laneKey, stops));
-  /** La ruta del DÍA de un chofer (D-NEXT): lo pendiente de la lectura, con lo ya hecho donde iba (D-459), numerado por
+  /** La ruta del DÍA de un chofer (D-529): lo pendiente de la lectura, con lo ya hecho donde iba (D-459), numerado por
    *  paradas (D-485) y etiquetado P/D sobre el día entero, como «Mi ruta» (D-515). El dueño, 2026-10-11: «when a order is
    *  delviered dont take the number of the stop away». Lo leen la tabla, el mapa, el horario y los avisos de mover, para que
    *  los cuatro digan el mismo número; lo que se MUEVE sigue siendo la lectura de lo pendiente. */
@@ -1436,7 +1436,7 @@ export default function RoutesPage() {
     const l = lanes.find((x) => x.key === r.clave)!;
     const stops = byDriver.get(r.clave) ?? [];
     // El número de parada de cada barra es el de la tabla y el mapa (D-485): la misma lectura y la misma numeración, la del
-    // DÍA entero (D-NEXT): una barra pendiente no vuelve a contar desde 1 porque el chofer ya entregó otras.
+    // DÍA entero (D-529): una barra pendiente no vuelve a contar desde 1 porque el chofer ya entregó otras.
     const lectura = lecturaDe(r.clave, stops);
     return {
       key: r.clave, title: l.label, color: colorFor(l.driver), orders: stops,
@@ -1910,7 +1910,7 @@ export default function RoutesPage() {
         const tienda = tiendaFinDe(clave), fin = finDeLaRuta(clave);
         return tienda && fin ? { coords: [fin.lat, fin.lng], direccion: tienda.name } : null;
       },
-      // Los números del DÍA (D-NEXT), los mismos de la tabla: `diaDe` (lo pendiente con lo hecho donde iba).
+      // Los números del DÍA (D-529), los mismos de la tabla: `diaDe` (lo pendiente con lo hecho donde iba).
       paradasDe: (clave, stops) => diaDe(clave, stops).paradas, coordsDeTienda, t,
       marcadas: { tiene: (id) => selectedOrders.has(id), colorDe: (id) => selColorById.get(id), cuantas: selectedOrders.size },
     });
@@ -2820,7 +2820,7 @@ export default function RoutesPage() {
         // entran en `lectura`, `cuenta` ni la medida, que siguen siendo de lo pendiente.
         const hechas = hechasDe(u.key);
         const hechasPorId = new Map(hechas.map((d) => [d.id, d]));
-        // La lista que se pinta (lo pendiente con lo hecho donde iba) y su numeración del DÍA (D-NEXT): la misma de «Mi ruta».
+        // La lista que se pinta (lo pendiente con lo hecho donde iba) y su numeración del DÍA (D-529): la misma de «Mi ruta».
         const dia = diaDe(u.key, stops, lectura);
         const pintadas = dia.pintadas;
         const entregas = resumenDeEntregas(stops, hechas);
@@ -2839,7 +2839,7 @@ export default function RoutesPage() {
           return (
             <tr key={`hecha-${fp.tipo}-${d.id}`} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className={hecho ? "row-done fila-hecha" : "fila-hecha"}
               title={t(`${que.en}${hora ? ` at ${hora}` : ""} — it stays on the list; it can't be moved`, `${que.es}${hora ? ` a las ${hora}` : ""} — sigue en la lista; no se mueve`)}>
-              {/* Su número de parada del día y su etiqueta (D-NEXT; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
+              {/* Su número de parada del día y su etiqueta (D-529; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
                   delviered dont take the number of the stop away». El ✓ o el 🚚 siguen diciendo que está hecha o en camino. */}
               <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k, hecho)}{hecho ? "✓" : "🚚"}{dia.etiqueta[k]}</td>
               <td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>
@@ -2864,7 +2864,7 @@ export default function RoutesPage() {
         // Filas SEGUIDAS en el mismo sitio (D-444): cada una en su fila, pintadas como grupo con un tono más fuerte.
         const grupos = gruposDeMismoLugar(lectura.paradas, stops);
         // La ruta por PARADAS (D-485): filas seguidas en el mismo sitio —la misma regla de los grupos— son una parada, con un
-        // número. La primera fila de cada parada lleva el número; las demás, la raya de que sigue. Desde D-NEXT, sobre la
+        // número. La primera fila de cada parada lleva el número; las demás, la raya de que sigue. Desde D-529, sobre la
         // lista PINTADA (`dia`): lo ya hecho cuenta y conserva su número, y lo pendiente no vuelve a contar desde 1. `k` es el
         // índice de la fila en `pintadas`; lo ya entregado o recogido, con el círculo apagado, como en «Mi ruta».
         const numeroDeParada = (k: number, hecha = false) => {
@@ -2962,7 +2962,7 @@ export default function RoutesPage() {
               )}
               {/* Sin viajes (D-443): ni «N viajes», ni «Ver un viaje» (D-441), ni «viajes fijados / agrupado automáticamente».
                   Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión.
-                  «N paradas» son las que aún tienen algo PENDIENTE, como «N órdenes» (D-NEXT: los números ya cuentan lo hecho). */}
+                  «N paradas» son las que aún tienen algo PENDIENTE, como «N órdenes» (D-529: los números ya cuentan lo hecho). */}
               {stops.length > 0 && (
                 <span className="hint" data-totales-de-la-lista style={{ marginTop: 0 }}>
                   {dia.quedan} {t("stops", "paradas")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}
@@ -3182,7 +3182,7 @@ export default function RoutesPage() {
                       if (fp.hecha) return filaYaHecha(fp, k);
                       const f = fp.fila;
                       const fi = fp.i;
-                      // Su etiqueta P/D del DÍA (D-NEXT): sin plan, numerada con lo ya hecho dentro; con plan, la del plan.
+                      // Su etiqueta P/D del DÍA (D-529): sin plan, numerada con lo ya hecho dentro; con plan, la del plan.
                       const etiquetaDeLaFila = dia.etiqueta[k];
                       const cu = cuenta.paradas[fi];
                       const gris = esProvisionalLaFila(f, porId);

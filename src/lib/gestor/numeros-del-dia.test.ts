@@ -16,7 +16,7 @@ import { todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// D-NEXT · El Gestor de Rutas (y «Ruta de hoy») numera el DÍA ENTERO, como «Mi ruta».
+// D-529 · El Gestor de Rutas (y «Ruta de hoy») numera el DÍA ENTERO, como «Mi ruta».
 //
 // El dueño, 2026-10-11, con la captura del Gestor —«① P1», «② D1», «✓P» sin número, «③ P2», «④ D2», «🚚D» sin número—:
 // «when a order is delviered dont take the number of the stop away».
