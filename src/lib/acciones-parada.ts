@@ -32,6 +32,11 @@ import { EVENTO_DEJADO } from "@/lib/leave-at-store";
 // `arrived_at` que escribe la ficha NO le sirve al chofer: el guard (157) solo le deja cambiar, sin cambiar de etapa, las
 // coordenadas de una parada ya cerrada, así que escribirla le contesta «You cannot edit an order in the picked_up stage».
 //
+// **D-NEXT (2026-10-11):** «Llegué» se deshace (`arrived_pickup_undone` / `arrived_delivery_undone`, que borran la llegada
+// de su tramo), y va en la MISMA fila que «Recogido» / «Entregado» (`ordenDeLaLlegada` dice en cuál). «Recogido» ya no sale
+// apagado cuando el almacén no la tiene lista: abre la ficha, donde el chofer la recoge de todos modos con una nota
+// (`recogida-del-chofer.ts`); y ya recogida, «↩ Deshacer recogido» en la fila de la recogida.
+//
 // Puro: sin React, sin red.
 // ============================================================
 
@@ -42,6 +47,10 @@ export const KIND_RECHAZADA = "customer_rejected";
 /** «📍 Llegué» (D-520): a la tienda a recoger, o con el cliente a entregar. */
 export const KIND_LLEGO_A_RECOGER = "arrived_pickup";
 export const KIND_LLEGO_A_ENTREGAR = "arrived_delivery";
+/** «↩ Deshacer» la llegada (D-NEXT): borra la llegada de ESE tramo en esa orden. Un evento propio y no un borrado: la
+ *  llegada y su vuelta quedan las dos en el historial. */
+export const KIND_DESHIZO_LLEGADA_A_RECOGER = "arrived_pickup_undone";
+export const KIND_DESHIZO_LLEGADA_A_ENTREGAR = "arrived_delivery_undone";
 
 /** La marca vigente de una parada. Desde D-520 solo existe el rechazo: el salto se fue con su botón. */
 export type MarcaDeParada = { marca: "rechazada"; at: string; motivo: string | null };
@@ -91,6 +100,8 @@ export interface LlegadaDeOrden { recoger?: string; entregar?: string }
  * Las llegadas vigentes de cada orden. Una llegada vale **el día en que se hizo** (zona del negocio) y **su tramo**:
  * «Dejar en tienda» y anularla borran las dos (la orden vuelve a empezar), y recogerla borra la de entregar (empieza un
  * tramo nuevo hacia el cliente). Que el almacén la marque lista NO la borra: es justo el chofer que llegó y espera.
+ * D-NEXT: «↩ Deshacer» la llegada la borra, solo la de su tramo (`arrived_pickup_undone` la de la tienda,
+ * `arrived_delivery_undone` la del cliente); una llegada posterior vuelve a contar.
  */
 export function llegadasDeParadas(events: readonly EventoDeParada[], hoy: string): Map<string, LlegadaDeOrden> {
   const out = new Map<string, LlegadaDeOrden>();
@@ -99,6 +110,8 @@ export function llegadasDeParadas(events: readonly EventoDeParada[], hoy: string
     for (const e of enOrden) {
       if (e.kind === EVENTO_DEJADO || e.kind === "canceled") l = {};
       if (e.kind === "picked_up") l = { recoger: l.recoger };
+      if (e.kind === KIND_DESHIZO_LLEGADA_A_RECOGER) l = { entregar: l.entregar };
+      if (e.kind === KIND_DESHIZO_LLEGADA_A_ENTREGAR) l = { recoger: l.recoger };
       if (e.kind !== KIND_LLEGO_A_RECOGER && e.kind !== KIND_LLEGO_A_ENTREGAR) continue;
       if (isoInTZ(new Date(e.created_at)) !== hoy) continue;
       l = e.kind === KIND_LLEGO_A_RECOGER ? { ...l, recoger: e.created_at } : { ...l, entregar: e.created_at };
@@ -117,9 +130,13 @@ export function llegadasDeParadas(events: readonly EventoDeParada[], hoy: string
  *
  * Las rechazadas por el cliente no cuentan (ya llegó, y lo que toca es «Dejar en tienda»). `null`: no hay nada a lo que
  * llegar —todo hecho, o nada cargado—. `hecha`: alguna ya tiene su llegada; `at` es la primera.
+ *
+ * D-NEXT: las dos llevan `tipo` y `ordenes` (las del tramo, en el orden de la parada). `ordenes[0]` es la orden en cuya
+ * fila va «Llegué», junto a su «Recogido» o su «Entregado» (`ordenDeLaLlegada`). `hecha` lleva además `conLlegada`: las
+ * que tienen llegada, que son las que «↩ Deshacer» deshace.
  */
 export type LlegadaDeParada =
-  | { estado: "hecha"; at: string }
+  | { estado: "hecha"; at: string; tipo: "P" | "D"; ordenes: string[]; conLlegada: string[] }
   | { estado: "pendiente"; tipo: "P" | "D"; ordenes: string[] };
 
 const YA_RECOGIDA = new Set<string>(["picked_up", "delivered", "canceled"]);
@@ -136,19 +153,26 @@ export function llegadaDeLaParada(
     return parada.tipo === "P" ? !YA_RECOGIDA.has(etapa) : etapa === "picked_up";
   });
   if (enTramo.length === 0) return null;
-  const horas = enTramo
-    .map((id) => (parada.tipo === "P" ? llegadas.get(id)?.recoger : llegadas.get(id)?.entregar))
-    .filter((x): x is string => !!x)
-    .sort();
-  return horas.length ? { estado: "hecha", at: horas[0] } : { estado: "pendiente", tipo: parada.tipo, ordenes: enTramo };
+  const horaDe = (id: string) => (parada.tipo === "P" ? llegadas.get(id)?.recoger : llegadas.get(id)?.entregar);
+  const conLlegada = enTramo.filter((id) => !!horaDe(id));
+  const horas = conLlegada.map((id) => horaDe(id) as string).sort();
+  return horas.length
+    ? { estado: "hecha", at: horas[0], tipo: parada.tipo, ordenes: enTramo, conLlegada }
+    : { estado: "pendiente", tipo: parada.tipo, ordenes: enTramo };
 }
+
+/** La orden en cuya fila va «Llegué» de su parada: la primera del tramo (D-NEXT: en la misma fila que su «Recogido» o su
+ *  «Entregado»). `null` si no hay nada a lo que llegar. */
+export const ordenDeLaLlegada = (llegada: LlegadaDeParada | null | undefined): string | null => llegada?.ordenes[0] ?? null;
 
 /** El evento que deja «Llegué» en cada orden de la parada. */
 export const kindDeLlegada = (tipo: "P" | "D"): string => (tipo === "P" ? KIND_LLEGO_A_RECOGER : KIND_LLEGO_A_ENTREGAR);
+/** El evento que deja «↩ Deshacer» la llegada en cada orden que la tenía (D-NEXT). */
+export const kindDeDeshacerLlegada = (tipo: "P" | "D"): string => (tipo === "P" ? KIND_DESHIZO_LLEGADA_A_RECOGER : KIND_DESHIZO_LLEGADA_A_ENTREGAR);
 
 // ---- Los botones de cada orden de la parada ---------------------------------
 
-export type AccionDeParada = "recoger" | "entregar" | "rechazar" | "dejar";
+export type AccionDeParada = "recoger" | "entregar" | "rechazar" | "dejar" | "deshacer_recogida";
 
 /** Un botón de la parada. `apagado`: se ve pero no se pulsa, y el motivo se dice a la vista (en un teléfono no hay
  *  `title` que leer). */
@@ -157,8 +181,13 @@ export interface BotonDeParada {
   apagado: { en: string; es: string } | null;
 }
 
-/** Por qué «Recogido» sale apagado. El guard de la base (157) solo deja al chofer pasar de `ready` a `picked_up`. */
+/** Por qué «Recogido» salía apagado (D-520). **Desde D-NEXT ya no lo apaga**: en `approved`/`fulfilling` abre la ficha, donde
+ *  el chofer la recoge de todos modos con una nota (168). Se queda: es el aviso que la ficha le pone a esa recogida. */
 export const NO_ESTA_LISTA = { en: "The warehouse doesn't have it ready yet", es: "El almacén aún no la tiene lista" } as const;
+/** Por qué «Recogido» sale apagado desde D-NEXT: la orden ni siquiera está aprobada (`draft`, `pending`, `rejected`). */
+export const SIN_APROBAR = { en: "Not approved yet", es: "Aún no está aprobada" } as const;
+/** Las etapas en que «Recogido» abre la ficha para recoger (D-NEXT): lista, o aprobada sin terminar de preparar. */
+const SE_RECOGE = new Set<string>(["ready", "approved", "fulfilling"]);
 
 /**
  * Qué botones lleva cada orden de una parada (además de «Llegué», que es de la parada entera: `llegadaDeLaParada`). `tipo`
@@ -167,19 +196,25 @@ export const NO_ESTA_LISTA = { en: "The warehouse doesn't have it ready yet", es
  *  - Hecha (recogida ya en el camión, o entregada) o anulada: nada.
  *  - Rechazada: solo «Dejar en tienda» —y en la entrega, que es donde vive el material—.
  *  - Recogida: «Recogido». Si el almacén aún no la tiene lista (`approved`, `fulfilling`…) sale **a la vista y apagado**,
- *    con el motivo (D-520; antes solo salía «Saltar»).
+ *    con el motivo (D-520; antes solo salía «Saltar»). **D-NEXT:** encendido también en `approved`/`fulfilling` (abre la
+ *    ficha, donde se recoge de todos modos con nota); apagado solo si la orden no está aprobada.
+ *  - Recogida ya en el camión (D-NEXT): «↩ Deshacer recogido» si `deshacer` lo dice (`deshacerRecogida`: su orden, y una
+ *    recogida suya y normal), apagado con su motivo si deshacerla desde el teléfono sería un lío.
  *  - Entrega: con el material en el camión (`picked_up`), «Entregado» y «Rechazado» (D-495). Antes de recogerla, nada:
  *    entregar o rechazar algo que no se ha cargado no existe.
  *
  * D-520 quitó «Saltar» y «Retomar». El dueño, 2026-10-11: «remove the skip buittom in driver view».
  */
-export function accionesDeParada(tipo: "P" | "D", etapa: string | null | undefined, marca: MarcaDeParada | null | undefined): BotonDeParada[] {
+export function accionesDeParada(
+  tipo: "P" | "D", etapa: string | null | undefined, marca: MarcaDeParada | null | undefined,
+  deshacer: { bloqueo: { en: string; es: string } | null } | null = null,
+): BotonDeParada[] {
   const boton = (accion: AccionDeParada, apagado: BotonDeParada["apagado"] = null): BotonDeParada => ({ accion, apagado });
   if (etapa === "delivered" || etapa === "canceled") return [];
   if (marca?.marca === "rechazada") return tipo === "D" && etapa === "picked_up" ? [boton("dejar")] : [];
   if (tipo === "P") {
-    if (etapa === "picked_up") return [];
-    return [boton("recoger", etapa === "ready" ? null : NO_ESTA_LISTA)];
+    if (etapa === "picked_up") return deshacer ? [boton("deshacer_recogida", deshacer.bloqueo)] : [];
+    return [boton("recoger", SE_RECOGE.has(etapa ?? "") ? null : SIN_APROBAR)];
   }
   // Ya en el camión no se salta (D-495). El dueño, 2026-10-07: «si aceptas una delivery no puedes skipped it solo delivered
   // or rejected».
@@ -280,6 +315,8 @@ export function etiquetaDeEventoDeParada(kind: string, lang: "en" | "es"): strin
   if (kind === KIND_RECHAZADA) return lang === "es" ? "⛔ Rechazada por el cliente" : "⛔ Rejected by customer";
   if (kind === KIND_LLEGO_A_RECOGER) return lang === "es" ? "📍 Llegó a la tienda" : "📍 Arrived at the store";
   if (kind === KIND_LLEGO_A_ENTREGAR) return lang === "es" ? "📍 Llegó con el cliente" : "📍 Arrived at the customer";
+  if (kind === KIND_DESHIZO_LLEGADA_A_RECOGER) return lang === "es" ? "↩ Llegada a la tienda deshecha" : "↩ Store arrival undone";
+  if (kind === KIND_DESHIZO_LLEGADA_A_ENTREGAR) return lang === "es" ? "↩ Llegada con el cliente deshecha" : "↩ Customer arrival undone";
   return null;
 }
 

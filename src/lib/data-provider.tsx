@@ -32,6 +32,8 @@ import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria";
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
+import { mensajeDelGuard } from "@/lib/recogida-del-chofer";
+import { autoresDeFotos } from "@/lib/fotos-de-entrega";
 import { falloAlGuardarDocumento, valorDeDocumento } from "@/lib/documento-pendiente";
 import type { EscrituraDeMaterial } from "@/lib/agregar-material";
 import type { CampoDeDocumento } from "@/lib/order-document";
@@ -442,8 +444,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
             // The server refused it (e.g. the order moved on without us).
             // Retrying forever would never help, so drop it and say so.
             notify(lang === "es"
-              ? `No se pudo enviar un cambio: ${error.message}`
-              : `A queued change was rejected: ${error.message}`);
+              ? `No se pudo enviar un cambio: ${mensajeDelGuard(error.message, lang) ?? error.message}`
+              : `A queued change was rejected: ${mensajeDelGuard(error.message, lang) ?? error.message}`);
           } else {
             void logEventRef.current?.(it.deliveryId, it.kind ?? it.stage, it.note);
             // Una parada cerrada sin señal también mueve la ruta: el aviso «en camino» se pide al llegar (D-416).
@@ -1046,14 +1048,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       //
       // Keyed by URL and merged, so removing a photo drops its entry and the
       // survivors keep their authors.
+      // D-NEXT: la regla vive en `autoresDeFotos` porque la entrega con cámara del chofer firma sus fotos en su propia
+      // escritura (la de la etapa), no aquí.
       if (patch.photos && me) {
-        const prevMeta = before?.photo_meta ?? {};
-        const now = new Date().toISOString();
-        const meta: Record<string, { by: string; at: string }> = {};
-        for (const url of patch.photos) {
-          meta[url] = prevMeta[url] ?? { by: me.id, at: now };
-        }
-        patch = { ...patch, photo_meta: meta };
+        patch = { ...patch, photo_meta: autoresDeFotos(patch.photos, before?.photo_meta, me.id, new Date().toISOString()) };
       }
 
       const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
@@ -1433,7 +1431,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           notify(t_offlineSaved());
           return true;   // as far as the driver is concerned, it's done
         }
-        notify(error.message);
+        // El error del guard que el chofer no tiene por qué leer (D-NEXT): sin la 168, «Recoger de todos modos» contesta
+        // «driver cannot move an order from approved to picked_up»; se le dice qué pasa y a quién avisar.
+        notify(mensajeDelGuard(error.message, lang) ?? error.message);
         return false;
       }
       setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));

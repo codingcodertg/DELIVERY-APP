@@ -4,10 +4,13 @@ import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
-  KIND_LLEGO_A_ENTREGAR, KIND_LLEGO_A_RECOGER, KIND_RECHAZADA, KIND_RETOMADA, KIND_SALTADA, NO_ESTA_LISTA,
+  KIND_LLEGO_A_ENTREGAR, KIND_LLEGO_A_RECOGER, KIND_RECHAZADA, KIND_RETOMADA, KIND_SALTADA, NO_ESTA_LISTA, SIN_APROBAR,
   accionesDeParada, avisosDeRechazo, etiquetaDeEventoDeParada, kindDeLlegada, llegadaDeLaParada, llegadasDeParadas,
   marcasDeParadas, notaDeRechazo, pastillaDeMarca, razonDeLaNota, razonDeRechazo,
+  KIND_DESHIZO_LLEGADA_A_ENTREGAR, KIND_DESHIZO_LLEGADA_A_RECOGER, kindDeDeshacerLlegada, ordenDeLaLlegada,
+  type LlegadaDeParada,
 } from "@/lib/acciones-parada";
+import type { DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import { siguienteParada } from "@/lib/avisos-cliente";
 import type { Delivery } from "@/lib/types";
 
@@ -15,6 +18,9 @@ import type { Delivery } from "@/lib/types";
 // del salto (que marcaba la parada, que «Retomar» la devolvía, que cedía el turno) se cambiaron por su contrario —un salto
 // viejo ya no marca nada ni cede el turno—, y la tabla de botones por la nueva («Recogido» apagado con su motivo, sin
 // «Saltar»). Las del rechazo (D-487, D-495) siguen igual.
+//
+// **Nota D-NEXT (2026-10-11):** «Recogido» ya no se apaga por no estar lista (abre la ficha), «Llegué» va dentro de la fila
+// de botones y se deshace, y la recogida hecha lleva «↩ Deshacer recogido». Cada prueba que cambió lo dice en su sitio.
 
 // El componente se pinta de verdad: lo que decide `accionesDeParada` tiene que llegar a la pantalla.
 vi.mock("@/lib/data-provider", () => ({
@@ -22,6 +28,8 @@ vi.mock("@/lib/data-provider", () => ({
 }));
 vi.mock("@/lib/prefs", () => ({ usePrefs: () => ({ t: (en: string) => en, lang: "en" }) }));
 vi.mock("@/components/LeaveAtStore", () => ({ LeaveAtStore: () => createElement("span", { "data-dejar": "1" }) }));
+// D-NEXT: «↩ Deshacer» (la llegada y la recogida) pregunta con `useConfirm`, que en la app pone el layout.
+vi.mock("@/lib/confirm", () => ({ useConfirm: () => async () => true }));
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
 const HOY = "2026-10-06";
@@ -85,6 +93,27 @@ describe("llegadasDeParadas (D-520)", () => {
     const m = llegadasDeParadas([ev("a", "picked_up", "2026-10-06T16:00:00Z"), ev("a", KIND_LLEGO_A_ENTREGAR, "2026-10-06T15:00:00Z")], HOY);
     expect(m.has("a")).toBe(false);
   });
+  it("D-NEXT: «↩ Deshacer» borra la llegada de SU tramo y no la del otro; una llegada después vuelve a contar", () => {
+    const m = llegadasDeParadas([
+      ev("a", KIND_LLEGO_A_RECOGER, "2026-10-06T14:00:00Z"), ev("a", KIND_DESHIZO_LLEGADA_A_RECOGER, "2026-10-06T14:05:00Z"),
+      ev("b", KIND_LLEGO_A_RECOGER, "2026-10-06T14:00:00Z"), ev("b", "picked_up", "2026-10-06T14:10:00Z"),
+      ev("b", KIND_LLEGO_A_ENTREGAR, "2026-10-06T15:00:00Z"), ev("b", KIND_DESHIZO_LLEGADA_A_ENTREGAR, "2026-10-06T15:01:00Z"),
+      ev("c", KIND_LLEGO_A_RECOGER, "2026-10-06T14:00:00Z"), ev("c", KIND_DESHIZO_LLEGADA_A_RECOGER, "2026-10-06T14:05:00Z"),
+      ev("c", KIND_LLEGO_A_RECOGER, "2026-10-06T14:20:00Z"),
+    ], HOY);
+    expect(m.has("a")).toBe(false);
+    expect(m.get("b")).toEqual({ recoger: "2026-10-06T14:00:00Z" });
+    expect(m.get("c")).toEqual({ recoger: "2026-10-06T14:20:00Z" });
+    expect(kindDeDeshacerLlegada("P")).toBe("arrived_pickup_undone");
+    expect(kindDeDeshacerLlegada("D")).toBe("arrived_delivery_undone");
+  });
+  it("D-NEXT: deshacer la de la tienda no toca la del cliente (y al revés)", () => {
+    const m = llegadasDeParadas([
+      ev("a", KIND_LLEGO_A_RECOGER, "2026-10-06T14:00:00Z"), ev("a", "picked_up", "2026-10-06T14:10:00Z"),
+      ev("a", KIND_LLEGO_A_ENTREGAR, "2026-10-06T15:00:00Z"), ev("a", KIND_DESHIZO_LLEGADA_A_RECOGER, "2026-10-06T15:05:00Z"),
+    ], HOY);
+    expect(m.get("a")).toEqual({ entregar: "2026-10-06T15:00:00Z" });
+  });
 });
 
 describe("llegadaDeLaParada (D-520)", () => {
@@ -103,13 +132,24 @@ describe("llegadaDeLaParada (D-520)", () => {
   });
   it("ya llegó: «hecha», con la primera hora, y no se repite", () => {
     const llegadas = new Map([["a", { recoger: "2026-10-06T15:10:00Z" }], ["b", { recoger: "2026-10-06T15:05:00Z" }]]);
-    expect(llegadaDeLaParada({ tipo: "P", ordenes: ["a", "b"] }, etapaDe, sin, llegadas)).toEqual({ estado: "hecha", at: "2026-10-06T15:05:00Z" });
+    // Nota D-NEXT: «hecha» lleva también el tramo y sus órdenes —en qué fila va el botón, y a cuáles deshace «↩ Deshacer»—.
+    expect(llegadaDeLaParada({ tipo: "P", ordenes: ["a", "b"] }, etapaDe, sin, llegadas)).toEqual({ estado: "hecha", at: "2026-10-06T15:05:00Z", tipo: "P", ordenes: ["a", "b"], conLlegada: ["a", "b"] });
     // La de la tienda no cuenta como llegada con el cliente.
     expect(llegadaDeLaParada({ tipo: "D", ordenes: ["c"] }, etapaDe, sin, new Map([["c", { recoger: "x" }]]))?.estado).toBe("pendiente");
   });
   it("una rechazada no cuenta: ya llegó, y lo que toca es dejar el material", () => {
     const marcas = new Map([["c", { marca: "rechazada" as const, at: "", motivo: null }]]);
     expect(llegadaDeLaParada({ tipo: "D", ordenes: ["c", "e"] }, etapaDe, marcas, sin)).toEqual({ estado: "pendiente", tipo: "D", ordenes: ["e"] });
+  });
+  it("D-NEXT: «Llegué» va en la fila de la PRIMERA orden del tramo; «↩ Deshacer» solo en las que tienen llegada", () => {
+    // `c` ya va en el camión: el tramo de la tienda empieza en `a`, y ahí va el botón, junto a su «Recogido».
+    const pendiente = llegadaDeLaParada({ tipo: "P", ordenes: ["c", "a", "b"] }, etapaDe, sin, sin);
+    expect(ordenDeLaLlegada(pendiente)).toBe("a");
+    // Una orden que se sumó a la parada después de llegar: va en el tramo, pero no se le «deshace» nada.
+    const hecha = llegadaDeLaParada({ tipo: "P", ordenes: ["a", "b"] }, etapaDe, sin, new Map([["b", { recoger: "2026-10-06T15:05:00Z" }]]));
+    expect(hecha).toEqual({ estado: "hecha", at: "2026-10-06T15:05:00Z", tipo: "P", ordenes: ["a", "b"], conLlegada: ["b"] });
+    expect(ordenDeLaLlegada(hecha)).toBe("a");
+    expect(ordenDeLaLlegada(null)).toBeNull();
   });
   it("el evento de cada tramo", () => {
     expect(kindDeLlegada("P")).toBe(KIND_LLEGO_A_RECOGER);
@@ -123,11 +163,28 @@ describe("accionesDeParada", () => {
   it("recogida lista: Recogido, y nada de Saltar (D-520)", () => {
     expect(acciones(accionesDeParada("P", "ready", null))).toEqual(["recoger"]);
   });
-  it("recogida aún sin preparar: Recogido a la vista, apagado y con su motivo; ya en el camión: nada", () => {
-    expect(accionesDeParada("P", "fulfilling", null)).toEqual([{ accion: "recoger", apagado: NO_ESTA_LISTA }]);
-    expect(accionesDeParada("P", "approved", null)).toEqual([{ accion: "recoger", apagado: NO_ESTA_LISTA }]);
+  // Nota D-NEXT: decía «Recogido a la vista, apagado y con su motivo» en `approved`/`fulfilling` (D-520). El dueño, 2026-10-11:
+  // «have the driver be able to override a pickup even if the warheouse doesnt have it ready just put a note down for it».
+  // Ahora sale encendido (abre la ficha, donde se recoge de todos modos con nota) y solo se apaga si no está aprobada.
+  it("D-NEXT: recogida aún sin preparar: Recogido ENCENDIDO (abre la ficha); sin aprobar, apagado con su motivo", () => {
+    expect(accionesDeParada("P", "fulfilling", null)).toEqual([{ accion: "recoger", apagado: null }]);
+    expect(accionesDeParada("P", "approved", null)).toEqual([{ accion: "recoger", apagado: null }]);
+    expect(accionesDeParada("P", "pending", null)).toEqual([{ accion: "recoger", apagado: SIN_APROBAR }]);
+    expect(accionesDeParada("P", "draft", null)).toEqual([{ accion: "recoger", apagado: SIN_APROBAR }]);
+    expect(SIN_APROBAR.es).toBe("Aún no está aprobada");
     expect(NO_ESTA_LISTA.es).toBe("El almacén aún no la tiene lista");
+  });
+  it("D-NEXT: ya en el camión: «↩ Deshacer recogido» si `deshacer` lo dice, apagado con su motivo si es un lío; si no, nada", () => {
     expect(accionesDeParada("P", "picked_up", null)).toEqual([]);
+    expect(accionesDeParada("P", "picked_up", null, null)).toEqual([]);
+    expect(accionesDeParada("P", "picked_up", null, { bloqueo: null })).toEqual([{ accion: "deshacer_recogida", apagado: null }]);
+    const lio = { en: "ask the office", es: "pídeselo a la oficina" };
+    expect(accionesDeParada("P", "picked_up", null, { bloqueo: lio })).toEqual([{ accion: "deshacer_recogida", apagado: lio }]);
+    // Entregada o rechazada, nunca: lo de la rechazada es «Dejar en tienda».
+    expect(accionesDeParada("P", "delivered", null, { bloqueo: null })).toEqual([]);
+    expect(accionesDeParada("P", "picked_up", rechazo, { bloqueo: null })).toEqual([]);
+    // Y en la entrega no: el deshacer va en la fila de la recogida.
+    expect(acciones(accionesDeParada("D", "picked_up", null, { bloqueo: null }))).toEqual(["entregar", "rechazar"]);
   });
   it("entrega en el camión: Entregado y Rechazado (D-495)", () => {
     expect(acciones(accionesDeParada("D", "picked_up", null))).toEqual(["entregar", "rechazar"]);
@@ -201,6 +258,8 @@ describe("historial", () => {
     expect(etiquetaDeEventoDeParada(KIND_RECHAZADA, "en")).toBe("⛔ Rejected by customer");
     expect(etiquetaDeEventoDeParada(KIND_LLEGO_A_RECOGER, "es")).toBe("📍 Llegó a la tienda");
     expect(etiquetaDeEventoDeParada(KIND_LLEGO_A_ENTREGAR, "en")).toBe("📍 Arrived at the customer");
+    expect(etiquetaDeEventoDeParada(KIND_DESHIZO_LLEGADA_A_RECOGER, "es")).toBe("↩ Llegada a la tienda deshecha");
+    expect(etiquetaDeEventoDeParada(KIND_DESHIZO_LLEGADA_A_ENTREGAR, "en")).toBe("↩ Customer arrival undone");
     expect(etiquetaDeEventoDeParada("delivered", "en")).toBeNull();
   });
   it("la ficha y Auditoría usan la etiqueta", () => {
@@ -215,9 +274,11 @@ describe("historial", () => {
 describe("pantalla: los botones llegan a cada parada", async () => {
   const { AccionesDeParada, BotonDeLlegada } = await import("@/components/AccionesDeParada");
   const pedido = (stage: string) => ({ id: "o1", stage, photos: [], order_no: 1, invoice_num: "INV1" }) as unknown as Delivery;
-  const pinta = (tipo: "P" | "D", stage: string, marca: Parameters<typeof accionesDeParada>[2] = null, sinPrincipal = false) =>
-    renderToStaticMarkup(createElement(AccionesDeParada, { pedido: pedido(stage), tipo, marca, guardando: false, cerrar: () => {}, sinPrincipal }));
-  const acciones = (html: string) => [...html.matchAll(/data-accion="([a-z]+)"/g)].map((m) => m[1]);
+  // Nota D-NEXT: sin `guardando` ni `sinPrincipal` (la tarjeta de «Siguiente parada» pinta los mismos botones que la lista,
+  // y nada cierra la parada desde aquí: abren la ficha). Con `llegada` y `deshacer`.
+  const pinta = (tipo: "P" | "D", stage: string, marca: Parameters<typeof accionesDeParada>[2] = null, extra: { llegada?: LlegadaDeParada | null; deshacer?: DeshacerRecogida; soloLectura?: boolean } = {}) =>
+    renderToStaticMarkup(createElement(AccionesDeParada, { pedido: pedido(stage), tipo, marca, cerrar: () => {}, ...extra }));
+  const acciones = (html: string) => [...html.matchAll(/data-accion="([a-z_]+)"/g)].map((m) => m[1]);
 
   it("entrega en el camión: solo Delivered y Rejected, sin Skip", () => {
     const html = pinta("D", "picked_up");
@@ -232,11 +293,59 @@ describe("pantalla: los botones llegan a cada parada", async () => {
     expect(html).not.toContain("Skip");
     expect(html).not.toContain("disabled");
   });
-  it("recogida que el almacén aún no tiene lista: Picked up a la vista, APAGADO, y el motivo escrito debajo", () => {
+  // Nota D-NEXT: decía «APAGADO, y el motivo escrito debajo». Ahora encendido: abre la ficha, donde se recoge con nota.
+  it("D-NEXT: recogida que el almacén aún no tiene lista: Picked up ENCENDIDO; sin aprobar, apagado con «Not approved yet»", () => {
     const html = pinta("P", "fulfilling");
     expect(acciones(html)).toEqual(["recoger"]);
-    expect(html).toMatch(/data-accion="recoger" data-apagado=""[^>]*disabled=""/);
-    expect(html).toContain("⏳ The warehouse doesn&#x27;t have it ready yet");
+    expect(html).not.toContain("disabled");
+    expect(html).not.toContain("⏳");
+    const pendiente = pinta("P", "pending");
+    expect(pendiente).toMatch(/data-accion="recoger" data-apagado=""[^>]*disabled=""/);
+    expect(pendiente).toContain("⏳ Not approved yet");
+  });
+  it("D-NEXT: «Llegué» va DENTRO de la fila, al principio: «Arrived · Picked up» y «Arrived · Delivered · Rejected»", () => {
+    const llegada: LlegadaDeParada = { estado: "pendiente", tipo: "P", ordenes: ["o1"] };
+    const p = pinta("P", "ready", null, { llegada });
+    expect(acciones(p)).toEqual(["llegue", "recoger"]);
+    // Los dos dentro del MISMO contenedor de la fila, no uno encima del otro.
+    const fila = p.slice(p.indexOf("data-acciones-de-parada"));
+    expect(acciones(fila)).toEqual(["llegue", "recoger"]);
+    const d = pinta("D", "picked_up", null, { llegada: { estado: "pendiente", tipo: "D", ordenes: ["o1"] } });
+    expect(acciones(d.slice(d.indexOf("data-acciones-de-parada")))).toEqual(["llegue", "entregar", "rechazar"]);
+    // Ya llegó: en su sitio, «✓ Arrived … ↩ Undo».
+    const hecha = pinta("D", "picked_up", null, { llegada: { estado: "hecha", at: "2026-10-06T15:42:00Z", tipo: "D", ordenes: ["o1"], conLlegada: ["o1"] } });
+    expect(acciones(hecha)).toEqual(["deshacer_llegada", "entregar", "rechazar"]);
+  });
+  it("D-NEXT: cada botón de la fila, icono arriba y palabra debajo, y nunca menos de 44 px de alto", () => {
+    const html = pinta("D", "picked_up", null, { llegada: { estado: "pendiente", tipo: "D", ordenes: ["o1"] } });
+    const botones = html.match(/<button[^>]*data-accion="[a-z_]+"[^>]*>/g) ?? [];
+    expect(botones).toHaveLength(3);
+    for (const b of botones) {
+      expect(b).toMatch(/flex-direction:column/);
+      expect(Number(/min-height:(\d+)px/.exec(b)?.[1] ?? 0)).toBeGreaterThanOrEqual(44);
+    }
+  });
+  it("D-NEXT: la recogida ya en el camión lleva «↩ Undo pickup»; apagado y con el motivo si es un lío", () => {
+    expect(acciones(pinta("P", "picked_up"))).toEqual([]);
+    const si = pinta("P", "picked_up", null, { deshacer: { bloqueo: null } });
+    expect(acciones(si)).toEqual(["deshacer_recogida"]);
+    expect(si).toContain("Undo pickup");
+    expect(si).not.toContain("disabled");
+    const no = pinta("P", "picked_up", null, { deshacer: { bloqueo: { en: "Someone else marked this pickup — ask the office to undo it", es: "x" } } });
+    expect(no).toMatch(/data-accion="deshacer_recogida" data-apagado=""[^>]*disabled=""/);
+    expect(no).toContain("Someone else marked this pickup — ask the office to undo it");
+    // Y al mirar la ruta de otro (D-502), se ve igual y apagado.
+    expect(pinta("P", "picked_up", null, { deshacer: { bloqueo: null }, soloLectura: true })).toMatch(/data-accion="deshacer_recogida"[^>]*disabled=""/);
+  });
+  it("D-NEXT: deshacer la recogida pregunta, vuelve a `ready` con la escritura de `escrituraDeshacerRecogida`; deshacer la llegada deja su evento en las que la tenían", () => {
+    const c = leer("src/components/AccionesDeParada.tsx");
+    expect(c).toMatch(/const si = await confirmar\(\s*t\(`Undo the pickup of/);
+    expect(c).toMatch(/const si = await confirmar\(\s*t\(`Undo your \$\{hora\(llegada\.at\)\} arrival\?/);
+    expect(c.match(/if \(!si\) return;/g)).toHaveLength(2);
+    expect(c).toContain("const { patch, note } = escrituraDeshacerRecogida(t);");
+    expect(c).toContain('const hecho = await setStage(pedido.id, "ready", note, patch);');
+    expect(c).toContain("for (const id of llegada.conLlegada) todas = (await marcarParada(id, kindDeDeshacerLlegada(llegada.tipo), null)) && todas;");
+    expect(c).toMatch(/onClick=\{\(\) => cerrar\(pedido, a\)\}/);
   });
   it("rechazada: la razón a la vista y Dejar en tienda", () => {
     const html = pinta("D", "picked_up", { marca: "rechazada", at: "", motivo: "Rejected by customer: Wrong material" });
@@ -244,37 +353,42 @@ describe("pantalla: los botones llegan a cada parada", async () => {
     expect(html).toContain('data-dejar="1"');
     expect(acciones(html)).toEqual([]);
   });
-  it("en la tarjeta de Siguiente parada no repite el botón verde", () => {
-    expect(acciones(pinta("D", "picked_up", null, true))).toEqual(["rechazar"]);
-    expect(acciones(pinta("P", "ready", null, true))).toEqual([]);
-  });
-  it("«Llegué»: el botón si falta, «✓ Arrived HH:MM» si ya llegó, nada si no hay a qué llegar; apagado al mirar la de otro", () => {
+  // Nota D-NEXT: aquí estaba «en la tarjeta de Siguiente parada no repite el botón verde» (`sinPrincipal`). La tarjeta ya no
+  // tiene su propio verde: pinta la misma fila que la lista («Llegué · Recogido», «Llegué · Entregado · Rechazado»).
+  // Nota D-NEXT: «✓ Arrived HH:MM» ya no es un texto: es el botón «↩ Undo» de la llegada, en el sitio de «Llegué».
+  it("«Llegué»: el botón si falta, «✓ Arrived HH:MM ↩ Undo» si ya llegó, nada si no hay a qué llegar; apagado al mirar la de otro", () => {
     const pendiente = renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: { estado: "pendiente", tipo: "P", ordenes: ["o1"] } }));
     expect(acciones(pendiente)).toEqual(["llegue"]);
-    expect(pendiente).toContain("📍 Arrived");
+    expect(pendiente).toContain("📍");
+    expect(pendiente).toContain("Arrived");
     expect(pendiente).not.toContain("disabled");
-    const hecha = renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: { estado: "hecha", at: "2026-10-06T15:42:00Z" } }));
-    expect(acciones(hecha)).toEqual([]);
-    expect(hecha).toMatch(/data-llegada="hecha"[^>]*>✓ Arrived.*\d/);
+    const hecha = renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: { estado: "hecha", at: "2026-10-06T15:42:00Z", tipo: "P", ordenes: ["o1"], conLlegada: ["o1"] } }));
+    expect(acciones(hecha)).toEqual(["deshacer_llegada"]);
+    expect(hecha).toMatch(/data-llegada="hecha"[^>]*><span[^>]*>✓ Arrived.*\d/);
+    expect(hecha).toContain("↩ Undo");
+    expect(hecha).not.toContain("disabled");
     expect(renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: null }))).toBe("");
     expect(renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: { estado: "pendiente", tipo: "D", ordenes: ["o1"] }, soloLectura: true }))).toContain("disabled");
+    expect(renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: { estado: "hecha", at: "2026-10-06T15:42:00Z", tipo: "P", ordenes: ["o1"], conLlegada: ["o1"] }, soloLectura: true }))).toMatch(/data-accion="deshacer_llegada"[^>]*disabled=""/);
   });
   it("«Llegué» deja un evento de llegada en cada orden de la parada", () => {
     const c = leer("src/components/AccionesDeParada.tsx");
     expect(c).toContain("for (const id of llegada.ordenes) todas = (await marcarParada(id, kindDeLlegada(llegada.tipo), null)) && todas;");
   });
+  // Nota D-NEXT: «Llegué» ya no es un `<BotonDeLlegada>` suelto en la fila ni en la tarjeta: viaja dentro de los botones de
+  // la orden que lo lleva (`llegadaSiEsDe`, la primera del tramo), y la tarjeta pinta la misma fila.
   it("«Mi ruta»: Llegué por parada en la lista y en Siguiente parada, los botones en cada orden, y la siguiente sin las rechazadas", () => {
     const src = leer("src/app/(app)/my-route/page.tsx");
     expect(src).toContain("const marcas = useMemo(() => marcasDeParadas(events), [events]);");
     expect(src).toContain("const next = siguienteParada(stops, marcas);");
     expect(src).toContain("const llegadas = useMemo(() => llegadasDeParadas(events, todayISO()), [events]);");
-    expect(src).toContain("const llegada = secciones.conNumero[fi] && !hechas.has(fi) ? llegadaDe(numeradas.deFila[fi]) : null;");
-    expect(src.match(/<BotonDeLlegada llegada=\{llegada\} soloLectura=\{soloLectura\} \/>/g)).toHaveLength(2);
-    expect(src).toContain("<BotonDeLlegada llegada={paradaDeLaSiguiente ? llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas) : null} soloLectura={soloLectura} />");
+    expect(src).toContain("const llegada = llegadaDe(numeradas.deFila[fi]);");
+    expect(src).toContain("const llegadaSiEsDe = (llegada: LlegadaDeParada | null, id: string) => (ordenDeLaLlegada(llegada) === id ? llegada : null);");
+    expect(src).not.toContain("<BotonDeLlegada");
     expect(src).toContain('const paradaDeLaSiguiente = next ? numeradas.paradas.find((p) => p.tipo === (next.stage === "picked_up" ? "D" : "P") && p.ordenes.includes(next.id)) : undefined;');
-    expect(src).toContain('{d && accionesDe(d, "P")}');
-    expect(src).toContain('{accionesDe(d, "D")}');
-    expect(src).toContain('{accionesDe(next, next.stage === "picked_up" ? "D" : "P", true)}');
+    expect(src).toContain('{d && accionesDe(d, "P", llegadaSiEsDe(llegada, id))}');
+    expect(src).toContain('{accionesDe(d, "D", llegadaSiEsDe(llegada, d.id))}');
+    expect(src).toContain('{accionesDe(next, next.stage === "picked_up" ? "D" : "P", paradaDeLaSiguiente ? llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas) : null)}');
     expect(src).not.toContain("Skip");
   });
   it("la pastilla dice la razón, y la ficha la lleva junto a la etapa", async () => {

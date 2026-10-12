@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { accionParada } from "@/lib/one-tap-stop";
+import { useConfirm } from "@/lib/confirm";
 import {
-  KIND_RECHAZADA, MOTIVOS_DE_RECHAZO, accionesDeParada, avisosDeRechazo, kindDeLlegada, notaDeRechazo,
-  notaDelDestino, razonDeLaNota, razonDeRechazo, tiendaDelRechazo, type AccionDeParada, type DestinoDelRechazo,
+  KIND_RECHAZADA, MOTIVOS_DE_RECHAZO, accionesDeParada, avisosDeRechazo, kindDeDeshacerLlegada, kindDeLlegada, notaDeRechazo,
+  notaDelDestino, razonDeLaNota, razonDeRechazo, tiendaDelRechazo, type DestinoDelRechazo,
   type LlegadaDeParada, type MarcaDeParada,
 } from "@/lib/acciones-parada";
+import { escrituraDeshacerRecogida, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import { EVENTO_DEJADO, escrituraDejarEnTienda } from "@/lib/leave-at-store";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { orderLabel } from "@/lib/utils";
@@ -16,31 +17,77 @@ import type { Delivery } from "@/lib/types";
 
 // ============================================================
 // Los botones de UNA orden de una parada en «Mi ruta» (D-487; D-520): qué sale lo decide `accionesDeParada`; aquí solo
-// se pinta y se escribe. «Recogido» y «Entregado» llaman a `cerrar`, que es el mismo `cerrarParada` de la tarjeta de
-// «Siguiente parada» (D-218): una sola vía para la etapa. Rechazado deja un evento y no toca la etapa.
+// se pinta y se escribe. Rechazado deja un evento y no toca la etapa.
 //
 // D-520: fuera «Saltar» y «Retomar»; «Recogido» sale también cuando la carga aún no está lista, apagado y con el motivo a
-// la vista; y «📍 Llegué», que es de la PARADA entera y no de cada orden, va en `BotonDeLlegada`.
+// la vista; y «📍 Llegué», que es de la PARADA entera y no de cada orden.
+//
+// D-NEXT (2026-10-11), cuatro pedidos del dueño sobre esta fila:
+//  - «arrived and pickuped up showuld be in the same row»: «📍 Llegué» va DENTRO de la fila de botones de la primera orden
+//    de su tramo (`ordenDeLaLlegada`), al principio: «📍 Llegué · 🚚 Recogido», «📍 Llegué · ✅ Entregado · ⛔ Rechazado».
+//    Para que tres quepan a 390 px, cada botón lleva el icono arriba y la palabra debajo (`BOTON_DE_FILA`).
+//  - «when i press the pickup … the order should also popo up as in the delivery part»: «Recogido» y «Entregado» llaman a
+//    `cerrar(d, accion)`, que en la página abre la ficha (y, al entregar, la cámara). Ya no cierran la parada de un toque.
+//  - «the driver can undo an arrive or a pickup»: «✓ Llegaste 10:42 · ↩ Deshacer» en el sitio de «Llegué», y
+//    «↩ Deshacer recogido» en la recogida ya hecha, los dos con confirmación.
+//  - «override a pickup even if the warheouse doesnt have it ready»: «Recogido» ya no se apaga por no estar lista; la ficha
+//    pide la nota (`recogida-del-chofer.ts`).
 // ============================================================
 
+/** Un botón solo en su fila: a lo ancho, como antes («Dejar en tienda» de una rechazada). */
 const BOTON: React.CSSProperties = { flex: "1 1 0", minHeight: 44, justifyContent: "center", fontSize: 15, minWidth: 0 };
+/** Un botón de la fila de la parada (D-NEXT): el icono arriba y la palabra debajo, para que «Llegué · Entregado ·
+ *  Rechazado» quepan en una fila a 390 px sin cortar ninguna palabra. Nunca menos de 44 px de alto. */
+const BOTON_DE_FILA: React.CSSProperties = {
+  flex: "1 1 0", minHeight: 52, minWidth: 0, flexDirection: "column", justifyContent: "center", gap: 2,
+  padding: "6px 4px", fontSize: 14, lineHeight: 1.15, textAlign: "center",
+};
 const hora = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+/** El contenido de un botón de la fila: icono arriba, palabra debajo. */
+function Rotulo({ icono, texto, extra }: { icono: string; texto: string; extra?: React.CSSProperties }) {
+  return (
+    <>
+      <span aria-hidden="true" style={{ fontSize: 17, lineHeight: 1 }}>{icono}</span>
+      <span style={extra}>{texto}</span>
+    </>
+  );
+}
+
 /**
- * «📍 Llegué / Arrived» de una parada (D-520). Qué hay que marcar lo decide `llegadaDeLaParada`: `null`, nada (todo
- * hecho, o nada cargado para entregar); `hecha`, «✓ Llegaste 10:42», que no se repite; `pendiente`, el botón, que deja un
- * evento de llegada en cada orden de la parada que esté en ese tramo.
+ * «📍 Llegué / Arrived» de una parada (D-520), como el primer botón de la fila de su primera orden (D-NEXT). Qué hay que
+ * marcar lo decide `llegadaDeLaParada`: `null`, nada; `pendiente`, el botón, que deja un evento de llegada en cada orden de
+ * la parada que esté en ese tramo; `hecha`, «✓ Llegaste 10:42» con «↩ Deshacer» debajo, que pregunta y deja el evento de
+ * vuelta en cada orden que tenía la llegada.
  */
 export function BotonDeLlegada({ llegada, soloLectura = false }: { llegada: LlegadaDeParada | null; soloLectura?: boolean }) {
   const { marcarParada, notify } = useData();
   const { t } = usePrefs();
+  const confirmar = useConfirm();
   const [ocupado, setOcupado] = useState(false);
   if (!llegada) return null;
   if (llegada.estado === "hecha") {
+    const deshacer = async () => {
+      if (ocupado || soloLectura) return;
+      const si = await confirmar(
+        t(`Undo your ${hora(llegada.at)} arrival? You can mark it again when you get there.`,
+          `¿Deshacer tu llegada de las ${hora(llegada.at)}? La puedes marcar otra vez al llegar.`),
+        { confirmLabel: t("Undo arrival", "Deshacer llegada") },
+      );
+      if (!si) return;
+      setOcupado(true);
+      let todas = true;
+      for (const id of llegada.conLlegada) todas = (await marcarParada(id, kindDeDeshacerLlegada(llegada.tipo), null)) && todas;
+      setOcupado(false);
+      if (todas) notify(t("Arrival undone", "Llegada deshecha"));
+    };
     return (
-      <span data-llegada="hecha" className="hint" style={{ display: "block", marginTop: 6, color: "var(--green)", fontWeight: 700 }}>
-        ✓ {t("Arrived", soloLectura ? "Llegó" : "Llegaste")} {hora(llegada.at)}
-      </span>
+      <button data-accion="deshacer_llegada" data-llegada="hecha" className="btn btn-ghost" style={{ ...BOTON_DE_FILA, border: "1px solid var(--line)" }}
+        disabled={soloLectura || ocupado} onClick={() => void deshacer()}
+        title={t("Undo the arrival", "Deshacer la llegada")}>
+        <span style={{ color: "var(--green)", fontWeight: 800, fontSize: 13 }}>✓ {t("Arrived", soloLectura ? "Llegó" : "Llegaste")} {hora(llegada.at)}</span>
+        <span style={{ fontSize: 13 }}>{ocupado ? t("Saving…", "Guardando…") : `↩ ${t("Undo", "Deshacer")}`}</span>
+      </button>
     );
   }
   const llegar = async () => {
@@ -52,26 +99,24 @@ export function BotonDeLlegada({ llegada, soloLectura = false }: { llegada: Lleg
     if (todas) notify(llegada.tipo === "P" ? t("Arrived at the store", "Llegaste a la tienda") : t("Arrived at the customer", "Llegaste con el cliente"));
   };
   return (
-    <div style={{ display: "flex", marginTop: 8 }}>
-      <button data-accion="llegue" data-llegada="pendiente" className="btn btn-primary" style={BOTON} disabled={soloLectura || ocupado} onClick={() => void llegar()}>
-        {ocupado ? t("Saving…", "Guardando…") : `📍 ${t("Arrived", "Llegué")}`}
-      </button>
-    </div>
+    <button data-accion="llegue" data-llegada="pendiente" className="btn btn-primary" style={BOTON_DE_FILA} disabled={soloLectura || ocupado} onClick={() => void llegar()}>
+      <Rotulo icono="📍" texto={ocupado ? t("Saving…", "Guardando…") : t("Arrived", "Llegué")} />
+    </button>
   );
 }
 
 export function AccionesDeParada({
-  pedido, tipo, marca, guardando, cerrar, sinPrincipal = false, soloLectura = false,
+  pedido, tipo, marca, cerrar, llegada = null, deshacer = null, soloLectura = false,
 }: {
   pedido: Delivery;
   tipo: "P" | "D";
   marca: MarcaDeParada | null | undefined;
-  /** Esta parada se está guardando (recoger/entregar): sus botones se apagan. */
-  guardando: boolean;
-  /** Recoger o entregar: el `cerrarParada` de la página. */
-  cerrar: (d: Delivery) => void;
-  /** En la tarjeta de «Siguiente parada» el botón verde ya existe: aquí solo van los demás. */
-  sinPrincipal?: boolean;
+  /** «Recogido» o «Entregado»: la página abre la ficha en ese paso (y la cámara, al entregar). */
+  cerrar: (d: Delivery, accion: "recoger" | "entregar") => void;
+  /** «📍 Llegué» de la parada, si esta orden es la que lo lleva (D-NEXT: el primero de la fila). */
+  llegada?: LlegadaDeParada | null;
+  /** «↩ Deshacer recogido» (D-NEXT): `deshacerRecogida` lo calcula con el historial; `null`, no se ofrece. */
+  deshacer?: DeshacerRecogida;
   /**
    * La ruta de OTRO chofer, mirada desde la pestaña «Chofer» del admin (D-502): los mismos botones, todos apagados. Se
    * pintan igual para que el admin vea lo que ve el chofer; no se pulsan porque escribirían en nombre de quien mira.
@@ -80,15 +125,16 @@ export function AccionesDeParada({
 }) {
   const { me, users, settings, marcarParada, pushNotifs, notify, setStage } = useData();
   const { t, lang } = usePrefs();
+  const confirmar = useConfirm();
   const [ocupado, setOcupado] = useState(false);
   const [rechazando, setRechazando] = useState(false);
   const es = lang === "es";
-  const apagado = soloLectura || guardando || ocupado;
+  const apagado = soloLectura || ocupado;
 
-  const todas = accionesDeParada(tipo, pedido.stage, marca);
-  const acciones = sinPrincipal ? todas.filter((b) => b.accion !== "recoger" && b.accion !== "entregar" && b.accion !== "dejar") : todas;
+  const acciones = accionesDeParada(tipo, pedido.stage, marca, deshacer);
   // El motivo de lo apagado, a la vista: en un teléfono no hay `title` que leer.
   const motivos = [...new Set(acciones.flatMap((b) => (b.apagado ? [t(b.apagado.en, b.apagado.es)] : [])))];
+  const etiqueta = pedido.invoice_num || `#${orderLabel(pedido)}`;
 
   const marcar = async (kind: string, note: string | null, aviso: string) => {
     if (ocupado || soloLectura) return false;
@@ -99,12 +145,20 @@ export function AccionesDeParada({
     return ok;
   };
 
-  const etiquetaPrincipal = (a: AccionDeParada) => {
-    if (a === "recoger") return `🚚 ${t("Picked up", "Recogido")}`;
-    // Si falta firma o foto, el botón abre la ficha (la misma regla que la tarjeta de arriba, D-218).
-    return accionParada(pedido.stage, settings, pedido.photos).kind === "pod"
-      ? `✅ ${t("Delivered…", "Entregado…")}`
-      : `✅ ${t("Delivered", "Entregado")}`;
+  /** «↩ Deshacer recogido» (D-NEXT): pregunta, y vuelve a `ready` borrando los sellos de la recogida. */
+  const deshacerRecogido = async () => {
+    if (ocupado || soloLectura) return;
+    const si = await confirmar(
+      t(`Undo the pickup of ${etiqueta}? It goes back to ready at the store, as if you hadn't loaded it.`,
+        `¿Deshacer «Recogido» de ${etiqueta}? Vuelve a «lista» en la tienda, como si no la hubieras cargado.`),
+      { confirmLabel: t("Undo pickup", "Deshacer recogido"), danger: true },
+    );
+    if (!si) return;
+    setOcupado(true);
+    const { patch, note } = escrituraDeshacerRecogida(t);
+    const hecho = await setStage(pedido.id, "ready", note, patch);
+    setOcupado(false);
+    if (hecho) notify(t("Pickup undone — back to ready", "Recogida deshecha — vuelve a lista"));
   };
 
   return (
@@ -114,19 +168,28 @@ export function AccionesDeParada({
           ⛔ {t("Rejected by customer", "Rechazada por el cliente")}: {razonDeLaNota(marca.motivo)}
         </span>
       )}
-      {acciones.length > 0 && (
-        <div data-acciones-de-parada style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+      {(acciones.length > 0 || llegada) && (
+        <div data-acciones-de-parada style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />
           {acciones.map(({ accion: a, apagado: porQue }) => {
             if (a === "dejar") return me ? <LeaveAtStore key={a} pedido={pedido} me={me} disabled={soloLectura} style={BOTON} /> : null;
             if (a === "recoger" || a === "entregar") return (
-              <button key={a} data-accion={a} data-apagado={porQue ? "" : undefined} className="btn btn-green" style={BOTON}
-                disabled={apagado || !!porQue} title={porQue ? t(porQue.en, porQue.es) : undefined} onClick={() => cerrar(pedido)}>
-                {guardando ? t("Saving…", "Guardando…") : etiquetaPrincipal(a)}
+              <button key={a} data-accion={a} data-apagado={porQue ? "" : undefined} className="btn btn-green" style={BOTON_DE_FILA}
+                disabled={apagado || !!porQue} title={porQue ? t(porQue.en, porQue.es) : undefined} onClick={() => cerrar(pedido, a)}>
+                {a === "recoger"
+                  ? <Rotulo icono="🚚" texto={t("Picked up", "Recogido")} />
+                  : <Rotulo icono="✅" texto={t("Delivered", "Entregado")} />}
+              </button>
+            );
+            if (a === "deshacer_recogida") return (
+              <button key={a} data-accion={a} data-apagado={porQue ? "" : undefined} className="btn btn-ghost" style={BOTON_DE_FILA}
+                disabled={apagado || !!porQue} title={porQue ? t(porQue.en, porQue.es) : undefined} onClick={() => void deshacerRecogido()}>
+                <Rotulo icono="↩" texto={ocupado ? t("Saving…", "Guardando…") : t("Undo pickup", "Deshacer recogido")} />
               </button>
             );
             return (
-              <button key={a} data-accion={a} className="btn btn-danger" style={BOTON} disabled={apagado} onClick={() => setRechazando(true)}>
-                ⛔ {t("Rejected", "Rechazado")}
+              <button key={a} data-accion={a} className="btn btn-danger" style={BOTON_DE_FILA} disabled={apagado} onClick={() => setRechazando(true)}>
+                <Rotulo icono="⛔" texto={t("Rejected", "Rechazado")} />
               </button>
             );
           })}

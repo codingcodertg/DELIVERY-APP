@@ -190,11 +190,14 @@ describe("la 138 dice lo mismo que el código", () => {
     // La 157 (D-452, partes de una orden) es ahora la última que lo define: la 145 letra por letra con una lista cambiada
     // (una carga partida puede nacer en pending). La 145 (D-397) partía de la 142 (D-377), que partía de la 139 (D-361),
     // que partía de la 138.
-    expect(conGuard.at(-1)).toBe("157_partes_de_orden.sql");
-    expect(conGuard.at(-2)).toBe("145_gerente_hace_bodega.sql");
-    expect(conGuard.at(-3)).toBe("142_deshacer_almacen_y_borrar_borradores.sql");
-    expect(conGuard.at(-4)).toBe("139_office_entrega_y_deshace.sql");
-    expect(conGuard.at(-5)).toBe("138_agregar_material.sql");
+    // Nota D-NEXT: la última es ahora la 168 (el chofer recoge su orden sin estar lista): la 157 letra por letra con UNA
+    // cláusula más en la rama del chofer (lo compara `recogida-del-chofer.test.ts`); el bloque de la 138 sigue igual.
+    expect(conGuard.at(-1)).toBe("168_chofer_recoge_sin_listo.sql");
+    expect(conGuard.at(-2)).toBe("157_partes_de_orden.sql");
+    expect(conGuard.at(-3)).toBe("145_gerente_hace_bodega.sql");
+    expect(conGuard.at(-4)).toBe("142_deshacer_almacen_y_borrar_borradores.sql");
+    expect(conGuard.at(-5)).toBe("139_office_entrega_y_deshace.sql");
+    expect(conGuard.at(-6)).toBe("138_agregar_material.sql");
     // Y la vigente sigue llevando el bloque de la 138, tal cual: `create or replace` reemplaza la función ENTERA.
     const vigente = plano(leer(`${dir}/${conGuard.at(-1)}`).split("\n").filter((l) => !l.trim().startsWith("--")).join("\n"));
     expect(vigente).toContain(`coalesce(array_length(NEW.invoices_extra, 1), 0) <= ${MAX_FACTURAS_EXTRA} and`);
