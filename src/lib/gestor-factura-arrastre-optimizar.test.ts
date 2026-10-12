@@ -181,7 +181,8 @@ describe("2 · arrastrar para armar rutas a mano", () => {
     });
     it("una parada dentro de su lista: decide `llevaEnLaLista`, avisa de la precedencia y de la capacidad, y guarda por `guardaLaLista`", () => {
       expect(arrastre).toContain("const r = llevaEnLaLista(lectura.paradas, a.indice, indice);");
-      expect(arrastre).toContain("if (!r.ok) { if (r.motivo === \"precedencia\") avisaDeLaPrecedencia(stops, lectura, r.orden); return; }");
+      // Nota D-NEXT: con la ruta, para la etiqueta del DÍA.
+      expect(arrastre).toContain("if (!r.ok) { if (r.motivo === \"precedencia\") avisaDeLaPrecedencia(a.ruta, stops, lectura, r.orden); return; }");
       expect(arrastre).toContain("if (!(await guardaLaLista(destino, stops, r.paradas, {");
       expect(arrastre).toContain("const n = cuentaDePallets(cambiosDeLaLista(lista, suyas), capacityFor(driverOf(ruta))).totales.paradasConExceso;");
       expect(arrastre).toContain("const ex = avisoDeExceso(r.paradas, stops, destino);");

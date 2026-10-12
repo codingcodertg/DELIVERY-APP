@@ -6,7 +6,7 @@ import { driverOf } from "@/lib/route-lanes";
 import type { LecturaDeRuta, OrdenAsignada } from "@/lib/route-plan/lectura-de-ruta";
 import type { TripTrace } from "@/lib/usa-medida-de-rutas";
 import { nombreEnElMapa } from "@/lib/gestor/nombre-en-el-mapa";
-import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { textoDeLaParada, type ParadaFisica } from "@/lib/gestor/paradas-numeradas";
 
 /**
  * El mapa de las rutas del día y el panel «Choferes y rutas», para las DOS pantallas que los pintan: el Gestor de Rutas y
@@ -124,7 +124,9 @@ export interface EntradaDeLosPuntos<T extends OrdenDelMapa> {
   /** Dónde TERMINA la ruta ese día, si no es donde sale (166, `base-del-dia.ts`): su marca «F». Sin esto, o con `null` (termina
    *  donde sale, o no vuelve), no se pinta: la «P» ya es la vuelta. */
   finDe?: (clave: string) => { coords: [number, number]; direccion: string } | null;
-  lecturaDe: (clave: string, paradas: T[]) => Pick<LecturaDeRuta, "etiquetaDe" | "filas">;
+  /** Las paradas del DÍA de la ruta, numeradas (D-NEXT): las de la lista que pinta su tarjeta —lo pendiente con lo hecho
+   *  donde iba—, para que la burbuja diga el número de la tabla y el de «Mi ruta». En la página, `diaDe(…).paradas`. */
+  paradasDe: (clave: string, paradas: T[]) => readonly ParadaFisica[];
   coordsDeTienda: (nombre: string | null) => Coords | null;
   t: T2;
   /** Solo el Gestor: las órdenes marcadas ☑, cada una con su color. */
@@ -186,16 +188,24 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
   const dentroDeOtra = new Set<string>();
   /** El número de parada de cada entrega (también de una marcada ☑, para su rótulo). */
   const numeroDe = new Map<string, number[]>();
+  // Los números son los del DÍA entero (D-NEXT): los de la tabla y los de «Mi ruta», que cuentan también lo ya recogido o
+  // entregado. Hasta aquí se numeraba solo lo pendiente, y a media jornada la burbuja «1» era la parada ③ de la tabla.
+  const delDia = new Map<string, readonly ParadaFisica[]>();
+  const paradasDelDia = (laneKey: string) => {
+    if (!delDia.has(laneKey)) delDia.set(laneKey, e.paradasDe(laneKey, porChofer.get(laneKey) ?? []));
+    return delDia.get(laneKey)!;
+  };
   for (const [laneKey, list] of porChofer) {
     if (!list.some((d) => d.route_seq != null)) continue;
     if (!e.pasaFiltro(laneKey)) continue;
-    const lectura = e.lecturaDe(laneKey, list);
     const porId = new Map(list.map((d) => [d.id, d]));
-    const nombres = (ids: readonly string[]) => ids.flatMap((id) => { const d = porId.get(id); return d ? [nombreEnElMapa(d, t)] : []; });
-    for (const p of paradasDeLaRuta(lectura.filas, list).paradas) {
+    const conLoHecho = new Map([...list, ...(e.hechas.get(laneKey) ?? [])].map((d) => [d.id, d]));
+    const nombres = (ids: readonly string[]) => ids.flatMap((id) => { const d = conLoHecho.get(id); return d ? [nombreEnElMapa(d, t)] : []; });
+    for (const p of paradasDelDia(laneKey)) {
       const texto = textoDeLaParada(p, nombres(p.ordenes), t);
       if (p.tipo === "P") {
-        if (!p.lugar) continue;
+        // Una tienda donde ya se recogió todo no lleva burbuja: lo hecho se pinta abajo (D-459), en la entrega.
+        if (!p.lugar || !p.ordenes.some((id) => porId.has(id))) continue;
         const tienda = e.coordsDeTienda(p.lugar);
         if (!tienda) continue;
         pts.push({
@@ -267,17 +277,19 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
     });
   }
   // Lo ya hecho sigue en el mapa (D-459), como hecho: la entregada con ✓ y apagada; la recogida y aún en camino, con 🚚.
-  // No es una parada que se pueda marcar ni mover: su id no es el de la orden, y pulsarla no hace nada.
+  // No es una parada que se pueda marcar ni mover: su id no es el de la orden, y pulsarla no hace nada. Conserva su número de
+  // parada del día en el rótulo (D-NEXT), el de la tabla: «(Parada 5 · Entregada 10:42)».
   for (const [laneKey, lista] of e.hechas) {
     if (!e.pasaFiltro(laneKey)) continue;
     for (const d of lista) {
       if (d.delivery_lat == null || d.delivery_lng == null) continue;
       const entregada = d.stage === "delivered";
       const hora = entregada ? horaReal(d, "D") : null;
+      const numero = paradasDelDia(laneKey).find((p) => p.tipo === "D" && p.ordenes.includes(d.id))?.numero;
       pts.push({
         id: `${PREFIJO_HECHA}${d.id}`, lat: d.delivery_lat, lng: d.delivery_lng,
         color: e.colorDe(d.assigned_driver), badge: entregada ? "✓" : "🚚",
-        label: `${nombreEnElMapa(d, t)} — ${d.assigned_driver} (${entregada ? t("Delivered", "Entregada") + (hora ? ` ${hora}` : "") : t("On its way", "En camino")})${detalle(d)}`,
+        label: `${nombreEnElMapa(d, t)} — ${d.assigned_driver} (${numero != null ? `${t("Stop", "Parada")} ${numero} · ` : ""}${entregada ? t("Delivered", "Entregada") + (hora ? ` ${hora}` : "") : t("On its way", "En camino")})${detalle(d)}`,
         dimmed: entregada || e.atenuada(laneKey) || selActive,
       });
     }

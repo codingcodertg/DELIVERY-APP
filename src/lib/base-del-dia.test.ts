@@ -325,7 +325,7 @@ describe("5 · el Gestor: la medida, el Optimizar, «Mejor lugar» y el mapa usa
     const comun = {
       carriles, porChofer: new Map([["Chofer A", [{ id: "o1", delivery_lat: 26.25, delivery_lng: -98.25 }]]]), delDia: [], hechas: new Map(), pasaFiltro: () => true, soloUnChofer: false,
       enfocado: false, atenuada: () => false, colorDe: () => "#123456", colorSinChofer: "#999", coordsDeTienda: () => null, t: (en: string) => en,
-      lecturaDe: () => ({ etiquetaDe: () => "1", filas: [] }), baseDe: () => ({ coords: [26.22, -98.23] as [number, number], direccion: "McAllen" }),
+      paradasDe: () => [], baseDe: () => ({ coords: [26.22, -98.23] as [number, number], direccion: "McAllen" }),
     } as unknown as Parameters<typeof puntosDeLasRutas>[0];
     const conFin = puntosDeLasRutas({ ...comun, finDe: () => ({ coords: [25.93, -97.49], direccion: "Brownsville" }) });
     expect(conFin.filter((p) => p.badge === "P").map((p) => [p.lat, p.lng])).toEqual([[26.22, -98.23]]);
