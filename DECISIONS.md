@@ -42786,3 +42786,23 @@ las pruebas citadas arriba.
 **Aplicación:** ensayada con rollback el 2026-10-12 (autocomprobación incluida) y aplicada por el orquestador tras el merge, con respaldo del mismo día (`rtg-prod-20261012-095300.dump`), `migrate-status` antes y después.
 
 **No medido:** nada en navegador (`tsc` y vitest). No se probó con un chofer real que la foto del material se guarde: se infiere del guard y de la escritura literal de la ficha.
+
+## D-NEXT · Una orden no se agenda en un día pasado
+
+**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.** · Hecho directo por el orquestador en `feat/sin-fechas-pasadas`.
+
+**Pedido del dueño**, literal: *«que no se pueda agendar orden a dias pasados»*.
+
+**Qué cambia.** Una regla (`lib/fecha-de-entrega.ts`): `agendaEnDiaPasado(nueva, actual)` es cierto solo cuando la fecha es **nueva o cambia** a un día anterior a hoy. Una atrasada que se edita o se entrega sin tocarle la fecha no es «agendar» y sigue pasando. Se aplica en todo lo que escribe `delivery_date`:
+- **Ficha de orden**: en `passesChecks` (los dos botones de crear/enviar y la edición pasan por ahí), como tope duro antes de cualquier «¿continuar de todos modos?»; y en «solo la fecha» de ventas (D-480). Los dos selectores de fecha empiezan en hoy (`min`), así que el calendario ni ofrece días pasados; lo escrito a mano lo para el aviso.
+- **Gestor de rutas**: la celda de fecha de la tabla tiene `min` y `reschedule` comprueba contra la fecha actual de la orden.
+- **Órdenes**: la fecha en bloque (gerente/admin/logística) tiene `min` y `bulkSetDate` no aplica un día pasado.
+- **«Reprogramar»** (D-500) ya lo hacía (`nueva < hoy` no vale) y no se toca.
+
+Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el pedido no la hace (admin incluido).
+
+**Aviso** (en/es): «La fecha de entrega no puede ser un día pasado. Elige hoy o un día posterior.»
+
+**Pruebas:** `fecha-de-entrega.test.ts` (la regla pura: ayer/hoy/mañana, nueva o cambiada vs la misma, con hora; y que los cuatro sitios la usan y los selectores llevan `min`). Mutantes: 4 de 4 caen con una prueba con nombre (`<` → `<=`; sin comparar con la fecha actual; la ficha sin tope; el bloque sin tope).
+
+**No medido:** nada en navegador (`tsc` y vitest). La importación CSV no se tocó (no agenda desde la pantalla).

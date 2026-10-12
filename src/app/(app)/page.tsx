@@ -26,6 +26,7 @@ import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
 import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, toCSV, seesAllHistory, todayISO, withinRecent, withinRetention } from "@/lib/utils";
+import { AVISO_FECHA_PASADA, fechaDeEntregaPasada, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { tiendasDeAlmacen } from "@/lib/almacen";
@@ -552,10 +553,14 @@ export default function OrdersPage() {
     { assigned_driver: driver },
     (n) => ({ en: `Assigned ${n} order(s) to ${driver}`, es: `${n} orden(es) asignadas a ${driver}` }));
 
-  const bulkSetDate = (date: string) => cambioEnBloque(
+  const bulkSetDate = (date: string) => {
+    // Un día pasado no se agenda (D-NEXT): «que no se pueda agendar orden a dias pasados».
+    if (fechaDeEntregaPasada(date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
+    return cambioEnBloque(
     { en: `Set the delivery date to ${date}?`, es: `¿Fijar la fecha de entrega en ${date}?` },
     { delivery_date: date },
     (n) => ({ en: `Set delivery date on ${n} order(s)`, es: `Fecha de entrega fijada en ${n} orden(es)` }));
+  };
 
   /** Se enseña el botón si hay algo en la selección que este rol pueda anular desde su etapa; lo que
    *  no se pueda lo rechazará la base orden por orden, como cualquier otra tanda. */
@@ -837,7 +842,7 @@ export default function OrdersPage() {
           {(me.role === "manager" || me.role === "admin" || me.role === "logistics") && (
             <label style={{ margin: 0, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }} title={t("Set delivery date on all selected", "Fijar fecha de entrega en las seleccionadas")}>
               📅
-              <input type="date" value={fechaEnBloque} disabled={bulkBusy} onChange={(e) => setFechaEnBloque(e.target.value)} style={{ width: "auto", padding: "4px 6px" }} />
+              <input type="date" value={fechaEnBloque} min={minFechaDeEntrega()} disabled={bulkBusy} onChange={(e) => setFechaEnBloque(e.target.value)} style={{ width: "auto", padding: "4px 6px" }} />
             </label>
           )}
           {/* Igual que el chofer: la fecha elegida no se aplica hasta pulsar, y entonces se pregunta (D-372). */}

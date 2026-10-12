@@ -11,6 +11,7 @@ import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { DIAS_DE_BORRADOR } from "@/lib/ordenes-visibles";
+import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { alcanceDeEdicion, parcheSoloFecha, type AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
 import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura } from "@/lib/agregar-material";
 import { avisosDeAgregarMaterial } from "@/lib/agregar-material-avisos";
@@ -523,6 +524,8 @@ export function OrderModal({
    * else is listed and the rep chooses whether to continue. */
   const passesChecks = async (draft: Draft): Promise<boolean> => {
     if (blockSubmit(draft)) return false;
+    // Un día pasado no se agenda (D-NEXT): «que no se pueda agendar orden a dias pasados». Tope duro, sin «¿continuar?».
+    if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }
     // 1. Required fields — list them and let the rep decide.
     const miss = computeMissing(draft);
     if (miss.length) {
@@ -615,6 +618,7 @@ export function OrderModal({
     // de duplicados: no cambia nada de lo que esos avisos miran.
     if (!isNew && alcance === "solo_fecha") {
       if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }
+      if (agendaEnDiaPasado(d.delivery_date, existing!.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
       setBusy(true);
       const ok = await updateDelivery(existing!.id, parcheSoloFecha(d));
       setBusy(false);
@@ -1995,7 +1999,7 @@ export function OrderModal({
                  "Solo puede cambiar la fecha de entrega de esta orden. Lo demás queda como está.")}
             </div>
             <div className="grid g2">
-              <Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} invalid={!d.delivery_date} />
+              <Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} invalid={!d.delivery_date} min={minFechaDeEntrega()} />
             </div>
           </>
         )}
@@ -2072,7 +2076,7 @@ export function OrderModal({
             )}
             {/* ---- Schedule ---- */}
             <div className="grid g2">
-              <Txt label={t("Delivery Date", "Fecha de Entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} disabled={!salesFields} invalid={missingSet.has("delivery_date")} />
+              <Txt label={t("Delivery Date", "Fecha de Entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} disabled={!salesFields} invalid={missingSet.has("delivery_date")} min={minFechaDeEntrega()} />
               <WindowSel val={d.delivery_windows} fecha={d.delivery_date} on={(v) => set("delivery_windows", v)} disabled={!salesFields} invalid={missingSet.has("delivery_windows")} t={t} />
             </div>
             {/* Reprogramming a missed order: offer to send it out first thing the
@@ -3894,13 +3898,15 @@ function eventLabel(kind: string, lang: "en" | "es"): string {
 }
 
 // ---- Small field helpers --------------------------------------------------
-function Txt({ label, val, on, type = "text", disabled, placeholder, invalid }: {
+function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, min }: {
   label: string; val: unknown; on: (v: string) => void; type?: string; disabled?: boolean; placeholder?: string; invalid?: boolean;
+  /** Tope inferior del selector (fechas: hoy, D-NEXT). El selector no deja elegir antes; lo escrito a mano lo para `passesChecks`. */
+  min?: string;
 }) {
   return (
     <div className="field">
       <label>{label}{invalid && <span className="req-star"> *</span>}</label>
-      <input className={invalid ? "invalid" : ""} type={type} step={type === "number" ? "any" : undefined} value={(val as string) ?? ""} disabled={disabled} placeholder={placeholder}
+      <input className={invalid ? "invalid" : ""} type={type} step={type === "number" ? "any" : undefined} value={(val as string) ?? ""} disabled={disabled} placeholder={placeholder} min={min}
         onChange={(e) => on(e.target.value)} />
     </div>
   );
