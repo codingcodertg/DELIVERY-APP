@@ -524,7 +524,7 @@ export function OrderModal({
    * else is listed and the rep chooses whether to continue. */
   const passesChecks = async (draft: Draft): Promise<boolean> => {
     if (blockSubmit(draft)) return false;
-    // Un día pasado no se agenda (D-NEXT): «que no se pueda agendar orden a dias pasados». Tope duro, sin «¿continuar?».
+    // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados». Tope duro, sin «¿continuar?».
     if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }
     // 1. Required fields — list them and let the rep decide.
     const miss = computeMissing(draft);
@@ -3900,7 +3900,7 @@ function eventLabel(kind: string, lang: "en" | "es"): string {
 // ---- Small field helpers --------------------------------------------------
 function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, min }: {
   label: string; val: unknown; on: (v: string) => void; type?: string; disabled?: boolean; placeholder?: string; invalid?: boolean;
-  /** Tope inferior del selector (fechas: hoy, D-NEXT). El selector no deja elegir antes; lo escrito a mano lo para `passesChecks`. */
+  /** Tope inferior del selector (fechas: hoy, D-532). El selector no deja elegir antes; lo escrito a mano lo para `passesChecks`. */
   min?: string;
 }) {
   return (

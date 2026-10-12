@@ -1,7 +1,7 @@
 import { todayISO } from "@/lib/utils";
 
 // ============================================================
-// Una orden no se agenda en un día pasado (D-NEXT).
+// Una orden no se agenda en un día pasado (D-532).
 //
 // El dueño, 2026-10-12: «que no se pueda agendar orden a dias pasados».
 //

@@ -42787,9 +42787,9 @@ las pruebas citadas arriba.
 
 **No medido:** nada en navegador (`tsc` y vitest). No se probó con un chofer real que la foto del material se guarde: se infiere del guard y de la escritura literal de la ficha.
 
-## D-NEXT · Una orden no se agenda en un día pasado
+## D-532 · Una orden no se agenda en un día pasado
 
-**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.** · Hecho directo por el orquestador en `feat/sin-fechas-pasadas`.
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.293.0, repo 1.397.0 · **Sin migración.** · Hecho directo por el orquestador en `feat/sin-fechas-pasadas`.
 
 **Pedido del dueño**, literal: *«que no se pueda agendar orden a dias pasados»*.
 

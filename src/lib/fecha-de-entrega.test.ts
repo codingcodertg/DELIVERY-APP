@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, fechaDeEntregaPasada, minFechaDeEntrega } from "./fecha-de-entrega";
 
-// D-NEXT · «que no se pueda agendar orden a dias pasados» (el dueño, 2026-10-12).
+// D-532 · «que no se pueda agendar orden a dias pasados» (el dueño, 2026-10-12).
 
 const HOY = "2026-10-12";
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");

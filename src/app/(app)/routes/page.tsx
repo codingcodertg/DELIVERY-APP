@@ -583,7 +583,7 @@ export default function RoutesPage() {
   // The one thing logistics can change on a carried-forward order: push its
   // delivery date up to today, or leave it — either way it's on this list.
   const reschedule = (id: string, delivery_date: string) => {
-    // Un día pasado no se agenda (D-NEXT): «que no se pueda agendar orden a dias pasados».
+    // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
     const actual = deliveries.find((d) => d.id === id)?.delivery_date;
     if (agendaEnDiaPasado(delivery_date, actual)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
     return updateDelivery(id, { delivery_date });

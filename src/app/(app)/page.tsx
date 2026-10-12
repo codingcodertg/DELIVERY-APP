@@ -554,7 +554,7 @@ export default function OrdersPage() {
     (n) => ({ en: `Assigned ${n} order(s) to ${driver}`, es: `${n} orden(es) asignadas a ${driver}` }));
 
   const bulkSetDate = (date: string) => {
-    // Un día pasado no se agenda (D-NEXT): «que no se pueda agendar orden a dias pasados».
+    // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
     if (fechaDeEntregaPasada(date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
     return cambioEnBloque(
     { en: `Set the delivery date to ${date}?`, es: `¿Fijar la fecha de entrega en ${date}?` },
