@@ -125,7 +125,8 @@ describe("el historial guarda de qué valor venía", () => {
 describe("la pantalla: elegir y aplicar son dos pasos", () => {
   const pagina = leer("src/app/(app)/page.tsx");
   it("ni la fecha ni el chofer se aplican al elegirlos", () => {
-    expect(pagina).toContain('<input type="date" value={fechaEnBloque} disabled={bulkBusy} onChange={(e) => setFechaEnBloque(e.target.value)}');
+    // D-532: el selector empieza en hoy (`min`); sigue sin aplicar al elegir.
+    expect(pagina).toContain('<input type="date" value={fechaEnBloque} min={minFechaDeEntrega()} disabled={bulkBusy} onChange={(e) => setFechaEnBloque(e.target.value)}');
     expect(pagina).toContain("<select value={choferEnBloque} disabled={bulkBusy} onChange={(e) => setChoferEnBloque(e.target.value)}");
     // Lo que había antes, y que causó el incidente: aplicar dentro del propio onChange.
     expect(pagina).not.toMatch(/onChange=\{\(e\) => \{ if \(e\.target\.value\) bulkSetDate/);
@@ -139,7 +140,9 @@ describe("la pantalla: elegir y aplicar son dos pasos", () => {
   });
   it("los dos pasan por la misma puerta, que pregunta y reparte", () => {
     expect(plano(pagina)).toContain("const bulkAssignDriver = (driver: string) => cambioEnBloque(");
-    expect(plano(pagina)).toContain("const bulkSetDate = (date: string) => cambioEnBloque(");
+    // D-532: `bulkSetDate` primero rechaza un día pasado y luego entra por la misma puerta.
+    expect(plano(pagina)).toContain("const bulkSetDate = (date: string) => {");
+    expect(plano(pagina)).toContain("return cambioEnBloque(");
     const puerta = pagina.slice(pagina.indexOf("const cambioEnBloque ="), pagina.indexOf("const bulkAssignDriver ="));
     expect(puerta).toContain("const { entran, saltadas } = reparteParaElBloque(chosen);");
     // La pregunta se hace sobre LO QUE ENTRA, no sobre la selección: preguntar por 162 cuando cambian 52 es el incidente.

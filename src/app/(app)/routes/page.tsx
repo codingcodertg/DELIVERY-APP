@@ -18,6 +18,7 @@ import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
 import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
+import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { colorDeChofer } from "@/lib/map-legend";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
 import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
@@ -581,7 +582,12 @@ export default function RoutesPage() {
   // Lo único que logística cambia en una orden atrasada o sin fecha: ponerle su día. Entonces pasa a ESE día.
   // The one thing logistics can change on a carried-forward order: push its
   // delivery date up to today, or leave it — either way it's on this list.
-  const reschedule = (id: string, delivery_date: string) => updateDelivery(id, { delivery_date });
+  const reschedule = (id: string, delivery_date: string) => {
+    // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
+    const actual = deliveries.find((d) => d.id === id)?.delivery_date;
+    if (agendaEnDiaPasado(delivery_date, actual)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
+    return updateDelivery(id, { delivery_date });
+  };
 
   const geocoding = useAutoGeocode(soloLectura ? SIN_ORDENES : dayOrders, updateDelivery);
   // Every store as a big red landmark point, always shown on the route map.
@@ -3413,6 +3419,7 @@ function DateCell({
       <input
         type="date"
         value={d.delivery_date ?? ""}
+        min={minFechaDeEntrega()}
         onChange={(e) => e.target.value && onChange(d.id, e.target.value)}
         style={{ width: "auto" }}
       />
