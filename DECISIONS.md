@@ -40884,3 +40884,248 @@ Y, añadido el mismo día al mismo encargo:
 - **Lo que ya pasaba y no se tocó:** dentro del marco, la barra de Entregas de un admin (sin suplantación) sigue
   enseñando «📱 Vista móvil» (D-501), que mete la vista móvil dentro del marco. Y «Personalizar» durante una suplantación
   guarda el idioma en la fila de la otra persona (por el código: `setLang` escribe en la fila de la sesión; no medido).
+
+## D-NEXT — «Inspección pre-viaje» (Pre-trip inspection checklist): primer borrador para el chofer, la lista del día para logística, y la tabla `vehicle_inspections` escrita y sin aplicar (165)
+
+**Fecha:** 2026-10-11 · **Estado:** Borrador (primer draft, pendiente de que el dueño lo vea) · **Versión:** la asigna el
+orquestador al fusionar (toca `deliveries`) · **Migración:** `165_inspeccion_pre_viaje.sql`, **escrita y NO aplicada**
+(plan: `docs/PLAN-165-inspeccion-pre-viaje.md`) · **Pedido por:** el dueño.
+
+### Qué pidió el dueño
+
+Literal, 2026-10-11:
+
+> «AGREGA UN NUEVO VIEW QUE SE LLAMARA PRE TRIP INSPECTION CHECKLIST Y INVESTIGAME ALGO PARA HACER UN FIRST DRAFT»
+
+Dos cosas: una pantalla nueva con ese nombre, y una investigación para que el primer borrador tenga una base.
+
+### La investigación (resumida; no somos abogados)
+
+- **49 CFR §396.13 — inspección antes de manejar.** Antes de manejar, el chofer tiene que quedar satisfecho de que el
+  vehículo está en condiciones seguras, revisar el último reporte de inspección (cuando lo hubo) y firmarlo si hubo
+  reparaciones. Se puede llevar en electrónico (§390.32).
+  [law.cornell.edu/cfr/text/49/396.13](https://www.law.cornell.edu/cfr/text/49/396.13)
+- **49 CFR §392.7 — equipo que el chofer revisa.** No se maneja sin estar satisfecho de que funcionan: frenos de servicio,
+  freno de estacionamiento, dirección, luces y reflejantes, llantas, bocina, limpiaparabrisas, espejos, acoplamiento,
+  ruedas y rines, y equipo de emergencia. [law.cornell.edu/cfr/text/49/392.7](https://www.law.cornell.edu/cfr/text/49/392.7)
+- **49 CFR §396.11 — el reporte del chofer (DVIR).** Al final del día, por cada vehículo, un reporte que cubre al menos esa
+  misma lista y anota los defectos que afectan la seguridad; desde 2014, para carga, **solo hace falta si hay un defecto**.
+  Antes de volver a usarlo, la empresa repara el defecto o certifica que no hace falta, y **guarda el reporte tres
+  meses**. [law.cornell.edu/cfr/text/49/396.11](https://www.law.cornell.edu/cfr/text/49/396.11)
+- **49 CFR §393.95 — equipo de emergencia.** Extintor cargado, con indicador y bien sujeto (5 B:C, o dos de 4 B:C), y tres
+  triángulos reflejantes. [law.cornell.edu/cfr/text/49/393.95](https://www.law.cornell.edu/cfr/text/49/393.95)
+- **A quién aplica.** Las reglas federales son para vehículos comerciales en comercio **interestatal** de **10,001 lb o
+  más** (GVWR o peso real; §390.5,
+  [law.cornell.edu/cfr/text/49/390.5](https://www.law.cornell.edu/cfr/text/49/390.5)). **Texas** las adopta para el
+  comercio **dentro del estado** (37 TAC §4.11, partes 390–397, «as amended through September 1, 2022») para vehículos de
+  **más de 26,000 lb**, entre otros
+  ([law.cornell.edu/regulations/texas/37-Tex-Admin-Code-SS-4-11](https://law.cornell.edu/regulations/texas/37-Tex-Admin-Code-SS-4-11)).
+  Un camión de 10–12 pallets de tile puede caer de un lado o del otro según su GVWR y si cruza a otro estado: **eso no se
+  midió** y lo tiene que confirmar el dueño o su asesor. Aunque un camión no esté obligado, revisar lo mismo es la buena
+  práctica, y es lo que hace este borrador.
+- **Cómo se agrupa.** Las listas de CDL (el «método de siete pasos» de los manuales de los estados, p. ej.
+  [Georgia DDS](https://dds.georgia.gov/node/34206)) recorren el camión por zonas: vista general y fugas, motor, cabina,
+  luces, llantas y ruedas, y la carga. El manual de Texas no se pudo leer en línea.
+
+### La lista (34 puntos, 6 zonas) — `src/lib/inspeccion/puntos.ts`, en inglés y español
+
+**Crítico** = un «Defecto» ahí deja el camión *no seguro para salir*, y no admite «No aplica».
+
+| Zona | Puntos |
+|---|---|
+| 🪪 Documentos y cabina | licencia/registro/seguro · cinturón · espejos · parabrisas · limpiaparabrisas y líquido · bocina · tablero sin luces de alerta · **frenos** · **freno de estacionamiento** · **dirección** |
+| 🛢 Motor (vista rápida) | aceite · anticongelante · fugas bajo el camión · bandas y mangueras |
+| 💡 Luces | faros · **direccionales** · **luces de freno** · reversa y alarma · intermitentes · gálibo y reflejantes (N/A) |
+| 🛞 Llantas y ruedas | **infladas** · **dibujo** · **sin cortes ni bultos** · **tuercas** · **rines** |
+| 📦 Carga y equipo | plataforma/liftgate (N/A) · correas y matracas · pallet jack (N/A) · piso de la caja (N/A) · puertas y cerraduras |
+| 🧯 Equipo de seguridad | extintor · 3 triángulos · botiquín · chaleco |
+
+Los críticos son los de §392.7 que dejan un camión fuera de servicio de verdad (frenos, dirección, llantas, ruedas y las
+luces que avisan al de atrás). **Lo decide el dueño**: es una propiedad (`critico: true`) en un solo sitio.
+
+### Qué se construyó
+
+1. **Pestaña «✅ Inspección pre-viaje» / «✅ Pre-trip inspection»** (`/inspection`, en `TABS`): chofer, logística y admin
+   (y quien tenga el permiso suelto de repartir, salvo oficina por D-480). En la barra del chofer va detrás de «Mi ruta».
+2. **El chofer** (pensado para el teléfono): el vehículo (los activos de `clockin.vehicles`, con **el asignado ya
+   elegido**, D-489; o «Otro» escrito a mano) y el **odómetro** (obligatorio, nunca un vacío convertido en 0); la barra
+   de progreso fija arriba («12 de 34», y «⛔ No es seguro salir» en cuanto hay un crítico); las seis zonas plegables,
+   con botones grandes **OK / Defecto / No aplica**; al completar una zona sin defectos se pliega sola y se abre la
+   siguiente. Un **defecto pide nota y foto** (`PhotoUpload`, el mismo de las entregas, máximo 2). Al final: notas
+   para logística, el veredicto, la casilla **«Certifico que inspeccioné este vehículo y que este reporte es correcto.
+   — <su nombre>»** y «Enviar». Si falta algo, lo dice y abre la zona. El borrador se guarda en el teléfono hasta
+   enviarlo.
+3. **Una por chofer, por día y por vehículo.** Hecha, la pantalla la enseña hecha («✓ Hecha a las 7:17 a.m.», el
+   vehículo, el odómetro, seguro sí/no y sus defectos) con «Inspeccionar otro vehículo» por si cambia de camión; el
+   mismo camión otra vez lo dice y la base no lo deja.
+4. **«Mi ruta»: un aviso «Haz tu inspección pre-viaje — Empezar»** al principio, mientras hoy no haya una. **Avisa, no
+   bloquea.** No sale sin la migración, ni al mirar la ruta de otro (pestaña «Chofer» del admin).
+5. **Logística y admin, en la misma pantalla** («Inspecciones del día» / «Hacer la mía»): las del día (Ayer / Hoy / una
+   fecha), el resumen (hechas, no seguras, defectos abiertos), **quién tiene ruta ese día y no inspeccionó**, y una
+   tarjeta por inspección (quién, vehículo, odómetro, hora, seguro sí/no) con cada defecto, su nota y **su foto**. Lo que
+   no puede salir va arriba (`ordenParaLogistica`). Cada defecto abierto lleva **«Marcar corregido»** (con nota
+   opcional) y uno corregido dice quién y cuándo, y se puede «Reabrir». Una no segura cuyos críticos ya están corregidos
+   pasa a **«Corregido — ya puede salir»** (sin borrar que no lo era: `safe` es lo que el chofer firmó), y al chofer se
+   le dice.
+   - **Por qué una pantalla propia y no una sección del Gestor:** el Gestor ya es la pantalla más cargada y otro worker
+     lo está tocando a la vez (la salida del chofer); la lista del día con fotos necesita ancho; y el chofer y logística
+     comparten URL, pestaña y lógica.
+
+### La base — `165_inspeccion_pre_viaje.sql` (escrita, ensayada en local, NO aplicada)
+
+- `public.vehicle_inspections`: chofer, nombre, día, vehículo (id de `clockin.vehicles` + la etiqueta guardada), odómetro,
+  respuestas en `jsonb` (`{punto: {estado, nota, fotos}}`), `safe`, notas, `certified` (tiene que ser verdadero),
+  `checklist_version`, `repairs` (`{punto: {at, by, by_name, note}}`).
+- **Índice único** (chofer, día, vehículo), con la misma clave que `claveDeVehiculo`.
+- **Disparador**: quién, su nombre, el día (Chicago), la hora y `repairs` vacío los pone la base, no el teléfono.
+- **RLS**: el chofer inserta y lee **las suyas**; admin y logística leen **todas**. **Sin UPDATE ni DELETE** para nadie.
+- `marca_defecto_corregido(...)` (`security definer`): solo admin y logística, solo sobre un defecto; sella quién y cuándo.
+- `vehiculos_para_inspeccion()` (`security definer`): los vehículos activos para quien tiene Entregas. Hace falta porque
+  la RLS de Clock-in solo se los enseña a quien tiene ficha de fichaje.
+- **Fotos dentro del `jsonb`**, como `deliveries.photos`: sin cubo nuevo. Tope de 4 MB por fila.
+- **Sin la 165 la app funciona**: la pantalla dice «Aún no se puede guardar» con «Enviar» apagado (se puede recorrer la
+  lista), logística ve el mismo aviso, y «Mi ruta» no avisa.
+- **El ensayo con `aplica-migracion.mjs` (ROLLBACK) no pudo conectar**: pasó sus guardas (checksum, sin transacción
+  propia) y la base contestó `password authentication failed for user "postgres"` con el `SUPABASE_DB_URL` de esta PC.
+  Se ensayó en un **Postgres 17 local y desechable** con un esquema mínimo copiado de las migraciones: corre, su
+  autocomprobación pasa, y la **matriz por rol** (`docs/PLAN-165-matriz-por-rol.sql`, 29 casos: chofer con y sin ficha,
+  logística, admin, ventas, gerente, sin el módulo, anon) da **29 de 29 OK**. Contra producción la corre el orquestador.
+- **El número 165 no es exclusivo.** Al cerrar esta rama, otras dos tienen también una 165: `feat/salida-del-chofer`
+  (`165_base_del_dia.sql`, commiteada) y el worktree `mi-ruta-botones` (`165_pausas_del_chofer.sql`). El registro va
+  por nombre y las tres no dependen entre sí, así que pueden convivir; si al fusionar se renumera esta, hay que cambiar
+  el número en su cabecera, sus mensajes y su reversión, recalcular la línea de registro (`migrate-status --sum`) y los
+  dos `docs/PLAN-165-*`. La prueba la busca por el sufijo (`_inspeccion_pre_viaje.sql`), no por el número.
+
+### En «Mi ruta» solo cambia esto
+
+Un `import` y una línea al principio (`{!ajeno && <AvisoDeInspeccion />}`), entre la cabecera y Ayer/Hoy/Mañana. Otros
+workers tocan `my-route/` a la vez (botones, secciones, leyenda del mapa, registrar parada): el cambio es aislado a
+propósito para que el choque sea mínimo.
+
+### Ficheros
+
+`src/lib/inspeccion/puntos.ts` (la lista) · `reglas.ts` (todas las reglas) · `almacen.ts` (base, demo y práctica) ·
+`usa-inspecciones.ts` (los ganchos) · `src/components/inspeccion/` (`FormularioDeInspeccion`, `InspeccionesDelDia`,
+`AvisoDeInspeccion`, `BadgeDeSeguridad`, `inspeccion.css`) · `src/app/(app)/inspection/page.tsx` · `src/lib/constants.ts`
+(la pestaña) · `src/app/(app)/my-route/page.tsx` (el aviso) · `supabase/migrations/165_inspeccion_pre_viaje.sql` ·
+`docs/PLAN-165-inspeccion-pre-viaje.md` y `docs/PLAN-165-matriz-por-rol.sql`.
+
+### Verificado
+
+- **`node scripts/verify.mjs` en verde** sobre `origin/main` (`ded16fda`, ya con D-516): tipos, **7.293 pruebas pasadas de
+  7.296** (las 3 saltadas de siempre) y `next build`. En 2 de 6 vueltas cayó por tiempo una prueba ajena,
+  `route-plan/montaje.test.ts` (recorre todo `src/`): sola tarda 1,2 s y bajo la carga de la suite entera pasa a veces de
+  los 5 s de límite. No se tocó. Las de esta rama: **91** en 4 ficheros de `src/lib/inspeccion/` — `reglas.test.ts` (43, las
+  reglas), `almacen.test.ts` (17, la base con un cliente falso y el almacén del navegador), `pantalla.test.ts` (29: la
+  pestaña, la página, el formulario, la lista y el aviso **renderizados** con los datos que les daría el gancho, «Mi
+  ruta» montando el aviso, y la migración diciendo lo mismo que el código) y `usa-inspecciones.test.ts` (2: en el modo
+  práctica nada llega a la base).
+- **Una prueba encontró un fallo antes de llegar al navegador:** «un punto que ya no está en la lista cuenta como
+  crítico» se escribió `puntoPorId(id)?.critico ?? true`, y eso hacía crítica también a la bocina (su `critico` es
+  `undefined`, no `false`). Corregido.
+- **Mutantes: 60 de 60 caen**, cada uno con una prueba con nombre (tanda en la carpeta del worker, `inspeccion/tanda.json`).
+  En la primera vuelta sobrevivió uno, «el odómetro acepta basura al final» (quitar el `$` de la expresión): `Number()`
+  ya rechaza «12a», así que la prueba no lo veía; pero sin el `$` pasarían «1e3» y «0x10». Prueba floja, no código de
+  sobra: se añadieron esos casos y cae. Mutante → la prueba que lo tumbó:
+
+  - un punto crítico admite «No aplica»  ←  el formulario del chofer 34 puntos en 6 secciones; abierta la primera; «0 de 34»; los críticos sin «No aplica»
+  - «No aplica» cuenta aunque el punto no lo admita  ←  opciones y progreso («12 de 34») «No aplica» en un punto que no lo admite no cuenta como contestado
+  - el total del progreso no es la lista entera  ←  el formulario del chofer 34 puntos en 6 secciones; abierta la primera; «0 de 34»; los críticos sin «No aplica»
+  - un defecto de un punto que ya no está en la lista se pierde  ←  «seguro para salir» defectos y críticos, en el orden de la lista; un id viejo con defecto también sale
+  - seguro aunque un crítico esté sin contestar  ←  «seguro para salir» un crítico sin contestar no es seguro (pide la afirmación, no la falta de queja)
+  - cualquier defecto (no solo los críticos) impide salir  ←  «seguro para salir» todo OK es seguro
+  - un vehículo con el nombre en blanco vale  ←  lo que falta para enviar sin vehículo, o con el nombre en blanco
+  - un defecto sin nota se puede enviar  ←  lo que falta para enviar un defecto pide nota Y foto
+  - un defecto sin foto se puede enviar  ←  lo que falta para enviar un defecto pide nota Y foto
+  - se envía sin certificar  ←  lo que falta para enviar sin la casilla de certificar
+  - «seguro» lo decide el teléfono, no la regla  ←  lo que se guarda limpia las respuestas, calcula «seguro» y lleva la versión de la lista
+  - se guardan más fotos de las permitidas  ←  lo que se guarda limpia las respuestas, calcula «seguro» y lleva la versión de la lista
+  - un OK arrastra la nota y las fotos de cuando fue defecto  ←  lo que se guarda limpia las respuestas, calcula «seguro» y lleva la versión de la lista
+  - el vehículo escrito a mano distingue mayúsculas  ←  la migración 165 dice lo mismo que el código «una por día» es la misma clave que claveDeVehiculo
+  - la del día es la primera y no la última  ←  una por chofer, por día y por vehículo la del día es la última del chofer ese día; otro día u otro chofer no cuentan
+  - la de otro día cuenta como de hoy  ←  el formulario del chofer la de OTRO chofer o de otro día no cuenta como hecha
+  - el aviso sale sin la migración  ←  el aviso de «Mi ruta» sin la migración, no sale
+  - el aviso sale aunque ya esté hecha  ←  el aviso de «Mi ruta» hecha hoy, no sale
+  - un defecto corregido sigue abierto  ←  el formulario del chofer hecha y con el crítico ya corregido por logística: se le dice al chofer, sin el «no salgas»
+  - un punto que ya no está en la lista no cuenta como crítico  ←  logística un defecto de un punto que ya no está en la lista cuenta como crítico: ante la duda, no se da por segura
+  - una no segura nunca pasa a corregida  ←  el formulario del chofer hecha y con el crítico ya corregido por logística: se le dice al chofer, sin el «no salgas»
+  - lo que tiene defectos abiertos no sube en la lista  ←  logística arriba lo que pide acción: no segura con abiertos, luego con abiertos; dentro, por hora
+  - dentro de cada grupo no se ordena por hora  ←  logística arriba lo que pide acción: no segura con abiertos, luego con abiertos; dentro, por hora
+  - una orden anulada cuenta como ruta  ←  logística los choferes con ruta ese día: sin borradores, rechazadas ni anuladas, sin repetir y sin los de otro día
+  - el mismo chofer escrito distinto sale dos veces  ←  logística los choferes con ruta ese día: sin borradores, rechazadas ni anuladas, sin repetir y sin los de otro día
+  - «sin inspección» compara nombres con mayúsculas  ←  la lista de logística el resumen y quién con ruta no inspeccionó
+  - una no segura ya corregida sigue contando como no segura  ←  la lista de logística la no segura con su crítico ya corregido: «Corregido — ya puede salir», y deja de contar como no segura
+  - el gerente revisa las de todos  ←  la migración 165 dice lo mismo que el código los roles que revisan son ROLES_QUE_REVISAN, en la política de lectura y en la función
+  - una sección con un defecto se pliega sola  ←  plegar y abrir secciones al contestar con un defecto se queda abierta (toca la nota y la foto)
+  - la última sección no vuelve a la primera que falta  ←  plegar y abrir secciones al contestar la última vuelve a la primera que falte; todo completo, solo se pliega
+  - al enviar con faltas no se abre ninguna sección  ←  lo que falta para enviar al pulsar Enviar con faltas, se abre la primera sección que tiene alguna
+  - sin la tabla se lee como un error cualquiera  ←  la base: qué error es «falta la migración» tabla: PGRST205 / 42P01, o el mensaje con el nombre de la tabla
+  - sin la función de vehículos se lee como un error  ←  la base: qué error es «falta la migración» función: PGRST202 / 42883
+  - el chofer pide las de todos  ←  leer las inspecciones de un día pide la tabla, el día y, para un chofer, solo las suyas; por hora
+  - la repetida se dice como error  ←  guardar una la repetida (índice único, 23505) se dice como tal; sin la 165, `sin_tabla`
+  - la nota vacía de una corrección se guarda vacía  ←  marcar un defecto corregido llama a la función con sus argumentos; la nota vacía va nula
+  - el vehículo por defecto ignora el asignado  ←  los vehículos sale elegido el asignado; si no hay, el primero; sin ninguno, nada
+  - el demo siembra cada vez que lee  ←  en este navegador (demo y práctica) el demo siembra dos del día pedido, una vez, y una de ellas no es segura
+  - en el navegador se repite la misma del día  ←  en este navegador (demo y práctica) guarda; la misma (chofer, día, vehículo) otra vez es `repetida`; otro vehículo sí entra
+  - en el navegador se marca corregido algo que no es defecto  ←  en este navegador (demo y práctica) marcar corregido sella quién y cuándo; desmarcar lo quita; algo que no es defecto no se marca
+  - sin sitio en el navegador se finge guardado  ←  en este navegador (demo y práctica) sin sitio en el navegador, falla y lo dice
+  - el modo práctica escribe en la base  ←  dónde escribe el gancho en el modo práctica: nada llega a la base
+  - el chofer no tiene la pestaña  ←  la pestaña la tienen el chofer (detrás de «Mi ruta»), logística y el admin
+  - «Mi ruta» no monta el aviso  ←  el aviso de «Mi ruta» «Mi ruta» lo monta al principio, solo en la ruta propia, y nada más de ella cambia
+  - el aviso no pregunta a debeAvisar  ←  el aviso de «Mi ruta» hecha hoy, no sale
+  - el formulario no usa las opciones de cada punto  ←  el formulario del chofer 34 puntos en 6 secciones; abierta la primera; «0 de 34»; los críticos sin «No aplica»
+  - el formulario no cuenta con progreso()  ←  el formulario del chofer 34 puntos en 6 secciones; abierta la primera; «0 de 34»; los críticos sin «No aplica»
+  - Enviar no se apaga sin la migración  ←  el formulario del chofer sin la migración: se recorre, pero dice que aún no se puede guardar y Enviar está apagado
+  - la hecha hoy no se ve hecha  ←  el formulario del chofer hecha hoy: se ve hecha con su hora, si es segura y sus defectos, y deja inspeccionar otro vehículo
+  - al chofer se le dice «no salgas» aunque ya esté corregida  ←  el formulario del chofer hecha y con el crítico ya corregido por logística: se le dice al chofer, sin el «no salgas»
+  - la lista no usa ordenParaLogistica  ←  la lista de logística en el orden de ordenParaLogistica: la no segura arriba
+  - cualquiera ve «Marcar corregido»  ←  la lista de logística quien no revisa no ve el botón de corregir
+  - «sin inspección» no mira las rutas del día  ←  la lista de logística el resumen y quién con ruta no inspeccionó
+  - el resumen sale sin la migración  ←  la lista de logística sin la migración lo dice, y no pinta una lista vacía como si nadie hubiera inspeccionado
+  - la tarjeta no usa estadoDeLaInspeccion  ←  la lista de logística la no segura con su crítico ya corregido: «Corregido — ya puede salir», y deja de contar como no segura
+  - logística ve el formulario en vez de la lista  ←  la página: el chofer llena la suya; logística y el admin ven las del día logística y admin: el selector y la lista del día
+  - la migración deja leer a otro rol  ←  la migración 165 dice lo mismo que el código los roles que revisan son ROLES_QUE_REVISAN, en la política de lectura y en la función
+  - la migración deja UPDATE  ←  la migración 165 dice lo mismo que el código sin UPDATE ni DELETE para nadie; sin el número de la decisión dentro
+  - «una por día» en la base distingue mayúsculas  ←  la migración 165 dice lo mismo que el código «una por día» es la misma clave que claveDeVehiculo
+  - el odómetro acepta basura al final  ←  el odómetro escrito a mano rechaza lo que Number() sí leería: exponente y hexadecimal
+
+- **En el navegador (demo, CDP, clics de persona)**, a **390 px como chofer**: el aviso sale en «Mi ruta» antes de
+  Ayer/Hoy/Mañana; la barra del chofer es «📋 Órdenes | 🧭 Mi ruta | ✅ Inspección pre-viaje»; sin scroll lateral
+  (390 = 390). «Empezar» lleva a `/inspection`: «0 de 34», el vehículo ya elegido «Camión 3 · TX 4KD-221 — el tuyo».
+  Se contestó todo con clics (bocina con defecto, nota y foto; «inflado» con defecto crítico): «34 de 34», el
+  veredicto «NO es seguro salir: Llantas infladas…», «Enviar» sin la casilla dice «Marca la casilla…», y con ella se
+  guarda: «✓ Hecha a las <hora>», con su hora. Recargando sigue hecha; «Mi ruta» ya no avisa; el mismo camión otra vez dice «Ya
+  inspeccionaste este vehículo hoy». Al completar la cabina sin defectos se pliega y se abre el motor, con su cabecera a
+  96 px, por debajo de la barra fija (58 px). El borrador sobrevive a una recarga («10 de 34»).
+- **A 1280 px como admin**, en la MISMA sesión del navegador (el demo guarda en `localStorage`): «3 hechas · 2 no
+  seguras · 5 defecto(s) abiertos», «Con ruta ese día y sin inspección: Fleet Truck 3», el orden Miguel A. (no segura) >
+  Diego (no segura) > Carlos R. (segura), 5 fotos. «Marcar corregido» en la llanta de Diego con nota: 4 abiertos, 1 no
+  segura, Diego pasa a «Corregido — ya puede salir», y sigue así al recargar. «Hacer la mía» abre el formulario.
+  Logística ve las 3; ventas no tiene la pestaña ni le abre la página. Y el chofer, al volver, lee «Logística marcó
+  corregidos los defectos críticos».
+- **0 errores y 0 avisos de consola** en «Mi ruta» y la inspección (chofer) y en la lista (admin).
+- **La migración**: ver «La base» arriba (guardas de `aplica-migracion` OK; sin conexión a producción; en Postgres
+  local, autocomprobación y matriz 29 de 29).
+- Capturas (carpeta del worker, `inspeccion/tiros/`): `01-chofer-mi-ruta-aviso`, `02-chofer-inspeccion-arriba`,
+  `03-chofer-defecto-con-foto`, `04-chofer-llanta-critica`, `05-chofer-falta-certificar`, `06-chofer-hecha`,
+  `07-chofer-mi-ruta-sin-aviso`, `08-chofer-avanza-sola`, `10-admin-lista-del-dia`, `11-admin-corregido`,
+  `12-logistica-1280`, `13-chofer-tras-correccion`.
+
+### Lo no verificado
+
+- **Nada contra producción**: ni la migración, ni la matriz, ni que un chofer real vea sus vehículos.
+- **En un teléfono de verdad**: la cámara (`capture="environment"`) y el peso de las fotos en la fila. En el demo la
+  foto se subió por CDP con un fichero.
+- **Si cada camión de RTG está obligado** por las reglas federales o de Texas (GVWR, interestatal): no se midió.
+- Notion y el tracker no se tocaron (el tracker vive en la base; lo actualiza el orquestador).
+
+### Lo que decide el dueño
+
+1. **¿Bloquear «Mi ruta» sin inspección?** Hoy solo avisa. Bloquear es cambiar `debeAvisar` por una puerta.
+2. **¿Quién corrige los defectos?** Hoy logística y admin marcan «corregido». ¿Un mecánico? ¿El gerente de tienda?
+3. **¿Foto obligatoria en todo defecto, o solo en los críticos?** Hoy en todos.
+4. **¿Qué es crítico?** La propuesta está arriba; es una propiedad por punto.
+5. **¿Inspección al final del día (post-trip / DVIR de §396.11)?** No se hizo: la pre-viaje no la sustituye.
+6. **¿Cuánto se guarda?** §396.11 pide tres meses; la tabla no borra nada (ni hay poda).
+7. **¿«Todo OK» por zona de un toque?** No se puso: acelera, pero invita a marcar sin mirar.
+8. **¿Que el chofer vea el último reporte del camión antes de salir** (§396.13 lo pide)? Hoy solo ve los suyos.

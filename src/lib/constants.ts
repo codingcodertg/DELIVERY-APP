@@ -119,6 +119,10 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   // warehouse and the Driver tab. Reachable by anyone else only via an
   // explicit extra "deliver" grant (UserDialog), same as Driver itself.
   { id: "myroute",   label: "🧭 My route",  label_es: "🧭 Mi ruta",    href: "/my-route", roles: ["driver"], cap: "deliver" },
+  // «Inspección pre-viaje» (D-NEXT). El dueño, 2026-10-11: «AGREGA UN NUEVO VIEW QUE SE LLAMARA PRE TRIP INSPECTION
+  // CHECKLIST…». El chofer llena la suya; logística y el admin ven las del día de todos (`revisaLasDelEquipo`). Con
+  // `deliver` también se abre: quien reparte con ese permiso suelto maneja un camión igual.
+  { id: "inspection", label: "✅ Pre-trip inspection", label_es: "✅ Inspección pre-viaje", href: "/inspection", roles: ["driver", "logistics", "admin"], cap: "deliver" },
   // Logistics works entirely inside its own route-planning queue, same as
   // Warehouse/Driver — it doesn't get the general Orders board or dashboard.
   { id: "routes",    label: "🧭 Routes Manager", label_es: "🧭 Gestor de Rutas", href: "/routes", roles: ["logistics", "admin"], cap: "route_plan" },
