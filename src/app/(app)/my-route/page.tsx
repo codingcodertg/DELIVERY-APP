@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -9,8 +8,11 @@ import { canDeliver } from "@/lib/constants";
 import { captureLocationSplit } from "@/lib/geo";
 import { accionParada, escrituraRecogida, extraEntrega } from "@/lib/one-tap-stop";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
-import { AccionesDeParada } from "@/components/AccionesDeParada";
-import { marcasDeParadas } from "@/lib/acciones-parada";
+import { AccionesDeParada, BotonDeLlegada } from "@/components/AccionesDeParada";
+import { llegadaDeLaParada, llegadasDeParadas, marcasDeParadas } from "@/lib/acciones-parada";
+import { seccionesDeMiRuta, type SeccionDeMiRuta } from "@/lib/secciones-de-mi-ruta";
+import { PausaDelChofer } from "@/components/PausaDelChofer";
+import { IrAlInicio } from "@/components/TabGate";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
 import { routeOrder } from "@/lib/dispatch";
 import { paradasDelChofer } from "@/lib/ordenes-del-dia";
@@ -50,9 +52,16 @@ import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 //
 // What it does let them do is finish the work: each stop opens the same order
 // screen they already use to pick up and deliver.
+//
+// D-520 (2026-10-11), lo que el dueño pidió con capturas de «Mi ruta» de Ernesto: fuera «Saltar»; «📍 Llegué» por parada
+// y «Recogido» siempre a la vista en las recogidas; la lista en dos secciones, «Pendientes» abierta y «Entregadas»
+// plegada; fuera «Ver la ruta completa» y el aviso de paradas vencidas de la cabecera; y «⏸ Registrar parada».
 // ============================================================
 
 const DEFAULT_CAPACITY = 12;
+
+/** El título de una sección: un renglón entero que se toca con el pulgar. */
+const TITULO_DE_SECCION: React.CSSProperties = { cursor: "pointer", fontWeight: 800, fontSize: 15, minHeight: 44, display: "flex", alignItems: "center", gap: 6 };
 
 export default function MyRoutePage() {
   const { me, deliveries, events, settings, ready, setStage, updateDelivery, notify } = useData();
@@ -61,6 +70,8 @@ export default function MyRoutePage() {
   // Un solo disparo por toque: mientras la escritura va, el botón queda deshabilitado. Guarda
   // el id y no un booleano para que se vea cuál es la parada que está guardándose.
   const [guardando, setGuardando] = useState<string | null>(null);
+  // Las dos secciones de la lista (D-520): lo pendiente abierto, lo hecho plegado. Las dos se pliegan a mano.
+  const [abierta, setAbierta] = useState<Record<SeccionDeMiRuta, boolean>>({ pendientes: true, hechas: false });
 
   // De QUIÉN es la ruta (D-502). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
   // chofer elegido; sin ese contexto —el chofer en su teléfono— es `me` y no cambia nada. Mirando la de otro, nada se puede
@@ -70,18 +81,19 @@ export default function MyRoutePage() {
   const soloLectura = rutaDeSoloLectura(me, chofer);
   const driverName = chofer?.full_name ?? "";
 
-  // CADA DÍA ES APARTE (D-331): hoy son las paradas de hoy. Lo suyo atrasado sigue siendo suyo y sigue a un toque,
-  // pero se ve APARTE (`verAtrasadas`), no mezclado en la secuencia del día. Qué entra lo decide `paradasDelChofer`.
-  const [verAtrasadas, setVerAtrasadas] = useState(false);
+  // CADA DÍA ES APARTE (D-331): hoy son las paradas de hoy.
+  // **Reemplazado en parte por D-520:** lo atrasado ya no tiene aviso ni vista aparte en esta pantalla («QUITA ESO DEL
+  // OVERVIEW TAMBIEN»). Sigue siendo suyo: lo ve en su pestaña «Chofer», por etapa, y logística en el Gestor y en Órdenes.
   // D-469: el chofer mira su ruta de ayer, hoy o mañana. El dueño, 2026-10-04: «que los conductores puedan ver ayer, hoy y
   // mañana… en donde salen mis rutas». `dia` es un desfase (−1, 0, 1) y no una fecha, para que a medianoche «hoy» siga siendo hoy.
   const [desfase, setDesfase] = useState<-1 | 0 | 1>(0);
   const dia = shiftDateISO(todayISO(), desfase);
-  const atrasadas = useMemo(() => (me ? paradasDelChofer(deliveries, driverName, todayISO(), "atrasadas") : []), [deliveries, me, driverName]);
   const stops = useMemo(() => {
     if (!me) return [];
-    return routeOrder(paradasDelChofer(deliveries, driverName, dia, verAtrasadas ? "atrasadas" : "dia"));
-  }, [deliveries, me, driverName, verAtrasadas, dia]);
+    return routeOrder(paradasDelChofer(deliveries, driverName, dia, "dia"));
+  }, [deliveries, me, driverName, dia]);
+  const porId = useMemo(() => new Map(stops.map((d) => [d.id, d])), [stops]);
+  const etapaDe = (id: string) => porId.get(id)?.stage;
 
   // La capacidad de su camión: la misma que usa quien despacha, para la misma lista y la misma cuenta.
   const capacidad = settings.driver_capacity?.[driverName] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
@@ -90,7 +102,7 @@ export default function MyRoutePage() {
   // etiquetas del plan —las mismas que enseña la tarjeta de arriba—; si alguien la tocó después, lo guardado, y se dice
   // (D-335). Una sola lectura, compartida.
   const planPublicado = usePlanPublicadoDelChofer(dia, ajeno?.id ?? null);
-  const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, verAtrasadas ? null : planPublicado?.paradas ?? null), [stops, capacidad, planPublicado, verAtrasadas]);
+  const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, planPublicado?.paradas ?? null), [stops, capacidad, planPublicado]);
   // La cuenta de pallets de cada parada, la misma del Gestor: «+4 = 4» (D-444; hasta ahí, la operación entera).
   const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);
   // La lista numerada por PARADAS, como el Gestor (D-485 allí; aquí D-515). El dueño: «QUIERO EN EL DRIVER VIEW QUE EN VEZ
@@ -98,16 +110,19 @@ export default function MyRoutePage() {
   // la misma tienda, varias entregas a la misma dirección— son UNA parada con UN número: la MISMA función del Gestor, así
   // que la «parada 3» del chofer es la «parada 3» que ve logística.
   const numeradas = useMemo(() => paradasDeLaRuta(lectura.filas, stops), [lectura, stops]);
+  // Pendientes y Entregadas (D-520): cada fila en su sección, en el orden de la ruta y con su número de parada.
+  const secciones = useMemo(() => seccionesDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, numeradas.deFila), [lectura, porId, numeradas]);
   // El color del chofer, el mismo que pinta el Gestor en su círculo y en el mapa.
   const colorDelChofer = colorDeChofer(settings.driver_colors, driverName);
-  /** El círculo de la fila `fi`: el número en la primera fila de su parada; en las demás, la raya de que sigue. Una entrega
-   *  ya hecha lleva ✓ en su círculo, como en el Gestor. El título dice qué se hace ahí («Parada 1 — recoger P1, P2»). */
+  /** El círculo de la fila `fi`: el número en la primera fila de su parada DENTRO de su sección (D-520; antes, en la
+   *  primera de la lista entera); en las demás, la raya de que sigue. Una entrega ya hecha lleva ✓ en su círculo, como en
+   *  el Gestor. El título dice qué se hace ahí («Parada 1 — recoger P1, P2»). */
   const numeroDeParada = (fi: number, hecha = false) => {
     const n = numeradas.deFila[fi];
     const p = n != null ? numeradas.paradas[n - 1] : undefined;
     if (!p) return null;
     const titulo = textoDeLaParada(p, [], t);
-    return numeradas.primera[fi]
+    return secciones.conNumero[fi]
       ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorDelChofer, opacity: hecha ? 0.55 : 1 }}>{hecha ? "✓" : n}</span>
       : <span className="numero-de-parada sigue" data-sigue-la-parada={n} title={titulo} style={{ color: colorDelChofer }} />;
   };
@@ -171,11 +186,20 @@ export default function MyRoutePage() {
   const done = stops.filter((d) => d.stage === "delivered").length;
   // The one stop that matters right now: first in sequence still to finish. La MISMA función decide a quién va el
   // aviso «en camino» en el servidor (D-416): lo que el chofer ve como siguiente es lo que se avisa.
-  // Saltadas y rechazadas (D-487) salen del historial: una saltada cede el turno, una rechazada no es «siguiente».
-  const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
+  // Las rechazadas (D-487) salen del historial y no son «siguiente». Las saltadas ya no existen (D-520).
+  const marcas = useMemo(() => marcasDeParadas(events), [events]);
   const next = siguienteParada(stops, marcas);
+  // «📍 Llegué» (D-520): las llegadas de hoy, por orden, y la de cada parada. Una llegada es de la PARADA —la tienda, la
+  // dirección—: se pulsa una vez y vale para todas sus órdenes en ese tramo (`llegadaDeLaParada`).
+  const llegadas = useMemo(() => llegadasDeParadas(events, todayISO()), [events]);
+  const llegadaDe = (n: number | undefined) => {
+    const p = n != null ? numeradas.paradas[n - 1] : undefined;
+    return p ? llegadaDeLaParada(p, etapaDe, marcas, llegadas) : null;
+  };
+  // La parada de «Siguiente parada»: la de su recogida mientras no se ha recogido, la de su entrega cuando va en el camión.
+  const paradaDeLaSiguiente = next ? numeradas.paradas.find((p) => p.tipo === (next.stage === "picked_up" ? "D" : "P") && p.ordenes.includes(next.id)) : undefined;
 
-  // Los botones de cada parada (D-487): qué sale lo decide `accionesDeParada`, dentro del componente.
+  // Los botones de cada orden de una parada (D-487; D-520): qué sale lo decide `accionesDeParada`, dentro del componente.
   const accionesDe = (d: Delivery, tipo: "P" | "D", sinPrincipal = false) => (
     <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} guardando={guardando === d.id} cerrar={(x) => void cerrarParada(x)} sinPrincipal={sinPrincipal} soloLectura={soloLectura} />
   );
@@ -190,15 +214,107 @@ export default function MyRoutePage() {
   };
 
   if (!me) return null;
-  if (!canDeliver(me) || me.role === "warehouse") {
-    return <div className="empty">{t("Not available for your role.", "No disponible para tu rol.")}</div>;
-  }
+  // Quien no es chofer va a su pantalla de inicio en vez de quedarse con «No disponible para tu rol» (D-520, `IrAlInicio`).
+  if (!canDeliver(me) || me.role === "warehouse") return <IrAlInicio />;
   if (!ready) return <div className="empty">{t("Loading…", "Cargando…")}</div>;
 
   const pct = stops.length ? Math.round((done / stops.length) * 100) : 0;
   // Etiqueta y acción del botón salen de aquí: una sola decisión, no dos que se puedan
   // desincronizar. `open` (etapa que no es ready ni picked_up) solo abre el pedido.
   const accionSiguiente = accionParada(next?.stage, settings, next?.photos);
+  const hechas = new Set(secciones.hechas);
+
+  /** Una fila de la lista, la pinte la sección que la pinte. «Llegué» va en la fila que lleva el número de su parada, y
+   *  solo entre las pendientes: en las hechas no queda nada a lo que llegar. */
+  const fila = (fi: number) => {
+    const f = lectura.filas[fi];
+    const c = cuenta.paradas[fi];
+    const llegada = secciones.conNumero[fi] && !hechas.has(fi) ? llegadaDe(numeradas.deFila[fi]) : null;
+    const lineaDeCuenta = (
+      <span className="hint" data-cuenta style={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
+        {c.sinConteo ? "~" : ""}{textoDeLaCuenta(c)}
+        {c.exceso > 0 && <b style={{ color: "var(--red)" }}> {textoDelExceso(c, capacidad, lang === "es")}</b>}
+      </span>
+    );
+    if (f.tipo === "P" || f.otraCarga) return (
+      <div key={`${f.tipo}-${fi}-${f.etiqueta}`} className="acct-row" data-fila-de-ruta={fi} style={{ alignItems: "flex-start" }}>
+        <span style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center" }}>{numeroDeParada(fi)}</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
+          <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />
+          {f.tipo === "P" ? (
+            // Cada carga de la recogida, con su «Recogido» (D-487), orden por orden. Si el almacén aún no la tiene lista, el
+            // botón sale apagado y dice por qué (D-520).
+            f.ordenes.map((id) => {
+              const d = porId.get(id);
+              return (
+                <span key={id} data-recogida={id} style={{ display: "block", marginTop: 6 }}>
+                  <span className="hint" style={{ display: "block" }}>
+                    {d && (d.stage === "picked_up" || d.stage === "delivered") ? "✓ " : ""}{nombraLaOrden(deliveries, id, lang === "es")}
+                  </span>
+                  {d && accionesDe(d, "P")}
+                </span>
+              );
+            })
+          ) : (
+            <span className="hint" style={{ display: "block" }}>{nombraLaOrden(deliveries, f.orden, lang === "es")}</span>
+          )}
+          {lineaDeCuenta}
+        </span>
+      </div>
+    );
+    const d = porId.get(f.orden);
+    if (!d) return null;
+    const isDone = d.stage === "delivered";
+    const isNext = next?.id === d.id;
+    // La fila ya no es un solo botón: lleva los suyos (D-487), y un botón dentro de otro no existe en HTML.
+    // Tocar el número o el texto sigue abriendo la orden.
+    return (
+      <div
+        key={d.id}
+        className="acct-row"
+        data-entrega={d.id}
+        data-fila-de-ruta={fi}
+        style={{
+          alignItems: "flex-start",
+          background: isNext ? "var(--accent-soft)" : undefined,
+        }}
+      >
+        {/* El círculo del Gestor (D-515): número de parada en el color del chofer, no «D1» en un círculo pintado
+            por estado. Lo que el estado decía sigue: la entregada, con ✓; la siguiente, por el fondo de la fila. */}
+        <span style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center" }}>{numeroDeParada(fi, isDone)}</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <button onClick={() => setOpen(d)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
+          <span style={{ fontWeight: 700, display: "block" }}>
+            {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}{etiquetaDeLaCarga(d)}
+          </span>
+          <span className="hint" style={{ display: "block" }}>
+            {d.delivery_address || t("(no address)", "(sin dirección)")}
+          </span>
+          <AvisoSoloCiudad orden={d} />
+          <span className="hint" style={{ display: "block" }}>
+            {fmtWindows(d.delivery_windows)}
+            {d.order_type ? ` · ${d.order_type}` : ""}
+          </span>
+          {lineaDeCuenta}
+          </button>
+          <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />
+          {accionesDe(d, "D")}
+        </span>
+      </div>
+    );
+  };
+
+  /** Una sección plegable: «Pendientes (N)» o «Entregadas (N)». N son las paradas —los números— que hay en ella. */
+  const seccion = (s: SeccionDeMiRuta, titulo: string, filas: readonly number[], vacia: string) => (
+    <details data-seccion={s} open={abierta[s]} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; setAbierta((a) => (a[s] === o ? a : { ...a, [s]: o })); }}
+      style={{ marginTop: 6 }}>
+      <summary data-titulo-de-seccion={s} style={TITULO_DE_SECCION}>{titulo} ({secciones.paradas[s]})</summary>
+      {filas.length === 0
+        ? <div className="hint" style={{ padding: "4px 0 8px" }}>{vacia}</div>
+        : <div className="bar-list">{filas.map(fila)}</div>}
+    </details>
+  );
 
   return (
     <>
@@ -210,45 +326,22 @@ export default function MyRoutePage() {
       {!ajeno && <AvisoDeInspeccion />}
       <div className="viewtoggle" data-dia-de-mi-ruta style={{ marginBottom: 8 }}>
         {([[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]] as const).map(([d, rotulo]) => (
-          <button key={d} className={`vt${desfase === d && !verAtrasadas ? " on" : ""}`} onClick={() => { setVerAtrasadas(false); setDesfase(d); }}>{rotulo}</button>
+          <button key={d} className={`vt${desfase === d ? " on" : ""}`} onClick={() => setDesfase(d)}>{rotulo}</button>
         ))}
       </div>
-      {/* **Puesto al día por D-514:** el mapa del Gestor ya está EN esta pantalla, más abajo, en lugar del mapa propio que
-          D-506 dejó aquí («MIRA EL MAPA SIGUE IGUAL»). Este enlace queda para la vista entera, y se llama por lo que abre.
+      {/* **Reemplazado por D-520:** aquí estaba «🗓 Ver la ruta completa» (D-506/D-508/D-514), el enlace a `/my-route/mapa`.
+          El dueño, con la captura de la cabecera: «FULL ROUTE VIEW PLEASE QUITALO DEL DRIVER VIEW». La página sigue
+          existiendo y se abre por su dirección; ya no la enlaza nadie.
+          Y debajo, el aviso «N parada(s) expiradas de días anteriores — no son de hoy · Verlas» (D-331): «QUITA ESO DEL
+          OVERVIEW TAMBIEN». */}
 
-          «🗺 El mapa de mi ruta» (D-506): el MISMO mapa del Gestor de Rutas —panel, paradas, Cuadrícula y Horario— acotado a
-          SUS rutas, en `/my-route/mapa`. De aquí no se quita nada: allí solo se mira, y lo que cierra una parada sigue
-          estando solo aquí.
-
-          D-508: también sale al mirar la ruta de OTRO (la pestaña «Chofer» del admin, D-502), y entonces lleva SU id.
-          D-506 lo escondía ahí para que no abriera el mapa de quien mira, y el efecto fue que el admin —que es quien
-          revisa esa pestaña— no veía el mapa nuevo por ninguna parte: «aun miro el mismo mapa en drivers». Quién puede
-          abrir el de otro lo decide `choferDelMapa` en la propia pantalla del mapa, no este enlace. */}
-      {(
-        <div style={{ marginBottom: 8 }}>
-          <Link className="btn btn-ghost btn-sm" data-mapa-de-mi-ruta href={ajeno ? `/my-route/mapa?chofer=${ajeno.id}` : "/my-route/mapa"}>
-            {/* D-514: el mapa ya está aquí abajo. Este enlace abre la vista ENTERA del Gestor —panel, cuadrícula y
-                horario—, y se llama por lo que abre: «Mapa de mi ruta» al lado de un mapa no dice qué hay detrás. */}
-            🗓 {t("Full route view", "Ver la ruta completa")}
-          </Link>
-        </div>
-      )}
+      {/* «⏸ Registrar parada» (D-520): baño, gasolina (con su recibo), comida, tráfico. Mientras está parado, la tarjeta
+          dice en qué y desde cuándo, con «▶ Seguir». */}
+      <PausaDelChofer driverId={chofer?.id} soloLectura={soloLectura} />
 
       {/* El orden planeado por el motor, si hay un plan publicado de hoy (D-324). Solo informa: lo que se
           hace sigue saliendo de las órdenes asignadas, abajo. */}
-      {verAtrasadas ? (
-        <div className="hint" style={{ marginBottom: 8 }}>
-          <b>{t("Viewing your overdue stops only", "Viendo solo tus paradas expiradas")}</b>{" "}
-          <button className="btn btn-ghost btn-sm" onClick={() => setVerAtrasadas(false)}>{t("Back to today", "Volver a hoy")}</button>
-        </div>
-      ) : atrasadas.length > 0 && (
-        <div className="hint" style={{ marginBottom: 8 }}>
-          {t(`${atrasadas.length} overdue stop(s) from earlier days — not part of today.`, `${atrasadas.length} parada(s) expiradas de días anteriores — no son de hoy.`)}{" "}
-          <button className="btn btn-ghost btn-sm" onClick={() => setVerAtrasadas(true)}>{t("View them", "Verlas")}</button>
-        </div>
-      )}
-
-      {!verAtrasadas && <MiPlanPublicado plan={planPublicado} nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")} />}
+      <MiPlanPublicado plan={planPublicado} nombreDeOrden={(id, ref) => nombraLaOrden(deliveries, id ?? ref, lang === "es")} />
 
       {/* La ruta ya no es la que el plan publicó (D-341): se le dice al chofer, y en qué. Va FUERA de la lista, para que
           salga también si le quitaron todas las paradas. Qué cambió lo decide `cambiosTrasPublicar`; aquí solo se pinta.
@@ -289,7 +382,7 @@ export default function MyRoutePage() {
           {/* The next stop, given its own card. Everything else on this screen
               is context; this is the thing to act on. */}
           {next && (
-            <div className="card" style={{ marginBottom: 12, borderColor: "var(--accent)", borderWidth: 2 }}>
+            <div className="card" data-siguiente-parada style={{ marginBottom: 12, borderColor: "var(--accent)", borderWidth: 2 }}>
               <div className="section-label" style={{ marginTop: 0 }}>
                 {t("Next stop", "Siguiente parada")} · {stops.indexOf(next) + 1}/{stops.length}
               </div>
@@ -326,12 +419,15 @@ export default function MyRoutePage() {
                     : `📋 ${t("Open order", "Ver orden")}`}
                 </button>
               </div>
+              {/* «📍 Llegué» de su parada (D-520): la tienda mientras no la ha recogido, el cliente cuando va en el camión. */}
+              <BotonDeLlegada llegada={paradaDeLaSiguiente ? llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas) : null} soloLectura={soloLectura} />
               {/* La salida cuando no se puede entregar: se descarga en una tienda del grupo y el
                   pedido vuelve a la lista (D-224). En su propia fila y no junto a «Entregar»:
                   es la excepción, no la acción normal, y el pulgar del chofer va al botón verde.
                   El control se enseña solo si procede —pedido en el camión y suyo—, así que aquí
                   no se repite ninguna condición. */}
-              {/* Saltar y Rechazado (D-487), con su marca si la tiene. El verde de arriba sigue siendo la acción principal. */}
+              {/* Rechazado (D-487), con su marca si la tiene. El verde de arriba sigue siendo la acción principal. «Saltar»
+                  ya no está (D-520). */}
               {accionesDe(next, next.stage === "picked_up" ? "D" : "P", true)}
               {me && (
                 <div style={{ display: "flex", marginTop: 8 }}>
@@ -346,13 +442,13 @@ export default function MyRoutePage() {
               dejado aquí el mapa propio de esta pantalla —sin la línea de la ruta, que solo se trazaba al tocar el título, y
               con las paradas pintadas por estado— y puesto el del Gestor en otra página, detrás de un botón.
               Ahora es la MISMA tarjeta del Gestor (`routes/page.tsx`), montada solo-el-mapa y acotada a este chofer: su línea
-              medida en su color, la vuelta a la base en punteado, las casitas, el camión y la leyenda. Tocar una parada abre
-              su orden, como antes. */}
+              medida en su color, la vuelta a la base en punteado, las casitas y el camión. Sin leyenda desde D-520 («delete
+              the lEGEND ON THE MAP of the app»). Tocar una parada abre su orden, como antes. */}
           <div style={{ marginBottom: 12 }}>
             <SoloMisRutas chofer={driverName}>
               <SoloLectura>
                 {/* `ordenDelPunto`: una entrega ya hecha llega como `__hecha__<id>`; sin quitarlo, dejaría de abrirse. */}
-                <SoloElMapa dia={dia} alto={300} alPulsarParada={(id) => { const orden = ordenDelPunto(id); const d = orden ? stops.find((x) => x.id === orden) : undefined; if (d) setOpen(d); }}>
+                <SoloElMapa dia={dia} alto={300} alPulsarParada={(id) => { const orden = ordenDelPunto(id); const d = orden ? porId.get(orden) : undefined; if (d) setOpen(d); }}>
                   <RoutesPage />
                 </SoloElMapa>
               </SoloLectura>
@@ -361,95 +457,16 @@ export default function MyRoutePage() {
 
           {/* The whole day in order, so they can plan ahead: ONE list (D-443, no truckloads), recogidas y entregas en el
               orden en que se hacen, cada una con su cuenta de pallets. El título ya no traza la ruta al tocarlo (D-514): el
-              mapa de arriba es el del Gestor y la trae siempre. */}
-          {(() => {
-            return (
-              <div className="card" style={{ marginBottom: 12 }}>
-                <div
-                  className="section-label"
-                  style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
-                >
-                  <span>🚚 {t("Your route", "Tu ruta")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")}</span>
-                </div>
-                <div className="bar-list">
-                  {/* Cada recogida va donde está en la lista: al principio, o a media ruta si el camión recarga. Informa; no se pulsa. */}
-                  {lectura.filas.map((f, fi) => {
-                    const c = cuenta.paradas[fi];
-                    const lineaDeCuenta = (
-                      <span className="hint" data-cuenta style={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
-                        {c.sinConteo ? "~" : ""}{textoDeLaCuenta(c)}
-                        {c.exceso > 0 && <b style={{ color: "var(--red)" }}> {textoDelExceso(c, capacidad, lang === "es")}</b>}
-                      </span>
-                    );
-                    if (f.tipo === "P" || f.otraCarga) return (
-                      <div key={`${f.tipo}-${fi}-${f.etiqueta}`} className="acct-row" style={{ alignItems: "flex-start" }}>
-                        <span style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center" }}>{numeroDeParada(fi)}</span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
-                          {f.tipo === "P" ? (
-                            // Cada carga de la recogida, con sus botones (D-487): «Recogido» y «Saltar», orden por orden.
-                            f.ordenes.map((id) => {
-                              const d = stops.find((x) => x.id === id);
-                              return (
-                                <span key={id} data-recogida={id} style={{ display: "block", marginTop: 6 }}>
-                                  <span className="hint" style={{ display: "block" }}>
-                                    {d && (d.stage === "picked_up" || d.stage === "delivered") ? "✓ " : ""}{nombraLaOrden(deliveries, id, lang === "es")}
-                                    {d && d.stage !== "ready" && d.stage !== "picked_up" && d.stage !== "delivered" ? ` · ${t("not ready yet", "aún no está lista")}` : ""}
-                                  </span>
-                                  {d && accionesDe(d, "P")}
-                                </span>
-                              );
-                            })
-                          ) : (
-                            <span className="hint" style={{ display: "block" }}>{nombraLaOrden(deliveries, f.orden, lang === "es")}</span>
-                          )}
-                          {lineaDeCuenta}
-                        </span>
-                      </div>
-                    );
-                    const d = stops.find((x) => x.id === f.orden);
-                    if (!d) return null;
-                    const isDone = d.stage === "delivered";
-                    const isNext = next?.id === d.id;
-                    // La fila ya no es un solo botón: lleva los suyos (D-487), y un botón dentro de otro no existe en HTML.
-                    // Tocar el número o el texto sigue abriendo la orden.
-                    return (
-                      <div
-                        key={d.id}
-                        className="acct-row"
-                        data-entrega={d.id}
-                        style={{
-                          alignItems: "flex-start",
-                          background: isNext ? "var(--accent-soft)" : undefined,
-                        }}
-                      >
-                        {/* El círculo del Gestor (D-515): número de parada en el color del chofer, no «D1» en un círculo pintado
-                            por estado. Lo que el estado decía sigue: la entregada, con ✓; la siguiente, por el fondo de la fila. */}
-                        <span style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center" }}>{numeroDeParada(fi, isDone)}</span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <button onClick={() => setOpen(d)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
-                          <span style={{ fontWeight: 700, display: "block" }}>
-                            {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}{etiquetaDeLaCarga(d)}
-                          </span>
-                          <span className="hint" style={{ display: "block" }}>
-                            {d.delivery_address || t("(no address)", "(sin dirección)")}
-                          </span>
-                          <AvisoSoloCiudad orden={d} />
-                          <span className="hint" style={{ display: "block" }}>
-                            {fmtWindows(d.delivery_windows)}
-                            {d.order_type ? ` · ${d.order_type}` : ""}
-                          </span>
-                          {lineaDeCuenta}
-                          </button>
-                          {accionesDe(d, "D")}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
+              mapa de arriba es el del Gestor y la trae siempre.
+              D-520: en dos secciones. El dueño: «delivered orders go to do DELIVERED DROPDOWN TO SEE ALL THE DONE ORDERS BY
+              DEFAULT WILL BE CLOSE AND THE PENDIGN ORDERS AS WELL BU TPENDING ON THE DRIVER VIEW». */}
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div className="section-label" style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span>🚚 {t("Your route", "Tu ruta")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")}</span>
+            </div>
+            {seccion("pendientes", `🕒 ${t("Pending", "Pendientes")}`, secciones.pendientes, t("Nothing left to do on this day.", "No queda nada por hacer este día."))}
+            {seccion("hechas", `✓ ${t("Delivered", "Entregadas")}`, secciones.hechas, t("Nothing done yet.", "Aún no hay nada hecho."))}
+          </div>
         </>
       )}
 

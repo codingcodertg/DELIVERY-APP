@@ -5,8 +5,9 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { accionParada } from "@/lib/one-tap-stop";
 import {
-  KIND_RECHAZADA, KIND_RETOMADA, KIND_SALTADA, MOTIVOS_DE_RECHAZO, accionesDeParada, avisosDeRechazo, notaDeRechazo,
-  notaDelDestino, razonDeLaNota, razonDeRechazo, tiendaDelRechazo, type AccionDeParada, type DestinoDelRechazo, type MarcaDeParada,
+  KIND_RECHAZADA, MOTIVOS_DE_RECHAZO, accionesDeParada, avisosDeRechazo, kindDeLlegada, notaDeRechazo,
+  notaDelDestino, razonDeLaNota, razonDeRechazo, tiendaDelRechazo, type AccionDeParada, type DestinoDelRechazo,
+  type LlegadaDeParada, type MarcaDeParada,
 } from "@/lib/acciones-parada";
 import { EVENTO_DEJADO, escrituraDejarEnTienda } from "@/lib/leave-at-store";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
@@ -14,12 +15,50 @@ import { orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// Los botones de UNA parada en «Mi ruta» (D-487): qué sale lo decide `accionesDeParada`; aquí solo se pinta y se
-// escribe. «Recogido» y «Entregado» llaman a `cerrar`, que es el mismo `cerrarParada` de la tarjeta de «Siguiente
-// parada» (D-218): una sola vía para la etapa. Saltar, Retomar y Rechazado dejan un evento y no tocan la etapa.
+// Los botones de UNA orden de una parada en «Mi ruta» (D-487; D-520): qué sale lo decide `accionesDeParada`; aquí solo
+// se pinta y se escribe. «Recogido» y «Entregado» llaman a `cerrar`, que es el mismo `cerrarParada` de la tarjeta de
+// «Siguiente parada» (D-218): una sola vía para la etapa. Rechazado deja un evento y no toca la etapa.
+//
+// D-520: fuera «Saltar» y «Retomar»; «Recogido» sale también cuando la carga aún no está lista, apagado y con el motivo a
+// la vista; y «📍 Llegué», que es de la PARADA entera y no de cada orden, va en `BotonDeLlegada`.
 // ============================================================
 
 const BOTON: React.CSSProperties = { flex: "1 1 0", minHeight: 44, justifyContent: "center", fontSize: 15, minWidth: 0 };
+const hora = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+/**
+ * «📍 Llegué / Arrived» de una parada (D-520). Qué hay que marcar lo decide `llegadaDeLaParada`: `null`, nada (todo
+ * hecho, o nada cargado para entregar); `hecha`, «✓ Llegaste 10:42», que no se repite; `pendiente`, el botón, que deja un
+ * evento de llegada en cada orden de la parada que esté en ese tramo.
+ */
+export function BotonDeLlegada({ llegada, soloLectura = false }: { llegada: LlegadaDeParada | null; soloLectura?: boolean }) {
+  const { marcarParada, notify } = useData();
+  const { t } = usePrefs();
+  const [ocupado, setOcupado] = useState(false);
+  if (!llegada) return null;
+  if (llegada.estado === "hecha") {
+    return (
+      <span data-llegada="hecha" className="hint" style={{ display: "block", marginTop: 6, color: "var(--green)", fontWeight: 700 }}>
+        ✓ {t("Arrived", soloLectura ? "Llegó" : "Llegaste")} {hora(llegada.at)}
+      </span>
+    );
+  }
+  const llegar = async () => {
+    if (ocupado || soloLectura) return;
+    setOcupado(true);
+    let todas = true;
+    for (const id of llegada.ordenes) todas = (await marcarParada(id, kindDeLlegada(llegada.tipo), null)) && todas;
+    setOcupado(false);
+    if (todas) notify(llegada.tipo === "P" ? t("Arrived at the store", "Llegaste a la tienda") : t("Arrived at the customer", "Llegaste con el cliente"));
+  };
+  return (
+    <div style={{ display: "flex", marginTop: 8 }}>
+      <button data-accion="llegue" data-llegada="pendiente" className="btn btn-primary" style={BOTON} disabled={soloLectura || ocupado} onClick={() => void llegar()}>
+        {ocupado ? t("Saving…", "Guardando…") : `📍 ${t("Arrived", "Llegué")}`}
+      </button>
+    </div>
+  );
+}
 
 export function AccionesDeParada({
   pedido, tipo, marca, guardando, cerrar, sinPrincipal = false, soloLectura = false,
@@ -47,7 +86,9 @@ export function AccionesDeParada({
   const apagado = soloLectura || guardando || ocupado;
 
   const todas = accionesDeParada(tipo, pedido.stage, marca);
-  const acciones = sinPrincipal ? todas.filter((a) => a !== "recoger" && a !== "entregar" && a !== "dejar") : todas;
+  const acciones = sinPrincipal ? todas.filter((b) => b.accion !== "recoger" && b.accion !== "entregar" && b.accion !== "dejar") : todas;
+  // El motivo de lo apagado, a la vista: en un teléfono no hay `title` que leer.
+  const motivos = [...new Set(acciones.flatMap((b) => (b.apagado ? [t(b.apagado.en, b.apagado.es)] : [])))];
 
   const marcar = async (kind: string, note: string | null, aviso: string) => {
     if (ocupado || soloLectura) return false;
@@ -69,31 +110,18 @@ export function AccionesDeParada({
   return (
     <>
       {marca && (
-        <span data-marca-de-parada={marca.marca} className="hint" style={{ display: "block", marginTop: 4, color: marca.marca === "rechazada" ? "var(--red)" : "var(--amber)", fontWeight: 700 }}>
-          {marca.marca === "rechazada"
-            ? `⛔ ${t("Rejected by customer", "Rechazada por el cliente")}: ${razonDeLaNota(marca.motivo)}`
-            : `⏭ ${t("Skipped — do it later", "Saltada — hazla después")}`}
+        <span data-marca-de-parada={marca.marca} className="hint" style={{ display: "block", marginTop: 4, color: "var(--red)", fontWeight: 700 }}>
+          ⛔ {t("Rejected by customer", "Rechazada por el cliente")}: {razonDeLaNota(marca.motivo)}
         </span>
       )}
       {acciones.length > 0 && (
         <div data-acciones-de-parada style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-          {acciones.map((a) => {
+          {acciones.map(({ accion: a, apagado: porQue }) => {
             if (a === "dejar") return me ? <LeaveAtStore key={a} pedido={pedido} me={me} disabled={soloLectura} style={BOTON} /> : null;
             if (a === "recoger" || a === "entregar") return (
-              <button key={a} data-accion={a} className="btn btn-green" style={BOTON} disabled={apagado} onClick={() => cerrar(pedido)}>
+              <button key={a} data-accion={a} data-apagado={porQue ? "" : undefined} className="btn btn-green" style={BOTON}
+                disabled={apagado || !!porQue} title={porQue ? t(porQue.en, porQue.es) : undefined} onClick={() => cerrar(pedido)}>
                 {guardando ? t("Saving…", "Guardando…") : etiquetaPrincipal(a)}
-              </button>
-            );
-            if (a === "saltar") return (
-              <button key={a} data-accion={a} className="btn btn-amber" style={BOTON} disabled={apagado}
-                onClick={() => void marcar(KIND_SALTADA, null, t("Stop skipped", "Parada saltada"))}>
-                ⏭ {t("Skip", "Saltar")}
-              </button>
-            );
-            if (a === "retomar") return (
-              <button key={a} data-accion={a} className="btn btn-ghost" style={BOTON} disabled={apagado}
-                onClick={() => void marcar(KIND_RETOMADA, null, t("Stop resumed", "Parada retomada"))}>
-                ↩ {t("Resume", "Retomar")}
               </button>
             );
             return (
@@ -104,6 +132,9 @@ export function AccionesDeParada({
           })}
         </div>
       )}
+      {motivos.map((m) => (
+        <span key={m} data-motivo-apagado className="hint" style={{ display: "block", marginTop: 4 }}>⏳ {m}</span>
+      ))}
       {rechazando && (
         <DialogoDeRechazo
           titulo={`${t("Rejected", "Rechazado")} · ${pedido.invoice_num || `#${orderLabel(pedido)}`}`}

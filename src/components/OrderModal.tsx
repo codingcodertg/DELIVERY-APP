@@ -62,7 +62,7 @@ import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
 import { almacenDeLaTienda, codigoDeTienda } from "@/lib/almacen-de-tienda";
 import { idsRecibidasPorAlmacen, KIND_RECIBIDA, pastillaDeEtapa, puedeRecibir, recibirOrden } from "@/lib/recibir";
-import { etiquetaDeEventoDeParada, marcasDeParadas } from "@/lib/acciones-parada";
+import { etiquetaDeEventoDeParada, llegadasDeParadas, marcasDeParadas } from "@/lib/acciones-parada";
 import { PastillaDeMarca } from "@/components/PastillaDeMarca";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
@@ -1398,7 +1398,9 @@ export function OrderModal({
       onCancelPickup={() => setShowPickupConfirm(false)}
       departedAt={departedAt}
       onDepart={depart}
-      arrivedAt={arrivedAt}
+      // D-520: también la llegada que el chofer marcó con «📍 Llegué» en «Mi ruta» (un evento): sin esto, la ficha le
+      // volvía a ofrecer «Llegué a la parada» a quien ya llegó.
+      arrivedAt={arrivedAt ?? llegadasDeParadas(events, todayISO()).get(existing.id)?.entregar ?? null}
       onArrive={arrive}
       puedeRecibirla={puedeRecibirla}
       onReceive={() => void recibir()}

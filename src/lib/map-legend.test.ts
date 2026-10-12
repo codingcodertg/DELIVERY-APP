@@ -1,14 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { COLOR_RECOGIDA, COLOR_RUTA_ELEGIDA, COLOR_SIN_ASIGNAR, colorDeChofer, leyendaDelMapa } from "./map-legend";
-import { TIENDA_CLASICA } from "./store-pins";
+import { COLOR_SIN_ASIGNAR, colorDeChofer } from "./map-legend";
 import { fallbackDriverColor } from "./utils";
 
 /**
- * La leyenda del mapa de Entregas (D-274). Lo que importa es que diga lo mismo que el mapa pinta: por
- * eso la mitad de estas pruebas leen la página y los dos motores de mapa, y comprueban que pintan con lo
- * mismo que lee la leyenda.
+ * El color de cada chofer en el mapa de Entregas (D-274), y —desde D-520— que la leyenda del mapa ya no sale en ninguna
+ * pantalla.
+ *
+ * **Nota D-520 (2026-10-11):** este fichero probaba sobre todo `leyendaDelMapa`: qué elementos salía, en qué orden, con qué
+ * color y que la página le pasaba los mismos choferes que pintaba (seis pruebas). El dueño: «delete the lEGEND ON THE MAP of
+ * the app». Con la leyenda se fueron la función, `MapLegend.tsx` y los dos colores que solo ella usaba (`COLOR_RECOGIDA`,
+ * `COLOR_RUTA_ELEGIDA`), así que esas pruebas no tienen qué medir; en su lugar va la que fija que no vuelve. Las del color
+ * del chofer y del cableado de la página siguen, porque el mapa sigue pintando con eso.
  */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
@@ -26,54 +30,41 @@ describe("el color de un chofer", () => {
   });
 });
 
-describe("qué sale en la leyenda", () => {
-  // Desordenados, repetidos y con los tres «sin chofer» que puede traer una orden: la leyenda no
-  // puede salir bien por casualidad del orden de entrada.
-  const choferes = ["Zoe", null, "Ana", "Zoe", "", undefined];
-  const colores = { Zoe: "#abcdef" };
-
-  it("la tienda, un punto por chofer, por nombre y sin repetir, y un gris si alguno no tiene", () => {
-    const l = leyendaDelMapa({ choferes, coloresDeChofer: colores, rutasSinChofer: false, puedeAsignar: false });
-    expect(l.map((e) => [e.clave, "color" in e ? e.color : null])).toEqual([
-      ["tienda", TIENDA_CLASICA.fill],
-      ["chofer:Ana", fallbackDriverColor("Ana")],
-      ["chofer:Zoe", "#abcdef"],
-      ["sin_chofer", COLOR_SIN_ASIGNAR],
-    ]);
-  });
-
-  it("sin órdenes sin chofer, no hay gris", () => {
-    const l = leyendaDelMapa({ choferes: ["Ana"], coloresDeChofer: colores, rutasSinChofer: false, puedeAsignar: false });
-    expect(l.map((e) => e.clave)).toEqual(["tienda", "chofer:Ana"]);
-  });
-
-  it("la ruta discontinua solo si el mapa la está dibujando", () => {
-    const con = leyendaDelMapa({ choferes: [], coloresDeChofer: {}, rutasSinChofer: true, puedeAsignar: false });
-    expect(con.find((e) => e.clave === "ruta_sin_chofer")).toEqual(expect.objectContaining({ forma: "linea", color: COLOR_SIN_ASIGNAR, discontinua: true }));
-    const sin = leyendaDelMapa({ choferes: [], coloresDeChofer: {}, rutasSinChofer: false, puedeAsignar: false });
-    expect(sin.find((e) => e.clave === "ruta_sin_chofer")).toBeUndefined();
-  });
-
-  it("quien asigna ve además la ruta elegida, la recogida y el camión; ventas no", () => {
-    const asigna = leyendaDelMapa({ choferes: [], coloresDeChofer: {}, rutasSinChofer: false, puedeAsignar: true });
-    expect(asigna.map((e) => e.clave)).toEqual(["tienda", "ruta_elegida", "recogida", "camion"]);
-    expect(asigna.find((e) => e.clave === "ruta_elegida")).toEqual(expect.objectContaining({ color: COLOR_RUTA_ELEGIDA, discontinua: false }));
-    expect(asigna.find((e) => e.clave === "recogida")).toEqual(expect.objectContaining({ forma: "pin", color: COLOR_RECOGIDA, insignia: "P" }));
-    const ventas = leyendaDelMapa({ choferes: [], coloresDeChofer: {}, rutasSinChofer: false, puedeAsignar: false });
-    expect(ventas.map((e) => e.clave)).toEqual(["tienda"]);
-  });
-
-  it("cada elemento dice lo suyo en los dos idiomas", () => {
-    for (const e of leyendaDelMapa({ choferes, coloresDeChofer: colores, rutasSinChofer: true, puedeAsignar: true })) {
-      expect(e.en.trim(), e.clave).not.toBe("");
-      expect(e.es.trim(), e.clave).not.toBe("");
-      expect(e.en, e.clave).not.toBe(e.es);
+describe("D-520: el mapa ya no lleva leyenda, en ninguna pantalla", () => {
+  // Todo el código de la app (sin pruebas): ni el componente, ni la función, ni la lista que la pintaba.
+  const ficheros: string[] = [];
+  const recorre = (dir: string) => {
+    for (const f of readdirSync(dir)) {
+      const p = join(dir, f);
+      if (statSync(p).isDirectory()) recorre(p);
+      else if (/\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f)) ficheros.push(p);
     }
+  };
+  recorre(join(process.cwd(), "src"));
+
+  it("recorre el código de la app", () => {
+    expect(ficheros.length).toBeGreaterThan(200);
+  });
+  it("ni `MapLegend` ni `leyendaDelMapa` ni la lista «Map legend» en el código", () => {
+    expect(existsSync(join(process.cwd(), "src/components/MapLegend.tsx"))).toBe(false);
+    for (const f of ficheros) {
+      const codigo = sinComentarios(readFileSync(f, "utf8").split("\r\n").join("\n"));
+      expect(codigo, f).not.toContain("MapLegend");
+      expect(codigo, f).not.toContain("leyendaDelMapa");
+      expect(codigo, f).not.toContain('"Map legend"');
+    }
+  });
+  it("el Gestor, «Ruta de hoy» y «Mi ruta» montan la tarjeta del mapa sin nada debajo", () => {
+    const gestor = sinComentarios(leer("src/app/(app)/routes/page.tsx"));
+    // La tarjeta de «solo el mapa» (la de «Mi ruta», D-514): el `MapView` y se cierra.
+    expect(gestor).toMatch(/onPointClick=\{\(id\) => soloElMapa\.alPulsarParada\?\.\(id\)\} \/>\n\s*<\/div>/);
+    // La de la página entera (Gestor y «Ruta de hoy»): tras el `MapView`, la tarjeta se cierra.
+    expect(gestor).toMatch(/if \(d\) toggleOrder\(d\.id\);\n\s*\}\} \/>\n\s*<\/div>/);
   });
 });
 
-describe("la página pinta con lo mismo que lee la leyenda", () => {
-  // Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor en solo lectura; la leyenda vive ahí.
+describe("la página pinta con el color del chofer", () => {
+  // Puesto al día por D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor en solo lectura.
   const pagina = sinComentarios(leer("src/app/(app)/routes/page.tsx"));
   const mapa = sinComentarios(leer("src/app/(app)/map/page.tsx"));
 
@@ -86,35 +77,18 @@ describe("la página pinta con lo mismo que lee la leyenda", () => {
     expect(leer("src/lib/mapa-de-rutas.ts")).toContain("color: sel ? colorMarcada(d.id) : e.colorDe(d.assigned_driver),");
   });
 
-  it("la leyenda recibe los mismos choferes, los mismos colores y las mismas condiciones que el dibujo", () => {
-    const llamada = pagina.slice(pagina.indexOf("leyendaDelMapa({"), pagina.indexOf("leyendaDelMapa({") + 420);
-    expect(llamada).toContain("choferes: dayOrders.filter((d) => d.delivery_lat != null && d.delivery_lng != null).map((d) => d.assigned_driver),");
-    expect(llamada).toContain("coloresDeChofer: settings.driver_colors,");
-    // D-467: ya no hay rutas punteadas de lo sin chofer (costaban una llamada de mapas por orden) ni se asigna desde aquí;
-    // la leyenda explica las marcas de una ruta (`rutasDelDia`) y nombra los camiones solo a quien los recibe (`veCamiones`).
-    expect(llamada).toContain("rutasSinChofer: false, puedeAsignar: false, rutasDelDia: { camiones: veCamiones },");
-    const deRutas = leyendaDelMapa({ choferes: ["Ana", null], coloresDeChofer: {}, rutasSinChofer: false, puedeAsignar: false, rutasDelDia: { camiones: true } });
-    expect(deRutas.map((e) => e.clave)).toEqual(["tienda", "chofer:Ana", "sin_chofer", "recogida_de_ruta", "entrega_de_ruta", "entregada", "ruta_del_chofer", "regreso", "camion"]);
-    expect(deRutas.find((e) => e.clave === "regreso")).toEqual(expect.objectContaining({ forma: "linea", discontinua: true }));
-    // Ventas no recibe las posiciones: sin camión. Y lo de «elegir órdenes» no sale nunca en esta página.
-    const sinCamion = leyendaDelMapa({ choferes: [], coloresDeChofer: {}, rutasSinChofer: false, puedeAsignar: true, rutasDelDia: { camiones: false } }).map((e) => e.clave);
-    expect(sinCamion).toEqual(["tienda", "recogida_de_ruta", "entrega_de_ruta", "entregada", "ruta_del_chofer", "regreso"]);
-    expect(pagina).toContain("<MapLegend elementos={leyenda} />");
-  });
-
-  it("las líneas, la recogida y los camiones usan las constantes y las condiciones de la leyenda", () => {
+  it("los camiones, solo para quien los ve", () => {
     // D-467: la ruta azul de la orden elegida y su «P» oscura se fueron con el panel de asignar; la página ya no las pinta.
     for (const ido of ["COLOR_RUTA_ELEGIDA", "COLOR_RECOGIDA", "showRoutes"]) expect(pagina, ido).not.toContain(ido);
-    // Los camiones solo para quien los ve: lo mismo que `puedeAsignar`.
     expect(pagina).toMatch(/const liveDrivers = useMemo\(\(\) => \{\n\s*if \(!veCamiones\) return \[\];/);
   });
 
-  it("ninguno de los tres colores queda suelto en la página", () => {
+  it("el gris de lo sin chofer no queda suelto en «Ruta de hoy»", () => {
     // Puesto al día por D-481: «Ruta de hoy» ya no tiene código propio (el Gestor guarda sus colores de antes).
-    for (const hex of [COLOR_SIN_ASIGNAR, COLOR_RECOGIDA, COLOR_RUTA_ELEGIDA]) expect(mapa, hex).not.toContain(hex);
+    expect(mapa).not.toContain(COLOR_SIN_ASIGNAR);
   });
 
-  it("los dos motores pintan la tienda sin papel con `TIENDA_CLASICA`, el color de la leyenda", () => {
+  it("los dos motores pintan la tienda sin papel con `casaDeTienda`", () => {
     for (const f of ["src/components/LeafletMap.tsx", "src/components/GoogleMapView.tsx"]) {
       // Desde D-348 el color no se escribe en los motores: lo lleva dentro `casaDeTienda`, que lee `TIENDA_CLASICA.fill`.
       expect(sinComentarios(leer(f)), f).toContain("casaDeTienda()");

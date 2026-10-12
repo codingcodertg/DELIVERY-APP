@@ -1,9 +1,10 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { canOpenTab, ROLES_CON_PESTANAS_FIJAS, tabForPath, TAB_GATE_EXEMPT } from "@/lib/constants";
+import { canOpenTab, inicioSiNoPuede, ROLES_CON_PESTANAS_FIJAS, tabForPath, TAB_GATE_EXEMPT } from "@/lib/constants";
 
 /**
  * Quién entra a cada pantalla, en un solo sitio (D-240).
@@ -25,11 +26,14 @@ import { canOpenTab, ROLES_CON_PESTANAS_FIJAS, tabForPath, TAB_GATE_EXEMPT } fro
  * Es una guarda de PANTALLA, igual de fuerte que las que sustituye —todas eran de
  * cliente— y no sustituye a la RLS: lo que cada rol puede escribir lo siguen decidiendo la
  * base y sus `guard_*`.
+ *
+ * **D-520:** quien llega a una pantalla que no es para su rol ya no se queda delante de «No disponible para su rol»: se
+ * le lleva a SU pantalla de inicio (`inicioSiNoPuede`). Lo destapó la vista móvil: abre la pantalla de fuera («/», Órdenes)
+ * dentro del marco, y entrando como un chofer el marco enseñaba ese aviso en vez de su app.
  */
 export function TabGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { me } = useData();
-  const { t } = usePrefs();
 
   const tab = tabForPath(pathname);
   // Una ruta que no es pestaña no se toca: `/account` redirige a «Mi perfil» (D-274),
@@ -40,5 +44,30 @@ export function TabGate({ children }: { children: React.ReactNode }) {
   if (TAB_GATE_EXEMPT.includes(tab.id) && !(me && ROLES_CON_PESTANAS_FIJAS.includes(me.role))) return <>{children}</>;
   if (canOpenTab(tab.id, me)) return <>{children}</>;
 
-  return <div className="empty">{t("Not available for your role.", "No disponible para su rol.")}</div>;
+  return <IrAlInicio />;
+}
+
+/**
+ * Lo que sale en vez de una pantalla que no es para este rol (D-520): se va a su pantalla de inicio (`roleHome`), con
+ * `replace` para que «atrás» no lo devuelva aquí. Si no hay a dónde ir —sin sesión todavía, o su inicio es justo esta
+ * pantalla—, el aviso de siempre. También la usa «Mi ruta», que hace su propia pregunta.
+ */
+export function IrAlInicio() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { me } = useData();
+  const { t } = usePrefs();
+  const destino = inicioSiNoPuede(pathname, me);
+  // En el siguiente turno y no en el mismo efecto: llamado durante la hidratación de la primera pantalla, el router de Next
+  // se traga el `replace` sin error (medido en el demo: la ruta seguía en «/» 40 s después; diferido, cambia al momento).
+  useEffect(() => {
+    if (!destino) return;
+    const espera = setTimeout(() => router.replace(destino), 0);
+    return () => clearTimeout(espera);
+  }, [destino, router]);
+  return (
+    <div className="empty" data-sin-permiso={destino ?? ""}>
+      {destino ? t("Taking you to your home screen…", "Llevándote a tu pantalla de inicio…") : t("Not available for your role.", "No disponible para su rol.")}
+    </div>
+  );
 }

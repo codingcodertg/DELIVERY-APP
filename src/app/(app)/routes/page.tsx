@@ -18,8 +18,7 @@ import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
 import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
-import { MapLegend } from "@/components/MapLegend";
-import { colorDeChofer, leyendaDelMapa } from "@/lib/map-legend";
+import { colorDeChofer } from "@/lib/map-legend";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
 import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
@@ -2059,11 +2058,8 @@ export default function RoutesPage() {
     ? shownDrivers.map((u) => [u, "ancha"])
     : [...shownDrivers.map((u): [Lane, ModoDeTarjeta] => [u, "compacta"]), ...shownDrivers.filter((u) => u.key === rutaDesplegada).map((u): [Lane, ModoDeTarjeta] => [u, "desplegada"])];
   const scheduledCount = dayOrders.length - unassigned.length;
-  // La leyenda del mapa (D-274), solo en «Ruta de hoy» (D-467): con el mismo `colorFor` que pinta los puntos.
-  const leyenda = leyendaDelMapa({
-    choferes: dayOrders.filter((d) => d.delivery_lat != null && d.delivery_lng != null).map((d) => d.assigned_driver),
-    coloresDeChofer: settings.driver_colors, rutasSinChofer: false, puedeAsignar: false, rutasDelDia: { camiones: veCamiones },
-  });
+  // Aquí se armaba la leyenda del mapa (D-274; en «Ruta de hoy», D-467, y en «Mi ruta», D-514). Fuera en toda la app desde
+  // D-520. El dueño, 2026-10-11: «delete the lEGEND ON THE MAP of the app».
   const canManageColors = me.role === "manager" || me.role === "admin";
   // El motor nuevo (D-320) es para quien puede publicar, y con un día concreto. Con su barra cerrada (D-400), la cabecera
   // lleva el botón que la trae. Nunca en solo lectura.
@@ -2378,8 +2374,8 @@ export default function RoutesPage() {
     cabeceraDeAcciones: t("Assign / move", "Asignar / pasar"), anchoDeAcciones: 136, caja: cajaDeTodasRef,
   };
 
-  // Solo el mapa (D-514): la MISMA tarjeta de abajo —`points`, `lines`, tiendas, camiones y leyenda, calculados arriba
-  // como siempre—, sin cabecera, panel ni pestañas. Va aquí, después de todos los hooks: devolver antes rompería su orden.
+  // Solo el mapa (D-514): la MISMA tarjeta de abajo —`points`, `lines`, tiendas y camiones, calculados arriba
+  // como siempre; la leyenda ya no, D-520—, sin cabecera, panel ni pestañas. Va aquí, después de todos los hooks: devolver antes rompería su orden.
   // Lo único que cambia es qué pasa al tocar una parada: lo decide quien monta el mapa.
   if (soloElMapa) {
     return (
@@ -2387,7 +2383,6 @@ export default function RoutesPage() {
         {/* El toque va entero a quien monta el mapa: «Mi ruta» busca la parada en su propia lista, y lo que no sea una
             parada suya (la casita de una tienda, la base) no abre nada. */}
         <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={soloElMapa.alto ?? 430} onPointClick={(id) => soloElMapa.alPulsarParada?.(id)} />
-        <MapLegend elementos={leyenda} />
       </div>
     );
   }
@@ -2654,7 +2649,6 @@ export default function RoutesPage() {
             const d = dayOrders.find((x) => x.id === id);
             if (d) toggleOrder(d.id);
           }} />
-          {soloLectura && <MapLegend elementos={leyenda} />}
         </div>
       </div>
       </>)}

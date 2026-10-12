@@ -9,6 +9,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { orderLabel, retentionFloorISO, seesAllHistory, todayISO, shiftDateISO, fmtDateShort } from "@/lib/utils";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { nameStop, summarizeTrack, type Fix, type TrackSummary } from "@/lib/track-history";
+import { PausasDelDia } from "@/components/PausasDelDia";
 
 // ============================================================
 // A driver's day, after the fact: where the truck went, how far, how long it
@@ -310,6 +311,10 @@ export default function TrackPage() {
           />
         )}
       </div>
+
+      {/* Lo que el chofer DIJO (D-520, «⏸ Registrar parada» en «Mi ruta»): baño, gasolina con su recibo… Va antes de las
+          paradas que se deducen del GPS, que son una reconstrucción. */}
+      {driverId && <PausasDelDia driverId={driverId} fecha={fecha} clock={(iso) => clock(iso, lang)} />}
 
       <div className="card">
         <h2>⏸ {t("Stops", "Paradas")}<span className="count-tag">{summary.stops.length}</span></h2>

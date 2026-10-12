@@ -154,9 +154,8 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/app/(app)/summary/page.tsx": 1,
     "src/components/AppUpdateBanner.tsx": 2,
     "src/components/DispatchBoard.tsx": 1,
-    // 1 desde D-274: la «P» blanca sobre el pin oscuro de la recogida, en la leyenda del mapa. Es
-    // el mismo blanco que la «P» del pin en el mapa, sobre el mismo color.
-    "src/components/MapLegend.tsx": 1,
+    // `MapLegend.tsx` tuvo 1 desde D-274 (la «P» blanca sobre el pin oscuro de la recogida, en la leyenda del mapa). El
+    // fichero se borró en D-520, con la leyenda («delete the lEGEND ON THE MAP of the app»), y su techo con él.
     "src/components/NotificationBell.tsx": 1,
     "src/components/OfflineBanner.tsx": 1,
     "src/components/OrderModal.tsx": 9,
@@ -239,8 +238,9 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // 75 y 61 hasta D-467: −2 blancos del Mapa (ver su techo, arriba).
     // 73 y 59 hasta D-481: −2 blancos de «Ruta de hoy», que ya no tiene código propio.
     // 71 y 57 hasta D-515: −1 blanco, el círculo de la entrega en «Mi ruta», que pasa a ser el número de parada del Gestor.
-    expect(total).toBe(70);
-    expect(blancos).toBe(56);
+    // 70 y 56 hasta D-520: −1 blanco, el de la leyenda del mapa, que se quitó de toda la app (`MapLegend.tsx` borrado).
+    expect(total).toBe(69);
+    expect(blancos).toBe(55);
   });
 });
 
