@@ -62,7 +62,7 @@ function elige(notas: readonly Nota[], t: ToleranciaDePaso = TOLERANCIA_DE_PASO)
   return notas[mejor][5] <= o[5] - MARGEN_PALLET_MI * 10_000 ? mejor : opt;
 }
 
-/** Dónde acaba la cuenta (165): sin base, en la última parada; con ella, en la base, o en `fin` si se da (`null`: no vuelve). */
+/** Dónde acaba la cuenta (166): sin base, en la última parada; con ella, en la base, o en `fin` si se da (`null`: no vuelve). */
 const metaDe = (e: EntradaDeOptimizar): PuntoEnElMapa | null => (!e.base ? null : e.fin === undefined ? e.base : e.fin);
 
 /** La cuenta de la prueba. No comparte ni una línea con `optimiza-la-ruta.ts`: si las dos se equivocan, no será igual. */
@@ -1017,7 +1017,7 @@ describe("8 · entregar antes lo que está de paso (D-464): entre órdenes que m
 });
 
 // =====================================================================================================================
-describe("9 · dónde TERMINA la ruta (165, la base del día): la vuelta va a la tienda del fin, o no hay vuelta", () => {
+describe("9 · dónde TERMINA la ruta (166, la base del día): la vuelta va a la tienda del fin, o no hay vuelta", () => {
   // El dueño, 2026-10-11: «Need to be able to assign store where driver is starting/ ending at». Sin `fin`, ida y vuelta a la
   // base, como siempre; con otro punto, la ruta acaba ALLÍ; con `null` (no vuelve a base, Ajustes), en su última parada.
   const B: PuntoEnElMapa = { lat: 26.2, lng: -98.2 }, X: PuntoEnElMapa = { lat: 26.21, lng: -98.21 }, Y: PuntoEnElMapa = { lat: 26.4, lng: -98.4 };

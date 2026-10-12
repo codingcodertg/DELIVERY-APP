@@ -65,7 +65,7 @@ export function entradaDeOptimizar(args: {
   lista: readonly ParadaDeLaLista[];
   ordenes: readonly OrdenDeLaRuta[];
   base: PuntoEnElMapa | null;
-  /** Dónde termina, si no es la base (165); `null` = no vuelve. Sin él, vuelve a la base. */
+  /** Dónde termina, si no es la base (166); `null` = no vuelve. Sin él, vuelve a la base. */
   fin?: PuntoEnElMapa | null;
   capacidad: number | null;
   /** Las coordenadas de una tienda de recogida, por su nombre (Ajustes). */
@@ -105,7 +105,7 @@ export const MAX_PUNTOS_DE_UNA_RUTA = 60;
 /** Los puntos DISTINTOS de una ruta —la base y cada parada con punto—, por su clave (lat,lng a 5 decimales). */
 export function puntosDeLaEntrada(e: Pick<EntradaDeOptimizar, "base" | "fin" | "puntos">): PuntoEnElMapa[] {
   const vistos = new Map<string, PuntoEnElMapa>();
-  // El fin (165) también: sin su tramo, la vuelta se mediría en línea recta.
+  // El fin (166) también: sin su tramo, la vuelta se mediría en línea recta.
   for (const p of [e.base, e.fin, ...e.puntos]) if (p && Number.isFinite(p.lat) && Number.isFinite(p.lng) && !vistos.has(claveDePunto(p))) vistos.set(claveDePunto(p), { lat: p.lat, lng: p.lng });
   return [...vistos.values()];
 }

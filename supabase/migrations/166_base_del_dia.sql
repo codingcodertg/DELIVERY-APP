@@ -1,4 +1,4 @@
--- 165 - De que tienda sale y en cual termina cada chofer, POR DIA
+-- 166 - De que tienda sale y en cual termina cada chofer, POR DIA
 -- ===========================================================================
 -- El dueno, 2026-10-11 (dictado, literal): «choose the driver strarting position LOGISTIC MANAGER, DEFAULT IS
 -- THE ONE HE ALREADY WORKS ON». Y el mismo dia: «Need to be able to assign store where driver is starting/
@@ -12,7 +12,7 @@
 -- driver_availability dice «no disponible».
 --
 -- ESCRITA Y NO APLICADA: aplicarla es del orquestador, despues del merge, con respaldo hecho y migrate-status
--- antes y despues (node scripts/db/aplica-migracion.mjs 165_base_del_dia.sql corre el ENSAYO con ROLLBACK).
+-- antes y despues (node scripts/db/aplica-migracion.mjs 166_base_del_dia.sql corre el ENSAYO con ROLLBACK).
 -- La app funciona sin ella: sin la tabla, cada chofer sale y termina en su base de siempre, el selector se
 -- ve apagado y lo dice, y «Armar rutas» planifica como hoy (src/lib/base-del-dia.ts, `faltaLaTablaDeBases`).
 --
@@ -53,7 +53,7 @@ create table if not exists public.driver_day_bases (
 );
 
 comment on table public.driver_day_bases is
-  'De que tienda sale (start_store) y en cual termina (end_store) un chofer UN dia (165, 2026-10-11). null = lo de siempre: la base de Ajustes; el fin, donde salio. Sin fila, su base. Lo leen el Gestor, «Armar rutas», «Ruta de hoy» y «Mi ruta».';
+  'De que tienda sale (start_store) y en cual termina (end_store) un chofer UN dia (166, 2026-10-11). null = lo de siempre: la base de Ajustes; el fin, donde salio. Sin fila, su base. Lo leen el Gestor, «Armar rutas», «Ruta de hoy» y «Mi ruta».';
 
 -- Quien y cuando lo pone la base, no el navegador. Sin sesion (psql, llave de servicio) se deja como venga.
 create or replace function public.driver_day_bases_stamp()
@@ -114,32 +114,32 @@ declare
   n int;
 begin
   if not (select relrowsecurity from pg_class where oid = 'public.driver_day_bases'::regclass) then
-    raise exception '165: driver_day_bases quedo sin RLS';
+    raise exception '166: driver_day_bases quedo sin RLS';
   end if;
   select count(*) into n from pg_policies where schemaname = 'public' and tablename = 'driver_day_bases';
-  if n <> 4 then raise exception '165: driver_day_bases tiene % politicas, se esperaban 4', n; end if;
+  if n <> 4 then raise exception '166: driver_day_bases tiene % politicas, se esperaban 4', n; end if;
   select count(*) into n from pg_policies where schemaname = 'public' and tablename = 'driver_day_bases' and cmd = 'ALL';
-  if n <> 0 then raise exception '165: hay % politicas FOR ALL', n; end if;
+  if n <> 0 then raise exception '166: hay % politicas FOR ALL', n; end if;
   select count(distinct cmd) into n from pg_policies where schemaname = 'public' and tablename = 'driver_day_bases';
-  if n <> 4 then raise exception '165: las politicas no cubren select, insert, update y delete (cubren %)', n; end if;
+  if n <> 4 then raise exception '166: las politicas no cubren select, insert, update y delete (cubren %)', n; end if;
 
   if has_table_privilege('anon', 'public.driver_day_bases', 'SELECT')
      or has_table_privilege('anon', 'public.driver_day_bases', 'INSERT')
      or has_table_privilege('authenticated', 'public.driver_day_bases', 'TRUNCATE')
      or has_table_privilege('authenticated', 'public.driver_day_bases', 'REFERENCES')
      or has_table_privilege('authenticated', 'public.driver_day_bases', 'TRIGGER') then
-    raise exception '165: permisos de mas sobre driver_day_bases';
+    raise exception '166: permisos de mas sobre driver_day_bases';
   end if;
   if not has_table_privilege('authenticated', 'public.driver_day_bases', 'SELECT')
      or not has_table_privilege('authenticated', 'public.driver_day_bases', 'INSERT')
      or not has_table_privilege('authenticated', 'public.driver_day_bases', 'UPDATE')
      or not has_table_privilege('authenticated', 'public.driver_day_bases', 'DELETE') then
-    raise exception '165: a authenticated le faltan permisos sobre driver_day_bases';
+    raise exception '166: a authenticated le faltan permisos sobre driver_day_bases';
   end if;
 
   if not exists (select 1 from pg_trigger where tgrelid = 'public.driver_day_bases'::regclass
                   and tgname = 'driver_day_bases_stamp' and not tgisinternal) then
-    raise exception '165: falta el disparador driver_day_bases_stamp';
+    raise exception '166: falta el disparador driver_day_bases_stamp';
   end if;
 end $comprueba$;
 
@@ -148,11 +148,11 @@ end $comprueba$;
 -- ===========================================================================
 --   drop table if exists public.driver_day_bases;          -- se lleva politicas, restricciones y disparador
 --   drop function if exists public.driver_day_bases_stamp();
---   delete from public.schema_migrations where name = '165_base_del_dia.sql';
+--   delete from public.schema_migrations where name = '166_base_del_dia.sql';
 --
 -- Se pierden las salidas y los fines elegidos. La app no se rompe: sin la tabla, base-del-dia.ts lee el fallo
 -- como «la tabla no esta», cada chofer vuelve a su base de siempre, el selector se apaga y lo dice, y «Armar
--- rutas» planifica como antes de la 165.
+-- rutas» planifica como antes de la 166.
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('165_base_del_dia.sql', '0dce6d2402fff9d05a515632d711ddc29db295c4097497aaf92baf047f3d1757') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('166_base_del_dia.sql', 'ec2737ae1b37ae1df49389e42414670b465db33fde2d048f93b63c148ecc371a') on conflict (name) do nothing;

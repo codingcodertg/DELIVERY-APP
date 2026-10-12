@@ -5,11 +5,11 @@ import { createClient } from "@/lib/supabase/client";
 import { guardaBaseDelDia, leeBasesDelDia, type BaseDelDia, type ClienteDeBasesDelDia } from "@/lib/base-del-dia";
 
 /**
- * Lo elegido para el día que se mira en el Gestor: de qué tienda sale y en cuál termina cada chofer (165,
+ * Lo elegido para el día que se mira en el Gestor: de qué tienda sale y en cuál termina cada chofer (166,
  * `driver_day_bases`; las reglas, en `base-del-dia.ts`). Lo lee el Gestor, «Ruta de hoy» y el mapa de «Mi ruta» (cada uno lo
  * que su RLS le deja: un chofer, lo suyo) y lo escribe el gerente de logística o el admin desde el panel «Choferes y rutas».
  *
- * `fuente`: «base» (la tabla está y se leyó), «sin_tabla» (la 165 aún no se aplicó: cada chofer en su base, y el selector se
+ * `fuente`: «base» (la tabla está y se leyó), «sin_tabla» (la 166 aún no se aplicó: cada chofer en su base, y el selector se
  * apaga y lo dice), «error» (la lectura falló: lo mismo, con su porqué), «demo» (sin base: lo elegido vive en esta pestaña,
  * para poder probarlo) y «cargando».
  */

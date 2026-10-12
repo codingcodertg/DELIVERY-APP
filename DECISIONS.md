@@ -22062,7 +22062,7 @@ tiene que salir **pendiente** y no puede aparecer ninguna huérfana llamada `124
 ## D-316 · Motor de rutas, incremento 1: el modelo — base y camión de cada chofer, builder o mostrador, y los pesos en Ajustes
 
 > **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): la base de Ajustes es la de SIEMPRE, pero para un día concreto el gerente
-> de logística puede hacer salir y terminar al chofer en otra tienda (migración 165, `driver_day_bases`). La vuelta a base
+> de logística puede hacer salir y terminar al chofer en otra tienda (migración 166, `driver_day_bases`). La vuelta a base
 > (`returns_to_base`) va a la tienda del fin de ese día.
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migraciones:** `128_driver_settings`,
@@ -35259,7 +35259,7 @@ antes que la llave de servicio, sin escrituras) y que crear pide al servidor.
 ## D-461 · «🧭 Optimizar» una ruta, rehecho: por calles, mirando las ventanas, desde la base del chofer, y exacto en las rutas pequeñas
 
 > **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): «la base es la del chofer» sigue, pero ya no es fija: el gerente de logística
-> (o el admin) elige en el panel de choferes de qué tienda SALE y en cuál TERMINA cada chofer un día concreto (migración 165,
+> (o el admin) elige en el panel de choferes de qué tienda SALE y en cuál TERMINA cada chofer un día concreto (migración 166,
 > `driver_day_bases`). Manda lo elegido para ese día; sin elegir nada, la de Ajustes → Rutas y, si no, la del perfil, como aquí.
 > Optimizar, la medida de la tarjeta (millas, horas, llegadas), la «P» del mapa y la vuelta salen de esa tienda, y la vuelta va
 > a la del fin del día (sin vuelta si el chofer no vuelve a base). `tiendaBaseDelChofer` sigue siendo la base DE SIEMPRE.
@@ -37171,7 +37171,7 @@ No visto en navegador: `tsc` y vitest.
 ## D-474 · Gestor de Rutas: marcar varias órdenes y «Asignar a…» los choferes que uno elija — el motor de «Armar rutas» reparte solo entre ellos
 
 > **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): la base de cada elegido (fila «Base del chofer» de la tabla de abajo) es la
-> tienda de la que sale ESE día si se eligió en el panel (migración 165), y vuelve a la del fin del día; si no, la de siempre.
+> tienda de la que sale ESE día si se eligió en el panel (migración 166), y vuelve a la del fin del día; si no, la de siempre.
 > Lo mismo en «Armar rutas», que hasta aquí solo miraba Ajustes.
 
 **Fecha:** 2026-10-06 · **Migración:** ninguna · **Versión:** deliveries 1.257.0, repo 1.348.0 · **Motor:** `motor-7`, sin cambios.
@@ -37558,7 +37558,7 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 ## D-479 · La recogida en la tienda de la zona de otro chofer es la punta cara: cada chofer carga en su tienda salvo que no quepa (`motor-8`)
 
 > **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): «su tienda» sigue a la SALIDA del día. Si un chofer sale ese día de otra
-> tienda (migración 165), en sus zonas la ciudad de su base se cambia por la de la tienda de la que sale, solo ese día: así no
+> tienda (migración 166), en sus zonas la ciudad de su base se cambia por la de la tienda de la que sale, solo ese día: así no
 > paga la punta cara por cargar donde tomó el camión. Un chofer sin zonas sigue sin zonas. «📍 Mejor lugar» sigue sin cambiar.
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries 1.259.0, repo 1.352.0 (Entregas) · **Migraciones:** ninguna (el peso nuevo vive en el
@@ -41394,9 +41394,9 @@ propósito para que el choque sea mínimo.
 7. **¿«Todo OK» por zona de un toque?** No se puso: acelera, pero invita a marcar sin mirar.
 8. **¿Que el chofer vea el último reporte del camión antes de salir** (§396.13 lo pide)? Hoy solo ve los suyos.
 
-## D-NEXT — El gerente de logística elige de qué tienda SALE y en cuál TERMINA cada chofer, un día concreto (migración 165)
+## D-NEXT — El gerente de logística elige de qué tienda SALE y en cuál TERMINA cada chofer, un día concreto (migración 166)
 
-**Fecha:** 2026-10-11 · **Estado:** Vigente · **Migración:** `165_base_del_dia.sql` — escrita y **no aplicada**; la app funciona sin
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Migración:** `166_base_del_dia.sql` — escrita y **no aplicada**; la app funciona sin
 ella · **Motor:** sigue siendo `motor-8` (sin fin elegido, planifica byte a byte lo mismo) · **Reemplaza en parte a** D-316, D-461,
 D-474 y D-479 (cada una lleva su nota).
 
@@ -41429,6 +41429,9 @@ rutea); los cuatro con «vuelve a base» marcado; siete tiendas en Ajustes, toda
 3. **Es de ESE día.** Mañana vuelve a su base salvo que se cambie también. Elegir otra vez su base (y el fin «como la salida»)
    borra la fila: ese día vuelve a ser como cualquier otro.
 4. **En «Ruta de hoy» (D-481) se ve, sin selector:** «🏠 Sale de RDZ McAllen · Termina en RDZ McAllen», resaltado si es del día.
+5. **En la tarjeta de la ruta**, la fila «🏠 Base: salida» dice la dirección de la tienda de la que sale ese día, y la del regreso,
+   si termina en otra, pasa a «🏠 Termina en · RDZ Pharr — (su dirección)»; si no vuelve a base, «(no vuelve a base: la ruta acaba
+   en su última parada)».
 
 ### Qué manda — `src/lib/base-del-dia.ts`
 
@@ -41449,7 +41452,7 @@ Todo lo que sacaba al camión de la base y lo volvía a ella:
 
 | Dónde | Cómo |
 |---|---|
-| **«Armar rutas»** (servidor, `/api/route-plan`) | `leeElDia` lee la 165 (`leeBasesDelDia`) y `entradaDelDia` pone en cada chofer la base del día y, si termina en otra tienda, `fin` (un punto más en la matriz). Sin la tabla planifica como antes; con otro fallo de lectura NO planifica (500), como con los candados de la 149. |
+| **«Armar rutas»** (servidor, `/api/route-plan`) | `leeElDia` lee la 166 (`leeBasesDelDia`) y `entradaDelDia` pone en cada chofer la base del día y, si termina en otra tienda, `fin` (un punto más en la matriz). Sin la tabla planifica como antes; con otro fallo de lectura NO planifica (500), como con los candados de la 149. |
 | **El motor** (`evaluaRuta`, `tramosDelPlan`) | La vuelta va a `chofer.fin ?? chofer.base`. `ChoferEntrada.fin` es opcional: sin él, todo igual. |
 | **«Asignar a…» varios** (D-474) | La misma `entradaDelDia`, con lo del día; el punto del fin entra en lo que se pide por calles (`puntosDelReparto`). |
 | **«🧭 Optimizar»** (D-461) | `fin` en `EntradaDeOptimizar`: la cuenta, la búsqueda exacta (cotas incluidas) y la local vuelven al fin; `null` = no vuelve. |
@@ -41468,7 +41471,7 @@ que sale (`zonasDelDia`): Julio queda con Edinburg, Weslaco y McAllen. Pharr se 
 nadie paga por ir. Un chofer SIN zonas sigue sin zonas (darle una le haría pagar por las de los demás). Se sigue a la salida y no
 al fin: la zona es dónde carga. «📍 Mejor lugar» (`esDeSuZona`, solo sugerencia) no se tocó, como en D-479.
 
-### Dónde se guarda: `public.driver_day_bases` (migración 165)
+### Dónde se guarda: `public.driver_day_bases` (migración 166)
 
 Se buscó primero algo por día que sirviera: `driver_settings` no tiene fecha; `route_plans` es la foto de un plan (y «Asignar a…»
 no crea plan); `route_locks` (149) dice «no tocar»; `driver_availability`, «no disponible»; `settings` lo escribe solo el admin.
@@ -41479,10 +41482,23 @@ y `end_store`, el NOMBRE de una tienda de Ajustes o `null` («lo de siempre»), 
 solo su fila**; **escriben** admin y logística. Plan, autocomprobación y reversión, en la cabecera del `.sql`.
 
 **Sin aplicar, la app funciona:** sin la tabla (`PGRST205`/`42P01`), cada chofer sale y termina en su base, el selector sale
-apagado con «Falta la migración 165…», y «Armar rutas» planifica como antes. **El ensayo con ROLLBACK no se pudo correr**:
-`node scripts/db/aplica-migracion.mjs 165_base_del_dia.sql` llega al estado (164 en el repo, 163 registradas, la 165 pendiente) y
-Postgres rechaza la contraseña de `SUPABASE_DB_URL` del `.env.local` («password authentication failed», 2026-10-11). Hay que
-correrlo con la cadena buena antes de aplicar.
+apagado con «Falta la migración 166…», y «Armar rutas» planifica como antes.
+
+**El número es 166 y no 165**: la 165 es `165_inspeccion_pre_viaje.sql` (D-518), de otra rama; el orquestador avisó a mitad de
+trabajo y se renumeró (fichero, cuerpo, registro y referencias).
+
+**Ensayo.** Contra producción NO se pudo: `node scripts/db/aplica-migracion.mjs` llega al estado (la migración pendiente, las demás
+al día) y Postgres rechaza la contraseña de `SUPABASE_DB_URL` del `.env.local` de esta PC («password authentication failed»,
+2026-10-11; el orquestador confirma que es la vieja). Se ensayó en un **Postgres 17 local y desechable** (un `initdb` nuevo en la
+carpeta del worker, puerto 55466, parado al acabar) con el esqueleto de Supabase que la migración usa —los roles `anon` y
+`authenticated`, `auth.uid()` por `request.jwt.claim.sub`, `profiles`, `has_deliveries_access()` y `current_user_role()` copiadas
+de la 083 y de `roles.sql`, `schema_migrations`, y los privilegios por defecto que Supabase da a `anon`/`authenticated` sobre cada
+tabla nueva—: la migración corre entera con su autocomprobación, se inscribe, y **29 de 29 comprobaciones** de la matriz por rol, con
+ROLLBACK: logística y admin insertan, actualizan, hacen el upsert de la app y borran; gerente, almacén, ventas y el chofer no
+escriben nada (42501 o 0 filas); admin, logística, gerente, almacén y ventas leen las dos filas del día; el chofer, solo la suya;
+sin el módulo de Entregas, ninguna; `anon`, permiso denegado; una fila sin salida ni fin no entra (23514); `set_by` lo pone la base;
+tras el ROLLBACK no queda la tabla; y aplicada dos veces seguidas no falla. Guion y resultado fuera del repo (`ensayo-local.mjs`,
+`ensayo-local.txt`). **Falta** el ensayo contra producción con la cadena buena antes de aplicar.
 
 ### Medido en el navegador (demo, 2026-10-11)
 
@@ -41499,9 +41515,11 @@ dobladas, 0 matrices).
 - **«Ruta de hoy» como almacén**: cuatro líneas «🏠 Starts at … · Ends at …» (la de Diego, «Brownsville · Pharr», resaltada),
   **0 selectores**; el mapa con su «F».
 - La página no se desborda de lado: 1280 de 1280, 390 de 390; a 390 el selector cabe en su fila (de 72 a 339 px).
+- **La tarjeta** de Diego, saliendo de Brownsville y terminando en Pharr: «Base: leaves · 3000 Central Blvd, Brownsville TX» arriba,
+  «Ends at · Pharr — 1201 W US-83, Pharr TX» abajo, y las llegadas contadas desde Brownsville (la primera recogida, a las 10:12).
 
 Capturas: `1280-1-panel-antes`, `1280-2-sale-de-brownsville`, `1280-3-mapa-P-y-F`, `1280-4-manana-sin-ordenes`,
-`1280-5-ruta-de-hoy-lectura`, `390-1-panel` (en la carpeta del worker, fuera del repo).
+`1280-5-ruta-de-hoy-lectura`, `1280-6-tarjeta-termina-en`, `390-1-panel` (en la carpeta del worker, fuera del repo).
 
 ### Pruebas
 
@@ -41513,14 +41531,20 @@ Capturas: `1280-1-panel-antes`, `1280-2-sale-de-brownsville`, `1280-3-mapa-P-y-F
   «Asignar a…», mapa, servidor).
 - `src/lib/optimiza-la-ruta.test.ts`, sección 9: el fin en Optimizar, contra la fuerza bruta (60 listas) y la exhaustiva (16), la
   exacta sola y la local sola. La cuenta escrita aparte de la prueba (`cuenta`, `exhaustiva`) aprendió el fin.
+- **Mutantes: 67, caen los 67**, leídos por el nombre de la prueba (`mutantes.mjs`; la tanda, en la carpeta del worker), a la
+  primera: qué manda (8), la zona y las filas del día (7), lo que se guarda y se ofrece (6), el motor y el servidor (8),
+  Optimizar (7, uno sobre la cota de la búsqueda exacta, que solo caza la fuerza bruta con fin), la medida (8), el mapa y «Mejor
+  lugar» (5), la pantalla (13) y los componentes (5). Ninguno sobrevivió; varios de la pantalla los caza un ancla de texto (la
+  prueba lee la página), no una pantalla pintada.
 - Puestas al día, con su nota («Puesto al día por la base del día»): `optimizar-desde-el-gestor`, `gestor-factura-arrastre-optimizar`,
   `solo-armar-rutas`, `reparto-desde-el-gestor` y `mejor-lugar` — anclas de texto de la página y de la medida que ahora llevan el fin.
 
 ### Lo que no se hizo, y lo no verificado
 
 - **Una dirección libre** como salida o fin: no. El motor necesita un punto, una dirección libre pide geocodificar (una llamada de
-  pago) y no tiene zona; y el caso del dueño es una tienda. Si hace falta, es una columna de coordenadas más en la 165.
-- **El ensayo de la 165 con ROLLBACK** (arriba) y **la RLS por rol** contra la base: no se pudieron correr.
+  pago) y no tiene zona; y el caso del dueño es una tienda. Si hace falta, es una columna de coordenadas más en la 166.
+- **El ensayo de la 166 contra producción** (arriba): no se pudo; la RLS se probó en un Postgres local con el esqueleto de
+  Supabase, no en el de verdad.
 - **Nada con sesión ni contra producción**: «Armar rutas» con la base del día se probó con `planificaElDia` en la prueba (sin red);
   la ruta del servidor, por su texto. Que un chofer lea su fila desde «Mi ruta», tampoco.
 - **Google Maps**: el demo pinta Leaflet.

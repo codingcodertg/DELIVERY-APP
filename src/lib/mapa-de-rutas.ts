@@ -121,7 +121,7 @@ export interface EntradaDeLosPuntos<T extends OrdenDelMapa> {
   colorSinChofer: string;
   /** La base de la ruta, ya con coordenadas, y su dirección para el rótulo. */
   baseDe: (clave: string) => { coords: [number, number]; direccion: string } | null;
-  /** Dónde TERMINA la ruta ese día, si no es donde sale (165, `base-del-dia.ts`): su marca «F». Sin esto, o con `null` (termina
+  /** Dónde TERMINA la ruta ese día, si no es donde sale (166, `base-del-dia.ts`): su marca «F». Sin esto, o con `null` (termina
    *  donde sale, o no vuelve), no se pinta: la «P» ya es la vuelta. */
   finDe?: (clave: string) => { coords: [number, number]; direccion: string } | null;
   lecturaDe: (clave: string, paradas: T[]) => Pick<LecturaDeRuta, "etiquetaDe" | "filas">;
@@ -159,7 +159,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       label: `${t("Pickup / base", "Recolección / base")} (${u.label}) — ${base.direccion}`,
       dimmed: e.atenuada(u.key) || selActive,
     });
-    // Termina en otra tienda ese día (165): su marca, del mismo color, con «F» de fin.
+    // Termina en otra tienda ese día (166): su marca, del mismo color, con «F» de fin.
     const fin = e.finDe?.(u.key);
     if (fin && (fin.coords[0] !== base.coords[0] || fin.coords[1] !== base.coords[1])) {
       pts.push({

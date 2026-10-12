@@ -51,7 +51,7 @@ export interface EntradaDeMejorLugar {
   nueva: ParadaDeRuta;
   /** La recogida / base de la ruta. Sin ella, la ruta es abierta (como en `computeRoute`). */
   base: LatLng | null;
-  /** Dónde termina ese día, si no es la base (165); `null` = no vuelve. Sin él, vuelve a la base. */
+  /** Dónde termina ese día, si no es la base (166); `null` = no vuelve. Sin él, vuelve a la base. */
   fin?: LatLng | null;
   capacidad: number;
   /** A qué hora sale el primer viaje, en minutos desde medianoche. */
@@ -109,7 +109,7 @@ export function costeDeLaRuta(
   viajes: readonly (readonly ParadaDeRuta[])[],
   base: LatLng | null,
   inicioMin: number,
-  /** Dónde termina el ÚLTIMO viaje (165): sin él, la base; `null`, no vuelve. Entre viajes se recarga en la base. */
+  /** Dónde termina el ÚLTIMO viaje (166): sin él, la base; `null`, no vuelve. Entre viajes se recarga en la base. */
   fin?: LatLng | null,
 ): { millas: number; tardeMin: number; llegadas: Map<string, number> } {
   let millas = 0;

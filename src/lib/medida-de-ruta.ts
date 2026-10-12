@@ -14,7 +14,7 @@ export interface PuntoDeLaMedida { id: string; lat: number; lng: number }
  * El cuerpo que se manda a `/api/optimize-route` para un viaje: la base (si hay) y las paradas EN SU ORDEN, con
  * `optimize: false` —el camino en ese orden, como «Mi ruta» y el trazo del plan publicado—. Con base, ida y vuelta.
  *
- * `fin` (165, la tienda donde termina ESE día; `base-del-dia.ts`): sin él, o igual a la base, ida y vuelta como siempre;
+ * `fin` (166, la tienda donde termina ESE día; `base-del-dia.ts`): sin él, o igual a la base, ida y vuelta como siempre;
  * otro punto, la ruta acaba ALLÍ (una parada más al final, `__fin__`, sin vuelta); `null`, no vuelve (acaba en la última).
  */
 export function cuerpoDeLaMedida(paradas: readonly PuntoDeLaMedida[], base: readonly [number, number] | null, fecha: string | null, fin?: readonly [number, number] | null) {

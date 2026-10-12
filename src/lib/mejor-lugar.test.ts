@@ -210,7 +210,7 @@ describe("la pantalla del Gestor usa «Mejor lugar»", () => {
   it("el hueco sale de `mejorLugar` sobre la LISTA que pinta la pantalla (D-443: sus entregas, un solo viaje), con lo que cabe en cada puesto y las ventanas", () => {
     expect(cuerpo).toContain("let lista: ParadaDeLaLista[] = lecturaDe(laneKey, paradas).paradas;");
     expect(cuerpo).toContain("const cabe = admiteEnLaLista(lista, paradas, capacidad);");
-    // **Puesto al día por la base del día (165, 2026-10-11)**: también le pasa dónde termina la ruta ese día (`finParaEstimar`).
+    // **Puesto al día por la base del día (166, 2026-10-11)**: también le pasa dónde termina la ruta ese día (`finParaEstimar`).
     expect(cuerpo).toContain("mejorLugar({ viajes: [entregas.map(aParada)], nueva: aParada(d), base, fin: finParaEstimar(laneKey), capacidad, inicioMin: DAY_START_MIN, admite: (_v, puesto) => cabe(puesto, palletsDeLaOrden(d)) })");
     expect(cuerpo).toContain("const capacidad = capacityFor(driverOf(laneKey));");
     expect(cuerpo).toContain("ventana: parseWindow(x.delivery_windows), servicioMin: serviceMin(x.delivery_duration)");

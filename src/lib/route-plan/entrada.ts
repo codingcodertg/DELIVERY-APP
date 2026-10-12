@@ -61,7 +61,7 @@ export interface DatosDelDia {
   /** Rutas bloqueadas 🔒 ese día (`route_locks`, 149; D-414), por la clave del Gestor: el NOMBRE del chofer o de la
    *  ruta temporal. El motor no las toca: el chofer no entra, y sus órdenes quedan fuera del plan tal como están. */
   bloqueadas?: readonly string[];
-  /** De qué tienda sale y en cuál termina cada chofer ESE día, por id (165, `driver_day_bases`; `base-del-dia.ts`). Manda
+  /** De qué tienda sale y en cuál termina cada chofer ESE día, por id (166, `driver_day_bases`; `base-del-dia.ts`). Manda
    *  sobre la base de Ajustes; las zonas siguen a la salida (D-479). Sin nada, como siempre. */
   basesDelDia?: BasesDelDia;
 }
@@ -126,7 +126,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   const catalogo = catalogoDeRequisitos(settings);
 
   // ---- Choferes ----
-  // Con lo elegido para ESE día (165): la base de cada fila es la tienda de la que sale, sus zonas siguen a la salida, y
+  // Con lo elegido para ESE día (166): la base de cada fila es la tienda de la que sale, sus zonas siguen a la salida, y
   // aparte dónde termina el que no termina donde sale. Sin nada elegido, las mismas filas.
   const delDia = ajustesDelDia(datos.ajustesDeChofer, datos.choferes, datos.basesDelDia, tiendas);
   const filaDe = new Map(delDia.filas.map((f) => [f.profile_id, f]));
@@ -145,7 +145,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     const habilidades = habilidadesDelChofer(filaDe.get(c.id), catalogo);
     // Sus zonas preferidas (D-421, 152), también solo si tiene alguna.
     const zonas = zonasDelChofer(filaDe.get(c.id));
-    // Dónde termina ESE día, si vuelve y no es donde sale (165). Una tienda sin punto no vale: vuelve a la base.
+    // Dónde termina ESE día, si vuelve y no es donde sale (166). Una tienda sin punto no vale: vuelve a la base.
     const fin = c.vuelveABase && delDia.fin.has(c.id) ? tiendaConPunto(delDia.fin.get(c.id)) : null;
     choferes.push({ id: c.id, nombre: c.nombre, base, capacidad: c.capacidad, entrada: c.entradaMin, salida: c.salidaMin, vuelveABase: c.vuelveABase,
       ...(fin && fin !== base ? { fin } : {}),

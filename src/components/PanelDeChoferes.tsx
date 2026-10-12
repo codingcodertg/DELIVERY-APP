@@ -45,7 +45,7 @@ export function PanelDeChoferes(props: {
   acciones?: ReactNode;
   /** Lo que acompaña al nombre de una ruta (solo el Gestor). */
   extrasDe?: (clave: string) => ReactNode;
-  /** De qué tienda sale y en cuál termina esa ruta el día que se mira (165, `BaseDelDiaDelChofer`): en el Gestor se elige, en
+  /** De qué tienda sale y en cuál termina esa ruta el día que se mira (166, `BaseDelDiaDelChofer`): en el Gestor se elige, en
    *  «Ruta de hoy» se lee. Sin esto, nada. */
   extremosDe?: (clave: string) => ReactNode;
   /** Debajo de las filas (solo el Gestor): la salida y el fin de los choferes que ese día aún no tienen órdenes. */

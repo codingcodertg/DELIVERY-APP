@@ -65,8 +65,8 @@ async function leeElDia(supabase: Sesion, fecha: string, extra = ""): Promise<{ 
   const candados = await rutasBloqueadasDelDia(supabase as unknown as ClienteDeCandados, fecha);
   if (candados.fuente === "error") return { ok: false, respuesta: NextResponse.json({ error: "Could not read the locked routes.", detail: candados.detalle }, { status: 500 }) };
 
-  // De qué tienda sale y en cuál termina cada chofer ESE día (165): manda sobre la base de Ajustes. Sin la tabla, cada uno
-  // sale de su base, como antes de la 165; con otro fallo, NO sigue: planificaría desde una tienda que alguien cambió.
+  // De qué tienda sale y en cuál termina cada chofer ESE día (166): manda sobre la base de Ajustes. Sin la tabla, cada uno
+  // sale de su base, como antes de la 166; con otro fallo, NO sigue: planificaría desde una tienda que alguien cambió.
   const bases = await leeBasesDelDia(supabase as unknown as ClienteDeBasesDelDia, fecha);
   if (bases.fuente === "error") return { ok: false, respuesta: NextResponse.json({ error: "Could not read the drivers' start/end stores for the day.", detail: bases.detalle }, { status: 500 }) };
 

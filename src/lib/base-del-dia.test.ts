@@ -24,7 +24,7 @@ import { PanelDeChoferes } from "@/components/PanelDeChoferes";
 import type { DriverSettings, NamedLocation } from "./types";
 
 /**
- * De qué tienda SALE y en cuál TERMINA cada chofer, un día (migración 165, `driver_day_bases`; `base-del-dia.ts`).
+ * De qué tienda SALE y en cuál TERMINA cada chofer, un día (migración 166, `driver_day_bases`; `base-del-dia.ts`).
  *
  * El dueño, 2026-10-11: «choose the driver strarting position LOGISTIC MANAGER, DEFAULT IS THE ONE HE ALREADY WORKS ON» y
  * «Need to be able to assign store where driver is starting/ ending at. For example, Julio will start in mcallen 10/12/26 to
@@ -347,7 +347,7 @@ describe("6 · la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(pagina).toContain('return new Set(ajustesDeChofer.filter((f) => f.returns_to_base === false).map((f) => nombreDe.get(f.profile_id) ?? "").filter(Boolean));');
   });
   it("la medida recibe el fin; Optimizar, «Mejor lugar» y el horario le pasan el fin; «Asignar a…», lo del día; el mapa, la «F»", () => {
-    expect(pagina).toContain("tiendaBaseDe, coordsDeTienda, // Dónde termina cada ruta ese día (165): la vuelta va ahí. Cambiar la salida o el fin vuelve a medir esa ruta. tiendaFinDe,");
+    expect(pagina).toContain("tiendaBaseDe, coordsDeTienda, // Dónde termina cada ruta ese día (166): la vuelta va ahí. Cambiar la salida o el fin vuelve a medir esa ruta. tiendaFinDe,");
     expect(pagina).toContain("const finParaEstimar = (laneKey: string): { lat: number; lng: number } | null | undefined => (tiendaFinDe(laneKey) ? finDeLaRuta(laneKey) ?? undefined : null);");
     expect(trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.")).toContain("lista, ordenes: stops, base, fin: finParaEstimar(laneKey),");
     expect(pagina).toContain("mejorLugar({ viajes: [entregas.map(aParada)], nueva: aParada(d), base, fin: finParaEstimar(laneKey),");
@@ -366,8 +366,15 @@ describe("6 · la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(cambia).toContain("const r = await basesDelDia.guarda(perfil.id, nueva);");
     expect(pagina).toContain("<BaseDelDiaDelChofer t={t} extremos={extremosDe(chofer)} tiendas={settings.stores ?? []} editable={puedeElegirBase}");
   });
-  it("sin la 165 el selector se apaga y dice por qué; la lectura en el navegador es `leeBasesDelDia`, y el demo lo guarda en la pestaña (`sessionStorage`)", () => {
-    expect(pagina).toContain('if (basesDelDia.fuente === "sin_tabla") return t("Needs migration 165 (driver_day_bases)');
+  it("la tarjeta: la fila del regreso dice dónde TERMINA ese día («Termina en …»), o que no vuelve", () => {
+    const fila = trozo("const finDeLaFila = (laneKey: string)", "/** La clave de una fila de la lista");
+    expect(fila).toContain("const fin = tiendaFinDe(laneKey);");
+    expect(fila).toContain('if (!fin) return { otra: true, texto: t("(doesn’t return to base: the route ends at its last stop)", "(no vuelve a base: la ruta acaba en su última parada)") };');
+    expect(fila).toContain('finDeLaFila(laneKey)?.otra ? t("Ends at", "Termina en") : t("Base: returns", "Base: regreso")');
+    expect(fila).toContain('{(cual === "regreso" ? finDeLaFila(laneKey)?.texto : null) ?? pickupAddressFor(laneKey) ??');
+  });
+  it("sin la 166 el selector se apaga y dice por qué; la lectura en el navegador es `leeBasesDelDia`, y el demo lo guarda en la pestaña (`sessionStorage`)", () => {
+    expect(pagina).toContain('if (basesDelDia.fuente === "sin_tabla") return t("Needs migration 166 (driver_day_bases)');
     const hook = plano(leer("src/lib/usa-base-del-dia.ts"));
     expect(hook).toContain("const r = await leeBasesDelDia(cliente(), fecha);");
     expect(hook).toContain("const r = await guardaBaseDelDia(cliente(), fecha, choferId, nueva);");
@@ -389,7 +396,7 @@ describe("7 · el selector, pintado", () => {
     expect(html).toContain("Cambiada solo para este día. Su base: Pharr.");
     expect(html).toContain('<option value="Bodega sin punto" disabled="">');
     // Apagado, con su porqué.
-    expect(renderToStaticMarkup(createElement(BaseDelDiaDelChofer, { t, extremos, tiendas: TIENDAS, editable: true, apagado: "Falta la migración 165" }))).toContain('title="Falta la migración 165"');
+    expect(renderToStaticMarkup(createElement(BaseDelDiaDelChofer, { t, extremos, tiendas: TIENDAS, editable: true, apagado: "Falta la migración 166" }))).toContain('title="Falta la migración 166"');
     // Sin vuelta a base, «no vuelve» en vez del selector del fin.
     const noVuelve = extremosDelChofer({ deAjustes: "Pharr", vuelve: false, tiendas: TIENDAS });
     const h2 = renderToStaticMarkup(createElement(BaseDelDiaDelChofer, { t, extremos: noVuelve, tiendas: TIENDAS, editable: true }));
@@ -415,7 +422,7 @@ describe("7 · el selector, pintado", () => {
 });
 
 // =====================================================================================================================
-describe("8 · la base de datos: `driver_day_bases` (165), y sin ella todo como siempre", () => {
+describe("8 · la base de datos: `driver_day_bases` (166), y sin ella todo como siempre", () => {
   function cliente(o: { filas?: FilaDeBaseDelDia[]; error?: { code?: string; message?: string } | null }) {
     const llamadas: { op: string; args: unknown[] }[] = [];
     const respuesta = <T>(data: T) => Promise.resolve({ data: o.error ? null : data, error: o.error ?? null });
@@ -439,7 +446,7 @@ describe("8 · la base de datos: `driver_day_bases` (165), y sin ella todo como 
     expect(llamadas).toEqual([{ op: "from", args: [TABLA_DE_BASES_DEL_DIA] }, { op: "select", args: ["plan_date, driver_id, start_store, end_store", "plan_date", DIA] }]);
     expect(basesDeFilas([{ plan_date: DIA, driver_id: "a", start_store: null, end_store: "Pharr " }])).toEqual({ a: { salida: null, fin: "Pharr" } });
   });
-  it("sin la tabla (la 165 sin aplicar): «sin_tabla»; cualquier otro fallo es un fallo, y se dice", async () => {
+  it("sin la tabla (la 166 sin aplicar): «sin_tabla»; cualquier otro fallo es un fallo, y se dice", async () => {
     expect(await leeBasesDelDia(cliente({ error: { code: "PGRST205", message: "Could not find the table 'public.driver_day_bases'" } }).c, DIA)).toEqual({ fuente: "sin_tabla" });
     expect(await leeBasesDelDia(cliente({ error: { code: "42P01" } }).c, DIA)).toEqual({ fuente: "sin_tabla" });
     expect(await leeBasesDelDia(cliente({ error: { code: "42501", message: "permission denied" } }).c, DIA)).toEqual({ fuente: "error", detalle: "permission denied" });
@@ -454,8 +461,8 @@ describe("8 · la base de datos: `driver_day_bases` (165), y sin ella todo como 
     expect(llamadas[3]).toEqual({ op: "delete", args: ["plan_date", DIA, "driver_id", "a"] });
     expect(await guardaBaseDelDia(cliente({ error: { code: "PGRST205" } }).c, DIA, "a", null)).toMatchObject({ ok: false, faltaLaTabla: true });
   });
-  it("la migración 165: una tabla con salida y fin en la MISMA fila (chofer + fecha), RLS por comando, escriben admin y logística, el chofer lee lo suyo", () => {
-    const sql = leer("supabase/migrations/165_base_del_dia.sql");
+  it("la migración 166: una tabla con salida y fin en la MISMA fila (chofer + fecha), RLS por comando, escriben admin y logística, el chofer lee lo suyo", () => {
+    const sql = leer("supabase/migrations/166_base_del_dia.sql");
     const codigo = plano(sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n"));
     expect(codigo).toContain("create table if not exists public.driver_day_bases ( plan_date date not null, driver_id uuid not null references public.profiles(id) on delete cascade, start_store text, end_store text,");
     expect(codigo).toContain("constraint driver_day_bases_pkey primary key (plan_date, driver_id)");
@@ -469,6 +476,6 @@ describe("8 · la base de datos: `driver_day_bases` (165), y sin ella todo como 
     expect(sql).not.toContain("D-NEXT");
     const [cuerpo, registro] = sql.split("-- @ledger-below");
     // La fila del registro, con el checksum de su cuerpo (el de `migrate-status --sum`).
-    expect(registro).toContain(`('165_base_del_dia.sql', '${createHash("sha256").update(cuerpo, "utf8").digest("hex")}')`);
+    expect(registro).toContain(`('166_base_del_dia.sql', '${createHash("sha256").update(cuerpo, "utf8").digest("hex")}')`);
   });
 });

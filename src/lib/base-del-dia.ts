@@ -4,7 +4,7 @@ import type { DriverSettings, NamedLocation, Profile } from "./types";
 import { zonasDelChofer } from "./zonas";
 
 /**
- * De qué tienda SALE y en cuál TERMINA cada chofer, un día concreto (migración 165, `driver_day_bases`).
+ * De qué tienda SALE y en cuál TERMINA cada chofer, un día concreto (migración 166, `driver_day_bases`).
  *
  * El dueño, 2026-10-11 (dictado, literal): «choose the driver strarting position LOGISTIC MANAGER, DEFAULT IS THE ONE HE
  * ALREADY WORKS ON». Y el mismo día: «Need to be able to assign store where driver is starting/ ending at. For example,
@@ -229,7 +229,7 @@ export function baseTrasElCambio(
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// La base de datos: `public.driver_day_bases` (165). Sin la tabla, todo como siempre.
+// La base de datos: `public.driver_day_bases` (166). Sin la tabla, todo como siempre.
 
 interface ErrorDeLaBase { code?: string | null; message?: string | null }
 type Respuesta<T> = PromiseLike<{ data: T | null; error: ErrorDeLaBase | null }>;
@@ -244,7 +244,7 @@ export interface ClienteDeBasesDelDia {
   };
 }
 
-/** ¿El fallo es que la tabla no existe (la 165 sin aplicar)? PostgREST: `PGRST205`; Postgres: `42P01`. Otro fallo es un fallo. */
+/** ¿El fallo es que la tabla no existe (la 166 sin aplicar)? PostgREST: `PGRST205`; Postgres: `42P01`. Otro fallo es un fallo. */
 export function faltaLaTablaDeBases(e: ErrorDeLaBase | null | undefined): boolean {
   if (!e) return false;
   if (e.code === "PGRST205" || e.code === "42P01") return true;

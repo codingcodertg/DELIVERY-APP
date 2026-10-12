@@ -4,7 +4,7 @@ import { opcionesDeFin, opcionesDeSalida, type BaseDelDia, type ExtremosDelChofe
 import type { NamedLocation } from "@/lib/types";
 
 /**
- * «Sale de: [RDZ Pharr ▾] · Termina en: [RDZ Pharr ▾]» de un chofer, para el día que se mira (165; reglas en
+ * «Sale de: [RDZ Pharr ▾] · Termina en: [RDZ Pharr ▾]» de un chofer, para el día que se mira (166; reglas en
  * `base-del-dia.ts`). Va en su fila del panel «Choferes y rutas». En el Gestor, para el gerente de logística y el admin,
  * con dos selectores; en «Ruta de hoy» (D-481), solo se lee.
  *
@@ -17,7 +17,7 @@ export function BaseDelDiaDelChofer(props: {
   tiendas: readonly NamedLocation[];
   /** Con selectores (el Gestor, admin o logística). Sin esto, solo se lee. */
   editable: boolean;
-  /** Por qué no se puede cambiar ahora (la 165 sin aplicar, un fallo, guardando…), ya en el idioma de quien mira. */
+  /** Por qué no se puede cambiar ahora (la 166 sin aplicar, un fallo, guardando…), ya en el idioma de quien mira. */
   apagado?: string | null;
   onCambia?: (cambio: Partial<BaseDelDia>) => void;
 }) {

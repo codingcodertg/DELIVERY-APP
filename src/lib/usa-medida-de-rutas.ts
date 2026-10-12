@@ -101,7 +101,7 @@ export type ProveedorDeRuta = { provider: string; traffic: boolean };
  */
 export async function mideLaLista<T extends OrdenMedida>(e: {
   lista: readonly ParadaDeLaLista[]; ordenes: readonly T[]; base: [number, number] | null;
-  /** Dónde termina (165): sin él, vuelve a la base; `null`, no vuelve; otro punto, acaba allí (`cuerpoDeLaMedida`). */
+  /** Dónde termina (166): sin él, vuelve a la base; `null`, no vuelve; otro punto, acaba allí (`cuerpoDeLaMedida`). */
   fin?: [number, number] | null;
   coordsDeTienda: (nombre: string | null) => Coords | null; fecha: string;
   pide: (url: string, init: RequestInit) => Promise<{ ok: boolean; json: () => Promise<unknown> }>;
@@ -140,7 +140,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
   // Split the loop geometry into the run and the empty drive back to the base. The return leg starts at the last stop,
   // so find where the path is closest to it (searching from the end) and cut there.
   const geom = ((data.geometry ?? []) as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number]);
-  // Sin vuelta (`fin: null`, 165) no hay tramo vacío que separar.
+  // Sin vuelta (`fin: null`, 166) no hay tramo vacío que separar.
   const vuelve = !!depot && e.fin !== null;
   const ultimo = vuelve ? puntos[puntos.length - 1] : undefined;
   let traces: TripTrace[];
@@ -167,7 +167,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
     clock += p.servicio;
     servicio += p.servicio;
   });
-  if (vuelve) clock += (legs[puntos.length] ?? 0) / 60;  // empty drive back to the base (or to where the day ends, 165)
+  if (vuelve) clock += (legs[puntos.length] ?? 0) / 60;  // empty drive back to the base (or to where the day ends, 166)
   const driveMin = data.duration_seconds / 60;
   const stat: TripStat = {
     miles: Math.round(data.miles * 10) / 10, driveMin, serviceMin: servicio, totalMin: driveMin + servicio,
@@ -181,7 +181,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
  *  cortan por lo que cabe) o si llega el plan publicado, y la llegada de cada recogida va por su puesto EN la lista: una
  *  medida guardada de la lista de antes pondría las horas en la fila que no es. */
 export function firmaDeLaForma(fecha: string, clave: string, stops: readonly OrdenMedida[], lista: readonly ParadaDeLaLista[], extremos = ""): string {
-  // `extremos` (165): de dónde sale y dónde termina. Cambiar la salida o el fin de ese día es otra forma, y se vuelve a medir.
+  // `extremos` (166): de dónde sale y dónde termina. Cambiar la salida o el fin de ese día es otra forma, y se vuelve a medir.
   return `${firmaDeLaMedida(fecha, clave, stops)}|${lista.map((p) => (p.tipo === "P" ? `P${p.ordenes.join("+")}` : `D${p.orden}`)).join(",")}${extremos ? `|${extremos}` : ""}`;
 }
 
@@ -196,9 +196,9 @@ export interface EntradaDeLaMedida<T extends OrdenMedida> {
   seMide: (clave: string) => boolean;
   /** La lista de la ruta tal como se pinta (`lecturaDe(clave, stops).paradas`). */
   listaDe: (clave: string, stops: T[]) => readonly ParadaDeLaLista[];
-  /** La tienda de la que sale el chofer ese día (D-461; desde la 165, la elegida para ese día si la hay), o `null`. */
+  /** La tienda de la que sale el chofer ese día (D-461; desde la 166, la elegida para ese día si la hay), o `null`. */
   tiendaBaseDe: (clave: string) => NamedLocation | null;
-  /** La tienda donde TERMINA ese día (165, `base-del-dia.ts`); `null` = no vuelve. Sin esto, vuelve a la base. */
+  /** La tienda donde TERMINA ese día (166, `base-del-dia.ts`); `null` = no vuelve. Sin esto, vuelve a la base. */
   tiendaFinDe?: (clave: string) => NamedLocation | null;
   /** Las coordenadas de una tienda de recogida, de Ajustes (sin llamar a nadie). */
   coordsDeTienda: (nombre: string | null) => Coords | null;
@@ -272,7 +272,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
     const c = depotCoords[(tienda.address || "").trim()];
     return c ? { lat: c[0], lng: c[1] } : null;
   };
-  // Dónde TERMINA (165): la tienda de `tiendaFinDe`, por las mismas coordenadas; sin `tiendaFinDe`, la base. `null`: no vuelve
+  // Dónde TERMINA (166): la tienda de `tiendaFinDe`, por las mismas coordenadas; sin `tiendaFinDe`, la base. `null`: no vuelve
   // (o su punto aún no se buscó). Sin salida no hay fin.
   const tiendaDelFin = (laneKey: string): NamedLocation | null => (!tiendaBaseDe(laneKey) ? null : e.tiendaFinDe ? e.tiendaFinDe(laneKey) : tiendaBaseDe(laneKey));
   const finDeLaRuta = (laneKey: string): { lat: number; lng: number } | null => {
@@ -299,7 +299,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
     // La base del chofer (D-461): sus coordenadas de Ajustes; sin ellas, las de su dirección.
     const base = baseDeLaRuta(laneKey);
     const depot: [number, number] | null = base ? [base.lat, base.lng] : await getDepotCoords(pickupAddressFor(laneKey));
-    // Y dónde termina (165): la vuelta va a ESA tienda; sin tienda de fin, no vuelve.
+    // Y dónde termina (166): la vuelta va a ESA tienda; sin tienda de fin, no vuelve.
     const tiendaFin = tiendaDelFin(laneKey), finC = finDeLaRuta(laneKey);
     const fin: [number, number] | null = !tiendaFin ? null : finC ? [finC.lat, finC.lng] : await getDepotCoords((tiendaFin.address ?? "").trim() || null);
     const r = await mideLaLista({ lista: e.listaDe(laneKey, stopList), ordenes: stopList, base: depot, fin: depot ? fin : undefined, coordsDeTienda: e.coordsDeTienda, fecha: date, pide: (url, init) => fetch(url, init) });
@@ -320,7 +320,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
   const formaActual = useRef({ date, byDriver });
   formaActual.current = { date, byDriver };
   const firmaDe = (clave: string, stops: T[]): string => firmaDeLaForma(date, clave, stops, e.listaDe(clave, stops), extremosDe(clave));
-  // Cambiar de dónde sale o dónde termina una ruta (165) no cambia sus paradas: sin esto, nada la volvería a medir.
+  // Cambiar de dónde sale o dónde termina una ruta (166) no cambia sus paradas: sin esto, nada la volvería a medir.
   const extremosAhora = [...new Set([...e.rutasAMedir, ...e.conParadas])].map((k) => `${k}=${extremosDe(k)}`).join("\u0001");
   const firmaAhora = useRef(firmaDe);
   firmaAhora.current = firmaDe;
@@ -367,7 +367,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
   useEffect(() => {
     for (const clave of e.conParadas) {
       // «Ruta de hoy» no busca la dirección de una base que ya tiene su punto en Ajustes: una llamada menos por base.
-      // Y la del fin (165), si es otra tienda y no tiene punto todavía: para pintar su marca antes de medir.
+      // Y la del fin (166), si es otra tienda y no tiene punto todavía: para pintar su marca antes de medir.
       const fin = tiendaDelFin(clave);
       if (fin && fin.name !== tiendaBaseDe(clave)?.name && !finDeLaRuta(clave)) getDepotCoords((fin.address ?? "").trim() || null);
       if (e.buscaBases === "si_falta" && baseDeLaRuta(clave)) continue;

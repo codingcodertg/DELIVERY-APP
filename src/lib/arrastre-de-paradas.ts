@@ -42,7 +42,7 @@ export interface RutaDelGantt {
   bloqueada: boolean;
   /** La recogida / base, para la estimación en línea recta. `null`: ruta abierta. */
   base: LatLng | null;
-  /** Dónde termina ese día, si no es la base (165); `null` = no vuelve. Solo cambia las millas de «📍 Mejor lugar». */
+  /** Dónde termina ese día, si no es la base (166); `null` = no vuelve. Solo cambia las millas de «📍 Mejor lugar». */
   fin?: LatLng | null;
 }
 

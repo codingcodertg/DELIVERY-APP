@@ -59,7 +59,7 @@ export interface EntradaDeOptimizar {
   cambios: readonly (number | null)[];
   /** De dónde sale y a dónde vuelve el camión. Sin base, el recorrido es abierto: de la primera parada a la última. */
   base: PuntoEnElMapa | null;
-  /** Dónde TERMINA, si no es la base (165: la tienda elegida para el fin de ese día; `base-del-dia.ts`). `undefined`: vuelve a
+  /** Dónde TERMINA, si no es la base (166: la tienda elegida para el fin de ese día; `base-del-dia.ts`). `undefined`: vuelve a
    *  la base, como siempre. `null`: no vuelve (Ajustes, «vuelve a base» en falso): acaba en su última parada. */
   fin?: PuntoEnElMapa | null;
   /** `null` o 0: no se sabe; no se mira. */
@@ -160,7 +160,7 @@ interface Problema {
   estrecha: boolean[];
   lugares: number;
   base: number;
-  /** El lugar donde termina: la base, otra tienda (165), o −1 si no vuelve. */
+  /** El lugar donde termina: la base, otra tienda (166), o −1 si no vuelve. */
   fin: number;
   min: Int32Array;
   cmi: Int32Array;
