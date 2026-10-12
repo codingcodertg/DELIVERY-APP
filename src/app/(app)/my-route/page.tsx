@@ -61,7 +61,7 @@ import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 const DEFAULT_CAPACITY = 12;
 
 /** El título de una sección: un renglón entero que se toca con el pulgar. */
-const TITULO_DE_SECCION: React.CSSProperties = { cursor: "pointer", fontWeight: 800, fontSize: 15, minHeight: 44, display: "flex", alignItems: "center", gap: 6 };
+
 
 export default function MyRoutePage() {
   const { me, deliveries, events, settings, ready, setStage, updateDelivery, notify } = useData();
@@ -70,8 +70,8 @@ export default function MyRoutePage() {
   // Un solo disparo por toque: mientras la escritura va, el botón queda deshabilitado. Guarda
   // el id y no un booleano para que se vea cuál es la parada que está guardándose.
   const [guardando, setGuardando] = useState<string | null>(null);
-  // Las dos secciones de la lista (D-520): lo pendiente abierto, lo hecho plegado. Las dos se pliegan a mano.
-  const [abierta, setAbierta] = useState<Record<SeccionDeMiRuta, boolean>>({ pendientes: true, hechas: false });
+  // Qué lista se ve (D-522): «Pendientes» o «Entregadas», las dos opciones juntas arriba y se elige una. Nace en Pendientes.
+  const [listaElegida, setListaElegida] = useState<SeccionDeMiRuta>("pendientes");
 
   // De QUIÉN es la ruta (D-502). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
   // chofer elegido; sin ese contexto —el chofer en su teléfono— es `me` y no cambia nada. Mirando la de otro, nada se puede
@@ -305,15 +305,13 @@ export default function MyRoutePage() {
     );
   };
 
-  /** Una sección plegable: «Pendientes (N)» o «Entregadas (N)». N son las paradas —los números— que hay en ella. */
-  const seccion = (s: SeccionDeMiRuta, titulo: string, filas: readonly number[], vacia: string) => (
-    <details data-seccion={s} open={abierta[s]} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; setAbierta((a) => (a[s] === o ? a : { ...a, [s]: o })); }}
-      style={{ marginTop: 6 }}>
-      <summary data-titulo-de-seccion={s} style={TITULO_DE_SECCION}>{titulo} ({secciones.paradas[s]})</summary>
+  /** La lista de una de las dos (D-522): solo se ve la elegida arriba; la otra va pintada y escondida (`hidden`). */
+  const seccion = (s: SeccionDeMiRuta, filas: readonly number[], vacia: string) => (
+    <div data-seccion={s} hidden={listaElegida !== s} style={{ marginTop: 6 }}>
       {filas.length === 0
         ? <div className="hint" style={{ padding: "4px 0 8px" }}>{vacia}</div>
         : <div className="bar-list">{filas.map(fila)}</div>}
-    </details>
+    </div>
   );
 
   return (
@@ -464,8 +462,19 @@ export default function MyRoutePage() {
             <div className="section-label" style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span>🚚 {t("Your route", "Tu ruta")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")}</span>
             </div>
-            {seccion("pendientes", `🕒 ${t("Pending", "Pendientes")}`, secciones.pendientes, t("Nothing left to do on this day.", "No queda nada por hacer este día."))}
-            {seccion("hechas", `✓ ${t("Delivered", "Entregadas")}`, secciones.hechas, t("Nothing done yet.", "Aún no hay nada hecho."))}
+            {/* D-522: las dos juntas arriba y se elige una. El dueño, 2026-10-11: «en driver dejaste delivered abajo pero quiero
+                que vayan juntos arriba y qeu solo se elija en el driver view». N son las paradas de cada una. */}
+            <div role="tablist" data-selector-de-lista style={{ display: "flex", gap: 6, margin: "6px 0 4px" }}>
+              {(["pendientes", "hechas"] as const).map((s) => (
+                <button key={s} type="button" role="tab" aria-selected={listaElegida === s} data-titulo-de-seccion={s}
+                  className={"btn btn-sm " + (listaElegida === s ? "btn-primary" : "btn-ghost")}
+                  style={{ flex: 1, minHeight: 44, justifyContent: "center", fontWeight: 800 }} onClick={() => setListaElegida(s)}>
+                  {s === "pendientes" ? `🕒 ${t("Pending", "Pendientes")}` : `✓ ${t("Delivered", "Entregadas")}`} ({secciones.paradas[s]})
+                </button>
+              ))}
+            </div>
+            {seccion("pendientes", secciones.pendientes, t("Nothing left to do on this day.", "No queda nada por hacer este día."))}
+            {seccion("hechas", secciones.hechas, t("Nothing done yet.", "Aún no hay nada hecho."))}
           </div>
         </>
       )}

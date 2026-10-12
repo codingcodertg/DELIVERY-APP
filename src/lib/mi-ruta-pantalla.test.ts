@@ -74,10 +74,16 @@ const secciones = (html: string) => {
 };
 
 describe("«Mi ruta» pintada (D-520)", () => {
-  it("Pendientes abierta, Entregadas plegada, cada una con su cuenta de paradas", async () => {
+  it("D-522: las dos juntas arriba (Pendientes elegida), y solo se ve la lista elegida; cada una con su cuenta", async () => {
     const html = await pinta();
-    expect(html).toMatch(/<details data-seccion="pendientes" open=""/);
-    expect(html).toMatch(/<details data-seccion="hechas"(?! open)/);
+    expect(html).toMatch(/data-selector-de-lista/);
+    expect(html.indexOf('data-titulo-de-seccion="pendientes"')).toBeGreaterThan(-1);
+    expect(html.indexOf('data-titulo-de-seccion="hechas"')).toBeGreaterThan(-1);
+    // los dos botones van juntos, antes de las dos listas
+    expect(html.indexOf('data-titulo-de-seccion="hechas"')).toBeLessThan(html.indexOf('data-seccion="pendientes"'));
+    expect(html).toMatch(/aria-selected="true" data-titulo-de-seccion="pendientes"/);
+    expect(html).toMatch(/<div data-seccion="pendientes" style/);
+    expect(html).toMatch(/<div data-seccion="hechas" hidden=""/);
     expect(html).toContain("🕒 Pending (");
     expect(html).toContain("✓ Delivered (");
     const s = secciones(html);

@@ -122,7 +122,9 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   // «Inspección pre-viaje» (D-518). El dueño, 2026-10-11: «AGREGA UN NUEVO VIEW QUE SE LLAMARA PRE TRIP INSPECTION
   // CHECKLIST…». El chofer llena la suya; logística y el admin ven las del día de todos (`revisaLasDelEquipo`). Con
   // `deliver` también se abre: quien reparte con ese permiso suelto maneja un camión igual.
-  { id: "inspection", label: "✅ Pre-trip inspection", label_es: "✅ Inspección pre-viaje", href: "/inspection", roles: ["driver", "logistics", "admin"], cap: "deliver" },
+  // Solo chofer y admin (D-521). El dueño, 2026-10-11: «INSPECCION SOLO ES PARA ADMIN Y DRIVERS VEDAD?» · «si asi». Sin
+  // `cap`: el permiso suelto de repartir ya no la abre.
+  { id: "inspection", label: "✅ Pre-trip inspection", label_es: "✅ Inspección pre-viaje", href: "/inspection", roles: ["driver", "admin"] },
   // Logistics works entirely inside its own route-planning queue, same as
   // Warehouse/Driver — it doesn't get the general Orders board or dashboard.
   { id: "routes",    label: "🧭 Routes Manager", label_es: "🧭 Gestor de Rutas", href: "/routes", roles: ["logistics", "admin"], cap: "route_plan" },

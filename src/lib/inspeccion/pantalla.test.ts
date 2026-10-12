@@ -61,16 +61,16 @@ beforeEach(() => {
 describe("la pestaña", () => {
   const barra = (role: UserRole, permissions: string[] = []) => pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, { role, permissions })), role).map((tb) => tb.id);
 
-  it("la tienen el chofer (detrás de «Mi ruta»), logística y el admin", () => {
+  it("la tienen el chofer (detrás de «Mi ruta») y el admin; logística ya no (D-521)", () => {
     expect(barra("driver")).toEqual(["driver", "myroute", "inspection"]);
-    expect(barra("logistics")).toContain("inspection");
+    expect(barra("logistics")).not.toContain("inspection");
     expect(barra("admin")).toContain("inspection");
     expect(TABS.find((tb) => tb.id === "inspection")).toMatchObject({ href: "/inspection", label_es: "✅ Inspección pre-viaje", label: "✅ Pre-trip inspection" });
   });
 
-  it("no la tienen ventas, almacén, gerente ni oficina; con el permiso de repartir, sí (salvo oficina, D-480)", () => {
+  it("no la tienen ventas, almacén, gerente ni oficina; tampoco con el permiso suelto de repartir (D-521)", () => {
     for (const r of ["sales", "warehouse", "manager", "accounting"] as UserRole[]) expect([r, barra(r).includes("inspection")]).toEqual([r, false]);
-    expect(canOpenTab("inspection", { role: "sales", permissions: ["deliver"] })).toBe(true);
+    expect(canOpenTab("inspection", { role: "sales", permissions: ["deliver"] })).toBe(false);
     expect(canOpenTab("inspection", { role: "accounting", permissions: ["deliver"] })).toBe(false);
   });
 });
@@ -81,8 +81,8 @@ describe("la página: el chofer llena la suya; logística y el admin ven las del
     expect(html).toContain("data-progreso");
     expect(html).not.toContain("data-vista-de-inspeccion");
   });
-  it("logística y admin: el selector y la lista del día", () => {
-    for (const role of ["logistics", "admin"]) {
+  it("admin: el selector y la lista del día (D-521: logística ya no)", () => {
+    for (const role of ["admin"]) {
       estado.me = { id: "u-x", full_name: "Laura", role };
       const html = renderToStaticMarkup(createElement(InspectionPage));
       expect([role, html.includes("data-vista-de-inspeccion"), html.includes("data-resumen"), html.includes("data-progreso")]).toEqual([role, true, true, false]);
@@ -190,7 +190,7 @@ describe("la lista de logística", () => {
   const ids = (html: string) => [...html.matchAll(/data-inspeccion="([^"]+)"/g)].map((m) => m[1]);
 
   beforeEach(() => {
-    estado.me = { id: "u-log", full_name: "Laura Logistics", role: "logistics" };
+    estado.me = { id: "u-log", full_name: "Laura Logistics", role: "admin" };
     estado.lectura = { estado: "listo", filas, detalle: undefined };
     estado.deliveries = [
       { assigned_driver: "Carlos R.", delivery_date: HOY, stage: "approved" },
@@ -295,7 +295,7 @@ describe("la migración de la inspección (165) dice lo mismo que el código", (
   it("los roles que revisan son ROLES_QUE_REVISAN, en la política de lectura y en la función", () => {
     const lista = `in (${ROLES_QUE_REVISAN.map((r) => `'${r}'`).join(", ")})`;
     expect(cuenta(desnudo, lista)).toBe(2);
-    expect([...desnudo.matchAll(/in \(('[a-z_]+'(?:, '[a-z_]+')*)\)/g)].map((m) => m[1])).toEqual(["'admin', 'logistics'", "'admin', 'logistics'"]);
+    expect([...desnudo.matchAll(/in \(('[a-z_]+'(?:, '[a-z_]+')*)\)/g)].map((m) => m[1])).toEqual(["'admin'", "'admin'"]);
   });
 
   it("«una por día» es la misma clave que claveDeVehiculo", () => {

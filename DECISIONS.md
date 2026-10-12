@@ -41752,3 +41752,24 @@ Capturas (ANTES `antes-*`, DESPUÉS `despues-*`) en la carpeta de trabajo de la 
 - **Un teléfono de verdad**: la cámara, el permiso de ubicación y la ubicación tardía de una parada; en el demo el GPS no
   contesta y la parada se guarda sin ubicación. Las horas se pintan con el reloj del dispositivo, como la ficha.
 - **Modo oscuro** y **Google Maps** (el demo pinta Leaflet).
+
+## D-521 · Inspección pre-viaje: solo chofer y admin
+
+**Fecha:** 2026-10-11 · **Versión:** deliveries 1.287.1, repo 1.390.1 · **Migración:** `165_inspeccion_pre_viaje.sql` cambiada antes de aplicarse (sigue SIN aplicar; checksum regrabado) · Hecho directo por el orquestador en `release-d521`. **Reemplaza en parte a D-518.**
+
+**Pedido del dueño**, literal: *«INSPECCION SOLO ES PARA ADMIN Y DRIVERS VEDAD?»* · y al decirle que también la tenía logística: *«si asi»*.
+
+- La pestaña «✅ Inspección pre-viaje» (`TABS`) queda para `driver` y `admin`, sin `cap`: el permiso suelto de repartir ya no la abre.
+- Quien revisa las del día y marca defectos corregidos: solo el admin (`ROLES_QUE_REVISAN = ["admin"]`). La 165 (sin aplicar) se cambió igual: la lectura de todas y `marca_defecto_corregido()` solo para `admin`. Checksum recalculado con `migrate-status.mjs --sum`.
+- Los textos del formulario dicen «la oficina» en vez de «logística».
+
+## D-522 · «Mi ruta»: Pendientes y Entregadas juntas arriba, y se elige una
+
+**Fecha:** 2026-10-11 · **Versión:** deliveries 1.287.1, repo 1.390.1 · **Sin migración.** · Hecho directo por el orquestador en `release-d521`. **Reemplaza en parte a D-520.**
+
+**Pedido del dueño**, literal: *«en driver dejaste delivered abajo pero quiero que vayan juntos arriba y qeu solo se elija en el driver view»*.
+
+- En vez de dos secciones plegables una debajo de otra (D-520), arriba de la lista van **dos botones juntos**, «🕒 Pendientes (N)» y «✓ Entregadas (N)»; se elige uno y se ve **solo esa lista**. Nace en Pendientes. La otra se pinta escondida (`hidden`).
+- Mismas filas, misma numeración (D-515) y mismas cuentas de D-520 (`seccionesDeMiRuta`). Vale para el chofer y para la pestaña Chofer del admin, que monta la misma página.
+
+No visto en navegador: `tsc` y vitest.

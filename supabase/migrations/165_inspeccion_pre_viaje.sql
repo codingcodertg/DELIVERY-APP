@@ -104,7 +104,7 @@ create trigger vehicle_inspections_stamp
 -- Quien lee y quien escribe
 -- ---------------------------------------------------------------------------
 -- Una politica POR COMANDO y ninguna FOR ALL: una ALL tambien lee, y las permisivas se suman con OR.
--- La lista ('admin', 'logistics') es `ROLES_QUE_REVISAN` (src/lib/inspeccion/reglas.ts); una prueba compara las dos.
+-- La lista ('admin') es `ROLES_QUE_REVISAN` (D-521: logística fuera) (src/lib/inspeccion/reglas.ts); una prueba compara las dos.
 alter table public.vehicle_inspections enable row level security;
 
 -- El revoke va primero: en Supabase los privilegios por defecto dan TODO a anon y authenticated sobre cada tabla
@@ -118,7 +118,7 @@ drop policy if exists "vehicle_inspections insert" on public.vehicle_inspections
 create policy "vehicle_inspections select" on public.vehicle_inspections for select to authenticated
   using ((select public.has_deliveries_access())
      and (driver_id = (select auth.uid())
-          or (select public.current_user_role()) in ('admin', 'logistics')));
+          or (select public.current_user_role()) in ('admin')));
 
 -- El disparador pone driver_id = auth.uid() ANTES de esta comprobacion (los BEFORE ROW corren primero); la
 -- comprobacion queda como segunda puerta.
@@ -137,8 +137,8 @@ declare
   resultado jsonb;
 begin
   if not coalesce((select public.has_deliveries_access()), false)
-     or coalesce((select public.current_user_role()), '') not in ('admin', 'logistics') then
-    raise exception 'marca_defecto_corregido: only admin or logistics' using errcode = '42501';
+     or coalesce((select public.current_user_role()), '') not in ('admin') then
+    raise exception 'marca_defecto_corregido: only admin' using errcode = '42501';
   end if;
   select vi.answers -> p_punto into respuesta from public.vehicle_inspections vi where vi.id = p_inspeccion for update;
   if not found then
@@ -269,4 +269,4 @@ end $comprueba$;
 -- tabla, la pantalla vuelve a decir «aun no se puede guardar» y «Mi ruta» deja de avisar.
 -- ===========================================================================
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('165_inspeccion_pre_viaje.sql', '8df01aff5d359316a07e052f3220e682c2c87f10a6536ffd6acd9d8acacfad48') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('165_inspeccion_pre_viaje.sql', 'b6428f58563b02ac5f459b0e9e2d44b3aa7be469d56f06be0164356d0214ffcf') on conflict (name) do nothing;
