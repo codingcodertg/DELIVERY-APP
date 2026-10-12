@@ -14,7 +14,7 @@ import { canTransition } from "@/lib/constants";
 import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 
 // ============================================================
-// D-NEXT (2026-10-11) · La recogida del chofer: recoger aunque no esté lista (con nota y aviso), deshacer «Recogido», y la
+// D-527 (2026-10-11) · La recogida del chofer: recoger aunque no esté lista (con nota y aviso), deshacer «Recogido», y la
 // cámara de «Entregado». Las reglas puras, la migración 168 contra la 157, y que el proveedor y la ficha las usan.
 // El dueño, literal: «have the driver be able to override a pickup even if the warheouse doesnt have it ready just put a
 // note down for it» · «the driver can undo an arrive or a pickup» · «when you pres deliverd it should open the camera so

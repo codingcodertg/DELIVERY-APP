@@ -1,8 +1,8 @@
 // ============================================================
-// Quién tomó cada foto de una orden (`photo_meta`), en un solo sitio (D-NEXT).
+// Quién tomó cada foto de una orden (`photo_meta`), en un solo sitio (D-527).
 //
 // Vivía dentro de `updateDelivery` (data-provider): toda foto que se subía pasaba por esa escritura y allí se firmaba.
-// Desde D-NEXT las fotos que el chofer toma al pulsar «Entregado» viajan en la MISMA escritura que la entrega
+// Desde D-527 las fotos que el chofer toma al pulsar «Entregado» viajan en la MISMA escritura que la entrega
 // (`setStage(…, "delivered", …, { photos, photo_meta })`) —el guard le deja al chofer cambiar columnas al pasar de
 // `picked_up` a `delivered`, y NO tocar las fotos sin cambiar de etapa (157)—, así que la firma tiene que poder hacerse
 // también ahí. Una regla, dos llamadas: no pueden firmar distinto.

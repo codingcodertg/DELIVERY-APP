@@ -57,7 +57,7 @@ import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 // y «Recogido» siempre a la vista en las recogidas; la lista en dos secciones, «Pendientes» abierta y «Entregadas»
 // plegada; fuera «Ver la ruta completa» y el aviso de paradas vencidas de la cabecera; y «⏸ Registrar parada».
 //
-// D-NEXT (2026-10-11): «Recogido» y «Entregado» ya no cierran la parada de un toque: abren la ficha de la orden en ese
+// D-527 (2026-10-11): «Recogido» y «Entregado» ya no cierran la parada de un toque: abren la ficha de la orden en ese
 // paso (D-218 queda reemplazada en esta pantalla), y «Entregado» abre además la cámara. «📍 Llegué» va en la misma fila
 // que «Recogido» / «Entregado», y las dos cosas se deshacen. Detalle en `AccionesDeParada` y `recogida-del-chofer.ts`.
 // ============================================================
@@ -71,7 +71,7 @@ export default function MyRoutePage() {
   const { me, deliveries, events, settings, ready } = useData();
   const { t, lang } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
-  // En qué paso abre la ficha (D-NEXT): «recoger» desde «Recogido», «entregar» (la prueba de entrega) desde «Entregado».
+  // En qué paso abre la ficha (D-527): «recoger» desde «Recogido», «entregar» (la prueba de entrega) desde «Entregado».
   const [abrirEn, setAbrirEn] = useState<"recoger" | "entregar" | undefined>(undefined);
   // Las fotos que se tomaron con la cámara al pulsar «Entregado», y de qué orden son. La cámara se abre AQUÍ y no en la
   // ficha porque la ficha aún no existe en el momento del toque, y el navegador solo abre la cámara dentro del toque.
@@ -146,7 +146,7 @@ export default function MyRoutePage() {
   const cerrarFicha = () => { setOpen(null); setAbrirEn(undefined); setFotosDeEntrega(null); fotoPara.current = null; };
 
   /**
-   * «🚚 Recogido» y «✅ Entregado» de una parada (D-NEXT; antes D-218).
+   * «🚚 Recogido» y «✅ Entregado» de una parada (D-527; antes D-218).
    *
    * **Reemplaza a D-218 en esta pantalla.** D-218 los hizo cerrar la parada de un toque, sin abrir la ficha. El dueño,
    * 2026-10-11: «when i press the pickup in the driver view the order should also popo up as in the delivery part» y «when
@@ -186,7 +186,7 @@ export default function MyRoutePage() {
   const paradaDeLaSiguiente = next ? numeradas.paradas.find((p) => p.tipo === (next.stage === "picked_up" ? "D" : "P") && p.ordenes.includes(next.id)) : undefined;
 
   // Los botones de cada orden de una parada (D-487; D-520): qué sale lo decide `accionesDeParada`, dentro del componente.
-  // D-NEXT: con «📍 Llegué» de su parada al principio de la fila si esta orden lo lleva, y con «↩ Deshacer recogido» en
+  // D-527: con «📍 Llegué» de su parada al principio de la fila si esta orden lo lleva, y con «↩ Deshacer recogido» en
   // la recogida ya hecha. El deshacer se calcula con el chofer DE LA RUTA (`chofer`), no con quien mira: así la pestaña
   // «Chofer» del admin lo pinta igual que lo ve él, y apagado (D-502).
   const accionesDe = (d: Delivery, tipo: "P" | "D", llegada: LlegadaDeParada | null) => (
@@ -214,7 +214,7 @@ export default function MyRoutePage() {
   const pct = stops.length ? Math.round((done / stops.length) * 100) : 0;
 
   /** Una fila de la lista, la pinte la sección que la pinte. «Llegué» va en la fila de la primera orden de su parada que
-   *  está en ese tramo, junto a su «Recogido» o su «Entregado» (D-NEXT; en D-520, en la fila del número y en un renglón
+   *  está en ese tramo, junto a su «Recogido» o su «Entregado» (D-527; en D-520, en la fila del número y en un renglón
    *  propio). Una fila hecha nunca lo lleva: lo recogido o entregado ya no está en el tramo. */
   const fila = (fi: number) => {
     const f = lectura.filas[fi];
@@ -232,7 +232,7 @@ export default function MyRoutePage() {
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
           {f.tipo === "P" ? (
-            // Cada carga de la recogida, con su «Recogido» (D-487), orden por orden. D-NEXT: «Recogido» abre la ficha también
+            // Cada carga de la recogida, con su «Recogido» (D-487), orden por orden. D-527: «Recogido» abre la ficha también
             // cuando el almacén aún no la tiene lista (allí se recoge de todos modos, con nota); ya recogida, «↩ Deshacer».
             f.ordenes.map((id) => {
               const d = porId.get(id);
@@ -373,7 +373,7 @@ export default function MyRoutePage() {
                 {t("Next stop", "Siguiente parada")} · {stops.indexOf(next) + 1}/{stops.length}
               </div>
               {/* Tocar la orden la abre, como en las filas de la lista. Antes (D-218) la abría «📋 Ver orden», el botón verde
-                  en las etapas que no se recogían ni entregaban; ese botón ya no existe (D-NEXT) y la tarjeta no puede
+                  en las etapas que no se recogían ni entregaban; ese botón ya no existe (D-527) y la tarjeta no puede
                   quedarse sin forma de abrir el pedido. */}
               <button data-abre-la-orden onClick={() => abrirOrden(next)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
                 <span style={{ display: "block", fontWeight: 800, fontSize: 18 }}>
@@ -392,7 +392,7 @@ export default function MyRoutePage() {
                   🧭 {t("Navigate", "Navegar")}
                 </button>
               </div>
-              {/* Los botones de la parada, los MISMOS de la fila de la lista (D-NEXT): «📍 Llegué» de su parada —la tienda
+              {/* Los botones de la parada, los MISMOS de la fila de la lista (D-527): «📍 Llegué» de su parada —la tienda
                   mientras no la ha recogido, el cliente cuando va en el camión— al principio, y en la misma fila «🚚 Recogido»
                   o «✅ Entregado · ⛔ Rechazado». Antes el verde iba junto a «Navegar» y «Llegué» en un renglón aparte. */}
               {accionesDe(next, next.stage === "picked_up" ? "D" : "P", paradaDeLaSiguiente ? llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas) : null)}
@@ -453,7 +453,7 @@ export default function MyRoutePage() {
         </>
       )}
 
-      {/* La cámara de «Entregado» (D-NEXT): pintada siempre, porque el toque la tiene que encontrar ya en la página. */}
+      {/* La cámara de «Entregado» (D-527): pintada siempre, porque el toque la tiene que encontrar ya en la página. */}
       {camara.input}
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={cerrarFicha} abrirEn={abrirEn}
         fotosDeEntrega={fotosDeEntrega?.id === open.id ? fotosDeEntrega.fotos : undefined}

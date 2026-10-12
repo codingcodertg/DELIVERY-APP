@@ -21,7 +21,7 @@ import type { Stage, UserRole } from "./types";
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const plano = (s: string) => s.replace(/\s+/g, " ");
 
-// Nota D-NEXT: con `recogerSinListo`, el paso de «Recoger de todos modos» del chofer.
+// Nota D-527: con `recogerSinListo`, el paso de «Recoger de todos modos» del chofer.
 const CERRADO = { anular: false, rechazar: false, recoger: false, dejar: false, pod: false, motivoDeSalto: false, reentrega: false, recogerSinListo: false };
 
 function entrada(role: UserRole, stage: Stage, cambios: Partial<EntradaDeAcciones> = {}): EntradaDeAcciones {
@@ -100,7 +100,7 @@ describe("la principal: el paso que hace avanzar la orden para quien la mira", (
     expect(accionPrincipal(["comenzar"], [], "accounting")).toBe("comenzar");
     expect(accionPrincipal(["editar"], ["anular"], "accounting")).toBeNull();
     expect(accionPrincipal(["aprobar"], ["anular"])).toBeNull();
-    // Nota D-NEXT: «Recoger de todos modos…» del chofer, justo detrás de «Recoger».
+    // Nota D-527: «Recoger de todos modos…» del chofer, justo detrás de «Recoger».
     expect(ORDEN_DE_PRINCIPAL).toEqual(["enviar", "reenviar", "aprobar", "comenzar", "marcar_listo", "recoger", "recoger_sin_listo", "recibir", "marcar_entregado"]);
   });
 });
@@ -275,7 +275,7 @@ function botonesDeAntes(e: EntradaDeAcciones): Set<string> {
     if (e.deshaceAqui) b.add("deshacer");
   }
   if (stage === "delivered" && (["admin", "warehouse", "driver"].includes(me.role) || ordersLikeOfficeManager(me.role)) && !ab.reentrega) b.add("reentrega");
-  // Nota D-NEXT: lo que se sumó después de D-497, con su condición, para que la comparación siga midiendo todo lo demás:
+  // Nota D-527: lo que se sumó después de D-497, con su condición, para que la comparación siga midiendo todo lo demás:
   // «Recoger de todos modos…» (el chofer, en SU orden aprobada sin preparar) y «↩ Deshacer recogido».
   if (puedeRecogerSinListo(me, e.pedido)) b.add(ab.recogerSinListo ? "paso:recoger_sin_listo" : "recoger_sin_listo");
   if (e.deshacerRecogida && stage === "picked_up" && !ab.pod) b.add("deshacer_recogida");
@@ -428,10 +428,10 @@ describe("la ficha (OrderModal) pinta lo que dice la función", () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// 6 · D-NEXT: la recogida del chofer en su ficha — «Recoger de todos modos…» y «↩ Deshacer recogido»
+// 6 · D-527: la recogida del chofer en su ficha — «Recoger de todos modos…» y «↩ Deshacer recogido»
 // ---------------------------------------------------------------------------------------------------------------
 
-describe("D-NEXT · el chofer recoge aunque no esté lista, y deshace su recogida", () => {
+describe("D-527 · el chofer recoge aunque no esté lista, y deshace su recogida", () => {
   const ficha = plano(leer("src/components/OrderModal.tsx"));
   const acciones = ficha.slice(ficha.indexOf("function StageActions({"), ficha.indexOf("// Click-to-call the customer via RingCentral"));
 

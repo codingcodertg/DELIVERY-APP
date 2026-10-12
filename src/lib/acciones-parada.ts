@@ -32,7 +32,7 @@ import { EVENTO_DEJADO } from "@/lib/leave-at-store";
 // `arrived_at` que escribe la ficha NO le sirve al chofer: el guard (157) solo le deja cambiar, sin cambiar de etapa, las
 // coordenadas de una parada ya cerrada, así que escribirla le contesta «You cannot edit an order in the picked_up stage».
 //
-// **D-NEXT (2026-10-11):** «Llegué» se deshace (`arrived_pickup_undone` / `arrived_delivery_undone`, que borran la llegada
+// **D-527 (2026-10-11):** «Llegué» se deshace (`arrived_pickup_undone` / `arrived_delivery_undone`, que borran la llegada
 // de su tramo), y va en la MISMA fila que «Recogido» / «Entregado» (`ordenDeLaLlegada` dice en cuál). «Recogido» ya no sale
 // apagado cuando el almacén no la tiene lista: abre la ficha, donde el chofer la recoge de todos modos con una nota
 // (`recogida-del-chofer.ts`); y ya recogida, «↩ Deshacer recogido» en la fila de la recogida.
@@ -47,7 +47,7 @@ export const KIND_RECHAZADA = "customer_rejected";
 /** «📍 Llegué» (D-520): a la tienda a recoger, o con el cliente a entregar. */
 export const KIND_LLEGO_A_RECOGER = "arrived_pickup";
 export const KIND_LLEGO_A_ENTREGAR = "arrived_delivery";
-/** «↩ Deshacer» la llegada (D-NEXT): borra la llegada de ESE tramo en esa orden. Un evento propio y no un borrado: la
+/** «↩ Deshacer» la llegada (D-527): borra la llegada de ESE tramo en esa orden. Un evento propio y no un borrado: la
  *  llegada y su vuelta quedan las dos en el historial. */
 export const KIND_DESHIZO_LLEGADA_A_RECOGER = "arrived_pickup_undone";
 export const KIND_DESHIZO_LLEGADA_A_ENTREGAR = "arrived_delivery_undone";
@@ -100,7 +100,7 @@ export interface LlegadaDeOrden { recoger?: string; entregar?: string }
  * Las llegadas vigentes de cada orden. Una llegada vale **el día en que se hizo** (zona del negocio) y **su tramo**:
  * «Dejar en tienda» y anularla borran las dos (la orden vuelve a empezar), y recogerla borra la de entregar (empieza un
  * tramo nuevo hacia el cliente). Que el almacén la marque lista NO la borra: es justo el chofer que llegó y espera.
- * D-NEXT: «↩ Deshacer» la llegada la borra, solo la de su tramo (`arrived_pickup_undone` la de la tienda,
+ * D-527: «↩ Deshacer» la llegada la borra, solo la de su tramo (`arrived_pickup_undone` la de la tienda,
  * `arrived_delivery_undone` la del cliente); una llegada posterior vuelve a contar.
  */
 export function llegadasDeParadas(events: readonly EventoDeParada[], hoy: string): Map<string, LlegadaDeOrden> {
@@ -131,7 +131,7 @@ export function llegadasDeParadas(events: readonly EventoDeParada[], hoy: string
  * Las rechazadas por el cliente no cuentan (ya llegó, y lo que toca es «Dejar en tienda»). `null`: no hay nada a lo que
  * llegar —todo hecho, o nada cargado—. `hecha`: alguna ya tiene su llegada; `at` es la primera.
  *
- * D-NEXT: las dos llevan `tipo` y `ordenes` (las del tramo, en el orden de la parada). `ordenes[0]` es la orden en cuya
+ * D-527: las dos llevan `tipo` y `ordenes` (las del tramo, en el orden de la parada). `ordenes[0]` es la orden en cuya
  * fila va «Llegué», junto a su «Recogido» o su «Entregado» (`ordenDeLaLlegada`). `hecha` lleva además `conLlegada`: las
  * que tienen llegada, que son las que «↩ Deshacer» deshace.
  */
@@ -161,13 +161,13 @@ export function llegadaDeLaParada(
     : { estado: "pendiente", tipo: parada.tipo, ordenes: enTramo };
 }
 
-/** La orden en cuya fila va «Llegué» de su parada: la primera del tramo (D-NEXT: en la misma fila que su «Recogido» o su
+/** La orden en cuya fila va «Llegué» de su parada: la primera del tramo (D-527: en la misma fila que su «Recogido» o su
  *  «Entregado»). `null` si no hay nada a lo que llegar. */
 export const ordenDeLaLlegada = (llegada: LlegadaDeParada | null | undefined): string | null => llegada?.ordenes[0] ?? null;
 
 /** El evento que deja «Llegué» en cada orden de la parada. */
 export const kindDeLlegada = (tipo: "P" | "D"): string => (tipo === "P" ? KIND_LLEGO_A_RECOGER : KIND_LLEGO_A_ENTREGAR);
-/** El evento que deja «↩ Deshacer» la llegada en cada orden que la tenía (D-NEXT). */
+/** El evento que deja «↩ Deshacer» la llegada en cada orden que la tenía (D-527). */
 export const kindDeDeshacerLlegada = (tipo: "P" | "D"): string => (tipo === "P" ? KIND_DESHIZO_LLEGADA_A_RECOGER : KIND_DESHIZO_LLEGADA_A_ENTREGAR);
 
 // ---- Los botones de cada orden de la parada ---------------------------------
@@ -181,12 +181,12 @@ export interface BotonDeParada {
   apagado: { en: string; es: string } | null;
 }
 
-/** Por qué «Recogido» salía apagado (D-520). **Desde D-NEXT ya no lo apaga**: en `approved`/`fulfilling` abre la ficha, donde
+/** Por qué «Recogido» salía apagado (D-520). **Desde D-527 ya no lo apaga**: en `approved`/`fulfilling` abre la ficha, donde
  *  el chofer la recoge de todos modos con una nota (168). Se queda: es el aviso que la ficha le pone a esa recogida. */
 export const NO_ESTA_LISTA = { en: "The warehouse doesn't have it ready yet", es: "El almacén aún no la tiene lista" } as const;
-/** Por qué «Recogido» sale apagado desde D-NEXT: la orden ni siquiera está aprobada (`draft`, `pending`, `rejected`). */
+/** Por qué «Recogido» sale apagado desde D-527: la orden ni siquiera está aprobada (`draft`, `pending`, `rejected`). */
 export const SIN_APROBAR = { en: "Not approved yet", es: "Aún no está aprobada" } as const;
-/** Las etapas en que «Recogido» abre la ficha para recoger (D-NEXT): lista, o aprobada sin terminar de preparar. */
+/** Las etapas en que «Recogido» abre la ficha para recoger (D-527): lista, o aprobada sin terminar de preparar. */
 const SE_RECOGE = new Set<string>(["ready", "approved", "fulfilling"]);
 
 /**
@@ -196,9 +196,9 @@ const SE_RECOGE = new Set<string>(["ready", "approved", "fulfilling"]);
  *  - Hecha (recogida ya en el camión, o entregada) o anulada: nada.
  *  - Rechazada: solo «Dejar en tienda» —y en la entrega, que es donde vive el material—.
  *  - Recogida: «Recogido». Si el almacén aún no la tiene lista (`approved`, `fulfilling`…) sale **a la vista y apagado**,
- *    con el motivo (D-520; antes solo salía «Saltar»). **D-NEXT:** encendido también en `approved`/`fulfilling` (abre la
+ *    con el motivo (D-520; antes solo salía «Saltar»). **D-527:** encendido también en `approved`/`fulfilling` (abre la
  *    ficha, donde se recoge de todos modos con nota); apagado solo si la orden no está aprobada.
- *  - Recogida ya en el camión (D-NEXT): «↩ Deshacer recogido» si `deshacer` lo dice (`deshacerRecogida`: su orden, y una
+ *  - Recogida ya en el camión (D-527): «↩ Deshacer recogido» si `deshacer` lo dice (`deshacerRecogida`: su orden, y una
  *    recogida suya y normal), apagado con su motivo si deshacerla desde el teléfono sería un lío.
  *  - Entrega: con el material en el camión (`picked_up`), «Entregado» y «Rechazado» (D-495). Antes de recogerla, nada:
  *    entregar o rechazar algo que no se ha cargado no existe.

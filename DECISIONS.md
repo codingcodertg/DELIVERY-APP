@@ -10547,7 +10547,7 @@ arreglo hace que ese clic funcione, no lo da por hecho. `verify.mjs`: en verde s
 
 ## D-218 · En Mi ruta, «Recoger» y «Entregar» cierran la parada de un toque (y dejan de prometer etapas imposibles)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): en «Mi ruta», «🚚 Recogido» y «✅ Entregado» **ya no cierran la parada de
+> **Reemplazada en parte por D-527** (2026-10-11): en «Mi ruta», «🚚 Recogido» y «✅ Entregado» **ya no cierran la parada de
 > un toque**. El dueño: «when i press the pickup in the driver view the order should also popo up as in the delivery part» y
 > «when you pres deliverd it should open the camera so you can add the proof of delikvery for the driver». Los dos abren la
 > ficha en su paso (y «Entregado», además, la cámara del teléfono); lo que se escribe es lo de la ficha, que sigue usando
@@ -39048,7 +39048,7 @@ Interpretación: «form view» = la ficha de la orden en Entregas. No visto en n
 
 > **Reemplazada en parte por D-520** (2026-10-11): la ficha da por llegado («🚦 Llegó…») también a quien marcó «📍 Llegué» en «Mi ruta» (un evento `arrived_delivery`) y ya no le vuelve a ofrecer «Llegué a la parada». Medido al hacerlo: ese botón de la ficha escribe `arrived_at`, y para un CHOFER el guard de etapas (157) lo rechaza; ver D-520.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): el CHOFER tiene una principal más en la tabla —«🚚 Recoger de todos modos…» en SU orden en `approved`/`fulfilling`, con nota obligatoria (migración 168)— y una opción más en el menú —«↩ Deshacer recogido» en `picked_up`, apagada con su motivo cuando deshacerla sería un lío—. Y su «Marcar entregado» abre la cámara del teléfono a la vez que la prueba de entrega.
+> **Reemplazada en parte por D-527** (2026-10-11): el CHOFER tiene una principal más en la tabla —«🚚 Recoger de todos modos…» en SU orden en `approved`/`fulfilling`, con nota obligatoria (migración 168)— y una opción más en el menú —«↩ Deshacer recogido» en `picked_up`, apagada con su motivo cuando deshacerla sería un lío—. Y su «Marcar entregado» abre la cámara del teléfono a la vez que la prueba de entrega.
 
 **Fecha:** 2026-10-07 · **Versión:** deliveries 1.271.0, repo 1.369.0 · **Sin migración.** · Rama `feat/ficha-acciones-en-menu`.
 
@@ -41607,15 +41607,13 @@ Capturas: `1280-1-panel-antes`, `1280-2-sale-de-brownsville`, `1280-3-mapa-P-y-F
 
 ## D-520 — «Mi ruta»: sin «Saltar»; «📍 Llegué» y «Recogido» en cada parada; Pendientes y Entregadas; sin leyenda, sin «Ver la ruta completa» ni el aviso de vencidas; y «⏸ Registrar parada» con el recibo de la gasolina
 
-<<<<<<< HEAD
 > **Reemplazada en parte por D-523** (2026-10-11): la foto del recibo de gasolina también se puede tomar al registrar la parada (opcional), y «▶ Seguir» la trae puesta; en los dos sitios hay «📷 Cámara» y «🖼 Galería» por separado.
-=======
-> **Reemplazada en parte por D-NEXT** (2026-10-11): (2) «Recogido» **ya no sale apagado** cuando el almacén no tiene la carga
+
+> **Reemplazada en parte por D-527** (2026-10-11): (2) «Recogido» **ya no sale apagado** cuando el almacén no tiene la carga
 > lista: abre la ficha, donde el chofer la recoge de todos modos con una nota obligatoria (migración 168); solo se apaga si la
 > orden ni siquiera está aprobada («⏳ Aún no está aprobada»). «📍 Llegué» deja su renglón propio: va **al principio de la
 > fila de botones** de la primera orden de su tramo («📍 Llegué · 🚚 Recogido», «📍 Llegué · ✅ Entregado · ⛔ Rechazado»), y
 > hecha se ve «✓ Llegaste 10:42 · ↩ Deshacer», que la deshace. La tarjeta de «Siguiente parada» pinta esa misma fila.
->>>>>>> 14f34ddc
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.287.0, repo 1.390.0 · Rama `feat/mi-ruta-botones-y-secciones` · **Migración 167 escrita, SIN aplicar**
 (el código funciona sin ella). **Reemplaza en parte a D-240, D-274, D-331, D-467, D-487, D-495, D-497, D-506, D-508, D-514
@@ -41812,7 +41810,6 @@ Capturas (ANTES `antes-*`, DESPUÉS `despues-*`) en la carpeta de trabajo de la 
 
 No visto en navegador: `tsc` y vitest.
 
-<<<<<<< HEAD
 ## D-523 · El chofer entra a «Mi ruta», con «Mi ruta» primero y «Órdenes» al final; y la cámara del recibo de gasolina
 
 **Fecha:** 2026-10-11 · **Versión:** deliveries 1.288.0, repo 1.391.0 · **Sin migración** (la foto al empezar usa la columna `recibo_foto` de la 167, aún sin aplicar) · Hecho directo por el orquestador en `feat/chofer-inicio-y-recibo`. **Reemplaza en parte a D-051, D-480 y D-520** (cada una lleva su nota).
@@ -41885,10 +41882,9 @@ No visto en navegador: `tsc` y vitest.
 **Pruebas:** `gestor-entregadas-y-vista.test.ts` (nace en cuadrícula; el estirado), `rutas-del-dia.test.ts` y `gestor/mapa-del-chofer.test.ts` (la tarjeta ya no está). Mutantes: 2 de 2 caen.
 
 **No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
-=======
-## D-NEXT — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
+## D-527 — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
 
-**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** la asigna el orquestador al fusionar · Rama `feat/recogida-chofer` ·
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.289.0, repo 1.392.0 · Rama `feat/recogida-chofer` ·
 **Migración `168_chofer_recoge_sin_listo.sql` escrita, SIN aplicar ni ensayar** (excepción autorizada por el orquestador a «no
 escribas migraciones»; sin ella funciona todo menos «Recoger de todos modos», que le dice al chofer «Aún no disponible…»).
 **Reemplaza en parte a D-218, D-497 y D-520** (cada una lleva su nota).
@@ -42038,7 +42034,7 @@ add the proof of delikvery for the driver»*.
 (20: las reglas puras, la 168 contra la 157 línea a línea, el checksum, el proveedor y la cámara), y en `acciones-parada`
 (45 → 52), `mi-ruta-pantalla` (9 → 12), `vista-de-chofer` (24 → 25), `acciones-de-la-ficha` (30 → 35); `one-tap-stop`
 pasa de 25 a 22 (las cuatro de «Mi ruta» de D-218 dejan una que fija lo contrario; la de la ficha se puso al día). Puestas al día, cada una con su «Nota
-D-NEXT»: `acciones-parada` (Recogido encendido, «Llegué» dentro de la fila, la llegada hecha es un botón), `mi-ruta-pantalla`
+D-527»: `acciones-parada` (Recogido encendido, «Llegué» dentro de la fila, la llegada hecha es un botón), `mi-ruta-pantalla`
 (la tarjeta), `one-tap-stop` (las cuatro de «Mi ruta» de D-218), `vista-de-chofer` (la puerta de solo lectura),
 `acciones-de-la-ficha` (la principal nueva del chofer y su paso), `agregar-material` y `recibir` (la 168 es ahora la última
 que define el guard).
@@ -42101,4 +42097,3 @@ lo midió el navegador (arriba).
   contesta).
 - La campana del almacén de la tienda en el demo (su único almacenista es de otra tienda); la regla está probada aparte.
 - Modo oscuro.
->>>>>>> 14f34ddc

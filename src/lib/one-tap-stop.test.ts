@@ -137,14 +137,14 @@ describe("lo que se escribe al recoger: una sola construcción para las dos vía
   });
 });
 
-// **Nota D-NEXT (2026-10-11):** aquí había cuatro pruebas de «Mi ruta» que fijaban D-218 —el botón verde de «Siguiente
+// **Nota D-527 (2026-10-11):** aquí había cuatro pruebas de «Mi ruta» que fijaban D-218 —el botón verde de «Siguiente
 // parada» ejecutaba la acción de un toque, su etiqueta salía de `accionParada`, se apagaba con `guardando` y adjuntaba el GPS
 // tardío—. El dueño lo cambió: «when i press the pickup in the driver view the order should also popo up as in the delivery
 // part» y «when you pres deliverd it should open the camera». «Mi ruta» ya no cierra paradas: abre la ficha en su paso (y la
 // cámara al entregar), y la escritura —con su GPS sin bloquear— es la de la ficha, que sigue usando este módulo. Lo nuevo lo
 // prueban `mi-ruta-pantalla.test.ts` y `recogida-del-chofer.test.ts`. `accionParada` y `extraEntrega` siguen aquí probadas
 // porque siguen exportadas; hoy no las llama ninguna pantalla.
-describe("la ficha usa el módulo; «Mi ruta» ya no cierra la parada por su cuenta (D-NEXT)", () => {
+describe("la ficha usa el módulo; «Mi ruta» ya no cierra la parada por su cuenta (D-527)", () => {
   const ruta = leer("src/app/(app)/my-route/page.tsx");
   const modal = leer("src/components/OrderModal.tsx");
 
@@ -158,7 +158,7 @@ describe("la ficha usa el módulo; «Mi ruta» ya no cierra la parada por su cue
     expect(modal).toMatch(/escrituraRecogida\(\{ pedido:/);
     expect(modal.match(/escrituraRecogida\(\{ pedido: existing, me, gps, t/g)).toHaveLength(2);
     expect(modal).toMatch(/const podFormNeeded = pruebaPendiente\(settings, existing\?\.photos\)/);
-    // D-NEXT: con las fotos tomadas al entregar, que aún no están en la orden.
+    // D-527: con las fotos tomadas al entregar, que aún no están en la orden.
     expect(modal).toMatch(/if \(podSinCumplir\(settings, fotosAlEntregar\(existing\.photos, fotosDeLaEntrega\), podSig\)\)/);
     // Y ya no quedan las dos reglas escritas a mano.
     expect(modal).not.toMatch(/const podOwed = /);

@@ -22,7 +22,7 @@ import type { Delivery } from "@/lib/types";
 // D-520: fuera «Saltar» y «Retomar»; «Recogido» sale también cuando la carga aún no está lista, apagado y con el motivo a
 // la vista; y «📍 Llegué», que es de la PARADA entera y no de cada orden.
 //
-// D-NEXT (2026-10-11), cuatro pedidos del dueño sobre esta fila:
+// D-527 (2026-10-11), cuatro pedidos del dueño sobre esta fila:
 //  - «arrived and pickuped up showuld be in the same row»: «📍 Llegué» va DENTRO de la fila de botones de la primera orden
 //    de su tramo (`ordenDeLaLlegada`), al principio: «📍 Llegué · 🚚 Recogido», «📍 Llegué · ✅ Entregado · ⛔ Rechazado».
 //    Para que tres quepan a 390 px, cada botón lleva el icono arriba y la palabra debajo (`BOTON_DE_FILA`).
@@ -36,7 +36,7 @@ import type { Delivery } from "@/lib/types";
 
 /** Un botón solo en su fila: a lo ancho, como antes («Dejar en tienda» de una rechazada). */
 const BOTON: React.CSSProperties = { flex: "1 1 0", minHeight: 44, justifyContent: "center", fontSize: 15, minWidth: 0 };
-/** Un botón de la fila de la parada (D-NEXT): el icono arriba y la palabra debajo, para que «Llegué · Entregado ·
+/** Un botón de la fila de la parada (D-527): el icono arriba y la palabra debajo, para que «Llegué · Entregado ·
  *  Rechazado» quepan en una fila a 390 px sin cortar ninguna palabra. Nunca menos de 44 px de alto. */
 const BOTON_DE_FILA: React.CSSProperties = {
   flex: "1 1 0", minHeight: 52, minWidth: 0, flexDirection: "column", justifyContent: "center", gap: 2,
@@ -55,7 +55,7 @@ function Rotulo({ icono, texto, extra }: { icono: string; texto: string; extra?:
 }
 
 /**
- * «📍 Llegué / Arrived» de una parada (D-520), como el primer botón de la fila de su primera orden (D-NEXT). Qué hay que
+ * «📍 Llegué / Arrived» de una parada (D-520), como el primer botón de la fila de su primera orden (D-527). Qué hay que
  * marcar lo decide `llegadaDeLaParada`: `null`, nada; `pendiente`, el botón, que deja un evento de llegada en cada orden de
  * la parada que esté en ese tramo; `hecha`, «✓ Llegaste 10:42» con «↩ Deshacer» debajo, que pregunta y deja el evento de
  * vuelta en cada orden que tenía la llegada.
@@ -113,9 +113,9 @@ export function AccionesDeParada({
   marca: MarcaDeParada | null | undefined;
   /** «Recogido» o «Entregado»: la página abre la ficha en ese paso (y la cámara, al entregar). */
   cerrar: (d: Delivery, accion: "recoger" | "entregar") => void;
-  /** «📍 Llegué» de la parada, si esta orden es la que lo lleva (D-NEXT: el primero de la fila). */
+  /** «📍 Llegué» de la parada, si esta orden es la que lo lleva (D-527: el primero de la fila). */
   llegada?: LlegadaDeParada | null;
-  /** «↩ Deshacer recogido» (D-NEXT): `deshacerRecogida` lo calcula con el historial; `null`, no se ofrece. */
+  /** «↩ Deshacer recogido» (D-527): `deshacerRecogida` lo calcula con el historial; `null`, no se ofrece. */
   deshacer?: DeshacerRecogida;
   /**
    * La ruta de OTRO chofer, mirada desde la pestaña «Chofer» del admin (D-502): los mismos botones, todos apagados. Se
@@ -145,7 +145,7 @@ export function AccionesDeParada({
     return ok;
   };
 
-  /** «↩ Deshacer recogido» (D-NEXT): pregunta, y vuelve a `ready` borrando los sellos de la recogida. */
+  /** «↩ Deshacer recogido» (D-527): pregunta, y vuelve a `ready` borrando los sellos de la recogida. */
   const deshacerRecogido = async () => {
     if (ocupado || soloLectura) return;
     const si = await confirmar(

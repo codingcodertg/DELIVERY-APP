@@ -36,7 +36,7 @@ vi.mock("@/components/MapView", () => ({ MapView: () => createElement("div", { "
 vi.mock("@/app/(app)/routes/page", () => ({ default: () => createElement("div", { "data-mapa-del-gestor": "1" }) }));
 vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
 vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [] }));
-// D-NEXT: «↩ Deshacer» de la llegada y de la recogida preguntan con `useConfirm`, que en la app pone el layout.
+// D-527: «↩ Deshacer» de la llegada y de la recogida preguntan con `useConfirm`, que en la app pone el layout.
 vi.mock("@/lib/confirm", () => ({ useConfirm: () => async () => true }));
 vi.mock("@/lib/usePausasDelChofer", () => ({
   usePausasDelChofer: (...args: unknown[]) => {
@@ -93,9 +93,9 @@ describe("«Mi ruta» pintada (D-520)", () => {
     expect(s.pendientes).not.toContain("INV-A4");
     expect(s.pendientes).toContain("INV-A3");
   });
-  // Nota D-NEXT: decía «a la vista, apagado y con el motivo». Desde D-NEXT abre la ficha, donde se recoge de todos modos con
+  // Nota D-527: decía «a la vista, apagado y con el motivo». Desde D-527 abre la ficha, donde se recoge de todos modos con
   // nota (168): encendido, sin «⏳».
-  it("D-NEXT: la recogida que el almacén no tiene lista: «Picked up» ENCENDIDO, como la lista", async () => {
+  it("D-527: la recogida que el almacén no tiene lista: «Picked up» ENCENDIDO, como la lista", async () => {
     const html = await pinta();
     const deA1 = html.slice(html.indexOf('data-recogida="A1"'), html.indexOf('data-recogida="A2"'));
     expect(deA1).toMatch(/data-accion="recoger"/);
@@ -104,7 +104,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     const deA2 = html.slice(html.indexOf('data-recogida="A2"'));
     expect(deA2.slice(0, deA2.indexOf("</button>"))).not.toContain("disabled");
   });
-  it("D-NEXT: «📍 Arrived» y «🚚 Picked up» en la MISMA fila: la de la primera orden de la parada que falta por recoger", async () => {
+  it("D-527: «📍 Arrived» y «🚚 Picked up» en la MISMA fila: la de la primera orden de la parada que falta por recoger", async () => {
     const html = await pinta();
     const deA1 = html.slice(html.indexOf('data-recogida="A1"'), html.indexOf('data-recogida="A2"'));
     const fila = deA1.slice(deA1.indexOf("data-acciones-de-parada"));
@@ -113,7 +113,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     const deA2 = html.slice(html.indexOf('data-recogida="A2"'), html.indexOf("data-cuenta", html.indexOf('data-recogida="A2"')));
     expect([...deA2.matchAll(/data-accion="([a-z_]+)"/g)].map((m) => m[1])).toEqual(["recoger"]);
   });
-  it("D-NEXT: la recogida ya en el camión lleva «↩ Undo pickup» (en «Delivered», donde queda la recogida hecha)", async () => {
+  it("D-527: la recogida ya en el camión lleva «↩ Undo pickup» (en «Delivered», donde queda la recogida hecha)", async () => {
     estado.events = [{ id: "e1", delivery_id: "A3", kind: "picked_up", note: "Loaded: 4 pallets", created_by: "u-carlos", created_at: new Date().toISOString() }];
     const html = await pinta();
     const s = secciones(html);
@@ -125,7 +125,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     expect(otro).toMatch(/data-accion="deshacer_recogida" data-apagado=""[^>]*disabled=""/);
     expect(otro).toContain("ask the office");
   });
-  it("D-NEXT: «Recogido» y «Entregado» abren la ficha en su paso; «Entregado» abre además la cámara, LO PRIMERO del toque", async () => {
+  it("D-527: «Recogido» y «Entregado» abren la ficha en su paso; «Entregado» abre además la cámara, LO PRIMERO del toque", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync("src/app/(app)/my-route/page.tsx", "utf8").split("\r\n").join("\n");
     const cuerpo = src.slice(src.indexOf("const cerrarParada = (d: Delivery, accion: \"recoger\" | \"entregar\") => {"), src.indexOf("const done = stops.filter"));
@@ -157,7 +157,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     const html = await pinta();
     const tarjeta = html.slice(html.indexOf("data-siguiente-parada"), html.indexOf('data-mapa-del-gestor'));
     expect(tarjeta).toContain("INV-A1");
-    // Nota D-NEXT: con su «Picked up» al lado, en la misma fila (antes el verde iba junto a «Navigate» y «Llegué» aparte).
+    // Nota D-527: con su «Picked up» al lado, en la misma fila (antes el verde iba junto a «Navigate» y «Llegué» aparte).
     expect([...tarjeta.matchAll(/data-accion="([a-z]+)"/g)].map((m) => m[1])).toEqual(["llegue", "recoger"]);
     const fila = tarjeta.slice(tarjeta.indexOf("data-acciones-de-parada"));
     expect([...fila.matchAll(/data-accion="([a-z]+)"/g)].map((m) => m[1])).toEqual(["llegue", "recoger"]);
@@ -171,7 +171,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     const html = await pinta();
     const s = secciones(html);
     expect((s.pendientes.match(/data-accion="llegue"/g) ?? []).length).toBe(1);
-    // Nota D-NEXT: ahora es el botón «↩ Undo» de la llegada (`data-accion="deshacer_llegada"`), con «✓ Arrived HH:MM» dentro.
+    // Nota D-527: ahora es el botón «↩ Undo» de la llegada (`data-accion="deshacer_llegada"`), con «✓ Arrived HH:MM» dentro.
     expect(s.pendientes).toMatch(/data-llegada="hecha"[^>]*><span[^>]*>✓ Arrived/);
   });
   it("ni «Skip» ni «Resume» en ningún sitio, tampoco con un salto viejo en el historial", async () => {

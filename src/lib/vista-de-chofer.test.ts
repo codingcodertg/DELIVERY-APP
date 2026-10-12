@@ -71,7 +71,7 @@ vi.mock("@/app/(app)/routes/page", async () => {
 });
 vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
 vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [] }));
-// D-NEXT: «↩ Deshacer» de la llegada y de la recogida preguntan con `useConfirm`, que en la app pone el layout.
+// D-527: «↩ Deshacer» de la llegada y de la recogida preguntan con `useConfirm`, que en la app pone el layout.
 vi.mock("@/lib/confirm", () => ({ useConfirm: () => async () => true }));
 vi.mock("@/components/OrdersTable", () => ({ OrdersTable: (p: { rows: unknown[] }) => createElement("div", { "data-tabla-de-ordenes": p.rows.length }) }));
 vi.mock("@/components/ShiftClock", () => ({ ShiftClock: () => null }));
@@ -262,7 +262,7 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(estado.dejarEnTienda.some((d) => !d.enLaLista)).toBe(true);
     expect(estado.dejarEnTienda.every((d) => d.disabled === true)).toBe(true);
   });
-  it("D-NEXT: los «↩ Deshacer» nuevos (la recogida y la llegada) también se ven igual y apagados; el chofer los ve encendidos", async () => {
+  it("D-527: los «↩ Deshacer» nuevos (la recogida y la llegada) también se ven igual y apagados; el chofer los ve encendidos", async () => {
     // C2 la recogió Carlos (puede deshacerla); C1 sigue en la tienda y Carlos ya llegó.
     estado.events = [
       ...estado.events,
@@ -299,7 +299,7 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
   });
   it("y si un botón se colara encendido, la acción tampoco escribe: la segunda puerta está en las dos funciones", () => {
     const ruta = leer("src/app/(app)/my-route/page.tsx");
-    // Nota D-NEXT: `cerrarParada` ya no escribe (abre la ficha y, al entregar, la cámara) y dejó de ser `async`; la puerta
+    // Nota D-527: `cerrarParada` ya no escribe (abre la ficha y, al entregar, la cámara) y dejó de ser `async`; la puerta
     // sigue siendo lo primero, antes de abrir la cámara. Y los dos «↩ Deshacer» nuevos llevan la suya.
     const cuerpo = ruta.slice(ruta.indexOf('const cerrarParada = (d: Delivery, accion: "recoger" | "entregar") => {'), ruta.indexOf("camara.abrir();"));
     expect(cuerpo).toContain("if (soloLectura) return;");

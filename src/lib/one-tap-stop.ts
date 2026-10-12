@@ -8,7 +8,7 @@ import { palletsDeLaOrden } from "./pallets";
 // así que la regla vive aquí y la usan las dos: Mi ruta para saber qué hace el botón, y
 // `OrderModal` para saber si tiene que abrir el formulario de comprobante.
 //
-// **Nota D-NEXT (2026-10-11):** «Mi ruta» ya no cierra paradas de un toque —el dueño pidió que «Recogido» abra la orden
+// **Nota D-527 (2026-10-11):** «Mi ruta» ya no cierra paradas de un toque —el dueño pidió que «Recogido» abra la orden
 // como «Entregado», y que «Entregado» abra la cámara—, así que `accionParada` y `extraEntrega` ya no las llama ninguna
 // pantalla (siguen exportadas y probadas). La ficha sigue usando `escrituraRecogida` y las dos guardas del comprobante.
 //

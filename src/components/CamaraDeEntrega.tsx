@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { compress } from "@/components/PhotoUpload";
 
 // ============================================================
-// La cámara de «Entregado» (D-NEXT). El dueño, 2026-10-11: «when you pres deliverd it should open the camera so you can
+// La cámara de «Entregado» (D-527). El dueño, 2026-10-11: «when you pres deliverd it should open the camera so you can
 // add the proof of delikvery for the driver».
 //
 // El navegador solo abre la cámara si el `.click()` del `<input type="file" capture>` ocurre DENTRO del gesto del usuario:

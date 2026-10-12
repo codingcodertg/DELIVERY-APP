@@ -190,7 +190,7 @@ describe("la 138 dice lo mismo que el código", () => {
     // La 157 (D-452, partes de una orden) es ahora la última que lo define: la 145 letra por letra con una lista cambiada
     // (una carga partida puede nacer en pending). La 145 (D-397) partía de la 142 (D-377), que partía de la 139 (D-361),
     // que partía de la 138.
-    // Nota D-NEXT: la última es ahora la 168 (el chofer recoge su orden sin estar lista): la 157 letra por letra con UNA
+    // Nota D-527: la última es ahora la 168 (el chofer recoge su orden sin estar lista): la 157 letra por letra con UNA
     // cláusula más en la rama del chofer (lo compara `recogida-del-chofer.test.ts`); el bloque de la 138 sigue igual.
     expect(conGuard.at(-1)).toBe("168_chofer_recoge_sin_listo.sql");
     expect(conGuard.at(-2)).toBe("157_partes_de_orden.sql");

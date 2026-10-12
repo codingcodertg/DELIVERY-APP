@@ -95,7 +95,7 @@ describe("qué escribe «Recibir»", () => {
     expect(rama).not.toMatch(/old_stage = 'ready'\s+and new_stage = 'delivered'/);
   });
 
-  // Nota D-NEXT: la última es ahora la 168 (la 157 letra por letra con una cláusula más en la rama del CHOFER: recoger su
+  // Nota D-527: la última es ahora la 168 (la 157 letra por letra con una cláusula más en la rama del CHOFER: recoger su
   // orden en approved/fulfilling). La rama de almacén que lee esta prueba no se tocó (lo compara `recogida-del-chofer.test.ts`).
   it("la 168 es la última que define el guard; la 157 la de antes, y es la 145 con una sola lista cambiada (si cambia, hay que releer lo de arriba)", () => {
     // Hasta D-452 la última era la 145. La 157 la copia letra por letra y solo deja nacer una carga partida también en

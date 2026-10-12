@@ -3,7 +3,7 @@ import type { NamedLocation, OrderEvent, Stage } from "@/lib/types";
 import { mismaTiendaOGrupo } from "@/lib/store-group";
 
 // ============================================================
-// La recogida del chofer en «Mi ruta» y en su ficha (D-NEXT, 2026-10-11). Cuatro pedidos del dueño, literales:
+// La recogida del chofer en «Mi ruta» y en su ficha (D-527, 2026-10-11). Cuatro pedidos del dueño, literales:
 //
 //   «when i press the pickup in the driver view the order should also popo up as in the delivery part»
 //   «the driver can undo an arrive or a pickup»
@@ -29,7 +29,7 @@ export const ETAPAS_QUE_SE_RECOGEN_SIN_LISTO: readonly Stage[] = ["approved", "f
  *
  * **Espejo de la cláusula de la migración 168**: chofer, orden en `approved` o `fulfilling`, y la orden es SUYA
  * (`assigned_driver`, que en esta base es el NOMBRE del chofer, no su id). Una orden sin chofer no: «Mi ruta» solo pinta
- * las asignadas, y abrir la recogida forzada a cualquier orden sin dueño es otra decisión (ver D-NEXT).
+ * las asignadas, y abrir la recogida forzada a cualquier orden sin dueño es otra decisión (ver D-527).
  */
 export function puedeRecogerSinListo(
   yo: { role?: string | null; full_name?: string | null } | null | undefined,

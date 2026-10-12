@@ -1048,7 +1048,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       //
       // Keyed by URL and merged, so removing a photo drops its entry and the
       // survivors keep their authors.
-      // D-NEXT: la regla vive en `autoresDeFotos` porque la entrega con cámara del chofer firma sus fotos en su propia
+      // D-527: la regla vive en `autoresDeFotos` porque la entrega con cámara del chofer firma sus fotos en su propia
       // escritura (la de la etapa), no aquí.
       if (patch.photos && me) {
         patch = { ...patch, photo_meta: autoresDeFotos(patch.photos, before?.photo_meta, me.id, new Date().toISOString()) };
@@ -1431,7 +1431,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           notify(t_offlineSaved());
           return true;   // as far as the driver is concerned, it's done
         }
-        // El error del guard que el chofer no tiene por qué leer (D-NEXT): sin la 168, «Recoger de todos modos» contesta
+        // El error del guard que el chofer no tiene por qué leer (D-527): sin la 168, «Recoger de todos modos» contesta
         // «driver cannot move an order from approved to picked_up»; se le dice qué pasa y a quién avisar.
         notify(mensajeDelGuard(error.message, lang) ?? error.message);
         return false;
