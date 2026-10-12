@@ -278,7 +278,7 @@ describe("«Mi ruta» pinta el aviso de D-341", () => {
     expect(aviso).toBeLessThan(lista);
   });
   it("«Mi ruta» lee la MISMA lista que el Gestor, con la capacidad del camión, y la pinta con su cuenta (D-443)", () => {
-    // Nota D-NEXT: sin la vista de atrasadas, el plan publicado manda siempre; y la lista se pinta en dos secciones
+    // Nota D-520: sin la vista de atrasadas, el plan publicado manda siempre; y la lista se pinta en dos secciones
     // (Pendientes / Entregadas) con la MISMA `fila(fi)` sobre `lectura.filas`, en vez de un solo `lectura.filas.map`.
     expect(pagina).toContain("const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, planPublicado?.paradas ?? null), [stops, capacidad, planPublicado]);");
     expect(pagina).toContain("const cuenta = useMemo(() => cuentaDePallets(lectura.filas.map((f) => f.cambio), capacidad), [lectura, capacidad]);");

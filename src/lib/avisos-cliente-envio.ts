@@ -174,7 +174,7 @@ export async function ejecutarEnCamino(ctx: Contexto, deliveryId: string): Promi
   if (ruta.error) return { ok: false, error: `deliveries: ${ruta.error.message}` };
   const ordenadas = routeOrder(paradasDelChofer(ruta.data ?? [], o.data.assigned_driver, o.data.delivery_date, "dia"));
   // Las rechazadas por el cliente (D-487) no son «la siguiente», igual que en «Mi ruta» (las saltadas tampoco lo eran;
-  // desde D-NEXT no hay saltos). Salen del
+  // desde D-520 no hay saltos). Salen del
   // historial de esas órdenes; si no se puede leer, la regla de siempre (avisar de más es menos malo que no avisar).
   const ev = ordenadas.length
     ? (await ctx.db.from("order_events").select("delivery_id, kind, created_at, note").in("delivery_id", ordenadas.map((d) => d.id))) as

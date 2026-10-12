@@ -6,7 +6,7 @@ import { paradasDeLaRuta } from "@/lib/gestor/paradas-numeradas";
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 
 /**
- * D-NEXT · «Mi ruta» en dos secciones: «Pendientes» abierta y «Entregadas» plegada. El dueño: «delivered orders go to do
+ * D-520 · «Mi ruta» en dos secciones: «Pendientes» abierta y «Entregadas» plegada. El dueño: «delivered orders go to do
  * DELIVERED DROPDOWN TO SEE ALL THE DONE ORDERS BY DEFAULT WILL BE CLOSE AND THE PENDIGN ORDERS AS WELL BU TPENDING ON THE
  * DRIVER VIEW».
  */

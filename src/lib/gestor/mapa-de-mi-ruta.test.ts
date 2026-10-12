@@ -75,7 +75,7 @@ describe("«Mi ruta» monta el mapa del Gestor, no uno suyo", () => {
   });
 
   it("al tocar, traduce el punto con `ordenDelPunto` antes de buscar la parada", () => {
-    // Nota D-NEXT: la búsqueda va ahora por `porId` (el índice de las paradas del día que usan también las secciones), no
+    // Nota D-520: la búsqueda va ahora por `porId` (el índice de las paradas del día que usan también las secciones), no
     // con `stops.find`; la traducción es la misma.
     expect(miRuta).toContain("const orden = ordenDelPunto(id); const d = orden ? porId.get(orden) : undefined; if (d) setOpen(d);");
     expect(miRuta).toContain("const porId = useMemo(() => new Map(stops.map((d) => [d.id, d])), [stops]);");
@@ -108,7 +108,7 @@ describe("en el Gestor, el modo «solo el mapa»", () => {
     // Y es la MISMA tarjeta: los mismos puntos, líneas, tiendas y camiones que la de la página entera.
     const tarjeta = gestor.slice(corte, pagina);
     expect(tarjeta).toContain("<MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))}");
-    // Nota D-NEXT: fijaba que la tarjeta llevaba la leyenda; la leyenda se quitó de toda la app y ahora fija que no.
+    // Nota D-520: fijaba que la tarjeta llevaba la leyenda; la leyenda se quitó de toda la app y ahora fija que no.
     expect(tarjeta).not.toContain("MapLegend");
     expect(gestor).not.toContain("MapLegend");
   });

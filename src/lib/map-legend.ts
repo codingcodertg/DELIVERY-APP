@@ -7,7 +7,7 @@ import { fallbackDriverColor } from "./utils";
  * leyenda tenía que decir lo mismo que el mapa pintaba, así que el color se sacó de la página a esta función, que usaban el
  * dibujo y la leyenda.
  *
- * **Reemplazado en parte por D-NEXT** (2026-10-11): la leyenda se quitó de toda la app —«delete the lEGEND ON THE MAP of
+ * **Reemplazado en parte por D-520** (2026-10-11): la leyenda se quitó de toda la app —«delete the lEGEND ON THE MAP of
  * the app»— y con ella `leyendaDelMapa`, su componente `MapLegend` y los dos colores que solo usaba ella (la ruta azul de
  * lo elegido y el pin oscuro de la recogida, que el mapa ya no pintaba desde D-467). Queda lo que el mapa sigue usando: el
  * color del chofer (el Gestor, «Mi ruta» y Almacén) y el gris de lo que no tiene chofer. El fichero conserva su nombre para

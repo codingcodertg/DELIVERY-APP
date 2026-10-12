@@ -242,9 +242,9 @@ describe("la pantalla acotada no es una pantalla aparte: es la del Gestor", () =
     ancla("const soloLectura = soloLecturaDeclarada || miChofer != null;");
   });
 
-  // Nota D-NEXT: decía «“Mi ruta” lleva a ese mapa, también al mirar la de otro, y entonces lleva SU id (D-508)». El dueño
+  // Nota D-520: decía «“Mi ruta” lleva a ese mapa, también al mirar la de otro, y entonces lleva SU id (D-508)». El dueño
   // quitó el enlace («FULL ROUTE VIEW PLEASE QUITALO DEL DRIVER VIEW»): ahora fija que ya no está. Lo demás sigue igual.
-  it("«Mi ruta» ya no lleva a ese mapa (D-NEXT), y no pierde nada más", () => {
+  it("«Mi ruta» ya no lleva a ese mapa (D-520), y no pierde nada más", () => {
     expect(miRuta.indexOf("data-mapa-de-mi-ruta")).toBe(-1);
     expect(miRuta).not.toContain('href={ajeno ? `/my-route/mapa');
     expect(miRuta).not.toContain('<Link');

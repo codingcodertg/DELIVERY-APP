@@ -242,7 +242,7 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(deMiguel).toContain("INV-M1");
     expect(deMiguel).not.toContain("INV-C1");
   });
-  // Nota D-NEXT: decía «Recogido, Entregado, Saltar, Rechazado y Dejar en tienda» y fijaba que salía `saltar`. «Saltar» se
+  // Nota D-520: decía «Recogido, Entregado, Saltar, Rechazado y Dejar en tienda» y fijaba que salía `saltar`. «Saltar» se
   // quitó; en su lugar están «📍 Llegué» y «⏸ Registrar parada», y también se ven apagados.
   it("los botones se ven igual, pero apagados: Recogido, Entregado, Rechazado, Dejar en tienda, Llegué y Registrar parada", async () => {
     estado.me = ADMIN;
@@ -285,7 +285,7 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     // El dueño: «QUIERO EN EL DRIVER VIEW QUE EN VEZ DE LOS P1 Y D1 SE VEA IGUAL QUE LOGISTIC MANAGER CON NUMEROS EN VES DE ESO».
     // Con los datos de aquí: C1, C2 y C5 se recogen las tres en McAllen —UNA parada, la 1, con la raya de que sigue en
     // las otras dos filas— y luego tres entregas, cada una su parada.
-    // Nota D-NEXT: la lista va en dos secciones. C2 y C5 ya van en el camión, así que sus filas de recogida pasan a
+    // Nota D-520: la lista va en dos secciones. C2 y C5 ya van en el camión, así que sus filas de recogida pasan a
     // «Entregadas» y C1, que falta, se queda en «Pendientes»: la parada 1 queda partida, y su número sale en las dos
     // (la primera fila de la parada DENTRO de cada sección). Antes: números 1, 2, 3, 4 y dos rayas en la lista entera.
     estado.me = CARLOS;
@@ -309,7 +309,7 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     const html = await pinta(null);
     const circulos = [...html.matchAll(/data-numero-de-parada="(\d+)"[^>]*>([^<]*)</g)].map((m) => `${m[1]}:${m[2]}`);
     expect(circulos.filter((c) => c.endsWith(":✓"))).toEqual(["5:✓"]);
-    // Y sigue contando en la numeración del día: su parada tiene número aunque enseñe ✓. Nota D-NEXT: eran 5 círculos; son
+    // Y sigue contando en la numeración del día: su parada tiene número aunque enseñe ✓. Nota D-520: eran 5 círculos; son
     // 6 porque la parada 1 (recogida partida entre Pendientes y Entregadas) lleva su número en las dos secciones.
     expect(circulos.length).toBe(6);
     // Y la entregada está en «Entregadas», no en «Pendientes».

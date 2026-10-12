@@ -387,9 +387,9 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
     expect(gestor).toContain("if (!rutasPublicadas || soloLectura) return;");
     expect(gestor).toContain("const base = soloLectura ? baseDeLaRuta(clave) : null;");
   });
-  // Nota D-NEXT: la leyenda se quitó de toda la app («delete the lEGEND ON THE MAP of the app»): donde esto fijaba que
+  // Nota D-520: la leyenda se quitó de toda la app («delete the lEGEND ON THE MAP of the app»): donde esto fijaba que
   // «Ruta de hoy» la pintaba, ahora fija que no.
-  it("lo que se quedó de «Ruta de hoy»: el día acotado, Ayer/Hoy/Mañana, los camiones (no para ventas), el aviso de la 160 y los colores; sin leyenda (D-NEXT)", () => {
+  it("lo que se quedó de «Ruta de hoy»: el día acotado, Ayer/Hoy/Mañana, los camiones (no para ventas), el aviso de la 160 y los colores; sin leyenda (D-520)", () => {
     expect(gestor).toContain('const veCamiones = me?.role !== "sales";');
     expect(gestor).toContain("if (!veCamiones) return [];");
     expect(gestor).not.toContain("MapLegend");

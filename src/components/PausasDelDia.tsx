@@ -10,7 +10,7 @@ import { minutosDePausa, nombreDelMotivo } from "@/lib/pausas-del-chofer";
 
 /**
  * Las paradas que el chofer REGISTRÓ ese día —baño, gasolina, comida, tráfico— con su recibo, para logística y admin
- * (D-NEXT). Va en el Recorrido del chofer (`/track`), que es donde ya se revisa su día, encima de las paradas que se
+ * (D-520). Va en el Recorrido del chofer (`/track`), que es donde ya se revisa su día, encima de las paradas que se
  * deducen del GPS: estas las dijo él, aquellas se reconstruyen.
  *
  * Quién la ve lo decide la pestaña (admin, gerente, logística) y, en la base, la RLS de la 167. Sin la 167 aplicada lo

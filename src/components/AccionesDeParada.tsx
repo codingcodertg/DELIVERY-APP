@@ -15,11 +15,11 @@ import { orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// Los botones de UNA orden de una parada en «Mi ruta» (D-487; D-NEXT): qué sale lo decide `accionesDeParada`; aquí solo
+// Los botones de UNA orden de una parada en «Mi ruta» (D-487; D-520): qué sale lo decide `accionesDeParada`; aquí solo
 // se pinta y se escribe. «Recogido» y «Entregado» llaman a `cerrar`, que es el mismo `cerrarParada` de la tarjeta de
 // «Siguiente parada» (D-218): una sola vía para la etapa. Rechazado deja un evento y no toca la etapa.
 //
-// D-NEXT: fuera «Saltar» y «Retomar»; «Recogido» sale también cuando la carga aún no está lista, apagado y con el motivo a
+// D-520: fuera «Saltar» y «Retomar»; «Recogido» sale también cuando la carga aún no está lista, apagado y con el motivo a
 // la vista; y «📍 Llegué», que es de la PARADA entera y no de cada orden, va en `BotonDeLlegada`.
 // ============================================================
 
@@ -27,7 +27,7 @@ const BOTON: React.CSSProperties = { flex: "1 1 0", minHeight: 44, justifyConten
 const hora = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 /**
- * «📍 Llegué / Arrived» de una parada (D-NEXT). Qué hay que marcar lo decide `llegadaDeLaParada`: `null`, nada (todo
+ * «📍 Llegué / Arrived» de una parada (D-520). Qué hay que marcar lo decide `llegadaDeLaParada`: `null`, nada (todo
  * hecho, o nada cargado para entregar); `hecha`, «✓ Llegaste 10:42», que no se repite; `pendiente`, el botón, que deja un
  * evento de llegada en cada orden de la parada que esté en ese tramo.
  */

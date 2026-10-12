@@ -7,7 +7,7 @@ import type { Delivery } from "@/lib/types";
 import type { PausaDelChofer } from "@/lib/pausas-del-chofer";
 
 // ============================================================
-// D-NEXT · «Mi ruta» del chofer, PINTADA de verdad, con lo que el dueño pidió el 2026-10-11 con las capturas de Ernesto:
+// D-520 · «Mi ruta» del chofer, PINTADA de verdad, con lo que el dueño pidió el 2026-10-11 con las capturas de Ernesto:
 // sin «Saltar»; «📍 Llegué» por parada y «Recogido» siempre a la vista (apagado con su motivo si el almacén no la tiene
 // lista); «Pendientes» abierta y «Entregadas» plegada; sin «Ver la ruta completa», sin el aviso de vencidas, sin leyenda;
 // y «⏸ Registrar parada».
@@ -73,7 +73,7 @@ const secciones = (html: string) => {
   return { pendientes: antes.slice(antes.indexOf('data-seccion="pendientes"')), hechas: hechas ?? "" };
 };
 
-describe("«Mi ruta» pintada (D-NEXT)", () => {
+describe("«Mi ruta» pintada (D-520)", () => {
   it("Pendientes abierta, Entregadas plegada, cada una con su cuenta de paradas", async () => {
     const html = await pinta();
     expect(html).toMatch(/<details data-seccion="pendientes" open=""/);

@@ -1,7 +1,7 @@
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 
 /**
- * «Mi ruta» en dos secciones (D-NEXT). El dueño, 2026-10-11: *«delivered orders go to do DELIVERED DROPDOWN TO SEE ALL THE
+ * «Mi ruta» en dos secciones (D-520). El dueño, 2026-10-11: *«delivered orders go to do DELIVERED DROPDOWN TO SEE ALL THE
  * DONE ORDERS BY DEFAULT WILL BE CLOSE AND THE PENDIGN ORDERS AS WELL BU TPENDING ON THE DRIVER VIEW»*.
  *
  * - **Pendientes**: lo que falta, abierta. **Entregadas / Delivered**: lo ya hecho, plegada. Las dos se pliegan.

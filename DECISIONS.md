@@ -13413,7 +13413,7 @@ de las cinco pantallas. Las tres cosas que hay que mirar cuando el dueño lo abr
 
 ## D-240 · Quién entra a una pantalla lo decide la misma pregunta que pinta su pestaña, y se decide una vez
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): quien abre una pantalla que no es para su rol ya no se queda delante de «No disponible para su rol»: se le lleva a su pantalla de inicio (`inicioSiNoPuede` → `roleHome`), si esa sí se le abre. Quién entra a cada una no cambia.
+> **Reemplazada en parte por D-520** (2026-10-11): quien abre una pantalla que no es para su rol ya no se queda delante de «No disponible para su rol»: se le lleva a su pantalla de inicio (`inicioSiNoPuede` → `roleHome`), si esa sí se le abre. Quién entra a cada una no cambia.
 
 > **⚠ Reemplazada en parte por D-480** (2026-10-06): para oficina (`accounting`, `ROLES_CON_PESTANAS_FIJAS`) un permiso suelto ya no abre pestaña, y la exención de «Mi ruta» tampoco le abre esa pantalla: solo las de su rol en `TABS` (Órdenes y Ruta de hoy). Para los demás roles esta entrada sigue igual.
 
@@ -17470,7 +17470,7 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 
 ## D-274 · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): la leyenda del mapa se quitó de toda la app («delete the lEGEND ON THE MAP of the app»); `MapLegend.tsx` y `leyendaDelMapa` se borraron. El color de cada chofer (`colorDeChofer`) sigue.
+> **Reemplazada en parte por D-520** (2026-10-11): la leyenda del mapa se quitó de toda la app («delete the lEGEND ON THE MAP of the app»); `MapLegend.tsx` y `leyendaDelMapa` se borraron. El color de cada chofer (`colorDeChofer`) sigue.
 
 > **⚠ Reemplazada en parte por D-467** (2026-10-04): la leyenda del mapa (§ de la leyenda) ya no explica «la ruta de las órdenes elegidas» ni «la recogida de la orden elegida», porque el Mapa pasó a ser «Ruta de hoy», de solo lectura. Explica las marcas de una ruta: P, D, ✓, la línea del chofer y su regreso; el camión, solo a quien recibe las posiciones.
 
@@ -23177,7 +23177,7 @@ que es lo que ya veían—. Nadie pierde nada; se separan cuando una de las dos 
 
 ## D-331 · El Gestor de Rutas enseña la factura y deja elegir columnas; y cada día es aparte, en el Gestor y en «Mi ruta»
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): en «Mi ruta» ya no sale la línea «N parada(s) expiradas de días anteriores · Verlas» ni su vista aparte («QUITA ESO DEL OVERVIEW TAMBIEN»). Lo atrasado sigue siendo del chofer —lo ve en su pestaña «Chofer», por etapa— y de logística (Gestor, Órdenes).
+> **Reemplazada en parte por D-520** (2026-10-11): en «Mi ruta» ya no sale la línea «N parada(s) expiradas de días anteriores · Verlas» ni su vista aparte («QUITA ESO DEL OVERVIEW TAMBIEN»). Lo atrasado sigue siendo del chofer —lo ve en su pestaña «Chofer», por etapa— y de logística (Gestor, Órdenes).
 
 > **⚠ Reemplazada en parte por D-408** (2026-09-26): la columna fija del código de orden (`#`/ID) ya no está en ninguna
 > tabla del Gestor. La factura deja de ser elegible: es **fija** (no sale en el ⚙) porque ahora es lo que abre la orden.
@@ -36363,7 +36363,7 @@ puesta, pulsar «Leer productos» en un preview gasta de verdad.
 
 ## D-467 · «Mapa» pasa a ser «Ruta de hoy»: el mapa y el panel de choferes del Gestor, para todos los roles de entregas y de solo lectura (migración 160)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): «Ruta de hoy» ya no lleva leyenda bajo el mapa.
+> **Reemplazada en parte por D-520** (2026-10-11): «Ruta de hoy» ya no lleva leyenda bajo el mapa.
 
 > **⚠ Puesta al día por D-480** (2026-10-06): en la barra de almacén, «Ruta de hoy» va DETRÁS de su «Órdenes» (`pestanasEnOrden`). Quién la ve no cambia.
 
@@ -38257,7 +38257,7 @@ y la ruta forzada tendría que quitarla con la llave de servicio. Se dejó así 
 
 ## D-487 · «Mi ruta»: cada parada lleva sus botones — Recogido · Saltar en cada carga de una recogida; Entregado · Saltar · Rechazado (con razón obligatoria) en cada entrega
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): fuera «Saltar» y «Retomar» («remove the skip buittom in driver view»); los saltos ya escritos dejan de contar (la parada vuelve a su sitio, sin pastilla «Saltada»). Entra «📍 Llegué» por parada, y «Recogido» sale a la vista y apagado, con su motivo, cuando el almacén no tiene la carga lista.
+> **Reemplazada en parte por D-520** (2026-10-11): fuera «Saltar» y «Retomar» («remove the skip buittom in driver view»); los saltos ya escritos dejan de contar (la parada vuelve a su sitio, sin pastilla «Saltada»). Entra «📍 Llegué» por parada, y «Recogido» sale a la vista y apagado, con su motivo, cuando el almacén no tiene la carga lista.
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.266.0, repo 1.360.0) · **Sin migración.** · Rama `feat/chofer-acciones-por-parada`. **Reemplaza en parte a D-334** (las recogidas de «Mi ruta» ya no son solo informativas).
 
@@ -38980,7 +38980,7 @@ No visto en navegador: `tsc` y vitest.
 
 ## D-495 · «Mi ruta»: con la entrega ya cargada no se salta, y rechazar pregunta qué pasó y a dónde va el material
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): una entrega sin cargar ya no ofrece «Saltar» (no hay saltos): no ofrece nada hasta que va en el camión. Lo demás sigue.
+> **Reemplazada en parte por D-520** (2026-10-11): una entrega sin cargar ya no ofrece «Saltar» (no hay saltos): no ofrece nada hasta que va en el camión. Lo demás sigue.
 
 **Fecha:** 2026-10-07 · **Versión:** deliveries (deliveries 1.270.0, repo 1.367.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d495`. **Reemplaza en parte a D-487.**
 
@@ -39020,7 +39020,7 @@ Interpretación: «form view» = la ficha de la orden en Entregas. No visto en n
 
 ## D-497 · La ficha de la orden: los botones de acción en un menú «Acciones ▾»; fuera solo el paso principal (y Guardar/Cancelar al editar)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): la ficha da por llegado («🚦 Llegó…») también a quien marcó «📍 Llegué» en «Mi ruta» (un evento `arrived_delivery`) y ya no le vuelve a ofrecer «Llegué a la parada». Medido al hacerlo: ese botón de la ficha escribe `arrived_at`, y para un CHOFER el guard de etapas (157) lo rechaza; ver D-NEXT.
+> **Reemplazada en parte por D-520** (2026-10-11): la ficha da por llegado («🚦 Llegó…») también a quien marcó «📍 Llegué» en «Mi ruta» (un evento `arrived_delivery`) y ya no le vuelve a ofrecer «Llegué a la parada». Medido al hacerlo: ese botón de la ficha escribe `arrived_at`, y para un CHOFER el guard de etapas (157) lo rechaza; ver D-520.
 
 **Fecha:** 2026-10-07 · **Versión:** deliveries 1.271.0, repo 1.369.0 · **Sin migración.** · Rama `feat/ficha-acciones-en-menu`.
 
@@ -39721,7 +39721,7 @@ permanente, y la que no se respetó al verificar D-172.
 
 ## D-506 · El chofer mira EL MISMO mapa del Gestor de Rutas, acotado a SUS rutas, desde «Mi ruta»
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): «Mi ruta» ya no enlaza `/my-route/mapa` («FULL ROUTE VIEW PLEASE QUITALO DEL DRIVER VIEW»). La pantalla sigue existiendo; ya no la enlaza nadie.
+> **Reemplazada en parte por D-520** (2026-10-11): «Mi ruta» ya no enlaza `/my-route/mapa` («FULL ROUTE VIEW PLEASE QUITALO DEL DRIVER VIEW»). La pantalla sigue existiendo; ya no la enlaza nadie.
 
 > **⚠ Corregida por D-508** (2026-10-10, el mismo día): esconder el enlace al mirar la ruta de otro dejaba al admin
 > —que revisa la vista del chofer por esa pestaña— sin poder abrir el mapa nuevo por ningún camino.
@@ -39970,7 +39970,7 @@ sigue en Reciente» y «se aplica cada vez, pisando lo que pulse la persona».
 
 ## D-508 · El mapa del Gestor también se abre para el chofer que el admin está mirando
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): el enlace que esta decisión hizo visible también al mirar la ruta de otro se quitó de «Mi ruta», para el chofer y para la pestaña «Chofer» del admin.
+> **Reemplazada en parte por D-520** (2026-10-11): el enlace que esta decisión hizo visible también al mirar la ruta de otro se quitó de «Mi ruta», para el chofer y para la pestaña «Chofer» del admin.
 
 **Fecha:** 2026-10-10 · **Versión:** Entregas 1.278.0, repo 1.378.0 · **Sin migración.**
 **Reportado por el dueño**, literal, al probar D-506: *«aun miro el mismo mapa en drivers»*.
@@ -40652,7 +40652,7 @@ se llamaba `flujo-routes-…`; la tabla de arriba es la de después del arreglo.
 
 ## D-514 — El mapa de «Mi ruta» ES el del Gestor, no uno parecido
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): el mapa de «Mi ruta» (la tarjeta del Gestor) va sin leyenda, y el botón «🗓 Ver la ruta completa» se quitó.
+> **Reemplazada en parte por D-520** (2026-10-11): el mapa de «Mi ruta» (la tarjeta del Gestor) va sin leyenda, y el botón «🗓 Ver la ruta completa» se quitó.
 
 **Fecha:** 2026-10-10 · **Estado:** Vigente · **Reemplaza en parte a D-506 y corrige a D-508** · **Sin migración.**
 
@@ -40743,7 +40743,7 @@ día de hoy y no lo distingue.
 
 ## D-515 — «Mi ruta» numera por paradas como el Gestor: 1, 2, 3… en vez de P1 y D1
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): la lista va en dos secciones, «Pendientes» y «Entregadas». El número de cada parada es el mismo, pero lo lleva la primera fila de la parada DENTRO de su sección: una parada partida entre las dos (una recogida a medias) enseña su número en las dos.
+> **Reemplazada en parte por D-520** (2026-10-11): la lista va en dos secciones, «Pendientes» y «Entregadas». El número de cada parada es el mismo, pero lo lleva la primera fila de la parada DENTRO de su sección: una parada partida entre las dos (una recogida a medias) enseña su número en las dos.
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Extiende D-485 a la vista del chofer** · **Sin migración.**
 
@@ -41577,9 +41577,9 @@ Capturas: `1280-1-panel-antes`, `1280-2-sale-de-brownsville`, `1280-3-mapa-P-y-F
   variables en blanco.
 - El tracker (`tracker/`) y Notion no se tocaron desde esta rama: son del orquestador.
 
-## D-NEXT — «Mi ruta»: sin «Saltar»; «📍 Llegué» y «Recogido» en cada parada; Pendientes y Entregadas; sin leyenda, sin «Ver la ruta completa» ni el aviso de vencidas; y «⏸ Registrar parada» con el recibo de la gasolina
+## D-520 — «Mi ruta»: sin «Saltar»; «📍 Llegué» y «Recogido» en cada parada; Pendientes y Entregadas; sin leyenda, sin «Ver la ruta completa» ni el aviso de vencidas; y «⏸ Registrar parada» con el recibo de la gasolina
 
-**Fecha:** 2026-10-11 · **Estado:** Vigente · Rama `feat/mi-ruta-botones-y-secciones` · **Migración 167 escrita, SIN aplicar**
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.287.0, repo 1.390.0 · Rama `feat/mi-ruta-botones-y-secciones` · **Migración 167 escrita, SIN aplicar**
 (el código funciona sin ella). **Reemplaza en parte a D-240, D-274, D-331, D-467, D-487, D-495, D-497, D-506, D-508, D-514
 y D-515** (cada una lleva su nota).
 
@@ -41714,7 +41714,7 @@ de etapa, o que el KPI lea los eventos.
 **`node scripts/verify.mjs` en verde** sobre origin/main con D-518 (tsc, vitest 7384 + 3 saltados, build). Pruebas nuevas: `secciones-de-mi-ruta.test.ts`
 (9), `mi-ruta-pantalla.test.ts` (9, la pantalla pintada de verdad), `pausas-del-chofer.test.ts` (26), y en
 `acciones-parada.test.ts` (reescrito, 45) y `tab-gate.test.ts` (+5). Pruebas que fijaban lo de antes y se pusieron al día,
-cada una con su «Nota D-NEXT»: `acciones-parada`, `avisos-cliente` (la saltada ya no se aparta), `ayer-hoy-manana`,
+cada una con su «Nota D-520»: `acciones-parada`, `avisos-cliente` (la saltada ya no se aparta), `ayer-hoy-manana`,
 `ordenes-del-dia` y `lectura-de-ruta` (sin vista de atrasadas), `vista-de-chofer` (sin Saltar; números por sección),
 `chofer-del-mapa` y `mapa-del-chofer` (sin el enlace), `mapa-de-mi-ruta`, `rutas-del-dia`, `paradas-numeradas`,
 `store-pins` y `map-legend` (sin leyenda), `inline-colors` (de 70 a 69 colores a pelo: el blanco de `MapLegend`).

@@ -143,10 +143,10 @@ describe("la pantalla usa las paradas", () => {
   it("el mapa numera con la misma función, sobre la misma lectura", () => {
     expect(plano(leer("src/lib/mapa-de-rutas.ts"))).toContain("for (const p of paradasDeLaRuta(lectura.filas, list).paradas) {");
   });
-  // Nota D-NEXT: aquí había «la leyenda de “Ruta de hoy” explica los números» (`leyendaDelMapa`). La leyenda se quitó de
+  // Nota D-520: aquí había «la leyenda de “Ruta de hoy” explica los números» (`leyendaDelMapa`). La leyenda se quitó de
   // toda la app («delete the lEGEND ON THE MAP of the app») y la función con ella; los números siguen en el mapa y en la
   // lista, y su título dice qué se hace en cada parada (`textoDeLaParada`, arriba).
-  it("ya no hay leyenda que explique los números (D-NEXT)", () => {
+  it("ya no hay leyenda que explique los números (D-520)", () => {
     expect(leer("src/lib/map-legend.ts")).not.toMatch(/export function leyendaDelMapa/);
   });
 });

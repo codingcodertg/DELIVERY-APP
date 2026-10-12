@@ -13,7 +13,7 @@ import {
 } from "@/lib/pausas-del-chofer";
 
 // ============================================================
-// «⏸ Registrar parada» en «Mi ruta» (D-NEXT): el botón, el cuadro con el motivo, y —mientras está parado— «⏸ En parada:
+// «⏸ Registrar parada» en «Mi ruta» (D-520): el botón, el cuadro con el motivo, y —mientras está parado— «⏸ En parada:
 // ⛽ Gasolina · 10:42» con «▶ Seguir». Qué se guarda y cuándo se puede seguir lo decide `lib/pausas-del-chofer.ts`; aquí se
 // pinta y se escribe.
 //

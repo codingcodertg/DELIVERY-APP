@@ -5,10 +5,10 @@ import { COLOR_SIN_ASIGNAR, colorDeChofer } from "./map-legend";
 import { fallbackDriverColor } from "./utils";
 
 /**
- * El color de cada chofer en el mapa de Entregas (D-274), y —desde D-NEXT— que la leyenda del mapa ya no sale en ninguna
+ * El color de cada chofer en el mapa de Entregas (D-274), y —desde D-520— que la leyenda del mapa ya no sale en ninguna
  * pantalla.
  *
- * **Nota D-NEXT (2026-10-11):** este fichero probaba sobre todo `leyendaDelMapa`: qué elementos salía, en qué orden, con qué
+ * **Nota D-520 (2026-10-11):** este fichero probaba sobre todo `leyendaDelMapa`: qué elementos salía, en qué orden, con qué
  * color y que la página le pasaba los mismos choferes que pintaba (seis pruebas). El dueño: «delete the lEGEND ON THE MAP of
  * the app». Con la leyenda se fueron la función, `MapLegend.tsx` y los dos colores que solo ella usaba (`COLOR_RECOGIDA`,
  * `COLOR_RUTA_ELEGIDA`), así que esas pruebas no tienen qué medir; en su lugar va la que fija que no vuelve. Las del color
@@ -30,7 +30,7 @@ describe("el color de un chofer", () => {
   });
 });
 
-describe("D-NEXT: el mapa ya no lleva leyenda, en ninguna pantalla", () => {
+describe("D-520: el mapa ya no lleva leyenda, en ninguna pantalla", () => {
   // Todo el código de la app (sin pruebas): ni el componente, ni la función, ni la lista que la pintaba.
   const ficheros: string[] = [];
   const recorre = (dir: string) => {

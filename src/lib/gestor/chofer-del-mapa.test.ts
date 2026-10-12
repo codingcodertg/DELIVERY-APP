@@ -59,10 +59,10 @@ describe("la pantalla lo usa, y el enlace lleva el chofer", () => {
     expect(p).toContain("<SoloMisRutas chofer={delMapa.full_name}>");
   });
 
-  // Nota D-NEXT: esta prueba fijaba que «Mi ruta» enseñaba el enlace «🗓 Ver la ruta completa» también al mirar la ruta de
+  // Nota D-520: esta prueba fijaba que «Mi ruta» enseñaba el enlace «🗓 Ver la ruta completa» también al mirar la ruta de
   // otro, con SU id (D-508). El dueño lo quitó: «FULL ROUTE VIEW PLEASE QUITALO DEL DRIVER VIEW». Ahora fija que no está,
   // ni para el chofer ni en la pestaña «Chofer» del admin (que monta la misma página). `/my-route/mapa` sigue existiendo.
-  it("«Mi ruta» ya no enlaza la vista completa, ni al mirar la de otro (D-NEXT)", () => {
+  it("«Mi ruta» ya no enlaza la vista completa, ni al mirar la de otro (D-520)", () => {
     const p = leer("src/app/(app)/my-route/page.tsx");
     expect(p).not.toContain("data-mapa-de-mi-ruta");
     expect(p).not.toContain("href={ajeno ? `/my-route/mapa");

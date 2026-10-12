@@ -1398,7 +1398,7 @@ export function OrderModal({
       onCancelPickup={() => setShowPickupConfirm(false)}
       departedAt={departedAt}
       onDepart={depart}
-      // D-NEXT: también la llegada que el chofer marcó con «📍 Llegué» en «Mi ruta» (un evento): sin esto, la ficha le
+      // D-520: también la llegada que el chofer marcó con «📍 Llegué» en «Mi ruta» (un evento): sin esto, la ficha le
       // volvía a ofrecer «Llegué a la parada» a quien ya llegó.
       arrivedAt={arrivedAt ?? llegadasDeParadas(events, todayISO()).get(existing.id)?.entregar ?? null}
       onArrive={arrive}

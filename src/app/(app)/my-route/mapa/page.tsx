@@ -31,7 +31,7 @@ import { IrAlInicio } from "@/components/TabGate";
 // entregar y rechazar con razón (D-495) y el aviso de ruta cambiada (D-341). Esta pantalla no sustituye nada de eso: añade
 // la vista de mapa del Gestor, que allí no había. Desde aquí no se cierra ninguna parada — para eso se vuelve.
 //
-// **D-NEXT (2026-10-11): ya no la enlaza nadie.** «Mi ruta» quitó su botón «🗓 Ver la ruta completa» («FULL ROUTE VIEW
+// **D-520 (2026-10-11): ya no la enlaza nadie.** «Mi ruta» quitó su botón «🗓 Ver la ruta completa» («FULL ROUTE VIEW
 // PLEASE QUITALO DEL DRIVER VIEW»). La pantalla sigue existiendo y se abre por su dirección; borrarla es otra decisión.
 // ============================================================
 export default function MiMapaPage() {
@@ -45,7 +45,7 @@ export default function MiMapaPage() {
 
   if (!me || !delMapa) return null;
   // La misma puerta que «Mi ruta»: esta pantalla es la suya, en mapa. Almacén tiene su propia Ruta del día (D-380).
-  // Quien no es chofer va a su pantalla de inicio en vez de quedarse con «No disponible» (D-NEXT, `IrAlInicio`).
+  // Quien no es chofer va a su pantalla de inicio en vez de quedarse con «No disponible» (D-520, `IrAlInicio`).
   if (!canDeliver(me) || me.role === "warehouse") {
     return <IrAlInicio />;
   }

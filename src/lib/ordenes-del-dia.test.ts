@@ -86,10 +86,10 @@ describe("«Mi ruta» del chofer: mismo criterio", () => {
     expect(ids(paradasDelChofer(SUYAS, "Chofer Uno", "2026-09-19", "atrasadas"))).toEqual(["ayer-sin-entregar"]);
     expect(ids(paradasDelChofer(SUYAS, "Chofer Dos", "2026-09-19", "atrasadas"))).toEqual(["de-otro-atrasada"]);
   });
-  // Nota D-NEXT: esta prueba fijaba la línea «N parada(s) expiradas de días anteriores · Verlas» y su vista aparte. El dueño
+  // Nota D-520: esta prueba fijaba la línea «N parada(s) expiradas de días anteriores · Verlas» y su vista aparte. El dueño
   // la quitó de la cabecera de «Mi ruta» («QUITA ESO DEL OVERVIEW TAMBIEN»): ahora fija que NO está, y que la lista es la
   // del día. Lo atrasado sigue siendo suyo (la prueba de arriba) y lo ve en su pestaña «Chofer», por etapa.
-  it("la página usa la función para el día, sin la línea de atrasadas ni su vista aparte (D-NEXT)", () => {
+  it("la página usa la función para el día, sin la línea de atrasadas ni su vista aparte (D-520)", () => {
     const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
     const pagina = leer("src/app/(app)/my-route/page.tsx").replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n").replace(/\s+/g, " ");
     expect(pagina).toContain('return routeOrder(paradasDelChofer(deliveries, driverName, dia, "dia"));');

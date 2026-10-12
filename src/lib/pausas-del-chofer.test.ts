@@ -9,7 +9,7 @@ import {
 } from "@/lib/pausas-del-chofer";
 
 // ============================================================
-// D-NEXT · «⏸ Registrar parada». El dueño, 2026-10-11: «AGREGA A BUTTOM TO LOG A STOP PUEDE SER RESTROOM, STOP FOR GAS Y
+// D-520 · «⏸ Registrar parada». El dueño, 2026-10-11: «AGREGA A BUTTOM TO LOG A STOP PUEDE SER RESTROOM, STOP FOR GAS Y
 // ASI» y «AND WHEN STOPPED FOR GAS ASK TO UPLOAD DE GAS RECEIPT».
 // ============================================================
 

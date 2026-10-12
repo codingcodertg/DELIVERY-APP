@@ -27,7 +27,7 @@ import { canOpenTab, inicioSiNoPuede, ROLES_CON_PESTANAS_FIJAS, tabForPath, TAB_
  * cliente— y no sustituye a la RLS: lo que cada rol puede escribir lo siguen decidiendo la
  * base y sus `guard_*`.
  *
- * **D-NEXT:** quien llega a una pantalla que no es para su rol ya no se queda delante de «No disponible para su rol»: se
+ * **D-520:** quien llega a una pantalla que no es para su rol ya no se queda delante de «No disponible para su rol»: se
  * le lleva a SU pantalla de inicio (`inicioSiNoPuede`). Lo destapó la vista móvil: abre la pantalla de fuera («/», Órdenes)
  * dentro del marco, y entrando como un chofer el marco enseñaba ese aviso en vez de su app.
  */
@@ -48,7 +48,7 @@ export function TabGate({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Lo que sale en vez de una pantalla que no es para este rol (D-NEXT): se va a su pantalla de inicio (`roleHome`), con
+ * Lo que sale en vez de una pantalla que no es para este rol (D-520): se va a su pantalla de inicio (`roleHome`), con
  * `replace` para que «atrás» no lo devuelva aquí. Si no hay a dónde ir —sin sesión todavía, o su inicio es justo esta
  * pantalla—, el aviso de siempre. También la usa «Mi ruta», que hace su propia pregunta.
  */

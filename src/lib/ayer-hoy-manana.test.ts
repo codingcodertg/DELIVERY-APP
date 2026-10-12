@@ -21,7 +21,7 @@ describe("ayer, hoy y mañana (D-469)", () => {
   it("«Mi ruta» tiene los tres botones y pide las paradas y el plan del día elegido", () => {
     const p = leer("src/app/(app)/my-route/page.tsx");
     expect(p).toContain("const dia = shiftDateISO(todayISO(), desfase);");
-    // Nota D-NEXT: sin la vista aparte de atrasadas («QUITA ESO DEL OVERVIEW TAMBIEN»), la lista es siempre la del día.
+    // Nota D-520: sin la vista aparte de atrasadas («QUITA ESO DEL OVERVIEW TAMBIEN»), la lista es siempre la del día.
     expect(p).toContain('paradasDelChofer(deliveries, driverName, dia, "dia")');
     expect(p).not.toContain("verAtrasadas");
     // D-502: con el chofer mirado desde fuera, si lo hay (la pestaña «Chofer» del admin); el día es el mismo.

@@ -5,13 +5,13 @@ import { KIND_RECIBIDA } from "@/lib/recibir";
 import { EVENTO_DEJADO } from "@/lib/leave-at-store";
 
 // ============================================================
-// Botones por parada en «Mi ruta» (D-487, D-495; D-NEXT): Llegué · Recogido en cada recogida; Llegué · Entregado ·
+// Botones por parada en «Mi ruta» (D-487, D-495; D-520): Llegué · Recogido en cada recogida; Llegué · Entregado ·
 // Rechazado en cada entrega.
 //
 // El dueño, 2026-10-06: «quiero que ahí salga un por cada carga, cada pickup y los deliveries también que diga pickup
 // […] deliver, skip y en los deliveries puede ser hasta rejected y él tiene que poner una razón».
 //
-// **D-NEXT (2026-10-11), «remove the skip buittom in driver view · arrived and pickup buttom to be added»:** fuera
+// **D-520 (2026-10-11), «remove the skip buittom in driver view · arrived and pickup buttom to be added»:** fuera
 // «Saltar». Ya no se escriben saltos y los que hubiera **dejan de contar**: la parada vuelve a su sitio de siempre y nadie
 // tiene que «retomarla». Los eventos `skipped`/`resumed` viejos siguen en el historial de la orden, con su nombre. Entra
 // «📍 Llegué», por PARADA (la tienda donde se recoge, la dirección donde se entrega), que deja un evento de llegada.
@@ -23,7 +23,7 @@ import { EVENTO_DEJADO } from "@/lib/leave-at-store";
 //    La orden se queda en `picked_up` —el material sigue en el camión— y el chofer la descarga con «Dejar en tienda»
 //    (D-224), que ya existía. La marca sigue visible para logística en Órdenes y en el Gestor hasta que la orden se
 //    vuelva a recoger o se entregue.
-//  - **Llegué** (D-NEXT): evento `arrived_pickup` (en la tienda) o `arrived_delivery` (con el cliente). Vale el día en
+//  - **Llegué** (D-520): evento `arrived_pickup` (en la tienda) o `arrived_delivery` (con el cliente). Vale el día en
 //    que se hizo y para ESE tramo: dejar la orden en una tienda o volver a recogerla lo borra.
 //
 // Por qué eventos y no una etapa o columna: es el mismo camino de «Received» (D-409, `recibir.ts`). `order_events.kind`
@@ -35,15 +35,15 @@ import { EVENTO_DEJADO } from "@/lib/leave-at-store";
 // Puro: sin React, sin red.
 // ============================================================
 
-/** Históricos (D-487): ya no se escriben desde D-NEXT. Siguen aquí para nombrarlos en el historial. */
+/** Históricos (D-487): ya no se escriben desde D-520. Siguen aquí para nombrarlos en el historial. */
 export const KIND_SALTADA = "skipped";
 export const KIND_RETOMADA = "resumed";
 export const KIND_RECHAZADA = "customer_rejected";
-/** «📍 Llegué» (D-NEXT): a la tienda a recoger, o con el cliente a entregar. */
+/** «📍 Llegué» (D-520): a la tienda a recoger, o con el cliente a entregar. */
 export const KIND_LLEGO_A_RECOGER = "arrived_pickup";
 export const KIND_LLEGO_A_ENTREGAR = "arrived_delivery";
 
-/** La marca vigente de una parada. Desde D-NEXT solo existe el rechazo: el salto se fue con su botón. */
+/** La marca vigente de una parada. Desde D-520 solo existe el rechazo: el salto se fue con su botón. */
 export type MarcaDeParada = { marca: "rechazada"; at: string; motivo: string | null };
 
 /** Lo que borra la marca de rechazo: la orden volvió a salir o se cerró. */
@@ -66,7 +66,7 @@ function porOrdenEnOrden(events: readonly EventoDeParada[]): Map<string, EventoD
 /**
  * La marca vigente de cada orden, leída de su historial. Se calcula una vez por lista de eventos.
  *
- * Desde D-NEXT solo el rechazo, que no caduca con el día. El segundo parámetro (`hoy`) era para que un salto valiera solo
+ * Desde D-520 solo el rechazo, que no caduca con el día. El segundo parámetro (`hoy`) era para que un salto valiera solo
  * su día; se acepta y se ignora, porque la llaman el servidor, Órdenes, el Gestor, la ficha y «Mi ruta».
  */
 export function marcasDeParadas(events: readonly EventoDeParada[], _hoy?: string): Map<string, MarcaDeParada> {
@@ -82,7 +82,7 @@ export function marcasDeParadas(events: readonly EventoDeParada[], _hoy?: string
   return out;
 }
 
-// ---- «📍 Llegué» (D-NEXT) ----------------------------------------------------
+// ---- «📍 Llegué» (D-520) ----------------------------------------------------
 
 /** Cuándo llegó el chofer a la tienda (`recoger`) o con el cliente (`entregar`), si llegó, en el tramo de ahora. */
 export interface LlegadaDeOrden { recoger?: string; entregar?: string }
@@ -167,11 +167,11 @@ export const NO_ESTA_LISTA = { en: "The warehouse doesn't have it ready yet", es
  *  - Hecha (recogida ya en el camión, o entregada) o anulada: nada.
  *  - Rechazada: solo «Dejar en tienda» —y en la entrega, que es donde vive el material—.
  *  - Recogida: «Recogido». Si el almacén aún no la tiene lista (`approved`, `fulfilling`…) sale **a la vista y apagado**,
- *    con el motivo (D-NEXT; antes solo salía «Saltar»).
+ *    con el motivo (D-520; antes solo salía «Saltar»).
  *  - Entrega: con el material en el camión (`picked_up`), «Entregado» y «Rechazado» (D-495). Antes de recogerla, nada:
  *    entregar o rechazar algo que no se ha cargado no existe.
  *
- * D-NEXT quitó «Saltar» y «Retomar». El dueño, 2026-10-11: «remove the skip buittom in driver view».
+ * D-520 quitó «Saltar» y «Retomar». El dueño, 2026-10-11: «remove the skip buittom in driver view».
  */
 export function accionesDeParada(tipo: "P" | "D", etapa: string | null | undefined, marca: MarcaDeParada | null | undefined): BotonDeParada[] {
   const boton = (accion: AccionDeParada, apagado: BotonDeParada["apagado"] = null): BotonDeParada => ({ accion, apagado });
@@ -284,7 +284,7 @@ export function etiquetaDeEventoDeParada(kind: string, lang: "en" | "es"): strin
 }
 
 /** La pastilla que acompaña a la etapa en Órdenes y en el Gestor. Colores con tokens del tema (claro y oscuro), no
- *  a pelo: es la regla de `inline-colors.test.ts`. Desde D-NEXT solo la del rechazo: «Saltada» se fue con su botón. */
+ *  a pelo: es la regla de `inline-colors.test.ts`. Desde D-520 solo la del rechazo: «Saltada» se fue con su botón. */
 export function pastillaDeMarca(m: MarcaDeParada | null | undefined, lang: "en" | "es"): { texto: string; fondo: string; tinta: string; detalle: string } | null {
   if (!m) return null;
   return { texto: lang === "es" ? "Rechazada" : "Rejected", fondo: "var(--red-chip-bg)", tinta: "var(--red-chip-text)", detalle: razonDeLaNota(m.motivo) };

@@ -210,7 +210,7 @@ describe("el cableado: quién pasa qué, y a quién NO", () => {
     expect(google).toContain("encodeURIComponent(casaDeTienda())");
     expect(leaflet).toContain("${casaDeTienda()}</div>");
     expect(leaflet).toContain("iconSize: [TIENDA_CLASICA.diametro, TIENDA_CLASICA.diametro]");
-    // Nota D-NEXT: aquí se fijaba también que la leyenda del mapa pintaba la misma casita (`casaDeTienda(18)`). La leyenda
+    // Nota D-520: aquí se fijaba también que la leyenda del mapa pintaba la misma casita (`casaDeTienda(18)`). La leyenda
     // se quitó de toda la app y `MapLegend.tsx` se borró; quedan los dos motores.
     expect(existsSync(join(process.cwd(), "src/components/MapLegend.tsx"))).toBe(false);
     for (const motor of [google, leaflet]) expect(motor).not.toContain("border-radius:50%;background:${TIENDA_CLASICA.fill}");

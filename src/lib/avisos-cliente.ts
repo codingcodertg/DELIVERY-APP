@@ -153,7 +153,7 @@ export function tocaNocheAntes(ahora: Date, horaElegida: number | null | undefin
  * `apartadas` (D-487): las marcas de `marcasDeParadas` (lib/acciones-parada). Una **rechazada** por el cliente nunca es la
  * siguiente (no hay nada que entregar ahí). Sin marcas, la regla de siempre.
  *
- * **Reemplazada en parte por D-NEXT:** una **saltada** cedía el turno y volvía cuando no quedaba otra. «Saltar» se quitó
+ * **Reemplazada en parte por D-520:** una **saltada** cedía el turno y volvía cuando no quedaba otra. «Saltar» se quitó
  * de «Mi ruta» y `marcasDeParadas` ya no da saltos, así que ese caso salió de aquí. */
 export function siguienteParada<T extends { stage: string; id?: string }>(
   ordenadas: readonly T[],

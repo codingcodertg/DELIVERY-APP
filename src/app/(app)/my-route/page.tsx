@@ -53,7 +53,7 @@ import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 // What it does let them do is finish the work: each stop opens the same order
 // screen they already use to pick up and deliver.
 //
-// D-NEXT (2026-10-11), lo que el dueño pidió con capturas de «Mi ruta» de Ernesto: fuera «Saltar»; «📍 Llegué» por parada
+// D-520 (2026-10-11), lo que el dueño pidió con capturas de «Mi ruta» de Ernesto: fuera «Saltar»; «📍 Llegué» por parada
 // y «Recogido» siempre a la vista en las recogidas; la lista en dos secciones, «Pendientes» abierta y «Entregadas»
 // plegada; fuera «Ver la ruta completa» y el aviso de paradas vencidas de la cabecera; y «⏸ Registrar parada».
 // ============================================================
@@ -70,7 +70,7 @@ export default function MyRoutePage() {
   // Un solo disparo por toque: mientras la escritura va, el botón queda deshabilitado. Guarda
   // el id y no un booleano para que se vea cuál es la parada que está guardándose.
   const [guardando, setGuardando] = useState<string | null>(null);
-  // Las dos secciones de la lista (D-NEXT): lo pendiente abierto, lo hecho plegado. Las dos se pliegan a mano.
+  // Las dos secciones de la lista (D-520): lo pendiente abierto, lo hecho plegado. Las dos se pliegan a mano.
   const [abierta, setAbierta] = useState<Record<SeccionDeMiRuta, boolean>>({ pendientes: true, hechas: false });
 
   // De QUIÉN es la ruta (D-502). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
@@ -82,7 +82,7 @@ export default function MyRoutePage() {
   const driverName = chofer?.full_name ?? "";
 
   // CADA DÍA ES APARTE (D-331): hoy son las paradas de hoy.
-  // **Reemplazado en parte por D-NEXT:** lo atrasado ya no tiene aviso ni vista aparte en esta pantalla («QUITA ESO DEL
+  // **Reemplazado en parte por D-520:** lo atrasado ya no tiene aviso ni vista aparte en esta pantalla («QUITA ESO DEL
   // OVERVIEW TAMBIEN»). Sigue siendo suyo: lo ve en su pestaña «Chofer», por etapa, y logística en el Gestor y en Órdenes.
   // D-469: el chofer mira su ruta de ayer, hoy o mañana. El dueño, 2026-10-04: «que los conductores puedan ver ayer, hoy y
   // mañana… en donde salen mis rutas». `dia` es un desfase (−1, 0, 1) y no una fecha, para que a medianoche «hoy» siga siendo hoy.
@@ -110,11 +110,11 @@ export default function MyRoutePage() {
   // la misma tienda, varias entregas a la misma dirección— son UNA parada con UN número: la MISMA función del Gestor, así
   // que la «parada 3» del chofer es la «parada 3» que ve logística.
   const numeradas = useMemo(() => paradasDeLaRuta(lectura.filas, stops), [lectura, stops]);
-  // Pendientes y Entregadas (D-NEXT): cada fila en su sección, en el orden de la ruta y con su número de parada.
+  // Pendientes y Entregadas (D-520): cada fila en su sección, en el orden de la ruta y con su número de parada.
   const secciones = useMemo(() => seccionesDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, numeradas.deFila), [lectura, porId, numeradas]);
   // El color del chofer, el mismo que pinta el Gestor en su círculo y en el mapa.
   const colorDelChofer = colorDeChofer(settings.driver_colors, driverName);
-  /** El círculo de la fila `fi`: el número en la primera fila de su parada DENTRO de su sección (D-NEXT; antes, en la
+  /** El círculo de la fila `fi`: el número en la primera fila de su parada DENTRO de su sección (D-520; antes, en la
    *  primera de la lista entera); en las demás, la raya de que sigue. Una entrega ya hecha lleva ✓ en su círculo, como en
    *  el Gestor. El título dice qué se hace ahí («Parada 1 — recoger P1, P2»). */
   const numeroDeParada = (fi: number, hecha = false) => {
@@ -186,10 +186,10 @@ export default function MyRoutePage() {
   const done = stops.filter((d) => d.stage === "delivered").length;
   // The one stop that matters right now: first in sequence still to finish. La MISMA función decide a quién va el
   // aviso «en camino» en el servidor (D-416): lo que el chofer ve como siguiente es lo que se avisa.
-  // Las rechazadas (D-487) salen del historial y no son «siguiente». Las saltadas ya no existen (D-NEXT).
+  // Las rechazadas (D-487) salen del historial y no son «siguiente». Las saltadas ya no existen (D-520).
   const marcas = useMemo(() => marcasDeParadas(events), [events]);
   const next = siguienteParada(stops, marcas);
-  // «📍 Llegué» (D-NEXT): las llegadas de hoy, por orden, y la de cada parada. Una llegada es de la PARADA —la tienda, la
+  // «📍 Llegué» (D-520): las llegadas de hoy, por orden, y la de cada parada. Una llegada es de la PARADA —la tienda, la
   // dirección—: se pulsa una vez y vale para todas sus órdenes en ese tramo (`llegadaDeLaParada`).
   const llegadas = useMemo(() => llegadasDeParadas(events, todayISO()), [events]);
   const llegadaDe = (n: number | undefined) => {
@@ -199,7 +199,7 @@ export default function MyRoutePage() {
   // La parada de «Siguiente parada»: la de su recogida mientras no se ha recogido, la de su entrega cuando va en el camión.
   const paradaDeLaSiguiente = next ? numeradas.paradas.find((p) => p.tipo === (next.stage === "picked_up" ? "D" : "P") && p.ordenes.includes(next.id)) : undefined;
 
-  // Los botones de cada orden de una parada (D-487; D-NEXT): qué sale lo decide `accionesDeParada`, dentro del componente.
+  // Los botones de cada orden de una parada (D-487; D-520): qué sale lo decide `accionesDeParada`, dentro del componente.
   const accionesDe = (d: Delivery, tipo: "P" | "D", sinPrincipal = false) => (
     <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} guardando={guardando === d.id} cerrar={(x) => void cerrarParada(x)} sinPrincipal={sinPrincipal} soloLectura={soloLectura} />
   );
@@ -214,7 +214,7 @@ export default function MyRoutePage() {
   };
 
   if (!me) return null;
-  // Quien no es chofer va a su pantalla de inicio en vez de quedarse con «No disponible para tu rol» (D-NEXT, `IrAlInicio`).
+  // Quien no es chofer va a su pantalla de inicio en vez de quedarse con «No disponible para tu rol» (D-520, `IrAlInicio`).
   if (!canDeliver(me) || me.role === "warehouse") return <IrAlInicio />;
   if (!ready) return <div className="empty">{t("Loading…", "Cargando…")}</div>;
 
@@ -244,7 +244,7 @@ export default function MyRoutePage() {
           <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />
           {f.tipo === "P" ? (
             // Cada carga de la recogida, con su «Recogido» (D-487), orden por orden. Si el almacén aún no la tiene lista, el
-            // botón sale apagado y dice por qué (D-NEXT).
+            // botón sale apagado y dice por qué (D-520).
             f.ordenes.map((id) => {
               const d = porId.get(id);
               return (
@@ -329,13 +329,13 @@ export default function MyRoutePage() {
           <button key={d} className={`vt${desfase === d ? " on" : ""}`} onClick={() => setDesfase(d)}>{rotulo}</button>
         ))}
       </div>
-      {/* **Reemplazado por D-NEXT:** aquí estaba «🗓 Ver la ruta completa» (D-506/D-508/D-514), el enlace a `/my-route/mapa`.
+      {/* **Reemplazado por D-520:** aquí estaba «🗓 Ver la ruta completa» (D-506/D-508/D-514), el enlace a `/my-route/mapa`.
           El dueño, con la captura de la cabecera: «FULL ROUTE VIEW PLEASE QUITALO DEL DRIVER VIEW». La página sigue
           existiendo y se abre por su dirección; ya no la enlaza nadie.
           Y debajo, el aviso «N parada(s) expiradas de días anteriores — no son de hoy · Verlas» (D-331): «QUITA ESO DEL
           OVERVIEW TAMBIEN». */}
 
-      {/* «⏸ Registrar parada» (D-NEXT): baño, gasolina (con su recibo), comida, tráfico. Mientras está parado, la tarjeta
+      {/* «⏸ Registrar parada» (D-520): baño, gasolina (con su recibo), comida, tráfico. Mientras está parado, la tarjeta
           dice en qué y desde cuándo, con «▶ Seguir». */}
       <PausaDelChofer driverId={chofer?.id} soloLectura={soloLectura} />
 
@@ -419,7 +419,7 @@ export default function MyRoutePage() {
                     : `📋 ${t("Open order", "Ver orden")}`}
                 </button>
               </div>
-              {/* «📍 Llegué» de su parada (D-NEXT): la tienda mientras no la ha recogido, el cliente cuando va en el camión. */}
+              {/* «📍 Llegué» de su parada (D-520): la tienda mientras no la ha recogido, el cliente cuando va en el camión. */}
               <BotonDeLlegada llegada={paradaDeLaSiguiente ? llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas) : null} soloLectura={soloLectura} />
               {/* La salida cuando no se puede entregar: se descarga en una tienda del grupo y el
                   pedido vuelve a la lista (D-224). En su propia fila y no junto a «Entregar»:
@@ -427,7 +427,7 @@ export default function MyRoutePage() {
                   El control se enseña solo si procede —pedido en el camión y suyo—, así que aquí
                   no se repite ninguna condición. */}
               {/* Rechazado (D-487), con su marca si la tiene. El verde de arriba sigue siendo la acción principal. «Saltar»
-                  ya no está (D-NEXT). */}
+                  ya no está (D-520). */}
               {accionesDe(next, next.stage === "picked_up" ? "D" : "P", true)}
               {me && (
                 <div style={{ display: "flex", marginTop: 8 }}>
@@ -442,7 +442,7 @@ export default function MyRoutePage() {
               dejado aquí el mapa propio de esta pantalla —sin la línea de la ruta, que solo se trazaba al tocar el título, y
               con las paradas pintadas por estado— y puesto el del Gestor en otra página, detrás de un botón.
               Ahora es la MISMA tarjeta del Gestor (`routes/page.tsx`), montada solo-el-mapa y acotada a este chofer: su línea
-              medida en su color, la vuelta a la base en punteado, las casitas y el camión. Sin leyenda desde D-NEXT («delete
+              medida en su color, la vuelta a la base en punteado, las casitas y el camión. Sin leyenda desde D-520 («delete
               the lEGEND ON THE MAP of the app»). Tocar una parada abre su orden, como antes. */}
           <div style={{ marginBottom: 12 }}>
             <SoloMisRutas chofer={driverName}>
@@ -458,7 +458,7 @@ export default function MyRoutePage() {
           {/* The whole day in order, so they can plan ahead: ONE list (D-443, no truckloads), recogidas y entregas en el
               orden en que se hacen, cada una con su cuenta de pallets. El título ya no traza la ruta al tocarlo (D-514): el
               mapa de arriba es el del Gestor y la trae siempre.
-              D-NEXT: en dos secciones. El dueño: «delivered orders go to do DELIVERED DROPDOWN TO SEE ALL THE DONE ORDERS BY
+              D-520: en dos secciones. El dueño: «delivered orders go to do DELIVERED DROPDOWN TO SEE ALL THE DONE ORDERS BY
               DEFAULT WILL BE CLOSE AND THE PENDIGN ORDERS AS WELL BU TPENDING ON THE DRIVER VIEW». */}
           <div className="card" style={{ marginBottom: 12 }}>
             <div className="section-label" style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

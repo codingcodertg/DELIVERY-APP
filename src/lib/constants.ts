@@ -293,7 +293,7 @@ export function roleHome(role: UserRole): string {
 }
 
 /**
- * A dónde se lleva a quien abre una pantalla que no es para su rol (D-NEXT): a su pantalla de inicio (`roleHome`), en vez
+ * A dónde se lleva a quien abre una pantalla que no es para su rol (D-520): a su pantalla de inicio (`roleHome`), en vez
  * de dejarle «No disponible para su rol». Lo destapó la vista móvil (D-278/D-501): abre en el marco la pantalla de fuera
  * —«/», Órdenes— y entrando como un chofer el marco enseñaba ese aviso en vez de su app.
  *

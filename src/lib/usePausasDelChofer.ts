@@ -11,7 +11,7 @@ import {
 } from "@/lib/pausas-del-chofer";
 
 /**
- * Leer y escribir las pausas de UN chofer en UN día (D-NEXT). Lo usan «Mi ruta» (las suyas, hoy) y el Recorrido de
+ * Leer y escribir las pausas de UN chofer en UN día (D-520). Lo usan «Mi ruta» (las suyas, hoy) y el Recorrido de
  * logística (las del chofer y el día que se miran).
  *
  * - **Con base**: la tabla `public.pausas_del_chofer` de la 167, con su RLS: el chofer escribe y lee las suyas; admin,

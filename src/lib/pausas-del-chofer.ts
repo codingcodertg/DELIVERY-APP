@@ -1,6 +1,6 @@
 /**
  * «⏸ Registrar parada»: el chofer anota que se detiene por algo que NO es una orden —baño, gasolina, comida, tráfico— y
- * cuándo sigue (D-NEXT). El dueño, 2026-10-11: *«AGREGA A BUTTOM TO LOG A STOP PUEDE SER RESTROOM, STOP FOR GAS Y ASI»* y
+ * cuándo sigue (D-520). El dueño, 2026-10-11: *«AGREGA A BUTTOM TO LOG A STOP PUEDE SER RESTROOM, STOP FOR GAS Y ASI»* y
  * *«AND WHEN STOPPED FOR GAS ASK TO UPLOAD DE GAS RECEIPT»*.
  *
  * Se llama «pausa» en el código para no confundirla con las paradas de la ruta (`paradasDeLaRuta`, `paradasDelChofer`), que

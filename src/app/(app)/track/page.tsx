@@ -312,7 +312,7 @@ export default function TrackPage() {
         )}
       </div>
 
-      {/* Lo que el chofer DIJO (D-NEXT, «⏸ Registrar parada» en «Mi ruta»): baño, gasolina con su recibo… Va antes de las
+      {/* Lo que el chofer DIJO (D-520, «⏸ Registrar parada» en «Mi ruta»): baño, gasolina con su recibo… Va antes de las
           paradas que se deducen del GPS, que son una reconstrucción. */}
       {driverId && <PausasDelDia driverId={driverId} fecha={fecha} clock={(iso) => clock(iso, lang)} />}
 

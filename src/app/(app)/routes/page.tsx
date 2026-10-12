@@ -2059,7 +2059,7 @@ export default function RoutesPage() {
     : [...shownDrivers.map((u): [Lane, ModoDeTarjeta] => [u, "compacta"]), ...shownDrivers.filter((u) => u.key === rutaDesplegada).map((u): [Lane, ModoDeTarjeta] => [u, "desplegada"])];
   const scheduledCount = dayOrders.length - unassigned.length;
   // Aquí se armaba la leyenda del mapa (D-274; en «Ruta de hoy», D-467, y en «Mi ruta», D-514). Fuera en toda la app desde
-  // D-NEXT. El dueño, 2026-10-11: «delete the lEGEND ON THE MAP of the app».
+  // D-520. El dueño, 2026-10-11: «delete the lEGEND ON THE MAP of the app».
   const canManageColors = me.role === "manager" || me.role === "admin";
   // El motor nuevo (D-320) es para quien puede publicar, y con un día concreto. Con su barra cerrada (D-400), la cabecera
   // lleva el botón que la trae. Nunca en solo lectura.
@@ -2375,7 +2375,7 @@ export default function RoutesPage() {
   };
 
   // Solo el mapa (D-514): la MISMA tarjeta de abajo —`points`, `lines`, tiendas y camiones, calculados arriba
-  // como siempre; la leyenda ya no, D-NEXT—, sin cabecera, panel ni pestañas. Va aquí, después de todos los hooks: devolver antes rompería su orden.
+  // como siempre; la leyenda ya no, D-520—, sin cabecera, panel ni pestañas. Va aquí, después de todos los hooks: devolver antes rompería su orden.
   // Lo único que cambia es qué pasa al tocar una parada: lo decide quien monta el mapa.
   if (soloElMapa) {
     return (

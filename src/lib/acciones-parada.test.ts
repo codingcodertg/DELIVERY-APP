@@ -11,7 +11,7 @@ import {
 import { siguienteParada } from "@/lib/avisos-cliente";
 import type { Delivery } from "@/lib/types";
 
-// **Nota D-NEXT (2026-10-11):** este fichero se rehízo con la decisión que quitó «Saltar» y añadió «📍 Llegué». Las pruebas
+// **Nota D-520 (2026-10-11):** este fichero se rehízo con la decisión que quitó «Saltar» y añadió «📍 Llegué». Las pruebas
 // del salto (que marcaba la parada, que «Retomar» la devolvía, que cedía el turno) se cambiaron por su contrario —un salto
 // viejo ya no marca nada ni cede el turno—, y la tabla de botones por la nueva («Recogido» apagado con su motivo, sin
 // «Saltar»). Las del rechazo (D-487, D-495) siguen igual.
@@ -29,7 +29,7 @@ const HOY = "2026-10-06";
 const ev = (delivery_id: string, kind: string, created_at = "2026-10-06T15:00:00Z", note: string | null = null) => ({ delivery_id, kind, created_at, note });
 
 describe("marcasDeParadas", () => {
-  it("D-NEXT: un salto ya no marca nada, ni el de hoy, y «Retomar» tampoco", () => {
+  it("D-520: un salto ya no marca nada, ni el de hoy, y «Retomar» tampoco", () => {
     const m = marcasDeParadas([ev("a", KIND_SALTADA), ev("b", KIND_SALTADA, "2026-10-06T15:00:00Z"), ev("b", KIND_RETOMADA, "2026-10-06T15:05:00Z")], HOY);
     expect(m.size).toBe(0);
   });
@@ -57,7 +57,7 @@ describe("marcasDeParadas", () => {
   });
 });
 
-describe("llegadasDeParadas (D-NEXT)", () => {
+describe("llegadasDeParadas (D-520)", () => {
   it("la llegada de hoy cuenta; la de ayer no", () => {
     const m = llegadasDeParadas([ev("a", KIND_LLEGO_A_RECOGER), ev("b", KIND_LLEGO_A_RECOGER, "2026-10-05T15:00:00Z")], HOY);
     expect(m.get("a")).toEqual({ recoger: "2026-10-06T15:00:00Z" });
@@ -87,7 +87,7 @@ describe("llegadasDeParadas (D-NEXT)", () => {
   });
 });
 
-describe("llegadaDeLaParada (D-NEXT)", () => {
+describe("llegadaDeLaParada (D-520)", () => {
   const etapas: Record<string, string> = { a: "approved", b: "ready", c: "picked_up", d: "delivered", e: "picked_up" };
   const etapaDe = (id: string) => etapas[id];
   const sin = new Map();
@@ -120,7 +120,7 @@ describe("llegadaDeLaParada (D-NEXT)", () => {
 describe("accionesDeParada", () => {
   const rechazo = { marca: "rechazada" as const, at: "", motivo: "x" };
   const acciones = (b: ReturnType<typeof accionesDeParada>) => b.map((x) => (x.apagado ? `${x.accion}(apagado)` : x.accion));
-  it("recogida lista: Recogido, y nada de Saltar (D-NEXT)", () => {
+  it("recogida lista: Recogido, y nada de Saltar (D-520)", () => {
     expect(acciones(accionesDeParada("P", "ready", null))).toEqual(["recoger"]);
   });
   it("recogida aún sin preparar: Recogido a la vista, apagado y con su motivo; ya en el camión: nada", () => {
@@ -148,7 +148,7 @@ describe("accionesDeParada", () => {
 
 describe("siguienteParada con apartadas", () => {
   const r = [{ id: "a", stage: "picked_up" }, { id: "b", stage: "picked_up" }, { id: "c", stage: "ready" }];
-  it("D-NEXT: un salto viejo ya no cede el turno", () => {
+  it("D-520: un salto viejo ya no cede el turno", () => {
     expect(siguienteParada(r, marcasDeParadas([ev("a", KIND_SALTADA)], HOY))?.id).toBe("a");
   });
   it("una rechazada nunca es la siguiente", () => {

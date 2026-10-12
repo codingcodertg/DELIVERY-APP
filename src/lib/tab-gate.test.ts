@@ -133,9 +133,9 @@ describe("el guard está en un solo sitio y cubre todas las pestañas", () => {
   });
 });
 
-// D-NEXT: quien abre una pantalla que no es para su rol va a SU inicio (`roleHome`), en vez de quedarse delante de «No
+// D-520: quien abre una pantalla que no es para su rol va a SU inicio (`roleHome`), en vez de quedarse delante de «No
 // disponible para su rol». Lo destapó la vista móvil: abre «/» (Órdenes) en el marco, y como chofer enseñaba ese aviso.
-describe("sin permiso, a su pantalla de inicio (D-NEXT)", () => {
+describe("sin permiso, a su pantalla de inicio (D-520)", () => {
   it("el chofer en «/» (lo que abre la vista móvil) va a su pestaña «Chofer»", () => {
     expect(canOpenTab("board", u("driver"))).toBe(false);
     expect(inicioSiNoPuede("/", u("driver"))).toBe("/driver");
