@@ -7,7 +7,7 @@ const banner = readFileSync("src/components/ImpersonationBanner.tsx", "utf8");
 
 describe("el aviso de «Estás como…» es una línea corta, sin los minutos (D-483)", () => {
   it("dice solo con quién estás", () => {
-    // D-NEXT: en el idioma del admin, no en español fijo (el render en los dos idiomas está en
+    // D-516: en el idioma del admin, no en español fijo (el render en los dos idiomas está en
     // `aviso-de-suplantacion.test.ts`). Sigue siendo UN idioma a la vez: nada del texto doble de antes de D-483.
     expect(banner).toContain('{t("👤 Signed in as", "👤 Estás como")} {p.como}');
     expect(banner).not.toContain("You are signed in as");

@@ -1433,7 +1433,7 @@ table.orders th { text-align: left; }
   box-sizing: content-box; flex: 0 0 auto;
   border: 10px solid var(--ink); border-radius: 28px; background: var(--card);
 }
-/* El botón de vista del aviso amarillo de «Entrar como» (D-NEXT): en un ancho de teléfono —y dentro del marco
+/* El botón de vista del aviso amarillo de «Entrar como» (D-516): en un ancho de teléfono —y dentro del marco
    de arriba, que mide 360, 390 o 430— solo el icono, 📱 o 🖥; el nombre va en `aria-label` y `title`. Con el
    texto, el aviso pasaba de dos filas a tres: medido a 390 px en inglés, de 71 a 113 px de alto (D-483 pidió
    que ocupe poco). */

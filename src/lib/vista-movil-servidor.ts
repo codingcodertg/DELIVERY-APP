@@ -9,7 +9,7 @@ import { COOKIE_RETORNO } from "@/lib/impersonation-cookie";
 import { RASTRO_DE_SUPLANTACION, leerSuplantacion, type PruebaDeSuplantacion } from "@/lib/vista-movil-acceso";
 
 /**
- * Lo que la vista móvil lee en el servidor (D-278, D-NEXT). La regla está en `vista-movil-acceso.ts`,
+ * Lo que la vista móvil lee en el servidor (D-278, D-516). La regla está en `vista-movil-acceso.ts`,
  * probada con datos; aquí solo se le da Supabase.
  */
 

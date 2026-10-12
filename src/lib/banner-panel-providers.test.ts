@@ -18,7 +18,7 @@ const raiz = sinComentarios(leer("src/app/layout.tsx"));
 /** Los hooks que lanzan si no tienen su proveedor encima, y el proveedor que piden. */
 const HOOKS: Record<string, string> = { usePrefs: "PrefsProvider", useConfirm: "ConfirmProvider", useData: "DataProvider" };
 /**
- * En el banner, `usePrefs` lo sirve `PrefsConIdioma` (D-NEXT): el MISMO contexto, con el idioma del aviso puesto y
+ * En el banner, `usePrefs` lo sirve `PrefsConIdioma` (D-516): el MISMO contexto, con el idioma del aviso puesto y
  * sin leer ni guardar nada. Un `PrefsProvider` ahí cargaría el idioma de la persona en la que se entró. Que el
  * panel funcione de verdad debajo de él se comprueba pintándolo, en `aviso-de-suplantacion.test.ts`.
  */
@@ -50,7 +50,7 @@ describe("el panel que se monta dentro del banner tiene encima lo que necesita",
 
   it("ConfirmProvider va DENTRO de PrefsConIdioma: él mismo usa usePrefs", () => {
     const i = banner.indexOf("<SwitchUserPanel");
-    // Hasta D-NEXT era `<PrefsProvider>`. El banner ya no lo monta: si volviera, el panel hablaría el idioma de la
+    // Hasta D-516 era `<PrefsProvider>`. El banner ya no lo monta: si volviera, el panel hablaría el idioma de la
     // persona en la que se entró, no el del admin.
     expect(banner).not.toContain("<PrefsProvider");
     expect(banner.lastIndexOf("<PrefsConIdioma lang={estado.idioma}>", i)).toBeGreaterThan(-1);

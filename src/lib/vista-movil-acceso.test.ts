@@ -9,7 +9,7 @@ import {
 } from "@/lib/vista-movil-acceso";
 
 /**
- * Quién entra a la vista móvil (D-278, D-NEXT): el admin, o un admin DENTRO de la cuenta de otra persona.
+ * Quién entra a la vista móvil (D-278, D-516): el admin, o un admin DENTRO de la cuenta de otra persona.
  * Primero la regla, con datos; después la puerta de verdad (`layout.tsx`) con Supabase falso, para ver que
  * la pantalla usa la regla y le da lo que toca: el rastro del admin de la cookie, no el de cualquiera.
  */
@@ -219,7 +219,7 @@ describe("la puerta de /home/vista-movil, de verdad", () => {
   });
 });
 
-describe("la página: sin ruta, el marco abre el inicio del rol de la sesión (D-NEXT)", () => {
+describe("la página: sin ruta, el marco abre el inicio del rol de la sesión (D-516)", () => {
   const props = async (q: { ruta?: string }) =>
     ((await VistaMovilPage({ searchParams: Promise.resolve(q) })) as unknown as { props: Record<string, unknown> }).props;
 

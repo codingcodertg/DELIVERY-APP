@@ -32,7 +32,7 @@ export function esLaVistaMovil(ruta: string): boolean {
  * La ruta que se carga en el marco: solo una ruta interna (`safeNext`, D-193), y nunca la propia vista
  * móvil, que metería un marco dentro de otro. Cualquier otra cosa, `porDefecto`.
  *
- * `porDefecto` era siempre la portada `/`. Desde D-NEXT la página de la vista móvil pasa la pantalla de
+ * `porDefecto` era siempre la portada `/`. Desde D-516 la página de la vista móvil pasa la pantalla de
  * inicio del rol de la sesión (`roleHome`): dentro de «Entrar como» un chofer, el marco sin ruta abre
  * `/driver`, que es lo suyo, y no el tablero de Órdenes, que no lo es.
  */
@@ -64,7 +64,7 @@ export function estaEnUnMarco(w: { self: unknown; top: unknown }): boolean {
 }
 
 /**
- * El botón del aviso amarillo que cambia de vista (D-NEXT). El dueño, 2026-10-11, con la vista móvil del hub
+ * El botón del aviso amarillo que cambia de vista (D-516). El dueño, 2026-10-11, con la vista móvil del hub
  * abierta: «EN ESE MISMO AMARILLO QUIERO QUE ESTE PARA CMABIAR DE DESKTOP VIEW A MOBILE VIEW».
  *
  * - **Dentro del marco** de la vista móvil: «🖥 Vista de escritorio», y saca ESTA pantalla del marco, en la

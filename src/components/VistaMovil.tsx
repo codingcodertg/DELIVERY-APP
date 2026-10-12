@@ -26,7 +26,7 @@ export function VistaMovil({ rutaInicial, rutaDeInicio = "/", anchoInicial }: { 
   const tamano = TAMANOS_MOVIL.find((x) => x.ancho === ancho) ?? TAMANOS_MOVIL[1];
 
   const ir = (nuevaRuta: string, nuevoAncho = ancho) => {
-    // Un campo vacío o una ruta que no vale abren la pantalla de inicio del rol, no siempre la portada (D-NEXT).
+    // Un campo vacío o una ruta que no vale abren la pantalla de inicio del rol, no siempre la portada (D-516).
     const segura = rutaParaElMarco(nuevaRuta, rutaDeInicio);
     setRuta(segura);
     setCampo(segura);

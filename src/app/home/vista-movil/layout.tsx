@@ -11,7 +11,7 @@ import { perfilDeLaVistaMovil, suplantacionEnCurso } from "@/lib/vista-movil-ser
  * Usuarios (D-056). «Ver como» es solo del cliente y no cambia la sesión, así que un admin
  * previsualizando otro rol sigue entrando.
  *
- * Desde D-NEXT entra también **un admin dentro de la cuenta de otra persona** (D-243): ahí la sesión es la
+ * Desde D-516 entra también **un admin dentro de la cuenta de otra persona** (D-243): ahí la sesión es la
  * de esa persona, y antes se le echaba. No basta con la cookie de vuelta, que no va firmada: hace falta el
  * rastro que solo escribe el servidor. La regla entera, en `puedeAbrirLaVistaMovil`. Sin suplantación, solo
  * el admin, como antes.

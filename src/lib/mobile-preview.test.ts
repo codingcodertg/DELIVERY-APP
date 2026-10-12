@@ -57,7 +57,7 @@ describe("¿dentro de un marco?", () => {
 });
 
 describe("la pantalla", () => {
-  it("la puerta es del servidor: el admin por el rol de la sesión, o un admin suplantando (D-NEXT)", () => {
+  it("la puerta es del servidor: el admin por el rol de la sesión, o un admin suplantando (D-516)", () => {
     const puerta = leer("src/app/home/vista-movil/layout.tsx");
     expect(leer("src/lib/vista-movil-servidor.ts")).toContain("auth.getUser()");
     expect(puerta).toContain("await perfilDeLaVistaMovil()");
@@ -68,7 +68,7 @@ describe("la pantalla", () => {
     expect(puerta.indexOf("redirect(landingRoute(perfil))")).toBeLessThan(puerta.indexOf("{children}"));
   });
 
-  it("la página sanea lo que llega por la URL antes de dárselo al marco, y sin ruta abre el inicio del rol (D-NEXT)", () => {
+  it("la página sanea lo que llega por la URL antes de dárselo al marco, y sin ruta abre el inicio del rol (D-516)", () => {
     const pagina = leer("src/app/home/vista-movil/page.tsx");
     expect(pagina).toContain('const inicio = perfil?.role ? roleHome(perfil.role) : "/";');
     expect(pagina).toContain("<VistaMovil rutaInicial={rutaParaElMarco(ruta, inicio)} rutaDeInicio={inicio} anchoInicial={anchoElegido(ancho)} />");
@@ -101,7 +101,7 @@ describe("la pantalla", () => {
   });
 });
 
-// ---- D-NEXT: el botón del aviso amarillo, y el marco sin ruta -------------------------------------------
+// ---- D-516: el botón del aviso amarillo, y el marco sin ruta -------------------------------------------
 
 describe("sin ruta (o con una que no vale), el marco abre la pantalla de inicio que se le diga", () => {
   it("la de inicio del rol, no siempre la portada", () => {

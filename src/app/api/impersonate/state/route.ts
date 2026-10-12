@@ -11,7 +11,7 @@ import { esIdioma } from "@/lib/idioma";
  * ¿Estoy dentro de la sesión de otra persona? (D-243)
  *
  * La pregunta del banner, y solo eso. Devuelve el nombre de la persona en la que se entró y
- * cuándo empezó; nada de ids, ni del admin, ni de la cookie. Del admin solo su idioma (D-NEXT), para
+ * cuándo empezó; nada de ids, ni del admin, ni de la cookie. Del admin solo su idioma (D-516), para
  * que el aviso le hable en el suyo y no en el de la persona en la que entró.
  *
  * **No está detrás de la bandera**, por lo mismo que la ruta de volver: si `IMPERSONATION_ENABLED`
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
   const { data: { user } } = await ssr.auth.getUser();
   if (!user) return NextResponse.json({});
 
-  // Dentro de una suplantación se pide a la vez el idioma del ADMIN que entró (D-NEXT): el aviso le habla a
+  // Dentro de una suplantación se pide a la vez el idioma del ADMIN que entró (D-516): el aviso le habla a
   // él, y la sesión es la de la otra persona. `profiles` se deja leer a cualquier sesión (099), así que no hace
   // falta la llave de servicio; y fuera de una suplantación no se pide.
   const [{ data: perfil }, delAdmin] = await Promise.all([

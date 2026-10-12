@@ -2,7 +2,7 @@ import { EVENTO_ENTRAR, EVENTO_VOLVER, IMPERSONACION_MINUTOS, esAdmin, impersona
 import { desempaquetar, type SesionDeVuelta } from "./impersonation-cookie";
 
 /**
- * Quién entra a la vista móvil (`/home/vista-movil`), D-278 y D-NEXT.
+ * Quién entra a la vista móvil (`/home/vista-movil`), D-278 y D-516.
  *
  * D-278 la dejó **solo para el admin**, por el rol de la sesión. Pero dentro de «Entrar como» (D-243) la
  * sesión es la de la otra persona —un chofer, un vendedor—, así que el admin que estaba mirando la app de

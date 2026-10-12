@@ -1,7 +1,7 @@
 import { esIdioma, idiomaDeRtgPrefs, type Idioma } from "./idioma";
 
 /**
- * En qué idioma habla el aviso amarillo de «Entrar como» (D-243), y qué dice (D-NEXT).
+ * En qué idioma habla el aviso amarillo de «Entrar como» (D-243), y qué dice (D-516).
  *
  * D-483 lo dejó en una línea corta… y en español fijo: el aviso vive en el layout raíz, FUERA de
  * `PrefsProvider`, y no tenía de dónde sacar el idioma. El dueño, 2026-10-11: «For some reason when i switch

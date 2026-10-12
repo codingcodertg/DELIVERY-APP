@@ -17941,7 +17941,7 @@ Respaldo de la función antes de aplicar en el scratchpad del orquestador; la re
 
 ## D-278 · Órdenes: el documento del tipo resaltado al verla, y la vista móvil del admin
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): la vista móvil ya no es solo del admin por el rol de la sesión.
+> **⚠ Reemplazada en parte por D-516** (2026-10-11): la vista móvil ya no es solo del admin por el rol de la sesión.
 > Entra también **un admin dentro de la cuenta de otra persona** (D-243), comprobado con la cookie de vuelta **y** la
 > fila de entrar del rastro en `security_events`; sin suplantación válida, sigue siendo solo del admin. Y el marco sin
 > ruta abre la pantalla de inicio del rol de la sesión, no siempre `/`.
@@ -37908,7 +37908,7 @@ No visto en un teléfono.
 
 ## D-483 · «📱 Vista móvil» al lado de «⇄ Switch user» en la barra de Entregas; el aviso «Estás como…» en una línea corta y sin los minutos
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): el aviso ya no está en español fijo. Habla el idioma que el admin
+> **⚠ Reemplazada en parte por D-516** (2026-10-11): el aviso ya no está en español fijo. Habla el idioma que el admin
 > que entró eligió en «Personalizar» (el dueño: *«the switch back language is spanish even though the language is set
 > to ENG»*), y lleva un tercer botón corto, «📱 Vista móvil» / «🖥️ Vista de escritorio» (solo el icono en un teléfono).
 
@@ -38145,7 +38145,7 @@ pero con la suya en otra) y se le escribió su prueba.
 
 ## D-486 · Contraseña temporal: quien entra con ella tiene que cambiarla antes de usar ninguna app
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): la frase «🔑 Contraseña temporal…» del aviso de «Entrar como» ya
+> **⚠ Reemplazada en parte por D-516** (2026-10-11): la frase «🔑 Contraseña temporal…» del aviso de «Entrar como» ya
 > no va solo en español: sale en el idioma del admin, como el resto del aviso.
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries 1.265.0, repo 1.359.0 (toca código compartido: middleware, `src/app/api`,
@@ -40747,9 +40747,9 @@ del círculo propio de cada entrega ya no existe.
   Gestor descansa en que es la misma clase CSS.
 - **La tarjeta de arriba** sigue diciendo «Siguiente parada · 1/4», que cuenta órdenes, no paradas. No se tocó.
 
-## D-NEXT — El aviso amarillo de «Entrar como» cambia entre «📱 Vista móvil» y «🖥 Vista de escritorio», habla el idioma del admin, y la vista móvil se abre también dentro de la cuenta de otra persona
+## D-516 — El aviso amarillo de «Entrar como» cambia entre «📱 Vista móvil» y «🖥 Vista de escritorio», habla el idioma del admin, y la vista móvil se abre también dentro de la cuenta de otra persona
 
-**Fecha:** 2026-10-11 · **Estado:** Vigente · **Sin migración.** · Rama `feat/banner-vista-movil`. **Reemplaza en parte a
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.284.0, repo 1.386.0 · **Sin migración.** · Rama `feat/banner-vista-movil`. **Reemplaza en parte a
 D-278** (quién entra a la vista móvil), **a D-483** (el aviso, en español fijo) **y a D-486** (la frase de la contraseña
 temporal, en español fijo); las tres llevan su nota.
 
@@ -40839,7 +40839,7 @@ Y, añadido el mismo día al mismo encargo:
   con `renderToStaticMarkup` en inglés y en español, con los dos botones; el panel de «Cambiar usuario» pintado dentro de
   `PrefsConIdioma` en los dos idiomas; y `GET /api/impersonate/state` llamado de verdad: devuelve el idioma del admin de
   la cookie aunque la persona tenga otro). Y casos nuevos en `mobile-preview.test.ts` para el botón y el marco sin ruta.
-  Ajustadas, con nota D-NEXT: `banner-corto`, `banner-panel-providers` (el panel va en `PrefsConIdioma`),
+  Ajustadas, con nota D-516: `banner-corto`, `banner-panel-providers` (el panel va en `PrefsConIdioma`),
   `cambio-obligatorio` y `mobile-preview` (la puerta y la página).
 - **35 mutantes de 35 caen por nombre.** Los de la puerta: basta la cookie sin fila de entrar → «una cookie escrita a
   mano, sin fila de entrar del rastro, no abre la puerta»; una cookie de otra persona → «la cookie tiene que ser de ESTA

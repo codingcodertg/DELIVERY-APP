@@ -12,7 +12,7 @@ import type { Idioma } from "@/lib/idioma";
 import type { Profile } from "@/lib/types";
 
 /**
- * El aviso amarillo de «Entrar como» (D-243) habla el idioma del admin y lleva el botón de vista (D-NEXT).
+ * El aviso amarillo de «Entrar como» (D-243) habla el idioma del admin y lleva el botón de vista (D-516).
  *
  * El dueño, 2026-10-11: «For some reason when i switch users the switch back language is spanish even though
  * the language is set to ENG». Y, con la vista móvil abierta: «EN ESE MISMO AMARILLO QUIERO QUE ESTE PARA

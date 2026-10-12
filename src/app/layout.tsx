@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {/* Antes que nada, y FUERA de `PrefsProvider` a propósito: no usa `usePrefs` porque quien
             lee esto necesita entenderlo aunque la preferencia de idioma cargada sea la de la
-            persona en la que se entró, no la suya (D-243). Desde D-NEXT habla el idioma del
+            persona en la que se entró, no la suya (D-243). Desde D-516 habla el idioma del
             admin que entró, que le dice `/api/impersonate/state` (D-483 lo había dejado en
             español fijo). Que uno de los dos avisos vaya fuera y el otro dentro no es descuido:
             es que preguntan cosas distintas. */}

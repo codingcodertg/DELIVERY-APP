@@ -84,7 +84,7 @@ export function ImpersonationBanner() {
   }, [candidatos]);
 
   const caja = useRef<HTMLDivElement | null>(null);
-  // ¿Esta página está dentro del marco de la vista móvil? (D-NEXT) Se mira al montar: en el servidor no hay
+  // ¿Esta página está dentro del marco de la vista móvil? (D-516) Se mira al montar: en el servidor no hay
   // ventana, y el aviso no se pinta hasta que responde el servidor, así que no hay nada que hidratar distinto.
   const [enMarco, setEnMarco] = useState(false);
   // La ruta, para el texto del botón: el aviso vive en el layout raíz y NO se vuelve a montar al navegar.
@@ -184,7 +184,7 @@ export function ImpersonationBanner() {
         // El banner vive en el layout raíz, FUERA de `PrefsProvider` y sin `ConfirmProvider` (a propósito:
         // no depende de nadie). El panel sí usa `usePrefs` y `useConfirm`, y sin ellos encima revienta al
         // montarse: es el «Something went wrong» que vio el dueño al pulsar «Switch to another user» (D-321).
-        // Se le ponen aquí, solo alrededor del panel. D-NEXT: con el idioma PUESTO, el del aviso; un
+        // Se le ponen aquí, solo alrededor del panel. D-516: con el idioma PUESTO, el del aviso; un
         // `PrefsProvider` cargaría el de la persona en la que se entró.
         saltando && candidatos && (
           <PrefsConIdioma lang={estado.idioma}>
@@ -200,7 +200,7 @@ export function ImpersonationBanner() {
 
 /**
  * Lo que se ve del aviso, sin estado: el banner de arriba decide y esto pinta. Separado para poder pintarlo en
- * una prueba en los dos idiomas y con los dos botones de vista (D-NEXT).
+ * una prueba en los dos idiomas y con los dos botones de vista (D-516).
  */
 export function AvisoDeSuplantacion(p: {
   cajaRef?: Ref<HTMLDivElement>;
@@ -263,7 +263,7 @@ export function AvisoDeSuplantacion(p: {
         </button>
         {p.panel}
       </div>
-      {/* D-NEXT. El dueño, 2026-10-11, con la vista móvil abierta: «EN ESE MISMO AMARILLO QUIERO QUE ESTE PARA
+      {/* D-516. El dueño, 2026-10-11, con la vista móvil abierta: «EN ESE MISMO AMARILLO QUIERO QUE ESTE PARA
           CMABIAR DE DESKTOP VIEW A MOBILE VIEW». Fuera del marco abre esta pantalla en la vista móvil; dentro, la
           saca a tamaño normal en la pestaña de arriba. Corto, como los otros dos (D-483): en un ancho de teléfono
           —el marco lo es— solo el icono (`.aviso-vista-texto`, globals.css), y el nombre en `aria-label` y `title`. */}

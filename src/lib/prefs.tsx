@@ -208,7 +208,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Unas preferencias con el idioma PUESTO, que no leen ni guardan nada (D-NEXT).
+ * Unas preferencias con el idioma PUESTO, que no leen ni guardan nada (D-516).
  *
  * Para lo que vive fuera de `PrefsProvider` y tiene que hablar en un idioma que no es el de la sesión: el
  * panel de «⇄ Cambiar usuario» que se abre desde el aviso amarillo de «Entrar como». Ahí la sesión es la de

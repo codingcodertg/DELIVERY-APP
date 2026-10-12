@@ -174,7 +174,7 @@ describe("la pantalla, el formulario y el banner usan esto mismo", () => {
   });
   it("el banner de «Entrar como» enseña el aviso cuando el estado lo dice", () => {
     const b = src("src/components/ImpersonationBanner.tsx");
-    // D-NEXT: lo pinta `AvisoDeSuplantacion` (la parte sin estado del banner), con lo que le pasa el banner.
+    // D-516: lo pinta `AvisoDeSuplantacion` (la parte sin estado del banner), con lo que le pasa el banner.
     expect(b).toMatch(/\{p\.cambiaContrasena && \(/);
     expect(b).toMatch(/cambiaContrasena=\{estado\.cambiaContrasena === true\}/);
     expect(b).toMatch(/cambiaContrasena: d\.cambiaContrasena === true/);
