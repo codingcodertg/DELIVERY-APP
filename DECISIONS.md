@@ -22061,7 +22061,7 @@ tiene que salir **pendiente** y no puede aparecer ninguna huérfana llamada `124
 
 ## D-316 · Motor de rutas, incremento 1: el modelo — base y camión de cada chofer, builder o mostrador, y los pesos en Ajustes
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): la base de Ajustes es la de SIEMPRE, pero para un día concreto el gerente
+> **⚠ Reemplazada en parte por D-519** (2026-10-11): la base de Ajustes es la de SIEMPRE, pero para un día concreto el gerente
 > de logística puede hacer salir y terminar al chofer en otra tienda (migración 166, `driver_day_bases`). La vuelta a base
 > (`returns_to_base`) va a la tienda del fin de ese día.
 
@@ -35258,7 +35258,7 @@ antes que la llave de servicio, sin escrituras) y que crear pide al servidor.
 
 ## D-461 · «🧭 Optimizar» una ruta, rehecho: por calles, mirando las ventanas, desde la base del chofer, y exacto en las rutas pequeñas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): «la base es la del chofer» sigue, pero ya no es fija: el gerente de logística
+> **⚠ Reemplazada en parte por D-519** (2026-10-11): «la base es la del chofer» sigue, pero ya no es fija: el gerente de logística
 > (o el admin) elige en el panel de choferes de qué tienda SALE y en cuál TERMINA cada chofer un día concreto (migración 166,
 > `driver_day_bases`). Manda lo elegido para ese día; sin elegir nada, la de Ajustes → Rutas y, si no, la del perfil, como aquí.
 > Optimizar, la medida de la tarjeta (millas, horas, llegadas), la «P» del mapa y la vuelta salen de esa tienda, y la vuelta va
@@ -37170,7 +37170,7 @@ No visto en navegador: `tsc` y vitest.
 
 ## D-474 · Gestor de Rutas: marcar varias órdenes y «Asignar a…» los choferes que uno elija — el motor de «Armar rutas» reparte solo entre ellos
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): la base de cada elegido (fila «Base del chofer» de la tabla de abajo) es la
+> **⚠ Reemplazada en parte por D-519** (2026-10-11): la base de cada elegido (fila «Base del chofer» de la tabla de abajo) es la
 > tienda de la que sale ESE día si se eligió en el panel (migración 166), y vuelve a la del fin del día; si no, la de siempre.
 > Lo mismo en «Armar rutas», que hasta aquí solo miraba Ajustes.
 
@@ -37557,7 +37557,7 @@ un patrón de la app: eran campos de formulario (`.field`) puestos en una rejill
 
 ## D-479 · La recogida en la tienda de la zona de otro chofer es la punta cara: cada chofer carga en su tienda salvo que no quepa (`motor-8`)
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11): «su tienda» sigue a la SALIDA del día. Si un chofer sale ese día de otra
+> **⚠ Reemplazada en parte por D-519** (2026-10-11): «su tienda» sigue a la SALIDA del día. Si un chofer sale ese día de otra
 > tienda (migración 166), en sus zonas la ciudad de su base se cambia por la de la tienda de la que sale, solo ese día: así no
 > paga la punta cara por cargar donde tomó el camión. Un chofer sin zonas sigue sin zonas. «📍 Mejor lugar» sigue sin cambiar.
 
@@ -41394,7 +41394,7 @@ propósito para que el choque sea mínimo.
 7. **¿«Todo OK» por zona de un toque?** No se puso: acelera, pero invita a marcar sin mirar.
 8. **¿Que el chofer vea el último reporte del camión antes de salir** (§396.13 lo pide)? Hoy solo ve los suyos.
 
-## D-NEXT — El gerente de logística elige de qué tienda SALE y en cuál TERMINA cada chofer, un día concreto (migración 166)
+## D-519 — El gerente de logística elige de qué tienda SALE y en cuál TERMINA cada chofer, un día concreto (migración 166)
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Migración:** `166_base_del_dia.sql` — escrita y **no aplicada**; la app funciona sin
 ella · **Motor:** sigue siendo `motor-8` (sin fin elegido, planifica byte a byte lo mismo) · **Reemplaza en parte a** D-316, D-461,

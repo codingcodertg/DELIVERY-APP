@@ -473,7 +473,7 @@ describe("8 · la base de datos: `driver_day_bases` (166), y sin ella todo como 
     expect(codigo).not.toMatch(/create policy[^;]*\bfor all\b/i);
     expect(codigo).not.toMatch(/^\s*(begin|commit)\s*;/im);
     // Sin el marcador de la decisión dentro: numerarlo al fusionar cambiaría el checksum (D-512).
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-519");
     const [cuerpo, registro] = sql.split("-- @ledger-below");
     // La fila del registro, con el checksum de su cuerpo (el de `migrate-status --sum`).
     expect(registro).toContain(`('166_base_del_dia.sql', '${createHash("sha256").update(cuerpo, "utf8").digest("hex")}')`);
