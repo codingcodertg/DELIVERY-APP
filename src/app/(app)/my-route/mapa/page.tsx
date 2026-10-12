@@ -9,6 +9,7 @@ import { canDeliver } from "@/lib/constants";
 import { SoloLectura } from "@/lib/gestor/solo-lectura";
 import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
 import { choferDelMapa } from "@/lib/gestor/chofer-del-mapa";
+import { IrAlInicio } from "@/components/TabGate";
 
 // ============================================================
 // «🗺 El mapa de mi ruta» (D-506) — el MISMO mapa del Gestor de Rutas, con SUS rutas.
@@ -29,6 +30,9 @@ import { choferDelMapa } from "@/lib/gestor/chofer-del-mapa";
 // «Mi ruta» (`/my-route`) sigue entera y es donde se trabaja: la siguiente parada, los botones de cada parada (D-487),
 // entregar y rechazar con razón (D-495) y el aviso de ruta cambiada (D-341). Esta pantalla no sustituye nada de eso: añade
 // la vista de mapa del Gestor, que allí no había. Desde aquí no se cierra ninguna parada — para eso se vuelve.
+//
+// **D-NEXT (2026-10-11): ya no la enlaza nadie.** «Mi ruta» quitó su botón «🗓 Ver la ruta completa» («FULL ROUTE VIEW
+// PLEASE QUITALO DEL DRIVER VIEW»). La pantalla sigue existiendo y se abre por su dirección; borrarla es otra decisión.
 // ============================================================
 export default function MiMapaPage() {
   const { me, users } = useData();
@@ -41,8 +45,9 @@ export default function MiMapaPage() {
 
   if (!me || !delMapa) return null;
   // La misma puerta que «Mi ruta»: esta pantalla es la suya, en mapa. Almacén tiene su propia Ruta del día (D-380).
+  // Quien no es chofer va a su pantalla de inicio en vez de quedarse con «No disponible» (D-NEXT, `IrAlInicio`).
   if (!canDeliver(me) || me.role === "warehouse") {
-    return <div className="empty">{t("Not available for your role.", "No disponible para tu rol.")}</div>;
+    return <IrAlInicio />;
   }
 
   return (

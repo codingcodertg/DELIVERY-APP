@@ -292,6 +292,23 @@ export function roleHome(role: UserRole): string {
   }
 }
 
+/**
+ * A dónde se lleva a quien abre una pantalla que no es para su rol (D-NEXT): a su pantalla de inicio (`roleHome`), en vez
+ * de dejarle «No disponible para su rol». Lo destapó la vista móvil (D-278/D-501): abre en el marco la pantalla de fuera
+ * —«/», Órdenes— y entrando como un chofer el marco enseñaba ese aviso en vez de su app.
+ *
+ * `null` —y entonces se queda el aviso— cuando no hay a dónde ir: sin sesión todavía, si su inicio es justo la pantalla
+ * donde está (no se le manda en círculo) o si su inicio tampoco se le abriría (no se le manda de un «no» a otro).
+ */
+export function inicioSiNoPuede(pathname: string, u: CapUser | null | undefined): string | null {
+  if (!u) return null;
+  const destino = roleHome(u.role);
+  const aqui = pathname.replace(/\/+$/, "") || "/";
+  if (destino === aqui) return null;
+  const tab = tabForPath(destino);
+  return tab && canOpenTab(tab.id, u) ? destino : null;
+}
+
 /** Where someone lands after login. Almost always the same as `roleHome` —
  * the one exception is a person with access to 2+ modules (deliveries plus
  * something else, e.g. recruiting), who gets the module selector instead.

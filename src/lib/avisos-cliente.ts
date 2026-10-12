@@ -150,17 +150,18 @@ export function tocaNocheAntes(ahora: Date, horaElegida: number | null | undefin
 /** La parada que toca AHORA en una ruta ya ordenada: la primera sin entregar. Es la misma que «Mi ruta» enseña como
  * «Siguiente parada», y la usan las dos (la pantalla y el aviso «en camino»), para que no puedan discrepar.
  *
- * `apartadas` (D-487): las marcas de `marcasDeParadas` (lib/acciones-parada). Una parada **saltada** cede el turno a la
- * siguiente y solo vuelve cuando no queda otra; una **rechazada** por el cliente nunca es la siguiente (no hay nada que
- * entregar ahí). Sin marcas, la regla de siempre. */
+ * `apartadas` (D-487): las marcas de `marcasDeParadas` (lib/acciones-parada). Una **rechazada** por el cliente nunca es la
+ * siguiente (no hay nada que entregar ahí). Sin marcas, la regla de siempre.
+ *
+ * **Reemplazada en parte por D-NEXT:** una **saltada** cedía el turno y volvía cuando no quedaba otra. «Saltar» se quitó
+ * de «Mi ruta» y `marcasDeParadas` ya no da saltos, así que ese caso salió de aquí. */
 export function siguienteParada<T extends { stage: string; id?: string }>(
   ordenadas: readonly T[],
   apartadas?: ReadonlyMap<string, { marca: string }>,
 ): T | null {
   const pendientes = ordenadas.filter((d) => d.stage !== "delivered");
   if (!apartadas || apartadas.size === 0) return pendientes[0] ?? null;
-  const marca = (d: T) => (d.id ? apartadas.get(d.id)?.marca : undefined);
-  return pendientes.find((d) => !marca(d)) ?? pendientes.find((d) => marca(d) === "saltada") ?? null;
+  return pendientes.find((d) => !(d.id && apartadas.has(d.id))) ?? null;
 }
 
 // ---------------------------------------------------------------------------

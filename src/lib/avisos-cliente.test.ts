@@ -439,16 +439,18 @@ describe("ejecutarEnCamino", () => {
     expect((await ejecutarEnCamino(ctx, "r1")).siguiente).toBeNull();
     expect(proveedor.envios).toEqual([]);
   });
-  it("una saltada hoy o rechazada por el cliente no es «siguiente» (D-487): avisa a la que de verdad va", async () => {
+  // Nota D-NEXT: decía «una saltada hoy o rechazada…» y esperaba r4 (r2 saltada, r3 rechazada). «Saltar» se quitó y un
+  // salto viejo ya no aparta la parada: ahora la saltada de hoy SÍ es la siguiente, y la rechazada sigue sin serlo.
+  it("una rechazada por el cliente no es «siguiente» (D-487), y un salto viejo ya no aparta nada (D-NEXT)", async () => {
     const hoy = new Date().toISOString();
     const { db, proveedor, ctx } = montar(ruta(["delivered", "picked_up", "picked_up", "picked_up"]));
     db.tablas.order_events = [
-      { delivery_id: "r2", kind: "skipped", created_at: hoy, note: null },
-      { delivery_id: "r3", kind: "customer_rejected", created_at: hoy, note: "Rejected by customer: Cerrado" },
+      { delivery_id: "r2", kind: "customer_rejected", created_at: hoy, note: "Rejected by customer: Cerrado" },
+      { delivery_id: "r3", kind: "skipped", created_at: hoy, note: null },
     ];
     const r = await ejecutarEnCamino(ctx, "r1");
-    expect(r.siguiente).toBe("r4");
-    expect(proveedor.envios.map((e) => e.to)).toEqual(["+19565550113"]);
+    expect(r.siguiente).toBe("r3");
+    expect(proveedor.envios.map((e) => e.to)).toEqual(["+19565550112"]);
   });
   it("apagado en Ajustes: no lee la ruta ni manda", async () => {
     const { db, proveedor, ctx } = montar(ruta(["delivered", "picked_up"]), ajustes({ notify_on_the_way_enabled: false }));
