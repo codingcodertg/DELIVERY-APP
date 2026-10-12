@@ -4,7 +4,7 @@
  * **Historia, para quien llegue sin contexto.** Hasta D-490 había dos valores, `light` y `dark`, guardados en
  * `localStorage` `rtg_prefs.theme`. D-490 añadió una tercera opción en el personalizador del hub, «Same as my
  * device / Como mi equipo» (`system`), que seguía al sistema del teléfono o del PC, de día y de noche. El dueño la
- * quitó el 2026-10-11 (D-NEXT): *«that same as my device remove it»*. Quedan Claro y Oscuro.
+ * quitó el 2026-10-11 (D-530): *«that same as my device remove it»*. Quedan Claro y Oscuro.
  *
  * **Quien la tenía guardada** no ve cambiar su pantalla: la primera vez que carga una página después del cambio,
  * `system` se convierte en lo que su equipo le está pintando EN ESE MOMENTO —oscuro si el sistema está en oscuro,
@@ -22,7 +22,7 @@
  */
 
 export type Tema = "light" | "dark";
-/** Lo que se puede elegir. Desde D-NEXT es lo mismo que lo que se pinta: no hay opción que se resuelva sola. */
+/** Lo que se puede elegir. Desde D-530 es lo mismo que lo que se pinta: no hay opción que se resuelva sola. */
 export type PreferenciaDeTema = Tema;
 
 export const PREFERENCIAS_DE_TEMA = ["light", "dark"] as const satisfies readonly PreferenciaDeTema[];

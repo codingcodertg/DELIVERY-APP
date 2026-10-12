@@ -19931,10 +19931,10 @@ piden las etiquetas enteras, con su traducción.
 
 ## D-301 · Atender una solicitud de ayuda se le avisa a quien la escribió, y las atendidas se archivan
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): la burbuja de Ayuda ya está en todas las apps, que es justo el caso
+> **Reemplazada en parte por D-530** (2026-10-11): la burbuja de Ayuda ya está en todas las apps, que es justo el caso
 > en que esta entrada decía que dejaba de valer. El aviso de «atendida» sigue yendo a la campana de Entregas (y al
 > push); quien pide ayuda desde Time Tracker, RR. HH. u otra app sin tener Entregas lo ve en «Mis solicitudes»
-> (`/home/ayuda`), que la burbuja enlaza en todas las apps, y en el contador del lobby. Lo que falta está en D-NEXT.
+> (`/home/ayuda`), que la burbuja enlaza en todas las apps, y en el contador del lobby. Lo que falta está en D-530.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño:** que al marcar una solicitud como atendida se avise a quien la mandó, y que las
@@ -21064,7 +21064,7 @@ documento pide cada tipo es dato del dueño y no se afirma en el repo.
 
 ## D-311 · Una solicitud de ayuda es una conversación: el dueño contesta y la persona responde
 
-> **Reemplazada en parte por D-NEXT** (2026-10-11): «el botón de ayuda sigue solo en Entregas» dejó de ser cierto; la
+> **Reemplazada en parte por D-530** (2026-10-11): «el botón de ayuda sigue solo en Entregas» dejó de ser cierto; la
 > burbuja se monta una vez en el layout raíz y sale en todas las apps. Y «Mis solicitudes» ya no lee `settings` para
 > el destino del correo: lo pone el servidor (`destinoDeAyuda`).
 
@@ -38594,17 +38594,15 @@ a borde discontinuo y opacos.
 
 ## D-490 · Time Tracker: la barra como la de Entregas (el nombre abre el menú; fuera el rol, el ES/EN, el 🌙 y el «Sign out» suelto), un modo capacitación para todos donde nada se guarda, y un solo «Personalizar» en el hub para el idioma y el tema de todas las apps
 
-<<<<<<< HEAD
 > **⚠ Reemplazada en parte por D-528** (2026-10-11), a pedido del dueño: (1) en el teléfono (hasta 520 px) la barra
 > de Time Tracker va en dos filas. Arriba, el nombre de la app, la casa, la campana y, del nombre de la persona, solo la
 > burbuja con las iniciales: el nombre se esconde a la vista, no a un lector de pantalla. Abajo, las pestañas. La burbuja
 > abre el mismo menú. En el escritorio, como aquí se describe.
-=======
-> **Reemplazada en parte por D-NEXT** (2026-10-11): el dueño quitó la tercera opción del tema, «Same as my device /
+
+> **Reemplazada en parte por D-530** (2026-10-11): el dueño quitó la tercera opción del tema, «Same as my device /
 > Como mi equipo»: *«that same as my device remove it»*. Quedan Claro y Oscuro. Quien la tenía guardada (`system`) se
 > queda con lo que su equipo le pintaba al abrir la app, y se guarda así: ya no sigue al sistema. Lo de abajo sobre
 > `system` y la escucha en vivo del sistema queda como historia.
->>>>>>> 688ab88e
 
 **Fecha:** 2026-10-07 · **Versión:** timetracker 0.98.0, clockin 0.44.0, deliveries 1.268.0, recruiting 0.39.0, erp 0.15.0, repo 1.363.0 (toca `timetracker` sobre todo; `deliveries` por la
 barra, el hub y el proveedor de preferencias, que son compartidos; `recruiting` y `erp` por sus barras) · **Migración:**
@@ -42148,7 +42146,6 @@ lo midió el navegador (arriba).
 - La campana del almacén de la tienda en el demo (su único almacenista es de otra tienda); la regla está probada aparte.
 - Modo oscuro.
 
-<<<<<<< HEAD
 ## D-528 — Time Tracker: la barra del admin con «👤 Mío ▾» (Ajustes, Registrar tiempo, Mi semana, Mis solicitudes y Mi diario); y en el teléfono, la barra en dos filas: arriba el nombre, la casa, la campana y solo la burbuja, y abajo las tres pestañas del empleado en una fila
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** timetracker 1.03.0, repo 1.393.0. Toca `timetracker`; y,
@@ -42576,10 +42573,9 @@ ancla de texto**, y se dice: G8 (el horario numera solo lo pendiente: el horario
 - El texto en español de la tabla y del mapa, solo por las pruebas (el demo se midió en inglés).
 
 **Añadido por el orquestador al fusionar:** en «Mi ruta», la entrega ya hecha también conserva su número en el círculo (antes pintaba «✓» en vez del número: `{hecha ? "✓" : n}` → `{n}`); el círculo apagado ya la distingue. Es el mismo pedido del dueño, en la otra pantalla.
-=======
-## D-NEXT · El tema sin «Same as my device», y la burbuja de Ayuda igual en todas las apps
+## D-530 · El tema sin «Same as my device», y la burbuja de Ayuda igual en todas las apps
 
-**Fecha:** 2026-10-11 · **Versión:** la pone el orquestador. Toca código que pasa por TODAS las apps (el layout raíz,
+**Fecha:** 2026-10-11 · **Versión:** todas las apps suben una menor (código compartido: layout raíz, prefs, globals.css, /api/help); repo 1.395.0. Toca código que pasa por TODAS las apps (el layout raíz,
 `prefs.tsx`, `globals.css`, `/api/help`), así que la sube en todas las de `APP_VERSIONS` · **Sin migración** ·
 **Pedido por:** el dueño · **Reemplaza en parte a** D-490 (el tema), D-301 y D-311 (la ayuda solo en Entregas), que llevan
 su nota.
@@ -42721,7 +42717,7 @@ salto de línea, porque ahora hay antes un `return () => clearTimeout`; y el id 
 
 **28 de 28 mutantes caen**, cada uno con una prueba con nombre (tanda `w-tema-ayuda/tanda.json`, control en verde con 147
 pruebas). Mutante → prueba que lo tumba:
-- «Same as my device» vuelve a ofrecerse → *sin «Same as my device» (D-NEXT)* y *el tema tiene dos opciones, Claro y
+- «Same as my device» vuelve a ofrecerse → *sin «Same as my device» (D-530)* y *el tema tiene dos opciones, Claro y
   Oscuro*; el texto viejo vuelve a la tarjeta → *ni «Same as my device» ni el texto que lo explicaba*; Personalizar marca
   siempre Claro → *marca lo puesto*.
 - `system` pasa a Claro aunque el equipo pinte oscuro, o deja de reconocerse → *se queda con lo que su equipo le está
@@ -42763,4 +42759,3 @@ las pruebas citadas arriba.
 - La foto de la pantalla solo se tomó en Time Tracker, RR. HH. y Entregas; en el ERP, Leads, Quote Builder, Encuestas y
   Promociones se vio la burbuja, no la foto.
 - El tema oscuro de cada app con la burbuja: solo se miró en Personalizar.
->>>>>>> 688ab88e

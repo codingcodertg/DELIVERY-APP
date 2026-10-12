@@ -202,7 +202,7 @@ describe("la pantalla sube al mismo sitio y con las mismas reglas", () => {
   it("sube al cubo privado, con la ruta que empieza por el id de quien sube", () => {
     expect(envio).toContain(`createClient().storage.from(CUBO_DE_ADJUNTOS)`);
     expect(envio).toContain("const path = rutaDeAdjunto(userId, f.name, new Date());");
-    // Desde D-NEXT el id es el de la sesión, que contesta `/api/help` (la burbuja ya no recibe `me` de Entregas).
+    // Desde D-530 el id es el de la sesión, que contesta `/api/help` (la burbuja ya no recibe `me` de Entregas).
     expect(boton).toContain("userId: quien.id,");
   });
 

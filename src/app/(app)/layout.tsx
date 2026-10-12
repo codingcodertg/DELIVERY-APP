@@ -83,7 +83,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ) : (
           <div className="wrap"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div>
         )}
-        {/* La burbuja de Ayuda ya no se monta aquí: está en el layout raíz, la misma para todas las apps (D-NEXT). */}
+        {/* La burbuja de Ayuda ya no se monta aquí: está en el layout raíz, la misma para todas las apps (D-530). */}
         <VersionFooter />
       </DataProvider>
     </ConfirmProvider>

@@ -7,7 +7,7 @@ import { CONSULTA_OSCURO, preferenciaDeTemaGuardada, temaEfectivo, type Preferen
 
 // ============================================================
 // UI preferences: language (EN/ES) + theme (light/dark). D-490 added «the device's» as a third
-// theme and D-NEXT took it out again (the owner: «that same as my device remove it»).
+// theme and D-530 took it out again (the owner: «that same as my device remove it»).
 // Theme: persisted to localStorage, applied to <html> via data-theme.
 // Both are CHOSEN in one place only, the hub's «Personalizar» (/home/personalizar, D-490);
 // every app just reads them from here.
@@ -23,7 +23,7 @@ interface Prefs {
   lang: Lang;
   /**
    * El tema que se está pintando ahora. Es también lo que el personalizador marca como elegido: desde que
-   * no existe «Same as my device» (D-NEXT), lo elegido y lo pintado son lo mismo, y `themePref` —que
+   * no existe «Same as my device» (D-530), lo elegido y lo pintado son lo mismo, y `themePref` —que
    * existía para separarlos— se fue.
    */
   theme: Theme;
@@ -54,7 +54,7 @@ function enEscritorio(): boolean {
 }
 /**
  * Si el sistema está en oscuro ahora mismo. Sin `matchMedia` (pruebas, navegadores viejos), no. Ya solo sirve
- * para convertir, una vez, lo que guardaba «Same as my device» (`temaDeLoGuardado`, D-NEXT).
+ * para convertir, una vez, lo que guardaba «Same as my device» (`temaDeLoGuardado`, D-530).
  */
 function sistemaOscuro(): boolean {
   try {
@@ -110,7 +110,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
         const p = JSON.parse(raw) as Partial<Prefs>;
         if (p.lang === "en" || p.lang === "es") setLangState(p.lang);
         // Lo que guardaba «Same as my device» (`system`, D-490) se convierte aquí en lo que el equipo
-        // pinta ahora mismo, y el efecto de abajo lo guarda ya convertido: la pantalla no cambia (D-NEXT).
+        // pinta ahora mismo, y el efecto de abajo lo guarda ya convertido: la pantalla no cambia (D-530).
         const guardado = preferenciaDeTemaGuardada(raw, { sistemaOscuro: sistemaOscuro() });
         if (guardado) setThemeElegido(guardado);
       }
@@ -152,8 +152,8 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Apply + persist whenever they change. Se guarda el tema que se pinta, que con elección es lo elegido y
-  // sin ella el de siempre (claro; oscuro en el escritorio, D-080). Desde D-NEXT es siempre claro u oscuro:
-  // `system` ya no se escribe nunca. (Hasta D-NEXT se guardaba `themeElegido ?? theme`, porque lo elegido
+  // sin ella el de siempre (claro; oscuro en el escritorio, D-080). Desde D-530 es siempre claro u oscuro:
+  // `system` ya no se escribe nunca. (Hasta D-530 se guardaba `themeElegido ?? theme`, porque lo elegido
   // podía ser `system` y lo pintado no; hoy las dos expresiones dan lo mismo.)
   useEffect(() => {
     // Antes de leer lo guardado, el guion de antes de pintar ya dejó `data-theme` y `lang` bien.

@@ -274,7 +274,7 @@ describe("la pantalla: Ayuda no sale en la foto y la captura entra por la puerta
     const corte = boton.indexOf("if (ocultoParaCapturar) return null;");
     expect(corte).toBeGreaterThan(-1);
     // Y va ANTES del único `return (` que pinta algo: después no esconde nada. Se busca con su salto de línea
-    // y su sangría: desde D-NEXT hay antes un `return () => clearTimeout(id);` (el aviso de la burbuja).
+    // y su sangría: desde D-530 hay antes un `return () => clearTimeout(id);` (el aviso de la burbuja).
     const pinta = boton.indexOf("\n  return (\n");
     expect(pinta).toBeGreaterThan(corte);
     // No se esconde con CSS. Un `display:none` o una opacidad siguen estando en el DOM, y lo que está
@@ -344,7 +344,7 @@ describe("la pantalla: Ayuda no sale en la foto y la captura entra por la puerta
     // `agregaFicheros` es la misma puerta que usa el input de ficheros, con `validaAdjuntos` dentro.
     expect(boton).toContain("const eligeFicheros = (lista: FileList | null) => agregaFicheros([...(lista ?? [])]);");
     // Y de ahí sale por donde salía: `ficheros` → `enviaSolicitudDeAyuda` → cubo `help-files`.
-    // Desde D-NEXT quién escribe sale de la sesión (`quien`, de `/api/help`) y el destino lo pone el servidor.
+    // Desde D-530 quién escribe sale de la sesión (`quien`, de `/api/help`) y el destino lo pone el servidor.
     expect(boton).toContain("userId: quien.id, message, ficheros, page: pathname,");
     expect(boton).not.toContain(".upload(");
   });

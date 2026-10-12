@@ -11,7 +11,7 @@ import type { UserRole } from "@/lib/types";
  * solicitudes, y el hub no monta el `DataProvider` de Entregas: aquí no se usa nada de él. Quien
  * llama decide qué decirle a la persona con el resultado.
  *
- * El correo de destino ya no lo trae quien llama (D-NEXT): lo decide el servidor (`destinoDeAyuda`, en
+ * El correo de destino ya no lo trae quien llama (D-530): lo decide el servidor (`destinoDeAyuda`, en
  * `lib/ayuda-flotante.ts`), porque quien no tiene Entregas no puede leer `settings` y la burbuja de
  * Ayuda está ahora en todas las apps.
  */
@@ -66,7 +66,7 @@ export async function enviaSolicitudDeAyuda(args: {
 }
 
 /**
- * Lo que la burbuja de Ayuda necesita antes de mandar (D-NEXT): el teléfono de ayuda y quién escribe. Lo contesta
+ * Lo que la burbuja de Ayuda necesita antes de mandar (D-530): el teléfono de ayuda y quién escribe. Lo contesta
  * `GET /api/help` con la sesión, igual desde cualquier app (ver `ContactoDeAyuda`). Sin sesión, o sin red, `null`:
  * la burbuja dice que no se pudo mandar en vez de mandar una solicitud sin dueño.
  */

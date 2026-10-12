@@ -89,7 +89,7 @@ export default function MisSolicitudesPage() {
     if (!texto || !yo || ocupada) return;
     setOcupada(true);
     setAviso(null);
-    // A dónde va el correo lo decide el servidor con Ajustes (D-NEXT, `destinoDeAyuda`): aquí se leía
+    // A dónde va el correo lo decide el servidor con Ajustes (D-530, `destinoDeAyuda`): aquí se leía
     // `settings` con la sesión, y quien no tiene Entregas no puede leerla, así que su solicitud se iba a la
     // dirección por defecto.
     const r = await enviaSolicitudDeAyuda({

@@ -46,12 +46,12 @@ describe("la marca que deja a Ayuda fuera de la foto", () => {
     expect(panel).toBeGreaterThan(-1);
 
     expect(captura).toContain('<div className="overlay" style={{ zIndex: 60 }} {...marcaFueraDeLaCaptura}>');
-    // El aviso de abajo es de la burbuja desde D-NEXT (antes era el de Entregas): «enviada», «no se pudo»… no
+    // El aviso de abajo es de la burbuja desde D-530 (antes era el de Entregas): «enviada», «no se pudo»… no
     // tiene que salir en una foto que se toma justo después.
     expect(boton).toContain('{aviso && <div className="toast no-print" role="status" {...marcaFueraDeLaCaptura}>{aviso}</div>}');
 
     // Exactamente esas: una de más escondería algo que la persona quería enseñar. (Eran 2 en el botón hasta
-    // D-NEXT; la tercera es el aviso, que antes no era suyo.)
+    // D-530; la tercera es el aviso, que antes no era suyo.)
     expect((soloCodigo(boton).match(/\{\.\.\.marcaFueraDeLaCaptura\}/g) ?? []).length).toBe(3);
     expect((soloCodigo(captura).match(/\{\.\.\.marcaFueraDeLaCaptura\}/g) ?? []).length).toBe(1);
   });
@@ -81,7 +81,7 @@ describe("la foto rápida", () => {
 
   it("se calienta al abrir Ayuda, en el mismo clic que abre el panel", () => {
     const fab = boton.indexOf('className="help-fab no-print"');
-    // Acotado por longitud y no por el primer `>`: el `=>` de la flecha lo cortaría a la mitad. Desde D-NEXT el
+    // Acotado por longitud y no por el primer `>`: el `=>` de la flecha lo cortaría a la mitad. Desde D-530 el
     // mismo clic pide también quién escribe y el teléfono (`traeContacto`).
     const suTag = boton.slice(fab, fab + 700);
     expect(suTag).toContain("onClick={() => { setOpen(true); calientaCaptura(); void traeContacto(); }}");

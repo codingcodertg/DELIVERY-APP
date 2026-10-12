@@ -23,7 +23,7 @@ import { RUTA_MIS_SOLICITUDES } from "@/lib/help-thread";
 const DURACION_DEL_AVISO_MS = 4000;
 
 /**
- * La burbuja de Ayuda, la MISMA en todas las apps (D-NEXT): «? Help» abajo a la derecha, su panel, la foto de la
+ * La burbuja de Ayuda, la MISMA en todas las apps (D-530): «? Help» abajo a la derecha, su panel, la foto de la
  * pantalla (D-509, D-513) y el enlace a «Mis solicitudes» (D-311). Cualquiera la pulsa y manda un correo a la
  * dirección de ayuda de Ajustes, con quién es, en qué página está y la versión de esa app, para que quien la lee
  * pueda actuar sin preguntar. Va por `/api/help` (Resend); sin correo configurado lo dice.
@@ -33,7 +33,7 @@ const DURACION_DEL_AVISO_MS = 4000;
  * Leads, Encuestas y Promociones, y una app nueva la tiene sin acordarse. Dónde NO sale lo dice `ayudaEnLaRuta`
  * (las pantallas sin sesión: login, el enlace del cliente…).
  *
- * Hasta D-NEXT vivía solo en Entregas y sacaba dos cosas de su `DataProvider`: los ajustes de ayuda y el aviso de
+ * Hasta D-530 vivía solo en Entregas y sacaba dos cosas de su `DataProvider`: los ajustes de ayuda y el aviso de
  * abajo. Ya no depende de ninguna app: quién escribe y el teléfono los pide a `/api/help` al abrirse
  * (`pideContactoDeAyuda`), y el aviso es suyo. Por eso se ve y se comporta igual en todas.
  */
@@ -165,7 +165,7 @@ export function HelpButton() {
     const message = msg.trim();
     if (!message) return;
     setBusy(true);
-    // Quién escribe lo dice la sesión, no la app en la que está la burbuja (D-NEXT). Sin sesión no se manda.
+    // Quién escribe lo dice la sesión, no la app en la que está la burbuja (D-530). Sin sesión no se manda.
     const quien = await traeContacto();
     if (!quien) {
       setBusy(false);
@@ -210,7 +210,7 @@ export function HelpButton() {
   // una pieza dentro. El estado —el mensaje a medio escribir, los adjuntos— sobrevive: devolver `null`
   // no desmonta el componente.
   if (ocultoParaCapturar) return null;
-  // Las pantallas de antes (o de fuera) de las apps no la llevan: el login, el enlace del cliente… (D-NEXT).
+  // Las pantallas de antes (o de fuera) de las apps no la llevan: el login, el enlace del cliente… (D-530).
   if (!ayudaEnLaRuta(pathname)) return null;
 
   return (

@@ -1099,13 +1099,13 @@ table.orders th { text-align: left; }
 .admin-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gray); }
 .admin-status select { width: auto; padding: 6px 8px; font-size: 13px; }
 
-/* ---------- La burbuja de Ayuda, la misma en TODAS las apps (D-NEXT) ----------
+/* ---------- La burbuja de Ayuda, la misma en TODAS las apps (D-530) ----------
    Se monta una vez, en el layout raíz, fuera del contenedor de cada app: por eso estas reglas son las únicas que
    la pintan, y ninguna hoja de una app (`timetracker.css`, `recruiting.css`, `erp.css`…) la redefine. Mismo sitio,
    mismo tamaño y mismo color en Entregas, el hub, Time Tracker, RR. HH., el ERP, Quote Builder, Leads, Encuestas y
    Promociones. */
 .help-fab {
-  /* z-index 5 y no 40 (D-NEXT): POR DEBAJO de lo que cada app pega al fondo de la pantalla —los recuadros de
+  /* z-index 5 y no 40 (D-530): POR DEBAJO de lo que cada app pega al fondo de la pantalla —los recuadros de
      «Elige conductor» del Gestor (6), la barra de seleccionados del ERP (40), la de comparar de RR. HH. (60), los
      avisos (99) y las ventanas—, para que nunca tape uno de sus botones; y por ENCIMA del contenido que pasa por
      debajo al bajar (tablas, tarjetas, mapas: `.leaflet-container` aísla los suyos). */
@@ -1128,7 +1128,7 @@ table.orders th { text-align: left; }
   .help-fab-label { display: none; }
 }
 
-/* El hueco de la burbuja (D-NEXT). La burbuja está fija abajo a la derecha, así que lo ÚLTIMO de una página tiene
+/* El hueco de la burbuja (D-530). La burbuja está fija abajo a la derecha, así que lo ÚLTIMO de una página tiene
    que poder subir por encima de ella: si no, el último botón se queda debajo y no hay forma de pulsarlo. Medido en
    el demo a 390 px antes de esto: al final de Promociones la ✕ de la última fila quedaba tapada un 36 %, y en la
    Nómina de Time Tracker «Edit» un 66 %. Entregas, el hub y RR. HH. ya lo dejaban con el `.wrap` (80 px; 72 en el

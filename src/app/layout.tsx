@@ -73,10 +73,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               `/recruiting` y `/erp/analytics` con «usePrefs must be used within PrefsProvider».
               No es un detalle de estilo: el build entero fallaba. */}
           <CierreDiario />
-          {/* La burbuja de Ayuda (D-NEXT), aquí por lo mismo: es el único layout por el que pasan todas las
+          {/* La burbuja de Ayuda (D-530), aquí por lo mismo: es el único layout por el que pasan todas las
               apps, así que es UNA burbuja —el mismo componente, en el mismo sitio y con el mismo
               comportamiento— en Entregas, el hub, Time Tracker, RR. HH., el ERP, Quote Builder, Leads,
-              Encuestas y Promociones. Hasta D-NEXT solo la montaba Entregas. Dentro de `PrefsProvider`
+              Encuestas y Promociones. Hasta D-530 solo la montaba Entregas. Dentro de `PrefsProvider`
               porque habla en el idioma de la persona; dónde no sale (login, el enlace del cliente…) lo
               decide ella con `ayudaEnLaRuta`. */}
           <HelpButton />

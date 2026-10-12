@@ -32,7 +32,7 @@ export const OPCIONES_DE_IDIOMA: readonly Opcion<Idioma>[] = [
 
 /**
  * Claro y Oscuro, y nada más. Había una tercera, «🖥️ Same as my device / Como mi equipo» (D-490), que seguía al
- * sistema del teléfono o del PC; el dueño la quitó el 2026-10-11: «that same as my device remove it» (D-NEXT).
+ * sistema del teléfono o del PC; el dueño la quitó el 2026-10-11: «that same as my device remove it» (D-530).
  * Quien la tenía guardada se queda con lo que su equipo le pintaba en ese momento (`lib/tema.ts`).
  */
 export const OPCIONES_DE_TEMA: readonly Opcion<PreferenciaDeTema>[] = [

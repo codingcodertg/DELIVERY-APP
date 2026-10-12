@@ -43,7 +43,7 @@ describe("las opciones", () => {
     expect(OPCIONES_DE_TEMA.map((o) => o.en)).toEqual(["Light", "Dark"]);
     for (const o of OPCIONES_DE_TEMA) expect(o.en, o.valor).not.toBe(o.es);
   });
-  it("sin «Same as my device» (D-NEXT): el dueño, «that same as my device remove it»", () => {
+  it("sin «Same as my device» (D-530): el dueño, «that same as my device remove it»", () => {
     expect(OPCIONES_DE_TEMA.map((o) => o.valor)).not.toContain("system");
     // Ni en la lista ni en el texto que la explicaba, en ningún fichero de las apps.
     const conElTexto = tsxDeSrc().filter((f) => /Same as my device|Como mi equipo|follows your phone/.test(sinComentarios(readFileSync(f, "utf8"))));
@@ -61,7 +61,7 @@ describe("la pantalla", () => {
     expect(pers).toContain("onClick={() => setTheme(o.valor)}");
   });
 
-  it("marca lo puesto: el idioma y el tema (desde D-NEXT, lo elegido y lo pintado son lo mismo)", () => {
+  it("marca lo puesto: el idioma y el tema (desde D-530, lo elegido y lo pintado son lo mismo)", () => {
     expect(pers).toContain("aria-checked={lang === o.valor}");
     expect(pers).toContain("aria-checked={theme === o.valor}");
   });
@@ -86,7 +86,7 @@ describe("la pantalla", () => {
   });
 });
 
-describe("la pantalla, pintada (D-NEXT)", () => {
+describe("la pantalla, pintada (D-530)", () => {
   const pinta = (lang: "es" | "en") => renderToStaticMarkup(createElement(PrefsConIdioma, { lang } as Parameters<typeof PrefsConIdioma>[0], createElement(Personalizador)));
   const temas = (html: string) => {
     const grupo = html.slice(html.indexOf('data-personalizar="tema"'));

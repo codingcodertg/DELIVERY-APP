@@ -1,7 +1,7 @@
 import { DEFAULT_HELP_EMAIL } from "@/lib/constants";
 
 /**
- * La burbuja de Ayuda, igual en todas las apps (D-NEXT).
+ * La burbuja de Ayuda, igual en todas las apps (D-530).
  *
  * El dueño, el 2026-10-11: *«the help buttom bubble should be evene thoguht all the apps»*. Hasta ese día la burbuja
  * («? Help» abajo a la derecha, con su panel, la foto de la pantalla de D-509/D-513 y «Mis solicitudes») solo
@@ -59,7 +59,7 @@ export type ContactoDeAyuda = { id: string; telefono: string | null; nombre: str
  * A dónde va el correo de una solicitud: el de Ajustes (`settings.help_email`) si es una dirección, y si no la de
  * siempre (`DEFAULT_HELP_EMAIL`).
  *
- * Lo decide el SERVIDOR (D-NEXT). Antes lo mandaba el navegador en `to`, leído de `settings` con la sesión de la
+ * Lo decide el SERVIDOR (D-530). Antes lo mandaba el navegador en `to`, leído de `settings` con la sesión de la
  * persona; y quien no tiene Entregas no puede leer `settings`, así que su solicitud se iba a la dirección por
  * defecto aunque Ajustes dijera otra. Ahora la burbuja está en todas las apps y eso le pasaría a cualquiera que
  * pida ayuda desde Time Tracker sin tener Entregas. El `to` que siga llegando del navegador se ignora.

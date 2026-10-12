@@ -6,7 +6,7 @@ import {
 } from "./tema";
 
 /**
- * El tema: Claro u Oscuro. D-490 añadió «Same as my device» (`system`) y D-NEXT la quitó —el dueño: «that same as
+ * El tema: Claro u Oscuro. D-490 añadió «Same as my device» (`system`) y D-530 la quitó —el dueño: «that same as
  * my device remove it»—.
  *
  * Se prueba la regla con datos (`temaEfectivo`, `temaDeLoGuardado`), el guion que corre antes de pintar
@@ -27,14 +27,14 @@ describe("temaEfectivo", () => {
     expect(temaEfectivo(null, { escritorio: true })).toBe("dark");
   });
 
-  it("solo Claro y Oscuro son elecciones: «system» ya no lo es (D-NEXT)", () => {
+  it("solo Claro y Oscuro son elecciones: «system» ya no lo es (D-530)", () => {
     expect([...PREFERENCIAS_DE_TEMA]).toEqual(["light", "dark"]);
     for (const p of PREFERENCIAS_DE_TEMA) expect(esPreferenciaDeTema(p), p).toBe(true);
     for (const v of ["system", "auto", "", null, undefined, 1, "Dark"]) expect(esPreferenciaDeTema(v), String(v)).toBe(false);
   });
 });
 
-describe("quien tenía guardado «Same as my device» (D-NEXT)", () => {
+describe("quien tenía guardado «Same as my device» (D-530)", () => {
   it("se queda con lo que su equipo le está pintando ahora: oscuro con el sistema en oscuro, claro si no", () => {
     expect(TEMA_VIEJO_DEL_EQUIPO).toBe("system");
     expect(temaDeLoGuardado("system", { sistemaOscuro: true })).toBe("dark");

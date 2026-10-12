@@ -10,7 +10,7 @@ import { pideContactoDeAyuda, rolDeQuienEscribe } from "./help-send";
 import { PrefsConIdioma } from "./prefs";
 
 /**
- * La burbuja de Ayuda, la misma en todas las apps (D-NEXT).
+ * La burbuja de Ayuda, la misma en todas las apps (D-530).
  *
  * El dueño, el 2026-10-11: «the help buttom bubble should be evene thoguht all the apps». Hasta ese día solo la
  * montaba Entregas. Lo que se prueba aquí, por lo que rompería:
