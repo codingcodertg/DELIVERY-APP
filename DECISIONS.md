@@ -17941,6 +17941,11 @@ Respaldo de la función antes de aplicar en el scratchpad del orquestador; la re
 
 ## D-278 · Órdenes: el documento del tipo resaltado al verla, y la vista móvil del admin
 
+> **⚠ Reemplazada en parte por D-516** (2026-10-11): la vista móvil ya no es solo del admin por el rol de la sesión.
+> Entra también **un admin dentro de la cuenta de otra persona** (D-243), comprobado con la cookie de vuelta **y** la
+> fila de entrar del rastro en `security_events`; sin suplantación válida, sigue siendo solo del admin. Y el marco sin
+> ruta abre la pantalla de inicio del rol de la sesión, no siempre `/`.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño**, dos cosas: *«en el formulario de orden, al verla, resalta el número de
 factura»* y *«solo para admin, crea también la vista móvil para poder probarla»*. La forma de la segunda
@@ -37903,6 +37908,10 @@ No visto en un teléfono.
 
 ## D-483 · «📱 Vista móvil» al lado de «⇄ Switch user» en la barra de Entregas; el aviso «Estás como…» en una línea corta y sin los minutos
 
+> **⚠ Reemplazada en parte por D-516** (2026-10-11): el aviso ya no está en español fijo. Habla el idioma que el admin
+> que entró eligió en «Personalizar» (el dueño: *«the switch back language is spanish even though the language is set
+> to ENG»*), y lleva un tercer botón corto, «📱 Vista móvil» / «🖥️ Vista de escritorio» (solo el icono en un teléfono).
+
 **Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.263.0, repo 1.356.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d483`. **Reemplaza en parte a D-306 y D-333** (la vista móvil vuelve a la barra) y a D-243 (lo que pinta el aviso).
 
 **Pedido del dueño**, literal (dictado): *«El switch de mobile view también agrégalo en ahí donde dice switch user. El switch user ahora va a ser dos botones. Uno va a ser switch user y users y el otro va a ser switch eh, a mobile view. Y ahora quiero que quites ese timeout. Que lo único que salga ahí es, ok, estás login como, como Robert y ya. Pero no quiero ese timeout y esa cosa porque quita mucho espacio.»*
@@ -38135,6 +38144,9 @@ pero con la suya en otra) y se le escribió su prueba.
 - Una ruta con un plan publicado (etiquetas del plan, cargas repartidas): solo por la prueba; el demo no tiene planes.
 
 ## D-486 · Contraseña temporal: quien entra con ella tiene que cambiarla antes de usar ninguna app
+
+> **⚠ Reemplazada en parte por D-516** (2026-10-11): la frase «🔑 Contraseña temporal…» del aviso de «Entrar como» ya
+> no va solo en español: sale en el idioma del admin, como el resto del aviso.
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries 1.265.0, repo 1.359.0 (toca código compartido: middleware, `src/app/api`,
 el banner de «Entrar como»; criterio de CLAUDE.md, las tres) · **Sin migración** (la marca vive en `auth.users`) ·
@@ -40734,3 +40746,141 @@ del círculo propio de cada entrega ya no existe.
 - **Nada en un navegador.** La prueba renderiza la pantalla, pero sin estilos: que el círculo se vea igual que en el
   Gestor descansa en que es la misma clase CSS.
 - **La tarjeta de arriba** sigue diciendo «Siguiente parada · 1/4», que cuenta órdenes, no paradas. No se tocó.
+
+## D-516 — El aviso amarillo de «Entrar como» cambia entre «📱 Vista móvil» y «🖥 Vista de escritorio», habla el idioma del admin, y la vista móvil se abre también dentro de la cuenta de otra persona
+
+**Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.284.0, repo 1.386.0 · **Sin migración.** · Rama `feat/banner-vista-movil`. **Reemplaza en parte a
+D-278** (quién entra a la vista móvil), **a D-483** (el aviso, en español fijo) **y a D-486** (la frase de la contraseña
+temporal, en español fijo); las tres llevan su nota.
+
+**Pedido del dueño**, 2026-10-11, literal, con una captura de la «Mobile view» del hub mostrando dentro del marco de
+teléfono el aviso amarillo «👤 Estás como Ernesto Castillo · ↩ Volver a mi cuenta · ⇄ Cambiar usuario»:
+
+> *«EN ESE MISMO AMARILLO QUIERO QUE ESTE PARA CMABIAR DE DESKTOP VIEW A MOBILE VIEW»*
+
+Y, añadido el mismo día al mismo encargo:
+
+> *«For some reason when i switch users the switch back language is spanish even though the language is set to ENG»*
+
+### Qué había
+
+- El aviso amarillo (`ImpersonationBanner`, D-243) vive en el layout raíz, fuera de `PrefsProvider`. D-483 lo acortó a
+  una línea y lo dejó **en español fijo** («Estás como…», «Volver a mi cuenta», «Cambiar usuario»), y D-486 le añadió
+  la frase de la contraseña temporal, también en español. No tenía de dónde sacar el idioma: el proveedor de la sesión,
+  dentro de una suplantación, es el de la otra persona.
+- La vista móvil (`/home/vista-movil`, D-278) exigía `role === 'admin'` **de la sesión**. Dentro de «Entrar como» la
+  sesión es la de la otra persona, así que el admin que pulsaba «Vista móvil» siendo Ernesto acababa echado a la
+  pantalla de Ernesto.
+- El marco sin ruta abría siempre `/`.
+
+### Qué cambia
+
+1. **El botón, en el aviso, al final de la fila** (`botonDeVista` en `mobile-preview.ts`):
+   - **Fuera del marco**: «📱 Vista móvil / Mobile view». Abre la vista móvil con la pantalla de ese momento
+     (`enlaceAVistaMovil(location.pathname + search)`).
+   - **Dentro del marco** (`estaEnUnMarco(window)`): «🖥️ Vista de escritorio / Desktop view». Saca la pantalla que
+     tiene el marco a tamaño normal, navegando **la pestaña de arriba** (`window.top.location`).
+   - **En la propia página de la vista móvil** (fuera del marco, que también lleva su aviso): también «Vista de
+     escritorio», con la ruta que tenga cargada el marco en ese momento (se lee del `iframe`; si no se deja, la `?ruta=`
+     de la URL). Ofrecer ahí «Vista móvil» abriría la vista móvil de sí misma.
+   - El texto se calcula con `usePathname()` (el aviso no se vuelve a montar al navegar); lo que hace, al pulsar, con la
+     ruta de ese instante. Los destinos pasan por `rutaParaElMarco` (`safeNext`, D-193): solo rutas internas.
+2. **La vista móvil se abre dentro de «Entrar como»**, y sigue cerrada a todos los demás (`puedeAbrirLaVistaMovil`,
+   `vista-movil-acceso.ts`; las lecturas en `vista-movil-servidor.ts`). Entra:
+   - **el admin**, por el rol de la sesión, como siempre (y sin ninguna consulta más que antes);
+   - **un admin dentro de la cuenta de otra persona**, y para eso **no basta la cookie de vuelta**: es `httpOnly` pero
+     no va firmada (D-243 explica por qué), así que cualquiera podría escribirse una en su navegador. Hace falta todo a
+     la vez: la cookie se entiende y es de **esta** sesión (`comoId` = el usuario), no ha caducado (los 60 minutos),
+     quien la abrió es **admin hoy** (`profiles`, con la llave de servicio) y **la última fila del rastro** entre ese
+     admin y esta persona en `security_events` es una **entrada** (`impersonation_start`) de la última hora, no una
+     vuelta. Esa fila no la puede fabricar quien no es admin: la RLS de `security_events` (053/080) solo deja insertar
+     filas con `actor_id` = uno mismo, y las de suplantación las escribe el servidor con la llave de servicio poniendo
+     al admin de actor. Y solo un admin las puede leer, por eso se leen con la llave de servicio.
+   - Cualquier duda —una lectura que falla, una fila de vuelta posterior, un rol que ya no es admin— es «no», y la
+     persona va a su pantalla de inicio, como antes.
+   - Coste: el admin, igual que antes. Quien no es admin y no trae cookie de vuelta para sí mismo, igual que antes (cero
+     consultas más). Solo una suplantación pide dos lecturas más, en paralelo.
+3. **El aviso habla el idioma del admin que entró**, no el de la pantalla (`idiomaDelAviso`, `traduce`):
+   - **Decisión, a validar:** durante la suplantación la app se pinta en el idioma de la otra persona
+     (`profiles.language` de ella, D-266), y el aviso es lo único de la pantalla que le habla **al admin**. Así que va en
+     el idioma que el admin eligió en «Personalizar» (D-490): `/api/impersonate/state` devuelve `idioma`, leído de la
+     fila de `profiles` del `adminId` de la cookie, **en paralelo** con la lectura que ya hacía (`profiles` se deja leer
+     a cualquier sesión, 099; fuera de una suplantación no se pide nada nuevo). Si el admin nunca eligió, la copia de
+     pantalla de ese equipo (`rtg_prefs.lang`); si tampoco hay, inglés.
+   - **Todos** los textos: «👤 Signed in as / Estás como», «↩ Back to my account / Volver a mi cuenta», «Going back… /
+     Volviendo…», «⇄ Switch user / Cambiar usuario», la frase de la contraseña temporal, y el botón nuevo.
+   - **El panel de «Cambiar usuario»** que se abre desde el aviso iba envuelto en un `PrefsProvider` que cargaba el
+     idioma de la sesión (la otra persona), y además lo copiaba a `localStorage` y a `<html lang>`. Ahora va en
+     `PrefsConIdioma` (`prefs.tsx`): el mismo contexto de `usePrefs`, con el idioma del aviso **puesto** y sin leer ni
+     guardar nada.
+4. **El aviso no crece.** Medido en el demo (abajo): en escritorio cabe todo en una línea; en un ancho de teléfono —y el
+   marco lo es— el texto del botón empujaba una fila más (a 390 px en inglés, de 71 a 113 px de alto). Por eso, a
+   640 px o menos (el corte de teléfono de `globals.css`), el botón es **solo el icono** (`.aviso-vista-texto` se
+   esconde), con el nombre en `aria-label` y en `title`.
+5. **El marco sin ruta abre la pantalla de inicio del rol de la sesión** (`roleHome`), no siempre `/`: dentro de la
+   cuenta de un chofer, `/driver`; para el admin, `/` como antes. `rutaParaElMarco(ruta, porDefecto)` y `VistaMovil`
+   (`rutaDeInicio`) ya no fuerzan la portada. Una ruta que vale se abre tal cual, `/` incluida: qué pasa cuando la
+   página no es del rol lo decide la app (`TabGate`, que en paralelo cambia otro encargo; aquí no se tocó).
+
+### Decisiones mías que el dueño debería validar
+
+- El idioma del aviso es **el del admin**, no el de la pantalla (punto 3). Si lo quiere igual a la pantalla, es cambiar
+  `idiomaDelAviso`.
+- En un teléfono y dentro del marco, el botón es **solo 📱 / 🖥️** (con su nombre al pasar el ratón). Con texto, el aviso
+  crecía una fila.
+- En inglés, «Estás como» es **«Signed in as»**.
+- En un teléfono de verdad (no el marco) el 📱 también sale: abre la vista móvil, que ahí no aporta nada. No se escondió
+  para no meter una regla más.
+
+### Verificado
+
+- **Pruebas nuevas:** `vista-movil-acceso.test.ts` (la regla con datos, y **la puerta de verdad**: `layout.tsx` y
+  `page.tsx` llamados con Supabase falso, mirando qué se consulta), `aviso-de-suplantacion.test.ts` (el aviso **pintado**
+  con `renderToStaticMarkup` en inglés y en español, con los dos botones; el panel de «Cambiar usuario» pintado dentro de
+  `PrefsConIdioma` en los dos idiomas; y `GET /api/impersonate/state` llamado de verdad: devuelve el idioma del admin de
+  la cookie aunque la persona tenga otro). Y casos nuevos en `mobile-preview.test.ts` para el botón y el marco sin ruta.
+  Ajustadas, con nota D-516: `banner-corto`, `banner-panel-providers` (el panel va en `PrefsConIdioma`),
+  `cambio-obligatorio` y `mobile-preview` (la puerta y la página).
+- **35 mutantes de 35 caen por nombre.** Los de la puerta: basta la cookie sin fila de entrar → «una cookie escrita a
+  mano, sin fila de entrar del rastro, no abre la puerta»; una cookie de otra persona → «la cookie tiene que ser de ESTA
+  sesión»; caducada → «caducada la hora de D-243, no»; quien la abrió ya no es admin → «quien la abrió tiene que ser
+  admin HOY»; fila de hace más de una hora o del futuro → «y la entrada tiene que ser de la última hora…»; cualquier rol
+  como admin → «cualquier otro rol, sin suplantación válida, no»; el rol preguntado del usuario y no del admin → «pregunta
+  el rol del ADMIN de la cookie…»; el rastro sin filtrar por `actor_id` o con el `target_id` cambiado → «un admin dentro
+  de la cuenta del chofer entra…» (mira las consultas); el layout con la puerta vieja, sin leer la suplantación o sin
+  redirigir → las de «la puerta de /home/vista-movil, de verdad». Los del botón: «Vista móvil» dentro del marco, destino
+  sin sanear, «Vista móvil» de la propia vista móvil, ignorar lo cargado en el marco → las de «el botón de vista del
+  aviso amarillo»; el banner sin mirar el marco, sin `estaEnUnMarco`, navegando el marco en vez de la pestaña de arriba →
+  «el botón: el texto según el marco y la ruta…»; icono o nombre que no cambian → «dentro ofrece salir a tamaño
+  normal…»; sin la regla CSS → «en un ancho de teléfono… solo el icono». Los del idioma: `traduce` o el aviso en
+  español fijo → «en inglés, todo en inglés: nada en español»; ignorar el idioma del admin → «el del admin que entró…»;
+  el banner sin usar lo del servidor o el panel en español fijo → las del cableado; `PrefsConIdioma` sin pasar el idioma
+  → «en inglés y en español, con el mismo contexto que `usePrefs`»; la ruta leyendo el idioma de la sesión o sin
+  devolverlo → «el idioma del admin de la cookie, aunque la persona tenga otro». Y los del marco sin ruta: siempre la
+  portada → «dentro de la cuenta de un chofer, `/driver`…».
+- **En el navegador (demo, puerto propio), con `/api/impersonate/state` simulado por CDP** —el demo no tiene servidor de
+  auth y sin eso el aviso no sale—, clics de persona:
+  - 1440 px: el aviso mide **36 px con el botón y 36 sin él**, todo en una línea, en inglés y en español.
+  - 390 px: **71 px con y 71 sin** en inglés, **84 y 84** en español (antes de esconder el texto: 113 en inglés). Con un
+    nombre largo («Patricia Hernández Gutiérrez») sin el texto también 71/71.
+  - Dentro de un `iframe.vista-movil-marco` de 390 × 844 sobre `/`, cargando `/driver`: el aviso del marco dice «🖥️» con
+    `aria-label="Desktop view"` (71 px con y sin), el de arriba «📱 Mobile view». Al pulsar el del marco, la pestaña de
+    arriba pide `/driver` y el marco desaparece: se queda `/driver` a tamaño normal.
+  - Fuera del marco, en `/map`, «📱 Mobile view» pide `/home/vista-movil?ruta=%2Fmap&ancho=390` (en el demo, el layout de
+    `/home` lo manda al login: no hay sesión).
+  - Con el admin en inglés, «⇄ Switch user» abre el panel con «Search by name…», «Close», «Sign in as».
+- `node scripts/verify.mjs` en verde (tsc, vitest, build) sobre origin/main.
+
+### Lo no verificado
+
+- **Una suplantación de verdad.** El demo no tiene auth: la puerta de la vista móvil con la cookie y el rastro reales,
+  la lectura con la llave de servicio y la del idioma del admin solo se han probado con Supabase falso. En particular,
+  que la fila `impersonation_start` llegue con `created_at` dentro de la hora y que la llave de servicio lea
+  `security_events` en producción.
+- **La propia página de la vista móvil** con su aviso de fuera («Vista de escritorio» con la ruta del marco): el demo no
+  la sirve (el layout de `/home` pide sesión). Probado solo con la función.
+- **Que el dueño tenga su idioma guardado en `profiles.language`.** Si nunca eligió, el aviso usa la copia de pantalla del
+  equipo, que durante la suplantación puede haber quedado con el idioma de la otra persona.
+- **Lo que ya pasaba y no se tocó:** dentro del marco, la barra de Entregas de un admin (sin suplantación) sigue
+  enseñando «📱 Vista móvil» (D-501), que mete la vista móvil dentro del marco. Y «Personalizar» durante una suplantación
+  guarda el idioma en la fila de la otra persona (por el código: `setLang` escribe en la fila de la sesión; no medido).

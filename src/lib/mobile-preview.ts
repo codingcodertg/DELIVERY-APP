@@ -22,15 +22,24 @@ export const TAMANOS_MOVIL = [
 
 export const ANCHO_POR_DEFECTO = 390;
 
+/** ¿Esta ruta es la propia vista móvil? (con o sin consulta, o algo debajo de ella) */
+export function esLaVistaMovil(ruta: string): boolean {
+  const sinConsulta = ruta.split(/[?#]/)[0];
+  return sinConsulta === RUTA_VISTA_MOVIL || sinConsulta.startsWith(RUTA_VISTA_MOVIL + "/");
+}
+
 /**
  * La ruta que se carga en el marco: solo una ruta interna (`safeNext`, D-193), y nunca la propia vista
- * móvil, que metería un marco dentro de otro. Cualquier otra cosa, la portada.
+ * móvil, que metería un marco dentro de otro. Cualquier otra cosa, `porDefecto`.
+ *
+ * `porDefecto` era siempre la portada `/`. Desde D-516 la página de la vista móvil pasa la pantalla de
+ * inicio del rol de la sesión (`roleHome`): dentro de «Entrar como» un chofer, el marco sin ruta abre
+ * `/driver`, que es lo suyo, y no el tablero de Órdenes, que no lo es.
  */
-export function rutaParaElMarco(ruta: string | null | undefined): string {
-  const segura = safeNext(ruta, "/");
-  const sinConsulta = segura.split(/[?#]/)[0];
-  if (sinConsulta === RUTA_VISTA_MOVIL || sinConsulta.startsWith(RUTA_VISTA_MOVIL + "/")) return "/";
-  return segura;
+export function rutaParaElMarco(ruta: string | null | undefined, porDefecto: string = "/"): string {
+  const inicio = esLaVistaMovil(porDefecto) ? "/" : safeNext(porDefecto, "/");
+  const segura = safeNext(ruta, inicio);
+  return esLaVistaMovil(segura) ? inicio : segura;
 }
 
 /** El ancho pedido, si es uno de los tres; si no, el de por defecto. */
@@ -52,4 +61,35 @@ export function estaEnUnMarco(w: { self: unknown; top: unknown }): boolean {
   } catch {
     return true;
   }
+}
+
+/**
+ * El botón del aviso amarillo que cambia de vista (D-516). El dueño, 2026-10-11, con la vista móvil del hub
+ * abierta: «EN ESE MISMO AMARILLO QUIERO QUE ESTE PARA CMABIAR DE DESKTOP VIEW A MOBILE VIEW».
+ *
+ * - **Dentro del marco** de la vista móvil: «🖥 Vista de escritorio», y saca ESTA pantalla del marco, en la
+ *   pestaña de arriba, a tamaño normal.
+ * - **En la propia página de la vista móvil** (fuera del marco, que también lleva su aviso): lo mismo, con la
+ *   pantalla que hay dentro del marco. Ofrecer ahí «Vista móvil» abriría la vista móvil de sí misma, que
+ *   `rutaParaElMarco` convierte en la portada: un botón que no hace lo que dice.
+ * - **En cualquier otra pantalla**: «📱 Vista móvil», que abre esta pantalla dentro del marco.
+ *
+ * `rutaDelMarco` es la ruta que tiene cargada el marco ahora (se navega dentro de él, y la URL de la vista
+ * móvil no se entera); si no se puede leer, la `?ruta=` de la URL.
+ */
+export type BotonDeVista = { vista: "movil" | "escritorio"; destino: string };
+
+export function botonDeVista(a: {
+  enMarco: boolean;
+  pathname: string;
+  search?: string;
+  rutaDelMarco?: string | null;
+}): BotonDeVista {
+  const aqui = (a.pathname || "/") + (a.search ?? "");
+  if (a.enMarco) return { vista: "escritorio", destino: rutaParaElMarco(aqui) };
+  if (esLaVistaMovil(a.pathname || "/")) {
+    const pedida = a.rutaDelMarco ?? new URLSearchParams(a.search ?? "").get("ruta");
+    return { vista: "escritorio", destino: rutaParaElMarco(pedida) };
+  }
+  return { vista: "movil", destino: enlaceAVistaMovil(aqui) };
 }
