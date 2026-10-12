@@ -42226,8 +42226,9 @@ Entregas para dos cosas —los ajustes de ayuda (`help_email`, `help_phone`) y e
   y en Time Tracker semana, solicitudes, cuenta, nómina y empleados; RR. HH. tablero y hoy; ERP pedir y catálogo).
   Al principio de la página quedan solapes parciales que se van al bajar (los más grandes: el 🗑 de Cuentas, 70 %, y la ✕
   de la primera tarjeta de Promociones, 46 %, a 390 px).
-- **«Mi ruta» del chofer**, bajando de 40 en 40 px a 390: lo peor es un 11 % de «✓ Entregadas (0)» (165 px de ancho, 134
-  libres); «📍 Llegué» y «🚚 Recogido» pasan por debajo de su borde derecho al bajar y nunca se quedan debajo al final.
+- **«Mi ruta» del chofer**, bajando de 40 en 40 px a 390, ya con lo de D-527: lo peor es un 17 % de «✓ Entregadas (0)»
+  (165 px de ancho, 134 libres); «🚚 Recogido» y las filas pasan por debajo de su borde derecho al bajar y nunca se quedan
+  debajo al final.
   **«Clock in»** del empleado de Time Tracker: arriba de la pantalla, sin solape.
 
 ### Lo que no se hizo, y lo que queda pendiente
@@ -42277,7 +42278,7 @@ pruebas). Mutante → prueba que lo tumba:
 - `z-index` 40 otra vez → *va POR DEBAJO de lo que las apps pegan al fondo*; Time Tracker o Promociones sin hueco → *deja
   un hueco al final de cada app*.
 
-`node scripts/verify.mjs`: tipos, 7 465 pruebas y el build, en verde.
+`node scripts/verify.mjs`: tipos, 7 515 pruebas y el build, en verde (sobre origin/main con D-527).
 
 ### Ficheros
 
