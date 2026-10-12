@@ -104,7 +104,10 @@ describe("1 · la base de la ruta es la tienda DEL CHOFER, no la recogida más r
   describe("la pantalla", () => {
     it("lee las bases de `driver_settings` (`useBasesDeChofer`) y decide la tienda con `tiendaBaseDelChofer`", () => {
       expect(pagina).toContain("const basesDeChofer = useBasesDeChofer();");
-      expect(pagina).toContain("const tiendaBaseDe = (laneKey: string) => tiendaBaseDelChofer(driverOf(laneKey), basesDeChofer, users, settings.stores ?? []);");
+      // **Puesto al día por la base del día (165, 2026-10-11)**: la tienda de la que sale la decide `extremosDeLaRuta` —la elegida para ese día, y si no, la de
+      // Ajustes (`basesDeChofer`) y la del perfil, que es lo que decidía `tiendaBaseDelChofer` (que ahora la usa por dentro)—.
+      expect(pagina).toContain("const extremosDe = (laneKey: string) => extremosDeLaRuta(driverOf(laneKey), { delDia: basesDelDiaPorNombre, deAjustes: basesDeChofer, usuarios: users, noVuelven, tiendas: settings.stores ?? [] });");
+      expect(pagina).toContain("const tiendaBaseDe = (laneKey: string) => extremosDe(laneKey).salida?.tienda ?? null;");
       const hook = plano(leer("src/lib/usa-bases.ts"));
       expect(hook).toContain('createClient().from("driver_settings").select("profile_id, base_store")');
       expect(hook).toContain("return useMemo(() => basesPorNombre(filas, users), [filas, users]);");
@@ -177,7 +180,8 @@ describe("2 · lo que se le pasa al optimizador: puntos, pallets, VENTANAS y min
   });
   it("la pantalla arma así la entrada: su lista, sus órdenes, su base, su capacidad, las ventanas duras de Ajustes y las 08:00", () => {
     const optimizar = trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.");
-    expect(optimizar).toContain("const entrada = entradaDeOptimizar({ lista, ordenes: stops, base, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda, esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN, });");
+    // **Puesto al día por la base del día (165, 2026-10-11)**: y dónde termina ese día (`fin`).
+    expect(optimizar).toContain("const entrada = entradaDeOptimizar({ lista, ordenes: stops, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda, esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN, });");
     expect(optimizar).toContain("const r = optimizaLaLista({ ...entrada, tiempos: tiempos?.tiempos ?? null });");
   });
 });

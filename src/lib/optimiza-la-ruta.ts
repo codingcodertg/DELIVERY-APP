@@ -59,6 +59,9 @@ export interface EntradaDeOptimizar {
   cambios: readonly (number | null)[];
   /** De dónde sale y a dónde vuelve el camión. Sin base, el recorrido es abierto: de la primera parada a la última. */
   base: PuntoEnElMapa | null;
+  /** Dónde TERMINA, si no es la base (165: la tienda elegida para el fin de ese día; `base-del-dia.ts`). `undefined`: vuelve a
+   *  la base, como siempre. `null`: no vuelve (Ajustes, «vuelve a base» en falso): acaba en su última parada. */
+  fin?: PuntoEnElMapa | null;
   /** `null` o 0: no se sabe; no se mira. */
   capacidad: number | null;
   /** La ventana de cada ENTREGA, en el mismo orden que `paradas` (`null`: sin ventana, o es una recogida). Sin la lista, ninguna. */
@@ -157,6 +160,8 @@ interface Problema {
   estrecha: boolean[];
   lugares: number;
   base: number;
+  /** El lugar donde termina: la base, otra tienda (165), o −1 si no vuelve. */
+  fin: number;
   min: Int32Array;
   cmi: Int32Array;
   cap: number | null;
@@ -192,6 +197,8 @@ function problemaDe(e: EntradaDeOptimizar): Problema {
     return i;
   };
   const base = lugarDe(e.base);
+  // Sin base no hay vuelta (recorrido abierto); con ella, a la base salvo que se diga otro fin.
+  const fin = base < 0 ? -1 : e.fin === undefined ? base : lugarDe(e.fin);
   const sitio = new Int32Array(m), visita = new Int32Array(m).fill(-1), antes = new Int32Array(m).fill(-1);
   const cambio = new Int32Array(m), servicio = new Int32Array(m);
   const abre = new Float64Array(m).fill(-Infinity), cierra = new Float64Array(m).fill(Infinity);
@@ -240,7 +247,7 @@ function problemaDe(e: EntradaDeOptimizar): Problema {
     }
   }
   return {
-    m, esP, antes, sitio, visita, visitas: visitaDe.size, cambio, servicio, abre, cierra, estrecha, lugares: L, base, min, cmi,
+    m, esP, antes, sitio, visita, visitas: visitaDe.size, cambio, servicio, abre, cierra, estrecha, lugares: L, base, fin, min, cmi,
     cap: e.capacidad != null && e.capacidad > 0 ? centesimas(e.capacidad) : null,
     salida: Math.round(e.salidaMin ?? SALIDA_POR_DEFECTO_MIN), recarga: Math.max(0, Math.round(e.recargaMinimaMin ?? RELOAD_MIN)),
     cargaInicial, tolerancia: e.tolerancia ?? TOLERANCIA_DE_PASO,
@@ -287,7 +294,7 @@ function mide(pr: Problema, orden: ArrayLike<number>, n: number, nota: Nota, tar
       k++;
     }
   }
-  if (pr.base >= 0 && sitio >= 0 && sitio !== pr.base) { const t = pr.min[sitio * L + pr.base]; reloj += t; manejo += t; cmi += pr.cmi[sitio * L + pr.base]; if (carga > 0) paseo += carga * pr.cmi[sitio * L + pr.base]; }
+  if (pr.fin >= 0 && sitio >= 0 && sitio !== pr.fin) { const t = pr.min[sitio * L + pr.fin]; reloj += t; manejo += t; cmi += pr.cmi[sitio * L + pr.fin]; if (carga > 0) paseo += carga * pr.cmi[sitio * L + pr.fin]; }
   nota[0] = exceso; nota[1] = tE; nota[2] = tA; nota[3] = reloj - pr.salida; nota[4] = cmi; nota[5] = paseo;
   return manejo;
 }
@@ -705,20 +712,20 @@ function exacta(pr: Problema, cota: Nota, tope: number, banda: Nota | null = nul
           }
           tEnt += tMin; cEnt += cMin;
         }
-        if (pr.base >= 0) {
-          let tMin = nR ? Infinity : pr.min[sitio * L + pr.base], cMin = nR ? Infinity : pr.cmi[sitio * L + pr.base];
+        if (pr.fin >= 0) {
+          let tMin = nR ? Infinity : pr.min[sitio * L + pr.fin], cMin = nR ? Infinity : pr.cmi[sitio * L + pr.fin];
           for (let a = 0; a < nR; a++) {
             const l = lugaresR[a];
-            if (pr.min[l * L + pr.base] < tMin) tMin = pr.min[l * L + pr.base];
-            if (pr.cmi[l * L + pr.base] < cMin) cMin = pr.cmi[l * L + pr.base];
+            if (pr.min[l * L + pr.fin] < tMin) tMin = pr.min[l * L + pr.fin];
+            if (pr.cmi[l * L + pr.fin] < cMin) cMin = pr.cmi[l * L + pr.fin];
           }
           tEnt += tMin; cEnt += cMin;
         }
         for (let a = enR[sitio] ? 0 : -1; a < nR; a++) {
           const l = a < 0 ? sitio : lugaresR[a];
-          // De la base no hace falta salir: puede ser lo último. (Sin base, el último lugar tampoco: se quita el mayor.)
-          if (l === pr.base) continue;
-          let tMin = pr.base >= 0 ? pr.min[l * L + pr.base] : Infinity, cMin = pr.base >= 0 ? pr.cmi[l * L + pr.base] : Infinity;
+          // De donde termina no hace falta salir: puede ser lo último. (Sin vuelta, el último lugar tampoco: se quita el mayor.)
+          if (l === pr.fin) continue;
+          let tMin = pr.fin >= 0 ? pr.min[l * L + pr.fin] : Infinity, cMin = pr.fin >= 0 ? pr.cmi[l * L + pr.fin] : Infinity;
           for (let b = 0; b < nR; b++) {
             const x = lugaresR[b];
             if (x === l) continue;
@@ -730,7 +737,7 @@ function exacta(pr: Problema, cota: Nota, tope: number, banda: Nota | null = nul
           if (tMin > tMayor) tMayor = tMin;
           if (cMin > cMayor) cMayor = cMin;
         }
-        if (pr.base < 0) { tSal -= tMayor; cSal -= cMayor; }
+        if (pr.fin < 0) { tSal -= tMayor; cSal -= cMayor; }
         viajeQueQueda = tEnt > tSal ? tEnt : tSal; millasQueQuedan = cEnt > cSal ? cEnt : cSal;
         // Y de una tercera: el ÁRBOL más corto que une los lugares pendientes (cualquier camino que pase por todos mide al
         // menos eso), más llegar a ellos desde donde está el camión y volver a la base desde alguno. Es la que ve que dos
@@ -750,9 +757,9 @@ function exacta(pr: Problema, cota: Nota, tope: number, banda: Nota | null = nul
             for (let a = 0; a < nR; a++) if (pr.min[sitio * L + lugaresR[a]] < tMin) tMin = pr.min[sitio * L + lugaresR[a]];
             arbol += tMin;
           }
-          if (pr.base >= 0 && !enR[pr.base]) {
+          if (pr.fin >= 0 && !enR[pr.fin]) {
             let tMin = Infinity;
-            for (let a = 0; a < nR; a++) if (pr.min[lugaresR[a] * L + pr.base] < tMin) tMin = pr.min[lugaresR[a] * L + pr.base];
+            for (let a = 0; a < nR; a++) if (pr.min[lugaresR[a] * L + pr.fin] < tMin) tMin = pr.min[lugaresR[a] * L + pr.fin];
             arbol += tMin;
           }
           if (arbol > viajeQueQueda) viajeQueQueda = arbol;
@@ -836,12 +843,12 @@ function exacta(pr: Problema, cota: Nota, tope: number, banda: Nota | null = nul
   for (let i = 0; i < m; i++) cargaFinal += pr.cambio[i];
   for (const [clave, etiquetas] of capa) {
     const sitio = Math.floor((clave % NC) / V) - 1;
-    const vuelve = pr.base >= 0 && sitio >= 0 && sitio !== pr.base;
+    const vuelve = pr.fin >= 0 && sitio >= 0 && sitio !== pr.fin;
     for (const et of etiquetas) {
       if (et.pen > penCota) continue;
-      const t = (et.u > et.v ? et.u : et.v) + (vuelve ? pr.min[sitio * L + pr.base] : 0) - pr.salida;
-      const cmi = et.cmi + (vuelve ? pr.cmi[sitio * L + pr.base] : 0);
-      const paseo = et.paseo + (vuelve && cargaFinal > 0 ? cargaFinal * pr.cmi[sitio * L + pr.base] : 0);
+      const t = (et.u > et.v ? et.u : et.v) + (vuelve ? pr.min[sitio * L + pr.fin] : 0) - pr.salida;
+      const cmi = et.cmi + (vuelve ? pr.cmi[sitio * L + pr.fin] : 0);
+      const paseo = et.paseo + (vuelve && cargaFinal > 0 ? cargaFinal * pr.cmi[sitio * L + pr.fin] : 0);
       const exceso = Math.floor(et.pen / PESO_EXCESO), resto = et.pen - exceso * PESO_EXCESO, tE = Math.floor(resto / PESO_ESTRECHA);
       llegadas.push({ et, nota: [exceso, tE, resto - tE * PESO_ESTRECHA, t, cmi, paseo] });
     }

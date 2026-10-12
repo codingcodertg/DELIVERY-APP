@@ -51,6 +51,8 @@ export interface EntradaDeMejorLugar {
   nueva: ParadaDeRuta;
   /** La recogida / base de la ruta. Sin ella, la ruta es abierta (como en `computeRoute`). */
   base: LatLng | null;
+  /** Dónde termina ese día, si no es la base (165); `null` = no vuelve. Sin él, vuelve a la base. */
+  fin?: LatLng | null;
   capacidad: number;
   /** A qué hora sale el primer viaje, en minutos desde medianoche. */
   inicioMin: number;
@@ -107,13 +109,17 @@ export function costeDeLaRuta(
   viajes: readonly (readonly ParadaDeRuta[])[],
   base: LatLng | null,
   inicioMin: number,
+  /** Dónde termina el ÚLTIMO viaje (165): sin él, la base; `null`, no vuelve. Entre viajes se recarga en la base. */
+  fin?: LatLng | null,
 ): { millas: number; tardeMin: number; llegadas: Map<string, number> } {
   let millas = 0;
   let tardeMin = 0;
   let reloj = inicioMin;
   const llegadas = new Map<string, number>();
   let primero = true;
-  for (const viaje of viajes) {
+  let ultimo = -1;
+  viajes.forEach((v, i) => { if (v.length) ultimo = i; });
+  for (const [i, viaje] of viajes.entries()) {
     if (!viaje.length) continue;
     if (!primero && base) reloj += RELOAD_MIN;
     primero = false;
@@ -132,8 +138,9 @@ export function costeDeLaRuta(
       if (p.ventana && reloj > p.ventana[1]) tardeMin += reloj - p.ventana[1];
       reloj += p.servicioMin;
     }
-    if (base && donde && donde !== base) {
-      const m = millasEstimadas(donde, base);
+    const vuelta = i === ultimo && fin !== undefined ? fin : base;
+    if (base && vuelta && donde && donde !== vuelta) {
+      const m = millasEstimadas(donde, vuelta);
       millas += m;
       reloj += minutosDe(m);
     }
@@ -146,10 +153,10 @@ const palletsDe = (viaje: readonly ParadaDeRuta[]) => viaje.reduce((n, p) => n +
 /** El hueco más barato para `nueva` en la ruta. No escribe nada. */
 export function mejorLugar(e: EntradaDeMejorLugar): ResultadoDeMejorLugar {
   if (!tienePunto(e.nueva)) return { ok: false, motivo: "sin_punto" };
-  const antes = costeDeLaRuta(e.viajes, e.base, e.inicioMin);
+  const antes = costeDeLaRuta(e.viajes, e.base, e.inicioMin, e.fin);
   const huecos: Hueco[] = [];
   const prueba = (viaje: number, puesto: number, viajes: ParadaDeRuta[][], nuevoViaje: boolean) => {
-    const despues = costeDeLaRuta(viajes, e.base, e.inicioMin);
+    const despues = costeDeLaRuta(viajes, e.base, e.inicioMin, e.fin);
     huecos.push({
       viaje, puesto, nuevoViaje,
       millasExtra: despues.millas - antes.millas,

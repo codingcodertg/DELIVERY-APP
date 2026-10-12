@@ -166,7 +166,9 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
   });
   it("el día entra al motor por `entradaDelDia` —las mismas reglas que «Armar rutas»— con las seleccionadas libres y los choferes con la base del perfil si no tienen la de Ajustes", () => {
     expect(pagina).toContain("import { entradaDelDia } from \"@/lib/route-plan/entrada\";");
-    const dia = trozo("const diaParaElMotor = useMemo(() => {", "}, [deliveries, date, seleccionDelReparto, drivers, ajustesDeChofer, settings]);");
+    // **Puesto al día por la base del día (165, 2026-10-11)**: entra también lo elegido para ese día (`basesDelDia`), y la memoria lo mira.
+    const dia = trozo("const diaParaElMotor = useMemo(() => {", "}, [deliveries, date, seleccionDelReparto, drivers, ajustesDeChofer, settings, basesDelDia.bases]);");
+    expect(dia).toContain("basesDelDia: basesDelDia.bases,");
     expect(dia).toContain("ordenes: deliveries.filter((d) => d.delivery_date === date && ROUTE_STAGES.includes(d.stage)).map((d) => (sel.has(d.id) ? { ...d, assigned_driver: null } : d)),");
     expect(dia).toContain("choferes: drivers, ajustesDeChofer: ajustesConBaseDelPerfil(ajustesDeChofer, drivers), settings,");
     expect(pagina).toContain("const ajustesDeChofer = useAjustesDeChofer();");

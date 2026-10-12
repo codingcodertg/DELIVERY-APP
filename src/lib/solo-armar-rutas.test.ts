@@ -72,7 +72,8 @@ describe("medir la ruta sin reordenarla", () => {
     // D-443: UNA medida por chofer, la lista entera en su orden —cada recogida en su tienda y cada entrega—, no un lazo por viaje.
     expect(mide).toContain("const r = await mideLaLista({ lista: e.listaDe(laneKey, stopList), ordenes: stopList, base: depot,");
     expect(pagina).toContain("listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,");
-    expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, e.ordenes[0]?.delivery_date ?? e.fecha)),");
+    // **Puesto al día por la base del día (165, 2026-10-11)**: el cuerpo lleva también dónde termina (`e.fin`).
+    expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, e.ordenes[0]?.delivery_date ?? e.fecha, e.fin)),");
     // **Reemplazado en parte por D-461** (2026-10-02): cada fila P sumaba la recarga entera (`servicio: RELOAD_MIN`); desde
     // D-444 cada recogida es su fila, y cinco cajas de la misma tienda eran 100 minutos. Ahora las recogidas seguidas en la
     // misma tienda son UNA visita (`minutosEnCadaParada`), como en el optimizador y en «Armar rutas». Y la base de la medida es

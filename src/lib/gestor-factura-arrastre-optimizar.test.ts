@@ -338,7 +338,8 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
       // **Puesto al día por D-461**: lo que se le pasa lo arma `entradaDeOptimizar` (que añade ventanas y minutos de servicio).
       expect(optimizar).toContain("const lista = lecturaDe(laneKey, stops).paradas;");
       expect(optimizar).toContain("const base = baseDeLaRuta(laneKey);");
-      expect(optimizar).toContain("lista, ordenes: stops, base, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,");
+      // **Puesto al día por la base del día (165, 2026-10-11)**: también le pasa dónde TERMINA la ruta ese día (`finParaEstimar`).
+      expect(optimizar).toContain("lista, ordenes: stops, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,");
     });
     it("el ORDEN se decide en el navegador, sin pedírselo a nadie; lo único que se pide son los tiempos por calles, una vez", () => {
       // **Reemplazado en parte por D-461**: D-456 no llamaba a nadie («ni una petición») y medía en línea recta. Ahora pide
@@ -434,8 +435,9 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
       expect(mide.split("mideLaRuta(").length - 1).toBe(1);
     });
     it("la forma incluye la lista tal como se pinta: otra capacidad u otro plan publicado es otra forma", () => {
-      expect(medida).toContain("return `${firmaDeLaMedida(fecha, clave, stops)}|${lista.map((p) => (p.tipo === \"P\" ? `P${p.ordenes.join(\"+\")}` : `D${p.orden}`)).join(\",\")}`;");
-      expect(medida).toContain("const firmaDe = (clave: string, stops: T[]): string => firmaDeLaForma(date, clave, stops, e.listaDe(clave, stops));");
+      // **Puesto al día por la base del día (165, 2026-10-11)**: la forma lleva también de dónde sale y dónde termina (`extremos`): cambiarlos es otra forma.
+      expect(medida).toContain("return `${firmaDeLaMedida(fecha, clave, stops)}|${lista.map((p) => (p.tipo === \"P\" ? `P${p.ordenes.join(\"+\")}` : `D${p.orden}`)).join(\",\")}${extremos ? `|${extremos}` : \"\"}`;");
+      expect(medida).toContain("const firmaDe = (clave: string, stops: T[]): string => firmaDeLaForma(date, clave, stops, e.listaDe(clave, stops), extremosDe(clave));");
       expect(pagina).toContain("listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,");
       expect(pagina).toContain("invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],");
     });

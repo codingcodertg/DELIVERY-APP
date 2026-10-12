@@ -285,8 +285,10 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
 
   let fin = reloj;
   if (evaluadas.length > 0 && chofer.vuelveABase) {
-    const t = tramo(ctx, sitio, chofer.base, reloj);
-    if (!t) viola("sin_tiempo_de_viaje", undefined, `${sitio} → ${chofer.base}`);
+    // Vuelve a donde termina ESE día (165): la tienda elegida para el fin, o su base.
+    const meta = chofer.fin ?? chofer.base;
+    const t = tramo(ctx, sitio, meta, reloj);
+    if (!t) viola("sin_tiempo_de_viaje", undefined, `${sitio} → ${meta}`);
     manejo += t?.min ?? 0;
     centiMi += t?.centiMi ?? 0;
     fin = reloj + (t?.min ?? 0);

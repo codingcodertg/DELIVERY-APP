@@ -62,6 +62,9 @@ function elige(notas: readonly Nota[], t: ToleranciaDePaso = TOLERANCIA_DE_PASO)
   return notas[mejor][5] <= o[5] - MARGEN_PALLET_MI * 10_000 ? mejor : opt;
 }
 
+/** Dónde acaba la cuenta (165): sin base, en la última parada; con ella, en la base, o en `fin` si se da (`null`: no vuelve). */
+const metaDe = (e: EntradaDeOptimizar): PuntoEnElMapa | null => (!e.base ? null : e.fin === undefined ? e.base : e.fin);
+
 /** La cuenta de la prueba. No comparte ni una línea con `optimiza-la-ruta.ts`: si las dos se equivocan, no será igual. */
 function cuenta(e: EntradaDeOptimizar, orden: readonly number[]): Nota {
   const salida = e.salidaMin ?? 480, recarga = e.recargaMinimaMin ?? 20;
@@ -99,7 +102,8 @@ function cuenta(e: EntradaDeOptimizar, orden: readonly number[]): Nota {
     carga += Math.round((e.cambios[i] ?? 0) * 100);
     if (cap != null && carga > cap) exceso += carga - cap;
   }
-  if (e.base && sitio) { const [min, mi] = tramo(sitio, e.base); reloj += min; cmi += mi; paseo += Math.max(0, carga) * mi; }
+  const meta = metaDe(e);
+  if (meta && sitio) { const [min, mi] = tramo(sitio, meta); reloj += min; cmi += mi; paseo += Math.max(0, carga) * mi; }
   return [exceso, tE, tA, reloj - salida, cmi, paseo];
 }
 const antesDe = (e: EntradaDeOptimizar) => e.paradas.map((p) => (p.tipo === "D" ? e.paradas.findIndex((q) => q.tipo === "P" && q.ordenes.includes(p.orden)) : -1));
@@ -217,7 +221,8 @@ function exhaustivaTodas(e: EntradaDeOptimizar): Nota[] {
   let cargaFinal = cargaInicial;
   for (let i = 0; i < m; i++) cargaFinal += cambio[i];
   for (const est of porCuenta[m].values()) {
-    const [min, mi] = e.base ? viaje(est.sitio, e.base) : [0, 0];
+    const meta = metaDe(e);
+    const [min, mi] = meta ? viaje(est.sitio, meta) : [0, 0];
     for (const [exc, tE, tA, t, cmi, paseo] of est.notas) finales.push([exc, tE, tA, t + min - salida, cmi + mi, paseo + Math.max(0, cargaFinal) * mi]);
   }
   return finales;
@@ -1007,6 +1012,94 @@ describe("8 · entregar antes lo que está de paso (D-464): entre órdenes que m
         expect(despues[3], `semilla ${s}`).toBeLessThanOrEqual(antes[3] + minutosDeBanda(antes[3]));
         expect(despues[4], `semilla ${s}`).toBeLessThanOrEqual(antes[4] + 300);
       }
+    }
+  }, LARGA);
+});
+
+// =====================================================================================================================
+describe("9 · dónde TERMINA la ruta (165, la base del día): la vuelta va a la tienda del fin, o no hay vuelta", () => {
+  // El dueño, 2026-10-11: «Need to be able to assign store where driver is starting/ ending at». Sin `fin`, ida y vuelta a la
+  // base, como siempre; con otro punto, la ruta acaba ALLÍ; con `null` (no vuelve a base, Ajustes), en su última parada.
+  const B: PuntoEnElMapa = { lat: 26.2, lng: -98.2 }, X: PuntoEnElMapa = { lat: 26.21, lng: -98.21 }, Y: PuntoEnElMapa = { lat: 26.4, lng: -98.4 };
+  const F: PuntoEnElMapa = { lat: 26.41, lng: -98.41 };
+  // B→X 10, B→Y 30, X↔Y 25; volver: X→B 10, Y→B 30; terminar en F: X→F 60, Y→F 5. Ida y vuelta, X,Y y Y,X miden igual (65).
+  // Dos entregas en X (x y z, en el mismo punto) y una en Y: con menos de tres paradas el optimizador no busca nada.
+  const t: Record<string, Record<string, { minutos: number; millas: number }>> = {};
+  const pon = (a: PuntoEnElMapa, b: PuntoEnElMapa, minutos: number) => { (t[claveDePunto(a)] ??= {})[claveDePunto(b)] = { minutos, millas: minutos / 2 }; };
+  pon(B, X, 10); pon(B, Y, 30); pon(X, Y, 25); pon(Y, X, 25); pon(X, B, 10); pon(Y, B, 30); pon(X, F, 60); pon(Y, F, 5); pon(B, F, 31); pon(F, B, 31); pon(F, X, 60); pon(F, Y, 5);
+  const entrada = (orden: "XY" | "YX", fin?: PuntoEnElMapa | null): EntradaDeOptimizar => ({
+    paradas: orden === "XY" ? [D("x"), D("z"), D("y")] : [D("y"), D("x"), D("z")], puntos: orden === "XY" ? [X, X, Y] : [Y, X, X], cambios: [-1, -1, -1], base: B,
+    ...(fin !== undefined ? { fin } : {}), capacidad: 10, ventanas: [null, null, null], servicios: [0, 0, 0], salidaMin: 480, recargaMinimaMin: 20, tiempos: t, tolerancia: SIN_BANDA,
+  });
+
+  it("sin `fin`, ida y vuelta a la base, como siempre: X,Y y Y,X miden lo mismo, 65 minutos", () => {
+    // (A empate, decide la carga paseada de D-464: X primero, que va al lado de la base. Aquí solo importa la jornada.)
+    for (const orden of ["XY", "YX"] as const) {
+      expect(mideLaLista(entrada(orden)).minutos, orden).toBe(65);
+      expect(optimizaLaLista(entrada(orden)).despues.minutos, orden).toBe(65);
+    }
+    // Un `fin` igual a la base es lo mismo que no darlo.
+    expect(optimizaLaLista(entrada("XY", B)).despues.minutos).toBe(65);
+  });
+  it("con OTRO fin la ruta acaba allí: Y está al lado de F, así que entrega X primero y acaba en Y (60 en vez de 95)", () => {
+    const r = optimizaLaLista(entrada("YX", F));
+    expect(forma(r.paradas)).toBe("Dx Dz Dy");
+    expect(r.cambio).toBe(true);
+    expect(r.antes.minutos).toBe(30 + 25 + 60);
+    expect(r.despues.minutos).toBe(10 + 25 + 5);
+    expect(r.despues.millas).toBe(20);
+    expect(r.exacta).toBe(true);
+    // Y la medida de una lista cuenta la vuelta a ESE fin, no a la base.
+    expect(mideLaLista(entrada("XY", F)).minutos).toBe(40);
+  });
+  it("sin vuelta (`fin: null`, no vuelve a base) acaba en la última parada: X,Y mide 35; Y,X, 55", () => {
+    const r = optimizaLaLista(entrada("YX", null));
+    expect(forma(r.paradas)).toBe("Dx Dz Dy");
+    expect(r.despues.minutos).toBe(35);
+    expect(mideLaLista(entrada("YX", null)).minutos).toBe(55);
+  });
+  it("sin base no hay vuelta, se le dé el fin que se le dé", () => {
+    const sinBase = { ...entrada("XY", F), base: null };
+    expect(mideLaLista(sinBase).minutos).toBe(25);
+  });
+
+  /** Una ruta inventada con un FIN: otro punto, con tiempos desde y hacia todos (o `null`: sin vuelta). */
+  function conFin(e: EntradaDeOptimizar, semilla: number, sinVuelta: boolean): EntradaDeOptimizar {
+    if (sinVuelta) return { ...e, fin: null };
+    const { azar } = generador(semilla);
+    const fin: PuntoEnElMapa = { lat: Math.round((30 + azar() * 0.4) * 1e4) / 1e4, lng: Math.round((-101 - azar() * 0.6) * 1e4) / 1e4 };
+    const tiempos: Record<string, Record<string, { minutos: number; millas: number }>> = JSON.parse(JSON.stringify(e.tiempos ?? {}));
+    const todos = [e.base, ...e.puntos].filter((p): p is PuntoEnElMapa => !!p);
+    for (const a of todos) {
+      for (const [de, a2] of [[a, fin], [fin, a]] as const) {
+        if (claveDePunto(de) === claveDePunto(a2)) continue;
+        const mi = Math.hypot((de.lat - a2.lat) * 69, (de.lng - a2.lng) * 60) * (1.15 + azar() * 0.5);
+        (tiempos[claveDePunto(de)] ??= {})[claveDePunto(a2)] = { minutos: Math.round(mi * (1.2 + azar())), millas: Math.round(mi * 100) / 100 };
+      }
+    }
+    return { ...e, fin, tiempos };
+  }
+  it("contra la FUERZA BRUTA con otro fin, o sin vuelta: 60 listas inventadas de 2 a 4 órdenes, y la exacta SOLA también", () => {
+    for (let s = 0; s < 60; s++) {
+      const e = conFin(inventa(2 + (s % 3), 3000 + s, { capacidad: s % 4 === 0 ? 4 : undefined, cierre: s % 3 === 0 ? 700 : undefined }), 7000 + s, s % 5 === 0);
+      if (!e.base) continue;
+      const bruta = fuerzaBruta(e);
+      const r = optimizaLaLista(e);
+      expect(r.exacta, `semilla ${s}`).toBe(true);
+      expect(esElOptimo(e, r, bruta), `semilla ${s}: ${JSON.stringify(cuenta(e, indicesDe(e, r.paradas)))} contra ${JSON.stringify(bruta)}`).toBe(true);
+      const sola = optimizaLaLista({ ...e, sinBusquedaLocal: true });
+      expect(esElOptimo(e, sola, bruta), `exacta sola, semilla ${s}`).toBe(true);
+      // La medida del módulo es la de la prueba: la vuelta va al fin.
+      expect(r.despues.minutos, `semilla ${s}`).toBe(cuenta(e, indicesDe(e, r.paradas))[3]);
+    }
+  }, LARGA);
+  it("contra la búsqueda exhaustiva con memoria, con otro fin: 16 listas de 5 a 7 órdenes; y la búsqueda local SOLA llega igual", () => {
+    for (let s = 0; s < 16; s++) {
+      const e = conFin(inventa(5 + (s % 3), 4000 + s, { cierre: s % 3 === 0 ? 760 : undefined }), 8000 + s, s % 4 === 0);
+      if (!e.base) continue;
+      const o = exhaustiva(e);
+      expect(esElOptimo(e, optimizaLaLista(e), o), `semilla ${s}`).toBe(true);
+      if (s < 6) expect(esElOptimo(e, optimizaLaLista({ ...e, topeDeLaExacta: 0 }), o), `local sola, semilla ${s}`).toBe(true);
     }
   }, LARGA);
 });

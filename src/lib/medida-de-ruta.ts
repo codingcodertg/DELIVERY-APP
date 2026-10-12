@@ -13,11 +13,19 @@ export interface PuntoDeLaMedida { id: string; lat: number; lng: number }
 /**
  * El cuerpo que se manda a `/api/optimize-route` para un viaje: la base (si hay) y las paradas EN SU ORDEN, con
  * `optimize: false` —el camino en ese orden, como «Mi ruta» y el trazo del plan publicado—. Con base, ida y vuelta.
+ *
+ * `fin` (165, la tienda donde termina ESE día; `base-del-dia.ts`): sin él, o igual a la base, ida y vuelta como siempre;
+ * otro punto, la ruta acaba ALLÍ (una parada más al final, `__fin__`, sin vuelta); `null`, no vuelve (acaba en la última).
  */
-export function cuerpoDeLaMedida(paradas: readonly PuntoDeLaMedida[], base: readonly [number, number] | null, fecha: string | null) {
+export function cuerpoDeLaMedida(paradas: readonly PuntoDeLaMedida[], base: readonly [number, number] | null, fecha: string | null, fin?: readonly [number, number] | null) {
+  const vuelveALaBase = !!base && (fin === undefined || (fin != null && fin[0] === base[0] && fin[1] === base[1]));
+  const otroFin = !!base && fin != null && !vuelveALaBase;
   return {
-    stops: [...(base ? [{ id: "__depot__", lat: base[0], lng: base[1] }] : []), ...paradas.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng }))],
-    roundtrip: !!base,
+    stops: [
+      ...(base ? [{ id: "__depot__", lat: base[0], lng: base[1] }] : []), ...paradas.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng })),
+      ...(otroFin && fin ? [{ id: "__fin__", lat: fin[0], lng: fin[1] }] : []),
+    ],
+    roundtrip: vuelveALaBase,
     date: fecha,
     optimize: false as const,
   };

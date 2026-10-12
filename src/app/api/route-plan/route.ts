@@ -17,6 +17,7 @@ import { fotoDeLaCopia, type OrdenAhora } from "@/lib/route-plan/copia";
 import { hayQueReleer, parteEnLaBase, type ClienteDeCargas } from "@/lib/route-plan/partir-antes-de-planificar";
 import type { EscrituraDeOrden } from "@/lib/route-plan/publicar";
 import { rutasBloqueadasDelDia, type ClienteDeCandados } from "@/lib/rutas-bloqueadas";
+import { leeBasesDelDia, type ClienteDeBasesDelDia } from "@/lib/base-del-dia";
 
 // ============================================================
 // «Planificar el día» (D-320): calcula un plan de ruta y lo deja en BORRADOR.
@@ -64,6 +65,11 @@ async function leeElDia(supabase: Sesion, fecha: string, extra = ""): Promise<{ 
   const candados = await rutasBloqueadasDelDia(supabase as unknown as ClienteDeCandados, fecha);
   if (candados.fuente === "error") return { ok: false, respuesta: NextResponse.json({ error: "Could not read the locked routes.", detail: candados.detalle }, { status: 500 }) };
 
+  // De qué tienda sale y en cuál termina cada chofer ESE día (165): manda sobre la base de Ajustes. Sin la tabla, cada uno
+  // sale de su base, como antes de la 165; con otro fallo, NO sigue: planificaría desde una tienda que alguien cambió.
+  const bases = await leeBasesDelDia(supabase as unknown as ClienteDeBasesDelDia, fecha);
+  if (bases.fuente === "error") return { ok: false, respuesta: NextResponse.json({ error: "Could not read the drivers' start/end stores for the day.", detail: bases.detalle }, { status: 500 }) };
+
   const nombrePorId = new Map((choferes.data ?? []).map((c) => [c.id as string, String(c.full_name ?? "")]));
   return {
     ok: true, candados,
@@ -75,6 +81,7 @@ async function leeElDia(supabase: Sesion, fecha: string, extra = ""): Promise<{ 
       publicadoAntes: ((publicado.data?.writes ?? []) as DatosDelDia["publicadoAntes"]) ?? [],
       noDisponibles: [...unavailableDriverNames((ausencias.data ?? []) as { driver_id: string; start_date: string; end_date: string }[], nombrePorId, fecha)],
       bloqueadas: candados.fuente === "base" ? candados.rutas : [],
+      basesDelDia: bases.fuente === "base" ? bases.bases : {},
     },
   };
 }

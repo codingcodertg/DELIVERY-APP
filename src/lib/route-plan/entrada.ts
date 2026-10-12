@@ -6,6 +6,7 @@ import { choferParaElMotor, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, e
 import { prioridadDe } from "@/lib/prioridad";
 import { catalogoDeRequisitos, habilidadesDelChofer, requisitosDeLaOrden } from "@/lib/requisitos";
 import { zonaDeLaOrden, zonaDeLaRecogida, zonasDelChofer } from "@/lib/zonas";
+import { ajustesDelDia, type BasesDelDia } from "@/lib/base-del-dia";
 import { leeConOpcionales, type LecturaConError } from "@/lib/columnas-opcionales";
 import {
   PARAMETROS_POR_DEFECTO, TOLERANCIA_DE_PASO, type ChoferEntrada, type Entrada, type OrdenEntrada, type Parametros, type Plan, type Punto,
@@ -60,6 +61,9 @@ export interface DatosDelDia {
   /** Rutas bloqueadas 🔒 ese día (`route_locks`, 149; D-414), por la clave del Gestor: el NOMBRE del chofer o de la
    *  ruta temporal. El motor no las toca: el chofer no entra, y sus órdenes quedan fuera del plan tal como están. */
   bloqueadas?: readonly string[];
+  /** De qué tienda sale y en cuál termina cada chofer ESE día, por id (165, `driver_day_bases`; `base-del-dia.ts`). Manda
+   *  sobre la base de Ajustes; las zonas siguen a la salida (D-479). Sin nada, como siempre. */
+  basesDelDia?: BasesDelDia;
 }
 
 /** Las columnas de una orden que lee «Planificar el día». `priority` (147) y `requirements` (151) no están: las añade
@@ -122,7 +126,10 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   const catalogo = catalogoDeRequisitos(settings);
 
   // ---- Choferes ----
-  const filaDe = new Map(datos.ajustesDeChofer.map((f) => [f.profile_id, f]));
+  // Con lo elegido para ESE día (165): la base de cada fila es la tienda de la que sale, sus zonas siguen a la salida, y
+  // aparte dónde termina el que no termina donde sale. Sin nada elegido, las mismas filas.
+  const delDia = ajustesDelDia(datos.ajustesDeChofer, datos.choferes, datos.basesDelDia, tiendas);
+  const filaDe = new Map(delDia.filas.map((f) => [f.profile_id, f]));
   const paraElMotor: ChoferParaElMotor[] = datos.choferes.filter((p) => p.role === "driver").map((p) => choferParaElMotor(p, filaDe.get(p.id), settings));
   const choferes: ChoferEntrada[] = [];
   const choferesFuera: EntradaDelDia["choferesFuera"] = [];
@@ -138,7 +145,10 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     const habilidades = habilidadesDelChofer(filaDe.get(c.id), catalogo);
     // Sus zonas preferidas (D-421, 152), también solo si tiene alguna.
     const zonas = zonasDelChofer(filaDe.get(c.id));
+    // Dónde termina ESE día, si vuelve y no es donde sale (165). Una tienda sin punto no vale: vuelve a la base.
+    const fin = c.vuelveABase && delDia.fin.has(c.id) ? tiendaConPunto(delDia.fin.get(c.id)) : null;
     choferes.push({ id: c.id, nombre: c.nombre, base, capacidad: c.capacidad, entrada: c.entradaMin, salida: c.salidaMin, vuelveABase: c.vuelveABase,
+      ...(fin && fin !== base ? { fin } : {}),
       ...(habilidades.length ? { habilidades } : {}), ...(zonas.length ? { zonas } : {}) });
   }
   const idPorNombre = new Map(paraElMotor.map((c) => [c.nombre.trim().toLowerCase(), c.id]));
