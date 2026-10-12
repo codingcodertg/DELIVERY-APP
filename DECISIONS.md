@@ -19931,6 +19931,11 @@ piden las etiquetas enteras, con su traducción.
 
 ## D-301 · Atender una solicitud de ayuda se le avisa a quien la escribió, y las atendidas se archivan
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): la burbuja de Ayuda ya está en todas las apps, que es justo el caso
+> en que esta entrada decía que dejaba de valer. El aviso de «atendida» sigue yendo a la campana de Entregas (y al
+> push); quien pide ayuda desde Time Tracker, RR. HH. u otra app sin tener Entregas lo ve en «Mis solicitudes»
+> (`/home/ayuda`), que la burbuja enlaza en todas las apps, y en el contador del lobby. Lo que falta está en D-NEXT.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño:** que al marcar una solicitud como atendida se avise a quien la mandó, y que las
 atendidas dejen de estorbar en la lista.
@@ -21058,6 +21063,10 @@ si alguien añade una etapa a un lado y no al otro, cae. Las pruebas usan tipos 
 documento pide cada tipo es dato del dueño y no se afirma en el repo.
 
 ## D-311 · Una solicitud de ayuda es una conversación: el dueño contesta y la persona responde
+
+> **Reemplazada en parte por D-NEXT** (2026-10-11): «el botón de ayuda sigue solo en Entregas» dejó de ser cierto; la
+> burbuja se monta una vez en el layout raíz y sale en todas las apps. Y «Mis solicitudes» ya no lee `settings` para
+> el destino del correo: lo pone el servidor (`destinoDeAyuda`).
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas; el hub se versiona con ella,
 D-087) · **Migración:** `126_ayuda_chat.sql`, escrita y **no aplicada**; va **antes** que el código.
@@ -38566,6 +38575,11 @@ a borde discontinuo y opacos.
 
 ## D-490 · Time Tracker: la barra como la de Entregas (el nombre abre el menú; fuera el rol, el ES/EN, el 🌙 y el «Sign out» suelto), un modo capacitación para todos donde nada se guarda, y un solo «Personalizar» en el hub para el idioma y el tema de todas las apps
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): el dueño quitó la tercera opción del tema, «Same as my device /
+> Como mi equipo»: *«that same as my device remove it»*. Quedan Claro y Oscuro. Quien la tenía guardada (`system`) se
+> queda con lo que su equipo le pintaba al abrir la app, y se guarda así: ya no sigue al sistema. Lo de abajo sobre
+> `system` y la escucha en vivo del sistema queda como historia.
+
 **Fecha:** 2026-10-07 · **Versión:** timetracker 0.98.0, clockin 0.44.0, deliveries 1.268.0, recruiting 0.39.0, erp 0.15.0, repo 1.363.0 (toca `timetracker` sobre todo; `deliveries` por la
 barra, el hub y el proveedor de preferencias, que son compartidos; `recruiting` y `erp` por sus barras) · **Migración:**
 ninguna · **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-080, D-160, D-203, D-265, D-266, D-274 y D-489,
@@ -42097,3 +42111,189 @@ lo midió el navegador (arriba).
   contesta).
 - La campana del almacén de la tienda en el demo (su único almacenista es de otra tienda); la regla está probada aparte.
 - Modo oscuro.
+
+## D-NEXT · El tema sin «Same as my device», y la burbuja de Ayuda igual en todas las apps
+
+**Fecha:** 2026-10-11 · **Versión:** la pone el orquestador. Toca código que pasa por TODAS las apps (el layout raíz,
+`prefs.tsx`, `globals.css`, `/api/help`), así que la sube en todas las de `APP_VERSIONS` · **Sin migración** ·
+**Pedido por:** el dueño · **Reemplaza en parte a** D-490 (el tema), D-301 y D-311 (la ayuda solo en Entregas), que llevan
+su nota.
+
+### Qué pidió el dueño
+
+Literal, el 2026-10-11, dos cosas:
+
+1. Sobre la tarjeta «Theme / Tema» de Personalizar («Applies to every app, on this device. «Same as my device» follows
+   your phone or computer, day and night.», con «☀ Light», «🌙 Dark» y «🖥 Same as my device»):
+   *«that same as my device remove it»*.
+2. *«the help buttom bubble should be evene thoguht all the apps»*.
+
+### 1 · El tema: Claro u Oscuro, y nada más
+
+**Lo que había.** D-490 puso en «Personalizar» (`/home/personalizar`) tres opciones de tema: Claro, Oscuro y «Same as my
+device / Como mi equipo», que guardaba `system` en `localStorage rtg_prefs.theme` y seguía al sistema del teléfono o del
+PC en vivo (escuchaba `matchMedia('(prefers-color-scheme: dark)')`).
+
+**Lo que cambia.**
+- La tarjeta tiene dos opciones, «☀️ Light / Claro» y «🌙 Dark / Oscuro» (`OPCIONES_DE_TEMA`, `lib/personalizar.ts`), y su
+  texto es solo «Applies to every app, on this device. / Vale para todas las apps, en este equipo.».
+- `PreferenciaDeTema` es `"light" | "dark"`. El proveedor ya no escucha al sistema, y `themePref` —que existía para
+  separar lo elegido (`system`) de lo pintado— se fue: Personalizar marca el `theme` que se pinta.
+- **No había otro sitio que la ofreciera.** Se buscó en todas las apps (Entregas, el hub, Time Tracker, RR. HH., el ERP,
+  Quote Builder, Leads, Encuestas, Promociones) y en `desktop/` y `mobile/` (ni `nativeTheme` ni nada parecido): solo
+  `Personalizador.tsx` y `personalizar.ts`. Una prueba recorre todo `src/` y exige que el texto no vuelva a aparecer.
+
+**Quien la tenía guardada se queda con lo que su equipo le está pintando en ese momento.** La primera vez que abre una
+página después del cambio, `system` se convierte en oscuro si el sistema está en oscuro y en claro si no
+(`temaDeLoGuardado`, `lib/tema.ts`), y el proveedor lo guarda así: desde entonces es una elección normal y ya no cambia
+sola al anochecer. Si quiere la otra, la elige en Personalizar.
+- **Por qué así y no «todos a Claro»:** quien tenía el teléfono en oscuro vería su pantalla saltar a blanco de golpe, sin
+  haber tocado nada. Así, el día del cambio nadie ve cambiar nada.
+- **El guion de antes de pintar (`GUION_DE_TEMA`) todavía entiende `system`**, y es a propósito: en esa primera carga lo
+  guardado aún dice `system`, y el guion tiene que pintar lo mismo que el proveedor va a guardar un instante después; si
+  no, esa carga daría un salto de color. La prueba lo ejecuta con las 16 combinaciones (claro, oscuro, `system`, nada ×
+  sistema claro u oscuro × web o escritorio) contra `temaEfectivo(preferenciaDeTemaGuardada(…))`.
+- Medido en el navegador (demo, 390 px, `prefers-color-scheme` emulado): con `system` guardado y el sistema en oscuro, el
+  guion pinta `dark`, y al cargar queda guardado `{"lang":"es","theme":"dark"}` con «🌙 Oscuro» marcado; el sistema pasa
+  a claro sin recargar y la página **sigue** en oscuro. Lo mismo al revés con claro. Un clic en «Oscuro» guarda `dark`.
+
+### 2 · La burbuja de Ayuda, la misma en todas las apps
+
+**Lo que había, medido** (demo, Chrome headless, 390 × 844 y 1440 × 900; capturas `antes-*` en el scratchpad del worker):
+la burbuja «? Help» (`HelpButton`, con su panel, la foto de la pantalla de D-509/D-513 y el enlace a «Mis solicitudes» de
+D-311) **solo existía en Entregas**: la montaban `app/(app)/layout.tsx` y `LocalApp.tsx`, y dependía del `DataProvider` de
+Entregas para dos cosas —los ajustes de ayuda (`help_email`, `help_phone`) y el aviso de abajo (`notify`)—.
+
+| Pantalla (390 y 1440) | Antes | Después |
+|---|---|---|
+| Entregas (tablero, «Mi ruta» del chofer, Gestor) | sí | sí |
+| Hub (lobby y Personalizar) | **no** | sí |
+| Time Tracker (empleado) | **no** | sí |
+| RR. HH. | **no** | sí |
+| ERP | **no** | sí |
+| Leads · Quote Builder · Encuestas · Promociones | **no** | sí |
+| Login · enlace del cliente (`/track/<id>`) | no | no |
+
+**Lo que cambia.**
+- **Un componente, montado una vez, en el layout raíz** (`app/layout.tsx`, dentro de `PrefsProvider`, junto a
+  `CierreDiario`), que es el único layout por el que pasan todas las apps. Se quitó de `(app)/layout.tsx` y de
+  `LocalApp.tsx`. Una prueba exige que ningún otro fichero de `src/` monte `<HelpButton`: no hay copias que se separen, y
+  una app nueva la tiene sin acordarse.
+- **Dónde no sale** lo dice `ayudaEnLaRuta` (`lib/ayuda-flotante.ts`), con su porqué en cada línea: `/login`, `/auth`,
+  `/reset-password`, `/change-password` (la contraseña obligatoria de D-486, que se ve antes de entrar a ninguna app),
+  `/no-access`, `/unsubscribe` y el enlace del CLIENTE `/track/<id>`. Ojo: `/track` a secas es «Rastreo» de Entregas y sí
+  la lleva. Una prueba recorre las 89 `page.tsx` de `src/app` y exige que solo esas seis se queden sin burbuja.
+- **La misma, byte a byte**: una prueba pinta la burbuja en la raíz de cada app y compara el HTML; es idéntico. En el
+  navegador, en las 12 pantallas medidas: a 390 px en (332, 786), 44 × 44; a 1440 px en (1332, 838), 88 × 42; mismo color
+  (`rgb(36, 86, 201)`), y en las 24 + 22 pantallas medidas es lo de encima en su centro.
+- **Ya no depende de Entregas.**
+  - Quién escribe (id, nombre, rol) y el teléfono de ayuda los da **`GET /api/help`** (nuevo), con la sesión, al abrir la
+    burbuja. El teléfono hay que leerlo así: `settings` solo la lee quien tiene Entregas (`has_deliveries_access()`,
+    migración 100), y desde Time Tracker una persona sin Entregas no vería el «📞 Llámanos». El servidor lo lee con la
+    llave de servicio y devuelve **solo el teléfono** (una prueba exige exactamente `id, nombre, rol, telefono`).
+  - **El destino del correo lo decide el servidor** (`destinoDeAyuda`: `settings.help_email` si es una dirección, y si
+    no `DEFAULT_HELP_EMAIL`). Antes lo mandaba el navegador en `to`, leído de `settings` con la sesión; quien no tiene
+    Entregas no puede leerla, así que su solicitud se iba a la dirección por defecto aunque Ajustes dijera otra. El `to`
+    que llegue del navegador **se ignora**; «Mis solicitudes» del hub ya no lee `settings`. De paso, eso cierra que
+    cualquiera con sesión pudiera hacer que el servidor mandara el correo de ayuda a la dirección que quisiera.
+  - El aviso de abajo («enviada», «no se pudo…») es de la burbuja (la misma clase `.toast`), fuera de la foto como el
+    resto de Ayuda.
+  - La solicitud dice la versión **de la app en la que está** (`APP_VERSIONS[appForPath(pathname)]`), la misma que sale
+    arriba a la derecha; antes decía siempre la de Entregas.
+- **Visto de punta a punta** en Time Tracker (390), RR. HH. (1440) y Entregas (390), con clics de persona: abrir → una
+  petición `GET /api/help`; el panel «¿Necesita ayuda?» con «📸 Capturar esta pantalla» y «💬 Mis solicitudes y
+  respuestas»; la foto en 562 / 539 / 579 ms, con **0** llamadas a `getDisplayMedia` y sin el panel ni la burbuja en la
+  imagen; se adjunta (60 / 115 / 90 KB); y al mandar, una petición `POST` y el aviso «El correo aún no está configurado…»
+  (el demo no tiene llave de Resend: nada sale de la máquina).
+
+### No tapa lo que las apps pegan abajo
+
+- **`z-index` 40 → 5.** La burbuja va por DEBAJO de lo que cada app pega al fondo —los recuadros «Elige conductor» y de
+  reparto del Gestor (`sticky`, 6), la barra de seleccionados del ERP (40), la de comparar de RR. HH. (60), los avisos
+  (99) y las ventanas— y por encima del contenido que pasa al bajar (tablas, tarjetas; los mapas Leaflet van aislados por
+  `.leaflet-container { isolation: isolate }`). Medido en el Gestor a 390 px con «Elige conductor para 42 órdenes» puesto:
+  con 40, la burbuja quedaba encima de la esquina del recuadro; con 5, el recuadro la tapa a ella (lo de encima en el
+  centro de la burbuja es el recuadro).
+- **Un hueco al final de cada app** (`--hueco-de-ayuda`: 80 px; 72 en el teléfono), para que lo último de la página suba
+  por encima de la burbuja. Entregas, el hub y RR. HH. ya lo dejaban (`.wrap`, 80/72 px) y Leads también (96 px). **Time
+  Tracker (12 px) y Promociones (24 px) no**: medido a 390 px, al final de Promociones la ✕ de la última fila quedaba
+  tapada un 36 %, y en la Nómina de Time Tracker la última fila llegaba al borde. Ahora `body .timetracker-module .wrap`
+  y el contenedor de Promociones usan el hueco. Es relleno de DENTRO del contenedor, no un espacio detrás de la página:
+  Time Tracker y el ERP miden al menos la pantalla (`min-height: 100vh`), y un espacio detrás haría bajar 72 px de nada a
+  cualquier pantalla corta (medido: la del empleado sigue en 844 px de alto, sin bajar).
+- **Medido después, al final de la página:** 0 botones debajo de la burbuja en las 12 pantallas a 390 y 1440 y en otras 22
+  a 390 (almacén, resumen, usuarios, ajustes, cuentas, rastreo, inicio, mapa e inspección del chofer, tutoriales, perfil,
+  y en Time Tracker semana, solicitudes, cuenta, nómina y empleados; RR. HH. tablero y hoy; ERP pedir y catálogo).
+  Al principio de la página quedan solapes parciales que se van al bajar (los más grandes: el 🗑 de Cuentas, 70 %, y la ✕
+  de la primera tarjeta de Promociones, 46 %, a 390 px).
+- **«Mi ruta» del chofer**, bajando de 40 en 40 px a 390: lo peor es un 11 % de «✓ Entregadas (0)» (165 px de ancho, 134
+  libres); «📍 Llegué» y «🚚 Recogido» pasan por debajo de su borde derecho al bajar y nunca se quedan debajo al final.
+  **«Clock in»** del empleado de Time Tracker: arriba de la pantalla, sin solape.
+
+### Lo que no se hizo, y lo que queda pendiente
+
+- **Dónde le llega la respuesta a quien no tiene Entregas** (la condición que dejó escrita D-301). La campana de Entregas
+  no la ve; la de Time Tracker es la de fichaje. Le llega por el push (si tiene teléfono registrado), por «Mis
+  solicitudes» (`/home/ayuda`, que solo pide sesión y que la burbuja enlaza en todas las apps) y por el contador del lobby.
+  Lo que falta: un aviso de «respuesta sin leer» en la propia burbuja. No se pidió y no se hizo.
+- **`/change-password` y `/no-access` se quedan sin burbuja**, como el login: son pantallas de antes de entrar a una app.
+  Quien se atasque ahí no tiene la burbuja; si se quiere, es quitarlas de `RUTAS_SIN_AYUDA`.
+- **La vista móvil del admin** (`/home/vista-movil`) enseña dos burbujas: la de su página y la de la app que corre dentro
+  del marco, que es lo que vería el teléfono.
+- **El aviso del cierre de las 18:30** (`CierreDiario`, `z-index` 9998) se pinta en la misma esquina y tapa la burbuja
+  mientras está; ya pasaba en Entregas.
+
+### Pruebas y mutantes
+
+Nueva: `ayuda-flotante.test.ts` (dónde sale, el recorrido de las 89 páginas, un solo montaje, el HTML idéntico en cada
+app, el sitio y el hueco, `/api/help` GET y POST con Supabase y Resend falsos —ningún correo sale—, y lo que la burbuja
+pide antes de mandar). Reescrita: `tema.test.ts` (dos opciones, la conversión de `system` y el guion). Ampliada:
+`personalizar.test.ts` (la tarjeta pintada con `renderToStaticMarkup`: «*Claro | Oscuro», sin el texto viejo). Movidas,
+cada una con su razón escrita: `captura-sin-permiso` (la marca fuera de la foto la llevan 3 piezas del botón, no 2: el
+aviso es suyo ahora; y el clic que abre también pide el contacto), `help-captura` (el `return (` del JSX se busca con su
+salto de línea, porque ahora hay antes un `return () => clearTimeout`; y el id es `quien.id`) y `help-attachments` (ídem).
+
+**28 de 28 mutantes caen**, cada uno con una prueba con nombre (tanda `w-tema-ayuda/tanda.json`, control en verde con 147
+pruebas). Mutante → prueba que lo tumba:
+- «Same as my device» vuelve a ofrecerse → *sin «Same as my device» (D-NEXT)* y *el tema tiene dos opciones, Claro y
+  Oscuro*; el texto viejo vuelve a la tarjeta → *ni «Same as my device» ni el texto que lo explicaba*; Personalizar marca
+  siempre Claro → *marca lo puesto*.
+- `system` pasa a Claro aunque el equipo pinte oscuro, o deja de reconocerse → *se queda con lo que su equipo le está
+  pintando ahora*; el guion pinta `system` en claro → *system · sistema oscuro · web*; `system` vuelve a ser elección →
+  *solo Claro y Oscuro son elecciones*; el proveedor convierte sin mirar el sistema → *al cargar, lee lo guardado con
+  preferenciaDeTemaGuardada y lo que el sistema pinta AHORA*.
+- El layout raíz deja de montarla → *el layout raíz monta <HelpButton />*; el demo vuelve a montar su copia → *nadie más
+  la monta*; `/track` (Rastreo) sin burbuja → *«Rastreo» de Entregas (/track) sí*; sale en el login → *no en las pantallas
+  de antes de las apps* y *recorriendo TODAS las páginas*; la burbuja no mira la ruta → *en el login y en el enlace del
+  cliente no se pinta nada*; se pinta distinta en Time Tracker → *es EXACTAMENTE el mismo HTML en todas*.
+- Versión siempre de Entregas → *manda la versión de la app en la que está*; se manda sin preguntar quién escribe → *quién
+  escribe sale de la sesión*; abrir no pide el contacto → *se calienta al abrir Ayuda, en el mismo clic*; el «📞
+  Llámanos» desaparece → *sale del teléfono que contesta /api/help*; el aviso desaparece → *la llevan las cuatro piezas de
+  Ayuda*.
+- Una respuesta sin id se toma por contacto → *sin sesión (401, sin id) o sin red: null*; un rol desconocido rompe →
+  *uno que el app no conoce va tal cual*; GET sin teléfono → *GET da quién escribe y el teléfono*; el destino vuelve al
+  navegador → *POST … IGNORA el `to`*; leer Ajustes sin protección → *si no se pudieron leer, va a la de siempre*;
+  cualquier texto vale como destino → *destinoDeAyuda*.
+- `z-index` 40 otra vez → *va POR DEBAJO de lo que las apps pegan al fondo*; Time Tracker o Promociones sin hueco → *deja
+  un hueco al final de cada app*.
+
+`node scripts/verify.mjs`: tipos, 7 465 pruebas y el build, en verde.
+
+### Ficheros
+
+Nuevos: `src/lib/ayuda-flotante.ts`, `src/lib/ayuda-flotante.test.ts`. Cambiados: `src/lib/tema.ts`, `src/lib/prefs.tsx`,
+`src/lib/personalizar.ts`, `src/components/profile/Personalizador.tsx`, `src/components/HelpButton.tsx`,
+`src/lib/help-send.ts`, `src/app/api/help/route.ts`, `src/app/layout.tsx`, `src/app/(app)/layout.tsx`,
+`src/components/LocalApp.tsx`, `src/app/home/ayuda/page.tsx`, `src/app/globals.css`, `src/app/promos/[id]/page.tsx`, y
+las pruebas citadas arriba.
+
+### No verificado
+
+- **Nada con sesión de verdad ni contra la base.** Lo de las apps que piden sesión (hub, Time Tracker, RR. HH., ERP) se
+  vio con un arnés temporal, no commiteado, que sustituye el cliente de Supabase del servidor por uno en memoria. La
+  lectura de `settings` con la llave de servicio y el `GET /api/help` se probaron con dobles; el «📞 Llámanos» no se vio
+  en el navegador (el demo no tiene Ajustes ni sesión).
+- **Un teléfono de verdad**, Safari de iPhone y la app de escritorio de Time Tracker: no.
+- La foto de la pantalla solo se tomó en Time Tracker, RR. HH. y Entregas; en el ERP, Leads, Quote Builder, Encuestas y
+  Promociones se vio la burbuja, no la foto.
+- El tema oscuro de cada app con la burbuja: solo se miró en Personalizar.
