@@ -34348,6 +34348,10 @@ Gestor, dos sitios de Mi ruta, la parada del chofer, la ficha).
 
 > **Reemplazada en parte por D-489** (2026-10-06): la ventana de «Voy a salir» pregunta primero, a todos, «¿vehículo personal o de la empresa?» (antes, solo una casilla a quien tenía vehículo asignado); con el de la empresa pide el cuentakilómetros y cualquier salida —visita o no— se graba como viaje.
 
+> **Reemplazada en parte por D-NEXT** (2026-10-11): para el **admin**, «📷 Tomar foto» y «Ya volví» de la visita (puntos 7 y
+> 9) ya no son botones bajo el reloj: van, con las demás acciones de fichar, dentro de «Mis acciones ▾». Hacen lo mismo.
+> El empleado sigue con sus botones.
+
 ### Qué pidió el dueño
 
 Primer mensaje, literal: *«mira que quiero asignar al time tracker a everto prado pero el es onsite no remote y no me sale la
@@ -38320,6 +38324,11 @@ No visto en navegador: `tsc` y vitest.
 > **⚠ Reemplazada en parte por D-490** (2026-10-07): la fila `a.tt-me` de la auditoría de botones ya no aplica: el
 > nombre de la barra de Time Tracker dejó de ser un enlace a «Mi cuenta» y abre el menú de la cuenta.
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-11), a pedido del dueño: (4) en «Mi semana» el **presencial** ya no ve
+> «Horas totales» (sus horas fichadas, con «De tus fichajes…»; `horasDeLaSemana` se quitó) ni la cifra «Hoy» encima de
+> «Fichajes de hoy» (la tabla se queda); el remoto conserva «Horas totales». (5) En la tarjeta de fichar, el empleado ya no
+> ve el contador que corre («0:00:00»): solo el título, la pastilla y los botones. El admin, como estaba.
+
 **Fecha:** 2026-10-06 · **Versión:** timetracker 0.97.0, clockin 0.43.0, recruiting 0.38.1, deliveries 1.267.1, erp 0.14.1, repo 1.362.0 (toca `timetracker` sobre todo, y de paso
 `deliveries` y `recruiting` por la auditoría de botones, y una línea del ERP) · **Migración:** ninguna ·
 **Pedido por:** el dueño, dictado · **Reemplaza en parte a** D-067, D-069, D-116, D-125, D-129, D-136 y D-455, que llevan
@@ -40884,3 +40893,241 @@ Y, añadido el mismo día al mismo encargo:
 - **Lo que ya pasaba y no se tocó:** dentro del marco, la barra de Entregas de un admin (sin suplantación) sigue
   enseñando «📱 Vista móvil» (D-501), que mete la vista móvil dentro del marco. Y «Personalizar» durante una suplantación
   guarda el idioma en la fila de la otra persona (por el código: `setLang` escribe en la fila de la sesión; no medido).
+
+## D-NEXT — Time Tracker: las acciones de fichar del admin, en «Mis acciones ▾»; y el empleado ya no ve correr su tiempo (ni el contador al fichar, ni «Horas totales» y «Hoy» en «Mi semana»)
+
+**Fecha:** 2026-10-11 · **Versión:** la asigna el orquestador al fusionar (toca solo `timetracker`) · **Migración:** ninguna ·
+**Pedido por:** el dueño, en tres mensajes del mismo día · **Reemplaza en parte a** D-455 y D-489, que llevan su nota ·
+Rama `feat/clockin-acciones-admin`.
+
+### Qué pidió el dueño
+
+Tres pedidos del 2026-10-11, literales. Cada uno tiene su punto abajo. Las descripciones de las capturas son del
+orquestador, que las vio; el worker no.
+
+1. «IN THE CLOCK IN THE PERSONAL ACTIONS BUTTOMS FOR THE ADMIN GOES INTO A DROPDOWN»
+2. «TOTAL HOURS REMOVE IT AND ALSO HOURS WORKED TODAY LIKE IN THE SCREENSHOT» — con la captura de «My Week» de Carlos
+   Fuentes (empleado presencial) en la vista móvil: arriba la tarjeta «Total hours · From your clock-ins, 2026-10-09 →
+   2026-10-15», luego «📊 My scorecard» (On time 0 · Late 1 · 746 min total · Hours 11h 16m · 8 scheduled shifts with no
+   punch) y abajo la tarjeta «Today 0h 00m» encima de «Today's punches».
+3. «IN HERE QUITA EL TIEMPO Y SOLO DEJA CLOCK IN Y NOT ACTIVE NO QUEREMOS QUE MIREN EL TIEMPO» — con la captura de «Track
+   Time» de Carlos Fuentes: la tarjeta «Clock in» con la pastilla «not clocked in», el reloj grande «0:00:00» y el botón
+   «Clock in»; debajo «My schedule» y «Daily notes».
+
+### 1 · «Mis acciones ▾» del admin
+
+**Cómo se leyó.** «The clock in» es la vista «⏰ Clock in / out» (en español «⏰ Fichar») de «Registrar tiempo». El dueño
+llama así a la parte de fichar desde que la app de fichaje se fundió en Time Tracker (D-489: *«si el empleado está usando
+el clock in app…»*). En esa vista el admin ve **su** tarjeta de fichar (`PunchPanel`), con los mismos botones que un
+empleado. Esas son las «acciones personales»: lo que el admin hace para sí mismo, no sobre otros.
+
+Lo que se comprobó leyendo el código antes de decidir:
+
+- `PunchPanel` solo lo pinta `Cronometro`: la vista «Fichar» del admin y la pantalla entera del presencial. **Ninguna
+  pantalla de gerente** (Panel, Trabajando ahora, Nómina, Pendientes, Empleados…) pinta acciones de fichar propias. La
+  primera lectura del orquestador («ocupan sitio encima de las pantallas de gestión») no se sostiene: están en su propia
+  vista.
+- Se descartaron otros dos candidatos. (a) Los botones de cada fila de Empleados: son dos por persona («Activar /
+  Desactivar» y «📅 Semana») y no son personales. (b) Las pestañas personales de la barra del admin («Registrar tiempo ·
+  Mi semana · Mis solicitudes · Mi diario», que `TopBar` separa con una raya de las de gerente). Este segundo **queda
+  descrito y no hecho**: si el dueño se refería a eso, es otro cambio (la barra), no este.
+
+**Qué había (medido en el arnés, 2026-10-11, a 1280 y 390 px).** Admin fichado, vista «Clock in / out»: título «You are on
+the clock», pastilla «since 8:02 AM», el contador y tres botones en dos filas: «Clock out» (rojo), «🍽 Start lunch» y
+«🚚 Going out». La tarjeta medía 225 px de alto. Según el estado, los botones cambian:
+
+- sin fichar: «Clock in»;
+- con una salida abierta: «End lunch · 12:10» o «I'm back · 12:10»;
+- durante una visita: «📷 Take photo», «I'm back · 12:10» (si el viaje es personal) y «🍽 Start lunch».
+
+**Qué se decidió.**
+
+- Para el **admin** (`timetracker_role === "admin"`, `accionesEnMenu`), todos esos botones van en **un solo «My actions
+  ▾ / Mis acciones ▾»**, a la derecha de la tarjeta, debajo del contador. Es el `MenuDeAcciones` de la ficha de Entregas
+  (D-497), no otro:
+  - opciones de 44 px;
+  - teclado (↓ ↑ Inicio Fin, Escape);
+  - se cierra al elegir, al pulsar fuera y al desplazarse;
+  - colocado para no salirse de la ventana.
+
+  Va a la derecha porque ese menú se abre alineado con el borde derecho de su botón: con el botón a la izquierda, a
+  1280 px asomaba por fuera de la tarjeta.
+- **Qué opciones hay lo decide `accionesPersonales`** (`src/lib/timetracker/mis-acciones.ts`), con **las mismas
+  condiciones que los botones**. Una prueba transcribe las condiciones del JSX de antes y las compara en las 36
+  combinaciones de: fichado o no; caja del motivo abierta o no; salida abierta (ninguna, almuerzo u otra); y viaje
+  (ninguno, personal o de empresa). Solo cambia el orden: primero las del día, y **«Registrar salida» al final, en rojo y
+  tras una raya**, como el botón rojo que era.
+- **Lo que hace cada opción no cambia, por construcción.** Lo que hacía cada botón se escribió una sola vez, en `hacer`:
+  un `Record<AccionPersonal, …>` que no compila si falta una acción. Lo llaman tanto los botones del empleado como las
+  opciones del admin:
+  - «Registrar entrada» y «Registrar salida» abren la cámara y fichan;
+  - el almuerzo y «Ya volví» mandan la ubicación si la hay;
+  - «Voy a salir» abre la misma ventana de D-455/D-489;
+  - «📷 Tomar foto» abre la cámara de la visita.
+- **El estado se ve sin abrir el menú.** «Terminar almuerzo · 12:10» era a la vez botón y estado, y dentro del menú se
+  perdía. Ahora lo dice la pastilla del admin (`estadoDelFichaje`):
+  - «🟢 Working since 8:02 AM» / «Trabajando desde…»;
+  - «🍽 On lunch since…» / «Almorzando desde…»;
+  - «🚚 Out since…» / «Fuera desde…»;
+  - «🚗 On a trip since…» / «De viaje desde…»;
+  - sin fichar, «not clocked in», como siempre.
+
+  Una salida abierta manda sobre el viaje, igual que en `filaDeSalida`.
+- Mientras se guarda lo último, las opciones salen apagadas con el motivo en el `title` («Wait — the last action is still
+  saving»), como los botones (`disabled={!!ocupado}`).
+- La caja «¿por qué?» (fichar fuera del sitio, sin turno o en otra tienda) sigue igual y fuera del menú: trae su propio
+  «Registrar entrada» y su «Cancelar».
+- **Empleado y gerente: sin cambios** en sus botones.
+
+**Lo que no se tocó, y por qué.** El panel «🚗 Visitas, mandados y viajes» del admin sigue igual. Es un formulario
+(pregunta del vehículo, cuentakilómetros, motivo, nombre de la parada) y sus botones no se entienden sin sus campos. Si
+el dueño lo quiere también recogido (por ejemplo, plegable como «Mi horario»), es un paso aparte.
+
+### 2 · «Mi semana» del presencial: sin «Horas totales» y sin «Hoy · 0h 00m»
+
+- **«Horas totales» se quita al empleado presencial** (`seccionesDeMiSemana(...).totalDeHoras`). Era la cifra que D-489 le
+  había puesto: sus horas **fichadas** de la semana de pago, con la línea «De tus fichajes, …». Con ella se van
+  `horasDeLaSemana`, que ya no tenía quien la llamara, y la clave `emp.week.fromPunches`.
+- **El remoto la conserva. Es una decisión a validar:** su cifra es la suma de su propia tabla del cronómetro, que sigue
+  viendo justo debajo, y el pedido venía de la captura de un presencial. El admin la sigue viendo como siempre, con el
+  dinero al lado.
+- **«Hoy · 0h 00m» se quita** de encima de «Fichajes de hoy». En `FichajesDeHoy` el parámetro `semanaDePago` pasa a
+  llamarse `cifras`:
+  - con `cifras`, pinta «Hoy» y «Esta semana de pago» (el admin, debajo de su reloj, como antes);
+  - sin él, solo la tabla (el presencial, en «Mi semana»).
+
+  **La tabla «Fichajes de hoy» se queda.**
+- **«Horas» dentro de «Mi boletín» no se tocó**, porque se pidió no tocarla. Qué mide, para preguntárselo al dueño: los
+  minutos trabajados **desde el día 1 del mes** (`getMyScorecard` → `scoreWeek`). Por cada fichaje cuenta la salida menos
+  la entrada, menos el almuerzo fichado; un turno aún abierto cuenta hasta ahora. No es la cifra de la semana ni la de hoy.
+- Lo que el presencial **sigue viendo con horas** en «Mi semana», por si también se quiere quitar:
+  - la columna «Tiempo» de la tabla «Fichajes de hoy» («4h 05m» por turno, «0h 30m» por almuerzo);
+  - la línea «🍽 Almuerzo 30 min · 🚚 Fuera N min» debajo de esa tabla;
+  - solo si tiene sesiones del cronómetro (pedidas por «Mis solicitudes»), la tabla por proyecto con «Horas» y
+    «Entradas de esta semana» con su duración. Según lo medido en D-493 (2026-10-07), ningún presencial tenía sesiones.
+
+### 3 · El empleado ya no ve el contador al fichar
+
+- En la tarjeta de fichar, **el contador grande que corre («0:00:00», «4:05:12») solo lo ve el admin**
+  (`seccionesDeFichar(...).contador`). El empleado ve el título («Registrar entrada» / «Está trabajando»), la pastilla
+  («sin fichar», que es el «not active» del dueño, o «desde 8:02») y sus botones. Sin contador, la tarjeta ya no se
+  repinta cada segundo.
+- **Los demás tiempos que el empleado tenía a la vista estando fichado**, revisados uno a uno. Todos son horas fijas y se
+  quedan:
+  - la pastilla «desde 8:02 AM», la **hora de entrada**;
+  - «Terminar almuerzo · 12:10» y «Ya volví · 12:10», la **hora** a la que salió;
+  - en el panel de viajes, «en viaje · 12:10» y las paradas «12:10 – 12:30»;
+  - «Mi horario», que son turnos programados, no trabajados.
+
+  **Ninguno cuenta tiempo trabajado**: el único que corría era el contador. «Esta semana de pago» y «Fichajes de hoy» ya
+  no salían bajo su reloj desde D-489.
+- **No es el cronómetro de D-470.** El número que se quita es el de `PunchPanel`, que se calcula en pantalla a partir de la
+  hora de entrada. El cronómetro (`Cronometro`, que `CronometroAnfitrion` monta en el layout, con su tick, su latido y su
+  vigía) **no se tocó**:
+  - se sigue montando igual (`debeMontarCronometro` no cambia);
+  - arma el tick, el latido y el vigía **antes** de pintar la tarjeta del presencial;
+  - el remoto y el admin siguen viendo su número (`timer-big`).
+
+  Las pruebas lo fijan. Dos mutantes caen: «para no enseñar el número se deja de montar el cronómetro al presencial» y
+  «el anfitrión del layout deja de montar el cronómetro».
+- El remoto no cambia: su cronómetro es su herramienta de trabajo, y el pedido era sobre la tarjeta de fichar.
+
+### Ficheros
+
+- **Nuevos:** `src/lib/timetracker/mis-acciones.ts` (qué acciones hay, su texto y el estado; puro) y
+  `src/lib/timetracker/mis-acciones.test.ts`.
+- **Cambiados:**
+  - `src/components/timetracker/PunchPanel.tsx`: `hacer`, el menú del admin, su pastilla y el contador solo para el admin;
+  - `src/components/timetracker/FichajesDeHoy.tsx`: `cifras`;
+  - `src/app/timetracker/(timetracker)/week/page.tsx`;
+  - `src/lib/timetracker/vista-empleado.ts`: `contador` y `totalDeHoras`; se quita `horasDeLaSemana`;
+  - `src/lib/timetracker/i18n.ts`: 6 claves nuevas en y es; se quita `emp.week.fromPunches`.
+- **Pruebas ajustadas**, cada una con su «Nota D-NEXT»:
+  - `src/lib/timetracker/vista-empleado.test.ts`: se quitaron las de `horasDeLaSemana` y `fromPunches` junto con lo que
+    probaban; `semanaDePago` pasa a `cifras`; `contador` entra en `seccionesDeFichar`;
+  - `src/lib/clockin/visitas.test.ts`: los botones llaman a `hacer.*`, y lo que hacen se busca en `hacer`.
+- No se tocaron `MenuDeAcciones`, `globals.css`, `Cronometro` ni `vigia.ts`.
+
+### Pruebas y mutantes
+
+`mis-acciones.test.ts` (36 pruebas) cubre:
+
+- la lógica;
+- las 36 combinaciones contra los botones de antes;
+- las opciones pintadas con `OpcionesDelMenu` de verdad (`renderToStaticMarkup`: la raya y «Clock out» en rojo);
+- las claves en los dos idiomas;
+- leyendo el fuente, que cada pantalla usa la lógica: `PunchPanel`, «Mi semana», `FichajesDeHoy`, `CronometroAnfitrion` y
+  `Cronometro`.
+
+**Mutantes: 34 de 34 caen** con una prueba con nombre (la tanda está en el scratchpad del worker,
+`clockin-admin/tanda.json`). Ejemplos, mutante → prueba que lo tumba:
+
+- «el empleado y el gerente también reciben el menú» → *solo al admin; el empleado y el gerente siguen con sus botones*;
+- «con la caja del motivo abierta el menú vuelve a ofrecer la entrada» → *en las 36 combinaciones… el menú tiene las
+  mismas acciones que los botones*;
+- «"ya volví" de un toque también con vehículo de la empresa» → *de visita en vehículo de la empresa: sin «ya volví»*;
+- «registrar la salida deja de ir en rojo» → *registrar la salida es la única en rojo*;
+- «estado: el viaje manda sobre la salida abierta» → *…una salida abierta manda sobre el viaje*;
+- «las opciones del menú no llaman a la función de su botón» → *cada opción llama a la MISMA función que su botón*;
+- «el almuerzo deja de mandar la ubicación» → *lo que hace cada acción está escrito una vez…*, y la prueba de D-213 en
+  `day-photos.test.ts`;
+- «un botón del empleado vuelve a hacer lo suyo por su cuenta» → *los botones del empleado llaman a esas mismas funciones*;
+- «el admin ve también los botones sueltos» → *…y no salen al admin*;
+- «el empleado vuelve a tener contador» → *el contador es solo del admin*;
+- «sin contador se sigue repintando cada segundo» → *sin contador no se repinta cada segundo*;
+- «para no enseñar el número se deja de montar el cronómetro al presencial» → *al presencial se le sigue montando el
+  cronómetro…*, y la de D-470;
+- «el número del cronómetro del remoto y del admin desaparece» → *el número del cronómetro (remoto, admin) sigue en su
+  sitio*;
+- «"Horas totales" vuelve para el presencial» y «…se va también para el remoto» → *«Horas totales»: fuera para el
+  presencial; el remoto y el admin la conservan*;
+- «"Hoy · 0h 00m" vuelve a Mi semana» → *«Fichajes de hoy» en Mi semana va sin las cifras de horas…*.
+
+`node scripts/verify.mjs` en verde (tsc, vitest y build) sobre origin/main con D-516.
+
+### Visto en el navegador (2026-10-11)
+
+Time Tracker no tiene demo. Se usó un arnés temporal, no commiteado: el de D-489/D-493 con una pieza más. Con
+`ARNES_TT=1`, `next.config.mjs` sustituía por dobles en memoria el cliente de servidor, el proveedor de datos, las
+acciones de fichaje y la subida de fotos. Los dobles apuntan cada llamada en `window.__arnes`, y el rol, el tipo y si la
+persona está fichada salen de cookies. Chrome por CDP, a 390 y 1280 px, con clics de ratón sobre el elemento a la vista y
+teclas de verdad; la foto se entregó por el selector de ficheros que abre la opción. Las capturas de antes y después
+están en el scratchpad del worker, `clockin-admin/tiros/`.
+
+- **Admin fichado.** La tarjeta pasa de 225 a 176 px de alto (1280) y de 225 a 172 (390), con un solo botón «My actions
+  ▾» y la pastilla «🟢 Working since 8:02 AM». El menú: «🍽 Start lunch | 🚚 Going out | — | Clock out» (en rojo), 44 px
+  cada opción, dentro de la ventana (a 390 px ocupa de x = 103 a x = 363) y sin desborde lateral.
+- **Cada acción desde el menú, y lo que llamó:**
+  - «Start lunch» → `startLeave({ reason: "lunch", geo })`. La pastilla pasa a «🍽 On lunch since 6:15 PM» y el menú a
+    «End lunch · 6:15 PM | Clock out».
+  - «End lunch» → `endLeave("l1", geo)`.
+  - «Going out» → la misma ventana de siempre (pregunta del vehículo). Personal + Sí → `startTrip({ personal: true,
+    vehicleId: null, odometer: null, reason: "customer_visit", … })`; la pastilla pasa a «🚗 On a trip since…» y el
+    menú a «📷 Take photo | I'm back · 6:15 PM | 🍽 Start lunch | Clock out».
+  - «Take photo» → la cámara → `subirFoto`, `logStop({ label: "Customer visit", photoPath, lat, lng })` y `finishStop`.
+  - «I'm back» → `endTrip(geo)`.
+  - «Clock out» → la cámara → `subirFoto` y `clockOut("e1", { lat, lng, accuracy, photoPath })`; la pastilla vuelve a
+    «not clocked in».
+  - «Clock in», la única opción sin fichar → la cámara → `clockIn`.
+- **Teclado.** ↓ sobre el botón abre el menú con el foco en «🍽 Start lunch»; Escape lo cierra y devuelve el foco al botón.
+- **En español** (1280): «Mis acciones», «🍽 Empezar almuerzo | 🚚 Voy a salir | Registrar salida», y la pastilla «🟢
+  Trabajando desde 8:02 AM».
+- **Empleado presencial.** Sin menú, y sus botones («Clock out», «🍽 Start lunch», «🚚 Going out») iguales que antes.
+  «Start lunch» → `startLeave`, la misma llamada que hace el admin; «End lunch» → `endLeave`. Sin contador, la tarjeta pasa
+  de 225 a 163 px fichado y de 176 a 114 sin fichar: título, pastilla y botón.
+- **«Mi semana» del presencial** (390 y 1280): ya no salen «32.50 h · Total hours · From your clock-ins…» ni «Today 4h
+  05m». Quedan la cabecera, «📊 My scorecard» y «Today's punches» con su tabla. La «Mi semana» del admin y la del remoto
+  salen idénticas a antes (se comparó el texto de sus cifras), y el cronómetro del remoto sigue enseñando su número.
+- **La consola.** En inglés, sin errores. En español, un único error: la hidratación del diccionario de Time Tracker que
+  D-490 ya anotó (sale igual para admin y empleado).
+
+### No verificado
+
+- **Nada contra la base de verdad ni en un teléfono.** Las acciones se ejercitaron con dobles (el arnés); las reales no
+  cambiaron. La cámara se probó con el selector de ficheros de Chrome de escritorio.
+- **El modo oscuro, un lector de pantalla y el rol `manager`** no se vieron en el navegador. El gerente cuenta como
+  empleado por `esAdminDeTt`, y eso está probado en vitest.
+- **Las pestañas personales de la barra del admin**, el segundo candidato de «personal actions», no se tocaron.
+- **A validar con el dueño:** que el remoto conserve «Horas totales» en «Mi semana»; si «Horas» del boletín, la columna
+  «Tiempo» de «Fichajes de hoy» y la línea del almuerzo también deben irse; y si el panel de viajes del admin también
+  debe recogerse.
