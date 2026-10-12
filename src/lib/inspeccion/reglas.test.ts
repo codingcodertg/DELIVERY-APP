@@ -291,9 +291,9 @@ describe("logística", () => {
     expect(resumenDelDia([...filas, corregida], ["Miguel A."])).toEqual({ hechas: 3, noSeguras: 1, defectosAbiertos: 2, sinInspeccion: [] });
   });
 
-  it("revisan las del equipo logística y el admin; nadie más", () => {
+  it("revisa las del equipo solo el admin; nadie más (D-521: logística fuera)", () => {
     expect(["admin", "logistics", "driver", "manager", "sales", "warehouse", "accounting", null].map(revisaLasDelEquipo))
-      .toEqual([true, true, false, false, false, false, false, false]);
+      .toEqual([true, false, false, false, false, false, false, false]);
   });
 });
 

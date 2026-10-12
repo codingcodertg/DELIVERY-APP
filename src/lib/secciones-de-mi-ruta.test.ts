@@ -67,15 +67,16 @@ describe("seccionesDeMiRuta", () => {
 
 describe("«Mi ruta» pinta las dos secciones con la función", () => {
   const p = leer("src/app/(app)/my-route/page.tsx");
-  it("Pendientes abierta y Entregadas plegada por defecto, las dos plegables a mano", () => {
-    expect(p).toContain("useState<Record<SeccionDeMiRuta, boolean>>({ pendientes: true, hechas: false })");
-    expect(p).toContain("<details data-seccion={s} open={abierta[s]} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open;");
+  it("D-522: un selector arriba con las dos; nace en Pendientes y solo se ve la elegida", () => {
+    expect(p).toContain('useState<SeccionDeMiRuta>("pendientes")');
+    expect(p).toContain("<div data-seccion={s} hidden={listaElegida !== s}");
+    expect(p).toContain("onClick={() => setListaElegida(s)}");
   });
   it("reparte con `seccionesDeMiRuta` sobre la misma lectura y la misma numeración que el resto de la pantalla", () => {
     expect(p).toContain("const secciones = useMemo(() => seccionesDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, numeradas.deFila), [lectura, porId, numeradas]);");
-    expect(p).toContain('{seccion("pendientes", `🕒 ${t("Pending", "Pendientes")}`, secciones.pendientes,');
-    expect(p).toContain('{seccion("hechas", `✓ ${t("Delivered", "Entregadas")}`, secciones.hechas,');
-    expect(p).toContain("<summary data-titulo-de-seccion={s} style={TITULO_DE_SECCION}>{titulo} ({secciones.paradas[s]})</summary>");
+    expect(p).toContain('{seccion("pendientes", secciones.pendientes,');
+    expect(p).toContain('{seccion("hechas", secciones.hechas,');
+    expect(p).toContain("({secciones.paradas[s]})");
   });
   it("el número del círculo es el de la sección, no el de la lista entera", () => {
     expect(p).toContain("return secciones.conNumero[fi]");

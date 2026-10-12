@@ -308,7 +308,7 @@ export const etiquetaDeVehiculo = (v: { name: string; plate?: string | null }): 
  * Quién ve las inspecciones de TODOS y marca un defecto «corregido»: logística y el admin. Es la misma lista que las
  * políticas de la 165 (`vehicle_inspections select` y `marca_defecto_corregido`); una prueba compara las dos.
  */
-export const ROLES_QUE_REVISAN = ["admin", "logistics"] as const;
+export const ROLES_QUE_REVISAN = ["admin"] as const; // D-521: solo el admin (antes también logística)
 export const revisaLasDelEquipo = (role: string | null | undefined): boolean => (ROLES_QUE_REVISAN as readonly string[]).includes(role ?? "");
 
 /**

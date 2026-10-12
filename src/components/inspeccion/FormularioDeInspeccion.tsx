@@ -280,13 +280,13 @@ export function FormularioDeInspeccion() {
 
       <div className="card" style={{ marginTop: 12 }}>
         <div className="insp-campo">
-          <label htmlFor="insp-notas">{t("Notes for logistics (optional)", "Notas para logística (opcional)")}</label>
+          <label htmlFor="insp-notas">{t("Notes for the office (optional)", "Notas para la oficina (opcional)")}</label>
           <textarea id="insp-notas" value={borrador.notas} onChange={(e) => setBorrador({ ...borrador, notas: e.target.value })} />
         </div>
 
         <div className={`insp-veredicto ${veredicto}`} data-veredicto={veredicto}>
           {criticos.length > 0
-            ? <>⛔ {t("NOT safe to drive: ", "NO es seguro salir: ")}{criticos.map((id) => textoDelPunto(id, es)).join(", ")}. {t("Tell logistics before leaving.", "Avisa a logística antes de salir.")}</>
+            ? <>⛔ {t("NOT safe to drive: ", "NO es seguro salir: ")}{criticos.map((id) => textoDelPunto(id, es)).join(", ")}. {t("Tell the office before leaving.", "Avisa a la oficina antes de salir.")}</>
             : seguro
               ? <>✅ {t("Safe to drive", "Seguro para salir")}{defectos(borrador.respuestas).length ? ` — ${t("report the other defects", "reporta los otros defectos")}` : ""}</>
               : <>{t("Answer every item to know if it's safe to drive.", "Contesta todo para saber si es seguro salir.")}</>}
@@ -325,7 +325,7 @@ function InspeccionHecha({ f, es, t }: { f: Inspeccion; es: boolean; t: (en: str
         <span>{f.vehicle_label}{f.odometer != null ? ` · ${f.odometer.toLocaleString("en-US")} mi` : ""}</span>
         <BadgeDeSeguridad est={est} t={t} />
       </div>
-      {est === "no_segura" && <div className="banner err" style={{ marginTop: 10, marginBottom: 0 }}>{t("Don't drive this truck until logistics says so.", "No salgas con este camión hasta que logística te diga.")}</div>}
+      {est === "no_segura" && <div className="banner err" style={{ marginTop: 10, marginBottom: 0 }}>{t("Don't drive this truck until the office says so.", "No salgas con este camión hasta que la oficina te diga.")}</div>}
       {est === "corregida" && <div className="banner ok" style={{ marginTop: 10, marginBottom: 0 }}>{t("Logistics marked the critical defects as fixed.", "Logística marcó corregidos los defectos críticos.")}</div>}
       {def.length > 0 ? (
         <ul className="insp-defectos">
