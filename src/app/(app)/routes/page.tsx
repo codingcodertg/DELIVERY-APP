@@ -13,6 +13,8 @@ import { useConfirm } from "@/lib/confirm";
 import { canPlanRoutes } from "@/lib/constants";
 import { parseWindow, unavailableDriverNames } from "@/lib/dispatch";
 import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
+import { FotoDeLaRuta } from "@/components/FotoDeLaRuta";
+import { lineasDeLaRuta, puntosDeLaRuta } from "@/lib/foto-de-la-ruta";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
 import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
@@ -962,6 +964,8 @@ export default function RoutesPage() {
 
   // Friendly display name for a lane key.
   const laneLabel = (key: string) => lanes.find((l) => l.key === key)?.label ?? key;
+  // «📸 PNG» (D-NEXT): de qué ruta se está armando la imagen para el chofer. Una a la vez.
+  const [pngDe, setPngDe] = useState<string | null>(null);
   // 🔒 (D-411): ¿esta ruta está bloqueada en el día que se mira? Desde D-437 lo mira «📍 Mejor lugar» (y el arrastre al
   // nombre de un chofer, que es Mejor lugar); «Armar las rutas del día» lo lee en el servidor (D-414). A mano (flechas,
   // «Asignar») no se mira. Optimizar, Auto-asignar, Simular y el dibujo que optimizaba, que también lo miraban, se quitaron.
@@ -3083,6 +3087,16 @@ export default function RoutesPage() {
                   onClick={() => clearLane(u.key)}>🗑 {t("Clear", "Vaciar")}</button>
               )}
               </span>
+              )}
+              {/* «📸 PNG» (D-NEXT): la hoja de la ruta —paradas en orden y el mapa con solo esta ruta— como imagen, para
+                  mandársela al chofer. También en solo lectura: mirar y mandar no cambia nada. */}
+              {stops.length > 0 && (
+                <button className="btn btn-ghost btn-sm" data-png-de-la-ruta={u.key} title={t("Build a PNG of this route (stops + map) to send to the driver", "Armar un PNG de esta ruta (paradas + mapa) para mandárselo al chofer")}
+                  onClick={(e) => { e.stopPropagation(); setPngDe(u.key); }}>📸 PNG</button>
+              )}
+              {pngDe === u.key && (
+                <FotoDeLaRuta chofer={u.label} fecha={date} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}
+                  points={puntosDeLaRuta(points, u, new Set(stops.map((d) => d.id)))} lines={lineasDeLaRuta(lines, u.key)} />
               )}
             </div>
             {!sinCuerpo && <>

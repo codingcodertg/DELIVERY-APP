@@ -42831,3 +42831,21 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pruebas:** `siguiente-de-mi-ruta.test.ts` (nuevo: el caso de las dos recogidas paso a paso; rechazadas, anuladas, sin lista, entrega solo en el camión; posición; la llegada por orden; el filtro de botones; un toque solo con lista), `mi-ruta-pantalla.test.ts` (pintada: Llegué en las dos órdenes y Recogido en las dos al llegar; tarjeta 1/5 · Pickup 1 of 4 → 2 of 4 con la segunda; burbuja y factura; la recogida de un toque y su GPS; Entregado sin escribir), `acciones-parada.test.ts`, `vista-de-chofer.test.ts`, `one-tap-stop.test.ts`, `avisos-cliente.test.ts` (notas D-533 donde fijaban D-527). Mutantes: 12 de 12 caen (`mut533`).
 
 **No medido:** nada en navegador (`tsc` y vitest). No se probó con un chofer real en la tienda.
+
+## D-NEXT · «📸 PNG» en el Gestor: la hoja de una ruta (paradas en orden + mapa con solo esa ruta) como imagen para mandársela al chofer
+
+**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · Sin migración · Hecho directo por el orquestador en `feat/png-de-la-ruta`.
+
+**Pedido del dueño**, literal: *«crea una opcion para crear una imagen png del schedule y el mapa con su ruta en el mapa parfa mandarlo al driver»*.
+
+**Qué cambia.**
+1. **«📸 PNG»** en la cabecera de cada ruta con paradas del Gestor de rutas (`routes/page.tsx`), también en solo lectura (mirar y mandar no cambia nada). Abre un cuadro (`FotoDeLaRuta.tsx`) con la **hoja de la ruta**: cabecera (chofer con su color, día, paradas, pallets), la lista de paradas **en el orden de la ruta** (#, factura o número, cuenta, dirección, ventana, pallets: las columnas de la hoja de carga, D-287) y un **mapa con solo esa ruta**: su base, su fin si termina en otra tienda, sus recogidas en tienda numeradas, sus entregas y su trazo (medido, o el del plan publicado), encuadrado a eso.
+2. **Qué es «de esa ruta»** lo decide `foto-de-la-ruta.ts` (puro) a partir de las marcas y líneas que el Gestor ya pinta, por sus ids (`__depot__<id>`, `__fin__<id>`, `__parada__<key>__N`, el id de la orden; `line:`/`ret:`/`plan:` de la ruta), todas encendidas y sin abanico ni desplazamiento: en la foto no hay otras rutas.
+3. **La foto**: `snapdom` (el mismo de la captura de Ayuda, D-513, que ya probó que los mosaicos de Leaflet salen enteros), a doble escala, sin los botones. **«⬇ Descargar PNG»** baja `ruta-<chofer>-<día>.png`; **«📤 Compartir»** abre la hoja de compartir del teléfono (WhatsApp, correo) donde el navegador comparte ficheros, y si no, lo dice y queda la descarga. Cancelar la hoja no es error.
+4. La hoja va en **blanco con texto oscuro aunque la app esté en oscuro**: una imagen que se manda tiene que salir igual siempre. Por eso el fichero entra en la tabla de colores a pelo (`inline-colors.test.ts`, 5) y el total sube de 69 a 74.
+
+**Qué no cambia.** El mapa del Gestor, la medida de rutas, la hoja de carga impresa (D-287), «Mi ruta». Nada se escribe en la base. El mapa de Google (si se activara la llave) no se midió: hoy todos los mapas son Leaflet.
+
+**Pruebas:** `foto-de-la-ruta.test.ts` (qué marcas y líneas entran y cuáles no; encuadre; filas; pallets; nombre del fichero; cuándo se puede compartir; que el Gestor y el cuadro usan esto así). Mutantes: ver abajo.
+
+**No medido:** nada en navegador: ni la imagen real ni cuánto tarda con el mapa dentro del cuadro (snapdom espera a que los `<img>` de los mosaicos estén cargados; si la persona pulsa antes de que el mapa termine de pintar, el PNG puede salir con mosaicos grises: en ese caso, volver a pulsar).
