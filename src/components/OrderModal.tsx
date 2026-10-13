@@ -24,7 +24,8 @@ import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
 import { ofrecePasarACliente, pideVendedor, tipoDeCliente, vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
 import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
-import { mismaTiendaOGrupo, tiendasDelGrupo, trabajaConOtras } from "@/lib/store-group";
+import { tiendasDelGrupo } from "@/lib/store-group";
+import { origenesPermitidos as origenesDelVendedor, origenFijo as origenFijoDelVendedor } from "@/lib/origen-libre";
 import { ordenDeMisTiendas, puedeBorrar } from "@/lib/deshacer-y-borrar";
 import { ventanaDelOtroTipoDeDia, ventanaDeTodoElDia, ventanasParaLaFecha } from "@/lib/delivery-windows";
 import { decisionAlConfirmar, hayQueAvisar, siguienteIndice, sugerenciasPara } from "@/lib/account-combobox";
@@ -364,9 +365,7 @@ export function OrderModal({
    *  (D-293). Para los demás roles la lista no se toca. Y la tienda que ya tiene la orden se
    *  conserva siempre, como en D-267: un selector vacío con un valor guardado detrás no se corrige. */
   const origenesPermitidos = (todas: string[]): string[] =>
-    me.role !== "sales" || !me.store
-      ? todas
-      : todas.filter((n) => mismaTiendaOGrupo(n, me.store, settings.stores) || n === d.store);
+    origenesDelVendedor(todas, me, reglaDelTipo, d.store, settings.stores); // con origen libre, todas (D-537)
   /** El selector queda fijo solo si no hay a dónde moverse: su tienda no trabaja con ninguna otra. */
   // Solo para avisar cuando se está enseñando el respaldo: la tienda está puesta y no tiene a nadie, así
   // que la lista de arriba son todos. Hoy no le pasa a ninguna tienda (medido 2026-09-17).
@@ -733,7 +732,7 @@ export function OrderModal({
   const destinoCongelado = homeIsDestination && !!me.store;
   /** El selector de «Vendido desde» queda fijo solo si no hay a dónde moverse: la tienda del vendedor
    *  no trabaja con ninguna otra (D-293). Antes quedaba fijo siempre. */
-  const origenFijo = me.role === "sales" && !!me.store && !homeIsDestination && !trabajaConOtras(me.store, settings.stores);
+  const origenFijo = origenFijoDelVendedor(me, reglaDelTipo, settings.stores);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses
   // a single Estimate #; everything else uses the Invoice # / PO # / SO # trio.
   const docRef = orderTypeRule(d.order_type, settings.order_type_rules).docRef ?? "invoice";

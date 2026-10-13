@@ -42881,3 +42881,26 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pruebas:** `foto-de-la-ruta.test.ts` (qué marcas y líneas entran y cuáles no; encuadre; filas; pallets; nombre del fichero; cuándo se puede compartir; que el Gestor y el cuadro usan esto así). Mutantes: ver abajo.
 
 **No medido:** nada en navegador: ni la imagen real ni cuánto tarda con el mapa dentro del cuadro (snapdom espera a que los `<img>` de los mosaicos estén cargados; si la persona pulsa antes de que el mapa termine de pintar, el PNG puede salir con mosaicos grises: en ese caso, volver a pulsar).
+
+## D-537 · El tipo de orden «Other», y el «origen libre»: ventas puede vender desde cualquier tienda en ese tipo
+
+**Fecha:** 2026-10-13 · **Versión:** deliveries 1.298.0 (repo 1.402.0) · Sin migración (el tipo es un dato de `settings`) · Hecho directo por el orquestador en `tipo-other-origen-libre`.
+
+**Pedido del dueño**, literal: *«OCUPO CREAR UNA NUEVA ORDER TYPE QUE SE LLAMARA OTHER, YA T EDIRE LAS REGLAS SOLO SE QUE INICIANDO SE PUEDE ELEGIR OTRA TIENDA DE ORIGIEN NO NECESARIAMENTE LA DEL ORIGIN DEL SALES GUY»*.
+
+**Qué había.** Los tipos viven en datos (`settings.order_types` y `order_type_rules`, D-511), pero ninguna bandera describía «el origen es libre»: un vendedor con tienda solo podía elegir como «Vendido desde» la suya o las de su grupo (D-293), y el selector quedaba fijo si su tienda no trabaja con otras.
+
+**Qué cambia.**
+1. **`anyOrigin`**, bandera nueva de la regla del tipo. Con ella el vendedor elige cualquier tienda y el selector nunca queda fijo. Sin declarar, `false`: Customer, Transfer, Intertienda y Proveedor no cambian. La regla salió de la ficha a `src/lib/origen-libre.ts` (`origenesPermitidos`, `origenFijo`) para que las pruebas la importen.
+2. **Datos → Tipos de orden** enseña la columna «Origen libre».
+3. **Error que ya existía, arreglado de paso:** guardar esa tabla reescribía cada regla con solo tres campos (`storeToStore`, `docRef`, `homeIsDestination`) y **le quitaba a «Proveedor» su `hasCustomer: false`** (D-511): al siguiente guardado, un proveedor volvía a tratarse como cliente, aviso por SMS incluido. Ahora `reglasAlGuardar` parte de la regla que había (por el nombre original, así que renombrar tampoco la pierde) y encima pone lo de la tabla.
+4. **La orden propia no desaparece de la lista.** Ventas y gerente ven Órdenes cortada a su tienda y su grupo (D-405). Con el origen libre, un vendedor de McAllen que vende desde Brownsville dejaba de ver su orden al crearla. `esMia` (la creé yo, o soy su vendedor asignado) la deja pasar ese corte. Solo ese: el corte por rol (`ventasVeLaOrden`) y la ventana de fechas siguen igual.
+5. **El tipo «Other»** se siembra tras fusionar, en datos: `docRef: "none"` (los campos de factura/PO/SO se ven pero no se exigen) y `anyOrigin: true`. El dueño dijo que las demás reglas las dirá; todo es editable en Datos.
+
+**Lo que conviene saber, sin cambiar.**
+- **La aprobación automática la decide la tienda de origen** (`store_auto_approves(NEW.store)`, guard de la 169). Un «Other» de un vendedor de McAllen con origen en Brownsville **nace aprobado**, porque Brownsville aprueba sola; uno con origen McAllen va a Pendiente (desde hoy McAllen no auto-aprueba, T-0532).
+- **La base corta lo que ve cada perfil con `visible_stores`** (131). Medido hoy: 2 vendedores (de Pharr) tienen una tienda marcada; para ellos una orden con origen fuera de esa tienda no llega ni a cargarse, y `esMia` no lo arregla porque es de pantalla. Los demás 12 vendedores no tienen marca.
+
+**Pruebas:** `origen-libre.test.ts` (selector con y sin la bandera; guardar conserva `hasCustomer`, renombrar se lo lleva, quitar la bandera la quita; la lista enseña la orden propia de otra tienda y no el borrador de otro). `tiendas-que-trabajan-juntas.test.ts` pasó de leer el texto de la ficha a ejecutar la regla importada. Mutantes: 7 de 7 caen, cada uno con su prueba por nombre.
+
+**No medido:** nada en navegador.

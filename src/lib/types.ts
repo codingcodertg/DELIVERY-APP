@@ -505,6 +505,13 @@ export interface OrderTypeRule {
    * antes: los tres tipos que existen hoy no cambian de comportamiento.
    */
   hasCustomer?: boolean;
+  /**
+   * Origen libre (D-537): el vendedor puede elegir CUALQUIER tienda como «Vendido desde», no solo
+   * la suya o las de su grupo (D-293). El dueño, 2026-10-13, al pedir el tipo «Other»: *«INICIANDO SE
+   * PUEDE ELEGIR OTRA TIENDA DE ORIGIEN NO NECESARIAMENTE LA DEL ORIGIN DEL SALES GUY»*. Sin declarar,
+   * `false`: los tipos que ya existen no cambian.
+   */
+  anyOrigin?: boolean;
 }
 
 /** La app de un tutorial, para agruparlo en el hub (D-268). Sin app = General. */
