@@ -4,7 +4,7 @@ import { encuadreDeLaFoto, filasDeLaFoto, lineasDeLaRuta, nombreDelPng, palletsD
 import type { MapLine, MapPoint } from "@/components/LeafletMap";
 import type { Delivery } from "@/lib/types";
 
-// D-NEXT · «crea una opcion para crear una imagen png del schedule y el mapa con su ruta en el mapa parfa mandarlo al driver».
+// D-536 · «crea una opcion para crear una imagen png del schedule y el mapa con su ruta en el mapa parfa mandarlo al driver».
 
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");
 const pt = (id: string, extra: Partial<MapPoint> = {}): MapPoint => ({ id, lat: 26, lng: -97, color: "#000", label: id, dimmed: true, offset: [3, 3] as unknown as MapPoint["offset"], ...extra });

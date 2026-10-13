@@ -42864,9 +42864,9 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 **No medido:** nada en navegador (`tsc` y vitest). El contraste de los textos sobre los dos fondos no se midió.
 
-## D-NEXT · «📸 PNG» en el Gestor: la hoja de una ruta (paradas en orden + mapa con solo esa ruta) como imagen para mandársela al chofer
+## D-536 · «📸 PNG» en el Gestor: la hoja de una ruta (paradas en orden + mapa con solo esa ruta) como imagen para mandársela al chofer
 
-**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · Sin migración · Hecho directo por el orquestador en `feat/png-de-la-ruta`.
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.297.0 (repo 1.401.0) · Sin migración · Hecho directo por el orquestador en `feat/png-de-la-ruta`.
 
 **Pedido del dueño**, literal: *«crea una opcion para crear una imagen png del schedule y el mapa con su ruta en el mapa parfa mandarlo al driver»*.
 

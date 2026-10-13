@@ -183,7 +183,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // mientras carga. Un video se ve sobre negro en claro y en oscuro, que es la regla de esta tabla
     // para los colores que no cambian con el tema.
     "src/components/tutorials/TutorialsHub.tsx": 2,
-    // 5 desde D-NEXT: la hoja de «📸 PNG» de la ruta se fotografía para mandarla al chofer, y una imagen que
+    // 5 desde D-536: la hoja de «📸 PNG» de la ruta se fotografía para mandarla al chofer, y una imagen que
     // se manda por WhatsApp tiene que salir igual en claro y en oscuro: fondo blanco, texto casi negro, dos
     // grises de las rayas de la tabla y el ámbar del aviso. Es la regla de esta tabla para lo que no cambia
     // con el tema (como el negro del video de los tutoriales).
@@ -244,7 +244,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // 73 y 59 hasta D-481: −2 blancos de «Ruta de hoy», que ya no tiene código propio.
     // 71 y 57 hasta D-515: −1 blanco, el círculo de la entrega en «Mi ruta», que pasa a ser el número de parada del Gestor.
     // 70 y 56 hasta D-520: −1 blanco, el de la leyenda del mapa, que se quitó de toda la app (`MapLegend.tsx` borrado).
-    // 69 y 55 hasta D-NEXT: +5 (uno blanco) de la hoja de «📸 PNG» de la ruta, que se fotografía (ver su techo, arriba).
+    // 69 y 55 hasta D-536: +5 (uno blanco) de la hoja de «📸 PNG» de la ruta, que se fotografía (ver su techo, arriba).
     expect(total).toBe(74);
     expect(blancos).toBe(56);
   });

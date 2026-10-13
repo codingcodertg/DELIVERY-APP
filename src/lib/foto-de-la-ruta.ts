@@ -5,7 +5,7 @@ import { fmtWindows, orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// «📸 PNG para el chofer» en el Gestor (D-NEXT, 2026-10-12). El dueño: «crea una opcion para crear una imagen png del
+// «📸 PNG para el chofer» en el Gestor (D-536, 2026-10-12). El dueño: «crea una opcion para crear una imagen png del
 // schedule y el mapa con su ruta en el mapa parfa mandarlo al driver».
 //
 // Una imagen por ruta: la cabecera (chofer, día, paradas, pallets), la lista de paradas en el orden de la ruta y el

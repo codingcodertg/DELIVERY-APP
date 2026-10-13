@@ -8,7 +8,7 @@ import { fmtDate } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 /**
- * «📸 PNG para el chofer» (D-NEXT): la hoja de la ruta como imagen —cabecera, paradas en orden y el mapa con solo esa
+ * «📸 PNG para el chofer» (D-536): la hoja de la ruta como imagen —cabecera, paradas en orden y el mapa con solo esa
  * ruta— para mandársela al chofer por WhatsApp o correo. Se pinta en un cuadro (para que la persona la vea antes de
  * mandarla) y se fotografía con `snapdom`, el mismo de la captura de Ayuda (D-513): los mosaicos del mapa salen enteros.
  *

@@ -964,7 +964,7 @@ export default function RoutesPage() {
 
   // Friendly display name for a lane key.
   const laneLabel = (key: string) => lanes.find((l) => l.key === key)?.label ?? key;
-  // «📸 PNG» (D-NEXT): de qué ruta se está armando la imagen para el chofer. Una a la vez.
+  // «📸 PNG» (D-536): de qué ruta se está armando la imagen para el chofer. Una a la vez.
   const [pngDe, setPngDe] = useState<string | null>(null);
   // 🔒 (D-411): ¿esta ruta está bloqueada en el día que se mira? Desde D-437 lo mira «📍 Mejor lugar» (y el arrastre al
   // nombre de un chofer, que es Mejor lugar); «Armar las rutas del día» lo lee en el servidor (D-414). A mano (flechas,
@@ -3088,7 +3088,7 @@ export default function RoutesPage() {
               )}
               </span>
               )}
-              {/* «📸 PNG» (D-NEXT): la hoja de la ruta —paradas en orden y el mapa con solo esta ruta— como imagen, para
+              {/* «📸 PNG» (D-536): la hoja de la ruta —paradas en orden y el mapa con solo esta ruta— como imagen, para
                   mandársela al chofer. También en solo lectura: mirar y mandar no cambia nada. */}
               {stops.length > 0 && (
                 <button className="btn btn-ghost btn-sm" data-png-de-la-ruta={u.key} title={t("Build a PNG of this route (stops + map) to send to the driver", "Armar un PNG de esta ruta (paradas + mapa) para mandárselo al chofer")}
