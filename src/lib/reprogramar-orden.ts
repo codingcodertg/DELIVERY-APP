@@ -8,17 +8,25 @@
 import { shiftDateISO } from "./utils";
 
 /**
- * ¿Se puede reprogramar desde el Gestor? Las etapas son las que el guard de la base deja editar a logística en la misma
- * etapa (`guard_delivery_stage`: borrador, pendiente, aprobada, preparando, lista). El admin, además, la que va en camino.
- * Entregada y anulada no se reprograman.
+ * ¿Se puede reprogramar desde el Gestor (D-500) o desde Almacén (D-534)? Las etapas son las que el guard de la base deja
+ * editar a logística en la misma etapa (`guard_delivery_stage`: borrador, pendiente, aprobada, preparando, lista). El
+ * admin, además, la que va en camino. Entregada y anulada no se reprograman.
+ *
+ * **Almacén** (D-534; el dueño, 2026-10-12: «warehouse as an option to rescheduled and or change delivery dates»): en
+ * `approved`, `fulfilling` y `ready` —lo que tiene en su cola—, que es donde el guard le deja escribir en la misma etapa
+ * (169, rama de almacén). Ni el borrador ni la pendiente, que no ve; ni la que ya va en el camión.
  */
 export function puedeReprogramar(rol: string | null | undefined, etapa: string | null | undefined): boolean {
   const abiertas = ["draft", "pending", "approved", "fulfilling", "ready"];
   if (!etapa || etapa === "delivered" || etapa === "canceled") return false;
   if (rol === "admin") return [...abiertas, "picked_up", "rejected"].includes(etapa);
   if (rol === "logistics" || rol === "manager" || rol === "accounting") return abiertas.includes(etapa);
+  if (rol === "warehouse") return ETAPAS_QUE_REPROGRAMA_ALMACEN.includes(etapa);
   return false;
 }
+
+/** Las etapas de su cola en las que almacén reprograma (D-534). */
+export const ETAPAS_QUE_REPROGRAMA_ALMACEN: readonly string[] = ["approved", "fulfilling", "ready"];
 
 /** La fecha que se propone: el día siguiente al más tarde entre hoy y la fecha que ya tiene la orden. */
 export function fechaPropuesta(fechaActual: string | null | undefined, hoy: string): string {

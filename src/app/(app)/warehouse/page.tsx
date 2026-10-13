@@ -13,6 +13,8 @@ import { idsRecibidasPorAlmacen, pastillaDeEtapa, puedeRecibir, recibirOrden } f
 import { useConfirm } from "@/lib/confirm";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
+import { ReprogramarOrden } from "@/components/ReprogramarOrden";
+import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { printLoadSheets } from "@/lib/slip";
 import { ETAPAS_DE_LA_HOJA_DE_CARGA, ETAPAS_DE_LA_RUTA_DEL_DIA, rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
 import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
@@ -31,7 +33,7 @@ const TABS = [
 ] as const;
 
 export default function WarehousePage() {
-  const { me, users, deliveries, settings, driverLocations, ready, realRole, events, setStage, notify } = useData();
+  const { me, users, deliveries, settings, driverLocations, ready, realRole, events, setStage, notify, updateDelivery, addNote } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   // Las entregadas que recibió almacén (D-409), para la pastilla de la Ruta del día.
@@ -46,6 +48,11 @@ export default function WarehousePage() {
     if (ok) notify(t("Received", "Recibida"));
   };
   const [open, setOpen] = useState<Delivery | null>(null);
+  /** «📅 Reprogramar» en la fila (D-534): el MISMO cuadro del Gestor (D-500), la fecha siguiente y una nota obligatoria,
+   *  donde `puedeReprogramar` dice que sí (almacén en aprobada/preparando/lista; el admin, como en el Gestor). */
+  const reprogramar = (d: Delivery) => puedeReprogramar(me?.role, d.stage)
+    ? <ReprogramarOrden pedido={d} lang={lang} t={t} updateDelivery={updateDelivery} addNote={addNote} notify={notify} />
+    : null;
   // Warehouse starts on the Approved (new) queue — the orders waiting to be
   // prepared — and narrows/expands from there.
   //
@@ -285,7 +292,8 @@ export default function WarehousePage() {
               )}
             </div>
           )}
-          <OrdersTable rows={cola.filas} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")} />
+          <OrdersTable rows={cola.filas} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")}
+            accionDeFila={reprogramar} />
         </div>
       ) : vista === "recepcion" ? (
         /* Recepción: las Intertiendas cuyo DESTINO es una de sus tiendas y que no salen de ellas.
@@ -307,9 +315,17 @@ export default function WarehousePage() {
               // «Recibir» en la propia fila (D-409), solo donde `puedeRecibir` dice que sí: almacén, en
               // `picked_up`, y la orden va a su tienda. Recepción ya es esa lista, pero la regla se pregunta
               // igual: un admin eligiendo tienda aquí no recibe, y una lista y un permiso no son lo mismo.
-              accionDeFila={(d) => puedeRecibir(me, d, orderTypeRule(d.order_type, settings.order_type_rules), settings.stores) ? (
-                <button className="btn btn-green btn-sm" disabled={recibiendo === d.id} onClick={() => void recibir(d)}>📥 {t("Receive", "Recibir")}</button>
-              ) : null}
+              accionDeFila={(d) => {
+                const recibe = puedeRecibir(me, d, orderTypeRule(d.order_type, settings.order_type_rules), settings.stores);
+                const repro = reprogramar(d);
+                if (!recibe && !repro) return null;
+                return (
+                  <>
+                    {recibe && <button className="btn btn-green btn-sm" disabled={recibiendo === d.id} onClick={() => void recibir(d)}>📥 {t("Receive", "Recibir")}</button>}
+                    {repro}
+                  </>
+                );
+              }}
             />
           )}
         </div>
@@ -353,6 +369,7 @@ export default function WarehousePage() {
                       <th style={{ textAlign: "left" }}>{t("Window", "Ventana")}</th>
                       <th style={{ textAlign: "left" }}>{t("Pallets", "Pallets")}</th>
                       <th style={{ textAlign: "left" }}>{t("Stage", "Etapa")}</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
@@ -374,6 +391,8 @@ export default function WarehousePage() {
                             return <span className="sema" style={{ background: p.color, color: "#fff" }}>{p.texto}</span>;
                           })()}
                         </td>
+                        {/* «📅 Reprogramar» (D-534), sin abrir la ficha: el toque no abre la orden. */}
+                        <td onClick={(e) => e.stopPropagation()}>{reprogramar(d)}</td>
                       </tr>
                     ))}
                   </tbody>
