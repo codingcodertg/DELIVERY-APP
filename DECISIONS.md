@@ -39227,6 +39227,8 @@ No visto en navegador: `tsc` y vitest.
 
 ## D-500 · Gestor: «📅 Reprogramar» en cada fila — la siguiente fecha y una nota
 
+> **Ampliada por D-534** (2026-10-12): el mismo «📅 Reprogramar» sale en Almacén (Cola, Recepción y Ruta del día) y almacén puede usarlo en aprobada, preparando y lista.
+
 **Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.0, repo 1.370.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d500`.
 
 **Pedido del dueño**, literal: *«agrega el boton en las ordenes de rescheduled ahi mismo en el gestor de rutas por si toca y uno solo elije la siguiente fehchay una nota»*.
@@ -42831,6 +42833,22 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pruebas:** `siguiente-de-mi-ruta.test.ts` (nuevo: el caso de las dos recogidas paso a paso; rechazadas, anuladas, sin lista, entrega solo en el camión; posición; la llegada por orden; el filtro de botones; un toque solo con lista), `mi-ruta-pantalla.test.ts` (pintada: Llegué en las dos órdenes y Recogido en las dos al llegar; tarjeta 1/5 · Pickup 1 of 4 → 2 of 4 con la segunda; burbuja y factura; la recogida de un toque y su GPS; Entregado sin escribir), `acciones-parada.test.ts`, `vista-de-chofer.test.ts`, `one-tap-stop.test.ts`, `avisos-cliente.test.ts` (notas D-533 donde fijaban D-527). Mutantes: 12 de 12 caen (`mut533`).
 
 **No medido:** nada en navegador (`tsc` y vitest). No se probó con un chofer real en la tienda.
+
+## D-534 · Almacén reprograma: «📅 Reprogramar» en su Cola, Recepción y Ruta del día (aprobada, preparando, lista)
+
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.295.0 (repo 1.399.0) · Sin migración · Hecho directo por el orquestador en `feat/almacen-reprograma`. **Amplía D-500** (lleva su nota).
+
+**Pedido del dueño**, literal: *«warehouse as an option to rescheduled and or change delivery dates»*.
+
+**Qué cambia.**
+1. `puedeReprogramar("warehouse", etapa)` (`reprogramar-orden.ts`) dice que sí en `approved`, `fulfilling` y `ready` (`ETAPAS_QUE_REPROGRAMA_ALMACEN`): las etapas de su cola. **La base ya lo permitía**: la rama de almacén de `guard_delivery_stage` (169, igual que la 168) deja escribir en la misma etapa en esas tres, así que no hay migración. Ni el borrador ni la pendiente (no las ve, D-286), ni la que ya va en el camión (es del chofer y de logística), ni entregada o anulada.
+2. La página de Almacén monta el **mismo** `ReprogramarOrden` del Gestor (D-500: la fecha siguiente propuesta, no antes de hoy, y una nota obligatoria que queda en el historial como «Reprogramada de X a Y: …»): en la **Cola** y en **Recepción** como acción de fila (`accionDeFila` de `OrdersTable`; en Recepción junto a «📥 Recibir» cuando toca), y en la **Ruta del día** en una celda al final, que no abre la ficha al tocarla. El admin, que ya lo tenía en el Gestor, lo ve aquí con su misma regla.
+
+**Qué no cambia.** La ficha (almacén ya podía editar la fecha con «Editar», `canEditFields`); el Gestor; ventas y chofer siguen sin reprogramar.
+
+**Pruebas:** `reprogramar-orden.test.ts` (almacén en las tres etapas y en ninguna otra; la cláusula del guard; que Almacén monta el mismo cuadro en las tres vistas).
+
+**No medido:** nada en navegador (`tsc` y vitest).
 
 ## D-NEXT · «Mi ruta»: las recogidas sobre verde claro y las entregas sobre azul claro; la siguiente, con borde
 

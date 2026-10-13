@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 /**
- * Los colores de «Mi ruta» por tipo de parada (D-NEXT). El dueño, 2026-10-12: «pickup in driver view should be 1 color
+ * Los colores de «Mi ruta» por tipo de parada (D-535). El dueño, 2026-10-12: «pickup in driver view should be 1 color
  * and deliveries another like light green and delivery light blue».
  *
  * Una recogida (P) va sobre verde claro y una entrega (D) sobre azul claro, en la lista y en la tarjeta de «Siguiente

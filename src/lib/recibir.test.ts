@@ -207,10 +207,13 @@ describe("las pantallas", () => {
   it("Recepción: «Recibir» en la fila, con `puedeRecibir` y la escritura de `recibirOrden`", () => {
     const recepcion = almacen.slice(almacen.indexOf('resizeKey="warehouse-recepcion"'), almacen.indexOf("La ruta del día, de SOLO LECTURA"));
     expect(recepcion.length).toBeGreaterThan(0);
-    expect(recepcion).toContain("accionDeFila={(d) => puedeRecibir(me, d, orderTypeRule(d.order_type, settings.order_type_rules), settings.stores) ? (");
+    // D-534: la acción de fila de Recepción lleva «Recibir» y, al lado, «📅 Reprogramar» cuando toca.
+    expect(recepcion).toContain("const recibe = puedeRecibir(me, d, orderTypeRule(d.order_type, settings.order_type_rules), settings.stores);");
+    expect(recepcion).toContain('{recibe && <button className="btn btn-green btn-sm" disabled={recibiendo === d.id} onClick={() => void recibir(d)}>📥 {t("Receive", "Recibir")}</button>}');
     expect(almacen).toContain("const ok = await recibirOrden(setStage, d.id);");
-    // Solo en Recepción: la Cola no lo ofrece.
-    expect((almacen.match(/accionDeFila=/g) ?? []).length).toBe(1);
+    // «Recibir» solo en Recepción: la Cola tiene acción de fila (D-534, «Reprogramar»), pero sin «Recibir».
+    expect((almacen.match(/accionDeFila=/g) ?? []).length).toBe(2);
+    expect((almacen.match(/void recibir\(d\)/g) ?? []).length).toBe(1);
   });
 
   it("la tabla pinta la acción de la fila sin abrir la orden al pulsarla", () => {

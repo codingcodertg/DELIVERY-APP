@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { estiloDeParada, FONDO_DE_PARADA } from "./colores-de-mi-ruta";
 
-// D-NEXT · «pickup in driver view should be 1 color and deliveries another like light green and delivery light blue».
+// D-535 · «pickup in driver view should be 1 color and deliveries another like light green and delivery light blue».
 
 describe("colores de Mi ruta", () => {
   it("recogida verde claro, entrega azul claro; la siguiente con borde de acento, no con otro fondo", () => {
