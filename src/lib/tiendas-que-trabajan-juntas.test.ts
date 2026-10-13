@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { grupoDeLaTienda, mismaTiendaOGrupo, tiendasDelGrupo, trabajaConOtras } from "./store-group";
 import { vendedoresDeLaTienda, vendedoresParaLaOrden } from "./sales-reps";
 import { registroDeLugar } from "./named-location";
+import { origenesPermitidos as origenesDelVendedor, origenFijo as origenFijoDelVendedor } from "./origen-libre";
 import type { NamedLocation, Profile, UserRole } from "./types";
 
 /**
@@ -141,9 +142,17 @@ describe("dónde se comparte el trabajo", () => {
   });
 
   it("la ficha: se puede vender desde la otra, y el selector solo queda fijo si no hay grupo", () => {
-    expect(modal).toContain("me.role !== \"sales\" || !me.store");
-    expect(modal).toContain("todas.filter((n) => mismaTiendaOGrupo(n, me.store, settings.stores) || n === d.store)");
-    expect(modal).toContain('const origenFijo = me.role === "sales" && !!me.store && !homeIsDestination && !trabajaConOtras(me.store, settings.stores);');
+    // Hasta D-537 esto se afirmaba como texto de la ficha. La regla pasó a `origen-libre.ts` (para el
+    // origen libre del tipo «Other») y ahora se IMPORTA y se ejecuta: lo que D-293 fijaba sigue igual.
+    expect(modal).toContain("origenesDelVendedor(todas, me, reglaDelTipo, d.store, settings.stores)");
+    expect(modal).toContain("const origenFijo = origenFijoDelVendedor(me, reglaDelTipo, settings.stores);");
+    const juntas = [{ name: "A", group: "g" }, { name: "B", group: "g" }, { name: "C" }] as NamedLocation[];
+    const vendedor = { role: "sales" as const, store: "A" };
+    expect(origenesDelVendedor(["A", "B", "C"], vendedor, {}, "", juntas)).toEqual(["A", "B"]);
+    expect(origenesDelVendedor(["A", "B", "C"], { role: "manager", store: "A" }, {}, "", juntas)).toEqual(["A", "B", "C"]);
+    expect(origenFijoDelVendedor(vendedor, {}, juntas)).toBe(false); // A trabaja con B
+    expect(origenFijoDelVendedor({ role: "sales", store: "C" }, {}, juntas)).toBe(true); // C sola
+    expect(origenFijoDelVendedor({ role: "sales", store: "C" }, { homeIsDestination: true }, juntas)).toBe(false); // D-312
     // **Y desde D-312 ya NO se congela en un tipo que recibe**: ahí es justo lo que se elige. Lo
     // congelado pasó a ser el destino. Lo que D-293 vigila —que el selector solo quede fijo si la
     // tienda no trabaja con ninguna otra— sigue entero en `origenFijo`.

@@ -1,5 +1,5 @@
 import type { Delivery, NamedLocation, Profile, UserRole } from "@/lib/types";
-import { retentionFloorISO, shiftDateISO, todayISO } from "@/lib/utils";
+import { orderOwner, retentionFloorISO, shiftDateISO, todayISO } from "@/lib/utils";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { esDeMisTiendas } from "@/lib/almacen";
@@ -50,6 +50,13 @@ export type ContextoDeLista = {
   /** Las tiendas de almacén de quien mira (`tiendasDeAlmacen`), normalizadas. Vacío = sin acotar. */
   tiendasDeAlmacen: string[];
 };
+
+/** ¿Es mía? (D-537) La creé yo, o soy su vendedor (`orderOwner`: la que office crea a mi nombre).
+ *  Sin `me`, no: lo que no se sabe no abre nada. */
+export function esMia(d: Pick<Delivery, "created_by" | "assigned_sales_rep">, me: Pick<Profile, "id"> | null | undefined): boolean {
+  if (!me?.id) return false;
+  return d.created_by === me.id || orderOwner(d) === me.id;
+}
 
 /** ¿Puede esta persona ver esta orden, por su rol? No mira fechas. */
 export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
@@ -205,7 +212,11 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
     if (!leTocaPorRol(d, ctx) || !coincideConLaBusqueda(d, ctx.busqueda)) continue;
     // Y el corte por TIENDA de la lista (D-405), antes de repartir: vale para las tres listas, así
     // que número = filas en «Todas», en cada etapa, en «Outdated» y en «Factura pendiente».
-    if (!esDelAlcance(d, alcanceLista, ctx.reglas)) continue;
+    // …salvo la suya de un tipo con ORIGEN LIBRE (D-537): un vendedor de McAllen puede vender un
+    // «Other» desde Brownsville, y sin esto la orden desaparecía de su lista justo al crearla. Solo esos
+    // tipos: para los demás sigue D-405 —«la suya de otra tienda ya no sale»—, que decidió el dueño.
+    if (!esDelAlcance(d, alcanceLista, ctx.reglas)
+      && !(esMia(d, ctx.me) && orderTypeRule(d.order_type, ctx.reglas).anyOrigin === true)) continue;
     const normal = pasaLaVentana(d, ctx);
     // «Outdated» (D-384, D-404): TODA atrasada abierta —también la de ayer— va a la suya. Los días
     // que entran los decide `pasaLaVentana` (D-392): a quien no es admin ni logística ya le ha

@@ -8,6 +8,7 @@ import { AddressInput } from "@/components/AddressInput";
 import { registroDeLugar } from "@/lib/named-location";
 import { nombresEnLinea, normalizaTienda, quienPierdeLaTienda } from "@/lib/visibilidad-tienda";
 import type { AccountRecord, CancelReason, Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
+import { reglasAlGuardar, type FilaDeTipo } from "@/lib/origen-libre";
 import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador } from "@/lib/customer-type";
 
@@ -326,11 +327,14 @@ function OrderTypesRulesEditor({
   save: (patch: Partial<Settings>, msg: string) => void;
   t: (en: string, es: string) => string;
 }) {
-  type Row = { name: string; storeToStore: boolean; docRef: OrderTypeRule["docRef"]; homeIsDestination: boolean };
+  // `orig`: el nombre con el que se leyó, para conservar al guardar las banderas que esta tabla no enseña
+  // (hasCustomer, D-511). Antes se reescribía cada regla con solo tres campos, y guardar aquí le quitaba a
+  // «Proveedor» su `hasCustomer: false` (D-537).
+  type Row = FilaDeTipo;
   const build = (): Row[] =>
     settings.order_types.map((name) => {
       const r = settings.order_type_rules?.[name];
-      return { name, storeToStore: r?.storeToStore ?? false, docRef: r?.docRef ?? "invoice", homeIsDestination: r?.homeIsDestination ?? false };
+      return { orig: name, name, storeToStore: r?.storeToStore ?? false, docRef: r?.docRef ?? "invoice", homeIsDestination: r?.homeIsDestination ?? false, anyOrigin: r?.anyOrigin ?? false };
     });
   const [rows, setRows] = useState<Row[]>(build);
   const [dirty, setDirty] = useState(false);
@@ -342,19 +346,13 @@ function OrderTypesRulesEditor({
   }, [deliveries]);
 
   const update = (i: number, patch: Partial<Row>) => { setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r))); setDirty(true); };
-  const add = () => { setRows((rs) => [...rs, { name: "", storeToStore: false, docRef: "invoice", homeIsDestination: false }]); setDirty(true); };
+  const add = () => { setRows((rs) => [...rs, { orig: null, name: "", storeToStore: false, docRef: "invoice", homeIsDestination: false, anyOrigin: false }]); setDirty(true); };
   const remove = (i: number) => { setRows((rs) => rs.filter((_, idx) => idx !== i)); setDirty(true); };
   const reset = () => { setRows(build()); setDirty(false); };
 
   const commit = () => {
-    const names: string[] = [];
-    const rules: Record<string, OrderTypeRule> = {};
-    for (const r of rows) {
-      const name = r.name.trim();
-      if (!name || names.includes(name)) continue; // skip blanks + duplicates
-      names.push(name);
-      rules[name] = { storeToStore: r.storeToStore, docRef: r.docRef, homeIsDestination: r.homeIsDestination };
-    }
+    // Conserva las banderas que la tabla no enseña (D-537): ver `reglasAlGuardar`.
+    const { names, rules } = reglasAlGuardar(rows, settings.order_type_rules);
     if (!names.length) return;
     save({ order_types: names, order_type_rules: rules }, t("Order types saved", "Tipos de orden guardados"));
     setDirty(false);
@@ -376,6 +374,7 @@ function OrderTypesRulesEditor({
               <th>{t("Name", "Nombre")}</th>
               <th style={{ textAlign: "center" }}>{t("Store-to-store", "Entre tiendas")}</th>
               <th style={{ textAlign: "center" }} title={t("The rep's own store is the destination (receiving); Sold From is chosen.", "La tienda del vendedor es el destino (recibe); Vendido Desde se elige.")}>{t("Rep store = dest.", "Tienda = destino")}</th>
+              <th style={{ textAlign: "center" }} title={t("Sales can pick ANY store as Sold From, not only their own.", "Ventas puede elegir CUALQUIER tienda como Vendido Desde, no solo la suya.")}>{t("Any origin", "Origen libre")}</th>
               <th>{t("Document reference", "Referencia de documento")}</th>
               <th style={{ textAlign: "center" }}>{t("In use", "En uso")}</th>
               <th></th>
@@ -390,6 +389,9 @@ function OrderTypesRulesEditor({
                 </td>
                 <td style={{ textAlign: "center" }}>
                   <input type="checkbox" checked={r.homeIsDestination} onChange={(e) => update(i, { homeIsDestination: e.target.checked })} aria-label={t("Rep store is destination", "Tienda del vendedor es destino")} />
+                </td>
+                <td style={{ textAlign: "center" }}>
+                  <input type="checkbox" checked={r.anyOrigin} onChange={(e) => update(i, { anyOrigin: e.target.checked })} aria-label={t("Any origin", "Origen libre")} />
                 </td>
                 <td>
                   <select value={r.docRef} onChange={(e) => update(i, { docRef: e.target.value as OrderTypeRule["docRef"] })} style={{ width: "auto" }}>
@@ -406,7 +408,7 @@ function OrderTypesRulesEditor({
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="hint" style={{ padding: 12 }}>{t("No order types — add one below.", "Sin tipos de orden — agregue uno abajo.")}</td></tr>
+              <tr><td colSpan={7} className="hint" style={{ padding: 12 }}>{t("No order types — add one below.", "Sin tipos de orden — agregue uno abajo.")}</td></tr>
             )}
           </tbody>
         </table>
