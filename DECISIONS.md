@@ -42849,3 +42849,17 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pruebas:** `reprogramar-orden.test.ts` (almacén en las tres etapas y en ninguna otra; la cláusula del guard; que Almacén monta el mismo cuadro en las tres vistas).
 
 **No medido:** nada en navegador (`tsc` y vitest).
+
+## D-535 · «Mi ruta»: las recogidas sobre verde claro y las entregas sobre azul claro; la siguiente, con borde
+
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.296.0 (repo 1.400.0) · Sin migración · Hecho directo por el orquestador en `feat/colores-mi-ruta`.
+
+**Pedido del dueño**, literal: *«pickup in driver view should be 1 color and deliveries another like light green and delivery lihgt blue»*.
+
+**Qué cambia** (`colores-de-mi-ruta.ts`, `my-route/page.tsx`). Cada fila de la lista y la tarjeta de «Siguiente parada» llevan el fondo de su tipo: recogida (P) `--green-soft`, entrega (D) `--accent-soft` (los tokens de `globals.css`, con su versión oscura). La **siguiente** ya no se señalaba con un fondo azul claro —que ahora es el de toda entrega—: lleva un borde interior de 2 px del color de acento (`estiloDeParada`), que se ve igual sobre los dos fondos. Las filas llevan `data-tipo-de-fila` para medirlo.
+
+**Qué no cambia.** El Gestor, la pestaña «Chofer» del admin (misma página), los colores por chofer de los círculos y del mapa.
+
+**Pruebas:** `colores-de-mi-ruta.test.ts` (los dos fondos, el borde de la siguiente, los tokens en el CSS en claro y oscuro, y que la página los usa en los tres sitios); `mi-ruta-pantalla.test.ts` (la fila siguiente pintada con verde y borde).
+
+**No medido:** nada en navegador (`tsc` y vitest). El contraste de los textos sobre los dos fondos no se midió.
