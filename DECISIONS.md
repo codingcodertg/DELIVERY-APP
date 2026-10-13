@@ -41934,7 +41934,7 @@ No visto en navegador: `tsc` y vitest.
 **No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
 ## D-527 — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-12): «Recogido» con la carga lista vuelve a recoger de un toque (la orden se abre tocando su factura); «📍 Llegué» y «Recogido»/«Entregado» ya no van juntos: un solo botón que cambia, y «Rechazado» siempre en la entrega. Se quedan: «Entregado» abre la cámara, los dos «↩ Deshacer», y la recogida sin lista por la ficha con nota.
+> **Reemplazada en parte por D-533** (2026-10-12): «Recogido» con la carga lista vuelve a recoger de un toque (la orden se abre tocando su factura); «📍 Llegué» y «Recogido»/«Entregado» ya no van juntos: un solo botón que cambia, y «Rechazado» siempre en la entrega. Se quedan: «Entregado» abre la cámara, los dos «↩ Deshacer», y la recogida sin lista por la ficha con nota.
 
 > **Completada por D-531** (2026-10-12): la migración 169 (la 168 letra por letra con un bloque más) deja al chofer guardar `photos`/`photo_meta` y `departed_at`/`arrived_at` en SU orden sin cambiar de etapa; hasta entonces «📷 Fotos del material» desde el chofer no se guardaba.
 
@@ -42809,9 +42809,9 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 **No medido:** nada en navegador (`tsc` y vitest). La importación CSV no se tocó (no agenda desde la pantalla).
 
-## D-NEXT · «Mi ruta» por paradas: «Siguiente parada 1/5 · Recogida 1 de 2», un botón que cambia («Llegué» → «Recogido»/«Entregado»), «Recogido» de un toque, y la burbuja/factura abren la orden
+## D-533 · «Mi ruta» por paradas: «Siguiente parada 1/5 · Recogida 1 de 2», un botón que cambia («Llegué» → «Recogido»/«Entregado»), «Recogido» de un toque, y la burbuja/factura abren la orden
 
-**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · Sin migración · Hecho directo por el orquestador en `feat/mi-ruta-por-paradas`. **Reemplaza en parte a D-527** (lleva su nota).
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.294.0 (repo 1.398.0) · Sin migración · Hecho directo por el orquestador en `feat/mi-ruta-por-paradas`. **Reemplaza en parte a D-527** (lleva su nota).
 
 **Pedidos del dueño**, literales, con la captura de dos recogidas (179500 y 179510) en RDZ Brownsville y «Next stop · 1/5»:
 - *«it should say one, next stop 1 of 5 and pickup will be one of two because there are two pickups in the same stop. And when you press arrived, it should be arrived for both pickup. And when you press pickup, it should pick up number one and then take you to the next order. And you press pickup and then we'll say, okay, you loaded all the pickups in the first stop.»*
