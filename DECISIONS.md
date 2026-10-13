@@ -41934,6 +41934,8 @@ No visto en navegador: `tsc` y vitest.
 **No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
 ## D-527 — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
 
+> **Reemplazada en parte por D-NEXT** (2026-10-12): «Recogido» con la carga lista vuelve a recoger de un toque (la orden se abre tocando su factura); «📍 Llegué» y «Recogido»/«Entregado» ya no van juntos: un solo botón que cambia, y «Rechazado» siempre en la entrega. Se quedan: «Entregado» abre la cámara, los dos «↩ Deshacer», y la recogida sin lista por la ficha con nota.
+
 > **Completada por D-531** (2026-10-12): la migración 169 (la 168 letra por letra con un bloque más) deja al chofer guardar `photos`/`photo_meta` y `departed_at`/`arrived_at` en SU orden sin cambiar de etapa; hasta entonces «📷 Fotos del material» desde el chofer no se guardaba.
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** deliveries 1.289.0, repo 1.392.0 · Rama `feat/recogida-chofer` ·
@@ -42806,3 +42808,26 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pruebas:** `fecha-de-entrega.test.ts` (la regla pura: ayer/hoy/mañana, nueva o cambiada vs la misma, con hora; y que los cuatro sitios la usan y los selectores llevan `min`). Mutantes: 4 de 4 caen con una prueba con nombre (`<` → `<=`; sin comparar con la fecha actual; la ficha sin tope; el bloque sin tope).
 
 **No medido:** nada en navegador (`tsc` y vitest). La importación CSV no se tocó (no agenda desde la pantalla).
+
+## D-NEXT · «Mi ruta» por paradas: «Siguiente parada 1/5 · Recogida 1 de 2», un botón que cambia («Llegué» → «Recogido»/«Entregado»), «Recogido» de un toque, y la burbuja/factura abren la orden
+
+**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · Sin migración · Hecho directo por el orquestador en `feat/mi-ruta-por-paradas`. **Reemplaza en parte a D-527** (lleva su nota).
+
+**Pedidos del dueño**, literales, con la captura de dos recogidas (179500 y 179510) en RDZ Brownsville y «Next stop · 1/5»:
+- *«it should say one, next stop 1 of 5 and pickup will be one of two because there are two pickups in the same stop. And when you press arrived, it should be arrived for both pickup. And when you press pickup, it should pick up number one and then take you to the next order. And you press pickup and then we'll say, okay, you loaded all the pickups in the first stop.»*
+- *«if he presses the stop bubble #1 or the invoice number it opens up the order»*
+- *«if you press pickup it opens up the order instead of doing the action, if he wants to open the order just make it possible when pressing the invoice number»*
+- *«make arrived first and then pickup not 2 button just 1 that changes»*
+- *«for deliver i want arrived that changes into delivered but rejected will always show so 2 buttons for delivery»*
+
+**Qué cambia** (`siguiente-de-mi-ruta.ts`, puro; `my-route/page.tsx`; `AccionesDeParada.tsx`):
+1. **La siguiente sigue la ruta POR PARADAS** (`siguienteDeMiRuta`): fila por fila —las recogidas de la parada 1, luego la entrega de la parada 2…—. Con dos recogidas en la tienda, recogida la primera toca la **segunda recogida**, no la entrega de la primera. La tarjeta dice «Siguiente parada · 1/10» con el **número de la parada** (el del círculo de la lista, D-515) sobre el total de paradas, y «· Recogida 1 de 2» / «Entrega 1 de 3» solo cuando la parada tiene más de una orden; la posición cuenta las órdenes de la parada, hechas incluidas («2 de 2» tras recoger la primera). Antes era `siguienteParada(stops)`: la primera orden sin entregar, numerada orden por orden sobre el total de órdenes. **`siguienteParada` sigue decidiendo el aviso «en camino»** del servidor (`avisos-cliente-envio.ts`): avisa al cliente de la primera orden cargada, que es la primera que se entrega; la pantalla y el aviso solo difieren mientras quedan recogidas en la misma tienda.
+2. **Un botón que cambia** (`botonesConLlegada`): mientras la parada no tiene llegada, la fila de **cada** orden de su tramo lleva «📍 Llegué» (un toque la marca en todas, como en D-520) y no «Recogido»/«Entregado»; al llegar, en todas el botón es «🚚 Recogido» o «✅ Entregado». «⛔ Rechazado» sigue siempre en la entrega; «Dejar en tienda» y «↩ Deshacer recogido», como estaban. «✓ Llegaste 10:42 · ↩ Deshacer» baja a un renglón pequeño debajo de la fila (apagado al mirar la ruta de otro, D-502).
+3. **«Recogido» recoge de un toque** cuando la carga está `ready` (`seRecogeDeUnToque`): la misma escritura que la ficha (`escrituraRecogida`: nota, GPS sin bloquear, claim, recuento) y el parche tardío del GPS en silencio, como en D-218. Sin lista (`approved`/`fulfilling`) sigue abriendo la ficha: «Recoger de todos modos» exige la nota (D-527). «Entregado» no cambia: cámara + ficha.
+4. **La burbuja del número y la factura abren la orden** en las filas de recogida (en las de entrega el texto ya lo hacía): la burbuja abre la primera orden de la parada que falta en su tramo; cada factura, la suya. La fila de la recogida que es la siguiente va con el fondo de «siguiente», como las entregas.
+
+**Qué no cambia.** El Gestor, la pestaña «Chofer» del admin (misma página, apagada), el aviso «en camino», la ficha, la 168/169.
+
+**Pruebas:** `siguiente-de-mi-ruta.test.ts` (nuevo: el caso de las dos recogidas paso a paso; rechazadas, anuladas, sin lista, entrega solo en el camión; posición; la llegada por orden; el filtro de botones; un toque solo con lista), `mi-ruta-pantalla.test.ts` (pintada: Llegué en las dos órdenes y Recogido en las dos al llegar; tarjeta 1/5 · Pickup 1 of 4 → 2 of 4 con la segunda; burbuja y factura; la recogida de un toque y su GPS; Entregado sin escribir), `acciones-parada.test.ts`, `vista-de-chofer.test.ts`, `one-tap-stop.test.ts`, `avisos-cliente.test.ts` (notas D-533 donde fijaban D-527). Mutantes: 12 de 12 caen (`mut533`).
+
+**No medido:** nada en navegador (`tsc` y vitest). No se probó con un chofer real en la tienda.

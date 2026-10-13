@@ -224,7 +224,6 @@ describe("el plan publicado de OTRO chofer", () => {
 // ------------------------------------------------------------
 // La pantalla, pintada.
 // ------------------------------------------------------------
-const botonesDeAccion = (html: string) => html.match(/<button[^>]*class="btn btn-(?:green|amber|danger)[^"]*"[^>]*>/g) ?? [];
 
 describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () => {
   const pinta = async (chofer: typeof CARLOS | null) => {
@@ -249,8 +248,9 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
   it("los botones se ven igual, pero apagados: Recogido, Entregado, Rechazado, Dejar en tienda, Llegué y Registrar parada", async () => {
     estado.me = ADMIN;
     const html = await pinta(CARLOS);
-    const botones = botonesDeAccion(html);
-    expect(botones.length).toBeGreaterThanOrEqual(4);
+    // D-533: con las llegadas pendientes la fila lleva «Llegué» (y «Rechazado» en la entrega); los verdes salen al llegar.
+    const botones = html.match(/<button[^>]*data-accion="[a-z_]+"[^>]*>/g) ?? [];
+    expect(botones.length).toBeGreaterThanOrEqual(3);
     for (const b of botones) expect(b, b).toContain("disabled");
     expect(html).not.toContain('data-accion="saltar"');
     const llegue = html.match(/<button[^>]*data-accion="llegue"[^>]*>/g) ?? [];
@@ -365,8 +365,9 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     const html = await pinta(null);
     expect(html).toContain("INV-C1");
     expect(html).not.toContain("INV-M1");
-    const botones = botonesDeAccion(html);
-    expect(botones.length).toBeGreaterThanOrEqual(4);
+    // (sin los apagados por su motivo, `data-apagado`: esos lo están también para el chofer)
+    const botones = (html.match(/<button[^>]*data-accion="[a-z_]+"[^>]*>/g) ?? []).filter((b) => !b.includes("data-apagado"));
+    expect(botones.length).toBeGreaterThanOrEqual(3);
     for (const b of botones) expect(b, b).not.toContain("disabled");
     expect(estado.dejarEnTienda.length).toBeGreaterThan(0);
     expect(estado.dejarEnTienda.every((d) => !d.disabled)).toBe(true);

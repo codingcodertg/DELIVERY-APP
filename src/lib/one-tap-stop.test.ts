@@ -148,10 +148,13 @@ describe("la ficha usa el módulo; «Mi ruta» ya no cierra la parada por su cue
   const ruta = leer("src/app/(app)/my-route/page.tsx");
   const modal = leer("src/components/OrderModal.tsx");
 
-  it("Mi ruta: ni escritura de la recogida, ni de la entrega, ni GPS: solo abre la ficha (y la cámara)", () => {
-    expect(ruta).not.toContain("escrituraRecogida");
+  // Nota D-533 (2026-10-12): la recogida de un toque volvió a «Mi ruta» con la carga lista («if you press pickup it opens up
+  // the order instead of doing the action»), con ESTE módulo (`escrituraRecogida`) y el GPS sin bloquear. La entrega sigue
+  // en la ficha. Lo fija `mi-ruta-pantalla.test.ts`.
+  it("Mi ruta: la recogida de un toque usa este módulo; la entrega sigue sin escribirse aquí (abre la ficha y la cámara)", () => {
+    expect(ruta).toContain("escrituraRecogida({ pedido: d, me, gps, t })");
     expect(ruta).not.toContain("extraEntrega");
-    expect(ruta).not.toContain("captureLocationSplit");
+    expect(ruta).toContain("captureLocationSplit();");
     expect(ruta).toMatch(/abrirOrden\(d, accion\);/);
   });
   it("la ficha usa el mismo módulo: la escritura de la recogida (también la de sin estar lista) y las DOS guardas del comprobante", () => {

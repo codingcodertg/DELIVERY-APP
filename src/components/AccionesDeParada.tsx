@@ -12,6 +12,7 @@ import {
 import { escrituraDeshacerRecogida, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import { EVENTO_DEJADO, escrituraDejarEnTienda } from "@/lib/leave-at-store";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
+import { botonesConLlegada } from "@/lib/siguiente-de-mi-ruta";
 import { orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -32,6 +33,13 @@ import type { Delivery } from "@/lib/types";
 //    «↩ Deshacer recogido» en la recogida ya hecha, los dos con confirmación.
 //  - «override a pickup even if the warheouse doesnt have it ready»: «Recogido» ya no se apaga por no estar lista; la ficha
 //    pide la nota (`recogida-del-chofer.ts`).
+//
+// D-533 (2026-10-12), **reemplaza en parte a D-527**: «make arrived first and then pickup not 2 button just 1 that changes»
+// y «for deliver i want arrived that changes into delivered but rejected will always show so 2 buttons for delivery». La
+// fila lleva UN botón que cambia: «📍 Llegué» mientras la parada no tiene llegada, y «🚚 Recogido» / «✅ Entregado» al
+// llegar (`botonesConLlegada`); «⛔ Rechazado» sigue siempre en la entrega. «✓ Llegaste 10:42 · ↩ Deshacer» baja a un
+// renglón pequeño. Y «Recogido» con la carga lista ya NO abre la ficha: la página recoge de un toque (`cerrar`); la orden
+// se abre tocando su factura.
 // ============================================================
 
 /** Un botón solo en su fila: a lo ancho, como antes («Dejar en tienda» de una rechazada). */
@@ -81,13 +89,19 @@ export function BotonDeLlegada({ llegada, soloLectura = false }: { llegada: Lleg
       setOcupado(false);
       if (todas) notify(t("Arrival undone", "Llegada deshecha"));
     };
+    // D-533: ya no es un botón de la fila —el único botón grande de la fila es el que cambia, «Llegué» → «Recogido»—; es un
+    // renglón pequeño debajo de los botones, con el «↩ Deshacer» de D-527 dentro.
     return (
-      <button data-accion="deshacer_llegada" data-llegada="hecha" className="btn btn-ghost" style={{ ...BOTON_DE_FILA, border: "1px solid var(--line)" }}
-        disabled={soloLectura || ocupado} onClick={() => void deshacer()}
-        title={t("Undo the arrival", "Deshacer la llegada")}>
-        <span style={{ color: "var(--green)", fontWeight: 800, fontSize: 13 }}>✓ {t("Arrived", soloLectura ? "Llegó" : "Llegaste")} {hora(llegada.at)}</span>
-        <span style={{ fontSize: 13 }}>{ocupado ? t("Saving…", "Guardando…") : `↩ ${t("Undo", "Deshacer")}`}</span>
-      </button>
+      <span data-llegada="hecha" className="hint" style={{ display: "block", marginTop: 4, fontSize: 13 }}>
+        <span style={{ color: "var(--green)", fontWeight: 800 }}>✓ {t("Arrived", soloLectura ? "Llegó" : "Llegaste")} {hora(llegada.at)}</span>
+        {" · "}
+        {/* Al mirar la ruta de otro (D-502) se ve igual, apagado. */}
+        <button type="button" data-accion="deshacer_llegada" disabled={soloLectura || ocupado} onClick={() => void deshacer()}
+          style={{ background: "none", border: "none", padding: 0, font: "inherit", color: "var(--accent)", cursor: "pointer", textDecoration: "underline" }}
+          title={t("Undo the arrival", "Deshacer la llegada")}>
+          {ocupado ? t("Saving…", "Guardando…") : `↩ ${t("Undo", "Deshacer")}`}
+        </button>
+      </span>
     );
   }
   const llegar = async () => {
@@ -106,15 +120,19 @@ export function BotonDeLlegada({ llegada, soloLectura = false }: { llegada: Lleg
 }
 
 export function AccionesDeParada({
-  pedido, tipo, marca, cerrar, llegada = null, deshacer = null, soloLectura = false,
+  pedido, tipo, marca, cerrar, llegada = null, deshacer = null, soloLectura = false, guardando = false,
 }: {
   pedido: Delivery;
   tipo: "P" | "D";
   marca: MarcaDeParada | null | undefined;
-  /** «Recogido» o «Entregado»: la página abre la ficha en ese paso (y la cámara, al entregar). */
+  /** «Recogido» o «Entregado»: la página recoge de un toque (D-533, con la carga lista) o abre la ficha en ese paso (y
+   *  la cámara, al entregar). */
   cerrar: (d: Delivery, accion: "recoger" | "entregar") => void;
-  /** «📍 Llegué» de la parada, si esta orden es la que lo lleva (D-527: el primero de la fila). */
+  /** «📍 Llegué» de la parada, si esta orden está en su tramo (D-533: en la fila de CADA orden de la parada; con la
+   *  llegada pendiente es el único botón grande, y «Recogido»/«Entregado» salen al llegar: `botonesConLlegada`). */
   llegada?: LlegadaDeParada | null;
+  /** La página está escribiendo la recogida de un toque de esta orden (D-533): el botón, apagado y «Guardando…». */
+  guardando?: boolean;
   /** «↩ Deshacer recogido» (D-527): `deshacerRecogida` lo calcula con el historial; `null`, no se ofrece. */
   deshacer?: DeshacerRecogida;
   /**
@@ -129,9 +147,10 @@ export function AccionesDeParada({
   const [ocupado, setOcupado] = useState(false);
   const [rechazando, setRechazando] = useState(false);
   const es = lang === "es";
-  const apagado = soloLectura || ocupado;
+  const apagado = soloLectura || ocupado || guardando;
 
-  const acciones = accionesDeParada(tipo, pedido.stage, marca, deshacer);
+  // D-533: con la llegada de la parada pendiente, «Recogido»/«Entregado» no se pintan; la fila lleva «📍 Llegué».
+  const acciones = botonesConLlegada(accionesDeParada(tipo, pedido.stage, marca, deshacer), llegada);
   // El motivo de lo apagado, a la vista: en un teléfono no hay `title` que leer.
   const motivos = [...new Set(acciones.flatMap((b) => (b.apagado ? [t(b.apagado.en, b.apagado.es)] : [])))];
   const etiqueta = pedido.invoice_num || `#${orderLabel(pedido)}`;
@@ -168,16 +187,16 @@ export function AccionesDeParada({
           ⛔ {t("Rejected by customer", "Rechazada por el cliente")}: {razonDeLaNota(marca.motivo)}
         </span>
       )}
-      {(acciones.length > 0 || llegada) && (
+      {(acciones.length > 0 || llegada?.estado === "pendiente") && (
         <div data-acciones-de-parada style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />
+          {llegada?.estado === "pendiente" && <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />}
           {acciones.map(({ accion: a, apagado: porQue }) => {
             if (a === "dejar") return me ? <LeaveAtStore key={a} pedido={pedido} me={me} disabled={soloLectura} style={BOTON} /> : null;
             if (a === "recoger" || a === "entregar") return (
               <button key={a} data-accion={a} data-apagado={porQue ? "" : undefined} className="btn btn-green" style={BOTON_DE_FILA}
                 disabled={apagado || !!porQue} title={porQue ? t(porQue.en, porQue.es) : undefined} onClick={() => cerrar(pedido, a)}>
                 {a === "recoger"
-                  ? <Rotulo icono="🚚" texto={t("Picked up", "Recogido")} />
+                  ? <Rotulo icono="🚚" texto={guardando ? t("Saving…", "Guardando…") : t("Picked up", "Recogido")} />
                   : <Rotulo icono="✅" texto={t("Delivered", "Entregado")} />}
               </button>
             );
@@ -195,6 +214,8 @@ export function AccionesDeParada({
           })}
         </div>
       )}
+      {/* D-533: «✓ Llegaste 10:42 · ↩ Deshacer», en un renglón debajo de los botones. */}
+      {llegada?.estado === "hecha" && <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />}
       {motivos.map((m) => (
         <span key={m} data-motivo-apagado className="hint" style={{ display: "block", marginTop: 4 }}>⏳ {m}</span>
       ))}

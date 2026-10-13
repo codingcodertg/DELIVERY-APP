@@ -8,7 +8,10 @@ import { canDeliver } from "@/lib/constants";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { AccionesDeParada } from "@/components/AccionesDeParada";
 import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
-import { llegadaDeLaParada, llegadasDeParadas, marcasDeParadas, ordenDeLaLlegada, type LlegadaDeParada } from "@/lib/acciones-parada";
+import { llegadaDeLaParada, llegadasDeParadas, marcasDeParadas, type LlegadaDeParada } from "@/lib/acciones-parada";
+import { llegadaDeLaOrden, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "@/lib/siguiente-de-mi-ruta";
+import { escrituraRecogida } from "@/lib/one-tap-stop";
+import { captureLocationSplit, type GeoStamp } from "@/lib/geo";
 import { deshacerRecogida } from "@/lib/recogida-del-chofer";
 import { seccionesDeMiRuta, type SeccionDeMiRuta } from "@/lib/secciones-de-mi-ruta";
 import { PausaDelChofer } from "@/components/PausaDelChofer";
@@ -60,6 +63,11 @@ import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 // D-527 (2026-10-11): «Recogido» y «Entregado» ya no cierran la parada de un toque: abren la ficha de la orden en ese
 // paso (D-218 queda reemplazada en esta pantalla), y «Entregado» abre además la cámara. «📍 Llegué» va en la misma fila
 // que «Recogido» / «Entregado», y las dos cosas se deshacen. Detalle en `AccionesDeParada` y `recogida-del-chofer.ts`.
+//
+// D-533 (2026-10-12), **reemplaza en parte a D-527**: «Siguiente parada» sigue la ruta POR PARADAS («next stop 1 of 5 and
+// pickup will be one of two»); «Recogido» con la carga lista se hace de un toque, sin abrir la ficha («if he wants to open
+// the order just make it possible when pressing the invoice number»); la burbuja del número y la factura abren la orden;
+// y cada fila lleva UN botón que cambia, «Llegué» → «Recogido»/«Entregado». Reglas en `siguiente-de-mi-ruta.ts`.
 // ============================================================
 
 const DEFAULT_CAPACITY = 12;
@@ -68,7 +76,7 @@ const DEFAULT_CAPACITY = 12;
 
 
 export default function MyRoutePage() {
-  const { me, deliveries, events, settings, ready } = useData();
+  const { me, deliveries, events, settings, ready, setStage, updateDelivery, notify } = useData();
   const { t, lang } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
   // En qué paso abre la ficha (D-527): «recoger» desde «Recogido», «entregar» (la prueba de entrega) desde «Entregado».
@@ -161,6 +169,8 @@ export default function MyRoutePage() {
   const cerrarParada = (d: Delivery, accion: "recoger" | "entregar") => {
     // La ruta de otro (D-502): sus botones están apagados, y esto es la segunda puerta por si alguno no lo estuviera.
     if (soloLectura) return;
+    // D-533: con la carga lista, «Recogido» recoge AQUÍ, de un toque, sin abrir la ficha. Sin lista, la ficha con su nota.
+    if (accion === "recoger" && seRecogeDeUnToque(d.stage)) { void recogerDeUnToque(d); return; }
     if (accion === "entregar") {
       fotoPara.current = d.id;
       setFotosDeEntrega(null);
@@ -169,12 +179,42 @@ export default function MyRoutePage() {
     abrirOrden(d, accion);
   };
 
+  /**
+   * «🚚 Recogido» de un toque (D-533; como era en D-218): la misma escritura que la ficha (`escrituraRecogida`: nota, GPS
+   * sin bloquear, claim y recuento). El dueño, 2026-10-12: «if you press pickup it opens up the order instead of doing the
+   * action». Sin GPS a tiempo, se guarda la hora y la posición se parchea después, en silencio.
+   */
+  const [recogiendo, setRecogiendo] = useState<string | null>(null);
+  const recogerDeUnToque = async (d: Delivery) => {
+    if (soloLectura || recogiendo) return;
+    setRecogiendo(d.id);
+    const { immediate, eventual } = captureLocationSplit();
+    const gps = await immediate;
+    const escritura = escrituraRecogida({ pedido: d, me, gps, t });
+    const ok = await setStage(d.id, "picked_up", escritura.note, escritura.extra);
+    setRecogiendo(null);
+    if (!ok) return;
+    notify(t("Picked up — on the truck", "Recogida — va en el camión"));
+    if (!gps) void adjuntarTardio(d.id, eventual);
+  };
+  const adjuntarTardio = async (id: string, pendiente: Promise<GeoStamp | null>) => {
+    const gps = await pendiente;
+    if (!gps) return;
+    await updateDelivery(id, { pickup_lat: gps.lat, pickup_lng: gps.lng, pickup_gps_at: gps.at }, { quiet: true });
+  };
+
   const done = stops.filter((d) => d.stage === "delivered").length;
   // The one stop that matters right now: first in sequence still to finish. La MISMA función decide a quién va el
   // aviso «en camino» en el servidor (D-416): lo que el chofer ve como siguiente es lo que se avisa.
   // Las rechazadas (D-487) salen del historial y no son «siguiente». Las saltadas ya no existen (D-520).
   const marcas = useMemo(() => marcasDeParadas(events), [events]);
-  const next = siguienteParada(stops, marcas);
+  // D-533: la siguiente sigue la ruta POR PARADAS (las dos recogidas de la tienda, y luego las entregas), no orden por
+  // orden. Si la lectura no tiene filas (no debería), la regla de antes.
+  const sig = siguienteDeMiRuta(lectura.filas, numeradas, etapaDe, marcas);
+  const next = sig ? (porId.get(sig.id) ?? null) : siguienteParada(stops, marcas);
+  const tipoDeLaSiguiente: "P" | "D" = sig ? sig.tipo : next?.stage === "picked_up" ? "D" : "P";
+  /** ¿Esta orden, en este tramo, es la siguiente? Pinta el fondo de su fila. */
+  const esLaSiguiente = (id: string, tipo: "P" | "D") => (sig ? sig.id === id && sig.tipo === tipo : next?.id === id);
   // «📍 Llegué» (D-520): las llegadas de hoy, por orden, y la de cada parada. Una llegada es de la PARADA —la tienda, la
   // dirección—: se pulsa una vez y vale para todas sus órdenes en ese tramo (`llegadaDeLaParada`).
   const llegadas = useMemo(() => llegadasDeParadas(events, todayISO()), [events]);
@@ -183,7 +223,7 @@ export default function MyRoutePage() {
     return p ? llegadaDeLaParada(p, etapaDe, marcas, llegadas) : null;
   };
   // La parada de «Siguiente parada»: la de su recogida mientras no se ha recogido, la de su entrega cuando va en el camión.
-  const paradaDeLaSiguiente = next ? numeradas.paradas.find((p) => p.tipo === (next.stage === "picked_up" ? "D" : "P") && p.ordenes.includes(next.id)) : undefined;
+  const paradaDeLaSiguiente = sig ? numeradas.paradas[sig.parada - 1] : next ? numeradas.paradas.find((p) => p.tipo === tipoDeLaSiguiente && p.ordenes.includes(next.id)) : undefined;
 
   // Los botones de cada orden de una parada (D-487; D-520): qué sale lo decide `accionesDeParada`, dentro del componente.
   // D-527: con «📍 Llegué» de su parada al principio de la fila si esta orden lo lleva, y con «↩ Deshacer recogido» en
@@ -192,10 +232,11 @@ export default function MyRoutePage() {
   const accionesDe = (d: Delivery, tipo: "P" | "D", llegada: LlegadaDeParada | null) => (
     <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} cerrar={cerrarParada} llegada={llegada}
       deshacer={tipo === "P" ? deshacerRecogida({ pedido: d, yo: chofer, eventos: events, rechazada: marcas.has(d.id) }) : null}
-      soloLectura={soloLectura} />
+      soloLectura={soloLectura} guardando={recogiendo === d.id} />
   );
-  /** «Llegué» de la parada solo en la fila de la orden que lo lleva (`ordenDeLaLlegada`: la primera de su tramo). */
-  const llegadaSiEsDe = (llegada: LlegadaDeParada | null, id: string) => (ordenDeLaLlegada(llegada) === id ? llegada : null);
+  /** «Llegué» de la parada en la fila de CADA orden de su tramo (D-533; en D-527 solo en la primera, `ordenDeLaLlegada`):
+   *  un toque la marca en todas, y en todas el botón pasa a «Recogido»/«Entregado». */
+  const llegadaSiEsDe = (llegada: LlegadaDeParada | null, id: string) => llegadaDeLaOrden(llegada, id);
 
 
   const navigateTo = (d: Delivery) => {
@@ -226,9 +267,18 @@ export default function MyRoutePage() {
         {c.exceso > 0 && <b style={{ color: "var(--red)" }}> {textoDelExceso(c, capacidad, lang === "es")}</b>}
       </span>
     );
+    // D-533: la burbuja del número abre la orden (la primera de la parada que sigue en su tramo), y la factura, la suya.
+    const primeraDeLaFila = f.tipo === "P" ? (f.ordenes.map((id) => porId.get(id)).find((d) => d && d.stage !== "picked_up" && d.stage !== "delivered") ?? porId.get(f.ordenes[0])) : porId.get(f.orden);
+    const burbuja = (hecha = false) => (
+      <button type="button" data-abre-la-parada={numeradas.deFila[fi]} onClick={() => primeraDeLaFila && abrirOrden(primeraDeLaFila)}
+        style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+        {numeroDeParada(fi, hecha)}
+      </button>
+    );
     if (f.tipo === "P" || f.otraCarga) return (
-      <div key={`${f.tipo}-${fi}-${f.etiqueta}`} className="acct-row" data-fila-de-ruta={fi} style={{ alignItems: "flex-start" }}>
-        <span style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center" }}>{numeroDeParada(fi)}</span>
+      <div key={`${f.tipo}-${fi}-${f.etiqueta}`} className="acct-row" data-fila-de-ruta={fi}
+        style={{ alignItems: "flex-start", background: f.tipo === "P" && f.ordenes.some((id) => esLaSiguiente(id, "P")) ? "var(--accent-soft)" : undefined }}>
+        {burbuja()}
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
           {f.tipo === "P" ? (
@@ -238,9 +288,10 @@ export default function MyRoutePage() {
               const d = porId.get(id);
               return (
                 <span key={id} data-recogida={id} style={{ display: "block", marginTop: 6 }}>
-                  <span className="hint" style={{ display: "block" }}>
+                  <button type="button" data-abre-la-orden={id} className="hint" disabled={!d} onClick={() => d && abrirOrden(d)}
+                    style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer" }}>
                     {d && (d.stage === "picked_up" || d.stage === "delivered") ? "✓ " : ""}{nombraLaOrden(deliveries, id, lang === "es")}
-                  </span>
+                  </button>
                   {d && accionesDe(d, "P", llegadaSiEsDe(llegada, id))}
                 </span>
               );
@@ -255,7 +306,7 @@ export default function MyRoutePage() {
     const d = porId.get(f.orden);
     if (!d) return null;
     const isDone = d.stage === "delivered";
-    const isNext = next?.id === d.id;
+    const isNext = esLaSiguiente(d.id, "D");
     // La fila ya no es un solo botón: lleva los suyos (D-487), y un botón dentro de otro no existe en HTML.
     // Tocar el número o el texto sigue abriendo la orden.
     return (
@@ -271,7 +322,7 @@ export default function MyRoutePage() {
       >
         {/* El círculo del Gestor (D-515): número de parada en el color del chofer, no «D1» en un círculo pintado
             por estado. Lo que el estado decía sigue: la entregada, con ✓; la siguiente, por el fondo de la fila. */}
-        <span style={{ flex: "0 0 auto", minWidth: 26, display: "inline-flex", justifyContent: "center" }}>{numeroDeParada(fi, isDone)}</span>
+        {burbuja(isDone)}
         <span style={{ flex: 1, minWidth: 0 }}>
           <button onClick={() => setOpen(d)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
           <span style={{ fontWeight: 700, display: "block" }}>
@@ -370,7 +421,8 @@ export default function MyRoutePage() {
           {next && (
             <div className="card" data-siguiente-parada style={{ marginBottom: 12, borderColor: "var(--accent)", borderWidth: 2 }}>
               <div className="section-label" style={{ marginTop: 0 }}>
-                {t("Next stop", "Siguiente parada")} · {stops.indexOf(next) + 1}/{stops.length}
+                {t("Next stop", "Siguiente parada")} · {sig ? `${sig.parada}/${sig.totalParadas}` : `${stops.indexOf(next) + 1}/${stops.length}`}
+                {sig && textoDePosicion(sig, t) ? <span data-posicion-en-la-parada> · {textoDePosicion(sig, t)}</span> : null}
               </div>
               {/* Tocar la orden la abre, como en las filas de la lista. Antes (D-218) la abría «📋 Ver orden», el botón verde
                   en las etapas que no se recogían ni entregaban; ese botón ya no existe (D-527) y la tarjeta no puede
@@ -395,7 +447,7 @@ export default function MyRoutePage() {
               {/* Los botones de la parada, los MISMOS de la fila de la lista (D-527): «📍 Llegué» de su parada —la tienda
                   mientras no la ha recogido, el cliente cuando va en el camión— al principio, y en la misma fila «🚚 Recogido»
                   o «✅ Entregado · ⛔ Rechazado». Antes el verde iba junto a «Navegar» y «Llegué» en un renglón aparte. */}
-              {accionesDe(next, next.stage === "picked_up" ? "D" : "P", paradaDeLaSiguiente ? llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas) : null)}
+              {accionesDe(next, tipoDeLaSiguiente, paradaDeLaSiguiente ? llegadaDeLaOrden(llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas), next.id) : null)}
               {/* La salida cuando no se puede entregar: se descarga en una tienda del grupo y el
                   pedido vuelve a la lista (D-224). En su propia fila y no junto a «Entregar»:
                   es la excepción, no la acción normal, y el pulgar del chofer va al botón verde.
