@@ -91,6 +91,15 @@ describe("la lista de Órdenes: quien crea la orden la sigue viendo", () => {
     expect(visibles.map((d) => d.id)).toEqual(["a-mi-nombre"]);
   });
 
+  it("en un tipo SIN origen libre, la suya de otra tienda sigue sin salir (D-405)", () => {
+    const c = ctx({ reglas: { Otro: { docRef: "none", anyOrigin: true }, Normal: { docRef: "invoice" } } });
+    const { visibles } = ordenesVisibles([
+      desdeEste("otro-mia", { created_by: "u-sur" }),
+      desdeEste("normal-mia", { created_by: "u-sur", order_type: "Normal" }),
+    ], c);
+    expect(visibles.map((d) => d.id)).toEqual(["otro-mia"]);
+  });
+
   it("sin saber quién mira, no abre nada; y una orden sin autor no es de nadie", () => {
     expect(esMia({ created_by: null, assigned_sales_rep: null }, { id: "u-sur" })).toBe(false);
     expect(esMia({ created_by: "u-sur", assigned_sales_rep: null }, null)).toBe(false);
