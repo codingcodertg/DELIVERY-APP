@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { fechaPropuesta, notaDeReprogramacion, puedeReprogramar, reprogramacionValida } from "./reprogramar-orden";
+import { ETAPAS_QUE_REPROGRAMA_ALMACEN, fechaPropuesta, notaDeReprogramacion, puedeReprogramar, reprogramacionValida } from "./reprogramar-orden";
 
 describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
   it("quién puede: logística, gerente y oficina en las etapas abiertas; admin también en camino; nadie en entregada o anulada", () => {
@@ -16,6 +16,24 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     expect(puedeReprogramar("sales", "approved")).toBe(false);
     expect(puedeReprogramar("driver", "ready")).toBe(false);
     expect(puedeReprogramar("logistics", null)).toBe(false);
+  });
+  // D-NEXT · «warehouse as an option to rescheduled and or change delivery dates» (el dueño, 2026-10-12).
+  it("D-NEXT: almacén reprograma en aprobada, preparando y lista (su cola, donde el guard le deja escribir); no en las demás", () => {
+    for (const etapa of ["approved", "fulfilling", "ready"]) expect([etapa, puedeReprogramar("warehouse", etapa)]).toEqual([etapa, true]);
+    for (const etapa of ["draft", "pending", "rejected", "picked_up", "delivered", "canceled"]) expect([etapa, puedeReprogramar("warehouse", etapa)]).toEqual([etapa, false]);
+    expect(ETAPAS_QUE_REPROGRAMA_ALMACEN).toEqual(["approved", "fulfilling", "ready"]);
+    // Y la base se lo permite: la rama de almacén del guard deja la misma etapa en esas tres.
+    const guard = readFileSync("supabase/migrations/169_fotos_del_chofer.sql", "utf8");
+    expect(guard).toContain("if r = 'warehouse'  and old_stage in ('approved','fulfilling','ready','picked_up','delivered') then return NEW; end if;");
+  });
+  it("D-NEXT: Almacén monta el MISMO cuadro del Gestor en la Cola, en Recepción y en la Ruta del día, sin abrir la ficha", () => {
+    const wh = readFileSync("src/app/(app)/warehouse/page.tsx", "utf8").split("\r\n").join("\n");
+    expect(wh).toContain('import { ReprogramarOrden } from "@/components/ReprogramarOrden";');
+    expect(wh).toContain("const reprogramar = (d: Delivery) => puedeReprogramar(me?.role, d.stage)");
+    expect(wh).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} updateDelivery={updateDelivery} addNote={addNote} notify={notify} />");
+    expect(wh.split("accionDeFila={reprogramar}").length - 1).toBe(1);
+    expect(wh).toContain("const repro = reprogramar(d);");
+    expect(wh).toContain("<td onClick={(e) => e.stopPropagation()}>{reprogramar(d)}</td>");
   });
 
   it("la fecha que propone: el día siguiente al más tarde entre hoy y la que tiene", () => {
