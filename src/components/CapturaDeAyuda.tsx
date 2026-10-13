@@ -118,7 +118,7 @@ let cargando: Promise<Snapdom> | null = null;
 
 /** snapdom pesa 89 KB comprimida y Ayuda está en todas las páginas: se descarga la primera vez que
  *  alguien abre Ayuda, no con cada página. */
-function cargaSnapdom(): Promise<Snapdom> {
+export function cargaSnapdom(): Promise<Snapdom> {
   if (!cargando) {
     cargando = import("@zumer/snapdom").then((m) => m.snapdom);
     // Si la descarga falla (red), el siguiente intento la vuelve a pedir en vez de heredar el fallo.
