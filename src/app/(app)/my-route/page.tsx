@@ -10,6 +10,7 @@ import { AccionesDeParada } from "@/components/AccionesDeParada";
 import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 import { llegadaDeLaParada, llegadasDeParadas, marcasDeParadas, type LlegadaDeParada } from "@/lib/acciones-parada";
 import { llegadaDeLaOrden, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "@/lib/siguiente-de-mi-ruta";
+import { estiloDeParada, FONDO_DE_PARADA } from "@/lib/colores-de-mi-ruta";
 import { escrituraRecogida } from "@/lib/one-tap-stop";
 import { captureLocationSplit, type GeoStamp } from "@/lib/geo";
 import { deshacerRecogida } from "@/lib/recogida-del-chofer";
@@ -276,8 +277,8 @@ export default function MyRoutePage() {
       </button>
     );
     if (f.tipo === "P" || f.otraCarga) return (
-      <div key={`${f.tipo}-${fi}-${f.etiqueta}`} className="acct-row" data-fila-de-ruta={fi}
-        style={{ alignItems: "flex-start", background: f.tipo === "P" && f.ordenes.some((id) => esLaSiguiente(id, "P")) ? "var(--accent-soft)" : undefined }}>
+      <div key={`${f.tipo}-${fi}-${f.etiqueta}`} className="acct-row" data-fila-de-ruta={fi} data-tipo-de-fila={f.tipo}
+        style={{ alignItems: "flex-start", ...estiloDeParada(f.tipo, f.tipo === "P" && f.ordenes.some((id) => esLaSiguiente(id, "P"))) }}>
         {burbuja()}
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
@@ -315,10 +316,8 @@ export default function MyRoutePage() {
         className="acct-row"
         data-entrega={d.id}
         data-fila-de-ruta={fi}
-        style={{
-          alignItems: "flex-start",
-          background: isNext ? "var(--accent-soft)" : undefined,
-        }}
+        data-tipo-de-fila="D"
+        style={{ alignItems: "flex-start", ...estiloDeParada("D", isNext) }}
       >
         {/* El círculo del Gestor (D-515): número de parada en el color del chofer, no «D1» en un círculo pintado
             por estado. Lo que el estado decía sigue: la entregada, con ✓; la siguiente, por el fondo de la fila. */}
@@ -419,7 +418,7 @@ export default function MyRoutePage() {
           {/* The next stop, given its own card. Everything else on this screen
               is context; this is the thing to act on. */}
           {next && (
-            <div className="card" data-siguiente-parada style={{ marginBottom: 12, borderColor: "var(--accent)", borderWidth: 2 }}>
+            <div className="card" data-siguiente-parada data-tipo-de-fila={tipoDeLaSiguiente} style={{ marginBottom: 12, borderColor: "var(--accent)", borderWidth: 2, background: FONDO_DE_PARADA[tipoDeLaSiguiente] }}>
               <div className="section-label" style={{ marginTop: 0 }}>
                 {t("Next stop", "Siguiente parada")} · {sig ? `${sig.parada}/${sig.totalParadas}` : `${stops.indexOf(next) + 1}/${stops.length}`}
                 {sig && textoDePosicion(sig, t) ? <span data-posicion-en-la-parada> · {textoDePosicion(sig, t)}</span> : null}

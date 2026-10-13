@@ -139,7 +139,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     expect(tarjeta(luego)).toContain("INV-A2");
     expect(tarjeta(luego)).not.toContain("INV-A1");
     // Y la fila de la parada 1 va pintada como siguiente.
-    expect(luego).toMatch(/data-fila-de-ruta="1" style="align-items:flex-start;background:var\(--accent-soft\)"/);
+    expect(luego).toMatch(/data-fila-de-ruta="1" data-tipo-de-fila="P" style="align-items:flex-start;background:var\(--green-soft\);box-shadow:inset 0 0 0 2px var\(--accent\)"/);
   });
   it("D-527: la recogida ya en el camión lleva «↩ Undo pickup» (en «Delivered», donde queda la recogida hecha)", async () => {
     estado.events = [{ id: "e1", delivery_id: "A3", kind: "picked_up", note: "Loaded: 4 pallets", created_by: "u-carlos", created_at: new Date().toISOString() }];

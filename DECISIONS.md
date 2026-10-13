@@ -42831,3 +42831,17 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pruebas:** `siguiente-de-mi-ruta.test.ts` (nuevo: el caso de las dos recogidas paso a paso; rechazadas, anuladas, sin lista, entrega solo en el camión; posición; la llegada por orden; el filtro de botones; un toque solo con lista), `mi-ruta-pantalla.test.ts` (pintada: Llegué en las dos órdenes y Recogido en las dos al llegar; tarjeta 1/5 · Pickup 1 of 4 → 2 of 4 con la segunda; burbuja y factura; la recogida de un toque y su GPS; Entregado sin escribir), `acciones-parada.test.ts`, `vista-de-chofer.test.ts`, `one-tap-stop.test.ts`, `avisos-cliente.test.ts` (notas D-533 donde fijaban D-527). Mutantes: 12 de 12 caen (`mut533`).
 
 **No medido:** nada en navegador (`tsc` y vitest). No se probó con un chofer real en la tienda.
+
+## D-NEXT · «Mi ruta»: las recogidas sobre verde claro y las entregas sobre azul claro; la siguiente, con borde
+
+**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · Sin migración · Hecho directo por el orquestador en `feat/colores-mi-ruta`.
+
+**Pedido del dueño**, literal: *«pickup in driver view should be 1 color and deliveries another like light green and delivery lihgt blue»*.
+
+**Qué cambia** (`colores-de-mi-ruta.ts`, `my-route/page.tsx`). Cada fila de la lista y la tarjeta de «Siguiente parada» llevan el fondo de su tipo: recogida (P) `--green-soft`, entrega (D) `--accent-soft` (los tokens de `globals.css`, con su versión oscura). La **siguiente** ya no se señalaba con un fondo azul claro —que ahora es el de toda entrega—: lleva un borde interior de 2 px del color de acento (`estiloDeParada`), que se ve igual sobre los dos fondos. Las filas llevan `data-tipo-de-fila` para medirlo.
+
+**Qué no cambia.** El Gestor, la pestaña «Chofer» del admin (misma página), los colores por chofer de los círculos y del mapa.
+
+**Pruebas:** `colores-de-mi-ruta.test.ts` (los dos fondos, el borde de la siguiente, los tokens en el CSS en claro y oscuro, y que la página los usa en los tres sitios); `mi-ruta-pantalla.test.ts` (la fila siguiente pintada con verde y borde).
+
+**No medido:** nada en navegador (`tsc` y vitest). El contraste de los textos sobre los dos fondos no se midió.
