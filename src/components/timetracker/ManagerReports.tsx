@@ -109,7 +109,7 @@ export function ManagerReports({ period }: { period: string }) {
   const realBatches = batches.filter((b) => !b.draft);
   const batchMap = new Map(realBatches.map((b) => [b.id, b]));
 
-  // La aritmética de las líneas vive en `talon-de-pago.ts` (D-NEXT), movida sin cambiarla: el talón
+  // La aritmética de las líneas vive en `talon-de-pago.ts` (D-538), movida sin cambiarla: el talón
   // del remoto y esta pantalla calculan con la misma función.
   function calcLinesFor(sess: Session[]) {
     return lineasDeNomina(sess, aMap, pMap);
@@ -171,7 +171,7 @@ export function ManagerReports({ period }: { period: string }) {
       });
       if (sess.length) await Promise.all(sess.map((s) => updateSession(s.id, { payrollId: row.id })));
       if (draft) await removePayroll(draft.id);
-      // La foto del talón (D-NEXT), en el mismo momento del pago. Si no se pudiera guardar, el pago
+      // La foto del talón (D-538), en el mismo momento del pago. Si no se pudiera guardar, el pago
       // ya está hecho y no se deshace por esto: «🧾 Talón» la construye con el lote al imprimirla.
       try { await insertPaystubs([talonDelLote(uid, row, sess).talon]); }
       catch (e) { console.warn("paystub snapshot not saved", e); }
@@ -193,7 +193,7 @@ export function ManagerReports({ period }: { period: string }) {
     setBusy(true);
     try {
       if (sess.length) await Promise.all(sess.map((s) => updateSession(s.id, { payrollId: null })));
-      // Un lote que se reabre nunca fue definitivo: su talón se va con él (D-NEXT).
+      // Un lote que se reabre nunca fue definitivo: su talón se va con él (D-538).
       await removePaystubOfPayroll(b.id);
       await removePayroll(b.id);
       await logAudit("Payment reopened", b.employeeName || "");
@@ -284,7 +284,7 @@ export function ManagerReports({ period }: { period: string }) {
     setReceipt({ emp, batch: b, lines, adjustments: adjs, total: totalConAjustes(b.total || pay, adjs) });
   }
 
-  // ---- Talón de pago del remoto (D-NEXT) ----
+  // ---- Talón de pago del remoto (D-538) ----
   const empresa = {
     name: settings.companyName, address: settings.companyAddress, phone: settings.companyPhone,
     taxId: settings.companyTaxId, email: settings.companyEmail, currency: settings.currency,

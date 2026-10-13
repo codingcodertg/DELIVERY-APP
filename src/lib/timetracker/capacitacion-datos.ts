@@ -45,7 +45,7 @@ export const CLASE_DE_DATO = {
   insertPayroll: "bloqueada",
   updatePayroll: "bloqueada",
   removePayroll: "bloqueada",
-  // Talones de pago (D-NEXT): leer pasa; guardar tarifas o talones, no.
+  // Talones de pago (D-538): leer pasa; guardar tarifas o talones, no.
   payRates: "pasa",
   savePayRate: "bloqueada",
   paystubsForPeriod: "pasa",

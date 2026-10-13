@@ -131,7 +131,7 @@ export interface DataState {
   insertPayroll: (payload: Partial<Payroll>) => Promise<Payroll>;
   updatePayroll: (id: string, patch: Partial<Payroll>) => Promise<void>;
   removePayroll: (id: string) => Promise<void>;
-  // ---- talones de pago (D-NEXT, migración 170). Solo admin: la RLS lo exige también. ----
+  // ---- talones de pago (D-538, migración 170). Solo admin: la RLS lo exige también. ----
   /** Las tarifas por hora de la cuadrilla presencial (`timetracker.pay_rates`). */
   payRates: () => Promise<(TarifaPorHora & { employeeUid: string })[]>;
   /** Crea o cambia la tarifa de una persona. */
@@ -737,7 +737,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     if (error) throw error;
   }, [supabase]);
 
-  // ---- talones de pago (D-NEXT) ----
+  // ---- talones de pago (D-538) ----
   const payRates = useCallback<DataState["payRates"]>(async () => {
     const { data, error } = await supabase.from("pay_rates").select("employee_uid, hourly_rate, ot_multiplier, ot_weekly_hours");
     if (error) throw error;

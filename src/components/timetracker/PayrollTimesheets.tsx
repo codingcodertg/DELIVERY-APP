@@ -55,7 +55,7 @@ export function PayrollTimesheets({ period, revisar }: {
   const { allEmployees, me, settings, payRates, savePayRate, paystubsForPeriod, paystubsForYear, insertPaystubs } = useData();
   const esAdmin = me.role === "admin";
   const dobles = useMemo(() => new Set(revisar), [revisar]);
-  // Tarifas por hora de la cuadrilla (D-NEXT, `timetracker.pay_rates`). Solo el admin las lee.
+  // Tarifas por hora de la cuadrilla (D-538, `timetracker.pay_rates`). Solo el admin las lee.
   const [tarifas, setTarifas] = useState<Map<string, TarifaPorHora>>(new Map());
   const [tarifaEnEdicion, setTarifaEnEdicion] = useState<string | null>(null);
   const [borradorTarifa, setBorradorTarifa] = useState({ rate: "", mult: String(TARIFA_POR_DEFECTO.otMultiplier) });
@@ -160,7 +160,7 @@ export function PayrollTimesheets({ period, revisar }: {
     setDraft({ clockIn: `${period}T08:00`, clockOut: `${period}T16:30`, lunch: 30, note: "" });
   }
 
-  // ---- Tarifa y talones de pago (D-NEXT) ----
+  // ---- Tarifa y talones de pago (D-538) ----
   function empiezaTarifa(id: string) {
     const actual = tarifas.get(id);
     setTarifaEnEdicion(id);
@@ -334,7 +334,7 @@ export function PayrollTimesheets({ period, revisar }: {
         {!d.isOwner && <p className="small muted" style={{ marginTop: 8 }}>Only the owner closes the period.</p>}
         {esAdmin && (
           // Los talones salen de un periodo CERRADO por el dueño: con el periodo abierto las horas aún
-          // pueden cambiar, y un talón guardado ya no cambia (D-NEXT).
+          // pueden cambiar, y un talón guardado ya no cambia (D-538).
           <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
             <button className="btn-sm" disabled={busy || !d.signedOff || ids.length === 0} onClick={() => void talonesDeLaSemana()}>
               {t("mgr.stub.weekBtn")}

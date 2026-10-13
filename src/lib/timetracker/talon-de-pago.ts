@@ -1,5 +1,5 @@
 // ============================================================
-// Talones de pago de Time Tracker (D-NEXT): todo lo que decide una cifra vive aquí, para que las
+// Talones de pago de Time Tracker (D-538): todo lo que decide una cifra vive aquí, para que las
 // pruebas lo IMPORTEN en vez de copiarlo.
 //
 // Pedido del dueño (2026-10-13): «haz los paystubs para el time tracker app». La cuadrilla que ficha
@@ -441,7 +441,7 @@ export function htmlDeTalones(items: { talon: TalonDePago; acumulado: Acumulado 
       .info td{font-size:13px;font-weight:600;padding:4px 0;border-bottom:1px solid #e2e8f0;}
       .dinero th,.ytd th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#4a5568;padding:6px 8px;border-bottom:2px solid #cbd5e0;background:#f7fafc;}
       .dinero td,.ytd td{font-size:13px;padding:6px 8px;border-bottom:1px solid #e2e8f0;}
-      .n{text-align:right;white-space:nowrap;} .vacio{color:#718096;text-align:center;}
+      .n,.dinero th.n,.ytd th.n{text-align:right;white-space:nowrap;} .vacio{color:#718096;text-align:center;}
       tr.sub td{font-weight:700;} tr.neto td{font-weight:800;font-size:16px;border-top:2px solid #152238;}
       .pie{margin-top:18px;font-size:12px;color:#4a5568;text-align:center;}
       @media print{.talon{padding:14px;}}

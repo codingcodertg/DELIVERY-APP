@@ -3,7 +3,7 @@
 **Estado:** PLAN EN PAPEL. Migración escrita y commiteada en la rama `talones-de-pago`; **no aplicada
 en ninguna base.** La aplica el orquestador tras el merge, con respaldo (`pg_dump`) reciente.
 **Fecha:** 2026-10-13 · **Origen:** pedido del dueño, «haz los paystubs para el time tracker app».
-**Decisión:** la entrada `D-NEXT` de `DECISIONS.md` (talones de pago).
+**Decisión:** la entrada `D-538` de `DECISIONS.md` (talones de pago).
 
 ---
 

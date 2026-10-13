@@ -42905,7 +42905,7 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 **No medido:** nada en navegador.
 
-## D-NEXT · Talones de pago en Time Tracker: tarifa por hora para la cuadrilla presencial, talón por persona y semana, talón del remoto al pagar, y una foto que no se recalcula
+## D-538 · Talones de pago en Time Tracker: tarifa por hora para la cuadrilla presencial, talón por persona y semana, talón del remoto al pagar, y una foto que no se recalcula
 
 **Fecha:** 2026-10-13 · **Versión:** la asigna el orquestador al fusionar · **Migración:** `170_talones_de_pago.sql` (escrita, **no aplicada**) · Rama `talones-de-pago`.
 

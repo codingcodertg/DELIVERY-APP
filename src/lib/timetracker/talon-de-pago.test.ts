@@ -10,7 +10,7 @@ import {
   type TalonDePago,
 } from "./talon-de-pago";
 
-// Talones de pago (D-NEXT). Todo con nombres y tiendas inventados.
+// Talones de pago (D-538). Todo con nombres y tiendas inventados.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 

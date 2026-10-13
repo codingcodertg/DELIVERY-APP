@@ -70,7 +70,7 @@ export function entryMinutes(e: PayEntry): number {
 export type PaySummary = { totalMin: number; regularMin: number; otMin: number; openCount: number; lunchMin: number };
 
 // `otWeeklyMin`: el umbral de extras, en minutos. Por defecto 40 h, como siempre; los talones de pago
-// (D-NEXT) pasan el de la persona (`timetracker.pay_rates.ot_weekly_hours`). Quien no lo pasa no cambia.
+// (D-538) pasan el de la persona (`timetracker.pay_rates.ot_weekly_hours`). Quien no lo pasa no cambia.
 export function summarize(entries: PayEntry[], otWeeklyMin: number = OT_WEEKLY_MIN): PaySummary {
   let totalMin = 0;
   let lunchMin = 0;

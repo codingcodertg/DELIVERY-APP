@@ -840,7 +840,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'mgr.rep.markPaid': 'PAID',
     'mgr.rep.markUnpaid': 'UNPAID',
     'mgr.rep.receipt': 'Receipt',
-    // Talones de pago (D-NEXT): el del remoto en Remoto, los de la semana y la tarifa en Presencial.
+    // Talones de pago (D-538): el del remoto en Remoto, los de la semana y la tarifa en Presencial.
     'mgr.stub.btn': '🧾 Pay stub',
     'mgr.stub.weekBtn': '🧾 Pay stubs for the week',
     'mgr.stub.needSignoff': 'Available once the owner signs off the period.',
