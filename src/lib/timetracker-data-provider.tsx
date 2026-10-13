@@ -21,6 +21,7 @@ import { SessionExpired } from "@/components/SessionExpired";
 import { useCapacitacion } from "@/components/timetracker/Capacitacion";
 import { conPractica, funcionesDePractica } from "@/lib/timetracker/capacitacion-datos";
 import { resolverTiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
+import { talonDeFila, type TalonDePago, type TarifaPorHora } from "@/lib/timetracker/talon-de-pago";
 
 // ============================================================
 // Etapa 2, pass 1 (D-066): foundation + the Track Time screen only. This
@@ -130,6 +131,20 @@ export interface DataState {
   insertPayroll: (payload: Partial<Payroll>) => Promise<Payroll>;
   updatePayroll: (id: string, patch: Partial<Payroll>) => Promise<void>;
   removePayroll: (id: string) => Promise<void>;
+  // ---- talones de pago (D-NEXT, migración 170). Solo admin: la RLS lo exige también. ----
+  /** Las tarifas por hora de la cuadrilla presencial (`timetracker.pay_rates`). */
+  payRates: () => Promise<(TarifaPorHora & { employeeUid: string })[]>;
+  /** Crea o cambia la tarifa de una persona. */
+  savePayRate: (employeeUid: string, tarifa: TarifaPorHora) => Promise<void>;
+  /** Los talones guardados de un periodo (los dos tipos). */
+  paystubsForPeriod: (periodStart: string) => Promise<TalonDePago[]>;
+  /** Los talones de esas personas con inicio de periodo en ese año, para el acumulado. */
+  paystubsForYear: (year: number, employeeUids: string[]) => Promise<TalonDePago[]>;
+  /** Guarda talones nuevos. Uno que ya exista (misma persona y periodo, o mismo lote) se deja como
+   * está: la base lo rechaza por su índice único y aquí ese rechazo no es un error (la foto ya está). */
+  insertPaystubs: (stubs: TalonDePago[]) => Promise<void>;
+  /** Borra el talón de un lote remoto que se reabre: nunca fue definitivo. */
+  removePaystubOfPayroll: (payrollId: string) => Promise<void>;
   insertProject: (payload: Partial<Project>) => Promise<void>;
   updateProject: (id: string, patch: Partial<Project>) => Promise<void>;
   insertAssignment: (payload: Partial<Assignment>) => Promise<void>;
@@ -722,6 +737,69 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     if (error) throw error;
   }, [supabase]);
 
+  // ---- talones de pago (D-NEXT) ----
+  const payRates = useCallback<DataState["payRates"]>(async () => {
+    const { data, error } = await supabase.from("pay_rates").select("employee_uid, hourly_rate, ot_multiplier, ot_weekly_hours");
+    if (error) throw error;
+    // numeric llega de PostgREST como número, pero un texto no rompe nada pasando por Number().
+    return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
+      employeeUid: r.employee_uid as string,
+      hourlyRate: Number(r.hourly_rate),
+      otMultiplier: Number(r.ot_multiplier),
+      otWeeklyHours: Number(r.ot_weekly_hours),
+    }));
+  }, [supabase]);
+
+  const savePayRate = useCallback<DataState["savePayRate"]>(async (employeeUid, tarifa) => {
+    await requireSession();
+    const { error } = await supabase.from("pay_rates").upsert({
+      employee_uid: employeeUid,
+      hourly_rate: tarifa.hourlyRate,
+      ot_multiplier: tarifa.otMultiplier,
+      ot_weekly_hours: tarifa.otWeeklyHours,
+      updated_at: new Date().toISOString(),
+      updated_by: me.id,
+    });
+    if (error) throw error;
+  }, [supabase, requireSession, me.id]);
+
+  const paystubsForPeriod = useCallback<DataState["paystubsForPeriod"]>(async (periodStart) => {
+    const { data, error } = await supabase.from("paystubs").select("*").eq("period_start", periodStart);
+    if (error) throw error;
+    return ((data as Record<string, unknown>[] | null) ?? []).map((r) => talonDeFila(rowToCamel(r)!));
+  }, [supabase]);
+
+  const paystubsForYear = useCallback<DataState["paystubsForYear"]>(async (year, employeeUids) => {
+    if (!employeeUids.length) return [];
+    const { data, error } = await supabase.from("paystubs").select("*")
+      .in("employee_uid", employeeUids)
+      .gte("period_start", `${year}-01-01`)
+      .lte("period_start", `${year}-12-31`);
+    if (error) throw error;
+    return ((data as Record<string, unknown>[] | null) ?? []).map((r) => talonDeFila(rowToCamel(r)!));
+  }, [supabase]);
+
+  const insertPaystubs = useCallback<DataState["insertPaystubs"]>(async (stubs) => {
+    if (!stubs.length) return;
+    await requireSession();
+    // Uno a uno: un talón que ya existe (23505, el índice único) no debe tumbar a los demás. Ese
+    // choque es otro administrador que llegó antes con la misma foto, y la suya es la que vale.
+    for (const s of stubs) {
+      const { id: _id, createdAt: _c, ...resto } = s;
+      void _id; void _c;
+      const row = { ...toSnakeRow(resto as unknown as Record<string, unknown>), created_by: me.id };
+      const { error } = await supabase.from("paystubs").insert(row);
+      if (error && (error as { code?: string }).code !== "23505") throw error;
+    }
+  }, [supabase, requireSession, me.id]);
+
+  const removePaystubOfPayroll = useCallback<DataState["removePaystubOfPayroll"]>(async (payrollId) => {
+    const { error } = await supabase.from("paystubs").delete().eq("payroll_id", payrollId);
+    // Sin la migración 170 la tabla no existe, y entonces no hay talón que borrar: reabrir un lote no
+    // puede depender de eso. Cualquier otro error sí para, para no dejar un talón huérfano.
+    if (error && !["42P01", "PGRST205"].includes((error as { code?: string }).code ?? "")) throw error;
+  }, [supabase]);
+
   const insertProject = useCallback<DataState["insertProject"]>(async (payload) => {
     const row = toSnakeRow(payload as Record<string, unknown>);
     const { error } = await supabase.from("projects").insert(row);
@@ -872,6 +950,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     auditLog, logAudit, liveSessions,
     insertSession, removeSession,
     payrollsForWeek, insertPayroll, updatePayroll, removePayroll,
+    payRates, savePayRate, paystubsForPeriod, paystubsForYear, insertPaystubs, removePaystubOfPayroll,
     insertProject, updateProject, insertAssignment, updateAssignment, removeAssignment,
     claimRequest, resetRequestToPending, updateEmployeeSettings, updateSettings,
   };

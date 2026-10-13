@@ -55,7 +55,7 @@ export function lunchMinutes(e: { punched_lunch_min?: number | null; lunch_minut
   return Math.max(0, e.punched_lunch_min ?? e.lunch_minutes ?? 0);
 }
 
-const OT_WEEKLY_MIN = 40 * 60; // hours past 40/week count as overtime
+export const OT_WEEKLY_MIN = 40 * 60; // hours past 40/week count as overtime
 
 /** Worked minutes for one entry (0 if still open / no clock-out). */
 export function entryMinutes(e: PayEntry): number {
@@ -69,7 +69,9 @@ export function entryMinutes(e: PayEntry): number {
 // much lunch anyone actually took.
 export type PaySummary = { totalMin: number; regularMin: number; otMin: number; openCount: number; lunchMin: number };
 
-export function summarize(entries: PayEntry[]): PaySummary {
+// `otWeeklyMin`: el umbral de extras, en minutos. Por defecto 40 h, como siempre; los talones de pago
+// (D-NEXT) pasan el de la persona (`timetracker.pay_rates.ot_weekly_hours`). Quien no lo pasa no cambia.
+export function summarize(entries: PayEntry[], otWeeklyMin: number = OT_WEEKLY_MIN): PaySummary {
   let totalMin = 0;
   let lunchMin = 0;
   let openCount = 0;
@@ -81,8 +83,8 @@ export function summarize(entries: PayEntry[]): PaySummary {
     totalMin += entryMinutes(e);
     lunchMin += lunchMinutes(e);
   }
-  const regularMin = Math.min(totalMin, OT_WEEKLY_MIN);
-  const otMin = Math.max(0, totalMin - OT_WEEKLY_MIN);
+  const regularMin = Math.min(totalMin, otWeeklyMin);
+  const otMin = Math.max(0, totalMin - otWeeklyMin);
   return { totalMin, regularMin, otMin, openCount, lunchMin };
 }
 

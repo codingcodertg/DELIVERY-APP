@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import {
-  APP_SETTINGS, LOCALE, breaksText, computePay, dateISO, fmtClock, fmtDT, fmtHM,
-  money, periodEndISO, periodLabel, projectWeekStart, weekIsFinished, weekStartISO,
+  APP_SETTINGS, LOCALE, breaksText, dateISO, fmtClock, fmtDT, fmtHM,
+  money, periodEndISO, periodLabel, weekIsFinished, weekStartISO,
 } from "@/lib/timetracker/helpers";
+import { acumuladoDelAnio, htmlDelTalon, lineasDeNomina, lineasDelTalon, talonRemoto, type TalonDePago } from "@/lib/timetracker/talon-de-pago";
+import { imprimeDocumento } from "@/lib/slip";
 import type { Assignment, Employee, Payroll, PayrollAdjustment, Session } from "@/lib/timetracker/types";
 import { sumaDeAjustes, totalConAjustes, totalPagado } from "@/lib/timetracker/total-de-nomina";
 import { necesitaProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
@@ -61,6 +63,7 @@ export function ManagerReports({ period }: { period: string }) {
     me, allEmployees: users, allProjects: projects, allAssignments: assignments, settings,
     sessionsSince, payrollsForWeek, insertSession, updateSession, removeSession,
     insertPayroll, updatePayroll, removePayroll, logAudit,
+    paystubsForPeriod, paystubsForYear, insertPaystubs, removePaystubOfPayroll,
   } = useData();
   const t = useT();
   const payPeriod = settings.payPeriod || "weekly";
@@ -106,30 +109,10 @@ export function ManagerReports({ period }: { period: string }) {
   const realBatches = batches.filter((b) => !b.draft);
   const batchMap = new Map(realBatches.map((b) => [b.id, b]));
 
+  // La aritmética de las líneas vive en `talon-de-pago.ts` (D-NEXT), movida sin cambiarla: el talón
+  // del remoto y esta pantalla calculan con la misma función.
   function calcLinesFor(sess: Session[]) {
-    const byA = new Map<string, { sec: number; active: number; weeks: Map<string, number> }>();
-    sess.forEach((s) => {
-      const aid = s.assignmentId ?? "";
-      if (!byA.has(aid)) byA.set(aid, { sec: 0, active: 0, weeks: new Map() });
-      const g = byA.get(aid)!;
-      g.sec += s.durationSeconds || 0;
-      g.active += s.activeSeconds || 0;
-      const proj = pMap.get(aMap.get(aid)?.projectId ?? "");
-      const w = weekStartISO(s.date ?? "", projectWeekStart(proj));
-      g.weeks.set(w, (g.weeks.get(w) ?? 0) + (s.durationSeconds || 0));
-    });
-    let pay = 0, sec = 0;
-    const lines = Array.from(byA.entries()).map(([aid, g]) => {
-      const a = aMap.get(aid);
-      let reg = 0, ot = 0, p = 0, overLimit = 0;
-      g.weeks.forEach((wsec) => {
-        const c = a ? computePay(wsec / 3600, a) : { pay: 0, reg: 0, ot: 0, overLimit: 0 };
-        reg += c.reg; ot += c.ot; p += c.pay; overLimit += c.overLimit;
-      });
-      pay += p; sec += g.sec;
-      return { aid, a, g: { sec: g.sec, active: g.active }, calc: { reg, ot, pay: p, overLimit } };
-    });
-    return { lines, pay, sec };
+    return lineasDeNomina(sess, aMap, pMap);
   }
 
   const weekSessions = sessions.filter((s) => (s.date ?? "") >= start && (s.date ?? "") <= end);
@@ -188,6 +171,10 @@ export function ManagerReports({ period }: { period: string }) {
       });
       if (sess.length) await Promise.all(sess.map((s) => updateSession(s.id, { payrollId: row.id })));
       if (draft) await removePayroll(draft.id);
+      // La foto del talón (D-NEXT), en el mismo momento del pago. Si no se pudiera guardar, el pago
+      // ya está hecho y no se deshace por esto: «🧾 Talón» la construye con el lote al imprimirla.
+      try { await insertPaystubs([talonDelLote(uid, row, sess).talon]); }
+      catch (e) { console.warn("paystub snapshot not saved", e); }
       await logAudit("Marked paid", (emp ? emp.fullName : "") + " · " + money(totalConAjustes(Number(pay.toFixed(2)), adjustments)));
       sessionsSince(start, end).then(setSessions);
       payrollsForWeek(week).then(setBatches);
@@ -206,6 +193,8 @@ export function ManagerReports({ period }: { period: string }) {
     setBusy(true);
     try {
       if (sess.length) await Promise.all(sess.map((s) => updateSession(s.id, { payrollId: null })));
+      // Un lote que se reabre nunca fue definitivo: su talón se va con él (D-NEXT).
+      await removePaystubOfPayroll(b.id);
       await removePayroll(b.id);
       await logAudit("Payment reopened", b.employeeName || "");
       sessionsSince(start, end).then(setSessions);
@@ -295,6 +284,39 @@ export function ManagerReports({ period }: { period: string }) {
     setReceipt({ emp, batch: b, lines, adjustments: adjs, total: totalConAjustes(b.total || pay, adjs) });
   }
 
+  // ---- Talón de pago del remoto (D-NEXT) ----
+  const empresa = {
+    name: settings.companyName, address: settings.companyAddress, phone: settings.companyPhone,
+    taxId: settings.companyTaxId, email: settings.companyEmail, currency: settings.currency,
+  };
+  /** El talón de un lote pagado, con sus líneas recalculadas de las sesiones del lote. */
+  function talonDelLote(uid: string, b: Payroll, sess: Session[]) {
+    const lineas = lineasDelTalon(calcLinesFor(sess).lines, (l) => nombreDe(l.a, uid, "(deleted)"));
+    const payDate = dateISO(b.paidAt ? new Date(b.paidAt) : new Date());
+    return talonRemoto(b, lineas, { periodEnd: periodEndISO(b.weekOf || week, payPeriod), payDate });
+  }
+  /**
+   * Imprime el talón GUARDADO del lote. Un lote pagado antes de que existieran los talones no tiene
+   * foto: se construye con el lote y sus sesiones, se guarda, y desde entonces es esa.
+   */
+  async function printStub(uid: string, b: Payroll, sess: Session[]) {
+    setBusy(true);
+    try {
+      let stub: TalonDePago | undefined = (await paystubsForPeriod(b.weekOf || week)).find((s) => s.payrollId === b.id);
+      if (!stub) {
+        const nuevo = talonDelLote(uid, b, sess);
+        if (!nuevo.cuadra) alert(t("mgr.stub.mismatch"));
+        await insertPaystubs([nuevo.talon]);
+        stub = (await paystubsForPeriod(b.weekOf || week)).find((s) => s.payrollId === b.id) ?? nuevo.talon;
+      }
+      const year = Number(stub.periodStart.slice(0, 4));
+      const delAnio = await paystubsForYear(year, [uid]);
+      const acumulado = acumuladoDelAnio(stub.id && delAnio.some((s) => s.id === stub!.id) ? delAnio : [...delAnio, stub], uid, year, stub.periodStart);
+      imprimeDocumento(htmlDelTalon(stub, empresa, acumulado, lang), () => alert(t("mgr.stub.printFail")));
+    } catch (e) { const err = e as { message?: string } | null; alert(t("mgr.stub.fail", { e: err?.message || "unknown error" })); }
+    finally { setBusy(false); }
+  }
+
   function renderGroup(uid: string, key: string, sess: Session[]) {
     const b = key === "live" ? null : batchMap.get(key) ?? null;
     const orphan = key !== "live" && !batchMap.get(key);
@@ -320,6 +342,7 @@ export function ManagerReports({ period }: { period: string }) {
             {!b && <button className="btn-ok btn-sm" disabled={busy || !canPay} onClick={() => markPaid(uid, sess, pay)}>{t("mgr.rep.markPaid")}</button>}
             {b && <button className={paid ? "btn-ghost btn-sm" : "btn-ok btn-sm"} onClick={() => toggleBatch(b)}>{paid ? t("mgr.rep.markUnpaid") : t("mgr.rep.markPaid")}</button>}
             {b && <button className="btn-ghost btn-sm" onClick={() => openReceipt(uid, b, sess)}>{t("mgr.rep.receipt")}</button>}
+            {b && b.paid && <button className="btn-ghost btn-sm" disabled={busy} onClick={() => printStub(uid, b, sess)}>{t("mgr.stub.btn")}</button>}
             {b && <button className="btn-ghost btn-sm" disabled={busy} onClick={() => reopen(b, sess)}>{t("mgr.rep.reopen")}</button>}
             {sec > 0 && <button className="btn-ghost btn-sm" onClick={() => setExpanded(expanded === gid ? null : gid)}>{expanded === gid ? t("common.hide") : t("mgr.rep.detail")}</button>}
           </div>

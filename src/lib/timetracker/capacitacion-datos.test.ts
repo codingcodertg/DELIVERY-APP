@@ -53,6 +53,8 @@ const ARGS: Record<keyof typeof CLASE_DE_DATO, unknown[]> = {
   updateMyAccount: [{ fullName: "x", city: "", payMethod: "", payDetails: "" }], signOutEverywhere: [], logAudit: ["a", "b"],
   sessionsSince: ["2026-10-01"], sessionsByProject: ["p"], insertSession: [{}], removeSession: ["s"], payrollsForWeek: ["w"],
   insertPayroll: [{}], updatePayroll: ["p", {}], removePayroll: ["p"], insertProject: [{}], updateProject: ["p", {}],
+  payRates: [], savePayRate: ["e", { hourlyRate: 20, otMultiplier: 1.5, otWeeklyHours: 40 }], paystubsForPeriod: ["2026-10-02"],
+  paystubsForYear: [2026, ["e"]], insertPaystubs: [[]], removePaystubOfPayroll: ["p"],
   insertAssignment: [{}], updateAssignment: ["a", {}], removeAssignment: ["a"],
   claimRequest: ["r", { status: "approved", resolvedBy: "yo" }], resetRequestToPending: ["r"],
   updateEmployeeSettings: ["e", { active: true }], updateSettings: [{}],
@@ -83,7 +85,8 @@ describe("cada función del proveedor, en práctica", () => {
   it("ninguna que escriba pasa: lo que pasa solo lee o no toca datos", () => {
     const pasan = Object.entries(CLASE_DE_DATO).filter(([, c]) => c === "pasa").map(([k]) => k).sort();
     expect(pasan).toEqual([
-      "ensureSessionsSince", "notify", "payrollsForWeek", "screenshotSignedUrl", "sessionsByProject", "sessionsSince", "signOutEverywhere",
+      "ensureSessionsSince", "notify", "payRates", "payrollsForWeek", "paystubsForPeriod", "paystubsForYear",
+      "screenshotSignedUrl", "sessionsByProject", "sessionsSince", "signOutEverywhere",
     ]);
   });
 });

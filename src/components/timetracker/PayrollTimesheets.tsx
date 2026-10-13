@@ -8,9 +8,13 @@ import {
 import { entryMinutes, hrs, summarize, type PayEntry } from "@/lib/clockin/payroll";
 import { utcToCentralInput } from "@/lib/clockin/tz";
 import { getLang, useT } from "@/lib/timetracker/i18n";
-import { APP_SETTINGS } from "@/lib/timetracker/helpers";
+import { APP_SETTINGS, dateISO, money, periodEndISO } from "@/lib/timetracker/helpers";
 import { useData } from "@/lib/timetracker-data-provider";
 import { etiquetaDePuesto, necesitaProyecto } from "@/lib/timetracker/tienda-y-puesto";
+import {
+  TARIFA_POR_DEFECTO, acumuladoDelAnio, htmlDeTalones, presencialDeFichajes, talonesPresenciales, type TarifaPorHora,
+} from "@/lib/timetracker/talon-de-pago";
+import { imprimeDocumento } from "@/lib/slip";
 
 /**
  * Los partes de fichaje de un periodo: aprobar, corregir y cerrar la nómina (D-117).
@@ -48,8 +52,26 @@ export function PayrollTimesheets({ period, revisar }: {
   revisar: string[];
 }) {
   const t = useT();
-  const { allEmployees } = useData();
+  const { allEmployees, me, settings, payRates, savePayRate, paystubsForPeriod, paystubsForYear, insertPaystubs } = useData();
+  const esAdmin = me.role === "admin";
   const dobles = useMemo(() => new Set(revisar), [revisar]);
+  // Tarifas por hora de la cuadrilla (D-NEXT, `timetracker.pay_rates`). Solo el admin las lee.
+  const [tarifas, setTarifas] = useState<Map<string, TarifaPorHora>>(new Map());
+  const [tarifaEnEdicion, setTarifaEnEdicion] = useState<string | null>(null);
+  const [borradorTarifa, setBorradorTarifa] = useState({ rate: "", mult: String(TARIFA_POR_DEFECTO.otMultiplier) });
+  const [aviso, setAviso] = useState<string | null>(null);
+  const cargaTarifas = useCallback(async () => {
+    if (!esAdmin) return;
+    try {
+      const filas = await payRates();
+      setTarifas(new Map(filas.map((r) => [r.employeeUid, { hourlyRate: r.hourlyRate, otMultiplier: r.otMultiplier, otWeeklyHours: r.otWeeklyHours }])));
+    } catch (e) {
+      // Sin la migración 170 la tabla no existe: la nómina sigue funcionando, sin tarifas.
+      const err = e as { message?: string } | null;
+      setAviso(t("mgr.stub.ratesFail", { e: err?.message || "unknown error" }));
+    }
+  }, [esAdmin, payRates, t]);
+  useEffect(() => { void cargaTarifas(); }, [cargaTarifas]);
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,6 +160,106 @@ export function PayrollTimesheets({ period, revisar }: {
     setDraft({ clockIn: `${period}T08:00`, clockOut: `${period}T16:30`, lunch: 30, note: "" });
   }
 
+  // ---- Tarifa y talones de pago (D-NEXT) ----
+  function empiezaTarifa(id: string) {
+    const actual = tarifas.get(id);
+    setTarifaEnEdicion(id);
+    setBorradorTarifa({
+      rate: actual ? String(actual.hourlyRate) : "",
+      mult: String(actual?.otMultiplier ?? TARIFA_POR_DEFECTO.otMultiplier),
+    });
+  }
+  async function guardaTarifa(id: string) {
+    const rate = Number(borradorTarifa.rate);
+    const mult = Number(borradorTarifa.mult);
+    if (borradorTarifa.rate === "" || !Number.isFinite(rate) || rate < 0 || !Number.isFinite(mult) || mult < 1) {
+      setAviso(t("mgr.stub.rateInvalid"));
+      return;
+    }
+    setBusy(true);
+    try {
+      await savePayRate(id, { hourlyRate: rate, otMultiplier: mult, otWeeklyHours: tarifas.get(id)?.otWeeklyHours ?? TARIFA_POR_DEFECTO.otWeeklyHours });
+      setTarifaEnEdicion(null);
+      setAviso(null);
+      await cargaTarifas();
+    } catch (e) {
+      const err = e as { message?: string } | null;
+      setAviso(t("mgr.stub.rateFail", { e: err?.message || "unknown error" }));
+    } finally { setBusy(false); }
+  }
+
+  /**
+   * Los talones de la semana: uno por persona con tarifa, guardados como foto y luego impresos.
+   * Quien ya tiene talón de este periodo sale con el GUARDADO, sin recalcular (`decideTalones`).
+   */
+  async function talonesDeLaSemana() {
+    if (!d) return;
+    setBusy(true);
+    setAviso(null);
+    try {
+      const existentes = await paystubsForPeriod(period);
+      const personas = ids.map((id) => ({
+        id, name: gente.get(id)?.name ?? "—", method: empleados.get(id)?.payMethod ?? null, entries: porEmpleado.get(id)!,
+      }));
+      const r = talonesPresenciales({
+        personas, tarifas, existentes, periodStart: period, periodEnd: periodEndISO(period, "weekly"), payDate: dateISO(new Date()),
+      });
+      await insertPaystubs(r.aGuardar);
+      // Se imprime lo que quedó en la base: si otro admin guardó antes, su foto es la que vale.
+      const guardados = new Map((await paystubsForPeriod(period)).filter((s) => s.kind === "onsite").map((s) => [s.employeeUid, s]));
+      const aImprimir = r.aImprimir.map((s) => guardados.get(s.employeeUid) ?? s);
+      const partes: string[] = [];
+      if (r.sinTarifa.length) partes.push(t("mgr.stub.noRate", { n: r.sinTarifa.join(", ") }));
+      if (r.conAbiertos.length) partes.push(t("mgr.stub.open", { n: r.conAbiertos.join(", ") }));
+      const dobl = aImprimir.filter((s) => dobles.has(s.employeeUid)).map((s) => s.employeeName ?? "—");
+      if (dobl.length) partes.push(t("mgr.stub.both", { n: dobl.join(", ") }));
+      if (!aImprimir.length) { setAviso([t("mgr.stub.none"), ...partes].join(" ")); return; }
+      const year = Number(period.slice(0, 4));
+      const delAnio = await paystubsForYear(year, aImprimir.map((s) => s.employeeUid));
+      const items = aImprimir.map((s) => ({ talon: s, acumulado: acumuladoDelAnio(delAnio, s.employeeUid, year, s.periodStart) }));
+      const empresa = {
+        name: settings.companyName, address: settings.companyAddress, phone: settings.companyPhone,
+        taxId: settings.companyTaxId, email: settings.companyEmail, currency: settings.currency,
+      };
+      imprimeDocumento(htmlDeTalones(items, empresa, lang), () => partes.push(t("mgr.stub.printFail")));
+      setAviso(partes.length ? partes.join(" ") : null);
+    } catch (e) {
+      const err = e as { message?: string } | null;
+      setAviso(t("mgr.stub.fail", { e: err?.message || "unknown error" }));
+    } finally { setBusy(false); }
+  }
+
+  /** «Tarifa/h» de la persona, editable en el sitio, con lo que le saldría este periodo. */
+  const filaDeTarifa = (id: string, suyas: PayEntry[]) => {
+    if (tarifaEnEdicion === id) {
+      return (
+        <div className="row" style={{ marginTop: 4, alignItems: "center" }}>
+          <span className="small">{t("mgr.stub.rate")}</span>
+          <input type="number" min={0} step="0.01" value={borradorTarifa.rate} placeholder="0.00"
+            onChange={(e) => setBorradorTarifa((b) => ({ ...b, rate: e.target.value }))} style={{ width: 90 }} />
+          <span className="small">{t("mgr.stub.mult")}</span>
+          <input type="number" min={1} step="0.05" value={borradorTarifa.mult}
+            onChange={(e) => setBorradorTarifa((b) => ({ ...b, mult: e.target.value }))} style={{ width: 70 }} />
+          <button className="btn-sm" disabled={busy} onClick={() => void guardaTarifa(id)}>{t("common.save")}</button>
+          <button className="btn-ghost btn-sm" disabled={busy} onClick={() => setTarifaEnEdicion(null)}>{t("common.cancel")}</button>
+        </div>
+      );
+    }
+    const tarifa = tarifas.get(id);
+    const pago = tarifa ? presencialDeFichajes(suyas, tarifa) : null;
+    return (
+      <div className="small muted" style={{ marginTop: 2 }}>
+        {t("mgr.stub.rate")}{" "}
+        {tarifa
+          ? <><b>{money(tarifa.hourlyRate)}</b> · {t("mgr.stub.otAt", { m: tarifa.otMultiplier })}{pago && pago.openCount === 0 ? ` · ≈ ${money(pago.gross)}` : ""}</>
+          : <span className="pill wait">{t("mgr.stub.noRateShort")}</span>}
+        <button className="btn-ghost btn-sm" style={{ marginLeft: 6, padding: "1px 8px" }} onClick={() => empiezaTarifa(id)}>
+          {tarifa ? t("common.edit") : t("mgr.stub.setRate")}
+        </button>
+      </div>
+    );
+  };
+
   const formulario = (onSave: () => void, onCancel: () => void) => (
     <div className="box" style={{ marginTop: 8 }}>
       <div className="grid g2">
@@ -210,6 +332,17 @@ export function PayrollTimesheets({ period, revisar }: {
           )}
         </div>
         {!d.isOwner && <p className="small muted" style={{ marginTop: 8 }}>Only the owner closes the period.</p>}
+        {esAdmin && (
+          // Los talones salen de un periodo CERRADO por el dueño: con el periodo abierto las horas aún
+          // pueden cambiar, y un talón guardado ya no cambia (D-NEXT).
+          <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
+            <button className="btn-sm" disabled={busy || !d.signedOff || ids.length === 0} onClick={() => void talonesDeLaSemana()}>
+              {t("mgr.stub.weekBtn")}
+            </button>
+            {!d.signedOff && <span className="small muted">{t("mgr.stub.needSignoff")}</span>}
+          </div>
+        )}
+        {aviso && <div className="banner warn" style={{ marginTop: 12 }}>{aviso}</div>}
         {err && <div className="banner err" style={{ marginTop: 12 }}>{err}</div>}
       </div>
 
@@ -257,6 +390,7 @@ export function PayrollTimesheets({ period, revisar }: {
                             {s.otMin > 0 ? ` · ${hrs(s.otMin)} OT` : ""}
                             {s.lunchMin > 0 ? ` · 🍽 ${Math.round(s.lunchMin)}m` : ""}
                           </div>
+                          {esAdmin && filaDeTarifa(id, suyas)}
                         </div>
                         <button
                           className={ok ? "btn-ghost btn-sm" : "btn-sm"}

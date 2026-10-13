@@ -45,6 +45,13 @@ export const CLASE_DE_DATO = {
   insertPayroll: "bloqueada",
   updatePayroll: "bloqueada",
   removePayroll: "bloqueada",
+  // Talones de pago (D-NEXT): leer pasa; guardar tarifas o talones, no.
+  payRates: "pasa",
+  savePayRate: "bloqueada",
+  paystubsForPeriod: "pasa",
+  paystubsForYear: "pasa",
+  insertPaystubs: "bloqueada",
+  removePaystubOfPayroll: "bloqueada",
   insertProject: "bloqueada",
   updateProject: "bloqueada",
   insertAssignment: "bloqueada",
@@ -99,6 +106,9 @@ export function funcionesDePractica(leerReal: () => DataState, l: Libreta, idiom
     sessionsSince: (...a) => leerReal().sessionsSince(...a),
     sessionsByProject: (...a) => leerReal().sessionsByProject(...a),
     payrollsForWeek: (...a) => leerReal().payrollsForWeek(...a),
+    payRates: (...a) => leerReal().payRates(...a),
+    paystubsForPeriod: (...a) => leerReal().paystubsForPeriod(...a),
+    paystubsForYear: (...a) => leerReal().paystubsForYear(...a),
     // ---- practica ----
     addRequest: async (type, payload) => {
       const fila: TimeRequest = {
@@ -134,6 +144,9 @@ export function funcionesDePractica(leerReal: () => DataState, l: Libreta, idiom
     insertPayroll: bloquea,
     updatePayroll: bloquea,
     removePayroll: bloquea,
+    savePayRate: bloquea,
+    insertPaystubs: bloquea,
+    removePaystubOfPayroll: bloquea,
     insertProject: bloquea,
     updateProject: bloquea,
     insertAssignment: bloquea,
