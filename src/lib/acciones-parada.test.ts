@@ -10,6 +10,7 @@ import {
   KIND_DESHIZO_LLEGADA_A_ENTREGAR, KIND_DESHIZO_LLEGADA_A_RECOGER, kindDeDeshacerLlegada, ordenDeLaLlegada,
   type LlegadaDeParada,
 } from "@/lib/acciones-parada";
+import { botonesConLlegada } from "@/lib/siguiente-de-mi-ruta";
 import type { DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import { siguienteParada } from "@/lib/avisos-cliente";
 import type { Delivery } from "@/lib/types";
@@ -303,23 +304,32 @@ describe("pantalla: los botones llegan a cada parada", async () => {
     expect(pendiente).toMatch(/data-accion="recoger" data-apagado=""[^>]*disabled=""/);
     expect(pendiente).toContain("⏳ Not approved yet");
   });
-  it("D-527: «Llegué» va DENTRO de la fila, al principio: «Arrived · Picked up» y «Arrived · Delivered · Rejected»", () => {
+  // Nota D-533: decía «Arrived · Picked up» y «Arrived · Delivered · Rejected», los dos a la vez. El dueño, 2026-10-12: «make
+  // arrived first and then pickup not 2 button just 1 that changes» y «rejected will always show so 2 buttons for delivery».
+  it("D-533: UN botón que cambia: «Arrived» mientras no se llega; «Picked up» / «Delivered» al llegar; «Rejected» siempre en la entrega", () => {
     const llegada: LlegadaDeParada = { estado: "pendiente", tipo: "P", ordenes: ["o1"] };
     const p = pinta("P", "ready", null, { llegada });
-    expect(acciones(p)).toEqual(["llegue", "recoger"]);
-    // Los dos dentro del MISMO contenedor de la fila, no uno encima del otro.
-    const fila = p.slice(p.indexOf("data-acciones-de-parada"));
-    expect(acciones(fila)).toEqual(["llegue", "recoger"]);
+    expect(acciones(p)).toEqual(["llegue"]);
     const d = pinta("D", "picked_up", null, { llegada: { estado: "pendiente", tipo: "D", ordenes: ["o1"] } });
-    expect(acciones(d.slice(d.indexOf("data-acciones-de-parada")))).toEqual(["llegue", "entregar", "rechazar"]);
-    // Ya llegó: en su sitio, «✓ Arrived … ↩ Undo».
+    expect(acciones(d.slice(d.indexOf("data-acciones-de-parada")))).toEqual(["llegue", "rechazar"]);
+    // Ya llegó: el botón pasa a «Picked up» / «Delivered», y «✓ Arrived … ↩ Undo» baja a un renglón debajo de la fila.
+    const pHecha = pinta("P", "ready", null, { llegada: { estado: "hecha", at: "2026-10-06T15:42:00Z", tipo: "P", ordenes: ["o1"], conLlegada: ["o1"] } });
+    expect(acciones(pHecha)).toEqual(["recoger", "deshacer_llegada"]);
     const hecha = pinta("D", "picked_up", null, { llegada: { estado: "hecha", at: "2026-10-06T15:42:00Z", tipo: "D", ordenes: ["o1"], conLlegada: ["o1"] } });
-    expect(acciones(hecha)).toEqual(["deshacer_llegada", "entregar", "rechazar"]);
+    expect(acciones(hecha)).toEqual(["entregar", "rechazar", "deshacer_llegada"]);
+    expect(hecha.indexOf("data-acciones-de-parada")).toBeLessThan(hecha.indexOf('data-llegada="hecha"'));
+    // Sin llegada que marcar (la orden no está en el tramo de la parada): los botones de siempre.
+    expect(acciones(pinta("D", "picked_up"))).toEqual(["entregar", "rechazar"]);
+    expect(acciones(pinta("P", "ready"))).toEqual(["recoger"]);
+    // La regla pura, aparte.
+    expect(botonesConLlegada([{ accion: "recoger" }, { accion: "entregar" }, { accion: "rechazar" }, { accion: "dejar" }, { accion: "deshacer_recogida" }], llegada).map((b) => b.accion)).toEqual(["rechazar", "dejar", "deshacer_recogida"]);
+    expect(botonesConLlegada([{ accion: "recoger" }], null).map((b) => b.accion)).toEqual(["recoger"]);
+    expect(botonesConLlegada([{ accion: "entregar" }], { estado: "hecha", at: "x", tipo: "D", ordenes: ["o1"], conLlegada: ["o1"] }).map((b) => b.accion)).toEqual(["entregar"]);
   });
   it("D-527: cada botón de la fila, icono arriba y palabra debajo, y nunca menos de 44 px de alto", () => {
     const html = pinta("D", "picked_up", null, { llegada: { estado: "pendiente", tipo: "D", ordenes: ["o1"] } });
     const botones = html.match(/<button[^>]*data-accion="[a-z_]+"[^>]*>/g) ?? [];
-    expect(botones).toHaveLength(3);
+    expect(botones).toHaveLength(2);
     for (const b of botones) {
       expect(b).toMatch(/flex-direction:column/);
       expect(Number(/min-height:(\d+)px/.exec(b)?.[1] ?? 0)).toBeGreaterThanOrEqual(44);
@@ -367,6 +377,9 @@ describe("pantalla: los botones llegan a cada parada", async () => {
     expect(hecha).toMatch(/data-llegada="hecha"[^>]*><span[^>]*>✓ Arrived.*\d/);
     expect(hecha).toContain("↩ Undo");
     expect(hecha).not.toContain("disabled");
+    // D-533: ya no es un botón grande de la fila: un renglón pequeño con el «↩ Undo» como enlace.
+    expect(hecha).toMatch(/^<span data-llegada="hecha" class="hint"/);
+    expect(hecha).not.toContain("flex-direction:column");
     expect(renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: null }))).toBe("");
     expect(renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: { estado: "pendiente", tipo: "D", ordenes: ["o1"] }, soloLectura: true }))).toContain("disabled");
     expect(renderToStaticMarkup(createElement(BotonDeLlegada, { llegada: { estado: "hecha", at: "2026-10-06T15:42:00Z", tipo: "P", ordenes: ["o1"], conLlegada: ["o1"] }, soloLectura: true }))).toMatch(/data-accion="deshacer_llegada"[^>]*disabled=""/);
@@ -380,15 +393,18 @@ describe("pantalla: los botones llegan a cada parada", async () => {
   it("«Mi ruta»: Llegué por parada en la lista y en Siguiente parada, los botones en cada orden, y la siguiente sin las rechazadas", () => {
     const src = leer("src/app/(app)/my-route/page.tsx");
     expect(src).toContain("const marcas = useMemo(() => marcasDeParadas(events), [events]);");
-    expect(src).toContain("const next = siguienteParada(stops, marcas);");
+    // D-533: la siguiente sigue la ruta por paradas (`siguienteDeMiRuta`); `siguienteParada` queda de respaldo.
+    expect(src).toContain("const sig = siguienteDeMiRuta(lectura.filas, numeradas, etapaDe, marcas);");
+    expect(src).toContain("const next = sig ? (porId.get(sig.id) ?? null) : siguienteParada(stops, marcas);");
     expect(src).toContain("const llegadas = useMemo(() => llegadasDeParadas(events, todayISO()), [events]);");
     expect(src).toContain("const llegada = llegadaDe(numeradas.deFila[fi]);");
-    expect(src).toContain("const llegadaSiEsDe = (llegada: LlegadaDeParada | null, id: string) => (ordenDeLaLlegada(llegada) === id ? llegada : null);");
+    // D-533: la llegada va en la fila de CADA orden del tramo (antes, solo en la primera: `ordenDeLaLlegada`).
+    expect(src).toContain("const llegadaSiEsDe = (llegada: LlegadaDeParada | null, id: string) => llegadaDeLaOrden(llegada, id);");
     expect(src).not.toContain("<BotonDeLlegada");
-    expect(src).toContain('const paradaDeLaSiguiente = next ? numeradas.paradas.find((p) => p.tipo === (next.stage === "picked_up" ? "D" : "P") && p.ordenes.includes(next.id)) : undefined;');
+    expect(src).toContain("const paradaDeLaSiguiente = sig ? numeradas.paradas[sig.parada - 1] : next ? numeradas.paradas.find((p) => p.tipo === tipoDeLaSiguiente && p.ordenes.includes(next.id)) : undefined;");
     expect(src).toContain('{d && accionesDe(d, "P", llegadaSiEsDe(llegada, id))}');
     expect(src).toContain('{accionesDe(d, "D", llegadaSiEsDe(llegada, d.id))}');
-    expect(src).toContain('{accionesDe(next, next.stage === "picked_up" ? "D" : "P", paradaDeLaSiguiente ? llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas) : null)}');
+    expect(src).toContain("{accionesDe(next, tipoDeLaSiguiente, paradaDeLaSiguiente ? llegadaDeLaOrden(llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas), next.id) : null)}");
     expect(src).not.toContain("Skip");
   });
   it("la pastilla dice la razón, y la ficha la lleva junto a la etapa", async () => {

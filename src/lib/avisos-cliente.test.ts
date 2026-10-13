@@ -215,7 +215,9 @@ describe("la siguiente parada es la de «Mi ruta»", () => {
   });
   it("«Mi ruta» la usa para su «Siguiente parada» (la pantalla y el aviso no pueden discrepar)", () => {
     const src = leer("src/app/(app)/my-route/page.tsx");
-    expect(src).toMatch(/const next = siguienteParada\(stops, marcas\);/);
+    // D-533: la pantalla sigue la ruta POR PARADAS (`siguienteDeMiRuta`); `siguienteParada` queda de respaldo en ella y
+    // sigue decidiendo el aviso «en camino» (al cliente de la primera orden cargada, que es la primera que se entrega).
+    expect(src).toMatch(/const next = sig \? \(porId\.get\(sig\.id\) \?\? null\) : siguienteParada\(stops, marcas\);/);
     expect(src).not.toMatch(/stops\.find\(\(d\) => d\.stage !== "delivered"\)/);
   });
 });
