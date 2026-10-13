@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DICT } from "@/lib/timetracker/i18n";
 import { MANAGER_TABS, TABS } from "@/lib/timetracker/constants";
 import {
-  PESTANAS_DE_SOLICITUDES, PESTANA_DE_SOLICITUD_INICIAL, esAdminDeTt, pestanasPara, puedeVerMiDiario,
+  PESTANAS_DE_SOLICITUDES, PESTANA_DE_SOLICITUD_INICIAL, esAdminDeTt, fichaConFoto, pestanasPara, puedeVerMiDiario,
   seccionesDeFichar, seccionesDeMiSemana, verTablasDelCronometro,
 } from "./vista-empleado";
 
@@ -141,5 +141,22 @@ describe("5 · Registrar tiempo del empleado: sin «Esta semana de pago», solo 
   it("la tabla de fichajes ya no vive dentro de PunchPanel: una sola copia, en FichajesDeHoy", () => {
     expect(punch).not.toContain('t("emp.punch.todayPunches")');
     expect(fichajes).toContain('t("emp.punch.todayPunches")');
+  });
+});
+
+// D-539. El dueño, 2026-10-13: «admin remove the images requiremenet in the clock in app».
+describe("6 · El admin ficha sin foto", () => {
+  it("el admin no pasa por la cámara; empleado, gerente y sin rol, sí", () => {
+    expect(fichaConFoto("admin")).toBe(false);
+    expect(fichaConFoto("employee")).toBe(true);
+    expect(fichaConFoto("manager")).toBe(true);
+    expect(fichaConFoto(null)).toBe(true);
+  });
+
+  it("PunchPanel lo usa: sin foto, ficha directo antes de abrir la cámara", () => {
+    const pide = punch.slice(punch.indexOf("function pide("), punch.indexOf("async function alElegirFoto"));
+    expect(pide).toContain("if (!fichaConFoto(me.role)) {");
+    expect(pide.indexOf("void ficha(accion);")).toBeGreaterThan(-1);
+    expect(pide.indexOf("void ficha(accion);")).toBeLessThan(pide.indexOf("fotoRef.current?.click();"));
   });
 });
