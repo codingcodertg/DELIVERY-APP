@@ -42850,9 +42850,9 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 **No medido:** nada en navegador (`tsc` y vitest).
 
-## D-NEXT · «Mi ruta»: las recogidas sobre verde claro y las entregas sobre azul claro; la siguiente, con borde
+## D-535 · «Mi ruta»: las recogidas sobre verde claro y las entregas sobre azul claro; la siguiente, con borde
 
-**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · Sin migración · Hecho directo por el orquestador en `feat/colores-mi-ruta`.
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.296.0 (repo 1.400.0) · Sin migración · Hecho directo por el orquestador en `feat/colores-mi-ruta`.
 
 **Pedido del dueño**, literal: *«pickup in driver view should be 1 color and deliveries another like light green and delivery lihgt blue»*.
 
