@@ -39227,7 +39227,7 @@ No visto en navegador: `tsc` y vitest.
 
 ## D-500 · Gestor: «📅 Reprogramar» en cada fila — la siguiente fecha y una nota
 
-> **Ampliada por D-NEXT** (2026-10-12): el mismo «📅 Reprogramar» sale en Almacén (Cola, Recepción y Ruta del día) y almacén puede usarlo en aprobada, preparando y lista.
+> **Ampliada por D-534** (2026-10-12): el mismo «📅 Reprogramar» sale en Almacén (Cola, Recepción y Ruta del día) y almacén puede usarlo en aprobada, preparando y lista.
 
 **Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.0, repo 1.370.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d500`.
 
@@ -42834,9 +42834,9 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 **No medido:** nada en navegador (`tsc` y vitest). No se probó con un chofer real en la tienda.
 
-## D-NEXT · Almacén reprograma: «📅 Reprogramar» en su Cola, Recepción y Ruta del día (aprobada, preparando, lista)
+## D-534 · Almacén reprograma: «📅 Reprogramar» en su Cola, Recepción y Ruta del día (aprobada, preparando, lista)
 
-**Fecha:** 2026-10-12 · **Versión:** la asigna el orquestador al fusionar · Sin migración · Hecho directo por el orquestador en `feat/almacen-reprograma`. **Amplía D-500** (lleva su nota).
+**Fecha:** 2026-10-12 · **Versión:** deliveries 1.295.0 (repo 1.399.0) · Sin migración · Hecho directo por el orquestador en `feat/almacen-reprograma`. **Amplía D-500** (lleva su nota).
 
 **Pedido del dueño**, literal: *«warehouse as an option to rescheduled and or change delivery dates»*.
 

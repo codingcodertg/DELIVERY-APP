@@ -48,7 +48,7 @@ export default function WarehousePage() {
     if (ok) notify(t("Received", "Recibida"));
   };
   const [open, setOpen] = useState<Delivery | null>(null);
-  /** «📅 Reprogramar» en la fila (D-NEXT): el MISMO cuadro del Gestor (D-500), la fecha siguiente y una nota obligatoria,
+  /** «📅 Reprogramar» en la fila (D-534): el MISMO cuadro del Gestor (D-500), la fecha siguiente y una nota obligatoria,
    *  donde `puedeReprogramar` dice que sí (almacén en aprobada/preparando/lista; el admin, como en el Gestor). */
   const reprogramar = (d: Delivery) => puedeReprogramar(me?.role, d.stage)
     ? <ReprogramarOrden pedido={d} lang={lang} t={t} updateDelivery={updateDelivery} addNote={addNote} notify={notify} />
@@ -391,7 +391,7 @@ export default function WarehousePage() {
                             return <span className="sema" style={{ background: p.color, color: "#fff" }}>{p.texto}</span>;
                           })()}
                         </td>
-                        {/* «📅 Reprogramar» (D-NEXT), sin abrir la ficha: el toque no abre la orden. */}
+                        {/* «📅 Reprogramar» (D-534), sin abrir la ficha: el toque no abre la orden. */}
                         <td onClick={(e) => e.stopPropagation()}>{reprogramar(d)}</td>
                       </tr>
                     ))}
