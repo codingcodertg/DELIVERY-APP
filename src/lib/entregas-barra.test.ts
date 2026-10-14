@@ -32,7 +32,7 @@ describe("el menú del nombre, con la entrada de la barra", () => {
       .toEqual(["ensenanza", "personalizar", "salir"]);
   });
 
-  // Nota D-NEXT: el chofer y el admin llevan además, la primera, «inspeccion»: la pestaña «✅ Inspección pre-viaje» se
+  // Nota D-545: el chofer y el admin llevan además, la primera, «inspeccion»: la pestaña «✅ Inspección pre-viaje» se
   // mudó de la fila a este menú («pretrip inspection goes into the dropdown del name donde esta teaching mode»). El
   // vendedor de arriba no la ve (D-521), y su lista no cambia.
   it("el chofer, que no ve la casa, tiene aquí Mi perfil y Tutoriales", () => {
@@ -127,7 +127,7 @@ describe("la barra de Entregas", () => {
   });
 
   it("el aviso de «ver como» solo existe mientras dura, y solo para el admin real", () => {
-    // Nota D-NEXT: la píldora lleva además `entregas-tras-pestanas`, para que en el teléfono baje detrás de las
+    // Nota D-545: la píldora lleva además `entregas-tras-pestanas`, para que en el teléfono baje detrás de las
     // pestañas en vez de apretar la fila del nombre, la campana y la burbuja. Antes: className="role-switch" a secas.
     expect(barra).toMatch(/\{realRole === "admin" && viewAs && \(\n\s*<label\n\s*className="role-switch entregas-tras-pestanas"/);
     // Es el único sitio de la barra con esa píldora.

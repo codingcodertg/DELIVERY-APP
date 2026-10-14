@@ -177,7 +177,7 @@
 .account-link:hover:not(.active) { background: rgba(255,255,255,.1); }
 .account-link.active { background: rgba(255,255,255,.16); }
 
-/* La barra de Entregas en el teléfono (D-NEXT), lo mismo que D-528 hizo en Time Tracker (`timetracker.css`) y en el
+/* La barra de Entregas en el teléfono (D-545), lo mismo que D-528 hizo en Time Tracker (`timetracker.css`) y en el
    mismo ancho, ≤ 520 px. El dueño, 2026-10-13, con la captura de Ernesto Castillo: «el notification icon que vaya arriba
    al lado de rdz deliveries y el name ya no sera el name solo el bubbl eocn las iniciales ya ete habia pedido eso». Eran
    tres filas —el nombre de la app; las pestañas; la campana y «EC Ernesto Castillo ▾»— y quedan dos:
@@ -188,7 +188,7 @@
    que ocupa el sitio libre y las empuja a la derecha, y las pestañas bajan con `order`. Lo que solo tiene el admin real
    —la píldora de «ver como», «Cambiar usuario», «Vista móvil»— baja detrás de las pestañas (`.entregas-tras-pestanas`),
    para no apretar la fila de arriba. El panel de la campana ya se coloca solo dentro de la ventana (NotificationBell). */
-/* Pestañas, campana y cuenta, en una caja que se parte en filas. Iba en línea en TopBar hasta D-NEXT; aquí, para que el
+/* Pestañas, campana y cuenta, en una caja que se parte en filas. Iba en línea en TopBar hasta D-545; aquí, para que el
    teléfono la pueda deshacer (un estilo en línea ganaría al `display: contents` de abajo). min-width: 0, ver TopBar. */
 .entregas-barra-resto { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
 @media (max-width: 520px) {

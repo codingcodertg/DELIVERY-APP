@@ -98,7 +98,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // acabó dejando entrar a quien no tenía pestaña.
   // Y en el orden de cada rol (D-480): para almacén, su «Órdenes» antes que «Ruta de hoy».
   const visibleTabs = pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, me)), me.role);
-  // La inspección pre-viaje no va en la fila sino en el menú del nombre (D-NEXT): `pestanasDeLaFila` la quita aquí, y
+  // La inspección pre-viaje no va en la fila sino en el menú del nombre (D-545): `pestanasDeLaFila` la quita aquí, y
   // `opcionesDelMenuDeCuenta` la pone allí con la misma `canOpenTab`.
   const deLaFila = pestanasDeLaFila(visibleTabs);
   const mainTabs = deLaFila.filter((tb) => !vaEnGeneral(tb, me.role));
@@ -170,7 +170,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
     )}
     <div className="topbar">
       {/* La casa va pegada al nombre de la app (D-274), no con las pestañas.
-          En el teléfono (≤ 520 px, globals.css) la barra va en dos filas (D-NEXT, lo mismo que D-528 hizo en Time
+          En el teléfono (≤ 520 px, globals.css) la barra va en dos filas (D-545, lo mismo que D-528 hizo en Time
           Tracker): arriba el nombre de la app, la casa, la campana y solo la burbuja con las iniciales; debajo, las
           pestañas. Para eso `.entregas-barra-resto` deja de ser una caja (`display: contents`) y sus piezas se colocan
           con `order`. En el escritorio, como estaba. */}
@@ -186,7 +186,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
           follow-up: adding the module switcher's button was what finally
           tipped a multi-module admin's already-full tab row over the edge,
           but the missing min-width was the real, preexisting cause). */}
-      {/* Su `display: flex` (y lo demás que iba en línea hasta D-NEXT) está en globals.css: un estilo en línea gana a la
+      {/* Su `display: flex` (y lo demás que iba en línea hasta D-545) está en globals.css: un estilo en línea gana a la
           hoja, y en el teléfono esta caja tiene que poder pasar a `display: contents`. */}
       <div className="entregas-barra-resto">
         <div className="tabs">
@@ -268,7 +268,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
           {(cierraMenu) => opcionesMenu.map((o) => {
             switch (o) {
               case "inspeccion":
-                // Era la pestaña «✅ Inspección pre-viaje» de la fila (D-518/D-521); desde D-NEXT vive aquí, con su
+                // Era la pestaña «✅ Inspección pre-viaje» de la fila (D-518/D-521); desde D-545 vive aquí, con su
                 // mismo texto y su misma ruta. Dentro de su pantalla sale resaltada, como las del menú «General».
                 if (!inspeccion) return null;
                 return (

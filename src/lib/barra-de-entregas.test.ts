@@ -8,7 +8,7 @@ import { muestraElPlanEnMiRuta, PESTANAS_DEL_MENU_DEL_NOMBRE, pestanasDeLaFila, 
 import type { UserRole } from "./types";
 
 // ============================================================
-// D-NEXT · La barra del chofer en Entregas. El dueño, 2026-10-13, con dos capturas del teléfono de Ernesto Castillo:
+// D-545 · La barra del chofer en Entregas. El dueño, 2026-10-13, con dos capturas del teléfono de Ernesto Castillo:
 //   «pretrip inspection goes into the dropdown del name donde esta teaching mode»
 //   «el notification icon que vaya arriba al lado de rdz deliveries y el name ya no sera el name solo el bubbl eocn las
 //    iniciales ya ete habia pedido eso»

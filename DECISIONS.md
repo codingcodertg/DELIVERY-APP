@@ -43184,7 +43184,7 @@ vista móvil del hub, 360, 390 y 430). En el escritorio la barra no cambia.
   `muestraElPlanEnMiRuta`); `src/lib/barra-de-entregas.test.ts`; `src/lib/mi-ruta-sin-plan-para-el-chofer.test.ts`.
 - **Cambiados:** `src/components/TopBar.tsx`; `src/lib/account-menu.ts`; `src/app/(app)/my-route/page.tsx`;
   `src/app/globals.css`.
-- **Pruebas ajustadas**, con su «Nota D-NEXT»: `entregas-barra.test.ts` (el menú del chofer y del admin empieza por
+- **Pruebas ajustadas**, con su «Nota D-545»: `entregas-barra.test.ts` (el menú del chofer y del admin empieza por
   `inspeccion`; la píldora de «ver como» lleva una clase más), `panel-en-general.test.ts` (la fila se reparte desde
   `deLaFila`), `route-plan/lectura-de-ruta.test.ts` (la condición del aviso es `vePlan && lectura.cambios`),
   `hub-herramientas-de-admin.test.ts` («Cambiar usuario» y «Vista móvil» llevan `entregas-tras-pestanas`). Con solo una

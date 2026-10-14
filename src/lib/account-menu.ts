@@ -29,7 +29,7 @@ import type { UserRole } from "./types";
  *   en un solo sitio del hub (`/home/personalizar`) y ninguna barra tiene ya botón propio. La página
  *   solo pide sesión, así que también le vale al chofer.
  *
- * - **Inspección pre-viaje** (D-NEXT), la primera, encima de «Modo enseñanza», para quien la puede abrir: chofer y admin
+ * - **Inspección pre-viaje** (D-545), la primera, encima de «Modo enseñanza», para quien la puede abrir: chofer y admin
  *   (`canOpenTab`, D-521). Era una pestaña de la fila; el dueño, 2026-10-13: «pretrip inspection goes into the dropdown
  *   del name donde esta teaching mode». La fila la quita con la misma lista (`PESTANAS_DEL_MENU_DEL_NOMBRE`), así que
  *   está en un sitio o en el otro, nunca en los dos. Arriba del todo porque es lo del día a día del chofer.

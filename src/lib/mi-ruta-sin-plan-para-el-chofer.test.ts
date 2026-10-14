@@ -5,7 +5,7 @@ import { todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
-// D-NEXT · «Mi ruta» PINTADA con un plan publicado que ya no cuadra con la ruta: el chofer no ve ni la tarjeta
+// D-545 · «Mi ruta» PINTADA con un plan publicado que ya no cuadra con la ruta: el chofer no ve ni la tarjeta
 // «▸ Planned order of the day» (D-324) ni el aviso amarillo «Your route changed after the plan was published» (D-341);
 // el admin, en la misma página (su pestaña «Chofer», D-502), sigue viendo las dos. El dueño, 2026-10-13: «remove that
 // yellow message is not require for the driver» y «also take plan order of the day for driver».

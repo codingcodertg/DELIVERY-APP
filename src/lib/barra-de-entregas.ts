@@ -1,7 +1,7 @@
 import type { UserRole } from "./types";
 
 // ============================================================
-// La barra de Entregas del chofer (D-NEXT). El dueño, 2026-10-13, con dos capturas de la app en el teléfono de
+// La barra de Entregas del chofer (D-545). El dueño, 2026-10-13, con dos capturas de la app en el teléfono de
 // Ernesto Castillo:
 //   «pretrip inspection goes into the dropdown del name donde esta teaching mode»
 //   «el notification icon que vaya arriba al lado de rdz deliveries y el name ya no sera el name solo el bubbl eocn las
@@ -15,7 +15,7 @@ import type { UserRole } from "./types";
 // la pone `opcionesDelMenuDeCuenta` (`account-menu.ts`) con esta misma lista y la misma `canOpenTab`, así que la
 // inspección sale en un sitio o en el otro, nunca en los dos ni en ninguno.
 //
-// Lo de la campana y la burbuja es solo CSS (`globals.css`, el bloque del teléfono de D-NEXT), copiado de lo que D-528
+// Lo de la campana y la burbuja es solo CSS (`globals.css`, el bloque del teléfono de D-545), copiado de lo que D-528
 // hizo en Time Tracker: no hay nada que decidir por rol, y por eso no está aquí.
 // ============================================================
 
@@ -33,7 +33,7 @@ export function pestanasDeLaFila<T extends { id: string }>(visibles: readonly T[
 
 /**
  * ¿Se pintan en «Mi ruta» la tarjeta del plan publicado («▸ Orden planeado del día…», D-324) y el aviso amarillo de que
- * la ruta cambió desde que se publicó (D-341)? **No para el chofer** (D-NEXT). El dueño, 2026-10-13: «remove that yellow
+ * la ruta cambió desde que se publicó (D-341)? **No para el chofer** (D-545). El dueño, 2026-10-13: «remove that yellow
  * message is not require for the driver» y «also take plan order of the day for driver».
  *
  * Se mira el rol de QUIEN MIRA (el efectivo, `me.role`), no el del chofer de la ruta: la misma página es la pestaña

@@ -101,13 +101,13 @@ describe("la barra de Entregas: el switch vuelve como duplicado, la vista móvil
     // D-501: va DENTRO del panel de «Cambiar usuario»; suelta solo si esa función está apagada.
     expect(plana).toContain('<a className="btn btn-ghost btn-sm" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}');
     expect(plana).toContain('📱 {t("Mobile view of this screen", "Vista móvil de esta pantalla")}');
-    // Nota D-NEXT: el botón suelto lleva además `entregas-tras-pestanas`, para bajar detrás de las pestañas en el teléfono.
+    // Nota D-545: el botón suelto lleva además `entregas-tras-pestanas`, para bajar detrás de las pestañas en el teléfono.
     expect(plana).toContain('{realRole === "admin" && !puedeSwitch && ( <a className="tab entregas-tras-pestanas" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}');
     expect(barra.split("enlaceAVistaMovil(").length - 1).toBe(2);
   });
 
   it("el botón «⇄ Switch user» está, y SOLO para el admin real con la función encendida", () => {
-    // Nota D-NEXT: su caja lleva `entregas-tras-pestanas`, para bajar detrás de las pestañas en el teléfono.
+    // Nota D-545: su caja lleva `entregas-tras-pestanas`, para bajar detrás de las pestañas en el teléfono.
     expect(plana).toContain('{realRole === "admin" && puedeSwitch && ( <div className="entregas-tras-pestanas" style={{ position: "relative" }}> <button className="tab"');
     expect(plana).toContain('⇄ {t("Switch user", "Cambiar usuario")}');
     // D-501: el panel lleva además «📱 Vista móvil» arriba (`extra`).

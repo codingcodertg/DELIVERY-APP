@@ -123,7 +123,7 @@ export default function MyRoutePage() {
   // etiquetas del plan —las mismas que enseña la tarjeta de arriba—; si alguien la tocó después, lo guardado, y se dice
   // (D-335). Una sola lectura, compartida.
   const planPublicado = usePlanPublicadoDelChofer(dia, ajeno?.id ?? null);
-  // La tarjeta del plan y el aviso de que cambió, para quien mira y no es chofer (D-NEXT): el admin en su pestaña «Chofer».
+  // La tarjeta del plan y el aviso de que cambió, para quien mira y no es chofer (D-545): el admin en su pestaña «Chofer».
   const vePlan = muestraElPlanEnMiRuta(me?.role);
   const lectura = useMemo(() => lecturaDeLaRuta(stops, capacidad, planPublicado?.paradas ?? null), [stops, capacidad, planPublicado]);
   // La cuenta de pallets de cada parada, la misma del Gestor: «+4 = 4» (D-444; hasta ahí, la operación entera).
@@ -380,7 +380,7 @@ export default function MyRoutePage() {
 
       {/* El orden planeado por el motor, si hay un plan publicado de hoy (D-324). Solo informa: lo que se
           hace sigue saliendo de las órdenes asignadas, abajo. */}
-      {/* **D-NEXT: ya no para el chofer.** Ni esta tarjeta ni el aviso amarillo de abajo se pintan cuando quien mira es
+      {/* **D-545: ya no para el chofer.** Ni esta tarjeta ni el aviso amarillo de abajo se pintan cuando quien mira es
           un chofer (`muestraElPlanEnMiRuta`). El dueño, 2026-10-13: «remove that yellow message is not require for the
           driver» y «also take plan order of the day for driver». Siguen en la pestaña «🚚 Chofer» del admin (D-502), que
           monta esta misma página. El plan se sigue leyendo igual: de él salen las etiquetas de la lista (D-335). */}
@@ -389,7 +389,7 @@ export default function MyRoutePage() {
       {/* La ruta ya no es la que el plan publicó (D-341): se le dice al chofer, y en qué. Va FUERA de la lista, para que
           salga también si le quitaron todas las paradas. Qué cambió lo decide `cambiosTrasPublicar`; aquí solo se pinta.
           Una orden quitada que ya no está a su vista se nombra por el principio de su referencia (`nombraLaOrden`).
-          Desde D-NEXT, solo para quien no es chofer (arriba). */}
+          Desde D-545, solo para quien no es chofer (arriba). */}
       {vePlan && lectura.cambios && (
         <div className="banner warn" role="status">
           <b>⚠ {t("Your route changed after the plan was published.", "Tu ruta cambió desde que se publicó el plan.")}</b>
