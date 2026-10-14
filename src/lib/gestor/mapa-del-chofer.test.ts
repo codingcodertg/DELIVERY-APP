@@ -251,6 +251,8 @@ describe("la pantalla acotada no es una pantalla aparte: es la del Gestor", () =
     expect(miRuta).not.toContain('href={ajeno ? `/my-route/mapa');
     expect(miRuta).not.toContain('<Link');
     // Y «Mi ruta» no pierde nada por esto: su siguiente parada, sus botones y el aviso de D-341 siguen donde estaban.
+    // Nota D-545: el aviso de D-341 sigue en el fichero, pero ya solo se pinta para quien no es chofer (`vePlan`); que
+    // el chofer no lo ve lo fija, pintando la página, `mi-ruta-sin-plan-para-el-chofer.test.ts`.
     expect(miRuta).toContain('{t("Next stop", "Siguiente parada")}');
     expect(miRuta).toContain("<AccionesDeParada pedido={d} tipo={tipo}");
     expect(miRuta).toContain('{t("Your route changed after the plan was published.", "Tu ruta cambió desde que se publicó el plan.")}');

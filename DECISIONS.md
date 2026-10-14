@@ -22851,6 +22851,11 @@ una.
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): «Orden planeado del día» ya
 > no dice «N viajes» ni pinta raya entre viajes.
 
+> **⚠ Reemplazada en parte por D-545** (2026-10-13), a pedido del dueño («also take plan order of the day for
+> driver»): la tarjeta «▸ Orden planeado del día» ya **no se le pinta al chofer** en «Mi ruta». El chofer sigue leyendo
+> su plan publicado igual (las etiquetas de su lista salen de él, D-335); la tarjeta la ve el admin en su pestaña
+> «🚚 Chofer» (D-502).
+
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Migración:** `134_my_published_stops.sql`,
 escrita y **no aplicada**. **Plan:** `docs/PLAN-134-chofer-lee-sus-paradas.md`. Sigue a D-320/D-322/D-323.
 
@@ -24129,6 +24134,10 @@ citaban texto que un mutante podía dejar intacto y muerto:
 
 > **⚠ Reemplazada en parte por D-443** (2026-09-28, una sola lista por camión, sin viajes): se quita «Una parada pasó a
 > otro viaje» (`viajeCambiado`): sin viajes no hay tal cosa.
+
+> **⚠ Reemplazada en parte por D-545** (2026-10-13), a pedido del dueño («remove that yellow message is not require for
+> the driver»): el aviso ya **no se le pinta al chofer**. Sigue en la misma página para quien no es chofer —el admin en su
+> pestaña «🚚 Chofer» (D-502)—, igual que aquí se describe.
 
 **Fecha:** 2026-09-19 · **Versión:** Entregas 1.166.0, repo 1.230.0 · **Migraciones:** ninguna. **No escribe nada:** es solo
 cómo se LEE una ruta. · **Cierra** el último punto de «Lo que NO está» de D-335.
@@ -41843,6 +41852,10 @@ Capturas (ANTES `antes-*`, DESPUÉS `despues-*`) en la carpeta de trabajo de la 
 
 ## D-521 · Inspección pre-viaje: solo chofer y admin
 
+> **⚠ Reemplazada en parte por D-545** (2026-10-13): quién la ve no cambia (chofer y admin), pero ya **no es una pestaña
+> de la fila**: es la primera opción del menú del nombre, encima de «Modo enseñanza». El dueño: «pretrip inspection goes
+> into the dropdown del name donde esta teaching mode». `/inspection` sigue en `TABS` y se abre igual.
+
 **Fecha:** 2026-10-11 · **Versión:** deliveries 1.287.1, repo 1.390.1 · **Migración:** `165_inspeccion_pre_viaje.sql` cambiada antes de aplicarse (sigue SIN aplicar; checksum regrabado) · Hecho directo por el orquestador en `release-d521`. **Reemplaza en parte a D-518.**
 
 **Pedido del dueño**, literal: *«INSPECCION SOLO ES PARA ADMIN Y DRIVERS VEDAD?»* · y al decirle que también la tenía logística: *«si asi»*.
@@ -42155,6 +42168,10 @@ lo midió el navegador (arriba).
 - Modo oscuro.
 
 ## D-528 — Time Tracker: la barra del admin con «👤 Mío ▾» (Ajustes, Registrar tiempo, Mi semana, Mis solicitudes y Mi diario); y en el teléfono, la barra en dos filas: arriba el nombre, la casa, la campana y solo la burbuja, y abajo las tres pestañas del empleado en una fila
+
+> **Nota D-545** (2026-10-13): donde abajo dice que las dos clases de `MenuDeCuenta` (`menu-cuenta-nombre`,
+> `menu-cuenta-flecha`) «solo Time Tracker les pone estilo», ya no es así: Entregas hace lo mismo en el teléfono
+> (`globals.css`, `.entregas-barra-resto`), a pedido del dueño. RR. HH. sigue sin estilo para ellas.
 
 **Fecha:** 2026-10-11 · **Estado:** Vigente · **Versión:** timetracker 1.03.0, repo 1.393.0. Toca `timetracker`; y,
 sin cambio visible fuera de Time Tracker, tres piezas compartidas con Entregas y RR. HH.: `globals.css`, una propiedad
@@ -43076,3 +43093,157 @@ Hasta que se escriba, nada cambia para nadie.
 **Pruebas:** `src/lib/gestor/visibilidad-de-rutas.test.ts` (A, B y C, nombres inventados). Puestas al día con «Nota D-544»: `rutas-del-dia.test.ts`, `valores-del-gestor.test.ts`, `gestor/mapa-del-chofer.test.ts`, `named-location.test.ts` (anclas de texto de las líneas que cambiaron). Mutantes: **20 de 20** caen con una prueba con nombre (`tanda-visibilidad-rutas.json`): 11 de A (gerente, «solo», «menos», grupo, sin chofer, la excepción y sus tres condiciones, el carril del chofer escondido, la pantalla, la clave vacía en Datos), 4 de B (no pelear el mapa re-abierto, devolverlo al cerrar, el botón, «Sin asignar» no es ruta) y 5 de C (ajena, borrador, otros roles, sandbox, la ficha se monta). Suite entera: lo único rojo fueron esperas de tiempo con la máquina cargada (route-engine, optimiza-la-ruta, montaje y cinco ficheros más que, solos, pasan en verde).
 
 **No medido:** nada se abrió en el navegador; no se comprobó en la base el nombre exacto de la tienda de Brownsville ni el `full_name` del chofer; no se midió si la RLS 131 deja a cada persona leer las Intertiendas que llegan a su tienda (sin leerlas, la excepción no se puede aplicar a esa parada).
+## D-545 · La barra y «Mi ruta» del chofer: la campana arriba y solo la burbuja en el teléfono, la inspección pre-viaje en el menú del nombre, y sin la tarjeta del plan ni el aviso amarillo
+
+**Fecha:** 2026-10-13 · **Versión:** la pone el orquestador (toca `deliveries`; `globals.css` y `MenuDeCuenta` son
+compartidos, pero las reglas nuevas solo casan dentro de la barra de Entregas) · **Migración:** ninguna · Rama
+`barra-del-chofer` · **Reemplaza en parte a** D-324, D-341 y D-521, que llevan su nota; y deja una nota en D-528.
+
+### Qué pidió el dueño
+
+Cuatro pedidos del 2026-10-13, literales, con dos capturas de Entregas en el teléfono de Ernesto Castillo (chofer). Las
+capturas las vio el orquestador; el worker no:
+
+1. > «remove that yellow message is not require for the driver»
+
+   La tarjeta amarilla de «Mi ruta»: «⚠ Your route changed after the plan was published. ➕ Added: … ➖ Removed: … The
+   list below is the current route; the planned-order card above is the plan as it was published.» (D-341).
+2. > «el notification icon que vaya arriba al lado de rdz deliveries y el name ya no sera el name solo el bubbl eocn las iniciales ya ete habia pedido eso»
+
+   En la captura, la barra en tres filas: «RDZ·DELIVERIES»; las pestañas «My route · Pre-trip inspection · Orders»; y la
+   campana «9+» con «EC Ernesto Castillo ▾». «Ya te había pedido eso»: es lo que D-528 hizo en la barra de **Time
+   Tracker** el 2026-10-11; en Entregas no se había hecho.
+3. > «pretrip inspection goes into the dropdown del name donde esta teaching mode»
+4. > «also take plan order of the day for driver»
+
+   Llegó después, por el orquestador: la tarjeta «▸ Planned order of the day · N deliveries · ≈ 08:00–17:05 (estimated)»
+   de «Mi ruta» (D-324), la que el aviso amarillo llamaba «the planned-order card above».
+
+### 1 y 4 · «Mi ruta»: ni la tarjeta del plan ni el aviso amarillo, para el chofer
+
+- **Qué decide.** `muestraElPlanEnMiRuta(rol)` (`src/lib/barra-de-entregas.ts`): `false` para `driver` y sin rol; `true`
+  para cualquier otro. La página la llama con **el rol de quien mira** (`me.role`, el efectivo), y con eso pinta o no las
+  dos cosas: `{vePlan && <MiPlanPublicado …/>}` y `{vePlan && lectura.cambios && (…)}`.
+- **Por qué el rol de quien mira y no el del chofer de la ruta.** «Mi ruta» es la misma página que la pestaña «🚚 Chofer»
+  del admin (D-502), que monta la ruta de un chofer elegido. Ahí las dos tarjetas sirven —dicen a la oficina qué plan se
+  publicó y qué se movió después— y se quedan. Mirando el rol del chofer de la ruta, el admin también las perdería. El
+  admin «viendo como» chofer ve lo que ve el chofer, sin ellas.
+- **Qué no cambia.** El plan publicado se sigue leyendo igual (`usePlanPublicadoDelChofer`): de él salen las etiquetas y
+  el orden de la lista del chofer cuando la ruta sigue el plan (D-335). Solo se dejan de pintar las dos tarjetas. El
+  aviso del Gestor («This route changed after the plan was published: the P/D labels were recalculated», `routes/page.tsx`)
+  es otro y no se toca.
+- **Lo que se pensó y no se eligió:** esconderlas cuando la ruta es la propia (`!ajeno`). Sería lo mismo para el chofer,
+  pero también para un admin que abre `/my-route` por su dirección, y el pedido dice «for the driver».
+
+### 2 · En el teléfono, arriba: el nombre de la app, la casa, la campana y solo la burbuja
+
+Lo mismo que D-528 § 3 en Time Tracker, con el mismo mecanismo y **en el mismo ancho, ≤ 520 px** (los tres tamaños de la
+vista móvil del hub, 360, 390 y 430). En el escritorio la barra no cambia.
+
+- **Dos filas.** Arriba, el nombre de la app (`settings.app_name`, con «…» si no cabe), la 🏠 (si la ve: el chofer no,
+  D-173), la 🔔 con su número y la burbuja con las iniciales. Abajo, las pestañas, que siguen siendo la fila que se
+  desliza de ≤ 760 px.
+- **De la cuenta, solo la burbuja.** El nombre se esconde a la vista pero no a un lector de pantalla (`position:
+  absolute` de 1 × 1 px con `clip`, no `display: none`), y el ▾ se quita. La burbuja abre el mismo menú.
+- **Cómo.** La caja que agrupaba pestañas, recargar, campana y cuenta lleva ahora la clase `entregas-barra-resto`, y en el
+  teléfono deja de ser caja (`display: contents`); la del nombre y la casa, `entregas-marca`, ocupa el sitio libre
+  (`flex: 1 1 0`) y empuja la campana y la burbuja a la derecha; las pestañas bajan con `order: 2`.
+- **Lo que solo tiene el admin real** —la píldora de «ver como», «⇄ Cambiar usuario», «📱 Vista móvil»— lleva
+  `entregas-tras-pestanas` y baja detrás de las pestañas (`order: 3`), para no apretar la fila de arriba.
+- **Un tropiezo medido.** La caja tenía su `display: flex` escrito en línea en `TopBar`. Un estilo en línea gana a la hoja,
+  así que el `display: contents` no hacía nada: en la primera captura de después, la campana y la burbuja seguían en la
+  caja, al lado de las pestañas, y el nombre de la app se cortaba en «RTG·…». Ese estilo pasó a `globals.css`
+  (`.entregas-barra-resto`), igual que D-528 hizo con `.tt-marca`.
+- **El panel de la campana** no hizo falta tocarlo: el de Entregas ya va en un portal y se coloca dentro de la ventana
+  (`NotificationBell`), a diferencia del de Time Tracker, que D-528 tuvo que mover.
+- `MenuDeCuenta` no cambia: ya tenía las dos clases desde D-528. Las reglas nuevas van bajo `.entregas-barra-resto`, así
+  que RR. HH. no cambia.
+
+### 3 · La inspección pre-viaje, del renglón de pestañas al menú del nombre
+
+- **Quién la ve no cambia:** chofer y admin, `canOpenTab("inspection", …)` sobre `TABS` (D-521). La entrada sigue en
+  `TABS`, así que `/inspection` se abre igual (`TabGate`) y el aviso «Haz tu inspección pre-viaje» de «Mi ruta» lleva allí
+  como antes.
+- **La fila** la quita `pestanasDeLaFila` (`PESTANAS_DEL_MENU_DEL_NOMBRE = ["inspection"]`) antes de repartir entre fila y
+  «General». La fila del chofer queda en **🧭 Mi ruta · 📋 Órdenes**. Al admin también se le va de la fila: el pedido
+  habla del menú del nombre, y tenerla en los dos sitios para un rol y en uno para otro serían dos reglas.
+- **El menú** la pone `opcionesDelMenuDeCuenta` (`account-menu.ts`) con la misma `canOpenTab`: opción `inspeccion`, **la
+  primera, encima de «🎓 Modo enseñanza»**. Una prueba recorre todos los roles, con y sin permisos sueltos, y fija que sale
+  en el menú justo cuando se puede abrir y nunca en la fila.
+  - **Por qué la primera. A validar con el dueño.** «Donde está teaching mode» se lee como «junto a»; arriba del todo
+    porque es lo del día a día del chofer y lo primero que encuentra el dedo. Cambiarlo es mover una línea en
+    `opcionesDelMenuDeCuenta`.
+- **Cómo se pinta:** un enlace con el mismo texto que tenía la pestaña («✅ Pre-trip inspection» / «✅ Inspección
+  pre-viaje») y la misma ruta. Dentro de `/inspection` sale en negrita, con el fondo de la opción activa y
+  `aria-current="page"`, como las del menú «General». La barra no resalta nada más en esa pantalla: ninguna pestaña de la
+  fila es la activa. Se aceptó; su página tiene su propio título.
+
+### Ficheros
+
+- **Nuevos:** `src/lib/barra-de-entregas.ts` (`PESTANAS_DEL_MENU_DEL_NOMBRE`, `vaEnElMenuDelNombre`, `pestanasDeLaFila`,
+  `muestraElPlanEnMiRuta`); `src/lib/barra-de-entregas.test.ts`; `src/lib/mi-ruta-sin-plan-para-el-chofer.test.ts`.
+- **Cambiados:** `src/components/TopBar.tsx`; `src/lib/account-menu.ts`; `src/app/(app)/my-route/page.tsx`;
+  `src/app/globals.css`.
+- **Pruebas ajustadas**, con su «Nota D-545»: `entregas-barra.test.ts` (el menú del chofer y del admin empieza por
+  `inspeccion`; la píldora de «ver como» lleva una clase más), `panel-en-general.test.ts` (la fila se reparte desde
+  `deLaFila`), `route-plan/lectura-de-ruta.test.ts` (la condición del aviso es `vePlan && lectura.cambios`),
+  `hub-herramientas-de-admin.test.ts` («Cambiar usuario» y «Vista móvil» llevan `entregas-tras-pestanas`). Con solo una
+  nota, porque siguen siendo ciertas: `orden-de-pestanas.test.ts` (el orden del chofer sigue siendo Mi ruta, Inspección,
+  Órdenes; la fila pintada la quita después) y `gestor/mapa-del-chofer.test.ts` (el texto del aviso sigue en el fichero).
+
+### Pruebas y mutantes
+
+- `barra-de-entregas.test.ts`, 13 pruebas: la lista del menú; la fila del chofer (Mi ruta, Órdenes) y su menú
+  (inspección primera, enseñanza segunda); el admin; todos los roles con y sin permisos sueltos; `pestanasDeLaFila` no muta
+  ni quita otra cosa; `/inspection` sigue en `TABS`; `muestraElPlanEnMiRuta` por rol; y, leyendo el fuente, que `TopBar`,
+  «Mi ruta» y el bloque de ≤ 520 px de `globals.css` usan cada pieza.
+- `mi-ruta-sin-plan-para-el-chofer.test.ts`, 2 pruebas que **pintan la página de verdad** (`renderToStaticMarkup`) con un
+  plan publicado que ya no cuadra con la ruta: el chofer no ve ni «Planned order of the day» ni «Your route changed…»; el
+  admin mirando la ruta de ese chofer (su pestaña «Chofer») ve las dos. La segunda es también el control de que la
+  primera no pasa por falta de plan.
+- **Mutantes: 15 de 15 caen** con una prueba con nombre (`~/.claude/herramientas/mutantes/tanda-barra-del-chofer.json`).
+  Mutante → prueba que lo tumba:
+  - «la inspección vuelve a la fila» → *el chofer: en la fila, Mi ruta y Órdenes…*, *para cada rol, con y sin permisos
+    sueltos…* y dos más;
+  - «el menú del nombre pierde la inspección» → *el chofer: en la fila…*, *el admin: la inspección tampoco está en su
+    fila…*, *para cada rol…*;
+  - «la inspección en el menú de todos (sin `canOpenTab`)» → *para cada rol, con y sin permisos sueltos…*;
+  - «"Modo enseñanza" pasa por delante de la inspección» → *el chofer: … la inspección, la primera del menú, encima de
+    «Modo enseñanza»*;
+  - «el chofer vuelve a ver la tarjeta del plan y el aviso amarillo» → *el chofer no los ve…* y *el chofer: ni la tarjeta
+    del orden planeado ni el aviso amarillo…* (la pintada);
+  - «nadie ve la tarjeta ni el aviso, tampoco el admin» → *el admin mirando la ruta de ese chofer…*;
+  - «la página pinta la tarjeta del plan sin mirar la regla» y «… el aviso amarillo sin mirar la regla» → *el chofer: ni
+    la tarjeta del orden planeado ni el aviso amarillo…* (pintada);
+  - «la página mira el rol del chofer de la ruta y no el de quien mira» → *el admin mirando la ruta de ese chofer…*
+    (pintada);
+  - «la barra pinta en la fila todas las visibles» → *TopBar reparte la fila sin lo del menú del nombre…*;
+  - «la caja vuelve a llevar `display: flex` en línea» → *la barra lleva esas clases…*;
+  - «en el teléfono el nombre sigue a la vista» y «… se esconde también al lector de pantalla» → *de la cuenta, solo la
+    burbuja: el nombre se esconde a la vista (no a un lector de pantalla)…*;
+  - «en el teléfono la caja no se deshace» y «las pestañas no bajan a su fila» → *la caja de pestañas, campana y cuenta
+    deja de ser caja…*.
+
+### Visto en el navegador (2026-10-13)
+
+Modo demo en `127.0.0.1` (sin base ni llaves), Chrome por CDP, «Ver como» → Driver, ventana de 390 × 844; el menú se abrió
+con un clic de ratón sobre la burbuja. Capturas de antes y después en el scratchpad del worker
+(`jobs/c96cc13e/tmp/tiros/`).
+
+- **Antes:** barra de 129 px en tres filas («RTG·HUB»; «My route · Pre-trip inspection · Orders»; 🔔 y «DD Diego Driver
+  ▾»). Menú: Teaching mode · My profile · Tutorials · Customize · Sign out.
+- **Después:** barra de 102 px en dos filas («RTG·HUB» con 🔔 y «DD» a la derecha; «My route · Orders»). El nombre mide
+  1 × 1 px y su texto sigue en el DOM («Diego Driver»). Menú: ✅ Pre-trip inspection · Teaching mode · My profile ·
+  Tutorials · Customize · Sign out. Sin desbordar (ancho del documento 390).
+- **Admin**, 1280 px: una fila de 62 px como antes, sin la pestaña de la inspección. A 390 px: «RTG·HUB 🏠» con 🔔 y la
+  burbuja; las pestañas debajo; «📱 Mobile view» en la tercera fila.
+
+### Lo que no se midió
+
+- **La tarjeta del plan y el aviso amarillo en el navegador.** El modo demo no tiene planes publicados (no se ven ni antes
+  ni después): eso lo miden solo las pruebas que pintan la página.
+- **Con «9+» avisos**: el demo no trae avisos. La campana con número es más ancha; D-528 midió que en Time Tracker cabe a
+  330 px con «9+», con letra de 14 px en el nombre de la app. Aquí no se midió con número.
+- **El teléfono de verdad**, la vista móvil del hub (pide sesión) y «RDZ·DELIVERIES» (el demo dice «RTG·HUB»; el nombre
+  real es más largo y se corta con «…» si no cabe).
+- Pulsar la opción del menú y aterrizar en `/inspection`: el enlace es el mismo `href` de la pestaña, pero no se pulsó.

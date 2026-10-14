@@ -1,4 +1,4 @@
-import { canReachHub } from "./constants";
+import { canOpenTab, canReachHub } from "./constants";
 import type { UserRole } from "./types";
 
 /**
@@ -29,19 +29,28 @@ import type { UserRole } from "./types";
  *   en un solo sitio del hub (`/home/personalizar`) y ninguna barra tiene ya botón propio. La página
  *   solo pide sesión, así que también le vale al chofer.
  *
+ * - **Inspección pre-viaje** (D-545), la primera, encima de «Modo enseñanza», para quien la puede abrir: chofer y admin
+ *   (`canOpenTab`, D-521). Era una pestaña de la fila; el dueño, 2026-10-13: «pretrip inspection goes into the dropdown
+ *   del name donde esta teaching mode». La fila la quita con la misma lista (`PESTANAS_DEL_MENU_DEL_NOMBRE`), así que
+ *   está en un sitio o en el otro, nunca en los dos. Arriba del todo porque es lo del día a día del chofer.
+ *
  * Salir va siempre el último, para que nadie lo toque por error al buscar otra cosa.
  *
  * Recibe lo mismo que tiene la barra —el rol real, y el rol y los módulos efectivos— y no tres
  * booleanos: así la prueba pasa por el mismo cableado que la barra, `canReachHub` incluida.
  */
-export const OPCIONES_DEL_MENU = ["ensenanza", "vercomo", "ajustes", "perfil", "tutoriales", "personalizar", "salir"] as const;
+export const OPCIONES_DEL_MENU = ["inspeccion", "ensenanza", "vercomo", "ajustes", "perfil", "tutoriales", "personalizar", "salir"] as const;
 export type OpcionDelMenu = (typeof OPCIONES_DEL_MENU)[number];
 
 export function opcionesDelMenuDeCuenta(a: {
   realRole: UserRole | null | undefined;
-  me: { role: UserRole; module_access?: string[] | null };
+  me: { role: UserRole; module_access?: string[] | null; permissions?: string[] | null };
 }): OpcionDelMenu[] {
-  const out: OpcionDelMenu[] = ["ensenanza"];
+  const out: OpcionDelMenu[] = [];
+  // La única pestaña que vive aquí hoy (`PESTANAS_DEL_MENU_DEL_NOMBRE`), con la misma pregunta que decidía si se pintaba
+  // en la fila. Una prueba recorre los roles y fija que sale aquí justo cuando la fila la quita.
+  if (canOpenTab("inspection", a.me)) out.push("inspeccion");
+  out.push("ensenanza");
   if (a.realRole === "admin") out.push("vercomo");
   if (a.me.role === "admin") out.push("ajustes");
   if (!canReachHub(a.me)) out.push("perfil", "tutoriales");

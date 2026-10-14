@@ -265,14 +265,16 @@ describe("en qué cambió la ruta desde que se publicó el plan", () => {
   });
 });
 
+// Nota D-545: el aviso sigue en la página, pero ya no para el chofer: la condición es `{vePlan && lectura.cambios && (`
+// (`muestraElPlanEnMiRuta`, probada en `barra-de-entregas.test.ts`). Lo ve el admin en su pestaña «Chofer» (D-502).
 describe("«Mi ruta» pinta el aviso de D-341", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/my-route/page.tsx"), "utf8").split("\r\n").join("\n");
   it("sale de `lectura.cambios`, con sus tres partes (el «pasó a otro viaje» se fue con los viajes, D-443)", () => {
-    for (const trozo of ["{lectura.cambios && (", "lectura.cambios.anadidas.map(", "lectura.cambios.quitadas.map(", "{lectura.cambios.ordenCambiado && "]) expect(pagina).toContain(trozo);
+    for (const trozo of ["{vePlan && lectura.cambios && (","lectura.cambios.anadidas.map(", "lectura.cambios.quitadas.map(", "{lectura.cambios.ordenCambiado && "]) expect(pagina).toContain(trozo);
     expect(pagina).not.toContain("viajeCambiado");
   });
   it("va FUERA de la lista de paradas: también sale si al chofer le quitaron todas", () => {
-    const aviso = pagina.indexOf("{lectura.cambios && ("), lista = pagina.indexOf("{stops.length === 0 ? (");
+    const aviso = pagina.indexOf("{vePlan && lectura.cambios && ("), lista = pagina.indexOf("{stops.length === 0 ? (");
     expect(aviso).toBeGreaterThan(-1);
     expect(lista).toBeGreaterThan(-1);
     expect(aviso).toBeLessThan(lista);

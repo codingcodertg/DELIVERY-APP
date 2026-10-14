@@ -66,6 +66,9 @@ describe("almacén: Órdenes antes que Ruta de hoy", () => {
 
 describe("chofer: «Mi ruta» primero y «Órdenes» al final (D-523)", () => {
   // El dueño, 2026-10-11: «my routes in driver will be 1st and orders last in  the row».
+  // Nota D-545: esto es el ORDEN de sus pestañas (`pestanasEnOrden`), y sigue así. En la fila que se pinta ya no está la
+  // inspección: la barra la quita después (`pestanasDeLaFila`) y la pone en el menú del nombre. La fila pintada del
+  // chofer —Mi ruta, Órdenes— la fija `barra-de-entregas.test.ts`.
   it("su barra es Mi ruta, Inspección, Órdenes", () => {
     expect(barraDe("driver").map((tb) => tb.id)).toEqual(["myroute", "inspection", "driver"]);
   });
