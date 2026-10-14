@@ -184,7 +184,8 @@ describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D
     expect(pagina).toContain("chip: poolFilter, onChip: setPoolFilter, cuentas: cuentasDeChips,");
   });
   it("los cinco chips, con «Todas» detrás de «Este día», y «Este día» por defecto", () => {
-    expect(pagina).toContain('{(["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (');
+    // Nota D-542: los chips van detrás de `vista.conChips` («Todas» ya no los lleva; «Sin asignar», sí).
+    expect(pagina).toContain('{vista.conChips && (["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (');
     expect(pagina).toContain('useState<ChipSinAsignar>("dia")');
   });
   it("el resumen y la pestaña cuentan el DÍA, sin el chip; lo marcado en la tabla va con el chip", () => {
