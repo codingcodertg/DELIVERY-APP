@@ -583,6 +583,23 @@ function LocationTable({
               )}
             </div>
           </div>
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <label>{t("Sales minimum delivery fee ($)", "Tarifa mínima de ventas ($)")}</label>
+            <input
+              data-tarifa-minima-ventas
+              type="number"
+              min={0}
+              value={draft.tarifa_minima_ventas ?? ""}
+              placeholder={t("e.g. 100 — empty = no minimum", "ej. 100 — vacío = sin mínimo")}
+              onChange={(e) => setDraft({ ...draft, tarifa_minima_ventas: e.target.value === "" ? null : Number(e.target.value) })}
+            />
+            <div className="hint">
+              {t(
+                "Sales reps creating orders sold from this store don't get the Discount fee button, and can't submit a delivery fee below this amount (only on order types that charge a fee). Office, managers and admin are not limited. Empty = no minimum.",
+                "Los vendedores que crean órdenes vendidas desde esta tienda no ven el botón de tarifa con Descuento, y no pueden enviar una tarifa por debajo de este monto (solo en los tipos de orden que cobran tarifa). Oficina, gerentes y admin no tienen límite. Vacío = sin mínimo.",
+              )}
+            </div>
+          </div>
         </div>
       )}
       {autoApprove && (
@@ -636,6 +653,9 @@ function LocationTable({
                 )}
                 {directoryCode && (it.choferes_dedicados?.length ?? 0) > 0 && (
                   <span className="hint" data-dedicados-de-la-tienda style={{ marginLeft: 6 }}>· {t("Dedicated drivers", "Choferes dedicados")}: {it.choferes_dedicados!.join(", ")}</span>
+                )}
+                {directoryCode && it.tarifa_minima_ventas != null && (
+                  <span className="hint" data-tarifa-minima-de-la-tienda style={{ marginLeft: 6 }}>· {t("Sales min. fee", "Tarifa mín. ventas")}: ${it.tarifa_minima_ventas}</span>
                 )}
                 <span className="loc-addr">{it.address || t("(no address)", "(sin dirección)")}</span>
               </div>

@@ -295,6 +295,15 @@
 .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 
 .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+/* El buscador de órdenes con su «✕» (D-NEXT, `BuscadorConBorrar`): la «✕» va dentro del campo, a la derecha. */
+.buscador-con-borrar { position: relative; display: inline-flex; align-items: center; width: 100%; }
+.buscador-con-borrar input { width: 100%; padding-right: 28px; }
+.buscador-con-borrar-x {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; color: var(--gray); cursor: pointer;
+  font-size: 13px; line-height: 1; padding: 4px 6px; border-radius: 4px;
+}
+.buscador-con-borrar-x:hover, .buscador-con-borrar-x:focus-visible { color: var(--text); background: var(--line); }
 /* Stage chips stay on ONE line and scroll sideways. Wrapped onto two or three
    rows they pushed the actual list below the fold on a phone. */
 .filters-oneline {

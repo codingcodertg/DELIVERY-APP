@@ -430,7 +430,8 @@ describe("«Sin asignar» tiene su propio ⚙ Columnas (D-349)", () => {
     const i = pagina.indexOf("<SelectorDeColumnas columnas={vista.selector}");
     expect(i).toBeGreaterThan(-1);
     expect(pagina.slice(i, i + 400)).toContain("onAlterna={alternaColumnaDelGestor}");
-    expect(pagina.slice(pagina.lastIndexOf("<input", i), i)).toContain("value={vista.busqueda}");
+    // Nota D-NEXT: el buscador es ahora `BuscadorConBorrar` (con su «✕»), y el valor entra por `valor=`.
+    expect(pagina.slice(pagina.lastIndexOf("<BuscadorConBorrar", i), i)).toContain("valor={vista.busqueda}");
     expect(pagina).toContain('selector: columnasDelSelector("sinAsignar", ordenGestor)');
   });
 });

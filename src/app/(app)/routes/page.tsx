@@ -115,6 +115,7 @@ import { esDeSuZona, zonaDeLaRecogida } from "@/lib/zonas";
 import { fraseDeFaltan } from "@/lib/requisitos";
 import { CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
+import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 
 // ============================================================
 // Logistics Manager tool: assign the day's approved-but-undelivered orders
@@ -2246,11 +2247,12 @@ export default function RoutesPage() {
         </div>
         {!isCollapsed(panel) && <>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "10px 0" }}>
-          <input
-            value={vista.busqueda}
-            onChange={(e) => vista.onBusqueda(e.target.value)}
+          {/* Con su «✕» para borrar (D-NEXT). */}
+          <BuscadorConBorrar
+            valor={vista.busqueda}
+            onValor={vista.onBusqueda}
             placeholder={t("Search # / customer / address / phone…", "Buscar # / cliente / dirección / teléfono…")}
-            style={{ maxWidth: 300 }}
+            maxWidth={300}
           />
           {/* Las dos vistas comparten las columnas elegidas, el orden, las plantillas y las flechas (`moverEn("sinAsignar")`). */}
           {!soloLectura && (

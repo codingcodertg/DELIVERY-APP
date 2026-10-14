@@ -18,6 +18,7 @@ import { avisosDeAgregarMaterial } from "@/lib/agregar-material-avisos";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { BotonesDeTarifa } from "@/components/BotonesDeTarifa";
+import { bloqueoPorTarifaMinima, ofreceDescuento, textoTarifaMinima } from "@/lib/tarifa-minima";
 import { CampoDecimal } from "@/components/CampoDecimal";
 import { escrituraAlComenzar, llegaSinTarifa, pideConfirmarTarifa } from "@/lib/confirmar-tarifa";
 import { printDeliverySlip } from "@/lib/slip";
@@ -452,6 +453,9 @@ export function OrderModal({
     pinVisible ? { ...d, delivery_lat: pinVisible[0], delivery_lng: pinVisible[1] } : d,
     settings,
   );
+  // El botón «Descuento» no se le ofrece a un vendedor en una tienda con tarifa mínima (D-NEXT): «La tarifa es 100
+  // minimo. Tenemos que quitarles esa opcion de descuento». Pasar `null` a `BotonesDeTarifa` es lo que lo esconde.
+  const descuentoOfrecido = ofreceDescuento(me.role, d.store, settings.stores) ? feeSuggestion.discount : null;
   /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
    *  «esta dirección no tiene pin» de «esta entrega está lejos de verdad». */
   const zoneWhy = feeSuggestion.zoneSource === "pin"
@@ -526,6 +530,9 @@ export function OrderModal({
     if (blockSubmit(draft)) return false;
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados». Tope duro, sin «¿continuar?».
     if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }
+    // La tarifa mínima de la tienda, para ventas (D-NEXT). Tope duro, sin «¿continuar?»: es lo que el dueño quitó.
+    const bajoMinimo = bloqueoPorTarifaMinima({ rol: me.role, tienda: draft.store, tiendas: settings.stores, tipo: draft.order_type, reglas: settings.order_type_rules, tarifa: draft.delivery_fee });
+    if (bajoMinimo) { const m = textoTarifaMinima(bajoMinimo); notify(t(m.en, m.es)); return false; }
     // 1. Required fields — list them and let the rep decide.
     const miss = computeMissing(draft);
     if (miss.length) {
@@ -1970,7 +1977,7 @@ export function OrderModal({
             {/* Los dos botones otra vez, Lista y Descuento (D-303): D-283 los dejó en uno y el
                 dueño pidió el descuento de vuelta el mismo día. */}
             {/* Desde D-450 los botones son `BotonesDeTarifa`, el mismo componente en los tres sitios. */}
-            <BotonesDeTarifa tarifa={d.delivery_fee} list={feeSuggestion.list} discount={feeSuggestion.discount}
+            <BotonesDeTarifa tarifa={d.delivery_fee} list={feeSuggestion.list} discount={descuentoOfrecido}
               elegir={(v) => set("delivery_fee", v)} t={t} />
             {/* Y aquí también (D-249). D-244 puso el desglose solo en el bloque de zona local,
                 y este es el que ve quien crea un pedido paso a paso — el dueño calculó la
@@ -2255,7 +2262,7 @@ export function OrderModal({
                   {d.route_miles != null && <span className="hint" style={{ margin: 0 }}>· {d.route_miles} mi</span>}
                 </div>
                 {(feeSuggestion.list != null || feeSuggestion.discount != null) ? (
-                  <BotonesDeTarifa tarifa={d.delivery_fee} list={feeSuggestion.list} discount={feeSuggestion.discount}
+                  <BotonesDeTarifa tarifa={d.delivery_fee} list={feeSuggestion.list} discount={descuentoOfrecido}
                     elegir={(v) => set("delivery_fee", v)} t={t} />
                 ) : (
                   <div className="hint" style={{ marginTop: 6 }}>{t("Calculate the route below to price this delivery by miles.", "Calcule la ruta abajo para cotizar esta entrega por millas.")}</div>

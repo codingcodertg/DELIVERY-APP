@@ -177,7 +177,12 @@ describe("lo que el dueño no veía: el descuento en la pantalla", () => {
     expect(boton).toContain("{list != null && (");
     expect(boton).toContain("{discount != null && (");
     expect(modal.split("<BotonesDeTarifa ").length - 1).toBe(3);
-    expect(modal.split("list={feeSuggestion.list} discount={feeSuggestion.discount}").length - 1).toBe(3);
+    // Nota D-NEXT: los dos sitios de la ficha pasan ahora `descuentoOfrecido`, que es `feeSuggestion.discount` salvo
+    // para un vendedor en una tienda con tarifa mínima (lo decide `ofreceDescuento`, probado en tarifa-minima.test.ts).
+    // El diálogo de «Comenzar preparación» sigue pasando el descuento tal cual.
+    expect(modal.split("list={feeSuggestion.list} discount={feeSuggestion.discount}").length - 1).toBe(1);
+    expect(modal.split("list={feeSuggestion.list} discount={descuentoOfrecido}").length - 1).toBe(2);
+    expect(modal).toContain("const descuentoOfrecido = ofreceDescuento(me.role, d.store, settings.stores) ? feeSuggestion.discount : null;");
   });
 
   it("los dos botones de la ficha salen de `feeSuggestion`, cada uno con su precio", () => {

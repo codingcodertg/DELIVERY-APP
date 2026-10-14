@@ -1,4 +1,5 @@
 import type { NamedLocation } from "./types";
+import { leeTarifaMinima } from "./tarifa-minima";
 
 /**
  * El registro que se guarda al confirmar el formulario de un lugar en Datos: tiendas, puntos de
@@ -57,6 +58,10 @@ export function registroDeLugar(
     const dedicados = (draft.choferes_dedicados ?? []).map((n) => n.trim()).filter(Boolean);
     if (dedicados.length) rec.choferes_dedicados = dedicados;
     else delete rec.choferes_dedicados;
+    // La tarifa mínima de ventas (D-NEXT): un número mayor que cero, o se quita la clave. Ausente = sin mínimo.
+    const minima = leeTarifaMinima(draft.tarifa_minima_ventas);
+    if (minima != null) rec.tarifa_minima_ventas = minima;
+    else delete rec.tarifa_minima_ventas;
   }
 
   return rec;

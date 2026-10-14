@@ -34,6 +34,7 @@ import { orderTypeRule } from "@/lib/required";
 import { resumenSinFactura } from "@/lib/factura-obligatoria";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
 import { presetInicialDe } from "@/lib/preset-inicial";
+import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
 type Preset = "all" | "recent" | "today" | "overdue" | "unassigned" | "mine";
@@ -712,12 +713,13 @@ export default function OrdersPage() {
       </div>
 
       <div className="filters">
-        <input
+        {/* Con su «✕» para borrar (D-NEXT). */}
+        <BuscadorConBorrar
           ref={searchRef}
-          style={{ maxWidth: 260 }}
+          maxWidth={260}
           placeholder={t("Search…  (press / )", "Buscar…  (tecla / )")}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          valor={q}
+          onValor={setQ}
         />
         {view === "table" && (
           <button type="button" className={"btn btn-ghost btn-sm" + (verFiltrosGuardados ? " on" : "")} data-abre-filtros-guardados

@@ -20191,6 +20191,10 @@ main, que se movió mientras se escribía (D-300).
 > **Lo que cambia:** la frase *«coincide con la lista en los otros tres tramos, y eso es correcto, no
 > un fallo»*. Era correcta cuando se escribió, y el dueño decidió lo contrario. Y la nota de que el
 > descuento de fuera de zona era **provisional** queda cerrada: ya tiene su cifra, `400 + 0,80 × mi`.
+>
+> **⚠ Y en parte el 2026-10-14, por D-NEXT.** «El descuento es el suelo de lo que un vendedor puede ofrecer por su cuenta»
+> deja de valer en una tienda con `tarifa_minima_ventas`: allí el suelo del vendedor es ese mínimo, y el botón «Descuento» no
+> se le enseña.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño**, literal: *«discounted fee was removed, bring it back»*, unas horas después de
@@ -22209,6 +22213,10 @@ Los roles de cada política se comparan **como conjunto y por cláusula**: en el
 - **La red de la ventana se probó como función, no contra una base sin la columna.**
 
 ## D-317 · El descuento vuelve a ser una tabla propia, y por eso vuelve a aparecer
+
+> **⚠ Reemplazada en parte el 2026-10-14, por D-NEXT** (tarifa mínima de ventas). Para un **vendedor** en una tienda con
+> `tarifa_minima_ventas`, la ficha ya no le ofrece el botón «Descuento» y no envía una tarifa por debajo del mínimo. Lo de
+> aquí sigue en pie para los demás roles y para las tiendas sin mínimo.
 
 **Fecha:** 2026-09-18 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.**
 **Pedido por el dueño**, literal: *«the original calculation of the discount is not appearing fix it
@@ -43247,3 +43255,73 @@ con un clic de ratón sobre la burbuja. Capturas de antes y después en el scrat
 - **El teléfono de verdad**, la vista móvil del hub (pide sesión) y «RDZ·DELIVERIES» (el demo dice «RTG·HUB»; el nombre
   real es más largo y se corta con «…» si no cabe).
 - Pulsar la opción del menú y aterrizar en `/inspection`: el enlace es el mismo `href` de la pestaña, pero no se pulsó.
+
+## D-NEXT · Tarifa mínima de ventas por tienda (sin botón «Descuento» y sin enviar por debajo), y una «✕» para borrar la búsqueda de órdenes
+
+**Fecha:** 2026-10-14 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Rama `tarifa-minima-y-buscador` ·
+**Reemplaza en parte a** D-303 y D-317, que llevan su nota: para un vendedor en una tienda con mínimo, el descuento deja de
+ofrecerse.
+
+**Pedidos del dueño, literales (2026-10-14):**
+
+- A) *«En mcallen los vendedores no usan descuento de cobro como excepcion. La tarifa es 100 minimo. Tenemos que quitarles esa opcion de descuento»*
+- B) *«when i search orders it would be easier to have an x to clear instead of having to backspace»*
+
+### A · La tarifa mínima de ventas es un dato de la tienda
+
+Hasta hoy la ficha de la orden le ofrecía a todo el que pone la tarifa dos botones, «Lista» y «Descuento» (D-303, D-317,
+`BotonesDeTarifa`), y el descuento era el suelo de lo que un vendedor podía cobrar por su cuenta. En McAllen el dueño no
+quiere eso: la tarifa del vendedor es 100 como mínimo, y el descuento no existe como excepción.
+
+**Va en los datos, no en el código**, igual que `choferes_dedicados` de D-544: cada tienda de `settings.stores[*]` (jsonb)
+puede llevar `tarifa_minima_ventas: number`. Se edita en **Datos → Tiendas → editar la tienda → «Tarifa mínima de ventas
+($)»**, se guarda con `registroDeLugar` (vacío, cero o texto quitan la clave) y la lista de tiendas lo enseña. Ningún nombre de
+tienda está escrito en el código: **el orquestador pone McAllen = 100 tras fusionar**, y otra tienda que quiera lo mismo se
+configura igual. Sin migración: ninguna restricción mira las claves de `settings.stores`.
+
+Lo decide `src/lib/tarifa-minima.ts`. Con mínimo en la tienda «Sold From» de la orden (`d.store`, comparada por nombre
+normalizado) y **solo para el rol `sales`**:
+
+- **El botón «Descuento» no se pinta** en los dos sitios de la ficha (el bloque paso a paso y la tarjeta de zona local):
+  `ofreceDescuento` → `descuentoOfrecido = null` → `BotonesDeTarifa` no pinta lo que llega nulo. «Lista» sigue.
+- **El envío se para** (`passesChecks`, tope duro sin «¿continuar?», justo después del de la fecha pasada) si la tarifa
+  está **por debajo** del mínimo **o vacía**: *«La tarifa mínima en {tienda} es ${min}.»* / *«The minimum delivery fee at
+  {store} is ${min}.»*. Vacía también para, porque si no, dejarla en blanco y pulsar «continuar de todos modos» en el aviso
+  de campos vacíos (que la tarifa vacía es aviso, no bloqueo, en `required.ts`) sería la forma de saltarse el mínimo.
+  Justo el mínimo pasa.
+- **Solo en los tipos que cobran tarifa**: los de `docRef` «invoice», que son los que `missingFields` ya trata como «cobran
+  tarifa al cliente». Intertienda (`any`), Transfer/Pickup (`none`), Proveedor (`hidden`) y cualquier tipo de PO no se
+  bloquean. Sin tipo elegido tampoco: lo que falta entonces es el tipo.
+- **Oficina, gerente y admin no cambian**: ven el descuento y cobran lo que decidan. El rol es el de quien edita
+  (`me.role`), no el de quien creó la orden.
+
+**Qué NO se tocó, a propósito:** el diálogo de «Comenzar preparación» del almacén (D-450) sigue con los dos botones —no es de
+ventas—; el aviso «Igualar precio (menor al descuento) — requiere aprobación» sigue igual (con mínimo, lo que quede por debajo
+del descuento y por encima del mínimo sigue avisándose); y **el Estimador / Quote Builder** (D-442) sigue ofreciéndole el
+descuento al vendedor en la cotización: el pedido habla de la orden, y extenderlo a la cotización es decisión del dueño.
+
+### B · La «✕» del buscador de órdenes
+
+No había un componente compartido: cada búsqueda de órdenes era su propio `<input>`. Ahora las tres usan
+`components/BuscadorConBorrar.tsx`: **Órdenes** (con la tecla «/», por eso reenvía el `ref`), **las dos tablas del Gestor**
+(`vista.busqueda`, «Sin asignar» y «Todas») y **la barra de Almacén** (Cola y Recepción, `FiltrosDeAlmacen`). La «✕» va
+dentro del campo, a la derecha; solo está cuando hay texto (`hayTextoQueBorrar`, también solo espacios); al pulsarla vacía la
+búsqueda y el foco se queda en el campo (`onMouseDown` evita que el botón se lo lleve). Etiqueta accesible «Clear search» /
+«Borrar búsqueda». Los colores van en clases de `globals.css` (`.buscador-con-borrar`, con tokens), no en `style`.
+
+Las búsquedas que no son de órdenes (filtros de columna, ERP, Recruiting, Leads) no se tocaron.
+
+### Pruebas y mutantes
+
+`src/lib/tarifa-minima.test.ts` y `src/lib/buscador.test.ts` importan las funciones que deciden; las anclas de fuente solo
+prueban que la ficha, las tres pantallas y el componente las usan. Tres pruebas existentes se pusieron al día con su «Nota
+D-NEXT» (`tarifa-descuento.test.ts`, `routes-columns.test.ts`, `almacen.test.ts`). Mutantes: ver el informe del worker en la
+rama (tanda `tanda-tarifa-minima.json`).
+
+### Lo que no se verificó
+
+- **Nada se abrió en un navegador** (la laptop estaba sin memoria; no se arrancó servidor): ni el campo de Datos, ni la ficha
+  como vendedor, ni la «✕» y su foco.
+- **El nombre exacto de la tienda de McAllen en `settings.stores`** no se leyó de producción; en DECISIONS aparece como «RDZ
+  McAllen». La comparación es sin mayúsculas ni espacios de sobra, pero el valor se pone desde Datos → Tiendas sobre la tienda
+  que esté, no tecleando el nombre.

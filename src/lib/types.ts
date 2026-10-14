@@ -381,6 +381,11 @@ export interface NamedLocation {
    * y gerente ven a todos. Ausente o vacío = la tienda no tiene choferes dedicados, que es el caso de partida y no cambia
    * nada. Lo decide `lib/gestor/choferes-por-tienda.ts`; es de pantalla, la base no lo mira. */
   choferes_dedicados?: string[] | null;
+  /** Stores only: la tarifa mínima que un **vendedor** puede cobrar en las órdenes vendidas desde esta tienda
+   * (D-NEXT). Con valor, al rol `sales` no se le ofrece el botón «Descuento» y una tarifa por debajo —o vacía— no
+   * se envía, en los tipos que cobran tarifa. Oficina, gerente y admin no cambian. Ausente = sin mínimo. Lo decide
+   * `lib/tarifa-minima.ts`; es de pantalla, la base no lo mira. */
+  tarifa_minima_ventas?: number | null;
 }
 
 /** A saved customer/site account — picking it on an order auto-fills who to
