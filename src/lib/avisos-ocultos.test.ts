@@ -72,7 +72,8 @@ describe("la pantalla del Gestor usa lo cerrado", () => {
     expect(pagina).toContain("const oculto = (id: AvisoDelGestor) => avisosOcultos == null || avisosOcultos.has(id);");
   });
   it("cada aviso se esconde si está cerrado, y lleva su ✕", () => {
-    expect(pagina).toContain("{trackingIssues.length > 0 && !oculto(AVISOS_DEL_GESTOR.choferesSinSenal) && (");
+    // Nota D-541: el aviso de choferes sin señal va además detrás de `!soloLectura` (solo en el Gestor, no en «Ruta de hoy»).
+    expect(pagina).toContain("{!soloLectura && trackingIssues.length > 0 && !oculto(AVISOS_DEL_GESTOR.choferesSinSenal) && (");
     expect(pagina).toContain("(pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (");
     expect(pagina).toContain("{dayOrders.length === 0 && !oculto(AVISOS_DEL_GESTOR.diaVacio) && (() => {");
     for (const id of ["choferesSinSenal", "atrasadas", "diaVacio"]) {
