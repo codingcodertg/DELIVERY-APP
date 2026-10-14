@@ -43,7 +43,7 @@ const FichaDiferida = dynamic(() => import("./OrderModal").then((m) => m.OrderMo
 });
 
 /**
- * La PUERTA de la ficha (D-NEXT). El dueño, 2026-10-13: «if you are a sales person you cant open others peoples orders just
+ * La PUERTA de la ficha (D-544). El dueño, 2026-10-13: «if you are a sales person you cant open others peoples orders just
  * their owns». Todas las pantallas que abren una orden montan ESTE componente, así que la regla (`puedeAbrirLaOrden`) va
  * aquí una vez y vale para todas —la tabla de Órdenes, el `/?order=` de una notificación, «Ruta de hoy», Cuentas…—, también
  * para la que se escriba mañana. Una orden que no puede abrir no monta la ficha: se cierra y sale el aviso.

@@ -1,7 +1,7 @@
 import { PANEL_DE_TODAS, PANEL_SIN_ASIGNAR } from "@/lib/vista-del-gestor";
 
 /**
- * Al abrir las rutas de un chofer, el mapa se esconde solo (D-NEXT).
+ * Al abrir las rutas de un chofer, el mapa se esconde solo (D-544).
  *
  * El dueño, 2026-10-13 (literal): «when you open the routes for a driver in the trutes manager you open up ad river routes it
  * should hide the map automatically but they can still show it on the top if the user wantss it».

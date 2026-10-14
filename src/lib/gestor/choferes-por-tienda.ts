@@ -4,7 +4,7 @@ import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { tiendasDeAlmacen } from "@/lib/almacen";
 
 /**
- * Qué choferes ve cada tienda en «🌐 Ruta de hoy» (D-NEXT).
+ * Qué choferes ve cada tienda en «🌐 Ruta de hoy» (D-544).
  *
  * El dueño, 2026-10-13 (literal): «brownville people can only see max routes create that rule except for the manager, the
  * manager can see all drivers» · «all th eothers stores can see all drivers but not maximo, an exception for the managers and

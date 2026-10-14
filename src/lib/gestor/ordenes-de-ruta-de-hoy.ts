@@ -32,7 +32,7 @@ export function ordenesDeRutaDeHoy(paradas: readonly ParadaDelDia[], legibles: r
  * La orden ENTERA solo se abre si esta persona YA la puede leer (está entre las que le carga su RLS) y no es un vendedor
  * mirando la de otro: «solo ver, nada más» (D-467). La misma regla que tenía «Ruta de hoy» antes de ser el Gestor.
  *
- * Nota D-NEXT: «de otro» lo decide desde entonces `puedeAbrirLaOrden`, la regla de TODAS las fichas («if you are a sales
+ * Nota D-544: «de otro» lo decide desde entonces `puedeAbrirLaOrden`, la regla de TODAS las fichas («if you are a sales
  * person you cant open others peoples orders just their owns»). Cambia una cosa: la que el vendedor CREÓ aunque su vendedor
  * sea otro (`created_by`, D-537) ahora sí se abre — antes aquí solo contaba `orderOwner`.
  */

@@ -2,7 +2,7 @@ import type { Delivery, Profile } from "@/lib/types";
 import { esMia } from "@/lib/ordenes-visibles";
 
 /**
- * ¿Puede esta persona ABRIR la ficha de esta orden? (D-NEXT)
+ * ¿Puede esta persona ABRIR la ficha de esta orden? (D-544)
  *
  * El dueño, 2026-10-13 (literal): «if you are a sales person you cant open others peoples orders just their owns».
  *

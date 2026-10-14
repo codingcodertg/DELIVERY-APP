@@ -452,7 +452,7 @@ function LocationTable({
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState<NamedLocation>({ name: "", address: "" });
   const [adding, setAdding] = useState(false);
-  // Los choferes dedicados (D-NEXT) se teclean como texto («Ana, Beto») y se leen al guardar: partirlos al teclear
+  // Los choferes dedicados (D-544) se teclean como texto («Ana, Beto») y se leen al guardar: partirlos al teclear
   // se comería la coma recién escrita.
   const [dedicadosTxt, setDedicadosTxt] = useState("");
   const confirmAction = useConfirm();

@@ -11,7 +11,7 @@ import { ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
 import { registroDeLugar } from "@/lib/named-location";
 import { PANEL_SIN_ASIGNAR } from "@/lib/vista-del-gestor";
 
-// D-NEXT, tres pedidos del dueño del 2026-10-13. Nombres inventados: ninguna tienda ni chofer de verdad.
+// D-544, tres pedidos del dueño del 2026-10-13. Nombres inventados: ninguna tienda ni chofer de verdad.
 
 const TIENDAS: NamedLocation[] = [
   { name: "Tienda Norte", address: "", choferes_dedicados: ["Chofer Uno"] },

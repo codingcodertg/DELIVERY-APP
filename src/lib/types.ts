@@ -376,7 +376,7 @@ export interface NamedLocation {
    * los dos ataría el calendario de las promociones al de otra cosa, y un admin reagrupando teléfonos
    * movería en silencio quién decide una promoción. Tres hechos distintos, tres campos. */
   promo_group?: string | null;
-  /** Stores only: los choferes que trabajan SOLO para esta tienda (D-NEXT), por su nombre. En «Ruta de hoy» la gente de
+  /** Stores only: los choferes que trabajan SOLO para esta tienda (D-544), por su nombre. En «Ruta de hoy» la gente de
    * esta tienda ve solo a estos choferes, y la de las demás tiendas (fuera de su grupo, D-293) no los ve; admin, logística
    * y gerente ven a todos. Ausente o vacío = la tienda no tiene choferes dedicados, que es el caso de partida y no cambia
    * nada. Lo decide `lib/gestor/choferes-por-tienda.ts`; es de pantalla, la base no lo mira. */

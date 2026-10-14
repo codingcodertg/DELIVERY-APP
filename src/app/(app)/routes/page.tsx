@@ -218,7 +218,7 @@ export default function RoutesPage() {
   const todasLasDelDia = useMemo(() => (soloLectura ? ordenesDeRutaDeHoy(paradasDeHoy, deliveriesLeidas) : deliveriesLeidas), [soloLectura, paradasDeHoy, deliveriesLeidas]);
   // El acotado de D-506, en UN sitio: todo lo que esta pantalla pinta cuelga de `deliveries`, así que acotarlo aquí acota
   // las paradas, los carriles, el mapa, las tablas, las cuentas, Cuadrícula y Horario de una vez.
-  // Qué choferes ve esta persona en «Ruta de hoy» (D-NEXT): la tienda con choferes dedicados ve solo esos, las demás no los
+  // Qué choferes ve esta persona en «Ruta de hoy» (D-544): la tienda con choferes dedicados ve solo esos, las demás no los
   // ven, y admin, logística y gerente ven a todos; una Intertienda que entra a su tienda se ve igual. Solo en «Ruta de hoy»
   // (`soloLecturaDeclarada`), no en el Gestor ni en el mapa del chofer (D-506, que ya acota a lo suyo). Se acota en el
   // ORIGEN, como D-506: lo que no pasa no llega a las tarjetas, al panel, al mapa, a Cuadrícula ni a Horario.
@@ -247,7 +247,7 @@ export default function RoutesPage() {
   // panel so the route detail can use the whole screen.
   // Nace en «Cuadrícula» (D-526). El dueño, 2026-10-11: «make grid view in route manager default». «▭ Ancho» la cambia.
   const [wideRoutes, setWideRoutes] = useState(false);
-  // El mapa y el panel de choferes (antes un `showTop` suelto). Desde D-NEXT se esconde solo al abrir las rutas de un chofer,
+  // El mapa y el panel de choferes (antes un `showTop` suelto). Desde D-544 se esconde solo al abrir las rutas de un chofer,
   // y el botón de arriba lo vuelve a enseñar (`lib/gestor/mapa-al-abrir-ruta`).
   const [estadoDelMapa, setEstadoDelMapa] = useState<EstadoDelMapa>(MAPA_INICIAL);
   const showTop = estadoDelMapa.visible;
@@ -552,7 +552,7 @@ export default function RoutesPage() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  // Abrir las rutas de un chofer esconde el mapa (D-NEXT). El dueño, 2026-10-13: «when you open the routes for a driver in
+  // Abrir las rutas de un chofer esconde el mapa (D-544). El dueño, 2026-10-13: «when you open the routes for a driver in
   // the trutes manager […] it should hide the map automatically but they can still show it on the top if the user wantss
   // it». Abrir = su tabla desplegada en «Cuadrícula» o su tarjeta abierta (▸) en «Ancho». No en el mapa del chofer (D-506):
   // allí el mapa es lo que vino a ver.
