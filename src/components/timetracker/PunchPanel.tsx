@@ -14,7 +14,7 @@ import { MySections } from "@/components/timetracker/MySections";
 import { FichajesDeHoy } from "@/components/timetracker/FichajesDeHoy";
 import { PreguntaDeVehiculo } from "@/components/timetracker/PreguntaDeVehiculo";
 import { useData } from "@/lib/timetracker-data-provider";
-import { esAdminDeTt, seccionesDeFichar } from "@/lib/timetracker/vista-empleado";
+import { esAdminDeTt, fichaConFoto, seccionesDeFichar } from "@/lib/timetracker/vista-empleado";
 import { accionesEnMenu, accionesPersonales, estadoDelFichaje, textoDeAccion, type AccionPersonal } from "@/lib/timetracker/mis-acciones";
 import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
 import { MenuDeAcciones, type OpcionDelMenu } from "@/components/MenuDeAcciones";
@@ -347,8 +347,12 @@ export function PunchPanel() {
     await grabaSalida(planDe(false));
   }
 
-  /** La cámara se abre primero; el fichaje va después, con la foto ya subida. */
+  /** La cámara se abre primero; el fichaje va después, con la foto ya subida. El admin, sin cámara (D-539). */
   function pide(accion: "in" | "out") {
+    if (!fichaConFoto(me.role)) {
+      void ficha(accion);
+      return;
+    }
     pendiente.current = accion;
     fotoRef.current?.click();
   }

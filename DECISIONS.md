@@ -42937,3 +42937,21 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pruebas:** `talon-de-pago.test.ts` (importa las funciones reales: presencial con 1.5×, multiplicador propio y umbral propio; `summarize` con y sin umbral; remoto bruto = total y neto = `totalPagado`; ajustes con signo; acumulado por persona, año y hasta el periodo; la foto se reutiliza aunque la persona ya no tenga tarifa; el HTML lleva las cifras, una página por talón, escapa `<script>`, dice «sin retenciones» y no lleva ninguna línea de impuestos). `capacitacion-datos`: las tres lecturas nuevas pasan y las tres escrituras se bloquean en modo práctica. Mutantes (tanda `tanda-talones.json`): **18 de 18 caen**, cada uno con su prueba por nombre — multiplicador ignorado, 1.5 por defecto, bruto sin extras, umbral de la persona ignorado (en el talón y en `summarize`), bruto remoto desde las líneas, neto sin ajustes, acumulado de otras personas / otros años / periodos posteriores, foto recalculada (dos sitios), fichaje abierto no excluido, `escapa` sin `<`, sin «sin retenciones», misma página, reabrir sin borrar el talón, talones con el periodo abierto. Los dos últimos caen con una prueba que lee el fuente (presencia del texto), no con una que lo ejecute.
 
 **No medido:** nada en navegador (ni la pantalla, ni el diálogo de impresión, ni el aspecto del papel); nada contra una base real (la 170 no se ha ejecutado en ningún sitio, tampoco con ROLLBACK); los códigos de «la tabla no existe» (`42P01` / `PGRST205`) salen de la documentación, no de una prueba.
+
+## D-539 · El admin ficha sin foto: «Entrada» y «Salida» no abren la cámara para el admin de Time Tracker
+
+**Fecha:** 2026-10-13 · **Versión:** timetracker 1.6.0 (repo 1.404.0) · Sin migración · Hecho directo por el orquestador en `admin-ficha-sin-foto`.
+
+**Pedido del dueño**, literal: *«admin remove the images requiremenet in the clock in app»*.
+
+**Qué había.** En el servidor la foto del fichaje nunca fue obligatoria: `clockIn` y `clockOut` aceptan `photoPath` vacío, y si la cámara no abre se ficha igual (`PunchPanel.tsx`, «sin foto se sigue fichando»). Lo que la pedía era la pantalla: `pide()` abría SIEMPRE la cámara antes de fichar, para todos.
+
+**Qué cambia.** `fichaConFoto(role)` (`src/lib/timetracker/vista-empleado.ts`) decide: el admin de Time Tracker (`timetracker_role = 'admin'`, la misma regla que `esAdminDeTt`) ficha directo, sin cámara; el empleado y el gerente, como siempre. Solo «Entrada» y «Salida»: las fotos de «Voy a salir» / visitas (D-455) no cambian, eran a voluntad.
+
+**Lo que no cambia.** La geocerca, el GPS y los motivos de fuera de horario siguen igual para el admin; Auditoría → Fotos enseña su fichaje sin foto, como ya enseñaba los de cámara fallida.
+
+**Pruebas:** `vista-empleado.test.ts` § 6 (la regla por rol, y que `pide()` ficha antes de abrir la cámara). Mutantes 3 de 3.
+
+**No medido:** en el teléfono ni en el navegador.
+
+**De paso, sin código (mismo día):** Roberto Rodriguez Jr no podía pedir ajuste de tiempo porque la app le exigía proyecto. La regla de D-493 (el presencial no necesita proyecto) estaba bien; lo que faltaba era el dato: su `worker_type` estaba vacío y el defecto de Ajustes es «remote». Se le puso `inhouse` (único que fichaba sin tipo en 30 días; Carlos Fuentes y Everto Prado ya lo tenían).

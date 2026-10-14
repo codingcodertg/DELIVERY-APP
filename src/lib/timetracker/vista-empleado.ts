@@ -22,6 +22,16 @@ export function esAdminDeTt(role: string | null | undefined): boolean {
   return role === "admin";
 }
 
+/**
+ * ¿«Entrada» y «Salida» abren la cámara antes de fichar? (D-539) El dueño, 2026-10-13: *«admin remove the
+ * images requiremenet in the clock in app»*. El admin ficha directo, sin foto; el empleado y el gerente,
+ * como siempre. La foto nunca fue obligatoria en el servidor (`clockIn` acepta `photoPath` vacío): lo
+ * único que la pedía era este paso de la pantalla.
+ */
+export function fichaConFoto(role: string | null | undefined): boolean {
+  return !esAdminDeTt(role);
+}
+
 /** Las pestañas de la barra. El empleado ya no tiene «Mi diario»; el admin sigue con la suya. */
 export function pestanasPara(role: string | null | undefined): { id: string; href: string }[] {
   return esAdminDeTt(role) ? MANAGER_TABS : TABS;
