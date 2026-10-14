@@ -105,7 +105,7 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   // D-494: fuera para el chofer (tiene «Mi ruta») y para admin y logística (tienen el Gestor de Rutas, que es lo mismo con
   // acciones). El dueño, 2026-10-07: «de driver elimina today's route» · «si admin y logistic manager ya tienen el gestor de
   // ruta entonces quye no les paartezca ruta de hoy».
-  { id: "map",       label: "🗺 Today's route", label_es: "🗺 Ruta de hoy", href: "/map", roles: ["manager", "sales", "accounting", "warehouse"] },
+  { id: "map",       label: "🌐 Today's route", label_es: "🌐 Ruta de hoy", href: "/map", roles: ["manager", "sales", "accounting", "warehouse"] },
   { id: "market",    label: "🏪 Market",    label_es: "🏪 Mercado",    href: "/market", roles: ["admin"], group: "general" },
   { id: "warehouse", label: "🏭 Warehouse", label_es: "🏭 Almacén",    href: "/warehouse", roles: ["warehouse", "admin"], cap: "fulfill" },
   { id: "driver",    label: "🚚 Driver",    label_es: "🚚 Chofer",     href: "/driver", roles: ["driver", "admin"], cap: "deliver" },

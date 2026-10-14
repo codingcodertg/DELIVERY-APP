@@ -2520,7 +2520,9 @@ export default function RoutesPage() {
            No amount of Android hardening is bulletproof: a battery manager, a
            flat battery or no signal will still cut the feed. Surfacing it here
            means a truck goes "not reporting" instead of quietly vanishing. */}
-      {trackingIssues.length > 0 && !oculto(AVISOS_DEL_GESTOR.choferesSinSenal) && (
+      {/* Solo en el Gestor (admin y logística), no en «Ruta de hoy» ni en el mapa del chofer (D-541, el dueño: «people
+          should not see this message just admin and logistic manager but from the logistic manager view not rutas de hoy»). */}
+      {!soloLectura && trackingIssues.length > 0 && !oculto(AVISOS_DEL_GESTOR.choferesSinSenal) && (
         <div className="card" style={{ marginBottom: 14, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           <b style={{ color: "var(--amber-text)" }}>

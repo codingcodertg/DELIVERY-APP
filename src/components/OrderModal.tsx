@@ -52,6 +52,7 @@ import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesD
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
+import { PALLETS_DE_UN_VIAJE, palletsAConfirmar } from "@/lib/muchos-pallets";
 import { captureLocationSplit, geoAvailable, mapLink, type GeoStamp } from "@/lib/geo";
 import { claimDelChofer, escrituraRecogida, extraRecogida, podSinCumplir, pruebaPendiente } from "@/lib/one-tap-stop";
 import type { AccountRecord, Delivery, NamedLocation, NoteRole, Profile, RoleNote, Settings, Stage } from "@/lib/types";
@@ -544,6 +545,13 @@ export function OrderModal({
     if (dupInv && !sharedInvoice && !(await confirmAction(t(
       `⚠ Duplicate invoice: order #${orderLabel(dupInv)} already uses invoice #${dupInv.invoice_num}. Create anyway?`,
       `⚠ Factura duplicada: la orden #${orderLabel(dupInv)} ya usa la factura #${dupInv.invoice_num}. ¿Crear de todos modos?`,
+    )))) return false;
+
+    // Más de un camión de pallets (D-541): se pregunta si el número es el bueno.
+    const muchos = palletsAConfirmar(draft.est_pallets);
+    if (muchos != null && !(await confirmAction(t(
+      `Are you sure this order is ${muchos} pallets? Anything over ${PALLETS_DE_UN_VIAJE} pallets will require multiple trips.`,
+      `¿Seguro que esta orden es de ${muchos} pallets? Más de ${PALLETS_DE_UN_VIAJE} pallets requiere varios viajes.`,
     )))) return false;
 
     // Scheduling capacity rules — warn, but let the rep request it anyway.
@@ -2869,11 +2877,13 @@ export function OrderModal({
                 </div>
               )}
 
-              <div className="hint" style={{ marginTop: 6 }}>
-                {geoAvailable()
-                  ? t("📍 Your location will be recorded with this delivery.", "📍 Su ubicación se registrará con esta entrega.")
-                  : t("📍 Location can't be recorded here (needs a secure https connection).", "📍 No se puede registrar la ubicación aquí (requiere conexión https segura).")}
-              </div>
+              {/* «📍 Your location will be recorded…» fuera (D-541, el dueño: «remove that message that you location will be
+                  recorded»). La ubicación se sigue guardando igual; solo se avisa si NO se puede. */}
+              {!geoAvailable() && (
+                <div className="hint" style={{ marginTop: 6 }}>
+                  {t("📍 Location can't be recorded here (needs a secure https connection).", "📍 No se puede registrar la ubicación aquí (requiere conexión https segura).")}
+                </div>
+              )}
               {/* Say what's still missing BEFORE the driver taps. This gate used
                   to be invisible until the button was pressed and a toast said
                   no — which reads as "I pressed delivered and nothing happened". */}

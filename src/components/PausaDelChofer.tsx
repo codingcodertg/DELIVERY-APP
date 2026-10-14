@@ -8,7 +8,7 @@ import { todayISO } from "@/lib/utils";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { usePausasDelChofer, type ResultadoDePausa } from "@/lib/usePausasDelChofer";
 import {
-  MOTIVOS_DE_PAUSA, cierreDePausa, inicioDePausa, pausaAbierta, pideRecibo, textoDePausaAbierta,
+  MOTIVOS_PARA_ELEGIR, cierreDePausa, inicioDePausa, pausaAbierta, pideRecibo, textoDePausaAbierta,
   type MotivoDePausa, type PausaDelChofer as Pausa,
 } from "@/lib/pausas-del-chofer";
 
@@ -125,7 +125,7 @@ function DialogoDeParada({ es, t, ocupado, error, onCancelar, onConfirmar }: {
         <h3 style={{ marginTop: 0 }}>{titulo}</h3>
         <div className="hint" style={{ marginBottom: 8 }}>{t("Why are you stopping?", "¿Por qué te detienes?")}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-          {MOTIVOS_DE_PAUSA.map((m) => (
+          {MOTIVOS_PARA_ELEGIR.map((m) => (
             <button key={m.clave} data-motivo-pausa={m.clave} className={`btn btn-sm${motivo === m.clave ? " btn-primary" : ""}`} style={{ minHeight: 44 }}
               aria-pressed={motivo === m.clave} onClick={() => setMotivo(motivo === m.clave ? null : m.clave)}>
               {m.icono} {es ? m.es : m.en}

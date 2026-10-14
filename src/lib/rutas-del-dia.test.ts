@@ -44,8 +44,9 @@ const PRIVADAS = ["account", "contact", "phone", "email", "invoice_num", "invoic
 describe("1 · la pestaña: «Today's route» / «Ruta de hoy», para todos los roles de entregas", () => {
   const tab = TABS.find((x) => x.id === "map")!;
   it("cambia de nombre y conserva su ruta `/map` (los enlaces no se rompen)", () => {
-    expect(tab.label).toBe("🗺 Today's route");
-    expect(tab.label_es).toBe("🗺 Ruta de hoy");
+    // Nota D-541: el icono pasa de 🗺 a 🌐 (el dueño, 2026-10-13: «change the icon of todays route to a globe»).
+    expect(tab.label).toBe("🌐 Today's route");
+    expect(tab.label_es).toBe("🌐 Ruta de hoy");
     expect(tab.href).toBe("/map");
   });
   it("la abren gerente, ventas, oficina y almacén; admin, logística (tienen el Gestor) y chofer (tiene Mi ruta) no (D-494)", () => {
