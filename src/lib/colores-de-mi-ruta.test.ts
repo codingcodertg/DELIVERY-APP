@@ -5,12 +5,14 @@ import { estiloDeParada, FONDO_DE_PARADA } from "./colores-de-mi-ruta";
 // D-535 · «pickup in driver view should be 1 color and deliveries another like light green and delivery light blue».
 
 describe("colores de Mi ruta", () => {
-  it("recogida verde claro, entrega azul claro; la siguiente con borde de acento, no con otro fondo", () => {
-    expect(FONDO_DE_PARADA).toEqual({ P: "var(--green-soft)", D: "var(--accent-soft)" });
-    expect(estiloDeParada("P", false)).toEqual({ background: "var(--green-soft)" });
-    expect(estiloDeParada("D", false)).toEqual({ background: "var(--accent-soft)" });
-    expect(estiloDeParada("P", true)).toEqual({ background: "var(--green-soft)", boxShadow: "inset 0 0 0 2px var(--accent)" });
-    expect(estiloDeParada("D", true).background).toBe("var(--accent-soft)");
+  // Nota D-547: decía «recogida verde claro, entrega azul claro». El dueño, 2026-10-14: «pickups change to color blue and
+  // deliveries to the orgiinal clear color». La recogida, azul claro; la entrega, sin fondo propio (la fila de siempre).
+  it("D-547: recogida azul claro, entrega sin fondo; la siguiente con borde de acento, no con otro fondo", () => {
+    expect(FONDO_DE_PARADA).toEqual({ P: "var(--accent-soft)", D: undefined });
+    expect(estiloDeParada("P", false)).toEqual({ background: "var(--accent-soft)" });
+    expect(estiloDeParada("D", false)).toEqual({});
+    expect(estiloDeParada("P", true)).toEqual({ background: "var(--accent-soft)", boxShadow: "inset 0 0 0 2px var(--accent)" });
+    expect(estiloDeParada("D", true)).toEqual({ boxShadow: "inset 0 0 0 2px var(--accent)" });
   });
   it("los dos tokens existen en el CSS, también en oscuro", () => {
     const css = readFileSync("src/app/globals.css", "utf8");

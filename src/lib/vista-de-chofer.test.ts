@@ -259,7 +259,9 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(html).toMatch(/<button[^>]*data-registrar-parada="true"[^>]*disabled=""/);
     // «Dejar en tienda»: el de la parada rechazada (en la lista) y el de la tarjeta de «Siguiente parada», los dos apagados.
     expect(estado.dejarEnTienda.some((d) => d.id === "C5" && d.enLaLista)).toBe(true);
-    expect(estado.dejarEnTienda.some((d) => !d.enLaLista)).toBe(true);
+    // Nota D-547: el de la tarjeta ya no sale: la tarjeta «Siguiente parada» va apagada (`MOSTRAR_SIGUIENTE_PARADA`,
+    // «disable that box for now»). Era `.toBe(true)`. Lo que la tarjeta pinta encendida lo mide `mi-ruta-pantalla.test.ts`.
+    expect(estado.dejarEnTienda.some((d) => !d.enLaLista)).toBe(false);
     expect(estado.dejarEnTienda.every((d) => d.disabled === true)).toBe(true);
   });
   it("D-527: los «↩ Deshacer» nuevos (la recogida y la llegada) también se ven igual y apagados; el chofer los ve encendidos", async () => {

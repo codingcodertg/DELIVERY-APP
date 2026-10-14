@@ -402,8 +402,10 @@ describe("pantalla: los botones llegan a cada parada", async () => {
     expect(src).toContain("const llegadaSiEsDe = (llegada: LlegadaDeParada | null, id: string) => llegadaDeLaOrden(llegada, id);");
     expect(src).not.toContain("<BotonDeLlegada");
     expect(src).toContain("const paradaDeLaSiguiente = sig ? numeradas.paradas[sig.parada - 1] : next ? numeradas.paradas.find((p) => p.tipo === tipoDeLaSiguiente && p.ordenes.includes(next.id)) : undefined;");
-    expect(src).toContain('{d && accionesDe(d, "P", llegadaSiEsDe(llegada, id))}');
-    expect(src).toContain('{accionesDe(d, "D", llegadaSiEsDe(llegada, d.id))}');
+    // Nota D-547: cada fila recibe aún la llegada de su parada (esconde o enseña su «Recogido»/«Entregado»), pero el botón
+    // «Llegué» solo lo pinta la primera orden del tramo (`llevaBotonDeLlegada`, el cuarto argumento).
+    expect(src).toContain('{d && accionesDe(d, "P", llegadaSiEsDe(llegada, id), llevaBotonDeLlegada(llegada, id))}');
+    expect(src).toContain('{accionesDe(d, "D", llegadaSiEsDe(llegada, d.id), llevaBotonDeLlegada(llegada, d.id))}');
     expect(src).toContain("{accionesDe(next, tipoDeLaSiguiente, paradaDeLaSiguiente ? llegadaDeLaOrden(llegadaDeLaParada(paradaDeLaSiguiente, etapaDe, marcas, llegadas), next.id) : null)}");
     expect(src).not.toContain("Skip");
   });

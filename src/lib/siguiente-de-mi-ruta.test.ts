@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { botonesConLlegada, llegadaDeLaOrden, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "./siguiente-de-mi-ruta";
+import { botonesConLlegada, llegadaDeLaOrden, llevaBotonDeLlegada, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "./siguiente-de-mi-ruta";
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import type { LlegadaDeParada } from "@/lib/acciones-parada";
 
@@ -82,5 +82,32 @@ describe("un solo botón que cambia", () => {
   it("«Recogido» se hace de un toque solo con la carga lista", () => {
     expect(seRecogeDeUnToque("ready")).toBe(true);
     for (const s of ["approved", "fulfilling", "pending", "draft", "picked_up", null, undefined]) expect(seRecogeDeUnToque(s)).toBe(false);
+  });
+});
+
+// D-547 · El dueño, 2026-10-14, con la parada 6 de RDZ Brownsville y un «Arrived» en cada recogida: «see pickup 6 and then
+// all pickups to that hav an arrive but since is the 6th stop with that thats enough».
+describe("«Llegué» solo en la primera orden de la parada (D-547)", () => {
+  const pendiente: LlegadaDeParada = { estado: "pendiente", tipo: "P", ordenes: ["o1", "o2", "o3"] };
+  const hecha: LlegadaDeParada = { estado: "hecha", at: "2026-10-14T15:00:00Z", tipo: "P", ordenes: ["o1", "o2", "o3"], conLlegada: ["o1", "o2", "o3"] };
+  it("el botón va en la primera orden del tramo y en ninguna otra; sin llegada, en ninguna", () => {
+    expect(llevaBotonDeLlegada(pendiente, "o1")).toBe(true);
+    expect(llevaBotonDeLlegada(pendiente, "o2")).toBe(false);
+    expect(llevaBotonDeLlegada(pendiente, "o3")).toBe(false);
+    expect(llevaBotonDeLlegada(hecha, "o1")).toBe(true);
+    expect(llevaBotonDeLlegada(hecha, "o2")).toBe(false);
+    expect(llevaBotonDeLlegada(null, "o1")).toBe(false);
+    expect(llevaBotonDeLlegada(undefined, "o1")).toBe(false);
+  });
+  it("recogida la primera, el botón pasa a la que ahora es primera del tramo", () => {
+    const sinO1: LlegadaDeParada = { estado: "hecha", at: "2026-10-14T15:00:00Z", tipo: "P", ordenes: ["o2", "o3"], conLlegada: ["o2", "o3"] };
+    expect(llevaBotonDeLlegada(sinO1, "o2")).toBe(true);
+    expect(llevaBotonDeLlegada(sinO1, "o1")).toBe(false);
+  });
+  it("las filas de continuación: sin «Recogido» mientras no se llega, y con «Recogido» cada una al llegar", () => {
+    const recoger = [{ accion: "recoger" }];
+    // Cada fila recibe la llegada de su parada (`llegadaDeLaOrden`) aunque no pinte el botón.
+    expect(botonesConLlegada(recoger, llegadaDeLaOrden(pendiente, "o3")).map((b) => b.accion)).toEqual([]);
+    for (const id of ["o1", "o2", "o3"]) expect(botonesConLlegada(recoger, llegadaDeLaOrden(hecha, id)).map((b) => b.accion)).toEqual(["recoger"]);
   });
 });

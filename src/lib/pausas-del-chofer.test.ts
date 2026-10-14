@@ -44,7 +44,10 @@ describe("los motivos y el inicio", () => {
     expect(inicioDePausa("nada", "")).toBeNull();
     expect(inicioDePausa("other", " x ")).toBeNull();
     expect(inicioDePausa("other", "  llanta   ponchada ")).toEqual({ motivo: "other", nota: "llanta ponchada" });
-    expect(inicioDePausa("restroom", "  ")).toEqual({ motivo: "restroom", nota: null });
+    // Nota D-547: era `{ motivo: "restroom", nota: null }`. «Baño» ya no se elige («Maybe they don't need to log restroom
+    // breaks»); la nota opcional que se limpia se mide con «Comida».
+    expect(inicioDePausa("restroom", "  ")).toBeNull();
+    expect(inicioDePausa("food", "  ")).toEqual({ motivo: "food", nota: null });
     expect(inicioDePausa("food", "taco")).toEqual({ motivo: "food", nota: "taco" });
   });
 });
@@ -214,8 +217,15 @@ describe("la base: la 167 y el gancho que la lee", () => {
 
 // D-541. El dueño, 2026-10-13: «from stops in driver dtop buttom will be jsut gas, restroom, food and other and for other add the note».
 describe("los motivos que elige el chofer", () => {
-  it("solo gasolina, baño, comida y otro, en ese orden", () => {
-    expect(MOTIVOS_PARA_ELEGIR.map((m) => m.clave)).toEqual(["gas", "restroom", "food", "other"]);
+  // Nota D-547: eran gasolina, baño, comida y otro. El dueño, 2026-10-14: «Maybe they don't need to log restroom breaks 😆
+  // that might be too much». Fuera «Baño».
+  it("D-547: solo gasolina, comida y otro, en ese orden", () => {
+    expect(MOTIVOS_PARA_ELEGIR.map((m) => m.clave)).toEqual(["gas", "food", "other"]);
+  });
+  it("D-547: «baño» ya no se puede empezar, pero una parada vieja de baño se sigue leyendo con su nombre", () => {
+    expect(inicioDePausa("restroom", "")).toBeNull();
+    expect(nombreDelMotivo("restroom", "es")).toBe("🚻 Baño");
+    expect(textoDePausaAbierta(pausa({ motivo: "restroom" }), "en", () => "10:42")).toBe("⏸ Stopped: 🚻 Restroom · 10:42");
   });
   it("«tráfico» ya no se puede empezar, pero su nombre se sigue leyendo", () => {
     expect(inicioDePausa("traffic", "")).toBeNull();

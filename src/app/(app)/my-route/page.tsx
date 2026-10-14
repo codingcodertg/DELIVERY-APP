@@ -9,7 +9,9 @@ import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { AccionesDeParada } from "@/components/AccionesDeParada";
 import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 import { llegadaDeLaParada, llegadasDeParadas, marcasDeParadas, type LlegadaDeParada } from "@/lib/acciones-parada";
-import { llegadaDeLaOrden, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "@/lib/siguiente-de-mi-ruta";
+import { llegadaDeLaOrden, llevaBotonDeLlegada, MOSTRAR_SIGUIENTE_PARADA, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "@/lib/siguiente-de-mi-ruta";
+import { PalletsAlRecoger } from "@/components/PalletsAlRecoger";
+import { idsRecibidasPorAlmacen, pastillaDeEtapa } from "@/lib/recibir";
 import { estiloDeParada, FONDO_DE_PARADA } from "@/lib/colores-de-mi-ruta";
 import { escrituraRecogida } from "@/lib/one-tap-stop";
 import { captureLocationSplit, type GeoStamp } from "@/lib/geo";
@@ -70,6 +72,12 @@ import { muestraElPlanEnMiRuta } from "@/lib/barra-de-entregas";
 // pickup will be one of two»); «Recogido» con la carga lista se hace de un toque, sin abrir la ficha («if he wants to open
 // the order just make it possible when pressing the invoice number»); la burbuja del número y la factura abren la orden;
 // y cada fila lleva UN botón que cambia, «Llegué» → «Recogido»/«Entregado». Reglas en `siguiente-de-mi-ruta.ts`.
+//
+// D-547 (2026-10-14), **reemplaza en parte a D-533, D-535 y D-541**: la tarjeta «Siguiente parada» apagada tras
+// `MOSTRAR_SIGUIENTE_PARADA` («disable that box for now but have the option to activate it in the future»); la etapa de
+// cada orden en su fila («Need driver to see the stage here»); «Recogido» pregunta los pallets antes de recoger
+// (`PalletsAlRecoger`); las recogidas en azul claro y las entregas sin tinte; y «📍 Llegué» solo en la primera orden de la
+// parada (`llevaBotonDeLlegada`), aunque marca la llegada en todas.
 // ============================================================
 
 const DEFAULT_CAPACITY = 12;
@@ -93,6 +101,8 @@ export default function MyRoutePage() {
   });
   // Qué lista se ve (D-522): «Pendientes» o «Entregadas», las dos opciones juntas arriba y se elige una. Nace en Pendientes.
   const [listaElegida, setListaElegida] = useState<SeccionDeMiRuta>("pendientes");
+  // La orden cuyo «Recogido» espera el número de pallets (D-547): mientras no es `null`, el cuadro está abierto.
+  const [palletsDe, setPalletsDe] = useState<Delivery | null>(null);
 
   // De QUIÉN es la ruta (D-502). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
   // chofer elegido; sin ese contexto —el chofer en su teléfono— es `me` y no cambia nada. Mirando la de otro, nada se puede
@@ -173,8 +183,10 @@ export default function MyRoutePage() {
   const cerrarParada = (d: Delivery, accion: "recoger" | "entregar") => {
     // La ruta de otro (D-502): sus botones están apagados, y esto es la segunda puerta por si alguno no lo estuviera.
     if (soloLectura) return;
-    // D-533: con la carga lista, «Recogido» recoge AQUÍ, de un toque, sin abrir la ficha. Sin lista, la ficha con su nota.
-    if (accion === "recoger" && seRecogeDeUnToque(d.stage)) { void recogerDeUnToque(d); return; }
+    // D-533: con la carga lista, «Recogido» recoge AQUÍ, sin abrir la ficha. Sin lista, la ficha con su nota.
+    // D-547: antes pregunta los pallets («it's not asking them how many pallets are they loading»), con los de la orden
+    // ya puestos; al confirmar, `recogerDeUnToque(d, n)`.
+    if (accion === "recoger" && seRecogeDeUnToque(d.stage)) { setPalletsDe(d); return; }
     if (accion === "entregar") {
       fotoPara.current = d.id;
       setFotosDeEntrega(null);
@@ -189,12 +201,14 @@ export default function MyRoutePage() {
    * action». Sin GPS a tiempo, se guarda la hora y la posición se parchea después, en silencio.
    */
   const [recogiendo, setRecogiendo] = useState<string | null>(null);
-  const recogerDeUnToque = async (d: Delivery) => {
+  // D-547: `pallets` es lo que el chofer confirmó en el cuadro; va a `actual_pallets` en la MISMA escritura que el salto a
+  // `picked_up` (el guard de la 169 no mira columnas en ese salto del chofer; una escritura aparte en la misma etapa, sí).
+  const recogerDeUnToque = async (d: Delivery, pallets: number) => {
     if (soloLectura || recogiendo) return;
     setRecogiendo(d.id);
     const { immediate, eventual } = captureLocationSplit();
     const gps = await immediate;
-    const escritura = escrituraRecogida({ pedido: d, me, gps, t });
+    const escritura = escrituraRecogida({ pedido: d, me, gps, t, pallets });
     const ok = await setStage(d.id, "picked_up", escritura.note, escritura.extra);
     setRecogiendo(null);
     if (!ok) return;
@@ -233,14 +247,25 @@ export default function MyRoutePage() {
   // D-527: con «📍 Llegué» de su parada al principio de la fila si esta orden lo lleva, y con «↩ Deshacer recogido» en
   // la recogida ya hecha. El deshacer se calcula con el chofer DE LA RUTA (`chofer`), no con quien mira: así la pestaña
   // «Chofer» del admin lo pinta igual que lo ve él, y apagado (D-502).
-  const accionesDe = (d: Delivery, tipo: "P" | "D", llegada: LlegadaDeParada | null) => (
+  // D-547: `conBotonDeLlegada` dice si ESTA fila pinta «📍 Llegué» (solo la primera orden de la parada); `llegada` sigue
+  // llegando a todas, porque es la que esconde «Recogido»/«Entregado» hasta llegar y los enseña después en cada una.
+  const accionesDe = (d: Delivery, tipo: "P" | "D", llegada: LlegadaDeParada | null, conBotonDeLlegada = true) => (
     <AccionesDeParada pedido={d} tipo={tipo} marca={marcas.get(d.id)} cerrar={cerrarParada} llegada={llegada}
+      conBotonDeLlegada={conBotonDeLlegada}
       deshacer={tipo === "P" ? deshacerRecogida({ pedido: d, yo: chofer, eventos: events, rechazada: marcas.has(d.id) }) : null}
       soloLectura={soloLectura} guardando={recogiendo === d.id} />
   );
-  /** «Llegué» de la parada en la fila de CADA orden de su tramo (D-533; en D-527 solo en la primera, `ordenDeLaLlegada`):
-   *  un toque la marca en todas, y en todas el botón pasa a «Recogido»/«Entregado». */
+  /** La llegada de la parada en la fila de CADA orden de su tramo (D-533): un toque la marca en todas, y en todas el botón
+   *  pasa a «Recogido»/«Entregado». **Nota D-547:** el botón «Llegué» en sí, solo en la primera (`llevaBotonDeLlegada`,
+   *  como en D-527). El dueño: «since is the 6th stop with that thats enough». */
   const llegadaSiEsDe = (llegada: LlegadaDeParada | null, id: string) => llegadaDeLaOrden(llegada, id);
+  /** La etapa de la orden en su fila (D-547, «Need driver to see the stage here»): la MISMA pastilla de Órdenes y de la
+   *  ficha (`pastillaDeEtapa`: «Ready», «Programmed»…, y «Received» si la recibió el almacén, D-409). */
+  const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
+  const pastillaDe = (d: Delivery) => {
+    const p = pastillaDeEtapa(d, recibidas, lang);
+    return <span className="sema" data-etapa-en-la-fila={d.stage} style={{ background: p.color, color: "#fff", marginLeft: 6, verticalAlign: "middle" }}>{p.texto}</span>;
+  };
 
 
   const navigateTo = (d: Delivery) => {
@@ -295,8 +320,9 @@ export default function MyRoutePage() {
                   <button type="button" data-abre-la-orden={id} className="hint" disabled={!d} onClick={() => d && abrirOrden(d)}
                     style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer" }}>
                     {d && (d.stage === "picked_up" || d.stage === "delivered") ? "✓ " : ""}{nombraLaOrden(deliveries, id, lang === "es")}
+                    {d && pastillaDe(d)}
                   </button>
-                  {d && accionesDe(d, "P", llegadaSiEsDe(llegada, id))}
+                  {d && accionesDe(d, "P", llegadaSiEsDe(llegada, id), llevaBotonDeLlegada(llegada, id))}
                 </span>
               );
             })
@@ -328,7 +354,7 @@ export default function MyRoutePage() {
         <span style={{ flex: 1, minWidth: 0 }}>
           <button onClick={() => setOpen(d)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
           <span style={{ fontWeight: 700, display: "block" }}>
-            {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}{etiquetaDeLaCarga(d)}
+            {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}{etiquetaDeLaCarga(d)}{pastillaDe(d)}
           </span>
           <span className="hint" style={{ display: "block" }}>
             {d.delivery_address || t("(no address)", "(sin dirección)")}
@@ -340,7 +366,7 @@ export default function MyRoutePage() {
           </span>
           {lineaDeCuenta}
           </button>
-          {accionesDe(d, "D", llegadaSiEsDe(llegada, d.id))}
+          {accionesDe(d, "D", llegadaSiEsDe(llegada, d.id), llevaBotonDeLlegada(llegada, d.id))}
         </span>
       </div>
     );
@@ -375,7 +401,7 @@ export default function MyRoutePage() {
           OVERVIEW TAMBIEN». */}
 
       {/* «⏸ Registrar parada» (D-520): baño, gasolina (con su recibo), comida, tráfico. Mientras está parado, la tarjeta
-          dice en qué y desde cuándo, con «▶ Seguir». */}
+          dice en qué y desde cuándo, con «▶ Seguir». Desde D-541 y D-547 se eligen solo gasolina, comida y otro. */}
       <PausaDelChofer driverId={chofer?.id} soloLectura={soloLectura} />
 
       {/* El orden planeado por el motor, si hay un plan publicado de hoy (D-324). Solo informa: lo que se
@@ -424,8 +450,11 @@ export default function MyRoutePage() {
           </div>
 
           {/* The next stop, given its own card. Everything else on this screen
-              is context; this is the thing to act on. */}
-          {next && (
+              is context; this is the thing to act on.
+              **D-547: apagada** tras `MOSTRAR_SIGUIENTE_PARADA` (false). El dueño, 2026-10-14: «disable that box for now
+              but have the option to activate it in the future». El código sigue entero; encenderla es esa constante. Con
+              ella apagada, «🧭 Navegar» y «Dejar en tienda» quedan en la ficha de la orden (se abre tocando su factura). */}
+          {MOSTRAR_SIGUIENTE_PARADA && next && (
             <div className="card" data-siguiente-parada data-tipo-de-fila={tipoDeLaSiguiente} style={{ marginBottom: 12, borderColor: "var(--accent)", borderWidth: 2, background: FONDO_DE_PARADA[tipoDeLaSiguiente] }}>
               <div className="section-label" style={{ marginTop: 0 }}>
                 {t("Next stop", "Siguiente parada")} · {sig ? `${sig.parada}/${sig.totalParadas}` : `${stops.indexOf(next) + 1}/${stops.length}`}
@@ -514,6 +543,9 @@ export default function MyRoutePage() {
 
       {/* La cámara de «Entregado» (D-527): pintada siempre, porque el toque la tiene que encontrar ya en la página. */}
       {camara.input}
+      {/* «¿Cuántos pallets cargas?» (D-547): sale con «Recogido» de una carga lista; al confirmar, recoge con ese número. */}
+      {palletsDe && <PalletsAlRecoger pedido={palletsDe} onCancelar={() => setPalletsDe(null)}
+        onConfirmar={(n) => { const d = palletsDe; setPalletsDe(null); void recogerDeUnToque(d, n); }} />}
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={cerrarFicha} abrirEn={abrirEn}
         fotosDeEntrega={fotosDeEntrega?.id === open.id ? fotosDeEntrega.fotos : undefined}
         fotoEnCamino={camara.procesando} />}
