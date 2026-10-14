@@ -121,7 +121,8 @@ describe("el Gestor de Rutas usa el menú en «Sin asignar» y abre la orden des
   it("la factura abre la orden con el mismo gesto que la tabla de paradas, parando el clic (y el ID, hasta D-408)", () => {
     // Puesto al día por D-481: en «Ruta de hoy» (solo lectura) la orden solo se abre si la persona ya puede leerla.
     const gesto = entre("const abreLaOrden = (d: Delivery)", "const enlaceALaOrden");
-    expect(gesto).toContain("const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me) : d;");
+    // Nota D-NEXT: con `{ teaching }`, porque la regla es ahora `puedeAbrirLaOrden` (sin cortes en el sandbox).
+    expect(gesto).toContain("const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me, { teaching }) : d;");
     expect(gesto).toContain("onClick: (e: React.MouseEvent) => { e.stopPropagation(); setOpenOrder(legible); }");
     expect(gesto).toContain('textDecorationStyle: "dotted"');
     expect(gesto).toContain('title: t("Open this order", "Abrir esta orden")');

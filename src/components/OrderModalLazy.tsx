@@ -1,7 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useMemo, type ComponentProps } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { useData } from "@/lib/data-provider";
+import { AVISO_SOLO_TUS_ORDENES, puedeAbrirLaOrden } from "@/lib/abrir-la-orden";
 
 /**
  * La ficha del pedido, cargada cuando hace falta (G-20, D-209).
@@ -35,6 +38,33 @@ function Cargando() {
   );
 }
 
-export const OrderModal = dynamic(() => import("./OrderModal").then((m) => m.OrderModal), {
+const FichaDiferida = dynamic(() => import("./OrderModal").then((m) => m.OrderModal), {
   loading: Cargando,
 });
+
+/**
+ * La PUERTA de la ficha (D-NEXT). El dueño, 2026-10-13: «if you are a sales person you cant open others peoples orders just
+ * their owns». Todas las pantallas que abren una orden montan ESTE componente, así que la regla (`puedeAbrirLaOrden`) va
+ * aquí una vez y vale para todas —la tabla de Órdenes, el `/?order=` de una notificación, «Ruta de hoy», Cuentas…—, también
+ * para la que se escriba mañana. Una orden que no puede abrir no monta la ficha: se cierra y sale el aviso.
+ */
+export function OrderModal(props: ComponentProps<typeof FichaDiferida>) {
+  const { teaching, notify } = useData();
+  const { t } = usePrefs();
+  // Se decide al ABRIR (por id), no en cada pintado: un borrador ajeno que el vendedor abrió y envió deja de ser borrador
+  // mientras lo tiene delante, y la ficha no se le debe cerrar en la cara por eso.
+  const cerrada = useMemo(
+    () => props.existing != null && !puedeAbrirLaOrden(props.me, props.existing, { teaching }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.existing?.id, props.me?.id, props.me?.role, teaching],
+  );
+  const { onClose } = props;
+  useEffect(() => {
+    if (!cerrada) return;
+    notify(t(AVISO_SOLO_TUS_ORDENES.en, AVISO_SOLO_TUS_ORDENES.es));
+    onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cerrada, props.existing?.id]);
+  if (cerrada) return null;
+  return <FichaDiferida {...props} />;
+}

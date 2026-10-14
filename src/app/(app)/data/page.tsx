@@ -9,6 +9,7 @@ import { registroDeLugar } from "@/lib/named-location";
 import { nombresEnLinea, normalizaTienda, quienPierdeLaTienda } from "@/lib/visibilidad-tienda";
 import type { AccountRecord, CancelReason, Delivery, NamedLocation, OrderTypeRule, Settings } from "@/lib/types";
 import { reglasAlGuardar, type FilaDeTipo } from "@/lib/origen-libre";
+import { leeDedicados } from "@/lib/gestor/choferes-por-tienda";
 import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador } from "@/lib/customer-type";
 
@@ -451,6 +452,9 @@ function LocationTable({
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState<NamedLocation>({ name: "", address: "" });
   const [adding, setAdding] = useState(false);
+  // Los choferes dedicados (D-NEXT) se teclean como texto («Ana, Beto») y se leen al guardar: partirlos al teclear
+  // se comería la coma recién escrita.
+  const [dedicadosTxt, setDedicadosTxt] = useState("");
   const confirmAction = useConfirm();
 
   // How many orders reference each entry — so deleting isn't a blind act.
@@ -463,8 +467,8 @@ function LocationTable({
     return m;
   }, [deliveries, usageField]);
 
-  const startAdd = () => { setDraft({ name: "", address: "" }); setEditing(null); setAdding(true); };
-  const startEdit = (i: number) => { setDraft({ ...items[i] }); setAdding(false); setEditing(i); };
+  const startAdd = () => { setDraft({ name: "", address: "" }); setDedicadosTxt(""); setEditing(null); setAdding(true); };
+  const startEdit = (i: number) => { setDraft({ ...items[i] }); setDedicadosTxt((items[i].choferes_dedicados ?? []).join(", ")); setAdding(false); setEditing(i); };
   const cancel = () => { setEditing(null); setAdding(false); };
 
   const commit = async () => {
@@ -482,7 +486,7 @@ function LocationTable({
       const aviso = avisoAlRenombrar(prev.name, name);
       if (aviso && !(await confirmAction(aviso, { danger: true, confirmLabel: t("Rename", "Renombrar") }))) return;
     }
-    const rec = registroDeLugar(prev, draft, { autoApprove, directoryCode });
+    const rec = registroDeLugar(prev, { ...draft, choferes_dedicados: leeDedicados(dedicadosTxt) }, { autoApprove, directoryCode });
     if (adding) next.push(rec);
     else if (editing != null) next[editing] = rec;
     onChange(next);
@@ -564,6 +568,21 @@ function LocationTable({
               )}
             </div>
           </div>
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <label>{t("Dedicated drivers", "Choferes dedicados")}</label>
+            <input
+              data-choferes-dedicados
+              value={dedicadosTxt}
+              placeholder={t("e.g. Driver One, Driver Two — exact names, comma-separated", "ej. Chofer Uno, Chofer Dos — nombres exactos, separados por comas")}
+              onChange={(e) => setDedicadosTxt(e.target.value)}
+            />
+            <div className="hint">
+              {t(
+                "Today's route: this store's people see ONLY these drivers, and other stores (outside its 'works together with' group) don't see them. Admin, logistics and managers see every driver. An inter-store order going to a store is always shown to that store. Empty = no dedicated drivers.",
+                "Ruta de hoy: la gente de esta tienda ve SOLO a estos choferes, y las demás tiendas (fuera de su grupo «trabaja junto con») no los ven. Admin, logística y gerentes ven a todos. Una Intertienda que va a una tienda se le enseña siempre a esa tienda. Vacío = sin choferes dedicados.",
+              )}
+            </div>
+          </div>
         </div>
       )}
       {autoApprove && (
@@ -614,6 +633,9 @@ function LocationTable({
                 )}
                 {directoryCode && it.group && (
                   <span className="hint" style={{ marginLeft: 6 }}>· {t("Together", "Junto con")}: {it.group}</span>
+                )}
+                {directoryCode && (it.choferes_dedicados?.length ?? 0) > 0 && (
+                  <span className="hint" data-dedicados-de-la-tienda style={{ marginLeft: 6 }}>· {t("Dedicated drivers", "Choferes dedicados")}: {it.choferes_dedicados!.join(", ")}</span>
                 )}
                 <span className="loc-addr">{it.address || t("(no address)", "(sin dirección)")}</span>
               </div>

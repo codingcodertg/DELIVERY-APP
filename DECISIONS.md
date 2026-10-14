@@ -43023,3 +43023,56 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **No medido:** la 171 no se ha ejecutado en ninguna base, tampoco con ROLLBACK: las expresiones regulares de su autocomprobación sobre `pg_get_constraintdef` (p. ej. `contact_name IS NULL) OR`) están escritas contra la forma en que Postgres reescribe un `between` y un `or`, no contra una salida medida; si no casan, la migración aborta entera (falla segura, pero hay que mirarla al aplicar). Nada en navegador: ni el cuadro de la nota en el teléfono, ni la tarjeta de notas del hub.
 
 **Nota del orquestador (2026-10-13, al fusionar):** la 171 se ensayó contra producción dentro de una transacción con ROLLBACK antes de aplicarla: su autocomprobación pasó (los patrones de `pg_get_constraintdef` sí casan), la fila que ya había siguió pasando los CHECK, y 10 de 10 casos dieron lo esperado (contacto sin nombre con teléfono o con correo, sin ninguno de los dos rechazado, nota recortada, en blanco → null, de 1001 rechazada, payload viejo sin `note` aceptado, clave desconocida rechazada).
+
+## D-544 · «Ruta de hoy» por tienda (choferes dedicados), el mapa se esconde al abrir la ruta de un chofer, y ventas solo abre sus órdenes
+
+**Fecha:** 2026-10-13 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Rama `visibilidad-de-rutas`.
+
+**Pedidos del dueño, literales (2026-10-13):**
+
+- A) *«brownville people can only see max routes create that rule except for the manager, the manager can see all drivers»* · *«all th eothers stores can see all drivers but not maximo, an exception for the managers and admin»* · *«and unless is an interitenda going to their store»*.
+- B) *«when you open the routes for a driver in the trutes manager you open up ad river routes it should hide the map automatically but they can still show it on the top if the user wantss it»*.
+- C) *«if you are a sales person you cant open others peoples orders just their owns»*.
+
+### A · Qué choferes ve cada tienda en «🌐 Ruta de hoy»
+
+**La regla vive en los datos, no en el código.** Cada tienda de Ajustes (`settings.stores[*]`, jsonb) puede llevar un campo nuevo, `choferes_dedicados: string[]`: los choferes que trabajan SOLO para ella. Eso dice dos cosas: la gente de esa tienda ve **solo** a esos choferes, y la de las demás tiendas **no** los ve. Admin, logística y gerente (`manager`) ven a todos. No hay ningún nombre de tienda ni de chofer escrito en el código. Lo decide `alcanceDeChoferes` / `ordenesPorChofer` (`src/lib/gestor/choferes-por-tienda.ts`).
+
+- **Dónde se edita:** Datos → Tiendas → editar la tienda → «Choferes dedicados» (nombres exactos, separados por comas). Se guarda con `registroDeLugar` como los demás campos de tienda; vacío quita la clave.
+- **Por qué ahí y no en otro sitio:** `profiles.store` del chofer no sirve —otros choferes pueden tener la misma tienda y la regla es "solo este"—, y una columna nueva de `settings` sería una migración para algo que ya cabe en la lista de tiendas, como `group` (D-293) y `promo_group`. **No hace falta migración**: `settings.stores` es jsonb y ninguna restricción mira sus claves.
+- **Grupo (D-293):** las tiendas que trabajan juntas se prestan choferes, así que el dedicado de una tienda no se le esconde a la gente de otra tienda de su mismo grupo. Quien está en la tienda con dedicados ve solo los de su tienda.
+- **Sin tienda asignada:** ve a todos menos a los dedicados (un campo vacío no amplía, D-237).
+- **La excepción de la Intertienda:** una Intertienda (`storeToStore`) cuyo destino (`delivery_name`, la regla de `almacen.ts`) es la tienda de quien mira o una de su grupo se pinta aunque vaya en un chofer que no ve. **Cómo se enseña:** se pinta ESA orden, y con ella la ruta de ese chofer **solo con esas paradas** (su tarjeta, su línea en el mapa y su camión en vivo salen porque lleva algo visible); el resto de lo que lleva ese chofer sigue escondido. Se eligió así porque es la misma pantalla sin nada nuevo que aprender; la alternativa (listar la orden aparte) habría sido una segunda vista. Consecuencia sabida: en esa ruta parcial la numeración y la medida (millas, llegada) son las de lo que se ve, no las de la ruta entera del chofer.
+- **Límite medido en el código:** para saber si una parada es Intertienda y a dónde va hace falta la orden entera; una parada de `rutas_del_dia` que la persona no lee (sin tipo ni destino) no puede entrar por la excepción y se queda escondida.
+- **Solo en «Ruta de hoy»** (`soloLecturaDeclarada`): el Gestor de Rutas (admin/logística) y el mapa del chofer (D-506, que ya acota a lo suyo) no cambian. Se acota en el ORIGEN, como D-506: órdenes, carriles, camiones en vivo y avisos de rastreo.
+- **Es de PANTALLA.** La RLS de `deliveries` y la función `rutas_del_dia` (160) no se tocan: la base sigue mandando esas filas.
+
+**Valor a escribir tras fusionar (no lo pone la rama):** en la tienda de Brownsville, `choferes_dedicados: ["Maximo Garza"]` — por Datos → Tiendas, o en SQL (con el nombre EXACTO de la tienda y comprobando antes que `profiles.full_name` del chofer es exactamente `Maximo Garza`; la comparación ignora mayúsculas y espacios de más):
+
+```sql
+update public.settings set stores = (
+  select jsonb_agg(case when lower(btrim(s->>'name')) = lower('<nombre exacto de la tienda de Brownsville>')
+                        then s || '{"choferes_dedicados":["Maximo Garza"]}'::jsonb else s end order by ord)
+  from jsonb_array_elements(stores) with ordinality as e(s, ord)) where id = 1;
+```
+
+Hasta que se escriba, nada cambia para nadie.
+
+**Reemplaza en parte a D-467/D-481** (que «Ruta de hoy» enseñe las rutas ENTERAS de todos los choferes a todos los roles): ahora, para quien no es admin, logística ni gerente, solo las de los choferes que le tocan.
+
+### B · Abrir las rutas de un chofer esconde el mapa
+
+`src/lib/gestor/mapa-al-abrir-ruta.ts`. «Abrir» = desplegar su tabla en «▦ Cuadrícula» (pulsar el nombre, D-481 e) o abrir su tarjeta con ▸ en «▭ Ancho». Pulsar el nombre en «Ancho» NO cuenta: allí resalta la ruta EN el mapa. Reglas: al abrir una ruta que no estaba abierta, el mapa (y el panel de choferes) se esconde; el botón de arriba «🗺 Mostrar mapa y choferes» lo vuelve a enseñar y, si lo enseña con una ruta abierta, **no se le vuelve a esconder** aunque abra otra ruta en esa vista; al cerrar todas, el mapa que escondió la regla vuelve (el que escondió la persona, no) y la próxima apertura vuelve a esconderlo. Vale también en «Ruta de hoy» (la misma página), no en el mapa del chofer (D-506), donde el mapa es lo que vino a ver. Estado de pantalla, no se guarda (como `showTop`).
+
+### C · Ventas solo abre sus órdenes
+
+`puedeAbrirLaOrden(me, d, { teaching })` (`src/lib/abrir-la-orden.ts`), una sola función, y la puerta está en la ficha que montan TODAS las pantallas (`OrderModalLazy.tsx`): la tabla y el tablero de Órdenes, el `/?order=` de notificaciones, Panel y Auditoría, las paradas y el plan de «Ruta de hoy»/Gestor, Cuentas, Resumen, Almacén, Chofer y Mi ruta. Si no puede, la ficha no se monta, se cierra y sale el aviso «Solo puedes abrir tus órdenes». La decisión se toma al abrir (por id), para que un borrador ajeno enviado mientras se edita no se cierre en la cara. «Ruta de hoy» usa la misma función para no pintar el enlace (`ordenLegible`).
+
+- **Ventas:** la suya —la creó (`created_by`) o es su vendedor (`orderOwner`)—, la regla de `esMia` (D-537). Cambia algo en «Ruta de hoy»: allí solo contaba `orderOwner`; la que el vendedor creó a nombre de otro ahora sí se abre.
+- **Borradores ajenos: se siguen abriendo** (D-286, *«para borrador, deja que cualquiera pueda volver y editarlo»*). El pedido no nombra borradores y D-286 sigue en pie; si el dueño quiere cerrarlos también, es quitar una línea (`if (d.stage === "draft") return true;`) y su prueba lo dirá.
+- **Los demás roles** abren lo que su pantalla les enseña, como antes. Sin `me`, nada. El sandbox de enseñanza, sin cortes (como `leTocaPorRol`).
+- **Es de PANTALLA.** La RLS (131, D-374) sigue dejando a ventas LEER filas de otros; esto no la toca.
+
+**Pruebas:** `src/lib/gestor/visibilidad-de-rutas.test.ts` (A, B y C, nombres inventados). Puestas al día con «Nota D-NEXT»: `rutas-del-dia.test.ts`, `valores-del-gestor.test.ts`, `gestor/mapa-del-chofer.test.ts`, `named-location.test.ts` (anclas de texto de las líneas que cambiaron). Mutantes: **20 de 20** caen con una prueba con nombre (`tanda-visibilidad-rutas.json`): 11 de A (gerente, «solo», «menos», grupo, sin chofer, la excepción y sus tres condiciones, el carril del chofer escondido, la pantalla, la clave vacía en Datos), 4 de B (no pelear el mapa re-abierto, devolverlo al cerrar, el botón, «Sin asignar» no es ruta) y 5 de C (ajena, borrador, otros roles, sandbox, la ficha se monta). Suite entera: lo único rojo fueron esperas de tiempo con la máquina cargada (route-engine, optimiza-la-ruta, montaje y cinco ficheros más que, solos, pasan en verde).
+
+**No medido:** nada se abrió en el navegador; no se comprobó en la base el nombre exacto de la tienda de Brownsville ni el `full_name` del chofer; no se midió si la RLS 131 deja a cada persona leer las Intertiendas que llegan a su tienda (sin leerlas, la excepción no se puede aplicar a esa parada).
