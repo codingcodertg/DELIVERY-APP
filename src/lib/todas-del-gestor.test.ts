@@ -225,3 +225,20 @@ describe("la pantalla", () => {
     expect(pagina).toContain('rotuloDelChip: (f) => rotuloDelChip(f, t("All", "Todas")),');
   });
 });
+
+// D-NEXT. El dueño, 2026-10-13: «delete all those filters but just lleave sin asginar» y «remove the png option for the
+// sales people». Las funciones de arriba siguen (las usa «Sin asignar»); lo que cambia es la pantalla.
+describe("«Todas» sin chips, y el PNG fuera para ventas", () => {
+  const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
+  it("los chips se pintan solo si la vista los lleva: «Sin asignar» sí, «Todas» no y siempre en el día", () => {
+    expect(pagina).toContain('{vista.conChips && (["dia", "todas", "overdue", "windowed", "noloc"] as const).map((f) => (');
+    expect(pagina).toContain('rotuloDelChip: (f) => rotuloDelChip(f, t("All", "Todas")), conChips: true,');
+    expect(pagina).toContain('chip: "dia", onChip: () => {}, cuentas: cuentasDeTodasAqui,');
+    expect(pagina).toContain("conChips: false,");
+    expect(pagina).toContain('const chipDeTodas: ChipSinAsignar = "dia";');
+  });
+  it("el botón «📸 PNG» lleva la misma regla que los camiones: no para ventas", () => {
+    expect(pagina).toContain('const veCamiones = me?.role !== "sales";');
+    expect(pagina).toContain("{stops.length > 0 && veCamiones && (");
+  });
+});
