@@ -33,7 +33,7 @@ const TABS = [
 ] as const;
 
 export default function WarehousePage() {
-  const { me, users, deliveries, settings, driverLocations, ready, realRole, events, setStage, notify, updateDelivery, addNote } = useData();
+  const { me, users, deliveries, settings, driverLocations, ready, realRole, events, setStage, notify, updateDelivery, addNote, reprogramarOrden } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   // Las entregadas que recibió almacén (D-409), para la pastilla de la Ruta del día.
@@ -51,7 +51,7 @@ export default function WarehousePage() {
   /** «📅 Reprogramar» en la fila (D-534): el MISMO cuadro del Gestor (D-500), la fecha siguiente y una nota obligatoria,
    *  donde `puedeReprogramar` dice que sí (almacén en aprobada/preparando/lista; el admin, como en el Gestor). */
   const reprogramar = (d: Delivery) => puedeReprogramar(me?.role, d.stage)
-    ? <ReprogramarOrden pedido={d} lang={lang} t={t} updateDelivery={updateDelivery} addNote={addNote} notify={notify} />
+    ? <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
     : null;
   // Warehouse starts on the Approved (new) queue — the orders waiting to be
   // prepared — and narrows/expands from there.

@@ -20923,6 +20923,11 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 
 ## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
 
+> **Reemplazada en parte por D-NEXT** (2026-10-14): al **crear** una Intertienda cuya factura ya tiene otra Intertienda
+> abierta (misma tienda que vende, mismo destino), el «⚠ Factura duplicada… ¿Crear de todos modos?» se cambia por tres
+> salidas: «Juntar con #X (un viaje)», «Crear duplicada (otro viaje)» o Cancelar. El resto de tipos, editar una orden y
+> escribir la factura desde la fila siguen con el aviso de siempre («una factura repartida en varias entregas existe»).
+
 > **⚠ Reemplazada en parte por D-465** (2026-10-04). El dueño: *«there are orders without invoice and is not showing,
 > interiteda are pending»*. Lo que aquí se decidió **no contar** —las Intertiendas sin `invoice_num`, «pedirle a la gente
 > un papel que ese tipo no lleva»— ahora **sí se cuenta**: la factura pendiente es de toda orden sin `invoice_num`, y va
@@ -37766,6 +37771,11 @@ seguir probando lo mismo.
 
 ## D-480 · Oficina solo con Órdenes y Ruta de hoy (también con permisos sueltos); ventas solo cambia la FECHA de sus órdenes; en almacén, Órdenes antes que Ruta de hoy
 
+> **Reemplazada en parte por D-NEXT** (2026-10-14): «Ventas, `approved` en adelante → `nada`» deja de valer para la
+> FECHA. Ventas reprograma SU orden de borrador a lista con «📅 Reprogramar» (arriba a la derecha de la ficha), con nota
+> obligatoria, por la función `reprogramar_orden` (migración 173), que cambia solo `delivery_date`. «Editar fecha» y
+> `alcanceDeEdicion` no cambian.
+
 > **Reemplazada en parte por D-523** (2026-10-11): `pestanasEnOrden` también reordena al chofer: «Mi ruta» primero y su «Órdenes» (`driver`) al final («my routes in driver will be 1st and orders last in  the row»). Lo que esta decisión dejó como pregunta («el chofer tiene la misma forma… el dueño no lo nombró») ya está contestado.
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries 1.260.0, repo 1.353.0 (toca `src/components/` y `src/lib/constants.ts`: Entregas)
@@ -39267,6 +39277,10 @@ No visto en navegador: `tsc` y vitest.
 ## D-500 · Gestor: «📅 Reprogramar» en cada fila — la siguiente fecha y una nota
 
 > **Ampliada por D-534** (2026-10-12): el mismo «📅 Reprogramar» sale en Almacén (Cola, Recepción y Ruta del día) y almacén puede usarlo en aprobada, preparando y lista.
+
+> **Reemplazada en parte por D-NEXT** (2026-10-14): el cuadro sale también en la ficha de la orden (arriba a la derecha),
+> ventas puede usarlo en SU orden (borrador a lista), y guarda por la función de la base `reprogramar_orden` (173) en vez
+> de `updateDelivery` + `addNote` (que quedan como respaldo mientras la función no exista). El chofer sigue sin él.
 
 **Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.0, repo 1.370.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d500`.
 

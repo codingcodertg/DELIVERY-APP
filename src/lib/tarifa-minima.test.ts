@@ -122,7 +122,8 @@ describe("la ficha usa la regla (anclas de fuente)", () => {
   });
 
   it("passesChecks para el envío con `bloqueoPorTarifaMinima`, antes de cualquier «¿continuar?»", () => {
-    const i = modal.indexOf("const passesChecks = async (draft: Draft): Promise<boolean> => {");
+    // Nota D-NEXT: la firma lleva `opts` (la pregunta de «Juntar» de Intertienda); el cuerpo que se fija no cambia.
+    const i = modal.indexOf("const passesChecks = async (draft: Draft, opts: { facturaYaDecidida?: boolean } = {}): Promise<boolean> => {");
     expect(i).toBeGreaterThan(-1);
     const cabeza = modal.slice(i, modal.indexOf("const miss = computeMissing(draft);", i));
     expect(cabeza).toContain("bloqueoPorTarifaMinima({ rol: me.role, tienda: draft.store, tiendas: settings.stores, tipo: draft.order_type, reglas: settings.order_type_rules, tarifa: draft.delivery_fee })");

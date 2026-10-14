@@ -16,6 +16,7 @@ import { DEMO_USERS, demoDeliveries, demoNotifications, demoSettings, uid } from
 import { alJuntar, alRepartir, copiaParaLaCarga, hermanasDe, madreAlPartir, siguienteLetra } from "@/lib/cargas-partidas";
 import { palletsDeLaOrden } from "@/lib/pallets";
 import { orderLabel } from "@/lib/utils";
+import { notaDeReprogramacion } from "@/lib/reprogramar-orden";
 
 // ============================================================
 // LOCAL DEMO MODE — no backend. Everything is kept in the browser
@@ -510,6 +511,13 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     agregarMaterial: async (id, parche, nota) => {
       const ok = await updateDelivery(id, parche);
       if (ok && nota) addNote(id, nota);
+      return ok;
+    },
+    // El demo no tiene la función `reprogramar_orden` (173) ni guard: la fecha y la nota, como antes (D-500).
+    reprogramarOrden: async (id, fecha, nota, lang) => {
+      const antes = storeRef.current.deliveries.find((c) => c.id === id)?.delivery_date ?? null;
+      const ok = await updateDelivery(id, { delivery_date: fecha });
+      if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
       return ok;
     },
     reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,

@@ -46,12 +46,15 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
   const gestor = leer("src/app/(app)/routes/page.tsx");
   const ordenes = leer("src/app/(app)/page.tsx");
   it("la ficha: al enviar / editar (passesChecks, antes de cualquier «¿continuar?») y en «solo la fecha» de ventas", () => {
-    const i = modal.indexOf("const passesChecks = async (draft: Draft): Promise<boolean> => {");
+    // Nota D-NEXT: `passesChecks` lleva un segundo argumento (`facturaYaDecidida`, la pregunta de «Juntar» de Intertienda),
+    // así que la firma y la llamada del botón de crear cambian; lo que se fija aquí no.
+    const i = modal.indexOf("const passesChecks = async (draft: Draft, opts: { facturaYaDecidida?: boolean } = {}): Promise<boolean> => {");
+    expect(i).toBeGreaterThan(-1);
     const cabeza = modal.slice(i, modal.indexOf("const miss = computeMissing(draft);", i));
     expect(cabeza).toContain("if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }");
     expect(modal).toContain("if (agendaEnDiaPasado(d.delivery_date, existing!.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }");
     // Los dos botones (borrador→enviar y crear) pasan por passesChecks.
-    expect(modal.split("await passesChecks(payload)").length - 1).toBe(2);
+    expect(modal.split("await passesChecks(payload").length - 1).toBe(2);
   });
   it("la ficha: los dos selectores de fecha empiezan en hoy, y Txt pasa `min` al input", () => {
     expect(modal.split("min={minFechaDeEntrega()}").length - 1).toBe(2);
