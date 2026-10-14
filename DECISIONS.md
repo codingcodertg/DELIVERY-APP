@@ -26558,6 +26558,11 @@ tenía ni una prueba, y se habría podido deshacer sin que nada se pusiera rojo.
 
 ## D-376 · El Gestor de Rutas enseña las columnas de Órdenes, y se quita la pestaña «Programadas»
 
+> **Reemplazada en parte por D-548** (2026-10-14): las cinco de Órdenes que aquí «SALEN» en «Sin asignar» (tipo, SO, PO,
+> costo, contacto), y el resto de su juego, ya no se pintan ahí: «Sin asignar» y «Todas» enseñan las columnas de la tabla
+> de paradas, donde las de Órdenes nacen escondidas y se eligen en el ⚙ (lo de «Paradas: las ocho NO salen» sigue igual, y
+> vale ahora para las tres tablas).
+
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): la franja de cuatro casillas de arriba («Programadas · Sin programar · Total · Rutas») se quitó («remeuve toda esta barra porque ya esta abajo»). La cuenta de programadas, que aquí «lleva a las rutas», vive ahora en la pestaña «Rutas (N) · N programadas».
 >
 > **⚠ Corregida por D-379** (2026-09-23): el ⚙ de la tabla de paradas no dejaba marcar las columnas (medido con un clic de
@@ -28942,6 +28947,10 @@ producción ni con llaves.**
 
 ## D-402 · «Sin asignar» del Gestor de Rutas sale en el mismo orden que Órdenes vista por ventas
 
+> **Reemplazada en parte por D-548** (2026-10-14): «Sin asignar» ya no pinta su juego de columnas (el de esta entrada, en
+> el orden de ventas), sino el de la tabla de paradas, en el orden de paradas. El juego `sinAsignar` y su orden de partida se
+> quedan en el catálogo, sin pintarse: están en lo guardado de cada persona.
+
 > **⚠ Reemplazada en parte por D-412** (2026-09-26): una excepción al «cada columna toma el puesto de su pareja en
 > Órdenes»: la «Prioridad» de «Sin asignar» va **la última** de partida (`alFinal`), aunque en Órdenes vaya tras la etapa.
 > Es la única columna de esa tabla que nace escondida, y en medio de las que se ven dejaba «Restablecer orden» encendido
@@ -29672,6 +29681,10 @@ desplaza de lado. Capturas: `agente-R/tiros/` del scratchpad (16).
 
 ## D-408 · El Gestor de Rutas deja de enseñar el ID: la factura abre la orden, y la dirección de entrega pasa a ser la ciudad
 
+> **Reemplazada en parte por D-548** (2026-10-14): en «Sin asignar» (y «Todas») la factura se pinta como en la tabla de
+> paradas, con su ID al lado (`facturaConSuId`); `enlaceALaOrden` se quitó. Sigue fija, delante, y sigue abriendo la orden.
+> La «Ciudad de entrega» de esas tablas es la de paradas (`p_address`), con la misma `ciudadDeEntrega`.
+
 > **⚠ Reemplazada en parte por D-410** (2026-09-26): el ⚙ de «Sin asignar» vuelve a listar la factura, **con la casilla
 > marcada y apagada** —sigue sin poder quitarse—, porque ahora las columnas se mueven y la factura también. Y los anchos de
 > paradas pasan de `rtg_routes_stops8` (por posición) a `rtg_routes_stops9` (por clave), heredando los guardados.
@@ -29914,6 +29927,10 @@ línea «Recibida por almacén», solo la pastilla.
   llegara, no se rompe nada: la recarga por tiempo real lo trae como antes.
 
 ## D-410 · Gestor de Rutas: las columnas se mueven con flechas, y las plantillas guardan también el orden
+
+> **Reemplazada en parte por D-548** (2026-10-14): ya no hay un ⚙ de «Sin asignar» que mueva su propia tabla: el ⚙ de
+> «Sin asignar» y el de «Todas» son el de paradas (`moverEn("paradas")`), y mover en cualquiera de los tres mueve las tres.
+> El mecanismo (`mueveColumna`, `_orden`, las plantillas con `o`) no cambia.
 
 > **⚠ Reemplazada en parte por D-412** (2026-09-26): los números de «El tope de tamaño» son los de 14 columnas en
 > «Sin asignar» y 13 en paradas. D-412 añadió «Prioridad» a las dos, y con el mismo modelo (`bytesEnLaBase`): un rol lleno
@@ -35678,6 +35695,11 @@ lectura), `mide.mjs` y `tabla.txt` (la tabla), `detalle.mjs` (una ruta parada a 
 inventadas), `navegador/` (Chrome y el demo) y `anonimiza.mjs` (de dónde sale el fichero de casos).
 
 ## D-462 · Gestor de Rutas: pestaña «Todas (N)» con todas las órdenes del día, con chofer o sin él, en una sola tabla
+
+> **Reemplazada en parte por D-548** (2026-10-14): las columnas de «Todas» ya no son las de «Sin asignar» sino las de la
+> tabla de paradas de cada chofer («Programadas»), con su ⚙, su orden y sus plantillas. Sigue el «Chofer» fijo delante; la
+> «Etapa siempre visible» se quitó (sale si está elegida, como en paradas). El dueño: «quiero que se miren exatamente las
+> mismas columnas como en programadas».
 
 **Fecha:** 2026-10-02 · **Migración:** ninguna · **Versión:** deliveries 1.250.0, repo 1.336.0. **Reemplaza en parte a**
 D-393 (el filtro de chofer y los chips de «Sin asignar» valen también aquí) y D-459 (el orden de la barra de vistas). Cada
@@ -43015,6 +43037,9 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 ## D-542 · Gestor de Rutas: «Todas» sin chips de filtro, y el «📸 PNG» fuera para ventas
 
+> **Nota D-548** (2026-10-14): lo que aquí queda «Pendiente, no hecho» —«sin asignar y todas shou;d have the samea columns
+> view as programadas»— se hizo en D-548.
+
 **Fecha:** 2026-10-13 · **Versión:** deliveries 1.301.0 (repo 1.407.0) · Sin migración · Hecho directo por el orquestador en `todas-sin-filtros`.
 
 **Pedidos del dueño**, literales: *«delete all those filters but just lleave sin asginar»* (con una captura de la pestaña «Todas» y su fila «Este día · Todas las fechas · Expiradas · Con ventana · Sin ubicación») y *«remove the png option for the sales people»*.
@@ -43456,3 +43481,115 @@ El Gestor; la pestaña «🚚 Chofer» del admin (misma página, todo apagado, D
   orden, en esa misma escritura.
 
 **Nota del orquestador (2026-10-14, al fusionar):** lo que el worker leyó del guardia de la 169 se midió: un chofer real, en una transacción con ROLLBACK, pasó una orden suya de `ready` a `picked_up` escribiendo `actual_pallets = 7.5` en la misma escritura, y la base la aceptó (FU565).
+## D-548 · Gestor de Rutas: «Sin asignar» y «Todas» enseñan exactamente las columnas de la tabla de paradas («Programadas»), con un solo ⚙
+
+**Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (Entregas) · **Sin migración.** **Reemplaza en parte a** D-376,
+D-402, D-408, D-410 y D-462, que llevan su nota; D-542 lleva una nota de que su pendiente se hizo aquí.
+
+**Lo que pidió el dueño**, literal, en dos mensajes (citas tal como las pasó el orquestador; la primera es la misma que
+recoge D-542):
+
+> sin asignar y todas shou;d have the samea columns view as programadas
+
+(2026-10-13) y
+
+> in sing asingar en in todas quiero que se miren exatamente las mismas columnas como en programadas estonces cambialas
+
+(2026-10-14). «Programadas» es la tabla de paradas de cada chofer, dentro de la pestaña «Rutas · N programadas».
+
+### Qué había
+
+Dos juegos de columnas en `routes-columns.ts`: `sinAsignar` (14: PO, SO, Factura, Tipo, Cuenta, Contacto, Etapa, Tienda,
+Fecha, Pallets, Costo, Recogida, Ciudad de entrega, Ventanas, Prioridad — en el orden de ventas, D-402) para «Sin asignar»
+y «Todas» (D-462, más el Chofer y la Etapa siempre), y `paradas` (Tipo, Ciudad de recogida, Ciudad de entrega, Llegada,
+Ventanas visibles; Etapa, Tienda, Cuenta, SO, PO, Fecha, Costo, Contacto, Prioridad en ⚙) para la tabla de cada chofer.
+Dos ⚙, dos órdenes, y las mismas plantillas para las dos.
+
+### Qué hay ahora
+
+- **Las mismas columnas** (`columnasDeLasOrdenes`): el MISMO juego `paradas`, en el MISMO orden de la persona, con la MISMA
+  visibilidad, y con el mismo rótulo de la cabecera de paradas («Tipo», «Ciudad de recogida», «Ciudad de entrega»,
+  «Llegada», «Ventanas»; sin el «Paradas: » del catálogo — `sinElNombreDeLaTabla`, que ahora usan también la cabecera y el ⚙
+  de paradas).
+- **Un solo ⚙ para las tres tablas.** El ⚙ de «Sin asignar» y el de «Todas» son el de paradas
+  (`columnasDelSelectorDeLasOrdenes`, `moverEn("paradas")`): marcar, quitar, mover o aplicar una plantilla en cualquiera de
+  los tres cambia las tres. Las notas de los tres ⚙ lo dicen.
+- **Las fijas de delante, como en paradas: «Factura #» y «Pallets».** La factura se pinta igual que en paradas, con su ID al
+  lado (`facturaConSuId`), y sigue abriendo la orden; `enlaceALaOrden` (la factura sola) se quitó.
+- **«Pallets»: los de la orden.** En paradas esa columna es la CUENTA de la ruta («+4 = 4», a bordo tras cada parada,
+  D-443/D-444). Una orden sin ruta no tiene «a bordo» que contar, y en «Todas» las filas no van en orden de ruta, así que
+  una cuenta corrida no diría nada. En su sitio va lo que esa cuenta suma o resta: los pallets de la orden (el real, si no
+  el estimado; «—» sin ninguno), y ordena y filtra por ese número, como antes. *Decisión del worker.*
+- **«Llegada»** (`llegadaEnLasOrdenes`): sin chofer, «—»; con chofer y pendiente, la que midió su ruta (la misma
+  `routeEtas` que pinta su tarjeta), o «—» si no hay medida; entregada, «✓ 10:42» con la hora real (o «✓ entregada»);
+  recogida, «🚚 en camino» — como su fila hecha en la tarjeta del chofer (D-459). Ordena y filtra por ese texto.
+- **«Todas» conserva el «Chofer» fijo delante** (D-462): es lo que distingue una fila asignada de una sin asignar, que es el
+  punto de la pestaña. **La «Etapa siempre visible» de D-462 se quitó**: el dueño pidió las MISMAS columnas, y una orden ya
+  hecha se sigue distinguiendo por su ✓ / 🚚 en la casilla, su fila verde y su «Llegada». Quien la quiera la marca en el ⚙
+  («Etapa»), y sale en las tres.
+- **Lo que NO cambia de estas tablas:** la casilla, el arrastre, «Asignar a… / Pasar a…», «📅 Reprogramar», el buscador,
+  los chips de «Sin asignar» (D-393/D-542), ordenar y filtrar por cabecera (D-360) y los anchos arrastrados (por clave, en
+  `rtg_routes_pool4`, compartidos entre las dos; no con paradas, que tiene los suyos). La **Fecha** (`p_date`), si se
+  marca, se sigue pudiendo cambiar desde aquí (`DateCell`): es como se le pone su día a una orden atrasada o sin fecha
+  (D-331); en paradas se ve sin editar. *Decisión del worker:* misma columna, misma fecha; solo cambia que aquí se edita.
+- **Una celda para todas** (`celdaDeParada`, en la página): la tabla de paradas tenía tres copias del `switch` de sus
+  columnas (filas P, D y ya hechas); ahora las tres y las dos tablas de órdenes llaman a la misma función. Las diferencias
+  de cada fila van como parámetro: la Llegada (cada tabla la calcula a su manera), la tienda en la Ciudad de recogida de una
+  P, y sin aviso de «solo ciudad» en una fila ya hecha (como antes).
+
+### Lo guardado (`user_prefs`, clave `routes_columns`)
+
+**Sin tanda nueva, sin migración, sin reescribir nada.** Las columnas de paradas son las claves `p_*` que cada persona ya
+tiene en su lista (las tandas `_v2` y `_v8` las pusieron), y la lista no se toca al leer (`preferenciasDelGestorAlLeer`
+devuelve `escribe: false` con `_v8`, con prueba).
+
+- **Lo que alguien eligió para «Sin asignar»** (sus claves `account`, `status`, `so`, `po`… y su orden en `_orden`) **deja de
+  decidir** esa tabla: manda lo de paradas. **No se borra**: sigue en su lista, en su orden y en sus plantillas (marcar otra
+  columna lo conserva, con prueba), y el juego `sinAsignar` sigue en el catálogo sin pintarse. Si un día se deshace esto,
+  vuelve tal cual.
+- **Quien había dejado «Sin asignar» con sus columnas a su gusto la verá distinta**: con las de su tabla de paradas — para
+  casi todos, las de partida (Tipo, Ciudad de recogida, Ciudad de entrega, Llegada, Ventanas) —. PO, SO, Cuenta, Contacto,
+  Etapa, Tienda, Fecha, Costo y Prioridad, que en «Sin asignar» salían de partida, ahora se marcan en el ⚙ (y salen también
+  en paradas). Es lo pedido: «exatamente las mismas».
+- **Nadie se queda con una tabla vacía:** la factura y los pallets son fijas y salen con cualquier lista (vacía, sin
+  marcas, solo con claves de «Sin asignar», de antes de las tandas), con prueba. Lo mínimo es lo mismo que en paradas.
+- **Plantillas:** se aplican igual (`columnasDePlantillaDelGestor`); ahora cambian las tres tablas a la vez. Una plantilla
+  vieja solo con columnas de «Sin asignar» deja las tres tablas con sus fijas.
+
+### Descartado
+
+- **Copiar a paradas lo elegido para «Sin asignar»**, o al revés, al leer: cambiaría la tabla de paradas de cada quien, que
+  nadie pidió tocar, y pediría una tanda `_v9` que reescribe la fila de todos.
+- **Un juego propio para estas tablas con las claves de paradas** (otra tabla en el catálogo): dos configuraciones de lo
+  mismo; el dueño pidió que se vieran igual, y un solo ⚙ lo garantiza.
+- **Borrar el juego `sinAsignar` del catálogo:** está en lo guardado y en una docena de pruebas de D-331…D-412; quitarlo no
+  cambia nada que se vea y rompería la lectura de plantillas y órdenes guardados.
+- **La cuenta de pallets de la ruta en «Todas»**: sus filas no van en orden de ruta (van por número de orden y se ordenan
+  por cualquier cabecera); una cuenta corrida ahí mentiría.
+
+### Pruebas y mutantes
+
+Nueva: `src/lib/columnas-como-programadas.test.ts` (las columnas, los rótulos, el ⚙ compartido, lo guardado, la Llegada,
+el valor para ordenar y la pantalla). Puestas al día con su «Nota D-548»: `todas-del-gestor`, `routes-columns`,
+`valores-del-gestor`, `ciudad-de-recogida-en-paradas`, `gestor-factura-arrastre-optimizar`, `gestor-mover-columnas`,
+`gestor-orden-de-ventas`, `solo-ciudad`, `route-plan/colores-y-ciudad-de-entrega` y `route-plan/zonas-en-el-plan`. Ninguna
+se quitó sin sustituirla: lo que fijaban de las celdas de paradas lo fijan ahora en `celdaDeParada`.
+
+**16 mutantes, caen los 16**, leídos por el nombre de la prueba (`mutantes.mjs`, tanda `tanda-columnas-programadas.json`,
+control en verde: 3 ficheros, 62 pruebas): en `routes-columns.ts`, volver al juego de «Sin asignar» (M1), «Todas» sin Chofer
+(M2), rótulos con «Paradas: » (M3), sin la fija de pallets (M4), el ⚙ de «Sin asignar» (M5); en `valores-del-gestor.ts`, una
+Llegada para una orden sin chofer (M6), la entregada sin su hora (M7), ordenar por Llegada sin leerla (M8), la ciudad de
+recogida sin tiendas (M9); en la página, las flechas de «Sin asignar» (P1), la tabla sin `celdaDeParada` (P2), la fecha sin
+`DateCell` (P3), la fila P pintada como entrega (P4), ventanas en la recogida (P5), la Llegada medida sin chofer (P6) y la
+cabecera de paradas con otro rótulo (P7).
+
+### No verificado
+
+- **Nada abierto en un navegador**: el portátil iba corto de memoria y no se levantó el servidor. Ni el ancho de las dos
+  tablas con las columnas nuevas, ni el ⚙, ni la Llegada con una ruta medida. Todo por pruebas que leen la página y por
+  funciones.
+- **Con `user_prefs` real**: que lo guardado de producción salga como dice «Lo guardado» está probado con funciones, no
+  con la fila de nadie.
+- **Cuántas personas tienen «Sin asignar» configurada a su gusto** en producción: no se midió (sin acceso a la base desde
+  la rama). Son quienes notarán el cambio.
+- Tracker y Notion: son del orquestador.

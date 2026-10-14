@@ -64,7 +64,10 @@ describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () 
     // Hasta D-410, `columnasElegibles` (sin la factura, D-408). Ahora sale TODA la tabla, factura incluida —se mueve,
     // no se quita—, en el orden de la persona; sin orden propio, el de ventas.
     // Puesto al día por D-462: el ⚙ lo pinta `tablaDeOrdenes` con `vista.selector`; «Sin asignar» le pasa esto.
-    expect(pagina).toContain('selector: columnasDelSelector("sinAsignar", ordenGestor)');
+    // Nota D-548: «Sin asignar» ya no pinta su juego de columnas, sino el de paradas, y su ⚙ es el de paradas
+    // (`columnasDelSelectorDeLasOrdenes`). Lo de abajo sigue valiendo para el catálogo `sinAsignar`, que se queda.
+    expect(pagina).toContain("selector: columnasDelSelectorDeLasOrdenes(ordenGestor)");
+    expect(pagina).not.toContain('selector: columnasDelSelector("sinAsignar", ordenGestor)');
     expect(pagina).toContain("<SelectorDeColumnas columnas={vista.selector}");
     expect(columnasDelSelector("sinAsignar", null).map((c) => c.key))
       .toEqual(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key));

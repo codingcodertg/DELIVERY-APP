@@ -68,9 +68,9 @@ import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { facturaYId, nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import {
   COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, anchoDelNumeroDeParada, claveDelOrdenEnElNavegador,
-  columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, columnasDelSelectorDeTodas, columnasDeTodas, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
+  columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, columnasDelSelectorDeLasOrdenes, columnasDeLasOrdenes, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
   mueveEnElGestor, ordenDePlantillaDelGestor, ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas,
-  seVeEnLaRecogida, sinLaFacturaDelPlan, tieneOrdenPropio, type ColumnaDelGestor, type TablaDelGestor,
+  seVeEnLaRecogida, sinElNombreDeLaTabla, sinLaFacturaDelPlan, TABLA_DE_LAS_ORDENES, tieneOrdenPropio, type ColumnaDelGestor, type TablaDelGestor,
 } from "@/lib/routes-columns";
 import { borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { ORDER_COLUMNS } from "@/components/OrdersTable";
@@ -80,7 +80,7 @@ import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, valorDeColumnas, type ClienteDePrefs, type ColumnasPorRol, type PlantillaDeColumnas } from "@/lib/user-prefs";
 import { createClient } from "@/lib/supabase/client";
 import { useOrdenYFiltro, type OrdenYFiltro } from "@/lib/use-orden-y-filtro";
-import { etiquetaDelGestor, textoQueAbreLaOrden, valorDelGestor } from "@/lib/valores-del-gestor";
+import { etiquetaDelGestor, llegadaEnLasOrdenes, valorDelGestor } from "@/lib/valores-del-gestor";
 import { ciudadDeEntrega, ciudadesConocidas } from "@/lib/ciudad-de-entrega";
 import { AVISO_SOLO_CIUDAD, ordenSoloCiudad } from "@/lib/solo-ciudad";
 import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
@@ -397,10 +397,11 @@ export default function RoutesPage() {
     },
     onBorrar: (nombre: string) => cambiaPlantillasDelGestor(borraPlantilla(plantillasDelGestor.current, nombre), false),
   };
-  const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor, ordenGestor);
-  // «Todas» (D-462): las mismas que «Sin asignar» —elegidas, orden, plantillas y ⚙ compartidos— con el chofer delante y
-  // la etapa siempre. Los anchos también son los mismos (`anchoEnSinAsignar`): son las mismas columnas.
-  const colsTodas = columnasDeTodas(colsGestor, ordenGestor);
+  // «Sin asignar» y «Todas» (D-548): EXACTAMENTE las columnas de la tabla de paradas —las elegidas, el orden, las
+  // plantillas y el ⚙ son los de paradas—, con la factura y los pallets fijos delante como allí, y en «Todas» el chofer
+  // (D-462). Los anchos de estas dos son los suyos (`anchoEnSinAsignar`), compartidos entre ellas.
+  const colsSinAsignar = columnasDeLasOrdenes("sinAsignar", colsGestor, ordenGestor);
+  const colsTodas = columnasDeLasOrdenes("todas", colsGestor, ordenGestor);
   // La tabla de paradas: el número de parada y la factura, fijos delante; las elegidas, en el orden de la persona (D-410;
   // hasta aquí, puestos fijos y las de Órdenes detrás, D-346/D-376); y las acciones, fijas al final.
   const colsParadas = columnasDeLaTabla("paradas", colsGestor, ordenGestor);
@@ -1287,14 +1288,8 @@ export default function RoutesPage() {
     () => [...ciudadesConocidas([...deliveries.map((d) => d.delivery_address), ...(settings.stores ?? []).map((s) => s.address)]), ...[...zonasDeChofer.values()].flat()],
     [deliveries, settings.stores, zonasDeChofer],
   );
-  const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen), [deOrdenes, ciudadesQueSeConocen]);
-  const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
-  // «Todas» (D-462) ordena y filtra igual, con su propio estado: la columna «Chofer» va por la de Órdenes (`driver`).
-  const ordenDeTodas = useOrdenYFiltro(todasConBusqueda, valorDelGestorAqui);
-  // Las cabeceras con menú son las del catálogo (la fecha se lista formateada, y el costo como dinero). El ID fijo que iba
-  // delante se quitó (D-408): el dueño, «routes manager doesn't need to see id».
-  const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
-  const menuDeTodas: ColumnaConMenu[] = colsTodas.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
+  // El valor para ordenar y filtrar y el menú de cada columna de «Sin asignar» y «Todas» van más abajo, tras la medida de
+  // las rutas (`useMedidaDeRutas`): la «Llegada» de una orden con chofer sale de ella (D-548).
   /** La celda de una columna que el Gestor toma de Órdenes: la MISMA función que pinta Órdenes, o nada si no viene de allí. */
   const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);
   /** La celda de la tabla del plan (D-434): sus dos columnas propias —tipo de cliente y ciudad de recogida— y, las demás, la de
@@ -1303,6 +1298,27 @@ export default function RoutesPage() {
     celdaPropiaDelPlan(clave, d, { reglas: settings.order_type_rules, tiendas: settings.stores ?? [], conocidas: ciudadesQueSeConocen, es: lang === "es" }) ?? celdaDeOrdenes(clave, d);
   /** Las pastillas (la etapa, «Tarde») bajan de línea en vez de cortarse, como en Órdenes (D-364). */
   const clasePastillas = (clave: string) => (columnaDeOrdenes(clave, ORDER_COLUMNS)?.pastillas ? "td-pastillas" : undefined);
+  /**
+   * La celda de una columna de PARADAS (`p_*`) para la orden `d`: UNA función para todas las tablas que las pintan —las
+   * filas P, D y ya hechas de la tabla de paradas de cada chofer, y «Sin asignar» y «Todas» desde D-548—. Hasta aquí había
+   * tres copias de este `switch` en la tabla de paradas; con las dos tablas de órdenes habrían sido cuatro.
+   *   · `tipo`: «P» en una fila de recogida —lo que es de la ENTREGA (ventanas, contacto…) va vacío, `seVeEnLaRecogida`—;
+   *     «D» en una entrega y en las tablas de órdenes.
+   *   · `llegada`: la celda de la «Llegada» entera, que cada tabla calcula a su manera (la medida, la hora real, «—»).
+   *   · `recogida`: lo que dice la «Ciudad de recogida» cuando no es la ciudad de la tienda de la orden (en una P, la TIENDA).
+   *   · `sinAviso`: sin el aviso de «solo ciudad» (en una fila ya hecha nunca lo llevó).
+   */
+  const celdaDeParada = (c: ColumnaDelGestor, d: Delivery | undefined, como: { tipo: "P" | "D"; llegada: React.ReactNode; recogida?: React.ReactNode; sinAviso?: boolean }) => {
+    switch (c.key) {
+      case "p_type": return <td key={c.key} title={d?.order_type || undefined}>{d?.order_type || "—"}</td>;
+      case "p_eta": return <Fragment key={c.key}>{como.llegada}</Fragment>;
+      case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen)) || "—")}</td>;
+      case "p_address": return <td key={c.key} title={d?.delivery_address || undefined}>{(d && ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen)) || "—"}{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}</td>;
+      case "p_windows": return <td key={c.key}>{como.tipo === "D" && d ? fmtWindows(d.delivery_windows) : ""}</td>;
+    }
+    if (!d || (como.tipo === "P" && !seVeEnLaRecogida(c))) return <td key={c.key} />;
+    return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
+  };
   // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-360). Para el
   // dueño «still pending the clicking on the ID or invoice # to view the full order details».
   // En solo lectura (D-481), la orden ENTERA solo se abre si esta persona YA la puede leer, y un vendedor solo las suyas
@@ -1316,13 +1332,9 @@ export default function RoutesPage() {
       title: t("Open this order", "Abrir esta orden"),
     };
   };
-  // Sin la columna del ID (D-408), el enlace que abre la orden es la FACTURA, en «Sin asignar» y en las paradas. Una orden
-  // sin factura enseña su código en gris (`textoQueAbreLaOrden`), para que ninguna fila se quede sin nada que pulsar.
-  const enlaceALaOrden = (d: Delivery) => {
-    const { texto, esFactura } = textoQueAbreLaOrden(d);
-    const gesto = abreLaOrden(d);
-    return <span {...gesto} data-abre-la-orden style={esFactura ? gesto.style : { ...gesto.style, color: "var(--gray)" }}>{texto}</span>;
-  };
+  // Sin la columna del ID (D-408), el enlace que abre la orden es la FACTURA. En «Sin asignar» lo pintaba `enlaceALaOrden`
+  // (la factura sola, o el código en gris, `textoQueAbreLaOrden`); desde D-548 esa tabla y «Todas» pintan la factura como
+  // la tabla de paradas, con su ID al lado (`facturaConSuId`, abajo), y `enlaceALaOrden` se quitó.
 
   // En la tabla de paradas de un chofer, el enlace que abre la orden es su ID, no su factura (D-444). El dueño, 2026-09-29:
   // «en vez de facturas, pongas el ID. Entonces no ocupo la factura». La factura sigue en su columna de Órdenes (⚙).
@@ -1453,6 +1465,23 @@ export default function RoutesPage() {
     ...(soloLectura ? { buscaBases: "si_falta" as const } : {}),
     invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],
   });
+  // La «Llegada» de una orden en «Sin asignar» y «Todas» (D-548): la que su ruta midió para ella, «—» sin chofer, y la
+  // hora real si ya está hecha (`llegadaEnLasOrdenes`). La misma para la celda y para ordenar y filtrar.
+  const llegadaDeLaOrden = useCallback((d: Delivery) => {
+    const ruta = d.assigned_driver ? orderLaneKey(d) : null;
+    return llegadaEnLasOrdenes(d, ruta ? routeEtas[ruta]?.[d.id] : null, lang === "es");
+  }, [routeEtas, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  const valorDelGestorAqui = useCallback(
+    (clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, { tiendas: settings.stores ?? [], llegada: llegadaDeLaOrden }),
+    [deOrdenes, ciudadesQueSeConocen, settings.stores, llegadaDeLaOrden],
+  );
+  const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
+  // «Todas» (D-462) ordena y filtra igual, con su propio estado: la columna «Chofer» va por la de Órdenes (`driver`).
+  const ordenDeTodas = useOrdenYFiltro(todasConBusqueda, valorDelGestorAqui);
+  // Las cabeceras con menú son las del catálogo (la fecha se lista formateada, y el costo como dinero). El ID fijo que iba
+  // delante se quitó (D-408): el dueño, «routes manager doesn't need to see id».
+  const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
+  const menuDeTodas: ColumnaConMenu[] = colsTodas.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
   /** Dónde termina la ruta para lo que ESTIMA en el navegador (Optimizar, «📍 Mejor lugar», horario), en coordenadas: sin
    *  fin (no vuelve), `null`; un fin cuyo punto aún no se sabe, `undefined` (vuelve a la base, como antes de la 166). */
   const finParaEstimar = (laneKey: string): { lat: number; lng: number } | null | undefined => (tiendaFinDe(laneKey) ? finDeLaRuta(laneKey) ?? undefined : null);
@@ -2179,22 +2208,21 @@ export default function RoutesPage() {
               : soloLectura ? null : <input type="checkbox" checked={marcada} readOnly aria-label={`#${orderLabel(d)}`} />}
             {marcada && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
           </td>
-          {/* La factura abre la orden y NO selecciona la fila: `stopPropagation` en `abreLaOrden`. */}
-          {columnas.map((c) => (
-            <td key={c.key} className={clasePastillas(c.key)} onClick={c.key === "date" ? (e) => e.stopPropagation() : undefined}>
-              {/* Las que vienen de Órdenes (D-376) —etapa, tipo, SO, PO, costo, contacto, y el chofer de «Todas»— con la celda de Órdenes. */}
-              {c.deOrdenes ? celdaDeOrdenes(c.key, d)
-                : c.key === "invoice" ? enlaceALaOrden(d)
-                : c.key === "account" ? (d.account || "—")
-                : c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></span>
-                : c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>
-                : c.key === "store" ? (d.store || "—")
-                : c.key === "pallets" ? (d.actual_pallets ?? d.est_pallets ?? "—")
-                : c.key === "date" ? <DateCell d={d} date={date} onChange={reschedule} t={t} />
-                : c.key === "windows" ? fmtWindows(d.delivery_windows)
-                : "—"}
-            </td>
-          ))}
+          {/* Las columnas de la tabla de paradas (D-548), con la MISMA celda que allí (`celdaDeParada`). Delante, las fijas:
+              el chofer en «Todas» (celda de Órdenes), la factura con su ID —abre la orden y NO selecciona la fila:
+              `stopPropagation` en `abreLaOrden`— y los pallets de la orden, que es lo que la cuenta de una ruta suma. */}
+          {columnas.map((c) => {
+            // La fecha se sigue cambiando desde aquí (`DateCell`), como en la «Fecha de entrega» de antes: es como se le
+            // pone su día a una orden atrasada o sin fecha (D-331). La tabla de paradas la enseña sin editar.
+            if (c.key === "p_date") return <td key={c.key} onClick={(e) => e.stopPropagation()}><DateCell d={d} date={date} onChange={reschedule} t={t} /></td>;
+            if (c.tablas.includes(TABLA_DE_LAS_ORDENES)) {
+              const llegada = llegadaDeLaOrden(d);
+              return celdaDeParada(c, d, { tipo: "D", llegada: <td data-llegada={llegada ? "hora" : "sin-ruta"} style={llegada ? { fontWeight: 600 } : ESTILO_SIN_LLEGADA}>{llegada ?? "—"}</td> });
+            }
+            if (c.key === "invoice") return <td key={c.key} className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>;
+            if (c.key === "pallets") return <td key={c.key} data-pallets-de-la-orden style={{ fontVariantNumeric: "tabular-nums" }}>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>;
+            return <td key={c.key} className={clasePastillas(c.key)}>{c.deOrdenes ? celdaDeOrdenes(c.key, d) : "—"}</td>;
+          })}
           <td onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
               {hecha || soloLectura ? null : sinChofer ? (
@@ -2254,15 +2282,16 @@ export default function RoutesPage() {
             placeholder={t("Search # / customer / address / phone…", "Buscar # / cliente / dirección / teléfono…")}
             maxWidth={300}
           />
-          {/* Las dos vistas comparten las columnas elegidas, el orden, las plantillas y las flechas (`moverEn("sinAsignar")`). */}
+          {/* Las dos vistas comparten con la tabla de paradas las columnas elegidas, el orden, las plantillas y las flechas
+              (`moverEn(TABLA_DE_LAS_ORDENES)`, D-548): es el mismo ⚙, con los mismos rótulos. */}
           {!soloLectura && (
           <SelectorDeColumnas
             columnas={vista.selector}
             elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t} alLado="izquierda"
-            rotulo={(c) => (lang === "es" ? c.es : c.en)}
+            rotulo={(c) => sinElNombreDeLaTabla(lang === "es" ? c.es : c.en)}
             titulo={t("Show and order columns", "Mostrar y ordenar columnas")} nota={vista.notaDelSelector}
             plantillas={propsDePlantillas}
-            mover={moverEn("sinAsignar")}
+            mover={moverEn(TABLA_DE_LAS_ORDENES)}
           />
           )}
           {/* Chips (D-393): «Este día» es el antiguo «Todas»; «Todas» es de cualquier día. Cada uno lleva su número, que
@@ -2417,7 +2446,8 @@ export default function RoutesPage() {
     f === "dia" ? rotuloDelChipDelDia() : f === "todas" ? cualquierDia : f === "overdue" ? t("Overdue", "Expiradas") : f === "windowed" ? t("Windowed", "Con ventana") : t("No location", "Sin ubicación");
   const vistaDeSinAsignar: VistaDeOrdenes = {
     clave: "sinAsignar", panel: PANEL_SIN_ASIGNAR, icono: "📦", titulo: t("Unassigned orders", "Órdenes sin asignar"), total: unassigned.length,
-    columnas: colsSinAsignar, menu: menuSinAsignar, selector: columnasDelSelector("sinAsignar", ordenGestor), notaDelSelector: t("Saved for you.", "Se guarda para usted."),
+    columnas: colsSinAsignar, menu: menuSinAsignar, selector: columnasDelSelectorDeLasOrdenes(ordenGestor),
+    notaDelSelector: t("The same columns as the stop tables in “Routes”: saved for you, for all of them.", "Las mismas columnas que las tablas de paradas de «Rutas»: se guarda para usted, para todas."),
     busqueda: orderSearch, onBusqueda: setOrderSearch,
     chip: poolFilter, onChip: setPoolFilter, cuentas: cuentasDeChips, rotuloDelChip: (f) => rotuloDelChip(f, t("All", "Todas")), conChips: true,
     filas: filasDelChip, conBusqueda: unassignedShown, orden: ordenSinAsignar,
@@ -2429,8 +2459,8 @@ export default function RoutesPage() {
   // «Todas» (D-462): el chip de cualquier día se llama «Todas las fechas», que «Todas» ya es el nombre de la pestaña.
   const vistaDeTodas: VistaDeOrdenes = {
     clave: "todas", panel: PANEL_DE_TODAS, icono: "📋", titulo: t("All orders of the day", "Todas las órdenes del día"), total: todasDelDia.length,
-    columnas: colsTodas, menu: menuDeTodas, selector: columnasDelSelectorDeTodas(ordenGestor),
-    notaDelSelector: t("The same columns as “Unassigned”: saved for you, for both tables.", "Las mismas columnas que «Sin asignar»: se guarda para usted, para las dos tablas."),
+    columnas: colsTodas, menu: menuDeTodas, selector: columnasDelSelectorDeLasOrdenes(ordenGestor),
+    notaDelSelector: t("The same columns as the stop tables in “Routes” and “Unassigned”, with the driver in front: saved for you, for all of them.", "Las mismas columnas que las tablas de paradas de «Rutas» y que «Sin asignar», con el chofer delante: se guarda para usted, para todas."),
     busqueda: busquedaDeTodas, onBusqueda: setBusquedaDeTodas,
     // Sin chips (D-542, el dueño: «delete all those filters but just lleave sin asginar»): «Todas» es la del día.
     chip: "dia", onChip: () => {}, cuentas: cuentasDeTodasAqui, rotuloDelChip: (f) => rotuloDelChip(f, t("All dates", "Todas las fechas")), conChips: false,
@@ -2898,16 +2928,12 @@ export default function RoutesPage() {
               <td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>
               {/* Lo que movió, sin el «= a bordo»: no cuenta en la carga pendiente. */}
               <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>{fp.tipo === "P" ? "+" : "−"}{numeroDePallets(palletsDeLaOrden(d))}</td>
-              {colsParadas.map((c) => {
-                if (c.key === "p_type") return <td key={c.key} title={d.order_type || undefined}>{d.order_type || "—"}</td>;
+              {colsParadas.map((c) => celdaDeParada(c, d, {
+                tipo: fp.tipo, sinAviso: true,
                 // La hora REAL, si se guardó; si no, solo que está hecha. Nunca la estimada.
-                if (c.key === "p_eta") return <td key={c.key} data-hora-real={hora ?? ""} style={{ fontWeight: 600 }}>{hecho ? `✓ ${hora ?? t(fp.tipo === "P" ? "picked up" : "delivered", fp.tipo === "P" ? "recogida" : "entregada")}` : `🚚 ${t("on its way", "en camino")}`}</td>;
-                if (c.key === "p_ciudad_recogida") return <td key={c.key}>{fp.tipo === "P" ? <b>{(d.store ?? "").trim() || "—"}</b> : zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen) || "—"}</td>;
-                if (c.key === "p_address") return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}</td>;
-                if (c.key === "p_windows") return <td key={c.key}>{fp.tipo === "D" ? fmtWindows(d.delivery_windows) : ""}</td>;
-                if (fp.tipo === "P" && !seVeEnLaRecogida(c)) return <td key={c.key} />;
-                return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
-              })}
+                llegada: <td data-hora-real={hora ?? ""} style={{ fontWeight: 600 }}>{hecho ? `✓ ${hora ?? t(fp.tipo === "P" ? "picked up" : "delivered", fp.tipo === "P" ? "recogida" : "entregada")}` : `🚚 ${t("on its way", "en camino")}`}</td>,
+                recogida: fp.tipo === "P" ? <b>{(d.store ?? "").trim() || "—"}</b> : undefined,
+              }))}
               <td className="celda-acciones" />
             </tr>
           );
@@ -3190,8 +3216,8 @@ export default function RoutesPage() {
                 <SelectorDeColumnas
                   columnas={columnasDelSelector("paradas", ordenGestor)}
                   elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
-                  rotulo={(c) => (lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}
-                  titulo={t("Stop columns", "Columnas de paradas")} nota={t("Saved for you. Applies to every route.", "Se guarda para usted. Vale para todas las rutas.")}
+                  rotulo={(c) => sinElNombreDeLaTabla(lang === "es" ? c.es : c.en)}
+                  titulo={t("Stop columns", "Columnas de paradas")} nota={t("Saved for you. Applies to every route, and to “Unassigned” and “All”.", "Se guarda para usted. Vale para todas las rutas, y para «Sin asignar» y «Todas».")}
                   plantillas={propsDePlantillas}
                   mover={moverEn("paradas")}
                 />
@@ -3231,7 +3257,7 @@ export default function RoutesPage() {
                         {t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={asaDeParada("_cuenta")} />
                       </th>
                       {/* El rótulo es el del catálogo sin su «Paradas: » (el de Órdenes, para las que vienen de allí). */}
-                      {colsParadas.map((c) => <th key={c.key}>{(lang === "es" ? c.es : c.en).replace(/^[^:]+: /, "")}<span className="col-resizer" onMouseDown={asaDeParada(c.key)} /></th>)}
+                      {colsParadas.map((c) => <th key={c.key}>{sinElNombreDeLaTabla(lang === "es" ? c.es : c.en)}<span className="col-resizer" onMouseDown={asaDeParada(c.key)} /></th>)}
                       <th></th>
                     </tr>
                   </thead>
@@ -3316,18 +3342,15 @@ export default function RoutesPage() {
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
                             <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
-                            {colsParadas.map((c) => {
-                              // D-446: el Tipo de la P es el de su orden, como en la D. D-447 corrige el sitio de la tienda: va en la
-                              // Ciudad de RECOGIDA, sin la palabra «Recoger», y la Ciudad de entrega dice la de su orden. El dueño,
-                              // 2026-09-29: «la palabra recoger i dont need that y esta mal porque esta en ciudad de entrega eso de rdz
-                              // mcallen deberia esta en ciudad de recodiga tienes todo alreves».
-                              if (c.key === "p_type") return <td key={c.key} title={o?.order_type || undefined}>{o?.order_type || "—"}</td>;
-                              if (c.key === "p_eta") return <td key={c.key} data-llegada={llegadaP.falta ? "falta" : "hora"} title={llegadaP.titulo} style={llegadaP.falta ? ESTILO_SIN_LLEGADA : { fontWeight: 600 }}>{llegadaP.texto}</td>;
-                              if (c.key === "p_ciudad_recogida") return <td key={c.key}>{dondeRecoge}</td>;
-                              if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}<AvisoSoloCiudad orden={o} corto /></td>;
-                              if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;
-                              return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, o)}</td>;
-                            })}
+                            {/* D-446: el Tipo de la P es el de su orden, como en la D. D-447 corrige el sitio de la tienda: va en la
+                                Ciudad de RECOGIDA, sin la palabra «Recoger», y la Ciudad de entrega dice la de su orden. El dueño,
+                                2026-09-29: «la palabra recoger i dont need that y esta mal porque esta en ciudad de entrega eso de rdz
+                                mcallen deberia esta en ciudad de recodiga tienes todo alreves». Las ventanas y lo demás de la
+                                ENTREGA van vacíos (`tipo: "P"`, `seVeEnLaRecogida`). */}
+                            {colsParadas.map((c) => celdaDeParada(c, o, {
+                              tipo: "P", recogida: dondeRecoge,
+                              llegada: <td data-llegada={llegadaP.falta ? "falta" : "hora"} title={llegadaP.titulo} style={llegadaP.falta ? ESTILO_SIN_LLEGADA : { fontWeight: 600 }}>{llegadaP.texto}</td>,
+                            }))}
                             {/* D-459: el td es una celda normal y el flex va DENTRO (era `display: flex` en el td: el fallo de la captura). */}
                             <td className="celda-acciones" onClick={(e) => e.stopPropagation()}>
                               <div className="acciones-de-parada">{flechas}{pasar}</div>
@@ -3392,20 +3415,14 @@ export default function RoutesPage() {
                           {celdaDeCuenta}
                           {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
                               manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
-                          {colsParadas.map((c) => {
-                            switch (c.key) {
-                              case "p_type": return <td key={c.key} title={d.order_type || undefined}>{d.order_type || "—"}</td>;
-                              case "p_ciudad_recogida": return <td key={c.key}>{zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen) || "—"}</td>;
-                              case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></td>;
-                              case "p_eta": return (
-                                <td key={c.key} data-llegada={llegada.falta ? "falta" : "hora"} style={llegada.falta ? ESTILO_SIN_LLEGADA : { fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : llegada.titulo}>
-                                  {llegada.texto}{late ? " ⚠️" : ""}
-                                </td>
-                              );
-                              case "p_windows": return <td key={c.key}>{fmtWindows(d.delivery_windows)}</td>;
-                              default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
-                            }
-                          })}
+                          {colsParadas.map((c) => celdaDeParada(c, d, {
+                            tipo: "D",
+                            llegada: (
+                              <td data-llegada={llegada.falta ? "falta" : "hora"} style={llegada.falta ? ESTILO_SIN_LLEGADA : { fontWeight: 600, color: late ? "var(--red)" : undefined }} title={late ? t("ETA is after the delivery window", "La llegada es después de la ventana") : llegada.titulo}>
+                                {llegada.texto}{late ? " ⚠️" : ""}
+                              </td>
+                            ),
+                          }))}
                           {/* Reordering and moving are edits, not "show me this" — they must not also hijack the map. */}
                           <td className="celda-acciones" onClick={(e) => e.stopPropagation()}>
                             <div className="acciones-de-parada">

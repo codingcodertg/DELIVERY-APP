@@ -17,6 +17,11 @@
  * D-402: «Sin asignar» sale en el MISMO orden que Órdenes vista por ventas. El dueño: «quiero que la tabla que se hizo en
  * logistic manager tenga el mismo orden que en order view de sales». Ese orden es el de partida de Órdenes
  * (`ORDEN_DE_PARTIDA`, D-347), que se LEE de allí, no se copia: si Órdenes cambia su orden, el Gestor lo sigue.
+ *
+ * D-548: «Sin asignar» y «Todas» enseñan las columnas de la tabla de PARADAS (`columnasDeLasOrdenes`). Las columnas
+ * `sinAsignar` del catálogo ya no las pinta ninguna tabla salvo dos, que van fijas (factura y pallets). Se QUEDAN en el
+ * catálogo, con su orden de partida y sus tandas: están guardadas en las listas, los órdenes y las plantillas de cada
+ * persona, y así lo guardado se sigue leyendo y escribiendo igual (y volvería tal cual si un día se deshace esto).
  */
 
 import { ORDEN_DE_PARTIDA, mueveColumna, ordenEfectivo } from "./orden-de-columnas";
@@ -315,6 +320,9 @@ export function columnasDelSelector(tabla: TablaDelGestor, guardado: readonly st
 }
 
 /**
+ * **Reemplazado en parte por D-548** (2026-10-14): «Todas» y «Sin asignar» ya no usan las columnas de «Sin asignar»
+ * sino las de la tabla de paradas (`columnasDeLasOrdenes`, abajo), y la «Etapa siempre» se fue. Sigue valiendo «Chofer».
+ *
  * La pestaña «Todas» (D-462): todas las órdenes del día, con chofer o sin él. Sus columnas son LAS DE «SIN ASIGNAR» —las
  * mismas elegidas, el mismo orden, las mismas plantillas, el mismo ⚙— más dos que esa tabla no necesita y esta sí:
  *
@@ -331,14 +339,43 @@ export function columnasDelSelector(tabla: TablaDelGestor, guardado: readonly st
  * (`_factura`, `_cuenta`): no se elige, no se mueve, no se guarda.
  */
 export const CHOFER_DE_TODAS: ColumnaDelGestor = { key: "chofer", en: "Driver", es: "Chofer", tablas: [], ancho: 120, deOrdenes: "driver", fija: true };
-export const ETAPA_EN_TODAS = "status";
-/** Las columnas de la tabla «Todas»: el chofer, y las de «Sin asignar» con la etapa aunque no esté elegida. */
-export function columnasDeTodas(elegidas: readonly string[], guardado?: readonly string[] | null): ColumnaDelGestor[] {
-  return [CHOFER_DE_TODAS, ...columnasDeLaTabla("sinAsignar", [...elegidas, ETAPA_EN_TODAS], guardado)];
+
+/**
+ * D-548: «Sin asignar» y «Todas» enseñan EXACTAMENTE las columnas de la tabla de paradas de cada chofer («Programadas»,
+ * dentro de la pestaña «Rutas · N programadas»). El dueño, 2026-10-13: «sin asignar y todas shou;d have the samea columns
+ * view as programadas»; y 2026-10-14: «in sing asingar en in todas quiero que se miren exatamente las mismas columnas como
+ * en programadas estonces cambialas».
+ *
+ * «Las mismas» quiere decir: el MISMO juego (`paradas`), con los mismos rótulos (sin el «Paradas: » del ⚙), en el mismo
+ * orden y con la misma visibilidad, y un solo ⚙ —columnas, orden y plantillas— para las tres tablas: lo que se marca o se
+ * mueve en una se ve en las otras dos. Sin tanda nueva (`_v9`) ni nada que reescribir: son las claves `p_*` que cada
+ * persona ya tiene guardadas para su tabla de paradas.
+ *
+ * Delante, las fijas de la tabla de paradas, en su orden: la factura (abre la orden) y los pallets. En paradas la columna
+ * de pallets es la CUENTA de la ruta («+4 = 4», a bordo tras cada parada, D-443/D-444); una orden sin ruta no tiene a bordo
+ * que contar, así que aquí sale en su sitio lo que esa cuenta suma o resta: los pallets de la orden. El número de parada y
+ * las flechas de paradas no tienen sentido fuera de una ruta: su sitio lo ocupan la casilla y «Asignar a… / Pasar a…».
+ *
+ * «Todas» lleva además el «Chofer» fijo delante (D-462): es lo que distingue una fila asignada de una sin asignar. La
+ * «Etapa siempre visible» que D-462 le añadía se quita: el dueño pidió las MISMAS columnas, y una orden hecha se sigue
+ * distinguiendo por su ✓ / 🚚 y su fila verde (D-459), y por su «Llegada» («✓ 10:42»).
+ */
+export const TABLA_DE_LAS_ORDENES: TablaDelGestor = "paradas";
+/** El rótulo que se pinta: el del catálogo sin «Paradas: » / «Stops: », como la cabecera y el ⚙ de la tabla de paradas. */
+export const sinElNombreDeLaTabla = (rotulo: string): string => rotulo.replace(/^[^:]+: /, "");
+const comoFija = (clave: string): ColumnaDelGestor => ({ ...COLUMNAS_DEL_GESTOR.find((c) => c.key === clave)!, fija: true });
+/** Las fijas de delante, las de la tabla de paradas: «Factura #» y «Pallets». Toman la clave de las de «Sin asignar»
+ *  (`invoice`, `pallets`): su celda, su valor para ordenar y filtrar, y su ancho guardado (`g_invoice`, `g_pallets`). */
+export const FIJAS_DE_LAS_ORDENES: readonly ColumnaDelGestor[] = [comoFija("invoice"), comoFija("pallets")];
+/** Las columnas de «Sin asignar» y de «Todas»: (el chofer en «Todas»,) la factura, los pallets y las elegidas de paradas, en
+ *  el orden de la persona y con el rótulo de la tabla de paradas. */
+export function columnasDeLasOrdenes(vista: "sinAsignar" | "todas", elegidas: readonly string[], guardado?: readonly string[] | null): ColumnaDelGestor[] {
+  const deParadas = columnasDeLaTabla(TABLA_DE_LAS_ORDENES, elegidas, guardado).map((c) => ({ ...c, en: sinElNombreDeLaTabla(c.en), es: sinElNombreDeLaTabla(c.es) }));
+  return [...(vista === "todas" ? [CHOFER_DE_TODAS] : []), ...FIJAS_DE_LAS_ORDENES, ...deParadas];
 }
-/** Lo que lista el ⚙ de «Todas»: el mismo de «Sin asignar», con la etapa marcada y apagada (aquí sale siempre). */
-export function columnasDelSelectorDeTodas(guardado: readonly string[] | null | undefined): ColumnaDelGestor[] {
-  return columnasDelSelector("sinAsignar", guardado).map((c) => (c.key === ETAPA_EN_TODAS ? { ...c, fija: true } : c));
+/** Lo que lista el ⚙ de «Sin asignar» y de «Todas»: el MISMO de la tabla de paradas. */
+export function columnasDelSelectorDeLasOrdenes(guardado: readonly string[] | null | undefined): ColumnaDelGestor[] {
+  return columnasDelSelector(TABLA_DE_LAS_ORDENES, guardado);
 }
 
 /** Una columna del Gestor por su clave: las del catálogo, y la «Chofer» de «Todas», que vive fuera de él. */

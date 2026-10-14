@@ -6,7 +6,7 @@ import {
   ANCHO_FIJO_DE_PARADAS, COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8,
   ORDEN_DE_PARTIDA_DEL_GESTOR, anchoDePartidaDeParada, anchosDeParadasHeredados, claveDelOrdenEnElNavegador, columnasDeLaTabla,
   columnasDelSelector, componeOrdenDelGestor, fotoDePlantillaDelGestor, mueveEnElGestor, ordenDeLaTabla, ordenDePlantillaDelGestor,
-  ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas, tieneOrdenPropio,
+  ordenDelGestorEnElNavegador, restableceOrdenDelGestor, seMueveEnElGestor, siembraAnchosDeParadas, tieneOrdenPropio, TABLA_DE_LAS_ORDENES,
 } from "./routes-columns";
 import { guardaPlantilla, bytesEnLaBase, cabeEnLaFila, TOPE_DE_LA_BASE, RESERVA_PARA_LO_DEMAS } from "./plantillas-de-columnas";
 import {
@@ -280,7 +280,11 @@ describe("las pantallas usan las funciones", () => {
   const pagina = plano(readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8"));
   const selector = plano(readFileSync(join(process.cwd(), "src/components/SelectorDeColumnas.tsx"), "utf8"));
   it("los dos ⚙ llevan las flechas de su tabla, con las funciones probadas", () => {
-    expect(pagina).toContain('mover={moverEn("sinAsignar")}');
+    // Nota D-548: el ⚙ de «Sin asignar» y «Todas» mueve las columnas de PARADAS (`TABLA_DE_LAS_ORDENES`), las mismas que
+    // el ⚙ de cada tarjeta de chofer; ya no hay ⚙ que mueva las de «Sin asignar».
+    expect(TABLA_DE_LAS_ORDENES).toBe("paradas");
+    expect(pagina).toContain("mover={moverEn(TABLA_DE_LAS_ORDENES)}");
+    expect(pagina).not.toContain('mover={moverEn("sinAsignar")}');
     expect(pagina).toContain('mover={moverEn("paradas")}');
     const m = pagina.slice(pagina.indexOf("const moverEn = "), pagina.indexOf("const alternaColumnaDelGestor"));
     expect(m).toContain("seMueve: (clave: string, delta: -1 | 1) => seMueveEnElGestor(tabla, ordenGestor, clave, delta, colsGestor),");

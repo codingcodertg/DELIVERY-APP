@@ -165,8 +165,11 @@ describe("el aviso se ve: buscador, ficha, Gestor, Mi ruta y la parada del chofe
   });
   it("el Gestor: la pastilla en las tres celdas de «Ciudad de entrega» y una tarjeta por chofer que no depende de las columnas", () => {
     const g = leer("src/app/(app)/routes/page.tsx");
-    expect(g.split("<AvisoSoloCiudad orden={d} corto />").length - 1).toBe(2);
-    expect(g.split("<AvisoSoloCiudad orden={o} corto />").length - 1).toBe(1);
+    // Nota D-548: las tres celdas (la fila P, la fila D y la «Ciudad de entrega» de «Sin asignar», que desde D-548 es la
+    // de paradas, como en «Todas») las pinta UNA función, `celdaDeParada`; solo la fila ya hecha va sin aviso (`sinAviso`).
+    expect(g.split("{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}").length - 1).toBe(1);
+    expect(g.split("<AvisoSoloCiudad").length - 1).toBe(1);
+    expect(g.split("sinAviso: true").length - 1).toBe(1);
     expect(g).toContain("{stops.some(ordenSoloCiudad) && (");
     expect(g).toContain("{stops.filter(ordenSoloCiudad).map((d) =>");
     expect(g).toContain("data-solo-ciudad-ruta");

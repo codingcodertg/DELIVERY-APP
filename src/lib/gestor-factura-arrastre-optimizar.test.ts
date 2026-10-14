@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { facturaYId, facturaYIdDeLaOrden } from "./route-plan/etiqueta";
-import { COLUMNAS_DEL_GESTOR, FACTURA_DEL_PLAN, columnasDeLaTabla, columnasDelSelector, sinLaFacturaDelPlan, COLUMNAS_DEL_GESTOR_POR_DEFECTO } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, FACTURA_DEL_PLAN, columnasDeLaTabla, columnasDeLasOrdenes, columnasDelSelector, sinLaFacturaDelPlan, COLUMNAS_DEL_GESTOR_POR_DEFECTO } from "./routes-columns";
 import { cambiosDeLaLista, cuentaDePallets, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, ordenSinRecoger, type ParadaDeLaLista } from "./lista-unica";
 import { optimizaLaLista } from "./optimiza-la-ruta";
 import { haversineMi } from "./route-batching";
@@ -55,14 +55,19 @@ describe("1 · la FACTURA nombra la orden en todas las tablas del Gestor, con el
     expect(celda).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");
     expect(celda).toContain(": { ...gesto.style, color: \"var(--gray)\" }");
     // Las cuatro filas de la tabla la usan: la recogida, la entrega, la entrega de otra carga y, desde D-459, la ya hecha.
-    expect(pagina.split("{facturaConSuId(").length - 1).toBe(4);
+    // Nota D-548: y una quinta, la celda de la factura de «Sin asignar» y «Todas», que pintan la factura como paradas.
+    expect(pagina.split("{facturaConSuId(").length - 1).toBe(5);
     expect(pagina).toContain("<th data-columna-factura");
   });
   it("«Sin asignar» ya la tenía fija y sigue: la factura abre la orden y no se puede quitar", () => {
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "invoice")).toMatchObject({ fija: true, tablas: ["sinAsignar"] });
     // Aunque la lista guardada de alguien no la traiga, sale.
     expect(columnasDeLaTabla("sinAsignar", ["account", "_v2"]).map((c) => c.key)).toContain("invoice");
-    expect(pagina).toContain('c.key === "invoice" ? enlaceALaOrden(d)');
+    // Nota D-548: «Sin asignar» y «Todas» la pintan como la tabla de paradas —con su ID al lado, `facturaConSuId`—, no con
+    // `enlaceALaOrden` (que se quitó). Sigue fija aunque la lista de paradas de alguien venga vacía.
+    expect(columnasDeLasOrdenes("sinAsignar", ["_v2"]).map((c) => c.key)).toEqual(["invoice", "pallets"]);
+    expect(pagina).toContain('if (c.key === "invoice") return <td key={c.key} className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>;');
+    expect(pagina).not.toContain("enlaceALaOrden(d)");
   });
   it("la tabla del PLAN: la columna fija es la factura con el ID debajo, y «Plan: Factura» no se repite ni se lista", () => {
     expect(FACTURA_DEL_PLAN).toBe("pl_invoice");

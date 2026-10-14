@@ -181,10 +181,12 @@ describe("la página del Gestor", () => {
   const pagina = plano(sinComentarios(leer("src/app/(app)/routes/page.tsx")));
   it("«Sin asignar» se pinta desde el catálogo, con la factura leída de la orden", () => {
     // Desde D-410, en el orden de la persona (`ordenGestor`; sin orden propio, el de ventas de D-402).
-    expect(pagina).toContain('const colsSinAsignar = columnasDeLaTabla("sinAsignar", colsGestor, ordenGestor);');
+    // Nota D-548: desde el catálogo, sí, pero las columnas de PARADAS (`columnasDeLasOrdenes`), y la factura se pinta como
+    // en paradas (`facturaConSuId`, con el ID al lado); `enlaceALaOrden` se quitó.
+    expect(pagina).toContain('const colsSinAsignar = columnasDeLasOrdenes("sinAsignar", colsGestor, ordenGestor);');
     // Desde D-360 la factura es un enlace que abre la orden. Desde D-408 las cabeceras con menú son SOLO las del
     // catálogo: el ID fijo que iba delante ya no está.
-    expect(pagina.split('c.key === "invoice" ? enlaceALaOrden(d)').length - 1).toBe(1);
+    expect(pagina.split('if (c.key === "invoice") return <td key={c.key} className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>;').length - 1).toBe(1);
     expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map(");
     // Puesto al día por D-462: las cabeceras las pinta `tablaDeOrdenes` desde `vista.menu` («Sin asignar» le pasa `menuSinAsignar`).
     expect(pagina).toContain("{menu.map((c) => <th key={c.key}>");
@@ -210,19 +212,23 @@ describe("la página del Gestor", () => {
     expect(pagina).not.toContain('<th>{t("ID", "ID")}');
     expect(pagina).not.toContain('<th>{t("Invoice #", "Factura #")}<span className="col-resizer" onMouseDown={asaDeParada("_factura")} /></th>');
   });
-  it("D-408: el enlace pinta el texto de `textoQueAbreLaOrden`, abre con el gesto de siempre, y va gris sin factura", () => {
-    const i = pagina.indexOf("const enlaceALaOrden = (d: Delivery) => {");
+  // Nota D-548: `enlaceALaOrden` se quitó —«Sin asignar» y «Todas» pintan la factura como paradas, con `facturaConSuId`—.
+  // Lo que fijaba (abre con el gesto de siempre; gris sin factura) lo fija ahora la celda de paradas.
+  it("D-408: el enlace abre con el gesto de siempre, y va gris sin factura (desde D-548, el de paradas en las tres tablas)", () => {
+    expect(pagina).not.toContain("const enlaceALaOrden = (d: Delivery) => {");
+    const i = pagina.indexOf("const facturaConSuId = (d: Delivery) => {");
     expect(i).toBeGreaterThan(-1);
     const cuerpo = pagina.slice(i, pagina.indexOf("};", i));
-    expect(cuerpo).toContain("const { texto, esFactura } = textoQueAbreLaOrden(d);");
     expect(cuerpo).toContain("const gesto = abreLaOrden(d);");
-    expect(cuerpo).toContain('<span {...gesto} data-abre-la-orden style={esFactura ? gesto.style : { ...gesto.style, color: "var(--gray)" }}>{texto}</span>');
+    expect(cuerpo).toContain(': { ...gesto.style, color: "var(--gray)" }}>{n.principal}</span>');
   });
   it("D-408: la columna de la ciudad pinta `ciudadDeEntrega` (desde D-423, con las ciudades conocidas), con la dirección entera en el title, en las dos tablas", () => {
-    expect(pagina.split('c.key === "address" ? <span title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></span>').length - 1).toBe(1);
+    // Nota D-548: la celda de la ciudad de «Sin asignar» (`address`) ya no se pinta —esa tabla pinta las de paradas—, y la
+    // de paradas se pinta UNA vez, en `celdaDeParada`, para todas las tablas.
+    expect(pagina).not.toContain('c.key === "address" ? <span');
     // En paradas, por su clave desde D-410; su rótulo es el del catálogo sin «Stops: » («City / Ciudad»; desde D-445,
     // «Delivery city / Ciudad de entrega»).
-    expect(pagina.split('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></td>;').length - 1).toBe(1);
+    expect(pagina.split('case "p_address": return <td key={c.key} title={d?.delivery_address || undefined}>{(d && ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen)) || "—"}{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}</td>;').length - 1).toBe(1);
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_address")).toMatchObject({ en: "Stops: Delivery city", es: "Paradas: Ciudad de entrega" });
     // El botón de abrir y cerrar la dirección se fue con ella.
     expect(pagina).not.toMatch(/addrWide|Expand address|Contraer dirección/);
@@ -231,7 +237,9 @@ describe("la página del Gestor", () => {
   });
   it("D-346: la dirección y la recogida se pintan en «Sin asignar», lo guardado de antes recibe las columnas nuevas, y la sugerencia de chofer ya no está", () => {
     // La dirección enseña solo la ciudad desde D-408: lo fija la prueba de la ciudad, más arriba.
-    expect(pagina.split('c.key === "pickup" ? <span title={d.pickup_address || undefined}>{d.pickup_name || d.pickup_address || "—"}</span>').length - 1).toBe(1);
+    // Nota D-548: «Sin asignar» ya no pinta su «Recogida» (`pickup`): pinta la «Ciudad de recogida» de paradas.
+    expect(pagina).not.toContain('c.key === "pickup" ? <span');
+    expect(pagina.split('case "p_ciudad_recogida": return').length - 1).toBe(1);
     // Desde D-434 por `preferenciasDelGestorAlLeer`, que llama a `conColumnasNuevas` (lo prueba columnas-del-plan.test).
     expect(pagina).toContain("const al = preferenciasDelGestorAlLeer(leido.columnas[rol], leido.orden[rol]);");
     expect(pagina).toContain("if (al.columnas) setColsGestor(al.columnas);");
@@ -245,18 +253,21 @@ describe("la página del Gestor", () => {
       expect(pagina, muerto).not.toContain(muerto);
     const col = pagina.indexOf("{colsParadas.map((c) => <col key={c.key} style={{ width: anchoDeParada(c.key) }} />)}");
     const th = pagina.indexOf("{colsParadas.map((c) => <th key={c.key}");
-    const td = pagina.indexOf("{colsParadas.map((c) => { switch (c.key) {");
+    // Nota D-548: la celda la pinta `celdaDeParada`, una para las filas P, D y hechas (y para «Sin asignar» y «Todas»).
+    const td = pagina.indexOf('{colsParadas.map((c) => celdaDeParada(c, d, { tipo: "D",', th);
     expect(col).toBeGreaterThan(-1);
     expect(th).toBeGreaterThan(col);
     expect(td).toBeGreaterThan(th);
     // Número de parada y factura delante de las elegidas; las acciones, detrás.
     expect(pagina.indexOf('<col style={{ width: anchoDeParada("_factura") }} />')).toBeLessThan(col);
     expect(pagina.indexOf('<col style={{ width: anchoDeParada("_acciones") }} />')).toBeGreaterThan(col);
-    expect(pagina.indexOf('<td className="ordno">{facturaConSuId(d)}</td>')).toBeGreaterThan(-1);
-    expect(pagina.indexOf('<td className="ordno">{facturaConSuId(d)}</td>')).toBeLessThan(td);
-    // Las cinco de siempre, cada una por su clave; y las de Órdenes con la celda de Órdenes.
+    const factura = pagina.indexOf('<td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>', th);
+    expect(factura).toBeGreaterThan(-1);
+    expect(factura).toBeLessThan(td);
+    // Las cinco de siempre, cada una por su clave, UNA vez (en `celdaDeParada`); y las de Órdenes con la celda de Órdenes.
     for (const k of ["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_windows"]) expect(pagina.split(`case "${k}": return`).length - 1, k).toBe(1);
-    expect(pagina).toContain("default: return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;");
+    expect(pagina).toContain("return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>; };");
+    expect(pagina.split("{colsParadas.map((c) => celdaDeParada(").length - 1).toBe(3);
   });
   it("D-376 → D-410: los colSpan cuentan las fijas y las elegidas, y el ancho de la tabla suma las mismas", () => {
     // D-443: #, factura, la CUENTA de pallets (fija), las elegidas y las acciones.
@@ -285,12 +296,15 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);");
     expect(pagina).toContain("const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);");
     // D-423: con las ciudades conocidas, las mismas que la celda.
-    expect(pagina).toContain("const valorDelGestorAqui = useCallback((clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen), [deOrdenes, ciudadesQueSeConocen]);");
+    // Nota D-548: con las tiendas y la llegada de la orden, para las columnas de paradas que estas tablas pintan ahora.
+    expect(pagina).toContain("(clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, { tiendas: settings.stores ?? [], llegada: llegadaDeLaOrden }),");
     expect(pagina).toContain("etiqueta: etiquetaDelGestor(c.key, deOrdenes)");
     expect(pagina).toContain("const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);");
     expect(pagina).toContain('const clasePastillas = (clave: string) => (columnaDeOrdenes(clave, ORDER_COLUMNS)?.pastillas ? "td-pastillas" : undefined);');
-    expect(pagina).toContain("<td key={c.key} className={clasePastillas(c.key)} onClick={c.key === \"date\"");
-    expect(pagina).toContain("{c.deOrdenes ? celdaDeOrdenes(c.key, d) : c.key === \"invoice\"");
+    // Nota D-548: las de Órdenes de estas tablas son ahora las de paradas (`p_stage`, `p_fee`…), por `celdaDeParada`, que
+    // las pinta con la celda de Órdenes; las fijas que vienen de Órdenes (el chofer de «Todas»), aquí.
+    expect(pagina).toContain("if (c.tablas.includes(TABLA_DE_LAS_ORDENES)) {");
+    expect(pagina).toContain("return <td key={c.key} className={clasePastillas(c.key)}>{c.deOrdenes ? celdaDeOrdenes(c.key, d) : \"—\"}</td>;");
     // La pastilla de etapa que la página pintaba a mano se fue: la pinta la celda de Órdenes.
     expect(pagina).not.toContain("stageLabel(d.stage, lang)");
   });
@@ -323,7 +337,8 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain('columnas={columnasDelSelector("paradas", ordenGestor)} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}');
     // Puesto al día por D-462: el ⚙ de «Sin asignar» y el de «Todas» los pinta `tablaDeOrdenes` con el `selector` de su vista.
     expect(pagina).toContain("columnas={vista.selector} elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}");
-    expect(pagina).toContain('selector: columnasDelSelector("sinAsignar", ordenGestor)');
+    // Nota D-548: el `selector` de las dos vistas es el de paradas.
+    expect(pagina.split("selector: columnasDelSelectorDeLasOrdenes(ordenGestor)").length - 1).toBe(2);
   });
   it("D-379: el ⚙ de paradas se pinta UNA VEZ POR CHOFER, y cada uno tiene su estado y su caja — no uno de la página para todos", () => {
     // El fallo del dueño («no me deja seleccionar la columna»): un solo estado y una sola ref de la página, dentro del map de
@@ -432,7 +447,8 @@ describe("«Sin asignar» tiene su propio ⚙ Columnas (D-349)", () => {
     expect(pagina.slice(i, i + 400)).toContain("onAlterna={alternaColumnaDelGestor}");
     // Nota D-546: el buscador es ahora `BuscadorConBorrar` (con su «✕»), y el valor entra por `valor=`.
     expect(pagina.slice(pagina.lastIndexOf("<BuscadorConBorrar", i), i)).toContain("valor={vista.busqueda}");
-    expect(pagina).toContain('selector: columnasDelSelector("sinAsignar", ordenGestor)');
+    // Nota D-548: «las columnas de ESA tabla» son, desde D-548, las de paradas: el mismo ⚙ que cada tarjeta de chofer.
+    expect(pagina).toContain("selector: columnasDelSelectorDeLasOrdenes(ordenGestor)");
   });
 });
 

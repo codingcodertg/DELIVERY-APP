@@ -17,8 +17,11 @@
 import { fmtDate, orderLabel } from "@/lib/utils";
 import { columnaDeOrdenes } from "@/lib/routes-columns";
 import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
+import { horaReal } from "@/lib/hechas-del-gestor";
+import { ETAPAS_HECHAS } from "@/lib/mover-parada";
+import { zonaDeLaRecogida } from "@/lib/zonas";
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
-import type { Delivery } from "@/lib/types";
+import type { Delivery, NamedLocation } from "@/lib/types";
 
 /** Lo que la página sabe de las columnas de Órdenes: su catálogo y el contexto con que se llaman. */
 export interface DeOrdenes<C> {
@@ -37,14 +40,48 @@ export function textoQueAbreLaOrden(d: Pick<Delivery, "invoice_num" | "order_cod
   return factura ? { texto: factura, esFactura: true } : { texto: `#${orderLabel(d)}`, esFactura: false };
 }
 
+/** Lo que dos columnas de paradas necesitan saber de la pantalla para dar su valor (D-548): las tiendas (la ciudad de
+ *  recogida) y la llegada que pinta la celda (`llegadaEnLasOrdenes`). */
+export interface ExtraDeParadas {
+  tiendas?: readonly Pick<NamedLocation, "name" | "address" | "lat" | "lng">[];
+  llegada?: (d: Delivery) => string | null;
+}
+
+/**
+ * La «Llegada» (`p_eta`) de una orden en «Sin asignar» y en «Todas» (D-548), la misma columna que en la tabla de paradas.
+ * `null` = la celda pinta «—».
+ *
+ *   · Ya entregada: «✓ 10:42» —la hora real, como su fila hecha en la tarjeta del chofer (D-459)—, o «✓ entregada» sin hora.
+ *   · Recogida, en el camión: «🚚 en camino», como allí.
+ *   · Sin chofer: nada. No está en ninguna ruta, así que no hay a qué hora llegue.
+ *   · Con chofer y pendiente: la llegada que la medida de su ruta calculó para ella (`eta`), si la hay; nunca una inventada.
+ */
+export function llegadaEnLasOrdenes(
+  d: Pick<Delivery, "assigned_driver" | "stage" | "pod_delivered_at"> & { pickup_gps_at?: string | null },
+  eta: string | null | undefined,
+  es: boolean,
+): string | null {
+  if (d.stage === "delivered") { const hora = horaReal(d, "D"); return `✓ ${hora ?? (es ? "entregada" : "delivered")}`; }
+  if (ETAPAS_HECHAS.has(d.stage)) return `🚚 ${es ? "en camino" : "on its way"}`;
+  if (!d.assigned_driver) return null;
+  return eta || null;
+}
+
 /**
  * El valor crudo de la columna `clave` para la orden `d`. Texto vacío cuenta como «sin valor» (lo decide
  * `claveDeFiltro`), así que aquí no hace falta convertir «» en nulo.
  */
-export function valorDelGestor<C>(clave: string, d: Delivery, ordenes?: DeOrdenes<C>, ciudadesConocidas: readonly string[] = []): ValorDeCelda {
+export function valorDelGestor<C>(clave: string, d: Delivery, ordenes?: DeOrdenes<C>, ciudadesConocidas: readonly string[] = [], extra?: ExtraDeParadas): ValorDeCelda {
   const deOrdenes = ordenes ? columnaDeOrdenes(clave, ordenes.catalogo) : undefined;
   if (deOrdenes) return deOrdenes.value(d, ordenes!.ctx);
   switch (clave) {
+    // Las de la tabla de paradas (D-548), que desde ahora pintan también «Sin asignar» y «Todas». Ordenan y filtran por
+    // lo que se ve en su celda: el tipo, la ciudad de la tienda donde se recoge, la ciudad de entrega, la llegada y las ventanas.
+    case "p_type": return d.order_type ?? null;
+    case "p_ciudad_recogida": return zonaDeLaRecogida(d, extra?.tiendas ?? [], ciudadesConocidas) || null;
+    case "p_address": return ciudadDeEntrega(d.delivery_address, ciudadesConocidas) || null;
+    case "p_eta": return extra?.llegada?.(d) ?? null;
+    case "p_windows": return d.delivery_windows ?? null;
     case "invoice": return d.invoice_num ?? null;
     case "account": return d.account ?? null;
     // La columna enseña solo la CIUDAD desde D-408 («Ciudad de entrega»): ordena y filtra por ella, no por la calle.
