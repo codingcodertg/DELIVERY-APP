@@ -2,6 +2,7 @@
 
 import { usePrefs } from "@/lib/prefs";
 import type { FiltroDeVista, VistaFiltrada } from "@/lib/almacen";
+import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 
 export interface PestanaDeAlmacen {
   key: string;
@@ -27,11 +28,12 @@ export function FiltrosDeAlmacen({ pestanas, filtro, onCambio, vista }: {
   const { lang, t } = usePrefs();
   return (
     <div className="filters">
-      <input
-        style={{ maxWidth: 260 }}
+      {/* Con su «✕» para borrar (D-546). */}
+      <BuscadorConBorrar
+        maxWidth={260}
         placeholder={t("Search invoice #…", "Buscar factura #…")}
-        value={filtro.q}
-        onChange={(e) => onCambio({ ...filtro, q: e.target.value })}
+        valor={filtro.q}
+        onValor={(q) => onCambio({ ...filtro, q })}
       />
       {pestanas.map((tb) => (
         <button key={tb.key} className={"chip " + (filtro.tab === tb.key ? "on" : "")} onClick={() => onCambio({ ...filtro, tab: tb.key })}>
