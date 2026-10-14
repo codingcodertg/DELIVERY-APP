@@ -27,6 +27,8 @@ import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
 import { NINGUNO, alternaTodas, alternaVisible, guardaMarcados, leeMarcados, marcadasAProposito, marcadosVigentes, pasaElFiltro, rutasVisibles, seVenTodas, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
 import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
+import { alcanceDeChoferes, choferSeVe, choferesConOrden, ordenesPorChofer, type AlcanceDeChoferes } from "@/lib/gestor/choferes-por-tienda";
+import { alAbrirRutas, alPulsarElMapa, MAPA_INICIAL, rutasAbiertas, type EstadoDelMapa } from "@/lib/gestor/mapa-al-abrir-ruta";
 import { textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
 import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-horario";
@@ -216,7 +218,23 @@ export default function RoutesPage() {
   const todasLasDelDia = useMemo(() => (soloLectura ? ordenesDeRutaDeHoy(paradasDeHoy, deliveriesLeidas) : deliveriesLeidas), [soloLectura, paradasDeHoy, deliveriesLeidas]);
   // El acotado de D-506, en UN sitio: todo lo que esta pantalla pinta cuelga de `deliveries`, así que acotarlo aquí acota
   // las paradas, los carriles, el mapa, las tablas, las cuentas, Cuadrícula y Horario de una vez.
-  const deliveries = useMemo(() => (miChofer == null ? todasLasDelDia : soloMisOrdenes(todasLasDelDia, miChofer)), [todasLasDelDia, miChofer]);
+  // Qué choferes ve esta persona en «Ruta de hoy» (D-544): la tienda con choferes dedicados ve solo esos, las demás no los
+  // ven, y admin, logística y gerente ven a todos; una Intertienda que entra a su tienda se ve igual. Solo en «Ruta de hoy»
+  // (`soloLecturaDeclarada`), no en el Gestor ni en el mapa del chofer (D-506, que ya acota a lo suyo). Se acota en el
+  // ORIGEN, como D-506: lo que no pasa no llega a las tarjetas, al panel, al mapa, a Cuadrícula ni a Horario.
+  const tiendasDeAjustes = settings.stores;
+  const alcanceChoferes = useMemo<AlcanceDeChoferes>(
+    () => (soloLecturaDeclarada && miChofer == null ? alcanceDeChoferes(me, tiendasDeAjustes ?? [], { teaching }) : { tipo: "todos" }),
+    [soloLecturaDeclarada, miChofer, me, tiendasDeAjustes, teaching],
+  );
+  const deliveries = useMemo(
+    () => (miChofer != null ? soloMisOrdenes(todasLasDelDia, miChofer)
+      : ordenesPorChofer(todasLasDelDia, alcanceChoferes, { me, tiendas: tiendasDeAjustes ?? [], reglas: settings.order_type_rules })),
+    [todasLasDelDia, miChofer, alcanceChoferes, me, tiendasDeAjustes, settings.order_type_rules],
+  );
+  // Lo rotulado con un chofer (su carril, su camión, el aviso de su teléfono) sale si lo ve, o si lleva algo que se pinta.
+  const choferesConParada = useMemo(() => choferesConOrden(deliveries), [deliveries]);
+  const seVeElChofer = (chofer: string | null | undefined) => choferSeVe(chofer, alcanceChoferes, choferesConParada);
   // Los camiones en vivo, para todos menos ventas (regla de «Ruta de hoy», D-467; al Gestor ventas no entra).
   const veCamiones = me?.role !== "sales";
   // "All dates" ignores the date filter so every routable order (and the routes
@@ -229,7 +247,10 @@ export default function RoutesPage() {
   // panel so the route detail can use the whole screen.
   // Nace en «Cuadrícula» (D-526). El dueño, 2026-10-11: «make grid view in route manager default». «▭ Ancho» la cambia.
   const [wideRoutes, setWideRoutes] = useState(false);
-  const [showTop, setShowTop] = useState(true);
+  // El mapa y el panel de choferes (antes un `showTop` suelto). Desde D-544 se esconde solo al abrir las rutas de un chofer,
+  // y el botón de arriba lo vuelve a enseñar (`lib/gestor/mapa-al-abrir-ruta`).
+  const [estadoDelMapa, setEstadoDelMapa] = useState<EstadoDelMapa>(MAPA_INICIAL);
+  const showTop = estadoDelMapa.visible;
   // La tabla de paradas tenía un botón para abrir y cerrar la dirección (D-346 la hizo nacer abierta). Desde D-408 esa
   // columna enseña solo la ciudad, que cabe siempre: el botón se fue con la dirección.
   // Excel-style resizable columns, remembered per table. Tighter defaults (and
@@ -531,6 +552,19 @@ export default function RoutesPage() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  // Abrir las rutas de un chofer esconde el mapa (D-544). El dueño, 2026-10-13: «when you open the routes for a driver in
+  // the trutes manager […] it should hide the map automatically but they can still show it on the top if the user wantss
+  // it». Abrir = su tabla desplegada en «Cuadrícula» o su tarjeta abierta (▸) en «Ancho». No en el mapa del chofer (D-506):
+  // allí el mapa es lo que vino a ver.
+  const abiertas = miChofer != null ? [] : rutasAbiertas({ ancho: wideRoutes, desplegada, alternadas });
+  const claveDeAbiertas = abiertas.join("\u0000");
+  const abiertasAntes = useRef<string[]>([]);
+  useEffect(() => {
+    const antes = abiertasAntes.current;
+    abiertasAntes.current = abiertas;
+    setEstadoDelMapa((e) => alAbrirRutas(e, antes, abiertas));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claveDeAbiertas]);
 
   // A newly-viewed date invalidates any measured summary/trace from before (that part lives in `useMedidaDeRutas`).
   useEffect(() => { setErr(null); }, [date]);
@@ -605,9 +639,9 @@ export default function RoutesPage() {
   }, []);
   // Acotada (D-506), solo la SUYA: que a un compañero se le muriera la batería no es asunto del chofer, y la suya sí.
   const trackingIssues = useMemo(
-    () => { const todos = trackingGaps(users, shifts, driverLocations); return miChofer == null ? todos : soloLoMioPorChofer(todos, miChofer); },
+    () => { const todos = trackingGaps(users, shifts, driverLocations); return miChofer == null ? todos.filter((c) => seVeElChofer(c.driver)) : soloLoMioPorChofer(todos, miChofer); },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [users, shifts, driverLocations, healthTick, miChofer],
+    [users, shifts, driverLocations, healthTick, miChofer, alcanceChoferes, choferesConParada],
   );
   // Drivers on shift AND reporting — drives the LIVE tag. Recomputed on the
   // same minute tick so the tag clears by itself when a phone goes quiet, not
@@ -636,9 +670,9 @@ export default function RoutesPage() {
     const color = (n: string) => settings.driver_colors?.[n] || fallbackDriverColor(n);
     const todos = choferesEnVivo(driverLocations, nameById, color);
     // Acotada (D-506), solo SU camión: dónde está otro chofer ahora tampoco se le enseña.
-    return (miChofer == null ? todos : soloLoMioPorChofer(todos, miChofer)).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
+    return (miChofer == null ? todos.filter((c) => seVeElChofer(c.driver)) : soloLoMioPorChofer(todos, miChofer)).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverLocations, users, settings.driver_colors, veCamiones, miChofer]);
+  }, [driverLocations, users, settings.driver_colors, veCamiones, miChofer, alcanceChoferes, choferesConParada]);
 
   const drivers = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
   const realDriverNames = useMemo(() => new Set(drivers.map((d) => d.full_name)), [drivers]);
@@ -666,8 +700,9 @@ export default function RoutesPage() {
   // Acotada (D-506), solo SU carril: los demás choferes no salen ni vacíos, y tampoco las rutas temporales («Ruta 1»), que
   // `rutasConOrdenes` deja en el panel aunque estén vacías porque el Gestor las renombra y las vacía — él no.
   const lanes = useMemo<Lane[]>(
-    () => { const todos = carrilesDelDia(drivers, bucketNames, dayOrders, hechasPintadas.keys()); return miChofer == null ? todos : soloMisCarriles(todos, miChofer); },
-    [drivers, dayOrders, bucketNames, hechasPintadas, miChofer],
+    () => { const todos = carrilesDelDia(drivers, bucketNames, dayOrders, hechasPintadas.keys()); return miChofer == null ? todos.filter((l) => l.isBucket || seVeElChofer(l.driver)) : soloMisCarriles(todos, miChofer); },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [drivers, dayOrders, bucketNames, hechasPintadas, miChofer, alcanceChoferes, choferesConParada],
   );
   // El filtro de chofer que manda ahora (D-481): lo marcado en el panel, si esas rutas siguen en la pantalla; vacío = todos.
   const filtroChofer = useMemo(() => marcadosVigentes(selected, lanes.map((l) => l.key)), [selected, lanes]);
@@ -1272,7 +1307,7 @@ export default function RoutesPage() {
   // En solo lectura (D-481), la orden ENTERA solo se abre si esta persona YA la puede leer, y un vendedor solo las suyas
   // (`ordenLegible`, la regla de D-467); si no, la factura es texto sin gesto.
   const abreLaOrden = (d: Delivery): { onClick?: (e: React.MouseEvent) => void; style: React.CSSProperties; title?: string } => {
-    const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me) : d;
+    const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me, { teaching }) : d;
     if (!legible) return { style: {} };
     return {
       onClick: (e: React.MouseEvent) => { e.stopPropagation(); setOpenOrder(legible); },
@@ -2587,7 +2622,7 @@ export default function RoutesPage() {
 
       {/* ---------- Layout toolbar ---------- */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
-        <button className={"btn btn-sm " + (showTop ? "btn-ghost" : "btn-primary")} onClick={() => setShowTop((v) => !v)}
+        <button className={"btn btn-sm " + (showTop ? "btn-ghost" : "btn-primary")} data-boton-del-mapa onClick={() => setEstadoDelMapa((e) => alPulsarElMapa(e, abiertas.length > 0))}
           title={t("Show or hide the map + driver panel to free up space", "Mostrar u ocultar el mapa y el panel para ganar espacio")}>
           🗺 {showTop ? t("Hide map & drivers", "Ocultar mapa y choferes") : t("Show map & drivers", "Mostrar mapa y choferes")}
         </button>

@@ -360,7 +360,9 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
     // Puesto al día por D-506: la lista que sale de aquí es ahora `todasLasDelDia`, y `deliveries` es esa lista acotada al
     // chofer cuando la pantalla va acotada. Sin acotar —el Gestor y «Ruta de hoy»— `deliveries` es exactamente lo de antes.
     expect(gestor).toContain("const todasLasDelDia = useMemo(() => (soloLectura ? ordenesDeRutaDeHoy(paradasDeHoy, deliveriesLeidas) : deliveriesLeidas), [soloLectura, paradasDeHoy, deliveriesLeidas]);");
-    expect(gestor).toContain("const deliveries = useMemo(() => (miChofer == null ? todasLasDelDia : soloMisOrdenes(todasLasDelDia, miChofer)), [todasLasDelDia, miChofer]);");
+    // Nota D-544: sin acotar al chofer, `deliveries` pasa además por el corte de choferes de «Ruta de hoy»
+    // (`ordenesPorChofer`), que en el Gestor —y para quien ve a todos— devuelve la misma lista.
+    expect(gestor).toContain("() => (miChofer != null ? soloMisOrdenes(todasLasDelDia, miChofer) : ordenesPorChofer(todasLasDelDia, alcanceChoferes, { me, tiendas: tiendasDeAjustes ?? [], reglas: settings.order_type_rules })),");
   });
   it("no asigna, no mueve, no optimiza, no vacía, no deshace y no arma rutas: cada acción del Gestor está cerrada con `soloLectura`", () => {
     for (const cierre of [
@@ -390,7 +392,8 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
     expect(gestor).not.toContain("saveSettings({ driver_colors:");
   });
   it("la orden entera solo se abre si la persona ya puede leerla (y un vendedor, solo las suyas)", () => {
-    expect(gestor).toContain("const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me) : d;");
+    // Nota D-544: la llamada lleva `{ teaching }`: la regla es ahora `puedeAbrirLaOrden`, que no corta en el sandbox.
+    expect(gestor).toContain("const legible = soloLectura ? ordenLegible(d.id, deliveriesLeidas, me, { teaching }) : d;");
   });
   it("la medida: el MISMO gancho; en solo lectura no busca la base que ya tiene punto, ni pide el trazo del plan", () => {
     expect(gestor).toContain("useMedidaDeRutas<Delivery>({");

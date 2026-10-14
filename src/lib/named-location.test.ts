@@ -135,7 +135,8 @@ describe("el editor de Datos usa esta función, y no una copia", () => {
 
   it("importa `registroDeLugar` y la llama al confirmar", () => {
     expect(pagina).toContain('import { registroDeLugar } from "@/lib/named-location";');
-    expect(pagina).toContain("const rec = registroDeLugar(prev, draft, { autoApprove, directoryCode });");
+    // Nota D-544: el borrador lleva además los choferes dedicados leídos del texto del formulario.
+    expect(pagina).toContain("const rec = registroDeLugar(prev, { ...draft, choferes_dedicados: leeDedicados(dedicadosTxt) }, { autoApprove, directoryCode });");
   });
 
   it("y el formulario de tiendas tiene el campo de la extensión", () => {

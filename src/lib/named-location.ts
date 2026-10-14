@@ -52,6 +52,11 @@ export function registroDeLugar(
     const promo = (draft.promo_group ?? "").trim();
     if (promo) rec.promo_group = promo;
     else delete rec.promo_group;
+    // Los choferes dedicados (D-544): quién ve a qué chofer en «Ruta de hoy». Sin ninguno se quita la clave, como los
+    // demás: ausente y vacío dicen lo mismo, «esta tienda no tiene choferes dedicados».
+    const dedicados = (draft.choferes_dedicados ?? []).map((n) => n.trim()).filter(Boolean);
+    if (dedicados.length) rec.choferes_dedicados = dedicados;
+    else delete rec.choferes_dedicados;
   }
 
   return rec;
