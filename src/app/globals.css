@@ -295,7 +295,7 @@
 .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 
 .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
-/* El buscador de órdenes con su «✕» (D-NEXT, `BuscadorConBorrar`): la «✕» va dentro del campo, a la derecha. */
+/* El buscador de órdenes con su «✕» (D-546, `BuscadorConBorrar`): la «✕» va dentro del campo, a la derecha. */
 .buscador-con-borrar { position: relative; display: inline-flex; align-items: center; width: 100%; }
 .buscador-con-borrar input { width: 100%; padding-right: 28px; }
 .buscador-con-borrar-x {

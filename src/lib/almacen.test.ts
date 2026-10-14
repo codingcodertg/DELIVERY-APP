@@ -322,7 +322,7 @@ describe("Recepción tiene la misma barra y las mismas pastillas que la Cola, co
   });
 
   it("la barra busca, cambia de pestaña y cuenta con lo que le llega, sin estado propio", () => {
-    // Nota D-NEXT: el campo es ahora `BuscadorConBorrar` (con su «✕»); el texto le llega por `valor` y vuelve por `onValor`.
+    // Nota D-546: el campo es ahora `BuscadorConBorrar` (con su «✕»); el texto le llega por `valor` y vuelve por `onValor`.
     expect(barra).toContain("onValor={(q) => onCambio({ ...filtro, q })}");
     expect(barra).toContain("onClick={() => onCambio({ ...filtro, tab: tb.key })}");
     expect(barra).toContain('{tb.key === "all" ? vista.visibles.length : (vista.cuentas[tb.key] ?? 0)}');

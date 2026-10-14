@@ -453,7 +453,7 @@ export function OrderModal({
     pinVisible ? { ...d, delivery_lat: pinVisible[0], delivery_lng: pinVisible[1] } : d,
     settings,
   );
-  // El botón «Descuento» no se le ofrece a un vendedor en una tienda con tarifa mínima (D-NEXT): «La tarifa es 100
+  // El botón «Descuento» no se le ofrece a un vendedor en una tienda con tarifa mínima (D-546): «La tarifa es 100
   // minimo. Tenemos que quitarles esa opcion de descuento». Pasar `null` a `BotonesDeTarifa` es lo que lo esconde.
   const descuentoOfrecido = ofreceDescuento(me.role, d.store, settings.stores) ? feeSuggestion.discount : null;
   /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
@@ -530,7 +530,7 @@ export function OrderModal({
     if (blockSubmit(draft)) return false;
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados». Tope duro, sin «¿continuar?».
     if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }
-    // La tarifa mínima de la tienda, para ventas (D-NEXT). Tope duro, sin «¿continuar?»: es lo que el dueño quitó.
+    // La tarifa mínima de la tienda, para ventas (D-546). Tope duro, sin «¿continuar?»: es lo que el dueño quitó.
     const bajoMinimo = bloqueoPorTarifaMinima({ rol: me.role, tienda: draft.store, tiendas: settings.stores, tipo: draft.order_type, reglas: settings.order_type_rules, tarifa: draft.delivery_fee });
     if (bajoMinimo) { const m = textoTarifaMinima(bajoMinimo); notify(t(m.en, m.es)); return false; }
     // 1. Required fields — list them and let the rep decide.

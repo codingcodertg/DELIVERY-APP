@@ -1,5 +1,5 @@
 /**
- * El buscador de órdenes con su «✕» para borrar (D-NEXT).
+ * El buscador de órdenes con su «✕» para borrar (D-546).
  *
  * El dueño, el 2026-10-14: *«when i search orders it would be easier to have an x to clear instead of having to
  * backspace»*. Lo pinta `components/BuscadorConBorrar.tsx`, el mismo en las tres búsquedas de órdenes: Órdenes,

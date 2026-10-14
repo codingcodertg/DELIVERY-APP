@@ -7,7 +7,7 @@ import {
 import { registroDeLugar } from "./named-location";
 import type { NamedLocation, UserRole } from "./types";
 
-// D-NEXT. «En mcallen los vendedores no usan descuento de cobro como excepcion. La tarifa es 100 minimo. Tenemos que
+// D-546. «En mcallen los vendedores no usan descuento de cobro como excepcion. La tarifa es 100 minimo. Tenemos que
 // quitarles esa opcion de descuento». Nombres de tienda inventados: el mínimo es un dato de Ajustes, no del repo.
 const TIENDAS: NamedLocation[] = [
   { name: "Tienda Con Minimo", address: "1 Calle", tarifa_minima_ventas: 100 },

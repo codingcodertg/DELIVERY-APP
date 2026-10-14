@@ -2247,7 +2247,7 @@ export default function RoutesPage() {
         </div>
         {!isCollapsed(panel) && <>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "10px 0" }}>
-          {/* Con su «✕» para borrar (D-NEXT). */}
+          {/* Con su «✕» para borrar (D-546). */}
           <BuscadorConBorrar
             valor={vista.busqueda}
             onValor={vista.onBusqueda}

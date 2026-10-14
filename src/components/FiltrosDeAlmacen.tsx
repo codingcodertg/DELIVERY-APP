@@ -28,7 +28,7 @@ export function FiltrosDeAlmacen({ pestanas, filtro, onCambio, vista }: {
   const { lang, t } = usePrefs();
   return (
     <div className="filters">
-      {/* Con su «✕» para borrar (D-NEXT). */}
+      {/* Con su «✕» para borrar (D-546). */}
       <BuscadorConBorrar
         maxWidth={260}
         placeholder={t("Search invoice #…", "Buscar factura #…")}

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { BORRAR_BUSQUEDA, BUSQUEDA_VACIA, hayTextoQueBorrar } from "./buscador";
 
-// D-NEXT. «when i search orders it would be easier to have an x to clear instead of having to backspace».
+// D-546. «when i search orders it would be easier to have an x to clear instead of having to backspace».
 const leer = (ruta: string) => readFileSync(ruta, "utf8").split("\r\n").join("\n");
 
 describe("la «✕» del buscador", () => {

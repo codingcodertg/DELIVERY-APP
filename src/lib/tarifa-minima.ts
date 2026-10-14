@@ -3,7 +3,7 @@ import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { normalizaTienda } from "@/lib/visibilidad-tienda";
 
 /**
- * La tarifa mínima que un vendedor puede cobrar en una tienda (D-NEXT).
+ * La tarifa mínima que un vendedor puede cobrar en una tienda (D-546).
  *
  * El dueño, el 2026-10-14: *«En mcallen los vendedores no usan descuento de cobro como excepcion. La
  * tarifa es 100 minimo. Tenemos que quitarles esa opcion de descuento»*. Es un dato **de la tienda**

@@ -713,7 +713,7 @@ export default function OrdersPage() {
       </div>
 
       <div className="filters">
-        {/* Con su «✕» para borrar (D-NEXT). */}
+        {/* Con su «✕» para borrar (D-546). */}
         <BuscadorConBorrar
           ref={searchRef}
           maxWidth={260}

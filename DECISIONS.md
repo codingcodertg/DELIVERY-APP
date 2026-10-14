@@ -20192,7 +20192,7 @@ main, que se movió mientras se escribía (D-300).
 > un fallo»*. Era correcta cuando se escribió, y el dueño decidió lo contrario. Y la nota de que el
 > descuento de fuera de zona era **provisional** queda cerrada: ya tiene su cifra, `400 + 0,80 × mi`.
 >
-> **⚠ Y en parte el 2026-10-14, por D-NEXT.** «El descuento es el suelo de lo que un vendedor puede ofrecer por su cuenta»
+> **⚠ Y en parte el 2026-10-14, por D-546.** «El descuento es el suelo de lo que un vendedor puede ofrecer por su cuenta»
 > deja de valer en una tienda con `tarifa_minima_ventas`: allí el suelo del vendedor es ese mínimo, y el botón «Descuento» no
 > se le enseña.
 
@@ -22214,7 +22214,7 @@ Los roles de cada política se comparan **como conjunto y por cláusula**: en el
 
 ## D-317 · El descuento vuelve a ser una tabla propia, y por eso vuelve a aparecer
 
-> **⚠ Reemplazada en parte el 2026-10-14, por D-NEXT** (tarifa mínima de ventas). Para un **vendedor** en una tienda con
+> **⚠ Reemplazada en parte el 2026-10-14, por D-546** (tarifa mínima de ventas). Para un **vendedor** en una tienda con
 > `tarifa_minima_ventas`, la ficha ya no le ofrece el botón «Descuento» y no envía una tarifa por debajo del mínimo. Lo de
 > aquí sigue en pie para los demás roles y para las tiendas sin mínimo.
 
@@ -43256,7 +43256,7 @@ con un clic de ratón sobre la burbuja. Capturas de antes y después en el scrat
   real es más largo y se corta con «…» si no cabe).
 - Pulsar la opción del menú y aterrizar en `/inspection`: el enlace es el mismo `href` de la pestaña, pero no se pulsó.
 
-## D-NEXT · Tarifa mínima de ventas por tienda (sin botón «Descuento» y sin enviar por debajo), y una «✕» para borrar la búsqueda de órdenes
+## D-546 · Tarifa mínima de ventas por tienda (sin botón «Descuento» y sin enviar por debajo), y una «✕» para borrar la búsqueda de órdenes
 
 **Fecha:** 2026-10-14 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Rama `tarifa-minima-y-buscador` ·
 **Reemplaza en parte a** D-303 y D-317, que llevan su nota: para un vendedor en una tienda con mínimo, el descuento deja de
@@ -43315,7 +43315,7 @@ Las búsquedas que no son de órdenes (filtros de columna, ERP, Recruiting, Lead
 
 `src/lib/tarifa-minima.test.ts` y `src/lib/buscador.test.ts` importan las funciones que deciden; las anclas de fuente solo
 prueban que la ficha, las tres pantallas y el componente las usan. Tres pruebas existentes se pusieron al día con su «Nota
-D-NEXT» (`tarifa-descuento.test.ts`, `routes-columns.test.ts`, `almacen.test.ts`). Mutantes: ver el informe del worker en la
+D-546» (`tarifa-descuento.test.ts`, `routes-columns.test.ts`, `almacen.test.ts`). Mutantes: ver el informe del worker en la
 rama (tanda `tanda-tarifa-minima.json`).
 
 ### Lo que no se verificó

@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { BORRAR_BUSQUEDA, BUSQUEDA_VACIA, hayTextoQueBorrar } from "@/lib/buscador";
 
 /**
- * Un buscador de órdenes con una «✕» dentro, a la derecha, que lo vacía de un golpe (D-NEXT): el dueño, *«it would
+ * Un buscador de órdenes con una «✕» dentro, a la derecha, que lo vacía de un golpe (D-546): el dueño, *«it would
  * be easier to have an x to clear instead of having to backspace»*. La «✕» solo está cuando hay texto, y al
  * pulsarla el foco se queda en el campo para escribir la búsqueda siguiente.
  *
