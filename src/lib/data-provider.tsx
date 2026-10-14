@@ -39,6 +39,7 @@ import type { EscrituraDeMaterial } from "@/lib/agregar-material";
 import type { CampoDeDocumento } from "@/lib/order-document";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
+import { eventosVisibles } from "@/lib/eventos-visibles";
 
 const DEFAULT_SETTINGS: Settings = {
   id: 1,
@@ -492,6 +493,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       .map((c) => (overlay.updated[c.id] ? { ...c, ...overlay.updated[c.id] } : c));
     return [...overlay.created, ...base];
   }, [teaching, deliveries, overlay, outbox]);
+
+  // Los eventos, con los de la capa local en enseñanza (D-540): sin esto, «📍 Llegué» no cambiaba nada en «Mi ruta».
+  const effectiveEvents = useMemo(() => eventosVisibles(events, overlay.events, teaching), [events, overlay.events, teaching]);
 
   // Make sure the access token isn't stale before reading. Without this, a
   // token that expired while the tab sat in the background (browsers
@@ -1993,7 +1997,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, [supabase, notify, reloadAll]);
 
   const value: DataState = {
-    ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events, notifications, toast, notify,
+    ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserDeliveriesAccess, deleteUser,
