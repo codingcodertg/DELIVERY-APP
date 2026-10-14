@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
-  LS_PAUSAS, MOTIVOS_DE_PAUSA, cierreDePausa, guardaPausasLocales, horaDeCierre, inicioDePausa, leePausasLocales,
+  LS_PAUSAS, MOTIVOS_DE_PAUSA, MOTIVOS_PARA_ELEGIR, cierreDePausa, guardaPausasLocales, horaDeCierre, inicioDePausa, leePausasLocales,
   minutosDePausa, nombreDelMotivo, numeroOpcional, pausaAbierta, pideRecibo, textoDePausaAbierta, type PausaDelChofer,
 } from "@/lib/pausas-del-chofer";
 
@@ -209,5 +209,24 @@ describe("la base: la 167 y el gancho que la lee", () => {
     const cuerpo = sql.slice(0, sql.indexOf("-- @ledger-below"));
     expect(cuerpo.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n")).not.toMatch(/^\s*(begin|commit)\s*;/im);
     expect(sql).toMatch(/-- @ledger-below\ninsert into public\.schema_migrations \(name, checksum\) values \('167_pausas_del_chofer\.sql', '[0-9a-f]{64}'\)/);
+  });
+});
+
+// D-NEXT. El dueño, 2026-10-13: «from stops in driver dtop buttom will be jsut gas, restroom, food and other and for other add the note».
+describe("los motivos que elige el chofer", () => {
+  it("solo gasolina, baño, comida y otro, en ese orden", () => {
+    expect(MOTIVOS_PARA_ELEGIR.map((m) => m.clave)).toEqual(["gas", "restroom", "food", "other"]);
+  });
+  it("«tráfico» ya no se puede empezar, pero su nombre se sigue leyendo", () => {
+    expect(inicioDePausa("traffic", "")).toBeNull();
+    expect(MOTIVOS_DE_PAUSA.some((m) => m.clave === "traffic")).toBe(true);
+  });
+  it("«otro» sin nota no se guarda; con nota, sí", () => {
+    expect(inicioDePausa("other", "  ")).toBeNull();
+    expect(inicioDePausa("other", "llanta")).toEqual({ motivo: "other", nota: "llanta" });
+    expect(inicioDePausa("gas", "")).toEqual({ motivo: "gas", nota: null });
+  });
+  it("el botón pinta MOTIVOS_PARA_ELEGIR", () => {
+    expect(readFileSync("src/components/PausaDelChofer.tsx", "utf8")).toContain("{MOTIVOS_PARA_ELEGIR.map((m) => (");
   });
 });

@@ -23,6 +23,13 @@ export const MOTIVOS_DE_PAUSA = [
 ] as const;
 
 export type MotivoDePausa = (typeof MOTIVOS_DE_PAUSA)[number]["clave"];
+/**
+ * Los que el chofer puede ELEGIR (D-NEXT). El dueño, 2026-10-13: *«from stops in driver dtop buttom will be jsut gas,
+ * restroom, food and other and for other add the note»*. Fuera «Tráfico o espera»; «Otro» ya pedía la nota. La lista
+ * entera sigue arriba porque las paradas ya guardadas con `traffic` tienen que seguir leyéndose con su nombre.
+ */
+export const MOTIVOS_PARA_ELEGIR = (["gas", "restroom", "food", "other"] as const)
+  .map((clave) => MOTIVOS_DE_PAUSA.find((m) => m.clave === clave)!);
 
 /** «Otro» obliga a decir qué: tres letras como mínimo, la misma vara que la razón de un rechazo (D-487). */
 export const MINIMO_TEXTO_OTRO = 3;
@@ -53,7 +60,7 @@ const esMotivo = (x: string | null | undefined): x is MotivoDePausa => MOTIVOS_D
 
 /** Lo que se guarda al empezar, o `null` si falta algo: sin motivo, u «Otro» sin texto. La nota se limpia de espacios. */
 export function inicioDePausa(motivo: string | null | undefined, texto: string | null | undefined): { motivo: MotivoDePausa; nota: string | null } | null {
-  if (!esMotivo(motivo)) return null;
+  if (!esMotivo(motivo) || !MOTIVOS_PARA_ELEGIR.some((m) => m.clave === motivo)) return null;
   const nota = (texto ?? "").trim().replace(/\s+/g, " ").slice(0, MAXIMO_NOTA);
   if (motivo === "other" && nota.length < MINIMO_TEXTO_OTRO) return null;
   return { motivo, nota: nota || null };

@@ -22,7 +22,7 @@ describe("oficina: Órdenes y Ruta de hoy, y nada más, por ahora", () => {
     const barra = barraDe("accounting");
     expect(barra.map((tb) => tb.id)).toEqual([...PESTANAS_DE_OFICINA_POR_AHORA]);
     expect(barra.filter((tb) => vaEnGeneral(tb, "accounting"))).toEqual([]);
-    expect(barra.map((tb) => tb.label_es)).toEqual(["📋 Órdenes", "🗺 Ruta de hoy"]);
+    expect(barra.map((tb) => tb.label_es)).toEqual(["📋 Órdenes", "🌐 Ruta de hoy"]);
   });
 
   it("y por eso la guarda de pantalla (TabGate, D-240) la deja fuera de todo lo demás, también por URL", () => {
