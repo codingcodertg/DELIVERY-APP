@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { TABS, ROLE_INFO, ROLE_ORDER, canOpenTab, roleHome, roleLabel, vaEnGeneral } from "@/lib/constants";
 import { pestanasEnOrden } from "@/lib/orden-de-pestanas";
+import { pestanasDeLaFila } from "@/lib/barra-de-entregas";
 import { opcionesDelMenuDeCuenta } from "@/lib/account-menu";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -97,8 +98,12 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // acabó dejando entrar a quien no tenía pestaña.
   // Y en el orden de cada rol (D-480): para almacén, su «Órdenes» antes que «Ruta de hoy».
   const visibleTabs = pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, me)), me.role);
-  const mainTabs = visibleTabs.filter((tb) => !vaEnGeneral(tb, me.role));
-  const generalTabs = visibleTabs.filter((tb) => vaEnGeneral(tb, me.role));
+  // La inspección pre-viaje no va en la fila sino en el menú del nombre (D-NEXT): `pestanasDeLaFila` la quita aquí, y
+  // `opcionesDelMenuDeCuenta` la pone allí con la misma `canOpenTab`.
+  const deLaFila = pestanasDeLaFila(visibleTabs);
+  const mainTabs = deLaFila.filter((tb) => !vaEnGeneral(tb, me.role));
+  const generalTabs = deLaFila.filter((tb) => vaEnGeneral(tb, me.role));
+  const inspeccion = TABS.find((tb) => tb.id === "inspection");
   const pestanaDelAviso = pestanaDelAvisoSinChofer(mainTabs.map((tb) => tb.id));
 
   // Match the exact route or a sub-route — never a prefix of another tab
@@ -164,8 +169,12 @@ export function TopBar({ me: propMe }: { me: Profile }) {
       </div>
     )}
     <div className="topbar">
-      {/* La casa va pegada al nombre de la app (D-274), no con las pestañas. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+      {/* La casa va pegada al nombre de la app (D-274), no con las pestañas.
+          En el teléfono (≤ 520 px, globals.css) la barra va en dos filas (D-NEXT, lo mismo que D-528 hizo en Time
+          Tracker): arriba el nombre de la app, la casa, la campana y solo la burbuja con las iniciales; debajo, las
+          pestañas. Para eso `.entregas-barra-resto` deja de ser una caja (`display: contents`) y sus piezas se colocan
+          con `order`. En el escritorio, como estaba. */}
+      <div className="entregas-marca" style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
         <h1>{settings.app_name || "RTG·HUB"}</h1>
         <HubHomeLink deliveriesRole={me.role} moduleAccess={me.module_access} />
       </div>
@@ -177,7 +186,9 @@ export function TopBar({ me: propMe }: { me: Profile }) {
           follow-up: adding the module switcher's button was what finally
           tipped a multi-module admin's already-full tab row over the edge,
           but the missing min-width was the real, preexisting cause). */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", minWidth: 0 }}>
+      {/* Su `display: flex` (y lo demás que iba en línea hasta D-NEXT) está en globals.css: un estilo en línea gana a la
+          hoja, y en el teléfono esta caja tiene que poder pasar a `display: contents`. */}
+      <div className="entregas-barra-resto">
         <div className="tabs">
           {mainTabs.map((tb) => (
             <Link key={tb.id} href={tb.href} className={"tab " + (isActive(tb.href) ? "active" : "")} style={{ position: "relative" }}>
@@ -256,6 +267,18 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         <MenuDeCuenta nombre={me.full_name}>
           {(cierraMenu) => opcionesMenu.map((o) => {
             switch (o) {
+              case "inspeccion":
+                // Era la pestaña «✅ Inspección pre-viaje» de la fila (D-518/D-521); desde D-NEXT vive aquí, con su
+                // mismo texto y su misma ruta. Dentro de su pantalla sale resaltada, como las del menú «General».
+                if (!inspeccion) return null;
+                return (
+                  <Link key={o} href={inspeccion.href} role="menuitem" className="col-opt" onClick={cierraMenu}
+                    aria-current={isActive(inspeccion.href) ? "page" : undefined}
+                    style={{ textDecoration: "none", fontWeight: isActive(inspeccion.href) ? 700 : undefined,
+                      background: isActive(inspeccion.href) ? "var(--accent-soft)" : undefined }}>
+                    {tabLabel(inspeccion)}
+                  </Link>
+                );
               case "ensenanza":
                 return (
                   <button
@@ -320,7 +343,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             vería una app recortada sin nada que se lo explique. */}
         {realRole === "admin" && viewAs && (
           <label
-            className="role-switch"
+            className="role-switch entregas-tras-pestanas"
             style={{ background: ROLE_INFO[viewAs].color }}
             title={t("You are viewing the app as another role. Choose «Me (admin)» to go back.",
                      "Estás viendo la app como otro rol. Elige «Yo (admin)» para volver.")}
@@ -340,7 +363,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             (/home/switch-user) se queda tal cual. D-483: al lado, «📱 Vista móvil», que abre esta misma pantalla en el marco
             de teléfono del hub (solo admin, igual que la página). */}
         {realRole === "admin" && puedeSwitch && (
-          <div style={{ position: "relative" }}>
+          <div className="entregas-tras-pestanas" style={{ position: "relative" }}>
             <button className="tab" onClick={() => setSwitchAbierto((v) => !v)} aria-expanded={switchAbierto}>
               ⇄ {t("Switch user", "Cambiar usuario")}
             </button>
@@ -358,7 +381,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         )}
         {/* Sin la función de cambiar usuario encendida, la vista móvil sigue teniendo su botón suelto. */}
         {realRole === "admin" && !puedeSwitch && (
-          <a className="tab" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}
+          <a className="tab entregas-tras-pestanas" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}
             title={t("See this screen as it looks on a phone", "Ver esta pantalla como se ve en un teléfono")}>
             📱 {t("Mobile view", "Vista móvil")}
           </a>

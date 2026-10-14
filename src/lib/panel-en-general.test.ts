@@ -17,8 +17,11 @@ describe("el Panel va en «General» para admin", () => {
   });
   it("la barra reparte con esa función, no con `group` a secas", () => {
     const barra = readFileSync(join(process.cwd(), "src/components/TopBar.tsx"), "utf8");
-    expect(barra).toContain("const mainTabs = visibleTabs.filter((tb) => !vaEnGeneral(tb, me.role));");
-    expect(barra).toContain("const generalTabs = visibleTabs.filter((tb) => vaEnGeneral(tb, me.role));");
+    // Nota D-NEXT: reparte `deLaFila` —las visibles sin la inspección, que se fue al menú del nombre
+    // (`pestanasDeLaFila`)— en vez de `visibleTabs`. La regla de «General» es la misma.
+    expect(barra).toContain("const deLaFila = pestanasDeLaFila(visibleTabs);");
+    expect(barra).toContain("const mainTabs = deLaFila.filter((tb) => !vaEnGeneral(tb, me.role));");
+    expect(barra).toContain("const generalTabs = deLaFila.filter((tb) => vaEnGeneral(tb, me.role));");
     expect(barra).not.toContain('tb.group === "general"');
   });
 });

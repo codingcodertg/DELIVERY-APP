@@ -177,6 +177,31 @@
 .account-link:hover:not(.active) { background: rgba(255,255,255,.1); }
 .account-link.active { background: rgba(255,255,255,.16); }
 
+/* La barra de Entregas en el teléfono (D-NEXT), lo mismo que D-528 hizo en Time Tracker (`timetracker.css`) y en el
+   mismo ancho, ≤ 520 px. El dueño, 2026-10-13, con la captura de Ernesto Castillo: «el notification icon que vaya arriba
+   al lado de rdz deliveries y el name ya no sera el name solo el bubbl eocn las iniciales ya ete habia pedido eso». Eran
+   tres filas —el nombre de la app; las pestañas; la campana y «EC Ernesto Castillo ▾»— y quedan dos:
+   · arriba, el nombre de la app (con «…» si no cabe), la casa, la campana y solo la burbuja de las iniciales: el nombre
+     sigue ahí para un lector de pantalla (escondido a la vista, no con display:none), y la burbuja abre el mismo menú;
+   · abajo, las pestañas, que siguen siendo una fila que se desliza (el bloque de ≤ 760 px).
+   `.entregas-barra-resto` deja de ser una caja (`display: contents`): la campana y la burbuja suben a la fila del nombre,
+   que ocupa el sitio libre y las empuja a la derecha, y las pestañas bajan con `order`. Lo que solo tiene el admin real
+   —la píldora de «ver como», «Cambiar usuario», «Vista móvil»— baja detrás de las pestañas (`.entregas-tras-pestanas`),
+   para no apretar la fila de arriba. El panel de la campana ya se coloca solo dentro de la ventana (NotificationBell). */
+/* Pestañas, campana y cuenta, en una caja que se parte en filas. Iba en línea en TopBar hasta D-NEXT; aquí, para que el
+   teléfono la pueda deshacer (un estilo en línea ganaría al `display: contents` de abajo). min-width: 0, ver TopBar. */
+.entregas-barra-resto { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+@media (max-width: 520px) {
+  .topbar .entregas-marca { flex: 1 1 0; gap: 3px; }
+  .topbar .entregas-marca h1 { font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar .entregas-marca .tab-casa { font-size: 20px; padding: 2px 4px; }
+  .topbar .entregas-barra-resto { display: contents; }
+  .topbar .entregas-barra-resto > .tabs { order: 2; flex: 1 1 100%; }
+  .topbar .entregas-barra-resto > .entregas-tras-pestanas { order: 3; }
+  .topbar .entregas-barra-resto .account-link .menu-cuenta-nombre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .topbar .entregas-barra-resto .account-link .menu-cuenta-flecha { display: none; }
+}
+
 /* Admin role tag that doubles as the "view as" switcher: a colored pill whose
    whole surface is a transparent native <select>. */
 .role-switch {
