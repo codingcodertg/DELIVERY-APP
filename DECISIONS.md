@@ -42981,3 +42981,16 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 5. **El aviso «N chofer(es) en turno no están reportando su ubicación» solo en el Gestor.** El dueño: *«people should not see this message just admin and logistic manager but from the logistic manager view not rutas de hoy»*. Se pinta solo si la pantalla no es de solo lectura: «Ruta de hoy» (D-481) y el mapa del chofer (D-514) lo son; el Gestor solo lo abren admin y logística.
 
 **Pruebas:** `muchos-pallets.test.ts` (tope, casos borde, la ficha lo pregunta; el texto de ubicación fuera; el aviso solo sin solo lectura) y `pausas-del-chofer.test.ts` (los cuatro motivos, «tráfico» no empieza pero se lee, «otro» sin nota no). **No medido:** en navegador ni en teléfono.
+
+## D-542 · Gestor de Rutas: «Todas» sin chips de filtro, y el «📸 PNG» fuera para ventas
+
+**Fecha:** 2026-10-13 · **Versión:** deliveries 1.301.0 (repo 1.407.0) · Sin migración · Hecho directo por el orquestador en `todas-sin-filtros`.
+
+**Pedidos del dueño**, literales: *«delete all those filters but just lleave sin asginar»* (con una captura de la pestaña «Todas» y su fila «Este día · Todas las fechas · Expiradas · Con ventana · Sin ubicación») y *«remove the png option for the sales people»*.
+
+1. **«Todas» ya no tiene chips.** Enseña siempre las órdenes del día (el antiguo chip «Este día»). La pestaña **«Sin asignar» conserva los suyos** (D-393): eso es lo que se deja. **Reemplaza en parte a D-462**, que le puso a «Todas» los mismos chips que «Sin asignar». Las funciones (`filasDeTodas`, `cuentasDeTodas`) no cambian; la pantalla deja de pintarlos (`conChips` en la vista) y fija `chipDeTodas` en «dia».
+2. **«📸 PNG» (D-536) no sale para ventas**, con la misma regla que los camiones en vivo (`veCamiones`, D-467). Ventas solo llega aquí por «Ruta de hoy».
+
+**Pendiente, no hecho aquí:** el mismo día pidió *«sin asignar y todas shou;d have the samea columns view as programadas»*. Las tablas usan juegos de columnas distintos (`sinAsignar` y `paradas`, `routes-columns.ts`); va en su propia rama.
+
+**Pruebas:** `todas-del-gestor.test.ts`, bloque «“Todas” sin chips, y el PNG fuera para ventas». **No medido:** en navegador.

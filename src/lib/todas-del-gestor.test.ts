@@ -226,7 +226,7 @@ describe("la pantalla", () => {
   });
 });
 
-// D-NEXT. El dueño, 2026-10-13: «delete all those filters but just lleave sin asginar» y «remove the png option for the
+// D-542. El dueño, 2026-10-13: «delete all those filters but just lleave sin asginar» y «remove the png option for the
 // sales people». Las funciones de arriba siguen (las usa «Sin asignar»); lo que cambia es la pantalla.
 describe("«Todas» sin chips, y el PNG fuera para ventas", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");

@@ -488,7 +488,7 @@ export default function RoutesPage() {
   const [poolFilter, setPoolFilter] = useState<ChipSinAsignar>("dia");
   // Lo mismo para la pestaña «Todas» (D-462): su buscador y su chip, aparte de los de «Sin asignar».
   const [busquedaDeTodas, setBusquedaDeTodas] = useState("");
-  // «Todas» ya no tiene chips (D-NEXT): siempre las del día.
+  // «Todas» ya no tiene chips (D-542): siempre las del día.
   const chipDeTodas: ChipSinAsignar = "dia";
   // Cached pickup→dropoff geometry for selected unassigned loads (drawn on the map).
   const [selRouteCache, setSelRouteCache] = useState<Record<string, [number, number][]>>({});
@@ -2105,7 +2105,7 @@ export default function RoutesPage() {
     columnas: ColumnaDelGestor[]; menu: ColumnaConMenu[]; selector: ColumnaDelGestor[]; notaDelSelector: string;
     busqueda: string; onBusqueda: (v: string) => void;
     chip: ChipSinAsignar; onChip: (c: ChipSinAsignar) => void; cuentas: Record<ChipSinAsignar, number>; rotuloDelChip: (c: ChipSinAsignar) => string;
-    /** Los chips de filtro (D-393) se pintan solo en «Sin asignar»; «Todas» va sin ellos, siempre «Este día» (D-NEXT). */
+    /** Los chips de filtro (D-393) se pintan solo en «Sin asignar»; «Todas» va sin ellos, siempre «Este día» (D-542). */
     conChips: boolean;
     /** Las filas del chip sin búsqueda (para decir «todo tiene chofer») y con ella (para decir «nada coincide»). */
     filas: Delivery[]; conBusqueda: Delivery[];
@@ -2395,7 +2395,7 @@ export default function RoutesPage() {
     columnas: colsTodas, menu: menuDeTodas, selector: columnasDelSelectorDeTodas(ordenGestor),
     notaDelSelector: t("The same columns as “Unassigned”: saved for you, for both tables.", "Las mismas columnas que «Sin asignar»: se guarda para usted, para las dos tablas."),
     busqueda: busquedaDeTodas, onBusqueda: setBusquedaDeTodas,
-    // Sin chips (D-NEXT, el dueño: «delete all those filters but just lleave sin asginar»): «Todas» es la del día.
+    // Sin chips (D-542, el dueño: «delete all those filters but just lleave sin asginar»): «Todas» es la del día.
     chip: "dia", onChip: () => {}, cuentas: cuentasDeTodasAqui, rotuloDelChip: (f) => rotuloDelChip(f, t("All dates", "Todas las fechas")), conChips: false,
     filas: filasDeTodasDelChip, conBusqueda: todasConBusqueda, orden: ordenDeTodas,
     vacio: chipDeTodas === "dia" ? t("No orders on this date.", "No hay órdenes en esta fecha.") : t("No orders with this filter.", "Ninguna orden con este filtro."),
@@ -3095,7 +3095,7 @@ export default function RoutesPage() {
               </span>
               )}
               {/* «📸 PNG» (D-536): la hoja de la ruta —paradas en orden y el mapa con solo esta ruta— como imagen, para
-                  mandársela al chofer. También en solo lectura: mirar y mandar no cambia nada. Ventas, no (D-NEXT, el dueño:
+                  mandársela al chofer. También en solo lectura: mirar y mandar no cambia nada. Ventas, no (D-542, el dueño:
                   «remove the png option for the sales people»). */}
               {stops.length > 0 && veCamiones && (
                 <button className="btn btn-ghost btn-sm" data-png-de-la-ruta={u.key} title={t("Build a PNG of this route (stops + map) to send to the driver", "Armar un PNG de esta ruta (paradas + mapa) para mandárselo al chofer")}
