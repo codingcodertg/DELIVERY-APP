@@ -8,12 +8,19 @@ import type { CSSProperties } from "react";
  * parada». La siguiente ya no se distingue por el fondo (antes, azul claro en cualquier fila): lleva un borde del
  * color de acento, que se ve igual sobre los dos fondos. Los tokens son los de `globals.css`, con su versión oscura.
  */
-export const FONDO_DE_PARADA: Record<"P" | "D", string> = { P: "var(--green-soft)", D: "var(--accent-soft)" };
+/**
+ * **Reemplazado en parte por D-547** (2026-10-14). El dueño, con una captura de «Mi ruta»: *«pickups change to color blue
+ * and deliveries to the orgiinal clear color»*. La recogida pasa a azul claro (`--accent-soft`, el que tenían las
+ * entregas) y la entrega vuelve al fondo de siempre de la fila, sin tinte (`undefined`: no se escribe `background`). El
+ * borde de la siguiente no cambia. Antes: `{ P: "var(--green-soft)", D: "var(--accent-soft)" }`.
+ */
+export const FONDO_DE_PARADA: Record<"P" | "D", string | undefined> = { P: "var(--accent-soft)", D: undefined };
 
-/** El fondo de una fila (o de la tarjeta) y, si es la siguiente, su borde. */
+/** El fondo de una fila (o de la tarjeta) y, si es la siguiente, su borde. Sin fondo propio (la entrega), sin `background`. */
 export function estiloDeParada(tipo: "P" | "D", siguiente: boolean): CSSProperties {
+  const fondo = FONDO_DE_PARADA[tipo];
   return {
-    background: FONDO_DE_PARADA[tipo],
+    ...(fondo ? { background: fondo } : {}),
     ...(siguiente ? { boxShadow: "inset 0 0 0 2px var(--accent)" } : {}),
   };
 }

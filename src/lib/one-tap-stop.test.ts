@@ -152,7 +152,8 @@ describe("la ficha usa el módulo; «Mi ruta» ya no cierra la parada por su cue
   // the order instead of doing the action»), con ESTE módulo (`escrituraRecogida`) y el GPS sin bloquear. La entrega sigue
   // en la ficha. Lo fija `mi-ruta-pantalla.test.ts`.
   it("Mi ruta: la recogida de un toque usa este módulo; la entrega sigue sin escribirse aquí (abre la ficha y la cámara)", () => {
-    expect(ruta).toContain("escrituraRecogida({ pedido: d, me, gps, t })");
+    // Nota D-547: con `pallets`, el número que el chofer confirma en «¿Cuántos pallets cargas?» (era sin él).
+    expect(ruta).toContain("escrituraRecogida({ pedido: d, me, gps, t, pallets })");
     expect(ruta).not.toContain("extraEntrega");
     expect(ruta).toContain("captureLocationSplit();");
     expect(ruta).toMatch(/abrirOrden\(d, accion\);/);

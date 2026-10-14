@@ -144,6 +144,9 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     "src/app/(app)/market/page.tsx": 3,
     // «Mi ruta»: 1 hasta D-515 (el blanco del círculo de cada entrega, pintado a mano por estado). 0 desde que la lista
     // numera por paradas con el círculo del Gestor, `.numero-de-parada`, que lleva su color por clase.
+    // 1 desde D-547: el blanco de la pastilla de etapa en cada orden de la lista («Need driver to see the stage here»), la
+    // misma `.sema` sobre el color de `stageInfo` que Órdenes y la Ruta del día de almacén (D-380). Blanco sobre color fijo.
+    "src/app/(app)/my-route/page.tsx": 1,
     // 11 hasta D-376: −1 blanco, la pastilla de etapa que «Sin asignar» pintaba a mano; ahora la pinta la celda de Órdenes.
     "src/app/(app)/routes/page.tsx": 10,
     "src/app/(app)/settings/page.tsx": 1,
@@ -245,8 +248,9 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // 71 y 57 hasta D-515: −1 blanco, el círculo de la entrega en «Mi ruta», que pasa a ser el número de parada del Gestor.
     // 70 y 56 hasta D-520: −1 blanco, el de la leyenda del mapa, que se quitó de toda la app (`MapLegend.tsx` borrado).
     // 69 y 55 hasta D-536: +5 (uno blanco) de la hoja de «📸 PNG» de la ruta, que se fotografía (ver su techo, arriba).
-    expect(total).toBe(74);
-    expect(blancos).toBe(56);
+    // 74 y 56 hasta D-547: +1 blanco, la pastilla de etapa de cada orden de «Mi ruta» (ver su techo, arriba).
+    expect(total).toBe(75);
+    expect(blancos).toBe(57);
   });
 });
 

@@ -28,7 +28,11 @@ export type MotivoDePausa = (typeof MOTIVOS_DE_PAUSA)[number]["clave"];
  * restroom, food and other and for other add the note»*. Fuera «Tráfico o espera»; «Otro» ya pedía la nota. La lista
  * entera sigue arriba porque las paradas ya guardadas con `traffic` tienen que seguir leyéndose con su nombre.
  */
-export const MOTIVOS_PARA_ELEGIR = (["gas", "restroom", "food", "other"] as const)
+//
+// **Reemplazado en parte por D-547** (2026-10-14): fuera también «Baño». El dueño: *«Maybe they don't need to log restroom
+// breaks 😆 that might be too much»*. Quedan Gasolina, Comida y Otro (con su nota). `restroom` sigue en `MOTIVOS_DE_PAUSA`
+// para que las paradas ya guardadas con él se lean con su nombre (y la base, 167, lo sigue admitiendo).
+export const MOTIVOS_PARA_ELEGIR = (["gas", "food", "other"] as const)
   .map((clave) => MOTIVOS_DE_PAUSA.find((m) => m.clave === clave)!);
 
 /** «Otro» obliga a decir qué: tres letras como mínimo, la misma vara que la razón de un rechazo (D-487). */

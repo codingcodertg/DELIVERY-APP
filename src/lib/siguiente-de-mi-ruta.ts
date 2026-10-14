@@ -1,6 +1,6 @@
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 import type { ParadasDeLaRuta } from "@/lib/gestor/paradas-numeradas";
-import type { LlegadaDeParada } from "@/lib/acciones-parada";
+import { ordenDeLaLlegada, type LlegadaDeParada } from "@/lib/acciones-parada";
 
 // ============================================================
 // «Siguiente parada» de «Mi ruta» por PARADAS y un solo botón por orden (D-533, 2026-10-12). El dueño, con la captura de
@@ -76,10 +76,34 @@ export function textoDePosicion(s: Pick<SiguienteDeMiRuta, "tipo" | "posicion" |
 }
 
 /** La llegada de la parada vale para CADA orden de su tramo: la fila de cada una enseña «📍 Llegué» mientras no se ha
- *  llegado (un toque la marca en todas) y su «Recogido»/«Entregado» después. `null` si la orden no está en ese tramo. */
+ *  llegado (un toque la marca en todas) y su «Recogido»/«Entregado» después. `null` si la orden no está en ese tramo.
+ *  **Nota D-547:** el BOTÓN «Llegué» ya solo va en la primera (`llevaBotonDeLlegada`); esto sigue diciendo de qué llegada
+ *  depende cada fila, que es lo que esconde o enseña su «Recogido»/«Entregado». */
 export function llegadaDeLaOrden(llegada: LlegadaDeParada | null | undefined, id: string): LlegadaDeParada | null {
   return llegada && llegada.ordenes.includes(id) ? llegada : null;
 }
+
+/**
+ * ¿Se pinta en la fila de esta orden el botón «📍 Llegué» (o, ya llegado, «✓ Llegaste 10:42 · ↩ Deshacer»)? (D-547)
+ *
+ * El dueño, 2026-10-14, con la captura de la parada 6 en RDZ Brownsville, varias recogidas y cada una con su «Arrived»:
+ * *«see pickup 6 and then all pickups to that hav an arrive but since is the 6th stop with that thats enough»*. Solo la
+ * PRIMERA orden de la parada que sigue en su tramo lo lleva (`ordenDeLaLlegada`, como en D-527); las demás no. La llegada
+ * se sigue marcando en TODAS las órdenes del tramo (`BotonDeLlegada` recorre `llegada.ordenes`).
+ *
+ * `llegada` sigue llegando a todas las filas (`llegadaDeLaOrden`): es lo que esconde «Recogido»/«Entregado» mientras no se
+ * ha llegado (`botonesConLlegada`, D-533), y al llegar lo deja en CADA fila, porque cada orden se recoge por separado.
+ */
+export function llevaBotonDeLlegada(llegada: LlegadaDeParada | null | undefined, id: string): boolean {
+  return !!llegada && ordenDeLaLlegada(llegada) === id;
+}
+
+/**
+ * La tarjeta «Siguiente parada · 1/13 · Recogida 1 de 2» de «Mi ruta» (D-533), APAGADA (D-547). El dueño, 2026-10-14,
+ * con su captura: *«disable that box for now but have the option to activate it in the future»*. Su código sigue entero en
+ * la página; volver a encenderla es poner esto a `true`. Con ella apagada, la etapa de cada orden va en su fila de la lista.
+ */
+export const MOSTRAR_SIGUIENTE_PARADA: boolean = false;
 
 /** «🚚 Recogido» se hace de un toque, sin abrir la ficha, cuando el almacén ya la tiene lista. Sin lista (`approved`,
  *  `fulfilling`) sigue abriendo la ficha: «Recoger de todos modos» pide una nota (D-527). */

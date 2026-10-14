@@ -42838,6 +42838,8 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 ## D-533 · «Mi ruta» por paradas: «Siguiente parada 1/5 · Recogida 1 de 2», un botón que cambia («Llegué» → «Recogido»/«Entregado»), «Recogido» de un toque, y la burbuja/factura abren la orden
 
+> **Reemplazada en parte por D-547** (2026-10-14): la tarjeta «Siguiente parada» va apagada tras `MOSTRAR_SIGUIENTE_PARADA` (su código sigue); «📍 Llegué» vuelve a ir solo en la primera orden de la parada (como D-527), aunque marca la llegada en todas; y «Recogido» de un toque pregunta antes los pallets. Se quedan: un botón que cambia, «Rechazado» siempre en la entrega, la burbuja y la factura abren la orden.
+
 **Fecha:** 2026-10-12 · **Versión:** deliveries 1.294.0 (repo 1.398.0) · Sin migración · Hecho directo por el orquestador en `feat/mi-ruta-por-paradas`. **Reemplaza en parte a D-527** (lleva su nota).
 
 **Pedidos del dueño**, literales, con la captura de dos recogidas (179500 y 179510) en RDZ Brownsville y «Next stop · 1/5»:
@@ -42876,6 +42878,8 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **No medido:** nada en navegador (`tsc` y vitest).
 
 ## D-535 · «Mi ruta»: las recogidas sobre verde claro y las entregas sobre azul claro; la siguiente, con borde
+
+> **Reemplazada en parte por D-547** (2026-10-14): las recogidas pasan a azul claro (`--accent-soft`) y las entregas vuelven al fondo de siempre, sin tinte («pickups change to color blue and deliveries to the orgiinal clear color»). El borde de la siguiente se queda.
 
 **Fecha:** 2026-10-12 · **Versión:** deliveries 1.296.0 (repo 1.400.0) · Sin migración · Hecho directo por el orquestador en `feat/colores-mi-ruta`.
 
@@ -42996,6 +43000,8 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **No medido:** en el navegador, como Ernesto en enseñanza.
 
 ## D-541 · Cinco ajustes del 2026-10-13: confirmar más de 10 pallets, los motivos de parada del chofer, sin «se registrará tu ubicación», el globo de «Ruta de hoy» y el aviso de choferes sin señal solo en el Gestor
+
+> **Reemplazada en parte por D-547** (2026-10-14), solo el punto 2: «Baño» ya no se elige al registrar una parada; quedan Gasolina, Comida y Otro (con su nota). Las paradas de baño ya guardadas se siguen leyendo con su nombre.
 
 **Fecha:** 2026-10-13 · **Versión:** deliveries 1.300.0 (repo 1.406.0) · Sin migración · Hecho directo por el orquestador en `aviso-muchos-pallets`. Cinco pedidos del mismo día sobre pantallas distintas; una entrada porque cada uno es una línea.
 
@@ -43325,3 +43331,128 @@ rama (tanda `tanda-tarifa-minima.json`).
 - **El nombre exacto de la tienda de McAllen en `settings.stores`** no se leyó de producción; en DECISIONS aparece como «RDZ
   McAllen». La comparación es sin mayúsculas ni espacios de sobra, pero el valor se pone desde Datos → Tiendas sobre la tienda
   que esté, no tecleando el nombre.
+## D-547 · «Mi ruta» del chofer, seis ajustes del 2026-10-14: sin la tarjeta «Siguiente parada» (apagada, no borrada), la etapa en cada orden, «Recogido» pregunta los pallets, sin «Baño», recogidas en azul y entregas sin tinte, y «Llegué» solo en la primera orden de la parada
+
+**Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca `deliveries`) · **Migración:** ninguna · Rama
+`mi-ruta-ajustes-1014` · **Reemplaza en parte a D-533, D-535 y D-541** (cada una lleva su nota).
+
+### Qué pidió el dueño
+
+Seis pedidos del 2026-10-14, literales, varios con capturas de «Mi ruta» que vio el orquestador (el worker no):
+
+1. > «disable that box for now but have the option to activate it in the future»
+
+   Con la captura de la tarjeta «NEXT STOP · 1/13 · PICKUP 1 OF 2» (D-533).
+2. > «Need driver to see the stage here»
+
+   Con la captura de esa misma tarjeta.
+3. > «Also when they are picking up it's not asking them how many pallets are they loading drivers»
+4. > «Maybe they don't need to log restroom breaks 😆 that might be too much»
+5. > «pickups change to color blue and deliveries to the orgiinal clear color»
+6. > «see pickup 6 and then all pickups to that hav an arrive but since is the 6th stop with that thats enough»
+
+   Con la captura de la parada 6 en RDZ Brownsville: varias recogidas, cada una con su «📍 Arrived».
+
+### Qué cambia
+
+1. **La tarjeta «Siguiente parada», apagada tras una constante.** `MOSTRAR_SIGUIENTE_PARADA: boolean = false`
+   (`src/lib/siguiente-de-mi-ruta.ts`), el mismo patrón que `MOSTRAR_CONFLICTO_DE_PROGRAMACION` en la ficha. La página
+   pinta `{MOSTRAR_SIGUIENTE_PARADA && next && (…)}`: el código de la tarjeta sigue entero, y encenderla es cambiar esa
+   línea. `siguienteDeMiRuta` se sigue calculando: pinta el borde de la fila siguiente en la lista.
+   - **Lo que se va con ella, y dónde queda:** «🧭 Navegar» y «Dejar en tienda» de la orden en el camión. Los dos siguen en
+     la ficha de la orden (se abre tocando la factura o la burbuja). «Dejar en tienda» de una orden rechazada sigue en su
+     fila de la lista (D-495).
+2. **La etapa en cada orden de la lista.** Una pastilla `.sema` junto al nombre de cada recogida y a la factura de cada
+   entrega, la MISMA de Órdenes, de la ficha y de la Ruta del día de almacén: `pastillaDeEtapa` (`recibir.ts`) con
+   `idsRecibidasPorAlmacen(events)`, así que dice «Ready», «Programmed», «Picked Up»… y «Received» si la recibió el almacén
+   (D-409). Lleva `data-etapa-en-la-fila`. Su texto blanco sobre el color de la etapa es un color a pelo: el techo de «Mi
+   ruta» en `inline-colors.test.ts` pasa de 0 a 1 y el total de 74 a 75 (blancos 56 → 57), con su nota.
+3. **«Recogido» pregunta los pallets.** Con la carga lista (`ready`), «🚚 Recogido» ya no recoge directo: abre un cuadro
+   pequeño, «¿Cuántos pallets cargas?» (`PalletsAlRecoger.tsx`), con el número ya puesto —los confirmados
+   (`actual_pallets`) y, si no hay, los estimados (`palletsPorDefecto`)— y «Confirmar recogida». Si el número cuadra, es un
+   toque más; si no, lo corrige. Vale un número mayor que 0, hasta 99, a la décima, con punto o coma
+   (`leePalletsAlRecoger`); vacío o 0, el botón queda apagado. Al confirmar, la misma recogida de D-533
+   (`recogerDeUnToque(d, n)`), con ese número.
+   - **Dónde se guarda, y por qué ahí.** En `actual_pallets`, el campo de «pallets confirmados» (el que escribe el almacén
+     con «Pallets confirmed: N»), y en la **misma escritura** que pasa la orden a `picked_up`:
+     `escrituraRecogida({ …, pallets })`, que ya escribía `actual_pallets` y la nota «Cargadas: N pallets». **Se miró el
+     guard antes de decidir:** en `guard_delivery_stage` de la 169, el salto del chofer `ready → picked_up` se acepta sin
+     mirar columnas (`or (r = 'driver' and old_stage = 'ready' and new_stage = 'picked_up')` → `return NEW`), así que el
+     chofer puede escribir `actual_pallets` en ese salto. Una escritura aparte en la misma etapa, no: el tramo de misma
+     etapa solo le deja al chofer fotos y marcas de salida/llegada (169) y el GPS tardío. Sin migración.
+   - **Lo que no cambia:** la recogida sin lista (`approved`/`fulfilling`) sigue abriendo la ficha con su nota obligatoria
+     (D-527); ahí no se añade la pregunta. Cancelar el cuadro no recoge nada.
+4. **Fuera «Baño».** `MOTIVOS_PARA_ELEGIR` queda en Gasolina, Comida y Otro (con su nota, D-520). `restroom` sigue en
+   `MOTIVOS_DE_PAUSA` (y en la base, 167): una parada de baño ya guardada se sigue leyendo «🚻 Baño».
+5. **Recogidas en azul claro, entregas sin tinte.** `FONDO_DE_PARADA = { P: "var(--accent-soft)", D: undefined }`
+   (`colores-de-mi-ruta.ts`); `estiloDeParada` no escribe `background` cuando no hay fondo, así que la entrega vuelve a la
+   fila de siempre. El borde de 2 px de la siguiente (D-535) no cambia y se ve sobre las dos. «Azul» se leyó como el azul
+   claro que ya era de las entregas (`--accent-soft`, con su versión oscura), no un azul nuevo.
+6. **«Llegué» solo en la primera orden de la parada.** `llevaBotonDeLlegada(llegada, id)` es `true` solo para
+   `ordenDeLaLlegada(llegada)`, la primera orden de la parada que sigue en su tramo (la regla de D-527). Esa fila pinta
+   «📍 Llegué» y, ya llegado, «✓ Llegaste 10:42 · ↩ Deshacer»; las demás, ninguno (`AccionesDeParada` gana
+   `conBotonDeLlegada`). **Lo que no cambia:** un toque sigue marcando la llegada en TODAS las órdenes del tramo
+   (`BotonDeLlegada` recorre `llegada.ordenes`), y cada fila sigue recibiendo la llegada de su parada (`llegadaDeLaOrden`),
+   que es lo que esconde su «Recogido» mientras no se llega y lo enseña al llegar (`botonesConLlegada`): **cada orden se
+   recoge por separado**, con su propio «Recogido». Recogida la primera, el «✓ Llegaste» pasa a la que ahora es primera.
+   - Se eligió «la primera del tramo» y no «la fila del número» por lo mismo que en D-527: la primera orden de la parada
+     puede estar ya recogida, y el botón no puede desaparecer con ella.
+
+### Qué no cambia
+
+El Gestor; la pestaña «🚚 Chofer» del admin (misma página, todo apagado, D-502); la ficha; el aviso «en camino»
+(`siguienteParada`); la 167/168/169.
+
+### Pruebas
+
+- `mi-ruta-pantalla.test.ts` (pinta la página): bloque nuevo «“Mi ruta” del 2026-10-14 (D-547)» —la tarjeta no se pinta y
+  la constante real está en `false`; encendida vuelve; la pastilla de etapa en cada orden («Programmed», «Ready», «Picked
+  Up», «Delivered»); recogida en `--accent-soft` y entrega sin fondo; una entrega de dos órdenes en la misma dirección con
+  «Arrived» solo en la primera; el cuadro de pallets montado y recogiendo con ese número—. Para seguir midiendo la tarjeta, el fichero mockea `MOSTRAR_SIGUIENTE_PARADA` con un getter
+  (`estado.tarjeta`) y las dos pruebas de la tarjeta la encienden. Ajustadas con su «Nota D-547»: «Arrived» solo en A1
+  (A2 sin nada; al llegar, «Picked up» en las dos), 3 → 2 «Arrived» en Pendientes, 2 → 1 «✓ Arrived», la fila verde →
+  azul, y «Recogido» → `setPalletsDe(d)` / `escrituraRecogida({ …, pallets })`.
+- `siguiente-de-mi-ruta.test.ts`: `llevaBotonDeLlegada` (primera sí, las demás no, sin llegada no; recogida la primera, pasa
+  a la siguiente) y las filas de continuación (sin «Recogido» antes de llegar, con «Recogido» cada una al llegar).
+- `pallets-al-recoger.test.ts` (nuevo): el número puesto, lo que vale y lo que no, que el número del chofer va a
+  `actual_pallets` y a la nota, la cláusula del guard de la 169, y el cuadro pintado (con número, encendido; sin, apagado).
+- Con su «Nota D-547»: `colores-de-mi-ruta.test.ts`, `pausas-del-chofer.test.ts` (y dos nuevas: «baño» no empieza pero se
+  lee), `acciones-parada.test.ts`, `vista-de-chofer.test.ts` (sin el «Dejar en tienda» de la tarjeta), `one-tap-stop.test.ts`,
+  `inline-colors.test.ts`.
+- **Mutantes: 18 de 18 caen**, cada uno con su prueba por nombre (`~/.claude/herramientas/mutantes/tanda-mi-ruta-1014.json`
+  y `tanda-mi-ruta-1014-b.json`). Mutante → prueba que lo tumba:
+  - «la tarjeta vuelve a encenderse (la constante a true)» y «la página pinta la tarjeta sin mirar la constante» →
+    *«disable that box for now»: la tarjeta «Siguiente parada» no se pinta…* y, en `vista-de-chofer`, *los botones se ven
+    igual, pero apagados…*;
+  - «la recogida pierde la pastilla», «la entrega pierde la pastilla» y «la pastilla dice la etapa cruda» → *«Need driver to
+    see the stage here»: cada orden de la lista lleva la pastilla de su etapa…*;
+  - «“Recogido” recoge directo, sin preguntar» → *D-533: «Recogido» recoge de un toque si está lista…* (lee el fuente);
+  - «el número del chofer no llega a la escritura» → la misma y *Mi ruta: la recogida de un toque usa este módulo…*
+    (`one-tap-stop`), las dos leyendo el fuente;
+  - «estimados antes que confirmados» → *los confirmados (actual_pallets) antes que los estimados…* y *pregunta cuántos, con
+    el número de la orden ya puesto…*;
+  - «0 pallets vale» y «sin tope» → *vacío, letras, 0, negativo o más del tope: no vale*;
+  - «“Confirmar recogida” encendido sin número» → *sin pallets en la orden: vacío y «Confirm pickup» apagado…*;
+  - «“Baño” vuelve a elegirse» → *D-547: solo gasolina, comida y otro…* y dos más de `pausas-del-chofer`;
+  - «las recogidas vuelven a verde» y «las entregas vuelven a azul» → *D-547: recogida azul claro, entrega sin fondo…*
+    (`colores-de-mi-ruta`) y *«pickups change to color blue…»* (pintada);
+  - «“Llegué” otra vez en cada orden (la regla)» → *el botón va en la primera orden del tramo y en ninguna otra…* y tres
+    pintadas;
+  - «“✓ Llegaste · ↩ Deshacer” en cada orden» → *D-547: «📍 Arrived» solo en la primera orden de la parada…* y *ya llegó a
+    la tienda…*;
+  - «las filas de continuación no reciben la llegada» → *D-547: «📍 Arrived» solo en la primera orden…* (A2 sacaría
+    «Picked up» antes de llegar);
+  - «la fila pinta “Llegué” sin mirar `conBotonDeLlegada`» **sobrevivió en la primera tanda**: en una recogida, la fila de
+    la segunda orden no tiene ningún botón antes de llegar y la condición de fuera ya no pinta la fila, así que las pruebas
+    de la tienda no lo veían. Sí importa en una ENTREGA de varias órdenes, donde «Rechazado» pinta la fila siempre. Se
+    añadió *una entrega con dos órdenes en la misma dirección: «Arrived» solo en la primera…*, y cae con ella.
+
+### No medido
+
+- **Nada en el navegador ni en el teléfono** (la laptop va corta de memoria: ni servidor ni revisión visual). En especial: el
+  teclado numérico del cuadro de pallets en iOS/Android, y que la pastilla de etapa quepa a 390 px junto a facturas largas.
+- **Nada contra la base.** Que el guard acepte `actual_pallets` en el salto `ready → picked_up` se leyó en el SQL de la 169;
+  no se ensayó (tampoco con ROLLBACK). La recogida de un toque ya escribía `actual_pallets` desde D-533, con el número de la
+  orden, en esa misma escritura.
+
+**Nota del orquestador (2026-10-14, al fusionar):** lo que el worker leyó del guardia de la 169 se midió: un chofer real, en una transacción con ROLLBACK, pasó una orden suya de `ready` a `picked_up` escribiendo `actual_pallets = 7.5` en la misma escritura, y la base la aceptó (FU565).

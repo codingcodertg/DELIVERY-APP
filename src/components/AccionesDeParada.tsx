@@ -40,6 +40,11 @@ import type { Delivery } from "@/lib/types";
 // llegar (`botonesConLlegada`); «⛔ Rechazado» sigue siempre en la entrega. «✓ Llegaste 10:42 · ↩ Deshacer» baja a un
 // renglón pequeño. Y «Recogido» con la carga lista ya NO abre la ficha: la página recoge de un toque (`cerrar`); la orden
 // se abre tocando su factura.
+//
+// D-547 (2026-10-14), **reemplaza en parte a D-533**: «📍 Llegué» (y su «✓ Llegaste · ↩ Deshacer») solo en la fila de la
+// PRIMERA orden de la parada (`conBotonDeLlegada`), como en D-527. El dueño: «see pickup 6 and then all pickups to that hav
+// an arrive but since is the 6th stop with that thats enough». La llegada se sigue marcando en todas, y al llegar cada fila
+// lleva su «Recogido»/«Entregado».
 // ============================================================
 
 /** Un botón solo en su fila: a lo ancho, como antes («Dejar en tienda» de una rechazada). */
@@ -120,8 +125,11 @@ export function BotonDeLlegada({ llegada, soloLectura = false }: { llegada: Lleg
 }
 
 export function AccionesDeParada({
-  pedido, tipo, marca, cerrar, llegada = null, deshacer = null, soloLectura = false, guardando = false,
+  pedido, tipo, marca, cerrar, llegada = null, conBotonDeLlegada = true, deshacer = null, soloLectura = false, guardando = false,
 }: {
+  /** ¿Pinta ESTA fila «📍 Llegué» (o «✓ Llegaste · ↩ Deshacer»)? (D-547: solo la primera orden de la parada,
+   *  `llevaBotonDeLlegada`). Las demás reciben igual `llegada`, que decide si sale su «Recogido»/«Entregado». */
+  conBotonDeLlegada?: boolean;
   pedido: Delivery;
   tipo: "P" | "D";
   marca: MarcaDeParada | null | undefined;
@@ -187,9 +195,9 @@ export function AccionesDeParada({
           ⛔ {t("Rejected by customer", "Rechazada por el cliente")}: {razonDeLaNota(marca.motivo)}
         </span>
       )}
-      {(acciones.length > 0 || llegada?.estado === "pendiente") && (
+      {(acciones.length > 0 || (conBotonDeLlegada && llegada?.estado === "pendiente")) && (
         <div data-acciones-de-parada style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          {llegada?.estado === "pendiente" && <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />}
+          {conBotonDeLlegada && llegada?.estado === "pendiente" && <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />}
           {acciones.map(({ accion: a, apagado: porQue }) => {
             if (a === "dejar") return me ? <LeaveAtStore key={a} pedido={pedido} me={me} disabled={soloLectura} style={BOTON} /> : null;
             if (a === "recoger" || a === "entregar") return (
@@ -215,7 +223,7 @@ export function AccionesDeParada({
         </div>
       )}
       {/* D-533: «✓ Llegaste 10:42 · ↩ Deshacer», en un renglón debajo de los botones. */}
-      {llegada?.estado === "hecha" && <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />}
+      {conBotonDeLlegada && llegada?.estado === "hecha" && <BotonDeLlegada llegada={llegada} soloLectura={soloLectura} />}
       {motivos.map((m) => (
         <span key={m} data-motivo-apagado className="hint" style={{ display: "block", marginTop: 4 }}>⏳ {m}</span>
       ))}
