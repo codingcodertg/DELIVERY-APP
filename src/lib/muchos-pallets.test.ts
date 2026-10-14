@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { PALLETS_DE_UN_VIAJE, palletsAConfirmar } from "./muchos-pallets";
 
-// D-NEXT. El dueño, 2026-10-13: «anything over 10 pallets ask the user are you sure this is this x amount because this
+// D-541. El dueño, 2026-10-13: «anything over 10 pallets ask the user are you sure this is this x amount because this
 // order will requiere multuple trips».
 describe("más de un camión de pallets pide confirmación", () => {
   it("el tope es 10", () => {
@@ -31,7 +31,7 @@ describe("más de un camión de pallets pide confirmación", () => {
   });
 });
 
-// D-NEXT. El dueño, 2026-10-13: «remove that message that you location will be recorded».
+// D-541. El dueño, 2026-10-13: «remove that message that you location will be recorded».
 describe("al entregar ya no se avisa de que se guarda la ubicación", () => {
   it("la ficha no tiene el texto, y el aviso de https sigue", () => {
     const ficha = readFileSync("src/components/OrderModal.tsx", "utf8");
@@ -40,7 +40,7 @@ describe("al entregar ya no se avisa de que se guarda la ubicación", () => {
   });
 });
 
-// D-NEXT. El dueño, 2026-10-13: «people should not see this message just admin and logistic manager but from the
+// D-541. El dueño, 2026-10-13: «people should not see this message just admin and logistic manager but from the
 // logistic manager view not rutas de hoy» — el aviso «N chofer(es) en turno no están reportando su ubicación».
 describe("el aviso de choferes sin señal, solo en el Gestor", () => {
   it("se pinta solo si la pantalla no es de solo lectura («Ruta de hoy» y el mapa del chofer lo son)", () => {

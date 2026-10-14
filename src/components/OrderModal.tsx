@@ -547,7 +547,7 @@ export function OrderModal({
       `⚠ Factura duplicada: la orden #${orderLabel(dupInv)} ya usa la factura #${dupInv.invoice_num}. ¿Crear de todos modos?`,
     )))) return false;
 
-    // Más de un camión de pallets (D-NEXT): se pregunta si el número es el bueno.
+    // Más de un camión de pallets (D-541): se pregunta si el número es el bueno.
     const muchos = palletsAConfirmar(draft.est_pallets);
     if (muchos != null && !(await confirmAction(t(
       `Are you sure this order is ${muchos} pallets? Anything over ${PALLETS_DE_UN_VIAJE} pallets will require multiple trips.`,
@@ -2877,7 +2877,7 @@ export function OrderModal({
                 </div>
               )}
 
-              {/* «📍 Your location will be recorded…» fuera (D-NEXT, el dueño: «remove that message that you location will be
+              {/* «📍 Your location will be recorded…» fuera (D-541, el dueño: «remove that message that you location will be
                   recorded»). La ubicación se sigue guardando igual; solo se avisa si NO se puede. */}
               {!geoAvailable() && (
                 <div className="hint" style={{ marginTop: 6 }}>

@@ -212,7 +212,7 @@ describe("la base: la 167 y el gancho que la lee", () => {
   });
 });
 
-// D-NEXT. El dueño, 2026-10-13: «from stops in driver dtop buttom will be jsut gas, restroom, food and other and for other add the note».
+// D-541. El dueño, 2026-10-13: «from stops in driver dtop buttom will be jsut gas, restroom, food and other and for other add the note».
 describe("los motivos que elige el chofer", () => {
   it("solo gasolina, baño, comida y otro, en ese orden", () => {
     expect(MOTIVOS_PARA_ELEGIR.map((m) => m.clave)).toEqual(["gas", "restroom", "food", "other"]);

@@ -42969,3 +42969,15 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pruebas:** `eventos-visibles.test.ts` (orden, fuera de enseñanza la misma lista, y que `llegadasDeParadas` ve la llegada local — sin el arreglo no la ve). Mutantes 3 de 3.
 
 **No medido:** en el navegador, como Ernesto en enseñanza.
+
+## D-541 · Cinco ajustes del 2026-10-13: confirmar más de 10 pallets, los motivos de parada del chofer, sin «se registrará tu ubicación», el globo de «Ruta de hoy» y el aviso de choferes sin señal solo en el Gestor
+
+**Fecha:** 2026-10-13 · **Versión:** deliveries 1.300.0 (repo 1.406.0) · Sin migración · Hecho directo por el orquestador en `aviso-muchos-pallets`. Cinco pedidos del mismo día sobre pantallas distintas; una entrada porque cada uno es una línea.
+
+1. **Más de 10 pallets pide confirmación.** El dueño: *«anything over 10 pallets ask the user are you sure this is this x amount because this order will requiere multuple trips»*. Al enviar una orden (`passesChecks`), si `est_pallets` > 10 (`palletsAConfirmar`, `src/lib/muchos-pallets.ts`) se pregunta «¿Seguro que esta orden es de N pallets? Más de 10 pallets requiere varios viajes.». Avisa, no bloquea. Diez es lo que carga hoy cada chofer (`driver_capacity`: los cuatro en 10; `default_truck_capacity` vacío, que cae en 12 de fábrica). Medido: 5 de 578 órdenes de los últimos 60 días pasaban de 10.
+2. **Los motivos de «⏸ Registrar parada» (D-520).** El dueño: *«from stops in driver dtop buttom will be jsut gas, restroom, food and other and for other add the note»*. Se eligen solo Gasolina, Baño, Comida y Otro (`MOTIVOS_PARA_ELEGIR`); «Tráfico o espera» ya no se puede empezar, pero la lista entera sigue para leer las paradas ya guardadas con ese motivo (la base, 167, lo sigue admitiendo). «Otro» ya exigía la nota (3 letras, D-520): no cambia.
+3. **Al entregar, fuera «📍 Su ubicación se registrará con esta entrega».** El dueño: *«remove that message that you location will be recorded»*. La ubicación se sigue guardando igual; solo se avisa si NO se puede (sin https).
+4. **«Ruta de hoy» lleva 🌐** en vez de 🗺. El dueño: *«change the icon of todays route to a globe»*. Las dos pruebas que citaban la etiqueta llevan su nota.
+5. **El aviso «N chofer(es) en turno no están reportando su ubicación» solo en el Gestor.** El dueño: *«people should not see this message just admin and logistic manager but from the logistic manager view not rutas de hoy»*. Se pinta solo si la pantalla no es de solo lectura: «Ruta de hoy» (D-481) y el mapa del chofer (D-514) lo son; el Gestor solo lo abren admin y logística.
+
+**Pruebas:** `muchos-pallets.test.ts` (tope, casos borde, la ficha lo pregunta; el texto de ubicación fuera; el aviso solo sin solo lectura) y `pausas-del-chofer.test.ts` (los cuatro motivos, «tráfico» no empieza pero se lee, «otro» sin nota no). **No medido:** en navegador ni en teléfono.

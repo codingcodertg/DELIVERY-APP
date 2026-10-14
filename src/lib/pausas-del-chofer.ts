@@ -24,7 +24,7 @@ export const MOTIVOS_DE_PAUSA = [
 
 export type MotivoDePausa = (typeof MOTIVOS_DE_PAUSA)[number]["clave"];
 /**
- * Los que el chofer puede ELEGIR (D-NEXT). El dueño, 2026-10-13: *«from stops in driver dtop buttom will be jsut gas,
+ * Los que el chofer puede ELEGIR (D-541). El dueño, 2026-10-13: *«from stops in driver dtop buttom will be jsut gas,
  * restroom, food and other and for other add the note»*. Fuera «Tráfico o espera»; «Otro» ya pedía la nota. La lista
  * entera sigue arriba porque las paradas ya guardadas con `traffic` tienen que seguir leyéndose con su nombre.
  */
