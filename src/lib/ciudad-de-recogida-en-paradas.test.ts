@@ -143,29 +143,37 @@ describe("la página: las dos ciudades en las filas P y D", () => {
   const fin = pagina.indexOf("const d = porId.get(f.orden);", ini);
   const filaP = pagina.slice(ini, fin);
   const filaD = pagina.slice(fin, pagina.indexOf("{filaDeLaBase(u.key, \"regreso\"", fin));
+  // Nota D-548 (2026-10-14): las celdas de paradas se pintan con UNA función, `celdaDeParada`, que usan las filas P, D y ya
+  // hechas y, desde D-548, «Sin asignar» y «Todas». Hasta aquí estas pruebas buscaban las tres copias del `switch` en cada
+  // fila; ahora buscan lo mismo en la función, y en cada fila lo que le pasa (la tienda en la P).
+  const celda = pagina.slice(pagina.indexOf("const celdaDeParada = ("), pagina.indexOf("return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>; };"));
 
   it("la fila D pinta la ciudad de recogida con `zonaDeLaRecogida` y la de entrega con `ciudadDeEntrega`", () => {
     expect(ini).toBeGreaterThan(-1);
     expect(fin).toBeGreaterThan(ini);
-    expect(filaD).toContain('case "p_ciudad_recogida": return <td key={c.key}>{zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen) || "—"}</td>;');
-    expect(filaD).toContain('case "p_address": return <td key={c.key} title={d.delivery_address || undefined}>{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || "—"}<AvisoSoloCiudad orden={d} corto /></td>;');
+    expect(celda.length).toBeGreaterThan(100);
+    expect(filaD).toContain("{colsParadas.map((c) => celdaDeParada(c, d, { tipo: \"D\",");
+    expect(filaD).not.toContain("recogida:");
+    expect(celda).toContain('case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen)) || "—")}</td>;');
+    expect(celda).toContain('case "p_address": return <td key={c.key} title={d?.delivery_address || undefined}>{(d && ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen)) || "—"}{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}</td>;');
     expect(pagina).toContain('import { esDeSuZona, zonaDeLaRecogida } from "@/lib/zonas";');
   });
   it("la fila P: la TIENDA en la ciudad de recogida, sin «Recoger en» (D-447); la ciudad de entrega de su orden; el Tipo de su orden", () => {
     // D-447: el dueño, «eso de rdz mcallen deberia esta en ciudad de recodiga tienes todo alreves».
-    const recogida = 'if (c.key === "p_ciudad_recogida") return <td key={c.key}>{dondeRecoge}</td>;';
-    const entrega = 'if (c.key === "p_address") return <td key={c.key} title={o?.delivery_address || undefined}>{(o && ciudadDeEntrega(o.delivery_address, ciudadesQueSeConocen)) || "—"}<AvisoSoloCiudad orden={o} corto /></td>;';
     expect(filaP).not.toContain('{t("Pick up at", "Recoger en")}');
     expect(filaP).toContain('<b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>');
-    expect(filaP).toContain('if (c.key === "p_type") return <td key={c.key} title={o?.order_type || undefined}>{o?.order_type || "—"}</td>;');
-    expect(filaP).not.toContain('if (c.key === "p_type") return <td key={c.key}>{dondeRecoge}</td>;');
-    const vacias = 'if (c.key === "p_windows" || !o || !seVeEnLaRecogida(c)) return <td key={c.key} />;';
-    for (const s of [recogida, entrega, vacias]) expect(filaP, s).toContain(s);
-    // Van ANTES de la que deja vacío: si no, esa se las comería.
-    expect(filaP.indexOf(recogida)).toBeLessThan(filaP.indexOf(vacias));
-    expect(filaP.indexOf(entrega)).toBeLessThan(filaP.indexOf(vacias));
+    // La P pasa SU orden (`o`), la tienda como ciudad de recogida, y que es una recogida.
+    expect(filaP).toContain('{colsParadas.map((c) => celdaDeParada(c, o, { tipo: "P", recogida: dondeRecoge,');
+    expect(celda).toContain('case "p_type": return <td key={c.key} title={d?.order_type || undefined}>{d?.order_type || "—"}</td>;');
+    // Lo de la ENTREGA va vacío en una recogida —ventanas y lo que `seVeEnLaRecogida` aparta—, y nada sin orden.
+    expect(celda).toContain('case "p_windows": return <td key={c.key}>{como.tipo === "D" && d ? fmtWindows(d.delivery_windows) : ""}</td>;');
+    const vacias = 'if (!d || (como.tipo === "P" && !seVeEnLaRecogida(c))) return <td key={c.key} />;';
+    expect(celda).toContain(vacias);
+    // Las ciudades van ANTES de la que deja vacío: si no, esa se las comería.
+    expect(celda.indexOf('case "p_ciudad_recogida"')).toBeLessThan(celda.indexOf(vacias));
+    expect(celda.indexOf('case "p_address"')).toBeLessThan(celda.indexOf(vacias));
     // La de antes, que dejaba la ciudad vacía en la recogida, ya no está.
-    expect(filaP).not.toContain('c.key === "p_address" || c.key === "p_windows"');
+    expect(pagina).not.toContain('c.key === "p_address" || c.key === "p_windows"');
   });
 });
 

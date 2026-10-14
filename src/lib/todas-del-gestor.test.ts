@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { Delivery, Stage } from "@/lib/types";
 import { cuentasDeTodas, entraEnTodas, filasDeTodas, todasDelGestor } from "./todas-del-gestor";
 import { CHIPS_SIN_ASIGNAR, cuentasSinAsignar, filasSinAsignar, type ChipSinAsignar, type ModoDelGestor } from "./ordenes-del-dia";
-import { CHOFER_DE_TODAS, COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, ETAPA_EN_TODAS, anchoDePartida, columnaDeOrdenes, columnaDelGestor, columnasDeLaTabla, columnasDeTodas, columnasDelSelector, columnasDelSelectorDeTodas } from "./routes-columns";
+import { CHOFER_DE_TODAS, COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, anchoDePartida, columnaDeOrdenes, columnaDelGestor, columnasDeLaTabla, columnasDeLasOrdenes, columnasDelSelector, columnasDelSelectorDeLasOrdenes } from "./routes-columns";
 import { valorDelGestor } from "./valores-del-gestor";
 import { PANEL_DE_TODAS, PANEL_SIN_ASIGNAR, TODOS_LOS_CHOFERES, estaPlegada, nacePlegada } from "./vista-del-gestor";
 
@@ -101,25 +101,25 @@ describe("qué filas tiene «Todas»", () => {
   });
 });
 
-describe("las columnas de «Todas»: las de «Sin asignar» con el Chofer delante y la Etapa siempre", () => {
-  it("son exactamente las elegidas de «Sin asignar», en su orden, con «chofer» delante", () => {
-    const sinAsignar = columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key);
-    expect(columnasDeTodas(COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["chofer", ...sinAsignar]);
-    expect(columnasDeTodas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)[0]).toBe(CHOFER_DE_TODAS);
-    // Y siguen el orden de la persona, como «Sin asignar».
-    const movido = ["windows", "invoice"];
-    expect(columnasDeTodas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, movido).map((c) => c.key).slice(0, 3)).toEqual(["chofer", "windows", "invoice"]);
+// Nota D-548 (2026-10-14): las columnas de «Todas» (y de «Sin asignar») son las de la tabla de PARADAS, no las de «Sin
+// asignar» («quiero que se miren exatamente las mismas columnas como en programadas»). Estas dos pruebas fijaban lo de
+// D-462 —las de «Sin asignar» con el Chofer delante y la Etapa siempre—; ahora fijan el Chofer delante, las fijas de
+// paradas y las elegidas de paradas, y que la «Etapa siempre» se fue. El resto de D-462 (el Chofer) sigue igual.
+describe("las columnas de «Todas»: las de la tabla de paradas, con el Chofer delante", () => {
+  it("son el Chofer, la factura y los pallets, y exactamente las elegidas de paradas, en su orden", () => {
+    const paradas = columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key);
+    expect(columnasDeLasOrdenes("todas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["chofer", "invoice", "pallets", ...paradas]);
+    expect(columnasDeLasOrdenes("todas", COLUMNAS_DEL_GESTOR_POR_DEFECTO)[0]).toBe(CHOFER_DE_TODAS);
+    // Y siguen el orden de la persona en paradas.
+    const movido = ["p_windows", "p_type"];
+    expect(columnasDeLasOrdenes("todas", COLUMNAS_DEL_GESTOR_POR_DEFECTO, movido).map((c) => c.key).slice(0, 5)).toEqual(["chofer", "invoice", "pallets", "p_windows", "p_type"]);
   });
-  it("quien quitó la Etapa de «Sin asignar» la ve igual en «Todas», en su puesto; y en su ⚙ sale marcada y apagada", () => {
-    const sinEtapa = COLUMNAS_DEL_GESTOR_POR_DEFECTO.filter((k) => k !== ETAPA_EN_TODAS);
-    expect(columnasDeLaTabla("sinAsignar", sinEtapa).map((c) => c.key)).not.toContain("status");
-    const todas = columnasDeTodas(sinEtapa).map((c) => c.key);
-    expect(todas).toContain("status");
-    expect(todas.indexOf("status")).toBe(columnasDeTodas(COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key).indexOf("status"));
-    expect(columnasDelSelectorDeTodas(null).find((c) => c.key === "status")).toMatchObject({ fija: true });
-    expect(columnasDelSelector("sinAsignar", null).find((c) => c.key === "status")?.fija).toBeUndefined();
-    // Lo demás del ⚙ es el de «Sin asignar», tal cual (mismas claves, mismo orden).
-    expect(columnasDelSelectorDeTodas(null).map((c) => c.key)).toEqual(columnasDelSelector("sinAsignar", null).map((c) => c.key));
+  it("la Etapa ya no sale siempre (D-462 la forzaba): sale si está elegida en paradas, como allí; el ⚙ es el de paradas, tal cual", () => {
+    expect(columnasDeLasOrdenes("todas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).not.toContain("status");
+    expect(columnasDeLasOrdenes("todas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).not.toContain("p_stage");
+    expect(columnasDeLasOrdenes("todas", [...COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_stage"]).map((c) => c.key)).toContain("p_stage");
+    expect(columnasDelSelectorDeLasOrdenes(null).map((c) => c.key)).toEqual(columnasDelSelector("paradas", null).map((c) => c.key));
+    expect(columnasDelSelectorDeLasOrdenes(null).some((c) => c.fija)).toBe(false);
   });
   it("«Chofer» vive fuera del catálogo (no se elige, no se guarda), toma la celda, el valor y el ancho de la «Chofer» de Órdenes", () => {
     expect(COLUMNAS_DEL_GESTOR.some((c) => c.key === "chofer")).toBe(false);
@@ -173,15 +173,19 @@ describe("la pantalla", () => {
     expect(pagina).toContain("const ordenDeTodas = useOrdenYFiltro(todasConBusqueda, valorDelGestorAqui);");
     expect(pagina).toContain('useState<ChipSinAsignar>("dia")');
   });
-  it("las dos columnas extra: `columnasDeTodas` para la tabla y `columnasDelSelectorDeTodas` para su ⚙, con los anchos de «Sin asignar»", () => {
-    expect(pagina).toContain("const colsTodas = columnasDeTodas(colsGestor, ordenGestor);");
+  // Nota D-548: `columnasDeTodas`/`columnasDelSelectorDeTodas` (D-462) se fueron; las dos tablas usan
+  // `columnasDeLasOrdenes` y el ⚙ de paradas (`columnasDelSelectorDeLasOrdenes`). Los anchos siguen siendo los de «Sin asignar».
+  it("las columnas: `columnasDeLasOrdenes(\"todas\")` para la tabla y el ⚙ de paradas, con los anchos de «Sin asignar»", () => {
+    expect(pagina).toContain('const colsTodas = columnasDeLasOrdenes("todas", colsGestor, ordenGestor);');
+    expect(pagina).toContain('const colsSinAsignar = columnasDeLasOrdenes("sinAsignar", colsGestor, ordenGestor);');
     expect(pagina).toContain("const menuDeTodas: ColumnaConMenu[] = colsTodas.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));");
-    expect(pagina).toContain("columnas: colsTodas, menu: menuDeTodas, selector: columnasDelSelectorDeTodas(ordenGestor),");
+    expect(pagina).toContain("columnas: colsTodas, menu: menuDeTodas, selector: columnasDelSelectorDeLasOrdenes(ordenGestor),");
+    expect(pagina).toContain("columnas: colsSinAsignar, menu: menuSinAsignar, selector: columnasDelSelectorDeLasOrdenes(ordenGestor),");
     expect(comun).toContain("...columnas.map((c) => anchoEnSinAsignar(c.key)), vista.anchoDeAcciones])");
     // La última columna: «Asignar a» cabe en 116 (lo de siempre); «Asignar / pasar» pide 136 (medido: 118 a 1440 y 130 a 390 no cabían en 116).
     expect(pagina).toContain("cabeceraDeAcciones: t(\"Assign / move\", \"Asignar / pasar\"), anchoDeAcciones: 136,");
     // La celda del chofer es la de Órdenes, por `deOrdenes`, como las demás que vienen de allí.
-    expect(fila).toContain("{c.deOrdenes ? celdaDeOrdenes(c.key, d)");
+    expect(fila).toContain("{c.deOrdenes ? celdaDeOrdenes(c.key, d) : \"—\"}");
   });
   it("UNA tabla para las dos pestañas: `tablaDeOrdenes` se pinta con cada vista, y el marcado de la tabla está una sola vez", () => {
     expect(pagina).toContain('{tab === "orders" && tablaDeOrdenes(vistaDeSinAsignar)}');
@@ -190,8 +194,9 @@ describe("la pantalla", () => {
     expect(pagina.split('<table className="orders tbl-resize" style={anchoDeTabla(').length - 1).toBe(1);
     expect(pagina.split("data-elige-conductor role=\"group\"").length - 1).toBe(1);
     expect(pagina.split('data-chip={f}').length - 1).toBe(1);
-    // Las dos vistas comparten las columnas elegidas, el orden, las plantillas y las flechas de «Sin asignar».
-    expect(comun).toContain('mover={moverEn("sinAsignar")}');
+    // Las dos vistas comparten las columnas elegidas, el orden, las plantillas y las flechas. Nota D-548: las de la tabla
+    // de paradas (eran las de «Sin asignar»).
+    expect(comun).toContain("mover={moverEn(TABLA_DE_LAS_ORDENES)}");
     expect(comun).toContain("elegidas={colsGestor} onAlterna={alternaColumnaDelGestor}");
     expect(pagina).toContain('clave: "sinAsignar", panel: PANEL_SIN_ASIGNAR,');
     expect(pagina).toContain('clave: "todas", panel: PANEL_DE_TODAS,');

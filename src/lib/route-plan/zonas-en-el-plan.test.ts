@@ -344,9 +344,11 @@ describe("Gestor de Rutas: la ciudad de una dirección sin comas (D-423)", () =>
   it("la celda de las dos tablas, el orden y el filtro leen con la MISMA lista de ciudades conocidas", () => {
     expect(g).toContain("() => [...ciudadesConocidas([...deliveries.map((d) => d.delivery_address), ...(settings.stores ?? []).map((s) => s.address)]), ...[...zonasDeChofer.values()].flat()],");
     // Tres sitios desde D-459: la fila de entrega, «Sin asignar» y la fila ya HECHA (que sigue en la lista de su chofer).
-    expect(g.split("{ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen) || \"—\"}").length).toBe(4);
+    // Nota D-548: uno solo, `celdaDeParada`, que pintan esas tres (y la recogida, y «Todas»).
+    expect(g.split("{(d && ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen)) || \"—\"}").length).toBe(2);
     expect(g).not.toContain("{ciudadDeEntrega(d.delivery_address) ||");
-    expect(g).toContain("valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen)");
+    expect(g).not.toContain("ciudadDeEntrega(o.delivery_address");
+    expect(g).toContain("valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, {");
   });
 });
 
