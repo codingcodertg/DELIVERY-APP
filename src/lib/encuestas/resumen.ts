@@ -21,11 +21,13 @@ export interface RespuestaEncuesta {
   contact_email: string | null;
   contacted: boolean;
   contacted_at: string | null;
+  /** Nota libre opcional del final (migración 171). Null si no dejó ninguna. */
+  note: string | null;
 }
 
 /** Las columnas que se leen, en el orden de la tabla. Una sola lista para la pantalla y la prueba. */
 export const COLUMNAS =
-  "id, created_at, nothing_to_improve, selected_areas, other_text, ratings, wants_contact, contact_name, contact_phone, contact_email, contacted, contacted_at";
+  "id, created_at, nothing_to_improve, selected_areas, other_text, ratings, wants_contact, contact_name, contact_phone, contact_email, contacted, contacted_at, note";
 
 /** El día de Texas (YYYY-MM-DD) de una respuesta. */
 export const diaDe = (iso: string): string => isoInTZ(new Date(iso));
@@ -110,6 +112,24 @@ export function textosOther(filas: RespuestaEncuesta[]): { id: string; created_a
     .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
 }
 
+/** Las notas libres (171), de la más reciente a la más antigua. Con o sin contacto: la nota no depende de él. */
+export function notasDe(filas: RespuestaEncuesta[]): { id: string; created_at: string; texto: string }[] {
+  return filas
+    .filter((f) => !!f.note?.trim())
+    .map((f) => ({ id: f.id, created_at: f.created_at, texto: f.note!.trim() }))
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
+}
+
+/**
+ * El nombre de quien pidió contacto. Desde la 171 es opcional (el dueño, 2026-10-13: «the name is optional»):
+ * sin él se dice, en vez de dejar la celda vacía, que se leería como «no cargó».
+ */
+export function nombreDeContacto(f: RespuestaEncuesta, lang: "en" | "es"): string {
+  const n = f.contact_name?.trim();
+  if (n) return n;
+  return lang === "es" ? "(sin nombre)" : "(no name)";
+}
+
 /** Quienes pidieron que los contacten: primero los que faltan por contactar, y dentro de cada grupo lo más reciente arriba. */
 export function paraContactar(filas: RespuestaEncuesta[]): RespuestaEncuesta[] {
   return filas
@@ -149,6 +169,7 @@ export function tablaCsv(filas: RespuestaEncuesta[]): { cabeceras: string[]; fil
     "id", "created_at (Central)", "nothing_to_improve", "selected_areas",
     ...AREA_KEYS.map((k) => `rating_${k}`),
     "other_text", "wants_contact", "contact_name", "contact_phone", "contact_email", "contacted", "contacted_at (Central)",
+    "note",
   ];
   const cuerpo = filas.map((f) => [
     f.id,
@@ -163,6 +184,7 @@ export function tablaCsv(filas: RespuestaEncuesta[]): { cabeceras: string[]; fil
     f.contact_email,
     f.contacted ? "yes" : "no",
     f.contacted_at ? fechaHora(f.contacted_at) : null,
+    f.note,
   ]);
   return { cabeceras, filas: cuerpo };
 }

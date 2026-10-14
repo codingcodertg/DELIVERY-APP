@@ -55,6 +55,7 @@ export function filaDeLaBase(f: Record<string, unknown>): RespuestaEncuesta {
     contact_email: texto(f.contact_email),
     contacted: f.contacted === true,
     contacted_at: texto(f.contacted_at),
+    note: texto(f.note),
   };
 }
 

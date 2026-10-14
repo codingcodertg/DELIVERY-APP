@@ -42994,3 +42994,32 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **Pendiente, no hecho aquí:** el mismo día pidió *«sin asignar y todas shou;d have the samea columns view as programadas»*. Las tablas usan juegos de columnas distintos (`sinAsignar` y `paradas`, `routes-columns.ts`); va en su propia rama.
 
 **Pruebas:** `todas-del-gestor.test.ts`, bloque «“Todas” sin chips, y el PNG fuera para ventas». **No medido:** en navegador.
+
+## D-543 · Encuestas: una nota libre opcional al final, y el nombre del contacto pasa a opcional (teléfono o correo, al menos uno)
+
+**Fecha:** 2026-10-13 · **Versión:** la asigna el orquestador al fusionar · **Migración:** `171_encuesta_nota_y_contacto.sql` (escrita, **no aplicada**) · Rama `encuesta-nota-y-contacto` (hub) y rama `nota-y-contacto` del sitio público `rtg-encuesta`.
+
+**Pedido del dueño**, literal, dos mensajes del mismo día: *«add an additional or optional note for the encuestas,»* y *«when asking do you want somebody from the team to contact you the name is optional, phone or email either one but one»*.
+
+**Qué había (D-449, migración 155).** Si el cliente decía «Sí» a que lo contacten, el **nombre era obligatorio** (1-120) y además hacía falta teléfono o correo; lo exigían las tres puntas: el sitio (`validacion.ts`, error `nombre_falta`), la función `submit_survey_response` (*«a name is required to be contacted»*) y el CHECK `survey_responses_contact`. No había ningún campo libre fuera del texto de «Otro», que solo existe si se marca «Otro».
+
+**Qué cambia.**
+1. **Base (171).** Columna nueva `survey_responses.note` (text, nula; CHECK: nula o 1-1000 tras `btrim`). `survey_responses_contact` reescrita: con contacto, nombre **opcional** (1-120 si viene) y **teléfono o correo obligatorio**; sin contacto, los tres nulos, como antes. `submit_survey_response` se copia de la 155 (la única definición previa; una prueba lo comprueba) y cambia solo en tres cosas: admite la clave `note`, deja de exigir el nombre, y lee/limita a 1000/inserta la nota. `create or replace` con la misma firma conserva los privilegios; la autocomprobación lo mira. Ninguna fila se toca; las que ya hay pasan la regla nueva porque es más floja que la vieja.
+2. **Sitio público.** Paso 3: «Nombre (opcional)»; desaparece `nombre_falta`; `medio_falta` sigue cuando no hay ni teléfono ni correo. Al final del mismo paso, siempre (diga Sí o No al contacto), un cuadro «¿Algo más que quieras decirnos? (opcional)» / «Anything else you'd like to tell us? (optional)» con contador `n/1000`; se manda recortada y en blanco va `null`. Error nuevo `nota_larga`. La validación del servidor es la misma función.
+3. **Hub («Encuestas»).** Lee `note` (COLUMNAS), la enseña en una tarjeta «📝 Notas» (las del rango de fechas, de la más reciente a la más antigua), como columna en «Piden que los contacten» y en «Todas las respuestas», y en el CSV (columna `note`, al final). Un contacto sin nombre sale como «(sin nombre)» / «(no name)» en las dos tablas (`nombreDeContacto`); en el CSV, `contact_name` queda vacío, sin inventar. El demo trae una nota y un contacto sin nombre.
+
+**Decidido aquí, sin preguntar.**
+- **`note` es clave opcional en la validación del sitio** (ausente ⇒ `null`), aunque las otras ocho siguen siendo obligatorias. Una página abierta en un teléfono antes del despliegue manda el payload viejo; rechazarlo como «forma» le daría un error a un cliente de verdad. La base ya lo trata igual (`survey_payload_text`: clave ausente ⇒ null).
+- **La nota va en el paso 3 y no depende del contacto.** El dueño no dijo dónde; es el último paso antes de enviar.
+- **1000 caracteres** (el doble que «Otro»). Cabe en el tope de 8000 del payload de la 155 con todo lo demás lleno.
+
+**Orden de despliegue: 171 → sitio → hub** (sitio y hub, en cualquier orden entre ellos, pero los dos **después** de la 171).
+- El sitio nuevo **antes** de la 171: la función de la 155 rechaza la clave `note` (*«unknown field»*) y **ningún** envío entra; el cliente ve el error genérico. Por eso nada de trucos para mandarla solo si existe: se aplica primero la 171.
+- El hub nuevo **antes** de la 171: el `select` pide `note`, la base contesta 42703 y la pantalla enseña el error rojo (no el aviso «falta la 155», que solo mira tabla/función).
+- La 171 con el sitio **viejo**: funciona (no manda `note`, y la regla de contacto es más floja). Por eso la 171 puede ir primero sin cortar nada.
+
+**Pruebas.** Hub: `resumen.test.ts` (COLUMNAS, `filaDeLaBase`, `notasDe`, `nombreDeContacto`, CSV con la nota, demo) y `nota-y-contacto.test.ts` (rehace los cambios sobre el cuerpo de la 155 y exige el de la 171 carácter por carácter; los dos CHECK; no toca filas ni grants; sin begin/commit; checksum; la pantalla). Sitio: `validacion`, `formulario`, `textos`, `db`, `manejador` y la ruta. Mutantes: hub (tanda `tanda-encuesta-nota.json`) **17 de 17 caen** con su prueba por nombre; sitio (tanda `tanda-encuesta-nota-sitio.json`, lanzada desde el clon del sitio) **11 de 11**. Los mutantes de la 171 caen con pruebas que **leen el SQL**, no que lo ejecuten.
+
+**No medido:** la 171 no se ha ejecutado en ninguna base, tampoco con ROLLBACK: las expresiones regulares de su autocomprobación sobre `pg_get_constraintdef` (p. ej. `contact_name IS NULL) OR`) están escritas contra la forma en que Postgres reescribe un `between` y un `or`, no contra una salida medida; si no casan, la migración aborta entera (falla segura, pero hay que mirarla al aplicar). Nada en navegador: ni el cuadro de la nota en el teléfono, ni la tarjeta de notas del hub.
+
+**Nota del orquestador (2026-10-13, al fusionar):** la 171 se ensayó contra producción dentro de una transacción con ROLLBACK antes de aplicarla: su autocomprobación pasó (los patrones de `pg_get_constraintdef` sí casan), la fila que ya había siguió pasando los CHECK, y 10 de 10 casos dieron lo esperado (contacto sin nombre con teléfono o con correo, sin ninguno de los dos rechazado, nota recortada, en blanco → null, de 1001 rechazada, payload viejo sin `note` aceptado, clave desconocida rechazada).

@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 import { toCSV } from "@/lib/utils";
 import { AREA_KEYS } from "./areas";
 import {
-  diaDe, eleccionesDe, filtrarPorFechas, MAX_DIAS_SERIE, paraContactar, porArea, porcentajeNada, respuestasPorDia, tablaCsv,
-  textosOther, type RespuestaEncuesta,
+  COLUMNAS, diaDe, eleccionesDe, filtrarPorFechas, MAX_DIAS_SERIE, nombreDeContacto, notasDe, paraContactar, porArea,
+  porcentajeNada, respuestasPorDia, tablaCsv, textosOther, type RespuestaEncuesta,
 } from "./resumen";
 import { almacenDeLaBase, filaDeLaBase, PAGINA } from "./almacen";
-import { almacenDemo } from "./demo";
+import { almacenDemo, respuestasDemo } from "./demo";
 
 /** Una respuesta con lo mínimo; lo demás se pisa por caso. */
 const r = (id: string, created_at: string, extra: Partial<RespuestaEncuesta> = {}): RespuestaEncuesta => ({
   id, created_at, nothing_to_improve: false, selected_areas: [], other_text: null, ratings: {}, wants_contact: false,
-  contact_name: null, contact_phone: null, contact_email: null, contacted: false, contacted_at: null, ...extra,
+  contact_name: null, contact_phone: null, contact_email: null, contacted: false, contacted_at: null, note: null, ...extra,
 });
 
 describe("el día es el de Texas, no el UTC", () => {
@@ -129,7 +129,7 @@ describe("tablaCsv", () => {
   });
   const { cabeceras, filas } = tablaCsv([f]);
   it("una columna de calificación por área, alineada con su cabecera", () => {
-    expect(cabeceras).toHaveLength(19);
+    expect(cabeceras).toHaveLength(20);
     const fila = filas[0];
     expect(fila).toHaveLength(cabeceras.length);
     expect(fila[cabeceras.indexOf("rating_pricing")]).toBe(3);
@@ -142,7 +142,56 @@ describe("tablaCsv", () => {
     expect(filas[0][cabeceras.indexOf("contact_phone")]).toBeNull();
     expect(filas[0][cabeceras.indexOf("wants_contact")]).toBe("yes");
   });
+  it("la nota (171) tiene su columna, y el nombre que falta sale vacío, no inventado", () => {
+    const g = r("id-2", "2026-09-29T15:00:00Z", { nothing_to_improve: true, wants_contact: true, contact_phone: "956-555-0104", note: "Gracias, volveré" });
+    const t = tablaCsv([g]);
+    expect(t.cabeceras.indexOf("note")).toBeGreaterThan(-1);
+    expect(t.filas[0][t.cabeceras.indexOf("note")]).toBe("Gracias, volveré");
+    expect(t.filas[0][t.cabeceras.indexOf("contact_name")]).toBeNull();
+    expect(filas[0][cabeceras.indexOf("note")]).toBeNull();
+  });
 });
+
+describe("nota y contacto sin nombre (171)", () => {
+  it("COLUMNAS lee la nota", () => {
+    expect(COLUMNAS.split(", ")).toContain("note");
+  });
+  it("notasDe: solo las que tienen nota, recortadas, con o sin contacto, de la más reciente a la más antigua", () => {
+    const filas = [
+      r("vieja", "2026-09-01T18:00:00Z", { note: "  Muy bien  " }),
+      r("sin", "2026-09-05T18:00:00Z"),
+      r("blanco", "2026-09-06T18:00:00Z", { note: "   " }),
+      r("nueva", "2026-09-04T18:00:00Z", { wants_contact: true, contact_email: "a@example.com", note: "Llamen tarde" }),
+    ];
+    expect(notasDe(filas)).toEqual([
+      { id: "nueva", created_at: "2026-09-04T18:00:00Z", texto: "Llamen tarde" },
+      { id: "vieja", created_at: "2026-09-01T18:00:00Z", texto: "Muy bien" },
+    ]);
+  });
+  it("nombreDeContacto: el nombre si lo dejó; si no, lo dice en su idioma", () => {
+    expect(nombreDeContacto(r("a", "2026-09-01T18:00:00Z", { wants_contact: true, contact_name: " Ana " }), "es")).toBe("Ana");
+    const sin = r("b", "2026-09-01T18:00:00Z", { wants_contact: true, contact_phone: "956-555-0104" });
+    expect(nombreDeContacto(sin, "es")).toBe("(sin nombre)");
+    expect(nombreDeContacto(sin, "en")).toBe("(no name)");
+  });
+  it("paraContactar incluye a quien pidió contacto sin dejar nombre", () => {
+    const sin = r("b", "2026-09-01T18:00:00Z", { wants_contact: true, contact_phone: "956-555-0104" });
+    expect(paraContactar([sin]).map((f) => f.id)).toEqual(["b"]);
+  });
+  it("filaDeLaBase lleva la nota, y la ausente es null", () => {
+    expect(filaDeLaBase({ id: "x", created_at: "z", note: "Hola" }).note).toBe("Hola");
+    expect(filaDeLaBase({ id: "x", created_at: "z" }).note).toBeNull();
+  });
+  it("el demo trae una nota y un contacto sin nombre", () => {
+    const filas = almacenDemoFilas();
+    expect(filas.some((f) => !!f.note)).toBe(true);
+    expect(filas.some((f) => f.wants_contact && f.contact_name === null && (f.contact_phone || f.contact_email))).toBe(true);
+  });
+});
+
+function almacenDemoFilas(): RespuestaEncuesta[] {
+  return respuestasDemo(new Date("2026-10-13T18:00:00Z"));
+}
 
 describe("filaDeLaBase", () => {
   it("tipa lo que llega de la base y tira lo que no es número en ratings", () => {

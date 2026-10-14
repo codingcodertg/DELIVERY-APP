@@ -9,8 +9,8 @@ import { areaLabel } from "@/lib/encuestas/areas";
 import { almacenDeLaBase, type AlmacenDeEncuestas } from "@/lib/encuestas/almacen";
 import { almacenDemo } from "@/lib/encuestas/demo";
 import {
-  eleccionesDe, fechaHora, filtrarPorFechas, paraContactar, porArea, porcentajeNada, respuestasPorDia, tablaCsv, textosOther,
-  type RespuestaEncuesta,
+  eleccionesDe, fechaHora, filtrarPorFechas, nombreDeContacto, notasDe, paraContactar, porArea, porcentajeNada, respuestasPorDia,
+  tablaCsv, textosOther, type RespuestaEncuesta,
 } from "@/lib/encuestas/resumen";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
@@ -63,6 +63,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
   const areas = useMemo(() => porArea(visibles), [visibles]);
   const nada = useMemo(() => porcentajeNada(visibles), [visibles]);
   const otros = useMemo(() => textosOther(visibles), [visibles]);
+  const notas = useMemo(() => notasDe(visibles), [visibles]);
   const contactar = useMemo(() => paraContactar(filas), [filas]);
   const pendientes = contactar.filter((f) => !f.contacted).length;
   const maxSerie = Math.max(1, ...serie.map((s) => s.n));
@@ -222,7 +223,26 @@ export function Encuestas({ demo }: { demo: boolean }) {
           </div>
 
           <div className="card">
-            <h2>📞 {t("Asked to be contacted", "Piden que los contacten")}</h2>
+            <h2>📝 {t("Notes", "Notas")}</h2>
+            <p className="hint" style={{ marginTop: 0 }}>
+              {t("The optional note at the end of the survey.", "La nota opcional del final de la encuesta.")}
+            </p>
+            {notas.length === 0 ? (
+              <p className="hint">{t("None in this range.", "Ninguna en este rango.")}</p>
+            ) : (
+              <ul className="enc-lista" data-notas>
+                {notas.map((n) => (
+                  <li key={n.id}>
+                    <span style={{ whiteSpace: "pre-wrap" }}>{n.texto}</span>
+                    <span className="hint"> · {fechaHora(n.created_at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="card">
+            <h2>📞{t("Asked to be contacted", "Piden que los contacten")}</h2>
             <p className="hint" style={{ marginTop: 0 }}>
               {t("All dates, pending first — the date filter does not hide anyone waiting for a call.", "Todas las fechas, primero las pendientes: el filtro de fechas no esconde a nadie que espera una llamada.")}
             </p>
@@ -234,18 +254,20 @@ export function Encuestas({ demo }: { demo: boolean }) {
                   <thead>
                     <tr>
                       <th>{t("Date", "Fecha")}</th><th>{t("Name", "Nombre")}</th><th>{t("Phone", "Teléfono")}</th><th>{t("Email", "Correo")}</th>
-                      <th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th><th>{t("Contacted", "Contactado")}</th>
+                      <th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th><th>{t("Note", "Nota")}</th>
+                      <th>{t("Contacted", "Contactado")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {contactar.map((f) => (
                       <tr key={f.id} className={f.contacted ? "enc-contactado" : undefined}>
                         <td>{fechaHora(f.created_at)}</td>
-                        <td>{f.contact_name}</td>
+                        <td className={f.contact_name ? undefined : "hint"}>{nombreDeContacto(f, lang)}</td>
                         <td>{f.contact_phone ?? "—"}</td>
                         <td>{f.contact_email ? <a href={`mailto:${f.contact_email}`}>{f.contact_email}</a> : "—"}</td>
                         <td style={{ whiteSpace: "normal" }}>{eleccionesDe(f, lang)}</td>
                         <td style={{ whiteSpace: "normal" }}>{f.other_text ?? ""}</td>
+                        <td style={{ whiteSpace: "pre-wrap" }}>{f.note ?? ""}</td>
                         <td>
                           {f.contacted ? (
                             <>
@@ -283,7 +305,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
                   <thead>
                     <tr>
                       <th>{t("Date", "Fecha")}</th><th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th>
-                      <th>{t("Contact", "Contacto")}</th><th>{t("Contacted", "Contactado")}</th>
+                      <th>{t("Note", "Nota")}</th><th>{t("Contact", "Contacto")}</th><th>{t("Contacted", "Contactado")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -292,7 +314,8 @@ export function Encuestas({ demo }: { demo: boolean }) {
                         <td>{fechaHora(f.created_at)}</td>
                         <td style={{ whiteSpace: "normal" }}>{eleccionesDe(f, lang)}</td>
                         <td style={{ whiteSpace: "normal" }}>{f.other_text ?? ""}</td>
-                        <td>{f.wants_contact ? [f.contact_name, f.contact_phone, f.contact_email].filter(Boolean).join(" · ") : t("No", "No")}</td>
+                        <td style={{ whiteSpace: "pre-wrap" }}>{f.note ?? ""}</td>
+                        <td>{f.wants_contact ? [nombreDeContacto(f, lang), f.contact_phone, f.contact_email].filter(Boolean).join(" · ") : t("No", "No")}</td>
                         <td>{f.wants_contact ? (f.contacted ? "✓" : t("Pending", "Pendiente")) : ""}</td>
                       </tr>
                     ))}
