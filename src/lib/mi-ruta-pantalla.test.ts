@@ -318,6 +318,25 @@ describe("«Mi ruta» del 2026-10-14 (D-547)", () => {
     expect(html).toMatch(/data-entrega="A3" data-fila-de-ruta="\d+" data-tipo-de-fila="D" style="align-items:flex-start"/);
     expect(html).not.toContain("--green-soft");
   });
+  it("una entrega con dos órdenes en la misma dirección: «Arrived» solo en la primera; la segunda, solo «Rejected»", async () => {
+    // Aquí la fila de la segunda SÍ se pinta (lleva «Rejected» siempre, D-533), así que lo único que le quita «Arrived» es
+    // que no es la primera de la parada.
+    estado.deliveries = [
+      orden("B1", "picked_up", 1, { delivery_address: "500 Elm St" }),
+      orden("B2", "picked_up", 2, { delivery_address: "500 Elm St" }),
+    ];
+    // Solo Pendientes: la recogida ya hecha de las dos va en «Entregadas», con su «↩ Undo pickup».
+    const html = secciones(await pinta()).pendientes;
+    const botonesDe = (id: string) => {
+      const de = html.slice(html.indexOf(`data-entrega="${id}"`));
+      const fin = de.indexOf("data-entrega=", 10);
+      return [...(fin > 0 ? de.slice(0, fin) : de).matchAll(/data-accion="([a-z_]+)"/g)].map((m) => m[1]);
+    };
+    // Las dos son UNA parada (el mismo número): si no, esta prueba no mediría nada.
+    expect(html).toContain('data-sigue-la-parada="');
+    expect(botonesDe("B1")).toEqual(["llegue", "rechazar"]);
+    expect(botonesDe("B2")).toEqual(["rechazar"]);
+  });
   it("«Picked up» con la carga lista no recoge directo: abre «¿Cuántos pallets cargas?» y recoge con ESE número", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync("src/app/(app)/my-route/page.tsx", "utf8").split("\r\n").join("\n");

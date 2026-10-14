@@ -43407,8 +43407,8 @@ El Gestor; la pestaña «🚚 Chofer» del admin (misma página, todo apagado, D
 
 - `mi-ruta-pantalla.test.ts` (pinta la página): bloque nuevo «“Mi ruta” del 2026-10-14 (D-547)» —la tarjeta no se pinta y
   la constante real está en `false`; encendida vuelve; la pastilla de etapa en cada orden («Programmed», «Ready», «Picked
-  Up», «Delivered»); recogida en `--accent-soft` y entrega sin fondo; el cuadro de pallets montado y recogiendo con ese
-  número—. Para seguir midiendo la tarjeta, el fichero mockea `MOSTRAR_SIGUIENTE_PARADA` con un getter
+  Up», «Delivered»); recogida en `--accent-soft` y entrega sin fondo; una entrega de dos órdenes en la misma dirección con
+  «Arrived» solo en la primera; el cuadro de pallets montado y recogiendo con ese número—. Para seguir midiendo la tarjeta, el fichero mockea `MOSTRAR_SIGUIENTE_PARADA` con un getter
   (`estado.tarjeta`) y las dos pruebas de la tarjeta la encienden. Ajustadas con su «Nota D-547»: «Arrived» solo en A1
   (A2 sin nada; al llegar, «Picked up» en las dos), 3 → 2 «Arrived» en Pendientes, 2 → 1 «✓ Arrived», la fila verde →
   azul, y «Recogido» → `setPalletsDe(d)` / `escrituraRecogida({ …, pallets })`.
@@ -43419,6 +43419,33 @@ El Gestor; la pestaña «🚚 Chofer» del admin (misma página, todo apagado, D
 - Con su «Nota D-547»: `colores-de-mi-ruta.test.ts`, `pausas-del-chofer.test.ts` (y dos nuevas: «baño» no empieza pero se
   lee), `acciones-parada.test.ts`, `vista-de-chofer.test.ts` (sin el «Dejar en tienda» de la tarjeta), `one-tap-stop.test.ts`,
   `inline-colors.test.ts`.
+- **Mutantes: 18 de 18 caen**, cada uno con su prueba por nombre (`~/.claude/herramientas/mutantes/tanda-mi-ruta-1014.json`
+  y `tanda-mi-ruta-1014-b.json`). Mutante → prueba que lo tumba:
+  - «la tarjeta vuelve a encenderse (la constante a true)» y «la página pinta la tarjeta sin mirar la constante» →
+    *«disable that box for now»: la tarjeta «Siguiente parada» no se pinta…* y, en `vista-de-chofer`, *los botones se ven
+    igual, pero apagados…*;
+  - «la recogida pierde la pastilla», «la entrega pierde la pastilla» y «la pastilla dice la etapa cruda» → *«Need driver to
+    see the stage here»: cada orden de la lista lleva la pastilla de su etapa…*;
+  - «“Recogido” recoge directo, sin preguntar» → *D-533: «Recogido» recoge de un toque si está lista…* (lee el fuente);
+  - «el número del chofer no llega a la escritura» → la misma y *Mi ruta: la recogida de un toque usa este módulo…*
+    (`one-tap-stop`), las dos leyendo el fuente;
+  - «estimados antes que confirmados» → *los confirmados (actual_pallets) antes que los estimados…* y *pregunta cuántos, con
+    el número de la orden ya puesto…*;
+  - «0 pallets vale» y «sin tope» → *vacío, letras, 0, negativo o más del tope: no vale*;
+  - «“Confirmar recogida” encendido sin número» → *sin pallets en la orden: vacío y «Confirm pickup» apagado…*;
+  - «“Baño” vuelve a elegirse» → *D-547: solo gasolina, comida y otro…* y dos más de `pausas-del-chofer`;
+  - «las recogidas vuelven a verde» y «las entregas vuelven a azul» → *D-547: recogida azul claro, entrega sin fondo…*
+    (`colores-de-mi-ruta`) y *«pickups change to color blue…»* (pintada);
+  - «“Llegué” otra vez en cada orden (la regla)» → *el botón va en la primera orden del tramo y en ninguna otra…* y tres
+    pintadas;
+  - «“✓ Llegaste · ↩ Deshacer” en cada orden» → *D-547: «📍 Arrived» solo en la primera orden de la parada…* y *ya llegó a
+    la tienda…*;
+  - «las filas de continuación no reciben la llegada» → *D-547: «📍 Arrived» solo en la primera orden…* (A2 sacaría
+    «Picked up» antes de llegar);
+  - «la fila pinta “Llegué” sin mirar `conBotonDeLlegada`» **sobrevivió en la primera tanda**: en una recogida, la fila de
+    la segunda orden no tiene ningún botón antes de llegar y la condición de fuera ya no pinta la fila, así que las pruebas
+    de la tienda no lo veían. Sí importa en una ENTREGA de varias órdenes, donde «Rechazado» pinta la fila siempre. Se
+    añadió *una entrega con dos órdenes en la misma dirección: «Arrived» solo en la primera…*, y cae con ella.
 
 ### No medido
 
