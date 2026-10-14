@@ -43779,3 +43779,20 @@ La ficha hace exactamente lo de antes (mismo diálogo, mismos textos, misma escr
 - **Nada abierto en un navegador** (el portátil iba corto de memoria, sin servidor): ni el ancho de la columna (170 px), ni el selector en la vista de teléfono (`orders-responsive`), ni que el diálogo abierto desde una fila quede encima de la tabla.
 - **Contra la base**: nada. La base no pide nada nuevo —son los mismos `setStage` que ya hace la ficha—; eso es lectura del código, no una escritura de prueba.
 - Tracker y Notion: son del orquestador.
+## D-NEXT · Reprogramar una orden la saca de la ruta de su chofer (trigger en la base, migración 172)
+
+**Fecha:** 2026-10-14 · **Migración:** `172_reprogramar_saca_de_la_ruta.sql` · Solo base de datos: sube `package.json`, no `APP_VERSIONS` (CLAUDE.md, excepción de cambios solo de base).
+
+**Pedido del dueño**, literal: *«invoice 170992 got rescheduled for saturday. since it was programmed for todays route Max sees it on his phone but it should be automatically removed from the route if a delivery gets rescheduled so im going to remove it manually»*.
+
+**Qué fallaba (medido en su historial).** FU550 (factura 170992) pasó del 2026-10-14 al 2026-10-17 a las 13:47:56 UTC y siguió con Maximo Garza como parada 3; a las 13:52:12 alguien le quitó el chofer a mano. Cambiar la fecha nunca tocaba `assigned_driver` ni `route_seq`, así que la orden seguía en «Mi ruta» del chofer el día de antes.
+
+**Por qué en la base.** La fecha la cambian la ficha, «📅 Reprogramar» (D-500) y almacén (D-534). Hacerlo en la pantalla obligaba a tocar cada camino, y el guardia de estados limita qué campos puede cambiar cada rol en cada etapa: añadir `assigned_driver` al parche haría fallar escrituras que hoy pasan.
+
+**Qué hace.** Trigger `BEFORE UPDATE OF delivery_date`, llamado `deliveries_zz_…` para correr **después** de los guardias (los BEFORE corren por orden alfabético; lo comprueba la propia migración). Si la fecha cambia de verdad, la orden tenía chofer, el chofer NO cambió en la misma escritura y la orden no se ha recogido (`pending`, `approved`, `fulfilling`, `ready`): chofer, `route_seq` y `pickup_seq` a null, y un evento en la orden («Removed from X's route: rescheduled from A to B / Fuera de la ruta de X: se reprogramó»). Recogida, entregada o anulada: no se toca. Fecha y chofer en la misma escritura (p. ej. el Gestor moviéndola a otra ruta): se respeta el chofer nuevo.
+
+**Ensayado contra producción con ROLLBACK (2026-10-14), 8 de 8:** la migración y su autocomprobación; un admin reprograma una orden aprobada con chofer → el guardia la deja, sale de la ruta y queda el evento; fecha + chofer nuevo → se queda el nuevo; sin cambiar la fecha → no toca; entregada → no toca. De paso se vio que **ventas no puede cambiar la fecha de una orden aprobada o lista en la base** («You cannot edit an order in the … stage»): eso es el guardia de hoy y no cambia aquí.
+
+**Reversión:** `drop trigger deliveries_zz_reprogramar_saca_de_la_ruta on public.deliveries; drop function public.reprogramar_saca_de_la_ruta();`
+
+**Pruebas:** `reprogramar-saca-de-la-ruta.test.ts` (la forma del SQL). **No medido:** en la app con una reprogramación real.
