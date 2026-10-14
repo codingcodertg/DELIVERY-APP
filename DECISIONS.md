@@ -42955,3 +42955,17 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 **No medido:** en el teléfono ni en el navegador.
 
 **De paso, sin código (mismo día):** Roberto Rodriguez Jr no podía pedir ajuste de tiempo porque la app le exigía proyecto. La regla de D-493 (el presencial no necesita proyecto) estaba bien; lo que faltaba era el dato: su `worker_type` estaba vacío y el defecto de Ajustes es «remote». Se le puso `inhouse` (único que fichaba sin tipo en 30 días; Carlos Fuentes y Everto Prado ya lo tenían).
+
+## D-540 · En modo enseñanza, «📍 Llegué» sí cambia el botón: la lista de eventos lleva también los de la capa local
+
+**Fecha:** 2026-10-13 · **Versión:** deliveries 1.299.0 (repo 1.405.0) · Sin migración · Hecho directo por el orquestador en `llegada-en-capacitacion`.
+
+**Pedido del dueño**, literal: *«cuando apreto arrived en el driver view solo dice arrived at the store pero no cambia que pasa ese lo hago desde el user de eernest y en gteaching mode»*.
+
+**Qué fallaba.** En enseñanza, `marcarParada` guarda el evento en la capa local (`overlay.events`), no en la base, que es lo correcto. Pero el proveedor repartía a todas las pantallas `events` —solo los reales—; únicamente `eventsFor` (el historial de UNA orden) juntaba las dos capas. «Mi ruta» lee las llegadas de `events` (`llegadasDeParadas`), así que salía el aviso «Llegaste a la tienda» y el botón seguía en «Llegué». Fuera de enseñanza no pasaba: el evento entra en `events` al guardarse.
+
+**Qué cambia.** `eventosVisibles(reales, locales, enseñanza)` (`src/lib/eventos-visibles.ts`) y el proveedor reparte `events: effectiveEvents`: en enseñanza, lo local delante de lo real (como `eventsFor`); fuera, la lista real tal cual (misma referencia). Arregla igual cualquier otra pantalla que lea `events` en enseñanza (llegadas en la ficha, marcas de parada).
+
+**Pruebas:** `eventos-visibles.test.ts` (orden, fuera de enseñanza la misma lista, y que `llegadasDeParadas` ve la llegada local — sin el arreglo no la ve). Mutantes 3 de 3.
+
+**No medido:** en el navegador, como Ernesto en enseñanza.
