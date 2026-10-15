@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/erp/supabase/admin";
 import { unwrap } from "@/lib/erp/db-result";
 import { pdfToLayoutText } from "@/lib/erp/server/pdf";
 import { parseDocument, type ParsedDoc } from "@/lib/erp/domain/po-parse";
-import { CATALOG_PAGE } from "@/lib/erp/catalog";
+import { CATALOG_PAGE, CATALOG_SORTS } from "@/lib/erp/catalog";
 import type { CatalogRow, CatalogQuery } from "@/lib/erp/catalog";
 import type { StoreStats, VendorStats, CategoryStats } from "@/lib/erp/analytics";
 import { fail, type ErpFail } from "@/lib/erp/messages";
@@ -29,9 +29,7 @@ type Result = { ok: true } | { ok: false; error: string } | ErpFail;
 // type. Trailing card-view fields are all non-cost; cost/margin stay masked by the view.
 const CATALOG_SELECT =
   "id,sku,name,status,record_status,product_type,category_path,vendor_name,price,sell_unit,cost,margin_pct,qoh,needs_review,seo_title,seo_description,collection,size_in,finish,material,look,origin,image_url,image_urls";
-const CATALOG_SORTS = new Set([
-  "name", "sku", "status", "product_type", "category_path", "vendor_name", "price", "cost", "margin_pct", "qoh",
-]);
+// CATALOG_SORTS vive en lib/erp/catalog.ts desde D-553 (lo comparte el menú de cabecera del catálogo).
 
 type SBClient = Awaited<ReturnType<typeof createClient>>;
 

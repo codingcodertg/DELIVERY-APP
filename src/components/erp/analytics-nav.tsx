@@ -4,23 +4,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/erp/utils";
 import { usePrefs } from "@/lib/prefs";
+import { analyticsItems } from "@/lib/erp/nav";
 
 // G-10 (D-204): las pestañas se construyen con t() dentro del render (una constante no cambia de
 // idioma); los href no cambian. El guardián no las veía (palabra sola entre comillas), pero son texto.
-type T = (en: string, es: string) => string;
-const tabs = (t: T) => [
-  { href: "/erp/analytics/stores", label: t("Stores", "Tiendas") },
-  { href: "/erp/analytics/vendors", label: t("Vendors", "Proveedores") },
-  { href: "/erp/analytics/categories", label: t("Categories", "Categorías") },
-  { href: "/erp/analytics/salespeople", label: t("Salespeople", "Vendedores") },
-];
-
+//
+// D-553: esta fila era una SEGUNDA copia de los cuatro enlaces de Analítica de la barra lateral.
+// Al pasar «Dashboard» a Analítica como «Product Analytics», la copia aparte se habría quedado sin
+// él; ahora las dos leen la misma lista (`analyticsItems`, lib/erp/nav.ts). Aquí van TODAS, sin
+// filtrar por rol, a sabiendas: la fila solo se pinta en /erp/analytics/*, cuyas cuatro páginas ya
+// echan a quien no es manager+ (canSeeCost). Por eso /erp/dashboard, que también ve staff, NO pinta
+// esta fila: le enseñaría cuatro enlaces que lo devuelven al catálogo.
 export function AnalyticsNav() {
   const pathname = usePathname();
   const { t } = usePrefs();
   return (
     <div className="mb-4 inline-flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-      {tabs(t).map((tab) => {
+      {analyticsItems(t).map((tab) => {
         const active = pathname.startsWith(tab.href);
         return (
           <Link

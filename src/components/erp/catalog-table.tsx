@@ -6,7 +6,9 @@ import {
   getCoreRowModel,
   flexRender,
   type ColumnDef,
+  type ColumnOrderState,
   type SortingState,
+  type VisibilityState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Input } from "@/components/erp/ui/input";
@@ -21,8 +23,16 @@ import { SavedViews, type SavedView } from "@/components/erp/saved-views";
 import { ProductDrawer } from "@/components/erp/product-drawer";
 import { BulkBar } from "@/components/erp/bulk-bar";
 import { CatalogCards } from "@/components/erp/catalog-cards";
+import { RequestDrawer } from "@/components/erp/request-drawer";
+import { ColumnHeaderMenu } from "@/components/erp/catalog-column-menu";
+import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { queryCatalog, exportCatalogRows } from "@/lib/erp/actions";
 import type { CatalogFacets, CatalogQuery, CatalogRow } from "@/lib/erp/catalog";
+import type { RequestPickers } from "@/lib/erp/request-pickers";
+import {
+  DEFAULT_SORTING, catalogColumns, columnStateFromView, canMoveColumn, moveColumn, inOrder, visibleIds,
+  toggleColumn, hideColumn, isCustomOrder, type CatalogColumn,
+} from "@/lib/erp/catalog-columns";
 import { usePrefs } from "@/lib/prefs";
 
 export type { CatalogRow };
@@ -78,6 +88,7 @@ export function CatalogTable({
   lockedCategory,
   compact = false,
   initialView = "table",
+  requestPickers,
 }: {
   initialRows: CatalogRow[];
   initialTotal: number;
@@ -90,13 +101,26 @@ export function CatalogTable({
   lockedCategory?: string;
   compact?: boolean;
   initialView?: "table" | "cards";
+  /**
+   * D-553: los desplegables del formulario de solicitud, cargados UNA vez por la página
+   * (`loadRequestPickers`). Con ellos aparece «Request» en cada fila (columna tras Name, y botón en
+   * la tarjeta), que abre el formulario en un panel lateral sobre ese producto. Sin ellos, no.
+   */
+  requestPickers?: RequestPickers;
 }) {
   const { t } = usePrefs();
   const [rows, setRows] = useState<CatalogRow[]>(initialRows);
   const [total, setTotal] = useState(initialTotal);
   const [globalFilter, setGlobalFilter] = useState("");
   const [debouncedFilter, setDebouncedFilter] = useState("");
-  const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
+  const [sorting, setSorting] = useState<SortingState>(DEFAULT_SORTING);
+  // D-553: qué columnas se ven y en qué orden (⚙ Columnas y el menú de cada cabecera). Viajan en la
+  // vista guardada; sin guardar, se pierden al recargar (como los filtros).
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+  const [requestRow, setRequestRow] = useState<CatalogRow | null>(null);
+  const canRequest = !!requestPickers;
+  const colInfo = useMemo(() => catalogColumns({ canSeeCost, canRequest }), [canSeeCost, canRequest]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [recordTab, setRecordTab] = useState("all");
   const [reviewOnly, setReviewOnly] = useState(initialReviewOnly);
@@ -147,7 +171,13 @@ export function CatalogTable({
     setStatusFilter(typeof s.statusFilter === "string" ? s.statusFilter : "all");
     setRecordTab(typeof s.recordTab === "string" ? s.recordTab : "all");
     setReviewOnly(Boolean(s.reviewOnly));
-    setSorting(Array.isArray(s.sorting) ? (s.sorting as SortingState) : [{ id: "name", desc: false }]);
+    // D-553: una vista (o un chip prefijado) es una foto completa. Las guardadas antes no traen
+    // columnOrder/columnVisibility y abren en la disposición por defecto; columnStateFromView además
+    // tira toda columna que esta sesión no tiene —costo y margen para staff, aunque la vista los nombre—.
+    const cols = columnStateFromView(s, colInfo);
+    setSorting(cols.sorting);
+    setColumnOrder(cols.columnOrder);
+    setColumnVisibility(cols.columnVisibility);
   }
 
   // Debounce the search box (300ms) into the query filter.
@@ -197,38 +227,56 @@ export function CatalogTable({
     setTotal(res.total);
   }
 
+  // D-553: QUÉ columnas hay (y si se ordenan u ocultan) lo decide `catalogColumns`
+  // (lib/erp/catalog-columns.ts, probado importándolo); aquí solo cómo se pinta cada una. Costo y
+  // margen ni se construyen para quien no ve costo (#29), así que ningún control puede enseñarlos.
   const columns = useMemo<ColumnDef<CatalogRow>[]>(() => {
-    const cols: ColumnDef<CatalogRow>[] = [
-      { id: "thumb", header: "", size: 48, enableSorting: false, cell: (c) => <Thumb path={c.row.original.image_path} alt={c.row.original.sku} /> },
-      { accessorKey: "sku", header: "SKU", size: 140, cell: (c) => <span className="font-mono text-xs text-slate-600">{c.getValue<string>()}</span> },
-      { accessorKey: "name", header: t("Name", "Nombre"), size: 300, cell: (c) => <span className="font-medium text-slate-900">{c.getValue<string>()}</span> },
-      { accessorKey: "status", header: t("Status", "Estado"), size: 130, cell: (c) => <Badge className={commercialStatusClass(c.getValue<string>())}>{t(statusLabel(c.getValue<string>()).en, statusLabel(c.getValue<string>()).es)}</Badge> },
-      { accessorKey: "product_type", header: t("Type", "Tipo"), size: 100, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
-      { accessorKey: "category_path", header: t("Category", "Categoría"), size: 190, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
-      { accessorKey: "vendor_name", header: t("Vendor", "Proveedor"), size: 180, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
-      { accessorKey: "price", header: t("Price", "Precio"), size: 116, cell: (c) => (
+    const celdas: Record<string, Partial<ColumnDef<CatalogRow>> & { size: number }> = {
+      thumb: { size: 48, cell: (c) => <Thumb path={c.row.original.image_path} alt={c.row.original.sku} /> },
+      sku: { accessorKey: "sku", size: 140, cell: (c) => <span className="font-mono text-xs text-slate-600">{c.getValue<string>()}</span> },
+      name: { accessorKey: "name", size: 300, cell: (c) => <span className="font-medium text-slate-900">{c.getValue<string>()}</span> },
+      request: { size: 104, cell: (c) => (
+        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setRequestRow(c.row.original); }}>{t("Request", "Solicitar")}</Button>
+      ) },
+      status: { accessorKey: "status", size: 130, cell: (c) => <Badge className={commercialStatusClass(c.getValue<string>())}>{t(statusLabel(c.getValue<string>()).en, statusLabel(c.getValue<string>()).es)}</Badge> },
+      product_type: { accessorKey: "product_type", size: 100, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
+      category_path: { accessorKey: "category_path", size: 190, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
+      vendor_name: { accessorKey: "vendor_name", size: 180, cell: (c) => <span className="text-slate-500">{c.getValue<string>() ?? "—"}</span> },
+      price: { accessorKey: "price", size: 116, cell: (c) => (
         <span className="tabular-nums">{money(c.getValue<number | null>())}<span className="text-xs text-slate-400">{priceUnitSuffix(c.row.original.sell_unit)}</span></span>
       ) },
-    ];
-    if (canSeeCost) {
-      cols.push({ accessorKey: "cost", header: t("Cost/box", "Costo/caja"), size: 92, cell: (c) => <span className="tabular-nums text-slate-500">{money(c.getValue<number | null>())}</span> });
-      cols.push({ accessorKey: "margin_pct", header: t("Margin", "Margen"), size: 80, cell: (c) => { const v = c.getValue<number | null>(); return <span className="tabular-nums text-slate-500">{v == null ? "—" : `${v}%`}</span>; } });
-    }
-    cols.push({ accessorKey: "qoh", header: "QOH", size: 84, cell: (c) => { const v = c.getValue<number | null>(); return <span className="tabular-nums text-slate-600">{v == null ? "—" : Number(v).toLocaleString()}</span>; } });
-    cols.push({ id: "review", header: "", size: 36, enableSorting: false, cell: (c) => (c.row.original.needs_review ? <span title={t("Needs review", "Requiere revisión")} className="inline-block h-2 w-2 rounded-full bg-amber-400" /> : null) });
-    return cols;
-  }, [canSeeCost, t]);
+      cost: { accessorKey: "cost", size: 92, cell: (c) => <span className="tabular-nums text-slate-500">{money(c.getValue<number | null>())}</span> },
+      margin_pct: { accessorKey: "margin_pct", size: 80, cell: (c) => { const v = c.getValue<number | null>(); return <span className="tabular-nums text-slate-500">{v == null ? "—" : `${v}%`}</span>; } },
+      qoh: { accessorKey: "qoh", size: 84, cell: (c) => { const v = c.getValue<number | null>(); return <span className="tabular-nums text-slate-600">{v == null ? "—" : Number(v).toLocaleString()}</span>; } },
+      review: { size: 36, cell: (c) => (c.row.original.needs_review ? <span title={t("Needs review", "Requiere revisión")} className="inline-block h-2 w-2 rounded-full bg-amber-400" /> : null) },
+    };
+    // Imagen, Request y el punto de revisión van sin título (como antes): sin menú de cabecera; el
+    // ⚙ Columnas los nombra igual y los oculta o mueve.
+    const sinTitulo = new Set(["thumb", "request", "review"]);
+    return colInfo.map(
+      (c) => ({ ...celdas[c.id], id: c.id, header: sinTitulo.has(c.id) ? "" : t(c.en, c.es), enableSorting: c.canSort, enableHiding: c.canHide }) as ColumnDef<CatalogRow>,
+    );
+  }, [colInfo, t]);
 
   const table = useReactTable({
     data: rows,
     columns,
-    state: { sorting },
+    state: { sorting, columnVisibility, columnOrder },
     onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (r) => String(r.id),
     manualSorting: true,
     manualFiltering: true,
   });
+
+  // Lo que el ⚙ Columnas enseña: las columnas en el orden de la persona, cuáles se ven y cómo moverlas.
+  const ordenPorDefecto = colInfo.map((c) => c.id);
+  const columnasEnOrden = inOrder(colInfo, columnOrder);
+  const ordenActual = columnasEnOrden.map((c) => c.id);
+  const paraElSelector = columnasEnOrden.map((c) => ({ key: c.id, en: c.en, es: c.es, ...(c.canHide ? {} : { fija: true as const }) }));
+  const infoDe = (id: string) => colInfo.find((c) => c.id === id) as CatalogColumn;
 
   const tableRows = table.getRowModel().rows;
   const virtualizer = useVirtualizer({ count: tableRows.length, getScrollElement: () => parentRef.current, estimateSize: () => 44, overscan: 12 });
@@ -280,7 +328,7 @@ export function CatalogTable({
   return (
     <div>
       {!compact && (
-        <SavedViews scope="catalog" saved={savedViews} builtins={builtins(t)} currentState={{ globalFilter, statusFilter, recordTab, reviewOnly, sorting }} onApply={applyState} />
+        <SavedViews scope="catalog" saved={savedViews} builtins={builtins(t)} currentState={{ globalFilter, statusFilter, recordTab, reviewOnly, sorting, columnVisibility, columnOrder }} onApply={applyState} />
       )}
 
       {!compact && facets && (
@@ -320,6 +368,25 @@ export function CatalogTable({
           {t("Needs review", "Requiere revisión")}
         </label>
         <div className="ml-auto flex items-center gap-2">
+          {/* D-553: el ⚙ Columnas de la casa (SelectorDeColumnas, el de Órdenes y el Gestor), no uno
+              segundo: mostrar/ocultar, subir/bajar y «Restablecer orden». Solo en la vista de tabla. */}
+          {view === "table" && (
+            <SelectorDeColumnas
+              columnas={paraElSelector}
+              elegidas={visibleIds(colInfo, columnVisibility)}
+              onAlterna={(key) => setColumnVisibility((v) => toggleColumn(v, infoDe(key)))}
+              rotulo={(c) => t(c.en, c.es)}
+              titulo={t("Columns", "Columnas")}
+              nota={t("Saved with the view (+ Save view).", "Se guarda con la vista (+ Guardar vista).")}
+              t={t}
+              mover={{
+                seMueve: (key, delta) => canMoveColumn(ordenActual, key, delta),
+                onMueve: (key, delta) => setColumnOrder(moveColumn(ordenActual, key, delta)),
+                ordenPropio: isCustomOrder(columnOrder, ordenPorDefecto),
+                onRestablece: () => setColumnOrder([]),
+              }}
+            />
+          )}
           {!compact && (
             <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5" role="group" aria-label={t("View mode", "Modo de vista")}>
               {(["table", "cards"] as const).map((v) => (
@@ -358,7 +425,7 @@ export function CatalogTable({
       >
         {view === "cards" ? (
           <>
-            <CatalogCards rows={rows} />
+            <CatalogCards rows={rows} onRequest={canRequest ? setRequestRow : undefined} />
             {loadMoreFooter}
           </>
         ) : (
@@ -367,19 +434,25 @@ export function CatalogTable({
               <div className="flex w-10 shrink-0 items-center justify-center py-2.5">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-clay-500" aria-label={t("Select all loaded", "Seleccionar todo lo cargado")} />
               </div>
-              {table.getHeaderGroups()[0].headers.map((h) => {
-                const sorted = h.column.getIsSorted();
-                return (
-                  <div key={h.id} style={{ width: h.getSize() }} className="px-3 py-2.5 font-medium">
-                    {h.isPlaceholder ? null : (
-                      <button type="button" className={cn("inline-flex items-center gap-1", h.column.getCanSort() && "cursor-pointer select-none hover:text-slate-800", sorted && "text-clay-700")} onClick={h.column.getToggleSortingHandler()}>
-                        {flexRender(h.column.columnDef.header, h.getContext())}
-                        {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : ""}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+              {/* D-553: pulsar una cabecera abre su menú (ordenar ↑/↓, ocultar) en vez de alternar el
+                  orden. Ordenar escribe el MISMO `sorting` que lee la consulta (sortId/sortDesc): el
+                  servidor vuelve a pedir desde la página 1; nada se ordena en el navegador. */}
+              {table.getHeaderGroups()[0].headers.map((h) => (
+                <div key={h.id} style={{ width: h.getSize() }} className="px-3 py-2.5 font-medium">
+                  {h.isPlaceholder || !h.column.columnDef.header ? null : (
+                    <ColumnHeaderMenu
+                      label={t(infoDe(h.column.id).en, infoDe(h.column.id).es)}
+                      sorted={h.column.getIsSorted()}
+                      canSort={h.column.getCanSort()}
+                      canHide={h.column.getCanHide()}
+                      onSort={(desc) => setSorting([{ id: h.column.id, desc }])}
+                      onHide={() => setColumnVisibility((v) => hideColumn(v, infoDe(h.column.id)))}
+                    >
+                      {flexRender(h.column.columnDef.header, h.getContext())}
+                    </ColumnHeaderMenu>
+                  )}
+                </div>
+              ))}
             </div>
 
             <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
@@ -413,6 +486,9 @@ export function CatalogTable({
       </div>
 
       {drawerId !== null && <ProductDrawer productId={drawerId} canEdit={canSeeCost} canSeeCost={canSeeCost} onClose={() => setDrawerId(null)} />}
+      {requestRow && requestPickers && (
+        <RequestDrawer product={requestRow} pickers={requestPickers} canSeeCost={canSeeCost} onClose={() => setRequestRow(null)} />
+      )}
       {selected.size > 0 && (
         <BulkBar ids={[...selected]} canEdit={canSeeCost} onClear={() => setSelected(new Set())} onExport={exportSelection} />
       )}

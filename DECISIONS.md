@@ -43796,3 +43796,114 @@ La ficha hace exactamente lo de antes (mismo diálogo, mismos textos, misma escr
 **Reversión:** `drop trigger deliveries_zz_reprogramar_saca_de_la_ruta on public.deliveries; drop function public.reprogramar_saca_de_la_ruta();`
 
 **Pruebas:** `reprogramar-saca-de-la-ruta.test.ts` (la forma del SQL). **No medido:** en la app con una reprogramación real.
+## D-553 · ERP: traspaso de las cuatro pantallas de BH (catálogo con «Request» por fila, columnas en la vista guardada, menú sin Request / PO upload / Bulk apply, «Dashboard» → «Product Analytics» en Analítica) y `salesRepStatsThisMonth` recibe `now`
+
+**Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca el ERP; el `now` toca `src/lib/analytics.ts`, que usa
+el Panel de Entregas) · **Migración:** ninguna · Rama `erp-traspaso-pantallas`.
+**Porta** los commits `9b906e7`, `7ec9380`, `99de2dd` y `cca6a99` de BH en `codingcodertg/rtg-erp` (la app vieja del ERP),
+según su documento de traspaso (`HANDOFF-erp.md`, §3 y §4.6). **No revierte ninguna decisión de este repo** — ver «Lo que
+ya era verdad aquí».
+
+### Qué pidió el cliente
+
+El cliente del ERP, en sus palabras, tal como las cita el traspaso:
+
+> «The default screen when logged in should now be catalog. Dashboard can be renamed to Product Analytics and it can be moved to the analytics section in the nav.»
+
+> «Remove the request tab from the nav and instead, in catalog tab, add a column with a 'request' button. When clicked a slide out appears with the form that is currently in request but with that respective product sku / name already on the form.»
+
+> «Bulk apply can be removed. Keep the functionality if I want to bring it back though. Same with PO upload.»
+
+> «Catalog should also have filters... check boxes of active and inactive columns. Columns can also be rearranged and saved in saveable views. Also column headings should pop up column settings like sort and hide.»
+
+El dueño de este repo aprobó portarlos el 2026-10-14: «si arranca con 1, 2 y 3».
+
+### Qué cambia
+
+1. **Menú** (`src/lib/erp/nav.ts`, nuevo y puro; `side-nav.tsx` y `analytics-nav.tsx` solo lo pintan). «Dashboard» sale de
+   la lista principal y entra en **Analítica** como **«Product Analytics» / «Analítica de productos»**, el primero del
+   bloque; la página `/erp/dashboard` cambia su título igual. La puerta de Analítica pasa de ser **del bloque entero**
+   (manager+) a **por entrada**: si se hubiera movido sin más, staff habría perdido el antiguo Dashboard, que veía. Nadie
+   gana ni pierde una entrada: staff ve Catálogo y Product Analytics; manager y admin, lo de antes; chofer y almacén, nada
+   (ADR 0010 del ERP). La fila de pastillas de `/erp/analytics/*` era una **segunda copia** de los cuatro enlaces: ahora lee
+   la misma lista e incluye Product Analytics. A propósito, `/erp/dashboard` **no** pinta esa fila: la ve staff y le
+   enseñaría cuatro enlaces que lo devuelven al catálogo.
+2. **«Request» desde la fila.** Sale `/erp/request` del menú; **la ruta se queda** (marcadores viejos y «Tus solicitudes
+   recientes»). En la tabla del catálogo hay una columna con un botón «Request» **justo después de Name** (la tabla mide
+   ~1.500 px y una última columna queda fuera de la pantalla de un portátil); en las tarjetas, al pie (un botón no cabe dentro
+   del enlace de la tarjeta, y la razón de ponerlo tras Name allí no existe). Abre `request-drawer.tsx`, con la forma de
+   `ProductDrawer`, que pinta **el formulario de verdad** (`request-form.tsx`) con una prop nueva, `targetSku`: arranca en
+   «edit», lanza sola la MISMA búsqueda del botón «Buscar» (contra `app_products`, que enmascara el costo a staff, y trae la
+   ficha completa que una fila sola no lleva), esconde el buscador de SKU, y el producto se queda elegido al cambiar de tipo
+   y tras enviar. Envía por el mismo `submitRequest`. **Sin la prop, `/erp/request` hace exactamente lo de antes.** Los
+   desplegables (categorías, proveedores, tiendas, `product_vocabulary`) se cargan **una vez por página** con
+   `loadRequestPickers` (`src/lib/erp/request-pickers.ts`), que ahora usan `/erp/request`, `/erp/catalog` y
+   `/erp/purchasing/categories` (la misma tabla con `lockedCategory`: el traspaso avisaba de que sin esto se quedaba sin el
+   botón, y la app vieja tiene ese hueco).
+3. **PO upload (`/erp/po-upload`) y Bulk apply (`/erp/decisions`) escondidos del menú**, con las dos líneas exactas para
+   volver a enseñarlos comentadas en `nav.ts`. Páginas, componentes, acciones y RPC intactos; siguen por URL para
+   manager/admin.
+4. **Columnas del catálogo.** El **⚙ Columnas** (mostrar/ocultar, ↑/↓, «Restablecer orden») y un **menú en cada cabecera**
+   (orden ascendente, descendente, ocultar; pulsar la cabecera ya no alterna el orden). Ordenar escribe el MISMO `sorting` que
+   la consulta ya leía (`sortId`/`sortDesc`): el servidor vuelve a pedir desde la página 1, nada se ordena en el navegador; las
+   columnas ordenables son exactamente `CATALOG_SORTS` (movido de `actions.ts` a `catalog.ts` para compartirlo). La
+   disposición viaja en la **vista guardada** (`columnVisibility`, `columnOrder`), sin migración: `erp.saved_views.state` es
+   `jsonb not null default '{}'` sin restricción de forma (063; las políticas de 066/070 solo miran `user_id`). La lógica
+   pura está en `src/lib/erp/catalog-columns.ts`. Una vista vieja sin esas claves abre en la disposición por defecto; Name no
+   se puede ocultar; **costo y margen siguen invisibles para staff dos veces**: ni se construyen sus columnas, y al leer una
+   vista se tira todo id que la sesión no tiene (orden, visibilidad y ordenación). Las vistas son de su dueño (RLS «own
+   select»), así que el caso real es un manager al que le bajan el rol y conserva las suyas.
+5. **`salesRepStatsThisMonth(deliveries, users, now = new Date())`** (hallazgo 4.6 del traspaso): decidía «este mes»
+   leyendo el reloj por dentro, y su única prueba (`panel-por-tienda.test.ts`) solo miraba que el Panel la llamara. La
+   pantalla no cambia; `analytics.test.ts` la ejercita con dos `now` fijos.
+
+### Por qué el ⚙ Columnas es el de la casa y no uno nuevo
+
+El traspaso sugería extender `SelectorDeColumnas` si se parecía. Se parece del todo: casillas, una columna `fija` que se
+marca y no se quita (Name), ↑/↓ con `mover` y «Restablecer orden». Se usa **tal cual, sin tocarlo**; la app vieja trae su
+propio `ColumnChooser` de 171 líneas, que no se porta. El precio, aceptado: su «Restablecer» solo deshace el orden (las
+columnas ocultas se vuelven a marcar a mano), y su aspecto es el de la casa (`.col-menu`), no el de los botones del ERP. El
+menú de cabecera sí es nuevo (`catalog-column-menu.tsx`) porque no hay uno de cabecera que ordene por el servidor; usa las
+mismas clases y el mismo cierre (`useCierraAlSalir`).
+
+### Decisiones de este worker
+
+- Abierto desde una fila, el formulario ofrece **solo los cuatro tipos del ejecutor** (edit, reactivate, deactivate,
+  discontinue), no «new» ni «copy»: dentro del cajón de un producto, esos dos crearían OTRO artículo. La app vieja enseñaba
+  todos. Si el cliente quiere «copy» desde la fila (precargando este producto como origen), es un cambio aparte.
+- La página `/erp/request` pasa a leer sus desplegables con `loadRequestPickers`: mismas cuatro consultas y mismo `unwrap`,
+  para no tener dos copias.
+
+### Lo que ya era verdad aquí, y lo que no
+
+- **«Catalog como pantalla por defecto» ya se cumplía** para quien solo tiene el ERP: `MODULES.erp.href = "/erp/catalog"`
+  y `landingRoute` lo lleva allí; `/erp` redirige al catálogo desde D-198 (G-1). **No se cambia** `landingRoute` para quien
+  tiene varios módulos: sigue yendo a `/home` (D-051). La app vieja mandaba `/` al catálogo porque `/` era su selector de
+  apps; aquí `/home` es el hub de Entregas, RR. HH., Time Tracker y demás, y llevar al ERP a todo el que lo tiene entre
+  otros sería decidir por esos módulos. Si el cliente lo pide para varios módulos, es otra decisión y revertiría D-051 en
+  parte.
+- **Falso aquí:** «`computeKpis` ya tiene `now`». No lo tiene; el precedente en `analytics.ts` es `driverShiftKpis`.
+- El traspaso pedía tratar el ADR 0010 de la app vieja («`/` abre el selector»); aquí no hay ADR equivalente para el ERP
+  (D-051 es del hub y no se toca).
+
+### Consecuencias aceptadas
+
+Pulsar una cabecera abre su menú en vez de alternar el orden (y desaparece el multi-orden con mayúsculas, que el servidor
+nunca usó); un chip prefijado (Activos, Requiere revisión…) restablece la disposición, porque una vista es una foto; la
+disposición no sobrevive a recargar si no se guarda como vista; CSV/XLSX siguen exportando todas las columnas; en
+`/erp/purchasing/categories` el ⚙ Columnas funciona pero no hay vistas que guardar (es la tabla compacta). Un producto que
+no está publicado en `app_products` (un borrador) abre el cajón con «No hay producto publicado con SKU…», igual que el
+botón «Buscar».
+
+### Prueba
+
+- `src/lib/erp/nav.test.ts` (9), `catalog-columns.test.ts` (30), `solicitud-desde-catalogo.test.ts` (13), y dos en
+  `analytics.test.ts`; `i18n.test.ts` incluye los dos componentes nuevos; `solicitud-campos.test.ts` lleva su «Nota D-553».
+- **Mutantes, 16 de 16 caen con una prueba con nombre** (`tanda-erp-traspaso.json`): Product Analytics solo de manager+;
+  Analítica sin filtro por entrada; menú sin catálogo; Request de vuelta en el menú; Name ocultable; costo construido para
+  staff; el orden guardado conserva ids ajenos; una vista con Name oculto; ordenar por una columna que el servidor no ordena;
+  la ordenación pierde su dirección; bajar la última columna más allá del final; «Ocultar» oculta Name; «new»/«copy» desde
+  la fila; `targetSku` de solo espacios; con producto fijo, cambiar de tipo lo suelta; `salesRepStatsThisMonth` ignora `now`.
+- **No verificado:** nada de esto se abrió en un navegador (ni demo del ERP, que no existe, ni sesión real), ni el
+  `next build`. El aspecto del ⚙ Columnas de la casa dentro del ERP, y que el menú de cabecera no quede recortado por el
+  contenedor con scroll, están sin mirar.

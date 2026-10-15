@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
@@ -12,8 +12,8 @@ import { unwrap, dbErrorMessage } from "@/lib/erp/db-result";
 import { submitNewItem, submitRequest } from "@/lib/erp/actions";
 import { failText } from "@/lib/erp/messages";
 import {
-  CAMPOS_DEL_ARTICULO, CAMPOS_DE_EDICION, TIPOS_DE_SOLICITUD, MODOS_DE_PRECIO, ESTADOS_DEL_SOLICITANTE,
-  articuloDesdeElFormulario, articuloCompleto, cambiosPropuestos, camposVisibles, puedeDesactivar,
+  CAMPOS_DEL_ARTICULO, CAMPOS_DE_EDICION, MODOS_DE_PRECIO, ESTADOS_DEL_SOLICITANTE,
+  articuloDesdeElFormulario, articuloCompleto, cambiosPropuestos, camposVisibles, puedeDesactivar, arranqueDelFormulario,
   type TipoDeSolicitud, type EstadoDelSolicitante, type OrigenDeCopia, type CampoDeArticulo,
 } from "@/lib/erp/solicitud-campos";
 
@@ -57,17 +57,26 @@ export function RequestForm({
   stores,
   vocab,
   canSeeCost,
+  targetSku,
 }: {
   categories: Cat[];
   vendors: Vendor[];
   stores: Store[];
   vocab: Vocabulario;
   canSeeCost: boolean;
+  /**
+   * D-553: el producto de la fila del catálogo desde la que se abrió (request-drawer.tsx). Con él, el
+   * formulario arranca en «edit» con ese producto ya buscado —la MISMA búsqueda del botón «Buscar»,
+   * contra `app_products`, que enmascara el costo a staff— y sin buscador de SKU; el producto se queda
+   * elegido al cambiar de tipo y después de enviar. Sin él (/erp/request), todo como antes.
+   */
+  targetSku?: string;
 }) {
   const router = useRouter();
   const { t } = usePrefs();
   const sl = (v: string) => t(statusLabel(v).en, statusLabel(v).es);
-  const [reqType, setReqType] = useState<TipoDeSolicitud>("new");
+  const arranque = arranqueDelFormulario(targetSku);
+  const [reqType, setReqType] = useState<TipoDeSolicitud>(arranque.tipo);
   const [f, setF] = useState<Record<string, string>>({ product_type: "tile", status: "active" });
   const [store, setStore] = useState("");
   const [ready, setReady] = useState<EstadoDelSolicitante>("ready");
@@ -96,13 +105,19 @@ export function RequestForm({
   const camposEdicion = camposVisibles(CAMPOS_DE_EDICION, canSeeCost);
 
   function resetNonNew() {
-    setTarget(null);
-    setLookupSku("");
     setReason("");
-    setOriginal({});
-    setEditForm({});
     setCopySource(null);
     setCopyCode("");
+    if (arranque.productoFijo) {
+      // Abierto sobre un producto: sigue siendo el elegido al cambiar de tipo y tras enviar; solo se
+      // deshacen los cambios propuestos.
+      setEditForm(original);
+      return;
+    }
+    setTarget(null);
+    setLookupSku("");
+    setOriginal({});
+    setEditForm({});
   }
 
   async function checkDups(): Promise<Match[]> {
@@ -202,18 +217,18 @@ export function RequestForm({
     });
   }
 
-  function lookup() {
+  function lookup(code: string) {
     setErr(null);
     setTarget(null);
     startTransition(async () => {
       // ARC-02: a failed lookup used to report the honest-looking "No published product…".
       let m: Match | null;
       try {
-        m = await buscarProducto(lookupSku, "");
+        m = await buscarProducto(code, "");
       } catch (e) {
         return setErr(t(`Lookup failed: ${dbErrorMessage(e)}`, `La búsqueda falló: ${dbErrorMessage(e)}`));
       }
-      if (!m) return setErr(t(`No published product with SKU ${lookupSku.trim().toUpperCase()}.`, `No hay producto publicado con SKU ${lookupSku.trim().toUpperCase()}.`));
+      if (!m) return setErr(t(`No published product with SKU ${code.trim().toUpperCase()}.`, `No hay producto publicado con SKU ${code.trim().toUpperCase()}.`));
       setTarget(m);
       const seed: Record<string, string> = {};
       for (const fld of CAMPOS_DE_EDICION) {
@@ -224,6 +239,15 @@ export function RequestForm({
       setEditForm(seed);
     });
   }
+
+  // D-553: abierto desde una fila del catálogo, la búsqueda del botón «Buscar» se lanza sola con ese
+  // SKU. Es la misma (app_products: costo enmascarado para staff) y trae la ficha completa —una fila
+  // del catálogo sola no lleva unidad base, SF/caja, MPN y demás campos de edición—.
+  const fijo = arranque.productoFijo;
+  useEffect(() => {
+    if (fijo) lookup(fijo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir sobre otro producto
+  }, [fijo]);
 
   const bloqueoDesactivar = reqType === "deactivate" && target && !puedeDesactivar(target.qoh);
 
@@ -327,7 +351,7 @@ export function RequestForm({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-5 inline-flex flex-wrap rounded-lg border border-slate-200 bg-slate-50 p-1">
-        {TIPOS_DE_SOLICITUD.map((rt) => (
+        {arranque.tipos.map((rt) => (
           <button
             key={rt}
             type="button"
@@ -406,12 +430,15 @@ export function RequestForm({
       ) : (
         <div className="space-y-4">
           {cabecera}
-          <Field label={t("Find product by SKU", "Buscar producto por SKU")}>
-            <div className="flex gap-2">
-              <Input value={lookupSku} onChange={(e) => setLookupSku(e.target.value)} placeholder={t("e.g. PLG2163", "p. ej. PLG2163")} />
-              <Button variant="outline" onClick={lookup} disabled={pending || !lookupSku.trim()}>{t("Find", "Buscar")}</Button>
-            </div>
-          </Field>
+          {arranque.buscador && (
+            <Field label={t("Find product by SKU", "Buscar producto por SKU")}>
+              <div className="flex gap-2">
+                <Input value={lookupSku} onChange={(e) => setLookupSku(e.target.value)} placeholder={t("e.g. PLG2163", "p. ej. PLG2163")} />
+                <Button variant="outline" onClick={() => lookup(lookupSku)} disabled={pending || !lookupSku.trim()}>{t("Find", "Buscar")}</Button>
+              </div>
+            </Field>
+          )}
+          {!target && arranque.productoFijo && pending && <p className="text-sm text-slate-500">{t("Loading product…", "Cargando producto…")}</p>}
           {target && (
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
               <span className="font-mono">{target.sku}</span> — {target.name} ({sl(target.status)}) · QOH {target.qoh ?? 0}

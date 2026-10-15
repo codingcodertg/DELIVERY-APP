@@ -101,6 +101,9 @@ describe("nadie más se cuelga del borde de arriba a lo ancho", () => {
     "src/components/erp/master-round-trip.tsx": 1,
     // El cajón lateral entero es `overflow-y-auto`.
     "src/components/erp/product-drawer.tsx": 1,
+    // Nota D-553: el cajón de «Request» del catálogo copia esa forma: panel `overflow-y-auto` y su
+    // cabecera `sticky top-0` dentro.
+    "src/components/erp/request-drawer.tsx": 1,
     // `max-h-[70vh] overflow-auto` en la cola de revisión.
     "src/components/erp/review-queue.tsx": 1,
     // `table.orders th` dentro de `.tbl-scroll`, que es caja de scroll en los dos ejes porque

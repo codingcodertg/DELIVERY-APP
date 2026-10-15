@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { computeKpis, driverStats, driverKpis, driverShiftKpis, driverQualityKpis, deliveryTrend, groupVolume, overdueOrders, inDateRange, approvalTurnaroundMs } from "@/lib/analytics";
+import { computeKpis, driverStats, driverKpis, driverShiftKpis, driverQualityKpis, deliveryTrend, groupVolume, overdueOrders, inDateRange, approvalTurnaroundMs, salesRepStatsThisMonth } from "@/lib/analytics";
 import { mkDelivery } from "@/lib/__fixtures";
-import type { DriverShift, OrderEvent } from "@/lib/types";
+import type { DriverShift, OrderEvent, Profile } from "@/lib/types";
 
 describe("computeKpis", () => {
   it("counts each stage into the right bucket", () => {
@@ -319,5 +319,32 @@ describe("deliveryTrend", () => {
 
   it("returns [] for an inverted range", () => {
     expect(deliveryTrend([], "2026-08-10", "2026-08-01")).toEqual([]);
+  });
+});
+
+// Nota D-553 (hallazgo 4.6 del traspaso del ERP): salesRepStatsThisMonth leía el reloj del sistema
+// por dentro, y la única prueba que la nombraba (panel-por-tienda.test.ts) solo mira que la pantalla la
+// llame. Ahora recibe `now`; esto la ejercita con un mes fijo, así que no caduca al cambiar de mes.
+describe("salesRepStatsThisMonth con un `now` fijo", () => {
+  const users = [{ id: "u1", full_name: "Ana" }, { id: "u2", full_name: "Beto" }] as unknown as Profile[];
+  const deliveries = [
+    mkDelivery({ created_by: "u1", created_at: "2026-10-03T15:00:00.000Z", delivery_fee: 50 }),
+    mkDelivery({ created_by: "u1", created_at: "2026-10-20T15:00:00.000Z", delivery_fee: 30 }),
+    mkDelivery({ created_by: "u2", created_at: "2026-10-09T15:00:00.000Z", delivery_fee: 100 }),
+    mkDelivery({ created_by: "u2", created_at: "2026-09-28T15:00:00.000Z", delivery_fee: 999 }),
+    mkDelivery({ created_by: "u1", created_at: "2026-11-02T15:00:00.000Z", delivery_fee: 999 }),
+  ];
+
+  it("cuenta solo el mes de `now`, no el del reloj", () => {
+    expect(salesRepStatsThisMonth(deliveries, users, new Date(2026, 9, 14, 12))).toEqual([
+      { rep: "Beto", deliveries: 1, chargedTotal: 100, avgPerDelivery: 100 },
+      { rep: "Ana", deliveries: 2, chargedTotal: 80, avgPerDelivery: 40 },
+    ]);
+  });
+
+  it("otro `now`, otro mes: septiembre solo ve la orden de septiembre", () => {
+    expect(salesRepStatsThisMonth(deliveries, users, new Date(2026, 8, 15, 12))).toEqual([
+      { rep: "Beto", deliveries: 1, chargedTotal: 999, avgPerDelivery: 999 },
+    ]);
   });
 });

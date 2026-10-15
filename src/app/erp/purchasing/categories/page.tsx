@@ -5,6 +5,7 @@ import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { queryCatalog } from "@/lib/erp/actions";
+import { loadRequestPickers } from "@/lib/erp/request-pickers";
 import { CATALOG_PAGE } from "@/lib/erp/catalog";
 import { CatalogTable } from "@/components/erp/catalog-table";
 import { CategoryCards, type CategoryCard } from "@/components/erp/category-cards";
@@ -30,7 +31,12 @@ export default async function PurchasingCategories({
 
   // Category detail: reuse the paginated catalog table, pre-filtered + compact (no global KPIs/tabs).
   if (cat) {
-    const first = await queryCatalog({ categoryPath: cat, offset: 0, limit: CATALOG_PAGE });
+    // D-553: la misma tabla que el catálogo, así que también su «Request» por fila; los desplegables
+    // del formulario se cargan aquí una vez, igual que en /erp/catalog.
+    const [first, requestPickers] = await Promise.all([
+      queryCatalog({ categoryPath: cat, offset: 0, limit: CATALOG_PAGE }),
+      loadRequestPickers(supabase, "purchasing/categories"),
+    ]);
     return (
       <>
         <Header />
@@ -45,6 +51,7 @@ export default async function PurchasingCategories({
             canSeeCost={canSeeCost(session.role)}
             lockedCategory={cat}
             compact
+            requestPickers={requestPickers}
             initialError={first.error ?? null}
           />
         </main>

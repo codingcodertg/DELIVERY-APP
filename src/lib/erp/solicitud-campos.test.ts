@@ -192,7 +192,10 @@ describe("las pantallas y las acciones usan la librería (la prueba se alimenta 
   const form = leer("src/components/erp/request-form.tsx");
   const actions = leer("src/lib/erp/actions.ts");
   it("el formulario pinta los seis tipos, los campos de la hoja, y manda lo que dice la librería", () => {
-    expect(form).toMatch(/TIPOS_DE_SOLICITUD\.map\(/);
+    // Nota D-553: las pestañas salen de `arranqueDelFormulario` (los seis tipos sin `targetSku`; los
+    // cuatro del ejecutor cuando se abre desde una fila del catálogo). Antes, `TIPOS_DE_SOLICITUD.map(`.
+    expect(form).toMatch(/arranque\.tipos\.map\(/);
+    expect(form).toMatch(/const arranque = arranqueDelFormulario\(targetSku\);/);
     expect(form).toMatch(/camposVisibles\(CAMPOS_DEL_ARTICULO, canSeeCost\)/);
     expect(form).toMatch(/camposVisibles\(CAMPOS_DE_EDICION, canSeeCost\)/);
     expect(form).toMatch(/const input = articuloDesdeElFormulario\(f, \{ canSeeCost, store, requesterStatus: ready, copySource: reqType === "copy" \? copySource : null \}\);\s*const res = await submitNewItem\(input\);/);
@@ -255,8 +258,13 @@ describe("las pantallas y las acciones usan la librería (la prueba se alimenta 
   });
   it("la página de solicitud trae tiendas y el vocabulario con style y color, lee `*` y enseña el estado del solicitante con su botón", () => {
     const pagina = leer("src/app/erp/request/page.tsx");
-    expect(pagina).toMatch(/supabase\.from\("stores"\)\.select\("id,name"\)\.order\("id"\)/);
-    expect(pagina).toMatch(/style: uniq\("style"\), color: uniq\("color"\)/);
+    // Nota D-553: las lecturas de los desplegables se mudaron a `loadRequestPickers` (las comparte el
+    // catálogo); se miden allí, y aquí que la página las usa sin tocar el formulario.
+    const pickers = leer("src/lib/erp/request-pickers.ts");
+    expect(pickers).toMatch(/supabase\.from\("stores"\)\.select\("id,name"\)\.order\("id"\)/);
+    expect(pickers).toMatch(/style: uniq\("style"\), color: uniq\("color"\)/);
+    expect(pagina).toMatch(/loadRequestPickers\(supabase, "request"\)/);
+    expect(pagina).toMatch(/<RequestForm \{\.\.\.pickers\} canSeeCost=\{canSeeCost\(session\.role\)\} \/>/);
     expect(pagina).toMatch(/from\("product_requests"\)\s*\.select\("\*"\)\s*\.eq\("requester", session\.user\.id\)/);
     expect(pagina).toMatch(/r\.status === "pending" && r\.requester_status && <RequestReadyToggle requestId=\{r\.id\} ready=\{!noLista\} \/>/);
     expect(pagina).toMatch(/<Tx en="Executor comments" es="Comentarios del ejecutor" \/>/);

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Badge } from "@/components/erp/ui/badge";
 import { cn } from "@/lib/erp/utils";
 import type { AppRole } from "@/lib/erp/domain/roles";
-import { hasCatalogAccess } from "@/lib/erp/domain/modules";
+import { erpNav } from "@/lib/erp/nav";
 import { useErpNav } from "@/components/erp/nav-state";
 import { usePrefs } from "@/lib/prefs";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
@@ -16,33 +16,12 @@ const roleStyles: Record<string, string> = {
   staff: "border-slate-200 bg-slate-100 text-slate-600",
 };
 
-type Item = { href: string; label: string; managerPlus?: boolean };
-type T = (en: string, es: string) => string;
-
 // G-10 (D-203): el ERP habla el idioma del HUB (usePrefs, la misma preferencia que Entregas y HR),
 // con pares inline. Las etiquetas del menú se construyen con t() dentro del render en vez de en
 // una constante de módulo, porque una constante no puede cambiar de idioma.
-const items = (t: T): Item[] => [
-  { href: "/erp/dashboard", label: t("Dashboard", "Panel") },
-  { href: "/erp/catalog", label: t("Catalog", "Catálogo") },
-  { href: "/erp/purchasing", label: t("Purchasing", "Compras"), managerPlus: true },
-  { href: "/erp/purchasing/orders", label: t("PO ↔ Proforma", "OC ↔ Proforma"), managerPlus: true },
-  { href: "/erp/purchasing/receiving", label: t("Receiving", "Recepción"), managerPlus: true },
-  { href: "/erp/inventory", label: t("Inventory", "Inventario"), managerPlus: true },
-  { href: "/erp/review", label: t("Review", "Revisión"), managerPlus: true },
-  { href: "/erp/requests", label: t("Approvals", "Aprobaciones"), managerPlus: true },
-  { href: "/erp/po-upload", label: t("PO upload", "Subir OC"), managerPlus: true },
-  { href: "/erp/decisions", label: t("Bulk apply", "Aplicar en lote"), managerPlus: true },
-  { href: "/erp/master", label: t("Excel round-trip", "Ida y vuelta Excel"), managerPlus: true },
-  { href: "/erp/request", label: t("Request", "Solicitud") },
-];
-const analytics = (t: T): Item[] => [
-  { href: "/erp/analytics/stores", label: t("Stores", "Tiendas"), managerPlus: true },
-  { href: "/erp/analytics/vendors", label: t("Vendors", "Proveedores"), managerPlus: true },
-  { href: "/erp/analytics/categories", label: t("Categories", "Categorías"), managerPlus: true },
-  { href: "/erp/analytics/salespeople", label: t("Salespeople", "Vendedores"), managerPlus: true },
-];
-
+// Desde D-553 las entradas y quién ve cada una viven en `lib/erp/nav.ts` (puro, probado importándolo):
+// «Dashboard» pasó a Analítica como «Product Analytics», y Request, PO upload y Bulk apply salieron
+// del menú (las rutas siguen). Aquí solo se pintan.
 
 export function SideNav({
   role,
@@ -67,14 +46,11 @@ export function SideNav({
 }) {
   const pathname = usePathname();
   const { t } = usePrefs();
-  const managerPlus = role === "admin" || role === "manager";
   // Catalog nav is hidden entirely from the delivery-floor roles the merge added (ADR 0010): a
   // driver has no reason to browse the product master, and a list of links that all redirect is
-  // worse than no list.
+  // worse than no list. `erpNav` lo decide (y la puerta de Analítica es por entrada, D-553).
   const { collapsed, toggle } = useErpNav();
-  const catalog = hasCatalogAccess(role);
-  const navItems = catalog ? items(t).filter((i) => !i.managerPlus || managerPlus) : [];
-  const analyticsItems = catalog && managerPlus ? analytics(t) : [];
+  const { main: navItems, analytics: analyticsItems } = erpNav(role, t);
   // Exact-match the roots that have deeper siblings (/, /purchasing) so a sub-route like
   // /purchasing/orders highlights only its own item, not its parent.
   const exact = new Set(["/erp/purchasing"]);
