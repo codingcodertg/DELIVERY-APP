@@ -164,7 +164,8 @@ describe("B · «📅 Reprogramar» en la ficha, para todos menos el chofer", ()
   it("la función de la base (173) deja EXACTAMENTE lo que deja `puedeReprogramar`, rol por rol y etapa por etapa", () => {
     const sql = leer("supabase/migrations/173_reprogramar_orden.sql");
     const funcion = sql.slice(sql.indexOf("create or replace function public.reprogramar_orden("));
-    const bloque = funcion.slice(funcion.indexOf("if not ("), funcion.indexOf(") then", funcion.indexOf("if not (")));
+    // Nota D-549: el permiso va en `coalesce(…, false)` (el agujero del NULL, ver el bloque «el permiso no se abre con un NULL»).
+    const bloque = funcion.slice(funcion.indexOf("if not coalesce(("), funcion.indexOf("), false) then", funcion.indexOf("if not coalesce((")));
     const clausulas = [...bloque.matchAll(/\(r (?:= '(\w+)'|in \(([^)]*)\)) and o\.stage in \(([^)]*)\)(?=([^\n]*\n?[^\n]*))/g)].map((m) => ({
       roles: m[1] ? [m[1]] : m[2].split(",").map((s) => s.trim().replace(/'/g, "")),
       etapas: m[3].split(",").map((s) => s.trim().replace(/'/g, "")),
@@ -272,5 +273,16 @@ describe("B · «📅 Reprogramar» en la ficha, para todos menos el chofer", ()
     for (const pagina of ["src/app/(app)/routes/page.tsx", "src/app/(app)/warehouse/page.tsx"]) {
       expect([pagina, leer(pagina).includes("reprogramarOrden={reprogramarOrden}")]).toEqual([pagina, true]);
     }
+  });
+});
+
+// Cazado en el ensayo contra producción con ROLLBACK (2026-10-14): con `assigned_sales_rep` vacío, `o.assigned_sales_rep = yo`
+// da NULL, `not (… or NULL)` da NULL y `if NULL then raise` NO lanza: cualquier vendedor reprogramaba una orden ajena sin
+// vendedor asignado. El permiso va envuelto en `coalesce(…, false)`: lo que no se sabe, no se permite.
+describe("173 · el permiso no se abre con un NULL", () => {
+  it("la condición de permiso va dentro de coalesce(…, false)", () => {
+    const sql = leer("supabase/migrations/173_reprogramar_orden.sql").replace(/\s+/g, " ");
+    expect(sql).toContain("if not coalesce(( (r = 'admin'");
+    expect(sql).toContain("and (o.created_by = yo or o.assigned_sales_rep = yo)) ), false) then raise exception 'REPROGRAMAR_NO_PERMITIDO");
   });
 });

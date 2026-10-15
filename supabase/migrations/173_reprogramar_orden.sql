@@ -336,13 +336,15 @@ begin
     raise exception 'REPROGRAMAR_NO_EXISTE: order not found' using errcode = 'P0002';
   end if;
 
-  if not (
+  -- `coalesce(…, false)`: con `assigned_sales_rep` vacío, `= yo` da NULL, `not (… or NULL)` da NULL, y `if NULL` NO lanza.
+  -- Así cualquier vendedor reprogramaba cualquier orden sin vendedor asignado (cazado en el ensayo con ROLLBACK, 2026-10-14).
+  if not coalesce((
        (r = 'admin' and o.stage in ('draft','pending','approved','fulfilling','ready','picked_up','rejected'))
     or (r in ('logistics','manager','accounting') and o.stage in ('draft','pending','approved','fulfilling','ready'))
     or (r = 'warehouse' and o.stage in ('approved','fulfilling','ready'))
     or (r = 'sales' and o.stage in ('draft','pending','approved','fulfilling','ready')
         and (o.created_by = yo or o.assigned_sales_rep = yo))
-  ) then
+  ), false) then
     raise exception 'REPROGRAMAR_NO_PERMITIDO: % cannot reschedule this order in the % stage', coalesce(r, 'nobody'), o.stage
       using errcode = '42501';
   end if;
@@ -438,4 +440,4 @@ end $chk$;
 --   R8 ventas: select set_config('rtg.reprogramar_orden', '<id>', true); update ... set delivery_date = ..., contact = 'x' -> rechazado (otra columna)
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('173_reprogramar_orden.sql', 'b7d46ffdce473234b1a3d0b307ae9d567b66dc344499917bde40c285fa87c112') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('173_reprogramar_orden.sql', '9ca34bed871feef626a0d28881ef310570a03b747268effe2da758ac59e3c9da') on conflict (name) do nothing;
