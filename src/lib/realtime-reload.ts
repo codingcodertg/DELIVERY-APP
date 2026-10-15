@@ -9,6 +9,10 @@
 // INSERTs are applied straight to the driver's dot (see the provider).
 //
 // Pure, so the before/after can be measured in a test instead of asserted.
+//
+// D-NEXT (2026-10-15): `deliveries`, `order_events` y `notifications` ya no pasan por aquí en
+// una ráfaga normal —leen solo las filas cuyos ids trajo el evento (lib/recarga-por-fila.ts)—.
+// Este mapa sigue siendo el camino de las otras tablas y la red de seguridad (sin id, >25 ids).
 // ============================================================
 
 /** The nine queries `reloadAll` runs, in its order. */

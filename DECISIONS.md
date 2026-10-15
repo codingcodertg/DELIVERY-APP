@@ -9124,6 +9124,12 @@ cuenta.
 
 ### G-15 · Cualquier cambio recargaba las nueve consultas
 
+> **⚠ Reemplazada en parte por D-NEXT** (2026-10-15): lo de aquí —una consulta por tabla, no las nueve— sigue en pie,
+> pero para `deliveries`, `order_events` y `notifications` ya no se vuelve a bajar la consulta ENTERA: se leen solo
+> las filas cuyos ids trajo la ráfaga (`lib/recarga-por-fila.ts`). Un UPDATE de una orden costaba la lista de 120 días
+> (~670 filas) en cada sesión abierta; ahora cuesta una fila. Las otras cinco tablas, y las ráfagas sin id o con más
+> de 25 ids, siguen exactamente por este camino (`queriesForTables`).
+
 **Qué fallaba.** El canal realtime enganchaba ocho tablas a un mismo `scheduleReload → reloadAll`,
 que volvía a bajar las nueve consultas del proveedor en **todas** las sesiones abiertas por
 cualquier fila.
@@ -44570,3 +44576,25 @@ La regla entera es una función pura, `shouldSoftReload({ stale, trigger, hidden
 **Qué no se toca, y por qué.** (a) **No hay mecanismo de «versión mínima obligatoria»** en el repo (`/api/version` devuelve solo `versions` y `apk`), así que no se inventó. (b) La recarga de `ErrorBoundary` ante un *chunk* viejo (D-155) sigue siendo inmediata: no es un refresco por versión, es la recuperación de una pantalla que ya reventó, y retrasarla dejaría la tarjeta de error a la vista. Puede sumar recargas tras un despliegue (quien navega a una ruta cuyo *chunk* ya no existe), queda anotado. (c) **Lo que baja cada recarga** —la lista entera de órdenes— vive en `src/lib/data-provider.tsx`, que otra rama está cambiando (D-562, fusionada mientras esta se escribía, ya deja de bajar las fotos en la lista); la segunda mitad del pedido («solo que se descargue lo necesario») es de esa línea de trabajo. Este cambio reparte las recargas, no las aligera. (d) El aviso del APK no cambia.
 
 **Pruebas:** `src/lib/app-update.test.ts` — `shouldSoftReload` (11: no recarga hasta que pasa el retraso; navegación y visible sí; nunca sin estar vieja, con algo a medias, oculta o ya intentada; el respaldo de 60 min, que espera a que nadie toque y respeta lo sin guardar), `pickSoftReloadJitter` (rango y fuente rota), `safeToReload` con `[data-unsaved]`, y tres que leen el fuente del aviso para fijar qué le pasa a la regla (estado real y no constantes; la navegación dispara y el `focus` no; una sola recarga, detrás de la respuesta). Mutantes 19 de 19, cada uno cae con su prueba por nombre (`~/.claude/herramientas/mutantes/tanda-refresco-suave.json`).
+## D-NEXT · Un evento realtime de `deliveries` recarga SOLO la fila que cambió, no la lista entera
+
+**Fecha:** 2026-10-15 · Instancia de Supabase (Micro) saturada ese día · Sin migración.
+
+**Lo que pidió el dueño**, literal: *«solo que se descargue lo neesario que se ocupa para ese momento»*, y al plan: *«si hazlo así»*.
+
+**Qué pasaba (medido 2026-10-15 por el orquestador).** D-201 (G-15) dejó que un evento realtime recargara solo la consulta de SU tabla, pero esa consulta es la lista entera: con `deliveries`, los 120 días de ventana (G-16), **~670 filas**. Y eso en **cada cliente conectado** (ese día, 7 usuarios × 9 suscripciones). Un UPDATE de una orden —un chofer marca «entregado», alguien reasigna— eran 7 descargas de la lista completa; una ráfaga de escrituras (reordenar una ruta) lo repetía cada 250 ms. Tras D-562 la lista ya no lleva fotos, pero seguía bajando entera por cualquier fila.
+
+**Qué cambia.**
+- La ráfaga del canal (`data-provider.tsx`, mismo debounce de 250 ms, misma espera a `writingRef`) guarda los **eventos** (tabla, tipo, `new`/`old`), no solo las tablas. Al cerrarse, `planDeRafaga` (`src/lib/recarga-por-fila.ts`, puro) decide por tabla: **INSERT/UPDATE → leer esa fila por id; DELETE → quitar `payload.old.id`**; el último evento de un id manda y un id repetido se lee una vez.
+- `deliveries` lee `select(COLUMNAS_DE_LA_LISTA).in("id", ids)` (con el mismo reintento sin `photo_count` de D-562) y **funde** (`fusionarFilas`): reemplaza la fila en su sitio, inserta la nueva donde la deja `order_no desc`, y **quita** lo pedido que no volvió (RLS, o borrada entre el eco y la lectura) y lo que volvió pero ya no cumple el filtro de la lista (`cumpleFiltroDeLaLista`: `is_training = false` y dentro de la ventana del suelo actual, o abierta, o sin fecha — el mismo filtro que `deliveriesQuery`). **No se usa `payload.new` como fila:** la RLS se aplica al leer y `photo_count` lo calcula el disparador de la 177.
+- `order_events` igual, por id, recortando a `EVENTS_WINDOW` (1000). `notifications` igual, por id y `user_id = me`, recortando a 50; y **un evento cuya `new.user_id` es de otro usuario se ignora del todo** —el abanico de `emitStageNotifs` escribe una fila por destinatario y antes cada una recargaba la campana de todos—.
+- **Red de seguridad:** una tabla cuyo payload no trae id, o con más de `MAX_IDS_POR_RAFAGA = 25` ids a leer en la ráfaga, cae a su consulta entera exactamente como en D-201 (`queriesForTables` → `loaders`). Los DELETE no cuentan para el umbral. `.in()` nunca se llama con una lista vacía (un `.in(col, [])` devuelve cero filas, no «todas»: se habría quitado todo del estado).
+- Las otras cinco tablas (`settings`, `profiles`, `driver_*`) siguen por D-201. `driver_locations` sigue aplicándose al punto.
+
+**La cuenta.** Por un UPDATE de una orden, por cliente: **antes ~670 filas** (la lista del 2026-10-15; el orquestador la midió en ~72 KB sin fotos), **después 1 fila**. Con 7 sesiones abiertas: 4 690 filas → 7 (`filasPorEvento`, en la prueba). La carga inicial y `ensureDeliveriesSince` no cambian: siguen bajando la lista entera, una vez.
+
+**Lo que se descartó.** Aplicar `payload.new` directamente (sin lectura): se ahorraría la lectura, pero el eco llega aunque la fila no sea visible para ese usuario por RLS, y `photo_count` viene del disparador —la fila del eco de un UPDATE del cliente lo trae ya calculado, pero la de un INSERT del cliente no—. Una lectura por id es barata y responde las dos cosas. También se descartó quitar el debounce: la ráfaga de un reordenamiento sigue leyéndose de golpe y después de que `writingRef` suelte.
+
+**Pruebas:** `recarga-por-fila.test.ts` (la medida 670 → 1; qué hacer con cada payload; último evento manda; umbral 25 justo/26; DELETE no cuenta; sin id cae a lista; tabla no mapeada; notificaciones ajenas; fusión: reemplazo en sitio, inserción por orden, quitar lo no devuelto y lo que no cumple, sin mutar el anterior, recorte por `max`; el filtro contra el de `deliveriesQuery`; y que el proveedor engancha `aplicarRafaga` y guarda cada `.in("id", …)` con `if (plan.leer.length)`). `realtime-reload.test.ts` (D-201) sigue igual. **Mutantes 11 de 11**, cada uno cae con su prueba por nombre: un DELETE se lee en vez de quitarse; sin red de seguridad; sin id sigue por fila; la notificación ajena ya no se ignora; la pedida que no vuelve se queda; la fusión ignora el filtro; la nueva se pega al final; el filtro deja pasar enseñanza; olvida que la abierta se queda; el proveedor vuelve a `reloadTables`; el lector llama `.in()` vacío.
+
+**No verificado:** ningún navegador con sesión real contra producción (rama sin `.env.local`): que el payload de Supabase traiga `id` en `old` en un DELETE (replica identity por defecto = clave primaria; si no lo trajera, cae a la lista entera, no a un estado roto); y el tamaño en bytes de la lista, que es dato del orquestador.

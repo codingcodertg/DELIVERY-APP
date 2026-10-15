@@ -27,6 +27,7 @@ import { pedirAvisoEnCamino } from "@/lib/avisos-cliente";
 import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
+import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
 import { esFuncionAusente } from "@/lib/cargas-partidas";
 import { argumentosDeReprogramar, caminoTrasReprogramar, notaDeReprogramacion } from "@/lib/reprogramar-orden";
 import { blankDelivery } from "@/lib/blank-delivery";
@@ -707,6 +708,66 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     }
   }, [ensureSession, loaders]);
 
+  /**
+   * Lectores POR FILA (D-NEXT, lib/recarga-por-fila.ts): leen solo los ids de la ráfaga y los funden en el estado.
+   * Mismas columnas y mismo filtro que su consulta entera; lo que no vuelve (RLS, borrado) se quita del estado.
+   */
+  const lectoresPorFila = useMemo<Record<TablaPorFila, (plan: PlanDeTabla) => Promise<{ error: unknown } | { data: unknown }>>>(() => ({
+    deliveries: async (plan) => {
+      let r: { data: unknown; error: unknown } = { data: [], error: null };
+      if (plan.leer.length) {
+        const pedir = (columnas: string) => supabase.from("deliveries").select(columnas).in("id", plan.leer);
+        r = await pedir(COLUMNAS_DE_LA_LISTA);
+        if (faltaPhotoCount(r.error as { code?: string; message?: string } | null)) r = await pedir(COLUMNAS_DE_LA_LISTA_SIN_CONTEO);
+        if (r.error) return r;
+      }
+      const leidas = (r.data ?? []) as Delivery[];
+      const floor = deliveriesFloorRef.current;
+      setDeliveries((prev) => fusionarFilas(prev, leidas, plan, (d) => cumpleFiltroDeLaLista(d, floor), porOrderNoDesc));
+      return r;
+    },
+    order_events: async (plan) => {
+      let r: { data: unknown; error: unknown } = { data: [], error: null };
+      if (plan.leer.length) {
+        r = await supabase.from("order_events").select("*").in("id", plan.leer);
+        if (r.error) return r;
+      }
+      setEvents((prev) => fusionarFilas(prev, (r.data ?? []) as OrderEvent[], plan, () => true, porCreatedAtDesc, EVENTS_WINDOW));
+      return r;
+    },
+    notifications: async (plan) => {
+      if (!me) return { data: [] };
+      let r: { data: unknown; error: unknown } = { data: [], error: null };
+      if (plan.leer.length) {
+        r = await supabase.from("notifications").select("*").eq("user_id", me.id).in("id", plan.leer);
+        if (r.error) return r;
+      }
+      const mio = me.id;
+      setNotifications((prev) => fusionarFilas(prev, (r.data ?? []) as AppNotification[], plan, (n) => n.user_id === mio, porCreatedAtDesc, 50));
+      return r;
+    },
+  }), [supabase, me]);
+
+  /**
+   * Una ráfaga realtime: las tablas que caen a lista entera van por `reloadTables` (D-201); las demás, fila a fila.
+   * Misma puerta de sesión y misma marca de fallo.
+   */
+  const aplicarRafaga = useCallback(async (eventos: EventoRealtime[]) => {
+    const plan = planDeRafaga(eventos, { meId: me?.id ?? null });
+    const porFila = Object.entries(plan.porFila) as [TablaPorFila, PlanDeTabla][];
+    if (!porFila.length) { await reloadTables(plan.listas); return; }
+    try {
+      if (!(await ensureSession())) { loadFailedRef.current = true; return; }
+      const results = await Promise.all([
+        ...porFila.map(([t, p]) => lectoresPorFila[t](p)),
+        ...queriesForTables(plan.listas).map((q) => loaders[q]()),
+      ]);
+      if (results.some((r) => r && "error" in r && r.error)) loadFailedRef.current = true;
+    } catch {
+      loadFailedRef.current = true;
+    }
+  }, [me, ensureSession, loaders, lectoresPorFila, reloadTables]);
+
   // Recuperación de una carga fallida.
   //
   // El caso real es abrir la app o cambiar de módulo: el navegador cancela las peticiones
@@ -808,22 +869,34 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // G-15 (D-201): the burst collects WHICH tables changed, and only their queries re-run
     // (lib/realtime-reload.ts) — a driver's "delivered" costs two queries in every other
     // session, not nine. The debounce is unchanged.
+    //
+    // D-NEXT: la ráfaga guarda los EVENTOS (tabla, tipo, id), no solo las tablas, y `deliveries`,
+    // `order_events` y `notifications` leen solo las filas que cambiaron (lib/recarga-por-fila.ts):
+    // un UPDATE de una orden ya no baja la lista entera en cada sesión abierta. Sin id, o con
+    // más de MAX_IDS_POR_RAFAGA, esa tabla cae a su consulta entera como antes.
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
-    const pending = new Set<string>();
-    const scheduleReload = (table: string) => {
-      pending.add(table);
+    let pending: EventoRealtime[] = [];
+    const rearmar = () => {
       if (reloadTimer) clearTimeout(reloadTimer);
       reloadTimer = setTimeout(() => {
         reloadTimer = null;
         // A multi-row write is still going — refetching now would read a
         // half-written sequence. Try again once it's finished.
-        if (writingRef.current) { scheduleReload(table); return; }
-        const tables = [...pending];
-        pending.clear();
-        void reloadTables(tables);
+        if (writingRef.current) { rearmar(); return; }
+        const eventos = pending;
+        pending = [];
+        void aplicarRafaga(eventos);
       }, 250);
     };
-    const onTable = (table: string) => () => scheduleReload(table);
+    const onTable = (table: string) => (payload: { eventType: string; new: unknown; old: unknown }) => {
+      pending.push({
+        table,
+        eventType: payload.eventType as TipoDeEvento,
+        new: payload.new as EventoRealtime["new"],
+        old: payload.old as EventoRealtime["old"],
+      });
+      rearmar();
+    };
     const channel = supabase
       .channel("deliveries-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "deliveries" }, onTable("deliveries"))
@@ -853,7 +926,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (reloadTimer) clearTimeout(reloadTimer);
       supabase.removeChannel(channel);
     };
-  }, [supabase, reloadAll, reloadTables]);
+  }, [supabase, reloadAll, aplicarRafaga]);
 
   // ---------------- Event log helper ----------------
   const logEvent = useCallback(
