@@ -11,7 +11,7 @@ import { columnaExtraTras } from "./orden-de-columnas";
 import type { OrderTypeRule, Stage, UserRole } from "./types";
 
 /**
- * «Siguiente paso» en la fila de Almacén (D-NEXT). El dueño, 2026-10-14: «It would be easier if changing the stage for
+ * «Siguiente paso» en la fila de Almacén (D-551). El dueño, 2026-10-14: «It would be easier if changing the stage for
  * warehouse was a dropdown as a next column instead of having to open the orders one by one».
  *
  * Se IMPORTAN las funciones que deciden y las que escriben; el fuente solo se lee al final, para ver que la página y la

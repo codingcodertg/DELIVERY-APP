@@ -64,7 +64,7 @@ export function mueveColumna(orden: readonly string[], clave: string, delta: -1 
 }
 
 /**
- * Tras qué columna pintada va la columna de la página (`columnaExtra` de `OrdersTable`, D-NEXT): el índice de
+ * Tras qué columna pintada va la columna de la página (`columnaExtra` de `OrdersTable`, D-551): el índice de
  * `despuesDe` entre las que se ven, y si esa no se ve (o no se dijo), la última. `-1` sin columnas.
  * Almacén la pone tras «Etapa»: el siguiente paso al lado de la etapa en la que está.
  */

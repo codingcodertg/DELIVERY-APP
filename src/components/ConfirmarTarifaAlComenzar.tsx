@@ -16,7 +16,7 @@ import type { Delivery } from "@/lib/types";
  * «they just need to confirm the amount», y preguntado, «confirmar el monto, sin bloqueo». Se ve lo que cobró ventas,
  * se confirma o se corrige ahí mismo, y sin tarifa hay salida.
  *
- * Vivía dentro de `OrderModal`. Sale aquí (D-NEXT) porque lo abre también la columna «Siguiente paso» de Almacén: el
+ * Vivía dentro de `OrderModal`. Sale aquí (D-551) porque lo abre también la columna «Siguiente paso» de Almacén: el
  * mismo diálogo, con el mismo campo, los mismos precios y los mismos tres botones. Quien lo abre decide cuándo (solo
  * para los tipos que cobran, `pideConfirmarTarifa`) y escribe lo que este devuelve con `escribeComenzar`.
  */

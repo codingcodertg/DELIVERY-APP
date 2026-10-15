@@ -55,7 +55,7 @@ export default function WarehousePage() {
     ? <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
     : null;
   /**
-   * «Siguiente paso» (D-NEXT): el dueño, «It would be easier if changing the stage for warehouse was a dropdown as a next
+   * «Siguiente paso» (D-551): el dueño, «It would be easier if changing the stage for warehouse was a dropdown as a next
    * column instead of having to open the orders one by one». Una columna tras «Etapa» en la Cola y en Recepción, con
    * los pasos de bodega que la ficha le daría a esta persona en esa orden (`pasosDeBodega`), y los MISMOS diálogos de
    * la ficha cuando el paso confirma algo: la tarifa al comenzar (D-450) y los pallets al marcar listo (D-287).

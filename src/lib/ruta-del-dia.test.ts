@@ -205,7 +205,7 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
     // Eran tres. El de la tarifa desapareció con D-340 —el dueño se lo quitó al almacén— y se
     // quedaron dos. Nota D-450: vuelve el de la tarifa (confirmar el monto, sin bloqueo), y con él
     // la tarjeta: vuelven a ser tres.
-    // Nota D-NEXT (2026-10-14): los diálogos de tarifa y de listo salieron de la ficha a `ConfirmarTarifaAlComenzar` y
+    // Nota D-551 (2026-10-14): los diálogos de tarifa y de listo salieron de la ficha a `ConfirmarTarifaAlComenzar` y
     // `ConfirmarPallets` (los abre también la columna «Siguiente paso» de Almacén). Siguen siendo tres: uno en la ficha
     // (recoger) y uno en cada componente, que la ficha monta.
     const tarifa = plano(leer("src/components/ConfirmarTarifaAlComenzar.tsx"));
@@ -218,7 +218,7 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
   });
 
   it("marcar listo sigue escribiendo solo el real, así que el estimado no se pierde", () => {
-    // Nota D-NEXT: lo que escribe lo decide `escrituraAlMarcarListo` y lo escribe `escribeListo`; se EJECUTA en
+    // Nota D-551: lo que escribe lo decide `escrituraAlMarcarListo` y lo escribe `escribeListo`; se EJECUTA en
     // `pasos-de-bodega.test.ts` («marcar listo escribe solo el real…»). Aquí, que la ficha pasa por ahí.
     const confirmar = modal.slice(modal.indexOf("const confirmReady"), modal.indexOf("const confirmPickup"));
     expect(confirmar.length).toBeGreaterThan(0);
@@ -264,7 +264,7 @@ describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve
   });
 
   it("y la salida de D-287 vuelve con el diálogo: sin tarifa se sigue igual", () => {
-    // Nota D-NEXT (2026-10-14): el diálogo vive en `ConfirmarTarifaAlComenzar`; la salida devuelve la escritura «sin
+    // Nota D-551 (2026-10-14): el diálogo vive en `ConfirmarTarifaAlComenzar`; la salida devuelve la escritura «sin
     // tarifa» (`escrituraAlComenzar(…, true)`), que no escribe tarifa, y la ficha la escribe con `confirmarYComenzar`.
     const dialogo = plano(leer("src/components/ConfirmarTarifaAlComenzar.tsx"));
     expect(dialogo).toContain('t("No fee — continue anyway", "Sin tarifa — continuar igual")');
@@ -291,7 +291,7 @@ describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve
     const logica = plano(leer("src/lib/acciones-de-la-ficha.ts"));
     expect(logica).toContain('if (stage === "fulfilling") hay.push({ id: "marcar_listo"');
     expect(modal).toContain("marcar_listo: onRequestReady,");
-    // Nota D-NEXT: el diálogo es `ConfirmarPallets` (la ficha lo monta con `showReadyConfirm`) y la escritura,
+    // Nota D-551: el diálogo es `ConfirmarPallets` (la ficha lo monta con `showReadyConfirm`) y la escritura,
     // `escribeListo` (ejecutada en `pasos-de-bodega.test.ts`).
     expect(modal).toContain("onRequestReady={() => setShowReadyConfirm(true)}");
     expect(modal).toContain("{showReadyConfirm && existing && ( <ConfirmarPallets pedido={existing}");

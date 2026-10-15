@@ -207,7 +207,7 @@ export function OrderModal({
   // Pallet confirmations: warehouse confirms the count on "Mark ready";
   // the driver confirms what actually fit on the truck at pickup (a short
   // load splits the order into #Na / #Nb).
-  // Nota D-NEXT: el número tecleado vive ahora en `ConfirmarPallets`, que abre también la fila de Almacén.
+  // Nota D-551: el número tecleado vive ahora en `ConfirmarPallets`, que abre también la fila de Almacén.
   const [showReadyConfirm, setShowReadyConfirm] = useState(false);
   // «Agregar material» (D-339): la factura nueva y los pallets nuevos, del vendedor dueño de la
   // orden. Los pallets se precargan con los de ahora, porque lo que se teclea es el TOTAL nuevo y
@@ -224,7 +224,7 @@ export function OrderModal({
   //
   // Nota D-450 (2026-09-29): vuelve la confirmación, SIN el bloqueo. El dueño: «they just need to confirm
   // the amount». `tarifaAlComenzar` es el número del campo del diálogo; `null` es el campo vacío.
-  // Nota D-NEXT (2026-10-14): el diálogo salió a `ConfirmarTarifaAlComenzar` (lo abre también la columna «Siguiente
+  // Nota D-551 (2026-10-14): el diálogo salió a `ConfirmarTarifaAlComenzar` (lo abre también la columna «Siguiente
   // paso» de Almacén) y `tarifaAlComenzar` vive ahora dentro de él. Aquí solo queda si está abierto.
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   // Order view opens on a compact preview; the full detail table is behind a toggle.
@@ -937,7 +937,7 @@ export function OrderModal({
    * entre medias dejaría la orden en preparación con la tarifa vieja (D-146). Qué se escribe lo decide
    * `escrituraAlComenzar` (en el diálogo); aquí solo se llama.
    *
-   * Nota D-NEXT (2026-10-14): la escritura es `escribeComenzar` (`lib/pasos-de-bodega`), la MISMA que usa la columna
+   * Nota D-551 (2026-10-14): la escritura es `escribeComenzar` (`lib/pasos-de-bodega`), la MISMA que usa la columna
    * «Siguiente paso» de Almacén. `null` = el tipo no pide confirmación: mueve la etapa sin nota ni `extra`, que es lo que
    * hacía aquí `move("fulfilling")`.
    */
@@ -1067,7 +1067,7 @@ export function OrderModal({
 
   // Warehouse confirms the real pallet count as part of marking the order
   // ready — actual_pallets is stamped in the same write as the stage move.
-  // Nota D-NEXT (2026-10-14): qué se escribe lo decide `escrituraAlMarcarListo` y lo escribe `escribeListo`
+  // Nota D-551 (2026-10-14): qué se escribe lo decide `escrituraAlMarcarListo` y lo escribe `escribeListo`
   // (`lib/pasos-de-bodega`), los mismos que usa la columna «Siguiente paso» de Almacén.
   const confirmReady = async (escritura: EscrituraAlMarcarListo) => {
     if (!existing) return;
@@ -3087,14 +3087,14 @@ export function OrderModal({
     {/* Confirmar el MONTO al comenzar la preparación (D-450). Vuelve el diálogo de D-146 sin su bloqueo: el dueño,
         «they just need to confirm the amount», y preguntado, «confirmar el monto, sin bloqueo». Solo lo abre
         `comenzarPreparacion`, y solo para los tipos que cobran (`pideConfirmarTarifa`).
-        Nota D-NEXT (2026-10-14): el diálogo es ahora `ConfirmarTarifaAlComenzar`, el mismo que abre la columna
+        Nota D-551 (2026-10-14): el diálogo es ahora `ConfirmarTarifaAlComenzar`, el mismo que abre la columna
         «Siguiente paso» de Almacén; lo que devuelve lo escribe `confirmarYComenzar`. */}
     {showStartConfirm && existing && (
       <ConfirmarTarifaAlComenzar pedido={existing} sugerencia={feeSuggestion} adminReal={realRole === "admin"} ocupado={busy}
         onCancelar={() => setShowStartConfirm(false)} onConfirmar={(escritura) => void confirmarYComenzar(escritura)} />
     )}
 
-    {/* «Marcar listo»: los pallets reales (D-143, D-287). Nota D-NEXT: el diálogo es `ConfirmarPallets`, el mismo de la
+    {/* «Marcar listo»: los pallets reales (D-143, D-287). Nota D-551: el diálogo es `ConfirmarPallets`, el mismo de la
         columna «Siguiente paso» de Almacén. */}
     {showReadyConfirm && existing && (
       <ConfirmarPallets pedido={existing} ocupado={busy} onDescartar={() => setShowReadyConfirm(false)}

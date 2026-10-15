@@ -69,7 +69,7 @@ describe("las pantallas lo usan", () => {
     const m = leer("src/components/OrderModal.tsx");
     expect(m).toContain('step={type === "number" ? "any" : undefined}');
     expect(m).toContain('<input type="number" min={1} step="any" value={pickupPallets}');
-    // Nota D-NEXT (2026-10-14): el diálogo de «Marcar listo» salió de la ficha a `ConfirmarPallets` (lo abre también la
+    // Nota D-551 (2026-10-14): el diálogo de «Marcar listo» salió de la ficha a `ConfirmarPallets` (lo abre también la
     // columna «Siguiente paso» de Almacén); el campo de pallets se mira allí, y que la ficha lo monta.
     expect(m).toContain("<ConfirmarPallets pedido={existing}");
     expect(leer("src/components/ConfirmarPallets.tsx")).toContain('<input type="number" min={1} step="any" autoFocus value={readyPallets}');

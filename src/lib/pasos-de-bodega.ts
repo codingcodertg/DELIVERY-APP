@@ -4,7 +4,7 @@ import type { OrderTypeRules } from "@/lib/required";
 import type { Delivery, Profile, Stage } from "@/lib/types";
 
 // ============================================================
-// Los dos pasos de bodega —«Comenzar preparación» y «Marcar listo»— desde la FILA de Almacén (D-NEXT).
+// Los dos pasos de bodega —«Comenzar preparación» y «Marcar listo»— desde la FILA de Almacén (D-551).
 //
 // El dueño (2026-10-14): «It would be easier if changing the stage for warehouse was a dropdown as a next column
 // instead of having to open the orders one by one».

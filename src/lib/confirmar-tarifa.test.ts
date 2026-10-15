@@ -74,7 +74,7 @@ describe("qué se escribe al comenzar", () => {
 });
 
 /*
- * Nota D-NEXT (2026-10-14): el diálogo salió de la ficha a `ConfirmarTarifaAlComenzar`, y la escritura a
+ * Nota D-551 (2026-10-14): el diálogo salió de la ficha a `ConfirmarTarifaAlComenzar`, y la escritura a
  * `escribeComenzar` (`lib/pasos-de-bodega`), porque los usa también la columna «Siguiente paso» de Almacén. El dueño:
  * «It would be easier if changing the stage for warehouse was a dropdown as a next column instead of having to open the
  * orders one by one». Lo que estas pruebas miraban dentro de la ficha se mira ahora donde vive, con las mismas citas
@@ -87,7 +87,7 @@ describe("la ficha usa todo esto, y no otra cosa", () => {
   it("el botón llama a `comenzarPreparacion`, que abre el diálogo solo si el tipo cobra; si no, mueve la etapa", () => {
     const abrir = ficha.slice(ficha.indexOf("const comenzarPreparacion = () => {"), ficha.indexOf("const confirmarYComenzar"));
     expect(abrir.length).toBeGreaterThan(0);
-    // Nota D-NEXT: sin diálogo, la escritura de `escribeComenzar` con `null` (antes `move("fulfilling")`: la misma).
+    // Nota D-551: sin diálogo, la escritura de `escribeComenzar` con `null` (antes `move("fulfilling")`: la misma).
     expect(abrir).toContain("if (!pideConfirmarTarifa(existing, settings.order_type_rules)) { void confirmarYComenzar(null); return; }");
     expect(abrir).toContain("setShowStartConfirm(true);");
   });

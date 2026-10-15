@@ -188,7 +188,7 @@ describe("filasDeLaFormula", () => {
 //
 // La prueba recorre el fichero en vez de mirar una lista escrita a mano, así que el tercer sitio
 // que aparezca tampoco podrá quedarse sin él.
-// Nota D-NEXT (2026-10-14): el diálogo de «Comenzar preparación» salió de la ficha a `ConfirmarTarifaAlComenzar` (lo abre
+// Nota D-551 (2026-10-14): el diálogo de «Comenzar preparación» salió de la ficha a `ConfirmarTarifaAlComenzar` (lo abre
 // también la columna «Siguiente paso» de Almacén). El recorrido se hace sobre los DOS ficheros, uno detrás del otro, y
 // la guarda de cada uno con sus nombres: en el componente el rol real llega como `adminReal`, y la ficha se lo pasa.
 const FICHEROS_CON_TARIFA_SUGERIDA = [
@@ -221,7 +221,7 @@ describe.each(FICHEROS_CON_TARIFA_SUGERIDA)("todo sitio que pinte «Tarifa suger
   });
 
   it("hay al menos dos sitios, que es lo que hizo falta descubrir", () => {
-    // Nota D-NEXT: el diálogo es UN sitio en su propio fichero; el «al menos dos» vale para la ficha.
+    // Nota D-551: el diálogo es UN sitio en su propio fichero; el «al menos dos» vale para la ficha.
     if (fichero !== "src/components/OrderModal.tsx") return;
     // Control: si el recorrido devolviera cero o uno, la prueba de abajo pasaría sin comprobar
     // nada — que es exactamente cómo D-244 se quedó a medias.

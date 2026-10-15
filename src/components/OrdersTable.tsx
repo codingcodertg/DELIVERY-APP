@@ -412,7 +412,7 @@ export function OrdersTable({
   /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-409). No abre la orden al pulsarlo. */
   accionDeFila?: (d: Delivery) => React.ReactNode;
   /** Una columna de la página, sin ordenar ni filtrar, justo después de `despuesDe` (o al final si esa no se ve). El
-   *  toque en su celda no abre la orden. La usa Almacén para «Siguiente paso» (D-NEXT), al lado de la etapa. */
+   *  toque en su celda no abre la orden. La usa Almacén para «Siguiente paso» (D-551), al lado de la etapa. */
   columnaExtra?: { key: string; en: string; es: string; despuesDe: string; ancho: number; celda: (d: Delivery) => React.ReactNode };
   /** Los filtros de columna y el orden, llevados por la página (D-440): así se pueden guardar con nombre y volver a
    *  poner. Sin `vista` y `onVista`, la tabla los lleva dentro, como siempre (Almacén, chofer…). */
@@ -471,7 +471,7 @@ export function OrdersTable({
     const enOrden = columnasEnOrden(visible, ordenEfectivo(ORDER_COLUMNS.map((c) => c.key), orden));
     return [idCol, ...enOrden.map((k) => ORDER_COLUMNS.find((c) => c.key === k)!)];
   }, [visible, orden, byInvoice]);
-  // Tras qué columna va la de la página (D-NEXT): tras `despuesDe` si se ve, y si no, al final.
+  // Tras qué columna va la de la página (D-551): tras `despuesDe` si se ve, y si no, al final.
   const extraTras = columnaExtraTras(cols.map((c) => c.key), columnaExtra?.despuesDe);
   const totalDeColumnas = cols.length + (selectable ? 1 : 0) + (columnaExtra ? 1 : 0);
 
@@ -628,7 +628,7 @@ export function OrdersTable({
                   {/* Drag to resize; double-click to reset this column. */}
                   <span className="col-resizer" title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} onMouseDown={colw.startResize(c.key)} onDoubleClick={() => colw.resetCol(c.key)} />
                 </th>,
-                // La columna de la página (D-NEXT): solo su nombre, sin menú de ordenar ni filtrar.
+                // La columna de la página (D-551): solo su nombre, sin menú de ordenar ni filtrar.
                 i === extraTras && columnaExtra && (
                   <th key={columnaExtra.key}><div className="th-cell"><span className="th-sort">{lang === "es" ? columnaExtra.es : columnaExtra.en}</span></div></th>
                 ),
@@ -687,7 +687,7 @@ export function OrdersTable({
                     </button>
                   )}
                 </td>,
-                // La celda de la página (D-NEXT). El toque no abre la orden: es un control, no un dato.
+                // La celda de la página (D-551). El toque no abre la orden: es un control, no un dato.
                 i === extraTras && columnaExtra && (
                   <td key={columnaExtra.key} data-label={lang === "es" ? columnaExtra.es : columnaExtra.en} onClick={(e) => e.stopPropagation()}>
                     {columnaExtra.celda(d)}

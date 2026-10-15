@@ -12,7 +12,7 @@ import { ConfirmarPallets } from "@/components/ConfirmarPallets";
 import type { Delivery } from "@/lib/types";
 
 /**
- * La columna «Siguiente paso» de Almacén (D-NEXT). El dueño, 2026-10-14: «It would be easier if changing the stage for
+ * La columna «Siguiente paso» de Almacén (D-551). El dueño, 2026-10-14: «It would be easier if changing the stage for
  * warehouse was a dropdown as a next column instead of having to open the orders one by one».
  *
  * Qué ofrece cada fila lo decide `pasosDeBodega` (la misma regla que los botones de la ficha). Al elegir:

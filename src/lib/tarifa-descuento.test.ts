@@ -176,7 +176,7 @@ describe("lo que el dueño no veía: el descuento en la pantalla", () => {
     expect(boton).not.toContain("discount !== list");
     expect(boton).toContain("{list != null && (");
     expect(boton).toContain("{discount != null && (");
-    // Nota D-NEXT (2026-10-14): el diálogo de «Comenzar preparación» salió de la ficha a `ConfirmarTarifaAlComenzar`
+    // Nota D-551 (2026-10-14): el diálogo de «Comenzar preparación» salió de la ficha a `ConfirmarTarifaAlComenzar`
     // (lo abre también la columna «Siguiente paso» de Almacén). Siguen siendo tres sitios: dos en la ficha y uno en el
     // diálogo, que recibe la sugerencia de la ficha (`sugerencia={feeSuggestion}`) y la pasa entera.
     const dialogo = readFileSync("src/components/ConfirmarTarifaAlComenzar.tsx", "utf8").split("\r\n").join("\n");

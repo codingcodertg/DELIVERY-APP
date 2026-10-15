@@ -1615,7 +1615,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 /* Un botón por fila al lado del número (OrdersTable `accionDeFila`, D-409: «Recibir» en Recepción). */
 .accion-de-fila { display: block; margin-top: 4px; }
 .accion-de-fila .btn { padding: 2px 8px; min-height: 0; }
-/* «Siguiente paso» de Almacén (D-NEXT): un selector compacto, del ancho de su columna. */
+/* «Siguiente paso» de Almacén (D-551): un selector compacto, del ancho de su columna. */
 .paso-en-la-fila select { width: 100%; padding: 3px 6px; font-size: 12px; min-height: 0; }
 
 /* Gestor, «Cuadrícula» (D-482): la tarjeta compacta abierta y su tabla desplegada se leen como UNA pieza — la de arriba con

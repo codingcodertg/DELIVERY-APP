@@ -9,7 +9,7 @@ import type { Delivery } from "@/lib/types";
 /**
  * «Marcar listo»: almacén confirma los pallets REALES, que se escriben en la misma escritura que la etapa (D-143, D-287).
  *
- * Vivía dentro de `OrderModal`. Sale aquí (D-NEXT) porque lo abre también la columna «Siguiente paso» de Almacén: el
+ * Vivía dentro de `OrderModal`. Sale aquí (D-551) porque lo abre también la columna «Siguiente paso» de Almacén: el
  * mismo campo, el mismo número propuesto y los mismos dos botones. Quien lo abre escribe lo que este devuelve con
  * `escribeListo`. Si lo tecleado no vale, `onInvalido` (la ficha y la fila avisan con el mismo texto).
  */
