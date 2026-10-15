@@ -12,7 +12,7 @@ import { esFuncionAusente } from "./cargas-partidas";
 import type { Delivery } from "./types";
 
 /**
- * D-NEXT (2026-10-14). Dos pedidos del dueño:
+ * D-549 (2026-10-14). Dos pedidos del dueño:
  *  A) «when intertienda has 2 of the same invoice order ask if you want to create a duplicate or to merge the order» /
  *     «entonces crea el merge option».
  *  B) «reprogamar buttom in ther order view put it the top right hand side insead» / «all sales people well everybody has
@@ -126,7 +126,7 @@ describe("A · Juntar dos Intertiendas con la misma factura", () => {
 
   it("la ficha: SOLO el botón de crear pregunta; «Juntar» no crea nada; «Crear duplicada» no repite el aviso de factura", () => {
     const modal = leer("src/components/OrderModal.tsx");
-    const crear = modal.slice(modal.indexOf("// Intertienda con la factura de otra Intertienda abierta (D-NEXT)"), modal.indexOf("const row = await addDelivery(payload);", modal.indexOf("// Intertienda con la factura de otra Intertienda abierta (D-NEXT)")));
+    const crear = modal.slice(modal.indexOf("// Intertienda con la factura de otra Intertienda abierta (D-549)"), modal.indexOf("const row = await addDelivery(payload);", modal.indexOf("// Intertienda con la factura de otra Intertienda abierta (D-549)")));
     expect(crear).toContain("const conQuien = ofreceJuntar(payload, deliveries, settings.order_type_rules);");
     expect(crear).toContain("const respuesta = await preguntarJuntar(conQuien, puedeJuntarEn(me.role, conQuien.stage));");
     expect(crear).toContain('if (respuesta === "cancelar") return;');
@@ -228,7 +228,7 @@ describe("B · «📅 Reprogramar» en la ficha, para todos menos el chofer", ()
     const sql = readFileSync("supabase/migrations/173_reprogramar_orden.sql", "utf8");
     expect(ledger.llevaTransaccionPropia(sql)).toBe(false);
     expect(ledger.shaDeclarado(sql, "173_reprogramar_orden.sql")).toBe(ledger.checksum(sql));
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-549");
   });
 
   it("qué hace la pantalla con la respuesta: guardada, respaldo (sin la función) o error; «no existe» = `esFuncionAusente`", () => {

@@ -122,7 +122,7 @@ describe("la ficha usa la regla (anclas de fuente)", () => {
   });
 
   it("passesChecks para el envío con `bloqueoPorTarifaMinima`, antes de cualquier «¿continuar?»", () => {
-    // Nota D-NEXT: la firma lleva `opts` (la pregunta de «Juntar» de Intertienda); el cuerpo que se fija no cambia.
+    // Nota D-549: la firma lleva `opts` (la pregunta de «Juntar» de Intertienda); el cuerpo que se fija no cambia.
     const i = modal.indexOf("const passesChecks = async (draft: Draft, opts: { facturaYaDecidida?: boolean } = {}): Promise<boolean> => {");
     expect(i).toBeGreaterThan(-1);
     const cabeza = modal.slice(i, modal.indexOf("const miss = computeMissing(draft);", i));

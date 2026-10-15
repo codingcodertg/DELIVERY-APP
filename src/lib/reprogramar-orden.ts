@@ -5,7 +5,7 @@
  * Un toque en la fila: se elige la fecha nueva y se escribe por qué, y se guarda la fecha y la nota en el historial de la
  * orden. Lo de aquí es la regla, sin pantalla: quién puede, qué fecha se propone y qué se escribe.
  *
- * D-NEXT (2026-10-14): también en la ficha de la orden, arriba a la derecha, y también para ventas en SU orden. Se guarda
+ * D-549 (2026-10-14): también en la ficha de la orden, arriba a la derecha, y también para ventas en SU orden. Se guarda
  * por la función de la base `reprogramar_orden` (migración 173), que cambia SOLO la fecha y escribe la nota; sin ella,
  * como antes.
  */
@@ -26,7 +26,7 @@ export function puedeReprogramar(rol: string | null | undefined, etapa: string |
   if (rol === "admin") return [...abiertas, "picked_up", "rejected"].includes(etapa);
   if (rol === "logistics" || rol === "manager" || rol === "accounting") return abiertas.includes(etapa);
   if (rol === "warehouse") return ETAPAS_QUE_REPROGRAMA_ALMACEN.includes(etapa);
-  // D-NEXT: ventas, SOLO su orden (`esMia`, la misma dueñez que decide si la abre, D-544) y en las etapas abiertas. El
+  // D-549: ventas, SOLO su orden (`esMia`, la misma dueñez que decide si la abre, D-544) y en las etapas abiertas. El
   // chofer no: decisión del orquestador mientras el dueño no diga otra cosa («everybody» se leyó como «todo el que gestiona
   // órdenes»; el chofer no decide fechas).
   if (rol === "sales") return esSuya && ETAPAS_QUE_REPROGRAMA_VENTAS.includes(etapa);
@@ -34,14 +34,14 @@ export function puedeReprogramar(rol: string | null | undefined, etapa: string |
 }
 
 /**
- * Las etapas en las que ventas reprograma SU orden (D-NEXT; el dueño, 2026-10-14: «all sales people well everybody has the
+ * Las etapas en las que ventas reprograma SU orden (D-549; el dueño, 2026-10-14: «all sales people well everybody has the
  * iption to reprogramar»). Desde `approved` el guard de la base le rechaza la fecha (medido en producción el 2026-10-14:
  * «You cannot edit an order in the approved stage»), así que se guarda por la función `reprogramar_orden` (173).
  */
 export const ETAPAS_QUE_REPROGRAMA_VENTAS: readonly string[] = ["draft", "pending", "approved", "fulfilling", "ready"];
 
 /**
- * Qué hacer con la respuesta de `rpc("reprogramar_orden")` (D-NEXT, migración 173):
+ * Qué hacer con la respuesta de `rpc("reprogramar_orden")` (D-549, migración 173):
  * - `guardada`: la base cambió la fecha y escribió la nota.
  * - `respaldo`: la función todavía no existe (las migraciones se aplican después de fusionar): se guarda como antes, con
  *   `updateDelivery` + `addNote`. A ventas en `approved` en adelante el guard se lo rechazará, igual que hoy.

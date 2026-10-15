@@ -552,7 +552,7 @@ export function OrderModal({
     )))) return false;
 
     // Una Intertienda nueva que repite la factura de otra abierta ya respondió «Crear duplicada» en la pregunta de tres
-    // salidas (D-NEXT): no se le vuelve a preguntar lo mismo con otras palabras.
+    // salidas (D-549): no se le vuelve a preguntar lo mismo con otras palabras.
     const dupInv = duplicateInvoiceOf(draft);
     if (dupInv && !sharedInvoice && !opts.facturaYaDecidida && !(await confirmAction(t(
       `⚠ Duplicate invoice: order #${orderLabel(dupInv)} already uses invoice #${dupInv.invoice_num}. Create anyway?`,
@@ -581,7 +581,7 @@ export function OrderModal({
     return true;
   };
 
-  // ---- «Juntar» dos Intertiendas con la misma factura (D-NEXT) ----
+  // ---- «Juntar» dos Intertiendas con la misma factura (D-549) ----
   // El dueño, 2026-10-14: «when intertienda has 2 of the same invoice order ask if you want to create a duplicate or to
   // merge the order» y «entonces crea el merge option». La regla (cuándo, quién, qué se escribe) vive en
   // `lib/juntar-intertienda.ts`; aquí la pregunta de tres salidas y la escritura.
@@ -1679,7 +1679,7 @@ export function OrderModal({
               onClick={() => setEditing(true)}
             >✎ {t("Continue filling order", "Continuar la orden")}</button>
           )}
-          {/* «📅 Reprogramar» arriba a la derecha (D-NEXT). El dueño, 2026-10-14: «reprogamar buttom in ther order view put it
+          {/* «📅 Reprogramar» arriba a la derecha (D-549). El dueño, 2026-10-14: «reprogamar buttom in ther order view put it
               the top right hand side insead» y «all sales people well everybody has the iption to reprogramar». El MISMO
               cuadro del Gestor (D-500); quién puede lo dice `puedeReprogramar` (ventas, solo la suya: `esMia`). */}
           {!editing && existing && puedeReprogramar(me.role, stage, esMia(existing, me)) && (
@@ -2792,7 +2792,7 @@ export function OrderModal({
                         stage: autoApprove ? "approved" : "pending",
                         ...(autoApprove ? { approved_by: me.id, approved_at: new Date().toISOString() } : {}),
                       });
-                      // Intertienda con la factura de otra Intertienda abierta (D-NEXT): «Juntar» (un viaje), «Crear duplicada»
+                      // Intertienda con la factura de otra Intertienda abierta (D-549): «Juntar» (un viaje), «Crear duplicada»
                       // (otro viaje) o Cancelar. Juntar NO crea nada: suma la PO y los pallets a la otra y cierra.
                       if (blockSubmit(payload)) return;
                       const conQuien = ofreceJuntar(payload, deliveries, settings.order_type_rules);
@@ -2852,7 +2852,7 @@ export function OrderModal({
       />
     )}
 
-    {/* «La factura ya existe» en una Intertienda (D-NEXT): tres salidas en vez del sí/no. «Juntar» solo si la base le deja
+    {/* «La factura ya existe» en una Intertienda (D-549): tres salidas en vez del sí/no. «Juntar» solo si la base le deja
         a este rol escribir la otra orden en su etapa (`puedeJuntarEn`); si no, se dice por qué y quién puede. */}
     {preguntaJuntar && (
       <div className="overlay" style={{ zIndex: 10000 }} data-pregunta-juntar onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget) responderJuntar("cancelar"); }}>

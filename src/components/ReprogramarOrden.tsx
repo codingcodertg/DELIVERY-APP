@@ -7,7 +7,7 @@ import type { Delivery } from "@/lib/types";
 
 /**
  * El botón «📅» de una fila del Gestor y su cuadro (D-500): la fecha nueva (propone el día siguiente) y una nota
- * obligatoria. Desde D-NEXT guarda por `reprogramarOrden` (la función de la base `reprogramar_orden`, 173, que cambia SOLO
+ * obligatoria. Desde D-549 guarda por `reprogramarOrden` (la función de la base `reprogramar_orden`, 173, que cambia SOLO
  * la fecha y deja la nota; sin ella, `updateDelivery` + `addNote` como antes). También en la ficha, arriba a la derecha.
  */
 export function ReprogramarOrden({ pedido, lang, t, reprogramarOrden, notify }: {

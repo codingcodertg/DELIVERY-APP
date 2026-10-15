@@ -90,7 +90,7 @@ describe("el aviso al guardar un borrador dice que NO queda programado y cuánto
     expect(bloque).toContain("`Orden #${orderLabel(row)} creada`");
   });
   it("los días del aviso son los mismos que corta la ventana de Órdenes (una sola constante)", () => {
-    // Nota D-NEXT: la misma línea importa también `esMia` (el «📅 Reprogramar» de la ficha, ventas solo en la suya).
+    // Nota D-549: la misma línea importa también `esMia` (el «📅 Reprogramar» de la ficha, ventas solo en la suya).
     expect(modal).toContain('import { DIAS_DE_BORRADOR, esMia } from "@/lib/ordenes-visibles";');
   });
 });

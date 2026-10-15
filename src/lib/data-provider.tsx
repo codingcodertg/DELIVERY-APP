@@ -123,7 +123,7 @@ export interface DataState {
    */
   agregarMaterial: (id: string, parche: EscrituraDeMaterial, nota: string) => Promise<boolean>;
   /**
-   * «📅 Reprogramar» (D-500, D-534, D-NEXT): la fecha nueva y la nota, por la función de la base `reprogramar_orden` (173),
+   * «📅 Reprogramar» (D-500, D-534, D-549): la fecha nueva y la nota, por la función de la base `reprogramar_orden` (173),
    * que cambia SOLO la fecha y deja la nota en el historial. Sin la función, como antes: `updateDelivery` + `addNote`.
    * `nota` es lo que escribió la persona, sin componer. `true` si quedó guardada.
    */
@@ -1505,7 +1505,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, me, notify, teaching],
   );
 
-  // «📅 Reprogramar» por la función de la base (D-NEXT, 173). Qué hacer con la respuesta lo decide `caminoTrasReprogramar`:
+  // «📅 Reprogramar» por la función de la base (D-549, 173). Qué hacer con la respuesta lo decide `caminoTrasReprogramar`:
   // sin la función (la migración va después de fusionar), el camino de antes, `updateDelivery` + `addNote`.
   const reprogramarOrden = useCallback<DataState["reprogramarOrden"]>(
     async (id, fecha, nota, lang) => {

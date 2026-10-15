@@ -1,5 +1,5 @@
 /**
- * «Juntar» dos Intertiendas con la misma factura (D-NEXT).
+ * «Juntar» dos Intertiendas con la misma factura (D-549).
  *
  * El dueño, 2026-10-14: «when intertienda has 2 of the same invoice order ask if you want to create a duplicate or to merge
  * the order», y después «entonces crea el merge option». El caso, de un chat que mandó: la tienda A le compra a la tienda B

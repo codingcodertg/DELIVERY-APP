@@ -46,7 +46,7 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
   const gestor = leer("src/app/(app)/routes/page.tsx");
   const ordenes = leer("src/app/(app)/page.tsx");
   it("la ficha: al enviar / editar (passesChecks, antes de cualquier «¿continuar?») y en «solo la fecha» de ventas", () => {
-    // Nota D-NEXT: `passesChecks` lleva un segundo argumento (`facturaYaDecidida`, la pregunta de «Juntar» de Intertienda),
+    // Nota D-549: `passesChecks` lleva un segundo argumento (`facturaYaDecidida`, la pregunta de «Juntar» de Intertienda),
     // así que la firma y la llamada del botón de crear cambian; lo que se fija aquí no.
     const i = modal.indexOf("const passesChecks = async (draft: Draft, opts: { facturaYaDecidida?: boolean } = {}): Promise<boolean> => {");
     expect(i).toBeGreaterThan(-1);

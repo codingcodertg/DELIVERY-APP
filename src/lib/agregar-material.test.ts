@@ -194,7 +194,7 @@ describe("la 138 dice lo mismo que el código", () => {
     // cláusula más en la rama del chofer (lo compara `recogida-del-chofer.test.ts`); el bloque de la 138 sigue igual.
     // Nota D-531 (2026-10-12): la última es ahora la 169 (fotos del material y salida/llegada del chofer en su orden):
     // la 168 letra por letra con UN bloque más en el tramo de misma etapa (lo compara `fotos-del-chofer.test.ts`).
-    // Nota D-NEXT (2026-10-14): la última es ahora la 173 («📅 Reprogramar» por `reprogramar_orden`): la 169 letra por
+    // Nota D-549 (2026-10-14): la última es ahora la 173 («📅 Reprogramar» por `reprogramar_orden`): la 169 letra por
     // letra con UN bloque más en el tramo de misma etapa (lo compara `juntar-y-reprogramar.test.ts`); el bloque de la 138
     // sigue igual.
     expect(conGuard.at(-1)).toBe("173_reprogramar_orden.sql");

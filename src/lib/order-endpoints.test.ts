@@ -171,7 +171,7 @@ describe("el modal usa estas reglas, en los dos caminos de envío", () => {
     expect(modal).toContain("const blockers = submitBlockers(draft, settings.order_type_rules, settings.stores);");
     // Guardar una orden que no es borrador, y el botón de crear y enviar.
     expect(modal).toContain('if ((payload.stage ?? "draft") !== "draft" && !(await passesChecks(payload))) return;');
-    // Nota D-NEXT: el botón de crear le pasa a `passesChecks` si la factura repetida ya se respondió en la pregunta de
+    // Nota D-549: el botón de crear le pasa a `passesChecks` si la factura repetida ya se respondió en la pregunta de
     // «Juntar» (Intertienda); sigue pasando por ella.
     expect(modal).toContain("if (!(await passesChecks(payload, { facturaYaDecidida: !!conQuien }))) return;");
   });

@@ -104,7 +104,7 @@ describe("qué escribe «Recibir»", () => {
     // pending (lo compara `cargas-partidas.test.ts`); lo que esta prueba lee de la 145 sigue valiendo tal cual.
     const define = readdirSync("supabase/migrations").filter((f) => /^\d+_.*\.sql$/.test(f))
       .filter((f) => leer(`supabase/migrations/${f}`).includes("function public.guard_delivery_stage()")).sort();
-    // Nota D-NEXT (2026-10-14): la última es ahora la 173 (la 169 letra por letra con un bloque más en el tramo de misma
+    // Nota D-549 (2026-10-14): la última es ahora la 173 (la 169 letra por letra con un bloque más en el tramo de misma
     // etapa, para `reprogramar_orden`; lo compara `juntar-y-reprogramar.test.ts`). La rama de almacén no se tocó. El
     // título de esta prueba dice «la 169»: se deja, la historia no se reescribe.
     expect(define[define.length - 1]).toBe("173_reprogramar_orden.sql");
