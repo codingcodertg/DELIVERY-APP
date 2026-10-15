@@ -161,9 +161,9 @@ describe("la ficha usa el módulo; «Mi ruta» ya no cierra la parada por su cue
   it("la ficha usa el mismo módulo: la escritura de la recogida (también la de sin estar lista) y las DOS guardas del comprobante", () => {
     expect(modal).toMatch(/escrituraRecogida\(\{ pedido:/);
     expect(modal.match(/escrituraRecogida\(\{ pedido: existing, me, gps, t/g)).toHaveLength(2);
-    expect(modal).toMatch(/const podFormNeeded = pruebaPendiente\(settings, existing\?\.photos\)/);
+    expect(modal).toMatch(/const podFormNeeded = pruebaPendiente\(settings, fotosQueCuentan\)/);
     // D-527: con las fotos tomadas al entregar, que aún no están en la orden.
-    expect(modal).toMatch(/if \(podSinCumplir\(settings, fotosAlEntregar\(existing\.photos, fotosDeLaEntrega\), podSig\)\)/);
+    expect(modal).toMatch(/if \(podSinCumplir\(settings, fotosAlEntregar\(fotosQueCuentan, fotosDeLaEntrega\), podSig\)\)/);
     // Y ya no quedan las dos reglas escritas a mano.
     expect(modal).not.toMatch(/const podOwed = /);
     expect(modal).not.toMatch(/settings\.require_pod && !podSig && !\(existing\.photos\?\.length\)/);

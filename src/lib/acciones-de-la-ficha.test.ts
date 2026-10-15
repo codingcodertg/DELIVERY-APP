@@ -481,7 +481,7 @@ describe("D-527 · el chofer recoge aunque no esté lista, y deshace su recogida
     expect(ficha).toContain("if (entregaConCamara(me.role)) { camara.abrir(); setShowPod(true); return; }");
     expect(ficha).toContain('useState(abrirEn === "entregar" && existing?.stage === "picked_up")');
     // Las fotos de la entrega van en la escritura de la entrega, firmadas por quien entrega.
-    expect(ficha).toContain("...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, existing.photo_meta, me.id, ahora) } : {}),");
+    expect(ficha).toContain("...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, fotosOrden.photo_meta, me.id, ahora) } : {}),");
     expect(ficha).toContain("disabled={busy || !!podBlocker || fotoEnCamino || camara.procesando}");
     expect(ficha).toContain("{camara.input}");
   });

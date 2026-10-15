@@ -1,5 +1,6 @@
 import type { Delivery } from "@/lib/types";
 import { todayISO } from "@/lib/utils";
+import { conteoDeFotos } from "@/lib/columnas-de-la-lista";
 
 // ============================================================
 // What is quietly going wrong right now.
@@ -79,7 +80,7 @@ export function deliveredWithoutProof(deliveries: Delivery[]): Delivery[] {
     !d.pod_received_by &&
     !d.pod_signature &&
     d.pod_lat == null &&
-    !(d.photos?.length));
+    conteoDeFotos(d) === 0);   // la lista no trae las fotos: su conteo (D-NEXT, 177)
 }
 
 /**

@@ -70,6 +70,15 @@ describe("deliveredWithoutProof", () => {
     expect(deliveredWithoutProof([mk({ ...base, pod_lat: 25.9, pod_lng: -97.5 })])).toHaveLength(0);
     expect(deliveredWithoutProof([mk({ ...base, photos: ["u"] })])).toHaveLength(0);
   });
+
+  // D-NEXT (177): la fila de la LISTA no trae `photos` (pesan MB); cuenta el `photo_count` de la base.
+  it("counts the photos by photo_count on a list row, which has no photos", () => {
+    const base = { stage: "delivered" as const, pod_delivered_at: "2026-08-14T19:32:00Z" };
+    const { photos: _p, photo_meta: _m, ...conFotos } = mk({ ...base, photo_count: 2 });
+    const { photos: _p2, photo_meta: _m2, ...sinFotos } = mk({ ...base, photo_count: 0 });
+    expect(deliveredWithoutProof([conFotos as Delivery])).toHaveLength(0);
+    expect(deliveredWithoutProof([sinFotos as Delivery])).toHaveLength(1);
+  });
 });
 
 describe("attentionItems", () => {

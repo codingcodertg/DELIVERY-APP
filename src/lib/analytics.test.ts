@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { computeKpis, driverStats, driverKpis, driverShiftKpis, driverQualityKpis, deliveryTrend, groupVolume, overdueOrders, inDateRange, approvalTurnaroundMs, salesRepStatsThisMonth } from "@/lib/analytics";
 import { mkDelivery } from "@/lib/__fixtures";
-import type { DriverShift, OrderEvent, Profile } from "@/lib/types";
+import type { Delivery, DriverShift, OrderEvent, Profile } from "@/lib/types";
 
 describe("computeKpis", () => {
   it("counts each stage into the right bucket", () => {
@@ -279,6 +279,14 @@ describe("driverQualityKpis", () => {
       mkDelivery({ assigned_driver: "Sam", stage: "delivered", photos: ["p1"] }),
     ]);
     expect(k.podCompliancePct).toBe(100);
+  });
+
+  // D-NEXT (177): la fila de la lista no trae `photos`; el conteo viene en `photo_count`.
+  it("counts photo_count (a list row without photos) as POD compliant", () => {
+    const { photos: _p, photo_meta: _m, ...fila } = mkDelivery({ assigned_driver: "Sam", stage: "delivered", photo_count: 1 });
+    const { photos: _p2, photo_meta: _m2, ...sin } = mkDelivery({ assigned_driver: "Sam", stage: "delivered", photo_count: 0 });
+    const [k] = driverQualityKpis([fila, sin] as Delivery[]);
+    expect(k.podCompliancePct).toBe(50);
   });
 
   it("flags a POD GPS stamp far from the geocoded destination", () => {

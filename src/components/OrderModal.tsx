@@ -82,6 +82,7 @@ import {
   notaSinListoValida, puedeRecogerSinListo, MINIMO_NOTA_SIN_LISTO, type DeshacerRecogida,
 } from "@/lib/recogida-del-chofer";
 import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
+import { fotosParaContar, useFotosDeLaOrden } from "@/lib/fotos-de-la-orden";
 import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
@@ -148,6 +149,13 @@ export function OrderModal({
    */
   const abierta = copia ?? abiertaPorLaLista;
   const existing = abierta ? deliveries.find((x) => x.id === abierta.id) ?? abierta : null;
+  /**
+   * Las fotos de la orden, leídas aparte (D-NEXT, 177): la fila de la lista ya no trae `photos` ni `photo_meta`. Nada
+   * de esta ficha lee las fotos de la fila: cuenta con `fotosParaContar` y escribe solo con `fotosOrden.listas`, porque
+   * guardar «las de la orden + la nueva» sin las de la orden cargadas borraría las que ya había.
+   */
+  const fotosOrden = useFotosDeLaOrden(existing);
+  const fotosQueCuentan = fotosParaContar(fotosOrden, existing);
   const isNew = !existing;
   const stage: Stage = existing?.stage ?? "draft";
   // Qué puede tocar esta persona en esta orden (D-480): el formulario entero, solo la fecha de entrega (ventas, en
@@ -1216,7 +1224,7 @@ export function OrderModal({
    */
   // La misma regla que usa el botón de una parada en Mi ruta (D-218): vive en
   // lib/one-tap-stop.ts para que las dos pantallas no puedan discrepar.
-  const podFormNeeded = pruebaPendiente(settings, existing?.photos);
+  const podFormNeeded = pruebaPendiente(settings, fotosQueCuentan);
 
   /**
    * Who took each photo, ready for the grid.
@@ -1226,7 +1234,7 @@ export function OrderModal({
    * was the day they pressed the shutter.
    */
   const photoCredits = useMemo(() => {
-    const meta = existing?.photo_meta;
+    const meta = fotosOrden.photo_meta;
     if (!meta) return undefined;
     const out: Record<string, { name: string; role: string } | undefined> = {};
     for (const [url, info] of Object.entries(meta)) {
@@ -1234,7 +1242,7 @@ export function OrderModal({
       if (who) out[url] = { name: who.full_name, role: roleLabel(who.role, lang) };
     }
     return out;
-  }, [existing?.photo_meta, users, lang]);
+  }, [fotosOrden.photo_meta, users, lang]);
 
   /**
    * The order's history as one list, oldest first.
@@ -1280,7 +1288,11 @@ export function OrderModal({
       return t("Enter the address where you actually delivered.", "Ingrese la dirección donde entregó realmente.");
     }
     // D-527: cuentan también las fotos tomadas al entregar, que aún no están en la orden (se guardan con la entrega).
-    if (podSinCumplir(settings, fotosAlEntregar(existing.photos, fotosDeLaEntrega), podSig)) {
+    // Con fotos nuevas, se guardan JUNTO a las de la orden: sin estas cargadas se borrarían (D-NEXT, 177).
+    if (fotosDeLaEntrega.length && !fotosOrden.listas) {
+      return t("Loading the order's photos… try again in a moment.", "Cargando las fotos de la orden… inténtelo en un momento.");
+    }
+    if (podSinCumplir(settings, fotosAlEntregar(fotosQueCuentan, fotosDeLaEntrega), podSig)) {
       // With signatures switched off there's only one way to satisfy this, so
       // say that rather than offering a choice the driver doesn't have.
       return signatureOn
@@ -1309,7 +1321,10 @@ export function OrderModal({
     // Las fotos tomadas al entregar (D-527) van en ESTA escritura, firmadas por quien entrega: es la única en la que el
     // guard le deja al chofer tocar las fotos (al pasar de `picked_up` a `delivered`).
     const ahora = new Date().toISOString();
-    const fotos = fotosDeLaEntrega.length ? fotosAlEntregar(existing.photos, fotosDeLaEntrega) : null;
+    // `podBlocker` ya paró si hay fotos nuevas y las de la orden no han llegado; esto lo vuelve a mirar en el sitio
+    // donde se escribe, por si un día alguien cambia el orden de arriba.
+    if (fotosDeLaEntrega.length && !fotosOrden.listas) { setBusy(false); return; }
+    const fotos = fotosDeLaEntrega.length ? fotosAlEntregar(fotosOrden.photos, fotosDeLaEntrega) : null;
     const pod = {
       pod_received_by: podName.trim() || null,
       pod_signature: podSig,
@@ -1318,7 +1333,7 @@ export function OrderModal({
       pod_lng: gps?.lng ?? null,
       pod_accuracy: gps?.accuracy ?? null,
       delivered_address: altAddr || null,
-      ...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, existing.photo_meta, me.id, ahora) } : {}),
+      ...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, fotosOrden.photo_meta, me.id, ahora) } : {}),
     };
     // The audit note reports an off-address delivery loudly so the office sees it.
     const note = altAddr
@@ -1848,17 +1863,19 @@ export function OrderModal({
               />
             )}
             {/* ---------- Material photos (driver captures; sales reps don't see these) ---------- */}
-            {me.role !== "sales" && (canDeliver(me) || (existing.photos?.length ?? 0) > 0) && (
+            {me.role !== "sales" && (canDeliver(me) || fotosQueCuentan.length > 0) && (
               <>
                 <div className="section-label">
                   📷 {t("Material photos", "Fotos del material")}
-                  {(existing.photos?.length ?? 0) > 0 && <span className="count-tag" style={{ marginLeft: 8 }}>{existing.photos!.length}</span>}
+                  {fotosQueCuentan.length > 0 && <span className="count-tag" style={{ marginLeft: 8 }}>{fotosQueCuentan.length}</span>}
                 </div>
                 <PhotoUpload
-                  photos={existing.photos ?? []}
+                  photos={fotosOrden.photos ?? []}
                   credits={photoCredits}
-                  disabled={!canDeliver(me) || photoBusy}
+                  disabled={!canDeliver(me) || photoBusy || !fotosOrden.listas}
                   onChange={async (next) => {
+                    // `next` sale de las fotos que se enseñan: sin las de la orden cargadas, guardarlo las borraría.
+                    if (!fotosOrden.listas) return;
                     setPhotoBusy(true);
                     await updateDelivery(existing.id, { photos: next });
                     setPhotoBusy(false);
@@ -1866,6 +1883,7 @@ export function OrderModal({
                   }}
                   t={t}
                 />
+                {!fotosOrden.listas && fotosQueCuentan.length > 0 && <div className="hint">{t("Loading photos…", "Cargando fotos…")}</div>}
                 <div className="hint">{t("Photo of the load / material. On a phone this opens the camera.", "Foto de la carga / material. En el teléfono abre la cámara.")}</div>
               </>
             )}
@@ -2956,13 +2974,13 @@ export function OrderModal({
                 <div style={{ marginTop: 12 }} data-fotos-de-la-entrega>
                   <label>
                     📷 {t("Delivery photo", "Foto de la entrega")}
-                    {podSinCumplir(settings, fotosAlEntregar(existing.photos, fotosDeLaEntrega), podSig) && (
+                    {podSinCumplir(settings, fotosAlEntregar(fotosQueCuentan, fotosDeLaEntrega), podSig) && (
                       <span style={{ color: "var(--amber)", marginLeft: 6 }}>· {t("required", "requerida")}</span>
                     )}
                   </label>
-                  {(existing.photos?.length ?? 0) > 0 && (
+                  {fotosQueCuentan.length > 0 && (
                     <div className="hint" style={{ marginTop: 0, marginBottom: 4 }}>
-                      {t(`The order already has ${existing.photos!.length} photo(s).`, `La orden ya tiene ${existing.photos!.length} foto(s).`)}
+                      {t(`The order already has ${fotosQueCuentan.length} photo(s).`, `La orden ya tiene ${fotosQueCuentan.length} foto(s).`)}
                     </div>
                   )}
                   <PhotoUpload photos={fotosDeLaEntrega} disabled={busy} onChange={setFotosDeLaEntrega} t={t} />
