@@ -821,7 +821,7 @@ APK. El Java ya compila (`compileDebugJavaWithJavac`, BUILD SUCCESSFUL).
 
 ## D-029 · La foto se pide donde se puede tomar, y la app se actualiza sola
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-15): la parte (c), *cuándo* se refresca sola. Ya no recarga la
+> **⚠ Reemplazada en parte por D-563** (2026-10-15): la parte (c), *cuándo* se refresca sola. Ya no recarga la
 > primera vez que la app vuelve a primer plano: enseña el aviso «Hay una versión nueva — Actualizar» y recarga sola
 > tras un retraso aleatorio de 0–5 min, en la próxima navegación o al volver de oculta, y con un respaldo si la
 > página sigue abierta sin tocar. Lo que esta entrada protegía —nadie se queda en la versión vieja, y nunca con algo
@@ -3764,7 +3764,7 @@ necesita el mismo ajuste, no solo `fromRange()`.
 
 ## D-087 · El versionado deja de ser global — una versión por app
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-15): una versión por app sigue igual. Cambia lo que provoca subirla:
+> **⚠ Reemplazada en parte por D-563** (2026-10-15): una versión por app sigue igual. Cambia lo que provoca subirla:
 > ya no es un refresco al volver a la app, sino un aviso y una recarga escalonada (0–5 min de retraso aleatorio, en la
 > próxima navegación o al volver de oculta). «Un refresh de más es leve» sigue siendo cierto, y ahora además no llega
 > a la vez a todos los clientes.
@@ -44545,7 +44545,7 @@ logística y admin ven y actualizan todas; **sin DELETE**. Checksum `86ae9176475
 
 ---
 
-## D-NEXT · Una versión nueva ya no recarga a todos a la vez: aviso, retraso aleatorio y recarga en un momento seguro
+## D-563 · Una versión nueva ya no recarga a todos a la vez: aviso, retraso aleatorio y recarga en un momento seguro
 
 **Fecha:** 2026-10-15 · **Versión:** la pone el orquestador al fusionar (código compartido: `AppUpdateBanner` lo montan deliveries, `home`, recruiting y timetracker, así que las tres) · Sin migración · Reemplaza en parte a D-029 (cuándo se refresca sola) y a D-087 (qué provoca subir una versión).
 

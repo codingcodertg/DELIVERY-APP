@@ -93,7 +93,7 @@ describe("safeToReload", () => {
   });
 });
 
-// ---- Soft refresh (D-NEXT) ---------------------------------------------------
+// ---- Soft refresh (D-563) ---------------------------------------------------
 describe("shouldSoftReload", () => {
   const T0 = 1_000_000_000;
   const JITTER = 3 * 60_000;

@@ -82,7 +82,7 @@ export function webUpdateAvailable(running: string, served: string | null | unde
 export function safeToReload(doc: Pick<Document, "querySelector"> | null | undefined): boolean {
   if (!doc) return false;
   if (doc.querySelector(".overlay")) return false;          // any modal or sheet
-  // D-NEXT: a form outside a modal that holds edits it hasn't saved marks itself with
+  // D-563: a form outside a modal that holds edits it hasn't saved marks itself with
   // `data-unsaved` (Ajustes → Datos is the one today). Without it, a reload while the
   // field isn't focused would drop those edits without a word.
   if (doc.querySelector("[data-unsaved]")) return false;
@@ -90,9 +90,9 @@ export function safeToReload(doc: Pick<Document, "querySelector"> | null | undef
   return !el;
 }
 
-// ---- Soft refresh (D-NEXT) ----------------------------------------------------
+// ---- Soft refresh (D-563) ----------------------------------------------------
 //
-// Until D-NEXT a stale page reloaded itself the first time it came back to the
+// Until D-563 a stale page reloaded itself the first time it came back to the
 // foreground (focus OR visibilitychange). On 2026-10-15 that was measured to be a
 // stampede: every deploy bumps APP_VERSION, every open client noticed within the
 // same few minutes and reloaded, and every reload downloads the whole orders list

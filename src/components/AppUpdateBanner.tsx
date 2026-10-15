@@ -34,7 +34,7 @@ import {
 //         battery guard). No reload can fix that; a new APK must be installed.
 //         This is rare and is the only one that needs the driver to act.
 //
-// The web one auto-heals, softly (D-NEXT, replacing in part D-029): the banner
+// The web one auto-heals, softly (D-563, replacing in part D-029): the banner
 // shows at once with an "Update" button, and the page reloads by itself only
 // after a random delay (0–5 min, so thousands of clients don't hit Supabase in
 // the same second — measured 2026-10-15) AND at a moment that is already a page
@@ -110,7 +110,7 @@ export function AppUpdateBanner({ app }: { app: AppKey }) {
     };
   }, [check]);
 
-  // Soft self-heal (D-NEXT). The decision is shouldSoftReload; this only feeds it.
+  // Soft self-heal (D-563). The decision is shouldSoftReload; this only feeds it.
   useEffect(() => {
     if (!webStale || detectedAt == null || !served) { attemptRef.current = null; return; }
     const attempt = (trigger: SoftReloadTrigger) => {
