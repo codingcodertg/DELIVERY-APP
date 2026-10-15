@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   const desde = q.get("from") ?? "", hasta = q.get("to") ?? "";
   if (!rangoValido(desde, hasta)) return NextResponse.json({ error: `A range (from, to: YYYY-MM-DD) of at most ${DIAS_MAX_DEL_RANGO} days is required.` }, { status: 400 });
 
-  const { data: yo } = await supabase.from("profiles").select("role, store").eq("id", user.id).maybeSingle();
+  const { data: yo } = await supabase.from("profiles").select("role, store, permissions").eq("id", user.id).maybeSingle();
   if (!yo || !ROLES.includes(String(yo.role))) return NextResponse.json({ error: "Only admin, logistics or managers can see this report." }, { status: 403 });
 
   const [ajustes, choferes] = await Promise.all([
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     supabase.from("deliveries").select("id, stage, delivery_date, delivery_windows, assigned_driver, pod_delivered_at, is_training, store, pickup_name, delivery_name, order_type")
       .eq("stage", "delivered").gte("delivery_date", desde).lte("delivery_date", hasta).not("assigned_driver", "is", null).order("id").range(a, b));
   if (leidas.error) return NextResponse.json({ error: "Could not read the deliveries.", detail: leidas.error }, { status: 500 });
-  const alcance = alcanceDelPanel(yo as Pick<Profile, "role" | "store">, (ajustes.data?.stores ?? []) as NamedLocation[]);
+  const alcance = alcanceDelPanel(yo as Pick<Profile, "role" | "store" | "permissions">, (ajustes.data?.stores ?? []) as NamedLocation[]);
   const entregas = ordenesDelPanel(leidas.filas as never[], alcance, ajustes.data?.order_type_rules as OrderTypeRules | undefined) as typeof leidas.filas;
   const ids = entregas.map((d) => d.id);
 

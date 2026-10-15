@@ -44327,3 +44327,74 @@ también `erp_role` y `MapaDeLaEmpresa` pasa `veCompras: veComprasDe(me)`. La pr
 - **No verificado:** la 175 en una base (ni con `ROLLBACK`: el worker no tiene `.env.local`); el flujo en un navegador
   (Leads → Quote Builder → guardar → volver al lead), en demo ni con sesión; el aviso PGRST204 real de PostgREST (el texto
   que se espera sale de su documentación, no de una medida); y cómo se ve el botón en el teléfono.
+
+## D-NEXT · «Ver todas las tiendas» (`all_stores`): un permiso por persona, solo para el gerente, que le deja ver en Entregas las órdenes de todas las tiendas como admin y logística — el primer paso del «Operations Manager»
+
+**Fecha:** 2026-10-15 · **Versión:** la pone el orquestador (toca `src/lib/constants.ts`, `src/lib/panel-por-tienda.ts`,
+`src/lib/ordenes-visibles.ts`, `src/app/api/puntualidad/route.ts`: código compartido, pero lo que cambia solo se ve en
+Entregas) · **Sin migración.** · Es la opción «A+» de `docs/PLAN-operations-manager.md` (rama
+`worktree-agent-ae96c9ca165ecb747`).
+
+### Qué pidió el dueño
+
+El 2026-10-15 (citado del plan): *«quiero vrees un operation manager view que tendra cceso a todas las appas como maanager
+excepto a los usuarios y su info y al rrhh app»*. Y al preguntarle si una tienda o todas:
+
+> «por ahora se llamara francis y todas»
+
+Francis Lestarpe es `role = manager` con `store = null` y `visible_stores = null`. Hoy, en Entregas, un gerente sin tienda
+no ve **nada** (D-237): la lista de Órdenes, el Panel y «Factura pendiente» le salen en «sin tienda».
+
+### Qué hay ahora
+
+Una capacidad nueva de Entregas, **`all_stores`** («Ver todas las tiendas» / «See all stores»), en el mismo sistema que
+las demás (`Capability`, `CAPABILITIES`, `ROLE_CAPS`, el bloque de Entregas de `MODULE_ACCESS`), guardada en
+`profiles.permissions` como `leads_all_stores` (D-471, migración 163) — y copiada de él:
+
+- **Se ofrece solo al gerente** (`seOfreceTodasLasTiendas`, `src/lib/todas-las-tiendas.ts`). Al admin y a logística se
+  les enseña fija, «del rol» (la traen en `ROLE_CAPS`: ya veían todas). A ventas, oficina, almacén y chofer no se les
+  dibuja. Es la primera capacidad de Entregas que no se ofrece a todos los roles: `capabilityOffered` del bloque de
+  Entregas, que hasta hoy no existía.
+- **Solo al gerente le surte efecto** (`veTodasLasTiendas`): a un vendedor con la palabra escrita a mano, o que le quedó
+  de cuando era gerente, no le abre nada.
+- **Qué abre:** `alcanceDelPanel` devuelve `{ tipo: "todas" }`, y de ahí cuelgan los tres cortes de pantalla por tienda
+  de Entregas: el Panel (D-396, también «Tiempo inactivo» y el informe de puntualidad, que ahora lee `permissions`),
+  la lista de Órdenes entera —con y sin búsqueda— (`alcanceDeLaLista`, D-405) y «Factura pendiente» (D-404).
+- **Un campo sin rellenar sigue sin ampliar nada (D-237).** La amplitud la da SOLO la capacidad; un gerente sin tienda y
+  sin ella sigue en «sin tienda», y otra palabra de la lista (`leads_all_stores`, `history`) tampoco amplía.
+
+### Qué NO cambia, a propósito
+
+- **Escribir en otras tiendas no se amplía.** Borrar borradores (`orden_de_mis_tiendas`, 142), deshacer pasos
+  (`ordenDeMisTiendas` en la ficha) y decidir promos (`promo_is_decider()`, 140) siguen siendo de su tienda y su grupo.
+  Es la pregunta P2 del plan, sin contestar.
+- **La ventana de días no se toca.** «Ver todas las órdenes» (`history`, D-350) es otra cosa —cuántos días atrás—; el
+  gerente sigue con «de ayer en adelante» salvo que se le marque también esa.
+- **«Ruta de hoy» (D-544) no hacía falta tocarla:** el gerente ya ve a todos los choferes por su rol
+  (`ROLES_VEN_TODOS_LOS_CHOFERES`).
+- **Leads** tiene su propio permiso (`leads_all_stores`); éste no lo implica. Para Francis hay que marcar los dos.
+
+### La base ya lo deja (medido en el repo, no en producción)
+
+La última migración que define `tiendas_visibles()` es la 131 (`131_visibilidad_por_tienda.sql:134`): devuelve `null`
+—todas— cuando `visible_stores` es nulo o vacío, y la política «auth read deliveries» (131, comprobada sin cambios por la
+157:555) deja pasar toda fila cuando es `null`. O sea: a Francis la base **ya** le manda las órdenes de todas las tiendas
+(con `deliveries` en `module_access`); lo que se las escondía era la pantalla. Si se le marcan casillas en «Tiendas que
+ve», la base le pone ese techo, igual que hoy. `permissions` lo escribe solo el admin
+(`guard_profile_privileged_columns`, 131:100).
+
+### Verificado
+
+- `src/lib/todas-las-tiendas.test.ts` (nuevo, 22): quién la tiene; el Panel; la lista y «Factura pendiente» con órdenes de
+  tres tiendas desordenadas; la casilla en Usuarios; y dos de lectura del fuente (puntualidad lee `permissions`; el Panel
+  pasa `me` entero).
+- Actualizada con «Nota D-NEXT»: `leads/alcance.test.ts` («Entregas sigue ofreciendo todos sus permisos» exigía
+  `capabilityOffered` ausente; ahora exige que todos menos `all_stores` se sigan ofreciendo).
+- **Mutantes: 16 de 16 caen con una prueba con nombre** (`tanda-todas-las-tiendas.json`): la palabra sirve a cualquier
+  rol; todo gerente ve todas sin ella; cualquier permiso amplía; admin y logística pierden la suya; la casilla se ofrece a
+  todos; el Panel ignora la capacidad; un campo vacío amplía (D-237 roto); la lista y «Factura pendiente» pasan un perfil
+  sin permisos; Usuarios la ofrece a todos, no la enseña fija a admin/logística o deja de ofrecer las demás; el gerente la
+  trae de serie; logística o admin dejan de traerla; puntualidad no lee los permisos.
+- **No verificado:** en un navegador (ni demo ni con sesión) — ni la casilla en el diálogo ni la lista de Francis; la
+  política en la base de producción (se leyó el repo, no `pg_policies`); que Francis tenga `deliveries` en
+  `module_access`. **Para que surta efecto, un admin tiene que marcarle la casilla** en Usuarios → Entregas.
