@@ -28,6 +28,7 @@ import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } 
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
 import { esFuncionAusente } from "@/lib/cargas-partidas";
+import { argumentosDeReprogramar, caminoTrasReprogramar, notaDeReprogramacion } from "@/lib/reprogramar-orden";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria";
@@ -121,6 +122,12 @@ export interface DataState {
    * Deja el evento con la nota y, si la orden ya está en preparación, avisa a almacén.
    */
   agregarMaterial: (id: string, parche: EscrituraDeMaterial, nota: string) => Promise<boolean>;
+  /**
+   * «📅 Reprogramar» (D-500, D-534, D-549): la fecha nueva y la nota, por la función de la base `reprogramar_orden` (173),
+   * que cambia SOLO la fecha y deja la nota en el historial. Sin la función, como antes: `updateDelivery` + `addNote`.
+   * `nota` es lo que escribió la persona, sin componer. `true` si quedó guardada.
+   */
+  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es") => Promise<boolean>;
   /** Renumber a route's stops: `orderedIds` in their new visiting order gets
    * route_seq 0..n-1. Applied to local state FIRST and held there until every
    * write lands, so a realtime refetch can't interleave and snap stops back to
@@ -1498,6 +1505,27 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, me, notify, teaching],
   );
 
+  // «📅 Reprogramar» por la función de la base (D-549, 173). Qué hacer con la respuesta lo decide `caminoTrasReprogramar`:
+  // sin la función (la migración va después de fusionar), el camino de antes, `updateDelivery` + `addNote`.
+  const reprogramarOrden = useCallback<DataState["reprogramarOrden"]>(
+    async (id, fecha, nota, lang) => {
+      const antes = deliveries.find((c) => c.id === id)?.delivery_date ?? null;
+      const comoAntes = async () => {
+        const ok = await updateDelivery(id, { delivery_date: fecha });
+        if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
+        return ok;
+      };
+      if (teaching) return comoAntes();
+      const { error } = await supabase.rpc("reprogramar_orden", argumentosDeReprogramar(id, fecha, nota, lang));
+      const camino = caminoTrasReprogramar(error);
+      if (camino === "respaldo") return comoAntes();
+      if (camino === "error") { notify("Error: " + (error?.message ?? "")); return false; }
+      await reloadTables(["deliveries", "order_events"]);
+      return true;
+    },
+    [supabase, notify, teaching, deliveries, updateDelivery, addNote, reloadTables],
+  );
+
   const marcarParada = useCallback<DataState["marcarParada"]>(
     async (deliveryId, kind, note) => {
       const ev: OrderEvent = {
@@ -1999,7 +2027,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const value: DataState = {
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,

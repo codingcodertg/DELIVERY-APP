@@ -197,7 +197,7 @@ export default function RoutesPage() {
   const soloLectura = soloLecturaDeclarada || miChofer != null;
   // «Mi ruta» monta ESTA pantalla y se queda solo con su mapa (D-514): el mismo mapa, no una copia. Manda su día.
   const soloElMapa = useSoloElMapa();
-  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching, realRole } = useData();
+  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, reprogramarOrden, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching, realRole } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   const [fechaDelEstado, setDate] = useState(todayISO());
@@ -2258,7 +2258,7 @@ export default function RoutesPage() {
               ) : null}
               {/* «📅 Reprogramar» (D-500): la fecha siguiente y una nota, ahí mismo. */}
               {!hecha && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
-                <ReprogramarOrden pedido={d} lang={lang} t={t} updateDelivery={updateDelivery} addNote={addNote} notify={notify} />
+                <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
               )}
               {/* La sugerencia de chofer («💡 nombre») que salía aquí se quitó (D-346), por pedido del dueño. */}
             </div>

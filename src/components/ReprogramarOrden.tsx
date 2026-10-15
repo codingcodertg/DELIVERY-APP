@@ -1,20 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { fechaPropuesta, notaDeReprogramacion, reprogramacionValida } from "@/lib/reprogramar-orden";
+import { fechaPropuesta, reprogramacionValida } from "@/lib/reprogramar-orden";
 import { orderLabel, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 /**
  * El botón «📅» de una fila del Gestor y su cuadro (D-500): la fecha nueva (propone el día siguiente) y una nota
- * obligatoria. Guarda la fecha con `updateDelivery` y la nota en el historial con `addNote`.
+ * obligatoria. Desde D-549 guarda por `reprogramarOrden` (la función de la base `reprogramar_orden`, 173, que cambia SOLO
+ * la fecha y deja la nota; sin ella, `updateDelivery` + `addNote` como antes). También en la ficha, arriba a la derecha.
  */
-export function ReprogramarOrden({ pedido, lang, t, updateDelivery, addNote, notify }: {
+export function ReprogramarOrden({ pedido, lang, t, reprogramarOrden, notify }: {
   pedido: Delivery;
   lang: "en" | "es";
   t: (en: string, es: string) => string;
-  updateDelivery: (id: string, patch: Partial<Delivery>) => Promise<unknown> | unknown;
-  addNote: (id: string, text: string) => Promise<void>;
+  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es") => Promise<boolean>;
   notify: (msg: string) => void;
 }) {
   const hoy = todayISO();
@@ -28,9 +28,8 @@ export function ReprogramarOrden({ pedido, lang, t, updateDelivery, addNote, not
   const guardar = async () => {
     if (!valida || guardando) return;
     setGuardando(true);
-    const ok = await updateDelivery(pedido.id, { delivery_date: fecha });
-    if (ok !== false) {
-      await addNote(pedido.id, notaDeReprogramacion(pedido.delivery_date, fecha, nota, lang));
+    const ok = await reprogramarOrden(pedido.id, fecha, nota, lang);
+    if (ok) {
       notify(t(`Rescheduled to ${fecha}`, `Reprogramada al ${fecha}`));
       setAbierto(false);
     }

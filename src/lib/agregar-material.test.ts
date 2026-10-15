@@ -194,13 +194,17 @@ describe("la 138 dice lo mismo que el código", () => {
     // cláusula más en la rama del chofer (lo compara `recogida-del-chofer.test.ts`); el bloque de la 138 sigue igual.
     // Nota D-531 (2026-10-12): la última es ahora la 169 (fotos del material y salida/llegada del chofer en su orden):
     // la 168 letra por letra con UN bloque más en el tramo de misma etapa (lo compara `fotos-del-chofer.test.ts`).
-    expect(conGuard.at(-1)).toBe("169_fotos_del_chofer.sql");
-    expect(conGuard.at(-2)).toBe("168_chofer_recoge_sin_listo.sql");
-    expect(conGuard.at(-3)).toBe("157_partes_de_orden.sql");
-    expect(conGuard.at(-4)).toBe("145_gerente_hace_bodega.sql");
-    expect(conGuard.at(-5)).toBe("142_deshacer_almacen_y_borrar_borradores.sql");
-    expect(conGuard.at(-6)).toBe("139_office_entrega_y_deshace.sql");
-    expect(conGuard.at(-7)).toBe("138_agregar_material.sql");
+    // Nota D-549 (2026-10-14): la última es ahora la 173 («📅 Reprogramar» por `reprogramar_orden`): la 169 letra por
+    // letra con UN bloque más en el tramo de misma etapa (lo compara `juntar-y-reprogramar.test.ts`); el bloque de la 138
+    // sigue igual.
+    expect(conGuard.at(-1)).toBe("173_reprogramar_orden.sql");
+    expect(conGuard.at(-2)).toBe("169_fotos_del_chofer.sql");
+    expect(conGuard.at(-3)).toBe("168_chofer_recoge_sin_listo.sql");
+    expect(conGuard.at(-4)).toBe("157_partes_de_orden.sql");
+    expect(conGuard.at(-5)).toBe("145_gerente_hace_bodega.sql");
+    expect(conGuard.at(-6)).toBe("142_deshacer_almacen_y_borrar_borradores.sql");
+    expect(conGuard.at(-7)).toBe("139_office_entrega_y_deshace.sql");
+    expect(conGuard.at(-8)).toBe("138_agregar_material.sql");
     // Y la vigente sigue llevando el bloque de la 138, tal cual: `create or replace` reemplaza la función ENTERA.
     const vigente = plano(leer(`${dir}/${conGuard.at(-1)}`).split("\n").filter((l) => !l.trim().startsWith("--")).join("\n"));
     expect(vigente).toContain(`coalesce(array_length(NEW.invoices_extra, 1), 0) <= ${MAX_FACTURAS_EXTRA} and`);

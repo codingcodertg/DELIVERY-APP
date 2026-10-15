@@ -20923,6 +20923,11 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 
 ## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
 
+> **Reemplazada en parte por D-549** (2026-10-14): al **crear** una Intertienda cuya factura ya tiene otra Intertienda
+> abierta (misma tienda que vende, mismo destino), el «⚠ Factura duplicada… ¿Crear de todos modos?» se cambia por tres
+> salidas: «Juntar con #X (un viaje)», «Crear duplicada (otro viaje)» o Cancelar. El resto de tipos, editar una orden y
+> escribir la factura desde la fila siguen con el aviso de siempre («una factura repartida en varias entregas existe»).
+
 > **⚠ Reemplazada en parte por D-465** (2026-10-04). El dueño: *«there are orders without invoice and is not showing,
 > interiteda are pending»*. Lo que aquí se decidió **no contar** —las Intertiendas sin `invoice_num`, «pedirle a la gente
 > un papel que ese tipo no lleva»— ahora **sí se cuenta**: la factura pendiente es de toda orden sin `invoice_num`, y va
@@ -37766,6 +37771,11 @@ seguir probando lo mismo.
 
 ## D-480 · Oficina solo con Órdenes y Ruta de hoy (también con permisos sueltos); ventas solo cambia la FECHA de sus órdenes; en almacén, Órdenes antes que Ruta de hoy
 
+> **Reemplazada en parte por D-549** (2026-10-14): «Ventas, `approved` en adelante → `nada`» deja de valer para la
+> FECHA. Ventas reprograma SU orden de borrador a lista con «📅 Reprogramar» (arriba a la derecha de la ficha), con nota
+> obligatoria, por la función `reprogramar_orden` (migración 173), que cambia solo `delivery_date`. «Editar fecha» y
+> `alcanceDeEdicion` no cambian.
+
 > **Reemplazada en parte por D-523** (2026-10-11): `pestanasEnOrden` también reordena al chofer: «Mi ruta» primero y su «Órdenes» (`driver`) al final («my routes in driver will be 1st and orders last in  the row»). Lo que esta decisión dejó como pregunta («el chofer tiene la misma forma… el dueño no lo nombró») ya está contestado.
 
 **Fecha:** 2026-10-06 · **Versión:** deliveries 1.260.0, repo 1.353.0 (toca `src/components/` y `src/lib/constants.ts`: Entregas)
@@ -39267,6 +39277,10 @@ No visto en navegador: `tsc` y vitest.
 ## D-500 · Gestor: «📅 Reprogramar» en cada fila — la siguiente fecha y una nota
 
 > **Ampliada por D-534** (2026-10-12): el mismo «📅 Reprogramar» sale en Almacén (Cola, Recepción y Ruta del día) y almacén puede usarlo en aprobada, preparando y lista.
+
+> **Reemplazada en parte por D-549** (2026-10-14): el cuadro sale también en la ficha de la orden (arriba a la derecha),
+> ventas puede usarlo en SU orden (borrador a lista), y guarda por la función de la base `reprogramar_orden` (173) en vez
+> de `updateDelivery` + `addNote` (que quedan como respaldo mientras la función no exista). El chofer sigue sin él.
 
 **Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.0, repo 1.370.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d500`.
 
@@ -43593,3 +43607,110 @@ cabecera de paradas con otro rótulo (P7).
 - **Cuántas personas tienen «Sin asignar» configurada a su gusto** en producción: no se midió (sin acceso a la base desde
   la rama). Son quienes notarán el cambio.
 - Tracker y Notion: son del orquestador.
+
+## D-549 · Intertienda con la misma factura: «Juntar» (un viaje) o «Crear duplicada»; y «📅 Reprogramar» arriba a la derecha de la ficha, para todos menos el chofer (migración 173)
+
+**Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca `deliveries`) · **Migración:** 173
+(`supabase/migrations/173_reprogramar_orden.sql`, plan en `docs/PLAN-173-reprogramar-orden.md`) · Rama
+`ficha-juntar-y-reprogramar` · **Reemplaza en parte a D-310, D-480 y D-500** (cada una lleva su nota).
+
+### Qué pidió el dueño
+
+Cuatro mensajes del 2026-10-14, literales tal como los pasó el orquestador:
+
+> «when intertienda has 2 of the same invoice order ask if you want to create a duplicate or to merge the order»
+
+> «entonces crea el merge option»
+
+Con una captura de un chat (la vio el orquestador, no el worker): la tienda A le hace varias compras (PO) a la tienda B;
+B saca UNA factura para todas; A mete tres órdenes y B pone la misma factura tres veces; el almacén prepara una carga
+pero tiene que completar el proceso tres veces. Lo que se propuso ahí: *«Invoice # already exists, would you like to make
+a separate order (multiple trips) or join the orders for 1 trip»*.
+
+> «reprogamar buttom in ther order view put it the top right hand side insead»
+
+> «all sales people well everybody has the iption to reprogramar»
+
+### A · «Juntar» dos Intertiendas con la misma factura
+
+**Cuándo se pregunta** (`ofreceJuntar`, `src/lib/juntar-intertienda.ts`): al pulsar **Crear** en una orden nueva cuyo
+tipo es Intertienda **por la regla** (`storeToStore` y `homeIsDestination`, no por el nombre: un «Transfer» no cuenta) y
+cuya factura (comparada con `facturaComparable`, también contra las facturas agregadas de D-339) ya la tiene otra
+Intertienda **abierta** (borrador, pendiente, aprobada, preparando o lista), de la **misma tienda que vende** y, si las
+dos lo tienen, el **mismo destino**. Si hay varias, la más reciente. La pregunta tiene tres salidas: «Juntar con #X (un
+viaje)», «Crear duplicada (otro viaje)» y Cancelar; «Crear duplicada» sigue el camino de siempre sin repetir el aviso de
+factura duplicada.
+
+**Qué hace «Juntar»** (`parcheAlJuntar`, `notaAlJuntar`): **no crea ninguna orden**. En la que ya existía suma la PO
+(`po2`, unidas con «, » y sin repetir), suma los pallets estimados y recalcula las dos duraciones con el total; deja en su
+historial *«Se juntó la PO X (N pallets) — misma factura #F»*. Nada más: ni fecha, ni tienda, ni etapa.
+
+**Decisiones:**
+
+- **Solo al CREAR.** Al editar una orden que ya existe, juntarla con otra obligaría a anular una de las dos (otra
+  escritura, con motivo, y que el guard no deja a todos); y la factura escrita después desde la fila (D-310) o con
+  «Agregar material» (D-339) lleva su aviso de siempre. El caso del chat (B escribe la factura en tres órdenes que A ya
+  creó) **no** queda cubierto: allí sigue el aviso. Si el dueño lo quiere también ahí, es otra rama.
+- **La rechazada no cuenta como abierta**, aunque el encargo decía «no picked_up/delivered/canceled»: una rechazada no va
+  a salir, y sumarle pallets los escondería.
+- **Quién puede juntar** (`puedeJuntarEn`), espejo del tramo «misma etapa» del guard (169): admin, gerente, oficina y
+  logística en las cinco etapas; almacén en aprobada, preparando y lista; **ventas y chofer solo si la otra está en
+  borrador o pendiente** (desde `approved` el guard no les deja tocar la PO). A quien no puede, la pregunta se lo dice y
+  solo ofrece «Crear duplicada» o Cancelar.
+- Los demás tipos de orden siguen con el aviso de D-310 («una factura repartida en varias entregas existe»).
+
+### B · «📅 Reprogramar» en la ficha, para todos menos el chofer
+
+- **Dónde:** en la cabecera de la ficha, arriba a la derecha, junto a la ✕ (el mismo cuadro del Gestor, D-500). Sigue en
+  el Gestor y en Almacén.
+- **Quién** (`puedeReprogramar`, ahora con un tercer argumento `esSuya`): lo de antes (admin, logística, gerente,
+  oficina, almacén en sus etapas) **más ventas en SU orden** (`esMia`: la creó o es su vendedor, la misma dueñez que
+  decide si la abre, D-544) de borrador a lista. **El chofer no**: decisión del orquestador mientras el dueño no diga otra
+  cosa; «everybody» se leyó como «todo el que gestiona órdenes».
+- **Cómo guarda:** por la función de la base `reprogramar_orden(p_id, p_fecha, p_nota, p_lang)` (173). Medido en
+  producción por el orquestador el 2026-10-14: el guard le contesta a ventas «You cannot edit an order in the approved
+  stage» al cambiar la fecha. La función cambia SOLO `delivery_date` (así la 172, si se aplica, saca la orden de la ruta) y
+  deja los dos eventos que dejaba la pantalla (el «edited» con el valor de antes y el de después, y la nota). Sin la
+  función (antes de aplicar la 173) la app guarda como antes (`caminoTrasReprogramar` → `respaldo`).
+- **No es SECURITY DEFINER, aunque así se pidió.** El guard decide con `auth.uid()` y `current_user_role()`, que salen del
+  JWT de la petición: una función definer pasa por el guard como el vendedor y recibe el mismo rechazo (lo dice la 157 de
+  `juntar_cargas`). La 173 añade **un bloque** al guard (la 169 letra por letra más ese bloque): si la transacción lleva la
+  marca local `rtg.reprogramar_orden` = el id de la orden y lo único que cambia es la fecha, pasa. La función es
+  **SECURITY INVOKER** (la RLS de quien llama, visibilidad por tienda incluida, sigue mandando), pone la marca justo antes
+  de su `UPDATE` y la quita justo después.
+- **«Suya» en la base** = `created_by = yo or assigned_sales_rep = yo` (como `esMia` y las ramas 125/138 del guard), no
+  `orderOwner`, que pedía el encargo y es más estrecho: el botón y la base dirían cosas distintas.
+- `p_lang` es un cuarto parámetro con valor por defecto: la nota se escribe en el idioma de quien la escribe, como antes.
+- «Editar fecha» de ventas (D-480, pendiente/rechazada) no cambia, sigue abajo; «instead» del dueño se leyó como «arriba
+  en vez de no estar», porque en la ficha no había ningún «Reprogramar» que mover.
+
+### Verificado
+
+- `npx tsc --noEmit` limpio después de la última edición de código; pruebas: `src/lib/juntar-y-reprogramar.test.ts` (19,
+  nuevas) y las tocadas con «Nota D-549»: `reprogramar-orden.test.ts`, `fecha-de-entrega.test.ts`,
+  `order-endpoints.test.ts`, `tarifa-minima.test.ts`, `fotos-del-chofer.test.ts` (el import de `esMia`), y los dos canarios de
+  «la última migración que define el guard» (`agregar-material.test.ts`, `recibir.test.ts`: ahora la 173). Suite entera
+  (`--maxWorkers=2`, 2026-10-14): 7.805 en verde salvo `optimiza-la-ruta.test.ts` (prueba de tiempo, «lo que tarda»), que
+  pasó sola en la repetición con la máquina libre.
+- **Mutantes: 23, caen los 23**, cada uno con una prueba con nombre (tanda `tanda-juntar-reprogramar.json`): Intertienda
+  por `storeToStore` solo (M1), juntar con una cerrada (M2), la rechazada como abierta (M3), sin las facturas agregadas
+  (M4), otra tienda que vende (M5), la primera y no la más reciente (M6), ventas/chofer juntan en aprobada (M7), la PO
+  repetida (M8), pallets reemplazados (M9), «Juntar» crea igual (M10), «Juntar» para cualquier rol (M11), «Crear
+  duplicada» vuelve a preguntar (M12), ventas reprograma ajenas (M13), el chofer reprograma (M14), «no existe» solo por
+  código (M15), sin función falla (M16), la ficha da el botón en ajenas (M17); SQL: ventas ajenas (M18), almacén en
+  pendiente (M19), la marca no se quita (M20), definer (M21), fecha pasada (M22), con la marca pasa cualquier columna (M23).
+- La migración: sin transacción propia (`llevaTransaccionPropia` = false), checksum
+  `b7d46ffdce473234b1a3d0b307ae9d567b66dc344499917bde40c285fa87c112` (`--sum`), y su guard es el de la 169 más el bloque
+  (una prueba lo compara letra por letra).
+
+### No medido
+
+- **Nada contra ninguna base**: la 173 no se ha aplicado ni ensayado (tampoco con ROLLBACK). La matriz por rol está en el
+  plan. En especial: que `set_config` con un nombre propio (`rtg.…`) funcione con el rol `authenticated` en Supabase, y que
+  el `probe` iguale a OLD con la 172 aplicada (corre después del guard, así que no debería verla).
+- **Nada en el navegador ni en el teléfono**: ni la pregunta de tres botones, ni el «📅» en la cabecera a 390 px junto a
+  «Continuar la orden» y la ✕, ni el cuadro de reprogramar encima de la ficha.
+- Si ventas, al juntar en una pendiente ajena, ve la otra orden: la busca en `deliveries` (lo que la RLS le deja leer); el
+  guard le deja escribir una pendiente aunque no sea suya (D-480 lo dejó escrito como hueco).
+
+**Nota del orquestador (2026-10-14, al fusionar):** la 173 se ensayó contra producción dentro de una transacción con ROLLBACK, y el ensayo **cazó un agujero**: con `assigned_sales_rep` vacío, `o.assigned_sales_rep = yo` da NULL, `not (… or NULL)` da NULL y `if NULL then raise` no lanza, así que **cualquier vendedor podía reprogramar una orden ajena sin vendedor asignado**. Se arregló envolviendo el permiso en `coalesce(…, false)` (y una prueba que lo fija); el checksum se recalculó. Tras el arreglo, 10 de 10: el vendedor reprograma SU orden aprobada; otro vendedor no; sin la función el guardia sigue rechazando; con la marca puesta a mano otra columna (la tarifa) sigue rechazada; fecha pasada y nota corta rechazadas; entregada no (ni admin); la marca queda vacía; y deja sus dos eventos. No se pudo probar almacén en una pendiente: no había ninguna pendiente. **Ojo con lo que NO cubre «Juntar»:** solo al CREAR una Intertienda; el caso del chat del dueño —la tienda B pone la misma factura en tres órdenes que la tienda A ya creó— sigue dando el aviso, porque juntar dos órdenes ya creadas obliga a anular una. Se le pregunta.

@@ -10,7 +10,10 @@ import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilit
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
-import { DIAS_DE_BORRADOR } from "@/lib/ordenes-visibles";
+import { DIAS_DE_BORRADOR, esMia } from "@/lib/ordenes-visibles";
+import { ReprogramarOrden } from "@/components/ReprogramarOrden";
+import { puedeReprogramar } from "@/lib/reprogramar-orden";
+import { notaAlJuntar, ofreceJuntar, parcheAlJuntar, puedeJuntarEn } from "@/lib/juntar-intertienda";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { alcanceDeEdicion, parcheSoloFecha, type AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
 import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura } from "@/lib/agregar-material";
@@ -118,7 +121,7 @@ export function OrderModal({
   /** La foto de la cámara aún se está comprimiendo: «Confirmar entregado» espera, para no entregar sin ella. */
   fotoEnCamino?: boolean;
 }) {
-  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, saveSettings, notify, realRole, pushNotifs } =
+  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, saveSettings, notify, realRole, pushNotifs } =
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -526,7 +529,7 @@ export function OrderModal({
 
   /** Shared pre-submit gate. Pallets/document hard-block (above); everything
    * else is listed and the rep chooses whether to continue. */
-  const passesChecks = async (draft: Draft): Promise<boolean> => {
+  const passesChecks = async (draft: Draft, opts: { facturaYaDecidida?: boolean } = {}): Promise<boolean> => {
     if (blockSubmit(draft)) return false;
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados». Tope duro, sin «¿continuar?».
     if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }
@@ -548,8 +551,10 @@ export function OrderModal({
       `La orden #${orderLabel(dup)} ya tiene la misma cuenta, fecha y PO. ¿Crear de todos modos?`,
     )))) return false;
 
+    // Una Intertienda nueva que repite la factura de otra abierta ya respondió «Crear duplicada» en la pregunta de tres
+    // salidas (D-549): no se le vuelve a preguntar lo mismo con otras palabras.
     const dupInv = duplicateInvoiceOf(draft);
-    if (dupInv && !sharedInvoice && !(await confirmAction(t(
+    if (dupInv && !sharedInvoice && !opts.facturaYaDecidida && !(await confirmAction(t(
       `⚠ Duplicate invoice: order #${orderLabel(dupInv)} already uses invoice #${dupInv.invoice_num}. Create anyway?`,
       `⚠ Factura duplicada: la orden #${orderLabel(dupInv)} ya usa la factura #${dupInv.invoice_num}. ¿Crear de todos modos?`,
     )))) return false;
@@ -574,6 +579,26 @@ export function OrderModal({
       if (!(await confirmAction(t(`⚠ Scheduling conflict:\n\n${list}\n\nRequest anyway?`, `⚠ Conflicto de programación:\n\n${list}\n\n¿Solicitar de todos modos?`)))) return false;
     }
     return true;
+  };
+
+  // ---- «Juntar» dos Intertiendas con la misma factura (D-549) ----
+  // El dueño, 2026-10-14: «when intertienda has 2 of the same invoice order ask if you want to create a duplicate or to
+  // merge the order» y «entonces crea el merge option». La regla (cuándo, quién, qué se escribe) vive en
+  // `lib/juntar-intertienda.ts`; aquí la pregunta de tres salidas y la escritura.
+  type RespuestaJuntar = "juntar" | "duplicar" | "cancelar";
+  const [preguntaJuntar, setPreguntaJuntar] = useState<{ con: Delivery; puede: boolean; resolver: (r: RespuestaJuntar) => void } | null>(null);
+  const preguntarJuntar = (con: Delivery, puede: boolean) =>
+    new Promise<RespuestaJuntar>((resolver) => setPreguntaJuntar({ con, puede, resolver }));
+  const responderJuntar = (r: RespuestaJuntar) => { preguntaJuntar?.resolver(r); setPreguntaJuntar(null); };
+  /** Suma la PO y los pallets de la orden que se iba a crear a `con`, y deja la nota en su historial. No crea nada. */
+  const juntarCon = async (con: Delivery, nueva: Draft): Promise<boolean> => {
+    const parche = parcheAlJuntar(con, nueva, { recoger: settings.pickup_min_per_pallet, entregar: settings.delivery_min_per_pallet });
+    setBusy(true);
+    const ok = Object.keys(parche).length ? await updateDelivery(con.id, parche) : true;
+    if (ok) await addNote(con.id, notaAlJuntar(nueva, lang));
+    setBusy(false);
+    if (ok) notify(t(`Joined into order #${orderLabel(con)}: one trip`, `Juntada con la orden #${orderLabel(con)}: un viaje`));
+    return ok;
   };
 
   // Live scheduling warnings shown while editing the date/window (ocultas por ahora, ver arriba).
@@ -1653,6 +1678,14 @@ export function OrderModal({
               style={{ flex: "0 0 auto" }}
               onClick={() => setEditing(true)}
             >✎ {t("Continue filling order", "Continuar la orden")}</button>
+          )}
+          {/* «📅 Reprogramar» arriba a la derecha (D-549). El dueño, 2026-10-14: «reprogamar buttom in ther order view put it
+              the top right hand side insead» y «all sales people well everybody has the iption to reprogramar». El MISMO
+              cuadro del Gestor (D-500); quién puede lo dice `puedeReprogramar` (ventas, solo la suya: `esMia`). */}
+          {!editing && existing && puedeReprogramar(me.role, stage, esMia(existing, me)) && (
+            <span style={{ flex: "0 0 auto" }} data-reprogramar-en-ficha>
+              <ReprogramarOrden pedido={existing} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
+            </span>
           )}
           <button className="btn btn-sm" onClick={requestClose} style={{ flex: "0 0 auto" }}>✕</button>
         </div>
@@ -2759,7 +2792,16 @@ export function OrderModal({
                         stage: autoApprove ? "approved" : "pending",
                         ...(autoApprove ? { approved_by: me.id, approved_at: new Date().toISOString() } : {}),
                       });
-                      if (!(await passesChecks(payload))) return;
+                      // Intertienda con la factura de otra Intertienda abierta (D-549): «Juntar» (un viaje), «Crear duplicada»
+                      // (otro viaje) o Cancelar. Juntar NO crea nada: suma la PO y los pallets a la otra y cierra.
+                      if (blockSubmit(payload)) return;
+                      const conQuien = ofreceJuntar(payload, deliveries, settings.order_type_rules);
+                      if (conQuien) {
+                        const respuesta = await preguntarJuntar(conQuien, puedeJuntarEn(me.role, conQuien.stage));
+                        if (respuesta === "cancelar") return;
+                        if (respuesta === "juntar") { if (await juntarCon(conQuien, payload)) onClose(); return; }
+                      }
+                      if (!(await passesChecks(payload, { facturaYaDecidida: !!conQuien }))) return;
                       setBusy(true);
                       const row = await addDelivery(payload);
                       setBusy(false);
@@ -2808,6 +2850,35 @@ export function OrderModal({
         onClose={() => setViewSig(false)}
         t={t}
       />
+    )}
+
+    {/* «La factura ya existe» en una Intertienda (D-549): tres salidas en vez del sí/no. «Juntar» solo si la base le deja
+        a este rol escribir la otra orden en su etapa (`puedeJuntarEn`); si no, se dice por qué y quién puede. */}
+    {preguntaJuntar && (
+      <div className="overlay" style={{ zIndex: 10000 }} data-pregunta-juntar onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget) responderJuntar("cancelar"); }}>
+        <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 460 }}>
+          <h3 style={{ marginTop: 0 }}>{t("Invoice # already exists", "La factura ya existe")}</h3>
+          <p style={{ whiteSpace: "pre-wrap" }}>{t(
+            `Order #${orderLabel(preguntaJuntar.con)} (PO ${preguntaJuntar.con.po2 || "—"}, ${preguntaJuntar.con.est_pallets ?? 0} pallets) already has invoice #${preguntaJuntar.con.invoice_num || d.invoice_num}. Would you like to make a separate order (multiple trips) or join the orders for 1 trip?`,
+            `La orden #${orderLabel(preguntaJuntar.con)} (PO ${preguntaJuntar.con.po2 || "—"}, ${preguntaJuntar.con.est_pallets ?? 0} pallets) ya tiene la factura #${preguntaJuntar.con.invoice_num || d.invoice_num}. ¿Crear una orden aparte (otro viaje) o juntarlas en un viaje?`,
+          )}</p>
+          {!preguntaJuntar.puede && (
+            <p className="hint" data-juntar-no-permitido>{t(
+              `You can't join them: your role can't change that order while it is ${stageLabel(preguntaJuntar.con.stage, lang)}. Office, logistics or a manager can. Ask them, or create it separately.`,
+              `No puedes juntarlas: tu rol no puede cambiar esa orden mientras está en ${stageLabel(preguntaJuntar.con.stage, lang)}. Oficina, logística o un gerente sí. Pídeselo, o créala aparte.`,
+            )}</p>
+          )}
+          <div className="modal-actions">
+            <button type="button" className="btn btn-ghost" onClick={() => responderJuntar("cancelar")}>{t("Cancel", "Cancelar")}</button>
+            <button type="button" className="btn" data-crear-duplicada onClick={() => responderJuntar("duplicar")}>{t("Create duplicate (another trip)", "Crear duplicada (otro viaje)")}</button>
+            {preguntaJuntar.puede && (
+              <button type="button" className="btn btn-primary" data-juntar autoFocus onClick={() => responderJuntar("juntar")}>
+                {t(`Join with #${orderLabel(preguntaJuntar.con)} (one trip)`, `Juntar con #${orderLabel(preguntaJuntar.con)} (un viaje)`)}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     )}
 
     {/* CONFIRM-PALLETS POPUP — opens after pressing "Mark ready". The only way

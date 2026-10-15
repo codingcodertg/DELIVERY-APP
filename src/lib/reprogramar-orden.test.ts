@@ -13,8 +13,11 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
       expect(puedeReprogramar(rol, "delivered")).toBe(false);
       expect(puedeReprogramar(rol, "canceled")).toBe(false);
     }
+    // Nota D-549: ventas reprograma SU orden (tercer argumento, `esSuya`); sin decir que es suya, sigue en no.
     expect(puedeReprogramar("sales", "approved")).toBe(false);
+    expect(puedeReprogramar("sales", "approved", true)).toBe(true);
     expect(puedeReprogramar("driver", "ready")).toBe(false);
+    expect(puedeReprogramar("driver", "ready", true)).toBe(false);
     expect(puedeReprogramar("logistics", null)).toBe(false);
   });
   // D-534 · «warehouse as an option to rescheduled and or change delivery dates» (el dueño, 2026-10-12).
@@ -30,7 +33,9 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     const wh = readFileSync("src/app/(app)/warehouse/page.tsx", "utf8").split("\r\n").join("\n");
     expect(wh).toContain('import { ReprogramarOrden } from "@/components/ReprogramarOrden";');
     expect(wh).toContain("const reprogramar = (d: Delivery) => puedeReprogramar(me?.role, d.stage)");
-    expect(wh).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} updateDelivery={updateDelivery} addNote={addNote} notify={notify} />");
+    // Nota D-549: el cuadro ya no recibe `updateDelivery`/`addNote` sino `reprogramarOrden` (la función de la base 173, con
+    // el camino de antes como respaldo).
+    expect(wh).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />");
     expect(wh.split("accionDeFila={reprogramar}").length - 1).toBe(1);
     expect(wh).toContain("const repro = reprogramar(d);");
     expect(wh).toContain("<td onClick={(e) => e.stopPropagation()}>{reprogramar(d)}</td>");

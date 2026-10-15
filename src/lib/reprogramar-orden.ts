@@ -4,6 +4,10 @@
  *
  * Un toque en la fila: se elige la fecha nueva y se escribe por qué, y se guarda la fecha y la nota en el historial de la
  * orden. Lo de aquí es la regla, sin pantalla: quién puede, qué fecha se propone y qué se escribe.
+ *
+ * D-549 (2026-10-14): también en la ficha de la orden, arriba a la derecha, y también para ventas en SU orden. Se guarda
+ * por la función de la base `reprogramar_orden` (migración 173), que cambia SOLO la fecha y escribe la nota; sin ella,
+ * como antes.
  */
 import { shiftDateISO } from "./utils";
 
@@ -16,13 +20,45 @@ import { shiftDateISO } from "./utils";
  * `approved`, `fulfilling` y `ready` —lo que tiene en su cola—, que es donde el guard le deja escribir en la misma etapa
  * (169, rama de almacén). Ni el borrador ni la pendiente, que no ve; ni la que ya va en el camión.
  */
-export function puedeReprogramar(rol: string | null | undefined, etapa: string | null | undefined): boolean {
+export function puedeReprogramar(rol: string | null | undefined, etapa: string | null | undefined, esSuya = false): boolean {
   const abiertas = ["draft", "pending", "approved", "fulfilling", "ready"];
   if (!etapa || etapa === "delivered" || etapa === "canceled") return false;
   if (rol === "admin") return [...abiertas, "picked_up", "rejected"].includes(etapa);
   if (rol === "logistics" || rol === "manager" || rol === "accounting") return abiertas.includes(etapa);
   if (rol === "warehouse") return ETAPAS_QUE_REPROGRAMA_ALMACEN.includes(etapa);
+  // D-549: ventas, SOLO su orden (`esMia`, la misma dueñez que decide si la abre, D-544) y en las etapas abiertas. El
+  // chofer no: decisión del orquestador mientras el dueño no diga otra cosa («everybody» se leyó como «todo el que gestiona
+  // órdenes»; el chofer no decide fechas).
+  if (rol === "sales") return esSuya && ETAPAS_QUE_REPROGRAMA_VENTAS.includes(etapa);
   return false;
+}
+
+/**
+ * Las etapas en las que ventas reprograma SU orden (D-549; el dueño, 2026-10-14: «all sales people well everybody has the
+ * iption to reprogramar»). Desde `approved` el guard de la base le rechaza la fecha (medido en producción el 2026-10-14:
+ * «You cannot edit an order in the approved stage»), así que se guarda por la función `reprogramar_orden` (173).
+ */
+export const ETAPAS_QUE_REPROGRAMA_VENTAS: readonly string[] = ["draft", "pending", "approved", "fulfilling", "ready"];
+
+/**
+ * Qué hacer con la respuesta de `rpc("reprogramar_orden")` (D-549, migración 173):
+ * - `guardada`: la base cambió la fecha y escribió la nota.
+ * - `respaldo`: la función todavía no existe (las migraciones se aplican después de fusionar): se guarda como antes, con
+ *   `updateDelivery` + `addNote`. A ventas en `approved` en adelante el guard se lo rechazará, igual que hoy.
+ * - `error`: la base dijo que no (permiso, fecha, nota): se enseña su mensaje y no se intenta otro camino.
+ *
+ * «No existe» es el mismo criterio que `esFuncionAusente` (`cargas-partidas.ts`), escrito aquí y no importado porque aquel
+ * fichero arrastra el motor de rutas a la ficha; una prueba compara los dos.
+ */
+export function caminoTrasReprogramar(error: { code?: string | null; message?: string | null } | null | undefined): "guardada" | "respaldo" | "error" {
+  if (!error) return "guardada";
+  if (error.code === "PGRST202" || error.code === "42883" || /could not find the function|function .* does not exist/i.test(error.message ?? "")) return "respaldo";
+  return "error";
+}
+
+/** Los argumentos de `reprogramar_orden`: la nota va CRUDA (la base la limpia y compone el texto del historial). */
+export function argumentosDeReprogramar(id: string, fecha: string, nota: string, lang: "en" | "es") {
+  return { p_id: id, p_fecha: fecha, p_nota: nota, p_lang: lang };
 }
 
 /** Las etapas de su cola en las que almacén reprograma (D-534). */
