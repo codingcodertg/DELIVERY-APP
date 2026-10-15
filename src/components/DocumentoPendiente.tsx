@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useJuntarExistente } from "@/components/PreguntaJuntarExistente";
 import { useConfirm } from "@/lib/confirm";
 import { useData } from "@/lib/data-provider";
 import { camposCapturablesEnFila, documentosPendientes, etiquetaDePendiente, otraConLaMismaFactura, valorDeDocumento } from "@/lib/documento-pendiente";
@@ -39,6 +40,8 @@ function UnDocumentoPendiente({ d, doc, capturable }: { d: Delivery; doc: Docume
   const [abierto, setAbierto] = useState(false);
   const [escrito, setEscrito] = useState("");
   const [guardando, setGuardando] = useState(false);
+  // «Juntar en #X» (D-NEXT): antes de los `return` de abajo, que un hook no se llama a veces sí y a veces no.
+  const juntar = useJuntarExistente();
 
   const etiqueta = etiquetaDePendiente(doc, lang);
   const campo = doc.campo;
@@ -58,8 +61,15 @@ function UnDocumentoPendiente({ d, doc, capturable }: { d: Delivery; doc: Docume
   const guardar = async () => {
     const valor = valorDeDocumento(escrito);
     if (!valor || guardando) return;
+    // Nota D-NEXT: una Intertienda que recibe la factura de otra Intertienda abierta pregunta «Juntar en #X» / «Dejarla
+    // aparte» / Cancelar. «Dejarla aparte» ya es la respuesta al aviso de abajo: no se repite.
+    setGuardando(true);
+    const salida = campo === "invoice_num" ? await juntar.intentar(d, { invoice_num: valor }, valor) : { r: "seguir" as const, decidida: false };
+    setGuardando(false);
+    if (salida.r === "hecho") { cerrar(); return; }
+    if (salida.r === "parar") return;
     // Se avisa, no se bloquea: una factura repartida en varias entregas existe. Como en la ficha.
-    const otra = campo === "invoice_num" ? otraConLaMismaFactura(d.id, valor, deliveries) : undefined;
+    const otra = campo === "invoice_num" && !salida.decidida ? otraConLaMismaFactura(d.id, valor, deliveries) : undefined;
     if (otra && !(await confirmAction(t(
       `⚠ Duplicate invoice: order #${orderLabel(otra)} already uses invoice #${otra.invoice_num}. Save anyway?`,
       `⚠ Factura duplicada: la orden #${orderLabel(otra)} ya usa la factura #${otra.invoice_num}. ¿Guardar de todos modos?`,
@@ -72,6 +82,7 @@ function UnDocumentoPendiente({ d, doc, capturable }: { d: Delivery; doc: Docume
 
   return (
     <span className="doc-pend-form" onClick={(e) => e.stopPropagation()}>
+      {juntar.dialogo}
       <input
         autoFocus
         value={escrito}
