@@ -89,6 +89,8 @@ export interface CotizacionResumen {
   sf: number;
   /** El total estimado de materiales, con impuesto: el mismo que ve el vendedor bajo la hoja (D-442). */
   total: number;
+  /** Cuántas líneas llevan la marca «Price Match» (D-555, `lineasConPriceMatch`). 0 en las viejas: sin la clave = sin marcar. */
+  price_match_lines: number;
   print_count: number;
   printed_at: string | null;
   created_at: string;
@@ -287,7 +289,7 @@ export function atajoEncendido(r: Pick<RangoDeFechas, "desde" | "hasta" | "modo"
 
 // ---- las columnas, con el menú de ordenar y filtrar de las tablas de la casa (D-275 / D-360) -------------------------
 
-export type ClaveDeColumna = "fecha" | "estimado" | "vendedor" | "tienda" | "cliente" | "sf" | "total" | "estado";
+export type ClaveDeColumna = "fecha" | "estimado" | "vendedor" | "tienda" | "cliente" | "sf" | "total" | "price_match" | "estado";
 
 export const COLUMNAS_DE_LA_TABLA: readonly { key: ClaveDeColumna; en: string; es: string }[] = [
   { key: "fecha", en: "Date", es: "Fecha" },
@@ -297,6 +299,8 @@ export const COLUMNAS_DE_LA_TABLA: readonly { key: ClaveDeColumna; en: string; e
   { key: "cliente", en: "Customer", es: "Cliente" },
   { key: "sf", en: "SF", es: "Pies²" },
   { key: "total", en: "Total", es: "Total" },
+  // D-555: la marca interna «Price Match» de las líneas. Se filtra con el menú de la columna, como Vendedor o Tienda.
+  { key: "price_match", en: "Price Match", es: "Price Match" },
   { key: "estado", en: "Status", es: "Estado" },
 ];
 
@@ -330,9 +334,25 @@ export function valorDeColumna(clave: string, c: CotizacionResumen, t: (en: stri
     case "cliente": return c.customer_name || null;
     case "sf": return c.sf;
     case "total": return c.total;
+    case "price_match": return textoDePriceMatch(c);
     case "estado": return textoDeEstado(c, t);
     default: return null;
   }
+}
+
+/**
+ * Lo que filtra la columna «Price Match» (D-555): «Price Match» si alguna línea lleva la marca, y null si ninguna. El menú
+ * de la columna ofrece entonces solo «Price Match» y «—»: es el filtro «con / sin Price Match». Cuántas líneas son va en
+ * la celda (`celdaDePriceMatch`), no aquí: con «×2» en el valor, el menú partiría las marcadas en varias opciones.
+ */
+export function textoDePriceMatch(c: Pick<CotizacionResumen, "price_match_lines">): string | null {
+  return c.price_match_lines > 0 ? "Price Match" : null;
+}
+
+/** Lo que se pinta en la celda: «Price Match», «Price Match ×2» si son varias líneas, o null (la celda queda vacía). */
+export function celdaDePriceMatch(c: Pick<CotizacionResumen, "price_match_lines">): string | null {
+  const base = textoDePriceMatch(c);
+  return base && c.price_match_lines > 1 ? `${base} ×${c.price_match_lines}` : base;
 }
 
 /** La fecha y hora que se pinta en la celda (la columna filtra por el día). */

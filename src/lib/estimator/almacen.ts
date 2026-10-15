@@ -8,6 +8,7 @@ import {
   aplicaAlcance, aplicaFiltro, cortaTanda, piesCuadradosPedidos, rangoDeTanda,
   type AlcanceDeLista, type Consulta, type CotizacionResumen, type FiltroDeCotizaciones,
 } from "./lista-admin";
+import { lineasConPriceMatch, marcaDeFila } from "./price-match";
 
 /**
  * Dónde se guardan las cotizaciones: `public.estimator_quotes` y `public.estimator_approvals`
@@ -118,6 +119,8 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
       internal_description: texto(l.internal_description),
       customer_category: texto(l.customer_category),
       customer_note: texto(l.customer_note),
+      // «Price Match» (D-555): en el mismo `jsonb`; una línea vieja o sin marcar no trae las claves y sale sin marca.
+      ...marcaDeFila(l),
     };
     if (l.kind === "unit") {
       return {
@@ -167,6 +170,7 @@ export function resumenDeFila(fila: Record<string, unknown>): CotizacionResumen 
     customer_name: borrador.customer.full_name.trim(),
     sf: piesCuadradosPedidos(borrador.lines),
     total: resumenDeTotales(borrador.lines).total,
+    price_match_lines: lineasConPriceMatch(borrador.lines),
     print_count: num(fila.print_count) ?? 0,
     printed_at: typeof fila.printed_at === "string" ? fila.printed_at : null,
     created_at: typeof fila.created_at === "string" ? fila.created_at : "",

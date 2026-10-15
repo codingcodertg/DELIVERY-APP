@@ -7,6 +7,7 @@ import {
 } from "./competencia";
 import { filaDeLectura, normalizaLectura, type AlmacenDeLecturas, type LecturaGuardada } from "./lectura";
 import { piesCuadradosPedidos, tandaEnMemoria, type CotizacionResumen } from "./lista-admin";
+import { lineasConPriceMatch } from "./price-match";
 import { resumenDeTotales } from "./modelo";
 
 /**
@@ -78,6 +79,7 @@ function resumenDemo(q: FilaDemo): CotizacionResumen {
   return {
     id: q.id, estimate_num: q.draft.estimate_num, owner_id: q.owner_id, owner_name: q.owner_name, store: q.store,
     customer_name: q.draft.customer.full_name.trim(), sf: piesCuadradosPedidos(q.draft.lines), total: resumenDeTotales(q.draft.lines).total,
+    price_match_lines: lineasConPriceMatch(q.draft.lines),
     print_count: q.print_count, printed_at: q.printed_at, created_at: q.created_at, updated_at: q.created_at,
   };
 }

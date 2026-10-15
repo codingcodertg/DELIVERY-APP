@@ -11,6 +11,7 @@ import {
 import {
   competidoresUsados, empresaDe, totalDe, type AlmacenDeLecturas, type LecturaGuardada, type LineaPropia,
 } from "@/lib/estimator/lectura";
+import { competidoresAdjuntos } from "@/lib/estimator/price-match";
 import { AvisoSin161, LISTA_DE_COMPETIDORES, ListaDeCompetidores, ProductosDeCompetencia } from "./ProductosCompetencia";
 
 type T = (en: string, es: string) => string;
@@ -140,7 +141,7 @@ type Pendiente = { clave: string; file: File; meta: MetaDeCompetencia };
  * del cliente (`HojaCliente` solo recibe `HojaDelCliente`) y al imprimir queda escondido con todo lo
  * demás. Va pegado a la cotización guardada: sin `quoteId` no hay carpeta, y lo dice.
  */
-export function SeccionCompetencia({ almacen, lecturas: almacenLecturas, propias, quoteId, me, baseCotizaciones, guardarCotizacion, t, lang }: {
+export function SeccionCompetencia({ almacen, lecturas: almacenLecturas, propias, quoteId, me, baseCotizaciones, guardarCotizacion, onCompetidores, t, lang }: {
   almacen: AlmacenDeCompetencia; quoteId: string | null; me: Yo; baseCotizaciones: boolean | null; t: T; lang: string;
   /** Dónde viven los productos leídos (161) y quién lee (D-466). */
   lecturas: AlmacenDeLecturas;
@@ -148,6 +149,8 @@ export function SeccionCompetencia({ almacen, lecturas: almacenLecturas, propias
   propias: LineaPropia[];
   /** Sin cotización guardada no hay dónde pegar el archivo: en vez de solo decirlo, se ofrece guardarla desde aquí. */
   guardarCotizacion?: { puede: boolean; hacer: () => void };
+  /** D-555: los competidores de los estimados pegados a ESTA cotización, para la marca «Price Match» de las líneas. */
+  onCompetidores?: (nombres: string[]) => void;
 }) {
   /** null = aún no se sabe; false = falta la 161 (los productos, apagados; los archivos siguen). */
   const [base161, setBase161] = useState<boolean | null>(null);
@@ -189,6 +192,8 @@ export function SeccionCompetencia({ almacen, lecturas: almacenLecturas, propias
     if (r.sinTabla) { setBaseArchivos(false); return; }
     setError(`${t("Could not read the files", "No se pudieron leer los archivos")}: ${r.error}`);
   }, [almacen, almacenLecturas, quoteId, t]);
+  // D-555: avisa al Quote Builder de qué competidores tiene esta cotización (los ofrece en «Price Match»).
+  useEffect(() => { onCompetidores?.(competidoresAdjuntos(archivos, lecturas)); }, [archivos, lecturas, onCompetidores]);
   // Otra cotización: lo elegido para la anterior no se cuela en esta.
   useEffect(() => { setPendientes([]); setConfirmando(null); setAbierto(null); }, [quoteId]);
   // Las empresas ya usadas en otros estimados. Sin la 156 no se pueden listar: la lista queda con las de aquí.

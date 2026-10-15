@@ -6,11 +6,12 @@ import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import type { AlmacenDeCotizaciones } from "@/lib/estimator/almacen";
 import { filtraEstimados, masNuevoPrimero, type AlmacenDeCompetencia, type EstimadoDeCompetencia } from "@/lib/estimator/competencia";
 import {
-  ORDEN_INICIAL, TANDA, alcanceDeLista, atajoEncendido, columnasDeLaLista, fechaDeCelda, filtraCompetenciaComoLaTabla, filtroVacio,
+  ORDEN_INICIAL, TANDA, alcanceDeLista, atajoEncendido, celdaDePriceMatch, columnasDeLaLista, fechaDeCelda, filtraCompetenciaComoLaTabla, filtroVacio,
   pasoDeRango, rangoAcotado, rangoDeAtajo, subidoPorDelAlcance, textoDeEstado, valorDeColumna,
   type AtajoDeRango, type CotizacionResumen, type FiltroDeCotizaciones, type RangoDeFechas,
 } from "@/lib/estimator/lista-admin";
 import { dinero, numero } from "@/lib/estimator/modelo";
+import { cotizacionesConPriceMatch } from "@/lib/estimator/price-match";
 import { todayISO } from "@/lib/utils";
 import { AvisoSin156, ListaDeEstimados } from "./EstimadosCompetencia";
 
@@ -171,6 +172,12 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
         <h2 data-todas-titulo={todas ? "todas" : "mias"}>
           📚 {todas ? t("All quotes", "Todas las cotizaciones") : t("My quotes", "Mis cotizaciones")}{" "}
           <span className="hint">({orden.visibles.length}{hayMas ? "+" : ""})</span>
+          {/* D-555: cuántas de las visibles llevan alguna línea con «Price Match». El filtro es el menú de su columna. */}
+          {cotizacionesConPriceMatch(orden.visibles) > 0 && (
+            <span className="est-pm" data-todas-price-match style={{ marginLeft: 8 }}>
+              {cotizacionesConPriceMatch(orden.visibles)} {t("with Price Match", "con Price Match")}
+            </span>
+          )}
         </h2>
         <p className="hint" style={{ marginTop: 0 }}>
           {todas
@@ -219,6 +226,7 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
                         <td data-cotizacion-cliente>{c.customer_name || "—"}</td>
                         <td style={{ textAlign: "right" }} data-cotizacion-sf>{c.sf > 0 ? numero(c.sf, 2) : "—"}</td>
                         <td style={{ textAlign: "right" }} data-cotizacion-total>{dinero(c.total)}</td>
+                        <td data-cotizacion-price-match>{celdaDePriceMatch(c) && <span className="est-pm">🏷️ {celdaDePriceMatch(c)}</span>}</td>
                         <td data-cotizacion-estado>{textoDeEstado(c, t)}</td>
                         <td>
                           <button type="button" className="btn btn-ghost btn-sm" data-cotizacion-abrir onClick={(e) => { e.stopPropagation(); onAbrir(c.id); }}>

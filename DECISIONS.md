@@ -44039,3 +44039,64 @@ para el admin real **Mis solicitudes de ayuda** (su casilla de Help Requests abr
   candados donde tocan, y `scrollWidth` igual al ancho de la ventana en los seis casos (sin desplazamiento horizontal).
 - **No verificado:** la página entera con sesión (el saludo, los enlaces de arriba y «Apps para instalar» alrededor del
   mapa), el `next build`, y cómo queda en la app de escritorio y en el APK.
+
+## D-555 · Quote Builder: la marca «Price Match» en el precio de una línea, interna (en el Quote Builder y en las listas, con columna para filtrar), nunca en la hoja del cliente
+
+**Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca solo `src/app/estimator` y `src/lib/estimator`) ·
+**Migración:** ninguna — dos claves opcionales en el `jsonb` `lines` de `estimator_quotes` (148), como el precio más bajo de
+D-442 · Rama `cotizador-price-match`.
+
+### Qué pidió el dueño
+
+> «Quote builder should allow you to tag "Price Match" to a price so its known that competitors are giving low»
+
+### Qué hay ahora
+
+- **En cada línea**, junto a «Línea N», una casilla **«🏷️ Price Match»**. Marcada, debajo de los totales de la línea sale
+  la etiqueta («Price Match» o «Price Match · vs Floor & Decor») y un campo **«Competidor (opcional)»**, con la lista de los
+  competidores de los estimados pegados a esa cotización (D-425; el de la lectura si se leyó, D-466). Si la cotización
+  tiene **un solo** competidor adjunto, marcar lo rellena; con dos o más no se adivina. Al lado, «Interno: no sale en la
+  hoja del cliente».
+- **Se guarda** en la línea: `price_match: true` y, si se escribió, `price_match_competitor` (texto, tope 120 como la
+  empresa del estimado de la competencia). **Desmarcar quita las dos claves** (no deja `false`), así que una cotización
+  vieja y una sin marcar son el mismo `jsonb`, y «sin la clave» se lee como «sin marcar». Solo el booleano `true` cuenta.
+- **En las listas** («Todas las cotizaciones» del admin y «Mis cotizaciones», D-476/D-484): una columna **«Price Match»**
+  entre Total y Estado con el distintivo («Price Match», o «×2» si son varias líneas), filtrable con el menú de columna de
+  la casa (D-275/D-360): el menú ofrece «Price Match» y «—», que es el filtro con/sin. Junto al título, **«N con Price
+  Match»** (cotizaciones visibles con alguna línea marcada). El resumen de cada fila cuenta sus líneas marcadas
+  (`price_match_lines`) desde el mismo `jsonb` que ya leía la lista: no cambia la consulta.
+- **La hoja del cliente no la lleva**: `hojaDelCliente` arma cada fila campo por campo y no lee las claves; la marca no
+  cambia ningún número (total, ahorro, impuesto).
+- Las piezas que deciden, en `src/lib/estimator/price-match.ts`: `tienePriceMatch`, `marcaDeFila`, `alternarPriceMatch`,
+  `ponCompetidor`, `etiquetaPriceMatch`, `lineasConPriceMatch`, `cotizacionesConPriceMatch`, `competidoresAdjuntos`; en
+  `lista-admin.ts`, `textoDePriceMatch` (lo que filtra) y `celdaDePriceMatch` (lo que se pinta).
+
+### Decisiones mías, para validar
+
+1. **Interna, no en la hoja del cliente.** Es lo que se pidió («so its known»: lo sabe la casa) y es como el estimado de la
+   competencia (D-425). **Pregunta abierta para el dueño:** ¿quiere que el cliente vea algo («Price matched») en la hoja?
+   Hoy no.
+2. **La marca no exige un precio con descuento** ni aprobación: es una etiqueta, no cambia el cálculo. Un vendedor puede
+   marcar un precio regular que ya bajó a mano. Si quiere que «Price Match» pida aprobación del gerente (como «Igualar
+   precio» de la tarifa de entrega, D-442/D-303 — que es otra cosa: el cargo de entrega, no el producto), es otra decisión.
+3. **El competidor es texto libre**, no un enlace al archivo de la competencia: un estimado puede no estar subido todavía,
+   y el texto sobrevive aunque se quite el archivo.
+4. **El filtro es de columna, sobre lo cargado** (como Vendedor y Tienda), no va a la base: con tandas de 50 y pocas
+   cotizaciones hoy, basta. Si la lista crece, el mismo filtro puede ir a PostgREST con `lines=cs.[{"price_match":true}]`.
+5. Al teclear el competidor no se recorta (se comería el espacio de «Floor & Decor», como el punto de D-420); se recorta
+   al leer y al pintar.
+
+### Verificado
+
+- `npx vitest run src/lib/estimator`: 402 pruebas del módulo en verde; nuevas en `price-match.test.ts` (fila vieja sin
+  marca; `"true"`/`1` no cuentan; ida y vuelta por `filaDeBorrador`/`borradorDeFila`; tope 120; marcar con uno/dos/ningún
+  adjunto; el competidor previo manda; desmarcar quita las claves; escribir conserva espacios; la hoja idéntica con y sin
+  marca y su HTML sin «Price Match» ni el competidor; el resumen cuenta líneas; columna y celda; la cabecera cuenta
+  cotizaciones). Actualizadas con «Nota D-555» `lista-admin.test.ts` y `mis-cotizaciones.test.ts` (la columna nueva y
+  `price_match_lines` en el resumen de prueba).
+- **Mutantes: 12 de 12 caen con una prueba con nombre** (`tanda-price-match.json`): cualquier verdadero cuenta como marca;
+  `borradorDeFila` sin leer la marca; desmarcar deja el competidor; con dos adjuntos se adivina el primero; el adjunto pisa
+  al competidor previo; recortar en cada tecla; la columna con «×N» en el valor; la cabecera cuenta líneas; el resumen sin
+  contar; la hoja imprime la marca; los adjuntos sin la lectura; sin tope de 120.
+- `npx tsc --noEmit` limpio tras la última edición.
+- **No verificado:** en navegador (la casilla, la lista de competidores al teclear, la columna y su menú), y el `next build`.
