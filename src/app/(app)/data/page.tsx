@@ -192,7 +192,7 @@ function AccountsEditor({
         <button className="btn btn-ghost" onClick={add}>+ {t("Add account", "Agregar cuenta")}</button>
         <button className="btn btn-primary" onClick={commit} disabled={!dirty}>{t("Save changes", "Guardar cambios")}</button>
         {dirty && <button className="btn btn-ghost btn-sm" onClick={reset}>{t("Discard", "Descartar")}</button>}
-        {dirty && <span className="hint">{t("Unsaved changes", "Cambios sin guardar")}</span>}
+        {dirty && <span className="hint" data-unsaved>{t("Unsaved changes", "Cambios sin guardar")}</span>}
       </div>
     </div>
   );
@@ -310,7 +310,7 @@ function CancelReasonsEditor({
         <button className="btn btn-ghost" onClick={add}>+ {t("Add reason", "Agregar motivo")}</button>
         <button className="btn btn-primary" onClick={commit} disabled={!dirty}>{t("Save changes", "Guardar cambios")}</button>
         {dirty && <button className="btn btn-ghost btn-sm" onClick={reset}>{t("Discard", "Descartar")}</button>}
-        {dirty && <span className="hint">{t("Unsaved changes", "Cambios sin guardar")}</span>}
+        {dirty && <span className="hint" data-unsaved>{t("Unsaved changes", "Cambios sin guardar")}</span>}
       </div>
     </div>
   );
@@ -418,7 +418,7 @@ function OrderTypesRulesEditor({
         <button className="btn btn-ghost" onClick={add}>+ {t("Add type", "Agregar tipo")}</button>
         <button className="btn btn-primary" onClick={commit} disabled={!dirty}>{t("Save changes", "Guardar cambios")}</button>
         {dirty && <button className="btn btn-ghost btn-sm" onClick={reset}>{t("Discard", "Descartar")}</button>}
-        {dirty && <span className="hint">{t("Unsaved changes", "Cambios sin guardar")}</span>}
+        {dirty && <span className="hint" data-unsaved>{t("Unsaved changes", "Cambios sin guardar")}</span>}
       </div>
     </div>
   );

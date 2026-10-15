@@ -821,6 +821,12 @@ APK. El Java ya compila (`compileDebugJavaWithJavac`, BUILD SUCCESSFUL).
 
 ## D-029 · La foto se pide donde se puede tomar, y la app se actualiza sola
 
+> **⚠ Reemplazada en parte por D-563** (2026-10-15): la parte (c), *cuándo* se refresca sola. Ya no recarga la
+> primera vez que la app vuelve a primer plano: enseña el aviso «Hay una versión nueva — Actualizar» y recarga sola
+> tras un retraso aleatorio de 0–5 min, en la próxima navegación o al volver de oculta, y con un respaldo si la
+> página sigue abierta sin tocar. Lo que esta entrada protegía —nadie se queda en la versión vieja, y nunca con algo
+> a medias en pantalla— sigue en pie. La foto en la hoja (a) y la regla apagada (b) no cambian.
+
 **Fecha:** 2026-08-14 · **Versión:** v1.3.4 · **Pedido por:** Andrés
 
 **Cambio:** (a) la hoja de entrega ahora lleva la **cámara adentro**; (b) se
@@ -3757,6 +3763,11 @@ necesita el mismo ajuste, no solo `fromRange()`.
 ---
 
 ## D-087 · El versionado deja de ser global — una versión por app
+
+> **⚠ Reemplazada en parte por D-563** (2026-10-15): una versión por app sigue igual. Cambia lo que provoca subirla:
+> ya no es un refresco al volver a la app, sino un aviso y una recarga escalonada (0–5 min de retraso aleatorio, en la
+> próxima navegación o al volver de oculta). «Un refresh de más es leve» sigue siendo cierto, y ahora además no llega
+> a la vez a todos los clientes.
 **Fecha:** 2026-08-21 · **Versión:** v1.21.2 (deliveries) · v0.1.0
 (recruiting, timetracker — primera vez) · **Pedido por:** Andrés
 
@@ -44531,3 +44542,31 @@ logística y admin ven y actualizan todas; **sin DELETE**. Checksum `86ae9176475
 **Pruebas:** `columnas-de-la-lista.test.ts` (sin fotos y con conteo; igual a las columnas de las migraciones; data-provider no vuelve a `select("*")`), `fotos-de-la-orden.test.ts` (lectura de una fila; autores leídos de la base; la ficha no lee las fotos de la fila y no escribe sin cargarlas), `attention.test.ts` y `analytics.test.ts` (fila sin `photos` con `photo_count`). Mutantes 4 de 4, cada uno cae con su prueba por nombre: la lista vuelve a pedir `*`; la ficha toma las fotos de la fila; el update firma con el `photo_meta` de la lista; `attention` vuelve a `d.photos`.
 
 **No verificado:** la 177 contra la base (rama sin acceso); que `set local session_replication_role` lo permita el rol que aplica en Supabase (si no, la migración falla entera dentro de su transacción y no deja nada a medias); el gancho de la ficha en un navegador.
+
+---
+
+## D-563 · Una versión nueva ya no recarga a todos a la vez: aviso, retraso aleatorio y recarga en un momento seguro
+
+**Fecha:** 2026-10-15 · **Versión:** la pone el orquestador al fusionar (código compartido: `AppUpdateBanner` lo montan deliveries, `home`, recruiting y timetracker, así que las tres) · Sin migración · Reemplaza en parte a D-029 (cuándo se refresca sola) y a D-087 (qué provoca subir una versión).
+
+**Pedido del dueño**, literal (vía el orquestador, el mismo día): *«y porque obliga eso nooo solo que se descargue lo neesario que se ocupa para ese momento»*, y al proponerle este cambio: *«si hazlo así»*.
+
+**Qué fallaba, medido el 2026-10-15 (por el orquestador, no en esta rama).** Cada publicación sube `APP_VERSIONS`; cada página abierta lo detectaba en sus siguientes 5 min de sondeo o al recibir el foco, y recargaba **la primera vez que volvía a primer plano** — y `focus` salta cada vez que alguien hace clic de vuelta en el navegador, así que en la oficina eso era casi en el acto. Cada recarga baja la lista entera de órdenes (6,4 MB ese día). Con todos los clientes recargando en la misma ventana, la API de Supabase se saturó (`auth/health` 25–30 s) y Vercel respondió 504 `MIDDLEWARE_INVOCATION_TIMEOUT`.
+
+**Qué cambia** (`src/lib/app-update.ts`, `src/components/AppUpdateBanner.tsx`):
+
+1. **Al detectar versión nueva no se recarga.** Sale el aviso «Hay una versión nueva — Actualizar» / «A new version is available — Update» (más fino que antes); el botón recarga en el acto, es decisión de la persona.
+2. **La recarga automática espera un retraso aleatorio** de 0 a 5 min desde que *esa* página lo notó (`pickSoftReloadJitter`, `SOFT_RELOAD_JITTER_MAX_MS`). Sumado a que el sondeo ya está repartido en 5 min, los clientes llegan escalonados en vez de en el mismo segundo.
+3. **Y solo en un momento que ya es un cambio de página para la persona:** una navegación de ruta (cambia el `pathname`) o la pestaña que vuelve de **oculta** a visible. El `focus` de la ventana ya **no** dispara la recarga (sigue disparando la consulta de versión, que son dos campos).
+4. **Nunca con algo a medias:** la misma guarda de D-029, `safeToReload` (un `.overlay` abierto —el modal de orden, la hoja de entrega, los modales de recruiting— o un campo con el foco), más una señal nueva: `[data-unsaved]`. El repo no tenía una señal global de «cambios sin guardar»; había `beforeunload` solo en la entrevista de recruiting (que vive en un `.overlay`, ya cubierta) y el aviso «Cambios sin guardar» de Ajustes → Datos, que estaba fuera de cualquier modal. A esos tres avisos se les puso `data-unsaved`, y cualquier formulario futuro que lo ponga queda protegido.
+5. **Nadie se queda indefinidamente en la vieja** (lo que protegían D-029 y D-087): una página que sigue visible y sin navegar recarga sola cuando lleva **60 min** desactualizada (después del retraso) **y** nadie la ha tocado en **2 min** (`SOFT_RELOAD_FALLBACK_MS`, `SOFT_RELOAD_IDLE_MS`), comprobado cada minuto.
+6. **Sin bucle:** antes era «un intento por vida de la página» (`reloadedRef`), que se perdía con la propia recarga. Ahora se apunta en `sessionStorage` (`rdz.soft-reload`) la versión hacia la que se recargó; si la página vuelve y sigue viéndose vieja para esa misma versión, no recarga otra vez sola (queda el botón). Un despliegue posterior es otra versión y tiene su intento.
+7. El evento `rtg:before-reload` de D-195 se emite igual antes de cualquier recarga del aviso — ahora también la del botón, que antes no lo emitía.
+
+La regla entera es una función pura, `shouldSoftReload({ stale, trigger, hidden, unsaved, alreadyTried, now, detectedAt, jitterMs, lastInputAt })`; el componente solo la alimenta.
+
+**Qué se descartó.** Recargar en el acto con retraso aleatorio pero sin esperar a un momento seguro: escalona la carga pero sigue sacando a la persona de lo que está haciendo. Y quitar la recarga automática del todo: dejaría las pestañas abiertas desde la mañana con el código viejo, que es justo lo que D-029 arregló.
+
+**Qué no se toca, y por qué.** (a) **No hay mecanismo de «versión mínima obligatoria»** en el repo (`/api/version` devuelve solo `versions` y `apk`), así que no se inventó. (b) La recarga de `ErrorBoundary` ante un *chunk* viejo (D-155) sigue siendo inmediata: no es un refresco por versión, es la recuperación de una pantalla que ya reventó, y retrasarla dejaría la tarjeta de error a la vista. Puede sumar recargas tras un despliegue (quien navega a una ruta cuyo *chunk* ya no existe), queda anotado. (c) **Lo que baja cada recarga** —la lista entera de órdenes— vive en `src/lib/data-provider.tsx`, que otra rama está cambiando (D-562, fusionada mientras esta se escribía, ya deja de bajar las fotos en la lista); la segunda mitad del pedido («solo que se descargue lo necesario») es de esa línea de trabajo. Este cambio reparte las recargas, no las aligera. (d) El aviso del APK no cambia.
+
+**Pruebas:** `src/lib/app-update.test.ts` — `shouldSoftReload` (11: no recarga hasta que pasa el retraso; navegación y visible sí; nunca sin estar vieja, con algo a medias, oculta o ya intentada; el respaldo de 60 min, que espera a que nadie toque y respeta lo sin guardar), `pickSoftReloadJitter` (rango y fuente rota), `safeToReload` con `[data-unsaved]`, y tres que leen el fuente del aviso para fijar qué le pasa a la regla (estado real y no constantes; la navegación dispara y el `focus` no; una sola recarga, detrás de la respuesta). Mutantes 19 de 19, cada uno cae con su prueba por nombre (`~/.claude/herramientas/mutantes/tanda-refresco-suave.json`).

@@ -82,6 +82,88 @@ export function webUpdateAvailable(running: string, served: string | null | unde
 export function safeToReload(doc: Pick<Document, "querySelector"> | null | undefined): boolean {
   if (!doc) return false;
   if (doc.querySelector(".overlay")) return false;          // any modal or sheet
+  // D-563: a form outside a modal that holds edits it hasn't saved marks itself with
+  // `data-unsaved` (Ajustes → Datos is the one today). Without it, a reload while the
+  // field isn't focused would drop those edits without a word.
+  if (doc.querySelector("[data-unsaved]")) return false;
   const el = doc.querySelector("input:focus, textarea:focus, select:focus");
   return !el;
+}
+
+// ---- Soft refresh (D-563) ----------------------------------------------------
+//
+// Until D-563 a stale page reloaded itself the first time it came back to the
+// foreground (focus OR visibilitychange). On 2026-10-15 that was measured to be a
+// stampede: every deploy bumps APP_VERSION, every open client noticed within the
+// same few minutes and reloaded, and every reload downloads the whole orders list
+// (6.4 MB that day). Supabase's API saturated (auth/health 25–30 s) and Vercel
+// answered 504 MIDDLEWARE_INVOCATION_TIMEOUT.
+//
+// Now: the banner shows at once (with its button), and the automatic reload waits
+// for (1) a random delay of up to SOFT_RELOAD_JITTER_MAX_MS since this page noticed,
+// so clients spread out instead of arriving together, and (2) a moment that is
+// already a page change for the person: a route navigation, or the tab coming back
+// from hidden. A page left visible and untouched still gets there through the idle
+// fallback, so nobody stays on the old version indefinitely (what D-029 protected).
+
+/** Upper bound of the random delay before an automatic reload is allowed. */
+export const SOFT_RELOAD_JITTER_MAX_MS = 5 * 60_000;
+/** A page that is still stale this long after the jitter reloads when idle, even without a trigger. */
+export const SOFT_RELOAD_FALLBACK_MS = 60 * 60_000;
+/** "Idle" for the fallback: no pointer/key/touch for this long. */
+export const SOFT_RELOAD_IDLE_MS = 2 * 60_000;
+
+/** The moment the reload is being considered at. `idle` is the periodic fallback tick. */
+export type SoftReloadTrigger = "navigation" | "visible" | "idle";
+
+export interface SoftReloadInput {
+  /** The server serves a different version of THIS app (webUpdateAvailable). */
+  stale: boolean;
+  trigger: SoftReloadTrigger;
+  /** document.hidden right now. Never reload a page nobody is looking at. */
+  hidden: boolean;
+  /** Something on screen holds work in progress (!safeToReload). */
+  unsaved: boolean;
+  /** This tab already reloaded once towards the version being served — it didn't help, don't loop. */
+  alreadyTried: boolean;
+  now: number;
+  /** When this page first noticed it was stale. */
+  detectedAt: number;
+  /** This page's random delay, from pickSoftReloadJitter. */
+  jitterMs: number;
+  /** Last pointer/key/touch on the page. */
+  lastInputAt: number;
+}
+
+/** Does the page reload itself now? Pure: everything it depends on is in the input. */
+export function shouldSoftReload(s: SoftReloadInput): boolean {
+  if (!s.stale || s.hidden || s.unsaved || s.alreadyTried) return false;
+  const since = s.now - s.detectedAt;
+  if (since < s.jitterMs) return false;
+  if (s.trigger === "navigation" || s.trigger === "visible") return true;
+  // Fallback: long stale and nobody touching it.
+  return since >= s.jitterMs + SOFT_RELOAD_FALLBACK_MS && s.now - s.lastInputAt >= SOFT_RELOAD_IDLE_MS;
+}
+
+/** This page's share of the spread: uniform in [0, SOFT_RELOAD_JITTER_MAX_MS). */
+export function pickSoftReloadJitter(rand: () => number = Math.random): number {
+  const r = rand();
+  const x = Number.isFinite(r) ? Math.min(Math.max(r, 0), 0.999999) : 0;
+  return Math.floor(x * SOFT_RELOAD_JITTER_MAX_MS);
+}
+
+export const SOFT_RELOAD_KEY = "rdz.soft-reload";
+
+/**
+ * Did this tab already reload itself towards `served`? Survives the reload (sessionStorage),
+ * which is the point: if the page comes back still stale for the SAME served version, a
+ * second automatic reload would just loop — the banner's button stays. A later deploy is
+ * a different `served`, so it gets its own attempt. Unreadable storage counts as "not tried".
+ */
+export function softReloadTried(served: string): boolean {
+  try { return sessionStorage.getItem(SOFT_RELOAD_KEY) === served; } catch { return false; }
+}
+
+export function markSoftReload(served: string): void {
+  try { sessionStorage.setItem(SOFT_RELOAD_KEY, served); } catch { /* reload anyway */ }
 }
