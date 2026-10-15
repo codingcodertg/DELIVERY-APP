@@ -1,5 +1,5 @@
 // Los datos de los desplegables del formulario de solicitud (request-form.tsx): categorías, proveedores,
-// tiendas y el vocabulario (unidad base, material, acabado, estilo, color). D-NEXT: el formulario se
+// tiendas y el vocabulario (unidad base, material, acabado, estilo, color). D-553: el formulario se
 // abre ahora también desde cada fila del catálogo (request-drawer.tsx), y esos datos se cargan UNA vez
 // por página —en /erp/catalog y en /erp/request—, nunca por fila ni por apertura. Esta función es la
 // única lectura, para que las dos páginas no tengan dos copias de las mismas cuatro consultas.

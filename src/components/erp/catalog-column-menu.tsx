@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/erp/utils";
 
 /**
- * El menú de cada cabecera del catálogo del ERP (D-NEXT, traspaso del commit cca6a99 de BH): ordenar
+ * El menú de cada cabecera del catálogo del ERP (D-553, traspaso del commit cca6a99 de BH): ordenar
  * ascendente, descendente, u ocultar la columna. Pulsar la cabecera ya no alterna el orden: abre esto.
  *
  * Ordenar NO ordena las filas cargadas en el navegador: llama a `onSort`, que mueve el MISMO estado

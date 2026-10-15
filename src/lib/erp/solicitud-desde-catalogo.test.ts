@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { arranqueDelFormulario, TIPOS_DE_SOLICITUD, TIPOS_DEL_EJECUTOR } from "./solicitud-campos";
 
-// D-NEXT: «Request» desde la fila del catálogo (traspaso del commit 7ec9380 de BH) y las columnas del
+// D-553: «Request» desde la fila del catálogo (traspaso del commit 7ec9380 de BH) y las columnas del
 // catálogo en la vista guardada (cca6a99). Lo que decide se importa (arranqueDelFormulario); lo que solo
 // enchufa piezas se mide en el fuente, normalizando los finales de línea.
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");

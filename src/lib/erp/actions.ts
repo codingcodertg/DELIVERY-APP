@@ -29,7 +29,7 @@ type Result = { ok: true } | { ok: false; error: string } | ErpFail;
 // type. Trailing card-view fields are all non-cost; cost/margin stay masked by the view.
 const CATALOG_SELECT =
   "id,sku,name,status,record_status,product_type,category_path,vendor_name,price,sell_unit,cost,margin_pct,qoh,needs_review,seo_title,seo_description,collection,size_in,finish,material,look,origin,image_url,image_urls";
-// CATALOG_SORTS vive en lib/erp/catalog.ts desde D-NEXT (lo comparte el menú de cabecera del catálogo).
+// CATALOG_SORTS vive en lib/erp/catalog.ts desde D-553 (lo comparte el menú de cabecera del catálogo).
 
 type SBClient = Awaited<ReturnType<typeof createClient>>;
 

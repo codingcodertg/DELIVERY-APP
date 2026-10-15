@@ -65,7 +65,7 @@ export function RequestForm({
   vocab: Vocabulario;
   canSeeCost: boolean;
   /**
-   * D-NEXT: el producto de la fila del catálogo desde la que se abrió (request-drawer.tsx). Con él, el
+   * D-553: el producto de la fila del catálogo desde la que se abrió (request-drawer.tsx). Con él, el
    * formulario arranca en «edit» con ese producto ya buscado —la MISMA búsqueda del botón «Buscar»,
    * contra `app_products`, que enmascara el costo a staff— y sin buscador de SKU; el producto se queda
    * elegido al cambiar de tipo y después de enviar. Sin él (/erp/request), todo como antes.
@@ -240,7 +240,7 @@ export function RequestForm({
     });
   }
 
-  // D-NEXT: abierto desde una fila del catálogo, la búsqueda del botón «Buscar» se lanza sola con ese
+  // D-553: abierto desde una fila del catálogo, la búsqueda del botón «Buscar» se lanza sola con ese
   // SKU. Es la misma (app_products: costo enmascarado para staff) y trae la ficha completa —una fila
   // del catálogo sola no lleva unidad base, SF/caja, MPN y demás campos de edición—.
   const fijo = arranque.productoFijo;

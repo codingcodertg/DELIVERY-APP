@@ -35,7 +35,7 @@ export default async function CatalogPage({
   // queryCatalog already returns its own error (rendered inline by CatalogTable); the
   // facet + saved-view reads are unwrapped so a failure raises instead of quietly
   // reporting "0 products" / "no saved views" (ARC-02).
-  // D-NEXT: los desplegables del formulario de solicitud se cargan aquí UNA vez (cuatro lecturas
+  // D-553: los desplegables del formulario de solicitud se cargan aquí UNA vez (cuatro lecturas
   // pequeñas, product_vocabulary es un agregado) y bajan a la tabla; el botón «Request» de cada fila
   // los reutiliza, sin consulta por fila ni por apertura.
   const [first, facetRes, viewRes, requestPickers] = await Promise.all([

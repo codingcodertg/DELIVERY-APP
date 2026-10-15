@@ -5,7 +5,7 @@ export const CATALOG_PAGE = 100;
 
 /**
  * Las columnas por las que el SERVIDOR sabe ordenar el catálogo (queryCatalog, actions.ts); cualquier
- * otra cae a "name". Vivía dentro de actions.ts; se movió aquí en D-NEXT para que el menú de cada
+ * otra cae a "name". Vivía dentro de actions.ts; se movió aquí en D-553 para que el menú de cada
  * cabecera (catalog-columns.ts) ofrezca ordenar exactamente por estas y una prueba lo pueda comprobar.
  */
 export const CATALOG_SORTS: ReadonlySet<string> = new Set([

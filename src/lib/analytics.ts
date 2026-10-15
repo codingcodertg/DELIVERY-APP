@@ -459,7 +459,7 @@ export interface SalesRepStat { rep: string; deliveries: number; chargedTotal: n
  * the order, i.e. created_at) — deliveries count, total delivery fees
  * charged, and the average fee per delivery.
  *
- * `now` decide qué mes es «este» (D-NEXT, hallazgo 4.6 del traspaso del ERP): antes leía el reloj
+ * `now` decide qué mes es «este» (D-553, hallazgo 4.6 del traspaso del ERP): antes leía el reloj
  * del sistema por dentro, así que una prueba con fechas fijas caducaba al cambiar de mes. Por
  * defecto sigue siendo el reloj —la pantalla no cambia—; las pruebas pasan uno fijo, como
  * `driverShiftKpis` con su `now`. */

@@ -322,7 +322,7 @@ describe("deliveryTrend", () => {
   });
 });
 
-// Nota D-NEXT (hallazgo 4.6 del traspaso del ERP): salesRepStatsThisMonth leía el reloj del sistema
+// Nota D-553 (hallazgo 4.6 del traspaso del ERP): salesRepStatsThisMonth leía el reloj del sistema
 // por dentro, y la única prueba que la nombraba (panel-por-tienda.test.ts) solo mira que la pantalla la
 // llame. Ahora recibe `now`; esto la ejercita con un mes fijo, así que no caduca al cambiar de mes.
 describe("salesRepStatsThisMonth con un `now` fijo", () => {

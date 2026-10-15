@@ -1,10 +1,10 @@
 // Las columnas del catálogo del ERP (catalog-table.tsx) y su disposición: cuáles hay, en qué orden,
-// cuáles se ven, por cuál se ordena, y cómo se lee eso de una vista guardada (D-NEXT, traspaso del
+// cuáles se ven, por cuál se ordena, y cómo se lee eso de una vista guardada (D-553, traspaso del
 // commit cca6a99 de BH). Puro —sin React ni TanStack en tiempo de ejecución— para que la prueba lo
 // IMPORTE: la tabla solo le pasa ids y pinta lo que devuelve.
 //
 // Una vista guardada (`erp.saved_views.state`, jsonb sin restricción de forma: 063, políticas en
-// 066/070) es JSON libre, escrito por la versión de la app que la guardó. Las anteriores a D-NEXT no
+// 066/070) es JSON libre, escrito por la versión de la app que la guardó. Las anteriores a D-553 no
 // traen las claves de columnas, y cualquiera puede nombrar columnas que esta sesión no tiene. Por eso
 // todo lo guardado se trata como `unknown` y solo se queda lo que coincide con una columna real.
 //

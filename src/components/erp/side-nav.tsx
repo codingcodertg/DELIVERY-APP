@@ -19,7 +19,7 @@ const roleStyles: Record<string, string> = {
 // G-10 (D-203): el ERP habla el idioma del HUB (usePrefs, la misma preferencia que Entregas y HR),
 // con pares inline. Las etiquetas del menú se construyen con t() dentro del render en vez de en
 // una constante de módulo, porque una constante no puede cambiar de idioma.
-// Desde D-NEXT las entradas y quién ve cada una viven en `lib/erp/nav.ts` (puro, probado importándolo):
+// Desde D-553 las entradas y quién ve cada una viven en `lib/erp/nav.ts` (puro, probado importándolo):
 // «Dashboard» pasó a Analítica como «Product Analytics», y Request, PO upload y Bulk apply salieron
 // del menú (las rutas siguen). Aquí solo se pintan.
 
@@ -48,7 +48,7 @@ export function SideNav({
   const { t } = usePrefs();
   // Catalog nav is hidden entirely from the delivery-floor roles the merge added (ADR 0010): a
   // driver has no reason to browse the product master, and a list of links that all redirect is
-  // worse than no list. `erpNav` lo decide (y la puerta de Analítica es por entrada, D-NEXT).
+  // worse than no list. `erpNav` lo decide (y la puerta de Analítica es por entrada, D-553).
   const { collapsed, toggle } = useErpNav();
   const { main: navItems, analytics: analyticsItems } = erpNav(role, t);
   // Exact-match the roots that have deeper siblings (/, /purchasing) so a sub-route like

@@ -102,7 +102,7 @@ export function CatalogTable({
   compact?: boolean;
   initialView?: "table" | "cards";
   /**
-   * D-NEXT: los desplegables del formulario de solicitud, cargados UNA vez por la página
+   * D-553: los desplegables del formulario de solicitud, cargados UNA vez por la página
    * (`loadRequestPickers`). Con ellos aparece «Request» en cada fila (columna tras Name, y botón en
    * la tarjeta), que abre el formulario en un panel lateral sobre ese producto. Sin ellos, no.
    */
@@ -114,7 +114,7 @@ export function CatalogTable({
   const [globalFilter, setGlobalFilter] = useState("");
   const [debouncedFilter, setDebouncedFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>(DEFAULT_SORTING);
-  // D-NEXT: qué columnas se ven y en qué orden (⚙ Columnas y el menú de cada cabecera). Viajan en la
+  // D-553: qué columnas se ven y en qué orden (⚙ Columnas y el menú de cada cabecera). Viajan en la
   // vista guardada; sin guardar, se pierden al recargar (como los filtros).
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
@@ -171,7 +171,7 @@ export function CatalogTable({
     setStatusFilter(typeof s.statusFilter === "string" ? s.statusFilter : "all");
     setRecordTab(typeof s.recordTab === "string" ? s.recordTab : "all");
     setReviewOnly(Boolean(s.reviewOnly));
-    // D-NEXT: una vista (o un chip prefijado) es una foto completa. Las guardadas antes no traen
+    // D-553: una vista (o un chip prefijado) es una foto completa. Las guardadas antes no traen
     // columnOrder/columnVisibility y abren en la disposición por defecto; columnStateFromView además
     // tira toda columna que esta sesión no tiene —costo y margen para staff, aunque la vista los nombre—.
     const cols = columnStateFromView(s, colInfo);
@@ -227,7 +227,7 @@ export function CatalogTable({
     setTotal(res.total);
   }
 
-  // D-NEXT: QUÉ columnas hay (y si se ordenan u ocultan) lo decide `catalogColumns`
+  // D-553: QUÉ columnas hay (y si se ordenan u ocultan) lo decide `catalogColumns`
   // (lib/erp/catalog-columns.ts, probado importándolo); aquí solo cómo se pinta cada una. Costo y
   // margen ni se construyen para quien no ve costo (#29), así que ningún control puede enseñarlos.
   const columns = useMemo<ColumnDef<CatalogRow>[]>(() => {
@@ -368,7 +368,7 @@ export function CatalogTable({
           {t("Needs review", "Requiere revisión")}
         </label>
         <div className="ml-auto flex items-center gap-2">
-          {/* D-NEXT: el ⚙ Columnas de la casa (SelectorDeColumnas, el de Órdenes y el Gestor), no uno
+          {/* D-553: el ⚙ Columnas de la casa (SelectorDeColumnas, el de Órdenes y el Gestor), no uno
               segundo: mostrar/ocultar, subir/bajar y «Restablecer orden». Solo en la vista de tabla. */}
           {view === "table" && (
             <SelectorDeColumnas
@@ -434,7 +434,7 @@ export function CatalogTable({
               <div className="flex w-10 shrink-0 items-center justify-center py-2.5">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-clay-500" aria-label={t("Select all loaded", "Seleccionar todo lo cargado")} />
               </div>
-              {/* D-NEXT: pulsar una cabecera abre su menú (ordenar ↑/↓, ocultar) en vez de alternar el
+              {/* D-553: pulsar una cabecera abre su menú (ordenar ↑/↓, ocultar) en vez de alternar el
                   orden. Ordenar escribe el MISMO `sorting` que lee la consulta (sortId/sortDesc): el
                   servidor vuelve a pedir desde la página 1; nada se ordena en el navegador. */}
               {table.getHeaderGroups()[0].headers.map((h) => (

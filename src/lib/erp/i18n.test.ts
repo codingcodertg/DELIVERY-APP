@@ -143,7 +143,7 @@ describe("los ficheros del ERP ya traducidos no tienen texto de pantalla a pelo"
     "src/components/erp/publish-button.tsx",
     "src/components/erp/analytics-nav.tsx",
     "src/components/erp/analytics-controls.tsx",
-    // Nota D-NEXT: los dos componentes nuevos del traspaso de BH (Request desde la fila del catálogo
+    // Nota D-553: los dos componentes nuevos del traspaso de BH (Request desde la fila del catálogo
     // y el menú de cada cabecera). El ⚙ Columnas es SelectorDeColumnas, de la casa: no es del ERP.
     "src/components/erp/request-drawer.tsx",
     "src/components/erp/catalog-column-menu.tsx",

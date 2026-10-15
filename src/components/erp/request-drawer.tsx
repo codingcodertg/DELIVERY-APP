@@ -5,7 +5,7 @@ import { RequestForm } from "@/components/erp/request-form";
 import { usePrefs } from "@/lib/prefs";
 import type { RequestPickers } from "@/lib/erp/request-pickers";
 
-// Fila del catálogo → «Request» (D-NEXT, traspaso del commit 7ec9380 de BH): el formulario de
+// Fila del catálogo → «Request» (D-553, traspaso del commit 7ec9380 de BH): el formulario de
 // /erp/request en un panel lateral, ya apuntando a ese producto. Es el formulario DE VERDAD
 // (request-form.tsx con `targetSku`), no una copia: envía por el mismo submitRequest. Misma forma que
 // ProductDrawer (capa + panel + onClose). Los desplegables llegan cargados una vez por la página.

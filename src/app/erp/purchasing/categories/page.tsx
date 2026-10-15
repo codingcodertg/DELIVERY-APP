@@ -31,7 +31,7 @@ export default async function PurchasingCategories({
 
   // Category detail: reuse the paginated catalog table, pre-filtered + compact (no global KPIs/tabs).
   if (cat) {
-    // D-NEXT: la misma tabla que el catálogo, así que también su «Request» por fila; los desplegables
+    // D-553: la misma tabla que el catálogo, así que también su «Request» por fila; los desplegables
     // del formulario se cargan aquí una vez, igual que en /erp/catalog.
     const [first, requestPickers] = await Promise.all([
       queryCatalog({ categoryPath: cat, offset: 0, limit: CATALOG_PAGE }),

@@ -17,7 +17,7 @@ import {
 } from "./catalog-columns";
 import { CATALOG_SORTS } from "./catalog";
 
-// D-NEXT: las columnas del catálogo, traspaso del commit cca6a99 de BH. Las listas salen de la MISMA
+// D-553: las columnas del catálogo, traspaso del commit cca6a99 de BH. Las listas salen de la MISMA
 // función que usa la tabla (catalogColumns), no de una copia escrita aquí.
 const STAFF = catalogColumns({ canSeeCost: false, canRequest: true });
 const MANAGER = catalogColumns({ canSeeCost: true, canRequest: true });
@@ -51,7 +51,7 @@ describe("catalogColumns · qué columnas tiene cada sesión", () => {
 });
 
 describe("resolveColumnOrder", () => {
-  it("es el orden por defecto si la vista no guardó ninguno (vistas de antes de D-NEXT)", () => {
+  it("es el orden por defecto si la vista no guardó ninguno (vistas de antes de D-553)", () => {
     expect(resolveColumnOrder(undefined, ids(STAFF))).toEqual(ids(STAFF));
     expect(resolveColumnOrder([], ids(STAFF))).toEqual(ids(STAFF));
     expect(resolveColumnOrder("sku,name", ids(STAFF))).toEqual(ids(STAFF));

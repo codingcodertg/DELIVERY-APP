@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { erpNav, navItems, analyticsItems } from "./nav";
 import type { AppRole } from "./domain/roles";
 
-// D-NEXT: el menú del ERP tras el traspaso de los cambios de BH (9b906e7, 7ec9380, 99de2dd).
+// D-553: el menú del ERP tras el traspaso de los cambios de BH (9b906e7, 7ec9380, 99de2dd).
 // Se IMPORTA la función que decide; la barra solo la pinta.
 const en = (e: string) => e;
 const es = (_e: string, s: string) => s;

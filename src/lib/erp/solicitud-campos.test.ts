@@ -192,7 +192,7 @@ describe("las pantallas y las acciones usan la librería (la prueba se alimenta 
   const form = leer("src/components/erp/request-form.tsx");
   const actions = leer("src/lib/erp/actions.ts");
   it("el formulario pinta los seis tipos, los campos de la hoja, y manda lo que dice la librería", () => {
-    // Nota D-NEXT: las pestañas salen de `arranqueDelFormulario` (los seis tipos sin `targetSku`; los
+    // Nota D-553: las pestañas salen de `arranqueDelFormulario` (los seis tipos sin `targetSku`; los
     // cuatro del ejecutor cuando se abre desde una fila del catálogo). Antes, `TIPOS_DE_SOLICITUD.map(`.
     expect(form).toMatch(/arranque\.tipos\.map\(/);
     expect(form).toMatch(/const arranque = arranqueDelFormulario\(targetSku\);/);
@@ -258,7 +258,7 @@ describe("las pantallas y las acciones usan la librería (la prueba se alimenta 
   });
   it("la página de solicitud trae tiendas y el vocabulario con style y color, lee `*` y enseña el estado del solicitante con su botón", () => {
     const pagina = leer("src/app/erp/request/page.tsx");
-    // Nota D-NEXT: las lecturas de los desplegables se mudaron a `loadRequestPickers` (las comparte el
+    // Nota D-553: las lecturas de los desplegables se mudaron a `loadRequestPickers` (las comparte el
     // catálogo); se miden allí, y aquí que la página las usa sin tocar el formulario.
     const pickers = leer("src/lib/erp/request-pickers.ts");
     expect(pickers).toMatch(/supabase\.from\("stores"\)\.select\("id,name"\)\.order\("id"\)/);

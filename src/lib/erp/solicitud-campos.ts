@@ -28,7 +28,7 @@ export const TIPOS_QUE_CREAN_BORRADOR: readonly TipoDeSolicitud[] = ["new", "cop
 export const TIPOS_DEL_EJECUTOR: readonly TipoDeSolicitud[] = ["edit", "reactivate", "deactivate", "discontinue"];
 
 /**
- * Cómo arranca el formulario (D-NEXT). Abierto desde la fila de un producto del catálogo (`targetSku`,
+ * Cómo arranca el formulario (D-553). Abierto desde la fila de un producto del catálogo (`targetSku`,
  * request-drawer.tsx): en «edit», con ese producto fijo, sin el buscador de SKU, y solo con los tipos
  * que actúan sobre un producto que ya existe —«new» y «copy» crearían OTRO artículo dentro del cajón
  * de este, y eso sigue en /erp/request—. Sin `targetSku` (la página /erp/request), exactamente como

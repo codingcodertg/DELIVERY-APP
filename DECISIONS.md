@@ -43796,7 +43796,7 @@ La ficha hace exactamente lo de antes (mismo diálogo, mismos textos, misma escr
 **Reversión:** `drop trigger deliveries_zz_reprogramar_saca_de_la_ruta on public.deliveries; drop function public.reprogramar_saca_de_la_ruta();`
 
 **Pruebas:** `reprogramar-saca-de-la-ruta.test.ts` (la forma del SQL). **No medido:** en la app con una reprogramación real.
-## D-NEXT · ERP: traspaso de las cuatro pantallas de BH (catálogo con «Request» por fila, columnas en la vista guardada, menú sin Request / PO upload / Bulk apply, «Dashboard» → «Product Analytics» en Analítica) y `salesRepStatsThisMonth` recibe `now`
+## D-553 · ERP: traspaso de las cuatro pantallas de BH (catálogo con «Request» por fila, columnas en la vista guardada, menú sin Request / PO upload / Bulk apply, «Dashboard» → «Product Analytics» en Analítica) y `salesRepStatsThisMonth` recibe `now`
 
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca el ERP; el `now` toca `src/lib/analytics.ts`, que usa
 el Panel de Entregas) · **Migración:** ninguna · Rama `erp-traspaso-pantallas`.
@@ -43898,7 +43898,7 @@ botón «Buscar».
 ### Prueba
 
 - `src/lib/erp/nav.test.ts` (9), `catalog-columns.test.ts` (30), `solicitud-desde-catalogo.test.ts` (13), y dos en
-  `analytics.test.ts`; `i18n.test.ts` incluye los dos componentes nuevos; `solicitud-campos.test.ts` lleva su «Nota D-NEXT».
+  `analytics.test.ts`; `i18n.test.ts` incluye los dos componentes nuevos; `solicitud-campos.test.ts` lleva su «Nota D-553».
 - **Mutantes, 16 de 16 caen con una prueba con nombre** (`tanda-erp-traspaso.json`): Product Analytics solo de manager+;
   Analítica sin filtro por entrada; menú sin catálogo; Request de vuelta en el menú; Name ocultable; costo construido para
   staff; el orden guardado conserva ids ajenos; una vista con Name oculto; ordenar por una columna que el servidor no ordena;

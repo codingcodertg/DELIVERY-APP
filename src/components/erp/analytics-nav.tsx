@@ -9,7 +9,7 @@ import { analyticsItems } from "@/lib/erp/nav";
 // G-10 (D-204): las pestañas se construyen con t() dentro del render (una constante no cambia de
 // idioma); los href no cambian. El guardián no las veía (palabra sola entre comillas), pero son texto.
 //
-// D-NEXT: esta fila era una SEGUNDA copia de los cuatro enlaces de Analítica de la barra lateral.
+// D-553: esta fila era una SEGUNDA copia de los cuatro enlaces de Analítica de la barra lateral.
 // Al pasar «Dashboard» a Analítica como «Product Analytics», la copia aparte se habría quedado sin
 // él; ahora las dos leen la misma lista (`analyticsItems`, lib/erp/nav.ts). Aquí van TODAS, sin
 // filtrar por rol, a sabiendas: la fila solo se pinta en /erp/analytics/*, cuyas cuatro páginas ya

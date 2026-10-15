@@ -41,7 +41,7 @@ export default async function RequestPage() {
 
   // Unwrapped (ARC-02): a failed read used to render the request form with empty
   // category / vendor / vocabulary pickers, which silently changes what can be submitted.
-  // D-NEXT: las cuatro lecturas de los desplegables viven en `loadRequestPickers` (las comparte el
+  // D-553: las cuatro lecturas de los desplegables viven en `loadRequestPickers` (las comparte el
   // catálogo, que abre el mismo formulario desde cada fila); mismas consultas, mismo desenvolver.
   const [pickers, myReqRes] = await Promise.all([
     loadRequestPickers(supabase, "request"),

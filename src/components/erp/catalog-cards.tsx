@@ -39,7 +39,7 @@ function Card({ r, onRequest }: { r: CatalogRow; onRequest?: (r: CatalogRow) => 
     isUsa ? null : r.origin,
   ].filter((v): v is string => !!v && String(v).trim() !== "");
 
-  // D-NEXT: el marco es un div para que «Request» quede al lado del enlace (un botón no puede ir dentro
+  // D-553: el marco es un div para que «Request» quede al lado del enlace (un botón no puede ir dentro
   // de un <a>). En la tarjeta va al pie: la razón de ponerlo tras Name en la tabla —una última columna
   // queda fuera de la pantalla— aquí no existe, y meterlo entre el nombre y el SKU partiría el enlace.
   return (
