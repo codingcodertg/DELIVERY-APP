@@ -22,8 +22,10 @@ import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { BotonesDeTarifa } from "@/components/BotonesDeTarifa";
 import { bloqueoPorTarifaMinima, ofreceDescuento, textoTarifaMinima } from "@/lib/tarifa-minima";
-import { CampoDecimal } from "@/components/CampoDecimal";
-import { escrituraAlComenzar, llegaSinTarifa, pideConfirmarTarifa } from "@/lib/confirmar-tarifa";
+import { llegaSinTarifa, pideConfirmarTarifa, type EscrituraAlComenzar } from "@/lib/confirmar-tarifa";
+import { ConfirmarTarifaAlComenzar } from "@/components/ConfirmarTarifaAlComenzar";
+import { ConfirmarPallets } from "@/components/ConfirmarPallets";
+import { escribeComenzar, escribeListo, type EscrituraAlMarcarListo } from "@/lib/pasos-de-bodega";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
 import { ofrecePasarACliente, pideVendedor, tipoDeCliente, vendedoresDeLaTienda, vendedoresParaLaOrden } from "@/lib/sales-reps";
@@ -205,8 +207,8 @@ export function OrderModal({
   // Pallet confirmations: warehouse confirms the count on "Mark ready";
   // the driver confirms what actually fit on the truck at pickup (a short
   // load splits the order into #Na / #Nb).
+  // Nota D-551: el número tecleado vive ahora en `ConfirmarPallets`, que abre también la fila de Almacén.
   const [showReadyConfirm, setShowReadyConfirm] = useState(false);
-  const [readyPallets, setReadyPallets] = useState("");
   // «Agregar material» (D-339): la factura nueva y los pallets nuevos, del vendedor dueño de la
   // orden. Los pallets se precargan con los de ahora, porque lo que se teclea es el TOTAL nuevo y
   // no lo que se suma: «tengo 6 en total» es como lo dice quien lo mira.
@@ -222,8 +224,9 @@ export function OrderModal({
   //
   // Nota D-450 (2026-09-29): vuelve la confirmación, SIN el bloqueo. El dueño: «they just need to confirm
   // the amount». `tarifaAlComenzar` es el número del campo del diálogo; `null` es el campo vacío.
+  // Nota D-551 (2026-10-14): el diálogo salió a `ConfirmarTarifaAlComenzar` (lo abre también la columna «Siguiente
+  // paso» de Almacén) y `tarifaAlComenzar` vive ahora dentro de él. Aquí solo queda si está abierto.
   const [showStartConfirm, setShowStartConfirm] = useState(false);
-  const [tarifaAlComenzar, setTarifaAlComenzar] = useState<number | null>(null);
   // Order view opens on a compact preview; the full detail table is behind a toggle.
   const [showAllDetails, setShowAllDetails] = useState(false);
   // New order: start on a small initial step (Order Type + Delivery Address to
@@ -925,22 +928,23 @@ export function OrderModal({
   /** «Comenzar preparación»: abre la confirmación del monto si el tipo cobra tarifa; si no, mueve la etapa y ya. */
   const comenzarPreparacion = () => {
     if (!existing) return;
-    if (!pideConfirmarTarifa(existing, settings.order_type_rules)) { void move("fulfilling"); return; }
-    setTarifaAlComenzar(existing.delivery_fee ?? null);
+    if (!pideConfirmarTarifa(existing, settings.order_type_rules)) { void confirmarYComenzar(null); return; }
     setShowStartConfirm(true);
   };
 
   /**
    * Sale del diálogo moviendo la etapa. UNA sola escritura: la etapa y, solo si cambió, la tarifa. En dos, un fallo
    * entre medias dejaría la orden en preparación con la tarifa vieja (D-146). Qué se escribe lo decide
-   * `escrituraAlComenzar`; aquí solo se llama.
+   * `escrituraAlComenzar` (en el diálogo); aquí solo se llama.
+   *
+   * Nota D-551 (2026-10-14): la escritura es `escribeComenzar` (`lib/pasos-de-bodega`), la MISMA que usa la columna
+   * «Siguiente paso» de Almacén. `null` = el tipo no pide confirmación: mueve la etapa sin nota ni `extra`, que es lo que
+   * hacía aquí `move("fulfilling")`.
    */
-  const confirmarYComenzar = async (sinTarifa: boolean) => {
+  const confirmarYComenzar = async (escritura: EscrituraAlComenzar | null) => {
     if (!existing) return;
-    const escritura = escrituraAlComenzar(existing.delivery_fee, tarifaAlComenzar, sinTarifa);
-    if (!escritura) { notify(t("Enter the delivery fee, or cancel.", "Escriba la tarifa de entrega, o cancele.")); return; }
     setBusy(true);
-    const ok = await setStage(existing.id, "fulfilling", t(escritura.nota.en, escritura.nota.es), escritura.extra);
+    const ok = await escribeComenzar(setStage, existing.id, escritura, t);
     setBusy(false);
     if (ok) {
       setShowStartConfirm(false);
@@ -1063,14 +1067,14 @@ export function OrderModal({
 
   // Warehouse confirms the real pallet count as part of marking the order
   // ready — actual_pallets is stamped in the same write as the stage move.
-  const confirmReady = async () => {
+  // Nota D-551 (2026-10-14): qué se escribe lo decide `escrituraAlMarcarListo` y lo escribe `escribeListo`
+  // (`lib/pasos-de-bodega`), los mismos que usa la columna «Siguiente paso» de Almacén.
+  const confirmReady = async (escritura: EscrituraAlMarcarListo) => {
     if (!existing) return;
-    const n = Number(readyPallets);
-    if (!Number.isFinite(n) || n <= 0) { notify(t("Enter the confirmed pallet count.", "Ingrese la cantidad confirmada de pallets.")); return; }
     setBusy(true);
-    const ok = await setStage(existing.id, "ready", t(`Pallets confirmed: ${n}`, `Pallets confirmadas: ${n}`), { actual_pallets: n });
+    const ok = await escribeListo(setStage, existing.id, escritura, t);
     setBusy(false);
-    if (ok) { notify(t(`Ready — ${n} pallets confirmed`, `Listo — ${n} pallets confirmadas`)); onClose(); }
+    if (ok) { notify(t(escritura.aviso.en, escritura.aviso.es)); onClose(); }
   };
 
   // --- Role-targeted notes (add on demand, everyone sees them tagged) ---
@@ -1546,7 +1550,7 @@ export function OrderModal({
       podOpen={showPod}
       onAddMaterial={() => { setMatFactura(""); setMatPallets(String(existing.est_pallets ?? "")); setShowAddMaterial(true); }}
       onRequestStart={comenzarPreparacion}
-      onRequestReady={() => { setReadyPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowReadyConfirm(true); }}
+      onRequestReady={() => setShowReadyConfirm(true)}
       pickupConfirmOpen={showPickupConfirm}
       onRequestPickup={() => { setPickupPallets(String(existing.actual_pallets ?? existing.est_pallets ?? "")); setShowPickupConfirm(true); }}
       onConfirmPickup={() => confirmPickup()}
@@ -3081,96 +3085,21 @@ export function OrderModal({
     })()}
 
     {/* Confirmar el MONTO al comenzar la preparación (D-450). Vuelve el diálogo de D-146 sin su bloqueo: el dueño,
-        «they just need to confirm the amount», y preguntado, «confirmar el monto, sin bloqueo». Se ve lo que cobró
-        ventas, se confirma o se corrige ahí mismo, y sin tarifa hay salida. Solo lo abre `comenzarPreparacion`, y solo
-        para los tipos que cobran (`pideConfirmarTarifa`). */}
-    {showStartConfirm && existing && (() => {
-      const escritura = escrituraAlComenzar(existing.delivery_fee, tarifaAlComenzar);
-      return (
-      <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal" style={{ maxWidth: 440 }}>
-          <h3 style={{ marginTop: 0 }}>{t("Confirm the delivery fee", "Confirmar la tarifa de entrega")}</h3>
-          <p className="hint" style={{ marginTop: 0 }}>
-            {t("Check the amount before you start preparing. If it is wrong, correct it here.",
-               "Revise el monto antes de comenzar a preparar. Si está mal, corríjalo aquí.")}
-          </p>
-          <ChoferYPallets pedido={existing} />
-          <div className="field">
-            <label>{t("Delivery fee ($)", "Tarifa de entrega ($)")}</label>
-            <CampoDecimal value={tarifaAlComenzar} onValor={setTarifaAlComenzar} autoFocus placeholder="0.00" />
-            <div className="hint">
-              {/* Lo que puso ventas, y de dónde sale el precio calculado —ciudad, zona y millas— (D-144): un importe
-                  suelto obliga a creérselo. */}
-              {t("Sales charged:", "Ventas cobró:")} <strong>{fmtMoney(existing.delivery_fee)}</strong>
-              {feeSuggestion.list != null && (
-                <>{" · "}{feeSuggestion.city || t("this address", "esta dirección")}{" · "}
-                  {feeSuggestion.zone === "local" ? t("local", "local") : t("out of area", "fuera de zona")}
-                  {existing.route_miles != null ? ` · ${existing.route_miles} mi` : ""}</>
-              )}
-            </div>
-            <BotonesDeTarifa tarifa={tarifaAlComenzar} list={feeSuggestion.list} discount={feeSuggestion.discount}
-              elegir={setTarifaAlComenzar} t={t} />
-            {/* Donde sale «Tarifa sugerida» sale su desglose, para el admin real (D-249). */}
-            {realRole === "admin" && feeSuggestion.breakdown && (
-              <FeeBreakdownDetails desglose={feeSuggestion.breakdown} />
-            )}
-            {escritura?.caso === "corregida" && (
-              <div className="banner warn" style={{ marginTop: 8 }}>
-                {t(`It will be corrected: ${fmtMoney(existing.delivery_fee)} → ${fmtMoney(tarifaAlComenzar)}`,
-                   `Se corregirá: ${fmtMoney(existing.delivery_fee)} → ${fmtMoney(tarifaAlComenzar)}`)}
-              </div>
-            )}
-            {sinCobrar && (
-              <div className="banner err" style={{ marginTop: 8 }}>
-                🚩 {existing.delivery_fee == null
-                  ? t("No fee was charged on this order.", "Esta orden no tiene tarifa cobrada.")
-                  : t("The fee on this order is $0.", "La tarifa de esta orden es $0.")}
-                {" "}{t("You can continue anyway: it is noted in the history and the order stays flagged.",
-                        "Puede continuar igual: queda anotado en el historial y la orden sigue marcada.")}
-              </div>
-            )}
-          </div>
-          {/* La salida sin tarifa a la izquierda del principal, para que no se pulse por inercia (D-287). No escribe
-              tarifa: la orden sigue con su 🚩 y quien tenga que cobrarla la encuentra. */}
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16, flexWrap: "wrap" }}>
-            <button className="btn btn-ghost" onClick={() => setShowStartConfirm(false)} disabled={busy}>{t("Cancel", "Cancelar")}</button>
-            <span style={{ flex: 1 }} />
-            {sinCobrar && (
-              <button className="btn btn-ghost" onClick={() => void confirmarYComenzar(true)} disabled={busy}>{t("No fee — continue anyway", "Sin tarifa — continuar igual")}</button>
-            )}
-            <button className="btn btn-primary" onClick={() => void confirmarYComenzar(false)} disabled={busy || !escritura}>
-              {escritura
-                ? t(`Confirm ${fmtMoney(tarifaAlComenzar)} and start`, `Confirmar ${fmtMoney(tarifaAlComenzar)} y comenzar`)
-                : t("Confirm the fee and start", "Confirmar la tarifa y comenzar")}
-            </button>
-          </div>
-        </div>
-      </div>
-      );
-    })()}
+        «they just need to confirm the amount», y preguntado, «confirmar el monto, sin bloqueo». Solo lo abre
+        `comenzarPreparacion`, y solo para los tipos que cobran (`pideConfirmarTarifa`).
+        Nota D-551 (2026-10-14): el diálogo es ahora `ConfirmarTarifaAlComenzar`, el mismo que abre la columna
+        «Siguiente paso» de Almacén; lo que devuelve lo escribe `confirmarYComenzar`. */}
+    {showStartConfirm && existing && (
+      <ConfirmarTarifaAlComenzar pedido={existing} sugerencia={feeSuggestion} adminReal={realRole === "admin"} ocupado={busy}
+        onCancelar={() => setShowStartConfirm(false)} onConfirmar={(escritura) => void confirmarYComenzar(escritura)} />
+    )}
 
+    {/* «Marcar listo»: los pallets reales (D-143, D-287). Nota D-551: el diálogo es `ConfirmarPallets`, el mismo de la
+        columna «Siguiente paso» de Almacén. */}
     {showReadyConfirm && existing && (
-      <div className="overlay" style={{ zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal" style={{ maxWidth: 420 }}>
-          <h3 style={{ marginTop: 0 }}>{t("Confirm pallets", "Confirmar pallets")}</h3>
-          <ChoferYPallets pedido={existing} />
-          <div className="field">
-            {/* De quién es cada número (D-287), que es lo que pidió almacén: *«cuando yo pongo
-                cuántos pallets realmente era, quiero ver cuánto había puesto oficina o ventas»*.
-                Antes el estimado salía como «cantidad original de la orden», sin decir de quién
-                era, y el campo se rellenaba con él sin distinguirlos. Los dos números se guardan
-                aparte —`est_pallets` y `actual_pallets`—, así que esto solo los nombra. */}
-            <label>{t("Real pallets (warehouse)", "Pallets reales (almacén)")}</label>
-            <input type="number" min={1} step="any" autoFocus value={readyPallets} onChange={(e) => setReadyPallets(e.target.value)}
-              placeholder={existing.est_pallets != null ? `est. ${existing.est_pallets}` : ""} />
-          </div>
-
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-            <button className="btn btn-ghost" onClick={() => setShowReadyConfirm(false)} disabled={busy}>{t("Discard", "Descartar")}</button>
-            <button className="btn btn-green" onClick={confirmReady} disabled={busy}>{t("Confirm & mark ready", "Confirmar y marcar listo")}</button>
-          </div>
-        </div>
-      </div>
+      <ConfirmarPallets pedido={existing} ocupado={busy} onDescartar={() => setShowReadyConfirm(false)}
+        onConfirmar={(escritura) => void confirmReady(escritura)}
+        onInvalido={() => notify(t("Enter the confirmed pallet count.", "Ingrese la cantidad confirmada de pallets."))} />
     )}
     </>
   );

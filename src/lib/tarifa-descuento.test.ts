@@ -176,11 +176,16 @@ describe("lo que el dueño no veía: el descuento en la pantalla", () => {
     expect(boton).not.toContain("discount !== list");
     expect(boton).toContain("{list != null && (");
     expect(boton).toContain("{discount != null && (");
-    expect(modal.split("<BotonesDeTarifa ").length - 1).toBe(3);
+    // Nota D-551 (2026-10-14): el diálogo de «Comenzar preparación» salió de la ficha a `ConfirmarTarifaAlComenzar`
+    // (lo abre también la columna «Siguiente paso» de Almacén). Siguen siendo tres sitios: dos en la ficha y uno en el
+    // diálogo, que recibe la sugerencia de la ficha (`sugerencia={feeSuggestion}`) y la pasa entera.
+    const dialogo = readFileSync("src/components/ConfirmarTarifaAlComenzar.tsx", "utf8").split("\r\n").join("\n");
+    expect(modal.split("<BotonesDeTarifa ").length - 1 + dialogo.split("<BotonesDeTarifa ").length - 1).toBe(3);
+    expect(modal).toContain("<ConfirmarTarifaAlComenzar pedido={existing} sugerencia={feeSuggestion}");
     // Nota D-546: los dos sitios de la ficha pasan ahora `descuentoOfrecido`, que es `feeSuggestion.discount` salvo
     // para un vendedor en una tienda con tarifa mínima (lo decide `ofreceDescuento`, probado en tarifa-minima.test.ts).
     // El diálogo de «Comenzar preparación» sigue pasando el descuento tal cual.
-    expect(modal.split("list={feeSuggestion.list} discount={feeSuggestion.discount}").length - 1).toBe(1);
+    expect(dialogo.split("list={sugerencia.list} discount={sugerencia.discount}").length - 1).toBe(1);
     expect(modal.split("list={feeSuggestion.list} discount={descuentoOfrecido}").length - 1).toBe(2);
     expect(modal).toContain("const descuentoOfrecido = ofreceDescuento(me.role, d.store, settings.stores) ? feeSuggestion.discount : null;");
   });

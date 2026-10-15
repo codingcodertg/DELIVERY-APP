@@ -62,3 +62,14 @@ export function mueveColumna(orden: readonly string[], clave: string, delta: -1 
   r.splice(j, 0, clave);
   return r;
 }
+
+/**
+ * Tras qué columna pintada va la columna de la página (`columnaExtra` de `OrdersTable`, D-551): el índice de
+ * `despuesDe` entre las que se ven, y si esa no se ve (o no se dijo), la última. `-1` sin columnas.
+ * Almacén la pone tras «Etapa»: el siguiente paso al lado de la etapa en la que está.
+ */
+export function columnaExtraTras(pintadas: readonly string[], despuesDe: string | undefined): number {
+  if (despuesDe == null) return -1;
+  const i = pintadas.indexOf(despuesDe);
+  return i >= 0 ? i : pintadas.length - 1;
+}

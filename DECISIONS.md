@@ -43730,3 +43730,52 @@ historial *«Se juntó la PO X (N pallets) — misma factura #F»*. Nada más: n
 **No cambia.** Los datos que ya hay: ningún trigger reescribe filas existentes. Del traspaso, §4.2 («la base del ERP lee el rol de Entregas») **se comprobó falso aquí**: `erp.current_app_role()` ya lee `erp_role`.
 
 **Reversión:** un `drop trigger if exists <nombre> on erp.<tabla>;` por cada uno. **Pruebas:** `src/lib/erp/triggers-del-erp.test.ts` (los doce, su momento y su autocomprobación).
+## D-551 · Almacén cambia la etapa desde la fila: columna «Siguiente paso» con «Comenzar preparación» y «Marcar listo», y los mismos diálogos de la ficha (tarifa y pallets)
+
+**Fecha:** 2026-10-14 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Rama `almacen-etapa-en-la-fila`.
+
+**Pedido del dueño**, literal: *«It would be easier if changing the stage for warehouse was a dropdown as a next column instead of having to open the orders one by one»*.
+
+### Qué había
+
+En Almacén (Cola y Recepción) cada paso de etapa obligaba a abrir la ficha: «Comenzar preparación» (`approved → fulfilling`) y «Marcar listo» (`fulfilling → ready`) solo existían como botones de la ficha (D-497). Y los dos **escriben algo más que la etapa**, con una confirmación delante: comenzar confirma el monto de la tarifa en los tipos que cobran (D-450: «Fee confirmed $100.00» o «Fee corrected — Changed: Delivery Fee: 126 → 80», con `delivery_fee` en la misma escritura si cambió), y marcar listo confirma los pallets reales (D-143/D-287: «Pallets confirmed: 5», `actual_pallets`).
+
+### Qué cambia
+
+1. **Columna «Next step / Siguiente paso»** justo después de «Etapa», en la Cola y en Recepción (`OrdersTable` gana `columnaExtra`: una columna de la página, sin ordenar ni filtrar, cuyo toque no abre la orden). Cada fila lleva un selector compacto con los pasos que tiene; sin ninguno, un «—».
+2. **Qué pasos ofrece lo decide `pasosDeBodega`** (`src/lib/pasos-de-bodega.ts`), y no con una regla propia: llama a `accionesDeLaFicha` (D-497), la misma función que pinta los botones de la ficha, y se queda con `comenzar` y `marcar_listo`. O sea: almacén, el gerente que hace bodega (D-397), el admin y quien tenga `fulfill` a mano; `approved` → «Comenzar preparación», `fulfilling` → «Marcar listo». Una prueba recorre los 7 roles × 9 etapas y exige que la fila ofrezca exactamente los pasos de bodega que ofrece la ficha.
+3. **Si el paso confirma algo, sale el MISMO diálogo de la ficha.** Los dos diálogos salieron de `OrderModal` a componentes —`ConfirmarTarifaAlComenzar` (D-450, con campo decimal, «Ventas cobró», Lista/Descuento, desglose para el admin real, «Se corregirá», la 🚩 y «Sin tarifa — continuar igual») y `ConfirmarPallets` (D-287, con la tarjeta de chofer y pallets)— y los montan la ficha y la página. Cuál pide qué, `confirmacionDelPaso`:
+
+   | Paso | Tipo | Qué pasa al elegirlo |
+   |---|---|---|
+   | Comenzar preparación | Customer (y todo tipo con `docRef: "invoice"`) | diálogo de la tarifa |
+   | Comenzar preparación | Intertienda, Transfer (no cobran) | se escribe ya, sin diálogo, como en la ficha |
+   | Marcar listo | cualquiera | diálogo de pallets, siempre |
+
+4. **La escritura es la misma función en los dos sitios.** `escribeComenzar` y `escribeListo` (en `pasos-de-bodega.ts`) hacen el `setStage` con la misma nota y el mismo `extra`; la ficha (`confirmarYComenzar`, `confirmReady`) y la fila las llaman. Lo que estaba dentro de `confirmReady` (validar el número, la nota, el aviso) es ahora `escrituraAlMarcarListo`. Los eventos, avisos y guards los pone `setStage` del proveedor, así que salen igual venga de donde venga el toque.
+5. Al terminar, el aviso de abajo dice qué orden pasó a qué etapa (`#1089 → Preparing — Fee confirmed $126.00`). **No lleva botón de deshacer**: deshacer un paso es «↩ Deshacer etapa» de la ficha, con motivo obligatorio (D-361/D-383), y un «deshacer» de un toque en el aviso se saltaría ese motivo.
+
+### Qué NO se ofrece en la fila, aunque la ficha se lo dé a almacén
+
+- **«🚚 Recoger»** en `ready`: confirma pallets cargados, **parte** una carga corta en #Na/#Nb (crea otra orden), estampa GPS y reclama el chofer. Es demasiado para un selector de fila.
+- **«Marcar entregado»** en `picked_up`: firma y prueba de entrega.
+- **«📥 Recibir»**: ya tiene su botón en la fila de Recepción (D-409).
+- **«↩ Deshacer etapa»**: pide motivo (D-383). La columna es «siguiente paso», no «paso atrás».
+
+La **Ruta del día** no lleva la columna: lo que enseña está en `ready` en adelante, donde la fila no ofrece nada.
+
+### Qué no cambia
+
+La ficha hace exactamente lo de antes (mismo diálogo, mismos textos, misma escritura); «Comenzar» sin diálogo en un tipo que no cobra escribía `setStage(id, "fulfilling")` por `move` y lo escribe ahora por `escribeComenzar(…, null)`: la misma llamada. D-340/D-450 (sin bloqueo), D-534 (📅 Reprogramar sigue al lado del número), D-390 (cada vista con su búsqueda y sus pastillas) y D-405 (lo que ve cada tienda) no se tocan: la columna se pinta sobre las filas que esas reglas ya dejaron.
+
+### Pruebas
+
+`pasos-de-bodega.test.ts` (nueva, importa las funciones): pasos por etapa y por rol, el espejo de la ficha en 7 × 9, qué confirma cada paso por tipo, los pallets (propuesta, decimales, cero/negativo/vacío fuera, solo `actual_pallets`), y lo que escriben `escribeComenzar`/`escribeListo` con un `setStage` falso (sin confirmación, confirmada, corregida con su rastro, sin tarifa; listo con la nota en el idioma de quien la da); `columnaExtraTras`; y que la página, la celda, la tabla y la ficha pasan por ahí. Se actualizaron, con su «Nota D-551», las que leían los diálogos dentro de la ficha: `confirmar-tarifa`, `ruta-del-dia`, `campo-decimal`, `tarifa-descuento` y `fee-breakdown` (que ahora recorre los dos ficheros en busca de «Tarifa sugerida» sin desglose).
+
+**17 mutantes, caen los 17** (`mutantes.mjs`, tanda `tanda-almacen-etapa.json`, control en verde: 4 ficheros, 106 pruebas), cada uno con su prueba por nombre: la fila ofrece también «Recoger» (M1); pierde la principal de la ficha (M2); «Marcar listo» deja de confirmar pallets (M3); «Comenzar» pide la tarifa en Intertienda/Transfer (M4); cero pallets valen (M5); listo pisa el estimado (M6); comenzar sin confirmación escribe tarifa (M7); la corrección no viaja en la escritura (M8); listo mueve a otra etapa (M9); la celda escribe aunque haya que confirmar (M10); tocar la celda abre la orden (M11); la columna no va junto a la etapa (M12); sin «Etapa» visible no sale (M13); la ficha abre el diálogo de tarifa en Intertienda (M14); la salida «Sin tarifa» depende de lo tecleado (M15); el campo de pallets abre vacío (M16); el diálogo pierde el desglose del admin (M17). **M10, M11, M12, M14, M15, M16 y M17 caen con pruebas que leen el fuente** (presencia de la llamada en la pantalla), no con una que lo ejecute; M1–M9 y M13, ejecutando.
+
+### No verificado
+
+- **Nada abierto en un navegador** (el portátil iba corto de memoria, sin servidor): ni el ancho de la columna (170 px), ni el selector en la vista de teléfono (`orders-responsive`), ni que el diálogo abierto desde una fila quede encima de la tabla.
+- **Contra la base**: nada. La base no pide nada nuevo —son los mismos `setStage` que ya hace la ficha—; eso es lectura del código, no una escritura de prueba.
+- Tracker y Notion: son del orquestador.

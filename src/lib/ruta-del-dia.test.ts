@@ -205,15 +205,27 @@ describe("el chofer y los dos números de pallets (quejas 3 y 6)", () => {
     // Eran tres. El de la tarifa desapareció con D-340 —el dueño se lo quitó al almacén— y se
     // quedaron dos. Nota D-450: vuelve el de la tarifa (confirmar el monto, sin bloqueo), y con él
     // la tarjeta: vuelven a ser tres.
-    expect((modal.match(/<ChoferYPallets pedido=\{existing\} \/>/g) ?? [])).toHaveLength(3);
+    // Nota D-551 (2026-10-14): los diálogos de tarifa y de listo salieron de la ficha a `ConfirmarTarifaAlComenzar` y
+    // `ConfirmarPallets` (los abre también la columna «Siguiente paso» de Almacén). Siguen siendo tres: uno en la ficha
+    // (recoger) y uno en cada componente, que la ficha monta.
+    const tarifa = plano(leer("src/components/ConfirmarTarifaAlComenzar.tsx"));
+    const listo = plano(leer("src/components/ConfirmarPallets.tsx"));
+    expect((modal.match(/<ChoferYPallets pedido=\{existing\} \/>/g) ?? [])).toHaveLength(1);
+    expect((tarifa.match(/<ChoferYPallets pedido=\{pedido\} \/>/g) ?? [])).toHaveLength(1);
+    expect((listo.match(/<ChoferYPallets pedido=\{pedido\} \/>/g) ?? [])).toHaveLength(1);
+    expect(modal).toContain("<ConfirmarTarifaAlComenzar pedido={existing}");
+    expect(modal).toContain("<ConfirmarPallets pedido={existing}");
   });
 
   it("marcar listo sigue escribiendo solo el real, así que el estimado no se pierde", () => {
+    // Nota D-551: lo que escribe lo decide `escrituraAlMarcarListo` y lo escribe `escribeListo`; se EJECUTA en
+    // `pasos-de-bodega.test.ts` («marcar listo escribe solo el real…»). Aquí, que la ficha pasa por ahí.
     const confirmar = modal.slice(modal.indexOf("const confirmReady"), modal.indexOf("const confirmPickup"));
-    expect(confirmar).toContain('setStage(existing.id, "ready"');
-    expect(confirmar).toContain("{ actual_pallets: n }");
+    expect(confirmar.length).toBeGreaterThan(0);
+    expect(confirmar).toContain("escribeListo(setStage, existing.id, escritura, t)");
     // Lo que no puede pasar: que el real pise el estimado de ventas.
     expect(confirmar).not.toContain("est_pallets:");
+    expect(plano(leer("src/lib/pasos-de-bodega.ts"))).toContain("extra: { actual_pallets: n },");
   });
 });
 
@@ -252,9 +264,12 @@ describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve
   });
 
   it("y la salida de D-287 vuelve con el diálogo: sin tarifa se sigue igual", () => {
-    expect(modal).toContain('t("No fee — continue anyway", "Sin tarifa — continuar igual")');
+    // Nota D-551 (2026-10-14): el diálogo vive en `ConfirmarTarifaAlComenzar`; la salida devuelve la escritura «sin
+    // tarifa» (`escrituraAlComenzar(…, true)`), que no escribe tarifa, y la ficha la escribe con `confirmarYComenzar`.
+    const dialogo = plano(leer("src/components/ConfirmarTarifaAlComenzar.tsx"));
+    expect(dialogo).toContain('t("No fee — continue anyway", "Sin tarifa — continuar igual")');
     // El botón de salida llama a la confirmación en modo «sin tarifa», que no escribe tarifa.
-    expect(modal).toMatch(/onClick=\{\(\) => void confirmarYComenzar\(true\)\} disabled=\{busy\}>\{t\("No fee — continue anyway"/);
+    expect(dialogo).toMatch(/onClick=\{\(\) => onConfirmar\(sinTarifa\)\} disabled=\{ocupado\}>\{t\("No fee — continue anyway"/);
   });
 
   it("nadie que no sea ventas escribe ya la tarifa al cambiar de etapa", () => {
@@ -276,9 +291,12 @@ describe("comenzar a preparar sin tarifa (queja 4) — sobró con D-340 y vuelve
     const logica = plano(leer("src/lib/acciones-de-la-ficha.ts"));
     expect(logica).toContain('if (stage === "fulfilling") hay.push({ id: "marcar_listo"');
     expect(modal).toContain("marcar_listo: onRequestReady,");
+    // Nota D-551: el diálogo es `ConfirmarPallets` (la ficha lo monta con `showReadyConfirm`) y la escritura,
+    // `escribeListo` (ejecutada en `pasos-de-bodega.test.ts`).
+    expect(modal).toContain("onRequestReady={() => setShowReadyConfirm(true)}");
+    expect(modal).toContain("{showReadyConfirm && existing && ( <ConfirmarPallets pedido={existing}");
     const confirmar = modal.slice(modal.indexOf("const confirmReady"), modal.indexOf("const confirmPickup"));
-    expect(confirmar).toContain('setStage(existing.id, "ready"');
-    expect(confirmar).toContain("{ actual_pallets: n }");
+    expect(confirmar).toContain("escribeListo(setStage, existing.id, escritura, t)");
   });
 
   it("y la 🚩 SIN TARIFA sigue avisando donde avisaba (D-147, D-148)", () => {
