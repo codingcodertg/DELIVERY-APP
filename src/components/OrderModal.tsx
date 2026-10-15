@@ -13,6 +13,8 @@ import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { DIAS_DE_BORRADOR, esMia } from "@/lib/ordenes-visibles";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
+import { PedirAsignacion } from "@/components/PedirAsignacion";
+import { esRolQuePide, puedeDecidirSolicitudes } from "@/lib/solicitud-de-asignacion";
 import { facturaNuevaAlEditar, notaAlJuntar, ofreceJuntar, parcheAlJuntar, puedeJuntarEn } from "@/lib/juntar-intertienda";
 import { useJuntarExistente } from "@/components/PreguntaJuntarExistente";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
@@ -1710,6 +1712,14 @@ export function OrderModal({
           {!editing && existing && puedeReprogramar(me.role, stage, esMia(existing, me)) && (
             <span style={{ flex: "0 0 auto" }} data-reprogramar-en-ficha>
               <ReprogramarOrden pedido={existing} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
+            </span>
+          )}
+          {/* «📅 Pedir para hoy» (D-560, 176): ventas, Office y gerente piden que la orden pase a otro día y a un chofer;
+              logística o el admin lo deciden en el Gestor. Aquí también se ve en qué quedó. Sin la tabla, no se pinta. */}
+          {!editing && existing && (esRolQuePide(me.role) || puedeDecidirSolicitudes(me.role)) && (
+            <span style={{ flex: "0 0 auto", display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }} data-pedir-asignacion-en-ficha>
+              <PedirAsignacion pedido={existing} me={me} esSuya={esMia(existing, me)}
+                choferes={users.filter((u) => u.role === "driver").map((u) => u.full_name)} t={t} notify={notify} />
             </span>
           )}
           <button className="btn btn-sm" onClick={requestClose} style={{ flex: "0 0 auto" }}>✕</button>

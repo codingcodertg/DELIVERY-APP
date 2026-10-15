@@ -40,6 +40,8 @@ import { carrilesDelDia, cargaDelPanel, encuadreDeLasRutas, lineasDeLasRutas, pu
 import { PanelDeChoferes } from "@/components/PanelDeChoferes";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
+import { BandejaDeSolicitudes } from "@/components/BandejaDeSolicitudes";
+import { notaAlAprobar, pasosAlAprobar, puedeDecidirSolicitudes, type SolicitudDeAsignacion } from "@/lib/solicitud-de-asignacion";
 import { optimizaLaLista } from "@/lib/optimiza-la-ruta";
 import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
 import { baseTrasElCambio, basesPorNombreDelDia, extremosDeLaRuta, type BaseDelDia } from "@/lib/base-del-dia";
@@ -1546,11 +1548,43 @@ export default function RoutesPage() {
     addNote(id, `Moved to ${laneKey}${d?.assigned_driver ? ` (from ${d.assigned_driver})` : ""}`);
   };
 
-  // A single manual (re)assignment — assign + write an audit note.
+  // A single manual (re)assignment — assign + write an audit note. Devuelve la escritura (D-560: «Aprobar» una solicitud
+  // de asignación espera a que termine); el orden de siempre —asignar, y la nota sin esperar— no cambia.
   const manualAssign = (id: string, driver: string) => {
     const d = dayOrders.find((x) => x.id === id);
-    assignTo(id, driver);
+    const hecho = assignTo(id, driver);
     addNote(id, `Assigned to ${driver}${d?.assigned_driver && d.assigned_driver !== driver ? ` (from ${d.assigned_driver})` : ""}`);
+    return hecho;
+  };
+
+  // «Aprobar» una solicitud de asignación (D-560, 176). Reutiliza, no copia: la fecha por `reprogramarOrden` (D-549, la
+  // función `reprogramar_orden` de la 173; la 172 la saca de la ruta vieja) y el chofer por `manualAssign`, el «Asignar a…»
+  // de cada fila. Primero la fecha y DESPUÉS el chofer: al revés, la 172 vería la fecha cambiar con el chofer ya puesto y
+  // se lo quitaría. Qué pasos tocan lo decide `pasosAlAprobar`.
+  const apruebaSolicitud = async (s: SolicitudDeAsignacion, chofer: string): Promise<boolean> => {
+    const orden = deliveriesLeidas.find((x) => x.id === s.delivery_id);
+    const pasos = pasosAlAprobar({ solicitud: s, orden, chofer, hoy: todayISO() });
+    if (pasos.error) {
+      const motivo = {
+        cerrada: t("This request is no longer open.", "Esta solicitud ya no está abierta."),
+        "sin-orden": t("That order isn't loaded here.", "Esa orden no está cargada aquí."),
+        etapa: t("The order already left, was delivered or canceled.", "La orden ya salió, se entregó o se anuló."),
+        "fecha-pasada": t("The requested day already passed — reject it.", "El día pedido ya pasó: recházela."),
+      }[pasos.error];
+      notify(motivo);
+      return false;
+    }
+    if (pasos.reprogramar) {
+      const quien = users.find((u) => u.id === s.requested_by)?.full_name ?? "";
+      const ok = await reprogramarOrden(s.delivery_id, s.requested_date, notaAlAprobar(quien, s.note, lang), lang);
+      if (!ok) return false;
+    }
+    if (pasos.asignar) {
+      const ok = await manualAssign(s.delivery_id, pasos.asignar);
+      if (!ok) return false;
+    }
+    notify(t(`Approved: ${s.requested_date}${pasos.asignar ? ` · ${pasos.asignar}` : ""}`, `Aprobada: ${s.requested_date}${pasos.asignar ? ` · ${pasos.asignar}` : ""}`));
+    return true;
   };
   const manualUnassign = (id: string) => {
     const d = dayOrders.find((x) => x.id === id);
@@ -2822,6 +2856,11 @@ export default function RoutesPage() {
           style={{ marginLeft: "auto" }} aria-haspopup="dialog" onClick={() => setIncidenciasAbiertas(true)}>
           ⚠ {t("Incidents", "Incidencias")} ({incidents.length})
         </button>
+        )}
+        {/* 📥 Solicitudes de asignación (D-560, 176): las que piden ventas, Office y gerente; logística y admin deciden. */}
+        {!soloLectura && puedeDecidirSolicitudes(me?.role) && (
+          <BandejaDeSolicitudes ordenes={deliveriesLeidas} usuarios={users} choferes={drivers.map((u) => u.full_name)}
+            aprobar={apruebaSolicitud} abrirOrden={setOpenOrder} t={t} />
         )}
       </div>
 

@@ -44398,3 +44398,96 @@ ve», la base le pone ese techo, igual que hoy. `permissions` lo escribe solo el
 - **No verificado:** en un navegador (ni demo ni con sesión) — ni la casilla en el diálogo ni la lista de Francis; la
   política en la base de producción (se leyó el repo, no `pg_policies`); que Francis tenga `deliveries` en
   `module_access`. **Para que surta efecto, un admin tiene que marcarle la casilla** en Usuarios → Entregas.
+## D-560 · «📅 Pedir para hoy»: ventas, Office y gerente piden pasar una orden a otro día y a un chofer; logística y admin lo aprueban (reprograma + asigna) o lo rechazan en el Gestor (migración 176)
+
+**Fecha:** 2026-10-15 · **Versión:** la pone el orquestador (toca `deliveries`: ficha, Gestor, campana) · **Migración:**
+`176_solicitudes_de_asignacion.sql` (plan en `docs/PLAN-176-solicitud-de-asignacion.md`) · Sin revertir ninguna decisión.
+
+### Qué pidió el dueño
+
+> «vamos a hacer un assign order request para employees y office que van or ejemplo sale una orden para manna pero el driver tiene spacio hoy ellos pueden pedir que sa orden se asgine para hoy hadciendo un reschedue y un assgin request»
+
+El dueño delegó las decisiones abiertas; cada una está abajo, con su valor por defecto y dónde se cambia, **para que la
+confirme**.
+
+### Qué hace
+
+1. **Pedir (ficha de la orden).** Junto a «📅 Reprogramar», arriba a la derecha: **«📅 Pedir para hoy / Request for
+   today»**. Cuadro con la fecha (por defecto hoy; si la orden ya es de hoy, mañana; **no deja días pasados**, `min={hoy}` y
+   la base), chofer sugerido opcional (lista de choferes, se puede escribir otro) y nota opcional. Una solicitud **abierta**
+   por orden: mientras lo está, la ficha enseña «⏳ Pedida para el …» (con «Cancelar» para quien la pidió) en vez del
+   botón; decidida, «✓ Solicitud aprobada: … · chofer» o «✕ Solicitud rechazada: motivo», mientras su día no haya pasado.
+2. **Decidir (Gestor de Rutas).** Pastilla **«📥 Solicitudes (N)»** junto a «⚠ Incidencias» (ámbar si hay abiertas), solo
+   para logística y admin y fuera de «Ruta de hoy». La ventana lista las abiertas, la más vieja primero: orden (abre la
+   ficha), cliente, fecha de antes → pedida, quién, chofer sugerido y nota. **Aprobar** con un selector de chofer (trae el
+   sugerido si es un chofer de la lista; «sin chofer» la deja en «Sin asignar» ese día). **Rechazar** pide un motivo de 3
+   letras.
+3. **Qué hace «Aprobar» — reutiliza, no copia.** `apruebaSolicitud` (en `routes/page.tsx`): la fecha por
+   `reprogramarOrden` (D-549, la función `reprogramar_orden` de la 173; la 172 saca la orden de la ruta vieja), con la nota
+   «Solicitud de asignación de X: nota»; y **después** el chofer por `manualAssign`, el mismo «Asignar a…» de cada fila
+   (D-395; el encargo citaba D-473, que es la de Leads). El orden importa: al revés, la 172 vería cambiar la fecha con el
+   chofer ya puesto y se lo quitaría. Si la orden ya tiene la fecha pedida, no se reprograma (la función diría «misma
+   fecha»). La solicitud se marca aprobada **solo si** las dos escrituras salieron bien; si no, sigue abierta. `manualAssign`
+   ahora devuelve su escritura (antes no devolvía nada) para poder esperarla; lo que hacía no cambia.
+4. **La campana.** Los avisos los escribe **la base** (disparador `assign_requests_avisa`, en `public.notifications`, la
+   misma tabla de siempre): la solicitud nueva a cada logística y admin (lleva a `/routes?solicitudes=1`, que abre la
+   ventana); la aprobada o rechazada, a quien pidió (lleva a la orden). En la base porque ventas no lee los perfiles de
+   logística (099) y no podría saber a quién avisar. Texto en inglés y español en la misma línea.
+5. **Sin la 176 no revienta.** `useSolicitudesDeAsignacion` reconoce la tabla ausente (`42P01`/`PGRST205`, `tablaAusente`)
+   y entonces ni el botón ni la pastilla se pintan. Tampoco en el demo ni en modo enseñanza (escribiría una solicitud de
+   verdad que vería logística).
+
+### La tabla (176)
+
+`public.assign_requests`: orden, quién, fecha pedida, fecha de antes (la pone la base), chofer sugerido, nota, estado
+(`open`/`approved`/`rejected`/`canceled`), quién y cuándo decidió, motivo, chofer asignado. Índice único parcial: una
+abierta por orden. Guard **invoker** (la orden se lee con la RLS de quien pide): rol, etapa abierta, ventas solo la suya
+(con `coalesce`, la lección de la 173), fecha ≥ hoy (Chicago) y distinta; al decidir, lo pedido es inmutable, se decide una
+vez, cancela solo quien pidió, deciden solo logística/admin, rechazar exige motivo. RLS: quien pide inserta y ve las suyas;
+logística y admin ven y actualizan todas; **sin DELETE**. Checksum `86ae9176475e5d64604867a8eec619680f9484d52da1a02fb152a8562313459c` (`--sum`); sin `begin`/`commit` propios.
+
+### Decisiones abiertas, con su valor por defecto (que el dueño confirme)
+
+| Decisión | Por defecto | Dónde se cambia |
+|---|---|---|
+| Quién pide | ventas (solo su orden, la dueñez de D-544), Office (`accounting`), gerente | `ROLES_QUE_PIDEN` y la 176 (una prueba las compara) |
+| Quién decide | logística y admin (el gerente no) | `ROLES_QUE_DECIDEN` y la 176 |
+| Etapas que se piden | borrador a lista (no recogida, entregada, anulada ni rechazada) | `ETAPAS_QUE_SE_PIDEN` y la 176 |
+| Fecha | hoy por defecto, cualquier día futuro; nunca pasada | `fechaPropuestaDeSolicitud`, `solicitudValida` |
+| Solicitudes por orden | una abierta | índice `assign_requests_una_abierta` |
+| Nota al pedir | opcional; motivo al rechazar, obligatorio | `motivoValido` y la 176 |
+| Aprobar sin chofer | se puede: la orden queda en «Sin asignar» del día pedido | `pasosAlAprobar` |
+| El admin al pedir | la base lo deja (para «ver como»), la app no lo ofrece | la 176 |
+
+### Verificado
+
+- `npx tsc --noEmit` limpio después de la última edición. `src/lib/solicitud-de-asignacion.test.ts` (nueva, 33 pruebas):
+  la regla por rol y etapa, las listas de la app contra las de la 176, fechas, listas, tabla ausente, `pasosAlAprobar`, que
+  el Gestor pase por `reprogramarOrden` y luego `manualAssign` (y no por `updateDelivery`), que la bandeja marque solo tras
+  aprobar, la ficha y la campana, y la forma de la migración (sin transacción propia, checksum de `--sum`, sin `D-560`).
+  Suite entera (`--maxWorkers=1`, 2026-10-15): 8.080 en verde y 2 rojas que eran de esta rama, ya arregladas y
+  repetidas en verde: `help-thread.test.ts` (la campana ahora pasa por el destino de la solicitud; actualizada con su
+  «Nota D-560», la ayuda sigue primero) y `gestor/numeros-del-dia.test.ts` (el Gestor montado con un contexto sin
+  `notifications`: el gancho ahora lee `notifications?.length ?? 0`).
+- **Mutantes: 30, caen los 30** (`mutantes.mjs`, tanda `tanda-solicitud-asignacion.json`, leída por nombre de prueba):
+  ventas pide ajenas (M1), se pide una recogida (M2), logística pide (M3), día pasado (M4), misma fecha (M5), la última
+  es la primera de la lista (M6), bandeja sin ordenar (M7), cualquier error es «tabla ausente» (M8), aprobar reprograma
+  con la fecha ya puesta (M9), aprobar una cerrada (M10) o una que ya salió (M11), el Gestor no pasa por
+  `reprogramarOrden` (M12) o copia la asignación con `updateDelivery` (M13), la bandeja marca aunque la orden no se movió
+  (M14), escribe en modo enseñanza (M15), cero filas cuenta como hecho (M16), la ficha ofrece a ventas en ajenas (M17),
+  el selector deja días pasados (M18), la campana no lleva a la solicitud (M19, M20); SQL: ventas ajenas (M21), sin
+  `coalesce` (M22), guard definer (M23), día pasado (M24), decidir dos veces (M25), cancelar la de otro (M26), avisar a
+  quien pidió (M27), varias abiertas (M28), `requested_by` del cliente (M29), lo pedido se reescribe (M30). Los SQL caen
+  también con la prueba del checksum, pero cada uno cae además con una prueba propia de su regla. **M12–M19 y todos los SQL
+  caen con pruebas que leen el fuente**, no ejecutándolo; M1–M11 y M20, ejecutando.
+
+### No verificado
+
+- **Nada contra ninguna base:** la 176 no se ha aplicado ni ensayado (el worktree no tiene `.env.local`). El script de
+  ensayo por rol con ROLLBACK está listo en el plan (§4). En especial, sin medir: que el `with check` de INSERT vea el
+  `requested_by` que pone el guard (los BEFORE corren antes que la comprobación de la política, según la documentación de
+  Postgres), y que `assign_requests_avisa` encuentre a logística y admin.
+- **Nada en un navegador ni en el teléfono:** ni el botón y su chip en la cabecera de la ficha a 390 px (ya lleva «📅
+  Reprogramar», «Continuar la orden» y la ✕), ni la ventana del Gestor, ni el `?solicitudes=1` del aviso.
+- Que el gerente, que **también reprograma** (D-549), necesite pedir: se dejó porque el encargo lo nombra.
+- Tracker y Notion: son del orquestador.
