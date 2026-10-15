@@ -205,7 +205,7 @@ export interface Delivery {
   /** Photos of the material taken by the driver (data: URLs), e.g. the load on
    * the truck or the goods dropped at the door.
    *
-   * OJO (D-NEXT, 177): las filas de la LISTA (`useData().deliveries`) NO traen `photos` ni `photo_meta` —pesan MB—.
+   * OJO (D-562, 177): las filas de la LISTA (`useData().deliveries`) NO traen `photos` ni `photo_meta` —pesan MB—.
    * Para contarlas, `conteoDeFotos(d)`; para verlas, `useFotosDeLaOrden` (lib/fotos-de-la-orden.ts). */
   photos: string[] | null;
   /** Cuántas fotos hay en `photos`. Lo calcula la base (disparador de la 177); el cliente nunca lo escribe. Ausente en

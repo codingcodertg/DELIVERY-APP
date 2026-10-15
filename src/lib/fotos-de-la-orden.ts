@@ -1,6 +1,6 @@
 "use client";
 // ============================================================
-// Las fotos de UNA orden, leídas aparte (D-NEXT, migración 177).
+// Las fotos de UNA orden, leídas aparte (D-562, migración 177).
 //
 // La lista de órdenes ya no baja `photos` ni `photo_meta` (columnas-de-la-lista.ts): pesan MB y tumbaban la carga.
 // Quien necesita las fotos de verdad —la ficha, para enseñarlas y para añadir las de la entrega; el guardado, para

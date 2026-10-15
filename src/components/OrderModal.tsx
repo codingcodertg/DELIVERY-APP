@@ -150,7 +150,7 @@ export function OrderModal({
   const abierta = copia ?? abiertaPorLaLista;
   const existing = abierta ? deliveries.find((x) => x.id === abierta.id) ?? abierta : null;
   /**
-   * Las fotos de la orden, leídas aparte (D-NEXT, 177): la fila de la lista ya no trae `photos` ni `photo_meta`. Nada
+   * Las fotos de la orden, leídas aparte (D-562, 177): la fila de la lista ya no trae `photos` ni `photo_meta`. Nada
    * de esta ficha lee las fotos de la fila: cuenta con `fotosParaContar` y escribe solo con `fotosOrden.listas`, porque
    * guardar «las de la orden + la nueva» sin las de la orden cargadas borraría las que ya había.
    */
@@ -1288,7 +1288,7 @@ export function OrderModal({
       return t("Enter the address where you actually delivered.", "Ingrese la dirección donde entregó realmente.");
     }
     // D-527: cuentan también las fotos tomadas al entregar, que aún no están en la orden (se guardan con la entrega).
-    // Con fotos nuevas, se guardan JUNTO a las de la orden: sin estas cargadas se borrarían (D-NEXT, 177).
+    // Con fotos nuevas, se guardan JUNTO a las de la orden: sin estas cargadas se borrarían (D-562, 177).
     if (fotosDeLaEntrega.length && !fotosOrden.listas) {
       return t("Loading the order's photos… try again in a moment.", "Cargando las fotos de la orden… inténtelo en un momento.");
     }

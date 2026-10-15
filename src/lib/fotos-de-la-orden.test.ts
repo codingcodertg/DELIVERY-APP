@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({}) }));
 
 import { filaTraeSusFotos, fotosParaContar, leerFotosDeLaOrden, metaDeFotosAlGuardar, type LectorDeFotos } from "./fotos-de-la-orden";
 
-// D-NEXT (177): la lista ya no trae las fotos; quien las necesita las lee de UNA fila.
+// D-562 (177): la lista ya no trae las fotos; quien las necesita las lee de UNA fila.
 const raiz = path.resolve(__dirname, "..", "..");
 
 function lector(fila: unknown, error: { message: string } | null = null) {

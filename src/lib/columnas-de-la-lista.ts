@@ -1,5 +1,5 @@
 // ============================================================
-// Las columnas que la LISTA de órdenes baja de `deliveries` (D-NEXT, migración 177).
+// Las columnas que la LISTA de órdenes baja de `deliveries` (D-562, migración 177).
 //
 // La lista hacía `select("*")`, y `photos` / `photo_meta` guardan las fotos en base64 DENTRO de la fila. El
 // 2026-10-15 entraron 4 entregas con ~5 MB de fotos y la lista pasó a 6,4 MB por carga —y se recarga entera con

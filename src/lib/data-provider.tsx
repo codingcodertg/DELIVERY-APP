@@ -565,7 +565,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // all of it. reloadAll and the realtime reloads read it so they never load LESS than a screen
   // already extended to.
   const deliveriesFloorRef = useRef<string | null>(shiftDateISO(todayISO(), -DELIVERIES_WINDOW_DAYS));
-  // Sin `photos` ni `photo_meta` (D-NEXT, 177): las fotos van en base64 dentro de la fila, y con `select("*")` la lista
+  // Sin `photos` ni `photo_meta` (D-562, 177): las fotos van en base64 dentro de la fila, y con `select("*")` la lista
   // llegó a 6,4 MB por carga —4 entregas con ~5 MB de fotos— y la app se quedaba en «Cargando…». La ficha de una orden
   // baja sus fotos aparte (lib/fotos-de-la-orden.ts). Si la 177 aún no está aplicada, `photo_count` no existe y se
   // reintenta sin él: pedir una columna que falta tumbaría la lista entera.
@@ -1072,7 +1072,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // D-527: la regla vive en `autoresDeFotos` porque la entrega con cámara del chofer firma sus fotos en su propia
       // escritura (la de la etapa), no aquí.
       //
-      // D-NEXT (177): la fila de la lista ya NO trae `photo_meta`, así que los autores de las fotos que ya había se leen
+      // D-562 (177): la fila de la lista ya NO trae `photo_meta`, así que los autores de las fotos que ya había se leen
       // de la base justo antes; con el de la fila de la lista (vacío) cada foto vieja quedaría firmada por quien guarda ahora.
       // Si esa lectura falla, no se guarda: perder los autores no se deshace.
       if (patch.photos && me) {

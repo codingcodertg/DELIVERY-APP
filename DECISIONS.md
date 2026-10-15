@@ -44507,7 +44507,7 @@ logística y admin ven y actualizan todas; **sin DELETE**. Checksum `86ae9176475
 **Pruebas:** `mapa-de-apps.test.ts`, «solo el admin ve el mapa» (los siete roles) y «la tarjeta del inicio y la página del mapa preguntan veElMapa». Mutantes 3 de 3 (todos ven el mapa; la tarjeta sale para todos; la página deja entrar a cualquiera), cada uno cae con su prueba por nombre.
 
 
-## D-NEXT · La lista de Entregas deja de bajarse las fotos: `photo_count` en la base y las fotos de una orden se leen aparte (migración 177)
+## D-562 · La lista de Entregas deja de bajarse las fotos: `photo_count` en la base y las fotos de una orden se leen aparte (migración 177)
 
 **Fecha:** 2026-10-15 · Caída en producción · Migración 177 (`photo_count` + disparador + relleno).
 

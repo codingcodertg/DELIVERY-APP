@@ -80,7 +80,7 @@ export function deliveredWithoutProof(deliveries: Delivery[]): Delivery[] {
     !d.pod_received_by &&
     !d.pod_signature &&
     d.pod_lat == null &&
-    conteoDeFotos(d) === 0);   // la lista no trae las fotos: su conteo (D-NEXT, 177)
+    conteoDeFotos(d) === 0);   // la lista no trae las fotos: su conteo (D-562, 177)
 }
 
 /**

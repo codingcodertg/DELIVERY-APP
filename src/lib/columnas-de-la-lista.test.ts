@@ -6,7 +6,7 @@ import {
 } from "./columnas-de-la-lista";
 import { blankDelivery } from "./blank-delivery";
 
-// D-NEXT (177): la lista de órdenes dejó de pedir `select("*")` porque las fotos van en base64 dentro de la fila.
+// D-562 (177): la lista de órdenes dejó de pedir `select("*")` porque las fotos van en base64 dentro de la fila.
 const raiz = path.resolve(__dirname, "..", "..");
 const lista = COLUMNAS_DE_LA_LISTA.split(",");
 
@@ -29,7 +29,7 @@ function columnasDeLasMigraciones(): Set<string> {
   return cols;
 }
 
-describe("las columnas de la lista de órdenes (D-NEXT, 177)", () => {
+describe("las columnas de la lista de órdenes (D-562, 177)", () => {
   it("no piden las fotos (photos, photo_meta) y sí su conteo (photo_count)", () => {
     expect(lista).not.toContain("photos");
     expect(lista).not.toContain("photo_meta");

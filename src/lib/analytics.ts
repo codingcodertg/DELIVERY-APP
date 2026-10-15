@@ -368,7 +368,7 @@ export function driverQualityKpis(deliveries: Delivery[]): DriverQualityKpi[] {
       if (transit > 0) { a.transitSum += transit; a.transitN++; }
       const dwell = span(d.arrived_at, d.pod_delivered_at);
       if (dwell > 0) { a.dwellSum += dwell; a.dwellN++; }
-      if (d.pod_signature || conteoDeFotos(d) > 0) a.podOk++;   // la lista no trae las fotos: su conteo (D-NEXT, 177)
+      if (d.pod_signature || conteoDeFotos(d) > 0) a.podOk++;   // la lista no trae las fotos: su conteo (D-562, 177)
       if (d.csat_rating != null) a.rated++;
       // POD GPS accuracy: compare where the driver stamped delivery to the
       // geocoded destination, when both are known.

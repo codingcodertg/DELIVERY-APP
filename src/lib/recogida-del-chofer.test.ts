@@ -176,7 +176,7 @@ describe("la cámara de «Entregado»", () => {
     expect(autoresDeFotos(["a", "b"], { a: { by: "u-sara", at: "ayer" } }, "u-diego", "hoy")).toEqual({ a: { by: "u-sara", at: "ayer" }, b: { by: "u-diego", at: "hoy" } });
     expect(autoresDeFotos(["b"], { a: { by: "u-sara", at: "ayer" } }, "u-diego", "hoy")).toEqual({ b: { by: "u-diego", at: "hoy" } });
     // Y el proveedor firma con la misma función al subir una foto suelta.
-    // D-NEXT (177): con los autores leídos de la base (la fila de la lista ya no trae photo_meta), por fotos-de-la-orden.ts.
+    // D-562 (177): con los autores leídos de la base (la fila de la lista ya no trae photo_meta), por fotos-de-la-orden.ts.
     expect(leer("src/lib/data-provider.tsx")).toContain("const meta = await metaDeFotosAlGuardar(supabase as unknown as LectorDeFotos, id, patch.photos, me.id, new Date().toISOString());");
   });
 });

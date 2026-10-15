@@ -281,7 +281,7 @@ describe("driverQualityKpis", () => {
     expect(k.podCompliancePct).toBe(100);
   });
 
-  // D-NEXT (177): la fila de la lista no trae `photos`; el conteo viene en `photo_count`.
+  // D-562 (177): la fila de la lista no trae `photos`; el conteo viene en `photo_count`.
   it("counts photo_count (a list row without photos) as POD compliant", () => {
     const { photos: _p, photo_meta: _m, ...fila } = mkDelivery({ assigned_driver: "Sam", stage: "delivered", photo_count: 1 });
     const { photos: _p2, photo_meta: _m2, ...sin } = mkDelivery({ assigned_driver: "Sam", stage: "delivered", photo_count: 0 });
