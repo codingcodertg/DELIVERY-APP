@@ -8,7 +8,7 @@ import {
   trazoDe, type Casilla, type Flecha,
 } from "./mapa-de-apps";
 
-// El mapa de apps del hub (D-NEXT). Lo que decide vive en mapa-de-apps.ts y estas pruebas lo IMPORTAN.
+// El mapa de apps del hub (D-554). Lo que decide vive en mapa-de-apps.ts y estas pruebas lo IMPORTAN.
 
 /** Las rutas que existen en este repo: cada page.tsx de src/app, sin los grupos «(x)». */
 function rutasDelRepo(): Set<string> {

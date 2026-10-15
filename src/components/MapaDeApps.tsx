@@ -9,7 +9,7 @@ import {
 type T = (en: string, es: string) => string;
 
 /**
- * El mapa de apps del hub (D-NEXT), al estilo de la «Home Page» de QuickBooks. Solo pinta: qué casilla se abre, cuál va
+ * El mapa de apps del hub (D-554), al estilo de la «Home Page» de QuickBooks. Solo pinta: qué casilla se abre, cuál va
  * con candado, cuál es «Próximamente» y cómo se traza cada flecha lo decide `src/lib/mapa-de-apps.ts`.
  *
  * Dos dibujos del mismo dato: la rejilla con flechas en el escritorio, y en el teléfono una lista por panel con chevrones

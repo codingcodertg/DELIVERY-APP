@@ -43908,7 +43908,7 @@ botón «Buscar».
   `next build`. El aspecto del ⚙ Columnas de la casa dentro del ERP, y que el menú de cabecera no quede recortado por el
   contenedor con scroll, están sin mirar.
 
-## D-NEXT · El inicio del hub es un mapa de apps al estilo de QuickBooks: tres paneles (Proveedores, Clientes, Empleados), las apps que aún no existen en gris y sin enlace, y cada flecha «por conectar» salvo que la conexión exista en el código (hoy, ninguna)
+## D-554 · El inicio del hub es un mapa de apps al estilo de QuickBooks: tres paneles (Proveedores, Clientes, Empleados), las apps que aún no existen en gris y sin enlace, y cada flecha «por conectar» salvo que la conexión exista en el código (hoy, ninguna)
 
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca `/home`, que `app-for-path.ts` asigna a `deliveries`, y
 `globals.css`) · **Migración:** ninguna · Rama `inicio-mapa-de-apps`.

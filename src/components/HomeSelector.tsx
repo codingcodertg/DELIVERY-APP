@@ -20,7 +20,7 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
   // `suplantando` lo decide el servidor (home/page.tsx) y solo lo miran las herramientas del admin real.
   const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));
   // El href de Entregas según el rol (almacén → su cola, logística → rutas) lo resuelve ahora
-  // `estadoDeCasilla` en src/lib/mapa-de-apps.ts, con `roleHome` (D-NEXT).
+  // `estadoDeCasilla` en src/lib/mapa-de-apps.ts, con `roleHome` (D-554).
 
   // Mensajes de ayuda sin leer, en la tarjeta que toca (D-311). El hub no tiene campana, así que
   // este número es la única señal que hay aquí. La RLS ya acota lo que se lee: una persona solo
@@ -62,7 +62,7 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
         <Link href={RUTA_PERSONALIZAR} className="hub-profile-link" data-hub-personalizar>
           🎨 {t("Customize · language, theme", "Personalizar · idioma, tema")}
         </Link>
-        {/* El mapa de apps (D-NEXT) sustituye a la rejilla de módulos y a la lista de herramientas: lo pidió el dueño
+        {/* El mapa de apps (D-554) sustituye a la rejilla de módulos y a la lista de herramientas: lo pidió el dueño
             el 2026-10-14, con el diagrama de su jefe al estilo de QuickBooks. Decide con las MISMAS dos listas que
             pintaba la rejilla (`available` y `tools`), así que no abre nada nuevo a nadie; lo que tenía y el mapa no
             dibuja (RTG PROMOS, la vista móvil…) sale en «Otras apps», debajo. */}

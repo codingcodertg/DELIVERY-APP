@@ -970,7 +970,7 @@ table.orders th { text-align: left; }
 .hilo-acciones { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 .hub-tool-desc { font-size: 11px; color: var(--ink-soft); }
 
-/* El mapa de apps del hub (D-NEXT): paneles titulados, casillas (icono + nombre) y flechas, al estilo de la «Home Page»
+/* El mapa de apps del hub (D-554): paneles titulados, casillas (icono + nombre) y flechas, al estilo de la «Home Page»
    de QuickBooks. Gris = la app aún no existe; flecha discontinua = por conectar. Solo tokens: el tema oscuro sale solo.
    En el escritorio, rejilla con las flechas en las columnas/filas pares; en el teléfono (≤760px), una lista por panel
    con chevrones hacia abajo. Los dos dibujos están en el DOM y el CSS enseña uno. */

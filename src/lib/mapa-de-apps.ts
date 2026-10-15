@@ -1,5 +1,5 @@
 /**
- * El mapa de apps del hub (D-NEXT), al estilo de la «Home Page» de QuickBooks.
+ * El mapa de apps del hub (D-554), al estilo de la «Home Page» de QuickBooks.
  *
  * El dueño, 2026-10-14: «quiero que hagamos esto asi como quickbooks, esto es lo que mi jefe me mnado un workflow con
  * todo todas las apps y como se van conectacnto obvio mientras no se conected no creas algo falso  y las apps que estan
