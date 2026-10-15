@@ -594,7 +594,7 @@ export function OrderModal({
   const preguntarJuntar = (con: Delivery, puede: boolean) =>
     new Promise<RespuestaJuntar>((resolver) => setPreguntaJuntar({ con, puede, resolver }));
   const responderJuntar = (r: RespuestaJuntar) => { preguntaJuntar?.resolver(r); setPreguntaJuntar(null); };
-  // Nota D-NEXT (2026-10-15): y al escribir la factura en una orden que YA existe (guardar la ficha, «Agregar material»),
+  // Nota D-557 (2026-10-15): y al escribir la factura en una orden que YA existe (guardar la ficha, «Agregar material»),
   // «Juntar en #X» anulando una de las dos. La regla, en `lib/juntar-intertienda.ts`; la pregunta, en `PreguntaJuntarExistente`.
   const juntarExistente = useJuntarExistente();
   /** Suma la PO y los pallets de la orden que se iba a crear a `con`, y deja la nota en su historial. No crea nada. */
@@ -687,7 +687,7 @@ export function OrderModal({
       notify(t("Pickup and delivery address can't be the same.", "La dirección de recolección y de entrega no pueden ser iguales."));
       return;
     }
-    // Una Intertienda que ya existe y recibe la factura de otra Intertienda abierta (D-NEXT): «Juntar en #X», «Dejarla
+    // Una Intertienda que ya existe y recibe la factura de otra Intertienda abierta (D-557): «Juntar en #X», «Dejarla
     // aparte» o Cancelar. «Hecho» = se juntó y ya está escrito; «Dejarla aparte» no repite el aviso de factura duplicada.
     let facturaDecidida = false;
     if (!isNew && existing) {
@@ -983,7 +983,7 @@ export function OrderModal({
       minutosRecogida: settings.pickup_min_per_pallet, minutosEntrega: settings.delivery_min_per_pallet,
     });
     if (!parche) { notify(t("Nothing to add.", "No hay nada que agregar.")); return; }
-    // La factura agregada puede ser la de otra Intertienda abierta (D-NEXT): la misma pregunta que al guardar la ficha.
+    // La factura agregada puede ser la de otra Intertienda abierta (D-557): la misma pregunta que al guardar la ficha.
     setBusy(true);
     const salida = await juntarExistente.intentar(existing, parche, facturaNuevaAlEditar(existing, parche));
     setBusy(false);
@@ -2877,7 +2877,7 @@ export function OrderModal({
       />
     )}
 
-    {/* «Juntar en #X» al escribir la factura en una Intertienda que ya existe (D-NEXT). */}
+    {/* «Juntar en #X» al escribir la factura en una Intertienda que ya existe (D-557). */}
     {juntarExistente.dialogo}
 
     {/* «La factura ya existe» en una Intertienda (D-549): tres salidas en vez del sí/no. «Juntar» solo si la base le deja

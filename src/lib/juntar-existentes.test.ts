@@ -8,7 +8,7 @@ import {
 import type { Delivery } from "./types";
 
 /**
- * D-NEXT (2026-10-15). El dueño aprobó («si a todo»): «when an invoice is put on an Intertienda that already has an open
+ * D-557 (2026-10-15). El dueño aprobó («si a todo»): «when an invoice is put on an Intertienda that already has an open
  * Intertienda with the same invoice, offer "Juntar en #X": that order gets CANCELED with reason "Juntada en #X", and its PO
  * and pallets move to #X». El caso de su chat: la tienda B escribe la MISMA factura en tres órdenes que la tienda A ya creó.
  */
@@ -40,7 +40,7 @@ function falso(resp: { update?: boolean[]; stage?: boolean } = {}) {
   return { esc, llamadas };
 }
 
-describe("D-NEXT · cuándo se pregunta al escribir la factura en una orden que ya existe", () => {
+describe("D-557 · cuándo se pregunta al escribir la factura en una orden que ya existe", () => {
   it("solo cuando la escritura AÑADE una factura que la orden no tenía (también en las agregadas)", () => {
     expect(facturaNuevaAlEditar({ invoice_num: null }, { invoice_num: " INV-100 " })).toBe("INV-100");
     expect(facturaNuevaAlEditar({ invoice_num: "INV-100" }, { invoice_num: "#inv-100" })).toBeNull();
@@ -74,7 +74,7 @@ describe("D-NEXT · cuándo se pregunta al escribir la factura en una orden que 
   });
 });
 
-describe("D-NEXT · cuál se queda", () => {
+describe("D-557 · cuál se queda", () => {
   it("se queda la que va más adelante, aunque sea la más nueva", () => {
     const vieja = orden({ id: "v", order_no: 3, stage: "pending" });
     const nueva = orden({ id: "n", order_no: 9, stage: "fulfilling" });
@@ -97,7 +97,7 @@ describe("D-NEXT · cuál se queda", () => {
   });
 });
 
-describe("D-NEXT · quién puede juntar dos que ya existen (las DOS escrituras)", () => {
+describe("D-557 · quién puede juntar dos que ya existen (las DOS escrituras)", () => {
   const ABIERTAS = ETAPAS_EN_LAS_QUE_SE_JUNTA;
 
   it("admin, gerente y oficina: en cualquier par de etapas abiertas", () => {
@@ -140,7 +140,7 @@ describe("D-NEXT · quién puede juntar dos que ya existen (las DOS escrituras)"
   });
 });
 
-describe("D-NEXT · qué se escribe y en qué orden", () => {
+describe("D-557 · qué se escribe y en qué orden", () => {
   it("el motivo: `other` con «Juntada en #X — misma factura #F», que el espejo del guard da por bueno", () => {
     const m = anulacionAlJuntar({ order_no: 41 }, " INV-100 ", "es");
     expect(m).toEqual({ canceled_reason: "other", canceled_reason_note: "Juntada en #41 — misma factura #INV-100" });
@@ -215,7 +215,7 @@ describe("D-NEXT · qué se escribe y en qué orden", () => {
   });
 });
 
-describe("D-NEXT · las tres pantallas usan la regla", () => {
+describe("D-557 · las tres pantallas usan la regla", () => {
   it("la pregunta: con quién, cuál se queda y quién puede salen de la librería; «Juntar» solo si puede", () => {
     const c = leer("src/components/PreguntaJuntarExistente.tsx");
     expect(c).toContain("const con = ofreceJuntarExistente(despues, factura, deliveries, settings.order_type_rules);");

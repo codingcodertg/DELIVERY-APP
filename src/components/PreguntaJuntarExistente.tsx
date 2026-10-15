@@ -12,7 +12,7 @@ import type { Delivery } from "@/lib/types";
 import { orderLabel } from "@/lib/utils";
 
 /**
- * «Juntar en #X» al escribir la factura en una Intertienda que YA EXISTE (D-NEXT, 2026-10-15). El dueño aprobó, «si a
+ * «Juntar en #X» al escribir la factura en una Intertienda que YA EXISTE (D-557, 2026-10-15). El dueño aprobó, «si a
  * todo»: «when an invoice is put on an Intertienda that already has an open Intertienda with the same invoice, offer
  * "Juntar en #X": that order gets CANCELED with reason "Juntada en #X", and its PO and pallets move to #X».
  *

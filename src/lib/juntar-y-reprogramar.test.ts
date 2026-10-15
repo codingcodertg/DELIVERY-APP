@@ -124,7 +124,7 @@ describe("A · Juntar dos Intertiendas con la misma factura", () => {
     expect(notaAlJuntar({ po2: null, est_pallets: null, invoice_num: "INV-100" }, "en")).toBe("PO no PO joined (0 pallets) — same invoice #INV-100");
   });
 
-  // Nota D-NEXT (2026-10-15): «SOLO el botón de crear» deja de valer para la ficha entera: guardar una orden que ya existe y
+  // Nota D-557 (2026-10-15): «SOLO el botón de crear» deja de valer para la ficha entera: guardar una orden que ya existe y
   // «Agregar material» también preguntan, con otra pregunta (`useJuntarExistente`, que anula una de las dos; pruebas en
   // `juntar-existentes.test.ts`). Lo que sigue fijando esta prueba: `ofreceJuntar` (la de CREAR) solo la llama el botón de crear.
   it("la ficha: la pregunta de CREAR solo en el botón de crear; «Juntar» no crea nada; «Crear duplicada» no repite el aviso de factura", () => {

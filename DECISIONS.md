@@ -20923,7 +20923,7 @@ Ninguno se aflojó ni se borró: lo que cambió es la decisión que vigilaban.
 
 ## D-310 · El documento que le falta a una orden: pastilla, pestaña por tienda, y escribirlo desde la fila
 
-> **Reemplazada en parte por D-NEXT** (2026-10-15): escribir la factura desde la fila (y al editar la orden) en una
+> **Reemplazada en parte por D-557** (2026-10-15): escribir la factura desde la fila (y al editar la orden) en una
 > Intertienda cuya factura ya tiene otra Intertienda abierta ya no da el aviso de siempre: pregunta «Juntar en #X (un
 > viaje)» / «Dejarla aparte (otro viaje)» / Cancelar, y «Juntar» anula una de las dos. La nota de D-549 de aquí abajo
 > («escribir la factura desde la fila sigue con el aviso») dejó de ser verdad ese día.
@@ -23834,7 +23834,7 @@ guarda su ancho»; «siembra anchos durante una suplantación»; «guarda en cad
 
 ## D-339 · Ventas agrega material a una orden ya hecha: más facturas y más pallets
 
-> **Reemplazada en parte por D-NEXT** (2026-10-15): si la factura agregada a una Intertienda ya la tiene otra Intertienda
+> **Reemplazada en parte por D-557** (2026-10-15): si la factura agregada a una Intertienda ya la tiene otra Intertienda
 > abierta (misma tienda que vende, mismo destino), antes de guardar se pregunta «Juntar en #X» / «Dejarla aparte» /
 > Cancelar. Para ventas «Juntar» solo sale si la otra está en borrador (la base no le deja anular más allá).
 
@@ -43619,10 +43619,10 @@ cabecera de paradas con otro rótulo (P7).
 
 ## D-549 · Intertienda con la misma factura: «Juntar» (un viaje) o «Crear duplicada»; y «📅 Reprogramar» arriba a la derecha de la ficha, para todos menos el chofer (migración 173)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-15): el límite «**solo al CREAR**» de la parte A ya no vale. El dueño
+> **Reemplazada en parte por D-557** (2026-10-15): el límite «**solo al CREAR**» de la parte A ya no vale. El dueño
 > aprobó («si a todo») juntar también al escribir la factura en una Intertienda que ya existe —editándola, desde la fila
 > o con «Agregar material»—, anulando una de las dos con el motivo «Juntada en #X». El caso del chat (la tienda B pone la
-> misma factura en tres órdenes que A ya creó), que aquí quedaba fuera, es el que cubre D-NEXT.
+> misma factura en tres órdenes que A ya creó), que aquí quedaba fuera, es el que cubre D-557.
 
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca `deliveries`) · **Migración:** 173
 (`supabase/migrations/173_reprogramar_orden.sql`, plan en `docs/PLAN-173-reprogramar-orden.md`) · Rama
@@ -44116,7 +44116,6 @@ D-442 · Rama `cotizador-price-match`.
 - `npx tsc --noEmit` limpio tras la última edición.
 - **No verificado:** en navegador (la casilla, la lista de competidores al teclear, la columna y su menú), y el `next build`.
 
-<<<<<<< HEAD
 ## D-556 · El mapa de la empresa vive en su propia app; el inicio del hub vuelve a sus tarjetas
 
 **Fecha:** 2026-10-15 · **Versión:** deliveries 1.311.0 (repo 1.421.0) · Sin migración · Hecho directo por el orquestador en `mapa-en-su-app`.
@@ -44129,8 +44128,7 @@ D-442 · Rama `cotizador-price-match`.
 - El mapa (`mapa-de-apps.ts`, `MapaDeApps.tsx`) no cambia.
 
 **Pruebas:** `mapa-de-apps.test.ts` — el bloque que fijaba «el inicio pinta el mapa» ahora fija lo contrario, con su nota. Mutantes 4 de 4 (la tarjeta del inicio, la puerta del hub en la página, las herramientas visibles, la ruta). **No medido:** en el navegador con sesión.
-=======
-## D-NEXT · Intertienda con la misma factura en una orden que YA existe: «Juntar en #X» anula una de las dos (motivo «Juntada en #X»), o «Dejarla aparte»
+## D-557 · Intertienda con la misma factura en una orden que YA existe: «Juntar en #X» anula una de las dos (motivo «Juntada en #X»), o «Dejarla aparte»
 
 **Fecha:** 2026-10-15 · **Versión:** la pone el orquestador (toca `deliveries`) · **Migración:** ninguna · Rama
 `juntar-intertiendas-existentes` · **Reemplaza en parte a D-549** (su «solo al CREAR»), **D-310** (el aviso al escribir
@@ -44205,7 +44203,7 @@ Dice cuál se queda y cuál se anula. «Dejarla aparte» guarda como siempre y *
 - `src/lib/juntar-existentes.test.ts` (nuevas, 22): cuándo pregunta, con quién, cuál se queda, la matriz de roles y
   etapas, el guard de la 173 sin anular para logística ni almacén, el motivo pasa `faltaParaAnular`, el orden de las
   escrituras con un proveedor falso (las dos direcciones, primera escritura fallida, anulación fallida → deshecha, y
-  → a medias) y las tres pantallas. Tocadas con «Nota D-NEXT»: `juntar-y-reprogramar.test.ts`,
+  → a medias) y las tres pantallas. Tocadas con «Nota D-557»: `juntar-y-reprogramar.test.ts`,
   `documento-pendiente.test.ts`, `order-endpoints.test.ts`.
 - **Mutantes: 16 de 16 caen con una prueba con nombre** (`tanda-juntar-existentes.json`): la factura «nueva» sin mirar
   las agregadas (M1), la propia como «la otra» (M2), una propia cerrada se junta (M3), cuál se queda sin la etapa (M4),
@@ -44224,4 +44222,3 @@ Dice cuál se queda y cuál se anula. «Dejarla aparte» guarda como siempre y *
   ve, no se pregunta.
 - La anulación pasa por `setStage`, así que hace lo mismo que cualquier anulación (evento de etapa y el reparto de avisos
   de `emitStageNotifs`); qué aviso sale exactamente al anular no se midió, y no se silenció nada.
->>>>>>> 197deaf6 (feat(intertienda): juntar dos Intertiendas que ya existen con la misma factura (D-NEXT))

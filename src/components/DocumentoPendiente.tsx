@@ -40,7 +40,7 @@ function UnDocumentoPendiente({ d, doc, capturable }: { d: Delivery; doc: Docume
   const [abierto, setAbierto] = useState(false);
   const [escrito, setEscrito] = useState("");
   const [guardando, setGuardando] = useState(false);
-  // «Juntar en #X» (D-NEXT): antes de los `return` de abajo, que un hook no se llama a veces sí y a veces no.
+  // «Juntar en #X» (D-557): antes de los `return` de abajo, que un hook no se llama a veces sí y a veces no.
   const juntar = useJuntarExistente();
 
   const etiqueta = etiquetaDePendiente(doc, lang);
@@ -61,7 +61,7 @@ function UnDocumentoPendiente({ d, doc, capturable }: { d: Delivery; doc: Docume
   const guardar = async () => {
     const valor = valorDeDocumento(escrito);
     if (!valor || guardando) return;
-    // Nota D-NEXT: una Intertienda que recibe la factura de otra Intertienda abierta pregunta «Juntar en #X» / «Dejarla
+    // Nota D-557: una Intertienda que recibe la factura de otra Intertienda abierta pregunta «Juntar en #X» / «Dejarla
     // aparte» / Cancelar. «Dejarla aparte» ya es la respuesta al aviso de abajo: no se repite.
     setGuardando(true);
     const salida = campo === "invoice_num" ? await juntar.intentar(d, { invoice_num: valor }, valor) : { r: "seguir" as const, decidida: false };

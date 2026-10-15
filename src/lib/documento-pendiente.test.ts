@@ -216,7 +216,7 @@ describe("la pantalla usa la regla, no una copia", () => {
     expect(pastilla.match(/stopPropagation\(\)/g)?.length).toBe(3);
     expect(plano(pastilla)).toContain('if (e.key === "Enter") { e.preventDefault(); void guardar(); }');
     expect(plano(pastilla)).toContain('if (e.key === "Escape") { e.preventDefault(); cerrar(); }');
-    // Nota D-NEXT: el aviso de factura duplicada no sale si ya se respondió «Dejarla aparte» a la pregunta de «Juntar en #X».
+    // Nota D-557: el aviso de factura duplicada no sale si ya se respondió «Dejarla aparte» a la pregunta de «Juntar en #X».
     expect(plano(pastilla)).toContain('campo === "invoice_num" && !salida.decidida ? otraConLaMismaFactura(d.id, valor, deliveries)');
   });
 

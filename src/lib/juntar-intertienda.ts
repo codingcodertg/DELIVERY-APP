@@ -13,7 +13,7 @@
  * factura después desde la fila (D-310) o con «Agregar material» (D-339), sigue el aviso de siempre: juntar ahí significaría
  * anular la otra orden, que es otra decisión (y otra escritura que el guard no deja a todos).
  *
- * Nota D-NEXT (2026-10-15): esa «otra decisión» la tomó el dueño («si a todo»). Al escribir la factura en una Intertienda
+ * Nota D-557 (2026-10-15): esa «otra decisión» la tomó el dueño («si a todo»). Al escribir la factura en una Intertienda
  * que YA EXISTE (editándola en la ficha, desde la fila con «Factura pendiente», o con «Agregar material») y otra
  * Intertienda abierta ya la tiene, se ofrece «Juntar en #X»: una se queda con la PO y los pallets de las dos y la otra se
  * anula con el motivo «Juntada en #X». Las funciones de abajo del bloque «Juntar dos órdenes que ya existen».
@@ -130,7 +130,7 @@ export function parcheAlJuntar(
 /**
  * La nota que queda en el historial de la orden que recibe: qué PO, cuántos pallets, y por qué (la misma factura).
  *
- * Nota D-NEXT: con `desde` (la etiqueta de la orden que se anula al juntar dos que ya existían) dice también cuál fue:
+ * Nota D-557: con `desde` (la etiqueta de la orden que se anula al juntar dos que ya existían) dice también cuál fue:
  * «Se juntó #Y (PO …, N pallets) — misma factura #F». Sin él, como en D-549 (la nueva no tenía número).
  */
 export function notaAlJuntar(nueva: Pick<Partial<Delivery>, "po2" | "est_pallets" | "invoice_num">, lang: "en" | "es", desde?: string): string {
@@ -148,7 +148,7 @@ export function notaAlJuntar(nueva: Pick<Partial<Delivery>, "po2" | "est_pallets
 }
 
 // ---------------------------------------------------------------------------
-// Juntar dos órdenes que ya existen (D-NEXT, 2026-10-15)
+// Juntar dos órdenes que ya existen (D-557, 2026-10-15)
 // ---------------------------------------------------------------------------
 //
 // Lo que aprobó el dueño («si a todo», 2026-10-15): «when an invoice is put on an Intertienda that already has an open
