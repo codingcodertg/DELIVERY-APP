@@ -9124,7 +9124,7 @@ cuenta.
 
 ### G-15 · Cualquier cambio recargaba las nueve consultas
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-15): lo de aquí —una consulta por tabla, no las nueve— sigue en pie,
+> **⚠ Reemplazada en parte por D-564** (2026-10-15): lo de aquí —una consulta por tabla, no las nueve— sigue en pie,
 > pero para `deliveries`, `order_events` y `notifications` ya no se vuelve a bajar la consulta ENTERA: se leen solo
 > las filas cuyos ids trajo la ráfaga (`lib/recarga-por-fila.ts`). Un UPDATE de una orden costaba la lista de 120 días
 > (~670 filas) en cada sesión abierta; ahora cuesta una fila. Las otras cinco tablas, y las ráfagas sin id o con más
@@ -44576,7 +44576,7 @@ La regla entera es una función pura, `shouldSoftReload({ stale, trigger, hidden
 **Qué no se toca, y por qué.** (a) **No hay mecanismo de «versión mínima obligatoria»** en el repo (`/api/version` devuelve solo `versions` y `apk`), así que no se inventó. (b) La recarga de `ErrorBoundary` ante un *chunk* viejo (D-155) sigue siendo inmediata: no es un refresco por versión, es la recuperación de una pantalla que ya reventó, y retrasarla dejaría la tarjeta de error a la vista. Puede sumar recargas tras un despliegue (quien navega a una ruta cuyo *chunk* ya no existe), queda anotado. (c) **Lo que baja cada recarga** —la lista entera de órdenes— vive en `src/lib/data-provider.tsx`, que otra rama está cambiando (D-562, fusionada mientras esta se escribía, ya deja de bajar las fotos en la lista); la segunda mitad del pedido («solo que se descargue lo necesario») es de esa línea de trabajo. Este cambio reparte las recargas, no las aligera. (d) El aviso del APK no cambia.
 
 **Pruebas:** `src/lib/app-update.test.ts` — `shouldSoftReload` (11: no recarga hasta que pasa el retraso; navegación y visible sí; nunca sin estar vieja, con algo a medias, oculta o ya intentada; el respaldo de 60 min, que espera a que nadie toque y respeta lo sin guardar), `pickSoftReloadJitter` (rango y fuente rota), `safeToReload` con `[data-unsaved]`, y tres que leen el fuente del aviso para fijar qué le pasa a la regla (estado real y no constantes; la navegación dispara y el `focus` no; una sola recarga, detrás de la respuesta). Mutantes 19 de 19, cada uno cae con su prueba por nombre (`~/.claude/herramientas/mutantes/tanda-refresco-suave.json`).
-## D-NEXT · Un evento realtime de `deliveries` recarga SOLO la fila que cambió, no la lista entera
+## D-564 · Un evento realtime de `deliveries` recarga SOLO la fila que cambió, no la lista entera
 
 **Fecha:** 2026-10-15 · Instancia de Supabase (Micro) saturada ese día · Sin migración.
 

@@ -1,5 +1,5 @@
 // ============================================================
-// Un evento realtime recarga SOLO la fila que cambió (D-NEXT; reemplaza en parte a D-201 / G-15).
+// Un evento realtime recarga SOLO la fila que cambió (D-564; reemplaza en parte a D-201 / G-15).
 //
 // Hasta hoy, un evento en `deliveries` volvía a bajar la LISTA ENTERA (120 días, ~670 filas el 2026-10-15) en cada
 // cliente conectado: un UPDATE de una orden = tantas descargas de la lista como sesiones abiertas. Con la instancia

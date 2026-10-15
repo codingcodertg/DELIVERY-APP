@@ -5,7 +5,7 @@ import {
   porCreatedAtDesc, porOrderNoDesc, type EventoRealtime,
 } from "./recarga-por-fila";
 
-// D-NEXT. Un evento realtime en `deliveries` bajaba la lista entera (~670 filas el 2026-10-15) en cada sesión
+// D-564. Un evento realtime en `deliveries` bajaba la lista entera (~670 filas el 2026-10-15) en cada sesión
 // abierta. Ahora baja la fila que cambió. Aquí se mide la decisión (qué leer, qué quitar, cuándo rendirse) y la fusión.
 
 const ev = (table: string, eventType: EventoRealtime["eventType"], fila: Record<string, unknown>): EventoRealtime =>

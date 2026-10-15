@@ -709,7 +709,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, [ensureSession, loaders]);
 
   /**
-   * Lectores POR FILA (D-NEXT, lib/recarga-por-fila.ts): leen solo los ids de la ráfaga y los funden en el estado.
+   * Lectores POR FILA (D-564, lib/recarga-por-fila.ts): leen solo los ids de la ráfaga y los funden en el estado.
    * Mismas columnas y mismo filtro que su consulta entera; lo que no vuelve (RLS, borrado) se quita del estado.
    */
   const lectoresPorFila = useMemo<Record<TablaPorFila, (plan: PlanDeTabla) => Promise<{ error: unknown } | { data: unknown }>>>(() => ({
@@ -870,7 +870,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // (lib/realtime-reload.ts) — a driver's "delivered" costs two queries in every other
     // session, not nine. The debounce is unchanged.
     //
-    // D-NEXT: la ráfaga guarda los EVENTOS (tabla, tipo, id), no solo las tablas, y `deliveries`,
+    // D-564: la ráfaga guarda los EVENTOS (tabla, tipo, id), no solo las tablas, y `deliveries`,
     // `order_events` y `notifications` leen solo las filas que cambiaron (lib/recarga-por-fila.ts):
     // un UPDATE de una orden ya no baja la lista entera en cada sesión abierta. Sin id, o con
     // más de MAX_IDS_POR_RAFAGA, esa tabla cae a su consulta entera como antes.
