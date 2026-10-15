@@ -27,6 +27,7 @@ import {
   POLITICA_CASILLA, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
 import { puedeVerLista, puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
+import { alternarPriceMatch, etiquetaPriceMatch, ponCompetidor, tienePriceMatch } from "@/lib/estimator/price-match";
 import { HojaCliente } from "./HojaCliente";
 import { SeccionCompetencia } from "./Competencia";
 import { EntregaCotizacion } from "./EntregaCotizacion";
@@ -172,6 +173,11 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const ponEntrega = (delivery: QuoteDraft["delivery"]) => setDraft((d) => ({ ...d, delivery }));
   const setLinea = (id: string, patch: Partial<QuoteLine>) =>
     setDraft((d) => ({ ...d, lines: d.lines.map((l) => (l.id === id ? ({ ...l, ...patch } as QuoteLine) : l)) }));
+  /** Cambia una línea entera (la marca «Price Match» QUITA claves al desmarcar, y un `patch` no sabe quitar). */
+  const cambiaLinea = (id: string, f: (l: QuoteLine) => QuoteLine) =>
+    setDraft((d) => ({ ...d, lines: d.lines.map((l) => (l.id === id ? f(l) : l)) }));
+  /** Los competidores de los estimados pegados a esta cotización (D-425), que ofrece la marca «Price Match» (D-NEXT). */
+  const [competidoresAdjuntos, setCompetidoresAdjuntos] = useState<string[]>([]);
 
   // Lo que las comprobaciones asíncronas leen AHORA, no lo que había cuando se lanzaron.
   const draftRef = useRef(draft);
@@ -575,6 +581,12 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             <div key={l.id} className="est-linea" data-linea={i}>
               <div className="est-linea-cab">
                 <span>{t("Line", "Línea")} {i + 1} · {l.kind === "sf" ? t("by square foot", "por pie cuadrado") : t("no square feet (lot, each…)", "sin pies cuadrados (lote, pieza…)")}</span>
+                {/* D-NEXT: «Price Match», marca INTERNA del precio de la línea. No sale en la hoja del cliente (D-425). */}
+                <label className="est-pm-check" style={{ marginLeft: "auto" }} title={t("Internal: this price was lowered because a competitor quotes lower. Not printed for the customer.", "Interno: este precio se bajó porque un competidor cotiza más bajo. No se imprime para el cliente.")}>
+                  <input type="checkbox" data-price-match checked={tienePriceMatch(l)}
+                    onChange={() => cambiaLinea(l.id, (x) => alternarPriceMatch(x, competidoresAdjuntos))} />
+                  🏷️ Price Match
+                </label>
                 <button className="btn btn-danger btn-sm" onClick={() => set("lines", draft.lines.filter((x) => x.id !== l.id))}>✕</button>
               </div>
               <div className="grid g4">
@@ -679,6 +691,15 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                   </span>
                 )}
               </div>
+              {tienePriceMatch(l) && (
+                <div className="est-calc" data-price-match-fila style={{ alignItems: "center" }}>
+                  <span className="est-pm" data-price-match-etiqueta>🏷️ {etiquetaPriceMatch(l)}</span>
+                  <input value={l.price_match_competitor ?? ""} data-price-match-competidor list="est-pm-competidores" maxLength={120}
+                    placeholder={t("Competitor (optional)", "Competidor (opcional)")} style={{ maxWidth: 240 }}
+                    onChange={(e) => cambiaLinea(l.id, (x) => ponCompetidor(x, e.target.value))} />
+                  <span className="hint">{t("Internal: not printed on the customer sheet.", "Interno: no sale en la hoja del cliente.")}</span>
+                </div>
+              )}
               {(estadoBajo === "no-menor" || estadoBajo === "sin-regular") && (
                 <p className="hint" data-sin-descuento style={{ color: "var(--red)", margin: "6px 0 0" }}>
                   {estadoBajo === "no-menor"
@@ -694,6 +715,10 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             </div>
           );
         })}
+        {/* Los competidores de los estimados adjuntos, para el campo de «Price Match» (D-NEXT). */}
+        <datalist id="est-pm-competidores">
+          {competidoresAdjuntos.map((c) => <option key={c} value={c} />)}
+        </datalist>
         <div className="est-acciones">
           <button className="btn btn-ghost btn-sm" data-anadir-sf onClick={() => set("lines", [...draft.lines, lineaSfVacia()])}>+ {t("Product by SF", "Producto por SF")}</button>
           <button className="btn btn-ghost btn-sm" data-anadir-lote onClick={() => set("lines", [...draft.lines, lineaUnidadVacia()])}>+ {t("Other line (lot, each…)", "Otra línea (lote, pieza…)")}</button>
@@ -715,7 +740,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
 
       {/* Interno: el estimado de la competencia. Fuera de la hoja del cliente, y escondido al imprimir. */}
       <SeccionCompetencia almacen={almacenCompetencia} quoteId={quoteId} me={me} baseCotizaciones={baseDisponible} t={t} lang={lang}
-        lecturas={almacenLecturas} propias={propias}
+        lecturas={almacenLecturas} propias={propias} onCompetidores={setCompetidoresAdjuntos}
         guardarCotizacion={{ puede: !ocupado && puedeGuardar(draft, estado), hacer: () => void guardar() }} />
 
       {/* 5-7. La copia del cliente */}

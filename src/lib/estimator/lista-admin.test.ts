@@ -29,7 +29,8 @@ const t = (en: string) => en;
 function cotizacion(p: Partial<CotizacionResumen> = {}): CotizacionResumen {
   return {
     id: "q1", estimate_num: "104582", owner_id: "u1", owner_name: "Ana Garza", store: "RDZ Pharr", customer_name: "Luis Pena",
-    sf: 0, total: 100, print_count: 0, printed_at: null, created_at: "2026-10-05T20:30:00.000Z", updated_at: "2026-10-05T20:30:00.000Z", ...p,
+    // Nota D-NEXT: el resumen lleva cuántas líneas tienen «Price Match»; 0 aquí, como una cotización sin marcar.
+    sf: 0, total: 100, price_match_lines: 0, print_count: 0, printed_at: null, created_at: "2026-10-05T20:30:00.000Z", updated_at: "2026-10-05T20:30:00.000Z", ...p,
   };
 }
 const f = (p: Partial<FiltroDeCotizaciones> = {}): FiltroDeCotizaciones => ({ ...filtroVacio(), ...p });
@@ -115,8 +116,9 @@ describe("el calendario del Panel: los atajos y las flechas", () => {
 });
 
 describe("las columnas, con el menú de ordenar y filtrar de las tablas de la casa", () => {
-  it("ocho columnas en el orden de la tabla, en los dos idiomas (D-484 añade SF entre Cliente y Total)", () => {
-    expect(COLUMNAS_DE_LA_TABLA.map((c) => c.key)).toEqual(["fecha", "estimado", "vendedor", "tienda", "cliente", "sf", "total", "estado"]);
+  it("nueve columnas en el orden de la tabla, en los dos idiomas (D-484 añade SF entre Cliente y Total; D-NEXT, Price Match tras Total)", () => {
+    // Nota D-NEXT: eran ocho; la columna «Price Match» entra entre Total y Estado para filtrar con su menú.
+    expect(COLUMNAS_DE_LA_TABLA.map((c) => c.key)).toEqual(["fecha", "estimado", "vendedor", "tienda", "cliente", "sf", "total", "price_match", "estado"]);
     expect(COLUMNAS_DE_LA_TABLA.every((c) => c.en && c.es)).toBe(true);
   });
   it("lo que cada columna saca: la fecha por el día de Texas, el total como número, lo vacío como null", () => {

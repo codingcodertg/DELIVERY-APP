@@ -18,6 +18,10 @@
 .est-linea { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; background: var(--paper); }
 .est-linea-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-weight: 700; font-size: 13px; }
 .est-calc { font-size: 13px; padding: 6px 0 0; display: flex; gap: 16px; flex-wrap: wrap; }
+/* «Price Match» (D-NEXT): marca interna de la línea. Ámbar, como los avisos internos; fuera de .hoja-cliente. */
+.est-pm { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; background: var(--amber-soft, #fbf1df); border: 1px solid var(--amber, #d8a33a); color: var(--ink); }
+:root[data-theme="dark"] .est-pm { background: #3a2f1a; }
+.est-pm-check { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12.5px; text-transform: none; letter-spacing: 0; margin: 0; cursor: pointer; }
 .est-calc b { font-family: 'Archivo', sans-serif; }
 .est-radios { display: flex; gap: 8px; flex-wrap: wrap; }
 .est-radios label { text-transform: none; letter-spacing: normal; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; margin: 0; }

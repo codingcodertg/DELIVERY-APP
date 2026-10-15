@@ -33,7 +33,8 @@ const MIAS = (dueno: string): AlcanceDeLista => ({ todas: false, dueno });
 function cotizacion(p: Partial<CotizacionResumen> = {}): CotizacionResumen {
   return {
     id: "q1", estimate_num: "104582", owner_id: "u1", owner_name: "Ana Garza", store: "RDZ Pharr", customer_name: "Luis Pena",
-    sf: 0, total: 100, print_count: 0, printed_at: null, created_at: "2026-10-05T20:30:00.000Z", updated_at: "2026-10-05T20:30:00.000Z", ...p,
+    // Nota D-NEXT: el resumen lleva cuántas líneas tienen «Price Match»; 0 aquí, como una cotización sin marcar.
+    sf: 0, total: 100, price_match_lines: 0, print_count: 0, printed_at: null, created_at: "2026-10-05T20:30:00.000Z", updated_at: "2026-10-05T20:30:00.000Z", ...p,
   };
 }
 
@@ -124,7 +125,8 @@ describe("quién ve qué en la lista (D-484)", () => {
     expect(todos.ok && todos.valor).toHaveLength(2);
   });
   it("sin columna (ni filtro) de Vendedor para quien solo ve las suyas", () => {
-    expect(columnasDeLaLista(MIAS("u1")).map((c) => c.key)).toEqual(["fecha", "estimado", "tienda", "cliente", "sf", "total", "estado"]);
+    // Nota D-NEXT: «Mis cotizaciones» también lleva la columna «Price Match» (la marca es de sus propias líneas).
+    expect(columnasDeLaLista(MIAS("u1")).map((c) => c.key)).toEqual(["fecha", "estimado", "tienda", "cliente", "sf", "total", "price_match", "estado"]);
     expect(columnasDeLaLista(TODAS)).toBe(COLUMNAS_DE_LA_TABLA);
   });
 });
