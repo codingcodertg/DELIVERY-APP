@@ -18,7 +18,7 @@ export default async function MapaPage() {
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("id, full_name, role, module_access")
+    .select("id, full_name, role, module_access, erp_role")
     .eq("id", user.id)
     .maybeSingle();
   if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {

@@ -5,7 +5,7 @@ import { DELIVERIES_CARD, HUB_TOOLS, MODULES, ROLE_ORDER, roleHome } from "@/lib
 import type { UserRole } from "@/lib/types";
 import {
   CASILLAS, COLUMNAS, FLECHAS, alcanceDe, casilla, celdaDe, colocacion, estadoDeCasilla, otrasApps, secuenciaMovil,
-  trazoDe, type Casilla, type Flecha,
+  trazoDe, veComprasDe, type Casilla, type Flecha,
   RUTA_MAPA_DE_LA_EMPRESA,
 } from "./mapa-de-apps";
 
@@ -36,13 +36,14 @@ function hrefsPosibles(c: Casilla): string[] {
   return d.claves.map((k) => HUB_TOOLS.find((t) => t.key === k)!.href);
 }
 
-const COLOR = ["deliveries", "erp-inventory", "leads", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book"];
-const GRIS = ["purchase-orders", "receive-inventory", "enter-bills", "pay-bills", "sales-order", "refunds-credits", "create-invoice", "receive-payments", "record-deposits"];
+// Nota D-558: Purchase Orders y Receive Inventory pasan de gris a color (abren las del ERP); antes, once y nueve.
+const COLOR = ["purchase-orders", "receive-inventory", "deliveries", "erp-inventory", "leads", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book"];
+const GRIS = ["enter-bills", "pay-bills", "sales-order", "refunds-credits", "create-invoice", "receive-payments", "record-deposits"];
 
 const TODO = ["deliveries", "recruiting", "timetracker", "erp", "promos", "estimator", "surveys", "leads"];
 
 describe("las casillas del diagrama del jefe", () => {
-  it("once de color (existen) y nueve grises (aún no), como las dibujó", () => {
+  it("trece de color (existen) y siete grises (aún no): las del jefe más las dos del ERP (D-558)", () => {
     expect(CASILLAS.filter((c) => c.existe).map((c) => c.key).sort()).toEqual([...COLOR].sort());
     expect(CASILLAS.filter((c) => !c.existe).map((c) => c.key).sort()).toEqual([...GRIS].sort());
   });
@@ -93,22 +94,48 @@ describe("las flechas no mienten", () => {
     ]);
   });
 
-  it("hoy ninguna está conectada (medido en el código el 2026-10-14), y cada una dice por qué", () => {
-    expect(FLECHAS.filter((f) => f.conectada)).toEqual([]);
-    for (const f of FLECHAS) expect([f.de, f.a, /^no existe \(2026-10-14\)/.test(f.evidencia)]).toEqual([f.de, f.a, true]);
+  // Nota D-558: antes «hoy ninguna está conectada (medido el 2026-10-14)». Ahora una, Leads → Quote Builder, y la
+  // leyenda dice «1 de 10». Las demás siguen diciendo por qué no (las dos del ERP re-medidas el 2026-10-15).
+  it("hoy solo Leads → Quote Builder está conectada, y cada una dice por qué sí o por qué no", () => {
+    expect(FLECHAS.filter((f) => f.conectada).map((f) => `${f.de}>${f.a}`)).toEqual(["leads>quote-builder"]);
+    expect(FLECHAS.filter((f) => trazoDe(f) === "conectada")).toHaveLength(1);
+    for (const f of FLECHAS) {
+      const patron = f.conectada ? /^conectada \(2026-10-15\)/ : /^no existe \(2026-10-1[45]\)/;
+      expect([f.de, f.a, patron.test(f.evidencia)]).toEqual([f.de, f.a, true]);
+    }
   });
 
-  it("Leads → Quote Builder: las dos existen y aun así está por conectar", () => {
+  it("Leads → Quote Builder: continua, y dice lo que le falta fuera del código (la migración 175)", () => {
     const f = FLECHAS.find((x) => x.de === "leads" && x.a === "quote-builder")!;
-    expect(casilla("leads").existe && casilla("quote-builder").existe).toBe(true);
-    expect(trazoDe(f)).toBe("por-conectar");
+    expect(trazoDe(f)).toBe("conectada");
+    expect(f.pendiente).toMatch(/migración 175/);
+    // Solo la que está conectada lleva `pendiente`: a una por conectar no le falta «una migración», le falta todo.
+    expect(FLECHAS.filter((x) => x.pendiente).map((x) => x.a)).toEqual(["quote-builder"]);
+  });
+
+  it("la evidencia de la conectada apunta a líneas reales: cada `fichero:línea «texto»` contiene ese texto", () => {
+    const f = FLECHAS.find((x) => x.de === "leads" && x.a === "quote-builder")!;
+    const citas = [...f.evidencia.matchAll(/(\S+\.(?:tsx?|sql)):(\d+) «([^»]+)»/g)];
+    expect(citas.length).toBeGreaterThanOrEqual(6);
+    for (const [, fichero, linea, texto] of citas) {
+      const l = readFileSync(join(process.cwd(), fichero), "utf8").split(/\r?\n/)[Number(linea) - 1] ?? "";
+      expect([fichero, linea, l.includes(texto)]).toEqual([fichero, linea, true]);
+    }
+  });
+
+  it("Purchase Orders → Deliveries y Deliveries → Receive Inventory: las casillas ya abren, la flecha no existe", () => {
+    for (const [de, a] of [["purchase-orders", "deliveries"], ["deliveries", "receive-inventory"]]) {
+      const f = FLECHAS.find((x) => x.de === de && x.a === a)!;
+      expect([de, casilla(de).existe && casilla(a).existe, trazoDe(f)]).toEqual([de, true, "por-conectar"]);
+    }
   });
 
   it("trazoDe: continua solo si está conectada Y sus dos casillas existen", () => {
     const con = (de: string, a: string): Flecha => ({ de, a, conectada: true, evidencia: "x" });
     expect(trazoDe(con("leads", "quote-builder"))).toBe("conectada");
     expect(trazoDe(con("quote-builder", "create-invoice"))).toBe("por-conectar");
-    expect(trazoDe(con("purchase-orders", "deliveries"))).toBe("por-conectar");
+    // Nota D-558: aquí iba purchase-orders → deliveries, que ya no tiene casilla gris; se usa otra con una gris.
+    expect(trazoDe(con("receive-inventory", "enter-bills"))).toBe("por-conectar");
     expect(trazoDe({ ...con("leads", "quote-builder"), conectada: false })).toBe("por-conectar");
   });
 
@@ -165,6 +192,35 @@ describe("el acceso es el del hub de antes", () => {
     expect(estado("erp-inventory", al("admin", ["deliveries"]))).toEqual({ estado: "sin-acceso" });
   });
 
+  it("Purchase Orders y Receive Inventory (D-558): abren las pantallas del ERP con el módulo erp Y el nivel de compras", () => {
+    const conNivel = { ...al("manager", ["erp"]), veCompras: true };
+    expect(estado("purchase-orders", conNivel)).toMatchObject({ estado: "abierta", href: "/erp/purchasing/orders", llave: "modulo:erp" });
+    expect(estado("receive-inventory", conNivel)).toMatchObject({ estado: "abierta", href: "/erp/purchasing/receiving", llave: "modulo:erp" });
+  });
+
+  it("con el módulo erp pero sin el nivel de compras, candado (la página lo mandaría al catálogo); Inventario ERP sí abre", () => {
+    const sinNivel = { ...al("manager", ["erp"]), veCompras: false };
+    expect(estado("purchase-orders", sinNivel)).toEqual({ estado: "sin-acceso", motivo: "nivel-erp" });
+    expect(estado("receive-inventory", sinNivel)).toEqual({ estado: "sin-acceso", motivo: "nivel-erp" });
+    expect(estado("erp-inventory", sinNivel)).toMatchObject({ estado: "abierta" });
+    // Sin el dato, falla cerrado.
+    const { veCompras: _, ...sinDato } = sinNivel;
+    void _;
+    expect(estado("purchase-orders", sinDato)).toEqual({ estado: "sin-acceso", motivo: "nivel-erp" });
+  });
+
+  it("sin el módulo erp, candado de módulo aunque tenga el nivel", () => {
+    expect(estado("purchase-orders", { ...al("admin", ["deliveries"]), veCompras: true })).toEqual({ estado: "sin-acceso" });
+  });
+
+  it("veComprasDe: el nivel del ERP (erp_role), no el rol del hub; manager y admin sí, lo demás no", () => {
+    expect(veComprasDe({ erp_role: "manager" })).toBe(true);
+    expect(veComprasDe({ erp_role: "admin" })).toBe(true);
+    for (const r of ["staff", null, undefined, "", "sales", "ADMIN"]) expect([r, veComprasDe({ erp_role: r })]).toEqual([r, false]);
+    expect(alcanceDe({ role: "admin", module_access: ["erp"] }).veCompras).toBe(false);
+    expect(alcanceDe({ role: "sales", module_access: ["erp"], erp_role: "manager" }).veCompras).toBe(true);
+  });
+
   it("Usuarios solo para el admin; el directorio y los tutoriales para todos", () => {
     expect(estado("users", al("manager", ["deliveries"]))).toEqual({ estado: "sin-acceso" });
     expect(estado("users", al("admin", ["deliveries"]))).toMatchObject({ estado: "abierta", href: "/home/users" });
@@ -179,11 +235,14 @@ describe("el acceso es el del hub de antes", () => {
 
   it("nada se pierde y nada se añade: lo que se abre en el mapa más «Otras apps» es justo lo que pintaba el hub", () => {
     const accesos: (string[] | null)[] = [null, [], ["deliveries"], ["promos"], ["deliveries", "leads"], ["clockin"], TODO, ["erp", "surveys", "estimator"]];
-    for (const role of ROLE_ORDER) for (const ma of accesos) for (const sup of [false, true]) {
-      const a = al(role, ma, sup);
+    // Nota D-558: también con y sin el nivel de compras del ERP; las dos casillas nuevas usan la llave `modulo:erp`.
+    for (const role of ROLE_ORDER) for (const ma of accesos) for (const sup of [false, true]) for (const erp_role of [null, "manager"]) {
+      const a = alcanceDe({ role, module_access: ma, suplantando: sup, erp_role });
       const antes = [...a.modulos.map((m) => `modulo:${m.key}`), ...a.herramientas.map((t) => `herramienta:${t.key}`)].sort();
       const abiertas = CASILLAS.map((c) => estadoDeCasilla(c, a)).flatMap((e) => (e.estado === "abierta" ? [e.llave] : []));
-      const ahora = [...abiertas, ...otrasApps(a).map((o) => o.llave)].sort();
+      // Nota D-558: tres casillas abren ya el módulo erp (Inventario, Órdenes de compra, Recepción): se compara el
+      // CONJUNTO de entradas, no cuántas casillas lleva cada una.
+      const ahora = [...new Set([...abiertas, ...otrasApps(a).map((o) => o.llave)])].sort();
       expect([role, ma, sup, ahora]).toEqual([role, ma, sup, antes]);
     }
   });
@@ -229,7 +288,9 @@ describe("el hub pinta el mapa con las listas de siempre", () => {
     const pagina = leer("src/components/MapaDeLaEmpresa.tsx");
     expect(pagina).toContain("const available = accessibleModules(me.module_access);");
     expect(pagina).toContain("const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));");
-    expect(pagina).toContain("<MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools }}");
+    // Nota D-558: más `veCompras`, del `erp_role` que la página lee, para las dos casillas de compras del ERP.
+    expect(pagina).toContain("<MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools, veCompras: veComprasDe(me) }}");
+    expect(leer("src/app/home/mapa/page.tsx")).toContain('.select("id, full_name, role, module_access, erp_role")');
     expect(existsSync(join(process.cwd(), "src/app/home/mapa/page.tsx"))).toBe(true);
     expect(RUTA_MAPA_DE_LA_EMPRESA).toBe("/home/mapa");
   });

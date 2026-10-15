@@ -18,6 +18,7 @@
  *   - qué apps de las de antes no salen en el mapa y van a «Otras apps».
  */
 import { accessibleModules, HUB_TOOLS, roleHome, type HubTool, type ModuleInfo } from "@/lib/constants";
+import { canSeeCost, erpTier } from "@/lib/erp/domain/roles";
 import type { UserRole } from "@/lib/types";
 
 /** Dónde vive el mapa (D-556): su propia página del hub, con una tarjeta en el inicio que lleva a ella. */
@@ -46,7 +47,12 @@ export const COLUMNAS = 6;
  *  rol). En la herramienta, la primera visible gana: «Help Requests» es la bandeja de todos para el admin y «Mis
  *  solicitudes» para los demás. */
 export type Destino =
-  | { tipo: "modulo"; clave: string; ruta?: string }
+  | {
+      tipo: "modulo"; clave: string; ruta?: string;
+      /** D-558: además del módulo, el nivel de COMPRAS del ERP (manager/admin en `erp_role`), que es lo que exigen
+       *  `/erp/purchasing/orders` y `/erp/purchasing/receiving` (`canSeeCost`, o mandan al catálogo). */
+      requiere?: "compras-erp";
+    }
   | { tipo: "herramienta"; claves: string[] };
 
 export interface Casilla {
@@ -57,16 +63,19 @@ export interface Casilla {
   emoji: string;
   label_en: string;
   label_es: string;
-  /** El jefe la dibujó oscura: la app ya existe. Gris = aún no se crea, y entonces NO lleva destino. */
+  /** La app ya existe (el jefe la dibujó oscura; D-558 añadió Purchase Orders y Receive Inventory, que el ERP ya tenía).
+   *  Gris = aún no se crea, y entonces NO lleva destino. */
   existe: boolean;
   destino?: Destino;
 }
 
 export const CASILLAS: Casilla[] = [
   // ---- Proveedores: fila 1, de izquierda a derecha, con flechas entre cada dos; Inventario ERP debajo de Entregas.
-  { key: "purchase-orders", panel: "vendors", fila: 1, columna: 2, emoji: "📝", label_en: "Purchase Orders", label_es: "Órdenes de compra", existe: false },
+  // Purchase Orders y Receive Inventory: grises en el diagrama del jefe, de color desde D-558 («si a todo», 2026-10-15)
+  // porque el ERP ya las tiene. Abren SUS pantallas del ERP, con la misma regla que ellas: módulo erp y nivel de compras.
+  { key: "purchase-orders", panel: "vendors", fila: 1, columna: 2, emoji: "📝", label_en: "Purchase Orders", label_es: "Órdenes de compra", existe: true, destino: { tipo: "modulo", clave: "erp", ruta: "/erp/purchasing/orders", requiere: "compras-erp" } },
   { key: "deliveries", panel: "vendors", fila: 1, columna: 3, emoji: "📦", label_en: "Deliveries", label_es: "Entregas", existe: true, destino: { tipo: "modulo", clave: "deliveries" } },
-  { key: "receive-inventory", panel: "vendors", fila: 1, columna: 4, emoji: "📥", label_en: "Receive Inventory", label_es: "Recibir inventario", existe: false },
+  { key: "receive-inventory", panel: "vendors", fila: 1, columna: 4, emoji: "📥", label_en: "Receive Inventory", label_es: "Recibir inventario", existe: true, destino: { tipo: "modulo", clave: "erp", ruta: "/erp/purchasing/receiving", requiere: "compras-erp" } },
   { key: "enter-bills", panel: "vendors", fila: 1, columna: 5, emoji: "📑", label_en: "Enter Bills", label_es: "Registrar facturas", existe: false },
   { key: "pay-bills", panel: "vendors", fila: 1, columna: 6, emoji: "💸", label_en: "Pay Bills", label_es: "Pagar facturas", existe: false },
   { key: "erp-inventory", panel: "vendors", fila: 2, columna: 3, emoji: "🧱", label_en: "ERP Inventory", label_es: "Inventario ERP", existe: true, destino: { tipo: "modulo", clave: "erp", ruta: "/erp/inventory" } },
@@ -96,6 +105,9 @@ export interface Flecha {
   conectada: boolean;
   /** Dónde se comprobó (`fichero:línea`) o «no existe», con la fecha. */
   evidencia: string;
+  /** D-558: lo que a una conexión ya hecha aún le falta fuera del código (una migración sin aplicar). Se dice en la
+   *  etiqueta de la flecha; se borra cuando deja de faltar. */
+  pendiente?: string;
   /** Solo para la que cruza de un panel a otro: dónde se dibuja. Las demás se colocan solas entre sus dos casillas. */
   cruce?: { panel: PanelKey; gridRow: string; gridColumn: string; direccion: Direccion };
 }
@@ -105,19 +117,26 @@ const NO_CONSTRUIDA = "no existe (2026-10-14): una de sus dos casillas aún no e
 export const FLECHAS: Flecha[] = [
   // ---- Proveedores, fila 1 (formas 46-49 de la diapositiva).
   {
+    // D-558: Purchase Orders ya es una casilla de color (abre las órdenes de compra del ERP), pero la flecha sigue sin
+    // existir: una orden de compra no crea una entrega. Re-medido el 2026-10-15 con el mismo grep.
     de: "purchase-orders", a: "deliveries", conectada: false,
-    evidencia: `${NO_CONSTRUIDA} (Purchase Orders, gris como la dibujó el jefe). El ERP sí tiene órdenes de compra ` +
-      "(erp.purchase_orders, supabase/migrations/063_erp_module.sql:370; src/app/erp/purchasing/orders), pero nada las une a " +
-      "una orden de Entregas: ningún fichero de src/app/erp, src/lib/erp ni src/components/erp lee public.deliveries, y " +
-      "ninguna pantalla de Entregas lee el esquema erp (grep `from(\"deliveries\")` y `schema(\"erp\")`).",
+    evidencia: "no existe (2026-10-15), aunque las dos casillas ya abren algo: Purchase Orders son las órdenes de compra " +
+      "del ERP (erp.purchase_orders, supabase/migrations/063_erp_module.sql:370; src/app/erp/purchasing/orders), y nada las " +
+      "une a una orden de Entregas: ningún fichero de src/app/erp, src/lib/erp ni src/components/erp lee public.deliveries, " +
+      "y ninguna pantalla de Entregas lee el esquema erp (grep `from(\"deliveries\")` y `schema(\"erp\")`).",
   },
-  { de: "deliveries", a: "receive-inventory", conectada: false, evidencia: `${NO_CONSTRUIDA} (Receive Inventory). El ERP tiene recepción (src/app/erp/purchasing/receiving, motivo 'receive' en 063_erp_module.sql:45) pero no la alimenta ninguna entrega.` },
-  { de: "receive-inventory", a: "enter-bills", conectada: false, evidencia: `${NO_CONSTRUIDA} (las dos).` },
+  {
+    de: "deliveries", a: "receive-inventory", conectada: false,
+    evidencia: "no existe (2026-10-15), aunque las dos casillas ya abren algo: Receive Inventory es la recepción del ERP " +
+      "(src/app/erp/purchasing/receiving, motivo 'receive' en 063_erp_module.sql:45), que recibe contra una orden de compra " +
+      "(`?po=`) y no la alimenta ninguna entrega.",
+  },
+  { de: "receive-inventory", a: "enter-bills", conectada: false, evidencia: `${NO_CONSTRUIDA} (Enter Bills).` },
   { de: "enter-bills", a: "pay-bills", conectada: false, evidencia: `${NO_CONSTRUIDA} (las dos).` },
   // ---- La que cruza (forma 50, girada 270°: apunta hacia ARRIBA, de Sales Order a Purchase Orders, como en QuickBooks).
   {
     de: "sales-order", a: "purchase-orders", conectada: false,
-    evidencia: `${NO_CONSTRUIDA} (las dos).`,
+    evidencia: `${NO_CONSTRUIDA} (Sales Order).`,
     cruce: { panel: "vendors", gridRow: "2 / 4", gridColumn: "3", direccion: "arriba" },
   },
   // ---- Clientes.
@@ -129,11 +148,18 @@ export const FLECHAS: Flecha[] = [
       "calculadora de tarifa de Entregas, src/app/estimator/EntregaCotizacion.tsx:20).",
   },
   {
-    de: "leads", a: "quote-builder", conectada: false,
-    evidencia: "no existe (2026-10-14), aunque las dos apps existen: public.estimator_quotes no tiene columna de lead " +
-      "(148_estimator.sql:68-93) y ninguna migración posterior se la añade; src/app/leads/Leads.tsx no enlaza a /estimator; " +
-      "y src/app/estimator no menciona los leads (src/lib/estimator solo en una prueba de module_access, modulo.test.ts:89). " +
-      "Un lead se vuelve a teclear en el Quote Builder.",
+    // D-558, la primera conexión («si a todo», 2026-10-15). Antes: «no existe (2026-10-14)… estimator_quotes no tiene
+    // columna de lead (148_estimator.sql:68-93); Leads.tsx no enlaza a /estimator». Cada `fichero:línea (texto)` de
+    // abajo lo comprueba una prueba: si el código se mueve, la prueba cae y la evidencia se reescribe.
+    de: "leads", a: "quote-builder", conectada: true,
+    evidencia: "conectada (2026-10-15): el botón de la tarjeta del lead, src/app/leads/Leads.tsx:467 «data-crear-cotizacion», " +
+      "solo para quien puede, src/lib/leads/cotizar.ts:34 «export function puedeCotizarLead»; el Quote Builder lee el lead " +
+      "y rellena el borrador, src/app/estimator/Estimador.tsx:374 «borradorDesdeLead(que.lead»; la cotización nueva guarda " +
+      "su lead, src/lib/estimator/almacen.ts:223 «export function filaNueva», en la columna " +
+      "supabase/migrations/175_cotizacion_de_lead.sql:32 «add column if not exists lead_id»; la cotización dice de qué lead " +
+      "sale, src/app/estimator/Estimador.tsx:546 «data-de-lead=», y el lead cuenta sus cotizaciones, " +
+      "src/app/leads/Leads.tsx:446 «data-cotizaciones=».",
+    pendiente: "el enlace guardado (cotización ↔ lead) espera la migración 175; hasta entonces se rellena y se guarda sin enlace",
   },
   { de: "quote-builder", a: "create-invoice", conectada: false, evidencia: `${NO_CONSTRUIDA} (Create Invoice).` },
   { de: "create-invoice", a: "receive-payments", conectada: false, evidencia: `${NO_CONSTRUIDA} (las dos).` },
@@ -194,13 +220,28 @@ export const celdaDe = (c: Casilla): { gridRow: string; gridColumn: string } => 
 
 /** Lo que el hub ya pintaba para esta persona: sus módulos (`accessibleModules`) y sus herramientas visibles. El mapa
  *  decide con ESTAS listas, así que no abre nada que el hub de antes no abriera. */
-export interface Alcance { role: UserRole; modulos: ModuleInfo[]; herramientas: HubTool[] }
+export interface Alcance {
+  role: UserRole; modulos: ModuleInfo[]; herramientas: HubTool[];
+  /** D-558: si pasa la puerta de compras del ERP (`veComprasDe`). Sin el dato, NO: falla cerrado. */
+  veCompras?: boolean;
+}
 
-export function alcanceDe(me: { role: UserRole; module_access?: string[] | null; suplantando?: boolean }): Alcance {
+/**
+ * ¿Pasa la puerta de `/erp/purchasing/orders` y `/erp/purchasing/receiving`? Esas páginas hacen
+ * `canSeeCost(session.role)` con `session.role = erpTier(perfil)` (`src/lib/erp/auth.ts`) y, si no, mandan al catálogo.
+ * Es la misma cuenta, con las mismas dos funciones: el nivel del ERP (`erp_role`), NO el rol del hub. Un admin del hub
+ * con `erp_role` vacío es `staff` para el ERP, y la página lo rebota: aquí sale con candado.
+ */
+export function veComprasDe(me: { erp_role?: string | null }): boolean {
+  return canSeeCost(erpTier(me));
+}
+
+export function alcanceDe(me: { role: UserRole; module_access?: string[] | null; suplantando?: boolean; erp_role?: string | null }): Alcance {
   return {
     role: me.role,
     modulos: accessibleModules(me.module_access),
     herramientas: HUB_TOOLS.filter((t) => t.visible(me)),
+    veCompras: veComprasDe(me),
   };
 }
 
@@ -209,7 +250,8 @@ export type Llave = string;
 
 export type EstadoCasilla =
   | { estado: "proximamente" }
-  | { estado: "sin-acceso" }
+  /** `motivo: "nivel-erp"` (D-558): tiene el módulo erp, pero no el nivel de compras que exige la página. */
+  | { estado: "sin-acceso"; motivo?: "nivel-erp" }
   | { estado: "abierta"; href: string; llave: Llave; herramienta?: string };
 
 export function estadoDeCasilla(c: Casilla, al: Alcance): EstadoCasilla {
@@ -218,6 +260,7 @@ export function estadoDeCasilla(c: Casilla, al: Alcance): EstadoCasilla {
   if (d.tipo === "modulo") {
     const m = al.modulos.find((x) => x.key === d.clave);
     if (!m) return { estado: "sin-acceso" };
+    if (d.requiere === "compras-erp" && al.veCompras !== true) return { estado: "sin-acceso", motivo: "nivel-erp" };
     // Entregas aterriza donde trabaja cada rol (almacén → su cola, logística → rutas), como la tarjeta de antes.
     const href = m.key === "deliveries" ? roleHome(al.role) : d.ruta ?? m.href;
     return { estado: "abierta", href, llave: `modulo:${m.key}` };

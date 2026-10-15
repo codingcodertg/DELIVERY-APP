@@ -48,6 +48,8 @@ export function buscarEnCatalogoDemo(codigo: string): ProductoDelCatalogo[] {
 interface FilaDemo {
   id: string; owner_id: string; owner_name: string; store: string | null; print_count: number; draft: QuoteDraft;
   created_at: string; printed_at: string | null;
+  /** El lead del que salió (D-558, la columna de la 175). */
+  lead_id?: string | null;
 }
 interface AprobDemo { id: string; quote_id: string; requested_by: string; requester_name: string; status: AprobacionEstado; requested_at: string }
 
@@ -112,11 +114,11 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       if (sinTabla) return SIN_TABLA;
       const q = db.cotizaciones.find((c) => c.id === quoteId);
       if (!q) return { ok: false, sinTabla: false, error: "not visible" };
-      const out: CotizacionGuardada = { id: q.id, owner_id: q.owner_id, owner_name: q.owner_name, store: q.store, print_count: q.print_count, draft: structuredClone(q.draft) };
+      const out: CotizacionGuardada = { id: q.id, lead_id: q.lead_id ?? null, owner_id: q.owner_id, owner_name: q.owner_name, store: q.store, print_count: q.print_count, draft: structuredClone(q.draft) };
       return bien(out);
     },
 
-    async guardar(quoteId, draft) {
+    async guardar(quoteId, draft, leadId) {
       if (sinTabla) return SIN_TABLA;
       const yo = me();
       if (quoteId) {
@@ -138,6 +140,8 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       db.cotizaciones.push({
         id, owner_id: yo.id, owner_name: yo.name, store: yo.store?.trim() || null, print_count: 0, draft: structuredClone(draft),
         created_at: new Date().toISOString(), printed_at: null,
+        // Como la base con la 175 (D-558): el enlace al lead se pone al crear, y una edición no lo toca.
+        lead_id: leadId ?? null,
       });
       return bien(id);
     },

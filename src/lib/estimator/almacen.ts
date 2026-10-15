@@ -22,10 +22,16 @@ import { lineasConPriceMatch, marcaDeFila } from "./price-match";
  * escondería una avería detrás de un aviso tranquilo.
  */
 
-export type Resultado<T> = { ok: true; valor: T } | { ok: false; sinTabla: boolean; error: string; duplicado?: boolean };
+/**
+ * `sinLead` (D-558): se guardó, pero SIN el enlace al lead, porque la columna `lead_id` (migración 175) aún no está.
+ * El guardado no falla por eso: el código llega antes que la migración.
+ */
+export type Resultado<T> = { ok: true; valor: T; sinLead?: boolean } | { ok: false; sinTabla: boolean; error: string; duplicado?: boolean };
 
 export interface CotizacionGuardada {
   id: string;
+  /** El lead del que salió (175, D-558), o null: no salió de un lead, o la 175 aún no está aplicada. */
+  lead_id?: string | null;
   owner_id: string | null;
   owner_name: string | null;
   /** La tienda de la cotización (148: la del perfil del dueño al crearla, la pone el disparador). Sale en la hoja (D-451). */
@@ -45,8 +51,11 @@ export interface AprobacionPendiente {
 export interface AlmacenDeCotizaciones {
   buscar(num: string): Promise<Resultado<EstimadoHallado | null>>;
   cargar(quoteId: string): Promise<Resultado<CotizacionGuardada>>;
-  /** Nuevo si `quoteId` es null. Devuelve el id: sin id de vuelta, «guardado» sería una suposición. */
-  guardar(quoteId: string | null, draft: QuoteDraft): Promise<Resultado<string>>;
+  /**
+   * Nuevo si `quoteId` es null. Devuelve el id: sin id de vuelta, «guardado» sería una suposición. `leadId` (D-558)
+   * solo cuenta al CREAR: el enlace al lead se pone una vez y una edición no lo manda (`filaNueva`).
+   */
+  guardar(quoteId: string | null, draft: QuoteDraft, leadId?: string | null): Promise<Resultado<string>>;
   pedirAprobacion(quoteId: string, approvalId: string | null): Promise<Resultado<AprobacionEstado>>;
   pendientes(): Promise<Resultado<AprobacionPendiente[]>>;
   decidir(approvalId: string, estado: "approved" | "denied"): Promise<Resultado<null>>;
@@ -67,6 +76,17 @@ export function faltaLaTabla(error: { code?: string | null; message?: string | n
   if (!error) return false;
   const code = error.code ?? "";
   return code === "PGRST205" || code === "PGRST202" || code === "42P01" || code === "42883";
+}
+
+/**
+ * ¿Este error es «la 175 no está aplicada» (D-558)? Solo si la columna que falta es `lead_id`: PostgREST dice PGRST204
+ * («Could not find the 'lead_id' column … in the schema cache») al escribirla, y Postgres 42703 («column
+ * estimator_quotes.lead_id does not exist») al leerla. Otra columna que falte NO es esto, y se dice como error.
+ */
+export function faltaLaColumnaDelLead(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  const code = error.code ?? "";
+  return (code === "PGRST204" || code === "42703") && /\blead_id\b/.test(error.message ?? "");
 }
 
 type ErrorPg = { code?: string | null; message?: string | null } | null;
@@ -196,6 +216,18 @@ export function filaDeBorrador(d: QuoteDraft) {
   };
 }
 
+/**
+ * La fila de una cotización NUEVA (D-558): la de siempre y, si sale de un lead, su `lead_id`. Sin lead, la clave ni
+ * se manda: así una base sin la 175 la acepta igual. Una edición usa `filaDeBorrador` a secas y nunca toca el enlace.
+ */
+export function filaNueva(d: QuoteDraft, leadId: string | null | undefined) {
+  return leadId ? { ...filaDeBorrador(d), lead_id: leadId } : filaDeBorrador(d);
+}
+
+/** Lo que `cargar` pide. Con la 175, también `lead_id`; sin ella, se vuelve a pedir sin esa columna. */
+const COLUMNAS_DE_CARGAR =
+  "id, owner_id, store, print_count, estimate_num, sales_ext, customer, delivery, lines, display_level, valid_through, project_summary";
+
 // ---- la base -----------------------------------------------------------------------------------
 
 export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones {
@@ -208,18 +240,18 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
     },
 
     async cargar(quoteId) {
-      const { data, error } = await supabase
-        .from("estimator_quotes")
-        .select("id, owner_id, store, print_count, estimate_num, sales_ext, customer, delivery, lines, display_level, valid_through, project_summary")
-        .eq("id", quoteId)
-        .maybeSingle();
+      const leer = (columnas: string) => supabase.from("estimator_quotes").select(columnas).eq("id", quoteId).maybeSingle();
+      let { data, error } = await leer(`${COLUMNAS_DE_CARGAR}, lead_id`);
+      // Sin la 175 (D-558) la cotización se abre igual, sin lead.
+      if (error && faltaLaColumnaDelLead(error)) ({ data, error } = await leer(COLUMNAS_DE_CARGAR));
       if (error) return fallo(error);
       if (!data) return { ok: false, sinTabla: false, error: "not visible" };
-      const fila = data as Record<string, unknown>;
+      const fila = data as unknown as Record<string, unknown>;
       return {
         ok: true,
         valor: {
           id: String(fila.id),
+          lead_id: typeof fila.lead_id === "string" ? fila.lead_id : null,
           owner_id: (fila.owner_id as string | null) ?? null,
           owner_name: null,
           store: typeof fila.store === "string" && fila.store.trim() ? fila.store.trim() : null,
@@ -229,17 +261,25 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
       };
     },
 
-    async guardar(quoteId, draft) {
-      const fila = filaDeBorrador(draft);
-      const q = quoteId
-        ? supabase.from("estimator_quotes").update(fila).eq("id", quoteId).select("id")
-        : supabase.from("estimator_quotes").insert(fila).select("id");
-      const { data, error } = await q;
+    async guardar(quoteId, draft, leadId) {
+      // Una edición NUNCA manda `lead_id` (no se reenvía lo que la acción no cambia); una nueva, si sale de un lead.
+      const fila = quoteId ? filaDeBorrador(draft) : filaNueva(draft, leadId);
+      const escribir = (f: ReturnType<typeof filaNueva>) => quoteId
+        ? supabase.from("estimator_quotes").update(f).eq("id", quoteId).select("id")
+        : supabase.from("estimator_quotes").insert(f).select("id");
+      let { data, error } = await escribir(fila);
+      let sinLead = false;
+      // Sin la 175 (D-558): PostgREST rechaza la fila entera ANTES de escribir nada (PGRST204), así que se vuelve a
+      // mandar sin el enlace y se dice. La cotización no se pierde por una columna que aún no existe.
+      if (error && "lead_id" in fila && faltaLaColumnaDelLead(error)) {
+        ({ data, error } = await escribir(filaDeBorrador(draft)));
+        sinLead = true;
+      }
       if (error) return fallo(error);
       // Un UPDATE que la RLS no deja pasar vuelve limpio con cero filas: eso NO es guardado.
       const id = (data as { id: string }[] | null)?.[0]?.id;
       if (!id) return { ok: false, sinTabla: false, error: "0 rows" };
-      return { ok: true, valor: id };
+      return sinLead ? { ok: true, valor: id, sinLead } : { ok: true, valor: id };
     },
 
     async pedirAprobacion(quoteId, approvalId) {

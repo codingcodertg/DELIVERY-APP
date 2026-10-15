@@ -43925,6 +43925,11 @@ botón «Buscar».
 ## D-554 · El inicio del hub es un mapa de apps al estilo de QuickBooks: tres paneles (Proveedores, Clientes, Empleados), las apps que aún no existen en gris y sin enlace, y cada flecha «por conectar» salvo que la conexión exista en el código (hoy, ninguna)
 > **⚠ Reemplazada en parte por D-556** (2026-10-15): el mapa ya no es el inicio del hub; vive en su propia página («🗺️ Mapa de la empresa», `/home/mapa`) y el inicio vuelve a sus tarjetas de siempre. El mapa en sí —casillas, flechas, evidencia, accesos— no cambia.
 
+> **Reemplazada en parte por D-558** (2026-10-15): la flecha **Leads → Quote Builder** está conectada (la leyenda dice
+> «1 de 10»), y **Purchase Orders** y **Receive Inventory** dejan de ser grises: abren `/erp/purchasing/orders` y
+> `/erp/purchasing/receiving` con el módulo `erp` y el nivel de compras del ERP. Las tablas de abajo («Las casillas», «Las
+> flechas») son las del 2026-10-14 y se quedan como estaban; las de hoy están en D-558.
+
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca `/home`, que `app-for-path.ts` asigna a `deliveries`, y
 `globals.css`) · **Migración:** ninguna · Rama `inicio-mapa-de-apps`.
 **Sustituye en parte** a D-051 (la rejilla de tarjetas «¿Cuál quieres abrir?» del selector de `/home`) y a D-056 (la lista
@@ -44222,3 +44227,103 @@ Dice cuál se queda y cuál se anula. «Dejarla aparte» guarda como siempre y *
   ve, no se pregunta.
 - La anulación pasa por `setStage`, así que hace lo mismo que cualquier anulación (evento de etapa y el reparto de avisos
   de `emitStageNotifs`); qué aviso sale exactamente al anular no se midió, y no se silenció nada.
+
+## D-558 · Leads → Quote Builder, la primera conexión del mapa de apps: «Crear cotización» en un lead rellena el Quote Builder y la cotización queda enlazada al lead (migración 175); y Purchase Orders y Receive Inventory pasan a color, abriendo las del ERP
+
+**Fecha:** 2026-10-15 · **Versión:** la pone el orquestador (toca `src/app/leads`, `src/app/estimator`, `src/lib/leads`,
+`src/lib/estimator`, y el mapa de apps de D-554) · **Migración:** `175_cotizacion_de_lead.sql`, ESCRITA Y NO APLICADA
+(plan: `docs/PLAN-175-cotizacion-de-lead.md`) · Rama `mapa-leads-cotizacion`.
+**Reemplaza en parte** a D-554 (la flecha Leads → Quote Builder y las dos casillas grises del ERP; ver su nota).
+
+### Qué pidió el dueño
+
+A las dos preguntas que dejó abiertas D-554 —construir la primera conexión, Leads → Quote Builder, y poner de color
+Purchase Orders y Receive Inventory apuntando al ERP, que ya las tiene— el dueño contestó el 2026-10-15:
+
+> «si a todo»
+
+### Qué hay ahora
+
+**En Leads**, en la tarjeta de un lead, el botón **«🧮 Crear cotización»** abre `/estimator?lead=<id>`. Solo lo ve quien
+`puedeCotizarLead` (`src/lib/leads/cotizar.ts`): hace falta el Quote Builder (admin, o `'estimator'` en `module_access`,
+la misma regla que `has_estimator_access()` de la 148), y además ser el admin, o **tener el lead a tu nombre, tomado o
+vendido**. Debajo de los datos, **«🧮 N cotizaciones: #E-100 · #E-101»**, cada una con su enlace a `/estimator?quote=<id>`:
+son las que quien mira VE en el Quote Builder (la RLS de la 148) y salieron de ese lead.
+
+**En el Quote Builder**, `?lead=<id>` lee el lead con la sesión de quien abre (la RLS de leads, 163, decide) y, si
+`decidirRelleno` lo permite —la misma `puedeCotizarLead`—, rellena el borrador con `borradorDesdeLead`:
+
+| Lead (162) | Quote Builder (148) |
+|---|---|
+| `owner_contact` (la persona) | Nombre completo |
+| `owner_name` (dueño de la obra) | Empresa; y Nombre completo si no hay contacto |
+| `owner_phone` | Teléfono, con el formato del campo (956-555-0123) |
+| `site_address`, `site_city`, `site_zip` | Dirección de entrega («calle, ciudad, TX zip»), sin pin ni millas viejas; el modo no cambia |
+| `pool` (tienda más cercana) | Tienda de salida, solo si es una tienda de Ajustes |
+
+No hay correo en ninguno de los dos lados. El resumen del proyecto **se imprime**, así que no se rellena solo. Si el lead
+no se ve, no es suyo o la lectura falla, no se rellena nada y se dice cuál de las tres. Arriba de la cotización,
+**«🎯 De lead: <nombre>»** con enlace a `/leads?lead=<id>`, que en Leads enseña ese lead arriba («Lead de la cotización»)
+si quien mira lo alcanza. A quien no ve el lead: «De un lead que no puedes ver», sin nombre ni enlace.
+
+**El enlace se guarda** en `estimator_quotes.lead_id` (migración 175: nullable, clave foránea a `public.leads`,
+`on delete set null`, índice parcial). **Solo al CREAR** la cotización (`filaNueva`); una edición nunca manda la columna
+(`filaDeBorrador` a secas). Abrir otra cotización guardada cambia el lead de la pantalla por el de esa. La 175 no toca
+ninguna política ni grant ni el disparador de la 148 (el plan dice por qué y qué se descartó).
+
+**Funciona antes de la 175.** Sin la columna, abrir una cotización vuelve a pedir sin `lead_id` (42703); crear desde un
+lead se repite sin el enlace (PGRST204, que PostgREST da antes de escribir nada) y la pantalla dice «Guardada, pero sin el
+enlace al lead (migración 175)»; Leads cuenta cero cotizaciones. `faltaLaColumnaDelLead` solo acepta esos dos códigos **y**
+que la columna sea `lead_id`: otra columna que falte es un error, y se dice.
+
+### El mapa de apps
+
+| Cambio | Antes (D-554) | Ahora |
+|---|---|---|
+| Leads → Quote Builder | por conectar | **conectada**, con `evidencia` de `fichero:línea «texto»` (una prueba lee cada línea y exige el texto) y `pendiente`: «el enlace guardado espera la migración 175» |
+| Leyenda | «0 de 10 conexiones hechas» | «1 de 10» (se calcula de los datos) |
+| Purchase Orders | gris | de color → `/erp/purchasing/orders` |
+| Receive Inventory | gris | de color → `/erp/purchasing/receiving` |
+| Purchase Orders → Deliveries | por conectar | por conectar, re-medido el 2026-10-15: una orden de compra no crea una entrega |
+| Deliveries → Receive Inventory | por conectar | por conectar: la recepción recibe contra una orden de compra (`?po=`), no contra una entrega |
+
+**Acceso de las dos casillas del ERP.** Esas páginas hacen `canSeeCost(erpTier(perfil))` y, si no, mandan al catálogo.
+El mapa hace la misma cuenta con las mismas dos funciones (`veComprasDe`): **módulo `erp` y `erp_role` manager o admin**.
+Con el módulo y sin el nivel, candado con su propio aviso («pide el nivel manager o admin del ERP»); sin el dato, candado
+(falla cerrado). Es el nivel del ERP, no el rol del hub: un admin del hub con `erp_role` vacío es `staff` para el ERP y la
+página lo rebota, así que aquí también sale con candado. Desde D-556 el mapa vive en `/home/mapa`: esa página lee ahora
+también `erp_role` y `MapaDeLaEmpresa` pasa `veCompras: veComprasDe(me)`. La prueba de «nada se pierde y nada se añade» recorre además
+`erp_role` nulo y manager, y compara el CONJUNTO de entradas (tres casillas abren ya el módulo `erp`).
+
+### Decisiones mías, para validar
+
+1. **Un lead libre no se cotiza: se toma primero.** Cotizarlo sin tomarlo sería trabajarlo sin que ocupe puesto, y el
+   tope de la 162 dejaría de medir. El de otra persona tampoco: su contacto está oculto (`veContacto`). El admin, todos.
+2. **El enlace se pone al crear y no cambia** (lo hace cumplir el código, no la base: el plan explica por qué no se
+   reescribió el disparador).
+3. **Sin contacto, el dueño de la obra va de nombre**, aunque sea una empresa: el campo queda lleno y «El cliente solo
+   ve» lo enseña antes de imprimir; el aviso verde pide revisar el nombre.
+4. **La flecha se dibuja continua ya**, antes de aplicar la 175: el lead llega al Quote Builder sin volver a teclearlo,
+   que es lo que la flecha afirma. Lo que falta (el enlace guardado) va en `pendiente` y sale en la etiqueta de la flecha.
+   **Al aplicar la 175 se borra `pendiente`** de esa flecha (y la prueba que lo exige, con su nota).
+
+### Verificado
+
+- `src/lib/leads/cotizar.test.ts` (nuevo, 33): quién cotiza; el borrador desde el lead; `decidirRelleno`; `idDeParametro`
+  y los tres enlaces; `vinculoDeLead`; `cotizacionesPorLead` con datos desordenados; el guardado con un cliente de
+  Supabase de mentira (crear manda `lead_id`; sin la 175 se reintenta sin él y dice `sinLead`; otra columna no se
+  reintenta; editar nunca lo manda; abrir con y sin la columna); las lecturas cruzadas; y dos de lectura del fuente.
+- Actualizadas con «Nota D-558»: `mapa-de-apps.test.ts` (trece de color y siete grises; «hoy solo Leads → Quote
+  Builder»; la evidencia contra sus líneas; las dos flechas del ERP siguen por conectar; el acceso de las dos casillas;
+  `veComprasDe`; la equivalencia con el hub por conjunto y con `erp_role`) y `leads/modulo.test.ts` (la página lee
+  también `module_access`).
+- **Mutantes: 23 de 23 caen con una prueba con nombre** (`tanda-leads-cotizacion.json`): cotizar sin el Quote Builder;
+  el admin sin poder; holder sin mirar el estado; el lead de otro; sin contacto el dueño de empresa; el dueño gana al
+  contacto; la dirección con el pin viejo; la tienda comparada a pelo; `decidirRelleno` sin permiso; `vinculoDeLead` con
+  el nombre de otro lead; las cotizaciones sin ordenar; cualquier columna tomada por la 175; editar manda `lead_id`; sin
+  la 175 no se reintenta; sin la 175 no se abre; Leads toma la falta de la 175 por avería; Leads ofrece cotizar con solo
+  el módulo; el Quote Builder manda el lead al editar; Purchase Orders sin el nivel; falla abierto sin el dato;
+  `veComprasDe` para todos; la flecha vuelve a por conectar; Purchase Orders apunta a recepción.
+- **No verificado:** la 175 en una base (ni con `ROLLBACK`: el worker no tiene `.env.local`); el flujo en un navegador
+  (Leads → Quote Builder → guardar → volver al lead), en demo ni con sesión; el aviso PGRST204 real de PostgREST (el texto
+  que se espera sale de su documentación, no de una medida); y cómo se ve el botón en el teléfono.

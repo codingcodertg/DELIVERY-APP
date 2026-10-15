@@ -13,6 +13,8 @@ import {
   resultadoLabel, sinTocar, SITUACIONES, situacionLabel, tableroPorVendedor, telUrl, valoresDe, veContacto, ventasDe, NOTA_MAX,
   ORDEN_INICIAL, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
 } from "@/lib/leads/reglas";
+import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, puedeCotizarLead, type CotizacionDeLead } from "@/lib/leads/cotizar";
+import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 type Pestana = "banco" | "mio" | "admin";
@@ -34,7 +36,11 @@ const DIAS_SIN_TOCAR = [7, 14, 30];
  * funciones de la 162). Este componente lee, filtra y pinta, y cada acción va por el almacén, que devuelve el lead
  * como quedó en la base: eso es lo que se pinta.
  */
-export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null }) {
+export function Leads({ demo, yo: yoReal, cotiza = false }: {
+  demo: boolean; yo: Persona | null;
+  /** Tiene el Quote Builder (D-558): se ofrece «Crear cotización» y se cuentan las cotizaciones de cada lead. */
+  cotiza?: boolean;
+}) {
   const { t, lang } = usePrefs();
 
   // En el demo no hay sesión: se elige quién se es, para poder enseñar «lo tiene otra persona» y la parte del admin.
@@ -73,6 +79,18 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
   }, [almacen]);
   // En el demo, cambiar de persona es cambiar de sesión: se relee, porque cada una alcanza leads distintos.
   useEffect(() => { void cargar(); }, [cargar, idDemo]);
+
+  // Las cotizaciones de cada lead (D-558): las que quien mira VE en el Quote Builder (RLS de la 148) y salieron de un
+  // lead (`lead_id`, 175). Sin el módulo no se piden; sin la 175 vuelven cero, y no es un error.
+  const enlace: AlmacenDelEnlace = useMemo(() => (demo ? enlaceDemo() : enlaceDeLaBase(createClient())), [demo]);
+  const [cotizaciones, setCotizaciones] = useState<Map<string, CotizacionDeLead[]>>(() => new Map());
+  useEffect(() => {
+    if (!cotiza) return;
+    void enlace.cotizacionesConLead().then((r) => { if (r.ok) setCotizaciones(cotizacionesPorLead(r.valor)); });
+  }, [cotiza, enlace]);
+  // `?lead=<id>` (el enlace «De lead» de una cotización): ese lead se enseña arriba, si quien mira lo alcanza.
+  const [enfocado, setEnfocado] = useState<string | null>(null);
+  useEffect(() => { setEnfocado(idDeParametro(new URLSearchParams(window.location.search).get("lead"))); }, []);
 
   // El banco que se enseña: todas las tiendas a quien las alcanza; a los demás, SOLO la suya. Sus leads de otra
   // tienda (los que le asignó un admin) están en «Mi pool», y no traen aquí el banco de esa tienda ni su contador.
@@ -132,8 +150,10 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
       onTomar={() => void tomar(l)} onNota={() => setDialogo({ tipo: "nota", lead: l })}
       onCerrar={() => setDialogo({ tipo: "cerrar", lead: l })} onAdmin={() => setDialogo({ tipo: "admin", lead: l })}
       onHistorial={() => void verHistorial(l)}
+      cotizar={puedeCotizarLead(l, yo, cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
     />
   );
+  const leadEnfocado = enfocado ? leads.find((l) => l.id === enfocado) ?? null : null;
 
   return (
     <div className="ld-wrap">
@@ -191,6 +211,16 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
           </div>
 
           {aviso && <div className={`ld-aviso ${aviso.tono}`} data-aviso={aviso.tono} role="status">{aviso.texto}</div>}
+
+          {/* El lead de una cotización (D-558): llega por `?lead=`. Solo si quien mira lo alcanza (la RLS ya lo filtró). */}
+          {enfocado && (
+            <div className="card" data-lead-enfocado={leadEnfocado ? "si" : "no"}>
+              <h2 className="ld-h2">🧮 {t("Lead of the quote", "Lead de la cotización")}</h2>
+              {leadEnfocado
+                ? <div className="ld-lista">{tarjeta(leadEnfocado, leadEnfocado.holder === yo.id ? "mio" : "banco")}</div>
+                : <p className="hint">{t("That lead is not visible to you.", "Ese lead no lo puedes ver.")}</p>}
+            </div>
+          )}
 
           {pestana === "banco" && (
             <>
@@ -340,10 +370,14 @@ export function Leads({ demo, yo: yoReal }: { demo: boolean; yo: Persona | null 
   );
 }
 
-function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial }: {
+function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial, cotizar, cotizaciones }: {
   lead: Lead; yo: Persona; donde: "banco" | "mio" | "admin"; puede: ReturnType<typeof puedeTomar>; ocupado: boolean;
   historial: EventoLead[] | null | undefined;
   onTomar: () => void; onNota: () => void; onCerrar: () => void; onAdmin: () => void; onHistorial: () => void;
+  /** `puedeCotizarLead` (D-558): se ofrece «Crear cotización». */
+  cotizar: boolean;
+  /** Las cotizaciones de este lead que quien mira ve en el Quote Builder (D-558). */
+  cotizaciones: CotizacionDeLead[];
 }) {
   const { t, lang } = usePrefs();
   // En la pestaña del admin (cola de revisión, sin tocar) las tarjetas se leen enteras: ahí son trabajo suyo.
@@ -408,6 +442,14 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
       </dl>
       {l.scope_of_work && <p className="ld-alcance">{l.scope_of_work}</p>}
       {l.reason && <p className="hint">💬 {l.reason}</p>}
+      {cotizaciones.length > 0 && (
+        <p className="ld-cotizaciones" data-cotizaciones={cotizaciones.length}>
+          🧮 {cotizaciones.length === 1 ? t("1 quote", "1 cotización") : t(`${cotizaciones.length} quotes`, `${cotizaciones.length} cotizaciones`)}:{" "}
+          {cotizaciones.map((c, i) => (
+            <span key={c.id}>{i > 0 ? " · " : ""}<Link href={enlaceACotizacion(c.id)} data-cotizacion={c.id}>#{c.estimate_num}</Link></span>
+          ))}
+        </p>
+      )}
 
       <footer>
         {donde !== "mio" && l.status === "free" && (
@@ -420,6 +462,9 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
             <button type="button" className="btn btn-ghost" data-nota disabled={ocupado} onClick={onNota}>📝 {t("Progress note", "Nota de avance")}</button>
             <button type="button" className="btn btn-green" data-cerrar disabled={ocupado} onClick={onCerrar}>✓ {t("Close with result", "Cerrar con resultado")}</button>
           </>
+        )}
+        {cotizar && (
+          <Link className="btn btn-ghost btn-sm" href={enlaceACotizar(l.id)} data-crear-cotizacion>🧮 {t("Create quote", "Crear cotización")}</Link>
         )}
         {yo.admin && <button type="button" className="btn btn-ghost btn-sm" data-admin-lead onClick={onAdmin}>🛠 Admin</button>}
         <button type="button" className="btn btn-ghost btn-sm" data-historial onClick={onHistorial}>🕘 {t("History", "Historial")}</button>

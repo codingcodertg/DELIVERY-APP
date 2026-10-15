@@ -28,6 +28,9 @@ import {
 } from "@/lib/estimator/politica";
 import { puedeVerLista, puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
 import { alternarPriceMatch, etiquetaPriceMatch, ponCompetidor, tienePriceMatch } from "@/lib/estimator/price-match";
+import { borradorDesdeLead, decidirRelleno, idDeParametro, nombreDeLead, vinculoDeLead } from "@/lib/leads/cotizar";
+import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
+import type { Lead } from "@/lib/leads/reglas";
 import { HojaCliente } from "./HojaCliente";
 import { SeccionCompetencia } from "./Competencia";
 import { EntregaCotizacion } from "./EntregaCotizacion";
@@ -112,6 +115,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     [demo, sin161Demo, sinLlaveDemo],
   );
   const erp = useMemo(() => (demo ? null : createErpClient()), [demo]);
+  // El lead de la cotización (D-558): se lee con la sesión de quien mira, así que la RLS de leads (163) decide si lo ve.
+  const enlace: AlmacenDelEnlace = useMemo(() => (demo ? enlaceDemo() : enlaceDeLaBase(createClient())), [demo]);
 
   /** null = aún no se sabe; false = la 148 no está aplicada. */
   const [baseDisponible, setBaseDisponible] = useState<boolean | null>(null);
@@ -186,6 +191,21 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   /** La tienda de la cotización guardada que está abierta (148); null si es nueva. Sale en la hoja (D-451). */
   const [tiendaGuardada, setTiendaGuardada] = useState<string | null>(null);
   const ponerQuoteId = (id: string | null) => { quoteIdRef.current = id; setQuoteId(id); if (!id) setTiendaGuardada(null); };
+  /**
+   * El lead de lo que hay en pantalla (D-558): el de la cotización guardada que está abierta, o el lead del que se
+   * empezó una nueva (`?lead=`). Solo se GUARDA al crear la cotización (`filaNueva`); abrir otra guardada lo cambia por
+   * el de esa. `leadLeido`: undefined = aún no se ha leído; null = quien mira no lo ve; "error" = falló la lectura.
+   */
+  const [leadId, setLeadId] = useState<string | null>(null);
+  const [leadLeido, setLeadLeido] = useState<Lead | null | undefined | "error">(undefined);
+  const ponerLead = (id: string | null, leido?: Lead | null) => { setLeadId(id); setLeadLeido(leido); };
+  useEffect(() => {
+    if (!leadId || leadLeido !== undefined) return;
+    let vivo = true;
+    void enlace.leerLead(leadId).then((r) => { if (vivo) setLeadLeido(r.ok ? r.valor : "error"); });
+    return () => { vivo = false; };
+  }, [leadId, leadLeido, enlace]);
+  const vinculo = vinculoDeLead(leadId, leadLeido);
   const [comprobando, setComprobando] = useState(false);
   /** Una cotización guardada de este estimado que se puede abrir pero no se abrió sola (había trabajo tecleado). */
   const [ofertaAbrir, setOfertaAbrir] = useState<string | null>(null);
@@ -207,6 +227,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     if (!c.ok) { setAviso({ tipo: "rojo", texto: `${t("Could not open the quote", "No se pudo abrir la cotización")}: ${c.error}` }); return false; }
     setDraft(c.valor.draft);
     ponerQuoteId(c.valor.id);
+    ponerLead(c.valor.lead_id ?? null);
     setTiendaGuardada(c.valor.store);
     setPrintCount(c.valor.print_count);
     setOfertaAbrir(null);
@@ -303,7 +324,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       return null;
     }
     setOcupado(true);
-    const r = await almacen.guardar(quoteIdRef.current, draft);
+    // El lead solo viaja al CREAR (D-558); `guardar` no lo manda en una edición aunque se le pase.
+    const r = await almacen.guardar(quoteIdRef.current, draft, quoteIdRef.current ? null : leadId);
     setOcupado(false);
     if (!r.ok) {
       if (r.sinTabla) { setBaseDisponible(false); return null; }
@@ -320,9 +342,43 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     if (!h) {
       setBusqueda({ num: draft.estimate_num.trim(), hallado: { quote_id: r.valor, estimate_num: draft.estimate_num.trim(), owner_id: me.id, owner_name: me.name, owner_store: null, my_approval_id: null, my_approval: null } });
     }
-    setAviso({ tipo: "verde", texto: t("Saved.", "Guardada.") });
+    if (r.sinLead) {
+      // Guardada, pero la base aún no tiene dónde apuntar el lead (falta la 175): no se finge un enlace que no está.
+      ponerLead(null);
+      setAviso({ tipo: "ambar", texto: t("Saved, but without the link to the lead: the database has not been updated yet (migration 175).", "Guardada, pero sin el enlace al lead: la base aún no está actualizada (migración 175).") });
+    } else {
+      setAviso({ tipo: "verde", texto: t("Saved.", "Guardada.") });
+    }
     return r.valor;
   };
+
+  // ---- llegar desde otra app (D-558): `?quote=<id>` abre una guardada; `?lead=<id>` empieza una nueva desde un lead.
+  const urlLeida = useRef(false);
+  useEffect(() => {
+    if (!me || urlLeida.current) return;
+    urlLeida.current = true;
+    const q = new URLSearchParams(window.location.search);
+    const cotizacion = idDeParametro(q.get("quote"));
+    const lead = idDeParametro(q.get("lead"));
+    if (cotizacion) { void abrirGuardada(cotizacion); return; }
+    if (!lead) return;
+    void enlace.leerLead(lead).then((leido) => {
+      const que = decidirRelleno(leido, me);
+      if (que.tipo === "error") {
+        setAviso({ tipo: "rojo", texto: `${t("Could not read the lead", "No se pudo leer el lead")}: ${que.error}` });
+      } else if (que.tipo === "no-visible") {
+        setAviso({ tipo: "ambar", texto: t("That lead is not visible to you, so nothing was filled in.", "Ese lead no lo puedes ver, así que no se rellenó nada.") });
+      } else if (que.tipo === "sin-permiso") {
+        setAviso({ tipo: "ambar", texto: t(`“${nombreDeLead(que.lead)}” is not in your pool. Take it in Leads first, then create the quote from there.`, `«${nombreDeLead(que.lead)}» no está en tu pool. Tómalo primero en Leads y crea la cotización desde allí.`) });
+      } else {
+        setDraft((d) => borradorDesdeLead(que.lead, d, ajustes.stores.map((s) => s.name)));
+        ponerLead(que.lead.id, que.lead);
+        setAviso({ tipo: "verde", texto: t(`Filled in from the lead “${nombreDeLead(que.lead)}”. Check the customer's name before printing.`, `Rellenada con el lead «${nombreDeLead(que.lead)}». Revisa el nombre del cliente antes de imprimir.`) });
+      }
+    });
+    // Una sola vez, en cuanto se sabe quién mira: lo demás de la URL no cambia sin recargar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me]);
 
   const pedirAprobacion = async () => {
     if (!hallado) return;
@@ -485,6 +541,17 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             <div data-tienda style={{ padding: "8px 0", fontWeight: 600 }}>{tiendaHoja ?? <span className="hint">{t("No store on your profile", "Tu perfil no tiene tienda")}</span>}</div>
           </div>
         </div>
+        {/* De qué lead salió (D-558). Interno: la hoja del cliente no lo lleva. */}
+        {vinculo.estado !== "ninguno" && (
+          <p className="hint" data-de-lead={vinculo.estado} style={{ margin: "0 0 8px" }}>
+            🎯 {vinculo.estado === "visible"
+              ? <>{t("From lead", "De lead")}: <Link href={vinculo.href} data-de-lead-enlace><b>{vinculo.nombre}</b></Link></>
+              : vinculo.estado === "cargando" ? t("From a lead…", "De un lead…")
+              : vinculo.estado === "oculto" ? t("From a lead you cannot see.", "De un lead que no puedes ver.")
+              : t("From a lead (it could not be read).", "De un lead (no se pudo leer).")}
+            {!quoteId && vinculo.estado === "visible" && <> · {t("linked when you save", "se enlaza al guardar")}</>}
+          </p>
+        )}
         {buscado && hallado && (estado === "sin-pedir" || estado === "denegada" || estado === "pendiente") && (
           <div className="est-acciones" data-aprobacion>
             <span>
