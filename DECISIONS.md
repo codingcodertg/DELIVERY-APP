@@ -43909,6 +43909,7 @@ botón «Buscar».
   contenedor con scroll, están sin mirar.
 
 ## D-554 · El inicio del hub es un mapa de apps al estilo de QuickBooks: tres paneles (Proveedores, Clientes, Empleados), las apps que aún no existen en gris y sin enlace, y cada flecha «por conectar» salvo que la conexión exista en el código (hoy, ninguna)
+> **⚠ Reemplazada en parte por D-556** (2026-10-15): el mapa ya no es el inicio del hub; vive en su propia página («🗺️ Mapa de la empresa», `/home/mapa`) y el inicio vuelve a sus tarjetas de siempre. El mapa en sí —casillas, flechas, evidencia, accesos— no cambia.
 
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca `/home`, que `app-for-path.ts` asigna a `deliveries`, y
 `globals.css`) · **Migración:** ninguna · Rama `inicio-mapa-de-apps`.
@@ -44100,3 +44101,16 @@ D-442 · Rama `cotizador-price-match`.
   contar; la hoja imprime la marca; los adjuntos sin la lectura; sin tope de 120.
 - `npx tsc --noEmit` limpio tras la última edición.
 - **No verificado:** en navegador (la casilla, la lista de competidores al teclear, la columna y su menú), y el `next build`.
+
+## D-556 · El mapa de la empresa vive en su propia app; el inicio del hub vuelve a sus tarjetas
+
+**Fecha:** 2026-10-15 · **Versión:** deliveries 1.311.0 (repo 1.421.0) · Sin migración · Hecho directo por el orquestador en `mapa-en-su-app`.
+
+**Pedido del dueño**, literal: *«el schema que hicimos de la app pon lo dentro de una app no asi coomo lo dejaste y trae le diseno al rtb hub denuevo»*.
+
+**Qué cambia.** D-554 había puesto el mapa de apps al estilo QuickBooks **en lugar** de las tarjetas del inicio. Ahora:
+- **El inicio (`HomeSelector`) vuelve exactamente al de antes de D-554** —tarjetas de módulos, lista de herramientas con sus números de ayuda sin leer (D-311)— más **una tarjeta «🗺️ Mapa de la empresa»** que lleva a `/home/mapa`. La tarjeta la ve todo el que llega al inicio.
+- **`/home/mapa`** es la página del mapa, con las mismas puertas que el inicio (sesión, perfil en tres desenlaces D-234, `canReachHub` D-173, cookie de suplantación D-306) y las mismas dos listas (`available`, `tools`), así que no abre nada nuevo. Aquí las casillas de ayuda no llevan número; el número sigue en el inicio.
+- El mapa (`mapa-de-apps.ts`, `MapaDeApps.tsx`) no cambia.
+
+**Pruebas:** `mapa-de-apps.test.ts` — el bloque que fijaba «el inicio pinta el mapa» ahora fija lo contrario, con su nota. Mutantes 4 de 4 (la tarjeta del inicio, la puerta del hub en la página, las herramientas visibles, la ruta). **No medido:** en el navegador con sesión.
