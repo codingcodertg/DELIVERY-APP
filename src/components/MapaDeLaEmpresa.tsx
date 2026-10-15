@@ -5,6 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { accessibleModules, HUB_TOOLS } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { MapaDeApps } from "@/components/MapaDeApps";
+import { veComprasDe } from "@/lib/mapa-de-apps";
 
 /**
  * «🗺️ Mapa de la empresa» (D-556): el mapa de apps al estilo QuickBooks de D-554, en su propia página del hub.
@@ -25,7 +26,9 @@ export function MapaDeLaEmpresa({ me, suplantando }: { me: Profile; suplantando:
           ← {t("Back to the hub", "Volver al inicio")}
         </Link>
         <h1>🗺️ {t("Company map", "Mapa de la empresa")}</h1>
-        <MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools }} lang={lang} t={t} sinLeerDe={() => 0} />
+        {/* `veCompras` (D-NEXT): Purchase Orders y Receive Inventory abren pantallas del ERP que rebotan a quien no tiene
+            el nivel de compras (`erp_role` manager/admin, que la página lee); a esa persona, con candado. */}
+        <MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools, veCompras: veComprasDe(me) }} lang={lang} t={t} sinLeerDe={() => 0} />
       </div>
     </div>
   );

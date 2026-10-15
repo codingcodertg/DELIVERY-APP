@@ -25,7 +25,10 @@ export function MapaDeApps({ alcance, lang, t, sinLeerDe }: {
   const nombre = (c: Casilla) => (lang === "es" ? c.label_es : c.label_en);
   const conectadas = FLECHAS.filter((f) => trazoDe(f) === "conectada").length;
   const otras = otrasApps(alcance);
-  const estadoFlecha = (f: Flecha) => (trazoDe(f) === "conectada" ? t("connected", "conectada") : t("not connected yet", "por conectar"));
+  // Lo que a una conexión hecha aún le falta (D-NEXT: la migración 175) se dice en su etiqueta, no se calla.
+  const estadoFlecha = (f: Flecha) => (trazoDe(f) === "conectada"
+    ? t("connected", "conectada") + (f.pendiente ? ` (${t("pending", "pendiente")}: ${f.pendiente})` : "")
+    : t("not connected yet", "por conectar"));
   const etiquetaFlecha = (f: Flecha) => `${nombre(casilla(f.de))} → ${nombre(casilla(f.a))}: ${estadoFlecha(f)}`;
 
   const pieza = (c: Casilla) => {
@@ -50,7 +53,9 @@ export function MapaDeApps({ alcance, lang, t, sinLeerDe }: {
         data-estado={e.estado}
         aria-disabled="true"
         title={bloqueada
-          ? t("You don't have access to this app. Ask an admin.", "No tienes acceso a esta app. Pídeselo a un administrador.")
+          ? e.estado === "sin-acceso" && e.motivo === "nivel-erp"
+            ? t("This ERP screen needs the ERP manager or admin level. Ask an admin.", "Esta pantalla del ERP pide el nivel manager o admin del ERP. Pídeselo a un administrador.")
+            : t("You don't have access to this app. Ask an admin.", "No tienes acceso a esta app. Pídeselo a un administrador.")
           : t("Coming soon — this app isn't built yet.", "Próximamente — esta app aún no se ha creado.")}
       >
         <span className="mapa-icono" aria-hidden>{c.emoji}</span>

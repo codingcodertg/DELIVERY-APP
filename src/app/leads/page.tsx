@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Persona } from "@/lib/leads/reglas";
+import { tieneEstimador } from "@/lib/leads/cotizar";
 import { Leads } from "./Leads";
 
 export const dynamic = "force-dynamic";
@@ -14,13 +15,17 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  * La puerta (quién entra) está en `layout.tsx`.
  */
 export default async function LeadsPage() {
-  if (SIN_BASE) return <Leads demo yo={null} />;
+  if (SIN_BASE) return <Leads demo yo={null} cotiza />;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let yo: Persona | null = null;
+  let cotiza = false;
   if (user) {
-    const { data } = await supabase.from("profiles").select("full_name, store, role").eq("id", user.id).maybeSingle();
+    const { data } = await supabase.from("profiles").select("full_name, store, role, module_access").eq("id", user.id).maybeSingle();
     yo = { id: user.id, name: data?.full_name?.trim() || user.email || "—", store: data?.store ?? null, admin: data?.role === "admin" };
+    // ¿Tiene el Quote Builder? (D-NEXT) Solo decide si se ofrece «Crear cotización» y se cuentan las cotizaciones de
+    // cada lead; la puerta del Quote Builder y la RLS de la 148 lo vuelven a exigir.
+    cotiza = tieneEstimador(data);
   }
-  return <Leads demo={false} yo={yo} />;
+  return <Leads demo={false} yo={yo} cotiza={cotiza} />;
 }
