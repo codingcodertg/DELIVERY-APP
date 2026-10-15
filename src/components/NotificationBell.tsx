@@ -7,6 +7,7 @@ import { useData } from "@/lib/data-provider";
 import { stageInfo } from "@/lib/constants";
 import { ASSIGNED_KIND, AYUDA_ATENDIDA_KIND } from "@/lib/notifications";
 import { AYUDA_MENSAJE_KIND, AYUDA_RESPUESTA_KIND, destinoDelAvisoDeAyuda } from "@/lib/help-thread";
+import { AVISO_SOLICITUD_APROBADA, AVISO_SOLICITUD_NUEVA, AVISO_SOLICITUD_RECHAZADA, destinoDelAvisoDeSolicitud } from "@/lib/solicitud-de-asignacion";
 
 // Compact "3m", "2h", "4d" relative time for the notification list.
 function ago(iso: string): string {
@@ -36,7 +37,10 @@ export function NotificationBell() {
     // Los avisos de ayuda no son de una orden y no llevaban a ningún sitio, tampoco el de «atendida»
     // de D-301. Ahora llevan a la conversación: a «Mis solicitudes», o a la vista del admin (D-311).
     const ayuda = destinoDelAvisoDeAyuda(kind);
+    // Las solicitudes de asignación (D-NEXT): la nueva, a la bandeja del Gestor; la decidida, a su orden.
+    const solicitud = destinoDelAvisoDeSolicitud(kind, deliveryId);
     if (ayuda) router.push(ayuda);
+    else if (solicitud) router.push(solicitud);
     else if (deliveryId) router.push(`/?order=${deliveryId}`);
   };
 
@@ -136,6 +140,9 @@ export function NotificationBell() {
                   n.kind === ASSIGNED_KIND ? "var(--accent)"
                   : n.kind === AYUDA_ATENDIDA_KIND ? "var(--green)"
                   : n.kind === AYUDA_RESPUESTA_KIND || n.kind === AYUDA_MENSAJE_KIND ? "var(--amber)"
+                  : n.kind === AVISO_SOLICITUD_NUEVA ? "var(--amber)"
+                  : n.kind === AVISO_SOLICITUD_APROBADA ? "var(--green)"
+                  : n.kind === AVISO_SOLICITUD_RECHAZADA ? "var(--red)"
                   : stageInfo(n.kind).color;
                 return (
                   <button

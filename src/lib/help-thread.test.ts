@@ -116,7 +116,8 @@ describe("a dónde lleva la campana", () => {
 
   it("la campana pregunta primero si es de ayuda, y si no, va a la orden como siempre", () => {
     const campana = plano(sinComentarios(leer("src/components/NotificationBell.tsx")));
-    expect(campana).toContain("const ayuda = destinoDelAvisoDeAyuda(kind); if (ayuda) router.push(ayuda); else if (deliveryId) router.push(`/?order=${deliveryId}`);");
+    // Nota D-NEXT (solicitudes de asignación): entre la ayuda y la orden va el destino de la solicitud; la ayuda sigue primero.
+    expect(campana).toContain("const ayuda = destinoDelAvisoDeAyuda(kind); const solicitud = destinoDelAvisoDeSolicitud(kind, deliveryId); if (ayuda) router.push(ayuda); else if (solicitud) router.push(solicitud); else if (deliveryId) router.push(`/?order=${deliveryId}`);");
     expect(campana).toContain("onPick(n.id, n.read, n.delivery_id, n.kind)");
   });
 });
