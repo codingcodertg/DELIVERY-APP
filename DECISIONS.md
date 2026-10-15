@@ -44328,7 +44328,7 @@ también `erp_role` y `MapaDeLaEmpresa` pasa `veCompras: veComprasDe(me)`. La pr
   (Leads → Quote Builder → guardar → volver al lead), en demo ni con sesión; el aviso PGRST204 real de PostgREST (el texto
   que se espera sale de su documentación, no de una medida); y cómo se ve el botón en el teléfono.
 
-## D-NEXT · «Ver todas las tiendas» (`all_stores`): un permiso por persona, solo para el gerente, que le deja ver en Entregas las órdenes de todas las tiendas como admin y logística — el primer paso del «Operations Manager»
+## D-559 · «Ver todas las tiendas» (`all_stores`): un permiso por persona, solo para el gerente, que le deja ver en Entregas las órdenes de todas las tiendas como admin y logística — el primer paso del «Operations Manager»
 
 **Fecha:** 2026-10-15 · **Versión:** la pone el orquestador (toca `src/lib/constants.ts`, `src/lib/panel-por-tienda.ts`,
 `src/lib/ordenes-visibles.ts`, `src/app/api/puntualidad/route.ts`: código compartido, pero lo que cambia solo se ve en
@@ -44388,7 +44388,7 @@ ve», la base le pone ese techo, igual que hoy. `permissions` lo escribe solo el
 - `src/lib/todas-las-tiendas.test.ts` (nuevo, 22): quién la tiene; el Panel; la lista y «Factura pendiente» con órdenes de
   tres tiendas desordenadas; la casilla en Usuarios; y dos de lectura del fuente (puntualidad lee `permissions`; el Panel
   pasa `me` entero).
-- Actualizada con «Nota D-NEXT»: `leads/alcance.test.ts` («Entregas sigue ofreciendo todos sus permisos» exigía
+- Actualizada con «Nota D-559»: `leads/alcance.test.ts` («Entregas sigue ofreciendo todos sus permisos» exigía
   `capabilityOffered` ausente; ahora exige que todos menos `all_stores` se sigan ofreciendo).
 - **Mutantes: 16 de 16 caen con una prueba con nombre** (`tanda-todas-las-tiendas.json`): la palabra sirve a cualquier
   rol; todo gerente ve todas sin ella; cualquier permiso amplía; admin y logística pierden la suya; la casilla se ofrece a

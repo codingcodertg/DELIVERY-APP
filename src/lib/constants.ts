@@ -910,7 +910,7 @@ export const CAPABILITIES: { key: Capability; en: string; es: string; desc_en: s
   { key: "route_plan", en: "Plan routes",     es: "Planificar rutas",    desc_en: "Assign orders to drivers and optimize their route", desc_es: "Asignar órdenes a choferes y optimizar su ruta" },
   // D-350: sin esto, la pantalla corta a «de ayer en adelante» (D-239). Con esto, todo el historial — de las tiendas que la 131 le deja ver.
   { key: "history",   en: "See all orders",   es: "Ver todas las órdenes", desc_en: "Every order of their store(s), not just recent days", desc_es: "Todas las órdenes de su(s) tienda(s), no solo las de estos días" },
-  // D-NEXT («Operations Manager»): el gerente ve Órdenes, Panel y «Factura pendiente» de TODAS las tiendas, como admin y
+  // D-559 («Operations Manager»): el gerente ve Órdenes, Panel y «Factura pendiente» de TODAS las tiendas, como admin y
   // logística. Solo se ofrece —y solo surte efecto— al manager (`todas-las-tiendas.ts`). Leer, no escribir: borrar o
   // deshacer en otra tienda sigue cerrado. Es la ventana de tiendas, no la de días: eso es `history`.
   { key: CAP_TODAS_LAS_TIENDAS, en: "See all stores", es: "Ver todas las tiendas", desc_en: "Orders, Dashboard and Pending invoice of every store, like admin and logistics — not only their own. Managers only. Does not let them delete or undo in other stores.", desc_es: "Órdenes, Panel y Factura pendiente de todas las tiendas, como admin y logística — no solo la suya. Solo para managers. No deja borrar ni deshacer en otras tiendas." },
@@ -935,7 +935,7 @@ export const CAPABILITIES: { key: Capability; en: string; es: string; desc_en: s
  * necesite el historial lo tiene a un clic, en vez de tenerlo todo el mundo sin pedirlo.
  */
 export const ROLE_CAPS: Record<UserRole, Capability[]> = {
-  // `all_stores` (D-NEXT): admin y logística ya ven todas las tiendas por su rol; aquí se dice, para que el diálogo la
+  // `all_stores` (D-559): admin y logística ya ven todas las tiendas por su rol; aquí se dice, para que el diálogo la
   // enseñe fija («del rol») en vez de ofrecer una casilla que no cambia nada.
   admin:     ["create", "approve", "fulfill", "deliver", "dashboard", "settings", "route_plan", "history", CAP_TODAS_LAS_TIENDAS],
   manager:   ["create", "approve", "dashboard"],
@@ -1056,7 +1056,7 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     accessColumn: "module_access",
     capabilities: CAPABILITIES,
     capabilitiesFromRole: (key) => ROLE_CAPS[key as UserRole] ?? [],
-    // Todas se ofrecen a todos los roles, menos «Ver todas las tiendas» (D-NEXT): al gerente (apagable) y a quien ya la
+    // Todas se ofrecen a todos los roles, menos «Ver todas las tiendas» (D-559): al gerente (apagable) y a quien ya la
     // trae de su rol (admin, logística: fija). A ventas, oficina, almacén o chofer no se les dibuja: no les surtiría efecto.
     capabilityOffered: (cap, key) => cap !== CAP_TODAS_LAS_TIENDAS || seOfreceTodasLasTiendas(key) || (ROLE_CAPS[key as UserRole] ?? []).includes(CAP_TODAS_LAS_TIENDAS),
   },

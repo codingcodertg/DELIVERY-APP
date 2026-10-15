@@ -1,7 +1,7 @@
 import type { Profile, UserRole } from "@/lib/types";
 
 /**
- * «Ver todas las tiendas» en Entregas: un permiso por persona, no un rol (D-NEXT).
+ * «Ver todas las tiendas» en Entregas: un permiso por persona, no un rol (D-559).
  *
  * El dueño, 2026-10-15, al pedir un «Operations Manager» con acceso a todas las apps como gerente y preguntarle si una
  * tienda o todas: «por ahora se llamara francis y todas».

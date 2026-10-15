@@ -10,7 +10,7 @@ import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation, Profile, UserRole } from "./types";
 
 /**
- * «Ver todas las tiendas» (`all_stores`, D-NEXT).
+ * «Ver todas las tiendas» (`all_stores`, D-559).
  *
  * El dueño, 2026-10-15, al preguntarle si el «Operations Manager» ve una tienda o todas: «por ahora se llamara francis y
  * todas». Las tiendas aquí son Norte, Sur y Oeste: las reales son datos del dueño y viven en Ajustes.

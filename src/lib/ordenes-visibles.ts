@@ -250,7 +250,7 @@ export const ROLES_LISTA_DE_SU_TIENDA: readonly UserRole[] = ["manager", "sales"
  *
  * - **admin y logística**: todas, siempre (`alcanceDelPanel` ya lo dice así);
  * - **gerente y ventas**: su tienda y las de su grupo, siempre — busquen o no; salvo el gerente con
- *   «Ver todas las tiendas» (`all_stores`, D-NEXT), que ve todas como admin y logística (lo decide
+ *   «Ver todas las tiendas» (`all_stores`, D-559), que ve todas como admin y logística (lo decide
  *   `alcanceDelPanel`);
  * - **los demás** (office, almacén, cualquier otro rol): **solo buscando**. Sin buscar, su lista se
  *   queda como estaba (D-374, D-392, D-404);
