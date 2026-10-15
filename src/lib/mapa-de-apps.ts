@@ -20,6 +20,9 @@
 import { accessibleModules, HUB_TOOLS, roleHome, type HubTool, type ModuleInfo } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
 
+/** Dónde vive el mapa (D-556): su propia página del hub, con una tarjeta en el inicio que lleva a ella. */
+export const RUTA_MAPA_DE_LA_EMPRESA = "/home/mapa";
+
 export type PanelKey = "vendors" | "customers" | "employees";
 
 export interface Panel {

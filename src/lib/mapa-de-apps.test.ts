@@ -6,6 +6,7 @@ import type { UserRole } from "@/lib/types";
 import {
   CASILLAS, COLUMNAS, FLECHAS, alcanceDe, casilla, celdaDe, colocacion, estadoDeCasilla, otrasApps, secuenciaMovil,
   trazoDe, type Casilla, type Flecha,
+  RUTA_MAPA_DE_LA_EMPRESA,
 } from "./mapa-de-apps";
 
 // El mapa de apps del hub (D-554). Lo que decide vive en mapa-de-apps.ts y estas pruebas lo IMPORTAN.
@@ -221,10 +222,27 @@ describe("en el teléfono", () => {
 
 describe("el hub pinta el mapa con las listas de siempre", () => {
   const leer = (f: string) => readFileSync(join(process.cwd(), f), "utf8");
-  it("HomeSelector pasa a MapaDeApps los mismos `available` y `tools` que pintaba la rejilla", () => {
+  // Nota D-556: el mapa sale del inicio y va a su propia página (`/home/mapa`); el inicio vuelve a las tarjetas de
+  // antes con una tarjeta «🗺️ Mapa de la empresa». El dueño, 2026-10-15: «el schema que hicimos de la app pon lo dentro
+  // de una app no asi coomo lo dejaste y trae le diseno al rtb hub denuevo».
+  it("el mapa vive en su página y recibe los mismos `available` y `tools` que el inicio", () => {
+    const pagina = leer("src/components/MapaDeLaEmpresa.tsx");
+    expect(pagina).toContain("const available = accessibleModules(me.module_access);");
+    expect(pagina).toContain("const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));");
+    expect(pagina).toContain("<MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools }}");
+    expect(existsSync(join(process.cwd(), "src/app/home/mapa/page.tsx"))).toBe(true);
+    expect(RUTA_MAPA_DE_LA_EMPRESA).toBe("/home/mapa");
+  });
+  it("el inicio vuelve a sus tarjetas, con la del mapa, y ya no pinta el mapa", () => {
     const hub = leer("src/components/HomeSelector.tsx");
-    expect(hub).toContain("<MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools }}");
-    expect(hub).not.toContain("module-pick-grid");
+    expect(hub).toContain('<div className="module-pick-grid">');
+    expect(hub).toContain("<Link href={RUTA_MAPA_DE_LA_EMPRESA} className=\"module-pick-card\" data-hub-mapa>");
+    expect(hub).not.toContain("<MapaDeApps");
+  });
+  it("la página del mapa tiene las mismas puertas que el inicio", () => {
+    const p = leer("src/app/home/mapa/page.tsx");
+    expect(p).toContain("if (!canReachHub(me)) redirect(landingRoute(me));");
+    expect(p).toContain("if (!user) redirect(");
   });
   it("el trazo de la flecha lo decide trazoDe, no el campo `conectada` a pelo", () => {
     const mapa = leer("src/components/MapaDeApps.tsx");

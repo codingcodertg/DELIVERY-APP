@@ -6,11 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import { noLeidosPorSolicitud, repartoDeNoLeidos } from "@/lib/help-thread";
 import { usePrefs } from "@/lib/prefs";
 import { VersionFooter } from "@/components/VersionFooter";
-import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS } from "@/lib/constants";
-import { MapaDeApps } from "@/components/MapaDeApps";
+import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { veAppsParaInstalar } from "@/lib/hub-apps";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
+import { RUTA_MAPA_DE_LA_EMPRESA } from "@/lib/mapa-de-apps";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
@@ -19,8 +19,11 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
   const available = accessibleModules(me.module_access);
   // `suplantando` lo decide el servidor (home/page.tsx) y solo lo miran las herramientas del admin real.
   const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));
-  // El href de Entregas según el rol (almacén → su cola, logística → rutas) lo resuelve ahora
-  // `estadoDeCasilla` en src/lib/mapa-de-apps.ts, con `roleHome` (D-554).
+  // The deliveries card's own href is a placeholder ("/") — it's the same
+  // ModuleInfo entry used by the app switcher and everywhere else, but where
+  // deliveries actually lands depends on the person's role (warehouse -> its
+  // own queue, logistics -> routes, not the Orders board everyone else gets).
+  const hrefFor = (key: string, fallback: string) => (key === "deliveries" ? roleHome(me.role) : fallback);
 
   // Mensajes de ayuda sin leer, en la tarjeta que toca (D-311). El hub no tiene campana, así que
   // este número es la única señal que hay aquí. La RLS ya acota lo que se lee: una persona solo
@@ -45,7 +48,7 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
 
   return (
     <div className="auth-wrap">
-      <div className="auth-card hub-mapa-card">
+      <div className="auth-card" style={{ maxWidth: 480 }}>
         <h1>
           {t("Hi, ", "Hola, ")}
           {me.full_name}
@@ -62,11 +65,45 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
         <Link href={RUTA_PERSONALIZAR} className="hub-profile-link" data-hub-personalizar>
           🎨 {t("Customize · language, theme", "Personalizar · idioma, tema")}
         </Link>
-        {/* El mapa de apps (D-554) sustituye a la rejilla de módulos y a la lista de herramientas: lo pidió el dueño
-            el 2026-10-14, con el diagrama de su jefe al estilo de QuickBooks. Decide con las MISMAS dos listas que
-            pintaba la rejilla (`available` y `tools`), así que no abre nada nuevo a nadie; lo que tenía y el mapa no
-            dibuja (RTG PROMOS, la vista móvil…) sale en «Otras apps», debajo. */}
-        <MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools }} lang={lang} t={t} sinLeerDe={sinLeerDe} />
+        <p style={{ color: "var(--ink-soft)", marginBottom: 20 }}>
+          {t("Which one do you want to open?", "¿Cuál quieres abrir?")}
+        </p>
+        <div className="module-pick-grid">
+          {/* El mapa de la empresa (D-554) vive en su propia app, no en el inicio (D-556, el dueño: «el schema que
+              hicimos de la app pon lo dentro de una app no asi coomo lo dejaste y trae le diseno al rtb hub denuevo»).
+              Para todos: el mapa enseña lo que cada quien puede abrir y lo demás con candado o en gris. */}
+          <Link href={RUTA_MAPA_DE_LA_EMPRESA} className="module-pick-card" data-hub-mapa>
+            <span className="module-pick-emoji">🗺️</span>
+            <span className="module-pick-label">{t("Company map", "Mapa de la empresa")}</span>
+            <span className="module-pick-desc">{t("Every app and how they connect", "Todas las apps y cómo se conectan")}</span>
+          </Link>
+          {available.map((m) => (
+            <Link key={m.key} href={hrefFor(m.key, m.href)} className="module-pick-card">
+              <span className="module-pick-emoji">{m.emoji}</span>
+              <span className="module-pick-label">{lang === "es" ? m.label_es : m.label_en}</span>
+              <span className="module-pick-desc">{lang === "es" ? m.desc_es : m.desc_en}</span>
+            </Link>
+          ))}
+        </div>
+
+        {/* A tool isn't a module — it doesn't get the same big launch tile. */}
+        {tools.length > 0 && (
+          <>
+            <div className="hub-tools-label">{t("Tools", "Herramientas")}</div>
+            {tools.map((tool) => (
+              <Link key={tool.key} href={tool.href} className="hub-tool-row">
+                <span className="hub-tool-emoji">{tool.emoji}</span>
+                <span>
+                  <span className="hub-tool-label">
+                    {lang === "es" ? tool.label_es : tool.label_en}
+                    {sinLeerDe(tool.key) > 0 && <span className="hub-tool-badge">{sinLeerDe(tool.key)}</span>}
+                  </span>
+                  <span className="hub-tool-desc" style={{ display: "block" }}>{lang === "es" ? tool.desc_es : tool.desc_en}</span>
+                </span>
+              </Link>
+            ))}
+          </>
+        )}
 
         {/* Las apps que se instalan (D-167).
             -------------------------------------------------------------------
