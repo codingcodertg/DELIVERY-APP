@@ -176,7 +176,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   /** Cambia una línea entera (la marca «Price Match» QUITA claves al desmarcar, y un `patch` no sabe quitar). */
   const cambiaLinea = (id: string, f: (l: QuoteLine) => QuoteLine) =>
     setDraft((d) => ({ ...d, lines: d.lines.map((l) => (l.id === id ? f(l) : l)) }));
-  /** Los competidores de los estimados pegados a esta cotización (D-425), que ofrece la marca «Price Match» (D-NEXT). */
+  /** Los competidores de los estimados pegados a esta cotización (D-425), que ofrece la marca «Price Match» (D-555). */
   const [competidoresAdjuntos, setCompetidoresAdjuntos] = useState<string[]>([]);
 
   // Lo que las comprobaciones asíncronas leen AHORA, no lo que había cuando se lanzaron.
@@ -581,7 +581,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             <div key={l.id} className="est-linea" data-linea={i}>
               <div className="est-linea-cab">
                 <span>{t("Line", "Línea")} {i + 1} · {l.kind === "sf" ? t("by square foot", "por pie cuadrado") : t("no square feet (lot, each…)", "sin pies cuadrados (lote, pieza…)")}</span>
-                {/* D-NEXT: «Price Match», marca INTERNA del precio de la línea. No sale en la hoja del cliente (D-425). */}
+                {/* D-555: «Price Match», marca INTERNA del precio de la línea. No sale en la hoja del cliente (D-425). */}
                 <label className="est-pm-check" style={{ marginLeft: "auto" }} title={t("Internal: this price was lowered because a competitor quotes lower. Not printed for the customer.", "Interno: este precio se bajó porque un competidor cotiza más bajo. No se imprime para el cliente.")}>
                   <input type="checkbox" data-price-match checked={tienePriceMatch(l)}
                     onChange={() => cambiaLinea(l.id, (x) => alternarPriceMatch(x, competidoresAdjuntos))} />
@@ -715,7 +715,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             </div>
           );
         })}
-        {/* Los competidores de los estimados adjuntos, para el campo de «Price Match» (D-NEXT). */}
+        {/* Los competidores de los estimados adjuntos, para el campo de «Price Match» (D-555). */}
         <datalist id="est-pm-competidores">
           {competidoresAdjuntos.map((c) => <option key={c} value={c} />)}
         </datalist>

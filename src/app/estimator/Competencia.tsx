@@ -149,7 +149,7 @@ export function SeccionCompetencia({ almacen, lecturas: almacenLecturas, propias
   propias: LineaPropia[];
   /** Sin cotización guardada no hay dónde pegar el archivo: en vez de solo decirlo, se ofrece guardarla desde aquí. */
   guardarCotizacion?: { puede: boolean; hacer: () => void };
-  /** D-NEXT: los competidores de los estimados pegados a ESTA cotización, para la marca «Price Match» de las líneas. */
+  /** D-555: los competidores de los estimados pegados a ESTA cotización, para la marca «Price Match» de las líneas. */
   onCompetidores?: (nombres: string[]) => void;
 }) {
   /** null = aún no se sabe; false = falta la 161 (los productos, apagados; los archivos siguen). */
@@ -192,7 +192,7 @@ export function SeccionCompetencia({ almacen, lecturas: almacenLecturas, propias
     if (r.sinTabla) { setBaseArchivos(false); return; }
     setError(`${t("Could not read the files", "No se pudieron leer los archivos")}: ${r.error}`);
   }, [almacen, almacenLecturas, quoteId, t]);
-  // D-NEXT: avisa al Quote Builder de qué competidores tiene esta cotización (los ofrece en «Price Match»).
+  // D-555: avisa al Quote Builder de qué competidores tiene esta cotización (los ofrece en «Price Match»).
   useEffect(() => { onCompetidores?.(competidoresAdjuntos(archivos, lecturas)); }, [archivos, lecturas, onCompetidores]);
   // Otra cotización: lo elegido para la anterior no se cuela en esta.
   useEffect(() => { setPendientes([]); setConfirmando(null); setAbierto(null); }, [quoteId]);

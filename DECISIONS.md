@@ -44040,7 +44040,7 @@ para el admin real **Mis solicitudes de ayuda** (su casilla de Help Requests abr
 - **No verificado:** la página entera con sesión (el saludo, los enlaces de arriba y «Apps para instalar» alrededor del
   mapa), el `next build`, y cómo queda en la app de escritorio y en el APK.
 
-## D-NEXT · Quote Builder: la marca «Price Match» en el precio de una línea, interna (en el Quote Builder y en las listas, con columna para filtrar), nunca en la hoja del cliente
+## D-555 · Quote Builder: la marca «Price Match» en el precio de una línea, interna (en el Quote Builder y en las listas, con columna para filtrar), nunca en la hoja del cliente
 
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca solo `src/app/estimator` y `src/lib/estimator`) ·
 **Migración:** ninguna — dos claves opcionales en el `jsonb` `lines` de `estimator_quotes` (148), como el precio más bajo de
@@ -44092,7 +44092,7 @@ D-442 · Rama `cotizador-price-match`.
   marca; `"true"`/`1` no cuentan; ida y vuelta por `filaDeBorrador`/`borradorDeFila`; tope 120; marcar con uno/dos/ningún
   adjunto; el competidor previo manda; desmarcar quita las claves; escribir conserva espacios; la hoja idéntica con y sin
   marca y su HTML sin «Price Match» ni el competidor; el resumen cuenta líneas; columna y celda; la cabecera cuenta
-  cotizaciones). Actualizadas con «Nota D-NEXT» `lista-admin.test.ts` y `mis-cotizaciones.test.ts` (la columna nueva y
+  cotizaciones). Actualizadas con «Nota D-555» `lista-admin.test.ts` y `mis-cotizaciones.test.ts` (la columna nueva y
   `price_match_lines` en el resumen de prueba).
 - **Mutantes: 12 de 12 caen con una prueba con nombre** (`tanda-price-match.json`): cualquier verdadero cuenta como marca;
   `borradorDeFila` sin leer la marca; desmarcar deja el competidor; con dos adjuntos se adivina el primero; el adjunto pisa

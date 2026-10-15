@@ -89,7 +89,7 @@ export interface CotizacionResumen {
   sf: number;
   /** El total estimado de materiales, con impuesto: el mismo que ve el vendedor bajo la hoja (D-442). */
   total: number;
-  /** Cuántas líneas llevan la marca «Price Match» (D-NEXT, `lineasConPriceMatch`). 0 en las viejas: sin la clave = sin marcar. */
+  /** Cuántas líneas llevan la marca «Price Match» (D-555, `lineasConPriceMatch`). 0 en las viejas: sin la clave = sin marcar. */
   price_match_lines: number;
   print_count: number;
   printed_at: string | null;
@@ -299,7 +299,7 @@ export const COLUMNAS_DE_LA_TABLA: readonly { key: ClaveDeColumna; en: string; e
   { key: "cliente", en: "Customer", es: "Cliente" },
   { key: "sf", en: "SF", es: "Pies²" },
   { key: "total", en: "Total", es: "Total" },
-  // D-NEXT: la marca interna «Price Match» de las líneas. Se filtra con el menú de la columna, como Vendedor o Tienda.
+  // D-555: la marca interna «Price Match» de las líneas. Se filtra con el menú de la columna, como Vendedor o Tienda.
   { key: "price_match", en: "Price Match", es: "Price Match" },
   { key: "estado", en: "Status", es: "Estado" },
 ];
@@ -341,7 +341,7 @@ export function valorDeColumna(clave: string, c: CotizacionResumen, t: (en: stri
 }
 
 /**
- * Lo que filtra la columna «Price Match» (D-NEXT): «Price Match» si alguna línea lleva la marca, y null si ninguna. El menú
+ * Lo que filtra la columna «Price Match» (D-555): «Price Match» si alguna línea lleva la marca, y null si ninguna. El menú
  * de la columna ofrece entonces solo «Price Match» y «—»: es el filtro «con / sin Price Match». Cuántas líneas son va en
  * la celda (`celdaDePriceMatch`), no aquí: con «×2» en el valor, el menú partiría las marcadas en varias opciones.
  */

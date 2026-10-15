@@ -1,5 +1,5 @@
 /**
- * «Price Match» en una línea de la cotización (D-NEXT). El dueño, 2026-10-14: «Quote builder should allow you to tag
+ * «Price Match» en una línea de la cotización (D-555). El dueño, 2026-10-14: «Quote builder should allow you to tag
  * "Price Match" to a price so its known that competitors are giving low».
  *
  * Es una **marca interna** sobre el precio de la línea: «este precio se bajó porque un competidor cotiza más bajo». La

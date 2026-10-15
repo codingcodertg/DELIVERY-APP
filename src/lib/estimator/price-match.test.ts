@@ -15,7 +15,7 @@ import {
 } from "./price-match";
 
 /**
- * D-NEXT: la marca «Price Match» en el precio de una línea. El dueño, 2026-10-14: «Quote builder should allow you to tag
+ * D-555: la marca «Price Match» en el precio de una línea. El dueño, 2026-10-14: «Quote builder should allow you to tag
  * "Price Match" to a price so its known that competitors are giving low». Interna: la ven el Quote Builder y las listas,
  * nunca la hoja del cliente (como el estimado de la competencia, D-425).
  */

@@ -172,7 +172,7 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
         <h2 data-todas-titulo={todas ? "todas" : "mias"}>
           📚 {todas ? t("All quotes", "Todas las cotizaciones") : t("My quotes", "Mis cotizaciones")}{" "}
           <span className="hint">({orden.visibles.length}{hayMas ? "+" : ""})</span>
-          {/* D-NEXT: cuántas de las visibles llevan alguna línea con «Price Match». El filtro es el menú de su columna. */}
+          {/* D-555: cuántas de las visibles llevan alguna línea con «Price Match». El filtro es el menú de su columna. */}
           {cotizacionesConPriceMatch(orden.visibles) > 0 && (
             <span className="est-pm" data-todas-price-match style={{ marginLeft: 8 }}>
               {cotizacionesConPriceMatch(orden.visibles)} {t("with Price Match", "con Price Match")}

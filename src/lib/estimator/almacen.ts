@@ -119,7 +119,7 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
       internal_description: texto(l.internal_description),
       customer_category: texto(l.customer_category),
       customer_note: texto(l.customer_note),
-      // «Price Match» (D-NEXT): en el mismo `jsonb`; una línea vieja o sin marcar no trae las claves y sale sin marca.
+      // «Price Match» (D-555): en el mismo `jsonb`; una línea vieja o sin marcar no trae las claves y sale sin marca.
       ...marcaDeFila(l),
     };
     if (l.kind === "unit") {

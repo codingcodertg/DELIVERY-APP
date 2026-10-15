@@ -84,7 +84,7 @@ export interface SfLine {
   /** Un precio más bajo por SF, opcional (D-442). Solo vale si es menor que el regular: `precioAplicado`. */
   lower_price_per_sf: number | null;
   /**
-   * «Price Match» (D-NEXT): este precio se bajó porque un competidor cotiza más bajo. **Interno**: no sale en la hoja del
+   * «Price Match» (D-555): este precio se bajó porque un competidor cotiza más bajo. **Interno**: no sale en la hoja del
    * cliente. Opcional en el `jsonb`; sin la clave = sin marcar (`price-match.ts`).
    */
   price_match?: boolean;
@@ -107,7 +107,7 @@ export interface UnitLine {
   /** Un precio más bajo de la unidad, opcional (D-442). */
   lower_unit_price: number | null;
   /**
-   * «Price Match» (D-NEXT): este precio se bajó porque un competidor cotiza más bajo. **Interno**: no sale en la hoja del
+   * «Price Match» (D-555): este precio se bajó porque un competidor cotiza más bajo. **Interno**: no sale en la hoja del
    * cliente. Opcional en el `jsonb`; sin la clave = sin marcar (`price-match.ts`).
    */
   price_match?: boolean;
