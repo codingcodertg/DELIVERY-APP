@@ -188,8 +188,16 @@ describe("filasDeLaFormula", () => {
 //
 // La prueba recorre el fichero en vez de mirar una lista escrita a mano, así que el tercer sitio
 // que aparezca tampoco podrá quedarse sin él.
-describe("todo sitio que pinte «Tarifa sugerida» pinta también el desglose", () => {
-  const src = readFileSync("src/components/OrderModal.tsx", "utf8");
+// Nota D-NEXT (2026-10-14): el diálogo de «Comenzar preparación» salió de la ficha a `ConfirmarTarifaAlComenzar` (lo abre
+// también la columna «Siguiente paso» de Almacén). El recorrido se hace sobre los DOS ficheros, uno detrás del otro, y
+// la guarda de cada uno con sus nombres: en el componente el rol real llega como `adminReal`, y la ficha se lo pasa.
+const FICHEROS_CON_TARIFA_SUGERIDA = [
+  { fichero: "src/components/OrderModal.tsx", guarda: 'realRole === "admin" && feeSuggestion.breakdown' },
+  { fichero: "src/components/ConfirmarTarifaAlComenzar.tsx", guarda: "adminReal && sugerencia.breakdown" },
+] as const;
+
+describe.each(FICHEROS_CON_TARIFA_SUGERIDA)("todo sitio que pinte «Tarifa sugerida» pinta también el desglose — $fichero", ({ fichero, guarda }) => {
+  const src = readFileSync(fichero, "utf8");
   const lineas = src.split(/\r?\n/);
 
   const dondeSePinta = (aguja: string) =>
@@ -200,7 +208,21 @@ describe("todo sitio que pinte «Tarifa sugerida» pinta también el desglose", 
   const sitios = dondeSePinta("<BotonesDeTarifa ");
   const desgloses = dondeSePinta("<FeeBreakdownDetails");
 
+  it("los tres sitios entre los dos ficheros, y la ficha le pasa al diálogo el rol REAL", () => {
+    const total = FICHEROS_CON_TARIFA_SUGERIDA
+      .map((f) => readFileSync(f.fichero, "utf8").split("<BotonesDeTarifa ").length - 1)
+      .reduce((a, b) => a + b, 0);
+    expect(total).toBe(3);
+    expect(readFileSync("src/components/OrderModal.tsx", "utf8")).toContain('adminReal={realRole === "admin"}');
+  });
+
+  it("hay al menos un sitio en cada fichero", () => {
+    expect(sitios.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("hay al menos dos sitios, que es lo que hizo falta descubrir", () => {
+    // Nota D-NEXT: el diálogo es UN sitio en su propio fichero; el «al menos dos» vale para la ficha.
+    if (fichero !== "src/components/OrderModal.tsx") return;
     // Control: si el recorrido devolviera cero o uno, la prueba de abajo pasaría sin comprobar
     // nada — que es exactamente cómo D-244 se quedó a medias.
     expect(sitios.length).toBeGreaterThanOrEqual(2);
@@ -222,7 +244,7 @@ describe("todo sitio que pinte «Tarifa sugerida» pinta también el desglose", 
   });
 
   it("y los dos con la misma condición: rol REAL admin", () => {
-    const conGuarda = lineas.filter((l) => l.includes('realRole === "admin" && feeSuggestion.breakdown'));
+    const conGuarda = lineas.filter((l) => l.includes(guarda));
     expect(conGuarda).toHaveLength(sitios.length);
   });
 });

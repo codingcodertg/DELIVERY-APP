@@ -14,6 +14,7 @@ import { useConfirm } from "@/lib/confirm";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
+import { usePasoEnLaFila } from "@/components/SiguientePasoDeBodega";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { printLoadSheets } from "@/lib/slip";
 import { ETAPAS_DE_LA_HOJA_DE_CARGA, ETAPAS_DE_LA_RUTA_DEL_DIA, rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
@@ -53,6 +54,16 @@ export default function WarehousePage() {
   const reprogramar = (d: Delivery) => puedeReprogramar(me?.role, d.stage)
     ? <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
     : null;
+  /**
+   * «Siguiente paso» (D-NEXT): el dueño, «It would be easier if changing the stage for warehouse was a dropdown as a next
+   * column instead of having to open the orders one by one». Una columna tras «Etapa» en la Cola y en Recepción, con
+   * los pasos de bodega que la ficha le daría a esta persona en esa orden (`pasosDeBodega`), y los MISMOS diálogos de
+   * la ficha cuando el paso confirma algo: la tarifa al comenzar (D-450) y los pallets al marcar listo (D-287).
+   */
+  const pasoEnLaFila = usePasoEnLaFila();
+  const columnaSiguientePaso = {
+    key: "__siguiente_paso", en: "Next step", es: "Siguiente paso", despuesDe: "stage", ancho: 170, celda: pasoEnLaFila.celda,
+  };
   // Warehouse starts on the Approved (new) queue — the orders waiting to be
   // prepared — and narrows/expands from there.
   //
@@ -293,7 +304,7 @@ export default function WarehousePage() {
             </div>
           )}
           <OrdersTable rows={cola.filas} resizeKey="warehouse" onOpen={setOpen} visible={ROLE_DEFAULT_COLUMNS.warehouse} empty={t("Nothing in this queue.", "Nada en esta cola.")}
-            accionDeFila={reprogramar} />
+            accionDeFila={reprogramar} columnaExtra={columnaSiguientePaso} />
         </div>
       ) : vista === "recepcion" ? (
         /* Recepción: las Intertiendas cuyo DESTINO es una de sus tiendas y que no salen de ellas.
@@ -312,6 +323,7 @@ export default function WarehousePage() {
               onOpen={setOpen}
               visible={ROLE_DEFAULT_COLUMNS.warehouse}
               empty={t("Nothing coming in from another store.", "No llega nada de otra tienda.")}
+              columnaExtra={columnaSiguientePaso}
               // «Recibir» en la propia fila (D-409), solo donde `puedeRecibir` dice que sí: almacén, en
               // `picked_up`, y la orden va a su tienda. Recepción ya es esa lista, pero la regla se pregunta
               // igual: un admin eligiendo tienda aquí no recibe, y una lista y un permiso no son lo mismo.
@@ -404,6 +416,8 @@ export default function WarehousePage() {
       )}
 
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={() => setOpen(null)} />}
+      {/* El diálogo del paso elegido en una fila (la tarifa o los pallets), fuera de la tabla. */}
+      {pasoEnLaFila.dialogo}
     </>
   );
 }

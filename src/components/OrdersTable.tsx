@@ -12,7 +12,7 @@ import { useData } from "@/lib/data-provider";
 import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag, todayISO } from "@/lib/utils";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { ANCHO_MINIMO } from "@/lib/user-prefs";
-import { columnasEnOrden, enOrdenDePartida, ordenEfectivo } from "@/lib/orden-de-columnas";
+import { columnaExtraTras, columnasEnOrden, enOrdenDePartida, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
 import { comparaCeldas, filtraFilas, opcionesDeFiltro, type ValorDeCelda } from "@/lib/orden-y-filtro";
@@ -375,6 +375,7 @@ export function OrdersTable({
   anchos,
   onAnchos,
   accionDeFila,
+  columnaExtra,
   vista,
   onVista,
 }: {
@@ -410,6 +411,9 @@ export function OrdersTable({
   onAnchos?: (anchos: Record<string, number>) => void;
   /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-409). No abre la orden al pulsarlo. */
   accionDeFila?: (d: Delivery) => React.ReactNode;
+  /** Una columna de la página, sin ordenar ni filtrar, justo después de `despuesDe` (o al final si esa no se ve). El
+   *  toque en su celda no abre la orden. La usa Almacén para «Siguiente paso» (D-NEXT), al lado de la etapa. */
+  columnaExtra?: { key: string; en: string; es: string; despuesDe: string; ancho: number; celda: (d: Delivery) => React.ReactNode };
   /** Los filtros de columna y el orden, llevados por la página (D-440): así se pueden guardar con nombre y volver a
    *  poner. Sin `vista` y `onVista`, la tabla los lleva dentro, como siempre (Almacén, chofer…). */
   vista?: VistaDeTabla;
@@ -467,6 +471,9 @@ export function OrdersTable({
     const enOrden = columnasEnOrden(visible, ordenEfectivo(ORDER_COLUMNS.map((c) => c.key), orden));
     return [idCol, ...enOrden.map((k) => ORDER_COLUMNS.find((c) => c.key === k)!)];
   }, [visible, orden, byInvoice]);
+  // Tras qué columna va la de la página (D-NEXT): tras `despuesDe` si se ve, y si no, al final.
+  const extraTras = columnaExtraTras(cols.map((c) => c.key), columnaExtra?.despuesDe);
+  const totalDeColumnas = cols.length + (selectable ? 1 : 0) + (columnaExtra ? 1 : 0);
 
   const openFilterMenu = (key: string) => {
     if (openFilter === key) { setOpenFilter(null); return; }
@@ -576,10 +583,13 @@ export function OrdersTable({
     <div className="tbl-con-barra">
     <BarraSuperior caja={cajaRef} />
     <div className="tbl-scroll tbl-fit orders-scroll tbl-caja" ref={cajaRef}>
-      <table className="orders tbl-resize orders-responsive" style={anchoDeTabla([selectable ? 34 : 0, ...cols.map((c) => colw.widthOf(c.key))])}>
+      <table className="orders tbl-resize orders-responsive" style={anchoDeTabla([selectable ? 34 : 0, ...cols.map((c) => colw.widthOf(c.key)), columnaExtra ? columnaExtra.ancho : 0])}>
         <colgroup>
           {selectable && <col style={{ width: 34 }} />}
-          {cols.map((c) => <col key={c.key} style={{ width: colw.widthOf(c.key) }} />)}
+          {cols.map((c, i) => [
+            <col key={c.key} style={{ width: colw.widthOf(c.key) }} />,
+            i === extraTras && columnaExtra && <col key={columnaExtra.key} style={{ width: columnaExtra.ancho }} />,
+          ])}
         </colgroup>
         <thead>
           <tr>
@@ -588,10 +598,10 @@ export function OrdersTable({
                 <input type="checkbox" checked={allChecked} onChange={onToggleAll} style={{ width: 15, height: 15 }} />
               </th>
             )}
-            {cols.map((c) => {
+            {cols.map((c, i) => {
               const activeCount = filters[c.key]?.size;
               const hasFilter = activeCount != null && activeCount > 0;
-              return (
+              return [
                 <th key={c.key}>
                   {/* The name and the ▾ open the same menu, with sorting and the filter (D-275).
                       The name used to sort straight away, and the filter was only the small ▾ next to it. */}
@@ -617,18 +627,22 @@ export function OrdersTable({
                   </div>
                   {/* Drag to resize; double-click to reset this column. */}
                   <span className="col-resizer" title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} onMouseDown={colw.startResize(c.key)} onDoubleClick={() => colw.resetCol(c.key)} />
-                </th>
-              );
+                </th>,
+                // La columna de la página (D-NEXT): solo su nombre, sin menú de ordenar ni filtrar.
+                i === extraTras && columnaExtra && (
+                  <th key={columnaExtra.key}><div className="th-cell"><span className="th-sort">{lang === "es" ? columnaExtra.es : columnaExtra.en}</span></div></th>
+                ),
+              ];
             })}
           </tr>
         </thead>
         <tbody>
           {sortedRows.length === 0 ? (
-            <tr><td colSpan={cols.length + (selectable ? 1 : 0)} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
+            <tr><td colSpan={totalDeColumnas} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
           ) : grupos.flatMap((g) => [
             agrupada && (
               <tr key={"tienda:" + g.tienda} className="grupo-tienda">
-                <td colSpan={cols.length + (selectable ? 1 : 0)}>{g.tienda || t("No store", "Sin tienda")} <span className="cnt">{g.filas.length}</span></td>
+                <td colSpan={totalDeColumnas}>{g.tienda || t("No store", "Sin tienda")} <span className="cnt">{g.filas.length}</span></td>
               </tr>
             ),
             ...g.filas.map((d) => (
@@ -648,7 +662,7 @@ export function OrdersTable({
                   <input type="checkbox" checked={!!selected?.has(d.id)} onChange={() => onToggle?.(d.id)} style={{ width: 15, height: 15 }} />
                 </td>
               )}
-              {cols.map((c) => (
+              {cols.map((c, i) => [
                 <td key={c.key} data-label={lang === "es" ? c.es : c.en} className={[c.key === "__id" ? (byInvoice ? "ordno ordno-drv" : "ordno") : "", c.pastillas ? "td-pastillas" : ""].filter(Boolean).join(" ") || undefined}>
                   {c.cell(d, ctx)}
                   {c.key === "__id" && accionDeFila && (() => {
@@ -672,8 +686,14 @@ export function OrdersTable({
                       {expanded.has(d.id) ? "▾" : "▸"}
                     </button>
                   )}
-                </td>
-              ))}
+                </td>,
+                // La celda de la página (D-NEXT). El toque no abre la orden: es un control, no un dato.
+                i === extraTras && columnaExtra && (
+                  <td key={columnaExtra.key} data-label={lang === "es" ? columnaExtra.es : columnaExtra.en} onClick={(e) => e.stopPropagation()}>
+                    {columnaExtra.celda(d)}
+                  </td>
+                ),
+              ])}
             </tr>
             )),
           ])}

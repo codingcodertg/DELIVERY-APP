@@ -73,32 +73,43 @@ describe("qué se escribe al comenzar", () => {
   });
 });
 
+/*
+ * Nota D-NEXT (2026-10-14): el diálogo salió de la ficha a `ConfirmarTarifaAlComenzar`, y la escritura a
+ * `escribeComenzar` (`lib/pasos-de-bodega`), porque los usa también la columna «Siguiente paso» de Almacén. El dueño:
+ * «It would be easier if changing the stage for warehouse was a dropdown as a next column instead of having to open the
+ * orders one by one». Lo que estas pruebas miraban dentro de la ficha se mira ahora donde vive, con las mismas citas
+ * (cambia `existing` por `pedido` y `busy` por `ocupado`); lo que escribe se prueba EJECUTÁNDOLO en
+ * `pasos-de-bodega.test.ts`.
+ */
+const dialogo = plano(leer("src/components/ConfirmarTarifaAlComenzar.tsx"));
+
 describe("la ficha usa todo esto, y no otra cosa", () => {
   it("el botón llama a `comenzarPreparacion`, que abre el diálogo solo si el tipo cobra; si no, mueve la etapa", () => {
     const abrir = ficha.slice(ficha.indexOf("const comenzarPreparacion = () => {"), ficha.indexOf("const confirmarYComenzar"));
     expect(abrir.length).toBeGreaterThan(0);
-    expect(abrir).toContain('if (!pideConfirmarTarifa(existing, settings.order_type_rules)) { void move("fulfilling"); return; }');
-    expect(abrir).toContain("setTarifaAlComenzar(existing.delivery_fee ?? null);");
+    // Nota D-NEXT: sin diálogo, la escritura de `escribeComenzar` con `null` (antes `move("fulfilling")`: la misma).
+    expect(abrir).toContain("if (!pideConfirmarTarifa(existing, settings.order_type_rules)) { void confirmarYComenzar(null); return; }");
     expect(abrir).toContain("setShowStartConfirm(true);");
   });
   it("confirmar es UNA escritura: la etapa, la nota y el `extra` que decide `escrituraAlComenzar`", () => {
     const conf = ficha.slice(ficha.indexOf("const confirmarYComenzar = async"), ficha.indexOf("Guardar «agregar material»"));
-    expect(conf).toContain("escrituraAlComenzar(existing.delivery_fee, tarifaAlComenzar, sinTarifa)");
-    expect(conf).toContain('setStage(existing.id, "fulfilling", t(escritura.nota.en, escritura.nota.es), escritura.extra)');
-    expect(conf.split("setStage(").length - 1).toBe(1);
+    expect(conf.length).toBeGreaterThan(0);
+    expect(conf).toContain("escribeComenzar(setStage, existing.id, escritura, t)");
+    expect(conf).not.toContain("setStage(existing");
   });
   it("el diálogo: campo decimal, los precios Lista/Descuento, y el principal dice el monto", () => {
-    const dlg = ficha.slice(ficha.indexOf("{showStartConfirm && existing && (() => {"), ficha.indexOf("{showReadyConfirm && existing && ("));
-    expect(dlg.length).toBeGreaterThan(0);
-    expect(dlg).toContain("const escritura = escrituraAlComenzar(existing.delivery_fee, tarifaAlComenzar);");
-    expect(dlg).toContain("<CampoDecimal value={tarifaAlComenzar} onValor={setTarifaAlComenzar}");
-    expect(dlg).toContain("<BotonesDeTarifa tarifa={tarifaAlComenzar} list={feeSuggestion.list} discount={feeSuggestion.discount} elegir={setTarifaAlComenzar}");
-    expect(dlg).toContain('onClick={() => void confirmarYComenzar(false)} disabled={busy || !escritura}>');
-    expect(dlg).toContain("t(`Confirm ${fmtMoney(tarifaAlComenzar)} and start`, `Confirmar ${fmtMoney(tarifaAlComenzar)} y comenzar`)");
+    expect(ficha).toContain("{showStartConfirm && existing && ( <ConfirmarTarifaAlComenzar pedido={existing} sugerencia={feeSuggestion}");
+    expect(ficha).toContain("onConfirmar={(escritura) => void confirmarYComenzar(escritura)}");
+    expect(dialogo).toContain("const escritura = escrituraAlComenzar(pedido.delivery_fee, tarifaAlComenzar);");
+    expect(dialogo).toContain("useState<number | null>(pedido.delivery_fee ?? null)");
+    expect(dialogo).toContain("<CampoDecimal value={tarifaAlComenzar} onValor={setTarifaAlComenzar}");
+    expect(dialogo).toContain("<BotonesDeTarifa tarifa={tarifaAlComenzar} list={sugerencia.list} discount={sugerencia.discount} elegir={setTarifaAlComenzar}");
+    expect(dialogo).toContain("onClick={() => { if (escritura) onConfirmar(escritura); }} disabled={ocupado || !escritura}>");
+    expect(dialogo).toContain("t(`Confirm ${fmtMoney(tarifaAlComenzar)} and start`, `Confirmar ${fmtMoney(tarifaAlComenzar)} y comenzar`)");
   });
   it("la salida sin tarifa sale cuando la orden llega sin tarifa, y no depende de lo tecleado", () => {
-    const dlg = ficha.slice(ficha.indexOf("{showStartConfirm && existing && (() => {"), ficha.indexOf("{showReadyConfirm && existing && ("));
-    expect(dlg).toContain('{sinCobrar && ( <button className="btn btn-ghost" onClick={() => void confirmarYComenzar(true)}');
-    expect(ficha).toContain("const sinCobrar = existing != null && llegaSinTarifa(existing.delivery_fee);");
+    expect(dialogo).toContain("const sinTarifa = escrituraAlComenzar(pedido.delivery_fee, tarifaAlComenzar, true);");
+    expect(dialogo).toContain('{sinCobrar && sinTarifa && ( <button className="btn btn-ghost" onClick={() => onConfirmar(sinTarifa)}');
+    expect(dialogo).toContain("const sinCobrar = llegaSinTarifa(pedido.delivery_fee);");
   });
 });
