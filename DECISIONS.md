@@ -43907,3 +43907,135 @@ botón «Buscar».
 - **No verificado:** nada de esto se abrió en un navegador (ni demo del ERP, que no existe, ni sesión real), ni el
   `next build`. El aspecto del ⚙ Columnas de la casa dentro del ERP, y que el menú de cabecera no quede recortado por el
   contenedor con scroll, están sin mirar.
+
+## D-554 · El inicio del hub es un mapa de apps al estilo de QuickBooks: tres paneles (Proveedores, Clientes, Empleados), las apps que aún no existen en gris y sin enlace, y cada flecha «por conectar» salvo que la conexión exista en el código (hoy, ninguna)
+
+**Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca `/home`, que `app-for-path.ts` asigna a `deliveries`, y
+`globals.css`) · **Migración:** ninguna · Rama `inicio-mapa-de-apps`.
+**Sustituye en parte** a D-051 (la rejilla de tarjetas «¿Cuál quieres abrir?» del selector de `/home`) y a D-056 (la lista
+«Herramientas» debajo de ella, «a tool isn't a module — it doesn't get the same big launch tile»). **No toca** quién llega
+a `/home` (`canReachHub`, D-056/D-173), dónde aterriza cada uno (`landingRoute`, D-051), ni nada de lo demás del lobby: Mi
+perfil (D-265), Personalizar (D-490), los contadores de ayuda sin leer (D-311), «Apps para instalar» solo para el admin
+(D-167/D-169/D-262) y Salir siguen igual y en su sitio.
+
+### Qué pidió el dueño
+
+> «quiero que hagamos esto asi como quickbooks, esto es lo que mi jefe me mnado un workflow con todo todas las apps y como se van conectacnto obvio mientras no se conected no creas algo falso  y las apps que estan ahi quedan en gris porqeu aun no se crean pero ahi estaran y estaremos formando eso»
+
+Con el documento de su jefe, `RTG DASH.pptx`: la diapositiva 1 es una captura de la «Home Page» de QuickBooks Desktop
+(paneles blancos titulados VENDORS / CUSTOMERS / EMPLOYEES, casillas de icono y nombre, flechas grises); la 2 es el diagrama
+del jefe con las apps de RTG, en oscuro las que existen y en claro las que no.
+
+### Qué se hizo
+
+- `src/lib/mapa-de-apps.ts` (puro, lo importan las pruebas): las 20 casillas con su panel, fila y columna; las 10 flechas
+  con `conectada` y su `evidencia`; `estadoDeCasilla` (abierta / sin acceso / próximamente), `otrasApps`, `colocacion` de
+  cada flecha en la rejilla y `secuenciaMovil` para el teléfono.
+- `src/components/MapaDeApps.tsx` lo pinta; `HomeSelector.tsx` lo pone donde estaban la rejilla y las herramientas.
+- `globals.css`: clases `mapa-*`, solo tokens (el tema oscuro sale solo). Escritorio: rejilla con las flechas en las
+  columnas/filas pares. Teléfono (≤760px): un panel debajo de otro, cada uno una lista con chevrones hacia abajo; las
+  flechas que no unen dos pasos seguidos se dicen en una línea («→ Orden de venta · por conectar»).
+- Arriba, una leyenda con la cuenta: **«0 de 10 conexiones hechas»**, calculada de los datos, no escrita a mano.
+
+### Las casillas (diapositiva 2: formas oscuras = existen, claras = no)
+
+| Panel | Casilla del jefe | Existe | Abre | Quién la abre |
+|---|---|---|---|---|
+| Proveedores | Purchase Orders | no (gris) | — | — |
+| Proveedores | Deliveries | sí | `roleHome(rol)`: `/`, `/warehouse`, `/routes`… | módulo `deliveries` |
+| Proveedores | Receive Inventory | no (gris) | — | — |
+| Proveedores | Enter Bills | no (gris) | — | — |
+| Proveedores | Pay Bills | no (gris) | — | — |
+| Proveedores | ERP Inventory (debajo de Deliveries) | sí | `/erp/inventory` | módulo `erp` |
+| Clientes | Sales Order (encima de Quote Builder) | no (gris) | — | — |
+| Clientes | Refunds & Credits | no (gris) | — | — |
+| Clientes | Leads | sí | `/leads` | módulo `leads` |
+| Clientes | Quote Builder | sí | `/estimator` | módulo `estimator` |
+| Clientes | Create Invoice | no (gris) | — | — |
+| Clientes | Receive Payments | no (gris) | — | — |
+| Clientes | Record Deposits | no (gris) | — | — |
+| Empleados | Users | sí | `/home/users` | herramienta `users` (admin) |
+| Empleados | HR Mgmt | sí | `/recruiting` | módulo `recruiting` |
+| Empleados | Time Tracker | sí | `/timetracker` | módulo `timetracker` |
+| Empleados | Surveys | sí | `/surveys` | módulo `surveys` |
+| Empleados | Help Requests | sí | admin: `/home/solicitudes-de-ayuda`; resto: `/home/ayuda` | herramienta `help-requests`, si no `my-help` |
+| Empleados | Tutorials | sí | `/home/tutorials` | herramienta `tutorials` (todos) |
+| Empleados | Company Phone Book | sí | `/home/directory` | herramienta `directory` (todos) |
+
+Una prueba recorre `src/app` y comprueba que cada href de una casilla de color tiene su `page.tsx` (los cuatro de
+`roleHome` incluidos), y otra que ninguna gris tiene destino.
+
+### Las flechas, una por una (comprobado en el código el 2026-10-14)
+
+| Flecha (forma) | Conectada | Evidencia |
+|---|---|---|
+| Purchase Orders → Deliveries (46) | no | Purchase Orders no está construida. El ERP sí tiene órdenes de compra (`erp.purchase_orders`, `063_erp_module.sql:370`; `src/app/erp/purchasing/orders`), pero nada las une a Entregas: ningún fichero de `src/app/erp`, `src/lib/erp` ni `src/components/erp` lee `deliveries`, y ninguna pantalla de Entregas usa `schema("erp")` (grep). |
+| Deliveries → Receive Inventory (47) | no | Receive Inventory no está construida. La recepción del ERP (`src/app/erp/purchasing/receiving`, motivo `'receive'` en `063_erp_module.sql:45`) no la alimenta ninguna entrega. |
+| Receive Inventory → Enter Bills (48) | no | Ninguna de las dos existe. |
+| Enter Bills → Pay Bills (49) | no | Ninguna de las dos existe. |
+| Sales Order → Purchase Orders (50, cruza de Clientes a Proveedores) | no | Ninguna de las dos existe. |
+| Quote Builder → Sales Order (51) | no | Sales Order no existe. Una cotización (`public.estimator_quotes`, `148_estimator.sql:68`) no se convierte en nada: el estimador no inserta en `deliveries` ni en otra tabla de órdenes; solo reutiliza la calculadora de tarifa de Entregas (`src/app/estimator/EntregaCotizacion.tsx:20`). |
+| Leads → Quote Builder (42) | **no, aunque las dos existen** | `estimator_quotes` no tiene columna de lead (`148_estimator.sql:68-93`) ni se la añade ninguna migración posterior; `src/app/leads/Leads.tsx` no enlaza a `/estimator`; `src/app/estimator` no menciona los leads. Un lead se vuelve a teclear en el Quote Builder. |
+| Quote Builder → Create Invoice (43) | no | Create Invoice no existe. |
+| Create Invoice → Receive Payments (44) | no | Ninguna de las dos existe. |
+| Receive Payments → Record Deposits (45) | no | Ninguna de las dos existe. |
+
+La regla del trazo vive en `trazoDe`: **continua solo si `conectada` y las dos casillas existen**. Marcar `conectada` una
+flecha hacia una casilla gris no la pinta continua. Cuando una conexión se construya, se cambia su `conectada` y su
+`evidencia` en ese fichero, en el mismo cambio que la construye; la prueba «hoy ninguna está conectada» caerá a propósito y
+se reescribe con su nota.
+
+**Corrección a la lectura de la diapositiva que llegó con el encargo.** Las formas 50 y 51 son flechas «derecha» **giradas
+270°** (`rot="16200000"`): apuntan hacia ARRIBA. La 50 (x≈5,0, y 1,64–2,35 pulgadas) va de **Sales Order a Purchase
+Orders** —la misma flecha que tiene QuickBooks de Sales Orders a Purchase Orders—, no de Purchase Orders a ERP Inventory.
+ERP Inventory no tiene ninguna flecha en el diagrama. La 51 va de Quote Builder a Sales Order.
+
+### Acceso: nadie gana nada
+
+El mapa decide con **las mismas dos listas** que pintaba la rejilla: `accessibleModules(module_access)` y `HUB_TOOLS`
+filtradas por `visible({ ...me, suplantando })`. Una casilla de color que la persona no tiene sale **con candado y sin
+enlace** («🔒 Sin acceso»), para que todo el mundo vea el mapa entero. Una prueba recorre los siete roles × ocho
+`module_access` × suplantando sí/no y exige que «lo que se abre en el mapa + Otras apps» sea **exactamente** lo que pintaba
+el hub: ni una entrada de menos, ni una de más.
+
+- Consecuencia que se acepta: el admin sin `'erp'` en `module_access` ve Inventario ERP con candado, aunque el layout del ERP
+  le dejaría entrar (`hasErp = role === "admin" || …`). Es lo que hacía la rejilla de antes (no le pintaba la tarjeta), y
+  ampliar eso sería otra decisión.
+- `/erp/inventory` manda al catálogo a quien no ve costos (`canSeeCost`, `src/app/erp/inventory/page.tsx:18`). La casilla
+  se llama «Inventario ERP», así que apunta al inventario y el propio ERP decide.
+
+### «Otras apps»
+
+Lo que el hub ofrecía y el diagrama no dibuja va en una fila compacta debajo del mapa: **RTG PROMOS** (módulo `promos`), y
+para el admin real **Mis solicitudes de ayuda** (su casilla de Help Requests abre la bandeja de todos), **Vista móvil** y
+**Cambiar de usuario** (D-306). Fichaje no aparece porque no tiene tarjeta propia desde D-111: se entra por Time Tracker.
+
+### Lo que el dueño decide
+
+- **Purchase Orders y Receive Inventory podrían apuntar ya al ERP**, que tiene órdenes de compra (`/erp/purchasing/orders`)
+  y recepción (`/erp/purchasing/receiving`, movimientos `'receive'`). El jefe las dibujó grises y **se dejan grises como las
+  dibujó**. Si se quieren de color, es cambiar `existe` y `destino` de dos casillas, y la prueba de «once de color» con su nota.
+- Los nombres en español de las casillas grises («Registrar facturas», «Recibir pagos»…) son traducción mía del inglés del
+  jefe; Quote Builder se queda igual en los dos idiomas (D-448).
+
+### Prueba
+
+- `src/lib/mapa-de-apps.test.ts` (26), que importa el módulo: casillas y rutas reales, las diez flechas y su sentido, «hoy
+  ninguna conectada» con evidencia fechada, `trazoDe`, la colocación en la rejilla, el acceso por rol, la equivalencia con el
+  hub de antes, «Otras apps», la secuencia del teléfono, y dos de lectura del fuente (HomeSelector pasa `available` y
+  `tools`; MapaDeApps traza con `trazoDe`). Ninguna prueba existente afirmaba la rejilla vieja, así que ninguna se reescribió;
+  las que leen `HomeSelector.tsx` (Mi perfil, Personalizar, apps para instalar, la línea de `tools`, el formulario de Salir)
+  siguen en verde.
+- **Mutantes: 19 de 19 caen con una prueba con nombre** (`tanda-mapa-de-apps.json`): una casilla gris con destino; Leads →
+  Quote Builder marcada conectada; `trazoDe` sin mirar si existen las casillas; `trazoDe` sin mirar `conectada`; un módulo no
+  concedido que se abre; una herramienta no visible que se abre; `alcanceDe` sin `visible()`; Entregas sin `roleHome`;
+  Inventario ERP sin su ruta; Help Requests eligiendo la última visible; `otrasApps` sin herramientas; `otrasApps` repitiendo
+  módulos; la flecha horizontal en la celda de una casilla; la vertical al revés; dos casillas no contiguas colocadas igual;
+  el chevrón repetido en la línea aparte; la fila principal no primero; el hub pasando todas las herramientas; MapaDeApps
+  trazando con `conectada` a pelo.
+- **Visto en Chrome headless** (2026-10-14), pero **no la página `/home` real**: el modo demo no sirve `/home` (lo pide al
+  servidor de Supabase). Se pintó `MapaDeApps` a HTML estático con `renderToStaticMarkup` y `globals.css`, para un admin con
+  todo y para un vendedor con Entregas + Leads + Promos, en claro y oscuro, a 1280, 1024 y 390 px: 10 flechas, 9 grises,
+  candados donde tocan, y `scrollWidth` igual al ancho de la ventana en los seis casos (sin desplazamiento horizontal).
+- **No verificado:** la página entera con sesión (el saludo, los enlaces de arriba y «Apps para instalar» alrededor del
+  mapa), el `next build`, y cómo queda en la app de escritorio y en el APK.
