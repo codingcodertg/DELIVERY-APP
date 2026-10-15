@@ -38,7 +38,7 @@ const DIAS_SIN_TOCAR = [7, 14, 30];
  */
 export function Leads({ demo, yo: yoReal, cotiza = false }: {
   demo: boolean; yo: Persona | null;
-  /** Tiene el Quote Builder (D-NEXT): se ofrece «Crear cotización» y se cuentan las cotizaciones de cada lead. */
+  /** Tiene el Quote Builder (D-558): se ofrece «Crear cotización» y se cuentan las cotizaciones de cada lead. */
   cotiza?: boolean;
 }) {
   const { t, lang } = usePrefs();
@@ -80,7 +80,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // En el demo, cambiar de persona es cambiar de sesión: se relee, porque cada una alcanza leads distintos.
   useEffect(() => { void cargar(); }, [cargar, idDemo]);
 
-  // Las cotizaciones de cada lead (D-NEXT): las que quien mira VE en el Quote Builder (RLS de la 148) y salieron de un
+  // Las cotizaciones de cada lead (D-558): las que quien mira VE en el Quote Builder (RLS de la 148) y salieron de un
   // lead (`lead_id`, 175). Sin el módulo no se piden; sin la 175 vuelven cero, y no es un error.
   const enlace: AlmacenDelEnlace = useMemo(() => (demo ? enlaceDemo() : enlaceDeLaBase(createClient())), [demo]);
   const [cotizaciones, setCotizaciones] = useState<Map<string, CotizacionDeLead[]>>(() => new Map());
@@ -212,7 +212,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
           {aviso && <div className={`ld-aviso ${aviso.tono}`} data-aviso={aviso.tono} role="status">{aviso.texto}</div>}
 
-          {/* El lead de una cotización (D-NEXT): llega por `?lead=`. Solo si quien mira lo alcanza (la RLS ya lo filtró). */}
+          {/* El lead de una cotización (D-558): llega por `?lead=`. Solo si quien mira lo alcanza (la RLS ya lo filtró). */}
           {enfocado && (
             <div className="card" data-lead-enfocado={leadEnfocado ? "si" : "no"}>
               <h2 className="ld-h2">🧮 {t("Lead of the quote", "Lead de la cotización")}</h2>
@@ -374,9 +374,9 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
   lead: Lead; yo: Persona; donde: "banco" | "mio" | "admin"; puede: ReturnType<typeof puedeTomar>; ocupado: boolean;
   historial: EventoLead[] | null | undefined;
   onTomar: () => void; onNota: () => void; onCerrar: () => void; onAdmin: () => void; onHistorial: () => void;
-  /** `puedeCotizarLead` (D-NEXT): se ofrece «Crear cotización». */
+  /** `puedeCotizarLead` (D-558): se ofrece «Crear cotización». */
   cotizar: boolean;
-  /** Las cotizaciones de este lead que quien mira ve en el Quote Builder (D-NEXT). */
+  /** Las cotizaciones de este lead que quien mira ve en el Quote Builder (D-558). */
   cotizaciones: CotizacionDeLead[];
 }) {
   const { t, lang } = usePrefs();

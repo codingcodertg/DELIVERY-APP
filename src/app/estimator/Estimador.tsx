@@ -115,7 +115,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     [demo, sin161Demo, sinLlaveDemo],
   );
   const erp = useMemo(() => (demo ? null : createErpClient()), [demo]);
-  // El lead de la cotización (D-NEXT): se lee con la sesión de quien mira, así que la RLS de leads (163) decide si lo ve.
+  // El lead de la cotización (D-558): se lee con la sesión de quien mira, así que la RLS de leads (163) decide si lo ve.
   const enlace: AlmacenDelEnlace = useMemo(() => (demo ? enlaceDemo() : enlaceDeLaBase(createClient())), [demo]);
 
   /** null = aún no se sabe; false = la 148 no está aplicada. */
@@ -192,7 +192,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const [tiendaGuardada, setTiendaGuardada] = useState<string | null>(null);
   const ponerQuoteId = (id: string | null) => { quoteIdRef.current = id; setQuoteId(id); if (!id) setTiendaGuardada(null); };
   /**
-   * El lead de lo que hay en pantalla (D-NEXT): el de la cotización guardada que está abierta, o el lead del que se
+   * El lead de lo que hay en pantalla (D-558): el de la cotización guardada que está abierta, o el lead del que se
    * empezó una nueva (`?lead=`). Solo se GUARDA al crear la cotización (`filaNueva`); abrir otra guardada lo cambia por
    * el de esa. `leadLeido`: undefined = aún no se ha leído; null = quien mira no lo ve; "error" = falló la lectura.
    */
@@ -324,7 +324,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       return null;
     }
     setOcupado(true);
-    // El lead solo viaja al CREAR (D-NEXT); `guardar` no lo manda en una edición aunque se le pase.
+    // El lead solo viaja al CREAR (D-558); `guardar` no lo manda en una edición aunque se le pase.
     const r = await almacen.guardar(quoteIdRef.current, draft, quoteIdRef.current ? null : leadId);
     setOcupado(false);
     if (!r.ok) {
@@ -352,7 +352,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     return r.valor;
   };
 
-  // ---- llegar desde otra app (D-NEXT): `?quote=<id>` abre una guardada; `?lead=<id>` empieza una nueva desde un lead.
+  // ---- llegar desde otra app (D-558): `?quote=<id>` abre una guardada; `?lead=<id>` empieza una nueva desde un lead.
   const urlLeida = useRef(false);
   useEffect(() => {
     if (!me || urlLeida.current) return;
@@ -541,7 +541,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             <div data-tienda style={{ padding: "8px 0", fontWeight: 600 }}>{tiendaHoja ?? <span className="hint">{t("No store on your profile", "Tu perfil no tiene tienda")}</span>}</div>
           </div>
         </div>
-        {/* De qué lead salió (D-NEXT). Interno: la hoja del cliente no lo lleva. */}
+        {/* De qué lead salió (D-558). Interno: la hoja del cliente no lo lleva. */}
         {vinculo.estado !== "ninguno" && (
           <p className="hint" data-de-lead={vinculo.estado} style={{ margin: "0 0 8px" }}>
             🎯 {vinculo.estado === "visible"

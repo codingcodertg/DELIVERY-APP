@@ -1,6 +1,6 @@
 # Plan 175 · `estimator_quotes.lead_id`: la cotización recuerda de qué lead salió
 
-**Fecha:** 2026-10-15 · **Decisión:** D-NEXT (Leads → Quote Builder, la primera conexión del mapa de apps) ·
+**Fecha:** 2026-10-15 · **Decisión:** D-558 (Leads → Quote Builder, la primera conexión del mapa de apps) ·
 **Migración:** `supabase/migrations/175_cotizacion_de_lead.sql` · **Estado:** ESCRITA, NO APLICADA. La aplica el
 orquestador después del merge, con respaldo y `migrate-status` antes y después.
 

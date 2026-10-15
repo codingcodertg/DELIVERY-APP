@@ -36,14 +36,14 @@ function hrefsPosibles(c: Casilla): string[] {
   return d.claves.map((k) => HUB_TOOLS.find((t) => t.key === k)!.href);
 }
 
-// Nota D-NEXT: Purchase Orders y Receive Inventory pasan de gris a color (abren las del ERP); antes, once y nueve.
+// Nota D-558: Purchase Orders y Receive Inventory pasan de gris a color (abren las del ERP); antes, once y nueve.
 const COLOR = ["purchase-orders", "receive-inventory", "deliveries", "erp-inventory", "leads", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book"];
 const GRIS = ["enter-bills", "pay-bills", "sales-order", "refunds-credits", "create-invoice", "receive-payments", "record-deposits"];
 
 const TODO = ["deliveries", "recruiting", "timetracker", "erp", "promos", "estimator", "surveys", "leads"];
 
 describe("las casillas del diagrama del jefe", () => {
-  it("trece de color (existen) y siete grises (aún no): las del jefe más las dos del ERP (D-NEXT)", () => {
+  it("trece de color (existen) y siete grises (aún no): las del jefe más las dos del ERP (D-558)", () => {
     expect(CASILLAS.filter((c) => c.existe).map((c) => c.key).sort()).toEqual([...COLOR].sort());
     expect(CASILLAS.filter((c) => !c.existe).map((c) => c.key).sort()).toEqual([...GRIS].sort());
   });
@@ -94,7 +94,7 @@ describe("las flechas no mienten", () => {
     ]);
   });
 
-  // Nota D-NEXT: antes «hoy ninguna está conectada (medido el 2026-10-14)». Ahora una, Leads → Quote Builder, y la
+  // Nota D-558: antes «hoy ninguna está conectada (medido el 2026-10-14)». Ahora una, Leads → Quote Builder, y la
   // leyenda dice «1 de 10». Las demás siguen diciendo por qué no (las dos del ERP re-medidas el 2026-10-15).
   it("hoy solo Leads → Quote Builder está conectada, y cada una dice por qué sí o por qué no", () => {
     expect(FLECHAS.filter((f) => f.conectada).map((f) => `${f.de}>${f.a}`)).toEqual(["leads>quote-builder"]);
@@ -134,7 +134,7 @@ describe("las flechas no mienten", () => {
     const con = (de: string, a: string): Flecha => ({ de, a, conectada: true, evidencia: "x" });
     expect(trazoDe(con("leads", "quote-builder"))).toBe("conectada");
     expect(trazoDe(con("quote-builder", "create-invoice"))).toBe("por-conectar");
-    // Nota D-NEXT: aquí iba purchase-orders → deliveries, que ya no tiene casilla gris; se usa otra con una gris.
+    // Nota D-558: aquí iba purchase-orders → deliveries, que ya no tiene casilla gris; se usa otra con una gris.
     expect(trazoDe(con("receive-inventory", "enter-bills"))).toBe("por-conectar");
     expect(trazoDe({ ...con("leads", "quote-builder"), conectada: false })).toBe("por-conectar");
   });
@@ -192,7 +192,7 @@ describe("el acceso es el del hub de antes", () => {
     expect(estado("erp-inventory", al("admin", ["deliveries"]))).toEqual({ estado: "sin-acceso" });
   });
 
-  it("Purchase Orders y Receive Inventory (D-NEXT): abren las pantallas del ERP con el módulo erp Y el nivel de compras", () => {
+  it("Purchase Orders y Receive Inventory (D-558): abren las pantallas del ERP con el módulo erp Y el nivel de compras", () => {
     const conNivel = { ...al("manager", ["erp"]), veCompras: true };
     expect(estado("purchase-orders", conNivel)).toMatchObject({ estado: "abierta", href: "/erp/purchasing/orders", llave: "modulo:erp" });
     expect(estado("receive-inventory", conNivel)).toMatchObject({ estado: "abierta", href: "/erp/purchasing/receiving", llave: "modulo:erp" });
@@ -235,12 +235,12 @@ describe("el acceso es el del hub de antes", () => {
 
   it("nada se pierde y nada se añade: lo que se abre en el mapa más «Otras apps» es justo lo que pintaba el hub", () => {
     const accesos: (string[] | null)[] = [null, [], ["deliveries"], ["promos"], ["deliveries", "leads"], ["clockin"], TODO, ["erp", "surveys", "estimator"]];
-    // Nota D-NEXT: también con y sin el nivel de compras del ERP; las dos casillas nuevas usan la llave `modulo:erp`.
+    // Nota D-558: también con y sin el nivel de compras del ERP; las dos casillas nuevas usan la llave `modulo:erp`.
     for (const role of ROLE_ORDER) for (const ma of accesos) for (const sup of [false, true]) for (const erp_role of [null, "manager"]) {
       const a = alcanceDe({ role, module_access: ma, suplantando: sup, erp_role });
       const antes = [...a.modulos.map((m) => `modulo:${m.key}`), ...a.herramientas.map((t) => `herramienta:${t.key}`)].sort();
       const abiertas = CASILLAS.map((c) => estadoDeCasilla(c, a)).flatMap((e) => (e.estado === "abierta" ? [e.llave] : []));
-      // Nota D-NEXT: tres casillas abren ya el módulo erp (Inventario, Órdenes de compra, Recepción): se compara el
+      // Nota D-558: tres casillas abren ya el módulo erp (Inventario, Órdenes de compra, Recepción): se compara el
       // CONJUNTO de entradas, no cuántas casillas lleva cada una.
       const ahora = [...new Set([...abiertas, ...otrasApps(a).map((o) => o.llave)])].sort();
       expect([role, ma, sup, ahora]).toEqual([role, ma, sup, antes]);
@@ -288,7 +288,7 @@ describe("el hub pinta el mapa con las listas de siempre", () => {
     const pagina = leer("src/components/MapaDeLaEmpresa.tsx");
     expect(pagina).toContain("const available = accessibleModules(me.module_access);");
     expect(pagina).toContain("const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));");
-    // Nota D-NEXT: más `veCompras`, del `erp_role` que la página lee, para las dos casillas de compras del ERP.
+    // Nota D-558: más `veCompras`, del `erp_role` que la página lee, para las dos casillas de compras del ERP.
     expect(pagina).toContain("<MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools, veCompras: veComprasDe(me) }}");
     expect(leer("src/app/home/mapa/page.tsx")).toContain('.select("id, full_name, role, module_access, erp_role")');
     expect(existsSync(join(process.cwd(), "src/app/home/mapa/page.tsx"))).toBe(true);

@@ -23,14 +23,14 @@ import { lineasConPriceMatch, marcaDeFila } from "./price-match";
  */
 
 /**
- * `sinLead` (D-NEXT): se guardó, pero SIN el enlace al lead, porque la columna `lead_id` (migración 175) aún no está.
+ * `sinLead` (D-558): se guardó, pero SIN el enlace al lead, porque la columna `lead_id` (migración 175) aún no está.
  * El guardado no falla por eso: el código llega antes que la migración.
  */
 export type Resultado<T> = { ok: true; valor: T; sinLead?: boolean } | { ok: false; sinTabla: boolean; error: string; duplicado?: boolean };
 
 export interface CotizacionGuardada {
   id: string;
-  /** El lead del que salió (175, D-NEXT), o null: no salió de un lead, o la 175 aún no está aplicada. */
+  /** El lead del que salió (175, D-558), o null: no salió de un lead, o la 175 aún no está aplicada. */
   lead_id?: string | null;
   owner_id: string | null;
   owner_name: string | null;
@@ -52,7 +52,7 @@ export interface AlmacenDeCotizaciones {
   buscar(num: string): Promise<Resultado<EstimadoHallado | null>>;
   cargar(quoteId: string): Promise<Resultado<CotizacionGuardada>>;
   /**
-   * Nuevo si `quoteId` es null. Devuelve el id: sin id de vuelta, «guardado» sería una suposición. `leadId` (D-NEXT)
+   * Nuevo si `quoteId` es null. Devuelve el id: sin id de vuelta, «guardado» sería una suposición. `leadId` (D-558)
    * solo cuenta al CREAR: el enlace al lead se pone una vez y una edición no lo manda (`filaNueva`).
    */
   guardar(quoteId: string | null, draft: QuoteDraft, leadId?: string | null): Promise<Resultado<string>>;
@@ -79,7 +79,7 @@ export function faltaLaTabla(error: { code?: string | null; message?: string | n
 }
 
 /**
- * ¿Este error es «la 175 no está aplicada» (D-NEXT)? Solo si la columna que falta es `lead_id`: PostgREST dice PGRST204
+ * ¿Este error es «la 175 no está aplicada» (D-558)? Solo si la columna que falta es `lead_id`: PostgREST dice PGRST204
  * («Could not find the 'lead_id' column … in the schema cache») al escribirla, y Postgres 42703 («column
  * estimator_quotes.lead_id does not exist») al leerla. Otra columna que falte NO es esto, y se dice como error.
  */
@@ -217,7 +217,7 @@ export function filaDeBorrador(d: QuoteDraft) {
 }
 
 /**
- * La fila de una cotización NUEVA (D-NEXT): la de siempre y, si sale de un lead, su `lead_id`. Sin lead, la clave ni
+ * La fila de una cotización NUEVA (D-558): la de siempre y, si sale de un lead, su `lead_id`. Sin lead, la clave ni
  * se manda: así una base sin la 175 la acepta igual. Una edición usa `filaDeBorrador` a secas y nunca toca el enlace.
  */
 export function filaNueva(d: QuoteDraft, leadId: string | null | undefined) {
@@ -242,7 +242,7 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
     async cargar(quoteId) {
       const leer = (columnas: string) => supabase.from("estimator_quotes").select(columnas).eq("id", quoteId).maybeSingle();
       let { data, error } = await leer(`${COLUMNAS_DE_CARGAR}, lead_id`);
-      // Sin la 175 (D-NEXT) la cotización se abre igual, sin lead.
+      // Sin la 175 (D-558) la cotización se abre igual, sin lead.
       if (error && faltaLaColumnaDelLead(error)) ({ data, error } = await leer(COLUMNAS_DE_CARGAR));
       if (error) return fallo(error);
       if (!data) return { ok: false, sinTabla: false, error: "not visible" };
@@ -269,7 +269,7 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
         : supabase.from("estimator_quotes").insert(f).select("id");
       let { data, error } = await escribir(fila);
       let sinLead = false;
-      // Sin la 175 (D-NEXT): PostgREST rechaza la fila entera ANTES de escribir nada (PGRST204), así que se vuelve a
+      // Sin la 175 (D-558): PostgREST rechaza la fila entera ANTES de escribir nada (PGRST204), así que se vuelve a
       // mandar sin el enlace y se dice. La cotización no se pierde por una columna que aún no existe.
       if (error && "lead_id" in fila && faltaLaColumnaDelLead(error)) {
         ({ data, error } = await escribir(filaDeBorrador(draft)));

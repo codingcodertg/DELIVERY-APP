@@ -6,7 +6,7 @@ import type { CotizacionDeLead } from "./cotizar";
 import type { Lead } from "./reglas";
 
 /**
- * Las dos lecturas que cruzan de una app a la otra (D-NEXT, Leads → Quote Builder). **Ninguna escribe**, y las dos van
+ * Las dos lecturas que cruzan de una app a la otra (D-558, Leads → Quote Builder). **Ninguna escribe**, y las dos van
  * con la sesión de quien mira: la RLS de cada tabla decide, no esta capa.
  *
  * - `leerLead`: el Quote Builder lee UN lead (para rellenar la cotización, o para decir «De lead: …»). Lo que la

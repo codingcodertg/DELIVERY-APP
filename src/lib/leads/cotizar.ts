@@ -1,5 +1,5 @@
 /**
- * Leads → Quote Builder (D-NEXT): la primera conexión del mapa de apps (D-554). Un lead llega al Quote Builder sin
+ * Leads → Quote Builder (D-558): la primera conexión del mapa de apps (D-554). Un lead llega al Quote Builder sin
  * volver a teclearlo, y la cotización que sale de él queda enlazada al lead (`estimator_quotes.lead_id`, migración 175).
  *
  * El dueño, 2026-10-15, a «¿construyo la primera conexión, Leads → Quote Builder?»: «si a todo».

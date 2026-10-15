@@ -25,7 +25,7 @@ export function MapaDeApps({ alcance, lang, t, sinLeerDe }: {
   const nombre = (c: Casilla) => (lang === "es" ? c.label_es : c.label_en);
   const conectadas = FLECHAS.filter((f) => trazoDe(f) === "conectada").length;
   const otras = otrasApps(alcance);
-  // Lo que a una conexión hecha aún le falta (D-NEXT: la migración 175) se dice en su etiqueta, no se calla.
+  // Lo que a una conexión hecha aún le falta (D-558: la migración 175) se dice en su etiqueta, no se calla.
   const estadoFlecha = (f: Flecha) => (trazoDe(f) === "conectada"
     ? t("connected", "conectada") + (f.pendiente ? ` (${t("pending", "pendiente")}: ${f.pendiente})` : "")
     : t("not connected yet", "por conectar"));

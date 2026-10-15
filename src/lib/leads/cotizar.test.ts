@@ -11,7 +11,7 @@ import { enlaceDeLaBase, sinNadaQueContar } from "./enlace";
 import { leadsDemo } from "./demo";
 import type { Lead } from "./reglas";
 
-// D-NEXT · Leads → Quote Builder, la primera conexión del mapa de apps. Lo que decide vive en cotizar.ts (y el guardado
+// D-558 · Leads → Quote Builder, la primera conexión del mapa de apps. Lo que decide vive en cotizar.ts (y el guardado
 // en estimator/almacen.ts); estas pruebas lo IMPORTAN. Las de texto, al final, solo prueban que las pantallas lo usan.
 
 const base = leadsDemo(new Date("2026-10-15T12:00:00Z"))[0];

@@ -23,7 +23,7 @@ export default async function LeadsPage() {
   if (user) {
     const { data } = await supabase.from("profiles").select("full_name, store, role, module_access").eq("id", user.id).maybeSingle();
     yo = { id: user.id, name: data?.full_name?.trim() || user.email || "—", store: data?.store ?? null, admin: data?.role === "admin" };
-    // ¿Tiene el Quote Builder? (D-NEXT) Solo decide si se ofrece «Crear cotización» y se cuentan las cotizaciones de
+    // ¿Tiene el Quote Builder? (D-558) Solo decide si se ofrece «Crear cotización» y se cuentan las cotizaciones de
     // cada lead; la puerta del Quote Builder y la RLS de la 148 lo vuelven a exigir.
     cotiza = tieneEstimador(data);
   }

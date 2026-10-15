@@ -43925,10 +43925,10 @@ botón «Buscar».
 ## D-554 · El inicio del hub es un mapa de apps al estilo de QuickBooks: tres paneles (Proveedores, Clientes, Empleados), las apps que aún no existen en gris y sin enlace, y cada flecha «por conectar» salvo que la conexión exista en el código (hoy, ninguna)
 > **⚠ Reemplazada en parte por D-556** (2026-10-15): el mapa ya no es el inicio del hub; vive en su propia página («🗺️ Mapa de la empresa», `/home/mapa`) y el inicio vuelve a sus tarjetas de siempre. El mapa en sí —casillas, flechas, evidencia, accesos— no cambia.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-15): la flecha **Leads → Quote Builder** está conectada (la leyenda dice
+> **Reemplazada en parte por D-558** (2026-10-15): la flecha **Leads → Quote Builder** está conectada (la leyenda dice
 > «1 de 10»), y **Purchase Orders** y **Receive Inventory** dejan de ser grises: abren `/erp/purchasing/orders` y
 > `/erp/purchasing/receiving` con el módulo `erp` y el nivel de compras del ERP. Las tablas de abajo («Las casillas», «Las
-> flechas») son las del 2026-10-14 y se quedan como estaban; las de hoy están en D-NEXT.
+> flechas») son las del 2026-10-14 y se quedan como estaban; las de hoy están en D-558.
 
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca `/home`, que `app-for-path.ts` asigna a `deliveries`, y
 `globals.css`) · **Migración:** ninguna · Rama `inicio-mapa-de-apps`.
@@ -44228,7 +44228,7 @@ Dice cuál se queda y cuál se anula. «Dejarla aparte» guarda como siempre y *
 - La anulación pasa por `setStage`, así que hace lo mismo que cualquier anulación (evento de etapa y el reparto de avisos
   de `emitStageNotifs`); qué aviso sale exactamente al anular no se midió, y no se silenció nada.
 
-## D-NEXT · Leads → Quote Builder, la primera conexión del mapa de apps: «Crear cotización» en un lead rellena el Quote Builder y la cotización queda enlazada al lead (migración 175); y Purchase Orders y Receive Inventory pasan a color, abriendo las del ERP
+## D-558 · Leads → Quote Builder, la primera conexión del mapa de apps: «Crear cotización» en un lead rellena el Quote Builder y la cotización queda enlazada al lead (migración 175); y Purchase Orders y Receive Inventory pasan a color, abriendo las del ERP
 
 **Fecha:** 2026-10-15 · **Versión:** la pone el orquestador (toca `src/app/leads`, `src/app/estimator`, `src/lib/leads`,
 `src/lib/estimator`, y el mapa de apps de D-554) · **Migración:** `175_cotizacion_de_lead.sql`, ESCRITA Y NO APLICADA
@@ -44313,7 +44313,7 @@ también `erp_role` y `MapaDeLaEmpresa` pasa `veCompras: veComprasDe(me)`. La pr
   y los tres enlaces; `vinculoDeLead`; `cotizacionesPorLead` con datos desordenados; el guardado con un cliente de
   Supabase de mentira (crear manda `lead_id`; sin la 175 se reintenta sin él y dice `sinLead`; otra columna no se
   reintenta; editar nunca lo manda; abrir con y sin la columna); las lecturas cruzadas; y dos de lectura del fuente.
-- Actualizadas con «Nota D-NEXT»: `mapa-de-apps.test.ts` (trece de color y siete grises; «hoy solo Leads → Quote
+- Actualizadas con «Nota D-558»: `mapa-de-apps.test.ts` (trece de color y siete grises; «hoy solo Leads → Quote
   Builder»; la evidencia contra sus líneas; las dos flechas del ERP siguen por conectar; el acceso de las dos casillas;
   `veComprasDe`; la equivalencia con el hub por conjunto y con `erp_role`) y `leads/modulo.test.ts` (la página lee
   también `module_access`).

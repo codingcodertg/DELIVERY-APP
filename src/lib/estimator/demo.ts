@@ -48,7 +48,7 @@ export function buscarEnCatalogoDemo(codigo: string): ProductoDelCatalogo[] {
 interface FilaDemo {
   id: string; owner_id: string; owner_name: string; store: string | null; print_count: number; draft: QuoteDraft;
   created_at: string; printed_at: string | null;
-  /** El lead del que salió (D-NEXT, la columna de la 175). */
+  /** El lead del que salió (D-558, la columna de la 175). */
   lead_id?: string | null;
 }
 interface AprobDemo { id: string; quote_id: string; requested_by: string; requester_name: string; status: AprobacionEstado; requested_at: string }
@@ -140,7 +140,7 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       db.cotizaciones.push({
         id, owner_id: yo.id, owner_name: yo.name, store: yo.store?.trim() || null, print_count: 0, draft: structuredClone(draft),
         created_at: new Date().toISOString(), printed_at: null,
-        // Como la base con la 175 (D-NEXT): el enlace al lead se pone al crear, y una edición no lo toca.
+        // Como la base con la 175 (D-558): el enlace al lead se pone al crear, y una edición no lo toca.
         lead_id: leadId ?? null,
       });
       return bien(id);

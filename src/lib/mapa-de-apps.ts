@@ -49,7 +49,7 @@ export const COLUMNAS = 6;
 export type Destino =
   | {
       tipo: "modulo"; clave: string; ruta?: string;
-      /** D-NEXT: además del módulo, el nivel de COMPRAS del ERP (manager/admin en `erp_role`), que es lo que exigen
+      /** D-558: además del módulo, el nivel de COMPRAS del ERP (manager/admin en `erp_role`), que es lo que exigen
        *  `/erp/purchasing/orders` y `/erp/purchasing/receiving` (`canSeeCost`, o mandan al catálogo). */
       requiere?: "compras-erp";
     }
@@ -63,7 +63,7 @@ export interface Casilla {
   emoji: string;
   label_en: string;
   label_es: string;
-  /** La app ya existe (el jefe la dibujó oscura; D-NEXT añadió Purchase Orders y Receive Inventory, que el ERP ya tenía).
+  /** La app ya existe (el jefe la dibujó oscura; D-558 añadió Purchase Orders y Receive Inventory, que el ERP ya tenía).
    *  Gris = aún no se crea, y entonces NO lleva destino. */
   existe: boolean;
   destino?: Destino;
@@ -71,7 +71,7 @@ export interface Casilla {
 
 export const CASILLAS: Casilla[] = [
   // ---- Proveedores: fila 1, de izquierda a derecha, con flechas entre cada dos; Inventario ERP debajo de Entregas.
-  // Purchase Orders y Receive Inventory: grises en el diagrama del jefe, de color desde D-NEXT («si a todo», 2026-10-15)
+  // Purchase Orders y Receive Inventory: grises en el diagrama del jefe, de color desde D-558 («si a todo», 2026-10-15)
   // porque el ERP ya las tiene. Abren SUS pantallas del ERP, con la misma regla que ellas: módulo erp y nivel de compras.
   { key: "purchase-orders", panel: "vendors", fila: 1, columna: 2, emoji: "📝", label_en: "Purchase Orders", label_es: "Órdenes de compra", existe: true, destino: { tipo: "modulo", clave: "erp", ruta: "/erp/purchasing/orders", requiere: "compras-erp" } },
   { key: "deliveries", panel: "vendors", fila: 1, columna: 3, emoji: "📦", label_en: "Deliveries", label_es: "Entregas", existe: true, destino: { tipo: "modulo", clave: "deliveries" } },
@@ -105,7 +105,7 @@ export interface Flecha {
   conectada: boolean;
   /** Dónde se comprobó (`fichero:línea`) o «no existe», con la fecha. */
   evidencia: string;
-  /** D-NEXT: lo que a una conexión ya hecha aún le falta fuera del código (una migración sin aplicar). Se dice en la
+  /** D-558: lo que a una conexión ya hecha aún le falta fuera del código (una migración sin aplicar). Se dice en la
    *  etiqueta de la flecha; se borra cuando deja de faltar. */
   pendiente?: string;
   /** Solo para la que cruza de un panel a otro: dónde se dibuja. Las demás se colocan solas entre sus dos casillas. */
@@ -117,7 +117,7 @@ const NO_CONSTRUIDA = "no existe (2026-10-14): una de sus dos casillas aún no e
 export const FLECHAS: Flecha[] = [
   // ---- Proveedores, fila 1 (formas 46-49 de la diapositiva).
   {
-    // D-NEXT: Purchase Orders ya es una casilla de color (abre las órdenes de compra del ERP), pero la flecha sigue sin
+    // D-558: Purchase Orders ya es una casilla de color (abre las órdenes de compra del ERP), pero la flecha sigue sin
     // existir: una orden de compra no crea una entrega. Re-medido el 2026-10-15 con el mismo grep.
     de: "purchase-orders", a: "deliveries", conectada: false,
     evidencia: "no existe (2026-10-15), aunque las dos casillas ya abren algo: Purchase Orders son las órdenes de compra " +
@@ -148,7 +148,7 @@ export const FLECHAS: Flecha[] = [
       "calculadora de tarifa de Entregas, src/app/estimator/EntregaCotizacion.tsx:20).",
   },
   {
-    // D-NEXT, la primera conexión («si a todo», 2026-10-15). Antes: «no existe (2026-10-14)… estimator_quotes no tiene
+    // D-558, la primera conexión («si a todo», 2026-10-15). Antes: «no existe (2026-10-14)… estimator_quotes no tiene
     // columna de lead (148_estimator.sql:68-93); Leads.tsx no enlaza a /estimator». Cada `fichero:línea (texto)` de
     // abajo lo comprueba una prueba: si el código se mueve, la prueba cae y la evidencia se reescribe.
     de: "leads", a: "quote-builder", conectada: true,
@@ -222,7 +222,7 @@ export const celdaDe = (c: Casilla): { gridRow: string; gridColumn: string } => 
  *  decide con ESTAS listas, así que no abre nada que el hub de antes no abriera. */
 export interface Alcance {
   role: UserRole; modulos: ModuleInfo[]; herramientas: HubTool[];
-  /** D-NEXT: si pasa la puerta de compras del ERP (`veComprasDe`). Sin el dato, NO: falla cerrado. */
+  /** D-558: si pasa la puerta de compras del ERP (`veComprasDe`). Sin el dato, NO: falla cerrado. */
   veCompras?: boolean;
 }
 
@@ -250,7 +250,7 @@ export type Llave = string;
 
 export type EstadoCasilla =
   | { estado: "proximamente" }
-  /** `motivo: "nivel-erp"` (D-NEXT): tiene el módulo erp, pero no el nivel de compras que exige la página. */
+  /** `motivo: "nivel-erp"` (D-558): tiene el módulo erp, pero no el nivel de compras que exige la página. */
   | { estado: "sin-acceso"; motivo?: "nivel-erp" }
   | { estado: "abierta"; href: string; llave: Llave; herramienta?: string };
 
