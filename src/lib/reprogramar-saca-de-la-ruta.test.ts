@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-// D-NEXT. El dueño, 2026-10-14: «invoice 170992 got rescheduled for saturday. since it was programmed for todays route Max
+// D-552. El dueño, 2026-10-14: «invoice 170992 got rescheduled for saturday. since it was programmed for todays route Max
 // sees it on his phone but it should be automatically removed from the route if a delivery gets rescheduled». La regla vive
-// en la base (172): aquí se fija su forma; el comportamiento se ensayó contra producción con ROLLBACK (8/8, ver D-NEXT).
+// en la base (172): aquí se fija su forma; el comportamiento se ensayó contra producción con ROLLBACK (8/8, ver D-552).
 const sql = readFileSync("supabase/migrations/172_reprogramar_saca_de_la_ruta.sql", "utf8").split("\r\n").join("\n");
 const plano = sql.replace(/\s+/g, " ");
 

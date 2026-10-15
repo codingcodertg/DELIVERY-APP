@@ -43779,7 +43779,7 @@ La ficha hace exactamente lo de antes (mismo diálogo, mismos textos, misma escr
 - **Nada abierto en un navegador** (el portátil iba corto de memoria, sin servidor): ni el ancho de la columna (170 px), ni el selector en la vista de teléfono (`orders-responsive`), ni que el diálogo abierto desde una fila quede encima de la tabla.
 - **Contra la base**: nada. La base no pide nada nuevo —son los mismos `setStage` que ya hace la ficha—; eso es lectura del código, no una escritura de prueba.
 - Tracker y Notion: son del orquestador.
-## D-NEXT · Reprogramar una orden la saca de la ruta de su chofer (trigger en la base, migración 172)
+## D-552 · Reprogramar una orden la saca de la ruta de su chofer (trigger en la base, migración 172)
 
 **Fecha:** 2026-10-14 · **Migración:** `172_reprogramar_saca_de_la_ruta.sql` · Solo base de datos: sube `package.json`, no `APP_VERSIONS` (CLAUDE.md, excepción de cambios solo de base).
 
