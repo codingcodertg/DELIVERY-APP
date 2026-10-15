@@ -970,6 +970,74 @@ table.orders th { text-align: left; }
 .hilo-acciones { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 .hub-tool-desc { font-size: 11px; color: var(--ink-soft); }
 
+/* El mapa de apps del hub (D-NEXT): paneles titulados, casillas (icono + nombre) y flechas, al estilo de la «Home Page»
+   de QuickBooks. Gris = la app aún no existe; flecha discontinua = por conectar. Solo tokens: el tema oscuro sale solo.
+   En el escritorio, rejilla con las flechas en las columnas/filas pares; en el teléfono (≤760px), una lista por panel
+   con chevrones hacia abajo. Los dos dibujos están en el DOM y el CSS enseña uno. */
+.auth-card.hub-mapa-card { max-width: 1040px; }
+@media (max-width: 480px) { .auth-card.hub-mapa-card { padding: 22px 16px; } }
+.mapa-apps { margin-top: 14px; }
+.mapa-leyenda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+.mapa-muestra { display: inline-block; width: 26px; height: 0; vertical-align: middle; border-top: 2px dashed currentColor; color: var(--gray); }
+.mapa-muestra.is-conectada { border-top-style: solid; color: var(--accent); }
+.mapa-muestra-gris { display: inline-block; width: 14px; height: 14px; vertical-align: middle; border-radius: 4px; border: 1px dashed var(--gray); background: var(--paper); }
+.mapa-cuenta { margin-left: auto; font-weight: 700; }
+.mapa-panel { position: relative; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 22px 12px 12px; margin-top: 20px; }
+.mapa-panel-titulo {
+  position: absolute; top: -11px; left: 50%; transform: translateX(-50%); margin: 0; white-space: nowrap;
+  background: var(--accent-soft); color: var(--accent); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1px 14px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+}
+.mapa-rejilla { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr) 28px) minmax(0, 1fr); align-items: start; }
+.mapa-fila-libre { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.mapa-celda { min-width: 0; display: flex; justify-content: center; }
+.mapa-casilla {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; width: 100%; min-width: 0;
+  padding: 8px 4px; border-radius: 10px; border: 1px solid transparent; color: var(--text); text-decoration: none;
+}
+a.mapa-casilla:hover, a.mapa-casilla:focus-visible { background: var(--paper); border-color: var(--accent); }
+.mapa-icono { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 10px; background: var(--accent-soft); font-size: 24px; line-height: 1; }
+.mapa-nombre { font-weight: 700; font-size: 12.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.mapa-aviso { font-size: 10.5px; font-weight: 600; color: var(--gray); }
+.mapa-casilla.is-proximamente { color: var(--gray); cursor: default; }
+.mapa-casilla.is-proximamente .mapa-icono { background: var(--paper); border: 1px dashed var(--gray); filter: grayscale(1); opacity: .5; }
+.mapa-casilla.is-proximamente .mapa-nombre { font-weight: 600; }
+.mapa-casilla.is-bloqueada { color: var(--ink-soft); cursor: not-allowed; }
+.mapa-casilla.is-bloqueada .mapa-icono { filter: grayscale(.7); opacity: .6; }
+/* Flechas: discontinuas y grises «por conectar»; continuas y de color solo si la conexión existe en el código. */
+.mapa-flecha { position: relative; color: var(--gray); }
+.mapa-flecha.is-conectada { color: var(--accent); }
+.mapa-flecha.is-derecha, .mapa-flecha.is-izquierda { align-self: start; margin-top: 29px; height: 0; border-top: 2px dashed currentColor; }
+.mapa-flecha.is-arriba, .mapa-flecha.is-abajo { justify-self: center; align-self: stretch; width: 0; min-height: 28px; border-left: 2px dashed currentColor; }
+.mapa-flecha.is-conectada.is-derecha, .mapa-flecha.is-conectada.is-izquierda { border-top-style: solid; }
+.mapa-flecha.is-conectada.is-arriba, .mapa-flecha.is-conectada.is-abajo { border-left-style: solid; }
+.mapa-flecha::after { content: ""; position: absolute; border: 5px solid transparent; }
+.mapa-flecha.is-derecha::after { right: -2px; top: -6px; border-left: 7px solid currentColor; border-right: 0; }
+.mapa-flecha.is-izquierda::after { left: -2px; top: -6px; border-right: 7px solid currentColor; border-left: 0; }
+.mapa-flecha.is-arriba::after { top: -2px; left: -6px; border-bottom: 7px solid currentColor; border-top: 0; }
+.mapa-flecha.is-abajo::after { bottom: -2px; left: -6px; border-top: 7px solid currentColor; border-bottom: 0; }
+.mapa-movil { display: none; }
+.mapa-lista { display: flex; flex-direction: column; }
+.mapa-paso { display: flex; flex-direction: column; align-items: center; margin-bottom: 6px; }
+.mapa-chevron { position: relative; display: block; width: 0; height: 18px; margin: 4px 0 2px; border-left: 2px dashed currentColor; color: var(--gray); }
+.mapa-chevron.is-conectada { border-left-style: solid; color: var(--accent); }
+.mapa-chevron::after { content: ""; position: absolute; bottom: -4px; left: -6px; border: 5px solid transparent; border-top: 7px solid currentColor; border-bottom: 0; }
+.mapa-aparte { align-self: flex-start; margin: 3px 0 0 10px; font-size: 11px; color: var(--gray); }
+.mapa-aparte.is-conectada { color: var(--accent); }
+@media (max-width: 760px) {
+  .mapa-escritorio { display: none; }
+  .mapa-movil { display: block; }
+  .mapa-movil .mapa-casilla { flex-direction: row; justify-content: flex-start; text-align: left; gap: 10px; border-color: var(--line); }
+  .mapa-movil .mapa-icono { width: 36px; height: 36px; font-size: 20px; }
+  .mapa-movil .mapa-aviso { margin-left: auto; text-align: right; }
+}
+.mapa-otras-fila { display: flex; flex-wrap: wrap; gap: 8px; }
+.mapa-otra {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+  color: var(--text); text-decoration: none; font-size: 13px; font-weight: 600;
+}
+.mapa-otra:hover, .mapa-otra:focus-visible { background: var(--paper); border-color: var(--accent); }
+
 /* Las apps que se instalan (D-167). Misma fila que una herramienta, pero con sitio para lo
    que hay que saber ANTES de pulsar: plataforma, peso, para quién es y qué va a decir
    Windows. Descubrir cualquiera de esas cuatro cosas a mitad de una descarga es peor que
