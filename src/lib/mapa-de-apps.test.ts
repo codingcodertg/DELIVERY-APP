@@ -7,6 +7,7 @@ import {
   CASILLAS, COLUMNAS, FLECHAS, alcanceDe, casilla, celdaDe, colocacion, estadoDeCasilla, otrasApps, secuenciaMovil,
   trazoDe, veComprasDe, type Casilla, type Flecha,
   RUTA_MAPA_DE_LA_EMPRESA,
+  veElMapa,
 } from "./mapa-de-apps";
 
 // El mapa de apps del hub (D-554). Lo que decide vive en mapa-de-apps.ts y estas pruebas lo IMPORTAN.
@@ -304,6 +305,18 @@ describe("el hub pinta el mapa con las listas de siempre", () => {
     const p = leer("src/app/home/mapa/page.tsx");
     expect(p).toContain("if (!canReachHub(me)) redirect(landingRoute(me));");
     expect(p).toContain("if (!user) redirect(");
+  });
+  // D-561: el dueño, 2026-10-15, «map app of the schema is just for admin remove it for everybody else».
+  it("solo el admin ve el mapa", () => {
+    expect(veElMapa({ role: "admin" })).toBe(true);
+    for (const role of ["manager", "sales", "accounting", "logistics", "warehouse", "driver"] as const) {
+      expect(veElMapa({ role })).toBe(false);
+    }
+    expect(veElMapa(null)).toBe(false);
+  });
+  it("la tarjeta del inicio y la página del mapa preguntan veElMapa", () => {
+    expect(leer("src/components/HomeSelector.tsx")).toContain("{veElMapa(me) && (");
+    expect(leer("src/app/home/mapa/page.tsx")).toContain('if (!veElMapa(me)) redirect("/home");');
   });
   it("el trazo de la flecha lo decide trazoDe, no el campo `conectada` a pelo", () => {
     const mapa = leer("src/components/MapaDeApps.tsx");

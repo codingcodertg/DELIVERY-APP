@@ -24,6 +24,14 @@ import type { UserRole } from "@/lib/types";
 /** Dónde vive el mapa (D-556): su propia página del hub, con una tarjeta en el inicio que lleva a ella. */
 export const RUTA_MAPA_DE_LA_EMPRESA = "/home/mapa";
 
+/**
+ * ¿Ve el mapa de la empresa? Solo el admin (D-561). El dueño, 2026-10-15: «map app of the schema is just for admin
+ * remove it for everybody else». Se mira el rol de la sesión que se pinta: el admin que «ve como» otro ve lo que ve ese.
+ */
+export function veElMapa(me: { role: UserRole } | null | undefined): boolean {
+  return me?.role === "admin";
+}
+
 export type PanelKey = "vendors" | "customers" | "employees";
 
 export interface Panel {

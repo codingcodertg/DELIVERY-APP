@@ -10,7 +10,7 @@ import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/
 import type { Profile } from "@/lib/types";
 import { veAppsParaInstalar } from "@/lib/hub-apps";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
-import { RUTA_MAPA_DE_LA_EMPRESA } from "@/lib/mapa-de-apps";
+import { RUTA_MAPA_DE_LA_EMPRESA, veElMapa } from "@/lib/mapa-de-apps";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
@@ -71,12 +71,15 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
         <div className="module-pick-grid">
           {/* El mapa de la empresa (D-554) vive en su propia app, no en el inicio (D-556, el dueño: «el schema que
               hicimos de la app pon lo dentro de una app no asi coomo lo dejaste y trae le diseno al rtb hub denuevo»).
-              Para todos: el mapa enseña lo que cada quien puede abrir y lo demás con candado o en gris. */}
-          <Link href={RUTA_MAPA_DE_LA_EMPRESA} className="module-pick-card" data-hub-mapa>
-            <span className="module-pick-emoji">🗺️</span>
-            <span className="module-pick-label">{t("Company map", "Mapa de la empresa")}</span>
-            <span className="module-pick-desc">{t("Every app and how they connect", "Todas las apps y cómo se conectan")}</span>
-          </Link>
+              Solo para el admin (D-561, el dueño: «map app of the schema is just for admin remove it for everybody
+              else»). */}
+          {veElMapa(me) && (
+            <Link href={RUTA_MAPA_DE_LA_EMPRESA} className="module-pick-card" data-hub-mapa>
+              <span className="module-pick-emoji">🗺️</span>
+              <span className="module-pick-label">{t("Company map", "Mapa de la empresa")}</span>
+              <span className="module-pick-desc">{t("Every app and how they connect", "Todas las apps y cómo se conectan")}</span>
+            </Link>
+          )}
           {available.map((m) => (
             <Link key={m.key} href={hrefFor(m.key, m.href)} className="module-pick-card">
               <span className="module-pick-emoji">{m.emoji}</span>

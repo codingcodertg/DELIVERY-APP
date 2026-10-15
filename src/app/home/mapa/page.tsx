@@ -7,6 +7,7 @@ import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { MapaDeLaEmpresa } from "@/components/MapaDeLaEmpresa";
+import { veElMapa } from "@/lib/mapa-de-apps";
 
 // «🗺️ Mapa de la empresa» (D-556). Las mismas puertas que el inicio del hub (home/page.tsx): sesión, perfil leído en
 // tres desenlaces (D-234), `canReachHub` (D-173) y la cookie de suplantación (D-306). Quien no puede estar en el hub no
@@ -27,6 +28,8 @@ export default async function MapaPage() {
   if (!profile) redirect("/login");
   const me: Profile = profile;
   if (!canReachHub(me)) redirect(landingRoute(me));
+  // Solo el admin (D-561): a los demás, ni la tarjeta ni la página.
+  if (!veElMapa(me)) redirect("/home");
 
   const suplantando = desempaquetar((await cookies()).get(COOKIE_RETORNO)?.value ?? null) !== null;
   return <MapaDeLaEmpresa me={me} suplantando={suplantando} />;
