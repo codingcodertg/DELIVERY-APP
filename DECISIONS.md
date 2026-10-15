@@ -43714,3 +43714,19 @@ historial *«Se juntó la PO X (N pallets) — misma factura #F»*. Nada más: n
   guard le deja escribir una pendiente aunque no sea suya (D-480 lo dejó escrito como hueco).
 
 **Nota del orquestador (2026-10-14, al fusionar):** la 173 se ensayó contra producción dentro de una transacción con ROLLBACK, y el ensayo **cazó un agujero**: con `assigned_sales_rep` vacío, `o.assigned_sales_rep = yo` da NULL, `not (… or NULL)` da NULL y `if NULL then raise` no lanza, así que **cualquier vendedor podía reprogramar una orden ajena sin vendedor asignado**. Se arregló envolviendo el permiso en `coalesce(…, false)` (y una prueba que lo fija); el checksum se recalculó. Tras el arreglo, 10 de 10: el vendedor reprograma SU orden aprobada; otro vendedor no; sin la función el guardia sigue rechazando; con la marca puesta a mano otra columna (la tarifa) sigue rechazada; fecha pasada y nota corta rechazadas; entregada no (ni admin); la marca queda vacía; y deja sus dos eventos. No se pudo probar almacén en una pendiente: no había ninguna pendiente. **Ojo con lo que NO cubre «Juntar»:** solo al CREAR una Intertienda; el caso del chat del dueño —la tienda B pone la misma factura en tres órdenes que la tienda A ya creó— sigue dando el aviso, porque juntar dos órdenes ya creadas obliga a anular una. Se le pregunta.
+
+## D-550 · El ERP recupera sus doce triggers: inventario a mano, libro de solo-añadir, auditoría e historial de precios (migración 174)
+
+**Fecha:** 2026-10-14 · **Migración:** `174_erp_triggers.sql` · Solo base de datos: sube `package.json`, no `APP_VERSIONS`.
+
+**Origen.** El traspaso del ERP de BH (`HANDOFF-erp.md`, §4.1) dijo que el esquema `erp` no tenía ningún trigger. El dueño, al leer el análisis: *«si arranca con 1, 2 y 3, aplícalo cuando pase»*. **Medido en producción el 2026-10-14:** cero triggers en `erp`; las cinco funciones existen (la 064), todas con `search_path = ''` y escribiendo en tablas `erp.*`; ninguna migración las ataba.
+
+**Qué fallaba.** `apply_movement_to_cache` es lo único que mueve `erp.store_products.qoh`: una recepción o un ajuste escribía su movimiento y **el inventario a mano no cambiaba** (latente: todavía no se había escrito ningún movimiento). Sin `prevent_movement_mutation` el libro de inventario se podía editar o borrar. Y ni la auditoría (`audit_row`, ocho tablas) ni el historial de precios (decisión #38 del ERP) registraban nada.
+
+**Qué cambia.** Los doce triggers del repo viejo `codingcodertg/rtg-erp` (v4_11, v4_12, v4_14, v4_27, v4_35, v4_38), copiados tal cual —momento, eventos, columnas— con `public.` → `erp.`. El de solo-añadir va **antes** de escribir; la caché, **después** de insertar. La migración se comprueba (aborta si no hay 12).
+
+**Ensayado contra producción con ROLLBACK (2026-10-14), 7 de 7:** la migración y su comprobación; 12 triggers; un movimiento `receive` de +3 sube el inventario a mano (51 → 54); editar y borrar un movimiento se rechazan («inventory_movements is append-only»); cambiar un precio deja su fila en `price_history` (6528 → 6529) y en `audit_log`.
+
+**No cambia.** Los datos que ya hay: ningún trigger reescribe filas existentes. Del traspaso, §4.2 («la base del ERP lee el rol de Entregas») **se comprobó falso aquí**: `erp.current_app_role()` ya lee `erp_role`.
+
+**Reversión:** un `drop trigger if exists <nombre> on erp.<tabla>;` por cada uno. **Pruebas:** `src/lib/erp/triggers-del-erp.test.ts` (los doce, su momento y su autocomprobación).
