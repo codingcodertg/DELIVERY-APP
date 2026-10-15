@@ -457,9 +457,13 @@ export interface SalesRepStat { rep: string; deliveries: number; chargedTotal: n
 
 /** Per sales-rep stats for the current calendar month (by when they logged
  * the order, i.e. created_at) — deliveries count, total delivery fees
- * charged, and the average fee per delivery. */
-export function salesRepStatsThisMonth(deliveries: Delivery[], users: Profile[]): SalesRepStat[] {
-  const now = new Date();
+ * charged, and the average fee per delivery.
+ *
+ * `now` decide qué mes es «este» (D-NEXT, hallazgo 4.6 del traspaso del ERP): antes leía el reloj
+ * del sistema por dentro, así que una prueba con fechas fijas caducaba al cambiar de mes. Por
+ * defecto sigue siendo el reloj —la pantalla no cambia—; las pruebas pasan uno fijo, como
+ * `driverShiftKpis` con su `now`. */
+export function salesRepStatsThisMonth(deliveries: Delivery[], users: Profile[], now: Date = new Date()): SalesRepStat[] {
   const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const nameById = new Map(users.map((u) => [u.id, u.full_name]));
   const map = new Map<string, { deliveries: number; suyas: Delivery[] }>();

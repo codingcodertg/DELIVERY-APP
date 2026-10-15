@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/erp/ui/badge";
+import { Button } from "@/components/erp/ui/button";
 import { cn } from "@/lib/erp/utils";
 import { cardImageUrl } from "@/lib/erp/images";
 import { commercialStatusClass, statusLabel } from "@/lib/erp/status";
@@ -22,7 +23,7 @@ function categoryLeaf(path?: string | null): string | null {
 
 // G-10 (D-204): texto de pantalla por pares inline (usePrefs). Nombre, colección, SKU y los chips
 // (tipo, tamaño, acabado, material, aspecto, origen) son dato; el estado es enumerado fijo.
-function Card({ r }: { r: CatalogRow }) {
+function Card({ r, onRequest }: { r: CatalogRow; onRequest?: (r: CatalogRow) => void }) {
   const { t } = usePrefs();
   const img = cardImageUrl(r);
   const typeChip = r.product_type ?? categoryLeaf(r.category_path);
@@ -38,50 +39,57 @@ function Card({ r }: { r: CatalogRow }) {
     isUsa ? null : r.origin,
   ].filter((v): v is string => !!v && String(v).trim() !== "");
 
+  // D-NEXT: el marco es un div para que «Request» quede al lado del enlace (un botón no puede ir dentro
+  // de un <a>). En la tarjeta va al pie: la razón de ponerlo tras Name en la tabla —una última columna
+  // queda fuera de la pantalla— aquí no existe, y meterlo entre el nombre y el SKU partiría el enlace.
   return (
-    <Link
-      href={`/erp/product/${r.id}`}
-      className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:ring-1 hover:ring-clay-300"
-    >
-      <div className="relative aspect-square overflow-hidden bg-slate-100">
-        {img ? (
-          <img src={img} alt={r.name} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">{t("no image", "sin imagen")}</div>
-        )}
-        <span className="absolute left-2 top-2">
-          <Badge className={commercialStatusClass(r.status)}>{t(statusLabel(r.status).en, statusLabel(r.status).es)}</Badge>
-        </span>
-        {r.needs_review && (
-          <span title={t("Needs review", "Requiere revisión")} className="absolute right-2 top-2 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" />
-        )}
-        <span
-          aria-hidden
-          className="absolute bottom-2 right-2 rounded-md bg-white/85 px-1.5 py-0.5 text-slate-600 opacity-0 ring-1 ring-slate-200 transition group-hover:opacity-100"
-        >
-          ⮕
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col gap-1.5 p-3">
-        <div className="line-clamp-2 text-sm font-medium leading-tight text-slate-900">{r.name}</div>
-        <div className="text-xs text-slate-500">
-          {r.collection && <span className="font-medium text-slate-600">{r.collection} · </span>}
-          <span className="font-mono">{r.sku}</span>
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:ring-1 hover:ring-clay-300">
+      <Link href={`/erp/product/${r.id}`} className="flex flex-1 flex-col">
+        <div className="relative aspect-square overflow-hidden bg-slate-100">
+          {img ? (
+            <img src={img} alt={r.name} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">{t("no image", "sin imagen")}</div>
+          )}
+          <span className="absolute left-2 top-2">
+            <Badge className={commercialStatusClass(r.status)}>{t(statusLabel(r.status).en, statusLabel(r.status).es)}</Badge>
+          </span>
+          {r.needs_review && (
+            <span title={t("Needs review", "Requiere revisión")} className="absolute right-2 top-2 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" />
+          )}
+          <span
+            aria-hidden
+            className="absolute bottom-2 right-2 rounded-md bg-white/85 px-1.5 py-0.5 text-slate-600 opacity-0 ring-1 ring-slate-200 transition group-hover:opacity-100"
+          >
+            ⮕
+          </span>
         </div>
-        {(chips.length > 0 || isUsa) && (
-          <div className="mt-0.5 flex flex-wrap gap-1">
-            {isUsa && <Badge className="border-blue-200 bg-blue-50 text-blue-700">USA</Badge>}
-            {chips.map((c, i) => (
-              <Badge key={`${i}-${c}`} className="border-slate-200 bg-slate-50 text-slate-600">{c}</Badge>
-            ))}
+        <div className="flex flex-1 flex-col gap-1.5 p-3">
+          <div className="line-clamp-2 text-sm font-medium leading-tight text-slate-900">{r.name}</div>
+          <div className="text-xs text-slate-500">
+            {r.collection && <span className="font-medium text-slate-600">{r.collection} · </span>}
+            <span className="font-mono">{r.sku}</span>
           </div>
-        )}
-      </div>
-    </Link>
+          {(chips.length > 0 || isUsa) && (
+            <div className="mt-0.5 flex flex-wrap gap-1">
+              {isUsa && <Badge className="border-blue-200 bg-blue-50 text-blue-700">USA</Badge>}
+              {chips.map((c, i) => (
+                <Badge key={`${i}-${c}`} className="border-slate-200 bg-slate-50 text-slate-600">{c}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      </Link>
+      {onRequest && (
+        <div className="px-3 pb-3">
+          <Button variant="outline" size="sm" onClick={() => onRequest(r)}>{t("Request", "Solicitar")}</Button>
+        </div>
+      )}
+    </div>
   );
 }
 
-export function CatalogCards({ rows }: { rows: CatalogRow[] }) {
+export function CatalogCards({ rows, onRequest }: { rows: CatalogRow[]; onRequest?: (r: CatalogRow) => void }) {
   const { t } = usePrefs();
   if (rows.length === 0) {
     return <div className="p-8 text-center text-sm text-slate-500">{t("No products match these filters.", "Ningún producto coincide con estos filtros.")}</div>;
@@ -89,7 +97,7 @@ export function CatalogCards({ rows }: { rows: CatalogRow[] }) {
   return (
     <div className={cn("grid grid-cols-2 gap-3 p-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6")}>
       {rows.map((r) => (
-        <Card key={r.id} r={r} />
+        <Card key={r.id} r={r} onRequest={onRequest} />
       ))}
     </div>
   );

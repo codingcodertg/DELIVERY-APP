@@ -6,6 +6,7 @@ import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { CatalogTable } from "@/components/erp/catalog-table";
 import { queryCatalog } from "@/lib/erp/actions";
+import { loadRequestPickers } from "@/lib/erp/request-pickers";
 import { CATALOG_PAGE, type CatalogFacets } from "@/lib/erp/catalog";
 import { Tx } from "@/components/erp/tx";
 
@@ -34,10 +35,14 @@ export default async function CatalogPage({
   // queryCatalog already returns its own error (rendered inline by CatalogTable); the
   // facet + saved-view reads are unwrapped so a failure raises instead of quietly
   // reporting "0 products" / "no saved views" (ARC-02).
-  const [first, facetRes, viewRes] = await Promise.all([
+  // D-NEXT: los desplegables del formulario de solicitud se cargan aquí UNA vez (cuatro lecturas
+  // pequeñas, product_vocabulary es un agregado) y bajan a la tabla; el botón «Request» de cada fila
+  // los reutiliza, sin consulta por fila ni por apertura.
+  const [first, facetRes, viewRes, requestPickers] = await Promise.all([
     queryCatalog({ reviewOnly, offset: 0, limit: CATALOG_PAGE }),
     supabase.rpc("catalog_facets"),
     supabase.from("saved_views").select("id,name,state").eq("scope", "catalog").order("created_at"),
+    loadRequestPickers(supabase, "catalog"),
   ]);
   const facets = unwrap(facetRes, "catalog: catalog_facets");
   const views = unwrap(viewRes, "catalog: saved_views");
@@ -63,6 +68,7 @@ export default async function CatalogPage({
           savedViews={(views ?? []) as { id: number; name: string; state: Record<string, unknown> }[]}
           initialError={first.error ?? null}
           initialView={initialView}
+          requestPickers={requestPickers}
         />
       </main>
     </>

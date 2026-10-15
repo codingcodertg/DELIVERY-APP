@@ -9,7 +9,7 @@ import { Tx } from "@/components/erp/tx";
 import { ChartCard, BarList, Donut, CoverageStat, type BarItem } from "@/components/erp/charts";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Dashboard — RTG ERP" };
+export const metadata = { title: "Product Analytics — RTG ERP" }; // antes «Dashboard» (D-NEXT)
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // El rol y el correo son dato; los estados del donut son enumerados fijos y su etiqueta sale de
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-8">
-        <h1 className="text-2xl font-semibold"><Tx en="Dashboard" es="Panel" /></h1>
+        <h1 className="text-2xl font-semibold"><Tx en="Product Analytics" es="Analítica de productos" /></h1>
         <p className="mt-1 text-sm text-slate-500">
           <Tx en="Signed in as" es="Sesión de" /> {session.fullName ?? session.user.email} · {session.role} ·{" "}
           {showCost ? <Tx en="cost visible" es="costo visible" /> : <Tx en="cost hidden" es="costo oculto" />} <Tx en="(enforced at the database)" es="(lo impone la base de datos)" /> · {s.total.toLocaleString()} <Tx en="products." es="productos." />

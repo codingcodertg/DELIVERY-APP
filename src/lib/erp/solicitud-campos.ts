@@ -27,6 +27,24 @@ export const TIPOS_QUE_CREAN_BORRADOR: readonly TipoDeSolicitud[] = ["new", "cop
 /** Los que atiende la cola de Aprobaciones (/erp/requests) con decide_request. */
 export const TIPOS_DEL_EJECUTOR: readonly TipoDeSolicitud[] = ["edit", "reactivate", "deactivate", "discontinue"];
 
+/**
+ * Cómo arranca el formulario (D-NEXT). Abierto desde la fila de un producto del catálogo (`targetSku`,
+ * request-drawer.tsx): en «edit», con ese producto fijo, sin el buscador de SKU, y solo con los tipos
+ * que actúan sobre un producto que ya existe —«new» y «copy» crearían OTRO artículo dentro del cajón
+ * de este, y eso sigue en /erp/request—. Sin `targetSku` (la página /erp/request), exactamente como
+ * antes: «new», con buscador y los seis tipos.
+ */
+export function arranqueDelFormulario(targetSku?: string | null): {
+  tipo: TipoDeSolicitud;
+  productoFijo: string | null;
+  buscador: boolean;
+  tipos: readonly TipoDeSolicitud[];
+} {
+  const sku = (targetSku ?? "").trim();
+  if (!sku) return { tipo: "new", productoFijo: null, buscador: true, tipos: TIPOS_DE_SOLICITUD };
+  return { tipo: "edit", productoFijo: sku, buscador: false, tipos: TIPOS_DEL_EJECUTOR };
+}
+
 export const ESTADOS_DEL_SOLICITANTE = ["ready", "not_ready"] as const;
 export type EstadoDelSolicitante = (typeof ESTADOS_DEL_SOLICITANTE)[number];
 
