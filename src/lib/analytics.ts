@@ -4,6 +4,7 @@ import { parseWindow } from "@/lib/dispatch";
 import { distanceMeters } from "@/lib/geo";
 import { palletsDeLaOrden, sumaPallets } from "./pallets";
 import { redondeaDinero, redondeaMillas, sumaDinero, sumaMillas } from "./totales";
+import { conteoDeFotos } from "./columnas-de-la-lista";
 
 // How far the POD GPS stamp can sit from the geocoded destination before the
 // delivery is flagged as location-mismatched (metres). ~250 m tolerates
@@ -367,7 +368,7 @@ export function driverQualityKpis(deliveries: Delivery[]): DriverQualityKpi[] {
       if (transit > 0) { a.transitSum += transit; a.transitN++; }
       const dwell = span(d.arrived_at, d.pod_delivered_at);
       if (dwell > 0) { a.dwellSum += dwell; a.dwellN++; }
-      if (d.pod_signature || (d.photos?.length ?? 0) > 0) a.podOk++;
+      if (d.pod_signature || conteoDeFotos(d) > 0) a.podOk++;   // la lista no trae las fotos: su conteo (D-562, 177)
       if (d.csat_rating != null) a.rated++;
       // POD GPS accuracy: compare where the driver stamped delivery to the
       // geocoded destination, when both are known.

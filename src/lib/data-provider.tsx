@@ -34,7 +34,8 @@ import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order
 import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria";
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { mensajeDelGuard } from "@/lib/recogida-del-chofer";
-import { autoresDeFotos } from "@/lib/fotos-de-entrega";
+import { metaDeFotosAlGuardar, type LectorDeFotos } from "@/lib/fotos-de-la-orden";
+import { COLUMNAS_DE_LA_LISTA, COLUMNAS_DE_LA_LISTA_SIN_CONTEO, faltaPhotoCount, sinPhotoCount } from "@/lib/columnas-de-la-lista";
 import { falloAlGuardarDocumento, valorDeDocumento } from "@/lib/documento-pendiente";
 import type { EscrituraDeMaterial } from "@/lib/agregar-material";
 import type { CampoDeDocumento } from "@/lib/order-document";
@@ -564,13 +565,21 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // all of it. reloadAll and the realtime reloads read it so they never load LESS than a screen
   // already extended to.
   const deliveriesFloorRef = useRef<string | null>(shiftDateISO(todayISO(), -DELIVERIES_WINDOW_DAYS));
-  const deliveriesQuery = useCallback(() => {
-    const q = supabase.from("deliveries").select("*").eq("is_training", false);
-    const floor = deliveriesFloorRef.current;
-    return (floor
-      ? q.or(`delivery_date.gte.${floor},input_date.gte.${floor},delivery_date.is.null,${OPEN_STAGES_FILTER}`)
-      : q
-    ).order("order_no", { ascending: false });
+  // Sin `photos` ni `photo_meta` (D-562, 177): las fotos van en base64 dentro de la fila, y con `select("*")` la lista
+  // llegó a 6,4 MB por carga —4 entregas con ~5 MB de fotos— y la app se quedaba en «Cargando…». La ficha de una orden
+  // baja sus fotos aparte (lib/fotos-de-la-orden.ts). Si la 177 aún no está aplicada, `photo_count` no existe y se
+  // reintenta sin él: pedir una columna que falta tumbaría la lista entera.
+  const deliveriesQuery = useCallback(async () => {
+    const pedir = (columnas: string) => {
+      const q = supabase.from("deliveries").select(columnas).eq("is_training", false);
+      const floor = deliveriesFloorRef.current;
+      return (floor
+        ? q.or(`delivery_date.gte.${floor},input_date.gte.${floor},delivery_date.is.null,${OPEN_STAGES_FILTER}`)
+        : q
+      ).order("order_no", { ascending: false });
+    };
+    const r = await pedir(COLUMNAS_DE_LA_LISTA);
+    return faltaPhotoCount(r.error) ? await pedir(COLUMNAS_DE_LA_LISTA_SIN_CONTEO) : r;
   }, [supabase]);
 
   /**
@@ -604,7 +613,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // screen already asked for on demand, so a realtime reload never narrows it back.
     deliveries: async () => {
       const r = await deliveriesQuery();
-      if (r.data) setDeliveries(r.data as Delivery[]);
+      if (r.data) setDeliveries(r.data as unknown as Delivery[]);
       return r;
     },
     // Bounded, and it was not before. 855 rows / 376 kB today, downloaded in full on EVERY
@@ -872,7 +881,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     if (fromISO !== null && fromISO >= floor) return;  // already covered
     deliveriesFloorRef.current = fromISO;
     const { data } = await deliveriesQuery();
-    if (data) setDeliveries(data as Delivery[]);
+    if (data) setDeliveries(data as unknown as Delivery[]);
   }, [deliveriesQuery]);
 
   // ---------------- Notification fan-out ----------------
@@ -983,7 +992,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // created_by is always the actual actor — a non-sales creator assigning
       // the order to a rep (OrderModal's Sales Rep picker) sets assigned_sales_rep
       // instead, which is what orderOwner() resolves for own-orders visibility.
-      const payload: Partial<Delivery> = { ...d, created_by: me?.id ?? null, is_training: false };
+      // Sin `photo_count`: lo pone la base (177). Llega aquí cuando se parte una orden copiando la fila de la lista.
+      const payload: Partial<Delivery> = sinPhotoCount({ ...d, created_by: me?.id ?? null, is_training: false });
       // Assign the human-facing order code (split remainders pass one in). On a
       // rare race two orders can compute the same code — a unique index rejects
       // the second, so re-fetch the band's codes and retry a few times.
@@ -1061,9 +1071,19 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // survivors keep their authors.
       // D-527: la regla vive en `autoresDeFotos` porque la entrega con cámara del chofer firma sus fotos en su propia
       // escritura (la de la etapa), no aquí.
+      //
+      // D-562 (177): la fila de la lista ya NO trae `photo_meta`, así que los autores de las fotos que ya había se leen
+      // de la base justo antes; con el de la fila de la lista (vacío) cada foto vieja quedaría firmada por quien guarda ahora.
+      // Si esa lectura falla, no se guarda: perder los autores no se deshace.
       if (patch.photos && me) {
-        patch = { ...patch, photo_meta: autoresDeFotos(patch.photos, before?.photo_meta, me.id, new Date().toISOString()) };
+        const meta = await metaDeFotosAlGuardar(supabase as unknown as LectorDeFotos, id, patch.photos, me.id, new Date().toISOString());
+        if (!meta) {
+          if (!opts?.quiet) notify(lang === "es" ? "No se pudieron leer las fotos de la orden; no se guardó. Reintente." : "Could not read the order's photos; nothing was saved. Try again.");
+          return false;
+        }
+        patch = { ...patch, photo_meta: meta };
       }
+      patch = sinPhotoCount(patch);   // lo pone la base (177)
 
       const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
       if (error) {

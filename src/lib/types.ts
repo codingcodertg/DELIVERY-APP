@@ -203,8 +203,14 @@ export interface Delivery {
   pod_signature: string | null;     // signature image as a data: URL
   pod_delivered_at: string | null;  // when it was actually handed over
   /** Photos of the material taken by the driver (data: URLs), e.g. the load on
-   * the truck or the goods dropped at the door. */
+   * the truck or the goods dropped at the door.
+   *
+   * OJO (D-562, 177): las filas de la LISTA (`useData().deliveries`) NO traen `photos` ni `photo_meta` —pesan MB—.
+   * Para contarlas, `conteoDeFotos(d)`; para verlas, `useFotosDeLaOrden` (lib/fotos-de-la-orden.ts). */
   photos: string[] | null;
+  /** Cuántas fotos hay en `photos`. Lo calcula la base (disparador de la 177); el cliente nunca lo escribe. Ausente en
+   * filas que no vienen de la base (demo) y si la 177 no está aplicada. */
+  photo_count?: number | null;
 
   // When the driver set off toward the pickup (drive-to-pickup leg). Used as
   // the start of "active" time for the idle-time KPI when present.

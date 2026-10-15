@@ -44505,3 +44505,29 @@ logística y admin ven y actualizan todas; **sin DELETE**. Checksum `86ae9176475
 **Qué no cambia.** El mapa en sí (D-554, D-558) y el resto del inicio. Es de pantalla: el mapa no enseña datos de la base, solo qué apps hay y cómo se conectan, así que no hay nada que cerrar en RLS.
 
 **Pruebas:** `mapa-de-apps.test.ts`, «solo el admin ve el mapa» (los siete roles) y «la tarjeta del inicio y la página del mapa preguntan veElMapa». Mutantes 3 de 3 (todos ven el mapa; la tarjeta sale para todos; la página deja entrar a cualquiera), cada uno cae con su prueba por nombre.
+
+
+## D-562 · La lista de Entregas deja de bajarse las fotos: `photo_count` en la base y las fotos de una orden se leen aparte (migración 177)
+
+**Fecha:** 2026-10-15 · Caída en producción · Migración 177 (`photo_count` + disparador + relleno).
+
+**Lo que reportó el dueño**, literal: *«desde la ultima actualizacion reportan que al abrir el app queda toda en blanco que pasa»* y *«a mi me aparece que carga y nunca carga»*.
+
+**Qué fallaba (medido 2026-10-15).** La lista de órdenes (`data-provider.tsx`, `deliveriesQuery`) hacía `select("*")` sobre `deliveries`, y `photos` / `photo_meta` guardan las fotos de la entrega **en base64 dentro de la fila**. Ese día entraron 4 entregas con ~5 MB de fotos y la lista pasó a **6,4 MB por carga**, que además se recarga entera con cada evento realtime. La app de Entregas se quedaba en «Cargando…»: **23 s** en una laptop; en los teléfonos no terminaba. No fue la última versión: fueron los datos de ese día.
+
+**Qué cambia.**
+- **Base (177):** `deliveries.photo_count integer not null default 0`, que pone el disparador `deliveries_photo_count_trg` (BEFORE INSERT OR UPDATE) a partir de `photos`; lo que mande el cliente en esa columna se pisa. Relleno de las filas con fotos en `session_replication_role = replica`, para no disparar el guard ni `deliveries_touch`.
+- **Lista:** pide `COLUMNAS_DE_LA_LISTA` (`src/lib/columnas-de-la-lista.ts`): todas las de `Delivery` menos `photos` y `photo_meta`, más `photo_count`. Sale de un `Record<keyof Delivery, true>`, así que una columna nueva en el tipo que no se añada ahí no compila; y una prueba la compara con las columnas que crean `schema.sql` + migraciones. Si la 177 no está aplicada, la lista reintenta sin `photo_count` (pedir una columna que no existe tumbaría la lista entera).
+- **Quien contaba fotos de la lista** (orden entregada sin comprobante en `attention.ts`, % de comprobante en `analytics.ts`) usa `conteoDeFotos(d)`: las fotos si la fila las trae (demo, recién guardadas), si no `photo_count`.
+- **La ficha** (`OrderModal`) lee `photos, photo_meta` de su orden con `useFotosDeLaOrden` (`src/lib/fotos-de-la-orden.ts`) y las vuelve a pedir cuando cambian `updated_at` o `photo_count`. **Mientras no han llegado, no deja escribir fotos** —ni la rejilla de «Fotos del material» ni las fotos de la entrega (D-527)—: guardar «las de la orden + la nueva» sin las de la orden borraría las que había. Las reglas del comprobante cuentan con `photo_count` mientras tanto.
+- **`updateDelivery`** firma las fotos (`photo_meta`) con el `photo_meta` **leído de la base justo antes** (`metaDeFotosAlGuardar`): la fila de la lista ya no lo trae, y con el suyo vacío cada foto vieja habría quedado firmada por quien guarda. Si esa lectura falla, no guarda. `createDelivery` y `updateDelivery` quitan `photo_count` de lo que mandan.
+
+**Lo que se descartó.**
+- Columna `GENERATED ALWAYS ... STORED`: `partir_carga` (157) inserta con `insert into public.deliveries select * from jsonb_populate_record(...)`, y una columna generada no admite valor explícito en un INSERT; partir una carga habría dejado de funcionar. Con columna normal + disparador, la carga nueva copia el conteo de la madre y el disparador lo corrige.
+- El nombre del disparador tiene que ordenar **después** de `deliveries_guard_*`: el guard compara la fila entera (`probe is not distinct from OLD`, 173) y, si `photo_count` cambiara antes de que mire, rechazaría la entrega del chofer con fotos.
+
+**Lo que no se tocó.** Los `select("*")` de servidor: `avisos-cliente-envio.ts` (la ruta de un chofer para el aviso «en camino», y las órdenes de mañana) y `api/notion-summary`. No bloquean la app; quedan para otro cambio. `pod_signature` también es una imagen base64 en la fila y sigue en la lista.
+
+**Pruebas:** `columnas-de-la-lista.test.ts` (sin fotos y con conteo; igual a las columnas de las migraciones; data-provider no vuelve a `select("*")`), `fotos-de-la-orden.test.ts` (lectura de una fila; autores leídos de la base; la ficha no lee las fotos de la fila y no escribe sin cargarlas), `attention.test.ts` y `analytics.test.ts` (fila sin `photos` con `photo_count`). Mutantes 4 de 4, cada uno cae con su prueba por nombre: la lista vuelve a pedir `*`; la ficha toma las fotos de la fila; el update firma con el `photo_meta` de la lista; `attention` vuelve a `d.photos`.
+
+**No verificado:** la 177 contra la base (rama sin acceso); que `set local session_replication_role` lo permita el rol que aplica en Supabase (si no, la migración falla entera dentro de su transacción y no deja nada a medias); el gancho de la ficha en un navegador.
