@@ -44125,6 +44125,8 @@ D-442 · Rama `cotizador-price-match`.
 
 **Fecha:** 2026-10-15 · **Versión:** deliveries 1.311.0 (repo 1.421.0) · Sin migración · Hecho directo por el orquestador en `mapa-en-su-app`.
 
+> **Reemplazada en parte por D-561** (2026-10-15): la tarjeta «🗺️ Mapa de la empresa» y la página `/home/mapa` pasan a ser **solo del admin**; lo demás de esta entrada sigue igual.
+
 **Pedido del dueño**, literal: *«el schema que hicimos de la app pon lo dentro de una app no asi coomo lo dejaste y trae le diseno al rtb hub denuevo»*.
 
 **Qué cambia.** D-554 había puesto el mapa de apps al estilo QuickBooks **en lugar** de las tarjetas del inicio. Ahora:
@@ -44491,3 +44493,15 @@ logística y admin ven y actualizan todas; **sin DELETE**. Checksum `86ae9176475
   Reprogramar», «Continuar la orden» y la ✕), ni la ventana del Gestor, ni el `?solicitudes=1` del aviso.
 - Que el gerente, que **también reprograma** (D-549), necesite pedir: se dejó porque el encargo lo nombra.
 - Tracker y Notion: son del orquestador.
+
+## D-561 · El mapa de la empresa es solo del admin
+
+**Fecha:** 2026-10-15 · **Versión:** deliveries 1.316.0 (repo 1.426.0) · Sin migración · Hecho directo por el orquestador en `mapa-solo-admin`.
+
+**Pedido del dueño**, literal: *«map app of the schema is just for admin remove it for everybody else»*.
+
+**Qué cambia.** `veElMapa(me)` (`src/lib/mapa-de-apps.ts`) es verdad solo para `role = admin`. El inicio del hub (`HomeSelector`) pinta la tarjeta «🗺️ Mapa de la empresa» solo si `veElMapa`, y `/home/mapa` redirige a `/home` a cualquier otro rol, después de las puertas de D-556 (sesión, perfil, `canReachHub`). Se mira el rol del perfil que se pinta: el admin que «ve como» otra persona no ve el mapa, igual que esa persona.
+
+**Qué no cambia.** El mapa en sí (D-554, D-558) y el resto del inicio. Es de pantalla: el mapa no enseña datos de la base, solo qué apps hay y cómo se conectan, así que no hay nada que cerrar en RLS.
+
+**Pruebas:** `mapa-de-apps.test.ts`, «solo el admin ve el mapa» (los siete roles) y «la tarjeta del inicio y la página del mapa preguntan veElMapa». Mutantes 3 de 3 (todos ven el mapa; la tarjeta sale para todos; la página deja entrar a cualquiera), cada uno cae con su prueba por nombre.
