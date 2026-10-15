@@ -3,6 +3,7 @@ import { esDeMisTiendas, tiendasDeAlmacen } from "@/lib/almacen";
 import { normalizaLugar } from "@/lib/order-endpoints";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { tiendasDelGrupo } from "@/lib/store-group";
+import { veTodasLasTiendas } from "@/lib/todas-las-tiendas";
 
 /**
  * De qué tiendas son las cifras del Panel (D-396).
@@ -36,15 +37,18 @@ export type AlcanceDelPanel =
  * ¿De qué tiendas ve el Panel esta persona?
  *
  * - admin y logística: de todas;
+ * - el gerente con la capacidad «Ver todas las tiendas» (`all_stores`, D-559): de todas, como ellos;
  * - el resto (el gerente, y quien tenga la capacidad `dashboard` marcada a mano): la suya y las de su grupo;
  * - sin tienda asignada: ninguna, y la pantalla lo dice. Un campo sin rellenar no amplía (D-237).
  */
 export function alcanceDelPanel(
-  me: Pick<Profile, "role" | "store"> | null | undefined,
+  me: Pick<Profile, "role" | "store" | "permissions"> | null | undefined,
   tiendas: readonly NamedLocation[],
 ): AlcanceDelPanel {
   if (!me) return { tipo: "sin-tienda" };
   if (ROLES_PANEL_DE_TODAS.includes(me.role)) return { tipo: "todas" };
+  // D-559: la amplitud la da SOLO la capacidad, nunca una tienda vacía (D-237 sigue debajo).
+  if (veTodasLasTiendas(me)) return { tipo: "todas" };
   const normalizadas = tiendasDeAlmacen(me.store, tiendas as NamedLocation[]);
   if (normalizadas.length === 0) return { tipo: "sin-tienda" };
   return { tipo: "tiendas", nombres: tiendasDelGrupo(me.store, tiendas), normalizadas };

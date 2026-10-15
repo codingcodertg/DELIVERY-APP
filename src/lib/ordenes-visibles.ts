@@ -38,7 +38,7 @@ import { alcanceDelPanel, esDelAlcance, type AlcanceDelPanel } from "@/lib/panel
  */
 
 export type ContextoDeLista = {
-  me: Pick<Profile, "id" | "role" | "store"> | null | undefined;
+  me: Pick<Profile, "id" | "role" | "store" | "permissions"> | null | undefined;
   /** El sandbox de enseñanza no tiene cortes de ningún tipo. */
   teaching: boolean;
   /** Admin y logística ven el historial entero (D-239). */
@@ -249,7 +249,9 @@ export const ROLES_LISTA_DE_SU_TIENDA: readonly UserRole[] = ["manager", "sales"
  * tienda»*. Por tanto:
  *
  * - **admin y logística**: todas, siempre (`alcanceDelPanel` ya lo dice así);
- * - **gerente y ventas**: su tienda y las de su grupo, siempre — busquen o no;
+ * - **gerente y ventas**: su tienda y las de su grupo, siempre — busquen o no; salvo el gerente con
+ *   «Ver todas las tiendas» (`all_stores`, D-559), que ve todas como admin y logística (lo decide
+ *   `alcanceDelPanel`);
  * - **los demás** (office, almacén, cualquier otro rol): **solo buscando**. Sin buscar, su lista se
  *   queda como estaba (D-374, D-392, D-404);
  * - **sin tienda**, donde hay corte: ninguna, y la pantalla lo avisa con este valor (D-237, D-396).

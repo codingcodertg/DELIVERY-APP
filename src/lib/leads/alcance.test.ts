@@ -281,7 +281,10 @@ describe("6 · el interruptor en Usuarios", () => {
   });
   it("los otros módulos no cambian: Entregas sigue ofreciendo todos sus permisos y con su propio rol", () => {
     const entregas = MODULE_ACCESS.find((m) => m.key === "deliveries")!;
-    expect(entregas.capabilityOffered).toBeUndefined();
+    // Nota D-559: Entregas ya no ofrece TODOS sus permisos a todos: «Ver todas las tiendas» (`all_stores`) solo al gerente
+    // (y fija a admin y logística). Antes esta línea exigía `capabilityOffered` ausente; ahora exige que el resto siga
+    // ofreciéndose a cualquier rol, que era lo que protegía. La regla nueva se mide en `todas-las-tiendas.test.ts`.
+    for (const c of entregas.capabilities ?? []) if (c.key !== "all_stores") expect(entregas.capabilityOffered?.(c.key, "sales") ?? true, c.key).toBe(true);
     expect(entregas.capabilitiesRole).toBeUndefined();
   });
   it("el diálogo dibuja solo los permisos ofrecidos a ESE rol, y los escribe sin pisar los demás de la lista", () => {
