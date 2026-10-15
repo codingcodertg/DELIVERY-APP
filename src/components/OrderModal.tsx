@@ -1714,7 +1714,7 @@ export function OrderModal({
               <ReprogramarOrden pedido={existing} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
             </span>
           )}
-          {/* «📅 Pedir para hoy» (D-NEXT, 176): ventas, Office y gerente piden que la orden pase a otro día y a un chofer;
+          {/* «📅 Pedir para hoy» (D-560, 176): ventas, Office y gerente piden que la orden pase a otro día y a un chofer;
               logística o el admin lo deciden en el Gestor. Aquí también se ve en qué quedó. Sin la tabla, no se pinta. */}
           {!editing && existing && (esRolQuePide(me.role) || puedeDecidirSolicitudes(me.role)) && (
             <span style={{ flex: "0 0 auto", display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }} data-pedir-asignacion-en-ficha>

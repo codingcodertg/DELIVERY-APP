@@ -9,7 +9,7 @@ import { orderLabel, shiftDateISO, todayISO } from "@/lib/utils";
 import type { Delivery, Profile } from "@/lib/types";
 
 /**
- * «📅 Pedir para hoy / Request for today» en la cabecera de la ficha (D-NEXT, 176), y en qué quedó la última solicitud de la
+ * «📅 Pedir para hoy / Request for today» en la cabecera de la ficha (D-560, 176), y en qué quedó la última solicitud de la
  * orden. Quién ve el botón lo dice `puedePedirAsignacion`; sin la tabla (176 sin aplicar), en el demo o en modo enseñanza,
  * el gancho dice `disponible: false` y aquí no se pinta nada.
  */

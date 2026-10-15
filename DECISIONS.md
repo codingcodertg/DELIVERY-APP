@@ -44398,7 +44398,7 @@ ve», la base le pone ese techo, igual que hoy. `permissions` lo escribe solo el
 - **No verificado:** en un navegador (ni demo ni con sesión) — ni la casilla en el diálogo ni la lista de Francis; la
   política en la base de producción (se leyó el repo, no `pg_policies`); que Francis tenga `deliveries` en
   `module_access`. **Para que surta efecto, un admin tiene que marcarle la casilla** en Usuarios → Entregas.
-## D-NEXT · «📅 Pedir para hoy»: ventas, Office y gerente piden pasar una orden a otro día y a un chofer; logística y admin lo aprueban (reprograma + asigna) o lo rechazan en el Gestor (migración 176)
+## D-560 · «📅 Pedir para hoy»: ventas, Office y gerente piden pasar una orden a otro día y a un chofer; logística y admin lo aprueban (reprograma + asigna) o lo rechazan en el Gestor (migración 176)
 
 **Fecha:** 2026-10-15 · **Versión:** la pone el orquestador (toca `deliveries`: ficha, Gestor, campana) · **Migración:**
 `176_solicitudes_de_asignacion.sql` (plan en `docs/PLAN-176-solicitud-de-asignacion.md`) · Sin revertir ninguna decisión.
@@ -44464,10 +44464,10 @@ logística y admin ven y actualizan todas; **sin DELETE**. Checksum `86ae9176475
 - `npx tsc --noEmit` limpio después de la última edición. `src/lib/solicitud-de-asignacion.test.ts` (nueva, 33 pruebas):
   la regla por rol y etapa, las listas de la app contra las de la 176, fechas, listas, tabla ausente, `pasosAlAprobar`, que
   el Gestor pase por `reprogramarOrden` y luego `manualAssign` (y no por `updateDelivery`), que la bandeja marque solo tras
-  aprobar, la ficha y la campana, y la forma de la migración (sin transacción propia, checksum de `--sum`, sin `D-NEXT`).
+  aprobar, la ficha y la campana, y la forma de la migración (sin transacción propia, checksum de `--sum`, sin `D-560`).
   Suite entera (`--maxWorkers=1`, 2026-10-15): 8.080 en verde y 2 rojas que eran de esta rama, ya arregladas y
   repetidas en verde: `help-thread.test.ts` (la campana ahora pasa por el destino de la solicitud; actualizada con su
-  «Nota D-NEXT», la ayuda sigue primero) y `gestor/numeros-del-dia.test.ts` (el Gestor montado con un contexto sin
+  «Nota D-560», la ayuda sigue primero) y `gestor/numeros-del-dia.test.ts` (el Gestor montado con un contexto sin
   `notifications`: el gancho ahora lee `notifications?.length ?? 0`).
 - **Mutantes: 30, caen los 30** (`mutantes.mjs`, tanda `tanda-solicitud-asignacion.json`, leída por nombre de prueba):
   ventas pide ajenas (M1), se pide una recogida (M2), logística pide (M3), día pasado (M4), misma fecha (M5), la última

@@ -37,7 +37,7 @@ export function NotificationBell() {
     // Los avisos de ayuda no son de una orden y no llevaban a ningún sitio, tampoco el de «atendida»
     // de D-301. Ahora llevan a la conversación: a «Mis solicitudes», o a la vista del admin (D-311).
     const ayuda = destinoDelAvisoDeAyuda(kind);
-    // Las solicitudes de asignación (D-NEXT): la nueva, a la bandeja del Gestor; la decidida, a su orden.
+    // Las solicitudes de asignación (D-560): la nueva, a la bandeja del Gestor; la decidida, a su orden.
     const solicitud = destinoDelAvisoDeSolicitud(kind, deliveryId);
     if (ayuda) router.push(ayuda);
     else if (solicitud) router.push(solicitud);

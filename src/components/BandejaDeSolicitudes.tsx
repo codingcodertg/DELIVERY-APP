@@ -9,7 +9,7 @@ import { orderLabel } from "@/lib/utils";
 import type { Delivery, Profile } from "@/lib/types";
 
 /**
- * La bandeja de solicitudes de asignación en el Gestor de Rutas (D-NEXT, 176): la pastilla «📥 Solicitudes (N)» y su
+ * La bandeja de solicitudes de asignación en el Gestor de Rutas (D-560, 176): la pastilla «📥 Solicitudes (N)» y su
  * ventana, con Aprobar (chofer elegible, por defecto el sugerido) y Rechazar (con motivo). Lo que hace «Aprobar» con la
  * orden NO vive aquí: lo pasa la página (`aprobar`), que reprograma con `reprogramarOrden` (D-549) y asigna con
  * `manualAssign` (el «Asignar a…» de cada fila). Esta ventana solo marca la solicitud cuando eso salió bien.

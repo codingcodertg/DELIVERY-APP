@@ -20,7 +20,7 @@ export interface SolicitudesDeAsignacion {
 }
 
 /**
- * Las solicitudes de asignación que esta persona puede ver (D-NEXT, 176): las suyas, o todas si es logística o admin — eso
+ * Las solicitudes de asignación que esta persona puede ver (D-560, 176): las suyas, o todas si es logística o admin — eso
  * lo decide la RLS de la tabla, no este gancho. Se relee al entrar, al volver a la pestaña, cada minuto, después de cada
  * escritura propia, y cuando llega un aviso a la campana (la base avisa a quien decide de cada solicitud nueva, y a quien
  * pidió de cada decisión).

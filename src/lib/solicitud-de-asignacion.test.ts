@@ -9,7 +9,7 @@ import {
 } from "./solicitud-de-asignacion";
 import { MINIMO_NOTA_REPROGRAMAR } from "./reprogramar-orden";
 
-// D-NEXT. El dueño, 2026-10-15: «vamos a hacer un assign order request para employees y office que van or ejemplo sale una
+// D-560. El dueño, 2026-10-15: «vamos a hacer un assign order request para employees y office que van or ejemplo sale una
 // orden para manna pero el driver tiene spacio hoy ellos pueden pedir que sa orden se asgine para hoy hadciendo un
 // reschedue y un assgin request». Ventas, Office y gerente piden; logística y admin deciden en el Gestor.
 
@@ -197,12 +197,12 @@ describe("la ficha y la campana", () => {
 });
 
 describe("176 · la migración", () => {
-  it("sin transacción propia, con su registro y el checksum que da `--sum`, y sin D-NEXT dentro", async () => {
+  it("sin transacción propia, con su registro y el checksum que da `--sum`, y sin D-560 dentro", async () => {
     const ledger = await import(pathToFileURL(join(process.cwd(), "scripts/db/ledger.mjs")).href);
     const crudo = readFileSync(FICHERO_SQL, "utf8");
     expect(ledger.llevaTransaccionPropia(crudo)).toBe(false);
     expect(ledger.shaDeclarado(crudo, "176_solicitudes_de_asignacion.sql")).toBe(ledger.checksum(crudo));
-    expect(crudo).not.toContain("D-NEXT");
+    expect(crudo).not.toContain("D-560");
   });
   it("una sola abierta por orden", () => {
     expect(plano).toContain("create unique index if not exists assign_requests_una_abierta on public.assign_requests (delivery_id) where status = 'open';");

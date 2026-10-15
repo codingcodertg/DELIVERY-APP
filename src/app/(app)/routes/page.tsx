@@ -1548,7 +1548,7 @@ export default function RoutesPage() {
     addNote(id, `Moved to ${laneKey}${d?.assigned_driver ? ` (from ${d.assigned_driver})` : ""}`);
   };
 
-  // A single manual (re)assignment — assign + write an audit note. Devuelve la escritura (D-NEXT: «Aprobar» una solicitud
+  // A single manual (re)assignment — assign + write an audit note. Devuelve la escritura (D-560: «Aprobar» una solicitud
   // de asignación espera a que termine); el orden de siempre —asignar, y la nota sin esperar— no cambia.
   const manualAssign = (id: string, driver: string) => {
     const d = dayOrders.find((x) => x.id === id);
@@ -1557,7 +1557,7 @@ export default function RoutesPage() {
     return hecho;
   };
 
-  // «Aprobar» una solicitud de asignación (D-NEXT, 176). Reutiliza, no copia: la fecha por `reprogramarOrden` (D-549, la
+  // «Aprobar» una solicitud de asignación (D-560, 176). Reutiliza, no copia: la fecha por `reprogramarOrden` (D-549, la
   // función `reprogramar_orden` de la 173; la 172 la saca de la ruta vieja) y el chofer por `manualAssign`, el «Asignar a…»
   // de cada fila. Primero la fecha y DESPUÉS el chofer: al revés, la 172 vería la fecha cambiar con el chofer ya puesto y
   // se lo quitaría. Qué pasos tocan lo decide `pasosAlAprobar`.
@@ -2857,7 +2857,7 @@ export default function RoutesPage() {
           ⚠ {t("Incidents", "Incidencias")} ({incidents.length})
         </button>
         )}
-        {/* 📥 Solicitudes de asignación (D-NEXT, 176): las que piden ventas, Office y gerente; logística y admin deciden. */}
+        {/* 📥 Solicitudes de asignación (D-560, 176): las que piden ventas, Office y gerente; logística y admin deciden. */}
         {!soloLectura && puedeDecidirSolicitudes(me?.role) && (
           <BandejaDeSolicitudes ordenes={deliveriesLeidas} usuarios={users} choferes={drivers.map((u) => u.full_name)}
             aprobar={apruebaSolicitud} abrirOrden={setOpenOrder} t={t} />
