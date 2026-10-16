@@ -25,7 +25,7 @@ import { colorDeChofer } from "@/lib/map-legend";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
 import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
-import { NINGUNO, alternaTodas, alternaVisible, guardaMarcados, leeMarcados, marcadasAProposito, marcadosVigentes, pasaElFiltro, rutasVisibles, seVenTodas, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
+import { alternaTodas, alternaVisible, guardaMarcados, leeMarcados, marcadasAProposito, marcadosVigentes, pasaElFiltro, rutasVisibles, seVenTodas, soloAlgunos, unicoMarcado } from "@/lib/gestor/filtro-de-choferes";
 import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
 import { alcanceDeChoferes, choferSeVe, choferesConOrden, ordenesPorChofer, type AlcanceDeChoferes } from "@/lib/gestor/choferes-por-tienda";
 import { alAbrirRutas, alPulsarElMapa, MAPA_INICIAL, rutasAbiertas, type EstadoDelMapa } from "@/lib/gestor/mapa-al-abrir-ruta";
@@ -2176,7 +2176,6 @@ export default function RoutesPage() {
       apagado={puedeElegirBase ? porQueNoSeElige() : null} onCambia={(c) => void cambiaBaseDelDia(chofer, c)} />
   );
   const clavesDelPanel = filasDelPanel.map((u) => u.key);
-  const visiblesEnPanel = rutasVisibles(selected, clavesDelPanel);
   const marcadasSinParadas = lanesDelFiltro.filter((u) => selected.has(u.key) && (byDriver.get(u.key) ?? []).length === 0);
   // «▦ Cuadrícula» (D-481, e): arriba, una tarjeta COMPACTA por ruta (nombre, números, pastillas; sin tabla ni botones);
   // abajo, DESPLEGADA a todo el ancho, la del nombre pulsado. En «▭ Ancho», las tarjetas enteras, como siempre.
@@ -2737,7 +2736,7 @@ export default function RoutesPage() {
             // recarga a media ruta y la suma del día no dice nada. Rojo solo si en alguna parada se pasa (`cargaDelPanel`).
             return {
               id: u.id, clave: u.key, etiqueta: u.label, color: colorFor(u.driver), paradas: stops.length, info: routeInfo[u.key],
-              carga: cargaDelPanel(lecturaDe(u.key, stops), capacityFor(u.driver)), marcada: visiblesEnPanel.has(u.key), enVivo: liveNames.has(u.driver),
+              carga: cargaDelPanel(lecturaDe(u.key, stops), capacityFor(u.driver)), marcada: marcadasAProposito(selected).has(u.key), enVivo: liveNames.has(u.driver),
             };
           })}
           // Soltar aquí una fila de «Sin asignar» la asigna; una parada de otro chofer, la pasa a esta ruta (D-456).
@@ -2796,7 +2795,7 @@ export default function RoutesPage() {
           {filtroChofer.size > 0 && (
             <span className="sema" data-filtro-de-chofer style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--accent)", color: "var(--accent)", background: "var(--card)" }}
               title={t("Only the drivers checked in “Drivers & routes” are shown", "Solo se ven los choferes marcados en «Choferes y rutas»")}>
-              🚚 {filtroChofer.has(NINGUNO) ? t("no driver", "ningún chofer") : [...filtroChofer].map(laneLabel).join(", ")}
+              🚚 {[...filtroChofer].map(laneLabel).join(", ")}
               <button className="notif-clear" data-quita-filtro onClick={() => setSelected(new Set())} title={t("Show every driver", "Ver todos los choferes")}>✕</button>
             </span>
           )}

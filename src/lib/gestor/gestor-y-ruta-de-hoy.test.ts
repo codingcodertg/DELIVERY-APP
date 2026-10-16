@@ -246,35 +246,40 @@ describe("D-488 · el filtro de choferes: el panel lista a todos, la casilla dic
     expect([...rutasVisibles(new Set(), R)]).toEqual(R);
     expect(seVenTodas(new Set(), R)).toBe(true);
   });
-  it("desmarcar una la esconde; las otras siguen y se pueden marcar varias", () => {
-    const sinBeto = alternaVisible(new Set(), R, "Beto");
-    expect([...rutasVisibles(sinBeto, R)]).toEqual(["Ana", "Carla"]);
-    expect(pasaElFiltro(marcadosVigentes(sinBeto, R), "Beto")).toBe(false);
-    expect(pasaElFiltro(marcadosVigentes(sinBeto, R), "Ana")).toBe(true);
-    expect(seVenTodas(sinBeto, R)).toBe(false);
-    // volver a marcar a Beto: todas a la vista = el defecto
-    expect(alternaVisible(sinBeto, R, "Beto").size).toBe(0);
+  // Nota D-566 (2026-10-15): el dueño cambió el modelo —«deselect mean select all … empty means all always» y «if you
+  // press a driver it will select just that driver»—. Las pruebas de D-488 que fijaban «Ninguno» y la casilla como «se ve»
+  // quedan sustituidas por estas.
+  it("D-566 · marcar UNA enseña solo esa; marcar otra, las dos; desmarcar la última vuelve a todas", () => {
+    const soloBeto = alternaVisible(new Set(), R, "Beto");
+    expect([...soloBeto]).toEqual(["Beto"]);
+    expect([...rutasVisibles(soloBeto, R)]).toEqual(["Beto"]);
+    expect(pasaElFiltro(marcadosVigentes(soloBeto, R), "Ana")).toBe(false);
+    expect(pasaElFiltro(marcadosVigentes(soloBeto, R), "Beto")).toBe(true);
+    expect(seVenTodas(soloBeto, R)).toBe(false);
+    expect(unicoMarcado(soloBeto)).toBe("Beto");
+    const dos = alternaVisible(soloBeto, R, "Ana");
+    expect([...rutasVisibles(dos, R)]).toEqual(["Ana", "Beto"]);
+    const ninguna = alternaVisible(alternaVisible(dos, R, "Ana"), R, "Beto");
+    expect(ninguna.size).toBe(0);
+    expect([...rutasVisibles(ninguna, R)]).toEqual(R);
+    expect(seVenTodas(ninguna, R)).toBe(true);
   });
-  it("desmarcarlas todas no vuelve a «todas»: no se ve ninguna", () => {
-    let s = new Set<string>();
-    for (const r of R) s = alternaVisible(s, R, r);
-    expect([...s]).toEqual([NINGUNO]);
-    expect(rutasVisibles(s, R).size).toBe(0);
-    const v = marcadosVigentes(s, R);
-    for (const r of R) expect(pasaElFiltro(v, r)).toBe(false);
-    expect(unicoMarcado(s)).toBe("");
-    expect(marcadasAProposito(s).size).toBe(0);
-  });
-  it("«Todos»: con todas a la vista las quita; si falta alguna, las pone todas", () => {
-    expect([...alternaTodas(new Set(), R)]).toEqual([NINGUNO]);
-    expect(alternaTodas(new Set([NINGUNO]), R).size).toBe(0);
+  it("D-566 · no existe «no ver a nadie»: lo guardado como Ninguno se ignora, y «Todos» siempre deja todas", () => {
+    const viejo = new Set([NINGUNO]);
+    expect([...rutasVisibles(viejo, R)]).toEqual(R);
+    expect(seVenTodas(viejo, R)).toBe(true);
+    expect(marcadosVigentes(viejo, R).size).toBe(0);
+    for (const r of R) expect(pasaElFiltro(marcadosVigentes(viejo, R), r)).toBe(true);
+    expect(alternaTodas(new Set(), R).size).toBe(0);
     expect(alternaTodas(new Set(["Ana"]), R).size).toBe(0);
+    expect(alternaTodas(viejo, R).size).toBe(0);
+    expect(marcadasAProposito(viejo).size).toBe(0);
   });
   it("la pantalla: el panel lista todas y su casilla es «se ve»; la confirmación va encima del panel de Switch user", async () => {
     const { readFileSync } = await import("node:fs");
     const gestor = readFileSync("src/app/(app)/routes/page.tsx", "utf8");
     expect(gestor).toContain("const filasDelPanel = rutasConOrdenes(lanes, conAlgoQuePintar);");
-    expect(gestor).toContain("marcada: visiblesEnPanel.has(u.key)");
+    expect(gestor).toContain("marcada: marcadasAProposito(selected).has(u.key)"); // Nota D-566: la casilla es «marcado», no «se ve»
     expect(gestor).toContain("onAlterna={(clave) => setSelected((s) => alternaVisible(s, clavesDelPanel, clave))}");
     expect(readFileSync("src/components/PanelDeChoferes.tsx", "utf8")).toContain("data-todos-los-choferes");
     expect(readFileSync("src/lib/confirm.tsx", "utf8")).toContain('style={{ zIndex: 10000 }}');

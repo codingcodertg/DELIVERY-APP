@@ -140,8 +140,8 @@ describe("qué rutas son mías", () => {
     expect(marcadosVigentes(new Set(["Miguel A."]), carriles).size).toBe(0);
     expect(pasaElFiltro(new Set(["Miguel A."]), "Miguel A.")).toBe(true);
     expect(soloMisOrdenes([{ assigned_driver: "Miguel A." }], "Carlos R.")).toEqual([]);
-    // Y desmarcar la suya solo esconde la suya.
-    expect(rutasVisibles(alternaVisible(new Set(), carriles, "Carlos R."), carriles).size).toBe(0);
+    // Nota D-566: la casilla es «marcado» y vacío = todas; marcar la suya la enseña sola y nada más aparece.
+    expect([...rutasVisibles(alternaVisible(new Set(), carriles, "Carlos R."), carriles)]).toEqual(["Carlos R."]);
   });
 });
 
