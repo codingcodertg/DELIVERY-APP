@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
+import { srcDeFoto } from "@/lib/fotos-en-storage";
 
 // ============================================================
 // Photos of the material, taken by the driver.
@@ -11,6 +12,9 @@ import { PhotoLightbox } from "@/components/PhotoLightbox";
 // JPEG in the browser before being stored — a raw phone photo is several MB,
 // which would blow past the localStorage quota in demo mode and bloat rows in
 // Supabase. ~1280px wide at q0.7 is plenty to prove what was delivered.
+//
+// Desde la 178 (D-NEXT) el `data:` comprimido NO se guarda en la fila: quien usa esto pasa `subir`, que lo manda al cubo
+// `delivery-photos` y devuelve la ruta; `onChange` recibe rutas. `urls` trae la URL firmada con la que se pinta cada ruta.
 // ============================================================
 
 const MAX_DIM = 1280;
@@ -48,6 +52,8 @@ export function PhotoUpload({
   disabled,
   max = 6,
   credits,
+  urls,
+  subir,
   t,
   galeria = false,
 }: {
@@ -55,6 +61,14 @@ export function PhotoUpload({
   onChange: (next: string[]) => void;
   disabled?: boolean;
   max?: number;
+  /** Con qué `src` se enseña cada foto (178): la URL firmada de una ruta del cubo. Sin entrada, la foto misma (`data:`). */
+  urls?: Record<string, string>;
+  /**
+   * Sube las fotos recién comprimidas (`data:`) al cubo y devuelve sus RUTAS (178, D-NEXT). Con esto, `onChange`
+   * recibe rutas, nunca base64; si la subida falla, se avisa y NO se llama a `onChange`: la orden no se guarda a medias.
+   * Sin `subir` (modo enseñanza, o las fotos de la cámara que viajan con la entrega) se queda el `data:`.
+   */
+  subir?: (fotos: string[]) => Promise<{ ok: true; rutas: string[] } | { ok: false; message: string }>;
   /** Who took each photo, keyed by URL. A caption goes under any photo that
    * has one — the point of a delivery photo is partly who stands behind it. */
   credits?: Record<string, { name: string; role: string } | undefined>;
@@ -83,8 +97,17 @@ export function PhotoUpload({
         if (!f.type.startsWith("image/")) continue;
         try { encoded.push(await compress(f)); } catch { /* skip unreadable file */ }
       }
-      if (!encoded.length) setErr(t("Couldn't read those files.", "No se pudieron leer esos archivos."));
-      else onChange([...photos, ...encoded]);
+      if (!encoded.length) { setErr(t("Couldn't read those files.", "No se pudieron leer esos archivos.")); return; }
+      let nuevas = encoded;
+      if (subir) {
+        const r = await subir(encoded);
+        if (!r.ok) {
+          setErr(t(`Couldn't upload the photo: ${r.message}. Nothing was saved.`, `No se pudo subir la foto: ${r.message}. No se guardó nada.`));
+          return;
+        }
+        nuevas = r.rutas;
+      }
+      onChange([...photos, ...nuevas]);
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -103,7 +126,7 @@ export function PhotoUpload({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {/* window.open does nothing inside the Android WebView, so the
                 photo simply wasn't clickable on the one device it matters on. */}
-            <img src={src} alt={`photo ${i + 1}`} onClick={() => setViewing(i)} />
+            <img src={srcDeFoto(src, urls)} alt={`photo ${i + 1}`} onClick={() => setViewing(i)} />
             {!disabled && <button className="photo-del" onClick={() => remove(i)} title={t("Remove", "Quitar")}>✕</button>}
             {/* Photos taken before attribution existed have no caption rather
                 than a guessed one. */}
@@ -149,6 +172,7 @@ export function PhotoUpload({
           photos={photos}
           index={viewing}
           credits={credits}
+          urls={urls}
           onIndex={setViewing}
           onClose={() => setViewing(null)}
           t={t}

@@ -12,6 +12,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { autoresDeFotos, type AutoresDeFotos } from "@/lib/fotos-de-entrega";
+import { urlsDeFotos, type AlmacenDeFotos } from "@/lib/fotos-en-storage";
 import type { Delivery } from "@/lib/types";
 
 export type FotosDeUnaOrden = { photos: string[] | null; photo_meta: AutoresDeFotos | null };
@@ -92,4 +93,22 @@ export function useFotosDeLaOrden(fila: Delivery | null): EstadoFotos {
   // Mientras se vuelven a pedir (la orden cambió) se siguen ENSEÑANDO las de antes, pero no se escribe con ellas.
   if (leidas && leidas.id === id) return { ...leidas.fotos, listas: leidas.clave === clave };
   return { photos: null, photo_meta: null, listas: false };
+}
+
+/**
+ * Con qué `src` se enseña cada foto (178, D-NEXT): las rutas del cubo se firman (1 h) SOLO para la orden abierta; una
+ * `data:` vieja se enseña tal cual. Se vuelven a firmar cuando cambia la lista de fotos.
+ */
+export function useUrlsDeFotos(fotos: readonly string[] | null | undefined): Record<string, string> {
+  const clave = (fotos ?? []).join("\n");
+  const [urls, setUrls] = useState<{ clave: string; urls: Record<string, string> }>({ clave: "", urls: {} });
+  useEffect(() => {
+    if (!clave) return;
+    let vivo = true;
+    void urlsDeFotos(createClient().storage as unknown as AlmacenDeFotos, clave.split("\n")).then((u) => {
+      if (vivo) setUrls({ clave, urls: u });
+    });
+    return () => { vivo = false; };
+  }, [clave]);
+  return urls.clave === clave ? urls.urls : {};
 }

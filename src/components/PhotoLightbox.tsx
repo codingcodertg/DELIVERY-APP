@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { srcDeFoto } from "@/lib/fotos-en-storage";
 
 // ============================================================
 // Full-screen photo viewer with zoom.
@@ -24,6 +25,7 @@ export function PhotoLightbox({
   photos,
   index,
   credits,
+  urls,
   onIndex,
   onClose,
   t,
@@ -31,6 +33,8 @@ export function PhotoLightbox({
   photos: string[];
   index: number;
   credits?: Record<string, { name: string; role: string } | undefined>;
+  /** Con qué `src` se enseña cada foto (178): la URL firmada de una ruta del cubo. Sin entrada, la foto misma (`data:`). */
+  urls?: Record<string, string>;
   onIndex: (i: number) => void;
   onClose: () => void;
   t: (en: string, es: string) => string;
@@ -43,8 +47,9 @@ export function PhotoLightbox({
   const pinchStart = useRef<{ dist: number; scale: number } | null>(null);
   const panStart = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
 
-  const src = photos[index];
-  const credit: Credit | undefined = credits?.[src];
+  const foto = photos[index];
+  const src = srcDeFoto(foto, urls);
+  const credit: Credit | undefined = credits?.[foto];
 
   const reset = useCallback(() => { setScale(1); setPan({ x: 0, y: 0 }); }, []);
   // A new photo always opens un-zoomed; carrying the previous zoom over lands
