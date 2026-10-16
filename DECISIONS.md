@@ -44645,3 +44645,19 @@ Esto revierte una parte de D-488 y se dice: aquel pedido decía «si no los elij
 **Pruebas:** `gestor-y-ruta-de-hoy.test.ts`, dos pruebas nuevas con «D-566» en el nombre sustituyen a las tres de D-488 que fijaban «Ninguno». Mutantes 4 de 4 (vacío vuelve a ser ninguno; Ninguno guardado sigue escondiendo; «Todos» vuelve a vaciar la pantalla; la casilla vuelve a ser «se ve»), cada uno con su prueba por nombre.
 
 **No verificado:** en navegador. Lo que se midió es la función y el texto de la página.
+
+## D-567 · Índice por fecha en `order_events` (migración 179): el historial deja de recorrer la tabla entera en cada carga
+
+**Fecha:** 2026-10-15 · **Versión:** repo 1.432.0 (solo base: sin cambio de `APP_VERSIONS`) · Migración 179 · Hecho directo por el orquestador en `indice-eventos`.
+
+**De dónde sale.** De la investigación de la caída del 2026-10-15 (D-562): tras las fotos, el coste que seguía era `order_events`. Cada cliente baja al abrir Entregas `select * from order_events order by created_at desc limit 1000`, y desde D-564 vuelve a pedir filas por id en cada evento. La tabla (6.448 filas, 1,4 MB) solo tenía índice por `id` y por `delivery_id`.
+
+**Medido en producción** (EXPLAIN ANALYZE, 2026-10-15):
+- Antes: Seq Scan de 6.448 filas + top-N heapsort (348 kB), **79,8 ms**, 120 buffers.
+- Con el índice (ensayo en transacción con ROLLBACK): Index Scan `order_events_created_idx`, **5,2 ms** para las 1.000 filas.
+
+**Qué cambia.** Un índice `btree (created_at desc)`. Nada más: ni datos, ni políticas, ni disparadores, ni código de cliente. Por eso sube solo `package.json` (CLAUDE.md, paso 3, excepción solo-base). Sin `concurrently` porque va dentro de la transacción de quien aplica y la tabla es pequeña: el bloqueo dura milisegundos.
+
+**Lo que se descartó.** Acotar la ventana de órdenes por pantalla (bajar 7 días en vez de 120): medido el mismo día, sin fotos la lista entera pesa ~440 KB (669 filas × 658 bytes) y la de 7 días ~180 KB; ahorrar un cuarto de megabyte no paga tocar el Panel, las búsquedas y «Factura pendiente». Queda anotado por si la tabla crece.
+
+**Pruebas:** ninguna de cliente (no hay código). La medida es el EXPLAIN de arriba; `migrate-status` antes y después al aplicar.
