@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Mueve las fotos de entrega que siguen en base64 dentro de `deliveries.photos` al cubo `delivery-photos` (178, D-NEXT).
+// Mueve las fotos de entrega que siguen en base64 dentro de `deliveries.photos` al cubo `delivery-photos` (178, D-565).
 //
 // Uso (desde el checkout principal, que es donde vive .env.local):
 //   node --env-file=.env.local scripts/migra-fotos-a-storage.mjs             -> EN SECO: cuenta y lista, no escribe nada

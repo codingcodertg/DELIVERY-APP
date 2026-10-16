@@ -157,7 +157,7 @@ export function OrderModal({
    */
   const fotosOrden = useFotosDeLaOrden(existing);
   const fotosQueCuentan = fotosParaContar(fotosOrden, existing);
-  // Las fotos viven en el cubo `delivery-photos` y la fila guarda rutas (178, D-NEXT): se firman SOLO las de esta orden.
+  // Las fotos viven en el cubo `delivery-photos` y la fila guarda rutas (178, D-565): se firman SOLO las de esta orden.
   const urlsDeLasFotos = useUrlsDeFotos(fotosOrden.photos);
   // Subir una foto nueva al cubo antes de guardarla. En modo enseñanza no se sube nada: el `data:` se queda en la capa local.
   const subirFotos = useCallback(
@@ -1334,7 +1334,7 @@ export function OrderModal({
     // `podBlocker` ya paró si hay fotos nuevas y las de la orden no han llegado; esto lo vuelve a mirar en el sitio
     // donde se escribe, por si un día alguien cambia el orden de arriba.
     if (fotosDeLaEntrega.length && !fotosOrden.listas) { setBusy(false); return; }
-    // Las fotos de la cámara son `data:` hasta aquí; se suben al cubo ANTES de escribir la entrega (178, D-NEXT) y la fila
+    // Las fotos de la cámara son `data:` hasta aquí; se suben al cubo ANTES de escribir la entrega (178, D-565) y la fila
     // guarda sus rutas. Si una no sube (el cubo no existe, sin red), no se entrega: la orden no se guarda a medias.
     let fotosSubidas: string[] = fotosDeLaEntrega;
     if (fotosDeLaEntrega.length) {

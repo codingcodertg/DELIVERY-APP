@@ -96,7 +96,7 @@ export function useFotosDeLaOrden(fila: Delivery | null): EstadoFotos {
 }
 
 /**
- * Con qué `src` se enseña cada foto (178, D-NEXT): las rutas del cubo se firman (1 h) SOLO para la orden abierta; una
+ * Con qué `src` se enseña cada foto (178, D-565): las rutas del cubo se firman (1 h) SOLO para la orden abierta; una
  * `data:` vieja se enseña tal cual. Se vuelven a firmar cuando cambia la lista de fotos.
  */
 export function useUrlsDeFotos(fotos: readonly string[] | null | undefined): Record<string, string> {

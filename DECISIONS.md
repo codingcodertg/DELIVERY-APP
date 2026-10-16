@@ -44599,7 +44599,7 @@ La regla entera es una función pura, `shouldSoftReload({ stale, trigger, hidden
 
 **No verificado:** ningún navegador con sesión real contra producción (rama sin `.env.local`): que el payload de Supabase traiga `id` en `old` en un DELETE (replica identity por defecto = clave primaria; si no lo trajera, cae a la lista entera, no a un estado roto); y el tamaño en bytes de la lista, que es dato del orquestador.
 
-## D-NEXT · Las fotos de entrega van a Storage (cubo `delivery-photos`): la fila guarda rutas y `photo_meta` se indexa por la ruta, no por el base64 (migración 178, escrita SIN aplicar)
+## D-565 · Las fotos de entrega van a Storage (cubo `delivery-photos`): la fila guarda rutas y `photo_meta` se indexa por la ruta, no por el base64 (migración 178, escrita SIN aplicar)
 
 **Fecha:** 2026-10-15 · Caída de la instancia de Supabase ese día · Migración 178 (cubo + políticas de Storage) · Script `scripts/migra-fotos-a-storage.mjs` para las fotos que ya están en la fila.
 

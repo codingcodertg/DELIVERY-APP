@@ -25,7 +25,7 @@
 --                   orden es el UPDATE de `deliveries`, que sigue con su guard y su politica.
 --        · borrar - nadie (salvo service-role). Quitar una foto de la rejilla quita su RUTA de `photos` y su entrada
 --                   de `photo_meta`; el objeto queda huerfano en el cubo. Es a proposito: una foto de entrega es
---                   prueba, y borrarla de verdad se decide aparte (ver D-NEXT, «Lo que queda»).
+--                   prueba, y borrarla de verdad se decide aparte (ver D-565, «Lo que queda»).
 --        · no hay UPDATE: una foto no se corrige, se sube otra con su marca de tiempo (como en la 097).
 --
 -- NO migra las fotos que ya estan en base64 (7 ordenes el 2026-10-15): eso lo hace `scripts/migra-fotos-a-storage.mjs`

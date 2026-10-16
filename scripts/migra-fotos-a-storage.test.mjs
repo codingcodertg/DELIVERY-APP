@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { migra, planDeFila } from "./migra-fotos-a-storage.mjs";
 
-// D-NEXT (178): el script que saca las fotos embebidas de `deliveries.photos` al cubo. En seco por defecto.
+// D-565 (178): el script que saca las fotos embebidas de `deliveries.photos` al cubo. En seco por defecto.
 
 const DATA_A = "data:image/jpeg;base64," + Buffer.from("foto-A").toString("base64");
 const DATA_B = "data:image/jpeg;base64," + Buffer.from("foto-B").toString("base64");

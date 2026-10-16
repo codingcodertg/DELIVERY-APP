@@ -8,7 +8,7 @@ import {
 import { autoresDeFotos } from "./fotos-de-entrega";
 
 // ============================================================
-// D-NEXT (178): las fotos de entrega van al cubo `delivery-photos`; la fila guarda rutas y `photo_meta` se indexa por
+// D-565 (178): las fotos de entrega van al cubo `delivery-photos`; la fila guarda rutas y `photo_meta` se indexa por
 // la ruta, no por el base64 (medido 2026-10-15: `photo_meta` pesaba lo mismo que `photos`, y hoy eso tumbó la instancia).
 // ============================================================
 

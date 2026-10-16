@@ -1,5 +1,5 @@
 // ============================================================
-// Las fotos de entrega viven en Storage (cubo `delivery-photos`, migración 178); la fila guarda solo RUTAS (D-NEXT).
+// Las fotos de entrega viven en Storage (cubo `delivery-photos`, migración 178); la fila guarda solo RUTAS (D-565).
 //
 // Medido 2026-10-15: `deliveries.photos` guardaba cada foto como `data:image/jpeg;base64,…` (~400 KB–1 MB por orden) y
 // `photo_meta`, indexado por esa misma cadena, pesaba LO MISMO otra vez. Hoy eso tumbó la instancia. Desde aquí:

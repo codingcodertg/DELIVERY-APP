@@ -13,7 +13,7 @@ import { srcDeFoto } from "@/lib/fotos-en-storage";
 // which would blow past the localStorage quota in demo mode and bloat rows in
 // Supabase. ~1280px wide at q0.7 is plenty to prove what was delivered.
 //
-// Desde la 178 (D-NEXT) el `data:` comprimido NO se guarda en la fila: quien usa esto pasa `subir`, que lo manda al cubo
+// Desde la 178 (D-565) el `data:` comprimido NO se guarda en la fila: quien usa esto pasa `subir`, que lo manda al cubo
 // `delivery-photos` y devuelve la ruta; `onChange` recibe rutas. `urls` trae la URL firmada con la que se pinta cada ruta.
 // ============================================================
 
@@ -64,7 +64,7 @@ export function PhotoUpload({
   /** Con qué `src` se enseña cada foto (178): la URL firmada de una ruta del cubo. Sin entrada, la foto misma (`data:`). */
   urls?: Record<string, string>;
   /**
-   * Sube las fotos recién comprimidas (`data:`) al cubo y devuelve sus RUTAS (178, D-NEXT). Con esto, `onChange`
+   * Sube las fotos recién comprimidas (`data:`) al cubo y devuelve sus RUTAS (178, D-565). Con esto, `onChange`
    * recibe rutas, nunca base64; si la subida falla, se avisa y NO se llama a `onChange`: la orden no se guarda a medias.
    * Sin `subir` (modo enseñanza, o las fotos de la cámara que viajan con la entrega) se queda el `data:`.
    */
