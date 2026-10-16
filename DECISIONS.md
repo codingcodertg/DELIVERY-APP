@@ -44802,3 +44802,37 @@ orquestador. La pantalla no se abrió en un navegador.
 **Pruebas:** `customers/modulo.test.ts`, bloque «D-570 · solo admins por ahora». Mutantes 4 de 4 (el interruptor se apaga; la puerta ignora el interruptor; la casilla se ofrece a todos; el diálogo dibuja el bloque sin preguntar), cada uno con su prueba por nombre.
 
 **No verificado:** en navegador.
+
+## D-NEXT · Clientes: las 149 filas que no son clientes se archivan, no se borran (migración 181)
+
+**Fecha:** 2026-10-16 · **Migración:** `181_clientes_archivados.sql`, **escrita y NO aplicada** (dos columnas y un índice parcial; no archiva nada) · **Versión:** la pone el orquestador al fusionar (`customers`; el worker no toca `APP_VERSIONS`). No reemplaza ninguna decisión anterior; completa D-569.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-16, literal: *«HAZME EL CLEANUP DE LO DEL CLIENTES VIEW»*.
+
+### Qué había
+
+`erp.customers` (D-569) trae el Excel maestro tal cual, y el Excel mezcla clientes con lo que QuickBooks usa de cajón. Medido ese día en producción sobre **1.348 filas**: **149 filas no son clientes**, de tres clases que se solapan:
+
+- **20 sin nombre real** (`account !~ '[A-Za-z]{3}'`): «+», «;», «..», «*», «30.27», «4V», «HB», «SO 10873».
+- **40 comodines de QuickBooks** (`account ~* '(VENTA AL MOSTRADOR|SALES ORDER|BAD DEBT|DAMAGED MERCHANDISE|INVENTORY (BY|COORD)|DE MCALLEN A|DE MISSION A)'`).
+- **101 con `activity_status` en Internal / Supplier / Competencia**: empresas del grupo, proveedores y competencia.
+
+20 + 40 + 101 = 161 con solape; la **unión son 149**. Los demás `activity_status` («One time?», «walk in», «Unknown», «Inactive», nulo) **se quedan**: son clientes, aunque pequeños o dormidos.
+
+### Qué se decidió
+
+**Archivar, no borrar.** Dos razones. (1) `importa-clientes.mjs` es idempotente y nunca borra: una fila borrada **volvería** con la siguiente importación del Excel; archivada, el upsert la actualiza pero `archived_at` se queda (el `coalesce` solo toca columnas del Excel). (2) Es **reversible**: desarchivar es poner `archived_at` a null, y nadie pierde una cuenta que resultara ser cliente.
+
+**Qué trae la 181.** `archived_at timestamptz` y `archived_reason text` (texto libre, sin `check`: un motivo nuevo no debe exigir migración) y el índice parcial `customers_vivos_idx … where archived_at is null`. **Sin políticas nuevas**: las de la 180 son por fila, no por columna; archiva quien ya puede escribir (admin y manager del hub). La migración **no archiva datos**: una migración de esquema no decide qué fila es basura.
+
+**El script `scripts/archiva-clientes-basura.mjs`.** En seco por defecto; `--escribe` escribe. Aplica las tres reglas de arriba y pone `archived_reason` en `'sin nombre'`, `'comodin de QuickBooks'` o `'interno/proveedor/competencia'` (la **primera** regla que casa manda, en ese orden, así el total es la unión). Idempotente: solo filas con `archived_at is null`; la segunda pasada cuenta cero. Imprime cuántas casan con cada regla **por separado** (para cotejar con 20 / 40 / 101) y el total distinto. `--deshacer` quita el archivado **solo** de las filas con esos tres motivos: lo que alguien archive a mano desde la ficha, con su motivo, no se toca.
+
+**La pantalla.** La lista **esconde los archivados por defecto**; el chip «Archivados (N)» / «Archived (N)» enseña **solo** esos (nunca mezclados: las cuentas de tienda y el «N clientes» son de lo que se está viendo). Una fila archivada sale atenuada, con la cuenta tachada y su motivo. En la ficha, quien puede escribir tiene «Archivar…» (pide motivo: uno de los tres del script, u otro escrito) y «Desarchivar»; va por el mismo almacén que todo lo demás, así que la fila que se pinta es la que devolvió la base. `Cliente` gana los dos campos, `COLUMNAS` del almacén los pide, la tabla gana la columna opcional «Archivado (motivo)», y el demo trae dos archivados para que el chip tenga qué enseñar.
+
+**Qué se descartó.** Borrar (vuelve con el Excel, y no se deshace). Un `check` sobre el motivo (encorseta la ficha). Filtrar en la consulta (`archived_at is null`) en vez de en la pantalla: el chip necesita la cuenta de archivados sin otra petición, y 1.348 filas ya se paginan bien (D-569).
+
+**Pruebas:** `scripts/archiva-clientes-basura.test.mjs` (cada regla con los ejemplos reales de arriba, precedencia y unión, en seco sin UPDATE, idempotencia, `--deshacer` solo con los tres motivos) y `customers/reglas.test.ts`, bloque «archivados (181)» (esconder por defecto, chip solo-archivados, parche de archivar/desarchivar reversible, lectura de la base). Mutantes **8 de 8** (tanda 	anda-clientes-archivados.json, cada uno con su prueba por nombre): la lista deja de esconder los archivados; archivado se decide por el motivo y no por la fecha; desarchivar deja el motivo puesto; sin nombre exige una sola letra; interno deja de distinguir mayúsculas; el UPDATE de archivar pisa filas ya archivadas; --deshacer desarchiva también lo archivado a mano; en seco también escribe.
+
+**No verificado:** en navegador; la migración contra la base (no se aplica desde la rama); los 20 / 40 / 101 / 149 son la medición del orquestador del 2026-10-16, no de esta rama.
