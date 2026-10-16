@@ -12,6 +12,7 @@ const base = (n: number, c: Partial<Cliente>): Cliente => ({
   activity_status: null, status_store: null, status_group: null, history_store: null, history_group: null,
   rep_history: null, rep_qb: null, rep_store: null, contact_name: null, contact_title: null, address: null, phone: null, email: null,
   credit_limit: null, euler_limit: null, terms: null, account_no: null, notes: null, updated_at: "2026-10-16T12:00:00Z", updated_by: null,
+  archived_at: null, archived_reason: null,
   ...c,
 });
 
@@ -22,6 +23,9 @@ export const CLIENTES_DEMO: Cliente[] = [
   base(4, { store: "EDG", account: "Demo Tile Gallery", status_store: "LOST", status_group: "LOST", history_store: "MID", history_group: "MID", rep_store: "YG", rep_qb: "YG", email: "gallery@example.com", terms: "25 Days", credit_limit: 6000, account_no: "INTERNAL CREDIT" }),
   base(5, { store: "WES", account: "Demo Walk-in", qb_status: "NOT FOUND IN UPDATE", activity_status: "walk in", status_store: "NONE SALE", status_group: "NONE SALE", history_store: "INSIGNIFICANT", history_group: "INSIGNIFICANT" }),
   base(6, { store: "MCA", account: "Demo Construction Group", status_store: "ACTIVE INC", history_store: "MID", rep_store: "SCG", contact_name: "Beto Demo", phone: "(555) 010-3", email: "beto@example.com", terms: "NET 15", credit_limit: 10000, notes: "Demo note." }),
+  // Dos archivados (181), para que el chip «Archivados» y la ficha atenuada tengan qué enseñar en el demo.
+  base(7, { store: "PHR", account: "VENTA AL MOSTRADOR", activity_status: "Internal", archived_at: "2026-10-16T13:00:00Z", archived_reason: "comodin de QuickBooks" }),
+  base(8, { store: "MCA", account: "Demo Supplies Co", activity_status: "Supplier", archived_at: "2026-10-16T13:00:00Z", archived_reason: "interno/proveedor/competencia" }),
 ];
 
 /** El almacén del demo: la misma interfaz que la base, sobre una lista en memoria. Todo el mundo puede escribir. */

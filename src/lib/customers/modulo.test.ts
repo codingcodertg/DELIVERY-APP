@@ -118,7 +118,13 @@ describe("la 180", () => {
 
   it("la tabla vive en erp, con la clave natural tienda + cuenta sin mayúsculas ni espacios, y las columnas que la pantalla pide", () => {
     const tabla = /create table if not exists erp\.customers \(([\s\S]*?)\n\);/.exec(cuerpo)![1];
-    for (const col of COLUMNAS.split(",").map((c) => c.trim())) expect(tabla, col).toMatch(new RegExp(`\\n  ${col}\\s`));
+    // Las dos de archivado las añade la 181 (`add column if not exists`), no la tabla de la 180.
+    const la181 = leer("supabase/migrations/181_clientes_archivados.sql");
+    const alter181 = /alter table erp\.customers\n([\s\S]*?);/.exec(la181)![1];
+    for (const col of COLUMNAS.split(",").map((c) => c.trim())) {
+      if (col === "archived_at" || col === "archived_reason") expect(alter181, col).toMatch(new RegExp(`add column if not exists ${col}\\s`));
+      else expect(tabla, col).toMatch(new RegExp(`\\n  ${col}\\s`));
+    }
     for (const campo of CAMPOS) expect(tabla, campo.key).toMatch(new RegExp(`\\n  ${campo.key}\\s`));
     expect(cuerpo).toContain("create unique index if not exists customers_store_account_unico\n  on erp.customers (upper(btrim(store)), lower(btrim(account)));");
   });

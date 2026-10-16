@@ -36,6 +36,9 @@ export interface Cliente {
   notes: string | null;
   updated_at: string | null;
   updated_by: string | null;
+  /** Migración 181: null = cliente vivo. Archivado = no es un cliente (cajón de QuickBooks, interno, sin nombre…); se esconde, no se borra. */
+  archived_at: string | null;
+  archived_reason: string | null;
 }
 
 export type Lang = "en" | "es";
@@ -136,6 +139,7 @@ export const COLUMNAS: readonly Columna[] = [
   { key: "added_batch", en: "Added", es: "Añadido" },
   { key: "house_no", en: "House #", es: "N.º House" },
   { key: "updated_at", en: "Updated", es: "Actualizado" },
+  { key: "archived_reason", en: "Archived (reason)", es: "Archivado (motivo)" },
 ];
 
 /** Las de entrada: lo que cabe en un portátil y lo que se mira primero. */
@@ -164,9 +168,44 @@ export interface Filtro {
   estado: string;
   /** "" = todos; o uno de QB_ESTADOS. */
   qb: string;
+  /** false (lo normal) = solo los vivos; true = SOLO los archivados (el chip «Archivados (N)»). Nunca mezclados. */
+  archivados: boolean;
 }
 
-export const FILTRO_INICIAL: Filtro = { busca: "", tienda: "", estado: "", qb: "" };
+export const FILTRO_INICIAL: Filtro = { busca: "", tienda: "", estado: "", qb: "", archivados: false };
+
+// ---- Archivado (migración 181) -----------------------------------------------------------------------------------
+
+/** Un cliente archivado tiene fecha; el motivo es texto y puede faltar (archivado a mano sin decir por qué). */
+export function estaArchivado(c: Pick<Cliente, "archived_at">): boolean {
+  return c.archived_at !== null && c.archived_at !== "";
+}
+
+/**
+ * Los motivos que pone `scripts/archiva-clientes-basura.mjs` (el mismo texto, sin acentos: es lo que se guarda y lo que
+ * `--deshacer` busca). La ficha los ofrece y deja escribir otro.
+ */
+export const MOTIVOS_DE_ARCHIVO = ["sin nombre", "comodin de QuickBooks", "interno/proveedor/competencia"] as const;
+export function motivoLabel(m: string | null, t: T): string {
+  switch (m) {
+    case "sin nombre": return t("No real name", "Sin nombre");
+    case "comodin de QuickBooks": return t("QuickBooks placeholder", "Comodín de QuickBooks");
+    case "interno/proveedor/competencia": return t("Internal / supplier / competitor", "Interno / proveedor / competencia");
+    case null: case "": return t("No reason given", "Sin motivo");
+    default: return m;
+  }
+}
+
+/** Lo que se escribe al archivar: la hora de ahora y el motivo (vacío → null). Y lo que se escribe al desarchivar. */
+export function parcheArchivar(motivo: string, ahora: () => Date = () => new Date()): Parche {
+  const m = motivo.trim();
+  return { archived_at: ahora().toISOString(), archived_reason: m === "" ? null : m };
+}
+export const PARCHE_DESARCHIVAR: Parche = { archived_at: null, archived_reason: null };
+
+export function cuentaArchivados(lista: readonly Cliente[]): number {
+  return lista.filter(estaArchivado).length;
+}
 
 /** Los dígitos de un teléfono escrito de cualquier manera; vacío si no es un teléfono. */
 export function soloDigitos(s: string | null | undefined): string {
@@ -187,6 +226,7 @@ export function coincide(c: Cliente, busca: string): boolean {
 
 export function filtrar(lista: readonly Cliente[], f: Filtro): Cliente[] {
   return lista.filter((c) => {
+    if (estaArchivado(c) !== f.archivados) return false;
     if (f.tienda && c.store !== f.tienda) return false;
     if (f.estado === "none" ? !!c.status_store : f.estado && c.status_store !== f.estado) return false;
     if (f.qb && c.qb_status !== f.qb) return false;
@@ -325,6 +365,7 @@ export function clienteDeLaBase(f: Record<string, unknown>): Cliente {
     credit_limit: num(f.credit_limit), euler_limit: num(f.euler_limit),
     terms: texto(f.terms), account_no: texto(f.account_no), notes: texto(f.notes),
     updated_at: texto(f.updated_at), updated_by: texto(f.updated_by),
+    archived_at: texto(f.archived_at), archived_reason: texto(f.archived_reason),
   };
 }
 
@@ -364,6 +405,7 @@ export function celda(c: Cliente, key: keyof Cliente, t: T): string {
     case "qb_status": return qbLabel(v as string | null, t);
     case "credit_limit": case "euler_limit": return dinero(v as number | null);
     case "updated_at": return fecha(v as string | null);
+    case "archived_reason": return estaArchivado(c) ? motivoLabel(c.archived_reason, t) : "—";
     default: return v === null || v === undefined || v === "" ? "—" : String(v);
   }
 }

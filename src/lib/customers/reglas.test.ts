@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  alOrdenarPor, alternaColumna, CAMPOS, celda, clienteDeLaBase, coincide, COLUMNAS, COLUMNAS_INICIALES, columnasValidas, cuentaPor,
-  estadoClase, estadoLabel, filtrar, FILTRO_INICIAL, formDe, mailUrl, nombreDeTienda, ordenar, parcheDe, puedeEditar, telUrl, TIENDAS,
+  alOrdenarPor, alternaColumna, CAMPOS, celda, clienteDeLaBase, coincide, COLUMNAS, COLUMNAS_INICIALES, columnasValidas, cuentaArchivados, cuentaPor,
+  estaArchivado, estadoClase, estadoLabel, filtrar, FILTRO_INICIAL, formDe, mailUrl, MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, ordenar,
+  PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, puedeEditar, telUrl, TIENDAS,
   type Cliente,
 } from "./reglas";
 
@@ -11,7 +12,7 @@ const base = (n: number, c: Partial<Cliente>): Cliente => ({
   id: n, store: "MCA", account: `Cuenta ${n}`, unified_account: null, house_no: n, added_batch: null, qb_status: "ACTIVE", activity_status: null,
   status_store: null, status_group: null, history_store: null, history_group: null, rep_history: null, rep_qb: null, rep_store: null,
   contact_name: null, contact_title: null, address: null, phone: null, email: null, credit_limit: null, euler_limit: null, terms: null,
-  account_no: null, notes: null, updated_at: null, updated_by: null, ...c,
+  account_no: null, notes: null, updated_at: null, updated_by: null, archived_at: null, archived_reason: null, ...c,
 });
 
 // A propósito desordenados y con los estados en orden inverso al rango, para que una ordenación equivocada se note.
@@ -65,6 +66,56 @@ describe("filtrar", () => {
     expect(filtrar(LISTA, { ...FILTRO_INICIAL, tienda: "MCA", estado: "NEW" }).map((c) => c.id)).toEqual([2]);
     expect(filtrar(LISTA, { ...FILTRO_INICIAL, tienda: "MCA", busca: "beta" }).map((c) => c.id)).toEqual([3]);
     expect(filtrar(LISTA, FILTRO_INICIAL)).toHaveLength(4);
+  });
+});
+
+describe("archivados (181)", () => {
+  const ARCHIVADA = base(5, { account: "VENTA AL MOSTRADOR", store: "MCA", status_store: "NEW", archived_at: "2026-10-16T13:00:00Z", archived_reason: "comodin de QuickBooks" });
+  const SIN_MOTIVO = base(6, { account: "SO 10873", store: "MCA", archived_at: "2026-10-16T13:00:00Z", archived_reason: null });
+  const CON = [...LISTA, ARCHIVADA, SIN_MOTIVO];
+
+  it("la lista esconde los archivados por defecto, aunque casen con la tienda, el estado o la búsqueda", () => {
+    expect(filtrar(CON, FILTRO_INICIAL).map((c) => c.id)).toEqual([1, 2, 3, 4]);
+    expect(filtrar(CON, { ...FILTRO_INICIAL, tienda: "MCA" }).map((c) => c.id)).toEqual([2, 3]);
+    expect(filtrar(CON, { ...FILTRO_INICIAL, estado: "NEW" }).map((c) => c.id)).toEqual([2]);
+    expect(filtrar(CON, { ...FILTRO_INICIAL, busca: "mostrador" })).toEqual([]);
+  });
+  it("con el chip, SOLO los archivados, y los demás filtros siguen valiendo encima", () => {
+    expect(filtrar(CON, { ...FILTRO_INICIAL, archivados: true }).map((c) => c.id)).toEqual([5, 6]);
+    expect(filtrar(CON, { ...FILTRO_INICIAL, archivados: true, busca: "mostrador" }).map((c) => c.id)).toEqual([5]);
+    expect(filtrar(CON, { ...FILTRO_INICIAL, archivados: true, tienda: "PHR" })).toEqual([]);
+  });
+  it("estaArchivado va por la fecha, no por el motivo; cuentaArchivados cuenta sobre la lista entera", () => {
+    expect(estaArchivado(ARCHIVADA)).toBe(true);
+    expect(estaArchivado(SIN_MOTIVO)).toBe(true);
+    expect(estaArchivado(LISTA[0])).toBe(false);
+    expect(cuentaArchivados(CON)).toBe(2);
+    expect(cuentaArchivados(LISTA)).toBe(0);
+  });
+  it("el motivo se traduce; sin motivo lo dice; uno escrito a mano sale tal cual; los tres del script están en la lista", () => {
+    expect(motivoLabel("comodin de QuickBooks", t)).toBe("QuickBooks placeholder");
+    expect(motivoLabel("sin nombre", t)).toBe("No real name");
+    expect(motivoLabel("interno/proveedor/competencia", t)).toBe("Internal / supplier / competitor");
+    expect(motivoLabel(null, t)).toBe("No reason given");
+    expect(motivoLabel("cerró en 2024", t)).toBe("cerró en 2024");
+    expect([...MOTIVOS_DE_ARCHIVO]).toEqual(["sin nombre", "comodin de QuickBooks", "interno/proveedor/competencia"]);
+    expect(celda(ARCHIVADA, "archived_reason", t)).toBe("QuickBooks placeholder");
+    expect(celda(LISTA[0], "archived_reason", t)).toBe("—");
+  });
+  it("archivar escribe la hora y el motivo (vacío → null); desarchivar pone los dos a null; es reversible", () => {
+    const ahora = () => new Date("2026-10-16T15:30:00Z");
+    expect(parcheArchivar("  cerró  ", ahora)).toEqual({ archived_at: "2026-10-16T15:30:00.000Z", archived_reason: "cerró" });
+    expect(parcheArchivar("", ahora)).toEqual({ archived_at: "2026-10-16T15:30:00.000Z", archived_reason: null });
+    expect(PARCHE_DESARCHIVAR).toEqual({ archived_at: null, archived_reason: null });
+    const vuelta = { ...ARCHIVADA, ...PARCHE_DESARCHIVAR } as Cliente;
+    expect(estaArchivado(vuelta)).toBe(false);
+    expect(filtrar([vuelta], FILTRO_INICIAL)).toHaveLength(1);
+  });
+  it("clienteDeLaBase lee las dos columnas de la 181", () => {
+    const c = clienteDeLaBase({ id: 1, store: "MCA", account: "X", archived_at: "2026-10-16T13:00:00+00:00", archived_reason: "sin nombre" });
+    expect(c.archived_at).toBe("2026-10-16T13:00:00+00:00");
+    expect(c.archived_reason).toBe("sin nombre");
+    expect(clienteDeLaBase({ id: 2, store: "MCA", account: "Y" }).archived_at).toBeNull();
   });
 });
 
