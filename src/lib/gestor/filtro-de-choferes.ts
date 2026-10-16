@@ -41,8 +41,7 @@ export function guardaMarcados(almacen: () => { setItem(k: string, v: string): v
  * marcado NO se borra por esto: cuando vuelva, vuelve a valer.
  */
 export function marcadosVigentes(marcados: ReadonlySet<string>, rutas: readonly string[]): Set<string> {
-  // «Ninguno» (D-488) se conserva: es una elección, no un chofer que se fue.
-  if (marcados.has(NINGUNO)) return new Set([NINGUNO]);
+  // «Ninguno» (D-488) ya no existe (D-566): lo guardado con él se lee como nada, o sea todos.
   const enPantalla = new Set(rutas);
   return new Set([...marcados].filter((m) => enPantalla.has(m)));
 }
@@ -78,34 +77,38 @@ export function unicoMarcado(marcados: ReadonlySet<string>): string {
  * Arriba, la casilla «Todos» las marca o desmarca de una vez.
  */
 
-/** Lo guardado cuando se desmarcaron todas: no es una clave de ruta. */
+/** Lo que D-488 guardaba al desmarcar todas. Desde D-566 solo se lee para IGNORARLO: no es una clave de ruta. */
 export const NINGUNO = "__ninguno__";
 
-/** Las rutas que se ven: sin nada guardado, todas; con «Ninguno», ninguna; si no, las marcadas. */
+/*
+ * D-566. El dueño, 2026-10-15 (literal): «in routes manager, deselect mean select all so if no driver is selected but
+ * empty means all always» y «and if empty is all all boxes are empty but if you press a driver it will select just that
+ * driver». Revierte la parte de D-488 que permitía «Ninguno» (no ver a nadie) y la casilla como «se ve»: ahora la casilla
+ * es «marcado». Sin ninguna marcada se ven TODAS y las casillas van vacías; marcar una enseña solo esa; marcar varias,
+ * esas; desmarcar la última vuelve a todas. «Todos» arriba está marcada cuando no hay ninguna marcada y, pulsada, las
+ * desmarca todas (= todas a la vista). Un valor «Ninguno» guardado en el navegador se ignora.
+ */
+
+/** Las rutas que se ven: sin nada marcado, todas; si no, las marcadas. */
 export function rutasVisibles(marcados: ReadonlySet<string>, rutas: readonly string[]): Set<string> {
-  if (marcados.has(NINGUNO)) return new Set();
-  if (marcados.size === 0) return new Set(rutas);
-  return new Set(rutas.filter((r) => marcados.has(r)));
+  const m = marcadasAProposito(marcados);
+  if (m.size === 0) return new Set(rutas);
+  return new Set(rutas.filter((r) => m.has(r)));
 }
 
-/** La casilla de una ruta: se ve <-> no se ve. Todas a la vista se guardan como nada (el defecto); ninguna, como «Ninguno». */
-export function alternaVisible(marcados: ReadonlySet<string>, rutas: readonly string[], clave: string): Set<string> {
-  const v = rutasVisibles(marcados, rutas);
-  if (v.has(clave)) v.delete(clave); else v.add(clave);
-  if (rutas.length > 0 && rutas.every((r) => v.has(r))) return new Set();
-  if (v.size === 0) return new Set([NINGUNO]);
-  return v;
+/** La casilla de una ruta: marcada <-> no marcada. Sin ninguna marcada, se ven todas (D-566). */
+export function alternaVisible(marcados: ReadonlySet<string>, _rutas: readonly string[], clave: string): Set<string> {
+  return alternaMarcado(marcadasAProposito(marcados), clave);
 }
 
-/** ¿Se ven todas? Es lo que marca la casilla «Todos». */
-export function seVenTodas(marcados: ReadonlySet<string>, rutas: readonly string[]): boolean {
-  const v = rutasVisibles(marcados, rutas);
-  return rutas.every((r) => v.has(r));
+/** ¿Se ven todas? Solo cuando no hay ninguna marcada; es lo que marca la casilla «Todos». */
+export function seVenTodas(marcados: ReadonlySet<string>, _rutas: readonly string[]): boolean {
+  return marcadasAProposito(marcados).size === 0;
 }
 
-/** La casilla «Todos»: si se ven todas, ninguna; si no, todas. */
-export function alternaTodas(marcados: ReadonlySet<string>, rutas: readonly string[]): Set<string> {
-  return seVenTodas(marcados, rutas) ? new Set([NINGUNO]) : new Set();
+/** La casilla «Todos»: desmarca todas, que es ver todas. (Con todas ya a la vista, no cambia nada.) */
+export function alternaTodas(_marcados: ReadonlySet<string>, _rutas: readonly string[]): Set<string> {
+  return new Set();
 }
 
 /** Las rutas marcadas a propósito (para «Unir»): sin «Ninguno». */

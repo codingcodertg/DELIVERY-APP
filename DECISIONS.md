@@ -38452,6 +38452,8 @@ No probado contra la base real (la inserción en `order_events` como chofer se a
 
 **Pedido del dueño**, literal (dictado): *«En el Route Manager, cuando elijo un conductor, que dice chofer, el router es un conductor, solo se elige uno. Pero quiero que estén los tres y que yo pueda apretar uno. Y si quiero elegir los tres y que los tres vayan apareciendo. Y si no los elijo, no aparece en el mapa. Hay una opción arriba que diga elegir todos. Entonces quiero que me ayudes a hacer eso.»* · Y, con captura de la lista de «Cambiar usuario» tapando la pregunta: *«mira no puedo elegir»*.
 
+> **⚠ Reemplazada en parte por D-566** (2026-10-15): ya no existe «Ninguno» (no ver a nadie) y la casilla del panel es «marcado», no «se ve». Sin ninguna marcada se ven todas con las casillas vacías; marcar una enseña solo esa. El resto de esta entrada (panel que lista a todos, «Todos» arriba, la confirmación de Cambiar usuario) sigue.
+
 ### Qué fallaba
 
 - **Choferes:** desde D-481 (c), marcar un chofer escondía a los demás también en el PANEL («Choferes y rutas»), así que no
@@ -44625,3 +44627,21 @@ La regla entera es una función pura, `shouldSoftReload({ stale, trigger, hidden
 **Pruebas:** `fotos-en-storage.test.ts` (ruta por id de orden; bytes del `data:`; subida: rutas en orden, `photo_meta` sin base64 como clave, idempotente, falla → error y nada a medias; enseñar: `data:` tal cual, rutas firmadas una vez en el cubo, sin rutas sin firma, `srcDeFoto`; fuente: rejilla y visor pintan con `srcDeFoto`, la entrega sube antes de `setStage` y vuelve si falla, `PhotoUpload` no llama a `onChange` si falla, enseñanza no sube; la 178: cubo privado, dos políticas por la primera carpeta, sin DELETE, sin begin/commit, con registro). `scripts/migra-fotos-a-storage.test.mjs` (plan por fila con meta por ruta; sin `--escribe` cuenta y no escribe; con `--escribe` sube y reescribe; subida fallida → fila sin tocar). **Mutantes 10 de 10**, cada uno cae con su prueba por nombre: la subida devuelve el `data:`; traga la subida fallida; firma también el `data:`; pinta la ruta a pelo; `PhotoUpload` guarda aunque falle; la entrega sigue aunque no suba; la entrega guarda los `data:`; el script escribe sin `--escribe`; el script indexa por la clave vieja; el script reescribe tras fallo.
 
 **No verificado:** la 178 contra la base (rama sin acceso): que `insert into storage.buckets` con `allowed_mime_types` y `file_size_limit` lo acepte el rol que aplica, y que el `exists` sobre `deliveries` dentro de la política de Storage respete la RLS de `deliveries` para `authenticated` (debería: la política corre como el usuario que consulta). Ninguna subida ni firma real en un navegador. El tamaño medido (~400 KB–1 MB por orden, 7 órdenes) es dato del orquestador.
+
+## D-566 · Gestor: sin ningún chofer marcado se ven todos, y marcar uno enseña solo ese
+
+**Fecha:** 2026-10-15 · **Versión:** deliveries 1.321.0 (repo 1.431.0) · Sin migración · Hecho directo por el orquestador en `vacio-es-todos`.
+
+**Pedido del dueño**, literal: *«in routes manager, deselect mean select all so if no driver is selected but empty means all always»* y, al preguntarle cómo deben verse las casillas: *«and if empty is all all boxes are empty but if you press a driver it will select just that driver»*.
+
+**Qué cambia.** D-488 (2026-10-06) había hecho la casilla de cada chofer «se ve»: sin nada guardado salían todas marcadas, desmarcar una la escondía, y desmarcarlas todas dejaba la pantalla vacía (**«Ninguno»**). El dueño pidió hoy lo contrario, y es el modelo de D-481: la casilla es **«marcado»**.
+- Sin ninguna marcada: se ven **todas** las rutas y las casillas van **vacías**.
+- Marcar una: se ve **solo** esa. Marcar otra: las dos. Desmarcar la última: todas otra vez.
+- «Todos» arriba sale marcada cuando no hay ninguna marcada; pulsada, desmarca todas (= todas a la vista). Ya no puede dejar la pantalla vacía.
+- Un «Ninguno» guardado en el navegador por D-488 se **ignora** (se lee como nada): nadie abre el Gestor y no ve a nadie.
+
+Esto revierte una parte de D-488 y se dice: aquel pedido decía «si no los elijo, no aparece en el mapa»; el de hoy dice «empty means all always». Cambió el pedido, no una razón técnica. Se cambió solo `filtro-de-choferes.ts` (`rutasVisibles`, `alternaVisible`, `seVenTodas`, `alternaTodas`, `marcadosVigentes`) y dos líneas de `routes/page.tsx` (la casilla lee lo marcado; la etiqueta «ningún chofer» se va). «Ruta de hoy» usa el mismo filtro y cambia igual.
+
+**Pruebas:** `gestor-y-ruta-de-hoy.test.ts`, dos pruebas nuevas con «D-NEXT» en el nombre sustituyen a las tres de D-488 que fijaban «Ninguno». Mutantes 4 de 4 (vacío vuelve a ser ninguno; Ninguno guardado sigue escondiendo; «Todos» vuelve a vaciar la pantalla; la casilla vuelve a ser «se ve»), cada uno con su prueba por nombre.
+
+**No verificado:** en navegador. Lo que se midió es la función y el texto de la página.
