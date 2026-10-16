@@ -2,6 +2,7 @@ import type { Stage, UserRole } from "./types";
 import { APK_DOWNLOAD_URL } from "@/lib/app-update";
 import type { Lang } from "./prefs";
 import { PERMISO_OTRAS_TIENDAS, seOfreceOtrasTiendas } from "./leads/alcance";
+import { seOfreceClientes } from "./customers/reglas";
 import { CAP_TODAS_LAS_TIENDAS, seOfreceTodasLasTiendas } from "./todas-las-tiendas";
 
 // App version moved to src/lib/app-versions.ts (D-087) — one number per app
@@ -1027,6 +1028,8 @@ export interface ModuleAccessConfig {
    *  enseñaba el texto del ERP —"el costo y el margen…"— también en fichaje, que no
    *  tiene ni costo ni margen: una explicación de otro módulo es peor que ninguna. */
   roleNote?: { en: string; es: string };
+  /** Si está, el bloque entero del módulo solo se dibuja en Usuarios para quien tenga un rol que lo pase (Clientes, D-570). */
+  offeredTo?: (role: UserRole) => boolean;
   /** Absent = this module has no fine-grained extra permissions (today:
    * recruiting). Present = the catalog to render, same shape CAPABILITIES
    * already uses. */
@@ -1193,6 +1196,8 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
     key: "customers", label_en: "Customers", label_es: "Clientes",
     alwaysOn: false,
+    // Solo admins por ahora (D-570): a los demás ni se les ofrece la casilla.
+    offeredTo: (role) => seOfreceClientes(role),
     // Sin escalafón propio: quien tiene la casilla lee la lista entera (todas las tiendas); escriben el admin y el
     // manager DEL HUB (`profiles.role`, no `erp_role`), porque el módulo se concede por casilla a gente sin nivel de
     // ERP (`erp.customers_can_write()`, migración 180). El admin entra siempre (`has_customers_access()`).

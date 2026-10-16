@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { puedeEntrarAClientes } from "@/lib/customers/reglas";
 import { createClient } from "@/lib/supabase/server";
 import { landingRoute } from "@/lib/constants";
 import { ProfileReadError } from "@/components/ProfileReadError";
@@ -55,7 +56,8 @@ export default async function CustomersLayout({ children }: { children: React.Re
   }
 
   const role = profile?.role ?? "sales";
-  const tieneClientes = role === "admin" || !!profile?.module_access?.includes("customers");
+  // Solo admins por ahora (D-570): la regla vive en `reglas.ts`, no aquí.
+  const tieneClientes = puedeEntrarAClientes({ role, module_access: profile?.module_access });
   if (!tieneClientes) {
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }

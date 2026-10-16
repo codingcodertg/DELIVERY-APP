@@ -367,3 +367,23 @@ export function celda(c: Cliente, key: keyof Cliente, t: T): string {
     default: return v === null || v === undefined || v === "" ? "—" : String(v);
   }
 }
+
+/**
+ * Clientes es SOLO de admins por ahora (D-570). El dueño, 2026-10-16: «LA DE CSTOMER SOLO SERA HABILTIADA PARA ADMINS
+ * AHORITA». Un solo interruptor, para que el día que se abra a más gente se cambie aquí y en ningún otro sitio: la puerta
+ * del servidor (`customers/layout.tsx`) y la casilla de Usuarios (`MODULE_ACCESS`) lo leen. Con `false`, vuelve a lo de
+ * la 180: entra quien tiene la casilla, y la casilla se ofrece a todos.
+ */
+export const CLIENTES_SOLO_ADMINS = true;
+
+/** ¿Puede entrar a /customers? Admin siempre; los demás, solo con la casilla y solo si no está en «solo admins». */
+export function puedeEntrarAClientes(p: { role?: string | null; module_access?: string[] | null } | null | undefined): boolean {
+  if (p?.role === "admin") return true;
+  if (CLIENTES_SOLO_ADMINS) return false;
+  return !!p?.module_access?.includes("customers");
+}
+
+/** ¿Se le ofrece la casilla «Clientes» en Usuarios a alguien con este rol? */
+export function seOfreceClientes(role: string | null | undefined): boolean {
+  return role === "admin" || !CLIENTES_SOLO_ADMINS;
+}

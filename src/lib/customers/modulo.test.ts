@@ -57,8 +57,9 @@ describe("la tarjeta y la casilla", () => {
 
 describe("la puerta y el tema", () => {
   const layout = leer("src/app/customers/layout.tsx");
+  // Nota D-570: la condición pasó a `puedeEntrarAClientes` (solo admins por ahora); el layout la llama en vez de escribirla.
   it("comprueba el acceso en el servidor; el admin siempre entra", () => {
-    expect(layout).toContain('const tieneClientes = role === "admin" || !!profile?.module_access?.includes("customers");');
+    expect(layout).toContain("const tieneClientes = puedeEntrarAClientes({ role, module_access: profile?.module_access });");
     expect(layout).toContain("if (!tieneClientes) {");
     expect(layout).toContain('redirect("/login?next=/customers")');
   });
@@ -161,5 +162,25 @@ describe("la 180", () => {
   it("el checksum del registro es el del cuerpo", () => {
     const sha = createHash("sha256").update(cuerpo).digest("hex");
     expect(sql).toContain(`values ('180_clientes.sql', '${sha}')`);
+  });
+});
+
+describe("D-570 · solo admins por ahora", async () => {
+  const { CLIENTES_SOLO_ADMINS, puedeEntrarAClientes, seOfreceClientes } = await import("./reglas");
+  it("el interruptor está puesto, y con él solo entra el admin aunque otro tenga la casilla", () => {
+    expect(CLIENTES_SOLO_ADMINS).toBe(true);
+    expect(puedeEntrarAClientes({ role: "admin", module_access: [] })).toBe(true);
+    for (const role of ["manager", "sales", "accounting", "logistics", "warehouse", "driver"]) {
+      expect(puedeEntrarAClientes({ role, module_access: ["customers"] })).toBe(false);
+    }
+    expect(puedeEntrarAClientes(null)).toBe(false);
+  });
+  it("la casilla de Usuarios solo se ofrece al admin, y el diálogo pregunta antes de dibujar el bloque", () => {
+    expect(seOfreceClientes("admin")).toBe(true);
+    expect(seOfreceClientes("manager")).toBe(false);
+    const dialogo = leer("src/components/UserDialog.tsx");
+    expect(dialogo).toContain("(m.offeredTo?.(u.role) ?? true)");
+    const constantes = leer("src/lib/constants.ts");
+    expect(constantes).toContain("offeredTo: (role) => seOfreceClientes(role),");
   });
 });

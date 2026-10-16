@@ -44786,3 +44786,19 @@ prueba que lo caza por nombre. Suite entera: 8.241 en verde; `scripts/migra-foto
 Nada contra producción (la rama no tiene `.env.local`): ni la restricción actual de `profiles` (leída de la 162), ni el
 `on conflict` contra el índice de expresiones, ni la matriz por rol — eso es el `--ensayo` y la sección 6 del plan, del
 orquestador. La pantalla no se abrió en un navegador.
+
+## D-570 · Clientes es solo de admins, por ahora
+
+**Fecha:** 2026-10-16 · **Versión:** customers 0.2.0, deliveries 1.324.0 (el diálogo de Usuarios y `constants.ts` son de Entregas) (repo 1.436.0) · Sin migración · Hecho directo por el orquestador en `clientes-admins`.
+
+**Pedido del dueño**, literal, nada más publicarse D-569: *«LA DE CSTOMER SOLO SERA HABILTIADA PARA ADMINS AHORITA»*.
+
+**Qué cambia.** Un interruptor, `CLIENTES_SOLO_ADMINS = true` en `src/lib/customers/reglas.ts`, y dos funciones que lo leen: `puedeEntrarAClientes` (la puerta del servidor en `customers/layout.tsx`: admin siempre; los demás, con la casilla **solo si el interruptor está apagado**) y `seOfreceClientes` (la casilla de Usuarios: `MODULE_ACCESS` gana un `offeredTo` opcional y el diálogo no dibuja el bloque entero del módulo a quien no lo pasa). «Ahorita» se escribe como un interruptor y no como un borrado para que abrirlo a más gente sea cambiar una línea, y para que la 180 (casilla por persona, escritura admin+manager) siga siendo verdad en la base sin tocarla.
+
+**Datos, el mismo día.** La casilla se concedió a los cuatro admins y se le **quitó** al perfil «Andres Ugarte» (logistics), homónimo del admin «ANDRES UGARTE», que la había recibido por error al publicar D-569. Medido después: solo los cuatro admins la tienen. Por eso la base no cambia: nadie que no sea admin tiene la casilla, y el diálogo ya no la ofrece.
+
+**Lo que no se cierra en la base.** `has_customers_access()` (180) sigue dejando entrar a quien tenga la casilla. Con el interruptor puesto la pantalla no lo deja pasar y la casilla no se puede marcar desde Usuarios, pero un admin que la escribiera a mano en la base le daría lectura. Se acepta por «ahorita»: si pasa a ser permanente, va una migración que ate la función al rol.
+
+**Pruebas:** `customers/modulo.test.ts`, bloque «D-570 · solo admins por ahora». Mutantes 4 de 4 (el interruptor se apaga; la puerta ignora el interruptor; la casilla se ofrece a todos; el diálogo dibuja el bloque sin preguntar), cada uno con su prueba por nombre.
+
+**No verificado:** en navegador.
