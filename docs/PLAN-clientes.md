@@ -213,7 +213,7 @@ volver a poner la restricción vieja.
 
 1. `APP_VERSIONS.customers = "0.1.0"` en `src/lib/app-versions.ts` y `["/customers", "customers"]` en
    `src/lib/app-for-path.ts` (la rama no toca ninguno de los dos; sin ellos `/customers` enseña el sello de deliveries).
-2. Numerar `D-NEXT` en `DECISIONS.md`.
+2. Numerar `D-569` en `DECISIONS.md`.
 3. Respaldo; `migrate-status`; aplicar la 180; `migrate-status`.
 4. `node scripts/importa-clientes.mjs "<xlsx>" --ensayo` y luego `--escribe` desde el checkout principal (necesita
    `SUPABASE_DB_URL`). Esperado: 1.348 nuevas.

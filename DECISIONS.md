@@ -44676,7 +44676,7 @@ Esto revierte una parte de D-488 y se dice: aquel pedido decía «si no los elij
 
 **No verificado:** en un teléfono real. La foto es del dueño; la medida es la regla.
 
-## D-NEXT · App «Clientes / Customers»: la lista maestra de clientes del Excel en `erp.customers`, con la RLS y el tema del ERP (migración 180)
+## D-569 · App «Clientes / Customers»: la lista maestra de clientes del Excel en `erp.customers`, con la RLS y el tema del ERP (migración 180)
 
 **Fecha:** 2026-10-16 · **Migración:** `180_clientes.sql`, **escrita y NO aplicada** (plan y matriz de pruebas con ROLLBACK:
 `docs/PLAN-clientes.md`) · **Versión:** la pone el orquestador al fusionar: hay que crear la clave `customers: "0.1.0"` en
