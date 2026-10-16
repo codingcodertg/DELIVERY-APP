@@ -76,4 +76,4 @@ create policy "delivery photos upload" on storage.objects for insert to authenti
 -- OJO: revertir el cubo sin volver a meter las fotos en las filas deja `photos` apuntando a rutas que no existen.
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('178_fotos_en_storage.sql', 'dac0c4090c7241cd1c0784f9e3cb65dc26a38ad68b5718ce92cbe9dfff15ad0a') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('178_fotos_en_storage.sql', '737a020d39a58350103e3c022622e84fe76fcf10e306d0c77b88ee933f73d53d') on conflict (name) do nothing;
