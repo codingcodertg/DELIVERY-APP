@@ -44661,3 +44661,17 @@ Esto revierte una parte de D-488 y se dice: aquel pedido decía «si no los elij
 **Lo que se descartó.** Acotar la ventana de órdenes por pantalla (bajar 7 días en vez de 120): medido el mismo día, sin fotos la lista entera pesa ~440 KB (669 filas × 658 bytes) y la de 7 días ~180 KB; ahorrar un cuarto de megabyte no paga tocar el Panel, las búsquedas y «Factura pendiente». Queda anotado por si la tabla crece.
 
 **Pruebas:** ninguna de cliente (no hay código). La medida es el EXPLAIN de arriba; `migrate-status` antes y después al aplicar.
+
+## D-568 · El panel de «Cambiar usuario» cabe en el teléfono
+
+**Fecha:** 2026-10-16 · **Versión:** deliveries 1.322.0 (repo 1.434.0) · Sin migración · Hecho directo por el orquestador en `switch-movil`.
+
+**Pedido del dueño**, con una foto del teléfono (Entregas, Órdenes, panel abierto y cortado por la izquierda), literal: *«MIRA COMO SE MIRA ESE DROPDOWN OCULTO»*.
+
+**Qué fallaba.** `.switch-panel` cuelga del botón «⇄ Cambiar usuario» con `position: absolute; right: 0; width: 340px` (D-333). En escritorio el botón está a la derecha de la barra y el panel crece hacia dentro. En el teléfono (≤ 520 px) la barra se parte y el botón queda pegado a la **izquierda** (`.entregas-tras-pestanas`, `order: 3`), así que alinear el borde derecho del panel con el del botón manda 340 px hacia fuera de la pantalla: se veían solo los botones «Entrar como» y los nombres y el buscador quedaban cortados. El `max-width: 92vw` no ayuda: acota el ancho, no dónde empieza.
+
+**Qué cambia.** Dentro del `@media (max-width: 520px)` que ya reparte la barra: `.switch-panel:not(.en-pagina) { left: 0; right: auto; width: min(340px, calc(100vw - 40px)); }`. Anclado a la izquierda del botón y con el ancho acotado a lo que queda de pantalla. La versión `en-pagina` (el hub, D-306) no cuelga de nada y no cambia; el escritorio tampoco.
+
+**Pruebas:** `switch-user.test.ts`, «en el teléfono el panel se ancla a la izquierda del botón y cabe en la pantalla» (lee el bloque del media query y afirma `left: 0`, `right: auto` y el `min(340px, calc(100vw - Npx))`; y que la regla general siga con `right: 0`). Mutantes 2 de 2 (la regla móvil se va; vuelve a `right: 0`), cada uno con esa prueba.
+
+**No verificado:** en un teléfono real. La foto es del dueño; la medida es la regla.

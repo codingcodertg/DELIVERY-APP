@@ -200,6 +200,10 @@
   .topbar .entregas-barra-resto > .entregas-tras-pestanas { order: 3; }
   .topbar .entregas-barra-resto .account-link .menu-cuenta-nombre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .topbar .entregas-barra-resto .account-link .menu-cuenta-flecha { display: none; }
+  /* El panel de «Cambiar usuario» (D-568). Cuelga del botón con `right: 0` y 340 px de ancho; en el teléfono el
+     botón va pegado a la izquierda, así que el panel crecía hacia FUERA de la pantalla: nombres y buscador cortados
+     (foto del dueño, 2026-10-16). Aquí se ancla a la izquierda del botón y se acota al ancho que queda. */
+  .switch-panel:not(.en-pagina) { left: 0; right: auto; width: min(340px, calc(100vw - 40px)); max-width: none; }
 }
 
 /* Admin role tag that doubles as the "view as" switcher: a colored pill whose
