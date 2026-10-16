@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
@@ -82,7 +82,8 @@ import {
   notaSinListoValida, puedeRecogerSinListo, MINIMO_NOTA_SIN_LISTO, type DeshacerRecogida,
 } from "@/lib/recogida-del-chofer";
 import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
-import { fotosParaContar, useFotosDeLaOrden } from "@/lib/fotos-de-la-orden";
+import { fotosParaContar, useFotosDeLaOrden, useUrlsDeFotos } from "@/lib/fotos-de-la-orden";
+import { subirFotosDeEntrega, type AlmacenDeFotos } from "@/lib/fotos-en-storage";
 import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
@@ -127,7 +128,7 @@ export function OrderModal({
   /** La foto de la cámara aún se está comprimiendo: «Confirmar entregado» espera, para no entregar sin ella. */
   fotoEnCamino?: boolean;
 }) {
-  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, saveSettings, notify, realRole, pushNotifs } =
+  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, saveSettings, notify, realRole, pushNotifs, teaching } =
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -156,6 +157,15 @@ export function OrderModal({
    */
   const fotosOrden = useFotosDeLaOrden(existing);
   const fotosQueCuentan = fotosParaContar(fotosOrden, existing);
+  // Las fotos viven en el cubo `delivery-photos` y la fila guarda rutas (178, D-565): se firman SOLO las de esta orden.
+  const urlsDeLasFotos = useUrlsDeFotos(fotosOrden.photos);
+  // Subir una foto nueva al cubo antes de guardarla. En modo enseñanza no se sube nada: el `data:` se queda en la capa local.
+  const subirFotos = useCallback(
+    (fotos: string[]) => (existing && !teaching
+      ? subirFotosDeEntrega(createClient().storage as unknown as AlmacenDeFotos, existing.id, fotos, Date.now())
+      : Promise.resolve({ ok: true as const, rutas: fotos })),
+    [existing, teaching],
+  );
   const isNew = !existing;
   const stage: Stage = existing?.stage ?? "draft";
   // Qué puede tocar esta persona en esta orden (D-480): el formulario entero, solo la fecha de entrega (ventas, en
@@ -1324,7 +1334,19 @@ export function OrderModal({
     // `podBlocker` ya paró si hay fotos nuevas y las de la orden no han llegado; esto lo vuelve a mirar en el sitio
     // donde se escribe, por si un día alguien cambia el orden de arriba.
     if (fotosDeLaEntrega.length && !fotosOrden.listas) { setBusy(false); return; }
-    const fotos = fotosDeLaEntrega.length ? fotosAlEntregar(fotosOrden.photos, fotosDeLaEntrega) : null;
+    // Las fotos de la cámara son `data:` hasta aquí; se suben al cubo ANTES de escribir la entrega (178, D-565) y la fila
+    // guarda sus rutas. Si una no sube (el cubo no existe, sin red), no se entrega: la orden no se guarda a medias.
+    let fotosSubidas: string[] = fotosDeLaEntrega;
+    if (fotosDeLaEntrega.length) {
+      const subida = await subirFotos(fotosDeLaEntrega);
+      if (!subida.ok) {
+        notify(t(`Couldn't upload the delivery photo: ${subida.message}. Nothing was saved.`, `No se pudo subir la foto de la entrega: ${subida.message}. No se guardó nada.`));
+        setBusy(false);
+        return;
+      }
+      fotosSubidas = subida.rutas;
+    }
+    const fotos = fotosSubidas.length ? fotosAlEntregar(fotosOrden.photos, fotosSubidas) : null;
     const pod = {
       pod_received_by: podName.trim() || null,
       pod_signature: podSig,
@@ -1872,6 +1894,8 @@ export function OrderModal({
                 <PhotoUpload
                   photos={fotosOrden.photos ?? []}
                   credits={photoCredits}
+                  urls={urlsDeLasFotos}
+                  subir={subirFotos}
                   disabled={!canDeliver(me) || photoBusy || !fotosOrden.listas}
                   onChange={async (next) => {
                     // `next` sale de las fotos que se enseñan: sin las de la orden cargadas, guardarlo las borraría.
