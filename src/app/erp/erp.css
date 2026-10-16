@@ -34,6 +34,11 @@
 @source "../../components/erp";
 @source "../erp";
 @source "../../lib/erp";
+/* Clientes (migración 180): /customers vive fuera de /erp pero se pinta con este tema (su layout importa esta
+   hoja y envuelve en data-app="erp"), así que sus clases se emiten desde aquí. */
+@source "../customers";
+@source "../../components/customers";
+@source "../../lib/customers";
 
 /* Same switch as everywhere else. The ERP writes no `dark:` variant of its own today, but
    Tailwind's auto source detection sweeps the whole project, so clock-in's land in this chunk
