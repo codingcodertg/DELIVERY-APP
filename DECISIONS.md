@@ -44642,6 +44642,6 @@ La regla entera es una función pura, `shouldSoftReload({ stale, trigger, hidden
 
 Esto revierte una parte de D-488 y se dice: aquel pedido decía «si no los elijo, no aparece en el mapa»; el de hoy dice «empty means all always». Cambió el pedido, no una razón técnica. Se cambió solo `filtro-de-choferes.ts` (`rutasVisibles`, `alternaVisible`, `seVenTodas`, `alternaTodas`, `marcadosVigentes`) y dos líneas de `routes/page.tsx` (la casilla lee lo marcado; la etiqueta «ningún chofer» se va). «Ruta de hoy» usa el mismo filtro y cambia igual.
 
-**Pruebas:** `gestor-y-ruta-de-hoy.test.ts`, dos pruebas nuevas con «D-NEXT» en el nombre sustituyen a las tres de D-488 que fijaban «Ninguno». Mutantes 4 de 4 (vacío vuelve a ser ninguno; Ninguno guardado sigue escondiendo; «Todos» vuelve a vaciar la pantalla; la casilla vuelve a ser «se ve»), cada uno con su prueba por nombre.
+**Pruebas:** `gestor-y-ruta-de-hoy.test.ts`, dos pruebas nuevas con «D-566» en el nombre sustituyen a las tres de D-488 que fijaban «Ninguno». Mutantes 4 de 4 (vacío vuelve a ser ninguno; Ninguno guardado sigue escondiendo; «Todos» vuelve a vaciar la pantalla; la casilla vuelve a ser «se ve»), cada uno con su prueba por nombre.
 
 **No verificado:** en navegador. Lo que se midió es la función y el texto de la página.
