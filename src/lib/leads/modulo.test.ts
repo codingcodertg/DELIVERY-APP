@@ -89,15 +89,18 @@ describe("la 162", () => {
   const sinComentarios = cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
   const fn = (nombre: string) => new RegExp(`create or replace function public\\.${nombre}\\([\\s\\S]*?\\nend \\$\\$;`).exec(cuerpo)![0];
 
-  it("es la ÚLTIMA migración que define profiles_module_access_known, y su lista es MODULE_ACCESS entero", () => {
+  // Puesto al día por Clientes (migración 180): la ÚLTIMA definición de la restricción ya no es la 162 (la 180 añade
+  // 'customers'). Aquí se compara con las claves que existían al escribir la 162; que la última migración que toca la
+  // restricción lleve MODULE_ACCESS entero lo mira `customers/modulo.test.ts`.
+  it("define profiles_module_access_known con las claves que había al escribirla (todas menos 'customers')", () => {
     const definen = readdirSync("supabase/migrations")
       .filter((f) => f.endsWith(".sql"))
       .sort()
       .filter((f) => leer(`supabase/migrations/${f}`).includes("add constraint profiles_module_access_known"));
-    expect(definen[definen.length - 1]).toBe("162_leads.sql");
+    expect(definen).toContain("162_leads.sql");
     const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(cuerpo)![1];
     expect(lista).not.toContain("clockin");
-    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.map((m) => `'${m.key}'`).sort());
+    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "customers").map((m) => `'${m.key}'`).sort());
   });
 
   it("el tope vive en la base y vale 10 de partida, entre 1 y 100", () => {

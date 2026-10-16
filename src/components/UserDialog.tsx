@@ -29,7 +29,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -112,6 +112,9 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "leads":
         // Igual: sin `roleColumn`, inalcanzable. Lo fija `leads/modulo.test.ts`.
         return;
+      case "customers":
+        // Igual: sin `roleColumn`, inalcanzable. Lo fija `customers/modulo.test.ts`.
+        return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
   };
@@ -141,6 +144,10 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
       case "leads":
         // Solo la casilla: la 162 no crea columna de rol.
         updateUserLeadsAccess(u.id, { granted });
+        return;
+      case "customers":
+        // Solo la casilla: la 180 no crea columna de rol.
+        updateUserCustomersAccess(u.id, { granted });
         return;
       case "deliveries":
         // Sí se llama desde D-100: Entregas dejó de ser implícita y su casilla ahora

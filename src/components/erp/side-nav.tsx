@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Badge } from "@/components/erp/ui/badge";
 import { cn } from "@/lib/erp/utils";
 import type { AppRole } from "@/lib/erp/domain/roles";
-import { erpNav } from "@/lib/erp/nav";
+import { erpNav, type NavItem } from "@/lib/erp/nav";
 import { useErpNav } from "@/components/erp/nav-state";
 import { usePrefs } from "@/lib/prefs";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
@@ -29,6 +29,7 @@ export function SideNav({
   email,
   cost,
   hubReachable,
+  otra,
 }: {
   role: AppRole;
   fullName: string | null;
@@ -43,6 +44,12 @@ export function SideNav({
    * dos enlaces de abajo prometiendo un sitio al que la app no deja entrar.
    */
   hubReachable: boolean;
+  /**
+   * Otra app con esta misma barra (Clientes, migración 180): su nombre, sus entradas y la pastilla que enseña.
+   * Sin esto, la barra es la del ERP: «RTG ERP», `erpNav(role)` y el nivel de ERP con la nota de costo. Con
+   * `otra`, `cost` no se pinta (no hay costo que esconder) y la pastilla es la que diga `badge`.
+   */
+  otra?: { brand: string; nav: { main: NavItem[]; analytics: NavItem[] }; badge: string };
 }) {
   const pathname = usePathname();
   const { t } = usePrefs();
@@ -50,7 +57,9 @@ export function SideNav({
   // driver has no reason to browse the product master, and a list of links that all redirect is
   // worse than no list. `erpNav` lo decide (y la puerta de Analítica es por entrada, D-553).
   const { collapsed, toggle } = useErpNav();
-  const { main: navItems, analytics: analyticsItems } = erpNav(role, t);
+  const { main: navItems, analytics: analyticsItems } = otra?.nav ?? erpNav(role, t);
+  const marca = otra?.brand ?? "RTG ERP";
+  const pastilla = otra?.badge ?? role;
   // Exact-match the roots that have deeper siblings (/, /purchasing) so a sub-route like
   // /purchasing/orders highlights only its own item, not its parent.
   const exact = new Set(["/erp/purchasing"]);
@@ -65,7 +74,7 @@ export function SideNav({
   // the switcher was removed — it belongs next to the name, not under it.
   const brand = (
     <div className="flex min-w-0 items-baseline gap-2">
-      <span className="shrink-0 text-base font-bold tracking-tight text-clay-600">RTG ERP</span>
+      <span className="shrink-0 text-base font-bold tracking-tight text-clay-600">{marca}</span>
       {hubReachable && (
         <Link
           href="/home"
@@ -184,13 +193,15 @@ export function SideNav({
         </nav>
         <div className="shrink-0 border-t border-slate-200 p-3 text-sm">
           <div className="mb-2 flex items-center gap-2">
-            <Badge className={roleStyles[role] ?? roleStyles.staff}>{role}</Badge>
-            <span
-              className="text-xs text-slate-400"
-              title={t("Cost & margin visibility is enforced at the database (#29)", "La visibilidad de costo y margen la impone la base de datos (#29)")}
-            >
-              {cost ? t("cost visible", "costo visible") : t("cost hidden", "costo oculto")}
-            </span>
+            <Badge className={roleStyles[role] ?? roleStyles.staff}>{pastilla}</Badge>
+            {!otra && (
+              <span
+                className="text-xs text-slate-400"
+                title={t("Cost & margin visibility is enforced at the database (#29)", "La visibilidad de costo y margen la impone la base de datos (#29)")}
+              >
+                {cost ? t("cost visible", "costo visible") : t("cost hidden", "costo oculto")}
+              </span>
+            )}
           </div>
           <div className="leading-tight">
             <div className="truncate font-medium">{fullName ?? email}</div>
@@ -211,7 +222,7 @@ export function SideNav({
         <div className="flex h-14 items-center gap-3 px-4">
           {brand}
           <div className="ml-auto flex items-center gap-2">
-            <Badge className={roleStyles[role] ?? roleStyles.staff}>{role}</Badge>
+            <Badge className={roleStyles[role] ?? roleStyles.staff}>{pastilla}</Badge>
             {personalizar(true)}
             {signout}
           </div>

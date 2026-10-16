@@ -1,0 +1,51 @@
+import { createClient } from "@/lib/supabase/server";
+import { canReachHub } from "@/lib/constants";
+import { puedeEditar } from "@/lib/customers/reglas";
+import type { UserRole } from "@/lib/types";
+import { BarraDeClientes } from "@/components/customers/barra";
+import { Clientes } from "./Clientes";
+
+export const dynamic = "force-dynamic";
+const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
+/**
+ * «Clientes» (migración 180): la lista maestra de clientes, con el tema del ERP.
+ *
+ * El servidor solo dice QUIÉN mira (su rol del hub, para saber si edita, y lo que la barra pinta): los clientes los
+ * lee la pantalla con la sesión de quien mira, para que la RLS de la 180 sea la que decide; y que pueda editar aquí
+ * solo enseña botones: `erp.customers_can_write()` lo vuelve a comprobar en cada escritura. La puerta (quién entra)
+ * está en `layout.tsx`.
+ */
+export default async function CustomersPage() {
+  if (SIN_BASE) {
+    return (
+      <>
+        <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" hubReachable />
+        <Clientes demo puedeEditar />
+      </>
+    );
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let role: UserRole = "sales";
+  let fullName: string | null = null;
+  let moduleAccess: string[] | null = null;
+  if (user) {
+    const { data } = await supabase.from("profiles").select("full_name, role, module_access").eq("id", user.id).maybeSingle();
+    role = (data?.role as UserRole | undefined) ?? "sales";
+    fullName = data?.full_name?.trim() || null;
+    moduleAccess = (data?.module_access as string[] | null) ?? null;
+  }
+  return (
+    <>
+      <BarraDeClientes
+        role={role}
+        fullName={fullName}
+        email={user?.email ?? ""}
+        // ¿Hay hub al que volver? La misma función que usan `/home` y el ERP (D-227).
+        hubReachable={canReachHub({ role, module_access: moduleAccess })}
+      />
+      <Clientes demo={false} puedeEditar={puedeEditar(role)} />
+    </>
+  );
+}

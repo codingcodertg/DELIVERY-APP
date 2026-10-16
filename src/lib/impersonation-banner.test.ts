@@ -104,6 +104,9 @@ describe("nadie más se cuelga del borde de arriba a lo ancho", () => {
     // Nota D-553: el cajón de «Request» del catálogo copia esa forma: panel `overflow-y-auto` y su
     // cabecera `sticky top-0` dentro.
     "src/components/erp/request-drawer.tsx": 1,
+    // Y la ficha de Clientes (migración 180) copia el mismo cajón: panel `overflow-y-auto` y su cabecera
+    // `sticky top-0` dentro; el banner queda fuera de esa caja.
+    "src/app/customers/Clientes.tsx": 1,
     // `max-h-[70vh] overflow-auto` en la cola de revisión.
     "src/components/erp/review-queue.tsx": 1,
     // `table.orders th` dentro de `.tbl-scroll`, que es caja de scroll en los dos ejes porque

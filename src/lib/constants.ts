@@ -482,6 +482,17 @@ export const MODULES: ModuleInfo[] = [
     desc_en: "Permit leads by store, and your own pool",
     desc_es: "Leads de permisos por tienda, y tu pool",
   },
+  {
+    // Clientes (migración 180): la lista maestra de clientes del Excel del dueño, en `erp.customers`, con el tema
+    // del ERP. La clave es "customers", la palabra que la 180 añade a `profiles_module_access_known`.
+    key: "customers",
+    href: "/customers",
+    emoji: "🏢",
+    label_en: "Customers",
+    label_es: "Clientes",
+    desc_en: "The customer master list, by store",
+    desc_es: "La lista maestra de clientes, por tienda",
+  },
 ];
 
 // "Deliveries" is kept out of MODULES because HomeSelector and the app switcher need to draw it as the
@@ -972,7 +983,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys" | "leads";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys" | "leads" | "customers";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -1178,6 +1189,20 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     capabilitiesRole: "role",
     capabilitiesFromRole: (key) => (key === "admin" ? [PERMISO_OTRAS_TIENDAS] : []),
     capabilityOffered: (_cap, key) => key === "admin" || seOfreceOtrasTiendas(key),
+  },
+  {
+    key: "customers", label_en: "Customers", label_es: "Clientes",
+    alwaysOn: false,
+    // Sin escalafón propio: quien tiene la casilla lee la lista entera (todas las tiendas); escriben el admin y el
+    // manager DEL HUB (`profiles.role`, no `erp_role`), porque el módulo se concede por casilla a gente sin nivel de
+    // ERP (`erp.customers_can_write()`, migración 180). El admin entra siempre (`has_customers_access()`).
+    roleKeys: [],
+    roleLabel: (key) => key,
+    accessColumn: "module_access",
+    roleNote: {
+      en: "No role of its own. Shows every store's customers with contact name, phone, email and credit terms: grant it only to whoever needs the list. Admins and managers can edit; everyone else reads. Admins always have it.",
+      es: "Sin rol propio. Enseña los clientes de todas las tiendas con contacto, teléfono, correo y crédito: concédelo solo a quien necesite la lista. Admins y managers editan; los demás leen. Los admins lo tienen siempre.",
+    },
   },
 ];
 

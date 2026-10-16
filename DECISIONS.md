@@ -44675,3 +44675,114 @@ Esto revierte una parte de D-488 y se dice: aquel pedido decía «si no los elij
 **Pruebas:** `switch-user.test.ts`, «en el teléfono el panel se ancla a la izquierda del botón y cabe en la pantalla» (lee el bloque del media query y afirma `left: 0`, `right: auto` y el `min(340px, calc(100vw - Npx))`; y que la regla general siga con `right: 0`). Mutantes 2 de 2 (la regla móvil se va; vuelve a `right: 0`), cada uno con esa prueba.
 
 **No verificado:** en un teléfono real. La foto es del dueño; la medida es la regla.
+
+## D-569 · App «Clientes / Customers»: la lista maestra de clientes del Excel en `erp.customers`, con la RLS y el tema del ERP (migración 180)
+
+**Fecha:** 2026-10-16 · **Migración:** `180_clientes.sql`, **escrita y NO aplicada** (plan y matriz de pruebas con ROLLBACK:
+`docs/PLAN-clientes.md`) · **Versión:** la pone el orquestador al fusionar: hay que crear la clave `customers: "0.1.0"` en
+`APP_VERSIONS` **y** la línea `["/customers", "customers"]` en `app-for-path.ts` (la rama no toca ninguno de los dos; sin
+ellos `/customers` enseña el sello de deliveries). No reemplaza ninguna decisión anterior.
+
+### Qué pidió el dueño
+
+Mensaje del 2026-10-16, literal: *«HGAMAOS EL CUSTOMER APP ASI COMO EL LEADS PERO CON EL SCHEMA DE EL ERP ASI CON ESE
+THEME»*, con el fichero `REAL Master List Customers PRE DEC.xlsx`.
+
+### Qué había
+
+Un Excel fuera del repo con dos hojas. **ALL**, la lista maestra: **1.349 clientes** (filas con datos) en 28 columnas,
+en cinco tiendas por código: MCA 361 · PHR 353 · BRO 306 · EDG 249 · WES 80. **RHC**, una «Customer Phone List» de
+QuickBooks de Rodriguez Home Center del 17/10/2025: 214 clientes activos con teléfono, correo, términos, vendedor y saldo.
+En la app no había nada: ni tabla, ni pantalla.
+
+Medido del fichero (`exceljs`, 2026-10-16; el detalle columna a columna está en el plan):
+
+- Clave natural ACCOUNT + STORE: 1.348 distintas de 1.349 filas; **un duplicado** (PASEO RESIDENCIAL / BRO, filas 947 y
+  948). 1.274 cuentas distintas; 1.188 cuentas unificadas (la misma cuenta en varias tiendas).
+- STATUS TYPE (tienda): LOST 378 · NONE SALE 318 · ACTIVE DEC 246 · ACTIVE INC 74 · NEW 70 · **sin estado 263** (son
+  exactamente los de la remesa del 2026-09-24: no se clasificaron). HISTORY TYPE (tienda): INSIGNIFICANT 873 · SMALL 165 ·
+  MID 36 · LARGE 12. QuickBooks: ACTIVE 1.243 · NOT FOUND IN UPDATE 106.
+- «DATE. ADDED» **no es una fecha**: es una tanda (`1`=789, `2`=127, `3`=45, `4`=8) o la fecha 2026-09-24 (263).
+- Teléfono: 858 llenas, pero 63 son `0` y 5 no son teléfonos («JOSE LLORENTE», «CRR FRIEND»). Correo: 746, 154 son `0`.
+  **403 filas sin teléfono ni correo.** Contacto: 271, 255 son `0` (16 nombres reales). Dirección: vacía entera.
+- Euler: 65 límites y 1.021 `#N/A`. Account No.: 314, y mezcla números de Euler con notas («INTERNAL CREDIT» 29, «NO
+  CREDIT» 7, «DICE $3000 CREDIT»).
+- Casi vacías: CRM TYPE store/group (12 y 6), Associated with (3), TITLE (4), y una columna 28 sin cabecera.
+- **RHC contra ALL:** 205 de 214 nombres están en ALL con el mismo ACCOUNT; los **138 teléfonos de RHC están todos en
+  ALL**. Los 9 que no casan son erratas («PASO RESIDENCIAL») o cuentas que el maestro no tiene. Lo único propio de RHC es
+  el saldo, que es una foto de octubre de 2025.
+
+### Qué se hizo
+
+Un módulo nuevo del hub, **«Clientes / Customers»** (`/customers`, clave `customers`, 🏢), registrado igual que Leads:
+tarjeta en el hub, casilla por persona en Usuarios (`updateUserCustomersAccess`, fila `customers_access_changed` en el
+registro de seguridad), puerta en el servidor (`customers/layout.tsx`, con los tres desenlaces de D-234), y la palabra en
+`profiles_module_access_known`.
+
+**Los datos, en el esquema del ERP.** Una tabla, `erp.customers`, una fila por (tienda, cuenta): índice único sobre
+`upper(btrim(store)), lower(btrim(account))`. 23 columnas del Excel (tienda, cuenta, cuenta unificada, HOUSE, tanda, estado
+QB, actividad, estado y historial por tienda y por grupo, tres vendedores, contacto, cargo, dirección, teléfono, correo,
+límite de crédito, límite Euler, términos, cuenta/crédito) más las de la app (`notes`, `source`, `imported_at`,
+`created_*`, `updated_*` por disparador). Valores cerrados con `check` para estado, historial y QB.
+
+**La RLS, como la del ERP (066):** una política **restrictiva** por módulo (`has_customers_access()`: admin o la casilla)
+que AND-ea con todo lo presente y lo futuro, y permisivas por acción: leer, todos los que entran; insertar y actualizar,
+`erp.customers_can_write()` (admin, o manager del hub con la casilla); borrar, solo el admin. `authenticated` tiene los
+grants y las políticas deciden; `anon`, nada.
+
+**La pantalla, con el tema del ERP, sin copiarlo:** el layout importa `erp.css` (preflight + paleta clay; Next la carga
+solo bajo ese layout) y envuelve en `data-app="erp"` (el ancla de sus variables y de su modo oscuro); la barra lateral es
+el mismo `SideNav` del ERP, que gana una prop opcional `otra` (nombre, entradas y pastilla) y sin ella sigue siendo la de
+siempre; `Button`, `Input` y `Badge` son los de `components/erp/ui`; la ficha lateral es el cascarón de
+`product-drawer.tsx`. Lista con búsqueda (cuenta, unificada, contacto, correo, cuenta/crédito, vendedores, notas, y el
+teléfono por dígitos), chips por tienda con su cuenta, filtros por estado (incluido «sin estado») y QuickBooks, orden por
+cabecera (estados e historiales por rango, nulos al final), columnas elegibles con el `SelectorDeColumnas` de la casa
+(recordadas en el navegador), 100 filas por tanda con «ver más», y la ficha con todos los campos: edita admin y manager,
+con un botón «Guardar» que solo se enciende si algo cambió; «Nuevo cliente» para los mismos. Bilingüe por `usePrefs`.
+Cada escritura pide la fila de vuelta: **cero filas no es «guardado»** (PostgREST devuelve limpio cuando la política no
+deja pasar el UPDATE) y se dice.
+
+**La carga, por guion:** `scripts/importa-clientes.mjs <xlsx>` cuenta en seco; `--ensayo` carga y hace ROLLBACK;
+`--escribe` carga de verdad. Idempotente por la clave natural (`on conflict … do update`): cada columna del Excel se
+escribe solo si trae valor, `notes` nunca se toca, nada se borra. En seco contra el fichero real: **1.349 leídas · 1.348
+clientes · 1 fusionada · 0 saltadas**; por tienda MCA 361 · PHR 353 · BRO 305 · EDG 249 · WES 80.
+
+### Decisiones tomadas en nombre del dueño (para que confirme)
+
+1. **`erp`, no un esquema `crm` nuevo.** Un esquema nuevo obliga a tocar «Exposed schemas» en el panel de Supabase a mano
+   y a un cliente de navegador más (D-185); `erp` ya está expuesto y un cliente es una entidad maestra del ERP como
+   `erp.vendors`. «Con el schema del ERP» se tomó literal.
+2. **Quién escribe: admin y manager del hub** (`profiles.role`, no `erp_role`), porque el módulo se concede por casilla
+   a gente sin nivel de ERP. El encargo decía «office»: **no existe ese rol** en el hub. Si quería decir `accounting`,
+   es una línea en `customers_can_write()` y otra en `puedeEditar()`. Borra solo el admin.
+3. **Tener el ERP no da Clientes, ni al revés.**
+4. **Las tiendas se guardan por su código del Excel** y la pantalla las traduce a `RDZ Brownsville`, `RDZ Edinburg`,
+   `RDZ McAllen`, `RDZ Pharr`, `RDZ Weslaco` (los nombres de `profiles.store`, D-468). Mission no está en el Excel.
+5. **La RHC no se carga** (no aporta nada que ALL no tenga, salvo el saldo viejo). Si Rodriguez Home Center es una tienda
+   aparte, se carga como `RHC` con sus 214 filas: el guion solo necesita que se le diga.
+6. **Los valores se guardan tal cual** (términos con mayúsculas mezcladas, «Account No.» con notas de crédito); solo se
+   limpia el `0` como «sin dato», el `#N/A` y los espacios. La pantalla pone etiquetas en los dos idiomas.
+7. **La fila duplicada se fusiona** (la primera manda, la segunda rellena).
+8. **No se añade casilla al mapa de apps**: el diagrama del jefe no tiene «Customers»; sale en «Otras apps».
+9. **Fuera del esquema:** CONCATENATE (se recompone), CRM TYPE ×2, Associated with, la columna 28. TITLE y ADRESS entran
+   aunque estén vacías: son campos que la app va a llenar.
+
+### Pruebas
+
+`customers/reglas.test.ts` (buscar, filtrar, ordenar, columnas, quién edita, parche, formato), `customers/almacen.test.ts`
+(paginado, cero filas, códigos; contra un cliente falso), `customers/modulo.test.ts` (tarjeta, casilla, puerta, tema, y el
+texto de la 180: última definición de la restricción = `MODULE_ACCESS` entero, funciones, clave, políticas, disparador,
+checksum), `scripts/importa-clientes.test.mjs` (celdas, cabeceras reales, mapa, limpieza, clave, fusión, upsert, banderas).
+Puestas al día: `leads/modulo.test.ts`, `encuestas/modulo.test.ts`, `estimator/modulo.test.ts` (la última migración de la
+restricción ya es la 180), `module-access-write.test.ts` (nueve escrituras). Mutantes **17 de 17** (`tanda-clientes.json`, 2026-10-16): filtro por tienda y por QB que no filtran, ventas edita, un
+dígito busca teléfono, alta sin cuenta, parche que reenvía lo leído, nulos primero, cuenta quitable, el `0` del Excel como
+dato, fusión al revés, re-importar pisa con vacío, clave que distingue mayúsculas, puerta permisiva en la 180, layout que
+deja entrar a todos, cero filas como guardado, solo la primera página, provider sin filtrar `clockin` — cada uno con la
+prueba que lo caza por nombre. Suite entera: 8.241 en verde; `scripts/migra-fotos-a-storage.test.mjs` ya fallaba en
+`main` en esta laptop (SyntaxError al cargar, fichero sin tocar) y no es de esta rama.
+
+### No verificado
+
+Nada contra producción (la rama no tiene `.env.local`): ni la restricción actual de `profiles` (leída de la 162), ni el
+`on conflict` contra el índice de expresiones, ni la matriz por rol — eso es el `--ensayo` y la sección 6 del plan, del
+orquestador. La pantalla no se abrió en un navegador.
