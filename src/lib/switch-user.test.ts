@@ -194,6 +194,21 @@ describe("el panel de «Switch usuario» no hereda el color de la barra", () => 
     expect(r).toMatch(/z-index:\s*\d/);
   });
 
+  // D-568 (2026-10-16): el dueño, con foto del teléfono: «MIRA COMO SE MIRA ESE DROPDOWN OCULTO». El panel colgaba del
+  // botón con `right: 0` y se salía por la izquierda. En móvil se ancla a la izquierda y se acota al ancho que queda.
+  it("en el teléfono el panel se ancla a la izquierda del botón y cabe en la pantalla", () => {
+    const i = css.indexOf("@media (max-width: 520px) {");
+    const bloque = css.slice(i, css.indexOf("\n}", i));
+    const m = bloque.match(/\.switch-panel:not\(\.en-pagina\)\s*\{([^}]*)\}/);
+    expect(m).not.toBeNull();
+    const r = m![1];
+    expect(r).toMatch(/left:\s*0/);
+    expect(r).toMatch(/right:\s*auto/);
+    expect(r).toMatch(/width:\s*min\(340px,\s*calc\(100vw - \d+px\)\)/);
+    // y la regla general sigue colgando a la derecha en escritorio
+    expect(regla("switch-panel")).toMatch(/right:\s*0/);
+  });
+
   it("un nombre largo se recorta, no envuelve ni empuja al rol", () => {
     const nombre = regla("switch-row-name");
     expect(nombre).toContain("white-space: nowrap");
