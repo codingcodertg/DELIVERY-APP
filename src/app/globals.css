@@ -1685,8 +1685,12 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 @media (min-width: 900px) { .panel-fijo-del-gestor { position: sticky; top: 6px; z-index: 5; } }
 
 /* Un botón por fila al lado del número (OrdersTable `accionDeFila`, D-409: «Recibir» en Recepción). */
-.accion-de-fila { display: block; margin-top: 4px; }
+/* En línea con el número de factura (D-572): antes era un bloque debajo del ID y cada fila crecía una línea. */
+.accion-de-fila { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; vertical-align: middle; }
 .accion-de-fila .btn { padding: 2px 8px; min-height: 0; }
+/* El icono 📅 que hace de botón de «Reprogramar» en las filas (D-572): sin caja, del alto del texto. */
+.btn-icono-fila { background: none; border: 0; padding: 0 2px; margin: 0; font-size: 15px; line-height: 1; cursor: pointer; vertical-align: middle; }
+.btn-icono-fila:hover { transform: scale(1.15); }
 /* «Siguiente paso» de Almacén (D-551): un selector compacto, del ancho de su columna. */
 .paso-en-la-fila select { width: 100%; padding: 3px 6px; font-size: 12px; min-height: 0; }
 

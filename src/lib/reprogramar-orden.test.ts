@@ -35,7 +35,8 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     expect(wh).toContain("const reprogramar = (d: Delivery) => puedeReprogramar(me?.role, d.stage)");
     // Nota D-549: el cuadro ya no recibe `updateDelivery`/`addNote` sino `reprogramarOrden` (la función de la base 173, con
     // el camino de antes como respaldo).
-    expect(wh).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />");
+    // Nota D-572: en las filas va `compacto` (solo el icono 📅, junto a la factura).
+    expect(wh).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
     expect(wh.split("accionDeFila={reprogramar}").length - 1).toBe(1);
     expect(wh).toContain("const repro = reprogramar(d);");
     expect(wh).toContain("<td onClick={(e) => e.stopPropagation()}>{reprogramar(d)}</td>");
@@ -65,5 +66,36 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     const pagina = readFileSync("src/app/(app)/routes/page.tsx", "utf8");
     expect(pagina).toContain("{!hecha && !soloLectura && puedeReprogramar(me?.role, d.stage) && (");
     expect(pagina).toContain("<ReprogramarOrden pedido={d}");
+  });
+});
+
+describe("D-572 · en las filas, solo el icono 📅 junto al número de factura", () => {
+  const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
+  it("el cuadro tiene cara compacta: el mismo data-reprogramar, sin texto, con aria-label", () => {
+    const c = leer("src/components/ReprogramarOrden.tsx");
+    expect(c).toContain("compacto?: boolean;");
+    expect(c).toContain('<button type="button" className="btn-icono-fila" data-reprogramar={pedido.id} onClick={abrir}');
+    expect(c).toContain('aria-label={t("Reschedule", "Reprogramar")}');
+    // Solo el icono: el cuerpo del botón compacto es «📅» y nada más (sin el texto «Reschedule»).
+    const i = c.indexOf('className="btn-icono-fila"');
+    const cuerpo = c.slice(i, c.indexOf("</button>", i));
+    // lo que hay entre el cierre de la etiqueta y </button> es el icono, y nada más
+    expect(cuerpo.slice(cuerpo.lastIndexOf(">") + 1).trim()).toBe("📅");
+  });
+  it("las filas de Almacén y del Gestor piden la cara compacta; la ficha conserva el botón con texto", () => {
+    expect(leer("src/app/(app)/warehouse/page.tsx")).toContain("notify={notify} compacto />");
+    expect(leer("src/app/(app)/routes/page.tsx")).toContain("notify={notify} compacto />");
+    expect(leer("src/components/OrderModal.tsx")).toContain("<ReprogramarOrden pedido={existing} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />");
+  });
+  it("la tabla pinta la acción EN LÍNEA con la factura, en las dos caras de la celda, y ya no debajo", () => {
+    const tabla = leer("src/components/OrdersTable.tsx");
+    const i = tabla.indexOf('<span className="inv-short">');
+    expect(i).toBeGreaterThan(0);
+    expect(tabla.slice(i, i + 400)).toContain("{accionEnLinea}");
+    expect(tabla).toContain("#{orderLabel(d)}\n            {accionEnLinea}");
+    expect(tabla).not.toContain("const accion = accionDeFila(d);");
+    const css = leer("src/app/globals.css");
+    expect(css).toMatch(/\.accion-de-fila \{ display: inline-flex;/);
+    expect(css).toContain(".btn-icono-fila {");
   });
 });

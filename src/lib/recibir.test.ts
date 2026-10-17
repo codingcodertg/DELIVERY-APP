@@ -196,11 +196,12 @@ describe("las pantallas", () => {
 
   it("Órdenes (y Recepción, la Cola y el Gestor, que usan su tabla): las dos pastillas de la fila salen de `pastillaDeEtapa`", () => {
     expect(tabla).toContain("const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);");
-    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas };");
+    // Nota D-572: el ctx lleva también `accion` (la acción de la fila, en línea con la factura).
+    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila };");
     // la columna Etapa
     expect(tabla).toContain("cell: (d, { lang, motivos, recibidas, marcas }) => { const p = pastillaDeEtapa(d, recibidas, lang);");
     // la cabecera de la fila (la tarjeta del teléfono)
-    expect(tabla).toContain("cell: (d, { lang, byInvoice, recibidas, marcas }) => { const s = pastillaDeEtapa(d, recibidas, lang);");
+    expect(tabla).toContain("cell: (d, { lang, byInvoice, recibidas, marcas, accion }) => { const s = pastillaDeEtapa(d, recibidas, lang);");
     expect(tabla).not.toContain("stageInfo(d.stage)");
   });
 
@@ -221,7 +222,9 @@ describe("las pantallas", () => {
   });
 
   it("la tabla pinta la acción de la fila sin abrir la orden al pulsarla", () => {
-    expect(tabla).toContain('{c.key === "__id" && accionDeFila && (() => { const accion = accionDeFila(d); return accion ? <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>{accion}</span> : null; })()}');
+    // Nota D-572: la acción ya no se añade debajo de la celda; va por `ctx.accion` y se pinta en línea junto a la factura.
+    expect(tabla).toContain("accion: accionDeFila");
+    expect(tabla).toContain('const accionEnLinea = accionFila ? <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>{accionFila}</span> : null;');
   });
 
   it("la ficha: «Recibir» con `puedeRecibir`, la escritura de `recibirOrden`, y en lugar de «Marcar entregado»", () => {
