@@ -6,7 +6,7 @@ import type { Delivery, Stage } from "@/lib/types";
 // Lo que ESCRIBEN los dos pasos de bodega —«Comenzar preparación» y «Marcar listo»—, una sola vez para la ficha y la
 // fila de Almacén (D-551).
 //
-// Nota D-NEXT (2026-10-16): este fichero decidía también QUÉ pasos ofrecía la columna «Siguiente paso» (`pasosDeBodega`,
+// Nota D-573 (2026-10-16): este fichero decidía también QUÉ pasos ofrecía la columna «Siguiente paso» (`pasosDeBodega`,
 // `confirmacionDelPaso`). Esa columna ya no existe: la burbuja de Etapa ofrece TODAS las etapas que la base acepta, y
 // quién ve qué y qué confirma cada salto lo decide ahora `saltosEnLaFila` (src/lib/etapas-en-la-fila.ts). Aquí quedan
 // las escrituras, que siguen siendo las mismas en los dos sitios:

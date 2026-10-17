@@ -1692,7 +1692,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .btn-icono-fila { background: none; border: 0; padding: 0 2px; margin: 0; font-size: 15px; line-height: 1; cursor: pointer; vertical-align: middle; }
 .btn-icono-fila:hover { transform: scale(1.15); }
 /* «Siguiente paso» de Almacén (D-551): un selector compacto, del ancho de su columna. */
-/* La burbuja de etapa que es también el selector (Almacén, D-NEXT): la misma `.sema`, con un <select> nativo transparente
+/* La burbuja de etapa que es también el selector (Almacén, D-573): la misma `.sema`, con un <select> nativo transparente
    que ocupa toda su superficie, como `.role-switch`. La flecha es texto de la burbuja; el <select> no se ve, solo se toca. */
 .sema-switch { position: relative; cursor: pointer; color: #fff; }
 .sema-switch:hover { filter: brightness(1.08); box-shadow: 0 0 0 2px rgba(255,255,255,.25); }

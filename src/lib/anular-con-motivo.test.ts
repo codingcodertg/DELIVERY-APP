@@ -242,7 +242,7 @@ describe("no queda ningún camino que anule sin motivo", () => {
   });
 
   it("la ficha manda la clave en sus columnas, no la etiqueta traducida", () => {
-    // Nota D-NEXT (2026-10-16): la escritura la arma `escrituraAlAnular` (la misma que la burbuja de Almacén): la clave y el
+    // Nota D-573 (2026-10-16): la escritura la arma `escrituraAlAnular` (la misma que la burbuja de Almacén): la clave y el
     // texto libre en sus columnas; la prueba de esa función está en `etapas-en-la-fila.test.ts`.
     expect(modal).toContain('const anulacion = escrituraAlAnular(cancelReason, cancelNote, motivos, lang);');
     expect(modal).toContain('extra = { ...extra, ...anulacion.extra };');

@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 
 /**
  * Un motivo libre, obligatorio, antes de un salto de etapa: rechazar una pendiente, «Entregar ya» de oficina (D-361)
- * o «Deshacer etapa» (D-361/D-383). Lo abre la burbuja de Etapa de Almacén (D-NEXT); la ficha tiene el suyo en línea
+ * o «Deshacer etapa» (D-361/D-383). Lo abre la burbuja de Etapa de Almacén (D-573); la ficha tiene el suyo en línea
  * con el mismo campo y los mismos dos botones. Devuelve el texto recortado; quien lo abre decide la nota y la escribe.
  */
 export function MotivoDelSalto({ titulo, placeholder, textoDelBoton, ocupado, onCancelar, onConfirmar }: {

@@ -55,7 +55,7 @@ export default function WarehousePage() {
     ? <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
     : null;
   /**
-   * La burbuja de «Etapa» es el selector de etapa (D-NEXT; antes, D-551 ponía una columna aparte al lado).
+   * La burbuja de «Etapa» es el selector de etapa (D-573; antes, D-551 ponía una columna aparte al lado).
    * El dueño, 2026-10-16: «Remove next step column and have the stage column do that dropdown function. Dropdown should
    * give all stage options not just the next one. Whatever stage they choose, if stages required an input it must still
    * ask (like the # of pallets and delivery fee). Also want to keep the colored bubble design». En la Cola y en

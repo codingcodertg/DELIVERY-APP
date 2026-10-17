@@ -5,7 +5,7 @@ import { escrituraAlAnular, notaDelSalto, saltosEnLaFila, type ConfirmacionDelSa
 import type { CancelReason, OrderTypeRule, Stage, UserRole } from "./types";
 
 /**
- * La burbuja de «Etapa» como selector en la fila de Almacén (D-NEXT). El dueño, 2026-10-16: «Remove next step column and
+ * La burbuja de «Etapa» como selector en la fila de Almacén (D-573). El dueño, 2026-10-16: «Remove next step column and
  * have the stage column do that dropdown function. Dropdown should give all stage options not just the next one. Whatever
  * stage they choose, if stages required an input it must still ask (like the # of pallets and delivery fee). Also want
  * to keep the colored bubble design».

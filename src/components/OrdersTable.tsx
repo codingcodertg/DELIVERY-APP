@@ -37,7 +37,7 @@ type Ctx = {
   marcas?: ReadonlyMap<string, MarcaDeParada>;
   /** La acción de la fila (D-409/D-534), pintada EN LÍNEA junto al número de factura y no debajo (D-572). */
   accion?: (d: Delivery) => React.ReactNode;
-  /** La página pinta ella la burbuja de etapa (Almacén, D-NEXT: la burbuja es también el selector de etapa). Recibe la
+  /** La página pinta ella la burbuja de etapa (Almacén, D-573: la burbuja es también el selector de etapa). Recibe la
    *  pastilla que la tabla iba a pintar —texto y color— y la burbuja ya montada, para que sea la misma. */
   celdaDeEtapa?: (d: Delivery, pastilla: { texto: string; color: string }, burbuja: React.ReactNode) => React.ReactNode;
 };
@@ -424,9 +424,9 @@ export function OrdersTable({
   /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-409). No abre la orden al pulsarlo. */
   accionDeFila?: (d: Delivery) => React.ReactNode;
   /** Una columna de la página, sin ordenar ni filtrar, justo después de `despuesDe` (o al final si esa no se ve). El
-   *  toque en su celda no abre la orden. La usó Almacén para «Siguiente paso» (D-551) hasta D-NEXT; hoy no la monta nadie. */
+   *  toque en su celda no abre la orden. La usó Almacén para «Siguiente paso» (D-551) hasta D-573; hoy no la monta nadie. */
   columnaExtra?: { key: string; en: string; es: string; despuesDe: string; ancho: number; celda: (d: Delivery) => React.ReactNode };
-  /** La celda de «Etapa», pintada por la página con la pastilla que la tabla iba a pintar (Almacén, D-NEXT). */
+  /** La celda de «Etapa», pintada por la página con la pastilla que la tabla iba a pintar (Almacén, D-573). */
   celdaDeEtapa?: Ctx["celdaDeEtapa"];
   /** Los filtros de columna y el orden, llevados por la página (D-440): así se pueden guardar con nombre y volver a
    *  poner. Sin `vista` y `onVista`, la tabla los lleva dentro, como siempre (Almacén, chofer…). */

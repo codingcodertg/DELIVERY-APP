@@ -43767,7 +43767,7 @@ historial *«Se juntó la PO X (N pallets) — misma factura #F»*. Nada más: n
 
 **Fecha:** 2026-10-14 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Rama `almacen-etapa-en-la-fila`.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-16): la columna «Siguiente paso» se quitó a los dos días, a pedido del dueño («Remove next step column and have the stage column do that dropdown function…»). El selector vive ahora en la propia burbuja de «Etapa» y ofrece **todas** las etapas que la base acepta, no solo los dos pasos de bodega. Lo que sigue en pie de esta entrada: los diálogos compartidos (`ConfirmarTarifaAlComenzar`, `ConfirmarPallets`) y las escrituras únicas (`escribeComenzar`, `escribeListo`). `pasosDeBodega` y `confirmacionDelPaso` dejaron de existir; su papel lo hace `saltosEnLaFila`.
+> **Reemplazada en parte por D-573** (2026-10-16): la columna «Siguiente paso» se quitó a los dos días, a pedido del dueño («Remove next step column and have the stage column do that dropdown function…»). El selector vive ahora en la propia burbuja de «Etapa» y ofrece **todas** las etapas que la base acepta, no solo los dos pasos de bodega. Lo que sigue en pie de esta entrada: los diálogos compartidos (`ConfirmarTarifaAlComenzar`, `ConfirmarPallets`) y las escrituras únicas (`escribeComenzar`, `escribeListo`). `pasosDeBodega` y `confirmacionDelPaso` dejaron de existir; su papel lo hace `saltosEnLaFila`.
 
 **Pedido del dueño**, literal: *«It would be easier if changing the stage for warehouse was a dropdown as a next column instead of having to open the orders one by one»*.
 
@@ -44855,7 +44855,7 @@ Mensaje del 2026-10-16, literal: *«HAZME EL CLEANUP DE LO DEL CLIENTES VIEW»*.
 
 **No verificado:** en navegador; el alto real de la fila no se midió, solo que la acción ya no es una línea aparte.
 
-## D-NEXT · Almacén: la burbuja de «Etapa» es el selector de etapa, con todas las etapas que la base acepta y los diálogos de la ficha; la columna «Siguiente paso» (D-551) se quita
+## D-573 · Almacén: la burbuja de «Etapa» es el selector de etapa, con todas las etapas que la base acepta y los diálogos de la ficha; la columna «Siguiente paso» (D-551) se quita
 
 **Fecha:** 2026-10-16 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Reemplaza en parte a D-551.
 

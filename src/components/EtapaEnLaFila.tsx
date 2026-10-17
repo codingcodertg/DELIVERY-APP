@@ -17,7 +17,7 @@ import { MotivoDelSalto } from "@/components/MotivoDelSalto";
 import type { Delivery } from "@/lib/types";
 
 /**
- * La celda de «Etapa» de Almacén (D-NEXT): la burbuja de color de siempre que, donde esta persona puede mover esa orden,
+ * La celda de «Etapa» de Almacén (D-573): la burbuja de color de siempre que, donde esta persona puede mover esa orden,
  * es también un `<select>` —superficie transparente encima de la burbuja, al estilo de `.role-switch`— con TODAS las
  * etapas a las que la base le deja llevarla, la actual marcada. El dueño, 2026-10-16: «Remove next step column and have
  * the stage column do that dropdown function. Dropdown should give all stage options not just the next one. […] Also

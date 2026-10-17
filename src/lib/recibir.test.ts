@@ -197,7 +197,7 @@ describe("las pantallas", () => {
   it("Órdenes (y Recepción, la Cola y el Gestor, que usan su tabla): las dos pastillas de la fila salen de `pastillaDeEtapa`", () => {
     expect(tabla).toContain("const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);");
     // Nota D-572: el ctx lleva también `accion` (la acción de la fila, en línea con la factura).
-    // Nota D-NEXT (2026-10-16): y `celdaDeEtapa` (Almacén pinta la burbuja como selector, con la MISMA pastilla de
+    // Nota D-573 (2026-10-16): y `celdaDeEtapa` (Almacén pinta la burbuja como selector, con la MISMA pastilla de
     // `pastillaDeEtapa`, que recibe).
     expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa };");
     // la columna Etapa

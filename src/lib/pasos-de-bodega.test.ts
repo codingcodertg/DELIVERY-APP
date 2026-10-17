@@ -7,7 +7,7 @@ import { escrituraAlComenzar } from "./confirmar-tarifa";
 /**
  * Lo que escriben los dos pasos de bodega, una sola vez para la ficha y la fila de Almacén (D-551).
  *
- * Nota D-NEXT (2026-10-16): aquí se probaba también qué pasos ofrecía la columna «Siguiente paso» (`pasosDeBodega`) y
+ * Nota D-573 (2026-10-16): aquí se probaba también qué pasos ofrecía la columna «Siguiente paso» (`pasosDeBodega`) y
  * dónde iba la columna (`columnaExtraTras`). La columna se quitó —la burbuja de Etapa es el selector, con todas las
  * etapas— y esa parte vive en `etapas-en-la-fila.test.ts`. Se IMPORTAN las funciones que escriben; el fuente solo se
  * lee al final, para ver que la ficha y la fila pasan por ellas.

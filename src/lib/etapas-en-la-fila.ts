@@ -9,7 +9,7 @@ import type { OrderTypeRules } from "@/lib/required";
 import type { CancelReason, Delivery, Profile, Stage } from "@/lib/types";
 
 // ============================================================
-// La burbuja de «Etapa» como selector, en la fila de Almacén (D-NEXT, sustituye en parte a D-551).
+// La burbuja de «Etapa» como selector, en la fila de Almacén (D-573, sustituye en parte a D-551).
 //
 // El dueño (2026-10-16): «Remove next step column and have the stage column do that dropdown function. Dropdown should
 // give all stage options not just the next one. Whatever stage they choose, if stages required an input it must still

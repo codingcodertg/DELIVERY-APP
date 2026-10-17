@@ -254,7 +254,7 @@ describe("la ficha de la orden pide motivo y avisa de lo que se pierde", () => {
     // Y la función que escribe tampoco sigue sin motivo: el botón deshabilitado no es la única puerta.
     const deshacer = modal.slice(modal.indexOf("const deshacerEtapa"), modal.indexOf("const deshacerEtapa") + 400);
     expect(deshacer).toContain("if (!existing || !atras || !motivoDeSalto.trim()) return;");
-    // Nota D-NEXT (2026-10-16): la nota la arma `notaDelSalto` (la misma que la burbuja de Almacén); el texto se fija allí.
+    // Nota D-573 (2026-10-16): la nota la arma `notaDelSalto` (la misma que la burbuja de Almacén); el texto se fija allí.
     expect(modal).toContain(`notaDelSalto("motivo_entrega", motivoDeSalto)`);
     const lib = leer("src/lib/etapas-en-la-fila.ts");
     expect(lib).toContain("Entregada por oficina (sin firma): ${m}");

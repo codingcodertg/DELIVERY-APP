@@ -8,7 +8,7 @@ import type { CancelReason } from "@/lib/types";
 
 /**
  * «Cancelar orden» con su motivo (D-291, migración 122): la clave de la lista de Ajustes y, si el motivo lo pide, el
- * texto libre. Lo abre la burbuja de Etapa de Almacén (D-NEXT); la ficha tiene el mismo selector en línea. Lo que falta
+ * texto libre. Lo abre la burbuja de Etapa de Almacén (D-573); la ficha tiene el mismo selector en línea. Lo que falta
  * lo dice `faltaParaAnular`, la misma regla que el botón de la ficha y que `setStage`; lo que se escribe,
  * `escrituraAlAnular`, que llaman los dos.
  */
