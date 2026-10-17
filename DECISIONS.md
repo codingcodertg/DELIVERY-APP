@@ -44803,7 +44803,7 @@ orquestador. La pantalla no se abrió en un navegador.
 
 **No verificado:** en navegador.
 
-## D-NEXT · Clientes: las 149 filas que no son clientes se archivan, no se borran (migración 181)
+## D-571 · Clientes: las 149 filas que no son clientes se archivan, no se borran (migración 181)
 
 **Fecha:** 2026-10-16 · **Migración:** `181_clientes_archivados.sql`, **escrita y NO aplicada** (dos columnas y un índice parcial; no archiva nada) · **Versión:** la pone el orquestador al fusionar (`customers`; el worker no toca `APP_VERSIONS`). No reemplaza ninguna decisión anterior; completa D-569.
 
