@@ -36,7 +36,7 @@ export function esSinPermiso(error: { code?: string | null; message?: string } |
 export const COLUMNAS =
   "id, store, account, unified_account, house_no, added_batch, qb_status, activity_status, status_store, status_group, " +
   "history_store, history_group, rep_history, rep_qb, rep_store, contact_name, contact_title, address, phone, email, " +
-  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by";
+  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason";
 
 /** PostgREST corta en 1.000 filas por petición: se pagina hasta que una página venga corta. */
 export const PAGINA = 1000;

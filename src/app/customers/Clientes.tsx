@@ -11,9 +11,10 @@ import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
 import {
-  alOrdenarPor, alternaColumna, CAMPOS, celda, COLUMNAS, COLUMNAS_INICIALES, columnasValidas, cuentaPor, ESTADOS, estadoClase, estadoLabel,
-  fecha, filtrar, FILTRO_INICIAL, formDe, HISTORIAS, historiaLabel, mailUrl, nombreDeTienda, ordenar, ORDEN_INICIAL, parcheDe,
-  QB_ESTADOS, qbLabel, telUrl, TIENDAS, type Cliente, type Filtro, type Orden,
+  alOrdenarPor, alternaColumna, CAMPOS, celda, COLUMNAS, COLUMNAS_INICIALES, columnasValidas, cuentaArchivados, cuentaPor, ESTADOS, estadoClase,
+  estadoLabel, estaArchivado, fecha, filtrar, FILTRO_INICIAL, formDe, HISTORIAS, historiaLabel, mailUrl, MOTIVOS_DE_ARCHIVO, motivoLabel,
+  nombreDeTienda, ordenar, ORDEN_INICIAL, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel, telUrl, TIENDAS,
+  type Cliente, type Filtro, type Orden,
 } from "@/lib/customers/reglas";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
@@ -69,7 +70,11 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
 
   const visibles = useMemo(() => ordenar(filtrar(lista, filtro), orden), [lista, filtro, orden]);
   useEffect(() => { setCuantos(TANDA); }, [filtro, orden]);
-  const porTienda = useMemo(() => cuentaPor(lista, "store"), [lista]);
+  // Los archivados (181) se esconden por defecto: las cuentas de las tiendas y el «N clientes» son de lo que se está viendo
+  // (vivos, o archivados con el chip), no de la tabla entera.
+  const vista = useMemo(() => lista.filter((c) => estaArchivado(c) === filtro.archivados), [lista, filtro.archivados]);
+  const archivados = useMemo(() => cuentaArchivados(lista), [lista]);
+  const porTienda = useMemo(() => cuentaPor(vista, "store"), [vista]);
   const porEstado = useMemo(() => cuentaPor(filtrar(lista, { ...filtro, estado: "" }), "status_store"), [lista, filtro]);
   const colsVisibles = COLUMNAS.filter((c) => columnas.includes(c.key));
 
@@ -105,13 +110,22 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
       {/* Las tiendas, con su cuenta: pulsar una filtra; otra vez, todas. */}
       <div className="mb-3 flex flex-wrap gap-2">
         <button type="button" onClick={() => setFiltro((f) => ({ ...f, tienda: "" }))} className={chip(filtro.tienda === "")}>
-          {t("All stores", "Todas las tiendas")} <span className="text-slate-400">{lista.length}</span>
+          {t("All stores", "Todas las tiendas")} <span className="text-slate-400">{vista.length}</span>
         </button>
         {[...TIENDAS.map((x) => x.code), ...[...porTienda.keys()].filter((k) => !TIENDAS.some((x) => x.code === k))].map((code) => (
           <button key={code} type="button" onClick={() => setFiltro((f) => ({ ...f, tienda: f.tienda === code ? "" : code }))} className={chip(filtro.tienda === code)}>
             {nombreDeTienda(code)} <span className="text-slate-400">{porTienda.get(code) ?? 0}</span>
           </button>
         ))}
+        {/* Los archivados (181): escondidos por defecto; el chip enseña SOLO esos. */}
+        <button
+          type="button"
+          onClick={() => setFiltro((f) => ({ ...f, archivados: !f.archivados }))}
+          className={cn(chip(filtro.archivados), "ml-auto")}
+          aria-pressed={filtro.archivados}
+        >
+          {t("Archived", "Archivados")} <span className="text-slate-400">{archivados}</span>
+        </button>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -130,11 +144,12 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
           <option value="">{t("QB: all", "QB: todos")}</option>
           {QB_ESTADOS.map((q) => <option key={q} value={q}>{qbLabel(q, t)}</option>)}
         </select>
-        {(filtro.busca || filtro.tienda || filtro.estado || filtro.qb) && (
+        {(filtro.busca || filtro.tienda || filtro.estado || filtro.qb || filtro.archivados) && (
           <Button variant="ghost" size="sm" onClick={() => setFiltro(FILTRO_INICIAL)}>{t("Clear filters", "Quitar filtros")}</Button>
         )}
         <span className="ml-auto text-sm text-slate-500">
-          {visibles.length === lista.length ? `${lista.length}` : `${visibles.length} / ${lista.length}`} {t("customers", "clientes")}
+          {visibles.length === vista.length ? `${vista.length}` : `${visibles.length} / ${vista.length}`}{" "}
+          {filtro.archivados ? t("archived", "archivados") : t("customers", "clientes")}
         </span>
       </div>
 
@@ -165,10 +180,20 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
                 <tr><td colSpan={colsVisibles.length} className="px-3 py-6 text-center text-slate-500">{t("No customers match.", "Ningún cliente coincide.")}</td></tr>
               )}
               {visibles.slice(0, cuantos).map((c) => (
-                <tr key={c.id} onClick={() => setFicha({ tipo: "ver", cliente: c })} className="cursor-pointer border-t border-slate-100 hover:bg-clay-50">
+                <tr
+                  key={c.id}
+                  onClick={() => setFicha({ tipo: "ver", cliente: c })}
+                  className={cn("cursor-pointer border-t border-slate-100 hover:bg-clay-50", estaArchivado(c) && "opacity-60")}
+                  data-archivado={estaArchivado(c) ? "1" : undefined}
+                >
                   {colsVisibles.map((col) => (
                     <td key={col.key} className={cn("px-3 py-2", col.key === "account" && "font-medium text-slate-900", (col.key === "credit_limit" || col.key === "euler_limit") && "text-right tabular-nums")}>
-                      {col.key === "status_store" || col.key === "status_group" ? (
+                      {col.key === "account" && estaArchivado(c) ? (
+                        <span className="inline-flex flex-wrap items-center gap-1.5">
+                          <span className="line-through">{c.account}</span>
+                          <Badge className="border-slate-200 bg-slate-100 text-slate-500">{t("Archived", "Archivado")} · {motivoLabel(c.archived_reason, t)}</Badge>
+                        </span>
+                      ) : col.key === "status_store" || col.key === "status_group" ? (
                         <Badge className={estadoClase(c[col.key])}>{estadoLabel(c[col.key], t)}</Badge>
                       ) : col.key === "qb_status" && c.qb_status === "NOT FOUND IN UPDATE" ? (
                         <span className="text-amber-700">{qbLabel(c.qb_status, t)}</span>
@@ -225,11 +250,19 @@ function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t 
   const { parche, errores } = useMemo(() => parcheDe(form, original, nuevo), [form, original, nuevo]);
   const cambiado = Object.keys(parche).length > 0;
 
-  const guardar = async () => {
-    if (errores.length) { setAviso({ tono: "rojo", texto: t("Check the highlighted fields.", "Revisa los campos marcados.") }); return; }
+  // Archivar (181): se pide el motivo en la propia ficha (uno de los del script, o escrito), y se escribe por el mismo
+  // almacén que todo lo demás: la fila vuelve de la base y es lo que se pinta.
+  const archivado = cliente !== null && estaArchivado(cliente);
+  const [archivando, setArchivando] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [motivoLibre, setMotivoLibre] = useState("");
+  useEffect(() => { setArchivando(false); setMotivo(""); setMotivoLibre(""); }, [cliente]);
+
+  /** Escribe y pinta lo que devolvió la base; en rojo lo que no se guardó. */
+  const aplicar = async (escritura: () => ReturnType<AlmacenDeClientes["guardar"]>, hecho: string) => {
     setOcupado(true);
     setAviso(null);
-    const r = nuevo ? await almacen.crear(parche) : await almacen.guardar(cliente.id, parche);
+    const r = await escritura();
     setOcupado(false);
     if (!r.ok) {
       setAviso({
@@ -242,8 +275,22 @@ function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t 
       });
       return;
     }
-    setAviso({ tono: "verde", texto: t("Saved ✓", "Guardado ✓") });
+    setAviso({ tono: "verde", texto: hecho });
     onGuardado(r.valor);
+  };
+
+  const guardar = async () => {
+    if (errores.length) { setAviso({ tono: "rojo", texto: t("Check the highlighted fields.", "Revisa los campos marcados.") }); return; }
+    await aplicar(() => (nuevo ? almacen.crear(parche) : almacen.guardar(cliente.id, parche)), t("Saved ✓", "Guardado ✓"));
+  };
+  const archivar = async () => {
+    if (nuevo) return;
+    await aplicar(() => almacen.guardar(cliente.id, parcheArchivar(motivo === "otro" ? motivoLibre : motivo)), t("Archived ✓", "Archivado ✓"));
+    setArchivando(false);
+  };
+  const desarchivar = async () => {
+    if (nuevo) return;
+    await aplicar(() => almacen.guardar(cliente.id, PARCHE_DESARCHIVAR), t("Restored ✓", "Desarchivado ✓"));
   };
 
   const campo = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -269,6 +316,12 @@ function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t 
         </div>
 
         <div className="space-y-3 p-4">
+          {archivado && (
+            <p className="rounded-md border border-slate-200 bg-slate-100 p-2 text-xs text-slate-600">
+              <span className="font-medium">{t("Archived", "Archivado")}</span> {fecha(cliente.archived_at)} · {motivoLabel(cliente.archived_reason, t)}
+              {" — "}{t("hidden from the list; not a customer. It can be restored.", "escondido de la lista; no es un cliente. Se puede desarchivar.")}
+            </p>
+          )}
           {!puedeEditar && (
             <p className="rounded-md bg-slate-50 p-2 text-xs text-slate-500">
               {t("Read-only — admins and managers can edit.", "Solo lectura — editan los admins y los managers.")}
@@ -328,8 +381,34 @@ function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t 
           )}
         </div>
 
+        {puedeEditar && !nuevo && archivando && (
+          <div className="space-y-2 border-t border-slate-200 bg-slate-50 px-4 py-3">
+            <label className="block space-y-1">
+              <span className="text-xs text-slate-500">{t("Why is it archived?", "¿Por qué se archiva?")}</span>
+              <select className={cn(selCls, "w-full")} value={motivo} onChange={(e) => setMotivo(e.target.value)} aria-label={t("Reason", "Motivo")}>
+                <option value="">{t("Choose a reason…", "Elige un motivo…")}</option>
+                {MOTIVOS_DE_ARCHIVO.map((m) => <option key={m} value={m}>{motivoLabel(m, t)}</option>)}
+                <option value="otro">{t("Other (write it)", "Otro (escríbelo)")}</option>
+              </select>
+            </label>
+            {motivo === "otro" && (
+              <Input value={motivoLibre} onChange={(e) => setMotivoLibre(e.target.value)} placeholder={t("Reason", "Motivo")} />
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setArchivando(false)}>{t("Cancel", "Cancelar")}</Button>
+              <Button size="sm" onClick={archivar} disabled={ocupado || motivo === "" || (motivo === "otro" && motivoLibre.trim() === "")}>
+                {ocupado ? t("Saving…", "Guardando…") : t("Archive", "Archivar")}
+              </Button>
+            </div>
+          </div>
+        )}
         {puedeEditar && (
           <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3">
+            {!nuevo && (archivado ? (
+              <Button variant="ghost" className="mr-auto" onClick={desarchivar} disabled={ocupado}>{t("Restore", "Desarchivar")}</Button>
+            ) : (
+              <Button variant="ghost" className="mr-auto text-slate-500" onClick={() => setArchivando(true)} disabled={ocupado || archivando}>{t("Archive…", "Archivar…")}</Button>
+            ))}
             <Button variant="outline" onClick={onClose}>{t("Close", "Cerrar")}</Button>
             <Button onClick={guardar} disabled={ocupado || !cambiado}>
               {ocupado ? t("Saving…", "Guardando…") : nuevo ? t("Create", "Crear") : t("Save", "Guardar")}
