@@ -44836,3 +44836,19 @@ Mensaje del 2026-10-16, literal: *«HAZME EL CLEANUP DE LO DEL CLIENTES VIEW»*.
 **Pruebas:** `scripts/archiva-clientes-basura.test.mjs` (cada regla con los ejemplos reales de arriba, precedencia y unión, en seco sin UPDATE, idempotencia, `--deshacer` solo con los tres motivos) y `customers/reglas.test.ts`, bloque «archivados (181)» (esconder por defecto, chip solo-archivados, parche de archivar/desarchivar reversible, lectura de la base). Mutantes **8 de 8** (tanda 	anda-clientes-archivados.json, cada uno con su prueba por nombre): la lista deja de esconder los archivados; archivado se decide por el motivo y no por la fecha; desarchivar deja el motivo puesto; sin nombre exige una sola letra; interno deja de distinguir mayúsculas; el UPDATE de archivar pisa filas ya archivadas; --deshacer desarchiva también lo archivado a mano; en seco también escribe.
 
 **No verificado:** en navegador; la migración contra la base (no se aplica desde la rama); los 20 / 40 / 101 / 149 son la medición del orquestador del 2026-10-16, no de esta rama.
+
+## D-572 · En las filas, «Reprogramar» es solo el icono 📅 junto al número de factura
+
+**Fecha:** 2026-10-16 · **Versión:** deliveries 1.325.0 (repo 1.438.0) · Sin migración · Hecho directo por el orquestador en `icono-reprogramar`.
+
+**Pedido del dueño**, literal: *«Reschedule is making the rows thicker so just leave the calendar icon next to invoice #. It'll serve as the reschedule button»* y *«FIX THAT»*.
+
+**Qué fallaba.** El botón «📅 Reprogramar» de D-500/D-534 se añadía en la tabla **debajo** de la celda del ID (`.accion-de-fila { display: block }`): en la Cola de Almacén cada fila pasaba de dos líneas (factura, ID) a tres, y la lista entera se alargaba. Se veía en la captura del dueño del 2026-10-16.
+
+**Qué cambia.**
+- `ReprogramarOrden` gana `compacto`: la misma acción y el mismo cuadro, pero la cara es solo **📅** (`.btn-icono-fila`, sin caja, del alto del texto, con `aria-label` y el mismo `title`). Lo piden las filas de Almacén (Cola, Recepción y Ruta del día) y del Gestor; la **ficha** conserva el botón con texto.
+- `OrdersTable` ya no cuelga la acción debajo de la celda: viaja por `ctx.accion` y se pinta **en línea con el número de factura** (en la cara por factura, tras «INV …»; en la cara por ID, tras «#…»), con `display: inline-flex`. Vale para cualquier acción de fila: en Recepción, «📥 Recibir» va también ahí.
+
+**Pruebas:** `reprogramar-orden.test.ts`, bloque «D-572»; `recibir.test.ts` con su nota. Mutantes 4 de 4 (la cara compacta vuelve a llevar texto; Almacén deja de pedirla; la acción vuelve debajo del ID; vuelve a ser bloque), cada uno con su prueba por nombre.
+
+**No verificado:** en navegador; el alto real de la fila no se midió, solo que la acción ya no es una línea aparte.

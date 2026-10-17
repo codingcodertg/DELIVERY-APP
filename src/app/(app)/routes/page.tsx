@@ -2291,7 +2291,7 @@ export default function RoutesPage() {
               ) : null}
               {/* «📅 Reprogramar» (D-500): la fecha siguiente y una nota, ahí mismo. */}
               {!hecha && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
-                <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
+                <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
               )}
               {/* La sugerencia de chofer («💡 nombre») que salía aquí se quitó (D-346), por pedido del dueño. */}
             </div>

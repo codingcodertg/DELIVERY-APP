@@ -52,7 +52,7 @@ export default function WarehousePage() {
   /** «📅 Reprogramar» en la fila (D-534): el MISMO cuadro del Gestor (D-500), la fecha siguiente y una nota obligatoria,
    *  donde `puedeReprogramar` dice que sí (almacén en aprobada/preparando/lista; el admin, como en el Gestor). */
   const reprogramar = (d: Delivery) => puedeReprogramar(me?.role, d.stage)
-    ? <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />
+    ? <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
     : null;
   /**
    * «Siguiente paso» (D-551): el dueño, «It would be easier if changing the stage for warehouse was a dropdown as a next

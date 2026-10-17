@@ -35,6 +35,8 @@ type Ctx = {
   recibidas?: ReadonlySet<string>;
   /** Paradas que el chofer saltó hoy o que el cliente rechazó (D-487): una pastilla junto a la etapa. */
   marcas?: ReadonlyMap<string, MarcaDeParada>;
+  /** La acción de la fila (D-409/D-534), pintada EN LÍNEA junto al número de factura y no debajo (D-572). */
+  accion?: (d: Delivery) => React.ReactNode;
 };
 
 type CellValue = ValorDeCelda;
@@ -163,8 +165,11 @@ const ID_COLUMN: OrderColumn = {
   en: "ID",
   es: "ID",
   value: (d, { byInvoice }) => (byInvoice ? (d.invoice_num || orderLabel(d)) : orderLabel(d)),
-  cell: (d, { lang, byInvoice, recibidas, marcas }) => {
+  cell: (d, { lang, byInvoice, recibidas, marcas, accion }) => {
     const s = pastillaDeEtapa(d, recibidas, lang);
+    // En línea con la factura (D-572): el toque no abre la orden. Antes iba debajo del ID y la fila crecía una línea.
+    const accionFila = accion?.(d) ?? null;
+    const accionEnLinea = accionFila ? <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>{accionFila}</span> : null;
     const tag = storeTag(d.store);
     const late = isOverdue(d);
     // An order can carry several invoices ("177987, 177986") or none at all.
@@ -210,6 +215,7 @@ const ID_COLUMN: OrderColumn = {
                   </span>
                 </>
               ) : null}
+              {accionEnLinea}
               {/* El documento que el tipo exige y falta (D-310): pastilla, y para quien puede, el
                   número escrito aquí mismo. Ocupa el sitio del «—»: la fila no crece. Va aparte de la
                   factura porque a una Intertienda le puede faltar el PO teniendo factura. */}
@@ -236,6 +242,7 @@ const ID_COLUMN: OrderColumn = {
         ) : (
           <>
             #{orderLabel(d)}
+            {accionEnLinea}
             {/* Status stack, right-aligned: where the order stands, then what
                 it is. Mobile-only; desktop has its own Stage/Type/Store
                 columns. */}
@@ -437,7 +444,7 @@ export function OrdersTable({
   // Qué entregadas recibió almacén (D-409): un índice sobre los eventos que el proveedor ya tiene cargados.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
-  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas };
+  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila };
   const [vistaPropia, setVistaPropia] = useState<VistaDeTabla>({ filtros: {}, orden: null });
   // Llevada por la página si la pasa (D-440); si no, la de dentro.
   const vistaQueManda = vista && onVista ? vista : vistaPropia;
@@ -665,10 +672,7 @@ export function OrdersTable({
               {cols.map((c, i) => [
                 <td key={c.key} data-label={lang === "es" ? c.es : c.en} className={[c.key === "__id" ? (byInvoice ? "ordno ordno-drv" : "ordno") : "", c.pastillas ? "td-pastillas" : ""].filter(Boolean).join(" ") || undefined}>
                   {c.cell(d, ctx)}
-                  {c.key === "__id" && accionDeFila && (() => {
-                    const accion = accionDeFila(d);
-                    return accion ? <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>{accion}</span> : null;
-                  })()}
+                  {/* La acción de la fila ya va dentro de la celda, junto a la factura (D-572, `ctx.accion`). */}
                   {/* The chevron is only offered where the extra rows are
                       worth unfolding. On the invoice-led card the header
                       already carries stage, type, store, date, invoice and
