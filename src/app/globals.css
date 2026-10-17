@@ -1692,7 +1692,13 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .btn-icono-fila { background: none; border: 0; padding: 0 2px; margin: 0; font-size: 15px; line-height: 1; cursor: pointer; vertical-align: middle; }
 .btn-icono-fila:hover { transform: scale(1.15); }
 /* «Siguiente paso» de Almacén (D-551): un selector compacto, del ancho de su columna. */
-.paso-en-la-fila select { width: 100%; padding: 3px 6px; font-size: 12px; min-height: 0; }
+/* La burbuja de etapa que es también el selector (Almacén, D-573): la misma `.sema`, con un <select> nativo transparente
+   que ocupa toda su superficie, como `.role-switch`. La flecha es texto de la burbuja; el <select> no se ve, solo se toca. */
+.sema-switch { position: relative; cursor: pointer; color: #fff; }
+.sema-switch:hover { filter: brightness(1.08); box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+.sema-switch select { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: none; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; min-height: 0; }
+.sema-switch select:disabled { cursor: progress; }
+.sema-switch option { color: #000; }
 
 /* Gestor, «Cuadrícula» (D-482): la tarjeta compacta abierta y su tabla desplegada se leen como UNA pieza — la de arriba con
    borde de acento y un pico que apunta abajo, la de abajo pegada con el mismo borde y entrando con un despliegue suave. */

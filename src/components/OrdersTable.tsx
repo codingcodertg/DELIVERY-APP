@@ -37,6 +37,9 @@ type Ctx = {
   marcas?: ReadonlyMap<string, MarcaDeParada>;
   /** La acción de la fila (D-409/D-534), pintada EN LÍNEA junto al número de factura y no debajo (D-572). */
   accion?: (d: Delivery) => React.ReactNode;
+  /** La página pinta ella la burbuja de etapa (Almacén, D-573: la burbuja es también el selector de etapa). Recibe la
+   *  pastilla que la tabla iba a pintar —texto y color— y la burbuja ya montada, para que sea la misma. */
+  celdaDeEtapa?: (d: Delivery, pastilla: { texto: string; color: string }, burbuja: React.ReactNode) => React.ReactNode;
 };
 
 type CellValue = ValorDeCelda;
@@ -63,14 +66,15 @@ export interface OrderColumn {
 export const ORDER_COLUMNS: OrderColumn[] = [
   // El VALOR (orden y filtro de columna) sigue siendo la etapa: «Received» va dentro de «Delivered» también
   // en el filtro de la columna, porque es lo mismo (D-409). Solo la pastilla cambia.
-  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos, recibidas, marcas }) => {
+  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos, recibidas, marcas, celdaDeEtapa }) => {
       const p = pastillaDeEtapa(d, recibidas, lang);
       // Una anulada lleva su motivo al lado, no escondido en la ficha: en la lista es donde se ve que
       // media tarde de órdenes se cayó por duplicadas (122).
       const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : "";
+      const burbuja = <span className="sema" title={p.texto} style={{ background: p.color, color: "#fff" }}>{p.texto}</span>;
       return (
         <>
-          <span className="sema" title={p.texto} style={{ background: p.color, color: "#fff" }}>{p.texto}</span>
+          {celdaDeEtapa ? celdaDeEtapa(d, p, burbuja) : burbuja}
           {porQue && <span style={{ color: "var(--gray)", marginLeft: 6, fontSize: 12 }}>{porQue}</span>}
           <PastillaDeMarca m={marcas?.get(d.id)} lang={lang} />
         </>
@@ -383,6 +387,7 @@ export function OrdersTable({
   onAnchos,
   accionDeFila,
   columnaExtra,
+  celdaDeEtapa,
   vista,
   onVista,
 }: {
@@ -419,8 +424,10 @@ export function OrdersTable({
   /** Un botón por fila, al lado del número (p. ej. «Recibir» en Recepción, D-409). No abre la orden al pulsarlo. */
   accionDeFila?: (d: Delivery) => React.ReactNode;
   /** Una columna de la página, sin ordenar ni filtrar, justo después de `despuesDe` (o al final si esa no se ve). El
-   *  toque en su celda no abre la orden. La usa Almacén para «Siguiente paso» (D-551), al lado de la etapa. */
+   *  toque en su celda no abre la orden. La usó Almacén para «Siguiente paso» (D-551) hasta D-573; hoy no la monta nadie. */
   columnaExtra?: { key: string; en: string; es: string; despuesDe: string; ancho: number; celda: (d: Delivery) => React.ReactNode };
+  /** La celda de «Etapa», pintada por la página con la pastilla que la tabla iba a pintar (Almacén, D-573). */
+  celdaDeEtapa?: Ctx["celdaDeEtapa"];
   /** Los filtros de columna y el orden, llevados por la página (D-440): así se pueden guardar con nombre y volver a
    *  poner. Sin `vista` y `onVista`, la tabla los lleva dentro, como siempre (Almacén, chofer…). */
   vista?: VistaDeTabla;
@@ -444,7 +451,7 @@ export function OrdersTable({
   // Qué entregadas recibió almacén (D-409): un índice sobre los eventos que el proveedor ya tiene cargados.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
-  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila };
+  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa };
   const [vistaPropia, setVistaPropia] = useState<VistaDeTabla>({ filtros: {}, orden: null });
   // Llevada por la página si la pasa (D-440); si no, la de dentro.
   const vistaQueManda = vista && onVista ? vista : vistaPropia;
