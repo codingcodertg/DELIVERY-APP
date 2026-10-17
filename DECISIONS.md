@@ -43767,6 +43767,8 @@ historial *«Se juntó la PO X (N pallets) — misma factura #F»*. Nada más: n
 
 **Fecha:** 2026-10-14 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Rama `almacen-etapa-en-la-fila`.
 
+> **Reemplazada en parte por D-NEXT** (2026-10-16): la columna «Siguiente paso» se quitó a los dos días, a pedido del dueño («Remove next step column and have the stage column do that dropdown function…»). El selector vive ahora en la propia burbuja de «Etapa» y ofrece **todas** las etapas que la base acepta, no solo los dos pasos de bodega. Lo que sigue en pie de esta entrada: los diálogos compartidos (`ConfirmarTarifaAlComenzar`, `ConfirmarPallets`) y las escrituras únicas (`escribeComenzar`, `escribeListo`). `pasosDeBodega` y `confirmacionDelPaso` dejaron de existir; su papel lo hace `saltosEnLaFila`.
+
 **Pedido del dueño**, literal: *«It would be easier if changing the stage for warehouse was a dropdown as a next column instead of having to open the orders one by one»*.
 
 ### Qué había
@@ -44852,3 +44854,56 @@ Mensaje del 2026-10-16, literal: *«HAZME EL CLEANUP DE LO DEL CLIENTES VIEW»*.
 **Pruebas:** `reprogramar-orden.test.ts`, bloque «D-572»; `recibir.test.ts` con su nota. Mutantes 4 de 4 (la cara compacta vuelve a llevar texto; Almacén deja de pedirla; la acción vuelve debajo del ID; vuelve a ser bloque), cada uno con su prueba por nombre.
 
 **No verificado:** en navegador; el alto real de la fila no se midió, solo que la acción ya no es una línea aparte.
+
+## D-NEXT · Almacén: la burbuja de «Etapa» es el selector de etapa, con todas las etapas que la base acepta y los diálogos de la ficha; la columna «Siguiente paso» (D-551) se quita
+
+**Fecha:** 2026-10-16 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Reemplaza en parte a D-551.
+
+**Pedido del dueño** (desde Ayuda, página `/warehouse`, con captura), literal: *«Remove next step column and have the stage column do that dropdown function. Dropdown should give all stage options not just the next one. Whatever stage they choose, if stages required an input it must still ask (like the # of pallets and delivery fee). Also want to keep the colored bubble design»*.
+
+### Qué había
+
+D-551 (dos días antes) puso en la Cola y en Recepción una columna «Siguiente paso» después de «Etapa», con un selector que ofrecía solo los dos pasos de bodega («Comenzar preparación», «Marcar listo»). Dos columnas para una cosa, y un selector que decía «Elegir…» en vez de la etapa.
+
+### Qué cambia
+
+1. **La columna desaparece.** `OrdersTable` conserva la prop genérica `columnaExtra` (nadie la monta hoy) y gana `celdaDeEtapa`: la página pinta ella la celda de «Etapa», recibiendo la pastilla —texto y color— que la tabla iba a pintar, para que la burbuja sea la misma (`pastillaDeEtapa`, que en Recepción dice «Recibido»).
+2. **La burbuja es el selector.** `useEtapaEnLaFila` (`src/components/EtapaEnLaFila.tsx`) devuelve la misma `.sema` de siempre con, donde esta persona puede mover esa orden, un `<select>` nativo transparente que ocupa toda su superficie (`.sema-switch`, el patrón de `.role-switch`), una flecha «▾» discreta, y la etapa actual marcada. El toque no abre la ficha. Donde no puede mover nada, la burbuja de siempre, sin selector. Mientras escribe, la burbuja dice «Guardando…» y el selector se apaga.
+3. **Todas las etapas, medidas contra el guard.** `saltosEnLaFila` (`src/lib/etapas-en-la-fila.ts`) recorre `STAGES` y ofrece exactamente los saltos que (a) `canTransition` acepta —lo que `setStage` exige a quien no es admin— y (b) el espejo de cliente del guard de la 173 acepta para ese rol: `preparaEnLaFicha`, `puedeAnular` (122), `puedeEntregarYa` y `puedeDeshacer` (139/142), `canApprove`. La prueba `etapas-en-la-fila.test.ts` fija la tabla completa, 7 roles × 9 etapas, transcrita a mano del tramo de cambio de etapa de `guard_delivery_stage` (migración 173, la última que lo redefine):
+
+   | Rol | Desde | Ofrece |
+   |---|---|---|
+   | almacén | aprobada | Preparando (tarifa·) |
+   | almacén | preparando | Listo (pallets); Programado (motivo, solo su tienda) |
+   | almacén | lista | Preparando (motivo, solo su tienda) |
+   | almacén | recogida | Listo (motivo) |
+   | almacén | entregada | Recogido (motivo, solo su tienda) |
+   | gerente | pendiente | Programado; Rechazado (motivo); Cancelado (motivo de anulación) |
+   | gerente | aprobada | Pendiente (desbloquear); Preparando (tarifa·); Entregado (motivo); Cancelado |
+   | gerente | preparando | Programado (motivo); Listo (pallets); Entregado (motivo); Cancelado |
+   | gerente | lista | Preparando (motivo); Entregado (motivo); Cancelado |
+   | gerente | recogida | Listo (motivo); Entregado (motivo) |
+   | gerente | entregada | Recogido (motivo) |
+   | gerente | borrador, rechazada | Cancelado |
+   | oficina (`accounting`) | — | igual que el gerente **menos** Preparando y Listo hacia delante (el guard solo se los da al gerente) |
+   | admin | — | lo mismo que el gerente (la base no le rechaza nada de eso) |
+   | logística, ventas, chofer | — | **nada** |
+
+   · «tarifa» solo en los tipos que cobran (`pideConfirmarTarifa`); una Intertienda se escribe al elegirla.
+
+   **Logística** tiene `approve` en el cliente, pero el guard no le concede ningún cambio de etapa (cae en `raise exception 'Not allowed'`): ofrecerle «Programado» sería pintar una opción que la base rechaza, así que no ve selector.
+
+   **Lo que la burbuja no ofrece aunque la base lo acepte**, porque su diálogo es el del chofer y se queda en la ficha: «Recoger» (`→ picked_up` hacia delante: parte cargas cortas, estampa GPS y reclama el chofer), «Marcar entregado» de almacén (`picked_up → delivered`, con firma y prueba de entrega; en Recepción ya está «Recibir» en la fila, D-409), y lo de ventas (enviar/reenviar `→ pending`, la auto-aprobación por tienda, aprobar un borrador o una rechazada).
+4. **Cada salto pide lo que pediría la ficha**, con los diálogos de la ficha: tarifa (`ConfirmarTarifaAlComenzar`, D-450), pallets (`ConfirmarPallets`, D-287), motivo de anulación (`ConfirmarAnulacion`, nuevo, con la lista de Ajustes, el texto libre de «otro» y `faltaParaAnular`), y motivo libre obligatorio (`MotivoDelSalto`, nuevo) para rechazar, «Entregar ya» y «Deshacer etapa». Cerrar el diálogo deja la etapa como estaba (el `<select>` es controlado por `d.stage`). Si la base rechaza, `setStage` avisa como hoy.
+5. **La ficha y la fila escriben con las mismas funciones.** Se añaden a `etapas-en-la-fila.ts` `escrituraAlAnular` (las columnas del motivo y la nota legible, 122) y `notaDelSalto` (los textos «Delivered by office (no signature): …» y «Stage undone (was a mistake): …» de D-361), y `OrderModal` pasa a llamarlas en vez de armar lo mismo en línea. `escribeComenzar` y `escribeListo` siguen en `pasos-de-bodega.ts`; `pasosDeBodega`, `PASOS_EN_LA_FILA` y `confirmacionDelPaso` se borran (su papel lo hace `saltosEnLaFila`).
+
+### Qué se descartó
+
+- **Ofrecer solo la siguiente etapa** (lo de D-551): es lo que el dueño pidió quitar.
+- **Un `<select>` normal estilizado** en vez de la burbuja: pidió conservar «the colored bubble design». La superficie transparente sobre la burbuja es lo que ya hace el conmutador de rol del admin.
+- **Reescribir la regla de quién mueve qué**: cada salto pregunta a la función que ya tenía su botón en la ficha y su prueba contra el guard. Una tabla propia habría sido una segunda definición que acaba discrepando.
+- **Mostrar «Recoger» y la entrega con firma en la burbuja**: habría que montar el diálogo de recogida y el de prueba de entrega del chofer fuera de la ficha; se queda para otra decisión si el dueño lo pide.
+
+**Pruebas:** `src/lib/etapas-en-la-fila.test.ts` (la tabla completa por rol y etapa contra el guard; qué confirma cada salto; las notas; la escritura de anular; que la página, la tabla, la ficha y el CSS pasan por aquí) y `src/lib/pasos-de-bodega.test.ts` (recortada a las escrituras). Tanda de mutantes en `~/.claude/herramientas/mutantes/tanda-burbuja-de-etapa.json`.
+
+**No verificado:** en navegador (la burbuja con el `<select>` encima, en escritorio y en teléfono); ninguna escritura contra producción desde la rama.
