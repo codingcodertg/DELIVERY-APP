@@ -197,9 +197,11 @@ describe("las pantallas", () => {
   it("Órdenes (y Recepción, la Cola y el Gestor, que usan su tabla): las dos pastillas de la fila salen de `pastillaDeEtapa`", () => {
     expect(tabla).toContain("const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);");
     // Nota D-572: el ctx lleva también `accion` (la acción de la fila, en línea con la factura).
-    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila };");
+    // Nota D-NEXT (2026-10-16): y `celdaDeEtapa` (Almacén pinta la burbuja como selector, con la MISMA pastilla de
+    // `pastillaDeEtapa`, que recibe).
+    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa };");
     // la columna Etapa
-    expect(tabla).toContain("cell: (d, { lang, motivos, recibidas, marcas }) => { const p = pastillaDeEtapa(d, recibidas, lang);");
+    expect(tabla).toContain("cell: (d, { lang, motivos, recibidas, marcas, celdaDeEtapa }) => { const p = pastillaDeEtapa(d, recibidas, lang);");
     // la cabecera de la fila (la tarjeta del teléfono)
     expect(tabla).toContain("cell: (d, { lang, byInvoice, recibidas, marcas, accion }) => { const s = pastillaDeEtapa(d, recibidas, lang);");
     expect(tabla).not.toContain("stageInfo(d.stage)");

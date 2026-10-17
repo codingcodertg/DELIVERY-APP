@@ -28,6 +28,7 @@ import { bloqueoPorTarifaMinima, ofreceDescuento, textoTarifaMinima } from "@/li
 import { llegaSinTarifa, pideConfirmarTarifa, type EscrituraAlComenzar } from "@/lib/confirmar-tarifa";
 import { ConfirmarTarifaAlComenzar } from "@/components/ConfirmarTarifaAlComenzar";
 import { ConfirmarPallets } from "@/components/ConfirmarPallets";
+import { escrituraAlAnular, notaDelSalto } from "@/lib/etapas-en-la-fila";
 import { escribeComenzar, escribeListo, type EscrituraAlMarcarListo } from "@/lib/pasos-de-bodega";
 import { printDeliverySlip } from "@/lib/slip";
 import { documentoPrincipal, filaFacturaOEstimacion } from "@/lib/order-document";
@@ -915,8 +916,9 @@ export function OrderModal({
     // Anular escribe el motivo en sus columnas (122). La nota del evento lleva la etiqueta legible,
     // que es lo que se lee en el historial; lo que se cuenta en un reporte es la clave de la columna.
     if (to === "canceled") {
-      extra = { ...extra, canceled_reason: cancelReason, canceled_reason_note: cancelNote.trim() || null };
-      note = motivoDeAnulacion({ canceled_reason: cancelReason, canceled_reason_note: cancelNote.trim() || null }, motivos, lang);
+      const anulacion = escrituraAlAnular(cancelReason, cancelNote, motivos, lang);
+      extra = { ...extra, ...anulacion.extra };
+      note = anulacion.nota;
     }
     const ok = await setStage(existing.id, to, note, extra);
     if (ok && latePickupFix) void attachLateFix(existing.id, latePickupFix, "pickup");
@@ -1030,7 +1032,8 @@ export function OrderModal({
   const entregarYa = async () => {
     if (!existing || !motivoDeSalto.trim()) return;
     setBusy(true);
-    const ok = await setStage(existing.id, "delivered", t(`Delivered by office (no signature): ${motivoDeSalto.trim()}`, `Entregada por oficina (sin firma): ${motivoDeSalto.trim()}`));
+    const nota = notaDelSalto("motivo_entrega", motivoDeSalto);
+    const ok = await setStage(existing.id, "delivered", t(nota.en, nota.es));
     setBusy(false);
     if (ok) { setShowEntregarYa(false); setMotivoDeSalto(""); notify(t("Marked delivered", "Marcada entregada")); }
   };
@@ -1055,7 +1058,8 @@ export function OrderModal({
     const atras = existing ? etapaAnterior(existing.stage) : null;
     if (!existing || !atras || !motivoDeSalto.trim()) return;
     setBusy(true);
-    const ok = await setStage(existing.id, atras, t(`Stage undone (was a mistake): ${motivoDeSalto.trim()}`, `Etapa deshecha (fue un error): ${motivoDeSalto.trim()}`));
+    const nota = notaDelSalto("motivo_deshacer", motivoDeSalto);
+    const ok = await setStage(existing.id, atras, t(nota.en, nota.es));
     setBusy(false);
     if (ok) { setShowDeshacer(false); setMotivoDeSalto(""); notify(t("Stage undone", "Etapa deshecha")); }
   };
