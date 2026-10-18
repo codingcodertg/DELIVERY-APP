@@ -33869,6 +33869,8 @@ A 390 px de ancho el diálogo entra entero, con los botones en su fila. Los dato
 
 > **Reemplazada en parte por D-475:** el descuento de la línea vuelve a salir en la hoja como porcentaje («Discount: 20%»), no como precio.
 
+> **Reemplazada en parte por D-575** (2026-10-18): el punto 6 quitó la nota de cajas completas de la hoja; el dueño la vuelve a pedir, con otro texto y solo cuando alguna línea se redondea. «Nada después de Delivery: Available…» sigue: la nota va bajo la tabla.
+
 **Fecha:** 2026-09-29 · **Versión:** estimator 0.7.0, repo 1.326.0 · **Migración:** `156_competencia_suelta.sql`, **escrita y NO aplicada** (plan: `docs/PLAN-156-competencia-suelta.md`,
 matriz de 26 casos **ensayada contra producción con ROLLBACK: 26/26**). **Reemplaza en parte a** D-413, D-425 y D-442,
 que llevan su nota.
@@ -44921,3 +44923,29 @@ D-551 (dos días antes) puso en la Cola y en Recepción una columna «Siguiente 
 **Pruebas:** `reprogramar-orden.test.ts`, «D-574 · en el Gestor el 📅 va en la celda de la factura…» (lo busca dentro de la celda y afirma que solo hay una instancia en la página). Mutante 1 de 1 (vuelve a «Asignar a»), cae con esa prueba.
 
 **No verificado:** en navegador.
+## D-575 · Quote Builder: vuelve la nota de cajas completas, en la hoja del cliente y en la pantalla, solo cuando alguna línea se lleva más SF de los pedidos
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Reemplaza en parte a D-451 (su punto 6).
+
+**Pedido del dueño** (2026-10-18), literal: *«When a quote is built there should be a note saying that some items are rounded to nearest box; not sold by piece or exact sqft requested»*.
+
+### Qué había
+
+D-451 (2026-09-29, «delete everything afte the Delivery: available text») quitó de la hoja los tres párrafos que iban detrás de «Delivery: Available…», y entre ellos la nota de cajas completas de entonces (*«Quantity Note: Certain products are sold by full box only…»*), que salía **siempre**, hubiera o no redondeo. Desde entonces la hoja decía «Requested Area: 1,250 SF» y «Quantity: 53 Boxes» (en Standard y Detailed) sin explicar por qué 53 cajas de 23.80 SF son 1,261.40 SF y no 1,250; en Basic ni siquiera salían las cajas. La pantalla del vendedor enseña «Actual SF» por línea, pero el cliente no la ve.
+
+### Qué cambia
+
+1. **`notaDeCajas(lineas)`** (`src/lib/estimator/hoja.ts`) → `string | null`. Devuelve la nota si **alguna** línea por SF tiene SF pedidos positivos y sus cajas (`cajasDeLinea`: las que escribió el vendedor, o `cajasPorDefecto` = `ceil(pedidos / SF por caja)`) cubren **más** de lo pedido (`sfReal(l) > requested_sf`). No la saca: una línea por unidad; una sin SF pedidos, sin SF/caja o sin cajas; ni cajas que cubren exactamente lo pedido (100 SF a 25 SF/caja = 4 cajas). Con `boxes` a mano por debajo de lo pedido tampoco: no hay redondeo hacia arriba que explicar.
+2. **El texto**, en inglés como todo lo que lee el cliente, con lo que él describió: *«Some items are rounded up to the nearest full box; they are not sold by the piece or by the exact square footage requested.»* (`NOTA_DE_CAJAS`). No es el párrafo viejo de D-413/D-451 («Quantity Note: Certain products are sold by full box only…»): el dueño describió hoy otra cosa, más corta y sobre el redondeo, y es lo que se pone. Su español (`NOTA_DE_CAJAS_ES`) es solo para la pantalla del vendedor.
+3. **En la hoja** (`HojaDelCliente.notaDeCajas`, `HojaCliente.tsx`): un párrafo en cursiva **bajo la tabla de líneas, antes de los totales** (`.hc-nota-cajas`). Ahí y no al final, a propósito: D-451 mandó que tras «Delivery: Available…» no fuera nada, y esa regla y su prueba («después de … no va NADA») siguen en pie. Además la nota habla de las cantidades, y las cantidades están en la tabla. Null → no se pinta nada, ni el `<p>`.
+4. **En la pantalla** (`Estimador.tsx`): la misma función sobre `draft.lines`, como `hint` bajo el total (`data-nota-cajas`), en inglés o español según el idioma del vendedor. Así quien arma la cotización ve que la hoja va a llevarla, y por qué.
+
+### Qué se descartó
+
+- **Sacarla siempre**, como la vieja: el dueño dice «some items are rounded», y una cotización sin redondeo (solo unidades, o cajas exactas) llevaría un aviso de algo que no pasa.
+- **Ponerla por línea** («rounded» junto a cada «Quantity: N Boxes»): en Basic las cajas no salen, y la nota es una, general, como él la describe.
+- **Ponerla al final**, donde estaba la de D-451: contradice «nada después de Delivery: Available…» sin que él lo haya pedido.
+
+**Pruebas:** `src/lib/estimator/hoja.test.ts`, bloque «la nota de cajas completas vuelve…»: con redondeo y texto literal; cajas exactas no; cajas a mano por encima sí y por debajo no; por unidad no; sin SF/caja/cajas no; basta una línea entre varias; en la hoja sale una vez, tras `</table>` y antes de «Subtotal:» y de «Delivery: Available…»; sin redondeo ni el `data-nota-cajas`; la pantalla usa la misma función con la condición. La prueba de claves de la hoja gana `notaDeCajas`. Tanda de mutantes `~/.claude/herramientas/mutantes/tanda-nota-de-cajas.json`: **8 de 8 caen** con prueba con nombre (`>=`, siempre, sin SF pedidos cuenta, `every`, hoja nunca, hoja siempre, hoja no pinta, pantalla siempre). `npx tsc --noEmit` limpio; `src/lib/estimator/` 411 pruebas en verde (2026-10-18, laptop, `--maxWorkers=1`).
+
+**No verificado:** en navegador (la hoja impresa y el `hint` de la pantalla); el dueño no ha visto el texto exacto en inglés, que es redacción nuestra sobre su descripción.

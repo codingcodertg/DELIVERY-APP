@@ -55,6 +55,8 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
           ))}
         </tbody>
       </table>
+      {/* Solo si alguna línea se lleva más SF de los pedidos (D-575). Antes de los totales: tras «Delivery» sigue sin ir nada. */}
+      {hoja.notaDeCajas && <p className="hc-nota-cajas" data-nota-cajas>{hoja.notaDeCajas}</p>}
 
       <div className="hc-resumen-totales" data-resumen-totales>
         <div>{hoja.textoSubtotal}</div>

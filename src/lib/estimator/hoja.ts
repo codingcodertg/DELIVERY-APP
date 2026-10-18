@@ -1,5 +1,5 @@
 import {
-  cajasDeLinea, dinero, fechaLarga, numero, paraQuienSeImprime, porcentajeDeDescuento, preciosDeLinea, resumenDeTotales, estadoDelPrecioBajo,
+  cajasDeLinea, dinero, fechaLarga, numero, paraQuienSeImprime, porcentajeDeDescuento, preciosDeLinea, resumenDeTotales, estadoDelPrecioBajo, sfReal,
   totalDeLinea, totalRegularDeLinea, type DisplayLevel, type QuoteDraft, type QuoteLine,
 } from "./modelo";
 
@@ -18,6 +18,11 @@ import {
  * abajo), con la tienda donde se creó la cotización, el descuento como PRECIO y no como porcentaje, y **nada después de
  * «Delivery: Available upon request…»**: se quitaron la nota de cajas completas, «Delivery charges are not included…»
  * (repetía el cargo de entrega) y el descargo final. Ya no hay `notas`.
+ *
+ * D-575 (2026-10-18): vuelve UNA nota, la de cajas completas, con el texto que describió el dueño ese día («a note saying
+ * that some items are rounded to nearest box; not sold by piece or exact sqft requested»), y solo cuando hace falta:
+ * alguna línea por SF cuyas cajas cubren más de lo pedido (`notaDeCajas`). Va bajo la tabla, antes de los totales, así
+ * que «nada después de Delivery: Available…» (D-451) sigue en pie.
  */
 
 /** El encabezado tecleado: la hoja NO debe parecer un documento oficial de venta. */
@@ -29,6 +34,30 @@ export const AVISO_JUNTO_AL_TOTAL =
 /** Lo último de la hoja cuando es entrega (D-451: «delete everything afte the Delivery: available text»). */
 export const TEXTO_DE_ENTREGA =
   "Delivery: Available upon request. Delivery charges will be confirmed based on the delivery schedule.";
+/**
+ * La nota de cajas completas (D-575, 2026-10-18): el dueño pidió «a note saying that some items are rounded to nearest
+ * box; not sold by piece or exact sqft requested». En la hoja va en inglés, como todo lo que lee el cliente; la versión en
+ * español es para la pantalla del vendedor (`Estimador.tsx`) cuando está en español.
+ */
+export const NOTA_DE_CAJAS =
+  "Some items are rounded up to the nearest full box; they are not sold by the piece or by the exact square footage requested.";
+export const NOTA_DE_CAJAS_ES =
+  "Algunos artículos se redondean hacia arriba a la caja completa; no se venden por pieza ni por los pies cuadrados exactos pedidos.";
+
+/**
+ * Si alguna línea por SF se lleva más de lo pedido —sus cajas (las escritas o las de por defecto, `cajasDeLinea`) cubren
+ * más SF que `requested_sf`— devuelve la nota; si no, null y no se imprime nada. Una línea por unidad, una sin SF pedidos,
+ * sin SF/caja o sin cajas no cuenta: no hay redondeo que explicar. Si las cajas cubren exactamente lo pedido (100 SF a 25
+ * SF/caja = 4 cajas) tampoco: el cliente se lleva lo que pidió.
+ */
+export function notaDeCajas(lineas: readonly QuoteLine[]): string | null {
+  const redondea = lineas.some((l) => {
+    if (l.kind !== "sf" || l.requested_sf === null || l.requested_sf <= 0) return false;
+    const real = sfReal(l);
+    return real !== null && real > l.requested_sf;
+  });
+  return redondea ? NOTA_DE_CAJAS : null;
+}
 
 export interface FilaDelCliente {
   descripcion: string;
@@ -54,6 +83,8 @@ export interface HojaDelCliente {
   representante: string;
   resumen: string | null;
   filas: FilaDelCliente[];
+  /** La nota de cajas completas (D-575), bajo la tabla; null si ninguna línea se redondea, y entonces no sale. */
+  notaDeCajas: string | null;
   /** «Subtotal: $X», la suma a precio regular (D-442). */
   textoSubtotal: string;
   /** «Savings: −$Y», o null si no hay ahorro. */
@@ -134,6 +165,7 @@ export function hojaDelCliente(q: QuoteDraft, tienda: string | null = null): Hoj
     representante: q.sales_ext.trim() ? `Ext. ${q.sales_ext.trim()}` : "",
     resumen: q.project_summary.trim() || null,
     filas,
+    notaDeCajas: notaDeCajas(q.lines),
     textoSubtotal: `Subtotal: ${dinero(r.subtotal)}`,
     textoAhorro: r.ahorro > 0 ? `Savings: −${dinero(r.ahorro)}` : null,
     textoImpuesto: `Tax ${numero(r.tasa)}%: ${dinero(r.impuesto)}`,
