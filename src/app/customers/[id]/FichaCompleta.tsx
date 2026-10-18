@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { Badge } from "@/components/erp/ui/badge";
 import {
@@ -18,7 +19,7 @@ export function FichaCompleta({ cliente: c }: { cliente: Cliente }) {
   const mail = mailUrl(c.email);
   return (
     <main className="mx-auto max-w-screen-2xl px-4 py-6">
-      <a href="/customers" className="text-sm text-clay-600 hover:underline">{t("← Customers", "← Clientes")}</a>
+      <Link href="/customers" className="text-sm text-clay-600 hover:underline">{t("← Customers", "← Clientes")}</Link>
 
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold">{c.account}</h1>

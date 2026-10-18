@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/erp/supabase/client";
@@ -206,14 +207,14 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                             </>
                           ) : c.account}
                           {/* La ficha completa (/customers/[id]), como el «Ficha completa →» de un artículo del ERP. El clic no abre el cajón. */}
-                          <a
+                          <Link
                             href={`/customers/${c.id}`}
                             onClick={(e) => e.stopPropagation()}
                             className="text-xs font-normal text-clay-600 hover:underline"
                             aria-label={t(`Full details of ${c.account}`, `Ficha completa de ${c.account}`)}
                           >
                             {t("details", "ficha")}
-                          </a>
+                          </Link>
                         </span>
                       ) : col.key === "status_store" || col.key === "status_group" ? (
                         <Badge className={estadoClase(c[col.key])}>{estadoLabel(c[col.key], t)}</Badge>
@@ -334,9 +335,9 @@ function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t 
           <div className="flex items-center gap-2">
             {aviso && <span className={cn("text-xs", aviso.tono === "verde" ? "text-emerald-600" : "text-red-600")}>{aviso.texto}</span>}
             {!nuevo && (
-              <a href={`/customers/${cliente.id}`} className="whitespace-nowrap text-sm text-clay-600 hover:underline">
+              <Link href={`/customers/${cliente.id}`} className="whitespace-nowrap text-sm text-clay-600 hover:underline">
                 {t("Full details →", "Ficha completa →")}
-              </a>
+              </Link>
             )}
             <button onClick={onClose} className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100" aria-label={t("Close", "Cerrar")}>✕</button>
           </div>
