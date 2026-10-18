@@ -10,7 +10,7 @@ import type { RequestPickers } from "@/lib/erp/request-pickers";
 // (request-form.tsx con `targetSku`), no una copia: envía por el mismo submitRequest. Misma forma que
 // ProductDrawer (capa + panel + onClose). Los desplegables llegan cargados una vez por la página.
 //
-// D-NEXT: sin `product` es el cajón de «+ Artículo nuevo» (botón de la cabecera del catálogo): el mismo
+// D-578: sin `product` es el cajón de «+ Artículo nuevo» (botón de la cabecera del catálogo): el mismo
 // formulario, arrancando en «new» y con solo «new» / «copy» (`soloNuevos`). Es el único camino a crear un
 // artículo desde la pantalla desde que D-553 quitó «Request» del menú.
 export function RequestDrawer({

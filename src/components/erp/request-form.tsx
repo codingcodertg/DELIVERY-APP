@@ -73,7 +73,7 @@ export function RequestForm({
    */
   targetSku?: string;
   /**
-   * D-NEXT: abierto desde «+ Artículo nuevo» en la cabecera del catálogo (request-drawer.tsx sin
+   * D-578: abierto desde «+ Artículo nuevo» en la cabecera del catálogo (request-drawer.tsx sin
    * producto): arranca en «new» y ofrece solo «new» y «copy». Lo ignora si hay `targetSku`.
    */
   soloNuevos?: boolean;

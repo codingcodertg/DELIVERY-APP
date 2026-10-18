@@ -21,9 +21,9 @@ describe("arranqueDelFormulario", () => {
   });
 });
 
-// D-NEXT: «+ Artículo nuevo» en la cabecera del catálogo. El dueño (2026-10-18): «in the erp the buttom to
+// D-578: «+ Artículo nuevo» en la cabecera del catálogo. El dueño (2026-10-18): «in the erp the buttom to
 // create new items where did it went» — D-553 quitó «Request» del menú y la fila no ofrece «new».
-describe("«+ Artículo nuevo» (D-NEXT)", () => {
+describe("«+ Artículo nuevo» (D-578)", () => {
   it("soloNuevos sin producto: arranca en «new» y ofrece exactamente los dos tipos que crean un borrador", () => {
     const a = arranqueDelFormulario(undefined, true);
     expect(a.tipo).toBe("new");

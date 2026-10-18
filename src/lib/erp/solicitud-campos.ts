@@ -34,7 +34,7 @@ export const TIPOS_DEL_EJECUTOR: readonly TipoDeSolicitud[] = ["edit", "reactiva
  * de este, y eso sigue en /erp/request—. Sin `targetSku` (la página /erp/request), exactamente como
  * antes: «new», con buscador y los seis tipos.
  *
- * D-NEXT: el botón «+ Artículo nuevo» de la cabecera del catálogo abre el mismo cajón SIN producto y con
+ * D-578: el botón «+ Artículo nuevo» de la cabecera del catálogo abre el mismo cajón SIN producto y con
  * `soloNuevos`: arranca en «new» y ofrece solo los tipos que crean un borrador («new» y «copy»); los
  * cuatro que actúan sobre un producto existente ya tienen su botón en cada fila. Un `targetSku` manda
  * sobre `soloNuevos` (la fila es un producto concreto, y eso no se discute).

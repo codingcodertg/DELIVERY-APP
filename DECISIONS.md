@@ -43835,7 +43835,7 @@ La ficha hace exactamente lo de antes (mismo diálogo, mismos textos, misma escr
 **Pruebas:** `reprogramar-saca-de-la-ruta.test.ts` (la forma del SQL). **No medido:** en la app con una reprogramación real.
 ## D-553 · ERP: traspaso de las cuatro pantallas de BH (catálogo con «Request» por fila, columnas en la vista guardada, menú sin Request / PO upload / Bulk apply, «Dashboard» → «Product Analytics» en Analítica) y `salesRepStatsThisMonth` recibe `now`
 
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-18): al quitar «Request» del menú, el único camino para **crear** un
+> **⚠ Reemplazada en parte por D-578** (2026-10-18): al quitar «Request» del menú, el único camino para **crear** un
 > artículo quedó en la URL `/erp/request`, y el dueño no lo encontró («in the erp the buttom to create new items where did
 > it went»). Ahora hay un botón «+ Artículo nuevo» en la cabecera del catálogo que abre el mismo cajón sin producto,
 > arrancando en «new». Lo demás sigue igual: el menú sin «Request», y el cajón de cada fila con solo los cuatro tipos que
@@ -45012,7 +45012,7 @@ Saber si una entregada tenía fotos del chofer obligaba a abrir la ficha: la pas
 **Pruebas:** `src/lib/fotos-en-la-etapa.test.ts` (`puedeVerFotos` por rol y en la ficha; `iconoDeFotos`: entregada con fotos y permiso → icono, sin fotos → null, ventas → null, no entregada → null en las ocho etapas restantes; `tituloDeFotos` en los dos idiomas con plural; `pastillaDeEtapa` con y sin cámara, en «Received», y sin `me`; y que los siete sitios pintan `IconoDeFotos` dentro de la `.sema`). `recibir.test.ts` y `ruta-del-dia.test.ts` con su nota. Mutantes **12 de 12** (`tanda-icono-de-fotos.json`): deja de exigir entregada / fotos / quién mira; ventas entra; plural inglés; la pastilla pierde el title; pone la cámara sin saber quién mira; la ficha vuelve a su regla propia; la burbuja de D-573, Órdenes, la tarjeta del chofer e `IconoDeFotos` pierden o pintan siempre — cada uno con su prueba por nombre.
 
 **No verificado:** en navegador (el icono dentro de la burbuja-selector con la flecha, y en la pastilla del teléfono); ninguna escritura contra producción desde la rama.
-## D-NEXT · ERP: «+ Artículo nuevo» en la cabecera del catálogo abre el cajón de solicitud arrancando en «new»; la fila sigue sin ofrecer «new» ni «copy»
+## D-578 · ERP: «+ Artículo nuevo» en la cabecera del catálogo abre el cajón de solicitud arrancando en «new»; la fila sigue sin ofrecer «new» ni «copy»
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo el ERP) · **Sin migración** · Reemplaza en parte a D-553.
 

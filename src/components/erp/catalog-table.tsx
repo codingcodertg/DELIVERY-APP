@@ -119,7 +119,7 @@ export function CatalogTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
   const [requestRow, setRequestRow] = useState<CatalogRow | null>(null);
-  // D-NEXT: «+ Artículo nuevo» en la cabecera abre el mismo cajón sin producto. Se ofrece a quien puede
+  // D-578: «+ Artículo nuevo» en la cabecera abre el mismo cajón sin producto. Se ofrece a quien puede
   // enviar una solicitud (los mismos `requestPickers` que el botón de cada fila): en el ERP, todo el que
   // llega al catálogo —staff, manager, admin— crea borradores (política «products draft insert», 066).
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
