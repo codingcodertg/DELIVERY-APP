@@ -58,6 +58,7 @@ export function RequestForm({
   vocab,
   canSeeCost,
   targetSku,
+  soloNuevos = false,
 }: {
   categories: Cat[];
   vendors: Vendor[];
@@ -71,11 +72,16 @@ export function RequestForm({
    * elegido al cambiar de tipo y después de enviar. Sin él (/erp/request), todo como antes.
    */
   targetSku?: string;
+  /**
+   * D-578: abierto desde «+ Artículo nuevo» en la cabecera del catálogo (request-drawer.tsx sin
+   * producto): arranca en «new» y ofrece solo «new» y «copy». Lo ignora si hay `targetSku`.
+   */
+  soloNuevos?: boolean;
 }) {
   const router = useRouter();
   const { t } = usePrefs();
   const sl = (v: string) => t(statusLabel(v).en, statusLabel(v).es);
-  const arranque = arranqueDelFormulario(targetSku);
+  const arranque = arranqueDelFormulario(targetSku, soloNuevos);
   const [reqType, setReqType] = useState<TipoDeSolicitud>(arranque.tipo);
   const [f, setF] = useState<Record<string, string>>({ product_type: "tile", status: "active" });
   const [store, setStore] = useState("");

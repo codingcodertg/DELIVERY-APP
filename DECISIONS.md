@@ -43835,6 +43835,12 @@ La ficha hace exactamente lo de antes (mismo diálogo, mismos textos, misma escr
 **Pruebas:** `reprogramar-saca-de-la-ruta.test.ts` (la forma del SQL). **No medido:** en la app con una reprogramación real.
 ## D-553 · ERP: traspaso de las cuatro pantallas de BH (catálogo con «Request» por fila, columnas en la vista guardada, menú sin Request / PO upload / Bulk apply, «Dashboard» → «Product Analytics» en Analítica) y `salesRepStatsThisMonth` recibe `now`
 
+> **⚠ Reemplazada en parte por D-578** (2026-10-18): al quitar «Request» del menú, el único camino para **crear** un
+> artículo quedó en la URL `/erp/request`, y el dueño no lo encontró («in the erp the buttom to create new items where did
+> it went»). Ahora hay un botón «+ Artículo nuevo» en la cabecera del catálogo que abre el mismo cajón sin producto,
+> arrancando en «new». Lo demás sigue igual: el menú sin «Request», y el cajón de cada fila con solo los cuatro tipos que
+> actúan sobre ese producto.
+
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca el ERP; el `now` toca `src/lib/analytics.ts`, que usa
 el Panel de Entregas) · **Migración:** ninguna · Rama `erp-traspaso-pantallas`.
 **Porta** los commits `9b906e7`, `7ec9380`, `99de2dd` y `cca6a99` de BH en `codingcodertg/rtg-erp` (la app vieja del ERP),
@@ -45006,3 +45012,29 @@ Saber si una entregada tenía fotos del chofer obligaba a abrir la ficha: la pas
 **Pruebas:** `src/lib/fotos-en-la-etapa.test.ts` (`puedeVerFotos` por rol y en la ficha; `iconoDeFotos`: entregada con fotos y permiso → icono, sin fotos → null, ventas → null, no entregada → null en las ocho etapas restantes; `tituloDeFotos` en los dos idiomas con plural; `pastillaDeEtapa` con y sin cámara, en «Received», y sin `me`; y que los siete sitios pintan `IconoDeFotos` dentro de la `.sema`). `recibir.test.ts` y `ruta-del-dia.test.ts` con su nota. Mutantes **12 de 12** (`tanda-icono-de-fotos.json`): deja de exigir entregada / fotos / quién mira; ventas entra; plural inglés; la pastilla pierde el title; pone la cámara sin saber quién mira; la ficha vuelve a su regla propia; la burbuja de D-573, Órdenes, la tarjeta del chofer e `IconoDeFotos` pierden o pintan siempre — cada uno con su prueba por nombre.
 
 **No verificado:** en navegador (el icono dentro de la burbuja-selector con la flecha, y en la pastilla del teléfono); ninguna escritura contra producción desde la rama.
+## D-578 · ERP: «+ Artículo nuevo» en la cabecera del catálogo abre el cajón de solicitud arrancando en «new»; la fila sigue sin ofrecer «new» ni «copy»
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo el ERP) · **Sin migración** · Reemplaza en parte a D-553.
+
+**Pedido del dueño** (2026-10-18), literal: *«in the erp the buttom to create new items where did it went»*.
+
+### Qué había
+
+D-553 quitó «Request» del menú del ERP, a pedido del cliente, y puso en su lugar un botón «Request» en cada fila del catálogo. Ese botón abre el formulario de solicitud **sobre ese producto**, y a propósito ofrece solo los cuatro tipos que actúan sobre un producto que ya existe (edit / reactivate / deactivate / discontinue): «new» y «copy» crearían *otro* artículo dentro del cajón de este. La ruta `/erp/request` se quedó viva, pero sin ningún enlace desde la pantalla. Resultado: el único camino para crear un artículo era escribir la URL a mano, y el dueño no lo encontró.
+
+### Qué cambia
+
+1. **Un botón «+ New item» / «+ Artículo nuevo»** en la cabecera del catálogo (`catalog-table.tsx`, delante de ⚙ Columnas y la exportación), donde cabía sin tocar la fila. Abre el **mismo cajón lateral** de la fila (`request-drawer.tsx`) sin producto: título «Artículo nuevo», subtítulo «Entra como borrador para que un admin lo publique», y el formulario de verdad (`request-form.tsx`, mismo `submitNewItem`).
+2. **El arranque lo decide la librería**, no la pantalla: `arranqueDelFormulario(targetSku, soloNuevos)` (`solicitud-campos.ts`). Con `soloNuevos` y sin producto arranca en «new» y ofrece exactamente `TIPOS_QUE_CREAN_BORRADOR` («new» y «copy»); un `targetSku` manda sobre `soloNuevos`, así que la fila sigue arrancando en «edit» con sus cuatro tipos; sin ninguno de los dos, `/erp/request` queda exactamente como estaba (seis tipos, buscador).
+3. **«copy» sí va en el botón nuevo**, porque salía gratis: es el otro tipo que crea un borrador, y el formulario ya traía su origen (tienda + código). No se añadió nada para ello.
+4. **Quién lo ve:** el mismo criterio que el botón de la fila (`canRequest`, es decir, la página cargó los desplegables). Se midió quién puede crear hoy un artículo: `submitNewItem` solo exige sesión, y la política `products draft insert` (migración 066) deja insertar un borrador a cualquier `authenticated` que firme como `created_by` (costo nulo o `can_see_cost`); el acceso al ERP lo pone el layout (`hasCatalogAccess`: staff, manager, admin). O sea que **todo el que llega al catálogo podía ya enviar una solicitud «new» desde `/erp/request`**, y el botón no ensancha ni estrecha eso.
+
+### Lo que se descartó
+
+- **Volver a poner «Request» en el menú.** El cliente pidió quitarlo (D-553) y esa razón no ha cambiado; el dueño preguntó por el botón de crear, no por la pestaña.
+- **Enlazar a `/erp/request?type=new`.** El cajón cabía sin romper nada (ya aceptaba el formulario sin `targetSku`), y así la persona no sale del catálogo. La ruta sigue existiendo para «Tus solicitudes recientes» y los marcadores viejos; no lee ningún `type`.
+- **«new» / «copy» dentro del cajón de la fila.** Sigue la razón de D-553: ese cajón es *de un producto*.
+
+**Pruebas:** `src/lib/erp/solicitud-desde-catalogo.test.ts`, bloque «+ Artículo nuevo (D-578)» (8 pruebas: el arranque con `soloNuevos`, que el producto manda, que el defecto no cambia nada, el botón y su puerta, el cajón sin `product`, el formulario pasando `soloNuevos`); `solicitud-campos.test.ts` lleva su «Nota D-578». **Mutantes, 10 de 10 caen con una prueba con nombre** (`tanda-articulo-nuevo.json`): el botón se va; se ofrece sin `canRequest`; pierde el español; el cajón nuevo no se monta; arranca en «copy»; ofrece los seis tipos; `soloNuevos` se ignora; `soloNuevos` manda sobre la fila; el formulario no pasa `soloNuevos`; el cajón lo monta sin `soloNuevos`. `npx tsc --noEmit` limpio.
+
+**No verificado:** en navegador (el cajón sin cabecera de producto, el botón en la fila de filtros a ancho de teléfono); ninguna escritura contra producción desde la rama; el `next build`.

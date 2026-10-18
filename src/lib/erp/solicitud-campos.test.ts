@@ -195,7 +195,8 @@ describe("las pantallas y las acciones usan la librería (la prueba se alimenta 
     // Nota D-553: las pestañas salen de `arranqueDelFormulario` (los seis tipos sin `targetSku`; los
     // cuatro del ejecutor cuando se abre desde una fila del catálogo). Antes, `TIPOS_DE_SOLICITUD.map(`.
     expect(form).toMatch(/arranque\.tipos\.map\(/);
-    expect(form).toMatch(/const arranque = arranqueDelFormulario\(targetSku\);/);
+    // Nota D-578: el segundo argumento es `soloNuevos` («+ Artículo nuevo» en la cabecera del catálogo).
+    expect(form).toMatch(/const arranque = arranqueDelFormulario\(targetSku, soloNuevos\);/);
     expect(form).toMatch(/camposVisibles\(CAMPOS_DEL_ARTICULO, canSeeCost\)/);
     expect(form).toMatch(/camposVisibles\(CAMPOS_DE_EDICION, canSeeCost\)/);
     expect(form).toMatch(/const input = articuloDesdeElFormulario\(f, \{ canSeeCost, store, requesterStatus: ready, copySource: reqType === "copy" \? copySource : null \}\);\s*const res = await submitNewItem\(input\);/);
