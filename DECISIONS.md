@@ -45038,3 +45038,44 @@ D-553 quitó «Request» del menú del ERP, a pedido del cliente, y puso en su l
 **Pruebas:** `src/lib/erp/solicitud-desde-catalogo.test.ts`, bloque «+ Artículo nuevo (D-578)» (8 pruebas: el arranque con `soloNuevos`, que el producto manda, que el defecto no cambia nada, el botón y su puerta, el cajón sin `product`, el formulario pasando `soloNuevos`); `solicitud-campos.test.ts` lleva su «Nota D-578». **Mutantes, 10 de 10 caen con una prueba con nombre** (`tanda-articulo-nuevo.json`): el botón se va; se ofrece sin `canRequest`; pierde el español; el cajón nuevo no se monta; arranca en «copy»; ofrece los seis tipos; `soloNuevos` se ignora; `soloNuevos` manda sobre la fila; el formulario no pasa `soloNuevos`; el cajón lo monta sin `soloNuevos`. `npx tsc --noEmit` limpio.
 
 **No verificado:** en navegador (el cajón sin cabecera de producto, el botón en la fila de filtros a ancho de teléfono); ninguna escritura contra producción desde la rama; el `next build`.
+
+## D-NEXT · Clientes: todas las columnas del Excel —el CRM incluido—, orden de columnas por persona y ficha completa por cliente (migración 182)
+
+**Fecha:** 2026-10-18 · **Migración:** `182_clientes_crm.sql`, **escrita y NO aplicada** (tres columnas de texto; sin políticas, sin datos) · **Versión:** la pone el orquestador al fusionar (`customers`; el worker no toca `APP_VERSIONS`). Completa D-569; no reemplaza ninguna decisión.
+
+### Qué pidió el dueño
+
+Tres mensajes del 2026-10-18, literales: *«in cusotmer tab haz un cuztomizable order thing so we can all columsn if we wanted to that were on the excel»*, *«the crm stuff in the customer is missing»* y *«when pressing a cutomer show all details and i mean all details that were giving the intiial excel have the buttom of the fuull detail like the erp has with every item»*.
+
+### Qué faltaba (medido ese día, `exceljs`, sobre el mismo fichero de D-569)
+
+La hoja ALL tiene **27 cabeceras con nombre** y una 28.ª sin nombre y vacía (D-569 decía «28 columnas» contando esa). Contra `erp.customers` (180 + 181): **23 estaban y 4 no** —las que D-569 dejó fuera a propósito por casi vacías—:
+
+- **CRM TYPE: STORE**: 12 llenas (MID 2, SMALL 2, LARGE 2, `"LOST"` 6 —con las comillas dentro de la celda—).
+- **CRM TYPE: GROUP**: 6 llenas (MID 2, SMALL 2, LARGE 2).
+- **Associated with**: 3 llenas (ACERO-SYNERGY ×3).
+- **CONCATENATE**: 1.349 llenas, y **las 1.349 son exactamente STORE seguido de ACCOUNT** (0 distintas).
+
+Y en la pantalla faltaban además tres que la base **sí** tenía pero el ⚙ Columnas no ofrecía: `contact_title` (TITLE), `address` (ADRESS) y `notes`. El selector tampoco reordenaba, y lo elegido se guardaba en una clave única por navegador (`customers_cols`), no por persona.
+
+### Qué se hizo
+
+**Las tres del CRM entran en la base (182)** como texto libre, sin `check`: en el Excel la columna CRM mezcla valores de HISTORY (MID/SMALL/LARGE) con uno de STATUS (LOST) y el dueño la va a seguir rellenando; un valor nuevo no debe pedir una migración. **CONCATENATE no se guarda: se calcula.** Es una fórmula del Excel y la clave natural de la tabla ya es (tienda, cuenta); guardarla sería una copia que se desincroniza al corregir una cuenta desde la ficha. En la tabla es la columna «Tienda + cuenta / Store + account» (`valorDeColumna`), se ordena y se pinta como las demás. La columna 28 no existe: ni cabecera ni datos.
+
+**El importador** lee las tres cabeceras nuevas y las escribe con el mismo `coalesce(excluded.x, x)`: volver a correrlo con `--escribe` sobre las 1.348 filas rellena las tres (y lo que estuviera vacío) sin tocar `notes` ni `archived_*` (181). Las comillas que envuelven una celda entera se quitan (`"LOST"` → `LOST`): medido en toda la hoja, solo las llevan esas 6 celdas; una comilla suelta dentro del texto se queda. En seco contra el fichero real: 1.349 leídas · 1.348 clientes · 1 fusionada · 0 saltadas · **crm_type_store 12 · crm_type_group 6 · associated_with 3**.
+
+**La pantalla ofrece las 27 cabeceras del Excel** (26 guardadas + la calculada) más lo de la app (notas, actualizado, motivo de archivo): 30 columnas elegibles. El ⚙ Columnas es el mismo `SelectorDeColumnas` con su `mover` (las ↑ ↓ de Órdenes, D-332, y «Restablecer orden»); una visible salta por encima de las escondidas, `account` se mueve pero no se quita, y una columna nueva entra al final del orden de quien ya tenía uno (`ordenEfectivo`, D-332). **Lo elegido y el orden se guardan por persona** en el navegador, `rtg_customers_cols_<user id>`, como los filtros guardados de Órdenes y el filtro de chofer del Gestor; la clave vieja `customers_cols` se lee como herencia si no hay nada de la persona. El cajón edita los tres campos de CRM (grupo «CRM» de la ficha).
+
+**La ficha completa, `/customers/[id]`**, como la de un artículo del ERP (`/erp/product/[id]`): cabecera con la cuenta, la pastilla de estado, tienda y la CONCATENATE; secciones en tarjetas por grupo (Cuenta · Estado e historial · CRM · Vendedores · Contacto · Crédito y términos · Otros · Del Excel con House # y CONCATENATE), filas «etiqueta / valor» en los dos idiomas. Solo lectura: se corrige desde el cajón, que ya sabe quién puede y pide la fila de vuelta. El enlace está en cada fila («ficha», sin abrir el cajón) y en la cabecera del cajón («Ficha completa →»). La puerta es la misma que la de la lista: la ruta cuelga de `customers/layout.tsx` (D-570, solo admins por ahora); la fila se lee con la sesión de quien mira (RLS de la 180), y un id que no existe o que la política no deja ver es 404.
+
+**El código llega antes que la migración.** Si la base aún no tiene las columnas de la 182, PostgREST responde `42703`/`PGRST204` y la lista se quedaría en blanco; `leeConRespaldo` repite la lectura sin esas tres (llegan como null) y la lista sigue. Escribir un campo CRM en ese rato falla con el mensaje de la base, visible en el cajón.
+
+**Decisiones tomadas en nombre del dueño:** (1) texto libre sin `check` para el CRM; (2) CONCATENATE calculada, no guardada; (3) las comillas envolventes son del Excel y se quitan; (4) la ficha completa es de solo lectura; (5) la clave de columnas es por `user id`, no por rol: «so we can all» lo leímos como cada uno la suya.
+
+### Pruebas
+
+`customers/reglas.test.ts`, bloque «todas las columnas del Excel (182), y el orden por persona»: las 26 columnas del `MAPA` del importador (leído como texto) son elegibles y están en `CAMPOS`, `concatenate` se pinta y ordena, clave por persona, lo guardado se sanea (formato nuevo, lista heredada, basura), pintar con y sin orden propio, mover (salto sobre escondidas, tope, `account`), guardar y restaurar, grupos de la ficha completa y `textoDeCampo`. `customers/modulo.test.ts`: la 182 (exactamente tres `add column` de texto, sin check/política/índice/begin/commit, checksum del cuerpo), `leeConRespaldo` (reintenta solo con 42703/PGRST204), la página `[id]` (bajo el layout, sesión de quien mira, 404), la ficha pinta cada grupo y House #/CONCATENATE, el enlace en fila y cajón, la clave por persona. `scripts/importa-clientes.test.mjs`: 26 cargadas y solo CONCATENATE fuera, las tres del CRM por cabecera, comillas, `coalesce` sin tocar `notes`/`archived_*`. Mutantes **13 de 13** (`tanda-clientes-excel.json`, 2026-10-18): concatenate solo la cuenta; clave de columnas sin la persona; pintar ignora el orden propio; mover sin saltar las escondidas; lo guardado sin sanear; `clienteDeLaBase` pierde `associated_with`; el CRM sin grupo propio; el respaldo de la 182 reintenta con cualquier error; el respaldo pide las mismas columnas; la ficha completa sin la CONCATENATE; un id que no existe sin 404; el enlace de la fila abre el cajón; el importador sin CRM TYPE: STORE — cada uno con la prueba que lo caza por nombre.
+
+### No verificado
+
+Nada contra producción (la rama no tiene `.env.local`): ni la 182, ni el `--ensayo` del importador, ni el respaldo de `leeConRespaldo` contra PostgREST real. La pantalla y la ficha completa no se abrieron en un navegador. **En esta laptop vitest no carga ningún `.test.mjs` de `scripts/`** (SyntaxError al importar, también en `archiva-clientes-basura.test.mjs`, sin tocar): las aserciones del importador se corrieron en Node a secas, fuera del repo, con el mismo contenido; en CI (Linux) deben correr con vitest.
