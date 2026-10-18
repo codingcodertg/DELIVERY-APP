@@ -44949,3 +44949,30 @@ D-451 (2026-09-29, «delete everything afte the Delivery: available text») quit
 **Pruebas:** `src/lib/estimator/hoja.test.ts`, bloque «la nota de cajas completas vuelve…»: con redondeo y texto literal; cajas exactas no; cajas a mano por encima sí y por debajo no; por unidad no; sin SF/caja/cajas no; basta una línea entre varias; en la hoja sale una vez, tras `</table>` y antes de «Subtotal:» y de «Delivery: Available…»; sin redondeo ni el `data-nota-cajas`; la pantalla usa la misma función con la condición. La prueba de claves de la hoja gana `notaDeCajas`. Tanda de mutantes `~/.claude/herramientas/mutantes/tanda-nota-de-cajas.json`: **8 de 8 caen** con prueba con nombre (`>=`, siempre, sin SF pedidos cuenta, `every`, hoja nunca, hoja siempre, hoja no pinta, pantalla siempre). `npx tsc --noEmit` limpio; `src/lib/estimator/` 411 pruebas en verde (2026-10-18, laptop, `--maxWorkers=1`).
 
 **No verificado:** en navegador (la hoja impresa y el `hint` de la pantalla); el dueño no ha visto el texto exacto en inglés, que es redacción nuestra sobre su descripción.
+## D-576 · «Marcar todas» en una tabla filtrada marca solo las filas visibles
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · Sin migración.
+
+**Pedido del dueño**, literal: *«When selecting all orders on a filtered table, it selects hidden rows instead of just the filtered. Needs to be fixed»*.
+
+### Qué se midió (2026-10-18)
+
+Tres pantallas tienen, o podrían tener, una casilla «marcar todas»:
+
+| Pantalla | Qué lista usaba «todas» | Veredicto |
+|---|---|---|
+| **Órdenes** (`src/app/(app)/page.tsx` + `OrdersTable`) | `rows` de la página: ya pasa la búsqueda, la tienda, la fecha, el preset y la pastilla, pero **no** los filtros de columna, que viven dentro de la tabla (`filteredRows`/`sortedRows`, D-275/D-440). La casilla de cabecera (`allChecked`) también se calculaba sobre `rows`. Y al desmarcar hacía `new Set()`: vaciaba la selección entera, ocultas incluidas. | **Fallaba.** Con un filtro de columna puesto, «todas» marcaba las filas que el filtro escondía; desmarcar borraba lo oculto que se había marcado antes. |
+| **Almacén** (Cola / Recepción) | No monta `selectable`: no hay casilla de cabecera. | No aplica. |
+| **Gestor de rutas** (`routes/page.tsx`) | Tabla: `orden.visibles` de `useOrdenYFiltro` (filtros de columna y orden incluidos), menos lo hecho (D-360/D-462). Tarjetas por chofer: `stops` de la tarjeta (D-473/D-474). Desmarcar quita solo esas. | Ya hacía lo pedido; no se toca. |
+
+### Qué cambia
+
+- `src/lib/marcar-todas.ts`, dos funciones puras: `estadoDeLaCabecera(seleccion, visiblesIds)` → `ninguna | algunas | todas`, contando solo las visibles; y `alternaTodasLasVisibles(seleccion, visiblesIds)`: si todas las visibles están marcadas las quita, si no las añade, y **lo que no está en `visiblesIds` se queda como estaba**.
+- `OrdersTable`: la casilla se calcula sobre `sortedRows` (lo que de verdad se pinta), pinta el estado **indeterminado** cuando solo hay algunas, y `onToggleAll` ahora recibe los ids visibles (`(idsVisibles: string[]) => void`), porque la página no conoce los filtros de columna de la tabla.
+- Órdenes: `toggleAll` llama a `alternaTodasLasVisibles` con esos ids.
+
+Se descartó mover los filtros de columna a la página solo para esto: la tabla ya los lleva (o los recibe en `vista`, D-440), y pasar los ids hacia arriba es el cambio más pequeño que deja a la página sin reconstruir qué se ve.
+
+**Pruebas:** `src/lib/marcar-todas.test.ts` (siempre con una fila oculta ya marcada, que es el caso que distingue; y que la tabla y la página pasan por aquí). Tanda de mutantes en `~/.claude/herramientas/mutantes/tanda-marcar-todas.json`, 6 de 6 caen con prueba con nombre: «todas» vuelve a `rows` (tabla y página), desmarcar vacía la selección entera, la cabecera cuenta las ocultas (dos formas), marcar deja de añadir.
+
+**No verificado:** en navegador (el estado indeterminado de la casilla); ninguna escritura contra producción desde la rama.
