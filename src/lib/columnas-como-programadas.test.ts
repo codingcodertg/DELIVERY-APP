@@ -171,7 +171,12 @@ describe("la pantalla", () => {
     expect(pagina).toContain("const ruta = d.assigned_driver ? orderLaneKey(d) : null;");
   });
   it("las fijas: la factura como en paradas (con su ID), los pallets de la orden, y la fecha que se sigue cambiando", () => {
-    expect(comun).toContain('if (c.key === "invoice") return <td key={c.key} className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>;');
+    // Nota D-574: la celda de la factura lleva ahora también el 📅 de Reprogramar, en línea; se parte en varias líneas.
+    expect(comun).toContain('if (c.key === "invoice") return (');
+    expect(comun).toContain('<td key={c.key} className="ordno">
+                {facturaConSuId(d)}');
+    expect(comun).toContain("{etiquetaDeLaCarga(d)}
+              </td>");
     expect(comun).toContain('if (c.key === "pallets") return <td key={c.key} data-pallets-de-la-orden style={{ fontVariantNumeric: "tabular-nums" }}>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>;');
     expect(comun).toContain('if (c.key === "p_date") return <td key={c.key} onClick={(e) => e.stopPropagation()}><DateCell d={d} date={date} onChange={reschedule} t={t} /></td>;');
     // La fecha va ANTES que el resto de paradas: si no, `celdaDeParada` la pintaría con la celda de Órdenes, sin editar.

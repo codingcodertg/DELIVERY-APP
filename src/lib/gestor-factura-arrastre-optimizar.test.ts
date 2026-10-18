@@ -66,7 +66,12 @@ describe("1 · la FACTURA nombra la orden en todas las tablas del Gestor, con el
     // Nota D-548: «Sin asignar» y «Todas» la pintan como la tabla de paradas —con su ID al lado, `facturaConSuId`—, no con
     // `enlaceALaOrden` (que se quitó). Sigue fija aunque la lista de paradas de alguien venga vacía.
     expect(columnasDeLasOrdenes("sinAsignar", ["_v2"]).map((c) => c.key)).toEqual(["invoice", "pallets"]);
-    expect(pagina).toContain('if (c.key === "invoice") return <td key={c.key} className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>;');
+    // Nota D-574: la celda de la factura lleva ahora también el 📅 de Reprogramar, en línea; se parte en varias líneas.
+    expect(pagina).toContain('if (c.key === "invoice") return (');
+    expect(pagina).toContain('<td key={c.key} className="ordno">
+                {facturaConSuId(d)}');
+    expect(pagina).toContain("{etiquetaDeLaCarga(d)}
+              </td>");
     expect(pagina).not.toContain("enlaceALaOrden(d)");
   });
   it("la tabla del PLAN: la columna fija es la factura con el ID debajo, y «Plan: Factura» no se repite ni se lista", () => {
