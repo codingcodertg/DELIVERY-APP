@@ -45039,7 +45039,7 @@ D-553 quitó «Request» del menú del ERP, a pedido del cliente, y puso en su l
 
 **No verificado:** en navegador (el cajón sin cabecera de producto, el botón en la fila de filtros a ancho de teléfono); ninguna escritura contra producción desde la rama; el `next build`.
 
-## D-NEXT · Clientes: todas las columnas del Excel —el CRM incluido—, orden de columnas por persona y ficha completa por cliente (migración 182)
+## D-579 · Clientes: todas las columnas del Excel —el CRM incluido—, orden de columnas por persona y ficha completa por cliente (migración 182)
 
 **Fecha:** 2026-10-18 · **Migración:** `182_clientes_crm.sql`, **escrita y NO aplicada** (tres columnas de texto; sin políticas, sin datos) · **Versión:** la pone el orquestador al fusionar (`customers`; el worker no toca `APP_VERSIONS`). Completa D-569; no reemplaza ninguna decisión.
 
