@@ -380,11 +380,18 @@ export function ordenDelPunto(id: string): string | null {
   return id || null;
 }
 
-/** What the map frames: the focused drivers' stops + pickups when any are focused, otherwise the whole day. */
+/**
+ * What the map frames: the focused drivers' stops + pickups when any are focused, otherwise the whole day.
+ *
+ * El día entero lleva también las tiendas de Ajustes (D-NEXT): el encuadre inicial es «la región y lo de hoy», y así un
+ * día sin paradas (fin de semana, antes de cargar) abre sobre las tiendas y no sobre un centro fijo. Con choferes
+ * marcados no entran: ahí la pregunta es «dónde va ESTE», no «dónde estamos».
+ */
 export function encuadreDeLasRutas(
   points: readonly MapPoint[], marcados: ReadonlySet<string>, porChofer: ReadonlyMap<string, { id: string }[]>, carriles: readonly CarrilDeRuta[],
+  tiendas: readonly { lat: number; lng: number }[] = [],
 ): [number, number][] {
-  if (marcados.size === 0) return points.map((p) => [p.lat, p.lng] as [number, number]);
+  if (marcados.size === 0) return [...tiendas.map((s) => [s.lat, s.lng] as [number, number]), ...points.map((p) => [p.lat, p.lng] as [number, number])];
   const ids = new Set<string>();
   for (const key of marcados) {
     for (const d of porChofer.get(key) ?? []) ids.add(d.id);
