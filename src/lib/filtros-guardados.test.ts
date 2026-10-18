@@ -23,14 +23,14 @@ const es = (_en: string, es_: string) => es_;
 const vista = (filtros: Record<string, string[]>, orden: VistaDeTabla["orden"] = null): VistaDeTabla =>
   ({ filtros: Object.fromEntries(Object.entries(filtros).map(([k, v]) => [k, new Set(v)])), orden });
 const estado = (o: Partial<EstadoDeOrdenes> = {}): EstadoDeOrdenes =>
-  ({ pastilla: "approved", preset: "recent", vista: vista({ store: ["Brownsville"] }, { clave: "date", dir: "desc" }), lang: "es", ...o });
+  ({ pastilla: "approved", preset: "today", vista: vista({ store: ["Brownsville"] }, { clave: "date", dir: "desc" }), lang: "es", ...o });
 const COLS = ["__id", "stage", "priority", "type", "store", "account", "date", "driver", "po"];
 const ctx = (o: Partial<Parameters<typeof aplicaFiltroGuardado>[1]> = {}) =>
   ({ columnas: COLS, visibles: COLS, pastillas: ["all", "approved", "ready", "__atrasadas", "__doc_pendiente"], lang: "es" as const, ...o });
 
 describe("la foto de lo que se ve", () => {
   it("guarda los filtros de columna, el orden, la pastilla, el chip de fechas y el idioma", () => {
-    expect(fotoDeOrdenes(estado(), true)).toEqual({ f: "approved", p: "recent", c: { store: ["Brownsville"] }, s: ["date", "desc"], l: "es" });
+    expect(fotoDeOrdenes(estado(), true)).toEqual({ f: "approved", p: "today", c: { store: ["Brownsville"] }, s: ["date", "desc"], l: "es" });
   });
   it("sin la casilla, ni pastilla ni chip: solo lo de las columnas", () => {
     expect(fotoDeOrdenes(estado(), false)).toEqual({ c: { store: ["Brownsville"] }, s: ["date", "desc"], l: "es" });
@@ -84,10 +84,10 @@ describe("guardar, actualizar, renombrar y borrar", () => {
 });
 
 describe("aplicar", () => {
-  const G: FiltroGuardado = { n: "Mis Brownsville", f: "approved", p: "recent", c: { store: ["Brownsville"], type: ["Retail"] }, s: ["date", "desc"], l: "es" };
+  const G: FiltroGuardado = { n: "Mis Brownsville", f: "approved", p: "today", c: { store: ["Brownsville"], type: ["Retail"] }, s: ["date", "desc"], l: "es" };
   it("pone TAL CUAL filtros, orden, pastilla y chip; sin nada que ignorar", () => {
     const r = aplicaFiltroGuardado(G, ctx());
-    expect(r).toEqual({ pastilla: "approved", preset: "recent", vista: vista({ store: ["Brownsville"], type: ["Retail"] }, { clave: "date", dir: "desc" }), avisos: [] });
+    expect(r).toEqual({ pastilla: "approved", preset: "today", vista: vista({ store: ["Brownsville"], type: ["Retail"] }, { clave: "date", dir: "desc" }), avisos: [] });
   });
   it("sin orden guardado, quita el que hubiera; sin pastilla ni chip, deja los de ahora (`null`)", () => {
     const r = aplicaFiltroGuardado({ n: "x", c: { store: ["A"] } }, ctx());
@@ -181,10 +181,10 @@ describe("cuándo se enciende su pastilla", () => {
   it("la pastilla y el chip cuentan SOLO si los guardó", () => {
     const v = vista({ store: ["A", "B"] }, { clave: "date", dir: "asc" });
     expect(coincideConLaVista(G, estado({ pastilla: "ready", preset: "all", vista: v }))).toBe(true);
-    const conPastilla = { ...G, f: "approved", p: "recent" };
-    expect(coincideConLaVista(conPastilla, estado({ pastilla: "approved", preset: "recent", vista: v }))).toBe(true);
-    expect(coincideConLaVista(conPastilla, estado({ pastilla: "ready", preset: "recent", vista: v }))).toBe(false);
-    expect(coincideConLaVista(conPastilla, estado({ pastilla: "approved", preset: "today", vista: v }))).toBe(false);
+    const conPastilla = { ...G, f: "approved", p: "today" };
+    expect(coincideConLaVista(conPastilla, estado({ pastilla: "approved", preset: "today", vista: v }))).toBe(true);
+    expect(coincideConLaVista(conPastilla, estado({ pastilla: "ready", preset: "today", vista: v }))).toBe(false);
+    expect(coincideConLaVista(conPastilla, estado({ pastilla: "approved", preset: "tomorrow", vista: v }))).toBe(false);
   });
 });
 
@@ -246,7 +246,7 @@ describe("dónde vive: la quinta mitad de `order_columns`, sin migración", () =
     expect(filtrosDeValor(fila.value)).toEqual([]);
   });
   it("tamaño (modelo `bytesEnLaBase`, no medida): diez filtros normales caben con un rol lleno; uno enorme no pasa la guarda", () => {
-    const normales = Array.from({ length: 10 }, (_, i) => ({ n: `Filtro de logística ${i}`, f: "approved", p: "recent", c: { store: ["Brownsville", "Weslaco"], type: ["Retail"] }, s: ["date", "desc"] as ["date", "desc"], l: "es" as const }));
+    const normales = Array.from({ length: 10 }, (_, i) => ({ n: `Filtro de logística ${i}`, f: "approved", p: "today", c: { store: ["Brownsville", "Weslaco"], type: ["Retail"] }, s: ["date", "desc"] as ["date", "desc"], l: "es" as const }));
     const O = ["po", "so", "invoice", "type", "account", "contact", "stage", "priority", "store", "date", "pallets", "fee", "driver", "address", "windows"];
     const conUnRol = (filtros: FiltroGuardado[]) => valorDeColumnas({ visibles: { logistics: O }, orden: { logistics: O }, anchos: { logistics: Object.fromEntries(O.map((k) => [k, 800])) }, filtros });
     expect(bytesEnLaBase(conUnRol(normales))).toBeLessThan(4000);
