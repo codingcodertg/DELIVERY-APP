@@ -231,14 +231,14 @@ describe("lo que se pinta encima de la captura", () => {
   const fotograma = { url: "data:image/png;base64,iVBORw0KGgo=", ancho: 1000, alto: 500 };
 
   it("sin recuadro no hay recuadro pintado, solo la imagen", () => {
-    const html = renderToStaticMarkup(createElement(VistaDeCaptura, { fotograma, recuadro: null, t }));
+    const html = renderToStaticMarkup(createElement(VistaDeCaptura, { fotograma, recuadros: [], t }));
     expect(html).toContain(fotograma.url);
     expect(html).not.toContain(COLOR_DEL_RECUADRO);
   });
 
   it("con recuadro, el div va en porcentajes del fotograma y cada lado en su eje", () => {
     const html = renderToStaticMarkup(createElement(VistaDeCaptura, {
-      fotograma, recuadro: { x: 300, y: 50, w: 200, h: 150 }, t,
+      fotograma, recuadros: [{ n: 1, rect: { x: 300, y: 50, w: 200, h: 150 }, texto: "" }], t,
     }));
     expect(html).toContain("left:30%");
     expect(html).toContain("top:10%");
@@ -247,13 +247,13 @@ describe("lo que se pinta encima de la captura", () => {
     expect(html).toContain(`border:2px solid ${COLOR_DEL_RECUADRO}`);
   });
 
-  it("el editor abre sin recuadro, lo dice, y «Quitar recuadro» nace apagado", () => {
+  it("el editor abre sin recuadros, lo dice, y «Quitar todos los recuadros» nace apagado", () => {
     const html = renderToStaticMarkup(createElement(EditorDeCaptura, {
       fotograma, t, onUsar: () => {}, onDescartar: () => {}, onDeNuevo: () => {},
     }));
-    expect(html).toContain("Señale el problema");
-    expect(html).toContain("Sin recuadro todavía");
-    const quitar = html.indexOf("Quitar recuadro");
+    expect(html).toContain("Señale los problemas");
+    expect(html).toContain("Sin recuadros todavía");
+    const quitar = html.indexOf("Quitar todos los recuadros");
     expect(quitar).toBeGreaterThan(-1);
     // El `disabled` del botón, que en el markup va delante de su texto.
     expect(html.slice(html.lastIndexOf("<button", quitar), quitar)).toContain("disabled");
@@ -336,7 +336,7 @@ describe("la pantalla: Ayuda no sale en la foto y la captura entra por la puerta
     const ini = boton.indexOf("const adjuntaCaptura = async");
     expect(ini).toBeGreaterThan(-1);
     const bloque = boton.slice(ini, boton.indexOf("  const send = async", ini));
-    expect(bloque).toContain("await ficheroDeCaptura(tomada, recuadro, new Date());");
+    expect(bloque).toContain("await ficheroDeCaptura(tomada, recuadros, new Date());");
     const valida = bloque.indexOf("const malo = validaCaptura(imagen);");
     const agrega = bloque.indexOf("agregaFicheros([imagen]);");
     expect(valida).toBeGreaterThan(-1);
