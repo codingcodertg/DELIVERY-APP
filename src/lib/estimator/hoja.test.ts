@@ -375,7 +375,7 @@ describe("el descuento en la pantalla es un PRECIO opcional (D-451)", () => {
   });
 });
 
-describe("la nota de cajas completas vuelve, solo cuando alguna línea se redondea (D-NEXT, 2026-10-18)", () => {
+describe("la nota de cajas completas vuelve, solo cuando alguna línea se redondea (D-575, 2026-10-18)", () => {
   const sf = (patch: Partial<SfLine>): SfLine => ({ ...lineaSfVacia(), customer_category: "Tile", price_per_sf: 2, ...patch });
   const unidad: UnitLine = { ...lineaUnidadVacia(), customer_category: "Grout", quantity: 3, unit: "Bag", unit_price: 20 };
 

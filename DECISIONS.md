@@ -33869,7 +33869,7 @@ A 390 px de ancho el diálogo entra entero, con los botones en su fila. Los dato
 
 > **Reemplazada en parte por D-475:** el descuento de la línea vuelve a salir en la hoja como porcentaje («Discount: 20%»), no como precio.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-18): el punto 6 quitó la nota de cajas completas de la hoja; el dueño la vuelve a pedir, con otro texto y solo cuando alguna línea se redondea. «Nada después de Delivery: Available…» sigue: la nota va bajo la tabla.
+> **Reemplazada en parte por D-575** (2026-10-18): el punto 6 quitó la nota de cajas completas de la hoja; el dueño la vuelve a pedir, con otro texto y solo cuando alguna línea se redondea. «Nada después de Delivery: Available…» sigue: la nota va bajo la tabla.
 
 **Fecha:** 2026-09-29 · **Versión:** estimator 0.7.0, repo 1.326.0 · **Migración:** `156_competencia_suelta.sql`, **escrita y NO aplicada** (plan: `docs/PLAN-156-competencia-suelta.md`,
 matriz de 26 casos **ensayada contra producción con ROLLBACK: 26/26**). **Reemplaza en parte a** D-413, D-425 y D-442,
@@ -44923,7 +44923,7 @@ D-551 (dos días antes) puso en la Cola y en Recepción una columna «Siguiente 
 **Pruebas:** `reprogramar-orden.test.ts`, «D-574 · en el Gestor el 📅 va en la celda de la factura…» (lo busca dentro de la celda y afirma que solo hay una instancia en la página). Mutante 1 de 1 (vuelve a «Asignar a»), cae con esa prueba.
 
 **No verificado:** en navegador.
-## D-NEXT · Quote Builder: vuelve la nota de cajas completas, en la hoja del cliente y en la pantalla, solo cuando alguna línea se lleva más SF de los pedidos
+## D-575 · Quote Builder: vuelve la nota de cajas completas, en la hoja del cliente y en la pantalla, solo cuando alguna línea se lleva más SF de los pedidos
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Reemplaza en parte a D-451 (su punto 6).
 

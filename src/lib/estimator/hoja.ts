@@ -19,7 +19,7 @@ import {
  * «Delivery: Available upon request…»**: se quitaron la nota de cajas completas, «Delivery charges are not included…»
  * (repetía el cargo de entrega) y el descargo final. Ya no hay `notas`.
  *
- * D-NEXT (2026-10-18): vuelve UNA nota, la de cajas completas, con el texto que describió el dueño ese día («a note saying
+ * D-575 (2026-10-18): vuelve UNA nota, la de cajas completas, con el texto que describió el dueño ese día («a note saying
  * that some items are rounded to nearest box; not sold by piece or exact sqft requested»), y solo cuando hace falta:
  * alguna línea por SF cuyas cajas cubren más de lo pedido (`notaDeCajas`). Va bajo la tabla, antes de los totales, así
  * que «nada después de Delivery: Available…» (D-451) sigue en pie.
@@ -35,7 +35,7 @@ export const AVISO_JUNTO_AL_TOTAL =
 export const TEXTO_DE_ENTREGA =
   "Delivery: Available upon request. Delivery charges will be confirmed based on the delivery schedule.";
 /**
- * La nota de cajas completas (D-NEXT, 2026-10-18): el dueño pidió «a note saying that some items are rounded to nearest
+ * La nota de cajas completas (D-575, 2026-10-18): el dueño pidió «a note saying that some items are rounded to nearest
  * box; not sold by piece or exact sqft requested». En la hoja va en inglés, como todo lo que lee el cliente; la versión en
  * español es para la pantalla del vendedor (`Estimador.tsx`) cuando está en español.
  */
@@ -83,7 +83,7 @@ export interface HojaDelCliente {
   representante: string;
   resumen: string | null;
   filas: FilaDelCliente[];
-  /** La nota de cajas completas (D-NEXT), bajo la tabla; null si ninguna línea se redondea, y entonces no sale. */
+  /** La nota de cajas completas (D-575), bajo la tabla; null si ninguna línea se redondea, y entonces no sale. */
   notaDeCajas: string | null;
   /** «Subtotal: $X», la suma a precio regular (D-442). */
   textoSubtotal: string;

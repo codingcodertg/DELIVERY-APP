@@ -844,7 +844,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             {draft.delivery.mode === "delivery" && draft.delivery.charge !== null && (
               <div className="hint" data-cargo-fuera>{t("Delivery charge, not included", "Cargo de entrega, no incluido")}: {dinero(draft.delivery.charge)}</div>
             )}
-            {/* La misma nota que llevará la hoja, solo si alguna línea se redondea a cajas completas (D-NEXT). */}
+            {/* La misma nota que llevará la hoja, solo si alguna línea se redondea a cajas completas (D-575). */}
             {notaDeCajas(draft.lines) !== null && (
               <div className="hint" data-nota-cajas>{lang === "es" ? NOTA_DE_CAJAS_ES : NOTA_DE_CAJAS}</div>
             )}
