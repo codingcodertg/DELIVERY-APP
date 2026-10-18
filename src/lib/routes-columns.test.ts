@@ -186,7 +186,9 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain('const colsSinAsignar = columnasDeLasOrdenes("sinAsignar", colsGestor, ordenGestor);');
     // Desde D-360 la factura es un enlace que abre la orden. Desde D-408 las cabeceras con menú son SOLO las del
     // catálogo: el ID fijo que iba delante ya no está.
-    expect(pagina.split('if (c.key === "invoice") return <td key={c.key} className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>;').length - 1).toBe(1);
+    // Nota D-574: la celda de la factura se parte en varias líneas (lleva el 📅 de Reprogramar en línea).
+    expect(pagina.split('if (c.key === "invoice") return (').length - 1).toBe(1);
+    expect(pagina).toMatch(/<td key=\{c\.key\} className="ordno">\s*\{facturaConSuId\(d\)\}/);
     expect(pagina).toContain("const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map(");
     // Puesto al día por D-462: las cabeceras las pinta `tablaDeOrdenes` desde `vista.menu` («Sin asignar» le pasa `menuSinAsignar`).
     expect(pagina).toContain("{menu.map((c) => <th key={c.key}>");
