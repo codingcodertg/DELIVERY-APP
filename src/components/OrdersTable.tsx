@@ -401,7 +401,7 @@ export function OrdersTable({
   selectable?: boolean;
   selected?: Set<string>;
   onToggle?: (id: string) => void;
-  /** La casilla de la cabecera: recibe los ids de las filas visibles tras los filtros de columna y el orden (D-NEXT). */
+  /** La casilla de la cabecera: recibe los ids de las filas visibles tras los filtros de columna y el orden (D-576). */
   onToggleAll?: (idsVisibles: string[]) => void;
   /** Rows this returns true for get a red "needs immediate action" highlight
    * (e.g. still pending approval past today's cutoff). */
@@ -566,7 +566,7 @@ export function OrdersTable({
 
   const optionsFor = (col: OrderColumn) => opcionesDeFiltro(applyFilters(rows, col.key), (d) => col.value(d, ctx), col.filterLabel);
 
-  // «Marcar todas» = las filas que se VEN tras los filtros de columna y el orden (D-NEXT), no `rows`: con un filtro
+  // «Marcar todas» = las filas que se VEN tras los filtros de columna y el orden (D-576), no `rows`: con un filtro
   // puesto, marcaba y desmarcaba las ocultas. Lo oculto ya marcado se queda como está (`alternaTodasLasVisibles`).
   const idsVisibles = sortedRows.map((r) => r.id);
   const cabecera = selected ? estadoDeLaCabecera(selected, idsVisibles) : "ninguna";

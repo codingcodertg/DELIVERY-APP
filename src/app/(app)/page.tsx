@@ -525,7 +525,7 @@ export default function OrdersPage() {
   // ---- Bulk actions (#1) ----
   const toggle = (id: string) =>
     setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  // «Todas» son las que la tabla enseña tras SUS filtros de columna (D-NEXT); antes era `rows`, que no los conoce,
+  // «Todas» son las que la tabla enseña tras SUS filtros de columna (D-576); antes era `rows`, que no los conoce,
   // y desmarcar vaciaba la selección entera, ocultas incluidas.
   const toggleAll = (idsVisibles: string[]) => setSelected((prev) => alternaTodasLasVisibles(prev, idsVisibles));
   const chosen = rows.filter((r) => selected.has(r.id));

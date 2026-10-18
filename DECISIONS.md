@@ -44949,7 +44949,7 @@ D-451 (2026-09-29, «delete everything afte the Delivery: available text») quit
 **Pruebas:** `src/lib/estimator/hoja.test.ts`, bloque «la nota de cajas completas vuelve…»: con redondeo y texto literal; cajas exactas no; cajas a mano por encima sí y por debajo no; por unidad no; sin SF/caja/cajas no; basta una línea entre varias; en la hoja sale una vez, tras `</table>` y antes de «Subtotal:» y de «Delivery: Available…»; sin redondeo ni el `data-nota-cajas`; la pantalla usa la misma función con la condición. La prueba de claves de la hoja gana `notaDeCajas`. Tanda de mutantes `~/.claude/herramientas/mutantes/tanda-nota-de-cajas.json`: **8 de 8 caen** con prueba con nombre (`>=`, siempre, sin SF pedidos cuenta, `every`, hoja nunca, hoja siempre, hoja no pinta, pantalla siempre). `npx tsc --noEmit` limpio; `src/lib/estimator/` 411 pruebas en verde (2026-10-18, laptop, `--maxWorkers=1`).
 
 **No verificado:** en navegador (la hoja impresa y el `hint` de la pantalla); el dueño no ha visto el texto exacto en inglés, que es redacción nuestra sobre su descripción.
-## D-NEXT · «Marcar todas» en una tabla filtrada marca solo las filas visibles
+## D-576 · «Marcar todas» en una tabla filtrada marca solo las filas visibles
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · Sin migración.
 

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { alternaTodasLasVisibles, estadoDeLaCabecera } from "./marcar-todas";
 
 /**
- * «Marcar todas» sobre una tabla filtrada (D-NEXT). El dueño, 2026-10-18: *«When selecting all orders on a
+ * «Marcar todas» sobre una tabla filtrada (D-576). El dueño, 2026-10-18: *«When selecting all orders on a
  * filtered table, it selects hidden rows instead of just the filtered»*.
  *
  * Las pruebas se arman siempre con algo OCULTO ya marcado: es el caso que distingue «toca solo las visibles» de

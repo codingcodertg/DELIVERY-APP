@@ -1,5 +1,5 @@
 /**
- * La casilla «marcar todas» de la cabecera de una tabla con filtros (D-NEXT).
+ * La casilla «marcar todas» de la cabecera de una tabla con filtros (D-576).
  *
  * «Todas» son las filas que se VEN después de todos los filtros vigentes —búsqueda, pastilla, filtros de columna,
  * tienda, fecha—, no la lista completa de la pantalla. Marcar o desmarcar todas toca solo esas: lo que ya estaba
