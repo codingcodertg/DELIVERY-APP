@@ -3,7 +3,7 @@ import type { Lang } from "@/lib/prefs";
 import { conteoDeFotos } from "@/lib/columnas-de-la-lista";
 
 /**
- * **La cámara junto a «Entregado»** (D-NEXT). El dueño, 2026-10-18: *«For users who can see pictures that the drivers
+ * **La cámara junto a «Entregado»** (D-577). El dueño, 2026-10-18: *«For users who can see pictures that the drivers
  * upload, Id like the stage column to say Delivered and have a camera icon next to it to know when driver took pics. If
  * no pics were uploaded then itll just say Delivered with no icon»*.
  *

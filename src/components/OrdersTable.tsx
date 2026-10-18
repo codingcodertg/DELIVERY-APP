@@ -35,7 +35,7 @@ type Ctx = {
   motivos?: CancelReason[];
   /** Las entregadas que recibió almacén (D-409): su pastilla dice «Received» y no «Delivered». */
   recibidas?: ReadonlySet<string>;
-  /** Quien mira (D-NEXT): la pastilla de una entregada con fotos lleva «📷» solo si esta persona puede ver las fotos. */
+  /** Quien mira (D-577): la pastilla de una entregada con fotos lleva «📷» solo si esta persona puede ver las fotos. */
   me?: Pick<Profile, "role"> | null;
   /** Paradas que el chofer saltó hoy o que el cliente rechazó (D-487): una pastilla junto a la etapa. */
   marcas?: ReadonlyMap<string, MarcaDeParada>;

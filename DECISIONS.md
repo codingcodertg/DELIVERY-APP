@@ -44978,7 +44978,7 @@ Se descartó mover los filtros de columna a la página solo para esto: la tabla 
 **No verificado:** en navegador (el estado indeterminado de la casilla); ninguna escritura contra producción desde la rama.
 
 
-## D-NEXT · La pastilla de etapa dice «Delivered 📷» cuando el chofer subió fotos, solo para quien puede verlas
+## D-577 · La pastilla de etapa dice «Delivered 📷» cuando el chofer subió fotos, solo para quien puede verlas
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía D-409, D-562 y D-573.
 

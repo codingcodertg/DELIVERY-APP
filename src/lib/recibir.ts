@@ -88,11 +88,11 @@ export function esRecibida(d: Pick<Delivery, "id" | "stage">, recibidas: Readonl
 }
 
 /** Lo que pinta una pastilla de etapa: texto y color y, para quien puede ver las fotos de una entregada con fotos, el
- *  icono «📷» con su `title` (D-NEXT, `iconoDeFotos`). Sin icono, las dos últimas no van. */
+ *  icono «📷» con su `title` (D-577, `iconoDeFotos`). Sin icono, las dos últimas no van. */
 export type Pastilla = { texto: string; color: string; icono?: "📷"; titulo?: string };
 
 /** Texto y color de la pastilla de etapa. Es la única diferencia entre «Received» y «Delivered». Con `me` —quien mira—
- *  añade la cámara de D-NEXT si la orden está entregada, tiene fotos y esa persona puede verlas; sin `me`, nunca. */
+ *  añade la cámara de D-577 si la orden está entregada, tiene fotos y esa persona puede verlas; sin `me`, nunca. */
 export function pastillaDeEtapa(
   d: Pick<Delivery, "id" | "stage"> & { photo_count?: number | null; photos?: readonly unknown[] | null },
   recibidas: ReadonlySet<string> | undefined,

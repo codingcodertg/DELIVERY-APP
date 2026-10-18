@@ -1515,7 +1515,7 @@ export function OrderModal({
   };
 
   // La pastilla de la cabecera: «Received» si la recibió almacén (D-409), con los eventos de ESTA orden.
-  // Y «📷» si el chofer subió fotos y esta persona puede verlas (D-NEXT), contadas como las cuenta la ficha (`fotosQueCuentan`).
+  // Y «📷» si el chofer subió fotos y esta persona puede verlas (D-577), contadas como las cuenta la ficha (`fotosQueCuentan`).
   const info: Pastilla = existing ? pastillaDeEtapa({ id: existing.id, stage, photo_count: fotosQueCuentan.length }, idsRecibidasPorAlmacen(events), lang, me) : { texto: stageLabel(stage, lang), color: stageInfo(stage).color };
 
   // ---- Unsaved-changes lock ----
@@ -1892,7 +1892,7 @@ export function OrderModal({
               />
             )}
             {/* ---------- Material photos (driver captures; sales reps don't see these: `puedeVerFotos`, la misma regla que
-                pone la cámara en la pastilla de etapa, D-NEXT) ---------- */}
+                pone la cámara en la pastilla de etapa, D-577) ---------- */}
             {puedeVerFotos(me) && (canDeliver(me) || fotosQueCuentan.length > 0) && (
               <>
                 <div className="section-label">
