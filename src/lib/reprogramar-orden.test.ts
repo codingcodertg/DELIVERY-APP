@@ -67,6 +67,19 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     expect(pagina).toContain("{!hecha && !soloLectura && puedeReprogramar(me?.role, d.stage) && (");
     expect(pagina).toContain("<ReprogramarOrden pedido={d}");
   });
+  // D-574: el dueño, «Calendar button needs to be on Invoice column instead of Assign to column. Its making the row bigger
+  // so it needs to be on the same line».
+  it("D-574 · en el Gestor el 📅 va en la celda de la factura, en línea, y ya no en «Asignar a»", () => {
+    const pagina = readFileSync("src/app/(app)/routes/page.tsx", "utf8").split("\r\n").join("\n");
+    const celda = pagina.indexOf('if (c.key === "invoice") return (');
+    expect(celda).toBeGreaterThan(0);
+    const cuerpo = pagina.slice(celda, pagina.indexOf("</td>", celda));
+    expect(cuerpo).toContain("{facturaConSuId(d)}");
+    expect(cuerpo).toContain('<span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>');
+    expect(cuerpo).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
+    // una sola vez en toda la página: la de «Asignar a» se fue
+    expect(pagina.split("<ReprogramarOrden pedido={d}").length - 1).toBe(1);
+  });
 });
 
 describe("D-572 · en las filas, solo el icono 📅 junto al número de factura", () => {

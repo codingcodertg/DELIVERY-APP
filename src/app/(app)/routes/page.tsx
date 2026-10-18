@@ -2252,7 +2252,18 @@ export default function RoutesPage() {
               const llegada = llegadaDeLaOrden(d);
               return celdaDeParada(c, d, { tipo: "D", llegada: <td data-llegada={llegada ? "hora" : "sin-ruta"} style={llegada ? { fontWeight: 600 } : ESTILO_SIN_LLEGADA}>{llegada ?? "—"}</td> });
             }
-            if (c.key === "invoice") return <td key={c.key} className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>;
+            if (c.key === "invoice") return (
+              <td key={c.key} className="ordno">
+                {facturaConSuId(d)}
+                {/* «📅 Reprogramar» (D-500) en línea con la factura (D-574), no en «Asignar a»: allí hacía la fila más alta. */}
+                {!hecha && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
+                  <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
+                    <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
+                  </span>
+                )}
+                {etiquetaDeLaCarga(d)}
+              </td>
+            );
             if (c.key === "pallets") return <td key={c.key} data-pallets-de-la-orden style={{ fontVariantNumeric: "tabular-nums" }}>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>;
             return <td key={c.key} className={clasePastillas(c.key)}>{c.deOrdenes ? celdaDeOrdenes(c.key, d) : "—"}</td>;
           })}
@@ -2289,10 +2300,8 @@ export default function RoutesPage() {
                   {lanes.filter((l) => l.key !== ruta).map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
                 </select>
               ) : null}
-              {/* «📅 Reprogramar» (D-500): la fecha siguiente y una nota, ahí mismo. */}
-              {!hecha && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
-                <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
-              )}
+              {/* «📅 Reprogramar» (D-500) vivía aquí; desde D-574 va en la celda de la factura, en su misma línea: el dueño,
+                  «Calendar button needs to be on Invoice column instead of Assign to column. Its making the row bigger». */}
               {/* La sugerencia de chofer («💡 nombre») que salía aquí se quitó (D-346), por pedido del dueño. */}
             </div>
           </td>

@@ -44907,3 +44907,17 @@ D-551 (dos días antes) puso en la Cola y en Recepción una columna «Siguiente 
 **Pruebas:** `src/lib/etapas-en-la-fila.test.ts` (la tabla completa por rol y etapa contra el guard; qué confirma cada salto; las notas; la escritura de anular; que la página, la tabla, la ficha y el CSS pasan por aquí) y `src/lib/pasos-de-bodega.test.ts` (recortada a las escrituras). Tanda de mutantes en `~/.claude/herramientas/mutantes/tanda-burbuja-de-etapa.json`.
 
 **No verificado:** en navegador (la burbuja con el `<select>` encima, en escritorio y en teléfono); ninguna escritura contra producción desde la rama.
+
+## D-574 · Gestor: el 📅 de «Reprogramar» va en la celda de la factura, en su misma línea
+
+**Fecha:** 2026-10-18 · **Versión:** deliveries 1.327.0 (repo 1.440.0) · Sin migración · Hecho directo por el orquestador en `icono-gestor`.
+
+**Pedido del dueño**, literal: *«Calendar button needs to be on Invoice column instead of Assign to column. Its making the row bigger so it needs to be on the same line»*.
+
+**Qué fallaba.** D-572 dejó el botón como solo el icono, pero en la tabla del Gestor seguía dentro de la celda de **«Asignar a»**, debajo del selector de chofer: la celda seguía teniendo dos líneas y la fila no bajaba de alto.
+
+**Qué cambia.** El icono se pinta en la celda de la **factura**, dentro de un `.accion-de-fila` (en línea, D-572) justo tras `facturaConSuId(d)` y antes de la etiqueta de carga; misma condición de antes (`!hecha && !soloLectura && puedeReprogramar`). La celda de «Asignar a» se queda solo con sus selectores. Almacén ya lo tenía así desde D-572 (su tabla es `OrdersTable`).
+
+**Pruebas:** `reprogramar-orden.test.ts`, «D-574 · en el Gestor el 📅 va en la celda de la factura…» (lo busca dentro de la celda y afirma que solo hay una instancia en la página). Mutante 1 de 1 (vuelve a «Asignar a»), cae con esa prueba.
+
+**No verificado:** en navegador.

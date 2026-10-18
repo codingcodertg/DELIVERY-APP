@@ -129,7 +129,9 @@ describe("el Gestor de Rutas usa el menú en «Sin asignar» y abre la orden des
     const tramo = sinAsignar();
     expect(tramo).not.toContain('<td className="ordno" {...abreLaOrden(d)}>');
     // Nota D-548: la factura de «Sin asignar» se pinta como la de paradas (`facturaConSuId`, que usa el mismo gesto).
-    expect(tramo).toContain('if (c.key === "invoice") return <td key={c.key} className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>;');
+    // Nota D-574: la celda de la factura se parte en varias líneas (lleva el 📅 de Reprogramar en línea).
+    expect(tramo).toContain('if (c.key === "invoice") return (');
+    expect(tramo).toMatch(/<td key=\{c\.key\} className="ordno">\s*\{facturaConSuId\(d\)\}/);
   });
   it("en «Sin asignar», seleccionar todo es lo que se ve con los filtros puestos", () => {
     // Puesto al día por D-462: lo que se ve Y se puede marcar (`marcables`: lo visible menos lo ya hecho, que solo hay en «Todas»).
