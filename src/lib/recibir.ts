@@ -1,6 +1,8 @@
-import type { Delivery, NamedLocation, OrderEvent, Stage, UserRole } from "@/lib/types";
+import type { Delivery, NamedLocation, OrderEvent, Profile, Stage, UserRole } from "@/lib/types";
 import type { Lang } from "@/lib/prefs";
 import { stageInfo, stageLabel } from "@/lib/constants";
+import { iconoDeFotos, tituloDeFotos } from "@/lib/fotos-en-la-etapa";
+import { conteoDeFotos } from "@/lib/columnas-de-la-lista";
 import { esParaRecibir, tiendasDeAlmacen, type ReglaDeTipo } from "@/lib/almacen";
 
 /**
@@ -85,14 +87,24 @@ export function esRecibida(d: Pick<Delivery, "id" | "stage">, recibidas: Readonl
   return d.stage === "delivered" && !!recibidas?.has(d.id);
 }
 
-/** Texto y color de la pastilla de etapa. Es la única diferencia entre «Received» y «Delivered». */
+/** Lo que pinta una pastilla de etapa: texto y color y, para quien puede ver las fotos de una entregada con fotos, el
+ *  icono «📷» con su `title` (D-NEXT, `iconoDeFotos`). Sin icono, las dos últimas no van. */
+export type Pastilla = { texto: string; color: string; icono?: "📷"; titulo?: string };
+
+/** Texto y color de la pastilla de etapa. Es la única diferencia entre «Received» y «Delivered». Con `me` —quien mira—
+ *  añade la cámara de D-NEXT si la orden está entregada, tiene fotos y esa persona puede verlas; sin `me`, nunca. */
 export function pastillaDeEtapa(
-  d: Pick<Delivery, "id" | "stage">,
+  d: Pick<Delivery, "id" | "stage"> & { photo_count?: number | null; photos?: readonly unknown[] | null },
   recibidas: ReadonlySet<string> | undefined,
   lang: Lang,
-): { texto: string; color: string } {
-  if (esRecibida(d, recibidas)) return { texto: lang === "es" ? "Recibido" : "Received", color: RECIBIDO_COLOR };
-  return { texto: stageLabel(d.stage, lang), color: stageInfo(d.stage).color };
+  me?: Pick<Profile, "role"> | null,
+): Pastilla {
+  const base = esRecibida(d, recibidas)
+    ? { texto: lang === "es" ? "Recibido" : "Received", color: RECIBIDO_COLOR }
+    : { texto: stageLabel(d.stage, lang), color: stageInfo(d.stage).color };
+  const icono = me === undefined ? null : iconoDeFotos(me, d);
+  if (!icono) return base;
+  return { ...base, icono, titulo: tituloDeFotos(conteoDeFotos(d), lang) };
 }
 
 /**

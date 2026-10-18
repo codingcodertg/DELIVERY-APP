@@ -44976,3 +44976,33 @@ Se descartó mover los filtros de columna a la página solo para esto: la tabla 
 **Pruebas:** `src/lib/marcar-todas.test.ts` (siempre con una fila oculta ya marcada, que es el caso que distingue; y que la tabla y la página pasan por aquí). Tanda de mutantes en `~/.claude/herramientas/mutantes/tanda-marcar-todas.json`, 6 de 6 caen con prueba con nombre: «todas» vuelve a `rows` (tabla y página), desmarcar vacía la selección entera, la cabecera cuenta las ocultas (dos formas), marcar deja de añadir.
 
 **No verificado:** en navegador (el estado indeterminado de la casilla); ninguna escritura contra producción desde la rama.
+
+
+## D-NEXT · La pastilla de etapa dice «Delivered 📷» cuando el chofer subió fotos, solo para quien puede verlas
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía D-409, D-562 y D-573.
+
+**Pedido del dueño**, literal: *«For users who can see pictures that the drivers upload, Id like the stage column to say Delivered and have a camera icon next to it to know when driver took pics. If no pics were uploaded then itll just say Delivered with no icon»*.
+
+### Qué había
+
+Saber si una entregada tenía fotos del chofer obligaba a abrir la ficha: la pastilla de etapa decía «Delivered» igual con fotos que sin ellas. La lista ya traía el dato sin bajar las fotos (`photo_count`, D-562), pero nadie lo pintaba. Y la regla de quién ve las fotos vivía solo en línea en la ficha (`me.role !== "sales" && …`), sin nombre: cualquier otro sitio que la necesitara la copiaría y las dos copias se separarían.
+
+### Qué cambia
+
+1. **Una función pura decide el icono**: `iconoDeFotos(me, d)` (`src/lib/fotos-en-la-etapa.ts`) devuelve `"📷"` o `null`. Tres condiciones, todas: la orden está en `delivered`; tiene fotos (`conteoDeFotos(d)`: el `photo_count` de la fila, o `photos.length` si la fila las trae, D-562); y **quien mira** puede ver las fotos.
+2. **Quién ve las fotos es una sola regla con nombre**: `puedeVerFotos(me)` —ventas no, nadie sin sesión, todos los demás sí— es la regla que ya tenía la ficha, sacada a una función. La ficha la usa ahora para decidir si monta la rejilla de fotos, y la pastilla para decidir si pinta la cámara: no pueden separarse. A ventas no se le enseña un icono de algo que no puede abrir.
+3. **La pastilla la lleva dentro**: `pastillaDeEtapa(d, recibidas, lang, me)` gana el cuarto argumento, quien mira, y devuelve además `icono` y `titulo` cuando toca (tipo `Pastilla`). Sin `me` —ninguna llamada de hoy— nunca hay icono. `IconoDeFotos` (`src/components/IconoDeFotos.tsx`) pinta el «📷» **dentro de la misma `.sema`**, después del texto, con `title` y `aria-label` «Driver uploaded N photo(s)» / «El chofer subió N foto(s)». Sin fotos, «Delivered» a secas, sin icono y sin title.
+4. **En todos los sitios que pintan la pastilla**: Órdenes (la celda «Etapa» y la pila de pastillas del teléfono), la tarjeta por factura del chofer, Almacén —Cola, Recepción, y dentro de la burbuja-selector de D-573, donde el icono va entre el texto y la flecha «▾»—, la ruta del día de Almacén, Mi ruta del chofer, el Gestor (usa `OrdersTable`) y la cabecera de la ficha. En la ficha el conteo es `fotosQueCuentan.length`, lo que ella misma cuenta (las fotos recién cargadas, o el `photo_count` mientras llegan).
+5. **«Recibido» (D-409) también lleva la cámara.** Es `delivered` en la base con otro evento; si el chofer subió fotos y luego el almacén la recibió, las fotos siguen ahí y siguen importando para quien revisa. El dueño dijo «Delivered»; «Received» es «lo mismo que delivered» por su propia definición (D-409).
+
+### Qué se descartó
+
+- **Mirar `canDeliver(me)` para el icono**: la ficha enseña la rejilla a quien puede entregar O cuando ya hay fotos (y no es ventas). Para el icono la segunda rama es la que manda —solo se pinta cuando hay fotos—, así que la condición se reduce a `puedeVerFotos`. Extraer `canDeliver` también habría dejado sin cámara a oficina y gerencia, que sí ven las fotos en la ficha.
+- **Bajar las fotos para saber si hay**: D-562 las sacó de la lista a propósito (6,4 MB por lista); el `photo_count` del disparador de la 177 basta.
+- **El icono fuera de la pastilla** (otra celda, o un sufijo suelto): pidió «next to it» en la columna de etapa, y la pastilla es la unidad que viaja igual a Almacén, al chofer y a la ficha.
+- **Poner el `title` de la cámara en toda la pastilla**: el de Órdenes sigue siendo el texto de la etapa (una pastilla recortada dice su texto entero, `arreglos-vistos-en-navegador.test.ts`); el conteo de fotos va en el icono.
+
+**Pruebas:** `src/lib/fotos-en-la-etapa.test.ts` (`puedeVerFotos` por rol y en la ficha; `iconoDeFotos`: entregada con fotos y permiso → icono, sin fotos → null, ventas → null, no entregada → null en las ocho etapas restantes; `tituloDeFotos` en los dos idiomas con plural; `pastillaDeEtapa` con y sin cámara, en «Received», y sin `me`; y que los siete sitios pintan `IconoDeFotos` dentro de la `.sema`). `recibir.test.ts` y `ruta-del-dia.test.ts` con su nota. Mutantes **12 de 12** (`tanda-icono-de-fotos.json`): deja de exigir entregada / fotos / quién mira; ventas entra; plural inglés; la pastilla pierde el title; pone la cámara sin saber quién mira; la ficha vuelve a su regla propia; la burbuja de D-573, Órdenes, la tarjeta del chofer e `IconoDeFotos` pierden o pintan siempre — cada uno con su prueba por nombre.
+
+**No verificado:** en navegador (el icono dentro de la burbuja-selector con la flecha, y en la pastilla del teléfono); ninguna escritura contra producción desde la rama.

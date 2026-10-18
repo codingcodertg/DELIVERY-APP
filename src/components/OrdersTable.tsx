@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { stageLabel } from "@/lib/constants";
 import { estadoDeLaCabecera } from "@/lib/marcar-todas";
-import { idsRecibidasPorAlmacen, pastillaDeEtapa } from "@/lib/recibir";
+import { idsRecibidasPorAlmacen, pastillaDeEtapa, type Pastilla } from "@/lib/recibir";
 import { marcasDeParadas, type MarcaDeParada } from "@/lib/acciones-parada";
 import { PastillaDeMarca } from "@/components/PastillaDeMarca";
 import { motivoDeAnulacion, motivosDeAnulacion } from "@/lib/cancel-reasons";
@@ -22,7 +22,8 @@ import type { VistaDeTabla } from "@/lib/filtros-guardados";
 import { etiquetaDePrioridad, prioridadDe, seDestaca, valorDePrioridad } from "@/lib/prioridad";
 import { DocumentoPendiente } from "@/components/DocumentoPendiente";
 import { BarraSuperior } from "@/components/BarraSuperior";
-import type { CancelReason, Delivery } from "@/lib/types";
+import type { CancelReason, Delivery, Profile } from "@/lib/types";
+import { IconoDeFotos } from "@/components/IconoDeFotos";
 
 type Ctx = {
   lang: "en" | "es";
@@ -34,13 +35,15 @@ type Ctx = {
   motivos?: CancelReason[];
   /** Las entregadas que recibió almacén (D-409): su pastilla dice «Received» y no «Delivered». */
   recibidas?: ReadonlySet<string>;
+  /** Quien mira (D-NEXT): la pastilla de una entregada con fotos lleva «📷» solo si esta persona puede ver las fotos. */
+  me?: Pick<Profile, "role"> | null;
   /** Paradas que el chofer saltó hoy o que el cliente rechazó (D-487): una pastilla junto a la etapa. */
   marcas?: ReadonlyMap<string, MarcaDeParada>;
   /** La acción de la fila (D-409/D-534), pintada EN LÍNEA junto al número de factura y no debajo (D-572). */
   accion?: (d: Delivery) => React.ReactNode;
   /** La página pinta ella la burbuja de etapa (Almacén, D-573: la burbuja es también el selector de etapa). Recibe la
    *  pastilla que la tabla iba a pintar —texto y color— y la burbuja ya montada, para que sea la misma. */
-  celdaDeEtapa?: (d: Delivery, pastilla: { texto: string; color: string }, burbuja: React.ReactNode) => React.ReactNode;
+  celdaDeEtapa?: (d: Delivery, pastilla: Pastilla, burbuja: React.ReactNode) => React.ReactNode;
 };
 
 type CellValue = ValorDeCelda;
@@ -67,12 +70,12 @@ export interface OrderColumn {
 export const ORDER_COLUMNS: OrderColumn[] = [
   // El VALOR (orden y filtro de columna) sigue siendo la etapa: «Received» va dentro de «Delivered» también
   // en el filtro de la columna, porque es lo mismo (D-409). Solo la pastilla cambia.
-  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos, recibidas, marcas, celdaDeEtapa }) => {
-      const p = pastillaDeEtapa(d, recibidas, lang);
+  { key: "stage", en: "Stage", es: "Etapa", pastillas: true, value: (d, { lang }) => stageLabel(d.stage, lang), cell: (d, { lang, motivos, recibidas, marcas, celdaDeEtapa, me }) => {
+      const p = pastillaDeEtapa(d, recibidas, lang, me);
       // Una anulada lleva su motivo al lado, no escondido en la ficha: en la lista es donde se ve que
       // media tarde de órdenes se cayó por duplicadas (122).
       const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : "";
-      const burbuja = <span className="sema" title={p.texto} style={{ background: p.color, color: "#fff" }}>{p.texto}</span>;
+      const burbuja = <span className="sema" title={p.texto} style={{ background: p.color, color: "#fff" }}>{p.texto}<IconoDeFotos p={p} /></span>;
       return (
         <>
           {celdaDeEtapa ? celdaDeEtapa(d, p, burbuja) : burbuja}
@@ -170,8 +173,8 @@ const ID_COLUMN: OrderColumn = {
   en: "ID",
   es: "ID",
   value: (d, { byInvoice }) => (byInvoice ? (d.invoice_num || orderLabel(d)) : orderLabel(d)),
-  cell: (d, { lang, byInvoice, recibidas, marcas, accion }) => {
-    const s = pastillaDeEtapa(d, recibidas, lang);
+  cell: (d, { lang, byInvoice, recibidas, marcas, accion, me }) => {
+    const s = pastillaDeEtapa(d, recibidas, lang, me);
     // En línea con la factura (D-572): el toque no abre la orden. Antes iba debajo del ID y la fila crecía una línea.
     const accionFila = accion?.(d) ?? null;
     const accionEnLinea = accionFila ? <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>{accionFila}</span> : null;
@@ -202,7 +205,7 @@ const ID_COLUMN: OrderColumn = {
           // branch / which order.
           <span className="drv-head">
             <span className="drv-l">
-              <span className="sema" style={{ background: s.color, color: "#fff" }}>{s.texto}</span>
+              <span className="sema" style={{ background: s.color, color: "#fff" }}>{s.texto}<IconoDeFotos p={s} /></span>
               <PastillaDeMarca m={marcas?.get(d.id)} lang={lang} />
             </span>
             {/* An order can carry several invoices ("177966, 177987"). A driver
@@ -253,7 +256,7 @@ const ID_COLUMN: OrderColumn = {
                 columns. */}
             <span className="row-badges">
               <span className="row-badge-line">
-                <span className="sema" style={{ background: s.color, color: "#fff" }}>{s.texto}</span>
+                <span className="sema" style={{ background: s.color, color: "#fff" }}>{s.texto}<IconoDeFotos p={s} /></span>
               </span>
               <span className="row-badge-line">
                 {d.delivery_date && (
@@ -453,7 +456,7 @@ export function OrdersTable({
   // Qué entregadas recibió almacén (D-409): un índice sobre los eventos que el proveedor ya tiene cargados.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
-  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa };
+  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa, me };
   const [vistaPropia, setVistaPropia] = useState<VistaDeTabla>({ filtros: {}, orden: null });
   // Llevada por la página si la pasa (D-440); si no, la de dentro.
   const vistaQueManda = vista && onVista ? vista : vistaPropia;

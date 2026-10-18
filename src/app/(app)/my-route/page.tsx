@@ -12,6 +12,7 @@ import { llegadaDeLaParada, llegadasDeParadas, marcasDeParadas, type LlegadaDePa
 import { llegadaDeLaOrden, llevaBotonDeLlegada, MOSTRAR_SIGUIENTE_PARADA, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "@/lib/siguiente-de-mi-ruta";
 import { PalletsAlRecoger } from "@/components/PalletsAlRecoger";
 import { idsRecibidasPorAlmacen, pastillaDeEtapa } from "@/lib/recibir";
+import { IconoDeFotos } from "@/components/IconoDeFotos";
 import { estiloDeParada, FONDO_DE_PARADA } from "@/lib/colores-de-mi-ruta";
 import { escrituraRecogida } from "@/lib/one-tap-stop";
 import { captureLocationSplit, type GeoStamp } from "@/lib/geo";
@@ -263,8 +264,8 @@ export default function MyRoutePage() {
    *  ficha (`pastillaDeEtapa`: «Ready», «Programmed»…, y «Received» si la recibió el almacén, D-409). */
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const pastillaDe = (d: Delivery) => {
-    const p = pastillaDeEtapa(d, recibidas, lang);
-    return <span className="sema" data-etapa-en-la-fila={d.stage} style={{ background: p.color, color: "#fff", marginLeft: 6, verticalAlign: "middle" }}>{p.texto}</span>;
+    const p = pastillaDeEtapa(d, recibidas, lang, me);
+    return <span className="sema" data-etapa-en-la-fila={d.stage} style={{ background: p.color, color: "#fff", marginLeft: 6, verticalAlign: "middle" }}>{p.texto}<IconoDeFotos p={p} /></span>;
   };
 
 
