@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { stageLabel } from "@/lib/constants";
+import { estadoDeLaCabecera } from "@/lib/marcar-todas";
 import { idsRecibidasPorAlmacen, pastillaDeEtapa } from "@/lib/recibir";
 import { marcasDeParadas, type MarcaDeParada } from "@/lib/acciones-parada";
 import { PastillaDeMarca } from "@/components/PastillaDeMarca";
@@ -400,7 +401,8 @@ export function OrdersTable({
   selectable?: boolean;
   selected?: Set<string>;
   onToggle?: (id: string) => void;
-  onToggleAll?: () => void;
+  /** La casilla de la cabecera: recibe los ids de las filas visibles tras los filtros de columna y el orden (D-NEXT). */
+  onToggleAll?: (idsVisibles: string[]) => void;
   /** Rows this returns true for get a red "needs immediate action" highlight
    * (e.g. still pending approval past today's cutoff). */
   isUrgent?: (d: Delivery) => boolean;
@@ -564,7 +566,10 @@ export function OrdersTable({
 
   const optionsFor = (col: OrderColumn) => opcionesDeFiltro(applyFilters(rows, col.key), (d) => col.value(d, ctx), col.filterLabel);
 
-  const allChecked = !!selected && rows.length > 0 && rows.every((r) => selected.has(r.id));
+  // «Marcar todas» = las filas que se VEN tras los filtros de columna y el orden (D-NEXT), no `rows`: con un filtro
+  // puesto, marcaba y desmarcaba las ocultas. Lo oculto ya marcado se queda como está (`alternaTodasLasVisibles`).
+  const idsVisibles = sortedRows.map((r) => r.id);
+  const cabecera = selected ? estadoDeLaCabecera(selected, idsVisibles) : "ninguna";
 
   // Qué filtros hay puestos, en el orden de las columnas (D-297). Se queda vacío casi siempre, y
   // entonces la barra no se pinta: una barra que sale siempre deja de leerse.
@@ -609,7 +614,9 @@ export function OrdersTable({
           <tr>
             {selectable && (
               <th>
-                <input type="checkbox" checked={allChecked} onChange={onToggleAll} style={{ width: 15, height: 15 }} />
+                <input type="checkbox" checked={cabecera === "todas"}
+                  ref={(el) => { if (el) el.indeterminate = cabecera === "algunas"; }}
+                  onChange={() => onToggleAll?.(idsVisibles)} style={{ width: 15, height: 15 }} />
               </th>
             )}
             {cols.map((c, i) => {

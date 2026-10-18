@@ -19,6 +19,7 @@ import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/Orders
 import { PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, tiendasDeQuienMira } from "@/lib/documento-pendiente";
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
 import { ordenesVisibles } from "@/lib/ordenes-visibles";
+import { alternaTodasLasVisibles } from "@/lib/marcar-todas";
 import { cuentasDeOrdenes, filasDeOrdenes } from "@/lib/filas-de-ordenes";
 import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -524,8 +525,9 @@ export default function OrdersPage() {
   // ---- Bulk actions (#1) ----
   const toggle = (id: string) =>
     setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const toggleAll = () =>
-    setSelected((prev) => (rows.every((r) => prev.has(r.id)) ? new Set() : new Set(rows.map((r) => r.id))));
+  // «Todas» son las que la tabla enseña tras SUS filtros de columna (D-NEXT); antes era `rows`, que no los conoce,
+  // y desmarcar vaciaba la selección entera, ocultas incluidas.
+  const toggleAll = (idsVisibles: string[]) => setSelected((prev) => alternaTodasLasVisibles(prev, idsVisibles));
   const chosen = rows.filter((r) => selected.has(r.id));
 
   /**
