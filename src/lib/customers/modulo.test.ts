@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { accessibleModules, knownModules, landingRoute, MODULES, MODULE_ACCESS } from "@/lib/constants";
 import { securityLabel } from "@/lib/security-log";
-import { COLUMNAS } from "./almacen";
+import { COLUMNAS, COLUMNAS_DE_LA_182, COLUMNAS_SIN_182, faltaLa182, leeConRespaldo } from "./almacen";
 import { CAMPOS, ESTADOS, HISTORIAS, QB_ESTADOS } from "./reglas";
 
 /**
@@ -121,11 +121,15 @@ describe("la 180", () => {
     // Las dos de archivado las añade la 181 (`add column if not exists`), no la tabla de la 180.
     const la181 = leer("supabase/migrations/181_clientes_archivados.sql");
     const alter181 = /alter table erp\.customers\n([\s\S]*?);/.exec(la181)![1];
-    for (const col of COLUMNAS.split(",").map((c) => c.trim())) {
+    // Y las tres del CRM, la 182.
+    const alter182 = /alter table erp\.customers\n([\s\S]*?);/.exec(leer("supabase/migrations/182_clientes_crm.sql"))![1];
+    const dondeEsta = (col: string) => {
       if (col === "archived_at" || col === "archived_reason") expect(alter181, col).toMatch(new RegExp(`add column if not exists ${col}\\s`));
+      else if ((COLUMNAS_DE_LA_182 as readonly string[]).includes(col)) expect(alter182, col).toMatch(new RegExp(`add column if not exists ${col}\\s`));
       else expect(tabla, col).toMatch(new RegExp(`\\n  ${col}\\s`));
-    }
-    for (const campo of CAMPOS) expect(tabla, campo.key).toMatch(new RegExp(`\\n  ${campo.key}\\s`));
+    };
+    for (const col of COLUMNAS.split(",").map((c) => c.trim())) dondeEsta(col);
+    for (const campo of CAMPOS) dondeEsta(campo.key);
     expect(cuerpo).toContain("create unique index if not exists customers_store_account_unico\n  on erp.customers (upper(btrim(store)), lower(btrim(account)));");
   });
 
@@ -168,6 +172,94 @@ describe("la 180", () => {
   it("el checksum del registro es el del cuerpo", () => {
     const sha = createHash("sha256").update(cuerpo).digest("hex");
     expect(sql).toContain(`values ('180_clientes.sql', '${sha}')`);
+  });
+});
+
+/**
+ * 2026-10-18. El dueño: «the crm stuff in the customer is missing» y «when pressing a cutomer show all details and i mean
+ * all details that were giving the intiial excel have the buttom of the fuull detail like the erp has with every item».
+ */
+describe("la 182 · las tres del CRM", () => {
+  const sql182 = leer("supabase/migrations/182_clientes_crm.sql");
+  const [cuerpo182] = sql182.split("-- @ledger-below");
+  const sinComentarios182 = cuerpo182.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+
+  it("añade exactamente crm_type_store, crm_type_group y associated_with, de texto, sin check, y nada más", () => {
+    const adds = [...sinComentarios182.matchAll(/add column if not exists (\w+) (\w+)/g)].map((m) => [m[1], m[2]]);
+    expect(adds).toEqual([["crm_type_store", "text"], ["crm_type_group", "text"], ["associated_with", "text"]]);
+    expect(sinComentarios182).not.toMatch(/check\s*\(/i);
+    expect(sinComentarios182).not.toMatch(/create policy|create index|create or replace function|insert into erp\.customers|update erp\.customers/i);
+    expect(sinComentarios182).not.toMatch(/^\s*(begin|commit)\s*;/im);
+    expect(sql182).not.toMatch(/D-\d{3}/);
+    expect(sql182).toContain("-- Reversion:");
+    expect([...adds.map((a) => a[0])].sort()).toEqual([...COLUMNAS_DE_LA_182].sort());
+  });
+  it("el checksum del registro es el del cuerpo", () => {
+    const sha = createHash("sha256").update(cuerpo182).digest("hex");
+    expect(sql182).toContain(`values ('182_clientes_crm.sql', '${sha}')`);
+  });
+  it("el código llega antes que la migración: si la base no tiene una columna, se vuelve a leer sin las tres de la 182", async () => {
+    expect(faltaLa182({ code: "42703" })).toBe(true);
+    expect(faltaLa182({ code: "PGRST204" })).toBe(true);
+    expect(faltaLa182({ code: "42501" })).toBe(false);
+    expect(faltaLa182(null)).toBe(false);
+    for (const col of COLUMNAS_DE_LA_182) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_182).not.toContain(col); }
+    expect(COLUMNAS_SIN_182).toContain("archived_reason");
+    const pedidas: string[] = [];
+    const r = await leeConRespaldo(async (cols) => { pedidas.push(cols); return pedidas.length === 1 ? { data: null, error: { code: "42703", message: "column crm_type_store does not exist" } } : { data: [{ id: 1 }], error: null }; });
+    expect(pedidas).toEqual([COLUMNAS, COLUMNAS_SIN_182]);
+    expect(r.data).toEqual([{ id: 1 }]);
+    // Otro error no se reintenta: se devuelve tal cual.
+    const otras: string[] = [];
+    const r2 = await leeConRespaldo(async (cols) => { otras.push(cols); return { data: null, error: { code: "42501", message: "permission denied" } }; });
+    expect(otras).toEqual([COLUMNAS]);
+    expect(r2.error?.code).toBe("42501");
+  });
+  it("el importador lee las tres y las escribe con coalesce (re-importar rellena solo lo nuevo)", () => {
+    const g = leer("scripts/importa-clientes.mjs");
+    for (const col of COLUMNAS_DE_LA_182) expect(g).toContain(`"${col}"`);
+    expect(g).toContain('"CRM TYPE: STORE": "crm_type_store"');
+    expect(g).toContain('"CRM TYPE: GROUP": "crm_type_group"');
+    expect(g).toContain('"ASSOCIATED WITH": "associated_with"');
+  });
+});
+
+describe("la ficha completa (/customers/[id]) y el orden de columnas por persona", () => {
+  const pagina = leer("src/app/customers/[id]/page.tsx");
+  const ficha = leer("src/app/customers/[id]/FichaCompleta.tsx");
+  const lista = leer("src/app/customers/Clientes.tsx");
+
+  it("la página existe bajo el layout de Clientes (misma puerta, D-570), lee la fila con la sesión de quien mira, y un id que no está es 404", () => {
+    expect(readdirSync("src/app/customers")).toContain("layout.tsx");
+    expect(readdirSync("src/app/customers/[id]")).toEqual(expect.arrayContaining(["page.tsx", "FichaCompleta.tsx"]));
+    expect(pagina).toContain('import { createClient as createErpClient } from "@/lib/erp/supabase/server";');
+    expect(pagina).toContain('erp.from("customers").select(cols).eq("id", n).maybeSingle()');
+    expect(pagina).toContain("if (!data) notFound();");
+    expect(pagina).toContain("if (!Number.isInteger(n) || n <= 0) notFound();");
+    expect(pagina).not.toMatch(/service_role|SUPABASE_SERVICE/i);
+    expect(pagina).toContain("<FichaCompleta cliente={cliente} />");
+  });
+  it("la ficha pinta cada campo por grupo (camposPorGrupo/textoDeCampo), House # y la CONCATENATE, con el cascarón del ERP", () => {
+    expect(ficha).toContain("camposPorGrupo().map(({ grupo, campos }) =>");
+    expect(ficha).toContain("{textoDeCampo(c, campo, t)}");
+    expect(ficha).toContain('data-campo="house_no"');
+    expect(ficha).toContain('data-campo="concatenate"');
+    expect(ficha).toContain('valorDeColumna(c, "concatenate")');
+    expect(ficha).toContain('className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"');
+    expect(ficha).toContain('{t("← Customers", "← Clientes")}');
+  });
+  it("el botón «Ficha completa» está en la fila (sin abrir el cajón) y en el cajón", () => {
+    expect(lista).toContain("href={`/customers/${c.id}`}");
+    expect(lista).toContain("onClick={(e) => e.stopPropagation()}");
+    expect(lista).toContain("href={`/customers/${cliente.id}`}");
+    expect(lista).toContain('{t("Full details →", "Ficha completa →")}');
+  });
+  it("las columnas se guardan por persona (clave con el id del usuario) y el selector mueve", () => {
+    expect(lista).toContain("claveDeColumnasDeClientes(userId)");
+    expect(lista).not.toContain('"customers_cols"');
+    expect(lista).toContain("mover={{");
+    expect(lista).toContain("onMueve: (key, delta) => cambiaColumnas((p) => mueveColumnaDeClientes(p, key, delta)),");
+    expect(leer("src/app/customers/page.tsx")).toContain('userId={user?.id ?? "anon"}');
   });
 });
 

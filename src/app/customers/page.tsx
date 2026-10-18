@@ -21,7 +21,7 @@ export default async function CustomersPage() {
     return (
       <>
         <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" hubReachable />
-        <Clientes demo puedeEditar />
+        <Clientes demo puedeEditar userId="demo" />
       </>
     );
   }
@@ -45,7 +45,8 @@ export default async function CustomersPage() {
         // ¿Hay hub al que volver? La misma función que usan `/home` y el ERP (D-227).
         hubReachable={canReachHub({ role, module_access: moduleAccess })}
       />
-      <Clientes demo={false} puedeEditar={puedeEditar(role)} />
+      {/* El id va a la clave de las columnas elegidas (por persona, en el navegador). Sin sesión no se llega aquí (layout). */}
+      <Clientes demo={false} puedeEditar={puedeEditar(role)} userId={user?.id ?? "anon"} />
     </>
   );
 }

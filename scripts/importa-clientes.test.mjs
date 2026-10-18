@@ -34,13 +34,20 @@ describe("celdas", () => {
     expect(cabeceraNormal("Account No.")).toBe("ACCOUNT NO");
     expect(cabeceraNormal("Max Group Rep History")).toBe("MAX GROUP REP HISTORY");
   });
-  it("las 27 cabeceras reales con nombre (la 28.a no tiene): 23 se cargan y 4 se dejan fuera a proposito", () => {
+  it("las 27 cabeceras reales con nombre (la 28.a no tiene): 26 se cargan y solo CONCATENATE queda fuera (se recompone)", () => {
     const reales = CABECERAS.filter(Boolean).map(cabeceraNormal);
     const cargadas = reales.filter((c) => MAPA[c]);
     const fuera = reales.filter((c) => !MAPA[c]);
-    expect(cargadas).toHaveLength(23);
-    expect(fuera).toEqual(["CONCATENATE", "CRM TYPE: STORE", "CRM TYPE: GROUP", "ASSOCIATED WITH"]);
-    expect(COLUMNAS).toHaveLength(23);
+    expect(cargadas).toHaveLength(26);
+    expect(fuera).toEqual(["CONCATENATE"]);
+    expect(COLUMNAS).toHaveLength(26);
+  });
+  it("182: las tres del CRM se leen por su cabecera y van a sus columnas", () => {
+    expect(MAPA["CRM TYPE: STORE"]).toBe("crm_type_store");
+    expect(MAPA["CRM TYPE: GROUP"]).toBe("crm_type_group");
+    expect(MAPA[cabeceraNormal("Associated with")]).toBe("associated_with");
+    const [f] = filasDeHoja([CABECERAS, fila({ STORE: "MCA", ACCOUNT: "Acme", "CRM TYPE: STORE": '"LOST"', "CRM TYPE: GROUP": "MID", "Associated with": "ACERO-SYNERGY" })]);
+    expect(f).toMatchObject({ crm_type_store: '"LOST"', crm_type_group: "MID", associated_with: "ACERO-SYNERGY" });
   });
 });
 
@@ -78,6 +85,17 @@ describe("filaACliente", () => {
     // Todas las columnas presentes, con null donde no hay dato: el INSERT las nombra todas.
     for (const col of COLUMNAS) expect(col in c, col).toBe(true);
     expect(c.terms).toBeNull();
+  });
+  it("las comillas que envuelven la celda entera se quitan («\"LOST\"» del CRM es LOST); una suelta dentro se queda", () => {
+    const c = filaACliente({ store: "MCA", account: "A", crm_type_store: '"LOST"', notes: null, terms: '45 days "approx"', contact_name: '""' });
+    expect(c.crm_type_store).toBe("LOST");
+    expect(c.terms).toBe('45 days "approx"');
+    expect(c.contact_name).toBeNull();
+  });
+  it("re-importar sobre la 181/182: las tres del CRM van con coalesce, y notes y archived_* no se tocan", () => {
+    const sql = sqlDeUpsert(1);
+    for (const col of ["crm_type_store", "crm_type_group", "associated_with"]) expect(sql).toContain(`${col} = coalesce(excluded.${col}, erp.customers.${col})`);
+    expect(sql).not.toMatch(/archived_at|archived_reason|\bnotes\b/);
   });
   it("un HOUSE 0 si vale: es numerico y no es «sin dato»", () => {
     expect(filaACliente({ store: "BRO", account: "X", house_no: 0 }).house_no).toBe(0);

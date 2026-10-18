@@ -40,6 +40,10 @@ export const MAPA = {
   "STATUS TYPE: GROUP": "status_group",
   "HISTORY TYPE: STORE": "history_store",
   "HISTORY TYPE: GROUP": "history_group",
+  // Migracion 182 (2026-10-18): las tres del CRM que la 180 dejo fuera. El dueno: «the crm stuff in the customer is missing».
+  "CRM TYPE: STORE": "crm_type_store",
+  "CRM TYPE: GROUP": "crm_type_group",
+  "ASSOCIATED WITH": "associated_with",
   "CONTACT": "contact_name",
   "TITLE": "contact_title",
   "ADRESS": "address",
@@ -50,8 +54,8 @@ export const MAPA = {
   "EULER": "euler_limit",
   "ACCOUNT NO": "account_no",
 };
-// Fuera a proposito (docs/PLAN-clientes.md, seccion 3): CONCATENATE (es STORE+ACCOUNT, se recompone), CRM TYPE
-// store/group (12 y 6 valores), Associated with (3), y la columna 28 sin cabecera (vacia).
+// Fuera a proposito: CONCATENATE (medido 2026-10-18: las 1.349 son EXACTAMENTE STORE+ACCOUNT; la pantalla la
+// recompone) y la columna 28 sin cabecera (vacia). Las tres de CRM entraron con la 182.
 
 export const COLUMNAS = [...new Set(Object.values(MAPA))];
 const NUMERICAS = new Set(["house_no", "credit_limit", "euler_limit"]);
@@ -120,6 +124,9 @@ export function filaACliente(o) {
       if (col === "house_no" && v !== null) v = Math.trunc(v);
     } else if (v !== null) {
       v = String(v).trim();
+      // Comillas que envuelven la celda entera son del Excel, no del dato: medido 2026-10-18, en toda la hoja solo las
+      // llevan 6 celdas, todas «"LOST"» en CRM TYPE: STORE. Un «"» suelto dentro del texto se queda.
+      if (/^".*"$/.test(v)) v = v.slice(1, -1).trim();
       if (v === "") v = null;
     }
     c[col] = v;

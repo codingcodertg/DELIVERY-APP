@@ -35,8 +35,28 @@ export function esSinPermiso(error: { code?: string | null; message?: string } |
 /** Las columnas que la pantalla usa. */
 export const COLUMNAS =
   "id, store, account, unified_account, house_no, added_batch, qb_status, activity_status, status_store, status_group, " +
-  "history_store, history_group, rep_history, rep_qb, rep_store, contact_name, contact_title, address, phone, email, " +
+  "history_store, history_group, crm_type_store, crm_type_group, associated_with, rep_history, rep_qb, rep_store, contact_name, contact_title, address, phone, email, " +
   "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason";
+
+/** Las tres de la 182 (CRM). El código llega antes que la migración: si la base aún no las tiene, se lee sin ellas. */
+export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associated_with"] as const;
+export const COLUMNAS_SIN_182 = COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !(COLUMNAS_DE_LA_182 as readonly string[]).includes(c)).join(", ");
+
+/** ¿«La 182 no está aplicada»? 42703 es undefined_column (Postgres); PGRST204 es lo mismo dicho por PostgREST. Solo esos. */
+export function faltaLa182(error: { code?: string | null } | null | undefined): boolean {
+  const code = error?.code ?? "";
+  return code === "42703" || code === "PGRST204";
+}
+
+/**
+ * Una lectura con respaldo: con las columnas de hoy, y si la base dice que una no existe (la 182 sin aplicar), la misma
+ * sin las tres de la 182, que llegan como null. Así la lista no se queda en blanco el rato entre el deploy y la migración.
+ */
+export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseLike<{ data: T; error: { code?: string | null; message: string } | null }>) {
+  const r = await consulta(COLUMNAS);
+  if (r.error && faltaLa182(r.error)) return consulta(COLUMNAS_SIN_182);
+  return r;
+}
 
 /** PostgREST corta en 1.000 filas por petición: se pagina hasta que una página venga corta. */
 export const PAGINA = 1000;
@@ -59,7 +79,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
     async leer() {
       const todos: Cliente[] = [];
       for (let p = 0; p < MAX_PAGINAS; p++) {
-        const { data, error } = await sb.from("customers").select(COLUMNAS).order("account").order("id").range(p * PAGINA, (p + 1) * PAGINA - 1);
+        const { data, error } = await leeConRespaldo((cols) => sb.from("customers").select(cols).order("account").order("id").range(p * PAGINA, (p + 1) * PAGINA - 1));
         if (error) return fallo(error);
         for (const f of data ?? []) todos.push(clienteDeLaBase(f as unknown as Record<string, unknown>));
         if ((data ?? []).length < PAGINA) break;

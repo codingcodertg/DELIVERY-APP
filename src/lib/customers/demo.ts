@@ -10,14 +10,14 @@ import type { Cliente, Parche } from "./reglas";
 const base = (n: number, c: Partial<Cliente>): Cliente => ({
   id: n, store: "MCA", account: `Demo Builder ${n}`, unified_account: null, house_no: n, added_batch: "1", qb_status: "ACTIVE",
   activity_status: null, status_store: null, status_group: null, history_store: null, history_group: null,
-  rep_history: null, rep_qb: null, rep_store: null, contact_name: null, contact_title: null, address: null, phone: null, email: null,
+  crm_type_store: null, crm_type_group: null, associated_with: null, rep_history: null, rep_qb: null, rep_store: null, contact_name: null, contact_title: null, address: null, phone: null, email: null,
   credit_limit: null, euler_limit: null, terms: null, account_no: null, notes: null, updated_at: "2026-10-16T12:00:00Z", updated_by: null,
   archived_at: null, archived_reason: null,
   ...c,
 });
 
 export const CLIENTES_DEMO: Cliente[] = [
-  base(1, { store: "MCA", account: "Demo Homes LLC", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER" }),
+  base(1, { store: "MCA", account: "Demo Homes LLC", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER", crm_type_store: "LARGE", crm_type_group: "LARGE", associated_with: "DEMO GROUP" }),
   base(2, { store: "PHR", account: "Demo Homes LLC", unified_account: "Demo Homes LLC", status_store: "ACTIVE DEC", status_group: "ACTIVE INC", history_store: "SMALL", history_group: "LARGE", rep_store: "FR", rep_qb: "IM", rep_history: "IM", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000 }),
   base(3, { store: "BRO", account: "Demo Drywall Inc", status_store: "NEW", status_group: "NEW", history_store: "INSIGNIFICANT", history_group: "SMALL", rep_store: "CRR", phone: "555-0102", terms: "Due on receipt" }),
   base(4, { store: "EDG", account: "Demo Tile Gallery", status_store: "LOST", status_group: "LOST", history_store: "MID", history_group: "MID", rep_store: "YG", rep_qb: "YG", email: "gallery@example.com", terms: "25 Days", credit_limit: 6000, account_no: "INTERNAL CREDIT" }),
