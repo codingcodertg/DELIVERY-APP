@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { arranqueDelFormulario, TIPOS_DE_SOLICITUD, TIPOS_DEL_EJECUTOR } from "./solicitud-campos";
+import { arranqueDelFormulario, TIPOS_DE_SOLICITUD, TIPOS_DEL_EJECUTOR, TIPOS_QUE_CREAN_BORRADOR } from "./solicitud-campos";
 
 // D-553: «Request» desde la fila del catálogo (traspaso del commit 7ec9380 de BH) y las columnas del
 // catálogo en la vista guardada (cca6a99). Lo que decide se importa (arranqueDelFormulario); lo que solo
@@ -18,6 +18,48 @@ describe("arranqueDelFormulario", () => {
     expect(a).toEqual({ tipo: "edit", productoFijo: "PLG2163", buscador: false, tipos: TIPOS_DEL_EJECUTOR });
     expect(a.tipos).not.toContain("new");
     expect(a.tipos).not.toContain("copy");
+  });
+});
+
+// D-NEXT: «+ Artículo nuevo» en la cabecera del catálogo. El dueño (2026-10-18): «in the erp the buttom to
+// create new items where did it went» — D-553 quitó «Request» del menú y la fila no ofrece «new».
+describe("«+ Artículo nuevo» (D-NEXT)", () => {
+  it("soloNuevos sin producto: arranca en «new» y ofrece exactamente los dos tipos que crean un borrador", () => {
+    const a = arranqueDelFormulario(undefined, true);
+    expect(a.tipo).toBe("new");
+    expect(a.productoFijo).toBeNull();
+    expect([...a.tipos]).toEqual(["new", "copy"]);
+    expect(a.tipos).toBe(TIPOS_QUE_CREAN_BORRADOR);
+    for (const v of ["edit", "reactivate", "deactivate", "discontinue"]) expect(a.tipos, v).not.toContain(v);
+  });
+  it("un producto manda sobre soloNuevos: la fila sigue arrancando en «edit» sobre ese producto", () => {
+    expect(arranqueDelFormulario("PLG2163", true)).toEqual(arranqueDelFormulario("PLG2163"));
+    expect(arranqueDelFormulario("PLG2163", true).tipo).toBe("edit");
+  });
+  it("sin soloNuevos nada cambia respecto a D-553 (el defecto es false)", () => {
+    expect(arranqueDelFormulario(undefined, false)).toEqual(arranqueDelFormulario(undefined));
+    expect(arranqueDelFormulario(undefined).tipos).toBe(TIPOS_DE_SOLICITUD);
+  });
+
+  const tabla = leer("src/components/erp/catalog-table.tsx");
+  const cajon = leer("src/components/erp/request-drawer.tsx");
+  const form = leer("src/components/erp/request-form.tsx");
+  it("la cabecera del catálogo tiene el botón, bilingüe, y solo para quien puede solicitar (canRequest)", () => {
+    expect(tabla).toMatch(/\{canRequest && \(\n\s*<Button size="sm" onClick=\{\(\) => setNuevoAbierto\(true\)\}>\{t\("\+ New item", "\+ Artículo nuevo"\)\}<\/Button>/);
+  });
+  it("el botón abre el MISMO cajón, sin producto, con los mismos desplegables de la página", () => {
+    expect(tabla).toMatch(/\{nuevoAbierto && requestPickers && \(\n\s*<RequestDrawer pickers=\{requestPickers\} canSeeCost=\{canSeeCost\} onClose=\{\(\) => setNuevoAbierto\(false\)\} \/>/);
+    // Sin `product=`: el cajón de artículo nuevo no apunta a ninguna fila.
+    expect(tabla).not.toMatch(/nuevoAbierto && requestPickers && \(\n\s*<RequestDrawer product=/);
+  });
+  it("sin producto, el cajón monta el formulario de verdad en modo soloNuevos", () => {
+    expect(cajon).toContain("<RequestForm {...pickers} canSeeCost={canSeeCost} soloNuevos />");
+    expect(cajon).toContain('t("New item", "Artículo nuevo")');
+  });
+  it("el formulario pasa soloNuevos al arranque, que es quien decide tipo y tipos", () => {
+    expect(form).toContain("const arranque = arranqueDelFormulario(targetSku, soloNuevos);");
+    expect(form).toMatch(/\{arranque\.tipos\.map\(\(rt\) => \(/);
+    expect(form).toContain("useState<TipoDeSolicitud>(arranque.tipo)");
   });
 });
 

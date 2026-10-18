@@ -119,6 +119,10 @@ export function CatalogTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
   const [requestRow, setRequestRow] = useState<CatalogRow | null>(null);
+  // D-NEXT: «+ Artículo nuevo» en la cabecera abre el mismo cajón sin producto. Se ofrece a quien puede
+  // enviar una solicitud (los mismos `requestPickers` que el botón de cada fila): en el ERP, todo el que
+  // llega al catálogo —staff, manager, admin— crea borradores (política «products draft insert», 066).
+  const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const canRequest = !!requestPickers;
   const colInfo = useMemo(() => catalogColumns({ canSeeCost, canRequest }), [canSeeCost, canRequest]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -368,6 +372,9 @@ export function CatalogTable({
           {t("Needs review", "Requiere revisión")}
         </label>
         <div className="ml-auto flex items-center gap-2">
+          {canRequest && (
+            <Button size="sm" onClick={() => setNuevoAbierto(true)}>{t("+ New item", "+ Artículo nuevo")}</Button>
+          )}
           {/* D-553: el ⚙ Columnas de la casa (SelectorDeColumnas, el de Órdenes y el Gestor), no uno
               segundo: mostrar/ocultar, subir/bajar y «Restablecer orden». Solo en la vista de tabla. */}
           {view === "table" && (
@@ -488,6 +495,9 @@ export function CatalogTable({
       {drawerId !== null && <ProductDrawer productId={drawerId} canEdit={canSeeCost} canSeeCost={canSeeCost} onClose={() => setDrawerId(null)} />}
       {requestRow && requestPickers && (
         <RequestDrawer product={requestRow} pickers={requestPickers} canSeeCost={canSeeCost} onClose={() => setRequestRow(null)} />
+      )}
+      {nuevoAbierto && requestPickers && (
+        <RequestDrawer pickers={requestPickers} canSeeCost={canSeeCost} onClose={() => setNuevoAbierto(false)} />
       )}
       {selected.size > 0 && (
         <BulkBar ids={[...selected]} canEdit={canSeeCost} onClear={() => setSelected(new Set())} onExport={exportSelection} />

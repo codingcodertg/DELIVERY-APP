@@ -33,16 +33,22 @@ export const TIPOS_DEL_EJECUTOR: readonly TipoDeSolicitud[] = ["edit", "reactiva
  * que actúan sobre un producto que ya existe —«new» y «copy» crearían OTRO artículo dentro del cajón
  * de este, y eso sigue en /erp/request—. Sin `targetSku` (la página /erp/request), exactamente como
  * antes: «new», con buscador y los seis tipos.
+ *
+ * D-NEXT: el botón «+ Artículo nuevo» de la cabecera del catálogo abre el mismo cajón SIN producto y con
+ * `soloNuevos`: arranca en «new» y ofrece solo los tipos que crean un borrador («new» y «copy»); los
+ * cuatro que actúan sobre un producto existente ya tienen su botón en cada fila. Un `targetSku` manda
+ * sobre `soloNuevos` (la fila es un producto concreto, y eso no se discute).
  */
-export function arranqueDelFormulario(targetSku?: string | null): {
+export function arranqueDelFormulario(targetSku?: string | null, soloNuevos = false): {
   tipo: TipoDeSolicitud;
   productoFijo: string | null;
   buscador: boolean;
   tipos: readonly TipoDeSolicitud[];
 } {
   const sku = (targetSku ?? "").trim();
-  if (!sku) return { tipo: "new", productoFijo: null, buscador: true, tipos: TIPOS_DE_SOLICITUD };
-  return { tipo: "edit", productoFijo: sku, buscador: false, tipos: TIPOS_DEL_EJECUTOR };
+  if (sku) return { tipo: "edit", productoFijo: sku, buscador: false, tipos: TIPOS_DEL_EJECUTOR };
+  if (soloNuevos) return { tipo: "new", productoFijo: null, buscador: false, tipos: TIPOS_QUE_CREAN_BORRADOR };
+  return { tipo: "new", productoFijo: null, buscador: true, tipos: TIPOS_DE_SOLICITUD };
 }
 
 export const ESTADOS_DEL_SOLICITANTE = ["ready", "not_ready"] as const;
