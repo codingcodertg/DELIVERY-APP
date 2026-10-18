@@ -338,8 +338,9 @@ describe("la ruta del día en Almacén, de solo lectura (quejas 5 y 7)", () => {
     const vista = pagina.slice(pagina.indexOf("ruta.map((g)"), pagina.indexOf("</tbody>"));
     expect(vista).toContain("Etapa");                            // la columna nueva
     // D-409: la pastilla sale de `pastillaDeEtapa` —la de Órdenes—, que dice «Received» si la recibió almacén.
-    expect(vista).toContain("const p = pastillaDeEtapa(d, recibidas, lang);");
-    expect(vista).toContain("style={{ background: p.color, color: \"#fff\" }}>{p.texto}</span>");
+    // Nota D-577 (2026-10-18): con quien mira, y la cámara dentro de la misma pastilla.
+    expect(vista).toContain("const p = pastillaDeEtapa(d, recibidas, lang, me);");
+    expect(vista).toContain("style={{ background: p.color, color: \"#fff\" }}>{p.texto}<IconoDeFotos p={p} /></span>");
   });
 
   it("y el vacío ya no habla de cargar: la ruta es el día entero", () => {

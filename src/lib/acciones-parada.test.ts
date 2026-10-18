@@ -418,7 +418,8 @@ describe("pantalla: los botones llegan a cada parada", async () => {
   });
   it("Órdenes y el Gestor pintan la pastilla", () => {
     // Nota D-573 (2026-10-16): el contexto lleva también `celdaDeEtapa`, la burbuja-selector de Almacén.
-    expect(leer("src/components/OrdersTable.tsx")).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa };");
+    // Nota D-577 (2026-10-18): y `me`, quien mira, para la cámara de «Delivered 📷».
+    expect(leer("src/components/OrdersTable.tsx")).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa, me };");
     expect(leer("src/app/(app)/routes/page.tsx")).toContain("recibidas, marcas: marcasDeParada }");
   });
 });

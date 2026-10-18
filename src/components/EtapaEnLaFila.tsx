@@ -14,6 +14,8 @@ import { ConfirmarTarifaAlComenzar } from "@/components/ConfirmarTarifaAlComenza
 import { ConfirmarPallets } from "@/components/ConfirmarPallets";
 import { ConfirmarAnulacion } from "@/components/ConfirmarAnulacion";
 import { MotivoDelSalto } from "@/components/MotivoDelSalto";
+import { IconoDeFotos } from "@/components/IconoDeFotos";
+import type { Pastilla } from "@/lib/recibir";
 import type { Delivery } from "@/lib/types";
 
 /**
@@ -34,7 +36,7 @@ import type { Delivery } from "@/lib/types";
  * Devuelve la celda (para cada fila, recibe la pastilla que la tabla iba a pintar) y el diálogo (uno para toda la
  * página, fuera de la tabla: dentro de una celda quedaría recortado por la caja que se desplaza).
  */
-export function useEtapaEnLaFila(): { celda: (d: Delivery, pastilla: { texto: string; color: string }, burbuja: ReactNode) => ReactNode; dialogo: ReactNode } {
+export function useEtapaEnLaFila(): { celda: (d: Delivery, pastilla: Pastilla, burbuja: ReactNode) => ReactNode; dialogo: ReactNode } {
   const { me, settings, setStage, notify, realRole } = useData();
   const { lang, t } = usePrefs();
   const [abierto, setAbierto] = useState<{ pedido: Delivery; salto: SaltoDeEtapa } | null>(null);
@@ -62,14 +64,14 @@ export function useEtapaEnLaFila(): { celda: (d: Delivery, pastilla: { texto: st
     void escribe(pedido, salto, () => setStage(pedido.id, salto.destino));
   };
 
-  const celda = (d: Delivery, pastilla: { texto: string; color: string }, burbuja: ReactNode): ReactNode => {
+  const celda = (d: Delivery, pastilla: Pastilla, burbuja: ReactNode): ReactNode => {
     if (!me) return burbuja;
     const saltos = saltosEnLaFila(me, d, settings.order_type_rules, ordenDeMisTiendas(d, me.store, settings.stores));
     if (saltos.length === 0) return burbuja;
     const ocupado = guardando === d.id;
     return (
       <span className="sema sema-switch" title={pastilla.texto} style={{ background: pastilla.color }} onClick={(e) => e.stopPropagation()}>
-        {ocupado ? t("Saving…", "Guardando…") : pastilla.texto} <span aria-hidden="true" style={{ opacity: .8 }}>▾</span>
+        {ocupado ? t("Saving…", "Guardando…") : <>{pastilla.texto}<IconoDeFotos p={pastilla} /></>} <span aria-hidden="true" style={{ opacity: .8 }}>▾</span>
         <select value={d.stage} disabled={ocupado}
           aria-label={t(`Stage of #${orderLabel(d)}`, `Etapa de #${orderLabel(d)}`)}
           onChange={(e) => {

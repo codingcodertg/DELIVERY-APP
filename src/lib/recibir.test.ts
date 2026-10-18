@@ -199,11 +199,12 @@ describe("las pantallas", () => {
     // Nota D-572: el ctx lleva también `accion` (la acción de la fila, en línea con la factura).
     // Nota D-573 (2026-10-16): y `celdaDeEtapa` (Almacén pinta la burbuja como selector, con la MISMA pastilla de
     // `pastillaDeEtapa`, que recibe).
-    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa };");
+    // Nota D-577 (2026-10-18): y `me`, quien mira, para la cámara de «Delivered 📷» (`fotos-en-la-etapa.test.ts`).
+    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa, me };");
     // la columna Etapa
-    expect(tabla).toContain("cell: (d, { lang, motivos, recibidas, marcas, celdaDeEtapa }) => { const p = pastillaDeEtapa(d, recibidas, lang);");
+    expect(tabla).toContain("cell: (d, { lang, motivos, recibidas, marcas, celdaDeEtapa, me }) => { const p = pastillaDeEtapa(d, recibidas, lang, me);");
     // la cabecera de la fila (la tarjeta del teléfono)
-    expect(tabla).toContain("cell: (d, { lang, byInvoice, recibidas, marcas, accion }) => { const s = pastillaDeEtapa(d, recibidas, lang);");
+    expect(tabla).toContain("cell: (d, { lang, byInvoice, recibidas, marcas, accion, me }) => { const s = pastillaDeEtapa(d, recibidas, lang, me);");
     expect(tabla).not.toContain("stageInfo(d.stage)");
   });
 
@@ -248,8 +249,9 @@ describe("las pantallas", () => {
   });
 
   it("la ficha: la pastilla de la cabecera y el historial («Recibida por almacén»)", () => {
-    expect(ficha).toContain("const info = existing ? pastillaDeEtapa({ id: existing.id, stage }, idsRecibidasPorAlmacen(events), lang)");
-    expect(ficha).toContain('<span className="sema" style={{ background: info.color, color: "#fff" }}>{info.texto}</span>');
+    // Nota D-577 (2026-10-18): con el conteo de fotos y quien mira, para la cámara.
+    expect(ficha).toContain("const info: Pastilla = existing ? pastillaDeEtapa({ id: existing.id, stage, photo_count: fotosQueCuentan.length }, idsRecibidasPorAlmacen(events), lang, me)");
+    expect(ficha).toContain('<span className="sema" style={{ background: info.color, color: "#fff" }}>{info.texto}<IconoDeFotos p={info} /></span>');
     expect(ficha).toContain('if (kind === KIND_RECIBIDA) return lang === "es" ? "📥 Recibida por almacén" : "📥 Received by warehouse";');
   });
 

@@ -10,6 +10,7 @@ import { orderTypeRule } from "@/lib/required";
 import { usePrefs } from "@/lib/prefs";
 import { canFulfill, ROLE_DEFAULT_COLUMNS } from "@/lib/constants";
 import { idsRecibidasPorAlmacen, pastillaDeEtapa, puedeRecibir, recibirOrden } from "@/lib/recibir";
+import { IconoDeFotos } from "@/components/IconoDeFotos";
 import { useConfirm } from "@/lib/confirm";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
@@ -398,8 +399,8 @@ export default function WarehousePage() {
                         <td className="td-pastillas">
                           {(() => {
                             // «Received» si la recibió almacén (D-409); si no, su etapa, como siempre.
-                            const p = pastillaDeEtapa(d, recibidas, lang);
-                            return <span className="sema" style={{ background: p.color, color: "#fff" }}>{p.texto}</span>;
+                            const p = pastillaDeEtapa(d, recibidas, lang, me);
+                            return <span className="sema" style={{ background: p.color, color: "#fff" }}>{p.texto}<IconoDeFotos p={p} /></span>;
                           })()}
                         </td>
                         {/* «📅 Reprogramar» (D-534), sin abrir la ficha: el toque no abre la orden. */}

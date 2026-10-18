@@ -75,7 +75,9 @@ import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
 import { almacenDeLaTienda, codigoDeTienda } from "@/lib/almacen-de-tienda";
-import { idsRecibidasPorAlmacen, KIND_RECIBIDA, pastillaDeEtapa, puedeRecibir, recibirOrden } from "@/lib/recibir";
+import { idsRecibidasPorAlmacen, KIND_RECIBIDA, pastillaDeEtapa, puedeRecibir, recibirOrden, type Pastilla } from "@/lib/recibir";
+import { puedeVerFotos } from "@/lib/fotos-en-la-etapa";
+import { IconoDeFotos } from "@/components/IconoDeFotos";
 import { etiquetaDeEventoDeParada, llegadasDeParadas, marcasDeParadas, NO_ESTA_LISTA } from "@/lib/acciones-parada";
 import { PastillaDeMarca } from "@/components/PastillaDeMarca";
 import {
@@ -1513,7 +1515,8 @@ export function OrderModal({
   };
 
   // La pastilla de la cabecera: «Received» si la recibió almacén (D-409), con los eventos de ESTA orden.
-  const info = existing ? pastillaDeEtapa({ id: existing.id, stage }, idsRecibidasPorAlmacen(events), lang) : { texto: stageLabel(stage, lang), color: stageInfo(stage).color };
+  // Y «📷» si el chofer subió fotos y esta persona puede verlas (D-577), contadas como las cuenta la ficha (`fotosQueCuentan`).
+  const info: Pastilla = existing ? pastillaDeEtapa({ id: existing.id, stage, photo_count: fotosQueCuentan.length }, idsRecibidasPorAlmacen(events), lang, me) : { texto: stageLabel(stage, lang), color: stageInfo(stage).color };
 
   // ---- Unsaved-changes lock ----
   // The form must never vanish mid-typing. Any edit makes it "dirty", and the
@@ -1678,7 +1681,7 @@ export function OrderModal({
             <div className="sub" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               {isNew ? t("Fill in the order details, then save as draft or submit for approval.", "Complete los datos de la orden, luego guárdela como borrador o envíela a aprobación.") : (
                 <>
-                  <span className="sema" style={{ background: info.color, color: "#fff" }}>{info.texto}</span>
+                  <span className="sema" style={{ background: info.color, color: "#fff" }}>{info.texto}<IconoDeFotos p={info} /></span>
                   {/* Saltada hoy o rechazada por el cliente (D-487), con la razón: lo primero que logística tiene que ver. */}
                   {existing && <PastillaDeMarca m={marcasDeParadas(events, todayISO()).get(existing.id)} lang={lang} />}
                   {/* The two things a driver reads off the paperwork, right at
@@ -1888,8 +1891,9 @@ export function OrderModal({
                 t={t}
               />
             )}
-            {/* ---------- Material photos (driver captures; sales reps don't see these) ---------- */}
-            {me.role !== "sales" && (canDeliver(me) || fotosQueCuentan.length > 0) && (
+            {/* ---------- Material photos (driver captures; sales reps don't see these: `puedeVerFotos`, la misma regla que
+                pone la cámara en la pastilla de etapa, D-577) ---------- */}
+            {puedeVerFotos(me) && (canDeliver(me) || fotosQueCuentan.length > 0) && (
               <>
                 <div className="section-label">
                   📷 {t("Material photos", "Fotos del material")}
