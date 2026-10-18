@@ -4,8 +4,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HojaCliente } from "@/app/estimator/HojaCliente";
 import {
-  AVISO_JUNTO_AL_TOTAL, ENCABEZADO, SUBTITULO, TEXTO_DE_ENTREGA,
-  cantidadParaElCliente, descripcionParaElCliente, hojaDelCliente, tiendaDeLaHoja,
+  AVISO_JUNTO_AL_TOTAL, ENCABEZADO, NOTA_DE_CAJAS, NOTA_DE_CAJAS_ES, SUBTITULO, TEXTO_DE_ENTREGA,
+  cantidadParaElCliente, descripcionParaElCliente, hojaDelCliente, notaDeCajas, tiendaDeLaHoja,
 } from "./hoja";
 import {
   borradorVacio, lineaSfVacia, lineaUnidadVacia, resumenDeTotales, totalDeMateriales, type QuoteDraft, type SfLine, type UnitLine,
@@ -106,7 +106,7 @@ describe("la hoja del cliente NO lleva nada interno", () => {
   it("las claves de la hoja son las de la plantilla: ninguna del borrador interno", () => {
     const claves = Object.keys(hojaDelCliente(borrador())).sort();
     expect(claves).toEqual([
-      "avisoJuntoAlTotal", "encabezado", "entrega", "filas", "preparadoPara", "referencia", "representante",
+      "avisoJuntoAlTotal", "encabezado", "entrega", "filas", "notaDeCajas", "preparadoPara", "referencia", "representante",
       "resumen", "subtitulo", "textoAhorro", "textoImpuesto", "textoSubtotal", "textoTotal", "tienda", "total", "validezConspicua",
     ]);
     for (const f of hojaDelCliente(borrador()).filas) expect(Object.keys(f).sort()).toEqual(["cantidad", "descripcion", "importe", "precioConDescuento"]);
@@ -372,5 +372,62 @@ describe("el descuento en la pantalla es un PRECIO opcional (D-451)", () => {
   });
   it("la línea de la pantalla enseña primero el precio con descuento; el % queda como dato entre paréntesis", () => {
     expect(pantalla).toContain('{t("Discount price", "Precio con descuento")}: <b data-total-bajo>{dinero(tot)}</b> <span className="hint">({numero(pct)}% {t("off", "menos")})</span>');
+  });
+});
+
+describe("la nota de cajas completas vuelve, solo cuando alguna línea se redondea (D-NEXT, 2026-10-18)", () => {
+  const sf = (patch: Partial<SfLine>): SfLine => ({ ...lineaSfVacia(), customer_category: "Tile", price_per_sf: 2, ...patch });
+  const unidad: UnitLine = { ...lineaUnidadVacia(), customer_category: "Grout", quantity: 3, unit: "Bag", unit_price: 20 };
+
+  it("con redondeo la saca, con el texto del dueño: 1,250 SF a 23.80 SF/caja son 53 cajas = 1,261.40 SF > 1,250", () => {
+    expect(notaDeCajas([sf({ requested_sf: 1250, sf_per_box: 23.8 })])).toBe(NOTA_DE_CAJAS);
+    expect(NOTA_DE_CAJAS).toBe("Some items are rounded up to the nearest full box; they are not sold by the piece or by the exact square footage requested.");
+    expect(NOTA_DE_CAJAS_ES).toContain("caja completa");
+  });
+  it("cajas que cubren EXACTAMENTE lo pedido no la sacan: 100 SF a 25 SF/caja = 4 cajas = 100 SF", () => {
+    expect(notaDeCajas([sf({ requested_sf: 100, sf_per_box: 25 })])).toBeNull();
+  });
+  it("las cajas escritas por el vendedor mandan: 4 cajas a mano para 90 SF la sacan; 3 cajas a mano para 100 SF (menos de lo pedido) no", () => {
+    expect(notaDeCajas([sf({ requested_sf: 90, sf_per_box: 25, boxes: 4 })])).toBe(NOTA_DE_CAJAS);
+    expect(notaDeCajas([sf({ requested_sf: 100, sf_per_box: 25, boxes: 3 })])).toBeNull();
+  });
+  it("una línea por unidad no la saca, ni sola ni junto a una por SF exacta", () => {
+    expect(notaDeCajas([unidad])).toBeNull();
+    expect(notaDeCajas([unidad, sf({ requested_sf: 100, sf_per_box: 25 })])).toBeNull();
+  });
+  it("una línea sin SF pedidos, sin SF/caja o sin nada no la saca; vacío tampoco", () => {
+    expect(notaDeCajas([])).toBeNull();
+    expect(notaDeCajas([sf({ requested_sf: null, sf_per_box: 23.8 })])).toBeNull();
+    expect(notaDeCajas([sf({ requested_sf: 1250, sf_per_box: null })])).toBeNull();
+    expect(notaDeCajas([sf({ requested_sf: 0, sf_per_box: 23.8 })])).toBeNull();
+    expect(notaDeCajas([lineaSfVacia()])).toBeNull();
+  });
+  it("basta UNA línea redondeada entre varias exactas", () => {
+    expect(notaDeCajas([sf({ requested_sf: 100, sf_per_box: 25 }), unidad, sf({ requested_sf: 101, sf_per_box: 25 })])).toBe(NOTA_DE_CAJAS);
+  });
+
+  const html = (q: QuoteDraft) => renderToStaticMarkup(createElement(HojaCliente, { hoja: hojaDelCliente(q) }));
+  it("en la hoja sale UNA vez, bajo la tabla y ANTES de los totales y de «Delivery: Available…» (D-451 sigue: nada detrás)", () => {
+    const h = html(borrador()); // la línea del borrador: 1,250 SF a 23.80 → 53 cajas
+    expect(hojaDelCliente(borrador()).notaDeCajas).toBe(NOTA_DE_CAJAS);
+    expect(h.split(NOTA_DE_CAJAS).length - 1).toBe(1);
+    const nota = h.indexOf(NOTA_DE_CAJAS), tabla = h.indexOf("</table>"), subtotal = h.indexOf("Subtotal:"), entrega = h.indexOf(TEXTO_DE_ENTREGA);
+    expect(tabla).toBeGreaterThan(-1);
+    expect(subtotal).toBeGreaterThan(-1);
+    expect(entrega).toBeGreaterThan(-1);
+    expect(nota).toBeGreaterThan(tabla);
+    expect(nota).toBeLessThan(subtotal);
+    expect(nota).toBeLessThan(entrega);
+  });
+  it("en la hoja NO sale si ninguna línea se redondea", () => {
+    const q = borrador({ lines: [sf({ requested_sf: 100, sf_per_box: 25 }), unidad] });
+    expect(hojaDelCliente(q).notaDeCajas).toBeNull();
+    expect(html(q)).not.toContain("rounded up");
+    expect(html(q)).not.toContain("data-nota-cajas");
+  });
+  it("la pantalla del vendedor la pinta con la misma función, en su idioma, junto a los totales", () => {
+    const pantalla = leer("src/app/estimator/Estimador.tsx");
+    expect(pantalla).toContain("{notaDeCajas(draft.lines) !== null && (");
+    expect(pantalla).toContain("<div className=\"hint\" data-nota-cajas>{lang === \"es\" ? NOTA_DE_CAJAS_ES : NOTA_DE_CAJAS}</div>");
   });
 });
