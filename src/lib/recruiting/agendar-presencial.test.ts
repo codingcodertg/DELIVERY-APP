@@ -145,6 +145,10 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     expect(agendar).toContain("plantillaDeAjustes(templates)");
     expect(agendar).toContain("guardarYMandar");
     expect(agendar).toContain("<textarea");
+    // D-NEXT: RingCentral se abre en el clic, ANTES de esperar a la base (si no, el navegador no abre la app externa).
+    const abre = agendar.indexOf("window.location.href = r.enlace;"); const guarda = agendar.indexOf("await agendar(iso);");
+    expect(abre).toBeGreaterThan(0);
+    expect(guarda).toBeGreaterThan(abre);
     const modal = readFileSync(new URL("../../components/recruiting/ModalHost.tsx", import.meta.url), "utf8");
     // El diálogo nuevo es el que se monta para «inperson», y la entrevista tiene la salida que guarda y abre el agendar.
     expect(modal).toContain("<InPersonScheduleModal id={inPersonId}");
