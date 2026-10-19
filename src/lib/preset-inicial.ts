@@ -1,7 +1,7 @@
 import type { UserRole } from "@/lib/types";
 
 /**
- * El chip de fechas de la pantalla de Órdenes: «Todas · Hoy · Mañana» (D-NEXT).
+ * El chip de fechas de la pantalla de Órdenes: «Todas · Hoy · Mañana» (D-588).
  *
  * El dueño, 2026-10-18: «remove reciente y que sea todas hoy y manana en deliveries app». «Reciente» (D-350: ayer, hoy y
  * mañana) desaparece; en su sitio entra «Mañana», que es solo lo que tiene fecha de entrega mañana (día de Texas).
@@ -9,7 +9,7 @@ import type { UserRole } from "@/lib/types";
 export type PresetDeFechas = "all" | "today" | "tomorrow";
 export const PRESETS_DE_FECHAS: readonly PresetDeFechas[] = ["all", "today", "tomorrow"];
 
-/** El valor con el que se guardó el chip «Reciente» hasta D-NEXT (filtros guardados, `p`). Ya no existe. */
+/** El valor con el que se guardó el chip «Reciente» hasta D-588 (filtros guardados, `p`). Ya no existe. */
 export const PRESET_RETIRADO = "recent";
 
 /**
@@ -17,7 +17,7 @@ export const PRESET_RETIRADO = "recent";
  *
  * - Ventas en «Todas» (D-507): «el view de sales en orders quiero que sea all por default en vez de recientes». Su cartera
  *   es pequeña y lo que necesita ver de entrada es todo lo suyo.
- * - Los demás nacían en «Reciente» (D-350). Sin «Reciente», nacen en **«Hoy»** (D-NEXT): es el chip que más se le parece
+ * - Los demás nacían en «Reciente» (D-350). Sin «Reciente», nacen en **«Hoy»** (D-588): es el chip que más se le parece
  *   —el centro de aquella ventana— y el que menos carga; «Todas» pide el historial entero al proveedor.
  *
  * Es solo el punto de PARTIDA: cualquiera cambia de pestaña con un clic, y lo que elija manda desde ese momento.

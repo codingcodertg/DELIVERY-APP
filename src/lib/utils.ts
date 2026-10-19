@@ -432,7 +432,7 @@ export function seesAllHistory(role: string | null | undefined, permissions?: re
 }
 
 /**
- * El chip «Mañana» de la pantalla de Órdenes (D-NEXT): solo lo que tiene fecha de entrega MAÑANA, contando los días
+ * El chip «Mañana» de la pantalla de Órdenes (D-588): solo lo que tiene fecha de entrega MAÑANA, contando los días
  * en Texas (`todayISO`), igual que `isToday`. Sin fecha no entra: no está programada para mañana. `today` se
  * inyecta para probar el cruce de medianoche.
  *

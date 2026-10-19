@@ -24683,7 +24683,7 @@ por persona (`routes_columns`, D-331). Medido en el demo: ofrece las ocho, y qui
 > **⚠ Reemplazada en parte por D-507** (2026-10-10): para **ventas** la pantalla nace en «Todas», no en «Reciente».
 > Los demás roles siguen igual.
 >
-> **⚠ Reemplazada en parte por D-NEXT** (2026-10-18): el chip **«Reciente» ya no existe** —el dueño, *«remove reciente y que
+> **⚠ Reemplazada en parte por D-588** (2026-10-18): el chip **«Reciente» ya no existe** —el dueño, *«remove reciente y que
 > sea todas hoy y manana en deliveries app»*—; en su sitio va «Mañana», y los roles que nacían aquí en «Reciente» nacen en
 > **«Hoy»**. La capacidad `history` no cambia.
 
@@ -37578,7 +37578,7 @@ en el quote builder solo para admin habilita la lista de todas las quotes ya hec
 
 ## D-477 · «Reciente» es solo ayer, hoy y mañana: las vencidas abiertas ya no entran (deshace D-351)
 
-> **⚠ Reemplazada por D-NEXT** (2026-10-18): el chip «Reciente» y `withinRecent` **se quitaron** (el dueño: *«remove reciente y
+> **⚠ Reemplazada por D-588** (2026-10-18): el chip «Reciente» y `withinRecent` **se quitaron** (el dueño: *«remove reciente y
 > que sea todas hoy y manana en deliveries app»*). Lo que esta entrada fijaba —qué días entraban en «Reciente»— ya no
 > decide nada; lo vencido sigue en «Outdated» y en «Todas», como aquí se dice.
 
@@ -45315,7 +45315,6 @@ Ya existía casi todo menos la puerta: `ScheduleModal` con `kind="inperson"` (`M
 **Pruebas:** `src/lib/recruiting/agendar-presencial.test.ts` (10: fecha vacía/inválida/pasada/igual a ahora/futura; etapa para activo, sin etapa en el pipeline, contratado y descartado no retroceden; contacto de la cita con y sin lugar/nota; lugares sin TBD y con el del candidato; texto en los dos idiomas con fecha, hora y lugar resueltos; «nuestra oficina» sin lugar; enlace con número limpio y texto, sin teléfono nada; el SMS de confirmación marcado y distinto del de D-581; puerta: el diálogo pasa por la librería, se monta para «inperson», la entrevista tiene `saveAndSchedule` y la vista tiene el botón). Proveedor: ninguno real; ningún SMS salió. **Mutantes 17 de 17** caen con una prueba con nombre (`~/.claude/herramientas/mutantes/tanda-agendar-presencial.json`): fecha pasada aceptada; «ahora» como futura; sin fecha válida; contratado vuelve atrás; sin etapa igual mueve; contacto sin lugar/nota; contacto que no es «In person»; «TBD» como lugar; lugar del candidato perdido; español en inglés; `{place}` sin resolver; hueco sin lugar; sin teléfono prepara igual; enlace sin texto; confirmación confundida con «¿te puedo llamar?»; la entrevista pierde la salida; la vista pierde el botón. `npx tsc --noEmit` limpio.
 
 **No verificado:** en navegador (que RingCentral abra con el texto; el ancho de la barra de botones de la entrevista con uno más; el `datetime-local` en el móvil); `next build`; nada contra producción desde la rama.
-## D-NEXT · ERP: Inventory, Review y Approvals pasan a pestañas de Catálogo; PO ↔ Proforma y Receiving, a pestañas de Compras; Analítica es una sola entrada con sus pestañas dentro
 ## D-586 · ERP: Inventory, Review y Approvals pasan a pestañas de Catálogo; PO ↔ Proforma y Receiving, a pestañas de Compras; Analítica es una sola entrada con sus pestañas dentro
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo el ERP) · **Sin migración** · Reemplaza en parte a D-553 (el menú).
@@ -45365,7 +45364,7 @@ En navegador (la fila a ancho de teléfono, el encendido real de la barra); el `
 
 **No verificado:** en navegador.
 
-## D-NEXT · Órdenes: el chip de fechas es «Todas · Hoy · Mañana»; «Reciente» se quita, y ventas en «Mañana» ve las de todos (solo ver)
+## D-588 · Órdenes: el chip de fechas es «Todas · Hoy · Mañana»; «Reciente» se quita, y ventas en «Mañana» ve las de todos (solo ver)
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (toca `deliveries`) · Sin migración · Rama `worktree-agent-a4c8e8133ec478ba0`.
 

@@ -3,7 +3,7 @@ import { PRESETS_DE_FECHAS, PRESET_RETIRADO, presetDeFechasLeido, presetInicialD
 import { PRESETS_GUARDABLES, filtrosGuardadosValidos } from "./user-prefs";
 import { ROLE_ORDER } from "./constants";
 
-/** D-NEXT · El chip es «Todas · Hoy · Mañana»; «Reciente» (D-350) se quitó. Ventas sigue naciendo en «Todas» (D-507). */
+/** D-588 · El chip es «Todas · Hoy · Mañana»; «Reciente» (D-350) se quitó. Ventas sigue naciendo en «Todas» (D-507). */
 describe("con qué pestaña nace Órdenes", () => {
   it("ventas en «Todas» (D-507, no cambia)", () => {
     expect(presetInicialDe("sales")).toBe("all");

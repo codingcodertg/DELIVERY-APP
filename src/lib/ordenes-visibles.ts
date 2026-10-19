@@ -50,12 +50,12 @@ export type ContextoDeLista = {
   /** Las tiendas de almacén de quien mira (`tiendasDeAlmacen`), normalizadas. Vacío = sin acotar. */
   tiendasDeAlmacen: string[];
   /** El chip de fechas pulsado («all» · «today» · «tomorrow»). Solo decide una cosa: con «tomorrow», ventas ve las de TODOS
-   *  para mañana (`esMananaDeTodos`, D-NEXT). Sin él, nada cambia. */
+   *  para mañana (`esMananaDeTodos`, D-588). Sin él, nada cambia. */
   chip?: string;
 };
 
 /**
- * ¿Entra esta orden en la lista de un VENDEDOR por ser de mañana, aunque no sea suya ni de su tienda? (D-NEXT)
+ * ¿Entra esta orden en la lista de un VENDEDOR por ser de mañana, aunque no sea suya ni de su tienda? (D-588)
  *
  * El dueño, 2026-10-18: «when they clicked todas and hoy but when they clicked mananna sales people will eb able to see all
  * order from everyone for tomorrow but the columsn they will see the same columns as the ones showed in rutas de hoy and if
@@ -70,7 +70,7 @@ export type ContextoDeLista = {
  *
  * **Es de PANTALLA, como D-405.** La RLS de `deliveries` (131) deja a un vendedor leer las de otras tiendas SOLO si no
  * tiene «Tiendas que ve» (`visible_stores`) marcadas; con ellas, la base no manda las filas de fuera y aquí no hay nada
- * que ampliar. Se dice en D-NEXT.
+ * que ampliar. Se dice en D-588.
  */
 export function esMananaDeTodos(
   d: Pick<Delivery, "delivery_date" | "stage">,
@@ -240,7 +240,7 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
   for (const d of deliveries) {
     // La búsqueda vale igual para las tres listas y para lo ampliado de abajo.
     if (!coincideConLaBusqueda(d, ctx.busqueda)) continue;
-    // Ventas con «Mañana» (D-NEXT): la de otro, de otra tienda, entra SOLO si es de mañana — y solo en la lista normal
+    // Ventas con «Mañana» (D-588): la de otro, de otra tienda, entra SOLO si es de mañana — y solo en la lista normal
     // (`visibles`): ni en «Outdated» (mañana no está atrasada) ni en «Factura pendiente» (que tiene su propio alcance, D-404).
     const deTodosManana = esMananaDeTodos(d, ctx);
     if (deTodosManana) { visibles.push(d); continue; }

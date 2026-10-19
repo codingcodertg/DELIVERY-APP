@@ -2,7 +2,7 @@ import type { Profile } from "@/lib/types";
 import { COLUMNAS_DEL_GESTOR } from "@/lib/routes-columns";
 
 /**
- * Ventas con el chip «Mañana» en Órdenes (D-NEXT).
+ * Ventas con el chip «Mañana» en Órdenes (D-588).
  *
  * El dueño, 2026-10-18: «when they clicked todas and hoy but when they clicked mananna sales people will eb able to see
  * all order from everyone for tomorrow but the columsn they will see the same columns as the ones showed in rutas de hoy

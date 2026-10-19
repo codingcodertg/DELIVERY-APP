@@ -91,7 +91,7 @@ export default function OrdersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<string>("all");
-  // El chip de fechas es «Todas · Hoy · Mañana» (D-NEXT; «Reciente» de D-350 se quitó: el dueño, «remove reciente y que
+  // El chip de fechas es «Todas · Hoy · Mañana» (D-588; «Reciente» de D-350 se quitó: el dueño, «remove reciente y que
   // sea todas hoy y manana en deliveries app»). «Hoy» por defecto; ventas nace en «Todas» (D-507): su cartera es pequeña
   // y lo que necesita ver de entrada es todo lo suyo. Qué le toca a cada rol lo decide `presetInicialDe`.
   // Se aplica UNA vez, cuando llega el perfil —al montar, `me` todavía puede ser null—, y nunca después: a partir
@@ -426,7 +426,7 @@ export default function OrdersPage() {
       tiendas: settings.stores,
       // Almacén solo ve lo de sus tiendas, también aquí (antes era solo en su cola).
       tiendasDeAlmacen: me?.role === "warehouse" ? tiendasDeAlmacen(me.store, settings.stores) : [],
-      // Ventas con «Mañana» ve las de todos para mañana (D-NEXT, `esMananaDeTodos`); con «Todas» y «Hoy», lo de siempre.
+      // Ventas con «Mañana» ve las de todos para mañana (D-588, `esMananaDeTodos`); con «Todas» y «Hoy», lo de siempre.
       chip: preset,
     }),
     [deliveries, q, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores, preset],

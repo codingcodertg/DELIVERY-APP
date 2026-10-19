@@ -211,7 +211,7 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
     for (const r of HISTORY_EXEMPT_ROLES) expect(ROLE_CAPS[r], r).toContain("history");
     expect(CAPABILITIES.find((c) => c.key === "history")).toMatchObject({ es: "Ver todas las órdenes" });
   });
-  // «Reciente» (D-350/D-477: ayer, hoy y mañana, `withinRecent`) se quitó en D-NEXT. El dueño, 2026-10-18: «remove reciente y
+  // «Reciente» (D-350/D-477: ayer, hoy y mañana, `withinRecent`) se quitó en D-588. El dueño, 2026-10-18: «remove reciente y
   // que sea todas hoy y manana en deliveries app». En su sitio, «Mañana».
   it("«Mañana» es SOLO el día siguiente: ni hoy, ni ayer, ni pasado mañana; sin fecha no entra; la hora no cuenta", () => {
     const hoy = "2026-10-18";

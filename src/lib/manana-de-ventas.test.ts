@@ -11,7 +11,7 @@ import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation } from "./types";
 
 /**
- * D-NEXT · Ventas con el chip «Mañana». El dueño, 2026-10-18: «when they clicked todas and hoy but when they clicked mananna
+ * D-588 · Ventas con el chip «Mañana». El dueño, 2026-10-18: «when they clicked todas and hoy but when they clicked mananna
  * sales people will eb able to see all order from everyone for tomorrow but the columsn they will see the same columns as
  * the ones showed in rutas de hoy and if the the order is not from them when trying to open it to see the full details it
  * wont open if its not theres».

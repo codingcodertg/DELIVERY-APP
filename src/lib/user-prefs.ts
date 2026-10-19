@@ -147,7 +147,7 @@ export function plantillasValidas(v: unknown): PlantillaDeColumnas[] {
 export const CLAVE_DE_FILTROS = "_filtros";
 export const MAX_FILTROS_GUARDADOS = 10;
 export const MAX_NOMBRE_DE_FILTRO = 40;
-/** Los chips de fechas que se pueden guardar: los tres que la pantalla enseña («Todas · Hoy · Mañana», D-NEXT). Lo guardado
+/** Los chips de fechas que se pueden guardar: los tres que la pantalla enseña («Todas · Hoy · Mañana», D-588). Lo guardado
  *  antes como «recent» («Reciente», retirado) se lee como «Hoy»: `presetDeFechasLeido`. */
 export const PRESETS_GUARDABLES: readonly string[] = PRESETS_DE_FECHAS;
 const MAX_COLUMNAS_FILTRADAS = 20;
