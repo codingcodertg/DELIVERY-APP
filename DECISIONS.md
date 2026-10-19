@@ -45578,3 +45578,21 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `agendas-ringcentral.test.ts` (la variable: lista válida, limpia, incompletas, vacía, mal formada, objeto suelto; la traza; el helper con credenciales; la ruta con allSettled y sin duplicar; el proveedor), `contacto-ringcentral.test.ts` ajustada. Mutantes: 5 de 5 caen (`mut594`).
 
 **No medido:** el primer POST real a su agenda (solo se leyó); al primer «Llamar»/«Texto» tras publicar, su app debe enseñar el contacto. La variable en Vercel solo entra en el deploy que la siga: este release.
+
+## D-596 · Build: en Vercel no se repiten el type-check ni el lint (ya los hace el CI); el contenedor de Vercel se quedaba sin memoria en ese paso
+
+**Fecha:** 2026-10-19 · **Versión:** repo 1.461.0 (ninguna app cambia) · Sin migración · Hecho directo por el orquestador en `feat/build-vercel-sin-typecheck`. Infraestructura de build; no toca comportamiento.
+
+**Qué pasó (medido el 2026-10-19).** Seis builds de Vercel murieron en «Linting and checking validity of types» con `[BUILD_UTILS_SPAWN_SIGKILL]` y el aviso de **OOM** del contenedor: tres del PR #408 (D-592 + D-593, hasta 28 min antes de morir), y el PR #412 (D-595, **dos líneas de texto**) a los 2,5 min. En todos, el CI de GitHub (`tsc --noEmit`, vitest, `next build` completo) pasó en ~5 min, y `tsc` y `next build` locales también. Entre medias, otros builds idénticos pasaron en 4–5 min: el proyecto (3.800 líneas en `routes/page.tsx`, 430 ficheros de prueba, Sentry subiendo source maps en el mismo build) está en el límite de memoria del contenedor de Vercel y el paso de tipos cae según el día.
+
+**Qué cambia.** `next.config.mjs`: `typescript.ignoreBuildErrors` y `eslint.ignoreDuringBuilds` valen **`!!process.env.VERCEL`**: en el contenedor de Vercel, el build solo compila; en el CI y en local, `next build` sigue comprobando tipos y lint como siempre. **No se pierde ninguna comprobación**: un PR no se fusiona sin el CI en verde (que corre `tsc --noEmit` aparte, vitest y el `next build` completo), y `main` solo recibe PRs fusionados. Lo que se quita es una repetición en la máquina con menos memoria.
+
+**Qué se descartó.**
+- *Reintentar y partir PRs* (como con #408): funcionó una vez y falló al siguiente cambio de dos líneas; no es un arreglo.
+- *Máquina de build mayor en Vercel* («Enhanced build machine», de pago): es decisión del dueño y cuesta; se puede más adelante si hace falta por otra razón.
+- *`NODE_OPTIONS=--max-old-space-size`*: el límite es la RAM del contenedor (el proceso muere con SIGKILL), no el tope del heap de Node.
+- *Quitar la subida de source maps a Sentry en el build*: también ahorra memoria, pero quita trazas legibles en producción; se guarda como segunda palanca si esto no basta.
+
+**Pruebas:** `src/lib/build-en-vercel.test.ts` (los dos saltos cuelgan solo de `VERCEL`, nunca `true` a secas; el CI corre tsc, vitest y `next build` y no define `VERCEL`).
+
+**No medido:** el siguiente build de Vercel con esto es la medida: el paso de tipos desaparece del log y el build debe tardar ~3 min.
