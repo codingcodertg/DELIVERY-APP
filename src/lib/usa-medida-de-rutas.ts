@@ -160,7 +160,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
   // Walk the legs into per-stop arrival clocks. With a depot the route is [depot, s1, …, sN] so leg k drives INTO stop
   // k; without one the first stop is the start (no lead-in drive).
   const etas: Record<string, string> = {};
-  // D-NEXT: la medida de hoy no sale antes de la hora que es (Ernesto: «Why does ETA say 8 to orders that havent been done yet?»).
+  // D-602: la medida de hoy no sale antes de la hora que es (Ernesto: «Why does ETA say 8 to orders that havent been done yet?»).
   const salida = salidaDeLaMedida(e.fecha);
   let clock = salida;
   let servicio = 0;

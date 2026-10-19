@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { SALIDA_MIN, salidaDeLaMedida } from "./salida-de-la-medida";
 
-// D-NEXT (2026-10-19) · Ernesto: «Why does ETA say 8 to orders that havent been done yet?». La medida de hoy no sale antes de la hora que es.
+// D-602 (2026-10-19) · Ernesto: «Why does ETA say 8 to orders that havent been done yet?». La medida de hoy no sale antes de la hora que es.
 
 describe("la medida de la ruta sale a la hora que es, no siempre a las 08:00", () => {
   it("hoy, pasadas las 08:00, sale AHORA (12:40 → 760); antes de las 08:00, a las 08:00", () => {

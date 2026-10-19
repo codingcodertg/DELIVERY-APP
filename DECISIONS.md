@@ -45709,9 +45709,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · Gestor y Mi ruta: la llegada (ETA) de las paradas pendientes de HOY se mide desde la hora que es, no desde las 08:00 («Why does ETA say 8 to orders that havent been done yet?»)
+## D-602 · Gestor y Mi ruta: la llegada (ETA) de las paradas pendientes de HOY se mide desde la hora que es, no desde las 08:00 («Why does ETA say 8 to orders that havent been done yet?»)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (deliveries) · Sin migración · Hecho directo por el orquestador en `fix/eta-desde-ahora`.
+**Fecha:** 2026-10-19 · **Versión:** deliveries 1.339.0 (repo 1.468.0) · Sin migración · Hecho directo por el orquestador en `fix/eta-desde-ahora`.
 
 **Pedido (Ernesto Castillo, chofer, por el dueño, 2026-10-19, literal):** «Why does ETA say 8 to orders that havent been done yet?». Captura del Gestor a las 12:40: once paradas hechas (✓ 08:33 … ✓ 12:40), la parada 12 (P8, pendiente) con ETA **8:23** y la 13 con 14:20.
 

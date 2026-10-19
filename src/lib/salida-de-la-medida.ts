@@ -1,4 +1,4 @@
-/* ---- A qué hora «sale» la medida de una ruta (D-NEXT, 2026-10-19) ----
+/* ---- A qué hora «sale» la medida de una ruta (D-602, 2026-10-19) ----
  * Ernesto (chofer): «Why does ETA say 8 to orders that havent been done yet?». A las 12:40, con 11 paradas hechas, la
  * parada 12 (pendiente) decía 8:23: la medida de la ruta siempre arrancaba de la base a las 08:00 (`DAY_START_MIN`),
  * aunque fueran las doce y el camión llevara horas fuera. Las paradas HECHAS ya no están en la lista que se mide (solo
