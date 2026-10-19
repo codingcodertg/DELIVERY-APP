@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { extensionDe, nombreDelCv, nombreSeguro } from "./nombre-del-cv";
 
-// D-NEXT · «quiero que todos los resume que suba al cv part upload ahi automaticamente se rename al nombre del
+// D-590 · «quiero que todos los resume que suba al cv part upload ahi automaticamente se rename al nombre del
 // candidato + resume» (el dueño, 2026-10-19).
 
 describe("nombreDelCv: nombre del candidato + resume + la extensión del fichero", () => {

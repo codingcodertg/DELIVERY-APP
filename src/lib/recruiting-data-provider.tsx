@@ -62,12 +62,12 @@ interface DataState {
   contactsFor: (candidateId: string) => Contact[];
   stageHistoryFor: (candidateId: string) => StageHistory[];
   // resume/CV attachments (Supabase Storage)
-  /** Sube el CV y lo guarda como «<nombre del candidato> resume.<ext>» (D-NEXT). `candidateName` lo pasa quien acaba de
+  /** Sube el CV y lo guarda como «<nombre del candidato> resume.<ext>» (D-590). `candidateName` lo pasa quien acaba de
    *  crear al candidato (aún no está en `candidates`); si no, se busca en la lista. */
   uploadResume: (candidateId: string, file: File, candidateName?: string) => Promise<void>;
   removeResume: (candidateId: string) => Promise<void>;
   openResumeFile: (candidateId: string) => Promise<void>;
-  /** El enlace firmado del CV para pegarlo en un mensaje (D-NEXT, «Copiar para el gerente»): `null` sin CV o si falla. */
+  /** El enlace firmado del CV para pegarlo en un mensaje (D-590, «Copiar para el gerente»): `null` sin CV o si falla. */
   resumeLink: (candidateId: string, seconds: number) => Promise<string | null>;
   // multiple attachments (#3)
   attachmentsFor: (candidateId: string) => Attachment[];
@@ -459,7 +459,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // ---------------- Resume / CV (Supabase Storage) ----------------
   const uploadResume = useCallback<DataState["uploadResume"]>(
     async (candidateId, file, candidateName) => {
-      // D-NEXT: el fichero se renombra al subirlo: «Ana Pérez resume.pdf». El dueño: «todos los resume que suba al cv
+      // D-590: el fichero se renombra al subirlo: «Ana Pérez resume.pdf». El dueño: «todos los resume que suba al cv
       // part upload ahi automaticamente se rename al nombre del candidato + resume».
       const nombre = nombreDelCv(candidateName ?? candidates.find((c) => c.id === candidateId)?.name, file.name);
       const path = `${candidateId}/${Date.now()}_${nombreSeguro(nombre)}`;

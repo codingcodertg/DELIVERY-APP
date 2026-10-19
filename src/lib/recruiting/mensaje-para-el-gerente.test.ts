@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { citaPresencial, mensajeParaElGerente, notaDeLaEntrevista, SEGUNDOS_DEL_ENLACE_DEL_CV } from "./mensaje-para-el-gerente";
 import type { Candidate, Contact } from "./types";
 
-// D-NEXT · «en el hr app haya una opcion que sea como copiar mensaje para el manager, que es copiar, nombre, telefono,
+// D-590 · «en el hr app haya una opcion que sea como copiar mensaje para el manager, que es copiar, nombre, telefono,
 // curriculum la nota que deje en la entrevista y la hora a la que lo cite de cita personal» (el dueño, 2026-10-19).
 
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");

@@ -1,5 +1,5 @@
 // ============================================================
-// El CV que se sube se llama como el candidato (D-NEXT, 2026-10-19). El dueño: «quiero que todos los resume que suba al
+// El CV que se sube se llama como el candidato (D-590, 2026-10-19). El dueño: «quiero que todos los resume que suba al
 // cv part upload ahi automaticamente se rename al nombre del candidato + resume».
 // ============================================================
 

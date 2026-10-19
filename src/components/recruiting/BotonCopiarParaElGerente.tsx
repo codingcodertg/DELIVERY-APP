@@ -7,7 +7,7 @@ import { mensajeParaElGerente, SEGUNDOS_DEL_ENLACE_DEL_CV } from "@/lib/recruiti
 import type { Candidate } from "@/lib/recruiting/types";
 
 /**
- * «📋 Copiar para el gerente» (D-NEXT): copia al portapapeles nombre, teléfono, enlace al CV (firmado, 7 días), la nota
+ * «📋 Copiar para el gerente» (D-590): copia al portapapeles nombre, teléfono, enlace al CV (firmado, 7 días), la nota
  * de la entrevista y la cita presencial, para pegarlo en un texto o correo al gerente de la tienda. Pasa a «Copiado ✓»
  * unos segundos. Si el navegador no deja copiar (iOS tras esperar el enlace), enseña el texto para copiarlo a mano.
  */

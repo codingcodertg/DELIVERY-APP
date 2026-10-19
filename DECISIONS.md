@@ -45452,9 +45452,9 @@ En el proveedor (`data-provider.tsx`, `ubicarSiHaceFalta`): un punto geocodifica
 
 Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se midió con la #1071 real: hay que abrirla, y al guardar tiene que decir «falta ciudad, estado o código postal». La corrección de su dirección es a mano, en la ficha.
 
-## D-NEXT · RR. HH.: «📋 Copiar para el gerente» (nombre, teléfono, enlace al CV, nota de la entrevista y cita presencial, al portapapeles); y el CV subido se renombra «<candidato> resume.<ext>»
+## D-590 · RR. HH.: «📋 Copiar para el gerente» (nombre, teléfono, enlace al CV, nota de la entrevista y cita presencial, al portapapeles); y el CV subido se renombra «<candidato> resume.<ext>»
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-copiar-para-el-gerente`. Se apoya en D-581 (el botón va a su lado) y D-585 (la cita presencial sale del contacto que deja).
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.46.0 (repo 1.456.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-copiar-para-el-gerente`. Se apoya en D-581 (el botón va a su lado) y D-585 (la cita presencial sale del contacto que deja).
 
 **Pedidos del dueño**, literales: *«quiero que en el hr app haya una opcion que sea como copiar mensaje para el manager, que es copiar, nombre, telefono, curriculum la nota que deje en la entrevista y la hora a la que lo cite de cita personal»* y, acto seguido, *«ah y quiero que todos los resume que suba al cv part upload ahi automaticamente se rename al nombre del candidato + resume»*.
 

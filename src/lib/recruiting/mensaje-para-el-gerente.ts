@@ -3,7 +3,7 @@ import { fmtDateTime } from "./utils";
 import { RESULTADO_AGENDADA } from "./agendar-presencial";
 
 // ============================================================
-// «📋 Copiar para el gerente» (D-NEXT, 2026-10-19). El dueño: «en el hr app haya una opcion que sea como copiar mensaje
+// «📋 Copiar para el gerente» (D-590, 2026-10-19). El dueño: «en el hr app haya una opcion que sea como copiar mensaje
 // para el manager, que es copiar, nombre, telefono, curriculum la nota que deje en la entrevista y la hora a la que lo
 // cite de cita personal».
 //
