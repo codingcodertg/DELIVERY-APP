@@ -45096,6 +45096,8 @@ Nada contra producción (la rama no tiene `.env.local`): ni la 182, ni el `--ens
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración**.
 
+> **⚠ Reemplazada en parte por D-587** (2026-10-18): el tope de alejamiento (`minZoom` = la región) se quitó; el dueño: «the map has a lock on the zoom out». La región queda solo como encuadre por defecto; el filtro de puntos lejanos sigue.
+
 > **Medido en producción el 2026-10-18** (`scripts/_inv-encuadre-del-mapa.mjs`, solo lectura, corrido por el orquestador): 7 tiendas con punto, mediana en Pharr (26.204, −98.169); de 165 órdenes con punto entre el 11 y el 25 de octubre, **0 en 0,0 y 1 a más de 300 km: la #1071 (entrega 2026-10-19, «4408 QUEEN PALM») geocodificada en Florida (26.182, −80.234), a 1.788 km** — ella sola estiraba el encuadre hasta el Golfo. Una posición de chofer vieja (46 días) a 71 km, dentro del radio. La dirección de la #1071 hay que corregirla en la ficha.
 
 **Pedido del dueño** (2026-10-18), literal: *«Map defaults to a zoomed out view instead of viewing the region»*. Y al preguntarle qué es «la región», el mismo día, literal: *«so when zoomed out on the emaul i mean to shoq all the region i mean exavtly viisnle all stores but not furhter than that as a degault view»*. O sea: la vista por defecto es la que deja **exactamente visibles todas las tiendas** de Ajustes, y **nunca más alejada que eso**.
@@ -45338,3 +45340,16 @@ Desde D-553 la barra lateral del ERP tenía, para manager y admin, **ocho entrad
 ### No verificado
 
 En navegador (la fila a ancho de teléfono, el encendido real de la barra); el `next build`; nada contra producción (la rama no tiene `.env.local`).
+## D-587 · El mapa no tiene candado de alejamiento: la región es el encuadre por defecto, no un tope
+
+**Fecha:** 2026-10-18 · **Versión:** deliveries 1.334.0 (repo 1.453.0) · Sin migración · Hecho directo por el orquestador en `mapa-sin-candado`.
+
+**Pedido del dueño**, literal: *«the map has a lock on the zoom out»*.
+
+**Qué fallaba.** D-580 leyó «exactly visible all stores but not further than that as a default view» como dos cosas: el encuadre por defecto (bien) y un `minZoom` igual a la región (mal): la rueda no podía alejar el mapa más allá de las siete tiendas. Era la vista por defecto lo que pedía, no un límite.
+
+**Qué cambia.** Fuera `minZoom`/`setMinZoom` en `GoogleMapView` y `LeafletMap`, y fuera `topeDeAlejamiento` y `ZOOM_MINIMO_DEL_MAPA` de `encuadre-del-mapa.ts`. Se queda todo lo demás de D-580: el filtro de puntos a más de 300 km (la #1071 en Florida), la región de las tiendas como encuadre inicial y cuando no hay nada que encuadrar. `zoomDeLaCaja` se conserva por si hace falta medir un encuadre.
+
+**Pruebas:** `encuadre-del-mapa.test.ts` afirma que ninguno de los dos mapas usa `minZoom`, `setMinZoom` ni `topeDeAlejamiento`. Mutante 1 de 1 (vuelve el minZoom en Google), cae con esa prueba.
+
+**No verificado:** en navegador.

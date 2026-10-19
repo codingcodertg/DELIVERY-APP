@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, MAPS_MAP_ID } from "@/lib/google-maps-loader";
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
 import { casaDeTienda, dibujoTiendaUrl, estiloTienda, Z_CASITA_DESPACHO } from "@/lib/store-pins";
-import { centroInicial, encuadreFinal, topeDeAlejamiento, ZOOM_MINIMO_DEL_MAPA } from "@/lib/encuadre-del-mapa";
+import { centroInicial, encuadreFinal } from "@/lib/encuadre-del-mapa";
 import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/LeafletMap";
 
 // ============================================================
@@ -139,8 +139,8 @@ export function GoogleMapView({
         const map = new maps.Map(containerRef.current, {
           center: start,
           zoom,
-          // Tope de alejamiento (D-580): ningún punto suelto, ni la rueda, sacan el mapa de la región.
-          minZoom: ZOOM_MINIMO_DEL_MAPA,
+          // Sin tope de alejamiento (D-587): la región es el encuadre POR DEFECTO, no un candado. El dueño: «the map
+          // has a lock on the zoom out». D-580 lo había puesto como tope; se quita.
           mapId: MAPS_MAP_ID || undefined,
           // Dispatch wants the map itself, not Google's chrome.
           mapTypeControl: false,
@@ -360,9 +360,6 @@ export function GoogleMapView({
     if (enc.descartados.length && process.env.NODE_ENV !== "production") {
       console.warn(`[mapa] ${enc.descartados.length} punto(s) fuera del encuadre (0,0, no numéricos o a >300 km de las tiendas)`, enc.descartados);
     }
-    // El tope de alejamiento es la región de las tiendas («not further than that»): ni una parada a 250 km lo abre más.
-    const el = containerRef.current;
-    if (el) map.setOptions({ minZoom: topeDeAlejamiento(stores, el.clientWidth, el.clientHeight) });
     const bounds = new maps.LatLngBounds();
     for (const [lat, lng] of enc.validos) bounds.extend({ lat, lng });
     map.fitBounds(bounds, 45);
