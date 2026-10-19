@@ -6,6 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { preguntasDeEntrevista } from "@/lib/recruiting/preguntas-del-puesto";
 import { InterviewViewModal } from "./InterviewView";
 import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
+import { BotonCopiarParaElGerente } from "./BotonCopiarParaElGerente";
 import { InPersonScheduleModal } from "./InPersonScheduleModal";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
 import type { Candidate, Contact, Interview, InterviewAnswer, RecruiterRecommendation } from "@/lib/recruiting/types";
@@ -213,6 +214,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
               <a className="link-tel" href={rcCall(c.phone)} onClick={() => addContact(c.id, { type: "Call", result: "", note: "" })}>📞 {t("Call", "Llamar")} {c.phone}</a>
               <a className="link-tel" href={rcSms(c.phone)} onClick={() => addContact(c.id, { type: "SMS", result: "sent", note: "" })}>💬 {t("Text", "Texto")}</a>
               <BotonTextoPuedoLlamar c={c} />
+              <BotonCopiarParaElGerente c={c} />
               {c.email && <a className="link-tel" href={"mailto:" + c.email}>✉️ {c.email}</a>}
             </div>
           </div>

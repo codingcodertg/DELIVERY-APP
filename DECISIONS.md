@@ -45451,3 +45451,26 @@ En el proveedor (`data-provider.tsx`, `ubicarSiHaceFalta`): un punto geocodifica
 ### No verificado
 
 Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se midió con la #1071 real: hay que abrirla, y al guardar tiene que decir «falta ciudad, estado o código postal». La corrección de su dirección es a mano, en la ficha.
+
+## D-NEXT · RR. HH.: «📋 Copiar para el gerente» en la fila y en la ficha del candidato: nombre, teléfono, enlace al CV, nota de la entrevista y cita presencial, al portapapeles
+
+**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-copiar-para-el-gerente`. Se apoya en D-581 (el botón va a su lado) y D-585 (la cita presencial sale del contacto que deja).
+
+**Pedido del dueño**, literal: *«quiero que en el hr app haya una opcion que sea como copiar mensaje para el manager, que es copiar, nombre, telefono, curriculum la nota que deje en la entrevista y la hora a la que lo cite de cita personal»*.
+
+### Qué cambia
+
+1. **`src/lib/recruiting/mensaje-para-el-gerente.ts`** (puro): `mensajeParaElGerente(c, { cvEnlace, contactos }, lang)` arma cinco líneas, en el idioma de quien pulsa: «Candidato: Ana Pérez (Sales)», «Teléfono: …», «CV: <enlace>», «Nota de la entrevista: …», «Entrevista presencial: …». **Lo que falta se dice, no se omite** («sin CV adjunto», «sin entrevista aún», «sin cita aún»): el gerente sabe qué no hay. La nota es `interview.generalNotes` (las notas generales del reclutador, limpias de saltos y espacios dobles). La cita es el **último** contacto «In person / Scheduled» tal como lo deja D-585 («Oct 21 10:00 AM · McAllen · traer ID»: fecha, lugar y nota); sin ese contacto, `inperson_date` formateada (la cita vieja, sin lugar).
+2. **El enlace del CV** es un enlace firmado del bucket `resumes` que vale **7 días** (`SEGUNDOS_DEL_ENLACE_DEL_CV`; `resumeLink` nuevo en `recruiting-data-provider`), no los 60 s del «📎 CV» de la ficha: el gerente lo abre cuando lea el mensaje, no en el minuto en que se copió. Quien tenga el enlace puede abrir el CV esa semana; es lo mismo que mandárselo adjunto.
+3. **`BotonCopiarParaElGerente.tsx`**: «📋 Copiar para el gerente» en la barra de acciones de la fila (`CandidateRow`) y en la ficha (`ProfileModal`), junto al «📱 Texto: ¿te puedo llamar?» de D-581. Al pulsar: pide el enlace (solo si hay CV), arma el texto y lo copia al portapapeles; pasa a «✓ Copiado» 2,5 s. Si el navegador no deja copiar (iOS Safari tras esperar el enlace), enseña el texto en un cuadro de solo lectura que se selecciona al tocarlo, para copiarlo a mano.
+4. **Permisos:** los de la fila; ninguno extra. Bilingüe con el `t()` de RR. HH.
+
+### Qué se descartó
+
+- **Mandarlo por SMS/correo desde la app**: el dueño pidió «copiar»; el gerente lo recibe por donde el reclutador ya habla con él (RingCentral, correo), igual que D-581 no manda por servidor.
+- **Guardar el lugar de la cita en una columna**: el contacto de D-585 ya lo lleva y es lo que se copia.
+- **Esconder el botón sin entrevista o sin cita**: el texto dice lo que falta, y un gerente puede querer el nombre y el CV antes de la entrevista.
+
+**Pruebas:** `mensaje-para-el-gerente.test.ts` (la cita: la última, no otros contactos, respaldo en `inperson_date`, nula; la nota limpia o nula; el mensaje en es/en completo y con todo faltando; los 7 días; el botón: enlace solo con CV, portapapeles y el cuadro de respaldo; dónde está; el proveedor firma por los segundos pedidos). Mutantes: 8 de 8 caen (`mut590`).
+
+**No medido:** nada en navegador (que el portapapeles reciba el texto, el cuadro de respaldo en iOS, el ancho de la barra con un botón más). `tsc` y vitest completo (los 3 `scripts/*.test.mjs` caen en esta máquina por el mismo SyntaxError que en la laptop; en CI pasan).

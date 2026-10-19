@@ -64,6 +64,8 @@ interface DataState {
   uploadResume: (candidateId: string, file: File) => Promise<void>;
   removeResume: (candidateId: string) => Promise<void>;
   openResumeFile: (candidateId: string) => Promise<void>;
+  /** El enlace firmado del CV para pegarlo en un mensaje (D-NEXT, «Copiar para el gerente»): `null` sin CV o si falla. */
+  resumeLink: (candidateId: string, seconds: number) => Promise<string | null>;
   // multiple attachments (#3)
   attachmentsFor: (candidateId: string) => Attachment[];
   addAttachment: (candidateId: string, file: File) => Promise<void>;
@@ -498,6 +500,20 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, candidates, notify],
   );
 
+  const resumeLink = useCallback<DataState["resumeLink"]>(
+    async (candidateId, seconds) => {
+      const c = candidates.find((x) => x.id === candidateId);
+      if (!c?.resume_path) return null;
+      const { data, error } = await supabase.storage.from("resumes").createSignedUrl(c.resume_path, seconds);
+      if (error || !data) {
+        notify("Could not link CV: " + (error?.message ?? "unknown"));
+        return null;
+      }
+      return data.signedUrl;
+    },
+    [supabase, candidates, notify],
+  );
+
   // ---------------- Multiple attachments (#3) ----------------
   const attachmentsFor = useCallback(
     (candidateId: string) => attachments.filter((a) => a.candidate_id === candidateId),
@@ -871,6 +887,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     uploadResume,
     removeResume,
     openResumeFile,
+    resumeLink,
     attachmentsFor,
     addAttachment,
     removeAttachment,
