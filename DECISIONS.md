@@ -45146,3 +45146,39 @@ RRHH **no manda SMS por servidor**. El «💬 Texto» del diálogo de entrevista
 **Pruebas:** `src/lib/recruiting/texto-puedo-llamar.test.ts` (7: texto en los dos idiomas con los marcadores resueltos; enlace con número limpio y texto; sin teléfono; idempotencia por candidato —otro SMS, otro tipo, otro candidato no cuentan—; el contacto registrado se reconoce después; etiqueta del botón antes/después con la hora del ÚLTIMO envío; teléfono de la fila). Proveedor: ninguno real —todo es construir el enlace; ningún SMS salió. Mutantes **10 de 10** (`tanda-texto-puedo-llamar.json`): la marca deja de distinguirse de un SMS suelto; otro candidato cuenta; hora del más viejo; sin teléfono prepara igual; sin idempotencia; enlace sin texto; contacto sin marca; botón nunca deshabilitado; español en inglés; teléfono sin dígitos pintado — cada uno con su prueba por nombre.
 
 **No verificado:** en navegador (que RingCentral abra con el texto puesto; el ancho de la barra de acciones con un botón más); nada contra producción desde la rama.
+---
+
+## D-NEXT · RR. HH.: cada vacante elige su conjunto de preguntas desde Ajustes → Vacantes, también después de creada; la entrevista lo toma de ahí
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración**.
+
+**Pedido del dueño** (2026-10-18), literal: *«quiero asignarle preguntar a un puesto en hr manager, al puesto de accounting asscoiate le quiero poner las pregunrar porque no me salen para enteevistar pero no me aparece y no lo logro hacer»*.
+
+### Qué había (medido en el código, no en la base: la rama no lleva `.env.local`)
+
+El modelo ya existía: `recruiting.jobs.question_set_id` (056) sujeta un conjunto a una vacante, `recruiting.question_sets.role` sujeta un conjunto a un puesto, y la entrevista (`ModalHost.tsx`, `InterviewModal`) elegía el conjunto en ese orden —vacante, puesto del candidato, implícito por preguntas con su rol, predeterminado— y dentro filtraba por rol «all» o el del candidato. Lo que **no** había era una puerta para llegar ahí con una vacante ya creada:
+
+1. **Ajustes → Vacantes** (`settings/page.tsx`) ofrecía el selector «📚 Conjunto de preguntas» **solo en el formulario de alta**. Una vacante ya en la lista solo tenía «Cerrar/Reabrir» y 🗑, y el conjunto salía como texto suelto, si tenía. O sea: si «Accounting Associate» se creó sin conjunto (el defecto del formulario es «Conjunto predeterminado»), no había ningún botón para dárselo después. Esa es la función que el dueño buscaba y «no le aparece».
+2. **Preguntas → «Puesto:» del conjunto** (`questions/page.tsx:225-243`) sí permite colgar un conjunto de un puesto, pero está `disabled` para todo el que no sea `recruiting_role = 'admin'`, con el aviso «Solo un administrador puede cambiar esto». Si el dueño entra con `manager` («Gerente de Oficina», lo que él llama *hr manager*), lo ve gris y no lo logra hacer. Y exige además que «Accounting Associate» esté en `settings.roles` y que el candidato lleve exactamente ese `role`.
+3. **La entrevista escondía preguntas por el rol del candidato** aunque la vacante tuviera su conjunto: una pregunta etiquetada «Accounting Associate» no salía si el candidato quedó registrado como «Accountant» o con el rol por defecto.
+
+No se pudo medir desde la rama cuál de las tres le pasó al dueño (estado de la vacante, rol de su perfil, preguntas del conjunto). Queda `scripts/_inv-rrhh-preguntas.mjs` (solo lectura, service-role) para que el orquestador lo mida en el checkout principal; se añade aquí como nota cuando se corra.
+
+### Qué cambia
+
+1. **Un selector «📚 Preguntas de entrevista» en cada vacante de la lista** de Ajustes → Vacantes, que guarda `question_set_id` con el `updateJob` que ya existía (RLS de módulo, 057: cualquiera con acceso a recruiting puede escribir `jobs`; no cambia). Cada opción dice cuántas preguntas **activas** tiene el conjunto, para que un conjunto vacío se note antes de la entrevista. El formulario de alta usa el mismo rótulo.
+2. **Quién lo cambia: admin y gerente (`manager`)**; el reclutador lo ve deshabilitado con su aviso. Es más ancho que el «Puesto:» del conjunto (solo admin) y más estrecho que la base (cualquiera). Se eligió así porque asignar preguntas a una vacante es trabajo del gerente de RR. HH. —es lo que pide el dueño— y porque reescribir el banco (crear/borrar conjuntos) sigue siendo otra cosa.
+3. **La lógica sale a `src/lib/recruiting/preguntas-del-puesto.ts`**: `conjuntoDeEntrevista` (el orden de arriba, con el *origen*), `preguntasDeEntrevista` (filtro + preselección delante), `puedeAsignarPreguntasAlPuesto`, `preguntasActivasPorConjunto`. `InterviewModal` la llama en vez de su filtro propio; el orden de resolución no cambia.
+4. **Un cambio de comportamiento, acotado:** cuando el conjunto **viene de la vacante**, entran también las preguntas etiquetadas con el puesto **de la vacante** (además de «all» y el del candidato). Si alguien sujetó ese conjunto a esa vacante, una pregunta del puesto no se esconde porque el candidato tenga otro nombre de puesto. En los otros tres orígenes el filtro es exactamente el de antes.
+
+### Lo que se descartó
+
+- **Abrir el «Puesto:» del conjunto al gerente.** Es la otra puerta, pero ata un conjunto a un *nombre de puesto* (único por puesto) y depende de que el candidato lleve ese nombre exacto; la vacante es el dato que el candidato sí tiene (`job_id`). Se deja como estaba; si el dueño quiere también esa, es un cambio de una línea y se decide aparte.
+- **Quitar del todo el filtro por rol en la entrevista.** Cambiaría qué ven todas las entrevistas de hoy; se abrió solo el caso con vacante sujeta.
+- **Mover la asignación a la página de Preguntas.** El texto de ayuda de esa página ya manda a «Ajustes → Vacantes»; se hizo verdad ahí en vez de abrir un tercer sitio.
+
+**Para decírselo al dueño:** RR. HH. → ⚙️ **Ajustes** → tarjeta **📌 Vacantes (requisiciones)** → en la fila «Accounting Associate», el desplegable **📚 Preguntas de entrevista** → elegir el conjunto (si el conjunto sale con «0 preguntas», hay que cargarlas antes en 📚 **Preguntas**, con ese conjunto activo). A partir de ahí, la entrevista (botón 🎤 del candidato asignado a esa vacante) saca ese conjunto.
+
+**Pruebas:** `src/lib/recruiting/preguntas-del-puesto.test.ts` (15: los cuatro orígenes del conjunto, inactivas fuera, la puerta de la vacante solo con conjunto de la vacante, orden de preselección, la puerta por rol, el conteo, y que las dos pantallas pasan por la librería). **Mutantes, 14 de 14 caen con una prueba con nombre** (`tanda-preguntas-del-puesto.json`): la vacante deja de mandar; el puesto se ignora; el implícito con inactivas; cae a «ninguno»; inactivas entran; el conjunto no filtra; el puesto de la vacante abre de más (sobrevivió a la primera tanda porque el predeterminado de la prueba no tenía ninguna pregunta de ese puesto —datos que no contradecían—; se añadió una y cayó); nunca abre; sin preselección; el reclutador asigna; solo el admin; el conteo con inactivas; Ajustes sin puerta; la entrevista con filtro propio. `npx tsc --noEmit` limpio; `vitest` de `src/lib/recruiting` y `src/components` 125/125.
+
+**No verificado:** la base (cuál de las tres causas le pasó al dueño; se mide con el script); en navegador; el `next build`.
