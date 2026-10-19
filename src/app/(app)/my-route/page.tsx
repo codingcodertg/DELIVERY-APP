@@ -11,12 +11,14 @@ import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 import { llegadaDeLaParada, llegadasDeParadas, marcasDeParadas, type LlegadaDeParada } from "@/lib/acciones-parada";
 import { llegadaDeLaOrden, llevaBotonDeLlegada, MOSTRAR_SIGUIENTE_PARADA, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "@/lib/siguiente-de-mi-ruta";
 import { PalletsAlRecoger } from "@/components/PalletsAlRecoger";
+import { RecogerSinListo } from "@/components/RecogerSinListo";
+import { abreElCuadroSinListo } from "@/lib/recoger-sin-listo-pantalla";
 import { idsRecibidasPorAlmacen, pastillaDeEtapa } from "@/lib/recibir";
 import { IconoDeFotos } from "@/components/IconoDeFotos";
 import { estiloDeParada, FONDO_DE_PARADA } from "@/lib/colores-de-mi-ruta";
 import { escrituraRecogida } from "@/lib/one-tap-stop";
 import { captureLocationSplit, type GeoStamp } from "@/lib/geo";
-import { deshacerRecogida } from "@/lib/recogida-del-chofer";
+import { avisosDeRecogidaSinListo, deshacerRecogida, notaDeRecogidaSinListo } from "@/lib/recogida-del-chofer";
 import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
 import { seccionesDeMiRuta, type SeccionDeMiRuta } from "@/lib/secciones-de-mi-ruta";
 import { PausaDelChofer } from "@/components/PausaDelChofer";
@@ -88,7 +90,7 @@ const DEFAULT_CAPACITY = 12;
 
 
 export default function MyRoutePage() {
-  const { me, deliveries, events, settings, ready, setStage, updateDelivery, notify } = useData();
+  const { me, deliveries, events, settings, users, ready, setStage, updateDelivery, pushNotifs, notify } = useData();
   const { t, lang } = usePrefs();
   const [open, setOpen] = useState<Delivery | null>(null);
   // En qué paso abre la ficha (D-527): «recoger» desde «Recogido», «entregar» (la prueba de entrega) desde «Entregado».
@@ -105,6 +107,8 @@ export default function MyRoutePage() {
   const [listaElegida, setListaElegida] = useState<SeccionDeMiRuta>("pendientes");
   // La orden cuyo «Recogido» espera el número de pallets (D-547): mientras no es `null`, el cuadro está abierto.
   const [palletsDe, setPalletsDe] = useState<Delivery | null>(null);
+  // La orden cuyo «Recogido» espera el motivo de recogerla sin «listo» (D-NEXT): mientras no es `null`, el cuadro está abierto.
+  const [sinListoDe, setSinListoDe] = useState<Delivery | null>(null);
 
   // De QUIÉN es la ruta (D-502). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
   // chofer elegido; sin ese contexto —el chofer en su teléfono— es `me` y no cambia nada. Mirando la de otro, nada se puede
@@ -189,6 +193,8 @@ export default function MyRoutePage() {
     // D-547: antes pregunta los pallets («it's not asking them how many pallets are they loading»), con los de la orden
     // ya puestos; al confirmar, `recogerDeUnToque(d, n)`.
     if (accion === "recoger" && seRecogeDeUnToque(d.stage)) { setPalletsDe(d); return; }
+    // D-NEXT: sin «listo» (aprobada / preparando), el cuadro pequeño del motivo; la ficha se abre DESPUÉS de recoger.
+    if (accion === "recoger" && abreElCuadroSinListo(d.stage)) { setSinListoDe(d); return; }
     if (accion === "entregar") {
       fotoPara.current = d.id;
       setFotosDeEntrega(null);
@@ -216,6 +222,30 @@ export default function MyRoutePage() {
     if (!ok) return;
     notify(t("Picked up — on the truck", "Recogida — va en el camión"));
     if (!gps) void adjuntarTardio(d.id, eventual);
+  };
+  /**
+   * «🚚 Recogido» sin «listo», desde el cuadro del motivo (D-NEXT): la MISMA escritura que «Recoger de todos modos» de la
+   * ficha (D-527): la nota con su prefijo, el evento `picked_up`, el GPS sin bloquear, y el aviso en la campana al almacén
+   * de esa tienda y a logística. Al terminar, la ficha, para ver los detalles (Ernesto: «After they confirm pickup, now it
+   * can open up the order to see the details»).
+   */
+  const recogerSinListoDeUnToque = async (d: Delivery, nota: string) => {
+    if (soloLectura || recogiendo || !me) return;
+    setRecogiendo(d.id);
+    const { immediate, eventual } = captureLocationSplit();
+    const gps = await immediate;
+    const escritura = escrituraRecogida({ pedido: d, me, gps, t });
+    const ok = await setStage(d.id, "picked_up", notaDeRecogidaSinListo(nota, escritura.note, lang), escritura.extra);
+    setRecogiendo(null);
+    if (!ok) return;
+    setSinListoDe(null);
+    if (!gps) void adjuntarTardio(d.id, eventual);
+    void pushNotifs(avisosDeRecogidaSinListo({
+      users, actorId: me.id, pedido: d, tiendas: settings.stores ?? [],
+      etiqueta: `#${orderLabel(d)}`, nota, chofer: me.full_name,
+    }));
+    notify(t("Picked up — the warehouse and logistics were notified", "Recogida — se avisó al almacén y a logística"));
+    abrirOrden(d);
   };
   const adjuntarTardio = async (id: string, pendiente: Promise<GeoStamp | null>) => {
     const gps = await pendiente;
@@ -568,6 +598,8 @@ export default function MyRoutePage() {
       {/* La cámara de «Entregado» (D-527): pintada siempre, porque el toque la tiene que encontrar ya en la página. */}
       {camara.input}
       {/* «¿Cuántos pallets cargas?» (D-547): sale con «Recogido» de una carga lista; al confirmar, recoge con ese número. */}
+      {sinListoDe && <RecogerSinListo pedido={sinListoDe} ocupado={recogiendo === sinListoDe.id} onCancelar={() => setSinListoDe(null)}
+        onConfirmar={(nota) => void recogerSinListoDeUnToque(sinListoDe, nota)} />}
       {palletsDe && <PalletsAlRecoger pedido={palletsDe} onCancelar={() => setPalletsDe(null)}
         onConfirmar={(n) => { const d = palletsDe; setPalletsDe(null); void recogerDeUnToque(d, n); }} />}
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={cerrarFicha} abrirEn={abrirEn}

@@ -3522,12 +3522,10 @@ function StageActions({
           <textarea id="nota-sin-listo" data-nota-sin-listo rows={3} value={sinListo.nota} autoFocus disabled={busy}
             onChange={(e) => sinListo.setNota(e.target.value)} style={{ width: "100%" }}
             placeholder={t("e.g. 2 boxes of grout still missing; the customer needs the tile today", "ej. faltan 2 cajas de boquilla; el cliente necesita el piso hoy")} />
-          <div className="hint" style={{ marginTop: 0 }}>
-            {sinListo.tienda
-              ? t(`The warehouse at ${sinListo.tienda} and logistics will be notified in the app.`, `Se avisa en la app al almacén de ${sinListo.tienda} y a logística.`)
-              : t("Logistics will be notified in the app.", "Se avisa en la app a logística.")}
-            {!notaValida && sinListo.nota.trim() !== "" && ` ${t(`At least ${MINIMO_NOTA_SIN_LISTO} letters.`, `Al menos ${MINIMO_NOTA_SIN_LISTO} letras.`)}`}
-          </div>
+          {/* D-NEXT: sin el «se avisa a…» (Ernesto: «This text is not necessary, its adding noise»); solo el mínimo si falta. */}
+          {!notaValida && sinListo.nota.trim() !== "" && (
+            <div className="hint" style={{ marginTop: 0 }}>{t(`At least ${MINIMO_NOTA_SIN_LISTO} letters.`, `Al menos ${MINIMO_NOTA_SIN_LISTO} letras.`)}</div>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn btn-ghost" style={{ flex: 1, minHeight: 44, justifyContent: "center" }} onClick={sinListo.cerrar} disabled={busy}>{t("Back", "Atrás")}</button>
             <button data-confirmar-sin-listo className="btn btn-amber" style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
