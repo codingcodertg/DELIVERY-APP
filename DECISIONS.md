@@ -45619,6 +45619,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-597 · RR. HH.: al agendar la entrevista presencial, el texto para el candidato se arma solo con la dirección de la tienda, se edita en el diálogo y se manda al guardar
 
+> **Reemplazada en parte por D-599** (2026-10-19): RingCentral se abre en el clic, antes de guardar; el dueño reportó que no salía el texto.
+
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.51.0 (repo 1.463.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-la-cita`.
 
 **Pedido del dueño (2026-10-19, literal):** «termino la entrevista y agendo la entrevista presencial. Entonces, cuando yo pongo la fecha y la hora y el lugar, entonces yo quiero que el sistema automáticamente me haga un template para mandárselo por texto a la persona … te espero mañana en la tienda de Edinburg, Texas, en esta dirección, y que me ponga la dirección de la tienda que estoy poniendo … Quiero un buen template y así, que el template se puede editar también, obviamente, pero que me haga fácil. Cuando yo le guardara la entrevista, y se haga mandar por mensaje de texto, y se mande un solo template.»
@@ -45655,3 +45657,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/recruiting/texto-de-seguimiento.test.ts` (solo los dos resultados lo ofrecen; texto en los dos idiomas con el puesto y la firma de quien pulsa, sin marcadores; la plantilla de Ajustes manda; enlace rcsms con número limpio; sin teléfono o texto vacío no abre nada; contacto marcado distinto de los otros tres SMS; puerta: el diálogo decide con la librería y pasa la clave en inglés, con el `if` tal cual y no un `false &&` delante). 8 mutantes, 8 caen (el de «firma fija» sobrevivió a la primera porque la prueba firmaba con el mismo nombre que el mutante; se cambió el nombre).
 
 **No medido:** en navegador.
+
+## D-599 · RR. HH.: «Guardar y mandar texto» abre RingCentral en el clic, antes de esperar a la base (si no, el navegador no abre la app y no sale nada)
+
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.52.1 (repo 1.465.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-cita-abre-ringcentral-primero`.
+
+**Pedido del dueño (2026-10-19, literal):** «fíjate que aún no se manda el mensaje template cuando es para agendar».
+
+**Causa (leída, no medida en su navegador).** D-597 guardaba primero (dos escrituras en Supabase: el candidato y el contacto de la cita) y DESPUÉS ponía `window.location.href = rcsms://…`. Abrir una app externa por esquema lo permite el navegador solo con un gesto del usuario reciente; tras esperar a la base ese gesto puede haber caducado, y Chrome no abre nada ni avisa. D-581 (¿te puedo llamar?) y el D-585 original abren RingCentral en el mismo instante del clic y guardan después: por eso esos sí salen.
+
+**Qué cambia.** `InPersonScheduleModal.tsx`: en «📱 Guardar y mandar texto», primero `window.location.href = r.enlace` (con el texto ya editado), y luego el guardado de la cita y el contacto SMS marcado. Mismo orden que D-581. Nada más cambia (texto, dirección, plantilla, «Guardar sin texto»).
+
+**Pruebas:** `agendar-presencial.test.ts` (puerta: en el diálogo, la apertura de RingCentral está ANTES del guardado; medido que cae con el fichero de D-597 y pasa con este).
+
+**No medido:** en el navegador del dueño. Si con esto sigue sin abrirse, lo siguiente a mirar es el largo del enlace `rcsms` (el texto de la cita son ~330 caracteres; el de «¿te puedo llamar?», que sí abre, ~250).
