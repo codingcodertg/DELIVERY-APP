@@ -45293,6 +45293,8 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 
 ## D-585 · RR. HH.: «📅 Agendar entrevista presencial» al terminar la entrevista, con lugar, nota y texto de confirmación por el mismo camino que D-581
 
+> **Reemplazada en parte por D-597** (2026-10-19): el texto de confirmación se arma antes de guardar, lleva la dirección de la tienda, se edita en el diálogo o desde Ajustes → Plantillas, y sale con el mismo botón que guarda; la etapa, la fecha y el contacto de la cita siguen igual.
+
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Amplía el diálogo «🤝 Agendar presencial» y la salida de `InterviewModal`.
 
 **Pedido del dueño** (2026-10-18), literal: *«en hr manager al terminar la entrevista que este el boton para scheudle in person interview»*.
@@ -45614,3 +45616,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/build-en-vercel.test.ts` (los dos saltos cuelgan solo de `VERCEL`, nunca `true` a secas; el CI corre tsc, vitest y `next build` y no define `VERCEL`).
 
 **No medido:** el siguiente build de Vercel con esto es la medida: el paso de tipos desaparece del log y el build debe tardar ~3 min.
+
+## D-597 · RR. HH.: al agendar la entrevista presencial, el texto para el candidato se arma solo con la dirección de la tienda, se edita en el diálogo y se manda al guardar
+
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.51.0 (repo 1.463.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-la-cita`.
+
+**Pedido del dueño (2026-10-19, literal):** «termino la entrevista y agendo la entrevista presencial. Entonces, cuando yo pongo la fecha y la hora y el lugar, entonces yo quiero que el sistema automáticamente me haga un template para mandárselo por texto a la persona … te espero mañana en la tienda de Edinburg, Texas, en esta dirección, y que me ponga la dirección de la tienda que estoy poniendo … Quiero un buen template y así, que el template se puede editar también, obviamente, pero que me haga fácil. Cuando yo le guardara la entrevista, y se haga mandar por mensaje de texto, y se mande un solo template.»
+
+**Medido antes.** D-585 ya ofrecía un texto de confirmación, pero (1) salía DESPUÉS de guardar, en un segundo botón; (2) no llevaba la dirección: solo «en McAllen»; (3) no se podía tocar antes de mandarlo; (4) tuteaba, al revés que el texto de «¿te puedo llamar?» que el dueño dictó en D-595. Las direcciones de las tiendas están en Datos → Tiendas de Entregas (`public.settings.stores`, nombre «RDZ Edinburg» + dirección), y esa tabla solo la lee quien tiene el módulo de Entregas (RLS `has_deliveries_access`, 100): un reclutador sin Entregas no la ve. En RR. HH. las sedes se llaman por la ciudad («Edinburg», `LOCATIONS`).
+
+**Qué cambia.**
+- **El texto se arma mientras se rellena el diálogo** (fecha, hora, lugar) y se ve en un cuadro editable debajo de la nota. De usted, como el de D-595: «Hola María, le habla Andrés de Rodriguez Tile Group. Le espero el martes 20 de octubre a las 10:30 para su entrevista presencial para el puesto de Driver en la tienda de Edinburg, en esta dirección: 4201 W University Dr, Edinburg, TX 78539. Por favor respóndame para confirmar. ¡Gracias!» (y su versión en inglés si la app está en inglés). Si el lugar es un «Otro…» escrito a mano, el texto dice el lugar tal cual y no inventa dirección.
+- **La dirección de la tienda** sale de Datos → Tiendas por una ruta nueva, `GET /api/recruiting/stores` (solo nombre y dirección; puerta: sesión + módulo de RR. HH., comprobado leyendo `recruiting.settings` con la sesión del usuario, y luego el cliente de servicio lee las tiendas). La tienda se encuentra por nombre exacto o por palabra entera («Edinburg» ↔ «RDZ Edinburg»; «Ed» no es ninguna).
+- **Editable dos veces:** en el diálogo (lo que se escribe es lo que sale; «↺ Rearmar» vuelve al automático), y de una vez en Ajustes → Plantillas: una plantilla cuyo nombre lleve «presencial» o «in person» manda sobre la de código, con los marcadores `{name} {role} {recruiter} {date} {time} {place} {address}`. Sin migración: la tabla `recruiting.templates` ya existe y ya se edita ahí.
+- **Un solo botón:** «📱 Guardar y mandar texto» guarda la cita (fecha, etapa, contacto «In person / Scheduled», como D-585), abre RingCentral con el texto (mismo enlace `rcsms` de D-581; nada sale hasta pulsar enviar allí) y deja el contacto SMS marcado («sent · in-person confirmation»). «Guardar sin texto» agenda y ya. Sin teléfono, el botón de mandar se deshabilita y lo dice.
+
+**Qué no cambia.** La etapa, la fecha y el contacto de la cita (D-585); el camino del SMS (D-581: enlace a la app de RingCentral, nunca servidor); el guardado del contacto en las agendas de RingCentral (D-591/D-594, que dispara `addContact` de tipo SMS); el «¿te puedo llamar?» (D-595).
+
+**Pruebas:** `src/lib/recruiting/agendar-presencial.test.ts` (texto con dirección en los dos idiomas; tienda por nombre y por palabra, nunca por trozo; sin tienda no hay dirección; la plantilla de Ajustes manda y con todos los marcadores; texto vacío no abre nada; puerta: el diálogo usa la ruta de tiendas, la plantilla de Ajustes y «guardarYMandar»). 9 mutantes, 9 caen (uno —subcadena en vez de palabra— sobrevivió a la primera y se añadió la prueba que lo caza).
+
+**No medido:** en navegador. El texto exacto con la dirección real sale de Datos → Tiendas, no del repo.
