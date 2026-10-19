@@ -45695,9 +45695,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador con un usuario gerente de tienda real (no existe aún ninguno: el dueño tiene que asignar el rol y la tienda en el hub). Lo que sí se midió es la base tras aplicar (políticas, constraint, función) y la lectura como admin.
 
-## D-NEXT · Mi ruta: el encabezado cuenta PARADAS (sitios), no órdenes («Its not 14 stops, its 14 orders»)
+## D-601 · Mi ruta: el encabezado cuenta PARADAS (sitios), no órdenes («Its not 14 stops, its 14 orders»)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (deliveries) · Sin migración · Hecho directo por el orquestador en `fix/mi-ruta-cuenta-paradas`.
+**Fecha:** 2026-10-19 · **Versión:** deliveries 1.338.0 (repo 1.467.0) · Sin migración · Hecho directo por el orquestador en `fix/mi-ruta-cuenta-paradas`.
 
 **Pedido (Ernesto Castillo, chofer, por el dueño, 2026-10-19, literal):** «Its not 14 stops, its 14 orders. Its calculating # of stops wrong». Captura: «2 of 7 delivered · 14 stops · peak load 7/10».
 

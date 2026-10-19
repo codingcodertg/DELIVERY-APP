@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { paradasDeLaRuta } from "./gestor/paradas-numeradas";
 import { cuentaDePallets } from "./lista-unica";
 
-// D-NEXT (2026-10-19) · Ernesto (chofer): «Its not 14 stops, its 14 orders. Its calculating # of stops wrong». El encabezado de
+// D-601 (2026-10-19) · Ernesto (chofer): «Its not 14 stops, its 14 orders. Its calculating # of stops wrong». El encabezado de
 // «Mi ruta» pintaba las FILAS de la cuenta de pallets (una por orden y tramo), no los SITIOS de la ruta.
 
 const P = (ordenes: string[], lugar = "RDZ Pharr") => ({ tipo: "P" as const, ordenes, lugar, etiqueta: ordenes.map((o) => `P${o}`).join("·") });
