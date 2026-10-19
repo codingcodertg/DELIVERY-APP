@@ -465,7 +465,7 @@ export default function MyRoutePage() {
                 {t(`${done} of ${stops.length} delivered`, `${done} de ${stops.length} entregadas`)}
               </b>
               <span className="hint">
-                {cuenta.totales.paradas} {t("stops", "paradas")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacidad}
+                {numeradas.paradas.length} {t("stops", "paradas")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacidad}
               </span>
             </div>
             <div style={{ height: 8, borderRadius: 999, background: "var(--line)", overflow: "hidden", marginTop: 8 }}>
