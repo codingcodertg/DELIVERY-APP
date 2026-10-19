@@ -39,7 +39,7 @@ describe("1 · de dónde recoge el chofer: la tienda, o la dirección si no es t
     expect(miRuta).toContain('{f.tipo === "P" ? recogidaEnLaFila(f.ordenes, f.lugar) :');
     expect(miRuta).toContain("const r = d ? recogidaParaElChofer(d, settings.stores ?? []) : null;");
     expect(miRuta).toContain('data-recogida-en-tienda={r.tienda} style={{ background: colorDelChofer, color: "#fff", verticalAlign: "middle" }}>🏬 {t("Store", "Tienda")} · {r.tienda}</span>');
-    expect(miRuta).toContain('{r && !r.enTienda && <span className="hint" data-direccion-de-recogida style={{ display: "block" }}>{r.direccion ?? t("(no address)", "(sin dirección)")}</span>}');
+    expect(miRuta).toContain('{r && <span className="hint" data-direccion-de-recogida style={{ display: "block" }}>{r.direccion ?? t("(no address)", "(sin dirección)")}</span>}');
     const ficha = plano(leer("src/components/OrderModal.tsx"));
     expect(ficha).toContain("const recogida = recogidaParaElChofer(existing ?? d, settings.stores ?? []);");
     expect(ficha).toContain('...(recogida.enTienda ? [[t("Pickup (store)", "Recolección (tienda)"), `🏬 ${recogida.tienda}`]] : [[t("Pickup Address", "Dir. Recolección"), existing.pickup_address || "—"]]),');

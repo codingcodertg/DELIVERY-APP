@@ -18,6 +18,8 @@ const estado = vi.hoisted(() => ({
   deliveries: [] as unknown[],
   events: [] as unknown[],
   pausas: [] as unknown[],
+  // D-NEXT: las tiendas de Ajustes, para que la recogida sepa si sale de una tienda.
+  stores: [] as { name: string; address: string }[],
   pausasPedidas: [] as unknown[][],
   // D-547: la tarjeta «Siguiente parada» va apagada (`MOSTRAR_SIGUIENTE_PARADA = false`). Sus pruebas la encienden aquí
   // para seguir midiéndola: el código sigue entero y volver a encenderla es una línea.
@@ -27,7 +29,7 @@ const estado = vi.hoisted(() => ({
 vi.mock("@/lib/data-provider", () => ({
   useData: () => ({
     me: estado.me, realRole: estado.me?.role ?? null, users: [], deliveries: estado.deliveries, events: estado.events,
-    settings: { stores: [], driver_capacity: {}, default_truck_capacity: 12, driver_colors: {} },
+    settings: { stores: estado.stores, driver_capacity: {}, default_truck_capacity: 12, driver_colors: {} },
     driverLocations: [], ready: true, setStage: async () => true, updateDelivery: async () => true, notify: () => {},
     marcarParada: async () => true, pushNotifs: async () => {}, teaching: false,
   }),
@@ -72,6 +74,7 @@ beforeEach(() => {
   estado.pausas = [];
   estado.pausasPedidas = [];
   estado.tarjeta = false;
+  estado.stores = [];
 });
 
 const pinta = async () => {
@@ -344,5 +347,26 @@ describe("«Mi ruta» del 2026-10-14 (D-547)", () => {
     expect(src).toContain("onConfirmar={(n) => { const d = palletsDe; setPalletsDe(null); void recogerDeUnToque(d, n); }} />}");
     // Recién pintada, sin pulsar nada, el cuadro no está.
     expect(await pinta()).not.toContain("data-pallets-al-recoger");
+  });
+});
+
+describe("«Mi ruta» del 2026-10-18 (D-NEXT): de dónde se recoge", () => {
+  // El dueño: «When pickup is at a store, no need to put address. Only if pickup is not at a store».
+  it("la recogida en una tienda de Ajustes: la tienda resaltada, y NINGUNA dirección de recogida", async () => {
+    estado.stores = [{ name: "McAllen", address: "500 N 10th St" }];
+    estado.deliveries = [orden("A2", "ready", 2, { pickup_name: "McAllen", pickup_address: "500 N 10th St" } as Partial<Delivery>)];
+    const html = await pinta();
+    expect(html).toContain('data-recogida-en-tienda="McAllen"');
+    expect(html).toContain("🏬 Store · McAllen");
+    expect(html).not.toContain("data-direccion-de-recogida");
+    expect(html).not.toContain("500 N 10th St");
+  });
+  it("la recogida que NO es tienda: su nombre y su dirección, sin resaltar como tienda", async () => {
+    estado.stores = [{ name: "McAllen", address: "500 N 10th St" }];
+    estado.deliveries = [orden("A2", "ready", 2, { pickup_name: "Bodega Reynosa", pickup_address: "Av. Hidalgo 45" } as Partial<Delivery>)];
+    const html = await pinta();
+    expect(html).not.toContain("data-recogida-en-tienda");
+    expect(html).toContain("Pick up at Bodega Reynosa");
+    expect(html).toContain('<span class="hint" data-direccion-de-recogida="true" style="display:block">Av. Hidalgo 45</span>');
   });
 });

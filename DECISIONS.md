@@ -32726,6 +32726,9 @@ cierra sola (medido: nada se desplaza de lado a 1280 ni a 390).
 
 ### 4 · Julio vacío: ni línea en el mapa ni tarjeta
 
+> **Matizada por D-NEXT** (2026-10-18): «sin paradas» quiere decir sin nada en el DÍA, ni pendiente ni hecho. Una ruta cuyas
+> paradas ya están todas entregadas conserva su medida y su línea; la de Julio, que no tenía ninguna, sigue sin ellas.
+
 **Qué pasaba** (reproducido en el demo antes del cambio, 1280 px): un chofer con plan publicado de hoy cuyas órdenes se
 pasaron a otro, marcado ☑ con un clic en su fila del panel. El mapa **pintaba la línea de su plan** (2 trazos, `#0f8a8a`,
 el «verde azulado» de la captura: se pedía con las paradas DEL PLAN, no con las suyas de ahora) y «Rutas» sacaba su tarjeta
@@ -35131,6 +35134,10 @@ por factura, o cuando alguien la reprograma a hoy.
 siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
+
+> **Reemplazada en parte por D-NEXT** (2026-10-18): en el mapa, el pin de lo ENTREGADO ya no lleva «✓»: lleva su número de parada del
+> día, apagado. El dueño: «keep the numbers and fade them instead of replacing them with a faded checkmark». El 🚚 de lo
+> recogido y en camino sigue igual.
 
 > **Reemplazada en parte por D-529** (2026-10-11): §1, la fila hecha ya no es «✓P» / «✓D» / «🚚D» a secas: lleva su número
 > de parada del día (en su círculo, apagado si ya está hecha) y su etiqueta P/D («③ ✓P2», «⑦ 🚚D3»). Sigue sin flechas, sin
@@ -45212,3 +45219,49 @@ Los tres puntos son la misma pantalla y el mismo momento: van en **una** solicit
 `src/lib/help-recuadros.test.ts` (16 pruebas: la lista y su renumeración, el tope, el texto por recuadro, el mensaje compuesto en los tres casos, la etiqueta en píxeles y en porcentajes, la vista con dos números y el borrador sin número, que el editor y `HelpButton` pasan por aquí, y que se envía una sola vez). `help-captura.test.ts` ajustada a la lista. Tanda de mutantes `~/.claude/herramientas/mutantes/tanda-recuadros-numerados.json`: **13 de 13 caen**, cada uno con una prueba con nombre (sin renumerar, sin tope, hueco al quitar, texto en todos, punto vacío omitido, mensaje perdido, mensaje vaciado sin recuadros, etiqueta fija, alto contra el ancho, vista sin número, borrador con número, soltar sin añadir, HelpButton sin pegar la lista).
 
 **No verificado:** en navegador (el arrastre con varios recuadros, el número pintado en el PNG, el tamaño de la etiqueta en el móvil); ninguna escritura contra producción desde la rama.
+
+## D-NEXT · «Mi ruta» del chofer: la recogida en tienda dice la TIENDA y no la dirección; en el mapa, la entregada conserva su número (apagado) y la línea de la ruta del día se queda aunque esté entregada
+
+**Fecha:** 2026-10-18 · Sin migración · **Versión:** la pone el orquestador al fusionar · Rama `agent-ada24d9c9c3d8c659` (worktree).
+
+**Pedido del dueño**, literal (2026-10-18, «for drivers in delivery app»):
+
+1. *«When pickup is at a store, no need to put address. Only if pickup is not at a store — asi como delivereis para el driver solo que se recalque que es para una tienda»*
+2. *«When delivered, keep the numbers and fade them instead of replacing them with a faded checkmark. And keep the route lines of the day even when delivered»*
+
+### 1 · La recogida: la tienda, resaltada, y sin dirección
+
+**Qué había.** La fila de recogida de «Mi ruta» decía «Recoger en {lugar}», con el nombre de la tienda que trae la lectura de la ruta (`f.lugar`: el `place` del plan, o `store` de la orden) y nunca una dirección — ni en tienda ni fuera de ella. La ficha de la orden (`OrderModal`, «Ver todos los detalles») decía «Dir. Recolección: {pickup_address}», que en una tienda es la dirección de la tienda (el formulario la rellena «de la tienda seleccionada»). O sea: la lista no distinguía, y la ficha enseñaba la dirección justo donde el dueño no la quiere.
+
+**Qué cambia.**
+- `recogidaParaElChofer(orden, tiendas)` (`src/lib/recogida-y-ruta-del-dia.ts`): la recogida ES en tienda si su nombre (`pickup_name`, y si falta, `store` — lo mismo que el motor de rutas en `entrada.ts`) coincide con una tienda de Ajustes, sin mayúsculas ni espacios de más (como `puntosDelTrazoPublicado`). Devuelve `{ enTienda: true, tienda }` (el nombre de Ajustes) o `{ enTienda: false, nombre, direccion }`.
+- **«Mi ruta», fila de recogida** (`recogidaEnLaFila`): en tienda, «Recoger en» y una pastilla en el color del chofer, **🏬 Tienda · {nombre}** (`data-recogida-en-tienda`), sin dirección. Fuera de tienda, «Recoger en {nombre}» y debajo la dirección en `hint` (`data-direccion-de-recogida`), como la fila de entrega enseña la suya. Bilingüe («Store» / «Tienda»). Se decide por la primera orden de la parada: todas salen del mismo sitio.
+- **La ficha de la orden**: la fila «Dir. Recolección» pasa a **«Recolección (tienda): 🏬 {tienda}»** cuando la recogida es en tienda; si no, queda como estaba. La ficha es la misma para todos los papeles; el cambio es solo esa fila de la vista de lectura.
+
+**Qué se descartó.** Mirar `pickup_address` vacía como señal de «en tienda»: la orden de tienda la trae rellena. Una bandera nueva en la orden: lo que decide es Ajustes, y una tienda que se da de alta después tiene que contar sin tocar las órdenes.
+
+### 2 · El mapa: el número apagado, y la línea del día entera
+
+**Qué había (medido).**
+- El pin de una entrega hecha lo pinta `puntosDeLasRutas` (`mapa-de-rutas.ts`, bloque `e.hechas`): `badge: entregada ? "✓" : "🚚"` y `dimmed: entregada` (D-459). El número de parada del día ya se calculaba ahí (D-529), pero solo iba en el rótulo.
+- La línea: el Gestor, «Ruta de hoy» y el mapa de «Mi ruta» (que es el Gestor en solo lectura, D-514) pintan `routeLines`, la medida de `useMedidaDeRutas`, que recibía **solo lo pendiente** (`porChofer: byDriver`). Cada entrega cambiaba la forma de la ruta (`firmaDeLaForma`), `clearRouteFor` tiraba la medida y se medía otra vez lo que quedaba: la línea se **encogía parada a parada** y, con la última, `seMide` y `tieneParadas` (cero pendientes) la quitaban del todo. La línea del plan publicado no ayuda al chofer: en solo lectura no se pide (`if (!rutasPublicadas || soloLectura) return`).
+
+**Qué cambia.**
+- **El pin de la entregada lleva su número de parada del día, apagado** (`marcaDeLaHecha(entregada, numero)`): «5» al 45 % de opacidad (la misma atenuación de siempre, `dimmed`), en vez de «✓». Una entregada sin número (nadie la ordenó) conserva el «✓». La recogida y en camino sigue con «🚚». El rótulo no cambia («Parada 5 · Entregada 10:42»).
+- **Se mide la ruta del DÍA, no lo pendiente.** El Gestor le da a `useMedidaDeRutas` `rutaDelDia`: lo pendiente con lo ya recogido o entregado (`ordenesDeLaRutaDelDia`, sin repetir y en un orden que no depende de qué está hecho), y como lista las **paradas del día** que ya numeran la tabla, el mapa y «Mi ruta» (`listaDelDia(diaDe(…).paradas)`, D-529). Consecuencias, todas medidas en pruebas:
+  - **Entregar no cambia la forma** → no se tira la medida ni se vuelve a llamar: la línea es la del día entero y se queda igual con 0, 1 o todas las paradas entregadas. **Una llamada menos a `/api/optimize-route` por cada entrega** (antes, una por entrega y ruta).
+  - Una ruta **ya terminada** (cero pendientes, hechas en el día) conserva línea, medida y tarjeta. Una sin nada en el día —ni pendiente ni hecho— sigue sin línea (D-437, matizada arriba).
+  - **Las millas y las horas de la tarjeta pasan a ser las del día entero**, no las de lo que falta. La columna «Llegada» de lo pendiente es la de después de lo ya hecho (antes se calculaba como si el camión saliera de la base directo a la primera pendiente); la de lo hecho sigue siendo su hora real (`llegadaEnLasOrdenes`, D-548).
+  - Viendo «todas las fechas» o las pendientes no hay hechas que pintar (`hechasQueSePintan` solo en modo día), así que ahí nada cambia.
+
+**Qué se descartó.** (a) Medir dos veces por ruta, el día para la línea y lo pendiente para la tarjeta: dobla las llamadas. (b) Guardar la línea vieja y no tirarla al entregar: la medida nueva solo cubría lo pendiente y había que empalmar trazos. (c) Pedir el trazo del plan publicado también en solo lectura: cuesta una llamada por chofer y día, y no existe sin plan publicado.
+
+### Pruebas
+
+`recogida-y-ruta-del-dia.test.ts`: la regla de tienda (tienda, mayúsculas, `store` de respaldo, almacén con dirección, nada), la pantalla y la ficha la usan (texto); `marcaDeLaHecha`; la lista y las órdenes del día; **la firma de la forma no cambia al entregar una ni todas, y sí al quitar una parada**; una ruta terminada conserva línea y la vacía no; el Gestor mide la ruta del día (texto); el pin de la entregada con «2» apagado por `puntosDeLasRutas` de verdad. `mi-ruta-pantalla.test.ts`, bloque «2026-10-18»: pintada de verdad, la recogida en tienda enseña «🏬 Store · McAllen» y NINGUNA dirección; la que no es tienda, «Pick up at Bodega Reynosa» y su dirección (la prueba abre `settings.stores` del mock para poder dar de alta la tienda). Puestas al día (badge «2» en vez de «✓»): `gestor/numeros-del-dia.test.ts`, `rutas-del-dia.test.ts`, `gestor-entregadas-y-vista.test.ts`.
+
+Mutantes **12 de 12** (`tanda-chofer-tienda-y-linea.json`, 2026-10-18), cada uno con la prueba que lo caza por nombre: sin `store` de respaldo; comparación con mayúsculas; ninguna en tienda; «Mi ruta» nunca pinta la rama de tienda (el texto sigue en el fichero, lo caza la pintada); la entregada vuelve al ✓; la en camino con número; el mapa sin `marcaDeLaHecha`; las órdenes del día sin ordenar (entregar cambia la forma); `pendientesDelDia` con lo hecho; una parada de entrega con varias órdenes mide solo la primera; el Gestor vuelve a medir lo pendiente; una ruta terminada pierde su línea. Un decimotercero («Mi ruta enseña la dirección también en tienda») **sobrevivió porque era código de sobra**: el guard `!r.enTienda` de la rama sin tienda nunca podía ser falso tras el `return` de la rama con tienda; se quitó el guard, no se añadió prueba.
+
+### No verificado
+
+Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se midió con una ruta real cuántas llamadas se ahorran: es lo que dice la firma, no un contador en vivo.

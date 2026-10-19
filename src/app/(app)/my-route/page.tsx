@@ -303,7 +303,7 @@ export default function MyRoutePage() {
     return (
       <span style={{ display: "block" }}>
         <span style={{ fontWeight: 700, display: "block" }}>{t("Pick up at", "Recoger en")} {nombre ?? t("(no store on the order)", "(la orden no dice la tienda)")}</span>
-        {r && !r.enTienda && <span className="hint" data-direccion-de-recogida style={{ display: "block" }}>{r.direccion ?? t("(no address)", "(sin dirección)")}</span>}
+        {r && <span className="hint" data-direccion-de-recogida style={{ display: "block" }}>{r.direccion ?? t("(no address)", "(sin dirección)")}</span>}
       </span>
     );
   };
