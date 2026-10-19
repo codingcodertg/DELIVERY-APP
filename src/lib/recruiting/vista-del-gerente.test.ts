@@ -20,7 +20,7 @@ const cand = (p: Partial<Candidate>): Candidate => ({
 });
 const contacto = (p: Partial<Contact>): Contact => ({ id: "k", candidate_id: "c", type: "In person", result: null, note: null, created_by: null, created_at: "2026-10-19T00:00:00Z", ...p });
 
-describe("vista del gerente de tienda (D-NEXT, migración 183)", () => {
+describe("vista del gerente de tienda (D-600, migración 183)", () => {
   it("el rol es «store_manager» y SOLO ve la pestaña Candidatos; los demás roles ven las suyas como antes", () => {
     expect(ROL_GERENTE_DE_TIENDA).toBe("store_manager");
     expect(esGerenteDeTienda("store_manager")).toBe(true);

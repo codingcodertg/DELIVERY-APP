@@ -6,7 +6,7 @@ export type StatusId =
   | "hired"
   | "discarded";
 
-/** D-NEXT (183): `store_manager` = gerente de tienda; ve y resuelve solo los candidatos de su tienda (profiles.store). */
+/** D-600 (183): `store_manager` = gerente de tienda; ve y resuelve solo los candidatos de su tienda (profiles.store). */
 export type UserRole = "admin" | "manager" | "recruiter" | "store_manager";
 
 export interface Profile {
@@ -14,7 +14,7 @@ export interface Profile {
   full_name: string | null;
   role: UserRole;
   avatar_url?: string | null;
-  /** La tienda del perfil del hub (la misma de Entregas); solo importa para el gerente de tienda (D-NEXT). */
+  /** La tienda del perfil del hub (la misma de Entregas); solo importa para el gerente de tienda (D-600). */
   store?: string | null;
 }
 

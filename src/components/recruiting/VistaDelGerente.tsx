@@ -11,7 +11,7 @@ import { telefonoEnLaFila } from "@/lib/recruiting/texto-puedo-llamar";
 import type { Candidate } from "@/lib/recruiting/types";
 
 /**
- * La vista del gerente de tienda (D-NEXT). Lo que llega en `candidates` ya viene filtrado por la base (183: solo los de
+ * La vista del gerente de tienda (D-600). Lo que llega en `candidates` ya viene filtrado por la base (183: solo los de
  * su tienda en presencial / contratado / descartado); aquí solo se agrupa (Hoy, Próximos, Pendientes, Resueltos) y se
  * resuelve: «✅ Contratar» o «❌ No contratar» con razón obligatoria. Nada más del módulo se ofrece a este rol.
  */

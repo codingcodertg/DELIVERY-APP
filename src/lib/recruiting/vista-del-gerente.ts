@@ -1,6 +1,6 @@
 import type { Candidate, Contact, Stage, UserRole } from "./types";
 
-/* ---- Vista del gerente de tienda (D-NEXT, 2026-10-19; migración 183) ----
+/* ---- Vista del gerente de tienda (D-600, 2026-10-19; migración 183) ----
  * El dueño: «una vista para los managers de la HR app … van a poder ver los candidatos que fueron puestos para
  * in-person interview … hoy tuvieron estos … van a poder decir hire, no hire, y reason why not hire … cada manager
  * va a ver solo los de su tienda … solo van a poder ver el tab de candidatos por ahora … ahí tiene que salir

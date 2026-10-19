@@ -224,7 +224,7 @@ export default function CandidatesPage() {
   const counts: Record<string, number> = {};
   stages.forEach((s) => (counts[s.key] = countPool.filter((c) => c.status === s.key).length));
 
-  // D-NEXT: el gerente de tienda ve su vista (candidatos de su tienda, agrupados, con contratar / no contratar), no la lista.
+  // D-600: el gerente de tienda ve su vista (candidatos de su tienda, agrupados, con contratar / no contratar), no la lista.
   if (esGerenteDeTienda(me?.role)) return <VistaDelGerente />;
 
   return (

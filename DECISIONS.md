@@ -45672,9 +45672,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el navegador del dueño. Si con esto sigue sin abrirse, lo siguiente a mirar es el largo del enlace `rcsms` (el texto de la cita son ~330 caracteres; el de «¿te puedo llamar?», que sí abre, ~250).
 
-## D-NEXT · RR. HH.: vista del gerente de tienda — ve solo los candidatos citados a presencial en SU tienda y resuelve contratar / no contratar con razón (migración 183)
+## D-600 · RR. HH.: vista del gerente de tienda — ve solo los candidatos citados a presencial en SU tienda y resuelve contratar / no contratar con razón (migración 183)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · **Migración 183** (`183_gerente_de_tienda.sql`, aplicada el 2026-10-19 con el sí del dueño: respaldo `rtg-prod-20261019-172504.dump`, ensayo con ROLLBACK, `--escribe`, migrate-status 182/182 antes y después) · Hecho directo por el orquestador en `feat/rrhh-gerente-de-tienda`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.53.0 (repo 1.466.0) · **Migración 183** (`183_gerente_de_tienda.sql`, aplicada el 2026-10-19 con el sí del dueño: respaldo `rtg-prod-20261019-172504.dump`, ensayo con ROLLBACK, `--escribe`, migrate-status 182/182 antes y después) · Hecho directo por el orquestador en `feat/rrhh-gerente-de-tienda`.
 
 **Pedido del dueño (2026-10-19, literal):** «Quiero que me crees una vista para los managers de la HR app … van a poder ver los candidatos que fueron puestos para in-person interview … hoy tuvieron estos … van a poder decir hire, no hire, y reason why not hire … cada manager va a ver solo los de su tienda, los que yo mando a la tienda de ellos … prácticamente ellos solo van a poder ver el tab de candidatos por ahora … ahí tiene que salir resolución del gerente, no hire, hire». Y al plan: «sí, dale con la migración».
 

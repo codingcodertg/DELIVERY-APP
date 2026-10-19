@@ -49,7 +49,7 @@ export function CandidateRow({
   const overdue = isOverdue(c, term);
   const inCompare = ui.compareIds.includes(c.id);
   const nContact = contactsFor(c.id).length;
-  // D-NEXT: lo que decidió el gerente de tienda tras la presencial, si ya decidió.
+  // D-600: lo que decidió el gerente de tienda tras la presencial, si ya decidió.
   const resolucion = resolucionDelGerente(contactsFor(c.id), c.id);
   const tel = telefonoEnLaFila(c.phone);
 

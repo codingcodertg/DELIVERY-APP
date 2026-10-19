@@ -1,5 +1,5 @@
 -- 183: RR. HH. — rol «Gerente de tienda» (store_manager): ve y resuelve solo los candidatos de SU tienda
--- que se mandaron a entrevista presencial (D-NEXT, 2026-10-19).
+-- que se mandaron a entrevista presencial (D-600, 2026-10-19).
 --
 -- Qué había: en RR. HH. hay tres niveles (admin | manager = Office Manager | recruiter) y los tres ven TODOS
 -- los candidatos: cada política de `recruiting.*` es `has_recruiting_access()`. El dueño pide que el gerente

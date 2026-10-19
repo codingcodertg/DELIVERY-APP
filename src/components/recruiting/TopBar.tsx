@@ -27,7 +27,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
   const pathname = usePathname();
   const router = useRouter();
   const { settings, recruiters } = useData();
-  // El gerente de tienda solo tiene Candidatos (D-NEXT): cualquier otra ruta del módulo lo devuelve ahí.
+  // El gerente de tienda solo tiene Candidatos (D-600): cualquier otra ruta del módulo lo devuelve ahí.
   useEffect(() => {
     if (esGerenteDeTienda(me.role) && pathname !== "/recruiting") router.replace("/recruiting");
   }, [me.role, pathname, router]);

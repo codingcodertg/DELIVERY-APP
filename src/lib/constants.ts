@@ -379,7 +379,7 @@ export const RECRUITING_ROLE_LABELS: Record<string, { en: string; es: string }> 
   admin: { en: "Admin", es: "Administrador" },
   manager: { en: "Office Manager", es: "Gerente de Oficina" },
   recruiter: { en: "Recruiter", es: "Reclutador" },
-  // D-NEXT (183): gerente de tienda; su tienda es `profiles.store`, la misma de Entregas.
+  // D-600 (183): gerente de tienda; su tienda es `profiles.store`, la misma de Entregas.
   store_manager: { en: "Store Manager", es: "Gerente de tienda" },
 };
 
