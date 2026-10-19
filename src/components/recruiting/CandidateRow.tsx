@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { useUI } from "@/components/recruiting/ModalHost";
+import { BotonTextoPuedoLlamar } from "@/components/recruiting/BotonTextoPuedoLlamar";
+import { telefonoEnLaFila } from "@/lib/recruiting/texto-puedo-llamar";
 import { usePrefs } from "@/lib/prefs";
 import { stageOf, CALL_AGAIN_TAG, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
 import type { Candidate } from "@/lib/recruiting/types";
@@ -27,7 +29,7 @@ export function CandidateRow({
   onSelect?: (id: string, checked: boolean) => void;
 }) {
   const {
-    recruiters, stages, updateCandidate, deleteCandidate, toggleFavorite, contactsFor,
+    recruiters, stages, updateCandidate, deleteCandidate, toggleFavorite, contactsFor, addContact,
     uploadResume, removeResume, openResumeFile, notify,
   } = useData();
   const ui = useUI();
@@ -45,6 +47,7 @@ export function CandidateRow({
   const overdue = isOverdue(c, term);
   const inCompare = ui.compareIds.includes(c.id);
   const nContact = contactsFor(c.id).length;
+  const tel = telefonoEnLaFila(c.phone);
 
   const changeStatus = async (ns: string) => {
     const target = stageOf(stages, ns);
@@ -167,6 +170,11 @@ export function CandidateRow({
             </div>
             <div className="cand-meta">
               <span>💼 {c.role}</span>
+              {tel && (
+                <a className="link-tel" href={tel.href} title={t("Call (RingCentral)", "Llamar (RingCentral)")} onClick={() => addContact(c.id, { type: "Call", result: "", note: "" })}>
+                  📞 {tel.texto}
+                </a>
+              )}
               <span>🏪 {c.location || t("No store", "Sin tienda")}</span>
               {c.home_location && <span>🏠 {c.home_location}</span>}
               <span>📅 {fmtDate(c.reg_date)}</span>
@@ -205,6 +213,7 @@ export function CandidateRow({
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openSchedule(c.id)}>📅 {t("Schedule call", "Agendar llamada")}</button>
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openScheduleInPerson(c.id)}>🤝 {t("Schedule in-person", "Agendar presencial")}</button>
         <button className="btn btn-green btn-sm" onClick={() => ui.openMessage(c.id)}>💬 {t("Message", "Mensaje")}</button>
+        <BotonTextoPuedoLlamar c={c} />
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openContact(c.id)}>📝 {t("Log", "Registro")}{nContact ? ` (${nContact})` : ""}</button>
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openTimeline(c.id)}>🕓 {t("Timeline", "Historial")}</button>
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openOffer(c.id)}>💼 {t("Offer", "Oferta")}</button>
