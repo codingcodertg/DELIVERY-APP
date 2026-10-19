@@ -45637,9 +45637,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador. El texto exacto con la dirección real sale de Datos → Tiendas, no del repo.
 
-## D-NEXT · RR. HH.: tras «Buzón de voz» o «Volver a llamar» en la entrevista, el diálogo ofrece un texto de seguimiento («le estoy llamando por el puesto de…, ¿cuándo está disponible?»)
+## D-598 · RR. HH.: tras «Buzón de voz» o «Volver a llamar» en la entrevista, el diálogo ofrece un texto de seguimiento («le estoy llamando por el puesto de…, ¿cuándo está disponible?»)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-seguimiento`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.52.0 (repo 1.464.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-seguimiento`.
 
 **Pedido del dueño (2026-10-19, literal):** «en la entrevista si le doy buzón de voz o volver a llamar dame la opción para mandarle un follow up text message con ese template de te estoy llamando por el trabajo de tal y cuándo está disponible».
 

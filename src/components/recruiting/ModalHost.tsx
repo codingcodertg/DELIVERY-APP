@@ -1125,7 +1125,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
   const { candidates, questions, jobs, questionSets, settings, stages, templates, me, updateCandidate, addContact, notify } = useData();
   const { t, lang } = usePrefs();
   const ui = useUI();
-  /** D-NEXT: tras «Buzón de voz» o «Volver a llamar», el diálogo se queda con el texto de seguimiento listo para mandar. */
+  /** D-598: tras «Buzón de voz» o «Volver a llamar», el diálogo se queda con el texto de seguimiento listo para mandar. */
   const [seguimiento, setSeguimiento] = useState<string | null>(null);
   const [textoSeg, setTextoSeg] = useState("");
   const [errorSeg, setErrorSeg] = useState<string | null>(null);
@@ -1191,7 +1191,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
 
   // Quick call-outcome logging (voicemail / no answer / etc.) — logs a contact and closes.
   // callAgain tags the candidate so failed calls stay visible until an interview is saved.
-  // D-NEXT: `clave` es el resultado en inglés (el que decide); `result` la etiqueta que se registra, en el idioma de quien pulsa.
+  // D-598: `clave` es el resultado en inglés (el que decide); `result` la etiqueta que se registra, en el idioma de quien pulsa.
   // Con «Voicemail» y «Call back later» el diálogo NO cierra: ofrece el texto de seguimiento (librería texto-de-seguimiento).
   const logOutcome = async (clave: string, result: string, callAgain: boolean) => {
     await addContact(c.id, { type: "Call", result, note: "" });

@@ -1,7 +1,7 @@
 import type { Candidate, Contact } from "./types";
 import { mergeTemplate, rcSms, telClean } from "./utils";
 
-/* ---- «📱 Texto de seguimiento» tras un buzón de voz o un «volver a llamar» (D-NEXT, 2026-10-19) ----
+/* ---- «📱 Texto de seguimiento» tras un buzón de voz o un «volver a llamar» (D-598, 2026-10-19) ----
  * El dueño: «en la entrevista si le doy buzón de voz o volver a llamar dame la opción para mandarle un follow up text
  * message con ese template de te estoy llamando por el trabajo de tal y cuándo está disponible». Medido: esos dos
  * botones del diálogo de entrevista registraban el contacto «Call / Buzón de voz» y cerraban el diálogo; para textear
