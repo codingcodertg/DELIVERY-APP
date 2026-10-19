@@ -34,7 +34,7 @@ export default function SettingsPage() {
   const [jTarget, setJTarget] = useState("");
   const [jSet, setJSet] = useState("");
   const jobCount = (jobId: string) => candidates.filter((c) => c.job_id === jobId && !c.archived).length;
-  // Conjunto de preguntas por vacante ya creada (D-NEXT): admin y gerente lo cambian; el reclutador lo ve.
+  // Conjunto de preguntas por vacante ya creada (D-582): admin y gerente lo cambian; el reclutador lo ve.
   const puedeAsignar = puedeAsignarPreguntasAlPuesto(me?.role);
   const activasPorConjunto = preguntasActivasPorConjunto(questions);
   const nombreDeConjunto = (s: { id: string; name: string; is_default: boolean }) =>

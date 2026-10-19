@@ -1,4 +1,4 @@
-// Qué preguntas lleva la entrevista de un candidato, y quién puede decidirlo (D-NEXT).
+// Qué preguntas lleva la entrevista de un candidato, y quién puede decidirlo (D-582).
 //
 // Dos preguntas, las dos puras:
 //   1. `conjuntoDeEntrevista` — de qué conjunto se entrevista. El orden (vacante > puesto > implícito por

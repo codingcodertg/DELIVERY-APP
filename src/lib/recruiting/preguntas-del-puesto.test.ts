@@ -22,7 +22,7 @@ const Q = [
   { id: "o1", role: "Otro puesto", active: true, set_id: "acc", category: null },
 ];
 
-describe("conjuntoDeEntrevista (D-NEXT): de qué conjunto se entrevista", () => {
+describe("conjuntoDeEntrevista (D-582): de qué conjunto se entrevista", () => {
   it("la vacante que sujeta un conjunto manda sobre el puesto y el predeterminado", () => {
     const r = conjuntoDeEntrevista({
       vacante: { id: "j", role: "Driver", question_set_id: "acc" },
@@ -59,7 +59,7 @@ describe("conjuntoDeEntrevista (D-NEXT): de qué conjunto se entrevista", () => 
   });
 });
 
-describe("preguntasDeEntrevista (D-NEXT): la lista que ve quien entrevista", () => {
+describe("preguntasDeEntrevista (D-582): la lista que ve quien entrevista", () => {
   const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 
   it("candidato a la vacante Accounting Associate con su conjunto: sus preguntas, las inactivas fuera, preselección delante", () => {
@@ -129,7 +129,7 @@ describe("preguntasDeEntrevista (D-NEXT): la lista que ve quien entrevista", () 
   });
 });
 
-describe("puedeAsignarPreguntasAlPuesto (D-NEXT): quién cambia el conjunto de una vacante", () => {
+describe("puedeAsignarPreguntasAlPuesto (D-582): quién cambia el conjunto de una vacante", () => {
   it("admin y gerente sí; reclutador, sin rol o rol desconocido, no", () => {
     expect(puedeAsignarPreguntasAlPuesto("admin")).toBe(true);
     expect(puedeAsignarPreguntasAlPuesto("manager")).toBe(true);
@@ -140,7 +140,7 @@ describe("puedeAsignarPreguntasAlPuesto (D-NEXT): quién cambia el conjunto de u
   });
 });
 
-describe("preguntasActivasPorConjunto (D-NEXT)", () => {
+describe("preguntasActivasPorConjunto (D-582)", () => {
   it("cuenta solo activas y con conjunto; un conjunto sin preguntas no aparece", () => {
     const m = preguntasActivasPorConjunto(Q);
     expect(m.get("def")).toBe(2);
@@ -151,7 +151,7 @@ describe("preguntasActivasPorConjunto (D-NEXT)", () => {
   });
 });
 
-describe("las pantallas usan la librería (D-NEXT)", () => {
+describe("las pantallas usan la librería (D-582)", () => {
   const ajustes = readFileSync("src/app/recruiting/(recruiting)/settings/page.tsx", "utf8");
   const modal = readFileSync("src/components/recruiting/ModalHost.tsx", "utf8");
 

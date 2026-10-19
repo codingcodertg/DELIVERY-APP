@@ -45148,7 +45148,7 @@ RRHH **no manda SMS por servidor**. El «💬 Texto» del diálogo de entrevista
 **No verificado:** en navegador (que RingCentral abra con el texto puesto; el ancho de la barra de acciones con un botón más); nada contra producción desde la rama.
 ---
 
-## D-NEXT · RR. HH.: cada vacante elige su conjunto de preguntas desde Ajustes → Vacantes, también después de creada; la entrevista lo toma de ahí
+## D-582 · RR. HH.: cada vacante elige su conjunto de preguntas desde Ajustes → Vacantes, también después de creada; la entrevista lo toma de ahí
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración**.
 

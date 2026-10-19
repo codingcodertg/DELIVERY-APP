@@ -1129,7 +1129,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
   const ui = useUI();
   const c = candidates.find((x) => x.id === id);
   const lostStage = stages.find((s) => s.type === "lost");
-  // De qué conjunto y qué preguntas: lo decide la librería (preguntas-del-puesto.ts, D-NEXT), para poder medirlo.
+  // De qué conjunto y qué preguntas: lo decide la librería (preguntas-del-puesto.ts, D-582), para poder medirlo.
   // Orden: el conjunto que sujeta la vacante > el del puesto del candidato > el implícito por preguntas con su
   // rol > el predeterminado; dentro, activas y de rol «all», del candidato o —si lo fijó la vacante— de la vacante,
   // con las categorías de preselección (Tenure, Language Skill, Education) delante.

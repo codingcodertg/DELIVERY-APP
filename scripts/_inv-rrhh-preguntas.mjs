@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Inventario de SOLO LECTURA: por que al dueno no le salen las preguntas del puesto «Accounting Associate» (D-NEXT).
+// Inventario de SOLO LECTURA: por que al dueno no le salen las preguntas del puesto «Accounting Associate» (D-582).
 //
 // Uso (desde el checkout principal, que es donde vive .env.local):
 //   node --env-file=.env.local scripts/_inv-rrhh-preguntas.mjs [texto-del-puesto]
