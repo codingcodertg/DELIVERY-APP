@@ -81,6 +81,25 @@ describe("preguntasDeEntrevista (D-NEXT): la lista que ve quien entrevista", () 
     expect(ids(r)).toEqual(["a2", "a1"]);
     expect(ids(r)).not.toContain("o1");
   });
+  it("medido en producción 2026-10-18: candidato «Accounting Associate», conjunto atado a ese puesto, 27 preguntas con role «Accounting» → las 27", () => {
+    const conjuntos = [{ id: "def", is_default: true, role: null }, { id: "acc27", is_default: false, role: "Accounting Associate" }];
+    const preguntas = Array.from({ length: 27 }, (_, i) => ({ id: "q" + i, role: "Accounting", active: true, set_id: "acc27", category: null }))
+      .concat({ id: "apagada", role: "Accounting", active: false, set_id: "acc27", category: null })
+      .concat({ id: "g1", role: "all", active: true, set_id: "def", category: null });
+    const r = preguntasDeEntrevista({ vacante: null, rolDelCandidato: "Accounting Associate", conjuntos, preguntas });
+    expect(r).toHaveLength(27);
+    expect(ids(r)).not.toContain("apagada");
+    expect(ids(r)).not.toContain("g1");
+  });
+  it("por el enlace implícito o el predeterminado, la etiqueta de rol sigue filtrando", () => {
+    const conjuntos = [{ id: "def", is_default: true, role: null }];
+    const preguntas = [
+      { id: "g1", role: "all", active: true, set_id: "def", category: null },
+      { id: "otra", role: "Sales Representative", active: true, set_id: "def", category: null },
+    ];
+    const r = preguntasDeEntrevista({ vacante: null, rolDelCandidato: "Accounting Associate", conjuntos, preguntas });
+    expect(ids(r)).toEqual(["g1"]);
+  });
   it("el puesto de la vacante NO abre la puerta cuando el conjunto no vino de la vacante", () => {
     const r = preguntasDeEntrevista({
       vacante: { id: "j", role: "Accounting Associate", question_set_id: null },

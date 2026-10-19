@@ -47,10 +47,13 @@ export function conjuntoDeEntrevista(args: {
 }
 
 /**
- * La lista que ve quien entrevista. Una pregunta entra si está activa, pertenece al conjunto elegido (o no hay
- * conjunto) y su rol es «all», el del candidato o —solo cuando el conjunto lo fijó la vacante— el de la vacante:
- * si alguien sujetó ese conjunto a esa vacante, una pregunta etiquetada con el puesto de la vacante no se
- * esconde porque el candidato quedara registrado con otro nombre de puesto.
+ * La lista que ve quien entrevista. Una pregunta entra si está activa y pertenece al conjunto elegido (o no hay
+ * conjunto). La etiqueta de rol de cada pregunta solo filtra cuando el conjunto se eligió por implícito o por
+ * predeterminado («all» o el del candidato):
+ *   - conjunto atado al PUESTO del candidato → el conjunto entero. Medido en producción el 2026-10-18: el conjunto
+ *     «Accounting» está atado al puesto «Accounting Associate» y sus 27 preguntas llevan role = "Accounting"; con el
+ *     filtro por etiqueta la entrevista no sacaba ninguna.
+ *   - conjunto sujeto por la VACANTE → «all», el del candidato o el de la vacante.
  */
 export function preguntasDeEntrevista<Q extends PreguntaMin>(args: {
   vacante: VacanteMin | null;
@@ -63,8 +66,9 @@ export function preguntasDeEntrevista<Q extends PreguntaMin>(args: {
   const rolesQueEntran = new Set<string>(["all"]);
   if (rolDelCandidato) rolesQueEntran.add(rolDelCandidato);
   if (origen === "vacante" && vacante?.role) rolesQueEntran.add(vacante.role);
+  const conjuntoEntero = origen === "puesto";
   const filtradas = preguntas.filter(
-    (q) => q.active && rolesQueEntran.has(q.role) && (setId ? q.set_id === setId : true),
+    (q) => q.active && (conjuntoEntero || rolesQueEntran.has(q.role)) && (setId ? q.set_id === setId : true),
   );
   // Las categorías de preselección delante, en ese orden; el resto conserva su orden (sort estable).
   const indice = (q: PreguntaMin) => {
