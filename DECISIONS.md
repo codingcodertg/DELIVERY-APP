@@ -45405,3 +45405,49 @@ La RLS de lectura de `deliveries` corta por `tiendas_visibles()`: para ventas de
 
 - Nada abierto en navegador: ni los chips ni la tabla de ventas en «Mañana».
 - Cuánto pesa para un vendedor sin `visible_stores` la lista de mañana de todas las tiendas: son las filas que su RLS ya le mandaba; el filtro es de pantalla.
+
+
+## D-589 · Una dirección a medias no se guarda: calle con número, ciudad y estado o código postal, y el punto dentro de la región (300 km de las tiendas); también la recogida que no es tienda, y también en un borrador
+
+**Fecha:** 2026-10-18 · Sin migración · **Versión:** la pone el orquestador al fusionar · Rama `agent-a1724cc3ad66ba738` (worktree).
+
+**Pedido del dueño**, literal (2026-10-18): *«delivery address always need to be completed because right now a half saved delivery was 1500 miles away s make that rule so that doesnt happens anymore»*.
+
+**El caso, medido** (inventario de D-580, 2026-10-18, solo lectura): la orden **#1071**, dirección de entrega «4408 QUEEN PALM» —sin ciudad ni estado—, geocodificada en **Florida (26.182, −80.234), a 1.788 km** del centro de las tiendas (Pharr, 26.204 / −98.169). Era la única a más de 300 km entre 165 órdenes con punto del 11 al 25 de octubre.
+
+### Qué pasaba
+
+1. La ficha solo exigía que la dirección **no estuviera vacía** (`missingFields`, `required.ts`), y eso solo al enviar: un borrador se guardaba con lo que hubiera.
+2. El punto lo buscaba `geocode-on-save` (D-223) **después** de guardar, y escribía lo que devolviera el proveedor sin mirar dónde caía. Con «4408 QUEEN PALM» el proveedor eligió una Queen Palm cualquiera del país.
+3. De paso: una orden que ya tenía punto geocodificado y a la que se le **cambiaba la dirección** se quedaba con el punto viejo —`necesitaUbicacion` solo mira si hay punto, no si la dirección es la misma— y nadie volvía a buscarlo.
+4. En la base no hay nada que valide direcciones: `guard_delivery_stage` (169/173) mira etapas, motivos y permisos, no texto. **No se escribe migración**: una regla de forma de un texto libre (comas, siglas, códigos postales) en PL/pgSQL sería una segunda copia de la misma lógica y la del cliente ya corta antes de escribir; el respaldo de la base, si algún día hace falta, es otra decisión.
+
+### Qué cambia
+
+Un módulo puro, `src/lib/direccion-completa.ts`:
+
+- **`direccionCompleta(texto, conocidas?)` → `{ ok, falta[], soloCiudad }`.** Completa = el primer trozo lleva **número y calle**, `ciudadDeEntrega` (D-408/D-423) lee una **ciudad**, y hay **estado o código postal** (en su trozo, pegado a la ciudad, o al final si no hay comas). Devuelve QUÉ falta (`numero` · `ciudad` · `estado`) para decírselo. «4408 QUEEN PALM» → faltan ciudad y estado. «4408 Queen Palm Dr, McAllen, TX 78504» → ok. El lote o apartamento («LOTE #24») no cuenta como número de la calle. **Una dirección que es solo la ciudad («Mission, TX, USA») sigue valiendo**: es lo que el dueño pidió en D-454 como respuesta amplia y la orden ya sale marcada «solo ciudad — dirección por confirmar»; lo que se cierra es la calle sin ciudad, que es lo que viajó 1.500 millas. Si la ciudad sola se geocodifica fuera (una «Mission» de otro estado), la segunda regla la para.
+- **`puntoDentroDeLaRegion(lat, lng, tiendas)` → `true | false | null`.** Es **exactamente** el filtro de D-580 (`puntosParaEncuadrar` con un solo punto): a más de `RADIO_MAX_KM` = 300 km de la mediana de las tiendas de Ajustes, fuera. Lo que el mapa ya no encuadra, la ficha ya no guarda. `null` sin punto (también el 0,0, D-219).
+- **`direccionesARevisar(fila, anterior, tiendas, reglas)`** decide qué se revisa: la **entrega** cuando va a un cliente o una obra (en una intertienda la dirección la pone Ajustes, no se revisa), y la **recogida** cuando NO es una tienda de Ajustes (`recogidaParaElChofer`, D-584). Las vacías no salen —la vacía la cubre `missingFields`, y un borrador puede no tener dirección todavía (D-531)—: **borrador sin dirección sí; con dirección a medias no**. Dice además qué punto vale: el **pin a mano siempre** (D-221); el geocodificado **solo si la dirección es la misma de antes** (cierra el punto 3 de arriba); y si no hay punto que valga, hay que buscarlo.
+
+En la ficha (`OrderModal.tsx`):
+
+- **`save`** llama a `direccionesValidas(payload)` tras la regla de «recogida ≠ entrega» y **antes** de cualquier escritura, con borrador o sin él. Incompleta → aviso con lo que falta, bilingüe, y no guarda. Si la dirección no tiene punto que valga, **lo busca ahí** (`/api/geocode-point`, una llamada; no en el sandbox de enseñanza) y si cae fuera → «La dirección de entrega cayó fuera de la región (a más de 300 km de las tiendas); revísala. No se guardó.» Si cae dentro, el punto **viaja en el guardado** (`parcheDeUbicacion`), así `geocode-on-save` no lo busca una segunda vez. Si el proveedor no la encuentra (404) o falla, **se deja pasar**: un 404 dice que el proveedor no la conoce, no que esté mal, y el aviso de D-223 ya lo cuenta. La recogida que no es tienda se geocodifica solo si es nueva o cambió; no guarda punto (la orden no tiene columna para él).
+- **`move`** (el «Enviar» de un borrador que ya existía, `esEnvioDeBorrador`) pasa por `direccionesCompletasDe(existing)`: un borrador guardado **antes** de esta regla con la dirección a medias no sale del borrador así. Síncrona: completas, y el punto que tenga dentro de la región.
+
+En el proveedor (`data-provider.tsx`, `ubicarSiHaceFalta`): un punto geocodificado que cae **fuera de la región no se escribe**; queda un evento `geocode_out_of_region` en el historial de la orden, el aviso en pantalla, y la dirección se recuerda como «sin punto» para no repetir la llamada. Es el respaldo para la importación de CSV y cualquier otra escritura que no pase por la ficha.
+
+### Qué se descartó
+
+- **Exigir la dirección también en un borrador vacío.** El dueño dijo «completed», no «obligatoria desde el primer segundo»; D-531 ya asume borradores incompletos. Lo que viajó 1.500 millas fue una dirección *a medias*, no una vacía.
+- **Revertir D-454 (solo ciudad).** La ciudad sola no fue el fallo y el dueño la pidió a propósito; si cambia de idea es otra decisión que cita esta.
+- **Bloquear cuando el proveedor devuelve 404.** Castigaría una dirección rural correcta por un fallo ajeno a ella.
+- **Validar en la base (`guard_*`).** Ver el punto 4.
+
+**Pruebas:** `src/lib/direccion-completa.test.ts` (25): «4408 QUEEN PALM» incompleta (ciudad y estado); «4408 Queen Palm Dr, McAllen, TX 78504» ok; buscador con país, Nominatim con condado y código postal, «McAllen 78501»; calle sin número; ciudad sin estado; solo ciudad vale (D-454); vacía; lote no es número; sin comas con y sin ciudad conocida; Florida fuera y McAllen dentro; null con NaN/0,0; el radio (≈290 km dentro, ≈311 fuera); sin tiendas el centro de la zona; qué se revisa y qué punto vale (geocodificado con misma dirección, cambiada, pin a mano, 0,0, intertienda, vacía, recogida nueva/igual); los avisos en los dos idiomas; y, por lectura del fuente, que la ficha revisa antes de escribir y corta, que las DOS puertas cortan tras avisar, y que el proveedor no escribe el punto de fuera. `formulario-orden-limpio.test.ts` (D-337) llevaba «la ficha no llama a `/api/geocode-point`» como ancla del botón quitado; ahora exige UNA llamada y que esté en `direccionesValidas`, con nota fechada. Las 98 pruebas que leen `OrderModal.tsx` o `data-provider.tsx`: 2.257 en verde (2026-10-18).
+
+**Mutantes: 21 de 21** (`~/.claude/herramientas/mutantes/tanda-direccion-completa.json`, 2026-10-18), cada uno con la prueba que lo caza por nombre: solo ciudad deja de valer; sin número pasa; sin ciudad pasa; sin estado pasa; `ok` no mira lo que falta; la vacía vale; sin comas no mira el estado pegado; el estado pegado a la ciudad no cuenta; todo punto cae dentro; el 0,0 se decide; el geocodificado vale con dirección cambiada; solo vale el pin a mano; la intertienda se revisa; la recogida en tienda se revisa; la recogida igual se vuelve a geocodificar; 0,0 cuenta como punto; la ficha avisa pero no corta (incompleta y fuera); el guardado revisa pero no corta; el Enviar del borrador viejo no mira; el proveedor escribe el punto de fuera. Tres cosas que la tanda enseñó: el primer M14 («quitar `!recogida.enTienda`») **era código equivalente** —la variante en tienda no trae `direccion`; el guard solo estrecha el tipo— y se cambió por «ninguna tienda cuenta como tienda»; M17 y M18 **sobrevivieron la primera vez porque la prueba de lectura casaba con la OTRA puerta** (hay dos: guardar y Enviar), y ahora cuenta las dos y exige el `return` tras el aviso; y una rama `CONDADO` de `traeEstadoOPostal` se borró porque nadie la notaría (el formato de Nominatim entra por el código postal).
+
+### No verificado
+
+Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se midió con la #1071 real: hay que abrirla, y al guardar tiene que decir «falta ciudad, estado o código postal». La corrección de su dirección es a mano, en la ficha.

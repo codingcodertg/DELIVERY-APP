@@ -54,6 +54,8 @@ import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 import { accionesDeLaFicha, type IdDeAccion, type Texto } from "@/lib/acciones-de-la-ficha";
 import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import { fuenteAlAplicar, pinDraftParaGuardar, type PinSource } from "@/lib/pin-draft";
+import { avisoDireccionIncompleta, avisoFueraDeLaRegion, direccionCompleta, direccionesARevisar, puntoDentroDeLaRegion } from "@/lib/direccion-completa";
+import { parcheDeUbicacion, resultadoDeRespuesta } from "@/lib/geocode-on-save";
 import { tiendasParaElMapa } from "@/lib/store-pins";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
@@ -682,6 +684,46 @@ export function OrderModal({
     } catch { /* non-blocking */ }
   };
 
+  /**
+   * Una dirección a medias no se guarda, ni como borrador (D-589). El dueño, 2026-10-18: «delivery address always need
+   * to be completed because right now a half saved delivery was 1500 miles away». La #1071, «4408 QUEEN PALM», se
+   * geocodificó en Florida. Qué se revisa lo decide `direccionesARevisar` (la entrega a cliente; la recogida que no es
+   * tienda); cada una tiene que estar completa Y su punto caer en la región de D-580. El punto que no existe se busca
+   * AQUÍ, antes de escribir —no después, como hacía `geocode-on-save` sola—, y si cae dentro viaja en el guardado para
+   * no buscarlo dos veces. Si el proveedor no la encuentra (404) o falla, se deja pasar: el aviso de `geocode-on-save`
+   * ya lo cuenta, y un 404 no dice que la dirección esté mal, dice que el proveedor no la conoce.
+   */
+  const direccionesValidas = async (payload: Draft): Promise<{ ok: true; parche: Partial<Delivery> } | { ok: false }> => {
+    const parche: Partial<Delivery> = {};
+    for (const r of direccionesARevisar(payload, existing, settings.stores ?? [], settings.order_type_rules)) {
+      const c = direccionCompleta(r.texto);
+      if (!c.ok) { notify(avisoDireccionIncompleta(r.que, c.falta, lang)); return { ok: false }; }
+      let punto = r.punto;
+      if (!punto && r.geocodificar && !teaching) {
+        try {
+          const res = await fetch("/api/geocode-point", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: r.texto }) });
+          const resultado = resultadoDeRespuesta(res.status, await res.json().catch(() => null));
+          if (resultado.kind === "ok") {
+            punto = { lat: resultado.lat, lng: resultado.lng };
+            if (r.que === "entrega") Object.assign(parche, parcheDeUbicacion(punto));
+          }
+        } catch { /* fallo de red: pasa, y geocode-on-save lo reintentará al guardar */ }
+      }
+      if (punto && puntoDentroDeLaRegion(punto.lat, punto.lng, settings.stores ?? []) === false) { notify(avisoFueraDeLaRegion(r.que, lang)); return { ok: false }; }
+    }
+    return { ok: true, parche };
+  };
+
+  /** La puerta síncrona del «Enviar» de un borrador que ya existía: completas, y el punto que tenga dentro de la región. */
+  const direccionesCompletasDe = (fila: Delivery): boolean => {
+    for (const r of direccionesARevisar(fila, fila, settings.stores ?? [], settings.order_type_rules)) {
+      const c = direccionCompleta(r.texto);
+      if (!c.ok) { notify(avisoDireccionIncompleta(r.que, c.falta, lang)); return false; }
+      if (r.punto && puntoDentroDeLaRegion(r.punto.lat, r.punto.lng, settings.stores ?? []) === false) { notify(avisoFueraDeLaRegion(r.que, lang)); return false; }
+    }
+    return true;
+  };
+
   // La regla —qué pin se guarda y con qué procedencia— vive en `lib/pin-draft.ts`, no aquí: lo que
   // decide son las coordenadas y la fuente que acaban en la base, no cómo se pintan. Aquí solo se
   // le pasa el estado de la ficha.
@@ -713,6 +755,12 @@ export function OrderModal({
       notify(t("Pickup and delivery address can't be the same.", "La dirección de recolección y de entrega no pueden ser iguales."));
       return;
     }
+    // Completas y dentro de la región, también en un borrador (D-589). Con `busy`: puede ir a buscar el punto.
+    setBusy(true);
+    const direcciones = await direccionesValidas(payload);
+    setBusy(false);
+    if (!direcciones.ok) return;
+    Object.assign(payload, direcciones.parche);
     // Una Intertienda que ya existe y recibe la factura de otra Intertienda abierta (D-557): «Juntar en #X», «Dejarla
     // aparte» o Cancelar. «Hecho» = se juntó y ya está escrito; «Dejarla aparte» no repite el aviso de factura duplicada.
     let facturaDecidida = false;
@@ -902,6 +950,8 @@ export function OrderModal({
     // sola se saltaría entera la puerta de D-049. `to === "pending"` se queda porque el
     // «desbloquear» del gerente —de `approved` a `pending`— también pasaba por aquí.
     if ((to === "pending" || esEnvioDeBorrador(existing.stage, to)) && blockSubmit(existing)) return;
+    // Un borrador guardado ANTES de D-589 puede llevar la dirección a medias: no sale del borrador así.
+    if (esEnvioDeBorrador(existing.stage, to) && !direccionesCompletasDe(existing)) return;
     setBusy(true);
     // Stamp the driver's location when they collect the load (never blocks).
     let extra: Partial<Delivery> | undefined;

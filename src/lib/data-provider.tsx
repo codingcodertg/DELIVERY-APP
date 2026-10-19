@@ -21,6 +21,7 @@ import { deviceId } from "@/lib/device-id";
 import { change, type SecurityKind } from "@/lib/security-log";
 import { detalleAConsola, mensajeEscrituraPerfil } from "@/lib/user-write-error";
 import { EVENTO_NO_ENCONTRADA, NOTA_NO_ENCONTRADA, avisoUbicacion, claveDireccion, necesitaUbicacion, parcheDeUbicacion, resultadoDeRespuesta } from "@/lib/geocode-on-save";
+import { EVENTO_FUERA_DE_REGION, NOTA_FUERA_DE_REGION, avisoFueraDeLaRegion, puntoDentroDeLaRegion } from "@/lib/direccion-completa";
 import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
 import { pedirAvisoEnCamino } from "@/lib/avisos-cliente";
@@ -1017,6 +1018,14 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       } catch {
         resultado = { kind: "falloTemporal" } as const;
       }
+      if (resultado.kind === "ok" && puntoDentroDeLaRegion(resultado.lat, resultado.lng, settings.stores) === false) {
+        // Fuera de la región de D-580 (la #1071, «4408 QUEEN PALM», cayó en Florida): el punto NO se escribe (D-589).
+        // La ficha ya corta antes de guardar; esto cubre el CSV y cualquier otra escritura que no pase por ella.
+        direccionesSinPunto.current.add(clave);
+        await logEvent(id, EVENTO_FUERA_DE_REGION, `${NOTA_FUERA_DE_REGION}: ${fila.delivery_address}`);
+        notify(avisoFueraDeLaRegion("entrega", lang));
+        return;
+      }
       if (resultado.kind === "ok") {
         // `quiet` porque el pedido ya se guardó: esta es la segunda escritura, y un error suyo no
         // debe parecer que falló el guardado. El evento de campos cambiados que deja
@@ -1034,7 +1043,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     } finally {
       ubicacionesEnCurso.current.delete(clave);
     }
-  }, [teaching, logEvent, notify, lang]);
+  }, [teaching, logEvent, notify, lang, settings.stores]);
 
   // ---------------- Delivery CRUD ----------------
   const addDelivery = useCallback<DataState["addDelivery"]>(
