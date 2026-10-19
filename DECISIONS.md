@@ -45080,8 +45080,11 @@ Y en la pantalla faltaban además tres que la base **sí** tenía pero el ⚙ Co
 
 Nada contra producción (la rama no tiene `.env.local`): ni la 182, ni el `--ensayo` del importador, ni el respaldo de `leeConRespaldo` contra PostgREST real. La pantalla y la ficha completa no se abrieron en un navegador. **En esta laptop vitest no carga ningún `.test.mjs` de `scripts/`** (SyntaxError al importar, también en `archiva-clientes-basura.test.mjs`, sin tocar): las aserciones del importador se corrieron en Node a secas, fuera del repo, con el mismo contenido; en CI (Linux) deben correr con vitest.
 ## D-NEXT · El mapa encuadra la región: fuera del encuadre el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada que encuadrar, las tiendas de Ajustes; y un tope de alejamiento
+## D-580 · El mapa encuadra la región: fuera del encuadre el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada que encuadrar, las tiendas de Ajustes; y un tope de alejamiento
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración**.
+
+> **Medido en producción el 2026-10-18** (`scripts/_inv-encuadre-del-mapa.mjs`, solo lectura, corrido por el orquestador): 7 tiendas con punto, mediana en Pharr (26.204, −98.169); de 165 órdenes con punto entre el 11 y el 25 de octubre, **0 en 0,0 y 1 a más de 300 km: la #1071 (entrega 2026-10-19, «4408 QUEEN PALM») geocodificada en Florida (26.182, −80.234), a 1.788 km** — ella sola estiraba el encuadre hasta el Golfo. Una posición de chofer vieja (46 días) a 71 km, dentro del radio. La dirección de la #1071 hay que corregirla en la ficha.
 
 **Pedido del dueño** (2026-10-18), literal: *«Map defaults to a zoomed out view instead of viewing the region»*. Y al preguntarle qué es «la región», el mismo día, literal: *«so when zoomed out on the emaul i mean to shoq all the region i mean exavtly viisnle all stores but not furhter than that as a degault view»*. O sea: la vista por defecto es la que deja **exactamente visibles todas las tiendas** de Ajustes, y **nunca más alejada que eso**.
 

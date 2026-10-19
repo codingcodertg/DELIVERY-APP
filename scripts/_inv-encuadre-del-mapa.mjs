@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SOLO LECTURA (GET por PostgREST, service-role). Inventario de lo que podía estirar el encuadre del mapa (D-NEXT,
+// SOLO LECTURA (GET por PostgREST, service-role). Inventario de lo que podía estirar el encuadre del mapa (D-580,
 // «Map defaults to a zoomed out view instead of viewing the region», 2026-10-18):
 //   1. tiendas de Ajustes con punto, y su centro (mediana);
 //   2. órdenes con fecha de entrega de hoy ±7 días cuyo punto es 0,0, no numérico o cae a >300 km del centro;

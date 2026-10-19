@@ -18,7 +18,7 @@ import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/Le
 // right-click pin picker used by the order form.
 // ============================================================
 
-// Sin `center`, el mapa nace en el primer punto que sirve o en el centro de las tiendas (D-NEXT; antes, un centro fijo
+// Sin `center`, el mapa nace en el primer punto que sirve o en el centro de las tiendas (D-580; antes, un centro fijo
 // del Valle): `centroInicial`, en lib/encuadre-del-mapa.
 
 /** Marker artwork as data-URI SVG. Classic markers take an icon rather than
@@ -139,7 +139,7 @@ export function GoogleMapView({
         const map = new maps.Map(containerRef.current, {
           center: start,
           zoom,
-          // Tope de alejamiento (D-NEXT): ningún punto suelto, ni la rueda, sacan el mapa de la región.
+          // Tope de alejamiento (D-580): ningún punto suelto, ni la rueda, sacan el mapa de la región.
           minZoom: ZOOM_MINIMO_DEL_MAPA,
           mapId: MAPS_MAP_ID || undefined,
           // Dispatch wants the map itself, not Google's chrome.
@@ -351,7 +351,7 @@ export function GoogleMapView({
   useEffect(() => {
     const maps = mapsRef.current, map = mapRef.current;
     if (!ready || !maps || !map) return;
-    // Fuera el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada válido, la región (D-NEXT).
+    // Fuera el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada válido, la región (D-580).
     const enc = encuadreFinal(fitTo, stores);
     if (!enc) return;
     const sig = JSON.stringify(enc.validos);

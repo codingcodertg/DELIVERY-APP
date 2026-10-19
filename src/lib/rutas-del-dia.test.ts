@@ -291,7 +291,7 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
     const pts = puntos();
     expect(encuadreDeLasRutas(pts, new Set(), porChofer, carriles)).toHaveLength(pts.length);
     expect(encuadreDeLasRutas(pts, new Set(["Beto"]), porChofer, carriles)).toEqual([[26.19, -98.18], [26.10, -98.25]]);
-    // D-NEXT: el día entero lleva las tiendas delante; con un chofer marcado, no.
+    // D-580: el día entero lleva las tiendas delante; con un chofer marcado, no.
     const tiendas = [{ lat: 26.5, lng: -98.5 }];
     expect(encuadreDeLasRutas(pts, new Set(), porChofer, carriles, tiendas)).toHaveLength(pts.length + 1);
     expect(encuadreDeLasRutas(pts, new Set(), porChofer, carriles, tiendas)[0]).toEqual([26.5, -98.5]);

@@ -2,7 +2,7 @@ import { LOCAL_ZONE_DEFAULT } from "@/lib/delivery-zone";
 import { distanceMeters } from "@/lib/geo";
 
 /**
- * Qué encuadra un mapa al abrirse, y qué NO le deja estirar el encuadre (D-NEXT).
+ * Qué encuadra un mapa al abrirse, y qué NO le deja estirar el encuadre (D-580).
  *
  * El dueño, 2026-10-18: «Map defaults to a zoomed out view instead of viewing the region». `fitBounds` mete en el
  * encuadre TODO lo que le pasan: una orden guardada en `0,0` (el Golfo de Guinea; la base las tiene, por eso

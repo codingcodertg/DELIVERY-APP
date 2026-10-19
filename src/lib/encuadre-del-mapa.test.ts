@@ -11,7 +11,7 @@ const tiendas = [{ lat: 26.20, lng: -98.23 }, { lat: 26.30, lng: -98.16 }, { lat
 const mcallen: [number, number] = [26.21, -98.24];
 const harlingen: [number, number] = [26.19, -97.70];
 
-describe("puntosParaEncuadrar (D-NEXT): qué entra en fitBounds", () => {
+describe("puntosParaEncuadrar (D-580): qué entra en fitBounds", () => {
   it("el 0,0 queda fuera y se cuenta", () => {
     const r = puntosParaEncuadrar([mcallen, [0, 0], harlingen], tiendas);
     expect(r.validos).toEqual([mcallen, harlingen]);
@@ -55,7 +55,7 @@ describe("puntosParaEncuadrar (D-NEXT): qué entra en fitBounds", () => {
   });
 });
 
-describe("encuadreDeLaRegion (D-NEXT): sin puntos, la región de las tiendas", () => {
+describe("encuadreDeLaRegion (D-580): sin puntos, la región de las tiendas", () => {
   it("EXACTAMENTE la caja de las tiendas («exactly visible all stores but not further»), ni un grado más", () => {
     expect(encuadreDeLaRegion(tiendas)).toEqual([[25.95, -98.23], [26.30, -97.50]]);
   });
@@ -80,7 +80,7 @@ describe("encuadreDeLaRegion (D-NEXT): sin puntos, la región de las tiendas", (
   });
 });
 
-describe("topeDeAlejamiento (D-NEXT): «not further than that»", () => {
+describe("topeDeAlejamiento (D-580): «not further than that»", () => {
   it("zoomDeLaCaja: una caja de 0,3° en un mapa de 800×430 con 45 px de margen cabe a ~10,5; el doble de caja, un nivel menos", () => {
     const z = zoomDeLaCaja([[26.05, -98.35], [26.35, -98.05]], 800, 430);
     expect(z).toBeGreaterThan(10.3); expect(z).toBeLessThan(10.7);
@@ -103,7 +103,7 @@ describe("topeDeAlejamiento (D-NEXT): «not further than that»", () => {
   });
 });
 
-describe("encuadreFinal (D-NEXT): lo que recibe fitBounds", () => {
+describe("encuadreFinal (D-580): lo que recibe fitBounds", () => {
   it("fitTo ausente: null (quien monta el mapa no encuadra)", () => {
     expect(encuadreFinal(undefined, tiendas)).toBeNull();
   });
@@ -123,7 +123,7 @@ describe("encuadreFinal (D-NEXT): lo que recibe fitBounds", () => {
   });
 });
 
-describe("los dos mapas pasan por aquí (D-NEXT)", () => {
+describe("los dos mapas pasan por aquí (D-580)", () => {
   const google = readFileSync("src/components/GoogleMapView.tsx", "utf8");
   const leaflet = readFileSync("src/components/LeafletMap.tsx", "utf8");
   it("encuadran con encuadreFinal y centran con centroInicial, con tope de alejamiento", () => {

@@ -383,7 +383,7 @@ export function ordenDelPunto(id: string): string | null {
 /**
  * What the map frames: the focused drivers' stops + pickups when any are focused, otherwise the whole day.
  *
- * El día entero lleva también las tiendas de Ajustes (D-NEXT): el encuadre inicial es «la región y lo de hoy», y así un
+ * El día entero lleva también las tiendas de Ajustes (D-580): el encuadre inicial es «la región y lo de hoy», y así un
  * día sin paradas (fin de semana, antes de cargar) abre sobre las tiendas y no sobre un centro fijo. Con choferes
  * marcados no entran: ahí la pregunta es «dónde va ESTE», no «dónde estamos».
  */
