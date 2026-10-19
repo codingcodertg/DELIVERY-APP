@@ -17,6 +17,7 @@ import { estiloDeParada, FONDO_DE_PARADA } from "@/lib/colores-de-mi-ruta";
 import { escrituraRecogida } from "@/lib/one-tap-stop";
 import { captureLocationSplit, type GeoStamp } from "@/lib/geo";
 import { deshacerRecogida } from "@/lib/recogida-del-chofer";
+import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
 import { seccionesDeMiRuta, type SeccionDeMiRuta } from "@/lib/secciones-de-mi-ruta";
 import { PausaDelChofer } from "@/components/PausaDelChofer";
 import { IrAlInicio } from "@/components/TabGate";
@@ -287,6 +288,25 @@ export default function MyRoutePage() {
   /** Una fila de la lista, la pinte la sección que la pinte. «Llegué» va en la fila de la primera orden de su parada que
    *  está en ese tramo, junto a su «Recogido» o su «Entregado» (D-527; en D-520, en la fila del número y en un renglón
    *  propio). Una fila hecha nunca lo lleva: lo recogido o entregado ya no está en el tramo. */
+  /** La cabecera de una fila de recogida (D-NEXT): «Recoger en» y la tienda resaltada, o el nombre y la dirección si no es
+   *  tienda de Ajustes. Se decide por la primera orden de la parada: todas salen del mismo sitio. */
+  const recogidaEnLaFila = (ordenes: readonly string[], lugar: string | null) => {
+    const d = porId.get(ordenes[0]);
+    const r = d ? recogidaParaElChofer(d, settings.stores ?? []) : null;
+    if (r?.enTienda) return (
+      <span style={{ fontWeight: 700, display: "block" }}>
+        {t("Pick up at", "Recoger en")}{" "}
+        <span className="sema" data-recogida-en-tienda={r.tienda} style={{ background: colorDelChofer, color: "#fff", verticalAlign: "middle" }}>🏬 {t("Store", "Tienda")} · {r.tienda}</span>
+      </span>
+    );
+    const nombre = r?.nombre ?? lugar;
+    return (
+      <span style={{ display: "block" }}>
+        <span style={{ fontWeight: 700, display: "block" }}>{t("Pick up at", "Recoger en")} {nombre ?? t("(no store on the order)", "(la orden no dice la tienda)")}</span>
+        {r && !r.enTienda && <span className="hint" data-direccion-de-recogida style={{ display: "block" }}>{r.direccion ?? t("(no address)", "(sin dirección)")}</span>}
+      </span>
+    );
+  };
   const fila = (fi: number) => {
     const f = lectura.filas[fi];
     const c = cuenta.paradas[fi];
@@ -310,7 +330,9 @@ export default function MyRoutePage() {
         style={{ alignItems: "flex-start", ...estiloDeParada(f.tipo, f.tipo === "P" && f.ordenes.some((id) => esLaSiguiente(id, "P"))) }}>
         {burbuja()}
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontWeight: 700, display: "block" }}>{f.tipo === "P" ? t("Pick up at", "Recoger en") : t("Deliver another load of", "Entregar otra carga de")} {f.tipo === "P" ? (f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")) : ""}</span>
+          {/* D-NEXT: en una tienda de Ajustes, la TIENDA resaltada y sin dirección (el dueño: «When pickup is at a store, no need
+              to put address»); si no es tienda, su nombre y su dirección, como la entrega enseña la suya. */}
+          {f.tipo === "P" ? recogidaEnLaFila(f.ordenes, f.lugar) : <span style={{ fontWeight: 700, display: "block" }}>{t("Deliver another load of", "Entregar otra carga de")}</span>}
           {f.tipo === "P" ? (
             // Cada carga de la recogida, con su «Recogido» (D-487), orden por orden. D-527: «Recogido» abre la ficha también
             // cuando el almacén aún no la tiene lista (allí se recoge de todos modos, con nota); ya recogida, «↩ Deshacer».

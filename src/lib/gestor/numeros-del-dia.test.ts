@@ -203,8 +203,9 @@ describe("el mapa numera con las paradas del día", () => {
     // La parada 1 junta lo ya recogido (E) y lo que falta (A): su rótulo dice las dos.
     expect(de("__parada__Ana__1")!.label).toBe("Stop 1 — pick up P1, P2 · INV-E, INV-A — Ana · RDZ Pharr");
   });
-  it("lo entregado y lo que va en camino conservan su número en el rótulo (la marca sigue siendo ✓ / 🚚)", () => {
-    expect(de("__hecha__e")).toMatchObject({ badge: "✓" });
+  // Puesto al día por D-NEXT: la entregada lleva su NÚMERO apagado en el pin, no un ✓ («keep the numbers and fade them»).
+  it("lo entregado lleva su número (apagado) y lo que va en camino 🚚; los dos conservan el número en el rótulo", () => {
+    expect(de("__hecha__e")).toMatchObject({ badge: "2", dimmed: true });
     expect(de("__hecha__e")!.label).toContain("(Stop 2 · Delivered ");
     expect(de("__hecha__b")).toMatchObject({ badge: "🚚" });
     expect(de("__hecha__b")!.label).toContain("(Stop 7 · On its way)");

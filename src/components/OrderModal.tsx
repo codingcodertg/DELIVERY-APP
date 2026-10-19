@@ -7,6 +7,7 @@ import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
 import { canCreate, canDeliver, canEditFields, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager, etapaAnterior, puedeDeshacer, puedeEntregarYa } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
+import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
@@ -517,6 +518,8 @@ export function OrderModal({
   // The document this order's type asks for — invoice, PO or estimate — highlighted when viewing it
   // (D-278). Of the SAVED order: the view shows what is stored, not the draft being typed.
   const documento = existing ? documentoPrincipal(existing, settings.order_type_rules) : null;
+  // De dónde se recoge, para la ficha: la tienda (sin dirección) o la dirección (D-NEXT, `recogidaParaElChofer`).
+  const recogida = recogidaParaElChofer(existing ?? d, settings.stores ?? []);
   const copiaDocumento = async (numero: string) => {
     try {
       await navigator.clipboard.writeText(numero);
@@ -1828,7 +1831,8 @@ export function OrderModal({
                       // material del que se agendó y quien la prepara tiene que verlas todas.
                       ...((existing.invoices_extra ?? []).length ? [[t("Added invoices", "Facturas agregadas"), (existing.invoices_extra ?? []).join(", ")]] : []),
                       [t("Actual Pallets", "Pallets Reales"), existing.actual_pallets == null ? "—" : String(existing.actual_pallets)],
-                      [t("Pickup Address", "Dir. Recolección"), existing.pickup_address || "—"],
+                      // En tienda, la tienda y no su dirección (D-NEXT, «When pickup is at a store, no need to put address»).
+                      ...(recogida.enTienda ? [[t("Pickup (store)", "Recolección (tienda)"), `🏬 ${recogida.tienda}`]] : [[t("Pickup Address", "Dir. Recolección"), existing.pickup_address || "—"]]),
                       // Solo una ciudad (D-454): se dice en la misma fila de la ficha.
                       [t("Delivery Address", "Dir. Entrega"), (existing.delivery_address || "—") + (ordenSoloCiudad(existing) ? ` — ⚠ ${t(AVISO_SOLO_CIUDAD.en, AVISO_SOLO_CIUDAD.es)}` : "")],
                       [t("Route Miles", "Millas"), existing.route_miles == null ? "—" : `${existing.route_miles} mi`],

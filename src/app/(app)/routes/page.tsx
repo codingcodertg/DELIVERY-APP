@@ -37,6 +37,7 @@ import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
 import { DAY_START_MIN, useMedidaDeRutas } from "@/lib/usa-medida-de-rutas";
 import { carrilesDelDia, cargaDelPanel, encuadreDeLasRutas, lineasDeLasRutas, puntosDeLasRutas, rutaDeLaLinea, rutasPorChofer, type CarrilDeRuta } from "@/lib/mapa-de-rutas";
+import { listaDelDia, ordenesDeLaRutaDelDia, pendientesDelDia } from "@/lib/recogida-y-ruta-del-dia";
 import { PanelDeChoferes } from "@/components/PanelDeChoferes";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
@@ -1454,15 +1455,28 @@ export default function RoutesPage() {
   //     antes: ahí la lista de un chofer mezcla días y no es una ruta.
   //   · Una a la vez, primero las marcadas. Cómo se mide, cuántas llamadas y qué se guarda: `useMedidaDeRutas`
   //     (lib/usa-medida-de-rutas), que desde D-467 comparte «Ruta de hoy».
-  const seMide = (clave: string) => (byDriver.get(clave) ?? []).length > 0 && pasaFiltro(clave) && (modo === "dia" || selected.has(clave));
+  //   · Se mide la ruta del DÍA (D-NEXT): lo pendiente con lo ya recogido o entregado donde iba (`diaDe(…).paradas`, los
+  //     mismos números de la tabla, D-529), no solo lo que queda. El dueño: «keep the route lines of the day even when
+  //     delivered». Hasta aquí cada entrega cambiaba la forma, tiraba la medida y se volvía a medir lo pendiente: la línea
+  //     del mapa se encogía parada a parada y desaparecía con la última. Ahora entregar no cambia la forma (una llamada
+  //     menos por entrega), la línea es la del día entero y la ruta que ya terminó la conserva. Las millas y las horas de
+  //     la tarjeta pasan a ser las del día; la «Llegada» de lo pendiente, la de después de lo ya hecho; la de lo hecho,
+  //     su hora real (`llegadaEnLasOrdenes`). Una ruta sin nada en el día —ni pendiente ni hecho— sigue sin línea (D-437).
+  const rutaDelDia = useMemo(() => {
+    const m = new Map<string, Delivery[]>();
+    for (const k of new Set([...byDriver.keys(), ...hechasPintadas.keys()])) m.set(k, ordenesDeLaRutaDelDia(byDriver.get(k) ?? [], hechasPintadas.get(k) ?? []));
+    return m;
+  }, [byDriver, hechasPintadas]);
+  const delDiaDe = (clave: string): Delivery[] => rutaDelDia.get(clave) ?? [];
+  const seMide = (clave: string) => delDiaDe(clave).length > 0 && pasaFiltro(clave) && (modo === "dia" || selected.has(clave));
   const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);
   const { finDeLaRuta, routeInfo, routeLines, routeEtas, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
-    date, porChofer: byDriver, rutasAMedir, seMide,
-    listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,
+    date, porChofer: rutaDelDia, rutasAMedir, seMide,
+    listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia)).paradas),
     tiendaBaseDe, coordsDeTienda,
     // Dónde termina cada ruta ese día (166): la vuelta va ahí. Cambiar la salida o el fin vuelve a medir esa ruta.
     tiendaFinDe,
-    conParadas: lanes.filter((u) => (byDriver.get(u.key) ?? []).length > 0).map((u) => u.key),
+    conParadas: lanes.filter((u) => delDiaDe(u.key).length > 0).map((u) => u.key),
     // «Ruta de hoy» (D-467): no se busca la dirección de una base que ya tiene punto en Ajustes. Ahora la abren todos.
     ...(soloLectura ? { buscaBases: "si_falta" as const } : {}),
     invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],
@@ -2053,7 +2067,8 @@ export default function RoutesPage() {
   const lines: MapLine[] = useMemo(() => {
     // Las líneas medidas de cada ruta y la del plan publicado: `lineasDeLasRutas` (lib/mapa-de-rutas), las de «Ruta de hoy».
     const out: MapLine[] = lineasDeLasRutas({
-      trazos: routeLines, trazosDelPlan, tieneParadas: (clave) => (byDriver.get(clave)?.length ?? 0) > 0,
+      // Con paradas en el DÍA, pendientes o hechas (D-NEXT): la ruta que ya terminó conserva su línea.
+      trazos: routeLines, trazosDelPlan, tieneParadas: (clave) => delDiaDe(clave).length > 0,
       pasaFiltro, sigueSuPlan, colorDe: colorFor, atenuada: isDim,
     });
     // Selected loads (assigned or pool): each in its own color — the "go" leg
@@ -3015,7 +3030,7 @@ export default function RoutesPage() {
         // La compacta de «Cuadrícula» no lleva cuerpo; la desplegada, siempre; la ancha, si no está plegada (D-481, e).
         const sinCuerpo = !conCuerpo(modoDeTarjeta, isC);
         // En qué está la medida de esta ruta, para la columna «Llegada» y la cabecera (D-456).
-        const medida = estadoDeLaMedida(u.key, stops);
+        const medida = estadoDeLaMedida(u.key, delDiaDe(u.key));
         const bucket = u.isBucket;
         // A route that isn't on a real driver (a bucket, or one recovered under
         // a stale name) can be handed to a driver.
