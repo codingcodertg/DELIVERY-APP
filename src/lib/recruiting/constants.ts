@@ -82,4 +82,5 @@ export const ROLE_INFO: Record<UserRole, { label: string; color: string; desc: s
   admin: { label: "Admin", color: "var(--red)", desc: "Full access + manage users" },
   manager: { label: "Office Manager", color: "var(--purple)", desc: "Sees all candidates and their process" },
   recruiter: { label: "Recruiter", color: "var(--accent)", desc: "Registers and works candidates" },
+  store_manager: { label: "Store Manager", color: "var(--teal)", desc: "Sees and resolves the in-person candidates of their store" },
 };

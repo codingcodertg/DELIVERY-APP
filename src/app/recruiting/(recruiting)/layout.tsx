@@ -45,7 +45,7 @@ export default async function RecruitingLayout({ children }: { children: React.R
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("id, full_name, role, avatar_url, recruiting_role, module_access")
+    .select("id, full_name, role, avatar_url, recruiting_role, module_access, store")
     .eq("id", user.id)
     .maybeSingle();
   // Tres desenlaces, no dos (D-234): si la CONSULTA fallo no se redirige, porque el
@@ -69,6 +69,7 @@ export default async function RecruitingLayout({ children }: { children: React.R
     full_name: profile.full_name ?? user.email ?? "Me",
     role: profile.recruiting_role as RecruitingProfile["role"],
     avatar_url: profile.avatar_url,
+    store: profile.store ?? null,
   };
 
   return (

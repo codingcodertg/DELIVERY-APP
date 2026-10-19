@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { useUI } from "@/components/recruiting/ModalHost";
 import { BotonTextoPuedoLlamar } from "@/components/recruiting/BotonTextoPuedoLlamar";
+import { resolucionDelGerente, textoDeLaResolucion } from "@/lib/recruiting/vista-del-gerente";
 import { BotonCopiarParaElGerente } from "@/components/recruiting/BotonCopiarParaElGerente";
 import { telefonoEnLaFila } from "@/lib/recruiting/texto-puedo-llamar";
 import { usePrefs } from "@/lib/prefs";
@@ -48,6 +49,8 @@ export function CandidateRow({
   const overdue = isOverdue(c, term);
   const inCompare = ui.compareIds.includes(c.id);
   const nContact = contactsFor(c.id).length;
+  // D-NEXT: lo que decidió el gerente de tienda tras la presencial, si ya decidió.
+  const resolucion = resolucionDelGerente(contactsFor(c.id), c.id);
   const tel = telefonoEnLaFila(c.phone);
 
   const changeStatus = async (ns: string) => {
@@ -186,6 +189,11 @@ export function CandidateRow({
                 </span>
               ))}
             </div>
+            {resolucion && (
+              <div style={{ marginTop: 4, fontSize: 12, fontWeight: 600, color: resolucion.decision === "hire" ? "var(--green)" : "var(--red)" }} data-resolucion-del-gerente>
+                {resolucion.decision === "hire" ? "✅ " : "❌ "}{textoDeLaResolucion(resolucion, lang, recruiters.find((r) => r.id === resolucion.por)?.full_name)}
+              </div>
+            )}
           </div>
         </div>
         <span className="badge" style={{ background: s.color + "22", color: s.color }}>

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { esGerenteDeTienda, pestanasVisibles } from "@/lib/recruiting/vista-del-gerente";
 import { TABS, ROLE_INFO } from "@/lib/recruiting/constants";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -16,14 +18,19 @@ const TAB_ES: Record<string, string> = {
   today: "🏠 Hoy", employees: "👤 Empleados", candidates: "👥 Candidatos", board: "🗂 Tablero", outcomes: "🤝 Resultados", questions: "❓ Preguntas",
   metrics: "📊 Métricas", calendar: "📅 Calendario", settings: "⚙️ Ajustes",
 };
-const ROLE_ES: Record<string, string> = { admin: "Admin", manager: "Gerente", recruiter: "Reclutador" };
+const ROLE_ES: Record<string, string> = { admin: "Admin", manager: "Gerente", recruiter: "Reclutador", store_manager: "Gerente de tienda" };
 
 // deliveriesRole/moduleAccess are deliveries' own columns on the shared
 // profiles row, threaded through separately from `me` (recruiting's own
 // Profile type, where `role` means recruiting_role) — see ModuleSwitcher.tsx.
 export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deliveriesRole: UserRole; moduleAccess: string[] | null | undefined }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { settings, recruiters } = useData();
+  // El gerente de tienda solo tiene Candidatos (D-NEXT): cualquier otra ruta del módulo lo devuelve ahí.
+  useEffect(() => {
+    if (esGerenteDeTienda(me.role) && pathname !== "/recruiting") router.replace("/recruiting");
+  }, [me.role, pathname, router]);
   const { lang } = usePrefs();
   const role = ROLE_INFO[me.role];
   const avatar = recruiters.find((r) => r.id === me.id)?.avatar_url ?? me.avatar_url ?? null;
@@ -38,7 +45,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", minWidth: 0 }}>
         <GlobalSearch />
         <div className="tabs">
-          {TABS.filter((t) => (!t.adminOnly || me.role === "admin") && (!t.roles || t.roles.includes(me.role))).map((t) => {
+          {pestanasVisibles(TABS, me.role).map((t) => {
             {/* "/recruiting" (candidates) needs an exact match — a plain
                 startsWith would also light it up on /recruiting/board etc. */}
             const active = t.href === "/recruiting" ? pathname === "/recruiting" : pathname.startsWith(t.href);
