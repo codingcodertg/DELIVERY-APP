@@ -438,7 +438,8 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
     expect(tarjeta).toContain("className={`${claseDeLaFilaDelPlan(\"P\")}${claseDeGrupo(f)}${claseDeSoltar}`}");
     expect(tarjeta).toContain('" row-done" : ""}${claseDeGrupo(f)}${claseDeSoltar}`}');
     // Desde D-452 la fila P dice también «carga 1 de 2» cuando la orden está partida (`etiquetaDeLaCarga`).
-    expect(tarjeta).toContain("{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && \" · \"}{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}");
+    // D-592: entre la factura y la etiqueta va el 📅 de «Reprogramar».
+    expect(tarjeta).toContain("{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && \" · \"}{facturaConSuId(x)}{iconoDeReprogramar(x)}{etiquetaDeLaCarga(x)}</Fragment>)}");
     // Sin «Fact.» en la fila P: el texto de la recogida es solo la tienda.
     expect(tarjeta).not.toContain("nombraLaOrden(deliveries, id, lang === \"es\")).join(\" · \")");
     // Sin «libres» en la tabla.
