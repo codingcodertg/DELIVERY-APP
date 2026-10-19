@@ -72,3 +72,24 @@ export async function ringcentralRingOutStatus(id: string): Promise<{ callStatus
   const data = await res.json();
   return { callStatus: data?.status?.callStatus ?? "Unknown", callerStatus: data?.status?.callerStatus, calleeStatus: data?.status?.calleeStatus };
 }
+
+/** La agenda personal de la extensión del JWT (hasta 250 contactos: la de «Careers» empieza vacía). Lee, no escribe. */
+export async function ringcentralContacts(): Promise<Record<string, unknown>[]> {
+  const token = await ringcentralToken();
+  const res = await fetch(`${RC_SERVER}/restapi/v1.0/account/~/extension/~/address-book/contact?perPage=250`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`RingCentral contacts failed (${res.status})`);
+  return ((await res.json()).records ?? []) as Record<string, unknown>[];
+}
+
+/** Crea un contacto en esa misma agenda (D-NEXT: el candidato al llamarlo o textearle). */
+export async function ringcentralAddContact(contact: Record<string, string>): Promise<void> {
+  const token = await ringcentralToken();
+  const res = await fetch(`${RC_SERVER}/restapi/v1.0/account/~/extension/~/address-book/contact`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(contact),
+  });
+  if (!res.ok) throw new Error(`RingCentral add contact failed (${res.status})`);
+}

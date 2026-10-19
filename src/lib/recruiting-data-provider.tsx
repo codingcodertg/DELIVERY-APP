@@ -31,6 +31,7 @@ import type { Scorecard } from "@/lib/recruiting/scorecards";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
 import { nombreDelCv, nombreSeguro } from "@/lib/recruiting/nombre-del-cv";
+import { contactoDelGuardado, TIPOS_QUE_GUARDAN, yaGuardadoEnRingCentral } from "@/lib/recruiting/contacto-ringcentral";
 
 interface DataState {
   ready: boolean;
@@ -440,9 +441,36 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         return;
       }
       setContacts((prev) => [data as Contact, ...prev]);
+      // D-NEXT: al llamar o textear, el candidato se guarda en la agenda de RingCentral («Andres Ugarte WA BRO»), una
+      // sola vez (su historial dice si ya está). Sin esperar: el toque ya abrió RingCentral.
+      if (entry.type && TIPOS_QUE_GUARDAN.has(entry.type) && !yaGuardadoEnRingCentral(contacts.filter((k) => k.candidate_id === candidateId))) {
+        void guardarEnRingCentral(candidateId);
+      }
     },
-    [supabase, me, notify],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [supabase, me, notify, contacts],
   );
+
+  /** Pide al servidor que guarde al candidato en RingCentral y deja la traza en su historial. Un fallo se dice y no
+   *  estorba: la llamada o el texto ya salieron. */
+  const guardarEnRingCentral = async (candidateId: string) => {
+    try {
+      const res = await fetch("/api/recruiting/rc-contact", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidateId }),
+      });
+      const b = await res.json().catch(() => ({}));
+      if (b.ok) {
+        const traza = { candidate_id: candidateId, created_by: me?.id ?? null, ...contactoDelGuardado(b.display ?? "") };
+        const { data } = await supabase.from("contacts").insert(traza).select().single();
+        if (data) setContacts((prev) => [data as Contact, ...prev]);
+        if (b.created) notify(`RingCentral ✓ ${b.display ?? ""}`);
+      } else if (b.error) {
+        notify("RingCentral: " + b.error);
+      }
+    } catch (e) {
+      notify("RingCentral: " + (e as Error).message);
+    }
+  };
 
   const contactsFor = useCallback(
     (candidateId: string) => contacts.filter((c) => c.candidate_id === candidateId),
