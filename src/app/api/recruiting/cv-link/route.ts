@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/api-auth";
 import { secretoDelCv, tokenDelCv, urlDelCv } from "@/lib/recruiting/enlace-corto-del-cv";
 
 // ============================================================
-// POST /api/recruiting/cv-link · { candidateId } (D-NEXT): el enlace corto del CV para «Copiar para el gerente».
+// POST /api/recruiting/cv-link · { candidateId } (D-593): el enlace corto del CV para «Copiar para el gerente».
 // Sesión (`requireUser`) + RLS de `recruiting.candidates` como puerta del módulo (si no puede leer al candidato, 404).
 // Devuelve `{ url }` —`https://<esta app>/api/cv/<token>`, unos 60 caracteres— o `{ url: null }` si no hay CV.
 // ============================================================

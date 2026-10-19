@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { leerTokenDelCv, secretoDelCv } from "@/lib/recruiting/enlace-corto-del-cv";
 
 // ============================================================
-// GET /api/cv/<token> (D-NEXT): el enlace corto del CV que RR. HH. pega al gerente. Pública a propósito —el gerente no
+// GET /api/cv/<token> (D-593): el enlace corto del CV que RR. HH. pega al gerente. Pública a propósito —el gerente no
 // tiene cuenta— y por eso la llave es el token firmado (`leerTokenDelCv`): sin firma válida o caducado, 404 sin decir
 // cuál de las dos. Con token bueno: busca el CV del candidato con el cliente de servicio (RLS no aplica: no hay sesión)
 // y redirige a un enlace firmado de Storage de un minuto, que es lo que el navegador abre.

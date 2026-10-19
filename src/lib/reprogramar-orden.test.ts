@@ -77,13 +77,13 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     expect(cuerpo).toContain("{facturaConSuId(d)}");
     expect(cuerpo).toContain('<span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>');
     expect(cuerpo).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
-    // En la tabla de órdenes, una sola vez: la de «Asignar a» se fue. (D-NEXT añade las de la tabla de paradas, abajo.)
+    // En la tabla de órdenes, una sola vez: la de «Asignar a» se fue. (D-592 añade las de la tabla de paradas, abajo.)
     const tablaDeOrdenes = pagina.slice(0, pagina.indexOf("tabla-de-paradas"));
     expect(tablaDeOrdenes.split("<ReprogramarOrden pedido={d}").length - 1).toBe(1);
   });
-  // D-NEXT: el dueño, «Route Manager view needs the calendar icon to reschedule»: la tabla de PARADAS (la vista por chofer
+  // D-592: el dueño, «Route Manager view needs the calendar icon to reschedule»: la tabla de PARADAS (la vista por chofer
   // del Gestor) no lo tenía; solo la tabla de órdenes de D-574.
-  it("D-NEXT · en la tabla de paradas el 📅 va junto a cada factura: en la fila P (una por orden recogida), en la D y en la D de otra carga", () => {
+  it("D-592 · en la tabla de paradas el 📅 va junto a cada factura: en la fila P (una por orden recogida), en la D y en la D de otra carga", () => {
     const pagina = readFileSync("src/app/(app)/routes/page.tsx", "utf8").split("\r\n").join("\n");
     const paradas = pagina.slice(pagina.indexOf("tabla-de-paradas"));
     const icono = (v: string) => `{!ETAPAS_HECHAS.has(${v}.stage) && !soloLectura && puedeReprogramar(me?.role, ${v}.stage) && (`;

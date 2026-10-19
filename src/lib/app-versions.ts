@@ -21,8 +21,8 @@
 // bajar nada (D-029/D-087) y se queda con codigo viejo sin que nadie lo note.
 // Ver "Flujo de ramas" en CLAUDE.md y docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
-  deliveries: "1.336.0",
-  recruiting: "0.47.0",
+  deliveries: "1.337.0",
+  recruiting: "0.48.0",
   timetracker: "1.8.0",
   clockin: "0.45.0",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el

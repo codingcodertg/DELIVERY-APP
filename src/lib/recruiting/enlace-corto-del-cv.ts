@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 // ============================================================
-// El enlace corto del CV (D-NEXT, 2026-10-19). El dueño, sobre el enlace firmado de D-590 (~300 caracteres): «no podemos
+// El enlace corto del CV (D-593, 2026-10-19). El dueño, sobre el enlace firmado de D-590 (~300 caracteres): «no podemos
 // hacer un link para el cv mas corto mucho mas corto?».
 //
 // `https://rtg-hub.vercel.app/api/cv/<token>`: el token lleva el id del candidato y el día en que caduca, firmados con

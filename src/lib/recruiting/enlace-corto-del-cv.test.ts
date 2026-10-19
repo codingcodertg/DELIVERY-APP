@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { bytesAUuid, DIAS_DEL_ENLACE_CORTO, diaDeCaducidad, leerTokenDelCv, tokenDelCv, urlDelCv, uuidABytes } from "./enlace-corto-del-cv";
 
-// D-NEXT · «no podemos hacer un link para el cv mas corto mucho mas corto?» (el dueño, 2026-10-19).
+// D-593 · «no podemos hacer un link para el cv mas corto mucho mas corto?» (el dueño, 2026-10-19).
 
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");
 const SECRETO = "cv-link:secreto-de-prueba";
