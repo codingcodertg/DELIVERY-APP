@@ -6,6 +6,7 @@ import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { statusLabel } from "@/lib/erp/status";
 import { Tx } from "@/components/erp/tx";
+import { GroupTabs } from "@/components/erp/group-tabs";
 import { ChartCard, BarList, Donut, CoverageStat, type BarItem } from "@/components/erp/charts";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,7 @@ export default async function DashboardPage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-8">
+        <GroupTabs grupo="analytics" role={session.role} />
         <h1 className="text-2xl font-semibold"><Tx en="Product Analytics" es="Analítica de productos" /></h1>
         <p className="mt-1 text-sm text-slate-500">
           <Tx en="Signed in as" es="Sesión de" /> {session.fullName ?? session.user.email} · {session.role} ·{" "}

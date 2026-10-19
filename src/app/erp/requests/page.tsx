@@ -5,6 +5,7 @@ import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { RequestReview, type ReviewRequest } from "@/components/erp/request-review";
 import { Tx } from "@/components/erp/tx";
+import { GroupTabs } from "@/components/erp/group-tabs";
 import { CAMPOS_DE_EDICION, TIPOS_DEL_EJECUTOR, TIPOS_QUE_CREAN_BORRADOR } from "@/lib/erp/solicitud-campos";
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
@@ -70,6 +71,7 @@ export default async function RequestsPage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
+        <GroupTabs grupo="catalog" role={session.role} />
         <h1 className="text-2xl font-semibold"><Tx en="Request approvals" es="Aprobación de solicitudes" /></h1>
         <p className="mb-5 text-sm text-slate-500">
           <Tx en="Pending change / reactivate / deactivate / discontinue requests. Approve applies the change (audited); reject sends it back with a note. A request the requester marked NOT READY waits." es="Solicitudes pendientes de cambio / reactivar / desactivar / descontinuar. Aprobar aplica el cambio (auditado); rechazar la devuelve con una nota. Una solicitud que el solicitante marcó NO LISTA espera." />

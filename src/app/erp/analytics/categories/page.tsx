@@ -4,7 +4,7 @@ import { Header } from "@/components/erp/header";
 import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { getCategoryStats } from "@/lib/erp/actions";
 import { normalizePeriod } from "@/lib/erp/analytics";
-import { AnalyticsNav } from "@/components/erp/analytics-nav";
+import { GroupTabs } from "@/components/erp/group-tabs";
 import { AnalyticsControls } from "@/components/erp/analytics-controls";
 import { ChartCard, BarList } from "@/components/erp/charts";
 import { money } from "@/lib/erp/utils";
@@ -40,7 +40,7 @@ export default async function CategoryAnalytics({
         <p className="mt-1 text-sm text-slate-500">
           <Tx en="Sales + catalog rolled up by category" es="Ventas y catálogo agrupados por categoría" /> {parent ? <>· <Tx en="drilled into" es="dentro de" /> <b>{parent}</b> (L2)</> : <Tx en="(L1 — click a row to drill)" es="(L1 — clic en una fila para entrar)" />} · <Tx en="manager view (#29)." es="vista de gerente (#29)." />
         </p>
-        <div className="mt-4"><AnalyticsNav /></div>
+        <div className="mt-4"><GroupTabs grupo="analytics" role={session.role} /></div>
         <AnalyticsControls period={period} />
 
         {parent && (

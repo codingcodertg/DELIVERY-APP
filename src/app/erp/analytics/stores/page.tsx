@@ -5,7 +5,7 @@ import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { getStoreStats } from "@/lib/erp/actions";
 import { normalizePeriod } from "@/lib/erp/analytics";
-import { AnalyticsNav } from "@/components/erp/analytics-nav";
+import { GroupTabs } from "@/components/erp/group-tabs";
 import { AnalyticsControls } from "@/components/erp/analytics-controls";
 import { ChartCard, BarList, Stat } from "@/components/erp/charts";
 import { money } from "@/lib/erp/utils";
@@ -45,7 +45,7 @@ export default async function StoreAnalytics({
         <p className="mt-1 text-sm text-slate-500">
           {s?.range_start && s?.range_end ? <><Tx en="Sales" es="Ventas" /> {s.range_start} → {s.range_end}</> : <Tx en="No sales history loaded" es="Sin historial de ventas cargado" />} · <Tx en="margin from cost (manager view, #29)." es="margen sobre costo (vista de gerente, #29)." />
         </p>
-        <div className="mt-4"><AnalyticsNav /></div>
+        <div className="mt-4"><GroupTabs grupo="analytics" role={session.role} /></div>
         <AnalyticsControls period={period} stores={(stores ?? []) as { id: string; name: string }[]} store={store} />
 
         {!s || s.txns === 0 ? (

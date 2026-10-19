@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Badge } from "@/components/erp/ui/badge";
 import { cn } from "@/lib/erp/utils";
 import type { AppRole } from "@/lib/erp/domain/roles";
-import { erpNav, type NavItem } from "@/lib/erp/nav";
+import { erpNav, entradaActiva, type NavItem } from "@/lib/erp/nav";
 import { useErpNav } from "@/components/erp/nav-state";
 import { usePrefs } from "@/lib/prefs";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
@@ -21,7 +21,10 @@ const roleStyles: Record<string, string> = {
 // una constante de módulo, porque una constante no puede cambiar de idioma.
 // Desde D-553 las entradas y quién ve cada una viven en `lib/erp/nav.ts` (puro, probado importándolo):
 // «Dashboard» pasó a Analítica como «Product Analytics», y Request, PO upload y Bulk apply salieron
-// del menú (las rutas siguen). Aquí solo se pintan.
+// del menú (las rutas siguen). Desde D-NEXT Inventario, Revisión y Aprobaciones son pestañas de
+// Catálogo, OC ↔ Proforma y Recepción lo son de Compras, y Analítica es UNA entrada (sus pestañas van
+// dentro, group-tabs.tsx); el bloque `analytics` llega vacío del ERP y se conserva por Clientes. Aquí
+// solo se pintan.
 
 export function SideNav({
   role,
@@ -60,10 +63,12 @@ export function SideNav({
   const { main: navItems, analytics: analyticsItems } = otra?.nav ?? erpNav(role, t);
   const marca = otra?.brand ?? "RTG ERP";
   const pastilla = otra?.badge ?? role;
-  // Exact-match the roots that have deeper siblings (/, /purchasing) so a sub-route like
-  // /purchasing/orders highlights only its own item, not its parent.
-  const exact = new Set(["/erp/purchasing"]);
-  const active = (href: string) => (exact.has(href) ? pathname === href : pathname.startsWith(href));
+  // Qué entrada se enciende lo decide `entradaActiva` (D-NEXT): una entrada con grupo, por cualquiera
+  // de sus pestañas (Catálogo también en /erp/inventory; Compras también en /purchasing/orders); una
+  // suelta, por su propio href. Antes había aquí un `exact` para /erp/purchasing porque sus subrutas
+  // eran entradas hermanas; ya son sus pestañas.
+  const encendida = entradaActiva(navItems.concat(analyticsItems), pathname);
+  const active = (href: string) => href === encendida;
 
   // Two things, not one: the product name (where you are) and the way back to the
   // hub (where you can go). They were both whispering at 14px/12px, and the hub

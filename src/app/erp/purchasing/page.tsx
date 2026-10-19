@@ -7,6 +7,7 @@ import { unwrap } from "@/lib/erp/db-result";
 import { PurchasingGroups, type PGroup } from "@/components/erp/purchasing-groups";
 import { ReorderPanel, type ReorderItem } from "@/components/erp/reorder-panel";
 import { Tx } from "@/components/erp/tx";
+import { GroupTabs } from "@/components/erp/group-tabs";
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
@@ -50,6 +51,7 @@ export default async function PurchasingPage({
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
+        <GroupTabs grupo="purchasing" role={session.role} />
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold"><Tx en="Smart Purchasing" es="Compras inteligentes" /></h1>
