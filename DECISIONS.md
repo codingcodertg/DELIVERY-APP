@@ -44942,6 +44942,8 @@ D-551 (dos días antes) puso en la Cola y en Recepción una columna «Siguiente 
 
 ## D-574 · Gestor: el 📅 de «Reprogramar» va en la celda de la factura, en su misma línea
 
+> **Ampliada por D-NEXT** (2026-10-19): el mismo 📅 también en la tabla de paradas del Gestor (la vista por chofer), junto a cada factura.
+
 **Fecha:** 2026-10-18 · **Versión:** deliveries 1.327.0 (repo 1.440.0) · Sin migración · Hecho directo por el orquestador en `icono-gestor`.
 
 **Pedido del dueño**, literal: *«Calendar button needs to be on Invoice column instead of Assign to column. Its making the row bigger so it needs to be on the same line»*.
@@ -45503,3 +45505,19 @@ RR. HH. llama y textea con enlaces `rcapp://` a la app de RingCentral del reclut
 **Pruebas:** `contacto-ringcentral.test.ts` (el ejemplo del dueño letra por letra; sin apellido, sin puesto ni tienda, dos apellidos; iniciales; códigos y «RDZ »; E.164; el cuerpo; la agenda con y sin el 1; qué tipos disparan y la traza; el proveedor; la ruta y el helper). Mutantes: 8 de 8 caen (`mut591`).
 
 **No medido:** el POST real contra RingCentral (solo se leyeron agenda y extensiones; el primer contacto lo creará el primer toque en producción: mirar la agenda de «Careers» después). Nada en navegador.
+
+## D-NEXT · Gestor: el 📅 de «Reprogramar» también en la tabla de PARADAS (la vista por chofer), junto a cada factura
+
+**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar · Sin migración · Hecho directo por el orquestador en `feat/gestor-paradas-reprogramar`. **Amplía D-574** (lleva su nota).
+
+**Pedido del dueño**, literal: *«Route Manager view needs the calendar icon to reschedule»*.
+
+**Qué fallaba (medido en el código).** D-500 puso «📅 Reprogramar» en la **tabla de órdenes** del Gestor y D-572/D-574 lo dejaron como solo el icono en la celda de la factura. Pero la vista por chofer —la **tabla de paradas** (`.tabla-de-paradas`, D-443/D-548: P1, P2… D1…)— pintaba la factura sin el icono: para reprogramar desde ahí había que ir a la otra tabla o abrir la orden.
+
+**Qué cambia.** El mismo `ReprogramarOrden` (compacto, con `reprogramarOrden` de D-557: reprogramar saca la orden de la ruta) en la celda de la factura de la tabla de paradas, dentro del mismo `.accion-de-fila` que no deja que el clic seleccione la fila: en la **fila P** uno por cada orden que se recoge ahí (`suyas`), en la **fila D** y en la **D de otra carga**. **Misma condición** que la tabla de órdenes: la orden no está hecha (`ETAPAS_HECHAS`), la ruta no es de solo lectura y `puedeReprogramar(rol, etapa)` (logística, gerencia y oficina en las abiertas; admin también en camino; almacén en las suyas, D-534). Las filas hechas (✓/🚚) no lo llevan.
+
+**Qué no cambia.** La tabla de órdenes (D-574, su prueba ahora acota la cuenta a esa tabla); la tabla de Almacén (D-534); el cuadro de Reprogramar (fecha siguiente, nota obligatoria, no antes de hoy).
+
+**Pruebas:** `reprogramar-orden.test.ts`, «D-NEXT · en la tabla de paradas el 📅 va junto a cada factura…» (los tres sitios, la condición y el `.accion-de-fila`). Mutantes: 4 de 4 caen (`mut592`: sin icono en la P, sin icono en la D, la función sin excluir las hechas, y sin pedir permiso). **El icono es una función** (`iconoDeReprogramar`), no JSX inline en cada celda: el PR que lo llevaba inline junto con D-593 murió cuatro veces en el type-check del build de Vercel (OOM); por separado, cada cambio construye.
+
+**No medido:** en navegador (el ancho de la celda de la factura con el icono en una P de varias órdenes).
