@@ -216,7 +216,7 @@ export async function ficheroDeCaptura(fotograma: FotogramaDeCaptura, recuadros:
       Math.max(1, recuadro.w - grosor),
       Math.max(1, recuadro.h - grosor),
     );
-    // El número (D-NEXT): el mismo que lleva su línea en el mensaje «1) …».
+    // El número (D-583): el mismo que lleva su línea en el mensaje «1) …».
     const etiqueta = etiquetaDelRecuadro(recuadro, fotograma);
     ctx.fillStyle = COLOR_DEL_RECUADRO;
     ctx.fillRect(etiqueta.x, etiqueta.y, etiqueta.lado, etiqueta.lado);
@@ -290,7 +290,7 @@ export function VistaDeCaptura({ fotograma, recuadros, borrador = null, t }: {
 
 /**
  * Señalar dónde están los problemas: se arrastran recuadros sobre la captura, cada uno con su número y
- * su texto, y se adjunta la imagen con todo pintado encima (D-NEXT).
+ * su texto, y se adjunta la imagen con todo pintado encima (D-583).
  *
  * Hasta D-513 era un recuadro y nada más, y arrastrar otra vez lo reemplazaba. El dueño pidió «multiple
  * boxes showing an error y ahí él pueda por cada box describir un problema»: cada arrastre añade uno

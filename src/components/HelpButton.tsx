@@ -145,7 +145,7 @@ export function HelpButton() {
 
   /** Lo que se adjunta es la imagen con los recuadros numerados ya pintados, y entra por la misma puerta
    *  que un fichero elegido a mano: las mismas reglas, el mismo cubo, el mismo correo. Los problemas de
-   *  cada recuadro van al mensaje como «1) … 2) …» (D-NEXT): una solicitud, un hilo, y la persona los ve
+   *  cada recuadro van al mensaje como «1) … 2) …» (D-583): una solicitud, un hilo, y la persona los ve
    *  en el cuadro de texto y los puede retocar antes de enviar. */
   const adjuntaCaptura = async (recuadros: RecuadroNumerado[]) => {
     const tomada = fotograma;

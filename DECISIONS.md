@@ -45184,7 +45184,7 @@ No se pudo medir desde la rama cuál de las tres le pasó al dueño (estado de l
 **Pruebas:** `src/lib/recruiting/preguntas-del-puesto.test.ts` (17, con la de los datos medidos —27 de 27, la apagada fuera— y la de que por implícito/predeterminado la etiqueta sigue filtrando; los cuatro orígenes del conjunto, inactivas fuera, la puerta de la vacante solo con conjunto de la vacante, orden de preselección, la puerta por rol, el conteo, y que las dos pantallas pasan por la librería). **Mutantes, 15 de 15 caen con una prueba con nombre** (`tanda-preguntas-del-puesto.json`): la vacante deja de mandar; el puesto se ignora; el implícito con inactivas; cae a «ninguno»; inactivas entran; el conjunto no filtra; el puesto de la vacante abre de más (sobrevivió a la primera tanda porque el predeterminado de la prueba no tenía ninguna pregunta de ese puesto —datos que no contradecían—; se añadió una y cayó); nunca abre; sin preselección; el reclutador asigna; solo el admin; el conteo con inactivas; Ajustes sin puerta; la entrevista con filtro propio; el conjunto del puesto vuelve a filtrar por etiqueta. `npx tsc --noEmit` limpio; `vitest` de `src/lib/recruiting` y `src/components` 125/125.
 
 **No verificado:** en navegador; el `next build`.
-## D-NEXT · Ayuda: varios recuadros numerados sobre la misma captura, cada uno con su problema; una solicitud con N puntos
+## D-583 · Ayuda: varios recuadros numerados sobre la misma captura, cada uno con su problema; una solicitud con N puntos
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía D-509 y D-513 (el editor del recuadro).
 

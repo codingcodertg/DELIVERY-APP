@@ -11,7 +11,7 @@ import {
 import { COLOR_DEL_RECUADRO, EditorDeCaptura, VistaDeCaptura } from "@/components/CapturaDeAyuda";
 
 /**
- * Varios recuadros numerados sobre la misma captura, cada uno con su problema (D-NEXT).
+ * Varios recuadros numerados sobre la misma captura, cada uno con su problema (D-583).
  *
  * El dueño: «en el mismo screenshot pueda hacer multiple boxes showing an error y ahí él pueda por cada
  * box describir un problema». Lo que se mide aquí: la lista y su numeración, el texto compuesto que viaja

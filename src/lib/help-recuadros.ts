@@ -1,7 +1,7 @@
 import { grosorDelRecuadro, type Rect, type Tamano } from "@/lib/help-captura";
 
 /**
- * Varios recuadros sobre la misma captura, cada uno con su número y su problema (D-NEXT).
+ * Varios recuadros sobre la misma captura, cada uno con su número y su problema (D-583).
  *
  * El dueño (2026-10-18): «help buttom make it possible that from the same screen being screenshot add
  * multiple request por ejemplo en una osla pagia hay 3 cosa que arreglar […] que el en el mismo
