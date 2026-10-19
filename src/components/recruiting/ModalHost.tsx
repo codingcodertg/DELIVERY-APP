@@ -6,6 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { preguntasDeEntrevista } from "@/lib/recruiting/preguntas-del-puesto";
 import { InterviewViewModal } from "./InterviewView";
 import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
+import { InPersonScheduleModal } from "./InPersonScheduleModal";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
 import type { Candidate, Contact, Interview, InterviewAnswer, RecruiterRecommendation } from "@/lib/recruiting/types";
 import {
@@ -102,7 +103,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       {children}
       {profileId && <ProfileModal id={profileId} close={() => setProfileId(null)} />}
       {scheduleId && <ScheduleModal id={scheduleId} kind="phone" close={() => setScheduleId(null)} />}
-      {inPersonId && <ScheduleModal id={inPersonId} kind="inperson" close={() => setInPersonId(null)} />}
+      {inPersonId && <InPersonScheduleModal id={inPersonId} close={() => setInPersonId(null)} />}
       {discard && <DiscardModal id={discard.id} stageKey={discard.stageKey} close={() => setDiscard(null)} />}
       {outcomeId && <OutcomeModal id={outcomeId} close={() => setOutcomeId(null)} />}
       {newCandidate && <NewCandidateModal close={() => setNewCandidate(false)} />}
@@ -115,7 +116,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         />
       )}
       {resumeId && <ResumeModal id={resumeId} close={() => setResumeId(null)} />}
-      {viewId && <InterviewViewModal id={viewId} close={() => setViewId(null)} edit={setInterviewId} />}
+      {viewId && <InterviewViewModal id={viewId} close={() => setViewId(null)} edit={setInterviewId} schedule={setInPersonId} />}
       {msgId && <MessageModal id={msgId} close={() => setMsgId(null)} />}
       {contactId && <ContactModal id={contactId} close={() => setContactId(null)} />}
       {offerId && <OfferModal id={offerId} close={() => setOfferId(null)} />}
@@ -356,28 +357,22 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
 }
 
 /* ---------------- Schedule (phone or in-person) ---------------- */
-function ScheduleModal({ id, kind, close }: { id: string; kind: "phone" | "inperson"; close: () => void }) {
-  const { candidates, stages, updateCandidate, addContact, notify } = useData();
+/* La rama «inperson» vive ahora en InPersonScheduleModal.tsx (fecha futura, lugar, nota, texto de confirmación — D-585). */
+function ScheduleModal({ id, kind, close }: { id: string; kind: "phone"; close: () => void }) {
+  const { candidates, updateCandidate, notify } = useData();
   const { t } = usePrefs();
   const c = candidates.find((x) => x.id === id);
-  const existing = kind === "phone" ? c?.phone_date : c?.inperson_date;
+  const existing = c?.phone_date;
   const [dt, setDt] = useState(existing ? existing.slice(0, 16) : "");
   if (!c) return null;
   const phone = kind === "phone";
-  const title = phone ? t("Schedule phone interview", "Programar entrevista telefónica") : t("Schedule in-person interview", "Programar entrevista presencial");
-  const label = phone ? t("Call date and time", "Fecha y hora de la llamada") : t("Interview date and time", "Fecha y hora de la entrevista");
-  const inPersonStage = stages.find((s) => s.key === "inperson");
+  const title = t("Schedule phone interview", "Programar entrevista telefónica");
+  const label = t("Call date and time", "Fecha y hora de la llamada");
 
   const save = async () => {
     const iso = dt ? new Date(dt).toISOString() : null;
-    if (phone) {
-      await updateCandidate(c.id, { phone_date: iso, status: iso && c.status === "registered" ? "phone" : c.status });
-      notify(t("Call scheduled ✓", "Llamada programada ✓"));
-    } else {
-      await updateCandidate(c.id, { inperson_date: iso, status: iso && inPersonStage ? "inperson" : c.status });
-      if (iso) await addContact(c.id, { type: "In person", result: "Scheduled", note: fmtDateTime(iso) });
-      notify(t("In-person interview scheduled ✓", "Entrevista presencial programada ✓"));
-    }
+    await updateCandidate(c.id, { phone_date: iso, status: iso && c.status === "registered" ? "phone" : c.status });
+    notify(t("Call scheduled ✓", "Llamada programada ✓"));
     close();
   };
 
@@ -1239,6 +1234,15 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
     if (thenResume) openResume(c.id);
   };
 
+  /** Al terminar la entrevista, agendar la presencial sin buscar al candidato otra vez (D-585):
+   * guarda lo calificado —es la evidencia de por qué se cita— y abre el diálogo de agendar. */
+  const saveAndSchedule = async () => {
+    if (hasContent) await persistInterview();
+    else { clearDraft(c.id); setDirty(false); }
+    close();
+    ui.openScheduleInPerson(c.id);
+  };
+
   /** Discard straight from the interview. Whatever was graded is saved first —
    * those answers are the evidence for the decision — then the normal discard
    * modal collects the reason and who decided. */
@@ -1440,6 +1444,13 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
             )}
             <button className="btn btn-primary" onClick={() => save(false)}>{t("Save", "Guardar")}</button>
             <button className="btn btn-green" onClick={() => save(true)}>{t("Save and view summary", "Guardar y ver resumen")}</button>
+            <button
+              className="btn btn-primary"
+              onClick={saveAndSchedule}
+              title={t("Saves the interview, then asks for the date, time and place", "Guarda la entrevista y luego pide fecha, hora y lugar")}
+            >
+              📅 {t("Schedule in-person interview", "Agendar entrevista presencial")}
+            </button>
             {lostStage && (
               <button
                 className="btn btn-danger"
@@ -1461,6 +1472,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
 function ResumeModal({ id, close }: { id: string; close: () => void }) {
   const { candidates, stages, settings, questions, updateCandidate, notify } = useData();
   const { t } = usePrefs();
+  const ui = useUI();
   const inPersonStage = stages.find((s) => s.key === "inperson");
 
   /** What the candidate answered about pay — the answer only, never the question,
@@ -1616,9 +1628,12 @@ function ResumeModal({ id, close }: { id: string; close: () => void }) {
         <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
           <button className="btn btn-primary" onClick={copy}>📄 {t("Copy", "Copiar")}</button>
           <button className="btn btn-ghost" onClick={email}>✉️ {t("Send by email", "Enviar por correo")}</button>
+          <button className="btn btn-green" onClick={() => { close(); ui.openScheduleInPerson(c.id); }}>
+            📅 {t("Schedule in-person interview", "Agendar entrevista presencial")}
+          </button>
           {inPersonStage && c.status !== "inperson" && (
             <button
-              className="btn btn-green"
+              className="btn btn-ghost"
               onClick={() => { updateCandidate(c.id, { status: "inperson" }); notify(t("Moved to ", "Movido a ") + inPersonStage.label + " ✓"); }}
             >
               ➡ {t("Move to", "Mover a")} {inPersonStage.label}
