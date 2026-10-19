@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { salidaDeLaMedida } from "./salida-de-la-medida";
 import { serviceMin, RELOAD_MIN } from "@/lib/trip-timing";
 import { MEDIDA_FALLIDA, cuerpoDeLaMedida, firmaDeLaMedida, siguienteMedida, type EstadoDeLaMedida } from "@/lib/medida-de-ruta";
 import { minutosEnCadaParada } from "@/lib/optimiza-la-ruta";
@@ -159,7 +160,9 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
   // Walk the legs into per-stop arrival clocks. With a depot the route is [depot, s1, …, sN] so leg k drives INTO stop
   // k; without one the first stop is the start (no lead-in drive).
   const etas: Record<string, string> = {};
-  let clock = DAY_START_MIN;
+  // D-NEXT: la medida de hoy no sale antes de la hora que es (Ernesto: «Why does ETA say 8 to orders that havent been done yet?»).
+  const salida = salidaDeLaMedida(e.fecha);
+  let clock = salida;
   let servicio = 0;
   puntos.forEach((p, j) => {
     if (depot || j > 0) clock += (legs[depot ? j : j - 1] ?? 0) / 60;
@@ -171,7 +174,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
   const driveMin = data.duration_seconds / 60;
   const stat: TripStat = {
     miles: Math.round(data.miles * 10) / 10, driveMin, serviceMin: servicio, totalMin: driveMin + servicio,
-    stops: puntos.length, start: fmtClock(DAY_START_MIN), end: fmtClock(clock),
+    stops: puntos.length, start: fmtClock(salida), end: fmtClock(clock),
   };
   return { medida: { miles: Math.round(data.miles * 10) / 10, seconds: data.duration_seconds, traces, stat, dayMinutes: stat.totalMin, etas }, proveedor };
 }
