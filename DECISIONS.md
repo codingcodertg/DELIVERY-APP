@@ -40101,7 +40101,7 @@ desbordarse. Que se use cómodo con el pulgar —el tamaño de los botones, el p
 
 ## D-507 · Para ventas, Órdenes nace en «Todas»
 
-> **Nota de D-NEXT** (2026-10-18): ventas **sigue** naciendo en «Todas». Lo que cambia es el resto: sin «Reciente», los demás
+> **Nota de D-588** (2026-10-18): ventas **sigue** naciendo en «Todas». Lo que cambia es el resto: sin «Reciente», los demás
 > roles nacen en «Hoy», y `presetInicialDe` ya no devuelve `"recent"` para nadie.
 
 **Fecha:** 2026-10-10 · **Versión:** Entregas 1.277.0, repo 1.377.0 · **Sin migración.**
