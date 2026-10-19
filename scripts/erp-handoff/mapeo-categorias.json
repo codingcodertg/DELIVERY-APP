@@ -1,0 +1,21 @@
+{
+  "_nota": "Etiqueta cruda de la hoja LINK (erp.products.raw_category) -> path de erp.categories. Propuesta del 2026-10-18 a partir de la co-ocurrencia medida en los 3.076 productos publicados que traen las dos cosas; «?» donde la etiqueta no decide una sola categoría. Se mapea al NIVEL 1 (la etiqueta no trae la forma: Square/Plank/Hexagon la da raw_type o la revisión). Medidas 18 etiquetas distintas; el traspaso dice 19: falta una (pedir a BH la lista exacta).",
+  "TILE": "Tile",
+  "DECO": "Deco & Mosaics",
+  "ADHESIVES": "Setting Materials",
+  "SHOWER": "Shower & Bath",
+  "TRIM": "Trim & Edge",
+  "TOOLS": "Tools",
+  "STONE": "Tile > Stone",
+  "SPC": "Panels & SPC > Plank",
+  "DECO/SHOWER": "? Shower & Bath (23 de 36 medidos van ahí; 5 a Deco & Mosaics, 4 a Tile) — decide el dueño o se deja sin categoría",
+  "INSTALL MATERIAL": "Setting Materials",
+  "FURNITURE": "Furniture",
+  "PANEL": "Panels & SPC > Wall",
+  "ACCESORIES": "Accesories",
+  "FLOOR": "? Tile (2 medidos, ambos en Tile)",
+  "WALL": "? Tile (2 medidos, ambos en Tile; podría ser Tile > Wall)",
+  "VYNIL": "Vynil",
+  "OTHER": "Other",
+  "TIRA TRIM": "Trim & Edge"
+}

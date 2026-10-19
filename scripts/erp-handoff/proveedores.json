@@ -1,0 +1,10 @@
+{
+  "_nota": "Nombre crudo de proveedor en la hoja LINK -> proveedor del ERP («<id>:<name>»), «NUEVO» (se crea), o el nombre de otra entrada (alias). 2026-10-18. Los nombres crudos NO viven en nuestra base (payload de requests = sku/name/source; erp.products no tiene vendor_name; erp.vendors.aliases está vacío en las 106 filas): los 7 de abajo salen del texto del traspaso (§2, regla 4). Faltan 5 de los 12: pedir a BH report.json o la lista `sku,vendor_name` de los 94 códigos.",
+  "MARSHALLTOWN": "NUEVO",
+  "FORTAN STONE": "NUEVO",
+  "ENERGIEKER": "NUEVO",
+  "TEXRITE": "NUEVO",
+  "Texrite": "TEXRITE",
+  "DALTILE": "3:DALTILE DISTRIBUTION, INC",
+  "T-2000": "5:TILES 2000 USA, LLC"
+}

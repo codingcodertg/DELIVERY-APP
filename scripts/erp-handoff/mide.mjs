@@ -1,0 +1,24 @@
+// Medidas de solo lectura para el plan del traspaso §5 (begin read only + rollback).
+import { conecta } from "./_db.mjs";
+const c = await conecta();
+await c.query("begin read only");
+const q = async (label, sql) => { const r = await c.query(sql); console.log("\n## " + label); console.log(JSON.stringify(r.rows, null, 0).slice(0, 8000)); return r.rows; };
+await q("profiles cols", `select string_agg(column_name, ',') from information_schema.columns where table_schema='public' and table_name='profiles'`);
+await q("admins ERP", `select id, full_name, role, erp_role from public.profiles where erp_role='admin' or full_name ilike '%ugarte%'`);
+await q("pending new con producto ya publicado", `select r.id, r.product_id, p.sku, p.name, p.approved_at from erp.product_requests r join erp.products p on p.id=r.product_id where r.status='pending' and r.type='new' and p.record_status='published'`);
+await q("drafts totales por record_status", `select record_status, count(*) from erp.products group by 1`);
+await q("drafts sin request", `select count(*) from erp.products p where p.record_status='draft' and not exists (select 1 from erp.product_requests r where r.product_id=p.id)`);
+await q("erp functions", `select p.proname, pg_get_function_identity_arguments(p.oid) args from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='erp' and (p.proname ilike '%request%' or p.proname ilike '%publish%' or p.proname ilike '%import%' or p.proname ilike '%vendor%' or p.proname ilike '%approve%' or p.proname ilike '%draft%') order by 1`);
+await q("triggers erp", `select c.relname, t.tgname from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='erp' and not t.tgisinternal order by 1,2`);
+await q("categories", `select id, path from erp.categories order by path`);
+await q("raw_category -> category path co-ocurrencia", `select p.raw_category, c.path, count(*) n from erp.products p join erp.categories c on c.id=p.category_id where p.raw_category is not null group by 1,2 order by 1, 3 desc`);
+await q("raw_category con category_id null (lo que llenaría aplica-mapeo)", `select raw_category, count(*) from erp.products where raw_category is not null and category_id is null group by 1 order by 2 desc`);
+await q("vendors", `select id, name, aliases from erp.vendors order by name`);
+await q("nombres del traspaso vs vendors", `select x.n, (select string_agg(v.id||':'||v.name, ' | ') from erp.vendors v where lower(v.name)=lower(x.n) or lower(x.n) = any(select lower(a) from unnest(coalesce(v.aliases,'{}')) a) or v.name ilike '%'||split_part(x.n,' ',1)||'%') hits from (values ('MARSHALLTOWN'),('FORTAN STONE'),('ENERGIEKER'),('TEXRITE'),('Texrite'),('DALTILE'),('T-2000'),('TILES 2000 USA, LLC')) x(n)`);
+await q("drafts: vendor distribution", `select v.name, count(*) from erp.product_requests r join erp.products p on p.id=r.product_id left join erp.vendors v on v.id=p.vendor_id where r.status='pending' and r.type='new' group by 1 order by 2 desc limit 15`);
+await q("drafts con cat+vendor: categorías", `select c.path, count(*) from erp.product_requests r join erp.products p on p.id=r.product_id join erp.categories c on c.id=p.category_id where r.status='pending' and r.type='new' and p.vendor_id is not null group by 1 order by 2 desc limit 15`);
+await q("audit_log cols", `select string_agg(column_name, ',') from information_schema.columns where table_schema='erp' and table_name='audit_log'`);
+await q("audit_log newest", `select max(at) from erp.audit_log`);
+await q("sku alias table?", `select table_name from information_schema.tables where table_schema='erp' and table_name ilike '%alias%'`);
+await c.query("rollback");
+await c.end();
