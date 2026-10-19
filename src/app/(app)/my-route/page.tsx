@@ -296,7 +296,8 @@ export default function MyRoutePage() {
     if (r?.enTienda) return (
       <span style={{ fontWeight: 700, display: "block" }}>
         {t("Pick up at", "Recoger en")}{" "}
-        <span className="sema" data-recogida-en-tienda={r.tienda} style={{ background: colorDelChofer, color: "#fff", verticalAlign: "middle" }}>🏬 {t("Store", "Tienda")} · {r.tienda}</span>
+        {/* Mismo blanco que la pastilla de etapa, sin otro color a pelo (techo de inline-colors): hereda de `.sema`. */}
+        <span className="sema" data-recogida-en-tienda={r.tienda} style={{ background: colorDelChofer, color: "white", verticalAlign: "middle" }}>🏬 {t("Store", "Tienda")} · {r.tienda}</span>
       </span>
     );
     const nombre = r?.nombre ?? lugar;

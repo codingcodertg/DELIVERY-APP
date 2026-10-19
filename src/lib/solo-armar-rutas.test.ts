@@ -176,7 +176,8 @@ describe("Julio vacío: ni línea en el mapa ni tarjeta", () => {
   });
   it("la línea medida, solo de quien tiene paradas; y lo medido de una ruta que cambió (también por quitarle) se tira", () => {
     expect(mapaDeRutas).toContain("const entries = Object.entries(e.trazos).filter(([driver]) => e.pasaFiltro(driver) && e.tieneParadas(driver));");
-    expect(pagina).toContain("trazos: routeLines, trazosDelPlan, tieneParadas: (clave) => (byDriver.get(clave)?.length ?? 0) > 0,");
+    // Nota D-584: «tiene paradas» mira la ruta del día (hechas + pendientes), para que la línea no se vaya al entregar la última.
+    expect(pagina).toContain("trazos: routeLines, trazosDelPlan, tieneParadas: (clave) => delDiaDe(clave).length > 0,");
     expect(medida).toContain("if (firmaPintada.current[k] !== firmaDe(k, byDriver.get(k) ?? [])) clearRouteFor(k);");
   });
   it("sin paradas no hay tarjeta, aunque esté marcado; se nombra en una línea", () => {
