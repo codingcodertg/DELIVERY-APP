@@ -116,4 +116,4 @@ alter policy "recruiting write custom_fields" on recruiting.custom_fields
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('183_gerente_de_tienda.sql', '3da4bd8fb180ae4f7bef17a0921ff4014e89981374e771f4ae381d4ee354459b') on conflict (name) do nothing;
+  values ('183_gerente_de_tienda.sql', '5e5c5d3b6af1d33aeaa71ae13ac2df6bd7e75f6a9f81a5899d4d1aeed1ee212c') on conflict (name) do nothing;
