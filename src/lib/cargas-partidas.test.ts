@@ -303,8 +303,11 @@ describe("las pantallas usan la regla (la prueba se alimenta de quien llama)", (
     expect(demo).toContain("alJuntar(a, b, hermanasDe(s.deliveries, a).length - 1)");
   });
   it("el Gestor: «carga 1 de 2» en las filas P y D, y ✂ ✎ ⤵ en la fila D con la capacidad de ESE camión", () => {
-    expect(gestor).toContain("<td className=\"ordno\">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>");
-    expect(gestor).toContain("{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>");
+    // D-592: entre la factura y la etiqueta de carga va el 📅 de «Reprogramar» (la misma condición que la tabla de órdenes).
+    expect(gestor).toContain("<td className=\"ordno\">{facturaConSuId(d)}{!ETAPAS_HECHAS.has(d.stage) && !soloLectura && puedeReprogramar(me?.role, d.stage) && (");
+    expect(gestor).toContain("{etiquetaDeLaCarga(d)}</td>");
+    expect(gestor).toContain("{facturaConSuId(x)}{!ETAPAS_HECHAS.has(x.stage) && !soloLectura && puedeReprogramar(me?.role, x.stage) && (");
+    expect(gestor).toContain("{etiquetaDeLaCarga(x)}</Fragment>");
     // Puesto al día por D-481: los botones de carga, solo donde hay acciones (no en «Ruta de hoy» ni en la tarjeta compacta).
     expect(gestor).toContain("{flechas}{pasar}{acciones && botonesDeCarga(d, capacity)}");
     expect(gestor).toContain("data-partir onClick={() => void parteLaOrden(d, capacidad)}");
