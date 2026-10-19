@@ -43848,6 +43848,12 @@ La ficha hace exactamente lo de antes (mismo diálogo, mismos textos, misma escr
 > arrancando en «new». Lo demás sigue igual: el menú sin «Request», y el cajón de cada fila con solo los cuatro tipos que
 > actúan sobre ese producto.
 
+> **⚠ Reemplazada en parte por D-586** (2026-10-18): el menú que aquí se fija (ocho entradas sueltas para manager+ y un
+> bloque Analítica de cinco) se agrupa. Inventory, Review y Approvals son pestañas de Catálogo; PO ↔ Proforma y Receiving,
+> pestañas de Compras; Analítica es UNA entrada con sus cinco pantallas como pestañas dentro, y `analytics-nav.tsx` lo
+> sustituye `group-tabs.tsx`. Lo que NO cambia de aquí: la puerta por entrada (ahora por pestaña), las rutas, lo escondido
+> (Request, PO upload, Bulk apply) y `nav.ts` como único sitio que decide.
+
 **Fecha:** 2026-10-14 · **Versión:** la pone el orquestador (toca el ERP; el `now` toca `src/lib/analytics.ts`, que usa
 el Panel de Entregas) · **Migración:** ninguna · Rama `erp-traspaso-pantallas`.
 **Porta** los commits `9b906e7`, `7ec9380`, `99de2dd` y `cca6a99` de BH en `codingcodertg/rtg-erp` (la app vieja del ERP),
@@ -45296,3 +45302,39 @@ Ya existía casi todo menos la puerta: `ScheduleModal` con `kind="inperson"` (`M
 **Pruebas:** `src/lib/recruiting/agendar-presencial.test.ts` (10: fecha vacía/inválida/pasada/igual a ahora/futura; etapa para activo, sin etapa en el pipeline, contratado y descartado no retroceden; contacto de la cita con y sin lugar/nota; lugares sin TBD y con el del candidato; texto en los dos idiomas con fecha, hora y lugar resueltos; «nuestra oficina» sin lugar; enlace con número limpio y texto, sin teléfono nada; el SMS de confirmación marcado y distinto del de D-581; puerta: el diálogo pasa por la librería, se monta para «inperson», la entrevista tiene `saveAndSchedule` y la vista tiene el botón). Proveedor: ninguno real; ningún SMS salió. **Mutantes 17 de 17** caen con una prueba con nombre (`~/.claude/herramientas/mutantes/tanda-agendar-presencial.json`): fecha pasada aceptada; «ahora» como futura; sin fecha válida; contratado vuelve atrás; sin etapa igual mueve; contacto sin lugar/nota; contacto que no es «In person»; «TBD» como lugar; lugar del candidato perdido; español en inglés; `{place}` sin resolver; hueco sin lugar; sin teléfono prepara igual; enlace sin texto; confirmación confundida con «¿te puedo llamar?»; la entrevista pierde la salida; la vista pierde el botón. `npx tsc --noEmit` limpio.
 
 **No verificado:** en navegador (que RingCentral abra con el texto; el ancho de la barra de botones de la entrevista con uno más; el `datetime-local` en el móvil); `next build`; nada contra producción desde la rama.
+## D-NEXT · ERP: Inventory, Review y Approvals pasan a pestañas de Catálogo; PO ↔ Proforma y Receiving, a pestañas de Compras; Analítica es una sola entrada con sus pestañas dentro
+## D-586 · ERP: Inventory, Review y Approvals pasan a pestañas de Catálogo; PO ↔ Proforma y Receiving, a pestañas de Compras; Analítica es una sola entrada con sus pestañas dentro
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo el ERP) · **Sin migración** · Reemplaza en parte a D-553 (el menú).
+
+**Pedidos del dueño** (2026-10-18), literales, los tres «en el erp»:
+
+> «Merge Inventory, Review, and Approvals all into Catalog»
+
+> «Mergre PO + Proforma into Purchasing tab»
+
+> «No need for multiple side tabs on Analytics since theyre already tabs within the Analytics tab»
+
+### Qué había
+
+Desde D-553 la barra lateral del ERP tenía, para manager y admin, **ocho entradas sueltas** (Catalog, Purchasing, PO ↔ Proforma, Receiving, Inventory, Review, Approvals, Excel round-trip) y debajo un bloque **Analítica** con cinco más (Product Analytics y las cuatro de `/erp/analytics/*`). Staff veía Catalog y Product Analytics. Las cuatro páginas de `/erp/analytics/*` pintaban además su propia fila de pastillas (`analytics-nav.tsx`), con las cinco de Analítica sin mirar el rol —podía, porque esas cuatro páginas echan a quien no es manager+—; `/erp/dashboard` no la pintaba a propósito, para no enseñarle a staff cuatro enlaces que lo devolvían al catálogo. Trece enlaces en la barra, y las pantallas de Analítica dos veces: en la barra y en la fila.
+
+### Qué cambia
+
+1. **Tres grupos con pestañas**, en `src/lib/erp/nav.ts` (`grupos`, puro): **Catálogo** = Catalog · Inventory · Review · Approvals; **Compras** = Purchasing · PO ↔ Proforma · Receiving; **Analítica** = Product Analytics · Stores · Vendors · Categories · Salespeople. La barra queda en **cuatro entradas** para manager/admin (Catálogo, Compras, Excel round-trip, Analítica) y **dos** para staff (Catálogo, Analítica). El `href` de cada grupo es su primera pestaña, la que ve todo el que ve el grupo.
+2. **La fila de pestañas** es un componente (`src/components/erp/group-tabs.tsx`, `<GroupTabs grupo role />`) que pinta `pestanasDe(grupo, role, t)`: **la misma puerta por rol que tenía cada entrada** —las que eran manager+ siguen siéndolo como pestaña, Product Analytics sigue abierta a staff—, así que agrupar no ensancha ni estrecha nada. Con una sola pestaña visible (staff en Catálogo o en Analítica) la fila no se pinta. Las doce páginas de los grupos la pintan con `session.role` arriba del título; `analytics-nav.tsx` desaparece (ya no hay una copia sin rol), y `/erp/dashboard` por fin la pinta, porque ahora respeta el rol.
+3. **Las rutas no cambian**: una pestaña es un enlace a la **misma página** de antes (`/erp/inventory`, `/erp/review`, `/erp/requests`, `/erp/purchasing/orders`, `/erp/purchasing/receiving`, `/erp/analytics/*`). Los marcadores viejos siguen abriendo lo mismo, con la fila de pestañas encima. Las subrutas (`/erp/review/merge`, `/erp/purchasing/orders/[id]`, `/erp/purchasing/categories`…) no se tocan.
+4. **Qué se enciende** lo decide `nav.ts`, no la barra: `pestanaActiva` (el href más largo que cubre la ruta, por segmento: `/erp/request` no enciende `/erp/requests`), `grupoDe` y `entradaActiva` (una entrada con grupo se enciende por cualquiera de sus pestañas: Catálogo en `/erp/inventory`, Compras en `/erp/purchasing/receiving`). Sustituye al `exact` a mano de `side-nav.tsx` para `/erp/purchasing`, que existía porque sus subrutas eran entradas hermanas. Clientes, que pasa su propia lista a la misma barra, sigue encendiéndose por prefijo (sus entradas no tienen grupo).
+5. `erpNav` conserva la forma `{ main, analytics }` con `analytics: []` para el ERP: Clientes (`barra.tsx`) pasa esa misma forma a la barra.
+
+### Lo que se descartó
+
+- **Una sola página por grupo con `?tab=`** (redirigir las rutas viejas). Habría obligado a fundir en un `page.tsx` cuatro cargas de datos distintas (facetas del catálogo, conteos, cola de revisión, solicitudes pendientes) y sus `searchParams`, para el mismo resultado en pantalla; y las rutas viejas dejaban de ser páginas. Pintar la fila sobre las páginas que ya existen es el cambio más chico: cero redirecciones, cero cambios en las cargas, cero cambios de puerta (cada página conserva su `redirect("/erp/catalog")` para quien no es manager+).
+- **Mantener `analytics-nav.tsx`** y añadir otra fila para Catálogo y Compras: dos componentes para una idea, y el viejo no miraba el rol.
+- **Una entrada «Analítica» que abra algo distinto por rol**: abre siempre `/erp/dashboard` (Product Analytics), que ve todo el que ve el ERP; es la primera pestaña, como en los otros grupos.
+
+**Pruebas:** `src/lib/erp/nav.test.ts` (23): la barra por rol; `pestanasDe` por grupo y rol; **la unión barra + pestañas de cada rol es exactamente la lista de entradas de D-553** (nadie gana ni pierde una pantalla); el href del grupo es su primera pestaña con la misma puerta; `pestanaActiva`/`grupoDe`/`entradaActiva`; los dos idiomas; las nueve rutas que pasaron a pestaña y las tres escondidas conservan su `page.tsx`; cada página pinta la fila de SU grupo con `session.role`; barra y fila leen `nav.ts`. `i18n.test.ts` vigila `group-tabs.tsx` en lugar del borrado. Mutantes **11 de 11** (`tanda-erp-pestanas.json`, 2026-10-18): Inventory abierta a staff; `pestanasDe` sin filtrar por rol; sin la puerta de catálogo; Approvals perdida; Receiving de vuelta en la barra; Analítica manager+; `pestanaActiva` con el primer href; por prefijo de texto (sobrevivió a la primera tanda porque la prueba medía el caso al revés —con las pestañas reales ningún href es prefijo de texto de otra ruta—, se añadió una lista sintética); `entradaActiva` sin grupo; la fila sin mirar el rol; Inventario pintando la fila de Compras.
+
+### No verificado
+
+En navegador (la fila a ancho de teléfono, el encendido real de la barra); el `next build`; nada contra producción (la rama no tiene `.env.local`).

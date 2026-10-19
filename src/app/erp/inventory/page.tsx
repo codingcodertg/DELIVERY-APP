@@ -6,6 +6,7 @@ import { unwrap } from "@/lib/erp/db-result";
 import { listCycleCounts, getNegativeBalances } from "@/lib/erp/actions";
 import { InventoryConsole, type StoreOption } from "@/components/erp/inventory-console";
 import { Tx } from "@/components/erp/tx";
+import { GroupTabs } from "@/components/erp/group-tabs";
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
@@ -30,6 +31,7 @@ export default async function InventoryPage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
+        <GroupTabs grupo="catalog" role={session.role} />
         <div className="mb-4">
           <h1 className="text-2xl font-semibold"><Tx en="Inventory adjustments & counts" es="Ajustes y conteos de inventario" /></h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-500">

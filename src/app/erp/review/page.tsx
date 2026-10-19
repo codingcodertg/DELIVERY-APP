@@ -6,6 +6,7 @@ import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
 import { ReviewQueue, type ReviewRow, type TagFacet } from "@/components/erp/review-queue";
 import { Tx } from "@/components/erp/tx";
+import { GroupTabs } from "@/components/erp/group-tabs";
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
@@ -67,6 +68,7 @@ export default async function ReviewPage({
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
+        <GroupTabs grupo="catalog" role={session.role} />
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold"><Tx en="Review queue" es="Cola de revisión" /></h1>

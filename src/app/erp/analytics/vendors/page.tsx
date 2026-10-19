@@ -3,7 +3,7 @@ import { Header } from "@/components/erp/header";
 import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { getVendorStats } from "@/lib/erp/actions";
 import { normalizePeriod } from "@/lib/erp/analytics";
-import { AnalyticsNav } from "@/components/erp/analytics-nav";
+import { GroupTabs } from "@/components/erp/group-tabs";
 import { AnalyticsControls } from "@/components/erp/analytics-controls";
 import { ChartCard, BarList } from "@/components/erp/charts";
 import { money } from "@/lib/erp/utils";
@@ -32,7 +32,7 @@ export default async function VendorAnalytics({ searchParams }: { searchParams: 
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         <h1 className="text-2xl font-semibold"><Tx en="Analytics" es="Analítica" /></h1>
         <p className="mt-1 text-sm text-slate-500"><Tx en="Sales rolled up by vendor (realized margin from cost) + catalog stats · manager view (#29)." es="Ventas agrupadas por proveedor (margen realizado sobre costo) y estadísticas del catálogo · vista de gerente (#29)." /></p>
-        <div className="mt-4"><AnalyticsNav /></div>
+        <div className="mt-4"><GroupTabs grupo="analytics" role={session.role} /></div>
         <AnalyticsControls period={period} />
 
         <div className="mb-4">

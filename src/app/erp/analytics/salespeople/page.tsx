@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Header } from "@/components/erp/header";
 import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
-import { AnalyticsNav } from "@/components/erp/analytics-nav";
+import { GroupTabs } from "@/components/erp/group-tabs";
 import { Tx } from "@/components/erp/tx";
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
@@ -20,7 +20,7 @@ export default async function SalespeopleAnalytics() {
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
         <h1 className="text-2xl font-semibold"><Tx en="Analytics" es="Analítica" /></h1>
         <p className="mt-1 text-sm text-slate-500"><Tx en="Salesperson performance · manager view." es="Rendimiento por vendedor · vista de gerente." /></p>
-        <div className="mt-4"><AnalyticsNav /></div>
+        <div className="mt-4"><GroupTabs grupo="analytics" role={session.role} /></div>
 
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
           <h2 className="text-lg font-semibold text-slate-800"><Tx en="Salesperson analytics activates with the POS (M4)" es="La analítica por vendedor se activa con el POS (M4)" /></h2>

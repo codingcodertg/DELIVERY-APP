@@ -5,6 +5,7 @@ import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { cn, money } from "@/lib/erp/utils";
 import { Tx } from "@/components/erp/tx";
+import { GroupTabs } from "@/components/erp/group-tabs";
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan
 // aquí. El estado del pedido (o.status), proveedor, número de OC y fechas son dato. Los dos `title`
@@ -56,6 +57,7 @@ export default async function PurchaseOrdersPage() {
     <>
       <Header />
       <main className="mx-auto max-w-screen-2xl px-4 py-6">
+        <GroupTabs grupo="purchasing" role={session.role} />
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold"><Tx en="Purchase orders" es="Órdenes de compra" /></h1>
