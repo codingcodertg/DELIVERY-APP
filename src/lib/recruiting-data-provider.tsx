@@ -32,6 +32,7 @@ import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
 import { nombreDelCv, nombreSeguro } from "@/lib/recruiting/nombre-del-cv";
 import { contactoDelGuardado, TIPOS_QUE_GUARDAN, yaGuardadoEnRingCentral } from "@/lib/recruiting/contacto-ringcentral";
+import { notaDelGuardado } from "@/lib/recruiting/agendas-ringcentral";
 
 interface DataState {
   ready: boolean;
@@ -461,10 +462,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       });
       const b = await res.json().catch(() => ({}));
       if (b.ok) {
-        const traza = { candidate_id: candidateId, created_by: me?.id ?? null, ...contactoDelGuardado(b.display ?? "") };
+        // D-594: la traza dice en qué agendas quedó («… · Careers, Andrés»); un fallo en alguna se avisa y no borra el resto.
+        const agendas: string[] = Array.isArray(b.agendas) ? b.agendas : [];
+        const traza = { candidate_id: candidateId, created_by: me?.id ?? null, ...contactoDelGuardado(notaDelGuardado(b.display ?? "", agendas)) };
         const { data } = await supabase.from("contacts").insert(traza).select().single();
         if (data) setContacts((prev) => [data as Contact, ...prev]);
-        if (b.created) notify(`RingCentral ✓ ${b.display ?? ""}`);
+        if (b.created) notify(`RingCentral ✓ ${b.display ?? ""}${agendas.length ? ` (${agendas.join(", ")})` : ""}`);
+        if (Array.isArray(b.fallos) && b.fallos.length) notify("RingCentral: " + b.fallos.join(" · "));
       } else if (b.error) {
         notify("RingCentral: " + b.error);
       }

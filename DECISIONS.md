@@ -45482,6 +45482,8 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 
 ## D-591 · RR. HH.: al llamar o textear a un candidato se guarda solo como contacto en RingCentral, «Andres Ugarte WA BRO» (nombre + iniciales del puesto + código de la tienda)
 
+> **Ampliada por D-594** (2026-10-19): el contacto se guarda también en la agenda de RingCentral del dueño (otra cuenta, con su propia app y su JWT), vía `RINGCENTRAL_AGENDAS_EXTRA`.
+
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.47.0 (repo 1.457.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-contacto-ringcentral`. Se apoya en D-581/D-585 (los botones que llaman y textean) y en el helper de RingCentral de `/api/call` y `/api/notify`.
 
 **Pedido del dueño**, literal: *«ah y cuando le pongo mandar texto o llamar, puedes automaticamente guardar ese contacto en ring central, y ponerle el nombre iniciales del puesto y tienda como decir Andres Ugarte WA BRO warehouse associate brownville»*.
@@ -45550,3 +45552,29 @@ D-590 pegaba el enlace firmado de Supabase Storage: la URL del bucket más un JW
 **Pruebas:** `enlace-corto-del-cv.test.ts` (forma y largo; ida y vuelta; vale 7 días y caduca al octavo y a los 400; otro secreto, una letra de la firma, la carga cambiada, formas raras; el UUID ida y vuelta; la ruta pública sin sesión y con 404; la ruta con sesión; el botón y el proveedor) y `mensaje-para-el-gerente.test.ts` ajustada. Mutantes: 6 de 6 caen (`mut593`).
 
 **No medido:** en navegador ni contra producción: el primer enlace real lo prueba el dueño al copiar y abrirlo desde otro dispositivo (debe abrir el PDF; a los 7 días, «Not found»).
+
+## D-594 · RR. HH.: el candidato se guarda también en la agenda de RingCentral del DUEÑO (agendas extra, cada una con su app y su JWT, en `RINGCENTRAL_AGENDAS_EXTRA`)
+
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.49.0 (repo 1.460.0) · **Sin migración** · **Variable de entorno nueva en Vercel (producción): `RINGCENTRAL_AGENDAS_EXTRA`** · Hecho directo por el orquestador en `feat/rrhh-agenda-de-andres`. **Amplía D-591** (lleva su nota).
+
+**Pedidos del dueño**, literales: *«no se guardo el nombre ahorita en ring central»* (con la captura de su app, caller ID 956-462-6849), *«osea yo solo quiero que el contacto me aparezca a mi tambien mas que todo en mi ring central agenda»* y *«ok creemos eso de ring central»*.
+
+### Qué había (medido el 2026-10-19, solo lecturas)
+
+D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «Careers»** de la cuenta cuyo número principal es 956-679-3521. **El RingCentral del dueño es otra cuenta** (id 682192050, número principal 956-782-4603; él es la extensión 908 «Andres Ugarte»): su número no está entre los de la cuenta del servidor, y la app de RTG Hub es **privada** de aquella: al pedir un token con su JWT contesta `invalid_client · Access to account [682192050] is prohibited for private application`. Con una **app creada por él en su cuenta** (client ID `3nON…`) y un **JWT de su usuario**, el token sale con el permiso `Contacts` y su agenda se lee (0 contactos). Sus credenciales quedan en `D:\CLAUDE\secretos` (`ringcentral-app-andres.json`, `ringcentral-jwt-andres.txt`, `RINGCENTRAL_AGENDAS_EXTRA.json`), nunca en el repo.
+
+### Qué cambia
+
+1. **`RINGCENTRAL_AGENDAS_EXTRA`** (`src/lib/recruiting/agendas-ringcentral.ts`, `agendasExtraDesde`): JSON de una lista de `{nombre, clientId, clientSecret, jwt}`. Una entrada incompleta se salta; vacía o mal formada, ninguna. Hoy lleva una: «Andrés». Puesta en Vercel (producción) con `vercel env add` y en los dos `.env.local`.
+2. **`ringcentral.ts`**: `ringcentralToken`, `ringcentralContacts` y `ringcentralAddContact` aceptan credenciales por llamada; sin ellas, las del servidor de siempre (nada cambia para `/api/call` ni `/api/notify`).
+3. **`/api/recruiting/rc-contact`**: guarda en **Careers y en cada agenda extra**, cada una por separado (`Promise.allSettled`) y con su propia regla de no duplicar por teléfono; contesta `agendas` (en cuáles quedó) y `fallos` (cuáles no, con el motivo). Si ninguna aceptó, 502. El proveedor deja la traza «RingCentral · saved · Andres Ugarte WA BRO · Careers, Andrés» y avisa «RingCentral ✓ … (Careers, Andrés)»; un fallo en una agenda se avisa aparte y no borra lo guardado en las otras.
+4. **Qué ve el dueño**: en su app de RingCentral (extensión 908), el contacto con el mismo nombre («Andres Ugarte WA BRO», puesto en cargo, tienda en empresa). Como su agenda es por usuario, lo ve él; otro reclutador de su cuenta no, salvo que se añada su JWT a la lista.
+
+### Qué se descartó
+
+- **Login con RingCentral dentro de RTG Hub** (OAuth de tres patas por reclutador): sería lo general, pero el dueño pidió su agenda, y su app + su JWT lo resuelven sin pantalla nueva ni tabla. Si más reclutadores quieren la suya, es otra decisión (o más entradas en la lista).
+- **Mover el JWT del servidor a su cuenta**: la línea que llama y textea sigue siendo Careers; se añade, no se cambia.
+
+**Pruebas:** `agendas-ringcentral.test.ts` (la variable: lista válida, limpia, incompletas, vacía, mal formada, objeto suelto; la traza; el helper con credenciales; la ruta con allSettled y sin duplicar; el proveedor), `contacto-ringcentral.test.ts` ajustada. Mutantes: 5 de 5 caen (`mut594`).
+
+**No medido:** el primer POST real a su agenda (solo se leyó); al primer «Llamar»/«Texto» tras publicar, su app debe enseñar el contacto. La variable en Vercel solo entra en el deploy que la siga: este release.

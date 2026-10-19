@@ -9,11 +9,12 @@ export function ringcentralConfigured(): boolean {
   return !!(process.env.RINGCENTRAL_CLIENT_ID && process.env.RINGCENTRAL_CLIENT_SECRET && process.env.RINGCENTRAL_JWT);
 }
 
-/** Exchange the JWT for a short-lived access token (RingCentral "private app" flow). */
-export async function ringcentralToken(): Promise<string> {
-  const id = process.env.RINGCENTRAL_CLIENT_ID!;
-  const secret = process.env.RINGCENTRAL_CLIENT_SECRET!;
-  const jwt = process.env.RINGCENTRAL_JWT!;
+/** Exchange the JWT for a short-lived access token (RingCentral "private app" flow).
+ *  D-594: con `creds`, el token de OTRA app y otro usuario (una agenda extra); sin ellas, las del servidor de siempre. */
+export async function ringcentralToken(creds?: { clientId: string; clientSecret: string; jwt: string }): Promise<string> {
+  const id = creds?.clientId ?? process.env.RINGCENTRAL_CLIENT_ID!;
+  const secret = creds?.clientSecret ?? process.env.RINGCENTRAL_CLIENT_SECRET!;
+  const jwt = creds?.jwt ?? process.env.RINGCENTRAL_JWT!;
   const res = await fetch(`${RC_SERVER}/restapi/oauth/token`, {
     method: "POST",
     headers: {
@@ -73,9 +74,10 @@ export async function ringcentralRingOutStatus(id: string): Promise<{ callStatus
   return { callStatus: data?.status?.callStatus ?? "Unknown", callerStatus: data?.status?.callerStatus, calleeStatus: data?.status?.calleeStatus };
 }
 
-/** La agenda personal de la extensión del JWT (hasta 250 contactos: la de «Careers» empieza vacía). Lee, no escribe. */
-export async function ringcentralContacts(): Promise<Record<string, unknown>[]> {
-  const token = await ringcentralToken();
+/** La agenda personal de la extensión del JWT (hasta 250 contactos: la de «Careers» empieza vacía). Lee, no escribe.
+ *  D-594: con `creds`, la agenda de otra app y otro usuario. */
+export async function ringcentralContacts(creds?: { clientId: string; clientSecret: string; jwt: string }): Promise<Record<string, unknown>[]> {
+  const token = await ringcentralToken(creds);
   const res = await fetch(`${RC_SERVER}/restapi/v1.0/account/~/extension/~/address-book/contact?perPage=250`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -83,9 +85,9 @@ export async function ringcentralContacts(): Promise<Record<string, unknown>[]> 
   return ((await res.json()).records ?? []) as Record<string, unknown>[];
 }
 
-/** Crea un contacto en esa misma agenda (D-591: el candidato al llamarlo o textearle). */
-export async function ringcentralAddContact(contact: Record<string, string>): Promise<void> {
-  const token = await ringcentralToken();
+/** Crea un contacto en esa misma agenda (D-591: el candidato al llamarlo o textearle; D-594: o en una agenda extra). */
+export async function ringcentralAddContact(contact: Record<string, string>, creds?: { clientId: string; clientSecret: string; jwt: string }): Promise<void> {
+  const token = await ringcentralToken(creds);
   const res = await fetch(`${RC_SERVER}/restapi/v1.0/account/~/extension/~/address-book/contact`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
