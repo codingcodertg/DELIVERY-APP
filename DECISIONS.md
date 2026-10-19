@@ -45475,3 +45475,31 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 **Pruebas:** `mensaje-para-el-gerente.test.ts` (la cita: la última, no otros contactos, respaldo en `inperson_date`, nula; la nota limpia o nula; el mensaje en es/en completo y con todo faltando; los 7 días; el botón: enlace solo con CV, portapapeles y el cuadro de respaldo; dónde está; el proveedor firma por los segundos pedidos) y `nombre-del-cv.test.ts` (el nombre, la extensión, sin nombre, la ruta segura; el proveedor y los tres caminos). Mutantes: 8 de 8 (`mut590`) y 4 de 4 (`mut590b`) caen.
 
 **No medido:** nada en navegador (que el portapapeles reciba el texto, el cuadro de respaldo en iOS, el ancho de la barra con un botón más). `tsc` y vitest completo (los 3 `scripts/*.test.mjs` caen en esta máquina por el mismo SyntaxError que en la laptop; en CI pasan).
+
+## D-591 · RR. HH.: al llamar o textear a un candidato se guarda solo como contacto en RingCentral, «Andres Ugarte WA BRO» (nombre + iniciales del puesto + código de la tienda)
+
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.47.0 (repo 1.457.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-contacto-ringcentral`. Se apoya en D-581/D-585 (los botones que llaman y textean) y en el helper de RingCentral de `/api/call` y `/api/notify`.
+
+**Pedido del dueño**, literal: *«ah y cuando le pongo mandar texto o llamar, puedes automaticamente guardar ese contacto en ring central, y ponerle el nombre iniciales del puesto y tienda como decir Andres Ugarte WA BRO warehouse associate brownville»*.
+
+### Qué había (medido el 2026-10-19 contra RingCentral, solo lecturas)
+
+RR. HH. llama y textea con enlaces `rcapp://` a la app de RingCentral del reclutador (D-581); ningún enlace crea contactos. El servidor sí tiene API de RingCentral (JWT de app privada, `src/lib/ringcentral.ts`): el JWT es la **extensión 103 «Careers RTGBlue»** —la línea de reclutamiento—, su token trae el permiso `Contacts`, y su agenda personal estaba **vacía** (0 contactos; 7 extensiones en la cuenta).
+
+### Qué cambia
+
+1. **`src/lib/recruiting/contacto-ringcentral.ts`** (puro): el nombre del contacto es nombre y apellidos del candidato + **iniciales del puesto** (`Warehouse Associate` → `WA`; una letra por palabra) + **código de la tienda** (`Brownsville` → `BRO`; los mismos códigos de Entregas, por el nombre corto de `LOCATIONS`: BRO, WES, PHR, MCA, MIS, EDG; «TBD», nada). `firstName` es la primera palabra y el resto con el sufijo va en `lastName`, para que RingCentral ordene por nombre y el sufijo se vea en la lista. El móvil va en E.164 (`+1…`); el puesto entero en el cargo y la tienda en la empresa; en notas, «RTG Hub · candidato <id>». Sin teléfono válido (menos de 10 dígitos) no se guarda nada.
+2. **`POST /api/recruiting/rc-contact` { candidateId }**: sesión (`requireUser`) + **RLS de `recruiting.candidates`** como puerta del módulo (si no puede leer al candidato, 404); sin RingCentral configurado, `dryRun` sin gastar (como `/api/call`); lee la agenda de la extensión del JWT (`ringcentralContacts`, hasta 250) y **no duplica por teléfono** (compara dígitos en todos los campos de teléfono); si no está, lo crea (`ringcentralAddContact`). El contacto queda en la agenda personal de **«Careers» (ext. 103)**, que es la línea desde la que RR. HH. llama y textea; no en la del reclutador que pulsa, si usa otra extensión.
+3. **El disparo está en `addContact` del proveedor**: cada «📞 Llamar», «💬 Texto», «📱 Texto: ¿te puedo llamar?» y la confirmación de la presencial ya registran un contacto `Call` o `SMS` (fila, ficha, Hoy, Tablero, Resultados, entrevista); al registrarlo, si el historial del candidato no tiene ya un **«RingCentral / saved»**, se pide la ruta sin esperar (el toque ya abrió RingCentral) y, al volver `ok`, se deja esa traza con el nombre guardado («RingCentral · saved · Andres Ugarte WA BRO») y un aviso «RingCentral ✓ …» si se creó. Un fallo se avisa y no estorba. Así no hubo que tocar los diez sitios que llaman o textean.
+4. **Permisos:** ninguno nuevo. Bilingüe donde hay texto (la traza es un dato, no se traduce).
+
+### Qué se descartó
+
+- **Guardarlo en la agenda del reclutador que pulsa** (`employee_files.ringcentral_ext`): el JWT tiene `EditExtensions`, pero la línea que llama y textea es «Careers», y ahí es donde el reclutador ve quién le escribe. Si el dueño quiere la agenda por extensión, es otra decisión.
+- **Crear el contacto desde el enlace `rcapp://`**: no existe un enlace de «crear contacto».
+- **Una columna `rc_contact_id`**: la traza en el historial y la comprobación por teléfono en la agenda bastan; sin migración.
+- **Guardar también al registrar una nota o una entrevista**: el dueño dijo «mandar texto o llamar».
+
+**Pruebas:** `contacto-ringcentral.test.ts` (el ejemplo del dueño letra por letra; sin apellido, sin puesto ni tienda, dos apellidos; iniciales; códigos y «RDZ »; E.164; el cuerpo; la agenda con y sin el 1; qué tipos disparan y la traza; el proveedor; la ruta y el helper). Mutantes: 8 de 8 caen (`mut591`).
+
+**No medido:** el POST real contra RingCentral (solo se leyeron agenda y extensiones; el primer contacto lo creará el primer toque en producción: mirar la agenda de «Careers» después). Nada en navegador.
