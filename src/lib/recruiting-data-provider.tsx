@@ -68,8 +68,9 @@ interface DataState {
   uploadResume: (candidateId: string, file: File, candidateName?: string) => Promise<void>;
   removeResume: (candidateId: string) => Promise<void>;
   openResumeFile: (candidateId: string) => Promise<void>;
-  /** El enlace firmado del CV para pegarlo en un mensaje (D-590, «Copiar para el gerente»): `null` sin CV o si falla. */
-  resumeLink: (candidateId: string, seconds: number) => Promise<string | null>;
+  /** El enlace CORTO del CV para pegarlo en un mensaje (D-590 «Copiar para el gerente»; corto desde D-593:
+   *  `/api/cv/<token>`, lo firma el servidor y vale 7 días): `null` sin CV o si falla. */
+  resumeLink: (candidateId: string) => Promise<string | null>;
   // multiple attachments (#3)
   attachmentsFor: (candidateId: string) => Attachment[];
   addAttachment: (candidateId: string, file: File) => Promise<void>;
@@ -534,17 +535,20 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   );
 
   const resumeLink = useCallback<DataState["resumeLink"]>(
-    async (candidateId, seconds) => {
-      const c = candidates.find((x) => x.id === candidateId);
-      if (!c?.resume_path) return null;
-      const { data, error } = await supabase.storage.from("resumes").createSignedUrl(c.resume_path, seconds);
-      if (error || !data) {
-        notify("Could not link CV: " + (error?.message ?? "unknown"));
+    async (candidateId) => {
+      try {
+        const res = await fetch("/api/recruiting/cv-link", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidateId }),
+        });
+        const b = await res.json().catch(() => ({}));
+        if (!res.ok || b.error) { notify("Could not link CV: " + (b.error ?? res.status)); return null; }
+        return (b.url as string | null) ?? null;
+      } catch (e) {
+        notify("Could not link CV: " + (e as Error).message);
         return null;
       }
-      return data.signedUrl;
     },
-    [supabase, candidates, notify],
+    [notify],
   );
 
   // ---------------- Multiple attachments (#3) ----------------

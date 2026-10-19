@@ -11,9 +11,9 @@ import { RESULTADO_AGENDADA } from "./agendar-presencial";
 // y copia el texto al portapapeles.
 // ============================================================
 
-/** Cuántos segundos vale el enlace firmado del CV que va en el mensaje: 7 días, para que el gerente lo abra cuando lea
- *  el mensaje y no en el minuto en que se copió (el «📎 CV» de la ficha dura 60 s porque se abre al momento). */
-export const SEGUNDOS_DEL_ENLACE_DEL_CV = 7 * 24 * 60 * 60;
+/** Cuántos días vale el enlace del CV que va en el mensaje: 7, para que el gerente lo abra cuando lea el mensaje y no en
+ *  el minuto en que se copió. Desde D-593 el enlace es el corto (`enlace-corto-del-cv.ts`), que lleva esta misma vida. */
+export const DIAS_DEL_ENLACE_DEL_CV = 7;
 
 /**
  * La cita presencial que se cuenta: el ÚLTIMO contacto «In person / Scheduled» (D-585 lo deja como «fecha · lugar ·

@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { mensajeParaElGerente, SEGUNDOS_DEL_ENLACE_DEL_CV } from "@/lib/recruiting/mensaje-para-el-gerente";
+import { mensajeParaElGerente } from "@/lib/recruiting/mensaje-para-el-gerente";
 import type { Candidate } from "@/lib/recruiting/types";
 
 /**
- * «📋 Copiar para el gerente» (D-590): copia al portapapeles nombre, teléfono, enlace al CV (firmado, 7 días), la nota
+ * «📋 Copiar para el gerente» (D-590): copia al portapapeles nombre, teléfono, enlace CORTO al CV (D-593; 7 días), la nota
  * de la entrevista y la cita presencial, para pegarlo en un texto o correo al gerente de la tienda. Pasa a «Copiado ✓»
  * unos segundos. Si el navegador no deja copiar (iOS tras esperar el enlace), enseña el texto para copiarlo a mano.
  */
@@ -21,7 +21,7 @@ export function BotonCopiarParaElGerente({ c, className = "btn btn-ghost btn-sm"
     if (estado === "copiando") return;
     setEstado("copiando");
     setAMano(null);
-    const cvEnlace = c.resume_path ? await resumeLink(c.id, SEGUNDOS_DEL_ENLACE_DEL_CV) : null;
+    const cvEnlace = c.resume_path ? await resumeLink(c.id) : null;
     const texto = mensajeParaElGerente(c, { cvEnlace, contactos: contactsFor(c.id) }, lang);
     try {
       await navigator.clipboard.writeText(texto);

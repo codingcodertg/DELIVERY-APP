@@ -45456,6 +45456,8 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 
 ## D-590 · RR. HH.: «📋 Copiar para el gerente» (nombre, teléfono, enlace al CV, nota de la entrevista y cita presencial, al portapapeles); y el CV subido se renombra «<candidato> resume.<ext>»
 
+> **Reemplazada en parte por D-593** (2026-10-19): el enlace del CV que se copia ya no es el firmado de Storage (~300 caracteres) sino el corto `/api/cv/<token>` (~60), con la misma vida de 7 días.
+
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.46.0 (repo 1.456.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-copiar-para-el-gerente`. Se apoya en D-581 (el botón va a su lado) y D-585 (la cita presencial sale del contacto que deja).
 
 **Pedidos del dueño**, literales: *«quiero que en el hr app haya una opcion que sea como copiar mensaje para el manager, que es copiar, nombre, telefono, curriculum la nota que deje en la entrevista y la hora a la que lo cite de cita personal»* y, acto seguido, *«ah y quiero que todos los resume que suba al cv part upload ahi automaticamente se rename al nombre del candidato + resume»*.
@@ -45521,3 +45523,30 @@ RR. HH. llama y textea con enlaces `rcapp://` a la app de RingCentral del reclut
 **Pruebas:** `reprogramar-orden.test.ts`, «D-592 · en la tabla de paradas el 📅 va junto a cada factura…» (los tres sitios, la condición y el `.accion-de-fila`). Mutantes: 4 de 4 caen (`mut592`: sin icono en la P, sin icono en la D, la función sin excluir las hechas, y sin pedir permiso). **El icono es una función** (`iconoDeReprogramar`), no JSX inline en cada celda: el PR que lo llevaba inline junto con D-593 murió cuatro veces en el type-check del build de Vercel (OOM); por separado, cada cambio construye.
 
 **No medido:** en navegador (el ancho de la celda de la factura con el icono en una P de varias órdenes).
+
+## D-593 · RR. HH.: el enlace del CV de «Copiar para el gerente» es corto (`/api/cv/<token>`, ~60 caracteres, firmado, 7 días)
+
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.48.0 (repo 1.459.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-enlace-corto-cv`. **Reemplaza en parte a D-590** (lleva su nota).
+
+**Pedido del dueño**, literal, al ver el enlace de D-590: *«no podemos hacer un link para el cv mas corto mucho mas corto?»*.
+
+### Qué había
+
+D-590 pegaba el enlace firmado de Supabase Storage: la URL del bucket más un JWT de firma, **~300 caracteres**, ilegible en un texto o un correo.
+
+### Qué cambia
+
+1. **`src/lib/recruiting/enlace-corto-del-cv.ts`** (solo servidor): el token lleva el **id del candidato (16 bytes) y el día en que caduca (2 bytes)** en base64url (24 caracteres), un punto y **10 caracteres de HMAC-SHA256** con un secreto que solo tiene el servidor (derivado de la llave de servicio de Supabase, `secretoDelCv`, para no añadir otra variable de entorno). **35 caracteres**; la URL completa, `https://rtg-hub.vercel.app/api/cv/<token>`, ronda los 60. Se calcula, no se guarda: **sin tabla ni migración**. Vale **7 días** (`DIAS_DEL_ENLACE_CORTO`, la misma vida que D-590); la comprobación compara en tiempo constante y mira cuántos días faltan (los días van en 16 bits, dan la vuelta cada ~180 años).
+2. **`GET /api/cv/<token>`** (`src/app/api/cv/[token]/route.ts`): **pública a propósito** —el gerente no tiene cuenta en RTG Hub—; la llave es la firma. Token malformado, firma mala o caducado → **404 sin decir cuál**. Con token bueno: busca `resume_path` del candidato con el cliente de servicio (no hay sesión, la RLS no aplica) y **redirige (302) a un enlace firmado de Storage de un minuto**, que es lo que el navegador abre. El middleware salta `/api/` (`skipsSession`), así que no manda al login.
+3. **`POST /api/recruiting/cv-link` { candidateId }**: sesión + RLS de `recruiting.candidates` como puerta del módulo (404 si no lo ve); devuelve `{ url }` con el origen de la app, o `{ url: null }` sin CV. **`resumeLink` del proveedor** pasa a pedir esto (ya no firma en el navegador), y **«Copiar para el gerente»** pega esa URL. `SEGUNDOS_DEL_ENLACE_DEL_CV` desaparece; queda `DIAS_DEL_ENLACE_DEL_CV` (= 7) en `mensaje-para-el-gerente.ts`, que es el fichero que importa el navegador; el módulo del servidor lo toma de ahí (el primer build metía `crypto` en el bundle del cliente por una reexportación al revés).
+4. **Lo que puede quien tenga el enlace**: abrir ese CV durante 7 días, como con el de D-590. No ve nada más (ni el candidato ni la lista): el token solo sirve para ese fichero.
+
+### Qué se descartó
+
+- **Un acortador externo** (bit.ly y similares): dependencia y cuenta nuevas, y el CV pasaría por un tercero.
+- **Una tabla de enlaces** (`cv_links` con slug de 6 letras): más corto aún, pero migración y limpieza de caducados; el token firmado da ~60 caracteres sin nada que guardar.
+- **Una variable de entorno nueva para el secreto**: habría que ponerla en Vercel a mano; la derivación de la llave de servicio es igual de secreta y ya está.
+
+**Pruebas:** `enlace-corto-del-cv.test.ts` (forma y largo; ida y vuelta; vale 7 días y caduca al octavo y a los 400; otro secreto, una letra de la firma, la carga cambiada, formas raras; el UUID ida y vuelta; la ruta pública sin sesión y con 404; la ruta con sesión; el botón y el proveedor) y `mensaje-para-el-gerente.test.ts` ajustada. Mutantes: 6 de 6 caen (`mut593`).
+
+**No medido:** en navegador ni contra producción: el primer enlace real lo prueba el dueño al copiar y abrirlo desde otro dispositivo (debe abrir el PDF; a los 7 días, «Not found»).

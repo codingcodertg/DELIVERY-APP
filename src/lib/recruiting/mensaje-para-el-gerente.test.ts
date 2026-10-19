@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { citaPresencial, mensajeParaElGerente, notaDeLaEntrevista, SEGUNDOS_DEL_ENLACE_DEL_CV } from "./mensaje-para-el-gerente";
+import { citaPresencial, DIAS_DEL_ENLACE_DEL_CV, mensajeParaElGerente, notaDeLaEntrevista } from "./mensaje-para-el-gerente";
 import type { Candidate, Contact } from "./types";
 
 // D-590 · «en el hr app haya una opcion que sea como copiar mensaje para el manager, que es copiar, nombre, telefono,
@@ -56,15 +56,15 @@ describe("el mensaje", () => {
     expect(m).toBe("Candidato: Ana Pérez\nTeléfono: —\nCV: sin CV adjunto\nNota de la entrevista: sin entrevista aún\nEntrevista presencial: sin cita aún");
     expect(mensajeParaElGerente(cand(), { cvEnlace: null, contactos: [] }, "en")).toContain("CV: no CV attached\nInterview note: no interview yet\nIn-person interview: not scheduled yet");
   });
-  it("el enlace del CV vale 7 días: el gerente lo abre cuando lea el mensaje", () => {
-    expect(SEGUNDOS_DEL_ENLACE_DEL_CV).toBe(604800);
+  it("el enlace del CV vale 7 días: el gerente lo abre cuando lea el mensaje (desde D-593 es el corto)", () => {
+    expect(DIAS_DEL_ENLACE_DEL_CV).toBe(7);
   });
 });
 
 describe("el botón y dónde está", () => {
   const boton = leer("src/components/recruiting/BotonCopiarParaElGerente.tsx");
   it("pide el enlace solo si hay CV, arma el texto con los contactos del candidato y copia al portapapeles; si no puede, lo enseña para copiarlo a mano", () => {
-    expect(boton).toContain("const cvEnlace = c.resume_path ? await resumeLink(c.id, SEGUNDOS_DEL_ENLACE_DEL_CV) : null;");
+    expect(boton).toContain("const cvEnlace = c.resume_path ? await resumeLink(c.id) : null;");
     expect(boton).toContain("const texto = mensajeParaElGerente(c, { cvEnlace, contactos: contactsFor(c.id) }, lang);");
     expect(boton).toContain("await navigator.clipboard.writeText(texto);");
     expect(boton).toMatch(/catch \{\s*setEstado\("quieto"\);\s*setAMano\(texto\);/);
@@ -76,9 +76,9 @@ describe("el botón y dónde está", () => {
     expect(fila).toContain("<BotonTextoPuedoLlamar c={c} />\n        <BotonCopiarParaElGerente c={c} />");
     expect(ficha).toContain("<BotonTextoPuedoLlamar c={c} />\n              <BotonCopiarParaElGerente c={c} />");
   });
-  it("el proveedor firma el enlace del CV del bucket `resumes` por los segundos que se le piden", () => {
+  it("el proveedor pide el enlace corto al servidor (D-593; en D-590 firmaba uno largo de Storage)", () => {
     const prov = leer("src/lib/recruiting-data-provider.tsx");
-    expect(prov).toContain('const { data, error } = await supabase.storage.from("resumes").createSignedUrl(c.resume_path, seconds);');
-    expect(prov).toContain("resumeLink: (candidateId: string, seconds: number) => Promise<string | null>;");
+    expect(prov).toContain('const res = await fetch("/api/recruiting/cv-link", {');
+    expect(prov).toContain("resumeLink: (candidateId: string) => Promise<string | null>;");
   });
 });
