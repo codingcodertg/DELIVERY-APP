@@ -1,4 +1,5 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "crypto";
+import { DIAS_DEL_ENLACE_DEL_CV } from "./mensaje-para-el-gerente";
 
 // ============================================================
 // El enlace corto del CV (D-NEXT, 2026-10-19). El dueño, sobre el enlace firmado de D-590 (~300 caracteres): «no podemos
@@ -13,7 +14,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // ============================================================
 
 /** Cuántos días vale el enlace: los mismos 7 del enlace largo de D-590. */
-export const DIAS_DEL_ENLACE_CORTO = 7;
+export const DIAS_DEL_ENLACE_CORTO: number = DIAS_DEL_ENLACE_DEL_CV;
 
 const b64u = (b: Buffer) => b.toString("base64url");
 
