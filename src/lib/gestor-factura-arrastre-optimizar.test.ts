@@ -427,7 +427,9 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
     const queSeMide = trozo("const seMide = (clave: string) =>", "const aParadaDelGantt");
     const efecto = trozo("const queMedir = e.rutasAMedir.join(", "const estadoDeLaMedida =", medida);
     it("se miden TODAS las rutas con paradas del día (no solo las marcadas), las marcadas primero", () => {
-      expect(queSeMide).toContain("useMedidaDeRutas<Delivery>({ date, porChofer: byDriver, rutasAMedir, seMide,");
+      // Nota D-584: se mide la ruta DEL DÍA (pendientes + hechas pintadas), no solo lo pendiente: la línea no se encoge al entregar.
+      expect(queSeMide).toContain("useMedidaDeRutas<Delivery>({");
+      expect(queSeMide).toContain("date, porChofer: rutaDelDia, rutasAMedir, seMide,");
       expect(efecto).toContain("const rutas = e.rutasAMedir.map((clave) => ({ clave, firma: firmaDe(clave, byDriver.get(clave) ?? []) }));");
       expect(queSeMide).toContain("const seMide = (clave: string) => (byDriver.get(clave) ?? []).length > 0 && pasaFiltro(clave) && (modo === \"dia\" || selected.has(clave));");
       expect(queSeMide).toContain("const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);");
@@ -447,7 +449,8 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
       // **Puesto al día por la base del día (166, 2026-10-11)**: la forma lleva también de dónde sale y dónde termina (`extremos`): cambiarlos es otra forma.
       expect(medida).toContain("return `${firmaDeLaMedida(fecha, clave, stops)}|${lista.map((p) => (p.tipo === \"P\" ? `P${p.ordenes.join(\"+\")}` : `D${p.orden}`)).join(\",\")}${extremos ? `|${extremos}` : \"\"}`;");
       expect(medida).toContain("const firmaDe = (clave: string, stops: T[]): string => firmaDeLaForma(date, clave, stops, e.listaDe(clave, stops), extremosDe(clave));");
-      expect(pagina).toContain("listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,");
+      // Nota D-584: la lista que firma la forma es la del día (`listaDelDia`), con las hechas delante.
+      expect(pagina).toContain("listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia)).paradas),");
       expect(pagina).toContain("invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],");
     });
     it("la columna «Llegada» de las filas P y D dice el estado o el motivo, no una raya", () => {
