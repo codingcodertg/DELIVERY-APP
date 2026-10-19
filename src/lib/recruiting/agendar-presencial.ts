@@ -53,7 +53,7 @@ export function contactoDeLaCita(iso: string, lugar: string, nota: string): Pick
   return { type: "In person", result: RESULTADO_AGENDADA, note: partes.join(" · ") };
 }
 
-/* ---- El texto de la cita con la dirección de la tienda (D-NEXT, 2026-10-19) ----
+/* ---- El texto de la cita con la dirección de la tienda (D-597, 2026-10-19) ----
  * El dueño: «cuando yo pongo la fecha y la hora y el lugar, quiero que el sistema automáticamente me haga un template
  * para mandárselo por texto a la persona … te espero mañana en la tienda de Edinburg, Texas, en esta dirección, y que
  * me ponga la dirección de la tienda … que el template se pueda editar también … cuando yo le guarde la entrevista, se

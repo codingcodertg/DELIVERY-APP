@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { NamedLocation } from "@/lib/types";
 
 // ============================================================
-// GET /api/recruiting/stores (D-NEXT, 2026-10-19). Las tiendas de Datos → Tiendas de Entregas (`public.settings.stores`),
+// GET /api/recruiting/stores (D-597, 2026-10-19). Las tiendas de Datos → Tiendas de Entregas (`public.settings.stores`),
 // solo nombre y dirección, para que el texto de la cita presencial lleve la dirección de la tienda donde se cita.
 //
 // Por qué una ruta: `public.settings` solo lo lee quien tiene el módulo de Entregas (`has_deliveries_access`, 100), y un

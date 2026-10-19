@@ -10,7 +10,7 @@ import {
 } from "@/lib/recruiting/agendar-presencial";
 
 /**
- * «📅 Agendar entrevista presencial» (D-585, D-NEXT). Fecha y hora (futura), lugar (sede o texto) y nota.
+ * «📅 Agendar entrevista presencial» (D-585, D-597). Fecha y hora (futura), lugar (sede o texto) y nota.
  * Mientras se rellena, el texto para el candidato se arma solo —fecha, hora, tienda y su DIRECCIÓN (de Datos → Tiendas,
  * por `/api/recruiting/stores`), o la plantilla de Ajustes si hay una «presencial»— y se puede editar en el mismo diálogo.
  * «Guardar y mandar texto» hace las dos cosas de un golpe: `inperson_date`, la etapa que toque (librería), el contacto

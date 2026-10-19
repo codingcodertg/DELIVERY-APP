@@ -45293,7 +45293,7 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 
 ## D-585 · RR. HH.: «📅 Agendar entrevista presencial» al terminar la entrevista, con lugar, nota y texto de confirmación por el mismo camino que D-581
 
-> **Reemplazada en parte por D-NEXT** (2026-10-19): el texto de confirmación se arma antes de guardar, lleva la dirección de la tienda, se edita en el diálogo o desde Ajustes → Plantillas, y sale con el mismo botón que guarda; la etapa, la fecha y el contacto de la cita siguen igual.
+> **Reemplazada en parte por D-597** (2026-10-19): el texto de confirmación se arma antes de guardar, lleva la dirección de la tienda, se edita en el diálogo o desde Ajustes → Plantillas, y sale con el mismo botón que guarda; la etapa, la fecha y el contacto de la cita siguen igual.
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Amplía el diálogo «🤝 Agendar presencial» y la salida de `InterviewModal`.
 
@@ -45617,9 +45617,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** el siguiente build de Vercel con esto es la medida: el paso de tipos desaparece del log y el build debe tardar ~3 min.
 
-## D-NEXT · RR. HH.: al agendar la entrevista presencial, el texto para el candidato se arma solo con la dirección de la tienda, se edita en el diálogo y se manda al guardar
+## D-597 · RR. HH.: al agendar la entrevista presencial, el texto para el candidato se arma solo con la dirección de la tienda, se edita en el diálogo y se manda al guardar
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-la-cita`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.51.0 (repo 1.463.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-la-cita`.
 
 **Pedido del dueño (2026-10-19, literal):** «termino la entrevista y agendo la entrevista presencial. Entonces, cuando yo pongo la fecha y la hora y el lugar, entonces yo quiero que el sistema automáticamente me haga un template para mandárselo por texto a la persona … te espero mañana en la tienda de Edinburg, Texas, en esta dirección, y que me ponga la dirección de la tienda que estoy poniendo … Quiero un buen template y así, que el template se puede editar también, obviamente, pero que me haga fácil. Cuando yo le guardara la entrevista, y se haga mandar por mensaje de texto, y se mande un solo template.»
 

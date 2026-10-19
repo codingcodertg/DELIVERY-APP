@@ -140,7 +140,7 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     expect(agendar).toContain("validarFechaPresencial(");
     expect(agendar).toContain("etapaTrasAgendar(");
     expect(agendar).toContain("prepararConfirmacionPresencial(");
-    // D-NEXT: el texto se arma con las tiendas de Datos (ruta propia) y la plantilla de Ajustes, y se guarda y manda de un golpe.
+    // D-597: el texto se arma con las tiendas de Datos (ruta propia) y la plantilla de Ajustes, y se guarda y manda de un golpe.
     expect(agendar).toContain('fetch("/api/recruiting/stores")');
     expect(agendar).toContain("plantillaDeAjustes(templates)");
     expect(agendar).toContain("guardarYMandar");
