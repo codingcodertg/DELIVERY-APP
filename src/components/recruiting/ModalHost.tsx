@@ -8,6 +8,7 @@ import { InterviewViewModal } from "./InterviewView";
 import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
 import { BotonCopiarParaElGerente } from "./BotonCopiarParaElGerente";
 import { InPersonScheduleModal } from "./InPersonScheduleModal";
+import { contactoDelSeguimiento, ofreceSeguimiento, plantillaDeSeguimiento, prepararTextoDeSeguimiento, textoDeSeguimiento } from "@/lib/recruiting/texto-de-seguimiento";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
 import type { Candidate, Contact, Interview, InterviewAnswer, RecruiterRecommendation } from "@/lib/recruiting/types";
 import {
@@ -1121,9 +1122,13 @@ function freshDraft(id: string, savedAt: string | undefined): InterviewDraft | n
 }
 
 function InterviewModal({ id, close, openResume }: { id: string; close: () => void; openResume: (id: string) => void }) {
-  const { candidates, questions, jobs, questionSets, settings, stages, updateCandidate, addContact, notify } = useData();
+  const { candidates, questions, jobs, questionSets, settings, stages, templates, me, updateCandidate, addContact, notify } = useData();
   const { t, lang } = usePrefs();
   const ui = useUI();
+  /** D-598: tras «Buzón de voz» o «Volver a llamar», el diálogo se queda con el texto de seguimiento listo para mandar. */
+  const [seguimiento, setSeguimiento] = useState<string | null>(null);
+  const [textoSeg, setTextoSeg] = useState("");
+  const [errorSeg, setErrorSeg] = useState<string | null>(null);
   const c = candidates.find((x) => x.id === id);
   const lostStage = stages.find((s) => s.type === "lost");
   // De qué conjunto y qué preguntas: lo decide la librería (preguntas-del-puesto.ts, D-582), para poder medirlo.
@@ -1186,12 +1191,33 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
 
   // Quick call-outcome logging (voicemail / no answer / etc.) — logs a contact and closes.
   // callAgain tags the candidate so failed calls stay visible until an interview is saved.
-  const logOutcome = async (result: string, callAgain: boolean) => {
+  // D-598: `clave` es el resultado en inglés (el que decide); `result` la etiqueta que se registra, en el idioma de quien pulsa.
+  // Con «Voicemail» y «Call back later» el diálogo NO cierra: ofrece el texto de seguimiento (librería texto-de-seguimiento).
+  const logOutcome = async (clave: string, result: string, callAgain: boolean) => {
     await addContact(c.id, { type: "Call", result, note: "" });
     if (callAgain && !c.tags.includes(CALL_AGAIN_TAG)) {
       await updateCandidate(c.id, { tags: [...c.tags, CALL_AGAIN_TAG] });
     }
     notify(t("Logged: ", "Registrado: ") + result);
+    if (ofreceSeguimiento(clave)) {
+      setTextoSeg(textoDeSeguimiento(c, me?.full_name ?? "", lang, plantillaDeSeguimiento(templates)));
+      setErrorSeg(null);
+      setSeguimiento(result);
+      return;
+    }
+    close();
+  };
+
+  /** «📱 Mandar texto de seguimiento»: mismo camino que D-581 (enlace a RingCentral + contacto SMS marcado). */
+  const mandarSeguimiento = async () => {
+    const r = prepararTextoDeSeguimiento(c, textoSeg);
+    if (!r.ok) {
+      setErrorSeg(r.motivo === "sin-telefono" ? t("No phone number", "Sin número de teléfono") : t("The text is empty", "El texto está vacío"));
+      return;
+    }
+    window.location.href = r.enlace;
+    await addContact(c.id, contactoDelSeguimiento(r.texto));
+    notify(t("Text opened in RingCentral ✓", "Texto abierto en RingCentral ✓"));
     close();
   };
 
@@ -1314,13 +1340,33 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
           {c.phone_date && <span>📅 {fmtDateTime(c.phone_date)}</span>}
         </div>
         {/* Quick call outcome — log without scoring when the call didn't happen */}
+        {seguimiento ? (
+          <div className="q-block" style={{ background: "var(--surface-soft)", marginBottom: 14 }} data-texto-de-seguimiento>
+            <div className="q-text" style={{ fontWeight: 700 }}>
+              ✓ {t("Logged", "Registrado")}: {seguimiento} · {t("Send a follow-up text?", "¿Mandar texto de seguimiento?")}
+            </div>
+            <label>{t("Text (edit it if you like)", "Texto (edítalo si quieres)")}</label>
+            <textarea rows={5} value={textoSeg} onChange={(e) => setTextoSeg(e.target.value)} />
+            <div className="hint">
+              {t("To change the wording for good, add a template named «Follow-up» in Settings → Templates.", "Para cambiar el texto de una vez, agrega en Ajustes → Plantillas una que se llame «Seguimiento».")}
+            </div>
+            {errorSeg && <div style={{ color: "var(--red, #c0392b)", fontSize: 12, marginTop: 6 }}>{errorSeg}</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              <button className="btn btn-primary" onClick={mandarSeguimiento} title={t("Opens the text in RingCentral", "Abre el texto en RingCentral")}>
+                📱 {t("Send follow-up text", "Mandar texto de seguimiento")}
+              </button>
+              <button className="btn btn-ghost" onClick={close}>{t("Close without text", "Cerrar sin texto")}</button>
+            </div>
+          </div>
+        ) : (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
           <span style={{ fontSize: 11, color: "var(--gray)", fontWeight: 700, alignSelf: "center" }}>{t("Didn't connect?", "¿No conectó?")}</span>
-          <button className="btn btn-ghost btn-sm" onClick={() => logOutcome(t("No answer", "Sin respuesta"), true)}>📵 {t("No answer", "Sin respuesta")}</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => logOutcome(t("Voicemail", "Buzón de voz"), true)}>📞 {t("Voicemail", "Buzón de voz")}</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => logOutcome(t("Wrong number", "Número equivocado"), false)}>❌ {t("Wrong number", "Número equivocado")}</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => logOutcome(t("Call back later", "Volver a llamar"), true)}>🔁 {t("Call back later", "Volver a llamar")}</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => logOutcome("No answer", t("No answer", "Sin respuesta"), true)}>📵 {t("No answer", "Sin respuesta")}</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => logOutcome("Voicemail", t("Voicemail", "Buzón de voz"), true)}>📞 {t("Voicemail", "Buzón de voz")}</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => logOutcome("Wrong number", t("Wrong number", "Número equivocado"), false)}>❌ {t("Wrong number", "Número equivocado")}</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => logOutcome("Call back later", t("Call back later", "Volver a llamar"), true)}>🔁 {t("Call back later", "Volver a llamar")}</button>
         </div>
+        )}
         {qs.length === 0 && (
           <div className="empty">{t("No active questions for this role. Configure them in Settings.", "No hay preguntas activas para este puesto. Configúralas en Ajustes.")}</div>
         )}
