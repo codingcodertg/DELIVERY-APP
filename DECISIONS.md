@@ -45456,7 +45456,7 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 
 ## D-590 · RR. HH.: «📋 Copiar para el gerente» (nombre, teléfono, enlace al CV, nota de la entrevista y cita presencial, al portapapeles); y el CV subido se renombra «<candidato> resume.<ext>»
 
-> **Reemplazada en parte por D-NEXT** (2026-10-19): el enlace del CV que se copia ya no es el firmado de Storage (~300 caracteres) sino el corto `/api/cv/<token>` (~60), con la misma vida de 7 días.
+> **Reemplazada en parte por D-593** (2026-10-19): el enlace del CV que se copia ya no es el firmado de Storage (~300 caracteres) sino el corto `/api/cv/<token>` (~60), con la misma vida de 7 días.
 
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.46.0 (repo 1.456.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-copiar-para-el-gerente`. Se apoya en D-581 (el botón va a su lado) y D-585 (la cita presencial sale del contacto que deja).
 
@@ -45524,9 +45524,9 @@ RR. HH. llama y textea con enlaces `rcapp://` a la app de RingCentral del reclut
 
 **No medido:** en navegador (el ancho de la celda de la factura con el icono en una P de varias órdenes).
 
-## D-NEXT · RR. HH.: el enlace del CV de «Copiar para el gerente» es corto (`/api/cv/<token>`, ~60 caracteres, firmado, 7 días)
+## D-593 · RR. HH.: el enlace del CV de «Copiar para el gerente» es corto (`/api/cv/<token>`, ~60 caracteres, firmado, 7 días)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-enlace-corto-cv`. **Reemplaza en parte a D-590** (lleva su nota).
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.48.0 (repo 1.459.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-enlace-corto-cv`. **Reemplaza en parte a D-590** (lleva su nota).
 
 **Pedido del dueño**, literal, al ver el enlace de D-590: *«no podemos hacer un link para el cv mas corto mucho mas corto?»*.
 

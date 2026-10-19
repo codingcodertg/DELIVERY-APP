@@ -12,7 +12,7 @@ import { RESULTADO_AGENDADA } from "./agendar-presencial";
 // ============================================================
 
 /** Cuántos días vale el enlace del CV que va en el mensaje: 7, para que el gerente lo abra cuando lea el mensaje y no en
- *  el minuto en que se copió. Desde D-NEXT el enlace es el corto (`enlace-corto-del-cv.ts`), que lleva esta misma vida. */
+ *  el minuto en que se copió. Desde D-593 el enlace es el corto (`enlace-corto-del-cv.ts`), que lleva esta misma vida. */
 export const DIAS_DEL_ENLACE_DEL_CV = 7;
 
 /**

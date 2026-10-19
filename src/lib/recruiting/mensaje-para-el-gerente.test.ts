@@ -56,7 +56,7 @@ describe("el mensaje", () => {
     expect(m).toBe("Candidato: Ana Pérez\nTeléfono: —\nCV: sin CV adjunto\nNota de la entrevista: sin entrevista aún\nEntrevista presencial: sin cita aún");
     expect(mensajeParaElGerente(cand(), { cvEnlace: null, contactos: [] }, "en")).toContain("CV: no CV attached\nInterview note: no interview yet\nIn-person interview: not scheduled yet");
   });
-  it("el enlace del CV vale 7 días: el gerente lo abre cuando lea el mensaje (desde D-NEXT es el corto)", () => {
+  it("el enlace del CV vale 7 días: el gerente lo abre cuando lea el mensaje (desde D-593 es el corto)", () => {
     expect(DIAS_DEL_ENLACE_DEL_CV).toBe(7);
   });
 });
@@ -76,7 +76,7 @@ describe("el botón y dónde está", () => {
     expect(fila).toContain("<BotonTextoPuedoLlamar c={c} />\n        <BotonCopiarParaElGerente c={c} />");
     expect(ficha).toContain("<BotonTextoPuedoLlamar c={c} />\n              <BotonCopiarParaElGerente c={c} />");
   });
-  it("el proveedor pide el enlace corto al servidor (D-NEXT; en D-590 firmaba uno largo de Storage)", () => {
+  it("el proveedor pide el enlace corto al servidor (D-593; en D-590 firmaba uno largo de Storage)", () => {
     const prov = leer("src/lib/recruiting-data-provider.tsx");
     expect(prov).toContain('const res = await fetch("/api/recruiting/cv-link", {');
     expect(prov).toContain("resumeLink: (candidateId: string) => Promise<string | null>;");

@@ -68,7 +68,7 @@ interface DataState {
   uploadResume: (candidateId: string, file: File, candidateName?: string) => Promise<void>;
   removeResume: (candidateId: string) => Promise<void>;
   openResumeFile: (candidateId: string) => Promise<void>;
-  /** El enlace CORTO del CV para pegarlo en un mensaje (D-590 «Copiar para el gerente»; corto desde D-NEXT:
+  /** El enlace CORTO del CV para pegarlo en un mensaje (D-590 «Copiar para el gerente»; corto desde D-593:
    *  `/api/cv/<token>`, lo firma el servidor y vale 7 días): `null` sin CV o si falla. */
   resumeLink: (candidateId: string) => Promise<string | null>;
   // multiple attachments (#3)
