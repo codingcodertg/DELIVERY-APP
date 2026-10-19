@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Contact } from "./types";
 import {
-  RESULTADO_PUEDO_LLAMAR, contactoDelEnvio, envioPuedoLlamar, estadoDelBoton, prepararTextoPuedoLlamar, telefonoEnLaFila, textoPuedoLlamar,
-} from "./texto-puedo-llamar";
+  RESULTADO_PUEDO_LLAMAR, contactoDelEnvio, envioPuedoLlamar, estadoDelBoton, prepararTextoPuedoLlamar, telefonoEnLaFila, textoPuedoLlamar, PLANTILLA } from "./texto-puedo-llamar";
 
 const cand: { id: string; name: string; role: string; phone: string | null } = { id: "c1", name: "María López", role: "Driver", phone: "(555) 010-2030" };
 const contacto = (over: Partial<Contact>): Contact => ({
@@ -12,16 +11,18 @@ const contacto = (over: Partial<Contact>): Contact => ({
 const hora = (iso: string, locale: string) => new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
 describe("texto «¿te puedo llamar?» (D-581)", () => {
-  it("el texto lleva el nombre de pila, el puesto y quien escribe, en el idioma de quien pulsa", () => {
-    const en = textoPuedoLlamar(cand, "Andrés", "en");
-    expect(en).toContain("Hi María,");
-    expect(en).toContain("Andrés");
-    expect(en).toContain("Driver");
-    expect(en).toContain("Can I call you?");
+  // D-NEXT (2026-10-19): el dueño pegó su texto; de usted, sin nombre ni puesto, firmado por quien pulsa.
+  it("el texto es el del dueño, letra por letra, firmado por quien pulsa, en el idioma de quien pulsa", () => {
     const es = textoPuedoLlamar(cand, "Andrés", "es");
-    expect(es).toContain("Hola María,");
-    expect(es).toContain("¿Te puedo llamar?");
+    expect(es).toBe("Hola, le habla Andrés, reclutador de Rodriguez Tile Group. Vi su aplicación y me gustaría conversar con usted. ¿Tiene 15 minutos ahora mismo para una breve entrevista telefónica? Si es así, respóndame y le llamo enseguida.");
+    const en = textoPuedoLlamar(cand, "Andrés", "en");
+    expect(en).toBe("Hello, this is Andrés, recruiter at Rodriguez Tile Group. I saw your application and would like to talk with you. Do you have 15 minutes right now for a brief phone interview? If so, reply and I'll call you right away.");
     expect(es).not.toContain("{");
+    expect(en).not.toContain("{");
+    // No nombra al candidato ni al puesto: así lo escribió.
+    expect(es).not.toContain("María");
+    expect(es).not.toContain("Driver");
+    expect(PLANTILLA.es).toContain("{recruiter}");
   });
 
   it("prepara el enlace de RingCentral con el número limpio y el texto, igual que el diálogo", () => {
