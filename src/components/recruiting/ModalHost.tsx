@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
+import { preguntasDeEntrevista } from "@/lib/recruiting/preguntas-del-puesto";
 import { InterviewViewModal } from "./InterviewView";
 import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
@@ -1069,7 +1070,6 @@ function EditModal({ id, close }: { id: string; close: () => void }) {
 // interviewer can re-ask and compare against what was captured then.
 // "Age Capacity" is deliberately not here — it's shown as an unscored
 // reference note instead of a graded question (age-discrimination risk).
-const PRESCREEN_CATEGORIES = ["Tenure", "Language Skill", "Education / Certifications"];
 const PRESCREEN_KEY_BY_CATEGORY: Record<string, string> = {
   "Tenure": "tenure",
   "Language Skill": "language",
@@ -1129,37 +1129,13 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
   const ui = useUI();
   const c = candidates.find((x) => x.id === id);
   const lostStage = stages.find((s) => s.type === "lost");
+  // De qué conjunto y qué preguntas: lo decide la librería (preguntas-del-puesto.ts, D-582), para poder medirlo.
+  // Orden: el conjunto que sujeta la vacante > el del puesto del candidato > el implícito por preguntas con su
+  // rol > el predeterminado; dentro, activas y de rol «all», del candidato o —si lo fijó la vacante— de la vacante,
+  // con las categorías de preselección (Tenure, Language Skill, Education) delante.
   const qs = useMemo(() => {
     const job = jobs.find((j) => j.id === c?.job_id) ?? null;
-    const defSet = questionSets.find((s) => s.is_default) ?? null;
-    // Which set to interview from, in order of specificity:
-    //   1. the set the candidate's job pins, if any;
-    //   2. the set explicitly assigned to the candidate's position;
-    //   3. a set holding questions tagged with their role — the implicit link,
-    //      kept for sets whose position was never set;
-    //   4. the default set, for positions that have no set of their own.
-    // Note (3) must win over (4): the filter below requires a question to be in
-    // the chosen set, so falling straight back to the default — as this once
-    // did — silently dropped every role-specific question and showed only the
-    // default set's generic ones, whatever the candidate's role.
-    const roleSetId = c?.role
-      ? (questionSets.find((s) => s.role === c.role)?.id ??
-         questions.find((q) => q.active && q.role === c.role && q.set_id)?.set_id ??
-         null)
-      : null;
-    const setId = job?.question_set_id ?? roleSetId ?? defSet?.id ?? null;
-    const filtered = questions.filter(
-      (q) => q.active && (q.role === "all" || q.role === c?.role) && (setId ? q.set_id === setId : true),
-    );
-    // Pin the prescreen-matched categories (Tenure, Language Skill, Education)
-    // first, in that order, so the interviewer sees the registration-time
-    // answer and re-asks it right away. Array.prototype.sort is stable, so
-    // everything else keeps its original (DB `sort` column) order.
-    return filtered.slice().sort((a, b) => {
-      const ai = PRESCREEN_CATEGORIES.indexOf(a.category ?? "");
-      const bi = PRESCREEN_CATEGORIES.indexOf(b.category ?? "");
-      return (ai === -1 ? PRESCREEN_CATEGORIES.length : ai) - (bi === -1 ? PRESCREEN_CATEGORIES.length : bi);
-    });
+    return preguntasDeEntrevista({ vacante: job, rolDelCandidato: c?.role, conjuntos: questionSets, preguntas: questions });
   }, [questions, c?.role, c?.job_id, jobs, questionSets]);
   // Restore a newer draft over the saved interview; see freshDraft above.
   const restored = useMemo(() => freshDraft(id, c?.interview?.date), [id, c?.interview?.date]);

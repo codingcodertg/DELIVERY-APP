@@ -6,11 +6,12 @@ import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { fmtPct, pctToScore } from "@/lib/recruiting/utils";
 import { createClient } from "@/lib/recruiting/supabase/client";
+import { puedeAsignarPreguntasAlPuesto, preguntasActivasPorConjunto } from "@/lib/recruiting/preguntas-del-puesto";
 
 export default function SettingsPage() {
   const { t } = usePrefs();
   const {
-    settings, roles, templates, customFields, recruiters, me, jobs, candidates, stages, questionSets,
+    settings, roles, templates, customFields, recruiters, me, jobs, candidates, stages, questionSets, questions,
     saveSettings,
     addTemplate, deleteTemplate, addCustomField, deleteCustomField, notify,
     addJob, updateJob, deleteJob, addStage, updateStage, deleteStage,
@@ -33,6 +34,11 @@ export default function SettingsPage() {
   const [jTarget, setJTarget] = useState("");
   const [jSet, setJSet] = useState("");
   const jobCount = (jobId: string) => candidates.filter((c) => c.job_id === jobId && !c.archived).length;
+  // Conjunto de preguntas por vacante ya creada (D-582): admin y gerente lo cambian; el reclutador lo ve.
+  const puedeAsignar = puedeAsignarPreguntasAlPuesto(me?.role);
+  const activasPorConjunto = preguntasActivasPorConjunto(questions);
+  const nombreDeConjunto = (s: { id: string; name: string; is_default: boolean }) =>
+    `${s.name}${s.is_default ? t(" (default)", " (predeterminado)") : ""} · ${activasPorConjunto.get(s.id) ?? 0} ${t("questions", "preguntas")}`;
 
   // account: display name. La contraseña se cambia en «Mi perfil», en el hub (D-265).
   const [displayName, setDisplayName] = useState(me?.full_name ?? "");
@@ -217,9 +223,22 @@ export default function SettingsPage() {
                 {j.role && <span>💼 {j.role}</span>}
                 <span>🎯 {j.openings} {t(j.openings !== 1 ? "openings" : "opening", j.openings !== 1 ? "vacantes" : "vacante")}</span>
                 {j.target_score != null && <span>🎯 {t("target", "objetivo")} {fmtPct(Number(j.target_score))}</span>}
-                {j.question_set_id && <span>📚 {questionSets.find((s) => s.id === j.question_set_id)?.name ?? "—"}</span>}
                 <span>👥 {jobCount(j.id)} {t("candidates", "candidatos")}</span>
               </div>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: "6px 0 0", textTransform: "none", fontSize: 12 }}>
+                📚 {t("Interview questions:", "Preguntas de entrevista:")}
+                <select
+                  data-job-set={j.id}
+                  value={j.question_set_id ?? ""}
+                  disabled={!puedeAsignar}
+                  title={puedeAsignar ? t("Interviews for candidates on this job use this set.", "Las entrevistas de candidatos en esta vacante usan este conjunto.") : t("Only an admin or office manager can change this.", "Solo un administrador o gerente de oficina puede cambiar esto.")}
+                  onChange={(e) => updateJob(j.id, { question_set_id: e.target.value || null })}
+                  style={{ width: "auto" }}
+                >
+                  <option value="">{t("Default set / by position", "Conjunto predeterminado / por puesto")}</option>
+                  {questionSets.map((s) => <option key={s.id} value={s.id}>{nombreDeConjunto(s)}</option>)}
+                </select>
+              </label>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button className="btn btn-ghost btn-sm" onClick={() => updateJob(j.id, { status: j.status === "open" ? "closed" : "open" })}>
@@ -246,7 +265,7 @@ export default function SettingsPage() {
             <label>📚 {t("Question set", "Conjunto de preguntas")}</label>
             <select value={jSet} onChange={(e) => setJSet(e.target.value)}>
               <option value="">{t("Default set", "Conjunto predeterminado")}</option>
-              {questionSets.map((s) => <option key={s.id} value={s.id}>{s.name}{s.is_default ? t(" (default)", " (predeterminado)") : ""}</option>)}
+              {questionSets.map((s) => <option key={s.id} value={s.id}>{nombreDeConjunto(s)}</option>)}
             </select>
           </div>
         </div>
