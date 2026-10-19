@@ -196,7 +196,7 @@ describe("la página del Gestor", () => {
     // La tabla de paradas enseñaba la factura en el puesto 1; D-444 puso el ID en su lugar; D-456 (2026-10-01, «Invoice number
     // is more important») devuelve la factura, que abre la orden, con el ID debajo (`facturaYId`).
     // D-592: detrás de la factura va el 📅 de «Reprogramar» (también en la D de otra carga).
-    expect(pagina).toContain('<td className="ordno">{facturaConSuId(d)}{!ETAPAS_HECHAS.has(d.stage) && !soloLectura && puedeReprogramar(me?.role, d.stage) && (');
+    expect(pagina).toContain('<td className="ordno">{facturaConSuId(d)}{iconoDeReprogramar(d)}</td>');
     expect(pagina).toContain("const facturaConSuId = (d: Delivery) => { const n = facturaYId(d); const gesto = abreLaOrden(d);");
     // D-459: el ID va AL LADO de la factura, en la misma línea (`.factura-e-id`), no debajo.
     expect(pagina).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");
@@ -264,7 +264,7 @@ describe("la página del Gestor", () => {
     // Número de parada y factura delante de las elegidas; las acciones, detrás.
     expect(pagina.indexOf('<col style={{ width: anchoDeParada("_factura") }} />')).toBeLessThan(col);
     expect(pagina.indexOf('<col style={{ width: anchoDeParada("_acciones") }} />')).toBeGreaterThan(col);
-    const factura = pagina.indexOf('<td className="ordno">{facturaConSuId(d)}{!ETAPAS_HECHAS.has(d.stage) && !soloLectura && puedeReprogramar(me?.role, d.stage) && (', th);
+    const factura = pagina.indexOf('<td className="ordno">{facturaConSuId(d)}{iconoDeReprogramar(d)}{etiquetaDeLaCarga(d)}</td>', th);
     expect(factura).toBeGreaterThan(-1);
     expect(factura).toBeLessThan(td);
     // Las cinco de siempre, cada una por su clave, UNA vez (en `celdaDeParada`); y las de Órdenes con la celda de Órdenes.

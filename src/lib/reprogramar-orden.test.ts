@@ -86,13 +86,15 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
   it("D-592 · en la tabla de paradas el 📅 va junto a cada factura: en la fila P (una por orden recogida), en la D y en la D de otra carga", () => {
     const pagina = readFileSync("src/app/(app)/routes/page.tsx", "utf8").split("\r\n").join("\n");
     const paradas = pagina.slice(pagina.indexOf("tabla-de-paradas"));
-    const icono = (v: string) => `{!ETAPAS_HECHAS.has(${v}.stage) && !soloLectura && puedeReprogramar(me?.role, ${v}.stage) && (`;
-    expect(paradas).toContain(`{facturaConSuId(x)}${icono("x")}`);
-    expect(paradas.split(`{facturaConSuId(d)}${icono("d")}`).length - 1).toBe(2);
-    expect(paradas.split("<ReprogramarOrden pedido={x} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />").length - 1).toBe(1);
-    expect(paradas.split("<ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />").length - 1).toBe(2);
-    // Y cada uno dentro de un `.accion-de-fila` que no deja que el clic seleccione la fila.
-    expect(paradas.split('<span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>').length - 1).toBe(3);
+    expect(paradas).toContain("{facturaConSuId(x)}{iconoDeReprogramar(x)}");
+    expect(paradas.split("{facturaConSuId(d)}{iconoDeReprogramar(d)}").length - 1).toBe(2);
+    // La función, una sola, con la misma condición que la tabla de órdenes y dentro de un `.accion-de-fila` que no deja que
+    // el clic seleccione la fila. (Una función y no JSX inline: el type-check del build de Vercel se quedaba sin memoria.)
+    const fn = pagina.slice(pagina.indexOf("const iconoDeReprogramar = (o: Delivery): React.ReactNode =>"), pagina.indexOf("const facturaConSuId = (d: Delivery) => {"));
+    expect(fn).toContain("!ETAPAS_HECHAS.has(o.stage) && !soloLectura && puedeReprogramar(me?.role, o.stage) ? (");
+    expect(fn).toContain('<span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>');
+    expect(fn).toContain("<ReprogramarOrden pedido={o} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
+    expect(fn).toContain(") : null;");
   });
 });
 

@@ -45520,7 +45520,7 @@ RR. HH. llama y textea con enlaces `rcapp://` a la app de RingCentral del reclut
 
 **Qué no cambia.** La tabla de órdenes (D-574, su prueba ahora acota la cuenta a esa tabla); la tabla de Almacén (D-534); el cuadro de Reprogramar (fecha siguiente, nota obligatoria, no antes de hoy).
 
-**Pruebas:** `reprogramar-orden.test.ts`, «D-592 · en la tabla de paradas el 📅 va junto a cada factura…» (los tres sitios, la condición y el `.accion-de-fila`). Mutantes: 3 de 3 caen (`mut592`: sin icono en la P, sin icono en la otra carga, y la D sin excluir las hechas).
+**Pruebas:** `reprogramar-orden.test.ts`, «D-592 · en la tabla de paradas el 📅 va junto a cada factura…» (los tres sitios, la condición y el `.accion-de-fila`). Mutantes: 4 de 4 caen (`mut592`: sin icono en la P, sin icono en la D, la función sin excluir las hechas, y sin pedir permiso). **El icono es una función** (`iconoDeReprogramar`), no JSX inline en cada celda: con los tres bloques inline, el type-check del build de Vercel se quedó sin memoria dos veces (28 min hasta el OOM; el CI de GitHub y `tsc` local pasaban).
 
 **No medido:** en navegador (el ancho de la celda de la factura con el icono en una P de varias órdenes).
 

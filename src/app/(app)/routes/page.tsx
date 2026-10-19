@@ -1349,6 +1349,15 @@ export default function RoutesPage() {
   // view»): el ID ya no va DEBAJO —quedaba montado sobre el subrayado de puntos de la factura, y cortado por la celda— sino en
   // la MISMA línea, a su derecha, más pequeño y gris, sin subrayar. Si no cabe, el que se corta con «…» es el ID
   // (`.factura-e-id`, globals.css), y su `title` lo dice entero. Solo la factura lleva el gesto de enlace.
+  /** El 📅 de «Reprogramar» de la tabla de paradas (D-592; en la de órdenes va inline, D-574): junto a cada factura, con la
+   *  misma condición. Una función y no JSX inline en cada celda: tres bloques anidados en los `map` de esta página de 3.800
+   *  líneas dejaron sin memoria al type-check del build de Vercel (dos veces, 28 min hasta el OOM); así no. */
+  const iconoDeReprogramar = (o: Delivery): React.ReactNode =>
+    !ETAPAS_HECHAS.has(o.stage) && !soloLectura && puedeReprogramar(me?.role, o.stage) ? (
+      <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
+        <ReprogramarOrden pedido={o} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
+      </span>
+    ) : null;
   const facturaConSuId = (d: Delivery) => {
     const n = facturaYId(d);
     const gesto = abreLaOrden(d);
@@ -3405,11 +3414,7 @@ export default function RoutesPage() {
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
                             {/* D-592: el 📅 de «Reprogramar» (D-500/D-574) también aquí, en la tabla de paradas, junto a cada factura. El
                                 dueño: «Route Manager view needs the calendar icon to reschedule». Misma condición que en la tabla de órdenes. */}
-                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{!ETAPAS_HECHAS.has(x.stage) && !soloLectura && puedeReprogramar(me?.role, x.stage) && (
-                              <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
-                                <ReprogramarOrden pedido={x} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
-                              </span>
-                            )}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
+                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{iconoDeReprogramar(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {/* D-446: el Tipo de la P es el de su orden, como en la D. D-447 corrige el sitio de la tienda: va en la
                                 Ciudad de RECOGIDA, sin la palabra «Recoger», y la Ciudad de entrega dice la de su orden. El dueño,
@@ -3434,11 +3439,7 @@ export default function RoutesPage() {
                         return (
                           <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D")}>
                             <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
-                            <td className="ordno">{facturaConSuId(d)}{!ETAPAS_HECHAS.has(d.stage) && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
-                              <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
-                                <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
-                              </span>
-                            )}</td>
+                            <td className="ordno">{facturaConSuId(d)}{iconoDeReprogramar(d)}</td>
                             {celdaDeCuenta}
                             <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
                             <td className="celda-acciones" />
@@ -3484,11 +3485,7 @@ export default function RoutesPage() {
                           </td>
                           {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
                               «carga 1 de 2» si es una carga de una orden partida (D-452). */}
-                          <td className="ordno">{facturaConSuId(d)}{!ETAPAS_HECHAS.has(d.stage) && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
-                              <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
-                                <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
-                              </span>
-                            )}{etiquetaDeLaCarga(d)}</td>
+                          <td className="ordno">{facturaConSuId(d)}{iconoDeReprogramar(d)}{etiquetaDeLaCarga(d)}</td>
                           {celdaDeCuenta}
                           {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
                               manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
