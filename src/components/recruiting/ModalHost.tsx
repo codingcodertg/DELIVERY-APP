@@ -497,7 +497,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
         candidates.find((c) => name.trim() && normalizeName(c.name) === normalizeName(name));
       if (dup) {
         await addContact(dup.id, { type: "Note", note: t("Applied again", "Aplicó de nuevo") });
-        if (resume) await uploadResume(dup.id, resume);
+        if (resume) await uploadResume(dup.id, resume, dup.name);
         notify(t("Already registered — opening their profile", "Ya estaba registrado — abriendo su perfil"));
         openExisting(dup.id);
         return;
@@ -525,7 +525,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
         phone_date: phoneIso,
       });
       if (created) setCreatedId(created.id); // so it can't flag itself as a duplicate
-      if (created && resume) await uploadResume(created.id, resume);
+      if (created && resume) await uploadResume(created.id, resume, created.name);
       notify(t("Candidate registered ✓", "Candidato registrado ✓"));
       close();
       if (created && thenInterview) ui.openInterview(created.id);
