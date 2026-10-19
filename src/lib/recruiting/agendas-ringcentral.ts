@@ -1,5 +1,5 @@
 // ============================================================
-// Las agendas de RingCentral donde se guarda el candidato (D-NEXT, 2026-10-19). El dueño, al ver que D-591 lo guardaba en la
+// Las agendas de RingCentral donde se guarda el candidato (D-594, 2026-10-19). El dueño, al ver que D-591 lo guardaba en la
 // de «Careers» y no en la suya: «osea yo solo quiero que el contacto me aparezca a mi tambien mas que todo en mi ring
 // central agenda».
 //

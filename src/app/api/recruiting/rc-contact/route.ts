@@ -13,7 +13,7 @@ import { AGENDA_DEL_SERVIDOR, agendasExtraDesde, type CredencialesRingCentral } 
 // (no tiene el módulo de RR. HH.), la lectura vuelve vacía y se contesta 404. No gasta nada fuera si RingCentral no
 // está configurado (`dryRun`), igual que `/api/call`.
 //
-// D-NEXT: además de la agenda del servidor («Careers»), en cada agenda extra de `RINGCENTRAL_AGENDAS_EXTRA` (la del dueño:
+// D-594: además de la agenda del servidor («Careers»), en cada agenda extra de `RINGCENTRAL_AGENDAS_EXTRA` (la del dueño:
 // otra cuenta de RingCentral, con su propia app y su JWT). Cada agenda se mira y se escribe por separado; si una falla,
 // las demás siguen, y la respuesta dice en cuáles quedó (`agendas`) y en cuáles falló (`fallos`).
 // ============================================================

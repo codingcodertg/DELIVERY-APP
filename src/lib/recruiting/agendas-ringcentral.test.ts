@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { AGENDA_DEL_SERVIDOR, agendasExtraDesde, notaDelGuardado } from "./agendas-ringcentral";
 
-// D-NEXT · «osea yo solo quiero que el contacto me aparezca a mi tambien mas que todo en mi ring central agenda» (el dueño,
+// D-594 · «osea yo solo quiero que el contacto me aparezca a mi tambien mas que todo en mi ring central agenda» (el dueño,
 // 2026-10-19). Su RingCentral es otra cuenta: una app suya + su JWT, en `RINGCENTRAL_AGENDAS_EXTRA`.
 
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");

@@ -71,7 +71,7 @@ describe("cuándo se guarda y la traza", () => {
     const prov = leer("src/lib/recruiting-data-provider.tsx");
     expect(prov).toContain("if (entry.type && TIPOS_QUE_GUARDAN.has(entry.type) && !yaGuardadoEnRingCentral(contacts.filter((k) => k.candidate_id === candidateId))) {\n        void guardarEnRingCentral(candidateId);");
     expect(prov).toContain('const res = await fetch("/api/recruiting/rc-contact", {');
-    // D-NEXT: la traza lleva también en qué agendas quedó.
+    // D-594: la traza lleva también en qué agendas quedó.
     expect(prov).toContain("const traza = { candidate_id: candidateId, created_by: me?.id ?? null, ...contactoDelGuardado(notaDelGuardado(b.display ?? \"\", agendas)) };");
   });
   it("la ruta: sesión + RLS del candidato (404 si no lo ve), sin RingCentral no gasta (dryRun), y no duplica por teléfono", () => {
@@ -80,7 +80,7 @@ describe("cuándo se guarda y la traza", () => {
     expect(ruta).toContain('const { data: c, error } = await auth.supabase.schema("recruiting").from("candidates")');
     expect(ruta).toContain('if (!c) return NextResponse.json({ error: "Candidate not found" }, { status: 404 });');
     expect(ruta).toContain("if (!ringcentralConfigured()) return NextResponse.json({ ok: false, dryRun: true, display });");
-    // D-NEXT: la misma regla por agenda (`guardarEn`), con las credenciales de cada una.
+    // D-594: la misma regla por agenda (`guardarEn`), con las credenciales de cada una.
     expect(ruta).toContain("if (yaEstaEnLaAgenda(agenda, phone)) return { nombre, created: false };");
     expect(ruta).toContain("await ringcentralAddContact(cuerpo, creds);");
     const rc = leer("src/lib/ringcentral.ts");

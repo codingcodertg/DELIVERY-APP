@@ -45482,7 +45482,7 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 
 ## D-591 · RR. HH.: al llamar o textear a un candidato se guarda solo como contacto en RingCentral, «Andres Ugarte WA BRO» (nombre + iniciales del puesto + código de la tienda)
 
-> **Ampliada por D-NEXT** (2026-10-19): el contacto se guarda también en la agenda de RingCentral del dueño (otra cuenta, con su propia app y su JWT), vía `RINGCENTRAL_AGENDAS_EXTRA`.
+> **Ampliada por D-594** (2026-10-19): el contacto se guarda también en la agenda de RingCentral del dueño (otra cuenta, con su propia app y su JWT), vía `RINGCENTRAL_AGENDAS_EXTRA`.
 
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.47.0 (repo 1.457.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-contacto-ringcentral`. Se apoya en D-581/D-585 (los botones que llaman y textean) y en el helper de RingCentral de `/api/call` y `/api/notify`.
 
@@ -45553,9 +45553,9 @@ D-590 pegaba el enlace firmado de Supabase Storage: la URL del bucket más un JW
 
 **No medido:** en navegador ni contra producción: el primer enlace real lo prueba el dueño al copiar y abrirlo desde otro dispositivo (debe abrir el PDF; a los 7 días, «Not found»).
 
-## D-NEXT · RR. HH.: el candidato se guarda también en la agenda de RingCentral del DUEÑO (agendas extra, cada una con su app y su JWT, en `RINGCENTRAL_AGENDAS_EXTRA`)
+## D-594 · RR. HH.: el candidato se guarda también en la agenda de RingCentral del DUEÑO (agendas extra, cada una con su app y su JWT, en `RINGCENTRAL_AGENDAS_EXTRA`)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · **Variable de entorno nueva en Vercel (producción): `RINGCENTRAL_AGENDAS_EXTRA`** · Hecho directo por el orquestador en `feat/rrhh-agenda-de-andres`. **Amplía D-591** (lleva su nota).
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.49.0 (repo 1.460.0) · **Sin migración** · **Variable de entorno nueva en Vercel (producción): `RINGCENTRAL_AGENDAS_EXTRA`** · Hecho directo por el orquestador en `feat/rrhh-agenda-de-andres`. **Amplía D-591** (lleva su nota).
 
 **Pedidos del dueño**, literales: *«no se guardo el nombre ahorita en ring central»* (con la captura de su app, caller ID 956-462-6849), *«osea yo solo quiero que el contacto me aparezca a mi tambien mas que todo en mi ring central agenda»* y *«ok creemos eso de ring central»*.
 

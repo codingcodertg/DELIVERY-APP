@@ -462,7 +462,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       });
       const b = await res.json().catch(() => ({}));
       if (b.ok) {
-        // D-NEXT: la traza dice en qué agendas quedó («… · Careers, Andrés»); un fallo en alguna se avisa y no borra el resto.
+        // D-594: la traza dice en qué agendas quedó («… · Careers, Andrés»); un fallo en alguna se avisa y no borra el resto.
         const agendas: string[] = Array.isArray(b.agendas) ? b.agendas : [];
         const traza = { candidate_id: candidateId, created_by: me?.id ?? null, ...contactoDelGuardado(notaDelGuardado(b.display ?? "", agendas)) };
         const { data } = await supabase.from("contacts").insert(traza).select().single();
