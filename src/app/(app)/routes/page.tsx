@@ -3403,7 +3403,13 @@ export default function RoutesPage() {
                             data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
                             style={{ ...(resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}), ...(seArrastra ? { cursor: "grab" } : {}) }} data-recien-movida={resaltada ? "" : undefined}>
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
-                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
+                            {/* D-NEXT: el 📅 de «Reprogramar» (D-500/D-574) también aquí, en la tabla de paradas, junto a cada factura. El
+                                dueño: «Route Manager view needs the calendar icon to reschedule». Misma condición que en la tabla de órdenes. */}
+                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{!ETAPAS_HECHAS.has(x.stage) && !soloLectura && puedeReprogramar(me?.role, x.stage) && (
+                              <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
+                                <ReprogramarOrden pedido={x} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
+                              </span>
+                            )}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {/* D-446: el Tipo de la P es el de su orden, como en la D. D-447 corrige el sitio de la tienda: va en la
                                 Ciudad de RECOGIDA, sin la palabra «Recoger», y la Ciudad de entrega dice la de su orden. El dueño,
@@ -3428,7 +3434,11 @@ export default function RoutesPage() {
                         return (
                           <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D")}>
                             <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
-                            <td className="ordno">{facturaConSuId(d)}</td>
+                            <td className="ordno">{facturaConSuId(d)}{!ETAPAS_HECHAS.has(d.stage) && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
+                              <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
+                                <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
+                              </span>
+                            )}</td>
                             {celdaDeCuenta}
                             <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
                             <td className="celda-acciones" />
@@ -3474,7 +3484,11 @@ export default function RoutesPage() {
                           </td>
                           {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
                               «carga 1 de 2» si es una carga de una orden partida (D-452). */}
-                          <td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>
+                          <td className="ordno">{facturaConSuId(d)}{!ETAPAS_HECHAS.has(d.stage) && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
+                              <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
+                                <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
+                              </span>
+                            )}{etiquetaDeLaCarga(d)}</td>
                           {celdaDeCuenta}
                           {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
                               manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
