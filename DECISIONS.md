@@ -24682,6 +24682,10 @@ por persona (`routes_columns`, D-331). Medido en el demo: ofrece las ocho, y qui
 
 > **⚠ Reemplazada en parte por D-507** (2026-10-10): para **ventas** la pantalla nace en «Todas», no en «Reciente».
 > Los demás roles siguen igual.
+>
+> **⚠ Reemplazada en parte por D-588** (2026-10-18): el chip **«Reciente» ya no existe** —el dueño, *«remove reciente y que
+> sea todas hoy y manana en deliveries app»*—; en su sitio va «Mañana», y los roles que nacían aquí en «Reciente» nacen en
+> **«Hoy»**. La capacidad `history` no cambia.
 
 **Fecha:** 2026-09-22 · **Versión:** Entregas 1.174.0, repo 1.238.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«HAZ QUE TODOS LOS USUARIOS PUEDAN VER TODAS LAS ORDENES, NO SOLO AYER HOY Y
@@ -37574,6 +37578,10 @@ en el quote builder solo para admin habilita la lista de todas las quotes ya hec
 
 ## D-477 · «Reciente» es solo ayer, hoy y mañana: las vencidas abiertas ya no entran (deshace D-351)
 
+> **⚠ Reemplazada por D-588** (2026-10-18): el chip «Reciente» y `withinRecent` **se quitaron** (el dueño: *«remove reciente y
+> que sea todas hoy y manana en deliveries app»*). Lo que esta entrada fijaba —qué días entraban en «Reciente»— ya no
+> decide nada; lo vencido sigue en «Outdated» y en «Todas», como aquí se dice.
+
 **Fecha:** 2026-10-06 · **Versión:** deliveries (deliveries 1.258.0, repo 1.351.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d477`.
 
 **Pedido del dueño**, literal: *«Since Admin can see all deliveries, I dont want to see anything but yesterday, today and tomorrow in the Recent tab. Even the Expired should not show there»*.
@@ -40092,6 +40100,9 @@ mínimo mayor de 420 px**, y las tablas van dentro de `.tbl-scroll` con su propi
 desbordarse. Que se use cómodo con el pulgar —el tamaño de los botones, el panel, el Horario— **no está medido**.
 
 ## D-507 · Para ventas, Órdenes nace en «Todas»
+
+> **Nota de D-588** (2026-10-18): ventas **sigue** naciendo en «Todas». Lo que cambia es el resto: sin «Reciente», los demás
+> roles nacen en «Hoy», y `presetInicialDe` ya no devuelve `"recent"` para nadie.
 
 **Fecha:** 2026-10-10 · **Versión:** Entregas 1.277.0, repo 1.377.0 · **Sin migración.**
 **Pedido por el dueño**, literal: *«el view de sales en orders quier que sea all por defautl en ves de recietnes haz
@@ -45304,7 +45315,6 @@ Ya existía casi todo menos la puerta: `ScheduleModal` con `kind="inperson"` (`M
 **Pruebas:** `src/lib/recruiting/agendar-presencial.test.ts` (10: fecha vacía/inválida/pasada/igual a ahora/futura; etapa para activo, sin etapa en el pipeline, contratado y descartado no retroceden; contacto de la cita con y sin lugar/nota; lugares sin TBD y con el del candidato; texto en los dos idiomas con fecha, hora y lugar resueltos; «nuestra oficina» sin lugar; enlace con número limpio y texto, sin teléfono nada; el SMS de confirmación marcado y distinto del de D-581; puerta: el diálogo pasa por la librería, se monta para «inperson», la entrevista tiene `saveAndSchedule` y la vista tiene el botón). Proveedor: ninguno real; ningún SMS salió. **Mutantes 17 de 17** caen con una prueba con nombre (`~/.claude/herramientas/mutantes/tanda-agendar-presencial.json`): fecha pasada aceptada; «ahora» como futura; sin fecha válida; contratado vuelve atrás; sin etapa igual mueve; contacto sin lugar/nota; contacto que no es «In person»; «TBD» como lugar; lugar del candidato perdido; español en inglés; `{place}` sin resolver; hueco sin lugar; sin teléfono prepara igual; enlace sin texto; confirmación confundida con «¿te puedo llamar?»; la entrevista pierde la salida; la vista pierde el botón. `npx tsc --noEmit` limpio.
 
 **No verificado:** en navegador (que RingCentral abra con el texto; el ancho de la barra de botones de la entrevista con uno más; el `datetime-local` en el móvil); `next build`; nada contra producción desde la rama.
-## D-NEXT · ERP: Inventory, Review y Approvals pasan a pestañas de Catálogo; PO ↔ Proforma y Receiving, a pestañas de Compras; Analítica es una sola entrada con sus pestañas dentro
 ## D-586 · ERP: Inventory, Review y Approvals pasan a pestañas de Catálogo; PO ↔ Proforma y Receiving, a pestañas de Compras; Analítica es una sola entrada con sus pestañas dentro
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo el ERP) · **Sin migración** · Reemplaza en parte a D-553 (el menú).
@@ -45353,3 +45363,45 @@ En navegador (la fila a ancho de teléfono, el encendido real de la barra); el `
 **Pruebas:** `encuadre-del-mapa.test.ts` afirma que ninguno de los dos mapas usa `minZoom`, `setMinZoom` ni `topeDeAlejamiento`. Mutante 1 de 1 (vuelve el minZoom en Google), cae con esa prueba.
 
 **No verificado:** en navegador.
+
+## D-588 · Órdenes: el chip de fechas es «Todas · Hoy · Mañana»; «Reciente» se quita, y ventas en «Mañana» ve las de todos (solo ver)
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (toca `deliveries`) · Sin migración · Rama `worktree-agent-a4c8e8133ec478ba0`.
+
+**Pedido del dueño** (2026-10-18), literal: *«remove reciente y que sea todas hoy y manana en deliveries app»*.
+
+**Precisión del dueño**, el mismo día, literal: *«when they clicked todas and hoy but when they clicked mananna sales people will eb able to see all order from everyone for tomorrow but the columsn they will see the same columns as the ones showed in rutas de hoy and if the the order is not from them when trying to open it to see the full details it wont open if its not theres»*.
+
+### Qué había (medido en `main` 4be7a8ec)
+
+- El chip de fechas de Órdenes era «Todas · Reciente · Hoy» (D-350). «Reciente» = ayer, hoy y mañana, sin fecha entra (`withinRecent`, D-477).
+- **Defecto por rol** (`presetInicialDe`, D-507): ventas en «Todas»; **todos los demás roles en «Reciente»** (admin, logística, gerente, office, almacén, chofer y los que `ROLE_ORDER` añada).
+- «Reciente» vivía **solo en Órdenes**: la lista de chips está escrita en `page.tsx` y no es un componente compartido. Almacén y chofer usan `withinRetention` (otra ventana) y el Gestor no tiene chip de fechas. Lo único fuera de la pantalla que sabía de «recent» eran los **filtros guardados** (D-440, `p: "recent"`, en `user_prefs` y en el navegador).
+
+### Qué cambia
+
+1. **Chips: «Todas · Hoy · Mañana»** («All · Today · Tomorrow»). «Reciente» desaparece y `withinRecent` se quita de `utils.ts` (ya no la llamaba nadie). «Mañana» es `isTomorrow` (`utils.ts`): fecha de entrega igual al día siguiente **en Texas** (`todayISO`, como `isToday`); sin fecha no entra; la hora no cuenta.
+2. **Defecto: «Hoy» para quien nacía en «Reciente»** — admin, logística, gerente, office, almacén, chofer. Es el chip que más se le parece (el centro de aquella ventana) y el que menos carga. **Ventas sigue en «Todas»** (D-507, no cambia). Vive en `preset-inicial.ts`.
+3. **Lo guardado como «recent» se lee como «Hoy»** (`presetDeFechasLeido`): un filtro guardado con «Reciente» —en la base o en el navegador— aplica «Hoy» en vez de perder el chip. `PRESETS_GUARDABLES` pasa a ser «all · today · tomorrow»; un filtro que se guarde desde ahora con «Reciente» ya no puede existir.
+4. **Ventas con «Mañana» ve las órdenes de TODOS para mañana** (`esMananaDeTodos`, `ordenes-visibles.ts`): de cualquier vendedor y cualquier tienda, **solo** las de fecha mañana y no anuladas, **solo** en la lista normal (ni «Outdated» ni «Factura pendiente» crecen), y la búsqueda sigue mandando. Con «Todas» y «Hoy» el alcance es el de siempre: las suyas, en su tienda y su grupo (D-405, D-537).
+5. **Con esas columnas:** `COLUMNAS_DE_MANANA_PARA_VENTAS` (`manana-de-ventas.ts`) se **deriva** del catálogo de la tabla de paradas de «Ruta de hoy» (`COLUMNAS_DEL_GESTOR`, `tablas: ["paradas"]`, no ocultas) más sus fijas: Factura #, Pallets, Tipo, Tienda (por «Ciudad de recogida»), Dirección (por «Ciudad de entrega») y Ventanas; la Llegada (`p_eta`) no tiene columna en Órdenes y queda fuera. El ID va siempre. Si el catálogo cambia, esto cambia con él.
+6. **La ajena no se abre:** no hay regla nueva. La puerta de la ficha es `puedeAbrirLaOrden` (D-544) en `OrderModalLazy`: al pulsar una ajena, avisa («Solo puedes abrir tus órdenes») y no monta la ficha. Se fija con prueba.
+
+**Reemplaza en parte a D-350** (el chip y el defecto), **a D-477** (entera: define una ventana que ya no existe) y lleva nota en **D-507** (ventas sigue igual). Las tres llevan su nota.
+
+### Lo que la base deja ver (medido en la 131, sin tocarla)
+
+La RLS de lectura de `deliveries` corta por `tiendas_visibles()`: para ventas devuelve `null` (= todo) **salvo que el perfil tenga «Tiendas que ve» (`visible_stores`) marcadas**; con ellas, la base solo manda las filas cuyas `store`/`pickup_name`/`delivery_name` estén en la lista. Por tanto: un vendedor **sin** tiendas marcadas verá en «Mañana» las de todas las tiendas, como pidió el dueño; uno **con** tiendas marcadas verá solo las de esas tiendas, porque las demás filas nunca llegan al navegador. La pantalla queda preparada para ambos casos; **no se escribe migración**. Si el dueño quiere que «Mañana» salte también ese techo, es una decisión de RLS aparte (plan en papel, D-374).
+
+### Pruebas y mutantes
+
+- `history-window.test.ts`: «Mañana» solo el día siguiente; salta mes y año; **cruce de medianoche en Chicago** (04:30Z y 05:30Z del mismo día UTC caen en días distintos de Texas); la pantalla ofrece los tres chips sin «Reciente».
+- `preset-inicial.test.ts`: defecto por rol recorriendo `ROLE_ORDER`; «recent» → «today»; un filtro guardado con «recent» sale saneado con «today».
+- `manana-de-ventas.test.ts`: ventas + «Mañana» → entra la ajena de otra tienda de mañana y nada más de lo ajeno; ventas + «Hoy»/«Todas» → su tienda; lo ampliado no toca «Outdated» ni «Factura pendiente»; office no amplía; abrir la ajena → no; columnas derivadas del catálogo.
+- Ajustadas: `atrasadas.test.ts` («reciente» → «mañana» en la igualdad cuenta = filas), `documento-pendiente.test.ts`, `filtros-guardados.test.ts`.
+- **Mutantes: 13 de 13 caen**, leídos por nombre (`~/.claude/herramientas/mutantes/tanda-todas-hoy-manana.json`): «Mañana» compara con hoy; todos nacen en «Todas»; «recent» deja de leerse como «Hoy»; «recent» sigue guardable; el saneado tira «recent»; la pantalla filtra «Mañana» con `isToday`; el chip se rotula «Reciente»; ventas amplía con cualquier chip; «Mañana» deja pasar cualquier fecha; lo ampliado entra en «Factura pendiente»; la tabla sigue con las columnas de la persona; las columnas incluyen las ocultas; el vendedor abre la ajena.
+
+### No verificado
+
+- Nada abierto en navegador: ni los chips ni la tabla de ventas en «Mañana».
+- Cuánto pesa para un vendedor sin `visible_stores` la lista de mañana de todas las tiendas: son las filas que su RLS ya le mandaba; el filtro es de pantalla.

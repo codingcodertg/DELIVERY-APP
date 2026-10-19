@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HISTORY_EXEMPT_ROLES, RETENTION_DAYS_BACK, retentionFloorISO, seesAllHistory, shiftDateISO, withinRecent, withinRetention } from "./utils";
+import { HISTORY_EXEMPT_ROLES, RETENTION_DAYS_BACK, isoInTZ, isToday, isTomorrow, retentionFloorISO, seesAllHistory, shiftDateISO, withinRetention } from "./utils";
 import { ROLE_INFO } from "./constants";
 
 // El dueño, literal: «in deliveries app the same rule that you can only see yesterday today
@@ -211,32 +211,46 @@ describe("ver todo el historial es también una capacidad por persona (D-350)", 
     for (const r of HISTORY_EXEMPT_ROLES) expect(ROLE_CAPS[r], r).toContain("history");
     expect(CAPABILITIES.find((c) => c.key === "history")).toMatchObject({ es: "Ver todas las órdenes" });
   });
-  it("«Reciente» es ayer, hoy y mañana; sin fecha entra; pasado mañana y anteayer, no", () => {
-    const hoy = "2026-09-22";
-    expect(withinRecent({ delivery_date: "2026-09-21" }, hoy)).toBe(true);
-    expect(withinRecent({ delivery_date: "2026-09-22T10:00:00" }, hoy)).toBe(true);
-    expect(withinRecent({ delivery_date: "2026-09-23" }, hoy)).toBe(true);
-    expect(withinRecent({ delivery_date: null }, hoy)).toBe(true);
-    expect(withinRecent({ delivery_date: "2026-09-20", stage: "delivered" }, hoy)).toBe(false);
-    expect(withinRecent({ delivery_date: "2026-09-24" }, hoy)).toBe(false);
+  // «Reciente» (D-350/D-477: ayer, hoy y mañana, `withinRecent`) se quitó en D-588. El dueño, 2026-10-18: «remove reciente y
+  // que sea todas hoy y manana en deliveries app». En su sitio, «Mañana».
+  it("«Mañana» es SOLO el día siguiente: ni hoy, ni ayer, ni pasado mañana; sin fecha no entra; la hora no cuenta", () => {
+    const hoy = "2026-10-18";
+    expect(isTomorrow("2026-10-19", hoy)).toBe(true);
+    expect(isTomorrow("2026-10-19T08:00:00", hoy)).toBe(true);
+    expect(isTomorrow("2026-10-18", hoy)).toBe(false);
+    expect(isTomorrow("2026-10-17", hoy)).toBe(false);
+    expect(isTomorrow("2026-10-20", hoy)).toBe(false);
+    expect(isTomorrow(null, hoy)).toBe(false);
+    expect(isTomorrow(undefined, hoy)).toBe(false);
+    expect(isTomorrow("", hoy)).toBe(false);
   });
-  it("una VENCIDA abierta ya NO entra en «Reciente», tenga la etapa que tenga (D-477 deshace D-351)", () => {
-    // El dueño, 2026-10-06: «I dont want to see anything but yesterday, today and tomorrow in the Recent tab. Even
-    // the Expired should not show there». Lo vencido se ve en «Outdated» (D-384) y en «Todas».
-    const hoy = "2026-09-22";
-    expect(withinRecent({ delivery_date: "2026-09-15", stage: "approved" }, hoy)).toBe(false);
-    expect(withinRecent({ delivery_date: "2026-09-20", stage: "fulfilling" }, hoy)).toBe(false);
-    expect(withinRecent({ delivery_date: "2026-09-15", stage: "delivered" }, hoy)).toBe(false);
-    expect(withinRecent({ delivery_date: "2026-09-15", stage: "canceled" }, hoy)).toBe(false);
-    // Ayer abierta sí: está dentro de la ventana, no por vencida.
-    expect(withinRecent({ delivery_date: "2026-09-21", stage: "approved" }, hoy)).toBe(true);
-    expect(withinRecent({ delivery_date: "2026-09-24", stage: "approved" }, hoy)).toBe(false);
+  it("«Mañana» salta de mes y de año como el calendario, no como el número", () => {
+    expect(isTomorrow("2026-11-01", "2026-10-31")).toBe(true);
+    expect(isTomorrow("2027-01-01", "2026-12-31")).toBe(true);
+    expect(isTomorrow("2026-10-32", "2026-10-31")).toBe(false);
   });
-  it("la pantalla de Órdenes nace en «Reciente», ofrece el chip entre «Todas» y «Hoy», y «Todas» con historial pide todo al proveedor", () => {
+  it("«mañana» se cuenta en Texas: a las 23:30 de Chicago la del 19 es «mañana»; media hora después ya es «hoy»", () => {
+    // 2026-10-18 04:30Z = 2026-10-17 23:30 CDT (UTC-5); 05:30Z = 2026-10-18 00:30 CDT. En UTC los dos instantes son del 18.
+    const antesDeMedianoche = isoInTZ(new Date("2026-10-18T04:30:00Z"));
+    const despuesDeMedianoche = isoInTZ(new Date("2026-10-18T05:30:00Z"));
+    expect([antesDeMedianoche, despuesDeMedianoche]).toEqual(["2026-10-17", "2026-10-18"]);
+    expect(isTomorrow("2026-10-18", antesDeMedianoche)).toBe(true);
+    expect(isTomorrow("2026-10-18", despuesDeMedianoche)).toBe(false);
+    expect(isTomorrow("2026-10-19", despuesDeMedianoche)).toBe(true);
+    // Y sin `today` inyectado usa el mismo reloj de Texas que `isToday`: lo que es «hoy» no es «mañana», y al revés.
+    const manana = shiftDateISO(isoInTZ(new Date()), 1);
+    expect(isTomorrow(manana)).toBe(true);
+    expect(isToday(manana)).toBe(false);
+    expect(isTomorrow(isoInTZ(new Date()))).toBe(false);
+  });
+  it("la pantalla de Órdenes nace en «Hoy», ofrece «Todas · Hoy · Mañana» sin «Reciente», y «Todas» con historial pide todo al proveedor", () => {
     const tablero = leer("src/app/(app)/page.tsx");
-    expect(tablero).toContain('useState<Preset>("recent")');
-    expect(tablero).toContain('{ id: "recent", en: "Recent", es: "Reciente" }');
-    expect(tablero).toContain('if (preset === "recent" && !withinRecent(d)) return false;');
+    expect(tablero).toContain('useState<Preset>("today")');
+    expect(tablero).toContain('{ id: "all", en: "All", es: "Todas" },\n    { id: "today", en: "Today", es: "Hoy" },\n    { id: "tomorrow", en: "Tomorrow", es: "Mañana" },');
+    expect(tablero).not.toContain('"recent"');
+    expect(tablero).not.toContain("withinRecent");
+    expect(tablero).toContain('if (preset === "today" && !isToday(d.delivery_date)) return false;');
+    expect(tablero).toContain('if (preset === "tomorrow" && !isTomorrow(d.delivery_date)) return false;');
     expect(tablero).toContain('if (veTodoElHistorial && (q.trim() || preset === "all")) void ensureDeliveriesSince(null);');
   });
 });

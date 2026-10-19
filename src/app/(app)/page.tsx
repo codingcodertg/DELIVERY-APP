@@ -26,7 +26,7 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ImportOrdersModal } from "@/components/ImportOrdersModal";
-import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, orderOwner, toCSV, seesAllHistory, todayISO, withinRecent, withinRetention } from "@/lib/utils";
+import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, isTomorrow, orderOwner, toCSV, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import { AVISO_FECHA_PASADA, fechaDeEntregaPasada, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
@@ -34,11 +34,12 @@ import { tiendasDeAlmacen } from "@/lib/almacen";
 import { orderTypeRule } from "@/lib/required";
 import { resumenSinFactura } from "@/lib/factura-obligatoria";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
-import { presetInicialDe } from "@/lib/preset-inicial";
+import { presetInicialDe, type PresetDeFechas } from "@/lib/preset-inicial";
+import { COLUMNAS_DE_MANANA_PARA_VENTAS, mananaDeTodosParaVentas } from "@/lib/manana-de-ventas";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
-type Preset = "all" | "recent" | "today" | "overdue" | "unassigned" | "mine";
+type Preset = PresetDeFechas | "overdue" | "unassigned" | "mine";
 
 // Column choices are remembered per role — so switching "View as" in local
 // demo mode (or just different people on different roles) doesn't clobber
@@ -90,11 +91,12 @@ export default function OrdersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<string>("all");
-  // «Reciente» por defecto (D-350): ayer, hoy y mañana. «Todas» es todo lo que la persona puede ver.
-  // Desde D-507 ventas nace en «Todas»: su cartera es pequeña y lo que necesita ver de entrada es todo lo suyo.
+  // El chip de fechas es «Todas · Hoy · Mañana» (D-588; «Reciente» de D-350 se quitó: el dueño, «remove reciente y que
+  // sea todas hoy y manana en deliveries app»). «Hoy» por defecto; ventas nace en «Todas» (D-507): su cartera es pequeña
+  // y lo que necesita ver de entrada es todo lo suyo. Qué le toca a cada rol lo decide `presetInicialDe`.
   // Se aplica UNA vez, cuando llega el perfil —al montar, `me` todavía puede ser null—, y nunca después: a partir
   // de ahí manda lo que la persona haya pulsado.
-  const [preset, setPreset] = useState<Preset>("recent");
+  const [preset, setPreset] = useState<Preset>("today");
   const presetPuesto = useRef(false);
   useEffect(() => {
     if (presetPuesto.current || !me) return;
@@ -424,16 +426,21 @@ export default function OrdersPage() {
       tiendas: settings.stores,
       // Almacén solo ve lo de sus tiendas, también aquí (antes era solo en su cola).
       tiendasDeAlmacen: me?.role === "warehouse" ? tiendasDeAlmacen(me.store, settings.stores) : [],
+      // Ventas con «Mañana» ve las de todos para mañana (D-588, `esMananaDeTodos`); con «Todas» y «Hoy», lo de siempre.
+      chip: preset,
     }),
-    [deliveries, q, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores],
+    [deliveries, q, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores, preset],
   );
+  // Y en ese caso la tabla lleva las columnas de la tabla de paradas de «Ruta de hoy», no las suyas. La ficha de una ajena
+  // no se abre: lo decide `puedeAbrirLaOrden` (D-544) en la puerta de la ficha (`OrderModalLazy`), que avisa y la cierra.
+  const mananaDeTodos = mananaDeTodosParaVentas(me, preset);
 
-  // ¿Pasa el chip de fechas («Todas / Reciente / Hoy») que está pulsado? Lo usan la lista Y las cuentas por etapa
+  // ¿Pasa el chip de fechas («Todas / Hoy / Mañana») que está pulsado? Lo usan la lista Y las cuentas por etapa
   // (D-357): el dueño vio «Programadas 9» con «Hoy» pulsado y una sola fila. Las cuentas dicen lo que la lista va a
   // enseñar, o no dicen nada.
   const pasaElPreset = useCallback((d: Delivery): boolean => {
-    if (preset === "recent" && !withinRecent(d)) return false;
     if (preset === "today" && !isToday(d.delivery_date)) return false;
+    if (preset === "tomorrow" && !isTomorrow(d.delivery_date)) return false;
     if (preset === "overdue" && !isOverdue(d)) return false;
     // A draft has no driver either, but it isn't waiting for one — nobody
     // has submitted it. It was showing up as work to schedule.
@@ -460,8 +467,8 @@ export default function OrdersPage() {
 
   const presets: { id: Preset; en: string; es: string }[] = [
     { id: "all", en: "All", es: "Todas" },
-    { id: "recent", en: "Recent", es: "Reciente" },
     { id: "today", en: "Today", es: "Hoy" },
+    { id: "tomorrow", en: "Tomorrow", es: "Mañana" },
   ];
 
   const motivos = useMemo(() => motivosDeAnulacion(settings), [settings]);
@@ -890,7 +897,7 @@ export default function OrdersPage() {
               ? t("🏬 No store assigned: Invoice pending shows only your store's orders. Ask an admin to assign your store in Users.",
                 "🏬 Sin tienda asignada: Factura pendiente enseña solo las órdenes de su tienda. Pida a un admin que se la asigne en Usuarios.")
               : t("No orders match this view.", "No hay órdenes en esta vista.")}
-            visible={cols}
+            visible={mananaDeTodos ? [...COLUMNAS_DE_MANANA_PARA_VENTAS] : cols}
             orden={me?.role === "sales" ? null : orden}
             // The checkbox column only earns its space for roles that have a
             // bulk action in the bar above (approve, cancel, reassign, set a

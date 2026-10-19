@@ -6,7 +6,7 @@ import { cuentasDeOrdenes, filasDeOrdenes, type ListasDeOrdenes } from "./filas-
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "./pastillas-de-ordenes";
 import { PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla } from "./documento-pendiente";
 import { mkDelivery } from "./__fixtures";
-import { isOverdue, isToday, seesAllHistory, shiftDateISO, todayISO, withinRecent } from "./utils";
+import { isOverdue, isToday, isTomorrow, seesAllHistory, shiftDateISO, todayISO } from "./utils";
 import type { OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation } from "./types";
 
@@ -162,8 +162,8 @@ describe("el número de cada pastilla es el de filas que enseña al pulsarla", (
   const listasDe = (c: ContextoDeLista): ListasDeOrdenes => ordenesVisibles(DIA, c);
   const presets: Record<string, (d: Delivery) => boolean> = {
     todas: () => true,
-    reciente: (d) => withinRecent(d),
     hoy: (d) => isToday(d.delivery_date),
+    mañana: (d) => isTomorrow(d.delivery_date),
   };
   const filtros = [PASTILLA_TODAS, "approved", "ready", "fulfilling", "delivered", PESTANA_DOCUMENTO_PENDIENTE, PESTANA_ATRASADAS];
 
@@ -225,7 +225,7 @@ describe("la pastilla en la fila", () => {
   });
 
   it("entrar mueve el chip de fecha a «Todas», venga de donde venga (como D-380)", () => {
-    for (const antes of ["recent", "today", "all"]) expect(presetAlElegirPastilla(PESTANA_ATRASADAS, antes, "all"), antes).toBe("all");
+    for (const antes of ["tomorrow", "today", "all"]) expect(presetAlElegirPastilla(PESTANA_ATRASADAS, antes, "all"), antes).toBe("all");
   });
 });
 

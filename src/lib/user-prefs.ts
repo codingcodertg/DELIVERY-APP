@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/types";
+import { PRESETS_DE_FECHAS, presetDeFechasLeido } from "@/lib/preset-inicial";
 
 /**
  * Las columnas de la tabla de Órdenes, por PERSONA (D-330).
@@ -146,8 +147,9 @@ export function plantillasValidas(v: unknown): PlantillaDeColumnas[] {
 export const CLAVE_DE_FILTROS = "_filtros";
 export const MAX_FILTROS_GUARDADOS = 10;
 export const MAX_NOMBRE_DE_FILTRO = 40;
-/** Los chips de fechas que se pueden guardar: los tres que la pantalla enseña. */
-export const PRESETS_GUARDABLES: readonly string[] = ["all", "recent", "today"];
+/** Los chips de fechas que se pueden guardar: los tres que la pantalla enseña («Todas · Hoy · Mañana», D-588). Lo guardado
+ *  antes como «recent» («Reciente», retirado) se lee como «Hoy»: `presetDeFechasLeido`. */
+export const PRESETS_GUARDABLES: readonly string[] = PRESETS_DE_FECHAS;
 const MAX_COLUMNAS_FILTRADAS = 20;
 const MAX_VALORES_POR_COLUMNA = 300;
 const MAX_LARGO_DE_VALOR = 200;
@@ -195,7 +197,8 @@ export function filtrosGuardadosValidos(v: unknown): FiltroGuardado[] {
     vistos.add(nombre.toLowerCase());
     const g: FiltroGuardado = { n: nombre };
     if (textoCorto(f, 40)) g.f = f;
-    if (typeof p === "string" && PRESETS_GUARDABLES.includes(p)) g.p = p;
+    const chip = presetDeFechasLeido(p);
+    if (chip) g.p = chip;
     const cols = columnasDeFiltro(c);
     if (Object.keys(cols).length) g.c = cols;
     if (Array.isArray(s) && s.length === 2 && textoCorto(s[0], 40) && (s[1] === "asc" || s[1] === "desc")) g.s = [s[0], s[1]];

@@ -1,5 +1,5 @@
 import type { Delivery, NamedLocation, Profile, UserRole } from "@/lib/types";
-import { orderOwner, retentionFloorISO, shiftDateISO, todayISO } from "@/lib/utils";
+import { isTomorrow, orderOwner, retentionFloorISO, shiftDateISO, todayISO } from "@/lib/utils";
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { esDeMisTiendas } from "@/lib/almacen";
@@ -49,7 +49,38 @@ export type ContextoDeLista = {
   tiendas: NamedLocation[];
   /** Las tiendas de almacén de quien mira (`tiendasDeAlmacen`), normalizadas. Vacío = sin acotar. */
   tiendasDeAlmacen: string[];
+  /** El chip de fechas pulsado («all» · «today» · «tomorrow»). Solo decide una cosa: con «tomorrow», ventas ve las de TODOS
+   *  para mañana (`esMananaDeTodos`, D-588). Sin él, nada cambia. */
+  chip?: string;
 };
+
+/**
+ * ¿Entra esta orden en la lista de un VENDEDOR por ser de mañana, aunque no sea suya ni de su tienda? (D-588)
+ *
+ * El dueño, 2026-10-18: «when they clicked todas and hoy but when they clicked mananna sales people will eb able to see all
+ * order from everyone for tomorrow but the columsn they will see the same columns as the ones showed in rutas de hoy and if
+ * the the order is not from them when trying to open it to see the full details it wont open if its not theres».
+ *
+ * - Solo **ventas** y solo con el chip **«Mañana»** pulsado: en «Todas» y «Hoy» sigue el alcance de siempre (`leTocaPorRol`
+ *   y el corte por tienda de D-405).
+ * - Solo lo que tiene fecha de entrega **mañana** (día de Texas, `isTomorrow`); una sin fecha no es de mañana.
+ * - Una **anulada** no: para ventas desaparecen (`leTocaPorRol`), y verlas de otros tendría menos sentido aún.
+ * - La ficha NO se abre: eso lo decide `puedeAbrirLaOrden` (D-544) en la puerta de la ficha, y aquí no se toca.
+ * - El sandbox de enseñanza ya lo ve todo: aquí no hace falta.
+ *
+ * **Es de PANTALLA, como D-405.** La RLS de `deliveries` (131) deja a un vendedor leer las de otras tiendas SOLO si no
+ * tiene «Tiendas que ve» (`visible_stores`) marcadas; con ellas, la base no manda las filas de fuera y aquí no hay nada
+ * que ampliar. Se dice en D-588.
+ */
+export function esMananaDeTodos(
+  d: Pick<Delivery, "delivery_date" | "stage">,
+  ctx: Pick<ContextoDeLista, "me" | "chip">,
+  hoy: string = todayISO(),
+): boolean {
+  if (ctx.me?.role !== "sales" || ctx.chip !== "tomorrow") return false;
+  if (d.stage === "canceled") return false;
+  return isTomorrow(d.delivery_date, hoy);
+}
 
 /** ¿Es mía? (D-537) La creé yo, o soy su vendedor (`orderOwner`: la que office crea a mi nombre).
  *  Sin `me`, no: lo que no se sabe no abre nada. */
@@ -207,9 +238,15 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
   const alcancePendientes = alcanceDePendientes(ctx);
   const alcanceLista = alcanceDeLaLista(ctx);
   for (const d of deliveries) {
-    // Los cortes por ROL y la búsqueda valen igual para las tres listas: «Outdated» enseña las
+    // La búsqueda vale igual para las tres listas y para lo ampliado de abajo.
+    if (!coincideConLaBusqueda(d, ctx.busqueda)) continue;
+    // Ventas con «Mañana» (D-588): la de otro, de otra tienda, entra SOLO si es de mañana — y solo en la lista normal
+    // (`visibles`): ni en «Outdated» (mañana no está atrasada) ni en «Factura pendiente» (que tiene su propio alcance, D-404).
+    const deTodosManana = esMananaDeTodos(d, ctx);
+    if (deTodosManana) { visibles.push(d); continue; }
+    // Los cortes por ROL valen igual para las tres listas: «Outdated» enseña las
     // atrasadas que esta persona ya podía ver, no una llave para ver las de otro.
-    if (!leTocaPorRol(d, ctx) || !coincideConLaBusqueda(d, ctx.busqueda)) continue;
+    if (!leTocaPorRol(d, ctx)) continue;
     // Y el corte por TIENDA de la lista (D-405), antes de repartir: vale para las tres listas, así
     // que número = filas en «Todas», en cada etapa, en «Outdated» y en «Factura pendiente».
     // …salvo la suya de un tipo con ORIGEN LIBRE (D-537): un vendedor de McAllen puede vender un

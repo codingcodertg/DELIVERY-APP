@@ -432,19 +432,16 @@ export function seesAllHistory(role: string | null | undefined, permissions?: re
 }
 
 /**
- * La ventana «Reciente» de la pantalla de Órdenes (D-350): ayer, hoy y mañana, y nada más. Sin fecha entra: sigue
- * programándose.
+ * El chip «Mañana» de la pantalla de Órdenes (D-588): solo lo que tiene fecha de entrega MAÑANA, contando los días
+ * en Texas (`todayISO`), igual que `isToday`. Sin fecha no entra: no está programada para mañana. `today` se
+ * inyecta para probar el cruce de medianoche.
  *
- * Las VENCIDAS abiertas ya NO entran (D-477, que deshace D-351). El dueño, 2026-10-06: «Since Admin can see all
- * deliveries, I dont want to see anything but yesterday, today and tomorrow in the Recent tab. Even the Expired
- * should not show there». Desde D-384 lo anterior a ayer vive en la pastilla «Outdated», así que las vencidas no se
- * pierden: se ven allí (y en «Todas»); «Reciente» dentro de «Outdated» queda vacío a propósito. `stage` se acepta
- * en la firma para no mover a quien lo pasa, pero ya no decide nada.
+ * Sustituye a `withinRecent` («Reciente», D-350/D-477: ayer, hoy y mañana), que se quitó con el chip: el dueño,
+ * 2026-10-18, «remove reciente y que sea todas hoy y manana en deliveries app».
  */
-export function withinRecent(d: { delivery_date?: string | null; stage?: string | null }, today: string = todayISO()): boolean {
-  if (!d.delivery_date) return true;
-  const dia = d.delivery_date.slice(0, 10);
-  return dia >= shiftDateISO(today, -1) && dia <= shiftDateISO(today, 1);
+export function isTomorrow(iso: string | null | undefined, today: string = todayISO()): boolean {
+  if (!iso) return false;
+  return iso.slice(0, 10) === shiftDateISO(today, 1);
 }
 
 /** El día más antiguo que ve quien no está exento: ayer. Para los selectores de

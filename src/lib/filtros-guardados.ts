@@ -14,6 +14,7 @@ import {
   MAX_FILTROS_GUARDADOS, MAX_NOMBRE_DE_FILTRO, PRESETS_GUARDABLES, filtrosGuardadosValidos,
   type DireccionDeOrden, type FiltroGuardado,
 } from "@/lib/user-prefs";
+import { presetDeFechasLeido } from "@/lib/preset-inicial";
 
 export { MAX_FILTROS_GUARDADOS, MAX_NOMBRE_DE_FILTRO };
 
@@ -27,7 +28,7 @@ export const VISTA_VACIA: VistaDeTabla = { filtros: {}, orden: null };
 export interface EstadoDeOrdenes {
   /** La pastilla de etapa encendida (`filter` en la página). */
   pastilla: string;
-  /** El chip de fechas («all», «recent», «today»). */
+  /** El chip de fechas («all», «today», «tomorrow»; D-588 quitó «recent»). */
   preset: string;
   vista: VistaDeTabla;
   lang: "en" | "es";
@@ -113,6 +114,7 @@ export type AvisoDeFiltro = { tipo: "columna" | "oculta" | "pastilla" | "idioma"
  * Lo que no se puede aplicar no rompe: se deja fuera y se dice (`avisos`).
  * - Una columna que ya no existe en la tabla: fuera, su filtro y su orden.
  * - Una pastilla que este rol no tiene: se queda la de ahora (`pastilla: null`).
+ * - El chip «recent» («Reciente», retirado en D-588) guardado antes: se aplica «Hoy», el que lo sustituye.
  * - Un filtro de «Etapa» o «Prioridad» guardado en el otro idioma: fuera, porque no encontraría ninguna fila.
  * - Una columna que existe pero la persona tiene OCULTA: se pone igual, pero la tabla solo filtra y ordena por las que se
  *   ven (D-360), así que no hace nada hasta que la muestre — y se dice.
@@ -142,7 +144,7 @@ export function aplicaFiltroGuardado(
     if (ctx.pastillas.includes(g.f)) pastilla = g.f;
     else avisa({ tipo: "pastilla", clave: g.f });
   }
-  const preset = g.p !== undefined && PRESETS_GUARDABLES.includes(g.p) ? g.p : null;
+  const preset = g.p !== undefined ? presetDeFechasLeido(g.p) : null;
   return { pastilla, preset, vista: { filtros, orden }, avisos };
 }
 

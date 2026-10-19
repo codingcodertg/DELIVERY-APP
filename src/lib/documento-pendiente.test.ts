@@ -340,13 +340,13 @@ describe("entrar en la pestaña mueve el chip de fecha (D-380)", () => {
   const plano = (s: string) => s.replace(/\s+/g, " ");
 
   it("la de factura pendiente pone «Todas», venga del chip que venga", () => {
-    for (const antes of ["recent", "today", "overdue", "all"]) {
+    for (const antes of ["tomorrow", "today", "overdue", "all"]) {
       expect(presetAlElegirPastilla(PESTANA_DOCUMENTO_PENDIENTE, antes, "all"), antes).toBe("all");
     }
   });
   it("ninguna otra pastilla lo toca: una etapa no dice nada sobre fechas", () => {
     for (const clave of ["all", "approved", "delivered", "ready", "doc_pendiente_mal_escrito"]) {
-      expect(presetAlElegirPastilla(clave, "recent", "all"), clave).toBe("recent");
+      expect(presetAlElegirPastilla(clave, "tomorrow", "all"), clave).toBe("tomorrow");
       expect(presetAlElegirPastilla(clave, "today", "all"), clave).toBe("today");
     }
   });
