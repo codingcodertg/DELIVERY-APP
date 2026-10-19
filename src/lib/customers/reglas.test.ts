@@ -10,7 +10,8 @@ const t = (en: string, _es: string) => en;
 
 const base = (n: number, c: Partial<Cliente>): Cliente => ({
   id: n, store: "MCA", account: `Cuenta ${n}`, unified_account: null, house_no: n, added_batch: null, qb_status: "ACTIVE", activity_status: null,
-  status_store: null, status_group: null, history_store: null, history_group: null, rep_history: null, rep_qb: null, rep_store: null,
+  status_store: null, status_group: null, history_store: null, history_group: null, crm_type_store: null, crm_type_group: null, associated_with: null,
+  rep_history: null, rep_qb: null, rep_store: null,
   contact_name: null, contact_title: null, address: null, phone: null, email: null, credit_limit: null, euler_limit: null, terms: null,
   account_no: null, notes: null, updated_at: null, updated_by: null, archived_at: null, archived_reason: null, ...c,
 });
@@ -236,5 +237,120 @@ describe("de la base y formato", () => {
     expect(mailUrl("a@b.co")).toBe("mailto:a@b.co");
     expect(mailUrl("0")).toBeNull();
     expect(mailUrl(null)).toBeNull();
+  });
+});
+
+/**
+ * 2026-10-18. El dueño: «in cusotmer tab haz un cuztomizable order thing so we can all columsn if we wanted to that were
+ * on the excel» y «the crm stuff in the customer is missing». Medido ese día en el Excel: 27 cabeceras con nombre; 23
+ * estaban en la tabla y 4 no (CRM TYPE ×2, Associated with, CONCATENATE). CONCATENATE = STORE+ACCOUNT en las 1.349.
+ */
+describe("todas las columnas del Excel (182), y el orden por persona", async () => {
+  const {
+    camposPorGrupo, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, columnasAPintar, columnasDelSelector, GRUPOS, mueveColumnaDeClientes,
+    PREFERENCIA_INICIAL, preferenciaDeTexto, seMueveColumnaDeClientes, textoDeCampo, tieneOrdenPropio, valorDeColumna,
+  } = await import("./reglas");
+  // El MAPA del importador, leído como texto (un .mjs de scripts/ no carga bajo vitest en esta laptop: SyntaxError al
+  // importar, también en los que no se tocaron). Una cabecera por línea: `"CABECERA": "columna",`.
+  const { readFileSync } = await import("node:fs");
+  const mapa = /export const MAPA = \{([\s\S]*?)\n\};/.exec(readFileSync("scripts/importa-clientes.mjs", "utf8"))![1];
+  const cabecerasDelExcel = [...mapa.matchAll(/^\s*"[^"]+": "(\w+)",/gm)].map((m) => m[1]);
+  const claves = COLUMNAS.map((c) => c.key as string);
+
+  it("las 26 columnas que el importador guarda son elegibles en la tabla, y CONCATENATE también (calculada): 27 del Excel", () => {
+    expect(cabecerasDelExcel).toHaveLength(26);
+    for (const col of cabecerasDelExcel) expect(claves, col).toContain(col);
+    expect(claves).toContain("concatenate");
+    // Y las tres del CRM están, con etiqueta en los dos idiomas.
+    for (const k of ["crm_type_store", "crm_type_group", "associated_with"]) {
+      const c = COLUMNAS.find((x) => x.key === k)!;
+      expect(c.en).not.toBe("");
+      expect(c.es).not.toBe(c.en);
+    }
+  });
+  it("la ficha (CAMPOS) edita las 26 guardadas, menos house_no (número de fila del maestro, se enseña aparte)", () => {
+    const editables = new Set(CAMPOS.map((c) => c.key as string));
+    for (const col of cabecerasDelExcel.filter((c) => c !== "house_no")) expect(editables, col).toContain(col);
+    for (const k of ["crm_type_store", "crm_type_group", "associated_with"]) expect(CAMPOS.find((c) => c.key === k)?.grupo).toBe("crm");
+  });
+  it("concatenate es tienda + cuenta pegadas: se pinta, se ordena y clienteDeLaBase lee las tres del CRM", () => {
+    const c = base(1, { store: "BRO", account: "Paseo", crm_type_store: "LOST" });
+    expect(valorDeColumna(c, "concatenate")).toBe("BROPaseo");
+    expect(celda(c, "concatenate", t)).toBe("BROPaseo");
+    expect(celda(c, "crm_type_store", t)).toBe("LOST");
+    expect(celda(base(2, {}), "associated_with", t)).toBe("—");
+    const lista = [base(1, { store: "MCA", account: "B" }), base(2, { store: "BRO", account: "Z" }), base(3, { store: "BRO", account: "A" })];
+    expect(ordenar(lista, { por: "concatenate", desc: false }).map((x) => x.id)).toEqual([3, 2, 1]);
+    const leido = clienteDeLaBase({ id: 1, store: "MCA", account: "A", crm_type_store: "MID", crm_type_group: "", associated_with: "ACERO-SYNERGY" });
+    expect(leido.crm_type_store).toBe("MID");
+    expect(leido.crm_type_group).toBeNull();
+    expect(leido.associated_with).toBe("ACERO-SYNERGY");
+  });
+
+  it("la clave del navegador lleva el id de la persona; la heredada es la vieja sin usuario", () => {
+    expect(claveDeColumnasDeClientes("u-1")).toBe("rtg_customers_cols_u-1");
+    expect(claveDeColumnasDeClientes("u-1")).not.toBe(claveDeColumnasDeClientes("u-2"));
+    expect(CLAVE_HEREDADA_DE_COLUMNAS).toBe("customers_cols");
+  });
+  it("lo guardado se lee saneado: el formato nuevo, la lista heredada, y la basura vuelve a lo de entrada", () => {
+    expect(preferenciaDeTexto(JSON.stringify({ elegidas: ["phone", "inventada"], orden: ["phone", "account", "nada"] }))).toEqual({
+      elegidas: ["account", "phone"], orden: ["phone", "account", ...claves.filter((k) => k !== "phone" && k !== "account")],
+    });
+    expect(preferenciaDeTexto(JSON.stringify(["store", "phone"]))).toEqual({ elegidas: ["account", "store", "phone"], orden: null });
+    expect(preferenciaDeTexto("{basura")).toEqual(PREFERENCIA_INICIAL);
+    expect(preferenciaDeTexto(null)).toEqual(PREFERENCIA_INICIAL);
+    expect(preferenciaDeTexto(JSON.stringify({ elegidas: 5, orden: [1, 2] }))).toEqual(PREFERENCIA_INICIAL);
+  });
+  it("sin orden propio se pinta en el orden de partida; con él, en el de la persona; y una columna nueva entra al final", () => {
+    expect(columnasAPintar({ elegidas: ["phone", "store", "account"], orden: null }).map((c) => c.key)).toEqual(["account", "store", "phone"]);
+    expect(columnasAPintar({ elegidas: ["phone", "store", "account"], orden: ["phone", "store", "account"] }).map((c) => c.key)).toEqual(["phone", "store", "account"]);
+    // Un orden guardado que no conoce `notes` la deja al final, y el selector la enseña igual.
+    const viejo = claves.filter((k) => k !== "notes").reverse();
+    expect(columnasDelSelector({ elegidas: [], orden: viejo }).map((c) => c.key).at(-1)).toBe("notes");
+    expect(columnasDelSelector({ elegidas: [], orden: null })).toEqual([...COLUMNAS]);
+  });
+  it("mover: una visible salta por encima de las escondidas; en el tope no se mueve; «account» se mueve pero no se quita", () => {
+    const p = { elegidas: ["account", "store", "phone"], orden: null };
+    const m = mueveColumnaDeClientes(p, "phone", -1);
+    expect(columnasAPintar(m).map((c) => c.key)).toEqual(["account", "phone", "store"]);
+    expect(tieneOrdenPropio(m.orden)).toBe(true);
+    expect(seMueveColumnaDeClientes(p, "account", -1)).toBe(false);
+    expect(seMueveColumnaDeClientes(p, "phone", -1)).toBe(true);
+    expect(mueveColumnaDeClientes(p, "account", -1)).toEqual({ ...p, orden: null });
+    // Volver a bajarla la pone tras Tienda otra vez, pero el orden ya es suyo (el teléfono quedó por delante de las
+    // escondidas, no en su sitio de partida): «Restablecer orden» es lo que lo devuelve a null.
+    const vuelta = mueveColumnaDeClientes(m, "phone", 1);
+    expect(columnasAPintar(vuelta).map((c) => c.key)).toEqual(["account", "store", "phone"]);
+    expect(tieneOrdenPropio(vuelta.orden)).toBe(true);
+    expect(tieneOrdenPropio(null)).toBe(false);
+    // Un movimiento que no cambia nada (subir la primera) no inventa orden propio.
+    expect(mueveColumnaDeClientes({ elegidas: ["account"], orden: null }, "account", -1).orden).toBeNull();
+    expect(columnasAPintar(mueveColumnaDeClientes(p, "account", 1)).map((c) => c.key)).toEqual(["store", "account", "phone"]);
+  });
+  it("guardar y restaurar: lo que se escribe en el navegador vuelve igual", () => {
+    const p = mueveColumnaDeClientes({ elegidas: ["account", "crm_type_store"], orden: null }, "crm_type_store", -1);
+    const vuelto = preferenciaDeTexto(JSON.stringify(p));
+    expect(vuelto).toEqual(p);
+    expect(columnasAPintar(vuelto).map((c) => c.key)).toEqual(["crm_type_store", "account"]);
+  });
+
+  it("la ficha completa: cada campo sale UNA vez y en un grupo; los grupos van en su orden y ninguno vacío", () => {
+    const grupos = camposPorGrupo();
+    expect(grupos.map((g) => g.grupo.key)).toEqual(GRUPOS.map((g) => g.key));
+    const vistos = grupos.flatMap((g) => g.campos.map((c) => c.key));
+    expect([...vistos].sort()).toEqual(CAMPOS.map((c) => c.key).sort());
+    expect(new Set(vistos).size).toBe(CAMPOS.length);
+    for (const g of grupos) expect(g.campos.length, g.grupo.key).toBeGreaterThan(0);
+  });
+  it("textoDeCampo: etiquetas para los cerrados, dinero, tienda con su código, y «—» sin dato", () => {
+    const c = base(1, { store: "PHR", status_store: "LOST", history_group: "MID", qb_status: "ACTIVE", credit_limit: 1500, crm_type_group: null, notes: "ok" });
+    const campo = (k: string) => CAMPOS.find((x) => x.key === k)!;
+    expect(textoDeCampo(c, campo("store"), t)).toBe("RDZ Pharr (PHR)");
+    expect(textoDeCampo(c, campo("status_store"), t)).toBe("Lost");
+    expect(textoDeCampo(c, campo("history_group"), t)).toBe("Mid");
+    expect(textoDeCampo(c, campo("qb_status"), t)).toBe("Active in QB");
+    expect(textoDeCampo(c, campo("credit_limit"), t)).toBe("$1,500");
+    expect(textoDeCampo(c, campo("crm_type_group"), t)).toBe("—");
+    expect(textoDeCampo(c, campo("notes"), t)).toBe("ok");
   });
 });

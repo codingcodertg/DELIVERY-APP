@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/erp/supabase/client";
@@ -11,16 +12,16 @@ import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
 import {
-  alOrdenarPor, alternaColumna, CAMPOS, celda, COLUMNAS, COLUMNAS_INICIALES, columnasValidas, cuentaArchivados, cuentaPor, ESTADOS, estadoClase,
-  estadoLabel, estaArchivado, fecha, filtrar, FILTRO_INICIAL, formDe, HISTORIAS, historiaLabel, mailUrl, MOTIVOS_DE_ARCHIVO, motivoLabel,
-  nombreDeTienda, ordenar, ORDEN_INICIAL, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel, telUrl, TIENDAS,
-  type Cliente, type Filtro, type Orden,
+  alOrdenarPor, alternaColumna, CAMPOS, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, columnasAPintar, columnasDelSelector,
+  cuentaArchivados, cuentaPor, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filtrar, FILTRO_INICIAL, formDe, HISTORIAS, historiaLabel,
+  mailUrl, MOTIVOS_DE_ARCHIVO, motivoLabel, mueveColumnaDeClientes, nombreDeTienda, ordenar, ORDEN_INICIAL, PARCHE_DESARCHIVAR, parcheArchivar,
+  parcheDe, PREFERENCIA_INICIAL, preferenciaDeTexto, QB_ESTADOS, qbLabel, seMueveColumnaDeClientes, telUrl, TIENDAS, tieneOrdenPropio,
+  type Cliente, type Filtro, type Orden, type PreferenciaDeColumnas,
 } from "@/lib/customers/reglas";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 type Ficha = { tipo: "ver"; cliente: Cliente } | { tipo: "nuevo" };
 
-const CLAVE_COLUMNAS = "customers_cols";
 /** Cuántas filas se pintan de entrada y cuántas más con cada «ver más»: 1.349 filas de golpe pesan en un teléfono. */
 const TANDA = 100;
 
@@ -33,7 +34,7 @@ const selCls =
  * probadas sin navegador; la base las vuelve a exigir (RLS de la 180). Este componente lee, filtra y pinta, y cada
  * escritura va por el almacén, que devuelve la fila como quedó en la base: eso es lo que se pinta.
  */
-export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: boolean }) {
+export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEditar: boolean; userId: string }) {
   const { t } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 
@@ -41,7 +42,7 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
   const [estado, setEstado] = useState<Estado>({ tipo: "cargando" });
   const [filtro, setFiltro] = useState<Filtro>(FILTRO_INICIAL);
   const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL);
-  const [columnas, setColumnas] = useState<string[]>([...COLUMNAS_INICIALES]);
+  const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
   const [cuantos, setCuantos] = useState(TANDA);
   const [ficha, setFicha] = useState<Ficha | null>(null);
 
@@ -53,20 +54,23 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
 
-  // Las columnas elegidas se recuerdan en este navegador. Si no hay nada (o está roto), las de entrada.
+  // Qué columnas y en qué orden: POR PERSONA, en este navegador (clave con el id del usuario, como los filtros guardados
+  // de Órdenes). Si no hay nada suyo, se hereda la clave vieja sin usuario (`customers_cols`); si no hay nada o está
+  // roto, las de entrada.
   useEffect(() => {
     try {
-      const guardado = window.localStorage.getItem(CLAVE_COLUMNAS);
-      if (guardado) setColumnas(columnasValidas(JSON.parse(guardado)));
+      const guardado = window.localStorage.getItem(claveDeColumnasDeClientes(userId)) ?? window.localStorage.getItem(CLAVE_HEREDADA_DE_COLUMNAS);
+      if (guardado) setPrefCols(preferenciaDeTexto(guardado));
     } catch { /* privado, bloqueado o basura: se queda lo de entrada */ }
-  }, []);
-  const alternar = (key: string) => {
-    setColumnas((c) => {
-      const next = alternaColumna(c, key);
-      try { window.localStorage.setItem(CLAVE_COLUMNAS, JSON.stringify(next)); } catch { /* no se recuerda */ }
+  }, [userId]);
+  const cambiaColumnas = (f: (p: PreferenciaDeColumnas) => PreferenciaDeColumnas) => {
+    setPrefCols((p) => {
+      const next = f(p);
+      try { window.localStorage.setItem(claveDeColumnasDeClientes(userId), JSON.stringify(next)); } catch { /* no se recuerda */ }
       return next;
     });
   };
+  const alternar = (key: string) => cambiaColumnas((p) => ({ ...p, elegidas: alternaColumna(p.elegidas, key) }));
 
   const visibles = useMemo(() => ordenar(filtrar(lista, filtro), orden), [lista, filtro, orden]);
   useEffect(() => { setCuantos(TANDA); }, [filtro, orden]);
@@ -76,7 +80,7 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
   const archivados = useMemo(() => cuentaArchivados(lista), [lista]);
   const porTienda = useMemo(() => cuentaPor(vista, "store"), [vista]);
   const porEstado = useMemo(() => cuentaPor(filtrar(lista, { ...filtro, estado: "" }), "status_store"), [lista, filtro]);
-  const colsVisibles = COLUMNAS.filter((c) => columnas.includes(c.key));
+  const colsVisibles = columnasAPintar(prefCols);
 
   /** Lo que devolvió la base se pone en su sitio. */
   const alGuardar = (c: Cliente) => {
@@ -95,13 +99,19 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
         </div>
         <div className="flex items-center gap-2">
           <SelectorDeColumnas
-            columnas={COLUMNAS}
-            elegidas={columnas}
+            columnas={columnasDelSelector(prefCols)}
+            elegidas={prefCols.elegidas}
             onAlterna={alternar}
             rotulo={(c) => t(c.en, c.es)}
             titulo={t("Columns", "Columnas")}
-            nota={t("Remembered in this browser.", "Se recuerdan en este navegador.")}
+            nota={t("All the columns of the Excel. Remembered for you in this browser.", "Todas las columnas del Excel. Se recuerdan para ti en este navegador.")}
             t={t}
+            mover={{
+              seMueve: (key, delta) => seMueveColumnaDeClientes(prefCols, key, delta),
+              onMueve: (key, delta) => cambiaColumnas((p) => mueveColumnaDeClientes(p, key, delta)),
+              ordenPropio: tieneOrdenPropio(prefCols.orden),
+              onRestablece: () => cambiaColumnas((p) => ({ ...p, orden: null })),
+            }}
           />
           {puedeEditar && <Button onClick={() => setFicha({ tipo: "nuevo" })}>+ {t("New customer", "Nuevo cliente")}</Button>}
         </div>
@@ -188,10 +198,23 @@ export function Clientes({ demo, puedeEditar }: { demo: boolean; puedeEditar: bo
                 >
                   {colsVisibles.map((col) => (
                     <td key={col.key} className={cn("px-3 py-2", col.key === "account" && "font-medium text-slate-900", (col.key === "credit_limit" || col.key === "euler_limit") && "text-right tabular-nums")}>
-                      {col.key === "account" && estaArchivado(c) ? (
+                      {col.key === "account" ? (
                         <span className="inline-flex flex-wrap items-center gap-1.5">
-                          <span className="line-through">{c.account}</span>
-                          <Badge className="border-slate-200 bg-slate-100 text-slate-500">{t("Archived", "Archivado")} · {motivoLabel(c.archived_reason, t)}</Badge>
+                          {estaArchivado(c) ? (
+                            <>
+                              <span className="line-through">{c.account}</span>
+                              <Badge className="border-slate-200 bg-slate-100 text-slate-500">{t("Archived", "Archivado")} · {motivoLabel(c.archived_reason, t)}</Badge>
+                            </>
+                          ) : c.account}
+                          {/* La ficha completa (/customers/[id]), como el «Ficha completa →» de un artículo del ERP. El clic no abre el cajón. */}
+                          <Link
+                            href={`/customers/${c.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs font-normal text-clay-600 hover:underline"
+                            aria-label={t(`Full details of ${c.account}`, `Ficha completa de ${c.account}`)}
+                          >
+                            {t("details", "ficha")}
+                          </Link>
                         </span>
                       ) : col.key === "status_store" || col.key === "status_group" ? (
                         <Badge className={estadoClase(c[col.key])}>{estadoLabel(c[col.key], t)}</Badge>
@@ -311,6 +334,11 @@ function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t 
           </div>
           <div className="flex items-center gap-2">
             {aviso && <span className={cn("text-xs", aviso.tono === "verde" ? "text-emerald-600" : "text-red-600")}>{aviso.texto}</span>}
+            {!nuevo && (
+              <Link href={`/customers/${cliente.id}`} className="whitespace-nowrap text-sm text-clay-600 hover:underline">
+                {t("Full details →", "Ficha completa →")}
+              </Link>
+            )}
             <button onClick={onClose} className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100" aria-label={t("Close", "Cerrar")}>✕</button>
           </div>
         </div>

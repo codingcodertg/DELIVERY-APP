@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/types";
+import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 
 /**
  * «Clientes» (migración 180): las reglas de la pantalla, puras y probadas sin navegador. La base las vuelve a exigir
@@ -21,6 +22,10 @@ export interface Cliente {
   status_group: string | null;
   history_store: string | null;
   history_group: string | null;
+  /** Migración 182: las columnas CRM del Excel (CRM TYPE: STORE / GROUP, Associated with). Texto libre; casi vacías en el fichero. */
+  crm_type_store: string | null;
+  crm_type_group: string | null;
+  associated_with: string | null;
   rep_history: string | null;
   rep_qb: string | null;
   rep_store: string | null;
@@ -113,16 +118,31 @@ export function qbLabel(q: string | null, t: T): string {
 
 // ---- Columnas ---------------------------------------------------------------------------------------------------
 
-export interface Columna { key: keyof Cliente; en: string; es: string; fija?: true }
+/**
+ * Una columna de la tabla es una columna de la fila, o `concatenate`: la CONCATENATE del Excel (STORE+ACCOUNT pegados,
+ * una fórmula). Medido el 2026-10-18: las 1.349 son exactamente tienda seguida de cuenta, así que no se guarda (la clave
+ * natural ya es tienda + cuenta y una copia se desincroniza al corregir la cuenta); se calcula (`valorDeColumna`).
+ */
+export type ClaveDeColumna = keyof Cliente | "concatenate";
+export interface Columna { key: ClaveDeColumna; en: string; es: string; fija?: true }
 
-/** Todas las columnas que se pueden enseñar en la tabla, en su orden. `account` no se puede quitar. */
+/**
+ * TODAS las columnas que se pueden enseñar en la tabla, en su orden de partida. El dueño (2026-10-18): «a cuztomizable
+ * order thing so we can all columsn if we wanted to that were on the excel»: aquí están las 27 cabeceras con nombre del
+ * Excel (26 guardadas + `concatenate` calculada), más lo de la app (notas, actualizado, motivo de archivo).
+ * `account` no se puede quitar. El orden en que se PINTAN lo decide cada persona (`columnasAPintar`).
+ */
 export const COLUMNAS: readonly Columna[] = [
   { key: "account", en: "Account", es: "Cuenta", fija: true },
   { key: "store", en: "Store", es: "Tienda" },
+  { key: "concatenate", en: "Store + account", es: "Tienda + cuenta" },
   { key: "status_store", en: "Status (store)", es: "Estado (tienda)" },
   { key: "status_group", en: "Status (group)", es: "Estado (grupo)" },
   { key: "history_store", en: "History (store)", es: "Historial (tienda)" },
   { key: "history_group", en: "History (group)", es: "Historial (grupo)" },
+  { key: "crm_type_store", en: "CRM type (store)", es: "Tipo CRM (tienda)" },
+  { key: "crm_type_group", en: "CRM type (group)", es: "Tipo CRM (grupo)" },
+  { key: "associated_with", en: "Associated with", es: "Asociado con" },
   { key: "qb_status", en: "QuickBooks", es: "QuickBooks" },
   { key: "activity_status", en: "Activity", es: "Actividad" },
   { key: "unified_account", en: "Unified account", es: "Cuenta unificada" },
@@ -130,14 +150,17 @@ export const COLUMNAS: readonly Columna[] = [
   { key: "rep_qb", en: "Group rep (QB)", es: "Vendedor grupo (QB)" },
   { key: "rep_history", en: "Group rep (history)", es: "Vendedor grupo (historial)" },
   { key: "contact_name", en: "Contact", es: "Contacto" },
+  { key: "contact_title", en: "Title", es: "Cargo" },
   { key: "phone", en: "Phone", es: "Teléfono" },
   { key: "email", en: "Email", es: "Correo" },
+  { key: "address", en: "Address", es: "Dirección" },
   { key: "terms", en: "Terms", es: "Términos" },
   { key: "credit_limit", en: "Credit limit", es: "Límite de crédito" },
   { key: "euler_limit", en: "Euler limit", es: "Límite Euler" },
   { key: "account_no", en: "Account / credit", es: "Cuenta / crédito" },
   { key: "added_batch", en: "Added", es: "Añadido" },
   { key: "house_no", en: "House #", es: "N.º House" },
+  { key: "notes", en: "Notes", es: "Notas" },
   { key: "updated_at", en: "Updated", es: "Actualizado" },
   { key: "archived_reason", en: "Archived (reason)", es: "Archivado (motivo)" },
 ];
@@ -156,6 +179,59 @@ export function columnasValidas(elegidas: readonly string[] | null | undefined):
 /** Quita o pone una columna. `account` no se puede quitar: `columnasValidas` la vuelve a poner. */
 export function alternaColumna(elegidas: readonly string[], key: string): string[] {
   return columnasValidas(elegidas.includes(key) ? elegidas.filter((k) => k !== key) : [...elegidas, key]);
+}
+
+// ---- El orden de las columnas, por persona -----------------------------------------------------------------------
+
+/**
+ * Qué columnas y en qué orden las quiere CADA persona, en su navegador. La clave lleva el id del usuario, como los
+ * filtros guardados de Órdenes (`rtg_filtros_ordenes_<id>`) y el filtro de chofer del Gestor: dos personas en el mismo
+ * ordenador no se pisan. (Antes era `customers_cols`, una sola para todos: se lee como herencia la primera vez.)
+ */
+export const claveDeColumnasDeClientes = (userId: string): string => `rtg_customers_cols_${userId}`;
+export const CLAVE_HEREDADA_DE_COLUMNAS = "customers_cols";
+
+export interface PreferenciaDeColumnas { elegidas: string[]; orden: string[] | null }
+export const PREFERENCIA_INICIAL: PreferenciaDeColumnas = { elegidas: [...COLUMNAS_INICIALES], orden: null };
+const CLAVES_CANONICAS: readonly string[] = COLUMNAS.map((c) => c.key as string);
+
+/** Lo guardado, saneado. Acepta el formato nuevo `{elegidas, orden}` y el heredado (una lista de elegidas). Basura = lo de entrada. */
+export function preferenciaDeTexto(texto: string | null | undefined): PreferenciaDeColumnas {
+  try {
+    const v: unknown = JSON.parse(texto ?? "null");
+    if (Array.isArray(v)) return { elegidas: columnasValidas(v.filter((k): k is string => typeof k === "string")), orden: null };
+    if (v && typeof v === "object") {
+      const o = v as { elegidas?: unknown; orden?: unknown };
+      const elegidas = Array.isArray(o.elegidas) ? columnasValidas(o.elegidas.filter((k): k is string => typeof k === "string")) : [...COLUMNAS_INICIALES];
+      const orden = Array.isArray(o.orden) && o.orden.every((k) => typeof k === "string") ? ordenEfectivo(CLAVES_CANONICAS, o.orden as string[]) : null;
+      return { elegidas, orden };
+    }
+  } catch { /* basura */ }
+  return { elegidas: [...COLUMNAS_INICIALES], orden: null };
+}
+
+/** Las columnas que se PINTAN: las elegidas, en el orden de la persona (o el de partida); `account` siempre. */
+export function columnasAPintar(p: PreferenciaDeColumnas): Columna[] {
+  const si = new Set(columnasValidas(p.elegidas));
+  return ordenEfectivo(CLAVES_CANONICAS, p.orden).filter((k) => si.has(k)).map((k) => COLUMNAS.find((c) => c.key === k)!);
+}
+
+/** Las columnas del selector, en el orden de la persona: lo que mueve es lo que ve. */
+export function columnasDelSelector(p: PreferenciaDeColumnas): Columna[] {
+  return ordenEfectivo(CLAVES_CANONICAS, p.orden).map((k) => COLUMNAS.find((c) => c.key === k)!);
+}
+
+/** Subir o bajar una columna un puesto entre las visibles (la `mueveColumna` de Órdenes, D-332). */
+export function mueveColumnaDeClientes(p: PreferenciaDeColumnas, key: string, delta: -1 | 1): PreferenciaDeColumnas {
+  const orden = mueveColumna(ordenEfectivo(CLAVES_CANONICAS, p.orden), key, delta, columnasValidas(p.elegidas));
+  return { ...p, orden: tieneOrdenPropio(orden) ? orden : null };
+}
+export function seMueveColumnaDeClientes(p: PreferenciaDeColumnas, key: string, delta: -1 | 1): boolean {
+  return ordenEfectivo(CLAVES_CANONICAS, mueveColumnaDeClientes(p, key, delta).orden).join() !== ordenEfectivo(CLAVES_CANONICAS, p.orden).join();
+}
+/** Si hay orden propio (para enseñar «Restablecer orden» solo cuando hace algo). */
+export function tieneOrdenPropio(orden: readonly string[] | null | undefined): boolean {
+  return ordenEfectivo(CLAVES_CANONICAS, orden).join() !== CLAVES_CANONICAS.join();
 }
 
 // ---- Filtro y orden ---------------------------------------------------------------------------------------------
@@ -234,8 +310,13 @@ export function filtrar(lista: readonly Cliente[], f: Filtro): Cliente[] {
   });
 }
 
-export interface Orden { por: keyof Cliente; desc: boolean }
+export interface Orden { por: ClaveDeColumna; desc: boolean }
 export const ORDEN_INICIAL: Orden = { por: "account", desc: false };
+
+/** El valor crudo de una columna: el de la fila, o la CONCATENATE del Excel recompuesta (tienda + cuenta, pegadas). */
+export function valorDeColumna(c: Cliente, key: ClaveDeColumna): Cliente[keyof Cliente] {
+  return key === "concatenate" ? `${c.store}${c.account}` : c[key];
+}
 
 const rangoEstado = (e: string | null) => { const i = ESTADOS.indexOf(e as Estado); return i < 0 ? ESTADOS.length : i; };
 const rangoHistoria = (h: string | null) => { const i = HISTORIAS.indexOf(h as (typeof HISTORIAS)[number]); return i < 0 ? HISTORIAS.length : i; };
@@ -246,7 +327,7 @@ export function ordenar(lista: readonly Cliente[], orden: Orden): Cliente[] {
     const k = orden.por;
     if (k === "status_store" || k === "status_group") return rangoEstado(a[k]) - rangoEstado(b[k]);
     if (k === "history_store" || k === "history_group") return rangoHistoria(a[k]) - rangoHistoria(b[k]);
-    const va = a[k], vb = b[k];
+    const va = valorDeColumna(a, k), vb = valorDeColumna(b, k);
     if (va === null && vb === null) return 0;
     if (va === null) return 1;
     if (vb === null) return -1;
@@ -257,7 +338,7 @@ export function ordenar(lista: readonly Cliente[], orden: Orden): Cliente[] {
 }
 
 /** Pulsar una cabecera: la misma columna invierte; otra columna empieza ascendente. */
-export function alOrdenarPor(orden: Orden, por: keyof Cliente): Orden {
+export function alOrdenarPor(orden: Orden, por: ClaveDeColumna): Orden {
   return orden.por === por ? { por, desc: !orden.desc } : { por, desc: false };
 }
 
@@ -275,34 +356,67 @@ export function puedeEditar(role: UserRole | null | undefined): boolean {
 }
 
 export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda";
-export interface Campo { key: keyof Cliente; tipo: TipoCampo; en: string; es: string }
+/** Los grupos de la ficha completa (`/customers/[id]`), en su orden. */
+export type GrupoDeCampo = "cuenta" | "estado" | "crm" | "vendedores" | "contacto" | "credito" | "app";
+export interface Campo { key: keyof Cliente; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
 
 /** Los campos de la ficha, en su orden. Todo lo del Excel se puede corregir; lo de la app (notas) también. */
 export const CAMPOS: readonly Campo[] = [
-  { key: "account", tipo: "text", en: "Account", es: "Cuenta" },
-  { key: "store", tipo: "tienda", en: "Store", es: "Tienda" },
-  { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada" },
-  { key: "status_store", tipo: "estado", en: "Status (store)", es: "Estado (tienda)" },
-  { key: "status_group", tipo: "estado", en: "Status (group)", es: "Estado (grupo)" },
-  { key: "history_store", tipo: "historia", en: "History (store)", es: "Historial (tienda)" },
-  { key: "history_group", tipo: "historia", en: "History (group)", es: "Historial (grupo)" },
-  { key: "qb_status", tipo: "qb", en: "QuickBooks", es: "QuickBooks" },
-  { key: "activity_status", tipo: "text", en: "Activity", es: "Actividad" },
-  { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)" },
-  { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)" },
-  { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)" },
-  { key: "contact_name", tipo: "text", en: "Contact", es: "Contacto" },
-  { key: "contact_title", tipo: "text", en: "Title", es: "Cargo" },
-  { key: "phone", tipo: "text", en: "Phone", es: "Teléfono" },
-  { key: "email", tipo: "text", en: "Email", es: "Correo" },
-  { key: "address", tipo: "textarea", en: "Address", es: "Dirección" },
-  { key: "terms", tipo: "text", en: "Terms", es: "Términos" },
-  { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito" },
-  { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler" },
-  { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito" },
-  { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)" },
-  { key: "notes", tipo: "textarea", en: "Notes", es: "Notas" },
+  { key: "account", tipo: "text", en: "Account", es: "Cuenta", grupo: "cuenta" },
+  { key: "store", tipo: "tienda", en: "Store", es: "Tienda", grupo: "cuenta" },
+  { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "cuenta" },
+  { key: "status_store", tipo: "estado", en: "Status (store)", es: "Estado (tienda)", grupo: "estado" },
+  { key: "status_group", tipo: "estado", en: "Status (group)", es: "Estado (grupo)", grupo: "estado" },
+  { key: "history_store", tipo: "historia", en: "History (store)", es: "Historial (tienda)", grupo: "estado" },
+  { key: "history_group", tipo: "historia", en: "History (group)", es: "Historial (grupo)", grupo: "estado" },
+  { key: "qb_status", tipo: "qb", en: "QuickBooks", es: "QuickBooks", grupo: "estado" },
+  { key: "activity_status", tipo: "text", en: "Activity", es: "Actividad", grupo: "estado" },
+  // Migración 182: «the crm stuff» del Excel.
+  { key: "crm_type_store", tipo: "text", en: "CRM type (store)", es: "Tipo CRM (tienda)", grupo: "crm" },
+  { key: "crm_type_group", tipo: "text", en: "CRM type (group)", es: "Tipo CRM (grupo)", grupo: "crm" },
+  { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "crm" },
+  { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "vendedores" },
+  { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "vendedores" },
+  { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "vendedores" },
+  { key: "contact_name", tipo: "text", en: "Contact", es: "Contacto", grupo: "contacto" },
+  { key: "contact_title", tipo: "text", en: "Title", es: "Cargo", grupo: "contacto" },
+  { key: "phone", tipo: "text", en: "Phone", es: "Teléfono", grupo: "contacto" },
+  { key: "email", tipo: "text", en: "Email", es: "Correo", grupo: "contacto" },
+  { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "contacto" },
+  { key: "terms", tipo: "text", en: "Terms", es: "Términos", grupo: "credito" },
+  { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
+  { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
+  { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito", grupo: "credito" },
+  { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "app" },
+  { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "app" },
 ];
+
+export const GRUPOS: readonly { key: GrupoDeCampo; en: string; es: string }[] = [
+  { key: "cuenta", en: "Account", es: "Cuenta" },
+  { key: "estado", en: "Status & history", es: "Estado e historial" },
+  { key: "crm", en: "CRM", es: "CRM" },
+  { key: "vendedores", en: "Sales reps", es: "Vendedores" },
+  { key: "contacto", en: "Contact", es: "Contacto" },
+  { key: "credito", en: "Credit & terms", es: "Crédito y términos" },
+  { key: "app", en: "Other", es: "Otros" },
+];
+
+/** Los campos por grupo, para la ficha completa: cada campo sale una vez y ningún grupo queda vacío. */
+export function camposPorGrupo(): { grupo: (typeof GRUPOS)[number]; campos: Campo[] }[] {
+  return GRUPOS.map((grupo) => ({ grupo, campos: CAMPOS.filter((c) => c.grupo === grupo.key) })).filter((g) => g.campos.length > 0);
+}
+
+/** El texto de un campo en la ficha completa (solo lectura): etiquetas para los cerrados, dinero, y «—» si no hay dato. */
+export function textoDeCampo(c: Cliente, campo: Campo, t: T): string {
+  switch (campo.tipo) {
+    case "tienda": return `${nombreDeTienda(c.store)} (${c.store})`;
+    case "estado": return estadoLabel(c[campo.key] as string | null, t);
+    case "historia": return historiaLabel(c[campo.key] as string | null, t);
+    case "qb": return qbLabel(c[campo.key] as string | null, t);
+    case "num": return dinero(c[campo.key] as number | null);
+    default: { const v = c[campo.key]; return v === null || v === undefined || v === "" ? "—" : String(v); }
+  }
+}
 
 /** La ficha como texto por campo (lo que se edita). */
 export function formDe(c: Cliente | null): Record<string, string> {
@@ -359,6 +473,7 @@ export function clienteDeLaBase(f: Record<string, unknown>): Cliente {
     qb_status: texto(f.qb_status), activity_status: texto(f.activity_status),
     status_store: texto(f.status_store), status_group: texto(f.status_group),
     history_store: texto(f.history_store), history_group: texto(f.history_group),
+    crm_type_store: texto(f.crm_type_store), crm_type_group: texto(f.crm_type_group), associated_with: texto(f.associated_with),
     rep_history: texto(f.rep_history), rep_qb: texto(f.rep_qb), rep_store: texto(f.rep_store),
     contact_name: texto(f.contact_name), contact_title: texto(f.contact_title), address: texto(f.address),
     phone: texto(f.phone), email: texto(f.email),
@@ -396,8 +511,8 @@ export function mailUrl(email: string | null): string | null {
 }
 
 /** El texto de una celda de la tabla, por columna. */
-export function celda(c: Cliente, key: keyof Cliente, t: T): string {
-  const v = c[key];
+export function celda(c: Cliente, key: ClaveDeColumna, t: T): string {
+  const v = valorDeColumna(c, key);
   switch (key) {
     case "store": return nombreDeTienda(c.store);
     case "status_store": case "status_group": return estadoLabel(v as string | null, t);
