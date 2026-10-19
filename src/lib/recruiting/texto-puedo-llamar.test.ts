@@ -11,7 +11,7 @@ const contacto = (over: Partial<Contact>): Contact => ({
 const hora = (iso: string, locale: string) => new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
 describe("texto «¿te puedo llamar?» (D-581)", () => {
-  // D-NEXT (2026-10-19): el dueño pegó su texto; de usted, sin nombre ni puesto, firmado por quien pulsa.
+  // D-595 (2026-10-19): el dueño pegó su texto; de usted, sin nombre ni puesto, firmado por quien pulsa.
   it("el texto es el del dueño, letra por letra, firmado por quien pulsa, en el idioma de quien pulsa", () => {
     const es = textoPuedoLlamar(cand, "Andrés", "es");
     expect(es).toBe("Hola, le habla Andrés, reclutador de Rodriguez Tile Group. Vi su aplicación y me gustaría conversar con usted. ¿Tiene 15 minutos ahora mismo para una breve entrevista telefónica? Si es así, respóndame y le llamo enseguida.");

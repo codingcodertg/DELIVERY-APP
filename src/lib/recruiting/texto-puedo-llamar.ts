@@ -14,9 +14,9 @@ type Cand = Pick<Candidate, "id" | "name" | "role"> & { phone: string | null };
 
 export const RESULTADO_PUEDO_LLAMAR = "sent · can I call?";
 
-/** La plantilla (D-NEXT, 2026-10-19): el texto que pegó el dueño, letra por letra, con «Andrés» cambiado por `{recruiter}` para
+/** La plantilla (D-595, 2026-10-19): el texto que pegó el dueño, letra por letra, con «Andrés» cambiado por `{recruiter}` para
  *  que firme quien pulsa. Trata de usted y no nombra al candidato ni al puesto a propósito (así lo escribió). La versión en
- *  inglés es la misma, traducida. Hasta D-NEXT (D-581) tuteaba y llevaba `{name}` y `{role}`. Si se quiere editable desde
+ *  inglés es la misma, traducida. Hasta D-595 (D-581) tuteaba y llevaba `{name}` y `{role}`. Si se quiere editable desde
  *  Ajustes hace falta una columna en `recruiting.settings`: otra decisión. */
 export const PLANTILLA = {
   en: "Hello, this is {recruiter}, recruiter at Rodriguez Tile Group. I saw your application and would like to talk with you. Do you have 15 minutes right now for a brief phone interview? If so, reply and I'll call you right away.",

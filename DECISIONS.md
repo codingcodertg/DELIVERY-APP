@@ -45150,7 +45150,7 @@ Un módulo puro, `src/lib/encuadre-del-mapa.ts`, que los dos mapas llaman igual:
 
 ## D-581 · RRHH: botón «📱 Texto: ¿te puedo llamar?» junto al candidato, sin abrir «Iniciar entrevista»; y el teléfono a la vista en la lista
 
-> **Reemplazada en parte por D-NEXT** (2026-10-19): el texto de «¿te puedo llamar?» es el que pegó el dueño (de usted, sin nombre ni puesto, firmado por quien pulsa); el botón y el camino no cambian.
+> **Reemplazada en parte por D-595** (2026-10-19): el texto de «¿te puedo llamar?» es el que pegó el dueño (de usted, sin nombre ni puesto, firmado por quien pulsa); el botón y el camino no cambian.
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía el «💬 Texto» del diálogo de entrevista y el modal de Mensaje.
 
@@ -45581,9 +45581,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** el primer POST real a su agenda (solo se leyó); al primer «Llamar»/«Texto» tras publicar, su app debe enseñar el contacto. La variable en Vercel solo entra en el deploy que la siga: este release.
 
-## D-NEXT · RR. HH.: el texto de «📱 ¿te puedo llamar?» es el del dueño, letra por letra (de usted, firmado por quien pulsa)
+## D-595 · RR. HH.: el texto de «📱 ¿te puedo llamar?» es el del dueño, letra por letra (de usted, firmado por quien pulsa)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-texto-puedo-llamar`. **Reemplaza en parte a D-581** (lleva su nota).
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.50.0 (repo 1.461.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-texto-puedo-llamar`. **Reemplaza en parte a D-581** (lleva su nota).
 
 **Pedido del dueño**, literal: *«y cuando le ponga te puedo llamar se puede pegar el template del texto que quiero»*, y el texto que pegó:
 
