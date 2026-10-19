@@ -5,6 +5,8 @@ import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useUI } from "@/components/recruiting/ModalHost";
 import { CandidateRow } from "@/components/recruiting/CandidateRow";
+import { VistaDelGerente } from "@/components/recruiting/VistaDelGerente";
+import { esGerenteDeTienda } from "@/lib/recruiting/vista-del-gerente";
 import type { Candidate } from "@/lib/recruiting/types";
 import { downloadCSV, fmtDate, fmtPct, normalizeName, telClean, toCSV, todayISO } from "@/lib/recruiting/utils";
 import { stageOf } from "@/lib/recruiting/constants";
@@ -221,6 +223,9 @@ export default function CandidatesPage() {
 
   const counts: Record<string, number> = {};
   stages.forEach((s) => (counts[s.key] = countPool.filter((c) => c.status === s.key).length));
+
+  // D-600: el gerente de tienda ve su vista (candidatos de su tienda, agrupados, con contratar / no contratar), no la lista.
+  if (esGerenteDeTienda(me?.role)) return <VistaDelGerente />;
 
   return (
     <div>
