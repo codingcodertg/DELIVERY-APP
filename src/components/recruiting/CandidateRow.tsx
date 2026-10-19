@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { useUI } from "@/components/recruiting/ModalHost";
 import { BotonTextoPuedoLlamar } from "@/components/recruiting/BotonTextoPuedoLlamar";
+import { BotonCopiarParaElGerente } from "@/components/recruiting/BotonCopiarParaElGerente";
 import { telefonoEnLaFila } from "@/lib/recruiting/texto-puedo-llamar";
 import { usePrefs } from "@/lib/prefs";
 import { stageOf, CALL_AGAIN_TAG, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
@@ -214,6 +215,7 @@ export function CandidateRow({
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openScheduleInPerson(c.id)}>🤝 {t("Schedule in-person", "Agendar presencial")}</button>
         <button className="btn btn-green btn-sm" onClick={() => ui.openMessage(c.id)}>💬 {t("Message", "Mensaje")}</button>
         <BotonTextoPuedoLlamar c={c} />
+        <BotonCopiarParaElGerente c={c} />
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openContact(c.id)}>📝 {t("Log", "Registro")}{nContact ? ` (${nContact})` : ""}</button>
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openTimeline(c.id)}>🕓 {t("Timeline", "Historial")}</button>
         <button className="btn btn-ghost btn-sm" onClick={() => ui.openOffer(c.id)}>💼 {t("Offer", "Oferta")}</button>
