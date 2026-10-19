@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMapInstance, Marker, Polyline, Polygon as LeafletPolygon, LatLng } from "leaflet";
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
+import { centroInicial, encuadreFinal, topeDeAlejamiento, ZOOM_MINIMO_DEL_MAPA } from "@/lib/encuadre-del-mapa";
 import { casaDeTienda, dibujoTienda, estiloTienda, TIENDA_CLASICA, Z_CASITA_DESPACHO, type PapelTienda } from "@/lib/store-pins";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,9 +170,11 @@ export function LeafletMap({
     (async () => {
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current) return;
-      const fallback: [number, number] = [26.2034, -98.2300]; // Rio Grande Valley, TX
-      const startCenter = center ?? (points[0] ? [points[0].lat, points[0].lng] as [number, number] : fallback);
-      map = L.map(containerRef.current).setView(startCenter, zoom);
+      // Sin `center`, el primer punto que sirve o el centro de las tiendas (D-580; antes, un centro fijo del Valle).
+      const inicio = centroInicial(points.map((p) => [p.lat, p.lng] as const), stores);
+      const startCenter: [number, number] = center ?? [inicio.lat, inicio.lng];
+      // Tope de alejamiento (D-580): ningún punto suelto, ni la rueda, sacan el mapa de la región.
+      map = L.map(containerRef.current, { minZoom: ZOOM_MINIMO_DEL_MAPA }).setView(startCenter, zoom);
       // Free OpenStreetMap tiles (no billing). A Google-tiles proxy exists at
       // /api/map-tiles but is intentionally NOT used, to avoid Map Tiles API
       // charges — switch this URL to "/api/map-tiles/{z}/{x}/{y}" to enable it.
@@ -297,15 +300,24 @@ export function LeafletMap({
     let cancelled = false;
     (async () => {
       const L = (await import("leaflet")).default;
-      if (cancelled || !mapRef.current || !fitTo || fitTo.length === 0) return;
-      const sig = JSON.stringify(fitTo);
+      if (cancelled || !mapRef.current) return;
+      // Fuera el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada válido, la región (D-580).
+      const enc = encuadreFinal(fitTo, stores);
+      if (!enc) return;
+      const sig = JSON.stringify(enc.validos);
       if (sig === fitSigRef.current) return;
       fitSigRef.current = sig;
-      const bounds = L.latLngBounds(fitTo.map((c) => L.latLng(c[0], c[1])));
+      if (enc.descartados.length && process.env.NODE_ENV !== "production") {
+        console.warn(`[mapa] ${enc.descartados.length} punto(s) fuera del encuadre (0,0, no numéricos o a >300 km de las tiendas)`, enc.descartados);
+      }
+      // El tope de alejamiento es la región de las tiendas («not further than that»): ni una parada a 250 km lo abre más.
+      const tam = mapRef.current.getSize();
+      mapRef.current.setMinZoom(topeDeAlejamiento(stores, tam.x, tam.y));
+      const bounds = L.latLngBounds(enc.validos.map((c) => L.latLng(c[0], c[1])));
       mapRef.current.fitBounds(bounds, { padding: [45, 45], maxZoom: 14, animate: true });
     })();
     return () => { cancelled = true; };
-  }, [fitTo]);
+  }, [fitTo, stores]);
 
   // Keep the colored fleet markers in sync with `points`.
   useEffect(() => {

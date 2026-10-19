@@ -2117,9 +2117,10 @@ export default function RoutesPage() {
       }
       if (pts.length) return pts;
     }
-    return encuadreDeLasRutas(points, selected, byDriver, lanes);
+    // Las tiendas de Ajustes entran en el día entero (D-580): la región, y encima lo de hoy.
+    return encuadreDeLasRutas(points, selected, byDriver, lanes, storeMarkers);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, driverLocations, users]);
+  }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, driverLocations, users, storeMarkers]);
 
   if (!me) return null;
   if (!soloLectura && !canPlanRoutes(me)) {

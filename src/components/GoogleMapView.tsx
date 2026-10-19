@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, MAPS_MAP_ID } from "@/lib/google-maps-loader";
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
 import { casaDeTienda, dibujoTiendaUrl, estiloTienda, Z_CASITA_DESPACHO } from "@/lib/store-pins";
+import { centroInicial, encuadreFinal, topeDeAlejamiento, ZOOM_MINIMO_DEL_MAPA } from "@/lib/encuadre-del-mapa";
 import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/LeafletMap";
 
 // ============================================================
@@ -17,7 +18,8 @@ import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/Le
 // right-click pin picker used by the order form.
 // ============================================================
 
-const RGV_FALLBACK = { lat: 26.2034, lng: -98.2300 };   // Rio Grande Valley
+// Sin `center`, el mapa nace en el primer punto que sirve o en el centro de las tiendas (D-580; antes, un centro fijo
+// del Valle): `centroInicial`, en lib/encuadre-del-mapa.
 
 /** Marker artwork as data-URI SVG. Classic markers take an icon rather than
  * arbitrary HTML, and an inline SVG keeps the look identical to the Leaflet
@@ -133,10 +135,12 @@ export function GoogleMapView({
         const maps = await loadGoogleMaps();
         if (cancelled || !containerRef.current) return;
         mapsRef.current = maps;
-        const start = center ?? (points[0] ? { lat: points[0].lat, lng: points[0].lng } : RGV_FALLBACK);
+        const start = center ? { lat: center[0], lng: center[1] } : centroInicial(points.map((p) => [p.lat, p.lng] as const), stores);
         const map = new maps.Map(containerRef.current, {
-          center: start instanceof Array ? { lat: start[0], lng: start[1] } : start,
+          center: start,
           zoom,
+          // Tope de alejamiento (D-580): ningún punto suelto, ni la rueda, sacan el mapa de la región.
+          minZoom: ZOOM_MINIMO_DEL_MAPA,
           mapId: MAPS_MAP_ID || undefined,
           // Dispatch wants the map itself, not Google's chrome.
           mapTypeControl: false,
@@ -346,19 +350,28 @@ export function GoogleMapView({
   // ---- Framing ----
   useEffect(() => {
     const maps = mapsRef.current, map = mapRef.current;
-    if (!ready || !maps || !map || !fitTo || fitTo.length === 0) return;
-    const sig = JSON.stringify(fitTo);
+    if (!ready || !maps || !map) return;
+    // Fuera el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada válido, la región (D-580).
+    const enc = encuadreFinal(fitTo, stores);
+    if (!enc) return;
+    const sig = JSON.stringify(enc.validos);
     if (sig === fitSigRef.current) return;
     fitSigRef.current = sig;
+    if (enc.descartados.length && process.env.NODE_ENV !== "production") {
+      console.warn(`[mapa] ${enc.descartados.length} punto(s) fuera del encuadre (0,0, no numéricos o a >300 km de las tiendas)`, enc.descartados);
+    }
+    // El tope de alejamiento es la región de las tiendas («not further than that»): ni una parada a 250 km lo abre más.
+    const el = containerRef.current;
+    if (el) map.setOptions({ minZoom: topeDeAlejamiento(stores, el.clientWidth, el.clientHeight) });
     const bounds = new maps.LatLngBounds();
-    for (const [lat, lng] of fitTo) bounds.extend({ lat, lng });
+    for (const [lat, lng] of enc.validos) bounds.extend({ lat, lng });
     map.fitBounds(bounds, 45);
     // fitBounds can zoom in absurdly far on a single point.
     const once = maps.event.addListenerOnce(map, "idle", () => {
       if ((map.getZoom() ?? 0) > 14) map.setZoom(14);
     });
     return () => maps.event.removeListener(once);
-  }, [fitTo, ready]);
+  }, [fitTo, stores, ready]);
 
   // ---- Manual pin picker ----
   useEffect(() => {
