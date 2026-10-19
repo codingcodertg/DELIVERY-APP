@@ -45079,7 +45079,6 @@ Y en la pantalla faltaban además tres que la base **sí** tenía pero el ⚙ Co
 ### No verificado
 
 Nada contra producción (la rama no tiene `.env.local`): ni la 182, ni el `--ensayo` del importador, ni el respaldo de `leeConRespaldo` contra PostgREST real. La pantalla y la ficha completa no se abrieron en un navegador. **En esta laptop vitest no carga ningún `.test.mjs` de `scripts/`** (SyntaxError al importar, también en `archiva-clientes-basura.test.mjs`, sin tocar): las aserciones del importador se corrieron en Node a secas, fuera del repo, con el mismo contenido; en CI (Linux) deben correr con vitest.
-## D-NEXT · El mapa encuadra la región: fuera del encuadre el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada que encuadrar, las tiendas de Ajustes; y un tope de alejamiento
 ## D-580 · El mapa encuadra la región: fuera del encuadre el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada que encuadrar, las tiendas de Ajustes; y un tope de alejamiento
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración**.
@@ -45121,7 +45120,7 @@ Un módulo puro, `src/lib/encuadre-del-mapa.ts`, que los dos mapas llaman igual:
 **No verificado:** en navegador con datos reales (qué estiraba el mapa el 2026-10-18: ver el script de lectura); el aspecto del encuadre de la región a 430 px.
 
 
-## D-NEXT · RRHH: botón «📱 Texto: ¿te puedo llamar?» junto al candidato, sin abrir «Iniciar entrevista»; y el teléfono a la vista en la lista
+## D-581 · RRHH: botón «📱 Texto: ¿te puedo llamar?» junto al candidato, sin abrir «Iniciar entrevista»; y el teléfono a la vista en la lista
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía el «💬 Texto» del diálogo de entrevista y el modal de Mensaje.
 

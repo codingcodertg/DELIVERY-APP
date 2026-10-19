@@ -11,7 +11,7 @@ const contacto = (over: Partial<Contact>): Contact => ({
 });
 const hora = (iso: string, locale: string) => new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
-describe("texto «¿te puedo llamar?» (D-NEXT)", () => {
+describe("texto «¿te puedo llamar?» (D-581)", () => {
   it("el texto lleva el nombre de pila, el puesto y quien escribe, en el idioma de quien pulsa", () => {
     const en = textoPuedoLlamar(cand, "Andrés", "en");
     expect(en).toContain("Hi María,");

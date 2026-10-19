@@ -4,7 +4,7 @@ import { mergeTemplate, rcCall, rcSms, telClean } from "./utils";
 /** Lo que las funciones de aquí necesitan del candidato; `phone` admite nulo porque el dato viejo puede venir vacío. */
 type Cand = Pick<Candidate, "id" | "name" | "role"> & { phone: string | null };
 
-/* ---- «📱 Texto: ¿te puedo llamar?» (D-NEXT) ----
+/* ---- «📱 Texto: ¿te puedo llamar?» (D-581) ----
  * El dueño pidió (2026-10-18) un botón junto al candidato que mande el texto de
  * «¿te puedo llamar?» sin abrir el diálogo de «Iniciar entrevista». Medido: RRHH
  * nunca manda SMS por servidor — el «💬 Texto» del diálogo abre la app de RingCentral
@@ -62,7 +62,7 @@ export function estadoDelBoton(contactos: Contact[], candidateId: string, lang: 
   return { enviado: true, etiqueta: (lang === "es" ? "SMS enviado ✓ " : "SMS sent ✓ ") + hora };
 }
 
-/** El teléfono en la fila de la lista (pedido del dueño, misma D-NEXT): el número tal cual lo escribieron,
+/** El teléfono en la fila de la lista (pedido del dueño, misma D-581): el número tal cual lo escribieron,
  * enlazado a RingCentral como el «📞 Llamar» de la ficha. Sin dígitos no se pinta nada. */
 export function telefonoEnLaFila(phone: string | null): { texto: string; href: string } | null {
   if (!telClean(phone)) return null;

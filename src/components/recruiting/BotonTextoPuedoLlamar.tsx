@@ -7,7 +7,7 @@ import { contactoDelEnvio, estadoDelBoton, prepararTextoPuedoLlamar } from "@/li
 import type { Candidate } from "@/lib/recruiting/types";
 
 /** «📱 Texto: ¿te puedo llamar?» — manda el texto por el mismo camino que el diálogo de entrevista
- * (enlace a RingCentral + contacto SMS) sin abrir el diálogo, y pasa a «SMS enviado ✓ hh:mm» (D-NEXT). */
+ * (enlace a RingCentral + contacto SMS) sin abrir el diálogo, y pasa a «SMS enviado ✓ hh:mm» (D-581). */
 export function BotonTextoPuedoLlamar({ c, className = "btn btn-ghost btn-sm" }: { c: Candidate; className?: string }) {
   const { contactsFor, addContact, me } = useData();
   const { t, lang } = usePrefs();
