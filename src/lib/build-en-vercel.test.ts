@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-// D-NEXT (2026-10-19) · El build de Vercel se quedaba sin memoria en «Linting and checking validity of types» (seis veces en un
+// D-596 (2026-10-19) · El build de Vercel se quedaba sin memoria en «Linting and checking validity of types» (seis veces en un
 // día, con el CI de GitHub en verde). En Vercel se salta el type-check y el lint; el CI los sigue haciendo antes de fusionar.
 
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");

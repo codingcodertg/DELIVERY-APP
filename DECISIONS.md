@@ -45579,9 +45579,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** el primer POST real a su agenda (solo se leyó); al primer «Llamar»/«Texto» tras publicar, su app debe enseñar el contacto. La variable en Vercel solo entra en el deploy que la siga: este release.
 
-## D-NEXT · Build: en Vercel no se repiten el type-check ni el lint (ya los hace el CI); el contenedor de Vercel se quedaba sin memoria en ese paso
+## D-596 · Build: en Vercel no se repiten el type-check ni el lint (ya los hace el CI); el contenedor de Vercel se quedaba sin memoria en ese paso
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (repo; no cambia ninguna app) · Sin migración · Hecho directo por el orquestador en `feat/build-vercel-sin-typecheck`. Infraestructura de build; no toca comportamiento.
+**Fecha:** 2026-10-19 · **Versión:** repo 1.461.0 (ninguna app cambia) · Sin migración · Hecho directo por el orquestador en `feat/build-vercel-sin-typecheck`. Infraestructura de build; no toca comportamiento.
 
 **Qué pasó (medido el 2026-10-19).** Seis builds de Vercel murieron en «Linting and checking validity of types» con `[BUILD_UTILS_SPAWN_SIGKILL]` y el aviso de **OOM** del contenedor: tres del PR #408 (D-592 + D-593, hasta 28 min antes de morir), y el PR #412 (D-595, **dos líneas de texto**) a los 2,5 min. En todos, el CI de GitHub (`tsc --noEmit`, vitest, `next build` completo) pasó en ~5 min, y `tsc` y `next build` locales también. Entre medias, otros builds idénticos pasaron en 4–5 min: el proyecto (3.800 líneas en `routes/page.tsx`, 430 ficheros de prueba, Sentry subiendo source maps en el mismo build) está en el límite de memoria del contenedor de Vercel y el paso de tipos cae según el día.
 
