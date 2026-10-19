@@ -14,9 +14,13 @@ type Cand = Pick<Candidate, "id" | "name" | "role"> & { phone: string | null };
 
 export const RESULTADO_PUEDO_LLAMAR = "sent · can I call?";
 
-const PLANTILLA = {
-  en: "Hi {name}, this is {recruiter} from RDZ Tile Group about the {role} position. Can I call you? Reply with a good time. Thanks!",
-  es: "Hola {name}, soy {recruiter} de RDZ Tile Group, por el puesto de {role}. ¿Te puedo llamar? Respóndeme con una hora que te venga bien. ¡Gracias!",
+/** La plantilla (D-595, 2026-10-19): el texto que pegó el dueño, letra por letra, con «Andrés» cambiado por `{recruiter}` para
+ *  que firme quien pulsa. Trata de usted y no nombra al candidato ni al puesto a propósito (así lo escribió). La versión en
+ *  inglés es la misma, traducida. Hasta D-595 (D-581) tuteaba y llevaba `{name}` y `{role}`. Si se quiere editable desde
+ *  Ajustes hace falta una columna en `recruiting.settings`: otra decisión. */
+export const PLANTILLA = {
+  en: "Hello, this is {recruiter}, recruiter at Rodriguez Tile Group. I saw your application and would like to talk with you. Do you have 15 minutes right now for a brief phone interview? If so, reply and I'll call you right away.",
+  es: "Hola, le habla {recruiter}, reclutador de Rodriguez Tile Group. Vi su aplicación y me gustaría conversar con usted. ¿Tiene 15 minutos ahora mismo para una breve entrevista telefónica? Si es así, respóndame y le llamo enseguida.",
 } as const;
 
 /** El texto que se manda: la plantilla del idioma de quien pulsa, con los marcadores de `mergeTemplate`. */
