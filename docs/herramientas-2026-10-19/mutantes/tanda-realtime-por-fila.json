@@ -1,0 +1,82 @@
+{
+  "_": "D-NEXT realtime por fila: un evento de deliveries recarga solo su fila. 2026-10-15.",
+  "mutantes": [
+    {
+      "nombre": "M1  un DELETE se lee en vez de quitarse",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "    if (e.eventType === \"DELETE\") { q.add(id); l.delete(id); } else { l.add(id); q.delete(id); }",
+      "nuevo": "    l.add(id); q.delete(id);",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M2  la red de seguridad (más de 25 ids → lista entera) desaparece",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "    if (l.length > max) { listas.add(t); continue; }",
+      "nuevo": "",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M3  sin id en el payload se sigue por fila (en vez de caer a la lista)",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "    if (!id) { listas.add(e.table); continue; }",
+      "nuevo": "    if (!id) continue;",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M4  la notificación de otro usuario ya no se ignora",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "      if (typeof para === \"string\" && para !== opts.meId) continue;",
+      "nuevo": "",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M5  una fila pedida que no vuelve (RLS) se queda en el estado",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "  for (const id of plan.leer) fuera.add(id);",
+      "nuevo": "",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M6  la fusión ignora el filtro de la lista (entra todo lo que vuelve)",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "  for (const f of leidas) if (cumple(f)) { buenas.set(f.id, f); fuera.delete(f.id); }",
+      "nuevo": "  for (const f of leidas) { buenas.set(f.id, f); fuera.delete(f.id); }",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M7  la fila nueva se pega al final en vez de donde la deja el orden",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "    let i = out.findIndex((f) => antes(nueva, f));",
+      "nuevo": "    let i = -1;",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M8  el filtro de la lista deja pasar órdenes de enseñanza",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "  if (d.is_training !== false) return false;",
+      "nuevo": "",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M9  el filtro de la lista olvida que una orden abierta se queda aunque sea vieja",
+      "fichero": "src/lib/recarga-por-fila.ts",
+      "viejo": "  return d.stage !== \"delivered\" && d.stage !== \"canceled\";",
+      "nuevo": "  return false;",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M10 el proveedor vuelve a recargar la tabla entera en la ráfaga (D-201 a secas)",
+      "fichero": "src/lib/data-provider.tsx",
+      "viejo": "        void aplicarRafaga(eventos);",
+      "nuevo": "        void reloadTables(eventos.map((e) => e.table));",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    },
+    {
+      "nombre": "M11 el lector de deliveries llama .in() aunque la lista de ids esté vacía",
+      "fichero": "src/lib/data-provider.tsx",
+      "viejo": "      if (plan.leer.length) {\n        const pedir = (columnas: string) => supabase.from(\"deliveries\").select(columnas).in(\"id\", plan.leer);",
+      "nuevo": "      {\n        const pedir = (columnas: string) => supabase.from(\"deliveries\").select(columnas).in(\"id\", plan.leer);",
+      "pruebas": ["src/lib/recarga-por-fila.test.ts"]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{ "mutantes": [
+  { "nombre": "el interruptor se apaga", "fichero": "src/lib/customers/reglas.ts",
+    "viejo": "export const CLIENTES_SOLO_ADMINS = true;", "nuevo": "export const CLIENTES_SOLO_ADMINS = false;", "pruebas": ["src/lib/customers/modulo.test.ts"] },
+  { "nombre": "la puerta ignora el interruptor", "fichero": "src/lib/customers/reglas.ts",
+    "viejo": "  if (CLIENTES_SOLO_ADMINS) return false;\n  return !!p?.module_access?.includes(\"customers\");", "nuevo": "  return !!p?.module_access?.includes(\"customers\");", "pruebas": ["src/lib/customers/modulo.test.ts"] },
+  { "nombre": "la casilla se ofrece a todos", "fichero": "src/lib/customers/reglas.ts",
+    "viejo": "  return role === \"admin\" || !CLIENTES_SOLO_ADMINS;", "nuevo": "  return true;", "pruebas": ["src/lib/customers/modulo.test.ts"] },
+  { "nombre": "el diálogo dibuja el bloque sin preguntar", "fichero": "src/components/UserDialog.tsx",
+    "viejo": "(m.alwaysOn || !LOCAL_MODE) && (m.offeredTo?.(u.role) ?? true)", "nuevo": "(m.alwaysOn || !LOCAL_MODE)", "pruebas": ["src/lib/customers/modulo.test.ts"] }
+]}

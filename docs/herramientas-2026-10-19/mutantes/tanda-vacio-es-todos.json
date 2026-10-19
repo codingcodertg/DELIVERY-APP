@@ -1,0 +1,10 @@
+{ "mutantes": [
+  { "nombre": "vacío vuelve a ser ninguno", "fichero": "src/lib/gestor/filtro-de-choferes.ts",
+    "viejo": "  if (m.size === 0) return new Set(rutas);\n  return new Set(rutas.filter((r) => m.has(r)));", "nuevo": "  return new Set(rutas.filter((r) => m.has(r)));", "pruebas": ["src/lib/gestor/gestor-y-ruta-de-hoy.test.ts"] },
+  { "nombre": "Ninguno guardado sigue escondiendo a todos", "fichero": "src/lib/gestor/filtro-de-choferes.ts",
+    "viejo": "  const m = marcadasAProposito(marcados);\n  if (m.size === 0) return new Set(rutas);", "nuevo": "  const m = marcadasAProposito(marcados);\n  if (marcados.has(NINGUNO)) return new Set();\n  if (m.size === 0) return new Set(rutas);", "pruebas": ["src/lib/gestor/gestor-y-ruta-de-hoy.test.ts"] },
+  { "nombre": "«Todos» vuelve a vaciar la pantalla", "fichero": "src/lib/gestor/filtro-de-choferes.ts",
+    "viejo": "export function alternaTodas(_marcados: ReadonlySet<string>, _rutas: readonly string[]): Set<string> {\n  return new Set();", "nuevo": "export function alternaTodas(_marcados: ReadonlySet<string>, _rutas: readonly string[]): Set<string> {\n  return marcadasAProposito(_marcados).size === 0 ? new Set([NINGUNO]) : new Set();", "pruebas": ["src/lib/gestor/gestor-y-ruta-de-hoy.test.ts"] },
+  { "nombre": "la casilla del panel vuelve a ser «se ve»", "fichero": "src/app/(app)/routes/page.tsx",
+    "viejo": "marcada: marcadasAProposito(selected).has(u.key)", "nuevo": "marcada: rutasVisibles(selected, clavesDelPanel).has(u.key)", "pruebas": ["src/lib/gestor/gestor-y-ruta-de-hoy.test.ts"] }
+]}

@@ -1,0 +1,5 @@
+{ "mutantes": [
+  { "nombre": "todos ven el mapa", "fichero": "src/lib/mapa-de-apps.ts", "viejo": "return me?.role === \"admin\";", "nuevo": "return !!me;", "pruebas": ["src/lib/mapa-de-apps.test.ts"] },
+  { "nombre": "la tarjeta sale para todos", "fichero": "src/components/HomeSelector.tsx", "viejo": "{veElMapa(me) && (", "nuevo": "{true && (", "pruebas": ["src/lib/mapa-de-apps.test.ts"] },
+  { "nombre": "la página deja entrar a cualquiera", "fichero": "src/app/home/mapa/page.tsx", "viejo": "  if (!veElMapa(me)) redirect(\"/home\");", "nuevo": "", "pruebas": ["src/lib/mapa-de-apps.test.ts"] }
+]}

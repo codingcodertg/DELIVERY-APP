@@ -1,0 +1,76 @@
+{
+ "mutantes": [
+  {
+   "nombre": "el origen libre no abre la lista de tiendas",
+   "fichero": "src/lib/origen-libre.ts",
+   "viejo": "if (yo.role !== \"sales\" || !yo.store || regla.anyOrigin === true) return todas;",
+   "nuevo": "if (yo.role !== \"sales\" || !yo.store) return todas;",
+   "pruebas": [
+    "src/lib/origen-libre.test.ts"
+   ]
+  },
+  {
+   "nombre": "el origen libre deja el selector fijo",
+   "fichero": "src/lib/origen-libre.ts",
+   "viejo": "regla.homeIsDestination !== true && regla.anyOrigin !== true",
+   "nuevo": "regla.homeIsDestination !== true",
+   "pruebas": [
+    "src/lib/origen-libre.test.ts"
+   ]
+  },
+  {
+   "nombre": "guardar en Datos vuelve a perder las banderas no enseñadas",
+   "fichero": "src/lib/origen-libre.ts",
+   "viejo": "rules[name] = { ...antes, ",
+   "nuevo": "rules[name] = { ",
+   "pruebas": [
+    "src/lib/origen-libre.test.ts"
+   ]
+  },
+  {
+   "nombre": "renombrar busca la regla por el nombre nuevo",
+   "fichero": "src/lib/origen-libre.ts",
+   "viejo": "previas?.[r.orig]",
+   "nuevo": "previas?.[name]",
+   "pruebas": [
+    "src/lib/origen-libre.test.ts"
+   ]
+  },
+  {
+   "nombre": "esMia olvida al vendedor asignado",
+   "fichero": "src/lib/ordenes-visibles.ts",
+   "viejo": "return d.created_by === me.id || orderOwner(d) === me.id;",
+   "nuevo": "return d.created_by === me.id;",
+   "pruebas": [
+    "src/lib/origen-libre.test.ts"
+   ]
+  },
+  {
+   "nombre": "esMia abre todo",
+   "fichero": "src/lib/ordenes-visibles.ts",
+   "viejo": "  if (!me?.id) return false;\n  return d.created_by",
+   "nuevo": "  return true;\n  return d.created_by",
+   "pruebas": [
+    "src/lib/origen-libre.test.ts"
+   ]
+  },
+  {
+   "nombre": "la lista vuelve a esconder la orden propia de otra tienda",
+   "fichero": "src/lib/ordenes-visibles.ts",
+   "viejo": "      && !(esMia(d, ctx.me) && orderTypeRule(d.order_type, ctx.reglas).anyOrigin === true)) continue;",
+   "nuevo": "      ) continue;",
+   "pruebas": [
+    "src/lib/origen-libre.test.ts"
+   ]
+  },
+  {
+   "nombre": "la excepción vale para cualquier tipo (rompe D-405)",
+   "fichero": "src/lib/ordenes-visibles.ts",
+   "viejo": "&& orderTypeRule(d.order_type, ctx.reglas).anyOrigin === true)",
+   "nuevo": ")",
+   "pruebas": [
+    "src/lib/origen-libre.test.ts"
+   ]
+  }
+ ]
+}

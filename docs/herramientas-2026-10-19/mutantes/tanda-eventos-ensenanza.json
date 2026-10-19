@@ -1,0 +1,8 @@
+{ "mutantes": [
+  { "nombre": "enseñanza vuelve a ignorar la capa local", "fichero": "src/lib/eventos-visibles.ts",
+    "viejo": "  if (!ensenanza || locales.length === 0) return reales;", "nuevo": "  return reales;", "pruebas": ["src/lib/eventos-visibles.test.ts"] },
+  { "nombre": "lo local se mezcla también fuera de enseñanza", "fichero": "src/lib/eventos-visibles.ts",
+    "viejo": "  if (!ensenanza || locales.length === 0) return reales;", "nuevo": "  if (locales.length === 0) return reales;", "pruebas": ["src/lib/eventos-visibles.test.ts"] },
+  { "nombre": "el proveedor reparte la lista real", "fichero": "src/lib/data-provider.tsx",
+    "viejo": "ensureDeliveriesSince, events: effectiveEvents, notifications,", "nuevo": "ensureDeliveriesSince, events, notifications,", "pruebas": ["src/lib/eventos-visibles.test.ts"] }
+]}

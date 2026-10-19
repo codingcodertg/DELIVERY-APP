@@ -1,0 +1,14 @@
+{ "mutantes": [
+  { "nombre": "«todas» vuelve a la lista completa: la tabla alterna sobre `rows` y no sobre lo filtrado", "fichero": "src/components/OrdersTable.tsx",
+    "viejo": "  const idsVisibles = sortedRows.map((r) => r.id);", "nuevo": "  const idsVisibles = rows.map((r) => r.id);", "pruebas": ["src/lib/marcar-todas.test.ts"] },
+  { "nombre": "desmarcar borra lo oculto: vacía la selección entera en vez de quitar solo las visibles", "fichero": "src/lib/marcar-todas.ts",
+    "viejo": "  const n = new Set(seleccion);", "nuevo": "  const n = new Set(estadoDeLaCabecera(seleccion, visiblesIds) === \"todas\" ? [] : seleccion);", "pruebas": ["src/lib/marcar-todas.test.ts"] },
+  { "nombre": "la cabecera cuenta las ocultas: «todas» exige que la selección entera quepa en las visibles", "fichero": "src/lib/marcar-todas.ts",
+    "viejo": "  return marcadas === visiblesIds.length ? \"todas\" : \"algunas\";", "nuevo": "  return marcadas === visiblesIds.length && seleccion.size === visiblesIds.length ? \"todas\" : \"algunas\";", "pruebas": ["src/lib/marcar-todas.test.ts"] },
+  { "nombre": "la cabecera se pone indeterminada por una oculta marcada", "fichero": "src/lib/marcar-todas.ts",
+    "viejo": "  if (marcadas === 0) return \"ninguna\";", "nuevo": "  if (marcadas === 0 && seleccion.size === 0) return \"ninguna\";", "pruebas": ["src/lib/marcar-todas.test.ts"] },
+  { "nombre": "marcar deja de añadir las visibles que faltan (solo quita)", "fichero": "src/lib/marcar-todas.ts",
+    "viejo": "    else n.add(id);", "nuevo": "", "pruebas": ["src/lib/marcar-todas.test.ts"] },
+  { "nombre": "la página de Órdenes vuelve a alternar sobre `rows`", "fichero": "src/app/(app)/page.tsx",
+    "viejo": "  const toggleAll = (idsVisibles: string[]) => setSelected((prev) => alternaTodasLasVisibles(prev, idsVisibles));", "nuevo": "  const toggleAll = () => setSelected((prev) => alternaTodasLasVisibles(prev, rows.map((r) => r.id)));", "pruebas": ["src/lib/marcar-todas.test.ts"] }
+]}

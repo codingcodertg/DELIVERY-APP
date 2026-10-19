@@ -1,0 +1,8 @@
+{ "mutantes": [
+  { "nombre": "el admin vuelve a pasar por la cámara (regla)", "fichero": "src/lib/timetracker/vista-empleado.ts",
+    "viejo": "  return !esAdminDeTt(role);", "nuevo": "  return true;", "pruebas": ["src/lib/timetracker/vista-empleado.test.ts"] },
+  { "nombre": "la pantalla ignora la regla", "fichero": "src/components/timetracker/PunchPanel.tsx",
+    "viejo": "    if (!fichaConFoto(me.role)) {", "nuevo": "    if (false) {", "pruebas": ["src/lib/timetracker/vista-empleado.test.ts"] },
+  { "nombre": "todos fichan sin foto", "fichero": "src/lib/timetracker/vista-empleado.ts",
+    "viejo": "  return !esAdminDeTt(role);", "nuevo": "  return false;", "pruebas": ["src/lib/timetracker/vista-empleado.test.ts"] }
+]}

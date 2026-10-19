@@ -1,0 +1,141 @@
+{
+  "mutantes": [
+    {
+      "nombre": "el mínimo deja de ser solo de ventas (solo admin queda fuera)",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  if (rol !== \"sales\") return null;",
+      "nuevo": "  if (rol === \"admin\") return null;",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "el descuento se ofrece siempre, con mínimo o sin él",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  return tarifaMinimaQueAplica(rol, tienda, tiendas) == null;",
+      "nuevo": "  return true;",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "cobra tarifa todo tipo menos Proveedor (Intertienda y Transfer también)",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  return (orderTypeRule(tipo, reglas).docRef ?? \"invoice\") === \"invoice\";",
+      "nuevo": "  return (orderTypeRule(tipo, reglas).docRef ?? \"invoice\") !== \"hidden\";",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "sin tipo elegido, cobra (cae al «invoice» por defecto)",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  if (!(tipo ?? \"\").trim()) return false;",
+      "nuevo": "",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "el bloqueo no mira si el tipo cobra",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  if (!cobraTarifa(a.tipo, a.reglas)) return null;",
+      "nuevo": "",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "justo el mínimo no pasa (> en vez de >=)",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  if (tarifa != null && Number.isFinite(tarifa) && tarifa >= minimo) return null;",
+      "nuevo": "  if (tarifa != null && Number.isFinite(tarifa) && tarifa > minimo) return null;",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "una tarifa vacía salta el mínimo",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  if (tarifa != null && Number.isFinite(tarifa) && tarifa >= minimo) return null;",
+      "nuevo": "  if (tarifa == null || tarifa >= minimo) return null;",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "la tienda se compara por nombre exacto, sin normalizar",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  const t = tiendas.find((s) => normalizaTienda(s.name) === clave);",
+      "nuevo": "  const t = tiendas.find((s) => s.name === tienda);",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "un mínimo de cero cuenta como mínimo",
+      "fichero": "src/lib/tarifa-minima.ts",
+      "viejo": "  return Number.isFinite(n) && n > 0 ? n : null;",
+      "nuevo": "  return Number.isFinite(n) && n >= 0 ? n : null;",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "Datos → Tiendas no guarda el mínimo",
+      "fichero": "src/lib/named-location.ts",
+      "viejo": "    if (minima != null) rec.tarifa_minima_ventas = minima;",
+      "nuevo": "    if (minima != null) void 0;",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts",
+        "src/lib/named-location.test.ts"
+      ]
+    },
+    {
+      "nombre": "la ficha pasa el descuento sin preguntar a ofreceDescuento",
+      "fichero": "src/components/OrderModal.tsx",
+      "viejo": "  const descuentoOfrecido = ofreceDescuento(me.role, d.store, settings.stores) ? feeSuggestion.discount : null;",
+      "nuevo": "  const descuentoOfrecido = feeSuggestion.discount;",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts",
+        "src/lib/tarifa-descuento.test.ts"
+      ]
+    },
+    {
+      "nombre": "passesChecks calcula el bloqueo pero no para el envío",
+      "fichero": "src/components/OrderModal.tsx",
+      "viejo": "    if (bajoMinimo) { const m = textoTarifaMinima(bajoMinimo); notify(t(m.en, m.es)); return false; }",
+      "nuevo": "",
+      "pruebas": [
+        "src/lib/tarifa-minima.test.ts"
+      ]
+    },
+    {
+      "nombre": "la ✕ no sale con solo espacios",
+      "fichero": "src/lib/buscador.ts",
+      "viejo": "  return (valor ?? \"\").length > 0;",
+      "nuevo": "  return (valor ?? \"\").trim().length > 0;",
+      "pruebas": [
+        "src/lib/buscador.test.ts"
+      ]
+    },
+    {
+      "nombre": "la ✕ vacía la búsqueda pero el foco no vuelve al campo",
+      "fichero": "src/components/BuscadorConBorrar.tsx",
+      "viejo": "          onClick={() => { onValor(BUSQUEDA_VACIA); propio.current?.focus(); }}",
+      "nuevo": "          onClick={() => { onValor(BUSQUEDA_VACIA); }}",
+      "pruebas": [
+        "src/lib/buscador.test.ts"
+      ]
+    },
+    {
+      "nombre": "la ✕ sale siempre, también con el campo vacío",
+      "fichero": "src/components/BuscadorConBorrar.tsx",
+      "viejo": "      {hayTextoQueBorrar(valor) && (",
+      "nuevo": "      {true && (",
+      "pruebas": [
+        "src/lib/buscador.test.ts"
+      ]
+    }
+  ]
+}

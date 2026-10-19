@@ -1,0 +1,7 @@
+{ "mutantes": [
+  { "nombre": "la fila pinta «Llegué» sin mirar conBotonDeLlegada",
+    "fichero": "src/components/AccionesDeParada.tsx",
+    "viejo": "          {conBotonDeLlegada && llegada?.estado === \"pendiente\" && <BotonDeLlegada",
+    "nuevo": "          {llegada?.estado === \"pendiente\" && <BotonDeLlegada",
+    "pruebas": ["src/lib/mi-ruta-pantalla.test.ts"] }
+]}

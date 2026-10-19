@@ -1,0 +1,10 @@
+{ "mutantes": [
+  { "nombre": "el inicio pierde la tarjeta del mapa", "fichero": "src/components/HomeSelector.tsx",
+    "viejo": "<Link href={RUTA_MAPA_DE_LA_EMPRESA} className=\"module-pick-card\" data-hub-mapa>", "nuevo": "<Link href=\"/home\" className=\"module-pick-card\" data-hub-mapa>", "pruebas": ["src/lib/mapa-de-apps.test.ts"] },
+  { "nombre": "la página del mapa deja entrar a quien no puede estar en el hub", "fichero": "src/app/home/mapa/page.tsx",
+    "viejo": "  if (!canReachHub(me)) redirect(landingRoute(me));", "nuevo": "", "pruebas": ["src/lib/mapa-de-apps.test.ts"] },
+  { "nombre": "el mapa recibe todas las herramientas y no las visibles", "fichero": "src/components/MapaDeLaEmpresa.tsx",
+    "viejo": "const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));", "nuevo": "const tools = HUB_TOOLS;", "pruebas": ["src/lib/mapa-de-apps.test.ts"] },
+  { "nombre": "la ruta del mapa cambia", "fichero": "src/lib/mapa-de-apps.ts",
+    "viejo": "export const RUTA_MAPA_DE_LA_EMPRESA = \"/home/mapa\";", "nuevo": "export const RUTA_MAPA_DE_LA_EMPRESA = \"/home\";", "pruebas": ["src/lib/mapa-de-apps.test.ts"] }
+]}

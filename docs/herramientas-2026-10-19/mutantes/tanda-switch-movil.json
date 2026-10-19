@@ -1,0 +1,6 @@
+{ "mutantes": [
+  { "nombre": "la regla móvil se va", "fichero": "src/app/globals.css",
+    "viejo": "  .switch-panel:not(.en-pagina) { left: 0; right: auto; width: min(340px, calc(100vw - 40px)); max-width: none; }", "nuevo": "", "pruebas": ["src/lib/switch-user.test.ts"] },
+  { "nombre": "vuelve a colgar a la derecha", "fichero": "src/app/globals.css",
+    "viejo": "  .switch-panel:not(.en-pagina) { left: 0; right: auto; width: min(340px, calc(100vw - 40px)); max-width: none; }", "nuevo": "  .switch-panel:not(.en-pagina) { right: 0; width: min(340px, calc(100vw - 40px)); max-width: none; }", "pruebas": ["src/lib/switch-user.test.ts"] }
+]}
