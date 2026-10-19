@@ -18,7 +18,7 @@ const estado = vi.hoisted(() => ({
   deliveries: [] as unknown[],
   events: [] as unknown[],
   pausas: [] as unknown[],
-  // D-NEXT: las tiendas de Ajustes, para que la recogida sepa si sale de una tienda.
+  // D-584: las tiendas de Ajustes, para que la recogida sepa si sale de una tienda.
   stores: [] as { name: string; address: string }[],
   pausasPedidas: [] as unknown[][],
   // D-547: la tarjeta «Siguiente parada» va apagada (`MOSTRAR_SIGUIENTE_PARADA = false`). Sus pruebas la encienden aquí
@@ -350,7 +350,7 @@ describe("«Mi ruta» del 2026-10-14 (D-547)", () => {
   });
 });
 
-describe("«Mi ruta» del 2026-10-18 (D-NEXT): de dónde se recoge", () => {
+describe("«Mi ruta» del 2026-10-18 (D-584): de dónde se recoge", () => {
   // El dueño: «When pickup is at a store, no need to put address. Only if pickup is not at a store».
   it("la recogida en una tienda de Ajustes: la tienda resaltada, y NINGUNA dirección de recogida", async () => {
     estado.stores = [{ name: "McAllen", address: "500 N 10th St" }];

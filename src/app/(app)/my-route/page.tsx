@@ -288,7 +288,7 @@ export default function MyRoutePage() {
   /** Una fila de la lista, la pinte la sección que la pinte. «Llegué» va en la fila de la primera orden de su parada que
    *  está en ese tramo, junto a su «Recogido» o su «Entregado» (D-527; en D-520, en la fila del número y en un renglón
    *  propio). Una fila hecha nunca lo lleva: lo recogido o entregado ya no está en el tramo. */
-  /** La cabecera de una fila de recogida (D-NEXT): «Recoger en» y la tienda resaltada, o el nombre y la dirección si no es
+  /** La cabecera de una fila de recogida (D-584): «Recoger en» y la tienda resaltada, o el nombre y la dirección si no es
    *  tienda de Ajustes. Se decide por la primera orden de la parada: todas salen del mismo sitio. */
   const recogidaEnLaFila = (ordenes: readonly string[], lugar: string | null) => {
     const d = porId.get(ordenes[0]);
@@ -330,7 +330,7 @@ export default function MyRoutePage() {
         style={{ alignItems: "flex-start", ...estiloDeParada(f.tipo, f.tipo === "P" && f.ordenes.some((id) => esLaSiguiente(id, "P"))) }}>
         {burbuja()}
         <span style={{ flex: 1, minWidth: 0 }}>
-          {/* D-NEXT: en una tienda de Ajustes, la TIENDA resaltada y sin dirección (el dueño: «When pickup is at a store, no need
+          {/* D-584: en una tienda de Ajustes, la TIENDA resaltada y sin dirección (el dueño: «When pickup is at a store, no need
               to put address»); si no es tienda, su nombre y su dirección, como la entrega enseña la suya. */}
           {f.tipo === "P" ? recogidaEnLaFila(f.ordenes, f.lugar) : <span style={{ fontWeight: 700, display: "block" }}>{t("Deliver another load of", "Entregar otra carga de")}</span>}
           {f.tipo === "P" ? (

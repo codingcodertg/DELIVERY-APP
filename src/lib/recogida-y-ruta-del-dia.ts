@@ -3,7 +3,7 @@ import type { ParadaDeLaLista } from "@/lib/lista-unica";
 import { ETAPAS_HECHAS } from "@/lib/mover-parada";
 
 // ============================================================
-// D-NEXT · Dos pedidos del dueño para el chofer (2026-10-18, «for drivers in delivery app»):
+// D-584 · Dos pedidos del dueño para el chofer (2026-10-18, «for drivers in delivery app»):
 //
 //  1. «When pickup is at a store, no need to put address. Only if pickup is not at a store»: la recogida de «Mi ruta» dice
 //     la TIENDA, resaltada, cuando sale de una tienda de Ajustes; la dirección solo cuando no (`recogidaParaElChofer`).

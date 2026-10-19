@@ -1455,7 +1455,7 @@ export default function RoutesPage() {
   //     antes: ahí la lista de un chofer mezcla días y no es una ruta.
   //   · Una a la vez, primero las marcadas. Cómo se mide, cuántas llamadas y qué se guarda: `useMedidaDeRutas`
   //     (lib/usa-medida-de-rutas), que desde D-467 comparte «Ruta de hoy».
-  //   · Se mide la ruta del DÍA (D-NEXT): lo pendiente con lo ya recogido o entregado donde iba (`diaDe(…).paradas`, los
+  //   · Se mide la ruta del DÍA (D-584): lo pendiente con lo ya recogido o entregado donde iba (`diaDe(…).paradas`, los
   //     mismos números de la tabla, D-529), no solo lo que queda. El dueño: «keep the route lines of the day even when
   //     delivered». Hasta aquí cada entrega cambiaba la forma, tiraba la medida y se volvía a medir lo pendiente: la línea
   //     del mapa se encogía parada a parada y desaparecía con la última. Ahora entregar no cambia la forma (una llamada
@@ -2067,7 +2067,7 @@ export default function RoutesPage() {
   const lines: MapLine[] = useMemo(() => {
     // Las líneas medidas de cada ruta y la del plan publicado: `lineasDeLasRutas` (lib/mapa-de-rutas), las de «Ruta de hoy».
     const out: MapLine[] = lineasDeLasRutas({
-      // Con paradas en el DÍA, pendientes o hechas (D-NEXT): la ruta que ya terminó conserva su línea.
+      // Con paradas en el DÍA, pendientes o hechas (D-584): la ruta que ya terminó conserva su línea.
       trazos: routeLines, trazosDelPlan, tieneParadas: (clave) => delDiaDe(clave).length > 0,
       pasaFiltro, sigueSuPlan, colorDe: colorFor, atenuada: isDim,
     });

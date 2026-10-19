@@ -8,7 +8,7 @@ import { firmaDeLaForma } from "@/lib/usa-medida-de-rutas";
 import { carrilesDelDia, lineasDeLasRutas, puntosDeLasRutas, rutasPorChofer } from "@/lib/mapa-de-rutas";
 
 /**
- * D-NEXT · Dos pedidos del dueño para el chofer (2026-10-18): la recogida en tienda dice la TIENDA y no la dirección; y en
+ * D-584 · Dos pedidos del dueño para el chofer (2026-10-18): la recogida en tienda dice la TIENDA y no la dirección; y en
  * el mapa, la entregada conserva su número (apagado) y la línea de la ruta del día se queda aunque esté entregada.
  */
 

@@ -277,7 +277,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       dimmed: sel ? false : (e.atenuada(laneKey) || selActive),
     });
   }
-  // Lo ya hecho sigue en el mapa (D-459), como hecho: la entregada apagada y con su NÚMERO de parada del día (D-NEXT; hasta
+  // Lo ya hecho sigue en el mapa (D-459), como hecho: la entregada apagada y con su NÚMERO de parada del día (D-584; hasta
   // ahí, un «✓» apagado: el dueño, «keep the numbers and fade them instead of replacing them with a faded checkmark»); la
   // recogida y aún en camino, con 🚚. No es una parada que se pueda marcar ni mover: su id no es el de la orden, y pulsarla
   // no hace nada. El rótulo dice el número (D-529), el de la tabla: «(Parada 5 · Entregada 10:42)».

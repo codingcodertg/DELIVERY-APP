@@ -32726,7 +32726,7 @@ cierra sola (medido: nada se desplaza de lado a 1280 ni a 390).
 
 ### 4 · Julio vacío: ni línea en el mapa ni tarjeta
 
-> **Matizada por D-NEXT** (2026-10-18): «sin paradas» quiere decir sin nada en el DÍA, ni pendiente ni hecho. Una ruta cuyas
+> **Matizada por D-584** (2026-10-18): «sin paradas» quiere decir sin nada en el DÍA, ni pendiente ni hecho. Una ruta cuyas
 > paradas ya están todas entregadas conserva su medida y su línea; la de Julio, que no tenía ninguna, sigue sin ellas.
 
 **Qué pasaba** (reproducido en el demo antes del cambio, 1280 px): un chofer con plan publicado de hoy cuyas órdenes se
@@ -35135,7 +35135,7 @@ siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
-> **Reemplazada en parte por D-NEXT** (2026-10-18): en el mapa, el pin de lo ENTREGADO ya no lleva «✓»: lleva su número de parada del
+> **Reemplazada en parte por D-584** (2026-10-18): en el mapa, el pin de lo ENTREGADO ya no lleva «✓»: lleva su número de parada del
 > día, apagado. El dueño: «keep the numbers and fade them instead of replacing them with a faded checkmark». El 🚚 de lo
 > recogido y en camino sigue igual.
 
@@ -45220,7 +45220,7 @@ Los tres puntos son la misma pantalla y el mismo momento: van en **una** solicit
 
 **No verificado:** en navegador (el arrastre con varios recuadros, el número pintado en el PNG, el tamaño de la etiqueta en el móvil); ninguna escritura contra producción desde la rama.
 
-## D-NEXT · «Mi ruta» del chofer: la recogida en tienda dice la TIENDA y no la dirección; en el mapa, la entregada conserva su número (apagado) y la línea de la ruta del día se queda aunque esté entregada
+## D-584 · «Mi ruta» del chofer: la recogida en tienda dice la TIENDA y no la dirección; en el mapa, la entregada conserva su número (apagado) y la línea de la ruta del día se queda aunque esté entregada
 
 **Fecha:** 2026-10-18 · Sin migración · **Versión:** la pone el orquestador al fusionar · Rama `agent-ada24d9c9c3d8c659` (worktree).
 
