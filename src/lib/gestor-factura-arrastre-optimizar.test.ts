@@ -431,7 +431,7 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
       expect(queSeMide).toContain("useMedidaDeRutas<Delivery>({");
       expect(queSeMide).toContain("date, porChofer: rutaDelDia, rutasAMedir, seMide,");
       expect(efecto).toContain("const rutas = e.rutasAMedir.map((clave) => ({ clave, firma: firmaDe(clave, byDriver.get(clave) ?? []) }));");
-      expect(queSeMide).toContain("const seMide = (clave: string) => (byDriver.get(clave) ?? []).length > 0 && pasaFiltro(clave) && (modo === \"dia\" || selected.has(clave));");
+      expect(queSeMide).toContain("const seMide = (clave: string) => delDiaDe(clave).length > 0 && pasaFiltro(clave) && (modo === \"dia\" || selected.has(clave));");
       expect(queSeMide).toContain("const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);");
     });
     it("qué se pide lo decide `siguienteMedida`: lo conocido se repinta, y solo se pide si no hay otra medida en curso", () => {
@@ -454,7 +454,7 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
       expect(pagina).toContain("invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],");
     });
     it("la columna «Llegada» de las filas P y D dice el estado o el motivo, no una raya", () => {
-      expect(pagina).toContain("const medida = estadoDeLaMedida(u.key, stops);");
+      expect(pagina).toContain("const medida = estadoDeLaMedida(u.key, delDiaDe(u.key));"); // Nota D-584: la medida es del día
       expect(pagina).toContain("const llegadaP = textoDeLaLlegada(etaP, f.indice != null ? medida : \"sin_pedir\", motivoP, lang === \"es\");");
       expect(pagina).toContain("!coordsDeTienda(paradaP.tienda) ? \"sin_tienda\" : \"sin_base\";");
       expect(pagina).toContain("const llegada = textoDeLaLlegada(eta, medida, d.delivery_lat == null || d.delivery_lng == null ? \"sin_pin\" : \"sin_base\", lang === \"es\");");
