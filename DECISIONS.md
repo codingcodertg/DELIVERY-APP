@@ -45119,3 +45119,31 @@ Un módulo puro, `src/lib/encuadre-del-mapa.ts`, que los dos mapas llaman igual:
 **Pruebas:** `src/lib/encuadre-del-mapa.test.ts` (0,0 fuera; Dallas a >700 km fuera y Raymondville dentro; el radio exacto; NaN e imposibles; mediana contra una tienda en Kansas; la región EXACTA con tres tiendas, el lado mínimo con una y con dos en la misma ciudad, sin tiendas y con una lejana; `zoomDeLaCaja` —0,3° a 800×430 cabe a ~10,5, el doble de caja un nivel menos, manda el lado que menos cabe— y `topeDeAlejamiento` —el suelo de 8, una tienda sola a 10, un mapa de 0×0 no da NaN—; `encuadreFinal` con `fitTo` ausente, vacío, basura y válido; que los dos mapas pasan por `encuadreFinal`, `centroInicial` y `minZoom`, fijan el tope ANTES de `fitBounds` con el tamaño real, y que `fitBounds` ya no recibe `fitTo` crudo) y `src/lib/rutas-del-dia.test.ts` (las tiendas delante en el día entero, y no con un chofer marcado). Tanda de mutantes en `~/.claude/herramientas/mutantes/tanda-encuadre-del-mapa.json`: **23 de 23 caen** con una prueba con nombre (2026-10-18; los 17 primeros antes de la precisión del dueño, los 6 del tope de la región después; un M18 intermedio sobrevivió por ser código equivalente —abrir ±0,15° además de una caja que ya mide ≥0,3° no cambia nada— y se cambió por uno que sí rompe la regla). Dos tandas antes de esa: el mutante «una coordenada imposible (lat 95) entra» **sobrevivió**, y la respuesta a «quién notaría esto si lo borro» fue nadie —el radio de 300 km ya saca una latitud de 95—, así que la comprobación `|lat| ≤ 90` se borró del código en vez de inventarle una prueba; y «NaN entra» sobrevivió porque `NaN ≤ 300 km` ya es falso en los puntos: lo que sí lo notaría es la mediana de las tiendas, que con un NaN deja el centro en NaN y todo fuera, y esa es la prueba que se añadió.
 
 **No verificado:** en navegador con datos reales (qué estiraba el mapa el 2026-10-18: ver el script de lectura); el aspecto del encuadre de la región a 430 px.
+
+
+## D-NEXT · RRHH: botón «📱 Texto: ¿te puedo llamar?» junto al candidato, sin abrir «Iniciar entrevista»; y el teléfono a la vista en la lista
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía el «💬 Texto» del diálogo de entrevista y el modal de Mensaje.
+
+**Pedido del dueño**, literal: *«en el hr app ahi donde se agrega un candiadto quiero que se agregue el boton que sea de enviar texto para enviar un texto para preguntar si lo puedo llamar, y cuando aprete ese boton que diga sms sent sin necesidad de abrir el dialog de iniciar entrevista»*. Y el mismo día: *«ah y en la parte de candidatos quiero que cunado se miren los cnadidatos tmabien se aparezca el numero de telefono ahi»*.
+
+### Qué había (medido)
+
+RRHH **no manda SMS por servidor**. El «💬 Texto» del diálogo de entrevista (`ModalHost.tsx`, `InterviewModal`) y el de la ficha son un enlace `rcSms(phone)` —`rcapp://r/sms?type=new&number=…`, sin texto— que abre la app de RingCentral, y un `addContact({ type: "SMS", result: "sent", note: "" })`. El modal «💬 Mensaje» hace lo mismo con plantillas (`rcSms(phone, msg)`). `/api/notify` sí manda por RingCentral/Twilio, pero exige el módulo de Entregas (D-505) y no lo usa RRHH. Mandar «¿te puedo llamar?» costaba abrir el diálogo o el modal, elegir plantilla y pulsar. La fila de la lista no enseñaba el teléfono: había que expandirla o abrir la ficha.
+
+### Qué cambia
+
+1. **`src/lib/recruiting/texto-puedo-llamar.ts`** (lógica pura): `textoPuedoLlamar(c, recruiter, lang)` arma el texto con `mergeTemplate` (nombre de pila, puesto, reclutador) en el idioma de quien pulsa; `prepararTextoPuedoLlamar` devuelve el enlace `rcSms(phone, texto)` o el motivo (`sin-telefono` / `ya-enviado`); `contactoDelEnvio` deja el **mismo contacto que el diálogo** (`type: "SMS"`) con `result: "sent · can I call?"` como marca y el texto en la nota; `estadoDelBoton` lee el historial y da la etiqueta.
+2. **`BotonTextoPuedoLlamar.tsx`**, en la barra de acciones de la fila (`CandidateRow`) y en la ficha del candidato, junto al «💬 Texto». Al pulsar: abre RingCentral con el texto y registra el contacto; pasa a **«SMS sent ✓ hh:mm» / «SMS enviado ✓ hh:mm»** deshabilitado, con la hora del último envío. Sin teléfono enseña «Sin número de teléfono» al lado. Idempotente por candidato: la marca en `result` es lo que lo distingue de un SMS suelto del diálogo.
+3. **Teléfono en la fila**: `telefonoEnLaFila(phone)` → el número tal cual se escribió, enlazado a `rcCall` (RingCentral) como el «📞 Llamar» de la ficha, y registra el contacto `Call` igual que ella. Sin dígitos no pinta nada.
+4. **Permisos**: los mismos que el diálogo —ninguno extra; quien ve la fila ve el botón.
+
+### Qué se descartó
+
+- **Mandar el SMS desde el servidor** (`/api/notify`): cambiaría el camino que RRHH usa hoy (la app de RingCentral del reclutador, desde su número), y la ruta está cerrada a quien no tiene Entregas. «El mismo SMS que el diálogo» es el enlace.
+- **Una plantilla de Ajustes**: el texto va fijo en código, bilingüe; si el dueño lo quiere editable es otra decisión.
+- **Marcar el envío en el candidato** (columna nueva): el historial de contactos ya es la traza y no hace falta migración.
+
+**Pruebas:** `src/lib/recruiting/texto-puedo-llamar.test.ts` (7: texto en los dos idiomas con los marcadores resueltos; enlace con número limpio y texto; sin teléfono; idempotencia por candidato —otro SMS, otro tipo, otro candidato no cuentan—; el contacto registrado se reconoce después; etiqueta del botón antes/después con la hora del ÚLTIMO envío; teléfono de la fila). Proveedor: ninguno real —todo es construir el enlace; ningún SMS salió. Mutantes **10 de 10** (`tanda-texto-puedo-llamar.json`): la marca deja de distinguirse de un SMS suelto; otro candidato cuenta; hora del más viejo; sin teléfono prepara igual; sin idempotencia; enlace sin texto; contacto sin marca; botón nunca deshabilitado; español en inglés; teléfono sin dígitos pintado — cada uno con su prueba por nombre.
+
+**No verificado:** en navegador (que RingCentral abra con el texto puesto; el ancho de la barra de acciones con un botón más); nada contra producción desde la rama.

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { InterviewViewModal } from "./InterviewView";
+import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
 import type { Candidate, Contact, Interview, InterviewAnswer, RecruiterRecommendation } from "@/lib/recruiting/types";
 import {
@@ -209,6 +210,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
             <div className="cand-meta" style={{ marginTop: 6 }}>
               <a className="link-tel" href={rcCall(c.phone)} onClick={() => addContact(c.id, { type: "Call", result: "", note: "" })}>📞 {t("Call", "Llamar")} {c.phone}</a>
               <a className="link-tel" href={rcSms(c.phone)} onClick={() => addContact(c.id, { type: "SMS", result: "sent", note: "" })}>💬 {t("Text", "Texto")}</a>
+              <BotonTextoPuedoLlamar c={c} />
               {c.email && <a className="link-tel" href={"mailto:" + c.email}>✉️ {c.email}</a>}
             </div>
           </div>
