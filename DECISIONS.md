@@ -45226,7 +45226,6 @@ Los tres puntos son la misma pantalla y el mismo momento: van en **una** solicit
 
 **No verificado:** en navegador (el arrastre con varios recuadros, el número pintado en el PNG, el tamaño de la etiqueta en el móvil); ninguna escritura contra producción desde la rama.
 
-<<<<<<< HEAD
 ## D-584 · «Mi ruta» del chofer: la recogida en tienda dice la TIENDA y no la dirección; en el mapa, la entregada conserva su número (apagado) y la línea de la ruta del día se queda aunque esté entregada
 
 **Fecha:** 2026-10-18 · Sin migración · **Versión:** la pone el orquestador al fusionar · Rama `agent-ada24d9c9c3d8c659` (worktree).
@@ -45304,9 +45303,7 @@ Ya existía casi todo menos la puerta: `ScheduleModal` con `kind="inperson"` (`M
 
 **No verificado:** en navegador (que RingCentral abra con el texto; el ancho de la barra de botones de la entrevista con uno más; el `datetime-local` en el móvil); `next build`; nada contra producción desde la rama.
 ## D-NEXT · ERP: Inventory, Review y Approvals pasan a pestañas de Catálogo; PO ↔ Proforma y Receiving, a pestañas de Compras; Analítica es una sola entrada con sus pestañas dentro
-=======
 ## D-586 · ERP: Inventory, Review y Approvals pasan a pestañas de Catálogo; PO ↔ Proforma y Receiving, a pestañas de Compras; Analítica es una sola entrada con sus pestañas dentro
->>>>>>> 9ab18a44 (release: D-586, erp 0.19.0, paquete 1.452.0)
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo el ERP) · **Sin migración** · Reemplaza en parte a D-553 (el menú).
 
