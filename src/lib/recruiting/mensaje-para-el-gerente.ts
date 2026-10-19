@@ -12,8 +12,9 @@ import { RESULTADO_AGENDADA } from "./agendar-presencial";
 // ============================================================
 
 /** Cuántos días vale el enlace del CV que va en el mensaje: 7, para que el gerente lo abra cuando lea el mensaje y no en
- *  el minuto en que se copió. Desde D-593 el enlace es el corto (`enlace-corto-del-cv.ts`), que lleva esta misma vida. */
-export { DIAS_DEL_ENLACE_CORTO as DIAS_DEL_ENLACE_DEL_CV } from "./enlace-corto-del-cv";
+ *  el minuto en que se copió. Desde D-593 el enlace es el corto (`enlace-corto-del-cv.ts`, SOLO servidor), que toma de
+ *  AQUÍ esta vida: este fichero es el que importa el navegador, y no puede tirar del módulo del servidor (`crypto`). */
+export const DIAS_DEL_ENLACE_DEL_CV = 7;
 
 /**
  * La cita presencial que se cuenta: el ÚLTIMO contacto «In person / Scheduled» (D-585 lo deja como «fecha · lugar ·

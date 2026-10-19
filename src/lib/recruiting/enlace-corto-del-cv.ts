@@ -1,4 +1,5 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "crypto";
+import { DIAS_DEL_ENLACE_DEL_CV } from "./mensaje-para-el-gerente";
 
 // ============================================================
 // El enlace corto del CV (D-593, 2026-10-19). El dueño, sobre el enlace firmado de D-590 (~300 caracteres): «no podemos
@@ -9,11 +10,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // firma y la caducidad, busca el CV y redirige a un enlace firmado de Storage de un minuto. Sin tabla ni migración: el
 // token se calcula, no se guarda.
 //
-// SOLO SERVIDOR (usa `node:crypto` y el secreto). Las pruebas lo importan con un secreto de mentira.
+// SOLO SERVIDOR (usa `crypto` y el secreto): lo importan las dos rutas, nunca un componente. Las pruebas lo importan con
+// un secreto de mentira. (El primer build falló porque el navegador llegaba aquí por una constante reexportada: por eso
+// la vida del enlace está en `mensaje-para-el-gerente.ts` y este módulo la importa, y no al revés.)
 // ============================================================
 
-/** Cuántos días vale el enlace: los mismos 7 del enlace largo de D-590. */
-export const DIAS_DEL_ENLACE_CORTO = 7;
+/** Cuántos días vale el enlace: los mismos 7 del enlace largo de D-590 (`DIAS_DEL_ENLACE_DEL_CV`). */
+export const DIAS_DEL_ENLACE_CORTO: number = DIAS_DEL_ENLACE_DEL_CV;
 
 const b64u = (b: Buffer) => b.toString("base64url");
 
