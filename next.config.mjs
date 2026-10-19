@@ -3,9 +3,20 @@ import { dirname } from "node:path";
 
 import { withSentryConfig } from "@sentry/nextjs";
 
+/**
+ * D-NEXT (2026-10-19): en el build de VERCEL no se repiten el type-check ni el lint. Los dos ya corren en el CI de GitHub
+ * (`ci.yml`: `tsc --noEmit`, vitest y `next build` completo) antes de que un PR pueda fusionarse, y en Vercel el paso
+ * «Linting and checking validity of types» se quedó sin memoria (OOM, SIGKILL) en seis builds el 2026-10-19 —tres de un PR
+ * con dos decisiones, uno con un cambio de dos líneas de texto— mientras el CI pasaba en 5 min. `process.env.VERCEL` solo
+ * existe en el contenedor de Vercel: en el CI y en local, `next build` sigue comprobando tipos y lint como siempre.
+ */
+const enVercel = !!process.env.VERCEL;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  typescript: { ignoreBuildErrors: enVercel },
+  eslint: { ignoreDuringBuilds: enVercel },
 
   // La raíz del workspace es ESTA carpeta, y hay que decirlo.
   // ---------------------------------------------------------------------------
