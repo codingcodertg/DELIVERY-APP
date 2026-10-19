@@ -357,7 +357,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
 }
 
 /* ---------------- Schedule (phone or in-person) ---------------- */
-/* La rama «inperson» vive ahora en InPersonScheduleModal.tsx (fecha futura, lugar, nota, texto de confirmación — D-NEXT). */
+/* La rama «inperson» vive ahora en InPersonScheduleModal.tsx (fecha futura, lugar, nota, texto de confirmación — D-585). */
 function ScheduleModal({ id, kind, close }: { id: string; kind: "phone"; close: () => void }) {
   const { candidates, updateCandidate, notify } = useData();
   const { t } = usePrefs();
@@ -1234,7 +1234,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
     if (thenResume) openResume(c.id);
   };
 
-  /** Al terminar la entrevista, agendar la presencial sin buscar al candidato otra vez (D-NEXT):
+  /** Al terminar la entrevista, agendar la presencial sin buscar al candidato otra vez (D-585):
    * guarda lo calificado —es la evidencia de por qué se cita— y abre el diálogo de agendar. */
   const saveAndSchedule = async () => {
     if (hasContent) await persistInterview();

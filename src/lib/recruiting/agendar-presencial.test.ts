@@ -13,7 +13,7 @@ const pipeline = [stage("registered"), stage("phone"), stage(ETAPA_PRESENCIAL), 
 const ahora = new Date("2026-10-18T12:00:00");
 const cita = { iso: new Date("2026-10-20T10:30:00").toISOString(), lugar: "McAllen" };
 
-describe("agendar entrevista presencial al terminar la entrevista (D-NEXT)", () => {
+describe("agendar entrevista presencial al terminar la entrevista (D-585)", () => {
   it("la fecha tiene que existir, ser válida y estar en el futuro", () => {
     expect(validarFechaPresencial("", ahora)).toEqual({ ok: false, motivo: "sin-fecha" });
     expect(validarFechaPresencial("ayer", ahora)).toEqual({ ok: false, motivo: "invalida" });

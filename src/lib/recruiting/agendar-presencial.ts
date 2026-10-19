@@ -2,7 +2,7 @@ import type { Candidate, Contact, Stage } from "./types";
 import { LOCATIONS } from "./constants";
 import { fmtDateTime, mergeTemplate, rcSms, telClean } from "./utils";
 
-/* ---- «📅 Agendar entrevista presencial» al terminar la entrevista (D-NEXT) ----
+/* ---- «📅 Agendar entrevista presencial» al terminar la entrevista (D-585) ----
  * El dueño pidió (2026-10-18): «en hr manager al terminar la entrevista que este el boton para
  * scheudle in person interview». Medido: ya existía el diálogo «🤝 Agendar presencial» (fecha y
  * hora, pasa a la etapa `inperson`, deja un contacto «In person / Scheduled»), pero no se llegaba

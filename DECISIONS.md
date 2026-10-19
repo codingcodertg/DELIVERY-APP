@@ -45268,7 +45268,7 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 
 ---
 
-## D-NEXT · RR. HH.: «📅 Agendar entrevista presencial» al terminar la entrevista, con lugar, nota y texto de confirmación por el mismo camino que D-581
+## D-585 · RR. HH.: «📅 Agendar entrevista presencial» al terminar la entrevista, con lugar, nota y texto de confirmación por el mismo camino que D-581
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Amplía el diálogo «🤝 Agendar presencial» y la salida de `InterviewModal`.
 

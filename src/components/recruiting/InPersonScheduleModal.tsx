@@ -10,7 +10,7 @@ import {
 import { fmtDateTime } from "@/lib/recruiting/utils";
 
 /**
- * «📅 Agendar entrevista presencial» (D-NEXT). Fecha y hora (futura), lugar (sede o texto) y nota.
+ * «📅 Agendar entrevista presencial» (D-585). Fecha y hora (futura), lugar (sede o texto) y nota.
  * Al guardar: `inperson_date`, la etapa que toque (librería), el contacto «In person / Scheduled», y
  * después OFRECE mandar el texto de confirmación por el mismo camino que D-581 —enlace a RingCentral,
  * contacto SMS marcado— sin obligar. Permisos: los de la entrevista; ninguno extra.
