@@ -45265,3 +45265,34 @@ Mutantes **12 de 12** (`tanda-chofer-tienda-y-linea.json`, 2026-10-18), cada uno
 ### No verificado
 
 Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se midió con una ruta real cuántas llamadas se ahorran: es lo que dice la firma, no un contador en vivo.
+
+---
+
+## D-NEXT · RR. HH.: «📅 Agendar entrevista presencial» al terminar la entrevista, con lugar, nota y texto de confirmación por el mismo camino que D-581
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Amplía el diálogo «🤝 Agendar presencial» y la salida de `InterviewModal`.
+
+**Pedido del dueño** (2026-10-18), literal: *«en hr manager al terminar la entrevista que este el boton para scheudle in person interview»*.
+
+### Qué había (medido en el código; la rama no lleva `.env.local`)
+
+Ya existía casi todo menos la puerta: `ScheduleModal` con `kind="inperson"` (`ModalHost.tsx`) pedía solo fecha y hora, guardaba `inperson_date`, pasaba al candidato a la etapa **`inperson`** («In Person Interview», `DEFAULT_STAGES` y tabla `recruiting.stages`) si existía, y dejaba un contacto «In person / Scheduled» con la fecha. Se abría desde la fila (`CandidateRow`) y desde la ficha (`ProfileModal`). Pero **al terminar la entrevista no había forma de llegar**: `InterviewModal` salía por «Guardar», «Guardar y ver resumen», «Descartar» o «Cerrar», y el Resumen solo ofrecía «➡ Mover a In Person Interview» (cambia la etapa **sin fecha**, así que no sale en Hoy ni en Calendario). Para agendar había que cerrar, buscar al candidato y abrir «🤝 Agendar presencial». Tampoco aceptaba una fecha pasada, no tenía lugar ni nota, y no mandaba confirmación al candidato. No había etapa que crear: `inperson` es la que significa «entrevista presencial agendada»; no hay migración.
+
+### Qué cambia
+
+1. **Tres salidas nuevas hacia el mismo diálogo:** en la barra de botones de la entrevista, **«📅 Agendar entrevista presencial»** (`saveAndSchedule`: guarda lo calificado si hay algo —es la evidencia de por qué se cita—, cierra y abre el agendar; el borrador se limpia igual que con «Descartar»); en el **Resumen** (junto a «Mover a», que pasa a secundario); y en la **vista de la entrevista hecha** (`InterviewView.tsx`, solo si hay entrevista guardada; recibe `schedule` como prop, igual que `edit`, para no importar `useUI` desde el fichero que lo importa a él).
+2. **El diálogo de la presencial sale a `InPersonScheduleModal.tsx`** (el `ScheduleModal` viejo queda solo para la llamada telefónica): fecha y hora **futuras** (si no, lo dice y no guarda), **lugar** —las sedes de `LOCATIONS` sin «TBD», más el `location` del candidato si no está en la lista, u «Otro…» con texto libre—, y **nota** opcional. Al guardar: `inperson_date`, la etapa que decide la librería, y el contacto `In person / Scheduled` con «fecha · lugar · nota» (lo que ya enseña la vista de la entrevista hecha, D-472, `notasDeLaPresencial`).
+3. **Después de guardar, ofrece —no obliga— mandar la confirmación:** «📱 Mandar texto de confirmación» abre RingCentral por el **mismo enlace `rcSms(phone, texto)` de D-581**, con la plantilla bilingüe (nombre de pila, puesto, día con nombre, hora, lugar; sin lugar dice «nuestra oficina» / «our office») y deja un contacto `SMS` con `result = "sent · in-person confirmation"`, distinto del «¿te puedo llamar?». «Listo» cierra sin mandar nada. Sin teléfono lo dice al lado. **Nada sale del servidor**: como en D-581, el SMS lo manda el reclutador desde su RingCentral.
+4. **La etapa resultante** (`etapaTrasAgendar`): `inperson` si existe en el pipeline y el candidato está en una etapa **activa**; un contratado o descartado **no vuelve atrás** por agendar (antes sí: el diálogo viejo movía a quien fuera), y si la etapa no existe se queda donde está.
+5. **Lógica pura en `src/lib/recruiting/agendar-presencial.ts`**: `validarFechaPresencial`, `lugaresParaAgendar`, `etapaTrasAgendar`, `contactoDeLaCita`, `textoConfirmacionPresencial`, `prepararConfirmacionPresencial`, `contactoDeLaConfirmacion`. **Permisos:** los de la entrevista; ninguno extra. **Bilingüe** con el `t()` de RR. HH.
+
+### Qué se descartó
+
+- **Una etapa nueva «Presencial agendada».** `inperson` ya es eso y el Calendario/Hoy/Resultados cuelgan de `inperson_date` + `status === "inperson"`; otra etapa partiría esas pantallas.
+- **Guardar el lugar en una columna** de `candidates`: va en el contacto, que es lo que la vista de la presencial ya enseña; una columna sería migración para un dato que hoy no filtra nada. Si el dueño quiere el lugar en el Calendario, es otra decisión.
+- **Tiendas de Ajustes**: RR. HH. no tiene tiendas en sus Ajustes (`Settings` = roles, departamentos, escala); las sedes son `LOCATIONS`, las mismas del alta del candidato. Leer las tiendas de Entregas cruzaría módulos.
+- **Mandar el SMS por `/api/notify`**: la misma razón de D-581 (ruta cerrada a quien no tiene Entregas; RR. HH. manda desde la app de RingCentral del reclutador).
+
+**Pruebas:** `src/lib/recruiting/agendar-presencial.test.ts` (10: fecha vacía/inválida/pasada/igual a ahora/futura; etapa para activo, sin etapa en el pipeline, contratado y descartado no retroceden; contacto de la cita con y sin lugar/nota; lugares sin TBD y con el del candidato; texto en los dos idiomas con fecha, hora y lugar resueltos; «nuestra oficina» sin lugar; enlace con número limpio y texto, sin teléfono nada; el SMS de confirmación marcado y distinto del de D-581; puerta: el diálogo pasa por la librería, se monta para «inperson», la entrevista tiene `saveAndSchedule` y la vista tiene el botón). Proveedor: ninguno real; ningún SMS salió. **Mutantes 17 de 17** caen con una prueba con nombre (`~/.claude/herramientas/mutantes/tanda-agendar-presencial.json`): fecha pasada aceptada; «ahora» como futura; sin fecha válida; contratado vuelve atrás; sin etapa igual mueve; contacto sin lugar/nota; contacto que no es «In person»; «TBD» como lugar; lugar del candidato perdido; español en inglés; `{place}` sin resolver; hueco sin lugar; sin teléfono prepara igual; enlace sin texto; confirmación confundida con «¿te puedo llamar?»; la entrevista pierde la salida; la vista pierde el botón. `npx tsc --noEmit` limpio.
+
+**No verificado:** en navegador (que RingCentral abra con el texto; el ancho de la barra de botones de la entrevista con uno más; el `datetime-local` en el móvil); `next build`; nada contra producción desde la rama.
