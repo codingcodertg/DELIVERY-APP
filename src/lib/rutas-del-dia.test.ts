@@ -248,9 +248,10 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
     // Y la entregada conserva su número en el rótulo.
     expect(de("__hecha__h1").label).toContain("(Stop 2 · Delivered ");
   });
-  it("lo ya entregado sigue en el mapa con ✓ y apagado (D-459); lo sin chofer, en gris y sin etiqueta", () => {
+  // Puesto al día por D-584: el pin de la entregada lleva su número de parada apagado, no un ✓ apagado.
+  it("lo ya entregado sigue en el mapa con su número y apagado (D-459, D-584); lo sin chofer, en gris y sin etiqueta", () => {
     const pts = puntos();
-    expect(pts.find((p) => p.id === "__hecha__h1")).toMatchObject({ badge: "✓", color: "rojo", dimmed: true });
+    expect(pts.find((p) => p.id === "__hecha__h1")).toMatchObject({ badge: "2", color: "rojo", dimmed: true });
     expect(pts.find((p) => p.id === "__hecha__h1")!.label).toContain("Delivered");
     expect(pts.find((p) => p.id === "s1")).toMatchObject({ color: "gris", badge: undefined, dimmed: false, label: "#FA5 (no invoice) — Unassigned" });
   });

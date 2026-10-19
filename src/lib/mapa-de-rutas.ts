@@ -6,6 +6,7 @@ import { driverOf } from "@/lib/route-lanes";
 import type { LecturaDeRuta, OrdenAsignada } from "@/lib/route-plan/lectura-de-ruta";
 import type { TripTrace } from "@/lib/usa-medida-de-rutas";
 import { nombreEnElMapa } from "@/lib/gestor/nombre-en-el-mapa";
+import { marcaDeLaHecha } from "@/lib/recogida-y-ruta-del-dia";
 import { textoDeLaParada, type ParadaFisica } from "@/lib/gestor/paradas-numeradas";
 
 /**
@@ -276,9 +277,10 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       dimmed: sel ? false : (e.atenuada(laneKey) || selActive),
     });
   }
-  // Lo ya hecho sigue en el mapa (D-459), como hecho: la entregada con ✓ y apagada; la recogida y aún en camino, con 🚚.
-  // No es una parada que se pueda marcar ni mover: su id no es el de la orden, y pulsarla no hace nada. Conserva su número de
-  // parada del día en el rótulo (D-529), el de la tabla: «(Parada 5 · Entregada 10:42)».
+  // Lo ya hecho sigue en el mapa (D-459), como hecho: la entregada apagada y con su NÚMERO de parada del día (D-584; hasta
+  // ahí, un «✓» apagado: el dueño, «keep the numbers and fade them instead of replacing them with a faded checkmark»); la
+  // recogida y aún en camino, con 🚚. No es una parada que se pueda marcar ni mover: su id no es el de la orden, y pulsarla
+  // no hace nada. El rótulo dice el número (D-529), el de la tabla: «(Parada 5 · Entregada 10:42)».
   for (const [laneKey, lista] of e.hechas) {
     if (!e.pasaFiltro(laneKey)) continue;
     for (const d of lista) {
@@ -288,7 +290,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       const numero = paradasDelDia(laneKey).find((p) => p.tipo === "D" && p.ordenes.includes(d.id))?.numero;
       pts.push({
         id: `${PREFIJO_HECHA}${d.id}`, lat: d.delivery_lat, lng: d.delivery_lng,
-        color: e.colorDe(d.assigned_driver), badge: entregada ? "✓" : "🚚",
+        color: e.colorDe(d.assigned_driver), badge: marcaDeLaHecha(entregada, numero),
         label: `${nombreEnElMapa(d, t)} — ${d.assigned_driver} (${numero != null ? `${t("Stop", "Parada")} ${numero} · ` : ""}${entregada ? t("Delivered", "Entregada") + (hora ? ` ${hora}` : "") : t("On its way", "En camino")})${detalle(d)}`,
         dimmed: entregada || e.atenuada(laneKey) || selActive,
       });

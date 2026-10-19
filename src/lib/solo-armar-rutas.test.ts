@@ -71,7 +71,8 @@ describe("medir la ruta sin reordenarla", () => {
     expect(mide).toContain("pide: (url, init) => fetch(url, init) });");
     // D-443: UNA medida por chofer, la lista entera en su orden —cada recogida en su tienda y cada entrega—, no un lazo por viaje.
     expect(mide).toContain("const r = await mideLaLista({ lista: e.listaDe(laneKey, stopList), ordenes: stopList, base: depot,");
-    expect(pagina).toContain("listaDe: (clave, stops) => lecturaDe(clave, stops).paradas,");
+    // Nota D-584: la lista que firma la forma es la del día (hechas + pendientes).
+    expect(pagina).toContain("listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia)).paradas),");
     // **Puesto al día por la base del día (166, 2026-10-11)**: el cuerpo lleva también dónde termina (`e.fin`).
     expect(mide).toContain("body: JSON.stringify(cuerpoDeLaMedida(puntos.map(({ id, lat, lng }) => ({ id, lat, lng })), depot, e.ordenes[0]?.delivery_date ?? e.fecha, e.fin)),");
     // **Reemplazado en parte por D-461** (2026-10-02): cada fila P sumaba la recarga entera (`servicio: RELOAD_MIN`); desde
@@ -175,7 +176,8 @@ describe("Julio vacío: ni línea en el mapa ni tarjeta", () => {
   });
   it("la línea medida, solo de quien tiene paradas; y lo medido de una ruta que cambió (también por quitarle) se tira", () => {
     expect(mapaDeRutas).toContain("const entries = Object.entries(e.trazos).filter(([driver]) => e.pasaFiltro(driver) && e.tieneParadas(driver));");
-    expect(pagina).toContain("trazos: routeLines, trazosDelPlan, tieneParadas: (clave) => (byDriver.get(clave)?.length ?? 0) > 0,");
+    // Nota D-584: «tiene paradas» mira la ruta del día (hechas + pendientes), para que la línea no se vaya al entregar la última.
+    expect(pagina).toContain("trazos: routeLines, trazosDelPlan, tieneParadas: (clave) => delDiaDe(clave).length > 0,");
     expect(medida).toContain("if (firmaPintada.current[k] !== firmaDe(k, byDriver.get(k) ?? [])) clearRouteFor(k);");
   });
   it("sin paradas no hay tarjeta, aunque esté marcado; se nombra en una línea", () => {

@@ -192,7 +192,8 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       // que el pin lo usa, y que vale lo que valía.
       expect(pines).toContain("id: `${PREFIJO_HECHA}${d.id}`");
       expect(PREFIJO_HECHA).toBe("__hecha__");
-      expect(pines).toContain('badge: entregada ? "✓" : "🚚"');
+      // Puesto al día por D-584: la entregada lleva su número apagado (`marcaDeLaHecha`), no un ✓.
+      expect(pines).toContain("badge: marcaDeLaHecha(entregada, numero),");
       expect(pines).toContain("dimmed: entregada || e.atenuada(laneKey) || selActive,");
       expect(pines).toContain("if (!e.pasaFiltro(laneKey)) continue;");
       const llamada = trozo("const pts = puntosDeLasRutas<Delivery>({", "});");
