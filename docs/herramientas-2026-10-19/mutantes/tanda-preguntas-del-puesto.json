@@ -1,0 +1,139 @@
+{
+ "mutantes": [
+  {
+   "nombre": "la vacante deja de mandar sobre el puesto",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "  if (vacante?.question_set_id) return { setId: vacante.question_set_id, origen: \"vacante\" };\n",
+   "nuevo": "",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "el conjunto del puesto se ignora (va directo al implícito)",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "    if (propio) return { setId: propio.id, origen: \"puesto\" };\n",
+   "nuevo": "",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "el enlace implícito lo crea también una pregunta inactiva",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "    const implicito = preguntas.find((q) => q.active && q.role === rolDelCandidato && q.set_id)?.set_id;",
+   "nuevo": "    const implicito = preguntas.find((q) => q.role === rolDelCandidato && q.set_id)?.set_id;",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "sin conjunto propio se cae a «ninguno» en vez del predeterminado",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "  return def ? { setId: def.id, origen: \"predeterminado\" } : { setId: null, origen: \"ninguno\" };",
+   "nuevo": "  return { setId: null, origen: \"ninguno\" };",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "las inactivas entran en la entrevista",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "    (q) => q.active && (conjuntoEntero || rolesQueEntran.has(q.role)) && (setId ? q.set_id === setId : true),",
+   "nuevo": "    (q) => (conjuntoEntero || rolesQueEntran.has(q.role)) && (setId ? q.set_id === setId : true),",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "el conjunto elegido no filtra (entran preguntas de otros conjuntos)",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "    (q) => q.active && (conjuntoEntero || rolesQueEntran.has(q.role)) && (setId ? q.set_id === setId : true),",
+   "nuevo": "    (q) => q.active && (conjuntoEntero || rolesQueEntran.has(q.role)),",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "el puesto de la vacante abre la puerta aunque el conjunto no viniera de la vacante",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "  if (origen === \"vacante\" && vacante?.role) rolesQueEntran.add(vacante.role);",
+   "nuevo": "  if (vacante?.role) rolesQueEntran.add(vacante.role);",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "el puesto de la vacante nunca abre la puerta",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "  if (origen === \"vacante\" && vacante?.role) rolesQueEntran.add(vacante.role);\n",
+   "nuevo": "",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "la preselección deja de ir delante",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "  return filtradas.slice().sort((a, b) => indice(a) - indice(b));",
+   "nuevo": "  return filtradas;",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "el reclutador también puede asignar",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "  return rol === \"admin\" || rol === \"manager\";",
+   "nuevo": "  return rol === \"admin\" || rol === \"manager\" || rol === \"recruiter\";",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "solo el admin puede asignar (el gerente se queda fuera, que es lo que había)",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "  return rol === \"admin\" || rol === \"manager\";",
+   "nuevo": "  return rol === \"admin\";",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "el conteo por conjunto cuenta también las inactivas",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "    if (!q.active || !q.set_id) continue;",
+   "nuevo": "    if (!q.set_id) continue;",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "Ajustes guarda el conjunto sin pasar por la puerta de rol",
+   "fichero": "src/app/recruiting/(recruiting)/settings/page.tsx",
+   "viejo": "                  disabled={!puedeAsignar}\n",
+   "nuevo": "",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "la entrevista vuelve a su filtro propio en vez de la librería",
+   "fichero": "src/components/recruiting/ModalHost.tsx",
+   "viejo": "    return preguntasDeEntrevista({ vacante: job, rolDelCandidato: c?.role, conjuntos: questionSets, preguntas: questions });",
+   "nuevo": "    void job; return questions.filter((q) => q.active && (q.role === \"all\" || q.role === c?.role));",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  },
+  {
+   "nombre": "el conjunto del puesto vuelve a filtrar por etiqueta",
+   "fichero": "src/lib/recruiting/preguntas-del-puesto.ts",
+   "viejo": "  const conjuntoEntero = origen === \"puesto\";",
+   "nuevo": "  const conjuntoEntero = false;",
+   "pruebas": [
+    "src/lib/recruiting/preguntas-del-puesto.test.ts"
+   ]
+  }
+ ]
+}

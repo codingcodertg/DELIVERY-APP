@@ -1,0 +1,4 @@
+{ "mutantes": [
+  { "nombre": "la factura se queda sin el 📅", "fichero": "src/app/(app)/routes/page.tsx",
+    "viejo": "                  <span className=\"accion-de-fila\" onClick={(e) => e.stopPropagation()}>\n                    <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />\n                  </span>", "nuevo": "                  null", "pruebas": ["src/lib/reprogramar-orden.test.ts"] }
+]}

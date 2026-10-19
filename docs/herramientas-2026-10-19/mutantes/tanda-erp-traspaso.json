@@ -1,0 +1,116 @@
+{
+  "mutantes": [
+    {
+      "nombre": "Product Analytics pasa a ser solo de manager+ (staff pierde el antiguo Dashboard al moverlo)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "  { href: \"/erp/dashboard\", label: t(\"Product Analytics\", \"Analítica de productos\") },",
+      "nuevo": "  { href: \"/erp/dashboard\", label: t(\"Product Analytics\", \"Analítica de productos\"), managerPlus: true },",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "el bloque Analítica deja de filtrar por entrada (staff ve los cuatro de manager+)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "analytics: analyticsItems(t).filter(puede) };",
+      "nuevo": "analytics: analyticsItems(t) };",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "sin catálogo (chofer, almacén) también hay menú",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "  if (!hasCatalogAccess(role)) return { main: [], analytics: [] };",
+      "nuevo": "",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "Request vuelve al menú",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "  { href: \"/erp/catalog\", label: t(\"Catalog\", \"Catálogo\") },",
+      "nuevo": "  { href: \"/erp/catalog\", label: t(\"Catalog\", \"Catálogo\") },\n  { href: \"/erp/request\", label: t(\"Request\", \"Solicitud\") },",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "Name se puede ocultar (la tabla podría quedarse sin columnas)",
+      "fichero": "src/lib/erp/catalog-columns.ts",
+      "viejo": "  { id: \"name\", en: \"Name\", es: \"Nombre\", canHide: false },",
+      "nuevo": "  { id: \"name\", en: \"Name\", es: \"Nombre\", canHide: true },",
+      "pruebas": ["src/lib/erp/catalog-columns.test.ts"]
+    },
+    {
+      "nombre": "Cost y Margin se construyen también para staff",
+      "fichero": "src/lib/erp/catalog-columns.ts",
+      "viejo": "(!c.cost || opts.canSeeCost)",
+      "nuevo": "true",
+      "pruebas": ["src/lib/erp/catalog-columns.test.ts"]
+    },
+    {
+      "nombre": "el orden guardado conserva ids que la sesión no tiene (cost en el orden de staff)",
+      "fichero": "src/lib/erp/catalog-columns.ts",
+      "viejo": "typeof id === \"string\" && known.has(id) && !out.includes(id)",
+      "nuevo": "typeof id === \"string\" && !out.includes(id)",
+      "pruebas": ["src/lib/erp/catalog-columns.test.ts"]
+    },
+    {
+      "nombre": "una vista guardada puede llegar con Name oculto",
+      "fichero": "src/lib/erp/catalog-columns.ts",
+      "viejo": "    if (!v && !c.canHide) continue;",
+      "nuevo": "",
+      "pruebas": ["src/lib/erp/catalog-columns.test.ts"]
+    },
+    {
+      "nombre": "la ordenación guardada vale aunque la columna no se pueda ordenar en el servidor",
+      "fichero": "src/lib/erp/catalog-columns.ts",
+      "viejo": "columns.some((c) => c.id === id && c.canSort)",
+      "nuevo": "columns.some((c) => c.id === id)",
+      "pruebas": ["src/lib/erp/catalog-columns.test.ts"]
+    },
+    {
+      "nombre": "la ordenación guardada pierde su dirección",
+      "fichero": "src/lib/erp/catalog-columns.ts",
+      "viejo": "return [{ id, desc: desc === true }];",
+      "nuevo": "return [{ id, desc: false }];",
+      "pruebas": ["src/lib/erp/catalog-columns.test.ts"]
+    },
+    {
+      "nombre": "la última columna se puede bajar más allá del final",
+      "fichero": "src/lib/erp/catalog-columns.ts",
+      "viejo": "return from >= 0 && to >= 0 && to < order.length;",
+      "nuevo": "return from >= 0 && to >= 0 && to <= order.length;",
+      "pruebas": ["src/lib/erp/catalog-columns.test.ts"]
+    },
+    {
+      "nombre": "«Ocultar columna» oculta también Name",
+      "fichero": "src/lib/erp/catalog-columns.ts",
+      "viejo": "  if (!column.canHide) return visibility;\n  return { ...visibility, [column.id]: false };",
+      "nuevo": "  return { ...visibility, [column.id]: false };",
+      "pruebas": ["src/lib/erp/catalog-columns.test.ts"]
+    },
+    {
+      "nombre": "abierto desde una fila, el formulario ofrece también «new» y «copy»",
+      "fichero": "src/lib/erp/solicitud-campos.ts",
+      "viejo": "  return { tipo: \"edit\", productoFijo: sku, buscador: false, tipos: TIPOS_DEL_EJECUTOR };",
+      "nuevo": "  return { tipo: \"edit\", productoFijo: sku, buscador: false, tipos: TIPOS_DE_SOLICITUD };",
+      "pruebas": ["src/lib/erp/solicitud-desde-catalogo.test.ts"]
+    },
+    {
+      "nombre": "un targetSku de solo espacios abre el formulario como si hubiera producto",
+      "fichero": "src/lib/erp/solicitud-campos.ts",
+      "viejo": "  const sku = (targetSku ?? \"\").trim();",
+      "nuevo": "  const sku = targetSku ?? \"\";",
+      "pruebas": ["src/lib/erp/solicitud-desde-catalogo.test.ts"]
+    },
+    {
+      "nombre": "con producto fijo, cambiar de tipo suelta el producto",
+      "fichero": "src/components/erp/request-form.tsx",
+      "viejo": "    if (arranque.productoFijo) {",
+      "nuevo": "    if (false) {",
+      "pruebas": ["src/lib/erp/solicitud-desde-catalogo.test.ts"]
+    },
+    {
+      "nombre": "salesRepStatsThisMonth vuelve a leer el reloj e ignora `now`",
+      "fichero": "src/lib/analytics.ts",
+      "viejo": "  const monthPrefix = `${now.getFullYear()}",
+      "nuevo": "  now = new Date(); const monthPrefix = `${now.getFullYear()}",
+      "pruebas": ["src/lib/analytics.test.ts"]
+    }
+  ]
+}

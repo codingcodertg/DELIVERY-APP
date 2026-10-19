@@ -1,0 +1,18 @@
+{ "mutantes": [
+  { "nombre": "la lista deja de esconder los archivados", "fichero": "src/lib/customers/reglas.ts",
+    "viejo": "    if (estaArchivado(c) !== f.archivados) return false;\n", "nuevo": "", "pruebas": ["src/lib/customers/reglas.test.ts"] },
+  { "nombre": "archivado se decide por el motivo y no por la fecha", "fichero": "src/lib/customers/reglas.ts",
+    "viejo": "  return c.archived_at !== null && c.archived_at !== \"\";", "nuevo": "  return (c as { archived_reason?: string | null }).archived_reason != null;", "pruebas": ["src/lib/customers/reglas.test.ts"] },
+  { "nombre": "desarchivar deja el motivo puesto", "fichero": "src/lib/customers/reglas.ts",
+    "viejo": "export const PARCHE_DESARCHIVAR: Parche = { archived_at: null, archived_reason: null };", "nuevo": "export const PARCHE_DESARCHIVAR: Parche = { archived_at: null };", "pruebas": ["src/lib/customers/reglas.test.ts"] },
+  { "nombre": "sin nombre exige una sola letra", "fichero": "scripts/archiva-clientes-basura.mjs",
+    "viejo": "  return !/[A-Za-z]{3}/.test(String(account ?? \"\"));", "nuevo": "  return !/[A-Za-z]/.test(String(account ?? \"\"));", "pruebas": ["scripts/archiva-clientes-basura.test.mjs"] },
+  { "nombre": "interno deja de distinguir mayusculas y casa con 'internal'", "fichero": "scripts/archiva-clientes-basura.mjs",
+    "viejo": "  return INTERNOS.has(activityStatus);", "nuevo": "  return typeof activityStatus === \"string\" && [...INTERNOS].some((s) => s.toLowerCase() === activityStatus.toLowerCase());", "pruebas": ["scripts/archiva-clientes-basura.test.mjs"] },
+  { "nombre": "el UPDATE de archivar pisa filas ya archivadas (no idempotente)", "fichero": "scripts/archiva-clientes-basura.mjs",
+    "viejo": "      \"update erp.customers set archived_at = now(), archived_reason = $1 where archived_at is null and id = any($2::bigint[]) returning id\",", "nuevo": "      \"update erp.customers set archived_at = now(), archived_reason = $1 where id = any($2::bigint[]) returning id\",", "pruebas": ["scripts/archiva-clientes-basura.test.mjs"] },
+  { "nombre": "--deshacer desarchiva todo, tambien lo archivado a mano", "fichero": "scripts/archiva-clientes-basura.mjs",
+    "viejo": "  const u = await consulta(\"update erp.customers set archived_at = null, archived_reason = null where archived_at is not null and archived_reason = any($1::text[]) returning id\", [motivos]);", "nuevo": "  const u = await consulta(\"update erp.customers set archived_at = null, archived_reason = null where archived_at is not null returning id\", []);", "pruebas": ["scripts/archiva-clientes-basura.test.mjs"] },
+  { "nombre": "en seco tambien escribe", "fichero": "scripts/archiva-clientes-basura.mjs",
+    "viejo": "  if (!escribe) { log(\"\\nEN SECO: no se toco la base. Con --escribe se archiva de verdad.\"); return r; }\n", "nuevo": "", "pruebas": ["scripts/archiva-clientes-basura.test.mjs"] }
+]}

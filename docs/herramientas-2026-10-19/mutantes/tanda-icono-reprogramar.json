@@ -1,0 +1,10 @@
+{ "mutantes": [
+  { "nombre": "la cara compacta vuelve a llevar texto", "fichero": "src/components/ReprogramarOrden.tsx",
+    "viejo": "          📅\n        </button>\n      ) : (", "nuevo": "          📅 {t(\"Reschedule\", \"Reprogramar\")}\n        </button>\n      ) : (", "pruebas": ["src/lib/reprogramar-orden.test.ts"] },
+  { "nombre": "Almacén deja de pedir la cara compacta", "fichero": "src/app/(app)/warehouse/page.tsx",
+    "viejo": "notify={notify} compacto />\n    : null;", "nuevo": "notify={notify} />\n    : null;", "pruebas": ["src/lib/reprogramar-orden.test.ts"] },
+  { "nombre": "la acción vuelve debajo del ID", "fichero": "src/components/OrdersTable.tsx",
+    "viejo": "              {accionEnLinea}\n              {/* El documento", "nuevo": "              {/* El documento", "pruebas": ["src/lib/reprogramar-orden.test.ts"] },
+  { "nombre": "la acción vuelve a ser un bloque", "fichero": "src/app/globals.css",
+    "viejo": ".accion-de-fila { display: inline-flex;", "nuevo": ".accion-de-fila { display: block;", "pruebas": ["src/lib/reprogramar-orden.test.ts"] }
+]}

@@ -1,0 +1,118 @@
+{
+ "mutantes": [
+  {
+   "nombre": "la recogida ignora la tienda de la orden (store) cuando falta pickup_name",
+   "fichero": "src/lib/recogida-y-ruta-del-dia.ts",
+   "viejo": "  const nombre = (d.pickup_name ?? \"\").trim() || (d.store ?? \"\").trim() || null;",
+   "nuevo": "  const nombre = (d.pickup_name ?? \"\").trim() || null;",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts"
+   ]
+  },
+  {
+   "nombre": "la tienda se compara con mayúsculas y espacios",
+   "fichero": "src/lib/recogida-y-ruta-del-dia.ts",
+   "viejo": "tiendas.find((s) => normaliza(s.name) === normaliza(nombre))",
+   "nuevo": "tiendas.find((s) => s.name === nombre)",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts"
+   ]
+  },
+  {
+   "nombre": "ninguna recogida está en tienda: siempre la dirección",
+   "fichero": "src/lib/recogida-y-ruta-del-dia.ts",
+   "viejo": "  if (tienda) return { enTienda: true, tienda: tienda.name };\n",
+   "nuevo": "",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts",
+    "src/lib/mi-ruta-pantalla.test.ts"
+   ]
+  },
+  {
+   "nombre": "Mi ruta nunca pinta la rama de tienda (el texto sigue en el fichero)",
+   "fichero": "src/app/(app)/my-route/page.tsx",
+   "viejo": "    if (r?.enTienda) return (",
+   "nuevo": "    if (r?.enTienda && !r) return (",
+   "pruebas": [
+    "src/lib/mi-ruta-pantalla.test.ts"
+   ]
+  },
+  {
+   "nombre": "la entregada vuelve al ✓ en vez de su número",
+   "fichero": "src/lib/recogida-y-ruta-del-dia.ts",
+   "viejo": "  return numero != null ? String(numero) : \"✓\";",
+   "nuevo": "  return \"✓\";",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts",
+    "src/lib/rutas-del-dia.test.ts",
+    "src/lib/gestor/numeros-del-dia.test.ts"
+   ]
+  },
+  {
+   "nombre": "la en camino también lleva número",
+   "fichero": "src/lib/recogida-y-ruta-del-dia.ts",
+   "viejo": "  if (!entregada) return \"🚚\";\n",
+   "nuevo": "",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts",
+    "src/lib/gestor/numeros-del-dia.test.ts"
+   ]
+  },
+  {
+   "nombre": "el mapa no usa marcaDeLaHecha: ✓ como antes",
+   "fichero": "src/lib/mapa-de-rutas.ts",
+   "viejo": "badge: marcaDeLaHecha(entregada, numero),",
+   "nuevo": "badge: entregada ? \"✓\" : \"🚚\",",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts",
+    "src/lib/rutas-del-dia.test.ts",
+    "src/lib/gestor-entregadas-y-vista.test.ts"
+   ]
+  },
+  {
+   "nombre": "las órdenes del día en el orden en que llegan (entregar cambia la forma)",
+   "fichero": "src/lib/recogida-y-ruta-del-dia.ts",
+   "viejo": "  return [...porId.values()].sort((a, b) => (a.route_seq ?? -1) - (b.route_seq ?? -1) || a.id.localeCompare(b.id));",
+   "nuevo": "  return [...porId.values()];",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts"
+   ]
+  },
+  {
+   "nombre": "pendientesDelDia devuelve también lo hecho",
+   "fichero": "src/lib/recogida-y-ruta-del-dia.ts",
+   "viejo": "  return delDia.filter((d) => !ETAPAS_HECHAS.has(d.stage));",
+   "nuevo": "  return [...delDia];",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts"
+   ]
+  },
+  {
+   "nombre": "una parada de entrega con varias órdenes mide solo la primera",
+   "fichero": "src/lib/recogida-y-ruta-del-dia.ts",
+   "viejo": "    : p.ordenes.map((orden) => ({ tipo: \"D\", orden }))));",
+   "nuevo": "    : [{ tipo: \"D\", orden: p.ordenes[0] }]));",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts"
+   ]
+  },
+  {
+   "nombre": "el Gestor vuelve a medir solo lo pendiente",
+   "fichero": "src/app/(app)/routes/page.tsx",
+   "viejo": "    date, porChofer: rutaDelDia, rutasAMedir, seMide,",
+   "nuevo": "    date, porChofer: byDriver, rutasAMedir, seMide,",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts"
+   ]
+  },
+  {
+   "nombre": "una ruta ya terminada pierde su línea",
+   "fichero": "src/app/(app)/routes/page.tsx",
+   "viejo": "tieneParadas: (clave) => delDiaDe(clave).length > 0,",
+   "nuevo": "tieneParadas: (clave) => (byDriver.get(clave)?.length ?? 0) > 0,",
+   "pruebas": [
+    "src/lib/recogida-y-ruta-del-dia.test.ts"
+   ]
+  }
+ ]
+}

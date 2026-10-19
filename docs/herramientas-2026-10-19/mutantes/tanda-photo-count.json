@@ -1,0 +1,33 @@
+{
+  "_": "D-NEXT (177) photo_count: la lista sin fotos. 2026-10-15.",
+  "mutantes": [
+    {
+      "nombre": "M1  la lista vuelve a pedir photos (select *)",
+      "fichero": "src/lib/data-provider.tsx",
+      "viejo": "    const r = await pedir(COLUMNAS_DE_LA_LISTA);",
+      "nuevo": "    const r = await pedir(\"*\");",
+      "pruebas": ["src/lib/columnas-de-la-lista.test.ts"]
+    },
+    {
+      "nombre": "M2  el modal no carga las fotos (las toma de la fila de la lista)",
+      "fichero": "src/components/OrderModal.tsx",
+      "viejo": "  const fotosOrden = useFotosDeLaOrden(existing);",
+      "nuevo": "  const fotosOrden = { photos: existing?.photos ?? null, photo_meta: existing?.photo_meta ?? null, listas: true };",
+      "pruebas": ["src/lib/fotos-de-la-orden.test.ts", "src/lib/one-tap-stop.test.ts", "src/lib/acciones-de-la-ficha.test.ts"]
+    },
+    {
+      "nombre": "M3  el update no lee photo_meta fresco (usa el de la fila de la lista)",
+      "fichero": "src/lib/data-provider.tsx",
+      "viejo": "        const meta = await metaDeFotosAlGuardar(supabase as unknown as LectorDeFotos, id, patch.photos, me.id, new Date().toISOString());",
+      "nuevo": "        const meta = autoresDeFotos(patch.photos, before?.photo_meta, me.id, new Date().toISOString());",
+      "pruebas": ["src/lib/fotos-de-la-orden.test.ts", "src/lib/recogida-del-chofer.test.ts"]
+    },
+    {
+      "nombre": "M4  attention ignora photo_count (vuelve a d.photos)",
+      "fichero": "src/lib/attention.ts",
+      "viejo": "    conteoDeFotos(d) === 0);",
+      "nuevo": "    !(d.photos?.length));",
+      "pruebas": ["src/lib/attention.test.ts"]
+    }
+  ]
+}

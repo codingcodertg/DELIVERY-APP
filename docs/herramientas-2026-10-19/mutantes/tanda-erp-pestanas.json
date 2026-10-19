@@ -1,0 +1,81 @@
+{
+  "mutantes": [
+    {
+      "nombre": "Inventory se abre a staff como pestaña (agrupar ensancha la puerta)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "      { href: \"/erp/inventory\", label: t(\"Inventory\", \"Inventario\"), managerPlus: true },",
+      "nuevo": "      { href: \"/erp/inventory\", label: t(\"Inventory\", \"Inventario\") },",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "pestanasDe deja de filtrar por rol (staff ve las cuatro de Catálogo)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "  return g ? g.tabs.filter(puedeVer(role)) : [];",
+      "nuevo": "  return g ? g.tabs : [];",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "pestanasDe ignora la falta de catálogo (chofer ve pestañas)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "  if (!hasCatalogAccess(role)) return [];\n  const g = grupos(t)",
+      "nuevo": "  const g = grupos(t)",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "Approvals se cae de las pestañas de Catálogo (una entrada de D-553 desaparece)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "      { href: \"/erp/requests\", label: t(\"Approvals\", \"Aprobaciones\"), managerPlus: true },\n",
+      "nuevo": "",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "Receiving vuelve a la barra como entrada suelta además de pestaña",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "    { href: \"/erp/master\", label: t(\"Excel round-trip\", \"Ida y vuelta Excel\"), managerPlus: true },\n    // Sin",
+      "nuevo": "    { href: \"/erp/master\", label: t(\"Excel round-trip\", \"Ida y vuelta Excel\"), managerPlus: true },\n    { href: \"/erp/purchasing/receiving\", label: t(\"Receiving\", \"Recepción\"), managerPlus: true },\n    // Sin",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "la entrada Analítica pasa a manager+ (staff pierde Product Analytics en la barra)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "  { grupo: \"analytics\", href: \"/erp/dashboard\", label: t(\"Analytics\", \"Analítica\"), tabs: analyticsItems(t) },",
+      "nuevo": "  { grupo: \"analytics\", href: \"/erp/dashboard\", label: t(\"Analytics\", \"Analítica\"), managerPlus: true, tabs: analyticsItems(t) },",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "pestanaActiva se queda con el primer href que cubre (Compras encendida en /purchasing/orders)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "(mejor === null || tab.href.length > mejor.length)",
+      "nuevo": "mejor === null",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "pestanaActiva compara por prefijo de texto (/erp/request enciende Aprobaciones)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "pathname === href || pathname.startsWith(href + \"/\")",
+      "nuevo": "pathname.startsWith(href)",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "entradaActiva ignora el grupo (Catálogo no se enciende en /erp/inventory)",
+      "fichero": "src/lib/erp/nav.ts",
+      "viejo": "(i.grupo ? i.grupo === g : debajoDe(pathname, i.href))",
+      "nuevo": "debajoDe(pathname, i.href)",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "la fila de pestañas pinta todas las del grupo sin mirar el rol",
+      "fichero": "src/components/erp/group-tabs.tsx",
+      "viejo": "  const tabs = pestanasDe(grupo, role, t);",
+      "nuevo": "  const tabs = pestanasDe(grupo, \"admin\", t);",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    },
+    {
+      "nombre": "la página de Inventario pinta la fila de Compras",
+      "fichero": "src/app/erp/inventory/page.tsx",
+      "viejo": "<GroupTabs grupo=\"catalog\" role={session.role} />",
+      "nuevo": "<GroupTabs grupo=\"purchasing\" role={session.role} />",
+      "pruebas": ["src/lib/erp/nav.test.ts"]
+    }
+  ]
+}
