@@ -10,7 +10,7 @@ import { fmtDateTime, fmtPct, levelLabel, MAX_SCORE, scaleFor, scoreColor } from
  * La entrevista ya hecha, para leerla: todas las preguntas con su calificación y lo que se anotó,
  * las notas generales, y lo que quedó de la presencial. No edita nada; para cambiarla está «Editar entrevista».
  */
-export function InterviewViewModal({ id, close, edit }: { id: string; close: () => void; edit: (id: string) => void }) {
+export function InterviewViewModal({ id, close, edit, schedule }: { id: string; close: () => void; edit: (id: string) => void; schedule: (id: string) => void }) {
   const { candidates, settings, contactsFor } = useData();
   const { t, lang } = usePrefs();
   const c = candidates.find((x) => x.id === id);
@@ -93,6 +93,11 @@ export function InterviewViewModal({ id, close, edit }: { id: string; close: () 
 
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
           {it && <button className="btn btn-ghost" onClick={() => { close(); edit(c.id); }}>🎤 {t("Edit interview", "Editar entrevista")}</button>}
+          {it && (
+            <button className="btn btn-primary" onClick={() => { close(); schedule(c.id); }}>
+              📅 {t("Schedule in-person interview", "Agendar entrevista presencial")}
+            </button>
+          )}
           <button className="btn btn-ghost" onClick={close}>{t("Close", "Cerrar")}</button>
         </div>
       </div>
