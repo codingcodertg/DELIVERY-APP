@@ -1019,7 +1019,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         resultado = { kind: "falloTemporal" } as const;
       }
       if (resultado.kind === "ok" && puntoDentroDeLaRegion(resultado.lat, resultado.lng, settings.stores) === false) {
-        // Fuera de la región de D-580 (la #1071, «4408 QUEEN PALM», cayó en Florida): el punto NO se escribe (D-NEXT).
+        // Fuera de la región de D-580 (la #1071, «4408 QUEEN PALM», cayó en Florida): el punto NO se escribe (D-589).
         // La ficha ya corta antes de guardar; esto cubre el CSV y cualquier otra escritura que no pase por ella.
         direccionesSinPunto.current.add(clave);
         await logEvent(id, EVENTO_FUERA_DE_REGION, `${NOTA_FUERA_DE_REGION}: ${fila.delivery_address}`);

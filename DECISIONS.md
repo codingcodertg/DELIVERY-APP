@@ -45407,7 +45407,7 @@ La RLS de lectura de `deliveries` corta por `tiendas_visibles()`: para ventas de
 - Cuánto pesa para un vendedor sin `visible_stores` la lista de mañana de todas las tiendas: son las filas que su RLS ya le mandaba; el filtro es de pantalla.
 
 
-## D-NEXT · Una dirección a medias no se guarda: calle con número, ciudad y estado o código postal, y el punto dentro de la región (300 km de las tiendas); también la recogida que no es tienda, y también en un borrador
+## D-589 · Una dirección a medias no se guarda: calle con número, ciudad y estado o código postal, y el punto dentro de la región (300 km de las tiendas); también la recogida que no es tienda, y también en un borrador
 
 **Fecha:** 2026-10-18 · Sin migración · **Versión:** la pone el orquestador al fusionar · Rama `agent-a1724cc3ad66ba738` (worktree).
 

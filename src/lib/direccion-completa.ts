@@ -6,7 +6,7 @@ import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
 import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
 
 /**
- * Una dirección a medias no se guarda (D-NEXT).
+ * Una dirección a medias no se guarda (D-589).
  *
  * El dueño, el 2026-10-18: «delivery address always need to be completed because right now a half saved delivery was 1500
  * miles away s make that rule so that doesnt happens anymore». El caso: la orden #1071, «4408 QUEEN PALM» —sin ciudad ni

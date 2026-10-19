@@ -685,7 +685,7 @@ export function OrderModal({
   };
 
   /**
-   * Una dirección a medias no se guarda, ni como borrador (D-NEXT). El dueño, 2026-10-18: «delivery address always need
+   * Una dirección a medias no se guarda, ni como borrador (D-589). El dueño, 2026-10-18: «delivery address always need
    * to be completed because right now a half saved delivery was 1500 miles away». La #1071, «4408 QUEEN PALM», se
    * geocodificó en Florida. Qué se revisa lo decide `direccionesARevisar` (la entrega a cliente; la recogida que no es
    * tienda); cada una tiene que estar completa Y su punto caer en la región de D-580. El punto que no existe se busca
@@ -755,7 +755,7 @@ export function OrderModal({
       notify(t("Pickup and delivery address can't be the same.", "La dirección de recolección y de entrega no pueden ser iguales."));
       return;
     }
-    // Completas y dentro de la región, también en un borrador (D-NEXT). Con `busy`: puede ir a buscar el punto.
+    // Completas y dentro de la región, también en un borrador (D-589). Con `busy`: puede ir a buscar el punto.
     setBusy(true);
     const direcciones = await direccionesValidas(payload);
     setBusy(false);
@@ -950,7 +950,7 @@ export function OrderModal({
     // sola se saltaría entera la puerta de D-049. `to === "pending"` se queda porque el
     // «desbloquear» del gerente —de `approved` a `pending`— también pasaba por aquí.
     if ((to === "pending" || esEnvioDeBorrador(existing.stage, to)) && blockSubmit(existing)) return;
-    // Un borrador guardado ANTES de D-NEXT puede llevar la dirección a medias: no sale del borrador así.
+    // Un borrador guardado ANTES de D-589 puede llevar la dirección a medias: no sale del borrador así.
     if (esEnvioDeBorrador(existing.stage, to) && !direccionesCompletasDe(existing)) return;
     setBusy(true);
     // Stamp the driver's location when they collect the load (never blocks).

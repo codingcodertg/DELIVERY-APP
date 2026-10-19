@@ -117,7 +117,7 @@ describe("6 y 7 · «Venta al mostrador» es una opción fija del campo, y no re
 describe("1 · «Buscar dirección en el mapa» se quitó; soltar el pin sigue", () => {
   it("ni el botón ni su función; el pin a mano y su «Buscando…» (geocodificación inversa) se quedan", () => {
     expect(formulario).not.toMatch(/lookupAddress|Look up address on map|Buscar dirección en el mapa"/);
-    // Nota 2026-10-18 (D-NEXT, dirección completa): la ficha vuelve a llamar a `/api/geocode-point`, pero UNA vez y desde
+    // Nota 2026-10-18 (D-589, dirección completa): la ficha vuelve a llamar a `/api/geocode-point`, pero UNA vez y desde
     // `direccionesValidas` —para comprobar que el punto cae en la región ANTES de guardar—, no desde un botón de buscar.
     const llamadas = formulario.split('fetch("/api/geocode-point"');
     expect(llamadas.length - 1).toBe(1);
