@@ -453,6 +453,8 @@ table.orders tr:last-child td { border-bottom: none; }
    propósito, no un color del tema: se dibuja encima de una FOTO, no de la interfaz, así que tiene que verse igual sobre
    un mapa claro que sobre una tabla oscura. El color del borde lo pone el componente, de su propia constante. */
 .recuadro-de-captura { box-shadow: 0 0 0 1px rgba(255, 255, 255, .7) inset; }
+/* El número de cada recuadro de la captura (D-583): el rojo del recuadro con el número en blanco, el mismo que pinta el lienzo. */
+.numero-de-recuadro { background: #dc2626; color: #ffffff; }
 /* Las tablas de órdenes, más compactas (D-344). El dueño: «make the order tables more compact but
    efficiently at view». Solo las que se redimensionan (`tbl-resize`: Órdenes, Almacén, Chofer, Rutas,
    Cuentas) y solo en pantalla ancha: en el teléfono son tarjetas y tienen su propio relleno. El

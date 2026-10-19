@@ -45184,3 +45184,31 @@ No se pudo medir desde la rama cuál de las tres le pasó al dueño (estado de l
 **Pruebas:** `src/lib/recruiting/preguntas-del-puesto.test.ts` (17, con la de los datos medidos —27 de 27, la apagada fuera— y la de que por implícito/predeterminado la etiqueta sigue filtrando; los cuatro orígenes del conjunto, inactivas fuera, la puerta de la vacante solo con conjunto de la vacante, orden de preselección, la puerta por rol, el conteo, y que las dos pantallas pasan por la librería). **Mutantes, 15 de 15 caen con una prueba con nombre** (`tanda-preguntas-del-puesto.json`): la vacante deja de mandar; el puesto se ignora; el implícito con inactivas; cae a «ninguno»; inactivas entran; el conjunto no filtra; el puesto de la vacante abre de más (sobrevivió a la primera tanda porque el predeterminado de la prueba no tenía ninguna pregunta de ese puesto —datos que no contradecían—; se añadió una y cayó); nunca abre; sin preselección; el reclutador asigna; solo el admin; el conteo con inactivas; Ajustes sin puerta; la entrevista con filtro propio; el conjunto del puesto vuelve a filtrar por etiqueta. `npx tsc --noEmit` limpio; `vitest` de `src/lib/recruiting` y `src/components` 125/125.
 
 **No verificado:** en navegador; el `next build`.
+## D-583 · Ayuda: varios recuadros numerados sobre la misma captura, cada uno con su problema; una solicitud con N puntos
+
+**Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía D-509 y D-513 (el editor del recuadro).
+
+**Pedido del dueño**, literal: *«help buttom make it possible that from the same screen being screenshot add multiple request por ejemplo en una osla pagia hay 3 cosa que arreglar mas ahorita que estamos uan haciendo cambios en el app entonces por ekemplo boton 1 no funciona, boton 2 funiona que el en el mismo screenshot pueda hacer muktiple boxes showing an error y ahi el pueda por cada box describir un problema»*.
+
+### Qué había
+
+Medido en `EditorDeCaptura` (D-509/D-513) antes de tocarlo: **un recuadro**. `alBajar` hacía `setRecuadro(null)` y la ayuda decía «si arrastra otra vez, se reemplaza». Para tres problemas en la misma pantalla había que capturar tres veces (tres imágenes casi iguales) o un recuadro y explicar los otros dos sin señalarlos.
+
+### Qué cambia
+
+1. **Lista de recuadros numerados** (`src/lib/help-recuadros.ts`, lógica pura): cada arrastre que llega al mínimo se añade al final con el siguiente número; los números son siempre 1..N en el orden de la lista —quitar el 2 convierte al 3 en 2, porque la imagen no puede decir «3» sin que el texto tenga un 3—; cada uno lleva su texto (`escribeProblema`); tope `MAX_RECUADROS = 9`, un dígito, porque más no se lee en una captura.
+2. **El editor** (`CapturaDeAyuda.tsx`): mientras se arrastra se ve el borrador sin número; al soltar entra en la lista; debajo de la imagen, una línea por recuadro con su número, un campo «¿Qué está mal en el recuadro N?» y un «×» que quita ese. «Quitar recuadro» pasa a «Quitar todos los recuadros». Título y ayuda en plural, bilingües.
+3. **La imagen que se sube** (`ficheroDeCaptura`): los N recuadros con el borde de siempre y, en la esquina superior izquierda de cada uno y por dentro, un cuadrado rojo con el número en blanco. El lado de la etiqueta es 7 × el grosor del borde, así que escala con la resolución igual que el borde (D-509). La vista del editor pinta la etiqueta con `porcentajesDeLaEtiqueta`, los mismos porcentajes que el recuadro, y el color va en `globals.css` (`.numero-de-recuadro`), no en línea.
+4. **El mensaje** (`HelpButton.adjuntaCaptura`): al adjuntar, `mensajeConProblemas` pega al texto que la persona ya tenía escrito una línea en blanco y la lista «1) …⏎2) …⏎3) …». Un recuadro sin texto sale como «N) (sin descripción)», no se omite. Si no había mensaje, la lista sola —así «Enviar» se enciende con solo señalar—. Se compone **después** de que la imagen entra en la lista de adjuntos: si la captura se rechaza, el texto no se toca. La persona ve la lista en el cuadro de texto y la puede retocar antes de enviar.
+
+### Una solicitud, no N
+
+Los tres puntos son la misma pantalla y el mismo momento: van en **una** solicitud (`help_requests`) con **una** captura anotada y el texto compuesto, y el admin los ve juntos en un solo hilo (D-311), con la imagen al lado del «1) 2) 3)». Se descartó crear N solicitudes: repartiría una misma foto en N hilos y N correos, y la respuesta («el 1 y el 3 ya están, el 2 no es un fallo») se escribe mejor en un sitio. Si algún día un punto necesita vida propia, se abre su solicitud desde el hilo.
+
+**Sin migración**: cabe en lo que hay, texto más una imagen por el cubo de la 119.
+
+### Verificado
+
+`src/lib/help-recuadros.test.ts` (16 pruebas: la lista y su renumeración, el tope, el texto por recuadro, el mensaje compuesto en los tres casos, la etiqueta en píxeles y en porcentajes, la vista con dos números y el borrador sin número, que el editor y `HelpButton` pasan por aquí, y que se envía una sola vez). `help-captura.test.ts` ajustada a la lista. Tanda de mutantes `~/.claude/herramientas/mutantes/tanda-recuadros-numerados.json`: **13 de 13 caen**, cada uno con una prueba con nombre (sin renumerar, sin tope, hueco al quitar, texto en todos, punto vacío omitido, mensaje perdido, mensaje vaciado sin recuadros, etiqueta fija, alto contra el ancho, vista sin número, borrador con número, soltar sin añadir, HelpButton sin pegar la lista).
+
+**No verificado:** en navegador (el arrastre con varios recuadros, el número pintado en el PNG, el tamaño de la etiqueta en el móvil); ninguna escritura contra producción desde la rama.

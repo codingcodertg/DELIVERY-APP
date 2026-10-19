@@ -10,8 +10,9 @@ import { telClean } from "@/lib/utils";
 import Link from "next/link";
 import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
 import {
-  conAyudaOculta, falloDeCaptura, mensajeDeFalloDeCaptura, soportaCaptura, validaCaptura, type Rect,
+  conAyudaOculta, falloDeCaptura, mensajeDeFalloDeCaptura, soportaCaptura, validaCaptura,
 } from "@/lib/help-captura";
+import { mensajeConProblemas, type RecuadroNumerado } from "@/lib/help-recuadros";
 import {
   EditorDeCaptura, calientaCaptura, esperaUnRepintado, ficheroDeCaptura, marcaFueraDeLaCaptura,
   tomaFotograma, tomaFotogramaDeLaPagina, type FotogramaDeCaptura,
@@ -142,17 +143,20 @@ export function HelpButton() {
     }
   };
 
-  /** Lo que se adjunta es la imagen con el recuadro ya pintado, y entra por la misma puerta que un
-   *  fichero elegido a mano: las mismas reglas, el mismo cubo, el mismo correo. */
-  const adjuntaCaptura = async (recuadro: Rect | null) => {
+  /** Lo que se adjunta es la imagen con los recuadros numerados ya pintados, y entra por la misma puerta
+   *  que un fichero elegido a mano: las mismas reglas, el mismo cubo, el mismo correo. Los problemas de
+   *  cada recuadro van al mensaje como «1) … 2) …» (D-583): una solicitud, un hilo, y la persona los ve
+   *  en el cuadro de texto y los puede retocar antes de enviar. */
+  const adjuntaCaptura = async (recuadros: RecuadroNumerado[]) => {
     const tomada = fotograma;
     if (!tomada) return;
     setAdjuntando(true);
     try {
-      const imagen = await ficheroDeCaptura(tomada, recuadro, new Date());
+      const imagen = await ficheroDeCaptura(tomada, recuadros, new Date());
       const malo = validaCaptura(imagen);
       if (malo) { notify(mensajeDeAdjunto(malo, t)); return; }
       agregaFicheros([imagen]);
+      setMsg((actual) => mensajeConProblemas(actual, recuadros, t));
       setFotograma(null);
     } catch (e) {
       notify(mensajeDeFalloDeCaptura(falloDeCaptura(e), t));

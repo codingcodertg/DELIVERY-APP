@@ -6,6 +6,10 @@ import {
   porcentajesDelRecuadro, recuadroDelArrastre, tamanoDeCaptura,
   type FalloDeCaptura, type Punto, type Rect, type Tamano,
 } from "@/lib/help-captura";
+import {
+  MAX_RECUADROS, agregaRecuadro, escribeProblema, etiquetaDelRecuadro, porcentajesDeLaEtiqueta, quitaRecuadro,
+  type RecuadroNumerado,
+} from "@/lib/help-recuadros";
 
 /**
  * La captura de pantalla de Ayuda: lo que toca el navegador (D-509, D-513).
@@ -191,7 +195,7 @@ export async function tomaFotograma(): Promise<FotogramaDeCaptura> {
 
 /** La imagen que se sube: el fotograma con el recuadro ya pintado encima, en PNG. Lo que se manda es
  *  esto, no el fotograma limpio más unas coordenadas que nadie al otro lado va a dibujar. */
-export async function ficheroDeCaptura(fotograma: FotogramaDeCaptura, recuadro: Rect | null, cuando: Date): Promise<File> {
+export async function ficheroDeCaptura(fotograma: FotogramaDeCaptura, recuadros: readonly RecuadroNumerado[], cuando: Date): Promise<File> {
   const imagen = await decodifica(fotograma.url);
   const lienzo = document.createElement("canvas");
   lienzo.width = fotograma.ancho;
@@ -199,8 +203,9 @@ export async function ficheroDeCaptura(fotograma: FotogramaDeCaptura, recuadro: 
   const ctx = lienzo.getContext("2d");
   if (!ctx) throw new ErrorDeCaptura("sin-fotograma");
   ctx.drawImage(imagen, 0, 0, fotograma.ancho, fotograma.alto);
-  if (recuadro && recuadro.w > 0 && recuadro.h > 0) {
-    const grosor = grosorDelRecuadro(fotograma);
+  const grosor = grosorDelRecuadro(fotograma);
+  for (const { n, rect: recuadro } of recuadros) {
+    if (!(recuadro.w > 0 && recuadro.h > 0)) continue;
     ctx.lineWidth = grosor;
     ctx.strokeStyle = COLOR_DEL_RECUADRO;
     // Medio grosor hacia dentro: el borde se pinta centrado en la línea, y pegado a un borde de la
@@ -211,19 +216,36 @@ export async function ficheroDeCaptura(fotograma: FotogramaDeCaptura, recuadro: 
       Math.max(1, recuadro.w - grosor),
       Math.max(1, recuadro.h - grosor),
     );
+    // El número (D-583): el mismo que lleva su línea en el mensaje «1) …».
+    const etiqueta = etiquetaDelRecuadro(recuadro, fotograma);
+    ctx.fillStyle = COLOR_DEL_RECUADRO;
+    ctx.fillRect(etiqueta.x, etiqueta.y, etiqueta.lado, etiqueta.lado);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${etiqueta.fuente}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(n), etiqueta.x + etiqueta.lado / 2, etiqueta.y + etiqueta.lado / 2);
   }
   const blob = await new Promise<Blob | null>((listo) => lienzo.toBlob(listo, TIPO_DE_CAPTURA));
   if (!blob) throw new ErrorDeCaptura("sin-fotograma");
   return new File([blob], nombreDeCaptura(cuando), { type: TIPO_DE_CAPTURA });
 }
 
-/** La captura con su recuadro encima. El recuadro va en **porcentajes** del fotograma, así que sigue en
- *  su sitio cuando la imagen se reescala con la ventana. */
-export function VistaDeCaptura({ fotograma, recuadro, t }: {
+/** La captura con sus recuadros encima, cada uno con su número, y el que se está arrastrando (`borrador`)
+ *  sin número todavía. Todo va en **porcentajes** del fotograma, así que sigue en su sitio cuando la
+ *  imagen se reescala con la ventana. */
+export function VistaDeCaptura({ fotograma, recuadros, borrador = null, t }: {
   fotograma: FotogramaDeCaptura;
-  recuadro: Rect | null;
+  recuadros: readonly RecuadroNumerado[];
+  borrador?: Rect | null;
   t: (en: string, es: string) => string;
 }) {
+  const marco = (r: Rect): React.CSSProperties => ({
+    position: "absolute",
+    ...porcentajesDelRecuadro(r, fotograma),
+    border: `2px solid ${COLOR_DEL_RECUADRO}`,
+    pointerEvents: "none",
+  });
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -233,40 +255,60 @@ export function VistaDeCaptura({ fotograma, recuadro, t }: {
         draggable={false}
         style={{ display: "block", width: "100%", height: "auto", userSelect: "none", pointerEvents: "none" }}
       />
-      {recuadro && (
-        <div
+      {/* El resplandor blanco de dentro y los colores de la etiqueta viven en `globals.css`
+          (`.recuadro-de-captura`, `.numero-de-recuadro`): son colores a pelo, y los colores a pelo no
+          van en línea (lo fija la prueba `inline-colors`). */}
+      {recuadros.map(({ n, rect }) => (
+        <div key={n} aria-hidden className="recuadro-de-captura" style={marco(rect)} />
+      ))}
+      {recuadros.map(({ n, rect }) => (
+        // La etiqueta va aparte del recuadro, hermana y no hija: en porcentajes del fotograma, los
+        // mismos que el recuadro, así que las dos se reescalan juntas.
+        <span
+          key={`n${n}`}
           aria-hidden
-          // El resplandor blanco de dentro vive en `globals.css` (`.recuadro-de-captura`): es un color a pelo, y los
-          // colores a pelo no van en línea (lo fija la prueba `inline-colors`).
-          className="recuadro-de-captura"
+          className="numero-de-recuadro"
           style={{
             position: "absolute",
-            ...porcentajesDelRecuadro(recuadro, fotograma),
-            border: `2px solid ${COLOR_DEL_RECUADRO}`,
+            ...porcentajesDeLaEtiqueta(rect, fotograma),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            lineHeight: 1,
+            fontSize: "clamp(10px, 1.4vw, 16px)",
             pointerEvents: "none",
           }}
-        />
-      )}
+        >
+          {n}
+        </span>
+      ))}
+      {borrador && <div aria-hidden className="recuadro-de-captura" style={marco(borrador)} />}
     </>
   );
 }
 
 /**
- * Señalar dónde está el problema: se arrastra un recuadro sobre la captura y se adjunta.
+ * Señalar dónde están los problemas: se arrastran recuadros sobre la captura, cada uno con su número y
+ * su texto, y se adjunta la imagen con todo pintado encima (D-583).
  *
- * Un recuadro y nada más, que es lo que se pidió: no hay flechas, ni texto, ni borrador. Arrastrar otra
- * vez reemplaza el que haya; «Quitar recuadro» lo deja limpio.
+ * Hasta D-513 era un recuadro y nada más, y arrastrar otra vez lo reemplazaba. El dueño pidió «multiple
+ * boxes showing an error y ahí él pueda por cada box describir un problema»: cada arrastre añade uno
+ * (hasta `MAX_RECUADROS`), debajo sale su línea para escribir, y el «×» quita ese. Sigue sin flechas,
+ * sin texto libre sobre la imagen y sin borrador.
  */
 export function EditorDeCaptura({ fotograma, t, ocupado, onUsar, onDescartar, onDeNuevo }: {
   fotograma: FotogramaDeCaptura;
   t: (en: string, es: string) => string;
   ocupado?: boolean;
-  onUsar: (recuadro: Rect | null) => void;
+  onUsar: (recuadros: RecuadroNumerado[]) => void;
   onDescartar: () => void;
   onDeNuevo: () => void;
 }) {
   const inicio = useRef<Punto | null>(null);
-  const [recuadro, setRecuadro] = useState<Rect | null>(null);
+  const [recuadros, setRecuadros] = useState<RecuadroNumerado[]>([]);
+  const [borrador, setBorrador] = useState<Rect | null>(null);
+  const lleno = recuadros.length >= MAX_RECUADROS;
 
   /** El punto y el tamaño de la imagen **tal como se ve ahora**, los dos de la misma medición: un rect
    *  medido antes y un punto medido después se desalinean si algo se movió entre medias. */
@@ -279,10 +321,10 @@ export function EditorDeCaptura({ fotograma, t, ocupado, onUsar, onDescartar, on
   };
 
   const alBajar = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (ocupado) return;
+    if (ocupado || lleno) return;
     e.preventDefault();
     inicio.current = medidas(e).punto;
-    setRecuadro(null);
+    setBorrador(null);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
@@ -290,20 +332,25 @@ export function EditorDeCaptura({ fotograma, t, ocupado, onUsar, onDescartar, on
     if (!inicio.current) return;
     const { punto, vista } = medidas(e);
     const enVista = recuadroDelArrastre(inicio.current, punto, vista);
-    setRecuadro(enVista ? alFotograma(enVista, vista, fotograma) : null);
+    setBorrador(enVista ? alFotograma(enVista, vista, fotograma) : null);
   };
 
-  const alSoltar = () => { inicio.current = null; };
+  /** Al soltar, el borrador pasa a la lista con su número. Un clic suelto (sin borrador) no añade nada. */
+  const alSoltar = () => {
+    inicio.current = null;
+    if (borrador) setRecuadros((lista) => agregaRecuadro(lista, borrador));
+    setBorrador(null);
+  };
 
   return (
     // Fuera de la foto: con «Capturar de nuevo», el editor sigue montado en el instante en que empieza.
     <div className="overlay" style={{ zIndex: 60 }} {...marcaFueraDeLaCaptura}>
       <div className="modal" style={{ maxWidth: 900 }}>
-        <h3 style={{ margin: "0 0 4px" }}>{t("Mark the problem", "Señale el problema")}</h3>
+        <h3 style={{ margin: "0 0 4px" }}>{t("Mark the problems", "Señale los problemas")}</h3>
         <p className="hint" style={{ marginTop: 0 }}>
           {t(
-            "Drag a box over what's wrong, then attach it. Dragging again replaces the box.",
-            "Arrastre un recuadro sobre lo que está mal y adjúntelo. Si arrastra otra vez, se reemplaza.",
+            `Drag a box over each thing that's wrong — up to ${MAX_RECUADROS}. Each box gets a number; describe it below.`,
+            `Arrastre un recuadro sobre cada cosa que esté mal — hasta ${MAX_RECUADROS}. Cada recuadro lleva un número; descríbalo abajo.`,
           )}
         </p>
         <div
@@ -314,37 +361,65 @@ export function EditorDeCaptura({ fotograma, t, ocupado, onUsar, onDescartar, on
           style={{
             position: "relative",
             touchAction: "none",
-            cursor: ocupado ? "default" : "crosshair",
+            cursor: ocupado || lleno ? "default" : "crosshair",
             border: "1px solid var(--line)",
             borderRadius: 8,
             overflow: "hidden",
             lineHeight: 0,
           }}
         >
-          <VistaDeCaptura fotograma={fotograma} recuadro={recuadro} t={t} />
+          <VistaDeCaptura fotograma={fotograma} recuadros={recuadros} borrador={borrador} t={t} />
         </div>
-        <div className="hint" style={{ marginTop: 6 }}>
-          {recuadro
-            ? t(
-                `Box: ${recuadro.w}×${recuadro.h} px of ${fotograma.ancho}×${fotograma.alto}.`,
-                `Recuadro: ${recuadro.w}×${recuadro.h} px de ${fotograma.ancho}×${fotograma.alto}.`,
-              )
-            : t(
-                `No box yet — optional. A drag under ${LADO_MINIMO_DEL_RECUADRO} px doesn't count as one.`,
-                `Sin recuadro todavía — es opcional. Un arrastre de menos de ${LADO_MINIMO_DEL_RECUADRO} px no cuenta.`,
-              )}
-        </div>
+        {recuadros.length === 0 ? (
+          <div className="hint" style={{ marginTop: 6 }}>
+            {t(
+              `No boxes yet — optional. A drag under ${LADO_MINIMO_DEL_RECUADRO} px doesn't count as one.`,
+              `Sin recuadros todavía — es opcional. Un arrastre de menos de ${LADO_MINIMO_DEL_RECUADRO} px no cuenta.`,
+            )}
+          </div>
+        ) : (
+          <ol style={{ margin: "8px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+            {recuadros.map(({ n, texto }) => (
+              <li key={n} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  className="numero-de-recuadro"
+                  style={{ minWidth: 24, height: 24, borderRadius: 6, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
+                >
+                  {n}
+                </span>
+                <input
+                  style={{ flex: 1 }}
+                  value={texto}
+                  disabled={ocupado}
+                  placeholder={t(`What's wrong in box ${n}?`, `¿Qué está mal en el recuadro ${n}?`)}
+                  onChange={(e) => setRecuadros((lista) => escribeProblema(lista, n, e.target.value))}
+                />
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  aria-label={t(`Remove box ${n}`, `Quitar recuadro ${n}`)}
+                  title={t(`Remove box ${n}`, `Quitar recuadro ${n}`)}
+                  disabled={ocupado}
+                  onClick={() => setRecuadros((lista) => quitaRecuadro(lista, n))}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+            {lleno && <li className="hint">{t(`That's the maximum (${MAX_RECUADROS}).`, `Es el máximo (${MAX_RECUADROS}).`)}</li>}
+          </ol>
+        )}
         <div className="modal-actions">
           <button className="btn btn-ghost" onClick={onDescartar} disabled={ocupado}>
             {t("Discard", "Descartar")}
           </button>
-          <button className="btn btn-ghost" onClick={() => setRecuadro(null)} disabled={ocupado || !recuadro}>
-            {t("Remove box", "Quitar recuadro")}
+          <button className="btn btn-ghost" onClick={() => setRecuadros([])} disabled={ocupado || recuadros.length === 0}>
+            {t("Remove all boxes", "Quitar todos los recuadros")}
           </button>
           <button className="btn btn-ghost" onClick={onDeNuevo} disabled={ocupado}>
             📸 {t("Capture again", "Capturar de nuevo")}
           </button>
-          <button className="btn btn-primary" onClick={() => onUsar(recuadro)} disabled={ocupado}>
+          <button className="btn btn-primary" onClick={() => onUsar(recuadros)} disabled={ocupado}>
             {ocupado ? t("Attaching…", "Adjuntando…") : t("Attach to request", "Adjuntar a la solicitud")}
           </button>
         </div>
