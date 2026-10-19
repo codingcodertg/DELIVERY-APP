@@ -53,10 +53,49 @@ export function contactoDeLaCita(iso: string, lugar: string, nota: string): Pick
   return { type: "In person", result: RESULTADO_AGENDADA, note: partes.join(" · ") };
 }
 
+/* ---- El texto de la cita con la dirección de la tienda (D-NEXT, 2026-10-19) ----
+ * El dueño: «cuando yo pongo la fecha y la hora y el lugar, quiero que el sistema automáticamente me haga un template
+ * para mandárselo por texto a la persona … te espero mañana en la tienda de Edinburg, Texas, en esta dirección, y que
+ * me ponga la dirección de la tienda … que el template se pueda editar también … cuando yo le guarde la entrevista, se
+ * mande por mensaje de texto, un solo template». Hasta aquí (D-585) el texto salía DESPUÉS de guardar, en un segundo
+ * botón, sin dirección y sin poder tocarlo. Ahora: el texto se arma mientras se rellena el diálogo (fecha, hora, lugar
+ * y la dirección de esa tienda, leída de Datos → Tiendas de Entregas por `/api/recruiting/stores`), se puede editar en
+ * el propio diálogo, y «Guardar y mandar texto» hace las dos cosas de un golpe. Si en Ajustes → Plantillas hay una
+ * cuyo nombre lleve «presencial» o «in person», esa manda sobre la de aquí (así se cambia el texto sin tocar código). */
+
+export type Tienda = { name: string; address: string };
+
+/** La tienda de Datos → Tiendas que corresponde al lugar elegido: por nombre exacto o por palabra («Edinburg» ↔ «RDZ Edinburg»). */
+export function tiendaDelLugar(lugar: string, tiendas: readonly Tienda[]): Tienda | null {
+  const l = lugar.trim().toLowerCase();
+  if (!l) return null;
+  const exacta = tiendas.find((t) => t.name.trim().toLowerCase() === l);
+  if (exacta) return exacta;
+  return tiendas.find((t) => t.name.toLowerCase().split(/\s+/).includes(l)) ?? null;
+}
+
+/** Marcadores de la cita, además de los de `mergeTemplate` ({name} {role} {recruiter} {phone}). */
+export const MARCADORES_DE_LA_CITA = "{date} {time} {place} {address}";
+
 const PLANTILLA = {
-  en: "Hi {name}, this is {recruiter} from RDZ Tile Group. Your in-person interview for the {role} position is scheduled for {date} at {time}, at {place}. Please reply to confirm. Thanks!",
-  es: "Hola {name}, soy {recruiter} de RDZ Tile Group. Tu entrevista presencial para el puesto de {role} queda el {date} a las {time}, en {place}. Por favor respóndeme para confirmar. ¡Gracias!",
+  // Con tienda conocida: lugar + dirección. Sin tienda (un «Otro…» escrito a mano): el lugar tal cual.
+  en: {
+    tienda: "Hello {name}, this is {recruiter} from Rodriguez Tile Group. I'll be expecting you on {date} at {time} for your in-person interview for the {role} position at our {place} store, at this address: {address}. Please reply to confirm. Thank you!",
+    libre: "Hello {name}, this is {recruiter} from Rodriguez Tile Group. I'll be expecting you on {date} at {time} for your in-person interview for the {role} position at {place}. Please reply to confirm. Thank you!",
+  },
+  es: {
+    tienda: "Hola {name}, le habla {recruiter} de Rodriguez Tile Group. Le espero el {date} a las {time} para su entrevista presencial para el puesto de {role} en la tienda de {place}, en esta dirección: {address}. Por favor respóndame para confirmar. ¡Gracias!",
+    libre: "Hola {name}, le habla {recruiter} de Rodriguez Tile Group. Le espero el {date} a las {time} para su entrevista presencial para el puesto de {role} en {place}. Por favor respóndame para confirmar. ¡Gracias!",
+  },
 } as const;
+
+const ETIQUETA_DE_PLANTILLA = /presencial|in[- ]?person/i;
+
+/** La plantilla de Ajustes → Plantillas que manda sobre la de aquí (por el nombre), o null si no hay. */
+export function plantillaDeAjustes(templates: readonly { label: string; text: string }[]): string | null {
+  const t = templates.find((x) => ETIQUETA_DE_PLANTILLA.test(x.label) && x.text.trim());
+  return t ? t.text : null;
+}
 
 function fechaYHora(iso: string, lang: "en" | "es"): { date: string; time: string } {
   const d = new Date(iso);
@@ -67,27 +106,39 @@ function fechaYHora(iso: string, lang: "en" | "es"): { date: string; time: strin
   };
 }
 
-/** El texto de confirmación: nombre de pila, puesto, fecha, hora y lugar, en el idioma de quien pulsa. */
-export function textoConfirmacionPresencial(c: Cand, cita: { iso: string; lugar: string }, recruiter: string, lang: "en" | "es"): string {
+export type Cita = { iso: string; lugar: string };
+
+/**
+ * El texto de la cita: nombre de pila, puesto, fecha, hora, lugar y la dirección de la tienda, en el idioma de quien
+ * pulsa. `tiendas` son las de Datos → Tiendas (nombre y dirección); `plantilla` es la de Ajustes si la hay.
+ */
+export function textoConfirmacionPresencial(
+  c: Cand, cita: Cita, recruiter: string, lang: "en" | "es",
+  tiendas: readonly Tienda[] = [], plantilla: string | null = null,
+): string {
   const { date, time } = fechaYHora(cita.iso, lang);
   const lugar = cita.lugar.trim() || (lang === "es" ? "nuestra oficina" : "our office");
-  return mergeTemplate(PLANTILLA[lang], c as Candidate, recruiter)
+  const tienda = tiendaDelLugar(lugar, tiendas);
+  const base = plantilla ?? PLANTILLA[lang][tienda ? "tienda" : "libre"];
+  return mergeTemplate(base, c as Candidate, recruiter)
     .replace(/\{date\}/g, date)
     .replace(/\{time\}/g, time)
     .replace(/\{place\}/g, lugar)
-    .replace(/\s{2,}/g, " ")
+    .replace(/\{address\}/g, tienda?.address ?? lugar)
+    .replace(/[ \t]{2,}/g, " ")
     .trim();
 }
 
 export type Confirmacion =
   | { ok: true; texto: string; enlace: string }
-  | { ok: false; motivo: "sin-telefono" };
+  | { ok: false; motivo: "sin-telefono" | "sin-texto" };
 
-/** Qué abre el botón «📱 Mandar confirmación»: el enlace de RingCentral con el texto, o por qué no. Nunca manda nada solo. */
-export function prepararConfirmacionPresencial(c: Cand, cita: { iso: string; lugar: string }, recruiter: string, lang: "en" | "es"): Confirmacion {
+/** Qué abre «Guardar y mandar texto»: el enlace de RingCentral con el texto (ya editado), o por qué no. Nunca manda nada solo. */
+export function prepararConfirmacionPresencial(c: Cand, texto: string): Confirmacion {
   if (!telClean(c.phone)) return { ok: false, motivo: "sin-telefono" };
-  const texto = textoConfirmacionPresencial(c, cita, recruiter, lang);
-  return { ok: true, texto, enlace: rcSms(c.phone, texto) };
+  const limpio = texto.trim();
+  if (!limpio) return { ok: false, motivo: "sin-texto" };
+  return { ok: true, texto: limpio, enlace: rcSms(c.phone, limpio) };
 }
 
 /** El contacto del texto de confirmación: mismo `type` SMS que el diálogo, marcado para distinguirlo. */
