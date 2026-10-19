@@ -45150,6 +45150,8 @@ Un módulo puro, `src/lib/encuadre-del-mapa.ts`, que los dos mapas llaman igual:
 
 ## D-581 · RRHH: botón «📱 Texto: ¿te puedo llamar?» junto al candidato, sin abrir «Iniciar entrevista»; y el teléfono a la vista en la lista
 
+> **Reemplazada en parte por D-NEXT** (2026-10-19): el texto de «¿te puedo llamar?» es el que pegó el dueño (de usted, sin nombre ni puesto, firmado por quien pulsa); el botón y el camino no cambian.
+
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía el «💬 Texto» del diálogo de entrevista y el modal de Mensaje.
 
 **Pedido del dueño**, literal: *«en el hr app ahi donde se agrega un candiadto quiero que se agregue el boton que sea de enviar texto para enviar un texto para preguntar si lo puedo llamar, y cuando aprete ese boton que diga sms sent sin necesidad de abrir el dialog de iniciar entrevista»*. Y el mismo día: *«ah y en la parte de candidatos quiero que cunado se miren los cnadidatos tmabien se aparezca el numero de telefono ahi»*.
@@ -45578,3 +45580,19 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `agendas-ringcentral.test.ts` (la variable: lista válida, limpia, incompletas, vacía, mal formada, objeto suelto; la traza; el helper con credenciales; la ruta con allSettled y sin duplicar; el proveedor), `contacto-ringcentral.test.ts` ajustada. Mutantes: 5 de 5 caen (`mut594`).
 
 **No medido:** el primer POST real a su agenda (solo se leyó); al primer «Llamar»/«Texto» tras publicar, su app debe enseñar el contacto. La variable en Vercel solo entra en el deploy que la siga: este release.
+
+## D-NEXT · RR. HH.: el texto de «📱 ¿te puedo llamar?» es el del dueño, letra por letra (de usted, firmado por quien pulsa)
+
+**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-texto-puedo-llamar`. **Reemplaza en parte a D-581** (lleva su nota).
+
+**Pedido del dueño**, literal: *«y cuando le ponga te puedo llamar se puede pegar el template del texto que quiero»*, y el texto que pegó:
+
+> *«Hola, le habla Andrés, reclutador de Rodriguez Tile Group. Vi su aplicación y me gustaría conversar con usted. ¿Tiene 15 minutos ahora mismo para una breve entrevista telefónica? Si es así, respóndame y le llamo enseguida.»*
+
+**Qué cambia.** `PLANTILLA` de `texto-puedo-llamar.ts` es ese texto con **«Andrés» → `{recruiter}`** (firma quien pulsa; hoy es él) y la misma frase traducida al inglés para quien pulse con la app en inglés. Trata de **usted** y **no nombra al candidato ni al puesto**: así lo escribió, y se respeta (D-581 tuteaba y llevaba `{name}` y `{role}`). Ni el botón, ni el enlace a RingCentral, ni la marca «SMS sent ✓», ni el guardado del contacto (D-591/D-594) cambian.
+
+**Qué se descartó (por ahora).** *Editable desde Ajustes de RR. HH.*: necesita una columna en `recruiting.settings` (migración); se le ofreció al dueño y pegó el texto para dejarlo fijo. Si lo quiere editable, es otra decisión con su migración.
+
+**Pruebas:** `texto-puedo-llamar.test.ts` (el texto exacto en los dos idiomas, firmado, sin marcadores sin resolver, sin nombre ni puesto; `{recruiter}` en la plantilla). Mutantes: 2 de 2 caen (`mut595`).
+
+**No medido:** en navegador (que RingCentral abra con el texto nuevo).
