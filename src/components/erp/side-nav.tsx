@@ -21,7 +21,7 @@ const roleStyles: Record<string, string> = {
 // una constante de módulo, porque una constante no puede cambiar de idioma.
 // Desde D-553 las entradas y quién ve cada una viven en `lib/erp/nav.ts` (puro, probado importándolo):
 // «Dashboard» pasó a Analítica como «Product Analytics», y Request, PO upload y Bulk apply salieron
-// del menú (las rutas siguen). Desde D-NEXT Inventario, Revisión y Aprobaciones son pestañas de
+// del menú (las rutas siguen). Desde D-586 Inventario, Revisión y Aprobaciones son pestañas de
 // Catálogo, OC ↔ Proforma y Recepción lo son de Compras, y Analítica es UNA entrada (sus pestañas van
 // dentro, group-tabs.tsx); el bloque `analytics` llega vacío del ERP y se conserva por Clientes. Aquí
 // solo se pintan.
@@ -63,7 +63,7 @@ export function SideNav({
   const { main: navItems, analytics: analyticsItems } = otra?.nav ?? erpNav(role, t);
   const marca = otra?.brand ?? "RTG ERP";
   const pastilla = otra?.badge ?? role;
-  // Qué entrada se enciende lo decide `entradaActiva` (D-NEXT): una entrada con grupo, por cualquiera
+  // Qué entrada se enciende lo decide `entradaActiva` (D-586): una entrada con grupo, por cualquiera
   // de sus pestañas (Catálogo también en /erp/inventory; Compras también en /purchasing/orders); una
   // suelta, por su propio href. Antes había aquí un `exact` para /erp/purchasing porque sus subrutas
   // eran entradas hermanas; ya son sus pestañas.

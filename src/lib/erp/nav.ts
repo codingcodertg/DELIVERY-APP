@@ -1,4 +1,4 @@
-// El menú del ERP y quién ve cada cosa (D-553, D-NEXT). Puro —sin React ni Next— para que la prueba
+// El menú del ERP y quién ve cada cosa (D-553, D-586). Puro —sin React ni Next— para que la prueba
 // lo IMPORTE en vez de leer side-nav.tsx como texto: lo que decide quién ve qué vive aquí, y la barra
 // (side-nav.tsx) y la fila de pestañas de cada grupo (group-tabs.tsx) solo lo pintan.
 //
@@ -7,7 +7,7 @@
 // hubiera movido sin más, staff lo habría perdido (el bloque entero era de manager+). Por eso la puerta
 // es por entrada: mover no ensancha ni estrecha quién lo ve.
 //
-// D-NEXT: el dueño pidió juntar entradas. «Inventory», «Review» y «Approvals» son ahora PESTAÑAS de
+// D-586: el dueño pidió juntar entradas. «Inventory», «Review» y «Approvals» son ahora PESTAÑAS de
 // Catálogo; «PO ↔ Proforma» y «Receiving», pestañas de Compras; y Analítica es UNA entrada en la barra
 // (sus cinco pantallas se navegan solo con la fila de pestañas de dentro). Cada pestaña conserva la
 // puerta por rol que tenía como entrada —agrupar tampoco ensancha ni estrecha—, y las rutas no cambian:
@@ -35,7 +35,7 @@ export const analyticsItems = (t: T): NavItem[] => [
 
 /**
  * Los tres grupos con pestañas. El `href` del grupo es su primera pestaña, la que puede ver todo el
- * que ve el grupo. Las pestañas de manager+ eran entradas de manager+ antes de D-NEXT: misma puerta.
+ * que ve el grupo. Las pestañas de manager+ eran entradas de manager+ antes de D-586: misma puerta.
  */
 export const grupos = (t: T): NavGroup[] => [
   {
@@ -82,7 +82,7 @@ const puedeVer = (role: AppRole) => (i: NavItem) => !i.managerPlus || esManagerP
 
 /**
  * Lo que una persona ve en la barra. Sin catálogo (chofer, almacén: ADR 0010), nada. `analytics` va
- * vacío desde D-NEXT (Analítica es una entrada de `main`); la clave se queda porque Clientes pasa la
+ * vacío desde D-586 (Analítica es una entrada de `main`); la clave se queda porque Clientes pasa la
  * misma forma a la barra (`otra.nav`).
  */
 export function erpNav(role: AppRole, t: T): { main: NavItem[]; analytics: NavItem[] } {

@@ -7,7 +7,7 @@ import { usePrefs } from "@/lib/prefs";
 import type { AppRole } from "@/lib/erp/domain/roles";
 import { pestanasDe, pestanaActiva, type GrupoId } from "@/lib/erp/nav";
 
-// La fila de pestañas de un grupo del menú (D-NEXT): Catálogo · Inventario · Revisión · Aprobaciones
+// La fila de pestañas de un grupo del menú (D-586): Catálogo · Inventario · Revisión · Aprobaciones
 // arriba de /erp/catalog y sus hermanas; Compras · OC ↔ Proforma · Recepción en Compras; las cinco de
 // Analítica en las suyas. Sustituye a analytics-nav.tsx, que pintaba TODAS las de Analítica sin mirar
 // el rol (podía, porque esas cuatro páginas echaban a quien no era manager+). Esta recibe el rol y pinta

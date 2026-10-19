@@ -4,14 +4,14 @@ import { erpNav, navItems, analyticsItems, grupos, pestanasDe, pestanaActiva, gr
 import type { AppRole } from "./domain/roles";
 
 // D-553: el menú del ERP tras el traspaso de los cambios de BH (9b906e7, 7ec9380, 99de2dd).
-// D-NEXT: Inventario, Revisión y Aprobaciones pasan a pestañas de Catálogo; OC ↔ Proforma y Recepción,
+// D-586: Inventario, Revisión y Aprobaciones pasan a pestañas de Catálogo; OC ↔ Proforma y Recepción,
 // a pestañas de Compras; Analítica es UNA entrada con sus pestañas dentro.
 // Se IMPORTA la función que decide; la barra y la fila de pestañas solo la pintan.
 const en = (e: string) => e;
 const es = (_e: string, s: string) => s;
 const hrefs = (xs: { href: string }[]) => xs.map((x) => x.href);
 
-// Lo que cada rol veía como ENTRADAS antes de D-NEXT (la lista de D-553). Agrupar no puede cambiarlo:
+// Lo que cada rol veía como ENTRADAS antes de D-586 (la lista de D-553). Agrupar no puede cambiarlo:
 // la unión de lo que un rol ve en la barra y en las pestañas tiene que ser exactamente esto.
 const ANTES: Record<"staff" | "manager" | "admin", string[]> = {
   staff: ["/erp/catalog", "/erp/dashboard"],
@@ -30,7 +30,7 @@ const todoLoQueVe = (role: AppRole) => {
   return new Set([...barra, ...pestanas]);
 };
 
-describe("erpNav · la barra (D-NEXT)", () => {
+describe("erpNav · la barra (D-586)", () => {
   it("staff: Catálogo y Analítica, nada más; el bloque aparte de Analítica va vacío", () => {
     const n = erpNav("staff", en);
     expect(hrefs(n.main)).toEqual(["/erp/catalog", "/erp/dashboard"]);
