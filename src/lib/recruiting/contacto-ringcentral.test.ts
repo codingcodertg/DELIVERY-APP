@@ -5,7 +5,7 @@ import {
   TIPOS_QUE_GUARDAN, yaEstaEnLaAgenda, yaGuardadoEnRingCentral,
 } from "./contacto-ringcentral";
 
-// D-NEXT · «cuando le pongo mandar texto o llamar, puedes automaticamente guardar ese contacto en ring central, y ponerle
+// D-591 · «cuando le pongo mandar texto o llamar, puedes automaticamente guardar ese contacto en ring central, y ponerle
 // el nombre iniciales del puesto y tienda como decir Andres Ugarte WA BRO warehouse associate brownville» (2026-10-19).
 
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");

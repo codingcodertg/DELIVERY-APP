@@ -83,7 +83,7 @@ export async function ringcentralContacts(): Promise<Record<string, unknown>[]> 
   return ((await res.json()).records ?? []) as Record<string, unknown>[];
 }
 
-/** Crea un contacto en esa misma agenda (D-NEXT: el candidato al llamarlo o textearle). */
+/** Crea un contacto en esa misma agenda (D-591: el candidato al llamarlo o textearle). */
 export async function ringcentralAddContact(contact: Record<string, string>): Promise<void> {
   const token = await ringcentralToken();
   const res = await fetch(`${RC_SERVER}/restapi/v1.0/account/~/extension/~/address-book/contact`, {

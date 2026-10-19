@@ -45476,9 +45476,9 @@ Nada en navegador ni contra producción (la rama no tiene `.env.local`). No se m
 
 **No medido:** nada en navegador (que el portapapeles reciba el texto, el cuadro de respaldo en iOS, el ancho de la barra con un botón más). `tsc` y vitest completo (los 3 `scripts/*.test.mjs` caen en esta máquina por el mismo SyntaxError que en la laptop; en CI pasan).
 
-## D-NEXT · RR. HH.: al llamar o textear a un candidato se guarda solo como contacto en RingCentral, «Andres Ugarte WA BRO» (nombre + iniciales del puesto + código de la tienda)
+## D-591 · RR. HH.: al llamar o textear a un candidato se guarda solo como contacto en RingCentral, «Andres Ugarte WA BRO» (nombre + iniciales del puesto + código de la tienda)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (solo `recruiting`) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-contacto-ringcentral`. Se apoya en D-581/D-585 (los botones que llaman y textean) y en el helper de RingCentral de `/api/call` y `/api/notify`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.47.0 (repo 1.457.0) · **Sin migración** · Hecho directo por el orquestador en `feat/rrhh-contacto-ringcentral`. Se apoya en D-581/D-585 (los botones que llaman y textean) y en el helper de RingCentral de `/api/call` y `/api/notify`.
 
 **Pedido del dueño**, literal: *«ah y cuando le pongo mandar texto o llamar, puedes automaticamente guardar ese contacto en ring central, y ponerle el nombre iniciales del puesto y tienda como decir Andres Ugarte WA BRO warehouse associate brownville»*.
 

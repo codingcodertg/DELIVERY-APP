@@ -4,7 +4,7 @@ import { ringcentralAddContact, ringcentralConfigured, ringcentralContacts } fro
 import { cuerpoDelContacto, nombreParaRingCentral, yaEstaEnLaAgenda } from "@/lib/recruiting/contacto-ringcentral";
 
 // ============================================================
-// POST /api/recruiting/rc-contact · { candidateId } (D-NEXT). Guarda al candidato como contacto en la agenda de la
+// POST /api/recruiting/rc-contact · { candidateId } (D-591). Guarda al candidato como contacto en la agenda de la
 // extensión de RingCentral del servidor (la línea «Careers», desde la que RR. HH. llama y textea), con el nombre
 // «Andres Ugarte WA BRO». Idempotente: si la agenda ya tiene ese teléfono, no crea otro.
 //

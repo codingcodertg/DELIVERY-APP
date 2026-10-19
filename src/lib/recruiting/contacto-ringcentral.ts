@@ -1,7 +1,7 @@
 import type { Candidate, Contact } from "./types";
 
 // ============================================================
-// El candidato se guarda como contacto en RingCentral al llamarlo o mandarle un texto (D-NEXT, 2026-10-19). El dueño:
+// El candidato se guarda como contacto en RingCentral al llamarlo o mandarle un texto (D-591, 2026-10-19). El dueño:
 // «cuando le pongo mandar texto o llamar, puedes automaticamente guardar ese contacto en ring central, y ponerle el
 // nombre iniciales del puesto y tienda como decir Andres Ugarte WA BRO warehouse associate brownville».
 //

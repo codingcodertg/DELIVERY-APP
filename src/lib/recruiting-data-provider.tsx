@@ -441,7 +441,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         return;
       }
       setContacts((prev) => [data as Contact, ...prev]);
-      // D-NEXT: al llamar o textear, el candidato se guarda en la agenda de RingCentral («Andres Ugarte WA BRO»), una
+      // D-591: al llamar o textear, el candidato se guarda en la agenda de RingCentral («Andres Ugarte WA BRO»), una
       // sola vez (su historial dice si ya está). Sin esperar: el toque ya abrió RingCentral.
       if (entry.type && TIPOS_QUE_GUARDAN.has(entry.type) && !yaGuardadoEnRingCentral(contacts.filter((k) => k.candidate_id === candidateId))) {
         void guardarEnRingCentral(candidateId);
