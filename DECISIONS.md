@@ -45694,3 +45694,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/recruiting/vista-del-gerente.test.ts` (rol y pestañas; espejo del `like` de la 183 por palabra entera; grupos por día y no por hora, sin fecha → pendiente, archivados fuera, orden de cada grupo; contratar / no contratar con razón obligatoria y `discard_source = manager`, sin etapa no escribe; la última resolución, no la primera, y solo las marcadas; puerta: barra, página, fila, hub y los 13 `alter policy` de la 183 con el checksum puesto). 11 mutantes, 11 caen (uno en el `.sql`).
 
 **No medido:** en navegador con un usuario gerente de tienda real (no existe aún ninguno: el dueño tiene que asignar el rol y la tienda en el hub). Lo que sí se midió es la base tras aplicar (políticas, constraint, función) y la lectura como admin.
+
+## D-NEXT · Mi ruta: el encabezado cuenta PARADAS (sitios), no órdenes («Its not 14 stops, its 14 orders»)
+
+**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (deliveries) · Sin migración · Hecho directo por el orquestador en `fix/mi-ruta-cuenta-paradas`.
+
+**Pedido (Ernesto Castillo, chofer, por el dueño, 2026-10-19, literal):** «Its not 14 stops, its 14 orders. Its calculating # of stops wrong». Captura: «2 of 7 delivered · 14 stops · peak load 7/10».
+
+**Medido antes.** El encabezado de «Mi ruta» pintaba `cuenta.totales.paradas`, que es el número de FILAS de la cuenta de pallets (`cuentaDePallets`, D-444): una por orden y tramo (P y D), no por sitio. Con 7 órdenes, 14 «paradas». Desde D-515/D-533 la ruta ya se numera por sitio (`paradasDeLaRuta`: las dos recogidas en la misma tienda son UNA parada), y el «Siguiente parada 3/9» y el «(N)» de cada sección ya usan ese número; el encabezado se había quedado con la cuenta vieja.
+
+**Qué cambia.** Una línea: el encabezado pinta `numeradas.paradas.length` (los sitios distintos de la ruta, los mismos círculos de la lista). La cuenta de pallets sigue igual para lo suyo (carga máxima, exceso).
+
+**Pruebas:** `src/lib/mi-ruta-cuenta-paradas.test.ts` (puerta: el encabezado usa `numeradas.paradas.length` y ya no `cuenta.totales.paradas`; y `paradasDeLaRuta` cuenta 2 para dos recogidas en la misma tienda más una entrega… medido con la librería).
+
+**No medido:** en navegador.
