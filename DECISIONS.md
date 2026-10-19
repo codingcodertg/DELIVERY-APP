@@ -45619,7 +45619,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-597 · RR. HH.: al agendar la entrevista presencial, el texto para el candidato se arma solo con la dirección de la tienda, se edita en el diálogo y se manda al guardar
 
-> **Reemplazada en parte por D-NEXT** (2026-10-19): RingCentral se abre en el clic, antes de guardar; el dueño reportó que no salía el texto.
+> **Reemplazada en parte por D-599** (2026-10-19): RingCentral se abre en el clic, antes de guardar; el dueño reportó que no salía el texto.
 
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.51.0 (repo 1.463.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-la-cita`.
 
@@ -45658,9 +45658,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · RR. HH.: «Guardar y mandar texto» abre RingCentral en el clic, antes de esperar a la base (si no, el navegador no abre la app y no sale nada)
+## D-599 · RR. HH.: «Guardar y mandar texto» abre RingCentral en el clic, antes de esperar a la base (si no, el navegador no abre la app y no sale nada)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-cita-abre-ringcentral-primero`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.52.1 (repo 1.465.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-cita-abre-ringcentral-primero`.
 
 **Pedido del dueño (2026-10-19, literal):** «fíjate que aún no se manda el mensaje template cuando es para agendar».
 

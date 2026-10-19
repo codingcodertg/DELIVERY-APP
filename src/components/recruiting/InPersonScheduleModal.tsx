@@ -83,7 +83,7 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
     }
     setError(null);
     setGuardando(true);
-    // RingCentral se abre EN EL CLIC, antes de esperar a la base (D-NEXT): el enlace rcsms es una app externa y el
+    // RingCentral se abre EN EL CLIC, antes de esperar a la base (D-599): el enlace rcsms es una app externa y el
     // navegador solo la abre con el gesto del usuario reciente; tras dos escrituras en Supabase el gesto puede haber
     // caducado y no se abre nada, sin error. Mismo orden que D-581 y que el D-585 original.
     window.location.href = r.enlace;

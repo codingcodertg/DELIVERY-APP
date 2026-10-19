@@ -145,7 +145,7 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     expect(agendar).toContain("plantillaDeAjustes(templates)");
     expect(agendar).toContain("guardarYMandar");
     expect(agendar).toContain("<textarea");
-    // D-NEXT: RingCentral se abre en el clic, ANTES de esperar a la base (si no, el navegador no abre la app externa).
+    // D-599: RingCentral se abre en el clic, ANTES de esperar a la base (si no, el navegador no abre la app externa).
     const abre = agendar.indexOf("window.location.href = r.enlace;"); const guarda = agendar.indexOf("await agendar(iso);");
     expect(abre).toBeGreaterThan(0);
     expect(guarda).toBeGreaterThan(abre);
