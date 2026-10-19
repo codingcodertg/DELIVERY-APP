@@ -45636,3 +45636,22 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/recruiting/agendar-presencial.test.ts` (texto con dirección en los dos idiomas; tienda por nombre y por palabra, nunca por trozo; sin tienda no hay dirección; la plantilla de Ajustes manda y con todos los marcadores; texto vacío no abre nada; puerta: el diálogo usa la ruta de tiendas, la plantilla de Ajustes y «guardarYMandar»). 9 mutantes, 9 caen (uno —subcadena en vez de palabra— sobrevivió a la primera y se añadió la prueba que lo caza).
 
 **No medido:** en navegador. El texto exacto con la dirección real sale de Datos → Tiendas, no del repo.
+
+## D-NEXT · RR. HH.: tras «Buzón de voz» o «Volver a llamar» en la entrevista, el diálogo ofrece un texto de seguimiento («le estoy llamando por el puesto de…, ¿cuándo está disponible?»)
+
+**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-seguimiento`.
+
+**Pedido del dueño (2026-10-19, literal):** «en la entrevista si le doy buzón de voz o volver a llamar dame la opción para mandarle un follow up text message con ese template de te estoy llamando por el trabajo de tal y cuándo está disponible».
+
+**Medido antes.** En «Iniciar entrevista», la fila «¿No conectó?» tiene cuatro botones (Sin respuesta, Buzón de voz, Número equivocado, Volver a llamar). Cada uno registraba el contacto «Call / <resultado>», ponía la etiqueta «call again» cuando tocaba y **cerraba el diálogo**. Para textear después había que volver a abrir al candidato y usar «💬 Texto», que abre RingCentral vacío. El resultado se registra con la etiqueta traducida («Buzón de voz» o «Voicemail» según el idioma), así que no servía como clave para decidir.
+
+**Qué cambia.**
+- **Con «Buzón de voz» y «Volver a llamar»** (los dos que nombró el dueño; «Sin respuesta» y «Número equivocado» siguen cerrando como antes), el diálogo registra el contacto y la etiqueta igual que siempre, pero **no cierra**: en el sitio de los cuatro botones aparece «✓ Registrado: Buzón de voz · ¿Mandar texto de seguimiento?» con el texto armado y editable, y dos botones: «📱 Mandar texto de seguimiento» (abre RingCentral con el texto por el mismo enlace `rcsms` de D-581, deja el contacto «SMS / sent · follow-up», y cierra) y «Cerrar sin texto».
+- **El texto**, de usted como los de D-595 y D-597, firmado por quien pulsa: «Hola, le habla Andrés de Rodriguez Tile Group. Le estoy llamando por el puesto de Driver al que aplicó. ¿Cuándo está disponible para una breve entrevista telefónica? Respóndame con un horario y le llamo a esa hora. ¡Gracias!» (y en inglés si la app está en inglés). Una plantilla de Ajustes → Plantillas cuyo nombre lleve «seguimiento» o «follow up» manda sobre la de código (marcadores `{name} {role} {recruiter} {phone}`). Sin migración: `recruiting.templates` ya existe.
+- **La decisión la toma la librería** `src/lib/recruiting/texto-de-seguimiento.ts` con la clave en inglés del botón (`"Voicemail"`, `"Call back later"`), no con la etiqueta traducida que se guarda; los botones pasan ahora las dos cosas.
+
+**Qué no cambia.** Lo que se registra con cada botón (contacto «Call», etiqueta «call again»); el camino del SMS (nunca servidor); el guardado del contacto en las agendas de RingCentral (D-591/D-594, que dispara el `addContact` de tipo SMS); los textos de D-595 y D-597.
+
+**Pruebas:** `src/lib/recruiting/texto-de-seguimiento.test.ts` (solo los dos resultados lo ofrecen; texto en los dos idiomas con el puesto y la firma de quien pulsa, sin marcadores; la plantilla de Ajustes manda; enlace rcsms con número limpio; sin teléfono o texto vacío no abre nada; contacto marcado distinto de los otros tres SMS; puerta: el diálogo decide con la librería y pasa la clave en inglés, con el `if` tal cual y no un `false &&` delante). 8 mutantes, 8 caen (el de «firma fija» sobrevivió a la primera porque la prueba firmaba con el mismo nombre que el mutante; se cambió el nombre).
+
+**No medido:** en navegador.
