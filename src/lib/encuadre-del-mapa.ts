@@ -18,9 +18,6 @@ export interface TiendaDelMapa { lat: number; lng: number }
 
 /** Más lejos que esto del centro de las tiendas no es una parada de esta empresa: es un dato malo. */
 export const RADIO_MAX_KM = 300;
-/** El suelo del tope de alejamiento (`topeDeAlejamiento`), por si la región sale enorme: a 8, un mapa de 430 px enseña
- *  ~500 km de lado, todo el sur de Texas. El tope real es la región de las tiendas, que suele quedar en 9 o 10. */
-export const ZOOM_MINIMO_DEL_MAPA = 8;
 /** Medio lado mínimo de la caja de la región, en grados (~15 km): una sola tienda se encuadra como su ciudad. */
 const MEDIO_LADO_MINIMO = 0.15;
 
@@ -104,11 +101,9 @@ export function zoomDeLaCaja(caja: readonly [Punto, Punto], anchoPx: number, alt
   return Math.min(Math.log2(util(altoPx) / fracLat), Math.log2(util(anchoPx) / fracLng));
 }
 
-/** El `minZoom` del mapa: la región de las tiendas redondeada hacia abajo, y nunca por debajo de `ZOOM_MINIMO_DEL_MAPA`. */
-export function topeDeAlejamiento(tiendas: readonly TiendaDelMapa[], anchoPx: number, altoPx: number): number {
-  const z = zoomDeLaCaja(encuadreDeLaRegion(tiendas), anchoPx, altoPx);
-  return Number.isFinite(z) ? Math.max(ZOOM_MINIMO_DEL_MAPA, Math.floor(z)) : ZOOM_MINIMO_DEL_MAPA;
-}
+// El tope de alejamiento (`topeDeAlejamiento`, `ZOOM_MINIMO_DEL_MAPA`) de D-580 se quitó en D-587: el dueño lo sintió
+// como un candado («the map has a lock on the zoom out»). La región sigue siendo el encuadre por defecto y el filtro
+// de puntos lejanos sigue; `zoomDeLaCaja` se queda por si hace falta medir un encuadre.
 
 /**
  * Lo que `fitBounds` recibe: los puntos válidos, o la región si no queda ninguno. `fitTo` ausente es «quien monta el

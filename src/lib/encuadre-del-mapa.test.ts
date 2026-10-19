@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  centroDeLasTiendas, centroInicial, encuadreDeLaRegion, encuadreFinal, puntosParaEncuadrar, RADIO_MAX_KM, topeDeAlejamiento,
-  ZOOM_MINIMO_DEL_MAPA, zoomDeLaCaja,
+  centroDeLasTiendas, centroInicial, encuadreDeLaRegion, encuadreFinal, puntosParaEncuadrar, RADIO_MAX_KM,
+  zoomDeLaCaja,
 } from "./encuadre-del-mapa";
 import { distanceMeters } from "./geo";
 
@@ -90,17 +90,7 @@ describe("topeDeAlejamiento (D-580): «not further than that»", () => {
     const ancha = zoomDeLaCaja([[26.20, -99.00], [26.21, -97.00]], 800, 430);
     expect(ancha).toBeLessThan(zoomDeLaCaja([[26.20, -98.10], [26.21, -97.90]], 800, 430));
   });
-  it("el tope es la región de las tiendas redondeada hacia abajo, y nunca por debajo de 8", () => {
-    const z = zoomDeLaCaja(encuadreDeLaRegion(tiendas), 800, 430);
-    expect(topeDeAlejamiento(tiendas, 800, 430)).toBe(Math.floor(z));
-    expect(topeDeAlejamiento(tiendas, 800, 430)).toBeGreaterThanOrEqual(9);
-    // Una región enorme (tiendas a 2° entre sí) cae al suelo de 8.
-    expect(topeDeAlejamiento([{ lat: 25, lng: -100 }, { lat: 27.5, lng: -96 }], 800, 430)).toBe(ZOOM_MINIMO_DEL_MAPA);
-    // Una sola tienda: su ciudad (el lado mínimo), tope ~10.
-    expect(topeDeAlejamiento([{ lat: 26.2, lng: -98.2 }], 800, 430)).toBe(10);
-    // Un mapa sin tamaño aún (0×0): no explota ni devuelve NaN.
-    expect(Number.isFinite(topeDeAlejamiento(tiendas, 0, 0))).toBe(true);
-  });
+  // Nota D-587: el tope de alejamiento se quitó («the map has a lock on the zoom out»); `zoomDeLaCaja` se queda.
 });
 
 describe("encuadreFinal (D-580): lo que recibe fitBounds", () => {
@@ -126,15 +116,14 @@ describe("encuadreFinal (D-580): lo que recibe fitBounds", () => {
 describe("los dos mapas pasan por aquí (D-580)", () => {
   const google = readFileSync("src/components/GoogleMapView.tsx", "utf8");
   const leaflet = readFileSync("src/components/LeafletMap.tsx", "utf8");
-  it("encuadran con encuadreFinal y centran con centroInicial, con tope de alejamiento", () => {
+  it("encuadran con encuadreFinal y centran con centroInicial, SIN tope de alejamiento (D-587)", () => {
     for (const [nombre, src] of [["GoogleMapView", google], ["LeafletMap", leaflet]] as const) {
       expect(src, nombre).toMatch(/encuadreFinal\(fitTo, stores\)/);
       expect(src, nombre).toMatch(/centroInicial\(/);
-      expect(src, nombre).toMatch(/minZoom: ZOOM_MINIMO_DEL_MAPA/);
-      expect(src, nombre).toMatch(/topeDeAlejamiento\(stores, /);
+      // El dueño, 2026-10-18: «the map has a lock on the zoom out». Ni minZoom ni tope: la región es solo el encuadre inicial.
+      expect(src, nombre).not.toMatch(/minZoom|setMinZoom|topeDeAlejamiento|ZOOM_MINIMO_DEL_MAPA/);
       expect(src, nombre).not.toMatch(/RGV_FALLBACK|26\.2034/);
     }
-    expect(ZOOM_MINIMO_DEL_MAPA).toBe(8);
   });
   it("Google: fitBounds recibe los puntos filtrados, no fitTo tal cual", () => {
     expect(google).toMatch(/for \(const \[lat, lng\] of enc\.validos\) bounds\.extend/);
@@ -143,11 +132,5 @@ describe("los dos mapas pasan por aquí (D-580)", () => {
   it("Leaflet: idem", () => {
     expect(leaflet).toMatch(/latLngBounds\(enc\.validos\.map/);
     expect(leaflet).not.toMatch(/latLngBounds\(fitTo\.map/);
-  });
-  it("el tope se fija ANTES de fitBounds, en los dos, con el tamaño real del mapa", () => {
-    expect(google.indexOf("map.setOptions({ minZoom: topeDeAlejamiento(stores, el.clientWidth, el.clientHeight) })")).toBeGreaterThan(0);
-    expect(google.indexOf("map.setOptions({ minZoom: topeDeAlejamiento(")).toBeLessThan(google.indexOf("map.fitBounds(bounds, 45)"));
-    expect(leaflet.indexOf("mapRef.current.setMinZoom(topeDeAlejamiento(stores, tam.x, tam.y))")).toBeGreaterThan(0);
-    expect(leaflet.indexOf("setMinZoom(topeDeAlejamiento(")).toBeLessThan(leaflet.indexOf("mapRef.current.fitBounds(bounds"));
   });
 });
