@@ -45662,7 +45662,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-599 · RR. HH.: «Guardar y mandar texto» abre RingCentral en el clic, antes de esperar a la base (si no, el navegador no abre la app y no sale nada)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): abrir en el clic era necesario pero no la causa del texto vacío (parámetro `content`).
+> **Reemplazada en parte por D-608** (2026-10-20): abrir en el clic era necesario pero no la causa del texto vacío (parámetro `content`).
 
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.52.1 (repo 1.465.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-cita-abre-ringcentral-primero`.
 
@@ -45753,7 +45753,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-604 · RR. HH.: el texto de la cita presencial es la plantilla del dueño (con el bloque de la dirección y la despedida), y todo texto a RingCentral va también al portapapeles (RingCentral se abría vacío)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): la causa del compositor vacío era el parámetro (`text` → `content`); el portapapeles se queda como red.
+> **Reemplazada en parte por D-608** (2026-10-20): la causa del compositor vacío era el parámetro (`text` → `content`); el portapapeles se queda como red.
 
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.54.0 (repo 1.470.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-plantilla-cita-del-dueno`.
 
@@ -45823,9 +45823,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador con un gerente.
 
-## D-NEXT · RR. HH.: el enlace de texto a RingCentral lleva el mensaje en `content`, no en `text` (por eso el compositor se abría vacío)
+## D-608 · RR. HH.: el enlace de texto a RingCentral lleva el mensaje en `content`, no en `text` (por eso el compositor se abría vacío)
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-rcsms-content`.
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.57.1 (repo 1.474.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-rcsms-content`.
 
 **Pedido del dueño (2026-10-20, literal):** «los templates de los mensajes aún no se pegan automáticamente».
 
