@@ -33,6 +33,7 @@ import { SessionExpired } from "@/components/SessionExpired";
 import { nombreDelCv, nombreSeguro } from "@/lib/recruiting/nombre-del-cv";
 import { contactoDelGuardado, TIPOS_QUE_GUARDAN, yaGuardadoEnRingCentral } from "@/lib/recruiting/contacto-ringcentral";
 import { notaDelGuardado } from "@/lib/recruiting/agendas-ringcentral";
+import { estandarizaCandidato } from "@/lib/recruiting/formato";
 
 interface DataState {
   ready: boolean;
@@ -392,7 +393,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // ---------------- Candidate CRUD ----------------
   const addCandidate = useCallback<DataState["addCandidate"]>(
     async (c) => {
-      const payload = { ...c, created_by: me?.id ?? null };
+      // D-NEXT: nombre, teléfono y correo con el formato estándar, entre por donde entre.
+      const payload = { ...estandarizaCandidato(c), created_by: me?.id ?? null };
       const { data, error } = await supabase.from("candidates").insert(payload).select().single();
       if (error) {
         notify("Error: " + error.message);
@@ -407,8 +409,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const updateCandidate = useCallback<DataState["updateCandidate"]>(
     async (id, patch) => {
       // stamp stage entry time whenever the status changes (for "days in stage")
-      const finalPatch: Partial<Candidate> =
-        patch.status !== undefined ? { ...patch, stage_changed_at: new Date().toISOString() } : patch;
+      const finalPatch: Partial<Candidate> = estandarizaCandidato(
+        patch.status !== undefined ? { ...patch, stage_changed_at: new Date().toISOString() } : patch,
+      );
       setCandidates((prev) => prev.map((c) => (c.id === id ? { ...c, ...finalPatch } : c)));
       const { error } = await supabase.from("candidates").update(finalPatch).eq("id", id);
       if (error) notify("Error: " + error.message);
