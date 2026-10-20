@@ -46,7 +46,8 @@ describe("texto de seguimiento tras buzón de voz o volver a llamar (D-598)", ()
     if (!r.ok) return;
     expect(r.texto).toBe("Hola María.");
     expect(r.enlace).toContain("/r/sms?type=new&number=5550102030");
-    expect(r.enlace).toContain("&text=" + encodeURIComponent("Hola María."));
+    expect(r.enlace).toContain("&content=" + encodeURIComponent("Hola María."));
+    expect(r.enlace).not.toContain("&text=");
     expect(prepararTextoDeSeguimiento({ ...cand, phone: null }, "x")).toEqual({ ok: false, motivo: "sin-telefono" });
     expect(prepararTextoDeSeguimiento(cand, "  ")).toEqual({ ok: false, motivo: "sin-texto" });
   });

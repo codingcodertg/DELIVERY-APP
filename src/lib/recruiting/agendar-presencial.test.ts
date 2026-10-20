@@ -130,7 +130,8 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     if (!r.ok) return;
     expect(r.texto).toBe("Hola María, le espero.");
     expect(r.enlace).toContain("/r/sms?type=new&number=5550102030");
-    expect(r.enlace).toContain("&text=" + encodeURIComponent(r.texto));
+    expect(r.enlace).toContain("&content=" + encodeURIComponent(r.texto));
+    expect(r.enlace).not.toContain("&text=");
     expect(prepararConfirmacionPresencial({ ...cand, phone: null }, "x")).toEqual({ ok: false, motivo: "sin-telefono" });
     // El texto lo edita quien manda: vacío del todo, no se abre nada.
     expect(prepararConfirmacionPresencial(cand, "   ")).toEqual({ ok: false, motivo: "sin-texto" });

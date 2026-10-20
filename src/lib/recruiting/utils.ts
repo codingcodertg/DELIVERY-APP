@@ -82,9 +82,12 @@ export const RC_SCHEME = "rcapp";
 export const rcCall = (phone: string | null) =>
   `${RC_SCHEME}://r/call?number=${encodeURIComponent(telClean(phone))}`;
 
+/** El mensaje va en `content`, no en `text` (D-NEXT, 2026-10-20): la referencia de RingCentral documenta
+ *  `/r/sms?type=new&number={phoneNumber}&content={text}`; con `text` la app abría el compositor con el número y sin mensaje
+ *  (el dueño: «los templates de los mensajes aún no se pegan automáticamente»). */
 export const rcSms = (phone: string | null, text = "") =>
   `${RC_SCHEME}://r/sms?type=new&number=${encodeURIComponent(telClean(phone))}` +
-  (text ? `&text=${encodeURIComponent(text)}` : "");
+  (text ? `&content=${encodeURIComponent(text)}` : "");
 
 export function isOverdue(c: Candidate, terminal?: Set<string>): boolean {
   const isTerminal = terminal ? terminal.has(c.status) : c.status === "discarded" || c.status === "hired";

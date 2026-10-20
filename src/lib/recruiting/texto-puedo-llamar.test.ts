@@ -30,7 +30,8 @@ describe("texto «¿te puedo llamar?» (D-581)", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.enlace).toContain("/r/sms?type=new&number=5550102030");
-    expect(r.enlace).toContain("&text=" + encodeURIComponent(r.texto));
+    expect(r.enlace).toContain("&content=" + encodeURIComponent(r.texto));
+    expect(r.enlace).not.toContain("&text=");
   });
 
   it("sin teléfono no abre nada y lo dice", () => {
