@@ -17,11 +17,14 @@ export interface Scorecard {
 }
 
 // ---- Reusable 1–4 rubrics --------------------------------------------------
+/** Riesgo, al derecho (D-605, 2026-10-19): 1 = lo peor (Afecta) … 4 = lo mejor (Sin riesgo), como todas las demás. Hasta aquí
+ *  iba al revés con `descending: true` para que la media le diera la vuelta; medido: la base no conservaba esa marca en
+ *  ninguna pregunta, así que «Sin riesgo» (1) contaba como lo peor. El dueño: «afecta sería número uno». */
 const RISK: ScaleLevel[] = [
-  { value: 1, label_en: "No Risk", label_es: "Sin riesgo", example_en: "", example_es: "", descending: true },
-  { value: 2, label_en: "Possible", label_es: "Posible", example_en: "", example_es: "", descending: true },
-  { value: 3, label_en: "Slightly Affecting", label_es: "Afecta levemente", example_en: "", example_es: "", descending: true },
-  { value: 4, label_en: "Affecting", label_es: "Afecta", example_en: "", example_es: "", descending: true },
+  { value: 1, label_en: "Affecting", label_es: "Afecta", example_en: "", example_es: "" },
+  { value: 2, label_en: "Slightly Affecting", label_es: "Afecta levemente", example_en: "", example_es: "" },
+  { value: 3, label_en: "Possible", label_es: "Posible", example_en: "", example_es: "" },
+  { value: 4, label_en: "No Risk", label_es: "Sin riesgo", example_en: "", example_es: "" },
 ];
 const GGMB: ScaleLevel[] = [
   { value: 1, label_en: "Bad / None", label_es: "Malo / Ninguno", example_en: "", example_es: "" },

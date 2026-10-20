@@ -45766,3 +45766,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `agendar-presencial.test.ts` (el texto exacto del dueño en español con «mañana a las 10:30 a.m.» y el bloque; en inglés; `{when}`/`{day}` para hoy, mañana y otro día en los dos idiomas; sin tienda, sin bloque; plantilla de Ajustes con todos los marcadores) y `abrir-sms.test.ts` (copia y abre en ese orden sin esperar; sin portapapeles abre igual; el aviso; puerta: los cuatro textos salen por aquí y no queda ningún `window.location.href` suelto). Mutantes: 6, 6 caen.
 
 **No medido:** en el navegador del dueño con su RingCentral.
+
+## D-605 · RR. HH.: las escalas de las preguntas van al derecho (1 = lo peor, 4 = lo mejor); la de riesgo pasa a Afecta (1) … Sin riesgo (4), y un guion arregla las 28 preguntas de producción que iban al revés o revueltas
+
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.55.0 (repo 1.471.0) · Sin migración · Datos de producción: `scripts/arregla-escalas-de-preguntas.mjs` (28 escalas + 5 textos), con el sí del dueño · Hecho directo por el orquestador en `fix/rrhh-escalas-al-derecho`.
+
+**Pedido del dueño (2026-10-19, literal):** «quiero que mires todas las preguntas y mires el rating system porque están al revés. Porque hay unas, todas deberían ser uno como que sería worst y four como que sería good. Y hay unas que sería afecta levemente o afecta, que es number four. Entonces no es, porque ese, afecta sería número uno … quiero que arregles todo ese sorting system … y lo coloques de la manera que es, así como los otros».
+
+**Medido (167 preguntas en `recruiting.questions`, 72 entrevistas).**
+- 114 van bien (Malo / Mediocre / Bueno / Excelente), 6 de inglés (1–3 … 9–10), 6 de estudios, 3 con la global.
+- **25 con la escala de riesgo al revés** (1 = Sin riesgo … 4 = Afecta): Tenure, Horario, Salario, Antecedentes, Asistencia, Físico, infracciones y drogas de Driver, Accounting, Inventory Coordinator y Warehouse Supervisor. En el código (`scorecards.ts`) esa escala llevaba `descending: true` para que `scoreAverage` le diera la vuelta al grado; **en la base ninguna fila conserva esa marca** (se perdió al guardar), así que la vuelta nunca ocurría. Las 10 hermanas de Sales y Warehouse Associate ya estaban al derecho (alguien las corrigió a mano).
+- 1 de riesgo revuelta (1 = Afecta, 2 = Sin riesgo, 3 = Posible, 4 = Afecta levemente), 1 de desempeño revuelta (1 = Bueno, 2 = Excelente, 3 = Mediocre, 4 = Malo), 1 con etiquetas rotas (Peor / Malo / Malo / Peor) y 5 con texto en mojibake («Â¿Tiene…», «estÃ¡»).
+- **Las entrevistas hechas no se tocan.** El ensayo del guion lo enseñó: 31 entrevistas calificaron alguna de esas preguntas (37 respuestas) y casi todas con **4**, incluso en candidatos de media alta (una con 4 en las cuatro de riesgo y media 3,67). Los reclutadores calificaron por NÚMERO, con 4 = bueno, que es justo lo que el dueño describe como la regla; traducir por etiqueta (4 → 1) habría hundido entrevistas buenas. Se dejan como están y, con las etiquetas al derecho, pasan a leerse bien.
+
+**Qué cambia.**
+- **Código:** la escala `RISK` de las tarjetas (`scorecards.ts`) va Afecta (1), Afecta levemente (2), Posible (3), Sin riesgo (4), sin `descending`. `scoreAverage` conserva el soporte de `descending` por si una escala futura lo usa, pero ninguna de las de aquí lo lleva.
+- **Guion** `scripts/arregla-escalas-de-preguntas.mjs`: en ensayo (por defecto) lista lo que haría; con `--escribe` pone la escala buena en las 28 filas (las de riesgo → Afecta…Sin riesgo; la de desempeño → Malo…Excelente; la rota → la global, `scale = null`), decodifica los 5 textos, y guarda lo anterior en `D:\CLAUDE\respaldos\escalas-antes-<fecha>.json`. Cada `update` comprueba que tocó una fila.
+
+**Pruebas:** `src/lib/recruiting/escalas-al-derecho.test.ts` (ninguna escala de las tarjetas lleva `descending` y todas van 1…4; la de riesgo con sus etiquetas en orden; con ella, «Sin riesgo» sube la media y «Afecta» la baja; el guion detecta la de riesgo al revés y la revuelta, la de desempeño revuelta y la rota, respeta las que están bien y las de inglés, y decodifica el mojibake).
+
+**No medido:** en navegador. El `--escribe` se corre cuando el dueño diga que sí; hasta entonces producción sigue con las escalas al revés.
