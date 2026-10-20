@@ -34,8 +34,8 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
   const aviso = textoDelAviso(yo.full_name, body);
-  const { data: notif } = await admin.from("notifications")
-    .insert({ user_id: to, kind: KIND_CHAT, message: aviso }).select("id").single();
+  // Sin `.select()`: el aviso no se pide de vuelta (regla del repo: el RETURNING de `notifications` es lo que la lectura rechaza).
+  await admin.from("notifications").insert({ user_id: to, kind: KIND_CHAT, message: aviso });
 
   let push: { sent: number; dropped: number } | null = null;
   if (llevaPush(yo.role) && fcmConfigured()) {
@@ -47,5 +47,5 @@ export async function POST(req: Request) {
       push = { sent: r.sent, dropped: r.dead.length };
     } else push = { sent: 0, dropped: 0 };
   }
-  return NextResponse.json({ id: msg.id, created_at: msg.created_at, notification_id: notif?.id ?? null, push });
+  return NextResponse.json({ id: msg.id, created_at: msg.created_at, push });
 }
