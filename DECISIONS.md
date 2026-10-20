@@ -45150,6 +45150,8 @@ Un módulo puro, `src/lib/encuadre-del-mapa.ts`, que los dos mapas llaman igual:
 
 ## D-581 · RRHH: botón «📱 Texto: ¿te puedo llamar?» junto al candidato, sin abrir «Iniciar entrevista»; y el teléfono a la vista en la lista
 
+> **Reemplazada en parte por D-612** (2026-10-20): «¿te puedo llamar?» ya no se apaga por un envío anterior.
+
 > **Reemplazada en parte por D-595** (2026-10-19): el texto de «¿te puedo llamar?» es el que pegó el dueño (de usted, sin nombre ni puesto, firmado por quien pulsa); el botón y el camino no cambian.
 
 **Fecha:** 2026-10-18 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Amplía el «💬 Texto» del diálogo de entrevista y el modal de Mensaje.
@@ -45643,6 +45645,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-598 · RR. HH.: tras «Buzón de voz» o «Volver a llamar» en la entrevista, el diálogo ofrece un texto de seguimiento («le estoy llamando por el puesto de…, ¿cuándo está disponible?»)
 
+> **Reemplazada en parte por D-612** (2026-10-20): el seguimiento sale también con «Sin respuesta».
+
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.52.0 (repo 1.464.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-seguimiento`.
 
 **Pedido del dueño (2026-10-19, literal):** «en la entrevista si le doy buzón de voz o volver a llamar dame la opción para mandarle un follow up text message con ese template de te estoy llamando por el trabajo de tal y cuándo está disponible».
@@ -45890,3 +45894,19 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/recruiting/fecha-y-hora.test.ts` (los siete días con Hoy/Mañana y nombres en los dos idiomas, fecha local y fin de mes; las 21 horas con su etiqueta de 12 horas; partir y juntar el valor sin perder nada; puerta: los tres diálogos usan el selector y no queda ningún `datetime-local`).
 
 **No medido:** en navegador (es justo lo que el dueño ve; la medida es su siguiente cita).
+
+## D-612 · RR. HH.: «¿te puedo llamar?» se manda siempre (ya no se apaga por un envío anterior), y el texto de seguimiento se ofrece también con «Sin respuesta»
+
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.1 (repo 1.478.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-textos-siempre`.
+
+**Pedido del dueño (2026-10-20, literal):** «ya funcionó lo de mandar la confirmación pero no funciona aún el template para mandarle mensaje cuando me sale voice mail o el mensaje de te puedo llamar y eso de voice mail o eso siempre que diga volver a llamar o no contestó todo eso quiero que se mande».
+
+**Medido.** La confirmación de la cita sale: D-608 (`content`) era la causa del compositor vacío. Lo que seguía «sin funcionar» en «¿te puedo llamar?» no era el enlace sino la traba de D-581: el botón se apagaba («SMS enviado ✓ hh:mm») si ese candidato ya tenía un envío marcado, y los intentos de los días en que RingCentral salía vacío quedaron registrados como enviados. El seguimiento (D-598) solo salía con «Buzón de voz» y «Volver a llamar»; el dueño quiere también «Sin respuesta».
+
+**Qué cambia.**
+- `prepararTextoPuedoLlamar` ya no devuelve «ya-enviado»: el botón manda siempre. La etiqueta con la hora del último envío se queda (historial), el botón sigue activo y su título dice «Ya enviado; lo abre otra vez en RingCentral».
+- `RESULTADOS_CON_SEGUIMIENTO` = Buzón de voz, Volver a llamar **y Sin respuesta** («Número equivocado» sigue cerrando sin texto).
+
+**Pruebas:** `texto-puedo-llamar.test.ts` (con un envío marcado se vuelve a mandar; el historial sigue contando solo los marcados; el botón no se deshabilita) y `texto-de-seguimiento.test.ts` (los tres resultados; «Wrong number» no).
+
+**No medido:** en el RingCentral del dueño.

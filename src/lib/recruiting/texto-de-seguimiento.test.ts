@@ -8,11 +8,11 @@ import {
 const cand = { name: "María López", role: "Driver", phone: "(555) 010-2030" };
 
 describe("texto de seguimiento tras buzón de voz o volver a llamar (D-598)", () => {
-  it("lo ofrecen SOLO «Voicemail» y «Call back later» (los dos que pidió el dueño); ni «No answer», ni «Wrong number», ni la etiqueta traducida", () => {
-    expect([...RESULTADOS_CON_SEGUIMIENTO].sort()).toEqual(["Call back later", "Voicemail"]);
+  it("lo ofrecen «Voicemail», «Call back later» y «No answer» (D-612); ni «Wrong number» ni la etiqueta traducida", () => {
+    expect([...RESULTADOS_CON_SEGUIMIENTO].sort()).toEqual(["Call back later", "No answer", "Voicemail"]);
     expect(ofreceSeguimiento("Voicemail")).toBe(true);
     expect(ofreceSeguimiento("Call back later")).toBe(true);
-    expect(ofreceSeguimiento("No answer")).toBe(false);
+    expect(ofreceSeguimiento("No answer")).toBe(true);
     expect(ofreceSeguimiento("Wrong number")).toBe(false);
     expect(ofreceSeguimiento("Buzón de voz")).toBe(false);
   });
