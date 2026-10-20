@@ -5,6 +5,7 @@ import { VersionStamp } from "@/components/VersionStamp";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { CierreDiario } from "@/components/CierreDiario";
 import { HelpButton } from "@/components/HelpButton";
+import { ChatFlotante } from "@/components/ChatFlotante";
 import { GUION_DE_TEMA } from "@/lib/tema";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
@@ -80,6 +81,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               porque habla en el idioma de la persona; dónde no sale (login, el enlace del cliente…) lo
               decide ella con `ayudaEnLaRuta`. */}
           <HelpButton />
+          {/* La burbuja del chat interno (D-NEXT, 2026-10-20), por lo mismo que la de Ayuda: una en todas las apps, arriba a la
+              derecha; dónde no sale lo decide `chatEnLaRuta` (las mismas pantallas sin sesión). Dentro de `PrefsProvider`. */}
+          <ChatFlotante />
         </PrefsProvider>
         {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}
         <VersionStamp />
