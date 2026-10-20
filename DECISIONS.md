@@ -45619,6 +45619,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-597 · RR. HH.: al agendar la entrevista presencial, el texto para el candidato se arma solo con la dirección de la tienda, se edita en el diálogo y se manda al guardar
 
+> **Reemplazada en parte por D-604** (2026-10-19): la plantilla es la del dueño (bloque de dirección y despedida, sin nombre del candidato), y el texto va también al portapapeles.
+
 > **Reemplazada en parte por D-599** (2026-10-19): RingCentral se abre en el clic, antes de guardar; el dueño reportó que no salía el texto.
 
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.51.0 (repo 1.463.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-la-cita`.
@@ -45744,3 +45746,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/recoger-sin-listo-pantalla.test.ts` (los tres motivos en su orden; el cuadro solo en aprobada/preparando; la nota por idioma, «Otro» exige texto; la nota entra en la escritura de la ficha y el historial la reconoce; puerta: Mi ruta abre el cuadro con la librería, recoge con `notaDeRecogidaSinListo` + `avisosDeRecogidaSinListo` y abre la ficha después; la ficha ya no tiene el aviso). 5 mutantes, 5 caen.
 
 **No medido:** en navegador ni en teléfono.
+
+## D-604 · RR. HH.: el texto de la cita presencial es la plantilla del dueño (con el bloque de la dirección y la despedida), y todo texto a RingCentral va también al portapapeles (RingCentral se abría vacío)
+
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.54.0 (repo 1.470.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-plantilla-cita-del-dueno`.
+
+**Pedido del dueño (2026-10-19, literal, con captura de su plantilla):** «mira así es el template que yo uso, no me gustó el que hiciste, ahora aún no funciona le doy enviar y se abre ring central pero no aparece nada».
+
+**Medido antes.** (1) D-597 inventó una plantilla de una línea; el dueño manda otra: de usted, sin el nombre del candidato, «Le confirmo su entrevista presencial para mañana a las 10:00 a.m. en nuestra oficina:», un bloque con «Rodriguez Tile Group / calle / ciudad», «Por favor llegue unos minutos antes y traiga una identificación…» y la despedida «Nos vemos mañana, / Andrés / Rodriguez Tile Group». (2) Tras D-599 (abrir en el clic) RingCentral sí se abre, pero **en blanco**: el texto viaja en la URL `rcapp://r/sms?…&text=…`; el de «¿te puedo llamar?» (~250 letras) aparece, el de la cita (~330) no, y la plantilla del dueño es más larga y con saltos de línea. El límite exacto de la app no se midió (no hay RingCentral de escritorio en esta máquina), y no se adivina: se pone un camino que no depende de él.
+
+**Qué cambia.**
+- **La plantilla** (`agendar-presencial.ts`, `PLANTILLA`): la del dueño letra por letra, con «Andrés» → `{recruiter}`, «mañana a las 10:00 a.m.» → **`{when}`** («hoy a las 4:00 p.m.», «mañana a las 10:30 a.m.», «el jueves, 22 de octubre a las 9:00 a.m.»), «mañana» → **`{day}`** («hoy», «mañana», «el jueves») y el bloque de la dirección → `{address}` (la de Datos → Tiendas, bajo «Rodriguez Tile Group»). Sin tienda conocida (un «Otro…» a mano): «para {when} en {place}.» sin bloque. En inglés, la misma. Los dos marcadores nuevos valen también en una plantilla «Presencial» de Ajustes; `{date}` y `{time}` siguen.
+- **Al portapapeles** (`abrir-sms.ts`, `abrirSmsEnRingCentral`): en el mismo clic, el texto se copia (`navigator.clipboard.writeText`, sin esperar) y se abre el enlace; el aviso dice «Texto abierto en RingCentral y copiado: si RingCentral se abre vacío, pégalo (Ctrl+V)». Por ahí salen los cuatro textos de RR. HH.: la cita, «¿te puedo llamar?», el seguimiento y «💬 Mensaje». Si el navegador no deja copiar, abre igual y el aviso no promete la copia.
+
+**Lo que se sabe y lo que no.** La causa más probable del vacío es el largo de la URL (o sus saltos de línea); con el portapapeles el texto llega aunque el enlace lo pierda. Si el dueño confirma que RingCentral sigue abriéndose vacío con textos cortos, es otra cosa (la app, la versión) y se mide con él.
+
+**Nota para Datos → Tiendas:** las direcciones de Pharr y Mission son las largas del geocodificador («1120, East Expressway 83, L R Bell Colonia, Pharr, Hidalgo County, Texas, 78577, United States»); el texto las pone tal cual. Acortarlas ahí («1120 E Expressway 83, Pharr, TX 78577») arregla el texto sin tocar código.
+
+**Pruebas:** `agendar-presencial.test.ts` (el texto exacto del dueño en español con «mañana a las 10:30 a.m.» y el bloque; en inglés; `{when}`/`{day}` para hoy, mañana y otro día en los dos idiomas; sin tienda, sin bloque; plantilla de Ajustes con todos los marcadores) y `abrir-sms.test.ts` (copia y abre en ese orden sin esperar; sin portapapeles abre igual; el aviso; puerta: los cuatro textos salen por aquí y no queda ningún `window.location.href` suelto). Mutantes: 6, 6 caen.
+
+**No medido:** en el navegador del dueño con su RingCentral.

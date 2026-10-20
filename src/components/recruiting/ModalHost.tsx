@@ -9,6 +9,7 @@ import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
 import { BotonCopiarParaElGerente } from "./BotonCopiarParaElGerente";
 import { InPersonScheduleModal } from "./InPersonScheduleModal";
 import { contactoDelSeguimiento, ofreceSeguimiento, plantillaDeSeguimiento, prepararTextoDeSeguimiento, textoDeSeguimiento } from "@/lib/recruiting/texto-de-seguimiento";
+import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
 import type { Candidate, Contact, Interview, InterviewAnswer, RecruiterRecommendation } from "@/lib/recruiting/types";
 import {
@@ -1215,9 +1216,9 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
       setErrorSeg(r.motivo === "sin-telefono" ? t("No phone number", "Sin número de teléfono") : t("The text is empty", "El texto está vacío"));
       return;
     }
-    window.location.href = r.enlace;
+    const abierto = abrirSmsEnRingCentral(r.enlace, r.texto, navegadorReal());
     await addContact(c.id, contactoDelSeguimiento(r.texto));
-    notify(t("Text opened in RingCentral ✓", "Texto abierto en RingCentral ✓"));
+    notify(avisoTrasAbrir(abierto, lang));
     close();
   };
 
@@ -1697,7 +1698,7 @@ function ResumeModal({ id, close }: { id: string; close: () => void }) {
 /* ---------------- Message / Templates ---------------- */
 function MessageModal({ id, close }: { id: string; close: () => void }) {
   const { candidates, templates, addContact, notify, me } = useData();
-  const { t: tr } = usePrefs();
+  const { t: tr, lang } = usePrefs();
   const c = candidates.find((x) => x.id === id);
   const [tplId, setTplId] = useState<string | null>(templates[0]?.id ?? null);
   const recruiter = me?.full_name ?? "";
@@ -1733,9 +1734,9 @@ function MessageModal({ id, close }: { id: string; close: () => void }) {
           <button
             className="btn btn-primary"
             onClick={() => {
-              window.location.href = rcSms(c.phone, msg);
+              const abierto = abrirSmsEnRingCentral(rcSms(c.phone, msg), msg, navegadorReal());
               addContact(c.id, { type: "SMS", result: "sent", note: msg.slice(0, 80) });
-              notify(tr("Text opened in RingCentral ✓", "Texto abierto en RingCentral ✓"));
+              notify(avisoTrasAbrir(abierto, lang));
               close();
             }}
           >

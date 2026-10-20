@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
+import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
 import {
   MARCADORES_DE_LA_CITA, type Tienda,
   contactoDeLaCita, contactoDeLaConfirmacion, etapaTrasAgendar, lugaresParaAgendar, plantillaDeAjustes,
@@ -86,11 +87,12 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
     // RingCentral se abre EN EL CLIC, antes de esperar a la base (D-599): el enlace rcsms es una app externa y el
     // navegador solo la abre con el gesto del usuario reciente; tras dos escrituras en Supabase el gesto puede haber
     // caducado y no se abre nada, sin error. Mismo orden que D-581 y que el D-585 original.
-    window.location.href = r.enlace;
+    // D-604: el texto va en el enlace Y en el portapapeles (el dueño: «se abre ring central pero no aparece nada»).
+    const abierto = abrirSmsEnRingCentral(r.enlace, r.texto, navegadorReal());
     try {
       await agendar(iso);
       await addContact(c.id, contactoDeLaConfirmacion(r.texto));
-      notify(t("Scheduled ✓ · text opened in RingCentral", "Agendada ✓ · texto abierto en RingCentral"));
+      notify(`${t("Scheduled ✓", "Agendada ✓")} · ${avisoTrasAbrir(abierto, lang)}`);
       close();
     } finally {
       setGuardando(false);
