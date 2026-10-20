@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { diaEntreLasFichas, fichasDeDia, fichasDeHora, horaEntreLasFichas, juntaFechaYHora, parteDeFechaYHora } from "@/lib/recruiting/fecha-y-hora";
 
 /**
- * Fecha y hora con fichas (D-NEXT): «Hoy / Mañana / jue 22 / …» y «8:00 a.m. / 8:30 a.m. / …», más «Otro día» (el calendario
+ * Fecha y hora con fichas (D-611): «Hoy / Mañana / jue 22 / …» y «8:00 a.m. / 8:30 a.m. / …», más «Otro día» (el calendario
  * del navegador) y «Otra hora». `value` y `onChange` son el `YYYY-MM-DDTHH:mm` de siempre: los diálogos no cambian nada más.
  * Mientras falta una de las dos partes, `onChange("")` (el diálogo sigue pidiendo las dos); la parte elegida se queda aquí.
  */

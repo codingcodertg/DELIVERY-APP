@@ -127,7 +127,7 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
         <h3>📅 {t("Schedule in-person interview", "Agendar entrevista presencial")} — {c.name}</h3>
 
         <label>{t("Interview date and time", "Fecha y hora de la entrevista")}</label>
-        {/* D-NEXT: fichas de día y hora en vez del calendario del navegador («se mira medio feo»). Mismo valor detrás. */}
+        {/* D-611: fichas de día y hora en vez del calendario del navegador («se mira medio feo»). Mismo valor detrás. */}
         <SelectorDeFechaYHora value={dt} onChange={setDt} autoFocus />
 
         <label style={{ marginTop: 10 }}>{t("Place", "Lugar")}</label>

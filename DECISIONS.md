@@ -45877,9 +45877,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · RR. HH.: fecha y hora con fichas (Hoy, Mañana, los días siguientes; horas de 8:00 a 6:00 p.m. de media en media) en los tres diálogos de cita, en vez del calendario del navegador
+## D-611 · RR. HH.: fecha y hora con fichas (Hoy, Mañana, los días siguientes; horas de 8:00 a 6:00 p.m. de media en media) en los tres diálogos de cita, en vez del calendario del navegador
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-calendario-amable`.
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.0 (repo 1.477.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-calendario-amable`.
 
 **Pedido del dueño (2026-10-20, literal):** «esa forma de meter el calendario para entrevista presencial, sí, no me gusta, se mira medio feo y voy bien poco. Entonces quiero que me mejores ese tipo de calendario, que sea más user friendly».
 

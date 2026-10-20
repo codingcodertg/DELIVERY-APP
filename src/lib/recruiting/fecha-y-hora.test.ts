@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { diaEntreLasFichas, fechaLocal, fichasDeDia, fichasDeHora, horaEntreLasFichas, juntaFechaYHora, parteDeFechaYHora } from "./fecha-y-hora";
 
-// D-NEXT (2026-10-20) · El dueño: «esa forma de meter el calendario para entrevista presencial … se mira medio feo … que sea más
+// D-611 (2026-10-20) · El dueño: «esa forma de meter el calendario para entrevista presencial … se mira medio feo … que sea más
 // user friendly». Fichas de día y de hora; el valor guardado no cambia.
 
 const hoy = new Date("2026-10-20T15:00:00");

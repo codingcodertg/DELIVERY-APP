@@ -1,4 +1,4 @@
-/* ---- El selector de fecha y hora amable (D-NEXT, 2026-10-20) ----
+/* ---- El selector de fecha y hora amable (D-611, 2026-10-20) ----
  * El dueño: «esa forma de meter el calendario para entrevista presencial … no me gusta, se mira medio feo y voy bien poco
  * … quiero que me mejores ese tipo de calendario, que sea más user friendly». Hasta aquí era un `<input type="datetime-local">`
  * pelado (el del navegador). Ahora: fichas de DÍA (Hoy, Mañana y los cinco siguientes con su nombre, más «Otro día» con
