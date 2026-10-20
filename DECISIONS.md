@@ -45802,3 +45802,19 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `vista-del-gerente.test.ts` (los grupos que se pintan son exactamente Hoy y Próximos; la vista recorre esa lista y no tiene los cuatro a mano). 1 mutante (pintar los cuatro), cae.
 
 **No medido:** en navegador.
+
+## D-NEXT · RR. HH.: el gerente de tienda adjunta documentos al candidato (formularios, identificación…) desde su tarjeta, y abre los que ya tenga
+
+**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-gerente-adjuntos`.
+
+**Pedido del dueño (2026-10-19, literal):** «en el hr de los manager a los candidate dale la opción para attached documents de ellos como forms y así».
+
+**Medido antes.** Los adjuntos de un candidato ya existen (tabla `recruiting.attachments`, bucket `resumes`, D-050…): la ficha del reclutador los lista, los abre con un enlace firmado de 60 s, agrega y quita. La vista del gerente (D-600/D-606) no los enseñaba. La 183 ya deja al gerente de tienda leer y escribir `attachments` de los candidatos que ve; el bucket `resumes` lo guarda `has_recruiting_access()`, que el gerente cumple.
+
+**Qué cambia.** En cada tarjeta de la vista del gerente, una fila «📎 <nombre>» por documento (se abre al pulsar) y «＋ Adjuntar documento» (un archivo cualquiera; va por el MISMO `addAttachment` de la ficha: bucket `resumes` + fila en `attachments` con `created_by` = el gerente). El gerente solo puede quitar (✕) los que subió él; los del reclutador se quedan. El reclutador ve esos documentos en la ficha como cualquier otro adjunto.
+
+**Lo que se sabe:** la política del bucket es por módulo, no por candidato: un gerente que conociera la ruta de un archivo de otra tienda podría abrirlo por Storage; la tabla `attachments` (por donde la app llega a las rutas) sí está limitada por la 183. Si hace falta cerrarlo en el bucket, es otra migración.
+
+**Pruebas:** `vista-del-gerente.test.ts` (puerta: la tarjeta lista, abre, adjunta por `addAttachment` y solo quita los propios; hay un `<input type="file">`).
+
+**No medido:** en navegador con un gerente.

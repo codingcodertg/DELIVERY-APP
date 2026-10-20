@@ -8,7 +8,7 @@ import {
 } from "@/lib/recruiting/vista-del-gerente";
 import { fmtDateTime } from "@/lib/recruiting/utils";
 import { telefonoEnLaFila } from "@/lib/recruiting/texto-puedo-llamar";
-import type { Candidate } from "@/lib/recruiting/types";
+import type { Attachment, Candidate } from "@/lib/recruiting/types";
 
 /**
  * La vista del gerente de tienda (D-600). Lo que llega en `candidates` ya viene filtrado por la base (183: solo los de
@@ -16,7 +16,7 @@ import type { Candidate } from "@/lib/recruiting/types";
  * resuelve: «✅ Contratar» o «❌ No contratar» con razón obligatoria. Nada más del módulo se ofrece a este rol.
  */
 export function VistaDelGerente() {
-  const { candidates, stages, contactsFor, recruiters, updateCandidate, addContact, openResumeFile, notify, me } = useData();
+  const { candidates, stages, contactsFor, recruiters, updateCandidate, addContact, openResumeFile, attachmentsFor, addAttachment, removeAttachment, openAttachment, notify, me } = useData();
   const { t } = usePrefs();
   const grupos = agruparParaElGerente(candidates, stages);
   const titulos: Record<GrupoDelGerente, { titulo: string; vacio: string }> = {
@@ -51,6 +51,12 @@ export function VistaDelGerente() {
               resolucion={resolucionDelGerente(contactsFor(c.id), c.id)}
               nombreDe={(id) => recruiters.find((r) => r.id === id)?.full_name ?? null}
               abrirCv={() => openResumeFile(c.id)}
+              // D-NEXT: documentos del candidato (formularios, identificación…) que el gerente adjunta y abre desde aquí.
+              adjuntos={attachmentsFor(c.id)}
+              adjuntar={(f) => addAttachment(c.id, f)}
+              abrirAdjunto={(id) => openAttachment(id)}
+              quitarAdjunto={(a) => (a.created_by && a.created_by === me?.id ? removeAttachment(a.id) : Promise.resolve())}
+              yo={me?.id ?? null}
               resolver={async (decision, razon) => {
                 const r = resolverCandidato(decision, razon, stages);
                 if (!r.ok) {
@@ -70,12 +76,18 @@ export function VistaDelGerente() {
   );
 }
 
-function TarjetaDelGerente({ c, resuelto, resolucion, nombreDe, abrirCv, resolver }: {
+function TarjetaDelGerente({ c, resuelto, resolucion, nombreDe, abrirCv, resolver, adjuntos, adjuntar, abrirAdjunto, quitarAdjunto, yo }: {
   c: Candidate; resuelto: boolean;
   resolucion: ReturnType<typeof resolucionDelGerente>;
   nombreDe: (id: string | null) => string | null;
   abrirCv: () => void;
   resolver: (decision: Decision, razon: string) => Promise<boolean>;
+  adjuntos: Attachment[];
+  adjuntar: (f: File) => Promise<void>;
+  abrirAdjunto: (id: string) => Promise<void>;
+  /** Solo quita los que subió el propio gerente; los del reclutador se quedan. */
+  quitarAdjunto: (a: Attachment) => Promise<void>;
+  yo: string | null;
 }) {
   const { t, lang } = usePrefs();
   const [decidiendo, setDecidiendo] = useState<Decision | null>(null);
@@ -106,6 +118,22 @@ function TarjetaDelGerente({ c, resuelto, resolucion, nombreDe, abrirCv, resolve
         {c.resume_name && <button className="btn btn-ghost btn-sm" onClick={abrirCv}>📎 {t("Resume", "Currículum")}</button>}
       </div>
       {nota && <div className="hint" style={{ marginTop: 6 }}>📝 {t("Recruiter's note", "Nota del reclutador")}: {nota}</div>}
+      {/* D-NEXT: «dale la opción para attached documents de ellos como forms y así». Mismo camino que la ficha (bucket resumes + tabla attachments). */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 6 }} data-adjuntos-del-gerente>
+        {adjuntos.map((a) => (
+          <span key={a.id} style={{ display: "inline-flex", alignItems: "center" }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => void abrirAdjunto(a.id)}>📎 {a.name}</button>
+            {a.created_by && a.created_by === yo && (
+              <button className="btn btn-ghost btn-sm" title={t("Remove", "Quitar")} onClick={() => { if (confirm(t("Remove ", "¿Quitar ") + a.name + "?")) void quitarAdjunto(a); }}>✕</button>
+            )}
+          </span>
+        ))}
+        <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer", margin: 0 }}>
+          ＋ {t("Attach document", "Adjuntar documento")}
+          <input type="file" style={{ display: "none" }} data-adjuntar-documento
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void adjuntar(f); e.target.value = ""; }} />
+        </label>
+      </div>
       {resolucion && (
         <div className="sent-tag" style={{ marginTop: 6 }}>✓ {textoDeLaResolucion(resolucion, lang, nombreDe(resolucion.por))}</div>
       )}

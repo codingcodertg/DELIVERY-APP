@@ -112,6 +112,15 @@ describe("vista del gerente de tienda (D-600, migración 183)", () => {
     expect(vista).not.toMatch(/\{ id: "pendientes", titulo/);
   });
 
+  it("adjuntos (D-NEXT): la tarjeta del gerente lista los documentos del candidato, los abre, adjunta por el mismo camino que la ficha y solo quita los suyos", () => {
+    const vista = readFileSync(new URL("../../components/recruiting/VistaDelGerente.tsx", import.meta.url), "utf8");
+    expect(vista).toContain("attachmentsFor, addAttachment, removeAttachment, openAttachment");
+    expect(vista).toContain("adjuntar={(f) => addAttachment(c.id, f)}");
+    expect(vista).toContain("abrirAdjunto={(id) => openAttachment(id)}");
+    expect(vista).toContain("a.created_by && a.created_by === me?.id ? removeAttachment(a.id)");
+    expect(vista).toContain('<input type="file"');
+  });
+
   it("puerta: la pestaña, la página de candidatos, la fila y el hub pasan por la librería; la 183 limita candidatos y lo que cuelga de ellos", () => {
     const raiz = new URL("../../../", import.meta.url);
     const leer = (p: string) => readFileSync(new URL(p, raiz), "utf8");
