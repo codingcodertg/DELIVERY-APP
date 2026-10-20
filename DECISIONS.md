@@ -45767,9 +45767,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el navegador del dueño con su RingCentral.
 
-## D-NEXT · RR. HH.: las escalas de las preguntas van al derecho (1 = lo peor, 4 = lo mejor); la de riesgo pasa a Afecta (1) … Sin riesgo (4), y un guion arregla las 28 preguntas de producción que iban al revés o revueltas
+## D-605 · RR. HH.: las escalas de las preguntas van al derecho (1 = lo peor, 4 = lo mejor); la de riesgo pasa a Afecta (1) … Sin riesgo (4), y un guion arregla las 28 preguntas de producción que iban al revés o revueltas
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Datos de producción: `scripts/arregla-escalas-de-preguntas.mjs` (28 escalas + 5 textos), con el sí del dueño · Hecho directo por el orquestador en `fix/rrhh-escalas-al-derecho`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.55.0 (repo 1.471.0) · Sin migración · Datos de producción: `scripts/arregla-escalas-de-preguntas.mjs` (28 escalas + 5 textos), con el sí del dueño · Hecho directo por el orquestador en `fix/rrhh-escalas-al-derecho`.
 
 **Pedido del dueño (2026-10-19, literal):** «quiero que mires todas las preguntas y mires el rating system porque están al revés. Porque hay unas, todas deberían ser uno como que sería worst y four como que sería good. Y hay unas que sería afecta levemente o afecta, que es number four. Entonces no es, porque ese, afecta sería número uno … quiero que arregles todo ese sorting system … y lo coloques de la manera que es, así como los otros».
 

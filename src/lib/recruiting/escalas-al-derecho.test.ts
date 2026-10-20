@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SCORECARDS } from "./scorecards";
 import { scoreAverage } from "./utils";
 
-// D-NEXT (2026-10-19) · El dueño: «el rating system … están al revés … todas deberían ser uno como worst y four como good …
+// D-605 (2026-10-19) · El dueño: «el rating system … están al revés … todas deberían ser uno como worst y four como good …
 // afecta sería número uno». Toda escala de las tarjetas va 1 = lo peor … 4 = lo mejor, sin «descending».
 
 describe("escalas al derecho: 1 = lo peor, 4 = lo mejor", () => {

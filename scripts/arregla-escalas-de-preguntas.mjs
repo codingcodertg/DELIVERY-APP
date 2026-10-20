@@ -1,4 +1,4 @@
-// Arregla las escalas de las preguntas de RR. HH. que van al revés (D-NEXT, 2026-10-19).
+// Arregla las escalas de las preguntas de RR. HH. que van al revés (D-605, 2026-10-19).
 //
 // El dueño: «mires todas las preguntas y mires el rating system porque están al revés … todas deberían ser uno como worst
 // y four como good. Y hay unas que sería afecta levemente o afecta, que es number four … afecta sería número uno».
