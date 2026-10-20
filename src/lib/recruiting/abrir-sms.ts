@@ -1,4 +1,4 @@
-/* ---- Abrir un texto en RingCentral con el texto también en el portapapeles (D-NEXT, 2026-10-19) ----
+/* ---- Abrir un texto en RingCentral con el texto también en el portapapeles (D-604, 2026-10-19) ----
  * El dueño: «le doy enviar y se abre ring central pero no aparece nada». El enlace `rcapp://r/sms?…&text=…` lleva el texto
  * en la URL; el de «¿te puedo llamar?» (~250 letras) aparece y el de la cita (~330, y la plantilla del dueño es más larga
  * y con saltos de línea) llega en blanco. No se ha medido el límite exacto de la app, así que no se adivina: el texto va

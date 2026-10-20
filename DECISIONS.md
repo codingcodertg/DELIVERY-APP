@@ -45619,7 +45619,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-597 · RR. HH.: al agendar la entrevista presencial, el texto para el candidato se arma solo con la dirección de la tienda, se edita en el diálogo y se manda al guardar
 
-> **Reemplazada en parte por D-NEXT** (2026-10-19): la plantilla es la del dueño (bloque de dirección y despedida, sin nombre del candidato), y el texto va también al portapapeles.
+> **Reemplazada en parte por D-604** (2026-10-19): la plantilla es la del dueño (bloque de dirección y despedida, sin nombre del candidato), y el texto va también al portapapeles.
 
 > **Reemplazada en parte por D-599** (2026-10-19): RingCentral se abre en el clic, antes de guardar; el dueño reportó que no salía el texto.
 
@@ -45747,9 +45747,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador ni en teléfono.
 
-## D-NEXT · RR. HH.: el texto de la cita presencial es la plantilla del dueño (con el bloque de la dirección y la despedida), y todo texto a RingCentral va también al portapapeles (RingCentral se abría vacío)
+## D-604 · RR. HH.: el texto de la cita presencial es la plantilla del dueño (con el bloque de la dirección y la despedida), y todo texto a RingCentral va también al portapapeles (RingCentral se abría vacío)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-plantilla-cita-del-dueno`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.54.0 (repo 1.470.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-plantilla-cita-del-dueno`.
 
 **Pedido del dueño (2026-10-19, literal, con captura de su plantilla):** «mira así es el template que yo uso, no me gustó el que hiciste, ahora aún no funciona le doy enviar y se abre ring central pero no aparece nada».
 

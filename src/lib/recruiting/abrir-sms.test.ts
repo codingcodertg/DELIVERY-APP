@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { abrirSmsEnRingCentral, avisoTrasAbrir } from "./abrir-sms";
 
-// D-NEXT (2026-10-19) · El dueño: «le doy enviar y se abre ring central pero no aparece nada». El texto va en el enlace Y en el
+// D-604 (2026-10-19) · El dueño: «le doy enviar y se abre ring central pero no aparece nada». El texto va en el enlace Y en el
 // portapapeles, en el mismo clic.
 
 describe("abrir un texto en RingCentral: en el enlace y en el portapapeles", () => {

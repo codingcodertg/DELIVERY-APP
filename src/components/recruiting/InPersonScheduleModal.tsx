@@ -87,7 +87,7 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
     // RingCentral se abre EN EL CLIC, antes de esperar a la base (D-599): el enlace rcsms es una app externa y el
     // navegador solo la abre con el gesto del usuario reciente; tras dos escrituras en Supabase el gesto puede haber
     // caducado y no se abre nada, sin error. Mismo orden que D-581 y que el D-585 original.
-    // D-NEXT: el texto va en el enlace Y en el portapapeles (el dueño: «se abre ring central pero no aparece nada»).
+    // D-604: el texto va en el enlace Y en el portapapeles (el dueño: «se abre ring central pero no aparece nada»).
     const abierto = abrirSmsEnRingCentral(r.enlace, r.texto, navegadorReal());
     try {
       await agendar(iso);

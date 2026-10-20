@@ -78,7 +78,7 @@ export function tiendaDelLugar(lugar: string, tiendas: readonly Tienda[]): Tiend
  *  10:00 a.m.» / «hoy a las…» / «el martes 20 de octubre a las…»; `{day}` = «mañana» / «hoy» / «el martes». */
 export const MARCADORES_DE_LA_CITA = "{when} {day} {date} {time} {place} {address}";
 
-/** La plantilla del dueño (D-NEXT, 2026-10-19: «así es el template que yo uso, no me gustó el que hiciste»), letra por letra,
+/** La plantilla del dueño (D-604, 2026-10-19: «así es el template que yo uso, no me gustó el que hiciste»), letra por letra,
  *  con «Andrés» → `{recruiter}`, «mañana a las 10:00 a.m.» → `{when}`, «mañana» → `{day}` y el bloque de la dirección →
  *  `{address}` (la de Datos → Tiendas). Sin tienda conocida (un «Otro…» a mano), «en {place}» en vez del bloque. */
 const PLANTILLA = {
