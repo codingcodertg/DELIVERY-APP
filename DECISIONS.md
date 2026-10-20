@@ -45856,3 +45856,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/chat/chat.test.ts` (contactos: sin uno mismo, mi tienda primero, búsqueda sin acentos; hilos por interlocutor con no leídos y orden; cuerpo de 1 a 2000; push solo admin; aviso recortado; la burbuja en las rutas de Ayuda; «oculta» es lo único que se recuerda; un mensaje repetido por tiempo real entra una vez; puerta: layout raíz, `/api/chat/send`, la ruta con `requireUser` y `llevaPush`, y la 184 con sus tres políticas y el `grant update (read_at)`). Ensayo de la 184 con ROLLBACK: pasa (el primer ensayo cazó los permisos por defecto de Supabase, que es para lo que están las comprobaciones).
 
 **No medido:** en navegador; el push solo se mide con un teléfono con la app.
+
+## D-610 · RR. HH.: formato estándar al guardar un candidato — teléfono «(956) 340-5910», nombre con mayúsculas iniciales, correo en minúsculas — en toda escritura
+
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.58.0 (repo 1.476.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-formato-estandar`.
+
+**Pedido del dueño (2026-10-20, literal):** «Acuérdate que quiero que en el sistema todo esté estandarizado. Entonces uno mete un nombre y un teléfono, lo que sea que se meta la información, creo que todo tenga en el mismo formato. Si el teléfono viene todo pegado, que el sistema automáticamente lo ponga como debe de ser, y así».
+
+**Medido antes (producción, candidatos recientes).** Teléfonos «9563405910», «956)735-4681», «956-715-1463», «(956) 599-3449», «956 6169059»; nombres en MAYÚSCULAS («MARTE DE ALEJANDRO»), en minúsculas y mezclados. El alta (`addCandidate`) y la edición (`updateCandidate`) guardaban lo tecleado tal cual (`phone.trim()`).
+
+**Qué cambia.** `src/lib/recruiting/formato.ts` decide el formato y el proveedor lo aplica en las DOS escrituras (alta y edición), así que da igual por qué pantalla entre el dato (registro, ficha, importación por el proveedor):
+- **Teléfono:** diez dígitos (o once empezando por 1) → `(956) 340-5910`; otra cosa (internacional, corto) se deja limpia tal cual, no se inventa. También `extra_phones`.
+- **Nombre:** cada palabra con mayúscula inicial y el resto en minúscula, partículas («de», «la», «del», «y»…) en minúscula salvo al inicio, guiones y apóstrofos respetados («Silva-Garcia», «O'Neil»), acentos como vienen, espacios de más fuera.
+- **Correo:** minúsculas, sin espacios; vacío → `null`. También `extra_emails`.
+- Lo que no viene en el parche no se toca; `location`, `role` y los campos de texto libre no se tocan.
+
+**Lo que no hace:** no reescribe lo ya guardado. Los candidatos existentes siguen como están hasta que alguien los edite; un barrido de una vez por producción es otra decisión (con el sí del dueño).
+
+**Pruebas:** `src/lib/recruiting/formato.test.ts` (teléfonos en todas las formas medidas y con el 1 del país; lo que no son diez dígitos se deja; nombres con partículas, guiones, apóstrofos y acentos; correo; el parche solo toca lo que viene; puerta: el proveedor estandariza en el alta y en la edición).
+
+**No medido:** en navegador.
