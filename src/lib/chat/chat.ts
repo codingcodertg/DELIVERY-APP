@@ -1,6 +1,6 @@
 import { ayudaEnLaRuta } from "@/lib/ayuda-flotante";
 
-/* ---- Chat interno (D-NEXT, 2026-10-20; migración 184) ----
+/* ---- Chat interno (D-609, 2026-10-20; migración 184) ----
  * El dueño: «un chat dentro del app en general … un botón que se puede ocultar … en el right upper corner … chat con los de
  * su tienda y … buscar el nombre para mandar un chat a esa persona … esa persona en su hub va a ver un botón con todos los
  * contactos, tipo Facebook … si es un admin siempre son push messages».

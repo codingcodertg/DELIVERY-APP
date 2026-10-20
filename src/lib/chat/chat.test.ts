@@ -5,7 +5,7 @@ import {
   chatEnLaRuta, conMensaje, cuerpoValido, esDeMiTienda, estadoInicial, hilos, hilosRecientes, llevaPush, noLeidosTotal, ordenaContactos, textoDelAviso,
 } from "./chat";
 
-// D-NEXT (2026-10-20) · El dueño: «un chat dentro del app en general … con los de su tienda … buscar el nombre … si es un admin
+// D-609 (2026-10-20) · El dueño: «un chat dentro del app en general … con los de su tienda … buscar el nombre … si es un admin
 // siempre son push messages». Datos de prueba, no los del dueño.
 
 const yo = { id: "yo", store: "Tienda Norte" };

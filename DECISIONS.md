@@ -45837,9 +45837,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el RingCentral del dueño; la fuente es la documentación (developers.ringcentral.com/guide/basics/uri-schemes).
 
-## D-NEXT · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
+## D-609 · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries: el layout raíz, todas las apps) · **Migración 184** (`184_chat_interno.sql`) · Hecho directo por el orquestador en `feat/chat-interno`.
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.341.0 (repo 1.475.0; el layout raíz, todas las apps) · **Migración 184** (`184_chat_interno.sql`) · Hecho directo por el orquestador en `feat/chat-interno`.
 
 **Pedido del dueño (2026-10-20, literal):** «un chat dentro del app en general … va a aparecer no importa en cualquier aplicación que uno esté, va a estar como un botón que se puede ocultar … en el right upper corner … uno ahí puede hacer un chat con los de su tienda y igual que con las extensiones, uno tiene que buscar el nombre para mandar un chat a esa persona en específico, y esa persona en su hub va a aparecer un botón y ahí va a ver todos los contactos, así tipo Facebook … si es un admin siempre son como que push messages, para que le caiga a la persona y pues él mire ahí y pueda contestar».
 

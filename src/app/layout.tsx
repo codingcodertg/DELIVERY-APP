@@ -81,7 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               porque habla en el idioma de la persona; dónde no sale (login, el enlace del cliente…) lo
               decide ella con `ayudaEnLaRuta`. */}
           <HelpButton />
-          {/* La burbuja del chat interno (D-NEXT, 2026-10-20), por lo mismo que la de Ayuda: una en todas las apps, arriba a la
+          {/* La burbuja del chat interno (D-609, 2026-10-20), por lo mismo que la de Ayuda: una en todas las apps, arriba a la
               derecha; dónde no sale lo decide `chatEnLaRuta` (las mismas pantallas sin sesión). Dentro de `PrefsProvider`. */}
           <ChatFlotante />
         </PrefsProvider>

@@ -5,7 +5,7 @@ import { fcmConfigured, sendPush } from "@/lib/fcm";
 import { KIND_CHAT, cuerpoValido, llevaPush, textoDelAviso } from "@/lib/chat/chat";
 
 // ============================================================
-// POST /api/chat/send · { to, body } (D-NEXT, 2026-10-20; migración 184). Manda un mensaje del chat interno:
+// POST /api/chat/send · { to, body } (D-609, 2026-10-20; migración 184). Manda un mensaje del chat interno:
 //   1. la fila en `chat_messages`, con la SESIÓN del remitente (la RLS exige from_user = auth.uid());
 //   2. el aviso en la campana del destinatario (`notifications`, kind «chat»), como cualquier otro aviso;
 //   3. si quien escribe es ADMIN, además el push al teléfono (FCM a sus `device_tokens`, lo mismo que `/api/push`).

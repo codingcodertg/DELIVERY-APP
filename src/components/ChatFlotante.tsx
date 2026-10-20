@@ -10,7 +10,7 @@ import {
 } from "@/lib/chat/chat";
 
 /**
- * «💬 Chat» (D-NEXT, 2026-10-20): la burbuja arriba a la derecha, en todas las apps (está en el layout raíz, como la de
+ * «💬 Chat» (D-609, 2026-10-20): la burbuja arriba a la derecha, en todas las apps (está en el layout raíz, como la de
  * Ayuda). Se oculta (queda una pestañita en el borde para volver a sacarla) y se abre en un panel: contactos —los de mi
  * tienda primero, búsqueda por nombre— y el hilo con cada uno. Los mensajes llegan por tiempo real; mandar pasa por
  * `/api/chat/send` (mensaje + aviso en la campana + push si quien escribe es admin). Sin sesión no se monta.

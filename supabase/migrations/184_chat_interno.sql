@@ -1,4 +1,4 @@
--- 184: Chat interno entre empleados (D-NEXT, 2026-10-20).
+-- 184: Chat interno entre empleados (D-609, 2026-10-20).
 --
 -- El dueño: «un chat dentro del app en general … un botón que se puede ocultar … en el right upper corner … uno ahí puede
 -- hacer un chat con los de su tienda y … buscar el nombre para mandar un chat a esa persona en específico, y esa persona en
@@ -72,4 +72,4 @@ end $$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('184_chat_interno.sql', '4164e2f7d0533216b6d3e978f36505412a0f32945adf6db427d00febc0218c30') on conflict (name) do nothing;
+  values ('184_chat_interno.sql', '14b22c6de42672c6534178a4c549829a41c3e5b0518d65735cbd207a5c47e219') on conflict (name) do nothing;

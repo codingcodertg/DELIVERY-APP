@@ -1733,7 +1733,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .como-telefono .section-label { margin: 12px 0 8px; padding-bottom: 5px; }
 .como-telefono input, .como-telefono select, .como-telefono textarea { font-size: 16px; }
 
-/* ---- Chat interno (D-NEXT, 2026-10-20): burbuja arriba a la derecha, pestañita cuando se oculta, y el panel. ---- */
+/* ---- Chat interno (D-609, 2026-10-20): burbuja arriba a la derecha, pestañita cuando se oculta, y el panel. ---- */
 .chat-fab {
   position: fixed; right: 16px; top: 58px; z-index: 5;
   display: inline-flex; align-items: center; gap: 8px;
