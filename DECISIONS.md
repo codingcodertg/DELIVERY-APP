@@ -45708,3 +45708,19 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/mi-ruta-cuenta-paradas.test.ts` (puerta: el encabezado usa `numeradas.paradas.length` y ya no `cuenta.totales.paradas`; y `paradasDeLaRuta` cuenta 2 para dos recogidas en la misma tienda más una entrega… medido con la librería).
 
 **No medido:** en navegador.
+
+## D-602 · Gestor y Mi ruta: la llegada (ETA) de las paradas pendientes de HOY se mide desde la hora que es, no desde las 08:00 («Why does ETA say 8 to orders that havent been done yet?»)
+
+**Fecha:** 2026-10-19 · **Versión:** deliveries 1.339.0 (repo 1.468.0) · Sin migración · Hecho directo por el orquestador en `fix/eta-desde-ahora`.
+
+**Pedido (Ernesto Castillo, chofer, por el dueño, 2026-10-19, literal):** «Why does ETA say 8 to orders that havent been done yet?». Captura del Gestor a las 12:40: once paradas hechas (✓ 08:33 … ✓ 12:40), la parada 12 (P8, pendiente) con ETA **8:23** y la 13 con 14:20.
+
+**Medido antes (leído en `usa-medida-de-rutas.ts`).** La medida por calles (`/api/optimize-route`) recorre solo las paradas PENDIENTES de la ruta y pone las horas con un reloj que arranca SIEMPRE en `DAY_START_MIN` (08:00): sale de la base a las 08:00, más el trayecto a la primera pendiente = 8:23, y la siguiente 14:20 porque entre medias hay una recogida con su carga. A las 12:40 esa primera hora es imposible: el camión lleva horas fuera. Las paradas ya hechas pintan su hora real (D-459), así que el error solo se ve en las pendientes, justo las que importan.
+
+**Qué cambia.** `salida-de-la-medida.ts`: `salidaDeLaMedida(fecha)`. Si la fecha que se mide es HOY, el reloj arranca en **max(08:00, ahora)**; otro día (mañana, o uno pasado que se revisa), a las 08:00 como siempre. El hook usa esa salida para las llegadas (`etas`) y para el «start» de la tarjeta. Con la captura: a las 12:40, la parada 12 diría ~12:5x y la 13 lo que corresponda detrás.
+
+**Lo que sigue sin ser exacto (dicho aquí y en el fichero):** el camión «sale» de la base, no de donde está (no se usa su GPS); y la hora se fija cuando se mide, que es cuando cambia la lista (cada parada hecha la vuelve a medir): entre dos paradas no corre sola con el reloj. Medir cada pocos minutos gastaría llamadas al router; si hace falta, es otra decisión.
+
+**Pruebas:** `src/lib/salida-de-la-medida.test.ts` (hoy pasadas las 08:00 sale ahora; antes de las 08:00, a las 08:00; otro día, 08:00; una salida distinta se respeta como mínimo; puerta: el hook arranca el reloj y el «start» en esa salida, y ya no en `DAY_START_MIN`). 4 mutantes, 4 caen.
+
+**No medido:** en navegador. La medida real es el Gestor de Ernesto mañana a media jornada.
