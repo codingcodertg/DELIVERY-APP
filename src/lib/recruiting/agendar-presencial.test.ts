@@ -99,10 +99,10 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
   });
 
   it("sin tienda conocida (un «Otro…» a mano) el texto dice el lugar tal cual y NO inventa una dirección; sin lugar, «nuestra oficina»", () => {
-    const es = textoConfirmacionPresencial(cand, { ...cita, lugar: "4201 W University Dr" }, "A", "es", tiendas);
+    const es = textoConfirmacionPresencial(cand, { ...cita, lugar: "4201 W University Dr" }, "A", "es", tiendas, null, hoyEs19);
     expect(es).toContain("para mañana a las 10:30 a.m. en 4201 W University Dr.");
     expect(es).not.toContain("nuestra oficina");
-    const en = textoConfirmacionPresencial(cand, { ...cita, lugar: "4201 W University Dr" }, "A", "en", tiendas);
+    const en = textoConfirmacionPresencial(cand, { ...cita, lugar: "4201 W University Dr" }, "A", "en", tiendas, null, hoyEs19);
     expect(en).toContain("for tomorrow at 10:30 AM at 4201 W University Dr.");
     expect(en).not.toContain("our office:");
     expect(textoConfirmacionPresencial(cand, { ...cita, lugar: " " }, "A", "en")).toContain("at our office");
