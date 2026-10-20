@@ -39,7 +39,7 @@ describe("texto «¿te puedo llamar?» (D-581)", () => {
     expect(prepararTextoPuedoLlamar({ ...cand, phone: " - " }, [], "A", "en")).toEqual({ ok: false, motivo: "sin-telefono" });
   });
 
-  it("se puede volver a mandar aunque ya haya un envío marcado (D-NEXT); el historial sigue contando solo los marcados de ese candidato", () => {
+  it("se puede volver a mandar aunque ya haya un envío marcado (D-612); el historial sigue contando solo los marcados de ese candidato", () => {
     const marcado = contacto({ result: RESULTADO_PUEDO_LLAMAR });
     expect(prepararTextoPuedoLlamar(cand, [marcado], "A", "en").ok).toBe(true);
     expect(envioPuedoLlamar([marcado], "c1")).not.toBeNull();

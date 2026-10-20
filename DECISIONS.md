@@ -45150,7 +45150,7 @@ Un módulo puro, `src/lib/encuadre-del-mapa.ts`, que los dos mapas llaman igual:
 
 ## D-581 · RRHH: botón «📱 Texto: ¿te puedo llamar?» junto al candidato, sin abrir «Iniciar entrevista»; y el teléfono a la vista en la lista
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): «¿te puedo llamar?» ya no se apaga por un envío anterior.
+> **Reemplazada en parte por D-612** (2026-10-20): «¿te puedo llamar?» ya no se apaga por un envío anterior.
 
 > **Reemplazada en parte por D-595** (2026-10-19): el texto de «¿te puedo llamar?» es el que pegó el dueño (de usted, sin nombre ni puesto, firmado por quien pulsa); el botón y el camino no cambian.
 
@@ -45645,7 +45645,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-598 · RR. HH.: tras «Buzón de voz» o «Volver a llamar» en la entrevista, el diálogo ofrece un texto de seguimiento («le estoy llamando por el puesto de…, ¿cuándo está disponible?»)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): el seguimiento sale también con «Sin respuesta».
+> **Reemplazada en parte por D-612** (2026-10-20): el seguimiento sale también con «Sin respuesta».
 
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.52.0 (repo 1.464.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-texto-de-seguimiento`.
 
@@ -45895,9 +45895,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador (es justo lo que el dueño ve; la medida es su siguiente cita).
 
-## D-NEXT · RR. HH.: «¿te puedo llamar?» se manda siempre (ya no se apaga por un envío anterior), y el texto de seguimiento se ofrece también con «Sin respuesta»
+## D-612 · RR. HH.: «¿te puedo llamar?» se manda siempre (ya no se apaga por un envío anterior), y el texto de seguimiento se ofrece también con «Sin respuesta»
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-textos-siempre`.
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.1 (repo 1.478.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-textos-siempre`.
 
 **Pedido del dueño (2026-10-20, literal):** «ya funcionó lo de mandar la confirmación pero no funciona aún el template para mandarle mensaje cuando me sale voice mail o el mensaje de te puedo llamar y eso de voice mail o eso siempre que diga volver a llamar o no contestó todo eso quiero que se mande».
 

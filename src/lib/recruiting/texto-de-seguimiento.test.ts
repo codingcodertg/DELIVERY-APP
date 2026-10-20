@@ -8,7 +8,7 @@ import {
 const cand = { name: "María López", role: "Driver", phone: "(555) 010-2030" };
 
 describe("texto de seguimiento tras buzón de voz o volver a llamar (D-598)", () => {
-  it("lo ofrecen «Voicemail», «Call back later» y «No answer» (D-NEXT); ni «Wrong number» ni la etiqueta traducida", () => {
+  it("lo ofrecen «Voicemail», «Call back later» y «No answer» (D-612); ni «Wrong number» ni la etiqueta traducida", () => {
     expect([...RESULTADOS_CON_SEGUIMIENTO].sort()).toEqual(["Call back later", "No answer", "Voicemail"]);
     expect(ofreceSeguimiento("Voicemail")).toBe(true);
     expect(ofreceSeguimiento("Call back later")).toBe(true);

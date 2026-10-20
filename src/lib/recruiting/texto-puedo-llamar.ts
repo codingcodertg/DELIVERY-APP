@@ -48,7 +48,7 @@ export function prepararTextoPuedoLlamar(
   lang: "en" | "es",
 ): ResultadoDelBoton {
   if (!telClean(c.phone)) return { ok: false, motivo: "sin-telefono" };
-  // D-NEXT (2026-10-20): ya no se bloquea por un envío anterior. El dueño: «no funciona aún el template … de te puedo llamar
+  // D-612 (2026-10-20): ya no se bloquea por un envío anterior. El dueño: «no funciona aún el template … de te puedo llamar
   // … todo eso quiero que se mande». Los intentos de cuando RingCentral salía vacío (D-581…D-604) quedaron registrados y
   // dejaban el botón apagado. El historial sigue (`envioPuedoLlamar`, la etiqueta con la hora); el botón manda siempre.
   void contactos;
