@@ -45876,3 +45876,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/recruiting/formato.test.ts` (teléfonos en todas las formas medidas y con el 1 del país; lo que no son diez dígitos se deja; nombres con partículas, guiones, apóstrofos y acentos; correo; el parche solo toca lo que viene; puerta: el proveedor estandariza en el alta y en la edición).
 
 **No medido:** en navegador.
+
+## D-NEXT · RR. HH.: fecha y hora con fichas (Hoy, Mañana, los días siguientes; horas de 8:00 a 6:00 p.m. de media en media) en los tres diálogos de cita, en vez del calendario del navegador
+
+**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-calendario-amable`.
+
+**Pedido del dueño (2026-10-20, literal):** «esa forma de meter el calendario para entrevista presencial, sí, no me gusta, se mira medio feo y voy bien poco. Entonces quiero que me mejores ese tipo de calendario, que sea más user friendly».
+
+**Medido antes.** Los tres sitios donde se pone una fecha y hora en RR. HH. eran un `<input type="datetime-local">` pelado, el control del navegador (en Chrome, un cuadro gris con flechitas por campo): «Agendar entrevista presencial» (D-585/D-597), «Agendar llamada» (el diálogo de fecha de la fila) y la fecha de llamada del registro de un candidato nuevo. El valor que guardan los tres es `YYYY-MM-DDTHH:mm` (hora local).
+
+**Qué cambia.** `SelectorDeFechaYHora.tsx` + `fecha-y-hora.ts`: fichas de **día** —«Hoy · mar 20», «Mañana · mié 21», y los cinco días siguientes con su nombre («jue · 22 oct»…)— más «Otro día…» (ahí sí el calendario del navegador, para una fecha lejana); y fichas de **hora** —8:00 a.m., 8:30 a.m. … 6:00 p.m., de media en media— más «Otra hora…». Un toque en cada una y listo. El valor detrás es el mismo texto de siempre: los diálogos no cambian nada más (validación, guardado, texto de la cita). «🕐 Ahorita» del registro sigue existiendo y las fichas lo reflejan. Mientras falta una de las dos partes, el diálogo sigue pidiéndola.
+
+**Pruebas:** `src/lib/recruiting/fecha-y-hora.test.ts` (los siete días con Hoy/Mañana y nombres en los dos idiomas, fecha local y fin de mes; las 21 horas con su etiqueta de 12 horas; partir y juntar el valor sin perder nada; puerta: los tres diálogos usan el selector y no queda ningún `datetime-local`).
+
+**No medido:** en navegador (es justo lo que el dueño ve; la medida es su siguiente cita).
