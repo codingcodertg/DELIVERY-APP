@@ -45883,7 +45883,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-611 · RR. HH.: fecha y hora con fichas (Hoy, Mañana, los días siguientes; horas de 8:00 a 6:00 p.m. de media en media) en los tres diálogos de cita, en vez del calendario del navegador
 
-> **Revertida por D-NEXT** (2026-10-20): el dueño, con la captura del registro: «ese montón de horario … awful … regrésalo a como estaba». Los tres diálogos vuelven al campo de siempre.
+> **Revertida por D-613** (2026-10-20): el dueño, con la captura del registro: «ese montón de horario … awful … regrésalo a como estaba». Los tres diálogos vuelven al campo de siempre.
 
 **Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.0 (repo 1.477.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-calendario-amable`.
 
@@ -45913,9 +45913,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el RingCentral del dueño.
 
-## D-NEXT · RR. HH.: se revierte D-611 (las fichas de fecha y hora): los tres diálogos vuelven al campo de fecha y hora de siempre
+## D-613 · RR. HH.: se revierte D-611 (las fichas de fecha y hora): los tres diálogos vuelven al campo de fecha y hora de siempre
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-calendario-de-la-cita`.
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.2 (repo 1.479.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-calendario-de-la-cita`.
 
 **Pedido del dueño (2026-10-20, literal, con la captura del registro de candidato lleno de fichas):** «no eso que hiciste ese montón de horario no está, awful, no me refería al … la interview ese» y, acto seguido, «regrésalo a como estaba».
 
