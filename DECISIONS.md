@@ -45724,3 +45724,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/salida-de-la-medida.test.ts` (hoy pasadas las 08:00 sale ahora; antes de las 08:00, a las 08:00; otro día, 08:00; una salida distinta se respeta como mínimo; puerta: el hook arranca el reloj y el «start» en esa salida, y ya no en `DAY_START_MIN`). 4 mutantes, 4 caen.
 
 **No medido:** en navegador. La medida real es el Gestor de Ernesto mañana a media jornada.
+
+## D-603 · Mi ruta: «Recogido» sin «listo» abre un cuadro pequeño con el motivo (Sí está lista / Me llevo una parte / Otro), recoge, y DESPUÉS abre la ficha; la ficha pierde el aviso de «se avisa a…»
+
+**Fecha:** 2026-10-19 · **Versión:** deliveries 1.340.0 (repo 1.469.0) · Sin migración · Hecho directo por el orquestador en `feat/recoger-sin-listo-pantalla`.
+
+**Pedido (Ernesto Castillo, chofer, por el dueño, 2026-10-19, literal):** «When driver picks something up that warehouse hasnt marked ready it opens the order and requires them to explain why theyre picking it up. Its too much information showing at a time so when they pick up stuff thats not marked ready lets just have a screen that says Not marked ready by Warehouse / Why are you picking up / Dropdown: It is Ready, Im taking Partial, Other with text box for explanation. After they confirm pickup, now it can open up the order to see the details». Y sobre la ficha: «This text is not necessary, its adding noise» (captura: «The warehouse at RDZ Weslaco and logistics will be notified in the app.»).
+
+**Medido antes.** D-527: «Recogido» en una orden `approved`/`fulfilling` abría la ficha entera (recogida, entrega, contacto del cliente, notas, fotos…) con el paso «Recoger de todos modos» y una nota libre obligatoria (3 letras), más el aviso de a quién se avisa. Con la carga lista, desde D-533/D-547 «Recogido» es un cuadro pequeño (pallets) y no abre la ficha.
+
+**Qué cambia.**
+- **El cuadro** (`RecogerSinListo.tsx`, como el de pallets): «⚠ El almacén no la marcó lista», la orden, «¿Por qué la recoges?» con un desplegable —**Sí está lista** / **Me llevo una parte** / **Otro**— y, con «Otro», un cuadro de texto (mismo mínimo de 3 letras que la ficha). «Confirmar recogida» y «Cancelar». Sale solo en `approved`/`fulfilling` (`abreElCuadroSinListo`); lista → pallets como antes; sin aprobar → apagado como antes.
+- **Qué escribe:** exactamente lo de la ficha (D-527): la nota con el prefijo «Recogida sin estar lista: <motivo> · <carga>» en el evento `picked_up` (el historial la sigue reconociendo), el GPS sin bloquear, y el aviso en la campana al almacén de esa tienda y a logística. El motivo va en el idioma de quien recoge.
+- **Después de confirmar, la ficha** se abre para ver los detalles (sin ningún paso abierto).
+- **En la ficha**, el paso «Recoger de todos modos» sigue existiendo (desde el menú, para oficina y chofer), pero **sin** la línea «Se avisa en la app al almacén de X y a logística»: solo el «Al menos 3 letras» cuando falta texto.
+
+**Qué no cambia.** Los avisos siguen saliendo (solo se quitó el texto que lo decía); «Rechazado», «Entregado», «↩ Deshacer recogido», la cámara.
+
+**Pruebas:** `src/lib/recoger-sin-listo-pantalla.test.ts` (los tres motivos en su orden; el cuadro solo en aprobada/preparando; la nota por idioma, «Otro» exige texto; la nota entra en la escritura de la ficha y el historial la reconoce; puerta: Mi ruta abre el cuadro con la librería, recoge con `notaDeRecogidaSinListo` + `avisosDeRecogidaSinListo` y abre la ficha después; la ficha ya no tiene el aviso). 5 mutantes, 5 caen.
+
+**No medido:** en navegador ni en teléfono.
