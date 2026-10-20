@@ -74,18 +74,21 @@ export function tiendaDelLugar(lugar: string, tiendas: readonly Tienda[]): Tiend
   return tiendas.find((t) => t.name.toLowerCase().split(/\s+/).includes(l)) ?? null;
 }
 
-/** Marcadores de la cita, además de los de `mergeTemplate` ({name} {role} {recruiter} {phone}). */
-export const MARCADORES_DE_LA_CITA = "{date} {time} {place} {address}";
+/** Marcadores de la cita, además de los de `mergeTemplate` ({name} {role} {recruiter} {phone}). `{when}` = «mañana a las
+ *  10:00 a.m.» / «hoy a las…» / «el martes 20 de octubre a las…»; `{day}` = «mañana» / «hoy» / «el martes». */
+export const MARCADORES_DE_LA_CITA = "{when} {day} {date} {time} {place} {address}";
 
+/** La plantilla del dueño (D-NEXT, 2026-10-19: «así es el template que yo uso, no me gustó el que hiciste»), letra por letra,
+ *  con «Andrés» → `{recruiter}`, «mañana a las 10:00 a.m.» → `{when}`, «mañana» → `{day}` y el bloque de la dirección →
+ *  `{address}` (la de Datos → Tiendas). Sin tienda conocida (un «Otro…» a mano), «en {place}» en vez del bloque. */
 const PLANTILLA = {
-  // Con tienda conocida: lugar + dirección. Sin tienda (un «Otro…» escrito a mano): el lugar tal cual.
   en: {
-    tienda: "Hello {name}, this is {recruiter} from Rodriguez Tile Group. I'll be expecting you on {date} at {time} for your in-person interview for the {role} position at our {place} store, at this address: {address}. Please reply to confirm. Thank you!",
-    libre: "Hello {name}, this is {recruiter} from Rodriguez Tile Group. I'll be expecting you on {date} at {time} for your in-person interview for the {role} position at {place}. Please reply to confirm. Thank you!",
+    tienda: "Hello, this is {recruiter}, recruiter at Rodriguez Tile Group. Thank you for your time. I'm confirming your in-person interview for {when} at our office:\n\nRodriguez Tile Group\n{address}\n\nPlease arrive a few minutes early and bring an ID. If you have any questions or need to change the time, reply to this number.\n\nSee you {day},\n{recruiter}\nRodriguez Tile Group",
+    libre: "Hello, this is {recruiter}, recruiter at Rodriguez Tile Group. Thank you for your time. I'm confirming your in-person interview for {when} at {place}.\n\nPlease arrive a few minutes early and bring an ID. If you have any questions or need to change the time, reply to this number.\n\nSee you {day},\n{recruiter}\nRodriguez Tile Group",
   },
   es: {
-    tienda: "Hola {name}, le habla {recruiter} de Rodriguez Tile Group. Le espero el {date} a las {time} para su entrevista presencial para el puesto de {role} en la tienda de {place}, en esta dirección: {address}. Por favor respóndame para confirmar. ¡Gracias!",
-    libre: "Hola {name}, le habla {recruiter} de Rodriguez Tile Group. Le espero el {date} a las {time} para su entrevista presencial para el puesto de {role} en {place}. Por favor respóndame para confirmar. ¡Gracias!",
+    tienda: "Hola, le habla {recruiter}, reclutador de Rodriguez Tile Group. Gracias por su tiempo. Le confirmo su entrevista presencial para {when} en nuestra oficina:\n\nRodriguez Tile Group\n{address}\n\nPor favor llegue unos minutos antes y traiga una identificación. Cualquier duda o si necesita cambiar la hora, respóndame a este número.\n\nNos vemos {day},\n{recruiter}\nRodriguez Tile Group",
+    libre: "Hola, le habla {recruiter}, reclutador de Rodriguez Tile Group. Gracias por su tiempo. Le confirmo su entrevista presencial para {when} en {place}.\n\nPor favor llegue unos minutos antes y traiga una identificación. Cualquier duda o si necesita cambiar la hora, respóndame a este número.\n\nNos vemos {day},\n{recruiter}\nRodriguez Tile Group",
   },
 } as const;
 
@@ -97,13 +100,24 @@ export function plantillaDeAjustes(templates: readonly { label: string; text: st
   return t ? t.text : null;
 }
 
-function fechaYHora(iso: string, lang: "en" | "es"): { date: string; time: string } {
+const DIA = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** `{date}`, `{time}`, y los del dueño: `{when}` («mañana a las 10:00 a.m.») y `{day}` («mañana»). `ahora` solo para medir. */
+export function fechaYHora(iso: string, lang: "en" | "es", ahora: Date = new Date()): { date: string; time: string; when: string; day: string } {
   const d = new Date(iso);
   const locale = lang === "es" ? "es-MX" : "en-US";
-  return {
-    date: d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" }),
-    time: d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }),
-  };
+  const date = d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
+  const time = d.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }).replace(/\s+/g, " ").trim();
+  const hoy = DIA(ahora);
+  const manana = DIA(new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1));
+  const dia = DIA(d);
+  const day = dia === hoy ? (lang === "es" ? "hoy" : "today")
+    : dia === manana ? (lang === "es" ? "mañana" : "tomorrow")
+    : (lang === "es" ? "el " : "on ") + d.toLocaleDateString(locale, { weekday: "long" });
+  const when = dia === hoy || dia === manana
+    ? `${day} ${lang === "es" ? "a las" : "at"} ${time}`
+    : `${lang === "es" ? "el" : ""} ${date} ${lang === "es" ? "a las" : "at"} ${time}`.trim();
+  return { date, time, when, day };
 }
 
 export type Cita = { iso: string; lugar: string };
@@ -114,13 +128,15 @@ export type Cita = { iso: string; lugar: string };
  */
 export function textoConfirmacionPresencial(
   c: Cand, cita: Cita, recruiter: string, lang: "en" | "es",
-  tiendas: readonly Tienda[] = [], plantilla: string | null = null,
+  tiendas: readonly Tienda[] = [], plantilla: string | null = null, ahora: Date = new Date(),
 ): string {
-  const { date, time } = fechaYHora(cita.iso, lang);
+  const { date, time, when, day } = fechaYHora(cita.iso, lang, ahora);
   const lugar = cita.lugar.trim() || (lang === "es" ? "nuestra oficina" : "our office");
   const tienda = tiendaDelLugar(lugar, tiendas);
   const base = plantilla ?? PLANTILLA[lang][tienda ? "tienda" : "libre"];
   return mergeTemplate(base, c as Candidate, recruiter)
+    .replace(/\{when\}/g, when)
+    .replace(/\{day\}/g, day)
     .replace(/\{date\}/g, date)
     .replace(/\{time\}/g, time)
     .replace(/\{place\}/g, lugar)

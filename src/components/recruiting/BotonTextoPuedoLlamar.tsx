@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
+import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
 import { contactoDelEnvio, estadoDelBoton, prepararTextoPuedoLlamar } from "@/lib/recruiting/texto-puedo-llamar";
 import type { Candidate } from "@/lib/recruiting/types";
 
 /** «📱 Texto: ¿te puedo llamar?» — manda el texto por el mismo camino que el diálogo de entrevista
  * (enlace a RingCentral + contacto SMS) sin abrir el diálogo, y pasa a «SMS enviado ✓ hh:mm» (D-581). */
 export function BotonTextoPuedoLlamar({ c, className = "btn btn-ghost btn-sm" }: { c: Candidate; className?: string }) {
-  const { contactsFor, addContact, me } = useData();
+  const { contactsFor, addContact, notify, me } = useData();
   const { t, lang } = usePrefs();
   const [error, setError] = useState<string | null>(null);
   const estado = estadoDelBoton(contactsFor(c.id), c.id, lang);
@@ -21,7 +22,8 @@ export function BotonTextoPuedoLlamar({ c, className = "btn btn-ghost btn-sm" }:
       return;
     }
     setError(null);
-    window.location.href = r.enlace;
+    const abierto = abrirSmsEnRingCentral(r.enlace, r.texto, navegadorReal());
+    notify(avisoTrasAbrir(abierto, lang));
     await addContact(c.id, contactoDelEnvio(r.texto));
   };
 
