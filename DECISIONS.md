@@ -45662,6 +45662,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-599 · RR. HH.: «Guardar y mandar texto» abre RingCentral en el clic, antes de esperar a la base (si no, el navegador no abre la app y no sale nada)
 
+> **Reemplazada en parte por D-608** (2026-10-20): abrir en el clic era necesario pero no la causa del texto vacío (parámetro `content`).
+
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.52.1 (repo 1.465.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-cita-abre-ringcentral-primero`.
 
 **Pedido del dueño (2026-10-19, literal):** «fíjate que aún no se manda el mensaje template cuando es para agendar».
@@ -45751,6 +45753,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-604 · RR. HH.: el texto de la cita presencial es la plantilla del dueño (con el bloque de la dirección y la despedida), y todo texto a RingCentral va también al portapapeles (RingCentral se abría vacío)
 
+> **Reemplazada en parte por D-608** (2026-10-20): la causa del compositor vacío era el parámetro (`text` → `content`); el portapapeles se queda como red.
+
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.54.0 (repo 1.470.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-plantilla-cita-del-dueno`.
 
 **Pedido del dueño (2026-10-19, literal, con captura de su plantilla):** «mira así es el template que yo uso, no me gustó el que hiciste, ahora aún no funciona le doy enviar y se abre ring central pero no aparece nada».
@@ -45818,3 +45822,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `vista-del-gerente.test.ts` (puerta: la tarjeta lista, abre, adjunta por `addAttachment` y solo quita los propios; hay un `<input type="file">`).
 
 **No medido:** en navegador con un gerente.
+
+## D-608 · RR. HH.: el enlace de texto a RingCentral lleva el mensaje en `content`, no en `text` (por eso el compositor se abría vacío)
+
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.57.1 (repo 1.474.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-rcsms-content`.
+
+**Pedido del dueño (2026-10-20, literal):** «los templates de los mensajes aún no se pegan automáticamente».
+
+**Causa (leída en la documentación de RingCentral, no adivinada).** `rcSms` (D-581 y anteriores) armaba `rcapp://r/sms?type=new&number=…&text=…`. La referencia oficial de esquemas URI de RingCentral documenta `/r/sms?type=new&number={phoneNumber}&content={text}` («Opens SMS composer with recipient and pre-filled message»); **no existe un parámetro `text`**. La app abría el compositor con el número y descartaba el mensaje. D-599 (abrir en el clic) y D-604 (portapapeles) atacaron síntomas: eran ciertos (el gesto y el pegado), pero el mensaje nunca había viajado. El «¿te puedo llamar?» que «sí aparecía» en la impresión del dueño no se había medido.
+
+**Qué cambia.** Una línea en `utils.ts`: `&content=` en vez de `&text=`. Todos los textos de RR. HH. (cita, ¿te puedo llamar?, seguimiento, 💬 Mensaje, y el «💬 Texto» vacío de la entrevista) salen por `rcSms`. El portapapeles de D-604 se queda como red por si la app recorta mensajes largos.
+
+**Pruebas:** las tres pruebas que afirmaban `&text=` afirman `&content=` y que `&text=` ya no está (`agendar-presencial`, `texto-puedo-llamar`, `texto-de-seguimiento`).
+
+**No medido:** en el RingCentral del dueño; la fuente es la documentación (developers.ringcentral.com/guide/basics/uri-schemes).
