@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { SelectorDeFechaYHora } from "./SelectorDeFechaYHora";
 import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
 import {
   MARCADORES_DE_LA_CITA, type Tienda,
@@ -127,8 +126,7 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
         <h3>📅 {t("Schedule in-person interview", "Agendar entrevista presencial")} — {c.name}</h3>
 
         <label>{t("Interview date and time", "Fecha y hora de la entrevista")}</label>
-        {/* D-611: fichas de día y hora en vez del calendario del navegador («se mira medio feo»). Mismo valor detrás. */}
-        <SelectorDeFechaYHora value={dt} onChange={setDt} autoFocus />
+        <input type="datetime-local" value={dt} onChange={(e) => setDt(e.target.value)} />
 
         <label style={{ marginTop: 10 }}>{t("Place", "Lugar")}</label>
         <select value={otro ? "__otro__" : lugar} onChange={(e) => { if (e.target.value === "__otro__") setOtro(true); else { setOtro(false); setLugar(e.target.value); } }}>

@@ -45883,6 +45883,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-611 · RR. HH.: fecha y hora con fichas (Hoy, Mañana, los días siguientes; horas de 8:00 a 6:00 p.m. de media en media) en los tres diálogos de cita, en vez del calendario del navegador
 
+> **Revertida por D-613** (2026-10-20): el dueño, con la captura del registro: «ese montón de horario … awful … regrésalo a como estaba». Los tres diálogos vuelven al campo de siempre.
+
 **Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.0 (repo 1.477.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-calendario-amable`.
 
 **Pedido del dueño (2026-10-20, literal):** «esa forma de meter el calendario para entrevista presencial, sí, no me gusta, se mira medio feo y voy bien poco. Entonces quiero que me mejores ese tipo de calendario, que sea más user friendly».
@@ -45910,3 +45912,19 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `texto-puedo-llamar.test.ts` (con un envío marcado se vuelve a mandar; el historial sigue contando solo los marcados; el botón no se deshabilita) y `texto-de-seguimiento.test.ts` (los tres resultados; «Wrong number» no).
 
 **No medido:** en el RingCentral del dueño.
+
+## D-613 · RR. HH.: se revierte D-611 (las fichas de fecha y hora): los tres diálogos vuelven al campo de fecha y hora de siempre
+
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.2 (repo 1.479.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-calendario-de-la-cita`.
+
+**Pedido del dueño (2026-10-20, literal, con la captura del registro de candidato lleno de fichas):** «no eso que hiciste ese montón de horario no está, awful, no me refería al … la interview ese» y, acto seguido, «regrésalo a como estaba».
+
+**Qué pasó.** D-611 entendió «ese tipo de calendario … más user friendly» como fichas de día y de hora, y las puso en los TRES sitios con fecha y hora (presencial, agendar llamada y el registro). En el registro, veintiocho botones debajo de «Programar entrevista por llamada»: lo contrario de lo que pedía. El dueño pidió volver atrás.
+
+**Qué cambia.** Los tres diálogos quedan exactamente como antes de D-611 (`<input type="datetime-local">`, con «🕐 Ahorita / En 1 hora / Mañana 9:00» en el registro). Se borran `SelectorDeFechaYHora.tsx`, `fecha-y-hora.ts` y su prueba. Lo que D-611 escribió en la base no existe (no tocaba datos), así que no hay nada que deshacer allí.
+
+**Lo que queda abierto:** el dueño sigue queriendo un calendario mejor para la **cita presencial** («al final de la interview»), no para el registro. Es otra decisión, a enseñarle antes de publicar (una maqueta, no un release).
+
+**Pruebas:** las de siempre (`agendar-presencial.test.ts`, 13); tsc.
+
+**No medido:** en navegador.
