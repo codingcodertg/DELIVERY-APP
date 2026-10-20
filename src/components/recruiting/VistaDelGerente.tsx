@@ -51,7 +51,7 @@ export function VistaDelGerente() {
               resolucion={resolucionDelGerente(contactsFor(c.id), c.id)}
               nombreDe={(id) => recruiters.find((r) => r.id === id)?.full_name ?? null}
               abrirCv={() => openResumeFile(c.id)}
-              // D-NEXT: documentos del candidato (formularios, identificación…) que el gerente adjunta y abre desde aquí.
+              // D-607: documentos del candidato (formularios, identificación…) que el gerente adjunta y abre desde aquí.
               adjuntos={attachmentsFor(c.id)}
               adjuntar={(f) => addAttachment(c.id, f)}
               abrirAdjunto={(id) => openAttachment(id)}
@@ -118,7 +118,7 @@ function TarjetaDelGerente({ c, resuelto, resolucion, nombreDe, abrirCv, resolve
         {c.resume_name && <button className="btn btn-ghost btn-sm" onClick={abrirCv}>📎 {t("Resume", "Currículum")}</button>}
       </div>
       {nota && <div className="hint" style={{ marginTop: 6 }}>📝 {t("Recruiter's note", "Nota del reclutador")}: {nota}</div>}
-      {/* D-NEXT: «dale la opción para attached documents de ellos como forms y así». Mismo camino que la ficha (bucket resumes + tabla attachments). */}
+      {/* D-607: «dale la opción para attached documents de ellos como forms y así». Mismo camino que la ficha (bucket resumes + tabla attachments). */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 6 }} data-adjuntos-del-gerente>
         {adjuntos.map((a) => (
           <span key={a.id} style={{ display: "inline-flex", alignItems: "center" }}>

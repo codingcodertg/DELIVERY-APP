@@ -45803,9 +45803,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · RR. HH.: el gerente de tienda adjunta documentos al candidato (formularios, identificación…) desde su tarjeta, y abre los que ya tenga
+## D-607 · RR. HH.: el gerente de tienda adjunta documentos al candidato (formularios, identificación…) desde su tarjeta, y abre los que ya tenga
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-gerente-adjuntos`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.57.0 (repo 1.473.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-gerente-adjuntos`.
 
 **Pedido del dueño (2026-10-19, literal):** «en el hr de los manager a los candidate dale la opción para attached documents de ellos como forms y así».
 
