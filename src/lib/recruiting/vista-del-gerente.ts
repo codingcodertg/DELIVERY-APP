@@ -32,6 +32,11 @@ export function tiendaCoincide(storeDelPerfil: string | null | undefined, locati
 
 export type GrupoDelGerente = "hoy" | "proximos" | "pendientes" | "resueltos";
 
+/** Los grupos que se PINTAN (D-NEXT, 2026-10-19). El dueño: «esos pendientes de resolver quítaselos, solo los de hoy y
+ *  próximos». Los otros dos se siguen calculando (la cita pasada sin resolver y lo resuelto existen), pero el gerente no
+ *  los ve: su pantalla es lo que tiene delante hoy y lo que viene. */
+export const GRUPOS_QUE_SE_PINTAN: readonly GrupoDelGerente[] = ["hoy", "proximos"];
+
 const DIA = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** En qué grupo cae un candidato visible: resuelto (contratado/descartado), hoy, próximos, o pendiente (cita pasada o sin fecha). */

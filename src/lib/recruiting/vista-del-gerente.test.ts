@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import type { Candidate, Contact, Stage } from "./types";
 import {
-  RESULTADO_CONTRATAR, RESULTADO_NO_CONTRATAR, ROL_GERENTE_DE_TIENDA,
+  GRUPOS_QUE_SE_PINTAN, RESULTADO_CONTRATAR, RESULTADO_NO_CONTRATAR, ROL_GERENTE_DE_TIENDA,
   agruparParaElGerente, esGerenteDeTienda, grupoDelCandidato, pestanasVisibles, resolucionDelGerente, resolverCandidato,
   textoDeLaResolucion, tiendaCoincide,
 } from "./vista-del-gerente";
@@ -103,6 +103,13 @@ describe("vista del gerente de tienda (D-600, migración 183)", () => {
     const n = resolucionDelGerente(ks.slice(0, 2), "c")!;
     expect(textoDeLaResolucion(n, "es", null)).toMatch(/^Resolución del gerente: No contratar · no vino · \d+ \w+\.?$/);
     expect(textoDeLaResolucion(n, "en", null)).toContain("Manager's decision: No hire · no vino");
+  });
+
+  it("se pintan SOLO Hoy y Próximos (D-NEXT): ni pendientes de resolver ni resueltos; y la vista recorre esa lista, no las cuatro", () => {
+    expect([...GRUPOS_QUE_SE_PINTAN]).toEqual(["hoy", "proximos"]);
+    const vista = readFileSync(new URL("../../components/recruiting/VistaDelGerente.tsx", import.meta.url), "utf8");
+    expect(vista).toContain("const orden = GRUPOS_QUE_SE_PINTAN.map(");
+    expect(vista).not.toMatch(/\{ id: "pendientes", titulo/);
   });
 
   it("puerta: la pestaña, la página de candidatos, la fila y el hub pasan por la librería; la 183 limita candidatos y lo que cuelga de ellos", () => {
