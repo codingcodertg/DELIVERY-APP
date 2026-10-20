@@ -18,7 +18,7 @@ export function BotonTextoPuedoLlamar({ c, className = "btn btn-ghost btn-sm" }:
   const enviar = async () => {
     const r = prepararTextoPuedoLlamar(c, contactsFor(c.id), me?.full_name ?? "", lang);
     if (!r.ok) {
-      setError(r.motivo === "sin-telefono" ? t("No phone number", "Sin número de teléfono") : t("Already sent", "Ya enviado"));
+      setError(t("No phone number", "Sin número de teléfono"));
       return;
     }
     setError(null);
@@ -31,8 +31,7 @@ export function BotonTextoPuedoLlamar({ c, className = "btn btn-ghost btn-sm" }:
     <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
       <button
         className={className}
-        disabled={estado.enviado}
-        title={estado.enviado ? t("Text already sent", "Texto ya enviado") : t("Opens the text in RingCentral", "Abre el texto en RingCentral")}
+        title={estado.enviado ? t("Already sent; opens it again in RingCentral", "Ya enviado; lo abre otra vez en RingCentral") : t("Opens the text in RingCentral", "Abre el texto en RingCentral")}
         onClick={enviar}
       >
         {estado.etiqueta}

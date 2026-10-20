@@ -11,7 +11,8 @@ import { mergeTemplate, rcSms, telClean } from "./utils";
  * nombre lleve «seguimiento» o «follow up» manda sobre la de aquí. */
 
 /** Los resultados de llamada que ofrecen el seguimiento (las claves en inglés de los botones, no la etiqueta traducida). */
-export const RESULTADOS_CON_SEGUIMIENTO: ReadonlySet<string> = new Set(["Voicemail", "Call back later"]);
+/** D-NEXT (2026-10-20): también «No answer». El dueño: «eso de voice mail o … volver a llamar o no contestó, todo eso quiero que se mande». */
+export const RESULTADOS_CON_SEGUIMIENTO: ReadonlySet<string> = new Set(["Voicemail", "Call back later", "No answer"]);
 
 export function ofreceSeguimiento(resultado: string): boolean {
   return RESULTADOS_CON_SEGUIMIENTO.has(resultado);

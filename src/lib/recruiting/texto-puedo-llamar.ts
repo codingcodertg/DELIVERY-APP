@@ -38,7 +38,7 @@ export function envioPuedoLlamar(contactos: Contact[], candidateId: string): { c
 
 export type ResultadoDelBoton =
   | { ok: true; texto: string; enlace: string }
-  | { ok: false; motivo: "sin-telefono" | "ya-enviado" };
+  | { ok: false; motivo: "sin-telefono" };
 
 /** Decide, sin tocar nada, qué hace el botón: a dónde abrir y qué registrar, o por qué no. */
 export function prepararTextoPuedoLlamar(
@@ -48,7 +48,10 @@ export function prepararTextoPuedoLlamar(
   lang: "en" | "es",
 ): ResultadoDelBoton {
   if (!telClean(c.phone)) return { ok: false, motivo: "sin-telefono" };
-  if (envioPuedoLlamar(contactos, c.id)) return { ok: false, motivo: "ya-enviado" };
+  // D-NEXT (2026-10-20): ya no se bloquea por un envío anterior. El dueño: «no funciona aún el template … de te puedo llamar
+  // … todo eso quiero que se mande». Los intentos de cuando RingCentral salía vacío (D-581…D-604) quedaron registrados y
+  // dejaban el botón apagado. El historial sigue (`envioPuedoLlamar`, la etiqueta con la hora); el botón manda siempre.
+  void contactos;
   const texto = textoPuedoLlamar(c, recruiter, lang);
   return { ok: true, texto, enlace: rcSms(c.phone, texto) };
 }
@@ -62,6 +65,7 @@ export function contactoDelEnvio(texto: string): Pick<Contact, "type" | "result"
 export function estadoDelBoton(contactos: Contact[], candidateId: string, lang: "en" | "es"): { enviado: boolean; etiqueta: string } {
   const envio = envioPuedoLlamar(contactos, candidateId);
   if (!envio) return { enviado: false, etiqueta: lang === "es" ? "📱 Texto: ¿te puedo llamar?" : "📱 Text: can I call you?" };
+  // Con un envío previo, la etiqueta lo dice (y el botón sigue activo: se puede volver a mandar).
   const hora = new Date(envio.cuando).toLocaleTimeString(lang === "es" ? "es-MX" : "en-US", { hour: "2-digit", minute: "2-digit" });
   return { enviado: true, etiqueta: (lang === "es" ? "SMS enviado ✓ " : "SMS sent ✓ ") + hora };
 }

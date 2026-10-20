@@ -39,9 +39,11 @@ describe("texto «¿te puedo llamar?» (D-581)", () => {
     expect(prepararTextoPuedoLlamar({ ...cand, phone: " - " }, [], "A", "en")).toEqual({ ok: false, motivo: "sin-telefono" });
   });
 
-  it("idempotente por candidato: con un envío marcado no se vuelve a mandar; otro SMS suelto, otro tipo u otro candidato no cuentan", () => {
+  it("se puede volver a mandar aunque ya haya un envío marcado (D-NEXT); el historial sigue contando solo los marcados de ese candidato", () => {
     const marcado = contacto({ result: RESULTADO_PUEDO_LLAMAR });
-    expect(prepararTextoPuedoLlamar(cand, [marcado], "A", "en")).toEqual({ ok: false, motivo: "ya-enviado" });
+    expect(prepararTextoPuedoLlamar(cand, [marcado], "A", "en").ok).toBe(true);
+    expect(envioPuedoLlamar([marcado], "c1")).not.toBeNull();
+    expect(envioPuedoLlamar([contacto({ result: "sent" })], "c1")).toBeNull();
     expect(prepararTextoPuedoLlamar(cand, [contacto({ result: "sent" })], "A", "en").ok).toBe(true);
     expect(prepararTextoPuedoLlamar(cand, [contacto({ result: RESULTADO_PUEDO_LLAMAR, candidate_id: "c2" })], "A", "en").ok).toBe(true);
     expect(prepararTextoPuedoLlamar(cand, [contacto({ result: RESULTADO_PUEDO_LLAMAR, type: "Note" })], "A", "en").ok).toBe(true);
@@ -55,7 +57,7 @@ describe("texto «¿te puedo llamar?» (D-581)", () => {
     expect(envioPuedoLlamar([contacto(k)], "c2")).toBeNull();
   });
 
-  it("el botón: antes ofrece el texto; después dice «SMS sent ✓» con la hora del ÚLTIMO envío y queda deshabilitado", () => {
+  it("el botón: antes ofrece el texto; después dice «SMS sent ✓» con la hora del ÚLTIMO envío (y sigue activo)", () => {
     expect(estadoDelBoton([], "c1", "en")).toEqual({ enviado: false, etiqueta: "📱 Text: can I call you?" });
     expect(estadoDelBoton([], "c1", "es").etiqueta).toBe("📱 Texto: ¿te puedo llamar?");
     const viejo = contacto({ result: RESULTADO_PUEDO_LLAMAR, created_at: "2026-10-17T09:05:00.000Z" });
