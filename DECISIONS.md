@@ -45836,3 +45836,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** las tres pruebas que afirmaban `&text=` afirman `&content=` y que `&text=` ya no está (`agendar-presencial`, `texto-puedo-llamar`, `texto-de-seguimiento`).
 
 **No medido:** en el RingCentral del dueño; la fuente es la documentación (developers.ringcentral.com/guide/basics/uri-schemes).
+
+## D-609 · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
+
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.341.0 (repo 1.475.0; el layout raíz, todas las apps) · **Migración 184** (`184_chat_interno.sql`) · Hecho directo por el orquestador en `feat/chat-interno`.
+
+**Pedido del dueño (2026-10-20, literal):** «un chat dentro del app en general … va a aparecer no importa en cualquier aplicación que uno esté, va a estar como un botón que se puede ocultar … en el right upper corner … uno ahí puede hacer un chat con los de su tienda y igual que con las extensiones, uno tiene que buscar el nombre para mandar un chat a esa persona en específico, y esa persona en su hub va a aparecer un botón y ahí va a ver todos los contactos, así tipo Facebook … si es un admin siempre son como que push messages, para que le caiga a la persona y pues él mire ahí y pueda contestar».
+
+**En qué se apoya (medido).** `public.profiles` se lee entero con sesión (`profiles select = true`, A-2a): de ahí salen los contactos (nombre, tienda, puesto). Los avisos ya existen (`public.notifications`, campana en Entregas y en el hub; `/api/push` manda FCM a los `device_tokens` del teléfono con la app Android). Tiempo real: `supabase_realtime` ya publica tablas de `public`. La burbuja de Ayuda (D-530) vive en el layout raíz y por eso sale en todas las apps: la del chat va al lado.
+
+**Qué cambia.**
+- **Base (184):** `public.chat_messages` (de quién, a quién, cuerpo de 1 a 2000 letras, `created_at`, `read_at`; nunca a uno mismo). RLS: cada quien lee lo que mandó o le mandaron; inserta solo como él mismo; solo el destinatario marca leído (`UPDATE` concedido a la columna `read_at`, no a la fila: el cuerpo no se toca); sin `DELETE`. Se revocan los permisos por defecto de `anon`/`authenticated` y se da lo justo (la propia migración lo comprueba y falla si no). En la publicación de tiempo real.
+- **Burbuja** (`ChatFlotante.tsx`, layout raíz): «💬 Chat» arriba a la derecha, con el número sin leer. Tres estados: burbuja, panel abierto, oculta (queda una pestañita en el borde para volver a sacarla; solo «oculta» se recuerda en el navegador). Sale donde sale la de Ayuda (no en login, track, baja…). Sin sesión no se monta.
+- **Panel:** buscador por nombre (sin acentos ni mayúsculas); «Recientes» (los hilos abiertos, del más nuevo al más viejo); «🏪 Mi tienda» (los de mi `profiles.store`) y «Los demás». Al abrir un hilo: los mensajes (míos a la derecha, con ✓✓ cuando los leyó), caja de texto, Enter manda. Lo que me mandan llega por tiempo real y queda leído al abrir el hilo.
+- **Mandar** (`POST /api/chat/send`): con la sesión del remitente, la fila en `chat_messages`; el aviso en la campana del destinatario (`notifications`, kind `chat`, «💬 Nombre: texto…»); y **si quien escribe es admin** (rol del hub, leído de la base), el push al teléfono por FCM a sus `device_tokens` (los que tienen la app Android; en el navegador no hay push). Los demás, campana y burbuja.
+
+**Qué no hay (a propósito, v1):** grupos (es persona a persona), adjuntos, borrar o editar mensajes, push para no admins, push en el navegador. Cada uno es otra decisión.
+
+**Pruebas:** `src/lib/chat/chat.test.ts` (contactos: sin uno mismo, mi tienda primero, búsqueda sin acentos; hilos por interlocutor con no leídos y orden; cuerpo de 1 a 2000; push solo admin; aviso recortado; la burbuja en las rutas de Ayuda; «oculta» es lo único que se recuerda; un mensaje repetido por tiempo real entra una vez; puerta: layout raíz, `/api/chat/send`, la ruta con `requireUser` y `llevaPush`, y la 184 con sus tres políticas y el `grant update (read_at)`). Ensayo de la 184 con ROLLBACK: pasa (el primer ensayo cazó los permisos por defecto de Supabase, que es para lo que están las comprobaciones).
+
+**No medido:** en navegador; el push solo se mide con un teléfono con la app.
