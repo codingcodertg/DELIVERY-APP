@@ -105,7 +105,7 @@ describe("vista del gerente de tienda (D-600, migración 183)", () => {
     expect(textoDeLaResolucion(n, "en", null)).toContain("Manager's decision: No hire · no vino");
   });
 
-  it("se pintan SOLO Hoy y Próximos (D-NEXT): ni pendientes de resolver ni resueltos; y la vista recorre esa lista, no las cuatro", () => {
+  it("se pintan SOLO Hoy y Próximos (D-606): ni pendientes de resolver ni resueltos; y la vista recorre esa lista, no las cuatro", () => {
     expect([...GRUPOS_QUE_SE_PINTAN]).toEqual(["hoy", "proximos"]);
     const vista = readFileSync(new URL("../../components/recruiting/VistaDelGerente.tsx", import.meta.url), "utf8");
     expect(vista).toContain("const orden = GRUPOS_QUE_SE_PINTAN.map(");

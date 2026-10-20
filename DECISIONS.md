@@ -45676,7 +45676,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-600 · RR. HH.: vista del gerente de tienda — ve solo los candidatos citados a presencial en SU tienda y resuelve contratar / no contratar con razón (migración 183)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-19): la vista pinta solo Hoy y Próximos.
+> **Reemplazada en parte por D-606** (2026-10-19): la vista pinta solo Hoy y Próximos.
 
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.53.0 (repo 1.466.0) · **Migración 183** (`183_gerente_de_tienda.sql`, aplicada el 2026-10-19 con el sí del dueño: respaldo `rtg-prod-20261019-172504.dump`, ensayo con ROLLBACK, `--escribe`, migrate-status 182/182 antes y después) · Hecho directo por el orquestador en `feat/rrhh-gerente-de-tienda`.
 
@@ -45789,9 +45789,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador. El `--escribe` se corre cuando el dueño diga que sí; hasta entonces producción sigue con las escalas al revés.
 
-## D-NEXT · RR. HH.: la vista del gerente de tienda enseña solo Hoy y Próximos (fuera «Pendientes de resolver» y «Resueltos»)
+## D-606 · RR. HH.: la vista del gerente de tienda enseña solo Hoy y Próximos (fuera «Pendientes de resolver» y «Resueltos»)
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-gerente-solo-hoy-y-proximos`.
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.56.0 (repo 1.472.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-gerente-solo-hoy-y-proximos`.
 
 **Pedido del dueño (2026-10-19, literal):** «ESOS PENDIENTES DE RESOLVER QUITASELOS SOLO LOS DE HOY Y PROXIMOS».
 

@@ -25,7 +25,7 @@ export function VistaDelGerente() {
     pendientes: { titulo: t("Pending decision", "Pendientes de resolver"), vacio: t("Nothing pending", "Nada pendiente") },
     resueltos: { titulo: t("Resolved", "Resueltos"), vacio: t("Nothing resolved yet", "Aún nada resuelto") },
   };
-  // D-NEXT: solo Hoy y Próximos (el dueño: «quítaselos, solo los de hoy y próximos»).
+  // D-606: solo Hoy y Próximos (el dueño: «quítaselos, solo los de hoy y próximos»).
   const orden = GRUPOS_QUE_SE_PINTAN.map((id) => ({ id, ...titulos[id] }));
   const total = GRUPOS_QUE_SE_PINTAN.reduce((n, g) => n + grupos[g].length, 0);
 
