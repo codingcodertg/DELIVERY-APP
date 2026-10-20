@@ -8,6 +8,7 @@ import { InterviewViewModal } from "./InterviewView";
 import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
 import { BotonCopiarParaElGerente } from "./BotonCopiarParaElGerente";
 import { InPersonScheduleModal } from "./InPersonScheduleModal";
+import { SelectorDeFechaYHora } from "./SelectorDeFechaYHora";
 import { contactoDelSeguimiento, ofreceSeguimiento, plantillaDeSeguimiento, prepararTextoDeSeguimiento, textoDeSeguimiento } from "@/lib/recruiting/texto-de-seguimiento";
 import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
@@ -385,7 +386,7 @@ function ScheduleModal({ id, kind, close }: { id: string; kind: "phone"; close: 
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>{phone ? "📅" : "🤝"} {title} — {c.name}</h3>
         <label>{label}</label>
-        <input type="datetime-local" value={dt} onChange={(e) => setDt(e.target.value)} />
+        <SelectorDeFechaYHora value={dt} onChange={setDt} autoFocus />
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
           <button className="btn btn-primary" onClick={save}>{t("Save", "Guardar")}</button>
           {existing && (
@@ -634,7 +635,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
           <div className="grid g2">
             <div>
               <label>{t("Schedule call interview (optional)", "Programar entrevista por llamada (opcional)")}</label>
-              <input type="datetime-local" value={phoneDt} onChange={(e) => setPhoneDt(e.target.value)} />
+              <SelectorDeFechaYHora value={phoneDt} onChange={setPhoneDt} />
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
                 {/* interviewing them on the spot is the common case — one click for it */}
                 <button className="chip" onClick={() => setPhoneDt(localDateTimeInput())}>
