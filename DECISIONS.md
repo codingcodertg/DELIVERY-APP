@@ -45676,6 +45676,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-600 · RR. HH.: vista del gerente de tienda — ve solo los candidatos citados a presencial en SU tienda y resuelve contratar / no contratar con razón (migración 183)
 
+> **Reemplazada en parte por D-606** (2026-10-19): la vista pinta solo Hoy y Próximos.
+
 **Fecha:** 2026-10-19 · **Versión:** recruiting 0.53.0 (repo 1.466.0) · **Migración 183** (`183_gerente_de_tienda.sql`, aplicada el 2026-10-19 con el sí del dueño: respaldo `rtg-prod-20261019-172504.dump`, ensayo con ROLLBACK, `--escribe`, migrate-status 182/182 antes y después) · Hecho directo por el orquestador en `feat/rrhh-gerente-de-tienda`.
 
 **Pedido del dueño (2026-10-19, literal):** «Quiero que me crees una vista para los managers de la HR app … van a poder ver los candidatos que fueron puestos para in-person interview … hoy tuvieron estos … van a poder decir hire, no hire, y reason why not hire … cada manager va a ver solo los de su tienda, los que yo mando a la tienda de ellos … prácticamente ellos solo van a poder ver el tab de candidatos por ahora … ahí tiene que salir resolución del gerente, no hire, hire». Y al plan: «sí, dale con la migración».
@@ -45786,3 +45788,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/recruiting/escalas-al-derecho.test.ts` (ninguna escala de las tarjetas lleva `descending` y todas van 1…4; la de riesgo con sus etiquetas en orden; con ella, «Sin riesgo» sube la media y «Afecta» la baja; el guion detecta la de riesgo al revés y la revuelta, la de desempeño revuelta y la rota, respeta las que están bien y las de inglés, y decodifica el mojibake).
 
 **No medido:** en navegador. El `--escribe` se corre cuando el dueño diga que sí; hasta entonces producción sigue con las escalas al revés.
+
+## D-606 · RR. HH.: la vista del gerente de tienda enseña solo Hoy y Próximos (fuera «Pendientes de resolver» y «Resueltos»)
+
+**Fecha:** 2026-10-19 · **Versión:** recruiting 0.56.0 (repo 1.472.0) · Sin migración · Hecho directo por el orquestador en `fix/rrhh-gerente-solo-hoy-y-proximos`.
+
+**Pedido del dueño (2026-10-19, literal):** «ESOS PENDIENTES DE RESOLVER QUITASELOS SOLO LOS DE HOY Y PROXIMOS».
+
+**Qué cambia.** D-600 pintaba cuatro grupos (Hoy, Próximos, Pendientes de resolver, Resueltos). Ahora la vista recorre `GRUPOS_QUE_SE_PINTAN = ["hoy", "proximos"]`: el gerente ve lo que tiene delante hoy y lo que viene. Las citas pasadas sin resolver y lo ya resuelto se siguen calculando (`agruparParaElGerente`), pero no se pintan; el mensaje de vacío pasa a «Hoy ni próximamente hay entrevistas en tu tienda». Lo que el gerente puede ver en la base (183) no cambia.
+
+**Contexto del mismo día:** con el «DALE ACCESO A ELLOS DEL RRHH APP» del dueño, los cuatro gerentes con tienda en el hub (Patricia Hernández · Brownsville, Carlos Salazar · McAllen, Rosa Salazar · Pharr, Juan Briseno · Weslaco) tienen `recruiting_role = store_manager` y el módulo; medido con la sesión de cada uno: Pharr ve 9 en presencial y 1 descartado, Brownsville 2, McAllen y Weslaco nadie; ninguno ve expedientes. Edinburg y Mission sin gerente con tienda (T-0608).
+
+**Pruebas:** `vista-del-gerente.test.ts` (los grupos que se pintan son exactamente Hoy y Próximos; la vista recorre esa lista y no tiene los cuatro a mano). 1 mutante (pintar los cuatro), cae.
+
+**No medido:** en navegador.

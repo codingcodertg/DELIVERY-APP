@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import {
-  agruparParaElGerente, resolucionDelGerente, resolverCandidato, textoDeLaResolucion, type Decision, type GrupoDelGerente,
+  GRUPOS_QUE_SE_PINTAN, agruparParaElGerente, resolucionDelGerente, resolverCandidato, textoDeLaResolucion, type Decision, type GrupoDelGerente,
 } from "@/lib/recruiting/vista-del-gerente";
 import { fmtDateTime } from "@/lib/recruiting/utils";
 import { telefonoEnLaFila } from "@/lib/recruiting/texto-puedo-llamar";
@@ -19,13 +19,15 @@ export function VistaDelGerente() {
   const { candidates, stages, contactsFor, recruiters, updateCandidate, addContact, openResumeFile, notify, me } = useData();
   const { t } = usePrefs();
   const grupos = agruparParaElGerente(candidates, stages);
-  const orden: { id: GrupoDelGerente; titulo: string; vacio: string }[] = [
-    { id: "hoy", titulo: t("Today", "Hoy"), vacio: t("No interviews today", "Hoy no hay entrevistas") },
-    { id: "proximos", titulo: t("Upcoming", "Próximos"), vacio: t("Nothing scheduled", "Nada agendado") },
-    { id: "pendientes", titulo: t("Pending decision", "Pendientes de resolver"), vacio: t("Nothing pending", "Nada pendiente") },
-    { id: "resueltos", titulo: t("Resolved", "Resueltos"), vacio: t("Nothing resolved yet", "Aún nada resuelto") },
-  ];
-  const total = candidates.filter((c) => !c.archived).length;
+  const titulos: Record<GrupoDelGerente, { titulo: string; vacio: string }> = {
+    hoy: { titulo: t("Today", "Hoy"), vacio: t("No interviews today", "Hoy no hay entrevistas") },
+    proximos: { titulo: t("Upcoming", "Próximos"), vacio: t("Nothing scheduled", "Nada agendado") },
+    pendientes: { titulo: t("Pending decision", "Pendientes de resolver"), vacio: t("Nothing pending", "Nada pendiente") },
+    resueltos: { titulo: t("Resolved", "Resueltos"), vacio: t("Nothing resolved yet", "Aún nada resuelto") },
+  };
+  // D-606: solo Hoy y Próximos (el dueño: «quítaselos, solo los de hoy y próximos»).
+  const orden = GRUPOS_QUE_SE_PINTAN.map((id) => ({ id, ...titulos[id] }));
+  const total = GRUPOS_QUE_SE_PINTAN.reduce((n, g) => n + grupos[g].length, 0);
 
   return (
     <div data-vista-del-gerente>
@@ -39,7 +41,7 @@ export function VistaDelGerente() {
                 "Tu perfil aún no tiene tienda: pide al admin que la ponga en el hub (Usuarios) y aquí aparecerán los candidatos.")}
         </div>
       </div>
-      {total === 0 && <div className="empty">{t("No candidates for your store yet.", "Aún no hay candidatos para tu tienda.")}</div>}
+      {total === 0 && <div className="empty">{t("No interviews today or upcoming for your store.", "Hoy ni próximamente hay entrevistas en tu tienda.")}</div>}
       {orden.map((g) => (
         <section key={g.id} style={{ marginBottom: 18 }} data-grupo={g.id}>
           <h3 style={{ margin: "8px 0" }}>{g.titulo} <span style={{ color: "var(--gray)", fontWeight: 400 }}>({grupos[g.id].length})</span></h3>
