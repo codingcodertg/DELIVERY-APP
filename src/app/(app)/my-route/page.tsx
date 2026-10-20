@@ -107,7 +107,7 @@ export default function MyRoutePage() {
   const [listaElegida, setListaElegida] = useState<SeccionDeMiRuta>("pendientes");
   // La orden cuyo «Recogido» espera el número de pallets (D-547): mientras no es `null`, el cuadro está abierto.
   const [palletsDe, setPalletsDe] = useState<Delivery | null>(null);
-  // La orden cuyo «Recogido» espera el motivo de recogerla sin «listo» (D-NEXT): mientras no es `null`, el cuadro está abierto.
+  // La orden cuyo «Recogido» espera el motivo de recogerla sin «listo» (D-603): mientras no es `null`, el cuadro está abierto.
   const [sinListoDe, setSinListoDe] = useState<Delivery | null>(null);
 
   // De QUIÉN es la ruta (D-502). La pestaña «Chofer» del admin monta esta misma página dentro de `<RutaDeUnChofer>` con el
@@ -193,7 +193,7 @@ export default function MyRoutePage() {
     // D-547: antes pregunta los pallets («it's not asking them how many pallets are they loading»), con los de la orden
     // ya puestos; al confirmar, `recogerDeUnToque(d, n)`.
     if (accion === "recoger" && seRecogeDeUnToque(d.stage)) { setPalletsDe(d); return; }
-    // D-NEXT: sin «listo» (aprobada / preparando), el cuadro pequeño del motivo; la ficha se abre DESPUÉS de recoger.
+    // D-603: sin «listo» (aprobada / preparando), el cuadro pequeño del motivo; la ficha se abre DESPUÉS de recoger.
     if (accion === "recoger" && abreElCuadroSinListo(d.stage)) { setSinListoDe(d); return; }
     if (accion === "entregar") {
       fotoPara.current = d.id;
@@ -224,7 +224,7 @@ export default function MyRoutePage() {
     if (!gps) void adjuntarTardio(d.id, eventual);
   };
   /**
-   * «🚚 Recogido» sin «listo», desde el cuadro del motivo (D-NEXT): la MISMA escritura que «Recoger de todos modos» de la
+   * «🚚 Recogido» sin «listo», desde el cuadro del motivo (D-603): la MISMA escritura que «Recoger de todos modos» de la
    * ficha (D-527): la nota con su prefijo, el evento `picked_up`, el GPS sin bloquear, y el aviso en la campana al almacén
    * de esa tienda y a logística. Al terminar, la ficha, para ver los detalles (Ernesto: «After they confirm pickup, now it
    * can open up the order to see the details»).

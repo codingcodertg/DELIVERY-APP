@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { ETAPAS_SIN_LISTO, MOTIVOS_SIN_LISTO, abreElCuadroSinListo, notaDelMotivoSinListo } from "./recoger-sin-listo-pantalla";
 import { esRecogidaSinListo, notaDeRecogidaSinListo } from "./recogida-del-chofer";
 
-// D-NEXT (2026-10-19) · Ernesto (chofer): «lets just have a screen that says Not marked ready by Warehouse / Why are you picking
+// D-603 (2026-10-19) · Ernesto (chofer): «lets just have a screen that says Not marked ready by Warehouse / Why are you picking
 // up / Dropdown: It is Ready, Im taking Partial, Other with text box … After they confirm pickup, now it can open up the order».
 
 describe("«Recogido» sin «listo»: un cuadro pequeño con motivo, no la ficha entera", () => {

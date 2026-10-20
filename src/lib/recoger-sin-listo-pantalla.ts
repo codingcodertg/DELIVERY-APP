@@ -1,6 +1,6 @@
 import { notaSinListoValida } from "./recogida-del-chofer";
 
-/* ---- La pantalla simple de «Recogido» sin «listo» (D-NEXT, 2026-10-19) ----
+/* ---- La pantalla simple de «Recogido» sin «listo» (D-603, 2026-10-19) ----
  * Ernesto (chofer): «When driver picks something up that warehouse hasnt marked ready it opens the order and requires them
  * to explain why theyre picking it up. Its too much information showing at a time so when they pick up stuff thats not
  * marked ready lets just have a screen that says: Not marked ready by Warehouse / Why are you picking up / Dropdown: It

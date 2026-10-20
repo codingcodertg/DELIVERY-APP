@@ -8,7 +8,7 @@ import { orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 /**
- * «Not marked ready by Warehouse · Why are you picking up?» (D-NEXT): el cuadro pequeño que sale al pulsar «🚚 Recogido»
+ * «Not marked ready by Warehouse · Why are you picking up?» (D-603): el cuadro pequeño que sale al pulsar «🚚 Recogido»
  * en una orden que el almacén no marcó lista. Un motivo de la lista; «Otro» pide el texto. Confirmar recoge (la misma
  * escritura que la ficha, con avisos al almacén y a logística) y después abre la ficha para ver los detalles.
  */

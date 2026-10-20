@@ -45725,9 +45725,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador. La medida real es el Gestor de Ernesto mañana a media jornada.
 
-## D-NEXT · Mi ruta: «Recogido» sin «listo» abre un cuadro pequeño con el motivo (Sí está lista / Me llevo una parte / Otro), recoge, y DESPUÉS abre la ficha; la ficha pierde el aviso de «se avisa a…»
+## D-603 · Mi ruta: «Recogido» sin «listo» abre un cuadro pequeño con el motivo (Sí está lista / Me llevo una parte / Otro), recoge, y DESPUÉS abre la ficha; la ficha pierde el aviso de «se avisa a…»
 
-**Fecha:** 2026-10-19 · **Versión:** la asigna el orquestador al fusionar (deliveries) · Sin migración · Hecho directo por el orquestador en `feat/recoger-sin-listo-pantalla`.
+**Fecha:** 2026-10-19 · **Versión:** deliveries 1.340.0 (repo 1.469.0) · Sin migración · Hecho directo por el orquestador en `feat/recoger-sin-listo-pantalla`.
 
 **Pedido (Ernesto Castillo, chofer, por el dueño, 2026-10-19, literal):** «When driver picks something up that warehouse hasnt marked ready it opens the order and requires them to explain why theyre picking it up. Its too much information showing at a time so when they pick up stuff thats not marked ready lets just have a screen that says Not marked ready by Warehouse / Why are you picking up / Dropdown: It is Ready, Im taking Partial, Other with text box for explanation. After they confirm pickup, now it can open up the order to see the details». Y sobre la ficha: «This text is not necessary, its adding noise» (captura: «The warehouse at RDZ Weslaco and logistics will be notified in the app.»).
 

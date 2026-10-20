@@ -3522,7 +3522,7 @@ function StageActions({
           <textarea id="nota-sin-listo" data-nota-sin-listo rows={3} value={sinListo.nota} autoFocus disabled={busy}
             onChange={(e) => sinListo.setNota(e.target.value)} style={{ width: "100%" }}
             placeholder={t("e.g. 2 boxes of grout still missing; the customer needs the tile today", "ej. faltan 2 cajas de boquilla; el cliente necesita el piso hoy")} />
-          {/* D-NEXT: sin el «se avisa a…» (Ernesto: «This text is not necessary, its adding noise»); solo el mínimo si falta. */}
+          {/* D-603: sin el «se avisa a…» (Ernesto: «This text is not necessary, its adding noise»); solo el mínimo si falta. */}
           {!notaValida && sinListo.nota.trim() !== "" && (
             <div className="hint" style={{ marginTop: 0 }}>{t(`At least ${MINIMO_NOTA_SIN_LISTO} letters.`, `Al menos ${MINIMO_NOTA_SIN_LISTO} letras.`)}</div>
           )}
