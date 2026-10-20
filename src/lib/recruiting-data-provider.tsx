@@ -393,7 +393,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // ---------------- Candidate CRUD ----------------
   const addCandidate = useCallback<DataState["addCandidate"]>(
     async (c) => {
-      // D-NEXT: nombre, teléfono y correo con el formato estándar, entre por donde entre.
+      // D-610: nombre, teléfono y correo con el formato estándar, entre por donde entre.
       const payload = { ...estandarizaCandidato(c), created_by: me?.id ?? null };
       const { data, error } = await supabase.from("candidates").insert(payload).select().single();
       if (error) {

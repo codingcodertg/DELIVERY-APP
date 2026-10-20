@@ -1,6 +1,6 @@
 import type { Candidate } from "./types";
 
-/* ---- Formatos estándar al guardar un candidato (D-NEXT, 2026-10-20) ----
+/* ---- Formatos estándar al guardar un candidato (D-610, 2026-10-20) ----
  * El dueño: «quiero que en el sistema todo esté estandarizado. Uno mete un nombre y un teléfono, lo que sea … que todo
  * tenga el mismo formato. Si el teléfono viene todo pegado, que el sistema automáticamente lo ponga como debe de ser».
  * Medido en producción: teléfonos como «9563405910», «956)735-4681», «956-715-1463», «(956) 599-3449»; nombres en

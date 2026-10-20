@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { correoEstandar, estandarizaCandidato, nombreEstandar, telefonoEstandar } from "./formato";
 
-// D-NEXT (2026-10-20) · El dueño: «todo esté estandarizado … si el teléfono viene todo pegado, que el sistema automáticamente lo
+// D-610 (2026-10-20) · El dueño: «todo esté estandarizado … si el teléfono viene todo pegado, que el sistema automáticamente lo
 // ponga como debe de ser». Datos de prueba, no los del dueño.
 
 describe("formatos estándar del candidato", () => {

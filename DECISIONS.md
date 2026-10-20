@@ -45857,9 +45857,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador; el push solo se mide con un teléfono con la app.
 
-## D-NEXT · RR. HH.: formato estándar al guardar un candidato — teléfono «(956) 340-5910», nombre con mayúsculas iniciales, correo en minúsculas — en toda escritura
+## D-610 · RR. HH.: formato estándar al guardar un candidato — teléfono «(956) 340-5910», nombre con mayúsculas iniciales, correo en minúsculas — en toda escritura
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (recruiting) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-formato-estandar`.
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.58.0 (repo 1.476.0) · Sin migración · Hecho directo por el orquestador en `feat/rrhh-formato-estandar`.
 
 **Pedido del dueño (2026-10-20, literal):** «Acuérdate que quiero que en el sistema todo esté estandarizado. Entonces uno mete un nombre y un teléfono, lo que sea que se meta la información, creo que todo tenga en el mismo formato. Si el teléfono viene todo pegado, que el sistema automáticamente lo ponga como debe de ser, y así».
 
