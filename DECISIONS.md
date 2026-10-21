@@ -46233,7 +46233,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - las escrituras contra la base con la sesión de un gerente: que «contratado → descartado» y adjuntar a un descartado pasen RLS se sacó leyendo las políticas en vivo;
 - pasar de descartado a contratado no borra `discard_reason`; hoy no se ve.
 
-## D-NEXT · Modo enseñanza de verdad en todas las apps: lo que cambias se ve guardado, nadie más lo ve, y al salir todo vuelve a como estaba
+## D-628 · Modo enseñanza de verdad en todas las apps: lo que cambias se ve guardado, nadie más lo ve, y al salir todo vuelve a como estaba
 
 **Fecha:** 2026-10-21 · **Versión:** deliveries 1.352.0, erp 0.23.0, recruiting 0.62.0 · Hecho directo por el orquestador en `feat/ensenanza-practica`. Sin migración. Reemplaza en parte a D-626.
 
