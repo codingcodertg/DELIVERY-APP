@@ -286,3 +286,14 @@ describe("la migración 120", () => {
     expect(sql).toContain("values ('120_help_requests.sql'");
   });
 });
+
+// D-NEXT (2026-10-20) · El dueño: «all help requests mark them as done … do a filter said done».
+describe("el filtro de estado de la bandeja", () => {
+  it("pendientes por defecto; atendidas; todas con las pendientes primero", async () => {
+    const { listaSegunEstado } = await import("./help-requests");
+    const p = [{ id: "p1", status: "pendiente" }] as never[], a = [{ id: "a1", status: "atendida" }] as never[];
+    expect(listaSegunEstado("pendientes", { pendientes: p, atendidas: a })).toEqual(p);
+    expect(listaSegunEstado("atendidas", { pendientes: p, atendidas: a })).toEqual(a);
+    expect(listaSegunEstado("todas", { pendientes: p, atendidas: a })).toEqual([...p, ...a]);
+  });
+});

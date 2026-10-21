@@ -45843,6 +45843,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-609 · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
 
+> **Reemplazada en parte por D-NEXT** (2026-10-20): la burbuja va abajo a la derecha, encima de la de Ayuda.
+
 > **Reemplazada en parte por D-614** (2026-10-20): la lista enseña solo a los de mi tienda; a los demás se les busca por nombre.
 
 **Fecha:** 2026-10-20 · **Versión:** deliveries 1.341.0 (repo 1.475.0; el layout raíz, todas las apps) · **Migración 184** (`184_chat_interno.sql`) · Hecho directo por el orquestador en `feat/chat-interno`.
@@ -45940,5 +45942,20 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Qué cambia.** `listaVisible` (en `chat.ts`): sin búsqueda, la lista son solo los de MI tienda (`profiles.store`); sin tienda en el perfil, nadie, con el aviso «A los de otra tienda se les busca por nombre». Con búsqueda, cualquiera que coincida, los de mi tienda primero (como D-609). Los hilos «Recientes» siguen saliendo aunque sean de otra tienda (ya se habló con esa persona). El buscador dice «Buscar a cualquiera por nombre…». Quién puede escribir a quién no cambia (todos a todos); cambia lo que se enseña sin pedirlo.
 
 **Pruebas:** `chat.test.ts` (sin búsqueda solo mi tienda; sin tienda nadie; con búsqueda todos los que coinciden, mi tienda primero; espacios no cuentan como búsqueda; puerta: la vista usa `listaVisible`).
+
+**No medido:** en navegador.
+
+## D-NEXT · Hub: la burbuja del chat va abajo a la derecha, encima de la de Ayuda; y la bandeja de solicitudes de ayuda lleva un filtro de estado (Pendientes / Atendidas / Todas) en vez del archivo plegable
+
+**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries: layout raíz y hub) · Sin migración · Datos: las 59 solicitudes pendientes se marcaron atendidas a petición del dueño · Hecho directo por el orquestador en `fix/chat-abajo-y-ayuda-filtro`.
+
+**Pedidos del dueño (2026-10-20, literales):** «el chat above el help request» (captura: la burbuja «💬 Chat» arriba a la derecha tapando «+ New order» en Entregas); «all help requests mark them as done»; «en sent them do a filter said done».
+
+**Qué cambia.**
+- **Chat:** la burbuja, la pestañita de «oculta» y el panel se anclan abajo a la derecha, encima de la burbuja de Ayuda (D-530): `bottom: 72px` (la de Ayuda está en 20). Arriba a la derecha chocaba con los botones de cabecera de cada app. Solo CSS.
+- **Solicitudes de ayuda (hub → admin):** el archivo plegable «📦 Atendidas (N)» de D-301 se sustituye por un filtro **Estado** junto a Persona / Desde / Hasta: **Pendientes (N)** por defecto (la lista de trabajo), **Atendidas (N)** y **Todas (N)** (pendientes primero). `listaSegunEstado` en `help-requests.ts`.
+- **Datos (una vez, con el pedido literal del dueño):** las 59 solicitudes en «pendiente» pasaron a «atendida» (`attended_by` = el admin del dueño, `attended_at` = 2026-10-21T01:21Z). Quedan 64 atendidas, 0 pendientes. No se avisó a nadie (fue una escritura directa, no el botón de la bandeja).
+
+**Pruebas:** `help-requests.test.ts` (el filtro: pendientes, atendidas, todas con pendientes primero) y `ayuda-atendida.test.ts` (puerta: filtro por defecto «pendientes», la lista es `listadas`, el archivo plegable ya no está, los números a la vista).
 
 **No medido:** en navegador.

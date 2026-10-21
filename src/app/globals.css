@@ -1733,9 +1733,10 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .como-telefono .section-label { margin: 12px 0 8px; padding-bottom: 5px; }
 .como-telefono input, .como-telefono select, .como-telefono textarea { font-size: 16px; }
 
-/* ---- Chat interno (D-609, 2026-10-20): burbuja arriba a la derecha, pestañita cuando se oculta, y el panel. ---- */
+/* ---- Chat interno (D-609): burbuja ABAJO a la derecha, encima de la de Ayuda (D-NEXT, 2026-10-20: el dueño, con la captura
+   de la burbuja tapando «+ New order»: «el chat above el help request»); pestañita cuando se oculta, y el panel. ---- */
 .chat-fab {
-  position: fixed; right: 16px; top: 58px; z-index: 5;
+  position: fixed; right: 20px; bottom: 72px; z-index: 5;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 9px 14px 9px 12px; border: none; border-radius: 999px;
   background: var(--accent); color: #fff; font-weight: 800; font-size: 14px;
@@ -1744,7 +1745,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .chat-fab:hover { background: #1d47a8; }
 .chat-fab-label { line-height: 1; }
 .chat-tab {
-  position: fixed; right: 0; top: 58px; z-index: 5; width: 30px; height: 36px;
+  position: fixed; right: 0; bottom: 76px; z-index: 5; width: 30px; height: 36px;
   border: none; border-radius: 10px 0 0 10px; background: var(--accent); color: #fff; cursor: pointer; opacity: .85;
 }
 .chat-badge {
@@ -1754,7 +1755,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .chat-fab, .chat-tab { position: fixed; }
 .chat-badge-fila { position: static; margin-left: auto; }
 .chat-panel {
-  position: fixed; right: 16px; top: 58px; z-index: 70; width: 340px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 80px);
+  position: fixed; right: 20px; bottom: 72px; z-index: 70; width: 340px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 100px);
   display: flex; flex-direction: column; background: var(--surface, #fff); color: inherit; border: 1px solid var(--line, #e3e7ee);
   border-radius: 14px; box-shadow: 0 12px 32px rgba(10,20,40,.28); overflow: hidden;
 }
@@ -1777,7 +1778,8 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .chat-escribir { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line, #e3e7ee); }
 .chat-escribir textarea { flex: 1; resize: none; }
 @media (max-width: 640px) {
-  .chat-fab { right: 10px; top: 54px; padding: 10px; }
+  .chat-fab { right: 14px; bottom: 66px; padding: 12px; }
   .chat-fab-label { display: none; }
-  .chat-panel { right: 8px; left: 8px; width: auto; max-width: none; top: 54px; height: calc(100vh - 70px); }
+  .chat-tab { bottom: 70px; }
+  .chat-panel { right: 8px; left: 8px; width: auto; max-width: none; bottom: 66px; height: calc(100vh - 90px); }
 }

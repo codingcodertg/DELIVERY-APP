@@ -154,3 +154,13 @@ export function separaPorEstado(filas: SolicitudDeAyuda[]): { pendientes: Solici
     atendidas: filas.filter((s) => s.status === "atendida"),
   };
 }
+
+/** El filtro de estado de la bandeja (D-NEXT, 2026-10-20; el dueño: «do a filter said done»). */
+export type FiltroDeEstado = "pendientes" | "atendidas" | "todas";
+
+/** Lo que se lista con cada filtro: pendientes (la lista de trabajo, por defecto), atendidas, o todas (pendientes primero). */
+export function listaSegunEstado(filtro: FiltroDeEstado, partes: { pendientes: SolicitudDeAyuda[]; atendidas: SolicitudDeAyuda[] }): SolicitudDeAyuda[] {
+  if (filtro === "pendientes") return partes.pendientes;
+  if (filtro === "atendidas") return partes.atendidas;
+  return [...partes.pendientes, ...partes.atendidas];
+}
