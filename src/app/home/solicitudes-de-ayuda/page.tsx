@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import {
   adjuntosDe, avisoDeAtendida, filtraSolicitudes, parcheDeEstado, personasDeSolicitudes, quienEscribe,
-  resumenDelEnvio, separaPorEstado, type SolicitudDeAyuda,
+  resumenDelEnvio, separaPorEstado, listaSegunEstado, type FiltroDeEstado, type SolicitudDeAyuda,
 } from "@/lib/help-requests";
 import { noLeidosPorSolicitud, type MensajeDeAyuda } from "@/lib/help-thread";
 import { HiloDeAyuda } from "@/components/HiloDeAyuda";
@@ -34,8 +34,8 @@ export default function SolicitudesDeAyudaPage() {
   const [hasta, setHasta] = useState("");
   const [abierta, setAbierta] = useState<string | null>(null);
   const [ocupada, setOcupada] = useState<string | null>(null);
-  /** El archivo empieza cerrado: la lista de trabajo son las pendientes. */
-  const [verAtendidas, setVerAtendidas] = useState(false);
+  /** El filtro de estado (D-615): la lista de trabajo son las pendientes; «Atendidas» y «Todas» a un toque. */
+  const [estado, setEstado] = useState<FiltroDeEstado>("pendientes");
   /** Qué pasó con el aviso al remitente en la última que se atendió. */
   const [aviso, setAviso] = useState<string | null>(null);
   /** Quién mira, para el hilo (D-311). Esta pantalla ya es solo del admin: lo decide su `layout`. */
@@ -71,6 +71,7 @@ export default function SolicitudesDeAyudaPage() {
   // estaban mezcladas y la única forma de quitarlas de en medio era una casilla que había que marcar
   // cada vez.
   const { pendientes, atendidas } = useMemo(() => separaPorEstado(visibles), [visibles]);
+  const listadas = useMemo(() => listaSegunEstado(estado, { pendientes, atendidas }), [estado, pendientes, atendidas]);
   const personas = useMemo(() => personasDeSolicitudes(filas ?? []), [filas]);
 
   /**
@@ -208,6 +209,14 @@ export default function SolicitudesDeAyudaPage() {
             <label>{t("To", "Hasta")}</label>
             <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
           </div>
+          <div className="field">
+            <label>{t("Status", "Estado")}</label>
+            <select value={estado} onChange={(e) => setEstado(e.target.value as FiltroDeEstado)} data-filtro-estado>
+              <option value="pendientes">{t("Pending", "Pendientes")} ({pendientes.length})</option>
+              <option value="atendidas">{t("Handled", "Atendidas")} ({atendidas.length})</option>
+              <option value="todas">{t("All", "Todas")} ({visibles.length})</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -220,24 +229,10 @@ export default function SolicitudesDeAyudaPage() {
         <div className="empty">{t("No help requests with these filters.", "No hay solicitudes con estos filtros.")}</div>
       ) : (
         <>
-          {pendientes.length === 0
-            ? <div className="empty">{t("Nothing pending 🎉", "Nada pendiente 🎉")}</div>
-            : pendientes.map(tarjeta)}
+          {listadas.length === 0
+            ? <div className="empty">{estado === "pendientes" ? t("Nothing pending 🎉", "Nada pendiente 🎉") : t("Nothing here", "Nada aquí")}</div>
+            : listadas.map(tarjeta)}
 
-          {/* El archivo: fuera de la lista de trabajo y cerrado, pero con su número a la vista para que
-              no parezca que las atendidas se perdieron. */}
-          {atendidas.length > 0 && (
-            <div className="card">
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => setVerAtendidas((v) => !v)}
-                aria-expanded={verAtendidas}
-              >
-                {verAtendidas ? "▾" : "▸"} 📦 {t("Handled", "Atendidas")} ({atendidas.length})
-              </button>
-            </div>
-          )}
-          {verAtendidas && atendidas.map(tarjeta)}
         </>
       )}
     </>

@@ -130,19 +130,17 @@ describe("la pantalla avisa, y solo cuando toca", () => {
 });
 
 describe("la lista de trabajo y el archivo", () => {
-  it("la principal son las pendientes", () => {
-    expect(pagina).toContain("pendientes.map(tarjeta)");
+  it("la lista de trabajo son las pendientes (filtro por defecto), y el filtro de estado ofrece Atendidas y Todas (D-615)", () => {
+    expect(pagina).toContain('useState<FiltroDeEstado>("pendientes")');
+    expect(pagina).toContain("listaSegunEstado(estado, { pendientes, atendidas })");
+    expect(pagina).toContain("listadas.map(tarjeta)");
+    expect(pagina).toContain("data-filtro-estado");
   });
 
-  it("las atendidas están detrás del botón del archivo, cerrado de salida", () => {
-    expect(pagina).toContain("const [verAtendidas, setVerAtendidas] = useState(false);");
-    expect(pagina).toContain("{verAtendidas && atendidas.map(tarjeta)}");
-    expect(pagina).toContain("aria-expanded={verAtendidas}");
-  });
-
-  it("con su número a la vista, para que no parezca que se perdieron", () => {
-    const boton = pagina.slice(pagina.indexOf("setVerAtendidas((v) => !v)"), pagina.indexOf("</button>", pagina.indexOf("setVerAtendidas((v) => !v)")));
-    expect(boton).toContain("({atendidas.length})");
+  it("el archivo plegable de antes ya no está: lo sustituye el filtro; los números siguen a la vista en el desplegable", () => {
+    expect(pagina).not.toContain("verAtendidas");
+    expect(pagina).toContain("({atendidas.length})");
+    expect(pagina).toContain("({pendientes.length})");
   });
 
   it("y la casilla de «solo pendientes» ya no hace falta", () => {
