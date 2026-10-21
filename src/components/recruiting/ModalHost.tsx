@@ -8,6 +8,9 @@ import { InterviewViewModal } from "./InterviewView";
 import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
 import { BotonCopiarParaElGerente } from "./BotonCopiarParaElGerente";
 import { InPersonScheduleModal } from "./InPersonScheduleModal";
+import { AvisoDeChoque } from "./AvisoDeChoque";
+import { hoyEnBrownsville, instanteDePared, paredDeInstante, sumarDias } from "@/lib/recruiting/hora-de-brownsville";
+import { avisoDeChoque, choquesDeHorario } from "@/lib/recruiting/choque-de-horario";
 import { contactoDelSeguimiento, ofreceSeguimiento, plantillaDeSeguimiento, prepararTextoDeSeguimiento, textoDeSeguimiento } from "@/lib/recruiting/texto-de-seguimiento";
 import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
@@ -26,10 +29,10 @@ import {
   qText,
   rcCall,
   rcSms,
-  localDateTimeInput,
   scaleFor,
   scoreAverage,
   scoreColor,
+  terminalKeys,
   todayISO,
 } from "@/lib/recruiting/utils";
 
@@ -363,18 +366,26 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
 /* ---------------- Schedule (phone or in-person) ---------------- */
 /* La rama «inperson» vive ahora en InPersonScheduleModal.tsx (fecha futura, lugar, nota, texto de confirmación — D-585). */
 function ScheduleModal({ id, kind, close }: { id: string; kind: "phone"; close: () => void }) {
-  const { candidates, updateCandidate, notify } = useData();
-  const { t } = usePrefs();
+  const { candidates, stages, me, updateCandidate, notify } = useData();
+  const { t, lang } = usePrefs();
   const c = candidates.find((x) => x.id === id);
   const existing = c?.phone_date;
-  const [dt, setDt] = useState(existing ? existing.slice(0, 16) : "");
+  // Hora de Brownsville (D-632): antes se cortaba el ISO guardado a 16 caracteres y el input enseñaba la hora UTC tal cual.
+  const [dt, setDt] = useState(existing ? paredDeInstante(existing) : "");
+  const [aviso, setAviso] = useState<string | null>(null);
   if (!c) return null;
   const phone = kind === "phone";
   const title = t("Schedule phone interview", "Programar entrevista telefónica");
   const label = t("Call date and time", "Fecha y hora de la llamada");
 
-  const save = async () => {
-    const iso = dt ? new Date(dt).toISOString() : null;
+  const save = async (forzar = false) => {
+    // Lo escrito es hora de Brownsville, esté donde esté el aparato (D-632).
+    const iso = dt ? instanteDePared(dt)?.toISOString() ?? null : null;
+    if (dt && !iso) { notify(t("Invalid date", "Fecha no válida")); return; }
+    if (iso && !forzar) {
+      const choques = choquesDeHorario(candidates, { id: c.id, tipo: "llamada", iso, reclutador: c.assigned_recruiter ?? me?.id ?? null }, terminalKeys(stages));
+      if (choques.length) { setAviso(avisoDeChoque(choques, "llamada", lang)); return; }
+    }
     await updateCandidate(c.id, { phone_date: iso, status: iso && c.status === "registered" ? "phone" : c.status });
     notify(t("Call scheduled ✓", "Llamada programada ✓"));
     close();
@@ -384,10 +395,11 @@ function ScheduleModal({ id, kind, close }: { id: string; kind: "phone"; close: 
     <div className="overlay" onClick={close}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>{phone ? "📅" : "🤝"} {title} — {c.name}</h3>
-        <label>{label}</label>
-        <input type="datetime-local" value={dt} onChange={(e) => setDt(e.target.value)} />
+        <label>{label} <span className="hint" style={{ display: "inline", margin: 0 }}>· {t("Brownsville, TX time", "hora de Brownsville, TX")}</span></label>
+        <input type="datetime-local" value={dt} onChange={(e) => { setDt(e.target.value); setAviso(null); }} />
+        {aviso && <AvisoDeChoque texto={aviso} onCancelar={() => setAviso(null)} onSi={() => { setAviso(null); void save(true); }} />}
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          <button className="btn btn-primary" onClick={save}>{t("Save", "Guardar")}</button>
+          <button className="btn btn-primary" onClick={() => save()} disabled={!!aviso}>{t("Save", "Guardar")}</button>
           {existing && (
             <button
               className="btn btn-danger"
@@ -419,8 +431,10 @@ const phoneDigits = (p: string | null) => (p || "").replace(/[^0-9]/g, "");
 
 function NewCandidateModal({ close }: { close: () => void }) {
   const { candidates, roles, stages, me, addCandidate, addContact, notify, uploadResume } = useData();
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const ui = useUI();
+  /** «Ya hay otra llamada tuya a esa hora» y con qué botón se guardaba, para repetirlo con «Sí, agendar» (D-632). */
+  const [aviso, setAviso] = useState<{ texto: string; thenInterview: boolean } | null>(null);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -483,11 +497,18 @@ function NewCandidateModal({ close }: { close: () => void }) {
     ui.openProfile(existingId);
   };
 
-  const save = async (thenInterview: boolean) => {
+  const save = async (thenInterview: boolean, forzar = false) => {
     if (saving) return;
     if (!name.trim() || !phone.trim()) {
       notify(t("Name and phone are required", "El nombre y el teléfono son obligatorios"));
       return;
+    }
+    // La llamada que se agenda al dar de alta: hora de Brownsville, y aviso si ya hay otra tuya a esa hora.
+    const phoneIso = phoneDt ? instanteDePared(phoneDt)?.toISOString() ?? null : null;
+    if (phoneDt && !phoneIso) { notify(t("Invalid date", "Fecha no válida")); return; }
+    if (phoneIso && !forzar) {
+      const choques = choquesDeHorario(candidates, { id: null, tipo: "llamada", iso: phoneIso, reclutador: me?.id ?? null }, terminalKeys(stages));
+      if (choques.length) { setAviso({ texto: avisoDeChoque(choques, "llamada", lang), thenInterview }); return; }
     }
     setSaving(true);
     try {
@@ -510,7 +531,6 @@ function NewCandidateModal({ close }: { close: () => void }) {
       if (language.trim()) prescreen.language = language.trim();
       if (education.trim()) prescreen.education = education.trim();
 
-      const phoneIso = phoneDt ? new Date(phoneDt).toISOString() : null;
       const created = await addCandidate({
         status: phoneIso ? "phone" : "registered",
         favorite: false,
@@ -634,20 +654,21 @@ function NewCandidateModal({ close }: { close: () => void }) {
           <div className="grid g2">
             <div>
               <label>{t("Schedule call interview (optional)", "Programar entrevista por llamada (opcional)")}</label>
-              <input type="datetime-local" value={phoneDt} onChange={(e) => setPhoneDt(e.target.value)} />
+              <input type="datetime-local" value={phoneDt} onChange={(e) => { setPhoneDt(e.target.value); setAviso(null); }} />
+              <div className="hint" style={{ margin: "4px 0 0" }}>{t("Brownsville, TX time", "Hora de Brownsville, TX")}</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
-                {/* interviewing them on the spot is the common case — one click for it */}
-                <button className="chip" onClick={() => setPhoneDt(localDateTimeInput())}>
+                {/* interviewing them on the spot is the common case — one click for it. Las tres, en hora de Brownsville (D-632). */}
+                <button className="chip" onClick={() => { setPhoneDt(paredDeInstante(new Date())); setAviso(null); }}>
                   🕐 {t("Right now", "Ahorita")}
                 </button>
-                <button className="chip" onClick={() => setPhoneDt(localDateTimeInput(new Date(Date.now() + 3600_000)))}>
+                <button className="chip" onClick={() => { setPhoneDt(paredDeInstante(Date.now() + 3600_000)); setAviso(null); }}>
                   {t("In 1 hour", "En 1 hora")}
                 </button>
-                <button className="chip" onClick={() => { const d = new Date(Date.now() + 864e5); d.setHours(9, 0, 0, 0); setPhoneDt(localDateTimeInput(d)); }}>
+                <button className="chip" onClick={() => { setPhoneDt(sumarDias(hoyEnBrownsville(), 1) + "T09:00"); setAviso(null); }}>
                   {t("Tomorrow 9:00", "Mañana 9:00")}
                 </button>
                 {phoneDt && (
-                  <button className="chip" onClick={() => setPhoneDt("")}>
+                  <button className="chip" onClick={() => { setPhoneDt(""); setAviso(null); }}>
                     ✕ {t("Clear", "Quitar")}
                   </button>
                 )}
@@ -711,11 +732,15 @@ function NewCandidateModal({ close }: { close: () => void }) {
           </div>
         )}
 
+        {aviso && (
+          <AvisoDeChoque texto={aviso.texto} onCancelar={() => setAviso(null)} onSi={() => { const seguir = aviso.thenInterview; setAviso(null); void save(seguir, true); }} />
+        )}
+
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
-          <button className="btn btn-primary" disabled={saving || !!blockingDup} onClick={() => save(false)}>
+          <button className="btn btn-primary" disabled={saving || !!blockingDup || !!aviso} onClick={() => save(false)}>
             {saving ? t("Saving…", "Guardando…") : t("Save candidate", "Guardar candidato")}
           </button>
-          <button className="btn btn-green" disabled={saving || !!blockingDup} onClick={() => save(true)}>
+          <button className="btn btn-green" disabled={saving || !!blockingDup || !!aviso} onClick={() => save(true)}>
             🎤 {t("Save & start interview", "Guardar e iniciar entrevista")}
           </button>
           <button className="btn btn-ghost" onClick={guardedClose}>{t("Cancel", "Cancelar")}</button>

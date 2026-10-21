@@ -1,4 +1,5 @@
 import type { Candidate, Contact, Stage, UserRole } from "./types";
+import { diaEnBrownsville, formatoEnBrownsville, hoyEnBrownsville, mesEnBrownsville } from "./hora-de-brownsville";
 
 /* ---- Vista del gerente de tienda (D-600, 2026-10-19; migración 183) ----
  * El dueño: «una vista para los managers de la HR app … van a poder ver los candidatos que fueron puestos para
@@ -41,16 +42,15 @@ export type GrupoQueSePinta = "hoy" | "proximos" | "pasados_del_mes";
  *  (`esPasadoDelMes`). Los pendientes y resueltos de meses anteriores siguen sin pintarse. */
 export const GRUPOS_QUE_SE_PINTAN: readonly GrupoQueSePinta[] = ["hoy", "proximos", "pasados_del_mes"];
 
-const DIA = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** En qué grupo cae un candidato visible: resuelto (contratado/descartado), hoy, próximos, o pendiente (cita pasada o sin fecha). */
 export function grupoDelCandidato(c: Pick<Candidate, "status" | "inperson_date">, stages: readonly Stage[], ahora: Date = new Date()): GrupoDelGerente {
   const etapa = stages.find((s) => s.key === c.status);
   if (etapa && etapa.type !== "active") return "resueltos";
   if (!c.inperson_date) return "pendientes";
-  const d = new Date(c.inperson_date);
-  if (Number.isNaN(d.getTime())) return "pendientes";
-  const dia = DIA(d), hoy = DIA(ahora);
+  if (Number.isNaN(Date.parse(c.inperson_date))) return "pendientes";
+  // «Hoy» es el día de Brownsville, en el aparato que sea (D-632): la tienda y el gerente están en Texas.
+  const dia = diaEnBrownsville(c.inperson_date), hoy = hoyEnBrownsville(ahora);
   if (dia === hoy) return "hoy";
   return dia > hoy ? "proximos" : "pendientes";
 }
@@ -65,9 +65,9 @@ export function esPasadoDelMes(c: Pick<Candidate, "status" | "inperson_date">, s
   const g = grupoDelCandidato(c, stages, ahora);
   if (g === "hoy" || g === "proximos") return false;
   if (!c.inperson_date) return false;
-  const d = new Date(c.inperson_date);
-  if (Number.isNaN(d.getTime())) return false;
-  return d.getFullYear() === ahora.getFullYear() && d.getMonth() === ahora.getMonth();
+  if (Number.isNaN(Date.parse(c.inperson_date))) return false;
+  const cita = mesEnBrownsville(c.inperson_date), este = mesEnBrownsville(ahora);
+  return cita.y === este.y && cita.m === este.m;
 }
 
 /** Qué decisiones se le ofrecen: en curso, las dos; contratado, solo «No contratar»; descartado, solo «Contratar»
@@ -148,8 +148,7 @@ export function textoDeLaResolucion(r: ResolucionVista, lang: "en" | "es", nombr
   const que = r.decision === "hire" ? (lang === "es" ? "Contratar" : "Hire") : (lang === "es" ? "No contratar" : "No hire");
   const partes = [`${lang === "es" ? "Resolución del gerente" : "Manager's decision"}: ${que}`];
   if (r.razon) partes.push(r.razon);
-  const d = new Date(r.cuando);
-  const fecha = d.toLocaleDateString(lang === "es" ? "es-MX" : "en-US", { day: "numeric", month: "short" });
+  const fecha = formatoEnBrownsville(r.cuando, lang === "es" ? "es-MX" : "en-US", { day: "numeric", month: "short" });
   partes.push(nombreDeQuien ? `${fecha} · ${nombreDeQuien}` : fecha);
   return partes.join(" · ");
 }

@@ -96,11 +96,13 @@ describe("dar de baja: fecha, motivo de una lista corta, nota y quién", () => {
     expect(etiquetaMotivoBaja("nada", "es")).toBe("");
   });
 
-  it("la fecha por defecto es HOY en hora local, no el día UTC", () => {
+  it("la fecha por defecto es HOY en Brownsville, no el día UTC ni el del aparato", () => {
     // Las 19:30 del 1 de octubre en Texas ya son el 2 de octubre en UTC.
-    const tarde = new Date(2026, 9, 1, 19, 30);
+    const tarde = new Date("2026-10-02T00:30:00Z");
     expect(hoyLocalISO(tarde)).toBe("2026-10-01");
-    expect(hoyLocalISO(new Date(2026, 0, 5, 8, 0))).toBe("2026-01-05");
+    // Las 23:30 del 4 de enero en Texas (invierno, UTC−6): en Nueva York ya es el 5; aquí sigue siendo el 4.
+    expect(hoyLocalISO(new Date("2026-01-05T05:30:00Z"))).toBe("2026-01-04");
+    expect(hoyLocalISO(new Date("2026-01-05T14:00:00Z"))).toBe("2026-01-05");
   });
 
   it("la ventana de baja pide fecha (hoy por defecto), motivo de la lista y nota, y llama a la acción con los cuatro datos", () => {

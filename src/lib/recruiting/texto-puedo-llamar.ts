@@ -1,5 +1,6 @@
 import type { Candidate, Contact } from "./types";
 import { mergeTemplate, rcCall, rcSms, telClean } from "./utils";
+import { formatoEnBrownsville } from "./hora-de-brownsville";
 
 /** Lo que las funciones de aquí necesitan del candidato; `phone` admite nulo porque el dato viejo puede venir vacío. */
 type Cand = Pick<Candidate, "id" | "name" | "role"> & { phone: string | null };
@@ -66,7 +67,7 @@ export function estadoDelBoton(contactos: Contact[], candidateId: string, lang: 
   const envio = envioPuedoLlamar(contactos, candidateId);
   if (!envio) return { enviado: false, etiqueta: lang === "es" ? "📱 Texto: ¿te puedo llamar?" : "📱 Text: can I call you?" };
   // Con un envío previo, la etiqueta lo dice (y el botón sigue activo: se puede volver a mandar).
-  const hora = new Date(envio.cuando).toLocaleTimeString(lang === "es" ? "es-MX" : "en-US", { hour: "2-digit", minute: "2-digit" });
+  const hora = formatoEnBrownsville(envio.cuando, lang === "es" ? "es-MX" : "en-US", { hour: "2-digit", minute: "2-digit" });
   return { enviado: true, etiqueta: (lang === "es" ? "SMS enviado ✓ " : "SMS sent ✓ ") + hora };
 }
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { fmtPct, scoreOf } from "@/lib/recruiting/utils";
+import { formatoEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 
 export default function MetricsPage() {
   const { candidates, recruiters, stages, settings } = useData();
@@ -140,7 +141,7 @@ export default function MetricsPage() {
 
     const L: string[] = [];
     L.push(`${settings.app_name || "Recruiting"} — ${t("Weekly report", "Reporte semanal")}`);
-    L.push(`${t("Week ending", "Semana que termina")} ${now.toLocaleDateString(loc, { year: "numeric", month: "long", day: "numeric" })}`);
+    L.push(`${t("Week ending", "Semana que termina")} ${formatoEnBrownsville(now, loc, { year: "numeric", month: "long", day: "numeric" })}`);
     L.push("");
     L.push(`• ${t("New candidates", "Nuevos candidatos")}: ${newRegs.length}`);
     L.push(`• ${t("Interviews done", "Entrevistas realizadas")}: ${interviews.length}`);
@@ -174,7 +175,7 @@ export default function MetricsPage() {
         <div style={{ fontSize: 22, fontWeight: 800 }}>{settings.app_name || "Recruiting"} — {t("Metrics report", "Reporte de métricas")}</div>
         <div style={{ color: "#555" }}>
           {t("Range", "Rango")}: {({ all: t("All time", "Todo"), week: t("Last 7 days", "Últimos 7 días"), month: t("Last 30 days", "Últimos 30 días"), year: t("Last year", "Último año") } as const)[range]}
-          {" · "}{t("Generated", "Generado")} {now.toLocaleDateString(loc, { year: "numeric", month: "long", day: "numeric" })}
+          {" · "}{t("Generated", "Generado")} {formatoEnBrownsville(now, loc, { year: "numeric", month: "long", day: "numeric" })}
         </div>
       </div>
       <div className="card no-print" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "12px 16px" }}>

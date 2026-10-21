@@ -46382,3 +46382,41 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - Demo como admin a 1440 y 390 px: entra en «Todas las tiendas — 30 libres / 44» con 25 tarjetas; elegir una tienda se queda en ella; volver a «Todas» vuelve a las 25.
 
 **No medido:** con la sesión real del admin.
+
+## D-NEXT · RR. HH.: una sola hora para todos, la de Brownsville (America/Chicago, con su cambio de horario), y aviso al agendar dos candidatos a la misma hora
+
+**Fecha:** 2026-10-21 · **Versión:** recruiting 0.64.0 · Hecho por un worker del orquestador en `feat/rrhh-hora-de-brownsville`. Sin migración.
+
+**Pedido (el dueño, 2026-10-21, literal):** «La hora que se está enseñando en el app de mi jefe, ellos me dan una hora adelantada y yo estoy en otro horario […] a él le salen a las 4:30, pero yo lo puse para las 3:30 […] el horario que yo ponga ahí, que ese se quede, no lo adaptes al horario de cada quien, sino que quiero que ese sea el horario que es, punto. […] si se hacen cambios o algo, que se registren en el horario de mi jefe, que es una hora adelantado porque están en Brownsville, Texas. Pongan ese horario y si hay daylight saving time, pues actualice, punto. […] cuando esté scheduling candidates […] no me dejes schedule candidates a la misma hora. Dame un warning […] o estás seguro».
+
+**Medido antes (producción, solo lectura).** La base no tenía el error: `phone_date` e `inperson_date` son `timestamptz` (056). El navegador sí:
+- **Al escribir**, leía la hora con la zona del aparato: `new Date(dt).toISOString()` en `ModalHost.tsx`, `new Date(local)` en `agendar-presencial.ts`, y «Ahorita / En 1 hora / Mañana 9:00» con `setHours`.
+- **Al enseñar**, pintaba con `toLocale*` sin zona (`utils.ts` `fmtDate`/`fmtDateTime`, calendario, métricas, vista del gerente, texto «¿te puedo llamar?»).
+- **«Hoy» y el día de una cita** salían del aparato, y `todayISO` daba el día UTC.
+- **Al reabrir una cita**, el ISO se cortaba a 16 caracteres y enseñaba la hora UTC.
+- **El caso del dueño:** las 24 notas «In person / Scheduled» (julio a octubre, de quien agenda) llevan la hora del aparato una hora por debajo. Por ejemplo, la nota dice 3:30 p.m. y lo guardado es 21:30Z, que en Brownsville son las 4:30 p.m.
+- **Fechas de registro:** 24 de 139 candidatos tienen `reg_date` con el día UTC (los registrados después de las 7 p.m.).
+
+**Qué cambia.**
+- **`src/lib/recruiting/hora-de-brownsville.ts`** es el único sitio de RR. HH. que convierte o pinta horas, siempre con `America/Chicago` (IANA; el cambio de horario lo pone la zona).
+  - Lo que se teclea es hora de Brownsville, y lo que se enseña también: listas, Hoy, Tablero, Llamadas pendientes, vista del gerente, «Copiar para el gerente», calendario, métricas, historial y textos.
+  - La hora repetida del 1-nov se toma la primera vez; la que no existe el 8-mar se corre una hora.
+  - Junto a cada campo de hora, el rótulo «hora de Brownsville, TX».
+- **Aviso de choque** (`choque-de-horario.ts`, `AvisoDeChoque.tsx`) al agendar presencial, llamada y en el alta de candidato.
+  - Dice «⚠️ Ya hay <nombre> agendado a esa hora (3:30 p.m. · Pharr). ¿Agendar de todos modos?», con Cancelar y «Sí, agendar». No bloquea.
+  - Chocan presencial con presencial en cualquier sede (la sede elegida no se guarda en el candidato), o llamada con llamada del mismo reclutador, si empiezan a menos de 30 minutos.
+  - No cuentan el propio candidato, los archivados, ni los contratados o descartados.
+- **Datos pasados:** `scripts/corrige-hora-de-citas.mts` (sin `--escribe` solo mide; con `--escribe` guarda respaldo JSON en `D:/CLAUDE/respaldos-db` y corrige en una transacción).
+  - Presenciales: 23 de 23 con −1 h, medidas contra la nota de quien agendó. Dos son futuras: 22-oct 10:00 → 9:00 y 24-oct 11:00 → 10:00.
+  - `reg_date`: 24 al día de Texas.
+  - Llamadas agendadas: 127, ninguna futura. No se tocan, porque no hay con qué medir cuáles están corridas.
+  - Lo lanza el dueño.
+
+**Pruebas:**
+- `hora-de-brownsville.test.ts` y `choque-de-horario.test.ts`, con el proceso en Denver, Los Ángeles y Nueva York: 15:30 a ambos lados del 8-mar y del 1-nov, ida y vuelta cada 15 minutos, la hora repetida y la inexistente.
+- Una puerta que falla si RR. HH. vuelve a usar `toLocale*`, `Intl.DateTimeFormat`, `getHours`/`getDate`… o un `datetime-local` fuera del módulo.
+- Pruebas viejas ajustadas a horas explícitas.
+- `src/lib/recruiting`: 263 en cuatro zonas. Suite entera y tsc.
+- Mutantes: caen 12 de 12.
+
+**No medido:** en el navegador (el demo no abre RR. HH.), `next build`, y el script en producción.
