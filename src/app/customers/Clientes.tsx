@@ -11,10 +11,11 @@ import { cn } from "@/lib/erp/utils";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
+import { agrupaEnEmpresas, empresasPorEstado, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas } from "@/lib/customers/empresas";
 import {
   alOrdenarPor, alternaColumna, CAMPOS, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, columnasAPintar, columnasDelSelector,
-  cuentaArchivados, cuentaPor, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filtrar, FILTRO_INICIAL, formDe, HISTORIAS, historiaLabel,
-  mailUrl, MOTIVOS_DE_ARCHIVO, motivoLabel, mueveColumnaDeClientes, nombreDeTienda, ordenar, ORDEN_INICIAL, PARCHE_DESARCHIVAR, parcheArchivar,
+  ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, FILTRO_INICIAL, formDe, HISTORIAS, historiaLabel,
+  mailUrl, MOTIVOS_DE_ARCHIVO, motivoLabel, mueveColumnaDeClientes, nombreDeTienda, ORDEN_INICIAL, PARCHE_DESARCHIVAR, parcheArchivar,
   parcheDe, PREFERENCIA_INICIAL, preferenciaDeTexto, QB_ESTADOS, qbLabel, seMueveColumnaDeClientes, telUrl, TIENDAS, tieneOrdenPropio,
   type Cliente, type Filtro, type Orden, type PreferenciaDeColumnas,
 } from "@/lib/customers/reglas";
@@ -72,14 +73,16 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   };
   const alternar = (key: string) => cambiaColumnas((p) => ({ ...p, elegidas: alternaColumna(p.elegidas, key) }));
 
-  const visibles = useMemo(() => ordenar(filtrar(lista, filtro), orden), [lista, filtro, orden]);
+  // UNA fila por EMPRESA (189): las filas de la misma compañía en varias tiendas se pintan juntas, con sus tiendas en
+  // pastillas; con una tienda elegida sale toda empresa con fila allí, enseñando la fila de esa tienda.
+  const visibles = useMemo(() => ordenarEmpresas(agrupaEnEmpresas(lista, filtro), orden), [lista, filtro, orden]);
   useEffect(() => { setCuantos(TANDA); }, [filtro, orden]);
   // Los archivados (181) se esconden por defecto: las cuentas de las tiendas y el «N clientes» son de lo que se está viendo
-  // (vivos, o archivados con el chip), no de la tabla entera.
-  const vista = useMemo(() => lista.filter((c) => estaArchivado(c) === filtro.archivados), [lista, filtro.archivados]);
-  const archivados = useMemo(() => cuentaArchivados(lista), [lista]);
-  const porTienda = useMemo(() => cuentaPor(vista, "store"), [vista]);
-  const porEstado = useMemo(() => cuentaPor(filtrar(lista, { ...filtro, estado: "" }), "status_store"), [lista, filtro]);
+  // (vivos, o archivados con el chip), no de la tabla entera. Y cuentan EMPRESAS, no filas.
+  const vista = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: filtro.archivados }), [lista, filtro.archivados]);
+  const archivados = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: true }).length, [lista]);
+  const porTienda = useMemo(() => empresasPorTienda(vista), [vista]);
+  const porEstado = useMemo(() => empresasPorEstado(agrupaEnEmpresas(lista, { ...filtro, estado: "" })), [lista, filtro]);
   const colsVisibles = columnasAPintar(prefCols);
 
   /** Lo que devolvió la base se pone en su sitio. */
@@ -94,7 +97,10 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
         <div>
           <h1 className="text-2xl font-semibold">{t("Customers", "Clientes")}</h1>
           <p className="text-sm text-slate-500">
-            {t("The master customer list, by store. Click a row to open its card.", "La lista maestra de clientes, por tienda. Toca una fila para abrir su ficha.")}
+            {t(
+              "The master customer list: one row per company, with the stores where it buys. Click a row to open its card and switch stores.",
+              "La lista maestra de clientes: una fila por empresa, con las tiendas donde compra. Toca una fila para abrir su ficha y cambiar de tienda.",
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -189,9 +195,9 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
               {visibles.length === 0 && (
                 <tr><td colSpan={colsVisibles.length} className="px-3 py-6 text-center text-slate-500">{t("No customers match.", "Ningún cliente coincide.")}</td></tr>
               )}
-              {visibles.slice(0, cuantos).map((c) => (
+              {visibles.slice(0, cuantos).map(({ clave, filas, principal: c }) => (
                 <tr
-                  key={c.id}
+                  key={clave}
                   onClick={() => setFicha({ tipo: "ver", cliente: c })}
                   className={cn("cursor-pointer border-t border-slate-100 hover:bg-clay-50", estaArchivado(c) && "opacity-60")}
                   data-archivado={estaArchivado(c) ? "1" : undefined}
@@ -215,6 +221,19 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                           >
                             {t("details", "ficha")}
                           </Link>
+                        </span>
+                      ) : col.key === "store" ? (
+                        // Las tiendas de la empresa (189): la que se enseña, resaltada.
+                        <span className="inline-flex flex-wrap gap-1" data-tiendas={filas.length}>
+                          {filas.map((f) => (
+                            <span
+                              key={f.id}
+                              className={cn("whitespace-nowrap rounded-full border px-2 py-0.5 text-xs", f.id === c.id ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 text-slate-500")}
+                              title={f.account}
+                            >
+                              {nombreDeTienda(f.store)}
+                            </span>
+                          ))}
                         </span>
                       ) : col.key === "status_store" || col.key === "status_group" ? (
                         <Badge className={estadoClase(c[col.key])}>{estadoLabel(c[col.key], t)}</Badge>
@@ -242,6 +261,8 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
       {ficha && (
         <FichaDeCliente
           cliente={ficha.tipo === "ver" ? ficha.cliente : null}
+          hermanas={ficha.tipo === "ver" ? filasDeLaEmpresa(lista, lista.find((x) => x.id === ficha.cliente.id) ?? ficha.cliente) : []}
+          onCambia={(c) => setFicha({ tipo: "ver", cliente: c })}
           puedeEditar={puedeEditar}
           almacen={almacen}
           onClose={() => setFicha(null)}
@@ -260,8 +281,12 @@ const chip = (activo: boolean) =>
  * La ficha lateral: todos los campos; quien puede editar, edita y guarda con un botón (no al vuelo: una lista
  * maestra se corrige con intención). `cliente` null = alta.
  */
-function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t }: {
-  cliente: Cliente | null; puedeEditar: boolean; almacen: AlmacenDeClientes; onClose: () => void; onGuardado: (c: Cliente) => void;
+function FichaDeCliente({ cliente, hermanas, onCambia, puedeEditar, almacen, onClose, onGuardado, t }: {
+  cliente: Cliente | null;
+  /** Las filas de la misma empresa (189), una por tienda, en orden: las pestañas. Con una sola, no hay pestañas. */
+  hermanas: Cliente[];
+  onCambia: (c: Cliente) => void;
+  puedeEditar: boolean; almacen: AlmacenDeClientes; onClose: () => void; onGuardado: (c: Cliente) => void;
   t: (en: string, es: string) => string;
 }) {
   const original = useMemo(() => formDe(cliente), [cliente]);
@@ -315,6 +340,11 @@ function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t 
     if (nuevo) return;
     await aplicar(() => almacen.guardar(cliente.id, PARCHE_DESARCHIVAR), t("Restored ✓", "Desarchivado ✓"));
   };
+  // Separar (189): esta fila deja la empresa y pasa a ser la suya propia (otra clave). Las demás no se tocan.
+  const separar = async () => {
+    if (nuevo) return;
+    await aplicar(() => almacen.guardar(cliente.id, { company_id: crypto.randomUUID() }), t("Split ✓", "Separada ✓"));
+  };
 
   const campo = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const inputCls = (k: string) => cn(errores.includes(k) && "border-red-400 ring-1 ring-red-300");
@@ -342,6 +372,35 @@ function FichaDeCliente({ cliente, puedeEditar, almacen, onClose, onGuardado, t 
             <button onClick={onClose} className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100" aria-label={t("Close", "Cerrar")}>✕</button>
           </div>
         </div>
+
+        {/* Las tiendas de la empresa (189): cada pestaña es la fila de esa tienda, con su contacto, su vendedor y su CRM. */}
+        {!nuevo && hermanas.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 px-4 py-2" role="tablist" aria-label={t("Stores of this company", "Tiendas de esta empresa")}>
+            {hermanas.map((h) => {
+              const repetida = hermanas.filter((x) => x.store === h.store).length > 1;
+              return (
+                <button
+                  key={h.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={h.id === cliente.id}
+                  disabled={h.id !== cliente.id && cambiado}
+                  title={h.id !== cliente.id && cambiado ? t("Save or undo your changes first", "Guarda o deshaz los cambios primero") : h.account}
+                  onClick={() => onCambia(h)}
+                  className={cn("rounded-full border px-3 py-1 text-xs disabled:opacity-50", h.id === cliente.id ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
+                >
+                  {nombreDeTienda(h.store)}{repetida ? ` · ${h.account}` : ""}
+                </button>
+              );
+            })}
+            {puedeEditar && (
+              <Button variant="ghost" size="sm" className="ml-auto text-xs text-slate-500" onClick={separar} disabled={ocupado || cambiado}
+                title={t("This store's row stops being part of this company (nothing is deleted)", "La fila de esta tienda deja de ser de esta empresa (no se borra nada)")}>
+                {t("Split from company", "Separar de la empresa")}
+              </Button>
+            )}
+          </div>
+        )}
 
         <div className="space-y-3 p-4">
           {archivado && (

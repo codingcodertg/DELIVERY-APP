@@ -3,7 +3,8 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { accessibleModules, knownModules, landingRoute, MODULES, MODULE_ACCESS } from "@/lib/constants";
 import { securityLabel } from "@/lib/security-log";
-import { COLUMNAS, COLUMNAS_DE_LA_182, COLUMNAS_SIN_182, faltaLa182, leeConRespaldo } from "./almacen";
+import { COLUMNAS, COLUMNAS_DE_LA_182, COLUMNAS_DE_LA_189, COLUMNAS_SIN_182, COLUMNAS_SIN_189, faltaLa182, leeConRespaldo } from "./almacen";
+import { CAMPOS_DE_UNION, motivoDeDuplicado } from "./duplicados";
 import { CAMPOS, ESTADOS, HISTORIAS, QB_ESTADOS } from "./reglas";
 
 /**
@@ -80,7 +81,9 @@ describe("la puerta y el tema", () => {
     for (const s of ['@source "../customers";', '@source "../../components/customers";', '@source "../../lib/customers";']) expect(css).toContain(s);
     const barra = leer("src/components/customers/barra.tsx");
     expect(barra).toContain('import { SideNav } from "@/components/erp/side-nav";');
-    expect(barra).toContain('nav: { main: [{ href: "/customers", label: t("Customers", "Clientes") }], analytics: [] }');
+    // Desde la 189, dos pestañas: la lista y la cola «Decidir si se juntan» con las pendientes.
+    expect(barra).toContain('{ href: "/customers", label: t("Customers", "Clientes") },');
+    expect(barra).toContain('{ href: "/customers/juntar", label: rotuloDeDecidir(pendientes, t) },');
   });
   it("la página dice quién mira (rol del hub) y no lee los clientes en el servidor; la pantalla usa el cliente del ERP", () => {
     const page = leer("src/app/customers/page.tsx");
@@ -125,8 +128,11 @@ describe("la 180", () => {
     const alter181 = /alter table erp\.customers\n([\s\S]*?);/.exec(la181)![1];
     // Y las tres del CRM, la 182.
     const alter182 = /alter table erp\.customers\n([\s\S]*?);/.exec(leer("supabase/migrations/182_clientes_crm.sql"))![1];
+    // Y la empresa, la 189.
+    const la189 = leer("supabase/migrations/189_clientes_empresas.sql");
     const dondeEsta = (col: string) => {
-      if (col === "archived_at" || col === "archived_reason") expect(alter181, col).toMatch(new RegExp(`add column if not exists ${col}\\s`));
+      if ((COLUMNAS_DE_LA_189 as readonly string[]).includes(col)) expect(la189, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
+      else if (col === "archived_at" || col === "archived_reason") expect(alter181, col).toMatch(new RegExp(`add column if not exists ${col}\\s`));
       else if ((COLUMNAS_DE_LA_182 as readonly string[]).includes(col)) expect(alter182, col).toMatch(new RegExp(`add column if not exists ${col}\\s`));
       else expect(tabla, col).toMatch(new RegExp(`\\n  ${col}\\s`));
     };
@@ -208,9 +214,17 @@ describe("la 182 · las tres del CRM", () => {
     for (const col of COLUMNAS_DE_LA_182) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_182).not.toContain(col); }
     expect(COLUMNAS_SIN_182).toContain("archived_reason");
     const pedidas: string[] = [];
-    const r = await leeConRespaldo(async (cols) => { pedidas.push(cols); return pedidas.length === 1 ? { data: null, error: { code: "42703", message: "column crm_type_store does not exist" } } : { data: [{ id: 1 }], error: null }; });
-    expect(pedidas).toEqual([COLUMNAS, COLUMNAS_SIN_182]);
+    // Sin la 182 (ni la 189): primero sin company_id, que también falla, y luego sin las tres.
+    const r = await leeConRespaldo(async (cols) => { pedidas.push(cols); return pedidas.length < 3 ? { data: null, error: { code: "42703", message: "column crm_type_store does not exist" } } : { data: [{ id: 1 }], error: null }; });
+    expect(pedidas).toEqual([COLUMNAS, COLUMNAS_SIN_189, COLUMNAS_SIN_182]);
     expect(r.data).toEqual([{ id: 1 }]);
+    for (const col of COLUMNAS_DE_LA_189) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_189).not.toContain(col); expect(COLUMNAS_SIN_182).not.toContain(col); }
+    expect(COLUMNAS_SIN_189).toContain("crm_type_store");
+    // Con la 182 y sin la 189: basta quitar company_id.
+    const solo189: string[] = [];
+    const r189 = await leeConRespaldo(async (cols) => { solo189.push(cols); return solo189.length === 1 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: [{ id: 2 }], error: null }; });
+    expect(solo189).toEqual([COLUMNAS, COLUMNAS_SIN_189]);
+    expect(r189.data).toEqual([{ id: 2 }]);
     // Otro error no se reintenta: se devuelve tal cual.
     const otras: string[] = [];
     const r2 = await leeConRespaldo(async (cols) => { otras.push(cols); return { data: null, error: { code: "42501", message: "permission denied" } }; });
@@ -239,7 +253,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(pagina).toContain("if (!data) notFound();");
     expect(pagina).toContain("if (!Number.isInteger(n) || n <= 0) notFound();");
     expect(pagina).not.toMatch(/service_role|SUPABASE_SERVICE/i);
-    expect(pagina).toContain("<FichaCompleta cliente={cliente} />");
+    expect(pagina).toContain("<FichaCompleta cliente={cliente} hermanas={hermanas} />");
   });
   it("la ficha pinta cada campo por grupo (camposPorGrupo/textoDeCampo), House # y la CONCATENATE, con el cascarón del ERP", () => {
     expect(ficha).toContain("camposPorGrupo().map(({ grupo, campos }) =>");
@@ -282,5 +296,94 @@ describe("D-570 · solo admins por ahora", async () => {
     expect(dialogo).toContain("(m.offeredTo?.(u.role) ?? true)");
     const constantes = leer("src/lib/constants.ts");
     expect(constantes).toContain("offeredTo: (role) => seOfreceClientes(role),");
+  });
+});
+
+/**
+ * 2026-10-21. El dueño: «analices toda la lista otra vez y ver los que son obviamente duplicados, hacerle un merge […]
+ * tiene que irse a un site que dice Decide to Merge». La 189: la empresa, la cola y las dos funciones. Lo que HACEN se
+ * midió con el ensayo del guion (`junta-clientes-duplicados.mts --ensayo`, BEGIN … ROLLBACK contra producción); aquí se
+ * fija su texto, y sobre todo que la base y la app juntan con la MISMA lista de campos.
+ */
+describe("la 189 · empresas, juntar y la cola", () => {
+  const sql189 = leer("supabase/migrations/189_clientes_empresas.sql");
+  const [cuerpo189] = sql189.split("-- @ledger-below");
+  const sinComentarios189 = cuerpo189.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+  const junta = /create or replace function erp\.junta_clientes\(p_a bigint, p_b bigint\)[\s\S]*?\nend \$\$;/.exec(cuerpo189)![0];
+  const rechaza = /create or replace function erp\.rechaza_sugerencia_de_clientes\(p_id bigint\)[\s\S]*?\nend \$\$;/.exec(cuerpo189)![0];
+
+  it("la función de la base junta con la MISMA lista de campos, etiquetas y comparación que la app (CAMPOS_DE_UNION)", () => {
+    const lista = /campos constant text\[\] := array\[([\s\S]*?)\n  \];/.exec(junta)![1];
+    const textos = [...lista.matchAll(/'([^']*)'/g)].map((m) => m[1]);
+    const triples: string[][] = [];
+    for (let i = 0; i < textos.length; i += 3) triples.push(textos.slice(i, i + 3));
+    expect(triples).toEqual(CAMPOS_DE_UNION.map((c) => [...c]));
+  });
+  it("y las mismas reglas: la superviviente es la de id menor, la otra se archiva con el motivo de la app, y la nota dice lo mismo", () => {
+    expect(junta).toContain("upper(btrim(store)) = tienda order by id limit 1;");
+    expect(junta).toContain("archived_reason = 'duplicado: unido a #' || s.id");
+    expect(motivoDeDuplicado(41)).toBe("duplicado: unido a #41");
+    expect(junta).toContain("'Del duplicado #' || o.id || ': '");
+    expect(junta).toContain("'sin datos distintos'");
+    expect(junta).toContain("'Del duplicado #' || o.id || ' (notas): '");
+    // La empresa que queda: la de la fila más vieja de las dos empresas (como `juntaEnMemoria`).
+    expect(junta).toContain("where c.company_id in (a.company_id, b.company_id) order by c.id limit 1;");
+    // Lo que se escribe en la superviviente es cada campo de la lista (menos la cuenta) y las notas.
+    const sets = [...junta.matchAll(/(\w+) = r\.(\w+)/g)].map((m) => m[1]);
+    expect(sets.sort()).toEqual([...CAMPOS_DE_UNION.filter(([, , como]) => como !== "n").map(([k]) => k), "notes"].sort());
+  });
+  it("company_id es uuid, no nulo, cada fila el suyo al nacer; con índice", () => {
+    expect(sinComentarios189).toContain("alter table erp.customers add column if not exists company_id uuid not null default gen_random_uuid();");
+    expect(sinComentarios189).toContain("create index if not exists customers_company_idx on erp.customers (company_id);");
+  });
+  it("la cola: par ordenado y único, los estados que lee la app, y nadie escribe directo (solo select), con la puerta del módulo", () => {
+    expect(sinComentarios189).toContain("constraint customer_merge_suggestions_par_ordenado check (a_id < b_id)");
+    expect(sinComentarios189).toContain("constraint customer_merge_suggestions_par_unico unique (a_id, b_id)");
+    expect(sinComentarios189).toContain("check (status in ('pending', 'merged', 'rejected', 'superseded'))");
+    expect(sinComentarios189).toContain("revoke all on erp.customer_merge_suggestions from public, anon, authenticated;");
+    expect(sinComentarios189).toContain("grant select on erp.customer_merge_suggestions to authenticated;");
+    expect(sinComentarios189).not.toMatch(/grant (insert|update|delete|all)[^;]*customer_merge_suggestions/i);
+    expect(sinComentarios189).toMatch(/as restrictive for all to authenticated\n  using \(\(select public\.has_customers_access\(\)\)\)/);
+  });
+  it("las dos funciones: SECURITY DEFINER, solo quien puede editar clientes (customers_can_write), y anon no las ejecuta", () => {
+    for (const fn of [junta, rechaza]) {
+      expect(fn).toContain("security definer set search_path = public, pg_temp");
+      expect(fn).toMatch(/is not null and not erp\.customers_can_write\(\) then\n    raise exception '[^']+' using errcode = '42501';/);
+    }
+    expect(sinComentarios189).toContain("revoke execute on function erp.junta_clientes(bigint, bigint) from public, anon;");
+    expect(sinComentarios189).toContain("revoke execute on function erp.rechaza_sugerencia_de_clientes(bigint) from public, anon;");
+    expect(rechaza).toContain("where id = p_id and status = 'pending';");
+    expect(junta).toContain("raise exception 'An archived customer is not merged'");
+  });
+  it("sin begin/commit propios, con su reversión, y el checksum del registro es el del cuerpo", () => {
+    expect(sinComentarios189).not.toMatch(/^\s*(begin|commit|rollback)\s*;/im);
+    expect(sql189).toContain("-- Reversion (en este orden):");
+    expect(sinComentarios189).not.toMatch(/insert into erp\.customers|update erp\.customers set archived_at = null/i);
+    const sha = createHash("sha256").update(cuerpo189).digest("hex");
+    expect(sql189).toContain(`values ('189_clientes_empresas.sql', '${sha}')`);
+  });
+  it("el guion de una vez usa las funciones de la app, llama a la de la base, compara, y en seco no escribe", () => {
+    const g = leer("scripts/junta-clientes-duplicados.mts");
+    expect(g).toContain('from "../src/lib/customers/duplicados.ts";');
+    expect(g).toContain('await c.query("select erp.junta_clientes($1, $2)", [a, b]);');
+    expect(g).toContain("const dif = comparar(plan.filas, despues);");
+    expect(g).toContain('if (!escribe && !ensayo) await c.query("set default_transaction_read_only = on");');
+    expect(g).toContain("on conflict (a_id, b_id) do nothing");
+    // El respaldo se escribe ANTES de abrir la transacción.
+    expect(g.indexOf("writeFileSync(ruta,")).toBeGreaterThan(0);
+    expect(g.indexOf("writeFileSync(ruta,")).toBeLessThan(g.indexOf('await c.query("begin");\n    try {\n      await juntaYLlena(filas);'));
+  });
+  it("la pantalla: la lista por empresa, la ficha con pestañas, la cola llama a la base, y las rutas cuelgan del layout", () => {
+    const lista = leer("src/app/customers/Clientes.tsx");
+    expect(lista).toContain("ordenarEmpresas(agrupaEnEmpresas(lista, filtro), orden)");
+    expect(lista).toContain("hermanas={ficha.tipo === \"ver\" ? filasDeLaEmpresa(lista,");
+    expect(lista).toContain('role="tablist"');
+    const cola = leer("src/app/customers/juntar/DecidirJuntar.tsx");
+    expect(cola).toContain("await almacen.juntar(p.a.id, p.b.id);");
+    expect(cola).toContain("await almacen.rechazar(p.sugerencia.id);");
+    expect(cola).toContain("paresParaDecidir(sugs, lista)");
+    expect(readdirSync("src/app/customers/juntar")).toEqual(expect.arrayContaining(["page.tsx", "DecidirJuntar.tsx"]));
+    const pagina = leer("src/app/customers/[id]/page.tsx");
+    expect(pagina).toContain('erp.from("customers").select(cols).eq("company_id", cliente.company_id!)');
   });
 });

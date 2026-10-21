@@ -13,7 +13,7 @@ import {
  * título y pastillas, secciones en tarjetas, filas «etiqueta / valor»), con TODOS los campos del Excel por grupo. Solo
  * lectura: se corrige desde el cajón de la lista, que ya sabe quién puede y pide la fila de vuelta.
  */
-export function FichaCompleta({ cliente: c }: { cliente: Cliente }) {
+export function FichaCompleta({ cliente: c, hermanas = [] }: { cliente: Cliente; hermanas?: Cliente[] }) {
   const { t } = usePrefs();
   const tel = telUrl(c.phone);
   const mail = mailUrl(c.email);
@@ -30,6 +30,24 @@ export function FichaCompleta({ cliente: c }: { cliente: Cliente }) {
         <span className="font-mono text-sm text-slate-500">{nombreDeTienda(c.store)} · {String(valorDeColumna(c, "concatenate"))}</span>
         <span className="ml-auto text-xs text-slate-400">{t("updated", "actualizado")} {fecha(c.updated_at)}</span>
       </div>
+
+      {/* Las tiendas de la misma empresa (189): cada una es su ficha, con su contacto y su vendedor. */}
+      {hermanas.length > 1 && (
+        <nav className="mt-3 flex flex-wrap gap-1.5" aria-label={t("Stores of this company", "Tiendas de esta empresa")} data-tiendas={hermanas.length}>
+          {hermanas.map((h) => (
+            <Link
+              key={h.id}
+              href={`/customers/${h.id}`}
+              aria-current={h.id === c.id ? "page" : undefined}
+              className={h.id === c.id
+                ? "rounded-full border border-clay-200 bg-clay-50 px-3 py-1 text-xs font-medium text-clay-700"
+                : "rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 hover:bg-slate-50"}
+            >
+              {nombreDeTienda(h.store)}{hermanas.filter((x) => x.store === h.store).length > 1 ? ` · ${h.account}` : ""}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {(tel || mail) && (
         <div className="mt-2 flex flex-wrap gap-3 text-sm">

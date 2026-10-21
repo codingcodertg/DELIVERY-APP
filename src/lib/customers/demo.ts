@@ -1,4 +1,6 @@
 import type { AlmacenDeClientes } from "./almacen";
+import { claveDeEmpresa, juntaEnMemoria, motivoDeLaCola, sospechosos } from "./duplicados";
+import type { Sugerencia } from "./empresas";
 import type { Cliente, Parche } from "./reglas";
 
 /**
@@ -12,31 +14,53 @@ const base = (n: number, c: Partial<Cliente>): Cliente => ({
   activity_status: null, status_store: null, status_group: null, history_store: null, history_group: null,
   crm_type_store: null, crm_type_group: null, associated_with: null, rep_history: null, rep_qb: null, rep_store: null, contact_name: null, contact_title: null, address: null, phone: null, email: null,
   credit_limit: null, euler_limit: null, terms: null, account_no: null, notes: null, updated_at: "2026-10-16T12:00:00Z", updated_by: null,
-  archived_at: null, archived_reason: null,
+  archived_at: null, archived_reason: null, company_id: `demo-empresa-${n}`,
   ...c,
 });
 
 export const CLIENTES_DEMO: Cliente[] = [
-  base(1, { store: "MCA", account: "Demo Homes LLC", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER", crm_type_store: "LARGE", crm_type_group: "LARGE", associated_with: "DEMO GROUP" }),
-  base(2, { store: "PHR", account: "Demo Homes LLC", unified_account: "Demo Homes LLC", status_store: "ACTIVE DEC", status_group: "ACTIVE INC", history_store: "SMALL", history_group: "LARGE", rep_store: "FR", rep_qb: "IM", rep_history: "IM", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000 }),
-  base(3, { store: "BRO", account: "Demo Drywall Inc", status_store: "NEW", status_group: "NEW", history_store: "INSIGNIFICANT", history_group: "SMALL", rep_store: "CRR", phone: "555-0102", terms: "Due on receipt" }),
+  // 1 y 2 son la MISMA empresa en dos tiendas (189): la lista pinta una fila y la ficha cambia de tienda.
+  base(1, { store: "MCA", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER", crm_type_store: "LARGE", crm_type_group: "LARGE", associated_with: "DEMO GROUP" }),
+  base(2, { store: "PHR", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE DEC", status_group: "ACTIVE INC", history_store: "SMALL", history_group: "LARGE", rep_store: "FR", rep_qb: "IM", rep_history: "IM", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000 }),
+  base(3, { store: "BRO", account: "Demo Drywall Inc", status_store: "NEW", status_group: "NEW", history_store: "INSIGNIFICANT", history_group: "SMALL", rep_store: "CRR", phone: "956-555-0102", terms: "Due on receipt" }),
   base(4, { store: "EDG", account: "Demo Tile Gallery", status_store: "LOST", status_group: "LOST", history_store: "MID", history_group: "MID", rep_store: "YG", rep_qb: "YG", email: "gallery@example.com", terms: "25 Days", credit_limit: 6000, account_no: "INTERNAL CREDIT" }),
   base(5, { store: "WES", account: "Demo Walk-in", qb_status: "NOT FOUND IN UPDATE", activity_status: "walk in", status_store: "NONE SALE", status_group: "NONE SALE", history_store: "INSIGNIFICANT", history_group: "INSIGNIFICANT" }),
   base(6, { store: "MCA", account: "Demo Construction Group", status_store: "ACTIVE INC", history_store: "MID", rep_store: "SCG", contact_name: "Beto Demo", phone: "(555) 010-3", email: "beto@example.com", terms: "NET 15", credit_limit: 10000, notes: "Demo note." }),
+  // Dos SOSPECHOSOS para «Decidir si se juntan» (189): 9 se parece a 3 y tiene su teléfono, en otra tienda (juntar =
+  // misma empresa); 10 se parece a 6 en la MISMA tienda (juntar = una sola fila, la 10 se archiva).
+  base(9, { store: "EDG", account: "Demo Drywal Inc", status_store: "ACTIVE INC", history_store: "SMALL", rep_store: "YG", phone: "(956) 555-0102", contact_name: "Carla Demo" }),
+  base(10, { store: "MCA", account: "Demo Construction Grp", status_store: "NONE SALE", rep_store: "IM", phone: "(555) 010-3", contact_title: "Owner", credit_limit: 5000, notes: "Otra nota demo." }),
   // Dos archivados (181), para que el chip «Archivados» y la ficha atenuada tengan qué enseñar en el demo.
   base(7, { store: "PHR", account: "VENTA AL MOSTRADOR", activity_status: "Internal", archived_at: "2026-10-16T13:00:00Z", archived_reason: "comodin de QuickBooks" }),
   base(8, { store: "MCA", account: "Demo Supplies Co", activity_status: "Supplier", archived_at: "2026-10-16T13:00:00Z", archived_reason: "interno/proveedor/competencia" }),
 ];
 
-/** El almacén del demo: la misma interfaz que la base, sobre una lista en memoria. Todo el mundo puede escribir. */
+/** Las sugerencias del demo: las que encuentra la MISMA función que llena la cola de verdad (`sospechosos`). */
+export const SUGERENCIAS_DEMO: Sugerencia[] = sospechosos(CLIENTES_DEMO).map((s, i) => ({
+  id: i + 1, a_id: s.a_id, b_id: s.b_id, reason: motivoDeLaCola(s.motivos), score: s.score, status: "pending", created_at: "2026-10-21T12:00:00Z",
+}));
+
+/**
+ * El almacén del demo: la misma interfaz que la base, sobre listas en memoria. Todo el mundo puede escribir. UNO por
+ * pestaña (no uno por pantalla): al ir de la lista a «Decidir si se juntan» y volver, lo juntado sigue juntado.
+ */
+let compartido: AlmacenDeClientes | null = null;
 export function almacenDemo(): AlmacenDeClientes {
+  if (!compartido) compartido = almacenDemoNuevo();
+  return compartido;
+}
+
+export function almacenDemoNuevo(): AlmacenDeClientes {
   let lista = CLIENTES_DEMO.map((c) => ({ ...c }));
-  let siguiente = lista.length + 1;
+  let cola = SUGERENCIAS_DEMO.map((s) => ({ ...s }));
+  let siguiente = Math.max(...lista.map((c) => c.id)) + 1;
+  let empresaNueva = 0;
+  const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
   return {
     async leer() { return { ok: true, valor: lista.map((c) => ({ ...c })) }; },
     async guardar(id, parche: Parche) {
       const i = lista.findIndex((c) => c.id === id);
-      if (i < 0) return { ok: false, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
+      if (i < 0) return sinFila;
       const nuevo = { ...lista[i], ...(parche as Partial<Cliente>), updated_at: new Date().toISOString() } as Cliente;
       lista = lista.map((c, j) => (j === i ? nuevo : c));
       return { ok: true, valor: { ...nuevo } };
@@ -45,6 +69,29 @@ export function almacenDemo(): AlmacenDeClientes {
       const nuevo = base(siguiente++, { ...(fila as Partial<Cliente>), updated_at: new Date().toISOString() });
       lista = [...lista, nuevo];
       return { ok: true, valor: { ...nuevo } };
+    },
+    async sugerencias() { return { ok: true, valor: cola.filter((s) => s.status === "pending").map((s) => ({ ...s })) }; },
+    async juntar(aId, bId) {
+      try {
+        const r = juntaEnMemoria(lista, aId, bId, new Date().toISOString(), () => `demo-junta-${++empresaNueva}`);
+        lista = r.filas;
+        const a = lista.find((c) => c.id === aId)!;
+        // Como la base: este par, decidido; y lo pendiente que ya queda dentro de una empresa, también.
+        const misma = (s: Sugerencia) => {
+          const x = lista.find((c) => c.id === s.a_id), y = lista.find((c) => c.id === s.b_id);
+          return !!x && !!y && claveDeEmpresa(x) === claveDeEmpresa(y);
+        };
+        cola = cola.map((s) => (s.status === "pending" && ((s.a_id === Math.min(aId, bId) && s.b_id === Math.max(aId, bId)) || misma(s)) ? { ...s, status: "merged" } : s));
+        return { ok: true, valor: claveDeEmpresa(a) };
+      } catch (e) {
+        return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: (e as Error).message };
+      }
+    },
+    async rechazar(id) {
+      const s = cola.find((x) => x.id === id && x.status === "pending");
+      if (!s) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "That suggestion is not pending" };
+      cola = cola.map((x) => (x.id === id ? { ...x, status: "rejected" } : x));
+      return { ok: true, valor: null };
     },
   };
 }
