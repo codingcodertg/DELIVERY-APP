@@ -11929,6 +11929,8 @@ arranque va por el código, no por haberlo visto. `verify.mjs`: en verde sobre `
 
 ## D-227 · «Todas las apps» solo se pinta si hay apps a las que ir
 
+> **Reemplazada en parte por D-619** (2026-10-20): el ERP conserva un solo enlace al hub, el de la cabecera.
+
 **Fecha:** 2026-09-09 · **Versión:** la pone el orquestador (toca ERP) · Sin migración.
 **Pedido por:** el dueño: entra con una cuenta que solo tiene el ERP, pulsa **«Todas las apps»** y
 no pasa nada.
@@ -45993,3 +45995,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/filas-compactas-del-gestor.test.ts` (las reglas nuevas, y que el alto fijo ya no está); `gestor-entregadas-y-vista.test.ts` actualizado (la puerta del alto de D-444 pasa a la de aquí).
 
 **No medido:** en navegador. La medida es la tabla del dueño: cuántas filas caben ahora frente a antes.
+
+## D-619 · Un solo «inicio» por app: RR. HH. pierde la casita de «Hoy» (queda la del hub) y el ERP un «Todas las apps» de los dos
+
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.3 · erp 0.20.0 (repo 1.484.0) · Sin migración · Hecho directo por el orquestador en `fix/un-solo-inicio`.
+
+**Pedidos del dueño (2026-10-20, literales):** «on the hr app there is two home icons just leave the one that sends you to the hub so it doesn't confuse»; «erp tiene 2 all apps solo deja solo 1» (captura: «⌂ All apps» junto a «RTG ERP» y otra vez como primera fila de la lista lateral).
+
+**Qué cambia.**
+- **RR. HH.:** la pestaña «Hoy» pasa de «🏠» a «📋» (en los dos idiomas). La única casita es la de «Todas las apps» del conmutador, que lleva al hub.
+- **ERP:** la lista lateral ya no repite «⌂ Todas las apps»; queda el de la cabecera, junto a «RTG ERP» (el mismo que D-227 condicionó a `hubReachable`). El enlace que se va era el segundo de D-227; la guarda sigue en el que queda.
+
+**Pruebas:** `erp-hub-link.test.ts` actualizado (un solo `href="/home"` y un solo `hubReachable &&`, y la fila de la lista ya no está).
+
+**No medido:** en navegador.
