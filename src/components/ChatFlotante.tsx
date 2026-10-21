@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import {
   CLAVE_DE_ESTADO, type Contacto, type EstadoDeLaBurbuja, type Hilo, type Mensaje,
-  chatEnLaRuta, conMensaje, cuerpoValido, esDeMiTienda, estadoInicial, hilos, hilosRecientes, noLeidosTotal, ordenaContactos,
+  chatEnLaRuta, conMensaje, cuerpoValido, esDeMiTienda, estadoInicial, hilos, hilosRecientes, listaVisible, noLeidosTotal,
 } from "@/lib/chat/chat";
 
 /**
@@ -109,7 +109,7 @@ export function ChatFlotante() {
 
   const hora = (iso: string) => new Date(iso).toLocaleTimeString(lang === "es" ? "es-MX" : "en-US", { hour: "numeric", minute: "2-digit" });
   const nombreDe = (id: string) => porId.get(id)?.full_name ?? "…";
-  const lista = ordenaContactos(contactos, yo, busqueda);
+  const lista = listaVisible(contactos, yo, busqueda);
   const recientes = hilosRecientes(h);
   const badge = sinLeer > 0 ? <span className="chat-badge" data-sin-leer={sinLeer}>{sinLeer > 99 ? "99+" : sinLeer}</span> : null;
 
@@ -142,7 +142,7 @@ export function ChatFlotante() {
 
       {!con ? (
         <div className="chat-body">
-          <input className="chat-buscar" placeholder={t("Search by name…", "Buscar por nombre…")} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} autoFocus />
+          <input className="chat-buscar" placeholder={t("Search anyone by name…", "Buscar a cualquiera por nombre…")} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} autoFocus />
           {!busqueda && recientes.length > 0 && (
             <>
               <div className="chat-grupo">{t("Recent", "Recientes")}</div>
@@ -170,7 +170,11 @@ export function ChatFlotante() {
               </div>
             );
           })}
-          {lista.length === 0 && <div className="hint" style={{ padding: 8 }}>{t("Nobody matches", "Nadie coincide")}</div>}
+          {lista.length === 0 && (
+            <div className="hint" style={{ padding: 8 }}>
+              {busqueda.trim() ? t("Nobody matches", "Nadie coincide") : t("Search anyone from another store by name.", "A los de otra tienda se les busca por nombre.")}
+            </div>
+          )}
         </div>
       ) : (
         <>

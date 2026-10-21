@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   CLAVE_DE_ESTADO, KIND_CHAT, LARGO_MAXIMO, type Mensaje,
-  chatEnLaRuta, conMensaje, cuerpoValido, esDeMiTienda, estadoInicial, hilos, hilosRecientes, llevaPush, noLeidosTotal, ordenaContactos, textoDelAviso,
+  chatEnLaRuta, conMensaje, cuerpoValido, esDeMiTienda, estadoInicial, hilos, hilosRecientes, listaVisible, llevaPush, noLeidosTotal, ordenaContactos, textoDelAviso,
 } from "./chat";
 
 // D-609 (2026-10-20) · El dueño: «un chat dentro del app en general … con los de su tienda … buscar el nombre … si es un admin
@@ -25,6 +25,14 @@ describe("chat interno", () => {
     expect(esDeMiTienda({ store: "tienda norte" }, yo)).toBe(true);
     expect(esDeMiTienda({ store: "Tienda Sur" }, yo)).toBe(false);
     expect(esDeMiTienda({ store: "Tienda Norte" }, { store: "" })).toBe(false);
+  });
+
+  it("lo que se lista (D-614): sin búsqueda, solo mi tienda (sin tienda, nadie); con búsqueda, cualquiera que coincida, mi tienda primero", () => {
+    expect(listaVisible(gente, yo).map((c) => c.id)).toEqual(["b", "d"]);
+    expect(listaVisible(gente, { id: "yo", store: null })).toEqual([]);
+    expect(listaVisible(gente, yo, "a").map((c) => c.id)).toEqual(["b", "d", "a", "c"]);
+    expect(listaVisible(gente, yo, "carlos").map((c) => c.id)).toEqual(["c"]);
+    expect(listaVisible(gente, yo, "   ").map((c) => c.id)).toEqual(["b", "d"]);
   });
 
   it("la búsqueda por nombre ignora acentos y mayúsculas y vale a medias", () => {
@@ -91,7 +99,7 @@ describe("chat interno", () => {
     expect(layout).toContain("<ChatFlotante />");
     const comp = readFileSync(new URL("components/ChatFlotante.tsx", raiz), "utf8");
     expect(comp).toContain('fetch("/api/chat/send"');
-    expect(comp).toContain("ordenaContactos(contactos, yo, busqueda)");
+    expect(comp).toContain("listaVisible(contactos, yo, busqueda)");
     expect(comp).toContain('table: "chat_messages"');
     const ruta = readFileSync(new URL("app/api/chat/send/route.ts", raiz), "utf8");
     expect(ruta).toContain("requireUser()");

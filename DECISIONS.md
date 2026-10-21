@@ -45843,6 +45843,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-609 · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
 
+> **Reemplazada en parte por D-614** (2026-10-20): la lista enseña solo a los de mi tienda; a los demás se les busca por nombre.
+
 **Fecha:** 2026-10-20 · **Versión:** deliveries 1.341.0 (repo 1.475.0; el layout raíz, todas las apps) · **Migración 184** (`184_chat_interno.sql`) · Hecho directo por el orquestador en `feat/chat-interno`.
 
 **Pedido del dueño (2026-10-20, literal):** «un chat dentro del app en general … va a aparecer no importa en cualquier aplicación que uno esté, va a estar como un botón que se puede ocultar … en el right upper corner … uno ahí puede hacer un chat con los de su tienda y igual que con las extensiones, uno tiene que buscar el nombre para mandar un chat a esa persona en específico, y esa persona en su hub va a aparecer un botón y ahí va a ver todos los contactos, así tipo Facebook … si es un admin siempre son como que push messages, para que le caiga a la persona y pues él mire ahí y pueda contestar».
@@ -45926,5 +45928,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Lo que queda abierto:** el dueño sigue queriendo un calendario mejor para la **cita presencial** («al final de la interview»), no para el registro. Es otra decisión, a enseñarle antes de publicar (una maqueta, no un release).
 
 **Pruebas:** las de siempre (`agendar-presencial.test.ts`, 13); tsc.
+
+**No medido:** en navegador.
+
+## D-614 · Chat interno: la lista enseña solo a los de mi tienda; a los de otra tienda se les busca por nombre
+
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.342.0 (repo 1.480.0; el layout raíz) · Sin migración · Hecho directo por el orquestador en `fix/chat-solo-mi-tienda`.
+
+**Pedido del dueño (2026-10-20, literal, con la captura del panel):** «mira lo que pueden ver su tienda está bien pero para gente de otra tienda deben de buscarlo solamente no mostrar la lista».
+
+**Qué cambia.** `listaVisible` (en `chat.ts`): sin búsqueda, la lista son solo los de MI tienda (`profiles.store`); sin tienda en el perfil, nadie, con el aviso «A los de otra tienda se les busca por nombre». Con búsqueda, cualquiera que coincida, los de mi tienda primero (como D-609). Los hilos «Recientes» siguen saliendo aunque sean de otra tienda (ya se habló con esa persona). El buscador dice «Buscar a cualquiera por nombre…». Quién puede escribir a quién no cambia (todos a todos); cambia lo que se enseña sin pedirlo.
+
+**Pruebas:** `chat.test.ts` (sin búsqueda solo mi tienda; sin tienda nadie; con búsqueda todos los que coinciden, mi tienda primero; espacios no cuentan como búsqueda; puerta: la vista usa `listaVisible`).
 
 **No medido:** en navegador.
