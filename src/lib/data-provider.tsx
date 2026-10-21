@@ -1654,7 +1654,14 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     async (texto) => {
       if (!sePuedeBuscar(texto)) return [];
       const { data, error } = await supabase.rpc("buscar_factura_para_recoger", { p_texto: texto });
-      if (error) { notify(mensajeDelFallo(falloAlTomar(error), (en, es) => (lang === "en" ? en : es))); return null; }
+      if (error) {
+        // Sin la 188 aplicada la búsqueda de ajenas, simplemente, no encuentra nada: el chofer busca SUS facturas con
+        // este mismo cuadro, y un aviso en cada búsqueda sería ruido. El resto de fallos sí se dicen.
+        const fallo = falloAlTomar(error);
+        if (fallo === "sin-funcion") return [];
+        notify(mensajeDelFallo(fallo, (en, es) => (lang === "en" ? en : es)));
+        return null;
+      }
       return (data ?? []) as OrdenParaTomar[];
     },
     [supabase, notify, lang],

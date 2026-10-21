@@ -125,6 +125,8 @@ describe("puertas: la base, el proveedor, la pantalla del chofer y la campana", 
     expect(dp).toContain('supabase.rpc("buscar_factura_para_recoger", { p_texto: texto })');
     expect(dp).toContain('supabase.rpc("tomar_orden_para_recoger", { p_id: id, p_motivo: motivo, p_lang: lang })');
     expect(dp).toContain('await reloadTables(["deliveries", "order_events", "notifications"]);');
+    // Sin la 188, buscar no avisa (el chofer usa el mismo cuadro para SUS facturas): devuelve vacío.
+    expect(dp).toContain('if (fallo === "sin-funcion") return [];');
     const tramo = dp.slice(dp.indexOf("const tomarOrdenParaRecoger = useCallback"), dp.indexOf("const marcarParada = useCallback"));
     expect(tramo.indexOf("if (teaching)")).toBeGreaterThan(-1);
     expect(tramo.indexOf("if (teaching)")).toBeLessThan(tramo.indexOf("supabase.rpc("));
