@@ -14,6 +14,7 @@ import { routeOrder } from "@/lib/dispatch";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ShiftClock } from "@/components/ShiftClock";
+import { TomarFacturaAjena } from "@/components/TomarFacturaAjena";
 import { seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -123,6 +124,13 @@ function ListaDelChofer({ plegada = false }: { plegada?: boolean }) {
   const [q, setQ] = useState("");
   // Shows every location by default; narrow to a single store when needed.
   const [storeFilter, setStoreFilter] = useState<string>("");
+  // La orden que el chofer acaba de tomar (D-NEXT, 188): en cuanto llega con los datos recargados, se abre para recogerla.
+  const [tomada, setTomada] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tomada) return;
+    const d = deliveries.find((x) => x.id === tomada);
+    if (d) { setOpen(d); setTomada(null); }
+  }, [tomada, deliveries]);
 
   // Drivers see ONLY orders assigned to them (plus ones they logged
   // themselves). Admin/logistics visiting this page still see everything.
@@ -217,6 +225,12 @@ function ListaDelChofer({ plegada = false }: { plegada?: boolean }) {
           </button>
         ))}
       </div>
+
+      {/* Las órdenes con esa factura que NO son suyas, para tomarlas como excepción (D-NEXT, 188). Solo el chofer: el
+          resto de roles ya ve todas en su lista. */}
+      {me.role === "driver" && (
+        <TomarFacturaAjena texto={q} misIds={new Set(scoped.map((d) => d.id))} alTomar={(id) => { setTomada(id); setQ(""); }} />
+      )}
 
       {routed && rows.length > 1 && (
         <div className="hint" style={{ marginTop: -4, marginBottom: 10 }}>
