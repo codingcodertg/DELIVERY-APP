@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
 import { clienteDeLaBase, type Cliente, type Parche } from "./reglas";
 
 /**
@@ -18,6 +19,12 @@ export interface AlmacenDeClientes {
   leer(): Promise<Res<Cliente[]>>;
   guardar(id: number, parche: Parche): Promise<Res<Cliente>>;
   crear(fila: Parche): Promise<Res<Cliente>>;
+  /** Migración 189: la cola «Decidir si se juntan», solo las pendientes. Sin la 189, `sinTabla`. */
+  sugerencias(): Promise<Res<Sugerencia[]>>;
+  /** Juntar las empresas de dos filas (`erp.junta_clientes`): UNA llamada; la base hace todo o nada. Luego se relee. */
+  juntar(aId: number, bId: number): Promise<Res<string>>;
+  /** «No son la misma» (`erp.rechaza_sugerencia_de_clientes`): no se vuelve a proponer. */
+  rechazar(sugerenciaId: number): Promise<Res<null>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -36,11 +43,15 @@ export function esSinPermiso(error: { code?: string | null; message?: string } |
 export const COLUMNAS =
   "id, store, account, unified_account, house_no, added_batch, qb_status, activity_status, status_store, status_group, " +
   "history_store, history_group, crm_type_store, crm_type_group, associated_with, rep_history, rep_qb, rep_store, contact_name, contact_title, address, phone, email, " +
-  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason";
+  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id";
 
 /** Las tres de la 182 (CRM). El código llega antes que la migración: si la base aún no las tiene, se lee sin ellas. */
 export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associated_with"] as const;
-export const COLUMNAS_SIN_182 = COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !(COLUMNAS_DE_LA_182 as readonly string[]).includes(c)).join(", ");
+/** La de la 189 (la empresa). Igual: si la base aún no la tiene, se lee sin ella y cada fila es su propia empresa. */
+export const COLUMNAS_DE_LA_189 = ["company_id"] as const;
+const sin = (fuera: readonly string[]) => COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !fuera.includes(c)).join(", ");
+export const COLUMNAS_SIN_189 = sin(COLUMNAS_DE_LA_189);
+export const COLUMNAS_SIN_182 = sin([...COLUMNAS_DE_LA_182, ...COLUMNAS_DE_LA_189]);
 
 /** ¿«La 182 no está aplicada»? 42703 es undefined_column (Postgres); PGRST204 es lo mismo dicho por PostgREST. Solo esos. */
 export function faltaLa182(error: { code?: string | null } | null | undefined): boolean {
@@ -49,13 +60,17 @@ export function faltaLa182(error: { code?: string | null } | null | undefined): 
 }
 
 /**
- * Una lectura con respaldo: con las columnas de hoy, y si la base dice que una no existe (la 182 sin aplicar), la misma
- * sin las tres de la 182, que llegan como null. Así la lista no se queda en blanco el rato entre el deploy y la migración.
+ * Una lectura con respaldo: con las columnas de hoy, y si la base dice que una no existe, otra vez sin la de la 189
+ * (`company_id`: cada fila, su empresa), y si aún falta, también sin las tres de la 182 (llegan como null). Así la lista
+ * no se queda en blanco el rato entre el deploy y la migración. Una escritura con `.select(cols)` falla ENTERA si una
+ * columna pedida no existe (no escribe nada), así que también se puede repetir así.
  */
 export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseLike<{ data: T; error: { code?: string | null; message: string } | null }>) {
   const r = await consulta(COLUMNAS);
-  if (r.error && faltaLa182(r.error)) return consulta(COLUMNAS_SIN_182);
-  return r;
+  if (!(r.error && faltaLa182(r.error))) return r;
+  const r2 = await consulta(COLUMNAS_SIN_189);
+  if (r2.error && faltaLa182(r2.error)) return consulta(COLUMNAS_SIN_182);
+  return r2;
 }
 
 /** PostgREST corta en 1.000 filas por petición: se pagina hasta que una página venga corta. */
@@ -87,16 +102,39 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       return { ok: true, valor: todos };
     },
     async guardar(id, parche) {
-      const { data, error } = await sb.from("customers").update(parche).eq("id", id).select(COLUMNAS).maybeSingle();
+      const { data, error } = await leeConRespaldo((cols) => sb.from("customers").update(parche).eq("id", id).select(cols).maybeSingle());
       if (error) return fallo(error);
       if (!data) return sinFila();
       return { ok: true, valor: clienteDeLaBase(data as unknown as Record<string, unknown>) };
     },
     async crear(fila) {
-      const { data, error } = await sb.from("customers").insert(fila).select(COLUMNAS).maybeSingle();
+      const { data, error } = await leeConRespaldo((cols) => sb.from("customers").insert(fila).select(cols).maybeSingle());
       if (error) return fallo(error);
       if (!data) return sinFila();
       return { ok: true, valor: clienteDeLaBase(data as unknown as Record<string, unknown>) };
     },
+    async sugerencias() {
+      const { data, error } = await sb.from("customer_merge_suggestions")
+        .select("id, a_id, b_id, reason, score, status, created_at").eq("status", "pending").order("id").range(0, 4999);
+      if (error) return fallo(error);
+      return { ok: true, valor: (data ?? []).map((f) => sugerenciaDeLaBase(f as Record<string, unknown>)) };
+    },
+    async juntar(aId, bId) {
+      const { data, error } = await sb.rpc("junta_clientes", { p_a: aId, p_b: bId });
+      if (error) return fallo(error);
+      if (!data) return sinFila();
+      return { ok: true, valor: String(data) };
+    },
+    async rechazar(sugerenciaId) {
+      const { error } = await sb.rpc("rechaza_sugerencia_de_clientes", { p_id: sugerenciaId });
+      if (error) return fallo(error);
+      return { ok: true, valor: null };
+    },
   };
+}
+
+/** Cuántas sugerencias pendientes hay (la pastilla de la barra). null = no se sabe (sin la 189, sin permiso, error). */
+export async function cuentaPendientes(sb: SupabaseClient<any, "erp", "erp">): Promise<number | null> {
+  const { count, error } = await sb.from("customer_merge_suggestions").select("id", { count: "exact", head: true }).eq("status", "pending");
+  return error ? null : count ?? 0;
 }

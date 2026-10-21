@@ -4,6 +4,7 @@ import { createClient as createErpClient } from "@/lib/erp/supabase/server";
 import { canReachHub } from "@/lib/constants";
 import { leeConRespaldo } from "@/lib/customers/almacen";
 import { CLIENTES_DEMO } from "@/lib/customers/demo";
+import { filasDeLaEmpresa } from "@/lib/customers/empresas";
 import { clienteDeLaBase, type Cliente } from "@/lib/customers/reglas";
 import type { UserRole } from "@/lib/types";
 import { BarraDeClientes } from "@/components/customers/barra";
@@ -33,7 +34,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     return (
       <>
         <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" hubReachable />
-        <FichaCompleta cliente={c} />
+        <FichaCompleta cliente={c} hermanas={filasDeLaEmpresa(CLIENTES_DEMO, c)} />
       </>
     );
   }
@@ -55,11 +56,17 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   if (error) throw new Error(`customers: ${error.message}`);
   if (!data) notFound();
   const cliente: Cliente = clienteDeLaBase(data as unknown as Record<string, unknown>);
+  // Las otras tiendas de la misma empresa (189): las pestañas de la ficha. Sin la 189 no hay company_id y es ella sola.
+  let hermanas: Cliente[] = [cliente];
+  if (cliente.company_id) {
+    const { data: filas } = await leeConRespaldo((cols) => erp.from("customers").select(cols).eq("company_id", cliente.company_id!).order("id"));
+    hermanas = filasDeLaEmpresa(((filas ?? []) as unknown as Record<string, unknown>[]).map(clienteDeLaBase), cliente);
+  }
 
   return (
     <>
       <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} hubReachable={canReachHub({ role, module_access: moduleAccess })} />
-      <FichaCompleta cliente={cliente} />
+      <FichaCompleta cliente={cliente} hermanas={hermanas} />
     </>
   );
 }

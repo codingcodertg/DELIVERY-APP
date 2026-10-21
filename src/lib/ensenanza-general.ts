@@ -68,9 +68,9 @@ export const RPC_QUE_SOLO_LEEN = [
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */
 export const RPC_QUE_ESCRIBEN = [
   "add_product_relation", "adjust_inventory", "apply_decisions", "apply_master_import", "assign_draft_sku",
-  "bulk_resolve_tag", "bulk_update_products", "confirm_external_match", "decide_request", "juntar_cargas",
+  "bulk_resolve_tag", "bulk_update_products", "confirm_external_match", "decide_request", "junta_clientes", "juntar_cargas",
   "leads_set_cap", "link_draft_to_product", "mark_survey_contacted", "merge_products", "partir_carga",
-  "promo_set_round_closed", "publish_product", "publish_route_plan", "receive_manual", "receive_po",
+  "promo_set_round_closed", "publish_product", "publish_route_plan", "receive_manual", "receive_po", "rechaza_sugerencia_de_clientes",
   "reconcile_cycle_count", "record_cycle_count", "reentrega_como_carga", "reject_external_match",
   "remove_product_relation", "reparte_cargas", "reprogramar_orden", "resolve_review_tag", "set_po_line_product",
   "set_request_ready", "tomar_orden_para_recoger", "update_product", "upsert_acknowledgment", "upsert_purchase_order",

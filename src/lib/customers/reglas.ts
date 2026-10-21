@@ -44,6 +44,12 @@ export interface Cliente {
   /** Migración 181: null = cliente vivo. Archivado = no es un cliente (cajón de QuickBooks, interno, sin nombre…); se esconde, no se borra. */
   archived_at: string | null;
   archived_reason: string | null;
+  /**
+   * Migración 189: la EMPRESA de la fila. Las filas de una misma compañía en varias tiendas comparten este uuid; la
+   * lista pinta una fila por empresa y la ficha cambia de tienda (`lib/customers/empresas`). Sin la 189 (o en un dato
+   * viejo) falta, y la fila es su propia empresa.
+   */
+  company_id?: string | null;
 }
 
 export type Lang = "en" | "es";
@@ -481,6 +487,7 @@ export function clienteDeLaBase(f: Record<string, unknown>): Cliente {
     terms: texto(f.terms), account_no: texto(f.account_no), notes: texto(f.notes),
     updated_at: texto(f.updated_at), updated_by: texto(f.updated_by),
     archived_at: texto(f.archived_at), archived_reason: texto(f.archived_reason),
+    company_id: texto(f.company_id),
   };
 }
 

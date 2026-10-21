@@ -46420,3 +46420,52 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - Mutantes: caen 12 de 12.
 
 **No medido:** en el navegador (el demo no abre RR. HH.), `next build`, y el script en producción.
+
+## D-NEXT · Clientes por empresa: una fila por empresa con una pestaña por tienda, los duplicados obvios se juntan, y los dudosos van a «Decidir si se juntan» — migración 189
+
+**Fecha:** 2026-10-21 · **Versión:** customers 0.6.0 · **Migración 189** (`189_clientes_empresas.sql`, ensayada con BEGIN … ROLLBACK contra producción; se aplica con el sí del dueño) · Hecho por un worker del orquestador en `feat/clientes-empresas-y-duplicados`.
+
+**Pedido (el dueño, 2026-10-21, literal):** «Para el área de Customer, quiero que analices las dos. Tienes que analizar toda la lista otra vez y ver los que son obviamente duplicados, hacerle un merge. Pero obviamente si son duplicados, porque hay uno en Far, uno en Browser, entonces lo que vas a hacer es de que en la misma aplicación vas a tener uno en Browser, uno en Far, uno así. Entonces puedes cambiar las tiendas y va a display otro content information y otro rep. Entonces, eso. Y los que no son, obviamente, pero que tienen sospecha de ser la misma compañía, tiene que irse a un site que dice Decide to Merge. Entonces, él te va a poner y el usuario lo va a revisar y él va a decir, ok, Merge.»
+
+**Medido antes (producción, solo lectura).**
+- `erp.customers` (180, 181, 182) tiene una fila por tienda y cuenta: 1.348 filas, 1.199 vivas (PHR 325, MCA 310, BRO 277, EDG 225, WES 62).
+- Con el nombre normalizado (minúsculas, sin acentos ni puntuación, sin LLC/INC/CORP/CO/LTD/COMPANY/THE, también sin espacios) o con la misma `unified_account` entre tiendas, salen 100 grupos obvios con 224 filas. De ellos, 92 abarcan varias tiendas y 9 repiten en la misma tienda («MORAM CONSTRUCTION LLC» / «Moram Construction, LLC», «H & A RGV Construction Corporation» / «H&A RGV Construction Corp.», «EVENCIO LARA» / «EVENCIOLARA»…).
+- Nada referencia `erp.customers(id)`: no hay claves foráneas, vistas ni funciones fuera de la 180, y `erp.exemption_certificates.customer_id` tiene 0 filas.
+
+**Qué cambia.**
+- **Base (189):**
+  - `company_id` (uuid) agrupa las filas de la misma empresa entre tiendas.
+  - `erp.customer_merge_suggestions` es la cola: par único, motivo, parecido, estado pending/merged/rejected/superseded, quién y cuándo. La lee quien tiene el módulo y nadie escribe directo en ella.
+  - `erp.junta_clientes(a, b)` junta las empresas. En una tienda repetida, une las dos filas: sobrevive la de id menor, lo vacío se rellena, y lo que choca va a las notas como «Del duplicado #id: …». La otra se archiva con «duplicado: unido a #id» y nunca se borra; sus pares pendientes pasan a la superviviente.
+  - `erp.rechaza_sugerencia_de_clientes(id)`. Las dos funciones son SECURITY DEFINER, solo para quien hoy edita clientes (`customers_can_write()`, D-570).
+- **Pantalla:**
+  - **Lista:** una fila por empresa, con sus tiendas. Las pastillas y los contadores cuentan empresas; con una tienda elegida se enseña la fila de esa tienda.
+  - **Cajón y ficha:** una pestaña por tienda, cada una con su contacto, teléfono, correo y vendedor, editable como siempre, y el botón «Separar de la empresa».
+  - **Cola:** `/customers/juntar` («Decidir si se juntan / Decide to merge (N)» en la barra) enseña cada par lado a lado con el motivo, y «✅ Juntar» / «✖ No son la misma». Lo rechazado no vuelve.
+  - Sin la 189, la lista sigue igual (cada fila, su empresa) y la cola avisa.
+- **Sospechas:** nombre parecido (≥ 0,85, o uno contenido en el otro con 2 palabras o más), el mismo teléfono o el mismo correo, en filas que no están ya en la misma empresa. Los correos de un dominio propio con 6 direcciones o más no cuentan (medido: uno tenía 14 repartidas entre empresas sin relación).
+- **Misma cuenta unificada en la misma tienda con nombres distintos:** va a la cola y no se junta sola (EL CIELO / LOS PINOS HOME CENTER en PHR; VILLA HOMES / RGV VILLA HOMES en EDG).
+- **El arreglo de una vez** (`scripts/junta-clientes-duplicados.mts`, las mismas funciones que la app):
+  - sin opciones, cuenta;
+  - `--ensayo` aplica la 189 dentro de la transacción si falta, escribe, compara y deshace;
+  - `--escribe` exige la 189, guarda un respaldo JSON en `D:/CLAUDE/respaldos-db/`, escribe en una transacción y vuelve a medir, y deshace si la base no coincide con lo que predice la app.
+
+  Resultado del ensayo: 1.190 vivas en 1.075 empresas, 9 uniones en la misma tienda y 372 pares en la cola (nombre parecido 276, teléfono 55, correo 40, nombre contenido 29, cuenta unificada 2).
+- **De paso:**
+  - `src/lib/erp/nav.ts` (`entradaActiva`) enciende la pestaña de ruta más larga, para que `/customers/juntar` no encienda «Clientes»;
+  - `ensenanza-general.ts` clasifica las dos funciones nuevas como funciones que escriben.
+
+**Qué no cambia.** Quién entra a Clientes (solo admin, D-570). Las filas por tienda siguen siendo filas: nada se borra.
+
+**Pruebas:**
+- `src/lib/customers` (127: normalizar, obvio contra sospecha, campos al juntar, agrupación de la lista, chips, cola) y `src` entero.
+- tsc y `next build`.
+- Mutantes: caen 12 de 12.
+- **Ensayo de la 189 y del arreglo con ROLLBACK contra producción: 17 OK, 0 MAL.**
+  - Ventas, anon y el propio admin no escriben la cola directo.
+  - El admin junta un par y la base coincide con la app.
+  - Juntar una archivada se niega, rechazar dos veces se niega, y un par rechazado no vuelve.
+  - Tras el ROLLBACK no queda nada.
+- **Demo a 1440 y 390 px:** 7 empresas; Demo Homes con 2 tiendas, con vendedor IM en McAllen y FR en Pharr; la cola con 2 pares que baja a 1 al juntar.
+
+**No medido:** las funciones llamadas desde la app de verdad (PostgREST) con la sesión del dueño; la cola con los 372 pares reales. La superviviente conserva su nombre aunque sea el peor («`4MA CONSTRUCTION LLC»): se corrige a mano.

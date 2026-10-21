@@ -121,10 +121,13 @@ export function grupoDe(pathname: string): GrupoId | null {
 
 /**
  * La entrada de la barra que se enciende para esta ruta: una entrada con `grupo` se enciende por
- * cualquiera de sus pestañas (Catálogo también en /erp/inventory); una suelta, por su propio href.
+ * cualquiera de sus pestañas (Catálogo también en /erp/inventory); una suelta, por su propio href, y si
+ * dos sueltas la cubren, la de href más largo (Clientes, 189: /customers/juntar enciende «Decidir si se
+ * juntan», no «Clientes»).
  */
 export function entradaActiva(items: NavItem[], pathname: string): string | null {
   const g = grupoDe(pathname);
   const hit = items.find((i) => (i.grupo ? i.grupo === g : debajoDe(pathname, i.href)));
-  return hit ? hit.href : null;
+  if (!hit) return null;
+  return hit.grupo ? hit.href : pestanaActiva(items.filter((i) => !i.grupo), pathname);
 }
