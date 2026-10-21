@@ -38,6 +38,16 @@ export function ordenaContactos<T extends Contacto>(contactos: readonly T[], yo:
 
 export const esDeMiTienda = (c: Pick<Contacto, "store">, yo: { store?: string | null }): boolean => !!norm(yo.store) && norm(c.store) === norm(yo.store);
 
+/**
+ * Lo que se LISTA (D-NEXT, 2026-10-20). El dueño, con la captura: «lo que pueden ver su tienda está bien pero para gente de
+ * otra tienda deben de buscarlo solamente, no mostrar la lista». Sin búsqueda: solo los de mi tienda (sin tienda, nadie).
+ * Con búsqueda: todos los que coinciden, los de mi tienda primero. Los hilos recientes van aparte (siguen saliendo).
+ */
+export function listaVisible<T extends Contacto>(contactos: readonly T[], yo: { id: string; store?: string | null }, busqueda = ""): T[] {
+  const todos = ordenaContactos(contactos, yo, busqueda);
+  return busqueda.trim() ? todos : todos.filter((c) => esDeMiTienda(c, yo));
+}
+
 export interface Hilo { con: string; mensajes: Mensaje[]; noLeidos: number; ultimo: Mensaje | null }
 
 /** Los hilos de una persona: uno por interlocutor, mensajes del más viejo al más nuevo, cuántos le mandaron sin leer. */
