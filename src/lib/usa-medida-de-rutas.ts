@@ -21,6 +21,9 @@ import type { NamedLocation } from "@/lib/types";
  */
 
 /** The day's routes are timed from this clock, with a reload buffer at each pickup stop (RELOAD_MIN). */
+/** La clave de la hora estimada de una recogida en `etas`: «P:» + sus órdenes, igual en la medida y en la tabla (D-NEXT). */
+export const claveDeRecogida = (ordenes: readonly string[]): string => `P:${ordenes.join(",")}`;
+
 export const DAY_START_MIN = 8 * 60; // 08:00
 
 export function fmtMinutes(min: number): string {
@@ -112,7 +115,9 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
   // Lo que el camión pasa parado en cada parada, contado como el optimizador y el motor (D-461): las recogidas seguidas en
   // la misma tienda son UNA visita. Hasta aquí cada fila P sumaba la recarga entera.
   const parado = minutosEnCadaParada(lista, lista.map((p) => (p.tipo === "D" ? serviceMin(byId.get(p.orden)?.delivery_duration) : p.ordenes.reduce((n, id) => n + serviceMin(byId.get(id)?.pickup_duration), 0))), RELOAD_MIN);
-  // Los puntos en el orden de la lista. El id de una recogida es «P:» + su puesto en la lista (así sale su hora estimada).
+  // Los puntos en el orden de la lista. El id de una recogida es «P:» + sus órdenes (D-NEXT, 2026-10-20): hasta aquí era «P:» +
+  // su PUESTO en la lista medida, y la tabla lo buscaba con el puesto en la lista de PENDIENTES; con paradas ya hechas delante
+  // (D-529 mide el día entero) los puestos no coinciden y la recogida salía «no base» (el dueño: «WHY DOES IT SAYS NO BASE»).
   const puntos: { id: string; lat: number; lng: number; servicio: number }[] = [];
   lista.forEach((p, i) => {
     if (p.tipo === "D") {
@@ -120,7 +125,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
       if (d?.delivery_lat != null && d.delivery_lng != null) puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: parado[i] });
     } else {
       const c = e.coordsDeTienda(p.tienda);
-      if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });
+      if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i] });
     }
   });
   const vacia: MedidaDeLaRuta = { miles: 0, seconds: 0, traces: [], stat: null, dayMinutes: 0, etas: {} };

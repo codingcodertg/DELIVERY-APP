@@ -35,7 +35,7 @@ import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-hora
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
-import { DAY_START_MIN, useMedidaDeRutas } from "@/lib/usa-medida-de-rutas";
+import { DAY_START_MIN, useMedidaDeRutas, claveDeRecogida } from "@/lib/usa-medida-de-rutas";
 import { carrilesDelDia, cargaDelPanel, encuadreDeLasRutas, lineasDeLasRutas, puntosDeLasRutas, rutaDeLaLinea, rutasPorChofer, type CarrilDeRuta } from "@/lib/mapa-de-rutas";
 import { listaDelDia, ordenesDeLaRutaDelDia, pendientesDelDia } from "@/lib/recogida-y-ruta-del-dia";
 import { PanelDeChoferes } from "@/components/PanelDeChoferes";
@@ -3395,7 +3395,7 @@ export default function RoutesPage() {
                         const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
                         const o = suyas[0];
                         // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + su puesto en la lista.
-                        const etaP = f.indice != null ? routeEtas[u.key]?.[`P:${f.indice}`] : undefined;
+                        const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(f.ordenes)] : undefined;
                         // Si no hay hora, por qué (D-456): la tienda sin coordenadas no se mide; con una sola parada y sin base, tampoco.
                         const paradaP = f.indice != null ? lectura.paradas[f.indice] : undefined;
                         const motivoP: MotivoSinLlegada | null = !paradaP || paradaP.tipo !== "P" ? null : !coordsDeTienda(paradaP.tienda) ? "sin_tienda" : "sin_base";
