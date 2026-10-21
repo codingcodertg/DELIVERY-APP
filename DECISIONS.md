@@ -45998,20 +45998,6 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador. La medida es la tabla del dueño: cuántas filas caben ahora frente a antes.
 
-## D-619 · Un solo «inicio» por app: RR. HH. pierde la casita de «Hoy» (queda la del hub) y el ERP un «Todas las apps» de los dos
-
-**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.3 · erp 0.20.0 (repo 1.484.0) · Sin migración · Hecho directo por el orquestador en `fix/un-solo-inicio`.
-
-**Pedidos del dueño (2026-10-20, literales):** «on the hr app there is two home icons just leave the one that sends you to the hub so it doesn't confuse»; «erp tiene 2 all apps solo deja solo 1» (captura: «⌂ All apps» junto a «RTG ERP» y otra vez como primera fila de la lista lateral).
-
-**Qué cambia.**
-- **RR. HH.:** la pestaña «Hoy» pasa de «🏠» a «📋» (en los dos idiomas). La única casita es la de «Todas las apps» del conmutador, que lleva al hub.
-- **ERP:** la lista lateral ya no repite «⌂ Todas las apps»; queda el de la cabecera, junto a «RTG ERP» (el mismo que D-227 condicionó a `hubReachable`). El enlace que se va era el segundo de D-227; la guarda sigue en el que queda.
-
-**Pruebas:** `erp-hub-link.test.ts` actualizado (un solo `href="/home"` y un solo `hubReachable &&`, y la fila de la lista ya no está).
-
-**No medido:** en navegador.
-
 ## D-618 · Órdenes: «Registrar reentrega» crea una CARGA MÁS de la misma orden («FV115 a» entregada, «FV115 b» lo que falta), no una orden con código nuevo — migración 185
 
 **Fecha:** 2026-10-20 · **Versión:** deliveries 1.346.0 (repo 1.485.0) · **Migración 185** (`185_reentrega_como_carga.sql`; ensayada con ROLLBACK y APLICADA el 2026-10-20 con el «aplica todo lo que falta» del dueño; 184/184) · Hecho directo por el orquestador en `feat/reentrega-como-carga`.
@@ -46032,3 +46018,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/reentrega-como-carga.test.ts` (la 185 con sus guardas, la nueva sin sellos ni puesto, la madre a «a», el guard vivo con la exención y el checksum puesto; puerta: la ficha pide los pallets y llama a la base, el proveedor expone la función, el modo local la tiene vacía); `order-sites.test.ts` actualizado. Ensayo de la 185 con ROLLBACK: pasa.
 
 **No medido:** en navegador; la función real se mide con la primera reentrega tras aplicar la 185.
+
+## D-619 · Un solo «inicio» por app: RR. HH. pierde la casita de «Hoy» (queda la del hub) y el ERP un «Todas las apps» de los dos
+
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.3 · erp 0.20.0 (repo 1.484.0) · Sin migración · Hecho directo por el orquestador en `fix/un-solo-inicio`.
+
+**Pedidos del dueño (2026-10-20, literales):** «on the hr app there is two home icons just leave the one that sends you to the hub so it doesn't confuse»; «erp tiene 2 all apps solo deja solo 1» (captura: «⌂ All apps» junto a «RTG ERP» y otra vez como primera fila de la lista lateral).
+
+**Qué cambia.**
+- **RR. HH.:** la pestaña «Hoy» pasa de «🏠» a «📋» (en los dos idiomas). La única casita es la de «Todas las apps» del conmutador, que lleva al hub.
+- **ERP:** la lista lateral ya no repite «⌂ Todas las apps»; queda el de la cabecera, junto a «RTG ERP» (el mismo que D-227 condicionó a `hubReachable`). El enlace que se va era el segundo de D-227; la guarda sigue en el que queda.
+
+**Pruebas:** `erp-hub-link.test.ts` actualizado (un solo `href="/home"` y un solo `hubReachable &&`, y la fila de la lista ya no está).
+
+**No medido:** en navegador.
