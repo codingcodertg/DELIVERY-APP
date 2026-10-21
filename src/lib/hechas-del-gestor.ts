@@ -1,5 +1,5 @@
 import { listaDelChofer } from "@/lib/lista-unica";
-import { ETAPAS_HECHAS } from "@/lib/mover-parada";
+import { ETAPAS_HECHAS, estaEnElCamion } from "@/lib/mover-parada";
 import type { ModoDelGestor } from "@/lib/ordenes-del-dia";
 import type { FilaDeLaRuta, LecturaDeRuta, OrdenAsignada, ParadaDelPlanMinima } from "@/lib/route-plan/lectura-de-ruta";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
@@ -75,28 +75,36 @@ export function filasConLoHecho(
   const deSiempre: FilaPintada[] = lectura.filas.map((fila, i) => ({ hecha: false, fila, i }));
   if (hechas.length === 0) return deSiempre;
   const porId = new Map(hechas.map((h) => [h.id, h]));
+  // D-NEXT (2026-10-20): de una orden EN EL CAMIÓN solo la recogida está hecha; su entrega es una fila PENDIENTE (viene
+  // en `lectura.filas`, se mueve y se mide). Roberto: «Its picked up which is fine but the delivery is after other ones».
+  // Si la pantalla no metió esa entrega entre las pendientes (no hay fila D suya en la lectura), se pinta como antes: fija,
+  // «en camino». Así lo que lee solo con `hechas` sigue completo.
+  const entregasPendientes = new Set(lectura.filas.filter((f) => f.tipo === "D").map((f) => f.orden));
+  const esHecha = (tipo: "P" | "D", orden: string): boolean => {
+    const h = porId.get(orden);
+    return !!h && (tipo === "P" || !estaEnElCamion(h.stage) || !entregasPendientes.has(orden));
+  };
   const filaHecha = (tipo: "P" | "D", orden: string): FilaPintada =>
     ({ hecha: true, tipo, orden, estado: tipo === "D" && porId.get(orden)!.stage !== "delivered" ? "en_camino" : "hecho" });
-
   const conPuesto = hechas.filter((h) => h.route_seq != null);
+  // Una orden recogida está en `hechas` (por su P) y en `pendientes` (por su D): a la lista entera va una vez.
+  const unaVez = new Map<string, OrdenAsignada>();
+  for (const o of [...conPuesto, ...pendientes]) if (!unaVez.has(o.id)) unaVez.set(o.id, o);
   const entera: { tipo: "P" | "D"; orden: string }[] = lectura.fuente === "plan" && paradasDelPlan?.length
     ? [...paradasDelPlan].sort((a, b) => a.seq - b.seq).map((p) => ({ tipo: p.kind, orden: ordenDeLaParte(p.order_ref) }))
-    : listaDelChofer([...conPuesto, ...pendientes], capacidad)
+    : listaDelChofer([...unaVez.values()], capacidad)
       .flatMap((p): { tipo: "P" | "D"; orden: string }[] => (p.tipo === "P" ? p.ordenes.map((orden) => ({ tipo: "P", orden })) : [{ tipo: "D", orden: p.orden }]));
-
   const out: FilaPintada[] = [];
   const pintadas = new Set<string>();
   let k = 0;
   for (const hueco of entera) {
-    if (porId.has(hueco.orden)) {
-      // Una orden repartida en cargas sale dos veces en el plan: hecha, una fila de recogida y una de entrega bastan.
+    if (esHecha(hueco.tipo, hueco.orden)) {
       const clave = `${hueco.tipo}:${hueco.orden}`;
       if (!pintadas.has(clave)) { pintadas.add(clave); out.push(filaHecha(hueco.tipo, hueco.orden)); }
     } else if (k < deSiempre.length) out.push(deSiempre[k++]);
   }
   while (k < deSiempre.length) out.push(deSiempre[k++]);
-  // Las hechas que la lista del día no trae (sin puesto, o fuera del plan): arriba, cada una con su recogida y su entrega.
-  const sinSitio = hechas.flatMap((h) => (["P", "D"] as const).filter((tipo) => !pintadas.has(`${tipo}:${h.id}`)).map((tipo) => filaHecha(tipo, h.id)));
+  const sinSitio = hechas.flatMap((h) => (["P", "D"] as const).filter((tipo) => esHecha(tipo, h.id) && !pintadas.has(`${tipo}:${h.id}`)).map((tipo) => filaHecha(tipo, h.id)));
   return [...sinSitio, ...out];
 }
 

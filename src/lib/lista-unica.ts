@@ -88,15 +88,17 @@ export function tienePosicionDeRecogida(filas: readonly object[]): boolean {
  *   (`load_no`) también corta el bloque: la ruta vieja se sigue leyendo como se cargó.
  * - **Una recogida por orden**, cada una en su fila, también seguidas en la misma tienda (D-444; hasta ahí eran una).
  */
-export function listaDelChofer(ordenes: readonly OrdenDeLaLista[], capacidad: number): ParadaDeLaLista[] {
+export function listaDelChofer(ordenes: readonly OrdenDeLaLista[], capacidad: number, recogidasHechas: ReadonlySet<string> = new Set()): ParadaDeLaLista[] {
+  // D-NEXT: una orden ya recogida (en el camión) no lleva fila P: solo su entrega, que sí se mueve.
   const entregas = entregasEnOrden(ordenes);
+  const yaABordo = (o: OrdenDeLaLista) => recogidasHechas.has(o.id);
   const tope = centesimas(capacidad > 0 ? capacidad : Number.POSITIVE_INFINITY);
   const guardada = (o: OrdenDeLaLista) => (o.route_seq != null ? numero(o.pickup_seq) : null);
   // Los bloques de las que NO tienen posición guardada: qué órdenes se recogen antes de la entrega de cuál.
   const bloqueAntesDe = new Map<string, OrdenDeLaLista[]>();
   let bloque: OrdenDeLaLista[] = [], carga = 0, viajeViejo = 0;
   for (const o of entregas) {
-    if (guardada(o) != null) continue;
+    if (guardada(o) != null || yaABordo(o)) continue;
     const n = centesimas(palletsDeLaOrden(o));
     const viejo = o.load_no && o.load_no > 1 ? o.load_no : 1;
     if (bloque.length && (carga + n > tope || viejo !== viajeViejo)) { bloque = []; carga = 0; }
@@ -104,7 +106,7 @@ export function listaDelChofer(ordenes: readonly OrdenDeLaLista[], capacidad: nu
     bloque.push(o);
     carga += n;
   }
-  const conPosicion = entregas.filter((o) => guardada(o) != null).sort((a, b) => guardada(a)! - guardada(b)!);
+  const conPosicion = entregas.filter((o) => guardada(o) != null && !yaABordo(o)).sort((a, b) => guardada(a)! - guardada(b)!);
   const recogida = (o: OrdenDeLaLista): ParadaDeLaLista => ({ tipo: "P", ordenes: [o.id], tienda: (o.store ?? "").trim() || null });
 
   const sueltas: ParadaDeLaLista[] = [];
@@ -116,7 +118,7 @@ export function listaDelChofer(ordenes: readonly OrdenDeLaLista[], capacidad: nu
       const x = conPosicion[k++];
       if (!recogidas.has(x.id)) { recogidas.add(x.id); sueltas.push(recogida(x)); }
     }
-    if (guardada(o) != null && !recogidas.has(o.id)) { recogidas.add(o.id); sueltas.push(recogida(o)); }
+    if (guardada(o) != null && !recogidas.has(o.id) && !yaABordo(o)) { recogidas.add(o.id); sueltas.push(recogida(o)); }
     const suyo = bloqueAntesDe.get(o.id);
     if (suyo) {
       // Las de una misma tienda, seguidas, en el orden en que aparece la primera orden de cada tienda. Una fila cada una
@@ -225,7 +227,8 @@ export interface CuentaDeLaLista {
  * y se avisa). Nunca bloquea: si en una parada se pasa de `capacidad`, lo dice ESA fila (`exceso`); la capacidad `null`
  * (no se sabe) no marca nada.
  */
-export function cuentaDePallets(cambios: readonly (number | null)[], capacidad: number | null): CuentaDeLaLista {
+/** `aBordoInicial` (D-NEXT): lo que ya va en el camión al empezar la lista (las recogidas hechas cuya entrega sigue pendiente). */
+export function cuentaDePallets(cambios: readonly (number | null)[], capacidad: number | null, aBordoInicial = 0): CuentaDeLaLista {
   const cap = capacidad != null && capacidad > 0 ? centesimas(capacidad) : null;
   const fila = (antesC: number, cambioC: number, sinConteo: boolean): FilaDeCuenta => {
     const despuesC = antesC + cambioC;
@@ -236,8 +239,8 @@ export function cuentaDePallets(cambios: readonly (number | null)[], capacidad: 
       sinConteo,
     };
   };
-  let aBordo = 0, maxima = 0, movidos = 0;
-  const salida = fila(0, 0, false);
+  let aBordo = centesimas(aBordoInicial), maxima = aBordo, movidos = 0;
+  const salida = fila(0, aBordo, false);
   const paradas = cambios.map((c) => {
     const cc = c == null ? 0 : centesimas(c);
     const f = fila(aBordo, cc, c == null);

@@ -32332,6 +32332,8 @@ Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
 
 ## D-433 · Gestor de Rutas: el selector «Viaje N» ya no rompe la tarjeta, mira la capacidad, y las flechas se ven y no empatan con lo entregado
 
+> **Reemplazada en parte por D-NEXT** (2026-10-20): lo recogido ya no es «hecho» para la lista; su entrega es una parada pendiente que se mueve. Lo fijo es lo entregado.
+
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): lo ya recogido o entregado del chofer ese día SÍ se pinta ahora en su tarjeta («right now when the order gets delivered it desapears frm the logistic manager view so don't do that»), intercalado donde iba y sin controles. Deja de valer «Las filas que se pintan no cambian. La tarjeta sigue recorriendo solo las pendientes». Lo demás sigue: lo hecho no se mueve ni se reescribe, las pendientes se numeran detrás, y la comparación con el plan cuenta lo hecho.
 >
 > **⚠ Reemplazada en parte por D-437** (2026-09-28): «Optimizar» ya no existe, así que el porqué de `load_auto: false` en
@@ -35144,6 +35146,8 @@ por factura, o cuando alguien la reprograma a hoy.
 siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
+
+> **Reemplazada en parte por D-NEXT** (2026-10-20): la entrega de una orden en el camión deja de pintarse fija «🚚 en camino» en el Gestor; es una fila pendiente con flechas.
 
 > **Reemplazada en parte por D-584** (2026-10-18): en el mapa, el pin de lo ENTREGADO ya no lleva «✓»: lleva su número de parada del
 > día, apagado. El dueño: «keep the numbers and fade them instead of replacing them with a faded checkmark». El 🚚 de lo
@@ -46051,3 +46055,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/encuestas/comentarios-por-area.test.ts` (el panel pide la columna y la pinta; la 186 con columna, CHECK, clave admitida, validación e insert; checksum puesto). Ensayo de la 186: pasa (incluye tres asertos de la función de validación).
 
 **No medido:** en el navegador del sitio ni con una respuesta real; la medida es la primera encuesta con comentario tras publicar.
+
+## D-NEXT · Gestor: la entrega de una orden YA RECOGIDA es una parada pendiente (se mueve con las flechas, se mide y cuenta su carga a bordo); solo la recogida queda fija — migración 187
+
+**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries) · **Migración 187** (`187_mover_entrega_en_camion.sql`, ensayada con ROLLBACK y APLICADA el 2026-10-20 con el «HAZLO» del dueño; 186/186) · Hecho directo por el orquestador en `feat/entrega-en-camion-se-mueve`.
+
+**Pedido (Roberto Rodriguez Jr, admin, por el dueño, 2026-10-20, literal):** «Doesnt let me move D5 down, it shouldnt be the next delivery. Its picked up which is fine but the delivery is after other ones» (captura: la fila «🚚 D5» de #170741/170397, recogida, fija en la lista sin flechas, delante de P6…D9 pendientes). El dueño: «HAZLO».
+
+**Medido antes.** Desde D-433 una orden `picked_up` contaba como «hecha» (`ETAPAS_HECHAS`): no entraba en los carriles del Gestor (`dayOrders` solo trae etapas pendientes), su recogida y su entrega se pintaban fijas («✓» y «🚚 en camino», D-459) y nada la movía. La medida de la ruta (D-529) sí la recorría, pero la hora de su entrega salía «on its way». Y la base (guard 169) no deja a logística editar una orden en `picked_up`.
+
+**Qué cambia.**
+- **Modelo:** `estaEnElCamion(stage)` (= `picked_up`) y `ETAPAS_FIJAS` = `delivered`. La recogida de una orden en el camión está hecha; su **entrega es pendiente**: va en la lista con índice (flechas ↑↓ y arrastre), se numera como las demás, la medida le pone hora (`llegadaEnLasOrdenes`: la medida si la hay, si no «en camino») y la cuenta de pallets **arranca con lo que ya va a bordo** (`cuentaDePallets(…, aBordoInicial)`), así la fila «−4» no deja el camión en negativo.
+- **Lista:** `listaDelChofer(…, recogidasHechas)` y `lecturaDeLaRuta(…, recogidasHechas)` no pintan la fila P de una orden ya a bordo; `lecturaConLoHecho` (el Gestor) lo deduce de la etapa. `pendientesDelDia` deja fuera solo lo entregado. `inicioDeLaSecuencia` cuenta desde lo ENTREGADO (`hechasDelChofer`): el puesto de la entrega movida se reescribe en el rango pendiente.
+- **Gestor:** los carriles incluyen las órdenes en el camión (`byDriver`); `filasConLoHecho` pinta su P como hecha y toma su D de las pendientes. Si una pantalla NO mete esa entrega entre las pendientes (como «Mi ruta», que lee distinto), se pinta como antes, fija y «en camino»: lo que lee solo con `hechas` no cambia. «Pasar a…» no se ofrece para una entrega en el camión (el material va en ESE camión).
+- **Base (187):** el guard de etapas (definición viva, 169 + 185, con un añadido tras la salida del admin) deja, a cualquiera con el módulo de Entregas, cambiar SOLO `route_seq`, `pickup_seq` y `load_no` de una orden `picked_up` sin salir de `picked_up`. Logística ya puede bajar o subir esa entrega. Lo comprueba el bloque final de la migración.
+
+**Qué no cambia.** Lo entregado sigue fijo con su número apagado (D-459/D-529). «Mi ruta» del chofer no cambia (D-533 ya trataba la entrega en el camión como lo siguiente). Vaciar una ruta sigue sin tocar lo recogido ni lo entregado. Las etiquetas P/D del día (D-515) siguen.
+
+**Pruebas:** `src/lib/entrega-en-camion.test.ts` (fijo = entregado; pendientes del día con lo recogido; la lista sin la P de lo a bordo y la cuenta con carga inicial; el Gestor pinta la P hecha y la D pendiente con índice; el caso «solo con hechas» se pinta como antes; la llegada con medida; puerta: carriles, cuenta, «Pasar a…» y la 187). Pruebas actualizadas al modelo: `mover-parada`, `recogida-y-ruta-del-dia`, `columnas-como-programadas`, `gestor/numeros-del-dia` (las pantallas: «7 D3» con flechas, 5 paradas pendientes), más las puertas de la pantalla. Suite entera: 8.482 en verde.
+
+**No medido:** en navegador. La medida real es la tabla de Roberto con una recogida en camino: la fila D con flechas, bajando entre las pendientes, y la cuenta de pallets sin negativos.

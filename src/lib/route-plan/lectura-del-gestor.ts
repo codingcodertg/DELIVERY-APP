@@ -1,4 +1,5 @@
 import { lecturaDeLaRuta, type LecturaDeRuta, type OrdenAsignada, type ParadaDelPlanMinima } from "./lectura-de-ruta";
+import { estaEnElCamion } from "@/lib/mover-parada";
 
 /**
  * La lectura de una ruta en el Gestor, con lo que el chofer ya recogió o entregó (D-433).
@@ -14,5 +15,7 @@ import { lecturaDeLaRuta, type LecturaDeRuta, type OrdenAsignada, type ParadaDel
 export function lecturaConLoHecho(
   ordenes: readonly OrdenAsignada[], capacidad: number, paradas: readonly ParadaDelPlanMinima[] | null, hechas: readonly OrdenAsignada[],
 ): LecturaDeRuta {
-  return lecturaDeLaRuta(ordenes, capacidad, paradas, hechas);
+  // D-NEXT: las órdenes que ya van en el camión (`picked_up`) siguen en `ordenes` por su entrega; su recogida no es fila pendiente.
+  const enElCamion = new Set(ordenes.filter((o) => estaEnElCamion((o as { stage?: string }).stage)).map((o) => o.id));
+  return lecturaDeLaRuta(ordenes, capacidad, paradas, hechas, enElCamion);
 }

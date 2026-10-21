@@ -167,7 +167,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
     });
     it("lo que mueve, cuenta y mide la ruta sigue trabajando SOLO sobre lo pendiente (el puesto de lo hecho es fijo, D-433)", () => {
       // La lectura, la cuenta de pallets, Optimizar y la medida salen de `stops` (lo pendiente), no de lo pintado.
-      expect(pagina).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);");
+      expect(pagina).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity, aBordoDe(stops));");
       const optimiza = trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.");
       expect(optimiza).toContain("const stops = byDriver.get(laneKey) ?? [];");
       expect(optimiza).toContain("const lista = lecturaDe(laneKey, stops).paradas;");

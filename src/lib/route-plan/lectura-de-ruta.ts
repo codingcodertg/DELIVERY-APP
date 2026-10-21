@@ -107,11 +107,13 @@ const enOrden = (paradas: readonly ParadaDelPlanMinima[]) => [...paradas].sort((
  */
 export function lecturaDeLaRuta(
   ordenes: readonly OrdenAsignada[], capacidad: number, paradas: readonly ParadaDelPlanMinima[] | null, hechas: readonly OrdenAsignada[] = [],
+  /** D-NEXT: las órdenes YA RECOGIDAS (en el camión) que siguen en `ordenes` por su entrega: no llevan fila P. */
+  recogidasHechas: ReadonlySet<string> = new Set(),
 ): LecturaDeRuta {
   const hayPlan = !!paradas && paradas.length > 0;
   const todas = [...ordenes, ...hechas];
-  if (hayPlan && sigueElPlan(paradas!, todas)) return delPlan(enOrden(paradas!), ordenes);
-  const lista = listaDelChofer(ordenes, capacidad);
+  if (hayPlan && sigueElPlan(paradas!, todas)) return delPlan(enOrden(paradas!), ordenes, recogidasHechas);
+  const lista = listaDelChofer(ordenes, capacidad, recogidasHechas);
   const numeros = numeraLaLista(lista);
   const cambios = cambiosDeLaLista(lista, ordenes);
   const filas: FilaDeLaRuta[] = lista.map((p, i) => (p.tipo === "P"
@@ -124,7 +126,7 @@ export function lecturaDeLaRuta(
 
 /** La lista tal como la dejó el plan, solo con las órdenes que se pintan. La carga de cada parada, la del plan (lo que
  *  cambió `load_after`): así cuadra también una orden repartida en cargas. Cada recogida, su fila (D-444). */
-function delPlan(paradas: readonly ParadaDelPlanMinima[], ordenes: readonly OrdenAsignada[]): LecturaDeRuta {
+function delPlan(paradas: readonly ParadaDelPlanMinima[], ordenes: readonly OrdenAsignada[], recogidasHechas: ReadonlySet<string> = new Set()): LecturaDeRuta {
   const pinta = new Set(ordenes.map((o) => o.id));
   const filas: FilaDeLaRuta[] = [];
   const lista: ParadaDeLaLista[] = [];
@@ -146,6 +148,8 @@ function delPlan(paradas: readonly ParadaDelPlanMinima[], ordenes: readonly Orde
       continue;
     }
     // Cada recogida en su fila, también seguidas en el mismo sitio (D-444): el grupo lo pinta el color, no una fila juntada.
+    // D-NEXT: la recogida de una orden ya a bordo no es una fila pendiente (la pinta como hecha `filasConLoHecho`).
+    if (recogidasHechas.has(id)) continue;
     const lugar = p.place ?? null;
     if (recogida.has(id)) {
       // Otra carga de una orden ya recogida: el camión vuelve a por ella. Se pinta; no es otra recogida que mover.

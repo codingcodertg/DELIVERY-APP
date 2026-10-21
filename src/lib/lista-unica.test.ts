@@ -260,7 +260,7 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
   const mueve = cuerpoDe(pagina, "const mueveParada = async (", "\n  };\n");
 
   it("la tabla pinta \`lectura.filas\` con la cuenta de \`cuentaDePallets\` en cada fila, y la Base al principio y al final", () => {
-    expect(tarjeta).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);");
+    expect(tarjeta).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity, aBordoDe(stops));");
     // D-459: las filas pendientes siguen siendo las de `lectura.filas`, con su índice; entre ellas se intercalan las hechas.
     // Nota D-529: la lista pintada sale de `diaDe` (dentro, la misma `filasConLoHecho`), y cada fila lleva su índice `k`.
     expect(tarjeta).toContain("const dia = diaDe(u.key, stops, lectura);");

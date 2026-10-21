@@ -62,7 +62,8 @@ export function llegadaEnLasOrdenes(
   es: boolean,
 ): string | null {
   if (d.stage === "delivered") { const hora = horaReal(d, "D"); return `✓ ${hora ?? (es ? "entregada" : "delivered")}`; }
-  if (ETAPAS_HECHAS.has(d.stage)) return `🚚 ${es ? "en camino" : "on its way"}`;
+  // D-NEXT: en el camión, la hora que midió su ruta si la hay; si no, «en camino».
+  if (ETAPAS_HECHAS.has(d.stage)) return eta || `🚚 ${es ? "en camino" : "on its way"}`;
   if (!d.assigned_driver) return null;
   return eta || null;
 }

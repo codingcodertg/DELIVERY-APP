@@ -297,27 +297,29 @@ const listaDeMiRuta = (html: string) => html.split('<div class="acct-row"').slic
 });
 
 describe("las pantallas pintadas: el mismo número a la misma parada", () => {
-  it("«Ruta de hoy» (el Gestor en solo lectura): «1 ✓P1 · │ P2 · 2 ✓D1 · 3 D2 · 4 ✓P3 · 5 P4 · 6 D4 · 7 🚚D3»", async () => {
+  it("«Ruta de hoy» (el Gestor en solo lectura): «1 ✓P1 · │ P2 · 2 ✓D1 · 3 D2 · 4 ✓P3 · 5 P4 · 6 D4 · 7 D3» (D-NEXT: la entrega de lo recogido es pendiente)", async () => {
     estado.me = GERENTE;
     const html = await pintaElGestor(true);
-    expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "3 D2", "4 ✓P3", "5 P4", "6 D4", "7 🚚D3"]);
+    expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "3 D2", "4 ✓P3", "5 P4", "6 D4", "7 D3"]);
     // El círculo de lo ya hecho, apagado (como en «Mi ruta»); el de lo que va en camino —aún por entregar—, no.
     const circulo = (n: number) => html.match(new RegExp(`data-numero-de-parada="${n}"[^>]*style="([^"]*)"`))![1];
     expect(circulo(2)).toContain("opacity:0.55");
     expect(circulo(7)).not.toContain("opacity");
     expect(circulo(3)).not.toContain("opacity");
     // La cabecera: las paradas que aún tienen algo pendiente.
-    expect(html).toMatch(/data-totales-de-la-lista[^>]*>4 stops ·/);
+    // D-NEXT: la entrega de lo recogido (D3) también queda pendiente: 5 paradas con algo por hacer.
+    expect(html).toMatch(/data-totales-de-la-lista[^>]*>5 stops ·/);
   }, 60_000);
-  it("el Gestor de logística (con acciones): los mismos números, y lo hecho sigue sin flechas ni arrastre", async () => {
+  it("el Gestor de logística (con acciones): los mismos números; lo hecho sin flechas ni arrastre, y la entrega de lo recogido (D3) con ellas (D-NEXT)", async () => {
     estado.me = ADMIN;
     const html = await pintaElGestor(false);
-    expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "3 D2", "4 ✓P3", "5 P4", "6 D4", "7 🚚D3"]);
+    expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "3 D2", "4 ✓P3", "5 P4", "6 D4", "7 D3"]);
     for (const tr of [...html.matchAll(/<tr\b[^>]*data-hecha=[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0])) {
       expect(tr).not.toContain("data-sube-parada");
       expect(tr).not.toContain("data-fila-arrastrable");
     }
-    expect((html.match(/data-sube-parada/g) ?? []).length).toBe(4);
+    // D-NEXT: cuatro pendientes de antes + la entrega D3 de lo recogido, que ahora se mueve.
+    expect((html.match(/data-sube-parada/g) ?? []).length).toBe(5);
   }, 60_000);
   it("«Mi ruta» de Ana, pintada, da a cada parada el MISMO número que el Gestor", async () => {
     estado.me = GERENTE;

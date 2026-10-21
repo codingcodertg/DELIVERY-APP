@@ -1,6 +1,6 @@
 import type { ParadaFisica } from "@/lib/gestor/paradas-numeradas";
 import type { ParadaDeLaLista } from "@/lib/lista-unica";
-import { ETAPAS_HECHAS } from "@/lib/mover-parada";
+import { ETAPAS_FIJAS } from "@/lib/mover-parada";
 
 // ============================================================
 // D-584 · Dos pedidos del dueño para el chofer (2026-10-18, «for drivers in delivery app»):
@@ -48,7 +48,8 @@ export function ordenesDeLaRutaDelDia<T extends { id: string; route_seq?: number
 
 /** Lo PENDIENTE de una ruta del día (lo que la tabla mueve y numera desde lo pendiente): lo que no está recogido ni entregado. */
 export function pendientesDelDia<T extends { stage: string }>(delDia: readonly T[]): T[] {
-  return delDia.filter((d) => !ETAPAS_HECHAS.has(d.stage));
+  // D-NEXT: lo recogido sigue pendiente de ENTREGAR: su entrega se mueve y se mide; solo lo entregado queda fuera.
+  return delDia.filter((d) => !ETAPAS_FIJAS.has(d.stage));
 }
 
 /**

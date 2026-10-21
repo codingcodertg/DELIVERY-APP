@@ -23,6 +23,12 @@
 
 /** Las etapas de lo ya hecho: no salen en el Gestor, pero siguen en «Mi ruta» con su puesto. No se mueven nunca. */
 export const ETAPAS_HECHAS: ReadonlySet<string> = new Set(["picked_up", "delivered"]);
+/** D-NEXT (2026-10-20): una orden recogida va EN EL CAMIÓN: su recogida está hecha, pero su entrega es una parada pendiente
+ *  que se mueve, se mide y cuenta su carga a bordo. Roberto (admin): «Doesnt let me move D5 down, it shouldnt be the next
+ *  delivery. Its picked up which is fine but the delivery is after other ones». */
+export const estaEnElCamion = (stage: string | null | undefined): boolean => stage === "picked_up";
+/** Lo que no se mueve nunca y fija el inicio de la numeración: lo ENTREGADO (D-NEXT; antes también lo recogido). */
+export const ETAPAS_FIJAS: ReadonlySet<string> = new Set(["delivered"]);
 
 /**
  * Desde qué `route_seq` se numeran las pendientes: justo DESPUÉS de lo último ya hecho del chofer ese día.
@@ -41,5 +47,5 @@ export function inicioDeLaSecuencia(hechas: readonly { route_seq?: number | null
 export function hechasDelChofer<T extends { assigned_driver?: string | null; delivery_date?: string | null; stage: string }>(
   todas: readonly T[], chofer: string, fechas: ReadonlySet<string | null>,
 ): T[] {
-  return todas.filter((d) => d.assigned_driver === chofer && ETAPAS_HECHAS.has(d.stage) && fechas.has(d.delivery_date ?? null));
+  return todas.filter((d) => d.assigned_driver === chofer && ETAPAS_FIJAS.has(d.stage) && fechas.has(d.delivery_date ?? null));
 }
