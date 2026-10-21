@@ -208,19 +208,22 @@ describe("el sitio de la burbuja", () => {
     }
   });
 
-  it("va POR DEBAJO de lo que las apps pegan al fondo, para no tapar sus botones", () => {
-    expect(zDeLaBurbuja).toBe(5);
-    // «Elige conductor» y el reparto del Gestor (pegados abajo, `sticky`).
+  it("va POR ENCIMA de todo (D-616): de las barras pegadas al fondo, de una orden abierta y de los avisos", () => {
+    // D-530 la tenía en 5, por debajo; el dueño el 2026-10-20: «THE HELP BUTTON SHOULD ALWAYS BE VISIBLE AND ON TOP OF EVERYTHING».
+    expect(zDeLaBurbuja).toBe(1000);
     const gestor = leer("src/app/(app)/routes/page.tsx");
     const pegados = [...gestor.matchAll(/position: "sticky", bottom: 8, zIndex: (\d+)/g)].map((m) => Number(m[1]));
     expect(pegados.length).toBe(3);
-    for (const z of pegados) expect(zDeLaBurbuja).toBeLessThan(z);
-    // La barra de seleccionados del ERP y la de comparar de RR. HH.
+    for (const z of pegados) expect(zDeLaBurbuja).toBeGreaterThan(z);
     expect(leer("src/components/erp/bulk-bar.tsx")).toContain('className="fixed inset-x-0 bottom-4 z-40');
-    expect(zDeLaBurbuja).toBeLessThan(40);
+    expect(zDeLaBurbuja).toBeGreaterThan(40);
     expect(leer("src/app/recruiting/recruiting.css")).toMatch(/\.compare-bar \{ position: fixed; bottom: 0;[^}]*z-index: 60;/);
-    // Y los avisos de abajo de cada app.
-    expect(css).toMatch(/\.toast \{ position: fixed; bottom: 20px;[^}]*z-index: 99; \}/);
+    expect(zDeLaBurbuja).toBeGreaterThan(60);
+    // Una orden abierta (`.overlay`, 50) y los avisos (99) quedan debajo; el panel del chat, un punto por encima de la burbuja.
+    const css = leer("src/app/globals.css");
+    expect(css).toMatch(/\.overlay \{[^}]*z-index: 50;/);
+    expect(zDeLaBurbuja).toBeGreaterThan(99);
+    expect(css).toMatch(/\.chat-panel \{[^}]*z-index: 1001;/);
   });
 
   it("deja un hueco al final de cada app para que lo último suba por encima de ella", () => {

@@ -42692,6 +42692,8 @@ ancla de texto**, y se dice: G8 (el horario numera solo lo pendiente: el horario
 **Añadido por el orquestador al fusionar:** en «Mi ruta», la entrega ya hecha también conserva su número en el círculo (antes pintaba «✓» en vez del número: `{hecha ? "✓" : n}` → `{n}`); el círculo apagado ya la distingue. Es el mismo pedido del dueño, en la otra pantalla.
 ## D-530 · El tema sin «Same as my device», y la burbuja de Ayuda igual en todas las apps
 
+> **Reemplazada en parte por D-616** (2026-10-20): la burbuja de Ayuda pasa a `z-index` 1000, por encima de todo (el dueño lo pidió así).
+
 **Fecha:** 2026-10-11 · **Versión:** todas las apps suben una menor (código compartido: layout raíz, prefs, globals.css, /api/help); repo 1.395.0. Toca código que pasa por TODAS las apps (el layout raíz,
 `prefs.tsx`, `globals.css`, `/api/help`), así que la sube en todas las de `APP_VERSIONS` · **Sin migración** ·
 **Pedido por:** el dueño · **Reemplaza en parte a** D-490 (el tema), D-301 y D-311 (la ayuda solo en Entregas), que llevan
@@ -45959,3 +45961,19 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `help-requests.test.ts` (el filtro: pendientes, atendidas, todas con pendientes primero) y `ayuda-atendida.test.ts` (puerta: filtro por defecto «pendientes», la lista es `listadas`, el archivo plegable ya no está, los números a la vista).
 
 **No medido:** en navegador.
+
+## D-616 · Gestor: la hora estimada de una recogida pendiente volvía «no base» por una clave que no coincidía; y Ayuda y Chat quedan por encima de todo (también con una orden abierta)
+
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.344.0 (repo 1.482.0) · Sin migración · Hecho directo por el orquestador en `fix/eta-recogida-y-burbujas-encima`.
+
+**Pedidos del dueño (2026-10-20, literales):** «WHY DOES IT SAYS NO BASE» (captura: las recogidas pendientes en RDZ Pharr y RDZ Edinburg con «no base» en ETA, las entregas con hora); «THE HELP BUTTON SHOULD ALWAYS BE VISIBLE AND ON TOP OF EVERYTHING BECAUSE FOR EXAMPLE IF YOU OPEN A ORDER IT STAYS BLOCKED IN THE BACKGROUND AND MAKE THE HELP BUTTON AVAILABLE THROUGHOUT THE APP LIKE THE HAT» y «CHAT».
+
+**Causa del «no base» (leída).** La medida de la ruta guardaba la hora de cada recogida con la clave «P:» + su PUESTO en la lista medida, y la tabla la buscaba con «P:» + su puesto en la lista de PENDIENTES. Desde D-529 la lista medida es la del día entero (con lo ya hecho delante), así que en cuanto hay una parada hecha los puestos no coinciden: la hora existe pero no se encuentra, y el texto de respaldo era «no base» (que en realidad significa «una sola parada y el chofer sin tienda»). Las entregas no lo sufrían: su clave es el id de la orden.
+
+**Qué cambia.**
+- `claveDeRecogida(ordenes)` = «P:» + las órdenes de la recogida, la misma al guardar (`usa-medida-de-rutas.ts`) y al buscar (la tabla de paradas). Una recogida pendiente vuelve a enseñar su hora.
+- **Ayuda y Chat por encima de todo:** `z-index` 1000 (burbujas) y 1001 (panel del chat), por encima de una orden abierta (`.overlay`, 50), de los avisos (99) y de las barras de cada app. D-530 las había dejado en 5 a propósito para no tapar botones de fondo de pantalla; el dueño decide lo contrario: siempre a mano, como el sombrero del hub.
+
+**Pruebas:** `src/lib/eta-de-recogida.test.ts` (la clave son las órdenes; puerta: la medida guarda y la tabla busca con `claveDeRecogida`, ningún «P:» + índice queda; y los `z-index` de Ayuda, Chat y su panel).
+
+**No medido:** en navegador. La medida real es la tabla de Roberto con paradas hechas delante.

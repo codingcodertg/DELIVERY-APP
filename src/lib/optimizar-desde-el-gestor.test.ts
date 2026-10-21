@@ -506,7 +506,7 @@ describe("6 · la medida de la tarjeta cuenta las horas como el optimizador", ()
     const mide = trozo("export async function mideLaLista", "/** La forma de la ruta que se mide", plano(leer("src/lib/usa-medida-de-rutas.ts")));
     expect(mide).toContain("const parado = minutosEnCadaParada(lista, lista.map((p) => (p.tipo === \"D\" ? serviceMin(byId.get(p.orden)?.delivery_duration) : p.ordenes.reduce((n, id) => n + serviceMin(byId.get(id)?.pickup_duration), 0))), RELOAD_MIN);");
     expect(mide).toContain("puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: parado[i] });");
-    expect(mide).toContain("if (c) puntos.push({ id: `P:${i}`, lat: c.lat, lng: c.lng, servicio: parado[i] });");
+    expect(mide).toContain("if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i] });");
     expect(mide).not.toContain("servicio: RELOAD_MIN");
   });
 });

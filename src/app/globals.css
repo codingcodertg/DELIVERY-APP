@@ -1217,7 +1217,9 @@ a.mapa-casilla:hover, a.mapa-casilla:focus-visible { background: var(--paper); b
      «Elige conductor» del Gestor (6), la barra de seleccionados del ERP (40), la de comparar de RR. HH. (60), los
      avisos (99) y las ventanas—, para que nunca tape uno de sus botones; y por ENCIMA del contenido que pasa por
      debajo al bajar (tablas, tarjetas, mapas: `.leaflet-container` aísla los suyos). */
-  position: fixed; right: 20px; bottom: 20px; z-index: 5;
+  /* D-616 (2026-10-20): POR ENCIMA de todo, también de una orden abierta (`.overlay` 50) y los avisos (99). El dueño: «THE HELP
+     BUTTON SHOULD ALWAYS BE VISIBLE AND ON TOP OF EVERYTHING … if you open an order it stays blocked in the background». */
+  position: fixed; right: 20px; bottom: 20px; z-index: 1000;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 11px 16px 11px 13px; border: none; border-radius: 999px;
   background: var(--accent); color: #fff; font-weight: 800; font-size: 14px;
@@ -1736,7 +1738,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 /* ---- Chat interno (D-609): burbuja ABAJO a la derecha, encima de la de Ayuda (D-615, 2026-10-20: el dueño, con la captura
    de la burbuja tapando «+ New order»: «el chat above el help request»); pestañita cuando se oculta, y el panel. ---- */
 .chat-fab {
-  position: fixed; right: 20px; bottom: 72px; z-index: 5;
+  position: fixed; right: 20px; bottom: 72px; z-index: 1000;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 9px 14px 9px 12px; border: none; border-radius: 999px;
   background: var(--accent); color: #fff; font-weight: 800; font-size: 14px;
@@ -1745,7 +1747,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .chat-fab:hover { background: #1d47a8; }
 .chat-fab-label { line-height: 1; }
 .chat-tab {
-  position: fixed; right: 0; bottom: 76px; z-index: 5; width: 30px; height: 36px;
+  position: fixed; right: 0; bottom: 76px; z-index: 1000; width: 30px; height: 36px;
   border: none; border-radius: 10px 0 0 10px; background: var(--accent); color: #fff; cursor: pointer; opacity: .85;
 }
 .chat-badge {
@@ -1755,7 +1757,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .chat-fab, .chat-tab { position: fixed; }
 .chat-badge-fila { position: static; margin-left: auto; }
 .chat-panel {
-  position: fixed; right: 20px; bottom: 72px; z-index: 70; width: 340px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 100px);
+  position: fixed; right: 20px; bottom: 72px; z-index: 1001; width: 340px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 100px);
   display: flex; flex-direction: column; background: var(--surface, #fff); color: inherit; border: 1px solid var(--line, #e3e7ee);
   border-radius: 14px; box-shadow: 0 12px 32px rgba(10,20,40,.28); overflow: hidden;
 }
