@@ -91,6 +91,7 @@ import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
 import { fotosParaContar, useFotosDeLaOrden, useUrlsDeFotos } from "@/lib/fotos-de-la-orden";
 import { subirFotosDeEntrega, type AlmacenDeFotos } from "@/lib/fotos-en-storage";
 import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
+import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
 const MOSTRAR_CONFLICTO_DE_PROGRAMACION = false;
@@ -2403,7 +2404,9 @@ export function OrderModal({
                 t={t}
               />
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
-              <Txt label={t("Phone number", "Número de teléfono")} val={d.delivery_phone} on={(v) => set("delivery_phone", v)} disabled={!salesFields} invalid={missingSet.has("delivery_phone")} />
+              {/* Solo números: el formato «(956) 340-5910» se pone solo según se escribe (D-630). */}
+              <Txt label={t("Phone number", "Número de teléfono")} val={telefonoParaVer(d.delivery_phone)} on={(v) => set("delivery_phone", telefonoAlEscribir(v))} disabled={!salesFields} invalid={missingSet.has("delivery_phone")}
+                type="tel" inputMode="numeric" placeholder={MOLDE_DEL_TELEFONO} />
             </div>
             {/* D-436: correo, avisos e idioma del cliente (D-416) ya no salen en la ficha (ver arriba). Los avisos, si se
                 encienden, van por el teléfono de la orden con la preferencia por defecto. */}
@@ -4068,15 +4071,17 @@ function eventLabel(kind: string, lang: "en" | "es"): string {
 }
 
 // ---- Small field helpers --------------------------------------------------
-function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, min }: {
+function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, min, inputMode }: {
   label: string; val: unknown; on: (v: string) => void; type?: string; disabled?: boolean; placeholder?: string; invalid?: boolean;
+  /** El teclado del teléfono: «numeric» saca solo números (D-630). */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   /** Tope inferior del selector (fechas: hoy, D-532). El selector no deja elegir antes; lo escrito a mano lo para `passesChecks`. */
   min?: string;
 }) {
   return (
     <div className="field">
       <label>{label}{invalid && <span className="req-star"> *</span>}</label>
-      <input className={invalid ? "invalid" : ""} type={type} step={type === "number" ? "any" : undefined} value={(val as string) ?? ""} disabled={disabled} placeholder={placeholder} min={min}
+      <input className={invalid ? "invalid" : ""} type={type} step={type === "number" ? "any" : undefined} value={(val as string) ?? ""} disabled={disabled} placeholder={placeholder} min={min} inputMode={inputMode}
         onChange={(e) => on(e.target.value)} />
     </div>
   );

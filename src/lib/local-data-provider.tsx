@@ -17,6 +17,7 @@ import { alJuntar, alRepartir, copiaParaLaCarga, hermanasDe, madreAlPartir, sigu
 import { palletsDeLaOrden } from "@/lib/pallets";
 import { orderLabel } from "@/lib/utils";
 import { notaDeReprogramacion } from "@/lib/reprogramar-orden";
+import { conTelefonoEstandar } from "@/lib/telefono-de-la-orden";
 import { ETAPAS_PARA_TOMAR, facturaParaBuscar, motivoValido, notaDeExcepcion, numerosDeFactura, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
 
 // ============================================================
@@ -128,7 +129,8 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return [...fresh, ...s.notifications];
   };
 
-  const addDelivery = useCallback<DataState["addDelivery"]>(async (d) => {
+  const addDelivery = useCallback<DataState["addDelivery"]>(async (dIn) => {
+    const d = conTelefonoEstandar(dIn); // como el proveedor real (D-630)
     const s = storeRef.current;
     // Same write guard as the real provider (D-276).
     const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, s.settings.order_type_rules, s.settings.stores);
@@ -160,7 +162,8 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return row;
   }, [me, persist, notify]);
 
-  const updateDelivery = useCallback<DataState["updateDelivery"]>(async (id, patch) => {
+  const updateDelivery = useCallback<DataState["updateDelivery"]>(async (id, patchCrudo) => {
+    const patch = conTelefonoEstandar(patchCrudo); // como el proveedor real (D-630)
     const s = storeRef.current;
     // Same write guard as the real provider (D-276).
     const choqueAlEditar = escrituraQueNoVaANingunSitio(s.deliveries.find((c) => c.id === id), patch, s.settings.order_type_rules, s.settings.stores);
