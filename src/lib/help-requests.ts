@@ -109,6 +109,26 @@ export function asomoDelMensaje(mensaje: string, limite = ASOMO_DEL_MENSAJE): st
   return limpio.length <= limite ? limpio : `${limpio.slice(0, limite - 1).trimEnd()}…`;
 }
 
+/** Cuánto del mensaje se ve en la FILA de la bandeja del admin (D-NEXT): más que en el aviso, cabe en una línea ancha. */
+export const ASOMO_EN_LA_LISTA = 160;
+
+/**
+ * Lo que la fila de la bandeja enseña del mensaje, sin abrirla (D-NEXT, 2026-10-21). Roberto (admin): «Was better when
+ * the requests showed a bit of the sentence to know what each was talking about without having to open 1 by 1».
+ *
+ * Es `asomoDelMensaje` sin las líneas que la captura añade a un recuadro que nadie describió —«1) (no description)»,
+ * «2) (sin descripción)», `listaDeProblemas` en help-recuadros.ts—: una fila que dijera solo eso no dice de qué va. Los
+ * recuadros CON texto se quedan, que sí lo dicen. Si no queda nada, `null`: la pantalla dice entonces «solo captura».
+ */
+export function asomoEnLaLista(mensaje: string | null | undefined, limite = ASOMO_EN_LA_LISTA): string | null {
+  const util = (mensaje ?? "")
+    .split("\n")
+    .filter((l) => !/^\s*\d+\)\s*\((no description|sin descripción)\)\s*$/i.test(l))
+    .join("\n");
+  const asomo = asomoDelMensaje(util, limite);
+  return asomo === "" ? null : asomo;
+}
+
 /**
  * El aviso para el remitente de que su solicitud ya está atendida.
  *

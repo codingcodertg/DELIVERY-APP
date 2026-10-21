@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import {
-  adjuntosDe, avisoDeAtendida, filtraSolicitudes, parcheDeEstado, personasDeSolicitudes, quienEscribe,
+  adjuntosDe, asomoEnLaLista, avisoDeAtendida, filtraSolicitudes, parcheDeEstado, personasDeSolicitudes, quienEscribe,
   resumenDelEnvio, separaPorEstado, listaSegunEstado, type FiltroDeEstado, type SolicitudDeAyuda,
 } from "@/lib/help-requests";
 import { noLeidosPorSolicitud, type MensajeDeAyuda } from "@/lib/help-thread";
@@ -130,6 +130,7 @@ export default function SolicitudesDeAyudaPage() {
   const tarjeta = (s: SolicitudDeAyuda) => {
     const adjuntos = adjuntosDe(s);
     const abiertaEsta = abierta === s.id;
+    const asomo = asomoEnLaLista(s.message);
     return (
       <div className="card" key={s.id}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -151,6 +152,16 @@ export default function SolicitudesDeAyudaPage() {
             {s.status === "atendida" ? t("Mark pending", "Marcar pendiente") : t("Mark handled", "Marcar atendida")}
           </button>
         </div>
+        {/* De qué va, sin abrirla (D-NEXT, 2026-10-21; Roberto: «showed a bit of the sentence […] without having to open
+            1 by 1»). Una línea, cortada con «…»; abierta, el mensaje entero está en la conversación de abajo. Pulsarla
+            abre la solicitud, como «Abrir». */}
+        {!abiertaEsta && (
+          <button type="button" className="asomo-solicitud" data-asomo-solicitud
+            onClick={() => { setAbierta(s.id); setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; }); }}
+            title={t("Open", "Abrir")}>
+            {asomo ?? <span className="hint" style={{ margin: 0 }}>📷 {t("Screenshot only, no text", "Solo captura, sin texto")}</span>}
+          </button>
+        )}
 
         {abiertaEsta && (
           <>
