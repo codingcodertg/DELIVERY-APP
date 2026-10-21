@@ -170,7 +170,7 @@ describe("e · «Cuadrícula»: tarjetas compactas arriba, la tabla del nombre p
     expect(gestor).toContain("{!sinCuerpo && <>");
     expect(gestor).toContain("{acciones && ( <span data-acciones-de-la-ruta");
     expect(gestor).toContain("const flechas = acciones && movible && (");
-    expect(gestor).toContain("const pasar = acciones && movible && lanes.length > 1 && (");
+    expect(gestor).toContain("const pasar = acciones && movible && !enCamion && lanes.length > 1 && (");
   });
 });
 

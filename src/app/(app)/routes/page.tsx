@@ -104,7 +104,7 @@ import {
   HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
-import { ETAPAS_HECHAS, hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
+import { ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
 import { hechasQueSePintan, horaReal, resumenDeEntregas, type FilaPintada } from "@/lib/hechas-del-gestor";
 import { textoDelEstadoDelPlan, type EstadoDelPlan } from "@/lib/route-plan/estado-del-plan";
 import {
@@ -1250,7 +1250,10 @@ export default function RoutesPage() {
   // order first, unsequenced ones after — same rule as the Driver page).
   // Keyed by LANE (driver+load, or bucket), so each of a driver's loads is its
   // own route.
-  const byDriver = useMemo(() => rutasPorChofer(dayOrders), [dayOrders]);
+  // D-621: la entrega de lo YA RECOGIDO sigue en la ruta como parada pendiente (se mueve, se mide, cuenta su carga).
+  const enElCamion = useMemo(() => [...hechasPintadas.values()].flat().filter((d) => estaEnElCamion(d.stage)), [hechasPintadas]);
+  const byDriver = useMemo(() => rutasPorChofer([...dayOrders, ...enElCamion.filter((d) => !dayOrders.some((x) => x.id === d.id))]), [dayOrders, enElCamion]);
+  const aBordoDe = (stops: readonly Delivery[]): number => stops.filter((d) => estaEnElCamion(d.stage)).reduce((n, d) => n + (Number(d.actual_pallets ?? d.est_pallets ?? 0) || 0), 0);
   // ¿Se pinta la línea del plan publicado de esta ruta? Solo con paradas pendientes y si sigue siendo la publicada
   // (D-437, `pintaElTrazoDelPlan`): la de Julio, vacío, seguía en el mapa.
   const sigueSuPlan = (laneKey: string): boolean => {
@@ -3011,7 +3014,7 @@ export default function RoutesPage() {
           );
         };
         // La cuenta de pallets de cada fila, visible de partida: «+4 = 4», lo de la parada y el total a bordo (D-444).
-        const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);
+        const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity, aBordoDe(stops));
         // Filas SEGUIDAS en el mismo sitio (D-444): cada una en su fila, pintadas como grupo con un tono más fuerte.
         const grupos = gruposDeMismoLugar(lectura.paradas, stops);
         // La ruta por PARADAS (D-485): filas seguidas en el mismo sitio —la misma regla de los grupos— son una parada, con un
@@ -3353,6 +3356,7 @@ export default function RoutesPage() {
                       const resaltada = recienMovida === clave;
                       // ARRASTRAR la fila (D-456): cualquier parada que también muevan las flechas. Soltada sobre otra fila toma
                       // su puesto; la raya marca dónde cae (arriba, o abajo si viene de más arriba en la misma lista).
+                      const enCamion = f.tipo === "D" && estaEnElCamion(porId.get(f.orden)?.stage);
                       const seArrastra = !soloLectura && movible && (f.tipo === "D" || hayRecogidaGuardada);
                       const arrastre = seArrastra ? filaArrastrable({ tipo: "parada", ruta: u.key, indice: f.indice! }) : {};
                       const soltar = movible ? sueltaAqui(u.key, f.indice!) : {};
@@ -3373,7 +3377,8 @@ export default function RoutesPage() {
                       );
                       // «Pasar a…» otro chofer (D-443, en las P y en las D): las órdenes de la parada, enteras.
                       const ordenesDeLaFila = f.tipo === "P" ? f.ordenes : [f.orden];
-                      const pasar = acciones && movible && lanes.length > 1 && (
+                      // Una entrega ya en el camión no se pasa a otro chofer desde aquí (el material va en ESTE camión).
+                      const pasar = acciones && movible && !enCamion && lanes.length > 1 && (
                         <select value="" data-pasar-a aria-label={t("Move the order(s) to another driver", "Pasar la(s) orden(es) a otro chofer")}
                           onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v) void pasaA(u.key, ordenesDeLaFila, v); }}
                           style={{ width: "auto", maxWidth: 84, padding: "2px 2px", fontSize: 12 }}>

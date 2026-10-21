@@ -130,7 +130,9 @@ describe("la Llegada de una orden en estas tablas (`llegadaEnLasOrdenes`)", () =
     expect(llegadaEnLasOrdenes(mk({ assigned_driver: "Ana", stage: "delivered", pod_delivered_at: "2026-10-14T15:42:00Z" }), "09:00", true)).toBe("✓ 10:42");
     expect(llegadaEnLasOrdenes(mk({ assigned_driver: "Ana", stage: "delivered", pod_delivered_at: null }), "09:00", true)).toBe("✓ entregada");
     expect(llegadaEnLasOrdenes(mk({ assigned_driver: "Ana", stage: "delivered", pod_delivered_at: null }), null, false)).toBe("✓ delivered");
-    expect(llegadaEnLasOrdenes(mk({ assigned_driver: "Ana", stage: "picked_up" }), "09:00", true)).toBe("🚚 en camino");
+    // D-621: en el camión, la hora medida si la hay; sin medida, «en camino».
+    expect(llegadaEnLasOrdenes(mk({ assigned_driver: "Ana", stage: "picked_up" }), "09:00", true)).toBe("09:00");
+    expect(llegadaEnLasOrdenes(mk({ assigned_driver: "Ana", stage: "picked_up" }), null, true)).toBe("🚚 en camino");
   });
 });
 

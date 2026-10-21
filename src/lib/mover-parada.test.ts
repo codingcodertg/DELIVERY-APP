@@ -39,7 +39,7 @@ describe("lo ya hecho no choca (`inicioDeLaSecuencia`, `hechasDelChofer`)", () =
     expect(foto["603"].route_seq).toBe(2);
     expect(foto["335"].route_seq).toBe(3);
   });
-  it("lo hecho es recogido o entregado, del mismo chofer y de esas fechas; lo pendiente, lo anulado y lo de otro no", () => {
+  it("lo fijo es lo ENTREGADO, del mismo chofer y de esas fechas; lo recogido, lo pendiente, lo anulado y lo de otro no", () => {
     const todas = [
       { id: "a", assigned_driver: "Ana", delivery_date: "2026-09-28", stage: "picked_up" },
       { id: "b", assigned_driver: "Ana", delivery_date: "2026-09-28", stage: "delivered" },
@@ -48,7 +48,8 @@ describe("lo ya hecho no choca (`inicioDeLaSecuencia`, `hechasDelChofer`)", () =
       { id: "e", assigned_driver: "Beto", delivery_date: "2026-09-28", stage: "delivered" },
       { id: "f", assigned_driver: "Ana", delivery_date: "2026-09-27", stage: "delivered" },
     ];
-    expect(hechasDelChofer(todas, "Ana", new Set(["2026-09-28"])).map((x) => x.id)).toEqual(["a", "b"]);
+    // D-621 (2026-10-20): lo FIJO es lo entregado; lo recogido va en el camión y su entrega se mueve con las pendientes.
+    expect(hechasDelChofer(todas, "Ana", new Set(["2026-09-28"])).map((x) => x.id)).toEqual(["b"]);
   });
   it("la foto del deshacer usa el mismo `desde` que se escribió", () => {
     expect(fotoTrasReordenar({}, ["X", "Y"], undefined, 5)).toEqual({

@@ -471,7 +471,7 @@ describe("la carga y lo libre del viaje van a la décima (D-355, generalizado en
   it("el Gestor ya no redondea a mano: usa las funciones compartidas, y ninguna suma de pallets queda cruda", () => {
     const pagina = leer("src/app/(app)/routes/page.tsx");
     // D-443: la carga de cada parada y lo libre salen de `cuentaDePallets` (lib/lista-unica), en centésimas.
-    expect(pagina).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity);");
+    expect(pagina).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity, aBordoDe(stops));");
     // D-362: la página no vuelve a sumar pallets por su cuenta, ni redondeando ni sin redondear.
     expect(pagina).not.toMatch(new RegExp("reduce" + String.fromCharCode(92) + "([^)]*actual_pallets"));
     // Lo que el dueño vio: 12 − (4 + 0.4 + 0.03) en coma flotante.
