@@ -46321,3 +46321,42 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - `src/lib/recruiting/seguimiento-de-llamadas.test.ts`: importa la función real, pulsa cada botón y vuelve a calcular.
 - La carpeta `src/lib/recruiting` (242) y tsc.
 - Mutantes: caen 12 de 12. Uno sobrevivió (una cita con entrevista seguía pendiente) hasta reforzar la prueba.
+
+## D-630 · Teléfonos estándar: en la orden de Entregas el campo solo acepta números y se pone solo «(956) 340-5910»; y el barrido de los candidatos ya guardados de RR. HH.
+
+**Fecha:** 2026-10-21 · **Versión:** deliveries 1.353.0 · Hecho directo por el orquestador en `feat/telefonos-estandar`. Sin migración.
+
+**Pedidos (el dueño, 2026-10-21, literal):**
+- «acuerdate lo que te pedi de standarizar curriculums numeros de telefono entonces todos los pasados tambien arreglalos y asegurate que esta lar gla que todo slo snuesvos se arrglen».
+- «en la parte de delivery order también tengo ese problema, lo mismo de los números. Permite que solo el usuario solo pueda poner números y tú lo vas poniendo como en el código de área. Entonces, él solo puede ingresar números y hasta ponerle así como así, que se miren los dos paréntesis y después el dash […] hemos tenido problemas que los salespeople ponen el número plus, así no sirve, o ponen punto […] Hay que estandarizar que solo esa parte solo acepte números, nada más, no acepte símbolos ni nada. El sistema automáticamente lo hace para deliveries app.»
+
+**Medido antes (producción, solo lectura).**
+- **Candidatos:** de 139, 127 están fuera del formato de D-610: 120 teléfonos (como «956-342-3599», «9568051065 », « (956)271-3990»), 70 nombres en MAYÚSCULAS y 7 correos vacíos guardados como «». Los nuevos ya salen bien desde D-610.
+- **El único que escribe candidatos** es el proveedor de RR. HH. (`recruiting-data-provider.tsx`, alta y edición), y ahí se estandariza. No hay otro camino.
+- **Órdenes:** 379 tienen teléfono. 362 son un número de 10 dígitos escrito de mil formas: «956-340-5910» 192, «9563405910» 78, «956*340*5910» 72, «956 340-5910» 13. Unas 13 llevan dos números en el campo y 5 tienen menos de 10 dígitos.
+- El campo de la orden era un texto libre (`Txt`), y se guardaba lo tecleado.
+
+**Qué cambia.**
+- **El campo de teléfono de la orden** (`src/lib/telefono-de-la-orden.ts`, `telefonoAlEscribir`):
+  - solo se quedan los dígitos; el «+», el 1 del país, los puntos, asteriscos, espacios y letras no entran;
+  - caben 10;
+  - el formato se pone solo según se escribe: «(9», «(956) 3», «(956) 340-5», «(956) 340-5910»;
+  - borrar va hacia atrás sin trabarse;
+  - el campo es `type="tel"` con teclado numérico (`inputMode="numeric"`) y enseña el molde «(___) ___-____».
+- **Al guardar una orden**, venga de donde venga (formulario, importación, cuenta guardada), los dos proveedores ponen el teléfono en «(956) 340-5910» (`conTelefonoEstandar`, el mismo `telefonoEstandar` de RR. HH.). Lo que no es un número completo se guarda tal cual, sin perder nada.
+- **Al abrir una orden vieja**, su número completo ya se ve con formato.
+- **El barrido de candidatos** (`scripts/estandariza-candidatos.mts`) usa la misma función de la app. Primero guarda en `D:/CLAUDE/respaldos-db` un JSON con los valores de antes, luego cambia solo esos campos en una transacción y vuelve a medir. El clasificador de permisos no dejó lanzarlo desde la sesión: lo lanza el dueño con un comando `!`.
+- **Una prueba fija la regla de los nuevos:** solo el proveedor de RR. HH. escribe candidatos.
+
+**Lo que no hace.**
+- No reescribe el teléfono de las órdenes viejas: cada una queda en formato al editarla. El script para hacerlo de una vez lo frenó el clasificador al escribirlo; queda para cuando el dueño lo pida.
+- Una orden con dos números guardados pierde el segundo si alguien teclea en el campo: el campo admite uno.
+
+**Pruebas:**
+- `src/lib/telefono-de-la-orden.test.ts`: tecleo paso a paso; símbolos, el «+1» y más de 10; borrar; ver y guardar; puertas del campo, de los dos proveedores y de quién escribe candidatos.
+- `phone-label.test.ts` y `fecha-de-entrega.test.ts`, actualizadas.
+- Suite y tsc.
+- Mutantes: caen 7 de 7.
+- **Demo a 1440 y 390 px:** se tecleó «+1 956.340*59a10» letra a letra y quedó «(956) 340-5910»; cinco borrados dejan «(956) 34».
+
+**No medido:** el barrido de candidatos en producción, hasta que el dueño lo lance.

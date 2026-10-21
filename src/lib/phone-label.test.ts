@@ -25,7 +25,7 @@ describe("la etiqueta del teléfono en la ficha de pedido", () => {
 
   it("dice «Phone number», en los dos idiomas y en el mismo `t(...)`", () => {
     // La pantalla no tiene diccionario de claves: cada texto lleva sus dos idiomas en línea.
-    expect(modal).toContain('label={t("Phone number", "Número de teléfono")} val={d.delivery_phone}');
+    expect(modal).toContain('label={t("Phone number", "Número de teléfono")} val={telefonoParaVer(d.delivery_phone)}');
   });
   it("y el par no queda cojo: si el inglés se hace específico, el español también", () => {
     // `t("Phone number", "Número")` habría dejado al español diciendo menos que al inglés.

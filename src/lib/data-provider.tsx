@@ -2,6 +2,7 @@
 
 import { falloAlTomar, mensajeDelFallo, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
 import { EVENTO_ENSENANZA, escribeEnsenanza, leeEnsenanza } from "@/lib/boton-general";
+import { conTelefonoEstandar } from "@/lib/telefono-de-la-orden";
 import {
   createContext,
   useCallback,
@@ -1064,7 +1065,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
 
   // ---------------- Delivery CRUD ----------------
   const addDelivery = useCallback<DataState["addDelivery"]>(
-    async (d) => {
+    async (dIn) => {
+      // El teléfono, siempre «(956) 340-5910» al guardar, venga de donde venga (D-630).
+      const d = conTelefonoEstandar(dIn);
       // No order goes into pending or approved going to its own place, from any screen (D-276).
       const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, d, settings.order_type_rules, settings.stores);
       if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, lang)); return null; }
@@ -1141,7 +1144,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   );
 
   const updateDelivery = useCallback<DataState["updateDelivery"]>(
-    async (id, patchIn, opts) => {
+    async (id, patchCrudo, opts) => {
+      // El teléfono, siempre «(956) 340-5910» al guardar (D-630).
+      const patchIn = conTelefonoEstandar(patchCrudo);
       // No order goes into pending or approved going to its own place, from any screen (D-276).
       const choqueAlEditar = escrituraQueNoVaANingunSitio(effectiveDeliveries.find((c) => c.id === id), patchIn, settings.order_type_rules, settings.stores);
       if (choqueAlEditar.length) { if (!opts?.quiet) notify(avisoNoVaANingunSitio(choqueAlEditar, lang)); return false; }
