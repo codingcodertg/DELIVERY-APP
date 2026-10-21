@@ -423,7 +423,7 @@ export const MODULES: ModuleInfo[] = [
     key: "erp",
     href: "/erp/catalog",
     emoji: "🧱",
-    // «Inventory» desde D-NEXT (2026-10-21; el dueño: «quiero que se cambie de ERP a inventory, el name»). La clave
+    // «Inventory» desde D-622 (2026-10-21; el dueño: «quiero que se cambie de ERP a inventory, el name»). La clave
     // `erp` y la ruta /erp se quedan: son el módulo en `module_access`, `has_erp_access()` y cien enlaces.
     label_en: "Inventory",
     label_es: "Inventario",

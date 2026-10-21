@@ -57,10 +57,10 @@ describe("la medida que usa el ERP existe solo mientras el banner está puesto",
     expect(src).toContain(`removeProperty("${VARIABLE}")`);
   });
 
-  it("la barra de Inventario va en el flujo del documento (D-NEXT): nada suyo se pega a la ventana, así que no usa la medida", () => {
+  it("la barra de Inventario va en el flujo del documento (D-622): nada suyo se pega a la ventana, así que no usa la medida", () => {
     const src = leer(SIDE_NAV);
-    // Hasta D-NEXT eran tres usos: la barra lateral `fixed inset-y-0`, el botón de desplegarla y la cabecera de
-    // móvil `sticky`. Desde D-NEXT la barra es la superior de Entregas, `.topbar` en el flujo, y el banner la
+    // Hasta D-622 eran tres usos: la barra lateral `fixed inset-y-0`, el botón de desplegarla y la cabecera de
+    // móvil `sticky`. Desde D-622 la barra es la superior de Entregas, `.topbar` en el flujo, y el banner la
     // empuja como a las otras tres barras del hub: ni `fixed` ni `sticky` ni la variable.
     expect(src.split(`var(${VARIABLE}, 0px)`).length - 1).toBe(0);
     expect(src).not.toMatch(/\b(fixed|sticky)\b/);

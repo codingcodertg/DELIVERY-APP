@@ -132,7 +132,7 @@ describe("ninguna barra elige idioma ni tema; todas llevan a Personalizar", () =
     }
     const erp = sinComentarios(leer(barras.erp));
     expect(erp).toContain("href={RUTA_PERSONALIZAR}");
-    // D-NEXT (2026-10-21): Inventario lleva la barra superior de Entregas, y Personalizar y Salir van juntos en el
+    // D-622 (2026-10-21): Inventario lleva la barra superior de Entregas, y Personalizar y Salir van juntos en el
     // menú del nombre (`MenuDeCuenta`), con su nombre; ya no hay cabecera de teléfono aparte con solo el 🎨.
     expect(erp).toContain("{personalizar(false)}{signout}");
     expect(erp).toContain("<MenuDeCuenta nombre={fullName ?? email}>");
@@ -164,7 +164,7 @@ describe("ninguna barra elige idioma ni tema; todas llevan a Personalizar", () =
 
 describe("Time Tracker lee la misma preferencia", () => {
   it("el tema: su CSS cuelga del mismo data-theme que pone el proveedor", () => {
-    // D-NEXT (2026-10-21): la paleta de Time Tracker es la del hub —cada `--tt-*` apunta a una variable de
+    // D-622 (2026-10-21): la paleta de Time Tracker es la del hub —cada `--tt-*` apunta a una variable de
     // globals.css— y es globals.css quien la cambia con `data-theme`; ya no hay un bloque claro propio.
     const tt = leer("src/app/timetracker/timetracker.css");
     expect(tt).toContain("--tt-bg:var(--paper); --tt-panel:var(--card);");

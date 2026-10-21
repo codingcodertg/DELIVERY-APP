@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { MODULES } from "./constants";
 
-// D-NEXT (2026-10-21) · el dueño: «el ERP quiero que se cambie de ERP a inventory, el name, y quiero que lo que es el
+// D-622 (2026-10-21) · el dueño: «el ERP quiero que se cambie de ERP a inventory, el name, y quiero que lo que es el
 // nuevo inventory y el customer se cambien al tema que ya tenemos en deliveries app […] al igual que el time tracker.
 // Todo eso quiero que hagamos una transformación de todo eso para que todo sea estandarizado e igual».
 

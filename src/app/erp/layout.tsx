@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * The Inventory section's shell (D-090; «RTG ERP» hasta D-NEXT, que lo renombró y lo vistió como Entregas).
+ * The Inventory section's shell (D-090; «RTG ERP» hasta D-622, que lo renombró y lo vistió como Entregas).
  *
  * `data-app="erp"` is load-bearing, not decoration: erp.css deliberately does NOT import Tailwind's
  * preflight, because that is a global reset and every other screen in this app was built without
@@ -52,7 +52,7 @@ export default async function ErpLayout({ children }: { children: React.ReactNod
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }
 
-  // D-NEXT (2026-10-21): la barra es la superior de Entregas (side-nav.tsx) y va en el flujo del documento, así que
+  // D-622 (2026-10-21): la barra es la superior de Entregas (side-nav.tsx) y va en el flujo del documento, así que
   // ya no hay barra lateral fija ni hueco a la izquierda que reservar (el `ErpNavProvider` de D-090 se fue con ella).
   return <div data-app="erp">{children}</div>;
 }

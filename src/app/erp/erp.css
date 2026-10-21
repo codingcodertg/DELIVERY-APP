@@ -48,14 +48,14 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ---------------------------------------------------------------------------
-   El tema es el del HUB (D-NEXT, 2026-10-21): tipografía, esquinas y colores de Entregas.
+   El tema es el del HUB (D-622, 2026-10-21): tipografía, esquinas y colores de Entregas.
    ---------------------------------------------------------------------------
    El dueño: «quiero que toda la app se mire igual como deliveries app». Inventario (antes ERP) está escrito con
    utilidades de Tailwind —unas mil `slate`/`white`/`clay` a pelo en 61 ficheros— y Entregas con variables de
    globals.css (`--paper`, `--card`, `--line`, `--accent`…) que cambian con el tema. Tailwind 4 compila cada color
    como una variable (`.text-slate-500{color:var(--color-slate-500)}`), así que la rampa se APUNTA a las variables
    del hub aquí, una vez, y las mil utilidades se visten de Entregas en claro y en oscuro sin tocar un fichero. Es
-   el mismo mecanismo con el que D-090 le dio modo oscuro (la «rampa invertida» que había aquí hasta D-NEXT).
+   el mismo mecanismo con el que D-090 le dio modo oscuro (la «rampa invertida» que había aquí hasta D-622).
 
    `clay` (el acento arcilla del ERP de origen) pasa a ser el acento azul del hub; sus tintes pálidos, el
    `--accent-soft`. Los colores de ESTADO (rojo, ámbar, verde) se apuntan a los tintes de Entregas (D-226) para que
@@ -133,7 +133,7 @@
 @layer base {
   /* rtg-erp's own body rule, verbatim — its globals.css is 30 lines and this is
      all of the theme it sets. */
-  /* El cuerpo es el de Entregas (D-NEXT): Inter a 14 px sobre `--paper`, y los títulos en Archivo como en globals.css.
+  /* El cuerpo es el de Entregas (D-622): Inter a 14 px sobre `--paper`, y los títulos en Archivo como en globals.css.
      Las utilidades `text-sm`/`text-xs` siguen midiendo en rem (sobre el <html>, no sobre esto), así que no se mueven. */
   body {
     background-color: var(--paper);
@@ -177,7 +177,7 @@
 /* ---------------------------------------------------------------------------
    Modo oscuro.
    ---------------------------------------------------------------------------
-   Hasta D-NEXT aquí vivía una rampa `slate` INVERTIDA a mano para el tema oscuro (D-090). Ya no hace falta: la
+   Hasta D-622 aquí vivía una rampa `slate` INVERTIDA a mano para el tema oscuro (D-090). Ya no hace falta: la
    rampa de arriba apunta a las variables del hub, y esas cambian solas con `data-theme="dark"` en globals.css. Lo
    único que queda es `bg-white`: resuelve a `--color-white`, igual que `text-white`, y ese texto va siempre sobre un
    botón de acento donde tiene que seguir blanco (14 sitios); así que la SUPERFICIE se cambia como utilidad y no como

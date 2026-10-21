@@ -11,10 +11,10 @@ import { usePrefs } from "@/lib/prefs";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 
 /**
- * La barra de Inventario (antes «RTG ERP») y de Clientes: la MISMA barra superior que Entregas (D-NEXT, 2026-10-21).
+ * La barra de Inventario (antes «RTG ERP») y de Clientes: la MISMA barra superior que Entregas (D-622, 2026-10-21).
  *
  * El dueño: «quiero que toda la app se mire igual como deliveries app, al igual que el time tracker. Todo eso quiero
- * que hagamos una transformación de todo eso para que todo sea estandarizado e igual». Hasta D-NEXT este fichero
+ * que hagamos una transformación de todo eso para que todo sea estandarizado e igual». Hasta D-622 este fichero
  * pintaba una barra LATERAL fija (blanca, con acento arcilla) en el escritorio y una cabecera aparte en el teléfono;
  * era el único módulo del hub sin la barra oscura de arriba. Ahora pinta `.topbar` de globals.css —el nombre de la
  * app, la casa del hub, las pestañas y el menú del nombre— con las mismas clases que Entregas y Time Tracker, y en el

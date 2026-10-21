@@ -2704,7 +2704,7 @@ a timetracker en producción. `landing-route.test.ts` y
 
 ## D-066 · Etapa 2, tramo 1 — Track Time ya funciona en /timetracker
 
-> **Reemplazada en parte por D-NEXT** (2026-10-21): la paleta propia de Time Tracker (`--tt-*` con hex y bloque claro aparte) pasa a apuntar a las variables del hub.
+> **Reemplazada en parte por D-622** (2026-10-21): la paleta propia de Time Tracker (`--tt-*` con hex y bloque claro aparte) pasa a apuntar a las variables del hub.
 
 **Fecha:** 2026-08-20 · **Versión:** v1.16.0 · **Pedido por:** Andrés
 
@@ -3978,7 +3978,7 @@ nuevo. `tsc`/`vitest` (487)/`next build` limpios.
 
 ## D-090 · Se invierte la fusión: deliveries-app es el anfitrión, el ERP se muda aquí
 
-> **Reemplazada en parte por D-NEXT** (2026-10-21): la barra lateral, la paleta arcilla y la rampa oscura invertida se van; el ERP se llama Inventario y se pinta con la barra y las variables del hub.
+> **Reemplazada en parte por D-622** (2026-10-21): la barra lateral, la paleta arcilla y la rampa oscura invertida se van; el ERP se llama Inventario y se pinta con la barra y las variables del hub.
 
 **Fecha:** 2026-08-25 · **Versión:** v1.22.0 (deliveries) · v0.2.0 (recruiting, timetracker) · **Pedido por:** Andrés
 (*"WE WILL CHANGE THE APPROACH THIS IS NOT WORKING WE WILL MERGE THE
@@ -46082,7 +46082,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador. La medida real es la tabla de Roberto con una recogida en camino: la fila D con flechas, bajando entre las pendientes, y la cuenta de pallets sin negativos.
 
-## D-NEXT · Un solo tema: el ERP pasa a llamarse Inventario, e Inventario, Clientes y Time Tracker se visten como Entregas (barra superior, paleta, tipografía y esquinas del hub)
+## D-622 · Un solo tema: el ERP pasa a llamarse Inventario, e Inventario, Clientes y Time Tracker se visten como Entregas (barra superior, paleta, tipografía y esquinas del hub)
 
 **Fecha:** 2026-10-21 · **Versión:** erp (Inventario) 0.21.0 · customers 0.5.0 · timetracker 1.9.0 · Sin migración · Hecho directo por el orquestador en `feat/un-solo-tema-inventory`.
 

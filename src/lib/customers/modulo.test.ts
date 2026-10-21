@@ -70,9 +70,9 @@ describe("la puerta y el tema", () => {
     expect(hasta).toBeGreaterThan(desde);
     expect(layout.slice(desde, hasta)).not.toContain("redirect(");
   });
-  it("se viste con el tema de Inventario: su hoja, su ancla data-app y su barra (la superior, D-NEXT); y la hoja emite las clases de /customers", () => {
+  it("se viste con el tema de Inventario: su hoja, su ancla data-app y su barra (la superior, D-622); y la hoja emite las clases de /customers", () => {
     expect(layout).toContain('import "@/app/erp/erp.css";');
-    // D-NEXT (2026-10-21): la barra es la superior de Entregas, en el flujo; el `ErpNavProvider` que reservaba el
+    // D-622 (2026-10-21): la barra es la superior de Entregas, en el flujo; el `ErpNavProvider` que reservaba el
     // hueco de la barra lateral se fue con ella.
     expect(layout).toContain('const cascaron = <div data-app="erp">{children}</div>;');
     expect(layout).not.toContain("<ErpNavProvider>");

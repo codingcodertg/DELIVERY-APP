@@ -24,13 +24,13 @@ export const metadata: Metadata = {
  * el fallo se convierte en un bucle. Solo la fila ausente —con error nulo— manda al login.
  *
  * **El tema es el de Inventario** (el dueño: «con el schema de el ERP así con ese theme»): se importa `erp.css` —que
- * trae el preflight de Tailwind y, desde D-NEXT, la paleta del hub— y se envuelve en `data-app="erp"`, que es el
- * ancla de sus variables de color. La barra es la superior de Entregas (D-NEXT), sin hueco lateral.
+ * trae el preflight de Tailwind y, desde D-622, la paleta del hub— y se envuelve en `data-app="erp"`, que es el
+ * ancla de sus variables de color. La barra es la superior de Entregas (D-622), sin hueco lateral.
  */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function CustomersLayout({ children }: { children: React.ReactNode }) {
-  // D-NEXT (2026-10-21): la barra es la superior de Entregas, en el flujo; sin `ErpNavProvider` ni hueco lateral.
+  // D-622 (2026-10-21): la barra es la superior de Entregas, en el flujo; sin `ErpNavProvider` ni hueco lateral.
   const cascaron = <div data-app="erp">{children}</div>;
   // Modo demo: sin base ni sesión. Los clientes son los inventados de `lib/customers/demo`.
   if (LOCAL_MODE) return cascaron;

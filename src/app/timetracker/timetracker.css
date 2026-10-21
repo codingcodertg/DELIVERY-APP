@@ -4,8 +4,8 @@
    sitewide regardless of which route is active, so an unscoped `body{...}`
    or bare `button{...}` here would silently change deliveries' own styling
    depending on load order. */
-/* La paleta es la del HUB (D-NEXT, 2026-10-21). El dueño: «quiero que toda la app se mire igual como deliveries
-   app, al igual que el time tracker». Hasta D-NEXT Time Tracker traía su propia paleta (azul marino, acento #4f7cff,
+/* La paleta es la del HUB (D-622, 2026-10-21). El dueño: «quiero que toda la app se mire igual como deliveries
+   app, al igual que el time tracker». Hasta D-622 Time Tracker traía su propia paleta (azul marino, acento #4f7cff,
    y otra distinta para el tema claro); ahora cada `--tt-*` apunta a la variable de globals.css que Entregas usa para
    lo mismo, y el tema claro y el oscuro salen solos de `data-theme` en <html>. Los nombres `--tt-*` se quedan: 370
    líneas de abajo los usan y lo que cambia es el valor, no el sitio. */
