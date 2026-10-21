@@ -45843,7 +45843,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-609 · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): la lista enseña solo a los de mi tienda; a los demás se les busca por nombre.
+> **Reemplazada en parte por D-614** (2026-10-20): la lista enseña solo a los de mi tienda; a los demás se les busca por nombre.
 
 **Fecha:** 2026-10-20 · **Versión:** deliveries 1.341.0 (repo 1.475.0; el layout raíz, todas las apps) · **Migración 184** (`184_chat_interno.sql`) · Hecho directo por el orquestador en `feat/chat-interno`.
 
@@ -45931,9 +45931,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · Chat interno: la lista enseña solo a los de mi tienda; a los de otra tienda se les busca por nombre
+## D-614 · Chat interno: la lista enseña solo a los de mi tienda; a los de otra tienda se les busca por nombre
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries: el layout raíz) · Sin migración · Hecho directo por el orquestador en `fix/chat-solo-mi-tienda`.
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.342.0 (repo 1.480.0; el layout raíz) · Sin migración · Hecho directo por el orquestador en `fix/chat-solo-mi-tienda`.
 
 **Pedido del dueño (2026-10-20, literal, con la captura del panel):** «mira lo que pueden ver su tienda está bien pero para gente de otra tienda deben de buscarlo solamente no mostrar la lista».
 

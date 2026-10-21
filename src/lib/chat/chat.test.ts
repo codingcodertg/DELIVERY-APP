@@ -27,7 +27,7 @@ describe("chat interno", () => {
     expect(esDeMiTienda({ store: "Tienda Norte" }, { store: "" })).toBe(false);
   });
 
-  it("lo que se lista (D-NEXT): sin búsqueda, solo mi tienda (sin tienda, nadie); con búsqueda, cualquiera que coincida, mi tienda primero", () => {
+  it("lo que se lista (D-614): sin búsqueda, solo mi tienda (sin tienda, nadie); con búsqueda, cualquiera que coincida, mi tienda primero", () => {
     expect(listaVisible(gente, yo).map((c) => c.id)).toEqual(["b", "d"]);
     expect(listaVisible(gente, { id: "yo", store: null })).toEqual([]);
     expect(listaVisible(gente, yo, "a").map((c) => c.id)).toEqual(["b", "d", "a", "c"]);

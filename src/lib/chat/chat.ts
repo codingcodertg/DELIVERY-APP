@@ -39,7 +39,7 @@ export function ordenaContactos<T extends Contacto>(contactos: readonly T[], yo:
 export const esDeMiTienda = (c: Pick<Contacto, "store">, yo: { store?: string | null }): boolean => !!norm(yo.store) && norm(c.store) === norm(yo.store);
 
 /**
- * Lo que se LISTA (D-NEXT, 2026-10-20). El dueño, con la captura: «lo que pueden ver su tienda está bien pero para gente de
+ * Lo que se LISTA (D-614, 2026-10-20). El dueño, con la captura: «lo que pueden ver su tienda está bien pero para gente de
  * otra tienda deben de buscarlo solamente, no mostrar la lista». Sin búsqueda: solo los de mi tienda (sin tienda, nadie).
  * Con búsqueda: todos los que coinciden, los de mi tienda primero. Los hilos recientes van aparte (siguen saliendo).
  */
