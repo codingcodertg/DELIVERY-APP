@@ -17,6 +17,7 @@ import { alJuntar, alRepartir, copiaParaLaCarga, hermanasDe, madreAlPartir, sigu
 import { palletsDeLaOrden } from "@/lib/pallets";
 import { orderLabel } from "@/lib/utils";
 import { notaDeReprogramacion } from "@/lib/reprogramar-orden";
+import { ETAPAS_PARA_TOMAR, facturaParaBuscar, motivoValido, notaDeExcepcion, numerosDeFactura, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
 
 // ============================================================
 // LOCAL DEMO MODE — no backend. Everything is kept in the browser
@@ -525,6 +526,31 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       const antes = storeRef.current.deliveries.find((c) => c.id === id)?.delivery_date ?? null;
       const ok = await updateDelivery(id, { delivery_date: fecha });
       if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
+      return ok;
+    },
+    // El demo no tiene las funciones de la 188: la misma búsqueda (con la copia de `numeros_de_factura`) y la misma
+    // escritura, sobre lo que hay en este navegador.
+    buscarFacturaParaRecoger: async (texto) => {
+      if (!sePuedeBuscar(texto)) return [];
+      const q = facturaParaBuscar(texto);
+      const yo = me?.full_name ?? null;
+      return storeRef.current.deliveries
+        .filter((d) => ETAPAS_PARA_TOMAR.has(d.stage) && !d.is_training)
+        .filter((d) => numerosDeFactura(d.invoice_num).includes(q) || (d.invoices_extra ?? []).some((x) => numerosDeFactura(x).includes(q)))
+        .slice(0, 10)
+        .map((d): OrdenParaTomar => ({
+          id: d.id, order_no: d.order_no, order_suffix: d.order_suffix ?? null, order_code: d.order_code ?? null,
+          invoice_num: d.invoice_num ?? null, account: d.account ?? null, store: d.store ?? null, pickup_name: d.pickup_name ?? null,
+          delivery_name: d.delivery_name ?? null, delivery_address: d.delivery_address ?? null, delivery_date: d.delivery_date ?? null,
+          stage: d.stage, assigned_driver: d.assigned_driver ?? null, est_pallets: d.est_pallets ?? null, es_mia: !!yo && d.assigned_driver === yo,
+        }));
+    },
+    tomarOrdenParaRecoger: async (id, motivo, lang) => {
+      const d = storeRef.current.deliveries.find((x) => x.id === id);
+      const yo = me?.full_name ?? "";
+      if (!d || !yo || !ETAPAS_PARA_TOMAR.has(d.stage) || d.assigned_driver === yo || !motivoValido(motivo)) return false;
+      const ok = await updateDelivery(id, { assigned_driver: yo, route_seq: null, pickup_seq: null, load_no: null, delivery_date: todayISO() });
+      if (ok) await addNote(id, notaDeExcepcion({ yo, antes: d.assigned_driver ?? null, motivo, lang }));
       return ok;
     },
     reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,

@@ -1,5 +1,6 @@
 "use client";
 
+import { falloAlTomar, mensajeDelFallo, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
 import { EVENTO_ENSENANZA, escribeEnsenanza, leeEnsenanza } from "@/lib/boton-general";
 import {
   createContext,
@@ -132,6 +133,13 @@ export interface DataState {
    * `nota` es lo que escribió la persona, sin componer. `true` si quedó guardada.
    */
   reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es") => Promise<boolean>;
+  /**
+   * El chofer busca una factura en TODAS las órdenes por recoger (D-625, 188: `buscar_factura_para_recoger`), también en
+   * las que no son suyas y que la RLS no le deja leer. `null` si falló (y lo avisa).
+   */
+  buscarFacturaParaRecoger: (texto: string) => Promise<import("@/lib/tomar-orden").OrdenParaTomar[] | null>;
+  /** El chofer toma una orden ajena para recogerla, con motivo (D-625, 188: `tomar_orden_para_recoger`). `true` si quedó suya. */
+  tomarOrdenParaRecoger: (id: string, motivo: string, lang: "en" | "es") => Promise<boolean>;
   /** Renumber a route's stops: `orderedIds` in their new visiting order gets
    * route_seq 0..n-1. Applied to local state FIRST and held there until every
    * write lands, so a realtime refetch can't interleave and snap stops back to
@@ -1642,6 +1650,37 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, notify, teaching, deliveries, updateDelivery, addNote, reloadTables],
   );
 
+  const buscarFacturaParaRecoger = useCallback<DataState["buscarFacturaParaRecoger"]>(
+    async (texto) => {
+      if (!sePuedeBuscar(texto)) return [];
+      const { data, error } = await supabase.rpc("buscar_factura_para_recoger", { p_texto: texto });
+      if (error) {
+        // Sin la 188 aplicada la búsqueda de ajenas, simplemente, no encuentra nada: el chofer busca SUS facturas con
+        // este mismo cuadro, y un aviso en cada búsqueda sería ruido. El resto de fallos sí se dicen.
+        const fallo = falloAlTomar(error);
+        if (fallo === "sin-funcion") return [];
+        notify(mensajeDelFallo(fallo, (en, es) => (lang === "en" ? en : es)));
+        return null;
+      }
+      return (data ?? []) as OrdenParaTomar[];
+    },
+    [supabase, notify, lang],
+  );
+
+  const tomarOrdenParaRecoger = useCallback<DataState["tomarOrdenParaRecoger"]>(
+    async (id, motivo, lang) => {
+      const t = (en: string, es: string) => (lang === "en" ? en : es);
+      // El modo enseñanza no escribe en la base: tomar una orden ajena es un cambio real que avisa a la oficina.
+      if (teaching) { notify(t("Not available in teaching mode.", "No está disponible en el modo enseñanza.")); return false; }
+      const { error } = await supabase.rpc("tomar_orden_para_recoger", { p_id: id, p_motivo: motivo, p_lang: lang });
+      if (error) { notify(mensajeDelFallo(falloAlTomar(error), t)); return false; }
+      await reloadTables(["deliveries", "order_events", "notifications"]);
+      notify(t("It's yours now: pick it up as usual.", "Ya es tuya: recógela como siempre."));
+      return true;
+    },
+    [supabase, notify, teaching, reloadTables],
+  );
+
   const marcarParada = useCallback<DataState["marcarParada"]>(
     async (deliveryId, kind, note) => {
       const ev: OrderEvent = {
@@ -2160,7 +2199,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const value: DataState = {
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,

@@ -1,5 +1,6 @@
 "use client";
 
+import { KIND_TOMADA_POR_CHOFER } from "@/lib/tomar-orden";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -143,6 +144,7 @@ export function NotificationBell() {
                   : n.kind === AVISO_SOLICITUD_NUEVA ? "var(--amber)"
                   : n.kind === AVISO_SOLICITUD_APROBADA ? "var(--green)"
                   : n.kind === AVISO_SOLICITUD_RECHAZADA ? "var(--red)"
+                  : n.kind === KIND_TOMADA_POR_CHOFER ? "var(--amber)"
                   : stageInfo(n.kind).color;
                 return (
                   <button
