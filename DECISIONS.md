@@ -46360,3 +46360,25 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - **Demo a 1440 y 390 px:** se tecleó «+1 956.340*59a10» letra a letra y quedó «(956) 340-5910»; cinco borrados dejan «(956) 34».
 
 **No medido:** el barrido de candidatos en producción, hasta que el dueño lo lance.
+
+## D-631 · Leads: «Todas las tiendas» en el Pool General, y el admin entra en ella
+
+**Fecha:** 2026-10-21 · **Versión:** leads 0.7.0 · Hecho directo por el orquestador en `feat/leads-todas-las-tiendas`. Sin migración.
+
+**Pedido (el dueño, 2026-10-21, literal):** «Leads for admin, need an All filter instead of per store».
+
+**Medido antes.** El selector del Pool General (`src/app/leads/Leads.tsx`) solo listaba los bancos de una tienda a la vez. Lo ve quien alcanza todas las tiendas (`eligeTienda`: el admin, y el manager con `leads_all_stores`, D-471, migración 163). El admin entraba en el primero por nombre (`poolInicial`), sin forma de ver todo junto. `filtrar` ya entendía `pool: null` como «todas».
+
+**Qué cambia.**
+- **Opción nueva:** «Todas las tiendas — N libres / M» encabeza el selector cuando hay más de una tienda (`POOL_TODAS`, `resumenDeTodas` en `src/lib/leads/reglas.ts`). Elegirla no filtra por tienda (`filtroDePool` → `null`), y los contadores de situación suman todas.
+- **Por dónde se entra:** el admin entra en «Todas las tiendas» (`poolInicial(…, todasPorDefecto)`). El manager con permiso tiene la opción pero entra en la suya. Ventas sigue sin selector, solo con su tienda.
+- **Hasta que alguien elige a mano**, la entrada se recalcula. El alcance y los leads llegan después del primer pintado: sin esto, el admin quedaba en «RDZ Brownsville» (medido en el demo).
+
+**Qué no cambia.** Quién ve qué (la base, 163). Ventas no ve el selector.
+
+**Pruebas:**
+- `reglas.test.ts` y `alcance.test.ts`: entrada del admin, una sola tienda, el filtro, la suma y las puertas de la pantalla.
+- Mutantes: caen 5 de 5.
+- Demo como admin a 1440 y 390 px: entra en «Todas las tiendas — 30 libres / 44» con 25 tarjetas; elegir una tienda se queda en ella; volver a «Todas» vuelve a las 25.
+
+**No medido:** con la sesión real del admin.

@@ -39,7 +39,7 @@ export const APP_VERSIONS = {
   surveys: "0.5.0",
   // Leads (migración 162): modulo nuevo, sin historial que continuar; 0.1.0 como Encuestas. La entrada la pone la
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
-  leads: "0.6.0",
+  leads: "0.7.0",
   // Clientes (D-569): la primera, como leads.
   customers: "0.5.0",
 } as const;

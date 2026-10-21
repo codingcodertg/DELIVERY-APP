@@ -229,8 +229,28 @@ export function poolsDe(leads: readonly Lead[]): ResumenDePool[] {
     a.pool === POOL_SIN_TIENDA ? 1 : b.pool === POOL_SIN_TIENDA ? -1 : a.pool.localeCompare(b.pool));
 }
 
-/** Con qué pool se entra: el de la tienda de la persona si existe; si no (admin, sin tienda), el primero. */
-export function poolInicial(pools: readonly ResumenDePool[], tienda: string | null): string | null {
+/**
+ * «Todas las tiendas» en el selector del Pool General (D-631, 2026-10-21). El dueño: «Leads for admin, need an All
+ * filter instead of per store». Lo ofrece quien alcanza más de una tienda (`eligeTienda`); no es un pool de la base,
+ * es no filtrar por tienda (`filtroDePool` → `null`, que `filtrar` ya entiende como «todas»).
+ */
+export const POOL_TODAS = "__todas__";
+
+/** El pool con el que se filtra: `null` (todas) si se eligió «Todas las tiendas». */
+export const filtroDePool = (pool: string | null): string | null => (pool === POOL_TODAS ? null : pool);
+
+/** Lo que cuenta «Todas las tiendas»: la suma de los pools. */
+export function resumenDeTodas(pools: readonly ResumenDePool[]): ResumenDePool {
+  return pools.reduce((t, p) => ({ ...t, libres: t.libres + p.libres, tomados: t.tomados + p.tomados, total: t.total + p.total }),
+    { pool: POOL_TODAS, libres: 0, tomados: 0, total: 0 });
+}
+
+/**
+ * Con qué pool se entra. El admin (`todasPorDefecto`), en «Todas las tiendas» si hay más de una (D-631). Los demás,
+ * el de su tienda si existe; si no (sin tienda), el primero.
+ */
+export function poolInicial(pools: readonly ResumenDePool[], tienda: string | null, todasPorDefecto = false): string | null {
+  if (todasPorDefecto && pools.length > 1) return POOL_TODAS;
   if (tienda && pools.some((p) => p.pool === tienda)) return tienda;
   return pools[0]?.pool ?? null;
 }

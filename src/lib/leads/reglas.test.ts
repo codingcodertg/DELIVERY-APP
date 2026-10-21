@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   abiertosDe, aplicarCerrar, aplicarNota, aplicarTomar, bloqueado, categoriaDescartada, colaDeRevision, consecuencia, delExcel,
   destinoAlCerrar, enlaceSeguro, fecha, filtrar, mapsUrl, negativaDeCodigo, notaLimpia, ordenar, poolInicial, poolsDe, puedeTomar,
+  POOL_TODAS, filtroDePool, resumenDeTodas,
   puestosLibres, RESULTADOS, sinTocar, tableroPorVendedor, telUrl, TOPE_POR_DEFECTO, veContacto, ventasDe, POOL_SIN_TIENDA,
   type EventoLead, type Filtros, type Lead, type Persona,
 } from "./reglas";
@@ -238,6 +239,16 @@ describe("6 · el banco: pools, vistas, filtros y orden", () => {
     expect(poolInicial(ps, "RDZ Mission")).toBe("RDZ Brownsville");
     expect(poolInicial(ps, null)).toBe("RDZ Brownsville");
     expect(poolInicial([], "RDZ Edinburg")).toBeNull();
+    // D-631: el admin entra en «Todas las tiendas» si hay más de una; con una sola, en esa.
+    expect(poolInicial(ps, "RDZ Edinburg", true)).toBe(POOL_TODAS);
+    expect(poolInicial(ps.slice(0, 1), null, true)).toBe(ps[0].pool);
+  });
+
+  it("«Todas las tiendas» no filtra por tienda y suma los pools (D-631)", () => {
+    expect(filtroDePool(POOL_TODAS)).toBeNull();
+    expect(filtroDePool("RDZ Pharr")).toBe("RDZ Pharr");
+    expect(resumenDeTodas([{ pool: "A", libres: 2, tomados: 1, total: 4 }, { pool: "B", libres: 3, tomados: 0, total: 5 }]))
+      .toEqual({ pool: POOL_TODAS, libres: 5, tomados: 1, total: 9 });
   });
 });
 
@@ -382,13 +393,20 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("{donde !== \"mio\" && l.status === \"free\" && (");
   });
   it("el banco se pinta filtrado y ordenado por las funciones, con «libres» y «sirve» de entrada, y en el pool de su tienda", () => {
-    expect(p).toContain("ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca, situacion }), orden)");
+    expect(p).toContain("ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion }), orden)");
     expect(p).toContain('useState<Vista>("libres")');
     expect(p).toContain('useState<FiltroCategoria>("utiles")');
     // D-491: nace ordenado por pies², de mayor a menor.
     expect(p).toContain("useState<Orden>(ORDEN_INICIAL)");
     expect(p).toContain('<option value="pies">');
-    expect(p).toContain("poolInicial(pools, tienda)");
+    expect(p).toContain("poolInicial(pools, tienda, todasPorDefecto)");
+    // D-631: «Todas las tiendas» la ofrece el selector (solo a quien elige) y el admin entra en ella.
+    expect(p).toContain("const todasPorDefecto = !!yo?.admin && elige;");
+    // Hasta que se elige a mano, la entrada se recalcula (el alcance llega después del primer pintado).
+    expect(p).toContain("setPool((p) => (poolAMano && p && ");
+    expect(p).toContain("onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}");
+    expect(p).toContain("<option value={POOL_TODAS}>");
+    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);");
     expect(p).toContain("const tienda = yo?.store ?? null;");
   });
   it("mi pool son mis abiertos y mis ventas, y la cuenta de la pestaña es abiertos/tope", () => {
