@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { claveDeRecogida } from "./usa-medida-de-rutas";
 
-// D-NEXT (2026-10-20) · El dueño: «WHY DOES IT SAYS NO BASE». La recogida pendiente buscaba su hora con «P:» + su puesto en la
+// D-616 (2026-10-20) · El dueño: «WHY DOES IT SAYS NO BASE». La recogida pendiente buscaba su hora con «P:» + su puesto en la
 // lista de pendientes, y la medida la guardaba con «P:» + su puesto en la lista del día (con lo hecho delante): no coincidían.
 
 describe("la hora estimada de una recogida se busca con la misma clave con que se guarda", () => {

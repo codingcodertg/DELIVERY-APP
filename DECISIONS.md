@@ -42692,7 +42692,7 @@ ancla de texto**, y se dice: G8 (el horario numera solo lo pendiente: el horario
 **Añadido por el orquestador al fusionar:** en «Mi ruta», la entrega ya hecha también conserva su número en el círculo (antes pintaba «✓» en vez del número: `{hecha ? "✓" : n}` → `{n}`); el círculo apagado ya la distingue. Es el mismo pedido del dueño, en la otra pantalla.
 ## D-530 · El tema sin «Same as my device», y la burbuja de Ayuda igual en todas las apps
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): la burbuja de Ayuda pasa a `z-index` 1000, por encima de todo (el dueño lo pidió así).
+> **Reemplazada en parte por D-616** (2026-10-20): la burbuja de Ayuda pasa a `z-index` 1000, por encima de todo (el dueño lo pidió así).
 
 **Fecha:** 2026-10-11 · **Versión:** todas las apps suben una menor (código compartido: layout raíz, prefs, globals.css, /api/help); repo 1.395.0. Toca código que pasa por TODAS las apps (el layout raíz,
 `prefs.tsx`, `globals.css`, `/api/help`), así que la sube en todas las de `APP_VERSIONS` · **Sin migración** ·
@@ -45962,9 +45962,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · Gestor: la hora estimada de una recogida pendiente volvía «no base» por una clave que no coincidía; y Ayuda y Chat quedan por encima de todo (también con una orden abierta)
+## D-616 · Gestor: la hora estimada de una recogida pendiente volvía «no base» por una clave que no coincidía; y Ayuda y Chat quedan por encima de todo (también con una orden abierta)
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries) · Sin migración · Hecho directo por el orquestador en `fix/eta-recogida-y-burbujas-encima`.
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.344.0 (repo 1.482.0) · Sin migración · Hecho directo por el orquestador en `fix/eta-recogida-y-burbujas-encima`.
 
 **Pedidos del dueño (2026-10-20, literales):** «WHY DOES IT SAYS NO BASE» (captura: las recogidas pendientes en RDZ Pharr y RDZ Edinburg con «no base» en ETA, las entregas con hora); «THE HELP BUTTON SHOULD ALWAYS BE VISIBLE AND ON TOP OF EVERYTHING BECAUSE FOR EXAMPLE IF YOU OPEN A ORDER IT STAYS BLOCKED IN THE BACKGROUND AND MAKE THE HELP BUTTON AVAILABLE THROUGHOUT THE APP LIKE THE HAT» y «CHAT».
 
