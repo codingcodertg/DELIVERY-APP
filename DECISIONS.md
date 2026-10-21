@@ -46421,7 +46421,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el navegador (el demo no abre RR. HH.), `next build`, y el script en producción.
 
-## D-NEXT · Clientes por empresa: una fila por empresa con una pestaña por tienda, los duplicados obvios se juntan, y los dudosos van a «Decidir si se juntan» — migración 189
+## D-633 · Clientes por empresa: una fila por empresa con una pestaña por tienda, los duplicados obvios se juntan, y los dudosos van a «Decidir si se juntan» — migración 189
 
 **Fecha:** 2026-10-21 · **Versión:** customers 0.6.0 · **Migración 189** (`189_clientes_empresas.sql`, ensayada con BEGIN … ROLLBACK contra producción; se aplica con el sí del dueño) · Hecho por un worker del orquestador en `feat/clientes-empresas-y-duplicados`.
 
