@@ -46200,3 +46200,33 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - una escritura real cortada en producción;
 - Time Tracker recargando en enseñanza;
 - los correos o avisos externos que alguna acción de servidor mande sin escribir antes en la base: no pasan por Supabase y no se cortan.
+
+## D-NEXT · RR. HH.: el gerente de tienda ve los candidatos pasados de este mes, sigue evaluándolos (puede cambiar de opinión) y les adjunta documentos
+
+**Fecha:** 2026-10-21 · **Versión:** recruiting 0.61.0 · Hecho por un worker del orquestador en `feat/rrhh-candidatos-del-mes`. Sin migración. Reemplaza en parte a D-606.
+
+**Pedido (el dueño, 2026-10-21, literal):** «Need managers to see past candidates this month so they can keep evaluating their options and attach any docs» — «en el hr».
+
+**Medido antes.** «Manager» aquí es el gerente de tienda, rol `store_manager` (D-600). El `manager` (Office Manager) ya ve todos los candidatos y no cambia. Hay 4 en producción: Weslaco, McAllen, Pharr y Brownsville.
+- **Base (migración 183):** el gerente lee y actualiza los candidatos de su tienda en presencial, contratado o descartado, con sus contactos y adjuntos.
+- **Pantalla:** desde D-606 pintaba solo Hoy y Próximos (`vista-del-gerente.ts`, `GRUPOS_QUE_SE_PINTAN`). Una cita de un día anterior sin resolver, o un candidato ya resuelto, desaparecía de su vista. Los adjuntos (D-607) solo estaban en lo que se veía.
+- **Producción (solo lectura):** Pharr tenía 3 citas pasadas de octubre ocultas y Brownsville otras 3.
+
+**Qué cambia.**
+- **Grupo nuevo, «Pasados este mes»** (`esPasadoDelMes`): cita presencial en el mes en curso (fecha local) que ya no es de hoy ni próxima, esté sin resolver o resuelta. Va de la cita más reciente a la más vieja. Cada tarjeta lleva los mismos adjuntos y una línea «Estado: …» si ya está resuelta.
+- **Botones** (`decisionesPosibles`): en curso, Contratar y No contratar; contratado, solo No contratar; descartado, solo Contratar. Así el gerente puede cambiar de opinión, también sobre un «contratado» que puso el reclutador si la cita fue este mes.
+
+**Qué no cambia.**
+- Los de meses anteriores no se pintan: el día 1 la sección empieza vacía.
+- Tampoco se pintan los que no tienen cita presencial ni los archivados.
+- La base y el bucket, sin tocar.
+- D-606 se mantiene para todo lo anterior a este mes.
+
+**Pruebas:**
+- `src/lib/recruiting/vista-del-gerente.test.ts`: importa las funciones; la de D-606, actualizada.
+- La carpeta `src/lib/recruiting` entera, tsc, y 10 mutantes que caen todos.
+
+**No medido:**
+- en el navegador con un gerente real, ni a 390 px;
+- las escrituras contra la base con la sesión de un gerente: que «contratado → descartado» y adjuntar a un descartado pasen RLS se sacó leyendo las políticas en vivo;
+- pasar de descartado a contratado no borra `discard_reason`; hoy no se ve.

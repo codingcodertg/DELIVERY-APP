@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import {
-  GRUPOS_QUE_SE_PINTAN, agruparParaElGerente, resolucionDelGerente, resolverCandidato, textoDeLaResolucion, type Decision, type GrupoDelGerente,
+  GRUPOS_QUE_SE_PINTAN, agruparParaElGerente, decisionesPosibles, resolucionDelGerente, resolverCandidato, textoDeLaResolucion, type Decision, type GrupoQueSePinta,
 } from "@/lib/recruiting/vista-del-gerente";
 import { fmtDateTime } from "@/lib/recruiting/utils";
 import { telefonoEnLaFila } from "@/lib/recruiting/texto-puedo-llamar";
@@ -12,20 +12,20 @@ import type { Attachment, Candidate } from "@/lib/recruiting/types";
 
 /**
  * La vista del gerente de tienda (D-600). Lo que llega en `candidates` ya viene filtrado por la base (183: solo los de
- * su tienda en presencial / contratado / descartado); aquí solo se agrupa (Hoy, Próximos, Pendientes, Resueltos) y se
- * resuelve: «✅ Contratar» o «❌ No contratar» con razón obligatoria. Nada más del módulo se ofrece a este rol.
+ * su tienda en presencial / contratado / descartado); aquí solo se agrupa (Hoy, Próximos, Pasados este mes — D-627) y
+ * se resuelve: «✅ Contratar» o «❌ No contratar» con razón obligatoria; a un pasado ya resuelto se le ofrece la otra
+ * decisión (`decisionesPosibles`). Nada más del módulo se ofrece a este rol.
  */
 export function VistaDelGerente() {
   const { candidates, stages, contactsFor, recruiters, updateCandidate, addContact, openResumeFile, attachmentsFor, addAttachment, removeAttachment, openAttachment, notify, me } = useData();
   const { t } = usePrefs();
   const grupos = agruparParaElGerente(candidates, stages);
-  const titulos: Record<GrupoDelGerente, { titulo: string; vacio: string }> = {
+  const titulos: Record<GrupoQueSePinta, { titulo: string; vacio: string }> = {
     hoy: { titulo: t("Today", "Hoy"), vacio: t("No interviews today", "Hoy no hay entrevistas") },
     proximos: { titulo: t("Upcoming", "Próximos"), vacio: t("Nothing scheduled", "Nada agendado") },
-    pendientes: { titulo: t("Pending decision", "Pendientes de resolver"), vacio: t("Nothing pending", "Nada pendiente") },
-    resueltos: { titulo: t("Resolved", "Resueltos"), vacio: t("Nothing resolved yet", "Aún nada resuelto") },
+    pasados_del_mes: { titulo: t("Earlier this month", "Pasados este mes"), vacio: t("No earlier interviews this month", "Este mes no hubo entrevistas anteriores") },
   };
-  // D-606: solo Hoy y Próximos (el dueño: «quítaselos, solo los de hoy y próximos»).
+  // D-606 dejó solo Hoy y Próximos; D-627 añade los pasados de este mes (no los de meses anteriores).
   const orden = GRUPOS_QUE_SE_PINTAN.map((id) => ({ id, ...titulos[id] }));
   const total = GRUPOS_QUE_SE_PINTAN.reduce((n, g) => n + grupos[g].length, 0);
 
@@ -35,19 +35,21 @@ export function VistaDelGerente() {
         <h2 style={{ margin: 0 }}>🏪 {t("Candidates sent to your store", "Candidatos enviados a tu tienda")}{me?.store ? ` — ${me.store}` : ""}</h2>
         <div className="hint">
           {me?.store
-            ? t("You see the candidates scheduled for an in-person interview at your store. Decide hire / no hire after the interview.",
-                "Ves los candidatos citados a entrevista presencial en tu tienda. Tras la entrevista, decide contratar o no.")
+            ? t("You see the candidates scheduled for an in-person interview at your store, and the ones already interviewed this month. Decide hire / no hire, change your mind, and attach documents.",
+                "Ves los candidatos citados a entrevista presencial en tu tienda y los que ya pasaron este mes. Decide contratar o no, cambia de opinión y adjunta documentos.")
             : t("Your profile has no store yet: ask the admin to set it in the hub (Users), and candidates will show up here.",
                 "Tu perfil aún no tiene tienda: pide al admin que la ponga en el hub (Usuarios) y aquí aparecerán los candidatos.")}
         </div>
       </div>
-      {total === 0 && <div className="empty">{t("No interviews today or upcoming for your store.", "Hoy ni próximamente hay entrevistas en tu tienda.")}</div>}
+      {total === 0 && <div className="empty">{t("No interviews for your store this month, today or upcoming.", "Ni este mes, ni hoy, ni próximamente hay entrevistas en tu tienda.")}</div>}
       {orden.map((g) => (
         <section key={g.id} style={{ marginBottom: 18 }} data-grupo={g.id}>
           <h3 style={{ margin: "8px 0" }}>{g.titulo} <span style={{ color: "var(--gray)", fontWeight: 400 }}>({grupos[g.id].length})</span></h3>
           {grupos[g.id].length === 0 ? <div className="hint">{g.vacio}</div> : grupos[g.id].map((c) => (
             <TarjetaDelGerente
-              key={c.id} c={c} resuelto={g.id === "resueltos"}
+              key={c.id} c={c}
+              decisiones={decisionesPosibles(c, stages)}
+              estado={(() => { const s = stages.find((x) => x.key === c.status); return s && s.type !== "active" ? s.label : null; })()}
               resolucion={resolucionDelGerente(contactsFor(c.id), c.id)}
               nombreDe={(id) => recruiters.find((r) => r.id === id)?.full_name ?? null}
               abrirCv={() => openResumeFile(c.id)}
@@ -76,8 +78,12 @@ export function VistaDelGerente() {
   );
 }
 
-function TarjetaDelGerente({ c, resuelto, resolucion, nombreDe, abrirCv, resolver, adjuntos, adjuntar, abrirAdjunto, quitarAdjunto, yo }: {
-  c: Candidate; resuelto: boolean;
+function TarjetaDelGerente({ c, decisiones, estado, resolucion, nombreDe, abrirCv, resolver, adjuntos, adjuntar, abrirAdjunto, quitarAdjunto, yo }: {
+  c: Candidate;
+  /** Los botones que se ofrecen (`decisionesPosibles`): las dos en curso; la contraria si ya está resuelto. */
+  decisiones: Decision[];
+  /** La etapa (contratado / descartado) si ya no está en curso, para que se vea en qué quedó. */
+  estado: string | null;
   resolucion: ReturnType<typeof resolucionDelGerente>;
   nombreDe: (id: string | null) => string | null;
   abrirCv: () => void;
@@ -134,10 +140,11 @@ function TarjetaDelGerente({ c, resuelto, resolucion, nombreDe, abrirCv, resolve
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void adjuntar(f); e.target.value = ""; }} />
         </label>
       </div>
+      {estado && <div className="hint" style={{ marginTop: 6 }} data-estado-del-candidato>{t("Status", "Estado")}: {estado}{c.discard_reason && decisiones.includes("hire") ? ` · ${c.discard_reason}` : ""}</div>}
       {resolucion && (
         <div className="sent-tag" style={{ marginTop: 6 }}>✓ {textoDeLaResolucion(resolucion, lang, nombreDe(resolucion.por))}</div>
       )}
-      {!resuelto && (
+      {decisiones.length > 0 && (
         decidiendo ? (
           <div style={{ marginTop: 8 }}>
             <label>{decidiendo === "hire" ? t("Comment (optional)", "Comentario (opcional)") : t("Why not? (required)", "¿Por qué no? (obligatorio)")}</label>
@@ -151,8 +158,8 @@ function TarjetaDelGerente({ c, resuelto, resolucion, nombreDe, abrirCv, resolve
           </div>
         ) : (
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-            <button className="btn btn-green btn-sm" onClick={() => setDecidiendo("hire")}>✅ {t("Hire", "Contratar")}</button>
-            <button className="btn btn-danger btn-sm" onClick={() => setDecidiendo("no_hire")}>❌ {t("No hire", "No contratar")}</button>
+            {decisiones.includes("hire") && <button className="btn btn-green btn-sm" onClick={() => setDecidiendo("hire")}>✅ {t("Hire", "Contratar")}</button>}
+            {decisiones.includes("no_hire") && <button className="btn btn-danger btn-sm" onClick={() => setDecidiendo("no_hire")}>❌ {t("No hire", "No contratar")}</button>}
           </div>
         )
       )}

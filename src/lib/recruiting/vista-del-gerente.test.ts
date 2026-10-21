@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import type { Candidate, Contact, Stage } from "./types";
 import {
   GRUPOS_QUE_SE_PINTAN, RESULTADO_CONTRATAR, RESULTADO_NO_CONTRATAR, ROL_GERENTE_DE_TIENDA,
-  agruparParaElGerente, esGerenteDeTienda, grupoDelCandidato, pestanasVisibles, resolucionDelGerente, resolverCandidato,
-  textoDeLaResolucion, tiendaCoincide,
+  agruparParaElGerente, decisionesPosibles, esGerenteDeTienda, esPasadoDelMes, grupoDelCandidato, pestanasVisibles,
+  resolucionDelGerente, resolverCandidato, textoDeLaResolucion, tiendaCoincide,
 } from "./vista-del-gerente";
 
 const stage = (key: string, type: Stage["type"] = "active"): Stage => ({ id: key, key, label: key, color: "#000", type, sort: 0, max_days: null });
@@ -105,11 +105,58 @@ describe("vista del gerente de tienda (D-600, migración 183)", () => {
     expect(textoDeLaResolucion(n, "en", null)).toContain("Manager's decision: No hire · no vino");
   });
 
-  it("se pintan SOLO Hoy y Próximos (D-606): ni pendientes de resolver ni resueltos; y la vista recorre esa lista, no las cuatro", () => {
-    expect([...GRUPOS_QUE_SE_PINTAN]).toEqual(["hoy", "proximos"]);
+  it("se pintan Hoy, Próximos y Pasados este mes (D-606 + D-627): ni pendientes ni resueltos de meses anteriores; y la vista recorre esa lista", () => {
+    expect([...GRUPOS_QUE_SE_PINTAN]).toEqual(["hoy", "proximos", "pasados_del_mes"]);
     const vista = readFileSync(new URL("../../components/recruiting/VistaDelGerente.tsx", import.meta.url), "utf8");
     expect(vista).toContain("const orden = GRUPOS_QUE_SE_PINTAN.map(");
     expect(vista).not.toMatch(/\{ id: "pendientes", titulo/);
+  });
+
+  it("pasados este mes (D-627): cita de este mes que ya no es de hoy ni próxima — sin resolver o resuelta —; ni del mes anterior, ni sin cita, ni archivados", () => {
+    const iso = (s: string) => new Date(s).toISOString();
+    // Lo que entra.
+    expect(esPasadoDelMes(cand({ inperson_date: iso("2026-10-18T09:00:00") }), pipeline, ahora)).toBe(true);
+    expect(esPasadoDelMes(cand({ inperson_date: iso("2026-10-01T08:00:00") }), pipeline, ahora)).toBe(true);
+    expect(esPasadoDelMes(cand({ status: "discarded", inperson_date: iso("2026-10-12T09:00:00") }), pipeline, ahora)).toBe(true);
+    expect(esPasadoDelMes(cand({ status: "hired", inperson_date: iso("2026-10-05T09:00:00") }), pipeline, ahora)).toBe(true);
+    // Resuelto hoy, o antes de una cita que aún venía este mes: ya no está en Hoy ni en Próximos; no puede desaparecer.
+    expect(esPasadoDelMes(cand({ status: "hired", inperson_date: iso("2026-10-19T09:00:00") }), pipeline, ahora)).toBe(true);
+    expect(esPasadoDelMes(cand({ status: "discarded", inperson_date: iso("2026-10-25T09:00:00") }), pipeline, ahora)).toBe(true);
+    // Lo que no.
+    expect(esPasadoDelMes(cand({ inperson_date: iso("2026-10-19T09:00:00") }), pipeline, ahora)).toBe(false); // hoy
+    expect(esPasadoDelMes(cand({ inperson_date: iso("2026-10-25T09:00:00") }), pipeline, ahora)).toBe(false); // próximo
+    expect(esPasadoDelMes(cand({ inperson_date: iso("2026-09-30T18:00:00") }), pipeline, ahora)).toBe(false); // mes anterior
+    expect(esPasadoDelMes(cand({ status: "discarded", inperson_date: iso("2026-09-30T18:00:00") }), pipeline, ahora)).toBe(false);
+    expect(esPasadoDelMes(cand({ inperson_date: iso("2025-10-18T09:00:00") }), pipeline, ahora)).toBe(false); // mismo mes, otro año
+    expect(esPasadoDelMes(cand({ status: "discarded", inperson_date: null }), pipeline, ahora)).toBe(false); // nunca citado
+    expect(esPasadoDelMes(cand({ inperson_date: "basura" }), pipeline, ahora)).toBe(false);
+
+    const g = agruparParaElGerente([
+      cand({ id: "viejo", inperson_date: iso("2026-10-03T09:00:00") }),
+      cand({ id: "hoy", inperson_date: iso("2026-10-19T09:00:00") }),
+      cand({ id: "reciente", status: "discarded", inperson_date: iso("2026-10-17T09:00:00") }),
+      cand({ id: "septiembre", inperson_date: iso("2026-09-28T09:00:00") }),
+      cand({ id: "medio", status: "hired", inperson_date: iso("2026-10-10T09:00:00") }),
+      cand({ id: "arch", archived: true, inperson_date: iso("2026-10-15T09:00:00") }),
+      cand({ id: "sin-cita", status: "discarded" }),
+    ], pipeline, ahora);
+    // De la cita más reciente a la más vieja (la entrada viene desordenada a propósito).
+    expect(g.pasados_del_mes.map((c) => c.id)).toEqual(["reciente", "medio", "viejo"]);
+    expect(g.hoy.map((c) => c.id)).toEqual(["hoy"]);
+  });
+
+  it("seguir evaluando (D-627): en curso, Contratar y No contratar; contratado, solo No contratar; descartado, solo Contratar; y la tarjeta pinta esos botones", () => {
+    expect(decisionesPosibles(cand({ status: "inperson" }), pipeline)).toEqual(["hire", "no_hire"]);
+    expect(decisionesPosibles(cand({ status: "hired" }), pipeline)).toEqual(["no_hire"]);
+    expect(decisionesPosibles(cand({ status: "discarded" }), pipeline)).toEqual(["hire"]);
+    expect(decisionesPosibles(cand({ status: "etapa-que-no-existe" }), pipeline)).toEqual(["hire", "no_hire"]);
+    // El cambio de opinión escribe lo mismo que la primera decisión.
+    expect(resolverCandidato("hire", "", pipeline)).toMatchObject({ ok: true, patch: { status: "hired" } });
+    const vista = readFileSync(new URL("../../components/recruiting/VistaDelGerente.tsx", import.meta.url), "utf8");
+    expect(vista).toContain("decisiones={decisionesPosibles(c, stages)}");
+    expect(vista).toContain('decisiones.includes("hire") && <button');
+    expect(vista).toContain('decisiones.includes("no_hire") && <button');
+    expect(vista).not.toContain("resuelto={");
   });
 
   it("adjuntos (D-607): la tarjeta del gerente lista los documentos del candidato, los abre, adjunta por el mismo camino que la ficha y solo quita los suyos", () => {
