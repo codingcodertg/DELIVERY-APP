@@ -46130,7 +46130,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** el panel de Cambiar usuario desde la burbuja con sesión real (el demo no tiene servidor): la medida es el dueño entrando como alguien desde RR. HH. y viendo que cae en RR. HH.
 
-## D-NEXT · Solicitudes de ayuda: cada fila de la bandeja enseña de qué va (el principio del mensaje, en una línea), sin abrirla
+## D-624 · Solicitudes de ayuda: cada fila de la bandeja enseña de qué va (el principio del mensaje, en una línea), sin abrirla
 
 **Fecha:** 2026-10-21 · **Versión:** deliveries 1.349.0 (la bandeja vive en `/home`) · Sin migración · Hecho directo por el orquestador en `feat/asomo-en-solicitudes`.
 

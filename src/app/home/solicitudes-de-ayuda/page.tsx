@@ -152,7 +152,7 @@ export default function SolicitudesDeAyudaPage() {
             {s.status === "atendida" ? t("Mark pending", "Marcar pendiente") : t("Mark handled", "Marcar atendida")}
           </button>
         </div>
-        {/* De qué va, sin abrirla (D-NEXT, 2026-10-21; Roberto: «showed a bit of the sentence […] without having to open
+        {/* De qué va, sin abrirla (D-624, 2026-10-21; Roberto: «showed a bit of the sentence […] without having to open
             1 by 1»). Una línea, cortada con «…»; abierta, el mensaje entero está en la conversación de abajo. Pulsarla
             abre la solicitud, como «Abrir». */}
         {!abiertaEsta && (

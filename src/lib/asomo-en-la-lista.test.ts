@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { ASOMO_EN_LA_LISTA, asomoDelMensaje, asomoEnLaLista } from "./help-requests";
 
-// D-NEXT (2026-10-21) · Roberto (admin): «Was better when the requests showed a bit of the sentence to know what each was
+// D-624 (2026-10-21) · Roberto (admin): «Was better when the requests showed a bit of the sentence to know what each was
 // talking about without having to open 1 by 1».
 
 const leer = (p: string) => readFileSync(p, "utf8").replace(/\r\n/g, "\n");

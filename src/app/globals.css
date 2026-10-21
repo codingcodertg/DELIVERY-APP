@@ -1827,7 +1827,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
   .fab-general-caja { right: 14px; bottom: 14px; }
 }
 
-/* La línea de «de qué va» en cada solicitud de la bandeja (D-NEXT, 2026-10-21): una sola línea cortada con «…», del ancho
+/* La línea de «de qué va» en cada solicitud de la bandeja (D-624, 2026-10-21): una sola línea cortada con «…», del ancho
    de la tarjeta, que abre la solicitud al pulsarla. */
 .asomo-solicitud {
   display: block; width: 100%; margin-top: 6px; padding: 0; border: none; background: none;
