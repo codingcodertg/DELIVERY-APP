@@ -46383,7 +46383,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** con la sesión real del admin.
 
-## D-NEXT · RR. HH.: una sola hora para todos, la de Brownsville (America/Chicago, con su cambio de horario), y aviso al agendar dos candidatos a la misma hora
+## D-632 · RR. HH.: una sola hora para todos, la de Brownsville (America/Chicago, con su cambio de horario), y aviso al agendar dos candidatos a la misma hora
 
 **Fecha:** 2026-10-21 · **Versión:** recruiting 0.64.0 · Hecho por un worker del orquestador en `feat/rrhh-hora-de-brownsville`. Sin migración.
 
