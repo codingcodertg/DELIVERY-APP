@@ -287,7 +287,7 @@ describe("la migración 120", () => {
   });
 });
 
-// D-NEXT (2026-10-20) · El dueño: «all help requests mark them as done … do a filter said done».
+// D-615 (2026-10-20) · El dueño: «all help requests mark them as done … do a filter said done».
 describe("el filtro de estado de la bandeja", () => {
   it("pendientes por defecto; atendidas; todas con las pendientes primero", async () => {
     const { listaSegunEstado } = await import("./help-requests");

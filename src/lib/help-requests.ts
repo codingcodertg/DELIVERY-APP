@@ -155,7 +155,7 @@ export function separaPorEstado(filas: SolicitudDeAyuda[]): { pendientes: Solici
   };
 }
 
-/** El filtro de estado de la bandeja (D-NEXT, 2026-10-20; el dueño: «do a filter said done»). */
+/** El filtro de estado de la bandeja (D-615, 2026-10-20; el dueño: «do a filter said done»). */
 export type FiltroDeEstado = "pendientes" | "atendidas" | "todas";
 
 /** Lo que se lista con cada filtro: pendientes (la lista de trabajo, por defecto), atendidas, o todas (pendientes primero). */

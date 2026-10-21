@@ -130,7 +130,7 @@ describe("la pantalla avisa, y solo cuando toca", () => {
 });
 
 describe("la lista de trabajo y el archivo", () => {
-  it("la lista de trabajo son las pendientes (filtro por defecto), y el filtro de estado ofrece Atendidas y Todas (D-NEXT)", () => {
+  it("la lista de trabajo son las pendientes (filtro por defecto), y el filtro de estado ofrece Atendidas y Todas (D-615)", () => {
     expect(pagina).toContain('useState<FiltroDeEstado>("pendientes")');
     expect(pagina).toContain("listaSegunEstado(estado, { pendientes, atendidas })");
     expect(pagina).toContain("listadas.map(tarjeta)");

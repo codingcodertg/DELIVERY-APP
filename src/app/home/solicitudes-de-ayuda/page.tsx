@@ -34,7 +34,7 @@ export default function SolicitudesDeAyudaPage() {
   const [hasta, setHasta] = useState("");
   const [abierta, setAbierta] = useState<string | null>(null);
   const [ocupada, setOcupada] = useState<string | null>(null);
-  /** El filtro de estado (D-NEXT): la lista de trabajo son las pendientes; «Atendidas» y «Todas» a un toque. */
+  /** El filtro de estado (D-615): la lista de trabajo son las pendientes; «Atendidas» y «Todas» a un toque. */
   const [estado, setEstado] = useState<FiltroDeEstado>("pendientes");
   /** Qué pasó con el aviso al remitente en la última que se atendió. */
   const [aviso, setAviso] = useState<string | null>(null);

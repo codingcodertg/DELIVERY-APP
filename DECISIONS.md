@@ -45843,7 +45843,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-609 · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): la burbuja va abajo a la derecha, encima de la de Ayuda.
+> **Reemplazada en parte por D-615** (2026-10-20): la burbuja va abajo a la derecha, encima de la de Ayuda.
 
 > **Reemplazada en parte por D-614** (2026-10-20): la lista enseña solo a los de mi tienda; a los demás se les busca por nombre.
 
@@ -45945,9 +45945,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · Hub: la burbuja del chat va abajo a la derecha, encima de la de Ayuda; y la bandeja de solicitudes de ayuda lleva un filtro de estado (Pendientes / Atendidas / Todas) en vez del archivo plegable
+## D-615 · Hub: la burbuja del chat va abajo a la derecha, encima de la de Ayuda; y la bandeja de solicitudes de ayuda lleva un filtro de estado (Pendientes / Atendidas / Todas) en vez del archivo plegable
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries: layout raíz y hub) · Sin migración · Datos: las 59 solicitudes pendientes se marcaron atendidas a petición del dueño · Hecho directo por el orquestador en `fix/chat-abajo-y-ayuda-filtro`.
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.343.0 (repo 1.481.0; layout raíz y hub) · Sin migración · Datos: las 59 solicitudes pendientes se marcaron atendidas a petición del dueño · Hecho directo por el orquestador en `fix/chat-abajo-y-ayuda-filtro`.
 
 **Pedidos del dueño (2026-10-20, literales):** «el chat above el help request» (captura: la burbuja «💬 Chat» arriba a la derecha tapando «+ New order» en Entregas); «all help requests mark them as done»; «en sent them do a filter said done».
 
