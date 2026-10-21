@@ -1,6 +1,7 @@
 import type { Candidate, Contact, Stage } from "./types";
 import { LOCATIONS } from "./constants";
 import { fmtDateTime, mergeTemplate, rcSms, telClean } from "./utils";
+import { diaEnBrownsville, formatoEnBrownsville, hoyEnBrownsville, instanteDePared, sumarDias } from "./hora-de-brownsville";
 
 /* ---- «📅 Agendar entrevista presencial» al terminar la entrevista (D-585) ----
  * El dueño pidió (2026-10-18): «en hr manager al terminar la entrevista que este el boton para
@@ -19,11 +20,11 @@ export type FechaValidada =
   | { ok: true; iso: string }
   | { ok: false; motivo: "sin-fecha" | "invalida" | "en-el-pasado" };
 
-/** La fecha del `<input type="datetime-local">` (hora local): tiene que existir y ser futura. */
+/** La fecha del `<input type="datetime-local">`, en hora de BROWNSVILLE (no la del aparato): tiene que existir y ser futura. */
 export function validarFechaPresencial(local: string, ahora: Date = new Date()): FechaValidada {
   if (!local.trim()) return { ok: false, motivo: "sin-fecha" };
-  const d = new Date(local);
-  if (Number.isNaN(d.getTime())) return { ok: false, motivo: "invalida" };
+  const d = instanteDePared(local);
+  if (!d) return { ok: false, motivo: "invalida" };
   if (d.getTime() <= ahora.getTime()) return { ok: false, motivo: "en-el-pasado" };
   return { ok: true, iso: d.toISOString() };
 }
@@ -100,20 +101,18 @@ export function plantillaDeAjustes(templates: readonly { label: string; text: st
   return t ? t.text : null;
 }
 
-const DIA = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-/** `{date}`, `{time}`, y los del dueño: `{when}` («mañana a las 10:00 a.m.») y `{day}` («mañana»). `ahora` solo para medir. */
+/** `{date}`, `{time}`, y los del dueño: `{when}` («mañana a las 10:00 a.m.») y `{day}` («mañana»), todo en hora de
+ *  Brownsville: el candidato va a una tienda de Texas, y «hoy» / «mañana» son los de allí. `ahora` solo para medir. */
 export function fechaYHora(iso: string, lang: "en" | "es", ahora: Date = new Date()): { date: string; time: string; when: string; day: string } {
-  const d = new Date(iso);
   const locale = lang === "es" ? "es-MX" : "en-US";
-  const date = d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
-  const time = d.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }).replace(/\s+/g, " ").trim();
-  const hoy = DIA(ahora);
-  const manana = DIA(new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1));
-  const dia = DIA(d);
+  const date = formatoEnBrownsville(iso, locale, { weekday: "long", day: "numeric", month: "long" });
+  const time = formatoEnBrownsville(iso, locale, { hour: "numeric", minute: "2-digit" }).replace(/\s+/g, " ").trim();
+  const hoy = hoyEnBrownsville(ahora);
+  const manana = sumarDias(hoy, 1);
+  const dia = diaEnBrownsville(iso);
   const day = dia === hoy ? (lang === "es" ? "hoy" : "today")
     : dia === manana ? (lang === "es" ? "mañana" : "tomorrow")
-    : (lang === "es" ? "el " : "on ") + d.toLocaleDateString(locale, { weekday: "long" });
+    : (lang === "es" ? "el " : "on ") + formatoEnBrownsville(iso, locale, { weekday: "long" });
   const when = dia === hoy || dia === manana
     ? `${day} ${lang === "es" ? "a las" : "at"} ${time}`
     : `${lang === "es" ? "el" : ""} ${date} ${lang === "es" ? "a las" : "at"} ${time}`.trim();

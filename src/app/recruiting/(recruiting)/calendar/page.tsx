@@ -6,17 +6,17 @@ import { useUI } from "@/components/recruiting/ModalHost";
 import { usePrefs } from "@/lib/prefs";
 import type { Candidate } from "@/lib/recruiting/types";
 import { fmtDateTime } from "@/lib/recruiting/utils";
+import { cuadriculaDelMes, diaEnBrownsville, formatoDeDia, formatoEnBrownsville, hoyEnBrownsville, mesEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 
 export default function CalendarPage() {
   const { candidates } = useData();
   const ui = useUI();
   const { t, lang } = usePrefs();
   const loc = lang === "es" ? "es-US" : "en-US";
-  const [ym, setYm] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
+  // Todo el calendario va en días de Brownsville (D-632): el mes de hoy, en qué casilla cae cada cita y qué casilla es «hoy».
+  const [ym, setYm] = useState(() => mesEnBrownsville(new Date()));
 
-  const first = new Date(ym.y, ym.m, 1);
-  const startDow = first.getDay();
-  const daysIn = new Date(ym.y, ym.m + 1, 0).getDate();
+  const { dias: daysIn, empieza: startDow } = cuadriculaDelMes(ym.y, ym.m);
   const cells: (number | null)[] = [];
   for (let i = 0; i < startDow; i++) cells.push(null);
   for (let d = 1; d <= daysIn; d++) cells.push(d);
@@ -24,11 +24,8 @@ export default function CalendarPage() {
   type Ev = { c: Candidate; kind: "phone" | "inperson"; at: string };
   const evs: Record<number, Ev[]> = {};
   const pushEv = (c: Candidate, kind: Ev["kind"], at: string) => {
-    const d = new Date(at);
-    if (d.getFullYear() === ym.y && d.getMonth() === ym.m) {
-      const day = d.getDate();
-      (evs[day] = evs[day] || []).push({ c, kind, at });
-    }
+    const [y, m, day] = diaEnBrownsville(at).split("-").map(Number);
+    if (y === ym.y && m - 1 === ym.m) (evs[day] = evs[day] || []).push({ c, kind, at });
   };
   candidates.forEach((c) => {
     if (c.phone_date) pushEv(c, "phone", c.phone_date);
@@ -36,8 +33,8 @@ export default function CalendarPage() {
   });
   Object.values(evs).forEach((arr) => arr.sort((a, b) => a.at.localeCompare(b.at)));
 
-  const today = new Date();
-  const monthName = first.toLocaleDateString(loc, { month: "long", year: "numeric" });
+  const today = hoyEnBrownsville();
+  const monthName = formatoDeDia(`${ym.y}-${String(ym.m + 1).padStart(2, "0")}-01`, loc, { month: "long", year: "numeric" });
   const dows = lang === "es"
     ? ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
     : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -64,12 +61,12 @@ export default function CalendarPage() {
           {dows.map((d) => <div key={d} className="cal-dow">{d}</div>)}
           {cells.map((d, i) => {
             if (d === null) return <div key={i} className="cal-day other" />;
-            const isToday = today.getFullYear() === ym.y && today.getMonth() === ym.m && today.getDate() === d;
+            const isToday = today === `${ym.y}-${String(ym.m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
             return (
               <div key={i} className={"cal-day" + (isToday ? " today" : "")}>
                 <div className="cal-num">{d}</div>
                 {(evs[d] || []).map((ev) => {
-                  const tm = new Date(ev.at).toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" });
+                  const tm = formatoEnBrownsville(ev.at, loc, { hour: "2-digit", minute: "2-digit" });
                   const inperson = ev.kind === "inperson";
                   return (
                     <div

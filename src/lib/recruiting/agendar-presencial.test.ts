@@ -11,10 +11,12 @@ import {
 const cand = { name: "María López", role: "Driver", phone: "(555) 010-2030" };
 const stage = (key: string, type: Stage["type"] = "active"): Stage => ({ id: key, key, label: key, color: "#000", type, sort: 0, max_days: null });
 const pipeline = [stage("registered"), stage("phone"), stage(ETAPA_PRESENCIAL), stage("hired", "won"), stage("discarded", "lost")];
-const ahora = new Date("2026-10-18T12:00:00");
-const cita = { iso: new Date("2026-10-20T10:30:00").toISOString(), lugar: "McAllen" };
+// Todas las horas, de Brownsville (D-632): octubre es horario de verano, UTC−5. Escritas con su desfase para que la
+// prueba diga lo mismo en cualquier aparato (antes eran horas «locales» y medían la zona de quien corría la prueba).
+const ahora = new Date("2026-10-18T12:00:00-05:00");
+const cita = { iso: "2026-10-20T15:30:00.000Z", lugar: "McAllen" }; // 10:30 a.m. en Brownsville
 // «Ahora» para medir «mañana» / «hoy» / «el martes»: la cita es el 20 a las 10:30.
-const hoyEs19 = new Date("2026-10-19T15:00:00");
+const hoyEs19 = new Date("2026-10-19T15:00:00-05:00");
 // Como en Datos → Tiendas: nombre con prefijo y dirección (datos de prueba, no los del dueño).
 const tiendas = [
   { name: "RDZ McAllen", address: "100 Main St, McAllen, TX" },
@@ -29,7 +31,7 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     expect(validarFechaPresencial("2026-10-18T11:59", ahora)).toEqual({ ok: false, motivo: "en-el-pasado" });
     expect(validarFechaPresencial("2026-10-18T12:00", ahora)).toEqual({ ok: false, motivo: "en-el-pasado" });
     const r = validarFechaPresencial("2026-10-20T10:30", ahora);
-    expect(r).toEqual({ ok: true, iso: new Date("2026-10-20T10:30").toISOString() });
+    expect(r).toEqual({ ok: true, iso: "2026-10-20T15:30:00.000Z" }); // 10:30 de Brownsville, no del aparato
   });
 
   it("la etapa resultante es «inperson» para un candidato activo; sin esa etapa en el pipeline se queda donde está", () => {
@@ -78,7 +80,7 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
   });
 
   it("«{when}» y «{day}»: hoy, mañana, o el día de la semana con la fecha", () => {
-    const f = (iso: string, lang: "en" | "es") => fechaYHora(new Date(iso).toISOString(), lang, hoyEs19);
+    const f = (pared: string, lang: "en" | "es") => fechaYHora(new Date(pared + "-05:00").toISOString(), lang, hoyEs19);
     expect(f("2026-10-19T16:00:00", "es")).toMatchObject({ when: "hoy a las 4:00 p.m.", day: "hoy" });
     expect(f("2026-10-20T10:30:00", "es")).toMatchObject({ when: "mañana a las 10:30 a.m.", day: "mañana" });
     expect(f("2026-10-22T09:00:00", "es")).toMatchObject({ when: "el jueves, 22 de octubre a las 9:00 a.m.", day: "el jueves" });

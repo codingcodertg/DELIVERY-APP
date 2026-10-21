@@ -1,4 +1,5 @@
 import type { Candidate, Question, ScaleLevel, Settings, Stage } from "./types";
+import { diaEnBrownsville, formatoDeDia, formatoEnBrownsville, hoyEnBrownsville } from "./hora-de-brownsville";
 
 // Interview scoring is on a 1..MAX_SCORE scale (no weights).
 export const MAX_SCORE = 4;
@@ -44,28 +45,24 @@ export function slaExceeded(c: Candidate, stages: Stage[]): boolean {
   return daysInStage(c.stage_changed_at) > st.max_days;
 }
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+/** Hoy en Brownsville («AAAA-MM-DD»), en cualquier aparato. Antes era el día UTC, que por la tarde en Texas ya es mañana
+ * (medido el 2026-10-21: 24 de 139 candidatos tienen `reg_date` = día UTC ≠ día de Texas de su `created_at`). */
+export const todayISO = (ahora: Date = new Date()) => hoyEnBrownsville(ahora);
 
-/** Value for an <input type="datetime-local">, in LOCAL time.
- * toISOString() would hand back UTC and shift the clock by the timezone offset. */
-export function localDateTimeInput(d: Date = new Date()): string {
-  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
-}
-
+/** Una fecha en pantalla. Un día de calendario («AAAA-MM-DD») sale tal cual; un instante, con el día de Brownsville. */
 export function fmtDate(iso: string | null): string {
   if (!iso) return "—";
-  const d = new Date(iso.length === 10 ? iso + "T12:00:00" : iso);
-  return d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
+  const opciones = { day: "2-digit", month: "short", year: "numeric" } as const;
+  return iso.length === 10 ? formatoDeDia(iso, "en-US", opciones) : formatoEnBrownsville(iso, "en-US", opciones);
 }
 
+/** Fecha y hora en pantalla, SIEMPRE en hora de Brownsville («Oct 21 03:30 PM»), sea cual sea la zona del aparato. */
 export function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
-  const d = new Date(iso);
   return (
-    d.toLocaleDateString("en-US", { day: "2-digit", month: "short" }) +
+    formatoEnBrownsville(iso, "en-US", { day: "2-digit", month: "short" }) +
     " " +
-    d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+    formatoEnBrownsville(iso, "en-US", { hour: "2-digit", minute: "2-digit" })
   );
 }
 
@@ -164,15 +161,10 @@ export function sinceLabel(iso: string | Date, now: Date = new Date()): string {
   return `${Math.floor(hrs / 24)}d ${hrs % 24}h`;
 }
 
-export function isToday(iso: string | null): boolean {
+/** El instante cae hoy, en días de Brownsville. */
+export function isToday(iso: string | null, ahora: Date = new Date()): boolean {
   if (!iso) return false;
-  const d = new Date(iso);
-  const n = new Date();
-  return (
-    d.getFullYear() === n.getFullYear() &&
-    d.getMonth() === n.getMonth() &&
-    d.getDate() === n.getDate()
-  );
+  return diaEnBrownsville(iso) === hoyEnBrownsville(ahora);
 }
 
 export interface Semaforo {

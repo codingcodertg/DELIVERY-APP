@@ -8,7 +8,6 @@ const contacto = (over: Partial<Contact>): Contact => ({
   id: Math.random().toString(36), candidate_id: "c1", type: "SMS", result: "sent", note: "", created_by: null,
   created_at: "2026-10-18T15:00:00.000Z", ...over,
 });
-const hora = (iso: string, locale: string) => new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
 describe("texto «¿te puedo llamar?» (D-581)", () => {
   // D-595 (2026-10-19): el dueño pegó su texto; de usted, sin nombre ni puesto, firmado por quien pulsa.
@@ -62,11 +61,11 @@ describe("texto «¿te puedo llamar?» (D-581)", () => {
     expect(estadoDelBoton([], "c1", "es").etiqueta).toBe("📱 Texto: ¿te puedo llamar?");
     const viejo = contacto({ result: RESULTADO_PUEDO_LLAMAR, created_at: "2026-10-17T09:05:00.000Z" });
     const nuevo = contacto({ result: RESULTADO_PUEDO_LLAMAR, created_at: "2026-10-18T15:30:00.000Z" });
-    expect(hora(nuevo.created_at, "en-US")).not.toBe(hora(viejo.created_at, "en-US"));
     const en = estadoDelBoton([viejo, nuevo], "c1", "en");
     expect(en.enviado).toBe(true);
-    expect(en.etiqueta).toBe("SMS sent ✓ " + hora(nuevo.created_at, "en-US"));
-    expect(estadoDelBoton([nuevo, viejo], "c1", "es").etiqueta).toBe("SMS enviado ✓ " + hora(nuevo.created_at, "es-MX"));
+    // 15:30Z = 10:30 a.m. en Brownsville (D-632), en cualquier aparato; el viejo sería 04:05 AM.
+    expect(en.etiqueta).toBe("SMS sent ✓ 10:30 AM");
+    expect(estadoDelBoton([nuevo, viejo], "c1", "es").etiqueta).toBe("SMS enviado ✓ 10:30 a.m.");
   });
 
   it("la fila enseña el teléfono tal cual, enlazado a RingCentral; sin dígitos no enseña nada", () => {

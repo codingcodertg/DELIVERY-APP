@@ -9,6 +9,10 @@ import {
   contactoDeLaCita, contactoDeLaConfirmacion, etapaTrasAgendar, lugaresParaAgendar, plantillaDeAjustes,
   prepararConfirmacionPresencial, textoConfirmacionPresencial, validarFechaPresencial,
 } from "@/lib/recruiting/agendar-presencial";
+import { paredDeInstante } from "@/lib/recruiting/hora-de-brownsville";
+import { avisoDeChoque, choquesDeHorario } from "@/lib/recruiting/choque-de-horario";
+import { terminalKeys } from "@/lib/recruiting/utils";
+import { AvisoDeChoque } from "./AvisoDeChoque";
 
 /**
  * «📅 Agendar entrevista presencial» (D-585, D-597). Fecha y hora (futura), lugar (sede o texto) y nota.
@@ -23,7 +27,8 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
   const { t, lang } = usePrefs();
   const c = candidates.find((x) => x.id === id);
   const existing = c?.inperson_date ?? null;
-  const [dt, setDt] = useState(existing ? existing.slice(0, 16) : "");
+  // En hora de Brownsville (D-632). Antes se cortaba el ISO guardado a 16 caracteres: la hora UTC tal cual, cinco o seis horas corrida.
+  const [dt, setDt] = useState(existing ? paredDeInstante(existing) : "");
   const lugares = lugaresParaAgendar(c?.location ?? "");
   const [lugar, setLugar] = useState(c?.location && lugares.includes(c.location) ? c.location : lugares[0] ?? "");
   const [otro, setOtro] = useState(false);
@@ -35,6 +40,8 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
   const [texto, setTexto] = useState("");
   const [editado, setEditado] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  /** «Ya hay alguien a esa hora»: el texto y el guardado que se paró, para repetirlo con «Sí, agendar». */
+  const [aviso, setAviso] = useState<{ texto: string; seguir: () => void } | null>(null);
 
   useEffect(() => {
     let vivo = true;
@@ -68,13 +75,21 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
     return null;
   };
 
+  /** Si otra presencial empieza a menos de 30 min, se para y se pregunta (choque-de-horario.ts). true = se paró. */
+  const pararPorChoque = (iso: string, seguir: () => void): boolean => {
+    const choques = choquesDeHorario(candidates, { id: c.id, tipo: "presencial", iso }, terminalKeys(stages));
+    if (!choques.length) return false;
+    setAviso({ texto: avisoDeChoque(choques, "presencial", lang), seguir });
+    return true;
+  };
+
   const agendar = async (iso: string) => {
     await updateCandidate(c.id, { inperson_date: iso, status: etapaTrasAgendar(stages, c.status) });
     await addContact(c.id, contactoDeLaCita(iso, lugarElegido, nota));
   };
 
   /** Guardar la cita y abrir RingCentral con el texto, de un golpe. */
-  const guardarYMandar = async () => {
+  const guardarYMandar = async (forzar = false) => {
     const iso = validar();
     if (!iso) return;
     const r = prepararConfirmacionPresencial(c, texto);
@@ -82,6 +97,7 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
       setError(r.motivo === "sin-telefono" ? t("No phone number", "Sin número de teléfono") : t("The text is empty", "El texto está vacío"));
       return;
     }
+    if (!forzar && pararPorChoque(iso, () => guardarYMandar(true))) return;
     setError(null);
     setGuardando(true);
     // RingCentral se abre EN EL CLIC, antes de esperar a la base (D-599): el enlace rcsms es una app externa y el
@@ -99,9 +115,10 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
     }
   };
 
-  const guardarSinTexto = async () => {
+  const guardarSinTexto = async (forzar = false) => {
     const iso = validar();
     if (!iso) return;
+    if (!forzar && pararPorChoque(iso, () => guardarSinTexto(true))) return;
     setError(null);
     setGuardando(true);
     try {
@@ -125,8 +142,8 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
       <div className="modal" onClick={(e) => e.stopPropagation()} data-agendar-presencial>
         <h3>📅 {t("Schedule in-person interview", "Agendar entrevista presencial")} — {c.name}</h3>
 
-        <label>{t("Interview date and time", "Fecha y hora de la entrevista")}</label>
-        <input type="datetime-local" value={dt} onChange={(e) => setDt(e.target.value)} />
+        <label>{t("Interview date and time", "Fecha y hora de la entrevista")} <span className="hint" style={{ display: "inline", margin: 0 }}>· {t("Brownsville, TX time", "hora de Brownsville, TX")}</span></label>
+        <input type="datetime-local" value={dt} onChange={(e) => { setDt(e.target.value); setAviso(null); }} />
 
         <label style={{ marginTop: 10 }}>{t("Place", "Lugar")}</label>
         <select value={otro ? "__otro__" : lugar} onChange={(e) => { if (e.target.value === "__otro__") setOtro(true); else { setOtro(false); setLugar(e.target.value); } }}>
@@ -162,13 +179,16 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
         </div>
 
         {error && <div style={{ color: "var(--red, #c0392b)", fontSize: 12, marginTop: 8 }}>{error}</div>}
+        {aviso && (
+          <AvisoDeChoque texto={aviso.texto} onCancelar={() => setAviso(null)} onSi={() => { const seguir = aviso.seguir; setAviso(null); seguir(); }} />
+        )}
 
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-          <button className="btn btn-primary" onClick={guardarYMandar} disabled={guardando || sinTelefono}
+          <button className="btn btn-primary" onClick={() => guardarYMandar()} disabled={guardando || sinTelefono || !!aviso}
             title={sinTelefono ? t("No phone number", "Sin número de teléfono") : t("Saves the interview and opens the text in RingCentral", "Guarda la cita y abre el texto en RingCentral")}>
             📱 {t("Save and send text", "Guardar y mandar texto")}
           </button>
-          <button className="btn btn-ghost" onClick={guardarSinTexto} disabled={guardando}>{t("Save without text", "Guardar sin texto")}</button>
+          <button className="btn btn-ghost" onClick={() => guardarSinTexto()} disabled={guardando || !!aviso}>{t("Save without text", "Guardar sin texto")}</button>
           {existing && <button className="btn btn-danger" onClick={quitar}>{t("Remove date", "Quitar fecha")}</button>}
           <button className="btn btn-ghost" onClick={close}>{t("Cancel", "Cancelar")}</button>
         </div>

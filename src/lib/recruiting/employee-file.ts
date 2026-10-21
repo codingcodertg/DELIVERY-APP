@@ -17,6 +17,7 @@
  */
 
 import { isSyntheticEmail } from "@/lib/username";
+import { hoyEnBrownsville } from "./hora-de-brownsville";
 
 /** La fila del expediente, tal como vive en `recruiting.employee_files` tras la 106. */
 export interface EmployeeFileRow {
@@ -135,7 +136,7 @@ export function puedeVerExpedientes(recruitingRole: string | null | undefined): 
 /** El parche de una baja. La fecha por defecto es hoy, en el formato de la columna. */
 export function parcheBaja(fecha?: string | null): { date_left: string } {
   const f = (fecha ?? "").trim();
-  return { date_left: /^\d{4}-\d{2}-\d{2}$/.test(f) ? f : new Date().toISOString().slice(0, 10) };
+  return { date_left: /^\d{4}-\d{2}-\d{2}$/.test(f) ? f : hoyEnBrownsville() };
 }
 
 /** El parche de una reactivación: se borra la fecha, y con ella el estado. */
@@ -437,11 +438,11 @@ export function casillaQuitarAcceso(
   return { visible, marcada: visible && estadoEmpleado({ date_left: f.date_left ?? null }) === "activo" };
 }
 
-/** Hoy en la hora LOCAL de quien registra, `AAAA-MM-DD`. `toISOString` daría el día UTC, que por la tarde en
- *  Texas ya es mañana: una baja registrada a las 7 p. m. saldría con fecha del día siguiente. */
+/** Hoy en Brownsville, `AAAA-MM-DD`. `toISOString` daría el día UTC, que por la tarde en Texas ya es mañana: una baja
+ *  registrada a las 7 p. m. saldría con fecha del día siguiente. Y desde D-632 (2026-10-21) tampoco es el día del
+ *  aparato: RR. HH. va entero en hora de Brownsville, esté donde esté quien registra. */
 export function hoyLocalISO(d: Date = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return hoyEnBrownsville(d);
 }
 
 // ---- El filtro Activos / Bajas / Todos ------------------------------------------------------
