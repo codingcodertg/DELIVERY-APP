@@ -43123,6 +43123,8 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 ## D-543 · Encuestas: una nota libre opcional al final, y el nombre del contacto pasa a opcional (teléfono o correo, al menos uno)
 
+> **Reemplazada en parte por D-620** (2026-10-20): el contacto es un solo campo «Teléfono o correo *»; y cada calificación lleva un comentario opcional (186).
+
 **Fecha:** 2026-10-13 · **Versión:** la asigna el orquestador al fusionar · **Migración:** `171_encuesta_nota_y_contacto.sql` (escrita, **no aplicada**) · Rama `encuesta-nota-y-contacto` (hub) y rama `nota-y-contacto` del sitio público `rtg-encuesta`.
 
 **Pedido del dueño**, literal, dos mensajes del mismo día: *«add an additional or optional note for the encuestas,»* y *«when asking do you want somebody from the team to contact you the name is optional, phone or email either one but one»*.
@@ -46032,3 +46034,20 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `erp-hub-link.test.ts` actualizado (un solo `href="/home"` y un solo `hubReachable &&`, y la fila de la lista ya no está).
 
 **No medido:** en navegador.
+
+## D-620 · Encuesta de clientes: un comentario opcional debajo de cada calificación (migración 186) y un solo campo «Teléfono o correo *» en el contacto
+
+**Fecha:** 2026-10-20 · **Versión:** surveys 0.5.0 (repo 1.486.0) · **Migración 186** (`186_encuesta_comentarios_por_area.sql`; ensayada con ROLLBACK y APLICADA el 2026-10-20 con el sí del dueño) · Sitio público `rtg-encuesta` (rama `comentarios-y-un-solo-contacto`, se publica tras aplicar la 186) · Hecho directo por el orquestador en `feat/encuesta-comentarios-por-area`.
+
+**Pedidos del dueño (2026-10-20, literales, con capturas del sitio):** «This step needs an optional box below each for if they want to explain further» (paso 2: Staff service / Product availability / Pricing con sus 1–5); «Merge the fields to say Phone or Email* which is required if they want to be contacted» (paso 3: Phone y Email por separado con «Phone or email, at least one»).
+
+**Qué cambia.**
+- **Base (186):** `survey_responses.rating_notes jsonb not null default '{}'` con CHECK `survey_rating_notes_valid` (objeto; claves solo de áreas elegidas; cada valor texto de 1 a 300 letras). `submit_survey_response` (definición viva de la 171 con tres añadidos): admite la clave `rating_notes`, la valida (área elegida, texto, ≤ 300; vacío se quita; recortado) y la guarda. Compatible hacia atrás: el sitio viejo no manda la clave y entra `'{}'`.
+- **Sitio público (rtg-encuesta):** en el paso 2, debajo de cada calificación, «¿Quieres contarnos más? (opcional)» (300 letras); viaja como `rating_notes` solo si hay alguno. En el paso 3, un solo campo **«Teléfono o correo *»** (con «@» es correo, si no teléfono; obligatorio al querer contacto; el nombre sigue opcional desde D-543); los avisos de formato son los de siempre. Pruebas del sitio: 170 (formulario, validación, textos).
+- **Panel del hub (Encuestas):** la columna «Eligió y calificó» enseña el comentario entre comillas detrás de la nota: «Precio 2 («muy caro») · Atención del personal 4».
+
+**Orden de publicación:** primero la 186 (con el sí del dueño), después el sitio (si el sitio sale antes, un cliente que escriba un comentario recibe un error del servidor viejo: «unknown field»). El hub puede salir en cualquier orden (lee la columna si existe).
+
+**Pruebas:** `src/lib/encuestas/comentarios-por-area.test.ts` (el panel pide la columna y la pinta; la 186 con columna, CHECK, clave admitida, validación e insert; checksum puesto). Ensayo de la 186: pasa (incluye tres asertos de la función de validación).
+
+**No medido:** en el navegador del sitio ni con una respuesta real; la medida es la primera encuesta con comentario tras publicar.
