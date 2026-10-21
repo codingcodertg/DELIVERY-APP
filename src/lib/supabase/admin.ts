@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { fetchDeEnsenanzaDeLaPeticion } from "@/lib/ensenanza-servidor";
 
 /**
  * Service-role Supabase client — SERVER ONLY. Never import this into a client
@@ -13,5 +14,8 @@ export function createAdminClient() {
   }
   return createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    // Modo enseñanza (D-626): si la petición trae la cookie, lo que escribe no llega a la base (salvo el chat, la
+    // ayuda y el registro de seguridad: `TABLAS_QUE_SIGUEN`). Un cron no la trae.
+    global: { fetch: fetchDeEnsenanzaDeLaPeticion() },
   });
 }

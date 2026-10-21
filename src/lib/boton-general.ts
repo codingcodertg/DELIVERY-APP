@@ -1,5 +1,8 @@
 import { appForPath } from "@/lib/app-for-path";
 import { MODULES } from "@/lib/constants";
+import type { Idioma } from "@/lib/idioma";
+import { cookieDeEnsenanza, ensenanzaDeLasCookies } from "@/lib/ensenanza-general";
+import { cookieDeCapacitacion } from "@/lib/timetracker/capacitacion";
 
 /**
  * El botón general (D-623, 2026-10-21): UNA burbuja abajo a la derecha, en todas las apps, que al pulsarla despliega
@@ -52,9 +55,13 @@ export const EVENTO_ABRIR_CHAT = "rtg:abrir-chat";
 export const EVENTO_CHAT_SIN_LEER = "rtg:chat-sin-leer";
 
 /**
- * El modo enseñanza es el de Entregas (D-274: un entorno de práctica sobre las órdenes reales). La bandera vive en el
+ * El modo enseñanza. Nació en Entregas (D-274: un entorno de práctica sobre las órdenes reales) y su bandera vive en el
  * navegador con esta clave desde siempre (`data-provider.tsx`); la burbuja la enciende y la apaga desde cualquier app
  * y avisa con este evento para que Entregas, si está montada, cambie en el acto.
+ *
+ * Desde D-626 vale para TODAS las apps (`ensenanza-general.ts`): con la bandera se escriben dos cookies, la general
+ * (`rtg_ensenanza`, que corta lo que escribe en el hub, el Inventario, RR. HH. y las demás) y la del modo capacitación
+ * de Time Tracker (D-490). Un solo interruptor.
  */
 export const CLAVE_ENSENANZA = "rtg_teaching";
 export const EVENTO_ENSENANZA = "rtg:ensenanza";
@@ -65,9 +72,34 @@ export function leeEnsenanza(almacen: Almacen | null | undefined): boolean {
   try { return almacen?.getItem(CLAVE_ENSENANZA) === "1"; } catch { return false; }
 }
 
-export function escribeEnsenanza(almacen: Almacen | null | undefined, encendido: boolean): void {
+type Galletas = { cookie: string };
+
+export function escribeEnsenanza(
+  almacen: Almacen | null | undefined,
+  encendido: boolean,
+  // `document` y el idioma de la persona (el servidor contesta «no se guardó» en él). Sin ellos, solo Entregas.
+  galletas?: { doc: Galletas | null | undefined; idioma: Idioma },
+): void {
   try {
     if (encendido) almacen?.setItem(CLAVE_ENSENANZA, "1");
     else almacen?.removeItem(CLAVE_ENSENANZA);
   } catch { /* sin almacenamiento: la bandera no persiste */ }
+  if (!galletas?.doc) return;
+  const idioma = encendido ? galletas.idioma : null;
+  galletas.doc.cookie = cookieDeEnsenanza(idioma);
+  galletas.doc.cookie = cookieDeCapacitacion(idioma);
+}
+
+/**
+ * La bandera de Entregas manda: si la cookie general no dice lo mismo (se encendió antes de D-626, o se borraron las
+ * cookies), se pone igual. Time Tracker no se toca aquí: allí se puede salir de la capacitación sin apagar lo demás.
+ * Devuelve si cambió algo.
+ */
+export function igualaCookieDeEnsenanza(almacen: Almacen | null | undefined, doc: Galletas | null | undefined, idioma: Idioma): boolean {
+  if (!doc) return false;
+  const bandera = leeEnsenanza(almacen);
+  const cookie = ensenanzaDeLasCookies(doc.cookie) !== null;
+  if (bandera === cookie) return false;
+  doc.cookie = cookieDeEnsenanza(bandera ? idioma : null);
+  return true;
 }

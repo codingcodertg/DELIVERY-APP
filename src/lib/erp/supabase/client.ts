@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { ensenanzaDelNavegador, fetchDeEnsenanza } from "@/lib/ensenanza-general";
 
 /**
  * Every .from() here defaults to the `erp` schema (D-090), the same way the
@@ -12,6 +13,8 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       db: { schema: "erp" },
+      // Modo enseñanza (D-626): con la cookie puesta, lo que escribe no sale del navegador.
+      global: { fetch: fetchDeEnsenanza((i, o) => fetch(i, o), ensenanzaDelNavegador) },
       // createBrowserClient CACHES A MODULE-LEVEL SINGLETON in the browser unless this is false
       // (see @supabase/ssr createBrowserClient.js: `cachedBrowserClient`). Every module here calls
       // it with the same URL and anon key, so whichever runs first wins and the others silently get

@@ -1839,3 +1839,10 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 /* Las órdenes con la factura buscada que no son del chofer (D-625, migración 188): una debajo de otra, separadas. */
 .fila-ajena { padding: 8px 0; border-top: 1px solid var(--row-line); }
 .fila-ajena:first-of-type { border-top: none; }
+
+/* El aviso del modo enseñanza en las apps que no tienen el suyo (D-626, `AvisoDeEnsenanza`): el mismo morado y la
+   misma letra que el de la barra de Entregas, y como él en el flujo, encima de todo (no se pega al borde: ese es del
+   banner de «entrar como», `impersonation-banner.test.ts`). */
+.aviso-ensenanza { display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 4px 12px; background: var(--teaching-bg); color: #fff; text-align: center; padding: 6px 12px; font-size: 12.5px; font-weight: 700; letter-spacing: .03em; }
+.aviso-ensenanza button { background: rgba(255,255,255,.25); color: #fff; padding: 2px 10px; border-radius: 6px; font-weight: 700; border: 0; cursor: pointer; font: inherit; }

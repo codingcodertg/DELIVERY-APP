@@ -7,6 +7,7 @@ import { CierreDiario } from "@/components/CierreDiario";
 import { HelpButton } from "@/components/HelpButton";
 import { ChatFlotante } from "@/components/ChatFlotante";
 import { BotonGeneral } from "@/components/BotonGeneral";
+import { AvisoDeEnsenanza } from "@/components/AvisoDeEnsenanza";
 import { GUION_DE_TEMA } from "@/lib/tema";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
@@ -65,6 +66,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             es que preguntan cosas distintas. */}
         <ImpersonationBanner />
         <PrefsProvider>
+          {/* El aviso del modo enseñanza (D-626), encima de todo en las apps que no tienen el suyo: el mismo interruptor
+              de la burbuja vale para todas. Dentro de `PrefsProvider` porque habla en el idioma de la persona. */}
+          <AvisoDeEnsenanza />
           {children}
           {/* El aviso del cierre de las 18:30 (D-248), aquí por lo mismo que `VersionStamp`:
               es el único layout por el que pasan las cinco apps. No cierra nada — la barrera

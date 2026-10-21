@@ -61,7 +61,7 @@ describe("la señal de enseñanza, compartida con Entregas", () => {
     const dp = sinComentarios(leer("src/lib/data-provider.tsx"));
     expect(dp).toContain('import { EVENTO_ENSENANZA, escribeEnsenanza, leeEnsenanza } from "@/lib/boton-general";');
     expect(dp).toContain("window.addEventListener(EVENTO_ENSENANZA, alCambiar);");
-    expect(dp).toContain("escribeEnsenanza(localStorage, v);");
+    expect(dp).toContain("escribeEnsenanza(localStorage, v, { doc: document, idioma: lang });");
     expect(dp).not.toContain('localStorage.getItem("rtg_teaching")');
     expect(dp).not.toContain('localStorage.setItem("rtg_teaching"');
   });
@@ -104,7 +104,7 @@ describe("puerta: la burbuja general en el layout raíz, y Ayuda y Chat se abren
 
   it("el modo enseñanza de la burbuja escribe la bandera y avisa a Entregas", () => {
     expect(EVENTO_ENSENANZA).toBe("rtg:ensenanza");
-    expect(burbuja).toContain("escribeEnsenanza(localStorage, nuevo);");
+    expect(burbuja).toContain("escribeEnsenanza(localStorage, nuevo, { doc: document, idioma: lang });");
     expect(burbuja).toContain("window.dispatchEvent(new CustomEvent(EVENTO_ENSENANZA));");
   });
 

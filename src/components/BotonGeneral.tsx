@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { appForPath } from "@/lib/app-for-path";
 import { usePrefs } from "@/lib/prefs";
 import { ConfirmProvider } from "@/lib/confirm";
 import { ayudaEnLaRuta } from "@/lib/ayuda-flotante";
@@ -23,7 +24,7 @@ const SIN_SERVIDOR: Servidor = { adminReal: false, habilitado: false, users: [],
  * usuario, Vista móvil y Modo enseñanza salen solo al admin real, según diga `/api/impersonate/candidates`.
  */
 export function BotonGeneral() {
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const pathname = usePathname();
   const [abierto, setAbierto] = useState(false);
   const [servidor, setServidor] = useState<Servidor>(SIN_SERVIDOR);
@@ -71,10 +72,14 @@ export function BotonGeneral() {
   const cierra = () => { setAbierto(false); setCambiando(false); };
   const alternaEnsenanza = () => {
     const nuevo = !ensenanza;
-    escribeEnsenanza(localStorage, nuevo);
+    escribeEnsenanza(localStorage, nuevo, { doc: document, idioma: lang });
     setEnsenanza(nuevo);
     window.dispatchEvent(new CustomEvent(EVENTO_ENSENANZA));
     cierra();
+    // Time Tracker monta su capacitación al cargar (D-490): se recarga para que entre o salga ya. En las demás apps no
+    // hace falta: el corte mira la cookie en cada petición y el aviso escucha el evento.
+    const app = appForPath(pathname);
+    if (app === "timetracker" || app === "clockin") window.location.reload();
   };
 
   const opcion = (o: OpcionGeneral) => {
@@ -120,8 +125,8 @@ export function BotonGeneral() {
           <button key={o} type="button" className={"fab-opcion" + (ensenanza ? " on" : "")} data-opcion={o}
             role="menuitemcheckbox" aria-checked={ensenanza} onClick={alternaEnsenanza}
             title={t(
-              "A private practice sandbox on top of the real orders in Deliveries: nothing you do is saved or seen by anyone else.",
-              "Un entorno de práctica privado sobre las órdenes reales de Entregas: nada de lo que hagas se guarda ni lo ve nadie más.",
+              "Practice in every app: you see the real data, but nothing you change is saved or seen by anyone else.",
+              "Práctica en todas las apps: ves los datos reales, pero nada de lo que cambies se guarda ni lo ve nadie más.",
             )}>
             <span aria-hidden>🎓</span> {ensenanza ? t("Turn teaching mode off", "Apagar modo enseñanza") : t("Teaching mode", "Modo enseñanza")}
           </button>

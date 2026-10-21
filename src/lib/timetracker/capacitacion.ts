@@ -109,14 +109,18 @@ export function esEscrituraBloqueada(metodo: string | null | undefined, url: str
  */
 export function fetchConCorte(
   fetchReal: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-  activa: () => Idioma | null,
+  // Puede ser asíncrona: el cliente de servicio del servidor lee la cookie de la petición al llamar (D-626).
+  activa: () => Idioma | null | Promise<Idioma | null>,
+  // El modo enseñanza general (D-626) usa este mismo corte con su lista de lo que sí pasa y su mensaje.
+  corte: { bloquea: (metodo: string | null | undefined, url: string) => boolean; mensaje: (i: Idioma) => string; codigo: string } =
+    { bloquea: esEscrituraBloqueada, mensaje: mensajeDeCapacitacion, codigo: "CAPACITACION" },
 ): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
   return async (input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const metodo = init?.method ?? (typeof input === "object" && "method" in input ? input.method : "GET");
-    const idioma = activa();
-    if (idioma && esEscrituraBloqueada(metodo, url)) {
-      const cuerpo = { code: "CAPACITACION", message: mensajeDeCapacitacion(idioma), details: null, hint: null, statusCode: "403", error: "capacitacion" };
+    const idioma = await activa();
+    if (idioma && corte.bloquea(metodo, url)) {
+      const cuerpo = { code: corte.codigo, message: corte.mensaje(idioma), details: null, hint: null, statusCode: "403", error: corte.codigo.toLowerCase() };
       return new Response(JSON.stringify(cuerpo), { status: 403, headers: { "content-type": "application/json" } });
     }
     return fetchReal(input, init);
