@@ -234,7 +234,7 @@ describe("el modal y los dos proveedores usan esto", () => {
     expect(modal).toContain("setD((p) => eligeOrigen(p, v, settings.stores));");
     expect(modal).toContain("on={(v) => setD((p) => eligeDestino(p, v, settings.stores))}");
     expect(modal).toContain("const deliveryStore = tiendaDestinoMostrada(d, settings.stores);");
-    expect(modal).toContain("const payload: Draft = borradorDeReentrega(src, { cargo: redeliverCharge, motivo: redeliverReason });");
+    expect(modal).toContain("const row = await addDelivery(borradorDeReentrega(src, { cargo: redeliverCharge, motivo: redeliverReason }));");
     expect(modal).toContain("const origenIgualDestino = origenEsDestino(d, reglaDelTipo, settings.stores);");
     // Y no queda ningún manejador de tienda escrito a mano.
     expect(modal).not.toContain("settings.stores.find((s) => s.name === v)");
