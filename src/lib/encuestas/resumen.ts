@@ -23,11 +23,13 @@ export interface RespuestaEncuesta {
   contacted_at: string | null;
   /** Nota libre opcional del final (migración 171). Null si no dejó ninguna. */
   note: string | null;
+  /** Comentario opcional por área (186). */
+  rating_notes?: Record<string, string> | null;
 }
 
 /** Las columnas que se leen, en el orden de la tabla. Una sola lista para la pantalla y la prueba. */
 export const COLUMNAS =
-  "id, created_at, nothing_to_improve, selected_areas, other_text, ratings, wants_contact, contact_name, contact_phone, contact_email, contacted, contacted_at, note";
+  "id, created_at, nothing_to_improve, selected_areas, other_text, ratings, wants_contact, contact_name, contact_phone, contact_email, contacted, contacted_at, note, rating_notes";
 
 /** El día de Texas (YYYY-MM-DD) de una respuesta. */
 export const diaDe = (iso: string): string => isoInTZ(new Date(iso));
@@ -147,7 +149,9 @@ export function eleccionesDe(f: RespuestaEncuesta, lang: "en" | "es"): string {
     .map((k) => {
       const nombre = k in AREA_LABELS ? AREA_LABELS[k as AreaKey][lang] : k;
       const r = f.ratings?.[k];
-      return typeof r === "number" ? `${nombre} ${r}` : nombre;
+      const nota = f.rating_notes?.[k]?.trim();
+      const base = typeof r === "number" ? `${nombre} ${r}` : nombre;
+      return nota ? `${base} («${nota}»)` : base;
     })
     .join(" · ");
 }
