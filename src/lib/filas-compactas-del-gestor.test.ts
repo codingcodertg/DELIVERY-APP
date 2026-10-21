@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-// D-NEXT (2026-10-20) · El dueño: «Need the rows to be more narrow in the route manager view … like how it is in the Orders tab».
+// D-617 (2026-10-20) · El dueño: «Need the rows to be more narrow in the route manager view … like how it is in the Orders tab».
 
 describe("la tabla de paradas del Gestor tiene filas compactas", () => {
   const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");

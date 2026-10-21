@@ -501,7 +501,7 @@ table.orders tr[data-fila-arrastrable] { -webkit-user-drag: element; }
    · Todas las filas, del mismo alto: la Base, las ya hechas y las que solo informan no llevan botones y salían más bajas.
      `height` en una celda es un mínimo: 34 px es lo que mide una fila con sus botones (medido), y 47 en el teléfono (46,3).
    · `overflow: visible` en la de acciones, como tenía: el desplegable «Pasar a…» no se corta. */
-/* Filas compactas en la tabla de paradas (D-NEXT, 2026-10-20). El dueño: «Need the rows to be more narrow in the route
+/* Filas compactas en la tabla de paradas (D-617, 2026-10-20). El dueño: «Need the rows to be more narrow in the route
    manager view to be able to see more rows at a time like how it is in the Orders tab». Hasta aquí: alto fijo de 34 px más
    el relleno de 10 px de `table.orders` (~44 px por fila). Ahora: sin alto fijo, relleno de 3 px, y los controles de la
    fila (flechas, «Mover a…», pastillas) a su tamaño mínimo: ~28 px por fila, más densa que Órdenes. */
