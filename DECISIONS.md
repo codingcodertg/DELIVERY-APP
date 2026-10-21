@@ -46163,3 +46163,40 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/tomar-orden.test.ts` (texto normalizado y mínimo; la copia de `numeros_de_factura` con los casos de la autocomprobación de la 188; motivo; filtro de ajenas; etiqueta; cada código TOMAR_… de la 188 leído y al revés; la nota igual en el demo y en la base; puertas de la 188 —el bloque del guard con exactamente esas 6 columnas—, del proveedor, de la pantalla y de la campana). **Ensayo de la 188 con ROLLBACK contra producción** (chofer real, orden real): por RLS no la ve; la búsqueda con espacios y «#» la encuentra; con 3 caracteres o un número incompleto, no; un vendedor no busca; sin motivo no se toma; un UPDATE directo del chofer no la toma; tomada: suya, sin puesto, para hoy, misma etapa, nota con el motivo limpio y «edited», avisos a 4 admins y 1 de logística; ya la ve y la recoge (approved → picked_up); otra vez: «ya es tuya»; una entregada no; logística sigue editando; y tras el ROLLBACK no queda nada.
 
 **No medido:** en el teléfono de un chofer con la 188 aplicada; la medida es el primer chofer que busca una factura ajena.
+
+## D-NEXT · El modo enseñanza vale para todas las apps: un solo interruptor, un aviso en cada una, y fuera de Entregas y Time Tracker nada de lo que se cambia se guarda
+
+**Fecha:** 2026-10-21 · **Versión:** deliveries 1.351.0, erp 0.22.0, recruiting 0.60.0 · Hecho directo por el orquestador en `feat/ensenanza-general`. Sin migración.
+
+**Pedido (el dueño, 2026-10-21, literal):** «el hub y erp no se le prende el modo enseñanza arregla eso qeu todas esas opciones sean a nuvel general del app».
+
+**Medido antes.** El «Modo enseñanza» de la burbuja (D-623) solo apuntaba `rtg_teaching` en el navegador. Esa bandera la leía solo Entregas (su entorno de práctica, D-274), y el aviso morado vivía en la barra de Entregas. En el hub, el Inventario y las demás apps el botón no hacía nada visible, y lo que se cambiara se guardaba de verdad. Time Tracker ya tenía su propio modo capacitación (D-490): una cookie y un `fetch` en sus clientes de Supabase (`fetchConCorte`) que devuelve un 403 a toda escritura sin dejarla salir. Las otras dos opciones de la burbuja ya eran generales: Cambiar usuario cae en la app donde estás (D-623) y Vista móvil abre la pantalla actual.
+
+**Qué cambia.**
+- **Un solo interruptor** (`escribeEnsenanza`): al encender o apagar desde la burbuja o desde el menú de Entregas se escriben juntas la bandera de Entregas, una cookie nueva para todo el sitio (`rtg_ensenanza`, con el idioma) y la de capacitación de Time Tracker.
+- **El corte, en todas las apps** (`src/lib/ensenanza-general.ts`). Es el `fetchConCorte` de Time Tracker con su propia lista y metido en los clientes de Supabase:
+  - en el navegador: el general, el del Inventario y el de RR. HH.;
+  - en el servidor: los de sesión de esos tres y los dos de servicio (`createAdminClient`), que leen la cookie de la petición. Un cron no la trae.
+- **Qué se corta:** todo lo que escribe en `/rest/v1` y en Storage, y además crear, cambiar o borrar cuentas por la API de administración de Auth (Usuarios).
+- **Qué no se corta:**
+  - la sesión;
+  - las funciones de la base que solo leen: 27, medidas en producción en `pg_proc`; la prueba exige que cada `.rpc("…")` de `src/` esté clasificada como de leer o de escribir;
+  - el chat, la ayuda y sus adjuntos, la campana, el registro del teléfono y el registro de seguridad. Hablar con la gente no es practicar con los datos.
+- **Entrar como otro** sigue funcionando: sus rutas crean su cliente aparte.
+- **El aviso morado** (`AvisoDeEnsenanza`, en el layout raíz) sale en el hub, el Inventario, RR. HH., Clientes, Leads, Encuestas, Promociones y el Estimador, con «Salir». Entregas y Time Tracker siguen con el suyo. Lo ve cualquiera que lo tenga encendido, para que nadie quede atrapado. Lo cortado vuelve como error con el texto «Modo enseñanza: esto no se guardó…».
+- **Time Tracker** se recarga al encenderlo desde la burbuja, porque monta su capacitación al cargar.
+
+**Qué no cambia.** Entregas sigue con su entorno de práctica. Time Tracker sigue con el suyo, y se puede salir de él sin apagar lo demás. Fuera de Entregas y Time Tracker no hay práctica que «se vea guardada»: se mira todo y los cambios no llegan.
+
+**Pruebas:**
+- `src/lib/ensenanza-general.test.ts`: qué se corta y qué pasa; el `fetch` del navegador y el del servidor, con y sin petición; las cookies; el interruptor y su igualado; dónde sale el aviso; la clasificación de cada `.rpc`; y las puertas de los 8 clientes, del layout y de la burbuja.
+- `boton-general.test.ts`, actualizada.
+- Suite entera y tsc.
+- Mutantes: caen 12 de 12. Uno sobrevivió (el corte ignoraba la lista general) hasta añadir la prueba de una escritura permitida con el modo encendido.
+- Demo a 1440 y 390 px: la burbuja en Clientes lo enciende y sale el aviso; se ve en Leads; «Salir» apaga la bandera y la cookie.
+
+**No medido:**
+- con la sesión real: el hub no abre en el demo, y el demo no abre el Inventario ni tiene Entregas con la práctica (su proveedor no la lee);
+- una escritura real cortada en producción;
+- Time Tracker recargando en enseñanza;
+- los correos o avisos externos que alguna acción de servidor mande sin escribir antes en la base: no pasan por Supabase y no se cortan.

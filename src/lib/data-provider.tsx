@@ -346,9 +346,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, []);
   const setTeaching = useCallback((v: boolean) => {
     setTeachingState(v);
-    escribeEnsenanza(localStorage, v);
+    // Con las cookies: el mismo interruptor vale para todas las apps (D-626).
+    escribeEnsenanza(localStorage, v, { doc: document, idioma: lang });
     window.dispatchEvent(new CustomEvent(EVENTO_ENSENANZA));
-  }, []);
+  }, [lang]);
 
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [users, setUsers] = useState<Profile[]>([]);

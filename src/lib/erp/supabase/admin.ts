@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
+import { fetchDeEnsenanzaDeLaPeticion } from "@/lib/ensenanza-servidor";
 
 /**
  * Service-role Supabase client for TRUSTED server-only operations that the session client can't do —
@@ -45,5 +46,7 @@ export function createAdminClient() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, adminKey(), {
     db: { schema: "erp" },
     auth: { persistSession: false, autoRefreshToken: false },
+    // Modo enseñanza (D-626): ver `lib/supabase/admin.ts`.
+    global: { fetch: fetchDeEnsenanzaDeLaPeticion() },
   });
 }
