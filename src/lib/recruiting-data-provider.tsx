@@ -61,7 +61,8 @@ interface DataState {
   updateCandidate: (id: string, patch: Partial<Candidate>) => Promise<void>;
   deleteCandidate: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
-  addContact: (candidateId: string, entry: Partial<Contact>) => Promise<void>;
+  /** true si el contacto quedó guardado; un fallo ya se avisó con notify (Llamadas pendientes no sigue si falla). */
+  addContact: (candidateId: string, entry: Partial<Contact>) => Promise<boolean>;
   contactsFor: (candidateId: string) => Contact[];
   stageHistoryFor: (candidateId: string) => StageHistory[];
   // resume/CV attachments (Supabase Storage)
@@ -443,7 +444,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const { data, error } = await supabase.from("contacts").insert(payload).select().single();
       if (error) {
         notify("Error: " + error.message);
-        return;
+        return false;
       }
       setContacts((prev) => [data as Contact, ...prev]);
       // D-591: al llamar o textear, el candidato se guarda en la agenda de RingCentral («Andres Ugarte WA BRO»), una
@@ -451,6 +452,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (entry.type && TIPOS_QUE_GUARDAN.has(entry.type) && !yaGuardadoEnRingCentral(contacts.filter((k) => k.candidate_id === candidateId))) {
         void guardarEnRingCentral(candidateId);
       }
+      return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [supabase, me, notify, contacts],
