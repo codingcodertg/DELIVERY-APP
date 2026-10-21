@@ -46361,7 +46361,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** el barrido de candidatos en producción, hasta que el dueño lo lance.
 
-## D-NEXT · Leads: «Todas las tiendas» en el Pool General, y el admin entra en ella
+## D-631 · Leads: «Todas las tiendas» en el Pool General, y el admin entra en ella
 
 **Fecha:** 2026-10-21 · **Versión:** leads 0.7.0 · Hecho directo por el orquestador en `feat/leads-todas-las-tiendas`. Sin migración.
 
