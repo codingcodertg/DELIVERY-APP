@@ -52,11 +52,13 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
   const nav = leer("src/components/erp/side-nav.tsx");
   const header = leer("src/components/erp/header.tsx");
 
-  it("los DOS enlaces al hub están condicionados", () => {
+  it("el enlace al hub (uno solo, en la cabecera) está condicionado", () => {
     // Eran dos: el de la cabecera (junto a «RTG ERP») y el de la lista lateral. Los dos pintaban
     // sin ninguna guarda — `canReachHub` no aparecía en el fichero.
-    expect(nav.match(/href="\/home"/g) ?? []).toHaveLength(2);
-    expect(nav.match(/\{hubReachable && \(/g) ?? []).toHaveLength(2);
+    expect(nav.match(/href="\/home"/g) ?? []).toHaveLength(1);
+    // D-619 (2026-10-20): un solo enlace al hub, el de la cabecera; el de la lista se fue («erp tiene 2 all apps, solo deja 1»).
+    expect(nav.match(/\{hubReachable && \(/g) ?? []).toHaveLength(1);
+    expect(nav).not.toContain("mb-2 block rounded-md px-3 py-2 text-slate-500");
   });
   it("la barra NO decide por su cuenta: recibe la respuesta ya hecha", () => {
     // Dos sitios preguntando lo mismo por separado es lo que produjo el fallo. La regla se

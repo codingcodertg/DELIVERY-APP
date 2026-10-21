@@ -48,7 +48,8 @@ import type { UserRole, RecruiterRecommendation } from "./types";
 // D-145: el módulo pasa a ser RR. HH. y la contratación es una parte de él, no el todo.
 // Por eso Empleados va primero: la plantilla es lo permanente, los candidatos son de paso.
 export const TABS: { id: string; label: string; href: string; adminOnly?: boolean; roles?: string[] }[] = [
-  { id: "today", label: "🏠 Today", href: "/recruiting/today" },
+  // D-NEXT (2026-10-20): sin casita, que la casita es la del hub. El dueño: «there is two home icons, just leave the one that sends you to the hub».
+  { id: "today", label: "📋 Today", href: "/recruiting/today" },
   // Ni el reclutador ni la pestaña: el expediente lleva dirección, amonestaciones y antidoping,
   // y quien entra a mover candidatos no necesita nada de eso. Quien manda es la 094 (RLS); esto
   // solo evita enseñar una puerta que se abriría vacía.
