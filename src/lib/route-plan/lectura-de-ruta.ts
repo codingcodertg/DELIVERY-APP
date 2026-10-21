@@ -107,7 +107,7 @@ const enOrden = (paradas: readonly ParadaDelPlanMinima[]) => [...paradas].sort((
  */
 export function lecturaDeLaRuta(
   ordenes: readonly OrdenAsignada[], capacidad: number, paradas: readonly ParadaDelPlanMinima[] | null, hechas: readonly OrdenAsignada[] = [],
-  /** D-NEXT: las órdenes YA RECOGIDAS (en el camión) que siguen en `ordenes` por su entrega: no llevan fila P. */
+  /** D-621: las órdenes YA RECOGIDAS (en el camión) que siguen en `ordenes` por su entrega: no llevan fila P. */
   recogidasHechas: ReadonlySet<string> = new Set(),
 ): LecturaDeRuta {
   const hayPlan = !!paradas && paradas.length > 0;
@@ -148,7 +148,7 @@ function delPlan(paradas: readonly ParadaDelPlanMinima[], ordenes: readonly Orde
       continue;
     }
     // Cada recogida en su fila, también seguidas en el mismo sitio (D-444): el grupo lo pinta el color, no una fila juntada.
-    // D-NEXT: la recogida de una orden ya a bordo no es una fila pendiente (la pinta como hecha `filasConLoHecho`).
+    // D-621: la recogida de una orden ya a bordo no es una fila pendiente (la pinta como hecha `filasConLoHecho`).
     if (recogidasHechas.has(id)) continue;
     const lugar = p.place ?? null;
     if (recogida.has(id)) {

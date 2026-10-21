@@ -7,7 +7,7 @@ import { filasConLoHecho, type OrdenHecha } from "./hechas-del-gestor";
 import { lecturaConLoHecho } from "./route-plan/lectura-del-gestor";
 import { llegadaEnLasOrdenes } from "./valores-del-gestor";
 
-// D-NEXT (2026-10-20) · Roberto (admin): «Doesnt let me move D5 down, it shouldnt be the next delivery. Its picked up which is
+// D-621 (2026-10-20) · Roberto (admin): «Doesnt let me move D5 down, it shouldnt be the next delivery. Its picked up which is
 // fine but the delivery is after other ones». La entrega de lo YA RECOGIDO es una parada pendiente: se mueve, se mide y cuenta
 // su carga a bordo; solo su recogida queda fija.
 

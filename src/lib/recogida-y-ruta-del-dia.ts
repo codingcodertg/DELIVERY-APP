@@ -48,7 +48,7 @@ export function ordenesDeLaRutaDelDia<T extends { id: string; route_seq?: number
 
 /** Lo PENDIENTE de una ruta del día (lo que la tabla mueve y numera desde lo pendiente): lo que no está recogido ni entregado. */
 export function pendientesDelDia<T extends { stage: string }>(delDia: readonly T[]): T[] {
-  // D-NEXT: lo recogido sigue pendiente de ENTREGAR: su entrega se mueve y se mide; solo lo entregado queda fuera.
+  // D-621: lo recogido sigue pendiente de ENTREGAR: su entrega se mueve y se mide; solo lo entregado queda fuera.
   return delDia.filter((d) => !ETAPAS_FIJAS.has(d.stage));
 }
 

@@ -15,7 +15,7 @@ import { estaEnElCamion } from "@/lib/mover-parada";
 export function lecturaConLoHecho(
   ordenes: readonly OrdenAsignada[], capacidad: number, paradas: readonly ParadaDelPlanMinima[] | null, hechas: readonly OrdenAsignada[],
 ): LecturaDeRuta {
-  // D-NEXT: las órdenes que ya van en el camión (`picked_up`) siguen en `ordenes` por su entrega; su recogida no es fila pendiente.
+  // D-621: las órdenes que ya van en el camión (`picked_up`) siguen en `ordenes` por su entrega; su recogida no es fila pendiente.
   const enElCamion = new Set(ordenes.filter((o) => estaEnElCamion((o as { stage?: string }).stage)).map((o) => o.id));
   return lecturaDeLaRuta(ordenes, capacidad, paradas, hechas, enElCamion);
 }

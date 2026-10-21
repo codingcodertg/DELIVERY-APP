@@ -48,7 +48,7 @@ describe("lo ya hecho no choca (`inicioDeLaSecuencia`, `hechasDelChofer`)", () =
       { id: "e", assigned_driver: "Beto", delivery_date: "2026-09-28", stage: "delivered" },
       { id: "f", assigned_driver: "Ana", delivery_date: "2026-09-27", stage: "delivered" },
     ];
-    // D-NEXT (2026-10-20): lo FIJO es lo entregado; lo recogido va en el camión y su entrega se mueve con las pendientes.
+    // D-621 (2026-10-20): lo FIJO es lo entregado; lo recogido va en el camión y su entrega se mueve con las pendientes.
     expect(hechasDelChofer(todas, "Ana", new Set(["2026-09-28"])).map((x) => x.id)).toEqual(["b"]);
   });
   it("la foto del deshacer usa el mismo `desde` que se escribió", () => {

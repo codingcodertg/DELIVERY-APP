@@ -1,8 +1,8 @@
--- 187: El puesto de una entrega ya recogida se puede mover en la ruta (D-NEXT, 2026-10-20).
+-- 187: El puesto de una entrega ya recogida se puede mover en la ruta (D-621, 2026-10-20).
 --
 -- Roberto (admin, 2026-10-20): «Doesnt let me move D5 down, it shouldnt be the next delivery. Its picked up which is fine
 -- but the delivery is after other ones». En la app, desde D-433 lo recogido era «hecho»: su entrega quedaba fija y sin
--- flechas. D-NEXT la vuelve una parada pendiente mas. Mover escribe `route_seq`/`pickup_seq`/`load_no` en la orden, y el
+-- flechas. D-621 la vuelve una parada pendiente mas. Mover escribe `route_seq`/`pickup_seq`/`load_no` en la orden, y el
 -- guard de etapas (169) no deja a LOGISTICA editar una orden en `picked_up` (solo a admin, oficina y, en lo suyo, al
 -- chofer y al almacen). Aqui el guard deja, a cualquiera con el modulo de Entregas, cambiar SOLO esas tres columnas de una
 -- orden recogida, sin salir de `picked_up`. Es la definicion viva del guard (169 + 185) con ese unico anadido, justo
@@ -64,7 +64,7 @@ begin
 
   if r = 'admin' then return NEW; end if;
 
-  -- ---- El puesto de una entrega ya recogida se mueve (187, D-NEXT) ----
+  -- ---- El puesto de una entrega ya recogida se mueve (187, D-621) ----
   -- La orden va en el camion y su ENTREGA sigue pendiente: logistica (y oficina) la bajan o suben en la ruta como a
   -- cualquier pendiente. Solo cambian el puesto (`route_seq`, `pickup_seq`, `load_no`); nada mas de la orden.
   if TG_OP = 'UPDATE' and old_stage = 'picked_up' and new_stage = 'picked_up'
@@ -77,7 +77,7 @@ begin
     if probe is not distinct from OLD then return NEW; end if;
   end if;
 
-  -- ---- La letra de una carga es un nombre, no historia (185, D-NEXT) ----
+  -- ---- La letra de una carga es un nombre, no historia (185, D-621) ----
   -- Ponerle (o cambiarle) SOLO `order_suffix` a una orden —aunque este entregada— lo puede hacer cualquiera con el
   -- modulo: lo necesita la reentrega como carga (`reentrega_como_carga`): la madre entregada pasa a 'a' y la nueva es 'b'.
   if TG_OP = 'UPDATE' and NEW.order_suffix is distinct from OLD.order_suffix then
@@ -305,4 +305,4 @@ end $$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('187_mover_entrega_en_camion.sql', 'c1e550c01d37e78b3851bc04a95f35cc7dcba6c5a3fecb178610959b216d46e6') on conflict (name) do nothing;
+  values ('187_mover_entrega_en_camion.sql', '93dcc798cc41da1fe4ad437fe7838b06d02a801b0abc4b270cd0fc66d3e42353') on conflict (name) do nothing;

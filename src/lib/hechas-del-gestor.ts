@@ -75,7 +75,7 @@ export function filasConLoHecho(
   const deSiempre: FilaPintada[] = lectura.filas.map((fila, i) => ({ hecha: false, fila, i }));
   if (hechas.length === 0) return deSiempre;
   const porId = new Map(hechas.map((h) => [h.id, h]));
-  // D-NEXT (2026-10-20): de una orden EN EL CAMIÓN solo la recogida está hecha; su entrega es una fila PENDIENTE (viene
+  // D-621 (2026-10-20): de una orden EN EL CAMIÓN solo la recogida está hecha; su entrega es una fila PENDIENTE (viene
   // en `lectura.filas`, se mueve y se mide). Roberto: «Its picked up which is fine but the delivery is after other ones».
   // Si la pantalla no metió esa entrega entre las pendientes (no hay fila D suya en la lectura), se pinta como antes: fija,
   // «en camino». Así lo que lee solo con `hechas` sigue completo.

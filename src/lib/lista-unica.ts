@@ -89,7 +89,7 @@ export function tienePosicionDeRecogida(filas: readonly object[]): boolean {
  * - **Una recogida por orden**, cada una en su fila, también seguidas en la misma tienda (D-444; hasta ahí eran una).
  */
 export function listaDelChofer(ordenes: readonly OrdenDeLaLista[], capacidad: number, recogidasHechas: ReadonlySet<string> = new Set()): ParadaDeLaLista[] {
-  // D-NEXT: una orden ya recogida (en el camión) no lleva fila P: solo su entrega, que sí se mueve.
+  // D-621: una orden ya recogida (en el camión) no lleva fila P: solo su entrega, que sí se mueve.
   const entregas = entregasEnOrden(ordenes);
   const yaABordo = (o: OrdenDeLaLista) => recogidasHechas.has(o.id);
   const tope = centesimas(capacidad > 0 ? capacidad : Number.POSITIVE_INFINITY);
@@ -227,7 +227,7 @@ export interface CuentaDeLaLista {
  * y se avisa). Nunca bloquea: si en una parada se pasa de `capacidad`, lo dice ESA fila (`exceso`); la capacidad `null`
  * (no se sabe) no marca nada.
  */
-/** `aBordoInicial` (D-NEXT): lo que ya va en el camión al empezar la lista (las recogidas hechas cuya entrega sigue pendiente). */
+/** `aBordoInicial` (D-621): lo que ya va en el camión al empezar la lista (las recogidas hechas cuya entrega sigue pendiente). */
 export function cuentaDePallets(cambios: readonly (number | null)[], capacidad: number | null, aBordoInicial = 0): CuentaDeLaLista {
   const cap = capacidad != null && capacidad > 0 ? centesimas(capacidad) : null;
   const fila = (antesC: number, cambioC: number, sinConteo: boolean): FilaDeCuenta => {

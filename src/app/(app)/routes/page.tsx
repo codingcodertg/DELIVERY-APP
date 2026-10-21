@@ -1250,7 +1250,7 @@ export default function RoutesPage() {
   // order first, unsequenced ones after — same rule as the Driver page).
   // Keyed by LANE (driver+load, or bucket), so each of a driver's loads is its
   // own route.
-  // D-NEXT: la entrega de lo YA RECOGIDO sigue en la ruta como parada pendiente (se mueve, se mide, cuenta su carga).
+  // D-621: la entrega de lo YA RECOGIDO sigue en la ruta como parada pendiente (se mueve, se mide, cuenta su carga).
   const enElCamion = useMemo(() => [...hechasPintadas.values()].flat().filter((d) => estaEnElCamion(d.stage)), [hechasPintadas]);
   const byDriver = useMemo(() => rutasPorChofer([...dayOrders, ...enElCamion.filter((d) => !dayOrders.some((x) => x.id === d.id))]), [dayOrders, enElCamion]);
   const aBordoDe = (stops: readonly Delivery[]): number => stops.filter((d) => estaEnElCamion(d.stage)).reduce((n, d) => n + (Number(d.actual_pallets ?? d.est_pallets ?? 0) || 0), 0);

@@ -32332,7 +32332,7 @@ Si hay alguna, basta con escribir el nombre completo como se quiere imprimir.
 
 ## D-433 · Gestor de Rutas: el selector «Viaje N» ya no rompe la tarjeta, mira la capacidad, y las flechas se ven y no empatan con lo entregado
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): lo recogido ya no es «hecho» para la lista; su entrega es una parada pendiente que se mueve. Lo fijo es lo entregado.
+> **Reemplazada en parte por D-621** (2026-10-20): lo recogido ya no es «hecho» para la lista; su entrega es una parada pendiente que se mueve. Lo fijo es lo entregado.
 
 > **⚠ Reemplazada en parte por D-459** (2026-10-01): lo ya recogido o entregado del chofer ese día SÍ se pinta ahora en su tarjeta («right now when the order gets delivered it desapears frm the logistic manager view so don't do that»), intercalado donde iba y sin controles. Deja de valer «Las filas que se pintan no cambian. La tarjeta sigue recorriendo solo las pendientes». Lo demás sigue: lo hecho no se mueve ni se reescribe, las pendientes se numeran detrás, y la comparación con el plan cuenta lo hecho.
 >
@@ -35147,7 +35147,7 @@ siguen entrando; la pantalla la pide sin atrasadas.
 
 ## D-459 · Gestor de Rutas: lo entregado sigue en la lista de su chofer, la celda de acciones cuadrada, el ID al lado de la factura, «Armar rutas» en un solo botón, y la pantalla sin lo repetido (la franja de arriba, el texto de las tarjetas) con el filtro, «Cuadrícula» y deshacer donde se usan
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): la entrega de una orden en el camión deja de pintarse fija «🚚 en camino» en el Gestor; es una fila pendiente con flechas.
+> **Reemplazada en parte por D-621** (2026-10-20): la entrega de una orden en el camión deja de pintarse fija «🚚 en camino» en el Gestor; es una fila pendiente con flechas.
 
 > **Reemplazada en parte por D-584** (2026-10-18): en el mapa, el pin de lo ENTREGADO ya no lleva «✓»: lleva su número de parada del
 > día, apagado. El dueño: «keep the numbers and fade them instead of replacing them with a faded checkmark». El 🚚 de lo
@@ -46056,9 +46056,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el navegador del sitio ni con una respuesta real; la medida es la primera encuesta con comentario tras publicar.
 
-## D-NEXT · Gestor: la entrega de una orden YA RECOGIDA es una parada pendiente (se mueve con las flechas, se mide y cuenta su carga a bordo); solo la recogida queda fija — migración 187
+## D-621 · Gestor: la entrega de una orden YA RECOGIDA es una parada pendiente (se mueve con las flechas, se mide y cuenta su carga a bordo); solo la recogida queda fija — migración 187
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries) · **Migración 187** (`187_mover_entrega_en_camion.sql`, ensayada con ROLLBACK y APLICADA el 2026-10-20 con el «HAZLO» del dueño; 186/186) · Hecho directo por el orquestador en `feat/entrega-en-camion-se-mueve`.
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.347.0 · **Migración 187** (`187_mover_entrega_en_camion.sql`, ensayada con ROLLBACK y APLICADA el 2026-10-20 con el «HAZLO» del dueño; 186/186) · Hecho directo por el orquestador en `feat/entrega-en-camion-se-mueve`.
 
 **Pedido (Roberto Rodriguez Jr, admin, por el dueño, 2026-10-20, literal):** «Doesnt let me move D5 down, it shouldnt be the next delivery. Its picked up which is fine but the delivery is after other ones» (captura: la fila «🚚 D5» de #170741/170397, recogida, fija en la lista sin flechas, delante de P6…D9 pendientes). El dueño: «HAZLO».
 

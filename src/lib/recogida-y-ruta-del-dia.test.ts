@@ -76,7 +76,7 @@ describe("3 · la ruta del día que se mide: lo pendiente con lo hecho donde iba
   it("las órdenes del día: sin repetir, y en el mismo orden esté hecho lo que esté hecho", () => {
     expect(ordenesDeLaRutaDelDia([b0], [aHecha]).map((d) => d.id)).toEqual(["a", "b"]);
     expect(ordenesDeLaRutaDelDia([a0, b0], [a0]).map((d) => d.id)).toEqual(["a", "b"]);
-    // D-NEXT: lo recogido (en el camión) sigue pendiente de entregar: se mueve y se mide. Solo lo entregado queda fuera.
+    // D-621: lo recogido (en el camión) sigue pendiente de entregar: se mueve y se mide. Solo lo entregado queda fuera.
     expect(pendientesDelDia([aHecha, b0, orden("c", "picked_up", 2)]).map((d) => d.id)).toEqual(["b", "c"]);
   });
   it("entregar una parada NO cambia la forma de la ruta: la medida y la línea se quedan (antes se tiraban y se medía lo que quedaba)", () => {
