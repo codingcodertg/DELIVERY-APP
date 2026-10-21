@@ -3,6 +3,7 @@ import { MODULES } from "@/lib/constants";
 import type { Idioma } from "@/lib/idioma";
 import { cookieDeEnsenanza, ensenanzaDeLasCookies } from "@/lib/ensenanza-general";
 import { cookieDeCapacitacion } from "@/lib/timetracker/capacitacion";
+import { olvidaPractica } from "@/lib/practica/fetch-de-practica";
 
 /**
  * El botón general (D-623, 2026-10-21): UNA burbuja abajo a la derecha, en todas las apps, que al pulsarla despliega
@@ -66,7 +67,7 @@ export const EVENTO_CHAT_SIN_LEER = "rtg:chat-sin-leer";
 export const CLAVE_ENSENANZA = "rtg_teaching";
 export const EVENTO_ENSENANZA = "rtg:ensenanza";
 
-type Almacen = { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void };
+type Almacen = { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void; key?(i: number): string | null; readonly length?: number };
 
 export function leeEnsenanza(almacen: Almacen | null | undefined): boolean {
   try { return almacen?.getItem(CLAVE_ENSENANZA) === "1"; } catch { return false; }
@@ -84,6 +85,8 @@ export function escribeEnsenanza(
     if (encendido) almacen?.setItem(CLAVE_ENSENANZA, "1");
     else almacen?.removeItem(CLAVE_ENSENANZA);
   } catch { /* sin almacenamiento: la bandera no persiste */ }
+  // Encender empieza una práctica limpia y apagar la tira (D-628): todo vuelve a como estaba.
+  olvidaPractica(almacen);
   if (!galletas?.doc) return;
   const idioma = encendido ? galletas.idioma : null;
   galletas.doc.cookie = cookieDeEnsenanza(idioma);
