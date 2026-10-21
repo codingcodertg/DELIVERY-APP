@@ -33409,6 +33409,8 @@ con planes del motor, no con datos reales); la recarga a media ruta en el mapa r
 
 ## D-444 · Gestor de Rutas: una fila por recogida, el mismo sitio como grupo de color, la cuenta «+4 = 4» y el ID en vez de la factura
 
+> **Reemplazada en parte por D-617** (2026-10-20): el alto fijo de 34 px por fila se va; filas compactas (~28 px).
+
 > **⚠ Reemplazada en parte por D-445** (2026-09-29): en la tabla de paradas del Gestor la fila P ya **no** deja vacía
 > la ciudad: pinta la ciudad de entrega de SU orden (`p_address`, ahora rotulada «Ciudad de entrega») y la nueva «Ciudad
 > de recogida» (`p_ciudad_recogida`). Ventanas, dirección y contacto siguen vacíos en la P. La tabla del plan (D-429,
@@ -45977,3 +45979,17 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/eta-de-recogida.test.ts` (la clave son las órdenes; puerta: la medida guarda y la tabla busca con `claveDeRecogida`, ningún «P:» + índice queda; y los `z-index` de Ayuda, Chat y su panel).
 
 **No medido:** en navegador. La medida real es la tabla de Roberto con paradas hechas delante.
+
+## D-617 · Gestor: filas compactas en la tabla de paradas, para ver más de un vistazo (como en Órdenes)
+
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.345.0 (repo 1.483.0) · Sin migración · Hecho directo por el orquestador en `fix/gestor-filas-compactas`.
+
+**Pedido del dueño (2026-10-20, literal):** «Need the rows to be more narrow in the route manager view to be able to see more rows at a time like how it is in the Orders tab. JUST LIKE THE ORDERS THAT ARE NARROW AND EFFICIENT BUT FIT THE SCREEN».
+
+**Medido antes.** Las dos tablas comparten `table.orders` (relleno 10 px por celda). La de paradas llevaba además un alto fijo de 34 px por celda (D-444: «el MISMO alto en todas las filas», para que las filas con y sin controles midieran igual), así que cada fila rondaba los 44 px, más que en Órdenes, y los controles (flechas, «Mover a…», pastillas) van a su tamaño normal.
+
+**Qué cambia (solo CSS).** `table.orders.tabla-de-paradas tbody td`: sin alto fijo, relleno vertical de 3 px, interlineado 1.25; dentro, `.btn-sm` a 2×6 px y 11.5 px, el desplegable «Mover a…» a 24 px de alto, pastillas a 1×8 px y 11 px, `.hint` sin margen. Resultado: ~28 px por fila, más densa que Órdenes; todas las filas siguen midiendo igual porque el alto lo da el contenido más alto (los controles), ya encogido. En el teléfono (≤ 640 px) el relleno es de 8 px para que las filas sigan siendo pulsables.
+
+**Pruebas:** `src/lib/filas-compactas-del-gestor.test.ts` (las reglas nuevas, y que el alto fijo ya no está); `gestor-entregadas-y-vista.test.ts` actualizado (la puerta del alto de D-444 pasa a la de aquí).
+
+**No medido:** en navegador. La medida es la tabla del dueño: cuántas filas caben ahora frente a antes.

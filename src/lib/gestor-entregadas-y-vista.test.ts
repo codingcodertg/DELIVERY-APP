@@ -230,8 +230,9 @@ describe("2 · la celda de acciones es una celda de tabla: el flex va DENTRO («
   it("el flex, el desplegable sin cortar y el MISMO alto en todas las filas están en la hoja de estilos", () => {
     expect(css).toContain(".acciones-de-parada { display: flex; gap: 3px; justify-content: flex-end; align-items: center; }");
     expect(css).toContain("table.orders.tabla-de-paradas td.celda-acciones { overflow: visible; }");
-    expect(css).toContain("table.orders.tabla-de-paradas tbody td { height: 34px; }");
-    expect(css).toContain("@media (max-width: 640px) { table.orders.tabla-de-paradas tbody td { height: 47px; } }");
+    // D-617 (2026-10-20): filas compactas; el alto fijo de 34 px se fue («rows … more narrow … like the Orders tab»).
+    expect(css).toContain("table.orders.tabla-de-paradas tbody td { height: auto; padding-top: 3px; padding-bottom: 3px; line-height: 1.25; }");
+    expect(css).toContain("@media (max-width: 640px) { table.orders.tabla-de-paradas tbody td { padding-top: 8px; padding-bottom: 8px; } }");
     // La raya de inicio de grupo ya no es un borde (hacía esas filas más altas): es una sombra hacia dentro.
     expect(css).toContain("table.orders tr.fila-grupo-inicio.fila-grupo-recoger td { box-shadow: inset 0 2px 0 var(--green); }");
     expect(css).not.toContain("tr.fila-grupo-inicio.fila-grupo-recoger td { border-top");
