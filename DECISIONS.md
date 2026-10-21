@@ -46129,3 +46129,19 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/boton-general.test.ts` (opciones por rol y función; destinos por app, hub y fichaje; la bandera de enseñanza con y sin almacenamiento; puertas: layout raíz, eventos, contador, `destino` en el panel y el banner, estilos). Actualizadas al modelo: `ayuda-flotante`, `chat/chat`, `entregas-barra`, `barra-de-entregas`, `banner-panel-providers`, `hub-herramientas-de-admin`, `switch-user`, `mobile-preview`, `impersonation-switch-ui`. 6 mutantes caen con prueba nombrada. Suite entera en verde; tsc.
 
 **No medido:** el panel de Cambiar usuario desde la burbuja con sesión real (el demo no tiene servidor): la medida es el dueño entrando como alguien desde RR. HH. y viendo que cae en RR. HH.
+
+## D-624 · Solicitudes de ayuda: cada fila de la bandeja enseña de qué va (el principio del mensaje, en una línea), sin abrirla
+
+**Fecha:** 2026-10-21 · **Versión:** deliveries 1.349.0 (la bandeja vive en `/home`) · Sin migración · Hecho directo por el orquestador en `feat/asomo-en-solicitudes`.
+
+**Pedido (Roberto Rodriguez Jr, admin, por el dueño, 2026-10-21, literal):** «Was better when the requests showed a bit of the sentence to know what each was talking about without having to open 1 by 1» (captura: diez filas «Roberto Rodriguez Jr · Admin · fecha · Handled · 📎 1» idénticas).
+
+**Medido antes.** En la bandeja (`/home/solicitudes-de-ayuda`) la fila trae quién, rol, fecha, estado, adjuntos y los botones; el texto solo se ve al «Abrir», y desde D-311 dentro de la conversación. Se miró la historia del fichero: el mensaje NUNCA estuvo en la fila (de D-285 a D-311 se pintaba solo abierta). «Mis solicitudes» sí enseña el principio (`asomoDelMensaje`, 60). Un mensaje hecho solo con la captura se escribe «1) (no description)» (`listaDeProblemas`, help-recuadros.ts), que es justo lo que el dueño pegó con el pedido.
+
+**Qué cambia.** Debajo de cada solicitud cerrada, una línea con el principio del mensaje (`asomoEnLaLista`, hasta 160 caracteres, cortada con «…» y por CSS a una sola línea del ancho de la tarjeta), en gris; pulsarla la abre, como «Abrir». Sin las líneas de recuadros que nadie describió («N) (no description)» / «(sin descripción)»): los descritos se quedan. Si no queda texto, dice «📷 Solo captura, sin texto». Abierta, no se repite: el mensaje entero está en la conversación.
+
+**Qué no cambia.** El aviso al remitente (`asomoDelMensaje`, 60) y «Mis solicitudes». Los filtros, el orden y los botones.
+
+**Pruebas:** `src/lib/asomo-en-la-lista.test.ts` (una línea con tope y «…»; quita solo los recuadros sin describir y deja los descritos en su orden; `null` si solo hay capturas; no toca el aviso; puerta de la pantalla y de la regla de una línea). 4 mutantes caen con prueba nombrada.
+
+**No medido:** en el navegador con las solicitudes reales (el demo no tiene la bandeja con datos).
