@@ -17787,6 +17787,8 @@ Los dos menús, al cerrar:
 
 ## D-276 · Intertienda: el destino no puede ser «Vendido desde» por ningún camino
 
+> **Reemplazada en parte por D-NEXT** (2026-10-20): la reentrega es una carga más de la misma orden (letra «b»), no una orden con código nuevo; la copia de aquí queda para el modo de enseñanza.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«la regla de tienda a tienda (vender a la misma tienda) funcionó en el preview
 pero no en el formulario final; o sea, en Intertienda el destino no puede ser la misma que la tienda
@@ -46009,3 +46011,24 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `erp-hub-link.test.ts` actualizado (un solo `href="/home"` y un solo `hubReachable &&`, y la fila de la lista ya no está).
 
 **No medido:** en navegador.
+
+## D-NEXT · Órdenes: «Registrar reentrega» crea una CARGA MÁS de la misma orden («FV115 a» entregada, «FV115 b» lo que falta), no una orden con código nuevo — migración 185
+
+**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries) · **Migración 185** (`185_reentrega_como_carga.sql`; ensayada con ROLLBACK; se aplica con el sí del dueño) · Hecho directo por el orquestador en `feat/reentrega-como-carga`.
+
+**Pedido del dueño (2026-10-20, literal):** «FV115 LE DI QUE TENIA QUE REDELIVER PORQUE NO SE ENTREGO COMPLETO HOY Y NO ME CREO LA ORDEN COMO FV115 A Y B Y ASI».
+
+**Medido en producción.** FV115 (#1096, 7 pallets, Julio Jijon) se recogió «sin estar lista: me llevo una parte» y se entregó a las 12:40. A las 20:48 el dueño registró la reentrega («Not everything was shipped. Didn't fit, need to go again») y la app creó **FV146** (#1127), orden nueva aprobada, 7 pallets, enlazada por `redelivery_of` a FV115. Eso es lo que D-276 diseñó. Las letras A/B son otro modelo: las **cargas partidas** (157): hermanas con la misma `order_no` y `order_code` y una `order_suffix`, que hoy solo crea `partir_carga` y solo antes de recoger.
+
+**Qué cambia.**
+- **Base (185):** `reentrega_como_carga(p_id, p_pallets, p_motivo, p_cargo)`: como `partir_carga` pero para una orden ENTREGADA. Copia la madre sin sellos ni puesto (recogida, entrega, fotos, POD, GPS, `route_seq`…), con la letra siguiente, `est_pallets` = los pallets que faltan, `stage` approved, `redelivery_of` + `redelivery_reason` (la analítica de reentregas sigue contando), `delivery_fee` = el cargo; la madre recibe su letra («a» si no tenía). Dos eventos (nota en la madre, `created` en la nueva). Pueden los mismos roles que hoy registran una reentrega. Y el **guard de etapas** (definición viva de la 169 con un único añadido, tras la salida del admin) deja cambiar SOLO `order_suffix` en cualquier etapa, también entregada: una letra es un nombre, no historia. Lo comprueba la propia migración.
+- **Ficha:** el formulario de reentrega pide además **«¿Cuántos pallets faltan por entregar?»** (obligatorio) y dice «Serán la carga «b» de la misma orden (#FV115); lo entregado queda como carga «a»». Llama a la base (`reentregaComoCarga` en el proveedor); en el modo de enseñanza (sin base) sigue la copia de D-276.
+- **Lo que se ve:** la orden entregada «FV115a · carga 1 de 2» y la pendiente «FV115b · carga 2 de 2», en el Gestor, Órdenes y Mi ruta, como cualquier orden partida (D-443/157).
+
+**Lo que no cambia:** el enlace `redelivery_of` y la razón; el cargo como costo de entrega de la carga nueva; `borradorDeReentrega` (se queda para enseñanza y sus pruebas).
+
+**FV146:** queda como está hasta que el dueño diga; convertirla en «FV115 b» (mismo `order_no`, `order_code` FV115, letra «b», y FV115 → «a») es una escritura de producción aparte, con su sí.
+
+**Pruebas:** `src/lib/reentrega-como-carga.test.ts` (la 185 con sus guardas, la nueva sin sellos ni puesto, la madre a «a», el guard vivo con la exención y el checksum puesto; puerta: la ficha pide los pallets y llama a la base, el proveedor expone la función, el modo local la tiene vacía); `order-sites.test.ts` actualizado. Ensayo de la 185 con ROLLBACK: pasa.
+
+**No medido:** en navegador; la función real se mide con la primera reentrega tras aplicar la 185.
