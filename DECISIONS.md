@@ -46285,7 +46285,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - las fichas de empleados de RR. HH. (acción de servidor): avisan y no se practican;
 - subir archivos (CV, adjuntos): se cortan con aviso.
 
-## D-NEXT · RR. HH.: pestaña «📞 Llamadas pendientes» — buzones de voz y llamadas agendadas se quedan ahí hasta que se resuelven
+## D-629 · RR. HH.: pestaña «📞 Llamadas pendientes» — buzones de voz y llamadas agendadas se quedan ahí hasta que se resuelven
 
 **Fecha:** 2026-10-21 · **Versión:** recruiting 0.63.0 · Hecho por un worker del orquestador en `feat/rrhh-seguimiento-llamadas`. Sin migración.
 
