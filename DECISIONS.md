@@ -46164,7 +46164,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el teléfono de un chofer con la 188 aplicada; la medida es el primer chofer que busca una factura ajena.
 
-## D-NEXT · El modo enseñanza vale para todas las apps: un solo interruptor, un aviso en cada una, y fuera de Entregas y Time Tracker nada de lo que se cambia se guarda
+## D-626 · El modo enseñanza vale para todas las apps: un solo interruptor, un aviso en cada una, y fuera de Entregas y Time Tracker nada de lo que se cambia se guarda
 
 **Fecha:** 2026-10-21 · **Versión:** deliveries 1.351.0, erp 0.22.0, recruiting 0.60.0 · Hecho directo por el orquestador en `feat/ensenanza-general`. Sin migración.
 
