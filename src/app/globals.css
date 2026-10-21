@@ -1793,3 +1793,36 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
   .chat-tab { bottom: 70px; }
   .chat-panel { right: 8px; left: 8px; width: auto; max-width: none; bottom: 66px; height: calc(100vh - 90px); }
 }
+
+/* ---------------------------------------------------------------------------
+   La burbuja general (D-623, 2026-10-21): un solo botón abajo a la derecha, en el sitio de la Ayuda, que despliega
+   hacia arriba sus opciones (Ayuda, Chat y, para el admin real, Cambiar usuario, Vista móvil y Modo enseñanza).
+   Mismo z-index que tenía la Ayuda (D-616: por encima de todo). `.help-fab` y `.chat-fab` siguen definidas: las
+   burbujas propias ya no se montan, pero su aspecto es el que esta hereda.
+   --------------------------------------------------------------------------- */
+.fab-general-caja { position: fixed; right: 20px; bottom: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.fab-general {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border: none; border-radius: 999px;
+  background: var(--accent); color: #fff; font-weight: 900; font-size: 20px;
+  cursor: pointer; box-shadow: 0 6px 18px rgba(10,20,40,.28);
+  transition: transform .12s ease, background .12s ease;
+}
+.fab-general:hover { background: #1d47a8; transform: translateY(-1px); }
+.fab-general.abierto { background: var(--ink); }
+.fab-fondo { position: fixed; inset: 0; z-index: -1; }
+.fab-menu { display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 6px; }
+.fab-opcion {
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  padding: 9px 14px 9px 12px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--text); font-weight: 700; font-size: 13px; text-decoration: none;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(10,20,40,.18);
+}
+.fab-opcion:hover { background: var(--card-hover); border-color: var(--accent); }
+.fab-opcion.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.fab-opcion > span:first-child { display: inline-flex; align-items: center; justify-content: center; width: 20px; }
+/* El panel de «Cambiar usuario» cuelga de su opción; sube, porque abajo no hay sitio. */
+.fab-menu .switch-panel { top: auto; bottom: calc(100% + 6px); }
+@media (max-width: 640px) {
+  .fab-general-caja { right: 14px; bottom: 14px; }
+}

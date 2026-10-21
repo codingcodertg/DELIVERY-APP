@@ -47,7 +47,7 @@ export default function SwitchUserPage() {
         </div>
       )}
       {habilitado === true && (
-        <SwitchUserPanel users={users} tiendas={settings.stores ?? []} enPagina onClose={() => { window.location.href = "/home"; }} />
+        <SwitchUserPanel users={users} tiendas={settings.stores ?? []} enPagina onClose={() => { window.location.href = "/home"; }} destino="/home" />
       )}
     </div>
   );

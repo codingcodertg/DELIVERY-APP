@@ -96,7 +96,7 @@ describe("chat interno", () => {
   it("puerta: la burbuja está en el layout raíz (todas las apps), manda por /api/chat/send, y la ruta hace push solo con llevaPush", () => {
     const raiz = new URL("../../", import.meta.url);
     const layout = readFileSync(new URL("app/layout.tsx", raiz), "utf8");
-    expect(layout).toContain("<ChatFlotante />");
+    expect(layout).toContain("<ChatFlotante sinBurbuja />"); // D-623: la burbuja que se ve es la general
     const comp = readFileSync(new URL("components/ChatFlotante.tsx", raiz), "utf8");
     expect(comp).toContain('fetch("/api/chat/send"');
     expect(comp).toContain("listaVisible(contactos, yo, busqueda)");

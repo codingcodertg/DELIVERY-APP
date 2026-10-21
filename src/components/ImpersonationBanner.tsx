@@ -7,6 +7,7 @@ import { SwitchUserPanel } from "@/components/SwitchUserPanel";
 import { PrefsConIdioma } from "@/lib/prefs";
 import { ConfirmProvider } from "@/lib/confirm";
 import { botonDeVista, estaEnUnMarco, type BotonDeVista } from "@/lib/mobile-preview";
+import { destinoDeLaApp } from "@/lib/boton-general";
 import { idiomaDelAviso, traduce } from "@/lib/aviso-de-suplantacion";
 import type { Idioma } from "@/lib/idioma";
 import type { NamedLocation, Profile } from "@/lib/types";
@@ -119,7 +120,9 @@ export function ImpersonationBanner() {
     // Recarga completa y no `router.refresh()`: cambia la identidad de la sesión entera, y todo
     // lo que hay en memoria —el proveedor de datos, las listas, los permisos— es de la otra
     // persona. Volver «en caliente» dejaría media pantalla con datos de quien ya no eres.
-    window.location.href = "/";
+    // A la portada de la app en la que se está (D-623, 2026-10-21): Entregas a Entregas, RR. HH. a RR. HH., el hub al
+    // hub. El dueño: «pero no que siempre esté cayendo el delivery sub».
+    window.location.href = destinoDeLaApp(window.location.pathname);
   }, []);
 
   useEffect(() => {
@@ -189,7 +192,7 @@ export function ImpersonationBanner() {
         saltando && candidatos && (
           <PrefsConIdioma lang={estado.idioma}>
             <ConfirmProvider>
-              <SwitchUserPanel users={candidatos.users} tiendas={candidatos.stores} modo="saltar" onClose={() => setSaltando(false)} />
+              <SwitchUserPanel users={candidatos.users} tiendas={candidatos.stores} modo="saltar" onClose={() => setSaltando(false)} destino={destinoDeLaApp(pathname)} />
             </ConfirmProvider>
           </PrefsConIdioma>
         )

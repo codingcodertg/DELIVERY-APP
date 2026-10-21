@@ -1,5 +1,6 @@
 "use client";
 
+import { EVENTO_ENSENANZA, escribeEnsenanza, leeEnsenanza } from "@/lib/boton-general";
 import {
   createContext,
   useCallback,
@@ -329,11 +330,16 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // ---- Teaching mode: local sandbox overlay on the live data (see Overlay). ----
   const [teaching, setTeachingState] = useState(false);
   useEffect(() => {
-    try { setTeachingState(localStorage.getItem("rtg_teaching") === "1"); } catch { /* ignore */ }
+    setTeachingState(leeEnsenanza(localStorage));
+    // La burbuja general (D-623) la enciende y la apaga desde cualquier app y avisa con este evento.
+    const alCambiar = () => setTeachingState(leeEnsenanza(localStorage));
+    window.addEventListener(EVENTO_ENSENANZA, alCambiar);
+    return () => window.removeEventListener(EVENTO_ENSENANZA, alCambiar);
   }, []);
   const setTeaching = useCallback((v: boolean) => {
     setTeachingState(v);
-    try { if (v) localStorage.setItem("rtg_teaching", "1"); else localStorage.removeItem("rtg_teaching"); } catch { /* ignore */ }
+    escribeEnsenanza(localStorage, v);
+    window.dispatchEvent(new CustomEvent(EVENTO_ENSENANZA));
   }, []);
 
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);

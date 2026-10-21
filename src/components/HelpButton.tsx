@@ -19,6 +19,7 @@ import {
 } from "@/components/CapturaDeAyuda";
 import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
 import { RUTA_MIS_SOLICITUDES } from "@/lib/help-thread";
+import { EVENTO_ABRIR_AYUDA } from "@/lib/boton-general";
 
 /** Cuánto se ve el aviso de abajo (enviada, no se pudo…), como el de Entregas. */
 const DURACION_DEL_AVISO_MS = 4000;
@@ -38,7 +39,12 @@ const DURACION_DEL_AVISO_MS = 4000;
  * abajo. Ya no depende de ninguna app: quién escribe y el teléfono los pide a `/api/help` al abrirse
  * (`pideContactoDeAyuda`), y el aviso es suyo. Por eso se ve y se comporta igual en todas.
  */
-export function HelpButton() {
+/**
+ * `sinBurbuja` (D-623, 2026-10-21): el layout raíz monta la burbuja general (`BotonGeneral`), que es la única que se ve;
+ * este componente entonces no pinta su «? Ayuda» y se abre cuando la general lo pide por evento. Sin la prop sigue
+ * pintando su burbuja, como hasta D-623.
+ */
+export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}) {
   const { lang, t } = usePrefs();
   const pathname = usePathname();
   // El aviso de abajo es de la burbuja, no de la app en la que está: así dice lo mismo, en el mismo sitio, en
@@ -60,6 +66,11 @@ export function HelpButton() {
   };
 
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const abre = () => { setOpen(true); calientaCaptura(); void traeContacto(); };
+    window.addEventListener(EVENTO_ABRIR_AYUDA, abre);
+    return () => window.removeEventListener(EVENTO_ABRIR_AYUDA, abre);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   // Documentos y fotos (D-284): se eligen aquí, se suben al cubo privado al enviar, y al correo van
@@ -219,7 +230,7 @@ export function HelpButton() {
 
   return (
     <>
-      <button
+      {!sinBurbuja && <button
         className="help-fab no-print"
         {...marcaFueraDeLaCaptura}
         // Al abrir se calienta la foto rápida (lo lento de la primera, las fuentes, pasa mientras se escribe) y se
@@ -230,7 +241,7 @@ export function HelpButton() {
       >
         <span aria-hidden>?</span>
         <span className="help-fab-label">{t("Help", "Ayuda")}</span>
-      </button>
+      </button>}
 
       {open && (
         <div className="overlay" {...marcaFueraDeLaCaptura} onClick={(e) => e.target === e.currentTarget && close()}>

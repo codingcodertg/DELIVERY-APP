@@ -92,10 +92,11 @@ describe("la pantalla", () => {
     expect(css).toContain("* { box-sizing: border-box;"); // control: el reset que obliga a esto
   });
 
-  it("la barra de Entregas lleva a la vista móvil con un botón junto a «Switch user», no desde el menú (D-483 deshace D-306)", () => {
+  it("la vista móvil sale de la burbuja general (D-623), no de la barra de Entregas ni de su menú", () => {
     const barra = leer("src/components/TopBar.tsx");
     expect(barra).not.toContain('case "vistamovil":');
-    expect(barra).toContain("enlaceAVistaMovil(pathname");
+    expect(barra).not.toContain("enlaceAVistaMovil(");
+    expect(leer("src/components/BotonGeneral.tsx")).toContain('href={enlaceAVistaMovil(pathname || "/")}');
     // El enlace sigue existiendo para quien lo necesite (la propia vista móvil lo guarda en la URL).
     expect(enlaceAVistaMovil("/map")).toBe(`${RUTA_VISTA_MOVIL}?ruta=%2Fmap&ancho=${ANCHO_POR_DEFECTO}`);
   });

@@ -38,7 +38,8 @@ describe("la inspección pre-viaje, del renglón de pestañas al menú del nombr
     expect(filaDe("driver")).toEqual(["myroute", "driver"]);
     const menu = menuDe("driver");
     expect(menu.indexOf("inspeccion")).toBe(0);
-    expect(menu.indexOf("ensenanza")).toBe(1);
+    // D-623 (2026-10-21): el chofer ya no tiene «Modo enseñanza» (solo el admin real).
+    expect(menu).not.toContain("ensenanza");
   });
 
   it("el admin: la inspección tampoco está en su fila, y sí en su menú", () => {
@@ -149,6 +150,7 @@ describe("en el teléfono, arriba el nombre, la casa, la campana y solo la burbu
     expect(resto.indexOf("<NotificationBell />")).toBeGreaterThan(-1);
     expect(resto.indexOf("<MenuDeCuenta nombre={me.full_name}>")).toBeGreaterThan(-1);
     expect(resto.indexOf('<div className="tabs">')).toBeGreaterThan(-1);
-    expect(barra.split("entregas-tras-pestanas").length - 1).toBe(3);
+    // D-623 (2026-10-21): solo queda la píldora de «ver como»; el switch y la vista móvil se fueron a la burbuja general.
+    expect(barra.split("entregas-tras-pestanas").length - 1).toBe(1);
   });
 });
