@@ -46284,3 +46284,40 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - el Inventario: sus acciones van por el servidor y siguen sin practicarse (avisan);
 - las fichas de empleados de RR. HH. (acción de servidor): avisan y no se practican;
 - subir archivos (CV, adjuntos): se cortan con aviso.
+
+## D-NEXT · RR. HH.: pestaña «📞 Llamadas pendientes» — buzones de voz y llamadas agendadas se quedan ahí hasta que se resuelven
+
+**Fecha:** 2026-10-21 · **Versión:** recruiting 0.63.0 · Hecho por un worker del orquestador en `feat/rrhh-seguimiento-llamadas`. Sin migración.
+
+**Pedido (el dueño, 2026-10-21, literal):** «En el HR app no quiero que cuando alguien me dé voicemail y el voicemail, entonces quiero que se vaya a un tab donde es casi como en hoy que me salen toda esa gente. Bueno, la gente que me sale el voicemail, me salga ahí como voicemail, follow up, y yo tengo un ancho como dismiss o descartar o keep following up. Y si yo agendo una llamada, que me aparezca hasta ahí, hey, tienes esa llamada pendiente. Y hasta que yo le di, ya le llamé o voicemail o dismiss, pero me tiene que aparecer para yo saber que tengo que seguir llamando.»
+
+**Medido antes.**
+- Cada llamada es una fila de `recruiting.contacts` (`type`, `result`, `note`). Los botones «¿No conectó?» de la entrevista guardan «Buzón de voz», «Sin respuesta» o «Volver a llamar», traducido (D-598), y ponen la etiqueta `call again`. El registro manual guarda la clave en inglés.
+- La llamada agendada es `candidates.phone_date`.
+- «Hoy» lo deriva todo y no tenía nada de buzones.
+- **Producción, solo lectura, con la función real:** saldrían 53. Son 11 agendadas, todas atrasadas (7 de julio sin ningún contacto), y 42 de buzón, sin respuesta o volver a llamar (30 de ellas arrastradas de julio a septiembre).
+
+**Qué cambia.**
+- **La pestaña nueva** «📞 Llamadas pendientes», en `src/app/recruiting/(recruiting)/calls/page.tsx`, con la lógica en `src/lib/recruiting/seguimiento-de-llamadas.ts`. Tiene el mismo armazón que «Hoy» y no la ve el gerente de tienda.
+- **Agendadas:** tiene `phone_date`, no tiene entrevista y no hay resultado desde la cita (cuenta lo registrado hasta una hora antes). Si la hora ya pasó, sale en rojo.
+- **Buzón / volver a llamar:** el último resultado de llamada que decide es un buzón, un «sin respuesta» o un «volver a llamar». Se incluyen los tres porque la app ya los trata como una sola clase.
+- **Botones:** Entrevista, ✅ Ya le llamé, 📞 Buzón de voz (se queda y suma un intento), 🔁 Seguir llamando (deja constancia) y ✖ Descartar. Cada uno añade un contacto y no cambia la etapa.
+- **Descartar** saca al candidato de esta lista, no lo descarta.
+- **También sale de la lista** con:
+  - un resultado que cierra;
+  - una entrevista guardada después;
+  - un contacto «In person»;
+  - archivarlo, o una etapa final.
+
+  Un «📞 Llamar» sin resultado no lo saca.
+- **Un cambio de paso:** `addContact` devuelve `true`/`false`.
+
+**No medido:**
+- en el navegador, ni a 390 px;
+- los botones contra la base real. «Ya le llamé» y «Buzón» son contactos de tipo `Call` y, como cualquiera, intentan guardar en la agenda de RingCentral (D-591).
+- Tampoco hay «descartar todos» para el atraso de julio a septiembre.
+
+**Pruebas:**
+- `src/lib/recruiting/seguimiento-de-llamadas.test.ts`: importa la función real, pulsa cada botón y vuelve a calcular.
+- La carpeta `src/lib/recruiting` (242) y tsc.
+- Mutantes: caen 12 de 12. Uno sobrevivió (una cita con entrevista seguía pendiente) hasta reforzar la prueba.

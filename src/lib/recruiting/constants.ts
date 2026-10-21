@@ -50,6 +50,8 @@ import type { UserRole, RecruiterRecommendation } from "./types";
 export const TABS: { id: string; label: string; href: string; adminOnly?: boolean; roles?: string[] }[] = [
   // D-619 (2026-10-20): sin casita, que la casita es la del hub. El dueño: «there is two home icons, just leave the one that sends you to the hub».
   { id: "today", label: "📋 Today", href: "/recruiting/today" },
+  // D-629 (2026-10-21): buzones de voz y llamadas agendadas que siguen pendientes (seguimiento-de-llamadas.ts).
+  { id: "calls", label: "📞 Pending calls", href: "/recruiting/calls" },
   // Ni el reclutador ni la pestaña: el expediente lleva dirección, amonestaciones y antidoping,
   // y quien entra a mover candidatos no necesita nada de eso. Quien manda es la 094 (RLS); esto
   // solo evita enseñar una puerta que se abriría vacía.
