@@ -1,5 +1,7 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { CABECERA_DE_CORTE, COOKIE_ENSENANZA, apiQueNoSePractica, valorDeEnsenanza } from "@/lib/ensenanza-general";
+import { mensajeDeLoQueNoSePractica } from "@/lib/practica/mensajes";
 
 /**
  * EN `src/`, Y ESO ES EL ARREGLO (D-119).
@@ -19,6 +21,12 @@ import { updateSession } from "@/lib/supabase/middleware";
  * con su tabla de pruebas.
  */
 export async function middleware(request: NextRequest) {
+  // Modo enseñanza (D-628): lo que no se puede deshacer (un correo, un SMS, una llamada, una cuenta) no se hace.
+  const idioma = valorDeEnsenanza(request.cookies.get(COOKIE_ENSENANZA)?.value);
+  if (idioma && apiQueNoSePractica(request.method, request.nextUrl.pathname)) {
+    const mensaje = mensajeDeLoQueNoSePractica(idioma);
+    return NextResponse.json({ error: mensaje, message: mensaje, code: "ENSENANZA" }, { status: 403, headers: { [CABECERA_DE_CORTE]: "cortado" } });
+  }
   return await updateSession(request);
 }
 

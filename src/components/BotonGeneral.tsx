@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { appForPath } from "@/lib/app-for-path";
+import { avisoGeneralEnLaRuta } from "@/lib/ensenanza-general";
 import { usePrefs } from "@/lib/prefs";
 import { ConfirmProvider } from "@/lib/confirm";
 import { ayudaEnLaRuta } from "@/lib/ayuda-flotante";
@@ -76,10 +77,10 @@ export function BotonGeneral() {
     setEnsenanza(nuevo);
     window.dispatchEvent(new CustomEvent(EVENTO_ENSENANZA));
     cierra();
-    // Time Tracker monta su capacitación al cargar (D-490): se recarga para que entre o salga ya. En las demás apps no
-    // hace falta: el corte mira la cookie en cada petición y el aviso escucha el evento.
+    // Time Tracker monta su capacitación al cargar (D-490), y las demás apps tienen en memoria lo que leyeron: se recarga
+    // para que entren en la práctica, o salgan de ella con todo como estaba (D-628). Entregas cambia sola con el evento.
     const app = appForPath(pathname);
-    if (app === "timetracker" || app === "clockin") window.location.reload();
+    if (app === "timetracker" || app === "clockin" || avisoGeneralEnLaRuta(pathname)) window.location.reload();
   };
 
   const opcion = (o: OpcionGeneral) => {
@@ -125,8 +126,8 @@ export function BotonGeneral() {
           <button key={o} type="button" className={"fab-opcion" + (ensenanza ? " on" : "")} data-opcion={o}
             role="menuitemcheckbox" aria-checked={ensenanza} onClick={alternaEnsenanza}
             title={t(
-              "Practice in every app: you see the real data, but nothing you change is saved or seen by anyone else.",
-              "Práctica en todas las apps: ves los datos reales, pero nada de lo que cambies se guarda ni lo ve nadie más.",
+              "Practice in every app with the real data: what you change shows as saved, nobody else sees it, and turning it off puts everything back.",
+              "Práctica en todas las apps con los datos reales: lo que cambies se ve guardado, nadie más lo ve, y al apagarlo todo vuelve a como estaba.",
             )}>
             <span aria-hidden>🎓</span> {ensenanza ? t("Turn teaching mode off", "Apagar modo enseñanza") : t("Teaching mode", "Modo enseñanza")}
           </button>

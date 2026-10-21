@@ -46166,6 +46166,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-626 · El modo enseñanza vale para todas las apps: un solo interruptor, un aviso en cada una, y fuera de Entregas y Time Tracker nada de lo que se cambia se guarda
 
+> **Reemplazada en parte por D-628** (2026-10-21): fuera de Entregas y Time Tracker ya no se corta lo que se escribe en una tabla: se practica (se ve guardado y al salir vuelve todo); solo se corta lo que no se puede deshacer, y ahora con aviso.
+
 **Fecha:** 2026-10-21 · **Versión:** deliveries 1.351.0, erp 0.22.0, recruiting 0.60.0 · Hecho directo por el orquestador en `feat/ensenanza-general`. Sin migración.
 
 **Pedido (el dueño, 2026-10-21, literal):** «el hub y erp no se le prende el modo enseñanza arregla eso qeu todas esas opciones sean a nuvel general del app».
@@ -46230,3 +46232,55 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - en el navegador con un gerente real, ni a 390 px;
 - las escrituras contra la base con la sesión de un gerente: que «contratado → descartado» y adjuntar a un descartado pasen RLS se sacó leyendo las políticas en vivo;
 - pasar de descartado a contratado no borra `discard_reason`; hoy no se ve.
+
+## D-628 · Modo enseñanza de verdad en todas las apps: lo que cambias se ve guardado, nadie más lo ve, y al salir todo vuelve a como estaba
+
+**Fecha:** 2026-10-21 · **Versión:** deliveries 1.352.0, erp 0.23.0, recruiting 0.62.0 · Hecho directo por el orquestador en `feat/ensenanza-practica`. Sin migración. Reemplaza en parte a D-626.
+
+**Pedido (el dueño, 2026-10-21, literal):** «no está funcionando bien lo de modo de enseñanza, porque estoy queriendo hacer algo y simplemente no pasa nada […] Yo ocupo que si todo hagas una auditoría de todos los sistemas y funcione bien el modo de enseñanza, de que yo pueda usar el app normal sin restricciones y cuando le quito el modo de enseñanza, pum, vuelva a como estaba antes […] yo en HR estoy viendo algo y simplemente no me deja hacer varias cosas y no se registran los cambios que estoy haciendo». Ofrecida una base de práctica aparte en Supabase, contestó: «no lo unico que quiero es qu ese puedan hacer cambios pero cuando se quite todo vuelva a la normalidad que esos cmbios no se guarden».
+
+**Medido antes.**
+- **Qué hacía D-626:** fuera de Entregas y Time Tracker cortaba toda escritura con un 403. RR. HH. no enseñaba el error, así que «no pasaba nada».
+- **Supabase no deja deshacer una petición:** `Prefer: tx=rollback` no se aplica en este proyecto (GET de prueba: `preference-applied` solo trae `handling=strict`). La práctica no puede vivir en la base.
+- **Auditoría de quién escribe y cómo:**
+  - RR. HH.: 46 escrituras a tablas desde el navegador (`recruiting-data-provider.tsx`), 1 función y 6 de archivos.
+  - Inventario: 14 a tablas y 41 funciones, casi todas desde acciones de servidor.
+  - Hub y `/api`: 31.
+  - Clientes: 4. Promociones: 2 y 1 función.
+  - Rutas `/api` que salen al mundo real: correos y SMS (`/api/notify`, `/api/avisos-cliente`), llamadas y contactos de RingCentral (`/api/call`, `/api/recruiting/rc-contact`), push (`/api/push`) y cuentas (`/api/invite`, `/api/reset-password`, `/api/delete-user`, `/api/user-identity`, `/api/profile/password`).
+
+**Qué cambia.**
+- **La práctica, en el `fetch` de los tres clientes de Supabase del navegador** (general, Inventario, RR. HH.; `src/lib/practica/fetch-de-practica.ts`).
+  - Escribir en una tabla (insertar, cambiar, borrar, `upsert`) no sale del equipo: se apunta en una libreta del navegador por persona (`localStorage`, `rtg_practica:<id>`) y se contesta como PostgREST, con la fila resultante.
+  - Leer trae lo real y le pinta encima lo apuntado: las filas cambiadas salen cambiadas, las borradas no salen, y las nuevas salen donde sus filtros y su orden digan.
+  - `src/lib/practica/postgrest.ts` lee los filtros que usa la app: eq, neq, gt/gte/lt/lte, like/ilike, is, in, cs/cd/ov, not, or/and anidados, order con nulos, limit/offset, alias y anidados.
+  - Una fila nueva toma la forma de una real de la tabla: los sí/no en falso, las listas vacías, las fechas en «ahora», y un id que nunca choca con uno real.
+- **Apagar** (burbuja, «Salir» del aviso o el menú de Entregas) tira la libreta y recarga: todo vuelve a como estaba, porque nada llegó a la base. Encender también empieza con la libreta vacía.
+- **Lo que no se puede deshacer no se hace, y avisa.** Esto queda cortado:
+  - las funciones de la base que escriben y los archivos (subir o borrar);
+  - las cuentas;
+  - lo que hace el servidor (acciones del Inventario y de las fichas de empleados);
+  - las rutas que salen al mundo real, que corta el middleware (`RUTAS_QUE_NO_SE_PRACTICAN`) con la cabecera `x-rtg-practica`.
+
+  Cada corte saca un aviso morado abajo («Modo enseñanza: esto no se puede practicar…»), así que nunca parece que no pasa nada. Siguen de verdad el chat, la ayuda, la campana y «entrar como».
+- El aviso de arriba dice ahora «practica con libertad: lo que cambies se ve guardado, y al salir todo vuelve a como estaba».
+
+**Qué no cambia.** Entregas sigue con su entorno de práctica (D-274) y Time Tracker con su capacitación (D-490). La base no se toca: ni migración ni tablas nuevas.
+
+**Pruebas:**
+- `src/lib/practica/fetch-de-practica.test.ts`, con un PostgREST de mentira:
+  - el flujo de RR. HH.: cambiar etapa, crear, borrar, `.single()`, `upsert`, apagar y ver lo real;
+  - lo que no es una tabla y el caso sin sesión;
+  - las puertas de los clientes, el middleware y el apagado;
+  - que toda ruta `/api` con Resend, RingCentral, Twilio, FCM o la administración de Auth esté clasificada.
+- `src/lib/practica/postgrest.test.ts`: cada filtro y el orden.
+- `ensenanza-general.test.ts`, actualizada.
+- Suite entera y tsc.
+- Mutantes: caen 12 de 12.
+- **Ensayo contra producción con el supabase-js de verdad**, sobre `recruiting`, con un candado que revienta cualquier petición que no sea leer. Se cambió la etapa a un candidato real, se creó uno, se buscó por etapa, se borró el creado y se añadió un contacto: todo se vio en la práctica. La base siguió con la etapa original, sin el creado, y sin ningún intento de escritura.
+
+**No medido:**
+- en el navegador con la sesión del dueño;
+- el Inventario: sus acciones van por el servidor y siguen sin practicarse (avisan);
+- las fichas de empleados de RR. HH. (acción de servidor): avisan y no se practican;
+- subir archivos (CV, adjuntos): se cortan con aviso.

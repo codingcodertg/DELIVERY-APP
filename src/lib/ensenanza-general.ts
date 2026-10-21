@@ -2,6 +2,7 @@ import type { Idioma } from "@/lib/idioma";
 import { appForPath } from "@/lib/app-for-path";
 import { CUBO_DE_ADJUNTOS } from "@/lib/help-attachments";
 import { esEscrituraBloqueada, fetchConCorte, valorDeCapacitacion } from "@/lib/timetracker/capacitacion";
+import { mensajeDeLoQueNoSePractica } from "@/lib/practica/mensajes";
 
 /**
  * El modo enseñanza, en TODAS las apps (D-626, 2026-10-21).
@@ -103,18 +104,12 @@ export function escrituraBloqueadaEnEnsenanza(metodo: string | null | undefined,
   return !(cubo && (CUBOS_QUE_SIGUEN as readonly string[]).includes(cubo));
 }
 
-export function mensajeDeEnsenanza(idioma: Idioma): string {
-  return idioma === "es"
-    ? "Modo enseñanza: esto no se guardó. Apágalo en la burbuja de abajo a la derecha para hacerlo de verdad."
-    : "Teaching mode: this was not saved. Turn it off from the bubble at the bottom right to do it for real.";
-}
-
 /** El `fetch` de los clientes de Supabase: con la enseñanza encendida, corta lo que escribe. */
 export function fetchDeEnsenanza(
   fetchReal: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
   activa: () => Idioma | null | Promise<Idioma | null>,
 ) {
-  return fetchConCorte(fetchReal, activa, { bloquea: escrituraBloqueadaEnEnsenanza, mensaje: mensajeDeEnsenanza, codigo: "ENSENANZA" });
+  return fetchConCorte(fetchReal, activa, { bloquea: escrituraBloqueadaEnEnsenanza, mensaje: mensajeDeLoQueNoSePractica, codigo: "ENSENANZA" });
 }
 
 /** Lo que el navegador le da a `fetchDeEnsenanza`: la cookie, leída en cada petición. Fuera del navegador, nunca. */
@@ -133,3 +128,36 @@ export function avisoGeneralEnLaRuta(pathname: string | null | undefined): boole
   const app = appForPath(p);
   return app !== "deliveries" && app !== "timetracker" && app !== "clockin";
 }
+
+/**
+ * Las rutas `/api` que hacen algo en el mundo real y que en práctica NO se llaman (D-628): un correo o un SMS al
+ * cliente o al candidato, una llamada por RingCentral, un aviso push, crear, cambiar o borrar cuentas. No hay forma de
+ * deshacerlas al salir. Las corta el middleware (`apiQueNoSePractica`) con un 403 y la cabecera `x-rtg-practica`, y el
+ * aviso de la práctica lo enseña. Leer (GET) sigue pasando.
+ *
+ * Una prueba recorre `src/app/api` y exige que toda ruta que habla con Resend, RingCentral, Twilio, FCM o la
+ * administración de Auth esté aquí o en `RUTAS_CON_EFECTO_QUE_SIGUEN`.
+ */
+export const RUTAS_QUE_NO_SE_PRACTICAN = [
+  "/api/notify", "/api/call", "/api/push", "/api/recruiting/rc-contact", "/api/avisos-cliente",
+  "/api/invite", "/api/reset-password", "/api/delete-user", "/api/user-identity", "/api/profile/password",
+  "/api/route-plan/publish",
+] as const;
+
+/** Las que tienen efecto y siguen en práctica, con su porqué. */
+export const RUTAS_CON_EFECTO_QUE_SIGUEN: Record<string, string> = {
+  "/api/chat/send": "hablar con la gente no es practicar con los datos",
+  "/api/help": "pedir ayuda tampoco",
+  "/api/impersonate": "entrar como otro y volver: es cómo se enseña",
+  "/api/route-plan/actuals": "solo pregunta el nombre de un chofer a Auth (getUserById)",
+  "/api/route-plan/drivers-seen": "solo pregunta el nombre de un chofer a Auth (getUserById)",
+  "/api/cron": "los cron no traen la cookie de nadie",
+};
+
+export function apiQueNoSePractica(metodo: string | null | undefined, ruta: string): boolean {
+  const m = (metodo || "GET").toUpperCase();
+  if (m === "GET" || m === "HEAD" || m === "OPTIONS") return false;
+  return RUTAS_QUE_NO_SE_PRACTICAN.some((r) => ruta === r || ruta.startsWith(r + "/"));
+}
+
+export const CABECERA_DE_CORTE = "x-rtg-practica";

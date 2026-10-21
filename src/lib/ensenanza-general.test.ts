@@ -92,7 +92,7 @@ describe("el fetch de los clientes", () => {
     expect(g).not.toHaveBeenCalled();
     const cuerpo = await r.json();
     expect(cuerpo.code).toBe("ENSENANZA");
-    expect(cuerpo.message).toContain("Modo enseñanza: esto no se guardó");
+    expect(cuerpo.message).toContain("Modo enseñanza: esto no se puede practicar");
     const h = real();
     expect((await fetchDeEnsenanza(h, async () => "en" as const)(`${SB}/rest/v1/products`, { method: "GET" })).status).toBe(200);
     expect(h).toHaveBeenCalledTimes(1);
@@ -110,7 +110,7 @@ describe("el fetch de los clientes", () => {
       galleta.valor = "en"; galleta.falla = false;
       const r = await fetchDeEnsenanzaDeLaPeticion()(`${SB}/rest/v1/products`, { method: "PATCH" });
       expect(r.status).toBe(403);
-      expect((await r.json()).message).toContain("Teaching mode: this was not saved");
+      expect((await r.json()).message).toContain("Teaching mode: this can't be practiced");
       expect(espia).not.toHaveBeenCalled();
       galleta.falla = true;
       expect((await fetchDeEnsenanzaDeLaPeticion()(`${SB}/rest/v1/products`, { method: "PATCH" })).status).toBe(200);
@@ -195,8 +195,9 @@ describe("puertas", () => {
   });
 
   it("los clientes de Supabase llevan el corte: navegador, sesión del servidor y servicio", () => {
+    // Los del navegador llevan la práctica desde D-628 (`practica/fetch-de-practica.test.ts`).
     for (const p of ["src/lib/supabase/client.ts", "src/lib/erp/supabase/client.ts", "src/lib/recruiting/supabase/client.ts"]) {
-      expect(leer(p), p).toContain("global: { fetch: fetchDeEnsenanza((i, o) => fetch(i, o), ensenanzaDelNavegador) },");
+      expect(leer(p), p).toContain("global: { fetch: fetchDePracticaDelNavegador() },");
     }
     for (const p of ["src/lib/supabase/server.ts", "src/lib/erp/supabase/server.ts", "src/lib/recruiting/supabase/server.ts"]) {
       const s = leer(p);
@@ -210,7 +211,7 @@ describe("puertas", () => {
 
   it("el aviso está en el layout raíz, y la burbuja y Entregas escriben las cookies", () => {
     expect(leer("src/app/layout.tsx")).toContain("<AvisoDeEnsenanza />\n          {children}");
-    expect(leer("src/components/AvisoDeEnsenanza.tsx")).toContain("if (!encendido || !avisoGeneralEnLaRuta(pathname)) return null;");
+    expect(leer("src/components/AvisoDeEnsenanza.tsx")).toContain("const conAviso = encendido && avisoGeneralEnLaRuta(pathname);");
     expect(leer("src/components/BotonGeneral.tsx")).toContain("escribeEnsenanza(localStorage, nuevo, { doc: document, idioma: lang });");
     expect(leer("src/lib/data-provider.tsx")).toContain("escribeEnsenanza(localStorage, v, { doc: document, idioma: lang });");
   });
