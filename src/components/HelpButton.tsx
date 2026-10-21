@@ -40,9 +40,9 @@ const DURACION_DEL_AVISO_MS = 4000;
  * (`pideContactoDeAyuda`), y el aviso es suyo. Por eso se ve y se comporta igual en todas.
  */
 /**
- * `sinBurbuja` (D-NEXT, 2026-10-21): el layout raíz monta la burbuja general (`BotonGeneral`), que es la única que se ve;
+ * `sinBurbuja` (D-623, 2026-10-21): el layout raíz monta la burbuja general (`BotonGeneral`), que es la única que se ve;
  * este componente entonces no pinta su «? Ayuda» y se abre cuando la general lo pide por evento. Sin la prop sigue
- * pintando su burbuja, como hasta D-NEXT.
+ * pintando su burbuja, como hasta D-623.
  */
 export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}) {
   const { lang, t } = usePrefs();

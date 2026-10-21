@@ -49,7 +49,7 @@ describe("el panel en modo «saltar»", () => {
   });
 
   it("si la ruta dice que el admin ya está restaurado (o hay que ir al login), recarga en vez de dejar el banner pintado", () => {
-    // D-NEXT: a `destino` (la portada de la app en la que se está), no siempre a Entregas.
+    // D-623: a `destino` (la portada de la app en la que se está), no siempre a Entregas.
     expect(panel).toContain('if (cuerpo?.salida === "admin" || cuerpo?.salida === "login") { window.location.href = destino; return; }');
     // Y esa lectura va ANTES del error genérico, que se queda para los fallos sin salida.
     expect(panel.indexOf('cuerpo?.salida === "admin"')).toBeLessThan(panel.indexOf('setError(t("Could not sign in as this user."'));

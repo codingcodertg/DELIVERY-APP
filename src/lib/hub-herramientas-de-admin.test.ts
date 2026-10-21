@@ -89,7 +89,7 @@ describe("el lobby sabe si se está suplantando, una vez y en el servidor", () =
 // D-306 sacó las DOS de la barra de Entregas. D-333 devuelve UNA, a petición del dueño: «add the switch user also in
 // the deliveries app as a duplicate». Estas pruebas decían «la barra se queda sin las dos»; se reescriben en positivo,
 // no se borran: ahora fijan para quién está el switch, para quién no, y que la vista móvil sigue fuera.
-describe("D-NEXT (2026-10-21): el switch y la vista móvil salen de la barra y van a la burbuja general, solo para el admin real", () => {
+describe("D-623 (2026-10-21): el switch y la vista móvil salen de la barra y van a la burbuja general, solo para el admin real", () => {
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
   const burbuja = sinComentarios(leer("src/components/BotonGeneral.tsx"));
   const plana = burbuja.replace(/\s+/g, " ");
@@ -171,7 +171,7 @@ describe("la página de cambiar de usuario", () => {
     expect(panel).not.toContain("useData");
     // Con `modo` desde el encargo siguiente (saltar de usuario): las props de D-306 siguen ahí.
     // D-501 añade `extra` (lo que va arriba de la lista).
-    // D-NEXT añade `destino` (a dónde se cae al entrar: la portada de la app en la que se está).
+    // D-623 añade `destino` (a dónde se cae al entrar: la portada de la app en la que se está).
     expect(panel).toContain('export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar", extra, destino = "/" }');
     expect(panel).toContain("agruparPorTienda(users, tiendas, filtro)");
     expect(pagina).toContain("<SwitchUserPanel users={users} tiendas={settings.stores ?? []} enPagina");

@@ -1795,7 +1795,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 }
 
 /* ---------------------------------------------------------------------------
-   La burbuja general (D-NEXT, 2026-10-21): un solo botón abajo a la derecha, en el sitio de la Ayuda, que despliega
+   La burbuja general (D-623, 2026-10-21): un solo botón abajo a la derecha, en el sitio de la Ayuda, que despliega
    hacia arriba sus opciones (Ayuda, Chat y, para el admin real, Cambiar usuario, Vista móvil y Modo enseñanza).
    Mismo z-index que tenía la Ayuda (D-616: por encima de todo). `.help-fab` y `.chat-fab` siguen definidas: las
    burbujas propias ya no se montan, pero su aspecto es el que esta hereda.

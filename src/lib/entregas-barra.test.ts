@@ -27,8 +27,8 @@ describe("el menú del nombre, con la entrada de la barra", () => {
   });
 
   // Desde D-490 todos llevan además «Personalizar» (idioma y tema, en el hub), justo antes de Salir.
-  // D-NEXT (2026-10-21): «Modo enseñanza» solo para el admin real (el dueño: «Teaching Mode solo para administradores»).
-  it("un vendedor: personalizar y salir, nada más (sin modo enseñanza desde D-NEXT)", () => {
+  // D-623 (2026-10-21): «Modo enseñanza» solo para el admin real (el dueño: «Teaching Mode solo para administradores»).
+  it("un vendedor: personalizar y salir, nada más (sin modo enseñanza desde D-623)", () => {
     expect(opcionesDelMenuDeCuenta({ realRole: "sales", me: { role: "sales", module_access: soloEntregas } }))
       .toEqual(["personalizar", "salir"]);
   });

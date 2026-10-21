@@ -345,7 +345,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </select>
           </label>
         )}
-        {/* «Cambiar usuario» y «Vista móvil» vivieron en esta barra (D-247 → D-306 → D-333 → D-483 → D-501). Desde D-NEXT
+        {/* «Cambiar usuario» y «Vista móvil» vivieron en esta barra (D-247 → D-306 → D-333 → D-483 → D-501). Desde D-623
             (2026-10-21) están en la burbuja general de abajo a la derecha (`BotonGeneral`), la misma en todas las apps y
             solo para el admin real; aquí ya no hay copia. */}
       </div>

@@ -17,7 +17,7 @@ type Servidor = { adminReal: boolean; habilitado: boolean; users: Profile[]; sto
 const SIN_SERVIDOR: Servidor = { adminReal: false, habilitado: false, users: [], stores: [] };
 
 /**
- * La burbuja general (D-NEXT, 2026-10-21): un solo botón abajo a la derecha, en todas las apps donde salía la Ayuda
+ * La burbuja general (D-623, 2026-10-21): un solo botón abajo a la derecha, en todas las apps donde salía la Ayuda
  * (`ayudaEnLaRuta`), que al pulsarlo despliega hacia arriba sus opciones. Ayuda y Chat siguen siendo sus componentes
  * (`HelpButton`, `ChatFlotante`, montados sin burbuja propia): aquí solo se les pide abrirse con un evento. Cambiar
  * usuario, Vista móvil y Modo enseñanza salen solo al admin real, según diga `/api/impersonate/candidates`.

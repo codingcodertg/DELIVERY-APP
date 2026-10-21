@@ -37,7 +37,7 @@ export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, mod
    *  identidad (`POST /api/impersonate/switch`), que restaura al admin antes de nada (D-307). */
   modo?: "entrar" | "saltar";
   /**
-   * A dónde se cae al entrar (D-NEXT, 2026-10-21): la portada de la app en la que se está (`destinoDeLaApp`), no
+   * A dónde se cae al entrar (D-623, 2026-10-21): la portada de la app en la que se está (`destinoDeLaApp`), no
    * siempre Entregas. Si la otra persona no puede entrar ahí, su layout la rebota a donde sí (el hub, o su única app).
    */
   destino?: string;

@@ -5,7 +5,7 @@ import {
   destinoDeLaApp, escribeEnsenanza, leeEnsenanza, opcionesDelBotonGeneral,
 } from "./boton-general";
 
-// D-NEXT (2026-10-21) · el dueño: «Switch User, Mobile View y Teaching Mode solo para administradores. […] el de ayuda se
+// D-623 (2026-10-21) · el dueño: «Switch User, Mobile View y Teaching Mode solo para administradores. […] el de ayuda se
 // ha transformado en un bobo que va a ser general, que cuando se abra […] van a salir […] las cinco […] en todas las apps.
 // […] si dice cambio usuario, él cambia a la app en la que ya está. Pero si ese usuario no tiene acceso a eso, pues cae al
 // hub. […] si está en el delivery sub, cae al delivery sub. O en el HR, cae el HR, pero no que siempre esté cayendo el

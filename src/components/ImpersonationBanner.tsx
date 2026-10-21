@@ -120,7 +120,7 @@ export function ImpersonationBanner() {
     // Recarga completa y no `router.refresh()`: cambia la identidad de la sesión entera, y todo
     // lo que hay en memoria —el proveedor de datos, las listas, los permisos— es de la otra
     // persona. Volver «en caliente» dejaría media pantalla con datos de quien ya no eres.
-    // A la portada de la app en la que se está (D-NEXT, 2026-10-21): Entregas a Entregas, RR. HH. a RR. HH., el hub al
+    // A la portada de la app en la que se está (D-623, 2026-10-21): Entregas a Entregas, RR. HH. a RR. HH., el hub al
     // hub. El dueño: «pero no que siempre esté cayendo el delivery sub».
     window.location.href = destinoDeLaApp(window.location.pathname);
   }, []);

@@ -143,13 +143,13 @@ describe("el coste de /api/impersonate/state", () => {
     expect(codigo.indexOf("impersonacionActiva()")).toBeLessThan(codigo.indexOf("auth.getUser()"));
   });
 
-  it("piden el dato caro las DOS entradas al panel —la página del hub y la burbuja general (D-NEXT)—, y el banner no", () => {
+  it("piden el dato caro las DOS entradas al panel —la página del hub y la burbuja general (D-623)—, y el banner no", () => {
     // D-306 llevó el panel al hub y la barra dejó de preguntar. D-333 devuelve el botón a la barra como duplicado,
     // así que vuelve a preguntar — una vez, y solo si el rol es admin. El banner sigue sin hacerlo, que es lo que
     // fijaba D-247: él se llama en cada carga de las cinco apps, para todo el mundo.
     const pagina = readFileSync("src/app/home/switch-user/page.tsx", "utf8");
     expect(pagina).toContain("/api/impersonate/state?ask=switch");
-    // D-NEXT (2026-10-21): la barra ya no pregunta; la burbuja general pregunta UNA vez a /api/impersonate/candidates,
+    // D-623 (2026-10-21): la barra ya no pregunta; la burbuja general pregunta UNA vez a /api/impersonate/candidates,
     // que contesta de una ida si es admin real, si la función está encendida y la lista.
     const barra = readFileSync("src/components/TopBar.tsx", "utf8");
     expect(barra).not.toContain("/api/impersonate/state");

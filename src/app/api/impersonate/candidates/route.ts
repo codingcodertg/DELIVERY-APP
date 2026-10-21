@@ -8,7 +8,7 @@ import { impersonacionActiva } from "@/lib/impersonation-flag";
 import { candidatosParaSaltar, esAdmin } from "@/lib/impersonation";
 
 /**
- * Lo que la burbuja general necesita del servidor, en UNA ida (D-NEXT, 2026-10-21):
+ * Lo que la burbuja general necesita del servidor, en UNA ida (D-623, 2026-10-21):
  *
  * - `adminReal`: la sesión es de un admin y NO está dentro de otra identidad (sin cookie de retorno). Solo entonces
  *   salen Cambiar usuario, Vista móvil y Modo enseñanza. El dueño: «la opción de Switch User, Mobile View y Teaching

@@ -85,7 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* La burbuja del chat interno (D-609, 2026-10-20), por lo mismo que la de Ayuda: una en todas las apps, arriba a la
               derecha; dónde no sale lo decide `chatEnLaRuta` (las mismas pantallas sin sesión). Dentro de `PrefsProvider`. */}
           <ChatFlotante sinBurbuja />
-          {/* La burbuja GENERAL (D-NEXT, 2026-10-21): la única que se ve abajo a la derecha, en las mismas pantallas que la
+          {/* La burbuja GENERAL (D-623, 2026-10-21): la única que se ve abajo a la derecha, en las mismas pantallas que la
               Ayuda. Al pulsarla salen hacia arriba Ayuda y Chat (para todos) y, solo para el admin real, Cambiar usuario,
               Vista móvil y Modo enseñanza. Por eso las dos de arriba van `sinBurbuja`: ella las abre por evento. */}
           <BotonGeneral />

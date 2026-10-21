@@ -68,7 +68,7 @@ describe("el panel montado en la barra de Entregas también tiene encima lo que 
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
   const app = sinComentarios(leer("src/app/(app)/layout.tsx"));
 
-  it("la barra ya no monta el panel (D-NEXT: vive en la burbuja general, con su propio ConfirmProvider); la barra sigue solo en (app)", () => {
+  it("la barra ya no monta el panel (D-623: vive en la burbuja general, con su propio ConfirmProvider); la barra sigue solo en (app)", () => {
     expect(barra.indexOf("<SwitchUserPanel")).toBe(-1);
     const burbuja = sinComentarios(leer("src/components/BotonGeneral.tsx"));
     const i = burbuja.indexOf("<SwitchUserPanel");

@@ -331,7 +331,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const [teaching, setTeachingState] = useState(false);
   useEffect(() => {
     setTeachingState(leeEnsenanza(localStorage));
-    // La burbuja general (D-NEXT) la enciende y la apaga desde cualquier app y avisa con este evento.
+    // La burbuja general (D-623) la enciende y la apaga desde cualquier app y avisa con este evento.
     const alCambiar = () => setTeachingState(leeEnsenanza(localStorage));
     window.addEventListener(EVENTO_ENSENANZA, alCambiar);
     return () => window.removeEventListener(EVENTO_ENSENANZA, alCambiar);

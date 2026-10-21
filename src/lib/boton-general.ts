@@ -2,7 +2,7 @@ import { appForPath } from "@/lib/app-for-path";
 import { MODULES } from "@/lib/constants";
 
 /**
- * El botón general (D-NEXT, 2026-10-21): UNA burbuja abajo a la derecha, en todas las apps, que al pulsarla despliega
+ * El botón general (D-623, 2026-10-21): UNA burbuja abajo a la derecha, en todas las apps, que al pulsarla despliega
  * hacia arriba las opciones: Ayuda y Chat para todos; Cambiar usuario, Vista móvil y Modo enseñanza solo para el
  * admin de verdad (rol admin y no dentro de otra identidad).
  *

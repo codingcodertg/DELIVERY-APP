@@ -17509,7 +17509,7 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 
 ## D-274 · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
 
-> **Reemplazada en parte por D-NEXT** (2026-10-21): «Modo enseñanza» solo para el admin real, en el menú y en la burbuja general.
+> **Reemplazada en parte por D-623** (2026-10-21): «Modo enseñanza» solo para el admin real, en el menú y en la burbuja general.
 
 > **Reemplazada en parte por D-520** (2026-10-11): la leyenda del mapa se quitó de toda la app («delete the lEGEND ON THE MAP of the app»); `MapLegend.tsx` y `leyendaDelMapa` se borraron. El color de cada chofer (`colorDeChofer`) sigue.
 
@@ -39365,7 +39365,7 @@ Interpretación: «las órdenes de rescheduled» = cualquier orden del Gestor qu
 
 ## D-501 · «📱 Vista móvil» dentro del botón «⇄ Cambiar usuario»
 
-> **Reemplazada por D-NEXT** (2026-10-21): «Cambiar usuario» y «Vista móvil» salen de la barra de Entregas y van a la burbuja general, en todas las apps.
+> **Reemplazada por D-623** (2026-10-21): «Cambiar usuario» y «Vista móvil» salen de la barra de Entregas y van a la burbuja general, en todas las apps.
 
 **Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.1, repo 1.370.1) · **Sin migración.** · Hecho directo por el orquestador en `release-d501`. **Reemplaza en parte a D-483** (que la puso como botón suelto al lado).
 
@@ -42712,7 +42712,7 @@ ancla de texto**, y se dice: G8 (el horario numera solo lo pendiente: el horario
 **Añadido por el orquestador al fusionar:** en «Mi ruta», la entrega ya hecha también conserva su número en el círculo (antes pintaba «✓» en vez del número: `{hecha ? "✓" : n}` → `{n}`); el círculo apagado ya la distingue. Es el mismo pedido del dueño, en la otra pantalla.
 ## D-530 · El tema sin «Same as my device», y la burbuja de Ayuda igual en todas las apps
 
-> **Reemplazada en parte por D-NEXT** (2026-10-21): la burbuja «? Ayuda» ya no se ve; la abre la burbuja general.
+> **Reemplazada en parte por D-623** (2026-10-21): la burbuja «? Ayuda» ya no se ve; la abre la burbuja general.
 
 > **Reemplazada en parte por D-616** (2026-10-20): la burbuja de Ayuda pasa a `z-index` 1000, por encima de todo (el dueño lo pidió así).
 
@@ -45869,7 +45869,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-609 · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
 
-> **Reemplazada en parte por D-NEXT** (2026-10-21): la burbuja «💬 Chat» ya no se ve; la abre la burbuja general, que enseña sus no leídos.
+> **Reemplazada en parte por D-623** (2026-10-21): la burbuja «💬 Chat» ya no se ve; la abre la burbuja general, que enseña sus no leídos.
 
 > **Reemplazada en parte por D-615** (2026-10-20): la burbuja va abajo a la derecha, encima de la de Ayuda.
 
@@ -46110,7 +46110,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **Medido en el navegador (demo, Chrome headless):** Entregas y Clientes a 1440 px: la misma barra (`rgb(21,34,56)`), Inter 14 px, Archivo en el nombre, fondo `--paper`, sin `aside`, sin scroll horizontal. Inventario y Time Tracker **no se pueden abrir en el demo** (piden sesión): su medida real es producción tras publicar.
 
-## D-NEXT · La burbuja general: un solo botón abajo a la derecha en todas las apps (Ayuda, Chat y, solo para el admin real, Cambiar usuario, Vista móvil y Modo enseñanza); al cambiar de usuario o volver se cae a la app en la que se está
+## D-623 · La burbuja general: un solo botón abajo a la derecha en todas las apps (Ayuda, Chat y, solo para el admin real, Cambiar usuario, Vista móvil y Modo enseñanza); al cambiar de usuario o volver se cae a la app en la que se está
 
 **Fecha:** 2026-10-21 · **Versión:** deliveries 1.348.0 (la burbuja vive en el layout raíz y sale en todas las apps) · Sin migración · Hecho directo por el orquestador en `feat/boton-general`.
 

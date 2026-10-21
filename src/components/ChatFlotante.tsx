@@ -18,7 +18,7 @@ import {
  */
 type Yo = { id: string; full_name: string; store: string | null; role: string | null };
 
-/** `sinBurbuja` (D-NEXT, 2026-10-21): la burbuja general es la única que se ve; aquí solo el panel, cuando ella lo pide. */
+/** `sinBurbuja` (D-623, 2026-10-21): la burbuja general es la única que se ve; aquí solo el panel, cuando ella lo pide. */
 export function ChatFlotante({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}) {
   const pathname = usePathname();
   const { t, lang } = usePrefs();
@@ -83,7 +83,7 @@ export function ChatFlotante({ sinBurbuja = false }: { sinBurbuja?: boolean } = 
   const porId = useMemo(() => new Map(contactos.map((c) => [c.id, c])), [contactos]);
   const h = useMemo(() => (yo ? hilos(mensajes, yo.id) : new Map<string, Hilo>()), [mensajes, yo]);
   const sinLeer = noLeidosTotal(h);
-  // La burbuja general enseña el contador (D-NEXT): se le manda cada vez que cambia.
+  // La burbuja general enseña el contador (D-623): se le manda cada vez que cambia.
   useEffect(() => { window.dispatchEvent(new CustomEvent(EVENTO_CHAT_SIN_LEER, { detail: sinLeer })); }, [sinLeer]);
   const hilo = con ? h.get(con) : undefined;
 

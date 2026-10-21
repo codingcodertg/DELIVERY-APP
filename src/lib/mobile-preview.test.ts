@@ -92,7 +92,7 @@ describe("la pantalla", () => {
     expect(css).toContain("* { box-sizing: border-box;"); // control: el reset que obliga a esto
   });
 
-  it("la vista móvil sale de la burbuja general (D-NEXT), no de la barra de Entregas ni de su menú", () => {
+  it("la vista móvil sale de la burbuja general (D-623), no de la barra de Entregas ni de su menú", () => {
     const barra = leer("src/components/TopBar.tsx");
     expect(barra).not.toContain('case "vistamovil":');
     expect(barra).not.toContain("enlaceAVistaMovil(");
