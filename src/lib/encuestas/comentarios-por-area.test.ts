@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { COLUMNAS, eleccionesDe, type RespuestaEncuesta } from "./resumen";
 
-// D-NEXT (2026-10-20) · El dueño, con la captura del paso 2 del sitio: «This step needs an optional box below each for if they
+// D-620 (2026-10-20) · El dueño, con la captura del paso 2 del sitio: «This step needs an optional box below each for if they
 // want to explain further». La columna `rating_notes` (186) y su lectura en el panel.
 
 const base: RespuestaEncuesta = {

@@ -43123,7 +43123,7 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 ## D-543 · Encuestas: una nota libre opcional al final, y el nombre del contacto pasa a opcional (teléfono o correo, al menos uno)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): el contacto es un solo campo «Teléfono o correo *»; y cada calificación lleva un comentario opcional (186).
+> **Reemplazada en parte por D-620** (2026-10-20): el contacto es un solo campo «Teléfono o correo *»; y cada calificación lleva un comentario opcional (186).
 
 **Fecha:** 2026-10-13 · **Versión:** la asigna el orquestador al fusionar · **Migración:** `171_encuesta_nota_y_contacto.sql` (escrita, **no aplicada**) · Rama `encuesta-nota-y-contacto` (hub) y rama `nota-y-contacto` del sitio público `rtg-encuesta`.
 
@@ -46035,9 +46035,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · Encuesta de clientes: un comentario opcional debajo de cada calificación (migración 186) y un solo campo «Teléfono o correo *» en el contacto
+## D-620 · Encuesta de clientes: un comentario opcional debajo de cada calificación (migración 186) y un solo campo «Teléfono o correo *» en el contacto
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (surveys) · **Migración 186** (`186_encuesta_comentarios_por_area.sql`; ensayada con ROLLBACK) · Sitio público `rtg-encuesta` (rama `comentarios-y-un-solo-contacto`, se publica tras aplicar la 186) · Hecho directo por el orquestador en `feat/encuesta-comentarios-por-area`.
+**Fecha:** 2026-10-20 · **Versión:** surveys 0.5.0 (repo 1.486.0) · **Migración 186** (`186_encuesta_comentarios_por_area.sql`; ensayada con ROLLBACK y APLICADA el 2026-10-20 con el sí del dueño) · Sitio público `rtg-encuesta` (rama `comentarios-y-un-solo-contacto`, se publica tras aplicar la 186) · Hecho directo por el orquestador en `feat/encuesta-comentarios-por-area`.
 
 **Pedidos del dueño (2026-10-20, literales, con capturas del sitio):** «This step needs an optional box below each for if they want to explain further» (paso 2: Staff service / Product availability / Pricing con sus 1–5); «Merge the fields to say Phone or Email* which is required if they want to be contacted» (paso 3: Phone y Email por separado con «Phone or email, at least one»).
 

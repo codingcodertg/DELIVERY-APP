@@ -1,4 +1,4 @@
--- 186: Encuesta de clientes — un comentario opcional debajo de cada calificacion (D-NEXT, 2026-10-20).
+-- 186: Encuesta de clientes — un comentario opcional debajo de cada calificacion (D-620, 2026-10-20).
 --
 -- El dueño, con la captura del paso 2 del sitio publico: «This step needs an optional box below each for if they want to
 -- explain further». El sitio (rtg-encuesta, Vercel) manda la clave nueva `rating_notes` = {"staff": "texto", ...}; la
@@ -210,4 +210,4 @@ end $$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('186_encuesta_comentarios_por_area.sql', '72b841a5dfea9336d8501527ce485969bbf776f58f4d1e7426adda8d449d1ba6') on conflict (name) do nothing;
+  values ('186_encuesta_comentarios_por_area.sql', '1389f6e4c51234f78fe9d76b88de19c972c676a42062e65201e604e49f54b2f0') on conflict (name) do nothing;
