@@ -3,28 +3,36 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Badge } from "@/components/erp/ui/badge";
-import { cn } from "@/lib/erp/utils";
+import { BotonRecargar } from "@/components/BotonRecargar";
+import { MenuDeCuenta } from "@/components/MenuDeCuenta";
 import type { AppRole } from "@/lib/erp/domain/roles";
 import { erpNav, entradaActiva, type NavItem } from "@/lib/erp/nav";
-import { useErpNav } from "@/components/erp/nav-state";
 import { usePrefs } from "@/lib/prefs";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
+
+/**
+ * La barra de Inventario (antes «RTG ERP») y de Clientes: la MISMA barra superior que Entregas (D-NEXT, 2026-10-21).
+ *
+ * El dueño: «quiero que toda la app se mire igual como deliveries app, al igual que el time tracker. Todo eso quiero
+ * que hagamos una transformación de todo eso para que todo sea estandarizado e igual». Hasta D-NEXT este fichero
+ * pintaba una barra LATERAL fija (blanca, con acento arcilla) en el escritorio y una cabecera aparte en el teléfono;
+ * era el único módulo del hub sin la barra oscura de arriba. Ahora pinta `.topbar` de globals.css —el nombre de la
+ * app, la casa del hub, las pestañas y el menú del nombre— con las mismas clases que Entregas y Time Tracker, y en el
+ * teléfono se parte en dos filas por las mismas reglas (`.entregas-marca` / `.entregas-barra-resto`, D-545).
+ *
+ * El fichero conserva su nombre y su firma (`SideNav`, con `otra` para Clientes) a propósito: veinte páginas y seis
+ * pruebas lo citan, y lo que cambia es cómo se pinta, no quién lo usa.
+ *
+ * G-10 (D-203): habla el idioma del HUB (usePrefs) con pares inline. Las entradas y quién ve cada una viven en
+ * `lib/erp/nav.ts` (D-553, D-586); aquí solo se pintan. Y sigue sin decidir por su cuenta si hay hub al que volver:
+ * `hubReachable` llega ya contestado desde `header.tsx` (D-227).
+ */
 
 const roleStyles: Record<string, string> = {
   admin: "border-clay-200 bg-clay-50 text-clay-700",
   manager: "border-slate-200 bg-slate-100 text-slate-600",
   staff: "border-slate-200 bg-slate-100 text-slate-600",
 };
-
-// G-10 (D-203): el ERP habla el idioma del HUB (usePrefs, la misma preferencia que Entregas y HR),
-// con pares inline. Las etiquetas del menú se construyen con t() dentro del render en vez de en
-// una constante de módulo, porque una constante no puede cambiar de idioma.
-// Desde D-553 las entradas y quién ve cada una viven en `lib/erp/nav.ts` (puro, probado importándolo):
-// «Dashboard» pasó a Analítica como «Product Analytics», y Request, PO upload y Bulk apply salieron
-// del menú (las rutas siguen). Desde D-586 Inventario, Revisión y Aprobaciones son pestañas de
-// Catálogo, OC ↔ Proforma y Recepción lo son de Compras, y Analítica es UNA entrada (sus pestañas van
-// dentro, group-tabs.tsx); el bloque `analytics` llega vacío del ERP y se conserva por Clientes. Aquí
-// solo se pintan.
 
 export function SideNav({
   role,
@@ -38,209 +46,84 @@ export function SideNav({
   fullName: string | null;
   email: string;
   cost: boolean;
-  /**
-   * ¿Existe un hub al que volver para esta persona? (D-227)
-   *
-   * Lo decide `canReachHub` en `header.tsx`, la misma función que usan `/home` y el conmutador de
-   * módulos. Aquí llega ya resuelto a propósito: si esta barra volviera a preguntarlo por su
-   * cuenta, habría otra vez dos versiones de la misma regla — que es exactamente lo que dejó los
-   * dos enlaces de abajo prometiendo un sitio al que la app no deja entrar.
-   */
+  /** ¿Existe un hub al que volver para esta persona? (D-227) Llega resuelto desde `header.tsx`. */
   hubReachable: boolean;
   /**
    * Otra app con esta misma barra (Clientes, migración 180): su nombre, sus entradas y la pastilla que enseña.
-   * Sin esto, la barra es la del ERP: «RTG ERP», `erpNav(role)` y el nivel de ERP con la nota de costo. Con
+   * Sin esto, la barra es la de Inventario: «RTG Inventario», `erpNav(role)` y el nivel con la nota de costo. Con
    * `otra`, `cost` no se pinta (no hay costo que esconder) y la pastilla es la que diga `badge`.
    */
   otra?: { brand: string; nav: { main: NavItem[]; analytics: NavItem[] }; badge: string };
 }) {
   const pathname = usePathname();
   const { t } = usePrefs();
-  // Catalog nav is hidden entirely from the delivery-floor roles the merge added (ADR 0010): a
-  // driver has no reason to browse the product master, and a list of links that all redirect is
-  // worse than no list. `erpNav` lo decide (y la puerta de Analítica es por entrada, D-553).
-  const { collapsed, toggle } = useErpNav();
   const { main: navItems, analytics: analyticsItems } = otra?.nav ?? erpNav(role, t);
-  const marca = otra?.brand ?? "RTG ERP";
+  const marca = otra?.brand ?? t("RTG Inventory", "RTG Inventario");
   const pastilla = otra?.badge ?? role;
-  // Qué entrada se enciende lo decide `entradaActiva` (D-586): una entrada con grupo, por cualquiera
-  // de sus pestañas (Catálogo también en /erp/inventory; Compras también en /purchasing/orders); una
-  // suelta, por su propio href. Antes había aquí un `exact` para /erp/purchasing porque sus subrutas
-  // eran entradas hermanas; ya son sus pestañas.
-  const encendida = entradaActiva(navItems.concat(analyticsItems), pathname);
-  const active = (href: string) => href === encendida;
+  const pestanas = navItems.concat(analyticsItems);
+  const encendida = entradaActiva(pestanas, pathname);
 
-  // Two things, not one: the product name (where you are) and the way back to the
-  // hub (where you can go). They were both whispering at 14px/12px, and the hub
-  // link is the only exit from this module now that the switcher is gone — it
-  // should be legible.
-  // One row: the product name and the way out, side by side. Two stacked lines cost a second
-  // row of header height for no gain, and the hub link is the only exit from this module since
-  // the switcher was removed — it belongs next to the name, not under it.
-  const brand = (
-    <div className="flex min-w-0 items-baseline gap-2">
-      <span className="shrink-0 text-base font-bold tracking-tight text-clay-600">{marca}</span>
-      {hubReachable && (
-        <Link
-          href="/home"
-          title={t("All apps", "Todas las apps")}
-          className="shrink-0 text-sm text-slate-500 hover:text-clay-700"
-        >
-          <span aria-hidden="true">⌂</span> {t("All apps", "Todas las apps")}
-        </Link>
-      )}
-    </div>
-  );
-  // Aquí iba el conmutador de idioma ES/EN, como en las barras de HR y Time Tracker. Desde D-490 el
-  // idioma y el tema se eligen en UN sitio, «Personalizar», en el hub, y las barras enlazan hasta allí.
-  // La página solo pide sesión: le vale también a quien tiene el ERP como única app (`hubReachable` no).
-  // En la cabecera del teléfono va solo el 🎨 (con su nombre para el lector de pantalla): con el texto
-  // entero no cabía al lado de «Todas las apps» y del rol a 390 px, medido en el navegador.
   const personalizar = (soloIcono: boolean) => (
     <Link
       href={RUTA_PERSONALIZAR}
+      role="menuitem"
+      className="col-opt"
+      style={{ textDecoration: "none" }}
       title={t("Customize: language and theme", "Personalizar: idioma y tema")}
       aria-label={t("Customize: language and theme", "Personalizar: idioma y tema")}
-      className="whitespace-nowrap rounded-md px-2 py-1.5 text-slate-500 hover:bg-slate-100"
     >
       🎨{soloIcono ? null : <> {t("Customize", "Personalizar")}</>}
     </Link>
   );
   const signout = (
     <form action="/auth/signout" method="post">
-      <button type="submit" className="rounded-md px-3 py-1.5 text-slate-500 hover:bg-slate-100">
+      <button type="submit" role="menuitem" className="col-opt" style={{ width: "100%", textAlign: "left" }}>
         {t("Sign out", "Salir")}
       </button>
     </form>
   );
-  const linkCls = (href: string) =>
-    cn(
-      "rounded-md px-3 py-2 text-slate-600 hover:bg-clay-50 hover:text-clay-700",
-      active(href) && "bg-clay-50 font-medium text-clay-700"
-    );
-
-  const burger = (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={collapsed ? t("Show menu", "Mostrar menú") : t("Hide menu", "Ocultar menú")}
-      aria-expanded={!collapsed}
-      title={collapsed ? t("Show menu", "Mostrar menú") : t("Hide menu", "Ocultar menú")}
-      className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-    >
-      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-        <path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    </button>
-  );
 
   return (
-    <>
-      {/* Collapsed: the only way back. Fixed so it stays put while the page scrolls, and
-          desktop-only because the mobile layout has its own top bar below. */}
-      {/* El `top` sale del banner de «entrar como» (D-253): este botón es `fixed` contra la
-          ventana y el banner ocupa esa franja. Fuera de una impersonación la propiedad no
-          existe y el respaldo lo deja donde estaba. */}
-      {collapsed && (
-        <div
-          className="fixed left-2 z-40 hidden lg:block"
-          style={{ top: "calc(var(--banner-impersonacion, 0px) + 0.5rem)" }}
-        >
-          <div className="rounded-md border border-slate-200 bg-white shadow-sm">{burger}</div>
-        </div>
-      )}
-
-      {/* Desktop: fixed left sidebar. El `top` es lo mismo que arriba: `inset-y-0` la pega al
-          borde de la ventana, que es donde vive el banner de «entrar como», y sin desplazarla
-          le taparía el logo y el botón de plegarla. Es el único módulo que lo necesita: los
-          otros tres tienen su barra en el flujo del documento y el banner las empuja. */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-slate-200 bg-white",
-          collapsed ? "lg:hidden" : "lg:flex"
+    <div className="topbar">
+      <div className="entregas-marca" style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        <h1>{marca}</h1>
+        {hubReachable && (
+          <Link href="/home" className="tab tab-icon tab-casa" aria-label={t("Back to the hub", "Volver al hub")} title={t("Back to the hub", "Volver al hub")}>
+            🏠
+          </Link>
         )}
-        style={{ top: "var(--banner-impersonacion, 0px)" }}
-      >
-        <div className="flex h-14 shrink-0 items-center gap-1 px-2">
-          {burger}
-          <div className="min-w-0 flex-1">{brand}</div>
-        </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2 text-sm">
-          {/* Este comentario decía «siempre visible… aquí el hub nunca es un callejón sin
-              salida», y era falso (D-227): el ERP también puede ser el único módulo de alguien,
-              exactamente como en rtg-erp. Quien está en ese caso pulsaba, `/home` lo devolvía al
-              ERP y no veía ni un error — la pantalla parpadeaba y seguía donde estaba.
-              Ahora se pinta solo si hay hub al que volver, con la misma respuesta que el enlace
-              de la cabecera: los dos salen de `hubReachable`, así que no pueden discrepar. */}
-          {/* D-619 (2026-10-20): un solo «Todas las apps», el de la cabecera. El dueño: «erp tiene 2 all apps, solo deja 1». */}
-          {navItems.map((i) => (
-            <Link key={i.href} href={i.href} className={cn("block", linkCls(i.href))}>
+      </div>
+      <div className="entregas-barra-resto">
+        <nav className="tabs">
+          {pestanas.map((i) => (
+            <Link key={i.href} href={i.href} className={"tab" + (i.href === encendida ? " active" : "")}>
               {i.label}
             </Link>
           ))}
-          {analyticsItems.length > 0 && (
-            <div className="pt-3">
-              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("Analytics", "Analítica")}</div>
-              {analyticsItems.map((i) => (
-                <Link key={i.href} href={i.href} className={cn("block", linkCls(i.href))}>
-                  {i.label}
-                </Link>
-              ))}
-            </div>
+        </nav>
+        <BotonRecargar titulo={t("Reload", "Recargar")} />
+        <MenuDeCuenta nombre={fullName ?? email}>
+          {() => (
+            <>
+              <div className="col-opt" style={{ cursor: "default", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <Badge className={roleStyles[role] ?? roleStyles.staff}>{pastilla}</Badge>
+                  {!otra && (
+                    <span
+                      className="text-xs text-slate-400"
+                      title={t("Cost & margin visibility is enforced at the database (#29)", "La visibilidad de costo y margen la impone la base de datos (#29)")}
+                    >
+                      {cost ? t("cost visible", "costo visible") : t("cost hidden", "costo oculto")}
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-slate-400" style={{ wordBreak: "break-all" }}>{email}</span>
+              </div>
+              {personalizar(false)}{signout}
+            </>
           )}
-        </nav>
-        <div className="shrink-0 border-t border-slate-200 p-3 text-sm">
-          <div className="mb-2 flex items-center gap-2">
-            <Badge className={roleStyles[role] ?? roleStyles.staff}>{pastilla}</Badge>
-            {!otra && (
-              <span
-                className="text-xs text-slate-400"
-                title={t("Cost & margin visibility is enforced at the database (#29)", "La visibilidad de costo y margen la impone la base de datos (#29)")}
-              >
-                {cost ? t("cost visible", "costo visible") : t("cost hidden", "costo oculto")}
-              </span>
-            )}
-          </div>
-          <div className="leading-tight">
-            <div className="truncate font-medium">{fullName ?? email}</div>
-            <div className="truncate text-xs text-slate-400">{email}</div>
-          </div>
-          <div className="mt-2 flex items-center gap-1">{personalizar(false)}{signout}</div>
-        </div>
-      </aside>
-
-      {/* Mobile: top bar with horizontal nav */}
-      {/* El `top` sale de la misma medida que la barra lateral: esta cabecera es la de móvil y
-          también se pega al borde de la ventana, así que sin desplazarla el banner se le pone
-          encima justo al bajar — con su botón de navegación dentro. */}
-      <header
-        className="sticky z-30 border-b border-slate-200 bg-white lg:hidden"
-        style={{ top: "var(--banner-impersonacion, 0px)" }}
-      >
-        <div className="flex h-14 items-center gap-3 px-4">
-          {brand}
-          <div className="ml-auto flex items-center gap-2">
-            <Badge className={roleStyles[role] ?? roleStyles.staff}>{pastilla}</Badge>
-            {personalizar(true)}
-            {signout}
-          </div>
-        </div>
-        {/* Envuelve en vez de cortar (D-175, patrón de D-055). `overflow-x-auto` escondía
-            media barra detrás de un scroll horizontal que en un móvil nadie descubre; con
-            `flex-wrap` las pestañas bajan de línea. `min-w-0` es la otra mitad del patrón:
-            un flex item mide por defecto lo que su hijo más ancho, y sin esto la fila se
-            niega a encoger por debajo de la pestaña más larga. Cada enlace conserva su
-            `whitespace-nowrap`: se parte la fila, no la palabra. */}
-        <nav className="flex min-w-0 flex-wrap items-center gap-1 border-t border-slate-100 px-2 py-1.5 text-sm">
-          {navItems
-            .concat(analyticsItems)
-            .map((i) => (
-            <Link key={i.href} href={i.href} className={cn("whitespace-nowrap", linkCls(i.href))}>
-              {i.label}
-            </Link>
-          ))}
-        </nav>
-      </header>
-    </>
+        </MenuDeCuenta>
+      </div>
+    </div>
   );
 }

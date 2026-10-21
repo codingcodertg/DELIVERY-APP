@@ -15,7 +15,7 @@ import { Tx } from "@/components/erp/tx";
 // Tiendas, fechas del rango y `period` son dato y salen tal cual.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Store analytics — RTG ERP" };
+export const metadata = { title: "Store analytics — RTG Inventory" };
 
 export default async function StoreAnalytics({
   searchParams,

@@ -10,7 +10,7 @@ import { GroupTabs } from "@/components/erp/group-tabs";
 import { ChartCard, BarList, Donut, CoverageStat, type BarItem } from "@/components/erp/charts";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Product Analytics — RTG ERP" }; // antes «Dashboard» (D-553)
+export const metadata = { title: "Product Analytics — RTG Inventory" }; // antes «Dashboard» (D-553)
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // El rol y el correo son dato; los estados del donut son enumerados fijos y su etiqueta sale de

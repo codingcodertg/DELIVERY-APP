@@ -15,7 +15,7 @@ import { Tx } from "@/components/erp/tx";
 // Las categorías son dato.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Browse by category — RTG ERP" };
+export const metadata = { title: "Browse by category — RTG Inventory" };
 
 export default async function PurchasingCategories({
   searchParams,

@@ -67,7 +67,7 @@ export async function GET() {
 
   const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
-  wb.creator = "RTG ERP — Excel round-trip";
+  wb.creator = "RTG Inventory — Excel round-trip";
   wb.created = new Date();
 
   // ── _meta sheet: the import reads export_id/timestamp to know the baseline ──────────────────────

@@ -52,7 +52,7 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
       case "recruiting": return t("HR", "RR. HH.");
       case "timetracker": return "Time Tracker";
       case "clockin": return t("Clock-in", "Fichaje");
-      case "erp": return "ERP";
+      case "erp": return t("Inventory", "Inventario");
       default: return "General";
     }
   };
@@ -180,7 +180,7 @@ function FormularioTutorial({ inicial, onGuardar, onCancelar }: {
   const vocabulario = vocabularioDe(app);
   const nombreApp = (a: TutorialApp | "general") =>
     ({ deliveries: t("Deliveries", "Entregas"), recruiting: t("HR", "RR. HH."), timetracker: "Time Tracker",
-       clockin: t("Clock-in", "Fichaje"), erp: "ERP", general: "General" })[a];
+       clockin: t("Clock-in", "Fichaje"), erp: t("Inventory", "Inventario"), general: "General" })[a];
 
   const elegirApp = (nueva: TutorialApp | "general") => {
     const r = cambiaApp(roles, nueva);

@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { landingRoute } from "@/lib/constants";
-import { ErpNavProvider } from "@/components/erp/nav-state";
 import "./erp.css";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 export const metadata: Metadata = {
-  title: "RTG ERP",
+  title: "RTG Inventory",
 };
 
 /**
- * The ERP section's shell (D-090).
+ * The Inventory section's shell (D-090; «RTG ERP» hasta D-NEXT, que lo renombró y lo vistió como Entregas).
  *
  * `data-app="erp"` is load-bearing, not decoration: erp.css deliberately does NOT import Tailwind's
  * preflight, because that is a global reset and every other screen in this app was built without
@@ -53,12 +52,7 @@ export default async function ErpLayout({ children }: { children: React.ReactNod
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }
 
-  // ErpNavProvider owns the sidebar's collapsed state AND the padding that keeps content clear of
-  // it. The sidebar is `fixed`, so without that offset it sits on top of the page — rtg-erp applies
-  // the same lg:pl-56 from its own root layout and the port had dropped it.
-  return (
-    <div data-app="erp">
-      <ErpNavProvider>{children}</ErpNavProvider>
-    </div>
-  );
+  // D-NEXT (2026-10-21): la barra es la superior de Entregas (side-nav.tsx) y va en el flujo del documento, así que
+  // ya no hay barra lateral fija ni hueco a la izquierda que reservar (el `ErpNavProvider` de D-090 se fue con ella).
+  return <div data-app="erp">{children}</div>;
 }

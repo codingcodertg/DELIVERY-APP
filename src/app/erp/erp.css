@@ -47,15 +47,55 @@
    variant that quietly disagrees with itself the first time an ERP screen uses it. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* Brand accent — warm clay. Primary buttons, active states, links, focus rings,
-   selected rows. NOT for status, which keeps green/red/amber/blue. */
+/* ---------------------------------------------------------------------------
+   El tema es el del HUB (D-NEXT, 2026-10-21): tipografía, esquinas y colores de Entregas.
+   ---------------------------------------------------------------------------
+   El dueño: «quiero que toda la app se mire igual como deliveries app». Inventario (antes ERP) está escrito con
+   utilidades de Tailwind —unas mil `slate`/`white`/`clay` a pelo en 61 ficheros— y Entregas con variables de
+   globals.css (`--paper`, `--card`, `--line`, `--accent`…) que cambian con el tema. Tailwind 4 compila cada color
+   como una variable (`.text-slate-500{color:var(--color-slate-500)}`), así que la rampa se APUNTA a las variables
+   del hub aquí, una vez, y las mil utilidades se visten de Entregas en claro y en oscuro sin tocar un fichero. Es
+   el mismo mecanismo con el que D-090 le dio modo oscuro (la «rampa invertida» que había aquí hasta D-NEXT).
+
+   `clay` (el acento arcilla del ERP de origen) pasa a ser el acento azul del hub; sus tintes pálidos, el
+   `--accent-soft`. Los colores de ESTADO (rojo, ámbar, verde) se apuntan a los tintes de Entregas (D-226) para que
+   un aviso rojo se vea igual en Órdenes y en el catálogo; el celeste (`sky`) no tiene par en el hub y se queda. */
 @theme {
-  --color-clay-50: #faf1ec;
-  --color-clay-100: #f3e2da;
-  --color-clay-200: #e7c6b6;
-  --color-clay-500: #b05a3c;
-  --color-clay-600: #97492f;
-  --color-clay-700: #7e3d28;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  /* Las esquinas de Entregas: 8 px en campos y botones (`rounded-md`), 12 px en tarjetas (`rounded-lg`). */
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --color-white: #ffffff;
+  --color-slate-50: var(--paper);
+  --color-slate-100: color-mix(in srgb, var(--line) 45%, var(--card));
+  --color-slate-200: var(--line);
+  --color-slate-300: var(--line);
+  --color-slate-400: var(--gray);
+  --color-slate-500: var(--gray);
+  --color-slate-600: var(--ink-soft);
+  --color-slate-700: var(--text);
+  --color-slate-800: var(--text);
+  --color-slate-900: var(--text);
+  --color-clay-50: var(--accent-soft);
+  --color-clay-100: var(--accent-soft);
+  --color-clay-200: color-mix(in srgb, var(--accent) 30%, var(--card));
+  --color-clay-300: color-mix(in srgb, var(--accent) 45%, var(--card));
+  --color-clay-400: color-mix(in srgb, var(--accent) 70%, var(--card));
+  --color-clay-500: var(--accent);
+  --color-clay-600: color-mix(in srgb, var(--accent) 88%, black);
+  --color-clay-700: color-mix(in srgb, var(--accent) 78%, black);
+  --color-clay-800: color-mix(in srgb, var(--accent) 68%, black);
+  --color-red-50: var(--red-soft);
+  --color-red-200: var(--red-chip-line);
+  --color-red-600: var(--red);
+  --color-red-700: var(--red-chip-text);
+  --color-amber-50: var(--amber-soft);
+  --color-amber-700: var(--amber-text);
+  --color-amber-800: var(--amber-text);
+  --color-emerald-50: var(--green-soft);
+  --color-emerald-600: var(--green);
+  --color-emerald-700: var(--green);
+  --color-emerald-800: var(--green);
 }
 
 /* ---------------------------------------------------------------------------
@@ -93,12 +133,17 @@
 @layer base {
   /* rtg-erp's own body rule, verbatim — its globals.css is 30 lines and this is
      all of the theme it sets. */
+  /* El cuerpo es el de Entregas (D-NEXT): Inter a 14 px sobre `--paper`, y los títulos en Archivo como en globals.css.
+     Las utilidades `text-sm`/`text-xs` siguen midiendo en rem (sobre el <html>, no sobre esto), así que no se mueven. */
   body {
-    background-color: var(--erp-app-bg); /* soft grey app background */
-    color: var(--erp-app-fg);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-size: 16px; /* the base Tailwind's rem scale is drawn against */
+    background-color: var(--paper);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
     -webkit-font-smoothing: antialiased;
+  }
+  [data-app="erp"] :where(h1, h2, h3) {
+    font-family: 'Archivo', system-ui, sans-serif;
   }
 
   [data-app="erp"] {
@@ -130,57 +175,16 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Dark mode.
+   Modo oscuro.
    ---------------------------------------------------------------------------
-   The ERP was ported with no `dark:` variant anywhere — about a thousand
-   hardcoded slate/white utilities — so it was the one module the hub's switch
-   could not move at all.
-
-   Adding `dark:` to a thousand class attributes would be a thousand chances to
-   miss one, and a missed one is a white card in a dark page. Tailwind 4 compiles
-   every colour utility through a variable instead (`.text-slate-500{color:
-   var(--color-slate-500)}` — checked in the emitted chunk), and custom properties
-   inherit, so restating the ramp on an ancestor turns the whole module over at
-   once. `[data-app="erp"]` is that ancestor, and being on the element beats
-   @theme's :root for everything inside it.
-
-   The ramp is INVERTED, not darkened: slate-50 was the palest surface and becomes
-   the darkest, slate-900 was the near-black text and becomes near-white. That is
-   what makes `text-slate-500 on bg-white` keep its contrast without reading a
-   single screen.
-
-   bg-white needs the one exception below. It resolves to --color-white, and so
-   does text-white — but text-white is only ever on a clay or green button
-   (14 places, all checked) where it must stay white. So the surface is overridden
-   as a utility rather than as a token, which moves the 120 backgrounds and leaves
-   the text alone. */
-:root:not([data-theme="dark"]) [data-app="erp"] {
-  --erp-app-bg: #f2f4f7;
-  --erp-app-fg: #0f172a;
+   Hasta D-NEXT aquí vivía una rampa `slate` INVERTIDA a mano para el tema oscuro (D-090). Ya no hace falta: la
+   rampa de arriba apunta a las variables del hub, y esas cambian solas con `data-theme="dark"` en globals.css. Lo
+   único que queda es `bg-white`: resuelve a `--color-white`, igual que `text-white`, y ese texto va siempre sobre un
+   botón de acento donde tiene que seguir blanco (14 sitios); así que la SUPERFICIE se cambia como utilidad y no como
+   token, en los dos temas: la tarjeta del hub (`--card`) es blanca en claro y gris azulado en oscuro. */
+[data-app="erp"] .bg-white {
+  background-color: var(--card);
 }
-
-:root[data-theme="dark"] [data-app="erp"] {
-  --erp-app-bg: #0d1117;
-  --erp-app-fg: #e8edf5;
-
-  --color-slate-50: #161d29;
-  --color-slate-100: #1c2431;
-  --color-slate-200: #2a3444;
-  --color-slate-300: #3a4757;
-  --color-slate-400: #7f8b9c;
-  --color-slate-500: #9aa6b8;
-  --color-slate-600: #b8c3d2;
-  --color-slate-700: #d2dae6;
-  --color-slate-800: #e4eaf3;
-  --color-slate-900: #f1f5fa;
-
-  /* Clay stays the accent it is; only its pale tints, which are used as
-     surfaces, move. clay-500/600/700 carry white text and are left alone. */
-  --color-clay-50: #2b1d17;
-  --color-clay-100: #37251c;
-  --color-clay-200: #4b3126;
-}
-
-:root[data-theme="dark"] [data-app="erp"] .bg-white {
-  background-color: #131a24;
+[data-app="erp"] .hover\:bg-white:hover {
+  background-color: var(--card);
 }

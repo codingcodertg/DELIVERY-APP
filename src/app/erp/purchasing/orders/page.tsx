@@ -13,7 +13,7 @@ import { GroupTabs } from "@/components/erp/group-tabs";
 // inglés: es la excepción anotada en la decisión.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Purchase orders — RTG ERP" };
+export const metadata = { title: "Purchase orders — RTG Inventory" };
 
 type PoRow = {
   id: number;

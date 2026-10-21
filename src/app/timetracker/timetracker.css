@@ -4,16 +4,15 @@
    sitewide regardless of which route is active, so an unscoped `body{...}`
    or bare `button{...}` here would silently change deliveries' own styling
    depending on load order. */
+/* La paleta es la del HUB (D-NEXT, 2026-10-21). El dueño: «quiero que toda la app se mire igual como deliveries
+   app, al igual que el time tracker». Hasta D-NEXT Time Tracker traía su propia paleta (azul marino, acento #4f7cff,
+   y otra distinta para el tema claro); ahora cada `--tt-*` apunta a la variable de globals.css que Entregas usa para
+   lo mismo, y el tema claro y el oscuro salen solos de `data-theme` en <html>. Los nombres `--tt-*` se quedan: 370
+   líneas de abajo los usan y lo que cambia es el valor, no el sitio. */
 .timetracker-module{
-  --tt-bg:#0f1420; --tt-panel:#171e2e; --tt-panel2:#1e2740; --tt-line:#2a3556;
-  --tt-txt:#e7ecf7; --tt-muted:#93a0bd; --tt-accent:#4f7cff; --tt-accent2:#2ee6a6;
-  --tt-danger:#ff5a6a; --tt-warn:#ffb020; --tt-ok:#2ee6a6; --tt-chip:#243052;
-}
-/* Light mode — toggled via data-theme="light" on <html>, same mechanism deliveries/recruiting already use. */
-:root[data-theme="light"] .timetracker-module{
-  --tt-bg:#f4f6fb; --tt-panel:#ffffff; --tt-panel2:#eef2fa; --tt-line:#d7deea;
-  --tt-txt:#1a2233; --tt-muted:#5c6b86; --tt-accent:#3a63e0; --tt-accent2:#0aa578;
-  --tt-danger:#e5384a; --tt-warn:#b7791f; --tt-ok:#0aa578; --tt-chip:#e6ebf5;
+  --tt-bg:var(--paper); --tt-panel:var(--card); --tt-panel2:var(--paper); --tt-line:var(--line);
+  --tt-txt:var(--text); --tt-muted:var(--gray); --tt-accent:var(--accent); --tt-accent2:var(--green);
+  --tt-danger:var(--red); --tt-warn:var(--amber); --tt-ok:var(--green); --tt-chip:var(--accent-soft);
 }
 :root[data-theme="light"] .timetracker-module .btn-ok{color:#053d2b}
 :root[data-theme="light"] .timetracker-module .btn-warn{color:#4a3200}
@@ -28,19 +27,19 @@
 :root[data-theme="light"] .timetracker-module .banner.ok{background:#d6f5e5;color:#0a6a47;border-color:#a7e6c9}
 :root[data-theme="light"] .timetracker-module .pbtn.sel{background:#eaf0ff}
 
-.timetracker-module{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-     background:var(--tt-bg);color:var(--tt-txt);font-size:15px;line-height:1.45;min-height:100vh}
+.timetracker-module{margin:0;font-family:'Inter',system-ui,sans-serif;
+     background:var(--tt-bg);color:var(--tt-txt);font-size:14px;line-height:1.45;min-height:100vh}
 .timetracker-module .wrap{max-width:1100px;margin:0 auto;padding:18px}
 .timetracker-module .row{display:flex;gap:12px;flex-wrap:wrap}
 .timetracker-module .between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.timetracker-module .card{background:var(--tt-panel);border:1px solid var(--tt-line);border-radius:14px;padding:18px;margin-bottom:16px}
+.timetracker-module .card{background:var(--tt-panel);border:1px solid var(--tt-line);border-radius:12px;padding:18px;margin-bottom:16px}
 .timetracker-module .card h2{margin:0 0 12px;font-size:17px}
 .timetracker-module label{display:block;font-size:13px;color:var(--tt-muted);margin:8px 0 4px}
 .timetracker-module input,.timetracker-module select,.timetracker-module textarea{width:100%;background:var(--tt-panel2);border:1px solid var(--tt-line);color:var(--tt-txt);
-     border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit}
+     border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit}
 .timetracker-module input:focus,.timetracker-module select:focus,.timetracker-module textarea:focus{outline:none;border-color:var(--tt-accent)}
 .timetracker-module textarea{resize:vertical;min-height:60px}
-.timetracker-module button{cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;
+.timetracker-module button{cursor:pointer;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;
      background:var(--tt-accent);color:#fff;transition:.15s filter}
 .timetracker-module button:hover{filter:brightness(1.08)}
 .timetracker-module button:disabled{opacity:.5;cursor:not-allowed}
