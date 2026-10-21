@@ -46112,7 +46112,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-NEXT · La burbuja general: un solo botón abajo a la derecha en todas las apps (Ayuda, Chat y, solo para el admin real, Cambiar usuario, Vista móvil y Modo enseñanza); al cambiar de usuario o volver se cae a la app en la que se está
 
-**Fecha:** 2026-10-21 · **Versión:** la asigna el orquestador al fusionar (deliveries) · Sin migración · Hecho directo por el orquestador en `feat/boton-general`.
+**Fecha:** 2026-10-21 · **Versión:** deliveries 1.348.0 (la burbuja vive en el layout raíz y sale en todas las apps) · Sin migración · Hecho directo por el orquestador en `feat/boton-general`.
 
 **Pedido (el dueño, 2026-10-21, literal):** «Quiero que la opción de Switch User, Mobile View y Teaching Mode solo para administradores. […] Lo que es el chat va a estar en un solo bobo en una esquina, que ese es el de ayuda, pero el de ayuda se ha transformado en un bobo que va a ser general, que cuando se abra, se apriete, van a salir las […] cinco […] con todas las opciones que te acabo de dar para que el usuario pueda hacer los cambios fácilmente. Y eso va a estar así como las mismas reglas de la ayuda y el chat, que van a estar en todas las apps. Y si él viene y si dice cambio usuario, él cambia a la app en la que ya está. Pero si ese usuario no tiene acceso a eso, pues cae al hub. Y la otra cosa es que si él tiene que regresar al usuario, cae otra vez al hub. O si está en el delivery sub, cae al delivery sub. O en el HR, cae el HR, pero no que siempre esté cayendo el delivery sub».
 
