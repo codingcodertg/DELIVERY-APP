@@ -50,8 +50,8 @@ export function opcionesDelMenuDeCuenta(a: {
   // La única pestaña que vive aquí hoy (`PESTANAS_DEL_MENU_DEL_NOMBRE`), con la misma pregunta que decidía si se pintaba
   // en la fila. Una prueba recorre los roles y fija que sale aquí justo cuando la fila la quita.
   if (canOpenTab("inspection", a.me)) out.push("inspeccion");
-  out.push("ensenanza");
-  if (a.realRole === "admin") out.push("vercomo");
+  // Modo enseñanza solo para el admin real (D-NEXT, 2026-10-21; el dueño: «Teaching Mode solo para administradores»).
+  if (a.realRole === "admin") out.push("ensenanza", "vercomo");
   if (a.me.role === "admin") out.push("ajustes");
   if (!canReachHub(a.me)) out.push("perfil", "tutoriales");
   out.push("personalizar", "salir");

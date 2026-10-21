@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
+import { EVENTO_ABRIR_CHAT, EVENTO_CHAT_SIN_LEER } from "@/lib/boton-general";
 import {
   CLAVE_DE_ESTADO, type Contacto, type EstadoDeLaBurbuja, type Hilo, type Mensaje,
   chatEnLaRuta, conMensaje, cuerpoValido, esDeMiTienda, estadoInicial, hilos, hilosRecientes, listaVisible, noLeidosTotal,
@@ -17,7 +18,8 @@ import {
  */
 type Yo = { id: string; full_name: string; store: string | null; role: string | null };
 
-export function ChatFlotante() {
+/** `sinBurbuja` (D-NEXT, 2026-10-21): la burbuja general es la única que se ve; aquí solo el panel, cuando ella lo pide. */
+export function ChatFlotante({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}) {
   const pathname = usePathname();
   const { t, lang } = usePrefs();
   const supabase = useMemo(() => createClient(), []);
@@ -32,6 +34,11 @@ export function ChatFlotante() {
   const [error, setError] = useState<string | null>(null);
   const fin = useRef<HTMLDivElement | null>(null);
   const sale = chatEnLaRuta(pathname);
+  useEffect(() => {
+    const abre = () => cambiaEstado("abierta");
+    window.addEventListener(EVENTO_ABRIR_CHAT, abre);
+    return () => window.removeEventListener(EVENTO_ABRIR_CHAT, abre);
+  }, []);
 
   useEffect(() => {
     try { setEstado(estadoInicial(localStorage.getItem(CLAVE_DE_ESTADO))); } catch { /* sin almacenamiento */ }
@@ -76,6 +83,8 @@ export function ChatFlotante() {
   const porId = useMemo(() => new Map(contactos.map((c) => [c.id, c])), [contactos]);
   const h = useMemo(() => (yo ? hilos(mensajes, yo.id) : new Map<string, Hilo>()), [mensajes, yo]);
   const sinLeer = noLeidosTotal(h);
+  // La burbuja general enseña el contador (D-NEXT): se le manda cada vez que cambia.
+  useEffect(() => { window.dispatchEvent(new CustomEvent(EVENTO_CHAT_SIN_LEER, { detail: sinLeer })); }, [sinLeer]);
   const hilo = con ? h.get(con) : undefined;
 
   // Al abrir un hilo, lo que me mandaron queda leído (solo `read_at`, y solo el destinatario: la 184).
@@ -106,6 +115,7 @@ export function ChatFlotante() {
   };
 
   if (!sale || !yo) return null;
+  if (sinBurbuja && estado !== "abierta") return null;
 
   const hora = (iso: string) => new Date(iso).toLocaleTimeString(lang === "es" ? "es-MX" : "en-US", { hour: "numeric", minute: "2-digit" });
   const nombreDe = (id: string) => porId.get(id)?.full_name ?? "…";

@@ -89,52 +89,41 @@ describe("el lobby sabe si se está suplantando, una vez y en el servidor", () =
 // D-306 sacó las DOS de la barra de Entregas. D-333 devuelve UNA, a petición del dueño: «add the switch user also in
 // the deliveries app as a duplicate». Estas pruebas decían «la barra se queda sin las dos»; se reescriben en positivo,
 // no se borran: ahora fijan para quién está el switch, para quién no, y que la vista móvil sigue fuera.
-describe("la barra de Entregas: el switch vuelve como duplicado, la vista móvil sigue fuera", () => {
+describe("D-NEXT (2026-10-21): el switch y la vista móvil salen de la barra y van a la burbuja general, solo para el admin real", () => {
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
-  const plana = barra.replace(/\s+/g, " ");
+  const burbuja = sinComentarios(leer("src/components/BotonGeneral.tsx"));
+  const plana = burbuja.replace(/\s+/g, " ");
 
-  // D-483 la devuelve a la barra, como botón al lado de «Switch user» (el dueño, 2026-10-06: «El switch de mobile view
-  // también agrégalo ahí donde dice switch user»). Sigue fuera del menú del nombre.
-  it("la vista móvil vuelve como botón de la barra, solo para el admin real, y no en el menú del nombre (D-483)", () => {
+  it("la barra de Entregas ya no lleva ni el botón ni el panel ni la vista móvil", () => {
     expect(OPCIONES_DEL_MENU as readonly string[]).not.toContain("vistamovil");
     expect(barra).not.toContain('case "vistamovil":');
-    // D-501: va DENTRO del panel de «Cambiar usuario»; suelta solo si esa función está apagada.
-    expect(plana).toContain('<a className="btn btn-ghost btn-sm" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}');
-    expect(plana).toContain('📱 {t("Mobile view of this screen", "Vista móvil de esta pantalla")}');
-    // Nota D-545: el botón suelto lleva además `entregas-tras-pestanas`, para bajar detrás de las pestañas en el teléfono.
-    expect(plana).toContain('{realRole === "admin" && !puedeSwitch && ( <a className="tab entregas-tras-pestanas" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}');
-    expect(barra.split("enlaceAVistaMovil(").length - 1).toBe(2);
+    expect(barra).not.toContain("SwitchUserPanel");
+    expect(barra).not.toContain("enlaceAVistaMovil");
+    expect(barra).not.toContain("puedeSwitch");
+    expect(barra).not.toContain("impersonate/state");
   });
 
-  it("el botón «⇄ Switch user» está, y SOLO para el admin real con la función encendida", () => {
-    // Nota D-545: su caja lleva `entregas-tras-pestanas`, para bajar detrás de las pestañas en el teléfono.
-    expect(plana).toContain('{realRole === "admin" && puedeSwitch && ( <div className="entregas-tras-pestanas" style={{ position: "relative" }}> <button className="tab"');
-    expect(plana).toContain('⇄ {t("Switch user", "Cambiar usuario")}');
-    // D-501: el panel lleva además «📱 Vista móvil» arriba (`extra`).
-    expect(plana).toContain("{switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)} extra={");
-    // Un solo botón y un solo panel: no hay una segunda entrada escondida en otra rama de la barra.
-    expect(barra.split("⇄").length - 1).toBe(1);
-    expect(barra.split("<SwitchUserPanel").length - 1).toBe(1);
+  it("la burbuja general las ofrece: «⇄ Cambiar usuario» con el panel, y «📱 Vista móvil» con el enlace de esta pantalla", () => {
+    expect(plana).toContain('<SwitchUserPanel users={servidor.users} tiendas={servidor.stores} onClose={() => setCambiando(false)} destino={destinoDeLaApp(pathname)} />');
+    expect(plana).toContain('⇄</span> {t("Switch user", "Cambiar usuario")}');
+    expect(plana).toContain('href={enlaceAVistaMovil(pathname || "/")}');
+    expect(burbuja.split("<SwitchUserPanel").length - 1).toBe(1);
   });
 
-  it("se lo pregunta al servidor UNA vez y solo si el rol es admin; para los demás roles ni pregunta ni botón", () => {
-    expect(plana).toContain('useEffect(() => { if (realRole !== "admin") return; let vivo = true; fetch("/api/impersonate/state?ask=switch")');
-    expect(plana).toContain("}, [realRole]);");
-    expect(barra.split("impersonate/state").length - 1).toBe(1);
-    // Por defecto NO: sin respuesta, o con error, el botón no aparece.
-    expect(plana).toContain("const [puedeSwitch, setPuedeSwitch] = useState(false);");
-    expect(plana).toContain("setPuedeSwitch(d.habilitado === true)");
+  it("se lo pregunta al servidor UNA vez, a /api/impersonate/candidates, y por defecto no ofrece nada de admin", () => {
+    expect(plana).toContain('fetch("/api/impersonate/candidates")');
+    expect(burbuja.split("/api/impersonate/candidates").length - 1).toBe(1);
+    expect(plana).toContain("const SIN_SERVIDOR: Servidor = { adminReal: false, habilitado: false, users: [], stores: [] };");
+    expect(plana).toContain("adminReal: d.adminReal === true,");
+    expect(plana).toContain("habilitado: d.habilitado === true,");
   });
 
-  it("SUPLANTANDO no sale —ahí manda el botón del banner—: con cookie de retorno el servidor contesta `habilitado: false`", () => {
-    const estado = sinComentarios(leer("src/app/api/impersonate/state/route.ts")).replace(/\s+/g, " ");
-    // `habilitado` solo se devuelve en la rama SIN cookie de retorno, y solo a un admin leído de la base.
-    expect(estado).toContain("if (!guardado) { return NextResponse.json({ habilitado: activa && esAdmin(perfil?.role) }); }");
-    // Y en la rama CON cookie —dentro de una suplantación— lo dice en negativo, a las claras.
-    expect(estado.slice(estado.indexOf("if (!guardado) {") + 20)).toContain("habilitado: false,");
-    expect(estado.split("habilitado").length - 1).toBe(2);
-    // La barra exige `true` exacto, y nunca lo da por hecho.
-    expect(plana).not.toContain("setPuedeSwitch(true)");
+  it("SUPLANTANDO no sale: la ruta contesta sin admin real en cuanto hay cookie de retorno, y en el banner manda su propio botón", () => {
+    const ruta = sinComentarios(leer("src/app/api/impersonate/candidates/route.ts")).replace(/\s+/g, " ");
+    expect(ruta).toContain("if (guardado) return NextResponse.json(nada);");
+    expect(ruta).toContain("if (!esAdmin(perfil?.role)) return NextResponse.json(nada);");
+    expect(ruta).toContain("if (!habilitado) return NextResponse.json({ ...nada, adminReal: true });");
+    expect(ruta).toContain("candidatosParaSaltar({ id: user.id, rol: perfil?.role }, perfiles ?? [])");
   });
 
   it("y ninguna otra app las tenía: no hay copia que unificar", () => {
@@ -182,7 +171,8 @@ describe("la página de cambiar de usuario", () => {
     expect(panel).not.toContain("useData");
     // Con `modo` desde el encargo siguiente (saltar de usuario): las props de D-306 siguen ahí.
     // D-501 añade `extra` (lo que va arriba de la lista).
-    expect(panel).toContain('export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar", extra }');
+    // D-NEXT añade `destino` (a dónde se cae al entrar: la portada de la app en la que se está).
+    expect(panel).toContain('export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar", extra, destino = "/" }');
     expect(panel).toContain("agruparPorTienda(users, tiendas, filtro)");
     expect(pagina).toContain("<SwitchUserPanel users={users} tiendas={settings.stores ?? []} enPagina");
   });

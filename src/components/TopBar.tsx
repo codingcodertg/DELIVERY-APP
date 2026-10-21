@@ -17,9 +17,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { PendingDeadlineWatcher } from "@/components/PendingDeadlineWatcher";
-import { SwitchUserPanel } from "@/components/SwitchUserPanel";
 import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
-import { enlaceAVistaMovil } from "@/lib/mobile-preview";
 import type { Profile, UserRole } from "@/lib/types";
 
 /** Los botones del aviso de modo enseñanza, «Salir» y «Reiniciar práctica», con un mismo estilo
@@ -30,22 +28,11 @@ const BOTON_DEL_AVISO = { marginLeft: 12, background: "rgba(255,255,255,.25)", c
 export function TopBar({ me: propMe }: { me: Profile }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { settings, deliveries, users, me: ctxMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData } = useData();
+  const { settings, deliveries, me: ctxMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData } = useData();
   // «Switch user» TAMBIÉN aquí (D-333), duplicado a sabiendas del de la herramienta del hub (D-306, que sigue igual).
   // Si se puede lo dice el servidor —la bandera vive en el entorno—: `habilitado` solo se le contesta a un ADMIN REAL,
   // y nunca dentro de una suplantación (ahí la ruta contesta otra cosa, sin `habilitado`): dentro manda el botón del
   // banner, y así nunca hay dos botones de cambio a la vez. Se pregunta UNA vez, y solo si el rol es admin.
-  const [puedeSwitch, setPuedeSwitch] = useState(false);
-  const [switchAbierto, setSwitchAbierto] = useState(false);
-  useEffect(() => {
-    if (realRole !== "admin") return;
-    let vivo = true;
-    fetch("/api/impersonate/state?ask=switch")
-      .then((r) => r.json())
-      .then((d: { habilitado?: boolean }) => { if (vivo) setPuedeSwitch(d.habilitado === true); })
-      .catch(() => { /* sin respuesta, el botón no aparece: la dirección segura */ });
-    return () => { vivo = false; };
-  }, [realRole]);
   const { lang, t } = usePrefs();
   // `me` is the EFFECTIVE user — its role follows the admin "view as" preview.
   const me = ctxMe ?? propMe;
@@ -358,34 +345,9 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </select>
           </label>
         )}
-        {/* «Switch usuario» vivió aquí de D-247 a D-306, que lo pasó al hub. El dueño lo quiere en los DOS sitios
-            («add the switch user also in the deliveries app as a duplicate»): vuelve aquí, y la herramienta del hub
-            (/home/switch-user) se queda tal cual. D-483: al lado, «📱 Vista móvil», que abre esta misma pantalla en el marco
-            de teléfono del hub (solo admin, igual que la página). */}
-        {realRole === "admin" && puedeSwitch && (
-          <div className="entregas-tras-pestanas" style={{ position: "relative" }}>
-            <button className="tab" onClick={() => setSwitchAbierto((v) => !v)} aria-expanded={switchAbierto}>
-              ⇄ {t("Switch user", "Cambiar usuario")}
-            </button>
-            {switchAbierto && <SwitchUserPanel users={users} tiendas={settings.stores ?? []} onClose={() => setSwitchAbierto(false)}
-              extra={
-                // «📱 Vista móvil» dentro del mismo botón de «Cambiar usuario» (D-501). El dueño, 2026-10-08: «vista movil que
-                // vaya en el mismo voton de cambiar usuario». Arriba de la lista, a todo el ancho del panel.
-                <a className="btn btn-ghost btn-sm" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}
-                  style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}
-                  title={t("See this screen as it looks on a phone", "Ver esta pantalla como se ve en un teléfono")}>
-                  📱 {t("Mobile view of this screen", "Vista móvil de esta pantalla")}
-                </a>
-              } />}
-          </div>
-        )}
-        {/* Sin la función de cambiar usuario encendida, la vista móvil sigue teniendo su botón suelto. */}
-        {realRole === "admin" && !puedeSwitch && (
-          <a className="tab entregas-tras-pestanas" data-vista-movil href={enlaceAVistaMovil(pathname || "/")}
-            title={t("See this screen as it looks on a phone", "Ver esta pantalla como se ve en un teléfono")}>
-            📱 {t("Mobile view", "Vista móvil")}
-          </a>
-        )}
+        {/* «Cambiar usuario» y «Vista móvil» vivieron en esta barra (D-247 → D-306 → D-333 → D-483 → D-501). Desde D-NEXT
+            (2026-10-21) están en la burbuja general de abajo a la derecha (`BotonGeneral`), la misma en todas las apps y
+            solo para el admin real; aquí ya no hay copia. */}
       </div>
     </div>
     </>

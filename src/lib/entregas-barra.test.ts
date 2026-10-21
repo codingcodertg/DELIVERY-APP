@@ -27,9 +27,10 @@ describe("el menú del nombre, con la entrada de la barra", () => {
   });
 
   // Desde D-490 todos llevan además «Personalizar» (idioma y tema, en el hub), justo antes de Salir.
-  it("un vendedor: modo enseñanza, personalizar y salir, nada más", () => {
+  // D-NEXT (2026-10-21): «Modo enseñanza» solo para el admin real (el dueño: «Teaching Mode solo para administradores»).
+  it("un vendedor: personalizar y salir, nada más (sin modo enseñanza desde D-NEXT)", () => {
     expect(opcionesDelMenuDeCuenta({ realRole: "sales", me: { role: "sales", module_access: soloEntregas } }))
-      .toEqual(["ensenanza", "personalizar", "salir"]);
+      .toEqual(["personalizar", "salir"]);
   });
 
   // Nota D-545: el chofer y el admin llevan además, la primera, «inspeccion»: la pestaña «✅ Inspección pre-viaje» se
@@ -37,7 +38,7 @@ describe("el menú del nombre, con la entrada de la barra", () => {
   // vendedor de arriba no la ve (D-521), y su lista no cambia.
   it("el chofer, que no ve la casa, tiene aquí Mi perfil y Tutoriales", () => {
     expect(opcionesDelMenuDeCuenta({ realRole: "driver", me: { role: "driver", module_access: soloEntregas } }))
-      .toEqual(["inspeccion", "ensenanza", "perfil", "tutoriales", "personalizar", "salir"]);
+      .toEqual(["inspeccion", "perfil", "tutoriales", "personalizar", "salir"]);
   });
 
   it("el admin: ver como, vista móvil y ajustes, y salir el último", () => {

@@ -68,8 +68,15 @@ describe("el panel montado en la barra de Entregas también tiene encima lo que 
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
   const app = sinComentarios(leer("src/app/(app)/layout.tsx"));
 
-  it("la barra monta el panel, y solo se monta en el layout de (app)", () => {
-    expect(barra.indexOf("<SwitchUserPanel")).toBeGreaterThan(-1);
+  it("la barra ya no monta el panel (D-NEXT: vive en la burbuja general, con su propio ConfirmProvider); la barra sigue solo en (app)", () => {
+    expect(barra.indexOf("<SwitchUserPanel")).toBe(-1);
+    const burbuja = sinComentarios(leer("src/components/BotonGeneral.tsx"));
+    const i = burbuja.indexOf("<SwitchUserPanel");
+    expect(i).toBeGreaterThan(-1);
+    expect(burbuja.lastIndexOf("<ConfirmProvider>", i)).toBeGreaterThan(-1);
+    expect(burbuja.indexOf("</ConfirmProvider>", i)).toBeGreaterThan(i);
+    expect(raiz.indexOf("<BotonGeneral />")).toBeGreaterThan(raiz.indexOf("<PrefsProvider"));
+    expect(raiz.indexOf("<BotonGeneral />")).toBeLessThan(raiz.indexOf("</PrefsProvider>"));
     expect(app.indexOf("<TopBar")).toBeGreaterThan(-1);
     expect(raiz).not.toContain("<TopBar");
   });
@@ -90,12 +97,12 @@ describe("el panel montado en la barra de Entregas también tiene encima lo que 
     }
   });
 
-  it("dos entradas al MISMO panel, y nada más: el hub, la barra de Entregas y el banner (que es la de dentro)", () => {
+  it("tres entradas al MISMO panel, y nada más: el hub, la burbuja general y el banner (que es la de dentro)", () => {
     const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
     const tsx: string[] = [];
     const recorre = (d: string) => { for (const f of readdirSync(d)) { const r = `${d}/${f}`; if (statSync(r).isDirectory()) recorre(r); else if (f.endsWith(".tsx")) tsx.push(r); } };
     recorre("src");
     expect(tsx.filter((f) => sinComentarios(leer(f)).includes("<SwitchUserPanel")).sort()).toEqual(
-      ["src/app/home/switch-user/page.tsx", "src/components/ImpersonationBanner.tsx", "src/components/TopBar.tsx"]);
+      ["src/app/home/switch-user/page.tsx", "src/components/BotonGeneral.tsx", "src/components/ImpersonationBanner.tsx"]);
   });
 });

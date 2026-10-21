@@ -97,7 +97,9 @@ describe("un componente, montado una vez, en el layout raíz", () => {
     const layout = sinComentarios(leer("src/app/layout.tsx"));
     expect(layout).toContain('import { HelpButton } from "@/components/HelpButton";');
     const dentro = layout.slice(layout.indexOf("<PrefsProvider>"), layout.indexOf("</PrefsProvider>"));
-    expect(dentro).toContain("<HelpButton />");
+    // D-NEXT (2026-10-21): la burbuja que se ve es la general (`BotonGeneral`); la Ayuda va `sinBurbuja` y se abre por evento.
+    expect(dentro).toContain("<HelpButton sinBurbuja />");
+    expect(dentro).toContain("<BotonGeneral />");
   });
 
   it("nadie más la monta: ni Entregas, ni el demo, ni ninguna app (no hay copias)", () => {
@@ -111,7 +113,7 @@ describe("un componente, montado una vez, en el layout raíz", () => {
     const boton = sinComentarios(leer("src/components/HelpButton.tsx"));
     expect(boton).not.toContain("@/lib/data-provider");
     expect(boton).not.toContain("useData");
-    expect(boton).toContain("export function HelpButton() {");
+    expect(boton).toContain("export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}) {");
   });
 
   it("decide dónde no sale con ayudaEnLaRuta, antes de pintar nada", () => {

@@ -6,6 +6,7 @@ import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { CierreDiario } from "@/components/CierreDiario";
 import { HelpButton } from "@/components/HelpButton";
 import { ChatFlotante } from "@/components/ChatFlotante";
+import { BotonGeneral } from "@/components/BotonGeneral";
 import { GUION_DE_TEMA } from "@/lib/tema";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
@@ -80,10 +81,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Encuestas y Promociones. Hasta D-530 solo la montaba Entregas. Dentro de `PrefsProvider`
               porque habla en el idioma de la persona; dónde no sale (login, el enlace del cliente…) lo
               decide ella con `ayudaEnLaRuta`. */}
-          <HelpButton />
+          <HelpButton sinBurbuja />
           {/* La burbuja del chat interno (D-609, 2026-10-20), por lo mismo que la de Ayuda: una en todas las apps, arriba a la
               derecha; dónde no sale lo decide `chatEnLaRuta` (las mismas pantallas sin sesión). Dentro de `PrefsProvider`. */}
-          <ChatFlotante />
+          <ChatFlotante sinBurbuja />
+          {/* La burbuja GENERAL (D-NEXT, 2026-10-21): la única que se ve abajo a la derecha, en las mismas pantallas que la
+              Ayuda. Al pulsarla salen hacia arriba Ayuda y Chat (para todos) y, solo para el admin real, Cambiar usuario,
+              Vista móvil y Modo enseñanza. Por eso las dos de arriba van `sinBurbuja`: ella las abre por evento. */}
+          <BotonGeneral />
         </PrefsProvider>
         {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}
         <VersionStamp />

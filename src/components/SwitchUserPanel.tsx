@@ -26,7 +26,7 @@ import type { NamedLocation, Profile, UserRole } from "@/lib/types";
  * página del hub —que se lo pasa desde su proveedor— y donde no hay proveedor. `enPagina` lo
  * pinta estático, no como desplegable colgando de un botón.
  */
-export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar", extra }: {
+export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, modo = "entrar", extra, destino = "/" }: {
   users: Profile[];
   tiendas: NamedLocation[];
   onClose: () => void;
@@ -36,6 +36,11 @@ export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, mod
   /** «entrar»: desde la propia cuenta (`POST /api/impersonate`). «saltar»: desde dentro de otra
    *  identidad (`POST /api/impersonate/switch`), que restaura al admin antes de nada (D-307). */
   modo?: "entrar" | "saltar";
+  /**
+   * A dónde se cae al entrar (D-NEXT, 2026-10-21): la portada de la app en la que se está (`destinoDeLaApp`), no
+   * siempre Entregas. Si la otra persona no puede entrar ahí, su layout la rebota a donde sí (el hub, o su única app).
+   */
+  destino?: string;
 }) {
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -76,7 +81,7 @@ export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, mod
         // la ruta lo dice con `salida`, y entonces hay que recargar, no quedarse con el banner
         // pintado sobre una sesión que ya no es la que dice.
         const cuerpo = (await r.json().catch(() => null)) as { salida?: string } | null;
-        if (cuerpo?.salida === "admin" || cuerpo?.salida === "login") { window.location.href = "/"; return; }
+        if (cuerpo?.salida === "admin" || cuerpo?.salida === "login") { window.location.href = destino; return; }
         // Se enseña AQUÍ y no se cierra en silencio: el panel es donde la persona está mirando,
         // y un panel que se cierra sin decir nada se lee como «ya está», que es lo contrario.
         setEntrando(null);
@@ -85,7 +90,7 @@ export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, mod
       }
       // Recarga entera: cambia la identidad de la sesión y todo lo que hay en memoria es del
       // admin. Mismo motivo que en la ficha.
-      window.location.href = "/";
+      window.location.href = destino;
     } catch {
       setEntrando(null);
       setError(t("Could not sign in as this user.", "No se pudo entrar como este usuario."));

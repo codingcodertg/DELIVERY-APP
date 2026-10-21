@@ -17509,6 +17509,8 @@ el directorio solo enseñaba la de cada persona, dentro de su tarjeta.
 
 ## D-274 · Entregas: la casa junto al nombre, un menú en tu nombre en vez de la Cuenta, y leyenda en el mapa
 
+> **Reemplazada en parte por D-NEXT** (2026-10-21): «Modo enseñanza» solo para el admin real, en el menú y en la burbuja general.
+
 > **Reemplazada en parte por D-520** (2026-10-11): la leyenda del mapa se quitó de toda la app («delete the lEGEND ON THE MAP of the app»); `MapLegend.tsx` y `leyendaDelMapa` se borraron. El color de cada chofer (`colorDeChofer`) sigue.
 
 > **⚠ Reemplazada en parte por D-467** (2026-10-04): la leyenda del mapa (§ de la leyenda) ya no explica «la ruta de las órdenes elegidas» ni «la recogida de la orden elegida», porque el Mapa pasó a ser «Ruta de hoy», de solo lectura. Explica las marcas de una ruta: P, D, ✓, la línea del chofer y su regreso; el camión, solo a quien recibe las posiciones.
@@ -39363,6 +39365,8 @@ Interpretación: «las órdenes de rescheduled» = cualquier orden del Gestor qu
 
 ## D-501 · «📱 Vista móvil» dentro del botón «⇄ Cambiar usuario»
 
+> **Reemplazada por D-NEXT** (2026-10-21): «Cambiar usuario» y «Vista móvil» salen de la barra de Entregas y van a la burbuja general, en todas las apps.
+
 **Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.1, repo 1.370.1) · **Sin migración.** · Hecho directo por el orquestador en `release-d501`. **Reemplaza en parte a D-483** (que la puso como botón suelto al lado).
 
 **Pedido del dueño**, literal: *«vista movil que vaya en el mismo voton de cambiar usuario»*.
@@ -42708,6 +42712,8 @@ ancla de texto**, y se dice: G8 (el horario numera solo lo pendiente: el horario
 **Añadido por el orquestador al fusionar:** en «Mi ruta», la entrega ya hecha también conserva su número en el círculo (antes pintaba «✓» en vez del número: `{hecha ? "✓" : n}` → `{n}`); el círculo apagado ya la distingue. Es el mismo pedido del dueño, en la otra pantalla.
 ## D-530 · El tema sin «Same as my device», y la burbuja de Ayuda igual en todas las apps
 
+> **Reemplazada en parte por D-NEXT** (2026-10-21): la burbuja «? Ayuda» ya no se ve; la abre la burbuja general.
+
 > **Reemplazada en parte por D-616** (2026-10-20): la burbuja de Ayuda pasa a `z-index` 1000, por encima de todo (el dueño lo pidió así).
 
 **Fecha:** 2026-10-11 · **Versión:** todas las apps suben una menor (código compartido: layout raíz, prefs, globals.css, /api/help); repo 1.395.0. Toca código que pasa por TODAS las apps (el layout raíz,
@@ -45863,6 +45869,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-609 · Hub: chat interno entre empleados, una burbuja arriba a la derecha en todas las apps (contactos de mi tienda primero, búsqueda por nombre, tiempo real; los mensajes de un admin llegan como push) — migración 184
 
+> **Reemplazada en parte por D-NEXT** (2026-10-21): la burbuja «💬 Chat» ya no se ve; la abre la burbuja general, que enseña sus no leídos.
+
 > **Reemplazada en parte por D-615** (2026-10-20): la burbuja va abajo a la derecha, encima de la de Ayuda.
 
 > **Reemplazada en parte por D-614** (2026-10-20): la lista enseña solo a los de mi tienda; a los demás se les busca por nombre.
@@ -46101,3 +46109,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/un-solo-tema.test.ts` (el nombre en MODULES y en las pestañas; la barra es `.topbar` con `.tabs` y `MenuDeCuenta`, sin `aside` ni `lg:`; las dos clases de dos filas; sin `ErpNavProvider`; la rampa de erp.css apunta al hub y la invertida no está; Inter/Archivo/radios; `bg-white`→`--card`; las variables de Time Tracker y sus esquinas). Actualizadas al modelo: `personalizar` (Personalizar y Salir en el menú del nombre; Time Tracker sin bloque claro propio), `customers/modulo` (sin `ErpNavProvider`), `impersonation-banner` (la barra en el flujo no usa la medida). Suite entera en verde; tsc.
 
 **Medido en el navegador (demo, Chrome headless):** Entregas y Clientes a 1440 px: la misma barra (`rgb(21,34,56)`), Inter 14 px, Archivo en el nombre, fondo `--paper`, sin `aside`, sin scroll horizontal. Inventario y Time Tracker **no se pueden abrir en el demo** (piden sesión): su medida real es producción tras publicar.
+
+## D-NEXT · La burbuja general: un solo botón abajo a la derecha en todas las apps (Ayuda, Chat y, solo para el admin real, Cambiar usuario, Vista móvil y Modo enseñanza); al cambiar de usuario o volver se cae a la app en la que se está
+
+**Fecha:** 2026-10-21 · **Versión:** la asigna el orquestador al fusionar (deliveries) · Sin migración · Hecho directo por el orquestador en `feat/boton-general`.
+
+**Pedido (el dueño, 2026-10-21, literal):** «Quiero que la opción de Switch User, Mobile View y Teaching Mode solo para administradores. […] Lo que es el chat va a estar en un solo bobo en una esquina, que ese es el de ayuda, pero el de ayuda se ha transformado en un bobo que va a ser general, que cuando se abra, se apriete, van a salir las […] cinco […] con todas las opciones que te acabo de dar para que el usuario pueda hacer los cambios fácilmente. Y eso va a estar así como las mismas reglas de la ayuda y el chat, que van a estar en todas las apps. Y si él viene y si dice cambio usuario, él cambia a la app en la que ya está. Pero si ese usuario no tiene acceso a eso, pues cae al hub. Y la otra cosa es que si él tiene que regresar al usuario, cae otra vez al hub. O si está en el delivery sub, cae al delivery sub. O en el HR, cae el HR, pero no que siempre esté cayendo el delivery sub».
+
+**Medido antes.** Abajo a la derecha había DOS burbujas en todas las apps: «? Ayuda» (D-530) y «💬 Chat» encima (D-609/D-615). «Cambiar usuario» (con «📱 Vista móvil» dentro, D-501) era un botón de la barra de Entregas (D-333/D-483) y una herramienta del hub; «Modo enseñanza» era una opción del menú del nombre de Entregas para TODOS los roles (D-274). Tras entrar como otro, y tras «Volver a mi cuenta», se caía siempre a `/` (Entregas), estuviera uno donde estuviera.
+
+**Qué cambia.**
+- **Una sola burbuja** (`BotonGeneral`, en el layout raíz, en las mismas pantallas que la Ayuda: `ayudaEnLaRuta`). Al pulsarla salen hacia arriba las opciones, en este orden desde abajo: Ayuda, Chat y, solo para el admin real, Cambiar usuario (si la función está encendida), Vista móvil y Modo enseñanza (`opcionesDelBotonGeneral`). `HelpButton` y `ChatFlotante` siguen siendo sus componentes (el formulario con captura, el hilo), montados `sinBurbuja`: la general les pide abrirse por evento (`rtg:abrir-ayuda`, `rtg:abrir-chat`) y el chat le manda sus no leídos (`rtg:chat-sin-leer`), que la burbuja enseña cerrada y en la opción.
+- **Solo el admin real** (rol admin y sin cookie de retorno): lo contesta en una ida `GET /api/impersonate/candidates` (`adminReal`, `habilitado`, y la lista `users`/`stores` filtrada con `candidatosParaSaltar`, la misma regla que aplicará `POST /api/impersonate`). Fuera de Entregas no hay `DataProvider` con `users`: por eso la lista viene del servidor. La barra de Entregas pierde el botón, el panel y la vista móvil; el menú del nombre deja «Modo enseñanza» solo al admin real (`opcionesDelMenuDeCuenta`). Las herramientas del hub (`/home/switch-user`, `/home/vista-movil`) siguen.
+- **Modo enseñanza desde cualquier app:** la bandera es la de siempre (`rtg_teaching`, `leeEnsenanza`/`escribeEnsenanza`) y el evento `rtg:ensenanza` avisa a Entregas si está montada; el efecto sigue siendo el de Entregas (el entorno de práctica sobre las órdenes).
+- **A dónde se cae** (`destinoDeLaApp`): a la PORTADA de la app en la que se está —Entregas `/`, RR. HH. `/recruiting`, Inventario `/erp/catalog`, Time Tracker (y el fichaje) `/timetracker`, Clientes `/customers`, el hub `/home`—, tanto al entrar como otro (`SwitchUserPanel` recibe `destino`) como al «Volver a mi cuenta» y al saltar desde el banner. Es la portada y no la ruta exacta porque esa puede ser de un rol que la otra persona no tiene; y si no puede entrar a la app, su layout la rebota como siempre (`landingRoute`: el hub si tiene varias apps, su única app si tiene una). La página del hub cae al hub.
+
+**Qué no cambia.** El formulario de Ayuda, el chat, la impersonación (rutas, cookie, registro, los 60 minutos), el banner amarillo y sus botones. `.help-fab`/`.chat-fab` siguen en globals.css (su aspecto es el que hereda la general). RR. HH., Inventario y Time Tracker nunca tuvieron estas opciones en su barra: ahora las tienen en la burbuja.
+
+**Pruebas:** `src/lib/boton-general.test.ts` (opciones por rol y función; destinos por app, hub y fichaje; la bandera de enseñanza con y sin almacenamiento; puertas: layout raíz, eventos, contador, `destino` en el panel y el banner, estilos). Actualizadas al modelo: `ayuda-flotante`, `chat/chat`, `entregas-barra`, `barra-de-entregas`, `banner-panel-providers`, `hub-herramientas-de-admin`, `switch-user`, `mobile-preview`, `impersonation-switch-ui`. 6 mutantes caen con prueba nombrada. Suite entera en verde; tsc.
+
+**No medido:** el panel de Cambiar usuario desde la burbuja con sesión real (el demo no tiene servidor): la medida es el dueño entrando como alguien desde RR. HH. y viendo que cae en RR. HH.
