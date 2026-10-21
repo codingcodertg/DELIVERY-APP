@@ -172,7 +172,7 @@ export function SideNav({
               ERP y no veía ni un error — la pantalla parpadeaba y seguía donde estaba.
               Ahora se pinta solo si hay hub al que volver, con la misma respuesta que el enlace
               de la cabecera: los dos salen de `hubReachable`, así que no pueden discrepar. */}
-          {/* D-NEXT (2026-10-20): un solo «Todas las apps», el de la cabecera. El dueño: «erp tiene 2 all apps, solo deja 1». */}
+          {/* D-619 (2026-10-20): un solo «Todas las apps», el de la cabecera. El dueño: «erp tiene 2 all apps, solo deja 1». */}
           {navItems.map((i) => (
             <Link key={i.href} href={i.href} className={cn("block", linkCls(i.href))}>
               {i.label}

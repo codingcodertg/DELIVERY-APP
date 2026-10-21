@@ -11929,7 +11929,7 @@ arranque va por el código, no por haberlo visto. `verify.mjs`: en verde sobre `
 
 ## D-227 · «Todas las apps» solo se pinta si hay apps a las que ir
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): el ERP conserva un solo enlace al hub, el de la cabecera.
+> **Reemplazada en parte por D-619** (2026-10-20): el ERP conserva un solo enlace al hub, el de la cabecera.
 
 **Fecha:** 2026-09-09 · **Versión:** la pone el orquestador (toca ERP) · Sin migración.
 **Pedido por:** el dueño: entra con una cuenta que solo tiene el ERP, pulsa **«Todas las apps»** y
@@ -45996,9 +45996,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador. La medida es la tabla del dueño: cuántas filas caben ahora frente a antes.
 
-## D-NEXT · Un solo «inicio» por app: RR. HH. pierde la casita de «Hoy» (queda la del hub) y el ERP un «Todas las apps» de los dos
+## D-619 · Un solo «inicio» por app: RR. HH. pierde la casita de «Hoy» (queda la del hub) y el ERP un «Todas las apps» de los dos
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (recruiting y erp) · Sin migración · Hecho directo por el orquestador en `fix/un-solo-inicio`.
+**Fecha:** 2026-10-20 · **Versión:** recruiting 0.59.3 · erp 0.20.0 (repo 1.484.0) · Sin migración · Hecho directo por el orquestador en `fix/un-solo-inicio`.
 
 **Pedidos del dueño (2026-10-20, literales):** «on the hr app there is two home icons just leave the one that sends you to the hub so it doesn't confuse»; «erp tiene 2 all apps solo deja solo 1» (captura: «⌂ All apps» junto a «RTG ERP» y otra vez como primera fila de la lista lateral).
 
