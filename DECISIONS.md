@@ -46201,7 +46201,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - Time Tracker recargando en enseñanza;
 - los correos o avisos externos que alguna acción de servidor mande sin escribir antes en la base: no pasan por Supabase y no se cortan.
 
-## D-NEXT · RR. HH.: el gerente de tienda ve los candidatos pasados de este mes, sigue evaluándolos (puede cambiar de opinión) y les adjunta documentos
+## D-627 · RR. HH.: el gerente de tienda ve los candidatos pasados de este mes, sigue evaluándolos (puede cambiar de opinión) y les adjunta documentos
 
 **Fecha:** 2026-10-21 · **Versión:** recruiting 0.61.0 · Hecho por un worker del orquestador en `feat/rrhh-candidatos-del-mes`. Sin migración. Reemplaza en parte a D-606.
 
