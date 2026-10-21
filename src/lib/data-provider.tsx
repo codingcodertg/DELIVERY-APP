@@ -151,6 +151,8 @@ export interface DataState {
    *  `partirCarga` mueve `resto` pallets de la orden `id` a una carga hermana NUEVA y devuelve su id (`null` si no se
    *  pudo: la base lo dice, o no tiene la 157). */
   partirCarga: (id: string, resto: number) => Promise<string | null>;
+  /** La reentrega como carga de la misma orden (D-618, 185): `reentrega_como_carga`. Devuelve el id de la carga nueva. */
+  reentregaComoCarga: (id: string, pallets: number, motivo: string, cargo: number) => Promise<string | null>;
   /** Cambia cuántos pallets lleva cada una de dos cargas hermanas; la suma no cambia. */
   reparteCargas: (a: string, b: string, palletsA: number) => Promise<boolean>;
   /** Devuelve los pallets de `b` a `a` y borra `b` (queda en `deliveries_borradas`, 142). */
@@ -1348,6 +1350,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     await reloadTables(["deliveries", "order_events"]);
     return true;
   }, [notify, reloadTables]);
+  const reentregaComoCarga = useCallback<DataState["reentregaComoCarga"]>(async (id, pallets, motivo, cargo) => {
+    if (teaching) { notify("Not available in teaching mode."); return null; }
+    const { data, error } = await supabase.rpc("reentrega_como_carga", { p_id: id, p_pallets: pallets, p_motivo: motivo, p_cargo: cargo });
+    return (await trasLasCargas(error)) && typeof data === "string" ? data : null;
+  }, [supabase, teaching, notify, trasLasCargas]);
   const partirCarga = useCallback<DataState["partirCarga"]>(async (id, resto) => {
     if (teaching) { notify("Not available in teaching mode."); return null; }
     const { data, error } = await supabase.rpc("partir_carga", { p_id: id, p_resto: resto });
@@ -2147,7 +2154,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const value: DataState = {
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, reorderStops, partirCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut,

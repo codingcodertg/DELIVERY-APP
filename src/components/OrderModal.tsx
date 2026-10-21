@@ -134,7 +134,7 @@ export function OrderModal({
   /** La foto de la cámara aún se está comprimiendo: «Confirmar entregado» espera, para no entregar sin ella. */
   fotoEnCamino?: boolean;
 }) {
-  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, saveSettings, notify, realRole, pushNotifs, teaching } =
+  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, reentregaComoCarga, saveSettings, notify, realRole, pushNotifs, teaching } =
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -214,6 +214,8 @@ export function OrderModal({
   const [showDeshacer, setShowDeshacer] = useState(false);
   const [motivoDeSalto, setMotivoDeSalto] = useState("");
   const [redeliverCharge, setRedeliverCharge] = useState("");
+  /** Cuántos pallets faltan por entregar (D-618): la carga nueva se crea con ese tamaño. */
+  const [redeliverPallets, setRedeliverPallets] = useState("");
   const [showRedeliver, setShowRedeliver] = useState(false);
   const [routing, setRouting] = useState(false);
   const [routeErr, setRouteErr] = useState("");
@@ -1468,19 +1470,32 @@ export function OrderModal({
   // Log a repeat delivery (warehouse error, damage, etc.) as a NEW order linked
   // to this one, re-entering the flow as "approved" for the warehouse to redo.
   // The link + reason make repeats measurable for the end-of-week review.
+  /**
+   * «Registrar reentrega» (D-276 → D-618, 2026-10-20): la reentrega es una CARGA MÁS de la misma orden («FV115 a» entregada,
+   * «FV115 b» lo que falta), no una orden con código nuevo. El dueño: «no me creó la orden como FV115 A y B». Lo hace la
+   * base (`reentrega_como_carga`, 185): copia la orden sin sellos, letra siguiente, los pallets que faltan, aprobada,
+   * enlazada por `redelivery_of` con la razón, y el cargo como costo de entrega. `borradorDeReentrega` queda para el modo
+   * de enseñanza (allí no hay base).
+   */
   const recordRedelivery = async () => {
     if (!existing || !redeliverReason.trim()) return;
+    const pallets = Number(redeliverPallets);
+    if (!(pallets > 0)) { notify(t("How many pallets are left?", "¿Cuántos pallets faltan?")); return; }
     setBusy(true);
     const src = existing;
-    // Built by `borradorDeReentrega` (D-276), so the write guard is tested against this exact copy.
-    const payload: Draft = borradorDeReentrega(src, { cargo: redeliverCharge, motivo: redeliverReason });
-    const row = await addDelivery(payload);
+    const chg = redeliverCharge.trim() === "" ? 0 : Number(redeliverCharge);
+    let id: string | null = null;
+    if (teaching) {
+      const row = await addDelivery(borradorDeReentrega(src, { cargo: redeliverCharge, motivo: redeliverReason }));
+      id = row?.id ?? null;
+    } else {
+      id = await reentregaComoCarga(src.id, pallets, redeliverReason.trim(), chg);
+    }
     setBusy(false);
-    if (row) {
-      const chg = Number(redeliverCharge);
-      if (chg > 0) await addNote(row.id, `Re-delivery additional charge: $${chg.toFixed(2)}`);
-      notify(t(`Re-delivery logged as #${orderLabel(row)}`, `Reentrega registrada como #${orderLabel(row)}`));
-      setRedeliverCharge(""); setRedeliverReason("");
+    if (id) {
+      if (chg > 0) await addNote(id, `Re-delivery additional charge: $${chg.toFixed(2)}`);
+      notify(t(`Re-delivery logged as a new load of order #${orderLabel(src)}`, `Reentrega registrada como carga nueva de la orden #${orderLabel(src)}`));
+      setRedeliverCharge(""); setRedeliverReason(""); setRedeliverPallets("");
       onClose();
     }
   };
@@ -2872,12 +2887,15 @@ export function OrderModal({
           <div className="field" style={{ marginTop: 14 }}>
             <label>{t("Why does this order need to be delivered again?", "¿Por qué debe entregarse esta orden de nuevo?")}</label>
             <textarea rows={2} value={redeliverReason} onChange={(e) => setRedeliverReason(e.target.value)} autoFocus placeholder={t("e.g. wrong pallet loaded, damaged in transit…", "ej. pallet equivocada, dañado en tránsito…")} />
+            <label style={{ marginTop: 10 }}>{t("How many pallets are left to deliver?", "¿Cuántos pallets faltan por entregar?")}</label>
+            <input type="number" min={0.1} step="0.1" value={redeliverPallets} onChange={(e) => setRedeliverPallets(e.target.value)} placeholder={t("e.g. 3", "ej. 3")} style={{ maxWidth: 200 }} data-pallets-reentrega />
+            <div className="hint">{t(`They become load “b” of the same order (#${orderLabel(existing)}); what was delivered stays as load “a”.`, `Serán la carga «b» de la misma orden (#${orderLabel(existing)}); lo entregado queda como carga «a».`)}</div>
             <label style={{ marginTop: 10 }}>{t("Was there an additional charge to the customer for this re-delivery? ($)", "¿Hubo un cargo adicional al cliente por esta reentrega? ($)")}</label>
             <input type="number" min={0} step="0.01" value={redeliverCharge} onChange={(e) => setRedeliverCharge(e.target.value)} placeholder={t("0 = no extra charge", "0 = sin cargo adicional")} style={{ maxWidth: 200 }} />
-            <div className="hint">{t("Leave 0 (or blank) if the re-delivery is free. This becomes the delivery fee on the new linked order.", "Deje 0 (o vacío) si la reentrega es gratis. Esto será el costo de entrega en la nueva orden vinculada.")}</div>
+            <div className="hint">{t("Leave 0 (or blank) if the re-delivery is free. This becomes the delivery fee on the new load.", "Deje 0 (o vacío) si la reentrega es gratis. Esto será el costo de entrega de la carga nueva.")}</div>
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <button className="btn btn-ghost btn-sm" onClick={() => { setShowRedeliver(false); setRedeliverReason(""); setRedeliverCharge(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
-              <button className="btn btn-amber btn-sm" disabled={busy || !redeliverReason.trim()} onClick={recordRedelivery}>{t("Create re-delivery", "Crear reentrega")}</button>
+              <button className="btn btn-amber btn-sm" disabled={busy || !redeliverReason.trim() || !(Number(redeliverPallets) > 0)} onClick={recordRedelivery}>{t("Create re-delivery", "Crear reentrega")}</button>
             </div>
           </div>
         )}
