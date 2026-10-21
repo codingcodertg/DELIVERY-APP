@@ -32,10 +32,14 @@ export function tiendaCoincide(storeDelPerfil: string | null | undefined, locati
 
 export type GrupoDelGerente = "hoy" | "proximos" | "pendientes" | "resueltos";
 
-/** Los grupos que se PINTAN (D-606, 2026-10-19). El dueño: «esos pendientes de resolver quítaselos, solo los de hoy y
- *  próximos». Los otros dos se siguen calculando (la cita pasada sin resolver y lo resuelto existen), pero el gerente no
- *  los ve: su pantalla es lo que tiene delante hoy y lo que viene. */
-export const GRUPOS_QUE_SE_PINTAN: readonly GrupoDelGerente[] = ["hoy", "proximos"];
+/** Lo que se PINTA: hoy, próximos y los pasados de este mes. */
+export type GrupoQueSePinta = "hoy" | "proximos" | "pasados_del_mes";
+
+/** Los grupos que se PINTAN. D-606 (2026-10-19), el dueño: «esos pendientes de resolver quítaselos, solo los de hoy y
+ *  próximos». D-627 (2026-10-21), el dueño: «Need managers to see past candidates this month so they can keep
+ *  evaluating their options and attach any docs» → vuelve un tercer grupo, acotado al MES: «Pasados este mes»
+ *  (`esPasadoDelMes`). Los pendientes y resueltos de meses anteriores siguen sin pintarse. */
+export const GRUPOS_QUE_SE_PINTAN: readonly GrupoQueSePinta[] = ["hoy", "proximos", "pasados_del_mes"];
 
 const DIA = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -51,15 +55,45 @@ export function grupoDelCandidato(c: Pick<Candidate, "status" | "inperson_date">
   return dia > hoy ? "proximos" : "pendientes";
 }
 
-/** Los cuatro grupos, cada uno ordenado por la fecha de la cita (los resueltos, del más reciente al más viejo). */
-export function agruparParaElGerente(candidatos: readonly Candidate[], stages: readonly Stage[], ahora: Date = new Date()): Record<GrupoDelGerente, Candidate[]> {
-  const g: Record<GrupoDelGerente, Candidate[]> = { hoy: [], proximos: [], pendientes: [], resueltos: [] };
-  for (const c of candidatos) if (!c.archived) g[grupoDelCandidato(c, stages, ahora)].push(c);
+/**
+ * «Pasado de este mes» (D-627): la cita presencial cae en el MES de `ahora` (fecha local, como «hoy») y el candidato ya
+ * no está en Hoy ni en Próximos — o sea, cita de un día anterior sin resolver, o ya resuelto (contratado / descartado),
+ * aunque se resolviera antes de la cita o el mismo día. Sin cita presencial no cuenta: un descartado por teléfono de la
+ * misma sede (que la 183 deja leer) nunca se mandó a la tienda.
+ */
+export function esPasadoDelMes(c: Pick<Candidate, "status" | "inperson_date">, stages: readonly Stage[], ahora: Date = new Date()): boolean {
+  const g = grupoDelCandidato(c, stages, ahora);
+  if (g === "hoy" || g === "proximos") return false;
+  if (!c.inperson_date) return false;
+  const d = new Date(c.inperson_date);
+  if (Number.isNaN(d.getTime())) return false;
+  return d.getFullYear() === ahora.getFullYear() && d.getMonth() === ahora.getMonth();
+}
+
+/** Qué decisiones se le ofrecen: en curso, las dos; contratado, solo «No contratar»; descartado, solo «Contratar»
+ *  (D-627: el gerente sigue evaluando a los pasados del mes y puede cambiar de opinión). */
+export function decisionesPosibles(c: Pick<Candidate, "status">, stages: readonly Stage[]): Decision[] {
+  const tipo = stages.find((s) => s.key === c.status)?.type;
+  if (tipo === "won") return ["no_hire"];
+  if (tipo === "lost") return ["hire"];
+  return ["hire", "no_hire"];
+}
+
+/** Los cuatro grupos más los pasados del mes, cada uno ordenado por la fecha de la cita (los resueltos, del más
+ *  reciente al más viejo; los pasados del mes, de la cita más reciente a la más vieja). */
+export function agruparParaElGerente(candidatos: readonly Candidate[], stages: readonly Stage[], ahora: Date = new Date()): Record<GrupoDelGerente | GrupoQueSePinta, Candidate[]> {
+  const g: Record<GrupoDelGerente | GrupoQueSePinta, Candidate[]> = { hoy: [], proximos: [], pendientes: [], resueltos: [], pasados_del_mes: [] };
+  for (const c of candidatos) {
+    if (c.archived) continue;
+    g[grupoDelCandidato(c, stages, ahora)].push(c);
+    if (esPasadoDelMes(c, stages, ahora)) g.pasados_del_mes.push(c);
+  }
   const fecha = (c: Candidate) => c.inperson_date ?? "";
   g.hoy.sort((a, b) => fecha(a).localeCompare(fecha(b)));
   g.proximos.sort((a, b) => fecha(a).localeCompare(fecha(b)));
   g.pendientes.sort((a, b) => fecha(b).localeCompare(fecha(a)));
   g.resueltos.sort((a, b) => b.stage_changed_at.localeCompare(a.stage_changed_at));
+  g.pasados_del_mes.sort((a, b) => new Date(fecha(b)).getTime() - new Date(fecha(a)).getTime());
   return g;
 }
 
