@@ -1,4 +1,4 @@
--- 185: La reentrega como una carga mas de la misma orden (D-NEXT, 2026-10-20).
+-- 185: La reentrega como una carga mas de la misma orden (D-618, 2026-10-20).
 --
 -- El dueño: «FV115 le di que tenia que redeliver porque no se entrego completo hoy y no me creo la orden como FV115 A y B».
 -- Hasta aqui «Registrar reentrega» (D-276) creaba una orden NUEVA con codigo nuevo (FV146), enlazada por `redelivery_of`.
@@ -71,7 +71,7 @@ begin
 
   if r = 'admin' then return NEW; end if;
 
-  -- ---- La letra de una carga es un nombre, no historia (185, D-NEXT) ----
+  -- ---- La letra de una carga es un nombre, no historia (185, D-618) ----
   -- Ponerle (o cambiarle) SOLO `order_suffix` a una orden —aunque este entregada— lo puede hacer cualquiera con el
   -- modulo: lo necesita la reentrega como carga (`reentrega_como_carga`): la madre entregada pasa a 'a' y la nueva es 'b'.
   if TG_OP = 'UPDATE' and NEW.order_suffix is distinct from OLD.order_suffix then
@@ -352,4 +352,4 @@ end $$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('185_reentrega_como_carga.sql', '1d6620ff9f7e0a1d3f7a20be338494a89bb2a12f16b490e7f3b51e353c6995a3') on conflict (name) do nothing;
+  values ('185_reentrega_como_carga.sql', '10c4a823080cb8ea9a8000514b7967d78c7bcc4421995ffc9e9b5dded26e38ba') on conflict (name) do nothing;

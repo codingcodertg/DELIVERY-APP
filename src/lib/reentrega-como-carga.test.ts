@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-// D-NEXT (2026-10-20) · El dueño: «FV115 le di que tenía que redeliver porque no se entregó completo hoy y no me creó la orden
+// D-618 (2026-10-20) · El dueño: «FV115 le di que tenía que redeliver porque no se entregó completo hoy y no me creó la orden
 // como FV115 A y B». La reentrega es una carga más de la misma orden (185), no una orden con código nuevo.
 
 const leer = (p: string) => readFileSync(new URL(p, new URL("../../", import.meta.url)), "utf8");
@@ -22,7 +22,7 @@ describe("la reentrega como carga de la misma orden", () => {
   });
   it("la 185 lleva el guard vivo con la exención de la letra (solo `order_suffix` cambia) y el checksum puesto", () => {
     expect(sql).toContain("CREATE OR REPLACE FUNCTION public.guard_delivery_stage()");
-    expect(sql).toContain("La letra de una carga es un nombre, no historia (185, D-NEXT)");
+    expect(sql).toContain("La letra de una carga es un nombre, no historia (185, D-618)");
     expect(sql).toContain("probe.order_suffix := OLD.order_suffix;");
     expect(sql).toContain("if probe is not distinct from OLD then return NEW; end if;");
     expect(sql).not.toContain("'PENDIENTE'");

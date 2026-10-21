@@ -17787,7 +17787,7 @@ Los dos menús, al cerrar:
 
 ## D-276 · Intertienda: el destino no puede ser «Vendido desde» por ningún camino
 
-> **Reemplazada en parte por D-NEXT** (2026-10-20): la reentrega es una carga más de la misma orden (letra «b»), no una orden con código nuevo; la copia de aquí queda para el modo de enseñanza.
+> **Reemplazada en parte por D-618** (2026-10-20): la reentrega es una carga más de la misma orden (letra «b»), no una orden con código nuevo; la copia de aquí queda para el modo de enseñanza.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · Sin migración.
 **Pedido por el dueño:** *«la regla de tienda a tienda (vender a la misma tienda) funcionó en el preview
@@ -46012,9 +46012,9 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en navegador.
 
-## D-NEXT · Órdenes: «Registrar reentrega» crea una CARGA MÁS de la misma orden («FV115 a» entregada, «FV115 b» lo que falta), no una orden con código nuevo — migración 185
+## D-618 · Órdenes: «Registrar reentrega» crea una CARGA MÁS de la misma orden («FV115 a» entregada, «FV115 b» lo que falta), no una orden con código nuevo — migración 185
 
-**Fecha:** 2026-10-20 · **Versión:** la asigna el orquestador al fusionar (deliveries) · **Migración 185** (`185_reentrega_como_carga.sql`; ensayada con ROLLBACK; se aplica con el sí del dueño) · Hecho directo por el orquestador en `feat/reentrega-como-carga`.
+**Fecha:** 2026-10-20 · **Versión:** deliveries 1.346.0 (repo 1.485.0) · **Migración 185** (`185_reentrega_como_carga.sql`; ensayada con ROLLBACK y APLICADA el 2026-10-20 con el «aplica todo lo que falta» del dueño; 184/184) · Hecho directo por el orquestador en `feat/reentrega-como-carga`.
 
 **Pedido del dueño (2026-10-20, literal):** «FV115 LE DI QUE TENIA QUE REDELIVER PORQUE NO SE ENTREGO COMPLETO HOY Y NO ME CREO LA ORDEN COMO FV115 A Y B Y ASI».
 
@@ -46027,7 +46027,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **Lo que no cambia:** el enlace `redelivery_of` y la razón; el cargo como costo de entrega de la carga nueva; `borradorDeReentrega` (se queda para enseñanza y sus pruebas).
 
-**FV146:** queda como está hasta que el dueño diga; convertirla en «FV115 b» (mismo `order_no`, `order_code` FV115, letra «b», y FV115 → «a») es una escritura de producción aparte, con su sí.
+**FV146:** convertida en «FV115 b» (mismo `order_no` 1096, `order_code` FV115, letra «b») y FV115 → «FV115 a», el 2026-10-20 con el «aplica todo lo que falta» del dueño; dos notas en el historial de cada una.
 
 **Pruebas:** `src/lib/reentrega-como-carga.test.ts` (la 185 con sus guardas, la nueva sin sellos ni puesto, la madre a «a», el guard vivo con la exención y el checksum puesto; puerta: la ficha pide los pallets y llama a la base, el proveedor expone la función, el modo local la tiene vacía); `order-sites.test.ts` actualizado. Ensayo de la 185 con ROLLBACK: pasa.
 

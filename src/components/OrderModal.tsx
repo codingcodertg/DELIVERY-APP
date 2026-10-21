@@ -214,7 +214,7 @@ export function OrderModal({
   const [showDeshacer, setShowDeshacer] = useState(false);
   const [motivoDeSalto, setMotivoDeSalto] = useState("");
   const [redeliverCharge, setRedeliverCharge] = useState("");
-  /** Cuántos pallets faltan por entregar (D-NEXT): la carga nueva se crea con ese tamaño. */
+  /** Cuántos pallets faltan por entregar (D-618): la carga nueva se crea con ese tamaño. */
   const [redeliverPallets, setRedeliverPallets] = useState("");
   const [showRedeliver, setShowRedeliver] = useState(false);
   const [routing, setRouting] = useState(false);
@@ -1471,7 +1471,7 @@ export function OrderModal({
   // to this one, re-entering the flow as "approved" for the warehouse to redo.
   // The link + reason make repeats measurable for the end-of-week review.
   /**
-   * «Registrar reentrega» (D-276 → D-NEXT, 2026-10-20): la reentrega es una CARGA MÁS de la misma orden («FV115 a» entregada,
+   * «Registrar reentrega» (D-276 → D-618, 2026-10-20): la reentrega es una CARGA MÁS de la misma orden («FV115 a» entregada,
    * «FV115 b» lo que falta), no una orden con código nuevo. El dueño: «no me creó la orden como FV115 A y B». Lo hace la
    * base (`reentrega_como_carga`, 185): copia la orden sin sellos, letra siguiente, los pallets que faltan, aprobada,
    * enlazada por `redelivery_of` con la razón, y el cargo como costo de entrega. `borradorDeReentrega` queda para el modo

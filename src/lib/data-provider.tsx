@@ -151,7 +151,7 @@ export interface DataState {
    *  `partirCarga` mueve `resto` pallets de la orden `id` a una carga hermana NUEVA y devuelve su id (`null` si no se
    *  pudo: la base lo dice, o no tiene la 157). */
   partirCarga: (id: string, resto: number) => Promise<string | null>;
-  /** La reentrega como carga de la misma orden (D-NEXT, 185): `reentrega_como_carga`. Devuelve el id de la carga nueva. */
+  /** La reentrega como carga de la misma orden (D-618, 185): `reentrega_como_carga`. Devuelve el id de la carga nueva. */
   reentregaComoCarga: (id: string, pallets: number, motivo: string, cargo: number) => Promise<string | null>;
   /** Cambia cuántos pallets lleva cada una de dos cargas hermanas; la suma no cambia. */
   reparteCargas: (a: string, b: string, palletsA: number) => Promise<boolean>;
