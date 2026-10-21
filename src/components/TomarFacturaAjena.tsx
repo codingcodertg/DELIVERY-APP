@@ -9,7 +9,7 @@ import {
 } from "@/lib/tomar-orden";
 
 /**
- * Debajo del buscador de facturas del chofer (D-NEXT, 2026-10-21; migración 188): las órdenes con ESA factura que no son
+ * Debajo del buscador de facturas del chofer (D-625, 2026-10-21; migración 188): las órdenes con ESA factura que no son
  * suyas, y «🚚 Recoger (excepción)» con un motivo. Tomada, es suya (para hoy y fuera de la ruta de otro) y se recoge por
  * el camino de siempre: la pantalla abre la orden (`alTomar`).
  *

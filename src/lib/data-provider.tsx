@@ -134,11 +134,11 @@ export interface DataState {
    */
   reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es") => Promise<boolean>;
   /**
-   * El chofer busca una factura en TODAS las órdenes por recoger (D-NEXT, 188: `buscar_factura_para_recoger`), también en
+   * El chofer busca una factura en TODAS las órdenes por recoger (D-625, 188: `buscar_factura_para_recoger`), también en
    * las que no son suyas y que la RLS no le deja leer. `null` si falló (y lo avisa).
    */
   buscarFacturaParaRecoger: (texto: string) => Promise<import("@/lib/tomar-orden").OrdenParaTomar[] | null>;
-  /** El chofer toma una orden ajena para recogerla, con motivo (D-NEXT, 188: `tomar_orden_para_recoger`). `true` si quedó suya. */
+  /** El chofer toma una orden ajena para recogerla, con motivo (D-625, 188: `tomar_orden_para_recoger`). `true` si quedó suya. */
   tomarOrdenParaRecoger: (id: string, motivo: string, lang: "en" | "es") => Promise<boolean>;
   /** Renumber a route's stops: `orderedIds` in their new visiting order gets
    * route_seq 0..n-1. Applied to local state FIRST and held there until every

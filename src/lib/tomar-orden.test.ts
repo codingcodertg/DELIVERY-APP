@@ -5,7 +5,7 @@ import {
   falloAlTomar, mensajeDelFallo, motivoLimpio, motivoValido, notaDeExcepcion, numerosDeFactura, sePuedeBuscar, type OrdenParaTomar,
 } from "./tomar-orden";
 
-// D-NEXT (2026-10-21) · el dueño: «Drivers will need to be able to search for invoice numbers that aren't assigned to them
+// D-625 (2026-10-21) · el dueño: «Drivers will need to be able to search for invoice numbers that aren't assigned to them
 // and pick them up even if they're not assigned to them. That will be only exceptions». Lo que DECIDE vive en la base
 // (migración 188, ensayada con ROLLBACK contra producción); aquí, la forma del texto, los errores y las puertas.
 

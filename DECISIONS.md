@@ -46146,7 +46146,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el navegador con las solicitudes reales (el demo no tiene la bandeja con datos).
 
-## D-NEXT · El chofer busca una factura que no es suya y la toma para recogerla, como excepción (con motivo, para hoy, y aviso a la oficina) — migración 188
+## D-625 · El chofer busca una factura que no es suya y la toma para recogerla, como excepción (con motivo, para hoy, y aviso a la oficina) — migración 188
 
 **Fecha:** 2026-10-21 · **Versión:** deliveries 1.350.0 · **Migración 188** (`188_chofer_toma_orden.sql`, ensayada con ROLLBACK contra producción el 2026-10-21; se aplica con el sí del dueño) · Hecho directo por el orquestador en `feat/chofer-toma-orden`.
 

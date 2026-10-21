@@ -2,7 +2,7 @@
 -- 188 · El chofer busca una factura que NO es suya y la toma para recogerla (excepcion)
 -- ===========================================================================
 -- PEDIDO. El duenio, 2026-10-21: «Drivers will need to be able to search for invoice numbers that aren't assigned to them
--- and pick them up even if they're not assigned to them. That will be only exceptions». Decision D-NEXT.
+-- and pick them up even if they're not assigned to them. That will be only exceptions». Decision D-625.
 --
 -- EL HUECO (medido en produccion el 2026-10-21): la politica de lectura de `deliveries` le deja al chofer SOLO lo que creo
 -- o lo que lleva su nombre en `assigned_driver`; su buscador de facturas filtra eso. Y el guard (tramo «misma etapa») no
@@ -92,7 +92,7 @@ begin
 
   if r = 'admin' then return NEW; end if;
 
-  -- ---- El puesto de una entrega ya recogida se mueve (187, D-NEXT) ----
+  -- ---- El puesto de una entrega ya recogida se mueve (187, D-625) ----
   -- La orden va en el camion y su ENTREGA sigue pendiente: logistica (y oficina) la bajan o suben en la ruta como a
   -- cualquier pendiente. Solo cambian el puesto (`route_seq`, `pickup_seq`, `load_no`); nada mas de la orden.
   if TG_OP = 'UPDATE' and old_stage = 'picked_up' and new_stage = 'picked_up'
@@ -105,7 +105,7 @@ begin
     if probe is not distinct from OLD then return NEW; end if;
   end if;
 
-  -- ---- La letra de una carga es un nombre, no historia (185, D-NEXT) ----
+  -- ---- La letra de una carga es un nombre, no historia (185, D-625) ----
   -- Ponerle (o cambiarle) SOLO `order_suffix` a una orden —aunque este entregada— lo puede hacer cualquiera con el
   -- modulo: lo necesita la reentrega como carga (`reentrega_como_carga`): la madre entregada pasa a 'a' y la nueva es 'b'.
   if TG_OP = 'UPDATE' and NEW.order_suffix is distinct from OLD.order_suffix then
@@ -522,4 +522,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('188_chofer_toma_orden.sql', 'PENDIENTE') on conflict (name) do nothing;
+  values ('188_chofer_toma_orden.sql', '48fed9285ffc5c2f934df7fa245841f7752c3d9cdcbdfff7c189c0174d8d0348') on conflict (name) do nothing;

@@ -1,5 +1,5 @@
 /**
- * El chofer toma una orden que NO es suya para recogerla (D-NEXT, 2026-10-21; migración 188).
+ * El chofer toma una orden que NO es suya para recogerla (D-625, 2026-10-21; migración 188).
  *
  * El dueño: «Drivers will need to be able to search for invoice numbers that aren't assigned to them and pick them up
  * even if they're not assigned to them. That will be only exceptions».

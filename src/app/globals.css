@@ -1836,6 +1836,6 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 }
 .asomo-solicitud:hover { color: var(--text); }
 
-/* Las órdenes con la factura buscada que no son del chofer (D-NEXT, migración 188): una debajo de otra, separadas. */
+/* Las órdenes con la factura buscada que no son del chofer (D-625, migración 188): una debajo de otra, separadas. */
 .fila-ajena { padding: 8px 0; border-top: 1px solid var(--row-line); }
 .fila-ajena:first-of-type { border-top: none; }
