@@ -10,6 +10,7 @@ import { almacenDemo, PERSONAS_DEMO } from "@/lib/leads/demo";
 import {
   abiertosDe, bloqueado, colaDeRevision, consecuencia, cuentaPorSituacion, delExcel, dinero, enlaceSeguro, estadoLabel, eventoLabel, fecha, filtrar,
   mapsUrl, negativaTexto, notaLimpia, numero, ordenar, poolInicial, poolLabel, poolsDe, puedeTomar, puestosLibres, RESULTADOS,
+  POOL_TODAS, filtroDePool, resumenDeTodas,
   resultadoLabel, sinTocar, SITUACIONES, situacionLabel, tableroPorVendedor, telUrl, valoresDe, veContacto, ventasDe, NOTA_MAX,
   ORDEN_INICIAL, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
 } from "@/lib/leads/reglas";
@@ -56,6 +57,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [estado, setEstado] = useState<Estado>({ tipo: "cargando" });
   const [pestana, setPestana] = useState<Pestana>("banco");
   const [pool, setPool] = useState<string | null>(null);
+  // Mientras nadie elige a mano, la entrada se recalcula: el alcance y los leads llegan después del primer pintado (D-631).
+  const [poolAMano, setPoolAMano] = useState(false);
   const [vista, setVista] = useState<Vista>("libres");
   const [categoria, setCategoria] = useState<FiltroCategoria>("utiles");
   const [situacion, setSituacion] = useState<Situacion | "">("");
@@ -99,12 +102,17 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const elige = eligeTienda(alcance);
   // Se entra en el pool de SU tienda; cambiar de persona en el demo vuelve a elegirlo.
   const tienda = yo?.store ?? null;
-  useEffect(() => { setPool((p) => (p && pools.some((x) => x.pool === p) ? p : poolInicial(pools, tienda))); }, [pools, tienda]);
+  // El admin entra en «Todas las tiendas» (D-631); quien solo tiene una, en la suya.
+  const todasPorDefecto = !!yo?.admin && elige;
+  useEffect(() => {
+    setPool((p) => (poolAMano && p && ((p === POOL_TODAS && elige && pools.length > 1) || pools.some((x) => x.pool === p))
+      ? p : poolInicial(pools, tienda, todasPorDefecto)));
+  }, [pools, tienda, todasPorDefecto, elige, poolAMano]);
 
-  const delPool = useMemo(() => delBanco.filter((l) => l.pool === pool), [delBanco, pool]);
+  const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);
   const porSituacion = useMemo(() => cuentaPorSituacion(delPool), [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool, vista, categoria, tipo, ciudad, busca, situacion }), orden),
+    () => ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion }), orden),
     [delBanco, pool, vista, categoria, tipo, ciudad, busca, situacion, orden],
   );
   useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, orden]);
@@ -172,7 +180,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             <select data-persona-demo value={idDemo} onChange={(e) => {
               const p = PERSONAS_DEMO.find((x) => x.id === e.target.value) ?? PERSONAS_DEMO[0];
               quien.current = p;
-              setIdDemo(p.id); setPool(null); setPestana("banco"); setAviso(null);
+              setIdDemo(p.id); setPool(null); setPoolAMano(false); setPestana("banco"); setAviso(null);
             }}>
               {PERSONAS_DEMO.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.role}{p.store ? ` · ${p.store}` : ""})</option>)}
             </select>
@@ -229,7 +237,15 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   {elige ? (
                     <label className="ld-ancho">
                       {t("General Pool (nearest store)", "Pool General (tienda más cercana)")}
-                      <select data-pool value={pool ?? ""} onChange={(e) => setPool(e.target.value)}>
+                      <select data-pool value={pool ?? ""} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
+                        {pools.length > 1 && (() => {
+                          const todas = resumenDeTodas(pools);
+                          return (
+                            <option value={POOL_TODAS}>
+                              {t("All stores", "Todas las tiendas")} — {todas.libres} {t("free", "libres")} / {todas.total}
+                            </option>
+                          );
+                        })()}
                         {pools.map((p) => (
                           <option key={p.pool} value={p.pool}>
                             {poolLabel(p.pool, lang)} — {p.libres} {t("free", "libres")} / {p.total}
