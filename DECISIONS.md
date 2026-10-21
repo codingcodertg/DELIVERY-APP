@@ -46322,7 +46322,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - La carpeta `src/lib/recruiting` (242) y tsc.
 - Mutantes: caen 12 de 12. Uno sobrevivió (una cita con entrevista seguía pendiente) hasta reforzar la prueba.
 
-## D-NEXT · Teléfonos estándar: en la orden de Entregas el campo solo acepta números y se pone solo «(956) 340-5910»; y el barrido de los candidatos ya guardados de RR. HH.
+## D-630 · Teléfonos estándar: en la orden de Entregas el campo solo acepta números y se pone solo «(956) 340-5910»; y el barrido de los candidatos ya guardados de RR. HH.
 
 **Fecha:** 2026-10-21 · **Versión:** deliveries 1.353.0 · Hecho directo por el orquestador en `feat/telefonos-estandar`. Sin migración.
 
