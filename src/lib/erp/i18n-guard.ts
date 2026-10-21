@@ -88,7 +88,7 @@ export function textoAPelo(src: string): Hallazgo[] {
   const lineas = limpio.split("\n");
   const frase = /"([A-Z][a-z]+(?: [^"]+|…|\.))"/g;
   lineas.forEach((l, i) => {
-    // `export const metadata = { title: "… — RTG ERP" }` es el título de la pestaña del navegador,
+    // `export const metadata = { title: "… — RTG Inventory" }` es el título de la pestaña del navegador,
     // que Next lee en el servidor: sin idioma en el servidor se queda en inglés (excepción dicha
     // en la decisión de 5b), y no es texto de la pantalla.
     if (/exportCsv|exportXlsx|const headers|^\s*import |\bfrom "|export const metadata/.test(l)) return;

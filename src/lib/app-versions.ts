@@ -23,13 +23,13 @@
 export const APP_VERSIONS = {
   deliveries: "1.347.0",
   recruiting: "0.59.3",
-  timetracker: "1.8.0",
+  timetracker: "1.9.0",
   clockin: "0.45.0",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
   // misma razón que recruiting y timetracker — no hay historial independiente que
   // continuar, y un 1.0.0 sería continuidad inventada.
-  erp: "0.20.0",
+  erp: "0.21.0",
   // RTG PROMOS (D-366): modulo nuevo, sin historial que continuar; 0.1.0 como recruiting y el ERP.
   promos: "0.13.0",
   // El Estimador (T-0408): modulo nuevo, sin historial que continuar; 0.1.0 como promos. Lo sube el orquestador.
@@ -41,7 +41,7 @@ export const APP_VERSIONS = {
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
   leads: "0.6.0",
   // Clientes (D-569): la primera, como leads.
-  customers: "0.4.0",
+  customers: "0.5.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

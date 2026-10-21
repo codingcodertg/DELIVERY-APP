@@ -2703,6 +2703,9 @@ a timetracker en producción. `landing-route.test.ts` y
 ---
 
 ## D-066 · Etapa 2, tramo 1 — Track Time ya funciona en /timetracker
+
+> **Reemplazada en parte por D-622** (2026-10-21): la paleta propia de Time Tracker (`--tt-*` con hex y bloque claro aparte) pasa a apuntar a las variables del hub.
+
 **Fecha:** 2026-08-20 · **Versión:** v1.16.0 · **Pedido por:** Andrés
 
 **Cambio:** `/timetracker` deja de ser un 404 — es una pantalla real,
@@ -3974,6 +3977,9 @@ volteo cuando no cabe a la derecha) para no introducir un componente
 nuevo. `tsc`/`vitest` (487)/`next build` limpios.
 
 ## D-090 · Se invierte la fusión: deliveries-app es el anfitrión, el ERP se muda aquí
+
+> **Reemplazada en parte por D-622** (2026-10-21): la barra lateral, la paleta arcilla y la rampa oscura invertida se van; el ERP se llama Inventario y se pinta con la barra y las variables del hub.
+
 **Fecha:** 2026-08-25 · **Versión:** v1.22.0 (deliveries) · v0.2.0 (recruiting, timetracker) · **Pedido por:** Andrés
 (*"WE WILL CHANGE THE APPROACH THIS IS NOT WORKING WE WILL MERGE THE
 ORIGINAL FILES OF THE ERP INTO THE DELIVERIES"* · *"THE VIEWS ARE
@@ -46075,3 +46081,23 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/entrega-en-camion.test.ts` (fijo = entregado; pendientes del día con lo recogido; la lista sin la P de lo a bordo y la cuenta con carga inicial; el Gestor pinta la P hecha y la D pendiente con índice; el caso «solo con hechas» se pinta como antes; la llegada con medida; puerta: carriles, cuenta, «Pasar a…» y la 187). Pruebas actualizadas al modelo: `mover-parada`, `recogida-y-ruta-del-dia`, `columnas-como-programadas`, `gestor/numeros-del-dia` (las pantallas: «7 D3» con flechas, 5 paradas pendientes), más las puertas de la pantalla. Suite entera: 8.482 en verde.
 
 **No medido:** en navegador. La medida real es la tabla de Roberto con una recogida en camino: la fila D con flechas, bajando entre las pendientes, y la cuenta de pallets sin negativos.
+
+## D-622 · Un solo tema: el ERP pasa a llamarse Inventario, e Inventario, Clientes y Time Tracker se visten como Entregas (barra superior, paleta, tipografía y esquinas del hub)
+
+**Fecha:** 2026-10-21 · **Versión:** erp (Inventario) 0.21.0 · customers 0.5.0 · timetracker 1.9.0 · Sin migración · Hecho directo por el orquestador en `feat/un-solo-tema-inventory`.
+
+**Pedido (el dueño, 2026-10-21, literal):** «el ERP quiero que se cambie de ERP a inventory, el name, y quiero que lo que es y el nuevo inventory y el customer se cambien al team de que ya tenemos en deliveries app. Entonces quiero que cambiemos todo, o sea, quiero que toda la app se mire igual como deliveries app, al igual que el time tracker. Todo eso quiero que hagamos una transformación de todo eso para que todo sea estandarizado e igual.»
+
+**Medido antes.** Entregas: barra oscura arriba (`.topbar`, `--ink`) con pestañas, acento azul `--accent`, Inter 14 px, Archivo en títulos, tarjetas de 12 px y campos de 8 px, todo con variables de globals.css que cambian con `data-theme`. El ERP (D-090): barra LATERAL blanca fija a la izquierda con acento arcilla («clay»), unas mil utilidades Tailwind `slate`/`white`/`clay` a pelo en 61 ficheros, fuente del sistema a 16 px, y un modo oscuro hecho con una rampa de grises invertida a mano en erp.css. Clientes (migración 180) usaba ese mismo cascarón. Time Tracker (D-066): la barra de arriba ya era la de Entregas, pero con paleta propia (azul marino, acento #4f7cff, y otra distinta para el tema claro), fuente del sistema a 15 px y esquinas de 14/10 px.
+
+**Qué cambia.**
+- **El nombre:** la tarjeta del hub, el módulo en Usuarios, las pestañas del navegador, los tutoriales, Personalizar, el aviso del hub, el Estimador y el creador del Excel dicen **Inventory / Inventario**. La clave `erp`, la columna `erp_role`, `has_erp_access()` y la ruta `/erp` **no cambian**: son el módulo en la base y en cien enlaces, y renombrarlos no es lo que se pidió («el name»). La pestaña «Inventario» dentro de Catálogo sigue.
+- **La barra (Inventario y Clientes):** `side-nav.tsx` conserva nombre y firma (`SideNav`, con `otra` para Clientes) pero pinta la barra superior de Entregas: `.topbar` con el nombre de la app, la casa del hub, las pestañas (`.tab`/`.tab.active`), el botón de recargar del escritorio y el menú del nombre (`MenuDeCuenta`) con la pastilla del nivel, la nota de costo, el correo, Personalizar y Salir. En el teléfono se parte en dos filas con las mismas clases que Entregas (D-545). Sin barra lateral, se van `nav-state.tsx` (`ErpNavProvider`, el hueco `lg:pl-56`) y la cabecera de móvil aparte; el banner de «entrar como» la empuja como a las demás, así que ya no usa `--banner-impersonacion`.
+- **La paleta (Inventario y Clientes):** Tailwind 4 compila cada color como variable, así que erp.css apunta la rampa a las del hub una vez —`slate-200/300` → `--line`, `slate-400/500` → `--gray`, `slate-600` → `--ink-soft`, `slate-700…900` → `--text`, `slate-50` → `--paper`, `clay-500` → `--accent`, `clay-50/100` → `--accent-soft`, y los estados `red/amber/emerald` a los tintes de D-226— y las mil utilidades se visten de Entregas en claro y en oscuro sin tocar un fichero. La rampa invertida a mano se va; `bg-white` sigue siendo la excepción por utilidad (`--card`), porque `text-white` va sobre botones de acento y tiene que seguir blanco. Tipografía Inter 14 px y Archivo en títulos; `--radius-md` 8 px y `--radius-lg` 12 px.
+- **Time Tracker:** cada `--tt-*` apunta a la variable de Entregas (`--tt-bg`→`--paper`, `--tt-panel`→`--card`, `--tt-line`→`--line`, `--tt-accent`→`--accent`, `--tt-muted`→`--gray`, `--tt-danger/--tt-warn/--tt-ok`→`--red/--amber/--green`, `--tt-chip`→`--accent-soft`); el bloque claro propio desaparece porque globals.css ya cambia esas variables con `data-theme`. Inter 14 px; tarjetas 12 px, campos y botones 8 px. Los nombres `--tt-*` se quedan: 370 líneas los usan y lo que cambia es el valor.
+
+**Qué no cambia.** Entregas y globals.css no se tocan. RR. HH., Quote Builder, Promos, Leads y Encuestas quedan como estaban (no se pidieron). Las pantallas de Inventario conservan su maquetación interna (tablas, cajones, tarjetas): cambia con qué colores, fuente y esquinas se pintan, y en qué barra viven. Los accesos y las rutas siguen iguales.
+
+**Pruebas:** `src/lib/un-solo-tema.test.ts` (el nombre en MODULES y en las pestañas; la barra es `.topbar` con `.tabs` y `MenuDeCuenta`, sin `aside` ni `lg:`; las dos clases de dos filas; sin `ErpNavProvider`; la rampa de erp.css apunta al hub y la invertida no está; Inter/Archivo/radios; `bg-white`→`--card`; las variables de Time Tracker y sus esquinas). Actualizadas al modelo: `personalizar` (Personalizar y Salir en el menú del nombre; Time Tracker sin bloque claro propio), `customers/modulo` (sin `ErpNavProvider`), `impersonation-banner` (la barra en el flujo no usa la medida). Suite entera en verde; tsc.
+
+**Medido en el navegador (demo, Chrome headless):** Entregas y Clientes a 1440 px: la misma barra (`rgb(21,34,56)`), Inter 14 px, Archivo en el nombre, fondo `--paper`, sin `aside`, sin scroll horizontal. Inventario y Time Tracker **no se pueden abrir en el demo** (piden sesión): su medida real es producción tras publicar.

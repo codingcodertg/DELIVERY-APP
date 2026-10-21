@@ -25,8 +25,8 @@ export function Personalizador() {
       </div>
       <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
         {t(
-          "How every app in the hub looks for you: Deliveries, Time Tracker, HR, ERP, Quote Builder, Leads and Surveys.",
-          "Cómo se ven para ti todas las apps del hub: Entregas, Time Tracker, RR. HH., ERP, Quote Builder, Leads y Encuestas.",
+          "How every app in the hub looks for you: Deliveries, Time Tracker, HR, Inventory, Quote Builder, Leads and Surveys.",
+          "Cómo se ven para ti todas las apps del hub: Entregas, Time Tracker, RR. HH., Inventario, Quote Builder, Leads y Encuestas.",
         )}
       </p>
 

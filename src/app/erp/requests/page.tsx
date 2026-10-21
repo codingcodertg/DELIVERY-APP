@@ -11,7 +11,7 @@ import { CAMPOS_DE_EDICION, TIPOS_DEL_EJECUTOR, TIPOS_QUE_CREAN_BORRADOR } from 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Request approvals — RTG ERP" };
+export const metadata = { title: "Request approvals — RTG Inventory" };
 
 /** Los campos que una solicitud de cambio puede proponer (la hoja del dueño, solicitud-campos.ts). */
 const EDITABLE = CAMPOS_DE_EDICION.map((c) => c.key);

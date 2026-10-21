@@ -14,7 +14,7 @@ import { Tx } from "@/components/erp/tx";
 // Las categorías son dato; `period` es el valor del selector y sale tal cual.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Category analytics — RTG ERP" };
+export const metadata = { title: "Category analytics — RTG Inventory" };
 
 const pct = (v: number | null) => (v == null ? "—" : `${v}%`);
 

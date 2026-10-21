@@ -13,7 +13,7 @@ import { Tx } from "@/components/erp/tx";
 // Los proveedores son dato; `period` es el valor del selector y sale tal cual.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Vendor analytics — RTG ERP" };
+export const metadata = { title: "Vendor analytics — RTG Inventory" };
 
 const pct = (v: number | null) => (v == null ? "—" : `${v}%`);
 

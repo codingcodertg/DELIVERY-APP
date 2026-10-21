@@ -9,7 +9,7 @@ import { Tx } from "@/components/erp/tx";
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "PO upload — RTG ERP" };
+export const metadata = { title: "PO upload — RTG Inventory" };
 
 export default async function PoUploadPage() {
   const session = await getSessionInfo();

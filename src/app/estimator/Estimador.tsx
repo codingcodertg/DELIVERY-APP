@@ -672,7 +672,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
               </div>
               {res === "nada" && (
                 <p className="hint" style={{ margin: "0 0 8px" }}>
-                  {t("Not found in the catalog (or you have no ERP access): type it in.", "No está en el catálogo (o no tienes el ERP): escríbelo a mano.")}
+                  {t("Not found in the catalog (or you have no Inventory access): type it in.", "No está en el catálogo (o no tienes Inventario): escríbelo a mano.")}
                 </p>
               )}
               {Array.isArray(res) && (

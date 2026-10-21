@@ -423,8 +423,10 @@ export const MODULES: ModuleInfo[] = [
     key: "erp",
     href: "/erp/catalog",
     emoji: "🧱",
-    label_en: "ERP",
-    label_es: "ERP",
+    // «Inventory» desde D-622 (2026-10-21; el dueño: «quiero que se cambie de ERP a inventory, el name»). La clave
+    // `erp` y la ruta /erp se quedan: son el módulo en `module_access`, `has_erp_access()` y cien enlaces.
+    label_en: "Inventory",
+    label_es: "Inventario",
     desc_en: "Catalog, purchasing and inventory",
     desc_es: "Catálogo, compras e inventario",
   },
@@ -1099,7 +1101,7 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     // No capabilities yet — same as recruiting, only dial is the role tier.
   },
   {
-    key: "erp", label_en: "ERP", label_es: "ERP",
+    key: "erp", label_en: "Inventory", label_es: "Inventario",
     alwaysOn: false,
     // Su propio escalafón desde D-181. Antes NO tenía roleColumn: la visibilidad de costo se
     // decidía por `role` de Deliveries siendo admin/manager, así que un Gerente de Oficina de

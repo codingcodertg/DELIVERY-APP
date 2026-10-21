@@ -54,7 +54,7 @@ export function MapaDeApps({ alcance, lang, t, sinLeerDe }: {
         aria-disabled="true"
         title={bloqueada
           ? e.estado === "sin-acceso" && e.motivo === "nivel-erp"
-            ? t("This ERP screen needs the ERP manager or admin level. Ask an admin.", "Esta pantalla del ERP pide el nivel manager o admin del ERP. Pídeselo a un administrador.")
+            ? t("This Inventory screen needs the Inventory manager or admin level. Ask an admin.", "Esta pantalla de Inventario pide el nivel manager o admin de Inventario. Pídeselo a un administrador.")
             : t("You don't have access to this app. Ask an admin.", "No tienes acceso a esta app. Pídeselo a un administrador.")
           : t("Coming soon — this app isn't built yet.", "Próximamente — esta app aún no se ha creado.")}
       >

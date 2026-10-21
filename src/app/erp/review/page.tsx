@@ -11,7 +11,7 @@ import { GroupTabs } from "@/components/erp/group-tabs";
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Review queue — RTG ERP" };
+export const metadata = { title: "Review queue — RTG Inventory" };
 
 // PRF-01: this page used one `.limit(10000)` request. The PostgREST cap is 1,000, so 1,350 of the
 // 2,350 flagged products were invisible — deterministically the same tail, ordered by name, with no
