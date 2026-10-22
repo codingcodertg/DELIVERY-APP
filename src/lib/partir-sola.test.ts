@@ -8,7 +8,7 @@ import { capacidadDelChofer } from "./agregar-material-avisos";
 import type { Stage } from "./types";
 
 /**
- * Una orden que no cabe en el camión se parte SOLA al guardarla (D-NEXT). Roberto Rodriguez Jr, 2026-10-22, desde el
+ * Una orden que no cabe en el camión se parte SOLA al guardarla (D-640). Roberto Rodriguez Jr, 2026-10-22, desde el
  * Gestor: «When its over 10 pallets system needs to automatically split it into 2 trips».
  *
  * Primero la causa, medida: FV168 (18 pallets, «Truck capacity» 10) se asignó con «Asignar a…» (D-474; su historial en

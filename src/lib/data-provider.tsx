@@ -1146,7 +1146,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   );
 
   /**
-   * D-NEXT: si el guardado que acaba de pasar deja la orden más grande que el camión de su chofer —le dio chofer, o le
+   * D-640: si el guardado que acaba de pasar deja la orden más grande que el camión de su chofer —le dio chofer, o le
    * cambió los pallets ya asignada—, se parte SOLA en cargas hermanas (`partir_carga`, 157, en cadena como «Armar
    * rutas»), sin que nadie pulse ✂. La regla vive en `cargasAlGuardar`; la capacidad es la del Gestor
    * (`capacidadDelChofer`: la del chofer en Ajustes → la de flota → 12). La carga nueva copia el chofer de la madre y nace
@@ -1271,7 +1271,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       void ubicarSiHaceFalta(id, { ...(before ?? {}), ...patch });
       // Record WHICH fields changed, so the activity log / audit is field-level.
       await logEvent(id, "edited", before ? (changedFieldsNote(before as unknown as Record<string, unknown>, patch as Record<string, unknown>) || undefined) : undefined);
-      // Una orden que ya no cabe en el camión de su chofer se parte sola (D-NEXT). Después del registro: el historial
+      // Una orden que ya no cabe en el camión de su chofer se parte sola (D-640). Después del registro: el historial
       // cuenta primero la asignación y después la partición.
       await parteSiNoCabe(id, before, patch);
       return true;

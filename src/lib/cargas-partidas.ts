@@ -100,7 +100,7 @@ export function particionesDelDia(ordenes: readonly OrdenEntrada[], choferes: re
   return Object.entries(partes).map(([id, ids]) => ({ id, restos: restosParaPartir(ids.map((x) => porId.get(x)!)) })).filter((p) => p.restos.length);
 }
 
-// ---- Partir SOLA al guardar (D-NEXT) -----------------------------------------------------------------------------
+// ---- Partir SOLA al guardar (D-640) -----------------------------------------------------------------------------
 // Roberto Rodriguez Jr, 2026-10-22, desde el Gestor: «When its over 10 pallets system needs to automatically split it into
 // 2 trips». FV168 (18 pallets, camión de 10) salió en UN viaje: se asignó con «Asignar a…» (D-474), cuyo motor parte en
 // cargas VIRTUALES (`id#a`, `id#b`) y las vuelve a juntar en una fila al escribir (`paradasSinPartes`); `partir_carga`
