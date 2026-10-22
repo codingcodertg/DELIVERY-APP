@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NextResponse } from "next/server";
 import { DEFAULT_HELP_EMAIL } from "./constants";
-import { RUTAS_SIN_AYUDA, ayudaEnLaRuta, destinoDeAyuda } from "./ayuda-flotante";
+import { RUTAS_SIN_AYUDA, Z_PANEL_DE_AYUDA, ayudaEnLaRuta, destinoDeAyuda } from "./ayuda-flotante";
 import { pideContactoDeAyuda, rolDeQuienEscribe } from "./help-send";
 import { PrefsConIdioma } from "./prefs";
 
@@ -226,6 +226,27 @@ describe("el sitio de la burbuja", () => {
     expect(css).toMatch(/\.overlay \{[^}]*z-index: 50;/);
     expect(zDeLaBurbuja).toBeGreaterThan(99);
     expect(css).toMatch(/\.chat-panel \{[^}]*z-index: 1001;/);
+  });
+
+  it("el PANEL abierto también va encima de cualquier ventana (D-NEXT): Melecio lo abrió con «Agregar material» y salió debajo", () => {
+    const ayuda = sinComentarios(leer("src/components/HelpButton.tsx"));
+    expect(ayuda).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA }}');
+    expect(ayuda).toContain('className="toast no-print" role="status" style={{ zIndex: Z_PANEL_DE_AYUDA + 20 }}');
+    expect(sinComentarios(leer("src/components/CapturaDeAyuda.tsx"))).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10 }}');
+    // Todos los z-index del código, de cualquier forma escritos, por debajo del panel. La única excepción es la ráfaga
+    // de la cámara, que ocupa la pantalla entera y tapa la burbuja: con ella abierta no se puede abrir Ayuda.
+    const vistos: string[] = [];
+    for (const f of ficheros("src", /\.(tsx?|css)$/).filter((f) => !f.endsWith(".test.ts"))) {
+      for (const m of readFileSync(f, "utf8").matchAll(/z-index:\s*(\d+)|zIndex:\s*(\d+)|\bz-\[?(\d+)\]?/g)) {
+        const z = Number(m[1] ?? m[2] ?? m[3]);
+        vistos.push(f);
+        if (f === "src/app/globals.css" && z === 10050) continue;
+        expect(z, `${f}: ${m[0]}`).toBeLessThan(Z_PANEL_DE_AYUDA);
+      }
+    }
+    expect(vistos).toContain("src/components/OrderModal.tsx");
+    expect(vistos).toContain("src/lib/confirm.tsx");
+    expect(leer("src/app/globals.css")).toMatch(/\.rafaga \{[^}]*z-index: 10050;/);
   });
 
   it("deja un hueco al final de cada app para que lo último suba por encima de ella", () => {

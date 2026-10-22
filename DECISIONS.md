@@ -46803,3 +46803,21 @@ eso el aviso no dice dónde queda.
 
 **No medido:** contra la base de verdad (`partir_carga` con la sesión de un admin desde el guardado), el silencio con un rol
 que no puede, y «Asignar a…» de varios choferes con una orden grande en el demo.
+
+## D-NEXT · El panel de Ayuda se abre por ENCIMA de cualquier ventana (con «Agregar material» abierto salía debajo)
+
+**Fecha:** 2026-10-22. **Pedido:** Melecio, por foto del dueño: abrió Ayuda con «Agregar material» abierto (orden FV196)
+para mandar la captura, y el panel «¿Necesita ayuda?» salió DEBAJO de la ventana: no podía escribir.
+
+**Causa:** D-616 subió la burbuja a `z-index` 1000, pero el panel seguía con el `.overlay` de siempre (50). Las ventanas
+que se abren sobre una orden van a 60 («Agregar material», el recuadro de la foto) y las preguntas a 10000 (`confirm`,
+«¿Juntar?»).
+
+**Qué cambia:** `Z_PANEL_DE_AYUDA = 10010` en `lib/ayuda-flotante.ts`. El panel va ahí; el recuadro para señalar el
+problema (`CapturaDeAyuda`), a +10; los avisos de Ayuda, a +20 (antes iban a 99, por encima del panel, y así siguen).
+La única cosa más alta es la ráfaga de la cámara (10050), que ocupa la pantalla y tapa la burbuja.
+
+**Prueba:** `ayuda-flotante.test.ts` recorre todos los `z-index`/`zIndex`/`z-N` de `src` y exige que queden por debajo del
+panel (salvo la ráfaga). 5/5 mutantes caen (constante a 61, panel sin z, recuadro a 60, aviso sin z, otra ventana a 20000).
+
+**No medido:** en un navegador con «Agregar material» de verdad; el arreglo es de capas y la prueba fija los números.

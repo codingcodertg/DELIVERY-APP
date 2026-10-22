@@ -18,6 +18,14 @@ import { DEFAULT_HELP_EMAIL } from "@/lib/constants";
  */
 
 /**
+ * El panel de Ayuda se abre por encima de CUALQUIER ventana (D-NEXT). Con el `.overlay` de siempre (50) salía debajo
+ * de las ventanas que se abren sobre una orden («Agregar material», 60) y de las preguntas (10000), y quien pedía
+ * ayuda justo por lo que tenía abierto no podía escribir. Encima del panel, a +10 el recuadro para señalar el
+ * problema y a +20 los avisos de Ayuda (que antes, a 99, ya iban por encima del panel).
+ */
+export const Z_PANEL_DE_AYUDA = 10010;
+
+/**
  * Donde NO sale la burbuja, y por qué. Todas son pantallas de antes (o de fuera) de las apps: pedir ayuda exige
  * sesión (`/api/help` contesta 401 sin ella) y la solicitud se guarda a nombre de quien la escribe.
  *

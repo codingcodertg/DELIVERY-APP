@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { appForPath } from "@/lib/app-for-path";
-import { ayudaEnLaRuta, type ContactoDeAyuda } from "@/lib/ayuda-flotante";
+import { Z_PANEL_DE_AYUDA, ayudaEnLaRuta, type ContactoDeAyuda } from "@/lib/ayuda-flotante";
 import { telClean } from "@/lib/utils";
 import Link from "next/link";
 import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
@@ -244,7 +244,9 @@ export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}
       </button>}
 
       {open && (
-        <div className="overlay" {...marcaFueraDeLaCaptura} onClick={(e) => e.target === e.currentTarget && close()}>
+        // Por encima de cualquier ventana (D-NEXT): Melecio la abrió con «Agregar material» abierto (60) y el panel salió
+        // DEBAJO, con el `.overlay` de siempre (50). La burbuja ya iba encima de todo desde D-616; el panel no.
+        <div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA }} {...marcaFueraDeLaCaptura} onClick={(e) => e.target === e.currentTarget && close()}>
           <div className="modal" style={{ maxWidth: 480 }}>
             <h3 style={{ margin: "0 0 4px" }}>{t("Need help?", "¿Necesita ayuda?")}</h3>
             <p className="hint" style={{ marginTop: 0 }}>
@@ -370,7 +372,7 @@ export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}
       )}
 
       {/* El aviso de la burbuja: fuera de la foto, como lo demás de Ayuda. */}
-      {aviso && <div className="toast no-print" role="status" {...marcaFueraDeLaCaptura}>{aviso}</div>}
+      {aviso && <div className="toast no-print" role="status" style={{ zIndex: Z_PANEL_DE_AYUDA + 20 }} {...marcaFueraDeLaCaptura}>{aviso}</div>}
     </>
   );
 }
