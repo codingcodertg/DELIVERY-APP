@@ -46490,7 +46490,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** en el navegador. La ficha completa lee la fila de la base en el servidor, y el demo no la abre.
 
-## D-NEXT · Clientes en formato estándar: nombres en MAYÚSCULAS, teléfono «(956) 340-5910» y correo en minúsculas, al guardar, al importar y en lo ya guardado; un teléfono con texto ya no pierde el texto
+## D-635 · Clientes en formato estándar: nombres en MAYÚSCULAS, teléfono «(956) 340-5910» y correo en minúsculas, al guardar, al importar y en lo ya guardado; un teléfono con texto ya no pierde el texto
 
 **Fecha:** 2026-10-21 · **Versión:** customers 0.8.0, recruiting 0.65.0, deliveries 1.354.0 · Hecho directo por el orquestador en `feat/clientes-formato-estandar`. Sin migración.
 
