@@ -69,6 +69,18 @@ export function nombreDelPng(chofer: string, fecha: string): string {
   return `ruta-${limpio}-${fecha.slice(0, 10)}.png`;
 }
 
+/**
+ * D-636: el ancho de la tabla del Gestor que entra en la foto: entera menos la última columna, la de las flechas y
+ * acciones (al chofer no le sirven). Si la medida no tiene sentido (sin columna o más ancha que la tabla), la tabla entera.
+ */
+export function anchoSinAcciones(anchoDeLaTabla: number, anchoDeLaUltima: number): number {
+  if (!(anchoDeLaUltima > 0) || anchoDeLaUltima >= anchoDeLaTabla) return anchoDeLaTabla;
+  return anchoDeLaTabla - anchoDeLaUltima;
+}
+
+/** D-636: lo que no sale en la foto de la tabla del Gestor: las casillas de marcar y las asas de ancho (se esconden sin mover nada). */
+export const FUERA_DE_LA_TABLA = ['input[type="checkbox"]', ".col-resizer"] as const;
+
 /** ¿El navegador puede compartir un fichero (la hoja de compartir del teléfono: WhatsApp, correo…)? En escritorio casi nunca. */
 export function puedeCompartirFicheros(nav: Pick<Navigator, "canShare" | "share"> | undefined, fichero: File): boolean {
   return !!nav && typeof nav.share === "function" && typeof nav.canShare === "function" && nav.canShare({ files: [fichero] });

@@ -557,6 +557,12 @@ export default function RoutesPage() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  // «📸 PNG» (D-636): la foto lleva la tabla de la ruta tal como se ve, y la tabla solo está en la página con la ruta
+  // abierta: en «Cuadrícula», desplegada abajo; en «Ancho», la tarjeta sin plegar. Como lo haría la persona a mano.
+  const abreParaLaFoto = (key: string) => {
+    if (!wideRoutes) { setDesplegada(key); return; }
+    if (isCollapsed(key)) toggleCollapse(key);
+  };
   // Abrir las rutas de un chofer esconde el mapa (D-544). El dueño, 2026-10-13: «when you open the routes for a driver in
   // the trutes manager […] it should hide the map automatically but they can still show it on the top if the user wantss
   // it». Abrir = su tabla desplegada en «Cuadrícula» o su tarjeta abierta (▸) en «Ancho». No en el mapa del chofer (D-506):
@@ -3237,10 +3243,11 @@ export default function RoutesPage() {
                   «remove the png option for the sales people»). */}
               {stops.length > 0 && veCamiones && (
                 <button className="btn btn-ghost btn-sm" data-png-de-la-ruta={u.key} title={t("Build a PNG of this route (stops + map) to send to the driver", "Armar un PNG de esta ruta (paradas + mapa) para mandárselo al chofer")}
-                  onClick={(e) => { e.stopPropagation(); setPngDe(u.key); }}>📸 PNG</button>
+                  onClick={(e) => { e.stopPropagation(); abreParaLaFoto(u.key); setPngDe(u.key); }}>📸 PNG</button>
               )}
-              {pngDe === u.key && (
-                <FotoDeLaRuta chofer={u.label} fecha={date} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}
+              {/* Una sola foto por ruta: en «Cuadrícula» la pinta la desplegada, que es la que tiene la tabla (D-636). */}
+              {pngDe === u.key && modoDeTarjeta !== "compacta" && (
+                <FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}
                   points={puntosDeLaRuta(points, u, new Set(stops.map((d) => d.id)))} lines={lineasDeLaRuta(lines, u.key)} />
               )}
             </div>
@@ -3306,7 +3313,7 @@ export default function RoutesPage() {
                     expand/contract toggle, so Windows + the action arrows never
                     get pushed off the right edge. Width pinned to the column
                     sum; columns still draggable. */}
-                <table className="orders tbl-resize tabla-de-paradas" style={{ width: ["_n", "_factura", "_cuenta", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0) }}>
+                <table className="orders tbl-resize tabla-de-paradas" data-tabla-de-la-ruta={u.key} style={{ width: ["_n", "_factura", "_cuenta", ...colsParadas.map((c) => c.key), "_acciones"].reduce((sum, k) => sum + anchoDeParada(k), 0) }}>
                   {/* Número de parada, factura y la CUENTA DE PALLETS (D-443, fija y visible siempre), las elegidas en el orden de
                       la persona (D-410), y las acciones al final. Todo por CLAVE: el ancho viaja con la columna cuando se mueve. */}
                   <colgroup>

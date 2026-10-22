@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { encuadreDeLaFoto, filasDeLaFoto, lineasDeLaRuta, nombreDelPng, palletsDeLaFoto, puedeCompartirFicheros, puntosDeLaRuta } from "./foto-de-la-ruta";
+import { anchoSinAcciones, encuadreDeLaFoto, filasDeLaFoto, FUERA_DE_LA_TABLA, lineasDeLaRuta, nombreDelPng, palletsDeLaFoto, puedeCompartirFicheros, puntosDeLaRuta } from "./foto-de-la-ruta";
 import type { MapLine, MapPoint } from "@/components/LeafletMap";
 import type { Delivery } from "@/lib/types";
 
@@ -64,6 +64,36 @@ describe("la lista y el fichero", () => {
   });
 });
 
+describe("D-636: la foto lleva la tabla del Gestor", () => {
+  it("anchoSinAcciones quita la última columna (flechas y acciones); una medida sin sentido deja la tabla entera", () => {
+    expect(anchoSinAcciones(1300, 100)).toBe(1200);
+    expect(anchoSinAcciones(1300, 0)).toBe(1300);
+    expect(anchoSinAcciones(1300, 1300)).toBe(1300);
+    expect(anchoSinAcciones(1300, Number.NaN)).toBe(1300);
+    expect([...FUERA_DE_LA_TABLA]).toEqual(['input[type="checkbox"]', ".col-resizer"]);
+  });
+  it("el cuadro: mapa ARRIBA y la tabla de la página debajo, en tema claro, sin casillas; sin tabla, la lista sencilla", () => {
+    const c = leer("src/components/FotoDeLaRuta.tsx");
+    expect(c).toContain("document.querySelector<HTMLElement>(`[data-tabla-de-la-ruta=\"${CSS.escape(laneKey)}\"]`)");
+    expect(c).toContain('snapdom.toCanvas(tabla, { backgroundColor: "#ffffff", scale: 2, exclude: [...FUERA_DE_LA_TABLA], excludeMode: "hide" })');
+    expect(c).toContain('if (tema === "dark") raiz.setAttribute("data-theme", "light");');
+    expect(c).toContain('if (tema === "dark") raiz.setAttribute("data-theme", tema);');
+    expect(c).toContain("const ancho = anchoSinAcciones(tabla.offsetWidth, ultima?.offsetWidth ?? 0);");
+    const mapa = c.indexOf("<MapView points={points}");
+    const imagen = c.indexOf("data-tabla-en-la-foto");
+    const sencilla = c.indexOf("{tabla === null && (");
+    expect(mapa).toBeGreaterThan(-1);
+    expect(imagen).toBeGreaterThan(mapa);
+    expect(sencilla).toBeGreaterThan(mapa);
+    // El mapa se pinta cuando el cuadro ya tiene el ancho de la tabla (si no, Leaflet deja una franja gris).
+    expect(c).toContain('{tabla === "cargando" ? (');
+    expect(c.indexOf('{tabla === "cargando" ? (')).toBeLessThan(mapa);
+    // Mientras se fotografía la tabla, no se puede descargar ni compartir (saldría sin ella).
+    expect(c).toContain('data-descargar-png disabled={!!ocupado || tabla === "cargando"}');
+    expect(c).toContain('if (ocupado || tabla === "cargando") return;');
+  });
+});
+
 describe("el Gestor y el cuadro", () => {
   it("el Gestor: «📸 PNG» en la cabecera de cada ruta con paradas, también en solo lectura, y el cuadro con SOLO esa ruta", () => {
     const g = leer("src/app/(app)/routes/page.tsx");
@@ -71,13 +101,20 @@ describe("el Gestor y el cuadro", () => {
     expect(g).toContain("const [pngDe, setPngDe] = useState<string | null>(null);");
     expect(g).toContain('<button className="btn btn-ghost btn-sm" data-png-de-la-ruta={u.key}');
     expect(g).toContain("points={puntosDeLaRuta(points, u, new Set(stops.map((d) => d.id)))} lines={lineasDeLaRuta(lines, u.key)} />");
-    expect(g).toContain("<FotoDeLaRuta chofer={u.label} fecha={date} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}");
+    expect(g).toContain("<FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}");
+    // D-636: la tabla de cada ruta lleva su clave, para que la foto la encuentre.
+    expect(g).toContain('<table className="orders tbl-resize tabla-de-paradas" data-tabla-de-la-ruta={u.key}');
+    // Y pulsar «📸 PNG» abre la ruta (si no, su tabla no está en la página); una sola foto, la de la tarjeta con tabla.
+    expect(g).toContain("onClick={(e) => { e.stopPropagation(); abreParaLaFoto(u.key); setPngDe(u.key); }}>📸 PNG</button>");
+    expect(g).toContain("if (!wideRoutes) { setDesplegada(key); return; }");
+    expect(g).toContain("if (isCollapsed(key)) toggleCollapse(key);");
+    expect(g).toContain('{pngDe === u.key && modoDeTarjeta !== "compacta" && (');
   });
   it("el cuadro: fotografía la hoja con snapdom (el de Ayuda) a doble escala, sin los botones; descarga o comparte", () => {
     const c = leer("src/components/FotoDeLaRuta.tsx");
     expect(c).toContain('import { cargaSnapdom } from "@/components/CapturaDeAyuda";');
-    expect(c).toContain('snapdom.toCanvas(hoja.current!, { backgroundColor: "#ffffff", fast: true, scale: 2, exclude: ["[data-fuera-de-la-foto]"], excludeMode: "remove" })');
-    expect(c).toContain("<MapView points={points} lines={lines} fitTo={fitTo} height={360} />");
+    expect(c).toContain('snapdom.toCanvas(hoja.current!, { backgroundColor: "#ffffff", fast: true, scale: 2, exclude: ["[data-fuera-de-la-foto]", ".leaflet-control-zoom", ".gm-bundled-control"], excludeMode: "remove" })');
+    expect(c).toContain("<MapView points={points} lines={lines} fitTo={fitTo} height={420} />");
     expect(c).toContain("a.href = url; a.download = nombre; a.click();");
     expect(c).toContain("await navigator.share({ files: [fichero], title: `${chofer} · ${fmtDate(fecha)}` });");
     expect(c).toContain('if ((e as { name?: string })?.name !== "AbortError")');
