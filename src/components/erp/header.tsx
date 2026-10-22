@@ -1,6 +1,5 @@
 import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { SideNav } from "@/components/erp/side-nav";
-import { canReachHub } from "@/lib/constants";
 
 /**
  * App chrome. Kept named `Header` so every page's `<Header />` keeps working, but it now renders
@@ -16,10 +15,11 @@ export async function Header() {
       fullName={session.fullName}
       email={session.user.email ?? ""}
       cost={canSeeCost(session.role)}
-      // ¿Hay hub al que volver? Se pregunta AQUÍ, una sola vez, con la misma función que usan
-      // `/home` y el conmutador de módulos (D-227). La barra recibe un sí o un no y no vuelve a
-      // decidirlo: dos sitios preguntando lo mismo por su cuenta es lo que produjo el fallo.
-      hubReachable={canReachHub({ role: session.hubRole, module_access: session.moduleAccess })}
+      // ¿Hay hub al que volver? Lo decide la casa de la barra, `HubHomeLink`, con `canReachHub` —la misma función
+      // que usan `/home` y todas las barras— y con el rol del HUB, no el del ERP (D-227). Hasta D-643 se preguntaba
+      // aquí y la barra pintaba su propia casa; ahora la casa es una sola para todas las apps y se le pasan los datos.
+      deliveriesRole={session.hubRole}
+      moduleAccess={session.moduleAccess}
     />
   );
 }

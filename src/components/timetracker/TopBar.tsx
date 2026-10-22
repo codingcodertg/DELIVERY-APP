@@ -7,7 +7,7 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { OPCIONES_DEL_MENU_TT } from "@/lib/account-menu";
 import { BotonRecargar } from "@/components/BotonRecargar";
-import { HubHomeLink } from "@/components/HubHomeLink";
+import { BarraDeApp } from "@/components/BarraDeApp";
 import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
 import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 import { NotificationBell } from "@/components/timetracker/NotificationBell";
@@ -23,7 +23,8 @@ import type { UserRole } from "@/lib/types";
  * teaching mode […] Eso que sale employee, tampoco quiero que se mire. Y las notificaciones, eso sí, se
  * queda. Pero el botón para español y dark mode […] todo eso se elige desde su personalizar».
  *
- * Lo que queda en la barra: el nombre de la app con la casa al lado (como Entregas, D-274), las
+ * Lo que queda en la barra (`BarraDeApp` desde D-643, la misma de todas las apps): el nombre de la app con la casa
+ * al lado (como Entregas, D-274), las
  * pestañas, recargar (como Entregas), la campana, el ⟳ del escritorio, y **el nombre, que abre el menú**
  * de Entregas —el mismo componente, `MenuDeCuenta`— con lo que dice `OPCIONES_DEL_MENU_TT`: modo
  * capacitación, Mi cuenta, Personalizar y Cerrar sesión.
@@ -70,16 +71,13 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
   return (
     <div className="tt-cabecera">
       <AvisoDeCapacitacion />
-      <div className="topbar">
-        {/* La casa va pegada al nombre de la app, como en Entregas (D-274).
-            En el teléfono (≤ 520 px, timetracker.css) la barra va en DOS filas (D-528): arriba el nombre de la app, la
-            casa, la campana y solo la burbuja con las iniciales; debajo, las pestañas. Para eso `.tt-barra-resto` deja
-            de ser una caja (`display: contents`) y sus piezas se colocan con `order`. En el escritorio, como estaba. */}
-        <div className="tt-marca">
-          <div className="brand">{settings.appName || "TimeTracker"}</div>
-          <HubHomeLink deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />
-        </div>
-        <div className="row tt-barra-resto" style={{ alignItems: "center", flexWrap: "wrap" }}>
+      <BarraDeApp nombre={settings.appName || "TimeTracker"} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} claseDelResto="tt-barra-resto">
+        {/* La barra de todas las apps (D-643): el nombre con la casa pegada, como en Entregas (D-274), con su mismo
+            tamaño —el nombre era un `.brand` con su letra propia y su `line-height` de 1.45—. Aquí dentro, lo de la
+            derecha. En el teléfono (≤ 520 px) la barra va en DOS filas (D-528): arriba el nombre de la app, la casa, la
+            campana y solo la burbuja con las iniciales; debajo, las pestañas. Para eso la caja de la derecha deja de ser
+            una caja (`display: contents`) y sus piezas se colocan con `order`; `tt-barra-resto` le pone encima lo propio
+            de Time Tracker (timetracker.css). En el escritorio, como estaba. */}
           <div className={"tabs" + (barra.enUnaFila ? " tt-una-fila" : "")}>
             {barra.fila.map((tb) => (
               <Link key={tb.id} href={tb.href} className={esPestanaActiva(tb.href, pathname) ? "active" : ""}>
@@ -139,8 +137,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
               }
             })}
           </MenuDeCuenta>
-        </div>
-      </div>
+      </BarraDeApp>
     </div>
   );
 }

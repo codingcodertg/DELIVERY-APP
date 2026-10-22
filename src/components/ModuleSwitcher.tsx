@@ -34,6 +34,10 @@ import type { UserRole } from "@/lib/types";
 // only ever needs the DELIVERIES role, because that's the only thing that
 // decides the driver exception, which tools are visible, and where "back to
 // Deliveries" lands.
+//
+// D-643 (2026-10-22): la casa (⌂) se fue de aquí. El dueño quiere la casa de todas las apps pegada al nombre, a
+// la izquierda, como en Entregas; ahora la pone `BarraDeApp` con `HubHomeLink`, y aquí queda solo el ⇄ (RR. HH.
+// es la única barra que lo monta). La pregunta para enseñarlo sigue siendo la misma `canReachHub`.
 // ============================================================
 
 interface ModuleSwitcherProps {
@@ -81,64 +85,51 @@ export function ModuleSwitcher({ current, deliveriesRole, moduleAccess }: Module
   // Nada que enseñar -> no se renderiza (no "se oculta").
   if (!canReachHub({ role: deliveriesRole, module_access: moduleAccess }) || desktopClient) return null;
 
+  // Sin otro módulo al que saltar no hay nada que pintar: la casa ya no vive aquí (D-643).
+  if (!canSwitch) return null;
+
   const others = modules.filter((m) => m.key !== current);
   const hrefFor = (key: string, fallback: string) => (key === "deliveries" ? roleHome(deliveriesRole) : fallback);
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
-      {/* Back to the hub. Visible whenever canReachHub is (the early return
-          above already guarantees that), even for a 1-module admin who has
-          nothing to switch to but does have Users waiting at /home. */}
-      <Link
-        href="/home"
-        className="tab tab-icon tab-casa"
-        aria-label={t("Back to module picker", "Volver al selector de módulos")}
-        title={t("Back to module picker", "Volver al selector de módulos")}
+    <div style={{ position: "relative" }}>
+      <button
+        className="tab tab-icon"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t("Switch module", "Cambiar de módulo")}
+        title={t("Switch module", "Cambiar de módulo")}
       >
-        🏠
-      </Link>
-
-      {canSwitch && (
-        <div style={{ position: "relative" }}>
-          <button
-            className="tab tab-icon"
-            onClick={() => setOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={open}
-            aria-label={t("Switch module", "Cambiar de módulo")}
-            title={t("Switch module", "Cambiar de módulo")}
+        ⇄
+      </button>
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 70 }} onClick={() => setOpen(false)} />
+          <div
+            ref={menuRef}
+            className="col-menu"
+            style={{
+              zIndex: 71,
+              minWidth: 200,
+              ...(flip ? { left: 0, right: "auto" } : { right: 0, left: "auto" }),
+            }}
+            role="menu"
           >
-            ⇄
-          </button>
-          {open && (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 70 }} onClick={() => setOpen(false)} />
-              <div
-                ref={menuRef}
-                className="col-menu"
-                style={{
-                  zIndex: 71,
-                  minWidth: 200,
-                  ...(flip ? { left: 0, right: "auto" } : { right: 0, left: "auto" }),
-                }}
-                role="menu"
+            {others.map((m) => (
+              <Link
+                key={m.key}
+                href={hrefFor(m.key, m.href)}
+                role="menuitem"
+                className="col-opt"
+                style={{ textDecoration: "none" }}
+                onClick={() => setOpen(false)}
               >
-                {others.map((m) => (
-                  <Link
-                    key={m.key}
-                    href={hrefFor(m.key, m.href)}
-                    role="menuitem"
-                    className="col-opt"
-                    style={{ textDecoration: "none" }}
-                    onClick={() => setOpen(false)}
-                  >
-                    {m.emoji} {lang === "es" ? m.label_es : m.label_en}
-                  </Link>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+                {m.emoji} {lang === "es" ? m.label_es : m.label_en}
+              </Link>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

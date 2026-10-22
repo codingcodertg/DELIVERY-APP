@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { landingRoute } from "@/lib/constants";
+import { BarraSencilla } from "@/components/BarraDeApp";
+import type { UserRole } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
@@ -27,12 +29,18 @@ export const metadata: Metadata = {
  */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
+/** El nombre de la app en la barra de todas (D-643, `BarraDeApp`), en inglés y en español. */
+const NOMBRE = ["RTG Promos", "RTG Promos"] as const;
+
 export default async function PromosLayout({ children }: { children: React.ReactNode }) {
   // Modo demo: no hay base ni sesión, así que la puerta no tiene nada que comprobar y mandaría al
   // login a quien solo viene a mirar. Mismo atajo que `(app)/layout.tsx`. Las pantallas de dentro
   // usan datos inventados (`lib/promos/demo`), que es lo que permite mirar esto en un navegador —
   // y la queja del dueño era visual.
-  if (LOCAL_MODE) return <>{children}</>;
+  // La barra de arriba es la de todas las apps (D-643): el nombre con la casa a la izquierda y el menú del nombre.
+  // Va aquí y no en la pantalla porque la puerta ya tiene el rol y los módulos con los que la casa decide. En el demo,
+  // la persona es el admin inventado.
+  if (LOCAL_MODE) return <><BarraSencilla nombre={NOMBRE} deliveriesRole="admin" moduleAccess={null} persona="Demo" />{children}</>;
 
   const supabase = await createClient();
   const {
@@ -42,7 +50,7 @@ export default async function PromosLayout({ children }: { children: React.React
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("role, module_access")
+    .select("role, module_access, full_name")
     .eq("id", user.id)
     .maybeSingle();
   if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
@@ -55,5 +63,11 @@ export default async function PromosLayout({ children }: { children: React.React
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <BarraSencilla nombre={NOMBRE} deliveriesRole={role as UserRole} moduleAccess={profile?.module_access}
+        persona={profile?.full_name?.trim() || user.email || ""} />
+      {children}
+    </>
+  );
 }

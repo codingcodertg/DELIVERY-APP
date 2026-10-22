@@ -11,7 +11,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { awaitingDriver } from "@/lib/utils";
 import { pestanaDelAvisoSinChofer } from "@/lib/rutas-del-dia";
-import { HubHomeLink } from "@/components/HubHomeLink";
+import { BarraDeApp } from "@/components/BarraDeApp";
 import { BotonRecargar } from "@/components/BotonRecargar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OfflineBanner } from "@/components/OfflineBanner";
@@ -155,16 +155,12 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         </button>
       </div>
     )}
-    <div className="topbar">
-      {/* La casa va pegada al nombre de la app (D-274), no con las pestañas.
-          En el teléfono (≤ 520 px, globals.css) la barra va en dos filas (D-545, lo mismo que D-528 hizo en Time
-          Tracker): arriba el nombre de la app, la casa, la campana y solo la burbuja con las iniciales; debajo, las
-          pestañas. Para eso `.entregas-barra-resto` deja de ser una caja (`display: contents`) y sus piezas se colocan
-          con `order`. En el escritorio, como estaba. */}
-      <div className="entregas-marca" style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-        <h1>{settings.app_name || "RTG·HUB"}</h1>
-        <HubHomeLink deliveriesRole={me.role} moduleAccess={me.module_access} />
-      </div>
+    {/* La barra es `BarraDeApp` (D-643), la misma de todas las apps: el nombre con la casa pegada a la izquierda
+        (D-274) y, dentro, lo de la derecha. En el teléfono (≤ 520 px, globals.css) va en dos filas (D-545, lo mismo que
+        D-528 hizo en Time Tracker): arriba el nombre de la app, la casa, la campana y solo la burbuja con las
+        iniciales; debajo, las pestañas. Para eso `.entregas-barra-resto` deja de ser una caja (`display: contents`) y
+        sus piezas se colocan con `order`. En el escritorio, como estaba. */}
+    <BarraDeApp nombre={settings.app_name || "RTG·HUB"} deliveriesRole={me.role} moduleAccess={me.module_access}>
       {/* minWidth: 0 overrides the flex default (min-width: auto), which
           sizes a flex item to its widest unbreakable descendant — here the
           account link's full name. Without it, this row refuses to shrink
@@ -173,9 +169,9 @@ export function TopBar({ me: propMe }: { me: Profile }) {
           follow-up: adding the module switcher's button was what finally
           tipped a multi-module admin's already-full tab row over the edge,
           but the missing min-width was the real, preexisting cause). */}
-      {/* Su `display: flex` (y lo demás que iba en línea hasta D-545) está en globals.css: un estilo en línea gana a la
-          hoja, y en el teléfono esta caja tiene que poder pasar a `display: contents`. */}
-      <div className="entregas-barra-resto">
+      {/* La caja de la derecha (`.entregas-barra-resto`) la pone `BarraDeApp`. Su `display: flex` (y lo demás que iba en
+          línea hasta D-545) está en globals.css: un estilo en línea gana a la hoja, y en el teléfono esta caja tiene que
+          poder pasar a `display: contents`. */}
         <div className="tabs">
           {mainTabs.map((tb) => (
             <Link key={tb.id} href={tb.href} className={"tab " + (isActive(tb.href) ? "active" : "")} style={{ position: "relative" }}>
@@ -348,8 +344,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         {/* «Cambiar usuario» y «Vista móvil» vivieron en esta barra (D-247 → D-306 → D-333 → D-483 → D-501). Desde D-623
             (2026-10-21) están en la burbuja general de abajo a la derecha (`BotonGeneral`), la misma en todas las apps y
             solo para el admin real; aquí ya no hay copia. */}
-      </div>
-    </div>
+    </BarraDeApp>
     </>
   );
 }

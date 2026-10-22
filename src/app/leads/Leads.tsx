@@ -167,7 +167,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     <div className="ld-wrap">
       <div className="ld-cabecera">
         <div>
-          <Link href="/home" className="btn btn-ghost btn-sm">◂ {t("Back to hub", "Volver al hub")}</Link>
+          {/* Sin «◂ Volver al hub»: la casa está en la barra de arriba, la de todas las apps (D-643). */}
           <h1>🎯 Leads</h1>
           <p className="hint ld-sub">
             {t("Building-permit leads, by nearest store.", "Leads de permisos de obra, por tienda más cercana.")}

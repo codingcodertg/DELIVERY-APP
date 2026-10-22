@@ -71,7 +71,8 @@ describe("la puerta", () => {
     expect(layout.slice(desde, hasta)).not.toContain("redirect(");
   });
   it("tiene cómo volver al hub", () => {
-    expect(leer("src/app/estimator/Estimador.tsx")).toMatch(/<Link href="\/home"/);
+    // La casa de la barra de todas las apps, montada en el layout (D-643): en el demo y en la de verdad.
+    expect(leer("src/app/estimator/layout.tsx").match(/<BarraSencilla /g) ?? []).toHaveLength(2);
   });
 });
 

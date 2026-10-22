@@ -64,11 +64,17 @@
 .recruiting-module input:focus, .recruiting-module select:focus, .recruiting-module textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
 .recruiting-module label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
 
-.recruiting-module .topbar { background: var(--brand-surface); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-.recruiting-module .topbar h1 { font-size: 18px; font-weight: 800; letter-spacing: .02em; }
-.recruiting-module .topbar h1 span { color: var(--amber); }
-.recruiting-module .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-.recruiting-module .tab { padding: 8px 16px; border-radius: 8px; color: var(--tab-idle); font-weight: 600; font-size: 13px; text-decoration: none; display: inline-block; }
+/* La barra es la de todas las apps (D-643, `BarraDeApp`) y la pinta globals.css: aquí solo queda lo que la hoja de
+   RR. HH. obliga a repetir. Era una copia entera de `.topbar`, `.topbar h1`, `.tabs` y `.tab` con más peso que las de
+   globals.css, y con eso RR. HH. no recibía las del teléfono (relleno de 10 px, nombre de 14 px, pestañas en una fila
+   que se desliza) y su casa salía con letra de pestaña. Lo que se repite, y por qué:
+   · el fondo, `--brand-surface`, que sigue oscuro en el tema oscuro (ver arriba);
+   · el relleno de la barra y de las pestañas, porque `.recruiting-module *` (arriba) lo pone a 0 y gana a globals.css
+     por ir después con el mismo peso; con su versión de ≤ 760 px, la misma de globals.css (medido a 390 px con esta
+     hoja sobre la barra: sin los 2 px de abajo de la fila de pestañas, la barra medía 100 contra 102);
+   · el color de las pestañas, porque `.recruiting-module a { color: inherit }` gana a `.tab`. */
+.recruiting-module .topbar { background: var(--brand-surface); padding: 14px 20px; }
+.recruiting-module .tab { padding: 8px 16px; border-radius: 8px; color: var(--tab-idle); }
 .recruiting-module .tab.active { background: var(--accent); color: #fff; }
 .recruiting-module .tab:hover:not(.active) { background: rgba(255,255,255,.08); }
 
@@ -79,6 +85,11 @@
 .recruiting-module .g2 { grid-template-columns: 1fr 1fr; }
 .recruiting-module .g3 { grid-template-columns: 1fr 1fr 1fr; }
 @media (max-width: 640px) { .recruiting-module .g2, .recruiting-module .g3 { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .recruiting-module .topbar { padding: 10px 12px; }
+  .recruiting-module .tab { padding: 8px 12px; }
+  .recruiting-module .tabs { padding-bottom: 2px; }
+}
 
 .recruiting-module .btn { padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 .recruiting-module .btn-primary { background: var(--accent); color: #fff; }

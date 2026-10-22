@@ -155,6 +155,18 @@
 /* La casa del hub (D-274), más grande y sólida a petición del dueño (D-295): el contorno fino
    se perdía contra la barra oscura. */
 .tab-casa { font-size: 26px; padding: 4px 12px; }
+/* La marca de la barra —el nombre de la app y la casa pegada— es la de Entregas en TODAS las apps (D-643, `BarraDeApp`).
+   Las reglas van colgadas de `.topbar .entregas-marca` para que ninguna hoja de módulo las pise: RR. HH. pone
+   `.recruiting-module .tab` (letra de 13 px, relleno de pestaña) y con eso su casa salía del tamaño de una palabra;
+   Time Tracker hereda `line-height: 1.45` y el ERP el 1.5 del preflight, y con eso su nombre y sus pestañas eran más
+   altos. `line-height: normal` es lo que Entregas ya tenía sin escribirlo, así que en Entregas no cambia nada.
+   El nombre va en mayúsculas porque así sale el de Entregas («RDZ·DELIVERIES»): las demás lo traían en minúsculas.
+   Su tamaño y su peso siguen siendo los de `.topbar h1` (18 px; 16 px a ≤ 760; 14 px a ≤ 520): repetirlos aquí, con más
+   peso, le ganaría al 16 px del bloque de ≤ 760. */
+.topbar { line-height: normal; }
+.entregas-marca { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.topbar .entregas-marca h1 { text-transform: uppercase; line-height: normal; }
+.topbar .entregas-marca .tab-casa { font-size: 26px; line-height: 1; padding: 4px 12px; }
 
 /* Hub sign-out. Deliberately quiet — it sits under the module tiles and must not
    compete with them for attention; leaving is not the primary action here. */
@@ -176,6 +188,9 @@
 .account-link { cursor: pointer; transition: background .12s ease; }
 .account-link:hover:not(.active) { background: rgba(255,255,255,.1); }
 .account-link.active { background: rgba(255,255,255,.16); }
+/* La burbuja del nombre, del mismo tamaño en la barra de todas las apps (D-643): RR. HH. pone su `.avatar.sm` a 28 px
+   (sus listas lo quieren así) y con eso su barra medía 2 px más que la de Entregas (medido: 64 contra 62). */
+.topbar .entregas-barra-resto .account-link .avatar.sm { width: 24px; height: 24px; flex: 0 0 24px; font-size: 10px; }
 
 /* La barra de Entregas en el teléfono (D-545), lo mismo que D-528 hizo en Time Tracker (`timetracker.css`) y en el
    mismo ancho, ≤ 520 px. El dueño, 2026-10-13, con la captura de Ernesto Castillo: «el notification icon que vaya arriba
@@ -192,7 +207,7 @@
    teléfono la pueda deshacer (un estilo en línea ganaría al `display: contents` de abajo). min-width: 0, ver TopBar. */
 .entregas-barra-resto { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
 @media (max-width: 520px) {
-  .topbar .entregas-marca { flex: 1 1 0; gap: 3px; }
+  .topbar .entregas-marca { flex: 1 1 0; }
   .topbar .entregas-marca h1 { font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .topbar .entregas-marca .tab-casa { font-size: 20px; padding: 2px 4px; }
   .topbar .entregas-barra-resto { display: contents; }

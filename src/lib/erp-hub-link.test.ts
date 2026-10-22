@@ -55,20 +55,25 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
   it("el enlace al hub (uno solo, en la cabecera) está condicionado", () => {
     // Eran dos: el de la cabecera (junto a «RTG ERP») y el de la lista lateral. Los dos pintaban
     // sin ninguna guarda — `canReachHub` no aparecía en el fichero.
-    expect(nav.match(/href="\/home"/g) ?? []).toHaveLength(1);
     // D-619 (2026-10-20): un solo enlace al hub, el de la cabecera; el de la lista se fue («erp tiene 2 all apps, solo deja 1»).
-    expect(nav.match(/\{hubReachable && \(/g) ?? []).toHaveLength(1);
+    // D-643 (2026-10-22): ese uno ya no es una copia del ERP: es la casa de `BarraDeApp`, la de todas las apps, que se
+    // esconde con `canReachHub`. En este fichero no queda ningún enlace propio al hub.
+    expect(nav.match(/href="\/home"/g) ?? []).toHaveLength(0);
+    expect(nav).toContain("<BarraDeApp nombre={marca} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess}>");
+    expect(nav.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "")).not.toContain("hubReachable");
     expect(nav).not.toContain("mb-2 block rounded-md px-3 py-2 text-slate-500");
   });
-  it("la barra NO decide por su cuenta: recibe la respuesta ya hecha", () => {
-    // Dos sitios preguntando lo mismo por separado es lo que produjo el fallo. La regla se
-    // consulta una vez, arriba.
+  it("la barra NO decide por su cuenta: la decide la casa, con la regla de siempre y el rol del HUB", () => {
+    // Dos sitios preguntando lo mismo por separado es lo que produjo el fallo. Desde D-643 el único sitio es
+    // `HubHomeLink` (la casa de todas las barras); la cabecera del ERP le pasa el rol del hub, no el `AppRole` del ERP.
     // Se mira el CÓDIGO, no los comentarios: el comentario de la prop sí cita `canReachHub`
     // para decir de dónde viene la respuesta, y eso tiene que poder quedarse escrito.
     const navCodigo = nav.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "");
     expect(navCodigo).not.toContain("canReachHub");
-    expect(header).toContain('from "@/lib/constants"');
-    expect(header).toContain("hubReachable={canReachHub({ role: session.hubRole, module_access: session.moduleAccess })}");
+    expect(header.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "")).not.toContain("canReachHub");
+    expect(header).toContain("deliveriesRole={session.hubRole}");
+    expect(header).toContain("moduleAccess={session.moduleAccess}");
+    expect(leer("src/components/HubHomeLink.tsx")).toContain("if (!canReachHub({ role: deliveriesRole, module_access: moduleAccess }) || desktopClient) return null;");
   });
   it("el rol del hub viaja en la sesión que ya se leía, sin consulta nueva", () => {
     // `role` en el ERP está moldeado a `AppRole`; las preguntas del hub necesitan el rol del hub.
@@ -88,14 +93,16 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
 });
 
 describe("los otros módulos: medidos, no supuestos", () => {
-  it("HR y Time Tracker no tienen enlace propio al hub — lo pone `ModuleSwitcher` o `HubHomeLink`", () => {
-    // Y los dos se esconden solos con la misma regla, así que nunca tuvieron el fallo. Time Tracker
-    // cambió `ModuleSwitcher` por la casa sola en D-490, como Entregas en D-274.
-    for (const ruta of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx"]) {
+  it("HR y Time Tracker no tienen enlace propio al hub — lo pone `BarraDeApp` con `HubHomeLink`", () => {
+    // Y se esconde sola con la misma regla, así que nunca tuvieron el fallo. Time Tracker cambió `ModuleSwitcher` por la
+    // casa sola en D-490, como Entregas en D-274; RR. HH. la sacó de `ModuleSwitcher` en D-643 (allí queda el ⇄).
+    for (const ruta of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx", "src/components/ModuleSwitcher.tsx"]) {
       expect(leer(ruta), ruta).not.toContain('href="/home"');
     }
     expect(leer("src/components/recruiting/TopBar.tsx")).toContain("<ModuleSwitcher");
-    expect(leer("src/components/timetracker/TopBar.tsx")).toContain("<HubHomeLink deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />");
+    for (const ruta of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx"]) {
+      expect(leer(ruta), ruta).toMatch(/<BarraDeApp nombre=[^\n]* deliveriesRole=\{deliveriesRole\} moduleAccess=\{moduleAccess\}/);
+    }
     const sw = leer("src/components/ModuleSwitcher.tsx");
     expect(sw).toContain("if (!canReachHub({ role: deliveriesRole, module_access: moduleAccess })");
     expect(leer("src/components/HubHomeLink.tsx")).toContain("if (!canReachHub({ role: deliveriesRole, module_access: moduleAccess }) || desktopClient) return null;");

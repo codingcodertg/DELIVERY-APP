@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { canReachHub } from "@/lib/constants";
 import { puedeEditar } from "@/lib/customers/reglas";
 import type { UserRole } from "@/lib/types";
 import { BarraDeClientes } from "@/components/customers/barra";
@@ -20,7 +19,7 @@ export default async function CustomersPage() {
   if (SIN_BASE) {
     return (
       <>
-        <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" hubReachable />
+        <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" moduleAccess={null} />
         <Clientes demo puedeEditar userId="demo" />
       </>
     );
@@ -42,8 +41,8 @@ export default async function CustomersPage() {
         role={role}
         fullName={fullName}
         email={user?.email ?? ""}
-        // ¿Hay hub al que volver? La misma función que usan `/home` y el ERP (D-227).
-        hubReachable={canReachHub({ role, module_access: moduleAccess })}
+        // ¿Hay hub al que volver? Lo decide la casa de la barra con `canReachHub`, como en todas las apps (D-643).
+        moduleAccess={moduleAccess}
       />
       {/* El id va a la clave de las columnas elegidas (por persona, en el navegador). Sin sesión no se llega aquí (layout). */}
       <Clientes demo={false} puedeEditar={puedeEditar(role)} userId={user?.id ?? "anon"} />

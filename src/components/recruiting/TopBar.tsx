@@ -9,6 +9,7 @@ import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { GlobalSearch } from "@/components/recruiting/GlobalSearch";
 import { ModuleSwitcher } from "@/components/ModuleSwitcher";
+import { BarraDeApp } from "@/components/BarraDeApp";
 import { OPCIONES_DEL_MENU_RRHH } from "@/lib/account-menu";
 import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
 import type { Profile } from "@/lib/recruiting/types";
@@ -36,14 +37,13 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
   const avatar = recruiters.find((r) => r.id === me.id)?.avatar_url ?? me.avatar_url ?? null;
 
   return (
-    <div className="topbar">
-      <h1>{settings.app_name || "RTG·HR"}</h1>
-      {/* Same fix as deliveries' own TopBar.tsx, same reason: min-width:
-          auto (the flex default) refuses to shrink this row below its
-          widest unbreakable child, pushing siblings off-screen instead of
-          wrapping. See D-054 follow-up. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", minWidth: 0 }}>
-        <GlobalSearch />
+    // La barra de todas las apps (D-643): el nombre con la casa pegada a la izquierda, como Entregas, y aquí dentro lo
+    // de la derecha. La casa vivía en `ModuleSwitcher`, a la derecha; ahí queda solo el ⇄. La caja de la derecha es la
+    // de Entregas (`.entregas-barra-resto`), con el mismo `min-width: 0` que esta fila llevaba en línea (D-054).
+    // En el teléfono esa caja se deshace y las pestañas bajan a su fila (D-545); el buscador y la etiqueta del rol
+    // bajan detrás de ellas (`entregas-tras-pestanas`) para que la fila del nombre no se desborde.
+    <BarraDeApp nombre={settings.app_name || "RTG·HR"} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess}>
+        <div className="entregas-tras-pestanas"><GlobalSearch /></div>
         <div className="tabs">
           {pestanasVisibles(TABS, me.role).map((t) => {
             {/* "/recruiting" (candidates) needs an exact match — a plain
@@ -70,8 +70,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
             }
           })}
         </MenuDeCuenta>
-        {role && <span className="sema" style={{ background: role.color + "33", color: "#fff" }}>{lang === "es" ? ROLE_ES[me.role] : role.label}</span>}
-      </div>
-    </div>
+        {role && <span className="sema entregas-tras-pestanas" style={{ background: role.color + "33", color: "#fff" }}>{lang === "es" ? ROLE_ES[me.role] : role.label}</span>}
+    </BarraDeApp>
   );
 }
