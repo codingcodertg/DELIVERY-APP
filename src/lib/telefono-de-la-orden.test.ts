@@ -63,7 +63,7 @@ describe("puertas", () => {
 
   it("los dos proveedores guardan con el formato al crear y al editar", () => {
     const dp = leer("src/lib/data-provider.tsx");
-    expect(dp).toContain("async (dIn) => {\n      // El teléfono, siempre «(956) 340-5910» al guardar, venga de donde venga (D-630).\n      const d = conTelefonoEstandar(dIn);");
+    expect(dp).toContain("async (dIn, opts) => {\n      // El teléfono, siempre «(956) 340-5910» al guardar, venga de donde venga (D-630).\n      const d = conTelefonoEstandar(dIn);");
     expect(dp).toContain("async (id, patchCrudo, opts) => {\n      // El teléfono, siempre «(956) 340-5910» al guardar (D-630).\n      const patchIn = conTelefonoEstandar(patchCrudo);");
     const local = leer("src/lib/local-data-provider.tsx");
     expect(local).toContain("const d = conTelefonoEstandar(dIn);");

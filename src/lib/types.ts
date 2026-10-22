@@ -617,6 +617,10 @@ export interface Settings {
   manager_pending_cutoff?: string;
   sales_pending_cutoff?: string;
 
+  /** Hora de corte y cupo de la mañana que mandan la orden del vendedor a aprobación (D-639, migración 190). Sin la
+   * columna o un campo vacío, los defectos de `aprobacion-por-hora-y-cupo`. */
+  approval_rules?: { corte?: string; cupo?: Record<string, number>; tiendas_sin_cupo?: string[] } | null;
+
   /** Named driver colors for the delivery map (assigned by a manager/admin in
    * Settings). Driver full name → any CSS color string. */
   driver_colors?: Record<string, string>;

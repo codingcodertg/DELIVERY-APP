@@ -14,6 +14,8 @@ import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
 import { RouteEngineSettings } from "@/components/RouteEngineSettings";
 import { HORAS_NOCHE_ANTES, HORA_NOCHE_ANTES_POR_DEFECTO, laBaseTieneAjustesDeAvisos } from "@/lib/avisos-cliente";
+import { reglasDeAprobacion, type ReglasDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
+import { fmtWindows } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { me, users, settings, saveSettings, notify } = useData();
@@ -257,6 +259,8 @@ export default function SettingsPage() {
           />
         </div>
       </div>
+
+      <ReglasDeAprobacionCard settings={settings} saveSettings={saveSettings} notify={notify} t={t} />
 
       <div className="card">
         <h2>🔑 {t("Role capabilities", "Capacidades por rol")}</h2>
@@ -571,6 +575,63 @@ function Toggle({
       <div className="toggle-group" style={{ flex: "0 0 auto" }}>
         <button className={"toggle-btn " + (!on ? "on" : "")} onClick={() => onChange(false)}>{t("Off", "Apagado")}</button>
         <button className={"toggle-btn " + (on ? "on" : "")} onClick={() => onChange(true)}>{t("On", "Encendido")}</button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Hora de corte y cupo de la mañana (D-639): cuándo la orden de un vendedor va a aprobación de oficina aunque su tienda
+ * apruebe sola. Se guarda entero en `approval_rules` (migración 190); los defectos son los de Roberto, 2026-10-22.
+ */
+function ReglasDeAprobacionCard({ settings, saveSettings, notify, t }: {
+  settings: Settings; saveSettings: (p: Partial<Settings>) => void; notify: (m: string) => void; t: (en: string, es: string) => string;
+}) {
+  const reglas = reglasDeAprobacion(settings.approval_rules);
+  const guarda = (p: Partial<ReglasDeAprobacion>) => { saveSettings({ approval_rules: { ...reglas, ...p } }); notify(t("Saved", "Guardado")); };
+  const tope = (v: string) => (
+    <div className="field" key={v}>
+      <label>{t(`Max orders ${fmtWindows(v)}`, `Máx. órdenes ${fmtWindows(v)}`)}</label>
+      <input type="number" min={0} step={1} defaultValue={reglas.cupo[v] ?? ""}
+        onBlur={(e) => {
+          const n = e.target.value.trim() === "" ? null : Math.max(0, Math.floor(Number(e.target.value)));
+          if (n === (reglas.cupo[v] ?? null) || (n != null && !Number.isFinite(n))) return;
+          const cupo = { ...reglas.cupo };
+          if (n == null) delete cupo[v]; else cupo[v] = n;
+          guarda({ cupo });
+        }} />
+    </div>
+  );
+  return (
+    <div className="card" data-reglas-de-aprobacion>
+      <h2>⏳ {t("Office approval: cutoff and morning capacity", "Aprobación de oficina: hora de corte y cupo de la mañana")}</h2>
+      <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
+        {t(
+          "A sales rep's order goes to Pending Approval instead of auto-approving when, after the cutoff, it's for today or for tomorrow morning (8:30-10 / 8:30-12), or when its morning window is already full that day. The rep sees why and Office gets the notification. Orders created by Office are approved as usual.",
+          "La orden de un vendedor va a Pendiente de Aprobación en vez de aprobarse sola cuando, pasada la hora de corte, es para hoy o para mañana temprano (8:30-10 / 8:30-12), o cuando su ventana de la mañana ya está llena ese día. El vendedor ve por qué y a la oficina le llega el aviso. Las que crea la oficina se aprueban como siempre.",
+        )}
+      </p>
+      <div className="grid g3" style={{ maxWidth: 640 }}>
+        <TimeInput label={t("Cutoff (Texas time)", "Hora de corte (Texas)")} value={reglas.corte} onSave={(v) => guarda({ corte: v })} />
+        {["0830-1000", "0830-1200"].map(tope)}
+      </div>
+      <div className="field" style={{ marginTop: 10 }}>
+        <label>{t("Stores that don't count for the morning capacity (own fleet)", "Tiendas que no cuentan para el cupo de la mañana (flota propia)")}</label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
+          {settings.stores.map((st) => {
+            const fuera = reglas.tiendas_sin_cupo.some((x) => x.trim().toLowerCase() === st.name.trim().toLowerCase());
+            return (
+              <label key={st.name} style={{ display: "inline-flex", gap: 6, alignItems: "center", fontWeight: 400 }}>
+                <input type="checkbox" checked={fuera} onChange={(e) => guarda({
+                  tiendas_sin_cupo: e.target.checked
+                    ? [...reglas.tiendas_sin_cupo, st.name]
+                    : reglas.tiendas_sin_cupo.filter((x) => x.trim().toLowerCase() !== st.name.trim().toLowerCase()),
+                })} />
+                {st.name}
+              </label>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
