@@ -11,6 +11,8 @@ import { cn } from "@/lib/erp/utils";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
+import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
+import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import { agrupaEnEmpresas, empresasPorEstado, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas } from "@/lib/customers/empresas";
 import {
   alOrdenarPor, alternaColumna, CAMPOS, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, columnasAPintar, columnasDelSelector,
@@ -452,11 +454,23 @@ function FichaDeCliente({ cliente, hermanas, onCambia, puedeEditar, almacen, onC
                   onChange={(e) => campo(f.key, e.target.value)}
                   className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
                 />
+              ) : f.key === "phone" ? (
+                // D-635: como el teléfono de la orden de Entregas (D-630): solo números, y el formato se pone solo.
+                <Input
+                  disabled={!puedeEditar}
+                  value={telefonoParaVer(form[f.key])}
+                  onChange={(e) => campo(f.key, telefonoAlEscribir(e.target.value))}
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder={MOLDE_DEL_TELEFONO}
+                  className={inputCls(f.key)}
+                />
               ) : (
                 <Input
                   disabled={!puedeEditar}
                   value={form[f.key] ?? ""}
-                  onChange={(e) => campo(f.key, e.target.value)}
+                  // D-635: los nombres salen en MAYÚSCULAS según se escriben.
+                  onChange={(e) => campo(f.key, (CAMPOS_EN_MAYUSCULAS as readonly string[]).includes(f.key) ? e.target.value.toUpperCase() : e.target.value)}
                   inputMode={f.tipo === "num" ? "decimal" : undefined}
                   className={inputCls(f.key)}
                 />

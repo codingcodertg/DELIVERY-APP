@@ -23,6 +23,7 @@
 // ============================================================================
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { estandarizaCliente } from "../src/lib/customers/formato.ts";
 
 /** Las cabeceras del Excel (normalizadas: mayusculas, sin puntos, un solo espacio) -> columna de erp.customers. */
 export const MAPA = {
@@ -132,6 +133,10 @@ export function filaACliente(o) {
     c[col] = v;
   }
   if (c.store !== null) c.store = c.store.toUpperCase();
+  // D-635: el mismo formato que la app al guardar (nombres en MAYUSCULAS con un solo espacio, telefono
+  // «(956) 340-5910», correo en minusculas). Tambien hace que la clave natural de un Excel nuevo case con la fila ya
+  // guardada en formato: «DURGA  PROPERTIES» y «DURGA PROPERTIES» son la misma.
+  Object.assign(c, estandarizaCliente(c));
   return c;
 }
 

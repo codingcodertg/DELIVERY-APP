@@ -7,10 +7,12 @@ import type { Candidate } from "./types";
  * MAYÚSCULAS, en minúsculas y mezclados. Aquí se decide el formato; el proveedor lo aplica en TODA escritura (alta y
  * edición), así que da igual por qué pantalla entre el dato. */
 
-/** «(956) 340-5910» con 10 dígitos (o 11 empezando por 1, el país); otra cosa (internacional, corto) se deja limpia tal cual. */
+/** «(956) 340-5910» con 10 dígitos (o 11 empezando por 1, el país); otra cosa (internacional, corto) se deja limpia tal cual.
+ * Con letras tampoco se toca (D-635): «956-246-6915 - Viya, A/P» lleva a quién llamar, y quitarlo lo perdería. */
 export function telefonoEstandar(t: string | null | undefined): string {
   const limpio = (t ?? "").trim();
   if (!limpio) return "";
+  if (/\p{L}/u.test(limpio)) return limpio.replace(/\s+/g, " ");
   const d = limpio.replace(/\D/g, "");
   const diez = d.length === 10 ? d : d.length === 11 && d.startsWith("1") ? d.slice(1) : null;
   if (!diez) return limpio.replace(/\s+/g, " ");

@@ -73,7 +73,7 @@ describe("filaACliente", () => {
   it("un «0» en texto es sin dato; la tienda en mayusculas; la tanda como texto; los numeros como numero y nunca negativos", () => {
     const c = filaACliente({ store: "mca", account: " Acme ", added_batch: 1, contact_name: 0, phone: "0", email: "0", rep_qb: "0", credit_limit: "1,500", euler_limit: -3, house_no: 12.0 });
     expect(c.store).toBe("MCA");
-    expect(c.account).toBe("Acme");
+    expect(c.account).toBe("ACME");
     expect(c.added_batch).toBe("1");
     expect(c.contact_name).toBeNull();
     expect(c.phone).toBeNull();
@@ -97,6 +97,18 @@ describe("filaACliente", () => {
     for (const col of ["crm_type_store", "crm_type_group", "associated_with"]) expect(sql).toContain(`${col} = coalesce(excluded.${col}, erp.customers.${col})`);
     expect(sql).not.toMatch(/archived_at|archived_reason|\bnotes\b/);
   });
+  it("D-635: sale en el formato de la app: nombres en MAYUSCULAS con un espacio, telefono (956) 340-5910, correo en minusculas", () => {
+    const c = filaACliente({ store: "PHR", account: "Durga  properties ", unified_account: "Durga", contact_name: "jose  de la rosa", phone: "956*789*2929", email: " Ana@Acme.COM ", rep_qb: "im", terms: "Net 30" });
+    expect(c.account).toBe("DURGA PROPERTIES");
+    expect(c.unified_account).toBe("DURGA");
+    expect(c.contact_name).toBe("JOSE DE LA ROSA");
+    expect(c.phone).toBe("(956) 789-2929");
+    expect(c.email).toBe("ana@acme.com");
+    // Lo que no tiene formato decidido se queda como viene.
+    expect(c.rep_qb).toBe("im");
+    expect(c.terms).toBe("Net 30");
+    expect(claveDe(c)).toBe(claveDe(filaACliente({ store: "PHR", account: "DURGA PROPERTIES" })));
+  });
   it("un HOUSE 0 si vale: es numerico y no es «sin dato»", () => {
     expect(filaACliente({ store: "BRO", account: "X", house_no: 0 }).house_no).toBe(0);
   });
@@ -114,7 +126,7 @@ describe("la clave natural y la fusion", () => {
     const f = fusiona(a, b);
     expect(f.rep_qb).toBe("CRR");
     expect(f.email).toBe("a@b.co");
-    expect(f.phone).toBe("956 909-5665");
+    expect(f.phone).toBe("(956) 909-5665");
   });
   it("preparar: dedupe por clave, cuenta fusionadas y saltadas, y agrupa por tienda y estado", () => {
     const p = preparar([

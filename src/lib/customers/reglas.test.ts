@@ -201,7 +201,7 @@ describe("la ficha y el parche", () => {
     expect(parcheDe({ ...vacio }, vacio, true).errores.sort()).toEqual(["account", "store"]);
     const r = parcheDe({ ...vacio, account: "Nueva", store: "bro" }, vacio, true);
     expect(r.errores).toEqual([]);
-    expect(r.parche).toEqual({ account: "Nueva", store: "BRO" });
+    expect(r.parche).toEqual({ account: "NUEVA", store: "BRO" });
   });
 });
 

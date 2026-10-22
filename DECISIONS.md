@@ -46489,3 +46489,48 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 **Pruebas:** `src/lib/customers` (128) y tsc. Mutantes: caen 4 de 4 (orden de Crédito y Estado, nombre «Other», un campo del CRM fuera de «Otros», House # repetido tras cada campo).
 
 **No medido:** en el navegador. La ficha completa lee la fila de la base en el servidor, y el demo no la abre.
+
+## D-635 · Clientes en formato estándar: nombres en MAYÚSCULAS, teléfono «(956) 340-5910» y correo en minúsculas, al guardar, al importar y en lo ya guardado; un teléfono con texto ya no pierde el texto
+
+**Fecha:** 2026-10-21 · **Versión:** customers 0.8.0, recruiting 0.65.0, deliveries 1.354.0 · Hecho directo por el orquestador en `feat/clientes-formato-estandar`. Sin migración.
+
+**Pedido (el dueño, 2026-10-21, literal):** «en customer haz lo mismo de standatizar nombre todos caps contas los telefonos en el formato que te dije y asi busca sugerencias de que ma se puede poner asi».
+
+**Medido antes (producción, solo lectura, 1.348 filas de `erp.customers`, 1.190 vivas).**
+- **Teléfonos:** de 762 vivos con dato, 54 ya en formato; el resto escrito de mil maneras («956-572-6342», «956*789*2929», «956 367-2273», «956-2212400»).
+  - 106 filas (de las 1.348) llevan además un nombre o una nota: «956-246-6915 - Viya, A/P», «JOSE LLORENTE», «CRR FRIEND».
+- **Cuentas:** 38 no van en MAYÚSCULAS («Villarreal Homes», «CITY OF McALLEN.») y 13 llevan espacios de más («DURGA  PROPERTIES»). En la cuenta unificada son 16 y 5.
+- **Contacto y cargo:** ya están en MAYÚSCULAS.
+- **Correos:** 145 tienen mayúsculas.
+
+**Qué cambia.**
+- **`src/lib/customers/formato.ts`:**
+  - **Nombres en MAYÚSCULAS con un solo espacio:** cuenta, cuenta unificada, contacto y cargo. No se usa «Nombre Propio» como en RR. HH., porque la lista del Excel ya va así.
+  - **Teléfono:** el mismo «(956) 340-5910» de RR. HH. y Entregas.
+  - **Correo:** en minúsculas.
+  - El módulo no lleva imports, porque lo cargan los scripts con Node. Por eso el teléfono es una copia de `telefonoEstandar`, y una prueba exige que las dos den lo mismo.
+- **Al guardar desde el cajón** (`parcheDe`):
+  - Lo escrito se guarda en formato. Si en formato queda igual a lo que había, no hay cambio que guardar.
+  - Los nombres salen en MAYÚSCULAS según se escriben.
+  - El teléfono lleva el molde de Entregas (D-630): solo números, y el formato se pone solo.
+- **Al importar el Excel** (`scripts/importa-clientes.mjs`, `filaACliente`): sale en el mismo formato. Así, la clave de un Excel nuevo casa con la fila ya guardada («DURGA  PROPERTIES» = «DURGA PROPERTIES»).
+- **Un teléfono con letras ya no se toca**, tampoco en RR. HH. ni en Entregas (`telefonoEstandar`). Antes se quedaba con los dígitos y perdía el texto («Viya, A/P»).
+  - Comprobado en los respaldos de los barridos de hoy (127 candidatos, 363 órdenes): ninguno tenía letras, así que no se perdió nada.
+  - El molde de Entregas, al teclear, sigue aceptando solo números (D-630).
+- **Lo ya guardado:** `scripts/estandariza-clientes.mts` aplica la misma función a todas las filas, archivadas incluidas.
+  - Sin opciones, solo cuenta. Con `--escribe`, guarda un respaldo JSON en `D:/CLAUDE/respaldos-db/`, escribe en una transacción y vuelve a medir.
+  - No toca una cuenta que, al juntar los espacios, chocaría con otra de la misma tienda (índice único de la 180). Medido: ninguna.
+  - Cuenta medida: 740 filas (teléfono 649, correo 168, cuenta 66, cuenta unificada 23).
+
+**Qué no cambia:**
+- Términos, vendedores, notas, actividad y número de cuenta: solo se recortan. Quedan como sugerencias para el dueño.
+- Los 106 teléfonos con texto.
+- Los correos con varias direcciones (36).
+
+**Pruebas:**
+- `formato.test.ts` (los formatos medidos, el espejo con RR. HH., `parcheDe` y el cajón).
+- `src` entero (8.684) y tsc.
+- `importa-clientes.test.mjs` no carga en esta máquina, como en `main` (SyntaxError conocido); el importador se probó cargándolo con Node.
+- Mutantes: caen 8 de 8.
+
+**No medido:** el cajón en el navegador.
