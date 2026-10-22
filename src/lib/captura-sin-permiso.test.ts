@@ -42,13 +42,13 @@ describe("la marca que deja a Ayuda fuera de la foto", () => {
     expect(fab).toBeGreaterThan(-1);
     expect(boton.slice(fab, boton.indexOf(">", fab))).toContain("{...marcaFueraDeLaCaptura}");
 
-    const panel = boton.indexOf('<div className="overlay" {...marcaFueraDeLaCaptura}');
+    const panel = boton.indexOf('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA }} {...marcaFueraDeLaCaptura}');
     expect(panel).toBeGreaterThan(-1);
 
-    expect(captura).toContain('<div className="overlay" style={{ zIndex: 60 }} {...marcaFueraDeLaCaptura}>');
+    expect(captura).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10 }} {...marcaFueraDeLaCaptura}>');
     // El aviso de abajo es de la burbuja desde D-530 (antes era el de Entregas): «enviada», «no se pudo»… no
     // tiene que salir en una foto que se toma justo después.
-    expect(boton).toContain('{aviso && <div className="toast no-print" role="status" {...marcaFueraDeLaCaptura}>{aviso}</div>}');
+    expect(boton).toContain('{aviso && <div className="toast no-print" role="status" style={{ zIndex: Z_PANEL_DE_AYUDA + 20 }} {...marcaFueraDeLaCaptura}>{aviso}</div>}');
 
     // Exactamente esas: una de más escondería algo que la persona quería enseñar. (Eran 2 en el botón hasta
     // D-530; la tercera es el aviso, que antes no era suyo.)
