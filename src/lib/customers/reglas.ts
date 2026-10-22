@@ -362,8 +362,8 @@ export function puedeEditar(role: UserRole | null | undefined): boolean {
 }
 
 export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda";
-/** Los grupos de la ficha completa (`/customers/[id]`), en su orden. */
-export type GrupoDeCampo = "cuenta" | "estado" | "crm" | "vendedores" | "contacto" | "credito" | "app";
+/** Los grupos de la ficha completa (`/customers/[id]`), en su orden: tres arriba y tres abajo en escritorio (D-634). */
+export type GrupoDeCampo = "cuenta" | "estado" | "vendedores" | "contacto" | "credito" | "otros";
 export interface Campo { key: keyof Cliente; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
 
 /** Los campos de la ficha, en su orden. Todo lo del Excel se puede corregir; lo de la app (notas) también. */
@@ -378,9 +378,9 @@ export const CAMPOS: readonly Campo[] = [
   { key: "qb_status", tipo: "qb", en: "QuickBooks", es: "QuickBooks", grupo: "estado" },
   { key: "activity_status", tipo: "text", en: "Activity", es: "Actividad", grupo: "estado" },
   // Migración 182: «the crm stuff» del Excel.
-  { key: "crm_type_store", tipo: "text", en: "CRM type (store)", es: "Tipo CRM (tienda)", grupo: "crm" },
-  { key: "crm_type_group", tipo: "text", en: "CRM type (group)", es: "Tipo CRM (grupo)", grupo: "crm" },
-  { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "crm" },
+  { key: "crm_type_store", tipo: "text", en: "CRM type (store)", es: "Tipo CRM (tienda)", grupo: "otros" },
+  { key: "crm_type_group", tipo: "text", en: "CRM type (group)", es: "Tipo CRM (grupo)", grupo: "otros" },
+  { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "otros" },
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "vendedores" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "vendedores" },
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "vendedores" },
@@ -393,18 +393,18 @@ export const CAMPOS: readonly Campo[] = [
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
   { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito", grupo: "credito" },
-  { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "app" },
-  { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "app" },
+  { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "otros" },
+  { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "otros" },
 ];
 
 export const GRUPOS: readonly { key: GrupoDeCampo; en: string; es: string }[] = [
   { key: "cuenta", en: "Account", es: "Cuenta" },
-  { key: "estado", en: "Status & history", es: "Estado e historial" },
-  { key: "crm", en: "CRM", es: "CRM" },
-  { key: "vendedores", en: "Sales reps", es: "Vendedores" },
   { key: "contacto", en: "Contact", es: "Contacto" },
   { key: "credito", en: "Credit & terms", es: "Crédito y términos" },
-  { key: "app", en: "Other", es: "Otros" },
+  { key: "estado", en: "Status & history", es: "Estado e historial" },
+  { key: "vendedores", en: "Sales reps", es: "Vendedores" },
+  // D-634: el CRM, lo de la app y lo que solo identifica la fila del Excel, juntos en la última tarjeta.
+  { key: "otros", en: "Other", es: "Otros" },
 ];
 
 /** Los campos por grupo, para la ficha completa: cada campo sale una vez y ningún grupo queda vacío. */

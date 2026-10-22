@@ -261,6 +261,10 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(ficha).toContain('data-campo="house_no"');
     expect(ficha).toContain('data-campo="concatenate"');
     expect(ficha).toContain('valorDeColumna(c, "concatenate")');
+    // D-634: no hay tarjeta «Del Excel» aparte; House # y la CONCATENATE van en «Otros», antes de las notas.
+    expect(ficha).not.toContain('data-grupo="excel"');
+    expect(ficha).not.toContain('"From the Excel"');
+    expect(ficha).toContain('{campo.key === "notes" && (');
     expect(ficha).toContain('className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"');
     expect(ficha).toContain('{t("← Customers", "← Clientes")}');
   });

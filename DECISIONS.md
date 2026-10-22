@@ -45093,6 +45093,8 @@ D-553 quitó «Request» del menú del ERP, a pedido del cliente, y puso en su l
 
 ## D-579 · Clientes: todas las columnas del Excel —el CRM incluido—, orden de columnas por persona y ficha completa por cliente (migración 182)
 
+> **Reemplazada en parte por D-NEXT** (2026-10-21): la ficha completa ya no tiene tarjetas «CRM» ni «Del Excel». Van Cuenta · Contacto · Crédito y términos arriba y Estado e historial · Vendedores · Otros abajo; «Otros» lleva el CRM, la tanda, House #, la CONCATENATE y las notas.
+
 **Fecha:** 2026-10-18 · **Migración:** `182_clientes_crm.sql`, **escrita y NO aplicada** (tres columnas de texto; sin políticas, sin datos) · **Versión:** la pone el orquestador al fusionar (`customers`; el worker no toca `APP_VERSIONS`). Completa D-569; no reemplaza ninguna decisión.
 
 ### Qué pidió el dueño
@@ -46469,3 +46471,21 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - **Demo a 1440 y 390 px:** 7 empresas; Demo Homes con 2 tiendas, con vendedor IM en McAllen y FR en Pharr; la cola con 2 pares que baja a 1 al juntar.
 
 **No medido:** las funciones llamadas desde la app de verdad (PostgREST) con la sesión del dueño; la cola con los 372 pares reales. La superviviente conserva su nombre aunque sea el peor («`4MA CONSTRUCTION LLC»): se corrige a mano.
+
+## D-NEXT · Clientes, ficha completa: seis tarjetas, Cuenta · Contacto · Crédito y términos / Estado e historial · Vendedores · Otros, y «Otros» junta el CRM y lo del Excel
+
+**Fecha:** 2026-10-21 · **Versión:** customers 0.7.0 · Hecho directo por el orquestador en `feat/clientes-tarjeta-otros`. Sin migración.
+
+**Pedido (el dueño, 2026-10-21, captura, literal):** «para customer view» — «MERGE OTHER CRM AND FROM THE EXCEL AND PUT IT AS THE LAST CARD CREDIT TERM GOES TO CRM AND OTHER WILL BE THE NEW NAME OF THAT CARDS / ACCOUNT CONTACT CREDIT AND TERMS / STATUS AND HISTORY SALES REP AND OTHER».
+
+**Leído así:** las tarjetas «Otros», «CRM» y «Del Excel» se juntan en una sola, la última, llamada «Otros»; «Crédito y términos» pasa al hueco que dejaba «CRM» (tercera). El orden es el de la captura, en dos filas de tres en escritorio.
+
+**Qué cambia.**
+- `src/lib/customers/reglas.ts`: `GRUPOS` va cuenta, contacto, crédito, estado, vendedores, otros. Los tres campos del CRM (`crm_type_store`, `crm_type_group`, `associated_with`), la tanda y las notas son del grupo `otros`; el grupo `crm` desaparece.
+- `src/app/customers/[id]/FichaCompleta.tsx`: sin tarjeta «Del Excel». House # y la CONCATENATE salen dentro de «Otros», justo antes de las notas (las notas pueden ser largas y quedan al final).
+
+**Qué no cambia.** Los campos, quién los ve y el cajón de la lista (edita en el orden de `CAMPOS`, que no se movió).
+
+**Pruebas:** `src/lib/customers` (128) y tsc. Mutantes: caen 4 de 4 (orden de Crédito y Estado, nombre «Other», un campo del CRM fuera de «Otros», House # repetido tras cada campo).
+
+**No medido:** en el navegador. La ficha completa lee la fila de la base en el servidor, y el demo no la abre.
