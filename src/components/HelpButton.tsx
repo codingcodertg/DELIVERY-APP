@@ -244,7 +244,7 @@ export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}
       </button>}
 
       {open && (
-        // Por encima de cualquier ventana (D-NEXT): Melecio la abrió con «Agregar material» abierto (60) y el panel salió
+        // Por encima de cualquier ventana (D-641): Melecio la abrió con «Agregar material» abierto (60) y el panel salió
         // DEBAJO, con el `.overlay` de siempre (50). La burbuja ya iba encima de todo desde D-616; el panel no.
         <div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA }} {...marcaFueraDeLaCaptura} onClick={(e) => e.target === e.currentTarget && close()}>
           <div className="modal" style={{ maxWidth: 480 }}>

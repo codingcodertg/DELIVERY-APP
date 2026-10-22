@@ -46804,7 +46804,7 @@ eso el aviso no dice dónde queda.
 **No medido:** contra la base de verdad (`partir_carga` con la sesión de un admin desde el guardado), el silencio con un rol
 que no puede, y «Asignar a…» de varios choferes con una orden grande en el demo.
 
-## D-NEXT · El panel de Ayuda se abre por ENCIMA de cualquier ventana (con «Agregar material» abierto salía debajo)
+## D-641 · El panel de Ayuda se abre por ENCIMA de cualquier ventana (con «Agregar material» abierto salía debajo)
 
 **Fecha:** 2026-10-22. **Pedido:** Melecio, por foto del dueño: abrió Ayuda con «Agregar material» abierto (orden FV196)
 para mandar la captura, y el panel «¿Necesita ayuda?» salió DEBAJO de la ventana: no podía escribir.

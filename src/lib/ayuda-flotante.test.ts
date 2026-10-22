@@ -228,7 +228,7 @@ describe("el sitio de la burbuja", () => {
     expect(css).toMatch(/\.chat-panel \{[^}]*z-index: 1001;/);
   });
 
-  it("el PANEL abierto también va encima de cualquier ventana (D-NEXT): Melecio lo abrió con «Agregar material» y salió debajo", () => {
+  it("el PANEL abierto también va encima de cualquier ventana (D-641): Melecio lo abrió con «Agregar material» y salió debajo", () => {
     const ayuda = sinComentarios(leer("src/components/HelpButton.tsx"));
     expect(ayuda).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA }}');
     expect(ayuda).toContain('className="toast no-print" role="status" style={{ zIndex: Z_PANEL_DE_AYUDA + 20 }}');
