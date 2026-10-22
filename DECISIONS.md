@@ -46637,7 +46637,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - Que la subida en paralelo sea más rápida con el 4G de un chofer.
 - Una entrega confirmada de verdad con las fotos subidas: el demo no sube al cubo.
 
-## D-NEXT · APK 6: la app Android pide el permiso de cámara, para que «📸 Varias fotos» (D-637) funcione dentro de la app
+## D-638 · APK 6: la app Android pide el permiso de cámara, para que «📸 Varias fotos» (D-637) funcione dentro de la app
 
 **Fecha:** 2026-10-22 · **APK:** versionCode 6, versionName 1.11.0, `RDZDeliveries/6` · Hecho directo por el orquestador en `feat/apk-6-camara`. Sin migración.
 
