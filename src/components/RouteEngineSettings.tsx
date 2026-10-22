@@ -11,7 +11,8 @@ import {
   conFilaGuardada, opcionesDeReparto, pesoDeZona, pesoDeZonaRecogida, pesosDeRuta, routeWeightsAlGuardar, topeDeRetrasoMin, umbralDeZonaMi, ventanasDuras,
 } from "@/lib/route-settings";
 import { alternaZona, ciudadesElegibles, claveDeZona, zonasDelChofer } from "@/lib/zonas";
-import type { DriverSettings, RouteBalanceOptions, RouteWeights, Settings } from "@/lib/types";
+import type { DriverSettings, RouteBalanceOptions, RouteWeights, Settings, VueltaLejanaGuardada } from "@/lib/types";
+import { parametrosDeVuelta } from "@/lib/recomienda-reprogramar";
 import { leeConOpcionales } from "@/lib/columnas-opcionales";
 import { alternaRequisito, anadeAlCatalogo, catalogoDeRequisitos, habilidadesDelChofer, laBaseTieneRequisitos, MAX_LARGO_DE_REQUISITO } from "@/lib/requisitos";
 
@@ -59,6 +60,9 @@ export function RouteEngineSettings() {
     saveSettings({ route_weights: routeWeightsAlGuardar(settings, { [k]: v }) } as Partial<Settings>);
     notify(t("Saved", "Guardado"));
   };
+  const vuelta = parametrosDeVuelta(settings);
+  // `vuelta_lejana` es un objeto dentro del jsonb: se manda con lo que ya tenía, o guardar uno borraría los otros tres.
+  const guardaVuelta = (cambio: VueltaLejanaGuardada) => guardaReparto({ vuelta_lejana: { ...(settings.route_weights?.vuelta_lejana ?? {}), ...cambio } });
   const guardaReparto = (cambio: RouteBalanceOptions) => {
     saveSettings({ route_weights: routeWeightsAlGuardar(settings, cambio) } as Partial<Settings>);
     notify(t("Saved", "Guardado"));
@@ -205,6 +209,28 @@ export function RouteEngineSettings() {
           {t(
             `What the balance weight evens out: minutes of each driver's day, or how many deliveries each one gets (one delivery of difference counts as ${MINUTOS_POR_ORDEN_EN_BALANCE} minutes). «Use all» gives every routed driver at least one order when there is enough work, even if it costs more driving — never by leaving an order out.`,
             `Qué iguala el peso de balance: los minutos de jornada de cada chofer, o cuántas entregas lleva cada uno (una entrega de diferencia cuenta como ${MINUTOS_POR_ORDEN_EN_BALANCE} minutos). «Usar todos» le da al menos una orden a cada chofer que rutea cuando hay trabajo para todos, aunque cueste más manejo — nunca dejando una orden fuera.`,
+          )}
+        </div>
+      </div>
+
+      {/* «Esa vuelta no compensa» (D-NEXT): cuándo el Gestor recomienda reprogramar las cargas chicas con la tienda lejana.
+          En el mismo `route_weights`, dentro de `vuelta_lejana`, que se manda ENTERO con lo guardado debajo. */}
+      <div className="field" data-ajustes-vuelta style={{ marginTop: 6 }}>
+        <label>{t("Trips that don't pay off (Routes Manager recommendations)", "Vueltas que no compensan (recomendaciones del Gestor de Rutas)")}</label>
+        <div className="grid g3">
+          <NumeroConGuardado label={t("A store is far at this many times the distance between the others", "Una tienda es lejana a estas veces la distancia entre las demás")}
+            value={vuelta.factorDeLejania} paso="0.5" disabled={!hayColumnas} onSave={(v) => guardaVuelta({ factor: v })} />
+          <NumeroConGuardado label={t("Below these pallets the trip doesn't pay off", "Por debajo de estos pallets la vuelta no compensa")}
+            value={vuelta.umbralPallets} paso="0.25" disabled={!hayColumnas} onSave={(v) => guardaVuelta({ pallets: v })} />
+          <NumeroConGuardado label={t("Miles around a store that still count as «there»", "Millas alrededor de una tienda que todavía son «allí»")}
+            value={vuelta.radioMi} paso="1" disabled={!hayColumnas} onSave={(v) => guardaVuelta({ radio_mi: v })} />
+          <NumeroConGuardado label={t("Working days ahead to look for a day to join", "Días de trabajo hacia delante para buscar con qué juntarlas")}
+            value={vuelta.diasAdelante} paso="1" disabled={!hayColumnas} onSave={(v) => guardaVuelta({ dias: v })} />
+        </div>
+        <div className="hint">
+          {t(
+            "The far store is worked out from the stores' map points. When the loads to or from it on a day add up to less than this and none is urgent (high priority, first thing, hard window), and no other order makes that trip anyway, the Routes Manager recommends moving them to a day the trip already goes. Nothing moves on its own.",
+            "La tienda lejana sale de los puntos de las tiendas en el mapa. Cuando las cargas con ella un día suman menos que esto, ninguna es urgente (prioridad alta, primera hora, ventana dura) y ninguna otra orden hace esa vuelta igual, el Gestor de Rutas recomienda moverlas a un día en que la vuelta ya va. Nada se mueve solo.",
           )}
         </div>
       </div>

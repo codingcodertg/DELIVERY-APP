@@ -46821,3 +46821,66 @@ La única cosa más alta es la ráfaga de la cámara (10050), que ocupa la panta
 panel (salvo la ráfaga). 5/5 mutantes caen (constante a 61, panel sin z, recuadro a 60, aviso sin z, otra ventana a 20000).
 
 **No medido:** en un navegador con «Agregar material» de verdad; el arreglo es de capas y la prueba fija los números.
+
+## D-NEXT · «Esa vuelta no compensa»: el Gestor recomienda reprogramar las cargas chicas con la tienda lejana (y no mueve nada solo)
+
+**Fecha:** 2026-10-22. **Pedido:** el dueño, con una carga de 0.25 pallets entre la tienda lejana y una de las cercanas:
+que el sistema diga «es muy poquito pallet para una vuelta tan larga; recomiendo reprogramar estas cargas», sabiendo que
+cuatro tiendas están cerca y una lejos; que lo piense él solo, y si no hay cargas así, todo normal. Las decisiones de
+diseño las delegó al orquestador.
+
+**Datos medidos (producción, solo lectura, intertiendas desde 2026-07-30):** 406 intertiendas, media 1.48 pallets. Millas
+medias con la tienda lejana 41–63; entre las otras, 8–21. Cargas de menos de 1 pallet con ella: 22 de 35, 18 de 23, 5 de 7,
+5 de 7 y 11 de 45 según el par. La oficina ya las mueve a mano, sin regla: de 237 cambios de fecha en intertiendas (142 con
+la tienda lejana), movió 12 de 59 cargas de menos de medio pallet, 4 de 9 de 0.5–1 y 1 de 36 de 2–4. En Ajustes hay **7
+tiendas con punto**, y salen lejanas DOS: la tienda y una bodega a un par de millas de ella (61.0 y 59.5 mi de mediana a las
+demás contra 20.6 entre las demás). De 108 entregas de cliente de la tienda lejana con pin, 71 están a ≤ 15 mi de ella, 4
+a ≤ 15 mi de las demás y 33 en medio o más allá (la isla, a ~31 mi de ella y ~67 de las demás; una con el pin a ~1 400 mi).
+
+**Qué decide** (`src/lib/route-engine/vuelta-que-no-compensa.ts`, puro; `vueltasQueNoCompensan`):
+1. **Tienda lejana, calculada** de los puntos de Ajustes, sin nombres en el código: la mediana de sus millas a las demás
+   supera `factor` (2) veces la mediana de las millas ENTRE las demás (no entre todas: con tres tiendas, dos juntas y una
+   lejos, la de todas ya es la larga). Millas = línea recta × 1.3, el mismo factor del proveedor «estimado». Las lejanas a
+   menos de `radio` una de otra son un solo sitio (la bodega): sin eso salían dos recomendaciones con las mismas cargas.
+2. **Qué cruza ese día:** una punta «allí» (la tienda lejana, o a ≤ `radio` = 15 mi) y la otra «aquí» (otra tienda, o a ≤
+   15 mi de una). Una punta lejos de todas no cruza: contar «no allí» como «aquí» decía que el viaje iba por un cliente en la
+   isla, cuando nadie subía.
+3. **El viaje va igual → nada:** si lo que cruza suma `pallets` (1) o más, o cruza algo que no se mueve (de cliente,
+   urgente —prioridad alta o crítica, `morning_priority`, ventana dura de Ajustes—, ya salida o entregada). `requirements`
+   no es urgencia: dice quién la lleva, no cuándo. Una intertienda sin pallets no se juzga.
+4. **Si no → recomendar** mover todas las que cruzan (solo intertiendas por la regla de Ajustes, `homeIsDestination`) al
+   primer día de trabajo de los `dias` (3) siguientes en que el viaje ya va (contando las que se mueven); si no, al primero
+   con alguna carga con esa tienda; si no, al siguiente día de trabajo (`siguienteDiaDeTrabajo`, sin domingo), y el motivo
+   lo dice. Motivo, con el 2026-10-01 de verdad: «0.25 pallets para una vuelta de ~122 mi (X está a ~61 mi de las demás
+   tiendas; entre las otras, ~21 mi). El viernes 2026-10-02 ya hay 21.4 pallets con X.» Un día pasado no se recomienda.
+
+**Pantalla:** tarjeta «💡 Recomendaciones» en el Gestor de Rutas, justo encima del panel de «Armar rutas», SOLO si hay alguna
+y solo viendo un día (no en «Ruta de hoy», «Todas» ni atrasadas). Recibe todas las órdenes de la pantalla, no `dayOrders`
+(hacen falta los días siguientes y lo que ya salió). Botones: «📅 Reprogramar a <día>» —solo si quien mira puede
+reprogramar todas (`puedeReprogramar`); guarda una por una por `reprogramarOrden` (la 173, nota = el motivo; la 172 la saca de
+la ruta)— y «Dejar así», recordado por persona y día en `localStorage` (con try/catch; lo de días pasados se olvida).
+
+**Parámetros:** editables en Ajustes → Motor de rutas → «Vueltas que no compensan», dentro de `route_weights.vuelta_lejana`
+(el jsonb de la 130, que solo exige ser objeto): **sin migración**. Se manda el objeto entero con lo guardado debajo.
+
+**Contra la historia (solo lectura, fechas como quedaron, todo movible como la mañana del día):** de **52 días mirados
+(2026-07-30 → 2026-10-21), habría marcado 6** (9 cargas): 10-01, 10-05, 10-07, 10-08, 10-12 y 10-21. En los 6 el día
+sugerido ya llevaba viaje (1.15–21.4 pallets con la tienda), a 1 o 2 días de trabajo. Sin contar las de cliente salen 7: el
+10-19 no sale porque ese día una entrega de 4 pallets de la tienda lejana iba al valle (el camión subía igual).
+
+**Prueba:** `route-engine/vuelta-que-no-compensa.test.ts` (28: lejana por punto y no por nombre o posición, tres tiendas,
+sitio de dos, umbral y parámetros, de paso con urgente / ya salida / cliente cerca, cliente de la lejana en su pueblo, en
+la isla y en el valle, cliente nunca, sábado → lunes, día con viaje preferido a uno con carga chica, cuántos días se miran)
+y `recomienda-reprogramar.test.ts` (de la fila a la regla, el día del Gestor, «Dejar así», y que la pantalla la llama con
+`deliveries` y `date`).
+Mutantes: **12 de 12 caen** con una prueba con nombre: mediana de todas en vez de entre las demás; dos lejanas pegadas como
+dos sitios; una punta lejos de todo como «aquí»; una de cliente movible; una urgente movible; justo el umbral sin
+compensar; lo que no se mueve sin hacer que el viaje vaya; el primer día con carga antes que el día con viaje; el día
+siguiente sin saltar el domingo; la ventana dura sin ser urgencia; recomendar en un día pasado; el Gestor pasando
+`dayOrders`. Medido en el demo por CDP (390 y 1440 px, 0 px de desborde): la tarjeta sale con la intertienda sembrada de
+0.25 pallets; «Dejar así» la quita y sigue quitada al recargar; «Reprogramar a 23 oct» deja la orden en el 23, con la nota
+del motivo y el «Changed: Delivery Date», y la tarjeta se va.
+
+**No medido:** la recomendación con días reales ANTES de que la oficina moviera nada (la «fecha original» del historial
+mezcla los movimientos del cron de D-406 y da 2 días; no es comparable); el guardado de verdad por la 173 desde la tarjeta
+(el demo guarda por el respaldo); si a la oficina le sirve el umbral de 1 pallet o lo sube.
