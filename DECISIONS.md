@@ -46636,3 +46636,29 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - En iOS Safari.
 - Que la subida en paralelo sea más rápida con el 4G de un chofer.
 - Una entrega confirmada de verdad con las fotos subidas: el demo no sube al cubo.
+
+## D-638 · APK 6: la app Android pide el permiso de cámara, para que «📸 Varias fotos» (D-637) funcione dentro de la app
+
+**Fecha:** 2026-10-22 · **APK:** versionCode 6, versionName 1.11.0, `RDZDeliveries/6` · Hecho directo por el orquestador en `feat/apk-6-camara`. Sin migración.
+
+**Pedido:** el de D-637 (el dueño, 2026-10-22: «que pueda tomar varias fotos de un solo y que él las pueda subir más rápido»).
+
+**Por qué hace falta un APK:**
+- La cámara de varias fotos usa `getUserMedia`. Dentro de la app Android, Capacitor 6 (`BridgeWebChromeClient.onPermissionRequest`) pide CAMERA en tiempo de ejecución.
+- El APK 5 no declaraba CAMERA en el manifiesto, así que Android lo negaba sin preguntar y la ráfaga mostraba el aviso de D-637.
+- La cámara nativa de una foto (`<input capture>`) funcionaba porque Capacitor, sin CAMERA declarado, la lanza sin pedir permiso. Ahora lo pide una vez.
+
+**Qué cambia:**
+- `AndroidManifest.xml`: `uses-permission CAMERA` y `uses-feature android.hardware.camera required=false` (un teléfono sin cámara sigue instalando).
+- `build.gradle`: versionCode 6 y versionName 1.11.0. `capacitor.config.ts`: `RDZDeliveries/6`.
+- `LATEST_APK_VERSION_CODE = 6`: al publicarse, los teléfonos con el 5 ven el aviso de actualizar.
+- Prueba nueva en `app-update.test.ts`: los tres números son el mismo, y el manifiesto pide la cámara. Comprobado a mano: cae con versionCode 7 y con el permiso mal escrito.
+
+**Publicado (2026-10-22):**
+- Construido con `gradlew assembleRelease` y la llave de release.
+- Comprobado con `apksigner`: la huella del certificado es la misma que la del APK 5 publicado (`585d3306…928f`), así que se actualiza sin desinstalar.
+- Comprobado con `aapt`: versionCode 6 y el permiso CAMERA. La config embebida lleva la misma `server.url` y `RDZDeliveries/6`.
+- Subido con `x-upsert` a la MISMA ruta (`app/RDZ-Deliveries.apk`). Lo descargado es idéntico (3.578.959 bytes, sha256 `ea264ffb…3b78`).
+- Copias: `D:/CLAUDE/apk/RDZ-Deliveries-6.apk` y la anterior, `RDZ-Deliveries-5.apk`, para volver atrás.
+
+**No medido:** instalarlo en un teléfono, el aviso de actualizar en un teléfono con el 5, y la ráfaga dentro de la app.
