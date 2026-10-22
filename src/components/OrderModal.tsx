@@ -90,7 +90,6 @@ import {
 import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
 import { fotosParaContar, useFotosDeLaOrden, useUrlsDeFotos } from "@/lib/fotos-de-la-orden";
 import { subirFotosDeEntrega, type AlmacenDeFotos } from "@/lib/fotos-en-storage";
-import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
@@ -118,8 +117,6 @@ export function OrderModal({
   startEditing,
   onClose,
   abrirEn,
-  fotosDeEntrega,
-  fotoEnCamino = false,
 }: {
   me: Profile;
   existing: Delivery | null;
@@ -130,10 +127,8 @@ export function OrderModal({
    * «Recoger de todos modos» ya abierta si el almacén no la marcó lista— o `entregar` —la prueba de entrega abierta—.
    */
   abrirEn?: "recoger" | "entregar";
-  /** Las fotos que se tomaron con la cámara al pulsar «Entregado» en «Mi ruta», antes de que la ficha existiera (D-527). */
-  fotosDeEntrega?: readonly string[];
-  /** La foto de la cámara aún se está comprimiendo: «Confirmar entregado» espera, para no entregar sin ella. */
-  fotoEnCamino?: boolean;
+  // Nota D-637: `fotosDeEntrega` y `fotoEnCamino` (las fotos de la cámara que «Mi ruta» abría al pulsar «Entregado»)
+  // se quitaron con esa cámara: las fotos de la entrega se toman ya dentro de la prueba de entrega.
 }) {
   const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, reentregaComoCarga, saveSettings, notify, realRole, pushNotifs, teaching } =
     useData();
@@ -228,12 +223,10 @@ export function OrderModal({
   const [notaSinListo, setNotaSinListo] = useState("");
   // Las fotos que se toman AL ENTREGAR (D-527): se guardan en la MISMA escritura que la entrega, no antes. El guard (157)
   // no le deja al chofer tocar las fotos de una orden en `picked_up` sin cambiar de etapa; al pasar a `delivered`, sí.
-  const [fotosDeLaEntrega, setFotosDeLaEntrega] = useState<string[]>(() => [...(fotosDeEntrega ?? [])]);
-  const camara = useCamaraDeEntrega((nuevas) => setFotosDeLaEntrega((antes) => fotosAlEntregar(antes, nuevas)));
-  // Las que llegan de «Mi ruta» después de abrir la ficha (la cámara vuelve cuando la ficha ya está pintada).
-  useEffect(() => {
-    if (fotosDeEntrega?.length) setFotosDeLaEntrega((antes) => fotosAlEntregar(antes, fotosDeEntrega));
-  }, [fotosDeEntrega]);
+  const [fotosDeLaEntrega, setFotosDeLaEntrega] = useState<string[]>([]);
+  // D-637: mientras la prueba de entrega lee o comprime fotos (cámara, galería o ráfaga), «Confirmar entregado» espera:
+  // entregar en ese momento las dejaría fuera. Antes lo vigilaba `camara.procesando`, la cámara de D-527.
+  const [fotosProcesando, setFotosProcesando] = useState(false);
   // Pallet confirmations: warehouse confirms the count on "Mark ready";
   // the driver confirms what actually fit on the truck at pickup (a short
   // load splits the order into #Na / #Nb).
@@ -1380,8 +1373,8 @@ export function OrderModal({
     // kept in one place so the two can't drift apart and leave a driver
     // pressing a button that silently refuses.
     if (podBlocker) { notify(podBlocker); return; }
-    // La foto de la cámara aún se está comprimiendo (D-527): entregar ahora la dejaría fuera.
-    if (fotoEnCamino || camara.procesando) return;
+    // Hay fotos aún comprimiéndose (D-527; D-637): entregar ahora las dejaría fuera.
+    if (fotosProcesando) return;
     setBusy(true);
     // Stamp where the driver actually is. Never blocks: resolves to null if the
     // device refuses, has no signal, or the page isn't served over HTTPS — and
@@ -1677,10 +1670,11 @@ export function OrderModal({
       setShowCancel={setShowCancel}
       cancelListo={!faltaParaAnular(cancelReason, cancelNote, motivos, lang)}
       onPrint={() => printDeliverySlip(existing, settings, users, lang)}
-      // D-527: el chofer, al pulsar «Marcar entregado», abre la cámara —lo PRIMERO del toque: después de un `await` el
-      // navegador ya no la abre— y a la vez la prueba de entrega, donde aparece la foto al volver. Los demás, como antes.
+      // D-527: el chofer, al pulsar «Marcar entregado», va siempre a la prueba de entrega. Nota D-637: ya NO abre la
+      // cámara por su cuenta («no que se lo imponga»): la prueba enseña «📸 Varias fotos», «📷 Una foto» y «🖼 Galería»
+      // y él elige. Los demás, como antes.
       onRequestDeliver={() => {
-        if (entregaConCamara(me.role)) { camara.abrir(); setShowPod(true); return; }
+        if (entregaConCamara(me.role)) { setShowPod(true); return; }
         if (podFormNeeded) setShowPod(true); else void deliverWithPod();
       }}
       podOpen={showPod}
@@ -1969,11 +1963,13 @@ export function OrderModal({
                   📷 {t("Material photos", "Fotos del material")}
                   {fotosQueCuentan.length > 0 && <span className="count-tag" style={{ marginLeft: 8 }}>{fotosQueCuentan.length}</span>}
                 </div>
+                {/* D-637: «📸 Varias fotos», «📷 Una foto» y «🖼 Galería», como en la prueba de entrega. */}
                 <PhotoUpload
                   photos={fotosOrden.photos ?? []}
                   credits={photoCredits}
                   urls={urlsDeLasFotos}
                   subir={subirFotos}
+                  rafaga
                   disabled={!canDeliver(me) || photoBusy || !fotosOrden.listas}
                   onChange={async (next) => {
                     // `next` sale de las fotos que se enseñan: sin las de la orden cargadas, guardarlo las borraría.
@@ -1986,7 +1982,7 @@ export function OrderModal({
                   t={t}
                 />
                 {!fotosOrden.listas && fotosQueCuentan.length > 0 && <div className="hint">{t("Loading photos…", "Cargando fotos…")}</div>}
-                <div className="hint">{t("Photo of the load / material. On a phone this opens the camera.", "Foto de la carga / material. En el teléfono abre la cámara.")}</div>
+                {canDeliver(me) && <div className="hint">{t("Photos of the load / material: several in a row, one with the phone's camera, or from the gallery.", "Fotos de la carga / material: varias seguidas, una con la cámara del teléfono, o de la galería.")}</div>}
               </>
             )}
 
@@ -2999,9 +2995,6 @@ export function OrderModal({
       </div>
     </div>
 
-    {/* La cámara de «Marcar entregado» del chofer (D-527): pintada siempre, para que el toque la encuentre. */}
-    {camara.input}
-
     {viewSig && existing?.pod_signature && (
       <PhotoLightbox
         photos={[existing.pod_signature]}
@@ -3072,11 +3065,12 @@ export function OrderModal({
                   photo is required" had nowhere in it to take one — so he
                   typed the name, pressed Confirm, and nothing happened. The
                   requirement has to be satisfiable where it is demanded. */}
-              {/* D-527: el chofer llega aquí con la cámara ya abierta («when you pres deliverd it should open the
-                  camera»), y la foto que toma sale aquí. Las fotos de este paso se guardan CON la entrega, en la misma
+              {/* D-527: las fotos de este paso se guardan CON la entrega, en la misma
                   escritura, y no al tomarlas: el guard (157) no le deja al chofer tocar las fotos de una orden en reparto
                   sin cambiar de etapa —ese `updateDelivery` le contestaba «You cannot edit an order in the picked_up
-                  stage»—, y al pasar a entregada sí. Cancelar este paso no las pierde mientras la ficha siga abierta. */}
+                  stage»—, y al pasar a entregada sí. Cancelar este paso no las pierde mientras la ficha siga abierta.
+                  Nota D-637: ya no se llega con la cámara abierta; aquí están las tres opciones —«📸 Varias fotos» (la
+                  ráfaga dentro de la app), «📷 Una foto» (la cámara del teléfono) y «🖼 Galería» (varias ya tomadas)—. */}
               {(!!settings.require_pod || entregaConCamara(me.role) || fotosDeLaEntrega.length > 0) && (
                 <div style={{ marginTop: 12 }} data-fotos-de-la-entrega>
                   <label>
@@ -3090,10 +3084,7 @@ export function OrderModal({
                       {t(`The order already has ${fotosQueCuentan.length} photo(s).`, `La orden ya tiene ${fotosQueCuentan.length} foto(s).`)}
                     </div>
                   )}
-                  <PhotoUpload photos={fotosDeLaEntrega} disabled={busy} onChange={setFotosDeLaEntrega} t={t} />
-                  {(fotoEnCamino || camara.procesando) && (
-                    <div className="hint" data-foto-en-camino style={{ marginTop: 4 }}>📷 {t("Processing the photo…", "Procesando la foto…")}</div>
-                  )}
+                  <PhotoUpload photos={fotosDeLaEntrega} disabled={busy} onChange={setFotosDeLaEntrega} t={t} rafaga onOcupado={setFotosProcesando} />
                 </div>
               )}
 
@@ -3136,7 +3127,7 @@ export function OrderModal({
               {/* Full-size targets: this is tapped standing at a tailgate. */}
               <div className="modal-actions" style={{ marginTop: 14 }}>
                 <button className="btn btn-ghost" onClick={() => { setShowPod(false); setPodName(""); setPodSig(null); setDeliveredElsewhere(false); setDeliveredAddress(""); }} disabled={busy}>{t("Cancel", "Cancelar")}</button>
-                <button className="btn btn-green" data-confirmar-entregado disabled={busy || !!podBlocker || fotoEnCamino || camara.procesando} onClick={deliverWithPod}>{t("Confirm delivered", "Confirmar entregado")}</button>
+                <button className="btn btn-green" data-confirmar-entregado disabled={busy || !!podBlocker || fotosProcesando} onClick={deliverWithPod}>{t("Confirm delivered", "Confirmar entregado")}</button>
               </div>
         </div>
       </div>

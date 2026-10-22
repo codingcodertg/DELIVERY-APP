@@ -66,26 +66,59 @@ export type SubidaDeFotos =
   | { ok: true; rutas: string[] }
   | { ok: false; message: string };
 
+/** Cuántas fotos suben a la vez (D-637). Tres: más rápido que una a una sin ahogar el 4G de un chofer en la calle. */
+export const SUBIDAS_A_LA_VEZ = 3;
+
+/**
+ * Corre `tarea` sobre cada elemento con, como mucho, `tope` a la vez, y devuelve los resultados EN EL ORDEN de entrada.
+ * Si `parar` dice que sí a un resultado, no se empiezan más (las que ya iban terminan).
+ */
+export async function enParaleloConTope<T, R>(
+  items: readonly T[], tope: number, tarea: (item: T, i: number) => Promise<R>, parar: (r: R) => boolean = () => false,
+): Promise<R[]> {
+  const resultados = new Array<R>(items.length);
+  let siguiente = 0;
+  let parado = false;
+  const obrero = async () => {
+    while (!parado && siguiente < items.length) {
+      const i = siguiente++;
+      resultados[i] = await tarea(items[i], i);
+      if (parar(resultados[i])) parado = true;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(tope, items.length)) }, obrero));
+  return resultados;
+}
+
 /**
  * Sube cada `data:` al cubo y devuelve sus rutas, EN EL MISMO ORDEN. Todo o nada: si una falla (el cubo no existe, la
  * política no deja, sin red), devuelve el error y quien llama NO guarda la orden —ni a medias con las que sí subieron—.
  * Las que ya son rutas pasan tal cual, así que llamarlo dos veces con la misma lista no sube nada dos veces.
+ *
+ * D-637: suben de `SUBIDAS_A_LA_VEZ` en `SUBIDAS_A_LA_VEZ` (antes, una a una). Las rutas y su numeración no cambian: el
+ * número `n` de cada foto se fija ANTES de subir, por su sitio en la lista, no por cuál termina antes. Y un `data:` que no
+ * es base64 se rechaza antes de subir ninguna.
  */
 export async function subirFotosDeEntrega(
   storage: AlmacenDeFotos, deliveryId: string, fotos: readonly string[], marca: number,
 ): Promise<SubidaDeFotos> {
-  const rutas: string[] = [];
+  type Pendiente = { ruta: string; cuerpo: Blob | null };
+  const pendientes: Pendiente[] = [];
   let n = 0;
   for (const foto of fotos) {
-    if (!esFotoEmbebida(foto)) { rutas.push(foto); continue; }
+    if (!esFotoEmbebida(foto)) { pendientes.push({ ruta: foto, cuerpo: null }); continue; }
     let cuerpo: Blob;
     try { cuerpo = blobDeDataUrl(foto); } catch { return { ok: false, message: "photo is not a base64 image" }; }
-    const ruta = rutaDeFotoDeEntrega(deliveryId, marca, n++);
-    const r = await storage.from(CUBO_DE_FOTOS).upload(ruta, cuerpo, { contentType: "image/jpeg", upsert: false });
-    if (r.error) return { ok: false, message: r.error.message };
-    rutas.push(ruta);
+    pendientes.push({ ruta: rutaDeFotoDeEntrega(deliveryId, marca, n++), cuerpo });
   }
-  return { ok: true, rutas };
+  const errores = await enParaleloConTope(pendientes, SUBIDAS_A_LA_VEZ, async ({ ruta, cuerpo }) => {
+    if (!cuerpo) return null;
+    const r = await storage.from(CUBO_DE_FOTOS).upload(ruta, cuerpo, { contentType: "image/jpeg", upsert: false });
+    return r.error ? r.error.message : null;
+  }, (error) => error !== null);
+  const error = errores.find((e) => typeof e === "string");
+  if (error !== undefined) return { ok: false, message: error };
+  return { ok: true, rutas: pendientes.map((p) => p.ruta) };
 }
 
 /**

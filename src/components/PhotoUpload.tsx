@@ -1,8 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
+import { CamaraDeVariasFotos } from "@/components/CamaraDeVariasFotos";
 import { srcDeFoto } from "@/lib/fotos-en-storage";
+import {
+  AVISO_SIN_CAMARA, fotosAlCerrarLaRafaga, hayCamaraEnVivo, huecoDeFotos, jpegComprimido, type FinDeRafaga,
+  type NavegadorConCamara,
+} from "@/lib/camara-de-varias-fotos";
 
 // ============================================================
 // Photos of the material, taken by the driver.
@@ -15,10 +20,11 @@ import { srcDeFoto } from "@/lib/fotos-en-storage";
 //
 // Desde la 178 (D-565) el `data:` comprimido NO se guarda en la fila: quien usa esto pasa `subir`, que lo manda al cubo
 // `delivery-photos` y devuelve la ruta; `onChange` recibe rutas. `urls` trae la URL firmada con la que se pinta cada ruta.
+//
+// D-637: con `rafaga`, tres opciones del mismo tamaño encima de las fotos —«📸 Varias fotos» (la cámara dentro de la
+// app, `CamaraDeVariasFotos`), «📷 Una foto» (la cámara del teléfono) y «🖼 Galería» (varias ya tomadas)—. La
+// compresión (1280 px, JPEG 0,7) vive en `jpegComprimido` (`lib/camara-de-varias-fotos.ts`), la misma para las tres.
 // ============================================================
-
-const MAX_DIM = 1280;
-const QUALITY = 0.7;
 
 /** Downscale + compress an image file to a JPEG data: URL. */
 export function compress(file: File): Promise<string> {
@@ -29,16 +35,7 @@ export function compress(file: File): Promise<string> {
       const img = new Image();
       img.onerror = () => reject(new Error("decode failed"));
       img.onload = () => {
-        const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("no canvas"));
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", QUALITY));
+        try { resolve(jpegComprimido(img, img.width, img.height)); } catch (e) { reject(e); }
       };
       img.src = reader.result as string;
     };
@@ -56,6 +53,8 @@ export function PhotoUpload({
   subir,
   t,
   galeria = false,
+  rafaga = false,
+  onOcupado,
 }: {
   photos: string[];
   onChange: (next: string[]) => void;
@@ -78,19 +77,46 @@ export function PhotoUpload({
    * que abre el selector de fotos sin `capture`, para una foto ya tomada. Sin esto, uno solo que abre la cámara.
    */
   galeria?: boolean;
+  /**
+   * Tres opciones del mismo tamaño (D-637), para donde el chofer pone fotos de la entrega o del material: «📸 Varias
+   * fotos» (la ráfaga dentro de la app), «📷 Una foto» (la cámara del teléfono, con `capture`) y «🖼 Galería» (selección
+   * múltiple, sin `capture`). Manda sobre `galeria`.
+   */
+  rafaga?: boolean;
+  /** Avisa mientras hay fotos leyéndose o subiendo, para que quien guarda espere (la entrega no sale sin ellas). */
+  onOcupado?: (ocupado: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const galeriaRef = useRef<HTMLInputElement>(null);
   const [viewing, setViewing] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [rafagaAbierta, setRafagaAbierta] = useState(false);
+  const [sinCamara, setSinCamara] = useState(false);
+  const ocupadoRef = useRef(onOcupado);
+  ocupadoRef.current = onOcupado;
+  useEffect(() => { ocupadoRef.current?.(busy); }, [busy]);
+
+  /** Guarda fotos ya comprimidas (`data:`): las sube si hay `subir`; si no suben, avisa y no toca nada. */
+  const guardarComprimidas = async (encoded: string[]) => {
+    let nuevas = encoded;
+    if (subir) {
+      const r = await subir(encoded);
+      if (!r.ok) {
+        setErr(t(`Couldn't upload the photo: ${r.message}. Nothing was saved.`, `No se pudo subir la foto: ${r.message}. No se guardó nada.`));
+        return;
+      }
+      nuevas = r.rutas;
+    }
+    onChange([...photos, ...nuevas]);
+  };
 
   const add = async (files: FileList | null) => {
     if (!files?.length) return;
     setBusy(true);
     setErr("");
     try {
-      const room = Math.max(0, max - photos.length);
+      const room = huecoDeFotos(photos.length, max);
       const picked = [...files].slice(0, room);
       const encoded: string[] = [];
       for (const f of picked) {
@@ -98,16 +124,7 @@ export function PhotoUpload({
         try { encoded.push(await compress(f)); } catch { /* skip unreadable file */ }
       }
       if (!encoded.length) { setErr(t("Couldn't read those files.", "No se pudieron leer esos archivos.")); return; }
-      let nuevas = encoded;
-      if (subir) {
-        const r = await subir(encoded);
-        if (!r.ok) {
-          setErr(t(`Couldn't upload the photo: ${r.message}. Nothing was saved.`, `No se pudo subir la foto: ${r.message}. No se guardó nada.`));
-          return;
-        }
-        nuevas = r.rutas;
-      }
-      onChange([...photos, ...nuevas]);
+      await guardarComprimidas(encoded);
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -115,11 +132,49 @@ export function PhotoUpload({
     }
   };
 
+  /** «📸 Varias fotos»: sin cámara dentro de la página (http, WebView viejo) ni se abre; sale el aviso y quedan las otras dos. */
+  const abrirRafaga = () => {
+    setErr("");
+    if (!hayCamaraEnVivo(navigator as unknown as NavegadorConCamara)) { setSinCamara(true); return; }
+    setSinCamara(false);
+    setRafagaAbierta(true);
+  };
+  /** «✅ Listo» entrega todas las de la ráfaga (hasta el máximo); «Cancelar», ninguna. Cerrarla apaga la cámara. */
+  const cerrarRafaga = async (fin: FinDeRafaga) => {
+    setRafagaAbierta(false);
+    const nuevas = fotosAlCerrarLaRafaga(fin, huecoDeFotos(photos.length, max));
+    if (!nuevas.length) return;
+    setBusy(true);
+    setErr("");
+    try { await guardarComprimidas(nuevas); } finally { setBusy(false); }
+  };
+
   const remove = (i: number) => onChange(photos.filter((_, x) => x !== i));
   const full = photos.length >= max;
 
   return (
     <div>
+      {rafaga && !disabled && !full && (
+        <div className="foto-opciones" data-opciones-de-foto>
+          <button type="button" className="foto-opcion" data-foto-rafaga onClick={abrirRafaga} disabled={busy}>
+            📸<span>{t("Several photos", "Varias fotos")}</span>
+          </button>
+          <button type="button" className="foto-opcion" data-foto-una onClick={() => inputRef.current?.click()} disabled={busy}>
+            📷<span>{t("One photo", "Una foto")}</span>
+          </button>
+          <button type="button" className="foto-opcion" data-foto-galeria onClick={() => galeriaRef.current?.click()} disabled={busy}>
+            🖼<span>{t("Gallery", "Galería")}</span>
+          </button>
+        </div>
+      )}
+      {rafaga && sinCamara && !full && (
+        <div className="hint" data-aviso-sin-camara style={{ marginTop: 0, marginBottom: 8, color: "var(--amber)", fontWeight: 600 }}>
+          ⚠ {t(AVISO_SIN_CAMARA.en, AVISO_SIN_CAMARA.es)}
+        </div>
+      )}
+      {rafaga && busy && (
+        <div className="hint" data-foto-en-camino style={{ marginTop: 0, marginBottom: 8 }}>📷 {t("Processing the photos…", "Procesando las fotos…")}</div>
+      )}
       <div className="photo-grid">
         {photos.map((src, i) => (
           <div className="photo-item" key={i}>
@@ -138,12 +193,12 @@ export function PhotoUpload({
             )}
           </div>
         ))}
-        {!disabled && !full && (
+        {!rafaga && !disabled && !full && (
           <button className="photo-add" data-foto-camara={galeria ? "" : undefined} onClick={() => inputRef.current?.click()} disabled={busy}>
             {busy ? "…" : <>📷<span>{galeria ? t("Camera", "Cámara") : t("Add photo", "Agregar foto")}</span></>}
           </button>
         )}
-        {galeria && !disabled && !full && !busy && (
+        {!rafaga && galeria && !disabled && !full && !busy && (
           <button className="photo-add" data-foto-galeria onClick={() => galeriaRef.current?.click()}>
             🖼<span>{t("Gallery", "Galería")}</span>
           </button>
@@ -159,13 +214,22 @@ export function PhotoUpload({
         hidden
         onChange={(e) => add(e.target.files)}
       />
-      {galeria && (
+      {(galeria || rafaga) && (
         <input ref={galeriaRef} type="file" accept="image/*" multiple hidden data-entrada-galeria onChange={(e) => add(e.target.files)} />
       )}
 
       {err && <div className="hint" style={{ color: "var(--red)" }}>{err}</div>}
       {full && <div className="hint">{t(`Maximum ${max} photos.`, `Máximo ${max} fotos.`)}</div>}
       {photos.length === 0 && disabled && <div className="hint">{t("No photos.", "Sin fotos.")}</div>}
+
+      {rafagaAbierta && (
+        <CamaraDeVariasFotos
+          max={huecoDeFotos(photos.length, max)}
+          onTerminar={(fin) => void cerrarRafaga(fin)}
+          onSinCamara={() => { setRafagaAbierta(false); setSinCamara(true); }}
+          t={t}
+        />
+      )}
 
       {viewing !== null && photos[viewing] && (
         <PhotoLightbox

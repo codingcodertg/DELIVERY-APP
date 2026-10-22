@@ -303,7 +303,12 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     const ruta = leer("src/app/(app)/my-route/page.tsx");
     // Nota D-527: `cerrarParada` ya no escribe (abre la ficha y, al entregar, la cámara) y dejó de ser `async`; la puerta
     // sigue siendo lo primero, antes de abrir la cámara. Y los dos «↩ Deshacer» nuevos llevan la suya.
-    const cuerpo = ruta.slice(ruta.indexOf('const cerrarParada = (d: Delivery, accion: "recoger" | "entregar") => {'), ruta.indexOf("camara.abrir();"));
+    // Nota D-637: «Entregado» ya no abre la cámara; la puerta va antes de abrir la ficha.
+    const a = ruta.indexOf('const cerrarParada = (d: Delivery, accion: "recoger" | "entregar") => {');
+    const b = ruta.indexOf("abrirOrden(d, accion);", a);
+    expect(a).toBeGreaterThan(-1);
+    expect(b).toBeGreaterThan(a);
+    const cuerpo = ruta.slice(a, b);
     expect(cuerpo).toContain("if (soloLectura) return;");
     const acciones = leer("src/components/AccionesDeParada.tsx");
     expect(acciones).toContain("if (ocupado || soloLectura) return false;");

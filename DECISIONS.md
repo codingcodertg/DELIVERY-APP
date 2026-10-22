@@ -42061,6 +42061,8 @@ No visto en navegador: `tsc` y vitest.
 **No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
 ## D-527 — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
 
+> **Reemplazada en parte por D-637** (2026-10-22): «Entregado» ya NO abre la cámara del teléfono («no que se lo imponga»): abre la prueba de entrega, y allí el chofer elige «📸 Varias fotos», «📷 Una foto» o «🖼 Galería». `useCamaraDeEntrega` y las props `fotosDeEntrega`/`fotoEnCamino` de la ficha se quitaron.
+
 > **Reemplazada en parte por D-533** (2026-10-12): «Recogido» con la carga lista vuelve a recoger de un toque (la orden se abre tocando su factura); «📍 Llegué» y «Recogido»/«Entregado» ya no van juntos: un solo botón que cambia, y «Rechazado» siempre en la entrega. Se quedan: «Entregado» abre la cámara, los dos «↩ Deshacer», y la recogida sin lista por la ficha con nota.
 
 > **Completada por D-531** (2026-10-12): la migración 169 (la 168 letra por letra con un bloque más) deja al chofer guardar `photos`/`photo_meta` y `departed_at`/`arrived_at` en SU orden sin cambiar de etapa; hasta entonces «📷 Fotos del material» desde el chofer no se guardaba.
@@ -44665,6 +44667,8 @@ La regla entera es una función pura, `shouldSoftReload({ stale, trigger, hidden
 
 ## D-565 · Las fotos de entrega van a Storage (cubo `delivery-photos`): la fila guarda rutas y `photo_meta` se indexa por la ruta, no por el base64 (migración 178, escrita SIN aplicar)
 
+> **Completada por D-637** (2026-10-22): `subirFotosDeEntrega` sube las fotos de tres en tres en vez de una a una. Mismo cubo, mismas rutas (`<id>/<marca>-<n>.jpg`, con `n` por su sitio en la lista) y mismo «todo o nada».
+
 **Fecha:** 2026-10-15 · Caída de la instancia de Supabase ese día · Migración 178 (cubo + políticas de Storage) · Script `scripts/migra-fotos-a-storage.mjs` para las fotos que ya están en la fila.
 
 **Lo que pidió el dueño**, literal: *«solo que se descargue lo neesario que se ocupa para ese momento»* y *«sigye rrabajando»*.
@@ -46571,3 +46575,64 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - Con datos reales.
 - Con el mapa de Google: el demo pinta Leaflet. Sus botones de zoom se quitan por su clase (`.gm-bundled-control`), sin haberlo visto en una foto.
 - Desde el teléfono.
+
+## D-637 · Fotos del chofer: «📸 Varias fotos» (la cámara dentro de la app), «📷 Una foto» y «🖼 Galería»; «Entregado» ya no abre la cámara solo; y las fotos suben de tres en tres
+
+**Fecha:** 2026-10-22 · Rama `feat/fotos-varias-del-chofer` (worker del orquestador). Sin migración. **Reemplaza en parte a D-527** y **completa D-565** (cada una lleva su nota).
+
+**Pedido (el dueño, 2026-10-22, literal):** «Quiero que los conductores tengan la opción de subir fotos directamente desde la cámara, porque ellos dicen que ahorita la función esa para tomar fotos no les sirve. Ellos tienen que tomar la foto con su cámara normal y después subir las imágenes por sí solas. Entonces quiero que me ayudes a hacer eso mejor, pues de que él pueda un solo desde la cámara tomar, no que se lo imponga, pero que la opción de tomar fotos de un solo, él pueda tomar varias fotos así, no que solo una aceptara, una no, que pueda tomar varias fotos de un solo y que él las pueda subir más rápido y que sea más eficiente.»
+
+**Qué había (medido en el código el 2026-10-22).**
+- «✅ Entregado» (en «Mi ruta» y «Marcar entregado» en la ficha) abría la cámara nativa sola (`useCamaraDeEntrega`, D-527): un `<input type="file" capture>`. La cámara nativa devuelve UNA foto por vez; en la app de Android, el `BridgeWebChromeClient` de Capacitor lanza `ACTION_IMAGE_CAPTURE` (una foto).
+- En la prueba de entrega, `<PhotoUpload>` iba sin `galeria`: un solo botón que abría la cámara. El chofer no podía subir fotos ya tomadas desde ahí.
+- `subirFotosDeEntrega` (D-565) subía las fotos al cubo una a una, en serie.
+
+**Qué cambia.**
+- **«📸 Varias fotos» (`CamaraDeVariasFotos.tsx`, lo puro en `lib/camara-de-varias-fotos.ts`):**
+  - La cámara trasera se abre dentro de la app con `getUserMedia`, a pantalla completa, y se queda abierta.
+  - Cada toque del disparador saca una foto del vídeo. Se comprime igual que las demás (1280 px, JPEG 0,7). La compresión es una sola función, `jpegComprimido`, que usa también `compress` de `PhotoUpload`.
+  - Abajo van las miniaturas con su ✕ y el contador «N / máx».
+  - «✅ Listo (N)» entrega todas de una vez; «Cancelar» cierra sin entregar nada.
+  - Respeta el máximo del sitio donde se usa (6 en la prueba de entrega y en «Fotos del material»).
+  - Al cerrar o desmontar, la cámara se apaga. Si el permiso llega después de cerrar, esa cámara también se apaga.
+  - Si `getUserMedia` no existe o falla (permiso negado, o la app de Android de antes de declarar CAMERA), no abre una pantalla negra. Sale este aviso de una línea: «Esta versión de la app no deja usar la cámara aquí: use 📷 Una foto o 🖼 Galería, o actualice la app». Las otras dos opciones siguen a la vista.
+- **`PhotoUpload` con `rafaga`:**
+  - Tres botones del mismo tamaño encima de las fotos: «📸 Varias fotos» (la ráfaga), «📷 Una foto» (la cámara nativa, con `capture`) y «🖼 Galería» (selección múltiple, sin `capture`).
+  - Se usa en la prueba de entrega y en «📷 Fotos del material» de la ficha. «Mi ruta» no tiene sitio propio de fotos: su prueba de entrega es la de la ficha.
+  - Lo ve cualquiera que llegue a esos dos sitios, no solo el chofer.
+  - Inspecciones y la pausa del chofer (recibo de gasolina, `max 1`, `galeria`) no cambian.
+- **«Entregado» ya no abre la cámara (reemplaza en parte a D-527).**
+  - En «Mi ruta», «Entregado» abre la ficha en la prueba de entrega (`abrirEn="entregar"`) y nada más.
+  - En la ficha, «Marcar entregado» del chofer abre la prueba de entrega (`entregaConCamara`: el nombre se queda).
+  - Se quitaron `useCamaraDeEntrega` (`CamaraDeEntrega.tsx`) y las props `fotosDeEntrega` y `fotoEnCamino` de `OrderModal`.
+  - La foto obligatoria sigue igual (`podSinCumplir`, `podBlocker`).
+  - «Confirmar entregado» sigue esperando mientras haya fotos leyéndose o comprimiéndose: antes lo vigilaba `camara.procesando`; ahora, `fotosProcesando`, que avisa `PhotoUpload` (`onOcupado`).
+- **Subir más rápido (completa D-565).**
+  - `subirFotosDeEntrega` sube de tres en tres (`SUBIDAS_A_LA_VEZ`, con `enParaleloConTope`).
+  - Mismo cubo, mismas rutas y misma numeración: `n` se fija por el sitio de la foto en la lista, no por cuál termina antes.
+  - Sigue siendo todo o nada. Si una subida falla, no se empiezan más.
+  - Un `data:` que no es base64 se rechaza antes de subir ninguna (antes subían las anteriores).
+- El texto de ayuda de «Fotos del material» ahora dice las tres formas, y solo lo ve quien puede añadir fotos.
+
+**Qué no cambia:** dónde se guardan las fotos ni el formato de sus rutas; la regla de foto obligatoria; quién ve «Fotos del material»; la app de Android (`mobile/`): ni manifiesto ni versión.
+
+**Pruebas:**
+- `camara-de-varias-fotos.test.ts` (nueva): medidas y lienzo de la compresión; tope, quitar, y qué entregan «Listo» y «Cancelar»; abrir, parar y la cámara que llega tarde; el aviso; la pantalla de la ráfaga pintada; las tres opciones de `PhotoUpload`; quién lleva `rafaga` y quién no.
+- `fotos-en-storage.test.ts`: tres a la vez como mucho (y más de una) con siete fotos que terminan al revés; rutas en orden; parar tras un fallo; rechazar antes de subir.
+- Reescritas por lo nuevo: `mi-ruta-pantalla`, `acciones-de-la-ficha`, `recogida-del-chofer` y `vista-de-chofer`: «Entregado» sin cámara.
+- `src` entero (8.712 pasan, 3 saltadas) y tsc limpio.
+- Mutantes: caen 12 de 12, cada uno con una prueba con nombre: sin las tres opciones; «Listo» entrega solo una; «Cancelar» entrega algo; no parar las pistas; la cámara tardía encendida; no cerrar al desmontar; sin aviso; la ficha y «Mi ruta» vuelven a abrir la cámara; la prueba de entrega sin `rafaga`; subida de una en una; subida sin tope.
+- **Navegador (demo, Chrome headless con cámara falsa), 390 px claro y oscuro y 1440 claro:**
+  - Como chofer en «Mi ruta», con una orden puesta en `picked_up` en la capa local, se pulsó «📍 Llegué» y «✅ Entregado». Se abrió la prueba con las tres opciones (115×68 a 390 px, 133×68 a 1440) y ningún selector de archivo.
+  - En la ráfaga, el vídeo salió a 1920×1080. Tres disparos dieron 3 miniaturas, «3 / 6» y «Listo (3)», con fotos de 1280×720. Tras «Listo» quedaron 3 fotos en la prueba y la pista de la cámara en `ended`.
+  - Con «Cancelar» tras un disparo, la prueba siguió con 3.
+  - «Una foto» y «Galería» abren el selector de archivos.
+  - Con `getUserMedia` rechazado sale el aviso y las otras dos siguen encendidas.
+  - Sin desborde horizontal.
+
+**No medido:**
+- En un teléfono de verdad, ni en Chrome de Android ni en la app.
+- En la app de Android publicada hoy (versionCode 5), `getUserMedia` debería fallar porque el manifiesto no declara CAMERA: ahí se espera el aviso hasta el APK 6. No se ha visto.
+- En iOS Safari.
+- Que la subida en paralelo sea más rápida con el 4G de un chofer.
+- Una entrega confirmada de verdad con las fotos subidas: el demo no sube al cubo.

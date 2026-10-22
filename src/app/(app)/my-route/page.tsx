@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { canDeliver } from "@/lib/constants";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { AccionesDeParada } from "@/components/AccionesDeParada";
-import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 import { llegadaDeLaParada, llegadasDeParadas, marcasDeParadas, type LlegadaDeParada } from "@/lib/acciones-parada";
 import { llegadaDeLaOrden, llevaBotonDeLlegada, MOSTRAR_SIGUIENTE_PARADA, seRecogeDeUnToque, siguienteDeMiRuta, textoDePosicion } from "@/lib/siguiente-de-mi-ruta";
 import { PalletsAlRecoger } from "@/components/PalletsAlRecoger";
@@ -69,7 +68,7 @@ import { muestraElPlanEnMiRuta } from "@/lib/barra-de-entregas";
 // plegada; fuera «Ver la ruta completa» y el aviso de paradas vencidas de la cabecera; y «⏸ Registrar parada».
 //
 // D-527 (2026-10-11): «Recogido» y «Entregado» ya no cierran la parada de un toque: abren la ficha de la orden en ese
-// paso (D-218 queda reemplazada en esta pantalla), y «Entregado» abre además la cámara. «📍 Llegué» va en la misma fila
+// paso (D-218 queda reemplazada en esta pantalla), y «Entregado» abre además la cámara (ya no: D-637). «📍 Llegué» va en la misma fila
 // que «Recogido» / «Entregado», y las dos cosas se deshacen. Detalle en `AccionesDeParada` y `recogida-del-chofer.ts`.
 //
 // D-533 (2026-10-12), **reemplaza en parte a D-527**: «Siguiente parada» sigue la ruta POR PARADAS («next stop 1 of 5 and
@@ -95,14 +94,8 @@ export default function MyRoutePage() {
   const [open, setOpen] = useState<Delivery | null>(null);
   // En qué paso abre la ficha (D-527): «recoger» desde «Recogido», «entregar» (la prueba de entrega) desde «Entregado».
   const [abrirEn, setAbrirEn] = useState<"recoger" | "entregar" | undefined>(undefined);
-  // Las fotos que se tomaron con la cámara al pulsar «Entregado», y de qué orden son. La cámara se abre AQUÍ y no en la
-  // ficha porque la ficha aún no existe en el momento del toque, y el navegador solo abre la cámara dentro del toque.
-  const [fotosDeEntrega, setFotosDeEntrega] = useState<{ id: string; fotos: string[] } | null>(null);
-  const fotoPara = useRef<string | null>(null);
-  const camara = useCamaraDeEntrega((nuevas) => {
-    const id = fotoPara.current;
-    if (id) setFotosDeEntrega((f) => ({ id, fotos: [...(f?.id === id ? f.fotos : []), ...nuevas] }));
-  });
+  // Nota D-637: aquí vivía la cámara que «Entregado» abría sola (D-527) y las fotos que traía para la ficha. Se quitó
+  // («no que se lo imponga»): «Entregado» abre la prueba de entrega y el chofer elige allí cómo pone las fotos.
   // Qué lista se ve (D-522): «Pendientes» o «Entregadas», las dos opciones juntas arriba y se elige una. Nace en Pendientes.
   const [listaElegida, setListaElegida] = useState<SeccionDeMiRuta>("pendientes");
   // La orden cuyo «Recogido» espera el número de pallets (D-547): mientras no es `null`, el cuadro está abierto.
@@ -171,7 +164,7 @@ export default function MyRoutePage() {
 
   /** Abre la ficha de una orden, en un paso o sin paso (tocar el texto de una parada o el mapa). */
   const abrirOrden = (d: Delivery, paso?: "recoger" | "entregar") => { setAbrirEn(paso); setOpen(d); };
-  const cerrarFicha = () => { setOpen(null); setAbrirEn(undefined); setFotosDeEntrega(null); fotoPara.current = null; };
+  const cerrarFicha = () => { setOpen(null); setAbrirEn(undefined); };
 
   /**
    * «🚚 Recogido» y «✅ Entregado» de una parada (D-527; antes D-218).
@@ -181,10 +174,9 @@ export default function MyRoutePage() {
    * you pres deliverd it should open the camera so you can add the proof of delikvery for the driver». Ahora:
    *  - **Recogido** abre la ficha en la recogida (`abrirEn="recoger"`): si está lista, con «🚚 Recoger» a la vista; si el
    *    almacén aún no la marcó lista, con «Recoger de todos modos» y su nota ya abierta.
-   *  - **Entregado** abre la cámara del teléfono —AQUÍ y lo PRIMERO: el navegador solo la abre dentro del toque, antes de
-   *    cualquier `await`— y a la vez la ficha en la prueba de entrega (`abrirEn="entregar"`). La foto, al volver, se pone
-   *    en esa prueba. Si cancela la cámara, la prueba ya está abierta: la pide si la oficina la exige; si no, deja
-   *    confirmar sin foto.
+   *  - **Entregado** abre la ficha en la prueba de entrega (`abrirEn="entregar"`). Nota D-637: ya NO abre la cámara del
+   *    teléfono por su cuenta; en la prueba están «📸 Varias fotos», «📷 Una foto» y «🖼 Galería», y el chofer elige. La
+   *    prueba pide la foto si la oficina la exige (`podSinCumplir`); si no, deja confirmar sin foto.
    */
   const cerrarParada = (d: Delivery, accion: "recoger" | "entregar") => {
     // La ruta de otro (D-502): sus botones están apagados, y esto es la segunda puerta por si alguno no lo estuviera.
@@ -195,11 +187,6 @@ export default function MyRoutePage() {
     if (accion === "recoger" && seRecogeDeUnToque(d.stage)) { setPalletsDe(d); return; }
     // D-603: sin «listo» (aprobada / preparando), el cuadro pequeño del motivo; la ficha se abre DESPUÉS de recoger.
     if (accion === "recoger" && abreElCuadroSinListo(d.stage)) { setSinListoDe(d); return; }
-    if (accion === "entregar") {
-      fotoPara.current = d.id;
-      setFotosDeEntrega(null);
-      camara.abrir();
-    }
     abrirOrden(d, accion);
   };
 
@@ -595,16 +582,12 @@ export default function MyRoutePage() {
         </>
       )}
 
-      {/* La cámara de «Entregado» (D-527): pintada siempre, porque el toque la tiene que encontrar ya en la página. */}
-      {camara.input}
       {/* «¿Cuántos pallets cargas?» (D-547): sale con «Recogido» de una carga lista; al confirmar, recoge con ese número. */}
       {sinListoDe && <RecogerSinListo pedido={sinListoDe} ocupado={recogiendo === sinListoDe.id} onCancelar={() => setSinListoDe(null)}
         onConfirmar={(nota) => void recogerSinListoDeUnToque(sinListoDe, nota)} />}
       {palletsDe && <PalletsAlRecoger pedido={palletsDe} onCancelar={() => setPalletsDe(null)}
         onConfirmar={(n) => { const d = palletsDe; setPalletsDe(null); void recogerDeUnToque(d, n); }} />}
-      {open && <OrderModal me={me} existing={open} startEditing={false} onClose={cerrarFicha} abrirEn={abrirEn}
-        fotosDeEntrega={fotosDeEntrega?.id === open.id ? fotosDeEntrega.fotos : undefined}
-        fotoEnCamino={camara.procesando} />}
+      {open && <OrderModal me={me} existing={open} startEditing={false} onClose={cerrarFicha} abrirEn={abrirEn} />}
     </>
   );
 }
