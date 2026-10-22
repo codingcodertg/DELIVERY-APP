@@ -43,7 +43,7 @@ export type QuienCrea = {
   /** Intertienda sin PO: eso ya iba a pendiente antes de esta regla. */
   intertiendaSinPo: boolean;
   /**
-   * Pasada la hora de corte para hoy o mañana temprano, o con el cupo de la mañana lleno (D-NEXT,
+   * Pasada la hora de corte para hoy o mañana temprano, o con el cupo de la mañana lleno (D-639,
    * `aprobacion-por-hora-y-cupo`). Solo le quita la aprobación de la TIENDA: si la crea la oficina, esa es la aprobación.
    */
   fueraDeHoraOCupo?: boolean;

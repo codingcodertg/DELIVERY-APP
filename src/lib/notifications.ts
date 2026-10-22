@@ -52,7 +52,7 @@ export function notificationsForStage(args: {
 
   switch (stage) {
     case "pending":
-      // También a Office (`accounting`), que es quien aprueba lo que llega por hora de corte o cupo (D-NEXT). El motivo
+      // También a Office (`accounting`), que es quien aprueba lo que llega por hora de corte o cupo (D-639). El motivo
       // va en el aviso: quien aprueba tiene que saber qué está aprobando sin abrir la orden.
       for (const m of [...withRole("manager"), ...withRole("accounting")]) push(m.id, "pending", `Order ${label} is awaiting your approval${reason ? `: ${reason}` : ""}`);
       break;

@@ -372,7 +372,7 @@ export function OrderModal({
    * por qué botón haya salido. Se calcula aquí, con el resto de los datos de los que depende, y se
    * le pasa a los botones ya decidida — ellos solo la pintan.
    */
-  // Hora de corte y cupo de la mañana (D-NEXT): le quitan a la orden del vendedor la aprobación de la tienda. El cupo se
+  // Hora de corte y cupo de la mañana (D-639): le quitan a la orden del vendedor la aprobación de la tienda. El cupo se
   // cuenta en el servidor (`/api/cupo-de-la-manana`), porque ventas solo ve sus órdenes. Solo se mira mientras la orden
   // todavía no ha salido: nueva, borrador o rechazada.
   const reglasVigentes = useMemo(() => reglasDeAprobacion(settings.approval_rules), [settings.approval_rules]);
@@ -980,7 +980,7 @@ export function OrderModal({
     if ((to === "pending" || esEnvioDeBorrador(existing.stage, to)) && blockSubmit(existing)) return;
     // Un borrador guardado ANTES de D-589 puede llevar la dirección a medias: no sale del borrador así.
     if (esEnvioDeBorrador(existing.stage, to) && !direccionesCompletasDe(existing)) return;
-    // Enviar un borrador que iba a aprobarse solo: hora y cupo se miran de nuevo al pulsar (D-NEXT). Si alguno salta,
+    // Enviar un borrador que iba a aprobarse solo: hora y cupo se miran de nuevo al pulsar (D-639). Si alguno salta,
     // va a aprobación con el motivo, que se apunta en el historial y le llega a la oficina en el aviso.
     if (esEnvioDeBorrador(existing.stage, to) && to === "approved") {
       const motivosDelEnvio = await motivosAlEnviar(existing);
@@ -2952,7 +2952,7 @@ export function OrderModal({
           </div>
         )}
 
-        {/* ---------- POR QUÉ VA A APROBACIÓN (D-NEXT) ---------- */}
+        {/* ---------- POR QUÉ VA A APROBACIÓN (D-639) ---------- */}
         {paso === "completo" && avisaMotivos && (editing || existing?.stage === "draft" || existing?.stage === "rejected") && (
           <div className="card" data-motivos-de-aprobacion style={{ marginTop: 14, marginBottom: 0, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
             <b style={{ color: "var(--amber-text)" }}>⏳ {t("This order will need office approval", "Esta orden necesitará aprobación de oficina")}</b>

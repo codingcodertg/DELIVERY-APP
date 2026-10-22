@@ -150,7 +150,7 @@ describe("la pantalla dice lo mismo que la base", () => {
 
   it("la orden nueva decide con naceAprobada, no con una expresión suelta", () => {
     expect(modal).toContain("const cuentaPideAprobacion = cuentaRequiereAprobacion(settings.accounts, d.account);");
-    // Los datos de la decisión se arman en UN sitio, `quienCrea` (D-NEXT), que usan el botón de crear, su etiqueta y el
+    // Los datos de la decisión se arman en UN sitio, `quienCrea` (D-639), que usan el botón de crear, su etiqueta y el
     // envío del borrador; y la cuenta tiene que estar entre ellos.
     const q = modal.indexOf("const quienCrea = (motivos: MotivoDeAprobacion[]): QuienCrea => ({");
     expect(q).toBeGreaterThan(-1);

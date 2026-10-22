@@ -581,7 +581,7 @@ function Toggle({
 }
 
 /**
- * Hora de corte y cupo de la mañana (D-NEXT): cuándo la orden de un vendedor va a aprobación de oficina aunque su tienda
+ * Hora de corte y cupo de la mañana (D-639): cuándo la orden de un vendedor va a aprobación de oficina aunque su tienda
  * apruebe sola. Se guarda entero en `approval_rules` (migración 190); los defectos son los de Roberto, 2026-10-22.
  */
 function ReglasDeAprobacionCard({ settings, saveSettings, notify, t }: {

@@ -1,7 +1,7 @@
 import { parseWindow } from "./dispatch";
 
 /**
- * Dos razones nuevas para que la orden de un vendedor vaya a aprobación de oficina en vez de nacer aprobada (D-NEXT).
+ * Dos razones nuevas para que la orden de un vendedor vaya a aprobación de oficina en vez de nacer aprobada (D-639).
  *
  * Roberto Rodriguez Jr (admin), 2026-10-22, con la captura del Gestor:
  *

@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ocupadasPorVentana, reglasDeAprobacion, type FilaDeCupo } from "@/lib/aprobacion-por-hora-y-cupo";
 
 /**
- * Cuántas órdenes hay ya en cada ventana con cupo de la mañana, en una fecha (D-NEXT).
+ * Cuántas órdenes hay ya en cada ventana con cupo de la mañana, en una fecha (D-639).
  *
  * Con la llave de servicio por lo mismo que `next-order-code` (D-460): ventas ve solo SUS órdenes (RLS), así que contadas
  * en el navegador el cupo nunca se llenaría para nadie. Exige sesión, lee solo cuatro columnas de ese día y devuelve los

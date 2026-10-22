@@ -116,7 +116,7 @@ export interface DataState {
   pushNotifs: (seeds: import("@/lib/notifications").NotifSeed[]) => Promise<void>;
 
   // delivery CRUD
-  /** `motivo`: por qué va a aprobación (D-NEXT); se apunta en el historial y viaja en el aviso a la oficina. */
+  /** `motivo`: por qué va a aprobación (D-639); se apunta en el historial y viaja en el aviso a la oficina. */
   addDelivery: (d: Partial<Delivery>, opts?: { motivo?: string }) => Promise<Delivery | null>;
   /** `quiet` suppresses the error toast, for background patches the user
    * never asked for and can do nothing about — a failure there must not look
