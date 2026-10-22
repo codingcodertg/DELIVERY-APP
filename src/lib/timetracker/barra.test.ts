@@ -245,15 +245,18 @@ describe("en el teléfono, arriba: el nombre de la app, la casa, la campana y so
 
   it("la campana y la cuenta suben a la fila del nombre; las pestañas bajan a la suya", () => {
     const barra = plano(sinComentarios(leer("src/components/timetracker/TopBar.tsx")));
-    expect(barra).toContain('<div className="tt-marca"> <div className="brand">');
-    expect(barra).toContain('<div className="row tt-barra-resto" style={{ alignItems: "center", flexWrap: "wrap" }}>');
+    // Desde D-NEXT la marca y la caja de la derecha son las de `BarraDeApp`; las reglas del teléfono de la marca están en
+    // globals.css (las de Entregas, D-545) y aquí queda lo propio de Time Tracker.
+    expect(barra).toContain('claseDelResto="tt-barra-resto">');
     expect(tel).toContain(".timetracker-module .topbar .tt-barra-resto{display:contents}");
-    expect(tel).toContain(".timetracker-module .topbar .tt-marca{flex:1 1 0;gap:3px}");
+    expect(tel).not.toContain(".tt-marca");
     expect(tel).toContain(".timetracker-module .topbar .tabs{order:2;flex:1 1 100%;min-width:0}");
   });
 
   it("el nombre de la app se corta con «…» antes que empujar la campana a otra fila", () => {
-    expect(tel).toContain(".timetracker-module .topbar .brand{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}");
+    // La regla es la de Entregas, en globals.css, y vale para el `<h1>` de `BarraDeApp` en todas las apps.
+    expect(leer("src/app/globals.css")).toContain(".topbar .entregas-marca h1 { font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }");
+    expect(tel).not.toContain(".brand{");
   });
 
   it("de la cuenta, solo la burbuja: el nombre se esconde a la vista (no a un lector de pantalla) y el ▾ se va", () => {

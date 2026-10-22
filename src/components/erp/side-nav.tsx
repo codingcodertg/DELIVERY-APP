@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Badge } from "@/components/erp/ui/badge";
+import { BarraDeApp } from "@/components/BarraDeApp";
 import { BotonRecargar } from "@/components/BotonRecargar";
 import { MenuDeCuenta } from "@/components/MenuDeCuenta";
 import type { AppRole } from "@/lib/erp/domain/roles";
 import { erpNav, entradaActiva, type NavItem } from "@/lib/erp/nav";
 import { usePrefs } from "@/lib/prefs";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
+import type { UserRole } from "@/lib/types";
 
 /**
  * La barra de Inventario (antes «RTG ERP») y de Clientes: la MISMA barra superior que Entregas (D-622, 2026-10-21).
@@ -20,12 +22,17 @@ import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
  * app, la casa del hub, las pestañas y el menú del nombre— con las mismas clases que Entregas y Time Tracker, y en el
  * teléfono se parte en dos filas por las mismas reglas (`.entregas-marca` / `.entregas-barra-resto`, D-545).
  *
+ * Desde D-NEXT (2026-10-22) la barra no se copia: es `BarraDeApp`, la misma pieza de todas las apps, con la casa
+ * `HubHomeLink`. Hasta entonces este fichero pintaba su propia casa con `{hubReachable && …}`, y el dueño veía la del
+ * ERP en un sitio y la de RR. HH. en otro.
+ *
  * El fichero conserva su nombre y su firma (`SideNav`, con `otra` para Clientes) a propósito: veinte páginas y seis
  * pruebas lo citan, y lo que cambia es cómo se pinta, no quién lo usa.
  *
  * G-10 (D-203): habla el idioma del HUB (usePrefs) con pares inline. Las entradas y quién ve cada una viven en
- * `lib/erp/nav.ts` (D-553, D-586); aquí solo se pintan. Y sigue sin decidir por su cuenta si hay hub al que volver:
- * `hubReachable` llega ya contestado desde `header.tsx` (D-227).
+ * `lib/erp/nav.ts` (D-553, D-586); aquí solo se pintan. Y sigue sin decidir por su cuenta si hay hub al que volver: lo
+ * decide `HubHomeLink` con `canReachHub` —la única regla, D-227—, con el rol del hub y los módulos que `header.tsx`
+ * saca de la sesión.
  */
 
 const roleStyles: Record<string, string> = {
@@ -39,15 +46,18 @@ export function SideNav({
   fullName,
   email,
   cost,
-  hubReachable,
+  deliveriesRole,
+  moduleAccess,
   otra,
 }: {
   role: AppRole;
   fullName: string | null;
   email: string;
   cost: boolean;
-  /** ¿Existe un hub al que volver para esta persona? (D-227) Llega resuelto desde `header.tsx`. */
-  hubReachable: boolean;
+  /** El rol del HUB (la columna `role` de `profiles`, no el `AppRole` del ERP) y sus módulos: con ellos decide la casa
+   *  (`HubHomeLink`, `canReachHub`, D-227). Llegan de la sesión que `header.tsx` ya leía. */
+  deliveriesRole: UserRole;
+  moduleAccess: string[] | null;
   /**
    * Otra app con esta misma barra (Clientes, migración 180): su nombre, sus entradas y la pastilla que enseña.
    * Sin esto, la barra es la de Inventario: «RTG Inventario», `erpNav(role)` y el nivel con la nota de costo. Con
@@ -84,16 +94,7 @@ export function SideNav({
   );
 
   return (
-    <div className="topbar">
-      <div className="entregas-marca" style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-        <h1>{marca}</h1>
-        {hubReachable && (
-          <Link href="/home" className="tab tab-icon tab-casa" aria-label={t("Back to the hub", "Volver al hub")} title={t("Back to the hub", "Volver al hub")}>
-            🏠
-          </Link>
-        )}
-      </div>
-      <div className="entregas-barra-resto">
+    <BarraDeApp nombre={marca} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess}>
         <nav className="tabs">
           {pestanas.map((i) => (
             <Link key={i.href} href={i.href} className={"tab" + (i.href === encendida ? " active" : "")}>
@@ -123,7 +124,6 @@ export function SideNav({
             </>
           )}
         </MenuDeCuenta>
-      </div>
-    </div>
+    </BarraDeApp>
   );
 }

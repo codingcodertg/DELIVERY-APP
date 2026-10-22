@@ -54,12 +54,13 @@ describe("recruiting.css: las dos paletas y lo suelto", () => {
     expect(claro.filter((t) => !oscuro.includes(t))).toEqual(["--brand-surface"]);
     expect(oscuro.filter((t) => !claro.includes(t))).toEqual([]);
   });
-  it("colores sueltos (no tokens): 15 en 14 líneas, los de la decisión, y no más", () => {
+  it("colores sueltos (no tokens): 14, los de la decisión, y no más", () => {
     const sueltos = coloresSueltosCss(css);
-    expect(sueltos.length).toBeLessThanOrEqual(15);
-    // Blancos sobre color (9), el velo, las sombras: intencionales, uno a uno.
+    expect(sueltos.length).toBeLessThanOrEqual(14);
+    // Blancos sobre color (8), el velo, las sombras: intencionales, uno a uno. Eran 9 blancos: el de `.topbar` se fue en
+    // D-NEXT, cuando la barra de RR. HH. pasó a pintarla globals.css.
     expect(sueltos.map((x) => x.texto).sort()).toEqual(
-      ["#fff", "#fff", "#fff", "#fff", "#fff", "#fff", "#fff", "#fff", "#fff",
+      ["#fff", "#fff", "#fff", "#fff", "#fff", "#fff", "#fff", "#fff",
         "rgba(0,0,0,.15)", "rgba(0,0,0,.18)", "rgba(15,23,42,.55)", "rgba(21,34,56,.05)", "rgba(255,255,255,.08)", "rgba(36, 86, 201, .12)"].sort(),
     );
   });

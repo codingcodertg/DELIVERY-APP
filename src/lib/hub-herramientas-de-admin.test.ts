@@ -140,7 +140,9 @@ describe("D-623 (2026-10-21): el switch y la vista móvil salen de la barra y va
   });
 
   it("desde Entregas, la casa lleva al lobby en un clic con la misma regla de siempre", () => {
-    expect(barra).toMatch(/<HubHomeLink deliveriesRole=\{me\.role\} moduleAccess=\{me\.module_access\} \/>/);
+    // La casa la pone `BarraDeApp` (D-NEXT), con el rol y los módulos que Entregas le pasa.
+    expect(barra).toMatch(/<BarraDeApp nombre=[^\n]* deliveriesRole=\{me\.role\} moduleAccess=\{me\.module_access\}>/);
+    expect(sinComentarios(leer("src/components/BarraDeApp.tsx"))).toContain("<HubHomeLink deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />");
     expect(sinComentarios(leer("src/components/HubHomeLink.tsx"))).toMatch(/if \(!canReachHub\([^\n]*\) return null;/);
   });
 });

@@ -19,8 +19,9 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  * Desde la 189 tiene dos pestañas: la lista y «Decidir si se juntan», con las pendientes contadas (con la sesión de
  * quien mira: la RLS de la 189 decide; sin la 189 o sin permiso, sin número).
  */
-export function BarraDeClientes({ role, fullName, email, hubReachable }: {
-  role: UserRole; fullName: string | null; email: string; hubReachable: boolean;
+export function BarraDeClientes({ role, fullName, email, moduleAccess }: {
+  /** El rol del hub (`profiles.role`): el de la pastilla y el que decide la casa (`HubHomeLink`, D-NEXT). */
+  role: UserRole; fullName: string | null; email: string; moduleAccess: string[] | null;
 }) {
   const { t } = usePrefs();
   const [pendientes, setPendientes] = useState<number | null>(null);
@@ -43,7 +44,8 @@ export function BarraDeClientes({ role, fullName, email, hubReachable }: {
       fullName={fullName}
       email={email}
       cost={false}
-      hubReachable={hubReachable}
+      deliveriesRole={role}
+      moduleAccess={moduleAccess}
       otra={{
         brand: t("RTG Customers", "RTG Clientes"),
         badge: role,

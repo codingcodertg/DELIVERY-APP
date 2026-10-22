@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -97,8 +96,8 @@ export function Encuestas({ demo }: { demo: boolean }) {
     <div className="enc-wrap">
       <div className="enc-cabecera">
         <div>
-          <Link href="/home" className="btn btn-ghost btn-sm">◂ {t("Back to hub", "Volver al hub")}</Link>
-          <h1 style={{ marginTop: 10 }}>📋 {t("Customer surveys", "Encuestas de clientes")}</h1>
+          {/* Sin «◂ Volver al hub»: la casa está en la barra de arriba, la de todas las apps (D-NEXT). */}
+          <h1>📋 {t("Customer surveys", "Encuestas de clientes")}</h1>
           <p className="hint" style={{ marginTop: 0 }}>
             {t("Answers from the public survey site.", "Las respuestas del sitio público de la encuesta.")}
             {demo ? ` ${t("Demo data.", "Datos de demostración.")}` : ""}

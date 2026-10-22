@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { RONDAS_DEMO } from "@/lib/promos/demo";
@@ -59,9 +58,6 @@ function SinRondas() {
           in <code>scripts/promos/</code> — or you don&apos;t have the promos module enabled.
         </p>
       </div>
-      <p style={{ marginTop: 16 }}>
-        <Link href="/home">← Volver / Back</Link>
-      </p>
     </div>
   );
 }

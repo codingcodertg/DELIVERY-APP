@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createErpClient } from "@/lib/erp/supabase/server";
-import { canReachHub } from "@/lib/constants";
 import { leeConRespaldo } from "@/lib/customers/almacen";
 import { CLIENTES_DEMO } from "@/lib/customers/demo";
 import { filasDeLaEmpresa } from "@/lib/customers/empresas";
@@ -33,7 +32,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     if (!c) notFound();
     return (
       <>
-        <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" hubReachable />
+        <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" moduleAccess={null} />
         <FichaCompleta cliente={c} hermanas={filasDeLaEmpresa(CLIENTES_DEMO, c)} />
       </>
     );
@@ -65,7 +64,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
 
   return (
     <>
-      <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} hubReachable={canReachHub({ role, module_access: moduleAccess })} />
+      <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} moduleAccess={moduleAccess} />
       <FichaCompleta cliente={cliente} hermanas={hermanas} />
     </>
   );

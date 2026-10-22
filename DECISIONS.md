@@ -2031,6 +2031,7 @@ cambio; si algún día se ven igual de vacíos, es la misma causa.
 
 ## D-055 · Botón "volver al hub", junto al switcher
 > **Reemplazada en parte por D-274** (2026-09-17): en Entregas la casa sale sola, junto al nombre de la app, y el salto directo `⇄` desaparece. En RR. HH. y Time Tracker esta entrada sigue en pie. El texto de abajo se conserva tal cual.
+> **Reemplazada en parte por D-NEXT** (2026-10-22): la casa ya no vive en `ModuleSwitcher`; en todas las apps va pegada al nombre, a la izquierda (`BarraDeApp`). En RR. HH. el `⇄` se queda.
 **Fecha:** 2026-08-19 · **Versión:** v1.11.0 · **Pedido por:** Andrés
 
 **Cambio:** `ModuleSwitcher.tsx` gana un segundo control, `⌂` (enlace directo
@@ -11936,6 +11937,7 @@ arranque va por el código, no por haberlo visto. `verify.mjs`: en verde sobre `
 ## D-227 · «Todas las apps» solo se pinta si hay apps a las que ir
 
 > **Reemplazada en parte por D-619** (2026-10-20): el ERP conserva un solo enlace al hub, el de la cabecera.
+> **Reemplazada en parte por D-NEXT** (2026-10-22): la barra del ERP ya no pinta su casa ni recibe `hubReachable`: la casa es `HubHomeLink` (la de todas las apps), que pregunta `canReachHub` con el rol del hub que `header.tsx` le pasa.
 
 **Fecha:** 2026-09-09 · **Versión:** la pone el orquestador (toca ERP) · Sin migración.
 **Pedido por:** el dueño: entra con una cuenta que solo tiene el ERP, pulsa **«Todas las apps»** y
@@ -26798,6 +26800,8 @@ nada de 122, 123, 125, 127, 138 ni 139.
   `agregar-material.test.ts`) se mueven a la 142 en la rama de pantalla.
 
 ## D-378 · La ronda de promos vuelve a tener cómo volver al hub
+
+> **Reemplazada en parte por D-NEXT** (2026-10-22): el «◂ Volver al hub» de la ronda se fue; la vuelta es la casa de la barra de todas las apps, que el layout de promos monta encima de la ronda y de la pantalla sin rondas.
 
 **Fecha:** 2026-09-23 · **Versión:** promos 0.6.0 · **Sin migración.**
 
@@ -46884,3 +46888,99 @@ del motivo y el «Changed: Delivery Date», y la tarjeta se va.
 **No medido:** la recomendación con días reales ANTES de que la oficina moviera nada (la «fecha original» del historial
 mezcla los movimientos del cron de D-406 y da 2 días; no es comparable); el guardado de verdad por la 173 desde la tarjeta
 (el demo guarda por el respaldo); si a la oficina le sirve el umbral de 1 pallet o lo sube.
+
+## D-NEXT · La misma barra en todas las apps: el nombre con la casa a la izquierda, del mismo tamaño (`BarraDeApp`)
+
+**Fecha:** 2026-10-22 · **Sin migración** · Rama `barra-igual`.
+
+**Pedido literal (Andrés, con la barra de Entregas delante):** «Estás viendo cómo está el header de RDZ Deliveries. Quiero
+que así sea el header de todas. Todos. De ERP, de HR. Todo con su casita del lado izquierdo, del mismo tamaño. Todo quiero
+que sea el mismo tamaño, el mismo header. Porque HR tiene la casa por acá, ERP tiene por acá. Entonces quiero que todo sea
+igual.»
+
+### Causa
+
+Cada app montaba su barra a mano, y por eso no salían iguales:
+
+- **RR. HH.**: la casa vivía dentro de `ModuleSwitcher`, a la DERECHA, después de las pestañas. Y `recruiting.css` traía una
+  copia de `.topbar`, `.topbar h1`, `.tabs` y `.tab` con más peso que globals.css: su `.recruiting-module .tab` (13 px)
+  le ganaba a `.tab-casa` (26 px), así que la casa salía del tamaño de una palabra; y como la copia no tenía versión de
+  teléfono, en RR. HH. no aplicaban el relleno de 10 px, el nombre de 14 px ni la fila de pestañas que se desliza.
+- **ERP (Inventario) y Clientes**: la casa era una copia escrita en `erp/side-nav.tsx` con `{hubReachable && …}`, y el
+  preflight de Tailwind le pone `line-height: 1.5` a todo, con lo que nombre y pestañas eran más altos que en Entregas.
+- **Time Tracker**: la casa sí era `HubHomeLink`, pero el nombre era un `.brand` con su letra propia y `line-height: 1.45`.
+- **Leads, Encuestas, el Cotizador y Promos**: no tenían barra; un botón «◂ Volver al hub» dentro de la pantalla.
+
+### Qué cambia
+
+- **Una pieza**: `src/components/BarraDeApp.tsx`. Pinta `.topbar` > `.entregas-marca` (el `<h1>` con el nombre y la casa
+  `HubHomeLink` pegada) > `.entregas-barra-resto` con lo que cada app pone dentro (sus pestañas, campana, menú del nombre).
+  La montan Entregas (`TopBar.tsx`), RR. HH. (`recruiting/TopBar.tsx`), Time Tracker (`timetracker/TopBar.tsx`) e
+  Inventario y Clientes (`erp/side-nav.tsx`). `BarraSencilla` (mismo fichero) es la misma barra con solo el menú del
+  nombre (Personalizar y Cerrar sesión, como RR. HH.), y la montan los layouts de Leads, Encuestas, el Cotizador y Promos,
+  en el camino del demo y en el de la sesión de verdad; se fueron sus «◂ Volver al hub» (y el `VolverAlHub` de D-378).
+- **La casa es una**: `HubHomeLink`, que decide con `canReachHub`. `ModuleSwitcher` se queda solo con el `⇄` (si no hay
+  otro módulo, no pinta nada). El ERP ya no recibe `hubReachable`: `header.tsx` le pasa el rol del HUB
+  (`session.hubRole`) y los módulos, y Clientes igual (`role` y `moduleAccess`).
+- **Los tamaños, una vez, en globals.css**: `.entregas-marca` (flex, 6 px entre nombre y casa; era un estilo en línea de
+  Entregas), `.topbar .entregas-marca .tab-casa` (26 px, más fuerte que la pestaña de cualquier módulo), `.topbar
+  { line-height: normal }` (lo que Entregas ya tenía sin escribirlo) y el nombre en mayúsculas (`text-transform`: así sale
+  «RDZ·DELIVERIES»; las demás lo traían en minúsculas). Y la burbuja del nombre a 24 px dentro de la barra: RR. HH. pone su
+  `.avatar.sm` a 28 px y su barra medía 64 contra 62.
+- **RR. HH.** (`recruiting.css`): de la copia queda solo lo que su `* { padding: 0 }` obliga a repetir (fondo
+  `--brand-surface`, relleno de barra y pestañas, color de pestaña), con su versión de ≤ 760 px. En el teléfono el buscador
+  y la etiqueta del rol bajan detrás de las pestañas (`entregas-tras-pestanas`) para no desbordar la fila del nombre.
+- **Time Tracker** (`timetracker.css`): se fueron `.tt-marca` y `.brand`; la caja de la derecha lleva además
+  `tt-barra-resto` (sus reglas de teléfono, D-528).
+- El hueco de 3 px del teléfono en `.topbar .entregas-marca` se quitó: en Entregas nunca aplicó (le ganaba el `gap: 6` en
+  línea), así que Entregas sigue midiendo lo mismo.
+- **El hub (`/home`) no lleva barra ni casa**: es adonde lleva la casa, y es el selector de apps. Sus subpáginas (Mi perfil,
+  Directorio, Tutoriales…) conservan su «Volver al hub», que es la navegación dentro del hub.
+
+### Prueba
+
+`src/lib/barra-igual.test.ts` (la puerta, 10): el registro (`MODULES` + Entregas) y la tabla de barras son el mismo
+conjunto, y toda carpeta de `src/app` es una app de la tabla o está en la lista de lo que no lo es (con su porqué); cada
+barra monta `BarraDeApp` con rol y módulos; cada app la monta (en su layout, o en cada página de `erp/` y `customers/` que
+no sea solo un `redirect`); en todo `src/**/*.tsx` solo `BarraDeApp` escribe `.topbar` y `entregas-marca`, solo
+`HubHomeLink` escribe `tab-casa`, y ningún fichero de las apps tiene `href="/home"`; ninguna hoja de módulo redefine el
+nombre, la casa ni la marca; y lo que RR. HH. repite, exacto. Ajustadas: `barra-de-entregas`, `entregas-barra`,
+`erp-hub-link`, `erp-tier`, `hub-herramientas-de-admin`, `impersonation-banner`, `un-solo-tema`, `inline-colors` (un `#fff`
+menos en recruiting.css), `mapa-de-apps` (una línea citada se movió), `timetracker/barra-tt`, `timetracker/barra`,
+`estimator/modulo`, `leads/reglas`, `encuestas/modulo`, `promos/volver-al-hub`.
+
+Mutantes: **12 de 12 caen** con una prueba con nombre (`~/.claude/herramientas/mutantes/tanda-barra-igual.json`): la
+barra compartida sin casa; RR. HH. pinta su propia casa; RR. HH. le pasa a la casa datos que no son de la persona; el ERP
+decide la casa con su `AppRole`; el Cotizador sin barra en el demo; Leads sin barra con la sesión de verdad; la hoja de
+RR. HH. vuelve a fijar el tamaño del nombre; Leads se pinta su propia `.topbar`; Encuestas recupera su «Volver al hub»;
+`ModuleSwitcher` vuelve a pintar la casa; la marca con estilo en línea; Time Tracker pierde su clase en la caja de la
+derecha (este último lo caza solo una prueba de texto sobre `BarraDeApp`).
+
+### Medido en el demo por CDP (2026-10-22, puerto propio, perfil desechable)
+
+`getBoundingClientRect` de `.topbar`, del `<h1>` de la marca y de la casa:
+
+| | barra | nombre (letra · alto) | casa (letra · caja) | nombre → casa |
+|---|---|---|---|---|
+| 1440 px: Entregas, Clientes, Cotizador, Leads, Encuestas, Promos | 62 | 18 px · 20 | 26 px · 60×34 | 6 px |
+| 390 px: Cotizador, Leads, Encuestas, Promos (una fila) | 56 | 14 px · 15 | 20 px · 35×36 | 6 px |
+| 390 px: Clientes (pestañas en su fila) | 102 | 14 px · 15 | 20 px · 35×36 | 6 px |
+| 390 px: Entregas (pestañas en su fila) | 115 | 14 px · 15 | 20 px · 35×36 | 6 px |
+
+Mismo fondo `rgb(21, 34, 56)`, Archivo 800 en mayúsculas, y sin desplazamiento lateral en ninguna. Entregas a 390 px mide
+más que Clientes por su fila de pestañas (la de «Órdenes» mide 49 de alto), no por la marca.
+
+**Simulado, no medido:** RR. HH. y Time Tracker no abren en el demo. Se puso la barra de Clientes dentro de
+`.recruiting-module` / `.timetracker-module` con su hoja inyectada: 62 a 1440 y 102 a 390 en las dos, con nombre, casa y
+hueco idénticos. Así se encontraron la burbuja de 28 px de RR. HH. (64 contra 62) y los 2 px de abajo de su fila de
+pestañas (100 contra 102), ya arreglados. Lo propio de cada una (el buscador, el `⇄` y la etiqueta del rol de RR. HH.; la
+campana, «👤 Mío ▾» y el ⟳ de Time Tracker) no entró en la simulación.
+
+**No medido:** Inventario en `/erp` (no abre en el demo; su barra es la misma pieza que la de Clientes, con la misma hoja),
+RR. HH. y Time Tracker de verdad, el tema oscuro, y los anchos entre 521 y 760 px (ahí la casa pasa a 4 px 12 px de relleno
+en todas, donde en Entregas le ganaba el 8 px 12 px de `.tab`).
+
+**No igualado:** las pestañas de Time Tracker conservan su relleno de 12 px (Entregas, 16): son ocho de gestión más «Mío» y
+no se pudo medir si caben con 16. Las pestañas de Leads, Encuestas y el Cotizador siguen dentro de la pantalla, no en la
+barra: son estado de la pantalla (botones), no rutas, y moverlas a la barra es partir cada componente. Los nombres de las
+apps siguen siendo los suyos («RTG Leads», «RTG Clientes»…; el de Entregas sale de Ajustes).

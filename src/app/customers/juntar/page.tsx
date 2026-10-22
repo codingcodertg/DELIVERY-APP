@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { canReachHub } from "@/lib/constants";
 import { puedeEditar } from "@/lib/customers/reglas";
 import type { UserRole } from "@/lib/types";
 import { BarraDeClientes } from "@/components/customers/barra";
@@ -21,7 +20,7 @@ export default async function JuntarPage() {
   if (SIN_BASE) {
     return (
       <>
-        <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" hubReachable />
+        <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" moduleAccess={null} />
         <DecidirJuntar demo puedeEditar />
       </>
     );
@@ -39,7 +38,7 @@ export default async function JuntarPage() {
   }
   return (
     <>
-      <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} hubReachable={canReachHub({ role, module_access: moduleAccess })} />
+      <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} moduleAccess={moduleAccess} />
       <DecidirJuntar demo={false} puedeEditar={puedeEditar(role)} />
     </>
   );

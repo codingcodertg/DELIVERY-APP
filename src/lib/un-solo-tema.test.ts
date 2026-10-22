@@ -30,7 +30,8 @@ describe("Inventario y Clientes llevan la barra superior de Entregas", () => {
   const barra = leer("src/components/erp/side-nav.tsx");
 
   it("la barra es `.topbar` con `.tabs` y el menú del nombre, no una barra lateral fija", () => {
-    expect(barra).toContain('<div className="topbar">');
+    // La `.topbar` la pone `BarraDeApp` (D-NEXT), la barra de todas las apps.
+    expect(barra).toContain("<BarraDeApp nombre={marca}");
     expect(barra).toContain('<nav className="tabs">');
     expect(barra).toContain('className={"tab" + (i.href === encendida ? " active" : "")}');
     expect(barra).toContain("<MenuDeCuenta nombre={fullName ?? email}>");
@@ -40,8 +41,9 @@ describe("Inventario y Clientes llevan la barra superior de Entregas", () => {
   });
 
   it("en el teléfono se parte en dos filas con las MISMAS clases que Entregas (D-545)", () => {
-    expect(barra).toContain('className="entregas-marca"');
-    expect(barra).toContain('className="entregas-barra-resto"');
+    // Las clases las pone `BarraDeApp` (D-NEXT).
+    expect(leer("src/components/BarraDeApp.tsx")).toContain('className="entregas-marca"');
+    expect(leer("src/components/BarraDeApp.tsx")).toContain('className={"entregas-barra-resto"');
     expect(leer("src/app/globals.css")).toContain(".topbar .entregas-barra-resto { display: contents; }");
   });
 

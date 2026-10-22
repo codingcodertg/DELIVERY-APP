@@ -77,7 +77,9 @@ describe("la barra de Entregas", () => {
   });
 
   it("la casa va justo después del nombre de la app, con el rol y los módulos efectivos", () => {
-    expect(barra).toMatch(/<h1>[^\n]*<\/h1>\n\s*<HubHomeLink deliveriesRole=\{me\.role\} moduleAccess=\{me\.module_access\} \/>/);
+    // La pone `BarraDeApp` (D-NEXT), la barra de todas las apps; Entregas le pasa el rol y los módulos EFECTIVOS.
+    expect(sinComentarios(leer("src/components/BarraDeApp.tsx"))).toMatch(/<h1>\{nombre\}<\/h1>\n\s*<HubHomeLink deliveriesRole=\{deliveriesRole\} moduleAccess=\{moduleAccess\} \/>/);
+    expect(barra).toContain('<BarraDeApp nombre={settings.app_name || "RTG·HUB"} deliveriesRole={me.role} moduleAccess={me.module_access}>');
   });
 
   it("la casa se esconde con la misma condición que tenía dentro del selector", () => {
@@ -136,7 +138,7 @@ describe("la barra de Entregas", () => {
   });
 
   it("reiniciar la práctica vive en el aviso del modo enseñanza, con confirmación", () => {
-    const aviso = barra.slice(barra.indexOf("{teaching && ("), barra.indexOf('<div className="topbar">'));
+    const aviso = barra.slice(barra.indexOf("{teaching && ("), barra.indexOf("<BarraDeApp "));
     expect(aviso).toContain("onClick={reiniciaPractica}");
     expect(barra).toMatch(/const reiniciaPractica = async \(\) => \{\n\s*if \(confirm\([\s\S]{0,300}?\)\) \{\n\s*await clearTrainingData\(\);/);
   });

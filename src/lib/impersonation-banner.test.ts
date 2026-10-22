@@ -64,7 +64,9 @@ describe("la medida que usa el ERP existe solo mientras el banner está puesto",
     // empuja como a las otras tres barras del hub: ni `fixed` ni `sticky` ni la variable.
     expect(src.split(`var(${VARIABLE}, 0px)`).length - 1).toBe(0);
     expect(src).not.toMatch(/\b(fixed|sticky)\b/);
-    expect(src).toContain('<div className="topbar">');
+    // La `.topbar` la pone `BarraDeApp` desde D-NEXT, la misma de todas las apps.
+    expect(src).toContain("<BarraDeApp ");
+    expect(leer("src/components/BarraDeApp.tsx")).not.toMatch(/\b(fixed|sticky)\b/);
   });
 });
 

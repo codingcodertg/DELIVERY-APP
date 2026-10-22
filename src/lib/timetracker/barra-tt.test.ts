@@ -28,7 +28,8 @@ describe("lo que se fue de la barra", () => {
   });
   it("sin el selector de módulos: la casa sola, junto al nombre de la app, como en Entregas", () => {
     expect(barra).not.toContain("ModuleSwitcher");
-    expect(barra).toMatch(/<div className="brand">\{settings\.appName \|\| "TimeTracker"\}<\/div>\n\s*<HubHomeLink deliveriesRole=\{deliveriesRole\} moduleAccess=\{moduleAccess\} \/>/);
+    // El nombre y la casa los pone `BarraDeApp` (D-NEXT), la barra de todas las apps.
+    expect(barra).toContain('<BarraDeApp nombre={settings.appName || "TimeTracker"} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} claseDelResto="tt-barra-resto">');
   });
 });
 
@@ -95,7 +96,7 @@ describe("el nombre abre el menú de Entregas", () => {
 
 describe("el aviso fijo", () => {
   it("va encima de la barra, en la misma cabecera pegada arriba", () => {
-    expect(barra).toMatch(/<div className="tt-cabecera">\n\s*<AvisoDeCapacitacion \/>\n\s*<div className="topbar">/);
+    expect(barra).toMatch(/<div className="tt-cabecera">\n\s*<AvisoDeCapacitacion \/>\n\s*<BarraDeApp /);
     const css = leer("src/app/timetracker/timetracker.css");
     expect(css).toContain(".timetracker-module .tt-cabecera{position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;margin-bottom:6px}");
     expect(css).toContain(".timetracker-module .tt-cabecera .topbar{position:static;margin-bottom:0}");
