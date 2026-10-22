@@ -67,4 +67,11 @@
     <!-- GPS hardware isn't strictly required: a phone without it still runs
          the app, it just can't contribute to the live map. -->
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
+    <!-- D-638 (2026-10-22): the camera. The driver takes several delivery photos in a row from inside the app
+         (getUserMedia: Capacitor's onPermissionRequest asks for CAMERA at runtime, and without this line Android denies
+         it outright). The native one-photo camera (<input capture>) also asks for it now, once. A phone without a
+         camera still installs the app. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

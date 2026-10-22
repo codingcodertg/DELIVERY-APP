@@ -199,3 +199,18 @@ describe("pickSoftReloadJitter", () => {
     expect(pickSoftReloadJitter(() => NaN)).toBe(0);
   });
 });
+
+describe("D-638: el APK publicado, el aviso y la cáscara dicen el mismo número", () => {
+  it("LATEST_APK_VERSION_CODE = versionCode de build.gradle = RDZDeliveries/<n> de capacitor.config.ts; y el manifiesto pide la cámara", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { LATEST_APK_VERSION_CODE } = await import("./app-update");
+    const gradle = readFileSync("mobile/android/app/build.gradle", "utf8");
+    const config = readFileSync("mobile/capacitor.config.ts", "utf8");
+    const manifiesto = readFileSync("mobile/android/app/src/main/AndroidManifest.xml", "utf8");
+    expect(Number(/versionCode (\d+)/.exec(gradle)?.[1])).toBe(LATEST_APK_VERSION_CODE);
+    expect(Number(/appendUserAgent: "RDZDeliveries\/(\d+)"/.exec(config)?.[1])).toBe(LATEST_APK_VERSION_CODE);
+    expect(LATEST_APK_VERSION_CODE).toBeGreaterThanOrEqual(6);
+    // La cámara de varias fotos (D-637) usa getUserMedia: sin el permiso declarado, Android lo niega sin preguntar.
+    expect(manifiesto).toContain('<uses-permission android:name="android.permission.CAMERA" />');
+  });
+});
