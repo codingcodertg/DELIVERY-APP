@@ -131,12 +131,13 @@ describe("la pantalla llama a la decisión, no la copia", () => {
   const modal = leer("src/components/OrderModal.tsx");
   const llano = plano(modal);
 
-  it("la etapa de envío sale de `etapaAlEnviar`, con los cuatro datos", () => {
-    const i = llano.indexOf("const etapaDeEnvio = etapaAlEnviar(me.role, {");
+  it("la etapa de envío sale de `etapaAlEnviar`, con los cinco datos", () => {
+    expect(llano).toContain("const etapaDeEnvio = etapaAlEnviar(me.role, quienCrea(motivosDeOficina));");
+    const i = llano.indexOf("const quienCrea = (motivos: MotivoDeAprobacion[]): QuienCrea => ({");
     expect(i).toBeGreaterThan(-1);
     const args = llano.slice(i, llano.indexOf("});", i));
     for (const dato of ["creaComoOficina: ordersLikeOfficeManager(me.role)", "tiendaAutoAprueba: storeAutoApprove",
-      "cuentaPideAprobacion", "intertiendaSinPo: intertiendaNeedsPo"]) {
+      "cuentaPideAprobacion", "intertiendaSinPo: intertiendaNeedsPo", "fueraDeHoraOCupo: motivos.length > 0"]) {
       expect(args, dato).toContain(dato);
     }
   });

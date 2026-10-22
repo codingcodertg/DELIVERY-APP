@@ -42,6 +42,11 @@ export type QuienCrea = {
   cuentaPideAprobacion: boolean;
   /** Intertienda sin PO: eso ya iba a pendiente antes de esta regla. */
   intertiendaSinPo: boolean;
+  /**
+   * Pasada la hora de corte para hoy o mañana temprano, o con el cupo de la mañana lleno (D-NEXT,
+   * `aprobacion-por-hora-y-cupo`). Solo le quita la aprobación de la TIENDA: si la crea la oficina, esa es la aprobación.
+   */
+  fueraDeHoraOCupo?: boolean;
 };
 
 /**
@@ -54,5 +59,6 @@ export type QuienCrea = {
 export function naceAprobada(q: QuienCrea): boolean {
   if (q.cuentaPideAprobacion) return false;
   if (q.intertiendaSinPo) return false;
-  return q.creaComoOficina || q.tiendaAutoAprueba;
+  if (q.creaComoOficina) return true;
+  return q.tiendaAutoAprueba && !q.fueraDeHoraOCupo;
 }

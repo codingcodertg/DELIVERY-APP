@@ -9,7 +9,8 @@ import { canCreate, canDeliver, canEditFields, DELIVERY_WINDOW_PRESETS, driverNa
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
 import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
 import { suggestDeliveryFee } from "@/lib/pricing";
-import { cuentaRequiereAprobacion, naceAprobada } from "@/lib/cuenta-aprobacion";
+import { cuentaRequiereAprobacion, naceAprobada, type QuienCrea } from "@/lib/cuenta-aprobacion";
+import { motivosDeAprobacion, reglasDeAprobacion, textoDelMotivo, type MotivoDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { DIAS_DE_BORRADOR, esMia } from "@/lib/ordenes-visibles";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
@@ -371,12 +372,43 @@ export function OrderModal({
    * por qué botón haya salido. Se calcula aquí, con el resto de los datos de los que depende, y se
    * le pasa a los botones ya decidida — ellos solo la pintan.
    */
-  const etapaDeEnvio = etapaAlEnviar(me.role, {
+  // Hora de corte y cupo de la mañana (D-NEXT): le quitan a la orden del vendedor la aprobación de la tienda. El cupo se
+  // cuenta en el servidor (`/api/cupo-de-la-manana`), porque ventas solo ve sus órdenes. Solo se mira mientras la orden
+  // todavía no ha salido: nueva, borrador o rechazada.
+  const reglasVigentes = useMemo(() => reglasDeAprobacion(settings.approval_rules), [settings.approval_rules]);
+  const fechaDeCupo = (d.delivery_date ?? "").slice(0, 10);
+  const miraCupo = (isNew || existing?.stage === "draft" || existing?.stage === "rejected")
+    && (d.delivery_windows ?? "") in reglasVigentes.cupo && /^\d{4}-\d{2}-\d{2}$/.test(fechaDeCupo);
+  const [ocupadas, setOcupadas] = useState<Record<string, number> | null>(null);
+  const cuentaElCupo = useCallback(async (): Promise<Record<string, number> | null> => {
+    try {
+      const r = await fetch(`/api/cupo-de-la-manana?fecha=${fechaDeCupo}${existing?.id ? `&excluir=${existing.id}` : ""}`, { cache: "no-store" });
+      return r.ok ? ((await r.json()) as { ocupadas?: Record<string, number> }).ocupadas ?? null : null;
+    } catch { return null; }
+  }, [fechaDeCupo, existing?.id]);
+  useEffect(() => {
+    if (!miraCupo) { setOcupadas(null); return; }
+    let vivo = true;
+    void cuentaElCupo().then((o) => { if (vivo) setOcupadas(o); });
+    return () => { vivo = false; };
+  }, [miraCupo, cuentaElCupo]);
+  const motivosDeOficina = isNew || existing?.stage === "draft" || existing?.stage === "rejected"
+    ? motivosDeAprobacion(d, new Date(), ocupadas, reglasVigentes) : [];
+  /** Lo mismo, con el cupo contado OTRA VEZ justo al pulsar: entre abrir la ficha y enviarla otro vendedor pudo llenarlo. */
+  const motivosAlEnviar = async (orden: Partial<Delivery>): Promise<MotivoDeAprobacion[]> =>
+    motivosDeAprobacion(orden, new Date(), miraCupo ? await cuentaElCupo() : null, reglasVigentes);
+  const quienCrea = (motivos: MotivoDeAprobacion[]): QuienCrea => ({
     creaComoOficina: ordersLikeOfficeManager(me.role),
     tiendaAutoAprueba: storeAutoApprove,
     cuentaPideAprobacion,
     intertiendaSinPo: intertiendaNeedsPo,
+    fueraDeHoraOCupo: motivos.length > 0,
   });
+  const textoDeMotivos = (motivos: MotivoDeAprobacion[], es: boolean) => motivos.map((m) => textoDelMotivo(m, es)).join("; ");
+  /** Los motivos se le enseñan al vendedor solo cuando cambian algo: sin ellos, la orden se habría aprobado sola. */
+  const avisaMotivos = motivosDeOficina.length > 0 && naceAprobada(quienCrea([])) && !naceAprobada(quienCrea(motivosDeOficina));
+
+  const etapaDeEnvio = etapaAlEnviar(me.role, quienCrea(motivosDeOficina));
 
   // Store-to-store moves (Intertienda / Transfer) have no external customer, so
   // no sales rep to credit. Only external-customer orders placed on someone's
@@ -948,6 +980,16 @@ export function OrderModal({
     if ((to === "pending" || esEnvioDeBorrador(existing.stage, to)) && blockSubmit(existing)) return;
     // Un borrador guardado ANTES de D-589 puede llevar la dirección a medias: no sale del borrador así.
     if (esEnvioDeBorrador(existing.stage, to) && !direccionesCompletasDe(existing)) return;
+    // Enviar un borrador que iba a aprobarse solo: hora y cupo se miran de nuevo al pulsar (D-NEXT). Si alguno salta,
+    // va a aprobación con el motivo, que se apunta en el historial y le llega a la oficina en el aviso.
+    if (esEnvioDeBorrador(existing.stage, to) && to === "approved") {
+      const motivosDelEnvio = await motivosAlEnviar(existing);
+      if (motivosDelEnvio.length && etapaAlEnviar(me.role, quienCrea(motivosDelEnvio)) === "pending") {
+        to = "pending";
+        note = textoDeMotivos(motivosDelEnvio, false);
+        notify(t(`Needs office approval: ${note}`, `Necesita aprobación de oficina: ${textoDeMotivos(motivosDelEnvio, true)}`));
+      }
+    }
     setBusy(true);
     // Stamp the driver's location when they collect the load (never blocks).
     let extra: Partial<Delivery> | undefined;
@@ -2910,6 +2952,16 @@ export function OrderModal({
           </div>
         )}
 
+        {/* ---------- POR QUÉ VA A APROBACIÓN (D-NEXT) ---------- */}
+        {paso === "completo" && avisaMotivos && (editing || existing?.stage === "draft" || existing?.stage === "rejected") && (
+          <div className="card" data-motivos-de-aprobacion style={{ marginTop: 14, marginBottom: 0, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+            <b style={{ color: "var(--amber-text)" }}>⏳ {t("This order will need office approval", "Esta orden necesitará aprobación de oficina")}</b>
+            <ul style={{ margin: "6px 0 0 18px", fontSize: 12.5, lineHeight: 1.5 }}>
+              {motivosDeOficina.map((m) => <li key={m.tipo}>{textoDelMotivo(m, lang === "es")}</li>)}
+            </ul>
+          </div>
+        )}
+
         {/* ---------- ACTIONS ---------- */}
         {/* Hidden during the initial new-order step (which has its own Next). */}
         {/* Viendo la orden (D-497): el menú «Acciones ▾» y la principal (`stageActions`), sin nada más — «Duplicar» y
@@ -2937,12 +2989,9 @@ export function OrderModal({
                       // any order sold from an auto-approve store is approved on
                       // creation regardless of who places it — EXCEPT an
                       // Intertienda without a PO #, which must go to Pending.
-                      const autoApprove = naceAprobada({
-                        creaComoOficina: ordersLikeOfficeManager(me.role),
-                        tiendaAutoAprueba: storeAutoApprove,
-                        cuentaPideAprobacion,
-                        intertiendaSinPo: intertiendaNeedsPo,
-                      });
+                      const motivos = await motivosAlEnviar(d);
+                      const autoApprove = naceAprobada(quienCrea(motivos));
+                      const motivoDeOficina = !autoApprove && motivos.length ? textoDeMotivos(motivos, false) : undefined;
                       const payload = withDurations({
                         ...d,
                         stage: autoApprove ? "approved" : "pending",
@@ -2959,20 +3008,17 @@ export function OrderModal({
                       }
                       if (!(await passesChecks(payload, { facturaYaDecidida: !!conQuien }))) return;
                       setBusy(true);
-                      const row = await addDelivery(payload);
+                      const row = await addDelivery(payload, { motivo: motivoDeOficina });
                       setBusy(false);
                       if (row) {
                         notify(autoApprove
                           ? t(`Order #${orderLabel(row)} created and approved`, `Orden #${orderLabel(row)} creada y aprobada`)
-                          : t(`Order #${orderLabel(row)} submitted for approval`, `Orden #${orderLabel(row)} enviada a aprobación`));
+                          : motivoDeOficina
+                            ? t(`Order #${orderLabel(row)} needs office approval: ${textoDeMotivos(motivos, false)}`, `La orden #${orderLabel(row)} necesita aprobación de oficina: ${textoDeMotivos(motivos, true)}`)
+                            : t(`Order #${orderLabel(row)} submitted for approval`, `Orden #${orderLabel(row)} enviada a aprobación`));
                         await autoSendTracking(row); onClose();
                       }
-                    }}>{!naceAprobada({
-                      creaComoOficina: ordersLikeOfficeManager(me.role),
-                      tiendaAutoAprueba: storeAutoApprove,
-                      cuentaPideAprobacion,
-                      intertiendaSinPo: intertiendaNeedsPo,
-                    })
+                    }}>{!naceAprobada(quienCrea(motivosDeOficina))
                       ? t("Create (goes to approval)", "Crear (va a aprobación)")
                       : ordersLikeOfficeManager(me.role)
                         ? t("Create order (approved)", "Crear orden (aprobada)")

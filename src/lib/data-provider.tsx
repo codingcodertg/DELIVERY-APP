@@ -116,7 +116,8 @@ export interface DataState {
   pushNotifs: (seeds: import("@/lib/notifications").NotifSeed[]) => Promise<void>;
 
   // delivery CRUD
-  addDelivery: (d: Partial<Delivery>) => Promise<Delivery | null>;
+  /** `motivo`: por qué va a aprobación (D-NEXT); se apunta en el historial y viaja en el aviso a la oficina. */
+  addDelivery: (d: Partial<Delivery>, opts?: { motivo?: string }) => Promise<Delivery | null>;
   /** `quiet` suppresses the error toast, for background patches the user
    * never asked for and can do nothing about — a failure there must not look
    * like a failure of whatever they just did. */
@@ -1065,7 +1066,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
 
   // ---------------- Delivery CRUD ----------------
   const addDelivery = useCallback<DataState["addDelivery"]>(
-    async (dIn) => {
+    async (dIn, opts) => {
       // El teléfono, siempre «(956) 340-5910» al guardar, venga de donde venga (D-630).
       const d = conTelefonoEstandar(dIn);
       // No order goes into pending or approved going to its own place, from any screen (D-276).
@@ -1133,10 +1134,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // Sin `await`: el pedido ya está creado y la ficha no espera a esto. Si el proveedor tarda
       // o falla, la orden se guardó igual — que es como se comportaba antes.
       void ubicarSiHaceFalta(row.id, row);
-      await logEvent(row.id, "created");
+      await logEvent(row.id, "created", opts?.motivo);
       // An order created straight into "pending" (Submit for approval) alerts managers.
       if (row.stage && row.stage !== "draft") {
-        await emitStageNotifs({ stage: row.stage, order_no: row.order_no, order_code: row.order_code, delivery_id: row.id, creatorId: orderOwner(row) });
+        await emitStageNotifs({ stage: row.stage, order_no: row.order_no, order_code: row.order_code, delivery_id: row.id, creatorId: orderOwner(row), reason: opts?.motivo });
       }
       return row;
     },

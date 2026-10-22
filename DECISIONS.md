@@ -21458,6 +21458,8 @@ pasados | 3 saltados**; el fichero nuevo aporta 10 pruebas y la suite de D-302 r
 
 ## D-313 · Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear
 
+> **Reemplazada en parte por D-NEXT** (2026-10-22): la tienda que aprueba sola ya no aprueba la orden de un vendedor pasada la hora de corte (4:30 pm) para hoy o mañana temprano, ni con el cupo de la mañana lleno; va a `pending` con el motivo.
+
 > **⚠ Revertida en parte por D-407** (2026-09-26), en el punto 2: **la exención de ventana se quitó**. El dueño:
 > *«invoice pending solo muestra yesterday, today y tomorrow y future»*. La pestaña «Factura pendiente» lleva solo
 > órdenes de ayer en adelante (y las que no tienen fecha), **para todos los roles, admin y logística incluidos**. Las
@@ -46662,3 +46664,30 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - Copias: `D:/CLAUDE/apk/RDZ-Deliveries-6.apk` y la anterior, `RDZ-Deliveries-5.apk`, para volver atrás.
 
 **No medido:** instalarlo en un teléfono, el aviso de actualizar en un teléfono con el 5, y la ráfaga dentro de la app.
+
+## D-NEXT · Órdenes: pasadas las 4:30 pm (hoy o mañana temprano) o con el cupo de la mañana lleno, la orden del vendedor va a aprobación de oficina
+
+**Fecha:** 2026-10-22 · Hecho directo por el orquestador en `feat/aprobacion-por-hora-y-cupo`. **Migración 190** (una columna nula, `settings.approval_rules`).
+
+**Pedido** (Roberto Rodriguez Jr, admin, con capturas del Gestor y de la ficha de #FV171):
+1. «Reps programmed 8 deliveries for the morning. This cannot be possible. Once 2 orders are assigned from 8:30-10am thats it. After that only 1 can be assigned to 8:30-12pm. This does not include Brownsville».
+2. «Cannot assign orders for the same day or for tomorrow morning after 4:30pm, flag it and notify office for approval. Let rep know it needs to be approved for those reasons». (#FV171 se creó el 21 a las 5:11 pm para el 22 a las 8:30-10.)
+
+**Medido antes (solo lectura, 2026-10-22):** ese día había 7 órdenes en 8:30-10 y 3 en 8:30-12, sin contar Brownsville (McAllen 3+1, Pharr 3+1, Edinburg 1+1). Todas las tiendas menos McAllen aprueban solas, así que nada las paraba.
+
+**Qué hace:**
+- **Hora de corte:** desde las 16:30 de Texas (con el cambio de horario), una orden para hoy (o un día pasado), o para la mañana del siguiente día de trabajo, va a `pending`. «Mañana temprano» son las ventanas que acaban a mediodía o antes (8:30-10 y 8:30-12). El siguiente día de trabajo salta el domingo: el sábado por la tarde cuenta el lunes.
+- **Cupo de la mañana:** en una fecha caben 2 órdenes en 8:30-10 y 1 en 8:30-12. Cuentan las vivas de todas las tiendas, también las `pending`; no cuentan borrador, anulada, rechazada, práctica ni las tiendas «sin cupo» (Brownsville). La que llega con el cupo lleno va a `pending`. Se cuenta en el servidor (`/api/cupo-de-la-manana`, llave de servicio, solo números), porque ventas solo ve sus órdenes. Se vuelve a contar al pulsar.
+- **No prohíbe:** la orden se crea en `pending`, y la oficina aprueba o rechaza. Una orden creada por la oficina (gerente u Office) se aprueba como siempre: crearla es aprobarla. La cuenta marcada (D-292) y la Intertienda sin PO siguen igual.
+- **El vendedor ve por qué:** antes de crear, una tarjeta ámbar «Esta orden necesitará aprobación de oficina» con los motivos, el botón dice «Crear (va a aprobación)», y al crear sale el aviso con los motivos. Igual al enviar un borrador.
+- **La oficina se entera:** el aviso de `pending` llega ahora a los gerentes **y a Office** (`accounting`), con el motivo («…awaiting your approval: It's for tomorrow morning and it's past 4:30 pm»). El motivo queda también en el historial de la orden (evento `created`, o la nota del envío).
+- **Ajustes:** tarjeta «Aprobación de oficina: hora de corte y cupo de la mañana» con la hora, los dos topes y las tiendas que no cuentan. Defectos: 16:30, 2 y 1, RDZ Brownsville. Sin la migración 190 la app usa los defectos; lo que falla es guardar esa tarjeta.
+
+**Dónde:** `src/lib/aprobacion-por-hora-y-cupo.ts` (todo puro), `naceAprobada` (`fueraDeHoraOCupo`) y `OrderModal.tsx` (`quienCrea`, que ahora arma en un solo sitio los datos del botón de crear, su etiqueta y el envío del borrador).
+
+**Pruebas:** `aprobacion-por-hora-y-cupo.test.ts` (corte con horario de verano e invierno, sábado → lunes, cupo con etapas vivas y muertas, aviso a Office). Ajustadas las dos que leen el fuente de `OrderModal` a la forma `quienCrea`. 12 de 12 mutantes caen, cada uno con una prueba con nombre.
+
+**Lo que NO cubre:**
+- **La base no lo impone:** el guard (`store_auto_approves`) sigue aceptando que ventas cree `approved` desde una tienda que aprueba sola. Desde la app no se puede saltar; desde la API, sí.
+- **Editar una orden ya aprobada** (cambiarle la fecha o la ventana) no la devuelve a aprobación. Solo se mira al crear y al enviar el borrador.
+- La importación por CSV no pasa por aquí.

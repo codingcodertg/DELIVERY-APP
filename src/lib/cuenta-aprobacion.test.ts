@@ -150,9 +150,13 @@ describe("la pantalla dice lo mismo que la base", () => {
 
   it("la orden nueva decide con naceAprobada, no con una expresión suelta", () => {
     expect(modal).toContain("const cuentaPideAprobacion = cuentaRequiereAprobacion(settings.accounts, d.account);");
-    const desde = modal.indexOf("const autoApprove = naceAprobada(");
+    // Los datos de la decisión se arman en UN sitio, `quienCrea` (D-NEXT), que usan el botón de crear, su etiqueta y el
+    // envío del borrador; y la cuenta tiene que estar entre ellos.
+    const q = modal.indexOf("const quienCrea = (motivos: MotivoDeAprobacion[]): QuienCrea => ({");
+    expect(q).toBeGreaterThan(-1);
+    expect(modal.slice(q, modal.indexOf("});", q))).toContain("cuentaPideAprobacion,");
+    const desde = modal.indexOf("const autoApprove = naceAprobada(quienCrea(motivos));");
     expect(desde).toBeGreaterThan(-1);
-    expect(modal.slice(desde, modal.indexOf("const payload", desde))).toContain("cuentaPideAprobacion");
     // Y el botón sale de la MISMA decisión, no de una copia con otras condiciones. Se mira el
     // texto del botón entero: un mutante que colara `(ordersLikeOfficeManager(...) || storeAuto…)`
     // DELANTE de `naceAprobada` pasaba una prueba que solo contaba apariciones.
@@ -160,8 +164,8 @@ describe("la pantalla dice lo mismo que la base", () => {
     const etiqueta = boton.slice(0, boton.indexOf("</button>"));
     // Lo PRIMERO que decide la etiqueta es `naceAprobada`. Que dentro se le pase `storeAutoApprove`
     // está bien —es uno de sus datos—; lo que no puede haber es otra condición por delante.
-    expect(etiqueta.trimStart().startsWith("}}>{!naceAprobada({")).toBe(true);
-    expect((modal.match(/naceAprobada\(\{/g) ?? []).length).toBe(2);
+    expect(etiqueta.trimStart().startsWith("}}>{!naceAprobada(quienCrea(motivosDeOficina))")).toBe(true);
+    expect((modal.match(/naceAprobada\(\{/g) ?? []).length).toBe(0);
   });
 
   it("el admin puede marcar la cuenta en Datos", () => {
