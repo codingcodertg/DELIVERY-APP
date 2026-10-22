@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import {
-  CUBO_DE_FOTOS, blobDeDataUrl, esFotoEmbebida, rutaDeFotoDeEntrega, srcDeFoto, subirFotosDeEntrega, urlsDeFotos,
-  type AlmacenDeFotos,
+  CUBO_DE_FOTOS, SUBIDAS_A_LA_VEZ, blobDeDataUrl, enParaleloConTope, esFotoEmbebida, rutaDeFotoDeEntrega, srcDeFoto,
+  subirFotosDeEntrega, urlsDeFotos, type AlmacenDeFotos,
 } from "./fotos-en-storage";
 import { autoresDeFotos } from "./fotos-de-entrega";
 
@@ -89,6 +89,77 @@ describe("subirFotosDeEntrega: la fila guarda rutas y photo_meta se indexa por l
   it("un data: que no es base64 tampoco se guarda", async () => {
     const r = await subirFotosDeEntrega(almacen().storage, "o-1", ["data:image/jpeg,raw"], 5);
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("D-NEXT: las fotos suben de tres en tres, no una a una", () => {
+  // Un cubo que tarda: cada subida espera a que la suelte la prueba, y cuenta cuántas van a la vez.
+  function cuboLento(opts: { fallaEn?: string } = {}) {
+    const empezadas: string[] = [];
+    const esperando: (() => void)[] = [];
+    let aLaVez = 0;
+    let maximo = 0;
+    const storage: AlmacenDeFotos = {
+      from: () => ({
+        upload: async (ruta) => {
+          empezadas.push(ruta);
+          aLaVez++;
+          maximo = Math.max(maximo, aLaVez);
+          await new Promise<void>((r) => esperando.push(r));
+          aLaVez--;
+          return { error: ruta === opts.fallaEn ? { message: "Bucket not found" } : null };
+        },
+        createSignedUrls: async () => ({ data: [], error: null }),
+      }),
+    };
+    // Suelta las que esperan, de la ÚLTIMA a la primera (terminan al revés de como empezaron), hasta que no quede ninguna.
+    const soltarTodo = async () => {
+      for (let vuelta = 0; vuelta < 50; vuelta++) {
+        await new Promise((r) => setTimeout(r, 0));
+        if (!esperando.length) continue;
+        esperando.splice(0).reverse().forEach((r) => r());
+      }
+    };
+    return { storage, empezadas, maximo: () => maximo, soltarTodo };
+  }
+  const SIETE = Array.from({ length: 7 }, (_, i) => "data:image/jpeg;base64," + Buffer.from(`foto-${i}`).toString("base64"));
+
+  it("con siete fotos, tres a la vez como mucho (y más de una)", async () => {
+    expect(SUBIDAS_A_LA_VEZ).toBe(3);
+    const c = cuboLento();
+    const p = subirFotosDeEntrega(c.storage, "o-1", SIETE, 5);
+    await c.soltarTodo();
+    const r = await p;
+    expect(c.maximo()).toBe(3);
+    expect(c.empezadas).toHaveLength(7);
+    // Las rutas, en el orden de la lista y con su número por sitio, aunque terminen al revés.
+    expect(r).toEqual({ ok: true, rutas: SIETE.map((_, i) => `o-1/5-${i}.jpg`) });
+  });
+  it("las que ya son rutas no cuentan ni gastan número", async () => {
+    const c = cuboLento();
+    const p = subirFotosDeEntrega(c.storage, "o-1", ["o-1/1-0.jpg", SIETE[0], "o-1/1-1.jpg", SIETE[1]], 9);
+    await c.soltarTodo();
+    expect(await p).toEqual({ ok: true, rutas: ["o-1/1-0.jpg", "o-1/9-0.jpg", "o-1/1-1.jpg", "o-1/9-1.jpg"] });
+    expect(c.empezadas).toEqual(["o-1/9-0.jpg", "o-1/9-1.jpg"]);
+  });
+  it("si una falla: error, sin rutas, y no se empiezan más", async () => {
+    const c = cuboLento({ fallaEn: "o-1/5-0.jpg" });
+    const p = subirFotosDeEntrega(c.storage, "o-1", SIETE, 5);
+    await c.soltarTodo();
+    expect(await p).toEqual({ ok: false, message: "Bucket not found" });
+    expect(c.empezadas.length).toBeLessThan(7);
+  });
+  it("un data: que no es base64 se rechaza ANTES de subir ninguna", async () => {
+    const c = cuboLento();
+    const p = subirFotosDeEntrega(c.storage, "o-1", [SIETE[0], "data:image/jpeg,raw"], 5);
+    await c.soltarTodo();
+    expect((await p).ok).toBe(false);
+    expect(c.empezadas).toEqual([]);
+  });
+  it("enParaleloConTope: resultados en el orden de entrada, con una sola o con ninguna", async () => {
+    expect(await enParaleloConTope([3, 1, 2], 3, async (x) => { await new Promise((r) => setTimeout(r, x * 3)); return x * 10; })).toEqual([30, 10, 20]);
+    expect(await enParaleloConTope([4], 3, async (x) => x + 1)).toEqual([5]);
+    expect(await enParaleloConTope([], 3, async (x: number) => x)).toEqual([]);
   });
 });
 

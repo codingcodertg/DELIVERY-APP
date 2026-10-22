@@ -477,12 +477,18 @@ describe("D-527 · el chofer recoge aunque no esté lista, y deshace su recogida
     // Abierta desde «Recogido» de «Mi ruta» con la orden sin lista: nace con la nota abierta.
     expect(ficha).toContain('useState(abrirEn === "recoger" && !!existing && puedeRecogerSinListo(me, existing))');
   });
-  it("«Marcar entregado» del chofer abre la cámara LO PRIMERO del toque, y a la vez la prueba de entrega", () => {
-    expect(ficha).toContain("if (entregaConCamara(me.role)) { camara.abrir(); setShowPod(true); return; }");
+  // Nota D-NEXT: «Marcar entregado» del chofer ya NO abre la cámara («no que se lo imponga»): abre la prueba de entrega,
+  // con «📸 Varias fotos», «📷 Una foto» y «🖼 Galería».
+  it("«Marcar entregado» del chofer abre la prueba de entrega, sin cámara, con las tres opciones de foto", () => {
+    expect(ficha).toContain("if (entregaConCamara(me.role)) { setShowPod(true); return; }");
+    expect(ficha).not.toContain("camara.abrir()");
+    expect(ficha).toContain("<PhotoUpload photos={fotosDeLaEntrega} disabled={busy} onChange={setFotosDeLaEntrega} t={t} rafaga onOcupado={setFotosProcesando} />");
     expect(ficha).toContain('useState(abrirEn === "entregar" && existing?.stage === "picked_up")');
     // Las fotos de la entrega van en la escritura de la entrega, firmadas por quien entrega.
     expect(ficha).toContain("...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, fotosOrden.photo_meta, me.id, ahora) } : {}),");
-    expect(ficha).toContain("disabled={busy || !!podBlocker || fotoEnCamino || camara.procesando}");
-    expect(ficha).toContain("{camara.input}");
+    // Mientras se leen fotos, «Confirmar entregado» espera, en el botón y en la función.
+    expect(ficha).toContain("disabled={busy || !!podBlocker || fotosProcesando}");
+    const entrega = ficha.slice(ficha.indexOf("const deliverWithPod = async () => {"), ficha.indexOf("setBusy(true);", ficha.indexOf("const deliverWithPod = async () => {")));
+    expect(entrega).toContain("if (fotosProcesando) return;");
   });
 });

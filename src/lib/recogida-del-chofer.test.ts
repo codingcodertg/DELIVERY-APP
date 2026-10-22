@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import {
   BLOQUEOS_DE_DESHACER, ETAPAS_QUE_SE_RECOGEN_SIN_LISTO, KIND_RECOGIDA_SIN_LISTO, MINIMO_NOTA_SIN_LISTO, avisosDeRecogidaSinListo,
   deshacerRecogida, entregaConCamara, escrituraDeshacerRecogida, esRecogidaSinListo, mensajeDelGuard, notaDeRecogidaSinListo,
@@ -11,7 +9,6 @@ import {
 } from "@/lib/recogida-del-chofer";
 import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
 import { canTransition } from "@/lib/constants";
-import { useCamaraDeEntrega } from "@/components/CamaraDeEntrega";
 
 // ============================================================
 // D-527 (2026-10-11) · La recogida del chofer: recoger aunque no esté lista (con nota y aviso), deshacer «Recogido», y la
@@ -159,16 +156,17 @@ describe("la cámara de «Entregado»", () => {
     expect(entregaConCamara("driver")).toBe(true);
     for (const r of ["admin", "manager", "warehouse", "logistics", "accounting", "sales", null]) expect(entregaConCamara(r), String(r)).toBe(false);
   });
-  it("el `<input>` de la cámara: foto, cámara trasera, escondido; `abrir` lo pulsa sin nada asíncrono antes", () => {
-    function Prueba() { const c = useCamaraDeEntrega(() => {}); return c.input; }
-    expect(renderToStaticMarkup(createElement(Prueba))).toBe('<input type="file" accept="image/*" capture="environment" hidden="" data-camara-de-entrega=""/>');
-    const src = leer("src/components/CamaraDeEntrega.tsx");
-    const abrir = src.slice(src.indexOf("const abrir = () => {"), src.indexOf("const alElegir"));
-    expect(abrir).toContain("input.click();");
-    expect(abrir).not.toMatch(/async|await|setTimeout|then\(/);
-    // La misma compresión que PhotoUpload (1280 px, JPEG 0,7).
-    expect(src).toContain('import { compress } from "@/components/PhotoUpload";');
-    expect(src).toContain("fotos.push(await compress(f));");
+  // Nota D-NEXT (2026-10-22): «no que se lo imponga». La cámara que «Entregado» abría sola (`useCamaraDeEntrega`, con su
+  // `<input capture>` escondido) se quitó: «Entregado» abre la prueba de entrega y allí el chofer elige «📸 Varias fotos»,
+  // «📷 Una foto» o «🖼 Galería». La prueba de lo nuevo está en `camara-de-varias-fotos.test.ts`.
+  it("D-NEXT: ya no hay cámara que se abra sola al entregar", () => {
+    expect(existsSync(join(process.cwd(), "src/components/CamaraDeEntrega.tsx"))).toBe(false);
+    for (const f of ["src/components/OrderModal.tsx", "src/app/(app)/my-route/page.tsx"]) {
+      const src = leer(f);
+      expect(src, f).not.toContain("useCamaraDeEntrega");
+      expect(src, f).not.toContain("camara.abrir()");
+      expect(src, f).not.toContain("data-camara-de-entrega");
+    }
   });
   it("las fotos tomadas al entregar se suman a las de la orden, sin repetir, y se firman por quien entrega", () => {
     expect(fotosAlEntregar(["a"], ["b", "a", "c"])).toEqual(["a", "b", "c"]);
