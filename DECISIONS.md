@@ -34038,7 +34038,7 @@ descargo final.
 
 ## D-452 · Una orden que no cabe en el camión son DOS órdenes (#Xa, #Xb): 2 P y 2 D, cada carga con su chofer, su puesto y su etapa (migración 157)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-22): decisión 4, `partir_carga` ya no se llama solo desde «Armar rutas» o el ✂: el guardado mismo (`updateDelivery`) parte SOLA la orden que, al darle chofer o cambiarle los pallets, no cabe en el camión de su chofer (la capacidad del Gestor), en los viajes que hagan falta. El ✂ queda para las que ya estaban de más.
+> **Reemplazada en parte por D-640** (2026-10-22): decisión 4, `partir_carga` ya no se llama solo desde «Armar rutas» o el ✂: el guardado mismo (`updateDelivery`) parte SOLA la orden que, al darle chofer o cambiarle los pallets, no cabe en el camión de su chofer (la capacidad del Gestor), en los viajes que hagan falta. El ✂ queda para las que ya estaban de más.
 
 **Fecha:** 2026-09-30 · **Versión:** deliveries 1.243.0, repo 1.327.0 · **Migración:** `157_partes_de_orden.sql`, **escrita y NO
 aplicada** (plan: `docs/PLAN-157-partes-de-orden.md`; ensayada contra producción con ROLLBACK, 30 de 30). **Reemplaza en
@@ -46694,7 +46694,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - **Editar una orden ya aprobada** (cambiarle la fecha o la ventana) no la devuelve a aprobación. Solo se mira al crear y al enviar el borrador.
 - La importación por CSV no pasa por aquí.
 
-## D-NEXT · Una orden que no cabe en el camión de su chofer se parte SOLA al asignarla (o al subirle los pallets ya asignada): sin pulsar ✂, en los viajes que hagan falta
+## D-640 · Una orden que no cabe en el camión de su chofer se parte SOLA al asignarla (o al subirle los pallets ya asignada): sin pulsar ✂, en los viajes que hagan falta
 
 **Fecha:** 2026-10-22 · **Versión:** la pone el orquestador · **Migración:** ninguna (usa `partir_carga` de la 157, aplicada).
 **Reemplaza en parte a** D-452 (decisión 4: `partir_carga` ya no se llama solo desde «Armar rutas» y el ✂), que lleva su nota.
