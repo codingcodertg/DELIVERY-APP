@@ -7,3 +7,7 @@ export {
 export { faltanEnElCamion, parteOrdenesGrandes, planifica, VERSION_DEL_MOTOR } from "./planifica";
 export { cargaTransportada, centiMillasDeBanda, enLaBanda, MARGEN_PALLET_MI, minutosDeBanda, TOLERANCIA_DE_PASO } from "./de-paso";
 export { entradaDelReparto, paradasSinPartes, reparteEntre, type PeticionDeReparto, type Reparto, type RutaRepartida } from "./reparte-entre";
+export {
+  FACTOR_DE_RODEO_DE_LA_VUELTA, millasEstimadasEntre, PARAMETROS_DE_VUELTA_POR_DEFECTO, sitiosLejanos, tiendasLejanas, vueltasQueNoCompensan,
+  type EntradaDeLaVuelta, type OrdenParaLaVuelta, type ParametrosDeVuelta, type PuntoGeo, type RecomendacionDeVuelta, type TiendaConPunto, type TiendaLejana,
+} from "./vuelta-que-no-compensa";

@@ -446,6 +446,19 @@ export interface RouteWeights {
   zonaMillas?: number;
 }
 
+/** Los parámetros de «Esa vuelta no compensa» tal como se guardan (D-642). Cada uno, si falta o no es > 0, vale el de
+ * por defecto (`PARAMETROS_DE_VUELTA_POR_DEFECTO`). */
+export interface VueltaLejanaGuardada {
+  /** Veces la distancia entre las demás tiendas a partir de las cuales una tienda es lejana. */
+  factor?: number;
+  /** Por debajo de estos pallets, la vuelta no compensa. */
+  pallets?: number;
+  /** Millas alrededor de la tienda lejana que todavía son «allí». */
+  radio_mi?: number;
+  /** Días de trabajo hacia delante en los que se busca dónde juntarlas. */
+  dias?: number;
+}
+
 /**
  * Las opciones de reparto del motor (D-415, OptimoRoute `balanceBy` y «use all drivers»). Se guardan DENTRO de
  * `settings.route_weights`, junto a los pesos, porque cambian cómo se mide el peso `balance`: así no hace falta
@@ -454,6 +467,9 @@ export interface RouteWeights {
 export interface RouteBalanceOptions {
   balance_por?: "tiempo" | "ordenes";
   usar_todos?: boolean;
+  /** «Esa vuelta no compensa» (D-642): cuándo el Gestor recomienda reprogramar las cargas chicas con la tienda lejana.
+   *  En el mismo jsonb, como las opciones de reparto: sin columna nueva. Ausente = los de por defecto (`parametrosDeVuelta`). */
+  vuelta_lejana?: VueltaLejanaGuardada | null;
 }
 
 /**
