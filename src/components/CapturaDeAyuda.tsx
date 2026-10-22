@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Z_PANEL_DE_AYUDA } from "@/lib/ayuda-flotante";
 import {
   LADO_MINIMO_DEL_RECUADRO, TIPO_DE_CAPTURA, alFotograma, grosorDelRecuadro, nombreDeCaptura,
   porcentajesDelRecuadro, recuadroDelArrastre, tamanoDeCaptura,
@@ -344,7 +345,7 @@ export function EditorDeCaptura({ fotograma, t, ocupado, onUsar, onDescartar, on
 
   return (
     // Fuera de la foto: con «Capturar de nuevo», el editor sigue montado en el instante en que empieza.
-    <div className="overlay" style={{ zIndex: 60 }} {...marcaFueraDeLaCaptura}>
+    <div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10 }} {...marcaFueraDeLaCaptura}>
       <div className="modal" style={{ maxWidth: 900 }}>
         <h3 style={{ margin: "0 0 4px" }}>{t("Mark the problems", "Señale los problemas")}</h3>
         <p className="hint" style={{ marginTop: 0 }}>
