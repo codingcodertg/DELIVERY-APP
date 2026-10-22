@@ -43003,6 +43003,8 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 ## D-536 · «📸 PNG» en el Gestor: la hoja de una ruta (paradas en orden + mapa con solo esa ruta) como imagen para mandársela al chofer
 
+> **Reemplazada en parte por D-NEXT** (2026-10-21): el mapa va arriba, y debajo va la tabla de la ruta tal como se ve en el Gestor, fotografiada de la página (sin casillas ni la columna de flechas, siempre en tema claro). La lista sencilla solo sale si esa tabla no está.
+
 **Fecha:** 2026-10-12 · **Versión:** deliveries 1.297.0 (repo 1.401.0) · Sin migración · Hecho directo por el orquestador en `feat/png-de-la-ruta`.
 
 **Pedido del dueño**, literal: *«crea una opcion para crear una imagen png del schedule y el mapa con su ruta en el mapa parfa mandarlo al driver»*.
@@ -46534,3 +46536,38 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - Mutantes: caen 8 de 8.
 
 **No medido:** el cajón en el navegador.
+
+## D-NEXT · «📸 PNG» de la ruta: el mapa arriba y debajo la tabla del Gestor tal como se ve; pulsar el botón abre la ruta
+
+**Fecha:** 2026-10-21 · **Versión:** deliveries 1.355.0 · Hecho directo por el orquestador en `feat/png-de-la-ruta-como-el-gestor`. Sin migración.
+
+**Pedido (el dueño, 2026-10-21, literal, con seis capturas: mapa con la ruta y sus pines, y la tabla del Gestor con Parada, Factura #, Pallets, Tipo, Ciudad de recogida, Ciudad de entrega, Llegada, Ventanas y Etapa):** «CUANDO PIDO SCREENSHOT EN PNG AHI EN CADA DRIVER A ESTO ME REFIERO ESTO ES LO QUE OCUPO PUEDES HACERLO?».
+
+**Antes (D-536):** la imagen llevaba una lista propia (#, Orden, Cuenta, Dirección, Ventana, Pallets) y el mapa debajo.
+
+**Qué cambia.**
+- **`FotoDeLaRuta.tsx`:**
+  - Arriba va el mapa con solo esa ruta (420 px de alto, sin los botones + y −).
+  - Debajo va la tabla de esa ruta en el Gestor (`data-tabla-de-la-ruta`), fotografiada con `snapdom`. Lleva lo que esa persona tenga a la vista: sus columnas, en su orden, con los colores de recogida y entrega y las filas de base.
+  - Fuera de la foto: la última columna (flechas y acciones, `anchoSinAcciones`), las casillas de marcar y las asas de ancho.
+  - Con el tema oscuro, la foto de la tabla se toma con el tema claro un instante, para que la imagen salga igual para todos.
+  - El cuadro toma el ancho de la tabla (hasta el 96 % de la pantalla).
+  - El mapa se pinta cuando el cuadro ya tiene ese ancho. Medido en el demo: pintado antes, Leaflet dejaba una franja gris a la derecha.
+  - Mientras se prepara la tabla, «Descargar» y «Compartir» esperan.
+  - Si la tabla no aparece, sale la lista sencilla de antes.
+- **Gestor (`routes/page.tsx`):**
+  - Pulsar «📸 PNG» abre la ruta (`abreParaLaFoto`): en «Cuadrícula», la despliega abajo; en «Ancho», la desdobla. Si no, su tabla no está en la página.
+  - En «Cuadrícula», la foto la pinta solo la tarjeta desplegada, así que hay una sola foto por ruta.
+
+**Qué no cambia:** quién ve el botón (no ventas, D-542), el nombre del fichero, ni «Compartir» / «Descargar PNG».
+
+**Pruebas:**
+- `foto-de-la-ruta.test.ts` (el ancho sin la columna de acciones, el orden mapa → tabla, el tema claro, abrir la ruta, una sola foto) y `src` entero (8.686).
+- tsc.
+- Mutantes: caen 7 de 7.
+- **Navegador (demo, 1440 px), claro y oscuro:** se pulsó «📸 PNG» en Diego Driver y se guardó el PNG que se descarga. Mapa arriba a todo el ancho; tabla debajo con Parada, Factura, Pallets, Tipo, ciudades, Llegada y Ventanas; en tema oscuro la tabla sale clara.
+
+**No medido:**
+- Con datos reales.
+- Con el mapa de Google: el demo pinta Leaflet. Sus botones de zoom se quitan por su clase (`.gm-bundled-control`), sin haberlo visto en una foto.
+- Desde el teléfono.
