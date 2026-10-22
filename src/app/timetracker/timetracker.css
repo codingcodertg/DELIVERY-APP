@@ -78,7 +78,7 @@
    deliveries' own .tab styling, globals.css) — only the active tab gets a
    background, and it's a solid accent color so it reads in both themes. */
 .timetracker-module .topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;margin-bottom:6px;position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;background:var(--ink);color:#fff}
-/* El nombre de la app ya no es un `.brand` propio: es el `<h1>` de `BarraDeApp` (D-NEXT), con las reglas de globals.css. */
+/* El nombre de la app ya no es un `.brand` propio: es el `<h1>` de `BarraDeApp` (D-643), con las reglas de globals.css. */
 .timetracker-module .timer-big{font-size:52px;font-weight:800;font-variant-numeric:tabular-nums}
 .timetracker-module .meter{display:flex;gap:3px;margin-top:6px}
 .timetracker-module .meter i{flex:1;height:16px;border-radius:3px;background:var(--tt-line)}
@@ -181,7 +181,7 @@
 /* La campana: su panel cuelga del borde derecho de la campana. Hasta D-528 iba escrito en línea en NotificationBell. */
 .timetracker-module .tt-campana{position:relative}
 .timetracker-module .tt-campana-panel{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:320px}
-/* El nombre de la app con la casa pegada (D-274) es `.entregas-marca`, de `BarraDeApp` (D-NEXT); sus reglas, también las
+/* El nombre de la app con la casa pegada (D-274) es `.entregas-marca`, de `BarraDeApp` (D-643); sus reglas, también las
    del teléfono, están en globals.css, y las de `.tt-marca` y `.brand` que había aquí se fueron con él. */
 /* El nombre CORTO de las pestañas del empleado solo sale en el teléfono (abajo). */
 .timetracker-module .tabs .tt-nombre-corto{display:none}

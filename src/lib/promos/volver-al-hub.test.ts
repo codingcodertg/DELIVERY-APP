@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 // D-378: al quitar la lista de rondas (D-375) se fue el único enlace de vuelta, y el dueño lo notó
-// el mismo día. Desde D-NEXT la vuelta es la casa de la barra de todas las apps (`BarraSencilla`), que
+// el mismo día. Desde D-643 la vuelta es la casa de la barra de todas las apps (`BarraSencilla`), que
 // monta el layout del módulo: vale para la ronda —demo y base— y para la pantalla sin rondas.
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const layout = leer("src/app/promos/layout.tsx");

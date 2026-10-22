@@ -446,7 +446,7 @@ describe("11 · la pantalla usa las reglas probadas", () => {
   it("sin la 162 lo dice, tiene cómo volver al hub, y los enlaces son maps, tel y TDLR", () => {
     expect(p).toContain('r.sinTabla ? { tipo: "sinTabla" }');
     expect(p).toContain("migration 162 is not applied");
-    // La vuelta al hub es la casa de la barra de todas las apps, montada en el layout (D-NEXT).
+    // La vuelta al hub es la casa de la barra de todas las apps, montada en el layout (D-643).
     expect(readFileSync("src/app/leads/layout.tsx", "utf8").match(/<BarraSencilla /g) ?? []).toHaveLength(2);
     expect(p).toContain("const mapa = mapsUrl(l);");
     expect(p).toContain("href={telUrl(l.owner_phone)!}");

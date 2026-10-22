@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { DELIVERIES_CARD, MODULES } from "./constants";
 
-// D-NEXT (2026-10-22). El dueño, con la barra de Entregas delante: «Quiero que así sea el header de todas. Todos. De
+// D-643 (2026-10-22). El dueño, con la barra de Entregas delante: «Quiero que así sea el header de todas. Todos. De
 // ERP, de HR. Todo con su casita del lado izquierdo, del mismo tamaño. […] Porque HR tiene la casa por acá, ERP tiene
 // por acá. Entonces quiero que todo sea igual.»
 //
@@ -51,7 +51,7 @@ const NO_SON_APPS: Record<string, string> = {
 /** Una página que solo redirige no pinta nada, así que no necesita barra (p. ej. `/erp` → `/erp/catalog`). */
 const soloRedirige = (src: string) => /^\s*redirect\(/m.test(src) && !/return\s*[(<]/.test(src);
 
-describe("cada app del hub lleva LA barra (D-NEXT)", () => {
+describe("cada app del hub lleva LA barra (D-643)", () => {
   it("el registro y esta tabla son el mismo conjunto: una app nueva no entra sin barra", () => {
     expect(Object.keys(BARRAS).sort()).toEqual([DELIVERIES_CARD.key, ...MODULES.map((m) => m.key)].sort());
   });

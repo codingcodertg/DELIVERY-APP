@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import type { UserRole } from "@/lib/types";
 
 /**
- * LA barra de arriba de todas las apps (D-NEXT): la de Entregas.
+ * LA barra de arriba de todas las apps (D-643): la de Entregas.
  *
  * El dueño, el 2026-10-22, con la barra de Entregas delante: «Quiero que así sea el header de todas. Todos. De ERP,
  * de HR. Todo con su casita del lado izquierdo, del mismo tamaño. […] Porque HR tiene la casa por acá, ERP tiene por

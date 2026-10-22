@@ -90,7 +90,7 @@ describe("la pantalla usa las funciones probadas, con los datos que tocan", () =
   });
   it("sin la 155 lo dice, y tiene cómo volver al hub", () => {
     expect(p).toContain('r.sinTabla ? { tipo: "sinTabla" }');
-    // La vuelta al hub es la casa de la barra de todas las apps, montada en el layout (D-NEXT).
+    // La vuelta al hub es la casa de la barra de todas las apps, montada en el layout (D-643).
     expect(leer("src/app/surveys/layout.tsx").match(/<BarraSencilla /g) ?? []).toHaveLength(2);
   });
 });

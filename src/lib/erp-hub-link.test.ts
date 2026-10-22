@@ -56,7 +56,7 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
     // Eran dos: el de la cabecera (junto a «RTG ERP») y el de la lista lateral. Los dos pintaban
     // sin ninguna guarda — `canReachHub` no aparecía en el fichero.
     // D-619 (2026-10-20): un solo enlace al hub, el de la cabecera; el de la lista se fue («erp tiene 2 all apps, solo deja 1»).
-    // D-NEXT (2026-10-22): ese uno ya no es una copia del ERP: es la casa de `BarraDeApp`, la de todas las apps, que se
+    // D-643 (2026-10-22): ese uno ya no es una copia del ERP: es la casa de `BarraDeApp`, la de todas las apps, que se
     // esconde con `canReachHub`. En este fichero no queda ningún enlace propio al hub.
     expect(nav.match(/href="\/home"/g) ?? []).toHaveLength(0);
     expect(nav).toContain("<BarraDeApp nombre={marca} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess}>");
@@ -64,7 +64,7 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
     expect(nav).not.toContain("mb-2 block rounded-md px-3 py-2 text-slate-500");
   });
   it("la barra NO decide por su cuenta: la decide la casa, con la regla de siempre y el rol del HUB", () => {
-    // Dos sitios preguntando lo mismo por separado es lo que produjo el fallo. Desde D-NEXT el único sitio es
+    // Dos sitios preguntando lo mismo por separado es lo que produjo el fallo. Desde D-643 el único sitio es
     // `HubHomeLink` (la casa de todas las barras); la cabecera del ERP le pasa el rol del hub, no el `AppRole` del ERP.
     // Se mira el CÓDIGO, no los comentarios: el comentario de la prop sí cita `canReachHub`
     // para decir de dónde viene la respuesta, y eso tiene que poder quedarse escrito.
@@ -95,7 +95,7 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
 describe("los otros módulos: medidos, no supuestos", () => {
   it("HR y Time Tracker no tienen enlace propio al hub — lo pone `BarraDeApp` con `HubHomeLink`", () => {
     // Y se esconde sola con la misma regla, así que nunca tuvieron el fallo. Time Tracker cambió `ModuleSwitcher` por la
-    // casa sola en D-490, como Entregas en D-274; RR. HH. la sacó de `ModuleSwitcher` en D-NEXT (allí queda el ⇄).
+    // casa sola en D-490, como Entregas en D-274; RR. HH. la sacó de `ModuleSwitcher` en D-643 (allí queda el ⇄).
     for (const ruta of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx", "src/components/ModuleSwitcher.tsx"]) {
       expect(leer(ruta), ruta).not.toContain('href="/home"');
     }

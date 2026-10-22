@@ -37,7 +37,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
   const avatar = recruiters.find((r) => r.id === me.id)?.avatar_url ?? me.avatar_url ?? null;
 
   return (
-    // La barra de todas las apps (D-NEXT): el nombre con la casa pegada a la izquierda, como Entregas, y aquí dentro lo
+    // La barra de todas las apps (D-643): el nombre con la casa pegada a la izquierda, como Entregas, y aquí dentro lo
     // de la derecha. La casa vivía en `ModuleSwitcher`, a la derecha; ahí queda solo el ⇄. La caja de la derecha es la
     // de Entregas (`.entregas-barra-resto`), con el mismo `min-width: 0` que esta fila llevaba en línea (D-054).
     // En el teléfono esa caja se deshace y las pestañas bajan a su fila (D-545); el buscador y la etiqueta del rol

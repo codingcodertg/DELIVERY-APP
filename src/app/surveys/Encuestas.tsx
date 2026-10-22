@@ -96,7 +96,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
     <div className="enc-wrap">
       <div className="enc-cabecera">
         <div>
-          {/* Sin «◂ Volver al hub»: la casa está en la barra de arriba, la de todas las apps (D-NEXT). */}
+          {/* Sin «◂ Volver al hub»: la casa está en la barra de arriba, la de todas las apps (D-643). */}
           <h1>📋 {t("Customer surveys", "Encuestas de clientes")}</h1>
           <p className="hint" style={{ marginTop: 0 }}>
             {t("Answers from the public survey site.", "Las respuestas del sitio público de la encuesta.")}

@@ -2031,7 +2031,7 @@ cambio; si algún día se ven igual de vacíos, es la misma causa.
 
 ## D-055 · Botón "volver al hub", junto al switcher
 > **Reemplazada en parte por D-274** (2026-09-17): en Entregas la casa sale sola, junto al nombre de la app, y el salto directo `⇄` desaparece. En RR. HH. y Time Tracker esta entrada sigue en pie. El texto de abajo se conserva tal cual.
-> **Reemplazada en parte por D-NEXT** (2026-10-22): la casa ya no vive en `ModuleSwitcher`; en todas las apps va pegada al nombre, a la izquierda (`BarraDeApp`). En RR. HH. el `⇄` se queda.
+> **Reemplazada en parte por D-643** (2026-10-22): la casa ya no vive en `ModuleSwitcher`; en todas las apps va pegada al nombre, a la izquierda (`BarraDeApp`). En RR. HH. el `⇄` se queda.
 **Fecha:** 2026-08-19 · **Versión:** v1.11.0 · **Pedido por:** Andrés
 
 **Cambio:** `ModuleSwitcher.tsx` gana un segundo control, `⌂` (enlace directo
@@ -11937,7 +11937,7 @@ arranque va por el código, no por haberlo visto. `verify.mjs`: en verde sobre `
 ## D-227 · «Todas las apps» solo se pinta si hay apps a las que ir
 
 > **Reemplazada en parte por D-619** (2026-10-20): el ERP conserva un solo enlace al hub, el de la cabecera.
-> **Reemplazada en parte por D-NEXT** (2026-10-22): la barra del ERP ya no pinta su casa ni recibe `hubReachable`: la casa es `HubHomeLink` (la de todas las apps), que pregunta `canReachHub` con el rol del hub que `header.tsx` le pasa.
+> **Reemplazada en parte por D-643** (2026-10-22): la barra del ERP ya no pinta su casa ni recibe `hubReachable`: la casa es `HubHomeLink` (la de todas las apps), que pregunta `canReachHub` con el rol del hub que `header.tsx` le pasa.
 
 **Fecha:** 2026-09-09 · **Versión:** la pone el orquestador (toca ERP) · Sin migración.
 **Pedido por:** el dueño: entra con una cuenta que solo tiene el ERP, pulsa **«Todas las apps»** y
@@ -26801,7 +26801,7 @@ nada de 122, 123, 125, 127, 138 ni 139.
 
 ## D-378 · La ronda de promos vuelve a tener cómo volver al hub
 
-> **Reemplazada en parte por D-NEXT** (2026-10-22): el «◂ Volver al hub» de la ronda se fue; la vuelta es la casa de la barra de todas las apps, que el layout de promos monta encima de la ronda y de la pantalla sin rondas.
+> **Reemplazada en parte por D-643** (2026-10-22): el «◂ Volver al hub» de la ronda se fue; la vuelta es la casa de la barra de todas las apps, que el layout de promos monta encima de la ronda y de la pantalla sin rondas.
 
 **Fecha:** 2026-09-23 · **Versión:** promos 0.6.0 · **Sin migración.**
 
@@ -46889,7 +46889,7 @@ del motivo y el «Changed: Delivery Date», y la tarjeta se va.
 mezcla los movimientos del cron de D-406 y da 2 días; no es comparable); el guardado de verdad por la 173 desde la tarjeta
 (el demo guarda por el respaldo); si a la oficina le sirve el umbral de 1 pallet o lo sube.
 
-## D-NEXT · La misma barra en todas las apps: el nombre con la casa a la izquierda, del mismo tamaño (`BarraDeApp`)
+## D-643 · La misma barra en todas las apps: el nombre con la casa a la izquierda, del mismo tamaño (`BarraDeApp`)
 
 **Fecha:** 2026-10-22 · **Sin migración** · Rama `barra-igual`.
 

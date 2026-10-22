@@ -64,7 +64,7 @@
 .recruiting-module input:focus, .recruiting-module select:focus, .recruiting-module textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
 .recruiting-module label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
 
-/* La barra es la de todas las apps (D-NEXT, `BarraDeApp`) y la pinta globals.css: aquí solo queda lo que la hoja de
+/* La barra es la de todas las apps (D-643, `BarraDeApp`) y la pinta globals.css: aquí solo queda lo que la hoja de
    RR. HH. obliga a repetir. Era una copia entera de `.topbar`, `.topbar h1`, `.tabs` y `.tab` con más peso que las de
    globals.css, y con eso RR. HH. no recibía las del teléfono (relleno de 10 px, nombre de 14 px, pestañas en una fila
    que se desliza) y su casa salía con letra de pestaña. Lo que se repite, y por qué:

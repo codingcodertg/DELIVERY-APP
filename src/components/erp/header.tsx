@@ -16,7 +16,7 @@ export async function Header() {
       email={session.user.email ?? ""}
       cost={canSeeCost(session.role)}
       // ¿Hay hub al que volver? Lo decide la casa de la barra, `HubHomeLink`, con `canReachHub` —la misma función
-      // que usan `/home` y todas las barras— y con el rol del HUB, no el del ERP (D-227). Hasta D-NEXT se preguntaba
+      // que usan `/home` y todas las barras— y con el rol del HUB, no el del ERP (D-227). Hasta D-643 se preguntaba
       // aquí y la barra pintaba su propia casa; ahora la casa es una sola para todas las apps y se le pasan los datos.
       deliveriesRole={session.hubRole}
       moduleAccess={session.moduleAccess}

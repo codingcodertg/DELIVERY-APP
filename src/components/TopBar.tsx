@@ -155,7 +155,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         </button>
       </div>
     )}
-    {/* La barra es `BarraDeApp` (D-NEXT), la misma de todas las apps: el nombre con la casa pegada a la izquierda
+    {/* La barra es `BarraDeApp` (D-643), la misma de todas las apps: el nombre con la casa pegada a la izquierda
         (D-274) y, dentro, lo de la derecha. En el teléfono (≤ 520 px, globals.css) va en dos filas (D-545, lo mismo que
         D-528 hizo en Time Tracker): arriba el nombre de la app, la casa, la campana y solo la burbuja con las
         iniciales; debajo, las pestañas. Para eso `.entregas-barra-resto` deja de ser una caja (`display: contents`) y

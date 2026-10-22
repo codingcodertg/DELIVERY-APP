@@ -35,7 +35,7 @@ import type { UserRole } from "@/lib/types";
 // decides the driver exception, which tools are visible, and where "back to
 // Deliveries" lands.
 //
-// D-NEXT (2026-10-22): la casa (⌂) se fue de aquí. El dueño quiere la casa de todas las apps pegada al nombre, a
+// D-643 (2026-10-22): la casa (⌂) se fue de aquí. El dueño quiere la casa de todas las apps pegada al nombre, a
 // la izquierda, como en Entregas; ahora la pone `BarraDeApp` con `HubHomeLink`, y aquí queda solo el ⇄ (RR. HH.
 // es la única barra que lo monta). La pregunta para enseñarlo sigue siendo la misma `canReachHub`.
 // ============================================================
@@ -85,7 +85,7 @@ export function ModuleSwitcher({ current, deliveriesRole, moduleAccess }: Module
   // Nada que enseñar -> no se renderiza (no "se oculta").
   if (!canReachHub({ role: deliveriesRole, module_access: moduleAccess }) || desktopClient) return null;
 
-  // Sin otro módulo al que saltar no hay nada que pintar: la casa ya no vive aquí (D-NEXT).
+  // Sin otro módulo al que saltar no hay nada que pintar: la casa ya no vive aquí (D-643).
   if (!canSwitch) return null;
 
   const others = modules.filter((m) => m.key !== current);

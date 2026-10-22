@@ -245,7 +245,7 @@ describe("en el teléfono, arriba: el nombre de la app, la casa, la campana y so
 
   it("la campana y la cuenta suben a la fila del nombre; las pestañas bajan a la suya", () => {
     const barra = plano(sinComentarios(leer("src/components/timetracker/TopBar.tsx")));
-    // Desde D-NEXT la marca y la caja de la derecha son las de `BarraDeApp`; las reglas del teléfono de la marca están en
+    // Desde D-643 la marca y la caja de la derecha son las de `BarraDeApp`; las reglas del teléfono de la marca están en
     // globals.css (las de Entregas, D-545) y aquí queda lo propio de Time Tracker.
     expect(barra).toContain('claseDelResto="tt-barra-resto">');
     expect(tel).toContain(".timetracker-module .topbar .tt-barra-resto{display:contents}");

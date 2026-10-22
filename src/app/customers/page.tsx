@@ -41,7 +41,7 @@ export default async function CustomersPage() {
         role={role}
         fullName={fullName}
         email={user?.email ?? ""}
-        // ¿Hay hub al que volver? Lo decide la casa de la barra con `canReachHub`, como en todas las apps (D-NEXT).
+        // ¿Hay hub al que volver? Lo decide la casa de la barra con `canReachHub`, como en todas las apps (D-643).
         moduleAccess={moduleAccess}
       />
       {/* El id va a la clave de las columnas elegidas (por persona, en el navegador). Sin sesión no se llega aquí (layout). */}

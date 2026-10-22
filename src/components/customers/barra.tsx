@@ -20,7 +20,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  * quien mira: la RLS de la 189 decide; sin la 189 o sin permiso, sin número).
  */
 export function BarraDeClientes({ role, fullName, email, moduleAccess }: {
-  /** El rol del hub (`profiles.role`): el de la pastilla y el que decide la casa (`HubHomeLink`, D-NEXT). */
+  /** El rol del hub (`profiles.role`): el de la pastilla y el que decide la casa (`HubHomeLink`, D-643). */
   role: UserRole; fullName: string | null; email: string; moduleAccess: string[] | null;
 }) {
   const { t } = usePrefs();

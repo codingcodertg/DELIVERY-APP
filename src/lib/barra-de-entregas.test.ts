@@ -141,14 +141,14 @@ describe("en el teléfono, arriba el nombre, la casa, la campana y solo la burbu
   });
 
   it("la barra lleva esas clases: el nombre de la app y la casa en la marca; campana y cuenta en el resto", () => {
-    // Desde D-NEXT la marca y la caja de la derecha las pone `BarraDeApp`, la pieza de todas las apps; Entregas la monta
+    // Desde D-643 la marca y la caja de la derecha las pone `BarraDeApp`, la pieza de todas las apps; Entregas la monta
     // y mete dentro lo suyo.
     const pieza = sinComentarios(leer("src/components/BarraDeApp.tsx"));
     expect(pieza).toMatch(/<div className="entregas-marca">\n\s*<h1>\{nombre\}<\/h1>\n\s*<HubHomeLink /);
     expect(barra).toContain('<BarraDeApp nombre={settings.app_name || "RTG·HUB"}');
     // Sin estilo en línea: un `display: "flex"` en línea gana a la hoja y el `display: contents` del teléfono no hace nada
     // (medido en la vista del demo: con él, la campana y la burbuja se quedaban en la caja, al lado de las pestañas).
-    // El de la marca (`gap: 6`) también se fue a la hoja en D-NEXT.
+    // El de la marca (`gap: 6`) también se fue a la hoja en D-643.
     expect(pieza).toContain('<div className={"entregas-barra-resto" + (claseDelResto ? " " + claseDelResto : "")}>');
     expect(pieza).not.toMatch(/className="entregas-marca" style/);
     expect(css).toContain(".entregas-marca { display: flex; align-items: center; gap: 6px; min-width: 0; }");

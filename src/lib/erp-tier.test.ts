@@ -77,7 +77,7 @@ describe("el cableado: una sola lectura, y cada rol en su sitio", () => {
     // Sin `?.` desde D-235: un perfil ilegible lanza antes de llegar aquí, así que el
     // respaldo `?? "sales"` ya solo cubre una COLUMNA nula, no una lectura fallida.
     expect(auth).toContain('hubRole: (profile.role as UserRole) ?? "sales",');
-    // Desde D-NEXT la casa de la barra (`HubHomeLink`) hace la pregunta; la cabecera le pasa el rol del HUB.
+    // Desde D-643 la casa de la barra (`HubHomeLink`) hace la pregunta; la cabecera le pasa el rol del HUB.
     expect(leer("src/components/erp/header.tsx")).toContain("deliveriesRole={session.hubRole}");
     expect(leer("src/components/erp/header.tsx")).toContain("moduleAccess={session.moduleAccess}");
     // Y la regla del hub sigue contestando lo suyo con el rol del hub. Lo que cambió con

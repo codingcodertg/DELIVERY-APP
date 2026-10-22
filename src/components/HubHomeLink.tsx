@@ -18,7 +18,7 @@ import type { UserRole } from "@/lib/types";
  * dentro el candado del chofer (D-173), y el cliente de escritorio de Time Tracker (D-076), donde salir
  * de la pantalla para la captura. No se copia la regla: se llama.
  *
- * Desde D-NEXT (2026-10-22) es la casa de TODAS las barras: la monta `BarraDeApp`, pegada al nombre de cada app, y
+ * Desde D-643 (2026-10-22) es la casa de TODAS las barras: la monta `BarraDeApp`, pegada al nombre de cada app, y
  * nadie más la pinta. `ModuleSwitcher` (RR. HH.) se quedó solo con el ⇄ y el ERP dejó su copia.
  */
 export function HubHomeLink({ deliveriesRole, moduleAccess }: { deliveriesRole: UserRole; moduleAccess: string[] | null | undefined }) {

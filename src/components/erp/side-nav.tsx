@@ -22,7 +22,7 @@ import type { UserRole } from "@/lib/types";
  * app, la casa del hub, las pestañas y el menú del nombre— con las mismas clases que Entregas y Time Tracker, y en el
  * teléfono se parte en dos filas por las mismas reglas (`.entregas-marca` / `.entregas-barra-resto`, D-545).
  *
- * Desde D-NEXT (2026-10-22) la barra no se copia: es `BarraDeApp`, la misma pieza de todas las apps, con la casa
+ * Desde D-643 (2026-10-22) la barra no se copia: es `BarraDeApp`, la misma pieza de todas las apps, con la casa
  * `HubHomeLink`. Hasta entonces este fichero pintaba su propia casa con `{hubReachable && …}`, y el dueño veía la del
  * ERP en un sitio y la de RR. HH. en otro.
  *

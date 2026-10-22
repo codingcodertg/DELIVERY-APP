@@ -28,7 +28,7 @@ describe("lo que se fue de la barra", () => {
   });
   it("sin el selector de módulos: la casa sola, junto al nombre de la app, como en Entregas", () => {
     expect(barra).not.toContain("ModuleSwitcher");
-    // El nombre y la casa los pone `BarraDeApp` (D-NEXT), la barra de todas las apps.
+    // El nombre y la casa los pone `BarraDeApp` (D-643), la barra de todas las apps.
     expect(barra).toContain('<BarraDeApp nombre={settings.appName || "TimeTracker"} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} claseDelResto="tt-barra-resto">');
   });
 });

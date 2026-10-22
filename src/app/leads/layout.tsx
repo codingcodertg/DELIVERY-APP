@@ -26,12 +26,12 @@ export const metadata: Metadata = {
  */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
-/** El nombre de la app en la barra de todas (D-NEXT, `BarraDeApp`), en inglés y en español. */
+/** El nombre de la app en la barra de todas (D-643, `BarraDeApp`), en inglés y en español. */
 const NOMBRE = ["RTG Leads", "RTG Leads"] as const;
 
 export default async function LeadsLayout({ children }: { children: React.ReactNode }) {
   // Modo demo: sin base ni sesión. Los leads son los inventados de `lib/leads/demo`.
-  // La barra de arriba es la de todas las apps (D-NEXT): el nombre con la casa a la izquierda y el menú del nombre.
+  // La barra de arriba es la de todas las apps (D-643): el nombre con la casa a la izquierda y el menú del nombre.
   // Va aquí y no en la pantalla porque la puerta ya tiene el rol y los módulos con los que la casa decide. En el demo,
   // la persona es el admin inventado.
   if (LOCAL_MODE) return <><BarraSencilla nombre={NOMBRE} deliveriesRole="admin" moduleAccess={null} persona="Demo" />{children}</>;

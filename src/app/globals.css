@@ -155,7 +155,7 @@
 /* La casa del hub (D-274), más grande y sólida a petición del dueño (D-295): el contorno fino
    se perdía contra la barra oscura. */
 .tab-casa { font-size: 26px; padding: 4px 12px; }
-/* La marca de la barra —el nombre de la app y la casa pegada— es la de Entregas en TODAS las apps (D-NEXT, `BarraDeApp`).
+/* La marca de la barra —el nombre de la app y la casa pegada— es la de Entregas en TODAS las apps (D-643, `BarraDeApp`).
    Las reglas van colgadas de `.topbar .entregas-marca` para que ninguna hoja de módulo las pise: RR. HH. pone
    `.recruiting-module .tab` (letra de 13 px, relleno de pestaña) y con eso su casa salía del tamaño de una palabra;
    Time Tracker hereda `line-height: 1.45` y el ERP el 1.5 del preflight, y con eso su nombre y sus pestañas eran más
@@ -188,7 +188,7 @@
 .account-link { cursor: pointer; transition: background .12s ease; }
 .account-link:hover:not(.active) { background: rgba(255,255,255,.1); }
 .account-link.active { background: rgba(255,255,255,.16); }
-/* La burbuja del nombre, del mismo tamaño en la barra de todas las apps (D-NEXT): RR. HH. pone su `.avatar.sm` a 28 px
+/* La burbuja del nombre, del mismo tamaño en la barra de todas las apps (D-643): RR. HH. pone su `.avatar.sm` a 28 px
    (sus listas lo quieren así) y con eso su barra medía 2 px más que la de Entregas (medido: 64 contra 62). */
 .topbar .entregas-barra-resto .account-link .avatar.sm { width: 24px; height: 24px; flex: 0 0 24px; font-size: 10px; }
 

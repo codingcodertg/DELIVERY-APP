@@ -450,7 +450,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
 
   return (
     <div className="est-wrap">
-      {/* El «◂ Volver al hub» de aquí se fue: la casa está en la barra de arriba, la de todas las apps (D-NEXT). */}
+      {/* El «◂ Volver al hub» de aquí se fue: la casa está en la barra de arriba, la de todas las apps (D-643). */}
       <h1>🧮 {t("Quote Builder", "Cotizador")}</h1>
       <p className="hint" style={{ marginTop: 0 }}>
         {t("Internal inputs → customer output. Only the customer sheet is printed.", "Entradas internas → salida al cliente. Solo se imprime la hoja del cliente.")}
