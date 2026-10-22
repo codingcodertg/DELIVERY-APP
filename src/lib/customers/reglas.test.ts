@@ -271,7 +271,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
   it("la ficha (CAMPOS) edita las 26 guardadas, menos house_no (número de fila del maestro, se enseña aparte)", () => {
     const editables = new Set(CAMPOS.map((c) => c.key as string));
     for (const col of cabecerasDelExcel.filter((c) => c !== "house_no")) expect(editables, col).toContain(col);
-    for (const k of ["crm_type_store", "crm_type_group", "associated_with"]) expect(CAMPOS.find((c) => c.key === k)?.grupo).toBe("crm");
+    for (const k of ["crm_type_store", "crm_type_group", "associated_with"]) expect(CAMPOS.find((c) => c.key === k)?.grupo).toBe("otros");
   });
   it("concatenate es tienda + cuenta pegadas: se pinta, se ordena y clienteDeLaBase lee las tres del CRM", () => {
     const c = base(1, { store: "BRO", account: "Paseo", crm_type_store: "LOST" });
@@ -341,6 +341,12 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect([...vistos].sort()).toEqual(CAMPOS.map((c) => c.key).sort());
     expect(new Set(vistos).size).toBe(CAMPOS.length);
     for (const g of grupos) expect(g.campos.length, g.grupo.key).toBeGreaterThan(0);
+  });
+  it("D-634: las tarjetas van Cuenta, Contacto, Crédito / Estado, Vendedores, Otros; «Otros» junta el CRM y lo de la app", () => {
+    expect(GRUPOS.map((g) => g.key)).toEqual(["cuenta", "contacto", "credito", "estado", "vendedores", "otros"]);
+    expect(GRUPOS.at(-1)).toEqual({ key: "otros", en: "Other", es: "Otros" });
+    const otros = camposPorGrupo().find((g) => g.grupo.key === "otros")!.campos.map((c) => c.key);
+    expect(otros).toEqual(["crm_type_store", "crm_type_group", "associated_with", "added_batch", "notes"]);
   });
   it("textoDeCampo: etiquetas para los cerrados, dinero, tienda con su código, y «—» sin dato", () => {
     const c = base(1, { store: "PHR", status_store: "LOST", history_group: "MID", qb_status: "ACTIVE", credit_limit: 1500, crm_type_group: null, notes: "ok" });

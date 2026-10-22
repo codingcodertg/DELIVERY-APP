@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { Badge } from "@/components/erp/ui/badge";
@@ -61,24 +62,28 @@ export function FichaCompleta({ cliente: c, hermanas = [] }: { cliente: Cliente;
           <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {campos.map((campo) => (
-              <div key={campo.key} className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm last:border-0" data-campo={campo.key}>
-                <span className="text-slate-500">{t(campo.en, campo.es)}</span>
-                <span className="whitespace-pre-wrap text-right font-medium text-slate-900">{textoDeCampo(c, campo, t)}</span>
-              </div>
+              <Fragment key={campo.key}>
+                {/* D-634: en «Otros», lo que solo identifica la fila del Excel va justo antes de las notas. */}
+                {campo.key === "notes" && (
+                  <>
+                    <div className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm" data-campo="house_no">
+                      <span className="text-slate-500">{t("House #", "N.º House")}</span>
+                      <span className="font-medium text-slate-900">{c.house_no ?? "—"}</span>
+                    </div>
+                    <div className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm" data-campo="concatenate">
+                      <span className="text-slate-500">{t("Store + account (CONCATENATE)", "Tienda + cuenta (CONCATENATE)")}</span>
+                      <span className="font-mono text-right text-slate-900">{String(valorDeColumna(c, "concatenate"))}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm last:border-0" data-campo={campo.key}>
+                  <span className="text-slate-500">{t(campo.en, campo.es)}</span>
+                  <span className="whitespace-pre-wrap text-right font-medium text-slate-900">{textoDeCampo(c, campo, t)}</span>
+                </div>
+              </Fragment>
             ))}
           </section>
         ))}
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo="excel">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t("From the Excel", "Del Excel")}</h2>
-          <div className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm" data-campo="house_no">
-            <span className="text-slate-500">{t("House #", "N.º House")}</span>
-            <span className="font-medium text-slate-900">{c.house_no ?? "—"}</span>
-          </div>
-          <div className="flex justify-between gap-4 py-1.5 text-sm" data-campo="concatenate">
-            <span className="text-slate-500">{t("Store + account (CONCATENATE)", "Tienda + cuenta (CONCATENATE)")}</span>
-            <span className="font-mono text-right text-slate-900">{String(valorDeColumna(c, "concatenate"))}</span>
-          </div>
-        </section>
       </div>
     </main>
   );
