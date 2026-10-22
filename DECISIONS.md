@@ -43003,7 +43003,7 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 ## D-536 · «📸 PNG» en el Gestor: la hoja de una ruta (paradas en orden + mapa con solo esa ruta) como imagen para mandársela al chofer
 
-> **Reemplazada en parte por D-NEXT** (2026-10-21): el mapa va arriba, y debajo va la tabla de la ruta tal como se ve en el Gestor, fotografiada de la página (sin casillas ni la columna de flechas, siempre en tema claro). La lista sencilla solo sale si esa tabla no está.
+> **Reemplazada en parte por D-636** (2026-10-21): el mapa va arriba, y debajo va la tabla de la ruta tal como se ve en el Gestor, fotografiada de la página (sin casillas ni la columna de flechas, siempre en tema claro). La lista sencilla solo sale si esa tabla no está.
 
 **Fecha:** 2026-10-12 · **Versión:** deliveries 1.297.0 (repo 1.401.0) · Sin migración · Hecho directo por el orquestador en `feat/png-de-la-ruta`.
 
@@ -46537,7 +46537,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** el cajón en el navegador.
 
-## D-NEXT · «📸 PNG» de la ruta: el mapa arriba y debajo la tabla del Gestor tal como se ve; pulsar el botón abre la ruta
+## D-636 · «📸 PNG» de la ruta: el mapa arriba y debajo la tabla del Gestor tal como se ve; pulsar el botón abre la ruta
 
 **Fecha:** 2026-10-21 · **Versión:** deliveries 1.355.0 · Hecho directo por el orquestador en `feat/png-de-la-ruta-como-el-gestor`. Sin migración.
 
