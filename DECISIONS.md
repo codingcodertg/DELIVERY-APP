@@ -42061,7 +42061,7 @@ No visto en navegador: `tsc` y vitest.
 **No medido:** nada en navegador (`tsc` y vitest). La captura de los números de parada que desaparecen al entregar va aparte (otra rama).
 ## D-527 — «Mi ruta»: «Recogido» abre la orden como «Entregado», y «Entregado» abre la cámara; «📍 Llegué» en la misma fila que «Recogido»/«Entregado»; el chofer deshace su llegada y su recogida; y recoge aunque el almacén no la tenga lista, con una nota (migración 168 escrita, SIN aplicar)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-22): «Entregado» ya NO abre la cámara del teléfono («no que se lo imponga»): abre la prueba de entrega, y allí el chofer elige «📸 Varias fotos», «📷 Una foto» o «🖼 Galería». `useCamaraDeEntrega` y las props `fotosDeEntrega`/`fotoEnCamino` de la ficha se quitaron.
+> **Reemplazada en parte por D-637** (2026-10-22): «Entregado» ya NO abre la cámara del teléfono («no que se lo imponga»): abre la prueba de entrega, y allí el chofer elige «📸 Varias fotos», «📷 Una foto» o «🖼 Galería». `useCamaraDeEntrega` y las props `fotosDeEntrega`/`fotoEnCamino` de la ficha se quitaron.
 
 > **Reemplazada en parte por D-533** (2026-10-12): «Recogido» con la carga lista vuelve a recoger de un toque (la orden se abre tocando su factura); «📍 Llegué» y «Recogido»/«Entregado» ya no van juntos: un solo botón que cambia, y «Rechazado» siempre en la entrega. Se quedan: «Entregado» abre la cámara, los dos «↩ Deshacer», y la recogida sin lista por la ficha con nota.
 
@@ -44667,7 +44667,7 @@ La regla entera es una función pura, `shouldSoftReload({ stale, trigger, hidden
 
 ## D-565 · Las fotos de entrega van a Storage (cubo `delivery-photos`): la fila guarda rutas y `photo_meta` se indexa por la ruta, no por el base64 (migración 178, escrita SIN aplicar)
 
-> **Completada por D-NEXT** (2026-10-22): `subirFotosDeEntrega` sube las fotos de tres en tres en vez de una a una. Mismo cubo, mismas rutas (`<id>/<marca>-<n>.jpg`, con `n` por su sitio en la lista) y mismo «todo o nada».
+> **Completada por D-637** (2026-10-22): `subirFotosDeEntrega` sube las fotos de tres en tres en vez de una a una. Mismo cubo, mismas rutas (`<id>/<marca>-<n>.jpg`, con `n` por su sitio en la lista) y mismo «todo o nada».
 
 **Fecha:** 2026-10-15 · Caída de la instancia de Supabase ese día · Migración 178 (cubo + políticas de Storage) · Script `scripts/migra-fotos-a-storage.mjs` para las fotos que ya están en la fila.
 
@@ -46576,7 +46576,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - Con el mapa de Google: el demo pinta Leaflet. Sus botones de zoom se quitan por su clase (`.gm-bundled-control`), sin haberlo visto en una foto.
 - Desde el teléfono.
 
-## D-NEXT · Fotos del chofer: «📸 Varias fotos» (la cámara dentro de la app), «📷 Una foto» y «🖼 Galería»; «Entregado» ya no abre la cámara solo; y las fotos suben de tres en tres
+## D-637 · Fotos del chofer: «📸 Varias fotos» (la cámara dentro de la app), «📷 Una foto» y «🖼 Galería»; «Entregado» ya no abre la cámara solo; y las fotos suben de tres en tres
 
 **Fecha:** 2026-10-22 · Rama `feat/fotos-varias-del-chofer` (worker del orquestador). Sin migración. **Reemplaza en parte a D-527** y **completa D-565** (cada una lleva su nota).
 
