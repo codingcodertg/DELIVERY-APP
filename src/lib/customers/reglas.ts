@@ -1,5 +1,6 @@
 import type { UserRole } from "@/lib/types";
 import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
+import { formatoDeCampo } from "./formato";
 
 /**
  * «Clientes» (migración 180): las reglas de la pantalla, puras y probadas sin navegador. La base las vuelve a exigir
@@ -438,6 +439,7 @@ export type Parche = Partial<Record<keyof Cliente, string | number | null>>;
 
 /**
  * Lo que cambió entre la ficha original y la editada, con el tipo de la base: "" → null, los números como número.
+ * El texto, en su formato (`formato.ts`, D-635).
  * Solo lo que cambió: reenviar lo leído pisa a quien guardó entre medias.
  */
 export function parcheDe(form: Record<string, string>, original: Record<string, string>, nuevo = false): { parche: Parche; errores: string[] } {
@@ -457,7 +459,11 @@ export function parcheDe(form: Record<string, string>, original: Record<string, 
       continue;
     }
     if ((campo.key === "account" || campo.key === "store") && v === "") { errores.push(campo.key); continue; }
-    parche[campo.key] = v === "" ? null : (campo.key === "store" ? v.toUpperCase() : v);
+    // D-635: lo que se guarda va en su formato (nombres en MAYÚSCULAS, teléfono «(956) 340-5910», correo en minúsculas).
+    // Si en formato es lo mismo que ya había, no hay cambio que guardar.
+    const f = campo.key === "store" ? v.toUpperCase() : formatoDeCampo(campo.key, v);
+    if (f === o) continue;
+    parche[campo.key] = f === "" ? null : f;
   }
   return { parche, errores };
 }
