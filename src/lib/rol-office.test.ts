@@ -123,11 +123,12 @@ describe("OrderModal: donde decía manager, ahora dice office también", () => {
     // añade la marca por cuenta —una cuenta de «siempre con aprobación» gana a office y a la
     // tienda—. Lo que esta prueba fija sigue siendo lo mismo: que office entra en esa decisión y
     // que el botón lo dice. La regla en sí se prueba en `cuenta-aprobacion.test.ts`.
-    const desde = modal.indexOf("const autoApprove = naceAprobada(");
+    // Desde D-639 los datos se arman en `quienCrea`, y el botón de crear decide con él.
+    expect(modal).toContain("const autoApprove = naceAprobada(quienCrea(motivos));");
+    const desde = modal.indexOf("const quienCrea = (motivos: MotivoDeAprobacion[]): QuienCrea => ({");
     expect(desde).toBeGreaterThan(-1);
-    // El cierre se busca DESPUÉS del inicio: `const payload` también aparece antes en el fichero, y
-    // un recorte al revés sale vacío y hace pasar cualquier cosa.
-    const decision = modal.slice(desde, modal.indexOf("const payload", desde));
+    // El cierre se busca DESPUÉS del inicio: un recorte al revés sale vacío y hace pasar cualquier cosa.
+    const decision = modal.slice(desde, modal.indexOf("});", desde));
     expect(decision).toContain("creaComoOficina: ordersLikeOfficeManager(me.role)");
     expect(decision).toContain("tiendaAutoAprueba: storeAutoApprove");
     expect(decision).toContain("cuentaPideAprobacion");

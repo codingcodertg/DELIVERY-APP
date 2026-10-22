@@ -21458,7 +21458,7 @@ pasados | 3 saltados**; el fichero nuevo aporta 10 pruebas y la suite de D-302 r
 
 ## D-313 · Órdenes: la pastilla «Todas», la factura pendiente que office no veía, y enviar un borrador aprueba igual que crear
 
-> **Reemplazada en parte por D-NEXT** (2026-10-22): la tienda que aprueba sola ya no aprueba la orden de un vendedor pasada la hora de corte (4:30 pm) para hoy o mañana temprano, ni con el cupo de la mañana lleno; va a `pending` con el motivo.
+> **Reemplazada en parte por D-639** (2026-10-22): la tienda que aprueba sola ya no aprueba la orden de un vendedor pasada la hora de corte (4:30 pm) para hoy o mañana temprano, ni con el cupo de la mañana lleno; va a `pending` con el motivo.
 
 > **⚠ Revertida en parte por D-407** (2026-09-26), en el punto 2: **la exención de ventana se quitó**. El dueño:
 > *«invoice pending solo muestra yesterday, today y tomorrow y future»*. La pestaña «Factura pendiente» lleva solo
@@ -46665,7 +46665,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 **No medido:** instalarlo en un teléfono, el aviso de actualizar en un teléfono con el 5, y la ráfaga dentro de la app.
 
-## D-NEXT · Órdenes: pasadas las 4:30 pm (hoy o mañana temprano) o con el cupo de la mañana lleno, la orden del vendedor va a aprobación de oficina
+## D-639 · Órdenes: pasadas las 4:30 pm (hoy o mañana temprano) o con el cupo de la mañana lleno, la orden del vendedor va a aprobación de oficina
 
 **Fecha:** 2026-10-22 · Hecho directo por el orquestador en `feat/aprobacion-por-hora-y-cupo`. **Migración 190** (una columna nula, `settings.approval_rules`).
 
