@@ -46822,7 +46822,7 @@ panel (salvo la ráfaga). 5/5 mutantes caen (constante a 61, panel sin z, recuad
 
 **No medido:** en un navegador con «Agregar material» de verdad; el arreglo es de capas y la prueba fija los números.
 
-## D-NEXT · «Esa vuelta no compensa»: el Gestor recomienda reprogramar las cargas chicas con la tienda lejana (y no mueve nada solo)
+## D-642 · «Esa vuelta no compensa»: el Gestor recomienda reprogramar las cargas chicas con la tienda lejana (y no mueve nada solo)
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, con una carga de 0.25 pallets entre la tienda lejana y una de las cercanas:
 que el sistema diga «es muy poquito pallet para una vuelta tan larga; recomiendo reprogramar estas cargas», sabiendo que

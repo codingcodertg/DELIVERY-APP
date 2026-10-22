@@ -1,10 +1,10 @@
 /**
- * «Esa vuelta no compensa» (D-NEXT): pocos pallets para ir hasta la tienda que queda lejos de las demás.
+ * «Esa vuelta no compensa» (D-642): pocos pallets para ir hasta la tienda que queda lejos de las demás.
  *
  * El dueño, 2026-10-22, con una carga de 0.25 pallets entre la tienda lejana y una de las cercanas: si pasa algo así, que
  * el sistema diga que es muy poquito pallet para una vuelta tan larga y recomiende reprogramar esas cargas; que lo piense
  * él solo, y que si no hay cargas así, todo siga normal. La oficina ya las mueve a mano, pero sin regla: en la historia
- * (DECISIONS.md, D-NEXT) movió 12 de 59 cargas de menos de medio pallet y 1 de 36 de 2 a 4.
+ * (DECISIONS.md, D-642) movió 12 de 59 cargas de menos de medio pallet y 1 de 36 de 2 a 4.
  *
  * Esto solo RECOMIENDA: devuelve qué cargas mover y a qué día, con el porqué; quien mueve es una persona, con un botón
  * del Gestor de Rutas. Como el resto del motor, es dato plano: ni red, ni base, ni reloj. El calendario —qué día de
@@ -67,7 +67,7 @@ export interface ParametrosDeVuelta {
   diasAdelante: number;
 }
 
-/** Los de por defecto, decididos por el orquestador con la historia delante (D-NEXT). Editables en Ajustes → Motor de rutas. */
+/** Los de por defecto, decididos por el orquestador con la historia delante (D-642). Editables en Ajustes → Motor de rutas. */
 export const PARAMETROS_DE_VUELTA_POR_DEFECTO: ParametrosDeVuelta = { factorDeLejania: 2, umbralPallets: 1, radioMi: 15, diasAdelante: 3 };
 
 /** Lo que una carretera alarga la línea recta: el mismo 1.3 que el proveedor «estimado» de tiempos

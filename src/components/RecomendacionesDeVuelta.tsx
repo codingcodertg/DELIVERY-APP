@@ -11,7 +11,7 @@ import type { Delivery, Profile, Settings } from "@/lib/types";
 const leer = (k: string) => window.localStorage.getItem(k);
 
 /**
- * La tarjeta «Recomendaciones» del Gestor de Rutas (D-NEXT), justo encima del panel de «Armar rutas»: las cargas chicas con
+ * La tarjeta «Recomendaciones» del Gestor de Rutas (D-642), justo encima del panel de «Armar rutas»: las cargas chicas con
  * la tienda lejana que no compensan la vuelta, con el porqué y dos botones. Sin recomendaciones no se pinta NADA: el dueño,
  * 2026-10-22, «si no hay cargas así, todo normal».
  *

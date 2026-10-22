@@ -213,7 +213,7 @@ export function RouteEngineSettings() {
         </div>
       </div>
 
-      {/* «Esa vuelta no compensa» (D-NEXT): cuándo el Gestor recomienda reprogramar las cargas chicas con la tienda lejana.
+      {/* «Esa vuelta no compensa» (D-642): cuándo el Gestor recomienda reprogramar las cargas chicas con la tienda lejana.
           En el mismo `route_weights`, dentro de `vuelta_lejana`, que se manda ENTERO con lo guardado debajo. */}
       <div className="field" data-ajustes-vuelta style={{ marginTop: 6 }}>
         <label>{t("Trips that don't pay off (Routes Manager recommendations)", "Vueltas que no compensan (recomendaciones del Gestor de Rutas)")}</label>

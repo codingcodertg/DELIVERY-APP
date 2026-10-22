@@ -8,7 +8,7 @@ import { prioridadDe } from "@/lib/prioridad";
 import type { Delivery, Settings, VueltaLejanaGuardada } from "@/lib/types";
 
 /**
- * «Recomendaciones» del Gestor de Rutas (D-NEXT): de las filas de la base y de Ajustes a lo que entiende
+ * «Recomendaciones» del Gestor de Rutas (D-642): de las filas de la base y de Ajustes a lo que entiende
  * `vueltasQueNoCompensan` (el motor, `route-engine/vuelta-que-no-compensa.ts`), y lo que la pantalla necesita alrededor:
  * los parámetros guardados, la nota del historial y el «Dejar así» de cada día. La regla vive en el motor; aquí solo se
  * traduce.

@@ -7,7 +7,7 @@ import { FACTOR_DE_RODEO } from "../route-times/proveedores";
 import { siguienteDiaDeTrabajo } from "../aprobacion-por-hora-y-cupo";
 
 /**
- * «Esa vuelta no compensa» (D-NEXT). El dueño, 2026-10-22: una carga de 0.25 pallets entre la tienda lejana y una de las
+ * «Esa vuelta no compensa» (D-642). El dueño, 2026-10-22: una carga de 0.25 pallets entre la tienda lejana y una de las
  * cercanas; «es muy poquito pallet para una vuelta tan larga; recomiendo reprogramar estas cargas».
  *
  * Tiendas con nombres inventados y puntos parecidos a los de verdad: cuatro juntas (Alfa, Bravo, Coral, Delta) y una lejos

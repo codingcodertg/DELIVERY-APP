@@ -8,7 +8,7 @@ import { PARAMETROS_DE_VUELTA_POR_DEFECTO } from "./route-engine";
 import type { Delivery, Settings } from "./types";
 
 /**
- * «Recomendaciones» del Gestor de Rutas (D-NEXT): de las filas de la base a la regla del motor, y la pantalla que la usa.
+ * «Recomendaciones» del Gestor de Rutas (D-642): de las filas de la base a la regla del motor, y la pantalla que la usa.
  * Tiendas y nombres inventados (Alfa, Bravo, Coral, Delta juntas; Mesa lejos), como en la prueba del motor.
  */
 const TIENDAS = [

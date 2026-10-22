@@ -446,7 +446,7 @@ export interface RouteWeights {
   zonaMillas?: number;
 }
 
-/** Los parámetros de «Esa vuelta no compensa» tal como se guardan (D-NEXT). Cada uno, si falta o no es > 0, vale el de
+/** Los parámetros de «Esa vuelta no compensa» tal como se guardan (D-642). Cada uno, si falta o no es > 0, vale el de
  * por defecto (`PARAMETROS_DE_VUELTA_POR_DEFECTO`). */
 export interface VueltaLejanaGuardada {
   /** Veces la distancia entre las demás tiendas a partir de las cuales una tienda es lejana. */
@@ -467,7 +467,7 @@ export interface VueltaLejanaGuardada {
 export interface RouteBalanceOptions {
   balance_por?: "tiempo" | "ordenes";
   usar_todos?: boolean;
-  /** «Esa vuelta no compensa» (D-NEXT): cuándo el Gestor recomienda reprogramar las cargas chicas con la tienda lejana.
+  /** «Esa vuelta no compensa» (D-642): cuándo el Gestor recomienda reprogramar las cargas chicas con la tienda lejana.
    *  En el mismo jsonb, como las opciones de reparto: sin columna nueva. Ausente = los de por defecto (`parametrosDeVuelta`). */
   vuelta_lejana?: VueltaLejanaGuardada | null;
 }

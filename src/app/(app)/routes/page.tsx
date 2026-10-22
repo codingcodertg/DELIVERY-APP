@@ -2644,7 +2644,7 @@ export default function RoutesPage() {
           (admin y logística), y con una fecha concreta: «todas las fechas» no es un día que planificar.
           Sus columnas (D-429) son las de Órdenes: la misma lista, el mismo orden guardado, las mismas plantillas y las mismas
           flechas que «Sin asignar» y paradas — la tercera tabla de la fila `routes_columns`. */}
-      {/* «Recomendaciones» (D-NEXT): las cargas chicas con la tienda lejana cuya vuelta no compensa, encima de «Armar rutas»
+      {/* «Recomendaciones» (D-642): las cargas chicas con la tienda lejana cuya vuelta no compensa, encima de «Armar rutas»
           para verlas antes de armar. Sin ninguna no se pinta nada. Recibe TODAS las órdenes de la pantalla, no `dayOrders`:
           hacen falta los días siguientes (a cuál moverlas) y lo que ya salió (si el viaje va igual). */}
       {!soloLectura && modo === "dia" && (
