@@ -477,7 +477,7 @@ describe("D-527 · el chofer recoge aunque no esté lista, y deshace su recogida
     // Abierta desde «Recogido» de «Mi ruta» con la orden sin lista: nace con la nota abierta.
     expect(ficha).toContain('useState(abrirEn === "recoger" && !!existing && puedeRecogerSinListo(me, existing))');
   });
-  // Nota D-NEXT: «Marcar entregado» del chofer ya NO abre la cámara («no que se lo imponga»): abre la prueba de entrega,
+  // Nota D-637: «Marcar entregado» del chofer ya NO abre la cámara («no que se lo imponga»): abre la prueba de entrega,
   // con «📸 Varias fotos», «📷 Una foto» y «🖼 Galería».
   it("«Marcar entregado» del chofer abre la prueba de entrega, sin cámara, con las tres opciones de foto", () => {
     expect(ficha).toContain("if (entregaConCamara(me.role)) { setShowPod(true); return; }");

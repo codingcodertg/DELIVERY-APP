@@ -92,7 +92,7 @@ describe("subirFotosDeEntrega: la fila guarda rutas y photo_meta se indexa por l
   });
 });
 
-describe("D-NEXT: las fotos suben de tres en tres, no una a una", () => {
+describe("D-637: las fotos suben de tres en tres, no una a una", () => {
   // Un cubo que tarda: cada subida espera a que la suelte la prueba, y cuenta cuántas van a la vez.
   function cuboLento(opts: { fallaEn?: string } = {}) {
     const empezadas: string[] = [];

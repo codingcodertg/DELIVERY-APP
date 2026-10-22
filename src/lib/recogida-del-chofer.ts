@@ -178,7 +178,7 @@ export function escrituraDeshacerRecogida(t: (en: string, es: string) => string)
  * ¿«Entregado» abre la cámara? Para el chofer, siempre (el dueño: «when you pres deliverd it should open the camera»).
  * La oficina, el almacén y el admin siguen como estaban en su ficha.
  *
- * Nota D-NEXT: ya no abre ninguna cámara sola. Para el chofer, «Entregado» abre SIEMPRE la prueba de entrega (aunque la
+ * Nota D-637: ya no abre ninguna cámara sola. Para el chofer, «Entregado» abre SIEMPRE la prueba de entrega (aunque la
  * oficina no la exija) con las fotos a la vista: «📸 Varias fotos», «📷 Una foto» y «🖼 Galería». El nombre se queda.
  */
 export function entregaConCamara(rol: string | null | undefined): boolean {

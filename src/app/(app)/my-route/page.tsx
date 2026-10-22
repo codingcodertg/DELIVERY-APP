@@ -68,7 +68,7 @@ import { muestraElPlanEnMiRuta } from "@/lib/barra-de-entregas";
 // plegada; fuera «Ver la ruta completa» y el aviso de paradas vencidas de la cabecera; y «⏸ Registrar parada».
 //
 // D-527 (2026-10-11): «Recogido» y «Entregado» ya no cierran la parada de un toque: abren la ficha de la orden en ese
-// paso (D-218 queda reemplazada en esta pantalla), y «Entregado» abre además la cámara (ya no: D-NEXT). «📍 Llegué» va en la misma fila
+// paso (D-218 queda reemplazada en esta pantalla), y «Entregado» abre además la cámara (ya no: D-637). «📍 Llegué» va en la misma fila
 // que «Recogido» / «Entregado», y las dos cosas se deshacen. Detalle en `AccionesDeParada` y `recogida-del-chofer.ts`.
 //
 // D-533 (2026-10-12), **reemplaza en parte a D-527**: «Siguiente parada» sigue la ruta POR PARADAS («next stop 1 of 5 and
@@ -94,7 +94,7 @@ export default function MyRoutePage() {
   const [open, setOpen] = useState<Delivery | null>(null);
   // En qué paso abre la ficha (D-527): «recoger» desde «Recogido», «entregar» (la prueba de entrega) desde «Entregado».
   const [abrirEn, setAbrirEn] = useState<"recoger" | "entregar" | undefined>(undefined);
-  // Nota D-NEXT: aquí vivía la cámara que «Entregado» abría sola (D-527) y las fotos que traía para la ficha. Se quitó
+  // Nota D-637: aquí vivía la cámara que «Entregado» abría sola (D-527) y las fotos que traía para la ficha. Se quitó
   // («no que se lo imponga»): «Entregado» abre la prueba de entrega y el chofer elige allí cómo pone las fotos.
   // Qué lista se ve (D-522): «Pendientes» o «Entregadas», las dos opciones juntas arriba y se elige una. Nace en Pendientes.
   const [listaElegida, setListaElegida] = useState<SeccionDeMiRuta>("pendientes");
@@ -174,7 +174,7 @@ export default function MyRoutePage() {
    * you pres deliverd it should open the camera so you can add the proof of delikvery for the driver». Ahora:
    *  - **Recogido** abre la ficha en la recogida (`abrirEn="recoger"`): si está lista, con «🚚 Recoger» a la vista; si el
    *    almacén aún no la marcó lista, con «Recoger de todos modos» y su nota ya abierta.
-   *  - **Entregado** abre la ficha en la prueba de entrega (`abrirEn="entregar"`). Nota D-NEXT: ya NO abre la cámara del
+   *  - **Entregado** abre la ficha en la prueba de entrega (`abrirEn="entregar"`). Nota D-637: ya NO abre la cámara del
    *    teléfono por su cuenta; en la prueba están «📸 Varias fotos», «📷 Una foto» y «🖼 Galería», y el chofer elige. La
    *    prueba pide la foto si la oficina la exige (`podSinCumplir`); si no, deja confirmar sin foto.
    */

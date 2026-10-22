@@ -890,7 +890,7 @@ table.orders th { text-align: left; }
 .photo-add:hover { border-color: var(--accent); color: var(--accent); }
 .photo-add:disabled { opacity: .5; }
 
-/* ---------- Fotos del chofer: tres opciones y la ráfaga (D-NEXT) ----------
+/* ---------- Fotos del chofer: tres opciones y la ráfaga (D-637) ----------
    «📸 Varias fotos», «📷 Una foto» y «🖼 Galería», del mismo tamaño y de pulgar: se pulsan de pie junto al camión. */
 .foto-opciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
 .foto-opcion {

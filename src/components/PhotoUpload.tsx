@@ -21,7 +21,7 @@ import {
 // Desde la 178 (D-565) el `data:` comprimido NO se guarda en la fila: quien usa esto pasa `subir`, que lo manda al cubo
 // `delivery-photos` y devuelve la ruta; `onChange` recibe rutas. `urls` trae la URL firmada con la que se pinta cada ruta.
 //
-// D-NEXT: con `rafaga`, tres opciones del mismo tamaño encima de las fotos —«📸 Varias fotos» (la cámara dentro de la
+// D-637: con `rafaga`, tres opciones del mismo tamaño encima de las fotos —«📸 Varias fotos» (la cámara dentro de la
 // app, `CamaraDeVariasFotos`), «📷 Una foto» (la cámara del teléfono) y «🖼 Galería» (varias ya tomadas)—. La
 // compresión (1280 px, JPEG 0,7) vive en `jpegComprimido` (`lib/camara-de-varias-fotos.ts`), la misma para las tres.
 // ============================================================
@@ -78,7 +78,7 @@ export function PhotoUpload({
    */
   galeria?: boolean;
   /**
-   * Tres opciones del mismo tamaño (D-NEXT), para donde el chofer pone fotos de la entrega o del material: «📸 Varias
+   * Tres opciones del mismo tamaño (D-637), para donde el chofer pone fotos de la entrega o del material: «📸 Varias
    * fotos» (la ráfaga dentro de la app), «📷 Una foto» (la cámara del teléfono, con `capture`) y «🖼 Galería» (selección
    * múltiple, sin `capture`). Manda sobre `galeria`.
    */

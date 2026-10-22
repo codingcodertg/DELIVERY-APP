@@ -156,10 +156,10 @@ describe("la cámara de «Entregado»", () => {
     expect(entregaConCamara("driver")).toBe(true);
     for (const r of ["admin", "manager", "warehouse", "logistics", "accounting", "sales", null]) expect(entregaConCamara(r), String(r)).toBe(false);
   });
-  // Nota D-NEXT (2026-10-22): «no que se lo imponga». La cámara que «Entregado» abría sola (`useCamaraDeEntrega`, con su
+  // Nota D-637 (2026-10-22): «no que se lo imponga». La cámara que «Entregado» abría sola (`useCamaraDeEntrega`, con su
   // `<input capture>` escondido) se quitó: «Entregado» abre la prueba de entrega y allí el chofer elige «📸 Varias fotos»,
   // «📷 Una foto» o «🖼 Galería». La prueba de lo nuevo está en `camara-de-varias-fotos.test.ts`.
-  it("D-NEXT: ya no hay cámara que se abra sola al entregar", () => {
+  it("D-637: ya no hay cámara que se abra sola al entregar", () => {
     expect(existsSync(join(process.cwd(), "src/components/CamaraDeEntrega.tsx"))).toBe(false);
     for (const f of ["src/components/OrderModal.tsx", "src/app/(app)/my-route/page.tsx"]) {
       const src = leer(f);

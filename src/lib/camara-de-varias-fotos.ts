@@ -1,5 +1,5 @@
 // ============================================================
-// «📸 Varias fotos» (D-NEXT): la cámara dentro de la app, para sacar varias fotos seguidas y entregarlas todas de una vez.
+// «📸 Varias fotos» (D-637): la cámara dentro de la app, para sacar varias fotos seguidas y entregarlas todas de una vez.
 //
 // El dueño, 2026-10-22: los choferes dicen que la cámara de «Entregado» no les sirve. La cámara nativa del teléfono
 // (`<input type="file" capture>`) devuelve UNA foto por vez —en Android, `ACTION_IMAGE_CAPTURE`—, así que cada foto era

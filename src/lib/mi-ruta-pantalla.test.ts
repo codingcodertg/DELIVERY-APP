@@ -173,7 +173,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
   // order instead of doing the action»). Sin lista sigue abriendo la ficha (la nota es obligatoria). «Entregado», igual que D-527.
   // Nota D-547: con la carga lista, «Recogido» primero pregunta los pallets (`setPalletsDe(d)`, el cuadro `PalletsAlRecoger`)
   // y recoge al confirmar, con ese número (`recogerDeUnToque(d, n)` → `escrituraRecogida({ …, pallets })`).
-  // Nota D-NEXT: «Entregado» ya NO abre la cámara (el dueño, 2026-10-22: «no que se lo imponga»): abre la ficha en la
+  // Nota D-637: «Entregado» ya NO abre la cámara (el dueño, 2026-10-22: «no que se lo imponga»): abre la ficha en la
   // prueba de entrega, donde están «📸 Varias fotos», «📷 Una foto» y «🖼 Galería».
   it("D-533: «Recogido» recoge de un toque si está lista (o abre la ficha si no); «Entregado» abre la prueba de entrega, SIN cámara", async () => {
     const { readFileSync } = await import("node:fs");
@@ -182,7 +182,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     expect(cuerpo).toContain("if (soloLectura) return;");
     expect(cuerpo).not.toMatch(/async|await/);
     expect(cuerpo).toContain('if (accion === "recoger" && seRecogeDeUnToque(d.stage)) { setPalletsDe(d); return; }');
-    // D-NEXT: tras las dos puertas de «Recogido», lo único que hace es abrir la ficha en ese paso; nada de cámara.
+    // D-637: tras las dos puertas de «Recogido», lo único que hace es abrir la ficha en ese paso; nada de cámara.
     expect(cuerpo).toMatch(/abreElCuadroSinListo\(d\.stage\)\) \{ setSinListoDe\(d\); return; \}\s*abrirOrden\(d, accion\);\s*\};/);
     expect(cuerpo).not.toMatch(/camara|\.click\(\)/);
     // La recogida de un toque: la MISMA escritura que la ficha, GPS sin bloquear y parche tardío en silencio.
@@ -200,7 +200,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     expect(src).not.toContain("extraEntrega");
     expect(src).toContain("cerrar={cerrarParada}");
     expect(src).toContain("<OrderModal me={me} existing={open} startEditing={false} onClose={cerrarFicha} abrirEn={abrirEn} />");
-    // D-NEXT: y ya no hay una cámara escondida en la página esperando el toque.
+    // D-637: y ya no hay una cámara escondida en la página esperando el toque.
     const html = await pinta();
     expect(html).not.toContain('capture="environment"');
   });

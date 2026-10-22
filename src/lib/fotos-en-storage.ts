@@ -66,7 +66,7 @@ export type SubidaDeFotos =
   | { ok: true; rutas: string[] }
   | { ok: false; message: string };
 
-/** Cuántas fotos suben a la vez (D-NEXT). Tres: más rápido que una a una sin ahogar el 4G de un chofer en la calle. */
+/** Cuántas fotos suben a la vez (D-637). Tres: más rápido que una a una sin ahogar el 4G de un chofer en la calle. */
 export const SUBIDAS_A_LA_VEZ = 3;
 
 /**
@@ -95,7 +95,7 @@ export async function enParaleloConTope<T, R>(
  * política no deja, sin red), devuelve el error y quien llama NO guarda la orden —ni a medias con las que sí subieron—.
  * Las que ya son rutas pasan tal cual, así que llamarlo dos veces con la misma lista no sube nada dos veces.
  *
- * D-NEXT: suben de `SUBIDAS_A_LA_VEZ` en `SUBIDAS_A_LA_VEZ` (antes, una a una). Las rutas y su numeración no cambian: el
+ * D-637: suben de `SUBIDAS_A_LA_VEZ` en `SUBIDAS_A_LA_VEZ` (antes, una a una). Las rutas y su numeración no cambian: el
  * número `n` de cada foto se fija ANTES de subir, por su sitio en la lista, no por cuál termina antes. Y un `data:` que no
  * es base64 se rechaza antes de subir ninguna.
  */

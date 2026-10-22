@@ -7,7 +7,7 @@ import {
 } from "@/lib/camara-de-varias-fotos";
 
 // ============================================================
-// «📸 Varias fotos» (D-NEXT): la cámara dentro de la app, a pantalla completa. Cada toque del disparador saca una foto
+// «📸 Varias fotos» (D-637): la cámara dentro de la app, a pantalla completa. Cada toque del disparador saca una foto
 // del vídeo (comprimida como las de `PhotoUpload`: 1280 px, JPEG 0,7); abajo, la tira de miniaturas con su ✕ y el
 // contador; «✅ Listo (N)» entrega todas de una vez y «Cancelar» cierra sin entregar nada.
 //

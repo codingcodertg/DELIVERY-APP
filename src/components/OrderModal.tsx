@@ -127,7 +127,7 @@ export function OrderModal({
    * «Recoger de todos modos» ya abierta si el almacén no la marcó lista— o `entregar` —la prueba de entrega abierta—.
    */
   abrirEn?: "recoger" | "entregar";
-  // Nota D-NEXT: `fotosDeEntrega` y `fotoEnCamino` (las fotos de la cámara que «Mi ruta» abría al pulsar «Entregado»)
+  // Nota D-637: `fotosDeEntrega` y `fotoEnCamino` (las fotos de la cámara que «Mi ruta» abría al pulsar «Entregado»)
   // se quitaron con esa cámara: las fotos de la entrega se toman ya dentro de la prueba de entrega.
 }) {
   const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, reentregaComoCarga, saveSettings, notify, realRole, pushNotifs, teaching } =
@@ -224,7 +224,7 @@ export function OrderModal({
   // Las fotos que se toman AL ENTREGAR (D-527): se guardan en la MISMA escritura que la entrega, no antes. El guard (157)
   // no le deja al chofer tocar las fotos de una orden en `picked_up` sin cambiar de etapa; al pasar a `delivered`, sí.
   const [fotosDeLaEntrega, setFotosDeLaEntrega] = useState<string[]>([]);
-  // D-NEXT: mientras la prueba de entrega lee o comprime fotos (cámara, galería o ráfaga), «Confirmar entregado» espera:
+  // D-637: mientras la prueba de entrega lee o comprime fotos (cámara, galería o ráfaga), «Confirmar entregado» espera:
   // entregar en ese momento las dejaría fuera. Antes lo vigilaba `camara.procesando`, la cámara de D-527.
   const [fotosProcesando, setFotosProcesando] = useState(false);
   // Pallet confirmations: warehouse confirms the count on "Mark ready";
@@ -1373,7 +1373,7 @@ export function OrderModal({
     // kept in one place so the two can't drift apart and leave a driver
     // pressing a button that silently refuses.
     if (podBlocker) { notify(podBlocker); return; }
-    // Hay fotos aún comprimiéndose (D-527; D-NEXT): entregar ahora las dejaría fuera.
+    // Hay fotos aún comprimiéndose (D-527; D-637): entregar ahora las dejaría fuera.
     if (fotosProcesando) return;
     setBusy(true);
     // Stamp where the driver actually is. Never blocks: resolves to null if the
@@ -1670,7 +1670,7 @@ export function OrderModal({
       setShowCancel={setShowCancel}
       cancelListo={!faltaParaAnular(cancelReason, cancelNote, motivos, lang)}
       onPrint={() => printDeliverySlip(existing, settings, users, lang)}
-      // D-527: el chofer, al pulsar «Marcar entregado», va siempre a la prueba de entrega. Nota D-NEXT: ya NO abre la
+      // D-527: el chofer, al pulsar «Marcar entregado», va siempre a la prueba de entrega. Nota D-637: ya NO abre la
       // cámara por su cuenta («no que se lo imponga»): la prueba enseña «📸 Varias fotos», «📷 Una foto» y «🖼 Galería»
       // y él elige. Los demás, como antes.
       onRequestDeliver={() => {
@@ -1963,7 +1963,7 @@ export function OrderModal({
                   📷 {t("Material photos", "Fotos del material")}
                   {fotosQueCuentan.length > 0 && <span className="count-tag" style={{ marginLeft: 8 }}>{fotosQueCuentan.length}</span>}
                 </div>
-                {/* D-NEXT: «📸 Varias fotos», «📷 Una foto» y «🖼 Galería», como en la prueba de entrega. */}
+                {/* D-637: «📸 Varias fotos», «📷 Una foto» y «🖼 Galería», como en la prueba de entrega. */}
                 <PhotoUpload
                   photos={fotosOrden.photos ?? []}
                   credits={photoCredits}
@@ -3069,7 +3069,7 @@ export function OrderModal({
                   escritura, y no al tomarlas: el guard (157) no le deja al chofer tocar las fotos de una orden en reparto
                   sin cambiar de etapa —ese `updateDelivery` le contestaba «You cannot edit an order in the picked_up
                   stage»—, y al pasar a entregada sí. Cancelar este paso no las pierde mientras la ficha siga abierta.
-                  Nota D-NEXT: ya no se llega con la cámara abierta; aquí están las tres opciones —«📸 Varias fotos» (la
+                  Nota D-637: ya no se llega con la cámara abierta; aquí están las tres opciones —«📸 Varias fotos» (la
                   ráfaga dentro de la app), «📷 Una foto» (la cámara del teléfono) y «🖼 Galería» (varias ya tomadas)—. */}
               {(!!settings.require_pod || entregaConCamara(me.role) || fotosDeLaEntrega.length > 0) && (
                 <div style={{ marginTop: 12 }} data-fotos-de-la-entrega>

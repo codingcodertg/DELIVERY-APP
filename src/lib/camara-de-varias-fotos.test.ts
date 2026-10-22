@@ -10,7 +10,7 @@ import {
 } from "./camara-de-varias-fotos";
 
 // ============================================================
-// D-NEXT (2026-10-22) · «📸 Varias fotos». El dueño: «que él pueda un solo desde la cámara tomar, no que se lo imponga
+// D-637 (2026-10-22) · «📸 Varias fotos». El dueño: «que él pueda un solo desde la cámara tomar, no que se lo imponga
 // [...] que pueda tomar varias fotos de un solo y que él las pueda subir más rápido». La cámara dentro de la app saca
 // varias seguidas y «✅ Listo» las entrega todas; «Entregado» ya no abre la cámara solo; la prueba de entrega y «Fotos del
 // material» enseñan las tres opciones.
