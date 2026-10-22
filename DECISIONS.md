@@ -34038,6 +34038,8 @@ descargo final.
 
 ## D-452 · Una orden que no cabe en el camión son DOS órdenes (#Xa, #Xb): 2 P y 2 D, cada carga con su chofer, su puesto y su etapa (migración 157)
 
+> **Reemplazada en parte por D-640** (2026-10-22): decisión 4, `partir_carga` ya no se llama solo desde «Armar rutas» o el ✂: el guardado mismo (`updateDelivery`) parte SOLA la orden que, al darle chofer o cambiarle los pallets, no cabe en el camión de su chofer (la capacidad del Gestor), en los viajes que hagan falta. El ✂ queda para las que ya estaban de más.
+
 **Fecha:** 2026-09-30 · **Versión:** deliveries 1.243.0, repo 1.327.0 · **Migración:** `157_partes_de_orden.sql`, **escrita y NO
 aplicada** (plan: `docs/PLAN-157-partes-de-orden.md`; ensayada contra producción con ROLLBACK, 30 de 30). **Reemplaza en
 parte a** D-443 (la fila informativa `otraCarga`), que lleva su nota. **No toca ningún dato ni ninguna política.**
@@ -46691,3 +46693,113 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 - **La base no lo impone:** el guard (`store_auto_approves`) sigue aceptando que ventas cree `approved` desde una tienda que aprueba sola. Desde la app no se puede saltar; desde la API, sí.
 - **Editar una orden ya aprobada** (cambiarle la fecha o la ventana) no la devuelve a aprobación. Solo se mira al crear y al enviar el borrador.
 - La importación por CSV no pasa por aquí.
+
+## D-640 · Una orden que no cabe en el camión de su chofer se parte SOLA al asignarla (o al subirle los pallets ya asignada): sin pulsar ✂, en los viajes que hagan falta
+
+**Fecha:** 2026-10-22 · **Versión:** la pone el orquestador · **Migración:** ninguna (usa `partir_carga` de la 157, aplicada).
+**Reemplaza en parte a** D-452 (decisión 4: `partir_carga` ya no se llama solo desde «Armar rutas» y el ✂), que lleva su nota.
+
+### Qué pidió
+
+Roberto Rodriguez Jr (admin), 2026-10-22, desde el Gestor de rutas (app 1.357.0), con una captura de la ruta de Ernesto
+Castillo con «Truck capacity 10 PLT» y la parada P1/D1 de la factura 147147-148505 (`#FV168`, McAllen → McAllen, Customer)
+cargando +18 pallets en un viaje:
+
+> When its over 10 pallets system needs to automatically split it into 2 trips
+
+### Por qué FV168 no se partió (medido en producción, solo lectura, 2026-10-22)
+
+- La 157 **está aplicada** (`schema_migrations`), así que `partir_carga` existía.
+- `FV168` (`order_no` 1150): 18 pallets estimados y 18 contados («Pallets confirmadas: 18», almacén, 2026-10-21 21:52 UTC),
+  **sin `order_suffix`**: nunca se partió. `assigned_driver` Ernesto Castillo, `route_seq` 0, entregada el 2026-10-22.
+- Su historial: Roberto la asignó el 2026-10-22 03:24 UTC con la nota **«Assigned to Ernesto Castillo by “Assign to…”
+  (engine)»**: el «Asignar a…» de varios choferes (D-474). Ningún `route_plans` del 21 ni del 22: «Armar rutas» no se usó.
+- Ese camino reparte con el motor (`reparteEntre` → `planifica`), que parte en cargas **virtuales** (`id#a`, `id#b`,
+  `parteOrdenesGrandes`), y antes de escribir las junta en UNA recogida y UNA entrega (`paradasSinPartes`): se escribe una
+  fila. Medido con las funciones de verdad en `src/lib/partir-sola.test.ts`, bloque «HOY».
+- `partir_carga` solo lo llamaban **«Armar rutas»** (`partir-antes-de-planificar.ts`) y el **✂** del Gestor. Asignar con
+  «Asignar a…», con el «Asignar a…» de una fila, arrastrando, con «Mejor lugar», con «Pasar a…» o desde la ficha dejaba la
+  orden entera, con el ✂ ofrecido y nadie obligado a pulsarlo.
+- De paso: hay **dos capacidades** distintas en producción. Ajustes → «Truck capacity» (`settings.driver_capacity`) dice 10
+  para los cuatro choferes, y es la que enseñan el Gestor y «Mi ruta»; `driver_settings.capacity_pallets` dice 12 para
+  Ernesto, Julio y Steven (10 para Maximo), y es la que el motor lee primero (`choferParaElMotor`). No se toca aquí; queda
+  anotado porque el motor puede dejar entera una orden de 11 que el Gestor pinta de más.
+
+### Qué cambia
+
+- **El momento: el guardado.** Toda forma de darle chofer a una orden desde la app pasa por `updateDelivery` (el aviso al
+  chofer de su asignación ya vive ahí por la misma razón). Al final de cada guardado, `parteSiNoCabe` mira la fila como
+  queda; si no cabe en el camión de su chofer, llama `partir_carga` **en cadena**, como «Armar rutas» (para [10, 10, 5],
+  15 a la madre y 5 a la recién nacida), relee las órdenes y lo dice en un aviso: «#FV168 didn't fit in Ernesto Castillo's
+  truck (18 of 10 pallets): split into 2 trips, 10 + 8. Each load has its own P and D: place them with the arrows.». Deja
+  además una nota en el historial de la madre («Split automatically into 10 + 8 pallets…»), aparte de las dos de la 157.
+- **Cuándo** (`cargasAlGuardar`, `src/lib/cargas-partidas.ts`): el guardado le **da chofer** (otro que el que tenía) o le
+  **cambia los pallets** a una ya asignada; la orden sigue **pendiente de ruta** (pending, approved, fulfilling, ready: lo
+  recogido va entero, es lo que pasó); y **quien guarda puede partir** (`ROLES_QUE_PARTEN`, el espejo de
+  `puede_partir_cargas`: admin, logística, gerente, accounting; el módulo lo mira la base). Un guardado que no toca ni chofer
+  ni pallets (una nota, la factura) no parte nada aunque la orden ya estuviera de más: para esa sigue el ✂.
+- **Con qué capacidad:** la del Gestor y «Mi ruta», `capacidadDelChofer` (la del chofer en Ajustes → la de flota → 12): la
+  que Roberto ve en «Truck capacity». La del chofer NUEVO.
+- **En cuántas:** las que hagan falta, llenando camiones y la última con el resto (`cargasParaElCamion`, las mismas partes
+  que `parteOrdenesGrandes`; una prueba lo compara): 18 en 10 → 10 + 8; 25 en 10 → 10 + 10 + 5. El dueño dijo «2 trips»
+  porque su caso era de 18; con 25 en 10, dos viajes seguirían sin caber.
+- **Las cargas nuevas** copian el chofer de la madre (la copia de la 157) y nacen **sin puesto**: la lista las pone donde pone
+  lo provisional. Medido en el demo: no necesariamente al final (abajo). Se colocan con las flechas.
+- **Nunca hace fallar el guardado**: lo asignado ya está escrito. Si la base no deja partir porque quien guarda no puede
+  (`42501`) o no hay 157, se calla y queda el ✂; si falla por otra cosa, se dice («could not be split automatically: use ✂
+  in Routes») y queda el ✂.
+- **El demo** (`local-data-provider`) hace lo mismo con su `partirCarga` en memoria.
+
+### Lo que no cubre (y por qué)
+
+- **Lo que se escribe en el servidor**: «Armar rutas» y publicar ya parten antes de planificar (D-452), con la capacidad del
+  motor (`driver_settings` primero, ver arriba); «tomar la orden» del chofer (188) es una función de la base y el chofer no
+  puede partir. Una orden que entre en un camión por esos caminos con la capacidad del Gestor de menos sigue con su ✂.
+- **Las órdenes ya asignadas y de más** antes de esto no se parten solas hasta que alguien les cambie chofer o pallets.
+- **Una partición no se deshace con ↶**: el deshacer del Gestor devuelve el chofer y el puesto, no junta. Si las dos cargas
+  caben juntas en el camión, ⤵ las junta; si no caben (que es por lo que se partió), la única forma de llevarla entera es
+  subir la capacidad de ese chofer en Ajustes y juntar.
+- **Dos personas asignando la misma orden a la vez** podrían pedir dos particiones; `partir_carga` bloquea la fila, pero el
+  resto es absoluto. No se protege: la ventana es de milisegundos y la base ya rechaza un resto que no deja nada.
+- **`setStage`** (confirmar pallets al marcar «listo») no pasa por `updateDelivery`; ahí confirma el almacén, que no puede
+  partir, y la orden suele no tener chofer aún.
+
+### Descartado
+
+- **Un disparador en la base** (al poner `assigned_driver`): cubriría también lo del servidor, pero haría falta migración,
+  insertar filas desde un trigger de `deliveries` (la tabla más leída, con su guard y su realtime) y la capacidad de la app
+  vive en `settings`. Mucho riesgo para lo que la app ya hace en un sitio.
+- **Partir al crear la orden o al confirmar pallets**: el camión no se sabe todavía, y ventas y almacén no pueden partir.
+- **Un efecto en el Gestor que parta lo que vea de más**: solo partiría con el Gestor abierto, y dos pantallas abiertas
+  partirían la misma orden dos veces.
+- **Partir solo en «Asignar a…»** (el camino de FV168): mañana sería otro camino.
+
+### Pruebas y mutantes
+
+`src/lib/partir-sola.test.ts` (18): «HOY» (el motor parte 18 en 10 en dos cargas y `paradasSinPartes` las junta en una P y
+una D), en cuántas cargas (y que son las de `parteOrdenesGrandes`), cuándo (FV168; 25 en tres; el chofer nuevo; subir
+pallets sí y el mismo valor no; un guardado que no toca nada; quitar chofer; las etapas; los roles y que son los de la 157),
+la cadena (para en el primer fallo) y el aviso, y que los dos proveedores llaman a la regla en el guardado, después del
+registro.
+
+Mutantes: **12 de 12 caen** con una prueba con nombre (tanda en `~/.claude/herramientas/mutantes/tanda-partir-sola.json`):
+M1 «parte aunque quien guarda no pueda» → «solo si quien guarda puede partir…»; M2 «re-guardar el mismo chofer cuenta» y M3
+«el chofer sin recortar» → «un guardado que no le da chofer ni le cambia pallets…»; M4 «el mismo valor de pallets cuenta» →
+«subirle los pallets…»; M5 «parte lo ya recogido» → «solo pendiente de ruta»; M6 «la capacidad del chofer de antes» → «la
+capacidad es la del chofer NUEVO»; M7 «la última carga lleva un camión lleno» → siete pruebas; M8 «cada resto a la madre» y
+M9 «un fallo se salta» → «cada resto a la recién nacida; para en el primer fallo» (la primera versión de esa prueba fallaba
+siempre a partir de la segunda llamada, y con eso M9 no se distinguía: ahora falla solo la segunda); M10 / M12 «el proveedor
+real / el demo no parte al guardar» y M11 «rol admin fijo» → las pruebas de los proveedores.
+
+### Medido en el demo por CDP (2026-10-22, puerto propio, perfil desechable)
+
+`#1069` (INV-3129, ready, sin chofer) puesta a 18 pallets; Gestor → «Unassigned» → «Assign to…» de su fila → Diego Driver
+(camión de 12, el de fábrica del demo). Aviso: «#1069 didn't fit in Diego Driver's truck (18 of 12 pallets): split into 2
+trips, 12 + 6. Each load has its own P and D: place them with the arrows.». En el store: `#1069a` 12 y `#1069b` 6, las dos
+de Diego, `ready`, sin puesto. En su tarjeta: P5/D5 `#1069b · load 2 of 2` (+6 = 11) y P6/D6 `#1069a · load 1 of 2`
+(+12 = 12), cada una con flechas y «Move to…»; «peak load 12/12», sin «over capacity». 1440 px y 390 px: 0 px de
+desplazamiento lateral de la página. La carga nueva salió **antes** que la madre (las dos sin puesto), no al final: por
+eso el aviso no dice dónde queda.
+
+**No medido:** contra la base de verdad (`partir_carga` con la sesión de un admin desde el guardado), el silencio con un rol
+que no puede, y «Asignar a…» de varios choferes con una orden grande en el demo.

@@ -13,7 +13,8 @@ import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria"
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { deviceId } from "@/lib/device-id";
 import { DEMO_USERS, demoDeliveries, demoNotifications, demoSettings, uid } from "@/lib/demo-data";
-import { alJuntar, alRepartir, copiaParaLaCarga, hermanasDe, madreAlPartir, siguienteLetra } from "@/lib/cargas-partidas";
+import { alJuntar, alRepartir, avisoDePartirSola, cargasAlGuardar, copiaParaLaCarga, hermanasDe, madreAlPartir, parteEnCadena, restosParaPartir, siguienteLetra } from "@/lib/cargas-partidas";
+import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { palletsDeLaOrden } from "@/lib/pallets";
 import { orderLabel } from "@/lib/utils";
 import { notaDeReprogramacion } from "@/lib/reprogramar-orden";
@@ -178,8 +179,12 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       deliveries: s.deliveries.map((c) => (c.id === id ? { ...c, ...patch, updated_at: new Date().toISOString() } : c)),
       events: addEvent(s, id, "edited", antes ? changedFieldsNote(antes, patch as Record<string, unknown>) || undefined : undefined),
     });
+    // Como el proveedor real (D-640): si ya no cabe en el camión de su chofer, se parte sola. Por referencia: `partirCarga`
+    // se declara más abajo.
+    await parteSiNoCabeRef.current?.(id, antes as unknown as Delivery | undefined, patch);
     return true;
   }, [me, persist, notify]);   // `me` en las dependencias: `addEvent` firma con `me.id` (D-373)
+  const parteSiNoCabeRef = useRef<((id: string, antes: Delivery | undefined, patch: Partial<Delivery>) => Promise<void>) | null>(null);
 
   // Renumber a route's stops (see the real provider) — one local write, so the
   // whole new sequence lands at once.
@@ -221,6 +226,17 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     persist(next);
     return hija.id;
   }, [me, persist, notify]);
+  /** D-640, la misma regla que el proveedor real (`cargasAlGuardar`), con `partirCarga` del demo en cadena. */
+  const parteSiNoCabe = useCallback(async (id: string, antes: Delivery | undefined, patch: Partial<Delivery>) => {
+    const settings = storeRef.current.settings;
+    const capacidadDe = (chofer: string) => capacidadDelChofer(chofer, settings);
+    const cargas = cargasAlGuardar(antes, patch, capacidadDe, me.role);
+    if (!antes || !cargas.length) return;
+    const chofer = String({ ...antes, ...patch }.assigned_driver ?? "").trim();
+    const nuevas = await parteEnCadena(partirCarga, id, restosParaPartir(cargas.map((pallets) => ({ pallets }))));
+    notify(avisoDePartirSola({ orden: orderLabel(antes), chofer, capacidad: capacidadDe(chofer), cargas, nacidas: nuevas.length }).en);
+  }, [me, partirCarga, notify]);
+  parteSiNoCabeRef.current = parteSiNoCabe;
   /** Sin base en el modo local: la reentrega se registra con `borradorDeReentrega` (el modal lo sabe por `teaching`). */
   const reentregaComoCarga = useCallback<DataState["reentregaComoCarga"]>(async () => null, []);
   const reparteCargas = useCallback<DataState["reparteCargas"]>(async (idA, idB, palletsA) => {

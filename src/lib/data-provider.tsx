@@ -19,7 +19,7 @@ import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, Driv
 import { type AppNotification, assignmentNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition, knownModules } from "@/lib/constants";
 import { borrarOrden } from "@/lib/deshacer-y-borrar";
-import { orderOwner, changedFieldsNote, shiftDateISO, todayISO } from "@/lib/utils";
+import { orderOwner, orderLabel, changedFieldsNote, shiftDateISO, todayISO } from "@/lib/utils";
 import { deviceId } from "@/lib/device-id";
 import { change, type SecurityKind } from "@/lib/security-log";
 import { detalleAConsola, mensajeEscrituraPerfil } from "@/lib/user-write-error";
@@ -32,7 +32,8 @@ import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } 
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
 import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
-import { esFuncionAusente } from "@/lib/cargas-partidas";
+import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, restosParaPartir } from "@/lib/cargas-partidas";
+import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { argumentosDeReprogramar, caminoTrasReprogramar, notaDeReprogramacion } from "@/lib/reprogramar-orden";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
@@ -1144,6 +1145,35 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     [supabase, me, notify, logEvent, emitStageNotifs, teaching, deliveries, effectiveDeliveries, ubicarSiHaceFalta, settings.order_type_rules, settings.stores, lang],
   );
 
+  /**
+   * D-640: si el guardado que acaba de pasar deja la orden más grande que el camión de su chofer —le dio chofer, o le
+   * cambió los pallets ya asignada—, se parte SOLA en cargas hermanas (`partir_carga`, 157, en cadena como «Armar
+   * rutas»), sin que nadie pulse ✂. La regla vive en `cargasAlGuardar`; la capacidad es la del Gestor
+   * (`capacidadDelChofer`: la del chofer en Ajustes → la de flota → 12). La carga nueva copia el chofer de la madre y nace
+   * sin puesto. Nunca hace fallar el guardado: lo asignado ya está escrito; si la base no deja partir (quien guarda no
+   * puede, o no hay 157) se calla, y si falla por otra cosa se dice y queda el ✂.
+   */
+  const parteSiNoCabe = useCallback(async (id: string, before: Delivery | undefined, patch: Partial<Delivery>) => {
+    const capacidadDe = (chofer: string) => capacidadDelChofer(chofer, settings);
+    const cargas = cargasAlGuardar(before, patch, capacidadDe, realRole);
+    if (!before || !cargas.length) return;
+    const chofer = String({ ...before, ...patch }.assigned_driver ?? "").trim();
+    let fallo: { code?: string | null; message: string } | null = null;
+    const nuevas = await parteEnCadena(async (de, resto) => {
+      const { data, error } = await supabase.rpc("partir_carga", { p_id: de, p_resto: resto });
+      if (error) { fallo = error; return null; }
+      return typeof data === "string" ? data : null;
+    }, id, restosParaPartir(cargas.map((pallets) => ({ pallets }))));
+    if (nuevas.length) await reloadTables(["deliveries", "order_events"]);
+    const f = fallo as { code?: string | null; message: string } | null;
+    // Sin la 157, o quien guarda no puede partir (`CARGA_FORBIDDEN`, 42501): no se dice nada, el ✂ sigue ahí.
+    if (!nuevas.length && f && (esFuncionAusente(f) || f.code === "42501")) return;
+    const aviso = avisoDePartirSola({ orden: orderLabel(before), chofer, capacidad: capacidadDe(chofer), cargas, nacidas: nuevas.length });
+    notify(lang === "es" ? aviso.es : aviso.en);
+    if (f) console.error("partir_carga al guardar:", f.message);
+    else await logEvent(id, "note", `Split automatically into ${cargas.join(" + ")} pallets: it didn't fit in ${chofer}'s truck (${capacidadDe(chofer)})`);
+  }, [supabase, settings, realRole, reloadTables, notify, lang, logEvent]);
+
   const updateDelivery = useCallback<DataState["updateDelivery"]>(
     async (id, patchCrudo, opts) => {
       // El teléfono, siempre «(956) 340-5910» al guardar (D-630).
@@ -1241,9 +1271,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       void ubicarSiHaceFalta(id, { ...(before ?? {}), ...patch });
       // Record WHICH fields changed, so the activity log / audit is field-level.
       await logEvent(id, "edited", before ? (changedFieldsNote(before as unknown as Record<string, unknown>, patch as Record<string, unknown>) || undefined) : undefined);
+      // Una orden que ya no cabe en el camión de su chofer se parte sola (D-640). Después del registro: el historial
+      // cuenta primero la asignación y después la partición.
+      await parteSiNoCabe(id, before, patch);
       return true;
     },
-    [supabase, notify, logEvent, teaching, deliveries, users, me, ubicarSiHaceFalta, effectiveDeliveries, settings.order_type_rules, settings.stores, lang],
+    [supabase, notify, logEvent, teaching, deliveries, users, me, ubicarSiHaceFalta, effectiveDeliveries, settings.order_type_rules, settings.stores, lang, parteSiNoCabe],
   );
   // Publicada para `ubicarSiHaceFalta`, que se declara antes y no puede nombrarla.
   updateDeliveryRef.current = updateDelivery;
