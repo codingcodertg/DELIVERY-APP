@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BarraSuperior } from "@/components/BarraSuperior";
@@ -17,30 +16,26 @@ import { cn } from "@/lib/erp/utils";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
-import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
-import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
+import { FichaEnVentana, selCls } from "./FichaDeCliente";
 import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas } from "@/lib/customers/empresas";
 import { alPulsarCabecera, esOrdenInicial, filtraEmpresas, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
 import {
-  alternaColumna, CAMPOS, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, colocaColumnaDeClientes, columnasAPintar, columnasDelSelector,
-  ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, FILTRO_INICIAL, formDe, HISTORIAS, historiaLabel,
-  mailUrl, MOTIVOS_DE_ARCHIVO, motivoLabel, mueveColumnaDeClientes, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar,
-  parcheDe, PREFERENCIA_INICIAL, preferenciaDeTexto, QB_ESTADOS, qbLabel, seMueveColumnaDeClientes, telUrl, TIENDAS, tieneOrdenPropio,
+  alternaColumna, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, colocaColumnaDeClientes, columnasAPintar, columnasDelSelector,
+  estadoClase, estadoLabel, estaArchivado, FILTRO_INICIAL, motivoLabel, mueveColumnaDeClientes, nombreDeTienda,
+  PREFERENCIA_INICIAL, preferenciaDeTexto, QB_ESTADOS, qbLabel, seMueveColumnaDeClientes, TIENDAS, tieneOrdenPropio,
   type ClaveDeColumna, type Cliente, type Filtro, type Orden, type PreferenciaDeColumnas,
 } from "@/lib/customers/reglas";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
-type Ficha = { tipo: "ver"; cliente: Cliente } | { tipo: "nuevo" };
+/** La ficha abierta en su ventana; `editar`: abre ya editando («✏️ Editar» de la página, D-648). */
+type Ficha = { tipo: "ver"; cliente: Cliente; editar?: boolean } | { tipo: "nuevo" };
 
 /** Cuántas filas se pintan de entrada y cuántas más con cada «ver más»: 1.349 filas de golpe pesan en un teléfono. */
 const TANDA = 100;
 
-const selCls =
-  "h-9 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500";
-
 /**
- * «Clientes» (migración 180): la lista maestra, con búsqueda, filtros por tienda y por columna, columnas elegibles y una
- * ficha lateral con todos los campos, que edita quien puede. Las reglas viven en `lib/customers/reglas` y están
+ * «Clientes» (migración 180): la lista maestra, con búsqueda, filtros por tienda y por columna, columnas elegibles y la
+ * ficha de cada cliente en una ventana centrada (`FichaEnVentana`, D-NEXT), con todos los campos, que edita quien puede. Las reglas viven en `lib/customers/reglas` y están
  * probadas sin navegador; la base las vuelve a exigir (RLS de la 180). Este componente lee, filtra y pinta, y cada
  * escritura va por el almacén, que devuelve la fila como quedó en la base: eso es lo que se pinta.
  */
@@ -68,8 +63,8 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
 
-  // «✏️ Editar» de la página del cliente (D-648) llega con `?editar=<id>`: al cargar la lista se abre la ficha lateral de ese
-  // cliente —la que edita y guarda— y el parámetro se quita, para que recargar no la vuelva a abrir.
+  // «✏️ Editar» de la página del cliente (D-648) llega con `?editar=<id>`: al cargar la lista se abre la ventana de ese
+  // cliente ya editando (D-NEXT) y el parámetro se quita, para que recargar no la vuelva a abrir.
   const [editarPendiente, setEditarPendiente] = useState<number | null>(null);
   useEffect(() => {
     const n = Number(new URLSearchParams(window.location.search).get("editar"));
@@ -78,7 +73,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   useEffect(() => {
     if (editarPendiente == null || estado.tipo !== "listo") return;
     const c = lista.find((x) => x.id === editarPendiente);
-    if (c) setFicha({ tipo: "ver", cliente: c });
+    if (c) setFicha({ tipo: "ver", cliente: c, editar: true });
     setEditarPendiente(null);
     try { window.history.replaceState(null, "", window.location.pathname); } catch { /* sin historial: se queda el parámetro */ }
   }, [editarPendiente, estado.tipo, lista]);
@@ -344,15 +339,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                               <Badge className="border-slate-200 bg-slate-100 text-slate-500">{t("Archived", "Archivado")} · {motivoLabel(c.archived_reason, t)}</Badge>
                             </>
                           ) : c.account}
-                          {/* La ficha completa (/customers/[id]), como el «Ficha completa →» de un artículo del ERP. El clic no abre el cajón. */}
-                          <Link
-                            href={`/customers/${c.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs font-normal text-clay-600 hover:underline"
-                            aria-label={t(`Full details of ${c.account}`, `Ficha completa de ${c.account}`)}
-                          >
-                            {t("details", "ficha")}
-                          </Link>
+                          {/* Sin enlace «ficha» (D-NEXT): el clic en la fila ya abre la ficha completa, en su ventana. */}
                         </span>
                       ) : col.key === "store" ? (
                         // Las tiendas de la empresa (189): la que se enseña, resaltada.
@@ -436,8 +423,10 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
         document.body,
       )}
 
+      {/* La ficha en una ventana centrada, como la de una orden en Entregas (D-NEXT): el clic en una fila la abre; se cierra
+          con un clic fuera, ✕ o Escape. Sustituye al cajón lateral. */}
       {ficha && (
-        <FichaDeCliente
+        <FichaEnVentana
           cliente={ficha.tipo === "ver" ? ficha.cliente : null}
           hermanas={ficha.tipo === "ver" ? filasDeLaEmpresa(lista, lista.find((x) => x.id === ficha.cliente.id) ?? ficha.cliente) : []}
           onCambia={(c) => setFicha({ tipo: "ver", cliente: c })}
@@ -445,6 +434,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
           almacen={almacen}
           onClose={() => setFicha(null)}
           onGuardado={alGuardar}
+          editarAlAbrir={ficha.tipo === "ver" && ficha.editar === true}
           t={t}
         />
       )}
@@ -454,245 +444,3 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
 
 const chip = (activo: boolean) =>
   cn("rounded-full border px-3 py-1 text-sm", activo ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50");
-
-/**
- * La ficha lateral: todos los campos; quien puede editar, edita y guarda con un botón (no al vuelo: una lista
- * maestra se corrige con intención). `cliente` null = alta.
- */
-function FichaDeCliente({ cliente, hermanas, onCambia, puedeEditar, almacen, onClose, onGuardado, t }: {
-  cliente: Cliente | null;
-  /** Las filas de la misma empresa (189), una por tienda, en orden: las pestañas. Con una sola, no hay pestañas. */
-  hermanas: Cliente[];
-  onCambia: (c: Cliente) => void;
-  puedeEditar: boolean; almacen: AlmacenDeClientes; onClose: () => void; onGuardado: (c: Cliente) => void;
-  t: (en: string, es: string) => string;
-}) {
-  const original = useMemo(() => formDe(cliente), [cliente]);
-  const [form, setForm] = useState<Record<string, string>>(original);
-  useEffect(() => { setForm(original); }, [original]);
-  const [ocupado, setOcupado] = useState(false);
-  const [aviso, setAviso] = useState<{ tono: "rojo" | "verde"; texto: string } | null>(null);
-  const nuevo = cliente === null;
-  const { parche, errores } = useMemo(() => parcheDe(form, original, nuevo), [form, original, nuevo]);
-  const cambiado = Object.keys(parche).length > 0;
-
-  // Archivar (181): se pide el motivo en la propia ficha (uno de los del script, o escrito), y se escribe por el mismo
-  // almacén que todo lo demás: la fila vuelve de la base y es lo que se pinta.
-  const archivado = cliente !== null && estaArchivado(cliente);
-  const [archivando, setArchivando] = useState(false);
-  const [motivo, setMotivo] = useState("");
-  const [motivoLibre, setMotivoLibre] = useState("");
-  useEffect(() => { setArchivando(false); setMotivo(""); setMotivoLibre(""); }, [cliente]);
-
-  /** Escribe y pinta lo que devolvió la base; en rojo lo que no se guardó. */
-  const aplicar = async (escritura: () => ReturnType<AlmacenDeClientes["guardar"]>, hecho: string) => {
-    setOcupado(true);
-    setAviso(null);
-    const r = await escritura();
-    setOcupado(false);
-    if (!r.ok) {
-      setAviso({
-        tono: "rojo",
-        texto: r.duplicado
-          ? t("That account already exists in that store.", "Esa cuenta ya existe en esa tienda.")
-          : r.sinPermiso
-            ? t("Not saved: the database did not accept the change (no permission).", "No se guardó: la base no aceptó el cambio (sin permiso).")
-            : t("Not saved: ", "No se guardó: ") + r.error,
-      });
-      return;
-    }
-    setAviso({ tono: "verde", texto: hecho });
-    onGuardado(r.valor);
-  };
-
-  const guardar = async () => {
-    if (errores.length) { setAviso({ tono: "rojo", texto: t("Check the highlighted fields.", "Revisa los campos marcados.") }); return; }
-    await aplicar(() => (nuevo ? almacen.crear(parche) : almacen.guardar(cliente.id, parche)), t("Saved ✓", "Guardado ✓"));
-  };
-  const archivar = async () => {
-    if (nuevo) return;
-    await aplicar(() => almacen.guardar(cliente.id, parcheArchivar(motivo === "otro" ? motivoLibre : motivo)), t("Archived ✓", "Archivado ✓"));
-    setArchivando(false);
-  };
-  const desarchivar = async () => {
-    if (nuevo) return;
-    await aplicar(() => almacen.guardar(cliente.id, PARCHE_DESARCHIVAR), t("Restored ✓", "Desarchivado ✓"));
-  };
-  // Separar (189): esta fila deja la empresa y pasa a ser la suya propia (otra clave). Las demás no se tocan.
-  const separar = async () => {
-    if (nuevo) return;
-    await aplicar(() => almacen.guardar(cliente.id, { company_id: crypto.randomUUID() }), t("Split ✓", "Separada ✓"));
-  };
-
-  const campo = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
-  const inputCls = (k: string) => cn(errores.includes(k) && "border-red-400 ring-1 ring-red-300");
-  const tel = telUrl(form.phone ?? null);
-  const mail = mailUrl(form.email ?? null);
-
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-slate-900/30" onClick={onClose} />
-      <div className="relative flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">{nuevo ? t("New customer", "Nuevo cliente") : cliente.account}</div>
-            <div className="text-xs text-slate-400">
-              {nuevo ? "" : `${nombreDeTienda(cliente.store)} · ${t("updated", "actualizado")} ${fecha(cliente.updated_at)}`}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {aviso && <span className={cn("text-xs", aviso.tono === "verde" ? "text-emerald-600" : "text-red-600")}>{aviso.texto}</span>}
-            {!nuevo && (
-              <Link href={`/customers/${cliente.id}`} className="whitespace-nowrap text-sm text-clay-600 hover:underline">
-                {t("Full details →", "Ficha completa →")}
-              </Link>
-            )}
-            <button onClick={onClose} className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100" aria-label={t("Close", "Cerrar")}>✕</button>
-          </div>
-        </div>
-
-        {/* Las tiendas de la empresa (189): cada pestaña es la fila de esa tienda, con su contacto, su vendedor y su CRM. */}
-        {!nuevo && hermanas.length > 1 && (
-          <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 px-4 py-2" role="tablist" aria-label={t("Stores of this company", "Tiendas de esta empresa")}>
-            {hermanas.map((h) => {
-              const repetida = hermanas.filter((x) => x.store === h.store).length > 1;
-              return (
-                <button
-                  key={h.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={h.id === cliente.id}
-                  disabled={h.id !== cliente.id && cambiado}
-                  title={h.id !== cliente.id && cambiado ? t("Save or undo your changes first", "Guarda o deshaz los cambios primero") : h.account}
-                  onClick={() => onCambia(h)}
-                  className={cn("rounded-full border px-3 py-1 text-xs disabled:opacity-50", h.id === cliente.id ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
-                >
-                  {nombreDeTienda(h.store)}{repetida ? ` · ${h.account}` : ""}
-                </button>
-              );
-            })}
-            {puedeEditar && (
-              <Button variant="ghost" size="sm" className="ml-auto text-xs text-slate-500" onClick={separar} disabled={ocupado || cambiado}
-                title={t("This store's row stops being part of this company (nothing is deleted)", "La fila de esta tienda deja de ser de esta empresa (no se borra nada)")}>
-                {t("Split from company", "Separar de la empresa")}
-              </Button>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-3 p-4">
-          {archivado && (
-            <p className="rounded-md border border-slate-200 bg-slate-100 p-2 text-xs text-slate-600">
-              <span className="font-medium">{t("Archived", "Archivado")}</span> {fecha(cliente.archived_at)} · {motivoLabel(cliente.archived_reason, t)}
-              {" — "}{t("hidden from the list; not a customer. It can be restored.", "escondido de la lista; no es un cliente. Se puede desarchivar.")}
-            </p>
-          )}
-          {!puedeEditar && (
-            <p className="rounded-md bg-slate-50 p-2 text-xs text-slate-500">
-              {t("Read-only — admins and managers can edit.", "Solo lectura — editan los admins y los managers.")}
-            </p>
-          )}
-          {!nuevo && (tel || mail) && (
-            <div className="flex flex-wrap gap-3 text-sm">
-              {tel && <a href={tel} className="text-clay-600 hover:underline">📞 {form.phone}</a>}
-              {mail && <a href={mail} className="text-clay-600 hover:underline">✉️ {form.email}</a>}
-            </div>
-          )}
-          {CAMPOS.map((f) => (
-            <label key={f.key} className="block space-y-1">
-              <span className="text-xs text-slate-500">{t(f.en, f.es)}{(f.key === "account" || f.key === "store") && nuevo ? " *" : ""}</span>
-              {f.tipo === "tienda" ? (
-                <select className={cn(selCls, "w-full", inputCls(f.key))} disabled={!puedeEditar} value={form[f.key] ?? ""} onChange={(e) => campo(f.key, e.target.value)}>
-                  <option value="">—</option>
-                  {TIENDAS.map((x) => <option key={x.code} value={x.code}>{x.nombre} ({x.code})</option>)}
-                  {form[f.key] && !TIENDAS.some((x) => x.code === form[f.key]) && <option value={form[f.key]}>{form[f.key]}</option>}
-                </select>
-              ) : f.tipo === "estado" ? (
-                <select className={cn(selCls, "w-full")} disabled={!puedeEditar} value={form[f.key] ?? ""} onChange={(e) => campo(f.key, e.target.value)}>
-                  <option value="">{estadoLabel(null, t)}</option>
-                  {ESTADOS.map((e) => <option key={e} value={e}>{estadoLabel(e, t)}</option>)}
-                </select>
-              ) : f.tipo === "historia" ? (
-                <select className={cn(selCls, "w-full")} disabled={!puedeEditar} value={form[f.key] ?? ""} onChange={(e) => campo(f.key, e.target.value)}>
-                  <option value="">—</option>
-                  {HISTORIAS.map((h) => <option key={h} value={h}>{historiaLabel(h, t)}</option>)}
-                </select>
-              ) : f.tipo === "qb" ? (
-                <select className={cn(selCls, "w-full")} disabled={!puedeEditar} value={form[f.key] ?? ""} onChange={(e) => campo(f.key, e.target.value)}>
-                  <option value="">—</option>
-                  {QB_ESTADOS.map((q) => <option key={q} value={q}>{qbLabel(q, t)}</option>)}
-                </select>
-              ) : f.tipo === "textarea" ? (
-                <textarea
-                  disabled={!puedeEditar}
-                  rows={3}
-                  value={form[f.key] ?? ""}
-                  onChange={(e) => campo(f.key, e.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
-                />
-              ) : f.key === "phone" ? (
-                // D-635: como el teléfono de la orden de Entregas (D-630): solo números, y el formato se pone solo.
-                <Input
-                  disabled={!puedeEditar}
-                  value={telefonoParaVer(form[f.key])}
-                  onChange={(e) => campo(f.key, telefonoAlEscribir(e.target.value))}
-                  type="tel"
-                  inputMode="numeric"
-                  placeholder={MOLDE_DEL_TELEFONO}
-                  className={inputCls(f.key)}
-                />
-              ) : (
-                <Input
-                  disabled={!puedeEditar}
-                  value={form[f.key] ?? ""}
-                  // D-635: los nombres salen en MAYÚSCULAS según se escriben.
-                  onChange={(e) => campo(f.key, (CAMPOS_EN_MAYUSCULAS as readonly string[]).includes(f.key) ? e.target.value.toUpperCase() : e.target.value)}
-                  inputMode={f.tipo === "num" ? "decimal" : undefined}
-                  className={inputCls(f.key)}
-                />
-              )}
-            </label>
-          ))}
-          {!nuevo && cliente.house_no !== null && (
-            <p className="text-xs text-slate-400">{t("House #", "N.º House")} {cliente.house_no}</p>
-          )}
-        </div>
-
-        {puedeEditar && !nuevo && archivando && (
-          <div className="space-y-2 border-t border-slate-200 bg-slate-50 px-4 py-3">
-            <label className="block space-y-1">
-              <span className="text-xs text-slate-500">{t("Why is it archived?", "¿Por qué se archiva?")}</span>
-              <select className={cn(selCls, "w-full")} value={motivo} onChange={(e) => setMotivo(e.target.value)} aria-label={t("Reason", "Motivo")}>
-                <option value="">{t("Choose a reason…", "Elige un motivo…")}</option>
-                {MOTIVOS_DE_ARCHIVO.map((m) => <option key={m} value={m}>{motivoLabel(m, t)}</option>)}
-                <option value="otro">{t("Other (write it)", "Otro (escríbelo)")}</option>
-              </select>
-            </label>
-            {motivo === "otro" && (
-              <Input value={motivoLibre} onChange={(e) => setMotivoLibre(e.target.value)} placeholder={t("Reason", "Motivo")} />
-            )}
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setArchivando(false)}>{t("Cancel", "Cancelar")}</Button>
-              <Button size="sm" onClick={archivar} disabled={ocupado || motivo === "" || (motivo === "otro" && motivoLibre.trim() === "")}>
-                {ocupado ? t("Saving…", "Guardando…") : t("Archive", "Archivar")}
-              </Button>
-            </div>
-          </div>
-        )}
-        {puedeEditar && (
-          <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3">
-            {!nuevo && (archivado ? (
-              <Button variant="ghost" className="mr-auto" onClick={desarchivar} disabled={ocupado}>{t("Restore", "Desarchivar")}</Button>
-            ) : (
-              <Button variant="ghost" className="mr-auto text-slate-500" onClick={() => setArchivando(true)} disabled={ocupado || archivando}>{t("Archive…", "Archivar…")}</Button>
-            ))}
-            <Button variant="outline" onClick={onClose}>{t("Close", "Cerrar")}</Button>
-            <Button onClick={guardar} disabled={ocupado || !cambiado}>
-              {ocupado ? t("Saving…", "Guardando…") : nuevo ? t("Create", "Crear") : t("Save", "Guardar")}
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
