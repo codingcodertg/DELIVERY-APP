@@ -35,7 +35,7 @@ const TANDA = 100;
 
 /**
  * «Clientes» (migración 180): la lista maestra, con búsqueda, filtros por tienda y por columna, columnas elegibles y la
- * ficha de cada cliente en una ventana centrada (`FichaEnVentana`, D-NEXT), con todos los campos, que edita quien puede. Las reglas viven en `lib/customers/reglas` y están
+ * ficha de cada cliente en una ventana centrada (`FichaEnVentana`, D-654), con todos los campos, que edita quien puede. Las reglas viven en `lib/customers/reglas` y están
  * probadas sin navegador; la base las vuelve a exigir (RLS de la 180). Este componente lee, filtra y pinta, y cada
  * escritura va por el almacén, que devuelve la fila como quedó en la base: eso es lo que se pinta.
  */
@@ -64,7 +64,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   useEffect(() => { void cargar(); }, [cargar]);
 
   // «✏️ Editar» de la página del cliente (D-648) llega con `?editar=<id>`: al cargar la lista se abre la ventana de ese
-  // cliente ya editando (D-NEXT) y el parámetro se quita, para que recargar no la vuelva a abrir.
+  // cliente ya editando (D-654) y el parámetro se quita, para que recargar no la vuelva a abrir.
   const [editarPendiente, setEditarPendiente] = useState<number | null>(null);
   useEffect(() => {
     const n = Number(new URLSearchParams(window.location.search).get("editar"));
@@ -339,7 +339,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                               <Badge className="border-slate-200 bg-slate-100 text-slate-500">{t("Archived", "Archivado")} · {motivoLabel(c.archived_reason, t)}</Badge>
                             </>
                           ) : c.account}
-                          {/* Sin enlace «ficha» (D-NEXT): el clic en la fila ya abre la ficha completa, en su ventana. */}
+                          {/* Sin enlace «ficha» (D-654): el clic en la fila ya abre la ficha completa, en su ventana. */}
                         </span>
                       ) : col.key === "store" ? (
                         // Las tiendas de la empresa (189): la que se enseña, resaltada.
@@ -423,7 +423,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
         document.body,
       )}
 
-      {/* La ficha en una ventana centrada, como la de una orden en Entregas (D-NEXT): el clic en una fila la abre; se cierra
+      {/* La ficha en una ventana centrada, como la de una orden en Entregas (D-654): el clic en una fila la abre; se cierra
           con un clic fuera, ✕ o Escape. Sustituye al cajón lateral. */}
       {ficha && (
         <FichaEnVentana

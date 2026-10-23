@@ -342,7 +342,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // Cada línea que se edita lleva SU campo (la etiqueta y el control son de esa clave).
     for (const f of grupos.flatMap((g) => g.filas)) if (f.campo) expect(f.campo.key).toBe(f.key);
   });
-  it("D-NEXT: sin tarjeta «Cuenta» ni «Tienda» abajo; las tarjetas van Contacto, Crédito, Estado / Vendedores, Otros", () => {
+  it("D-654: sin tarjeta «Cuenta» ni «Tienda» abajo; las tarjetas van Contacto, Crédito, Estado / Vendedores, Otros", () => {
     expect(GRUPOS.map((g) => g.key)).toEqual(["contacto", "credito", "estado", "vendedores", "otros"]);
     expect(GRUPOS.at(-1)).toEqual({ key: "otros", en: "Other", es: "Otros" });
     const todas = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key));
@@ -351,7 +351,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // La cuenta y la tienda se siguen corrigiendo (arriba): siguen en CAMPOS, en la cabecera.
     expect(CAMPOS.filter((c) => c.grupo === "cabecera").map((c) => c.key)).toEqual(["account", "store"]);
   });
-  it("D-NEXT: «Otros» lleva el CRM, la cuenta unificada, Añadido (tanda), House #, Tienda + cuenta y las notas, al final", () => {
+  it("D-654: «Otros» lleva el CRM, la cuenta unificada, Añadido (tanda), House #, Tienda + cuenta y las notas, al final", () => {
     const otros = filasPorGrupo().find((g) => g.grupo.key === "otros")!.filas;
     expect(otros.map((f) => f.key)).toEqual([
       "crm_type_store", "crm_type_group", "associated_with", "unified_account", "added_batch", "house_no", "concatenate", "notes",
@@ -370,7 +370,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect(textoDeFila(c, fila("added_batch"), t)).toBe("LOTE 3");
     expect(textoDeFila(base(9, { credit_limit: 2500 }), fila("credit_limit"), t)).toBe("$2,500");
   });
-  it("D-NEXT: la ventana se cierra con Escape y con un clic en el fondo que empezó en el fondo; nada más la cierra", () => {
+  it("D-654: la ventana se cierra con Escape y con un clic en el fondo que empezó en el fondo; nada más la cierra", () => {
     expect(cierraLaFicha({ tecla: "Escape" })).toBe(true);
     expect(cierraLaFicha({ tecla: "Enter" })).toBe(false);
     expect(cierraLaFicha({ tecla: "Esc" })).toBe(false);

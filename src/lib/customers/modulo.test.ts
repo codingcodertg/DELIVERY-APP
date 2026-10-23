@@ -266,7 +266,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(pagina).not.toMatch(/service_role|SUPABASE_SERVICE/i);
     expect(pagina).toContain("<FichaCompleta cliente={cliente} hermanas={hermanas} puedeEditar={puedeEditar(role)} />");
   });
-  it("«✏️ Editar» (D-648): solo para quien puede editar, abre la VENTANA de la lista con ese cliente ya editando (D-NEXT) y quita el parámetro", () => {
+  it("«✏️ Editar» (D-648): solo para quien puede editar, abre la VENTANA de la lista con ese cliente ya editando (D-654) y quita el parámetro", () => {
     expect(ficha).toContain("{puedeEditar && (");
     expect(ficha).toContain("href={`/customers?editar=${c.id}`}");
     expect(lista).toContain('new URLSearchParams(window.location.search).get("editar")');
@@ -275,7 +275,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(lista).toContain('if (editarPendiente == null || estado.tipo !== "listo") return;');
     expect(lista).toContain("window.history.replaceState(null, \"\", window.location.pathname)");
   });
-  it("la página pinta las MISMAS tarjetas que la ventana (D-NEXT), y arriba el nombre sin «tienda · tienda+cuenta»", () => {
+  it("la página pinta las MISMAS tarjetas que la ventana (D-654), y arriba el nombre sin «tienda · tienda+cuenta»", () => {
     expect(ficha).toContain("<TarjetasDeLaFicha cliente={c} t={t} />");
     expect(ficha).toContain('import { TarjetasDeLaFicha } from "../FichaDeCliente";');
     expect(ficha).toContain('<h1 className="text-2xl font-semibold">{c.account}</h1>');
@@ -283,7 +283,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(ficha).not.toContain("nombreDeTienda(c.store)} · ");
     expect(ficha).toContain('{t("← Customers", "← Clientes")}');
   });
-  it("D-NEXT: el clic en la fila abre la VENTANA (no el cajón lateral), y la fila ya no lleva el enlace «ficha»", () => {
+  it("D-654: el clic en la fila abre la VENTANA (no el cajón lateral), y la fila ya no lleva el enlace «ficha»", () => {
     expect(lista).toContain("onClick={() => setFicha({ tipo: \"ver\", cliente: c })}");
     expect(lista).toContain("<FichaEnVentana");
     expect(lista).toContain('import { FichaEnVentana, selCls } from "./FichaDeCliente";');

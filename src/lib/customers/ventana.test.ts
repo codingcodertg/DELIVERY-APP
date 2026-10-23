@@ -7,7 +7,7 @@ import { filasDeLaEmpresa } from "./empresas";
 import { estadoLabel, nombreDeTienda, valorDeColumna, type Cliente } from "./reglas";
 
 /**
- * D-NEXT (2026-10-23). El dueño: «cuando uno le da clic al cliente […] abre ese side window por al lado, y eso no me
+ * D-654 (2026-10-23). El dueño: «cuando uno le da clic al cliente […] abre ese side window por al lado, y eso no me
  * sirve. Yo ocupo que, así como en el delivery app, se abra un window […] y ya me dé la ficha completa». Y: arriba dice
  * «RDC McAllen y después […] como un ID» en vez del nombre; abajo «Cuenta» vuelve a decir la tienda; y «añadido tanda,
  * número de house y tienda más cuenta» van en «Other».
@@ -41,7 +41,7 @@ const grupos = (html: string) => [...html.matchAll(/data-grupo="(\w+)"/g)].map((
 const dosTiendas = CLIENTES_DEMO.find((c) => c.id === 1)!;
 const unaTienda = CLIENTES_DEMO.find((c) => c.id === 3)!;
 
-describe("la ficha en una ventana centrada (D-NEXT)", () => {
+describe("la ficha en una ventana centrada (D-654)", () => {
   it("es una ventana como la de una orden de Entregas (`.overlay` + `.modal`), no el cajón lateral, y lleva su ✕", () => {
     const html = pinta(dosTiendas);
     expect(html.startsWith('<div class="overlay" data-ficha-de-cliente="true">')).toBe(true);

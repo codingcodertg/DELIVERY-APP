@@ -65,7 +65,7 @@ describe("al guardar desde el cajón (parcheDe)", () => {
     // Tocar otro campo no reescribe los que no se tocaron (no se reenvía lo leído).
     expect(parcheDe({ ...sinFormato, terms: "NET 30" }, sinFormato).parche).toEqual({ terms: "NET 30" });
   });
-  it("la ficha (su ventana, D-NEXT) usa el molde del teléfono de Entregas y pone los nombres en mayúsculas al escribir", () => {
+  it("la ficha (su ventana, D-654) usa el molde del teléfono de Entregas y pone los nombres en mayúsculas al escribir", () => {
     const ficha = readFileSync("src/app/customers/FichaDeCliente.tsx", "utf8");
     expect(ficha).toContain("onChange={(e) => onCambia(telefonoAlEscribir(e.target.value))}");
     expect(ficha).toContain("value={telefonoParaVer(valor)}");

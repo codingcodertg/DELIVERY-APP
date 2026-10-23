@@ -110,7 +110,7 @@ describe("nadie más se cuelga del borde de arriba a lo ancho", () => {
     "src/components/erp/request-drawer.tsx": 1,
     // La cabecera de la tabla de Clientes (D-649, cabecera bloqueada como Órdenes): se pega al borde de su caja
     // `max-h-[calc(100dvh-150px)] overflow-auto`, no al de la ventana. (Su cajón lateral, que también tenía una, ya no
-    // existe: la ficha es una ventana centrada, D-NEXT.)
+    // existe: la ficha es una ventana centrada, D-654.)
     "src/app/customers/Clientes.tsx": 1,
     // `max-h-[70vh] overflow-auto` en la cola de revisión.
     "src/components/erp/review-queue.tsx": 1,

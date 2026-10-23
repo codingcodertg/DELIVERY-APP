@@ -121,7 +121,7 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; v
 }
 
 /**
- * La ficha de un cliente en una VENTANA centrada, como la de una orden en Entregas (D-NEXT). El dueño: «cuando uno le da
+ * La ficha de un cliente en una VENTANA centrada, como la de una orden en Entregas (D-654). El dueño: «cuando uno le da
  * clic al cliente […] abre ese side window por al lado, y eso no me sirve. Yo ocupo que, así como en el delivery app, se
  * abra un window, así como un form, que uno solo puede dar afuera y exit out, y ya me dé la ficha completa». Sustituye
  * al cajón lateral: dentro van las tarjetas de la página `/customers/[id]` (`TarjetasDeLaFicha`), y quien puede editar
@@ -229,7 +229,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   const mail = mailUrl(form.email ?? null);
   const tiendas = nuevo ? [] : hermanas.length > 0 ? hermanas : [cliente];
 
-  // La tienda de esta fila, para cambiarla: en las pastillas, en el sitio de la suya (D-NEXT: ya no hay campo «Tienda» abajo).
+  // La tienda de esta fila, para cambiarla: en las pastillas, en el sitio de la suya (D-654: ya no hay campo «Tienda» abajo).
   const selectorDeTienda = (
     <select
       className={cn(selCls, "h-8 rounded-full text-xs", errores.includes("store") && "border-red-400 ring-1 ring-red-300")}
@@ -256,7 +256,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
         <div className="flex items-start gap-3 border-b border-slate-200 pb-3">
           <div className="min-w-0 flex-1">
             {editando ? (
-              // El nombre se corrige aquí, en su sitio (D-NEXT: ya no hay campo «Cuenta» abajo).
+              // El nombre se corrige aquí, en su sitio (D-654: ya no hay campo «Cuenta» abajo).
               <Input
                 value={form.account ?? ""}
                 onChange={(e) => campo("account", enMayusculas("account", e.target.value))}

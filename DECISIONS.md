@@ -46491,7 +46491,7 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-634 · Clientes, ficha completa: seis tarjetas, Cuenta · Contacto · Crédito y términos / Estado e historial · Vendedores · Otros, y «Otros» junta el CRM y lo del Excel
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): ya no hay tarjeta «Cuenta»: la cuenta va en el nombre de arriba, la tienda en sus pastillas y la cuenta unificada en «Otros». Quedan cinco tarjetas.
+> **Reemplazada en parte por D-654** (2026-10-23): ya no hay tarjeta «Cuenta»: la cuenta va en el nombre de arriba, la tienda en sus pastillas y la cuenta unificada en «Otros». Quedan cinco tarjetas.
 
 **Fecha:** 2026-10-21 · **Versión:** customers 0.7.0 · Hecho directo por el orquestador en `feat/clientes-tarjeta-otros`. Sin migración.
 
@@ -47049,7 +47049,7 @@ llegada a la base, en la columna «Llegada». La dirección ocupa las columnas d
 **No medido:** en el navegador con una ruta medida.
 ## D-648 · Clientes: «✏️ Editar» en la página del cliente
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): «✏️ Editar» abre la ficha en una ventana centrada y ya editando; la ficha lateral ya no existe.
+> **Reemplazada en parte por D-654** (2026-10-23): «✏️ Editar» abre la ficha en una ventana centrada y ya editando; la ficha lateral ya no existe.
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, «add a edit button for the customer in the customer app».
 
@@ -47213,7 +47213,7 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 - En el demo (React en modo estricto) lo marcado no sobrevive a recargar: el efecto que guarda corre dos veces y borra la clave. Viene de antes (D-481) y en producción no hay doble efecto; no se tocó.
 - Con el mapa de Google, en Safari/iPad.
 
-## D-NEXT · Clientes: la ficha se abre en una ventana centrada, como la orden de Entregas; arriba el nombre, sin «Cuenta» ni «Tienda» repetidas, y House # y la CONCATENATE en «Otros»
+## D-654 · Clientes: la ficha se abre en una ventana centrada, como la orden de Entregas; arriba el nombre, sin «Cuenta» ni «Tienda» repetidas, y House # y la CONCATENATE en «Otros»
 
 **Fecha:** 2026-10-23. Hecho por un worker del orquestador en `clientes-ficha-ventana`. Sin migración.
 

@@ -8,7 +8,7 @@ import { TarjetasDeLaFicha } from "../FichaDeCliente";
 
 /**
  * La ficha completa de un cliente como página propia, para un enlace directo (la cola de «Decidir si se juntan» enlaza
- * aquí). Pinta lo mismo que la ventana de la lista (`TarjetasDeLaFicha`, D-NEXT): arriba el nombre y el estado, debajo
+ * aquí). Pinta lo mismo que la ventana de la lista (`TarjetasDeLaFicha`, D-654): arriba el nombre y el estado, debajo
  * las tiendas, y las tarjetas sin «Cuenta» ni «Tienda» repetidas. Solo lectura: se corrige en la ventana de la lista, que
  * ya sabe quién puede y pide la fila de vuelta.
  */
@@ -26,11 +26,11 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false }
         {estaArchivado(c) && (
           <Badge className="border-slate-200 bg-slate-100 text-slate-500">{t("Archived", "Archivado")} · {motivoLabel(c.archived_reason, t)}</Badge>
         )}
-        {/* Sin «tienda · tienda+cuenta» al lado del nombre (D-NEXT, el dueño: «dice RDC McAllen y después […] como un ID»): la
+        {/* Sin «tienda · tienda+cuenta» al lado del nombre (D-654, el dueño: «dice RDC McAllen y después […] como un ID»): la
             tienda está en las pastillas de abajo y la CONCATENATE en «Otros». */}
         <span className="ml-auto text-xs text-slate-400">{t("updated", "actualizado")} {fecha(c.updated_at)}</span>
         {/* «✏️ Editar» (D-648; el dueño: «add a edit button for the customer in the customer app»). Esta página solo se lee; se
-            edita en la ventana de la lista (D-NEXT), que ya guarda con su botón y sus reglas: el enlace la abre con este cliente,
+            edita en la ventana de la lista (D-654), que ya guarda con su botón y sus reglas: el enlace la abre con este cliente,
             ya editando. Solo para quien puede editar (`puedeEditar`, la misma regla de la lista). */}
         {puedeEditar && (
           <Link href={`/customers?editar=${c.id}`} data-editar-cliente={c.id}
@@ -41,7 +41,7 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false }
       </div>
 
       {/* Las tiendas de la misma empresa (189): cada una es su ficha, con su contacto y su vendedor. Con una sola, su pastilla:
-          es donde se ve la tienda, que ya no sale ni al lado del nombre ni en una tarjeta «Cuenta» (D-NEXT). */}
+          es donde se ve la tienda, que ya no sale ni al lado del nombre ni en una tarjeta «Cuenta» (D-654). */}
       {hermanas.length <= 1 && (
         <nav className="mt-3 flex flex-wrap gap-1.5" aria-label={t("Store", "Tienda")} data-tiendas={1}>
           <span className="rounded-full border border-clay-200 bg-clay-50 px-3 py-1 text-xs font-medium text-clay-700">{nombreDeTienda(c.store)}</span>

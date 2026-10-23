@@ -391,7 +391,7 @@ export function puedeEditar(role: UserRole | null | undefined): boolean {
 export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda";
 /**
  * Los grupos de la ficha, en su orden (D-634). `cabecera` no es una tarjeta: la cuenta y la tienda van arriba, en el nombre
- * y en las pestañas de tiendas (D-NEXT, el dueño: «abajo donde dice cuenta, vuelve a decir la tienda […] elimina esa
+ * y en las pestañas de tiendas (D-654, el dueño: «abajo donde dice cuenta, vuelve a decir la tienda […] elimina esa
  * parte»), y no se repiten abajo.
  */
 export type GrupoDeCampo = "cabecera" | "estado" | "vendedores" | "contacto" | "credito" | "otros";
@@ -411,7 +411,7 @@ export const CAMPOS: readonly Campo[] = [
   { key: "crm_type_store", tipo: "text", en: "CRM type (store)", es: "Tipo CRM (tienda)", grupo: "otros" },
   { key: "crm_type_group", tipo: "text", en: "CRM type (group)", es: "Tipo CRM (grupo)", grupo: "otros" },
   { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "otros" },
-  // D-NEXT: sin la tarjeta «Cuenta», la cuenta unificada (la del Excel que junta las tiendas) va con lo demás del Excel.
+  // D-654: sin la tarjeta «Cuenta», la cuenta unificada (la del Excel que junta las tiendas) va con lo demás del Excel.
   { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "otros" },
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "vendedores" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "vendedores" },
@@ -446,7 +446,7 @@ export interface FilaDeFicha { key: keyof Cliente | "concatenate"; en: string; e
 
 /**
  * Lo que solo identifica la fila del Excel y no se edita. Va en «Otros» justo antes de las notas (D-634), junto a
- * «Añadido (tanda)»: el dueño (D-NEXT) pidió esas tres juntas ahí, «añadido tanda, número de house y tienda más cuenta».
+ * «Añadido (tanda)»: el dueño (D-654) pidió esas tres juntas ahí, «añadido tanda, número de house y tienda más cuenta».
  */
 const FILAS_SOLO_DE_LECTURA: readonly FilaDeFicha[] = [
   { key: "house_no", en: "House #", es: "N.º House", campo: null },
@@ -489,7 +489,7 @@ export function textoDeCampo(c: Cliente, campo: Campo, t: T): string {
 }
 
 /**
- * ¿Cierra la ventana de la ficha? (D-NEXT, el dueño: «que uno solo puede dar afuera y exit out»). Con Escape, o con un
+ * ¿Cierra la ventana de la ficha? (D-654, el dueño: «que uno solo puede dar afuera y exit out»). Con Escape, o con un
  * clic en el FONDO que también empezó en el fondo: un clic dentro de la ventana no cierra, ni soltar encima del fondo un
  * arrastre que empezó dentro (seleccionar texto de un campo y soltar fuera). La ✕ cierra siempre.
  */
