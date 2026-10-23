@@ -117,7 +117,7 @@ export function MapaDeApps({ alcance, lang, t, sinLeerDe }: {
         </span>
       </div>
       {PANELES.map((p) => {
-        // El título abre su app si el panel tiene destino y quien mira puede entrar (D-NEXT); si no, solo rotula.
+        // El título abre su app si el panel tiene destino y quien mira puede entrar (D-645); si no, solo rotula.
         const abre = estadoDelPanel(p, alcance);
         const titulo = lang === "es" ? p.label_es : p.label_en;
         return (

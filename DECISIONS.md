@@ -47000,7 +47000,7 @@ ajustes; a los demás su página los devuelve al catálogo, así que solo lo ve�
 
 **No medido:** en el navegador. No busqué otros enlaces a Inventario fuera de `src` (marcadores, correos).
 
-## D-NEXT · Mapa de la empresa: el título «Clientes» abre la app de Clientes
+## D-645 · Mapa de la empresa: el título «Clientes» abre la app de Clientes
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, con una captura del mapa: «in the map the customer […] make it redirect to the
 customer app just like the customer app on the bottom of the map».

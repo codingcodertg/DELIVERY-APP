@@ -169,7 +169,7 @@ describe("el acceso es el del hub de antes", () => {
   const al = (role: UserRole, module_access: string[] | null, suplantando = false) => alcanceDe({ role, module_access, suplantando });
   const estado = (key: string, a: ReturnType<typeof al>) => estadoDeCasilla(casilla(key), a);
 
-  it("el título «Clientes» abre la app de Clientes (D-NEXT) con el módulo, y sin él no; los otros dos títulos no abren nada", () => {
+  it("el título «Clientes» abre la app de Clientes (D-645) con el módulo, y sin él no; los otros dos títulos no abren nada", () => {
     const panel = (k: string) => PANELES.find((p) => p.key === k)!;
     expect(estadoDelPanel(panel("customers"), al("admin", ["deliveries", "customers"]))).toMatchObject({ estado: "abierta", href: "/customers" });
     expect(estadoDelPanel(panel("customers"), al("admin", ["deliveries", "erp"]))).toMatchObject({ estado: "sin-acceso" });

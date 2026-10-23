@@ -1058,7 +1058,7 @@ table.orders th { text-align: left; }
   background: var(--accent-soft); color: var(--accent); border: 1px solid var(--line); border-radius: 6px;
   padding: 1px 14px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
 }
-/* El título que abre su app (D-NEXT): el mismo rótulo, con su flecha y subrayado al pasar. */
+/* El título que abre su app (D-645): el mismo rótulo, con su flecha y subrayado al pasar. */
 .mapa-panel-enlace { color: inherit; text-decoration: none; }
 .mapa-panel-enlace:hover, .mapa-panel-enlace:focus-visible { text-decoration: underline; }
 .mapa-rejilla { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr) 28px) minmax(0, 1fr); align-items: start; }

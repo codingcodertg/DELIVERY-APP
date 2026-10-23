@@ -40,13 +40,13 @@ export interface Panel {
   label_es: string;
   /** La fila que manda en el teléfono: la del flujo principal, que se lee de arriba abajo con chevrones. */
   filaPrincipal: number;
-  /** Lo que abre el TÍTULO del panel (D-NEXT), con la misma regla que una casilla. Sin él, el título solo rotula. */
+  /** Lo que abre el TÍTULO del panel (D-645), con la misma regla que una casilla. Sin él, el título solo rotula. */
   destino?: Destino;
 }
 
 export const PANELES: Panel[] = [
   { key: "vendors", label_en: "Vendors", label_es: "Proveedores", filaPrincipal: 1 },
-  // El título «Clientes» abre la app de Clientes (D-NEXT): el dueño, 2026-10-22, «make it redirect to the customer app just
+  // El título «Clientes» abre la app de Clientes (D-645): el dueño, 2026-10-22, «make it redirect to the customer app just
   // like the customer app on the bottom of the map». La de abajo («Otras apps») se queda.
   { key: "customers", label_en: "Customers", label_es: "Clientes", filaPrincipal: 2, destino: { tipo: "modulo", clave: "customers" } },
   { key: "employees", label_en: "Employees", label_es: "Empleados", filaPrincipal: 1 },
