@@ -95,7 +95,7 @@ describe("la pastilla de etapa lleva la cámara dentro", () => {
     expect(tabla).toContain('style={{ background: p.color, color: "#fff" }}>{p.texto}<IconoDeFotos p={p} /></span>');   // Órdenes
     expect(tabla).toContain("const s = pastillaDeEtapa(d, recibidas, lang, me);");
     expect((tabla.match(/\{s\.texto\}<IconoDeFotos p=\{s\} \/><\/span>/g) ?? []).length).toBe(2);                    // tarjeta del chofer y pila del teléfono
-    expect(tabla).toContain("accion: accionDeFila, celdaDeEtapa, me };");
+    expect(tabla).toContain("accion: accionDeFila, celdaDeEtapa, me, nombreDe };");
 
     const burbuja = plano(leer("src/components/EtapaEnLaFila.tsx"));                                                     // Almacén (D-573)
     expect(burbuja).toContain('<>{pastilla.texto}<IconoDeFotos p={pastilla} /></>');

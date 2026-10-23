@@ -186,7 +186,7 @@ function columnasDelPlan(): ColumnaDelGestor[] {
   const rotulo: Record<string, [string, string]> = {
     po: ["PO #", "PO #"], so: ["SO #", "SO #"], invoice: ["Invoice #", "Factura #"], type: ["Type", "Tipo"], account: ["Account", "Cuenta"],
     contact: ["Contact", "Contacto"], stage: ["Stage", "Etapa"], priority: ["Priority", "Prioridad"], store: ["Store", "Tienda"],
-    date: ["Delivery Date", "Fecha entrega"], pallets: ["Pallets", "Pallets"], fee: ["Fee", "Costo"], driver: ["Driver", "Chofer"],
+    date: ["Delivery Date", "Fecha entrega"], pallets: ["Pallets", "Pallets"], fee: ["Fee", "Costo"], driver: ["Driver", "Chofer"], rep: ["Sales Rep", "Vendedor"],
     address: ["Delivery Address", "Dirección de entrega"], windows: ["Windows", "Ventanas"],
   };
   return [

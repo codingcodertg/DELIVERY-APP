@@ -10,7 +10,7 @@ import { PastillaDeMarca } from "@/components/PastillaDeMarca";
 import { motivoDeAnulacion, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
-import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, orderLabel, palletVariance, storeTag, todayISO } from "@/lib/utils";
+import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, orderOwner, palletVariance, storeTag, todayISO } from "@/lib/utils";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { ANCHO_MINIMO } from "@/lib/user-prefs";
 import { columnaExtraTras, columnasEnOrden, enOrdenDePartida, ordenEfectivo } from "@/lib/orden-de-columnas";
@@ -37,6 +37,8 @@ type Ctx = {
   recibidas?: ReadonlySet<string>;
   /** Quien mira (D-577): la pastilla de una entregada con fotos lleva «📷» solo si esta persona puede ver las fotos. */
   me?: Pick<Profile, "role"> | null;
+  /** El nombre de una persona por su id (D-652, la columna «Vendedor»). Sin la lista de usuarios, `null`. */
+  nombreDe?: (id: string | null) => string | null;
   /** Paradas que el chofer saltó hoy o que el cliente rechazó (D-487): una pastilla junto a la etapa. */
   marcas?: ReadonlyMap<string, MarcaDeParada>;
   /** La acción de la fila (D-409/D-534), pintada EN LÍNEA junto al número de factura y no debajo (D-572). */
@@ -150,6 +152,9 @@ export const ORDER_COLUMNS: OrderColumn[] = [
     },
   },
   { key: "driver", en: "Driver", es: "Chofer", value: (d) => d.assigned_driver, cell: (d) => d.assigned_driver || "—" },
+  // El vendedor de la orden (D-652; Roberto: «Add rep column»): `orderOwner`, el asignado o, si no hay, quien la creó —la misma
+  // regla que decide de quién es la orden para verla y para los avisos—. La base guarda el id; aquí sale el nombre.
+  { key: "rep", en: "Sales Rep", es: "Vendedor", value: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) ?? null, cell: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) || "—" },
   { key: "contact", en: "Contact", es: "Contacto", value: (d) => d.contact, cell: (d) => d.contact || "—" },
   { key: "address", en: "Delivery Address", es: "Dirección de entrega", value: (d) => d.delivery_address, cell: (d) => d.delivery_address || "—" },
 ];
@@ -442,7 +447,8 @@ export function OrdersTable({
   onVista?: (v: VistaDeTabla) => void;
 }) {
   const { lang, t } = usePrefs();
-  const { me, settings, events } = useData();
+  const { me, settings, events, users } = useData();
+  const nombreDe = useMemo(() => nombresPorId(users), [users]);
   // Which rows the driver has opened. Collapsed is the default, so this only
   // ever holds the handful they're actively looking at.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -459,7 +465,7 @@ export function OrdersTable({
   // Qué entregadas recibió almacén (D-409): un índice sobre los eventos que el proveedor ya tiene cargados.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   const marcas = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
-  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa, me };
+  const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa, me, nombreDe };
   const [vistaPropia, setVistaPropia] = useState<VistaDeTabla>({ filtros: {}, orden: null });
   // Llevada por la página si la pasa (D-440); si no, la de dentro.
   const vistaQueManda = vista && onVista ? vista : vistaPropia;
