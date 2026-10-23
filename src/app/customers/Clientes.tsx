@@ -57,6 +57,21 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
 
+  // «✏️ Editar» de la página del cliente (D-NEXT) llega con `?editar=<id>`: al cargar la lista se abre la ficha lateral de ese
+  // cliente —la que edita y guarda— y el parámetro se quita, para que recargar no la vuelva a abrir.
+  const [editarPendiente, setEditarPendiente] = useState<number | null>(null);
+  useEffect(() => {
+    const n = Number(new URLSearchParams(window.location.search).get("editar"));
+    if (Number.isInteger(n) && n > 0) setEditarPendiente(n);
+  }, []);
+  useEffect(() => {
+    if (editarPendiente == null || estado.tipo !== "listo") return;
+    const c = lista.find((x) => x.id === editarPendiente);
+    if (c) setFicha({ tipo: "ver", cliente: c });
+    setEditarPendiente(null);
+    try { window.history.replaceState(null, "", window.location.pathname); } catch { /* sin historial: se queda el parámetro */ }
+  }, [editarPendiente, estado.tipo, lista]);
+
   // Qué columnas y en qué orden: POR PERSONA, en este navegador (clave con el id del usuario, como los filtros guardados
   // de Órdenes). Si no hay nada suyo, se hereda la clave vieja sin usuario (`customers_cols`); si no hay nada o está
   // roto, las de entrada.
