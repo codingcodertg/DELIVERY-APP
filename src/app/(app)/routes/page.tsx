@@ -253,7 +253,7 @@ export default function RoutesPage() {
   // panel so the route detail can use the whole screen.
   // Nace en «Cuadrícula» (D-526). El dueño, 2026-10-11: «make grid view in route manager default». «▭ Ancho» la cambia.
   const [wideRoutes, setWideRoutes] = useState(false);
-  // «Vista completa» o «Vista eficiente» (D-NEXT, `lib/gestor/vistas-del-gestor`): la completa es esta pantalla de siempre; en
+  // «Vista completa» o «Vista eficiente» (D-653, `lib/gestor/vistas-del-gestor`): la completa es esta pantalla de siempre; en
   // la eficiente las pestañas suben a la fila de «Choferes y rutas» y la tabla de cada chofer marcado va pegada bajo el mapa.
   // Solo en el Gestor: «Ruta de hoy» y el mapa del chofer (solo lectura) siguen como estaban.
   const [vista, setVista] = useState<VistaDelGestor>("completa");
@@ -432,7 +432,7 @@ export default function RoutesPage() {
     const leidos = leeMarcados((k) => window.localStorage.getItem(k), me.id);
     setSelected(new Set(leidos));
     marcadosLeidos.current = true;
-    // Lo marcado que se recuerda llega con su tabla abierta, igual que al marcarlo (D-NEXT): la pantalla nace en «Cuadrícula»
+    // Lo marcado que se recuerda llega con su tabla abierta, igual que al marcarlo (D-653): la pantalla nace en «Cuadrícula»
     // (D-526), así que se despliega la última marcada. Sin esconder el mapa.
     if (leidos.length > 0) {
       abiertasDesdeElPanel.current = new Set(leidos);
@@ -443,7 +443,7 @@ export default function RoutesPage() {
     if (!me?.id || !marcadosLeidos.current) return;
     guardaMarcados(() => window.localStorage, me.id, selected);
   }, [selected, me?.id]);
-  // La vista elegida, por persona en este navegador (D-NEXT). Se lee al saber quién es y se guarda al pulsar el selector.
+  // La vista elegida, por persona en este navegador (D-653). Se lee al saber quién es y se guarda al pulsar el selector.
   useEffect(() => {
     if (!me?.id) return;
     setVista(leeVista((k) => window.localStorage.getItem(k), me.id));
@@ -553,7 +553,7 @@ export default function RoutesPage() {
   const [altoPanelFijo, setAltoPanelFijo] = useState(0);
   useEffect(() => {
     const el = panelFijoRef.current;
-    // En la vista eficiente (D-NEXT) el panel y el mapa no van fijos (su envoltorio es `display: contents`): nada que dejar.
+    // En la vista eficiente (D-653) el panel y el mapa no van fijos (su envoltorio es `display: contents`): nada que dejar.
     if (!showTop || eficiente || !el) { setAltoPanelFijo(0); return; }
     // Solo fijo en pantalla ancha (D-481, `.panel-fijo-del-gestor`): en el teléfono el panel y el mapa miden más que la
     // pantalla, y fijos tapaban todo lo de abajo. Sin fijar, las cajas no tienen que dejarle sitio.
@@ -581,7 +581,7 @@ export default function RoutesPage() {
   // «📸 PNG» (D-636): la foto lleva la tabla de la ruta tal como se ve, y la tabla solo está en la página con la ruta
   // abierta: en «Cuadrícula», desplegada abajo; en «Ancho», la tarjeta sin plegar. Como lo haría la persona a mano.
   const abreParaLaFoto = (key: string) => {
-    // En la vista eficiente la tabla de cada ruta que se ve ya está en la página, bajo el mapa (D-NEXT).
+    // En la vista eficiente la tabla de cada ruta que se ve ya está en la página, bajo el mapa (D-653).
     if (eficiente) return;
     if (!wideRoutes) { setDesplegada(key); return; }
     if (isCollapsed(key)) toggleCollapse(key);
@@ -590,11 +590,11 @@ export default function RoutesPage() {
   // the trutes manager […] it should hide the map automatically but they can still show it on the top if the user wantss
   // it». Abrir = su tabla desplegada en «Cuadrícula» o su tarjeta abierta (▸) en «Ancho». No en el mapa del chofer (D-506):
   // allí el mapa es lo que vino a ver.
-  // En la vista eficiente no hay nada que abrir: las tablas van bajo el mapa, que no se esconde (D-NEXT).
+  // En la vista eficiente no hay nada que abrir: las tablas van bajo el mapa, que no se esconde (D-653).
   const abiertas = miChofer != null || eficiente ? [] : rutasAbiertas({ ancho: wideRoutes, desplegada, alternadas });
   const claveDeAbiertas = abiertas.join("\u0000");
   const abiertasAntes = useRef<string[]>([]);
-  // Las rutas que acaba de abrir el panel «Choferes y rutas» (D-NEXT): esas no esconden el mapa. Se gastan en el efecto.
+  // Las rutas que acaba de abrir el panel «Choferes y rutas» (D-653): esas no esconden el mapa. Se gastan en el efecto.
   const abiertasDesdeElPanel = useRef<Set<string>>(new Set());
   useEffect(() => {
     const antes = abiertasAntes.current;
@@ -609,7 +609,7 @@ export default function RoutesPage() {
   useEffect(() => { setErr(null); }, [date]);
 
   const focusOnly = (name: string) => setSelected(new Set([name]));
-  // Marcar un chofer en «Choferes y rutas» ABRE su tabla de paradas, y desmarcarlo la cierra (D-NEXT). El dueño, 2026-10-23:
+  // Marcar un chofer en «Choferes y rutas» ABRE su tabla de paradas, y desmarcarlo la cierra (D-653). El dueño, 2026-10-23:
   // «Cuando yo elijo un driver […] él solo me abre el mapa, pero no me abre la ruta de abajo». La casilla solo cambiaba el
   // filtro (D-481); lo abierto (`desplegada`, `alternadas`) lo cambiaban el nombre y el ▸ de la tarjeta. Qué se abre lo decide
   // `abreAlMarcar`; lo abierto así no esconde el mapa (`abiertasDesdeElPanel`).
@@ -630,7 +630,7 @@ export default function RoutesPage() {
     focusOnly(clave);
     abreDesdeElPanel(clave, true);
   };
-  /** El selector «Vista completa | Vista eficiente» (D-NEXT): se guarda por persona en este navegador. */
+  /** El selector «Vista completa | Vista eficiente» (D-653): se guarda por persona en este navegador. */
   const eligeVista = (v: VistaDelGestor) => {
     // Al volver a la completa, lo que ya estaba abierto no cuenta como «recién abierto»: no esconde el mapa (D-544).
     if (v === "completa") abiertasDesdeElPanel.current = new Set(rutasAbiertas({ ancho: wideRoutes, desplegada, alternadas }));
@@ -2290,7 +2290,7 @@ export default function RoutesPage() {
   // «▦ Cuadrícula» (D-481, e): arriba, una tarjeta COMPACTA por ruta (nombre, números, pastillas; sin tabla ni botones);
   // abajo, DESPLEGADA a todo el ancho, la del nombre pulsado. En «▭ Ancho», las tarjetas enteras, como siempre.
   const rutaDesplegada = desplegadaVigente(desplegada, shownDrivers.map((u) => u.key));
-  // En la vista eficiente (D-NEXT), una tarjeta entera por ruta que dejan ver las casillas, sin plegar ni desplegar: qué
+  // En la vista eficiente (D-653), una tarjeta entera por ruta que dejan ver las casillas, sin plegar ni desplegar: qué
   // rutas salen lo deciden SOLO las casillas del panel (sin ninguna marcada, todas, D-566).
   const tarjetasDeRuta: [Lane, ModoDeTarjeta][] = eficiente
     ? shownDrivers.map((u) => [u, "eficiente"])
@@ -2818,7 +2818,7 @@ export default function RoutesPage() {
 
       {/* ---------- Layout toolbar ---------- */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
-        {/* «Vista completa | Vista eficiente» (D-NEXT), como «Tabla | Tablero» de Órdenes. El dueño, 2026-10-23: «quiero que
+        {/* «Vista completa | Vista eficiente» (D-653), como «Tabla | Tablero» de Órdenes. El dueño, 2026-10-23: «quiero que
             hayan dos views […] arriba va a estar full view y small view or efficient view». Solo en el Gestor. */}
         {!soloLectura && (
           <div className="viewtoggle" data-selector-de-vista role="group" aria-label={t("Route manager view", "Vista del Gestor")}>
@@ -2832,7 +2832,7 @@ export default function RoutesPage() {
             </button>
           </div>
         )}
-        {/* En la eficiente el mapa no se esconde: es la vista (D-NEXT). */}
+        {/* En la eficiente el mapa no se esconde: es la vista (D-653). */}
         {!eficiente && (
         <button className={"btn btn-sm " + (showTop ? "btn-ghost" : "btn-primary")} data-boton-del-mapa onClick={() => setEstadoDelMapa((e) => alPulsarElMapa(e, abiertas.length > 0))}
           title={t("Show or hide the map + driver panel to free up space", "Mostrar u ocultar el mapa y el panel para ganar espacio")}>
@@ -2849,7 +2849,7 @@ export default function RoutesPage() {
           )}>ⓘ</span>
       </div>
 
-      {/* La vista eficiente (D-NEXT) reordena lo que va de aquí al recuadro de reparto con una rejilla (`.gestor-eficiente`,
+      {/* La vista eficiente (D-653) reordena lo que va de aquí al recuadro de reparto con una rejilla (`.gestor-eficiente`,
           globals.css): a la izquierda el panel «Choferes y rutas»; a su derecha, en su misma fila, las pestañas; debajo de
           ellas el mapa, y pegado al mapa lo de la pestaña (en «Rutas», la tabla de cada chofer marcado). En la completa este
           envoltorio y el de la pestaña son `display: contents`: no pintan nada y todo queda como estaba. */}
@@ -2929,7 +2929,7 @@ export default function RoutesPage() {
           }}
         />
         <div className="card" data-mapa-del-gestor style={{ flex: "3 1 460px", margin: 0, padding: 0, overflow: "hidden" }}>
-          {/* Más bajo en la eficiente (D-NEXT), para que el mapa y la tabla de la ruta quepan juntos en una pantalla. */}
+          {/* Más bajo en la eficiente (D-653), para que el mapa y la tabla de la ruta quepan juntos en una pantalla. */}
           <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={eficiente ? 300 : 430} onPointClick={(id) => {
             // Click any order pin (assigned or pool) to toggle its PU→DEL view.
             const d = dayOrders.find((x) => x.id === id);
@@ -3029,7 +3029,7 @@ export default function RoutesPage() {
         </div>
       )}
 
-      {/* Lo de la pestaña elegida. En la eficiente va bajo el mapa, pegado a él (D-NEXT). */}
+      {/* Lo de la pestaña elegida. En la eficiente va bajo el mapa, pegado a él (D-653). */}
       <div data-contenido-de-la-pestana>
       {/* ---------- Day timeline (Gantt) ---------- */}
       {tab === "timeline" && (
@@ -3067,7 +3067,7 @@ export default function RoutesPage() {
       {/* ---------- Per-driver routes ---------- */}
       {/* En cuadrícula, las tarjetas de una fila miden lo mismo: se estiran a la más alta (D-526). El dueño, 2026-10-11: «why
           does this has differtent heights everyhting should be equal». En ancho, cada una lo suyo, como antes. */}
-      {/* En la eficiente (D-NEXT), una debajo de otra y juntas: la tabla de cada chofer que dejan ver las casillas. */}
+      {/* En la eficiente (D-653), una debajo de otra y juntas: la tabla de cada chofer que dejan ver las casillas. */}
       {tab === "routes" && (
       <div data-tarjetas-de-ruta={eficiente ? "eficiente" : wideRoutes ? "ancho" : "cuadricula"} style={{ display: "grid", gridTemplateColumns: eficiente || wideRoutes ? "minmax(0, 1fr)" : "repeat(auto-fit, minmax(280px, 1fr))", gap: eficiente ? 8 : 14, alignItems: eficiente || wideRoutes ? "start" : "stretch" }}>
       {shownDrivers.length === 0 && (
@@ -3192,7 +3192,7 @@ export default function RoutesPage() {
               )}
               {/* El NOMBRE (D-481, e): en «Ancho», resalta la ruta en el mapa, como siempre; en «Cuadrícula», despliega su tabla
                   abajo (otro nombre la cambia; el mismo la pliega). */}
-              {/* En la eficiente (D-NEXT) el nombre solo nombra: no pliega, no despliega ni enfoca. El dueño: «la forma que yo voy
+              {/* En la eficiente (D-653) el nombre solo nombra: no pliega, no despliega ni enfoca. El dueño: «la forma que yo voy
                   a ir cambiando eso ya no es como abajo, que Ernesto y se hace un pop-up para abajo, no, que es simplemente
                   eligiendo el driver con los selection boxes de ahí arriba». */}
               {modoDeTarjeta === "eficiente" ? (

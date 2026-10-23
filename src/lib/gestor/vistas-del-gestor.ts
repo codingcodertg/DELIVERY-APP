@@ -1,7 +1,7 @@
 import { estaPlegada } from "@/lib/vista-del-gestor";
 
 /**
- * D-NEXT. Dos cosas del Gestor de Rutas que pidió el dueño el 2026-10-23 (dictado, literal): «Cuando yo elijo un driver, él
+ * D-653. Dos cosas del Gestor de Rutas que pidió el dueño el 2026-10-23 (dictado, literal): «Cuando yo elijo un driver, él
  * me abre la ruta, pero no me abre. Él solo me abre el mapa, pero no me abre la ruta de abajo. Entonces quiero que hayan dos
  * views […] full view y small view or efficient view».
  *

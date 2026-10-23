@@ -14,7 +14,7 @@
  */
 
 /** Cómo se pinta una tarjeta de ruta: entera en «Ancho»; compacta arriba en «Cuadrícula»; desplegada abajo en «Cuadrícula».
- *  «eficiente» (D-NEXT): la de la vista eficiente, bajo el mapa: entera (nombre, números, botones y tabla), sin plegar ni
+ *  «eficiente» (D-653): la de la vista eficiente, bajo el mapa: entera (nombre, números, botones y tabla), sin plegar ni
  *  desplegar: qué rutas salen lo deciden solo las casillas del panel. */
 export type ModoDeTarjeta = "ancha" | "compacta" | "desplegada" | "eficiente";
 

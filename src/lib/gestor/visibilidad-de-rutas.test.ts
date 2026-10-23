@@ -161,7 +161,7 @@ describe("B · abrir las rutas de un chofer esconde el mapa", () => {
   });
   it("la pantalla usa las tres piezas, y el botón de arriba pasa por `alPulsarElMapa`", () => {
     const src = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8");
-    // Nota D-NEXT: en la vista eficiente no hay nada abierto, y lo abierto desde el panel no esconde el mapa.
+    // Nota D-653: en la vista eficiente no hay nada abierto, y lo abierto desde el panel no esconde el mapa.
     expect(src).toContain("const abiertas = miChofer != null || eficiente ? [] : rutasAbiertas({ ancho: wideRoutes, desplegada, alternadas });");
     expect(src).toContain("setEstadoDelMapa((e) => alAbrirRutas(e, antes, abiertas, desdeElPanel));");
     expect(src).toContain("onClick={() => setEstadoDelMapa((e) => alPulsarElMapa(e, abiertas.length > 0))}");

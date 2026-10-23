@@ -43183,7 +43183,7 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 ## D-544 · «Ruta de hoy» por tienda (choferes dedicados), el mapa se esconde al abrir la ruta de un chofer, y ventas solo abre sus órdenes
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): marcar un chofer en «Choferes y rutas» abre ahora su tabla, y esa apertura NO esconde el mapa (el dueño quiere ver las dos cosas). Abrirla por su nombre o su ▸ lo sigue escondiendo. En la vista eficiente el mapa no se esconde nunca.
+> **Reemplazada en parte por D-653** (2026-10-23): marcar un chofer en «Choferes y rutas» abre ahora su tabla, y esa apertura NO esconde el mapa (el dueño quiere ver las dos cosas). Abrirla por su nombre o su ▸ lo sigue escondiendo. En la vista eficiente el mapa no se esconde nunca.
 
 **Fecha:** 2026-10-13 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Rama `visibilidad-de-rutas`.
 
@@ -47184,7 +47184,7 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 `gestor-mover-columnas`, `columnas-del-plan` y `routes-columns` puestos al día.
 
 **No medido:** en el navegador; si un vendedor ve los nombres de los demás depende de qué perfiles le deja leer la base.
-## D-NEXT · Gestor de Rutas: marcar un chofer abre su tabla, y «Vista completa | Vista eficiente»
+## D-653 · Gestor de Rutas: marcar un chofer abre su tabla, y «Vista completa | Vista eficiente»
 
 **Fecha:** 2026-10-23 · Rama `gestor-vista-eficiente` (worker del orquestador). Sin migración. **Reemplaza en parte a D-544** (lleva su nota).
 
@@ -47202,7 +47202,7 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
   - En el teléfono, una columna: panel (260 px de alto, se desplaza dentro), pestañas, mapa y lo de la pestaña.
   - No llevan: «Ocultar mapa y choferes» (el mapa es la vista) ni «▦ Cuadrícula / ▭ Ancho». El panel y el mapa no van fijos al bajar.
 
-**Pruebas:** `gestor/vistas-del-gestor.test.ts` (abrir y cerrar al marcar en las dos vistas; el mapa con y sin `desdeElPanel`; leer y guardar la vista; los botones y su sitio; la rejilla y su orden; qué tarjetas salen). Puestas al día con «Nota D-NEXT»: `barra-superior`, `gestor-entregadas-y-vista`, `vista-del-gestor`, `gestor/gestor-y-ruta-de-hoy`, `gestor/visibilidad-de-rutas`. `src` entero (8.952) y tsc. Mutantes: caen 12 de 12, cada uno con prueba con nombre. Navegador (demo, 390 y 1440 px): marcar a Diego Driver en la completa despliega su tabla y el mapa sigue a la vista; en la eficiente, pestañas a la derecha del panel en su fila, mapa debajo y la tabla a 8 px del mapa; con dos marcados, dos tablas; «Sin asignar» también bajo el mapa; al recargar sigue en la eficiente; 0 px de desborde.
+**Pruebas:** `gestor/vistas-del-gestor.test.ts` (abrir y cerrar al marcar en las dos vistas; el mapa con y sin `desdeElPanel`; leer y guardar la vista; los botones y su sitio; la rejilla y su orden; qué tarjetas salen). Puestas al día con «Nota D-653»: `barra-superior`, `gestor-entregadas-y-vista`, `vista-del-gestor`, `gestor/gestor-y-ruta-de-hoy`, `gestor/visibilidad-de-rutas`. `src` entero (8.952) y tsc. Mutantes: caen 12 de 12, cada uno con prueba con nombre. Navegador (demo, 390 y 1440 px): marcar a Diego Driver en la completa despliega su tabla y el mapa sigue a la vista; en la eficiente, pestañas a la derecha del panel en su fila, mapa debajo y la tabla a 8 px del mapa; con dos marcados, dos tablas; «Sin asignar» también bajo el mapa; al recargar sigue en la eficiente; 0 px de desborde.
 
 **No medido:**
 - Con datos reales. A 1440×900, el mapa, la cabecera de la ruta y sus 4-5 primeras filas caben en la pantalla; una ruta de 8 paradas pide bajar ~160 px.

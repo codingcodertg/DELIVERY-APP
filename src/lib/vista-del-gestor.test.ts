@@ -77,7 +77,7 @@ describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
   it("el filtro se lee de lo guardado por la persona, y elegir lo guarda", () => {
     // **Reemplazado por D-481** (2026-10-06, «remove the all driver dropdown»): el filtro son las casillas del panel; se
     // leen y se guardan por persona con `leeMarcados` / `guardaMarcados` (lib/gestor/filtro-de-choferes).
-    // Nota D-NEXT: lo leído se guarda en `leidos` para abrir también la tabla de la última marcada.
+    // Nota D-653: lo leído se guarda en `leidos` para abrir también la tabla de la última marcada.
     expect(pagina).toContain("const leidos = leeMarcados((k) => window.localStorage.getItem(k), me.id); setSelected(new Set(leidos));");
     expect(pagina).toContain("guardaMarcados(() => window.localStorage, me.id, selected);");
     expect(pagina).not.toContain("eligeFiltroDeChofer");

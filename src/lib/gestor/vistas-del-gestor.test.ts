@@ -6,7 +6,7 @@ import { MAPA_INICIAL, alAbrirRutas } from "./mapa-al-abrir-ruta";
 import { conAcciones, conCabecera, conCuerpo } from "./cuadricula";
 import { estaPlegada } from "@/lib/vista-del-gestor";
 
-// D-NEXT (2026-10-23). El dueño: «Cuando yo elijo un driver, él me abre la ruta, pero no me abre […] la ruta de abajo», y
+// D-653 (2026-10-23). El dueño: «Cuando yo elijo un driver, él me abre la ruta, pero no me abre […] la ruta de abajo», y
 // dos vistas, la completa (la de siempre) y la eficiente. Nombres inventados.
 const plano = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
 const pagina = plano("src/app/(app)/routes/page.tsx");

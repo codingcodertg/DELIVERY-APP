@@ -161,7 +161,7 @@ describe("e · «Cuadrícula»: tarjetas compactas arriba, la tabla del nombre p
     expect(conCuerpo("ancha", true)).toBe(false);
   });
   it("la pantalla: compactas arriba y la desplegada abajo a todo el ancho; el nombre la alterna; botones con `acciones`", () => {
-    // Nota D-NEXT: delante va la vista eficiente (una tarjeta entera por ruta que se ve); la completa sigue igual.
+    // Nota D-653: delante va la vista eficiente (una tarjeta entera por ruta que se ve); la completa sigue igual.
     expect(gestor).toContain('const tarjetasDeRuta: [Lane, ModoDeTarjeta][] = eficiente ? shownDrivers.map((u) => [u, "eficiente"]) : wideRoutes ? shownDrivers.map((u) => [u, "ancha"]) : [...shownDrivers.map((u): [Lane, ModoDeTarjeta] => [u, "compacta"]), ...shownDrivers.filter((u) => u.key === rutaDesplegada).map((u): [Lane, ModoDeTarjeta] => [u, "desplegada"])];');
     expect(gestor).toContain("const rutaDesplegada = desplegadaVigente(desplegada, shownDrivers.map((u) => u.key));");
     expect(gestor).toContain('gridColumn: modoDeTarjeta === "desplegada" ? "1 / -1" : undefined');
@@ -281,7 +281,7 @@ describe("D-488 · el filtro de choferes: el panel lista a todos, la casilla dic
     const gestor = readFileSync("src/app/(app)/routes/page.tsx", "utf8");
     expect(gestor).toContain("const filasDelPanel = rutasConOrdenes(lanes, conAlgoQuePintar);");
     expect(gestor).toContain("marcada: marcadasAProposito(selected).has(u.key)"); // Nota D-566: la casilla es «marcado», no «se ve»
-    // Nota D-NEXT: la casilla pasa por `alternaEnElPanel`, que marca igual y además abre la tabla.
+    // Nota D-653: la casilla pasa por `alternaEnElPanel`, que marca igual y además abre la tabla.
     expect(gestor).toContain("onAlterna={alternaEnElPanel}");
     expect(gestor).toContain("const ahora = alternaVisible(selected, clavesDelPanel, clave);");
     expect(readFileSync("src/components/PanelDeChoferes.tsx", "utf8")).toContain("data-todos-los-choferes");

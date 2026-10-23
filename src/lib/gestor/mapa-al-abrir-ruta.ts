@@ -41,7 +41,7 @@ export function rutasAbiertas(args: { ancho: boolean; desplegada: string | null;
 }
 
 /**
- * Cambiaron las rutas abiertas (de `antes` a `ahora`). `desdeElPanel` (D-NEXT): las que se abrieron al MARCAR su chofer en
+ * Cambiaron las rutas abiertas (de `antes` a `ahora`). `desdeElPanel` (D-653): las que se abrieron al MARCAR su chofer en
  * «Choferes y rutas». Esas no esconden el mapa: quien marca un chofer está mirando el mapa, y el dueño pidió ver su ruta en el
  * mapa Y su tabla abajo («él solo me abre el mapa, pero no me abre la ruta de abajo»). Abrirla por su nombre o su ▸ sí, como
  * siempre (regla 1).
