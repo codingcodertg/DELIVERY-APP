@@ -1284,11 +1284,15 @@ export function canTransition(from: Stage, to: Stage): boolean {
  * Desde qué etapas anula cada rol (D-291, migración 122). `LEGAL_TRANSITIONS` dice qué saltos existen;
  * esta dice quién los da, que es lo que decide qué botón se pinta.
  *
+ * `suya`: la orden es de quien mira —la creó o es su vendedor, `esMia` (ordenes-visibles.ts), la misma dueñez que el
+ * guard mira con `created_by = auth.uid() or assigned_sales_rep = auth.uid()`—. Solo cuenta para ventas en `pending` y
+ * `approved` (D-656, migración 191); quien no la pasa se queda en lo de antes, que es lo que la base le deja seguro.
+ *
  * **Es el espejo del guard de la 122**, y la prueba lo compara rama por rama contra el `.sql`: la app y
  * la base tienen que decir lo mismo, o alguien ve un botón que la base le va a rechazar — que es
  * exactamente lo que pasaba con logística, que veía «Cancelar» en la lista y no podía anular nada.
  */
-export function puedeAnular(r: UserRole, stage: Stage): boolean {
+export function puedeAnular(r: UserRole, stage: Stage, suya = false): boolean {
   // Una entrega hecha no se anula: se corrige con una re-entrega o una nota. Tampoco el admin — es lo
   // único que la 122 le quita, y a propósito: sacar del cómputo algo ya entregado es justo lo que no
   // queremos. Y una ya anulada no se vuelve a anular.
@@ -1297,7 +1301,11 @@ export function puedeAnular(r: UserRole, stage: Stage): boolean {
   // Con la mercancía ya en el camión solo queda el admin.
   if (stage === "picked_up") return false;
   if (ordersLikeOfficeManager(r)) return true;
-  if (r === "sales" || r === "driver") return stage === "draft" || stage === "rejected";
+  if (r === "sales" || r === "driver") {
+    if (stage === "draft" || stage === "rejected") return true;
+    // D-656 (191): el vendedor anula SU orden pendiente o programada. Desde `fulfilling` la tiene almacén: oficina.
+    return r === "sales" && suya && (stage === "pending" || stage === "approved");
+  }
   return false;   // almacén y logística no anulan
 }
 
