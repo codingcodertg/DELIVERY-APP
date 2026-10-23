@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { fechaPropuesta, reprogramacionValida } from "@/lib/reprogramar-orden";
+import { maxFechaDeEntrega, problemaAlAgendar, SIN_CASO_ESPECIAL, type CasoEspecial } from "@/lib/dia-de-entrega";
+import { AvisoDeFecha } from "@/components/AvisoDeFecha";
 import { orderLabel, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -10,13 +12,15 @@ import type { Delivery } from "@/lib/types";
  * obligatoria. Desde D-549 guarda por `reprogramarOrden` (la función de la base `reprogramar_orden`, 173, que cambia SOLO
  * la fecha y deja la nota; sin ella, `updateDelivery` + `addNote` como antes). También en la ficha, arriba a la derecha.
  */
-export function ReprogramarOrden({ pedido, lang, t, reprogramarOrden, notify, compacto = false }: {
+export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notify, compacto = false }: {
+  /** El rol de quien reprograma: decide si sale la casilla del caso especial de domingo (D-NEXT). */
+  rol: string | null | undefined;
   /** Solo el icono 📅, en línea con el número de factura (D-572): en una fila de tabla el botón con texto hacía la fila más alta. */
   compacto?: boolean;
   pedido: Delivery;
   lang: "en" | "es";
   t: (en: string, es: string) => string;
-  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es") => Promise<boolean>;
+  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es", caso?: CasoEspecial) => Promise<boolean>;
   notify: (msg: string) => void;
 }) {
   const hoy = todayISO();
@@ -24,13 +28,15 @@ export function ReprogramarOrden({ pedido, lang, t, reprogramarOrden, notify, co
   const [fecha, setFecha] = useState(() => fechaPropuesta(pedido.delivery_date, hoy));
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
-  const valida = reprogramacionValida(fecha, pedido.delivery_date, hoy, nota);
+  const [caso, setCaso] = useState<CasoEspecial>(SIN_CASO_ESPECIAL);
+  // Ni domingo sin el caso especial ni un año imposible (D-NEXT): el botón no se enciende, y el aviso dice por qué.
+  const valida = reprogramacionValida(fecha, pedido.delivery_date, hoy, nota) && !problemaAlAgendar(fecha, pedido.delivery_date, { rol, caso, hoy });
 
-  const abrir = () => { setFecha(fechaPropuesta(pedido.delivery_date, hoy)); setNota(""); setAbierto(true); };
+  const abrir = () => { setFecha(fechaPropuesta(pedido.delivery_date, hoy)); setNota(""); setCaso(SIN_CASO_ESPECIAL); setAbierto(true); };
   const guardar = async () => {
     if (!valida || guardando) return;
     setGuardando(true);
-    const ok = await reprogramarOrden(pedido.id, fecha, nota, lang);
+    const ok = await reprogramarOrden(pedido.id, fecha, nota, lang, caso);
     if (ok) {
       notify(t(`Rescheduled to ${fecha}`, `Reprogramada al ${fecha}`));
       setAbierto(false);
@@ -60,8 +66,9 @@ export function ReprogramarOrden({ pedido, lang, t, reprogramarOrden, notify, co
             <h3 style={{ marginTop: 0 }}>📅 {t("Reschedule", "Reprogramar")} · {pedido.invoice_num || `#${orderLabel(pedido)}`}</h3>
             <div className="field">
               <label>{t("New date", "Nueva fecha")}</label>
-              <input type="date" data-nueva-fecha value={fecha} min={hoy} onChange={(e) => setFecha(e.target.value)} />
+              <input type="date" data-nueva-fecha value={fecha} min={hoy} max={maxFechaDeEntrega(hoy)} onChange={(e) => setFecha(e.target.value)} />
             </div>
+            <AvisoDeFecha fecha={fecha} actual={pedido.delivery_date} rol={rol} caso={caso} onCaso={setCaso} t={t} />
             <div className="field">
               <label>{t("Note (required)", "Nota (obligatoria)")}</label>
               <textarea data-nota-reprogramar rows={3} value={nota} onChange={(e) => setNota(e.target.value)} autoFocus

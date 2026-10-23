@@ -259,12 +259,12 @@ describe("B · «📅 Reprogramar» en la ficha, para todos menos el chofer", ()
     expect(cerrar).toBeGreaterThan(boton);
     // En la cabecera: después del título de la orden.
     expect(boton).toBeGreaterThan(modal.indexOf('`${t("Order", "Orden")} #${orderLabel(existing!)}`'));
-    expect(modal).toContain("<ReprogramarOrden pedido={existing} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />");
+    expect(modal).toContain("<ReprogramarOrden pedido={existing} rol={me.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />");
   });
 
   it("el cuadro guarda por `reprogramarOrden`, y el proveedor llama a la función con respaldo", () => {
     const cuadro = leer("src/components/ReprogramarOrden.tsx");
-    expect(cuadro).toContain("const ok = await reprogramarOrden(pedido.id, fecha, nota, lang);");
+    expect(cuadro).toContain("const ok = await reprogramarOrden(pedido.id, fecha, nota, lang, caso);");
     expect(cuadro).not.toContain("updateDelivery(");
     const prov = leer("src/lib/data-provider.tsx");
     const i = prov.indexOf("const reprogramarOrden = useCallback");

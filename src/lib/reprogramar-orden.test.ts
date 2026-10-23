@@ -36,7 +36,7 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     // Nota D-549: el cuadro ya no recibe `updateDelivery`/`addNote` sino `reprogramarOrden` (la función de la base 173, con
     // el camino de antes como respaldo).
     // Nota D-572: en las filas va `compacto` (solo el icono 📅, junto a la factura).
-    expect(wh).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
+    expect(wh).toContain("<ReprogramarOrden pedido={d} rol={me?.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
     expect(wh.split("accionDeFila={reprogramar}").length - 1).toBe(1);
     expect(wh).toContain("const repro = reprogramar(d);");
     expect(wh).toContain("<td onClick={(e) => e.stopPropagation()}>{reprogramar(d)}</td>");
@@ -76,7 +76,7 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     const cuerpo = pagina.slice(celda, pagina.indexOf("</td>", celda));
     expect(cuerpo).toContain("{facturaConSuId(d)}");
     expect(cuerpo).toContain('<span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>');
-    expect(cuerpo).toContain("<ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
+    expect(cuerpo).toContain("<ReprogramarOrden pedido={d} rol={me?.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
     // En la tabla de órdenes, una sola vez: la de «Asignar a» se fue. (D-592 añade las de la tabla de paradas, abajo.)
     const tablaDeOrdenes = pagina.slice(0, pagina.indexOf("tabla-de-paradas"));
     expect(tablaDeOrdenes.split("<ReprogramarOrden pedido={d}").length - 1).toBe(1);
@@ -93,7 +93,7 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     const fn = pagina.slice(pagina.indexOf("const iconoDeReprogramar = (o: Delivery): React.ReactNode =>"), pagina.indexOf("const facturaConSuId = (d: Delivery) => {"));
     expect(fn).toContain("!ETAPAS_HECHAS.has(o.stage) && !soloLectura && puedeReprogramar(me?.role, o.stage) ? (");
     expect(fn).toContain('<span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>');
-    expect(fn).toContain("<ReprogramarOrden pedido={o} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
+    expect(fn).toContain("<ReprogramarOrden pedido={o} rol={me?.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
     expect(fn).toContain(") : null;");
   });
 });
@@ -114,7 +114,7 @@ describe("D-572 · en las filas, solo el icono 📅 junto al número de factura"
   it("las filas de Almacén y del Gestor piden la cara compacta; la ficha conserva el botón con texto", () => {
     expect(leer("src/app/(app)/warehouse/page.tsx")).toContain("notify={notify} compacto />");
     expect(leer("src/app/(app)/routes/page.tsx")).toContain("notify={notify} compacto />");
-    expect(leer("src/components/OrderModal.tsx")).toContain("<ReprogramarOrden pedido={existing} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />");
+    expect(leer("src/components/OrderModal.tsx")).toContain("<ReprogramarOrden pedido={existing} rol={me.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />");
   });
   it("la tabla pinta la acción EN LÍNEA con la factura, en las dos caras de la celda, y ya no debajo", () => {
     const tabla = leer("src/components/OrdersTable.tsx");
