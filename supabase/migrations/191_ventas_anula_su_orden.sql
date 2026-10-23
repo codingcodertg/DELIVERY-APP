@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 191 . El vendedor anula SU orden pendiente o programada (D-NEXT)
+-- 191 . El vendedor anula SU orden pendiente o programada (D-656)
 -- ===========================================================================
 -- PEDIDO. Kevin Gonzalez (vendedor), solicitud de ayuda: «As a sales rep, need to be able to cancel orders», con su orden
 -- FV216 en «Programmed» (approved), donde no le salia «Anular». El duenio decidio el 2026-10-23: un vendedor anula SU
@@ -250,7 +250,7 @@ begin
     or (old_stage = 'rejected' and new_stage = 'canceled')
     -- 122: gerente y office anulan una orden viva; el motivo lo exige el bloque de arriba.
     or (r in ('manager','accounting') and new_stage = 'canceled' and old_stage in ('pending','approved','fulfilling','ready'))
-    -- 191 (D-NEXT): ventas anula SU orden pendiente o programada: la creo o es su vendedor, la misma duenez que la factura
+    -- 191 (D-656): ventas anula SU orden pendiente o programada: la creo o es su vendedor, la misma duenez que la factura
     -- de la 125. Desde 'fulfilling' no: ahi ya la tiene almacen y se lo pide a la oficina. El motivo, quien y cuando los
     -- pone el bloque de arriba, igual que a cualquiera.
     or (r = 'sales' and new_stage = 'canceled' and old_stage in ('pending','approved') and (OLD.created_by = auth.uid() or OLD.assigned_sales_rep = auth.uid()))
@@ -322,4 +322,4 @@ end $function$
 ;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('191_ventas_anula_su_orden.sql', '04127d976834ad635d49fca29d356e046cc5ac8a05a1150fc59b3d57624080a3') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('191_ventas_anula_su_orden.sql', '3e6fb0e32683d27393c121ecaf645a181015127c92552858d819356ac977ba8c') on conflict (name) do nothing;
