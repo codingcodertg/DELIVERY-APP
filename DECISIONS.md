@@ -19257,6 +19257,8 @@ en esta misma copia con el árbol en `origin/main`, está en 2529 | 3.
 
 ## D-291 · Anular una orden deja motivo, quién y cuándo; una entregada no se anula
 
+> **Reemplazada en parte por D-NEXT** (2026-10-23): ventas anula también SU orden (la creó o es su vendedor) en `pending` y `approved`, con aviso a gerente y Office; desde `fulfilling` sigue siendo de la oficina. Migración 191.
+
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración: 122** (la aplica
 el orquestador, después de fusionar).
 **Pedido por el dueño:** *«agrega una opción para anular órdenes y deben dejar razón por qué la
@@ -47333,3 +47335,55 @@ va a ir en otra cosa que dice other.»
 - Con datos reales, ni nombres largos o muchos avisos a la vez: con más pastillas que las del demo, la cabecera vuelve a envolver (envolver es mejor que tapar un aviso).
 - El botón en solo lectura, en el navegador: solo pintado en la prueba.
 - Safari/iPad.
+## D-NEXT · Ventas anula SU orden pendiente o programada, y la oficina se entera
+
+**Fecha:** 2026-10-23 · **Versión:** la pone el orquestador (Entregas) · **Migración: 191** (la aplica el orquestador).
+
+**Pedido:** Kevin Gonzalez (vendedor), solicitud de ayuda: *«As a sales rep, need to be able to cancel orders»*, con la
+ficha de su orden FV216 en «Programmed» (`approved`), donde no le salía «Anular».
+
+**Decisión del dueño (2026-10-23):** un vendedor anula SU orden —la que creó o tiene asignada (`created_by` o
+`assigned_sales_rep` = él)— en **Pendiente de aprobación (`pending`) y Programada (`approved`)**, además de lo que ya podía
+(`draft`, `rejected`). Desde `fulfilling` en adelante no: se lo pide a la oficina. **Se avisa a la oficina de cada
+anulación que haga un vendedor.**
+
+**Qué cambia:**
+- **Guard (`guard_delivery_stage`, migración 191):** la definición viva —la 188, copiada letra por letra (medido: el
+  cuerpo en producción es idéntico al de la 188)— con UNA línea más en los saltos de ventas/chofer/gerente/office:
+  `r = 'sales'`, `pending`/`approved` → `canceled`, y `OLD.created_by = auth.uid() or OLD.assigned_sales_rep = auth.uid()`
+  (la misma dueñez que la factura de la 125). Las invariantes de la 122 (motivo obligatorio, «otro» con texto,
+  `canceled_by`/`canceled_at` los pone la base, el motivo no se reescribe) van antes de la salida de admin y valen igual
+  para ventas: no se tocan. El chofer sigue en `draft`/`rejected`.
+- **`puedeAnular(rol, etapa, suya = false)`** (constants.ts), espejo del guard: `suya` solo cuenta para ventas en
+  `pending`/`approved`. Quien no la pasa se queda en lo de antes. La pasan la ficha (`acciones-de-la-ficha.ts`) y la
+  anulación en bloque de la lista (`puedeAnularAlgoDeLaSeleccion`), con `esMia` (ordenes-visibles.ts), que es `created_by`
+  O `orderOwner` — lo mismo que el `or` del guard. **No** `orderOwner` a secas: una orden que creó Kevin y la oficina
+  asignó a otro vendedor es suya para la base, y `orderOwner` diría que no. Juntar órdenes (`porQueNoPuedeJuntar`) no
+  pasa la dueñez: ventas sigue juntando solo borradores.
+- **Demo (`local-data-provider.tsx`):** `setStage` rechaza la anulación que `puedeAnular` (con la dueñez) no deja, con el
+  mismo texto que la base («sales cannot move an order from approved to canceled»). Antes el demo no miraba el rol al
+  anular. El admin también pasa por ahí: `puedeAnular` le deja todo menos una entregada, que es la invariante de la 122.
+- **Aviso a la oficina:** `notificationsForStage` recibe `actorRole`; en `canceled` hecho por `sales`, a cada gerente y
+  Office (los mismos de D-639): «Kevin Gonzalez canceled order #FV216: <motivo>», `kind` `canceled`. Lo que anula la
+  oficina o el admin no se avisa. Los dos proveedores pasan el rol. La anulación en bloque manda ahora la nota legible
+  del motivo (como la ficha), así que el evento y el aviso llevan el motivo también desde la lista.
+
+**Prueba:**
+- `anular-con-motivo.test.ts`: el espejo lee ahora la **191** (antes la 122, muy por detrás del guard vivo) y la parte
+  rol × etapa × suya-o-no; una prueba de control dice que la 191 es la última que define el guard (sin distinguir
+  mayúsculas: desde la 185 se escribe `CREATE OR REPLACE`). Casos: ventas su `pending` y su `approved` sí; la de otro
+  vendedor no; `fulfilling`/`ready`/`picked_up` no aunque sea suya; `draft`/`rejected` como antes; el chofer no gana nada.
+  Datos que contradicen para la dueñez (creada por Kevin y asignada a otro; creada por la oficina y asignada a Kevin).
+  Avisos: ventas anula → gerente y Office con nombre y motivo; gerente, Office o admin anulan → nadie.
+- `acciones-de-la-ficha.test.ts`: la ficha de Kevin en su `approved` trae «Cancelar orden»; una `approved` de otro
+  vendedor no; `fulfilling`/`ready` suyas no.
+- Ensayo de la 191 contra producción con ROLLBACK: corre entera.
+- 12 mutantes (guard sin dueñez, guard con `fulfilling`, app sin dueñez, app con `fulfilling`, chofer también, ficha
+  sin dueñez, lista sin dueñez, aviso a cualquier rol, aviso sin Office, demo sin dueñez, proveedor real sin rol, tanda
+  sin nota): los 12 caen con una prueba con nombre.
+
+**No medido:**
+- La anulación de verdad en producción como vendedor (la 191 no está aplicada al escribir esto).
+- El aviso en la campana de la oficina en el navegador; la prueba es de la función que lo arma.
+- En el proveedor real, el vendedor arma los avisos con la lista `users` que él puede leer: si un día la RLS de
+  perfiles le escondiera a la oficina, el aviso no saldría (hoy D-639 depende de lo mismo).

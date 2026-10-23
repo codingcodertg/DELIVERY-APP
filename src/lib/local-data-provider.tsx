@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Ctx, type DataState } from "@/lib/data-provider";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
 import { type AppNotification, notificationsForStage } from "@/lib/notifications";
-import { canTransition } from "@/lib/constants";
+import { canTransition, puedeAnular } from "@/lib/constants";
+import { esMia } from "@/lib/ordenes-visibles";
 import { borrarOrden, puedeBorrar } from "@/lib/deshacer-y-borrar";
 import { changedFieldsNote, orderOwner, todayISO } from "@/lib/utils";
 import { nextOrderCode } from "@/lib/order-code";
@@ -124,7 +125,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     s: Store,
     args: { stage: Stage; order_no: number | null; order_code?: string | null; delivery_id: string; creatorId: string | null; reason?: string | null },
   ): AppNotification[] => {
-    const seeds = notificationsForStage({ ...args, actorId: me.id, users: s.users });
+    const seeds = notificationsForStage({ ...args, actorId: me.id, actorRole: me.role, users: s.users });
     const now = new Date().toISOString();
     const fresh = seeds.map((seed) => ({ ...seed, id: uid(), read: false, created_at: now }));
     return [...fresh, ...s.notifications];
@@ -312,6 +313,14 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     if (sinFacturaAlMover.length) { notify(avisoSinFactura(sinFacturaAlMover, "en")); return false; }
     // Mismo espejo del guard que el proveedor real (D-291, 122).
     const entrandoEnAnulada = stage === "canceled" && (!cur || cur.stage !== "canceled");
+    // Quién anula y desde dónde: aquí no hay guard que lo diga, así que lo dice su espejo (`puedeAnular`, con la dueñez
+    // que ventas necesita desde D-NEXT, 191), con el mismo texto que la base. Sin esto el demo anulaba cualquier orden
+    // desde la tanda de la lista, que enseña el botón si ALGUNA de la selección se puede.
+    // El admin pasa por aquí también: `puedeAnular` le deja todo menos una entregada, que es la invariante de la 122.
+    if (entrandoEnAnulada && cur && !puedeAnular(me.role, cur.stage, esMia(cur, me))) {
+      notify(`${me.role} cannot move an order from ${cur.stage} to canceled`);
+      return false;
+    }
     if (entrandoEnAnulada) {
       const falta = faltaParaAnular(
         (extra?.canceled_reason as string | null | undefined) ?? null,

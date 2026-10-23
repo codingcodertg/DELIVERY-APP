@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { AUTO_CANCEL_LATE_ENABLED, canTransition, puedeAnular, ROLE_ORDER, STAGES } from "./constants";
 import {
   claveDesdeEtiqueta, etiquetaDeMotivo, faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion,
   MOTIVO_OTRO, MOTIVO_POR_RETRASO, MOTIVOS_QUE_NO_SE_BORRAN, MOTIVOS_SEMBRADOS,
 } from "./cancel-reasons";
-import type { Stage, UserRole } from "./types";
+import { esMia } from "./ordenes-visibles";
+import { notificationsForStage } from "./notifications";
+import type { Profile, Stage, UserRole } from "./types";
 
 /**
  * Anular deja motivo, y una entregada no se anula (D-291, migración 122).
@@ -21,6 +23,11 @@ const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
  *  resolvía y partía la línea en dos. */
 const SALTO = String.fromCharCode(10);
 const sql = leer("supabase/migrations/122_anular_con_motivo.sql");
+/** El guard VIVO para el espejo de quién anula: la 191 (D-NEXT) es la última que redefine `guard_delivery_stage` —la 188
+ *  con una línea más para ventas—. Hasta D-NEXT esta prueba leía la 122, y entre medias el guard se redefinió muchas
+ *  veces: el espejo comparaba con una versión vieja. La primera prueba de abajo dice cuándo deja de ser la última. */
+const GUARD_VIVO = "191_ventas_anula_su_orden.sql";
+const guardVivo = leer(`supabase/migrations/${GUARD_VIVO}`);
 const modal = leer("src/components/OrderModal.tsx");
 const lista = leer("src/app/(app)/page.tsx");
 const tabla = leer("src/components/OrdersTable.tsx");
@@ -29,52 +36,81 @@ const datos = leer("src/app/(app)/data/page.tsx");
 // ---- El espejo: lo que dice el guard ------------------------------------------------------------
 
 /** El tramo del guard que decide los cambios de etapa de ventas, chofer, gerente y office. */
-const bloqueEtapas = sql.slice(
-  sql.indexOf("if r in ('sales','driver','manager','accounting') then"),
-  sql.indexOf("elsif r = 'warehouse' then"),
+const bloqueEtapas = guardVivo.slice(
+  guardVivo.indexOf("if r in ('sales','driver','manager','accounting') then"),
+  guardVivo.indexOf("elsif r = 'warehouse' then"),
 );
+/** La dueñez que el guard pide en la línea de ventas: la misma que la factura de la 125 (D-NEXT). */
+const DUENEZ = "(OLD.created_by = auth.uid() or OLD.assigned_sales_rep = auth.uid())";
 /** Las líneas de ese tramo que permiten anular, con los roles y las etapas que nombra cada una. */
 const permisosDeAnular = bloqueEtapas
   .split(SALTO)
   .filter((l) => l.includes("new_stage = 'canceled'"))
   .map((l) => {
     const roles = /r in \(([^)]*)\)/.exec(l);
+    const rolUno = /\br = '(\w+)'/.exec(l);
     const etapaUna = /old_stage = '(\w+)'/.exec(l);
     const etapasVarias = /old_stage in \(([^)]*)\)/.exec(l);
     const comillas = (s: string) => s.split(",").map((x) => x.trim().replace(/'/g, ""));
     return {
-      roles: roles ? comillas(roles[1]) : ["sales", "driver", "manager", "accounting"],
+      roles: roles ? comillas(roles[1]) : rolUno ? [rolUno[1]] : ["sales", "driver", "manager", "accounting"],
       etapas: etapasVarias ? comillas(etapasVarias[1]) : etapaUna ? [etapaUna[1]] : [],
+      soloSuya: l.includes(DUENEZ),
     };
   });
 
 /** La invariante que va ANTES de la salida de admin: una entregada no se anula, tampoco para él. */
-const entregadaBloqueada = sql.includes("old_stage = 'delivered' and new_stage = 'canceled'")
-  && sql.indexOf("old_stage = 'delivered' and new_stage = 'canceled'") < sql.indexOf("if r = 'admin' then return NEW; end if;");
+const entregadaBloqueada = guardVivo.includes("old_stage = 'delivered' and new_stage = 'canceled'")
+  && guardVivo.indexOf("old_stage = 'delivered' and new_stage = 'canceled'") < guardVivo.indexOf("if r = 'admin' then return NEW; end if;");
 
-/** ¿La base deja a este rol anular desde esta etapa? Leído del `.sql`, no copiado. */
-function laBaseDejaAnular(rol: UserRole, etapa: Stage): boolean {
+/** ¿La base deja a este rol anular desde esta etapa, siendo (o no) su orden? Leído del `.sql`, no copiado. */
+function laBaseDejaAnular(rol: UserRole, etapa: Stage, suya: boolean): boolean {
   if (etapa === "canceled") return false;                    // ya está anulada: no hay a dónde ir
   if (etapa === "delivered") return !entregadaBloqueada;
   if (rol === "admin") return true;                          // `if r = 'admin' then return NEW`
-  return permisosDeAnular.some((p) => p.roles.includes(rol) && p.etapas.includes(etapa));
+  return permisosDeAnular.some((p) => p.roles.includes(rol) && p.etapas.includes(etapa) && (!p.soloSuya || suya));
 }
 
 describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
-  it("el tramo del guard se encontró y trae las tres líneas de anular (control)", () => {
-    expect(bloqueEtapas.length).toBeGreaterThan(400);
-    expect(permisosDeAnular.length).toBe(3);
-    expect(permisosDeAnular.flatMap((p) => p.etapas).sort()).toEqual(
-      ["approved", "draft", "fulfilling", "pending", "ready", "rejected"],
-    );
+  it("la 191 es la ÚLTIMA migración que define el guard: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
+    const dir = "supabase/migrations";
+    // Sin distinguir mayúsculas: desde la 185 el guard se escribe `CREATE OR REPLACE FUNCTION`, y un `includes` en
+    // minúsculas no lo ve.
+    const conGuard = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql") && /function public\.guard_delivery_stage\(\)/i.test(leer(`${dir}/${f}`)))
+      .sort();
+    expect(conGuard.at(-1)).toBe(GUARD_VIVO);
+    expect(conGuard.at(-2)).toBe("188_chofer_toma_orden.sql");
   });
 
-  it("rol por rol y etapa por etapa, sin copiar la tabla", () => {
+  it("el tramo del guard se encontró y trae las cuatro líneas de anular (control)", () => {
+    expect(bloqueEtapas.length).toBeGreaterThan(400);
+    expect(permisosDeAnular.length).toBe(4);
+    expect([...new Set(permisosDeAnular.flatMap((p) => p.etapas))].sort()).toEqual(
+      ["approved", "draft", "fulfilling", "pending", "ready", "rejected"],
+    );
+    // La de ventas es la ÚNICA que mira de quién es la orden, y nombra solo a ventas.
+    expect(permisosDeAnular.filter((p) => p.soloSuya)).toEqual([{ roles: ["sales"], etapas: ["pending", "approved"], soloSuya: true }]);
+  });
+
+  it("rol por rol, etapa por etapa y suya o no, sin copiar la tabla", () => {
     for (const rol of ROLE_ORDER) {
       for (const s of STAGES.map((x) => x.key)) {
-        expect([rol, s, puedeAnular(rol, s)]).toEqual([rol, s, laBaseDejaAnular(rol, s)]);
+        for (const suya of [false, true]) {
+          expect([rol, s, suya, puedeAnular(rol, s, suya)]).toEqual([rol, s, suya, laBaseDejaAnular(rol, s, suya)]);
+        }
       }
     }
+  });
+
+  it("la dueñez de la app (`esMia`) es la del guard: la creó O es su vendedor, aunque el otro campo diga otra persona", () => {
+    // Datos que contradicen: `orderOwner` (el asignado, si lo hay) diría que la segunda NO es de Kevin; el guard dice que sí.
+    const kevin = { id: "kevin" };
+    expect(esMia({ created_by: "kevin", assigned_sales_rep: null }, kevin)).toBe(true);
+    expect(esMia({ created_by: "kevin", assigned_sales_rep: "otro" }, kevin)).toBe(true);
+    expect(esMia({ created_by: "oficina", assigned_sales_rep: "kevin" }, kevin)).toBe(true);
+    expect(esMia({ created_by: "otro", assigned_sales_rep: "otro2" }, kevin)).toBe(false);
+    expect(esMia({ created_by: "otro", assigned_sales_rep: null }, kevin)).toBe(false);
   });
 
   it("una entregada no la anula nadie, ni el admin — y la base lo dice antes de dejarle pasar", () => {
@@ -88,6 +124,15 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
       expect([s, puedeAnular("accounting", s)]).toEqual([s, true]);
       expect([s, puedeAnular("sales", s)]).toEqual([s, false]);
     }
+    // D-NEXT (191): ventas anula SU pendiente y SU programada (el FV216 de Kevin); la de otro vendedor, no; y desde
+    // preparando en adelante tampoco la suya.
+    expect([puedeAnular("sales", "pending", true), puedeAnular("sales", "approved", true)]).toEqual([true, true]);
+    expect([puedeAnular("sales", "pending", false), puedeAnular("sales", "approved", false)]).toEqual([false, false]);
+    for (const s of ["fulfilling", "ready", "picked_up", "delivered", "canceled"] as Stage[]) {
+      expect([s, puedeAnular("sales", s, true)]).toEqual([s, false]);
+    }
+    // El chofer no gana nada con la dueñez: sigue en borrador y rechazada.
+    expect([puedeAnular("driver", "pending", true), puedeAnular("driver", "approved", true)]).toEqual([false, false]);
     // Ventas y chofer siguen donde estaban.
     for (const rol of ["sales", "driver"] as UserRole[]) {
       expect([rol, puedeAnular(rol, "draft"), puedeAnular(rol, "rejected")]).toEqual([rol, true, true]);
@@ -255,14 +300,18 @@ describe("no queda ningún camino que anule sin motivo", () => {
     // Nota D-497: «Cancelar orden» es una opción del menú «Acciones ▾»; quién la ve lo decide
     // `lib/acciones-de-la-ficha.ts`, así que la regla se busca allí. El motivo y su «Confirmar» siguen en la ficha.
     const acciones = leer("src/lib/acciones-de-la-ficha.ts");
-    expect(acciones).toContain("if (puedeAnular(yo.role, stage)) {");
+    expect(acciones).toContain("if (puedeAnular(yo.role, stage, esMia(pedido, yo))) {");
     expect(modal).toContain("anular: () => setShowCancel(true),");
     expect(modal).toContain("disabled={busy || !cancelListo}");
   });
 
   it("anular en bloque pide el motivo una vez y lo escribe en cada orden", () => {
-    expect(lista).toContain('await bulkStage("canceled", { canceled_reason: bulkReason, canceled_reason_note: bulkReasonNote.trim() || null });');
-    expect(lista).toContain("for (const d of chosen) { if (await setStage(d.id, to, undefined, extra)) ok++; }");
+    // Nota D-NEXT: la tanda manda también la nota legible (la del evento y la del aviso a la oficina), como la ficha.
+    expect(lista).toContain('const anulacion = { canceled_reason: bulkReason, canceled_reason_note: bulkReasonNote.trim() || null };');
+    expect(lista).toContain('await bulkStage("canceled", anulacion, motivoDeAnulacion(anulacion, motivos, lang));');
+    expect(lista).toContain("for (const d of chosen) { if (await setStage(d.id, to, nota, extra)) ok++; }");
+    // Y el botón sale si algo de la selección se anula, con la dueñez de ventas (D-NEXT).
+    expect(lista).toContain("const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esMia(d, me)));");
     // Y el camino viejo, que llamaba a `setStage` sin nada, ya no está.
     expect(lista).not.toContain('bulkStage("canceled")');
   });
@@ -298,5 +347,56 @@ describe("el motivo se ve", () => {
     expect(datos).toContain("<CancelReasonsEditor settings={settings} deliveries={deliveries} save={save} t={t} />");
     expect(datos).toContain("const key = r.key || claveDesdeEtiqueta(en || es, fuera.map((x) => x.key));");
     expect(datos).toContain("!MOTIVOS_QUE_NO_SE_BORRAN.includes(r.key) && (");
+  });
+});
+
+// ---- D-NEXT (191): el vendedor anula su orden, y la oficina se entera ------------------------------
+
+describe("el vendedor anula SU orden pendiente o programada (D-NEXT, 191)", () => {
+  const persona = (id: string, role: UserRole, full_name: string) => ({ id, role, full_name }) as Profile;
+  const users = [
+    persona("kevin", "sales", "Kevin Gonzalez"), persona("otro", "sales", "Otro Vendedor"),
+    persona("ger", "manager", "Gerente"), persona("ofi", "accounting", "Office"), persona("alm", "warehouse", "Almacén"),
+    persona("adm", "admin", "Admin"),
+  ];
+  const aviso = (actorId: string, actorRole: UserRole | null, reason: string | null) => notificationsForStage({
+    stage: "canceled", order_no: 216, order_code: "FV216", delivery_id: "d1", creatorId: "kevin", actorId, actorRole, users, reason,
+  });
+
+  it("si anula un vendedor, se avisa a gerente y Office, con quién y el motivo; a nadie más", () => {
+    const seeds = aviso("kevin", "sales", "Customer canceled");
+    expect(seeds.map((s) => s.user_id).sort()).toEqual(["ger", "ofi"]);
+    for (const s of seeds) {
+      expect(s.kind).toBe("canceled");
+      expect(s.message).toBe("Kevin Gonzalez canceled order #FV216: Customer canceled");
+      expect(s.delivery_id).toBe("d1");
+    }
+  });
+
+  it("sin motivo legible el aviso sale igual, sin los dos puntos", () => {
+    expect(aviso("kevin", "sales", null)[0].message).toBe("Kevin Gonzalez canceled order #FV216");
+  });
+
+  it("si anula la oficina o el admin, no se avisa: lo hizo quien tendría que enterarse", () => {
+    expect(aviso("ger", "manager", "Duplicate order")).toEqual([]);
+    expect(aviso("ofi", "accounting", "Duplicate order")).toEqual([]);
+    expect(aviso("adm", "admin", "Duplicate order")).toEqual([]);
+    // Y sin saber el rol (quien llama no lo pasa), tampoco: no se inventa un vendedor.
+    expect(aviso("kevin", null, "x")).toEqual([]);
+  });
+
+  it("los dos proveedores pasan el rol de quien escribe al armar los avisos", () => {
+    expect(leer("src/lib/data-provider.tsx")).toContain(
+      "const seeds = notificationsForStage({ ...args, actorId: me?.id ?? null, actorRole: me?.role ?? null, users });");
+    expect(leer("src/lib/local-data-provider.tsx")).toContain(
+      "const seeds = notificationsForStage({ ...args, actorId: me.id, actorRole: me.role, users: s.users });");
+  });
+
+  it("el demo rechaza lo que la base rechaza: la regla y la dueñez, antes de pedir el motivo", () => {
+    const local = leer("src/lib/local-data-provider.tsx");
+    const regla = "if (entrandoEnAnulada && cur && !puedeAnular(me.role, cur.stage, esMia(cur, me))) {";
+    expect(local).toContain(regla);
+    expect(local.indexOf(regla)).toBeLessThan(local.indexOf("const falta = faltaParaAnular("));
+    expect(local).toContain("notify(`${me.role} cannot move an order from ${cur.stage} to canceled`);");
   });
 });

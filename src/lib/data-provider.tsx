@@ -983,7 +983,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // Insert one row per recipient. Realtime pushes them to each user's bell.
   const emitStageNotifs = useCallback(
     async (args: { stage: Stage; order_no: number | null; order_code?: string | null; delivery_id: string; creatorId: string | null; reason?: string | null }) => {
-      const seeds = notificationsForStage({ ...args, actorId: me?.id ?? null, users });
+      const seeds = notificationsForStage({ ...args, actorId: me?.id ?? null, actorRole: me?.role ?? null, users });
       if (!seeds.length) return;
       const { error } = await supabase.from("notifications").insert(seeds);
       if (error) console.error("notification insert failed:", error.message);

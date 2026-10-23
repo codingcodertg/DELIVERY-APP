@@ -14,11 +14,11 @@ import { VISTA_VACIA, aplicaFiltroGuardado, borraFiltro, claveDeFiltrosEnElNaveg
 import { FiltrosGuardados, type RespuestaDeFiltro } from "@/components/FiltrosGuardados";
 import { aplicaEnOrdenes, borraPlantilla, claveDePlantillasEnElNavegador, guardaPlantilla, persistePlantillas, plantillasDelNavegador, textoDelRechazo } from "@/lib/plantillas-de-columnas";
 import { PlantillasDeColumnas } from "@/components/PlantillasDeColumnas";
-import { faltaParaAnular, MOTIVO_POR_RETRASO, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
+import { faltaParaAnular, MOTIVO_POR_RETRASO, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre } from "@/lib/cancel-reasons";
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
 import { PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, tiendasDeQuienMira } from "@/lib/documento-pendiente";
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
-import { ordenesVisibles } from "@/lib/ordenes-visibles";
+import { esMia, ordenesVisibles } from "@/lib/ordenes-visibles";
 import { alternaTodasLasVisibles } from "@/lib/marcar-todas";
 import { cuentasDeOrdenes, filasDeOrdenes } from "@/lib/filas-de-ordenes";
 import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
@@ -573,16 +573,17 @@ export default function OrdersPage() {
   };
 
   /** Se enseña el botón si hay algo en la selección que este rol pueda anular desde su etapa; lo que
-   *  no se pueda lo rechazará la base orden por orden, como cualquier otra tanda. */
-  const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage));
+   *  no se pueda lo rechazará la base orden por orden, como cualquier otra tanda. La dueñez cuenta para ventas, que anula
+   *  SU orden pendiente o programada (D-NEXT, 191). */
+  const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esMia(d, me)));
 
-  const bulkStage = async (to: "pending" | "approved" | "canceled", extra?: Partial<Delivery>) => {
+  const bulkStage = async (to: "pending" | "approved" | "canceled", extra?: Partial<Delivery>, nota?: string) => {
     if (!chosen.length) return;
     setBulkBusy(true);
     // Las que se quedan por la factura, nombradas en el resumen (D-399): el aviso de cada una lo pisa este.
     const sinFactura = resumenSinFactura(chosen, to, settings.order_type_rules, orderLabel, lang);
     let ok = 0;
-    for (const d of chosen) { if (await setStage(d.id, to, undefined, extra)) ok++; }
+    for (const d of chosen) { if (await setStage(d.id, to, nota, extra)) ok++; }
     setBulkBusy(false);
     notify(t(`${ok} of ${chosen.length} order(s) updated`, `${ok} de ${chosen.length} orden(es) actualizadas`) + sinFactura);
     setSelected(new Set());
@@ -841,7 +842,10 @@ export default function OrdersPage() {
                 disabled={bulkBusy || !!faltaParaAnular(bulkReason, bulkReasonNote, motivos, lang)}
                 onClick={async () => {
                   if (!(await confirmAction(t(`Cancel ${chosen.length} selected order(s)?`, `¿Anular ${chosen.length} orden(es) seleccionada(s)?`), { danger: true, confirmLabel: t("Cancel orders", "Anular órdenes") }))) return;
-                  await bulkStage("canceled", { canceled_reason: bulkReason, canceled_reason_note: bulkReasonNote.trim() || null });
+                  // La nota del evento es el motivo legible, como en la ficha: es también el que lleva el aviso a la oficina
+                  // cuando anula un vendedor (D-NEXT).
+                  const anulacion = { canceled_reason: bulkReason, canceled_reason_note: bulkReasonNote.trim() || null };
+                  await bulkStage("canceled", anulacion, motivoDeAnulacion(anulacion, motivos, lang));
                   setBulkCancel(false);
                 }}
               >{t("Confirm cancel", "Confirmar anulación")}</button>

@@ -3,6 +3,7 @@ import {
   recogeEnLaFicha, stageLabel,
 } from "@/lib/constants";
 import { puedeAgregarMaterial } from "@/lib/agregar-material";
+import { esMia } from "@/lib/ordenes-visibles";
 import { puedeDejarEnTienda } from "@/lib/leave-at-store";
 import { puedeRecogerSinListo, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import type { AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
@@ -207,8 +208,9 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
     }
   }
 
-  // Anular: quién y desde qué etapa, la regla compartida con el guard (`puedeAnular`, 122).
-  if (puedeAnular(yo.role, stage)) {
+  // Anular: quién y desde qué etapa, la regla compartida con el guard (`puedeAnular`, 122). Ventas anula además SU orden
+  // pendiente o programada (D-NEXT, 191): por eso va la dueñez, con la misma regla que el guard (`esMia`).
+  if (puedeAnular(yo.role, stage, esMia(pedido, yo))) {
     if (abierto.anular) pasos.push("anular");
     else hay.push({ id: "anular", texto: { en: "Cancel order", es: "Cancelar orden" }, estilo: "btn-danger" });
   }

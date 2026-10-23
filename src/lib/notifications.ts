@@ -9,6 +9,7 @@ import type { Profile, Stage } from "@/lib/types";
 //   → rejected   sales             "your order was rejected (reason)"
 //   → ready      sales             "your order is ready"
 //   → delivered  sales             "your order was delivered"
+//   → canceled   managers + office "<rep> canceled order #X: reason" — only when a sales rep cancels (D-NEXT)
 //
 // The same logic drives both the Supabase and local providers, so the
 // two stay in lock-step. The actor is never notified about their own action.
@@ -35,10 +36,12 @@ export function notificationsForStage(args: {
   delivery_id: string | null;
   creatorId: string | null;
   actorId: string | null;
+  /** El rol de quien hace el cambio. Hoy solo lo mira la anulación: la de un vendedor se avisa a la oficina (D-NEXT). */
+  actorRole?: Profile["role"] | null;
   users: Profile[];
   reason?: string | null;
 }): NotifSeed[] {
-  const { stage, order_no, order_code, delivery_id, creatorId, actorId, users, reason } = args;
+  const { stage, order_no, order_code, delivery_id, creatorId, actorId, actorRole, users, reason } = args;
   const seeds: NotifSeed[] = [];
   const label = order_code ? `#${order_code}` : (order_no != null ? `#${order_no}` : "");
 
@@ -72,6 +75,14 @@ export function notificationsForStage(args: {
     case "delivered":
       push(creatorId, "delivered", `Order ${label} was delivered`);
       break;
+    case "canceled": {
+      // D-NEXT (migración 191): el vendedor anula SU orden pendiente o programada sin pasar por nadie, así que la oficina
+      // —gerente y Office, los mismos de D-639— se entera aquí, con el motivo. Lo que anula la oficina no se avisa: es suyo.
+      if (actorRole !== "sales") break;
+      const quien = users.find((u) => u.id === actorId)?.full_name?.trim() || "A sales rep";
+      for (const m of [...withRole("manager"), ...withRole("accounting")]) push(m.id, "canceled", `${quien} canceled order ${label}${reason ? `: ${reason}` : ""}`);
+      break;
+    }
     default:
       break;
   }
