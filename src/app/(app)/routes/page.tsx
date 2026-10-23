@@ -2649,7 +2649,7 @@ export default function RoutesPage() {
           hacen falta los días siguientes (a cuál moverlas) y lo que ya salió (si el viaje va igual). */}
       {!soloLectura && modo === "dia" && (
         <RecomendacionesDeVuelta deliveries={deliveries} fecha={date} settings={settings} me={me} reprogramarOrden={reprogramarOrden}
-          notify={notify} lang={lang} t={t} />
+          abrirOrden={setOpenOrder} notify={notify} lang={lang} t={t} />
       )}
 
       {puedeArmarRutas && (

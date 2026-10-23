@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { claveDeRecomendacion, guardaDejadaAsi, leeDejadasAsi, notaDeLaRecomendacion, recomendacionesDelDia } from "@/lib/recomienda-reprogramar";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { fmtDateShort, orderLabel, todayISO } from "@/lib/utils";
+import { palletsDeLaOrden } from "@/lib/pallets";
 import type { RecomendacionDeVuelta } from "@/lib/route-engine";
 import type { Delivery, Profile, Settings } from "@/lib/types";
 
@@ -19,13 +20,15 @@ const leer = (k: string) => window.localStorage.getItem(k);
  * `reprogramar_orden` de la 173, que deja la nota en el historial; la 172 la saca de la ruta de su chofer), y solo sale si
  * quien mira puede reprogramar TODAS esas órdenes (`puedeReprogramar`). «Dejar así» la esconde ese día, en este navegador.
  */
-export function RecomendacionesDeVuelta({ deliveries, fecha, settings, me, reprogramarOrden, notify, lang, t }: {
+export function RecomendacionesDeVuelta({ deliveries, fecha, settings, me, reprogramarOrden, abrirOrden, notify, lang, t }: {
   /** Todas las órdenes que tiene la pantalla: las del día y las de los días siguientes, también las que ya salieron. */
   deliveries: readonly Delivery[];
   fecha: string;
   settings: Pick<Settings, "stores" | "order_type_rules" | "route_weights" | "route_hard_windows">;
   me: Pick<Profile, "id" | "role"> | null;
   reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es") => Promise<boolean>;
+  /** Abre la orden en su ficha, la misma del Gestor (D-NEXT): antes solo salía la factura y no se sabía de qué orden hablaba. */
+  abrirOrden: (d: Delivery) => void;
   notify: (msg: string) => void;
   lang: "en" | "es";
   t: (en: string, es: string) => string;
@@ -40,7 +43,13 @@ export function RecomendacionesDeVuelta({ deliveries, fecha, settings, me, repro
   if (visibles.length === 0) return null;
 
   const porId = new Map(deliveries.map((d) => [d.id, d]));
-  const etiqueta = (id: string) => { const d = porId.get(id); return d ? d.invoice_num || `#${orderLabel(d)}` : id.slice(0, 6); };
+  // Cada orden, con lo que la identifica de un vistazo: su código, la factura, de dónde a dónde y los pallets (D-NEXT).
+  const etiqueta = (d: Delivery) => [
+    `#${orderLabel(d)}`,
+    d.invoice_num ? `INV ${d.invoice_num}` : null,
+    `${d.pickup_name || d.store || "?"} → ${d.delivery_name || "?"}`,
+    `${palletsDeLaOrden(d)} ${t("pal", "pal")}`,
+  ].filter(Boolean).join(" · ");
   const sePuede = (r: RecomendacionDeVuelta) => r.ids.every((id) => puedeReprogramar(me?.role, porId.get(id)?.stage));
 
   const dejarAsi = (r: RecomendacionDeVuelta) => {
@@ -71,7 +80,14 @@ export function RecomendacionesDeVuelta({ deliveries, fecha, settings, me, repro
           <div key={k} data-recomendacion={r.tienda} style={{ marginTop: 8 }}>
             <div>
               <b>{t(`Very few pallets for the trip to ${r.tienda}`, `Muy poco pallet para la vuelta a ${r.tienda}`)}</b>
-              {" · "}{r.ids.map(etiqueta).join(", ")}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+              {r.ids.map((id) => porId.get(id)).filter((d): d is Delivery => !!d).map((d) => (
+                <button key={d.id} type="button" className="btn btn-ghost btn-sm" data-abre-orden-recomendada={d.id}
+                  onClick={() => abrirOrden(d)} title={t("Open the order", "Abrir la orden")} style={{ whiteSpace: "normal", textAlign: "left" }}>
+                  📄 {etiqueta(d)}
+                </button>
+              ))}
             </div>
             <div className="hint" style={{ marginTop: 2 }}>{lang === "es" ? r.motivo.es : r.motivo.en}</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>

@@ -47013,3 +47013,17 @@ solo rotula, como antes. Proveedores y Empleados no tienen destino. La app de Cl
 la pantalla solo pinta el enlace con «abierta».
 
 **No medido:** en el navegador (el mapa es solo del admin y el demo no lo probé).
+
+## D-NEXT · «Recomendaciones»: cada orden se ve y se abre desde la tarjeta
+
+**Fecha:** 2026-10-22. **Pedido:** el dueño, con la tarjeta delante («Muy poco pallet para la vuelta a RDZ Brownsville ·
+179810»): «you should be able to see what order are you talking about so make it available».
+
+**Causa:** D-642 nombraba cada orden solo por su factura (o `#código` sin factura), como texto: no se sabía cuál era ni
+se podía abrir.
+
+**Qué cambia:** cada orden de la recomendación es un botón «📄 #código · INV factura · origen → destino · N pal» que abre su
+ficha, la misma `OrderModal` que abre una fila del Gestor (`abrirOrden={setOpenOrder}`).
+
+**Prueba:** `recomienda-reprogramar.test.ts`: el Gestor pasa `setOpenOrder` y la tarjeta pinta el botón con las cuatro
+piezas y lo abre al pulsar.
