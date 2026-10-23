@@ -1,7 +1,7 @@
 import { conAcciones, conCabecera, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 
 /**
- * D-NEXT. «🚚 10»: la capacidad del camión de cada ruta es un botón, no un campo. El dueño, 2026-10-23 (dictado, literal):
+ * D-655. «🚚 10»: la capacidad del camión de cada ruta es un botón, no un campo. El dueño, 2026-10-23 (dictado, literal):
  * «eso de capacidad de camión, eso lo vamos a hacer como un botón. Y eso va a ser general también para otra vista. Que va a
  * ser el botón, simplemente va a ser el emoji del camión. Y apretando ese emoji, ahí se va a cambiar. Ahí te va a preguntar un
  * poco cuál es la capacidad. Entonces va a decir el camioncito y el número 10.»

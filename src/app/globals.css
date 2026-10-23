@@ -1785,7 +1785,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
      desplaza dentro. Si no, con muchos choferes empujaba la tabla hacia abajo y dejaba un hueco bajo el mapa. */
   .gestor-eficiente [data-panel-de-choferes] { contain: size; align-self: stretch; max-height: none !important; }
 
-  /* Las pestañas en UNA fila (D-NEXT). El dueño, 2026-10-23: «también quiero que solo haya una row, entonces mete eso de
+  /* Las pestañas en UNA fila (D-655). El dueño, 2026-10-23: «también quiero que solo haya una row, entonces mete eso de
      solicitudes en la misma row». No bajan de línea: si un día no caben, la franja se desplaza dentro, y la página no. */
   .gestor-eficiente [data-barra-de-vistas] { flex-wrap: nowrap !important; overflow-x: auto; gap: 6px !important; }
   .gestor-eficiente [data-barra-de-vistas] > * { flex: 0 0 auto; white-space: nowrap; }
@@ -1799,7 +1799,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 @media (min-width: 900px) and (max-width: 1599px) {
   .gestor-eficiente [data-barra-de-vistas] .rotulo-de-la-franja { display: none; }
 }
-/* La cabecera de cada ruta en la eficiente, en UNA fila (D-NEXT): los botones (↶ ↷ 🔓 🧭 🗑 ⚙) solo con su icono; el rótulo
+/* La cabecera de cada ruta en la eficiente, en UNA fila (D-655): los botones (↶ ↷ 🔓 🧭 🗑 ⚙) solo con su icono; el rótulo
    queda en el `title`. Con el rótulo, el nombre y sus pastillas de aviso («sin medida», «se pasa…») no cabían a 1440 px. */
 .gestor-eficiente [data-tarjeta-de-ruta] .rotulo-del-boton { display: none; }
 

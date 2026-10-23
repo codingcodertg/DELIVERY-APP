@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { botonDelCamion, capacidadAGuardar, capacidadEscrita } from "./boton-del-camion";
 import { BotonDelCamion } from "@/components/BotonDelCamion";
 
-// D-NEXT (2026-10-23). El dueño, con la captura de la vista eficiente y tres recuadros: «todo eso que dice órdenes expiradas
+// D-655 (2026-10-23). El dueño, con la captura de la vista eficiente y tres recuadros: «todo eso que dice órdenes expiradas
 // […] ese texto vaya al lado para que en vez de que hayan dos rows, solo haya una. En el número 2, también quiero que solo
 // haya una row […] En la parte número 3, igual, quiero una sola row», y la capacidad del camión como un botón «🚚 10».
 const plano = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");

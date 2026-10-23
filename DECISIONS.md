@@ -47190,7 +47190,7 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 **No medido:** en el navegador; si un vendedor ve los nombres de los demás depende de qué perfiles le deja leer la base.
 ## D-653 · Gestor de Rutas: marcar un chofer abre su tabla, y «Vista completa | Vista eficiente»
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): en la eficiente, las pestañas no bajan de línea y llevan «Solicitudes» en su fila; la cabecera de cada ruta es una fila sin el resumen (paradas · pallets · carga máxima · millas · jornada) y con «⚙ Columnas»; y en las dos vistas «Capacidad del camión [10] trm» es el botón «🚚 10».
+> **Reemplazada en parte por D-655** (2026-10-23): en la eficiente, las pestañas no bajan de línea y llevan «Solicitudes» en su fila; la cabecera de cada ruta es una fila sin el resumen (paradas · pallets · carga máxima · millas · jornada) y con «⚙ Columnas»; y en las dos vistas «Capacidad del camión [10] trm» es el botón «🚚 10».
 
 **Fecha:** 2026-10-23 · Rama `gestor-vista-eficiente` (worker del orquestador). Sin migración. **Reemplaza en parte a D-544** (lleva su nota).
 
@@ -47294,7 +47294,7 @@ va a ir en otra cosa que dice other.»
 - El aviso «¿Cerrar sin guardar?» en el navegador.
 - Safari/iPad.
 
-## D-NEXT · Gestor de Rutas, vista eficiente: tres bloques en una fila, y la capacidad del camión es un botón «🚚 10»
+## D-655 · Gestor de Rutas, vista eficiente: tres bloques en una fila, y la capacidad del camión es un botón «🚚 10»
 
 **Fecha:** 2026-10-23 · Rama `gestor-una-fila` (worker del orquestador). Sin migración. **Reemplaza en parte a D-653** (lleva su nota).
 
@@ -47318,7 +47318,7 @@ va a ir en otra cosa que dice other.»
 **Prueba:**
 - `gestor/gestor-en-una-fila.test.ts`: qué ve cada tarjeta (pulsable / fijo / nada); qué vale y qué se guarda; el botón pintado de verdad (React en el servidor) con y sin permiso; la ventanita guarda por `capacidadAGuardar` → `onGuarda`; la página pasa `setCapacity(u.driver, v)` y ya no tiene el campo ni la «trm»; las expiradas dentro de la fila del selector; «Solicitudes» en la franja y la franja sin bajar de línea; el resumen fuera en la eficiente y los avisos dentro; «⚙ Columnas» arriba solo en la eficiente.
 - `gestor/numeros-del-dia.test.ts`: el Gestor entero pintado. Logística ve el botón «🚚 12»; «Ruta de hoy» (solo lectura) ve «🚚 12» sin botón.
-- Al día, con «Nota D-NEXT»: `vistas-del-gestor`, `gestor-factura-arrastre-optimizar`, `rutas-bloqueadas`, `rutas-del-dia`, `solo-armar-rutas`.
+- Al día, con «Nota D-655»: `vistas-del-gestor`, `gestor-factura-arrastre-optimizar`, `rutas-bloqueadas`, `rutas-del-dia`, `solo-armar-rutas`.
 - La suite entera, 8.983 en verde (fallan los tres de `scripts/` que fallan también en main), y tsc. Mutantes: caen 12 de 12, cada uno con prueba con nombre.
 - **Navegador (demo, 390, 1440 y 1700 px; clics y teclado de verdad por CDP):**
   - Fila 1: el selector y las expiradas, una fila (mismo centro, 35 px de alto) a 1440 y 1700, en las dos vistas. Antes, dos renglones (top 185 y 218).

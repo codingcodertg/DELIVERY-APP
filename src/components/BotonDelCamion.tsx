@@ -5,7 +5,7 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { capacidadAGuardar, capacidadEscrita } from "@/lib/gestor/boton-del-camion";
 
 /**
- * «🚚 10» en la cabecera de cada ruta del Gestor (D-NEXT, `lib/gestor/boton-del-camion`): el camión y su capacidad. Pulsado,
+ * «🚚 10» en la cabecera de cada ruta del Gestor (D-655, `lib/gestor/boton-del-camion`): el camión y su capacidad. Pulsado,
  * una ventanita pide la nueva (campo, «Cancelar», «Guardar»; Intro guarda, Escape o un clic fuera cierran sin guardar), y
  * «Guardar» llama a `onGuarda`, que es el `setCapacity` de siempre. Sin `puedeCambiar`, el mismo «🚚 10» sin botón.
  *

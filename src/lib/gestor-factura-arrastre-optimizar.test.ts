@@ -335,7 +335,7 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
     it("un botón «🧭 Optimizar» en cada tarjeta de chofer con paradas", () => {
       expect(pagina).toContain("<button className=\"btn btn-ghost btn-sm\" data-optimizar={u.key} disabled={optimizando != null || moviendo}");
       expect(pagina).toContain("onClick={(e) => { e.stopPropagation(); void optimizaLaRuta(u.key); }}");
-      // Nota D-NEXT: el rótulo va en su `span` (en la vista eficiente se esconde y queda el icono).
+      // Nota D-655: el rótulo va en su `span` (en la vista eficiente se esconde y queda el icono).
       expect(pagina).toContain("🧭 <span className=\"rotulo-del-boton\">{optimizando === u.key ? t(\"Optimizing…\", \"Optimizando…\") : t(\"Optimize\", \"Optimizar\")}</span>");
     });
     it("con candado 🔒 no optimiza, y lo dice — antes de calcular nada", () => {

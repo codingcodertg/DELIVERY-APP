@@ -2812,7 +2812,7 @@ export default function RoutesPage() {
       {err && <div className="hint" style={{ color: "var(--red)", marginBottom: 8 }}>⚠ {err}</div>}
 
       {/* ---------- Layout toolbar ---------- */}
-      {/* Una fila (D-NEXT): el selector de vista y, a su lado, «N orden(es) expiradas · N sin fecha — Verlas», que era un
+      {/* Una fila (D-655): el selector de vista y, a su lado, «N orden(es) expiradas · N sin fecha — Verlas», que era un
           renglón aparte encima. El dueño, 2026-10-23: «eso de vista completa y vista se vaya para arriba y ese texto vaya al
           lado para que en vez de que hayan dos rows, solo haya una». En las dos vistas. */}
       <div data-barra-de-arriba style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
@@ -3176,7 +3176,7 @@ export default function RoutesPage() {
         // Stops whose measured ETA lands after the delivery window closes —
         // surfaced as a banner so the dispatcher acts before dispatch, not just
         // as a red cell buried in the table.
-        // «⚙ Columnas» de las paradas (D-346), una sola vez: en la eficiente va en la fila de la cabecera (D-NEXT); en la
+        // «⚙ Columnas» de las paradas (D-346), una sola vez: en la eficiente va en la fila de la cabecera (D-655); en la
         // completa, en su renglón sobre la tabla, como siempre.
         const selectorDeParadas = (
           <SelectorDeColumnas
@@ -3188,9 +3188,9 @@ export default function RoutesPage() {
             mover={moverEn("paradas")}
           />
         );
-        // El camión (D-NEXT): «🚚 10» pulsable donde había campo; sin botón para quien no puede cambiarlo.
+        // El camión (D-655): «🚚 10» pulsable donde había campo; sin botón para quien no puede cambiarlo.
         const camion = botonDelCamion(soloLectura, modoDeTarjeta);
-        // En la eficiente (D-NEXT) la cabecera es UNA fila y el resumen de la ruta no se pinta: queda al pasar por el nombre.
+        // En la eficiente (D-655) la cabecera es UNA fila y el resumen de la ruta no se pinta: queda al pasar por el nombre.
         const eficienteAqui = modoDeTarjeta === "eficiente";
         const resumenDeLaRuta = [
           stops.length > 0 ? `${dia.quedan} ${t("stops", "paradas")} · ${numeroDePallets(cuenta.totales.palletsMovidos)} ${t("pallets moved", "pallets movidos")} · ${t("peak load", "carga máxima")} ${numeroDePallets(cuenta.totales.cargaMaxima)}/${capacity}` : "",
@@ -3273,7 +3273,7 @@ export default function RoutesPage() {
               {/* Sin viajes (D-443): ni «N viajes», ni «Ver un viaje» (D-441), ni «viajes fijados / agrupado automáticamente».
                   Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión.
                   «N paradas» son las que aún tienen algo PENDIENTE, como «N órdenes» (D-529: los números ya cuentan lo hecho). */}
-              {/* En la eficiente no (D-NEXT; el dueño: «ese texto que sale ahí, de pales y todas esas cosas, eso lo vamos a
+              {/* En la eficiente no (D-655; el dueño: «ese texto que sale ahí, de pales y todas esas cosas, eso lo vamos a
                   eliminar»): va en el `title` del nombre. Lo que es un problema —se pasa de la capacidad, no acaba en 0, más
                   de 8 h, sin medida— sigue siendo su pastilla, en las dos. */}
               {stops.length > 0 && !eficienteAqui && (
@@ -3322,12 +3322,12 @@ export default function RoutesPage() {
               </>)}
               <span style={{ flex: 1 }} />
               {/* Aquí iba «🚚 Capacidad del camión [10] trm», un campo que guardaba en cada tecla: ahora es el botón «🚚 10»,
-                  al final de la fila (D-NEXT, abajo). */}
+                  al final de la fila (D-655, abajo). */}
               {/* ↶ ↷ (D-459), a la vista junto a Bloquear / Optimizar / Vaciar. El dueño, 2026-10-01: «aqui pon un undo redo
                   para los movimientos del orden de las cargas para areglar un error si pasa». Llaman al MISMO historial que
                   Ctrl+Z y que los de la barra de vistas (`vuelve`); el título dice QUÉ deshacen (`botonDeVolver`).
                   Los cinco botones van en UN grupo, para que al faltar sitio bajen juntos y no se separen.
-                  En la vista eficiente (D-NEXT) van solo con su icono —el rótulo, `.rotulo-del-boton`, se esconde en
+                  En la vista eficiente (D-655) van solo con su icono —el rótulo, `.rotulo-del-boton`, se esconde en
                   globals.css y queda en el `title`—: así cabe todo en una fila con el nombre y sus pastillas. */}
               {acciones && (
               <span data-acciones-de-la-ruta style={{ display: "inline-flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
@@ -3396,9 +3396,9 @@ export default function RoutesPage() {
                 <FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}
                   points={puntosDeLaRuta(points, u, new Set(stops.map((d) => d.id)))} lines={lineasDeLaRuta(lines, u.key)} />
               )}
-              {/* En la eficiente, «⚙ Columnas» sube a esta fila (D-NEXT): «todo va a estar en una sola línea». */}
+              {/* En la eficiente, «⚙ Columnas» sube a esta fila (D-655): «todo va a estar en una sola línea». */}
               {eficienteAqui && hayFilas && !soloLectura && selectorDeParadas}
-              {/* «🚚 10» (D-NEXT), en las dos vistas: pulsado pide la capacidad y guarda por el MISMO `setCapacity` que el campo. */}
+              {/* «🚚 10» (D-655), en las dos vistas: pulsado pide la capacidad y guarda por el MISMO `setCapacity` que el campo. */}
               {camion && <BotonDelCamion capacidad={capacity} puedeCambiar={camion === "pulsable"} onGuarda={(v) => setCapacity(u.driver, v)} t={t} />}
             </div>
             {!sinCuerpo && <>

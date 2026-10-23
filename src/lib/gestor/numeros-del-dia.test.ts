@@ -321,7 +321,7 @@ describe("las pantallas pintadas: el mismo número a la misma parada", () => {
     // D-621: cuatro pendientes de antes + la entrega D3 de lo recogido, que ahora se mueve.
     expect((html.match(/data-sube-parada/g) ?? []).length).toBe(5);
   }, 60_000);
-  it("D-NEXT · el camión, pintado: «🚚 12» que se pulsa para logística, sin botón en solo lectura; el campo de antes no está", async () => {
+  it("D-655 · el camión, pintado: «🚚 12» que se pulsa para logística, sin botón en solo lectura; el campo de antes no está", async () => {
     estado.me = ADMIN;
     const html = await pintaElGestor(false);
     expect(html).toMatch(/<button[^>]*data-boton-del-camion[^>]*>🚚 (<!-- -->)?12<\/button>/);
