@@ -10,7 +10,9 @@ import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilit
 import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada, type QuienCrea } from "@/lib/cuenta-aprobacion";
-import { motivosDeAprobacion, reglasDeAprobacion, textoDelMotivo, type MotivoDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
+import { motivosDeAprobacion, ocupadasPorVentana, reglasDeAprobacion, textoDelMotivo, tiendaSinCupo, type FilaDeCupo, type MotivoDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
+import { consultaDelCupo, franjasDelDia } from "@/lib/franjas-del-dia";
+import { FranjasDelDia } from "@/components/FranjasDelDia";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { DIAS_DE_BORRADOR, esMia } from "@/lib/ordenes-visibles";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
@@ -95,6 +97,8 @@ import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/t
 
 /** El aviso de capacidad de programación (checkSchedule). Oculto por ahora a petición del dueño. */
 const MOSTRAR_CONFLICTO_DE_PROGRAMACION = false;
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`): sin servidor, lo que la ficha pide a una ruta se cuenta en el navegador. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 type Draft = Partial<Delivery>;
 
@@ -377,22 +381,35 @@ export function OrderModal({
   // todavía no ha salido: nueva, borrador o rechazada.
   const reglasVigentes = useMemo(() => reglasDeAprobacion(settings.approval_rules), [settings.approval_rules]);
   const fechaDeCupo = (d.delivery_date ?? "").slice(0, 10);
-  const miraCupo = (isNew || existing?.stage === "draft" || existing?.stage === "rejected")
+  const aunNoSale = isNew || existing?.stage === "draft" || existing?.stage === "rejected";
+  const miraCupo = aunNoSale
     && (d.delivery_windows ?? "") in reglasVigentes.cupo && /^\d{4}-\d{2}-\d{2}$/.test(fechaDeCupo);
+  // Las franjas del día (D-657) se enseñan mientras se elige la fecha: orden nueva o editada entera, o ventas cambiando
+  // solo la fecha (D-480). Piden el conteo a la misma ruta: una sola cuenta para las franjas y para D-639. La dirección
+  // lleva la fecha, así que cambiar la fecha vuelve a pedirlo.
+  const muestraFranjas = editing && (alcance === "todo" || (!isNew && alcance === "solo_fecha"));
+  const urlDelCupo = consultaDelCupo(fechaDeCupo, existing?.id, miraCupo || muestraFranjas);
   const [ocupadas, setOcupadas] = useState<Record<string, number> | null>(null);
+  // El demo no tiene servidor: cuenta en el navegador, con la misma función que la ruta, lo que tiene en la lista.
+  const filasDelDemo = LOCAL_MODE ? deliveries : null;
   const cuentaElCupo = useCallback(async (): Promise<Record<string, number> | null> => {
+    if (!urlDelCupo) return null;
+    if (filasDelDemo) {
+      return ocupadasPorVentana(filasDelDemo.filter((x) => (x.delivery_date ?? "").slice(0, 10) === fechaDeCupo) as FilaDeCupo[], reglasVigentes, existing?.id);
+    }
     try {
-      const r = await fetch(`/api/cupo-de-la-manana?fecha=${fechaDeCupo}${existing?.id ? `&excluir=${existing.id}` : ""}`, { cache: "no-store" });
+      const r = await fetch(urlDelCupo, { cache: "no-store" });
       return r.ok ? ((await r.json()) as { ocupadas?: Record<string, number> }).ocupadas ?? null : null;
     } catch { return null; }
-  }, [fechaDeCupo, existing?.id]);
+  }, [urlDelCupo, filasDelDemo, fechaDeCupo, reglasVigentes, existing?.id]);
   useEffect(() => {
-    if (!miraCupo) { setOcupadas(null); return; }
+    if (!urlDelCupo) { setOcupadas(null); return; }
     let vivo = true;
+    setOcupadas(null); // la cuenta de otra fecha no vale para esta mientras llega la nueva
     void cuentaElCupo().then((o) => { if (vivo) setOcupadas(o); });
     return () => { vivo = false; };
-  }, [miraCupo, cuentaElCupo]);
-  const motivosDeOficina = isNew || existing?.stage === "draft" || existing?.stage === "rejected"
+  }, [urlDelCupo, cuentaElCupo]);
+  const motivosDeOficina = aunNoSale
     ? motivosDeAprobacion(d, new Date(), ocupadas, reglasVigentes) : [];
   /** Lo mismo, con el cupo contado OTRA VEZ justo al pulsar: entre abrir la ficha y enviarla otro vendedor pudo llenarlo. */
   const motivosAlEnviar = async (orden: Partial<Delivery>): Promise<MotivoDeAprobacion[]> =>
@@ -406,7 +423,13 @@ export function OrderModal({
   });
   const textoDeMotivos = (motivos: MotivoDeAprobacion[], es: boolean) => motivos.map((m) => textoDelMotivo(m, es)).join("; ");
   /** Los motivos se le enseñan al vendedor solo cuando cambian algo: sin ellos, la orden se habría aprobado sola. */
-  const avisaMotivos = motivosDeOficina.length > 0 && naceAprobada(quienCrea([])) && !naceAprobada(quienCrea(motivosDeOficina));
+  const cambiaLaAprobacion = (motivos: MotivoDeAprobacion[]) =>
+    motivos.length > 0 && naceAprobada(quienCrea([])) && !naceAprobada(quienCrea(motivos));
+  const avisaMotivos = cambiaLaAprobacion(motivosDeOficina);
+  // Las franjas del día (D-657): las de la fecha elegida, lo que queda en cada una y lo que D-639 diría de cada una.
+  const franjas = muestraFranjas
+    ? franjasDelDia({ fecha: fechaDeCupo, tienda: d.store, ocupadas, reglas: reglasVigentes, ahora: new Date(), actual: d.delivery_windows })
+    : [];
 
   const etapaDeEnvio = etapaAlEnviar(me.role, quienCrea(motivosDeOficina));
 
@@ -2241,6 +2264,11 @@ export function OrderModal({
             <div className="grid g2">
               <Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} invalid={!d.delivery_date} min={minFechaDeEntrega()} />
             </div>
+            <FranjasDelDia
+              franjas={franjas} actual={d.delivery_windows} es={lang === "es"} onElige={null}
+              vaAAprobacion={() => false}
+              tiendaFuera={tiendaSinCupo(d.store, reglasVigentes) ? d.store ?? null : null}
+            />
           </>
         )}
 
@@ -2319,6 +2347,12 @@ export function OrderModal({
               <Txt label={t("Delivery Date", "Fecha de Entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} disabled={!salesFields} invalid={missingSet.has("delivery_date")} min={minFechaDeEntrega()} />
               <WindowSel val={d.delivery_windows} fecha={d.delivery_date} on={(v) => set("delivery_windows", v)} disabled={!salesFields} invalid={missingSet.has("delivery_windows")} t={t} />
             </div>
+            <FranjasDelDia
+              franjas={franjas} actual={d.delivery_windows} es={lang === "es"}
+              onElige={salesFields ? (v) => set("delivery_windows", v) : null}
+              vaAAprobacion={(m) => aunNoSale && cambiaLaAprobacion(m)}
+              tiendaFuera={tiendaSinCupo(d.store, reglasVigentes) ? d.store ?? null : null}
+            />
             {/* Reprogramming a missed order: offer to send it out first thing the
                 next morning. Shows when an existing order is pushed to a LATER
                 date, or whenever the flag is already on. */}

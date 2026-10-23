@@ -47387,3 +47387,73 @@ anulación que haga un vendedor.**
 - El aviso en la campana de la oficina en el navegador; la prueba es de la función que lo arma.
 - En el proveedor real, el vendedor arma los avisos con la lista `users` que él puede leer: si un día la RLS de
   perfiles le escondiera a la oficina, el aviso no saldría (hoy D-639 depende de lo mismo).
+## D-657 · Órdenes: al elegir la fecha, la ficha enseña las franjas de ese día con lo que queda en cada una, y pulsar una la pone como ventana
+
+**Fecha:** 2026-10-23 · Rama `franjas-horarias` · **Migración:** ninguna · **Versión:** la pone el orquestador.
+
+**Pedido:** Kevin Gonzalez (vendedor), solicitud de ayuda desde «New delivery order»: «When I am creating an order. Is there
+a way of seeing the time slots available for that day?». El dueño: «tenemos que crear time slots».
+
+**Datos medidos (producción, solo lectura, 2026-10-23):** órdenes con `delivery_date` en los últimos 30 días (del 23-sep al
+23-oct), sin borrador, anulada, rechazada ni práctica: **598**, y todas en una de las cinco ventanas del selector; ninguna
+personalizada.
+
+| Ventana | Órdenes | % |
+|---|---|---|
+| 8:30-5:30 (todo el día) | 435 | 72,7 |
+| 8:30-10 (madrugada) | 77 | 12,9 |
+| 8:30-3:30 (sábado) | 40 | 6,7 |
+| 8:30-12 (mañana) | 39 | 6,5 |
+| 12-5:30 (tarde) | 7 | 1,2 |
+
+`settings.approval_rules` es nulo en producción: rigen los defectos de D-639 (corte 16:30; 2 en 8:30-10 y 1 en 8:30-12).
+Por eso las franjas «libres» que se enseñan son las del selector de ese día (`ventanasParaLaFecha`): son las únicas que se usan,
+y no hace falta inventar otras.
+
+**Qué ve el vendedor:** debajo de «Fecha de entrega / Ventana de entrega», una tarjeta «🕒 Franjas de ese día» con una casilla
+por franja, por hora de empezar: «Madrugada (8:30-10) · Queda 1 de 2», «Mañana (8:30-12) · Llena (1 de 1)», «Todo el día · Libre»,
+«Tarde · Libre». La llena se ve llena (fondo rojo), no se esconde. Pulsar una casilla la pone como ventana de la orden (el
+desplegable sigue ahí). Si con esa franja la orden iría a aprobación de oficina, la casilla lo dice («→ va a aprobación de
+oficina») y, al elegirla, sale la tarjeta ámbar de D-639. Pasada la hora de corte, la tarjeta lo dice una vez con el texto de
+D-639 («Es para mañana temprano y ya pasaron las 4:30 pm»). Si la tienda de la orden no cuenta para el cupo, todo sale libre
+y la tarjeta dice por qué. Sin conteo (cargando o la ruta falló) la franja con cupo dice «Cupo de 2» y no adivina.
+
+**Qué cambia:**
+- **Sin regla nueva.** `src/lib/franjas-del-dia.ts` (`franjasDelDia`) le pregunta a D-639, franja por franja, «¿y si eligiera
+  esta?»: el estado sale del mismo `reglas.cupo` y de `tiendaSinCupo`, y los motivos de `motivosDeAprobacion`. Una prueba
+  comprueba que «llena» coincide con `motivoPorCupo` en cada franja.
+- **Más franjas con cupo:** las franjas son las del selector de ese día más cualquier clave de `reglas.cupo` que quepa antes del
+  cierre de ese día (sábado 3:30), ordenadas por hora. Si mañana el cupo tuviera una tercera ventana, saldría sola.
+- **El conteo:** la misma ruta `/api/cupo-de-la-manana`, sin cambios. Ya devuelve la cuenta de cada franja con cupo y nada más;
+  las libres no necesitan cuenta. La ficha la pide ahora también mientras se elige la fecha (no solo cuando la ventana elegida
+  tiene cupo), y otra vez al cambiar la fecha: la consulta (`consultaDelCupo`) lleva la fecha dentro.
+- **Dónde se ve:** orden nueva, borrador, y cualquier orden que se edite entera (ahí el aviso de aprobación no sale, porque editar
+  una aprobada no la devuelve a aprobación, D-639). En «solo la fecha» (ventas en una orden suya ya enviada, D-480) se ve
+  para mirar, sin poder pulsar: ese guardado no toca la ventana.
+- **El aviso «va a aprobación» de cada casilla** es la misma cuenta que la tarjeta ámbar (`cambiaLaAprobacion`, sacada de
+  `avisaMotivos`): sale solo si sin el motivo la orden se habría aprobado sola. A la oficina no le sale.
+- **El demo** no tiene servidor: la ficha cuenta en el navegador, con `ocupadasPorVentana`, lo que tiene en la lista.
+
+**Ajustes:** la tarjeta «Aprobación de oficina: hora de corte y cupo de la mañana» solo deja poner tope a 8:30-10 y 8:30-12.
+Para dar cupo a otra franja (p. ej. la tarde) haría falta enseñar ahí las demás ventanas del selector; `approval_rules` es
+jsonb y no pide migración. No se hace aquí: nadie lo ha pedido y con los datos de arriba la tarde lleva 7 órdenes en un mes.
+
+**Prueba:** `src/lib/franjas-del-dia.test.ts`: la función (quedan, llena justo al tope, libre, tienda sin cupo con mayúsculas y
+espacios, sin conteo, corte hoy y mañana franja por franja, sábado, una clave de cupo desordenada que no es del selector, otra
+que acaba tras el cierre), la ruta (sin sesión 401 sin leer nada; con sesión solo cuentas, sin clientes, con filas de otro día,
+de la tienda sin cupo, anuladas y la propia orden excluida; una franja nueva en Ajustes también se cuenta), la tarjeta (pulsar
+elige esa franja; la llena se pinta; el aviso solo donde la ficha dice; sin `onElige`, deshabilitada) y el cableado de la ficha.
+12 de 12 mutantes caen, cada uno con una prueba con nombre: llena solo al pasar el tope · la tienda sin cupo cuenta · sin conteo
+se pinta libre · no se ordenan por hora · entra una ventana que acaba tras el cierre · los motivos miran la ventana elegida y
+no la suya · el conteo se pide aunque no haga falta · la ruta cuenta sin sesión · pulsar escribe otro campo · la ficha solo
+cuenta si la ventana elegida tiene cupo · pulsar elige la que ya estaba · el aviso ignora quién crea.
+**Navegador (demo, 390 oscuro y 1440 claro):** borrador de un vendedor de una tienda que aprueba sola, un martes con una orden
+en 8:30-10 y otra en 8:30-12: «Queda 1 de 2», «Llena (1 de 1) → va a aprobación de oficina», «Libre», «Libre»; pulsar la llena
+pone 8:30-12 en el desplegable y sale la tarjeta ámbar. Cambiar la fecha a un día vacío y volver vuelve a contar. 0 px de
+desborde en página, ficha y tarjeta.
+
+**No medido:**
+- La ruta contra la base real (la prueba usa un cliente falso; la ruta no cambia desde D-639).
+- La tarjeta en la orden nueva desde «+ Nueva orden» (se midió el borrador con «Continuar la orden»; es el mismo bloque).
+- El aviso de hora de corte en el navegador (las pruebas lo cubren con la hora fija).
+- De paso, en los datos: 27 órdenes de esos 30 días tienen `delivery_date` en domingo. No se miró por qué.
