@@ -27,7 +27,7 @@ export function RecomendacionesDeVuelta({ deliveries, fecha, settings, me, repro
   settings: Pick<Settings, "stores" | "order_type_rules" | "route_weights" | "route_hard_windows">;
   me: Pick<Profile, "id" | "role"> | null;
   reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es") => Promise<boolean>;
-  /** Abre la orden en su ficha, la misma del Gestor (D-NEXT): antes solo salía la factura y no se sabía de qué orden hablaba. */
+  /** Abre la orden en su ficha, la misma del Gestor (D-646): antes solo salía la factura y no se sabía de qué orden hablaba. */
   abrirOrden: (d: Delivery) => void;
   notify: (msg: string) => void;
   lang: "en" | "es";
@@ -43,7 +43,7 @@ export function RecomendacionesDeVuelta({ deliveries, fecha, settings, me, repro
   if (visibles.length === 0) return null;
 
   const porId = new Map(deliveries.map((d) => [d.id, d]));
-  // Cada orden, con lo que la identifica de un vistazo: su código, la factura, de dónde a dónde y los pallets (D-NEXT).
+  // Cada orden, con lo que la identifica de un vistazo: su código, la factura, de dónde a dónde y los pallets (D-646).
   const etiqueta = (d: Delivery) => [
     `#${orderLabel(d)}`,
     d.invoice_num ? `INV ${d.invoice_num}` : null,

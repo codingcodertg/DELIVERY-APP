@@ -47014,7 +47014,7 @@ la pantalla solo pinta el enlace con «abierta».
 
 **No medido:** en el navegador (el mapa es solo del admin y el demo no lo probé).
 
-## D-NEXT · «Recomendaciones»: cada orden se ve y se abre desde la tarjeta
+## D-646 · «Recomendaciones»: cada orden se ve y se abre desde la tarjeta
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, con la tarjeta delante («Muy poco pallet para la vuelta a RDZ Brownsville ·
 179810»): «you should be able to see what order are you talking about so make it available».
