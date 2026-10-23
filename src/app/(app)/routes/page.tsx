@@ -35,6 +35,7 @@ import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
 import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-horario";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { abreAlMarcar, guardaVista, leeVista, type VistaDelGestor } from "@/lib/gestor/vistas-del-gestor";
+import { botonDelCamion } from "@/lib/gestor/boton-del-camion";
 import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
 import { DAY_START_MIN, useMedidaDeRutas, claveDeRecogida } from "@/lib/usa-medida-de-rutas";
@@ -92,6 +93,7 @@ import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { celdaPropiaDelPlan, claseDeLaFilaDelPlan } from "@/lib/route-plan/celdas-del-plan";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
+import { BotonDelCamion } from "@/components/BotonDelCamion";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 import { abanicoDeMarcas } from "@/lib/abanico-de-marcas";
@@ -2800,24 +2802,20 @@ export default function RoutesPage() {
           quitó (D-459): el dueño, 2026-10-01, «remeuve toda esta barra porque ya esta abajo». Sus cuatro números y el cambio
           de vista están en las pestañas de abajo: «Rutas (N) · N programadas», «Sin asignar (N)» y «Tablero (N)». */}
 
-      {soloPendientes ? (
+      {soloPendientes && (
         <div className="hint" style={{ marginBottom: 8 }}>
           <b>{t("Viewing overdue and undated orders only", "Viendo solo órdenes expiradas y sin fecha")}</b> — {t("they belong to no day until you give them one. Set a date and the order moves to that day.", "no son de ningún día hasta que se les pone uno. Póngale fecha y la orden pasa a ese día.")}{" "}
           <button className="btn btn-ghost btn-sm" onClick={() => setSoloPendientes(false)}>{t("Back to the day", "Volver al día")}</button>
-        </div>
-      ) : !soloLectura && (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (
-        <div className="hint" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <span>{t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) expiradas · ${pendientes.sinFecha.length} sin fecha`)}
-          {" — "}{t("not part of this day.", "no son de este día.")}</span>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setAllDates(false); setSoloPendientes(true); }}>{t("View them", "Verlas")}</button>
-          <CerrarAviso aviso={AVISOS_DEL_GESTOR.atrasadas} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.atrasadas)} />
         </div>
       )}
 
       {err && <div className="hint" style={{ color: "var(--red)", marginBottom: 8 }}>⚠ {err}</div>}
 
       {/* ---------- Layout toolbar ---------- */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+      {/* Una fila (D-655): el selector de vista y, a su lado, «N orden(es) expiradas · N sin fecha — Verlas», que era un
+          renglón aparte encima. El dueño, 2026-10-23: «eso de vista completa y vista se vaya para arriba y ese texto vaya al
+          lado para que en vez de que hayan dos rows, solo haya una». En las dos vistas. */}
+      <div data-barra-de-arriba style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
         {/* «Vista completa | Vista eficiente» (D-653), como «Tabla | Tablero» de Órdenes. El dueño, 2026-10-23: «quiero que
             hayan dos views […] arriba va a estar full view y small view or efficient view». Solo en el Gestor. */}
         {!soloLectura && (
@@ -2847,6 +2845,14 @@ export default function RoutesPage() {
             "Every route is on the map at once. Click a route or a driver to highlight it (the rest dim and the map zooms in); check drivers to compare several. Each route loops from the pickup point (P) out and back; the dashed part is the drive back.",
             "Todas las rutas están en el mapa a la vez. Haz clic en una ruta o un chofer para resaltarla (el resto se atenúa y el mapa hace zoom); marca varios choferes para comparar. Cada ruta hace un ciclo desde el punto de recolección (P) y regresa; lo punteado es el regreso.",
           )}>ⓘ</span>
+        {!soloPendientes && !soloLectura && (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (
+          <span className="hint" data-texto-de-expiradas style={{ margin: 0, display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span>{t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) expiradas · ${pendientes.sinFecha.length} sin fecha`)}
+            {" — "}{t("not part of this day.", "no son de este día.")}</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setAllDates(false); setSoloPendientes(true); }}>{t("View them", "Verlas")}</button>
+            <CerrarAviso aviso={AVISOS_DEL_GESTOR.atrasadas} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.atrasadas)} />
+          </span>
+        )}
       </div>
 
       {/* La vista eficiente (D-653) reordena lo que va de aquí al recuadro de reparto con una rejilla (`.gestor-eficiente`,
@@ -2994,11 +3000,11 @@ export default function RoutesPage() {
           <span style={{ display: "inline-flex", gap: 6 }}>
             <button className="btn btn-ghost btn-sm" data-deshacer disabled={moviendo || !historial.deshacer.length} onClick={() => void vuelve("deshacer")}
               title={historial.deshacer.length ? t(`Undo: ${historial.deshacer[historial.deshacer.length - 1].etiqueta.en} (Ctrl+Z)`, `Deshacer: ${historial.deshacer[historial.deshacer.length - 1].etiqueta.es} (Ctrl+Z)`) : undefined}>
-              ↶ {t("Undo", "Deshacer")}
+              ↶ <span className="rotulo-del-boton">{t("Undo", "Deshacer")}</span>
             </button>
             <button className="btn btn-ghost btn-sm" data-rehacer disabled={moviendo || !historial.rehacer.length} onClick={() => void vuelve("rehacer")}
               title={historial.rehacer.length ? t(`Redo: ${historial.rehacer[historial.rehacer.length - 1].etiqueta.en} (Ctrl+Y)`, `Rehacer: ${historial.rehacer[historial.rehacer.length - 1].etiqueta.es} (Ctrl+Y)`) : undefined}>
-              ↷ {t("Redo", "Rehacer")}
+              ↷ <span className="rotulo-del-boton">{t("Redo", "Rehacer")}</span>
             </button>
           </span>
         )}
@@ -3006,8 +3012,8 @@ export default function RoutesPage() {
             registrada (las incidencias no tienen estado «abierta»: se registran y se borran). */}
         {!soloLectura && (
         <button className={"btn btn-sm " + (incidents.length ? "btn-amber" : "btn-ghost")} data-abrir-incidencias
-          style={{ marginLeft: "auto" }} aria-haspopup="dialog" onClick={() => setIncidenciasAbiertas(true)}>
-          ⚠ {t("Incidents", "Incidencias")} ({incidents.length})
+          style={{ marginLeft: "auto" }} aria-haspopup="dialog" onClick={() => setIncidenciasAbiertas(true)} title={t("Driver incidents", "Incidencias de choferes")}>
+          ⚠ <span className="rotulo-de-la-franja">{t("Incidents", "Incidencias")}</span> ({incidents.length})
         </button>
         )}
         {/* 📥 Solicitudes de asignación (D-560, 176): las que piden ventas, Office y gerente; logística y admin deciden. */}
@@ -3170,6 +3176,26 @@ export default function RoutesPage() {
         // Stops whose measured ETA lands after the delivery window closes —
         // surfaced as a banner so the dispatcher acts before dispatch, not just
         // as a red cell buried in the table.
+        // «⚙ Columnas» de las paradas (D-346), una sola vez: en la eficiente va en la fila de la cabecera (D-655); en la
+        // completa, en su renglón sobre la tabla, como siempre.
+        const selectorDeParadas = (
+          <SelectorDeColumnas
+            columnas={columnasDelSelector("paradas", ordenGestor)}
+            elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
+            rotulo={(c) => sinElNombreDeLaTabla(lang === "es" ? c.es : c.en)}
+            titulo={t("Stop columns", "Columnas de paradas")} nota={t("Saved for you. Applies to every route, and to “Unassigned” and “All”.", "Se guarda para usted. Vale para todas las rutas, y para «Sin asignar» y «Todas».")}
+            plantillas={propsDePlantillas}
+            mover={moverEn("paradas")}
+          />
+        );
+        // El camión (D-655): «🚚 10» pulsable donde había campo; sin botón para quien no puede cambiarlo.
+        const camion = botonDelCamion(soloLectura, modoDeTarjeta);
+        // En la eficiente (D-655) la cabecera es UNA fila y el resumen de la ruta no se pinta: queda al pasar por el nombre.
+        const eficienteAqui = modoDeTarjeta === "eficiente";
+        const resumenDeLaRuta = [
+          stops.length > 0 ? `${dia.quedan} ${t("stops", "paradas")} · ${numeroDePallets(cuenta.totales.palletsMovidos)} ${t("pallets moved", "pallets movidos")} · ${t("peak load", "carga máxima")} ${numeroDePallets(cuenta.totales.cargaMaxima)}/${capacity}` : "",
+          info ? `${info.miles} mi · ${info.dayText} ${t("day", "jornada")} (${info.duration_text} ${t("drive", "manejo")})` : "",
+        ].filter(Boolean).join(" · ");
         const lateStops = stops.filter((d) => {
           const eta = routeEtas[u.key]?.[d.id];
           const win = parseWindow(d.delivery_windows);
@@ -3196,7 +3222,7 @@ export default function RoutesPage() {
                   a ir cambiando eso ya no es como abajo, que Ernesto y se hace un pop-up para abajo, no, que es simplemente
                   eligiendo el driver con los selection boxes de ahí arriba». */}
               {modoDeTarjeta === "eficiente" ? (
-                <span data-nombre-de-ruta={u.key} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <span data-nombre-de-ruta={u.key} title={resumenDeLaRuta || undefined} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                   <span style={{ width: 14, height: 14, borderRadius: "50%", background: colorFor(u.driver), border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
                   <h2 style={{ margin: 0, fontSize: 16 }}>{u.label}</h2>
                 </span>
@@ -3247,7 +3273,10 @@ export default function RoutesPage() {
               {/* Sin viajes (D-443): ni «N viajes», ni «Ver un viaje» (D-441), ni «viajes fijados / agrupado automáticamente».
                   Lo que dice la cabecera es la cuenta de la lista: paradas, pallets movidos y la carga máxima contra el camión.
                   «N paradas» son las que aún tienen algo PENDIENTE, como «N órdenes» (D-529: los números ya cuentan lo hecho). */}
-              {stops.length > 0 && (
+              {/* En la eficiente no (D-655; el dueño: «ese texto que sale ahí, de pales y todas esas cosas, eso lo vamos a
+                  eliminar»): va en el `title` del nombre. Lo que es un problema —se pasa de la capacidad, no acaba en 0, más
+                  de 8 h, sin medida— sigue siendo su pastilla, en las dos. */}
+              {stops.length > 0 && !eficienteAqui && (
                 <span className="hint" data-totales-de-la-lista style={{ marginTop: 0 }}>
                   {dia.quedan} {t("stops", "paradas")} · {numeroDePallets(cuenta.totales.palletsMovidos)} {t("pallets moved", "pallets movidos")} · {t("peak load", "carga máxima")} {numeroDePallets(cuenta.totales.cargaMaxima)}/{capacity}
                 </span>
@@ -3261,7 +3290,7 @@ export default function RoutesPage() {
               {stops.length > 0 && cuenta.totales.finalNoCero && (
                 <span className="sema" data-no-acaba-en-cero style={{ background: "var(--red)", color: "#fff" }}>⚠ {t("doesn’t end at 0 pallets", "no acaba en 0 pallets")}</span>
               )}
-              {info && (
+              {info && !eficienteAqui && (
                 <span
                   className="hint"
                   style={{ marginTop: 0 }}
@@ -3292,31 +3321,24 @@ export default function RoutesPage() {
               )}
               </>)}
               <span style={{ flex: 1 }} />
-              {acciones && (
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--gray)" }}>
-                🚚 {t("Truck capacity", "Capacidad del camión")}
-                <input
-                  type="number" min={1} value={capacity}
-                  onChange={(e) => { const v = Number(e.target.value); if (v > 0) setCapacity(u.driver, v); }}
-                  style={{ width: 60 }}
-                />
-                {t("plt", "trm")}
-              </label>
-              )}
+              {/* Aquí iba «🚚 Capacidad del camión [10] trm», un campo que guardaba en cada tecla: ahora es el botón «🚚 10»,
+                  al final de la fila (D-655, abajo). */}
               {/* ↶ ↷ (D-459), a la vista junto a Bloquear / Optimizar / Vaciar. El dueño, 2026-10-01: «aqui pon un undo redo
                   para los movimientos del orden de las cargas para areglar un error si pasa». Llaman al MISMO historial que
                   Ctrl+Z y que los de la barra de vistas (`vuelve`); el título dice QUÉ deshacen (`botonDeVolver`).
-                  Los cinco botones van en UN grupo, para que al faltar sitio bajen juntos y no se separen. */}
+                  Los cinco botones van en UN grupo, para que al faltar sitio bajen juntos y no se separen.
+                  En la vista eficiente (D-655) van solo con su icono —el rótulo, `.rotulo-del-boton`, se esconde en
+                  globals.css y queda en el `title`—: así cabe todo en una fila con el nombre y sus pastillas. */}
               {acciones && (
               <span data-acciones-de-la-ruta style={{ display: "inline-flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
               <span style={{ display: "inline-flex", gap: 4 }}>
                 <button className="btn btn-ghost btn-sm" data-deshacer-en-ruta={u.key} disabled={moviendo || !deshace.activo}
                   title={t(deshace.titulo.en, deshace.titulo.es)} onClick={(e) => { e.stopPropagation(); void vuelve("deshacer"); }}>
-                  ↶ {t("Undo", "Deshacer")}
+                  ↶ <span className="rotulo-del-boton">{t("Undo", "Deshacer")}</span>
                 </button>
                 <button className="btn btn-ghost btn-sm" data-rehacer-en-ruta={u.key} disabled={moviendo || !rehace.activo}
                   title={t(rehace.titulo.en, rehace.titulo.es)} onClick={(e) => { e.stopPropagation(); void vuelve("rehacer"); }}>
-                  ↷ {t("Redo", "Rehacer")}
+                  ↷ <span className="rotulo-del-boton">{t("Redo", "Rehacer")}</span>
                 </button>
               </span>
               {/* 🔒 (D-411): por ruta y por día. Bloqueada, ni «Armar rutas» ni «Mejor lugar» la tocan; las flechas y
@@ -3327,7 +3349,7 @@ export default function RoutesPage() {
                   ? t(`Locked for this day${bloqueadaPor(u.key) ? ` by ${bloqueadaPor(u.key)}` : ""}: Build routes and Best fit leave it alone. Click to unlock.`, `Bloqueada este día${bloqueadaPor(u.key) ? ` por ${bloqueadaPor(u.key)}` : ""}: Armar rutas y Mejor lugar no la tocan. Pulse para desbloquear.`)
                   : t("Lock this route for this day, so Build routes and Best fit leave it alone (arrows still work).", "Bloquear esta ruta este día, para que Armar rutas y Mejor lugar no la toquen (las flechas sí).")} ${t(dondeViveElCandado(candados).en, dondeViveElCandado(candados).es)}`}
                 onClick={(e) => { e.stopPropagation(); void alternaCandado(u.key); }}>
-                {bloqueada(u.key) ? `🔒 ${t("Locked", "Bloqueada")}` : `🔓 ${t("Lock", "Bloquear")}`}
+                {bloqueada(u.key) ? "🔒" : "🔓"} <span className="rotulo-del-boton">{bloqueada(u.key) ? t("Locked", "Bloqueada") : t("Lock", "Bloquear")}</span>
               </button>
               {/* «🧭 Optimizar» (D-456, rehecho en D-461; D-437 lo había quitado): reordena SOLO esta ruta —por calles, mirando
                   las ventanas y saliendo de la base del chofer—, sin romper «recoger antes de entregar» ni pasarse de la
@@ -3340,7 +3362,7 @@ export default function RoutesPage() {
                     ? t("Locked 🔒: Optimize leaves this route alone. Unlock it first.", "Bloqueada 🔒: Optimizar no toca esta ruta. Desbloquéela primero.")
                     : t("Reorder ONLY this route's stops, by street times from the driver's base: first within capacity, then every delivery inside its window, then the shortest day. Every pickup stays before its delivery. Ctrl+Z undoes it.", "Reordenar SOLO las paradas de esta ruta, con tiempos por calles desde la base del chofer: primero sin pasarse de la capacidad, después cada entrega dentro de su ventana, y después la jornada más corta. Cada recogida, antes que su entrega. Ctrl+Z lo deshace.")}
                   onClick={(e) => { e.stopPropagation(); void optimizaLaRuta(u.key); }}>
-                  🧭 {optimizando === u.key ? t("Optimizing…", "Optimizando…") : t("Optimize", "Optimizar")}
+                  🧭 <span className="rotulo-del-boton">{optimizando === u.key ? t("Optimizing…", "Optimizando…") : t("Optimize", "Optimizar")}</span>
                 </button>
               )}
               {needsDriver && (
@@ -3358,7 +3380,7 @@ export default function RoutesPage() {
               {/* «Unir viajes» y «Dividir en 2» (D-437) se fueron con los viajes (D-443): la ruta es una lista. */}
               {stops.length > 0 && (
                 <button className="btn btn-danger btn-sm" title={t("Clear this route — send every stop back to Unassigned", "Vaciar esta ruta — devolver todas las paradas a Sin asignar")}
-                  onClick={() => clearLane(u.key)}>🗑 {t("Clear", "Vaciar")}</button>
+                  onClick={() => clearLane(u.key)}>🗑 <span className="rotulo-del-boton">{t("Clear", "Vaciar")}</span></button>
               )}
               </span>
               )}
@@ -3374,6 +3396,10 @@ export default function RoutesPage() {
                 <FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}
                   points={puntosDeLaRuta(points, u, new Set(stops.map((d) => d.id)))} lines={lineasDeLaRuta(lines, u.key)} />
               )}
+              {/* En la eficiente, «⚙ Columnas» sube a esta fila (D-655): «todo va a estar en una sola línea». */}
+              {eficienteAqui && hayFilas && !soloLectura && selectorDeParadas}
+              {/* «🚚 10» (D-655), en las dos vistas: pulsado pide la capacidad y guarda por el MISMO `setCapacity` que el campo. */}
+              {camion && <BotonDelCamion capacidad={capacity} puedeCambiar={camion === "pulsable"} onGuarda={(v) => setCapacity(u.driver, v)} t={t} />}
             </div>
             {!sinCuerpo && <>
             {lateStops.length > 0 && (
@@ -3416,17 +3442,10 @@ export default function RoutesPage() {
                 </div>
               </div>
             )}
-            {hayFilas && !soloLectura && (
+            {hayFilas && !soloLectura && !eficienteAqui && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                 {/* La línea «✋ Arrastre una fila…» (D-456) se fue (D-459): es el `title` de la cabecera de la tabla. */}
-                <SelectorDeColumnas
-                  columnas={columnasDelSelector("paradas", ordenGestor)}
-                  elegidas={colsGestor} onAlterna={alternaColumnaDelGestor} t={t}
-                  rotulo={(c) => sinElNombreDeLaTabla(lang === "es" ? c.es : c.en)}
-                  titulo={t("Stop columns", "Columnas de paradas")} nota={t("Saved for you. Applies to every route, and to “Unassigned” and “All”.", "Se guarda para usted. Vale para todas las rutas, y para «Sin asignar» y «Todas».")}
-                  plantillas={propsDePlantillas}
-                  mover={moverEn("paradas")}
-                />
+                {selectorDeParadas}
               </div>
             )}
             {hayFilas && (

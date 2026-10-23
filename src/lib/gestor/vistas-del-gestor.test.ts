@@ -126,7 +126,8 @@ describe("3 · la vista eficiente: pestañas en la fila del panel, y la tabla pe
     expect(pagina).toContain("const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));");
     expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter(");
     // El nombre solo nombra: sin onClick, sin ▸/▾.
-    expect(pagina).toContain('{modoDeTarjeta === "eficiente" ? ( <span data-nombre-de-ruta={u.key} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>');
+    // Nota D-655: el nombre lleva en su `title` el resumen de la ruta, que en la eficiente ya no se pinta.
+    expect(pagina).toContain('{modoDeTarjeta === "eficiente" ? ( <span data-nombre-de-ruta={u.key} title={resumenDeLaRuta || undefined} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>');
     // Entera: con sus números, su tabla y sus botones (flechas, Bloquear, Optimizar, Vaciar, PNG).
     expect(conCabecera("eficiente")).toBe(true);
     expect(conCuerpo("eficiente", true)).toBe(true);

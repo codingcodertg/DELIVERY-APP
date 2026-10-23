@@ -44,8 +44,9 @@ export function BandejaDeSolicitudes({ ordenes, usuarios, choferes, aprobar, abr
   return (
     <>
       <button className={"btn btn-sm " + (pendientes.length ? "btn-amber" : "btn-ghost")} data-abrir-solicitudes
-        aria-haspopup="dialog" onClick={() => setAbierta(true)}>
-        📥 {t("Requests", "Solicitudes")} ({pendientes.length})
+        aria-haspopup="dialog" onClick={() => setAbierta(true)} title={t("Assign requests", "Solicitudes de asignación")}>
+        {/* El rótulo se esconde en la franja de la vista eficiente del Gestor por debajo de 1600 px (D-655, globals.css). */}
+        📥 <span className="rotulo-de-la-franja">{t("Requests", "Solicitudes")}</span> ({pendientes.length})
       </button>
       {abierta && (
         <div className="overlay" data-ventana-solicitudes onClick={(e) => { if (e.target === e.currentTarget) setAbierta(false); }}>
