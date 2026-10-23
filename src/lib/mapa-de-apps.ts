@@ -40,11 +40,15 @@ export interface Panel {
   label_es: string;
   /** La fila que manda en el teléfono: la del flujo principal, que se lee de arriba abajo con chevrones. */
   filaPrincipal: number;
+  /** Lo que abre el TÍTULO del panel (D-645), con la misma regla que una casilla. Sin él, el título solo rotula. */
+  destino?: Destino;
 }
 
 export const PANELES: Panel[] = [
   { key: "vendors", label_en: "Vendors", label_es: "Proveedores", filaPrincipal: 1 },
-  { key: "customers", label_en: "Customers", label_es: "Clientes", filaPrincipal: 2 },
+  // El título «Clientes» abre la app de Clientes (D-645): el dueño, 2026-10-22, «make it redirect to the customer app just
+  // like the customer app on the bottom of the map». La de abajo («Otras apps») se queda.
+  { key: "customers", label_en: "Customers", label_es: "Clientes", filaPrincipal: 2, destino: { tipo: "modulo", clave: "customers" } },
   { key: "employees", label_en: "Employees", label_es: "Empleados", filaPrincipal: 1 },
 ];
 
@@ -278,6 +282,12 @@ export function estadoDeCasilla(c: Casilla, al: Alcance): EstadoCasilla {
   const t = d.claves.map((k) => al.herramientas.find((x) => x.key === k)).find((x) => x !== undefined);
   if (!t) return { estado: "sin-acceso" };
   return { estado: "abierta", href: t.href, llave: `herramienta:${t.key}`, herramienta: t.key };
+}
+
+/** Lo que abre el título de un panel: la regla de `estadoDeCasilla`, con su `destino`. Sin destino, nada. */
+export function estadoDelPanel(p: Panel, al: Alcance): EstadoCasilla | null {
+  if (!p.destino) return null;
+  return estadoDeCasilla({ key: p.key, panel: p.key, fila: 0, columna: 0, emoji: "", label_en: p.label_en, label_es: p.label_es, existe: true, destino: p.destino }, al);
 }
 
 export interface OtraApp { llave: Llave; key: string; href: string; emoji: string; label_en: string; label_es: string }

@@ -46999,3 +46999,17 @@ ajustes; a los demás su página los devuelve al catálogo, así que solo lo ve�
 **Prueba:** `mapa-de-apps.test.ts`: la casilla abre el catálogo al gerente y al admin con el módulo.
 
 **No medido:** en el navegador. No busqué otros enlaces a Inventario fuera de `src` (marcadores, correos).
+
+## D-645 · Mapa de la empresa: el título «Clientes» abre la app de Clientes
+
+**Fecha:** 2026-10-22. **Pedido:** el dueño, con una captura del mapa: «in the map the customer […] make it redirect to the
+customer app just like the customer app on the bottom of the map».
+
+**Qué cambia:** `Panel` gana `destino` (el mismo tipo que una casilla) y `estadoDelPanel` decide con la regla de
+`estadoDeCasilla`: el título «CLIENTES» es un enlace a `/customers` («Clientes →») si quien mira tiene el módulo; si no,
+solo rotula, como antes. Proveedores y Empleados no tienen destino. La app de Clientes sigue también abajo, en «Otras apps».
+
+**Prueba:** `mapa-de-apps.test.ts`: abre `/customers` con el módulo, `sin-acceso` sin él, los otros dos títulos `null`, y
+la pantalla solo pinta el enlace con «abierta».
+
+**No medido:** en el navegador (el mapa es solo del admin y el demo no lo probé).
