@@ -33,7 +33,7 @@ import { RELOAD_MIN } from "./trip-timing";
  *   · la búsqueda es EXACTA —el mejor orden que existe, comprobado— mientras la ruta sea lo bastante pequeña para
  *     terminarla (`exacta`: siempre hasta 8 órdenes, y las rutas reales hasta 12), y si no, lo mejor que encuentra una
  *     búsqueda local con varios arranques y sacudidas. Determinista: sin azar ni reloj, se corta por CUENTA;
- *   · y lo que sale se recoge en la ÚLTIMA pasada (D-NEXT, `recogeEnLaUltimaPasada`): si la ruta vuelve a una tienda antes
+ *   · y lo que sale se recoge en la ÚLTIMA pasada (D-651, `recogeEnLaUltimaPasada`): si la ruta vuelve a una tienda antes
  *     de entregar algo que cargó allí la vez anterior, lo carga la segunda vez, mientras eso no llegue tarde a nada ni alargue
  *     la jornada más que la banda de `TOLERANCIA_DE_PASO`.
  *
@@ -928,7 +928,7 @@ export function minutosEnCadaParada(paradas: readonly ParadaDeLaLista[], servici
 }
 
 /**
- * Recoger en la ÚLTIMA pasada (D-NEXT; la regla, en `recogeEnLaUltimaPasada`): lo que se carga en una visita a una tienda y se
+ * Recoger en la ÚLTIMA pasada (D-651; la regla, en `recogeEnLaUltimaPasada`): lo que se carga en una visita a una tienda y se
  * entrega después de VOLVER a ella, se carga en la vuelta. Moverlo no sube la carga en ningún punto (la capacidad no puede
  * empeorar), pero sí puede mover las horas: la visita que recibe la recogida dura más si pasa de la recarga mínima. Por eso
  * se mide: ni más exceso ni más retraso que `h` —lo que la búsqueda eligió—, y jornada y millas dentro de la banda de
@@ -998,7 +998,7 @@ export function optimizaLaLista(e: EntradaDeOptimizar): ResultadoDeOptimizar {
   const tope = e.topeDeLaExacta ?? TOPE_DE_LA_EXACTA;
   const ex = exacta(pr, local.nota, tope);
   let elegida = local.orden, nota = local.nota, etiquetas = ex.etiquetas, etiquetasDeLaBanda = 0, completa = ex.completa;
-  // El mejor orden por la vara de siempre (jornada y millas), sin la carga: el ancla de la banda (D-464 y D-NEXT).
+  // El mejor orden por la vara de siempre (jornada y millas), sin la carga: el ancla de la banda (D-464 y D-651).
   let ancla = local.nota;
   if (ex.completa) {
     // El mejor orden está (es `ex.orden`, o lo que ya se tenía). Ahora, en su banda, el que menos carga pasea (D-464):
@@ -1031,7 +1031,7 @@ export function optimizaLaLista(e: EntradaDeOptimizar): ResultadoDeOptimizar {
   // `eligeDePaso` entre las dos: la nueva solo gana si el criterio entero la prefiere a lo que había; y de ser por la carga,
   // tiene que pasear menos de verdad (a igual carga, lo de siempre: un minuto o una décima de milla).
   const gana = (n: Nota) => eligeDePaso(pr, [a, n]) === 1 && (n[5] < a[5] || porLoDeSiempre(n));
-  // Y lo que sale, recogido en la última pasada (D-NEXT). Si la búsqueda ganó, sobre lo suyo —y si así ya no le gana a lo que
+  // Y lo que sale, recogido en la última pasada (D-651). Si la búsqueda ganó, sobre lo suyo —y si así ya no le gana a lo que
   // había, se queda lo suyo—. Si no, sobre lo que había: una lista que vuelve a la tienda con carga de la vez anterior se
   // arregla aunque no haya otro orden mejor; ahí basta con que no sea peor en nada (ni exceso, ni retraso, ni jornada, ni
   // millas) y pasee menos, aunque sea por debajo del margen.

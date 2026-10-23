@@ -5,7 +5,7 @@ import { TOLERANCIA_DE_PASO } from "./route-engine";
 import { claveDePunto } from "./route-times/claves";
 
 /**
- * Recoger en la ÚLTIMA pasada (D-NEXT). El dueño, 2026-10-22, con un «🧭 Optimizar» delante: «if you pickup something up and
+ * Recoger en la ÚLTIMA pasada (D-651). El dueño, 2026-10-22, con un «🧭 Optimizar» delante: «if you pickup something up and
  * then come back to the same store later and you haven't delivered it the logic thing would be to pick it up until the second
  * time you arrive so the truck is not just driving around with extra weight».
  *

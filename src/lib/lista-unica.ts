@@ -328,7 +328,7 @@ export function mueveEnLaLista(
 }
 
 /**
- * RECOGER EN LA ÚLTIMA PASADA (D-NEXT). El dueño, 2026-10-22, con un «🧭 Optimizar» delante: «if you pickup something up and
+ * RECOGER EN LA ÚLTIMA PASADA (D-651). El dueño, 2026-10-22, con un «🧭 Optimizar» delante: «if you pickup something up and
  * then come back to the same store later and you haven't delivered it the logic thing would be to pick it up until the second
  * time you arrive so the truck is not just driving around with extra weight».
  *

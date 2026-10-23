@@ -35952,7 +35952,7 @@ contacto siguen vacíos en la recogida.
 
 ## D-464 · Entregar antes lo que está de paso: entre órdenes que miden casi lo mismo, gana el que menos carga pasea (Optimizar y «Armar rutas»)
 
-> **Reemplazada en parte por D-NEXT** (2026-10-22): en «🧭 Optimizar», recoger en la última pasada por una tienda no espera al margen de un pallet·milla si no cuesta nada (ni minutos, ni millas, ni retraso).
+> **Reemplazada en parte por D-651** (2026-10-22): en «🧭 Optimizar», recoger en la última pasada por una tienda no espera al margen de un pallet·milla si no cuesta nada (ni minutos, ni millas, ni retraso).
 **Fecha:** 2026-10-04 (el pedido es del 2026-10-02) · **Migración:** ninguna · **Versión:** deliveries 1.252.0, repo 1.338.0 al
 fusionar · **Motor:** `motor-7`. **Reemplaza en parte a** D-461 (el orden de los objetivos de «🧭 Optimizar»: detrás de
 las millas hay ahora un quinto criterio, con una banda). D-461 lleva su nota.
@@ -47109,7 +47109,7 @@ arrastre sintéticos, 0 px de desborde, cabecera pegada al bajar.
 
 **No medido:** un arrastre con el ratón de verdad (se simularon los eventos `dragstart`/`dragover`/`drop`); contra la base
 real (1 349 filas); en Safari/iPad.
-## D-NEXT · «🧭 Optimizar» recoge en la ÚLTIMA pasada: lo que se entrega después de volver a la tienda se carga en la vuelta
+## D-651 · «🧭 Optimizar» recoge en la ÚLTIMA pasada: lo que se entrega después de volver a la tienda se carga en la vuelta
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, con una captura de «🧭 Optimizar» en el Gestor de Rutas: «if you pickup
 something up and then come back to the same store later and you haven't delivered it the logic thing would be to pick it up
