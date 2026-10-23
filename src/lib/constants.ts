@@ -1286,7 +1286,7 @@ export function canTransition(from: Stage, to: Stage): boolean {
  *
  * `suya`: la orden es de quien mira —la creó o es su vendedor, `esMia` (ordenes-visibles.ts), la misma dueñez que el
  * guard mira con `created_by = auth.uid() or assigned_sales_rep = auth.uid()`—. Solo cuenta para ventas en `pending` y
- * `approved` (D-NEXT, migración 191); quien no la pasa se queda en lo de antes, que es lo que la base le deja seguro.
+ * `approved` (D-656, migración 191); quien no la pasa se queda en lo de antes, que es lo que la base le deja seguro.
  *
  * **Es el espejo del guard de la 122**, y la prueba lo compara rama por rama contra el `.sql`: la app y
  * la base tienen que decir lo mismo, o alguien ve un botón que la base le va a rechazar — que es
@@ -1303,7 +1303,7 @@ export function puedeAnular(r: UserRole, stage: Stage, suya = false): boolean {
   if (ordersLikeOfficeManager(r)) return true;
   if (r === "sales" || r === "driver") {
     if (stage === "draft" || stage === "rejected") return true;
-    // D-NEXT (191): el vendedor anula SU orden pendiente o programada. Desde `fulfilling` la tiene almacén: oficina.
+    // D-656 (191): el vendedor anula SU orden pendiente o programada. Desde `fulfilling` la tiene almacén: oficina.
     return r === "sales" && suya && (stage === "pending" || stage === "approved");
   }
   return false;   // almacén y logística no anulan

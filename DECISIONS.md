@@ -19257,7 +19257,7 @@ en esta misma copia con el árbol en `origin/main`, está en 2529 | 3.
 
 ## D-291 · Anular una orden deja motivo, quién y cuándo; una entregada no se anula
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): ventas anula también SU orden (la creó o es su vendedor) en `pending` y `approved`, con aviso a gerente y Office; desde `fulfilling` sigue siendo de la oficina. Migración 191.
+> **Reemplazada en parte por D-656** (2026-10-23): ventas anula también SU orden (la creó o es su vendedor) en `pending` y `approved`, con aviso a gerente y Office; desde `fulfilling` sigue siendo de la oficina. Migración 191.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración: 122** (la aplica
 el orquestador, después de fusionar).
@@ -47335,7 +47335,7 @@ va a ir en otra cosa que dice other.»
 - Con datos reales, ni nombres largos o muchos avisos a la vez: con más pastillas que las del demo, la cabecera vuelve a envolver (envolver es mejor que tapar un aviso).
 - El botón en solo lectura, en el navegador: solo pintado en la prueba.
 - Safari/iPad.
-## D-NEXT · Ventas anula SU orden pendiente o programada, y la oficina se entera
+## D-656 · Ventas anula SU orden pendiente o programada, y la oficina se entera
 
 **Fecha:** 2026-10-23 · **Versión:** la pone el orquestador (Entregas) · **Migración: 191** (la aplica el orquestador).
 

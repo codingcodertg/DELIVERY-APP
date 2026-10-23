@@ -128,12 +128,12 @@ describe("el menú, en las fichas de todos los días", () => {
   it("ventas en su pendiente: sin principal, y «Editar fecha» (D-480) con «Agregar material» (D-339)", () => {
     const fa = accionesDeLaFicha(entrada("sales", "pending", { edicion: "solo_fecha" }));
     expect(fa.principal).toBeNull();
-    // Nota D-NEXT (191): y «Cancelar orden», que es suya.
+    // Nota D-656 (191): y «Cancelar orden», que es suya.
     expect(fa.menu.map((a) => a.id)).toEqual(["editar", "agregar_material", "imprimir", "duplicar", "anular"]);
     expect(fa.menu[0].texto).toEqual({ en: "Edit date", es: "Editar fecha" });
   });
 
-  it("ventas cancela SU orden programada (el FV216 de Kevin, D-NEXT); la de otro vendedor, no; y preparando, tampoco", () => {
+  it("ventas cancela SU orden programada (el FV216 de Kevin, D-656); la de otro vendedor, no; y preparando, tampoco", () => {
     const kevin = { id: "kevin", role: "sales" as UserRole, full_name: "Kevin Gonzalez", permissions: null };
     const ficha = (stage: Stage, created_by: string, assigned_sales_rep: string | null) => menu(entrada("sales", stage, {
       yo: kevin, pedido: { stage, created_by, assigned_sales_rep, assigned_driver: null, store: "Pharr" },
@@ -266,7 +266,7 @@ function botonesDeAntes(e: EntradaDeAcciones): Set<string> {
   if (me.role !== "driver") b.add("imprimir");
   if (e.edicion !== "nada") b.add("editar");
   if (canCreate(me)) { if (stage === "draft") b.add("enviar"); if (stage === "rejected") b.add("reenviar"); }
-  // D-NEXT (191) le dio a ventas su orden pendiente o programada: la referencia lleva la misma dueñez que la ficha.
+  // D-656 (191) le dio a ventas su orden pendiente o programada: la referencia lleva la misma dueñez que la ficha.
   if (puedeAnular(me.role, stage, esMia(e.pedido, me))) b.add(ab.anular ? "paso:anular" : "anular");
   if (canApprove(me) && stage === "pending") { if (!ab.rechazar) { b.add("rechazar"); b.add("aprobar"); } else b.add("paso:rechazar"); }
   if (canApprove(me) && stage === "approved") b.add("desbloquear");

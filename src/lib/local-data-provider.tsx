@@ -314,7 +314,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Mismo espejo del guard que el proveedor real (D-291, 122).
     const entrandoEnAnulada = stage === "canceled" && (!cur || cur.stage !== "canceled");
     // Quién anula y desde dónde: aquí no hay guard que lo diga, así que lo dice su espejo (`puedeAnular`, con la dueñez
-    // que ventas necesita desde D-NEXT, 191), con el mismo texto que la base. Sin esto el demo anulaba cualquier orden
+    // que ventas necesita desde D-656, 191), con el mismo texto que la base. Sin esto el demo anulaba cualquier orden
     // desde la tanda de la lista, que enseña el botón si ALGUNA de la selección se puede.
     // El admin pasa por aquí también: `puedeAnular` le deja todo menos una entregada, que es la invariante de la 122.
     if (entrandoEnAnulada && cur && !puedeAnular(me.role, cur.stage, esMia(cur, me))) {

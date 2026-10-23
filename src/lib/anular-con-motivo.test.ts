@@ -23,8 +23,8 @@ const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
  *  resolvía y partía la línea en dos. */
 const SALTO = String.fromCharCode(10);
 const sql = leer("supabase/migrations/122_anular_con_motivo.sql");
-/** El guard VIVO para el espejo de quién anula: la 191 (D-NEXT) es la última que redefine `guard_delivery_stage` —la 188
- *  con una línea más para ventas—. Hasta D-NEXT esta prueba leía la 122, y entre medias el guard se redefinió muchas
+/** El guard VIVO para el espejo de quién anula: la 191 (D-656) es la última que redefine `guard_delivery_stage` —la 188
+ *  con una línea más para ventas—. Hasta D-656 esta prueba leía la 122, y entre medias el guard se redefinió muchas
  *  veces: el espejo comparaba con una versión vieja. La primera prueba de abajo dice cuándo deja de ser la última. */
 const GUARD_VIVO = "191_ventas_anula_su_orden.sql";
 const guardVivo = leer(`supabase/migrations/${GUARD_VIVO}`);
@@ -40,7 +40,7 @@ const bloqueEtapas = guardVivo.slice(
   guardVivo.indexOf("if r in ('sales','driver','manager','accounting') then"),
   guardVivo.indexOf("elsif r = 'warehouse' then"),
 );
-/** La dueñez que el guard pide en la línea de ventas: la misma que la factura de la 125 (D-NEXT). */
+/** La dueñez que el guard pide en la línea de ventas: la misma que la factura de la 125 (D-656). */
 const DUENEZ = "(OLD.created_by = auth.uid() or OLD.assigned_sales_rep = auth.uid())";
 /** Las líneas de ese tramo que permiten anular, con los roles y las etapas que nombra cada una. */
 const permisosDeAnular = bloqueEtapas
@@ -124,7 +124,7 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
       expect([s, puedeAnular("accounting", s)]).toEqual([s, true]);
       expect([s, puedeAnular("sales", s)]).toEqual([s, false]);
     }
-    // D-NEXT (191): ventas anula SU pendiente y SU programada (el FV216 de Kevin); la de otro vendedor, no; y desde
+    // D-656 (191): ventas anula SU pendiente y SU programada (el FV216 de Kevin); la de otro vendedor, no; y desde
     // preparando en adelante tampoco la suya.
     expect([puedeAnular("sales", "pending", true), puedeAnular("sales", "approved", true)]).toEqual([true, true]);
     expect([puedeAnular("sales", "pending", false), puedeAnular("sales", "approved", false)]).toEqual([false, false]);
@@ -306,11 +306,11 @@ describe("no queda ningún camino que anule sin motivo", () => {
   });
 
   it("anular en bloque pide el motivo una vez y lo escribe en cada orden", () => {
-    // Nota D-NEXT: la tanda manda también la nota legible (la del evento y la del aviso a la oficina), como la ficha.
+    // Nota D-656: la tanda manda también la nota legible (la del evento y la del aviso a la oficina), como la ficha.
     expect(lista).toContain('const anulacion = { canceled_reason: bulkReason, canceled_reason_note: bulkReasonNote.trim() || null };');
     expect(lista).toContain('await bulkStage("canceled", anulacion, motivoDeAnulacion(anulacion, motivos, lang));');
     expect(lista).toContain("for (const d of chosen) { if (await setStage(d.id, to, nota, extra)) ok++; }");
-    // Y el botón sale si algo de la selección se anula, con la dueñez de ventas (D-NEXT).
+    // Y el botón sale si algo de la selección se anula, con la dueñez de ventas (D-656).
     expect(lista).toContain("const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esMia(d, me)));");
     // Y el camino viejo, que llamaba a `setStage` sin nada, ya no está.
     expect(lista).not.toContain('bulkStage("canceled")');
@@ -350,9 +350,9 @@ describe("el motivo se ve", () => {
   });
 });
 
-// ---- D-NEXT (191): el vendedor anula su orden, y la oficina se entera ------------------------------
+// ---- D-656 (191): el vendedor anula su orden, y la oficina se entera ------------------------------
 
-describe("el vendedor anula SU orden pendiente o programada (D-NEXT, 191)", () => {
+describe("el vendedor anula SU orden pendiente o programada (D-656, 191)", () => {
   const persona = (id: string, role: UserRole, full_name: string) => ({ id, role, full_name }) as Profile;
   const users = [
     persona("kevin", "sales", "Kevin Gonzalez"), persona("otro", "sales", "Otro Vendedor"),

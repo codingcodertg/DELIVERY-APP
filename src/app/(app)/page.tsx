@@ -574,7 +574,7 @@ export default function OrdersPage() {
 
   /** Se enseña el botón si hay algo en la selección que este rol pueda anular desde su etapa; lo que
    *  no se pueda lo rechazará la base orden por orden, como cualquier otra tanda. La dueñez cuenta para ventas, que anula
-   *  SU orden pendiente o programada (D-NEXT, 191). */
+   *  SU orden pendiente o programada (D-656, 191). */
   const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esMia(d, me)));
 
   const bulkStage = async (to: "pending" | "approved" | "canceled", extra?: Partial<Delivery>, nota?: string) => {
@@ -843,7 +843,7 @@ export default function OrdersPage() {
                 onClick={async () => {
                   if (!(await confirmAction(t(`Cancel ${chosen.length} selected order(s)?`, `¿Anular ${chosen.length} orden(es) seleccionada(s)?`), { danger: true, confirmLabel: t("Cancel orders", "Anular órdenes") }))) return;
                   // La nota del evento es el motivo legible, como en la ficha: es también el que lleva el aviso a la oficina
-                  // cuando anula un vendedor (D-NEXT).
+                  // cuando anula un vendedor (D-656).
                   const anulacion = { canceled_reason: bulkReason, canceled_reason_note: bulkReasonNote.trim() || null };
                   await bulkStage("canceled", anulacion, motivoDeAnulacion(anulacion, motivos, lang));
                   setBulkCancel(false);
