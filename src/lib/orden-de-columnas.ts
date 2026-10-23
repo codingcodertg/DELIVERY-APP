@@ -22,7 +22,7 @@
  */
 // «priority» (D-412) va junto a la etapa: las dos dicen en qué está la orden y qué urge. Nadie la ve hasta que la marca
 // en ⚙ (no está en ningún juego por defecto), así que ponerla aquí no mueve la tabla de nadie.
-export const ORDEN_DE_PARTIDA: readonly string[] = ["po", "so", "invoice", "type", "account", "contact", "stage", "priority", "store", "date", "pallets", "fee", "driver", "address", "windows"];
+export const ORDEN_DE_PARTIDA: readonly string[] = ["po", "so", "invoice", "type", "account", "contact", "stage", "priority", "store", "date", "pallets", "fee", "driver", "rep", "address", "windows"];
 
 /** Ordena el catálogo EN SU SITIO y lo devuelve. Una columna que falte en la lista se va al final: no desaparece. */
 export function enOrdenDePartida<T extends { key: string }>(catalogo: T[]): T[] {

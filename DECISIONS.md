@@ -47161,3 +47161,24 @@ y por ellos están las dos pruebas de la banda y del margen).
 el Optimizar de antes ya la dejaba bien (223 → 228 minutos y 426 → 385 pallet·milla, lo mismo que ahora). Ni en el
 navegador ni en el Gestor: la pantalla no cambia, guarda lo que devuelve `optimizaLaLista`. «El mejor orden posible» del
 aviso sigue diciendo si la búsqueda fue exacta, aunque la regla haya movido una recogida después.
+
+## D-NEXT · Órdenes: columna «Vendedor» (Sales Rep)
+
+**Fecha:** 2026-10-23. **Pedido:** Roberto Rodriguez Jr (Admin), solicitud de ayuda desde Órdenes señalando «⚙ Columns»:
+«Add rep column».
+
+**Qué cambia:** el catálogo de columnas de Órdenes gana «Vendedor / Sales Rep» (`rep`), que no sale por defecto y se marca
+en «⚙ Columnas». El vendedor es `orderOwner`: el asignado (`assigned_sales_rep`) o, si no hay, quien creó la orden —la misma
+regla que decide de quién es una orden para verla y para los avisos—. Medido en producción: 97 de 400 órdenes de cliente tienen
+vendedor asignado y 296 no, creadas por el propio vendedor; sin el respaldo de `created_by` la columna saldría casi vacía.
+La base guarda el id; `nombresPorId` (utils) lo pasa a nombre, y sin la persona en la lista sale «—», nunca el id. El Gestor
+hereda la columna en su tabla del plan (`pl_rep`, D-376/D-429) con el mismo nombre.
+
+**Efecto en el tope de las preferencias (136):** con 16 columnas, el peor caso de Órdenes —un rol con todas marcadas, movidas
+y con ancho, más plantillas llenas— admite 8 plantillas llenas y no 9 (9 pesan 7 600 + 800 de reserva > 8 192); la novena la
+para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
+
+**Prueba:** `columna-vendedor.test.ts`, y los recuentos de columnas y bytes de `orden-de-columnas`, `plantillas-de-columnas`,
+`gestor-mover-columnas`, `columnas-del-plan` y `routes-columns` puestos al día.
+
+**No medido:** en el navegador; si un vendedor ve los nombres de los demás depende de qué perfiles le deja leer la base.

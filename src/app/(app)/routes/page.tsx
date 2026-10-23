@@ -20,7 +20,7 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
 import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
-import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
+import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { colorDeChofer } from "@/lib/map-legend";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
@@ -1312,7 +1312,8 @@ export default function RoutesPage() {
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   // Saltadas hoy y rechazadas por el cliente (D-487): la misma pastilla que en Órdenes, en la columna de Etapa.
   const marcasDeParada = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
-  const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas, marcas: marcasDeParada }), [lang, t, settings, recibidas, marcasDeParada]);
+  // `nombreDe` (D-NEXT): la columna «Vendedor» que el plan hereda de Órdenes pinta el nombre, no el id.
+  const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas, marcas: marcasDeParada, nombreDe: nombresPorId(users) }), [lang, t, settings, recibidas, marcasDeParada, users]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
   // Las ciudades conocidas para leer una dirección escrita sin comas (D-423, `ciudadDeEntrega`): las que salen limpias de
   // las órdenes cargadas y de las tiendas, y las zonas de los choferes. La misma lista para la celda, el orden y el filtro.

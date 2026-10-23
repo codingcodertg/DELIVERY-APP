@@ -159,7 +159,7 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   ];
   for (const [nombreDelCaso, valor, medido] of casos) {
     it(`da lo que midió Postgres: ${nombreDelCaso} → ${medido}`, () => {
-      expect(ORD).toHaveLength(15);                                                              // si el regex perdiera columnas, el caso mentiría
+      expect(ORD).toHaveLength(16);                                                              // si el regex perdiera columnas, el caso mentiría (16 desde D-NEXT, «rep»)
       expect(O14.every((k) => ORD.includes(k))).toBe(true);
       expect(bytesEnLaBase(valor)).toBe(medido);
     });
@@ -173,11 +173,13 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
     const A15 = Object.fromEntries(["__id", ...ORD].map((k) => [k, 800]));
     const rol15 = (n: number) => valorDeColumnas({ visibles: { logistics: ORD }, orden: { logistics: ORD }, anchos: { logistics: A15 },
       plantillas: Array.from({ length: n }, (_, i) => ({ n: nombre(i), v: ORD, o: ORD, a: A15 })) });
-    expect(bytesEnLaBase(rol15(0))).toBe(745);
+    expect(bytesEnLaBase(rol15(0))).toBe(772);                 // D-NEXT («rep»): 745 → 772
     expect(RESERVA_PARA_LO_DEMAS).toBeGreaterThan(bytesEnLaBase(rol15(0)));
-    expect(bytesEnLaBase(rol15(9))).toBe(7357);                 // 7357 + 800 = 8157: cabe, con 35 bytes de sobra
-    expect(cabeEnLaFila(rol15(9))).toBe(true);
-    expect(cabeEnLaFila(rol15(10))).toBe(false);
+    // D-NEXT («rep», 16 columnas): 9 llenas pesan 7 600 (+ 800 = 8 400 > 8 192): en este peor caso caben 8 y la novena la para
+    // la guarda, que lo dice al guardar. Antes (15 columnas): 7 357, cabían 9.
+    expect(bytesEnLaBase(rol15(9))).toBe(7600);
+    expect(cabeEnLaFila(rol15(8))).toBe(true);
+    expect(cabeEnLaFila(rol15(9))).toBe(false);
   });
   it("la guarda deja sitio para lo demás: en el peor caso caben 9 plantillas llenas, la décima no; lo normal, las 10 con holgura", () => {
     expect(TOPE_DE_LA_BASE).toBe(8192);

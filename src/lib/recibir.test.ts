@@ -200,7 +200,7 @@ describe("las pantallas", () => {
     // Nota D-573 (2026-10-16): y `celdaDeEtapa` (Almacén pinta la burbuja como selector, con la MISMA pastilla de
     // `pastillaDeEtapa`, que recibe).
     // Nota D-577 (2026-10-18): y `me`, quien mira, para la cámara de «Delivered 📷» (`fotos-en-la-etapa.test.ts`).
-    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa, me };");
+    expect(tabla).toContain("const ctx: Ctx = { lang, t, byInvoice, motivos: motivosDeAnulacion(settings), recibidas, marcas, accion: accionDeFila, celdaDeEtapa, me, nombreDe };");
     // la columna Etapa
     expect(tabla).toContain("cell: (d, { lang, motivos, recibidas, marcas, celdaDeEtapa, me }) => { const p = pastillaDeEtapa(d, recibidas, lang, me);");
     // la cabecera de la fila (la tarjeta del teléfono)
