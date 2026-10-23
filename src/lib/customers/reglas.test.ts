@@ -243,8 +243,9 @@ describe("de la base y formato", () => {
  */
 describe("todas las columnas del Excel (182), y el orden por persona", async () => {
   const {
-    camposPorGrupo, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, columnasAPintar, columnasDelSelector, GRUPOS, mueveColumnaDeClientes,
-    PREFERENCIA_INICIAL, preferenciaDeTexto, seMueveColumnaDeClientes, textoDeCampo, tieneOrdenPropio, valorDeColumna,
+    cierraLaFicha, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, columnasAPintar, columnasDelSelector, GRUPOS, mueveColumnaDeClientes,
+    PREFERENCIA_INICIAL, preferenciaDeTexto, seMueveColumnaDeClientes, textoDeCampo, textoDeFila, tieneOrdenPropio, valorDeColumna,
+    filasPorGrupo,
   } = await import("./reglas");
   // El MAPA del importador, leído como texto (un .mjs de scripts/ no carga bajo vitest en esta laptop: SyntaxError al
   // importar, también en los que no se tocaron). Una cabecera por línea: `"CABECERA": "columna",`.
@@ -330,19 +331,55 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect(columnasAPintar(vuelto).map((c) => c.key)).toEqual(["crm_type_store", "account"]);
   });
 
-  it("la ficha completa: cada campo sale UNA vez y en un grupo; los grupos van en su orden y ninguno vacío", () => {
-    const grupos = camposPorGrupo();
+  it("la ficha completa: cada campo sale UNA vez y en un grupo, menos la cuenta y la tienda (van arriba); ningún grupo vacío", () => {
+    const grupos = filasPorGrupo();
     expect(grupos.map((g) => g.grupo.key)).toEqual(GRUPOS.map((g) => g.key));
-    const vistos = grupos.flatMap((g) => g.campos.map((c) => c.key));
-    expect([...vistos].sort()).toEqual(CAMPOS.map((c) => c.key).sort());
-    expect(new Set(vistos).size).toBe(CAMPOS.length);
-    for (const g of grupos) expect(g.campos.length, g.grupo.key).toBeGreaterThan(0);
+    const vistos = grupos.flatMap((g) => g.filas.filter((f) => f.campo).map((f) => f.key));
+    const deLasTarjetas = CAMPOS.filter((c) => c.key !== "account" && c.key !== "store").map((c) => c.key);
+    expect([...vistos].sort()).toEqual([...deLasTarjetas].sort());
+    expect(new Set(vistos).size).toBe(vistos.length);
+    for (const g of grupos) expect(g.filas.length, g.grupo.key).toBeGreaterThan(0);
+    // Cada línea que se edita lleva SU campo (la etiqueta y el control son de esa clave).
+    for (const f of grupos.flatMap((g) => g.filas)) if (f.campo) expect(f.campo.key).toBe(f.key);
   });
-  it("D-634: las tarjetas van Cuenta, Contacto, Crédito / Estado, Vendedores, Otros; «Otros» junta el CRM y lo de la app", () => {
-    expect(GRUPOS.map((g) => g.key)).toEqual(["cuenta", "contacto", "credito", "estado", "vendedores", "otros"]);
+  it("D-654: sin tarjeta «Cuenta» ni «Tienda» abajo; las tarjetas van Contacto, Crédito, Estado / Vendedores, Otros", () => {
+    expect(GRUPOS.map((g) => g.key)).toEqual(["contacto", "credito", "estado", "vendedores", "otros"]);
     expect(GRUPOS.at(-1)).toEqual({ key: "otros", en: "Other", es: "Otros" });
-    const otros = camposPorGrupo().find((g) => g.grupo.key === "otros")!.campos.map((c) => c.key);
-    expect(otros).toEqual(["crm_type_store", "crm_type_group", "associated_with", "added_batch", "notes"]);
+    const todas = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key));
+    expect(todas).not.toContain("account");
+    expect(todas).not.toContain("store");
+    // La cuenta y la tienda se siguen corrigiendo (arriba): siguen en CAMPOS, en la cabecera.
+    expect(CAMPOS.filter((c) => c.grupo === "cabecera").map((c) => c.key)).toEqual(["account", "store"]);
+  });
+  it("D-654: «Otros» lleva el CRM, la cuenta unificada, Añadido (tanda), House #, Tienda + cuenta y las notas, al final", () => {
+    const otros = filasPorGrupo().find((g) => g.grupo.key === "otros")!.filas;
+    expect(otros.map((f) => f.key)).toEqual([
+      "crm_type_store", "crm_type_group", "associated_with", "unified_account", "added_batch", "house_no", "concatenate", "notes",
+    ]);
+    // House # y la CONCATENATE se leen y no se editan; Añadido (tanda) sí se edita.
+    expect(otros.filter((f) => f.campo === null).map((f) => f.key)).toEqual(["house_no", "concatenate"]);
+    expect(otros.find((f) => f.key === "added_batch")!.es).toBe("Añadido (tanda)");
+    expect(otros.find((f) => f.key === "concatenate")!.es).toBe("Tienda + cuenta (CONCATENATE)");
+  });
+  it("textoDeFila: House # y la CONCATENATE de la fila, «—» sin House #, y los demás como textoDeCampo", () => {
+    const c = base(7, { store: "BRO", account: "PASEO", house_no: 412, added_batch: "LOTE 3" });
+    const fila = (k: string) => filasPorGrupo().flatMap((g) => g.filas).find((f) => f.key === k)!;
+    expect(textoDeFila(c, fila("house_no"), t)).toBe("412");
+    expect(textoDeFila(base(8, { house_no: null }), fila("house_no"), t)).toBe("—");
+    expect(textoDeFila(c, fila("concatenate"), t)).toBe("BROPASEO");
+    expect(textoDeFila(c, fila("added_batch"), t)).toBe("LOTE 3");
+    expect(textoDeFila(base(9, { credit_limit: 2500 }), fila("credit_limit"), t)).toBe("$2,500");
+  });
+  it("D-654: la ventana se cierra con Escape y con un clic en el fondo que empezó en el fondo; nada más la cierra", () => {
+    expect(cierraLaFicha({ tecla: "Escape" })).toBe(true);
+    expect(cierraLaFicha({ tecla: "Enter" })).toBe(false);
+    expect(cierraLaFicha({ tecla: "Esc" })).toBe(false);
+    expect(cierraLaFicha({ clicEnElFondo: true, empezoEnElFondo: true })).toBe(true);
+    // Un clic dentro de la ventana no cierra.
+    expect(cierraLaFicha({ clicEnElFondo: false, empezoEnElFondo: false })).toBe(false);
+    // Un arrastre que empezó dentro (seleccionar texto) y se suelta en el fondo, tampoco.
+    expect(cierraLaFicha({ clicEnElFondo: true, empezoEnElFondo: false })).toBe(false);
+    expect(cierraLaFicha({ clicEnElFondo: false, empezoEnElFondo: true })).toBe(false);
   });
   it("textoDeCampo: etiquetas para los cerrados, dinero, tienda con su código, y «—» sin dato", () => {
     const c = base(1, { store: "PHR", status_store: "LOST", history_group: "MID", qb_status: "ACTIVE", credit_limit: 1500, crm_type_group: null, notes: "ok" });

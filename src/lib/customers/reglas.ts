@@ -389,15 +389,18 @@ export function puedeEditar(role: UserRole | null | undefined): boolean {
 }
 
 export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda";
-/** Los grupos de la ficha completa (`/customers/[id]`), en su orden: tres arriba y tres abajo en escritorio (D-634). */
-export type GrupoDeCampo = "cuenta" | "estado" | "vendedores" | "contacto" | "credito" | "otros";
+/**
+ * Los grupos de la ficha, en su orden (D-634). `cabecera` no es una tarjeta: la cuenta y la tienda van arriba, en el nombre
+ * y en las pestañas de tiendas (D-654, el dueño: «abajo donde dice cuenta, vuelve a decir la tienda […] elimina esa
+ * parte»), y no se repiten abajo.
+ */
+export type GrupoDeCampo = "cabecera" | "estado" | "vendedores" | "contacto" | "credito" | "otros";
 export interface Campo { key: keyof Cliente; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
 
 /** Los campos de la ficha, en su orden. Todo lo del Excel se puede corregir; lo de la app (notas) también. */
 export const CAMPOS: readonly Campo[] = [
-  { key: "account", tipo: "text", en: "Account", es: "Cuenta", grupo: "cuenta" },
-  { key: "store", tipo: "tienda", en: "Store", es: "Tienda", grupo: "cuenta" },
-  { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "cuenta" },
+  { key: "account", tipo: "text", en: "Account", es: "Cuenta", grupo: "cabecera" },
+  { key: "store", tipo: "tienda", en: "Store", es: "Tienda", grupo: "cabecera" },
   { key: "status_store", tipo: "estado", en: "Status (store)", es: "Estado (tienda)", grupo: "estado" },
   { key: "status_group", tipo: "estado", en: "Status (group)", es: "Estado (grupo)", grupo: "estado" },
   { key: "history_store", tipo: "historia", en: "History (store)", es: "Historial (tienda)", grupo: "estado" },
@@ -408,6 +411,8 @@ export const CAMPOS: readonly Campo[] = [
   { key: "crm_type_store", tipo: "text", en: "CRM type (store)", es: "Tipo CRM (tienda)", grupo: "otros" },
   { key: "crm_type_group", tipo: "text", en: "CRM type (group)", es: "Tipo CRM (grupo)", grupo: "otros" },
   { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "otros" },
+  // D-654: sin la tarjeta «Cuenta», la cuenta unificada (la del Excel que junta las tiendas) va con lo demás del Excel.
+  { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "otros" },
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "vendedores" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "vendedores" },
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "vendedores" },
@@ -424,8 +429,7 @@ export const CAMPOS: readonly Campo[] = [
   { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "otros" },
 ];
 
-export const GRUPOS: readonly { key: GrupoDeCampo; en: string; es: string }[] = [
-  { key: "cuenta", en: "Account", es: "Cuenta" },
+export const GRUPOS: readonly { key: Exclude<GrupoDeCampo, "cabecera">; en: string; es: string }[] = [
   { key: "contacto", en: "Contact", es: "Contacto" },
   { key: "credito", en: "Credit & terms", es: "Crédito y términos" },
   { key: "estado", en: "Status & history", es: "Estado e historial" },
@@ -434,9 +438,42 @@ export const GRUPOS: readonly { key: GrupoDeCampo; en: string; es: string }[] = 
   { key: "otros", en: "Other", es: "Otros" },
 ];
 
-/** Los campos por grupo, para la ficha completa: cada campo sale una vez y ningún grupo queda vacío. */
-export function camposPorGrupo(): { grupo: (typeof GRUPOS)[number]; campos: Campo[] }[] {
-  return GRUPOS.map((grupo) => ({ grupo, campos: CAMPOS.filter((c) => c.grupo === grupo.key) })).filter((g) => g.campos.length > 0);
+/**
+ * Una línea de una tarjeta de la ficha: un campo que se edita (`campo`), o uno que solo se lee (`campo: null`): House #
+ * (del Excel, no se corrige a mano) y la CONCATENATE (se calcula, `valorDeColumna`).
+ */
+export interface FilaDeFicha { key: keyof Cliente | "concatenate"; en: string; es: string; campo: Campo | null }
+
+/**
+ * Lo que solo identifica la fila del Excel y no se edita. Va en «Otros» justo antes de las notas (D-634), junto a
+ * «Añadido (tanda)»: el dueño (D-654) pidió esas tres juntas ahí, «añadido tanda, número de house y tienda más cuenta».
+ */
+const FILAS_SOLO_DE_LECTURA: readonly FilaDeFicha[] = [
+  { key: "house_no", en: "House #", es: "N.º House", campo: null },
+  { key: "concatenate", en: "Store + account (CONCATENATE)", es: "Tienda + cuenta (CONCATENATE)", campo: null },
+];
+
+/**
+ * Las tarjetas de la ficha y sus líneas, en su orden: cada campo de `CAMPOS` sale una vez (los de la cabecera, ninguna:
+ * están arriba), ningún grupo queda vacío, y en «Otros» House # y la CONCATENATE van antes de las notas. La ventana de
+ * la lista y la página `/customers/[id]` pintan esto mismo.
+ */
+export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDeFicha[] }[] {
+  return GRUPOS.map((grupo) => {
+    const filas: FilaDeFicha[] = [];
+    for (const campo of CAMPOS.filter((c) => c.grupo === grupo.key)) {
+      if (campo.key === "notes") filas.push(...FILAS_SOLO_DE_LECTURA);
+      filas.push({ key: campo.key, en: campo.en, es: campo.es, campo });
+    }
+    return { grupo, filas };
+  }).filter((g) => g.filas.length > 0);
+}
+
+/** El texto de una línea de la ficha: el del campo (`textoDeCampo`), o el de las de solo lectura. */
+export function textoDeFila(c: Cliente, fila: FilaDeFicha, t: T): string {
+  if (fila.campo) return textoDeCampo(c, fila.campo, t);
+  const v = valorDeColumna(c, fila.key);
+  return v === null || v === undefined || v === "" ? "—" : String(v);
 }
 
 /** El texto de un campo en la ficha completa (solo lectura): etiquetas para los cerrados, dinero, y «—» si no hay dato. */
@@ -449,6 +486,16 @@ export function textoDeCampo(c: Cliente, campo: Campo, t: T): string {
     case "num": return dinero(c[campo.key] as number | null);
     default: { const v = c[campo.key]; return v === null || v === undefined || v === "" ? "—" : String(v); }
   }
+}
+
+/**
+ * ¿Cierra la ventana de la ficha? (D-654, el dueño: «que uno solo puede dar afuera y exit out»). Con Escape, o con un
+ * clic en el FONDO que también empezó en el fondo: un clic dentro de la ventana no cierra, ni soltar encima del fondo un
+ * arrastre que empezó dentro (seleccionar texto de un campo y soltar fuera). La ✕ cierra siempre.
+ */
+export function cierraLaFicha(e: { tecla: string } | { clicEnElFondo: boolean; empezoEnElFondo: boolean }): boolean {
+  if ("tecla" in e) return e.tecla === "Escape";
+  return e.clicEnElFondo && e.empezoEnElFondo;
 }
 
 /** La ficha como texto por campo (lo que se edita). */

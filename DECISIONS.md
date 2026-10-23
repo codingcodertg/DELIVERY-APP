@@ -46491,6 +46491,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-634 · Clientes, ficha completa: seis tarjetas, Cuenta · Contacto · Crédito y términos / Estado e historial · Vendedores · Otros, y «Otros» junta el CRM y lo del Excel
 
+> **Reemplazada en parte por D-654** (2026-10-23): ya no hay tarjeta «Cuenta»: la cuenta va en el nombre de arriba, la tienda en sus pastillas y la cuenta unificada en «Otros». Quedan cinco tarjetas.
+
 **Fecha:** 2026-10-21 · **Versión:** customers 0.7.0 · Hecho directo por el orquestador en `feat/clientes-tarjeta-otros`. Sin migración.
 
 **Pedido (el dueño, 2026-10-21, captura, literal):** «para customer view» — «MERGE OTHER CRM AND FROM THE EXCEL AND PUT IT AS THE LAST CARD CREDIT TERM GOES TO CRM AND OTHER WILL BE THE NEW NAME OF THAT CARDS / ACCOUNT CONTACT CREDIT AND TERMS / STATUS AND HISTORY SALES REP AND OTHER».
@@ -47047,6 +47049,8 @@ llegada a la base, en la columna «Llegada». La dirección ocupa las columnas d
 **No medido:** en el navegador con una ruta medida.
 ## D-648 · Clientes: «✏️ Editar» en la página del cliente
 
+> **Reemplazada en parte por D-654** (2026-10-23): «✏️ Editar» abre la ficha en una ventana centrada y ya editando; la ficha lateral ya no existe.
+
 **Fecha:** 2026-10-22. **Pedido:** el dueño, «add a edit button for the customer in the customer app».
 
 **Causa:** la página completa del cliente (`/customers/[id]`, D-634) solo se lee; editar se hacía en la ficha lateral de la
@@ -47208,3 +47212,82 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 - Con datos reales. A 1440×900, el mapa, la cabecera de la ruta y sus 4-5 primeras filas caben en la pantalla; una ruta de 8 paradas pide bajar ~160 px.
 - En el demo (React en modo estricto) lo marcado no sobrevive a recargar: el efecto que guarda corre dos veces y borra la clave. Viene de antes (D-481) y en producción no hay doble efecto; no se tocó.
 - Con el mapa de Google, en Safari/iPad.
+
+## D-654 · Clientes: la ficha se abre en una ventana centrada, como la orden de Entregas; arriba el nombre, sin «Cuenta» ni «Tienda» repetidas, y House # y la CONCATENATE en «Otros»
+
+**Fecha:** 2026-10-23. Hecho por un worker del orquestador en `clientes-ficha-ventana`. Sin migración.
+
+**Pedido (el dueño, 2026-10-23, por voz, literal):** «Que cuando uno le da clic al cliente, este viene y abre ese side window
+por al lado, y eso no me sirve. Yo ocupo que, así como en el delivery app, se abra un window, así como un form, que uno solo
+puede dar afuera y exit out, y ya me dé la ficha completa. Esas columnas y todo eso, o sea, eso no me sirve para nada. Al
+igual que arriba, cuando dice el nombre, se inventa, dice RDC McAllen y después un like, como un ID. Pero no el nombre, él
+dice MCA y ta, el nombre. Pero ¿qué pasa? Abajo donde dice cuenta, vuelve a decir la tienda. Entonces quiero que elimines
+esa parte donde dice cuenta y elimina la parte de esa tienda. Al igual que quiero que me pongas como hiring notes o algo
+así. Y en esa hiring notes va a ir lo que dice añadido tanda, número de house y tienda más cuenta y con country. Todo eso
+va a ir en otra cosa que dice other.»
+
+**Leído así:**
+- «Side window» es el cajón lateral de la lista.
+- «Arriba […] RDC McAllen y después […] como un ID» es la línea «RDZ McAllen · MCA<cuenta>» (tienda · CONCATENATE) junto al
+  nombre.
+- «Donde dice cuenta» es la tarjeta «Cuenta», con Cuenta, Tienda y Cuenta unificada.
+- «Con country» se lee como la CONCATENATE: la etiqueta dice «Tienda + cuenta (CONCATENATE)», y no hay campo de país en
+  `Cliente` ni en la 180–189.
+- «Hiring notes» se lee como el bloque «Otros», que ya junta lo del Excel con las notas (D-634); no se crea otra tarjeta.
+
+**Qué cambia:**
+- **La ficha es una ventana centrada** (`FichaEnVentana`, en `src/app/customers/FichaDeCliente.tsx`), con las clases
+  `.overlay`/`.modal` de la ficha de una orden. Mide 1100 px en escritorio y ocupa la pantalla entera en el teléfono.
+  - El clic en una fila la abre.
+  - Se cierra con un clic en el fondo que también empezó en el fondo, con ✕ y con Escape (`cierraLaFicha`). Con cambios sin
+    guardar, pregunta antes.
+  - Dentro va la ficha completa: las mismas tarjetas que la página `/customers/[id]` (`TarjetasDeLaFicha`, de
+    `filasPorGrupo`).
+  - Quien puede editar pulsa «✏️ Editar» y las tarjetas pasan a controles. Guardar, archivar, desarchivar, las pestañas de
+    tiendas y «Separar de la empresa» son los del cajón, por el mismo almacén. Al guardar vuelve a lectura con «Guardado ✓».
+  - El cajón lateral se borra.
+- **Arriba, el nombre de la cuenta** con su estado y la fecha. Ya no sale «tienda · tienda+cuenta», ni en la ventana ni en
+  la página.
+- **Sin «Cuenta» ni «Tienda» abajo**: la tarjeta «Cuenta» desaparece. Quedan cinco tarjetas: Contacto, Crédito y términos,
+  Estado e historial / Vendedores, Otros.
+  - La cuenta y la tienda siguen en `CAMPOS` (grupo `cabecera`) y se siguen corrigiendo arriba. Editando, el nombre es un
+    campo en su sitio y la tienda de la fila es el desplegable en el sitio de su pastilla.
+  - La tienda se ve en las pastillas de tiendas, también con una sola tienda.
+  - La cuenta unificada pasa a «Otros».
+- **«Otros»**: Tipo CRM ×2, Asociado con, Cuenta unificada, Añadido (tanda), N.º House, Tienda + cuenta (CONCATENATE) y
+  Notas, en ese orden. House # y la CONCATENATE se leen; lo demás se edita.
+- **La página `/customers/[id]` sigue** para los enlaces directos (la cola de «Decidir si se juntan» enlaza ahí). Su
+  «✏️ Editar» (D-648) abre la ventana de la lista ya editando (`?editar=<id>`).
+- **La fila pierde el enlace «ficha»**: el clic ya abre la ficha completa. La ventana no lleva «Ficha completa →».
+- **La burbuja de Ayuda tapaba «Guardar»** (el dueño, 2026-10-23: «arregla lo de la burbuja en cliente»). La burbuja
+  general (`.fab-general`, D-616/D-623) va fija abajo a la derecha y por encima de todo; ya tapaba «Guardar» en el cajón
+  (D-648) y lo volvió a tapar en la ventana a 390 px (medido). Se arregla en la propia ventana, y la burbuja no cambia en
+  ninguna app:
+  - al final de la ventana va un hueco de la altura de `--hueco-de-ayuda` (D-530), que se quita desde 1400 px;
+  - es un elemento y no un relleno, porque el `.modal` del teléfono fija su `padding` y ganaba.
+
+**Prueba:**
+- `customers/ventana.test.ts` pinta la ventana de verdad (React en el servidor, con los clientes inventados del demo):
+  `.overlay`/`.modal` y la ✕, el nombre arriba sin tienda ni CONCATENATE, cinco tarjetas sin `account` ni `store`, la tienda
+  una sola vez, «Otros» con sus cuatro en orden y con valor, editar desde la página, solo lectura y alta.
+- `reglas.test.ts` cubre `filasPorGrupo`, `textoDeFila` y `cierraLaFicha`.
+- Al día: `modulo.test.ts`, `formato.test.ts` e `impersonation-banner.test.ts`, que contaba el `sticky top-0` del cajón.
+- 12 mutantes, los 12 caen con una prueba con nombre.
+- **Navegador (demo, 390 y 1440 px, con ratón y teclado de verdad por CDP):**
+  - el clic en la fila la abre;
+  - Escape, ✕ y el clic fuera la cierran (a 1440); un clic dentro, no;
+  - 0 px de desborde;
+  - «Editar», cambiar el cargo y «Guardar» vuelven a lectura con «Guardado ✓»;
+  - **la barra de acciones contra la burbuja** (`getBoundingClientRect` de cada botón contra `.fab-general` y
+    `.fab-general-caja`, al final del desplazamiento, leyendo y editando): 0 solapes en los dos anchos.
+    - A 390, la burbuja ocupa x 330–376 · y 840–886; «Archivar…», «Cancelar» y «Guardar» quedan en y 778–814.
+    - A 1440, la burbuja ocupa x 1374–1420; «Guardar» acaba en x 1248.
+    - La barra no lleva «Cerrar»: se cierra con la ✕ de arriba.
+  - cambiar de tienda en una empresa de dos cambia el vendedor (IM → FR);
+  - «Editar» de la página abre la ventana editando.
+
+**No medido:**
+- Contra la base real: el guardado se probó con el almacén del demo.
+- El clic fuera en el teléfono: la ventana ocupa la pantalla entera, como la de una orden en Entregas, y ahí se cierra con ✕.
+- El aviso «¿Cerrar sin guardar?» en el navegador.
+- Safari/iPad.

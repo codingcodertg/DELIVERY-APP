@@ -266,32 +266,38 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(pagina).not.toMatch(/service_role|SUPABASE_SERVICE/i);
     expect(pagina).toContain("<FichaCompleta cliente={cliente} hermanas={hermanas} puedeEditar={puedeEditar(role)} />");
   });
-  it("«✏️ Editar» (D-648): solo para quien puede editar, abre la ficha lateral de la lista con ese cliente y quita el parámetro", () => {
+  it("«✏️ Editar» (D-648): solo para quien puede editar, abre la VENTANA de la lista con ese cliente ya editando (D-654) y quita el parámetro", () => {
     expect(ficha).toContain("{puedeEditar && (");
     expect(ficha).toContain("href={`/customers?editar=${c.id}`}");
     expect(lista).toContain('new URLSearchParams(window.location.search).get("editar")');
-    expect(lista).toContain("if (c) setFicha({ tipo: \"ver\", cliente: c });");
+    expect(lista).toContain("if (c) setFicha({ tipo: \"ver\", cliente: c, editar: true });");
+    expect(lista).toContain('editarAlAbrir={ficha.tipo === "ver" && ficha.editar === true}');
     expect(lista).toContain('if (editarPendiente == null || estado.tipo !== "listo") return;');
     expect(lista).toContain("window.history.replaceState(null, \"\", window.location.pathname)");
   });
-  it("la ficha pinta cada campo por grupo (camposPorGrupo/textoDeCampo), House # y la CONCATENATE, con el cascarón del ERP", () => {
-    expect(ficha).toContain("camposPorGrupo().map(({ grupo, campos }) =>");
-    expect(ficha).toContain("{textoDeCampo(c, campo, t)}");
-    expect(ficha).toContain('data-campo="house_no"');
-    expect(ficha).toContain('data-campo="concatenate"');
-    expect(ficha).toContain('valorDeColumna(c, "concatenate")');
-    // D-634: no hay tarjeta «Del Excel» aparte; House # y la CONCATENATE van en «Otros», antes de las notas.
-    expect(ficha).not.toContain('data-grupo="excel"');
-    expect(ficha).not.toContain('"From the Excel"');
-    expect(ficha).toContain('{campo.key === "notes" && (');
-    expect(ficha).toContain('className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"');
+  it("la página pinta las MISMAS tarjetas que la ventana (D-654), y arriba el nombre sin «tienda · tienda+cuenta»", () => {
+    expect(ficha).toContain("<TarjetasDeLaFicha cliente={c} t={t} />");
+    expect(ficha).toContain('import { TarjetasDeLaFicha } from "../FichaDeCliente";');
+    expect(ficha).toContain('<h1 className="text-2xl font-semibold">{c.account}</h1>');
+    expect(ficha).not.toContain("valorDeColumna");
+    expect(ficha).not.toContain("nombreDeTienda(c.store)} · ");
     expect(ficha).toContain('{t("← Customers", "← Clientes")}');
   });
-  it("el botón «Ficha completa» está en la fila (sin abrir el cajón) y en el cajón", () => {
-    expect(lista).toContain("href={`/customers/${c.id}`}");
-    expect(lista).toContain("onClick={(e) => e.stopPropagation()}");
-    expect(lista).toContain("href={`/customers/${cliente.id}`}");
-    expect(lista).toContain('{t("Full details →", "Ficha completa →")}');
+  it("D-654: el clic en la fila abre la VENTANA (no el cajón lateral), y la fila ya no lleva el enlace «ficha»", () => {
+    expect(lista).toContain("onClick={() => setFicha({ tipo: \"ver\", cliente: c })}");
+    expect(lista).toContain("<FichaEnVentana");
+    expect(lista).toContain('import { FichaEnVentana, selCls } from "./FichaDeCliente";');
+    expect(lista).not.toContain("function FichaDeCliente");
+    expect(lista).not.toContain("fixed inset-0 z-50 flex justify-end");
+    expect(lista).not.toContain('{t("details", "ficha")}');
+    expect(lista).not.toContain('"Ficha completa →"');
+    const ventana = leer("src/app/customers/FichaDeCliente.tsx");
+    expect(ventana).not.toContain('"Ficha completa →"');
+    // Se cierra con la regla probada (`cierraLaFicha`): Escape, y el clic en el fondo que empezó en el fondo; ✕ siempre.
+    expect(ventana).toContain("cierraLaFicha({ tecla: e.key })");
+    expect(ventana).toContain("cierraLaFicha({ clicEnElFondo: e.target === e.currentTarget, empezoEnElFondo: fueraRef.current })");
+    expect(ventana).toContain("onMouseDown={(e) => { fueraRef.current = e.target === e.currentTarget; }}");
+    expect(ventana).toContain('<button type="button" onClick={pedirCierre}');
   });
   it("las columnas se guardan por persona (clave con el id del usuario) y el selector mueve", () => {
     expect(lista).toContain("claveDeColumnasDeClientes(userId)");
@@ -401,7 +407,7 @@ describe("la 189 · empresas, juntar y la cola", () => {
     expect(lista).toContain("const empresas = useMemo(() => agrupaEnEmpresas(lista, filtro), [lista, filtro]);");
     expect(lista).toContain("ordenarEmpresas(filtraEmpresas(empresas, filtrosCol), ordenes)");
     expect(lista).toContain("hermanas={ficha.tipo === \"ver\" ? filasDeLaEmpresa(lista,");
-    expect(lista).toContain('role="tablist"');
+    expect(leer("src/app/customers/FichaDeCliente.tsx")).toContain('role="tablist"');
     const cola = leer("src/app/customers/juntar/DecidirJuntar.tsx");
     expect(cola).toContain("await almacen.juntar(p.a.id, p.b.id);");
     expect(cola).toContain("await almacen.rechazar(p.sugerencia.id);");

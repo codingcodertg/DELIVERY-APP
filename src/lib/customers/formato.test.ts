@@ -65,11 +65,14 @@ describe("al guardar desde el cajón (parcheDe)", () => {
     // Tocar otro campo no reescribe los que no se tocaron (no se reenvía lo leído).
     expect(parcheDe({ ...sinFormato, terms: "NET 30" }, sinFormato).parche).toEqual({ terms: "NET 30" });
   });
-  it("el cajón usa el molde del teléfono de Entregas y pone los nombres en mayúsculas al escribir", () => {
-    const cajon = readFileSync("src/app/customers/Clientes.tsx", "utf8");
-    expect(cajon).toContain("onChange={(e) => campo(f.key, telefonoAlEscribir(e.target.value))}");
-    expect(cajon).toContain("value={telefonoParaVer(form[f.key])}");
-    expect(cajon).toContain("placeholder={MOLDE_DEL_TELEFONO}");
-    expect(cajon).toContain("(CAMPOS_EN_MAYUSCULAS as readonly string[]).includes(f.key) ? e.target.value.toUpperCase() : e.target.value");
+  it("la ficha (su ventana, D-654) usa el molde del teléfono de Entregas y pone los nombres en mayúsculas al escribir", () => {
+    const ficha = readFileSync("src/app/customers/FichaDeCliente.tsx", "utf8");
+    expect(ficha).toContain("onChange={(e) => onCambia(telefonoAlEscribir(e.target.value))}");
+    expect(ficha).toContain("value={telefonoParaVer(valor)}");
+    expect(ficha).toContain("placeholder={MOLDE_DEL_TELEFONO}");
+    expect(ficha).toContain("(CAMPOS_EN_MAYUSCULAS as readonly string[]).includes(k) ? v.toUpperCase() : v");
+    expect(ficha).toContain("onChange={(e) => onCambia(enMayusculas(f.key, e.target.value))}");
+    // El nombre de la cuenta, que se corrige arriba, también.
+    expect(ficha).toContain('onChange={(e) => campo("account", enMayusculas("account", e.target.value))}');
   });
 });
