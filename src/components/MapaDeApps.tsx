@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  CASILLAS, FLECHAS, PANELES, casilla, celdaDe, colocacion, estadoDeCasilla, otrasApps, secuenciaMovil, trazoDe,
+  CASILLAS, FLECHAS, PANELES, casilla, celdaDe, colocacion, estadoDeCasilla, estadoDelPanel, otrasApps, secuenciaMovil, trazoDe,
   type Alcance, type Casilla, type Flecha, type PanelKey,
 } from "@/lib/mapa-de-apps";
 
@@ -116,13 +116,22 @@ export function MapaDeApps({ alcance, lang, t, sinLeerDe }: {
           {t(`${conectadas} of ${FLECHAS.length} connections built`, `${conectadas} de ${FLECHAS.length} conexiones hechas`)}
         </span>
       </div>
-      {PANELES.map((p) => (
+      {PANELES.map((p) => {
+        // El título abre su app si el panel tiene destino y quien mira puede entrar (D-NEXT); si no, solo rotula.
+        const abre = estadoDelPanel(p, alcance);
+        const titulo = lang === "es" ? p.label_es : p.label_en;
+        return (
         <section key={p.key} className="mapa-panel" data-mapa-panel={p.key}>
-          <h2 className="mapa-panel-titulo">{lang === "es" ? p.label_es : p.label_en}</h2>
+          <h2 className="mapa-panel-titulo">
+            {abre?.estado === "abierta"
+              ? <Link href={abre.href} className="mapa-panel-enlace" data-mapa-panel-abre={p.key}>{titulo} →</Link>
+              : titulo}
+          </h2>
           <div className="mapa-escritorio">{rejilla(p.key)}</div>
           <div className="mapa-movil">{listaMovil(p.key)}</div>
         </section>
-      ))}
+        );
+      })}
       {otras.length > 0 && (
         <div className="mapa-otras" data-mapa-otras>
           <div className="hub-tools-label">{t("Other apps", "Otras apps")}</div>

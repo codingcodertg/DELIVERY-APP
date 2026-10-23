@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DELIVERIES_CARD, HUB_TOOLS, MODULES, ROLE_ORDER, roleHome } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
 import {
-  CASILLAS, COLUMNAS, FLECHAS, alcanceDe, casilla, celdaDe, colocacion, estadoDeCasilla, otrasApps, secuenciaMovil,
+  CASILLAS, COLUMNAS, FLECHAS, PANELES, alcanceDe, casilla, celdaDe, colocacion, estadoDeCasilla, estadoDelPanel, otrasApps, secuenciaMovil,
   trazoDe, veComprasDe, type Casilla, type Flecha,
   RUTA_MAPA_DE_LA_EMPRESA,
   veElMapa,
@@ -168,6 +168,19 @@ describe("las flechas no mienten", () => {
 describe("el acceso es el del hub de antes", () => {
   const al = (role: UserRole, module_access: string[] | null, suplantando = false) => alcanceDe({ role, module_access, suplantando });
   const estado = (key: string, a: ReturnType<typeof al>) => estadoDeCasilla(casilla(key), a);
+
+  it("el título «Clientes» abre la app de Clientes (D-NEXT) con el módulo, y sin él no; los otros dos títulos no abren nada", () => {
+    const panel = (k: string) => PANELES.find((p) => p.key === k)!;
+    expect(estadoDelPanel(panel("customers"), al("admin", ["deliveries", "customers"]))).toMatchObject({ estado: "abierta", href: "/customers" });
+    expect(estadoDelPanel(panel("customers"), al("admin", ["deliveries", "erp"]))).toMatchObject({ estado: "sin-acceso" });
+    expect(estadoDelPanel(panel("vendors"), al("admin", ["deliveries", "customers", "erp"]))).toBeNull();
+    expect(estadoDelPanel(panel("employees"), al("admin", ["deliveries", "customers", "recruiting"]))).toBeNull();
+    // La pantalla pinta el enlace solo con «abierta», y la app de abajo sigue en «Otras apps».
+    const mapa = readFileSync(join(process.cwd(), "src/components/MapaDeApps.tsx"), "utf8");
+    expect(mapa).toContain('{abre?.estado === "abierta"');
+    expect(mapa).toContain('data-mapa-panel-abre={p.key}');
+    expect(otrasApps(al("admin", ["deliveries", "customers"])).map((o) => o.key)).toContain("customers");
+  });
 
   it("una casilla gris nunca se abre, ni para el admin con todo", () => {
     const admin = al("admin", TODO);
