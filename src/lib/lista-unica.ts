@@ -327,6 +327,82 @@ export function mueveEnLaLista(
   return { ok: true, paradas: unaPorOrden(nuevas) };
 }
 
+/**
+ * RECOGER EN LA ÚLTIMA PASADA (D-651). El dueño, 2026-10-22, con un «🧭 Optimizar» delante: «if you pickup something up and
+ * then come back to the same store later and you haven't delivered it the logic thing would be to pick it up until the second
+ * time you arrive so the truck is not just driving around with extra weight».
+ *
+ * La regla: si una orden se recoge en una pasada por la tienda T y la ruta VUELVE a T antes de entregarla, se recoge en la
+ * ÚLTIMA pasada por T antes de su entrega. Una pasada son las recogidas SEGUIDAS en la misma tienda (lo mismo que la medida
+ * cuenta como una visita); si la primera se queda vacía, desaparece —el camión ya no tiene por qué ir—. Lo que sale es la
+ * misma lista con esas recogidas al final de su pasada nueva: nunca detrás de su entrega (la pasada nueva empieza antes que
+ * ella), y la carga a bordo en cada punto es la misma o MENOS, así que la capacidad no puede empeorar. Las horas sí pueden
+ * cambiar (cargar más en la segunda visita la alarga si pasa de la recarga mínima): eso lo decide quien la aplica
+ * (`optimiza-la-ruta.ts` la mide antes de quedársela).
+ *
+ * Una recogida de varias órdenes (una lista vieja, D-444) se mueve entera, a la última pasada antes de la PRIMERA de sus
+ * entregas. Una recogida sin tienda no forma pasada con nada: no se sabe que salga del mismo sitio.
+ */
+export function recogeEnLaUltimaPasada(paradas: readonly ParadaDeLaLista[]): ParadaDeLaLista[] {
+  const filaDeLaEntrega = new Map<string, number>();
+  paradas.forEach((p, i) => { if (p.tipo === "D" && !filaDeLaEntrega.has(p.orden)) filaDeLaEntrega.set(p.orden, i); });
+  const { orden } = pasaALaUltima(
+    paradas.map((_, i) => i),
+    (i) => { const p = paradas[i]; return p.tipo === "P" ? normaliza(p.tienda) || null : null; },
+    (i) => { const p = paradas[i]; return p.tipo === "P" ? p.ordenes.flatMap((id) => (filaDeLaEntrega.has(id) ? [filaDeLaEntrega.get(id)!] : [])) : []; },
+  );
+  return orden.map((i) => paradas[i]);
+}
+
+/**
+ * El núcleo de `recogeEnLaUltimaPasada`, sobre FILAS (números), para que el optimizador lo use con sus índices: `orden` es
+ * la lista; `tiendaDe(f)`, la tienda de una recogida (`null`: una entrega, o una recogida que no se junta con nada);
+ * `entregasDe(f)`, las filas de las entregas de esa recogida; y `puede(f)`, si esa recogida se puede mover (el optimizador
+ * las prueba de una en una cuando todas juntas rompen algo). Devuelve el orden nuevo y qué recogidas se movieron, en el
+ * orden de la lista. Una sola vuelta basta: cada recogida va a una pasada que ya existía y que, al recibirla, no se vacía.
+ */
+export function pasaALaUltima(
+  orden: readonly number[], tiendaDe: (f: number) => string | number | null, entregasDe: (f: number) => readonly number[],
+  puede: (f: number) => boolean = () => true,
+): { orden: number[]; movidas: number[] } {
+  const n = orden.length;
+  const puesto = new Map<number, number>();
+  orden.forEach((f, k) => puesto.set(f, k));
+  // Las pasadas: recogidas seguidas en la misma tienda.
+  const pasadaDe: number[] = new Array(n).fill(-1);
+  const pasadas: { tienda: string | number; inicio: number; fin: number }[] = [];
+  for (let k = 0; k < n; k++) {
+    const t = tiendaDe(orden[k]);
+    if (t == null) continue;
+    const previa = k > 0 ? pasadaDe[k - 1] : -1;
+    if (previa >= 0 && pasadas[previa].tienda === t) { pasadaDe[k] = previa; pasadas[previa].fin = k; }
+    else { pasadaDe[k] = pasadas.length; pasadas.push({ tienda: t, inicio: k, fin: k }); }
+  }
+  const destino = new Map<number, number>();
+  const movidas: number[] = [];
+  for (let k = 0; k < n; k++) {
+    const suya = pasadaDe[k];
+    if (suya < 0) continue;
+    let primera = Infinity;
+    for (const e of entregasDe(orden[k])) { const x = puesto.get(e); if (x != null && x < primera) primera = x; }
+    // Sin su entrega en la lista no hay «antes de entregarla»: se queda donde está.
+    if (primera === Infinity) continue;
+    let ultima = suya;
+    for (let x = suya + 1; x < pasadas.length && pasadas[x].inicio < primera; x++) if (pasadas[x].tienda === pasadas[suya].tienda) ultima = x;
+    if (ultima !== suya && puede(orden[k])) { destino.set(orden[k], ultima); movidas.push(orden[k]); }
+  }
+  if (!movidas.length) return { orden: [...orden], movidas };
+  const llegan: number[][] = pasadas.map(() => []);
+  for (const f of movidas) llegan[destino.get(f)!].push(f);
+  const out: number[] = [];
+  for (let k = 0; k < n; k++) {
+    if (!destino.has(orden[k])) out.push(orden[k]);
+    // Al final de cada pasada, las que llegan a ella (aunque la última fila de la pasada se haya ido a otra más adelante).
+    if (pasadaDe[k] >= 0 && pasadas[pasadaDe[k]].fin === k) out.push(...llegan[pasadaDe[k]]);
+  }
+  return { orden: out, movidas };
+}
+
 /** La primera orden cuya entrega queda ANTES que su recogida, o `null` si la lista respeta «recoger antes de entregar». */
 export function ordenSinRecoger(paradas: readonly ParadaDeLaLista[]): string | null {
   const recogidas = new Set<string>();

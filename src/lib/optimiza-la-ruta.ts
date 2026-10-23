@@ -1,4 +1,4 @@
-import { ordenSinRecoger, type ParadaDeLaLista } from "./lista-unica";
+import { ordenSinRecoger, pasaALaUltima, type ParadaDeLaLista } from "./lista-unica";
 import { centiMillasDeBanda, MARGEN_PALLET_MI, minutosDeBanda, TOLERANCIA_DE_PASO, type ToleranciaDePaso } from "./route-engine/de-paso";
 import { claveDePunto } from "./route-times/claves";
 import { FACTOR_DE_RODEO, MILLAS_POR_HORA_ESTIMADAS, millasEnLineaRecta } from "./route-times/proveedores";
@@ -32,7 +32,10 @@ import { RELOAD_MIN } from "./trip-timing";
  *     vez sale más barato que volver, y solo se vuelve si la capacidad o una ventana lo piden;
  *   · la búsqueda es EXACTA —el mejor orden que existe, comprobado— mientras la ruta sea lo bastante pequeña para
  *     terminarla (`exacta`: siempre hasta 8 órdenes, y las rutas reales hasta 12), y si no, lo mejor que encuentra una
- *     búsqueda local con varios arranques y sacudidas. Determinista: sin azar ni reloj, se corta por CUENTA.
+ *     búsqueda local con varios arranques y sacudidas. Determinista: sin azar ni reloj, se corta por CUENTA;
+ *   · y lo que sale se recoge en la ÚLTIMA pasada (D-651, `recogeEnLaUltimaPasada`): si la ruta vuelve a una tienda antes
+ *     de entregar algo que cargó allí la vez anterior, lo carga la segunda vez, mientras eso no llegue tarde a nada ni alargue
+ *     la jornada más que la banda de `TOLERANCIA_DE_PASO`.
  *
  * Nunca devuelve algo peor que lo que hay: si no encuentra nada mejor, lo dice y no toca nada. Una parada sin punto en el
  * mapa (una entrega sin pin, una tienda sin coordenadas en Ajustes) no suma camino: se queda en la lista, donde las reglas la
@@ -924,6 +927,49 @@ export function minutosEnCadaParada(paradas: readonly ParadaDeLaLista[], servici
   return out;
 }
 
+/**
+ * Recoger en la ÚLTIMA pasada (D-651; la regla, en `recogeEnLaUltimaPasada`): lo que se carga en una visita a una tienda y se
+ * entrega después de VOLVER a ella, se carga en la vuelta. Moverlo no sube la carga en ningún punto (la capacidad no puede
+ * empeorar), pero sí puede mover las horas: la visita que recibe la recogida dura más si pasa de la recarga mínima. Por eso
+ * se mide: ni más exceso ni más retraso que `h` —lo que la búsqueda eligió—, y jornada y millas dentro de la banda de
+ * `TOLERANCIA_DE_PASO` alrededor de `banda`, el MEJOR orden (el mismo ancla que la del criterio de carga, D-464). Contra `h` no:
+ * `h` puede haber gastado ya la banda por pasear menos, y otra banda encima la estiraba al doble (lo cazó la ruta de 14
+ * órdenes de las sacudidas: 702 minutos donde la banda acaba en 694). Primero todas juntas; si eso rompe algo, de una en una,
+ * en el orden de la lista, quedándose las que caben.
+ *
+ * No entra en las búsquedas (la exacta cuenta visitas por estado y no sabe de «la misma tienda más adelante»): va al final,
+ * sobre lo elegido. En una búsqueda exacta casi nunca cambia nada —el criterio de carga (D-464) ya prefiere no pasear lo que
+ * se puede cargar en la vuelta—; lo que cubre es lo que se le escapa: una carga paseada por debajo del margen de un
+ * pallet·milla, la banda que el elegido ya gastó, y una ruta que la búsqueda no mejora.
+ */
+function enLaUltimaPasada(pr: Problema, h: Hallado, banda: Nota): Hallado {
+  const entregas: number[][] = Array.from({ length: pr.m }, () => []);
+  for (let i = 0; i < pr.m; i++) if (pr.antes[i] >= 0) entregas[pr.antes[i]].push(i);
+  const tienda = (i: number) => (pr.esP[i] && pr.visita[i] >= 0 ? pr.visita[i] : null);
+  const deLaOrden = (i: number) => entregas[i];
+  const todas = pasaALaUltima(h.orden, tienda, deLaOrden);
+  if (!todas.movidas.length) return h;
+  const ref = h.nota;
+  // Y, si cuesta algo (minutos o millas), que pasee menos por el margen de D-464, como cualquier otro cambio por la carga;
+  // si no cuesta nada, basta con que pasee menos. Si entre las dos visitas el camión no se mueve (una entrega en la misma
+  // tienda, o sin punto), cargar en la segunda no aligera nada y solo alargaría la visita: no se mueve.
+  const cabe = (n: Nota) => n[0] <= ref[0] && n[1] <= ref[1] && n[2] <= ref[2]
+    && n[3] <= banda[3] + minutosDeBanda(banda[3], pr.tolerancia) && n[4] <= banda[4] + centiMillasDeBanda(pr.tolerancia)
+    && (mejorNota(ref, n) ? n[5] <= ref[5] - MARGEN_PALLET_MI * 10_000 : n[5] < ref[5]);
+  const nota = notaVacia();
+  mide(pr, todas.orden, pr.m, nota);
+  if (cabe(nota)) return { orden: todas.orden, nota };
+  let mejor = h;
+  const si = new Set<number>();
+  for (const f of todas.movidas) {
+    const prueba = pasaALaUltima(h.orden, tienda, deLaOrden, (x) => si.has(x) || x === f);
+    const n = notaVacia();
+    mide(pr, prueba.orden, pr.m, n);
+    if (cabe(n)) { si.add(f); mejor = { orden: prueba.orden, nota: n }; }
+  }
+  return mejor;
+}
+
 /** Lo que mide la lista TAL COMO ESTÁ, con la misma cuenta que usa el optimizador. Para enseñarlo, y para las pruebas. */
 export function mideLaLista(e: EntradaDeOptimizar): MedidaDeLaLista {
   return medidaDe(problemaDe(e), e, e.paradas.map((_, i) => i)).medida;
@@ -952,10 +998,13 @@ export function optimizaLaLista(e: EntradaDeOptimizar): ResultadoDeOptimizar {
   const tope = e.topeDeLaExacta ?? TOPE_DE_LA_EXACTA;
   const ex = exacta(pr, local.nota, tope);
   let elegida = local.orden, nota = local.nota, etiquetas = ex.etiquetas, etiquetasDeLaBanda = 0, completa = ex.completa;
+  // El mejor orden por la vara de siempre (jornada y millas), sin la carga: el ancla de la banda (D-464 y D-651).
+  let ancla = local.nota;
   if (ex.completa) {
     // El mejor orden está (es `ex.orden`, o lo que ya se tenía). Ahora, en su banda, el que menos carga pasea (D-464):
     // primero bajando desde él, y luego la exacta otra vez, acotada a la banda, que lo confirma o lo mejora si cabe en el tope.
     const mejor: Hallado = ex.orden ? { orden: ex.orden, nota: medidaDe(pr, e, ex.orden).nota } : local;
+    ancla = mejor.nota;
     const conMenosCarga = e.sinBusquedaLocal ? mejor : bajaLaCarga(pr, mejor, cuenta);
     // Con su propio tope: lo que la vara de siempre gastó no se le descuenta (medido: con el tope compartido, tres rutas
     // reales de 10 y 11 órdenes que salían exactas dejaban de serlo; con el suyo, una, la de 11, que necesita 1,7 millones).
@@ -967,7 +1016,9 @@ export function optimizaLaLista(e: EntradaDeOptimizar): ResultadoDeOptimizar {
     elegida = candidatas[k].orden; nota = candidatas[k].nota;
   } else if (!e.sinBusquedaLocal) {
     // La ruta grande: las sacudidas, y de lo que dejen, bajar la carga en su banda.
-    local = bajaLaCarga(pr, sacudidas(pr, local, cuenta), cuenta);
+    const sacudida = sacudidas(pr, local, cuenta);
+    ancla = sacudida.nota;
+    local = bajaLaCarga(pr, sacudida, cuenta);
     elegida = local.orden; nota = local.nota;
   }
   const trabajo = { medidas: cuenta.medidas, etiquetas, etiquetasDeLaBanda };
@@ -975,12 +1026,25 @@ export function optimizaLaLista(e: EntradaDeOptimizar): ResultadoDeOptimizar {
   // ¿Vale la pena? Menos exceso o menos retraso, siempre; si no, al menos un minuto, o a igual tiempo una décima de milla; y
   // entre dos que miden casi lo mismo (la banda del mejor de los dos), la que menos carga pasea.
   const a = antes.nota;
-  const porLoDeSiempre = nota[0] !== a[0] ? nota[0] < a[0] : nota[1] !== a[1] ? nota[1] < a[1] : nota[2] !== a[2] ? nota[2] < a[2]
-    : nota[3] !== a[3] ? nota[3] < a[3] : nota[4] <= a[4] - centesimas(MARGEN_MI);
+  const porLoDeSiempre = (n: Nota) => (n[0] !== a[0] ? n[0] < a[0] : n[1] !== a[1] ? n[1] < a[1] : n[2] !== a[2] ? n[2] < a[2]
+    : n[3] !== a[3] ? n[3] < a[3] : n[4] <= a[4] - centesimas(MARGEN_MI));
   // `eligeDePaso` entre las dos: la nueva solo gana si el criterio entero la prefiere a lo que había; y de ser por la carga,
   // tiene que pasear menos de verdad (a igual carga, lo de siempre: un minuto o una décima de milla).
-  const gana = eligeDePaso(pr, [a, nota]) === 1 && (nota[5] < a[5] || porLoDeSiempre);
-  if (!gana) return sinCambio(completa, trabajo);
+  const gana = (n: Nota) => eligeDePaso(pr, [a, n]) === 1 && (n[5] < a[5] || porLoDeSiempre(n));
+  // Y lo que sale, recogido en la última pasada (D-651). Si la búsqueda ganó, sobre lo suyo —y si así ya no le gana a lo que
+  // había, se queda lo suyo—. Si no, sobre lo que había: una lista que vuelve a la tienda con carga de la vez anterior se
+  // arregla aunque no haya otro orden mejor; ahí basta con que no sea peor en nada (ni exceso, ni retraso, ni jornada, ni
+  // millas) y pasee menos, aunque sea por debajo del margen.
+  // La banda, alrededor del mejor que se conoce: el de la búsqueda, o lo que había si es mejor.
+  const banda = mejorNota(a, ancla) ? a : ancla;
+  if (gana(nota)) {
+    const ultima = enLaUltimaPasada(pr, { orden: elegida, nota }, banda);
+    if (ultima.orden !== elegida && gana(ultima.nota)) { elegida = ultima.orden; nota = ultima.nota; }
+  } else {
+    const ultima = enLaUltimaPasada(pr, { orden: actual, nota: a }, banda);
+    if (ultima.orden === actual || !(gana(ultima.nota) || (!mejorNota(a, ultima.nota) && ultima.nota[5] < a[5]))) return sinCambio(completa, trabajo);
+    elegida = ultima.orden; nota = ultima.nota;
+  }
   elegida = comoEstaban(pr, elegida);
   const despues = medidaDe(pr, e, elegida);
   return {

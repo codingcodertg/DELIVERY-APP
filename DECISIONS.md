@@ -35952,6 +35952,7 @@ contacto siguen vacíos en la recogida.
 
 ## D-464 · Entregar antes lo que está de paso: entre órdenes que miden casi lo mismo, gana el que menos carga pasea (Optimizar y «Armar rutas»)
 
+> **Reemplazada en parte por D-651** (2026-10-22): en «🧭 Optimizar», recoger en la última pasada por una tienda no espera al margen de un pallet·milla si no cuesta nada (ni minutos, ni millas, ni retraso).
 **Fecha:** 2026-10-04 (el pedido es del 2026-10-02) · **Migración:** ninguna · **Versión:** deliveries 1.252.0, repo 1.338.0 al
 fusionar · **Motor:** `motor-7`. **Reemplaza en parte a** D-461 (el orden de los objetivos de «🧭 Optimizar»: detrás de
 las millas hay ahora un quinto criterio, con una banda). D-461 lleva su nota.
@@ -47108,3 +47109,55 @@ arrastre sintéticos, 0 px de desborde, cabecera pegada al bajar.
 
 **No medido:** un arrastre con el ratón de verdad (se simularon los eventos `dragstart`/`dragover`/`drop`); contra la base
 real (1 349 filas); en Safari/iPad.
+## D-651 · «🧭 Optimizar» recoge en la ÚLTIMA pasada: lo que se entrega después de volver a la tienda se carga en la vuelta
+
+**Fecha:** 2026-10-22. **Pedido:** el dueño, con una captura de «🧭 Optimizar» en el Gestor de Rutas: «if you pickup
+something up and then come back to the same store later and you haven't delivered it the logic thing would be to pick it up
+until the second time you arrive so the truck is not just driving around with extra weight».
+
+**Caso medido (en producción, solo lectura, por otra sesión):** una ruta de cinco órdenes del 2026-10-23 que salen de la
+misma tienda; la orden guardada (a mano) recoge una, la entrega cerca, vuelve a la tienda y carga las otras cuatro. Esa
+lista ya cumple la regla. La captura del Optimizar no la vi: no sé qué orden devolvió, y sin las coordenadas ni los tiempos
+reales no lo puedo reproducir.
+
+**Qué cambia:**
+
+- `recogeEnLaUltimaPasada` (`lista-unica.ts`, con su núcleo `pasaALaUltima` sobre filas): si una orden se recoge en una
+  pasada por la tienda T —recogidas seguidas en T, lo que la medida cuenta como una visita— y la ruta vuelve a T antes de
+  entregarla, se recoge al final de la ÚLTIMA pasada por T antes de su entrega. Si la primera pasada se queda vacía,
+  desaparece. Una recogida de varias órdenes (lista vieja) va entera, a la última antes de la primera de sus entregas; una
+  sin tienda no se junta con nada. La carga a bordo en cada punto queda igual o menor: la capacidad no puede empeorar.
+- `optimizaLaLista` la aplica a lo que elige (`enLaUltimaPasada`): primero todas juntas, y si eso rompe algo, de una en
+  una. Se queda solo si no hay más exceso ni más retraso que lo elegido, jornada y millas dentro de la banda de
+  `TOLERANCIA_DE_PASO` alrededor del MEJOR orden (el ancla de D-464, no lo elegido: anclada en lo elegido la banda se
+  encadenaba, y la ruta de 14 órdenes de las sacudidas salía en 702 minutos donde la banda acaba en 694). Si cuesta minutos
+  o millas, tiene que pasear al menos un pallet·milla menos (el margen de D-464); si no cuesta nada, basta con que pasee
+  menos (D-464 lleva la nota). Si la búsqueda ganó y con la regla ya no le gana a lo que había, se queda lo de la búsqueda.
+  Si la búsqueda no encontró nada mejor, se aplica a la lista tal como está.
+- No entra en las búsquedas: la exacta no sabe de «la misma tienda más adelante». Va al final, sobre lo elegido.
+- «Armar rutas» (`route-engine`) no cambia: su pasada de carga (`entregaLoQueEstaDePaso`, D-464, activa en producción con
+  `dePaso`) ya prueba cada orden en todos los pares de puestos, recogida en la segunda pasada incluida, y se la queda si
+  pasea al menos un pallet·milla menos dentro de la banda. Ponerle la regla pedía `motor-9`.
+
+**Medido (vitest, datos inventados):** en las 8 rutas reales anonimizadas de D-461 (16 entradas: guardada y la del
+Optimizar viejo) ninguna salida lleva carga de más, ni antes ni ahora, y no cambia ninguna. En 150 rutas inventadas de 4 a
+11 órdenes con dos tiendas, 100 entradas llevaban carga de más; de las salidas, 5 con el código de antes y 3 ahora. Cambian
+2, las dos de 11 órdenes donde la exacta no termina: 576 → 586 minutos y 816 → 594 pallet·milla; 609 → 609 minutos y
+1005 → 908. Las 3 que quedan: una llegaría 2 minutos tarde a una ventana estrecha, y dos se salen de la banda del mejor
+orden (+5 y +15 minutos sobre uno que ya la gastaba). Ninguna sale con más exceso ni más entregas tarde que la entrada.
+
+**Prueba:** `recoge-en-la-ultima-pasada.test.ts`. La regla sobre la lista: el caso con la forma de la ruta real (nombres
+inventados), la primera pasada que desaparece, la última pasada ANTES de la entrega y no la última de la ruta, la misma
+tienda sin mayúsculas, la recogida de varias órdenes, y 400 listas al azar (las mismas paradas, la precedencia, nunca más
+carga, idempotente). En el Optimizar: una ventana estrecha que no deja mover una recogida y sí la otra; una que cuesta más
+que la banda y se queda; la banda del mejor orden y no la de lo que había (186 minutos contra 170 no vale aunque la lista
+de partida durara 230); 0.8 pallet·milla por 7 minutos, no; la primera pasada que desaparece (20 minutos menos); con la
+búsqueda entera, 0.5 pallet·milla que no cuestan nada, por debajo del margen de D-464, que antes no movían nada; y las dos
+rutas inventadas de 11 órdenes que cambian. 12 mutantes, los 12 caen con una prueba con nombre (dos sobrevivían a la
+primera tanda —sin el tope de la banda y sin el margen cuando cuesta minutos: lo paraba la comparación con lo que había—
+y por ellos están las dos pruebas de la banda y del margen).
+
+**No medido:** la ruta real de la captura (ni sus coordenadas ni sus tiempos por calles); en el caso inventado con su forma,
+el Optimizar de antes ya la dejaba bien (223 → 228 minutos y 426 → 385 pallet·milla, lo mismo que ahora). Ni en el
+navegador ni en el Gestor: la pantalla no cambia, guarda lo que devuelve `optimizaLaLista`. «El mejor orden posible» del
+aviso sigue diciendo si la búsqueda fue exacta, aunque la regla haya movido una recogida después.
