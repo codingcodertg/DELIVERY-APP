@@ -47387,7 +47387,7 @@ anulación que haga un vendedor.**
 - El aviso en la campana de la oficina en el navegador; la prueba es de la función que lo arma.
 - En el proveedor real, el vendedor arma los avisos con la lista `users` que él puede leer: si un día la RLS de
   perfiles le escondiera a la oficina, el aviso no saldría (hoy D-639 depende de lo mismo).
-## D-NEXT · Órdenes: al elegir la fecha, la ficha enseña las franjas de ese día con lo que queda en cada una, y pulsar una la pone como ventana
+## D-657 · Órdenes: al elegir la fecha, la ficha enseña las franjas de ese día con lo que queda en cada una, y pulsar una la pone como ventana
 
 **Fecha:** 2026-10-23 · Rama `franjas-horarias` · **Migración:** ninguna · **Versión:** la pone el orquestador.
 

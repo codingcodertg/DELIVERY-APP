@@ -8,7 +8,7 @@ import {
 import { motivoPorCupo, type ReglasDeAprobacion } from "./aprobacion-por-hora-y-cupo";
 
 /**
- * Las franjas del día en la ficha de la orden (D-NEXT): Kevin Gonzalez quería ver, al crear una orden, qué franjas
+ * Las franjas del día en la ficha de la orden (D-657): Kevin Gonzalez quería ver, al crear una orden, qué franjas
  * quedan ese día. Se prueba la función que las arma (con datos que contradicen: tiendas inventadas, cupos fuera de
  * orden, una ventana con cupo que no es de la lista), la ruta que cuenta (sin sesión 401, y solo números), la tarjeta
  * (pulsar elige esa franja) y cómo la cablea la ficha.

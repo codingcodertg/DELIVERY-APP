@@ -2,7 +2,7 @@ import { textoDelMotivo, type MotivoDeAprobacion } from "@/lib/aprobacion-por-ho
 import { nombreDeFranja, textoDeFranja, type Franja } from "@/lib/franjas-del-dia";
 
 /**
- * La tarjeta «Franjas de ese día» de la ficha de la orden (D-NEXT): una casilla por franja con lo que queda, y pulsarla
+ * La tarjeta «Franjas de ese día» de la ficha de la orden (D-657): una casilla por franja con lo que queda, y pulsarla
  * la pone como ventana de la orden. Sin estado propio: todo llega hecho de `franjasDelDia`, y la ficha decide si
  * elegir cambia algo de la aprobación (`vaAAprobacion`), porque eso depende de quién crea y de la tienda.
  *

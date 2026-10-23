@@ -384,7 +384,7 @@ export function OrderModal({
   const aunNoSale = isNew || existing?.stage === "draft" || existing?.stage === "rejected";
   const miraCupo = aunNoSale
     && (d.delivery_windows ?? "") in reglasVigentes.cupo && /^\d{4}-\d{2}-\d{2}$/.test(fechaDeCupo);
-  // Las franjas del día (D-NEXT) se enseñan mientras se elige la fecha: orden nueva o editada entera, o ventas cambiando
+  // Las franjas del día (D-657) se enseñan mientras se elige la fecha: orden nueva o editada entera, o ventas cambiando
   // solo la fecha (D-480). Piden el conteo a la misma ruta: una sola cuenta para las franjas y para D-639. La dirección
   // lleva la fecha, así que cambiar la fecha vuelve a pedirlo.
   const muestraFranjas = editing && (alcance === "todo" || (!isNew && alcance === "solo_fecha"));
@@ -426,7 +426,7 @@ export function OrderModal({
   const cambiaLaAprobacion = (motivos: MotivoDeAprobacion[]) =>
     motivos.length > 0 && naceAprobada(quienCrea([])) && !naceAprobada(quienCrea(motivos));
   const avisaMotivos = cambiaLaAprobacion(motivosDeOficina);
-  // Las franjas del día (D-NEXT): las de la fecha elegida, lo que queda en cada una y lo que D-639 diría de cada una.
+  // Las franjas del día (D-657): las de la fecha elegida, lo que queda en cada una y lo que D-639 diría de cada una.
   const franjas = muestraFranjas
     ? franjasDelDia({ fecha: fechaDeCupo, tienda: d.store, ocupadas, reglas: reglasVigentes, ahora: new Date(), actual: d.delivery_windows })
     : [];

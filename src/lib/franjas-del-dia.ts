@@ -4,7 +4,7 @@ import { cierraA, ventanasParaLaFecha } from "./delivery-windows";
 import { motivosDeAprobacion, tiendaSinCupo, type MotivoDeAprobacion, type ReglasDeAprobacion } from "./aprobacion-por-hora-y-cupo";
 
 /**
- * Las franjas de un día, con lo que queda en cada una, para la ficha de la orden (D-NEXT).
+ * Las franjas de un día, con lo que queda en cada una, para la ficha de la orden (D-657).
  *
  * Kevin Gonzalez (vendedor), desde «New delivery order»: *«When I am creating an order. Is there a way of seeing the time
  * slots available for that day?»*. El dueño: *«tenemos que crear time slots»*.
