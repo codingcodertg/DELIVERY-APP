@@ -170,6 +170,7 @@ describe("las pantallas que la llevan", () => {
     expect(rutas).toContain("maxHeight: altoMaximoDeCaja(altoPanelFijo)");
     expect(rutas.match(/className="tbl-scroll tbl-fit tbl-caja" ref=\{[^}]+\} style=\{estiloDeCaja\}/g) ?? []).toHaveLength(2);
     // Sin el mapa, nada en línea: manda el CSS.
-    expect(rutas).toContain("if (!showTop || !el) { setAltoPanelFijo(0); return; }");
+    // Nota D-653: tampoco en la vista eficiente, donde el panel y el mapa no van fijos.
+    expect(rutas).toContain("if (!showTop || eficiente || !el) { setAltoPanelFijo(0); return; }");
   });
 });

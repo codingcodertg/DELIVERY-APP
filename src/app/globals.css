@@ -1755,6 +1755,37 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
    (D-481): en un teléfono los dos, apilados, miden más que la pantalla y fijos tapaban las tarjetas de abajo. */
 @media (min-width: 900px) { .panel-fijo-del-gestor { position: sticky; top: 6px; z-index: 5; } }
 
+/* «Vista eficiente» del Gestor de Rutas (D-653, routes/page.tsx). El dueño, 2026-10-23: las pestañas van «exactamente donde
+   dice choferes y ruta […] ese mismo tab se va a alargar a la derecha», y la ruta «pegadito» al mapa, como en la foto PNG,
+   «para que se pueda ver en una sola página». En la vista completa los dos envoltorios no generan caja: nada cambia. */
+[data-vista-del-gestor], [data-contenido-de-la-pestana] { display: contents; }
+[data-vista-del-gestor].gestor-eficiente {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; margin-bottom: 8px;
+  grid-template-areas: "panel" "barra" "mapa" "contenido";
+}
+/* El panel y el mapa salen de su caja fija (que es `display: flex` en línea) y entran en la rejilla, sin quedarse fijos. */
+.gestor-eficiente .panel-fijo-del-gestor { display: contents !important; }
+.gestor-eficiente [data-panel-de-choferes] { grid-area: panel; max-width: none !important; max-height: 260px !important; }
+/* Las pestañas, en una franja como la cabecera del panel: la misma fila, alargada a la derecha. */
+.gestor-eficiente [data-barra-de-vistas] {
+  grid-area: barra; margin: 0 !important; min-width: 0; padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+}
+.gestor-eficiente [data-mapa-del-gestor] { grid-area: mapa; min-width: 0; }
+/* Lo de la pestaña, pegado bajo el mapa. */
+.gestor-eficiente > [data-contenido-de-la-pestana] { grid-area: contenido; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.gestor-eficiente [data-tarjetas-de-ruta="eficiente"] > .card { padding: 10px 12px; }
+@media (min-width: 900px) {
+  /* Panel a la izquierda; a su derecha, arriba las pestañas y debajo el mapa; y bajo los dos, a todo el ancho, la tabla. */
+  [data-vista-del-gestor].gestor-eficiente {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); column-gap: 12px; row-gap: 8px;
+    grid-template-areas: "panel barra" "panel mapa" "contenido contenido";
+  }
+  /* El panel no estira las filas: mide lo que miden las pestañas y el mapa a su lado (`contain: size`), y su lista se
+     desplaza dentro. Si no, con muchos choferes empujaba la tabla hacia abajo y dejaba un hueco bajo el mapa. */
+  .gestor-eficiente [data-panel-de-choferes] { contain: size; align-self: stretch; max-height: none !important; }
+}
+
 /* Un botón por fila al lado del número (OrdersTable `accionDeFila`, D-409: «Recibir» en Recepción). */
 /* En línea con el número de factura (D-572): antes era un bloque debajo del ID y cada fila crecía una línea. */
 .accion-de-fila { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; vertical-align: middle; }

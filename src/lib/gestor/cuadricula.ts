@@ -13,8 +13,10 @@
  * La vista «▭ Ancho» no cambia: las tarjetas enteras, una debajo de otra, con su ▸ para plegar.
  */
 
-/** Cómo se pinta una tarjeta de ruta: entera en «Ancho»; compacta arriba en «Cuadrícula»; desplegada abajo en «Cuadrícula». */
-export type ModoDeTarjeta = "ancha" | "compacta" | "desplegada";
+/** Cómo se pinta una tarjeta de ruta: entera en «Ancho»; compacta arriba en «Cuadrícula»; desplegada abajo en «Cuadrícula».
+ *  «eficiente» (D-653): la de la vista eficiente, bajo el mapa: entera (nombre, números, botones y tabla), sin plegar ni
+ *  desplegar: qué rutas salen lo deciden solo las casillas del panel. */
+export type ModoDeTarjeta = "ancha" | "compacta" | "desplegada" | "eficiente";
 
 /** Pulsar el nombre: se despliega esa; si ya era esa, se pliega. */
 export function alternaDesplegada(actual: string | null, clave: string): string | null {
@@ -34,7 +36,7 @@ export function conAcciones(soloLectura: boolean, modo: ModoDeTarjeta): boolean 
 /** ¿Pinta la tarjeta su cuerpo (avisos y tabla)? La compacta nunca; la desplegada siempre; la ancha, si no está plegada. */
 export function conCuerpo(modo: ModoDeTarjeta, plegada: boolean): boolean {
   if (modo === "compacta") return false;
-  if (modo === "desplegada") return true;
+  if (modo === "desplegada" || modo === "eficiente") return true;
   return !plegada;
 }
 

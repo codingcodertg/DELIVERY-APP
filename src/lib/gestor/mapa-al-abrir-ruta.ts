@@ -40,13 +40,18 @@ export function rutasAbiertas(args: { ancho: boolean; desplegada: string | null;
   return [...args.alternadas].filter((k) => k !== PANEL_SIN_ASIGNAR && k !== PANEL_DE_TODAS).sort();
 }
 
-/** Cambiaron las rutas abiertas (de `antes` a `ahora`). */
-export function alAbrirRutas(e: EstadoDelMapa, antes: readonly string[], ahora: readonly string[]): EstadoDelMapa {
+/**
+ * Cambiaron las rutas abiertas (de `antes` a `ahora`). `desdeElPanel` (D-653): las que se abrieron al MARCAR su chofer en
+ * «Choferes y rutas». Esas no esconden el mapa: quien marca un chofer está mirando el mapa, y el dueño pidió ver su ruta en el
+ * mapa Y su tabla abajo («él solo me abre el mapa, pero no me abre la ruta de abajo»). Abrirla por su nombre o su ▸ sí, como
+ * siempre (regla 1).
+ */
+export function alAbrirRutas(e: EstadoDelMapa, antes: readonly string[], ahora: readonly string[], desdeElPanel: ReadonlySet<string> = new Set()): EstadoDelMapa {
   if (ahora.length === 0) {
     if (antes.length === 0) return e;
     return { visible: e.autoOculto ? true : e.visible, autoOculto: false, respetar: false };
   }
-  const nueva = ahora.some((k) => !antes.includes(k));
+  const nueva = ahora.some((k) => !antes.includes(k) && !desdeElPanel.has(k));
   if (!nueva || e.respetar || !e.visible) return e;
   return { visible: false, autoOculto: true, respetar: false };
 }

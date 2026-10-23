@@ -43183,6 +43183,8 @@ Un borrador no se agenda: el tope le cae al enviarlo. Sin excepción por rol: el
 
 ## D-544 · «Ruta de hoy» por tienda (choferes dedicados), el mapa se esconde al abrir la ruta de un chofer, y ventas solo abre sus órdenes
 
+> **Reemplazada en parte por D-653** (2026-10-23): marcar un chofer en «Choferes y rutas» abre ahora su tabla, y esa apertura NO esconde el mapa (el dueño quiere ver las dos cosas). Abrirla por su nombre o su ▸ lo sigue escondiendo. En la vista eficiente el mapa no se esconde nunca.
+
 **Fecha:** 2026-10-13 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** · Rama `visibilidad-de-rutas`.
 
 **Pedidos del dueño, literales (2026-10-13):**
@@ -47182,3 +47184,27 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 `gestor-mover-columnas`, `columnas-del-plan` y `routes-columns` puestos al día.
 
 **No medido:** en el navegador; si un vendedor ve los nombres de los demás depende de qué perfiles le deja leer la base.
+## D-653 · Gestor de Rutas: marcar un chofer abre su tabla, y «Vista completa | Vista eficiente»
+
+**Fecha:** 2026-10-23 · Rama `gestor-vista-eficiente` (worker del orquestador). Sin migración. **Reemplaza en parte a D-544** (lleva su nota).
+
+**Pedido del dueño (2026-10-23, dictado, literal):** «Cuando yo elijo un driver, él me abre la ruta, pero no me abre. Él solo me abre el mapa, pero no me abre la ruta de abajo. Entonces quiero que hayan dos views y sean como template views. Y arriba va a estar full view y small view or efficient view, algo así. Entonces small view, el complete view es el que ya está. Pero ese efficient view va a ser lo siguiente. Toda esa parte de rutas programadas sin asignar, todas, tablero, horario, eso va a ir a la parte de arriba, exactamente arriba de... va a estar exactamente donde dice choferes y ruta, más ruta y todo. Ese mismo tab se va a alargar a la derecha y van a ir todas esas cosas. Ya no va a ir abajo. Además, las rutas, así como cuando le hago para imprimir a foto, que está el mapa pegadito con las rutas de cada driver, así lo quiero, pegadito, para que se pueda ver en una sola página y que se puedan ver las rutas en texto más la ruta en el mapa. Y la forma que yo voy a ir cambiando eso ya no es como abajo, que Ernesto y se hace un pop-up para abajo, no, que es simplemente eligiendo el driver con los selection boxes de ahí arriba. Y ese va a ser el efficient view.»
+
+**Causa de «no me abre la ruta de abajo».** La casilla del panel solo cambiaba el filtro (`selected`, D-481): el mapa se quedaba con la ruta de ese chofer, pero lo abierto vivía aparte —`desplegada` en «▦ Cuadrícula» (D-481 e), `alternadas` en «▭ Ancho» (nacen plegadas, D-393)— y solo lo cambiaban el nombre de la tarjeta o su ▸. Marcar a Ernesto dejaba su tarjeta compacta, sin tabla.
+
+**Qué cambia.**
+- **Marcar abre, desmarcar cierra** (las dos vistas; `abreAlMarcar`, `lib/gestor/vistas-del-gestor.ts`). Marcar la casilla de un chofer, o pulsar su fila del panel, abre su tabla: en «Cuadrícula», desplegada abajo (con varias marcadas, la última); en «Ancho», su tarjeta sin plegar. Desmarcarla la cierra. Lo marcado que se recuerda llega con la tabla de la última marcada abierta.
+- **El mapa no se esconde por eso** (`alAbrirRutas(…, desdeElPanel)`): quien marca un chofer está mirando el mapa y pidió las dos cosas. Abrir por el nombre o el ▸ lo sigue escondiendo (D-544).
+- **«▣ Vista completa | ⚡ Vista eficiente»**, arriba, junto a «Ocultar mapa y choferes» (como «Tabla | Tablero» de Órdenes). Se recuerda por persona en este navegador (`rtg_routes_vista_<id>`, como lo marcado: la lista de `user_prefs` está cerrada en la base). Solo en el Gestor: «Ruta de hoy» y el mapa del chofer no lo llevan. La completa es la de siempre.
+- **Vista eficiente** (una rejilla en `globals.css`, `.gestor-eficiente`; en la completa sus envoltorios son `display: contents` y no cambian nada):
+  - En escritorio, el panel «Choferes y rutas» a la izquierda; **a su derecha, en la misma fila que su cabecera, la barra de pestañas** (Rutas, Sin asignar, Todas, Tablero, Horario, el filtro de chofer, Deshacer/Rehacer, Incidencias, Solicitudes), en una franja como la del panel. Debajo de la barra, el mapa (300 px). **Pegado bajo el mapa, a todo el ancho, lo de la pestaña**: en «Rutas», la tarjeta entera de cada ruta que dejan ver las casillas (sin ninguna marcada, todas, D-566), una debajo de otra. Abajo ya no queda ninguna barra.
+  - Cada tarjeta lleva nombre, números, «Capacidad del camión», ↶ ↷, Bloquear, Optimizar, Vaciar, 📸 PNG, ⚙ Columnas y la tabla con flechas, «Pasar a…», carga y ✕: todo lo de la desplegada. Su nombre ya no despliega ni pliega nada (sin «Ernesto ▾»).
+  - En el teléfono, una columna: panel (260 px de alto, se desplaza dentro), pestañas, mapa y lo de la pestaña.
+  - No llevan: «Ocultar mapa y choferes» (el mapa es la vista) ni «▦ Cuadrícula / ▭ Ancho». El panel y el mapa no van fijos al bajar.
+
+**Pruebas:** `gestor/vistas-del-gestor.test.ts` (abrir y cerrar al marcar en las dos vistas; el mapa con y sin `desdeElPanel`; leer y guardar la vista; los botones y su sitio; la rejilla y su orden; qué tarjetas salen). Puestas al día con «Nota D-653»: `barra-superior`, `gestor-entregadas-y-vista`, `vista-del-gestor`, `gestor/gestor-y-ruta-de-hoy`, `gestor/visibilidad-de-rutas`. `src` entero (8.952) y tsc. Mutantes: caen 12 de 12, cada uno con prueba con nombre. Navegador (demo, 390 y 1440 px): marcar a Diego Driver en la completa despliega su tabla y el mapa sigue a la vista; en la eficiente, pestañas a la derecha del panel en su fila, mapa debajo y la tabla a 8 px del mapa; con dos marcados, dos tablas; «Sin asignar» también bajo el mapa; al recargar sigue en la eficiente; 0 px de desborde.
+
+**No medido:**
+- Con datos reales. A 1440×900, el mapa, la cabecera de la ruta y sus 4-5 primeras filas caben en la pantalla; una ruta de 8 paradas pide bajar ~160 px.
+- En el demo (React en modo estricto) lo marcado no sobrevive a recargar: el efecto que guarda corre dos veces y borra la clave. Viene de antes (D-481) y en producción no hay doble efecto; no se tocó.
+- Con el mapa de Google, en Safari/iPad.
