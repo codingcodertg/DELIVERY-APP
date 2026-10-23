@@ -47027,3 +47027,18 @@ ficha, la misma `OrderModal` que abre una fila del Gestor (`abrirOrden={setOpenO
 
 **Prueba:** `recomienda-reprogramar.test.ts`: el Gestor pasa `setOpenOrder` y la tarjeta pinta el botón con las cuatro
 piezas y lo abre al pulsar.
+
+## D-NEXT · Gestor de Rutas: la hora de salida y de vuelta a la base, en la columna «Llegada»
+
+**Fecha:** 2026-10-22. **Pedido:** el dueño, con la fila «Base: regreso» sin hora: «its missing the eta to the base as well».
+
+**Causa:** las filas de la base ponían la dirección a lo ancho de todas las columnas; la medida ya calculaba la salida y
+la vuelta (`stat.start` / `stat.end` en `usa-medida-de-rutas.ts`, con el tramo vacío de vuelta), pero nadie la pintaba.
+
+**Qué cambia:** «Base: salida» lleva su hora de salida y «Base: regreso», si el chofer vuelve (tiene base y fin), la hora de
+llegada a la base, en la columna «Llegada». La dirección ocupa las columnas de antes de «Llegada». Sin medida, sin columna
+«Llegada» o si la ruta no vuelve, la fila queda como estaba.
+
+**Prueba:** `hora-de-la-base.test.ts` (lee el fuente: la hora sale de `stat`, solo vuelve con base y fin, y el caso sin hora).
+
+**No medido:** en el navegador con una ruta medida.

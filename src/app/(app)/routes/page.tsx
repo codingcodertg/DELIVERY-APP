@@ -805,7 +805,26 @@ export default function RoutesPage() {
         {numeroDePallets(f.despues)}
         {noCuadra && <div data-no-cuadra>⚠ {t("doesn’t come back empty: the count doesn’t add up", "no vuelve vacío: la cuenta no cuadra")}</div>}
       </td>
-      <td colSpan={colsParadas.length} className="hint" style={{ margin: 0 }}>{(cual === "regreso" ? finDeLaFila(laneKey)?.texto : null) ?? pickupAddressFor(laneKey) ?? t("(no base: the driver has no store)", "(sin base: el chofer no tiene tienda)")}</td>
+      {(() => {
+        const direccion = (cual === "regreso" ? finDeLaFila(laneKey)?.texto : null) ?? pickupAddressFor(laneKey) ?? t("(no base: the driver has no store)", "(sin base: el chofer no tiene tienda)");
+        // La hora de la base en la columna «Llegada» (D-NEXT; el dueño: «its missing the eta to the base as well»): la salida y,
+        // si el chofer vuelve (tiene base y fin), la llegada a la base, las dos de la misma medida que pone las de cada parada
+        // (`stat.start` / `stat.end`, con el tramo vacío de vuelta). Sin columna «Llegada» o sin medida, la fila como antes.
+        const i = colsParadas.findIndex((c) => c.key === "p_eta");
+        const stat = routeStats[laneKey];
+        const vuelve = !!tiendaBaseDe(laneKey) && !!tiendaFinDe(laneKey);
+        const hora = !stat ? null : cual === "salida" ? stat.start : vuelve ? stat.end : null;
+        if (i < 0 || !hora) return <td colSpan={colsParadas.length} className="hint" style={{ margin: 0 }}>{direccion}</td>;
+        const despues = colsParadas.length - i - 1;
+        const celdaHora = <td key="hora" data-hora-de-la-base={cual} style={{ fontWeight: 600 }}>{hora}</td>;
+        return (
+          <>
+            {i > 0 ? <td colSpan={i} className="hint" style={{ margin: 0 }}>{direccion}</td> : null}
+            {celdaHora}
+            {i === 0 ? <td colSpan={Math.max(1, despues)} className="hint" style={{ margin: 0 }}>{direccion}</td> : despues > 0 ? <td colSpan={despues} /> : null}
+          </>
+        );
+      })()}
       <td className="celda-acciones" />
     </tr>
   );
@@ -1489,7 +1508,7 @@ export default function RoutesPage() {
   const delDiaDe = (clave: string): Delivery[] => rutaDelDia.get(clave) ?? [];
   const seMide = (clave: string) => delDiaDe(clave).length > 0 && pasaFiltro(clave) && (modo === "dia" || selected.has(clave));
   const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);
-  const { finDeLaRuta, routeInfo, routeLines, routeEtas, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
+  const { finDeLaRuta, routeInfo, routeStats, routeLines, routeEtas, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
     date, porChofer: rutaDelDia, rutasAMedir, seMide,
     listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia)).paradas),
     tiendaBaseDe, coordsDeTienda,
