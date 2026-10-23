@@ -240,6 +240,17 @@ describe("la 182 · las tres del CRM", () => {
   });
 });
 
+describe("la lista: cabecera bloqueada y barra de arriba (D-649, como Órdenes en D-398)", () => {
+  const lista = readFileSync("src/app/customers/Clientes.tsx", "utf8");
+  it("la caja tiene alto propio y se desplaza ella; la cabecera se pega arriba; la barra de arriba mueve ESA caja", () => {
+    expect(lista).toContain('<div ref={cajaRef} data-caja-de-clientes className="max-h-[calc(100dvh-150px)] overflow-auto');
+    expect(lista).toMatch(/<thead className="sticky top-0 z-10 bg-slate-50/);
+    expect(lista).toContain("<BarraSuperior caja={cajaRef} />");
+    expect(lista.indexOf("<BarraSuperior caja={cajaRef} />")).toBeGreaterThan(-1);
+    expect(lista.indexOf("<BarraSuperior caja={cajaRef} />")).toBeLessThan(lista.indexOf("data-caja-de-clientes"));
+  });
+});
+
 describe("la ficha completa (/customers/[id]) y el orden de columnas por persona", () => {
   const pagina = leer("src/app/customers/[id]/page.tsx");
   const ficha = leer("src/app/customers/[id]/FichaCompleta.tsx");
