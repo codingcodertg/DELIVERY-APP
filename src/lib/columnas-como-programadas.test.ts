@@ -183,7 +183,7 @@ describe("la pantalla", () => {
     expect(comun.indexOf('if (c.key === "p_date")')).toBeLessThan(comun.indexOf("if (c.tablas.includes(TABLA_DE_LAS_ORDENES))"));
   });
   it("la llegada y el valor para ordenar se calculan tras la medida de las rutas (la que da `routeEtas`)", () => {
-    const medida = pagina.indexOf("const { finDeLaRuta, routeInfo, routeLines, routeEtas,");
+    const medida = pagina.indexOf("const { finDeLaRuta, routeInfo, routeStats, routeLines, routeEtas,");
     expect(medida).toBeGreaterThan(-1);
     expect(pagina.indexOf("const llegadaDeLaOrden = useCallback(")).toBeGreaterThan(medida);
     expect(pagina.indexOf("const valorDelGestorAqui = useCallback(")).toBeGreaterThan(pagina.indexOf("const llegadaDeLaOrden = useCallback("));
