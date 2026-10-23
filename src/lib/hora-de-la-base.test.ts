@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * La hora de la base en el Gestor (D-NEXT). El dueño, con la fila «Base: regreso» sin hora: «its missing the eta to the base
+ * La hora de la base en el Gestor (D-647). El dueño, con la fila «Base: regreso» sin hora: «its missing the eta to the base
  * as well». La salida y la vuelta van en la columna «Llegada», de la misma medida que pone la hora de cada parada.
  */
 const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n");

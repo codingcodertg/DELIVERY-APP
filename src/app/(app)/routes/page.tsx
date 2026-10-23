@@ -807,7 +807,7 @@ export default function RoutesPage() {
       </td>
       {(() => {
         const direccion = (cual === "regreso" ? finDeLaFila(laneKey)?.texto : null) ?? pickupAddressFor(laneKey) ?? t("(no base: the driver has no store)", "(sin base: el chofer no tiene tienda)");
-        // La hora de la base en la columna «Llegada» (D-NEXT; el dueño: «its missing the eta to the base as well»): la salida y,
+        // La hora de la base en la columna «Llegada» (D-647; el dueño: «its missing the eta to the base as well»): la salida y,
         // si el chofer vuelve (tiene base y fin), la llegada a la base, las dos de la misma medida que pone las de cada parada
         // (`stat.start` / `stat.end`, con el tramo vacío de vuelta). Sin columna «Llegada» o sin medida, la fila como antes.
         const i = colsParadas.findIndex((c) => c.key === "p_eta");

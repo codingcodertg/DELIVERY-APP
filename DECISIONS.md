@@ -47028,7 +47028,7 @@ ficha, la misma `OrderModal` que abre una fila del Gestor (`abrirOrden={setOpenO
 **Prueba:** `recomienda-reprogramar.test.ts`: el Gestor pasa `setOpenOrder` y la tarjeta pinta el botón con las cuatro
 piezas y lo abre al pulsar.
 
-## D-NEXT · Gestor de Rutas: la hora de salida y de vuelta a la base, en la columna «Llegada»
+## D-647 · Gestor de Rutas: la hora de salida y de vuelta a la base, en la columna «Llegada»
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, con la fila «Base: regreso» sin hora: «its missing the eta to the base as well».
 
