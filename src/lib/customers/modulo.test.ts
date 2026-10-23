@@ -398,7 +398,8 @@ describe("la 189 · empresas, juntar y la cola", () => {
   });
   it("la pantalla: la lista por empresa, la ficha con pestañas, la cola llama a la base, y las rutas cuelgan del layout", () => {
     const lista = leer("src/app/customers/Clientes.tsx");
-    expect(lista).toContain("ordenarEmpresas(agrupaEnEmpresas(lista, filtro), orden)");
+    expect(lista).toContain("const empresas = useMemo(() => agrupaEnEmpresas(lista, filtro), [lista, filtro]);");
+    expect(lista).toContain("ordenarEmpresas(filtraEmpresas(empresas, filtrosCol), ordenes)");
     expect(lista).toContain("hermanas={ficha.tipo === \"ver\" ? filasDeLaEmpresa(lista,");
     expect(lista).toContain('role="tablist"');
     const cola = leer("src/app/customers/juntar/DecidirJuntar.tsx");

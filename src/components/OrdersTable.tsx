@@ -285,7 +285,7 @@ const ID_COLUMN: OrderColumn = {
  * Sorting sits in the same menu so both are one click away (D-275).
  * Se exporta para las tablas del Gestor de Rutas (D-360): el menú es el mismo, solo cambian las filas. */
 export function ColumnFilterMenu({
-  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef,
+  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef, masOrden,
 }: {
   /** Solo hace falta el nombre de la columna en los dos idiomas. */
   col: Pick<OrderColumn, "en" | "es">;
@@ -303,6 +303,8 @@ export function ColumnFilterMenu({
    * positioned ancestor the way the Columns picker menu does. */
   style?: React.CSSProperties;
   menuRef?: React.Ref<HTMLDivElement>;
+  /** Opciones de orden de más, bajo las de ↑ / ↓ (Clientes: «Añadir como siguiente orden», D-650). Órdenes no pasa nada. */
+  masOrden?: React.ReactNode;
 }) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Set<string>>(() => new Set(active ?? options.map((o) => o.key)));
@@ -339,6 +341,7 @@ export function ColumnFilterMenu({
             ✕ {t("Remove sort", "Quitar orden")}
           </button>
         )}
+        {masOrden}
       </div>
       <input
         className="col-menu-search"

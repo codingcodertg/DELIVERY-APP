@@ -47073,3 +47073,38 @@ ella) y la barra de lado quedaba al final de las 1 074 filas. Es lo mismo que D-
 **Prueba:** `customers/modulo.test.ts` (la caja con alto, la cabecera pegada, la barra antes de la caja).
 
 **No medido:** en el navegador.
+
+## D-650 · Clientes: filtro por columna, columnas que se arrastran, orden en tres niveles, y sin «Todos los estados»
+
+**Fecha:** 2026-10-22. **Pedido:** el dueño, sobre la lista de Clientes: «we need to filter columns and in the columns as
+well to do the dragging, so you can rearrange it by drag, and also the sorting thing, right? And that the sorting has
+hierarchies, like if you sort 1, 2, and 3, it will keep sorting by number 1, but it will be giving priority to number 3.
+That will be the last one». Y después: «we don't need the all statuses in the customer view».
+
+**Qué cambia:**
+- **Filtro por columna.** Cada cabecera lleva un ▾ que abre el menú de Órdenes (`ColumnFilterMenu`, D-275): orden ↑/↓ y
+  casillas con buscador, en cascada. Se suma a tienda, QB y búsqueda. Filtra por la fila que se pinta (`principal`), salvo
+  «Tienda», que mira todas las tiendas de la empresa (las que pinta su celda); «Actualizado», por día. El ▾ se pone en color
+  en la columna filtrada, una línea dice «Filtrado por: …», y «Quitar filtros» quita también estos. Con todo marcado, el
+  filtro se quita. Lógica pura en `lib/customers/cabeceras.ts`.
+- **Arrastrar columnas.** La cabecera se arrastra (HTML5 drag & drop) y se suelta sobre otra: ocupa su sitio
+  (`colocaColumnaDeClientes`). Se guarda en la misma preferencia que «⚙ Columnas» (`claveDeColumnasDeClientes`), así que el
+  selector enseña el mismo orden. Solo escritorio: en el teléfono no hay arrastre; las flechas de «⚙ Columnas» siguen.
+- **Orden en niveles, hasta 3.** Clic en el nombre: solo por esa columna (como antes). Mayús+clic, o «+ Añadir como nivel N»
+  en el menú: siguiente nivel; con tres, sustituye al tercero. Pulsar una que ya ordena le da la vuelta en su nivel sin tocar
+  los demás. Cada cabecera elegida enseña su número y su flecha, y una línea «Ordenado por: 1 · … 2 · … 3 · …» con
+  «✕ Quitar orden», que vuelve al de entrada (Cuenta ↑). En el menú, «Quitar orden» saca esa columna y las de debajo suben.
+  `ordenarEnNiveles` (reglas) compara nivel a nivel; lo que sigue empatado, por cuenta e id, como antes.
+- **Sin el desplegable de estado.** El filtro de estado se hace en la columna «Estado (tienda)». Se borra
+  `empresasPorEstado` (solo contaba para ese desplegable) y `alOrdenarPor` (lo sustituye `alPulsarCabecera`). El campo
+  `Filtro.estado` se queda (lo usan `filtrar` y `agrupaEnEmpresas`), pero la pantalla ya no lo pone.
+- `ColumnFilterMenu` gana una ranura opcional (`masOrden`) para el «Añadir como nivel N»; Órdenes no la pasa.
+
+**Prueba:** `customers/cabeceras.test.ts` con datos que contradicen (filas que empatan en el nivel 1, y en el 1 y el 2, cuyo
+desempate va contra la cuenta y el id), el clic y Mayús+clic, el menú, el filtro por empresa y en cascada, y el arrastre.
+12 mutantes, los 12 caen con prueba con nombre (uno sobrevivió primero —el menú sin cascada— y se reforzó la prueba).
+Navegador (demo, 390 y 1440 px): filtro aplicado, orden de 3 niveles con el nivel 3 decidiendo, arrastre con eventos de
+arrastre sintéticos, 0 px de desborde, cabecera pegada al bajar.
+
+**No medido:** un arrastre con el ratón de verdad (se simularon los eventos `dragstart`/`dragover`/`drop`); contra la base
+real (1 349 filas); en Safari/iPad.
