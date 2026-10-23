@@ -1312,7 +1312,7 @@ export default function RoutesPage() {
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
   // Saltadas hoy y rechazadas por el cliente (D-487): la misma pastilla que en Órdenes, en la columna de Etapa.
   const marcasDeParada = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
-  // `nombreDe` (D-NEXT): la columna «Vendedor» que el plan hereda de Órdenes pinta el nombre, no el id.
+  // `nombreDe` (D-652): la columna «Vendedor» que el plan hereda de Órdenes pinta el nombre, no el id.
   const ctxDeOrdenes = useMemo(() => ({ lang, t, motivos: motivosDeAnulacion(settings), recibidas, marcas: marcasDeParada, nombreDe: nombresPorId(users) }), [lang, t, settings, recibidas, marcasDeParada, users]);
   const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);
   // Las ciudades conocidas para leer una dirección escrita sin comas (D-423, `ciudadDeEntrega`): las que salen limpias de

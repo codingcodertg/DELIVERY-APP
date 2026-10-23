@@ -47162,7 +47162,7 @@ el Optimizar de antes ya la dejaba bien (223 → 228 minutos y 426 → 385 palle
 navegador ni en el Gestor: la pantalla no cambia, guarda lo que devuelve `optimizaLaLista`. «El mejor orden posible» del
 aviso sigue diciendo si la búsqueda fue exacta, aunque la regla haya movido una recogida después.
 
-## D-NEXT · Órdenes: columna «Vendedor» (Sales Rep)
+## D-652 · Órdenes: columna «Vendedor» (Sales Rep)
 
 **Fecha:** 2026-10-23. **Pedido:** Roberto Rodriguez Jr (Admin), solicitud de ayuda desde Órdenes señalando «⚙ Columns»:
 «Add rep column».

@@ -162,7 +162,7 @@ export function orderOwner(d: Pick<Delivery, "created_by" | "assigned_sales_rep"
   return d.assigned_sales_rep ?? d.created_by;
 }
 
-/** El nombre de cada persona por su id, para la columna «Vendedor» de Órdenes y del Gestor (D-NEXT). Sin nombre o sin la
+/** El nombre de cada persona por su id, para la columna «Vendedor» de Órdenes y del Gestor (D-652). Sin nombre o sin la
  *  persona en la lista (un vendedor que solo se ve a sí mismo), `null`: la celda dice «—». */
 export function nombresPorId(users: readonly { id: string; full_name?: string | null }[] | null | undefined): (id: string | null) => string | null {
   const porId = new Map((users ?? []).map((u) => [u.id, u.full_name?.trim() || null]));

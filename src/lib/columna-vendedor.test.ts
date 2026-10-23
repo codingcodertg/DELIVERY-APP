@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { nombresPorId, orderOwner } from "./utils";
 
 /**
- * La columna «Vendedor» de Órdenes (D-NEXT). Roberto: «Add rep column». El vendedor es `orderOwner` —el asignado o, sin él,
+ * La columna «Vendedor» de Órdenes (D-652). Roberto: «Add rep column». El vendedor es `orderOwner` —el asignado o, sin él,
  * quien la creó—, y se pinta con su nombre en Órdenes y en la tabla del plan del Gestor, que hereda las columnas de Órdenes.
  */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");

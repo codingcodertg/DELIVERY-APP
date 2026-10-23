@@ -184,7 +184,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // D-443 quitó una (`pl_bordo`: la cuenta de pallets pasó a columna fija): 13916 → 13652 con 10 (modelo). Lo mismo: caben 4.
     // D-444 (sin `p_pallets`: la cuenta ya dice lo de cada parada): 13652 → 13387 con 10 (modelo). Lo mismo: caben 4.
     // D-445 (la ciudad de recogida en paradas y la marca `_v8`): 13387 → 13836 con 10 (modelo).
-    // D-NEXT (la columna «Vendedor» de Órdenes, que el Gestor hereda): 13836 → 14094 con 10 (modelo). Siguen cabiendo 4.
+    // D-652 (la columna «Vendedor» de Órdenes, que el Gestor hereda): 13836 → 14094 con 10 (modelo). Siguen cabiendo 4.
     expect(bytesEnLaBase(con(MAX_PLANTILLAS))).toBe(14094);
     expect(cabeEnLaFila(con(MAX_PLANTILLAS))).toBe(false);
     // Con D-444 volvían a caber 5 (7 327 + 800 < 8 192). D-445: 5 pesan 7 576 (modelo), 7 576 + 800 = 8 376 > 8 192; caben 4,
@@ -207,7 +207,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // D-443 (sin `pl_bordo`): 7 582 → 7 438 sin plantillas.
     // D-444 (sin `p_pallets`: la cuenta ya dice lo de cada parada): 7 438 → 7 293.
     // D-445 (la ciudad de recogida en paradas y `_v8`): 7 293 → 7 581.
-    // D-NEXT (la columna «Vendedor»): 7 581 → 7 703. Sigue cabiendo en la base; la guarda ya paraba la primera plantilla.
+    // D-652 (la columna «Vendedor»): 7 581 → 7 703. Sigue cabiendo en la base; la guarda ya paraba la primera plantilla.
     expect(bytesEnLaBase(con(0))).toBe(7703);
     expect(bytesEnLaBase(con(0))).toBeLessThan(TOPE_DE_LA_BASE);
     // Con 7 293 + 800 = 8 093 < 8 192, sin plantillas la guarda volvía a dejar (D-444). D-445: 7 581 + 800 = 8 381 > 8 192,
@@ -215,7 +215,7 @@ describe("el tope de la fila (8 192 bytes de jsonb, 136) con el orden dentro", (
     // pasa por la guarda y sigue escribiéndose.
     expect(cabeEnLaFila(con(0))).toBe(false);
     // D-443 (sin `pl_bordo`): 20 208 → 19 824 con 10. D-444 (sin `p_pallets`): 19 824 → 19 439. D-445: 19 439 → 20 128.
-    // D-NEXT (la columna «Vendedor»): 20 128 → 20 486.
+    // D-652 (la columna «Vendedor»): 20 128 → 20 486.
     expect(bytesEnLaBase(con(10))).toBe(20486);
     expect(bytesEnLaBase(con(10))).toBeGreaterThan(TOPE_DE_LA_BASE - RESERVA_PARA_LO_DEMAS);
     expect(cabeEnLaFila(con(10))).toBe(false);

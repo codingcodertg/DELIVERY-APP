@@ -37,7 +37,7 @@ type Ctx = {
   recibidas?: ReadonlySet<string>;
   /** Quien mira (D-577): la pastilla de una entregada con fotos lleva «📷» solo si esta persona puede ver las fotos. */
   me?: Pick<Profile, "role"> | null;
-  /** El nombre de una persona por su id (D-NEXT, la columna «Vendedor»). Sin la lista de usuarios, `null`. */
+  /** El nombre de una persona por su id (D-652, la columna «Vendedor»). Sin la lista de usuarios, `null`. */
   nombreDe?: (id: string | null) => string | null;
   /** Paradas que el chofer saltó hoy o que el cliente rechazó (D-487): una pastilla junto a la etapa. */
   marcas?: ReadonlyMap<string, MarcaDeParada>;
@@ -152,7 +152,7 @@ export const ORDER_COLUMNS: OrderColumn[] = [
     },
   },
   { key: "driver", en: "Driver", es: "Chofer", value: (d) => d.assigned_driver, cell: (d) => d.assigned_driver || "—" },
-  // El vendedor de la orden (D-NEXT; Roberto: «Add rep column»): `orderOwner`, el asignado o, si no hay, quien la creó —la misma
+  // El vendedor de la orden (D-652; Roberto: «Add rep column»): `orderOwner`, el asignado o, si no hay, quien la creó —la misma
   // regla que decide de quién es la orden para verla y para los avisos—. La base guarda el id; aquí sale el nombre.
   { key: "rep", en: "Sales Rep", es: "Vendedor", value: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) ?? null, cell: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) || "—" },
   { key: "contact", en: "Contact", es: "Contacto", value: (d) => d.contact, cell: (d) => d.contact || "—" },

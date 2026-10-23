@@ -142,7 +142,7 @@ describe("D-376: las columnas de Órdenes, con el rótulo, la celda y el valor d
   it("cada columna que viene de Órdenes lleva EXACTAMENTE su rótulo en los dos idiomas", () => {
     const deOrdenes = COLUMNAS_DEL_GESTOR.filter((c) => c.deOrdenes);
     // Y las de la tabla del plan (D-429): todas las de Órdenes, cada una con su rótulo de Órdenes.
-    expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + PRIORIDAD_EN_SIN_ASIGNAR.length + EXTRAS_DE_PARADAS.length + 16);   // 16 desde D-NEXT («rep»)
+    expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + PRIORIDAD_EN_SIN_ASIGNAR.length + EXTRAS_DE_PARADAS.length + 16);   // 16 desde D-652 («rep»)
     for (const c of deOrdenes) {
       const r = rotuloEnOrdenes(c.deOrdenes!);
       expect({ en: quitaPrefijo(c.en), es: quitaPrefijo(c.es) }, c.key).toEqual(r);
