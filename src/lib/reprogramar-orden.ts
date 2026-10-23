@@ -10,6 +10,7 @@
  * como antes.
  */
 import { shiftDateISO } from "./utils";
+import { saltaDomingo } from "./dia-de-entrega";
 
 /**
  * ¿Se puede reprogramar desde el Gestor (D-500) o desde Almacén (D-534)? Las etapas son las que el guard de la base deja
@@ -64,10 +65,11 @@ export function argumentosDeReprogramar(id: string, fecha: string, nota: string,
 /** Las etapas de su cola en las que almacén reprograma (D-534). */
 export const ETAPAS_QUE_REPROGRAMA_ALMACEN: readonly string[] = ["approved", "fulfilling", "ready"];
 
-/** La fecha que se propone: el día siguiente al más tarde entre hoy y la fecha que ya tiene la orden. */
+/** La fecha que se propone: el día siguiente al más tarde entre hoy y la fecha que ya tiene la orden; si cae en domingo,
+ * el lunes (D-658: el domingo no se entrega). */
 export function fechaPropuesta(fechaActual: string | null | undefined, hoy: string): string {
   const base = fechaActual && fechaActual.slice(0, 10) > hoy ? fechaActual.slice(0, 10) : hoy;
-  return shiftDateISO(base, 1);
+  return saltaDomingo(shiftDateISO(base, 1));
 }
 
 /** Lo mínimo que se acepta como nota: tres letras, para que «.» o «x» no pasen por motivo. */

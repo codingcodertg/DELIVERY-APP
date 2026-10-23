@@ -19,6 +19,7 @@ import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { palletsDeLaOrden } from "@/lib/pallets";
 import { orderLabel } from "@/lib/utils";
 import { notaDeReprogramacion } from "@/lib/reprogramar-orden";
+import { notaDeDomingo, problemaAlAgendar, textoDelProblema, usaCasoEspecial } from "@/lib/dia-de-entrega";
 import { conTelefonoEstandar } from "@/lib/telefono-de-la-orden";
 import { ETAPAS_PARA_TOMAR, facturaParaBuscar, motivoValido, notaDeExcepcion, numerosDeFactura, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
 
@@ -550,10 +551,14 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       return ok;
     },
     // El demo no tiene la función `reprogramar_orden` (173) ni guard: la fecha y la nota, como antes (D-500).
-    reprogramarOrden: async (id, fecha, nota, lang) => {
+    reprogramarOrden: async (id, fecha, nota, lang, caso) => {
       const antes = storeRef.current.deliveries.find((c) => c.id === id)?.delivery_date ?? null;
+      // La misma regla que el proveedor de verdad (D-658): ni domingo sin el caso especial ni un año imposible.
+      const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
+      if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
       const ok = await updateDelivery(id, { delivery_date: fecha });
       if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
+      if (ok && caso && usaCasoEspecial(fecha, antes, { rol: me?.role, caso })) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
       return ok;
     },
     // El demo no tiene las funciones de la 188: la misma búsqueda (con la copia de `numeros_de_factura`) y la misma

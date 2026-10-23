@@ -1,4 +1,6 @@
 import type { Delivery } from "@/lib/types";
+import { problemaDeFecha, textoDelProblema } from "@/lib/dia-de-entrega";
+import { todayISO } from "@/lib/utils";
 
 // ============================================================
 // CSV import for bulk order entry (#ops). Accepts the same column headers the
@@ -98,8 +100,8 @@ export interface ImportResult {
   ignoredHeaders: string[];
 }
 
-/** Turn parsed CSV rows (first row = headers) into order drafts. */
-export function mapRowsToDrafts(rows: string[][]): ImportResult {
+/** Turn parsed CSV rows (first row = headers) into order drafts. `hoy` (Texas) decides which years are possible. */
+export function mapRowsToDrafts(rows: string[][], hoy: string = todayISO()): ImportResult {
   if (rows.length < 2) return { drafts: [], warnings: ["The file has no data rows."], mappedHeaders: [], ignoredHeaders: [] };
   const headers = rows[0].map((h) => h.trim());
   const fields = headers.map((h) => HEADER_TO_FIELD[h] ?? null);
@@ -121,6 +123,12 @@ export function mapRowsToDrafts(rows: string[][]): ImportResult {
     // or malformed — skip it rather than create an empty order.
     if (!draft.account && !draft.delivery_address && !draft.store) {
       warnings.push(`Row ${r + 1}: skipped (no account, address or store).`);
+      continue;
+    }
+    // Ni domingo ni un año imposible (D-658): la fila no entra, con su motivo. Sin caso especial: un archivo no lo pide.
+    const problema = problemaDeFecha(draft.delivery_date, { hoy });
+    if (problema) {
+      warnings.push(`Row ${r + 1}: skipped (delivery date ${draft.delivery_date}). ${textoDelProblema(problema, null, { hoy }).en}`);
       continue;
     }
     if (!draft.delivery_address) warnings.push(`Row ${r + 1}: no delivery address.`);

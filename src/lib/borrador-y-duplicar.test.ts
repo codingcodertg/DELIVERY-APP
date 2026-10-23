@@ -135,7 +135,7 @@ describe("la ficha, al duplicar", () => {
   const modal = leer("src/components/OrderModal.tsx");
 
   it("arma la copia con la función compartida", () => {
-    expect(modal).toContain("const payload: Draft = borradorDuplicado(existing, todayISO());");
+    expect(modal).toContain("const payload: Draft = borradorDuplicado(existing, saltaDomingo(todayISO()));");
   });
 
   it("avisa si la copia choca con una orden que ya existe, y deja seguir", () => {

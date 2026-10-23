@@ -25,7 +25,7 @@ describe("mapRowsToDrafts", () => {
       'Account,Delivery Address,Delivery Fee,Est. Pallets (sales),Delivery Military Time Windows,Delivery Date\n' +
       'Rio Tile,"123 Main St, McAllen","$1,200.50",4,08:30-17:30,2026-08-10',
     );
-    const { drafts, mappedHeaders } = mapRowsToDrafts(rows);
+    const { drafts, mappedHeaders } = mapRowsToDrafts(rows, "2026-10-23");
     expect(drafts).toHaveLength(1);
     expect(drafts[0]).toMatchObject({
       account: "Rio Tile",

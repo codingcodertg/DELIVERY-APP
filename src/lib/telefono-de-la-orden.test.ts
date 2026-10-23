@@ -58,7 +58,7 @@ describe("puertas", () => {
     const m = leer("src/components/OrderModal.tsx");
     expect(m).toContain('val={telefonoParaVer(d.delivery_phone)} on={(v) => set("delivery_phone", telefonoAlEscribir(v))}');
     expect(m).toContain('type="tel" inputMode="numeric" placeholder={MOLDE_DEL_TELEFONO} />');
-    expect(m).toContain("min={min} inputMode={inputMode}");
+    expect(m).toContain("min={min} max={max} inputMode={inputMode}");
   });
 
   it("los dos proveedores guardan con el formato al crear y al editar", () => {

@@ -58,7 +58,7 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
   });
   it("la ficha: los dos selectores de fecha empiezan en hoy, y Txt pasa `min` al input", () => {
     expect(modal.split("min={minFechaDeEntrega()}").length - 1).toBe(2);
-    expect(modal).toMatch(/function Txt\(\{ label, val, on, type = "text", disabled, placeholder, invalid, min, inputMode \}/);
+    expect(modal).toMatch(/function Txt\(\{ label, val, on, type = "text", disabled, placeholder, invalid, min, max, inputMode \}/);
     expect(modal).toContain("placeholder={placeholder} min={min}");
   });
   it("el Gestor de rutas: la celda de fecha tiene tope y `reschedule` lo comprueba contra la fecha actual de la orden", () => {

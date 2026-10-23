@@ -1,5 +1,6 @@
 import { orderTypeRule, type OrderTypeRules } from "@/lib/required";
 import { isoInTZ } from "@/lib/utils";
+import { saltaDomingo } from "@/lib/dia-de-entrega";
 
 /**
  * Reprogramar solas las Intertiendas que no se entregaron (D-406).
@@ -61,7 +62,8 @@ export function reprogramarIntertiendas(
     if (!esIntertienda(o.order_type, reglas)) continue;
     const antes = o.delivery_date.slice(0, 10);
     if (!(antes < hoy)) continue;
-    out.push({ id: o.id, etiqueta: o.order_code || (o.order_no != null ? `#${o.order_no}` : o.id), antes, despues: hoy });
+    // Nunca a un domingo (D-658): el 2026-09-27 este cron dejó 27 órdenes en domingo. Si hoy es domingo, al lunes.
+    out.push({ id: o.id, etiqueta: o.order_code || (o.order_no != null ? `#${o.order_no}` : o.id), antes, despues: saltaDomingo(hoy) });
   }
   return out;
 }

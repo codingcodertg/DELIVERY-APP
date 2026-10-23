@@ -29491,6 +29491,8 @@ añadir `accounting` a `ROLES_LISTA_DE_SU_TIENDA`.
 
 > **⚠ Reemplazada por D-430** (2026-09-28): el dueño la apagó — *«ya no quiero que las ordenes outdated se sigan reschedueling»*. El cron ya no está en `vercel.json`; la ruta y su ensayo siguen en el código por si se vuelve a encender.
 
+> **Reemplazada en parte por D-658** (2026-10-23): si la ruta se vuelve a llamar un domingo, mueve al lunes y no a hoy (el 2026-09-27 dejó 27 órdenes en domingo).
+
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas; es código de servidor y
 `vercel.json`, sin bundle nuevo) · **Sin migración.**
 **Pedido por el dueño**, literal: *«si intertienda no se entregó ese día se reprograma automáticamente para el día
@@ -39356,6 +39358,8 @@ No visto en navegador: `tsc` y vitest.
 > ventas puede usarlo en SU orden (borrador a lista), y guarda por la función de la base `reprogramar_orden` (173) en vez
 > de `updateDelivery` + `addNote` (que quedan como respaldo mientras la función no exista). El chofer sigue sin él.
 
+> **Reemplazada en parte por D-658** (2026-10-23): la fecha propuesta salta el domingo (al lunes), y el cuadro no guarda un domingo salvo el «Caso especial» de oficina, gerente y admin, con motivo y nota en el historial.
+
 **Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.0, repo 1.370.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d500`.
 
 **Pedido del dueño**, literal: *«agrega el boton en las ordenes de rescheduled ahi mismo en el gestor de rutas por si toca y uno solo elije la siguiente fehchay una nota»*.
@@ -47457,3 +47461,41 @@ desborde en página, ficha y tarjeta.
 - La tarjeta en la orden nueva desde «+ Nueva orden» (se midió el borrador con «Continuar la orden»; es el mismo bloque).
 - El aviso de hora de corte en el navegador (las pruebas lo cubren con la hora fija).
 - De paso, en los datos: 27 órdenes de esos 30 días tienen `delivery_date` en domingo. No se miró por qué.
+
+## D-658 · El domingo no hay entregas: bloqueado al poner la fecha, con «Caso especial» solo para oficina, gerente y admin; y los años imposibles, fuera
+
+**Fecha:** 2026-10-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** (a propósito, ver abajo). · Hecho por un worker en `domingo-con-excepcion`. **Reemplaza en parte a D-406 y a D-500** (llevan su nota).
+
+**Pedido del dueño**, literal: *«el domingo no se hacen entregas»* y, al proponerle bloquearlo, *«domingo solamente con un overdrive para casos especiales»*.
+
+**Datos medidos** (por el orquestador, en producción, 2026-10-23): 30 órdenes vivas con entrega en domingo. 27 son del domingo 2026-09-27, puestas por el cron de D-406 (ya apagado, D-430), que movía a «hoy» sin saltar el domingo. Además, fechas imposibles escritas a mano: FU507 con `delivery_date` 22026-10-11 (año de 5 cifras) y FQ112 con 2023-08-13 creada en 2026. La app dejaba elegir domingo y años imposibles.
+
+**Qué cambia.** Una regla pura, `lib/dia-de-entrega.ts`, usada por todos los sitios que ponen o cambian `delivery_date`:
+- `esDomingo(iso)` lee las cifras de `YYYY-MM-DD` como día del calendario de Texas (aritmética UTC sobre las cifras; nunca `new Date("YYYY-MM-DD")`, que en Texas cae el sábado a las 19:00).
+- `problemaDeFecha(iso, { excepcion, hoy })`: `fecha_imposible` si no es `YYYY-MM-DD`, no existe (30 de febrero) o el año está fuera de [año de hoy − 1, año de hoy + 2] (hoy: 2025–2028); `domingo` si es domingo sin excepción. El año imposible no tiene excepción, ni para el admin.
+- `problemaAlAgendar(nueva, actual, { rol, caso })`: como D-532, solo cuando la fecha es **nueva o cambia** (una orden que ya estaba en domingo, o la de 22026, se sigue editando sin tocarle la fecha). La excepción cuenta con el rol (`ordersLikeOfficeManager(rol) || rol === "admin"`: Oficina, Gerente de Oficina y Admin), la casilla marcada y un motivo de 3 letras o más; marcada sin motivo, el aviso pide el motivo.
+- `notaDeDomingo`: tras guardar con la excepción, queda en el historial «Entrega en domingo autorizada por <nombre>: <motivo>».
+
+**Dónde se bloquea:**
+1. **Ficha de la orden**: crear (los dos botones), enviar, guardar cambios (en `passesChecks`, tope duro junto al de D-532), **borrador** (en `save`, porque enviar un borrador no vuelve a escribir la fecha) y «solo la fecha» de ventas (D-480). Debajo del selector, `AvisoDeFecha`: «🚫 Los domingos no hay entregas…»; a oficina, gerente y admin, la casilla «Caso especial: entregar en domingo» y, marcada, el campo del motivo; a vendedor y chofer, «Si es un caso especial, pídeselo a la oficina», sin casilla. Un año imposible sale en rojo, sin casilla. Duplicar una orden un domingo nace el lunes (`saltaDomingo`).
+2. **«📅 Reprogramar»** (D-500/D-549; Gestor, Almacén y ficha): el mismo aviso y la misma casilla en el cuadro; «Reprogramar» no se enciende con domingo sin caso especial. La fecha propuesta salta el domingo (**reemplaza en parte a D-500**, que proponía el día siguiente aunque fuera domingo). El proveedor (`reprogramarOrden`, el real y el del demo) vuelve a mirar la regla antes de escribir y deja la nota del caso especial; la función de la base `reprogramar_orden` (173) no lo mira.
+3. **«Reprogramar a …» de Recomendaciones** (D-642): ya sugería solo días de trabajo (`siguienteDiaDeTrabajo` salta el domingo; comprobado en `vuelta-que-no-compensa.ts`, que genera los días candidatos con él). Además pasa por el mismo `reprogramarOrden` sin casilla: un domingo no entra.
+4. **Celda de fecha del Gestor** y **fecha en bloque de Órdenes** (D-372): sin casilla; a quien puede autorizar, el aviso le dice «usa «📅 Reprogramar» o la ficha de la orden».
+5. **Importar CSV** (`csv-import.ts`): la fila con domingo o año imposible no entra, con su motivo en los avisos («Row N: skipped (delivery date …). …»). Sin excepción. Una fecha que no se puede leer, que antes pasaba tal cual, ahora también se rechaza.
+6. **El cron de D-406** (apagado; la ruta sigue): si «hoy» es domingo, mueve al lunes (**reemplaza en parte a D-406**).
+
+Los selectores de fecha llevan `max` (31 de diciembre del último año aceptado). El control nativo no permite marcar un día de la semana como no disponible: el domingo se avisa al elegirlo y se para al guardar.
+
+**Sin CHECK en la base, a propósito:** hay filas viejas en domingo (las 30 de arriba) y la de 22026, que el dueño aún no ha decidido corregir; una restricción las rompería. La regla vive en la app.
+
+**Qué no cambia:** «tomar orden para recoger» del chofer (D-625) pone hoy aunque sea domingo: es el chofer que ya está cargando, no una fecha que se agenda. La re-entrega y la división de carga copian la fecha de la orden de origen (no ponen una nueva).
+
+**Pruebas:** `dia-de-entrega.test.ts` (29): domingo, sábado y lunes; la trampa de zona con `TZ=America/Chicago` fijada dentro de la prueba (en UTC no existe); 22026 y 2023; bordes 2025/2028 y 2024/2029, también en domingo y con excepción; quién autoriza y quién no aunque marque; sin motivo; la fecha que ya tenía; la nota; los avisos por rol; `AvisoDeFecha` pintado (vendedor sin casilla, oficina con casilla y motivo, año imposible sin casilla); la fecha propuesta y el cron saltan el domingo; el CSV rechaza con motivo; y que cada sitio usa la regla (leyendo el fuente: ficha, cuadro, los dos proveedores, Gestor, bloque). «Hoy» explícito en todas.
+Mutantes: 12 de 12 caen con una prueba con nombre (`new Date(...).getDay()`, también con `TZ=UTC` · año +1 · excepción sin mirar el rol · logística autoriza · ignora la fecha actual · casilla para todos · la ficha sin tope al enviar · nota sin fecha actual · el demo sin tope al reprogramar · el CSV no rechaza · propuesta sin saltar · el cron a hoy en domingo).
+**Navegador (demo, 1440 claro y 390 oscuro):** borrador de un vendedor, fecha cambiada a un domingo. Como vendedor: aviso sin casilla; «Guardar cambios» lo para y la fecha no cambia. Como gerente: casilla y motivo; guarda el domingo y el historial dice «Entrega en domingo autorizada por Maria Manager: …». En «📅 Reprogramar», el gerente con la casilla y sin motivo tiene el botón apagado; con motivo guarda y deja las dos notas. El vendedor: aviso sin casilla y botón apagado. 0 px de desborde en página, ficha, cuadro y aviso.
+
+**No medido:**
+- Contra la base real: el camino de la función `reprogramar_orden` (173) seguido de la nota (el demo no tiene la función; se midió el respaldo).
+- La celda del Gestor, la fecha en bloque y el CSV en el navegador (cubiertos por pruebas).
+- El aviso de año imposible en el navegador (`max` hace que el selector no ofrezca años de más; lo tecleado lo para el guardado).
+- Un borrador ya guardado en domingo ANTES de esto se puede seguir enviando (enviar no vuelve a escribir la fecha).

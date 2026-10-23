@@ -35,6 +35,7 @@ import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCreatedAtDesc, p
 import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, restosParaPartir } from "@/lib/cargas-partidas";
 import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { argumentosDeReprogramar, caminoTrasReprogramar, notaDeReprogramacion } from "@/lib/reprogramar-orden";
+import { notaDeDomingo, problemaAlAgendar, textoDelProblema, usaCasoEspecial, type CasoEspecial } from "@/lib/dia-de-entrega";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria";
@@ -135,7 +136,8 @@ export interface DataState {
    * que cambia SOLO la fecha y deja la nota en el historial. Sin la función, como antes: `updateDelivery` + `addNote`.
    * `nota` es lo que escribió la persona, sin componer. `true` si quedó guardada.
    */
-  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es") => Promise<boolean>;
+  /** `caso`: la casilla «Caso especial: entregar en domingo» del cuadro (D-658). Sin ella, el domingo no pasa. */
+  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es", caso?: CasoEspecial) => Promise<boolean>;
   /**
    * El chofer busca una factura en TODAS las órdenes por recoger (D-625, 188: `buscar_factura_para_recoger`), también en
    * las que no son suyas y que la RLS no le deja leer. `null` si falló (y lo avisa).
@@ -1672,11 +1674,17 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // «📅 Reprogramar» por la función de la base (D-549, 173). Qué hacer con la respuesta lo decide `caminoTrasReprogramar`:
   // sin la función (la migración va después de fusionar), el camino de antes, `updateDelivery` + `addNote`.
   const reprogramarOrden = useCallback<DataState["reprogramarOrden"]>(
-    async (id, fecha, nota, lang) => {
+    async (id, fecha, nota, lang, caso) => {
       const antes = deliveries.find((c) => c.id === id)?.delivery_date ?? null;
+      // Ni domingo sin el caso especial ni un año imposible (D-658). Aquí pasan el 📅 de cada fila y «Reprogramar a …»
+      // de Recomendaciones: un solo sitio para los dos. La función de la base (173) no lo mira.
+      const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
+      if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
+      const domingo = usaCasoEspecial(fecha, antes, { rol: me?.role, caso });
       const comoAntes = async () => {
         const ok = await updateDelivery(id, { delivery_date: fecha });
         if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
+        if (ok && domingo && caso) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
         return ok;
       };
       if (teaching) return comoAntes();
@@ -1684,10 +1692,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const camino = caminoTrasReprogramar(error);
       if (camino === "respaldo") return comoAntes();
       if (camino === "error") { notify("Error: " + (error?.message ?? "")); return false; }
+      if (domingo && caso) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
       await reloadTables(["deliveries", "order_events"]);
       return true;
     },
-    [supabase, notify, teaching, deliveries, updateDelivery, addNote, reloadTables],
+    [supabase, notify, teaching, deliveries, updateDelivery, addNote, reloadTables, me],
   );
 
   const buscarFacturaParaRecoger = useCallback<DataState["buscarFacturaParaRecoger"]>(

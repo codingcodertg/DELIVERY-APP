@@ -22,6 +22,7 @@ import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
+import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
 import { colorDeChofer } from "@/lib/map-legend";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
 import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
@@ -692,6 +693,9 @@ export default function RoutesPage() {
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
     const actual = deliveries.find((d) => d.id === id)?.delivery_date;
     if (agendaEnDiaPasado(delivery_date, actual)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
+    // Ni domingo ni un año imposible (D-658). La celda no tiene la casilla del caso especial: el aviso dice dónde está.
+    const problemaDeLaFecha = problemaAlAgendar(delivery_date, actual, { rol: me?.role });
+    if (problemaDeLaFecha) { const m = textoDelProblema(problemaDeLaFecha, me?.role, { sinCasilla: true }); notify(t(m.en, m.es)); return; }
     return updateDelivery(id, { delivery_date });
   };
 
@@ -1442,7 +1446,7 @@ export default function RoutesPage() {
   const iconoDeReprogramar = (o: Delivery): React.ReactNode =>
     !ETAPAS_HECHAS.has(o.stage) && !soloLectura && puedeReprogramar(me?.role, o.stage) ? (
       <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
-        <ReprogramarOrden pedido={o} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
+        <ReprogramarOrden pedido={o} rol={me?.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
       </span>
     ) : null;
   const facturaConSuId = (d: Delivery) => {
@@ -2374,7 +2378,7 @@ export default function RoutesPage() {
                 {/* «📅 Reprogramar» (D-500) en línea con la factura (D-574), no en «Asignar a»: allí hacía la fila más alta. */}
                 {!hecha && !soloLectura && puedeReprogramar(me?.role, d.stage) && (
                   <span className="accion-de-fila" onClick={(e) => e.stopPropagation()}>
-                    <ReprogramarOrden pedido={d} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
+                    <ReprogramarOrden pedido={d} rol={me?.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />
                   </span>
                 )}
                 {etiquetaDeLaCarga(d)}
@@ -3725,6 +3729,7 @@ function DateCell({
       <input
         type="date"
         value={d.delivery_date ?? ""}
+        max={maxFechaDeEntrega()}
         min={minFechaDeEntrega()}
         onChange={(e) => e.target.value && onChange(d.id, e.target.value)}
         style={{ width: "auto" }}
