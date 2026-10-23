@@ -100,7 +100,8 @@ describe("la pantalla del Gestor respeta el candado", () => {
     expect(pagina).toContain("const id = quienBloqueo(candados.quien, date, laneKey);");
   });
   it("se ve: 🔒 en la tarjeta, en el panel de choferes y en el recuadro «Elige conductor»", () => {
-    expect(pagina).toContain("{bloqueada(u.key) ? `🔒 ${t(\"Locked\", \"Bloqueada\")}` : `🔓 ${t(\"Lock\", \"Bloquear\")}`}");
+    // Nota D-NEXT: el icono fuera y el rótulo en su `span` (en la vista eficiente se esconde y queda el 🔒 / 🔓).
+    expect(pagina).toContain("{bloqueada(u.key) ? \"🔒\" : \"🔓\"} <span className=\"rotulo-del-boton\">{bloqueada(u.key) ? t(\"Locked\", \"Bloqueada\") : t(\"Lock\", \"Bloquear\")}</span>");
     expect(pagina).toContain("{bloqueada(u.key) && <span data-candado-en-el-panel");
     expect(pagina).toContain("{o.etiqueta}{bloqueada(o.clave) ? \" 🔒\" : \"\"}");
   });

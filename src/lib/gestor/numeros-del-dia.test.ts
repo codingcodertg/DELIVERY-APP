@@ -321,6 +321,17 @@ describe("las pantallas pintadas: el mismo número a la misma parada", () => {
     // D-621: cuatro pendientes de antes + la entrega D3 de lo recogido, que ahora se mueve.
     expect((html.match(/data-sube-parada/g) ?? []).length).toBe(5);
   }, 60_000);
+  it("D-NEXT · el camión, pintado: «🚚 12» que se pulsa para logística, sin botón en solo lectura; el campo de antes no está", async () => {
+    estado.me = ADMIN;
+    const html = await pintaElGestor(false);
+    expect(html).toMatch(/<button[^>]*data-boton-del-camion[^>]*>🚚 (<!-- -->)?12<\/button>/);
+    expect(html).not.toContain("data-solo-lectura");
+    expect(html).not.toContain("<!-- -->Truck capacity");
+    estado.me = GERENTE;
+    const leer = await pintaElGestor(true);
+    expect(leer).toMatch(/<span[^>]*data-boton-del-camion[^>]*data-solo-lectura[^>]*>🚚 (<!-- -->)?12<\/span>/);
+    expect(leer).not.toMatch(/<button[^>]*data-boton-del-camion/);
+  }, 60_000);
   it("«Mi ruta» de Ana, pintada, da a cada parada el MISMO número que el Gestor", async () => {
     estado.me = GERENTE;
     const gestor = Object.fromEntries(tablaDelGestor(await pintaElGestor(true)).map((f) => [f.clave, f.n]));

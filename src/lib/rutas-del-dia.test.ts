@@ -385,7 +385,9 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
       "{!soloLectura && (tab === \"timeline\" || historial.deshacer.length > 0 || historial.rehacer.length > 0) && (",
       "useAutoGeocode(soloLectura ? SIN_ORDENES : dayOrders, updateDelivery)",
       "{hecha || soloLectura ? null : sinChofer ? (",
-      "{hayFilas && !soloLectura && (",
+      // Nota D-NEXT: «⚙ Columnas» va en la cabecera en la vista eficiente y en su renglón en la completa; los dos, cerrados.
+      "{hayFilas && !soloLectura && !eficienteAqui && (",
+      "{eficienteAqui && hayFilas && !soloLectura && selectorDeParadas}",
       "{!soloLectura && ( <button className={\"vt \" + (tab === \"board\" ? \"on\" : \"\")} data-pestana=\"board\"",
       "{!soloLectura && ( <button className={\"btn btn-sm \" + (incidents.length ? \"btn-amber\" : \"btn-ghost\")} data-abrir-incidencias",
       "if (!soloLectura && !canPlanRoutes(me)) {",

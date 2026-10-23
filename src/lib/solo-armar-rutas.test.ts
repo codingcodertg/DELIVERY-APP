@@ -198,7 +198,8 @@ describe("«⚠ Incidencias» es un botón que abre una ventana", () => {
   });
   it("el botón, con su cuenta y en ámbar si hay alguna, abre la ventana con lo de siempre dentro", () => {
     expect(pagina).toContain("<button className={\"btn btn-sm \" + (incidents.length ? \"btn-amber\" : \"btn-ghost\")} data-abrir-incidencias");
-    expect(pagina).toContain("onClick={() => setIncidenciasAbiertas(true)}> ⚠ {t(\"Incidents\", \"Incidencias\")} ({incidents.length})");
+    // Nota D-NEXT: con su `title`, y el rótulo en su `span` (en la franja de la vista eficiente, por debajo de 1600 px, se esconde).
+    expect(pagina).toContain("onClick={() => setIncidenciasAbiertas(true)} title={t(\"Driver incidents\", \"Incidencias de choferes\")}> ⚠ <span className=\"rotulo-de-la-franja\">{t(\"Incidents\", \"Incidencias\")}</span> ({incidents.length})");
     const ventana = trozo("{incidenciasAbiertas && (", "{/* ---------- Day timeline");
     expect(ventana).toContain("<DriverIncidents me={me} drivers={drivers} deliveries={deliveries} incidents={incidents} addIncident={addIncident} removeIncident={removeIncident} confirmAction={confirmAction} notify={notify} t={t} enVentana />");
     expect(ventana).toContain("data-cerrar-incidencias onClick={() => setIncidenciasAbiertas(false)}");

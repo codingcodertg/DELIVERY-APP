@@ -44,7 +44,7 @@ export function SelectorDeColumnas<C extends { key: string; en: string; es: stri
   useCierraAlSalir(abierto, () => setAbierto(false), () => [caja.current]);
   return (
     <div ref={caja} style={{ position: "relative", display: "inline-block", textAlign: "left" }}>
-      <button className="btn btn-ghost btn-sm" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
+      <button className="btn btn-ghost btn-sm" aria-expanded={abierto} title={titulo} onClick={() => setAbierto((v) => !v)}>⚙ <span className="rotulo-del-boton">{t("Columns", "Columnas")}</span></button>
       {abierto && (
         <div className="col-menu" style={alLado === "izquierda" ? { left: 0, right: "auto" } : undefined}>
           <div className="col-menu-head">

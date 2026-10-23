@@ -47190,6 +47190,8 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 **No medido:** en el navegador; si un vendedor ve los nombres de los demás depende de qué perfiles le deja leer la base.
 ## D-653 · Gestor de Rutas: marcar un chofer abre su tabla, y «Vista completa | Vista eficiente»
 
+> **Reemplazada en parte por D-NEXT** (2026-10-23): en la eficiente, las pestañas no bajan de línea y llevan «Solicitudes» en su fila; la cabecera de cada ruta es una fila sin el resumen (paradas · pallets · carga máxima · millas · jornada) y con «⚙ Columnas»; y en las dos vistas «Capacidad del camión [10] trm» es el botón «🚚 10».
+
 **Fecha:** 2026-10-23 · Rama `gestor-vista-eficiente` (worker del orquestador). Sin migración. **Reemplaza en parte a D-544** (lleva su nota).
 
 **Pedido del dueño (2026-10-23, dictado, literal):** «Cuando yo elijo un driver, él me abre la ruta, pero no me abre. Él solo me abre el mapa, pero no me abre la ruta de abajo. Entonces quiero que hayan dos views y sean como template views. Y arriba va a estar full view y small view or efficient view, algo así. Entonces small view, el complete view es el que ya está. Pero ese efficient view va a ser lo siguiente. Toda esa parte de rutas programadas sin asignar, todas, tablero, horario, eso va a ir a la parte de arriba, exactamente arriba de... va a estar exactamente donde dice choferes y ruta, más ruta y todo. Ese mismo tab se va a alargar a la derecha y van a ir todas esas cosas. Ya no va a ir abajo. Además, las rutas, así como cuando le hago para imprimir a foto, que está el mapa pegadito con las rutas de cada driver, así lo quiero, pegadito, para que se pueda ver en una sola página y que se puedan ver las rutas en texto más la ruta en el mapa. Y la forma que yo voy a ir cambiando eso ya no es como abajo, que Ernesto y se hace un pop-up para abajo, no, que es simplemente eligiendo el driver con los selection boxes de ahí arriba. Y ese va a ser el efficient view.»
@@ -47290,4 +47292,44 @@ va a ir en otra cosa que dice other.»
 - Contra la base real: el guardado se probó con el almacén del demo.
 - El clic fuera en el teléfono: la ventana ocupa la pantalla entera, como la de una orden en Entregas, y ahí se cierra con ✕.
 - El aviso «¿Cerrar sin guardar?» en el navegador.
+- Safari/iPad.
+
+## D-NEXT · Gestor de Rutas, vista eficiente: tres bloques en una fila, y la capacidad del camión es un botón «🚚 10»
+
+**Fecha:** 2026-10-23 · Rama `gestor-una-fila` (worker del orquestador). Sin migración. **Reemplaza en parte a D-653** (lleva su nota).
+
+**Pedido del dueño (2026-10-23, dictado, literal), con una captura de la vista eficiente y tres recuadros:** «todo eso que dice órdenes expiradas, cero sin fecha, verlas, quiero que eso de vista completa y vista se vaya para arriba y ese texto vaya al lado para que en vez de que hayan dos rows, solo haya una. En el número 2, también quiero que solo haya una row, entonces mete eso de solicitudes en la misma row. Ahí tiene que ir todo, porque quiero que todo sea más eficiente. En la parte número 3, igual, quiero una sola row. Entonces, por ejemplo, eso de capacidad de camión, eso lo vamos a hacer como un botón. Y eso va a ser general también para otra vista. Que va a ser el botón, simplemente va a ser el emoji del camión. Y apretando ese emoji, ahí se va a cambiar. Ahí te va a preguntar un poco cuál es la capacidad. Entonces va a decir el camioncito y el número 10. Y si lo quieres cambiar, solo tienes que apretar ese emoji otra vez y pum, se cambia sin problema. Y todos esos botones de hacer y todo eso tiene que ir en la misma row. Entonces lo que vamos a hacer es que ese texto que sale ahí, de pales y todas esas cosas, eso lo vamos a eliminar. Solo se van a mantener los options ahí. Y así. Entonces, quiero que todo vaya en una sola row, incluyendo lo de columnas. Entonces lo de camión va a estar al lado de todo eso y todo va a estar en una sola línea.»
+
+**Leído así:** «TRM» era la unidad del campo («trm» = tarimas; en inglés «plt»), no un dato aparte: queda en el `title` del botón y en la ventanita («Capacidad del camión (tarimas)»). «General también para otra vista»: el botón va en las dos vistas, completa y eficiente.
+
+**Qué cambia.**
+- **1 · Selector y expiradas, una fila** (las dos vistas). «N orden(es) expiradas · N sin fecha — no son de este día. [Verlas] ✕» deja su renglón y va al lado de «▣ Vista completa | ⚡ Vista eficiente ⓘ» (`data-barra-de-arriba`, `data-texto-de-expiradas`). Lo mismo que antes: solo sin «solo lectura», se cierra con su ✕ (D-400), y «Verlas» lleva a «Viendo solo órdenes expiradas y sin fecha», que sigue en su renglón.
+- **2 · Las pestañas de la eficiente, una fila con «Solicitudes».** En escritorio (≥ 900 px) la franja no baja de línea (`flex-wrap: nowrap`); si un día no cabe, se desplaza dentro de la franja y la página no. Para que quepa: pestañas algo más apretadas; ↶ ↷ de la franja solo con su icono; y por debajo de 1600 px «Incidencias» y «Solicitudes» de la franja son «⚠ (0)» y «📥 (0)», con el nombre en el `title`. En el teléfono sigue envolviendo.
+- **3 · La cabecera de cada ruta en la eficiente, una fila:** nombre, sus pastillas (órdenes, entregadas, y los avisos), y luego ↶ ↷ 🔓 🧭 🗑 📸 PNG ⚙ 🚚 10.
+  - **Se quita el resumen** «N paradas · N pallets movidos · carga máxima N/N · N mi · N jornada (N manejo)». Queda en el `title` del nombre, al pasar el ratón. En la completa sigue como estaba.
+  - **Los avisos de problema se quedan**, cada uno su pastilla, en las dos vistas: «⚠ se pasa en N parada(s)» (la carga máxima pasada de la capacidad), «no acaba en 0 pallets», «más de 8 h», «⏳ calculando llegadas…» y «↻ sin medida — reintentar».
+  - **«⚙ Columnas»** sube a esta fila; en la completa sigue en su renglón sobre la tabla (un solo `SelectorDeColumnas`, `selectorDeParadas`).
+  - **Los botones van solo con su icono** (`.rotulo-del-boton` se esconde; el nombre queda en el `title`). Con el rótulo no cabían: medido a 1440 px en el demo, la cabecera de una ruta con «sin orden guardado», «✓ 0 de 6 entregadas», «se pasa…» y «sin medida» ocupaba dos filas.
+- **El botón del camión «🚚 10»** (`components/BotonDelCamion.tsx`, `lib/gestor/boton-del-camion.ts`), en las dos vistas, al final de la fila de la cabecera, en lugar de «🚚 CAPACIDAD DEL CAMIÓN [10] TRM».
+  - Pulsado, una ventanita pide la capacidad (campo con la de ahora, «Cancelar», «Guardar»; Intro guarda; Escape o un clic fuera cierran sin guardar). No `window.prompt`.
+  - «Guardar» llama al MISMO `setCapacity(chofer, v)` que el campo: `settings.driver_capacity` (y borra la ruta medida del chofer, como antes). Vale lo mismo que el campo, un número mayor que 0; con otro, «Guardar» se apaga. Guardar la misma capacidad no llama al guardado. El campo guardaba en cada tecla; el botón, una vez.
+  - Quién lo pulsa: donde estaba el campo (la tarjeta con botones, `conAcciones`). La compacta de «Cuadrícula» no lo lleva (se cambia en su desplegada, como el campo). En solo lectura se ve «🚚 10» sin botón, en las tarjetas con cabecera; hasta aquí no veía la capacidad en la tarjeta.
+
+**Prueba:**
+- `gestor/gestor-en-una-fila.test.ts`: qué ve cada tarjeta (pulsable / fijo / nada); qué vale y qué se guarda; el botón pintado de verdad (React en el servidor) con y sin permiso; la ventanita guarda por `capacidadAGuardar` → `onGuarda`; la página pasa `setCapacity(u.driver, v)` y ya no tiene el campo ni la «trm»; las expiradas dentro de la fila del selector; «Solicitudes» en la franja y la franja sin bajar de línea; el resumen fuera en la eficiente y los avisos dentro; «⚙ Columnas» arriba solo en la eficiente.
+- `gestor/numeros-del-dia.test.ts`: el Gestor entero pintado. Logística ve el botón «🚚 12»; «Ruta de hoy» (solo lectura) ve «🚚 12» sin botón.
+- Al día, con «Nota D-NEXT»: `vistas-del-gestor`, `gestor-factura-arrastre-optimizar`, `rutas-bloqueadas`, `rutas-del-dia`, `solo-armar-rutas`.
+- La suite entera, 8.983 en verde (fallan los tres de `scripts/` que fallan también en main), y tsc. Mutantes: caen 12 de 12, cada uno con prueba con nombre.
+- **Navegador (demo, 390, 1440 y 1700 px; clics y teclado de verdad por CDP):**
+  - Fila 1: el selector y las expiradas, una fila (mismo centro, 35 px de alto) a 1440 y 1700, en las dos vistas. Antes, dos renglones (top 185 y 218).
+  - Fila 2: una fila a 1440 y 1700, también en el peor caso que se pudo armar (un chofer marcado, con su pastilla de filtro; ↶ ↷; «Solicitudes (0)» puesto a mano, porque el demo no tiene la tabla 176): 0 px de desborde dentro de la franja. Sin las rebajas sobraban 289 px a 1440 y 57 a 1700.
+  - Fila 3: las tres cabeceras del demo en una fila (26 px de alto) a 1440 y 1700. Antes, dos filas, más la de «⚙ Columnas».
+  - El camión: pulsar «🚚 12», escribir 14, «Guardar» → «🚚 14», y el panel dice «14/14». Escribir 30 y Escape → sigue «🚚 14». Con 0, «Guardar» apagado. La ventanita no se sale de la pantalla (a 390 abre hacia la derecha).
+  - En la completa, marcar un chofer despliega su tabla con «🚚 14» pulsable, y su resumen sigue.
+  - 0 px de desborde de la página en los tres anchos. En el teléfono las filas envuelven.
+
+**No medido:**
+- «Solicitudes» de verdad: el demo no la pinta (sin la tabla 176). Se midió con un botón igual puesto a mano.
+- Con datos reales, ni nombres largos o muchos avisos a la vez: con más pastillas que las del demo, la cabecera vuelve a envolver (envolver es mejor que tapar un aviso).
+- El botón en solo lectura, en el navegador: solo pintado en la prueba.
 - Safari/iPad.
