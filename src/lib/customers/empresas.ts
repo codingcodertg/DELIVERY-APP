@@ -1,5 +1,5 @@
 import { claveDeEmpresa, codigoDeTienda, juntaEnMemoria, motivosDeLaCola, type MotivoDeSospecha, type PasoDeUnion } from "./duplicados";
-import { CAMPOS, coincide, estaArchivado, ordenar, TIENDAS, type Cliente, type Filtro, type Orden } from "./reglas";
+import { CAMPOS, coincide, estaArchivado, ordenarEnNiveles, TIENDAS, type Cliente, type Filtro, type Orden } from "./reglas";
 
 /**
  * Clientes por EMPRESA (migración 189): la lista pinta UNA fila por empresa —la compañía con sus filas de cada
@@ -65,23 +65,20 @@ export function agrupaEnEmpresas(lista: readonly Cliente[], f: Filtro): Empresa[
   return out;
 }
 
-/** Ordena por la fila que se enseña, con las mismas reglas que la lista por filas (`ordenar`). */
-export function ordenarEmpresas(empresas: readonly Empresa[], orden: Orden): Empresa[] {
+/**
+ * Ordena por la fila que se enseña, con las mismas reglas que la lista por filas (`ordenar`). Un orden, o varios en
+ * jerarquía (D-NEXT: el primero manda, los siguientes desempatan; `ordenarEnNiveles`).
+ */
+export function ordenarEmpresas(empresas: readonly Empresa[], orden: Orden | readonly Orden[]): Empresa[] {
   const porId = new Map(empresas.map((e) => [e.principal.id, e]));
-  return ordenar(empresas.map((e) => e.principal), orden).map((c) => porId.get(c.id)!);
+  const niveles: readonly Orden[] = "por" in orden ? [orden] : orden;
+  return ordenarEnNiveles(empresas.map((e) => e.principal), niveles).map((c) => porId.get(c.id)!);
 }
 
 /** Cuántas EMPRESAS tienen fila en cada tienda (no cuántas filas): lo que dicen los chips de tienda. */
 export function empresasPorTienda(empresas: readonly Empresa[]): Map<string, number> {
   const m = new Map<string, number>();
   for (const e of empresas) for (const t of new Set(e.filas.map((c) => codigoDeTienda(c.store)))) m.set(t, (m.get(t) ?? 0) + 1);
-  return m;
-}
-
-/** Cuántas empresas tienen alguna fila (de las que coinciden) con cada estado; "" = sin estado. Lo que dice el desplegable. */
-export function empresasPorEstado(empresas: readonly Empresa[]): Map<string, number> {
-  const m = new Map<string, number>();
-  for (const e of empresas) for (const s of new Set(e.coinciden.map((c) => c.status_store ?? ""))) m.set(s, (m.get(s) ?? 0) + 1);
   return m;
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { entradaActiva } from "@/lib/erp/nav";
 import { almacenDemoNuevo, CLIENTES_DEMO, SUGERENCIAS_DEMO } from "./demo";
 import {
-  agrupaEnEmpresas, empresasPorEstado, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas, paresParaDecidir, principalDe, rotuloDeDecidir,
+  agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas, paresParaDecidir, principalDe, rotuloDeDecidir,
   sugerenciaDeLaBase, vistaPreviaDeJuntar, type Sugerencia,
 } from "./empresas";
 import { FILTRO_INICIAL, type Cliente } from "./reglas";
@@ -64,16 +64,13 @@ describe("una fila por empresa", () => {
     const e = ordenarEmpresas(agrupaEnEmpresas(LISTA, FILTRO_INICIAL), { por: "account", desc: true });
     expect(e.map((x) => x.clave)).toEqual(["ZETA", "BETA", "ACME"]);
   });
-  it("los chips cuentan EMPRESAS por tienda, y el estado cuenta empresas con alguna fila en ese estado", () => {
+  it("los chips cuentan EMPRESAS por tienda", () => {
     const conDosEnPharr = [...LISTA, base(8, { account: "Acme Homes Inc", store: "PHR", company_id: "ACME" })];
     const e = agrupaEnEmpresas(conDosEnPharr, FILTRO_INICIAL);
     const t2 = empresasPorTienda(e);
     expect(t2.get("PHR")).toBe(2);
     expect(t2.get("MCA")).toBe(1);
     expect(t2.get("WES")).toBe(1);
-    const st = empresasPorEstado(e);
-    expect(st.get("LOST")).toBe(2);
-    expect(st.get("")).toBe(2);
   });
   it("las pestañas de la ficha: la misma empresa y el mismo estado de archivo", () => {
     expect(filasDeLaEmpresa(LISTA, LISTA[2]).map((c) => c.id)).toEqual([1, 3, 2]);

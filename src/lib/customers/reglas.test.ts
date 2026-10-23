@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  alOrdenarPor, alternaColumna, CAMPOS, celda, clienteDeLaBase, coincide, COLUMNAS, COLUMNAS_INICIALES, columnasValidas, cuentaArchivados, cuentaPor,
+  alternaColumna, CAMPOS, celda, clienteDeLaBase, coincide, COLUMNAS, COLUMNAS_INICIALES, columnasValidas, cuentaArchivados, cuentaPor,
   estaArchivado, estadoClase, estadoLabel, filtrar, FILTRO_INICIAL, formDe, mailUrl, MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, ordenar,
   PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, puedeEditar, telUrl, TIENDAS,
   type Cliente,
@@ -136,10 +136,6 @@ describe("ordenar", () => {
     const copia = [...LISTA];
     expect(ordenar(LISTA, { por: "credit_limit", desc: false }).map((c) => c.id)).toEqual([1, 4, 2, 3]);
     expect(LISTA).toEqual(copia);
-  });
-  it("pulsar la misma cabecera invierte; otra empieza ascendente", () => {
-    expect(alOrdenarPor({ por: "account", desc: false }, "account")).toEqual({ por: "account", desc: true });
-    expect(alOrdenarPor({ por: "account", desc: true }, "store")).toEqual({ por: "store", desc: false });
   });
 });
 

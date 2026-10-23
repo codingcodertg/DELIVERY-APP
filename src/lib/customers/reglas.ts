@@ -236,6 +236,20 @@ export function mueveColumnaDeClientes(p: PreferenciaDeColumnas, key: string, de
 export function seMueveColumnaDeClientes(p: PreferenciaDeColumnas, key: string, delta: -1 | 1): boolean {
   return ordenEfectivo(CLAVES_CANONICAS, mueveColumnaDeClientes(p, key, delta).orden).join() !== ordenEfectivo(CLAVES_CANONICAS, p.orden).join();
 }
+/**
+ * Arrastrar la cabecera `key` y soltarla sobre la de `destino` (D-NEXT): `key` ocupa el sitio de `destino`, y las de en
+ * medio corren un puesto. Soltar a la derecha la deja DESPUÉS de `destino`; a la izquierda, ANTES — lo que se ve al
+ * arrastrar. Se mueve en el orden de TODAS las columnas (las ocultas guardan su sitio), el mismo que usa «⚙ Columnas».
+ */
+export function colocaColumnaDeClientes(p: PreferenciaDeColumnas, key: string, destino: string): PreferenciaDeColumnas {
+  const orden = ordenEfectivo(CLAVES_CANONICAS, p.orden);
+  const i = orden.indexOf(key), j = orden.indexOf(destino);
+  if (i < 0 || j < 0 || i === j) return p;
+  const r = orden.filter((k) => k !== key);
+  const d = r.indexOf(destino);
+  r.splice(i < j ? d + 1 : d, 0, key);
+  return { ...p, orden: tieneOrdenPropio(r) ? r : null };
+}
 /** Si hay orden propio (para enseñar «Restablecer orden» solo cuando hace algo). */
 export function tieneOrdenPropio(orden: readonly string[] | null | undefined): boolean {
   return ordenEfectivo(CLAVES_CANONICAS, orden).join() !== CLAVES_CANONICAS.join();
@@ -328,25 +342,37 @@ export function valorDeColumna(c: Cliente, key: ClaveDeColumna): Cliente[keyof C
 const rangoEstado = (e: string | null) => { const i = ESTADOS.indexOf(e as Estado); return i < 0 ? ESTADOS.length : i; };
 const rangoHistoria = (h: string | null) => { const i = HISTORIAS.indexOf(h as (typeof HISTORIAS)[number]); return i < 0 ? HISTORIAS.length : i; };
 
-/** Ordena sin tocar la lista. Los estados y los historiales van por su rango, no alfabéticos; los nulos, al final. */
-export function ordenar(lista: readonly Cliente[], orden: Orden): Cliente[] {
-  const cmp = (a: Cliente, b: Cliente): number => {
-    const k = orden.por;
-    if (k === "status_store" || k === "status_group") return rangoEstado(a[k]) - rangoEstado(b[k]);
-    if (k === "history_store" || k === "history_group") return rangoHistoria(a[k]) - rangoHistoria(b[k]);
-    const va = valorDeColumna(a, k), vb = valorDeColumna(b, k);
-    if (va === null && vb === null) return 0;
-    if (va === null) return 1;
-    if (vb === null) return -1;
-    if (typeof va === "number" && typeof vb === "number") return va - vb;
-    return String(va).localeCompare(String(vb), undefined, { sensitivity: "base" });
-  };
-  return [...lista].sort((a, b) => (orden.desc ? -cmp(a, b) : cmp(a, b)) || a.account.localeCompare(b.account) || a.id - b.id);
+/** Compara dos filas por UNA columna, ascendente. Los estados y los historiales van por su rango, no alfabéticos; los nulos, al final. */
+function comparaPor(a: Cliente, b: Cliente, k: ClaveDeColumna): number {
+  if (k === "status_store" || k === "status_group") return rangoEstado(a[k]) - rangoEstado(b[k]);
+  if (k === "history_store" || k === "history_group") return rangoHistoria(a[k]) - rangoHistoria(b[k]);
+  const va = valorDeColumna(a, k), vb = valorDeColumna(b, k);
+  if (va === null && vb === null) return 0;
+  if (va === null) return 1;
+  if (vb === null) return -1;
+  if (typeof va === "number" && typeof vb === "number") return va - vb;
+  return String(va).localeCompare(String(vb), undefined, { sensitivity: "base" });
 }
 
-/** Pulsar una cabecera: la misma columna invierte; otra columna empieza ascendente. */
-export function alOrdenarPor(orden: Orden, por: ClaveDeColumna): Orden {
-  return orden.por === por ? { por, desc: !orden.desc } : { por, desc: false };
+/** Ordena sin tocar la lista, por una columna. */
+export function ordenar(lista: readonly Cliente[], orden: Orden): Cliente[] {
+  return ordenarEnNiveles(lista, [orden]);
+}
+
+/**
+ * Ordena por VARIAS columnas en jerarquía (D-NEXT): manda la primera; la segunda solo decide entre las que empatan en la
+ * primera, y la tercera entre las que empatan en las dos. Cada nivel con su sentido. Lo que sigue empatado va por cuenta
+ * y por id, como siempre, para que la lista no baile de una carga a otra.
+ */
+export function ordenarEnNiveles(lista: readonly Cliente[], niveles: readonly Orden[]): Cliente[] {
+  const cmp = (a: Cliente, b: Cliente): number => {
+    for (const n of niveles) {
+      const c = comparaPor(a, b, n.por);
+      if (c !== 0) return n.desc ? -c : c;
+    }
+    return 0;
+  };
+  return [...lista].sort((a, b) => cmp(a, b) || a.account.localeCompare(b.account) || a.id - b.id);
 }
 
 export function cuentaPor(lista: readonly Cliente[], campo: "store" | "status_store" | "qb_status"): Map<string, number> {
@@ -525,15 +551,20 @@ export function mailUrl(email: string | null): string | null {
 
 /** El texto de una celda de la tabla, por columna. */
 export function celda(c: Cliente, key: ClaveDeColumna, t: T): string {
-  const v = valorDeColumna(c, key);
+  if (key === "archived_reason") return estaArchivado(c) ? motivoLabel(c.archived_reason, t) : "—";
+  return textoDeValor(key, valorDeColumna(c, key), t);
+}
+
+/** Cómo se enseña un valor de una columna: lo que dice la celda, y lo que dice cada casilla del filtro de esa columna (D-NEXT). */
+export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: T): string {
   switch (key) {
-    case "store": return nombreDeTienda(c.store);
+    case "store": return nombreDeTienda(v as string | null);
     case "status_store": case "status_group": return estadoLabel(v as string | null, t);
     case "history_store": case "history_group": return historiaLabel(v as string | null, t);
     case "qb_status": return qbLabel(v as string | null, t);
     case "credit_limit": case "euler_limit": return dinero(v as number | null);
     case "updated_at": return fecha(v as string | null);
-    case "archived_reason": return estaArchivado(c) ? motivoLabel(c.archived_reason, t) : "—";
+    case "archived_reason": return motivoLabel(v as string | null, t);
     default: return v === null || v === undefined || v === "" ? "—" : String(v);
   }
 }
