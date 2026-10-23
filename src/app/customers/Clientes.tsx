@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BarraSuperior } from "@/components/BarraSuperior";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/erp/supabase/client";
 import { Badge } from "@/components/erp/ui/badge";
@@ -48,6 +49,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
   const [cuantos, setCuantos] = useState(TANDA);
   const [ficha, setFicha] = useState<Ficha | null>(null);
+  const cajaRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(async () => {
     const r = await almacen.leer();
@@ -194,10 +196,16 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
       )}
       {estado.tipo === "error" && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{t("Could not load the customers: ", "No se pudieron cargar los clientes: ")}{estado.texto}</p>}
 
+      {/* Cabecera bloqueada y barra de arriba (D-NEXT), como Órdenes desde D-398. Roberto: «Need to be able to scroll down and
+          still see headers» y «the bar is at the very bottom so probably better to have the bar above the locked headers». La
+          caja lleva alto propio (el de la ventana menos 150 px, el de `.tbl-caja`): se desplaza ella en las dos direcciones, la
+          cabecera se pega a su borde de arriba (`sticky top-0`) y su barra de abajo queda en pantalla; `BarraSuperior` pone
+          otra encima de la cabecera que mueve la caja a lo ancho. */}
+      {estado.tipo === "listo" && <BarraSuperior caja={cajaRef} />}
       {estado.tipo === "listo" && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <div ref={cajaRef} data-caja-de-clientes className="max-h-[calc(100dvh-150px)] overflow-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgb(226,232,240)]">
               <tr>
                 {colsVisibles.map((c) => (
                   <th key={c.key} className="whitespace-nowrap px-3 py-2" aria-sort={orden.por === c.key ? (orden.desc ? "descending" : "ascending") : "none"}>

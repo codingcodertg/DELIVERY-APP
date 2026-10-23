@@ -47058,3 +47058,18 @@ ficha de ese cliente con sus campos editables.
 
 **Visto de paso, sin tocar:** la burbuja de Ayuda (D-616, encima de todo) tapa el botón «Guardar» de la ficha lateral en el
 escritorio.
+## D-NEXT · Clientes: cabecera bloqueada y barra de desplazamiento encima de la cabecera, como Órdenes
+
+**Fecha:** 2026-10-22. **Pedido:** Roberto Rodriguez Jr (Admin), solicitud de ayuda desde /customers: «1) Need to be able to
+scroll down and still see headers. 2) Need to be able to scroll to the right but the bar is at the very bottom so probably
+better to have the bar above the locked headers».
+
+**Causa:** la tabla de Clientes iba en una caja `overflow-x-auto` sin alto: quien bajaba era la página (la cabecera se iba con
+ella) y la barra de lado quedaba al final de las 1 074 filas. Es lo mismo que D-398 arregló en Órdenes.
+
+**Qué cambia:** la caja lleva alto propio (`max-h-[calc(100dvh-150px)] overflow-auto`, el de `.tbl-caja`), la cabecera es
+`sticky top-0`, y `BarraSuperior` (D-398) pone la barra de lado encima de la cabecera, enganchada a esa caja.
+
+**Prueba:** `customers/modulo.test.ts` (la caja con alto, la cabecera pegada, la barra antes de la caja).
+
+**No medido:** en el navegador.
