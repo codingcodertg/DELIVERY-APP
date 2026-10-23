@@ -51,7 +51,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   const [lista, setLista] = useState<Cliente[]>([]);
   const [estado, setEstado] = useState<Estado>({ tipo: "cargando" });
   const [filtro, setFiltro] = useState<Filtro>(FILTRO_INICIAL);
-  // El orden en niveles (D-NEXT): el 1 manda, el 2 y el 3 desempatan. Y los filtros por columna, que se suman a los de
+  // El orden en niveles (D-650): el 1 manda, el 2 y el 3 desempatan. Y los filtros por columna, que se suman a los de
   // arriba. Son de la pantalla: al salir se pierden, como en las tablas del Gestor (D-360).
   const [ordenes, setOrdenes] = useState<Orden[]>([...ORDENES_INICIALES]);
   const [filtrosCol, setFiltrosCol] = useState<FiltrosPorColumna>({});
@@ -137,7 +137,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   useCierraAlSalir(!!abierta, () => setAbierta(null), () => [menuRef.current, abierta ? celdas.current.get(abierta) : null]);
   const quitaFiltroDe = (key: string) => setFiltrosCol((f) => { const n = { ...f }; delete n[key]; return n; });
 
-  // Arrastrar una cabecera y soltarla en otra (D-NEXT): HTML5 drag & drop, de escritorio; en el teléfono las columnas
+  // Arrastrar una cabecera y soltarla en otra (D-650): HTML5 drag & drop, de escritorio; en el teléfono las columnas
   // se mueven con las flechas de «⚙ Columnas». El orden es el mismo que guarda el selector.
   const [arrastrada, setArrastrada] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
@@ -213,7 +213,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
           value={filtro.busca}
           onChange={(e) => setFiltro((f) => ({ ...f, busca: e.target.value }))}
         />
-        {/* Sin el desplegable de estado (D-NEXT, el dueño: «we don't need the all statuses in the customer view»): el estado
+        {/* Sin el desplegable de estado (D-650, el dueño: «we don't need the all statuses in the customer view»): el estado
             se filtra en el menú de su columna, «Estado (tienda)». */}
         <select className={selCls} value={filtro.qb} onChange={(e) => setFiltro((f) => ({ ...f, qb: e.target.value }))} aria-label="QuickBooks">
           <option value="">{t("QB: all", "QB: todos")}</option>
@@ -271,7 +271,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
             <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgb(226,232,240)]">
               <tr>
                 {colsVisibles.map((c) => {
-                  // D-NEXT: el nombre ordena (Mayús+clic añade un nivel), el ▾ abre el menú de la columna, y la cabecera
+                  // D-650: el nombre ordena (Mayús+clic añade un nivel), el ▾ abre el menú de la columna, y la cabecera
                   // entera se arrastra para cambiarla de sitio.
                   const nivel = nivelDeOrden(ordenes, c.key);
                   const hayFiltro = (filtrosCol[c.key]?.size ?? 0) > 0;

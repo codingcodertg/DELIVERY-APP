@@ -237,7 +237,7 @@ export function seMueveColumnaDeClientes(p: PreferenciaDeColumnas, key: string, 
   return ordenEfectivo(CLAVES_CANONICAS, mueveColumnaDeClientes(p, key, delta).orden).join() !== ordenEfectivo(CLAVES_CANONICAS, p.orden).join();
 }
 /**
- * Arrastrar la cabecera `key` y soltarla sobre la de `destino` (D-NEXT): `key` ocupa el sitio de `destino`, y las de en
+ * Arrastrar la cabecera `key` y soltarla sobre la de `destino` (D-650): `key` ocupa el sitio de `destino`, y las de en
  * medio corren un puesto. Soltar a la derecha la deja DESPUÉS de `destino`; a la izquierda, ANTES — lo que se ve al
  * arrastrar. Se mueve en el orden de TODAS las columnas (las ocultas guardan su sitio), el mismo que usa «⚙ Columnas».
  */
@@ -360,7 +360,7 @@ export function ordenar(lista: readonly Cliente[], orden: Orden): Cliente[] {
 }
 
 /**
- * Ordena por VARIAS columnas en jerarquía (D-NEXT): manda la primera; la segunda solo decide entre las que empatan en la
+ * Ordena por VARIAS columnas en jerarquía (D-650): manda la primera; la segunda solo decide entre las que empatan en la
  * primera, y la tercera entre las que empatan en las dos. Cada nivel con su sentido. Lo que sigue empatado va por cuenta
  * y por id, como siempre, para que la lista no baile de una carga a otra.
  */
@@ -555,7 +555,7 @@ export function celda(c: Cliente, key: ClaveDeColumna, t: T): string {
   return textoDeValor(key, valorDeColumna(c, key), t);
 }
 
-/** Cómo se enseña un valor de una columna: lo que dice la celda, y lo que dice cada casilla del filtro de esa columna (D-NEXT). */
+/** Cómo se enseña un valor de una columna: lo que dice la celda, y lo que dice cada casilla del filtro de esa columna (D-650). */
 export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: T): string {
   switch (key) {
     case "store": return nombreDeTienda(v as string | null);

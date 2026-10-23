@@ -67,7 +67,7 @@ export function agrupaEnEmpresas(lista: readonly Cliente[], f: Filtro): Empresa[
 
 /**
  * Ordena por la fila que se enseña, con las mismas reglas que la lista por filas (`ordenar`). Un orden, o varios en
- * jerarquía (D-NEXT: el primero manda, los siguientes desempatan; `ordenarEnNiveles`).
+ * jerarquía (D-650: el primero manda, los siguientes desempatan; `ordenarEnNiveles`).
  */
 export function ordenarEmpresas(empresas: readonly Empresa[], orden: Orden | readonly Orden[]): Empresa[] {
   const porId = new Map(empresas.map((e) => [e.principal.id, e]));

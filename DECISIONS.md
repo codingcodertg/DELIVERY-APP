@@ -47074,7 +47074,7 @@ ella) y la barra de lado quedaba al final de las 1 074 filas. Es lo mismo que D-
 
 **No medido:** en el navegador.
 
-## D-NEXT · Clientes: filtro por columna, columnas que se arrastran, orden en tres niveles, y sin «Todos los estados»
+## D-650 · Clientes: filtro por columna, columnas que se arrastran, orden en tres niveles, y sin «Todos los estados»
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, sobre la lista de Clientes: «we need to filter columns and in the columns as
 well to do the dragging, so you can rearrange it by drag, and also the sorting thing, right? And that the sorting has

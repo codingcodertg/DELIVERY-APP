@@ -9,7 +9,7 @@ import {
   colocaColumnaDeClientes, columnasAPintar, columnasDelSelector, FILTRO_INICIAL, ordenarEnNiveles, PREFERENCIA_INICIAL, type Cliente, type Orden,
 } from "./reglas";
 
-/** Las cabeceras de Clientes (D-NEXT): orden en tres niveles, filtro por columna y arrastre de columnas. Datos inventados. */
+/** Las cabeceras de Clientes (D-650): orden en tres niveles, filtro por columna y arrastre de columnas. Datos inventados. */
 const t = (en: string, _es: string) => en;
 const base = (n: number, c: Partial<Cliente>): Cliente => ({
   id: n, store: "MCA", account: `Cuenta ${n}`, unified_account: null, house_no: null, added_batch: null, qb_status: null, activity_status: null,

@@ -6,7 +6,7 @@ import { ORDEN_INICIAL, textoDeValor, valorDeColumna, type ClaveDeColumna, type 
 type T = (en: string, es: string) => string;
 
 /**
- * Las cabeceras de la lista de Clientes (D-NEXT). El dueño, 2026-10-22: «we need to filter columns and in the columns
+ * Las cabeceras de la lista de Clientes (D-650). El dueño, 2026-10-22: «we need to filter columns and in the columns
  * as well to do the dragging, so you can rearrange it by drag, and also the sorting thing […] that the sorting has
  * hierarchies, like if you sort 1, 2, and 3, it will keep sorting by number 1, but it will be giving priority to number
  * 3. That will be the last one».

@@ -303,7 +303,7 @@ export function ColumnFilterMenu({
    * positioned ancestor the way the Columns picker menu does. */
   style?: React.CSSProperties;
   menuRef?: React.Ref<HTMLDivElement>;
-  /** Opciones de orden de más, bajo las de ↑ / ↓ (Clientes: «Añadir como siguiente orden», D-NEXT). Órdenes no pasa nada. */
+  /** Opciones de orden de más, bajo las de ↑ / ↓ (Clientes: «Añadir como siguiente orden», D-650). Órdenes no pasa nada. */
   masOrden?: React.ReactNode;
 }) {
   const [search, setSearch] = useState("");
