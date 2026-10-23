@@ -371,7 +371,7 @@ describe("6 · la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(fila).toContain("const fin = tiendaFinDe(laneKey);");
     expect(fila).toContain('if (!fin) return { otra: true, texto: t("(doesn’t return to base: the route ends at its last stop)", "(no vuelve a base: la ruta acaba en su última parada)") };');
     expect(fila).toContain('finDeLaFila(laneKey)?.otra ? t("Ends at", "Termina en") : t("Base: returns", "Base: regreso")');
-    expect(fila).toContain('{(cual === "regreso" ? finDeLaFila(laneKey)?.texto : null) ?? pickupAddressFor(laneKey) ??');
+    expect(fila).toContain('const direccion = (cual === "regreso" ? finDeLaFila(laneKey)?.texto : null) ?? pickupAddressFor(laneKey) ??');
   });
   it("sin la 166 el selector se apaga y dice por qué; la lectura en el navegador es `leeBasesDelDia`, y el demo lo guarda en la pestaña (`sessionStorage`)", () => {
     expect(pagina).toContain('if (basesDelDia.fuente === "sin_tabla") return t("Needs migration 166 (driver_day_bases)');
