@@ -4,7 +4,7 @@ import { createClient as createErpClient } from "@/lib/erp/supabase/server";
 import { leeConRespaldo } from "@/lib/customers/almacen";
 import { CLIENTES_DEMO } from "@/lib/customers/demo";
 import { filasDeLaEmpresa } from "@/lib/customers/empresas";
-import { clienteDeLaBase, type Cliente } from "@/lib/customers/reglas";
+import { clienteDeLaBase, puedeEditar, type Cliente } from "@/lib/customers/reglas";
 import type { UserRole } from "@/lib/types";
 import { BarraDeClientes } from "@/components/customers/barra";
 import { FichaCompleta } from "./FichaCompleta";
@@ -33,7 +33,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     return (
       <>
         <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" moduleAccess={null} />
-        <FichaCompleta cliente={c} hermanas={filasDeLaEmpresa(CLIENTES_DEMO, c)} />
+        <FichaCompleta cliente={c} hermanas={filasDeLaEmpresa(CLIENTES_DEMO, c)} puedeEditar />
       </>
     );
   }
@@ -65,7 +65,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} moduleAccess={moduleAccess} />
-      <FichaCompleta cliente={cliente} hermanas={hermanas} />
+      <FichaCompleta cliente={cliente} hermanas={hermanas} puedeEditar={puedeEditar(role)} />
     </>
   );
 }

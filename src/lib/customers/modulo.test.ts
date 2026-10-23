@@ -253,7 +253,15 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(pagina).toContain("if (!data) notFound();");
     expect(pagina).toContain("if (!Number.isInteger(n) || n <= 0) notFound();");
     expect(pagina).not.toMatch(/service_role|SUPABASE_SERVICE/i);
-    expect(pagina).toContain("<FichaCompleta cliente={cliente} hermanas={hermanas} />");
+    expect(pagina).toContain("<FichaCompleta cliente={cliente} hermanas={hermanas} puedeEditar={puedeEditar(role)} />");
+  });
+  it("«✏️ Editar» (D-648): solo para quien puede editar, abre la ficha lateral de la lista con ese cliente y quita el parámetro", () => {
+    expect(ficha).toContain("{puedeEditar && (");
+    expect(ficha).toContain("href={`/customers?editar=${c.id}`}");
+    expect(lista).toContain('new URLSearchParams(window.location.search).get("editar")');
+    expect(lista).toContain("if (c) setFicha({ tipo: \"ver\", cliente: c });");
+    expect(lista).toContain('if (editarPendiente == null || estado.tipo !== "listo") return;');
+    expect(lista).toContain("window.history.replaceState(null, \"\", window.location.pathname)");
   });
   it("la ficha pinta cada campo por grupo (camposPorGrupo/textoDeCampo), House # y la CONCATENATE, con el cascarón del ERP", () => {
     expect(ficha).toContain("camposPorGrupo().map(({ grupo, campos }) =>");

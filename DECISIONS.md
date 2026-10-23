@@ -47042,3 +47042,19 @@ llegada a la base, en la columna «Llegada». La dirección ocupa las columnas d
 **Prueba:** `hora-de-la-base.test.ts` (lee el fuente: la hora sale de `stat`, solo vuelve con base y fin, y el caso sin hora).
 
 **No medido:** en el navegador con una ruta medida.
+## D-648 · Clientes: «✏️ Editar» en la página del cliente
+
+**Fecha:** 2026-10-22. **Pedido:** el dueño, «add a edit button for the customer in the customer app».
+
+**Causa:** la página completa del cliente (`/customers/[id]`, D-634) solo se lee; editar se hacía en la ficha lateral de la
+lista, que se abre tocando la fila, sin ningún botón que lo dijera.
+
+**Qué cambia:** la página lleva «✏️ Editar» junto al nombre, solo para quien puede editar (`puedeEditar`, la regla de la
+lista). Lleva a `/customers?editar=<id>`: la lista, al cargar, abre la ficha lateral de ese cliente (la que ya edita y guarda
+con su botón) y quita el parámetro para que recargar no la vuelva a abrir.
+
+**Prueba:** `customers/modulo.test.ts`. En el demo a 390 y 1440 px: el botón sale (0 px de desborde) y al pulsarlo se abre la
+ficha de ese cliente con sus campos editables.
+
+**Visto de paso, sin tocar:** la burbuja de Ayuda (D-616, encima de todo) tapa el botón «Guardar» de la ficha lateral en el
+escritorio.

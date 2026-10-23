@@ -14,7 +14,7 @@ import {
  * título y pastillas, secciones en tarjetas, filas «etiqueta / valor»), con TODOS los campos del Excel por grupo. Solo
  * lectura: se corrige desde el cajón de la lista, que ya sabe quién puede y pide la fila de vuelta.
  */
-export function FichaCompleta({ cliente: c, hermanas = [] }: { cliente: Cliente; hermanas?: Cliente[] }) {
+export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false }: { cliente: Cliente; hermanas?: Cliente[]; puedeEditar?: boolean }) {
   const { t } = usePrefs();
   const tel = telUrl(c.phone);
   const mail = mailUrl(c.email);
@@ -30,6 +30,15 @@ export function FichaCompleta({ cliente: c, hermanas = [] }: { cliente: Cliente;
         )}
         <span className="font-mono text-sm text-slate-500">{nombreDeTienda(c.store)} · {String(valorDeColumna(c, "concatenate"))}</span>
         <span className="ml-auto text-xs text-slate-400">{t("updated", "actualizado")} {fecha(c.updated_at)}</span>
+        {/* «✏️ Editar» (D-648; el dueño: «add a edit button for the customer in the customer app»). Esta página solo se lee; se
+            edita en la ficha lateral de la lista, que ya guarda con su botón y sus reglas: el enlace la abre con este cliente. Solo
+            para quien puede editar (`puedeEditar`, la misma regla de la lista). */}
+        {puedeEditar && (
+          <Link href={`/customers?editar=${c.id}`} data-editar-cliente={c.id}
+            className="rounded-md bg-clay-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-clay-700">
+            ✏️ {t("Edit", "Editar")}
+          </Link>
+        )}
       </div>
 
       {/* Las tiendas de la misma empresa (189): cada una es su ficha, con su contacto y su vendedor. */}
