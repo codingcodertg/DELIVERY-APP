@@ -156,6 +156,15 @@ describe("la pantalla", () => {
     expect(props).toMatch(/\bdeliveries=\{deliveries\}/);
     expect(props).toMatch(/\bfecha=\{date\}/);
     expect(props).toMatch(/\breprogramarOrden=\{reprogramarOrden\}/);
+    // Cada orden se abre en la ficha del Gestor (D-646), la misma que abre una fila.
+    expect(props).toMatch(/\babrirOrden=\{setOpenOrder\}/);
+    expect(pagina).toContain("{openOrder && <OrderModal");
+  });
+
+  it("cada orden de la recomendación es un botón que la abre, con su código, factura, origen → destino y pallets (D-646)", () => {
+    expect(tarjeta).toContain("onClick={() => abrirOrden(d)}");
+    expect(tarjeta).toContain("data-abre-orden-recomendada={d.id}");
+    for (const pieza of ["`#${orderLabel(d)}`", "`INV ${d.invoice_num}`", "→ ${d.delivery_name", "palletsDeLaOrden(d)"]) expect(tarjeta).toContain(pieza);
   });
 
   it("solo en el Gestor viendo un día (no en «Ruta de hoy», ni en «Todas», ni en las atrasadas)", () => {
