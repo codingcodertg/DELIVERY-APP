@@ -125,7 +125,7 @@ export function mapRowsToDrafts(rows: string[][], hoy: string = todayISO()): Imp
       warnings.push(`Row ${r + 1}: skipped (no account, address or store).`);
       continue;
     }
-    // Ni domingo ni un año imposible (D-NEXT): la fila no entra, con su motivo. Sin caso especial: un archivo no lo pide.
+    // Ni domingo ni un año imposible (D-658): la fila no entra, con su motivo. Sin caso especial: un archivo no lo pide.
     const problema = problemaDeFecha(draft.delivery_date, { hoy });
     if (problema) {
       warnings.push(`Row ${r + 1}: skipped (delivery date ${draft.delivery_date}). ${textoDelProblema(problema, null, { hoy }).en}`);

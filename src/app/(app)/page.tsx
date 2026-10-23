@@ -567,7 +567,7 @@ export default function OrdersPage() {
   const bulkSetDate = (date: string) => {
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
     if (fechaDeEntregaPasada(date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
-    // Ni domingo ni un año imposible (D-NEXT), sin caso especial: la tanda no lleva casilla ni motivo.
+    // Ni domingo ni un año imposible (D-658), sin caso especial: la tanda no lleva casilla ni motivo.
     const problemaDeLaFecha = problemaAlAgendar(date, null, { rol: me?.role });
     if (problemaDeLaFecha) { const m = textoDelProblema(problemaDeLaFecha, me?.role, { sinCasilla: true }); notify(t(m.en, m.es)); return; }
     return cambioEnBloque(

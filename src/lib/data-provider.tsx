@@ -136,7 +136,7 @@ export interface DataState {
    * que cambia SOLO la fecha y deja la nota en el historial. Sin la función, como antes: `updateDelivery` + `addNote`.
    * `nota` es lo que escribió la persona, sin componer. `true` si quedó guardada.
    */
-  /** `caso`: la casilla «Caso especial: entregar en domingo» del cuadro (D-NEXT). Sin ella, el domingo no pasa. */
+  /** `caso`: la casilla «Caso especial: entregar en domingo» del cuadro (D-658). Sin ella, el domingo no pasa. */
   reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es", caso?: CasoEspecial) => Promise<boolean>;
   /**
    * El chofer busca una factura en TODAS las órdenes por recoger (D-625, 188: `buscar_factura_para_recoger`), también en
@@ -1676,7 +1676,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const reprogramarOrden = useCallback<DataState["reprogramarOrden"]>(
     async (id, fecha, nota, lang, caso) => {
       const antes = deliveries.find((c) => c.id === id)?.delivery_date ?? null;
-      // Ni domingo sin el caso especial ni un año imposible (D-NEXT). Aquí pasan el 📅 de cada fila y «Reprogramar a …»
+      // Ni domingo sin el caso especial ni un año imposible (D-658). Aquí pasan el 📅 de cada fila y «Reprogramar a …»
       // de Recomendaciones: un solo sitio para los dos. La función de la base (173) no lo mira.
       const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }

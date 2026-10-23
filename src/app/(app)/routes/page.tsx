@@ -693,7 +693,7 @@ export default function RoutesPage() {
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
     const actual = deliveries.find((d) => d.id === id)?.delivery_date;
     if (agendaEnDiaPasado(delivery_date, actual)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
-    // Ni domingo ni un año imposible (D-NEXT). La celda no tiene la casilla del caso especial: el aviso dice dónde está.
+    // Ni domingo ni un año imposible (D-658). La celda no tiene la casilla del caso especial: el aviso dice dónde está.
     const problemaDeLaFecha = problemaAlAgendar(delivery_date, actual, { rol: me?.role });
     if (problemaDeLaFecha) { const m = textoDelProblema(problemaDeLaFecha, me?.role, { sinCasilla: true }); notify(t(m.en, m.es)); return; }
     return updateDelivery(id, { delivery_date });

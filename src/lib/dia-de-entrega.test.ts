@@ -12,7 +12,7 @@ import { reprogramarIntertiendas } from "./reprogramar-intertiendas";
 import type { OrderTypeRules } from "./required";
 import { AvisoDeFecha } from "@/components/AvisoDeFecha";
 
-// D-NEXT. El dueño, 2026-10-23: «el domingo no se hacen entregas» y «domingo solamente con un overdrive para casos
+// D-658. El dueño, 2026-10-23: «el domingo no se hacen entregas» y «domingo solamente con un overdrive para casos
 // especiales». «Hoy» va SIEMPRE explícito: con la fecha real, el rango de años cambia solo con el calendario.
 const HOY = "2026-10-23"; // viernes
 const DOMINGO = "2026-09-27";

@@ -13,7 +13,7 @@ import type { Delivery } from "@/lib/types";
  * la fecha y deja la nota; sin ella, `updateDelivery` + `addNote` como antes). También en la ficha, arriba a la derecha.
  */
 export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notify, compacto = false }: {
-  /** El rol de quien reprograma: decide si sale la casilla del caso especial de domingo (D-NEXT). */
+  /** El rol de quien reprograma: decide si sale la casilla del caso especial de domingo (D-658). */
   rol: string | null | undefined;
   /** Solo el icono 📅, en línea con el número de factura (D-572): en una fila de tabla el botón con texto hacía la fila más alta. */
   compacto?: boolean;
@@ -29,7 +29,7 @@ export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notif
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [caso, setCaso] = useState<CasoEspecial>(SIN_CASO_ESPECIAL);
-  // Ni domingo sin el caso especial ni un año imposible (D-NEXT): el botón no se enciende, y el aviso dice por qué.
+  // Ni domingo sin el caso especial ni un año imposible (D-658): el botón no se enciende, y el aviso dice por qué.
   const valida = reprogramacionValida(fecha, pedido.delivery_date, hoy, nota) && !problemaAlAgendar(fecha, pedido.delivery_date, { rol, caso, hoy });
 
   const abrir = () => { setFecha(fechaPropuesta(pedido.delivery_date, hoy)); setNota(""); setCaso(SIN_CASO_ESPECIAL); setAbierto(true); };

@@ -3,7 +3,7 @@ import {
 } from "@/lib/dia-de-entrega";
 
 /**
- * El aviso debajo de un selector de fecha de entrega (D-NEXT): «Los domingos no hay entregas» y, para oficina, gerente
+ * El aviso debajo de un selector de fecha de entrega (D-658): «Los domingos no hay entregas» y, para oficina, gerente
  * y admin, la casilla «Caso especial: entregar en domingo» con su motivo. Un vendedor o un chofer leen «pídeselo a la
  * oficina», sin casilla. Una fecha con un año imposible lo dice aquí mismo. El selector nativo no deja marcar un día de
  * la semana como no disponible: por eso el aviso sale al elegirlo, y el guardado lo para (`problemaAlAgendar`).

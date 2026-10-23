@@ -553,7 +553,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // El demo no tiene la función `reprogramar_orden` (173) ni guard: la fecha y la nota, como antes (D-500).
     reprogramarOrden: async (id, fecha, nota, lang, caso) => {
       const antes = storeRef.current.deliveries.find((c) => c.id === id)?.delivery_date ?? null;
-      // La misma regla que el proveedor de verdad (D-NEXT): ni domingo sin el caso especial ni un año imposible.
+      // La misma regla que el proveedor de verdad (D-658): ni domingo sin el caso especial ni un año imposible.
       const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
       const ok = await updateDelivery(id, { delivery_date: fecha });

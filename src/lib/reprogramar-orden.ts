@@ -66,7 +66,7 @@ export function argumentosDeReprogramar(id: string, fecha: string, nota: string,
 export const ETAPAS_QUE_REPROGRAMA_ALMACEN: readonly string[] = ["approved", "fulfilling", "ready"];
 
 /** La fecha que se propone: el día siguiente al más tarde entre hoy y la fecha que ya tiene la orden; si cae en domingo,
- * el lunes (D-NEXT: el domingo no se entrega). */
+ * el lunes (D-658: el domingo no se entrega). */
 export function fechaPropuesta(fechaActual: string | null | undefined, hoy: string): string {
   const base = fechaActual && fechaActual.slice(0, 10) > hoy ? fechaActual.slice(0, 10) : hoy;
   return saltaDomingo(shiftDateISO(base, 1));

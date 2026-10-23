@@ -29491,7 +29491,7 @@ añadir `accounting` a `ROLES_LISTA_DE_SU_TIENDA`.
 
 > **⚠ Reemplazada por D-430** (2026-09-28): el dueño la apagó — *«ya no quiero que las ordenes outdated se sigan reschedueling»*. El cron ya no está en `vercel.json`; la ruta y su ensayo siguen en el código por si se vuelve a encender.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): si la ruta se vuelve a llamar un domingo, mueve al lunes y no a hoy (el 2026-09-27 dejó 27 órdenes en domingo).
+> **Reemplazada en parte por D-658** (2026-10-23): si la ruta se vuelve a llamar un domingo, mueve al lunes y no a hoy (el 2026-09-27 dejó 27 órdenes en domingo).
 
 **Fecha:** 2026-09-26 · **Versión:** la asigna el orquestador al fusionar (Entregas; es código de servidor y
 `vercel.json`, sin bundle nuevo) · **Sin migración.**
@@ -39358,7 +39358,7 @@ No visto en navegador: `tsc` y vitest.
 > ventas puede usarlo en SU orden (borrador a lista), y guarda por la función de la base `reprogramar_orden` (173) en vez
 > de `updateDelivery` + `addNote` (que quedan como respaldo mientras la función no exista). El chofer sigue sin él.
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): la fecha propuesta salta el domingo (al lunes), y el cuadro no guarda un domingo salvo el «Caso especial» de oficina, gerente y admin, con motivo y nota en el historial.
+> **Reemplazada en parte por D-658** (2026-10-23): la fecha propuesta salta el domingo (al lunes), y el cuadro no guarda un domingo salvo el «Caso especial» de oficina, gerente y admin, con motivo y nota en el historial.
 
 **Fecha:** 2026-10-08 · **Versión:** deliveries (deliveries 1.272.0, repo 1.370.0) · **Sin migración.** · Hecho directo por el orquestador en `release-d500`.
 
@@ -47462,7 +47462,7 @@ desborde en página, ficha y tarjeta.
 - El aviso de hora de corte en el navegador (las pruebas lo cubren con la hora fija).
 - De paso, en los datos: 27 órdenes de esos 30 días tienen `delivery_date` en domingo. No se miró por qué.
 
-## D-NEXT · El domingo no hay entregas: bloqueado al poner la fecha, con «Caso especial» solo para oficina, gerente y admin; y los años imposibles, fuera
+## D-658 · El domingo no hay entregas: bloqueado al poner la fecha, con «Caso especial» solo para oficina, gerente y admin; y los años imposibles, fuera
 
 **Fecha:** 2026-10-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración** (a propósito, ver abajo). · Hecho por un worker en `domingo-con-excepcion`. **Reemplaza en parte a D-406 y a D-500** (llevan su nota).
 

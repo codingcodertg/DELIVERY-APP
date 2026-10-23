@@ -182,7 +182,7 @@ export function OrderModal({
   const alcance: AlcanceDeEdicion = alcanceDeEdicion({ rol: me.role, miId: me.id, orden: existing });
   const editable = isNew || (startEditing && alcance !== "nada");
   const [editing, setEditing] = useState(editable);
-  // «Caso especial: entregar en domingo» (D-NEXT): la casilla y el motivo del aviso de fecha. Solo cuentan para oficina,
+  // «Caso especial: entregar en domingo» (D-658): la casilla y el motivo del aviso de fecha. Solo cuentan para oficina,
   // gerente y admin (`problemaAlAgendar`); tras guardar, la nota al historial (`anotaDomingo`).
   const [casoDomingo, setCasoDomingo] = useState<CasoEspecial>(SIN_CASO_ESPECIAL);
   // A rep assigned to a store starts new orders there (still changeable).
@@ -615,7 +615,7 @@ export function OrderModal({
     return true;
   };
 
-  /** Domingo o año imposible al PONER la fecha (D-NEXT): avisa y dice que no. La misma regla para todos los caminos de la ficha. */
+  /** Domingo o año imposible al PONER la fecha (D-658): avisa y dice que no. La misma regla para todos los caminos de la ficha. */
   const fechaNoVale = (nueva: string | null | undefined): boolean => {
     const p = problemaAlAgendar(nueva, existing?.delivery_date, { rol: me.role, caso: casoDomingo });
     if (!p) return false;
@@ -623,7 +623,7 @@ export function OrderModal({
     notify(t(m.en, m.es));
     return true;
   };
-  /** Tras guardar una fecha en domingo con el caso especial: la nota en el historial de la orden (D-NEXT). */
+  /** Tras guardar una fecha en domingo con el caso especial: la nota en el historial de la orden (D-658). */
   const anotaDomingo = async (id: string, nueva: string | null | undefined, actual: string | null | undefined) => {
     if (usaCasoEspecial(nueva, actual, { rol: me.role, caso: casoDomingo })) await addNote(id, notaDeDomingo(me.full_name, casoDomingo.motivo, lang));
   };
@@ -634,7 +634,7 @@ export function OrderModal({
     if (blockSubmit(draft)) return false;
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados». Tope duro, sin «¿continuar?».
     if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }
-    // Ni domingo (salvo el caso especial de la oficina) ni un año imposible (D-NEXT). Tope duro, sin «¿continuar?».
+    // Ni domingo (salvo el caso especial de la oficina) ni un año imposible (D-658). Tope duro, sin «¿continuar?».
     if (fechaNoVale(draft.delivery_date)) return false;
     // La tarifa mínima de la tienda, para ventas (D-546). Tope duro, sin «¿continuar?»: es lo que el dueño quitó.
     const bajoMinimo = bloqueoPorTarifaMinima({ rol: me.role, tienda: draft.store, tiendas: settings.stores, tipo: draft.order_type, reglas: settings.order_type_rules, tarifa: draft.delivery_fee });
@@ -829,7 +829,7 @@ export function OrderModal({
       return;
     }
     // Un borrador no pasa por `passesChecks`, pero su fecha tampoco puede ser domingo (sin el caso especial) ni de un año
-    // imposible (D-NEXT): enviarlo después no vuelve a escribir la fecha.
+    // imposible (D-658): enviarlo después no vuelve a escribir la fecha.
     if ((payload.stage ?? "draft") === "draft" && fechaNoVale(payload.delivery_date)) return;
     // Completas y dentro de la región, también en un borrador (D-589). Con `busy`: puede ir a buscar el punto.
     setBusy(true);
@@ -4178,7 +4178,7 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, mi
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   /** Tope inferior del selector (fechas: hoy, D-532). El selector no deja elegir antes; lo escrito a mano lo para `passesChecks`. */
   min?: string;
-  /** Tope superior (fechas: el último año que se acepta, D-NEXT). */
+  /** Tope superior (fechas: el último año que se acepta, D-658). */
   max?: string;
 }) {
   return (

@@ -2,7 +2,7 @@ import { ordersLikeOfficeManager } from "@/lib/constants";
 import { todayISO } from "@/lib/utils";
 
 // ============================================================
-// El domingo no se entrega, y una fecha tiene que ser posible (D-NEXT).
+// El domingo no se entrega, y una fecha tiene que ser posible (D-658).
 //
 // El dueño, 2026-10-23: «el domingo no se hacen entregas» y «domingo solamente con un overdrive para casos especiales».
 // Medido en producción ese día: 30 órdenes vivas con entrega en domingo (27 del domingo 2026-09-27, del cron D-406), una
