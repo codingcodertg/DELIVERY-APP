@@ -46984,3 +46984,18 @@ en todas, donde en Entregas le ganaba el 8 px 12 px de `.tab`).
 no se pudo medir si caben con 16. Las pestañas de Leads, Encuestas y el Cotizador siguen dentro de la pantalla, no en la
 barra: son estado de la pantalla (botones), no rutas, y moverlas a la barra es partir cada componente. Los nombres de las
 apps siguen siendo los suyos («RTG Leads», «RTG Clientes»…; el de Entregas sale de Ajustes).
+
+## D-644 · Inventario abre siempre en el Catálogo: la casilla del mapa del hub llevaba a la pestaña de conteos
+
+**Fecha:** 2026-10-22. **Pedido:** el dueño, «en inventory catalog is default view»; al preguntarle, «Abrir en Catálogo»:
+al entrar a Inventario le salía otra pantalla.
+
+**Causa:** la tarjeta del hub (`MODULES`) y `/erp` ya abren `/erp/catalog`, pero la casilla «Inventario ERP» del mapa de
+la empresa (`mapa-de-apps.ts`) abría `/erp/inventory`. Para el admin y el gerente esa ruta es la pestaña de conteos y
+ajustes; a los demás su página los devuelve al catálogo, así que solo lo veían ellos.
+
+**Qué cambia:** la casilla abre `/erp/catalog` y se llama «Inventario» / «Inventory», como la app desde D-622.
+
+**Prueba:** `mapa-de-apps.test.ts`: la casilla abre el catálogo al gerente y al admin con el módulo.
+
+**No medido:** en el navegador. No busqué otros enlaces a Inventario fuera de `src` (marcadores, correos).
