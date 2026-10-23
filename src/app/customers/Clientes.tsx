@@ -57,7 +57,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
 
-  // «✏️ Editar» de la página del cliente (D-NEXT) llega con `?editar=<id>`: al cargar la lista se abre la ficha lateral de ese
+  // «✏️ Editar» de la página del cliente (D-648) llega con `?editar=<id>`: al cargar la lista se abre la ficha lateral de ese
   // cliente —la que edita y guarda— y el parámetro se quita, para que recargar no la vuelva a abrir.
   const [editarPendiente, setEditarPendiente] = useState<number | null>(null);
   useEffect(() => {

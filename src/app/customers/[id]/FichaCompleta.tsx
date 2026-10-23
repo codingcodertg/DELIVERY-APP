@@ -30,7 +30,7 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false }
         )}
         <span className="font-mono text-sm text-slate-500">{nombreDeTienda(c.store)} · {String(valorDeColumna(c, "concatenate"))}</span>
         <span className="ml-auto text-xs text-slate-400">{t("updated", "actualizado")} {fecha(c.updated_at)}</span>
-        {/* «✏️ Editar» (D-NEXT; el dueño: «add a edit button for the customer in the customer app»). Esta página solo se lee; se
+        {/* «✏️ Editar» (D-648; el dueño: «add a edit button for the customer in the customer app»). Esta página solo se lee; se
             edita en la ficha lateral de la lista, que ya guarda con su botón y sus reglas: el enlace la abre con este cliente. Solo
             para quien puede editar (`puedeEditar`, la misma regla de la lista). */}
         {puedeEditar && (

@@ -255,7 +255,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(pagina).not.toMatch(/service_role|SUPABASE_SERVICE/i);
     expect(pagina).toContain("<FichaCompleta cliente={cliente} hermanas={hermanas} puedeEditar={puedeEditar(role)} />");
   });
-  it("«✏️ Editar» (D-NEXT): solo para quien puede editar, abre la ficha lateral de la lista con ese cliente y quita el parámetro", () => {
+  it("«✏️ Editar» (D-648): solo para quien puede editar, abre la ficha lateral de la lista con ese cliente y quita el parámetro", () => {
     expect(ficha).toContain("{puedeEditar && (");
     expect(ficha).toContain("href={`/customers?editar=${c.id}`}");
     expect(lista).toContain('new URLSearchParams(window.location.search).get("editar")');

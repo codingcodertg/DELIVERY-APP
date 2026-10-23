@@ -47042,7 +47042,7 @@ llegada a la base, en la columna «Llegada». La dirección ocupa las columnas d
 **Prueba:** `hora-de-la-base.test.ts` (lee el fuente: la hora sale de `stat`, solo vuelve con base y fin, y el caso sin hora).
 
 **No medido:** en el navegador con una ruta medida.
-## D-NEXT · Clientes: «✏️ Editar» en la página del cliente
+## D-648 · Clientes: «✏️ Editar» en la página del cliente
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, «add a edit button for the customer in the customer app».
 
