@@ -313,12 +313,13 @@ describe("5, 6 y 9 · la barra de vistas de abajo lleva el filtro de chofer, los
   });
   it("5 · «Cuadrícula» está junto a «Horario», con su función y su título; arriba queda solo «Ocultar mapa y choferes»", () => {
     expect(pagina.split("setWideRoutes((v) => !v)").length - 1).toBe(1);
-    expect(barra).toContain('{tab === "routes" && ( <button className="btn btn-ghost btn-sm" data-cuadricula aria-pressed={!wideRoutes} onClick={() => setWideRoutes((v) => !v)} title={t("Toggle full-width route cards vs a compact grid", "Alternar tarjetas de ruta a ancho completo o cuadrícula compacta")}>');
+    // Nota D-NEXT: en la vista eficiente no sale (allí no hay compactas ni anchas).
+    expect(barra).toContain('{tab === "routes" && !eficiente && ( <button className="btn btn-ghost btn-sm" data-cuadricula aria-pressed={!wideRoutes} onClick={() => setWideRoutes((v) => !v)} title={t("Toggle full-width route cards vs a compact grid", "Alternar tarjetas de ruta a ancho completo o cuadrícula compacta")}>');
     expect(barra).toContain('{wideRoutes ? "▦ " + t("Grid", "Cuadrícula") : "▭ " + t("Wide", "Ancho")}');
     // D-526: nace en Cuadrícula («make grid view in route manager default»).
     expect(pagina).toContain("const [wideRoutes, setWideRoutes] = useState(false);");
     // D-526: en cuadrícula, las de una fila miden lo mismo («everyhting should be equal»).
-    expect(pagina).toContain('gap: 14, alignItems: wideRoutes ? "start" : "stretch" }}>');
+    expect(pagina).toContain('gap: eficiente ? 8 : 14, alignItems: eficiente || wideRoutes ? "start" : "stretch" }}>'); // Nota D-NEXT
   });
   it("6 · la franja de cuatro casillas ya no está, y sus cuatro números viven en las pestañas", () => {
     for (const muerto of ['label: t("Scheduled", "Programadas")', 'label: t("Unscheduled", "Sin programar")', 'label: t("Total", "Total")', 'label: t("Routes", "Rutas"), target']) expect(pagina, muerto).not.toContain(muerto);
