@@ -47058,7 +47058,7 @@ ficha de ese cliente con sus campos editables.
 
 **Visto de paso, sin tocar:** la burbuja de Ayuda (D-616, encima de todo) tapa el botón «Guardar» de la ficha lateral en el
 escritorio.
-## D-NEXT · Clientes: cabecera bloqueada y barra de desplazamiento encima de la cabecera, como Órdenes
+## D-649 · Clientes: cabecera bloqueada y barra de desplazamiento encima de la cabecera, como Órdenes
 
 **Fecha:** 2026-10-22. **Pedido:** Roberto Rodriguez Jr (Admin), solicitud de ayuda desde /customers: «1) Need to be able to
 scroll down and still see headers. 2) Need to be able to scroll to the right but the bar is at the very bottom so probably

@@ -240,7 +240,7 @@ describe("la 182 · las tres del CRM", () => {
   });
 });
 
-describe("la lista: cabecera bloqueada y barra de arriba (D-NEXT, como Órdenes en D-398)", () => {
+describe("la lista: cabecera bloqueada y barra de arriba (D-649, como Órdenes en D-398)", () => {
   const lista = readFileSync("src/app/customers/Clientes.tsx", "utf8");
   it("la caja tiene alto propio y se desplaza ella; la cabecera se pega arriba; la barra de arriba mueve ESA caja", () => {
     expect(lista).toContain('<div ref={cajaRef} data-caja-de-clientes className="max-h-[calc(100dvh-150px)] overflow-auto');

@@ -109,7 +109,7 @@ describe("nadie más se cuelga del borde de arriba a lo ancho", () => {
     // cabecera `sticky top-0` dentro.
     "src/components/erp/request-drawer.tsx": 1,
     // Y la ficha de Clientes (migración 180) copia el mismo cajón: panel `overflow-y-auto` y su cabecera
-    // `sticky top-0` dentro; el banner queda fuera de esa caja. Y la cabecera de la tabla (D-NEXT, cabecera bloqueada como
+    // `sticky top-0` dentro; el banner queda fuera de esa caja. Y la cabecera de la tabla (D-649, cabecera bloqueada como
     // Órdenes): se pega al borde de su caja `max-h-[calc(100dvh-150px)] overflow-auto`, no al de la ventana.
     "src/app/customers/Clientes.tsx": 2,
     // `max-h-[70vh] overflow-auto` en la cola de revisión.

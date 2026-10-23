@@ -196,7 +196,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
       )}
       {estado.tipo === "error" && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{t("Could not load the customers: ", "No se pudieron cargar los clientes: ")}{estado.texto}</p>}
 
-      {/* Cabecera bloqueada y barra de arriba (D-NEXT), como Órdenes desde D-398. Roberto: «Need to be able to scroll down and
+      {/* Cabecera bloqueada y barra de arriba (D-649), como Órdenes desde D-398. Roberto: «Need to be able to scroll down and
           still see headers» y «the bar is at the very bottom so probably better to have the bar above the locked headers». La
           caja lleva alto propio (el de la ventana menos 150 px, el de `.tbl-caja`): se desplaza ella en las dos direcciones, la
           cabecera se pega a su borde de arriba (`sticky top-0`) y su barra de abajo queda en pantalla; `BarraSuperior` pone
