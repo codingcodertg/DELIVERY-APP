@@ -46985,7 +46985,7 @@ no se pudo medir si caben con 16. Las pestañas de Leads, Encuestas y el Cotizad
 barra: son estado de la pantalla (botones), no rutas, y moverlas a la barra es partir cada componente. Los nombres de las
 apps siguen siendo los suyos («RTG Leads», «RTG Clientes»…; el de Entregas sale de Ajustes).
 
-## D-NEXT · Inventario abre siempre en el Catálogo: la casilla del mapa del hub llevaba a la pestaña de conteos
+## D-644 · Inventario abre siempre en el Catálogo: la casilla del mapa del hub llevaba a la pestaña de conteos
 
 **Fecha:** 2026-10-22. **Pedido:** el dueño, «en inventory catalog is default view»; al preguntarle, «Abrir en Catálogo»:
 al entrar a Inventario le salía otra pantalla.

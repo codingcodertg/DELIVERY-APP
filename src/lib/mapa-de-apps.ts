@@ -86,7 +86,7 @@ export const CASILLAS: Casilla[] = [
   { key: "receive-inventory", panel: "vendors", fila: 1, columna: 4, emoji: "📥", label_en: "Receive Inventory", label_es: "Recibir inventario", existe: true, destino: { tipo: "modulo", clave: "erp", ruta: "/erp/purchasing/receiving", requiere: "compras-erp" } },
   { key: "enter-bills", panel: "vendors", fila: 1, columna: 5, emoji: "📑", label_en: "Enter Bills", label_es: "Registrar facturas", existe: false },
   { key: "pay-bills", panel: "vendors", fila: 1, columna: 6, emoji: "💸", label_en: "Pay Bills", label_es: "Pagar facturas", existe: false },
-  // Abre el CATÁLOGO, como la tarjeta del hub y /erp (D-NEXT): el dueño, «en inventory catalog is default view». Con
+  // Abre el CATÁLOGO, como la tarjeta del hub y /erp (D-644): el dueño, «en inventory catalog is default view». Con
   // /erp/inventory, el admin y el gerente caían en la pestaña de conteos. Y se llama «Inventario», como la app (D-622).
   { key: "erp-inventory", panel: "vendors", fila: 2, columna: 3, emoji: "🧱", label_en: "Inventory", label_es: "Inventario", existe: true, destino: { tipo: "modulo", clave: "erp", ruta: "/erp/catalog" } },
   // ---- Clientes: Sales Order encima de Quote Builder; Refunds & Credits arriba a la derecha; fila 2, el flujo de venta.

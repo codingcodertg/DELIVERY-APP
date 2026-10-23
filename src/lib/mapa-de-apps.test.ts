@@ -188,7 +188,7 @@ describe("el acceso es el del hub de antes", () => {
     expect(estado("erp-inventory", ventas)).toEqual({ estado: "sin-acceso" });
   });
 
-  it("Inventario abre el CATÁLOGO (D-NEXT) con el módulo, y sin él no (ni al admin, igual que la rejilla de antes)", () => {
+  it("Inventario abre el CATÁLOGO (D-644) con el módulo, y sin él no (ni al admin, igual que la rejilla de antes)", () => {
     expect(estado("erp-inventory", al("manager", ["erp"]))).toMatchObject({ estado: "abierta", href: "/erp/catalog" });
     expect(estado("erp-inventory", al("admin", ["erp"]))).toMatchObject({ estado: "abierta", href: "/erp/catalog" });
     expect(estado("erp-inventory", al("admin", ["deliveries"]))).toEqual({ estado: "sin-acceso" });
