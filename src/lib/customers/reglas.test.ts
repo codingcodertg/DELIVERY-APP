@@ -353,7 +353,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // Los rótulos de «Estado e historial» de la plantilla.
     expect(filasPorGrupo().find((g) => g.grupo.key === "estado")!.filas.map((f) => f.en)).toEqual(
       ["Current Status (store)", "Current Status (group)", "Historical Type (store)", "Historical Type (group)", "QuickBooks Status"]);
-    // D-NEXT: «Credit & terms» acaba con el «Type» (la «Activity» del Excel).
+    // D-669: «Credit & terms» acaba con el «Type» (la «Activity» del Excel).
     const credito = filasPorGrupo().find((g) => g.grupo.key === "credito")!.filas;
     expect(credito.map((f) => [f.key, f.en])).toEqual([["terms", "Terms"], ["credit_limit", "Credit limit"], ["euler_limit", "Euler limit"], ["account_no", "Account / credit"], ["activity_status", "Type"]]);
     expect(credito.at(-1)?.es).toBe("Tipo");
@@ -373,7 +373,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
   it("D-660: «Campos ocultos» lleva Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE), en ese orden; House # y la CONCATENATE se leen", () => {
     expect(GRUPO_OCULTO).toEqual({ key: "ocultos", en: "Hidden fields", es: "Campos ocultos" });
     const ocultas = filasOcultas();
-    // D-NEXT: sin la actividad (D-662 la ponía detrás): es el «Type» de «Credit & terms».
+    // D-669: sin la actividad (D-662 la ponía detrás): es el «Type» de «Credit & terms».
     expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate"]);
     expect(ocultas.filter((f) => f.campo === null).map((f) => f.key)).toEqual(["house_no", "concatenate"]);
     // «Añadido (tanda)» se sigue corrigiendo: lleva SU campo.

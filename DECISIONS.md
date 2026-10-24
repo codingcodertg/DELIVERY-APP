@@ -47800,7 +47800,7 @@ que el enlace `rcapp://` abra la app en el ordenador de cada uno (es el de RR. H
 contactos sacados de las columnas, pero guardar un cambio de contactos falla y se dice. Al juntar dos filas de una
 tienda, los contactos de la que se archiva no se suman (lo distinto de su espejo va a las notas, como hasta hoy).
 
-## D-NEXT · Clientes: la «Activity» es el «Type» de «Crédito y términos», y «Historical Status» pasa a «Historical Type»
+## D-669 · Clientes: la «Activity» es el «Type» de «Crédito y términos», y «Historical Status» pasa a «Historical Type»
 
 **Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con captura de la ficha de A & O DESBUILD, LLC (Clientes
 0.16.0): «1) Move "Activity" under Credit & Terms and rename to "Type". 2) Rename to Historical Type instead of Status».
