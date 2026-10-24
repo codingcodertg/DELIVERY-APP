@@ -151,7 +151,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     // D-660: en el alta, «Campos ocultos» solo lleva lo que se escribe: Añadido (tanda).
     expect(ocultos(html)).toContain('data-campo="added_batch"');
   });
-  it("D-NEXT: en el alta la tienda son casillas (una por tienda y «Todas»), sin desplegable; al editar, el desplegable de siempre", () => {
+  it("D-664: en el alta la tienda son casillas (una por tienda y «Todas»), sin desplegable; al editar, el desplegable de siempre", () => {
     const alta = pinta(null);
     const grupo = /<div role="group"[^>]*data-tiendas-del-alta="true">[\s\S]*?<\/div>/.exec(alta)?.[0] ?? "";
     expect(grupo).not.toBe("");

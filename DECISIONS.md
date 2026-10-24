@@ -47632,7 +47632,7 @@ chofer» es, por ahora, que el chofer la devuelva o se lo pase a la oficina.
 `acciones-de-la-ficha.test.ts` (Kevin ve «Cancelar orden» en su orden preparándose y lista; no en la de otro ni en la recogida).
 
 **No medido:** anular de verdad como vendedor en producción.
-## D-NEXT · Clientes: el alta en varias tiendas (casillas «Todas» y una por tienda)
+## D-664 · Clientes: el alta en varias tiendas (casillas «Todas» y una por tienda)
 
 **Fecha:** 2026-10-23. **Pedido:** el dueño, con captura del alta «+ Nuevo cliente» y el desplegable «Store *» abierto
 (RDZ Brownsville, Edinburg, McAllen, Pharr, Weslaco): «here add selection box so it can select multiple stores or all».

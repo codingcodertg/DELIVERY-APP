@@ -5,7 +5,7 @@ import { nombreDeTienda, TIENDAS, type Cliente, type Parche } from "./reglas";
 type T = (en: string, es: string) => string;
 
 /**
- * El alta en varias tiendas (D-NEXT). El dueño, con el desplegable «Store *» del alta abierto: «here add selection box so
+ * El alta en varias tiendas (D-664). El dueño, con el desplegable «Store *» del alta abierto: «here add selection box so
  * it can select multiple stores or all». Desde D-633 (migración 189) un cliente es UNA fila por tienda y las de la misma
  * empresa comparten `company_id`: dar de alta en tres tiendas es crear tres filas con los mismos datos y la MISMA
  * empresa nueva, y la lista las enseña como una empresa con sus pastillas.

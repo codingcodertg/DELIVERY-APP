@@ -7,7 +7,7 @@ import { agrupaEnEmpresas } from "./empresas";
 import { clienteDeLaBase, nombreDeTienda, TIENDAS, type Cliente, type Parche } from "./reglas";
 
 /**
- * D-NEXT (2026-10-23). El dueño, con el desplegable «Store *» del alta abierto: «here add selection box so it can select
+ * D-664 (2026-10-23). El dueño, con el desplegable «Store *» del alta abierto: «here add selection box so it can select
  * multiple stores or all». Una fila por tienda marcada, mismos datos, MISMA empresa nueva; la que choca no se crea y se
  * dice cuál. Las tiendas, por referencia a `TIENDAS` (no escritas a mano).
  */

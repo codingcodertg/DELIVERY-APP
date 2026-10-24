@@ -21,7 +21,7 @@ export interface AlmacenDeClientes {
   guardar(id: number, parche: Parche): Promise<Res<Cliente>>;
   crear(fila: Parche): Promise<Res<Cliente>>;
   /**
-   * El alta en varias tiendas (D-NEXT): una fila por tienda (`filasDelAlta`). La que choca (la cuenta ya existe en esa
+   * El alta en varias tiendas (D-664): una fila por tienda (`filasDelAlta`). La que choca (la cuenta ya existe en esa
    * tienda) no se crea y se dice cuál; las demás, sí. Si no se crea ninguna, el fallo de siempre.
    */
   crearVarias(filas: Parche[]): Promise<Res<ResultadoDelAlta>>;
@@ -119,7 +119,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       if (!data) return sinFila();
       return { ok: true, valor: clienteDeLaBase(data as unknown as Record<string, unknown>) };
     },
-    // D-NEXT: primero UNA llamada con todas las filas. Si una choca (23505) la sentencia entera no escribe nada (es una
+    // D-664: primero UNA llamada con todas las filas. Si una choca (23505) la sentencia entera no escribe nada (es una
     // sola sentencia: todo o nada), y entonces se repite una por una para saber cuál choca y crear las demás.
     async crearVarias(filas) {
       if (filas.length === 0) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "no store chosen" };

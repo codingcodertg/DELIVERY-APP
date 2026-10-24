@@ -148,7 +148,7 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; v
  *
  * Arriba va el NOMBRE de la cuenta y su estado, no «tienda · tienda+cuenta» (el dueño: «dice RDC McAllen y después […]
  * como un ID»); la tienda se ve en las pastillas de tiendas, y ahí se cambia. Ni «Cuenta» ni «Tienda» se repiten abajo.
- * `cliente` null = alta. En el alta la tienda son CASILLAS (D-NEXT): una por tienda y «Todas»; se crea una fila por tienda
+ * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
 export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
@@ -157,7 +157,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   hermanas: Cliente[];
   onCambia: (c: Cliente) => void;
   puedeEditar: boolean; almacen: AlmacenDeClientes; onClose: () => void;
-  /** La fila guardada (la que se enseña) y, en un alta en varias tiendas, TODAS las creadas (D-NEXT). */
+  /** La fila guardada (la que se enseña) y, en un alta en varias tiendas, TODAS las creadas (D-664). */
   onGuardado: (c: Cliente, creados?: Cliente[]) => void;
   /** «✏️ Editar» de la página del cliente (D-648) llega aquí: la ventana abre ya editando. */
   editarAlAbrir?: boolean;
@@ -170,7 +170,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   const [editando, setEditando] = useState(puedeEditar && (nuevo || editarAlAbrir));
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<{ tono: "rojo" | "verde" | "ambar"; texto: string } | null>(null);
-  // D-NEXT: las tiendas marcadas en el alta. `form.store` lleva la primera, para que «sin tienda» siga siendo un error.
+  // D-664: las tiendas marcadas en el alta. `form.store` lleva la primera, para que «sin tienda» siga siendo un error.
   const [tiendasAlta, setTiendasAlta] = useState<string[]>([]);
   const marcaTiendas = (marcadas: string[]) => {
     const orden = tiendasDelAlta(marcadas);
@@ -229,7 +229,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
     return true;
   };
 
-  // D-NEXT: el alta crea una fila por tienda marcada, con los mismos datos y la MISMA empresa nueva (como «Separar»). La
+  // D-664: el alta crea una fila por tienda marcada, con los mismos datos y la MISMA empresa nueva (como «Separar»). La
   // que choca no se crea y se dice cuál; las demás, sí. Se enseña la de la primera tienda marcada que se creó.
   const crearEnLasTiendas = async () => {
     setOcupado(true);
@@ -276,7 +276,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   const mail = mailUrl(form.email ?? null);
   const tiendas = nuevo ? [] : hermanas.length > 0 ? hermanas : [cliente];
 
-  // El alta (D-NEXT): una casilla por tienda y «Todas», en el sitio de las pastillas. Al menos una (si no, en rojo).
+  // El alta (D-664): una casilla por tienda y «Todas», en el sitio de las pastillas. Al menos una (si no, en rojo).
   const todasMarcadas = TIENDAS.every((x) => tiendasAlta.includes(x.code));
   const casilla = (marcada: boolean) =>
     cn("flex cursor-pointer select-none items-center gap-1.5 rounded-full border px-3 py-1 text-xs",
