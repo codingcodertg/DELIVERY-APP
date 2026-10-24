@@ -29,7 +29,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * `/customers/[id]`. Con `editando`, cada campo que se corrige es su control; House # y la CONCATENATE se leen siempre.
  * Sin `cliente` (un alta) no hay nada que leer: solo salen los controles.
  *
- * Debajo, «🔒 Campos ocultos» (D-NEXT): Añadido (tanda), N.º House y la CONCATENATE, en un `<details>` que abre
+ * Debajo, «🔒 Campos ocultos» (D-660): Añadido (tanda), N.º House y la CONCATENATE, en un `<details>` que abre
  * PLEGADO. Editando, «Añadido (tanda)» se corrige ahí dentro.
  */
 export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, t }: {
@@ -68,7 +68,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
           </section>
         ))}
       </div>
-      {/* D-NEXT: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. */}
+      {/* D-660: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. */}
       {ocultas.length > 0 && (
         <details className="group rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-3" data-campos-ocultos>
           <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">

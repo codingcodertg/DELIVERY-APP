@@ -36,7 +36,7 @@ const tarjeta = (html: string, g: string) => {
   return html.slice(i, j < 0 ? undefined : j);
 };
 const grupos = (html: string) => [...html.matchAll(/data-grupo="(\w+)"/g)].map((m) => m[1]);
-/** D-NEXT: la etiqueta de apertura del apartado «Campos ocultos», y el apartado entero (hasta su `</details>`). */
+/** D-660: la etiqueta de apertura del apartado «Campos ocultos», y el apartado entero (hasta su `</details>`). */
 const etiquetaOculta = (html: string) => /<details[^>]*data-campos-ocultos="true"[^>]*>/.exec(html)?.[0] ?? "";
 const ocultos = (html: string) => {
   const i = html.indexOf(etiquetaOculta(html));
@@ -85,7 +85,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(html).toContain('data-tiendas="1"');
     expect(html.split(nombreDeTienda(unaTienda.store)).length - 1).toBe(1);
   });
-  it("D-NEXT: Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE) van en «🔒 Campos ocultos», PLEGADO, con su valor, y no en «Otros»", () => {
+  it("D-660: Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE) van en «🔒 Campos ocultos», PLEGADO, con su valor, y no en «Otros»", () => {
     const html = pinta(dosTiendas);
     // Plegado al abrir: un <details> sin `open`.
     expect(etiquetaOculta(html)).not.toMatch(/\sopen[\s=>]/);
@@ -119,7 +119,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(editando).toContain("data-guardar-ficha");
     // Los campos de las tarjetas son controles; House # y la CONCATENATE se siguen leyendo.
     expect(tarjeta(editando, "contacto")).toContain("<input");
-    // D-NEXT: dentro de «Campos ocultos», que sigue plegado: Añadido (tanda) es su control, y las otras dos se leen.
+    // D-660: dentro de «Campos ocultos», que sigue plegado: Añadido (tanda) es su control, y las otras dos se leen.
     expect(etiquetaOculta(editando)).not.toMatch(/\sopen[\s=>]/);
     const oculto = ocultos(editando);
     expect(oculto).toMatch(/data-campo="added_batch"><span[^>]*>Añadido \(tanda\)<\/span><input/);
@@ -144,7 +144,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(html).toContain("Tienda *");
     expect(html).toContain(">Crear<");
     expect(html).not.toContain('data-campo="house_no"');
-    // D-NEXT: en el alta, «Campos ocultos» solo lleva lo que se escribe: Añadido (tanda).
+    // D-660: en el alta, «Campos ocultos» solo lleva lo que se escribe: Añadido (tanda).
     expect(ocultos(html)).toContain('data-campo="added_batch"');
   });
 });

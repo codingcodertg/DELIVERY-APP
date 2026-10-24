@@ -425,7 +425,7 @@ export const CAMPOS: readonly Campo[] = [
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
   { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito", grupo: "credito" },
-  // D-NEXT: el dueño no la quería a la vista: va en «Campos ocultos», plegado al final de la ficha (`filasOcultas`).
+  // D-660: el dueño no la quería a la vista: va en «Campos ocultos», plegado al final de la ficha (`filasOcultas`).
   { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "ocultos" },
   { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "otros" },
 ];
@@ -436,12 +436,12 @@ export const GRUPOS: readonly { key: Exclude<GrupoDeCampo, "cabecera" | "ocultos
   { key: "estado", en: "Status & history", es: "Estado e historial" },
   { key: "vendedores", en: "Sales reps", es: "Vendedores" },
   // D-634: el CRM y lo de la app juntos en la última tarjeta. Lo que solo identifica la fila del Excel ya no va aquí:
-  // va en «Campos ocultos» (D-NEXT).
+  // va en «Campos ocultos» (D-660).
   { key: "otros", en: "Other", es: "Otros" },
 ];
 
 /**
- * D-NEXT: el apartado plegado al final de la ficha. El dueño, con la captura de «N.º House · Tienda + cuenta
+ * D-660: el apartado plegado al final de la ficha. El dueño, con la captura de «N.º House · Tienda + cuenta
  * (CONCATENATE)» en «Otros»: «this was supposed to go into another like a hidden field in customer». Lo que en D-654 se
  * leyó como «hiring notes» era «hidden notes»: campos que no se miran a diario y que no tienen que estorbar.
  */
@@ -454,7 +454,7 @@ export const GRUPO_OCULTO = { key: "ocultos", en: "Hidden fields", es: "Campos o
 export interface FilaDeFicha { key: keyof Cliente | "concatenate"; en: string; es: string; campo: Campo | null }
 
 /**
- * Lo que solo identifica la fila del Excel y no se edita. Va en «Campos ocultos» detrás de «Añadido (tanda)» (D-NEXT;
+ * Lo que solo identifica la fila del Excel y no se edita. Va en «Campos ocultos» detrás de «Añadido (tanda)» (D-660;
  * en D-654 iba en «Otros»): el dueño pidió esas tres juntas, «añadido tanda, número de house y tienda más cuenta».
  */
 const FILAS_SOLO_DE_LECTURA: readonly FilaDeFicha[] = [
@@ -475,7 +475,7 @@ export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDe
 }
 
 /**
- * D-NEXT: las líneas de «Campos ocultos», el apartado plegado al final de la ficha: «Añadido (tanda)» (se edita), N.º
+ * D-660: las líneas de «Campos ocultos», el apartado plegado al final de la ficha: «Añadido (tanda)» (se edita), N.º
  * House y la CONCATENATE (se leen).
  */
 export function filasOcultas(): FilaDeFicha[] {

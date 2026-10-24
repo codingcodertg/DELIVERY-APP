@@ -351,14 +351,14 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // La cuenta y la tienda se siguen corrigiendo (arriba): siguen en CAMPOS, en la cabecera.
     expect(CAMPOS.filter((c) => c.grupo === "cabecera").map((c) => c.key)).toEqual(["account", "store"]);
   });
-  it("D-NEXT (antes D-654): «Otros» lleva el CRM, la cuenta unificada y las notas; ni Añadido (tanda), ni House #, ni la CONCATENATE", () => {
+  it("D-660 (antes D-654): «Otros» lleva el CRM, la cuenta unificada y las notas; ni Añadido (tanda), ni House #, ni la CONCATENATE", () => {
     const otros = filasPorGrupo().find((g) => g.grupo.key === "otros")!.filas;
     expect(otros.map((f) => f.key)).toEqual(["crm_type_store", "crm_type_group", "associated_with", "unified_account", "notes"]);
     // Y en ninguna otra tarjeta: solo en «Campos ocultos».
     const visibles = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key as string));
     for (const k of ["added_batch", "house_no", "concatenate"]) expect(visibles, k).not.toContain(k);
   });
-  it("D-NEXT: «Campos ocultos» lleva Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE), en ese orden; House # y la CONCATENATE se leen", () => {
+  it("D-660: «Campos ocultos» lleva Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE), en ese orden; House # y la CONCATENATE se leen", () => {
     expect(GRUPO_OCULTO).toEqual({ key: "ocultos", en: "Hidden fields", es: "Campos ocultos" });
     const ocultas = filasOcultas();
     expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate"]);
@@ -370,7 +370,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // No son tarjeta: GRUPOS no las lleva.
     expect(GRUPOS.map((g) => g.key as string)).not.toContain("ocultos");
   });
-  it("D-NEXT: ni Añadido, ni House #, ni Tienda + cuenta son columnas de entrada en la lista (el selector las sigue ofreciendo)", () => {
+  it("D-660: ni Añadido, ni House #, ni Tienda + cuenta son columnas de entrada en la lista (el selector las sigue ofreciendo)", () => {
     for (const k of ["added_batch", "house_no", "concatenate"]) {
       expect(COLUMNAS_INICIALES, k).not.toContain(k);
       expect(PREFERENCIA_INICIAL.elegidas, k).not.toContain(k);

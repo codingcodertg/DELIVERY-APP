@@ -47223,7 +47223,7 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 
 ## D-654 · Clientes: la ficha se abre en una ventana centrada, como la orden de Entregas; arriba el nombre, sin «Cuenta» ni «Tienda» repetidas, y House # y la CONCATENATE en «Otros»
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE) salen de «Otros» y van en «🔒 Campos ocultos», un apartado plegado al final de la ficha («hiring notes» era «hidden notes»). «Otros» queda con Tipo CRM ×2, Asociado con, Cuenta unificada y Notas.
+> **Reemplazada en parte por D-660** (2026-10-23): Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE) salen de «Otros» y van en «🔒 Campos ocultos», un apartado plegado al final de la ficha («hiring notes» era «hidden notes»). «Otros» queda con Tipo CRM ×2, Asociado con, Cuenta unificada y Notas.
 
 **Fecha:** 2026-10-23. Hecho por un worker del orquestador en `clientes-ficha-ventana`. Sin migración.
 
@@ -47512,7 +47512,7 @@ compacta». Las claves internas (`completa` / `eficiente`, en `vistas-del-gestor
 no cambian, para que nadie pierda la vista que tenía elegida.
 
 **Prueba:** ninguna fijaba el texto del rótulo; `vistas-del-gestor.test.ts` sigue probando el selector por sus claves.
-## D-NEXT · Clientes: Añadido (tanda), N.º House y la CONCATENATE van en «🔒 Campos ocultos», plegado al final de la ficha
+## D-660 · Clientes: Añadido (tanda), N.º House y la CONCATENATE van en «🔒 Campos ocultos», plegado al final de la ficha
 
 **Fecha:** 2026-10-23. Hecho por un worker del orquestador en `clientes-campos-ocultos`. Sin migración. **Reemplaza en
 parte a D-654** (lleva su nota).
