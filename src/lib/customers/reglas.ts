@@ -142,7 +142,7 @@ export interface Columna { key: ClaveDeColumna; en: string; es: string; fija?: t
 export const COLUMNAS: readonly Columna[] = [
   { key: "account", en: "Account", es: "Cuenta", fija: true },
   { key: "store", en: "Store", es: "Tienda" },
-  // D-NEXT: en cuántas tiendas está la EMPRESA (no es de la fila: se cuenta sobre sus filas, `tiendasDeLaEmpresa`).
+  // D-666: en cuántas tiendas está la EMPRESA (no es de la fila: se cuenta sobre sus filas, `tiendasDeLaEmpresa`).
   { key: "store_count", en: "# Stores", es: "N.º tiendas" },
   { key: "concatenate", en: "Store + account", es: "Tienda + cuenta" },
   { key: "status_store", en: "Status (store)", es: "Estado (tienda)" },
@@ -336,7 +336,7 @@ export const ORDEN_INICIAL: Orden = { por: "account", desc: false };
 
 /**
  * El valor crudo de una columna: el de la fila, o la CONCATENATE del Excel recompuesta (tienda + cuenta, pegadas).
- * «N.º tiendas» (D-NEXT) no es de la fila sino de su empresa: lo dice `tiendasDe` quien la conoce (la lista por
+ * «N.º tiendas» (D-666) no es de la fila sino de su empresa: lo dice `tiendasDe` quien la conoce (la lista por
  * empresa); sin ella, no hay valor.
  */
 export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: Cliente) => number): Cliente[keyof Cliente] {

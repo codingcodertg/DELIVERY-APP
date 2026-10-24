@@ -76,7 +76,7 @@ export function ordenarEmpresas(empresas: readonly Empresa[], orden: Orden | rea
 }
 
 /**
- * En cuántas tiendas DISTINTAS está la empresa (D-NEXT, la columna «N.º tiendas»): sus filas de la vista, todas, no solo
+ * En cuántas tiendas DISTINTAS está la empresa (D-666, la columna «N.º tiendas»): sus filas de la vista, todas, no solo
  * las que pasan el filtro de tienda. El dueño, 2026-10-24: «counts them so I can sort largest to smallest and see who
  * buys in multiple locations».
  */

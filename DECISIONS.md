@@ -47697,7 +47697,7 @@ retardo y luego «Demo Homes LLC (RDZ McAllen, RDZ Pharr) — mismo nombre»; «
 fila de `sospechosos`. El «¿Salir sin guardar?» del enlace se aceptó por código (el diálogo no se pulsa por CDP). En
 `/customers/[id]` no hay aviso: esa página no edita (su «Editar» abre esta ventana).
 
-## D-NEXT · Clientes: la columna «N.º tiendas» (en cuántas tiendas compra la empresa)
+## D-666 · Clientes: la columna «N.º tiendas» (en cuántas tiendas compra la empresa)
 
 **Fecha:** 2026-10-24. **Pedido:** el dueño: «Add column that counts the # of stores he's registered in. Just want another
 column that counts them so I can sort largest to smallest and see who buys in multiple locations in customer».

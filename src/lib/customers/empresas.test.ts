@@ -80,7 +80,7 @@ describe("una fila por empresa", () => {
   });
 });
 
-// D-NEXT: «N.º tiendas», para ordenar de más a menos y ver quién compra en varias tiendas.
+// D-666: «N.º tiendas», para ordenar de más a menos y ver quién compra en varias tiendas.
 describe("la columna «N.º tiendas»", () => {
   const vivas = agrupaEnEmpresas(LISTA, FILTRO_INICIAL);
   const de = (clave: string, lista = vivas) => tiendasDeLaEmpresa(lista.find((x) => x.clave === clave)!);
