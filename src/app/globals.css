@@ -820,7 +820,7 @@ table.orders th { text-align: left; }
   color: var(--gray); cursor: pointer; border-radius: 4px; line-height: 1; font-weight: 800;
 }
 .th-filter-btn:hover { background: var(--card-hover); color: var(--text); }
-/* Arrastrar cabeceras de Órdenes (D-NEXT). La raya de dónde cae es una sombra por dentro, no un borde: no mueve
+/* Arrastrar cabeceras de Órdenes (D-661). La raya de dónde cae es una sombra por dentro, no un borde: no mueve
    el ancho de la columna mientras se arrastra. Va del lado por el que entra la arrastrada. */
 .th-arrastrable, .th-arrastrable .th-sort { cursor: grab; }
 .th-arrastrable:active, .th-arrastrable:active .th-sort { cursor: grabbing; }

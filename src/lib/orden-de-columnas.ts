@@ -64,7 +64,7 @@ export function mueveColumna(orden: readonly string[], clave: string, delta: -1 
 }
 
 /**
- * Arrastrar una cabecera y soltarla sobre otra (D-NEXT; el dueño: «i want to be able to rearrange the columns by
+ * Arrastrar una cabecera y soltarla sobre otra (D-661; el dueño: «i want to be able to rearrange the columns by
  * dragging»). La de destino le CEDE su sitio: arrastrada hacia la derecha, queda justo detrás del destino; hacia la
  * izquierda, justo delante. Es lo que se ve al soltar: la columna acaba donde estaba aquella.
  *

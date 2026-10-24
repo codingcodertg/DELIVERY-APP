@@ -245,7 +245,7 @@ export default function OrdersPage() {
     void escribeLaFila();
   };
 
-  // Reordenar (D-332): flechas en «⚙ Columnas» y, desde D-NEXT, también arrastrando la cabecera; las dos guardan por aquí.
+  // Reordenar (D-332): flechas en «⚙ Columnas» y, desde D-661, también arrastrando la cabecera; las dos guardan por aquí.
   // `null` = restablecer: se BORRA el orden de este rol en vez de igualarlo al canónico, para que una columna futura entre
   // donde diga el canónico.
   const guardaOrden = (next: string[] | null) => {
@@ -921,7 +921,7 @@ export default function OrdersPage() {
             selected={selected}
             onToggle={toggle}
             onToggleAll={toggleAll}
-            // Arrastrar cabeceras (D-NEXT): quien tiene «⚙ Columnas» (no ventas ni chofer), con el mismo guardado que las flechas.
+            // Arrastrar cabeceras (D-661): quien tiene «⚙ Columnas» (no ventas ni chofer), con el mismo guardado que las flechas.
             onMoverColumna={!["sales", "driver"].includes(me.role) ? (clave, destino) => guardaOrden(colocaColumna(ordenDelSelector, clave, destino)) : undefined}
             isUrgent={(d) => {
               const cutoff = me.role === "manager" ? settings.manager_pending_cutoff

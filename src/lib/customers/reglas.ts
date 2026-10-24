@@ -242,7 +242,7 @@ export function seMueveColumnaDeClientes(p: PreferenciaDeColumnas, key: string, 
  * arrastrar. Se mueve en el orden de TODAS las columnas (las ocultas guardan su sitio), el mismo que usa «⚙ Columnas».
  */
 export function colocaColumnaDeClientes(p: PreferenciaDeColumnas, key: string, destino: string): PreferenciaDeColumnas {
-  // La colocación es la de Órdenes (D-NEXT): la misma función para las dos tablas.
+  // La colocación es la de Órdenes (D-661): la misma función para las dos tablas.
   const orden = ordenEfectivo(CLAVES_CANONICAS, p.orden);
   const r = colocaColumna(orden, key, destino);
   if (r.join() === orden.join()) return p;

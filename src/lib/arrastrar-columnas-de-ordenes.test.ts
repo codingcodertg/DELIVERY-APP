@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { mkDelivery } from "./__fixtures";
 
-/** Arrastrar las cabeceras de Órdenes (D-NEXT). El dueño: «i want to be able to rearrange the columns by dragging».
+/** Arrastrar las cabeceras de Órdenes (D-661). El dueño: «i want to be able to rearrange the columns by dragging».
  *  La colocación (función pura) se prueba en `orden-de-columnas.test.ts`; aquí, qué cabeceras se arrastran y quién guarda. */
 
 vi.mock("@/lib/data-provider", () => ({ useData: () => ({ me: { id: "u1", role: "admin" }, settings: {}, events: [], users: [] }) }));

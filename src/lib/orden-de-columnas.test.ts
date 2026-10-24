@@ -61,7 +61,7 @@ describe("mover una columna", () => {
   });
 });
 
-describe("arrastrar una columna y soltarla en otra (D-NEXT)", () => {
+describe("arrastrar una columna y soltarla en otra (D-661)", () => {
   // Contra el canónico a propósito: «delante del destino» y «detrás del destino» dan órdenes distintos en cada caso.
   const orden = Object.freeze(["stage", "type", "store", "account", "so", "date"]) as readonly string[];
   it("hacia la DERECHA queda justo detrás de la de destino (le cede su sitio), no delante", () => {

@@ -446,7 +446,7 @@ export function OrdersTable({
    *  poner. Sin `vista` y `onVista`, la tabla los lleva dentro, como siempre (Almacén, chofer…). */
   vista?: VistaDeTabla;
   onVista?: (v: VistaDeTabla) => void;
-  /** Arrastrar una cabecera y soltarla en otra (D-NEXT): la tabla dice cuál y sobre cuál; la página guarda el orden, el
+  /** Arrastrar una cabecera y soltarla en otra (D-661): la tabla dice cuál y sobre cuál; la página guarda el orden, el
    *  mismo que mueven las flechas de «⚙ Columnas». Sin él (Almacén, chofer, Recepción…) las cabeceras no se arrastran. */
   onMoverColumna?: (clave: string, destino: string) => void;
 }) {
@@ -491,7 +491,7 @@ export function OrdersTable({
   const menuRef = useRef<HTMLDivElement>(null);
   // La caja de la tabla: la mueve también la barra de arriba (D-398).
   const cajaRef = useRef<HTMLDivElement>(null);
-  // Arrastrar cabeceras (D-NEXT), como Clientes (D-650): HTML5 drag & drop, de escritorio (en el teléfono no hay cabecera:
+  // Arrastrar cabeceras (D-661), como Clientes (D-650): HTML5 drag & drop, de escritorio (en el teléfono no hay cabecera:
   // son tarjetas). Se arrastra el NOMBRE (`th-cell`), no la celda entera, para que el asa del ancho no arranque un arrastre.
   const [arrastrada, setArrastrada] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
@@ -648,7 +648,7 @@ export function OrdersTable({
             {cols.map((c, i) => {
               const activeCount = filters[c.key]?.size;
               const hasFilter = activeCount != null && activeCount > 0;
-              // Dónde caería (D-NEXT): la de destino le cede su sitio, así que la raya va del lado por el que entra.
+              // Dónde caería (D-661): la de destino le cede su sitio, así que la raya va del lado por el que entra.
               const cae = sobre === c.key && arrastrada ? (cols.findIndex((x) => x.key === arrastrada) < i ? " th-cae-detras" : " th-cae-delante") : "";
               return [
                 <th

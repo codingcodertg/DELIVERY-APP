@@ -47561,7 +47561,7 @@ ficha.
 - Contra la base real: el guardado de «Añadido (tanda)» se probó con el almacén del demo.
 - Safari/iPad: el triángulo del `<summary>` es el del navegador.
 
-## D-NEXT · Órdenes: las columnas se cambian de sitio arrastrando la cabecera
+## D-661 · Órdenes: las columnas se cambian de sitio arrastrando la cabecera
 
 **Fecha:** 2026-10-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.** · Hecho por un worker en `ordenes-arrastrar-columnas`.
 
