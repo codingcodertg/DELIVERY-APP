@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { creaUnaPorUna, type ResultadoDelAlta } from "./alta";
+import { archivoDeLaBase, CUBO_DE_ARCHIVOS, MAX_BYTES_DE_ARCHIVO, rutaDeArchivo, type ArchivoDeCliente, type ClaseDeArchivo } from "./archivos";
 import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
 import { clienteDeLaBase, type Cliente, type Parche } from "./reglas";
 
@@ -31,6 +32,14 @@ export interface AlmacenDeClientes {
   juntar(aId: number, bId: number): Promise<Res<string>>;
   /** «No son la misma» (`erp.rechaza_sugerencia_de_clientes`): no se vuelve a proponer. */
   rechazar(sugerenciaId: number): Promise<Res<null>>;
+  /** D-672 (195): los archivos de una fila (una tienda). Sin la 195, `sinTabla`. */
+  archivos(clienteId: number): Promise<Res<ArchivoDeCliente[]>>;
+  /** Sube el fichero al cubo y apunta su fila; si apuntarla falla, el fichero se quita (no queda huérfano). */
+  subirArchivo(clienteId: number, fichero: File, clase: ClaseDeArchivo): Promise<Res<ArchivoDeCliente>>;
+  /** Quita la fila y el fichero. */
+  quitarArchivo(a: ArchivoDeCliente): Promise<Res<null>>;
+  /** Un enlace para abrirlo (firmado, una hora). */
+  enlaceDeArchivo(a: ArchivoDeCliente): Promise<Res<string>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -49,7 +58,7 @@ export function esSinPermiso(error: { code?: string | null; message?: string } |
 export const COLUMNAS =
   "id, store, account, unified_account, house_no, added_batch, qb_status, activity_status, status_store, status_group, " +
   "history_store, history_group, crm_type_store, crm_type_group, associated_with, rep_history, rep_qb, rep_store, contact_name, contact_title, address, phone, email, " +
-  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id, contacts";
+  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id, contacts, tax_terms, website";
 
 /** Las tres de la 182 (CRM). El código llega antes que la migración: si la base aún no las tiene, se lee sin ellas. */
 export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associated_with"] as const;
@@ -57,10 +66,13 @@ export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associat
 export const COLUMNAS_DE_LA_189 = ["company_id"] as const;
 /** La de la 193 (los contactos, D-668). Sin ella, los contactos salen de las cuatro columnas de antes (`contactosDe`). */
 export const COLUMNAS_DE_LA_193 = ["contacts"] as const;
+/** Las de la 195 (D-672): los impuestos de la tienda y el sitio web. Sin ella llegan como null. */
+export const COLUMNAS_DE_LA_195 = ["tax_terms", "website"] as const;
 const sin = (fuera: readonly string[]) => COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !fuera.includes(c)).join(", ");
-export const COLUMNAS_SIN_193 = sin(COLUMNAS_DE_LA_193);
-export const COLUMNAS_SIN_189 = sin([...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193]);
-export const COLUMNAS_SIN_182 = sin([...COLUMNAS_DE_LA_182, ...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193]);
+export const COLUMNAS_SIN_195 = sin(COLUMNAS_DE_LA_195);
+export const COLUMNAS_SIN_193 = sin([...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195]);
+export const COLUMNAS_SIN_189 = sin([...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195]);
+export const COLUMNAS_SIN_182 = sin([...COLUMNAS_DE_LA_182, ...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195]);
 
 /** ¿«La 182 no está aplicada»? 42703 es undefined_column (Postgres); PGRST204 es lo mismo dicho por PostgREST. Solo esos. */
 export function faltaLa182(error: { code?: string | null } | null | undefined): boolean {
@@ -77,7 +89,7 @@ export function faltaLa182(error: { code?: string | null } | null | undefined): 
  */
 export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseLike<{ data: T; error: { code?: string | null; message: string } | null }>) {
   let r = await consulta(COLUMNAS);
-  for (const cols of [COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]) {
+  for (const cols of [COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]) {
     if (!(r.error && faltaLa182(r.error))) return r;
     r = await consulta(cols);
   }
@@ -153,6 +165,39 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       const { error } = await sb.rpc("rechaza_sugerencia_de_clientes", { p_id: sugerenciaId });
       if (error) return fallo(error);
       return { ok: true, valor: null };
+    },
+    async archivos(clienteId) {
+      const { data, error } = await sb.from("customer_files").select("id, customer_id, kind, name, path, size_bytes, content_type, uploaded_at")
+        .eq("customer_id", clienteId).order("uploaded_at", { ascending: false }).range(0, 199);
+      if (error) return fallo(error);
+      return { ok: true, valor: (data ?? []).map((f) => archivoDeLaBase(f as Record<string, unknown>)) };
+    },
+    async subirArchivo(clienteId, fichero, clase) {
+      if (fichero.size > MAX_BYTES_DE_ARCHIVO) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "file over 25 MB" };
+      const path = rutaDeArchivo(clienteId, fichero.name, new Date(), crypto.randomUUID());
+      const cubo = sb.storage.from(CUBO_DE_ARCHIVOS);
+      const subido = await cubo.upload(path, fichero, { contentType: fichero.type || undefined, upsert: false });
+      if (subido.error) return { ok: false, sinTabla: false, sinPermiso: /row-level security|unauthori[sz]ed|permission/i.test(subido.error.message), duplicado: false, error: subido.error.message };
+      const { data, error } = await sb.from("customer_files")
+        .insert({ customer_id: clienteId, kind: clase, name: fichero.name, path, size_bytes: fichero.size, content_type: fichero.type || null })
+        .select("id, customer_id, kind, name, path, size_bytes, content_type, uploaded_at").maybeSingle();
+      if (error || !data) {
+        await cubo.remove([path]);
+        return error ? fallo(error) : sinFila();
+      }
+      return { ok: true, valor: archivoDeLaBase(data as Record<string, unknown>) };
+    },
+    async quitarArchivo(a) {
+      const { data, error } = await sb.from("customer_files").delete().eq("id", a.id).select("id");
+      if (error) return fallo(error);
+      if (!data?.length) return sinFila();
+      await sb.storage.from(CUBO_DE_ARCHIVOS).remove([a.path]);
+      return { ok: true, valor: null };
+    },
+    async enlaceDeArchivo(a) {
+      const { data, error } = await sb.storage.from(CUBO_DE_ARCHIVOS).createSignedUrl(a.path, 3600);
+      if (error || !data?.signedUrl) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: error?.message ?? "no link" };
+      return { ok: true, valor: data.signedUrl };
     },
   };
   return almacen;

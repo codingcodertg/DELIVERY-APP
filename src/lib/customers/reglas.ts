@@ -57,6 +57,12 @@ export interface Cliente {
    * (o sin la 193) = aún salen de las cuatro columnas de antes (`contactosDe`), que la app escribe como espejo del primero.
    */
   contacts?: Contacto[] | null;
+  /**
+   * Migración 195 (D-672): los impuestos de ESTA fila (una tienda): 'taxable' paga, 'exempt' no (con su formulario firmado
+   * para esa tienda, `customer_files`). null = no se sabe. Y el sitio web de la cuenta. Sin la 195, no llegan.
+   */
+  tax_terms?: string | null;
+  website?: string | null;
 }
 
 export type Lang = "en" | "es";
@@ -170,8 +176,10 @@ export const COLUMNAS: readonly Columna[] = [
   { key: "contact_title", en: "Title", es: "Cargo" },
   { key: "phone", en: "Phone", es: "Teléfono" },
   { key: "email", en: "Email", es: "Correo" },
+  { key: "website", en: "Website", es: "Sitio web" },
   { key: "address", en: "Address", es: "Dirección" },
   { key: "terms", en: "Terms", es: "Términos" },
+  { key: "tax_terms", en: "Tax terms", es: "Impuestos" },
   { key: "credit_limit", en: "Credit limit", es: "Límite de crédito" },
   { key: "euler_limit", en: "Euler limit", es: "Límite Euler" },
   { key: "account_no", en: "Account / credit", es: "Cuenta / crédito" },
@@ -409,7 +417,7 @@ export function puedeEditar(role: UserRole | null | undefined): boolean {
   return role === "admin" || role === "manager";
 }
 
-export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda";
+export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda" | "impuesto";
 /**
  * Los grupos de la ficha, en su orden (D-634). `cabecera` no es una tarjeta: la cuenta y la tienda van arriba, en el nombre
  * y en las pestañas de tiendas (D-654, el dueño: «abajo donde dice cuenta, vuelve a decir la tienda […] elimina esa
@@ -439,16 +447,21 @@ export const CAMPOS: readonly Campo[] = [
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
   // D-668: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
   // la tarjeta «Contacto» pinta y edita aparte (`contactos.ts`). Las cuatro columnas quedan como espejo del primero.
+  // D-672: Roberto, «need to add Website under contact». Va tras los contactos, delante de la dirección.
+  { key: "website", tipo: "text", en: "Website", es: "Sitio web", grupo: "contacto" },
   { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "contacto" },
   { key: "terms", tipo: "text", en: "Terms", es: "Términos", grupo: "credito" },
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
   { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito", grupo: "credito" },
-  // D-669: la «Activity» del Excel sale de «Campos ocultos» (D-662) y es el «Type» de «Credit & terms» (Roberto,
-  // 2026-10-24: «Move "Activity" under Credit & Terms and rename to "Type"»; es el «Type» de la plantilla del dueño).
-  { key: "activity_status", tipo: "text", en: "Type", es: "Tipo", grupo: "credito" },
+  // D-672: los impuestos de la tienda ocupan el sitio del «Type» (Roberto: «Since we are adding tax terms it'll replace
+  // the spot for Type»). Cada tienda el suyo: cada una necesita su formulario firmado (`customer_files`, «No sales tax»).
+  { key: "tax_terms", tipo: "impuesto", en: "Tax terms", es: "Impuestos", grupo: "credito" },
   // D-660: el dueño no la quería a la vista: va en «Campos ocultos», plegado al final de la ficha (`filasOcultas`).
   { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "ocultos" },
+  // La «Activity» del Excel, el «Type» (D-669 la llevó a «Crédito y términos»). D-672: «Type will move to Other above
+  // Notes».
+  { key: "activity_status", tipo: "text", en: "Type", es: "Tipo", grupo: "otros" },
   { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "otros" },
 ];
 
@@ -528,6 +541,7 @@ export function textoDeCampo(c: Cliente, campo: Campo, t: T): string {
     case "estado": return estadoLabel(c[campo.key] as string | null, t);
     case "historia": return historiaLabel(c[campo.key] as string | null, t);
     case "qb": return qbLabel(c[campo.key] as string | null, t);
+    case "impuesto": return impuestoLabel(c[campo.key] as string | null, t);
     case "num": return dinero(c[campo.key] as number | null);
     default: { const v = c[campo.key]; return v === null || v === undefined || v === "" ? "—" : String(v); }
   }
@@ -611,6 +625,8 @@ export function clienteDeLaBase(f: Record<string, unknown>): Cliente {
     terms: texto(f.terms), account_no: texto(f.account_no), notes: texto(f.notes),
     updated_at: texto(f.updated_at), updated_by: texto(f.updated_by),
     archived_at: texto(f.archived_at), archived_reason: texto(f.archived_reason),
+    // Sin la 195 no llegan: null.
+    tax_terms: texto(f.tax_terms), website: texto(f.website),
     company_id: texto(f.company_id),
     // Sin la 193 la columna no llega: null, y los contactos salen de las cuatro de antes.
     contacts: Array.isArray(f.contacts) ? normalizaContactos(f.contacts) : null,
@@ -637,6 +653,21 @@ export function telUrl(telefono: string | null): string | null {
   return `tel:${t.startsWith("+") ? "+" : ""}${digitos}`;
 }
 
+/** Los impuestos de una tienda (D-672, 195). */
+export const IMPUESTOS = ["taxable", "exempt"] as const;
+export function impuestoLabel(v: string | null | undefined, t: T): string {
+  if (v === "taxable") return t("Taxable", "Paga impuesto");
+  if (v === "exempt") return t("Tax exempt", "Exento de impuesto");
+  return v ? v : "—";
+}
+
+/** El enlace de un sitio web escrito a mano: con su https:// si no lo trae. null si no parece una dirección. */
+export function webUrl(web: string | null | undefined): string | null {
+  const w = (web ?? "").trim();
+  if (!w || /\s/.test(w) || !/\.[a-z]{2,}/i.test(w)) return null;
+  return /^https?:\/\//i.test(w) ? w : `https://${w}`;
+}
+
 /** Solo se enlaza un correo que lo parezca: el dato viene de un Excel (hay «0» y nombres en esa columna). */
 export function mailUrl(email: string | null): string | null {
   const e = (email ?? "").trim();
@@ -656,6 +687,7 @@ export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: 
     case "status_store": case "status_group": return estadoLabel(v as string | null, t);
     case "history_store": case "history_group": return historiaLabel(v as string | null, t);
     case "qb_status": return qbLabel(v as string | null, t);
+    case "tax_terms": return impuestoLabel(v as string | null, t);
     case "credit_limit": case "euler_limit": return dinero(v as number | null);
     case "updated_at": return fecha(v as string | null);
     case "archived_reason": return motivoLabel(v as string | null, t);

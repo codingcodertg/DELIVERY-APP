@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/erp/ui/badge";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
 import { avisoDeNoCreadas, filaQueSeEnsena, filasDelAlta, tiendasDelAlta } from "@/lib/customers/alta";
 import type { AlmacenDeClientes, Res } from "@/lib/customers/almacen";
+import { CLASES_DE_ARCHIVO, claseDeArchivoLabel, faltaElFormulario, MAX_BYTES_DE_ARCHIVO, tamanoLegible, type ArchivoDeCliente, type ClaseDeArchivo } from "@/lib/customers/archivos";
 import { coincidenciasDe, motivoDeCoincidenciaLabel, type Borrador } from "@/lib/customers/coincidencias";
 import {
   contactosDe, contactoVacio, enEdicion, erroresDeContactos, parcheDeContactos, repartoDePastillas, rotuloDeContacto, textoDeCorreos,
@@ -19,8 +20,8 @@ import { rcCall } from "@/lib/recruiting/utils";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
   cierraLaFicha, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
-  MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
-  textoDeFila, TIENDAS,
+  IMPUESTOS, impuestoLabel, MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
+  textoDeFila, TIENDAS, webUrl,
   type Campo, type Cliente, type FilaDeFicha,
 } from "@/lib/customers/reglas";
 
@@ -48,7 +49,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * La tarjeta «Contacto» abre con los contactos (D-668): leyendo, una pastilla por contacto (`ContactosParaVer`);
  * editando, la lista que se escribe (`contactos`, `ContactosParaEditar`). Debajo, la dirección.
  */
-export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, t }: {
+export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, almacen, puedeEditar = false, t }: {
   cliente: Cliente | null;
   form?: Record<string, string>;
   editando?: boolean;
@@ -57,6 +58,9 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
   contactos?: ContactoEnEdicion[];
   onContactos?: (c: ContactoEnEdicion[]) => void;
+  /** D-672: con él, «Crédito y términos» lleva los archivos de la fila (`ArchivosDeLaFicha`). */
+  almacen?: AlmacenDeClientes;
+  puedeEditar?: boolean;
   t: T;
 }) {
   const deLaFila = useMemo(() => contactosDe(cliente), [cliente]);
@@ -73,7 +77,12 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
     return (
       <div key={fila.key} className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm last:border-0" data-campo={fila.key}>
         <span className="text-slate-500">{t(fila.en, fila.es)}</span>
-        <span className={cn("whitespace-pre-wrap text-right text-slate-900", fila.key === "concatenate" ? "font-mono" : "font-medium")}>{textoDeFila(cliente, fila, t)}</span>
+        {fila.key === "website" && webUrl(cliente.website) ? (
+          // D-672: el sitio web, que se abre.
+          <a href={webUrl(cliente.website)!} target="_blank" rel="noopener noreferrer" className="min-w-0 break-all text-right font-medium text-clay-600 hover:underline">{cliente.website}</a>
+        ) : (
+          <span className={cn("whitespace-pre-wrap text-right text-slate-900", fila.key === "concatenate" ? "font-mono" : "font-medium")}>{textoDeFila(cliente, fila, t)}</span>
+        )}
       </div>
     );
   };
@@ -88,6 +97,9 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
               ? <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} t={t} />
               : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} t={t} />)}
             {filas.map(linea)}
+            {grupo.key === "credito" && (cliente && almacen
+              ? <ArchivosDeLaFicha cliente={cliente} almacen={almacen} puedeEditar={puedeEditar && !editando} t={t} />
+              : !cliente && editando && <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">📎 {t("Files are attached after creating the customer.", "Los archivos se adjuntan después de crear el cliente.")}</p>)}
           </section>
         ))}
         {/* D-660: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. Desde
@@ -122,6 +134,14 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; v
       <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)}>
         <option value="">—</option>
         {HISTORIAS.map((h) => <option key={h} value={h}>{historiaLabel(h, t)}</option>)}
+      </select>
+    );
+  }
+  if (f.tipo === "impuesto") {
+    return (
+      <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)} data-impuestos>
+        <option value="">—</option>
+        {IMPUESTOS.map((x) => <option key={x} value={x}>{impuestoLabel(x, t)}</option>)}
       </select>
     );
   }
@@ -234,8 +254,9 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
       <div className="space-y-1" data-contacto-elegido={i}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="break-words font-medium text-slate-900" data-campo="contact_name">{c.name ?? t("No name", "Sin nombre")}</span>
-          {c.title && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600" data-campo="contact_title">{c.title}</span>}
         </div>
+        {/* El cargo, siempre (Roberto: «Title was removed, need it back»): «—» si no tiene. */}
+        <div className="text-xs text-slate-500">{t("Title", "Cargo")}: <span className="font-medium text-slate-700" data-campo="contact_title">{c.title ?? "—"}</span></div>
         {c.note && <p className="break-words text-xs italic text-slate-500" data-nota-de-contacto>{c.note}</p>}
         {c.phones.length > 0 && (
           <ul className="space-y-0.5" data-campo="phone">
@@ -258,6 +279,89 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Los archivos de la fila (D-672, 195), al pie de «Crédito y términos», junto a sus impuestos: el «No sales tax form»
+ * firmado de ESTA tienda y lo demás. Cada uno se abre con un enlace firmado; quien edita los sube y los quita. Si la
+ * tienda está marcada exenta y no tiene su formulario, lo dice en ámbar.
+ */
+function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Cliente; almacen: AlmacenDeClientes; puedeEditar: boolean; t: T }) {
+  const [archivos, setArchivos] = useState<ArchivoDeCliente[] | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [clase, setClase] = useState<ClaseDeArchivo>("no_sales_tax");
+  const entrada = useRef<HTMLInputElement>(null);
+  const lee = useCallback(async () => {
+    const r = await almacen.archivos(cliente.id);
+    if (r.ok) { setArchivos(r.valor); return; }
+    setArchivos([]);
+    setAviso(r.sinTabla ? t("Files are not available yet (migration 195).", "Los archivos aún no están disponibles (migración 195).") : t("Could not load the files: ", "No se pudieron leer los archivos: ") + r.error);
+  }, [almacen, cliente.id, t]);
+  useEffect(() => { setArchivos(null); setAviso(null); void lee(); }, [lee]);
+  const sube = async (fichero: File | undefined) => {
+    if (!fichero) return;
+    if (fichero.size > MAX_BYTES_DE_ARCHIVO) { setAviso(t("That file is over 25 MB.", "Ese archivo pasa de 25 MB.")); return; }
+    setSubiendo(true);
+    setAviso(null);
+    const r = await almacen.subirArchivo(cliente.id, fichero, clase);
+    setSubiendo(false);
+    if (entrada.current) entrada.current.value = "";
+    if (!r.ok) { setAviso(t("Not uploaded: ", "No se subió: ") + r.error); return; }
+    setArchivos((a) => [r.valor, ...(a ?? [])]);
+  };
+  const abre = async (a: ArchivoDeCliente) => {
+    // La pestaña se abre YA (en el gesto del clic, para que el navegador no la bloquee) y luego se le da el enlace.
+    const ventana = window.open("about:blank", "_blank");
+    const r = await almacen.enlaceDeArchivo(a);
+    if (r.ok && ventana) ventana.location.href = r.valor;
+    else { ventana?.close(); setAviso(t("Could not open it: ", "No se pudo abrir: ") + (r.ok ? "" : r.error)); }
+  };
+  const quita = async (a: ArchivoDeCliente) => {
+    if (!window.confirm(t(`Remove «${a.name}»?`, `¿Quitar «${a.name}»?`))) return;
+    const r = await almacen.quitarArchivo(a);
+    if (!r.ok) { setAviso(t("Not removed: ", "No se quitó: ") + r.error); return; }
+    setArchivos((x) => (x ?? []).filter((y) => y.id !== a.id));
+  };
+  const falta = archivos !== null && faltaElFormulario(cliente, archivos);
+  return (
+    <div className="mt-3 space-y-2 border-t border-slate-100 pt-3" data-archivos-de-la-ficha={archivos?.length ?? ""}>
+      {falta && (
+        <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900" role="status" data-falta-formulario>
+          ⚠ {t("Marked tax exempt, but this store has no signed No sales tax form.", "Marcada exenta, pero esta tienda no tiene su formulario de exención firmado.")}
+        </p>
+      )}
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">📎 {t("Files", "Archivos")}</div>
+      {archivos === null ? (
+        <p className="text-xs text-slate-400">{t("Loading…", "Cargando…")}</p>
+      ) : archivos.length === 0 ? (
+        <p className="text-xs text-slate-400">{t("No files for this store.", "Sin archivos de esta tienda.")}</p>
+      ) : (
+        <ul className="space-y-1">
+          {archivos.map((a) => (
+            <li key={a.id} className="flex min-w-0 items-center gap-2 text-sm" data-archivo={a.kind}>
+              <button type="button" onClick={() => abre(a)} className="min-w-0 truncate text-left text-clay-600 hover:underline" title={a.name}>📄 {a.name}</button>
+              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{claseDeArchivoLabel(a.kind, t)}</span>
+              <span className="shrink-0 text-[11px] text-slate-400">{[tamanoLegible(a.size_bytes), fecha(a.uploaded_at)].filter((x) => x && x !== "—").join(" · ")}</span>
+              {puedeEditar && <button type="button" onClick={() => quita(a)} className="ml-auto shrink-0 rounded px-1.5 text-sm text-slate-400 hover:bg-slate-100 hover:text-red-600" aria-label={t(`Remove ${a.name}`, `Quitar ${a.name}`)}>✕</button>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {puedeEditar && (
+        <div className="flex flex-wrap items-center gap-2">
+          <select className={cn(selCls, "h-8 text-xs")} value={clase} onChange={(e) => setClase(e.target.value as ClaseDeArchivo)} aria-label={t("Kind of file", "Clase de archivo")} data-clase-de-archivo>
+            {CLASES_DE_ARCHIVO.map((k) => <option key={k} value={k}>{claseDeArchivoLabel(k, t)}</option>)}
+          </select>
+          <input ref={entrada} type="file" className="hidden" onChange={(e) => void sube(e.target.files?.[0])} data-entrada-de-archivo />
+          <Button type="button" variant="outline" size="sm" disabled={subiendo} onClick={() => entrada.current?.click()} data-adjuntar-archivo>
+            {subiendo ? t("Uploading…", "Subiendo…") : `📎 ${t("Attach file", "Adjuntar archivo")}`}
+          </Button>
+        </div>
+      )}
+      {aviso && <p className="text-xs text-red-600" role="status">{aviso}</p>}
     </div>
   );
 }
@@ -643,7 +747,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} t={t} />
+          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} almacen={almacen} puedeEditar={puedeEditar} t={t} />
         </div>
 
         {puedeEditar && !nuevo && archivando && (
