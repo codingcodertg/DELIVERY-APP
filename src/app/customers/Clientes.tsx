@@ -431,6 +431,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
         <FichaEnVentana
           cliente={ficha.tipo === "ver" ? ficha.cliente : null}
           hermanas={ficha.tipo === "ver" ? filasDeLaEmpresa(lista, lista.find((x) => x.id === ficha.cliente.id) ?? ficha.cliente) : []}
+          lista={lista}
           onCambia={(c) => setFicha({ tipo: "ver", cliente: c })}
           puedeEditar={puedeEditar}
           almacen={almacen}

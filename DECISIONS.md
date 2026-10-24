@@ -47662,3 +47662,37 @@ desborde.
 
 **No medido:** contra la base real (el insert de varias filas y el 23505 se probaron con un cliente falso). A 390 px el
 aviso ámbar sale abajo, en la barra de la ventana, como todos los avisos: hay que desplazarse para verlo.
+
+## D-NEXT · Clientes: el aviso de duplicado en la ficha mientras se escribe
+
+**Fecha:** 2026-10-23. **Pedido:** el dueño: «make an alert that says hey this information matches another account so we
+don't have duplicated».
+
+**Qué cambia:** en la ventana de Clientes, al crear (alta) y al editar, lo escrito (cuenta, cuenta unificada, teléfono,
+correo) se compara con la lista que la pantalla ya tiene cargada (sin pedir nada a la base), 350 ms después de la última
+tecla. Si coincide, encima de las tarjetas sale un aviso ámbar: «⚠ Esto coincide con otra cuenta: <NOMBRE> (<tiendas>) —
+mismo nombre / mismo teléfono / mismo correo», o «⚠ Se parece a otra cuenta: …» si solo es el nombre parecido; hasta
+tres, y «y N más». El nombre es un enlace que abre esa ficha (con algo escrito sin guardar, pregunta antes). No bloquea:
+con una coincidencia OBVIA (mismo nombre o misma cuenta unificada), el primer «Guardar»/«Crear» se convierte en
+«Guardar de todas formas» y dice por qué; el segundo guarda.
+
+**Reglas:** las de D-633 (`duplicados.ts`), en una función pura nueva, `coincidenciasDe` (`customers/coincidencias.ts`):
+OBVIO = `claveDeNombre` igual («L.L.C.» = «LLC», «&» = «and») o la misma cuenta unificada; mismo teléfono (`telefonos`: 10
+dígitos, el formato da igual); mismo correo (`correos`), salvo los de un dominio compartido (`dominiosCompartidos`; un
+correo gratuito cuenta solo si es la MISMA dirección); SOSPECHOSO, con menos peso: nombre parecido (≥ 0,85) o contenido.
+Una por EMPRESA (sus tiendas y los motivos juntos), lo obvio primero. Fuera: la propia empresa al editar y las archivadas
+(no son clientes).
+
+**Prueba:** `customers/coincidencias.test.ts` con datos que contradicen (LLC / L.L.C., & / and, el teléfono con otro
+formato y con el 1, otro número, el mismo gmail frente a otro gmail, siete gmail que no hacen «compartido», un dominio
+propio compartido que no cuenta y con una dirección menos sí, la propia empresa, las archivadas, una empresa en dos
+tiendas una sola vez, el orden contra la lista al revés, un nombre de una letra) y `customers/ventana.test.ts` (editando
+la 9 del demo: una sola coincidencia, la 3, con «mismo teléfono / nombre parecido»; leyendo y en un alta vacía, nada). 10
+mutantes, los 10 caen con una prueba con nombre. Demo a 390 y 1440 px con ratón: «Demo Homes L.L.C.» → nada antes del
+retardo y luego «Demo Homes LLC (RDZ McAllen, RDZ Pharr) — mismo nombre»; «Crear» → «Guardar de todas formas»; otra vez
+→ «Guardado ✓». El teléfono de la 3 escrito «19565550102» → «mismo teléfono» con las dos que lo tienen, y el enlace abre
+«Demo Drywall Inc». Editando la 9, la 3 y no ella misma. 0 px de desborde.
+
+**No medido:** con la lista real (1.200 filas): el coste por búsqueda no se midió; son las mismas comparaciones que una
+fila de `sospechosos`. El «¿Salir sin guardar?» del enlace se aceptó por código (el diálogo no se pulsa por CDP). En
+`/customers/[id]` no hay aviso: esa página no edita (su «Editar» abre esta ventana).

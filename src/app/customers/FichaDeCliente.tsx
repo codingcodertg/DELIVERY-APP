@@ -7,6 +7,8 @@ import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
 import { avisoDeNoCreadas, filaQueSeEnsena, filasDelAlta, tiendasDelAlta } from "@/lib/customers/alta";
 import type { AlmacenDeClientes, Res } from "@/lib/customers/almacen";
+import { coincidenciasDe, motivoDeCoincidenciaLabel, type Borrador } from "@/lib/customers/coincidencias";
+import { claveDeEmpresa } from "@/lib/customers/duplicados";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
@@ -20,6 +22,10 @@ type T = (en: string, es: string) => string;
 
 export const selCls =
   "h-9 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500";
+
+/** D-NEXT: cuánto se espera tras la última tecla para buscar duplicados, y cuántas coincidencias se enseñan. */
+const RETARDO_DEL_AVISO_MS = 350;
+const MAX_COINCIDENCIAS = 3;
 
 /** Los nombres (cuenta, contacto, cargo…) salen en MAYÚSCULAS según se escriben (D-635). */
 const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonly string[]).includes(k) ? v.toUpperCase() : v);
@@ -151,8 +157,10 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; v
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
+  /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-NEXT). */
+  lista?: readonly Cliente[];
   /** Las filas de la misma empresa (189), una por tienda, en orden: las pestañas. */
   hermanas: Cliente[];
   onCambia: (c: Cliente) => void;
@@ -179,6 +187,20 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   };
   const { parche, errores } = useMemo(() => parcheDe(form, original, nuevo), [form, original, nuevo]);
   const cambiado = Object.keys(parche).length > 0;
+
+  // D-NEXT: «this information matches another account». Mientras se edita (alta o ficha), lo escrito se compara con la
+  // lista ya cargada (`coincidenciasDe`, las reglas de D-633), con un pequeño retardo para no buscar a cada tecla. Fuera
+  // la propia empresa. No bloquea: con una coincidencia OBVIA (mismo nombre), «Guardar» pide «Guardar de todas formas».
+  const borrador = JSON.stringify({ account: form.account ?? "", unified_account: form.unified_account ?? "", phone: form.phone ?? "", email: form.email ?? "" });
+  const [borradorQuieto, setBorradorQuieto] = useState(borrador);
+  useEffect(() => { const h = setTimeout(() => setBorradorQuieto(borrador), RETARDO_DEL_AVISO_MS); return () => clearTimeout(h); }, [borrador]);
+  const coinciden = useMemo(
+    () => (editando ? coincidenciasDe(JSON.parse(borradorQuieto) as Borrador, lista, { excluirEmpresa: cliente ? claveDeEmpresa(cliente) : null }) : []),
+    [editando, borradorQuieto, lista, cliente],
+  );
+  const hayObvia = coinciden.some((c) => c.obvia);
+  const [deTodasFormas, setDeTodasFormas] = useState(false);
+  useEffect(() => { setDeTodasFormas(false); }, [coinciden]);
 
   // Archivar (181): se pide el motivo en la propia ficha (uno de los del script, o escrito), y se escribe por el mismo
   // almacén que todo lo demás: la fila vuelve de la base y es lo que se pinta.
@@ -247,6 +269,11 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
 
   const guardar = async () => {
     if (errores.length) { setAviso({ tono: "rojo", texto: t("Check the highlighted fields.", "Revisa los campos marcados.") }); return; }
+    if (hayObvia && !deTodasFormas) {
+      setDeTodasFormas(true);
+      setAviso({ tono: "ambar", texto: t("Another account has this name. Press «Save anyway» to go on.", "Ya hay otra cuenta con este nombre. Pulsa «Guardar de todas formas» para seguir.") });
+      return;
+    }
     if (nuevo) { await crearEnLasTiendas(); return; }
     if (await aplicar(() => almacen.guardar(cliente.id, parche), t("Saved ✓", "Guardado ✓"))) setEditando(false);
   };
@@ -272,6 +299,13 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   };
 
   const campo = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  /** El enlace del aviso: abre la ficha de esa cuenta (leyendo). Con algo escrito sin guardar, pregunta antes. */
+  const abreCoincidencia = (c: Cliente) => {
+    if (cambiadoRef.current && !window.confirm(t("Leave without saving your changes?", "¿Salir sin guardar los cambios?"))) return;
+    setEditando(false);
+    setAviso(null);
+    onCambia(c);
+  };
   const tel = telUrl(form.phone ?? null);
   const mail = mailUrl(form.email ?? null);
   const tiendas = nuevo ? [] : hermanas.length > 0 ? hermanas : [cliente];
@@ -405,6 +439,22 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
               {t("Read-only — admins and managers can edit.", "Solo lectura — editan los admins y los managers.")}
             </p>
           )}
+          {coinciden.length > 0 && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900" role="status" data-aviso-duplicado>
+              {coinciden.slice(0, MAX_COINCIDENCIAS).map((c) => (
+                <p key={c.empresa} className="break-words" data-coincidencia={c.obvia ? "obvia" : c.soloParecido ? "parecida" : "dato"}>
+                  ⚠ {c.soloParecido ? t("Looks like another account: ", "Se parece a otra cuenta: ") : t("This matches another account: ", "Esto coincide con otra cuenta: ")}
+                  <button type="button" className="font-semibold underline hover:text-amber-700" onClick={() => abreCoincidencia(c.fila)} data-abre-coincidencia={c.fila.id}>
+                    {c.fila.account}
+                  </button>
+                  {" "}({c.tiendas.map(nombreDeTienda).join(", ")}) — {c.motivos.map((m) => motivoDeCoincidenciaLabel(m, t)).join(" / ")}
+                </p>
+              ))}
+              {coinciden.length > MAX_COINCIDENCIAS && (
+                <p className="text-xs text-amber-800">{t(`and ${coinciden.length - MAX_COINCIDENCIAS} more`, `y ${coinciden.length - MAX_COINCIDENCIAS} más`)}</p>
+              )}
+            </div>
+          )}
           <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} t={t} />
         </div>
 
@@ -441,7 +491,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
               <>
                 <Button variant="outline" onClick={cancelar} disabled={ocupado}>{t("Cancel", "Cancelar")}</Button>
                 <Button onClick={guardar} disabled={ocupado || !cambiado} data-guardar-ficha>
-                  {ocupado ? t("Saving…", "Guardando…") : nuevo ? t("Create", "Crear") : t("Save", "Guardar")}
+                  {ocupado ? t("Saving…", "Guardando…") : deTodasFormas ? t("Save anyway", "Guardar de todas formas") : nuevo ? t("Create", "Crear") : t("Save", "Guardar")}
                 </Button>
               </>
             )}
