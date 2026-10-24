@@ -47499,3 +47499,14 @@ Mutantes: 12 de 12 caen con una prueba con nombre (`new Date(...).getDay()`, tam
 - La celda del Gestor, la fecha en bloque y el CSV en el navegador (cubiertos por pruebas).
 - El aviso de año imposible en el navegador (`max` hace que el selector no ofrezca años de más; lo tecleado lo para el guardado).
 - Un borrador ya guardado en domingo ANTES de esto se puede seguir enviando (enviar no vuelve a escribir la fecha).
+
+## D-659 · Gestor de Rutas: «Expanded view | Collapsed view» en lugar de «Full view | Efficient view»
+
+**Fecha:** 2026-10-23. **Pedido:** el dueño, con la captura del selector: «en vez de efficient put it collapsed and expanded
+view mode».
+
+**Qué cambia:** solo los rótulos del selector de D-653: «▣ Expanded view / Vista expandida» y «⚡ Collapsed view / Vista
+compacta». Las claves internas (`completa` / `eficiente`, en `vistas-del-gestor.ts` y en el `localStorage` de cada persona)
+no cambian, para que nadie pierda la vista que tenía elegida.
+
+**Prueba:** ninguna fijaba el texto del rótulo; `vistas-del-gestor.test.ts` sigue probando el selector por sus claves.
