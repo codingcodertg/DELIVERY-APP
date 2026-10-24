@@ -3,7 +3,7 @@ import {
   recogeEnLaFicha, stageLabel,
 } from "@/lib/constants";
 import { puedeAgregarMaterial } from "@/lib/agregar-material";
-import { esMia } from "@/lib/ordenes-visibles";
+import { esSuyaParaAnular } from "@/lib/ordenes-visibles";
 import { puedeDejarEnTienda } from "@/lib/leave-at-store";
 import { puedeRecogerSinListo, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import type { AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
@@ -210,7 +210,8 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
 
   // Anular: quién y desde qué etapa, la regla compartida con el guard (`puedeAnular`, 122). Ventas anula además SU orden
   // hasta «Listo» (D-656, 191; D-663, 192): por eso va la dueñez, con la misma regla que el guard (`esMia`).
-  if (puedeAnular(yo.role, stage, esMia(pedido, yo))) {
+  // D-676 (196): el chofer, SU orden ya recogida (`esSuyaParaAnular`). Al chofer, con la firma (POD) abierta, ningún botón más (como los de la parada).
+  if (puedeAnular(yo.role, stage, esSuyaParaAnular(pedido, yo)) && !(yo.role === "driver" && stage === "picked_up" && abierto.pod)) {
     if (abierto.anular) pasos.push("anular");
     else hay.push({ id: "anular", texto: { en: "Cancel order", es: "Cancelar orden" }, estilo: "btn-danger" });
   }

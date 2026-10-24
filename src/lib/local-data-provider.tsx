@@ -5,7 +5,7 @@ import { Ctx, type DataState } from "@/lib/data-provider";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
 import { type AppNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition, puedeAnular } from "@/lib/constants";
-import { esMia } from "@/lib/ordenes-visibles";
+import { esSuyaParaAnular } from "@/lib/ordenes-visibles";
 import { borrarOrden, puedeBorrar } from "@/lib/deshacer-y-borrar";
 import { changedFieldsNote, orderOwner, todayISO } from "@/lib/utils";
 import { nextOrderCode } from "@/lib/order-code";
@@ -318,7 +318,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // que ventas necesita desde D-656, 191), con el mismo texto que la base. Sin esto el demo anulaba cualquier orden
     // desde la tanda de la lista, que enseña el botón si ALGUNA de la selección se puede.
     // El admin pasa por aquí también: `puedeAnular` le deja todo menos una entregada, que es la invariante de la 122.
-    if (entrandoEnAnulada && cur && !puedeAnular(me.role, cur.stage, esMia(cur, me))) {
+    if (entrandoEnAnulada && cur && !puedeAnular(me.role, cur.stage, esSuyaParaAnular(cur, me))) {
       notify(`${me.role} cannot move an order from ${cur.stage} to canceled`);
       return false;
     }

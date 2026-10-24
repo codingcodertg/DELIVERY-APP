@@ -78,8 +78,9 @@ export function notificationsForStage(args: {
     case "canceled": {
       // D-656 (migración 191): el vendedor anula SU orden hasta «Listo» (D-663, 192) sin pasar por nadie, así que la oficina
       // —gerente y Office, los mismos de D-639— se entera aquí, con el motivo. Lo que anula la oficina no se avisa: es suyo.
-      if (actorRole !== "sales") break;
-      const quien = users.find((u) => u.id === actorId)?.full_name?.trim() || "A sales rep";
+      // D-676 (196): y el chofer, que anula SU orden ya recogida.
+      if (actorRole !== "sales" && actorRole !== "driver") break;
+      const quien = users.find((u) => u.id === actorId)?.full_name?.trim() || (actorRole === "driver" ? "A driver" : "A sales rep");
       for (const m of [...withRole("manager"), ...withRole("accounting")]) push(m.id, "canceled", `${quien} canceled order ${label}${reason ? `: ${reason}` : ""}`);
       break;
     }

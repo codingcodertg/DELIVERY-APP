@@ -19257,6 +19257,8 @@ en esta misma copia con el árbol en `origin/main`, está en 2529 | 3.
 
 ## D-291 · Anular una orden deja motivo, quién y cuándo; una entregada no se anula
 
+> **Reemplazada en parte por D-676** (2026-10-24): con la carga en el camión (`picked_up`) ya no anula solo el admin: también el chofer, SU orden (la que lleva asignada), con su motivo (migración 196).
+
 > **Reemplazada en parte por D-656** (2026-10-23): ventas anula también SU orden (la creó o es su vendedor) en `pending` y `approved`, con aviso a gerente y Office; desde `fulfilling` sigue siendo de la oficina. Migración 191.
 
 **Fecha:** 2026-09-17 · **Versión:** la pone el orquestador (Entregas) · **Migración: 122** (la aplica
@@ -47970,3 +47972,26 @@ defectos no cambian (2 y 1, solo en las de la mañana). Sin migración.
 
 **Probado:** `aprobacion-por-hora-y-cupo.test.ts` (+3: las franjas de la tarjeta, una franja de la tarde con tope que se
 llena y manda a aprobación, y que la tarjeta pinta esas). **No medido:** en el navegador.
+## D-NEXT · El chofer anula SU orden ya recogida (migración 196)
+
+**Fecha:** 2026-10-24. **Pedido:** el dueño, a «¿El chofer puede anular una orden recogida? Hoy solo puede el admin»: «sí a
+todo».
+
+**Qué cambia:**
+- **Base (196):** `guard_delivery_stage`, la definición viva (la 192) con una rama más: el chofer pasa a `canceled` una
+  orden en `picked_up` que lleva asignada (`assigned_driver` = su nombre, la dueñez de la 168). Las invariantes de la 122
+  (motivo obligatorio, quién y cuándo por la base, una entregada no se anula) valen igual. La orden de otro chofer, no;
+  antes de recogerla, el chofer sigue sin anular; gerente y Office siguen sin anular desde `picked_up`.
+- **App:** `puedeAnular` (el espejo, comparado rama por rama con el `.sql` en `anular-con-motivo.test.ts`, que ahora lee la
+  196): desde `picked_up`, el admin y el chofer con la suya. «Suya» la dice `esSuyaParaAnular` (el chofer: la asignada;
+  los demás: `esMia`), en la ficha, la tanda de la lista y el demo. `LEGAL_TRANSITIONS.picked_up` gana `canceled`. En la
+  ficha del chofer, «Cancelar orden» va al menú «Acciones ▾» (con el motivo, como todos), salvo con la firma abierta. La
+  burbuja de etapas del admin ofrece «Anulada» desde «Recogida» (ya podía; ahora el salto existe).
+- **Aviso:** como con ventas (D-656), cuando anula un chofer se avisa a gerente y Office con su nombre y el motivo.
+
+**Probado:** el espejo del guard (5 líneas de anular; las de ventas y chofer, las únicas con dueñez), la dueñez del
+chofer, el aviso, y la ficha (su menú con la suya y sin la de otro; la referencia de botones al día); 6 de 6 mutantes caen
+(incluido quitar la dueñez del `.sql`). Ensayo de la 196 contra producción con ROLLBACK: entera. **No medido:** en el
+navegador ni en el teléfono del chofer.
+
+**Pendiente del dueño:** aplicar la 196 (su comando). Sin ella, el botón sale y la base lo rechaza («Not allowed»).

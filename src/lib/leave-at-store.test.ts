@@ -177,7 +177,8 @@ describe("el cableado: un solo control, dos pantallas, cero permisos nuevos", ()
   });
   it("la guarda de transición que ya existía no se toca ni se relaja", () => {
     // `picked_up → ready` ya era legal; el encargo no era cambiar quién mueve etapas.
-    expect(leer("src/lib/constants.ts")).toContain('picked_up:  ["delivered", "ready"]');
+    // D-676 (196) le añadió «canceled» (el chofer anula SU orden recogida); `ready` sigue ahí.
+    expect(leer("src/lib/constants.ts")).toContain('picked_up:  ["delivered", "ready", "canceled"]');
     expect(provider).toContain('if (current && me?.role !== "admin" && !canTransition(current.stage, stage))');
   });
   it("el gesto pasa por `setStage`, con su `kind` propio y el parche del módulo", () => {
