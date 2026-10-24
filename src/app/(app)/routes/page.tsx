@@ -2822,7 +2822,7 @@ export default function RoutesPage() {
       <div data-barra-de-arriba style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
         {/* «Vista completa | Vista eficiente» (D-653), como «Tabla | Tablero» de Órdenes. El dueño, 2026-10-23: «quiero que
             hayan dos views […] arriba va a estar full view y small view or efficient view». Solo en el Gestor.
-            Rótulos de D-NEXT (el dueño, 2026-10-23: «en vez de efficient put it collapsed and expanded view mode»): «Expanded
+            Rótulos de D-659 (el dueño, 2026-10-23: «en vez de efficient put it collapsed and expanded view mode»): «Expanded
             view / Vista expandida» y «Collapsed view / Vista compacta». Las claves internas (`completa`/`eficiente`) no cambian:
             son lo que cada persona tiene guardado en su navegador. */}
         {!soloLectura && (

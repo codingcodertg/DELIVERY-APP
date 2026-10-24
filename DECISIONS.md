@@ -47500,7 +47500,7 @@ Mutantes: 12 de 12 caen con una prueba con nombre (`new Date(...).getDay()`, tam
 - El aviso de año imposible en el navegador (`max` hace que el selector no ofrezca años de más; lo tecleado lo para el guardado).
 - Un borrador ya guardado en domingo ANTES de esto se puede seguir enviando (enviar no vuelve a escribir la fecha).
 
-## D-NEXT · Gestor de Rutas: «Expanded view | Collapsed view» en lugar de «Full view | Efficient view»
+## D-659 · Gestor de Rutas: «Expanded view | Collapsed view» en lugar de «Full view | Efficient view»
 
 **Fecha:** 2026-10-23. **Pedido:** el dueño, con la captura del selector: «en vez de efficient put it collapsed and expanded
 view mode».
