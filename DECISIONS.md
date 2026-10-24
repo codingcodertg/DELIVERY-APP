@@ -47345,7 +47345,7 @@ va a ir en otra cosa que dice other.»
 - Safari/iPad.
 ## D-656 · Ventas anula SU orden pendiente o programada, y la oficina se entera
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): ventas anula su orden hasta «Listo», no solo pendiente y programada (migración 192).
+> **Reemplazada en parte por D-663** (2026-10-23): ventas anula su orden hasta «Listo», no solo pendiente y programada (migración 192).
 
 **Fecha:** 2026-10-23 · **Versión:** la pone el orquestador (Entregas) · **Migración: 191** (la aplica el orquestador).
 
@@ -47614,7 +47614,7 @@ desborde, la burbuja de Ayuda sin solapes.
 
 **No medido:** contra la base real.
 
-## D-NEXT · Ventas anula SU orden hasta «Listo» (migración 192)
+## D-663 · Ventas anula SU orden hasta «Listo» (migración 192)
 
 **Fecha:** 2026-10-23. **Pedido:** el dueño, tras D-656 (que dejaba solo pendiente y programada): «sales people can cancel
 up to ready stage, after that they can ask the driver to cancel if needed».

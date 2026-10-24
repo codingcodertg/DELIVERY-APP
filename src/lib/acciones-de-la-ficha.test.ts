@@ -142,7 +142,7 @@ describe("el menú, en las fichas de todos los días", () => {
     expect(ficha("approved", "oficina", "kevin")).toContain("anular");    // se la asignó la oficina
     expect(ficha("approved", "otro", "otro")).not.toContain("anular");     // de otro vendedor: no
     expect(ficha("pending", "otro", null)).not.toContain("anular");
-    // D-NEXT (192): hasta «Listo» también; recogida ya no (se lo pide al chofer o a la oficina).
+    // D-663 (192): hasta «Listo» también; recogida ya no (se lo pide al chofer o a la oficina).
     expect(ficha("fulfilling", "kevin", null)).toContain("anular");
     expect(ficha("ready", "kevin", null)).toContain("anular");
     expect(ficha("ready", "otro", "otro")).not.toContain("anular");

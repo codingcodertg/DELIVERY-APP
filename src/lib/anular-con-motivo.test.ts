@@ -26,7 +26,7 @@ const sql = leer("supabase/migrations/122_anular_con_motivo.sql");
 /** El guard VIVO para el espejo de quién anula: la 191 (D-656) es la última que redefine `guard_delivery_stage` —la 188
  *  con una línea más para ventas—. Hasta D-656 esta prueba leía la 122, y entre medias el guard se redefinió muchas
  *  veces: el espejo comparaba con una versión vieja. La primera prueba de abajo dice cuándo deja de ser la última. */
-const GUARD_VIVO = "192_ventas_anula_hasta_listo.sql";   // D-NEXT: la 192 (hasta «Listo») sustituye a la 191
+const GUARD_VIVO = "192_ventas_anula_hasta_listo.sql";   // D-663: la 192 (hasta «Listo») sustituye a la 191
 const guardVivo = leer(`supabase/migrations/${GUARD_VIVO}`);
 const modal = leer("src/components/OrderModal.tsx");
 const lista = leer("src/app/(app)/page.tsx");
@@ -124,7 +124,7 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
       expect([s, puedeAnular("accounting", s)]).toEqual([s, true]);
       expect([s, puedeAnular("sales", s)]).toEqual([s, false]);
     }
-    // D-656 (191) y D-NEXT (192): ventas anula SU orden hasta «Listo» (el FV216 de Kevin); la de otro vendedor, no; y
+    // D-656 (191) y D-663 (192): ventas anula SU orden hasta «Listo» (el FV216 de Kevin); la de otro vendedor, no; y
     // desde recogida en adelante tampoco la suya.
     for (const s of ["pending", "approved", "fulfilling", "ready"] as Stage[]) {
       expect([s, puedeAnular("sales", s, true), puedeAnular("sales", s, false)]).toEqual([s, true, false]);
