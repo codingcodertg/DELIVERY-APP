@@ -163,6 +163,37 @@ export function sfReal(l: SfLine): number | null {
   return aCentavos(cajas * l.sf_per_box);
 }
 
+// ---- El precio por caja (D-NEXT) -------------------------------------------------------------------------------------
+//
+// Roberto, 2026-10-24, con una línea de 104 cajas de 19.26 SF a «26.77 $/SF» que daba $53,621.38: «Formula is wrong. Its
+// Sf/box times boxes times price». La fórmula ya era esa (`totalDeLinea`); el 26.77 era el precio de la CAJA (el catálogo
+// tenía ese artículo a $1.30/SF, y 26.77 ÷ 19.26 = 1.39). El dueño: las dos cosas, un campo «$/caja» que pone el $/SF, y
+// un aviso cuando el $/SF parece el de una caja.
+
+/** El $/SF de un precio por caja, a 6 decimales: con 2, 104 cajas de 19.26 SF a $26.77 la caja se irían 15 centavos; con 4, 5. */
+export function precioPorSfDeCaja(precioCaja: number | null, sfPorCaja: number | null): number | null {
+  if (precioCaja === null || !(precioCaja >= 0) || !positivo(sfPorCaja)) return null;
+  return Math.round((precioCaja / sfPorCaja) * 1e6) / 1e6;
+}
+
+/** El precio de la caja que corresponde a un $/SF (lo que enseña el campo «$/caja»), a centavos. */
+export function precioDeCaja(precioSf: number | null, sfPorCaja: number | null): number | null {
+  if (precioSf === null || !(precioSf >= 0) || !positivo(sfPorCaja)) return null;
+  return aCentavos(precioSf * sfPorCaja);
+}
+
+/** Por encima de esto, un $/SF de una línea con cajas de varios SF se pregunta si no será el de la caja. */
+export const SF_PRECIO_SOSPECHOSO = 15;
+
+/**
+ * ¿Este $/SF parece el precio de la caja? Más de $15/SF con cajas de más de 1 SF. Devuelve el $/SF que sería si lo
+ * fuera (el que propone el aviso), o null si no lo parece.
+ */
+export function pareceDeCaja(precioSf: number | null, sfPorCaja: number | null): number | null {
+  if (precioSf === null || !(precioSf > SF_PRECIO_SOSPECHOSO) || !positivo(sfPorCaja) || !(sfPorCaja > 1)) return null;
+  return precioPorSfDeCaja(precioSf, sfPorCaja);
+}
+
 // ---- El precio más bajo y su % de descuento (D-442) ------------------------------------------------
 //
 // El dueño, 2026-09-28, sobre su imagen: «For each item, the rep enters a regular price and, optionally, a lower price.

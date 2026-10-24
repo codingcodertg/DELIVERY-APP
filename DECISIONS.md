@@ -47928,3 +47928,29 @@ info. 3) Lets not wrap text so that it doesn't go down and make the row thicker�
 tienda, y que la tabla es `tbl-resize` con asas y «+N»). En el demo (1440 y 390 px): todas las filas de 39 px (antes, una
 con dos tiendas o un estado largo crecía), «RDZ McAllen +1», 10 asas, y arrastrar 120 px el asa de «Cuenta» la lleva de
 260 a 380 y queda guardado; 0 px de desborde de la página. **No medido:** con la lista real.
+
+## D-NEXT · Estimador: el precio por caja (un campo y un aviso); y el arreglo de las fechas de domingo y de año imposible
+
+**Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), en el Estimador (0.17.0), con una línea de 104 cajas de
+19.26 SF a «26.77 $/SF» = $53,621.38: «Formula is wrong. Its Sf/box times boxes times price». **Medido:** la fórmula ya era
+cajas × SF/caja × $/SF (`totalDeLinea`): 104 × 19.26 × 26.77 = 53,621.38. Lo que no cuadraba era el precio: el catálogo
+tiene ese artículo (N-PLGFW5M201) a $1.30/SF, y 26.77 ÷ 19.26 = $1.39/SF: se escribió el precio de la CAJA en el campo
+del SF. Preguntado si un campo «$/caja» o un aviso, el dueño: «sí a todo».
+
+**Qué cambia (Estimador 0.18.0):**
+- **«$/caja regular (opcional)»**, junto al «$/SF regular»: enseña el $/SF ya multiplicado por los SF de la caja, y al
+  escribir un precio por caja pone el $/SF (`precioPorSfDeCaja`, caja ÷ SF/caja a 6 decimales: con 2 se irían 15 centavos
+  en la línea de Roberto; con 6, la línea vale lo que las cajas, $2,784.08). Lo guardado sigue siendo el $/SF; la hoja no
+  cambia. Sin SF / caja, el campo está apagado.
+- **El aviso:** un $/SF de más de $15 (`SF_PRECIO_SOSPECHOSO`) en una línea con cajas de más de 1 SF sale en ámbar: «$26.77/SF
+  parece el precio de la caja: 26.77 ÷ 19.26 SF = $1.39/SF», con el botón «Era por caja: usar el $/SF». No bloquea.
+
+**Las fechas (el mismo «sí a todo», a la lista de pendientes):** `scripts/arregla-fechas-domingo.mjs` (ver; con
+`--escribe`, respaldo en `D:/CLAUDE/respaldos-db`, la fecha y una nota en el historial de cada orden, en una transacción):
+las 23 órdenes abiertas del domingo 2026-09-27 (las dejó ahí el cron de D-406; su fecha de antes no se guardó) pasan al
+lunes 28-sep sin tocar su etapa; FU507 («22026-10-11», entregada el 13-oct) al 2026-10-13; FQ112 (2023-08-13, creada en
+agosto de 2026) al 2026-08-13; FU573 (domingo 2026-12-13) al lunes 14-dic. Ensayado en solo lectura: 26 órdenes, las
+esperadas. Lo lanza el dueño.
+
+**Probado:** `precio-por-caja.test.ts` (4: el caso de Roberto con la fórmula de siempre y con el $/caja, el campo, el aviso
+y sus bordes, y la pantalla). **No medido:** en el navegador.

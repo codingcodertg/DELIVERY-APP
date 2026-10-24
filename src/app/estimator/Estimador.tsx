@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createClient as createErpClient } from "@/lib/erp/supabase/client";
 import {
   borradorVacio, cajasDeLinea, cajasPorDefecto, claveDeEstimado, dinero, extensionDePartida, lineaSfVacia, lineaUnidadVacia,
-  estadoDelPrecioBajo, numero, paraQuienSeImprime, porcentajeDeDescuento, preciosDeLinea, resumenDeTotales, SALUTATIONS,
+  estadoDelPrecioBajo, numero, pareceDeCaja, paraQuienSeImprime, porcentajeDeDescuento, precioDeCaja, precioPorSfDeCaja, preciosDeLinea, resumenDeTotales, SALUTATIONS,
   sfReal, telefonoAlEscribir, telefonoLimpio, totalDeLinea, totalRegularDeLinea,
   type DisplayLevel, type QuoteDraft, type QuoteLine, type Salutation,
 } from "@/lib/estimator/modelo";
@@ -713,6 +713,14 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                       <CampoDecimal value={l.price_per_sf} data-precio
                         onValor={(n) => setLinea(l.id, { price_per_sf: n })} />
                     </div>
+                    {/* D-NEXT: el precio por CAJA, si es el que se tiene a mano: pone el $/SF (caja ÷ SF por caja). Lo que se guarda
+                        sigue siendo el $/SF; este campo lo enseña ya multiplicado. Sin SF / caja no se puede. */}
+                    <div className="field">
+                      <label>{t("Regular $/box (optional)", "$/caja regular (opcional)")}</label>
+                      <CampoDecimal value={precioDeCaja(l.price_per_sf, l.sf_per_box)} data-precio-caja disabled={!(l.sf_per_box && l.sf_per_box > 0)}
+                        placeholder={l.sf_per_box && l.sf_per_box > 0 ? "" : t("needs SF / box", "falta SF / caja")}
+                        onValor={(n) => setLinea(l.id, { price_per_sf: precioPorSfDeCaja(n, l.sf_per_box) })} />
+                    </div>
                     <div className="field">
                       <label>{t("Discount price $/SF (optional)", "Precio con descuento $/SF (opcional)")}</label>
                       <CampoDecimal value={l.lower_price_per_sf} data-precio-bajo
@@ -740,6 +748,18 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                   </>
                 )}
               </div>
+              {/* D-NEXT: un $/SF que parece el de la caja (26.77 con cajas de 19.26 SF): se pregunta, con el arreglo a un clic. */}
+              {l.kind === "sf" && pareceDeCaja(l.price_per_sf, l.sf_per_box) !== null && (
+                <div className="est-calc" data-parece-de-caja style={{ alignItems: "center", background: "var(--amber-soft)", borderRadius: 8, padding: "6px 10px" }}>
+                  <span>⚠ {t(
+                    `$${numero(l.price_per_sf!, 2)}/SF looks like a box price: ${numero(l.price_per_sf!, 2)} ÷ ${numero(l.sf_per_box!, 2)} SF = $${numero(pareceDeCaja(l.price_per_sf, l.sf_per_box)!, 2)}/SF.`,
+                    `$${numero(l.price_per_sf!, 2)}/SF parece el precio de la caja: ${numero(l.price_per_sf!, 2)} ÷ ${numero(l.sf_per_box!, 2)} SF = $${numero(pareceDeCaja(l.price_per_sf, l.sf_per_box)!, 2)}/SF.`)}</span>
+                  <button type="button" className="btn btn-sm" data-usar-precio-de-caja
+                    onClick={() => setLinea(l.id, { price_per_sf: pareceDeCaja(l.price_per_sf, l.sf_per_box) })}>
+                    {t("It was per box: use $/SF", "Era por caja: usar el $/SF")}
+                  </button>
+                </div>
+              )}
               <div className="est-calc" data-calc>
                 {l.kind === "sf" && (
                   <>
