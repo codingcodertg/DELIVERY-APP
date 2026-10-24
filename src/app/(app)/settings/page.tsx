@@ -613,7 +613,7 @@ function ReglasDeAprobacionCard({ settings, saveSettings, notify, t }: {
       </p>
       <div className="grid g3" style={{ maxWidth: 640 }}>
         <TimeInput label={t("Cutoff (Texas time)", "Hora de corte (Texas)")} value={reglas.corte} onSave={(v) => guarda({ corte: v })} />
-        {/* D-NEXT: todas las franjas del selector de la orden (y las que ya tengan cupo), no solo las dos de la mañana. */}
+        {/* D-675: todas las franjas del selector de la orden (y las que ya tengan cupo), no solo las dos de la mañana. */}
         {ventanasConCupoEditable(DELIVERY_WINDOW_PRESETS.map((p) => p.value), reglas).map(tope)}
       </div>
       <div className="field" style={{ marginTop: 10 }}>

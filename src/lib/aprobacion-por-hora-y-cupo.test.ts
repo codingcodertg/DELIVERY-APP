@@ -151,7 +151,7 @@ describe("quién aprueba", () => {
   });
 });
 
-// D-NEXT: el cupo en todas las franjas. El dueño, a «Ajustes solo deja 0830-1000 y 0830-1200»: «sí».
+// D-675: el cupo en todas las franjas. El dueño, a «Ajustes solo deja 0830-1000 y 0830-1200»: «sí».
 describe("cupo en cualquier franja", () => {
   const PRESETS = ["0830-1000", "0830-1200", "1200-1730", "0830-1730", "0830-1530"];
   it("Ajustes enseña todas las del selector y, detrás, las que ya tengan cupo guardado", () => {

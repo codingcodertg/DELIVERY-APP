@@ -47954,7 +47954,7 @@ esperadas. Lo lanza el dueño.
 
 **Probado:** `precio-por-caja.test.ts` (4: el caso de Roberto con la fórmula de siempre y con el $/caja, el campo, el aviso
 y sus bordes, y la pantalla). **No medido:** en el navegador.
-## D-NEXT · Ajustes: cupo en todas las franjas, no solo en las dos de la mañana
+## D-675 · Ajustes: cupo en todas las franjas, no solo en las dos de la mañana
 
 **Fecha:** 2026-10-24. **Pedido:** el dueño, a la lista de pendientes («Cupo en más franjas: Ajustes solo deja 0830-1000 y
 0830-1200»): «sí a todo».

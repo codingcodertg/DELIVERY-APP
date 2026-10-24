@@ -40,7 +40,7 @@ export const REGLAS_DE_APROBACION_POR_DEFECTO: ReglasDeAprobacion = {
 };
 
 /**
- * Las franjas a las que Ajustes deja poner cupo (D-NEXT). El dueño, a «Cupo en más franjas: Ajustes solo deja 0830-1000 y
+ * Las franjas a las que Ajustes deja poner cupo (D-675). El dueño, a «Cupo en más franjas: Ajustes solo deja 0830-1000 y
  * 0830-1200»: «sí». El cupo siempre fue por ventana (`cupo`, cualquier clave, y así lo cuentan la ruta y la ficha); lo que
  * enseñaba solo dos era la tarjeta. Son las del selector de la orden (`presets`, en su orden) y, detrás, cualquier otra que
  * ya tenga cupo guardado, para que no desaparezca de la tarjeta.
