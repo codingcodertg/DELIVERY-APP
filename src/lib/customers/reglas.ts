@@ -53,7 +53,7 @@ export interface Cliente {
    */
   company_id?: string | null;
   /**
-   * Migración 193 (D-NEXT): los contactos de la fila, cada uno con su nombre, cargo, teléfonos, correos y nota. Vacía
+   * Migración 193 (D-668): los contactos de la fila, cada uno con su nombre, cargo, teléfonos, correos y nota. Vacía
    * (o sin la 193) = aún salen de las cuatro columnas de antes (`contactosDe`), que la app escribe como espejo del primero.
    */
   contacts?: Contacto[] | null;
@@ -321,7 +321,7 @@ const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize
 export function coincide(c: Cliente, busca: string): boolean {
   const q = norm(busca).trim();
   if (!q) return true;
-  // D-NEXT: con TODOS sus contactos (nombres, cargos, correos, notas y teléfonos), no solo el primero.
+  // D-668: con TODOS sus contactos (nombres, cargos, correos, notas y teléfonos), no solo el primero.
   const contactos = contactosDe(c);
   const campos = [c.account, c.unified_account, c.contact_name, c.email, c.account_no, c.rep_store, c.rep_qb, c.rep_history, c.notes,
     ...contactos.flatMap((x) => [x.name, x.title, x.note, ...x.emails])];
@@ -351,7 +351,7 @@ export const ORDEN_INICIAL: Orden = { por: "account", desc: false };
 export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: Cliente) => number): string | number | null {
   if (key === "store_count") return tiendasDe ? tiendasDe(c) : null;
   if (key === "concatenate") return `${c.store}${c.account}`;
-  // D-NEXT: contacto, cargo, teléfono y correo son los del PRIMER contacto, ya separados («956-… - OMAR» da OMAR y su
+  // D-668: contacto, cargo, teléfono y correo son los del PRIMER contacto, ya separados («956-… - OMAR» da OMAR y su
   // número), aunque la fila aún los tenga juntos en sus columnas.
   if (key === "contact_name" || key === "contact_title" || key === "phone" || key === "email") return espejoDeContactos(contactosDe(c))[key];
   if (key === "contacts") return null;
@@ -436,7 +436,7 @@ export const CAMPOS: readonly Campo[] = [
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "cuenta" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
-  // D-NEXT: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
+  // D-668: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
   // la tarjeta «Contacto» pinta y edita aparte (`contactos.ts`). Las cuatro columnas quedan como espejo del primero.
   { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "contacto" },
   { key: "terms", tipo: "text", en: "Terms", es: "Términos", grupo: "credito" },

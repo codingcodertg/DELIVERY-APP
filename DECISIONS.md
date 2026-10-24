@@ -47744,7 +47744,7 @@ minutos por delante, por adelantado sí avisa, el borde del margen, sin `ahora` 
 `ModalHost` pasa `ahora` en las dos llamadas); 6 de 6 mutantes caen con una prueba con nombre. **No medido:** en el
 navegador (el cambio es de la regla; el diálogo y su aviso son los de D-632).
 
-## D-NEXT · Clientes: varios contactos por cliente, cada uno con varios teléfonos y correos (migración 193)
+## D-668 · Clientes: varios contactos por cliente, cada uno con varios teléfonos y correos (migración 193)
 
 **Fecha:** 2026-10-24. **Pedido:** el dueño: «en la parte de customers pueden haber que en un solo cliente tenga diferentes
 contactos […] así como tienes las tiendas, que uno le da clic a las tiendas y cambia las tiendas, así mero quiero en

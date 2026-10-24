@@ -8,7 +8,7 @@ import { contactosDeLosCampos, espejoDeContactos, normalizaContactos, type Conta
 import { celda, coincide, valorDeColumna, type Cliente } from "./reglas";
 
 /*
- * D-NEXT (migración 193): varios contactos por cliente. El dueño, 2026-10-24: «me dice arriba el número y Omar […] quiero
+ * D-668 (migración 193): varios contactos por cliente. El dueño, 2026-10-24: «me dice arriba el número y Omar […] quiero
  * que el contacto sea Omar y abajo el número de teléfono», y que un cliente tenga varios contactos, cada uno con varios
  * teléfonos y correos. Datos INVENTADOS con la forma de los del Excel (medidos en producción ese día: «número - NOMBRE»,
  * «NOMBRE número», «…, A/P owner», correos con «;», un teléfono en la columna del correo…).

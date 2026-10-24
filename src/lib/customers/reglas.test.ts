@@ -265,7 +265,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
       expect(c.es).not.toBe(c.en);
     }
   });
-  it("la ficha (CAMPOS) edita las 26 guardadas, menos house_no (número de fila del maestro, se enseña aparte) y las cuatro del contacto (D-NEXT: van en la lista de contactos)", () => {
+  it("la ficha (CAMPOS) edita las 26 guardadas, menos house_no (número de fila del maestro, se enseña aparte) y las cuatro del contacto (D-668: van en la lista de contactos)", () => {
     const editables = new Set(CAMPOS.map((c) => c.key as string));
     const delContacto = ["contact_name", "contact_title", "phone", "email"];
     for (const col of cabecerasDelExcel.filter((c) => c !== "house_no" && !delContacto.includes(c))) expect(editables, col).toContain(col);

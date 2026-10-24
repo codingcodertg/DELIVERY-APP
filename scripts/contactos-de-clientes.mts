@@ -1,4 +1,4 @@
-// Barrido de una vez (D-NEXT, migración 193): rellena la lista de contactos (`contacts`) de cada cliente a partir de sus
+// Barrido de una vez (D-668, migración 193): rellena la lista de contactos (`contacts`) de cada cliente a partir de sus
 // cuatro columnas de antes, donde el Excel lo escribía todo junto («956-605-8867 - Emmanuel», «…, A/P owner», correos con
 // «;»), y deja esas cuatro columnas como espejo limpio del primer contacto. El dueño, 2026-10-24: «quiero que me hagas una
 // auditoría de todos los datos de los clientes […] si tienen varios correos, no solo esté el correo y coma […] quiero que

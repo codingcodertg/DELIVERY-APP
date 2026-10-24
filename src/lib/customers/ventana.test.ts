@@ -184,8 +184,8 @@ describe("la ficha en una ventana centrada (D-654)", () => {
   });
 });
 
-// D-NEXT (193): los contactos en la tarjeta «Contacto», como las pastillas de tiendas.
-describe("los contactos de la ficha (D-NEXT)", () => {
+// D-668 (193): los contactos en la tarjeta «Contacto», como las pastillas de tiendas.
+describe("los contactos de la ficha (D-668)", () => {
   const contacto = (html: string) => tarjeta(html, "contacto");
   it("leyendo: una pastilla por contacto, tres a la vista y «+2» con los demás; el elegido con su teléfono (RingCentral) y su correo, cada uno con «📋»", () => {
     const html = contacto(pinta(dosTiendas));

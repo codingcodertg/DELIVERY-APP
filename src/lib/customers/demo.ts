@@ -22,7 +22,7 @@ const base = (n: number, c: Partial<Cliente>): Cliente => ({
 export const CLIENTES_DEMO: Cliente[] = [
   // 1 y 2 son la MISMA empresa en dos tiendas (189): la lista pinta una fila y la ficha cambia de tienda.
   base(1, { store: "MCA", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER", crm_type_store: "LARGE", crm_type_group: "LARGE", associated_with: "DEMO GROUP",
-    // D-NEXT: cinco contactos (193), para que la ficha enseñe tres pastillas y «+2».
+    // D-668: cinco contactos (193), para que la ficha enseñe tres pastillas y «+2».
     contacts: [
       { name: "ANA DEMO", title: "OWNER", phones: ["(956) 555-0101", "(956) 555-0111"], emails: ["ana@example.com", "pagos@example.com"], note: null },
       { name: "LUIS DEMO", title: "A/P", phones: ["(956) 555-0121"], emails: ["luis@example.com"], note: "solo para POs" },

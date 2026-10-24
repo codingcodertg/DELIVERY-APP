@@ -56,7 +56,7 @@ export function estandarizaCliente(fila: Partial<Record<ConFormato, string | nul
   return out;
 }
 
-// ---- Contactos (D-NEXT, migración 193) -----------------------------------------------------------------------------
+// ---- Contactos (D-668, migración 193) -----------------------------------------------------------------------------
 /* El dueño, 2026-10-24: «en un solo cliente [puede] tener diferentes contactos […] si un mismo contacto tiene varios
  * teléfonos, varios correos, que se pueda ir poniendo», y de lo de hoy: «me dice arriba el número y Omar. […] quiero que
  * el contacto sea Omar y abajo el número de teléfono».

@@ -55,7 +55,7 @@ export const COLUMNAS =
 export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associated_with"] as const;
 /** La de la 189 (la empresa). Igual: si la base aún no la tiene, se lee sin ella y cada fila es su propia empresa. */
 export const COLUMNAS_DE_LA_189 = ["company_id"] as const;
-/** La de la 193 (los contactos, D-NEXT). Sin ella, los contactos salen de las cuatro columnas de antes (`contactosDe`). */
+/** La de la 193 (los contactos, D-668). Sin ella, los contactos salen de las cuatro columnas de antes (`contactosDe`). */
 export const COLUMNAS_DE_LA_193 = ["contacts"] as const;
 const sin = (fuera: readonly string[]) => COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !fuera.includes(c)).join(", ");
 export const COLUMNAS_SIN_193 = sin(COLUMNAS_DE_LA_193);

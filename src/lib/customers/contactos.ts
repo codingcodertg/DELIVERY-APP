@@ -5,7 +5,7 @@ export type { Contacto };
 type T = (en: string, es: string) => string;
 
 /**
- * Los contactos de un cliente en la pantalla (D-NEXT, migración 193). El dueño, 2026-10-24: «así como tienes las
+ * Los contactos de un cliente en la pantalla (D-668, migración 193). El dueño, 2026-10-24: «así como tienes las
  * tiendas, que uno le da clic a las tiendas y cambia las tiendas, así mero quiero en contacto: que salga el nombre de la
  * persona y le das clic y vas cambiando los contactos. Si es más de lo que el view agarra, quedaría como +5, y hay un
  * drop down». Y al editar, «que uno pueda agregar cuántos contactos quieran, y si es mismo contacto, varios teléfonos,

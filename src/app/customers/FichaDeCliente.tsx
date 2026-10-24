@@ -45,7 +45,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * Debajo, «🔒 Campos ocultos» (D-660): Añadido (tanda), N.º House y la CONCATENATE, en un `<details>` que abre
  * PLEGADO. Editando, «Añadido (tanda)» se corrige ahí dentro.
  *
- * La tarjeta «Contacto» abre con los contactos (D-NEXT): leyendo, una pastilla por contacto (`ContactosParaVer`);
+ * La tarjeta «Contacto» abre con los contactos (D-668): leyendo, una pastilla por contacto (`ContactosParaVer`);
  * editando, la lista que se escribe (`contactos`, `ContactosParaEditar`). Debajo, la dirección.
  */
 export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, t }: {
@@ -182,7 +182,7 @@ function BotonCopiar({ texto, t }: { texto: string; t: T }) {
 }
 
 /**
- * Los contactos de la tarjeta «Contacto» (D-NEXT). Como las pastillas de tiendas: una pastilla por contacto, y al
+ * Los contactos de la tarjeta «Contacto» (D-668). Como las pastillas de tiendas: una pastilla por contacto, y al
  * pulsarla se ve ese; si no caben (`PASTILLAS_A_LA_VISTA`), «+N» abre un desplegable con los demás. Del elegido: el
  * nombre, el cargo y la nota, y debajo sus teléfonos (pulsar llama con RingCentral, como en RR. HH.) y sus correos
  * (pulsar abre el correo), cada uno con «📋» para solo copiarlo.
@@ -263,7 +263,7 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
 }
 
 /**
- * Editar los contactos (D-NEXT): cuantos hagan falta, y cada uno con cuantos teléfonos y correos hagan falta. El nombre
+ * Editar los contactos (D-668): cuantos hagan falta, y cada uno con cuantos teléfonos y correos hagan falta. El nombre
  * y el cargo salen en MAYÚSCULAS al escribir; el teléfono con el molde de Entregas. Un hueco vacío no cuenta.
  */
 function ContactosParaEditar({ contactos, errores, onCambia, t }: { contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; t: T }) {
@@ -358,7 +358,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const original = useMemo(() => formDe(cliente), [cliente]);
   const [form, setForm] = useState<Record<string, string>>(original);
   useEffect(() => { setForm(original); }, [original]);
-  // D-NEXT: los contactos van aparte del resto de campos: una lista que se edita entera.
+  // D-668: los contactos van aparte del resto de campos: una lista que se edita entera.
   const contactosOriginales = useMemo(() => contactosDe(cliente), [cliente]);
   const [contactos, setContactos] = useState<ContactoEnEdicion[]>(() => enEdicion(contactosOriginales));
   useEffect(() => { setContactos(enEdicion(contactosOriginales)); }, [contactosOriginales]);
@@ -605,7 +605,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               </button>
             );
           })}
-          {/* D-NEXT: el teléfono y el correo ya no van aquí arriba, sueltos («956-… Omar»): van en la tarjeta «Contacto»,
+          {/* D-668: el teléfono y el correo ya no van aquí arriba, sueltos («956-… Omar»): van en la tarjeta «Contacto»,
               con su persona. */}
           {puedeEditar && !nuevo && tiendas.length > 1 && (
             <Button variant="ghost" size="sm" className="ml-auto text-xs text-slate-500" onClick={separar} disabled={ocupado || cambiado}

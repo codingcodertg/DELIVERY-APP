@@ -30,7 +30,7 @@ export interface FilaDeCliente {
   archived_at: string | null;
   /** Migración 189. null/undefined = sin migración: la fila es su propia empresa. */
   company_id?: string | null;
-  /** Migración 193 (D-NEXT): sus contactos. Los teléfonos y correos de todos cuentan en el aviso de duplicado. */
+  /** Migración 193 (D-668): sus contactos. Los teléfonos y correos de todos cuentan en el aviso de duplicado. */
   contacts?: readonly { phones: readonly string[]; emails: readonly string[] }[] | null;
 }
 

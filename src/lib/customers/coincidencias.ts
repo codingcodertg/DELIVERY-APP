@@ -65,7 +65,7 @@ export function coincidenciasDe<F extends FilaDeCliente>(borrador: Borrador, lis
     const motivos: MotivoDeCoincidencia[] = [];
     if (nombre && nombre === claveDeNombre(f.account)) motivos.push("nombre");
     if (unificada && unificada === claveDeNombre(f.unified_account)) motivos.push("cuenta_unificada");
-    // D-NEXT: con los teléfonos y correos de TODOS sus contactos, no solo el espejo del primero.
+    // D-668: con los teléfonos y correos de TODOS sus contactos, no solo el espejo del primero.
     if (tels.length && telefonos(conContactos(f.phone, f.contacts, "phones")).some((t) => tels.includes(t))) motivos.push("telefono");
     if (mails.length && correos(conContactos(f.email, f.contacts, "emails")).some((c) => mails.includes(c))) motivos.push("correo");
     // Sin un nombre de dos letras o más (`claveDeNombre`), no hay con qué parecerse: «A» no se parece a «A».

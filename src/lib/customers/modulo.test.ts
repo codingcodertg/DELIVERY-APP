@@ -130,7 +130,7 @@ describe("la 180", () => {
     const alter182 = /alter table erp\.customers\n([\s\S]*?);/.exec(leer("supabase/migrations/182_clientes_crm.sql"))![1];
     // Y la empresa, la 189.
     const la189 = leer("supabase/migrations/189_clientes_empresas.sql");
-    // Y los contactos, la 193 (D-NEXT).
+    // Y los contactos, la 193 (D-668).
     const la193 = leer("supabase/migrations/193_clientes_contactos.sql");
     const dondeEsta = (col: string) => {
       if ((COLUMNAS_DE_LA_193 as readonly string[]).includes(col)) expect(la193, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
@@ -228,7 +228,7 @@ describe("la 182 · las tres del CRM", () => {
     const r189 = await leeConRespaldo(async (cols) => { solo189.push(cols); return solo189.length < 3 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: [{ id: 2 }], error: null }; });
     expect(solo189).toEqual([COLUMNAS, COLUMNAS_SIN_193, COLUMNAS_SIN_189]);
     expect(r189.data).toEqual([{ id: 2 }]);
-    // D-NEXT: con todo menos la 193, basta quitar contacts; y las demás siguen ahí.
+    // D-668: con todo menos la 193, basta quitar contacts; y las demás siguen ahí.
     for (const col of COLUMNAS_DE_LA_193) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_193).not.toContain(col); expect(COLUMNAS_SIN_189).not.toContain(col); }
     expect(COLUMNAS_SIN_193).toContain("company_id");
     const solo193: string[] = [];
