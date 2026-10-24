@@ -47906,3 +47906,25 @@ aplicados caen. Ensayo de la 195 contra producción con ROLLBACK: entera. **No m
 de verdad al cubo (el ensayo crea el cubo y lo deshace).
 
 **Pendiente del dueño:** aplicar la 195 (su comando).
+
+## D-NEXT · Clientes: la lista en una línea por fila, columnas que se ensanchan y la tienda como «tienda +N»
+
+**Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con la lista ordenada por «# Stores» (Clientes 0.17.0):
+«1) Instead of showing all, show store+3 or +2 so it doesnt take up more space. 2) Columns should be adjustable to see
+info. 3) Lets not wrap text so that it doesn't go down and make the row thicker».
+
+**Qué cambia:**
+- **Tienda:** la pastilla de la tienda de la fila que se enseña y «+N» por las demás (sus nombres, en el título); ya no
+  todas las pastillas una debajo de otra (`tiendasDeLaCelda`).
+- **Columnas que se ensanchan:** la tabla es `tbl-resize` (la de Órdenes, D-345) con `useColWidthMap`: cada cabecera
+  lleva su asa a la derecha (arrastrar; doble clic, vuelve a la de partida), y lo arrastrado se recuerda en el navegador
+  de cada persona (`rtg_customers_colw_<id>`). Los anchos de partida, por columna, en `src/lib/customers/anchos.ts`, con
+  sus claves prefijadas (`cli_…`) para que no tomen el de partida de Órdenes. El asa no deja empezar el arrastre de la
+  cabecera para moverla (D-650).
+- **Sin saltos de línea:** celdas y cabeceras en una línea; lo que no cabe se corta con «…» y se lee en su título (la
+  celda lleva el texto entero) o ensanchando la columna. El estado (la pastilla) tampoco parte.
+
+**Probado:** `anchos.test.ts` (3: anchos de partida para cada columna, claves que no chocan con Órdenes, la celda de la
+tienda, y que la tabla es `tbl-resize` con asas y «+N»). En el demo (1440 y 390 px): todas las filas de 39 px (antes, una
+con dos tiendas o un estado largo crecía), «RDZ McAllen +1», 10 asas, y arrastrar 120 px el asa de «Cuenta» la lleva de
+260 a 380 y queda guardado; 0 px de desborde de la página. **No medido:** con la lista real.
