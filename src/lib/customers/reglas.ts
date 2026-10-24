@@ -392,7 +392,7 @@ export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "q
  * y en las pestañas de tiendas (D-654, el dueño: «abajo donde dice cuenta, vuelve a decir la tienda […] elimina esa
  * parte»), y no se repiten abajo.
  */
-export type GrupoDeCampo = "cabecera" | "estado" | "vendedores" | "contacto" | "credito" | "otros" | "ocultos";
+export type GrupoDeCampo = "cabecera" | "cuenta" | "estado" | "vendedores" | "contacto" | "credito" | "otros" | "ocultos";
 export interface Campo { key: keyof Cliente; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
 
 /** Los campos de la ficha, en su orden. Todo lo del Excel se puede corregir; lo de la app (notas) también. */
@@ -409,8 +409,8 @@ export const CAMPOS: readonly Campo[] = [
   { key: "crm_type_store", tipo: "text", en: "CRM type (store)", es: "Tipo CRM (tienda)", grupo: "otros" },
   { key: "crm_type_group", tipo: "text", en: "CRM type (group)", es: "Tipo CRM (grupo)", grupo: "otros" },
   { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "otros" },
-  // D-654: sin la tarjeta «Cuenta», la cuenta unificada (la del Excel que junta las tiendas) va con lo demás del Excel.
-  { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "otros" },
+  // D-NEXT: vuelve a la tarjeta «Cuenta», la primera (en D-654 había ido a «Otros» al quitar esa tarjeta).
+  { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "cuenta" },
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "vendedores" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "vendedores" },
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "vendedores" },
@@ -429,6 +429,10 @@ export const CAMPOS: readonly Campo[] = [
 ];
 
 export const GRUPOS: readonly { key: Exclude<GrupoDeCampo, "cabecera" | "ocultos">; en: string; es: string }[] = [
+  // D-NEXT: «Cuenta» vuelve a ser la PRIMERA tarjeta. El dueño, 2026-10-23, con el orden escrito («ACCOUNT · CONTACT ·
+  // CREDIT AND TERMS / STATUS AND HISTORY · SALES REP · OTHER»): «it should be account first, then contact, and account got
+  // deleted». D-654 la había quitado leyendo «elimina la parte donde dice cuenta» como la tarjeta entera.
+  { key: "cuenta", en: "Account", es: "Cuenta" },
   { key: "contacto", en: "Contact", es: "Contacto" },
   { key: "credito", en: "Credit & terms", es: "Crédito y términos" },
   { key: "estado", en: "Status & history", es: "Estado e historial" },
@@ -468,7 +472,10 @@ const filaDe = (campo: Campo): FilaDeFicha => ({ key: campo.key, en: campo.en, e
  * `/customers/[id]` pintan esto mismo.
  */
 export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDeFicha[] }[] {
-  return GRUPOS.map((grupo) => ({ grupo, filas: CAMPOS.filter((c) => c.grupo === grupo.key).map(filaDe) }))
+  // La tarjeta «Cuenta» (D-NEXT) abre con el nombre de la cuenta, de solo lectura: se corrige arriba, en la cabecera (D-654),
+  // y aquí no se edita dos veces.
+  const delante = (k: string): FilaDeFicha[] => (k === "cuenta" ? [{ key: "account", en: "Account", es: "Cuenta", campo: null }] : []);
+  return GRUPOS.map((grupo) => ({ grupo, filas: [...delante(grupo.key), ...CAMPOS.filter((c) => c.grupo === grupo.key).map(filaDe)] }))
     .filter((g) => g.filas.length > 0);
 }
 

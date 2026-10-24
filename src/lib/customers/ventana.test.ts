@@ -67,10 +67,13 @@ describe("la ficha en una ventana centrada (D-654)", () => {
       expect(arriba).not.toContain(String(valorDeColumna(c, "concatenate")));
     }
   });
-  it("la ficha COMPLETA abajo, sin tarjeta «Cuenta» y sin «Cuenta» ni «Tienda» repetidas", () => {
+  it("la ficha COMPLETA abajo: «Cuenta» primero (D-NEXT), con el nombre una sola vez y sin «Tienda»", () => {
     const html = pinta(dosTiendas);
-    expect(grupos(html)).toEqual(["contacto", "credito", "estado", "vendedores", "otros", "ocultos"]);
-    expect(html).not.toContain('data-campo="account"');
+    expect(grupos(html)).toEqual(["cuenta", "contacto", "credito", "estado", "vendedores", "otros", "ocultos"]);
+    const cuenta = tarjeta(html, "cuenta");
+    expect(cuenta).toContain('data-campo="account"');
+    expect(cuenta).toContain('data-campo="unified_account"');
+    expect(html.split('data-campo="account"')).toHaveLength(2);
     expect(html).not.toContain('data-campo="store"');
     // Y todo lo demás sí: contacto, crédito, estado, vendedores.
     for (const k of ["contact_name", "phone", "terms", "credit_limit", "status_store", "history_group", "rep_store", "crm_type_store", "notes"]) {
@@ -99,9 +102,10 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(oculto).toContain(`>${valorDeColumna(dosTiendas, "concatenate")}<`);
     // Al final de la ficha: detrás de «Otros».
     expect(html.indexOf(etiquetaOculta(html))).toBeGreaterThan(html.indexOf('data-grupo="otros"'));
-    // «Otros» se queda con el CRM, la cuenta unificada y las notas.
+    // «Otros» se queda con el CRM y las notas (la cuenta unificada volvió a «Cuenta», D-NEXT).
     const otros = tarjeta(html, "otros");
-    for (const k of ["crm_type_store", "crm_type_group", "associated_with", "unified_account", "notes"]) expect(otros, k).toContain(`data-campo="${k}"`);
+    for (const k of ["crm_type_store", "crm_type_group", "associated_with", "notes"]) expect(otros, k).toContain(`data-campo="${k}"`);
+    expect(otros).not.toContain('data-campo="unified_account"');
     // Y fuera del apartado no salen en ninguna tarjeta.
     const fuera = html.replace(oculto, "");
     for (const k of ["added_batch", "house_no", "concatenate"]) expect(fuera, k).not.toContain(`data-campo="${k}"`);
@@ -126,8 +130,8 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(oculto).toContain(`value="${dosTiendas.added_batch}"`);
     expect(oculto).toContain(`>${valorDeColumna(dosTiendas, "concatenate")}<`);
     expect(oculto).toContain(`>${dosTiendas.house_no}<`);
-    // Y sin «Cuenta» ni «Tienda» en las tarjetas también editando.
-    expect(editando).not.toContain('data-campo="account"');
+    // Editando, el nombre se corrige arriba: en la tarjeta «Cuenta» se lee (sin control), y la tienda no sale.
+    expect(tarjeta(editando, "cuenta")).toMatch(/data-campo="account"><span[^>]*>Cuenta<\/span><span/);
     expect(editando).not.toContain('data-campo="store"');
   });
   it("quien no edita: solo lectura, sin «Editar» ni controles aunque llegue con editar", () => {

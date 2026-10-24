@@ -41,7 +41,7 @@ export const APP_VERSIONS = {
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
   leads: "0.8.0",
   // Clientes (D-569): la primera, como leads.
-  customers: "0.12.0",
+  customers: "0.13.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;
