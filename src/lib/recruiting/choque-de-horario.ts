@@ -14,9 +14,15 @@ import { formatoEnBrownsville } from "./hora-de-brownsville";
  *   ya se hizo (hay entrevista guardada) no ocupa la hora.
  * - Chocan si empiezan a menos de 30 minutos una de otra: 3:00 y 3:15 chocan; 3:00 y 3:30, no.
  * - No cuentan el propio candidato, los archivados ni los que ya están en una etapa final (contratado / descartado).
+ * - D-667: una LLAMADA para ahora mismo no es una cita, es la entrevista que se va a hacer ya: no avisa. El dueño,
+ *   2026-10-24, con el aviso «Ya hay Jorge Galvan agendado a esa hora (11:30 a.m.)» al pulsar «Ahorita» a las 11:35:
+ *   «cuando yo le doy llamar ahorita no cuenta, solamente cuando agendo ahead of time». Por la hora y no por el botón:
+ *   escribir la hora de ahora a mano es lo mismo, y el formulario se rellena unos minutos después de pulsarlo.
  */
 
 export const VENTANA_DE_CHOQUE_MIN = 30;
+/** Hasta cuántos minutos por delante de ahora una llamada es «ahorita» (y no avisa). */
+export const MARGEN_DE_AHORITA_MIN = 5;
 
 export type TipoDeCita = "llamada" | "presencial";
 
@@ -32,6 +38,8 @@ export type PedidoDeCita = {
   iso: string;
   /** Solo para llamadas: quién llama. */
   reclutador?: string | null;
+  /** Solo para llamadas: el instante actual (ms). Con él, una llamada que empieza ya (`MARGEN_DE_AHORITA_MIN`) no avisa. */
+  ahora?: number;
 };
 
 /** Los candidatos que ya tienen una cita del mismo tipo a esa hora, ordenados por hora. Vacío = se agenda sin preguntar. */
@@ -40,6 +48,7 @@ export function choquesDeHorario(
 ): Choque[] {
   const t = Date.parse(pedido.iso);
   if (Number.isNaN(t)) return [];
+  if (pedido.tipo === "llamada" && pedido.ahora !== undefined && t <= pedido.ahora + MARGEN_DE_AHORITA_MIN * 60_000) return [];
   const ventanaMs = ventanaMin * 60_000;
   const choques: Choque[] = [];
   for (const o of candidatos) {

@@ -383,7 +383,7 @@ function ScheduleModal({ id, kind, close }: { id: string; kind: "phone"; close: 
     const iso = dt ? instanteDePared(dt)?.toISOString() ?? null : null;
     if (dt && !iso) { notify(t("Invalid date", "Fecha no válida")); return; }
     if (iso && !forzar) {
-      const choques = choquesDeHorario(candidates, { id: c.id, tipo: "llamada", iso, reclutador: c.assigned_recruiter ?? me?.id ?? null }, terminalKeys(stages));
+      const choques = choquesDeHorario(candidates, { id: c.id, tipo: "llamada", iso, reclutador: c.assigned_recruiter ?? me?.id ?? null, ahora: Date.now() }, terminalKeys(stages));
       if (choques.length) { setAviso(avisoDeChoque(choques, "llamada", lang)); return; }
     }
     await updateCandidate(c.id, { phone_date: iso, status: iso && c.status === "registered" ? "phone" : c.status });
@@ -507,7 +507,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
     const phoneIso = phoneDt ? instanteDePared(phoneDt)?.toISOString() ?? null : null;
     if (phoneDt && !phoneIso) { notify(t("Invalid date", "Fecha no válida")); return; }
     if (phoneIso && !forzar) {
-      const choques = choquesDeHorario(candidates, { id: null, tipo: "llamada", iso: phoneIso, reclutador: me?.id ?? null }, terminalKeys(stages));
+      const choques = choquesDeHorario(candidates, { id: null, tipo: "llamada", iso: phoneIso, reclutador: me?.id ?? null, ahora: Date.now() }, terminalKeys(stages));
       if (choques.length) { setAviso({ texto: avisoDeChoque(choques, "llamada", lang), thenInterview }); return; }
     }
     setSaving(true);

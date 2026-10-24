@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { VENTANA_DE_CHOQUE_MIN, avisoDeChoque, choquesDeHorario } from "./choque-de-horario";
+import { MARGEN_DE_AHORITA_MIN, VENTANA_DE_CHOQUE_MIN, avisoDeChoque, choquesDeHorario } from "./choque-de-horario";
 import type { Candidate } from "./types";
 
 /* El dueño (2026-10-21): «no me dejes schedule candidates a la misma hora. Dame un warning … o estás seguro». */
@@ -78,5 +78,41 @@ describe("choque de horario al agendar (D-632)", () => {
     expect(avisoDeChoque([], "presencial", "es")).toBe("");
     expect(choquesDeHorario([cand({ id: "o", inperson_date: A_LAS_330 })], { id: "yo", tipo: "presencial", iso: "basura" }, terminales)).toEqual([]);
     expect(choquesDeHorario([cand({ id: "o", inperson_date: "basura" })], { id: "yo", tipo: "presencial", iso: A_LAS_330 }, terminales)).toEqual([]);
+  });
+});
+
+// D-667: el caso del dueño, 2026-10-24: Jorge Galvan agendado a las 11:30 y «Ahorita» a las 11:35 → sin aviso.
+describe("una llamada para ahora mismo no avisa (D-667)", () => {
+  const A_LAS_1130 = "2026-10-24T16:30:00.000Z"; // 11:30 a.m. en Brownsville (CDT)
+  const a = (n: number) => Date.parse(A_LAS_1130) + n * 60_000;
+  const jorge = cand({ id: "jorge", name: "Jorge Galvan", phone_date: A_LAS_1130 });
+  const llamada = (iso: number, ahora?: number) => ({ id: null, tipo: "llamada" as const, iso: new Date(iso).toISOString(), reclutador: "andres", ahora });
+  it("«Ahorita» a las 11:35, con Jorge a las 11:30: no avisa; aunque se guarde unos minutos después, tampoco", () => {
+    expect(choquesDeHorario([jorge], llamada(a(5), a(5)), terminales)).toEqual([]);
+    expect(choquesDeHorario([jorge], llamada(a(5), a(9)), terminales)).toEqual([]);
+    // Y la hora escrita a mano un par de minutos por delante (11:35 escrito a las 11:32) también es «ahorita».
+    expect(choquesDeHorario([jorge], llamada(a(5), a(2)), terminales)).toEqual([]);
+  });
+  it("agendada por adelantado sí avisa: la misma hora pedida a las 9:00, o justo pasado el margen", () => {
+    expect(choquesDeHorario([jorge], llamada(a(5), a(-150)), terminales)).toHaveLength(1);
+    expect(choquesDeHorario([jorge], llamada(a(5), a(5 - MARGEN_DE_AHORITA_MIN - 1)), terminales)).toHaveLength(1);
+    expect(choquesDeHorario([jorge], llamada(a(5), a(5 - MARGEN_DE_AHORITA_MIN)), terminales)).toEqual([]);
+  });
+  it("sin `ahora`, como antes; y una presencial para ahora mismo sigue avisando", () => {
+    expect(choquesDeHorario([jorge], llamada(a(5)), terminales)).toHaveLength(1);
+    const pres = cand({ id: "ana", inperson_date: A_LAS_1130 });
+    expect(choquesDeHorario([pres], { id: null, tipo: "presencial", iso: new Date(a(5)).toISOString(), ahora: a(5) }, terminales)).toHaveLength(1);
+  });
+});
+
+// Quien llama: las dos llamadas de ModalHost (programar desde el perfil y el alta) le pasan la hora de ahora; sin ella la
+// regla de arriba no se aplica y el aviso vuelve a salir con «Ahorita».
+describe("ModalHost le pasa `ahora` a las llamadas (D-667)", () => {
+  it("las dos llamadas que piden choques de una llamada llevan `ahora: Date.now()`", async () => {
+    const { readFileSync } = await import("node:fs");
+    const fuente = readFileSync("src/components/recruiting/ModalHost.tsx", "utf8");
+    const llamadas = [...fuente.matchAll(/choquesDeHorario\(candidates, \{[^}]*tipo: "llamada"[^}]*\}/g)].map((m) => m[0]);
+    expect(llamadas).toHaveLength(2);
+    for (const l of llamadas) expect(l).toContain("ahora: Date.now()");
   });
 });
