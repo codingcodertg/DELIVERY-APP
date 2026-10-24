@@ -209,7 +209,7 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
   }
 
   // Anular: quién y desde qué etapa, la regla compartida con el guard (`puedeAnular`, 122). Ventas anula además SU orden
-  // pendiente o programada (D-656, 191): por eso va la dueñez, con la misma regla que el guard (`esMia`).
+  // hasta «Listo» (D-656, 191; D-663, 192): por eso va la dueñez, con la misma regla que el guard (`esMia`).
   if (puedeAnular(yo.role, stage, esMia(pedido, yo))) {
     if (abierto.anular) pasos.push("anular");
     else hay.push({ id: "anular", texto: { en: "Cancel order", es: "Cancelar orden" }, estilo: "btn-danger" });

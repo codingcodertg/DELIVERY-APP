@@ -47345,6 +47345,8 @@ va a ir en otra cosa que dice other.»
 - Safari/iPad.
 ## D-656 · Ventas anula SU orden pendiente o programada, y la oficina se entera
 
+> **Reemplazada en parte por D-663** (2026-10-23): ventas anula su orden hasta «Listo», no solo pendiente y programada (migración 192).
+
 **Fecha:** 2026-10-23 · **Versión:** la pone el orquestador (Entregas) · **Migración: 191** (la aplica el orquestador).
 
 **Pedido:** Kevin Gonzalez (vendedor), solicitud de ayuda: *«As a sales rep, need to be able to cancel orders»*, con la
@@ -47611,3 +47613,22 @@ vez y sin control, los rótulos de estado, la actividad en los ocultos). Demo a 
 desborde, la burbuja de Ayuda sin solapes.
 
 **No medido:** contra la base real.
+
+## D-663 · Ventas anula SU orden hasta «Listo» (migración 192)
+
+**Fecha:** 2026-10-23. **Pedido:** el dueño, tras D-656 (que dejaba solo pendiente y programada): «sales people can cancel
+up to ready stage, after that they can ask the driver to cancel if needed».
+
+**Qué cambia:** un vendedor anula SU orden (la creó o es su vendedor asignado, `esMia`) en Pendiente, Programada,
+Preparando y Lista. Desde Recogida (la carga ya va en el camión) no: se lo pide al chofer o a la oficina. Migración **192**:
+`guard_delivery_stage` de la 191 copiado letra por letra con la rama de ventas ampliada a
+('pending','approved','fulfilling','ready'); el resto del guard no cambia. `puedeAnular` (el espejo) dice lo mismo. El aviso
+a gerente y Office de D-656 sigue igual.
+
+**Lo que NO cambia:** el chofer no puede anular una orden recogida; hoy eso solo lo hace el admin (122). «Pídeselo al
+chofer» es, por ahora, que el chofer la devuelva o se lo pase a la oficina.
+
+**Prueba:** `anular-con-motivo.test.ts` (el espejo lee la 192, que es la última que define el guard) y
+`acciones-de-la-ficha.test.ts` (Kevin ve «Cancelar orden» en su orden preparándose y lista; no en la de otro ni en la recogida).
+
+**No medido:** anular de verdad como vendedor en producción.

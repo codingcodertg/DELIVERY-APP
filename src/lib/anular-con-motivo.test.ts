@@ -26,7 +26,7 @@ const sql = leer("supabase/migrations/122_anular_con_motivo.sql");
 /** El guard VIVO para el espejo de quién anula: la 191 (D-656) es la última que redefine `guard_delivery_stage` —la 188
  *  con una línea más para ventas—. Hasta D-656 esta prueba leía la 122, y entre medias el guard se redefinió muchas
  *  veces: el espejo comparaba con una versión vieja. La primera prueba de abajo dice cuándo deja de ser la última. */
-const GUARD_VIVO = "191_ventas_anula_su_orden.sql";
+const GUARD_VIVO = "192_ventas_anula_hasta_listo.sql";   // D-663: la 192 (hasta «Listo») sustituye a la 191
 const guardVivo = leer(`supabase/migrations/${GUARD_VIVO}`);
 const modal = leer("src/components/OrderModal.tsx");
 const lista = leer("src/app/(app)/page.tsx");
@@ -72,7 +72,7 @@ function laBaseDejaAnular(rol: UserRole, etapa: Stage, suya: boolean): boolean {
 }
 
 describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
-  it("la 191 es la ÚLTIMA migración que define el guard: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
+  it("la 192 es la ÚLTIMA migración que define el guard: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
     const dir = "supabase/migrations";
     // Sin distinguir mayúsculas: desde la 185 el guard se escribe `CREATE OR REPLACE FUNCTION`, y un `includes` en
     // minúsculas no lo ve.
@@ -80,7 +80,7 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
       .filter((f) => f.endsWith(".sql") && /function public\.guard_delivery_stage\(\)/i.test(leer(`${dir}/${f}`)))
       .sort();
     expect(conGuard.at(-1)).toBe(GUARD_VIVO);
-    expect(conGuard.at(-2)).toBe("188_chofer_toma_orden.sql");
+    expect(conGuard.at(-2)).toBe("191_ventas_anula_su_orden.sql");
   });
 
   it("el tramo del guard se encontró y trae las cuatro líneas de anular (control)", () => {
@@ -90,7 +90,7 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
       ["approved", "draft", "fulfilling", "pending", "ready", "rejected"],
     );
     // La de ventas es la ÚNICA que mira de quién es la orden, y nombra solo a ventas.
-    expect(permisosDeAnular.filter((p) => p.soloSuya)).toEqual([{ roles: ["sales"], etapas: ["pending", "approved"], soloSuya: true }]);
+    expect(permisosDeAnular.filter((p) => p.soloSuya)).toEqual([{ roles: ["sales"], etapas: ["pending", "approved", "fulfilling", "ready"], soloSuya: true }]);
   });
 
   it("rol por rol, etapa por etapa y suya o no, sin copiar la tabla", () => {
@@ -124,11 +124,12 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
       expect([s, puedeAnular("accounting", s)]).toEqual([s, true]);
       expect([s, puedeAnular("sales", s)]).toEqual([s, false]);
     }
-    // D-656 (191): ventas anula SU pendiente y SU programada (el FV216 de Kevin); la de otro vendedor, no; y desde
-    // preparando en adelante tampoco la suya.
-    expect([puedeAnular("sales", "pending", true), puedeAnular("sales", "approved", true)]).toEqual([true, true]);
-    expect([puedeAnular("sales", "pending", false), puedeAnular("sales", "approved", false)]).toEqual([false, false]);
-    for (const s of ["fulfilling", "ready", "picked_up", "delivered", "canceled"] as Stage[]) {
+    // D-656 (191) y D-663 (192): ventas anula SU orden hasta «Listo» (el FV216 de Kevin); la de otro vendedor, no; y
+    // desde recogida en adelante tampoco la suya.
+    for (const s of ["pending", "approved", "fulfilling", "ready"] as Stage[]) {
+      expect([s, puedeAnular("sales", s, true), puedeAnular("sales", s, false)]).toEqual([s, true, false]);
+    }
+    for (const s of ["picked_up", "delivered", "canceled"] as Stage[]) {
       expect([s, puedeAnular("sales", s, true)]).toEqual([s, false]);
     }
     // El chofer no gana nada con la dueñez: sigue en borrador y rechazada.
