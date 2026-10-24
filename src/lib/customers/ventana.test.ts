@@ -20,6 +20,7 @@ const pinta = (cliente: Cliente | null, o: { puedeEditar?: boolean; editarAlAbri
   renderToStaticMarkup(createElement(FichaEnVentana, {
     cliente,
     hermanas: cliente ? filasDeLaEmpresa(CLIENTES_DEMO, cliente) : [],
+    lista: CLIENTES_DEMO,
     onCambia: () => {}, onClose: () => {}, onGuardado: () => {},
     puedeEditar: o.puedeEditar ?? true,
     almacen: almacenDemo(),
@@ -164,5 +165,21 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(editando).not.toContain("data-tiendas-del-alta");
     expect(editando).not.toContain('type="checkbox"');
     expect(editando).toContain("data-tienda-de-la-fila");
+  });
+  it("D-665: editando, el aviso ámbar de duplicado con el enlace a la otra cuenta; leyendo, o sin nada escrito, no sale", () => {
+    // La 9 del demo («Demo Drywal Inc») comparte teléfono con la 3 («Demo Drywall Inc»), de otra empresa y otra tienda.
+    const nueve = CLIENTES_DEMO.find((c) => c.id === 9)!;
+    const tres = CLIENTES_DEMO.find((c) => c.id === 3)!;
+    const editando = pinta(nueve, { editarAlAbrir: true });
+    const aviso = /<div[^>]*data-aviso-duplicado="true">[\s\S]*?<\/div>/.exec(editando)?.[0] ?? "";
+    expect(aviso).toContain("⚠ Esto coincide con otra cuenta: ");
+    // Una sola: la propia ficha (su empresa) no cuenta.
+    expect([...aviso.matchAll(/data-coincidencia="/g)]).toHaveLength(1);
+    expect(aviso).toMatch(new RegExp(`data-abre-coincidencia="${tres.id}">${tres.account}</button> \\(${nombreDeTienda(tres.store)}\\) — mismo teléfono / nombre parecido`));
+    // El aviso va antes de las tarjetas, y «Guardar» todavía no pide nada.
+    expect(editando.indexOf("data-aviso-duplicado")).toBeLessThan(editando.indexOf('data-grupo="cuenta"'));
+    expect(editando).toMatch(/data-guardar-ficha="true">Guardar<\/button>/);
+    expect(pinta(nueve)).not.toContain("data-aviso-duplicado");
+    expect(pinta(null)).not.toContain("data-aviso-duplicado");
   });
 });
