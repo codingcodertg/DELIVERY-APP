@@ -47954,3 +47954,19 @@ esperadas. Lo lanza el dueño.
 
 **Probado:** `precio-por-caja.test.ts` (4: el caso de Roberto con la fórmula de siempre y con el $/caja, el campo, el aviso
 y sus bordes, y la pantalla). **No medido:** en el navegador.
+## D-675 · Ajustes: cupo en todas las franjas, no solo en las dos de la mañana
+
+**Fecha:** 2026-10-24. **Pedido:** el dueño, a la lista de pendientes («Cupo en más franjas: Ajustes solo deja 0830-1000 y
+0830-1200»): «sí a todo».
+
+**Medido:** el cupo de D-639 siempre fue por ventana (`approval_rules.cupo`, cualquier clave): la ruta que cuenta
+(`/api/cupo-de-la-manana`, `Object.keys(reglas.cupo)`), la ficha de la orden (`miraCupo`) y las franjas del día (D-657)
+ya contaban cualquier franja con tope. Lo que solo enseñaba dos era la tarjeta de Ajustes.
+
+**Qué cambia:** la tarjeta «Aprobación de oficina: hora de corte y cupo por franja» enseña un tope por cada franja del
+selector de la orden (`DELIVERY_WINDOW_PRESETS`: 8:30-10, 8:30-12, 12-5:30, todo el día, sábado) y, detrás, cualquier
+otra que ya tenga cupo guardado (`ventanasConCupoEditable`). En blanco, sin tope (como hasta hoy las de la tarde). Los
+defectos no cambian (2 y 1, solo en las de la mañana). Sin migración.
+
+**Probado:** `aprobacion-por-hora-y-cupo.test.ts` (+3: las franjas de la tarjeta, una franja de la tarde con tope que se
+llena y manda a aprobación, y que la tarjeta pinta esas). **No medido:** en el navegador.

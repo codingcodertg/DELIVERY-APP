@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import Link from "next/link";
-import { DEFAULT_HELP_EMAIL, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDefaultPermissions, defaultPermissions, driverNames, roleHome, roleLabel } from "@/lib/constants";
+import { DEFAULT_HELP_EMAIL, DELIVERY_WINDOW_PRESETS, ROLE_DEFAULT_COLUMNS, ROLE_INFO, ROLE_ORDER, allDefaultPermissions, defaultPermissions, driverNames, roleHome, roleLabel } from "@/lib/constants";
 import { DEFAULT_COLUMNS, ORDER_COLUMNS } from "@/components/OrdersTable";
 import { COLUMNAS_QUE_VENTAS_NO_VE } from "@/lib/user-prefs";
 import dynamic from "next/dynamic";
@@ -14,7 +14,7 @@ import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
 import { RouteEngineSettings } from "@/components/RouteEngineSettings";
 import { HORAS_NOCHE_ANTES, HORA_NOCHE_ANTES_POR_DEFECTO, laBaseTieneAjustesDeAvisos } from "@/lib/avisos-cliente";
-import { reglasDeAprobacion, type ReglasDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
+import { reglasDeAprobacion, ventanasConCupoEditable, type ReglasDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
 import { fmtWindows } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -604,19 +604,20 @@ function ReglasDeAprobacionCard({ settings, saveSettings, notify, t }: {
   );
   return (
     <div className="card" data-reglas-de-aprobacion>
-      <h2>⏳ {t("Office approval: cutoff and morning capacity", "Aprobación de oficina: hora de corte y cupo de la mañana")}</h2>
+      <h2>⏳ {t("Office approval: cutoff and capacity per window", "Aprobación de oficina: hora de corte y cupo por franja")}</h2>
       <p className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
         {t(
-          "A sales rep's order goes to Pending Approval instead of auto-approving when, after the cutoff, it's for today or for tomorrow morning (8:30-10 / 8:30-12), or when its morning window is already full that day. The rep sees why and Office gets the notification. Orders created by Office are approved as usual.",
-          "La orden de un vendedor va a Pendiente de Aprobación en vez de aprobarse sola cuando, pasada la hora de corte, es para hoy o para mañana temprano (8:30-10 / 8:30-12), o cuando su ventana de la mañana ya está llena ese día. El vendedor ve por qué y a la oficina le llega el aviso. Las que crea la oficina se aprueban como siempre.",
+          "A sales rep's order goes to Pending Approval instead of auto-approving when, after the cutoff, it's for today or for tomorrow morning (8:30-10 / 8:30-12), or when its window is already full that day. Leave a window blank for no limit. The rep sees why and Office gets the notification. Orders created by Office are approved as usual.",
+          "La orden de un vendedor va a Pendiente de Aprobación en vez de aprobarse sola cuando, pasada la hora de corte, es para hoy o para mañana temprano (8:30-10 / 8:30-12), o cuando su franja ya está llena ese día. Una franja en blanco no tiene tope. El vendedor ve por qué y a la oficina le llega el aviso. Las que crea la oficina se aprueban como siempre.",
         )}
       </p>
       <div className="grid g3" style={{ maxWidth: 640 }}>
         <TimeInput label={t("Cutoff (Texas time)", "Hora de corte (Texas)")} value={reglas.corte} onSave={(v) => guarda({ corte: v })} />
-        {["0830-1000", "0830-1200"].map(tope)}
+        {/* D-675: todas las franjas del selector de la orden (y las que ya tengan cupo), no solo las dos de la mañana. */}
+        {ventanasConCupoEditable(DELIVERY_WINDOW_PRESETS.map((p) => p.value), reglas).map(tope)}
       </div>
       <div className="field" style={{ marginTop: 10 }}>
-        <label>{t("Stores that don't count for the morning capacity (own fleet)", "Tiendas que no cuentan para el cupo de la mañana (flota propia)")}</label>
+        <label>{t("Stores that don't count for the capacity (own fleet)", "Tiendas que no cuentan para el cupo (flota propia)")}</label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
           {settings.stores.map((st) => {
             const fuera = reglas.tiendas_sin_cupo.some((x) => x.trim().toLowerCase() === st.name.trim().toLowerCase());
