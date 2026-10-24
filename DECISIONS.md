@@ -47223,6 +47223,8 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 
 ## D-654 · Clientes: la ficha se abre en una ventana centrada, como la orden de Entregas; arriba el nombre, sin «Cuenta» ni «Tienda» repetidas, y House # y la CONCATENATE en «Otros»
 
+> **Reemplazada en parte por D-662** (2026-10-23): la tarjeta «Cuenta» vuelve, la primera, con el nombre (solo lectura), la cuenta unificada y los vendedores; la ficha sigue la plantilla del dueño.
+
 > **Reemplazada en parte por D-660** (2026-10-23): Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE) salen de «Otros» y van en «🔒 Campos ocultos», un apartado plegado al final de la ficha («hiring notes» era «hidden notes»). «Otros» queda con Tipo CRM ×2, Asociado con, Cuenta unificada y Notas.
 
 **Fecha:** 2026-10-23. Hecho por un worker del orquestador en `clientes-ficha-ventana`. Sin migración.
@@ -47581,3 +47583,31 @@ Mutantes: 11 de 11 caen con una prueba con nombre: cae siempre delante del desti
 - Que el orden arrastrado sobreviva a recargar contra la base real: el demo no guarda el orden (`SIN_BASE`), y al recargar vuelve el canónico; con las flechas pasa lo mismo (medido en el mismo tiro). El guardado es la misma `guardaOrden` que las flechas.
 - Firefox y Safari (solo Chrome headless).
 - Arrastrar con el dedo en una tableta ancha, donde la tabla sí lleva cabecera.
+
+## D-662 · Clientes: la ficha con la plantilla del dueño (Cuenta con vendedores · Contacto · Crédito / Estado · Otros · ocultos)
+
+**Fecha:** 2026-10-23. **Pedido:** el dueño, primero con el orden escrito («ACCOUNT · CONTACT · CREDIT AND TERMS / STATUS
+AND HISTORY · SALES REP · OTHER») y «it should be account first, then contact, and account got deleted»; después con una
+plantilla en Excel («make it like this») que manda: Account (Account, Unified account, Store rep (QB), Group rep (QB), Group
+rep (history)) · Contact (Contact, Title, Phone, Email, Address) · Credit & terms (Terms, Credit limit, Euler limit, Account /
+credit, Type) / Status & history (Current Status (store), Current Status (group), Historical Status (store), Historical Status
+(group), QuickBooks Status) · Other (CRM type ×2, Associated with, Notes) · Remove (Added (batch), House #, Store + account).
+
+**Causa:** D-654 leyó «elimina esa parte donde dice cuenta» como la tarjeta «Cuenta» entera; lo que sobraba era repetir la
+tienda.
+
+**Qué cambia:** las tarjetas (ventana y página) van en dos filas de tres: **Cuenta · Contacto · Crédito y términos /
+Estado e historial · Otros · 🔒 Campos ocultos** (la «Remove» de la plantilla, plegada, en el sitio de la sexta tarjeta).
+«Cuenta» lleva el nombre de la cuenta (de solo lectura: se corrige arriba, en la cabecera, como desde D-654), la cuenta
+unificada (vuelve de «Otros») y los tres vendedores (ya no hay tarjeta «Vendedores»). Los rótulos de estado son los de la
+plantilla: «Current Status», «Historical Status», «QuickBooks Status». La actividad, que la plantilla no pone en ninguna
+tarjeta, va al final de los campos ocultos. La tienda no sale en las tarjetas: está en las pastillas de tiendas.
+
+**Lo que NO se hizo:** la línea «Type» de «Credit & terms»: no hay ningún campo así en `erp.customers` (ni en el Excel
+importado). Queda preguntado al dueño; sería una columna nueva (migración).
+
+**Prueba:** `customers/reglas.test.ts` y `customers/ventana.test.ts` (orden y contenido de cada tarjeta, el nombre una sola
+vez y sin control, los rótulos de estado, la actividad en los ocultos). Demo a 390 y 1440 px: dos filas de tres, 0 px de
+desborde, la burbuja de Ayuda sin solapes.
+
+**No medido:** contra la base real.
