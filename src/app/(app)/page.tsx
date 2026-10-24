@@ -8,7 +8,7 @@ import { useConfirm } from "@/lib/confirm";
 import { preguntaDelBloque, reparteParaElBloque } from "@/lib/cambio-en-bloque";
 import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
-import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
+import { colocaColumna, mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, valorDeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol, type FiltroGuardado, type PlantillaDeColumnas } from "@/lib/user-prefs";
 import { VISTA_VACIA, aplicaFiltroGuardado, borraFiltro, claveDeFiltrosEnElNavegador, coincideConLaVista, filtroLlamado, filtrosAlEntrar, filtrosDelNavegador, fotoDeOrdenes, guardaFiltro, persisteFiltros, renombraFiltro, textoDeLoIgnorado, textoDelRechazoDeFiltro, type VistaDeTabla } from "@/lib/filtros-guardados";
 import { FiltrosGuardados, type RespuestaDeFiltro } from "@/components/FiltrosGuardados";
@@ -245,8 +245,9 @@ export default function OrdersPage() {
     void escribeLaFila();
   };
 
-  // Reordenar (D-332): flechas, no arrastre — como pidió el dueño para las paradas (D-007). `null` = restablecer: se
-  // BORRA el orden de este rol en vez de igualarlo al canónico, para que una columna futura entre donde diga el canónico.
+  // Reordenar (D-332): flechas en «⚙ Columnas» y, desde D-NEXT, también arrastrando la cabecera; las dos guardan por aquí.
+  // `null` = restablecer: se BORRA el orden de este rol en vez de igualarlo al canónico, para que una columna futura entre
+  // donde diga el canónico.
   const guardaOrden = (next: string[] | null) => {
     setOrden(next);
     if (!me || me.role === "sales" || SIN_BASE || prefsDeLaBase.current === null) return;
@@ -920,6 +921,8 @@ export default function OrdersPage() {
             selected={selected}
             onToggle={toggle}
             onToggleAll={toggleAll}
+            // Arrastrar cabeceras (D-NEXT): quien tiene «⚙ Columnas» (no ventas ni chofer), con el mismo guardado que las flechas.
+            onMoverColumna={!["sales", "driver"].includes(me.role) ? (clave, destino) => guardaOrden(colocaColumna(ordenDelSelector, clave, destino)) : undefined}
             isUrgent={(d) => {
               const cutoff = me.role === "manager" ? settings.manager_pending_cutoff
                 : me.role === "sales" ? settings.sales_pending_cutoff

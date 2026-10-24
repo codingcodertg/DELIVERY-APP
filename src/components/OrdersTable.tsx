@@ -402,6 +402,7 @@ export function OrdersTable({
   celdaDeEtapa,
   vista,
   onVista,
+  onMoverColumna,
 }: {
   rows: Delivery[];
   onOpen: (d: Delivery) => void;
@@ -445,6 +446,9 @@ export function OrdersTable({
    *  poner. Sin `vista` y `onVista`, la tabla los lleva dentro, como siempre (Almacén, chofer…). */
   vista?: VistaDeTabla;
   onVista?: (v: VistaDeTabla) => void;
+  /** Arrastrar una cabecera y soltarla en otra (D-NEXT): la tabla dice cuál y sobre cuál; la página guarda el orden, el
+   *  mismo que mueven las flechas de «⚙ Columnas». Sin él (Almacén, chofer, Recepción…) las cabeceras no se arrastran. */
+  onMoverColumna?: (clave: string, destino: string) => void;
 }) {
   const { lang, t } = usePrefs();
   const { me, settings, events, users } = useData();
@@ -487,6 +491,16 @@ export function OrdersTable({
   const menuRef = useRef<HTMLDivElement>(null);
   // La caja de la tabla: la mueve también la barra de arriba (D-398).
   const cajaRef = useRef<HTMLDivElement>(null);
+  // Arrastrar cabeceras (D-NEXT), como Clientes (D-650): HTML5 drag & drop, de escritorio (en el teléfono no hay cabecera:
+  // son tarjetas). Se arrastra el NOMBRE (`th-cell`), no la celda entera, para que el asa del ancho no arranque un arrastre.
+  const [arrastrada, setArrastrada] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<string | null>(null);
+  const seArrastra = (key: string) => !!onMoverColumna && key !== "__id";
+  const suelta = (destino: string) => {
+    if (onMoverColumna && arrastrada && arrastrada !== destino && seArrastra(destino)) onMoverColumna(arrastrada, destino);
+    setArrastrada(null);
+    setSobre(null);
+  };
 
   const cols = useMemo(() => {
     // Relabel the first column when it holds an invoice — a header reading
@@ -634,13 +648,25 @@ export function OrdersTable({
             {cols.map((c, i) => {
               const activeCount = filters[c.key]?.size;
               const hasFilter = activeCount != null && activeCount > 0;
+              // Dónde caería (D-NEXT): la de destino le cede su sitio, así que la raya va del lado por el que entra.
+              const cae = sobre === c.key && arrastrada ? (cols.findIndex((x) => x.key === arrastrada) < i ? " th-cae-detras" : " th-cae-delante") : "";
               return [
-                <th key={c.key}>
+                <th
+                  key={c.key}
+                  className={(arrastrada === c.key ? "th-arrastrada" : "") + cae || undefined}
+                  onDragOver={seArrastra(c.key) ? (e) => { if (arrastrada && arrastrada !== c.key) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setSobre(c.key); } } : undefined}
+                  onDragLeave={seArrastra(c.key) ? () => setSobre((s) => (s === c.key ? null : s)) : undefined}
+                  onDrop={seArrastra(c.key) ? (e) => { e.preventDefault(); suelta(c.key); } : undefined}
+                >
                   {/* The name and the ▾ open the same menu, with sorting and the filter (D-275).
                       The name used to sort straight away, and the filter was only the small ▾ next to it. */}
                   <div
-                    className="th-cell"
+                    className={seArrastra(c.key) ? "th-cell th-arrastrable" : "th-cell"}
                     ref={(el) => { if (el) celdaRefs.current.set(c.key, el); else celdaRefs.current.delete(c.key); }}
+                    draggable={seArrastra(c.key) || undefined}
+                    onDragStart={seArrastra(c.key) ? (e) => { e.dataTransfer.setData("text/plain", c.key); e.dataTransfer.effectAllowed = "move"; setOpenFilter(null); setArrastrada(c.key); } : undefined}
+                    onDragEnd={seArrastra(c.key) ? () => { setArrastrada(null); setSobre(null); } : undefined}
+                    title={seArrastra(c.key) ? t("Drag to move the column", "Arrastra para mover la columna") : undefined}
                   >
                     <button
                       className="th-sort"

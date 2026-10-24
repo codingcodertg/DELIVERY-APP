@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { columnasEnOrden, mueveColumna, ordenEfectivo } from "./orden-de-columnas";
+import { colocaColumna, columnasEnOrden, mueveColumna, ordenEfectivo } from "./orden-de-columnas";
 import {
   CLAVE_DEL_ORDEN, ROLES_QUE_ELIGEN, columnasValidas, guardaColumnas, leeColumnas, prefsDeValor, valorDeColumnas, type ClienteDePrefs,
 } from "./user-prefs";
@@ -58,6 +58,38 @@ describe("mover una columna", () => {
   });
   it("una columna OCULTA se mueve de a un puesto, sin saltar a nadie", () => {
     expect(mueveColumna(orden, "account", -1, ["date", "store"])).toEqual(["date", "account", "so", "store"]);
+  });
+});
+
+describe("arrastrar una columna y soltarla en otra (D-NEXT)", () => {
+  // Contra el canónico a propósito: «delante del destino» y «detrás del destino» dan órdenes distintos en cada caso.
+  const orden = Object.freeze(["stage", "type", "store", "account", "so", "date"]) as readonly string[];
+  it("hacia la DERECHA queda justo detrás de la de destino (le cede su sitio), no delante", () => {
+    expect(colocaColumna(orden, "type", "account")).toEqual(["stage", "store", "account", "type", "so", "date"]);
+    expect(colocaColumna(orden, "stage", "date")).toEqual(["type", "store", "account", "so", "date", "stage"]);  // hasta el final
+    expect(colocaColumna(orden, "stage", "type")).toEqual(["type", "stage", "store", "account", "so", "date"]);  // la vecina
+  });
+  it("hacia la IZQUIERDA queda justo delante de la de destino, no detrás", () => {
+    expect(colocaColumna(orden, "so", "type")).toEqual(["stage", "so", "type", "store", "account", "date"]);
+    expect(colocaColumna(orden, "date", "stage")).toEqual(["date", "stage", "type", "store", "account", "so"]);  // hasta el principio
+    expect(colocaColumna(orden, "type", "stage")).toEqual(["type", "stage", "store", "account", "so", "date"]);  // la vecina
+  });
+  it("soltarla sobre sí misma no mueve nada; y devuelve una lista nueva, sin tocar la de entrada", () => {
+    const r = colocaColumna(orden, "store", "store");
+    expect(r).toEqual([...orden]);
+    expect(r).not.toBe(orden);
+    expect(orden).toEqual(["stage", "type", "store", "account", "so", "date"]);
+  });
+  it("la `#` (que no está en el orden) no se mueve ni recibe; una clave desconocida, tampoco", () => {
+    expect(colocaColumna(orden, "__id", "store")).toEqual([...orden]);
+    expect(colocaColumna(orden, "store", "__id")).toEqual([...orden]);
+    expect(colocaColumna(orden, "nada", "date")).toEqual([...orden]);
+  });
+  it("con columnas OCULTAS en medio, lo que se PINTA es lo que se soltó: la arrastrada, al lado de la de destino", () => {
+    const visibles = ["stage", "account", "date"];
+    expect(columnasEnOrden(visibles, colocaColumna(orden, "stage", "date"))).toEqual(["account", "date", "stage"]);
+    expect(columnasEnOrden(visibles, colocaColumna(orden, "date", "stage"))).toEqual(["date", "stage", "account"]);
+    expect(columnasEnOrden(visibles, colocaColumna(orden, "date", "account"))).toEqual(["stage", "date", "account"]);
   });
 });
 
