@@ -47814,3 +47814,26 @@ rótulos y sitio: la columna de la base, sus valores (LARGE, MID…) y su orden 
 **Probado:** `reglas.test.ts` (los rótulos de «Estado e historial», «Crédito y términos» acaba con «Type», «Campos
 ocultos» sin la actividad); la suite de Clientes, verde. **No medido:** en el navegador (solo rótulos y una fila que cambia
 de tarjeta).
+## D-NEXT · Órdenes: una orden en «Pending Approval» dice por qué no se aprobó sola
+
+**Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con la ficha de #FV220 en «Pending Approval»: «Need to
+know what needs review if it didn't pass the auto approval».
+
+**Medido (solo lectura, 2026-10-24):** las 5 órdenes pendientes vivas (FV220, FV244, FV245, FV246, FV249; Edinburg y
+Pharr, tiendas que aprueban solas) tenían su motivo apuntado en el evento `created` del historial, el de D-639 («The 8:30
+am-12:00 pm window already has 1 of 1 orders that day»): se apuntaba y se mandaba a la oficina en el aviso, pero la ficha
+no lo enseñaba.
+
+**Qué cambia:** la ficha de una orden en `pending` (para todos menos el chofer) abre con una tarjeta ámbar «⏳ Por qué
+espera aprobación de oficina» y un renglón por motivo (`porQueEsperaAprobacion`, `src/lib/por-que-espera-aprobacion.ts`):
+- los que se pueden volver a decir mirando la orden: la cuenta marcada «siempre con aprobación» (D-292), una Intertienda
+  sin PO, una tienda que no aprueba sola (`auto_approve`);
+- el apuntado al crearla o al enviarla (D-639: hora de corte o cupo de la mañana), que no se puede recalcular (depende de
+  la hora y de cuántas había entonces): la nota del ÚLTIMO evento `created` / `pending`, partida por «; ». Va en inglés
+  en el historial; sus tres formas se dicen en español (`motivoApuntadoEnEspanol`);
+- sin nada de eso: «No quedó motivo apuntado: se envió a aprobación a mano, o antes de que se apuntaran los motivos».
+Sin migración: lee lo que ya hay.
+
+**Probado:** `por-que-espera-aprobacion.test.ts` (7: el caso de #FV220 con el texto que escribe `textoDelMotivo`, los tres
+que se recalculan, varios apuntados, sin motivo, la última nota por fecha, y que la ficha lo pinta); 6 de 6 mutantes caen.
+**No medido:** en el navegador.

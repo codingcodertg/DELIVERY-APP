@@ -11,6 +11,7 @@ import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada, type QuienCrea } from "@/lib/cuenta-aprobacion";
 import { motivosDeAprobacion, ocupadasPorVentana, reglasDeAprobacion, textoDelMotivo, tiendaSinCupo, type FilaDeCupo, type MotivoDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
+import { porQueEsperaAprobacion } from "@/lib/por-que-espera-aprobacion";
 import { consultaDelCupo, franjasDelDia } from "@/lib/franjas-del-dia";
 import { FranjasDelDia } from "@/components/FranjasDelDia";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
@@ -338,6 +339,8 @@ export function OrderModal({
   const [arrivedAt, setArrivedAt] = useState<string | null>(existing?.arrived_at ?? null);
 
   const events = existing ? eventsFor(existing.id) : [];
+  // D-NEXT: por qué está pendiente (la cuenta, la Intertienda sin PO, la tienda, o lo apuntado al crearla / enviarla).
+  const motivosDePendiente = existing ? porQueEsperaAprobacion(existing, { tiendas: settings.stores, cuentas: settings.accounts, eventos: events }) : [];
   const userName = (id: string | null | undefined) =>
     users.find((u) => u.id === id)?.full_name ?? "—";
   // A small colored pill showing a person's role, shown beside their name in
@@ -1923,6 +1926,17 @@ export function OrderModal({
           )}
           <button className="btn btn-sm" onClick={requestClose} style={{ flex: "0 0 auto" }}>✕</button>
         </div>
+
+        {/* D-NEXT: una orden en «Pending Approval» dice POR QUÉ no se aprobó sola (Roberto: «Need to know what needs review
+            if it didn't pass the auto approval»). Para quien la mira desde la oficina o la vende; el chofer no la ve aquí. */}
+        {!editing && existing && me.role !== "driver" && motivosDePendiente.length > 0 && (
+          <div className="card" role="status" data-por-que-pendiente style={{ margin: "10px 0", padding: "10px 12px", borderColor: "var(--amber)", background: "var(--amber-soft)" }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>⏳ {t("Why it needs office approval", "Por qué espera aprobación de oficina")}</div>
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {motivosDePendiente.map((m, i) => <li key={i} data-motivo-de-pendiente={m.clave}>{lang === "es" ? m.es : m.en}</li>)}
+            </ul>
+          </div>
+        )}
 
         {/* ---------- VIEW MODE ---------- */}
         {!editing && existing && (
