@@ -47907,7 +47907,7 @@ de verdad al cubo (el ensayo crea el cubo y lo deshace).
 
 **Pendiente del dueño:** aplicar la 195 (su comando).
 
-## D-NEXT · Clientes: la lista en una línea por fila, columnas que se ensanchan y la tienda como «tienda +N»
+## D-673 · Clientes: la lista en una línea por fila, columnas que se ensanchan y la tienda como «tienda +N»
 
 **Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con la lista ordenada por «# Stores» (Clientes 0.17.0):
 «1) Instead of showing all, show store+3 or +2 so it doesnt take up more space. 2) Columns should be adjustable to see

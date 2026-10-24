@@ -1,5 +1,5 @@
 /**
- * Los anchos de la lista de Clientes (D-NEXT). Roberto Rodriguez Jr (admin), 2026-10-24, con la lista ordenada por
+ * Los anchos de la lista de Clientes (D-673). Roberto Rodriguez Jr (admin), 2026-10-24, con la lista ordenada por
  * «# Stores»: «Columns should be adjustable to see info» y «Lets not wrap text so that it doesn't go down and make the
  * row thicker». La tabla pasa a ser de anchos fijos que se arrastran (`tbl-resize` y `useColWidthMap`, los de Órdenes):
  * nada salta de línea, lo que no cabe se corta con «…» y se lee en su título o ensanchando la columna. El ancho es de cada

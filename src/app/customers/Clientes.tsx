@@ -109,7 +109,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   const archivados = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: true }).length, [lista]);
   const porTienda = useMemo(() => empresasPorTienda(vista), [vista]);
   const colsVisibles = columnasAPintar(prefCols);
-  // D-NEXT: anchos que se arrastran, como en Órdenes (`tbl-resize`): nada salta de línea y lo que no cabe se corta con «…».
+  // D-673: anchos que se arrastran, como en Órdenes (`tbl-resize`): nada salta de línea y lo que no cabe se corta con «…».
   const colw = useColWidthMap(llaveDeAnchos(userId), ANCHO_POR_DEFECTO, { minimo: ANCHO_MINIMO });
   const ancho = (k: string) => colw.widthOf(claveDeAncho(k), anchoDePartida(k));
   const todasLasClaves = columnasDelSelector(prefCols).map((c) => c.key as string);
@@ -321,7 +321,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                           ▾
                         </button>
                       </span>
-                      {/* D-NEXT: el asa para ensanchar la columna (doble clic: vuelve a su ancho de partida). Su `mousedown` no
+                      {/* D-673: el asa para ensanchar la columna (doble clic: vuelve a su ancho de partida). Su `mousedown` no
                           deja empezar el arrastre de la cabecera (D-650): `startResize` lo cancela. */}
                       <span className="col-resizer" onMouseDown={colw.startResize(claveDeAncho(c.key), anchoDePartida(c.key))} onDoubleClick={() => colw.resetCol(claveDeAncho(c.key))}
                         title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} data-asa-de={c.key} />
@@ -356,7 +356,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                         </span>
                       ) : col.key === "store" ? (
                         // Las tiendas de la empresa (189): la que se enseña, y «+N» por las demás, que se nombran en su título
-                        // (D-NEXT, Roberto: «Instead of showing all, show store+3 or +2 so it doesnt take up more space»).
+                        // (D-673, Roberto: «Instead of showing all, show store+3 or +2 so it doesnt take up more space»).
                         (() => {
                           const { principal: p, otras } = tiendasDeLaCelda(filas, c);
                           return (

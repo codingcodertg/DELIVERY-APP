@@ -4,7 +4,7 @@ import { ANCHO_POR_DEFECTO, ANCHOS_DE_PARTIDA, anchoDePartida, claveDeAncho, lla
 import { COLUMNAS } from "./reglas";
 import { COLUMN_WIDTHS } from "@/lib/use-col-widths";
 
-/* D-NEXT. Roberto, 2026-10-24, con la lista de Clientes: «Instead of showing all, show store+3 or +2 so it doesnt take up
+/* D-673. Roberto, 2026-10-24, con la lista de Clientes: «Instead of showing all, show store+3 or +2 so it doesnt take up
  * more space», «Columns should be adjustable to see info» y «Lets not wrap text so that it doesn't go down and make the row
  * thicker». Medido en el demo (1440 y 390 px): todas las filas de 39 px, «RDZ McAllen +1», y arrastrar 120 px el asa de
  * «Cuenta» la lleva de 260 a 380 y lo recuerda. */
