@@ -1,5 +1,5 @@
 /**
- * La llegada PREVISTA de cada parada y la REAL (D-NEXT, migración 194). Roberto Rodriguez Jr (admin), 2026-10-24, con la
+ * La llegada PREVISTA de cada parada y la REAL (D-671, migración 194). Roberto Rodriguez Jr (admin), 2026-10-24, con la
  * tabla de paradas del Gestor: «Need a column of "Actual" to know when they delivered vs when was their ETA».
  *
  * El Gestor mide la ruta en el navegador y solo de lo que falta (`listaDe` → `pendientesDelDia`): una parada hecha ya no

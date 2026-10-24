@@ -1583,7 +1583,7 @@ export default function RoutesPage() {
     ...(soloLectura ? { buscaBases: "si_falta" as const } : {}),
     invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],
   });
-  // D-NEXT (194): la PRIMERA llegada que se midió hoy para cada parada (`delivery_eta_plans`): la «ETA» de lo ya hecho, al
+  // D-671 (194): la PRIMERA llegada que se midió hoy para cada parada (`delivery_eta_plans`): la «ETA» de lo ya hecho, al
   // lado de su hora real («Actual»). Se lee la del día que se mira; y se apunta, solo HOY y solo lo que aún no estaba, cada
   // vez que se mide una ruta: la primera gana (en la base, `on conflict do nothing`). Sin la 194 no se lee ni se apunta.
   const [etasDelPlan, setEtasDelPlan] = useState<Map<string, string>>(() => new Map());
@@ -1614,7 +1614,7 @@ export default function RoutesPage() {
         .then(({ data }) => { if (data) setEtasDelPlan(mapaDeEtas(data as FilaDeEta[])); });
     });
   }, [routeEtas, apuntaEtas, date]); // eslint-disable-line react-hooks/exhaustive-deps
-  /** «Actual» (D-NEXT): la hora real de la parada, si ya está hecha, y cuánto se desvió de su llegada prevista. */
+  /** «Actual» (D-671): la hora real de la parada, si ya está hecha, y cuánto se desvió de su llegada prevista. */
   const celdaReal = (key: string, d: Delivery | undefined, tipo: "P" | "D") => {
     const hecha = !!d && (tipo === "D" ? d.stage === "delivered" : d.stage === "picked_up" || d.stage === "delivered");
     const hora = hecha && d ? horaReal(d, tipo) : null;
@@ -3185,7 +3185,7 @@ export default function RoutesPage() {
               <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>{fp.tipo === "P" ? "+" : "−"}{numeroDePallets(palletsDeLaOrden(d))}</td>
               {colsParadas.map((c) => celdaDeParada(c, d, {
                 tipo: fp.tipo, sinAviso: true,
-                // D-NEXT: la llegada PREVISTA (la primera que se midió hoy, `delivery_eta_plans`); la hora real va en «Actual».
+                // D-671: la llegada PREVISTA (la primera que se midió hoy, `delivery_eta_plans`); la hora real va en «Actual».
                 // Sin «Actual» a la vista, la real sigue aquí, como antes: lo hecho no se queda sin hora.
                 llegada: colsParadas.some((x) => x.key === "p_actual")
                   ? <td data-hora-prevista={etasDelPlan.get(claveDeEta(d.id, fp.tipo)) ?? ""} data-hora-real={hora ?? ""} style={{ color: "var(--gray)" }}

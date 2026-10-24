@@ -4,7 +4,7 @@ import { A_TIEMPO_MIN, TARDE_MIN, claveDeEta, desvio, filasNuevasDeEtas, mapaDeE
 import { conRealEnSuSitio, preferenciasDelGestorAlLeer } from "./routes-columns";
 import { claveDeRecogida } from "./usa-medida-de-rutas";
 
-/* D-NEXT (194). Roberto, 2026-10-24, en la tabla de paradas del Gestor: «Need a column of "Actual" to know when they
+/* D-671 (194). Roberto, 2026-10-24, en la tabla de paradas del Gestor: «Need a column of "Actual" to know when they
  * delivered vs when was their ETA». Ids inventados. */
 
 describe("lo que se apunta de una medida", () => {

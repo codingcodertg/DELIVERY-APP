@@ -39,7 +39,7 @@ describe("el catálogo: la ciudad de recogida, delante de la de entrega", () => 
     const par = ORDEN_DE_PARTIDA_DEL_GESTOR.paradas;
     expect(par.indexOf("p_ciudad_recogida")).toBeGreaterThan(-1);
     expect(par.indexOf("p_address")).toBe(par.indexOf("p_ciudad_recogida") + 1);
-    // D-NEXT: «Actual» (`p_actual`) justo detrás de la llegada.
+    // D-671: «Actual» (`p_actual`) justo detrás de la llegada.
     expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows"]);
   });
 });
@@ -52,7 +52,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
 
   it("AÑADE la columna y la marca, sin quitar nada de lo que eligió", () => {
     const con = conColumnasNuevas(suyas);
-    // D-NEXT: y detrás, la tanda `_v9` («Actual»).
+    // D-671: y detrás, la tanda `_v9` («Actual»).
     expect(con).toEqual([...suyas, "p_ciudad_recogida", MARCA_V8, "p_actual", "_v9"]);
     expect(paradas(con)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_fee"]);
   });
@@ -65,7 +65,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
   it("sin orden guardado: la columna sale en su sitio de partida, y se guarda UNA vez", () => {
     const al = preferenciasDelGestorAlLeer(suyas, null);
     expect(al.orden).toBeNull();
-    // D-NEXT: con `_v7` le llega también «Actual» (`_v9`), en su sitio de partida: tras la llegada, que no eligió.
+    // D-671: con `_v7` le llega también «Actual» (`_v9`), en su sitio de partida: tras la llegada, que no eligió.
     expect(paradas(al.columnas!, al.orden)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_fee"]);
     expect(al.escribe).toBe(true);
     expect(preferenciasDelGestorAlLeer(al.columnas!, al.orden)).toEqual({ columnas: al.columnas, orden: null, escribe: false });
@@ -91,7 +91,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
     orden = comoAntes(orden);
     expect(paradas(suyas, orden)).toEqual(["p_type", "p_windows", "p_fee", "p_address"]);
     const al = preferenciasDelGestorAlLeer(suyas, orden);
-    // D-NEXT: «Actual» va tras la llegada, que sigue escondida justo detrás del tipo: por eso sale ahí.
+    // D-671: «Actual» va tras la llegada, que sigue escondida justo detrás del tipo: por eso sale ahí.
     expect(paradas(al.columnas!, al.orden)).toEqual(["p_type", "p_actual", "p_windows", "p_fee", "p_ciudad_recogida", "p_address"]);
   });
   it("sin la inserción caería al FINAL del orden guardado (por eso existe `conCiudadDeRecogidaEnSuSitio`)", () => {

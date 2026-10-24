@@ -26,7 +26,7 @@ const deTodas = (elegidas: readonly string[], orden?: readonly string[] | null) 
 
 describe("las mismas columnas que la tabla de paradas", () => {
   it("de partida: factura y pallets fijos delante, y Tipo, Ciudad de recogida, Ciudad de entrega, Llegada, Real y Ventanas", () => {
-    // D-NEXT: «Real» (`p_actual`) justo detrás de la llegada.
+    // D-671: «Real» (`p_actual`) justo detrás de la llegada.
     expect(claves(columnasDeLasOrdenes("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO)))
       .toEqual(["invoice", "pallets", "p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows"]);
     expect(deSinAsignar(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(deParadas(COLUMNAS_DEL_GESTOR_POR_DEFECTO));
@@ -49,7 +49,7 @@ describe("las mismas columnas que la tabla de paradas", () => {
   });
   it("el ⚙ es el de paradas, tal cual: las 15, en el orden de la persona, ninguna fija", () => {
     expect(claves(columnasDelSelectorDeLasOrdenes(null))).toEqual(claves(columnasDelSelector("paradas", null)));
-    // D-NEXT: 14 → 15 con «Actual» (`p_actual`).
+    // D-671: 14 → 15 con «Actual» (`p_actual`).
     expect(columnasDelSelectorDeLasOrdenes(null)).toHaveLength(15);
     const movido = mueveEnElGestor("paradas", null, "p_windows", -1, COLUMNAS_DEL_GESTOR_POR_DEFECTO);
     expect(claves(columnasDelSelectorDeLasOrdenes(movido))).toEqual(claves(columnasDelSelector("paradas", movido)));
@@ -69,7 +69,7 @@ describe("un solo ⚙: lo que se cambia en una tabla se ve en las tres", () => {
   });
   it("mover una columna (la flecha de cualquiera de los tres ⚙) la mueve en las tres", () => {
     const orden = mueveEnElGestor(TABLA_DE_LAS_ORDENES, null, "p_windows", -1, COLUMNAS_DEL_GESTOR_POR_DEFECTO);
-    // D-NEXT: delante de las Ventanas está ahora «Real» (`p_actual`): la flecha las cambia a ellas, y la Llegada no se mueve.
+    // D-671: delante de las Ventanas está ahora «Real» (`p_actual`): la flecha las cambia a ellas, y la Llegada no se mueve.
     expect(deParadas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_windows", "p_actual"]);
     expect(deSinAsignar(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden)).toEqual(deParadas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden));
     expect(deTodas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden)).toEqual(deParadas(COLUMNAS_DEL_GESTOR_POR_DEFECTO, orden));
@@ -85,7 +85,7 @@ describe("lo guardado de cada persona (`user_prefs`, `routes_columns`)", () => {
   // Una lista como las de producción: lo de «Sin asignar» que eligió alguien, sus paradas y las marcas.
   const suyas = ["invoice", "account", "status", "so", "po", "p_type", "p_address", "p_windows", "p_fee", "_v2", "_v3", "_v4", "_v5", "_v6", "_v7", MARCA_V8];
 
-  it("no hace falta tanda nueva: quien ya pasó por `_v8` no se reescribe al leer (D-NEXT: solo le llega «Actual», con `_v9`)", () => {
+  it("no hace falta tanda nueva: quien ya pasó por `_v8` no se reescribe al leer (D-671: solo le llega «Actual», con `_v9`)", () => {
     expect(preferenciasDelGestorAlLeer(suyas, null)).toEqual({ columnas: [...suyas, "p_actual", "_v9"], orden: null, escribe: true });
     expect(preferenciasDelGestorAlLeer([...suyas, "_v9"], null)).toEqual({ columnas: [...suyas, "_v9"], orden: null, escribe: false });
   });

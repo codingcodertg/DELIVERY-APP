@@ -47838,7 +47838,7 @@ Sin migración: lee lo que ya hay.
 que se recalculan, varios apuntados, sin motivo, la última nota por fecha, y que la ficha lo pinta); 6 de 6 mutantes caen.
 **No medido:** en el navegador.
 
-## D-NEXT · Gestor: columna «Actual» (la hora real) junto a la llegada prevista, que se apunta la primera vez que se mide (migración 194)
+## D-671 · Gestor: columna «Actual» (la hora real) junto a la llegada prevista, que se apunta la primera vez que se mide (migración 194)
 
 **Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con la tabla de paradas del Gestor (1.387.0): «Need a
 column of "Actual" to know when they delivered vs when was their ETA». El dueño, a la propuesta de guardar la primera

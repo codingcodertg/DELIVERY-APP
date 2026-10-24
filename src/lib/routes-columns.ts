@@ -144,7 +144,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   // D-456: 84 de ancho de partida (era 60): la llegada sale SIEMPRE, y cuando aún no hay hora la celda dice por qué
   // («calculando…», «sin medida», «tienda sin punto»), que en 60 se cortaba. Quien arrastró el suyo lo conserva.
   { key: "p_eta", en: "Stops: ETA", es: "Paradas: Llegada", tablas: ["paradas"], ancho: 84, indice: 5 },
-  // D-NEXT: la hora REAL de lo hecho, junto a su llegada prevista (la primera del día, `eta-del-plan`). Roberto: «Need a
+  // D-671: la hora REAL de lo hecho, junto a su llegada prevista (la primera del día, `eta-del-plan`). Roberto: «Need a
   // column of "Actual" to know when they delivered vs when was their ETA». Sale por defecto (tanda `_v9`).
   { key: "p_actual", en: "Stops: Actual", es: "Paradas: Real", tablas: ["paradas"], ancho: 116 },
   { key: "p_windows", en: "Stops: Windows", es: "Paradas: Ventanas", tablas: ["paradas"], ancho: 100, indice: 6 },
@@ -442,7 +442,7 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
   if (!lista.includes(MARCA_V7)) lista = [...new Set([...lista, ...NUEVAS_EN_V7])].concat(MARCA_V7);
   // D-445: la ciudad de recogida en la tabla de paradas. También AÑADE, sin quitar nada.
   if (!lista.includes(MARCA_V8)) lista = [...new Set([...lista, ...NUEVAS_EN_V8])].concat(MARCA_V8);
-  // D-NEXT: «Actual» (la hora real) en la tabla de paradas. También AÑADE.
+  // D-671: «Actual» (la hora real) en la tabla de paradas. También AÑADE.
   if (!lista.includes(MARCA_V9)) lista = [...new Set([...lista, ...NUEVAS_EN_V9])].concat(MARCA_V9);
   return lista;
 }
@@ -457,12 +457,12 @@ const NUEVAS_EN_V7: readonly string[] = ["pl_ciudad_entrega"];
 export const MARCA_V8 = "_v8";
 const NUEVAS_EN_V8: readonly string[] = ["p_ciudad_recogida"];
 
-// D-NEXT: «Actual» en la tabla de paradas, por la misma razón que `_v8`.
+// D-671: «Actual» en la tabla de paradas, por la misma razón que `_v8`.
 export const MARCA_V9 = "_v9";
 const NUEVAS_EN_V9: readonly string[] = ["p_actual"];
 
 /**
- * El ORDEN guardado con «Actual» en su sitio (D-NEXT): justo DETRÁS de la llegada (`p_eta`), esté donde esté. Como
+ * El ORDEN guardado con «Actual» en su sitio (D-671): justo DETRÁS de la llegada (`p_eta`), esté donde esté. Como
  * `conCiudadDeRecogidaEnSuSitio`: solo inserta; sin orden, sin la llegada en él, o si ya la tiene, nada.
  */
 export function conRealEnSuSitio(orden: readonly string[] | null | undefined): string[] | null {
@@ -525,7 +525,7 @@ const esDelPlan = (k: string): boolean => COLUMNAS_DEL_GESTOR.some((c) => c.key 
 export function preferenciasDelGestorAlLeer(suyas: readonly string[] | undefined, orden: readonly string[] | null | undefined): { columnas: string[] | null; orden: string[] | null; escribe: boolean } {
   const columnas = suyas ? conColumnasNuevas(suyas) : null;
   if (suyas?.includes(MARCA_V9) || (!suyas && !orden)) return { columnas, orden: orden ? [...orden] : null, escribe: false };
-  // D-NEXT (`_v9`): «Actual» tras la llegada, en el orden de quien venga de donde venga.
+  // D-671 (`_v9`): «Actual» tras la llegada, en el orden de quien venga de donde venga.
   if (suyas?.includes(MARCA_V8)) return { columnas, orden: conRealEnSuSitio(orden), escribe: true };
   if (suyas?.includes(MARCA_V7)) return { columnas, orden: conRealEnSuSitio(conCiudadDeRecogidaEnSuSitio(orden)), escribe: true };
   if (suyas?.includes(MARCA_V6)) return { columnas, orden: conRealEnSuSitio(conCiudadDeRecogidaEnSuSitio(conCiudadDeEntregaEnSuSitio(orden))), escribe: true };
