@@ -1267,9 +1267,9 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   // permitía —la rama de warehouse del guard acepta ready → fulfilling— y era esta lista la que
   // no la tenía, así que el camino de vuelta no existía en la app.
   ready:      ["picked_up", "fulfilling", "canceled", "delivered"], // el chofer la recoge, o almacén la devuelve a preparar
-  // `picked_up` NO lleva "canceled" aunque el admin pueda anular desde ahí: el admin se salta esta
-  // lista entera en los dos proveedores, y nadie más anula con la carga en el camión (`puedeAnular`).
-  picked_up:  ["delivered", "ready"],      // driver delivers (or reverts if not taken)
+  // D-676 (196): `picked_up` lleva "canceled": el chofer anula SU orden recogida (`puedeAnular`). Hasta aquí no la
+  // llevaba porque solo anulaba el admin, que se salta esta lista entera en los dos proveedores.
+  picked_up:  ["delivered", "ready", "canceled"],      // driver delivers (or reverts if not taken, or cancels his own)
   // D-361 (139): office y el gerente deshacen un paso, y una entregada vuelve a `picked_up`, que es de donde
   // salió. Quién puede lo dice `puedeDeshacer`; esta lista solo dice que el salto EXISTE.
   delivered:  ["picked_up"],
@@ -1284,9 +1284,10 @@ export function canTransition(from: Stage, to: Stage): boolean {
  * Desde qué etapas anula cada rol (D-291, migración 122). `LEGAL_TRANSITIONS` dice qué saltos existen;
  * esta dice quién los da, que es lo que decide qué botón se pinta.
  *
- * `suya`: la orden es de quien mira —la creó o es su vendedor, `esMia` (ordenes-visibles.ts), la misma dueñez que el
- * guard mira con `created_by = auth.uid() or assigned_sales_rep = auth.uid()`—. Solo cuenta para ventas en `pending` y
- * `approved` (D-656, migración 191); quien no la pasa se queda en lo de antes, que es lo que la base le deja seguro.
+ * `suya`: la orden es de quien mira (`esSuyaParaAnular`, ordenes-visibles.ts). Para ventas, la creó o es su vendedor
+ * (`esMia`, la misma dueñez que el guard mira con `created_by = auth.uid() or assigned_sales_rep = auth.uid()`): cuenta
+ * hasta «Listo» (D-656, 191; D-663, 192). Para el chofer, la lleva asignada (`assigned_driver` = su nombre): cuenta en
+ * `picked_up` (D-676, 196). Quien no la pasa se queda en lo de antes, que es lo que la base le deja seguro.
  *
  * **Es el espejo del guard de la 122**, y la prueba lo compara rama por rama contra el `.sql`: la app y
  * la base tienen que decir lo mismo, o alguien ve un botón que la base le va a rechazar — que es
@@ -1298,8 +1299,9 @@ export function puedeAnular(r: UserRole, stage: Stage, suya = false): boolean {
   // queremos. Y una ya anulada no se vuelve a anular.
   if (stage === "delivered" || stage === "canceled") return false;
   if (r === "admin") return true;
-  // Con la mercancía ya en el camión solo queda el admin.
-  if (stage === "picked_up") return false;
+  // Con la mercancía ya en el camión: el admin, y desde D-676 (196) el chofer, la SUYA (la que lleva asignada:
+  // `esSuyaParaAnular`). Nadie más.
+  if (stage === "picked_up") return r === "driver" && suya;
   if (ordersLikeOfficeManager(r)) return true;
   if (r === "sales" || r === "driver") {
     if (stage === "draft" || stage === "rejected") return true;

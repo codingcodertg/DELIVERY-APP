@@ -83,7 +83,8 @@ describe("qué etapas ofrece la burbuja, rol por rol, medido contra el guard (17
       approved:   { pending: null, fulfilling: "tarifa", delivered: "motivo_entrega", canceled: "anular" },
       fulfilling: { approved: "motivo_deshacer", ready: "pallets", delivered: "motivo_entrega", canceled: "anular" },
       ready:      { fulfilling: "motivo_deshacer", delivered: "motivo_entrega", canceled: "anular" },
-      picked_up:  { ready: "motivo_deshacer", delivered: "motivo_entrega" },
+      // D-676 (196): `picked_up → canceled` existe ahora como salto (para el chofer), y el admin, que ya podía, lo ve.
+      picked_up:  { ready: "motivo_deshacer", delivered: "motivo_entrega", canceled: "anular" },
       delivered:  { picked_up: "motivo_deshacer" },
       canceled:   {},
     });

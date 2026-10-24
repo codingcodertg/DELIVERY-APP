@@ -89,6 +89,19 @@ export function esMia(d: Pick<Delivery, "created_by" | "assigned_sales_rep">, me
   return d.created_by === me.id || orderOwner(d) === me.id;
 }
 
+/**
+ * ¿Es «suya» para anular (`puedeAnular`)? Para el chofer, la que lleva asignada (`assigned_driver` es su NOMBRE, como lo
+ * compara el guard de la 196 y la 168); para los demás, `esMia` (la creó o es su vendedor). D-676.
+ */
+export function esSuyaParaAnular(
+  d: Pick<Delivery, "created_by" | "assigned_sales_rep" | "assigned_driver">,
+  me: Pick<Profile, "id" | "role" | "full_name"> | null | undefined,
+): boolean {
+  if (!me) return false;
+  if (me.role === "driver") return !!me.full_name && (d.assigned_driver ?? "") === me.full_name;
+  return esMia(d, me);
+}
+
 /** ¿Puede esta persona ver esta orden, por su rol? No mira fechas. */
 export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
   const { me, teaching } = ctx;

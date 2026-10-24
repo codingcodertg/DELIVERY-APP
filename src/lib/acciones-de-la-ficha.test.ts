@@ -9,7 +9,7 @@ import {
   recogeEnLaFicha, STAGES,
 } from "./constants";
 import { puedeAgregarMaterial } from "./agregar-material";
-import { esMia } from "./ordenes-visibles";
+import { esSuyaParaAnular } from "./ordenes-visibles";
 import { puedeDejarEnTienda } from "./leave-at-store";
 import { puedeRecogerSinListo } from "./recogida-del-chofer";
 import type { AlcanceDeEdicion } from "./edicion-de-ventas";
@@ -153,7 +153,9 @@ describe("el menú, en las fichas de todos los días", () => {
   it("chofer en reparto: «Marcar entregado» fuera; «Llegué a la parada» y «Dejar en tienda» (D-224) dentro, sin comprobante", () => {
     const e = entrada("driver", "picked_up");
     expect(principal(e)).toBe("marcar_entregado");
-    expect(menu(e)).toEqual(["llegue", "dejar_en_tienda"]);
+    // D-676 (196): y «Cancelar orden», porque es SU orden (la lleva asignada); la de otro chofer, no.
+    expect(menu(e)).toEqual(["llegue", "dejar_en_tienda", "anular"]);
+    expect(menu(entrada("driver", "picked_up", { pedido: { stage: "picked_up", created_by: "yo", assigned_sales_rep: null, assigned_driver: "Otro Chofer", store: "Pharr" } }))).not.toContain("anular");
   });
 
   it("chofer con una lista: «Recoger» fuera e «Iniciar viaje» dentro", () => {
@@ -215,7 +217,7 @@ describe("pasos abiertos: su Atrás y su Confirmar a la vista, y la principal al
     const fa = accionesDeLaFicha(entrada("driver", "picked_up", { abierto: { ...CERRADO, dejar: true } }));
     expect(fa.pasos).toEqual(["dejar"]);
     expect(fa.principal).toBeNull();
-    expect(fa.menu.map((a) => a.id)).toEqual(["marcar_entregado", "llegue"]);
+    expect(fa.menu.map((a) => a.id)).toEqual(["marcar_entregado", "llegue", "anular"]);
   });
 
   it("con la firma (POD) abierta no hay botones de la parada", () => {
@@ -238,7 +240,7 @@ describe("pasos abiertos: su Atrás y su Confirmar a la vista, y la principal al
     expect(sale.menu.map((a) => a.id)).not.toContain("iniciar_viaje");
     const llega = accionesDeLaFicha(entrada("driver", "picked_up", { llegadaEn: "2026-10-07T16:05:00Z" }));
     expect(llega.avisos).toEqual([{ id: "llego", desde: "2026-10-07T16:05:00Z" }]);
-    expect(llega.menu.map((a) => a.id)).toEqual(["dejar_en_tienda"]);
+    expect(llega.menu.map((a) => a.id)).toEqual(["dejar_en_tienda", "anular"]);
     // El gerente recoge pero no conduce: ni «Iniciar viaje» ni el aviso.
     expect(accionesDeLaFicha(entrada("manager", "ready", { salidaEn: "2026-10-07T15:21:00Z" })).avisos).toEqual([]);
   });
@@ -269,8 +271,9 @@ function botonesDeAntes(e: EntradaDeAcciones): Set<string> {
   if (me.role !== "driver") b.add("imprimir");
   if (e.edicion !== "nada") b.add("editar");
   if (canCreate(me)) { if (stage === "draft") b.add("enviar"); if (stage === "rejected") b.add("reenviar"); }
-  // D-656 (191) le dio a ventas su orden pendiente o programada: la referencia lleva la misma dueñez que la ficha.
-  if (puedeAnular(me.role, stage, esMia(e.pedido, me))) b.add(ab.anular ? "paso:anular" : "anular");
+  // D-656 (191) le dio a ventas su orden pendiente o programada: la referencia lleva la misma dueñez que la ficha. D-676
+  // (196): y al chofer SU recogida (`esSuyaParaAnular`), salvo con la firma abierta, como los botones de su parada.
+  if (puedeAnular(me.role, stage, esSuyaParaAnular(e.pedido, me)) && !(me.role === "driver" && stage === "picked_up" && ab.pod)) b.add(ab.anular ? "paso:anular" : "anular");
   if (canApprove(me) && stage === "pending") { if (!ab.rechazar) { b.add("rechazar"); b.add("aprobar"); } else b.add("paso:rechazar"); }
   if (canApprove(me) && stage === "approved") b.add("desbloquear");
   if (puedeAgregarMaterial(me, e.pedido)) b.add("agregar_material");

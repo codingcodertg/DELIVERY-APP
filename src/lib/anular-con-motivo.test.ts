@@ -5,7 +5,7 @@ import {
   claveDesdeEtiqueta, etiquetaDeMotivo, faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion,
   MOTIVO_OTRO, MOTIVO_POR_RETRASO, MOTIVOS_QUE_NO_SE_BORRAN, MOTIVOS_SEMBRADOS,
 } from "./cancel-reasons";
-import { esMia } from "./ordenes-visibles";
+import { esMia, esSuyaParaAnular } from "./ordenes-visibles";
 import { notificationsForStage } from "./notifications";
 import type { Profile, Stage, UserRole } from "./types";
 
@@ -26,7 +26,7 @@ const sql = leer("supabase/migrations/122_anular_con_motivo.sql");
 /** El guard VIVO para el espejo de quién anula: la 191 (D-656) es la última que redefine `guard_delivery_stage` —la 188
  *  con una línea más para ventas—. Hasta D-656 esta prueba leía la 122, y entre medias el guard se redefinió muchas
  *  veces: el espejo comparaba con una versión vieja. La primera prueba de abajo dice cuándo deja de ser la última. */
-const GUARD_VIVO = "192_ventas_anula_hasta_listo.sql";   // D-663: la 192 (hasta «Listo») sustituye a la 191
+const GUARD_VIVO = "196_chofer_anula_recogida.sql";   // D-676: la 196 (el chofer anula SU recogida) sustituye a la 192
 const guardVivo = leer(`supabase/migrations/${GUARD_VIVO}`);
 const modal = leer("src/components/OrderModal.tsx");
 const lista = leer("src/app/(app)/page.tsx");
@@ -42,6 +42,8 @@ const bloqueEtapas = guardVivo.slice(
 );
 /** La dueñez que el guard pide en la línea de ventas: la misma que la factura de la 125 (D-656). */
 const DUENEZ = "(OLD.created_by = auth.uid() or OLD.assigned_sales_rep = auth.uid())";
+/** La del chofer (D-676, 196): la orden que lleva asignada, por su nombre, como la 168. */
+const DUENEZ_CHOFER = "OLD.assigned_driver = (select p.full_name from public.profiles p where p.id = auth.uid())";
 /** Las líneas de ese tramo que permiten anular, con los roles y las etapas que nombra cada una. */
 const permisosDeAnular = bloqueEtapas
   .split(SALTO)
@@ -55,7 +57,7 @@ const permisosDeAnular = bloqueEtapas
     return {
       roles: roles ? comillas(roles[1]) : rolUno ? [rolUno[1]] : ["sales", "driver", "manager", "accounting"],
       etapas: etapasVarias ? comillas(etapasVarias[1]) : etapaUna ? [etapaUna[1]] : [],
-      soloSuya: l.includes(DUENEZ),
+      soloSuya: l.includes(DUENEZ) || l.includes(DUENEZ_CHOFER),
     };
   });
 
@@ -72,7 +74,7 @@ function laBaseDejaAnular(rol: UserRole, etapa: Stage, suya: boolean): boolean {
 }
 
 describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
-  it("la 192 es la ÚLTIMA migración que define el guard: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
+  it("la 196 es la ÚLTIMA migración que define el guard: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
     const dir = "supabase/migrations";
     // Sin distinguir mayúsculas: desde la 185 el guard se escribe `CREATE OR REPLACE FUNCTION`, y un `includes` en
     // minúsculas no lo ve.
@@ -80,17 +82,20 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
       .filter((f) => f.endsWith(".sql") && /function public\.guard_delivery_stage\(\)/i.test(leer(`${dir}/${f}`)))
       .sort();
     expect(conGuard.at(-1)).toBe(GUARD_VIVO);
-    expect(conGuard.at(-2)).toBe("191_ventas_anula_su_orden.sql");
+    expect(conGuard.at(-2)).toBe("192_ventas_anula_hasta_listo.sql");
   });
 
-  it("el tramo del guard se encontró y trae las cuatro líneas de anular (control)", () => {
+  it("el tramo del guard se encontró y trae las cinco líneas de anular (control)", () => {
     expect(bloqueEtapas.length).toBeGreaterThan(400);
-    expect(permisosDeAnular.length).toBe(4);
+    expect(permisosDeAnular.length).toBe(5);
     expect([...new Set(permisosDeAnular.flatMap((p) => p.etapas))].sort()).toEqual(
-      ["approved", "draft", "fulfilling", "pending", "ready", "rejected"],
+      ["approved", "draft", "fulfilling", "pending", "picked_up", "ready", "rejected"],
     );
-    // La de ventas es la ÚNICA que mira de quién es la orden, y nombra solo a ventas.
-    expect(permisosDeAnular.filter((p) => p.soloSuya)).toEqual([{ roles: ["sales"], etapas: ["pending", "approved", "fulfilling", "ready"], soloSuya: true }]);
+    // Las de ventas y (D-676) del chofer son las ÚNICAS que miran de quién es la orden.
+    expect(permisosDeAnular.filter((p) => p.soloSuya)).toEqual([
+      { roles: ["sales"], etapas: ["pending", "approved", "fulfilling", "ready"], soloSuya: true },
+      { roles: ["driver"], etapas: ["picked_up"], soloSuya: true },
+    ]);
   });
 
   it("rol por rol, etapa por etapa y suya o no, sin copiar la tabla", () => {
@@ -132,8 +137,9 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
     for (const s of ["picked_up", "delivered", "canceled"] as Stage[]) {
       expect([s, puedeAnular("sales", s, true)]).toEqual([s, false]);
     }
-    // El chofer no gana nada con la dueñez: sigue en borrador y rechazada.
-    expect([puedeAnular("driver", "pending", true), puedeAnular("driver", "approved", true)]).toEqual([false, false]);
+    // El chofer: borrador y rechazada como siempre, y (D-676, 196) SU orden recogida; antes de recogerla, no.
+    expect([puedeAnular("driver", "pending", true), puedeAnular("driver", "approved", true), puedeAnular("driver", "ready", true)]).toEqual([false, false, false]);
+    expect([puedeAnular("driver", "picked_up", true), puedeAnular("driver", "picked_up", false)]).toEqual([true, false]);
     // Ventas y chofer siguen donde estaban.
     for (const rol of ["sales", "driver"] as UserRole[]) {
       expect([rol, puedeAnular(rol, "draft"), puedeAnular(rol, "rejected")]).toEqual([rol, true, true]);
@@ -146,12 +152,12 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
     }
   });
 
-  it("las etapas nuevas existen como salto, y `picked_up` a propósito no", () => {
+  it("las etapas nuevas existen como salto, y desde D-676 `picked_up` también (para el chofer)", () => {
     for (const s of ["pending", "approved", "fulfilling", "ready"] as Stage[]) {
       expect([s, canTransition(s, "canceled")]).toEqual([s, true]);
     }
-    // El admin se salta la lista en los dos proveedores, así que no hace falta abrirla ahí.
-    expect(canTransition("picked_up", "canceled")).toBe(false);
+    // Hasta D-676 no hacía falta: solo anulaba el admin, que se salta la lista. Ahora el chofer pasa por ella.
+    expect(canTransition("picked_up", "canceled")).toBe(true);
     expect(canTransition("delivered", "canceled")).toBe(false);
     // Y de una anulada no se sale por ningun lado: no hay salto de vuelta.
     for (const s of STAGES.map((x) => x.key)) expect([s, canTransition("canceled", s)]).toEqual([s, false]);
@@ -301,7 +307,7 @@ describe("no queda ningún camino que anule sin motivo", () => {
     // Nota D-497: «Cancelar orden» es una opción del menú «Acciones ▾»; quién la ve lo decide
     // `lib/acciones-de-la-ficha.ts`, así que la regla se busca allí. El motivo y su «Confirmar» siguen en la ficha.
     const acciones = leer("src/lib/acciones-de-la-ficha.ts");
-    expect(acciones).toContain("if (puedeAnular(yo.role, stage, esMia(pedido, yo))) {");
+    expect(acciones).toContain("if (puedeAnular(yo.role, stage, esSuyaParaAnular(pedido, yo)) && !(yo.role === \"driver\" && stage === \"picked_up\" && abierto.pod)) {");
     expect(modal).toContain("anular: () => setShowCancel(true),");
     expect(modal).toContain("disabled={busy || !cancelListo}");
   });
@@ -312,7 +318,7 @@ describe("no queda ningún camino que anule sin motivo", () => {
     expect(lista).toContain('await bulkStage("canceled", anulacion, motivoDeAnulacion(anulacion, motivos, lang));');
     expect(lista).toContain("for (const d of chosen) { if (await setStage(d.id, to, nota, extra)) ok++; }");
     // Y el botón sale si algo de la selección se anula, con la dueñez de ventas (D-656).
-    expect(lista).toContain("const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esMia(d, me)));");
+    expect(lista).toContain("const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esSuyaParaAnular(d, me)));");
     // Y el camino viejo, que llamaba a `setStage` sin nada, ya no está.
     expect(lista).not.toContain('bulkStage("canceled")');
   });
@@ -395,9 +401,29 @@ describe("el vendedor anula SU orden pendiente o programada (D-656, 191)", () =>
 
   it("el demo rechaza lo que la base rechaza: la regla y la dueñez, antes de pedir el motivo", () => {
     const local = leer("src/lib/local-data-provider.tsx");
-    const regla = "if (entrandoEnAnulada && cur && !puedeAnular(me.role, cur.stage, esMia(cur, me))) {";
+    const regla = "if (entrandoEnAnulada && cur && !puedeAnular(me.role, cur.stage, esSuyaParaAnular(cur, me))) {";
     expect(local).toContain(regla);
     expect(local.indexOf(regla)).toBeLessThan(local.indexOf("const falta = faltaParaAnular("));
     expect(local).toContain("notify(`${me.role} cannot move an order from ${cur.stage} to canceled`);");
+  });
+});
+
+// ---- D-676 (196): el chofer anula SU orden recogida, y la oficina se entera -----------------------------
+describe("el chofer anula SU orden ya recogida (D-676, 196)", () => {
+  const ana = { id: "ana", role: "driver" as UserRole, full_name: "Ana Chofer" };
+  it("«suya» para el chofer es la que lleva asignada (por su nombre, como el guard); para los demás, `esMia`", () => {
+    expect(esSuyaParaAnular({ created_by: "otro", assigned_sales_rep: null, assigned_driver: "Ana Chofer" }, ana)).toBe(true);
+    expect(esSuyaParaAnular({ created_by: "ana", assigned_sales_rep: "ana", assigned_driver: "Beto Chofer" }, ana)).toBe(false);
+    expect(esSuyaParaAnular({ created_by: "otro", assigned_sales_rep: null, assigned_driver: null }, ana)).toBe(false);
+    expect(esSuyaParaAnular({ created_by: "otro", assigned_sales_rep: null, assigned_driver: "Ana Chofer" }, { ...ana, full_name: "" })).toBe(false);
+    const kevin = { id: "kevin", role: "sales" as UserRole, full_name: "Kevin" };
+    expect(esSuyaParaAnular({ created_by: "kevin", assigned_sales_rep: null, assigned_driver: "Kevin" }, kevin)).toBe(true);
+    expect(esSuyaParaAnular({ created_by: "x", assigned_sales_rep: null, assigned_driver: "Kevin" }, kevin)).toBe(false);
+  });
+  it("si anula un chofer, también se avisa a gerente y Office, con su nombre y el motivo", () => {
+    const users = [{ id: "ana", role: "driver", full_name: "Ana Chofer" }, { id: "ger", role: "manager", full_name: "Gerente" }, { id: "ofi", role: "accounting", full_name: "Office" }] as Profile[];
+    const seeds = notificationsForStage({ stage: "canceled", order_no: 9, order_code: "FV9", delivery_id: "d9", creatorId: "kevin", actorId: "ana", actorRole: "driver", users, reason: "Customer refused" });
+    expect(seeds.map((s) => s.user_id).sort()).toEqual(["ger", "ofi"]);
+    expect(seeds[0].message).toBe("Ana Chofer canceled order #FV9: Customer refused");
   });
 });

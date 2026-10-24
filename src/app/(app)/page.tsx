@@ -18,7 +18,7 @@ import { faltaParaAnular, MOTIVO_POR_RETRASO, motivoDeAnulacion, motivosDeAnulac
 import { OrdersTable, ORDER_COLUMNS, DEFAULT_COLUMNS } from "@/components/OrdersTable";
 import { PESTANA_DOCUMENTO_PENDIENTE, presetAlElegirPastilla, tiendasDeQuienMira } from "@/lib/documento-pendiente";
 import { pastillasDeOrdenes, PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
-import { esMia, ordenesVisibles } from "@/lib/ordenes-visibles";
+import { esSuyaParaAnular, ordenesVisibles } from "@/lib/ordenes-visibles";
 import { alternaTodasLasVisibles } from "@/lib/marcar-todas";
 import { cuentasDeOrdenes, filasDeOrdenes } from "@/lib/filas-de-ordenes";
 import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
@@ -580,7 +580,7 @@ export default function OrdersPage() {
   /** Se enseña el botón si hay algo en la selección que este rol pueda anular desde su etapa; lo que
    *  no se pueda lo rechazará la base orden por orden, como cualquier otra tanda. La dueñez cuenta para ventas, que anula
    *  SU orden hasta «Listo» (D-656, 191; D-663, 192). */
-  const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esMia(d, me)));
+  const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esSuyaParaAnular(d, me)));
 
   const bulkStage = async (to: "pending" | "approved" | "canceled", extra?: Partial<Delivery>, nota?: string) => {
     if (!chosen.length) return;
