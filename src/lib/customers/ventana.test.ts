@@ -36,6 +36,13 @@ const tarjeta = (html: string, g: string) => {
   return html.slice(i, j < 0 ? undefined : j);
 };
 const grupos = (html: string) => [...html.matchAll(/data-grupo="(\w+)"/g)].map((m) => m[1]);
+/** D-NEXT: la etiqueta de apertura del apartado «Campos ocultos», y el apartado entero (hasta su `</details>`). */
+const etiquetaOculta = (html: string) => /<details[^>]*data-campos-ocultos="true"[^>]*>/.exec(html)?.[0] ?? "";
+const ocultos = (html: string) => {
+  const i = html.indexOf(etiquetaOculta(html));
+  expect(etiquetaOculta(html)).not.toBe("");
+  return html.slice(i, html.indexOf("</details>", i) + "</details>".length);
+};
 
 // Una empresa en dos tiendas (la 1 y la 2 del demo) y una sola (la 3).
 const dosTiendas = CLIENTES_DEMO.find((c) => c.id === 1)!;
@@ -62,7 +69,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
   });
   it("la ficha COMPLETA abajo, sin tarjeta «Cuenta» y sin «Cuenta» ni «Tienda» repetidas", () => {
     const html = pinta(dosTiendas);
-    expect(grupos(html)).toEqual(["contacto", "credito", "estado", "vendedores", "otros"]);
+    expect(grupos(html)).toEqual(["contacto", "credito", "estado", "vendedores", "otros", "ocultos"]);
     expect(html).not.toContain('data-campo="account"');
     expect(html).not.toContain('data-campo="store"');
     // Y todo lo demás sí: contacto, crédito, estado, vendedores.
@@ -78,19 +85,27 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(html).toContain('data-tiendas="1"');
     expect(html.split(nombreDeTienda(unaTienda.store)).length - 1).toBe(1);
   });
-  it("«Otros» lleva Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE), con su valor, antes de las notas", () => {
-    const otros = tarjeta(pinta(dosTiendas), "otros");
-    const orden = ["added_batch", "house_no", "concatenate", "notes"].map((k) => otros.indexOf(`data-campo="${k}"`));
+  it("D-NEXT: Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE) van en «🔒 Campos ocultos», PLEGADO, con su valor, y no en «Otros»", () => {
+    const html = pinta(dosTiendas);
+    // Plegado al abrir: un <details> sin `open`.
+    expect(etiquetaOculta(html)).not.toMatch(/\sopen[\s=>]/);
+    const oculto = ocultos(html);
+    expect(oculto).toMatch(/<summary[^>]*>🔒 Campos ocultos<\/summary>/);
+    const orden = ["added_batch", "house_no", "concatenate"].map((k) => oculto.indexOf(`data-campo="${k}"`));
     for (const i of orden) expect(i).toBeGreaterThan(-1);
     expect(orden).toEqual([...orden].sort((a, b) => a - b));
-    expect(otros).toContain("Añadido (tanda)");
-    expect(otros).toContain("N.º House");
-    expect(otros).toContain(`>${dosTiendas.house_no}<`);
-    expect(otros).toContain(`>${valorDeColumna(dosTiendas, "concatenate")}<`);
-    // Y en ninguna otra tarjeta.
-    for (const g of ["contacto", "credito", "estado", "vendedores"]) {
-      for (const k of ["added_batch", "house_no", "concatenate"]) expect(tarjeta(pinta(dosTiendas), g), `${g}/${k}`).not.toContain(`data-campo="${k}"`);
-    }
+    expect(oculto).toContain("Añadido (tanda)");
+    expect(oculto).toContain(`>${dosTiendas.house_no}<`);
+    expect(oculto).toContain(`>${valorDeColumna(dosTiendas, "concatenate")}<`);
+    // Al final de la ficha: detrás de «Otros».
+    expect(html.indexOf(etiquetaOculta(html))).toBeGreaterThan(html.indexOf('data-grupo="otros"'));
+    // «Otros» se queda con el CRM, la cuenta unificada y las notas.
+    const otros = tarjeta(html, "otros");
+    for (const k of ["crm_type_store", "crm_type_group", "associated_with", "unified_account", "notes"]) expect(otros, k).toContain(`data-campo="${k}"`);
+    // Y fuera del apartado no salen en ninguna tarjeta.
+    const fuera = html.replace(oculto, "");
+    for (const k of ["added_batch", "house_no", "concatenate"]) expect(fuera, k).not.toContain(`data-campo="${k}"`);
+    expect(fuera).not.toContain(String(valorDeColumna(dosTiendas, "concatenate")));
   });
   it("quien edita: «✏️ Editar» en la cabecera; abierta desde «Editar» (D-648), ya editando: el nombre arriba y la tienda en su pastilla", () => {
     const leyendo = pinta(dosTiendas);
@@ -104,7 +119,13 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(editando).toContain("data-guardar-ficha");
     // Los campos de las tarjetas son controles; House # y la CONCATENATE se siguen leyendo.
     expect(tarjeta(editando, "contacto")).toContain("<input");
-    expect(tarjeta(editando, "otros")).toContain(`>${valorDeColumna(dosTiendas, "concatenate")}<`);
+    // D-NEXT: dentro de «Campos ocultos», que sigue plegado: Añadido (tanda) es su control, y las otras dos se leen.
+    expect(etiquetaOculta(editando)).not.toMatch(/\sopen[\s=>]/);
+    const oculto = ocultos(editando);
+    expect(oculto).toMatch(/data-campo="added_batch"><span[^>]*>Añadido \(tanda\)<\/span><input/);
+    expect(oculto).toContain(`value="${dosTiendas.added_batch}"`);
+    expect(oculto).toContain(`>${valorDeColumna(dosTiendas, "concatenate")}<`);
+    expect(oculto).toContain(`>${dosTiendas.house_no}<`);
     // Y sin «Cuenta» ni «Tienda» en las tarjetas también editando.
     expect(editando).not.toContain('data-campo="account"');
     expect(editando).not.toContain('data-campo="store"');
@@ -112,6 +133,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
   it("quien no edita: solo lectura, sin «Editar» ni controles aunque llegue con editar", () => {
     const html = pinta(dosTiendas, { puedeEditar: false, editarAlAbrir: true });
     expect(html).toContain("Solo lectura");
+    expect(ocultos(html)).toContain(`>${dosTiendas.added_batch}<`);
     expect(html).not.toContain("data-editar-en-la-ventana");
     expect(html).not.toContain("<input");
     expect(html).not.toContain("data-guardar-ficha");
@@ -122,5 +144,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(html).toContain("Tienda *");
     expect(html).toContain(">Crear<");
     expect(html).not.toContain('data-campo="house_no"');
+    // D-NEXT: en el alta, «Campos ocultos» solo lleva lo que se escribe: Añadido (tanda).
+    expect(ocultos(html)).toContain('data-campo="added_batch"');
   });
 });

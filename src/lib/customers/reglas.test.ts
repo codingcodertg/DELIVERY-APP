@@ -245,7 +245,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
   const {
     cierraLaFicha, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, columnasAPintar, columnasDelSelector, GRUPOS, mueveColumnaDeClientes,
     PREFERENCIA_INICIAL, preferenciaDeTexto, seMueveColumnaDeClientes, textoDeCampo, textoDeFila, tieneOrdenPropio, valorDeColumna,
-    filasPorGrupo,
+    filasOcultas, filasPorGrupo, GRUPO_OCULTO,
   } = await import("./reglas");
   // El MAPA del importador, leído como texto (un .mjs de scripts/ no carga bajo vitest en esta laptop: SyntaxError al
   // importar, también en los que no se tocaron). Una cabecera por línea: `"CABECERA": "columna",`.
@@ -331,10 +331,10 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect(columnasAPintar(vuelto).map((c) => c.key)).toEqual(["crm_type_store", "account"]);
   });
 
-  it("la ficha completa: cada campo sale UNA vez y en un grupo, menos la cuenta y la tienda (van arriba); ningún grupo vacío", () => {
+  it("la ficha completa: cada campo sale UNA vez, en un grupo o en «Campos ocultos», menos la cuenta y la tienda (van arriba); ningún grupo vacío", () => {
     const grupos = filasPorGrupo();
     expect(grupos.map((g) => g.grupo.key)).toEqual(GRUPOS.map((g) => g.key));
-    const vistos = grupos.flatMap((g) => g.filas.filter((f) => f.campo).map((f) => f.key));
+    const vistos = [...grupos.flatMap((g) => g.filas), ...filasOcultas()].filter((f) => f.campo).map((f) => f.key);
     const deLasTarjetas = CAMPOS.filter((c) => c.key !== "account" && c.key !== "store").map((c) => c.key);
     expect([...vistos].sort()).toEqual([...deLasTarjetas].sort());
     expect(new Set(vistos).size).toBe(vistos.length);
@@ -351,19 +351,35 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // La cuenta y la tienda se siguen corrigiendo (arriba): siguen en CAMPOS, en la cabecera.
     expect(CAMPOS.filter((c) => c.grupo === "cabecera").map((c) => c.key)).toEqual(["account", "store"]);
   });
-  it("D-654: «Otros» lleva el CRM, la cuenta unificada, Añadido (tanda), House #, Tienda + cuenta y las notas, al final", () => {
+  it("D-NEXT (antes D-654): «Otros» lleva el CRM, la cuenta unificada y las notas; ni Añadido (tanda), ni House #, ni la CONCATENATE", () => {
     const otros = filasPorGrupo().find((g) => g.grupo.key === "otros")!.filas;
-    expect(otros.map((f) => f.key)).toEqual([
-      "crm_type_store", "crm_type_group", "associated_with", "unified_account", "added_batch", "house_no", "concatenate", "notes",
-    ]);
-    // House # y la CONCATENATE se leen y no se editan; Añadido (tanda) sí se edita.
-    expect(otros.filter((f) => f.campo === null).map((f) => f.key)).toEqual(["house_no", "concatenate"]);
-    expect(otros.find((f) => f.key === "added_batch")!.es).toBe("Añadido (tanda)");
-    expect(otros.find((f) => f.key === "concatenate")!.es).toBe("Tienda + cuenta (CONCATENATE)");
+    expect(otros.map((f) => f.key)).toEqual(["crm_type_store", "crm_type_group", "associated_with", "unified_account", "notes"]);
+    // Y en ninguna otra tarjeta: solo en «Campos ocultos».
+    const visibles = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key as string));
+    for (const k of ["added_batch", "house_no", "concatenate"]) expect(visibles, k).not.toContain(k);
+  });
+  it("D-NEXT: «Campos ocultos» lleva Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE), en ese orden; House # y la CONCATENATE se leen", () => {
+    expect(GRUPO_OCULTO).toEqual({ key: "ocultos", en: "Hidden fields", es: "Campos ocultos" });
+    const ocultas = filasOcultas();
+    expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate"]);
+    expect(ocultas.filter((f) => f.campo === null).map((f) => f.key)).toEqual(["house_no", "concatenate"]);
+    // «Añadido (tanda)» se sigue corrigiendo: lleva SU campo.
+    expect(ocultas[0].campo?.key).toBe("added_batch");
+    expect(ocultas[0].es).toBe("Añadido (tanda)");
+    expect(ocultas.find((f) => f.key === "concatenate")!.es).toBe("Tienda + cuenta (CONCATENATE)");
+    // No son tarjeta: GRUPOS no las lleva.
+    expect(GRUPOS.map((g) => g.key as string)).not.toContain("ocultos");
+  });
+  it("D-NEXT: ni Añadido, ni House #, ni Tienda + cuenta son columnas de entrada en la lista (el selector las sigue ofreciendo)", () => {
+    for (const k of ["added_batch", "house_no", "concatenate"]) {
+      expect(COLUMNAS_INICIALES, k).not.toContain(k);
+      expect(PREFERENCIA_INICIAL.elegidas, k).not.toContain(k);
+      expect(claves, k).toContain(k);
+    }
   });
   it("textoDeFila: House # y la CONCATENATE de la fila, «—» sin House #, y los demás como textoDeCampo", () => {
     const c = base(7, { store: "BRO", account: "PASEO", house_no: 412, added_batch: "LOTE 3" });
-    const fila = (k: string) => filasPorGrupo().flatMap((g) => g.filas).find((f) => f.key === k)!;
+    const fila = (k: string) => [...filasPorGrupo().flatMap((g) => g.filas), ...filasOcultas()].find((f) => f.key === k)!;
     expect(textoDeFila(c, fila("house_no"), t)).toBe("412");
     expect(textoDeFila(base(8, { house_no: null }), fila("house_no"), t)).toBe("—");
     expect(textoDeFila(c, fila("concatenate"), t)).toBe("BROPASEO");

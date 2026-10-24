@@ -74,6 +74,9 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false }
       <div className="mt-6">
         <TarjetasDeLaFicha cliente={c} t={t} />
       </div>
+      {/* D-NEXT: lo último de la página es ahora «🔒 Campos ocultos», y la burbuja de Ayuda (fija abajo a la derecha) lo
+          tapaba a 390 px (medido). El hueco de D-530 deja que suba por encima de ella; como en la ventana (D-654). */}
+      <div aria-hidden className="h-[var(--hueco-de-ayuda)]" data-hueco-de-ayuda />
     </main>
   );
 }

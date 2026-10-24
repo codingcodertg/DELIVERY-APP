@@ -9,10 +9,10 @@ import type { AlmacenDeClientes } from "@/lib/customers/almacen";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
-  cierraLaFicha, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filasPorGrupo, formDe, HISTORIAS, historiaLabel, mailUrl,
+  cierraLaFicha, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel, mailUrl,
   MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
   telUrl, textoDeFila, TIENDAS,
-  type Campo, type Cliente,
+  type Campo, type Cliente, type FilaDeFicha,
 } from "@/lib/customers/reglas";
 
 type T = (en: string, es: string) => string;
@@ -28,6 +28,9 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * «etiqueta / valor»), con todos los campos por grupo (`filasPorGrupo`). Las pintan la ventana de la lista y la página
  * `/customers/[id]`. Con `editando`, cada campo que se corrige es su control; House # y la CONCATENATE se leen siempre.
  * Sin `cliente` (un alta) no hay nada que leer: solo salen los controles.
+ *
+ * Debajo, «🔒 Campos ocultos» (D-NEXT): Añadido (tanda), N.º House y la CONCATENATE, en un `<details>` que abre
+ * PLEGADO. Editando, «Añadido (tanda)» se corrige ahí dentro.
  */
 export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, t }: {
   cliente: Cliente | null;
@@ -37,30 +40,43 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   onCampo?: (k: string, v: string) => void;
   t: T;
 }) {
+  const linea = (fila: FilaDeFicha) => {
+    if (editando && fila.campo && form && onCampo) {
+      return (
+        <label key={fila.key} className="block space-y-1 py-1.5" data-campo={fila.key}>
+          <span className="text-xs text-slate-500">{t(fila.en, fila.es)}</span>
+          <ControlDeCampo campo={fila.campo} valor={form[fila.key] ?? ""} mal={errores.includes(fila.key)} onCambia={(v) => onCampo(fila.key, v)} t={t} />
+        </label>
+      );
+    }
+    if (!cliente) return null;
+    return (
+      <div key={fila.key} className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm last:border-0" data-campo={fila.key}>
+        <span className="text-slate-500">{t(fila.en, fila.es)}</span>
+        <span className={cn("whitespace-pre-wrap text-right text-slate-900", fila.key === "concatenate" ? "font-mono" : "font-medium")}>{textoDeFila(cliente, fila, t)}</span>
+      </div>
+    );
+  };
+  const ocultas = filasOcultas().map(linea).filter((x) => x !== null);
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {filasPorGrupo().map(({ grupo, filas }) => (
-        <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
-          {filas.map((fila) => {
-            if (editando && fila.campo && form && onCampo) {
-              return (
-                <label key={fila.key} className="block space-y-1 py-1.5" data-campo={fila.key}>
-                  <span className="text-xs text-slate-500">{t(fila.en, fila.es)}</span>
-                  <ControlDeCampo campo={fila.campo} valor={form[fila.key] ?? ""} mal={errores.includes(fila.key)} onCambia={(v) => onCampo(fila.key, v)} t={t} />
-                </label>
-              );
-            }
-            if (!cliente) return null;
-            return (
-              <div key={fila.key} className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm last:border-0" data-campo={fila.key}>
-                <span className="text-slate-500">{t(fila.en, fila.es)}</span>
-                <span className={cn("whitespace-pre-wrap text-right text-slate-900", fila.key === "concatenate" ? "font-mono" : "font-medium")}>{textoDeFila(cliente, fila, t)}</span>
-              </div>
-            );
-          })}
-        </section>
-      ))}
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {filasPorGrupo().map(({ grupo, filas }) => (
+          <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
+            {filas.map(linea)}
+          </section>
+        ))}
+      </div>
+      {/* D-NEXT: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. */}
+      {ocultas.length > 0 && (
+        <details className="group rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-3" data-campos-ocultos>
+          <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">
+            🔒 {t(GRUPO_OCULTO.en, GRUPO_OCULTO.es)}
+          </summary>
+          <div className="mt-2 max-w-xl" data-grupo={GRUPO_OCULTO.key}>{ocultas}</div>
+        </details>
+      )}
     </div>
   );
 }
