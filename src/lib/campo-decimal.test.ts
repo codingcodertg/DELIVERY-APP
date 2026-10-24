@@ -46,10 +46,12 @@ describe("campo decimal (D-420): el punto no se pierde al teclear", () => {
 
 describe("las pantallas lo usan", () => {
   const leer = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\s+/g, " ");
-  it("el Estimador: los 8 campos de número de las líneas van por `CampoDecimal` y ninguno pinta `String(n)` a mano", () => {
+  it("el Estimador: los 9 campos de número de las líneas van por `CampoDecimal` y ninguno pinta `String(n)` a mano", () => {
     const f = leer("src/app/estimator/Estimador.tsx");
-    // D-442: + los dos precios más bajos; el cargo de entrega se mudó a EntregaCotizacion.
-    expect(f.match(/<CampoDecimal /g)?.length).toBe(8);
+    // D-442: + los dos precios más bajos; el cargo de entrega se mudó a EntregaCotizacion. D-674: + el «$/caja», que
+    // escribe el $/SF (`precioPorSfDeCaja`), no un campo suyo.
+    expect(f.match(/<CampoDecimal /g)?.length).toBe(9);
+    expect(f).toContain("onValor={(n) => setLinea(l.id, { price_per_sf: precioPorSfDeCaja(n, l.sf_per_box) })} />");
     for (const campo of ["requested_sf", "sf_per_box", "boxes", "price_per_sf", "lower_price_per_sf", "quantity", "unit_price", "lower_unit_price"]) {
       expect(f).toContain(`onValor={(n) => setLinea(l.id, { ${campo}: n })}`);
     }
