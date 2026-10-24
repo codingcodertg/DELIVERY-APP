@@ -58,7 +58,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
   contactos?: ContactoEnEdicion[];
   onContactos?: (c: ContactoEnEdicion[]) => void;
-  /** D-NEXT: con él, «Crédito y términos» lleva los archivos de la fila (`ArchivosDeLaFicha`). */
+  /** D-672: con él, «Crédito y términos» lleva los archivos de la fila (`ArchivosDeLaFicha`). */
   almacen?: AlmacenDeClientes;
   puedeEditar?: boolean;
   t: T;
@@ -78,7 +78,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
       <div key={fila.key} className="flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm last:border-0" data-campo={fila.key}>
         <span className="text-slate-500">{t(fila.en, fila.es)}</span>
         {fila.key === "website" && webUrl(cliente.website) ? (
-          // D-NEXT: el sitio web, que se abre.
+          // D-672: el sitio web, que se abre.
           <a href={webUrl(cliente.website)!} target="_blank" rel="noopener noreferrer" className="min-w-0 break-all text-right font-medium text-clay-600 hover:underline">{cliente.website}</a>
         ) : (
           <span className={cn("whitespace-pre-wrap text-right text-slate-900", fila.key === "concatenate" ? "font-mono" : "font-medium")}>{textoDeFila(cliente, fila, t)}</span>
@@ -284,7 +284,7 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
 }
 
 /**
- * Los archivos de la fila (D-NEXT, 195), al pie de «Crédito y términos», junto a sus impuestos: el «No sales tax form»
+ * Los archivos de la fila (D-672, 195), al pie de «Crédito y términos», junto a sus impuestos: el «No sales tax form»
  * firmado de ESTA tienda y lo demás. Cada uno se abre con un enlace firmado; quien edita los sube y los quita. Si la
  * tienda está marcada exenta y no tiene su formulario, lo dice en ámbar.
  */

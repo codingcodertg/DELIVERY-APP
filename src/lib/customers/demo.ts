@@ -112,7 +112,7 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       cola = cola.map((x) => (x.id === id ? { ...x, status: "rejected" } : x));
       return { ok: true, valor: null };
     },
-    // D-NEXT: los archivos del demo, en memoria (el fichero, como un enlace del propio navegador).
+    // D-672: los archivos del demo, en memoria (el fichero, como un enlace del propio navegador).
     async archivos(clienteId) { return { ok: true, valor: archivos.filter((a) => a.customer_id === clienteId).map((a) => ({ ...a })) }; },
     async subirArchivo(clienteId, fichero, clase) {
       const a: ArchivoDeCliente = { id: ++archivoNuevo, customer_id: clienteId, kind: clase, name: fichero.name, path: `${clienteId}/${fichero.name}`,

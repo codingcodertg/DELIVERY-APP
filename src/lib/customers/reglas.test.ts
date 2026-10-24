@@ -353,7 +353,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // Los rótulos de «Estado e historial» de la plantilla.
     expect(filasPorGrupo().find((g) => g.grupo.key === "estado")!.filas.map((f) => f.en)).toEqual(
       ["Current Status (store)", "Current Status (group)", "Historical Type (store)", "Historical Type (group)", "QuickBooks Status"]);
-    // D-669 puso el «Type» al final de «Credit & terms»; D-NEXT pone ahí los impuestos de la tienda («Tax terms»), un desplegable.
+    // D-669 puso el «Type» al final de «Credit & terms»; D-672 pone ahí los impuestos de la tienda («Tax terms»), un desplegable.
     const credito = filasPorGrupo().find((g) => g.grupo.key === "credito")!.filas;
     expect(credito.map((f) => [f.key, f.en])).toEqual([["terms", "Terms"], ["credit_limit", "Credit limit"], ["euler_limit", "Euler limit"], ["account_no", "Account / credit"], ["tax_terms", "Tax terms"]]);
     expect(credito.at(-1)?.campo?.tipo).toBe("impuesto");
@@ -367,7 +367,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
   });
   it("D-660 y D-662: «Otros» lleva el CRM y las notas (la cuenta unificada volvió a «Cuenta»); ni Añadido (tanda), ni House #, ni la CONCATENATE", () => {
     const otros = filasPorGrupo().find((g) => g.grupo.key === "otros")!.filas;
-    // D-NEXT: con el «Type» (la «Activity») encima de las notas: «Type will move to Other above Notes».
+    // D-672: con el «Type» (la «Activity») encima de las notas: «Type will move to Other above Notes».
     expect(otros.map((f) => f.key)).toEqual(["crm_type_store", "crm_type_group", "associated_with", "activity_status", "notes"]);
     expect(otros.find((f) => f.key === "activity_status")?.en).toBe("Type");
     // Y en ninguna otra tarjeta: solo en «Campos ocultos».

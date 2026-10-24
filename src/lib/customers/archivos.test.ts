@@ -9,7 +9,7 @@ import { almacenDemo, almacenDemoNuevo, CLIENTES_DEMO } from "./demo";
 import { filasDeLaEmpresa } from "./empresas";
 import { CAMPOS, impuestoLabel, textoDeValor, webUrl, type Cliente } from "./reglas";
 
-/* D-NEXT (195). Roberto, 2026-10-24: «Need to be able to attach files like No Sales Tax Form. Need to know their tax terms
+/* D-672 (195). Roberto, 2026-10-24: «Need to be able to attach files like No Sales Tax Form. Need to know their tax terms
  * too and it can vary by store bc each store needs the form signed», «tax terms […] will replace the spot for Type», «Type
  * will move to Other above Notes» y «Title was removed, need it back. Also need to add Website under contact». */
 const t = (_en: string, es: string) => es;

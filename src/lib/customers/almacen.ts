@@ -32,7 +32,7 @@ export interface AlmacenDeClientes {
   juntar(aId: number, bId: number): Promise<Res<string>>;
   /** «No son la misma» (`erp.rechaza_sugerencia_de_clientes`): no se vuelve a proponer. */
   rechazar(sugerenciaId: number): Promise<Res<null>>;
-  /** D-NEXT (195): los archivos de una fila (una tienda). Sin la 195, `sinTabla`. */
+  /** D-672 (195): los archivos de una fila (una tienda). Sin la 195, `sinTabla`. */
   archivos(clienteId: number): Promise<Res<ArchivoDeCliente[]>>;
   /** Sube el fichero al cubo y apunta su fila; si apuntarla falla, el fichero se quita (no queda huérfano). */
   subirArchivo(clienteId: number, fichero: File, clase: ClaseDeArchivo): Promise<Res<ArchivoDeCliente>>;
@@ -66,7 +66,7 @@ export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associat
 export const COLUMNAS_DE_LA_189 = ["company_id"] as const;
 /** La de la 193 (los contactos, D-668). Sin ella, los contactos salen de las cuatro columnas de antes (`contactosDe`). */
 export const COLUMNAS_DE_LA_193 = ["contacts"] as const;
-/** Las de la 195 (D-NEXT): los impuestos de la tienda y el sitio web. Sin ella llegan como null. */
+/** Las de la 195 (D-672): los impuestos de la tienda y el sitio web. Sin ella llegan como null. */
 export const COLUMNAS_DE_LA_195 = ["tax_terms", "website"] as const;
 const sin = (fuera: readonly string[]) => COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !fuera.includes(c)).join(", ");
 export const COLUMNAS_SIN_195 = sin(COLUMNAS_DE_LA_195);

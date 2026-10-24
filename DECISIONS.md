@@ -47875,7 +47875,7 @@ apunte al medir.
 **Pendiente del dueño:** aplicar la 194 (su comando). Sin ella, el Gestor no lee ni apunta y «Actual» enseña la hora real
 sin desvío.
 
-## D-NEXT · Clientes: impuestos por tienda, archivos adjuntos (el formulario de exención), sitio web y el cargo siempre a la vista (migración 195)
+## D-672 · Clientes: impuestos por tienda, archivos adjuntos (el formulario de exención), sitio web y el cargo siempre a la vista (migración 195)
 
 **Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), en Clientes, en cuatro mensajes: «Need to be able to
 attach files like No Sales Tax Form. Need to know their tax terms too and it can vary by store bc each store needs the

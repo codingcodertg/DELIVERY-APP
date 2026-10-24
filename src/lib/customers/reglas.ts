@@ -58,7 +58,7 @@ export interface Cliente {
    */
   contacts?: Contacto[] | null;
   /**
-   * Migración 195 (D-NEXT): los impuestos de ESTA fila (una tienda): 'taxable' paga, 'exempt' no (con su formulario firmado
+   * Migración 195 (D-672): los impuestos de ESTA fila (una tienda): 'taxable' paga, 'exempt' no (con su formulario firmado
    * para esa tienda, `customer_files`). null = no se sabe. Y el sitio web de la cuenta. Sin la 195, no llegan.
    */
   tax_terms?: string | null;
@@ -447,19 +447,19 @@ export const CAMPOS: readonly Campo[] = [
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
   // D-668: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
   // la tarjeta «Contacto» pinta y edita aparte (`contactos.ts`). Las cuatro columnas quedan como espejo del primero.
-  // D-NEXT: Roberto, «need to add Website under contact». Va tras los contactos, delante de la dirección.
+  // D-672: Roberto, «need to add Website under contact». Va tras los contactos, delante de la dirección.
   { key: "website", tipo: "text", en: "Website", es: "Sitio web", grupo: "contacto" },
   { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "contacto" },
   { key: "terms", tipo: "text", en: "Terms", es: "Términos", grupo: "credito" },
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
   { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito", grupo: "credito" },
-  // D-NEXT: los impuestos de la tienda ocupan el sitio del «Type» (Roberto: «Since we are adding tax terms it'll replace
+  // D-672: los impuestos de la tienda ocupan el sitio del «Type» (Roberto: «Since we are adding tax terms it'll replace
   // the spot for Type»). Cada tienda el suyo: cada una necesita su formulario firmado (`customer_files`, «No sales tax»).
   { key: "tax_terms", tipo: "impuesto", en: "Tax terms", es: "Impuestos", grupo: "credito" },
   // D-660: el dueño no la quería a la vista: va en «Campos ocultos», plegado al final de la ficha (`filasOcultas`).
   { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "ocultos" },
-  // La «Activity» del Excel, el «Type» (D-669 la llevó a «Crédito y términos»). D-NEXT: «Type will move to Other above
+  // La «Activity» del Excel, el «Type» (D-669 la llevó a «Crédito y términos»). D-672: «Type will move to Other above
   // Notes».
   { key: "activity_status", tipo: "text", en: "Type", es: "Tipo", grupo: "otros" },
   { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "otros" },
@@ -653,7 +653,7 @@ export function telUrl(telefono: string | null): string | null {
   return `tel:${t.startsWith("+") ? "+" : ""}${digitos}`;
 }
 
-/** Los impuestos de una tienda (D-NEXT, 195). */
+/** Los impuestos de una tienda (D-672, 195). */
 export const IMPUESTOS = ["taxable", "exempt"] as const;
 export function impuestoLabel(v: string | null | undefined, t: T): string {
   if (v === "taxable") return t("Taxable", "Paga impuesto");

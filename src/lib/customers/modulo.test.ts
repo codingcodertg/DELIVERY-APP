@@ -132,7 +132,7 @@ describe("la 180", () => {
     const la189 = leer("supabase/migrations/189_clientes_empresas.sql");
     // Y los contactos, la 193 (D-668).
     const la193 = leer("supabase/migrations/193_clientes_contactos.sql");
-    // Y los impuestos y el sitio web, la 195 (D-NEXT).
+    // Y los impuestos y el sitio web, la 195 (D-672).
     const la195 = leer("supabase/migrations/195_clientes_impuestos_y_archivos.sql");
     const dondeEsta = (col: string) => {
       if ((COLUMNAS_DE_LA_195 as readonly string[]).includes(col)) expect(la195, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
@@ -238,7 +238,7 @@ describe("la 182 · las tres del CRM", () => {
     const r193 = await leeConRespaldo(async (cols) => { solo193.push(cols); return solo193.length < 3 ? { data: null, error: { code: "PGRST204", message: "Could not find the 'contacts' column" } } : { data: [{ id: 3 }], error: null }; });
     expect(solo193).toEqual([COLUMNAS, COLUMNAS_SIN_195, COLUMNAS_SIN_193]);
     expect(r193.data).toEqual([{ id: 3 }]);
-    // D-NEXT: con todo menos la 195, basta quitar sus dos.
+    // D-672: con todo menos la 195, basta quitar sus dos.
     for (const col of COLUMNAS_DE_LA_195) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_195).not.toContain(col); expect(COLUMNAS_SIN_193).not.toContain(col); }
     expect(COLUMNAS_SIN_195).toContain("contacts");
     const solo195: string[] = [];
