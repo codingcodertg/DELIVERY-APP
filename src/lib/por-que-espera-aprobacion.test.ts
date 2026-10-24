@@ -4,7 +4,7 @@ import { textoDelMotivo } from "./aprobacion-por-hora-y-cupo";
 import { motivoApuntadoEnEspanol, notaDeEntradaEnPendiente, porQueEsperaAprobacion } from "./por-que-espera-aprobacion";
 import type { AccountRecord } from "./types";
 
-/* D-NEXT. Roberto, 2026-10-24, con #FV220 en «Pending Approval»: «Need to know what needs review if it didn't pass the auto
+/* D-670. Roberto, 2026-10-24, con #FV220 en «Pending Approval»: «Need to know what needs review if it didn't pass the auto
  * approval». Medido ese día (solo lectura): las 5 pendientes vivas tenían su motivo en el evento `created` («The 8:30
  * am-12:00 pm window already has 1 of 1 orders that day»), y la ficha no lo enseñaba. Tiendas y cuentas inventadas. */
 const tiendas = [{ name: "Tienda Sola", auto_approve: true }, { name: "Tienda Con Oficina", auto_approve: false }];

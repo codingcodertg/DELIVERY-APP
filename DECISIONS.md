@@ -47814,7 +47814,7 @@ rótulos y sitio: la columna de la base, sus valores (LARGE, MID…) y su orden 
 **Probado:** `reglas.test.ts` (los rótulos de «Estado e historial», «Crédito y términos» acaba con «Type», «Campos
 ocultos» sin la actividad); la suite de Clientes, verde. **No medido:** en el navegador (solo rótulos y una fila que cambia
 de tarjeta).
-## D-NEXT · Órdenes: una orden en «Pending Approval» dice por qué no se aprobó sola
+## D-670 · Órdenes: una orden en «Pending Approval» dice por qué no se aprobó sola
 
 **Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con la ficha de #FV220 en «Pending Approval»: «Need to
 know what needs review if it didn't pass the auto approval».

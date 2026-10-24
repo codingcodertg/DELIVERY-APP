@@ -339,7 +339,7 @@ export function OrderModal({
   const [arrivedAt, setArrivedAt] = useState<string | null>(existing?.arrived_at ?? null);
 
   const events = existing ? eventsFor(existing.id) : [];
-  // D-NEXT: por qué está pendiente (la cuenta, la Intertienda sin PO, la tienda, o lo apuntado al crearla / enviarla).
+  // D-670: por qué está pendiente (la cuenta, la Intertienda sin PO, la tienda, o lo apuntado al crearla / enviarla).
   const motivosDePendiente = existing ? porQueEsperaAprobacion(existing, { tiendas: settings.stores, cuentas: settings.accounts, eventos: events }) : [];
   const userName = (id: string | null | undefined) =>
     users.find((u) => u.id === id)?.full_name ?? "—";
@@ -1927,7 +1927,7 @@ export function OrderModal({
           <button className="btn btn-sm" onClick={requestClose} style={{ flex: "0 0 auto" }}>✕</button>
         </div>
 
-        {/* D-NEXT: una orden en «Pending Approval» dice POR QUÉ no se aprobó sola (Roberto: «Need to know what needs review
+        {/* D-670: una orden en «Pending Approval» dice POR QUÉ no se aprobó sola (Roberto: «Need to know what needs review
             if it didn't pass the auto approval»). Para quien la mira desde la oficina o la vende; el chofer no la ve aquí. */}
         {!editing && existing && me.role !== "driver" && motivosDePendiente.length > 0 && (
           <div className="card" role="status" data-por-que-pendiente style={{ margin: "10px 0", padding: "10px 12px", borderColor: "var(--amber)", background: "var(--amber-soft)" }}>

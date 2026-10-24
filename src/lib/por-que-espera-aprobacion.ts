@@ -2,7 +2,7 @@ import { cuentaRequiereAprobacion } from "@/lib/cuenta-aprobacion";
 import type { AccountRecord, Delivery, OrderEvent } from "@/lib/types";
 
 /**
- * Por qué una orden está en «Pending Approval» (D-NEXT). Roberto Rodriguez Jr (admin), 2026-10-24, con la ficha de #FV220
+ * Por qué una orden está en «Pending Approval» (D-670). Roberto Rodriguez Jr (admin), 2026-10-24, con la ficha de #FV220
  * en «Pending Approval»: «Need to know what needs review if it didn't pass the auto approval».
  *
  * Una orden nueva nace pendiente en vez de aprobada (`naceAprobada`, `cuenta-aprobacion.ts`) por una de estas, y cada una
