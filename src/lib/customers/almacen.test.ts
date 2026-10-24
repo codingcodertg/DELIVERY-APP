@@ -107,19 +107,22 @@ describe("la 189 · empresas y la cola", () => {
     const sinTabla = await almacenDeLaBase(clienteFalso([{ data: null, error: { code: "PGRST205", message: "no table" } }], { data: null, error: null }).sb).sugerencias();
     expect(sinTabla).toMatchObject({ ok: false, sinTabla: true });
   });
-  it("guardar sin la 189 aplicada: se repite sin company_id en lo que pide de vuelta", async () => {
+  it("guardar sin la 189 (ni la 193) aplicada: se repite sin contacts y luego sin company_id en lo que pide de vuelta", async () => {
     const llamadas: string[] = [];
     let n = 0;
     const cadena: Record<string, unknown> = {};
     Object.assign(cadena, {
       update: () => cadena, eq: () => cadena,
       select: (cols: string) => { llamadas.push(cols); return cadena; },
-      maybeSingle: () => Promise.resolve(n++ === 0 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: { id: 7, store: "BRO", account: "X" }, error: null }),
+      maybeSingle: () => Promise.resolve(n++ < 2 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: { id: 7, store: "BRO", account: "X" }, error: null }),
     });
     const r = await almacenDeLaBase({ from: () => cadena } as any).guardar(7, { notes: "x" });
     expect(r.ok).toBe(true);
-    expect(llamadas).toHaveLength(2);
+    expect(llamadas).toHaveLength(3);
     expect(llamadas[0]).toContain("company_id");
-    expect(llamadas[1]).not.toContain("company_id");
+    expect(llamadas[0]).toContain("contacts");
+    expect(llamadas[1]).toContain("company_id");
+    expect(llamadas[1]).not.toContain("contacts");
+    expect(llamadas[2]).not.toContain("company_id");
   });
 });

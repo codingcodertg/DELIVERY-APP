@@ -47743,3 +47743,57 @@ minutos después, así que al guardar la hora ya quedó atrás; y escribirla a m
 minutos por delante, por adelantado sí avisa, el borde del margen, sin `ahora` como antes, presencial sigue avisando, y que
 `ModalHost` pasa `ahora` en las dos llamadas); 6 de 6 mutantes caen con una prueba con nombre. **No medido:** en el
 navegador (el cambio es de la regla; el diálogo y su aviso son los de D-632).
+
+## D-668 · Clientes: varios contactos por cliente, cada uno con varios teléfonos y correos (migración 193)
+
+**Fecha:** 2026-10-24. **Pedido:** el dueño: «en la parte de customers pueden haber que en un solo cliente tenga diferentes
+contactos […] así como tienes las tiendas, que uno le da clic a las tiendas y cambia las tiendas, así mero quiero en
+contacto […] si es más de lo que el view agarra, quedaría como +5 y hay un drop down […] en la parte de editar, que uno
+pueda agregar cuántos contactos quieran, y si es mismo contacto tiene varios teléfonos, varios correos». Y con una ficha
+abierta: «me dice arriba el número y Omar […] quiero que el contacto sea Omar y abajo el número de teléfono […] que el
+teléfono le das clic y te lo pasa a Ring Central, o el correo le das clic y te lo pasa al correo, y hasta la opción de just
+copy», con las mismas reglas de teléfono y correo que Entregas y RR. HH.; y una auditoría de los datos de los clientes.
+
+**Qué cambia:**
+- **Base (193):** `erp.customers.contacts`, jsonb, una lista (vacía por defecto; una restricción exige que sea lista).
+  Cada contacto: `name`, `title`, `phones[]`, `emails[]`, `note`. Las cuatro columnas de antes (`contact_name`,
+  `contact_title`, `phone`, `email`) se quedan como ESPEJO del primer contacto (`espejoDeContactos`): las siguen leyendo
+  la búsqueda, el aviso de duplicado y «Decidir si se juntan». No toca la RLS ni `erp.junta_clientes`.
+- **Leyendo, en la tarjeta «Contacto»:** una pastilla por contacto (`PASTILLAS_A_LA_VISTA` = 3); con más, «+N ▾» abre un
+  menú con los demás. Del elegido: nombre, cargo y nota, y debajo cada teléfono (pulsar abre RingCentral con `rcCall`, el
+  mismo enlace `rcapp://` que RR. HH.) y cada correo (pulsar abre el correo), cada uno con «📋» para solo copiarlo. El
+  «📞 número ✉️ correo» suelto de arriba, junto a las tiendas, se quita.
+- **Editando (y en el alta):** cada contacto en su recuadro: nombre y cargo (MAYÚSCULAS al escribir, D-635), teléfonos con
+  el molde de Entregas (D-630) y «+ Agregar teléfono», correos con «+ Agregar correo», nota, «✕ Quitar contacto», y «+ Agregar contacto».
+  Un teléfono a medias o un correo que no lo parece salen en rojo y no dejan guardar; un hueco vacío no cuenta. Solo se
+  guarda si los contactos cambiaron (`parcheDeContactos`): abrir y guardar otra cosa no los reescribe.
+- **La lista:** las columnas Contacto / Cargo / Teléfono / Correo enseñan el primer contacto ya separado («956-… - OMAR»
+  → OMAR y «(956) …»), aunque la fila aún los tenga juntos. La búsqueda y el aviso de duplicado (D-665) miran los
+  nombres, notas, teléfonos y correos de TODOS los contactos.
+
+**Mientras la lista de una fila está vacía** (sin la 193, o sin el barrido), sus contactos salen al vuelo de las cuatro
+columnas (`contactosDeLosCampos`, en `formato.ts`): el texto que va con un número es su contacto; «A/P», «owner»,
+«office», «wife»… van al cargo; lo que sigue a «for», «solo», «no»… va a la nota; «Pepe y Marta», «FER / OSCAR» son dos
+contactos del mismo número; 7 dígitos tras un número heredan su código de área y 4 cambian sus 4 últimos; varios correos
+con «;» van al primero; un número escrito en el correo va a los teléfonos; la columna «contacto» manda si es la misma
+persona y, si es otra, son dos.
+
+**La auditoría (solo lectura, 2026-10-24):** de 1.189 filas vivas, 761 con teléfono y 524 con correo; 102 teléfonos
+llevan texto, 1 dos números, 25 correos son varios con «;», 3 correos son un teléfono o «nombre <correo>», 16 filas tienen
+la columna de contacto. El barrido (`scripts/contactos-de-clientes.mts`, con las 1.348 filas, archivadas incluidas) daría
+lista a 948: 101 recuperan el nombre que estaba en el teléfono, 3 quedan con dos contactos, 33 con varios correos, 6 con
+nota, 2 con un teléfono que no se pudo poner en formato (se deja tal cual). Escribe el informe (CSV, antes y después)
+en `D:/CLAUDE/entregas`; con `--escribe`, primero el respaldo en `D:/CLAUDE/respaldos-db`, y solo toca filas con la lista
+vacía.
+
+**Probado:** `contactos.test.ts` (23: el lector con formas inventadas como las del Excel, la lista guardada, el espejo, las
+pastillas, el parche, los errores, la lista y la búsqueda, el aviso de duplicado) y 4 en `ventana.test.ts` (la ficha
+pintada: pastillas y «+2», RingCentral y correo con «📋», nada suelto arriba, la fila con el contacto junto, el editor);
+12 de 12 mutantes caen con una prueba con nombre. Ensayo de la 193 contra producción con ROLLBACK: entera. En el demo (390
+y 1440 px, 0 px de desborde): pastillas, menú «+2», RingCentral y correo; editar, añadir un teléfono y un contacto, un
+correo malo en rojo que no guarda, y guardado. **No medido:** contra la base real en el navegador; el barrido escrito; y
+que el enlace `rcapp://` abra la app en el ordenador de cada uno (es el de RR. HH.).
+
+**Pendiente del dueño:** aplicar la 193 y lanzar el barrido (sus dos comandos). Hasta la 193, la ficha enseña los
+contactos sacados de las columnas, pero guardar un cambio de contactos falla y se dice. Al juntar dos filas de una
+tienda, los contactos de la que se archiva no se suman (lo distinto de su espejo va a las notas, como hasta hoy).

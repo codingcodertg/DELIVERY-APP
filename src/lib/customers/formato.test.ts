@@ -53,9 +53,10 @@ describe("formato de un cliente (D-635)", () => {
 describe("al guardar desde el cajón (parcheDe)", () => {
   const base = formDe(null);
   it("lo que se escribe se guarda en formato", () => {
-    const { parche, errores } = parcheDe({ ...base, store: "phr", account: "acme  homes", phone: "956*340*5910", email: "Ana@Acme.com", contact_name: "jose" }, base, true);
+    // El contacto, el teléfono y el correo ya no van por aquí (D-668): son la lista de contactos, `parcheDeContactos`.
+    const { parche, errores } = parcheDe({ ...base, store: "phr", account: "acme  homes", unified_account: "acme  group" }, base, true);
     expect(errores).toEqual([]);
-    expect(parche).toMatchObject({ store: "PHR", account: "ACME HOMES", phone: "(956) 340-5910", email: "ana@acme.com", contact_name: "JOSE" });
+    expect(parche).toMatchObject({ store: "PHR", account: "ACME HOMES", unified_account: "ACME GROUP" });
   });
   it("si en formato es lo que ya había, no hay cambio; una fila vieja sin tocar tampoco cambia", () => {
     const viejo = { ...base, store: "PHR", account: "ACME", phone: "(956) 340-5910" };

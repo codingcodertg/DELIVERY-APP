@@ -24,8 +24,9 @@ const rangoTienda = (code: string) => { const i = TIENDAS.findIndex((t) => t.cod
 export const enOrdenDeTienda = (filas: readonly Cliente[]): Cliente[] =>
   [...filas].sort((a, b) => rangoTienda(a.store) - rangoTienda(b.store) || a.store.localeCompare(b.store) || a.id - b.id);
 
-/** Cuántos campos de la ficha tiene llenos una fila. */
-export const camposLlenos = (c: Cliente): number => CAMPOS.filter((f) => { const v = c[f.key]; return v !== null && v !== undefined && String(v).trim() !== ""; }).length;
+/** Cuántos campos de la ficha tiene llenos una fila; con los cuatro del contacto, que desde D-668 no son campos sueltos de la ficha. */
+const CONTADOS: readonly (keyof Cliente)[] = [...CAMPOS.map((f) => f.key), "contact_name", "contact_title", "phone", "email"];
+export const camposLlenos = (c: Cliente): number => CONTADOS.filter((k) => { const v = c[k]; return v !== null && v !== undefined && String(v).trim() !== ""; }).length;
 
 /**
  * La fila que representa a la empresa entre las que coinciden: la más completa (más campos llenos), y a igualdad la

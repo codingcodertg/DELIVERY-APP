@@ -8,13 +8,19 @@ import { cn } from "@/lib/erp/utils";
 import { avisoDeNoCreadas, filaQueSeEnsena, filasDelAlta, tiendasDelAlta } from "@/lib/customers/alta";
 import type { AlmacenDeClientes, Res } from "@/lib/customers/almacen";
 import { coincidenciasDe, motivoDeCoincidenciaLabel, type Borrador } from "@/lib/customers/coincidencias";
+import {
+  contactosDe, contactoVacio, enEdicion, erroresDeContactos, parcheDeContactos, repartoDePastillas, rotuloDeContacto, textoDeCorreos,
+  textoDeTelefonos, type Contacto, type ContactoEnEdicion,
+} from "@/lib/customers/contactos";
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
+import { useCierraAlSalir } from "@/lib/menu-desplegable";
+import { rcCall } from "@/lib/recruiting/utils";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
-  cierraLaFicha, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel, mailUrl,
+  cierraLaFicha, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
   MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
-  telUrl, textoDeFila, TIENDAS,
+  textoDeFila, TIENDAS,
   type Campo, type Cliente, type FilaDeFicha,
 } from "@/lib/customers/reglas";
 
@@ -38,15 +44,22 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  *
  * Debajo, «🔒 Campos ocultos» (D-660): Añadido (tanda), N.º House y la CONCATENATE, en un `<details>` que abre
  * PLEGADO. Editando, «Añadido (tanda)» se corrige ahí dentro.
+ *
+ * La tarjeta «Contacto» abre con los contactos (D-668): leyendo, una pastilla por contacto (`ContactosParaVer`);
+ * editando, la lista que se escribe (`contactos`, `ContactosParaEditar`). Debajo, la dirección.
  */
-export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, t }: {
+export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, t }: {
   cliente: Cliente | null;
   form?: Record<string, string>;
   editando?: boolean;
   errores?: string[];
   onCampo?: (k: string, v: string) => void;
+  /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
+  contactos?: ContactoEnEdicion[];
+  onContactos?: (c: ContactoEnEdicion[]) => void;
   t: T;
 }) {
+  const deLaFila = useMemo(() => contactosDe(cliente), [cliente]);
   const linea = (fila: FilaDeFicha) => {
     if (editando && fila.campo && form && onCampo) {
       return (
@@ -71,6 +84,9 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
         {filasPorGrupo().map(({ grupo, filas }) => (
           <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
+            {grupo.key === "contacto" && (editando && contactos && onContactos
+              ? <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} t={t} />
+              : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} t={t} />)}
             {filas.map(linea)}
           </section>
         ))}
@@ -127,12 +143,6 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; v
       />
     );
   }
-  if (f.key === "phone") {
-    // D-635: como el teléfono de la orden de Entregas (D-630): solo números, y el formato se pone solo.
-    return (
-      <Input value={telefonoParaVer(valor)} onChange={(e) => onCambia(telefonoAlEscribir(e.target.value))} type="tel" inputMode="numeric" placeholder={MOLDE_DEL_TELEFONO} className={marca} />
-    );
-  }
   return (
     <Input
       value={valor}
@@ -141,6 +151,179 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; v
       inputMode={f.tipo === "num" ? "decimal" : undefined}
       className={marca}
     />
+  );
+}
+
+/** D-635: el teléfono como el de la orden de Entregas (D-630): solo números, y el formato se pone solo. */
+function EntradaDeTelefono({ valor, mal, onCambia, ...resto }: { valor: string; mal?: boolean; onCambia: (v: string) => void } & Record<`data-${string}`, string | number>) {
+  return (
+    <Input value={telefonoParaVer(valor)} onChange={(e) => onCambia(telefonoAlEscribir(e.target.value))} type="tel" inputMode="numeric" placeholder={MOLDE_DEL_TELEFONO} className={cn(mal && "border-red-400 ring-1 ring-red-300")} {...resto} />
+  );
+}
+
+/** «📋»: copia el texto; si el navegador no deja, lo enseña para copiarlo a mano. */
+function BotonCopiar({ texto, t }: { texto: string; t: T }) {
+  const [hecho, setHecho] = useState(false);
+  const copia = async () => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setHecho(true);
+      setTimeout(() => setHecho(false), 1500);
+    } catch {
+      window.prompt(t("Copy it from here:", "Cópialo de aquí:"), texto);
+    }
+  };
+  return (
+    <button type="button" onClick={copia} className="rounded px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+      title={t("Copy", "Copiar")} aria-label={t(`Copy ${texto}`, `Copiar ${texto}`)} data-copiar={texto}>
+      {hecho ? `✓ ${t("Copied", "Copiado")}` : "📋"}
+    </button>
+  );
+}
+
+/**
+ * Los contactos de la tarjeta «Contacto» (D-668). Como las pastillas de tiendas: una pastilla por contacto, y al
+ * pulsarla se ve ese; si no caben (`PASTILLAS_A_LA_VISTA`), «+N» abre un desplegable con los demás. Del elegido: el
+ * nombre, el cargo y la nota, y debajo sus teléfonos (pulsar llama con RingCentral, como en RR. HH.) y sus correos
+ * (pulsar abre el correo), cada uno con «📋» para solo copiarlo.
+ */
+function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
+  const [elegido, setElegido] = useState(0);
+  // «+N»: un menú propio (no un <select>: en el teléfono el nativo se estiraba y cortaba el nombre).
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useCierraAlSalir(menu, () => setMenu(false), () => [menuRef.current]);
+  if (!contactos.length) {
+    return <p className="border-b border-slate-100 py-1.5 text-sm text-slate-400" data-contactos="0">{t("No contact yet", "Sin contacto todavía")}</p>;
+  }
+  const i = Math.min(elegido, contactos.length - 1);
+  const c = contactos[i];
+  const { pastillas, enElMenu } = repartoDePastillas(contactos.length);
+  const pastilla = (activa: boolean) =>
+    cn("max-w-[11rem] truncate rounded-full border px-3 py-1 text-xs", activa ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50");
+  return (
+    <div className="space-y-2 border-b border-slate-100 pb-3" data-contactos={contactos.length}>
+      {contactos.length > 1 && (
+        <div role="tablist" aria-label={t("Contacts", "Contactos")} className="flex flex-wrap items-center gap-1.5">
+          {pastillas.map((k) => (
+            <button key={k} type="button" role="tab" aria-selected={k === i} onClick={() => setElegido(k)} className={pastilla(k === i)} title={rotuloDeContacto(contactos[k], k, t)} data-pastilla-de-contacto={k}>
+              {rotuloDeContacto(contactos[k], k, t)}
+            </button>
+          ))}
+          {enElMenu.length > 0 && (
+            <div className="relative" ref={menuRef}>
+              <button type="button" onClick={() => setMenu((m) => !m)} className={pastilla(enElMenu.includes(i))} aria-haspopup="menu" aria-expanded={menu}
+                title={t("More contacts", "Más contactos")} data-mas-contactos={enElMenu.length}>
+                {enElMenu.includes(i) ? rotuloDeContacto(contactos[i], i, t) : `+${enElMenu.length}`} ▾
+              </button>
+              {menu && (
+                <div role="menu" className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] max-w-[16rem] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg" data-menu-de-contactos>
+                  {enElMenu.map((k) => (
+                    <button key={k} type="button" role="menuitem" onClick={() => { setElegido(k); setMenu(false); }}
+                      className={cn("block w-full truncate px-3 py-1.5 text-left text-sm hover:bg-slate-50", k === i ? "font-medium text-clay-700" : "text-slate-700")} data-opcion-de-contacto={k}>
+                      {rotuloDeContacto(contactos[k], k, t)}
+                      {contactos[k].title && contactos[k].name && <span className="ml-1 text-xs text-slate-400">· {contactos[k].title}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      <div className="space-y-1" data-contacto-elegido={i}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="break-words font-medium text-slate-900" data-campo="contact_name">{c.name ?? t("No name", "Sin nombre")}</span>
+          {c.title && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600" data-campo="contact_title">{c.title}</span>}
+        </div>
+        {c.note && <p className="break-words text-xs italic text-slate-500" data-nota-de-contacto>{c.note}</p>}
+        {c.phones.length > 0 && (
+          <ul className="space-y-0.5" data-campo="phone">
+            {c.phones.map((p) => (
+              <li key={p} className="flex items-center gap-1">
+                <a href={rcCall(p)} className="text-sm text-clay-600 hover:underline" title={t("Call with RingCentral", "Llamar con RingCentral")} data-llamar={p}>📞 {p}</a>
+                <BotonCopiar texto={p} t={t} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {c.emails.length > 0 && (
+          <ul className="space-y-0.5" data-campo="email">
+            {c.emails.map((e) => (
+              <li key={e} className="flex min-w-0 items-center gap-1">
+                <a href={`mailto:${e}`} className="min-w-0 break-all text-sm text-clay-600 hover:underline" title={t("Write an email", "Escribir un correo")} data-escribir={e}>✉️ {e}</a>
+                <BotonCopiar texto={e} t={t} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Editar los contactos (D-668): cuantos hagan falta, y cada uno con cuantos teléfonos y correos hagan falta. El nombre
+ * y el cargo salen en MAYÚSCULAS al escribir; el teléfono con el molde de Entregas. Un hueco vacío no cuenta.
+ */
+function ContactosParaEditar({ contactos, errores, onCambia, t }: { contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; t: T }) {
+  const cambia = (i: number, c: Partial<ContactoEnEdicion>) => onCambia(contactos.map((x, j) => (j === i ? { ...x, ...c } : x)));
+  const etiqueta = "text-xs text-slate-500";
+  const quitar = "shrink-0 rounded px-1.5 text-sm text-slate-400 hover:bg-slate-100 hover:text-red-600";
+  const mas = "text-xs font-medium text-clay-600 hover:underline";
+  return (
+    <div className="space-y-3 border-b border-slate-100 pb-3" data-contactos-editando={contactos.length}>
+      {contactos.map((c, i) => (
+        <fieldset key={i} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-3" data-contacto-editable={i}>
+          <div className="flex items-center justify-between">
+            <legend className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t(`Contact ${i + 1}`, `Contacto ${i + 1}`)}</legend>
+            {contactos.length > 1 && (
+              <button type="button" className="text-xs text-slate-500 hover:text-red-600" onClick={() => onCambia(contactos.filter((_, j) => j !== i))} data-quitar-contacto={i}>
+                ✕ {t("Remove contact", "Quitar contacto")}
+              </button>
+            )}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="block space-y-1">
+              <span className={etiqueta}>{t("Name", "Nombre")}</span>
+              <Input value={c.name} onChange={(e) => cambia(i, { name: enMayusculas("contact_name", e.target.value) })} data-nombre-de-contacto={i} />
+            </label>
+            <label className="block space-y-1">
+              <span className={etiqueta}>{t("Title", "Cargo")}</span>
+              <Input value={c.title} onChange={(e) => cambia(i, { title: enMayusculas("contact_title", e.target.value) })} placeholder={t("Owner, A/P…", "Dueño, A/P…")} data-cargo-de-contacto={i} />
+            </label>
+          </div>
+          <div className="space-y-1">
+            <span className={etiqueta}>{t("Phones", "Teléfonos")}</span>
+            {c.phones.map((p, j) => (
+              <div key={j} className="flex items-center gap-1">
+                <EntradaDeTelefono valor={p} mal={errores.includes(`contacto.${i}.phones.${j}`)} onCambia={(v) => cambia(i, { phones: c.phones.map((x, k) => (k === j ? v : x)) })} data-telefono-de-contacto={`${i}.${j}`} />
+                {c.phones.length > 1 && <button type="button" className={quitar} onClick={() => cambia(i, { phones: c.phones.filter((_, k) => k !== j) })} aria-label={t("Remove phone", "Quitar teléfono")}>✕</button>}
+              </div>
+            ))}
+            <button type="button" className={mas} onClick={() => cambia(i, { phones: [...c.phones, ""] })} data-agregar-telefono={i}>+ {t("Add phone", "Agregar teléfono")}</button>
+          </div>
+          <div className="space-y-1">
+            <span className={etiqueta}>{t("Emails", "Correos")}</span>
+            {c.emails.map((m, j) => (
+              <div key={j} className="flex items-center gap-1">
+                <Input value={m} type="email" inputMode="email" onChange={(e) => cambia(i, { emails: c.emails.map((x, k) => (k === j ? e.target.value : x)) })}
+                  className={cn(errores.includes(`contacto.${i}.emails.${j}`) && "border-red-400 ring-1 ring-red-300")} data-correo-de-contacto={`${i}.${j}`} />
+                {c.emails.length > 1 && <button type="button" className={quitar} onClick={() => cambia(i, { emails: c.emails.filter((_, k) => k !== j) })} aria-label={t("Remove email", "Quitar correo")}>✕</button>}
+              </div>
+            ))}
+            <button type="button" className={mas} onClick={() => cambia(i, { emails: [...c.emails, ""] })} data-agregar-correo={i}>+ {t("Add email", "Agregar correo")}</button>
+          </div>
+          <label className="block space-y-1">
+            <span className={etiqueta}>{t("Note", "Nota")}</span>
+            <Input value={c.note} onChange={(e) => cambia(i, { note: e.target.value })} placeholder={t("e.g. only for POs", "p. ej. solo para POs")} data-nota-de-contacto={i} />
+          </label>
+        </fieldset>
+      ))}
+      <Button type="button" variant="outline" size="sm" onClick={() => onCambia([...contactos, contactoVacio()])} data-agregar-contacto>
+        + {t("Add contact", "Agregar contacto")}
+      </Button>
+    </div>
   );
 }
 
@@ -175,6 +358,10 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const original = useMemo(() => formDe(cliente), [cliente]);
   const [form, setForm] = useState<Record<string, string>>(original);
   useEffect(() => { setForm(original); }, [original]);
+  // D-668: los contactos van aparte del resto de campos: una lista que se edita entera.
+  const contactosOriginales = useMemo(() => contactosDe(cliente), [cliente]);
+  const [contactos, setContactos] = useState<ContactoEnEdicion[]>(() => enEdicion(contactosOriginales));
+  useEffect(() => { setContactos(enEdicion(contactosOriginales)); }, [contactosOriginales]);
   const [editando, setEditando] = useState(puedeEditar && (nuevo || editarAlAbrir));
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<{ tono: "rojo" | "verde" | "ambar"; texto: string } | null>(null);
@@ -185,13 +372,19 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     setTiendasAlta(orden);
     setForm((f) => ({ ...f, store: orden[0] ?? "" }));
   };
-  const { parche, errores } = useMemo(() => parcheDe(form, original, nuevo), [form, original, nuevo]);
+  const { parche, errores } = useMemo(() => {
+    const campos = parcheDe(form, original, nuevo);
+    return {
+      parche: { ...campos.parche, ...parcheDeContactos(contactosOriginales, contactos, cliente) },
+      errores: [...campos.errores, ...erroresDeContactos(contactos)],
+    };
+  }, [form, original, nuevo, contactosOriginales, contactos, cliente]);
   const cambiado = Object.keys(parche).length > 0;
 
   // D-665: «this information matches another account». Mientras se edita (alta o ficha), lo escrito se compara con la
   // lista ya cargada (`coincidenciasDe`, las reglas de D-633), con un pequeño retardo para no buscar a cada tecla. Fuera
   // la propia empresa. No bloquea: con una coincidencia OBVIA (mismo nombre), «Guardar» pide «Guardar de todas formas».
-  const borrador = JSON.stringify({ account: form.account ?? "", unified_account: form.unified_account ?? "", phone: form.phone ?? "", email: form.email ?? "" });
+  const borrador = JSON.stringify({ account: form.account ?? "", unified_account: form.unified_account ?? "", phone: textoDeTelefonos(contactos), email: textoDeCorreos(contactos) });
   const [borradorQuieto, setBorradorQuieto] = useState(borrador);
   useEffect(() => { const h = setTimeout(() => setBorradorQuieto(borrador), RETARDO_DEL_AVISO_MS); return () => clearTimeout(h); }, [borrador]);
   const coinciden = useMemo(
@@ -280,6 +473,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const cancelar = () => {
     if (nuevo) { pedirCierre(); return; }
     setForm(original);
+    setContactos(enEdicion(contactosOriginales));
     setEditando(false);
     setAviso(null);
   };
@@ -306,8 +500,6 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     setAviso(null);
     onCambia(c);
   };
-  const tel = telUrl(form.phone ?? null);
-  const mail = mailUrl(form.email ?? null);
   const tiendas = nuevo ? [] : hermanas.length > 0 ? hermanas : [cliente];
 
   // El alta (D-664): una casilla por tienda y «Todas», en el sitio de las pastillas. Al menos una (si no, en rojo).
@@ -413,12 +605,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               </button>
             );
           })}
-          {!nuevo && (tel || mail) && (
-            <span className="flex flex-wrap gap-3 px-1 text-sm">
-              {tel && <a href={tel} className="text-clay-600 hover:underline">📞 {form.phone}</a>}
-              {mail && <a href={mail} className="text-clay-600 hover:underline">✉️ {form.email}</a>}
-            </span>
-          )}
+          {/* D-668: el teléfono y el correo ya no van aquí arriba, sueltos («956-… Omar»): van en la tarjeta «Contacto»,
+              con su persona. */}
           {puedeEditar && !nuevo && tiendas.length > 1 && (
             <Button variant="ghost" size="sm" className="ml-auto text-xs text-slate-500" onClick={separar} disabled={ocupado || cambiado}
               title={t("This store's row stops being part of this company (nothing is deleted)", "La fila de esta tienda deja de ser de esta empresa (no se borra nada)")}>
@@ -455,7 +643,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} t={t} />
+          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} t={t} />
         </div>
 
         {puedeEditar && !nuevo && archivando && (
