@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { creaUnaPorUna, type ResultadoDelAlta } from "./alta";
 import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
 import { clienteDeLaBase, type Cliente, type Parche } from "./reglas";
 
@@ -19,6 +20,11 @@ export interface AlmacenDeClientes {
   leer(): Promise<Res<Cliente[]>>;
   guardar(id: number, parche: Parche): Promise<Res<Cliente>>;
   crear(fila: Parche): Promise<Res<Cliente>>;
+  /**
+   * El alta en varias tiendas (D-NEXT): una fila por tienda (`filasDelAlta`). La que choca (la cuenta ya existe en esa
+   * tienda) no se crea y se dice cuál; las demás, sí. Si no se crea ninguna, el fallo de siempre.
+   */
+  crearVarias(filas: Parche[]): Promise<Res<ResultadoDelAlta>>;
   /** Migración 189: la cola «Decidir si se juntan», solo las pendientes. Sin la 189, `sinTabla`. */
   sugerencias(): Promise<Res<Sugerencia[]>>;
   /** Juntar las empresas de dos filas (`erp.junta_clientes`): UNA llamada; la base hace todo o nada. Luego se relee. */
@@ -90,7 +96,7 @@ const sinFila = (): Res<never> => ({ ok: false, sinTabla: false, sinPermiso: tru
 
 // El cliente del ERP (esquema `erp`): su tipo lleva el esquema, y el de Entregas no vale.
 export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenDeClientes {
-  return {
+  const almacen: AlmacenDeClientes = {
     async leer() {
       const todos: Cliente[] = [];
       for (let p = 0; p < MAX_PAGINAS; p++) {
@@ -113,6 +119,19 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       if (!data) return sinFila();
       return { ok: true, valor: clienteDeLaBase(data as unknown as Record<string, unknown>) };
     },
+    // D-NEXT: primero UNA llamada con todas las filas. Si una choca (23505) la sentencia entera no escribe nada (es una
+    // sola sentencia: todo o nada), y entonces se repite una por una para saber cuál choca y crear las demás.
+    async crearVarias(filas) {
+      if (filas.length === 0) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "no store chosen" };
+      const { data, error } = await leeConRespaldo((cols) => sb.from("customers").insert(filas).select(cols));
+      if (error) {
+        if (esDuplicado(error) && filas.length > 1) return creaUnaPorUna(filas, (f) => almacen.crear(f));
+        return fallo(error);
+      }
+      const creados = ((data ?? []) as unknown as Record<string, unknown>[]).map(clienteDeLaBase);
+      if (creados.length === 0) return sinFila();
+      return { ok: true, valor: { creados, noCreadas: [] } };
+    },
     async sugerencias() {
       const { data, error } = await sb.from("customer_merge_suggestions")
         .select("id, a_id, b_id, reason, score, status, created_at").eq("status", "pending").order("id").range(0, 4999);
@@ -131,6 +150,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       return { ok: true, valor: null };
     },
   };
+  return almacen;
 }
 
 /** Cuántas sugerencias pendientes hay (la pastilla de la barra). null = no se sabe (sin la 189, sin permiso, error). */

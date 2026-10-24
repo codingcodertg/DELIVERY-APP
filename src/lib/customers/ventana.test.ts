@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { FichaEnVentana } from "@/app/customers/FichaDeCliente";
 import { almacenDemo, CLIENTES_DEMO } from "./demo";
 import { filasDeLaEmpresa } from "./empresas";
-import { estadoLabel, nombreDeTienda, valorDeColumna, type Cliente } from "./reglas";
+import { estadoLabel, nombreDeTienda, TIENDAS, valorDeColumna, type Cliente } from "./reglas";
 
 /**
  * D-654 (2026-10-23). El dueño: «cuando uno le da clic al cliente […] abre ese side window por al lado, y eso no me
@@ -145,10 +145,24 @@ describe("la ficha en una ventana centrada (D-654)", () => {
   it("un alta abre editando: el nombre y la tienda arriba, obligatorios", () => {
     const html = pinta(null);
     expect(html).toContain('placeholder="Nombre de la cuenta *"');
-    expect(html).toContain("Tienda *");
+    expect(html).toContain("Tiendas *");
     expect(html).toContain(">Crear<");
     expect(html).not.toContain('data-campo="house_no"');
     // D-660: en el alta, «Campos ocultos» solo lleva lo que se escribe: Añadido (tanda).
     expect(ocultos(html)).toContain('data-campo="added_batch"');
+  });
+  it("D-NEXT: en el alta la tienda son casillas (una por tienda y «Todas»), sin desplegable; al editar, el desplegable de siempre", () => {
+    const alta = pinta(null);
+    const grupo = /<div role="group"[^>]*data-tiendas-del-alta="true">[\s\S]*?<\/div>/.exec(alta)?.[0] ?? "";
+    expect(grupo).not.toBe("");
+    for (const x of TIENDAS) expect(grupo, x.code).toMatch(new RegExp(`data-casilla-tienda="${x.code}"><input type="checkbox"/>${x.nombre}</label>`));
+    expect(grupo).toMatch(/data-casilla-todas="true"><input type="checkbox"\/>Todas<\/label>/);
+    expect([...grupo.matchAll(/type="checkbox"/g)]).toHaveLength(TIENDAS.length + 1);
+    expect(alta).not.toContain("data-tienda-de-la-fila");
+    // Editando un cliente que ya existe: ni una casilla; su tienda, en su desplegable.
+    const editando = pinta(dosTiendas, { editarAlAbrir: true });
+    expect(editando).not.toContain("data-tiendas-del-alta");
+    expect(editando).not.toContain('type="checkbox"');
+    expect(editando).toContain("data-tienda-de-la-fila");
   });
 });

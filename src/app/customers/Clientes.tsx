@@ -143,8 +143,10 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   };
 
   /** Lo que devolvió la base se pone en su sitio. */
-  const alGuardar = (c: Cliente) => {
-    setLista((l) => (l.some((x) => x.id === c.id) ? l.map((x) => (x.id === c.id ? c : x)) : [...l, c]));
+  // `creados`: en un alta en varias tiendas (D-NEXT), todas las filas nuevas, para que la ventana enseñe sus pastillas.
+  const alGuardar = (c: Cliente, creados: Cliente[] = []) => {
+    const nuevas = [c, ...creados.filter((x) => x.id !== c.id)];
+    setLista((l) => nuevas.reduce((acc, n) => (acc.some((x) => x.id === n.id) ? acc.map((x) => (x.id === n.id ? n : x)) : [...acc, n]), l));
     setFicha({ tipo: "ver", cliente: c });
   };
 
