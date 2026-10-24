@@ -301,7 +301,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, t }: { contactos: C
                 {c.phones.length > 1 && <button type="button" className={quitar} onClick={() => cambia(i, { phones: c.phones.filter((_, k) => k !== j) })} aria-label={t("Remove phone", "Quitar teléfono")}>✕</button>}
               </div>
             ))}
-            <button type="button" className={mas} onClick={() => cambia(i, { phones: [...c.phones, ""] })} data-agregar-telefono={i}>+ {t("Phone", "Teléfono")}</button>
+            <button type="button" className={mas} onClick={() => cambia(i, { phones: [...c.phones, ""] })} data-agregar-telefono={i}>+ {t("Add phone", "Agregar teléfono")}</button>
           </div>
           <div className="space-y-1">
             <span className={etiqueta}>{t("Emails", "Correos")}</span>
@@ -312,7 +312,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, t }: { contactos: C
                 {c.emails.length > 1 && <button type="button" className={quitar} onClick={() => cambia(i, { emails: c.emails.filter((_, k) => k !== j) })} aria-label={t("Remove email", "Quitar correo")}>✕</button>}
               </div>
             ))}
-            <button type="button" className={mas} onClick={() => cambia(i, { emails: [...c.emails, ""] })} data-agregar-correo={i}>+ {t("Email", "Correo")}</button>
+            <button type="button" className={mas} onClick={() => cambia(i, { emails: [...c.emails, ""] })} data-agregar-correo={i}>+ {t("Add email", "Agregar correo")}</button>
           </div>
           <label className="block space-y-1">
             <span className={etiqueta}>{t("Note", "Nota")}</span>

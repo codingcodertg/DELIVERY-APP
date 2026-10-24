@@ -47764,7 +47764,7 @@ copy», con las mismas reglas de teléfono y correo que Entregas y RR. HH.; y un
   mismo enlace `rcapp://` que RR. HH.) y cada correo (pulsar abre el correo), cada uno con «📋» para solo copiarlo. El
   «📞 número ✉️ correo» suelto de arriba, junto a las tiendas, se quita.
 - **Editando (y en el alta):** cada contacto en su recuadro: nombre y cargo (MAYÚSCULAS al escribir, D-635), teléfonos con
-  el molde de Entregas (D-630) y «+ Teléfono», correos con «+ Correo», nota, «✕ Quitar contacto», y «+ Agregar contacto».
+  el molde de Entregas (D-630) y «+ Agregar teléfono», correos con «+ Agregar correo», nota, «✕ Quitar contacto», y «+ Agregar contacto».
   Un teléfono a medias o un correo que no lo parece salen en rojo y no dejan guardar; un hueco vacío no cuenta. Solo se
   guarda si los contactos cambiaron (`parcheDeContactos`): abrir y guardar otra cosa no los reescribe.
 - **La lista:** las columnas Contacto / Cargo / Teléfono / Correo enseñan el primer contacto ya separado («956-… - OMAR»
