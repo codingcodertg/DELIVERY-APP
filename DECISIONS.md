@@ -47995,3 +47995,20 @@ chofer, el aviso, y la ficha (su menú con la suya y sin la de otro; la referenc
 navegador ni en el teléfono del chofer.
 
 **Pendiente del dueño:** aplicar la 196 (su comando). Sin ella, el botón sale y la base lo rechaza («Not allowed»).
+
+## D-677 · Time Tracker: la campana y el nombre, en la misma fila que las pestañas
+
+**Fecha:** 2026-10-24. **Pedido:** el dueño, con la barra del admin de Time Tracker (1.10.0) a ~950 px, con las pestañas en
+dos filas y la campana y «ANDRES UGARTE» en una tercera: «todo eso puede ir en la misma row: la notificación y Andrés
+Ugarte en la misma row de Auditoría y Registrar tiempo».
+
+**Por qué pasaba:** dentro de la caja de la derecha de la barra (`.tt-barra-resto`), las pestañas iban en su propia caja
+(`.tabs`): al partirse en dos filas, esa caja ocupaba el ancho y la campana y el nombre bajaban detrás de ella.
+
+**Qué cambia (Time Tracker 1.11.0):** desde 521 px, la caja de las pestañas deja de ser caja (`display: contents`): las
+pestañas, la campana y el nombre son hermanas y se reparten en las mismas filas, con la campana y el nombre detrás de la
+última pestaña mientras quepan. En el teléfono (≤ 520 px) manda la regla de D-528, que no cambia. Solo CSS.
+
+**Medido:** en una réplica de la barra (las mismas reglas y la misma estructura) a 956 px: antes, la campana en una tercera
+fila y la barra de 168 px de alto; después, en la fila de «Auditoría / Registrar tiempo» y 127 px. A 1440 px, igual que
+antes. **No medido:** en Time Tracker de verdad (el demo no lo abre).
