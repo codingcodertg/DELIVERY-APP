@@ -342,7 +342,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // Cada línea que se edita lleva SU campo (la etiqueta y el control son de esa clave).
     for (const f of grupos.flatMap((g) => g.filas)) if (f.campo) expect(f.campo.key).toBe(f.key);
   });
-  it("D-NEXT: las tarjetas van Cuenta, Contacto, Crédito / Estado, Otros (la plantilla del dueño); «Cuenta» abre con el nombre (solo lectura), lleva los vendedores y no la tienda", () => {
+  it("D-662: las tarjetas van Cuenta, Contacto, Crédito / Estado, Otros (la plantilla del dueño); «Cuenta» abre con el nombre (solo lectura), lleva los vendedores y no la tienda", () => {
     expect(GRUPOS.map((g) => g.key)).toEqual(["cuenta", "contacto", "credito", "estado", "otros"]);
     expect(GRUPOS.at(-1)).toEqual({ key: "otros", en: "Other", es: "Otros" });
     const cuenta = filasPorGrupo()[0];
@@ -357,7 +357,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // La cuenta y la tienda se siguen corrigiendo (arriba): siguen en CAMPOS, en la cabecera.
     expect(CAMPOS.filter((c) => c.grupo === "cabecera").map((c) => c.key)).toEqual(["account", "store"]);
   });
-  it("D-660 y D-NEXT: «Otros» lleva el CRM y las notas (la cuenta unificada volvió a «Cuenta»); ni Añadido (tanda), ni House #, ni la CONCATENATE", () => {
+  it("D-660 y D-662: «Otros» lleva el CRM y las notas (la cuenta unificada volvió a «Cuenta»); ni Añadido (tanda), ni House #, ni la CONCATENATE", () => {
     const otros = filasPorGrupo().find((g) => g.grupo.key === "otros")!.filas;
     expect(otros.map((f) => f.key)).toEqual(["crm_type_store", "crm_type_group", "associated_with", "notes"]);
     // Y en ninguna otra tarjeta: solo en «Campos ocultos».
@@ -367,7 +367,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
   it("D-660: «Campos ocultos» lleva Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE), en ese orden; House # y la CONCATENATE se leen", () => {
     expect(GRUPO_OCULTO).toEqual({ key: "ocultos", en: "Hidden fields", es: "Campos ocultos" });
     const ocultas = filasOcultas();
-    // D-NEXT: y detrás la actividad, que la plantilla del dueño no ponía en ninguna tarjeta.
+    // D-662: y detrás la actividad, que la plantilla del dueño no ponía en ninguna tarjeta.
     expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "activity_status"]);
     expect(ocultas.filter((f) => f.campo === null).map((f) => f.key)).toEqual(["house_no", "concatenate"]);
     // «Añadido (tanda)» se sigue corrigiendo: lleva SU campo.

@@ -67,7 +67,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
       expect(arriba).not.toContain(String(valorDeColumna(c, "concatenate")));
     }
   });
-  it("la ficha COMPLETA abajo: «Cuenta» primero (D-NEXT), con el nombre una sola vez y sin «Tienda»", () => {
+  it("la ficha COMPLETA abajo: «Cuenta» primero (D-662), con el nombre una sola vez y sin «Tienda»", () => {
     const html = pinta(dosTiendas);
     expect(grupos(html)).toEqual(["cuenta", "contacto", "credito", "estado", "otros", "ocultos"]);
     const cuenta = tarjeta(html, "cuenta");
@@ -102,7 +102,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(oculto).toContain(`>${valorDeColumna(dosTiendas, "concatenate")}<`);
     // Al final de la ficha: detrás de «Otros».
     expect(html.indexOf(etiquetaOculta(html))).toBeGreaterThan(html.indexOf('data-grupo="otros"'));
-    // «Otros» se queda con el CRM y las notas (la cuenta unificada volvió a «Cuenta», D-NEXT).
+    // «Otros» se queda con el CRM y las notas (la cuenta unificada volvió a «Cuenta», D-662).
     const otros = tarjeta(html, "otros");
     for (const k of ["crm_type_store", "crm_type_group", "associated_with", "notes"]) expect(otros, k).toContain(`data-campo="${k}"`);
     expect(otros).not.toContain('data-campo="unified_account"');

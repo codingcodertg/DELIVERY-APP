@@ -47223,7 +47223,7 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 
 ## D-654 · Clientes: la ficha se abre en una ventana centrada, como la orden de Entregas; arriba el nombre, sin «Cuenta» ni «Tienda» repetidas, y House # y la CONCATENATE en «Otros»
 
-> **Reemplazada en parte por D-NEXT** (2026-10-23): la tarjeta «Cuenta» vuelve, la primera, con el nombre (solo lectura), la cuenta unificada y los vendedores; la ficha sigue la plantilla del dueño.
+> **Reemplazada en parte por D-662** (2026-10-23): la tarjeta «Cuenta» vuelve, la primera, con el nombre (solo lectura), la cuenta unificada y los vendedores; la ficha sigue la plantilla del dueño.
 
 > **Reemplazada en parte por D-660** (2026-10-23): Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE) salen de «Otros» y van en «🔒 Campos ocultos», un apartado plegado al final de la ficha («hiring notes» era «hidden notes»). «Otros» queda con Tipo CRM ×2, Asociado con, Cuenta unificada y Notas.
 
@@ -47583,8 +47583,8 @@ Mutantes: 11 de 11 caen con una prueba con nombre: cae siempre delante del desti
 - Que el orden arrastrado sobreviva a recargar contra la base real: el demo no guarda el orden (`SIN_BASE`), y al recargar vuelve el canónico; con las flechas pasa lo mismo (medido en el mismo tiro). El guardado es la misma `guardaOrden` que las flechas.
 - Firefox y Safari (solo Chrome headless).
 - Arrastrar con el dedo en una tableta ancha, donde la tabla sí lleva cabecera.
-## D-NEXT · Clientes: la tarjeta «Cuenta» vuelve, la primera
-## D-NEXT · Clientes: la ficha con la plantilla del dueño (Cuenta con vendedores · Contacto · Crédito / Estado · Otros · ocultos)
+
+## D-662 · Clientes: la ficha con la plantilla del dueño (Cuenta con vendedores · Contacto · Crédito / Estado · Otros · ocultos)
 
 **Fecha:** 2026-10-23. **Pedido:** el dueño, primero con el orden escrito («ACCOUNT · CONTACT · CREDIT AND TERMS / STATUS
 AND HISTORY · SALES REP · OTHER») y «it should be account first, then contact, and account got deleted»; después con una

@@ -68,7 +68,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
           </section>
         ))}
         {/* D-660: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. Desde
-            D-NEXT va DENTRO de la rejilla, en el sitio de la sexta tarjeta (la de «Remove» de la plantilla del dueño). */}
+            D-662 va DENTRO de la rejilla, en el sitio de la sexta tarjeta (la de «Remove» de la plantilla del dueño). */}
         {ocultas.length > 0 && (
           <details className="group self-start rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-3" data-campos-ocultos>
             <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">

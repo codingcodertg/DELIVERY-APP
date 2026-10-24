@@ -404,13 +404,13 @@ export const CAMPOS: readonly Campo[] = [
   { key: "history_store", tipo: "historia", en: "Historical Status (store)", es: "Estado histórico (tienda)", grupo: "estado" },
   { key: "history_group", tipo: "historia", en: "Historical Status (group)", es: "Estado histórico (grupo)", grupo: "estado" },
   { key: "qb_status", tipo: "qb", en: "QuickBooks Status", es: "Estado en QuickBooks", grupo: "estado" },
-  // D-NEXT: el dueño no la puso en ninguna tarjeta de su plantilla: va con los campos ocultos para no perderla.
+  // D-662: el dueño no la puso en ninguna tarjeta de su plantilla: va con los campos ocultos para no perderla.
   { key: "activity_status", tipo: "text", en: "Activity", es: "Actividad", grupo: "ocultos" },
   // Migración 182: «the crm stuff» del Excel.
   { key: "crm_type_store", tipo: "text", en: "CRM type (store)", es: "Tipo CRM (tienda)", grupo: "otros" },
   { key: "crm_type_group", tipo: "text", en: "CRM type (group)", es: "Tipo CRM (grupo)", grupo: "otros" },
   { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "otros" },
-  // D-NEXT: vuelve a la tarjeta «Cuenta», la primera (en D-654 había ido a «Otros» al quitar esa tarjeta).
+  // D-662: vuelve a la tarjeta «Cuenta», la primera (en D-654 había ido a «Otros» al quitar esa tarjeta).
   { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "cuenta" },
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "cuenta" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
@@ -430,14 +430,14 @@ export const CAMPOS: readonly Campo[] = [
 ];
 
 export const GRUPOS: readonly { key: Exclude<GrupoDeCampo, "cabecera" | "ocultos">; en: string; es: string }[] = [
-  // D-NEXT: «Cuenta» vuelve a ser la PRIMERA tarjeta. El dueño, 2026-10-23, con el orden escrito («ACCOUNT · CONTACT ·
+  // D-662: «Cuenta» vuelve a ser la PRIMERA tarjeta. El dueño, 2026-10-23, con el orden escrito («ACCOUNT · CONTACT ·
   // CREDIT AND TERMS / STATUS AND HISTORY · SALES REP · OTHER»): «it should be account first, then contact, and account got
   // deleted». D-654 la había quitado leyendo «elimina la parte donde dice cuenta» como la tarjeta entera.
   { key: "cuenta", en: "Account", es: "Cuenta" },
   { key: "contacto", en: "Contact", es: "Contacto" },
   { key: "credito", en: "Credit & terms", es: "Crédito y términos" },
   { key: "estado", en: "Status & history", es: "Estado e historial" },
-  // D-NEXT: sin tarjeta «Vendedores»: los tres vendedores van en «Cuenta», como en la plantilla del dueño.
+  // D-662: sin tarjeta «Vendedores»: los tres vendedores van en «Cuenta», como en la plantilla del dueño.
   // D-634: el CRM y lo de la app juntos en la última tarjeta. Lo que solo identifica la fila del Excel ya no va aquí:
   // va en «Campos ocultos» (D-660).
   { key: "otros", en: "Other", es: "Otros" },
@@ -473,7 +473,7 @@ const filaDe = (campo: Campo): FilaDeFicha => ({ key: campo.key, en: campo.en, e
  * `/customers/[id]` pintan esto mismo.
  */
 export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDeFicha[] }[] {
-  // La tarjeta «Cuenta» (D-NEXT) abre con el nombre de la cuenta, de solo lectura: se corrige arriba, en la cabecera (D-654),
+  // La tarjeta «Cuenta» (D-662) abre con el nombre de la cuenta, de solo lectura: se corrige arriba, en la cabecera (D-654),
   // y aquí no se edita dos veces.
   const delante = (k: string): FilaDeFicha[] => (k === "cuenta" ? [{ key: "account", en: "Account", es: "Cuenta", campo: null }] : []);
   return GRUPOS.map((grupo) => ({ grupo, filas: [...delante(grupo.key), ...CAMPOS.filter((c) => c.grupo === grupo.key).map(filaDe)] }))
@@ -485,7 +485,7 @@ export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDe
  * House y la CONCATENATE (se leen).
  */
 export function filasOcultas(): FilaDeFicha[] {
-  // En el orden de la plantilla del dueño (D-NEXT): Añadido (tanda), N.º House, la CONCATENATE; y detrás la actividad, que
+  // En el orden de la plantilla del dueño (D-662): Añadido (tanda), N.º House, la CONCATENATE; y detrás la actividad, que
   // su plantilla no ponía en ninguna tarjeta.
   const ocultos = CAMPOS.filter((c) => c.grupo === GRUPO_OCULTO.key);
   return [...ocultos.filter((c) => c.key !== "activity_status").map(filaDe), ...FILAS_SOLO_DE_LECTURA, ...ocultos.filter((c) => c.key === "activity_status").map(filaDe)];
