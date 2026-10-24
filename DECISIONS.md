@@ -47972,7 +47972,7 @@ defectos no cambian (2 y 1, solo en las de la mañana). Sin migración.
 
 **Probado:** `aprobacion-por-hora-y-cupo.test.ts` (+3: las franjas de la tarjeta, una franja de la tarde con tope que se
 llena y manda a aprobación, y que la tarjeta pinta esas). **No medido:** en el navegador.
-## D-NEXT · El chofer anula SU orden ya recogida (migración 196)
+## D-676 · El chofer anula SU orden ya recogida (migración 196)
 
 **Fecha:** 2026-10-24. **Pedido:** el dueño, a «¿El chofer puede anular una orden recogida? Hoy solo puede el admin»: «sí a
 todo».
