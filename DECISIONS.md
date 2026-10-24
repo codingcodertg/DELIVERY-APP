@@ -47632,3 +47632,33 @@ chofer» es, por ahora, que el chofer la devuelva o se lo pase a la oficina.
 `acciones-de-la-ficha.test.ts` (Kevin ve «Cancelar orden» en su orden preparándose y lista; no en la de otro ni en la recogida).
 
 **No medido:** anular de verdad como vendedor en producción.
+## D-664 · Clientes: el alta en varias tiendas (casillas «Todas» y una por tienda)
+
+**Fecha:** 2026-10-23. **Pedido:** el dueño, con captura del alta «+ Nuevo cliente» y el desplegable «Store *» abierto
+(RDZ Brownsville, Edinburg, McAllen, Pharr, Weslaco): «here add selection box so it can select multiple stores or all».
+
+**Qué cambia:** en el ALTA la tienda deja de ser un desplegable y pasa a casillas, en el sitio de las pastillas: «Todas» y
+una por tienda (las de `TIENDAS`). Al menos una (sin ninguna, «Tiendas *» en rojo y «Revisa los campos marcados»). Desde
+D-633 (migración 189) un cliente es una fila por tienda y la empresa es `company_id`: «Crear» hace UNA fila por tienda
+marcada, con los mismos datos y el MISMO `company_id` nuevo (`crypto.randomUUID()`, como «Separar de la empresa»), y la
+ventana pasa a enseñar la fila de la primera tienda marcada con las pastillas de todas. Al editar un cliente que ya existe
+no cambia nada: su tienda sigue en su desplegable y las otras son sus pastillas.
+
+**Un choque:** la clave natural es una cuenta por tienda (índice único `customers_store_account_unico` de la 180, sin
+mayúsculas ni espacios; ninguna migración posterior lo toca). En la base, primero UNA llamada con todas las filas; un
+insert es una sentencia, así que si una choca (23505) no se escribe ninguna, y entonces se repite una por una: la que choca
+no se crea, las demás sí, y la ventana dice en ámbar «Guardado ✓ Ya existía en <tienda>: no se creó ahí.». Si no se crea
+ninguna, el error de siempre («Esa cuenta ya existe en esa(s) tienda(s).»). Otro error (RLS) no se reintenta. El demo
+comprueba la misma clave y crea una por una. Las filas creadas en las otras tiendas son una empresa NUEVA: no se juntan
+solas con la que ya existía (eso sigue siendo «Decidir si se juntan»).
+
+**Prueba:** `customers/alta.test.ts` (las filas: una por tienda en el orden de `TIENDAS`, mismos datos, mismo
+`company_id`, «Todas» = todas; una por una con un choque en medio; la fila que se enseña; la base con un cliente falso: una
+llamada, el 23505 que repite una por una, RLS sin reintento, cero filas; el demo: «Todas» sale como UNA empresa, y el
+choque sin mayúsculas ni espacios) y `customers/ventana.test.ts` (casillas solo en el alta). 10 mutantes, los 10 caen con
+una prueba con nombre. Demo a 390 y 1440 px con ratón: alta en 2 tiendas y en «Todas» → la lista enseña UNA empresa con
+sus pastillas; alta de «Demo Homes LLC» con «Todas» → se crea en las tres libres y dice McAllen y Pharr; 0 px de
+desborde.
+
+**No medido:** contra la base real (el insert de varias filas y el 23505 se probaron con un cliente falso). A 390 px el
+aviso ámbar sale abajo, en la barra de la ventana, como todos los avisos: hay que desplazarse para verlo.

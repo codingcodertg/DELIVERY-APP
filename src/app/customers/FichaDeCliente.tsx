@@ -5,7 +5,8 @@ import { Badge } from "@/components/erp/ui/badge";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
-import type { AlmacenDeClientes } from "@/lib/customers/almacen";
+import { avisoDeNoCreadas, filaQueSeEnsena, filasDelAlta, tiendasDelAlta } from "@/lib/customers/alta";
+import type { AlmacenDeClientes, Res } from "@/lib/customers/almacen";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
@@ -147,14 +148,17 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; v
  *
  * Arriba va el NOMBRE de la cuenta y su estado, no «tienda · tienda+cuenta» (el dueño: «dice RDC McAllen y después […]
  * como un ID»); la tienda se ve en las pastillas de tiendas, y ahí se cambia. Ni «Cuenta» ni «Tienda» se repiten abajo.
- * `cliente` null = alta.
+ * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
+ * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
 export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
   /** Las filas de la misma empresa (189), una por tienda, en orden: las pestañas. */
   hermanas: Cliente[];
   onCambia: (c: Cliente) => void;
-  puedeEditar: boolean; almacen: AlmacenDeClientes; onClose: () => void; onGuardado: (c: Cliente) => void;
+  puedeEditar: boolean; almacen: AlmacenDeClientes; onClose: () => void;
+  /** La fila guardada (la que se enseña) y, en un alta en varias tiendas, TODAS las creadas (D-664). */
+  onGuardado: (c: Cliente, creados?: Cliente[]) => void;
   /** «✏️ Editar» de la página del cliente (D-648) llega aquí: la ventana abre ya editando. */
   editarAlAbrir?: boolean;
   t: T;
@@ -165,7 +169,14 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   useEffect(() => { setForm(original); }, [original]);
   const [editando, setEditando] = useState(puedeEditar && (nuevo || editarAlAbrir));
   const [ocupado, setOcupado] = useState(false);
-  const [aviso, setAviso] = useState<{ tono: "rojo" | "verde"; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<{ tono: "rojo" | "verde" | "ambar"; texto: string } | null>(null);
+  // D-664: las tiendas marcadas en el alta. `form.store` lleva la primera, para que «sin tienda» siga siendo un error.
+  const [tiendasAlta, setTiendasAlta] = useState<string[]>([]);
+  const marcaTiendas = (marcadas: string[]) => {
+    const orden = tiendasDelAlta(marcadas);
+    setTiendasAlta(orden);
+    setForm((f) => ({ ...f, store: orden[0] ?? "" }));
+  };
   const { parche, errores } = useMemo(() => parcheDe(form, original, nuevo), [form, original, nuevo]);
   const cambiado = Object.keys(parche).length > 0;
 
@@ -194,6 +205,15 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   // Como la ficha de la orden: el clic de fuera solo cierra si EMPEZÓ fuera (soltar un arrastre encima no cierra).
   const fueraRef = useRef(false);
 
+  const textoDelFallo = (r: Extract<Res<unknown>, { ok: false }>, varias = false) =>
+    r.duplicado
+      ? varias
+        ? t("That account already exists in those stores.", "Esa cuenta ya existe en esas tiendas.")
+        : t("That account already exists in that store.", "Esa cuenta ya existe en esa tienda.")
+      : r.sinPermiso
+        ? t("Not saved: the database did not accept the change (no permission).", "No se guardó: la base no aceptó el cambio (sin permiso).")
+        : t("Not saved: ", "No se guardó: ") + r.error;
+
   /** Escribe y pinta lo que devolvió la base; en rojo lo que no se guardó. */
   const aplicar = async (escritura: () => ReturnType<AlmacenDeClientes["guardar"]>, hecho: string): Promise<boolean> => {
     setOcupado(true);
@@ -201,14 +221,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
     const r = await escritura();
     setOcupado(false);
     if (!r.ok) {
-      setAviso({
-        tono: "rojo",
-        texto: r.duplicado
-          ? t("That account already exists in that store.", "Esa cuenta ya existe en esa tienda.")
-          : r.sinPermiso
-            ? t("Not saved: the database did not accept the change (no permission).", "No se guardó: la base no aceptó el cambio (sin permiso).")
-            : t("Not saved: ", "No se guardó: ") + r.error,
-      });
+      setAviso({ tono: "rojo", texto: textoDelFallo(r) });
       return false;
     }
     setAviso({ tono: "verde", texto: hecho });
@@ -216,9 +229,26 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
     return true;
   };
 
+  // D-664: el alta crea una fila por tienda marcada, con los mismos datos y la MISMA empresa nueva (como «Separar»). La
+  // que choca no se crea y se dice cuál; las demás, sí. Se enseña la de la primera tienda marcada que se creó.
+  const crearEnLasTiendas = async () => {
+    setOcupado(true);
+    setAviso(null);
+    const r = await almacen.crearVarias(filasDelAlta(parche, tiendasAlta, crypto.randomUUID()));
+    setOcupado(false);
+    if (!r.ok) { setAviso({ tono: "rojo", texto: textoDelFallo(r, tiendasAlta.length > 1) }); return; }
+    const ver = filaQueSeEnsena(r.valor, tiendasAlta);
+    if (!ver) return;
+    const faltan = avisoDeNoCreadas(r.valor, t);
+    setAviso(faltan ? { tono: "ambar", texto: t("Saved ✓ ", "Guardado ✓ ") + faltan } : { tono: "verde", texto: t("Saved ✓", "Guardado ✓") });
+    setEditando(false);
+    onGuardado(ver, r.valor.creados);
+  };
+
   const guardar = async () => {
     if (errores.length) { setAviso({ tono: "rojo", texto: t("Check the highlighted fields.", "Revisa los campos marcados.") }); return; }
-    if (await aplicar(() => (nuevo ? almacen.crear(parche) : almacen.guardar(cliente.id, parche)), t("Saved ✓", "Guardado ✓"))) setEditando(false);
+    if (nuevo) { await crearEnLasTiendas(); return; }
+    if (await aplicar(() => almacen.guardar(cliente.id, parche), t("Saved ✓", "Guardado ✓"))) setEditando(false);
   };
   const cancelar = () => {
     if (nuevo) { pedirCierre(); return; }
@@ -246,6 +276,32 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
   const mail = mailUrl(form.email ?? null);
   const tiendas = nuevo ? [] : hermanas.length > 0 ? hermanas : [cliente];
 
+  // El alta (D-664): una casilla por tienda y «Todas», en el sitio de las pastillas. Al menos una (si no, en rojo).
+  const todasMarcadas = TIENDAS.every((x) => tiendasAlta.includes(x.code));
+  const casilla = (marcada: boolean) =>
+    cn("flex cursor-pointer select-none items-center gap-1.5 rounded-full border px-3 py-1 text-xs",
+      marcada ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50");
+  const casillasDelAlta = (
+    <div role="group" aria-label={t("Stores", "Tiendas")} className="flex flex-wrap items-center gap-1.5" data-tiendas-del-alta>
+      <span className={cn("text-xs", errores.includes("store") ? "font-medium text-red-600" : "text-slate-500")}>{t("Stores *", "Tiendas *")}</span>
+      <label className={casilla(todasMarcadas)} data-casilla-todas>
+        <input type="checkbox" checked={todasMarcadas}
+          onChange={(e) => marcaTiendas(e.target.checked ? TIENDAS.map((x) => x.code) : [])} />
+        {t("All", "Todas")}
+      </label>
+      {TIENDAS.map((x) => {
+        const marcada = tiendasAlta.includes(x.code);
+        return (
+          <label key={x.code} className={casilla(marcada)} data-casilla-tienda={x.code}>
+            <input type="checkbox" checked={marcada}
+              onChange={(e) => marcaTiendas(e.target.checked ? [...tiendasAlta, x.code] : tiendasAlta.filter((c) => c !== x.code))} />
+            {x.nombre}
+          </label>
+        );
+      })}
+    </div>
+  );
+
   // La tienda de esta fila, para cambiarla: en las pastillas, en el sitio de la suya (D-654: ya no hay campo «Tienda» abajo).
   const selectorDeTienda = (
     <select
@@ -255,7 +311,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
       aria-label={t("Store of this row", "Tienda de esta fila")}
       data-tienda-de-la-fila
     >
-      <option value="">{nuevo ? t("Store *", "Tienda *") : "—"}</option>
+      <option value="">—</option>
       {TIENDAS.map((x) => <option key={x.code} value={x.code}>{x.nombre} ({x.code})</option>)}
       {form.store && !TIENDAS.some((x) => x.code === form.store) && <option value={form.store}>{form.store}</option>}
     </select>
@@ -304,7 +360,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
         {/* Las tiendas de la empresa (189): cada pestaña es la fila de esa tienda, con su contacto, su vendedor y su CRM. Con
             una sola, su pastilla: es donde se ve la tienda. Editando, la de esta fila es su desplegable. */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 py-2" role="tablist" aria-label={t("Stores of this company", "Tiendas de esta empresa")} data-tiendas={tiendas.length}>
-          {nuevo && editando && selectorDeTienda}
+          {nuevo && editando && casillasDelAlta}
           {!nuevo && tiendas.map((h) => {
             const repetida = tiendas.filter((x) => x.store === h.store).length > 1;
             if (h.id === cliente.id && editando) return <span key={h.id}>{selectorDeTienda}</span>;
@@ -380,7 +436,7 @@ export function FichaEnVentana({ cliente, hermanas, onCambia, puedeEditar, almac
             ) : (
               <Button variant="ghost" className="mr-auto text-slate-500" onClick={() => setArchivando(true)} disabled={ocupado || archivando || editando}>{t("Archive…", "Archivar…")}</Button>
             ))}
-            {aviso && <span className={cn("text-sm", aviso.tono === "verde" ? "text-emerald-600" : "text-red-600")} role="status">{aviso.texto}</span>}
+            {aviso && <span className={cn("text-sm", aviso.tono === "verde" ? "text-emerald-600" : aviso.tono === "ambar" ? "text-amber-700" : "text-red-600")} role="status">{aviso.texto}</span>}
             {editando && (
               <>
                 <Button variant="outline" onClick={cancelar} disabled={ocupado}>{t("Cancel", "Cancelar")}</Button>

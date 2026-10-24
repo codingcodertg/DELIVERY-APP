@@ -1,3 +1,4 @@
+import { creaUnaPorUna } from "./alta";
 import type { AlmacenDeClientes } from "./almacen";
 import { claveDeEmpresa, juntaEnMemoria, motivoDeLaCola, sospechosos } from "./duplicados";
 import type { Sugerencia } from "./empresas";
@@ -56,7 +57,7 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   let siguiente = Math.max(...lista.map((c) => c.id)) + 1;
   let empresaNueva = 0;
   const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
-  return {
+  const almacen: AlmacenDeClientes = {
     async leer() { return { ok: true, valor: lista.map((c) => ({ ...c })) }; },
     async guardar(id, parche: Parche) {
       const i = lista.findIndex((c) => c.id === id);
@@ -66,10 +67,16 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       return { ok: true, valor: { ...nuevo } };
     },
     async crear(fila: Parche) {
+      // Como el índice único de la 180 (`customers_store_account_unico`): una cuenta por tienda, sin mayúsculas ni espacios.
+      const clave = (c: { store?: unknown; account?: unknown }) => `${String(c.store ?? "").trim().toUpperCase()}|${String(c.account ?? "").trim().toLowerCase()}`;
+      if (lista.some((c) => clave(c) === clave(fila))) {
+        return { ok: false, sinTabla: false, sinPermiso: false, duplicado: true, error: "duplicate key value violates unique constraint" };
+      }
       const nuevo = base(siguiente++, { ...(fila as Partial<Cliente>), updated_at: new Date().toISOString() });
       lista = [...lista, nuevo];
       return { ok: true, valor: { ...nuevo } };
     },
+    async crearVarias(filas: Parche[]) { return creaUnaPorUna(filas, (f) => almacen.crear(f)); },
     async sugerencias() { return { ok: true, valor: cola.filter((s) => s.status === "pending").map((s) => ({ ...s })) }; },
     async juntar(aId, bId) {
       try {
@@ -94,4 +101,5 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       return { ok: true, valor: null };
     },
   };
+  return almacen;
 }
