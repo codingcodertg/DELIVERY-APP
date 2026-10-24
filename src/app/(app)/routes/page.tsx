@@ -2821,16 +2821,19 @@ export default function RoutesPage() {
           lado para que en vez de que hayan dos rows, solo haya una». En las dos vistas. */}
       <div data-barra-de-arriba style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
         {/* «Vista completa | Vista eficiente» (D-653), como «Tabla | Tablero» de Órdenes. El dueño, 2026-10-23: «quiero que
-            hayan dos views […] arriba va a estar full view y small view or efficient view». Solo en el Gestor. */}
+            hayan dos views […] arriba va a estar full view y small view or efficient view». Solo en el Gestor.
+            Rótulos de D-NEXT (el dueño, 2026-10-23: «en vez de efficient put it collapsed and expanded view mode»): «Expanded
+            view / Vista expandida» y «Collapsed view / Vista compacta». Las claves internas (`completa`/`eficiente`) no cambian:
+            son lo que cada persona tiene guardado en su navegador. */}
         {!soloLectura && (
           <div className="viewtoggle" data-selector-de-vista role="group" aria-label={t("Route manager view", "Vista del Gestor")}>
             <button className={"vt " + (!eficiente ? "on" : "")} data-vista="completa" aria-pressed={!eficiente} onClick={() => eligeVista("completa")}
               title={t("Everything, as always: the tabs and the route tables below the map", "Todo, como siempre: las pestañas y las tablas de ruta debajo del mapa")}>
-              ▣ {t("Full view", "Vista completa")}
+              ▣ {t("Expanded view", "Vista expandida")}
             </button>
             <button className={"vt " + (eficiente ? "on" : "")} data-vista="eficiente" aria-pressed={eficiente} onClick={() => eligeVista("eficiente")}
               title={t("One screen: the tabs next to “Drivers & routes”, and the route of each checked driver right under the map", "Una sola pantalla: las pestañas junto a «Choferes y rutas», y la ruta de cada chofer marcado justo debajo del mapa")}>
-              ⚡ {t("Efficient view", "Vista eficiente")}
+              ⚡ {t("Collapsed view", "Vista compacta")}
             </button>
           </div>
         )}
