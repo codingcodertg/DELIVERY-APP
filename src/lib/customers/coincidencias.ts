@@ -7,7 +7,7 @@ import { TIENDAS } from "./reglas";
 type T = (en: string, es: string) => string;
 
 /**
- * El aviso de duplicado en la ficha (D-NEXT). El dueño: «make an alert that says hey this information matches another
+ * El aviso de duplicado en la ficha (D-665). El dueño: «make an alert that says hey this information matches another
  * account so we don't have duplicated». Mientras se escribe un alta o se edita una ficha, se compara lo escrito con la
  * lista que la pantalla YA tiene cargada (sin pedir nada a la base) y con las MISMAS reglas de `duplicados.ts` (D-633):
  *  - OBVIO: el mismo nombre normalizado (`claveDeNombre`: «LLC» = «L.L.C.», «&» = «and») o la misma cuenta unificada.

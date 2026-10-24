@@ -47663,7 +47663,7 @@ desborde.
 **No medido:** contra la base real (el insert de varias filas y el 23505 se probaron con un cliente falso). A 390 px el
 aviso ámbar sale abajo, en la barra de la ventana, como todos los avisos: hay que desplazarse para verlo.
 
-## D-NEXT · Clientes: el aviso de duplicado en la ficha mientras se escribe
+## D-665 · Clientes: el aviso de duplicado en la ficha mientras se escribe
 
 **Fecha:** 2026-10-23. **Pedido:** el dueño: «make an alert that says hey this information matches another account so we
 don't have duplicated».

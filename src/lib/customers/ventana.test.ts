@@ -166,7 +166,7 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(editando).not.toContain('type="checkbox"');
     expect(editando).toContain("data-tienda-de-la-fila");
   });
-  it("D-NEXT: editando, el aviso ámbar de duplicado con el enlace a la otra cuenta; leyendo, o sin nada escrito, no sale", () => {
+  it("D-665: editando, el aviso ámbar de duplicado con el enlace a la otra cuenta; leyendo, o sin nada escrito, no sale", () => {
     // La 9 del demo («Demo Drywal Inc») comparte teléfono con la 3 («Demo Drywall Inc»), de otra empresa y otra tienda.
     const nueve = CLIENTES_DEMO.find((c) => c.id === 9)!;
     const tres = CLIENTES_DEMO.find((c) => c.id === 3)!;

@@ -23,7 +23,7 @@ type T = (en: string, es: string) => string;
 export const selCls =
   "h-9 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500";
 
-/** D-NEXT: cuánto se espera tras la última tecla para buscar duplicados, y cuántas coincidencias se enseñan. */
+/** D-665: cuánto se espera tras la última tecla para buscar duplicados, y cuántas coincidencias se enseñan. */
 const RETARDO_DEL_AVISO_MS = 350;
 const MAX_COINCIDENCIAS = 3;
 
@@ -159,7 +159,7 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; v
  */
 export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
-  /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-NEXT). */
+  /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
   /** Las filas de la misma empresa (189), una por tienda, en orden: las pestañas. */
   hermanas: Cliente[];
@@ -188,7 +188,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const { parche, errores } = useMemo(() => parcheDe(form, original, nuevo), [form, original, nuevo]);
   const cambiado = Object.keys(parche).length > 0;
 
-  // D-NEXT: «this information matches another account». Mientras se edita (alta o ficha), lo escrito se compara con la
+  // D-665: «this information matches another account». Mientras se edita (alta o ficha), lo escrito se compara con la
   // lista ya cargada (`coincidenciasDe`, las reglas de D-633), con un pequeño retardo para no buscar a cada tecla. Fuera
   // la propia empresa. No bloquea: con una coincidencia OBVIA (mismo nombre), «Guardar» pide «Guardar de todas formas».
   const borrador = JSON.stringify({ account: form.account ?? "", unified_account: form.unified_account ?? "", phone: form.phone ?? "", email: form.email ?? "" });

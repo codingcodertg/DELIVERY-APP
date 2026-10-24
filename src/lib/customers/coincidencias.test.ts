@@ -4,7 +4,7 @@ import { claveDeEmpresa, DIRECCIONES_DE_UN_DOMINIO_COMPARTIDO, type FilaDeClient
 import { TIENDAS } from "./reglas";
 
 /**
- * D-NEXT (2026-10-23). El dueño: «make an alert that says hey this information matches another account so we don't have
+ * D-665 (2026-10-23). El dueño: «make an alert that says hey this information matches another account so we don't have
  * duplicated». Las reglas son las de `duplicados.ts` (D-633); aquí, datos que las CONTRADIGAN: la forma distinta que es
  * el mismo nombre, el mismo teléfono con otro formato, el correo gratuito que no prueba nada, el dominio compartido, la
  * propia empresa. Nombres inventados; tiendas por referencia a `TIENDAS`.
