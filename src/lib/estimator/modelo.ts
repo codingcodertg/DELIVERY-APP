@@ -163,7 +163,7 @@ export function sfReal(l: SfLine): number | null {
   return aCentavos(cajas * l.sf_per_box);
 }
 
-// ---- El precio por caja (D-NEXT) -------------------------------------------------------------------------------------
+// ---- El precio por caja (D-674) -------------------------------------------------------------------------------------
 //
 // Roberto, 2026-10-24, con una línea de 104 cajas de 19.26 SF a «26.77 $/SF» que daba $53,621.38: «Formula is wrong. Its
 // Sf/box times boxes times price». La fórmula ya era esa (`totalDeLinea`); el 26.77 era el precio de la CAJA (el catálogo

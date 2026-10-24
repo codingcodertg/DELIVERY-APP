@@ -713,7 +713,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                       <CampoDecimal value={l.price_per_sf} data-precio
                         onValor={(n) => setLinea(l.id, { price_per_sf: n })} />
                     </div>
-                    {/* D-NEXT: el precio por CAJA, si es el que se tiene a mano: pone el $/SF (caja ÷ SF por caja). Lo que se guarda
+                    {/* D-674: el precio por CAJA, si es el que se tiene a mano: pone el $/SF (caja ÷ SF por caja). Lo que se guarda
                         sigue siendo el $/SF; este campo lo enseña ya multiplicado. Sin SF / caja no se puede. */}
                     <div className="field">
                       <label>{t("Regular $/box (optional)", "$/caja regular (opcional)")}</label>
@@ -748,7 +748,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                   </>
                 )}
               </div>
-              {/* D-NEXT: un $/SF que parece el de la caja (26.77 con cajas de 19.26 SF): se pregunta, con el arreglo a un clic. */}
+              {/* D-674: un $/SF que parece el de la caja (26.77 con cajas de 19.26 SF): se pregunta, con el arreglo a un clic. */}
               {l.kind === "sf" && pareceDeCaja(l.price_per_sf, l.sf_per_box) !== null && (
                 <div className="est-calc" data-parece-de-caja style={{ alignItems: "center", background: "var(--amber-soft)", borderRadius: 8, padding: "6px 10px" }}>
                   <span>⚠ {t(

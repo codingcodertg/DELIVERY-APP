@@ -47929,7 +47929,7 @@ tienda, y que la tabla es `tbl-resize` con asas y «+N»). En el demo (1440 y 39
 con dos tiendas o un estado largo crecía), «RDZ McAllen +1», 10 asas, y arrastrar 120 px el asa de «Cuenta» la lleva de
 260 a 380 y queda guardado; 0 px de desborde de la página. **No medido:** con la lista real.
 
-## D-NEXT · Estimador: el precio por caja (un campo y un aviso); y el arreglo de las fechas de domingo y de año imposible
+## D-674 · Estimador: el precio por caja (un campo y un aviso); y el arreglo de las fechas de domingo y de año imposible
 
 **Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), en el Estimador (0.17.0), con una línea de 104 cajas de
 19.26 SF a «26.77 $/SF» = $53,621.38: «Formula is wrong. Its Sf/box times boxes times price». **Medido:** la fórmula ya era

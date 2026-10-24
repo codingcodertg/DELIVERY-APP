@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { lineaSfVacia, pareceDeCaja, precioDeCaja, precioPorSfDeCaja, SF_PRECIO_SOSPECHOSO, totalDeLinea } from "./modelo";
 
-/* D-NEXT. Roberto, 2026-10-24: «Formula is wrong. Its Sf/box times boxes times price», con 104 cajas de 19.26 SF a «26.77
+/* D-674. Roberto, 2026-10-24: «Formula is wrong. Its Sf/box times boxes times price», con 104 cajas de 19.26 SF a «26.77
  * $/SF» = $53,621.38. La fórmula ya era cajas × SF/caja × $/SF; el 26.77 era el precio de la caja. El dueño: «sí a todo»
  * (un campo $/caja y un aviso). */
 const linea = (precio: number | null) => ({ ...lineaSfVacia(), requested_sf: 2000, sf_per_box: 19.26, boxes: 104, price_per_sf: precio });
