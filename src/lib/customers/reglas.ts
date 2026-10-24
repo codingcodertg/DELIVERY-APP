@@ -153,13 +153,15 @@ export const COLUMNAS: readonly Columna[] = [
   { key: "concatenate", en: "Store + account", es: "Tienda + cuenta" },
   { key: "status_store", en: "Status (store)", es: "Estado (tienda)" },
   { key: "status_group", en: "Status (group)", es: "Estado (grupo)" },
-  { key: "history_store", en: "History (store)", es: "Historial (tienda)" },
-  { key: "history_group", en: "History (group)", es: "Historial (grupo)" },
+  // D-669: «Historical Type», no «Status» (Roberto, 2026-10-24).
+  { key: "history_store", en: "Historical type (store)", es: "Tipo histórico (tienda)" },
+  { key: "history_group", en: "Historical type (group)", es: "Tipo histórico (grupo)" },
   { key: "crm_type_store", en: "CRM type (store)", es: "Tipo CRM (tienda)" },
   { key: "crm_type_group", en: "CRM type (group)", es: "Tipo CRM (grupo)" },
   { key: "associated_with", en: "Associated with", es: "Asociado con" },
   { key: "qb_status", en: "QuickBooks", es: "QuickBooks" },
-  { key: "activity_status", en: "Activity", es: "Actividad" },
+  // D-669: la «Activity» del Excel es el «Type» de la plantilla del dueño (Roberto, 2026-10-24).
+  { key: "activity_status", en: "Type", es: "Tipo" },
   { key: "unified_account", en: "Unified account", es: "Cuenta unificada" },
   { key: "rep_store", en: "Store rep (QB)", es: "Vendedor tienda (QB)" },
   { key: "rep_qb", en: "Group rep (QB)", es: "Vendedor grupo (QB)" },
@@ -422,11 +424,10 @@ export const CAMPOS: readonly Campo[] = [
   { key: "store", tipo: "tienda", en: "Store", es: "Tienda", grupo: "cabecera" },
   { key: "status_store", tipo: "estado", en: "Current Status (store)", es: "Estado actual (tienda)", grupo: "estado" },
   { key: "status_group", tipo: "estado", en: "Current Status (group)", es: "Estado actual (grupo)", grupo: "estado" },
-  { key: "history_store", tipo: "historia", en: "Historical Status (store)", es: "Estado histórico (tienda)", grupo: "estado" },
-  { key: "history_group", tipo: "historia", en: "Historical Status (group)", es: "Estado histórico (grupo)", grupo: "estado" },
+  // D-669: Roberto, 2026-10-24: «Rename to Historical Type instead of Status».
+  { key: "history_store", tipo: "historia", en: "Historical Type (store)", es: "Tipo histórico (tienda)", grupo: "estado" },
+  { key: "history_group", tipo: "historia", en: "Historical Type (group)", es: "Tipo histórico (grupo)", grupo: "estado" },
   { key: "qb_status", tipo: "qb", en: "QuickBooks Status", es: "Estado en QuickBooks", grupo: "estado" },
-  // D-662: el dueño no la puso en ninguna tarjeta de su plantilla: va con los campos ocultos para no perderla.
-  { key: "activity_status", tipo: "text", en: "Activity", es: "Actividad", grupo: "ocultos" },
   // Migración 182: «the crm stuff» del Excel.
   { key: "crm_type_store", tipo: "text", en: "CRM type (store)", es: "Tipo CRM (tienda)", grupo: "otros" },
   { key: "crm_type_group", tipo: "text", en: "CRM type (group)", es: "Tipo CRM (grupo)", grupo: "otros" },
@@ -443,6 +444,9 @@ export const CAMPOS: readonly Campo[] = [
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
   { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito", grupo: "credito" },
+  // D-669: la «Activity» del Excel sale de «Campos ocultos» (D-662) y es el «Type» de «Credit & terms» (Roberto,
+  // 2026-10-24: «Move "Activity" under Credit & Terms and rename to "Type"»; es el «Type» de la plantilla del dueño).
+  { key: "activity_status", tipo: "text", en: "Type", es: "Tipo", grupo: "credito" },
   // D-660: el dueño no la quería a la vista: va en «Campos ocultos», plegado al final de la ficha (`filasOcultas`).
   { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "ocultos" },
   { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "otros" },
@@ -504,10 +508,10 @@ export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDe
  * House y la CONCATENATE (se leen).
  */
 export function filasOcultas(): FilaDeFicha[] {
-  // En el orden de la plantilla del dueño (D-662): Añadido (tanda), N.º House, la CONCATENATE; y detrás la actividad, que
-  // su plantilla no ponía en ninguna tarjeta.
+  // En el orden de la plantilla del dueño (D-662): Añadido (tanda), N.º House, la CONCATENATE. (La actividad iba detrás
+  // hasta D-669: ahora es el «Tipo» de «Crédito y términos».)
   const ocultos = CAMPOS.filter((c) => c.grupo === GRUPO_OCULTO.key);
-  return [...ocultos.filter((c) => c.key !== "activity_status").map(filaDe), ...FILAS_SOLO_DE_LECTURA, ...ocultos.filter((c) => c.key === "activity_status").map(filaDe)];
+  return [...ocultos.map(filaDe), ...FILAS_SOLO_DE_LECTURA];
 }
 
 /** El texto de una línea de la ficha: el del campo (`textoDeCampo`), o el de las de solo lectura. */
