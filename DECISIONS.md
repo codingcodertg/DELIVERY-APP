@@ -47696,3 +47696,28 @@ retardo y luego «Demo Homes LLC (RDZ McAllen, RDZ Pharr) — mismo nombre»; «
 **No medido:** con la lista real (1.200 filas): el coste por búsqueda no se midió; son las mismas comparaciones que una
 fila de `sospechosos`. El «¿Salir sin guardar?» del enlace se aceptó por código (el diálogo no se pulsa por CDP). En
 `/customers/[id]` no hay aviso: esa página no edita (su «Editar» abre esta ventana).
+
+## D-NEXT · Clientes: la columna «N.º tiendas» (en cuántas tiendas compra la empresa)
+
+**Fecha:** 2026-10-24. **Pedido:** el dueño: «Add column that counts the # of stores he's registered in. Just want another
+column that counts them so I can sort largest to smallest and see who buys in multiple locations in customer».
+
+**Qué cambia:** una columna nueva en la lista de Clientes, «# Stores / N.º tiendas», justo detrás de «Tienda». Es el número
+de tiendas DISTINTAS de la empresa (`company_id`, D-633) entre sus filas de la vista: las vivas (o las archivadas, con el
+chip), todas, no solo las que pasan el filtro de tienda; dos filas de la misma tienda cuentan una. Se ordena como
+cualquier columna (clic: de menos a más; otro clic: de más a menos; con Mayús, como nivel 2 o 3) y se filtra por su número
+desde su ▾. Está en las de entrada (`COLUMNAS_INICIALES`); quien ya guardó su elección de columnas en el navegador la
+encuentra en «⚙ Columnas», sin marcar, al final de su orden.
+
+**Cómo:** no es un campo de la fila sino de la empresa, así que no se guarda: `tiendasDeLaEmpresa` (empresas.ts) la
+cuenta, `ordenarEmpresas` se la pasa al orden (`valorDeColumna`/`ordenarEnNiveles` reciben un `tiendasDe` opcional) y
+`valoresDeLaColumna` al filtro. Sin empresa (una fila sola, `celda`), no hay valor: «—».
+
+**Medido (solo lectura, 2026-10-24):** de 1.074 empresas vivas, 982 en una tienda, 72 en dos, 17 en tres y 3 en cuatro
+(Cano Home Builders, Los Pinos Home Center, Shaddai Construction); ninguna en las cinco. Cuenta lo que YA está juntado:
+las parejas pendientes de «Decidir si se juntan» siguen siendo dos empresas de una tienda cada una.
+
+**Probado:** 6 pruebas en `empresas.test.ts` (cuenta, misma tienda una vez, con filtro de tienda, orden en los dos
+sentidos con empate por cuenta, el filtro de la columna, elegible y de entrada); 5 de 5 mutantes caen con una prueba con
+nombre. En el demo (390 y 1440 px): sale tras «Tienda», el número coincide con las pastillas, dos clics ponen «Demo Homes
+LLC» (2) arriba; 0 px de desborde. **No medido:** contra la lista real en el navegador.

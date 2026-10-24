@@ -72,7 +72,16 @@ export function agrupaEnEmpresas(lista: readonly Cliente[], f: Filtro): Empresa[
 export function ordenarEmpresas(empresas: readonly Empresa[], orden: Orden | readonly Orden[]): Empresa[] {
   const porId = new Map(empresas.map((e) => [e.principal.id, e]));
   const niveles: readonly Orden[] = "por" in orden ? [orden] : orden;
-  return ordenarEnNiveles(empresas.map((e) => e.principal), niveles).map((c) => porId.get(c.id)!);
+  return ordenarEnNiveles(empresas.map((e) => e.principal), niveles, (c) => tiendasDeLaEmpresa(porId.get(c.id)!)).map((c) => porId.get(c.id)!);
+}
+
+/**
+ * En cuántas tiendas DISTINTAS está la empresa (D-NEXT, la columna «N.º tiendas»): sus filas de la vista, todas, no solo
+ * las que pasan el filtro de tienda. El dueño, 2026-10-24: «counts them so I can sort largest to smallest and see who
+ * buys in multiple locations».
+ */
+export function tiendasDeLaEmpresa(e: Pick<Empresa, "filas">): number {
+  return new Set(e.filas.map((c) => codigoDeTienda(c.store))).size;
 }
 
 /** Cuántas EMPRESAS tienen fila en cada tienda (no cuántas filas): lo que dicen los chips de tienda. */

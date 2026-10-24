@@ -3,9 +3,10 @@ import { entradaActiva } from "@/lib/erp/nav";
 import { almacenDemoNuevo, CLIENTES_DEMO, SUGERENCIAS_DEMO } from "./demo";
 import {
   agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas, paresParaDecidir, principalDe, rotuloDeDecidir,
-  sugerenciaDeLaBase, vistaPreviaDeJuntar, type Sugerencia,
+  sugerenciaDeLaBase, tiendasDeLaEmpresa, vistaPreviaDeJuntar, type Sugerencia,
 } from "./empresas";
-import { FILTRO_INICIAL, type Cliente } from "./reglas";
+import { filtraEmpresas, opcionesDeColumna } from "./cabeceras";
+import { celda, COLUMNAS, COLUMNAS_INICIALES, FILTRO_INICIAL, type Cliente } from "./reglas";
 
 /** La lista por EMPRESA (189): una fila por compañía, la ficha por tienda, la cola. Datos inventados. */
 const t = (en: string, _es: string) => en;
@@ -76,6 +77,38 @@ describe("una fila por empresa", () => {
     expect(filasDeLaEmpresa(LISTA, LISTA[2]).map((c) => c.id)).toEqual([1, 3, 2]);
     expect(filasDeLaEmpresa(LISTA, LISTA[6]).map((c) => c.id)).toEqual([7]);
     expect(filasDeLaEmpresa(LISTA, LISTA[3]).map((c) => c.id)).toEqual([4]);
+  });
+});
+
+// D-NEXT: «N.º tiendas», para ordenar de más a menos y ver quién compra en varias tiendas.
+describe("la columna «N.º tiendas»", () => {
+  const vivas = agrupaEnEmpresas(LISTA, FILTRO_INICIAL);
+  const de = (clave: string, lista = vivas) => tiendasDeLaEmpresa(lista.find((x) => x.clave === clave)!);
+  it("cuenta las tiendas de la empresa en la vista: la archivada no suma", () => {
+    expect([de("ACME"), de("BETA"), de("ZETA")]).toEqual([3, 2, 1]);
+  });
+  it("dos filas en la misma tienda son UNA tienda", () => {
+    const conRepetida = agrupaEnEmpresas([...LISTA, base(8, { account: "Acme Homes (2)", store: "BRO", company_id: "ACME" })], FILTRO_INICIAL);
+    expect(de("ACME", conRepetida)).toBe(3);
+  });
+  it("con una tienda elegida sigue contando TODAS las de la empresa, no solo la elegida", () => {
+    expect(de("ACME", agrupaEnEmpresas(LISTA, { ...FILTRO_INICIAL, tienda: "PHR" }))).toBe(3);
+  });
+  it("ordena de más a menos y de menos a más; el empate, por cuenta", () => {
+    const empate = agrupaEnEmpresas([...LISTA, base(9, { account: "Alfa", store: "EDG", company_id: "ALFA" }), base(10, { account: "Alfa", store: "BRO", company_id: "ALFA" })], FILTRO_INICIAL);
+    expect(ordenarEmpresas(empate, { por: "store_count", desc: true }).map((e) => e.clave)).toEqual(["ACME", "ALFA", "BETA", "ZETA"]);
+    expect(ordenarEmpresas(empate, { por: "store_count", desc: false }).map((e) => e.clave)).toEqual(["ZETA", "ALFA", "BETA", "ACME"]);
+  });
+  it("el filtro de la columna ofrece los números y deja las empresas con ese número", () => {
+    const ops = opcionesDeColumna(vivas, {}, "store_count", t);
+    expect(ops.map((o) => o.label)).toEqual(["1", "2", "3"]);
+    const dos = ops.find((o) => o.label === "2")!.key;
+    expect(filtraEmpresas(vivas, { store_count: new Set([dos]) }).map((e) => e.clave)).toEqual(["BETA"]);
+  });
+  it("es elegible, sale de entrada, y sin su empresa una fila sola no tiene valor", () => {
+    expect(COLUMNAS.map((c) => c.key)).toContain("store_count");
+    expect(COLUMNAS_INICIALES).toContain("store_count");
+    expect(celda(LISTA[0], "store_count", t)).toBe("—");
   });
 });
 
