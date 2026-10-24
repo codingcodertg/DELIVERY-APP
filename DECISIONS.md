@@ -47560,3 +47560,24 @@ ficha.
 **No medido:**
 - Contra la base real: el guardado de «Añadido (tanda)» se probó con el almacén del demo.
 - Safari/iPad: el triángulo del `<summary>` es el del navegador.
+
+## D-661 · Órdenes: las columnas se cambian de sitio arrastrando la cabecera
+
+**Fecha:** 2026-10-23 · **Versión:** la asigna el orquestador al fusionar · **Sin migración.** · Hecho por un worker en `ordenes-arrastrar-columnas`.
+
+**Pedido del dueño**, literal, con una captura de la tabla de Órdenes: *«i want to be able to rearrange the columns by dragging»*.
+
+**Qué cambia.**
+- `colocaColumna(orden, clave, destino)` en `lib/orden-de-columnas.ts`: la de destino le cede su sitio (arrastrada hacia la derecha, queda justo detrás; hacia la izquierda, justo delante). Trabaja sobre el orden entero, visibles y ocultas, el mismo que mueven las flechas de «⚙ Columnas» (D-332). Una clave que no está en el orden (la `#`) no se mueve ni recibe. `colocaColumnaDeClientes` (D-650) pasa a usarla, sin cambiar lo que hace (sus pruebas, intactas, siguen en verde).
+- `OrdersTable` acepta `onMoverColumna(clave, destino)`. Con él, el nombre de cada cabecera salvo la `#` se arrastra (HTML5 drag & drop, como Clientes): cursor `grab`, la arrastrada a media luz y una raya azul por dentro del lado por el que entraría la de destino. Se arrastra el NOMBRE (`th-cell`) y no la celda entera, para que el asa del ancho (D-338) no arranque un arrastre. Un clic sin mover sigue abriendo el menú de ordenar y filtrar; empezar a arrastrar lo cierra.
+- La página de Órdenes lo conecta con `guardaOrden(colocaColumna(ordenDelSelector, clave, destino))`: el mismo guardado que las flechas, así que «⚙ Columnas» enseña el mismo orden y «Restablecer orden» lo deshace. Solo quien tiene «⚙ Columnas» (no ventas ni chofer, que no reordenan desde D-332).
+- Almacén, el chofer y Recepción no pasan `onMoverColumna`: sus cabeceras no se arrastran. En el teléfono la tabla son tarjetas (sin cabecera): nada que arrastrar. El Gestor (`routes-columns`) no se toca.
+
+**Prueba:** `orden-de-columnas.test.ts` (la colocación hacia la derecha y hacia la izquierda, a los extremos y a la vecina, sobre sí misma, la `#` y una clave desconocida, sin tocar la lista de entrada, y con columnas ocultas en medio lo que se pinta) y `arrastrar-columnas-de-ordenes.test.ts` (la tabla pintada: con el aviso se arrastran todas menos la `#`; sin él, ninguna; y leyendo el fuente, qué avisa la tabla al soltar, que el asa del ancho queda fuera de lo arrastrable y que solo la página de Órdenes lo pasa).
+Mutantes: 11 de 11 caen con una prueba con nombre: cae siempre delante del destino · cae siempre detrás · soltar sobre sí misma mueve · un destino desconocido mueve · sin mover devuelve la misma lista · Clientes coloca al revés · la `#` se arrastra · se arrastra sin aviso · al soltar avisa al revés · la página coloca sobre el orden guardado crudo · ventas y chofer arrastran. Los tres últimos los caza una prueba que lee el fuente.
+**Navegador (demo, 1440 claro, arrastre de ratón de verdad por CDP: `Input.setInterceptDrags` + `Input.dispatchDragEvent`):** «Tipo» sobre «Fecha entrega» queda detrás de ella (raya a la derecha de «Fecha entrega» mientras se arrastra); «Chofer» sobre «Cuenta» queda delante (raya a la izquierda); soltar sobre la `#` no hace nada. «⚙ Columnas» enseña el mismo orden, con «Restablecer orden». Un clic en «Tienda» abre su menú y otro lo cierra. 390: la cabecera no se pinta (tarjetas), 0 px de desborde.
+
+**No medido:**
+- Que el orden arrastrado sobreviva a recargar contra la base real: el demo no guarda el orden (`SIN_BASE`), y al recargar vuelve el canónico; con las flechas pasa lo mismo (medido en el mismo tiro). El guardado es la misma `guardaOrden` que las flechas.
+- Firefox y Safari (solo Chrome headless).
+- Arrastrar con el dedo en una tableta ancha, donde la tabla sí lleva cabecera.

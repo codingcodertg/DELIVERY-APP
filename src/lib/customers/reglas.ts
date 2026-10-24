@@ -1,5 +1,5 @@
 import type { UserRole } from "@/lib/types";
-import { mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
+import { colocaColumna, mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { formatoDeCampo } from "./formato";
 
 /**
@@ -242,12 +242,10 @@ export function seMueveColumnaDeClientes(p: PreferenciaDeColumnas, key: string, 
  * arrastrar. Se mueve en el orden de TODAS las columnas (las ocultas guardan su sitio), el mismo que usa «⚙ Columnas».
  */
 export function colocaColumnaDeClientes(p: PreferenciaDeColumnas, key: string, destino: string): PreferenciaDeColumnas {
+  // La colocación es la de Órdenes (D-661): la misma función para las dos tablas.
   const orden = ordenEfectivo(CLAVES_CANONICAS, p.orden);
-  const i = orden.indexOf(key), j = orden.indexOf(destino);
-  if (i < 0 || j < 0 || i === j) return p;
-  const r = orden.filter((k) => k !== key);
-  const d = r.indexOf(destino);
-  r.splice(i < j ? d + 1 : d, 0, key);
+  const r = colocaColumna(orden, key, destino);
+  if (r.join() === orden.join()) return p;
   return { ...p, orden: tieneOrdenPropio(r) ? r : null };
 }
 /** Si hay orden propio (para enseñar «Restablecer orden» solo cuando hace algo). */

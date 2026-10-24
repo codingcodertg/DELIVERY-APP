@@ -64,6 +64,24 @@ export function mueveColumna(orden: readonly string[], clave: string, delta: -1 
 }
 
 /**
+ * Arrastrar una cabecera y soltarla sobre otra (D-661; el dueño: «i want to be able to rearrange the columns by
+ * dragging»). La de destino le CEDE su sitio: arrastrada hacia la derecha, queda justo detrás del destino; hacia la
+ * izquierda, justo delante. Es lo que se ve al soltar: la columna acaba donde estaba aquella.
+ *
+ * Trabaja sobre el orden ENTERO (visibles y ocultas), el mismo que guardan las flechas de «⚙ Columnas». Una clave que
+ * no está en el orden —la `#`, que va fija y no está en el selector— no mueve nada, ni como arrastrada ni como
+ * destino; soltarla sobre sí misma, tampoco. Devuelve siempre una lista nueva, como `mueveColumna`.
+ */
+export function colocaColumna(orden: readonly string[], clave: string, destino: string): string[] {
+  const i = orden.indexOf(clave), j = orden.indexOf(destino);
+  if (i < 0 || j < 0 || i === j) return [...orden];
+  const r = orden.filter((k) => k !== clave);
+  const d = r.indexOf(destino);
+  r.splice(i < j ? d + 1 : d, 0, clave);
+  return r;
+}
+
+/**
  * Tras qué columna pintada va la columna de la página (`columnaExtra` de `OrdersTable`, D-551): el índice de
  * `despuesDe` entre las que se ven, y si esa no se ve (o no se dijo), la última. `-1` sin columnas.
  * Almacén la pone tras «Etapa»: el siguiente paso al lado de la etapa en la que está.
