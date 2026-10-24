@@ -47996,7 +47996,7 @@ navegador ni en el teléfono del chofer.
 
 **Pendiente del dueño:** aplicar la 196 (su comando). Sin ella, el botón sale y la base lo rechaza («Not allowed»).
 
-## D-NEXT · Time Tracker: la campana y el nombre, en la misma fila que las pestañas
+## D-677 · Time Tracker: la campana y el nombre, en la misma fila que las pestañas
 
 **Fecha:** 2026-10-24. **Pedido:** el dueño, con la barra del admin de Time Tracker (1.10.0) a ~950 px, con las pestañas en
 dos filas y la campana y «ANDRES UGARTE» en una tercera: «todo eso puede ir en la misma row: la notificación y Andrés

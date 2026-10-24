@@ -183,7 +183,7 @@
 .timetracker-module .tt-campana-panel{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:320px}
 /* El nombre de la app con la casa pegada (D-274) es `.entregas-marca`, de `BarraDeApp` (D-643); sus reglas, también las
    del teléfono, están en globals.css, y las de `.tt-marca` y `.brand` que había aquí se fueron con él. */
-/* D-NEXT: en el escritorio y la tableta, las pestañas, la campana y el nombre van en la MISMA fila mientras quepan. El
+/* D-677: en el escritorio y la tableta, las pestañas, la campana y el nombre van en la MISMA fila mientras quepan. El
    dueño, 2026-10-24, con la barra del admin a ~950 px: «la notificación y Andrés Ugarte en la misma row de Auditoría y
    Registrar tiempo». La caja de las pestañas era un bloque aparte dentro de `.tt-barra-resto`: al partirse en dos filas,
    la campana y el nombre caían a una tercera. Sin la caja (`display: contents`) sus pestañas son hermanas de la campana
