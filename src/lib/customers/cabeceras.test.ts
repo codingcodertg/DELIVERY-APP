@@ -136,9 +136,9 @@ describe("arrastrar una cabecera a otra", () => {
   const pinta = (p: typeof PREFERENCIA_INICIAL) => columnasAPintar(p).map((c) => c.key);
   it("hacia la izquierda queda ANTES de donde se suelta; hacia la derecha, DESPUÉS", () => {
     const izq = colocaColumnaDeClientes(PREFERENCIA_INICIAL, "phone", "store");
-    expect(pinta(izq).slice(0, 4)).toEqual(["account", "phone", "store", "status_store"]);
+    expect(pinta(izq).slice(0, 5)).toEqual(["account", "phone", "store", "store_count", "status_store"]);
     const der = colocaColumnaDeClientes(PREFERENCIA_INICIAL, "store", "history_store");
-    expect(pinta(der).slice(0, 4)).toEqual(["account", "status_store", "history_store", "store"]);
+    expect(pinta(der).slice(0, 5)).toEqual(["account", "store_count", "status_store", "history_store", "store"]);
   });
   it("es el mismo orden que el de «⚙ Columnas», y volver a su sitio lo deja sin orden propio", () => {
     const p = colocaColumnaDeClientes(PREFERENCIA_INICIAL, "phone", "store");

@@ -17,7 +17,7 @@ import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
 import { FichaEnVentana, selCls } from "./FichaDeCliente";
-import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas } from "@/lib/customers/empresas";
+import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas, tiendasDeLaEmpresa } from "@/lib/customers/empresas";
 import { alPulsarCabecera, esOrdenInicial, filtraEmpresas, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
 import {
   alternaColumna, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, colocaColumnaDeClientes, columnasAPintar, columnasDelSelector,
@@ -332,7 +332,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                   data-archivado={estaArchivado(c) ? "1" : undefined}
                 >
                   {colsVisibles.map((col) => (
-                    <td key={col.key} className={cn("px-3 py-2", col.key === "account" && "font-medium text-slate-900", (col.key === "credit_limit" || col.key === "euler_limit") && "text-right tabular-nums")}>
+                    <td key={col.key} className={cn("px-3 py-2", col.key === "account" && "font-medium text-slate-900", (col.key === "credit_limit" || col.key === "euler_limit" || col.key === "store_count") && "text-right tabular-nums")}>
                       {col.key === "account" ? (
                         <span className="inline-flex flex-wrap items-center gap-1.5">
                           {estaArchivado(c) ? (
@@ -356,6 +356,8 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                             </span>
                           ))}
                         </span>
+                      ) : col.key === "store_count" ? (
+                        <span data-n-tiendas={tiendasDeLaEmpresa({ filas })}>{tiendasDeLaEmpresa({ filas })}</span>
                       ) : col.key === "status_store" || col.key === "status_group" ? (
                         <Badge className={estadoClase(c[col.key])}>{estadoLabel(c[col.key], t)}</Badge>
                       ) : col.key === "qb_status" && c.qb_status === "NOT FOUND IN UPDATE" ? (

@@ -130,7 +130,7 @@ export function qbLabel(q: string | null, t: T): string {
  * una fórmula). Medido el 2026-10-18: las 1.349 son exactamente tienda seguida de cuenta, así que no se guarda (la clave
  * natural ya es tienda + cuenta y una copia se desincroniza al corregir la cuenta); se calcula (`valorDeColumna`).
  */
-export type ClaveDeColumna = keyof Cliente | "concatenate";
+export type ClaveDeColumna = keyof Cliente | "concatenate" | "store_count";
 export interface Columna { key: ClaveDeColumna; en: string; es: string; fija?: true }
 
 /**
@@ -142,6 +142,8 @@ export interface Columna { key: ClaveDeColumna; en: string; es: string; fija?: t
 export const COLUMNAS: readonly Columna[] = [
   { key: "account", en: "Account", es: "Cuenta", fija: true },
   { key: "store", en: "Store", es: "Tienda" },
+  // D-666: en cuántas tiendas está la EMPRESA (no es de la fila: se cuenta sobre sus filas, `tiendasDeLaEmpresa`).
+  { key: "store_count", en: "# Stores", es: "N.º tiendas" },
   { key: "concatenate", en: "Store + account", es: "Tienda + cuenta" },
   { key: "status_store", en: "Status (store)", es: "Estado (tienda)" },
   { key: "status_group", en: "Status (group)", es: "Estado (grupo)" },
@@ -173,7 +175,7 @@ export const COLUMNAS: readonly Columna[] = [
 ];
 
 /** Las de entrada: lo que cabe en un portátil y lo que se mira primero. */
-export const COLUMNAS_INICIALES: readonly string[] = ["account", "store", "status_store", "history_store", "rep_store", "phone", "email", "terms", "credit_limit"];
+export const COLUMNAS_INICIALES: readonly string[] = ["account", "store", "store_count", "status_store", "history_store", "rep_store", "phone", "email", "terms", "credit_limit"];
 
 /** Las columnas elegidas, saneadas: solo claves que existen, y `account` siempre. */
 export function columnasValidas(elegidas: readonly string[] | null | undefined): string[] {
@@ -332,8 +334,13 @@ export function filtrar(lista: readonly Cliente[], f: Filtro): Cliente[] {
 export interface Orden { por: ClaveDeColumna; desc: boolean }
 export const ORDEN_INICIAL: Orden = { por: "account", desc: false };
 
-/** El valor crudo de una columna: el de la fila, o la CONCATENATE del Excel recompuesta (tienda + cuenta, pegadas). */
-export function valorDeColumna(c: Cliente, key: ClaveDeColumna): Cliente[keyof Cliente] {
+/**
+ * El valor crudo de una columna: el de la fila, o la CONCATENATE del Excel recompuesta (tienda + cuenta, pegadas).
+ * «N.º tiendas» (D-666) no es de la fila sino de su empresa: lo dice `tiendasDe` quien la conoce (la lista por
+ * empresa); sin ella, no hay valor.
+ */
+export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: Cliente) => number): Cliente[keyof Cliente] {
+  if (key === "store_count") return tiendasDe ? tiendasDe(c) : null;
   return key === "concatenate" ? `${c.store}${c.account}` : c[key];
 }
 
@@ -341,10 +348,10 @@ const rangoEstado = (e: string | null) => { const i = ESTADOS.indexOf(e as Estad
 const rangoHistoria = (h: string | null) => { const i = HISTORIAS.indexOf(h as (typeof HISTORIAS)[number]); return i < 0 ? HISTORIAS.length : i; };
 
 /** Compara dos filas por UNA columna, ascendente. Los estados y los historiales van por su rango, no alfabéticos; los nulos, al final. */
-function comparaPor(a: Cliente, b: Cliente, k: ClaveDeColumna): number {
+function comparaPor(a: Cliente, b: Cliente, k: ClaveDeColumna, tiendasDe?: (c: Cliente) => number): number {
   if (k === "status_store" || k === "status_group") return rangoEstado(a[k]) - rangoEstado(b[k]);
   if (k === "history_store" || k === "history_group") return rangoHistoria(a[k]) - rangoHistoria(b[k]);
-  const va = valorDeColumna(a, k), vb = valorDeColumna(b, k);
+  const va = valorDeColumna(a, k, tiendasDe), vb = valorDeColumna(b, k, tiendasDe);
   if (va === null && vb === null) return 0;
   if (va === null) return 1;
   if (vb === null) return -1;
@@ -362,10 +369,10 @@ export function ordenar(lista: readonly Cliente[], orden: Orden): Cliente[] {
  * primera, y la tercera entre las que empatan en las dos. Cada nivel con su sentido. Lo que sigue empatado va por cuenta
  * y por id, como siempre, para que la lista no baile de una carga a otra.
  */
-export function ordenarEnNiveles(lista: readonly Cliente[], niveles: readonly Orden[]): Cliente[] {
+export function ordenarEnNiveles(lista: readonly Cliente[], niveles: readonly Orden[], tiendasDe?: (c: Cliente) => number): Cliente[] {
   const cmp = (a: Cliente, b: Cliente): number => {
     for (const n of niveles) {
-      const c = comparaPor(a, b, n.por);
+      const c = comparaPor(a, b, n.por, tiendasDe);
       if (c !== 0) return n.desc ? -c : c;
     }
     return 0;

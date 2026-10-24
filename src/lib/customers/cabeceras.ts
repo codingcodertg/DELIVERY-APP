@@ -1,6 +1,6 @@
 import { claveDeFiltro, SIN_VALOR, type FiltrosPorColumna, type ValorDeCelda } from "@/lib/orden-y-filtro";
 import { codigoDeTienda } from "./duplicados";
-import type { Empresa } from "./empresas";
+import { tiendasDeLaEmpresa, type Empresa } from "./empresas";
 import { ORDEN_INICIAL, textoDeValor, valorDeColumna, type ClaveDeColumna, type Orden } from "./reglas";
 
 type T = (en: string, es: string) => string;
@@ -67,6 +67,7 @@ export function esOrdenInicial(ordenes: readonly Orden[]): boolean {
  */
 export function valoresDeLaColumna(e: Empresa, key: ClaveDeColumna): ValorDeCelda[] {
   if (key === "store") return [...new Set(e.filas.map((c) => codigoDeTienda(c.store)))];
+  if (key === "store_count") return [tiendasDeLaEmpresa(e)];
   const v = valorDeColumna(e.principal, key);
   if (key === "updated_at") return [typeof v === "string" ? v.slice(0, 10) : null];
   return [typeof v === "number" || typeof v === "string" ? v : null];
