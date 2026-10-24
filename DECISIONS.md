@@ -47590,6 +47590,8 @@ Mutantes: 11 de 11 caen con una prueba con nombre: cae siempre delante del desti
 
 ## D-662 · Clientes: la ficha con la plantilla del dueño (Cuenta con vendedores · Contacto · Crédito / Estado · Otros · ocultos)
 
+> **Reemplazada en parte por D-669** (2026-10-24): la actividad sale de «Campos ocultos» y es el «Type» de «Crédito y términos»; «Historical Status» pasa a llamarse «Historical Type».
+
 **Fecha:** 2026-10-23. **Pedido:** el dueño, primero con el orden escrito («ACCOUNT · CONTACT · CREDIT AND TERMS / STATUS
 AND HISTORY · SALES REP · OTHER») y «it should be account first, then contact, and account got deleted»; después con una
 plantilla en Excel («make it like this») que manda: Account (Account, Unified account, Store rep (QB), Group rep (QB), Group
@@ -47797,3 +47799,18 @@ que el enlace `rcapp://` abra la app en el ordenador de cada uno (es el de RR. H
 **Pendiente del dueño:** aplicar la 193 y lanzar el barrido (sus dos comandos). Hasta la 193, la ficha enseña los
 contactos sacados de las columnas, pero guardar un cambio de contactos falla y se dice. Al juntar dos filas de una
 tienda, los contactos de la que se archiva no se suman (lo distinto de su espejo va a las notas, como hasta hoy).
+
+## D-NEXT · Clientes: la «Activity» es el «Type» de «Crédito y términos», y «Historical Status» pasa a «Historical Type»
+
+**Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con captura de la ficha de A & O DESBUILD, LLC (Clientes
+0.16.0): «1) Move "Activity" under Credit & Terms and rename to "Type". 2) Rename to Historical Type instead of Status».
+Contesta la pregunta pendiente de D-662: el «Type» de «Credit & terms» de la plantilla del dueño es esta columna.
+
+**Qué cambia:** `activity_status` sale de «🔒 Campos ocultos» (donde la puso D-662) y va la última de «Crédito y
+términos», como «Type / Tipo», en la ficha y en «⚙ Columnas». «Historical Status (store/group)» se llama «Historical Type
+(store/group)» («Tipo histórico») en la ficha, y «History (store/group)» de las columnas, «Historical type». Solo
+rótulos y sitio: la columna de la base, sus valores (LARGE, MID…) y su orden no cambian. Sin migración.
+
+**Probado:** `reglas.test.ts` (los rótulos de «Estado e historial», «Crédito y términos» acaba con «Type», «Campos
+ocultos» sin la actividad); la suite de Clientes, verde. **No medido:** en el navegador (solo rótulos y una fila que cambia
+de tarjeta).
