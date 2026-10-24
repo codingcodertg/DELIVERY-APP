@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 192 . El vendedor anula SU orden hasta «Listo» (D-NEXT)
+-- 192 . El vendedor anula SU orden hasta «Listo» (D-661)
 -- ===========================================================================
 -- PEDIDO. El duenio, 2026-10-23, despues de la 191 (que dejaba anular solo pendiente y programada): «sales people can
 -- cancel up to ready stage, after that they can ask the driver to cancel if needed». El vendedor anula SU orden (la creo
@@ -246,7 +246,7 @@ begin
     or (old_stage = 'rejected' and new_stage = 'canceled')
     -- 122: gerente y office anulan una orden viva; el motivo lo exige el bloque de arriba.
     or (r in ('manager','accounting') and new_stage = 'canceled' and old_stage in ('pending','approved','fulfilling','ready'))
-    -- 191 (D-656) y 192 (D-NEXT): ventas anula SU orden hasta «Listo»: la creo o es su vendedor, la misma duenez que la
+    -- 191 (D-656) y 192 (D-661): ventas anula SU orden hasta «Listo»: la creo o es su vendedor, la misma duenez que la
     -- factura de la 125. Desde 'picked_up' no: la mercancia ya va en el camion. El motivo, quien y cuando los pone el
     -- bloque de arriba, igual que a cualquiera.
     or (r = 'sales' and new_stage = 'canceled' and old_stage in ('pending','approved','fulfilling','ready') and (OLD.created_by = auth.uid() or OLD.assigned_sales_rep = auth.uid()))
@@ -318,4 +318,4 @@ end $function$
 ;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('192_ventas_anula_hasta_listo.sql', 'PENDIENTE') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('192_ventas_anula_hasta_listo.sql', '89291602c10aa1111c13c5f260bf990bf9c84c58d21bf9ba825bb759b602cd16') on conflict (name) do nothing;
