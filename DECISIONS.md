@@ -47802,6 +47802,8 @@ tienda, los contactos de la que se archiva no se suman (lo distinto de su espejo
 
 ## D-669 · Clientes: la «Activity» es el «Type» de «Crédito y términos», y «Historical Status» pasa a «Historical Type»
 
+> **Reemplazada en parte por D-672** (2026-10-24): el «Type» deja «Crédito y términos» (su sitio lo ocupan los impuestos de la tienda) y va a «Otros», encima de las notas.
+
 **Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con captura de la ficha de A & O DESBUILD, LLC (Clientes
 0.16.0): «1) Move "Activity" under Credit & Terms and rename to "Type". 2) Rename to Historical Type instead of Status».
 Contesta la pregunta pendiente de D-662: el «Type» de «Credit & terms» de la plantilla del dueño es esta columna.
@@ -47872,3 +47874,35 @@ apunte al medir.
 
 **Pendiente del dueño:** aplicar la 194 (su comando). Sin ella, el Gestor no lee ni apunta y «Actual» enseña la hora real
 sin desvío.
+
+## D-NEXT · Clientes: impuestos por tienda, archivos adjuntos (el formulario de exención), sitio web y el cargo siempre a la vista (migración 195)
+
+**Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), en Clientes, en cuatro mensajes: «Need to be able to
+attach files like No Sales Tax Form. Need to know their tax terms too and it can vary by store bc each store needs the
+form signed if they want to apply»; «Since we are adding tax terms it'll replace the spot for Type. Type will move to
+Other above Notes»; y «Title was removed, need it back. Also need to add Website under contact».
+
+**Qué cambia:**
+- **Impuestos por tienda (195, `tax_terms`):** «Tax terms / Impuestos» en «Crédito y términos», en el sitio del «Type»:
+  «Paga impuesto» (`taxable`), «Exento de impuesto» (`exempt`) o sin dato. Es de la FILA, y una fila es una tienda
+  (D-633): cada tienda el suyo. También como columna elegible en la lista.
+- **Archivos (195, `erp.customer_files` + el cubo privado `customer-files`, 25 MB):** al pie de «Crédito y términos», los
+  archivos de esa tienda: nombre (se abre con un enlace firmado de una hora), clase («Formulario de exención de impuesto» u
+  «Otro»), tamaño y fecha; quien edita Clientes adjunta (eligiendo la clase) y quita. Si la tienda está marcada exenta y
+  no tiene su formulario, lo dice en ámbar. En un alta se dice que se adjuntan después de crearlo. Si apuntar la fila falla
+  tras subir el fichero, el fichero se quita del cubo (no queda huérfano). La tabla y el cubo con la MISMA regla: leen
+  quienes entran a Clientes; suben y quitan quienes la editan (`erp.customers_can_write()`).
+- **El «Type»** (la «Activity» del Excel) pasa a «Otros», encima de las notas.
+- **Sitio web (195, `website`):** en «Contacto», tras los contactos y delante de la dirección; se abre en otra pestaña
+  (con su https:// si no lo trae). También columna elegible.
+- **El cargo, siempre:** debajo del nombre del contacto, «Cargo: —» si no tiene (D-668 solo lo enseñaba si había).
+- Sin la 195, la lista y la ficha funcionan (las dos columnas llegan como null, `leeConRespaldo` da un paso más); los
+  archivos dicen que aún no están disponibles, y guardar impuestos o sitio web falla y se dice.
+
+**Probado:** `archivos.test.ts` (10: nombre y ruta en el cubo, la fila de la base, falta el formulario —y el de otra
+tienda no vale—, tamaños y tope, subir en la base y quitar el fichero si la fila no se apunta, el demo, impuestos y sitio
+web, cada campo en su tarjeta, y la ficha pintada); las de reglas, almacén y módulo puestas al día; 7 de 7 mutantes
+aplicados caen. Ensayo de la 195 contra producción con ROLLBACK: entera. **No medido:** en el navegador, y subir un archivo
+de verdad al cubo (el ensayo crea el cubo y lo deshace).
+
+**Pendiente del dueño:** aplicar la 195 (su comando).

@@ -1,5 +1,6 @@
 import { creaUnaPorUna } from "./alta";
 import type { AlmacenDeClientes } from "./almacen";
+import type { ArchivoDeCliente } from "./archivos";
 import { claveDeEmpresa, juntaEnMemoria, motivoDeLaCola, sospechosos } from "./duplicados";
 import type { Sugerencia } from "./empresas";
 import type { Cliente, Parche } from "./reglas";
@@ -32,7 +33,7 @@ export const CLIENTES_DEMO: Cliente[] = [
     ] }),
   base(2, { store: "PHR", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE DEC", status_group: "ACTIVE INC", history_store: "SMALL", history_group: "LARGE", rep_store: "FR", rep_qb: "IM", rep_history: "IM", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000 }),
   base(3, { store: "BRO", account: "Demo Drywall Inc", status_store: "NEW", status_group: "NEW", history_store: "INSIGNIFICANT", history_group: "SMALL", rep_store: "CRR", phone: "956-555-0102", terms: "Due on receipt" }),
-  base(4, { store: "EDG", account: "Demo Tile Gallery", status_store: "LOST", status_group: "LOST", history_store: "MID", history_group: "MID", rep_store: "YG", rep_qb: "YG", phone: "956-555-0104 - Luis, A/P", email: "gallery@example.com", terms: "25 Days", credit_limit: 6000, account_no: "INTERNAL CREDIT" }),
+  base(4, { store: "EDG", account: "Demo Tile Gallery", status_store: "LOST", status_group: "LOST", history_store: "MID", history_group: "MID", rep_store: "YG", rep_qb: "YG", phone: "956-555-0104 - Luis, A/P", email: "gallery@example.com", tax_terms: "exempt", website: "demotilegallery.example.com", terms: "25 Days", credit_limit: 6000, account_no: "INTERNAL CREDIT" }),
   base(5, { store: "WES", account: "Demo Walk-in", qb_status: "NOT FOUND IN UPDATE", activity_status: "walk in", status_store: "NONE SALE", status_group: "NONE SALE", history_store: "INSIGNIFICANT", history_group: "INSIGNIFICANT" }),
   base(6, { store: "MCA", account: "Demo Construction Group", status_store: "ACTIVE INC", history_store: "MID", rep_store: "SCG", contact_name: "Beto Demo", phone: "(555) 010-3", email: "beto@example.com", terms: "NET 15", credit_limit: 10000, notes: "Demo note." }),
   // Dos SOSPECHOSOS para «Decidir si se juntan» (189): 9 se parece a 3 y tiene su teléfono, en otra tienda (juntar =
@@ -64,6 +65,9 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   let cola = SUGERENCIAS_DEMO.map((s) => ({ ...s }));
   let siguiente = Math.max(...lista.map((c) => c.id)) + 1;
   let empresaNueva = 0;
+  let archivos: ArchivoDeCliente[] = [];
+  let archivoNuevo = 0;
+  const enlaces = new Map<number, string>();
   const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
   const almacen: AlmacenDeClientes = {
     async leer() { return { ok: true, valor: lista.map((c) => ({ ...c })) }; },
@@ -108,6 +112,17 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       cola = cola.map((x) => (x.id === id ? { ...x, status: "rejected" } : x));
       return { ok: true, valor: null };
     },
+    // D-NEXT: los archivos del demo, en memoria (el fichero, como un enlace del propio navegador).
+    async archivos(clienteId) { return { ok: true, valor: archivos.filter((a) => a.customer_id === clienteId).map((a) => ({ ...a })) }; },
+    async subirArchivo(clienteId, fichero, clase) {
+      const a: ArchivoDeCliente = { id: ++archivoNuevo, customer_id: clienteId, kind: clase, name: fichero.name, path: `${clienteId}/${fichero.name}`,
+        size_bytes: fichero.size, content_type: fichero.type || null, uploaded_at: new Date().toISOString() };
+      enlaces.set(a.id, typeof URL !== "undefined" && URL.createObjectURL ? URL.createObjectURL(fichero) : "about:blank");
+      archivos = [a, ...archivos];
+      return { ok: true, valor: { ...a } };
+    },
+    async quitarArchivo(a) { archivos = archivos.filter((x) => x.id !== a.id); return { ok: true, valor: null }; },
+    async enlaceDeArchivo(a) { return { ok: true, valor: enlaces.get(a.id) ?? "about:blank" }; },
   };
   return almacen;
 }
