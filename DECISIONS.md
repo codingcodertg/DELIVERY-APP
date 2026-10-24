@@ -46410,6 +46410,8 @@ D-591 guarda el contacto con el JWT del servidor, que es la extensión **103 «C
 
 ## D-632 · RR. HH.: una sola hora para todos, la de Brownsville (America/Chicago, con su cambio de horario), y aviso al agendar dos candidatos a la misma hora
 
+> **Reemplazada en parte por D-667** (2026-10-24): una LLAMADA para ahora mismo («Ahorita», o una hora que no pasa de 5 minutos por delante) ya no avisa de choque; solo avisan las agendadas por adelantado. Las presenciales, igual.
+
 **Fecha:** 2026-10-21 · **Versión:** recruiting 0.64.0 · Hecho por un worker del orquestador en `feat/rrhh-hora-de-brownsville`. Sin migración.
 
 **Pedido (el dueño, 2026-10-21, literal):** «La hora que se está enseñando en el app de mi jefe, ellos me dan una hora adelantada y yo estoy en otro horario […] a él le salen a las 4:30, pero yo lo puse para las 3:30 […] el horario que yo ponga ahí, que ese se quede, no lo adaptes al horario de cada quien, sino que quiero que ese sea el horario que es, punto. […] si se hacen cambios o algo, que se registren en el horario de mi jefe, que es una hora adelantado porque están en Brownsville, Texas. Pongan ese horario y si hay daylight saving time, pues actualice, punto. […] cuando esté scheduling candidates […] no me dejes schedule candidates a la misma hora. Dame un warning […] o estás seguro».
@@ -47721,3 +47723,23 @@ las parejas pendientes de «Decidir si se juntan» siguen siendo dos empresas de
 sentidos con empate por cuenta, el filtro de la columna, elegible y de entrada); 5 de 5 mutantes caen con una prueba con
 nombre. En el demo (390 y 1440 px): sale tras «Tienda», el número coincide con las pastillas, dos clics ponen «Demo Homes
 LLC» (2) arriba; 0 px de desborde. **No medido:** contra la lista real en el navegador.
+
+## D-NEXT · RR. HH.: una llamada para «Ahorita» no avisa de choque de horario
+
+**Fecha:** 2026-10-24. **Pedido:** el dueño, con captura del alta de Juan Castanon (llamada a las 11:35 con «Ahorita») y el
+aviso «⚠️ Ya hay Jorge Galvan agendado a esa hora (11:30 a.m.). ¿Agendar de todos modos?»: «me salió esto pero cuando yo
+le doy llamar ahorita no cuenta, solamente cuando agendo ahead of time».
+
+**Qué cambia:** el aviso de D-632 para LLAMADAS solo sale si la llamada se agenda por adelantado. Si la hora de la llamada
+no pasa de `MARGEN_DE_AHORITA_MIN` (5 minutos) por delante del momento de guardar —«Ahorita», o la hora de ahora escrita a
+mano, o una que ya pasó— es la entrevista que se va a hacer ya, y no avisa. Vale en el alta («Nuevo candidato») y en
+«Programar entrevista telefónica» del perfil. Las presenciales siguen avisando siempre.
+
+**Cómo:** por la hora y no por el botón: «Ahorita» deja la hora del minuto en el campo y el formulario se rellena unos
+minutos después, así que al guardar la hora ya quedó atrás; y escribirla a mano es lo mismo. `PedidoDeCita` lleva `ahora`
+(ms), que pasan las dos llamadas de `ModalHost`; sin él, la regla de antes (las pruebas viejas no cambian).
+
+**Probado:** 4 pruebas nuevas en `choque-de-horario.test.ts` (el caso del dueño, guardado minutos después, hora escrita 3
+minutos por delante, por adelantado sí avisa, el borde del margen, sin `ahora` como antes, presencial sigue avisando, y que
+`ModalHost` pasa `ahora` en las dos llamadas); 6 de 6 mutantes caen con una prueba con nombre. **No medido:** en el
+navegador (el cambio es de la regla; el diálogo y su aviso son los de D-632).
