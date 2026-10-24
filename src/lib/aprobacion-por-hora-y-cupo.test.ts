@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ahoraEnTexas, motivoPorCupo, motivoPorHora, motivosDeAprobacion, ocupadasPorVentana, reglasDeAprobacion,
-  siguienteDiaDeTrabajo, textoDelMotivo, type FilaDeCupo, type ReglasDeAprobacion,
+  siguienteDiaDeTrabajo, textoDelMotivo, ventanasConCupoEditable, type FilaDeCupo, type ReglasDeAprobacion,
 } from "./aprobacion-por-hora-y-cupo";
 import { naceAprobada } from "./cuenta-aprobacion";
 import { etapaAlEnviar } from "./enviar-borrador";
@@ -148,5 +148,29 @@ describe("quién aprueba", () => {
     const seeds = notificationsForStage({ stage: "pending", order_no: 7, order_code: "FV1", delivery_id: "x", creatorId: "s", actorId: "s", users, reason: "It's for today and it's past 4:30 pm" });
     expect(seeds.map((s) => s.user_id).sort()).toEqual(["m", "o"]);
     expect(seeds[0].message).toBe("Order #FV1 is awaiting your approval: It's for today and it's past 4:30 pm");
+  });
+});
+
+// D-NEXT: el cupo en todas las franjas. El dueño, a «Ajustes solo deja 0830-1000 y 0830-1200»: «sí».
+describe("cupo en cualquier franja", () => {
+  const PRESETS = ["0830-1000", "0830-1200", "1200-1730", "0830-1730", "0830-1530"];
+  it("Ajustes enseña todas las del selector y, detrás, las que ya tengan cupo guardado", () => {
+    expect(ventanasConCupoEditable(PRESETS, R)).toEqual(PRESETS);
+    expect(ventanasConCupoEditable(PRESETS, { ...R, cupo: { ...R.cupo, "1300-1500": 3 } })).toEqual([...PRESETS, "1300-1500"]);
+  });
+  it("una franja de la tarde con tope se llena y manda a aprobación, igual que las de la mañana", () => {
+    const reglas: ReglasDeAprobacion = { ...R, cupo: { ...R.cupo, "1200-1730": 1 } };
+    const filas: FilaDeCupo[] = [{ id: "a", store: "Tienda Cerca", delivery_windows: "1200-1730", stage: "approved" }];
+    const ocupadas = ocupadasPorVentana(filas, reglas);
+    expect(ocupadas["1200-1730"]).toBe(1);
+    expect(motivoPorCupo({ store: "Tienda Cerca", delivery_windows: "1200-1730" }, ocupadas, reglas)).toEqual({ tipo: "cupo", ventana: "1200-1730", tope: 1, ocupadas: 1 });
+    // Sin tope en esa franja, no.
+    expect(motivoPorCupo({ store: "Tienda Cerca", delivery_windows: "0830-1730" }, ocupadas, reglas)).toBeNull();
+  });
+  it("la tarjeta de Ajustes pinta esas, no las dos de antes", async () => {
+    const { readFileSync } = await import("node:fs");
+    const ajustes = readFileSync("src/app/(app)/settings/page.tsx", "utf8");
+    expect(ajustes).toContain("{ventanasConCupoEditable(DELIVERY_WINDOW_PRESETS.map((p) => p.value), reglas).map(tope)}");
+    expect(ajustes).not.toContain('{["0830-1000", "0830-1200"].map(tope)}');
   });
 });
