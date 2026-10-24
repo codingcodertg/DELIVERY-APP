@@ -14,6 +14,8 @@ import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
+import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
+import { ANCHO_MINIMO, ANCHO_POR_DEFECTO, anchoDePartida, claveDeAncho, llaveDeAnchos, tiendasDeLaCelda } from "@/lib/customers/anchos";
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
 import { FichaEnVentana, selCls } from "./FichaDeCliente";
@@ -107,6 +109,9 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   const archivados = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: true }).length, [lista]);
   const porTienda = useMemo(() => empresasPorTienda(vista), [vista]);
   const colsVisibles = columnasAPintar(prefCols);
+  // D-673: anchos que se arrastran, como en Órdenes (`tbl-resize`): nada salta de línea y lo que no cabe se corta con «…».
+  const colw = useColWidthMap(llaveDeAnchos(userId), ANCHO_POR_DEFECTO, { minimo: ANCHO_MINIMO });
+  const ancho = (k: string) => colw.widthOf(claveDeAncho(k), anchoDePartida(k));
   const todasLasClaves = columnasDelSelector(prefCols).map((c) => c.key as string);
   const filtradas = columnasFiltradas(filtrosCol, todasLasClaves);
   const nombreDe = (k: string) => { const c = columnasDelSelector(prefCols).find((x) => x.key === k); return c ? t(c.en, c.es) : k; };
@@ -264,7 +269,8 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
       {estado.tipo === "listo" && <BarraSuperior caja={cajaRef} />}
       {estado.tipo === "listo" && (
         <div ref={cajaRef} data-caja-de-clientes className="max-h-[calc(100dvh-150px)] overflow-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-sm">
+          <table className="tbl-resize text-sm" style={anchoDeTabla(colsVisibles.map((c) => ancho(c.key)))} data-tabla-de-clientes>
+            <colgroup>{colsVisibles.map((c) => <col key={c.key} style={{ width: ancho(c.key) }} />)}</colgroup>
             <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgb(226,232,240)]">
               <tr>
                 {colsVisibles.map((c) => {
@@ -315,6 +321,10 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                           ▾
                         </button>
                       </span>
+                      {/* D-673: el asa para ensanchar la columna (doble clic: vuelve a su ancho de partida). Su `mousedown` no
+                          deja empezar el arrastre de la cabecera (D-650): `startResize` lo cancela. */}
+                      <span className="col-resizer" onMouseDown={colw.startResize(claveDeAncho(c.key), anchoDePartida(c.key))} onDoubleClick={() => colw.resetCol(claveDeAncho(c.key))}
+                        title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} data-asa-de={c.key} />
                     </th>
                   );
                 })}
@@ -332,9 +342,10 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                   data-archivado={estaArchivado(c) ? "1" : undefined}
                 >
                   {colsVisibles.map((col) => (
-                    <td key={col.key} className={cn("px-3 py-2", col.key === "account" && "font-medium text-slate-900", (col.key === "credit_limit" || col.key === "euler_limit" || col.key === "store_count") && "text-right tabular-nums")}>
+                    <td key={col.key} className={cn("px-3 py-2", col.key === "account" && "font-medium text-slate-900", (col.key === "credit_limit" || col.key === "euler_limit" || col.key === "store_count") && "text-right tabular-nums")}
+                      title={col.key === "account" ? c.account : col.key === "store" ? undefined : celda(c, col.key, t)}>
                       {col.key === "account" ? (
-                        <span className="inline-flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1.5">
                           {estaArchivado(c) ? (
                             <>
                               <span className="line-through">{c.account}</span>
@@ -344,22 +355,24 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
                           {/* Sin enlace «ficha» (D-654): el clic en la fila ya abre la ficha completa, en su ventana. */}
                         </span>
                       ) : col.key === "store" ? (
-                        // Las tiendas de la empresa (189): la que se enseña, resaltada.
-                        <span className="inline-flex flex-wrap gap-1" data-tiendas={filas.length}>
-                          {filas.map((f) => (
-                            <span
-                              key={f.id}
-                              className={cn("whitespace-nowrap rounded-full border px-2 py-0.5 text-xs", f.id === c.id ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 text-slate-500")}
-                              title={f.account}
-                            >
-                              {nombreDeTienda(f.store)}
+                        // Las tiendas de la empresa (189): la que se enseña, y «+N» por las demás, que se nombran en su título
+                        // (D-673, Roberto: «Instead of showing all, show store+3 or +2 so it doesnt take up more space»).
+                        (() => {
+                          const { principal: p, otras } = tiendasDeLaCelda(filas, c);
+                          return (
+                            <span className="inline-flex items-center gap-1" data-tiendas={filas.length}>
+                              <span className="whitespace-nowrap rounded-full border border-clay-200 bg-clay-50 px-2 py-0.5 text-xs font-medium text-clay-700" title={p.account}>{nombreDeTienda(p.store)}</span>
+                              {otras.length > 0 && (
+                                <span className="whitespace-nowrap rounded-full border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500" data-mas-tiendas={otras.length}
+                                  title={otras.map((f) => nombreDeTienda(f.store)).join(", ")}>+{otras.length}</span>
+                              )}
                             </span>
-                          ))}
-                        </span>
+                          );
+                        })()
                       ) : col.key === "store_count" ? (
                         <span data-n-tiendas={tiendasDeLaEmpresa({ filas })}>{tiendasDeLaEmpresa({ filas })}</span>
                       ) : col.key === "status_store" || col.key === "status_group" ? (
-                        <Badge className={estadoClase(c[col.key])}>{estadoLabel(c[col.key], t)}</Badge>
+                        <Badge className={cn("whitespace-nowrap", estadoClase(c[col.key]))}>{estadoLabel(c[col.key], t)}</Badge>
                       ) : col.key === "qb_status" && c.qb_status === "NOT FOUND IN UPDATE" ? (
                         <span className="text-amber-700">{qbLabel(c.qb_status, t)}</span>
                       ) : (
