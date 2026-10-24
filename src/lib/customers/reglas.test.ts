@@ -342,12 +342,15 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // Cada línea que se edita lleva SU campo (la etiqueta y el control son de esa clave).
     for (const f of grupos.flatMap((g) => g.filas)) if (f.campo) expect(f.campo.key).toBe(f.key);
   });
-  it("D-NEXT: las tarjetas van Cuenta, Contacto, Crédito / Estado, Vendedores, Otros; «Cuenta» abre con el nombre (solo lectura) y sin «Tienda»", () => {
-    expect(GRUPOS.map((g) => g.key)).toEqual(["cuenta", "contacto", "credito", "estado", "vendedores", "otros"]);
+  it("D-NEXT: las tarjetas van Cuenta, Contacto, Crédito / Estado, Otros (la plantilla del dueño); «Cuenta» abre con el nombre (solo lectura), lleva los vendedores y no la tienda", () => {
+    expect(GRUPOS.map((g) => g.key)).toEqual(["cuenta", "contacto", "credito", "estado", "otros"]);
     expect(GRUPOS.at(-1)).toEqual({ key: "otros", en: "Other", es: "Otros" });
     const cuenta = filasPorGrupo()[0];
     expect(cuenta.grupo.key).toBe("cuenta");
-    expect(cuenta.filas.map((f) => [f.key, f.campo === null])).toEqual([["account", true], ["unified_account", false]]);
+    expect(cuenta.filas.map((f) => [f.key, f.campo === null])).toEqual([["account", true], ["unified_account", false], ["rep_store", false], ["rep_qb", false], ["rep_history", false]]);
+    // Los rótulos de «Estado e historial» de la plantilla.
+    expect(filasPorGrupo().find((g) => g.grupo.key === "estado")!.filas.map((f) => f.en)).toEqual(
+      ["Current Status (store)", "Current Status (group)", "Historical Status (store)", "Historical Status (group)", "QuickBooks Status"]);
     const todas = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key));
     expect(todas.filter((k) => k === "account")).toHaveLength(1);
     expect(todas).not.toContain("store");
@@ -364,7 +367,8 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
   it("D-660: «Campos ocultos» lleva Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE), en ese orden; House # y la CONCATENATE se leen", () => {
     expect(GRUPO_OCULTO).toEqual({ key: "ocultos", en: "Hidden fields", es: "Campos ocultos" });
     const ocultas = filasOcultas();
-    expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate"]);
+    // D-NEXT: y detrás la actividad, que la plantilla del dueño no ponía en ninguna tarjeta.
+    expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "activity_status"]);
     expect(ocultas.filter((f) => f.campo === null).map((f) => f.key)).toEqual(["house_no", "concatenate"]);
     // «Añadido (tanda)» se sigue corrigiendo: lleva SU campo.
     expect(ocultas[0].campo?.key).toBe("added_batch");
