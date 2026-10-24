@@ -178,9 +178,9 @@ describe("la ficha y el parche", () => {
   });
   it("solo lo que cambió viaja: vacío → null, números como número, la tienda en mayúsculas", () => {
     const original = formDe(LISTA[0]);
-    const { parche, errores } = parcheDe({ ...original, notes: " hola ", credit_limit: "$1,500", email: "", store: "mca" }, original);
+    const { parche, errores } = parcheDe({ ...original, notes: " hola ", credit_limit: "$1,500", rep_store: "", store: "mca" }, original);
     expect(errores).toEqual([]);
-    expect(parche).toEqual({ notes: "hola", credit_limit: 1500, email: null, store: "MCA" });
+    expect(parche).toEqual({ notes: "hola", credit_limit: 1500, rep_store: null, store: "MCA" });
   });
   it("sin cambios, parche vacío (no se reenvía lo leído)", () => {
     const original = formDe(LISTA[0]);
@@ -265,9 +265,11 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
       expect(c.es).not.toBe(c.en);
     }
   });
-  it("la ficha (CAMPOS) edita las 26 guardadas, menos house_no (número de fila del maestro, se enseña aparte)", () => {
+  it("la ficha (CAMPOS) edita las 26 guardadas, menos house_no (número de fila del maestro, se enseña aparte) y las cuatro del contacto (D-NEXT: van en la lista de contactos)", () => {
     const editables = new Set(CAMPOS.map((c) => c.key as string));
-    for (const col of cabecerasDelExcel.filter((c) => c !== "house_no")) expect(editables, col).toContain(col);
+    const delContacto = ["contact_name", "contact_title", "phone", "email"];
+    for (const col of cabecerasDelExcel.filter((c) => c !== "house_no" && !delContacto.includes(c))) expect(editables, col).toContain(col);
+    for (const col of delContacto) { expect(cabecerasDelExcel, col).toContain(col); expect(editables, col).not.toContain(col); }
     for (const k of ["crm_type_store", "crm_type_group", "associated_with"]) expect(CAMPOS.find((c) => c.key === k)?.grupo).toBe("otros");
   });
   it("concatenate es tienda + cuenta pegadas: se pinta, se ordena y clienteDeLaBase lee las tres del CRM", () => {

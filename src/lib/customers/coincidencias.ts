@@ -39,6 +39,10 @@ export interface Coincidencia<F extends FilaDeCliente = FilaDeCliente> {
   soloParecido: boolean;
 }
 
+/** El campo de la fila y lo mismo de todos sus contactos (193), en un texto que `telefonos` / `correos` saben partir. */
+const conContactos = (campo: string | null, contactos: FilaDeCliente["contacts"], k: "phones" | "emails") =>
+  [campo, ...(contactos ?? []).flatMap((c) => c[k])].filter(Boolean).join(" / ");
+
 const rango = (s: string) => { const i = TIENDAS.findIndex((t) => t.code === codigoDeTienda(s)); return i < 0 ? TIENDAS.length : i; };
 const peso = (m: readonly MotivoDeCoincidencia[]) => m.reduce((p, x) => p + (MOTIVOS_DE_COINCIDENCIA.length - MOTIVOS_DE_COINCIDENCIA.indexOf(x)) ** 2, 0);
 
@@ -61,8 +65,9 @@ export function coincidenciasDe<F extends FilaDeCliente>(borrador: Borrador, lis
     const motivos: MotivoDeCoincidencia[] = [];
     if (nombre && nombre === claveDeNombre(f.account)) motivos.push("nombre");
     if (unificada && unificada === claveDeNombre(f.unified_account)) motivos.push("cuenta_unificada");
-    if (tels.length && telefonos(f.phone).some((t) => tels.includes(t))) motivos.push("telefono");
-    if (mails.length && correos(f.email).some((c) => mails.includes(c))) motivos.push("correo");
+    // D-NEXT: con los teléfonos y correos de TODOS sus contactos, no solo el espejo del primero.
+    if (tels.length && telefonos(conContactos(f.phone, f.contacts, "phones")).some((t) => tels.includes(t))) motivos.push("telefono");
+    if (mails.length && correos(conContactos(f.email, f.contacts, "emails")).some((c) => mails.includes(c))) motivos.push("correo");
     // Sin un nombre de dos letras o más (`claveDeNombre`), no hay con qué parecerse: «A» no se parece a «A».
     if (!motivos.includes("nombre") && nombre) {
       const otro = normalizaNombre(f.account);

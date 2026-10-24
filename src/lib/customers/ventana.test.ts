@@ -183,3 +183,46 @@ describe("la ficha en una ventana centrada (D-654)", () => {
     expect(pinta(null)).not.toContain("data-aviso-duplicado");
   });
 });
+
+// D-NEXT (193): los contactos en la tarjeta «Contacto», como las pastillas de tiendas.
+describe("los contactos de la ficha (D-NEXT)", () => {
+  const contacto = (html: string) => tarjeta(html, "contacto");
+  it("leyendo: una pastilla por contacto, tres a la vista y «+2» con los demás; el elegido con su teléfono (RingCentral) y su correo, cada uno con «📋»", () => {
+    const html = contacto(pinta(dosTiendas));
+    expect(html).toContain('data-contactos="5"');
+    expect(html.match(/data-pastilla-de-contacto="\d"/g)).toEqual(['data-pastilla-de-contacto="0"', 'data-pastilla-de-contacto="1"', 'data-pastilla-de-contacto="2"']);
+    expect(html).toMatch(/<button[^>]*role="tab" aria-selected="true"[^>]*data-pastilla-de-contacto="0">ANA DEMO<\/button>/);
+    expect(html).toMatch(/data-mas-contactos="2">\+2 ▾<\/button>/);
+    expect(html).toContain('href="rcapp://r/call?number=9565550101"');
+    expect(html).toContain('href="mailto:ana@example.com"');
+    expect(html).toContain('data-copiar="(956) 555-0101"');
+    expect(html).toContain('data-copiar="ana@example.com"');
+    // Solo el elegido: el teléfono de Luis (el 2.º) no se pinta hasta pulsar su pastilla.
+    expect(html).not.toContain("555-0121");
+  });
+  it("el teléfono con su persona ya no va suelto arriba, junto a las tiendas («956-… Omar»)", () => {
+    const html = pinta(dosTiendas);
+    const arriba = html.slice(0, html.indexOf('data-grupo="cuenta"'));
+    expect(arriba).not.toContain("tel:");
+    expect(arriba).not.toContain("mailto:");
+    expect(arriba).not.toContain("📞");
+  });
+  it("una fila con el contacto escrito junto en el teléfono sale separada: LUIS, A/P, y su número", () => {
+    const html = contacto(pinta(CLIENTES_DEMO.find((c) => c.id === 4)!));
+    expect(html).toContain('data-contactos="1"');
+    expect(html).not.toContain("data-pastilla-de-contacto");
+    expect(html).toMatch(/data-campo="contact_name">LUIS<\/span>/);
+    expect(html).toMatch(/data-campo="contact_title">A\/P<\/span>/);
+    expect(html).toContain('href="rcapp://r/call?number=9565550104"');
+  });
+  it("editando: cada contacto con su nombre, cargo, teléfonos, correos y nota; «+ Teléfono», «+ Correo» y «+ Agregar contacto»", () => {
+    const html = contacto(pinta(dosTiendas, { editarAlAbrir: true }));
+    expect(html.match(/data-contacto-editable="\d"/g)).toHaveLength(5);
+    const entrada = (k: string) => new RegExp(`<input[^>]*${k}[^>]*>`).exec(html)?.[0] ?? "";
+    expect(entrada('data-telefono-de-contacto="0.1"')).toContain('value="(956) 555-0111"');
+    expect(entrada('data-correo-de-contacto="0.1"')).toContain('value="pagos@example.com"');
+    for (const k of ["data-agregar-telefono=\"0\"", "data-agregar-correo=\"0\"", "data-agregar-contacto", "data-quitar-contacto=\"4\"", "data-nota-de-contacto=\"1\""]) expect(html, k).toContain(k);
+    // En un alta, un contacto en blanco para escribir.
+    expect(contacto(pinta(null)).match(/data-contacto-editable="\d"/g)).toHaveLength(1);
+  });
+});

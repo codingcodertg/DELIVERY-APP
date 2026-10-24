@@ -1,6 +1,7 @@
 import type { UserRole } from "@/lib/types";
 import { colocaColumna, mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
-import { formatoDeCampo } from "./formato";
+import { contactosDe } from "./contactos";
+import { espejoDeContactos, formatoDeCampo, normalizaContactos, type Contacto } from "./formato";
 
 /**
  * «Clientes» (migración 180): las reglas de la pantalla, puras y probadas sin navegador. La base las vuelve a exigir
@@ -51,6 +52,11 @@ export interface Cliente {
    * viejo) falta, y la fila es su propia empresa.
    */
   company_id?: string | null;
+  /**
+   * Migración 193 (D-NEXT): los contactos de la fila, cada uno con su nombre, cargo, teléfonos, correos y nota. Vacía
+   * (o sin la 193) = aún salen de las cuatro columnas de antes (`contactosDe`), que la app escribe como espejo del primero.
+   */
+  contacts?: Contacto[] | null;
 }
 
 export type Lang = "en" | "es";
@@ -315,10 +321,13 @@ const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().normalize
 export function coincide(c: Cliente, busca: string): boolean {
   const q = norm(busca).trim();
   if (!q) return true;
-  const campos = [c.account, c.unified_account, c.contact_name, c.email, c.account_no, c.rep_store, c.rep_qb, c.rep_history, c.notes];
+  // D-NEXT: con TODOS sus contactos (nombres, cargos, correos, notas y teléfonos), no solo el primero.
+  const contactos = contactosDe(c);
+  const campos = [c.account, c.unified_account, c.contact_name, c.email, c.account_no, c.rep_store, c.rep_qb, c.rep_history, c.notes,
+    ...contactos.flatMap((x) => [x.name, x.title, x.note, ...x.emails])];
   if (campos.some((v) => norm(v).includes(q))) return true;
   const digitos = soloDigitos(q);
-  return digitos.length >= 3 && soloDigitos(c.phone).includes(digitos);
+  return digitos.length >= 3 && [c.phone, ...contactos.flatMap((x) => x.phones)].some((p) => soloDigitos(p).includes(digitos));
 }
 
 export function filtrar(lista: readonly Cliente[], f: Filtro): Cliente[] {
@@ -339,9 +348,14 @@ export const ORDEN_INICIAL: Orden = { por: "account", desc: false };
  * «N.º tiendas» (D-666) no es de la fila sino de su empresa: lo dice `tiendasDe` quien la conoce (la lista por
  * empresa); sin ella, no hay valor.
  */
-export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: Cliente) => number): Cliente[keyof Cliente] {
+export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: Cliente) => number): string | number | null {
   if (key === "store_count") return tiendasDe ? tiendasDe(c) : null;
-  return key === "concatenate" ? `${c.store}${c.account}` : c[key];
+  if (key === "concatenate") return `${c.store}${c.account}`;
+  // D-NEXT: contacto, cargo, teléfono y correo son los del PRIMER contacto, ya separados («956-… - OMAR» da OMAR y su
+  // número), aunque la fila aún los tenga juntos en sus columnas.
+  if (key === "contact_name" || key === "contact_title" || key === "phone" || key === "email") return espejoDeContactos(contactosDe(c))[key];
+  if (key === "contacts") return null;
+  return c[key] ?? null;
 }
 
 const rangoEstado = (e: string | null) => { const i = ESTADOS.indexOf(e as Estado); return i < 0 ? ESTADOS.length : i; };
@@ -400,7 +414,7 @@ export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "q
  * parte»), y no se repiten abajo.
  */
 export type GrupoDeCampo = "cabecera" | "cuenta" | "estado" | "contacto" | "credito" | "otros" | "ocultos";
-export interface Campo { key: keyof Cliente; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
+export interface Campo { key: Exclude<keyof Cliente, "contacts">; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
 
 /** Los campos de la ficha, en su orden. Todo lo del Excel se puede corregir; lo de la app (notas) también. */
 export const CAMPOS: readonly Campo[] = [
@@ -422,10 +436,8 @@ export const CAMPOS: readonly Campo[] = [
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "cuenta" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
-  { key: "contact_name", tipo: "text", en: "Contact", es: "Contacto", grupo: "contacto" },
-  { key: "contact_title", tipo: "text", en: "Title", es: "Cargo", grupo: "contacto" },
-  { key: "phone", tipo: "text", en: "Phone", es: "Teléfono", grupo: "contacto" },
-  { key: "email", tipo: "text", en: "Email", es: "Correo", grupo: "contacto" },
+  // D-NEXT: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
+  // la tarjeta «Contacto» pinta y edita aparte (`contactos.ts`). Las cuatro columnas quedan como espejo del primero.
   { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "contacto" },
   { key: "terms", tipo: "text", en: "Terms", es: "Términos", grupo: "credito" },
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
@@ -537,7 +549,7 @@ export function formDe(c: Cliente | null): Record<string, string> {
   return f;
 }
 
-export type Parche = Partial<Record<keyof Cliente, string | number | null>>;
+export type Parche = Partial<Record<Exclude<keyof Cliente, "contacts">, string | number | null>> & { contacts?: Contacto[] };
 
 /**
  * Lo que cambió entre la ficha original y la editada, con el tipo de la base: "" → null, los números como número.
@@ -596,6 +608,8 @@ export function clienteDeLaBase(f: Record<string, unknown>): Cliente {
     updated_at: texto(f.updated_at), updated_by: texto(f.updated_by),
     archived_at: texto(f.archived_at), archived_reason: texto(f.archived_reason),
     company_id: texto(f.company_id),
+    // Sin la 193 la columna no llega: null, y los contactos salen de las cuatro de antes.
+    contacts: Array.isArray(f.contacts) ? normalizaContactos(f.contacts) : null,
   };
 }
 

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { accessibleModules, knownModules, landingRoute, MODULES, MODULE_ACCESS } from "@/lib/constants";
 import { securityLabel } from "@/lib/security-log";
-import { COLUMNAS, COLUMNAS_DE_LA_182, COLUMNAS_DE_LA_189, COLUMNAS_SIN_182, COLUMNAS_SIN_189, faltaLa182, leeConRespaldo } from "./almacen";
+import { COLUMNAS, COLUMNAS_DE_LA_182, COLUMNAS_DE_LA_189, COLUMNAS_DE_LA_193, COLUMNAS_SIN_182, COLUMNAS_SIN_189, COLUMNAS_SIN_193, faltaLa182, leeConRespaldo } from "./almacen";
 import { CAMPOS_DE_UNION, motivoDeDuplicado } from "./duplicados";
 import { CAMPOS, ESTADOS, HISTORIAS, QB_ESTADOS } from "./reglas";
 
@@ -130,8 +130,11 @@ describe("la 180", () => {
     const alter182 = /alter table erp\.customers\n([\s\S]*?);/.exec(leer("supabase/migrations/182_clientes_crm.sql"))![1];
     // Y la empresa, la 189.
     const la189 = leer("supabase/migrations/189_clientes_empresas.sql");
+    // Y los contactos, la 193 (D-NEXT).
+    const la193 = leer("supabase/migrations/193_clientes_contactos.sql");
     const dondeEsta = (col: string) => {
-      if ((COLUMNAS_DE_LA_189 as readonly string[]).includes(col)) expect(la189, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
+      if ((COLUMNAS_DE_LA_193 as readonly string[]).includes(col)) expect(la193, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
+      else if ((COLUMNAS_DE_LA_189 as readonly string[]).includes(col)) expect(la189, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
       else if (col === "archived_at" || col === "archived_reason") expect(alter181, col).toMatch(new RegExp(`add column if not exists ${col}\\s`));
       else if ((COLUMNAS_DE_LA_182 as readonly string[]).includes(col)) expect(alter182, col).toMatch(new RegExp(`add column if not exists ${col}\\s`));
       else expect(tabla, col).toMatch(new RegExp(`\\n  ${col}\\s`));
@@ -214,17 +217,24 @@ describe("la 182 · las tres del CRM", () => {
     for (const col of COLUMNAS_DE_LA_182) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_182).not.toContain(col); }
     expect(COLUMNAS_SIN_182).toContain("archived_reason");
     const pedidas: string[] = [];
-    // Sin la 182 (ni la 189): primero sin company_id, que también falla, y luego sin las tres.
-    const r = await leeConRespaldo(async (cols) => { pedidas.push(cols); return pedidas.length < 3 ? { data: null, error: { code: "42703", message: "column crm_type_store does not exist" } } : { data: [{ id: 1 }], error: null }; });
-    expect(pedidas).toEqual([COLUMNAS, COLUMNAS_SIN_189, COLUMNAS_SIN_182]);
+    // Sin la 182 (ni la 189 ni la 193): primero sin contacts, luego sin company_id, que también fallan, y luego sin las tres.
+    const r = await leeConRespaldo(async (cols) => { pedidas.push(cols); return pedidas.length < 4 ? { data: null, error: { code: "42703", message: "column crm_type_store does not exist" } } : { data: [{ id: 1 }], error: null }; });
+    expect(pedidas).toEqual([COLUMNAS, COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]);
     expect(r.data).toEqual([{ id: 1 }]);
     for (const col of COLUMNAS_DE_LA_189) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_189).not.toContain(col); expect(COLUMNAS_SIN_182).not.toContain(col); }
     expect(COLUMNAS_SIN_189).toContain("crm_type_store");
-    // Con la 182 y sin la 189: basta quitar company_id.
+    // Con la 182 y sin la 189 (ni la 193): quitar contacts no basta; quitar también company_id, sí.
     const solo189: string[] = [];
-    const r189 = await leeConRespaldo(async (cols) => { solo189.push(cols); return solo189.length === 1 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: [{ id: 2 }], error: null }; });
-    expect(solo189).toEqual([COLUMNAS, COLUMNAS_SIN_189]);
+    const r189 = await leeConRespaldo(async (cols) => { solo189.push(cols); return solo189.length < 3 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: [{ id: 2 }], error: null }; });
+    expect(solo189).toEqual([COLUMNAS, COLUMNAS_SIN_193, COLUMNAS_SIN_189]);
     expect(r189.data).toEqual([{ id: 2 }]);
+    // D-NEXT: con todo menos la 193, basta quitar contacts; y las demás siguen ahí.
+    for (const col of COLUMNAS_DE_LA_193) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_193).not.toContain(col); expect(COLUMNAS_SIN_189).not.toContain(col); }
+    expect(COLUMNAS_SIN_193).toContain("company_id");
+    const solo193: string[] = [];
+    const r193 = await leeConRespaldo(async (cols) => { solo193.push(cols); return solo193.length === 1 ? { data: null, error: { code: "PGRST204", message: "Could not find the 'contacts' column" } } : { data: [{ id: 3 }], error: null }; });
+    expect(solo193).toEqual([COLUMNAS, COLUMNAS_SIN_193]);
+    expect(r193.data).toEqual([{ id: 3 }]);
     // Otro error no se reintenta: se devuelve tal cual.
     const otras: string[] = [];
     const r2 = await leeConRespaldo(async (cols) => { otras.push(cols); return { data: null, error: { code: "42501", message: "permission denied" } }; });

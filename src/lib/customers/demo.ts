@@ -21,10 +21,18 @@ const base = (n: number, c: Partial<Cliente>): Cliente => ({
 
 export const CLIENTES_DEMO: Cliente[] = [
   // 1 y 2 son la MISMA empresa en dos tiendas (189): la lista pinta una fila y la ficha cambia de tienda.
-  base(1, { store: "MCA", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER", crm_type_store: "LARGE", crm_type_group: "LARGE", associated_with: "DEMO GROUP" }),
+  base(1, { store: "MCA", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER", crm_type_store: "LARGE", crm_type_group: "LARGE", associated_with: "DEMO GROUP",
+    // D-NEXT: cinco contactos (193), para que la ficha enseñe tres pastillas y «+2».
+    contacts: [
+      { name: "ANA DEMO", title: "OWNER", phones: ["(956) 555-0101", "(956) 555-0111"], emails: ["ana@example.com", "pagos@example.com"], note: null },
+      { name: "LUIS DEMO", title: "A/P", phones: ["(956) 555-0121"], emails: ["luis@example.com"], note: "solo para POs" },
+      { name: "MARTA DEMO", title: "OFFICE", phones: ["(956) 555-0131"], emails: [], note: null },
+      { name: "PEDRO DEMO", title: null, phones: [], emails: ["pedro@example.com"], note: null },
+      { name: "SOFIA DEMO", title: "PM", phones: ["(956) 555-0141"], emails: [], note: null },
+    ] }),
   base(2, { store: "PHR", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE DEC", status_group: "ACTIVE INC", history_store: "SMALL", history_group: "LARGE", rep_store: "FR", rep_qb: "IM", rep_history: "IM", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000 }),
   base(3, { store: "BRO", account: "Demo Drywall Inc", status_store: "NEW", status_group: "NEW", history_store: "INSIGNIFICANT", history_group: "SMALL", rep_store: "CRR", phone: "956-555-0102", terms: "Due on receipt" }),
-  base(4, { store: "EDG", account: "Demo Tile Gallery", status_store: "LOST", status_group: "LOST", history_store: "MID", history_group: "MID", rep_store: "YG", rep_qb: "YG", email: "gallery@example.com", terms: "25 Days", credit_limit: 6000, account_no: "INTERNAL CREDIT" }),
+  base(4, { store: "EDG", account: "Demo Tile Gallery", status_store: "LOST", status_group: "LOST", history_store: "MID", history_group: "MID", rep_store: "YG", rep_qb: "YG", phone: "956-555-0104 - Luis, A/P", email: "gallery@example.com", terms: "25 Days", credit_limit: 6000, account_no: "INTERNAL CREDIT" }),
   base(5, { store: "WES", account: "Demo Walk-in", qb_status: "NOT FOUND IN UPDATE", activity_status: "walk in", status_store: "NONE SALE", status_group: "NONE SALE", history_store: "INSIGNIFICANT", history_group: "INSIGNIFICANT" }),
   base(6, { store: "MCA", account: "Demo Construction Group", status_store: "ACTIVE INC", history_store: "MID", rep_store: "SCG", contact_name: "Beto Demo", phone: "(555) 010-3", email: "beto@example.com", terms: "NET 15", credit_limit: 10000, notes: "Demo note." }),
   // Dos SOSPECHOSOS para «Decidir si se juntan» (189): 9 se parece a 3 y tiene su teléfono, en otra tienda (juntar =
