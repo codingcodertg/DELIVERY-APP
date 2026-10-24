@@ -111,6 +111,7 @@ import {
 } from "@/lib/arrastre-de-paradas";
 import { ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
 import { hechasQueSePintan, horaReal, resumenDeEntregas, type FilaPintada } from "@/lib/hechas-del-gestor";
+import { claveDeEta, desvio, filasNuevasDeEtas, mapaDeEtas, textoDelDesvio, type FilaDeEta } from "@/lib/eta-del-plan";
 import { textoDelEstadoDelPlan, type EstadoDelPlan } from "@/lib/route-plan/estado-del-plan";
 import {
   cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, numeroDePallets,
@@ -1406,6 +1407,7 @@ export default function RoutesPage() {
     switch (c.key) {
       case "p_type": return <td key={c.key} title={d?.order_type || undefined}>{d?.order_type || "—"}</td>;
       case "p_eta": return <Fragment key={c.key}>{como.llegada}</Fragment>;
+      case "p_actual": return celdaReal(c.key, d, como.tipo);
       case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen)) || "—")}</td>;
       case "p_address": return <td key={c.key} title={d?.delivery_address || undefined}>{(d && ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen)) || "—"}{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}</td>;
       case "p_windows": return <td key={c.key}>{como.tipo === "D" && d ? fmtWindows(d.delivery_windows) : ""}</td>;
@@ -1581,6 +1583,51 @@ export default function RoutesPage() {
     ...(soloLectura ? { buscaBases: "si_falta" as const } : {}),
     invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],
   });
+  // D-671 (194): la PRIMERA llegada que se midió hoy para cada parada (`delivery_eta_plans`): la «ETA» de lo ya hecho, al
+  // lado de su hora real («Actual»). Se lee la del día que se mira; y se apunta, solo HOY y solo lo que aún no estaba, cada
+  // vez que se mide una ruta: la primera gana (en la base, `on conflict do nothing`). Sin la 194 no se lee ni se apunta.
+  const [etasDelPlan, setEtasDelPlan] = useState<Map<string, string>>(() => new Map());
+  const sinTablaDeEtas = useRef(false);
+  useEffect(() => {
+    let vivo = true;
+    setEtasDelPlan(new Map());
+    if (SIN_BASE) return;
+    void createClient().from("delivery_eta_plans").select("delivery_id, kind, eta").eq("plan_date", date).range(0, 4999).then(({ data, error }) => {
+      if (!vivo) return;
+      if (error) { sinTablaDeEtas.current = true; return; }
+      setEtasDelPlan(mapaDeEtas((data ?? []) as FilaDeEta[]));
+    });
+    return () => { vivo = false; };
+  }, [date]);
+  const apuntaEtas = !soloLectura && date === todayISO() && !!me && ["admin", "logistics", "manager", "accounting"].includes(me.role);
+  useEffect(() => {
+    if (!apuntaEtas || sinTablaDeEtas.current) return;
+    const nuevas = filasNuevasDeEtas(routeEtas, date, etasDelPlan);
+    if (!nuevas.length) return;
+    // En el demo (sin base) se quedan en memoria, con la misma regla: la primera gana.
+    setEtasDelPlan((m) => { const n = new Map(m); for (const f of nuevas) if (!n.has(claveDeEta(f.delivery_id, f.kind))) n.set(claveDeEta(f.delivery_id, f.kind), f.eta); return n; });
+    if (SIN_BASE) return;
+    void createClient().from("delivery_eta_plans").upsert(nuevas, { onConflict: "delivery_id,plan_date,kind", ignoreDuplicates: true }).then(({ error }) => {
+      if (error) { sinTablaDeEtas.current = true; return; }
+      // Otro pudo apuntar antes la misma parada: manda la de la base.
+      void createClient().from("delivery_eta_plans").select("delivery_id, kind, eta").eq("plan_date", date).range(0, 4999)
+        .then(({ data }) => { if (data) setEtasDelPlan(mapaDeEtas(data as FilaDeEta[])); });
+    });
+  }, [routeEtas, apuntaEtas, date]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** «Actual» (D-671): la hora real de la parada, si ya está hecha, y cuánto se desvió de su llegada prevista. */
+  const celdaReal = (key: string, d: Delivery | undefined, tipo: "P" | "D") => {
+    const hecha = !!d && (tipo === "D" ? d.stage === "delivered" : d.stage === "picked_up" || d.stage === "delivered");
+    const hora = hecha && d ? horaReal(d, tipo) : null;
+    if (!hora) return <td key={key} data-real="" style={{ color: "var(--gray)" }}>{hecha ? "✓" : "—"}</td>;
+    const prevista = d ? etasDelPlan.get(claveDeEta(d.id, tipo)) : undefined;
+    const dif = textoDelDesvio(desvio(prevista, hora), lang === "es");
+    return (
+      <td key={key} data-real={hora} data-desvio={dif?.tono} style={{ fontWeight: 600, whiteSpace: "nowrap" }}
+        title={prevista ? t(`Estimated ${prevista}, ${tipo === "P" ? "picked up" : "delivered"} ${hora}`, `Prevista ${prevista}, ${tipo === "P" ? "recogida" : "entregada"} ${hora}`) : t("No estimate was recorded for this stop today", "Hoy no quedó apuntada una llegada prevista para esta parada")}>
+        ✓ {hora}{dif && <span style={{ marginLeft: 4, fontSize: 11, fontWeight: 600, color: dif.tono === "verde" ? "var(--green)" : dif.tono === "ambar" ? "var(--amber)" : "var(--red)" }}>{dif.texto}</span>}
+      </td>
+    );
+  };
   // La «Llegada» de una orden en «Sin asignar» y «Todas» (D-548): la que su ruta midió para ella, «—» sin chofer, y la
   // hora real si ya está hecha (`llegadaEnLasOrdenes`). La misma para la celda y para ordenar y filtrar.
   const llegadaDeLaOrden = useCallback((d: Delivery) => {
@@ -3138,8 +3185,12 @@ export default function RoutesPage() {
               <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>{fp.tipo === "P" ? "+" : "−"}{numeroDePallets(palletsDeLaOrden(d))}</td>
               {colsParadas.map((c) => celdaDeParada(c, d, {
                 tipo: fp.tipo, sinAviso: true,
-                // La hora REAL, si se guardó; si no, solo que está hecha. Nunca la estimada.
-                llegada: <td data-hora-real={hora ?? ""} style={{ fontWeight: 600 }}>{hecho ? `✓ ${hora ?? t(fp.tipo === "P" ? "picked up" : "delivered", fp.tipo === "P" ? "recogida" : "entregada")}` : `🚚 ${t("on its way", "en camino")}`}</td>,
+                // D-671: la llegada PREVISTA (la primera que se midió hoy, `delivery_eta_plans`); la hora real va en «Actual».
+                // Sin «Actual» a la vista, la real sigue aquí, como antes: lo hecho no se queda sin hora.
+                llegada: colsParadas.some((x) => x.key === "p_actual")
+                  ? <td data-hora-prevista={etasDelPlan.get(claveDeEta(d.id, fp.tipo)) ?? ""} data-hora-real={hora ?? ""} style={{ color: "var(--gray)" }}
+                      title={t("Estimated arrival, the first one measured today", "Llegada prevista: la primera que se midió hoy")}>{etasDelPlan.get(claveDeEta(d.id, fp.tipo)) ?? "—"}</td>
+                  : <td data-hora-real={hora ?? ""} style={{ fontWeight: 600 }}>{hecho ? `✓ ${hora ?? t(fp.tipo === "P" ? "picked up" : "delivered", fp.tipo === "P" ? "recogida" : "entregada")}` : `🚚 ${t("on its way", "en camino")}`}</td>,
                 recogida: fp.tipo === "P" ? <b>{(d.store ?? "").trim() || "—"}</b> : undefined,
               }))}
               <td className="celda-acciones" />

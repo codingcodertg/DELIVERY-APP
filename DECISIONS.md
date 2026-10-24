@@ -47837,3 +47837,38 @@ Sin migración: lee lo que ya hay.
 **Probado:** `por-que-espera-aprobacion.test.ts` (7: el caso de #FV220 con el texto que escribe `textoDelMotivo`, los tres
 que se recalculan, varios apuntados, sin motivo, la última nota por fecha, y que la ficha lo pinta); 6 de 6 mutantes caen.
 **No medido:** en el navegador.
+
+## D-671 · Gestor: columna «Actual» (la hora real) junto a la llegada prevista, que se apunta la primera vez que se mide (migración 194)
+
+**Fecha:** 2026-10-24. **Pedido:** Roberto Rodriguez Jr (admin), con la tabla de paradas del Gestor (1.387.0): «Need a
+column of "Actual" to know when they delivered vs when was their ETA». El dueño, a la propuesta de guardar la primera
+llegada prevista del día: «sí, guarda eso».
+
+**Por qué hacía falta guardar algo (medido):** el Gestor mide la ruta en el navegador y solo de lo que falta
+(`listaDe` → `pendientesDelDia`); una parada hecha ya no tiene llegada calculada, y en la columna «Llegada» enseñaba su
+hora real («✓ 09:08»). Los planes con llegada (`route_plan_stops`) solo existen los días que se publica uno: el último,
+el 23-oct.
+
+**Qué cambia:**
+- **Base (194):** `public.delivery_eta_plans` (orden, día, parada P/D, hora «HH:MM»), una fila por orden, día y parada.
+  Lee quien entra a Entregas; apuntan admin, logística, gerente y Office. Sin UPDATE ni DELETE: la primera gana.
+- **Se apunta sola:** cada vez que el Gestor mide una ruta, HOY y sin ser solo lectura, las paradas que aún no tenían
+  llegada apuntada (`filasNuevasDeEtas`; una recogida de varias órdenes, a cada una) van con `upsert … ignoreDuplicates`;
+  luego se relee el día (si otro apuntó antes, manda la suya). En el demo, en memoria con la misma regla.
+- **La tabla de paradas:** columna nueva «Paradas: Real» / «Stops: Actual», tras la llegada, de partida (tanda `_v9`: a
+  quien ya guardó sus columnas le llega una vez, en su sitio, `conRealEnSuSitio`). En lo hecho: «✓ 09:08» y el desvío
+  contra la prevista («+8 min»: verde hasta 10 min tarde, ámbar hasta 30, rojo después; «a tiempo» si es exacto), con la
+  prevista en el título. La «Llegada» de una fila hecha enseña la PREVISTA (o «—» si ese día no se apuntó); sin «Actual» a
+  la vista, sigue enseñando la real, como antes. En lo pendiente, «—». En «Todas», la misma celda.
+
+**No cubre:** una parada que nadie midió en el Gestor ese día antes de hacerse no tiene prevista («—»): se apunta al medir,
+no al amanecer. Una ruta que se reordena después de la primera medida conserva la primera prevista: es lo que se pidió
+(comparar contra el plan), no la última.
+
+**Probado:** `eta-del-plan.test.ts` (10: lo que se apunta, la primera gana, el desvío y su tono, el sitio de «Actual» en un orden guardado, el Gestor lo lee / apunta /
+pinta, la 194); las pruebas de columnas del Gestor puestas al día con «Actual» y `_v9` (los bytes del peor caso suben, 14 094 → 14 366 con 10 plantillas llenas, y siguen cabiendo 4; el caso «medido en Postgres» de plantillas deja fuera `p_actual`, como hizo D-445); 8 de 8 mutantes caen. Ensayo de la 194 contra producción
+con ROLLBACK: entera. **No medido:** en el navegador (el demo no mide rutas ni tiene entregadas hoy); que el Gestor real
+apunte al medir.
+
+**Pendiente del dueño:** aplicar la 194 (su comando). Sin ella, el Gestor no lee ni apunta y «Actual» enseña la hora real
+sin desvío.
