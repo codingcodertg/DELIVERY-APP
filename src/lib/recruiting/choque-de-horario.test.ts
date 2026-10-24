@@ -81,8 +81,8 @@ describe("choque de horario al agendar (D-632)", () => {
   });
 });
 
-// D-NEXT: el caso del dueño, 2026-10-24: Jorge Galvan agendado a las 11:30 y «Ahorita» a las 11:35 → sin aviso.
-describe("una llamada para ahora mismo no avisa (D-NEXT)", () => {
+// D-667: el caso del dueño, 2026-10-24: Jorge Galvan agendado a las 11:30 y «Ahorita» a las 11:35 → sin aviso.
+describe("una llamada para ahora mismo no avisa (D-667)", () => {
   const A_LAS_1130 = "2026-10-24T16:30:00.000Z"; // 11:30 a.m. en Brownsville (CDT)
   const a = (n: number) => Date.parse(A_LAS_1130) + n * 60_000;
   const jorge = cand({ id: "jorge", name: "Jorge Galvan", phone_date: A_LAS_1130 });
@@ -107,7 +107,7 @@ describe("una llamada para ahora mismo no avisa (D-NEXT)", () => {
 
 // Quien llama: las dos llamadas de ModalHost (programar desde el perfil y el alta) le pasan la hora de ahora; sin ella la
 // regla de arriba no se aplica y el aviso vuelve a salir con «Ahorita».
-describe("ModalHost le pasa `ahora` a las llamadas (D-NEXT)", () => {
+describe("ModalHost le pasa `ahora` a las llamadas (D-667)", () => {
   it("las dos llamadas que piden choques de una llamada llevan `ahora: Date.now()`", async () => {
     const { readFileSync } = await import("node:fs");
     const fuente = readFileSync("src/components/recruiting/ModalHost.tsx", "utf8");

@@ -14,7 +14,7 @@ import { formatoEnBrownsville } from "./hora-de-brownsville";
  *   ya se hizo (hay entrevista guardada) no ocupa la hora.
  * - Chocan si empiezan a menos de 30 minutos una de otra: 3:00 y 3:15 chocan; 3:00 y 3:30, no.
  * - No cuentan el propio candidato, los archivados ni los que ya están en una etapa final (contratado / descartado).
- * - D-NEXT: una LLAMADA para ahora mismo no es una cita, es la entrevista que se va a hacer ya: no avisa. El dueño,
+ * - D-667: una LLAMADA para ahora mismo no es una cita, es la entrevista que se va a hacer ya: no avisa. El dueño,
  *   2026-10-24, con el aviso «Ya hay Jorge Galvan agendado a esa hora (11:30 a.m.)» al pulsar «Ahorita» a las 11:35:
  *   «cuando yo le doy llamar ahorita no cuenta, solamente cuando agendo ahead of time». Por la hora y no por el botón:
  *   escribir la hora de ahora a mano es lo mismo, y el formulario se rellena unos minutos después de pulsarlo.

@@ -47724,7 +47724,7 @@ sentidos con empate por cuenta, el filtro de la columna, elegible y de entrada);
 nombre. En el demo (390 y 1440 px): sale tras «Tienda», el número coincide con las pastillas, dos clics ponen «Demo Homes
 LLC» (2) arriba; 0 px de desborde. **No medido:** contra la lista real en el navegador.
 
-## D-NEXT · RR. HH.: una llamada para «Ahorita» no avisa de choque de horario
+## D-667 · RR. HH.: una llamada para «Ahorita» no avisa de choque de horario
 
 **Fecha:** 2026-10-24. **Pedido:** el dueño, con captura del alta de Juan Castanon (llamada a las 11:35 con «Ahorita») y el
 aviso «⚠️ Ya hay Jorge Galvan agendado a esa hora (11:30 a.m.). ¿Agendar de todos modos?»: «me salió esto pero cuando yo
