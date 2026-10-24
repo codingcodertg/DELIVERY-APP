@@ -1303,8 +1303,9 @@ export function puedeAnular(r: UserRole, stage: Stage, suya = false): boolean {
   if (ordersLikeOfficeManager(r)) return true;
   if (r === "sales" || r === "driver") {
     if (stage === "draft" || stage === "rejected") return true;
-    // D-656 (191): el vendedor anula SU orden pendiente o programada. Desde `fulfilling` la tiene almacén: oficina.
-    return r === "sales" && suya && (stage === "pending" || stage === "approved");
+    // D-656 (191) y D-NEXT (192): el vendedor anula SU orden hasta «Listo». Desde `picked_up` (la carga ya va en el
+    // camión) se lo pide al chofer o a la oficina.
+    return r === "sales" && suya && (stage === "pending" || stage === "approved" || stage === "fulfilling" || stage === "ready");
   }
   return false;   // almacén y logística no anulan
 }

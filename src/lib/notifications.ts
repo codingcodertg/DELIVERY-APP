@@ -76,7 +76,7 @@ export function notificationsForStage(args: {
       push(creatorId, "delivered", `Order ${label} was delivered`);
       break;
     case "canceled": {
-      // D-656 (migración 191): el vendedor anula SU orden pendiente o programada sin pasar por nadie, así que la oficina
+      // D-656 (migración 191): el vendedor anula SU orden hasta «Listo» (D-NEXT, 192) sin pasar por nadie, así que la oficina
       // —gerente y Office, los mismos de D-639— se entera aquí, con el motivo. Lo que anula la oficina no se avisa: es suyo.
       if (actorRole !== "sales") break;
       const quien = users.find((u) => u.id === actorId)?.full_name?.trim() || "A sales rep";

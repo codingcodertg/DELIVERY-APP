@@ -579,7 +579,7 @@ export default function OrdersPage() {
 
   /** Se enseña el botón si hay algo en la selección que este rol pueda anular desde su etapa; lo que
    *  no se pueda lo rechazará la base orden por orden, como cualquier otra tanda. La dueñez cuenta para ventas, que anula
-   *  SU orden pendiente o programada (D-656, 191). */
+   *  SU orden hasta «Listo» (D-656, 191; D-NEXT, 192). */
   const puedeAnularAlgoDeLaSeleccion = chosen.some((d) => puedeAnular(me.role, d.stage, esMia(d, me)));
 
   const bulkStage = async (to: "pending" | "approved" | "canceled", extra?: Partial<Delivery>, nota?: string) => {
