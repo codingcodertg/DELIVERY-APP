@@ -394,7 +394,7 @@ export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "q
  * y en las pestañas de tiendas (D-654, el dueño: «abajo donde dice cuenta, vuelve a decir la tienda […] elimina esa
  * parte»), y no se repiten abajo.
  */
-export type GrupoDeCampo = "cabecera" | "estado" | "vendedores" | "contacto" | "credito" | "otros";
+export type GrupoDeCampo = "cabecera" | "estado" | "vendedores" | "contacto" | "credito" | "otros" | "ocultos";
 export interface Campo { key: keyof Cliente; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
 
 /** Los campos de la ficha, en su orden. Todo lo del Excel se puede corregir; lo de la app (notas) también. */
@@ -425,18 +425,27 @@ export const CAMPOS: readonly Campo[] = [
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
   { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito", grupo: "credito" },
-  { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "otros" },
+  // D-660: el dueño no la quería a la vista: va en «Campos ocultos», plegado al final de la ficha (`filasOcultas`).
+  { key: "added_batch", tipo: "text", en: "Added (batch)", es: "Añadido (tanda)", grupo: "ocultos" },
   { key: "notes", tipo: "textarea", en: "Notes", es: "Notas", grupo: "otros" },
 ];
 
-export const GRUPOS: readonly { key: Exclude<GrupoDeCampo, "cabecera">; en: string; es: string }[] = [
+export const GRUPOS: readonly { key: Exclude<GrupoDeCampo, "cabecera" | "ocultos">; en: string; es: string }[] = [
   { key: "contacto", en: "Contact", es: "Contacto" },
   { key: "credito", en: "Credit & terms", es: "Crédito y términos" },
   { key: "estado", en: "Status & history", es: "Estado e historial" },
   { key: "vendedores", en: "Sales reps", es: "Vendedores" },
-  // D-634: el CRM, lo de la app y lo que solo identifica la fila del Excel, juntos en la última tarjeta.
+  // D-634: el CRM y lo de la app juntos en la última tarjeta. Lo que solo identifica la fila del Excel ya no va aquí:
+  // va en «Campos ocultos» (D-660).
   { key: "otros", en: "Other", es: "Otros" },
 ];
+
+/**
+ * D-660: el apartado plegado al final de la ficha. El dueño, con la captura de «N.º House · Tienda + cuenta
+ * (CONCATENATE)» en «Otros»: «this was supposed to go into another like a hidden field in customer». Lo que en D-654 se
+ * leyó como «hiring notes» era «hidden notes»: campos que no se miran a diario y que no tienen que estorbar.
+ */
+export const GRUPO_OCULTO = { key: "ocultos", en: "Hidden fields", es: "Campos ocultos" } as const;
 
 /**
  * Una línea de una tarjeta de la ficha: un campo que se edita (`campo`), o uno que solo se lee (`campo: null`): House #
@@ -445,28 +454,32 @@ export const GRUPOS: readonly { key: Exclude<GrupoDeCampo, "cabecera">; en: stri
 export interface FilaDeFicha { key: keyof Cliente | "concatenate"; en: string; es: string; campo: Campo | null }
 
 /**
- * Lo que solo identifica la fila del Excel y no se edita. Va en «Otros» justo antes de las notas (D-634), junto a
- * «Añadido (tanda)»: el dueño (D-654) pidió esas tres juntas ahí, «añadido tanda, número de house y tienda más cuenta».
+ * Lo que solo identifica la fila del Excel y no se edita. Va en «Campos ocultos» detrás de «Añadido (tanda)» (D-660;
+ * en D-654 iba en «Otros»): el dueño pidió esas tres juntas, «añadido tanda, número de house y tienda más cuenta».
  */
 const FILAS_SOLO_DE_LECTURA: readonly FilaDeFicha[] = [
   { key: "house_no", en: "House #", es: "N.º House", campo: null },
   { key: "concatenate", en: "Store + account (CONCATENATE)", es: "Tienda + cuenta (CONCATENATE)", campo: null },
 ];
 
+const filaDe = (campo: Campo): FilaDeFicha => ({ key: campo.key, en: campo.en, es: campo.es, campo });
+
 /**
- * Las tarjetas de la ficha y sus líneas, en su orden: cada campo de `CAMPOS` sale una vez (los de la cabecera, ninguna:
- * están arriba), ningún grupo queda vacío, y en «Otros» House # y la CONCATENATE van antes de las notas. La ventana de
- * la lista y la página `/customers/[id]` pintan esto mismo.
+ * Las tarjetas de la ficha y sus líneas, en su orden: cada campo de `CAMPOS` sale una vez, aquí o en `filasOcultas`
+ * (los de la cabecera, ninguna: están arriba), y ningún grupo queda vacío. La ventana de la lista y la página
+ * `/customers/[id]` pintan esto mismo.
  */
 export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDeFicha[] }[] {
-  return GRUPOS.map((grupo) => {
-    const filas: FilaDeFicha[] = [];
-    for (const campo of CAMPOS.filter((c) => c.grupo === grupo.key)) {
-      if (campo.key === "notes") filas.push(...FILAS_SOLO_DE_LECTURA);
-      filas.push({ key: campo.key, en: campo.en, es: campo.es, campo });
-    }
-    return { grupo, filas };
-  }).filter((g) => g.filas.length > 0);
+  return GRUPOS.map((grupo) => ({ grupo, filas: CAMPOS.filter((c) => c.grupo === grupo.key).map(filaDe) }))
+    .filter((g) => g.filas.length > 0);
+}
+
+/**
+ * D-660: las líneas de «Campos ocultos», el apartado plegado al final de la ficha: «Añadido (tanda)» (se edita), N.º
+ * House y la CONCATENATE (se leen).
+ */
+export function filasOcultas(): FilaDeFicha[] {
+  return [...CAMPOS.filter((c) => c.grupo === GRUPO_OCULTO.key).map(filaDe), ...FILAS_SOLO_DE_LECTURA];
 }
 
 /** El texto de una línea de la ficha: el del campo (`textoDeCampo`), o el de las de solo lectura. */

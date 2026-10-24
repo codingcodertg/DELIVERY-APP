@@ -47223,6 +47223,8 @@ para la guarda, que lo dice. Lo normal sigue cabiendo de sobra.
 
 ## D-654 · Clientes: la ficha se abre en una ventana centrada, como la orden de Entregas; arriba el nombre, sin «Cuenta» ni «Tienda» repetidas, y House # y la CONCATENATE en «Otros»
 
+> **Reemplazada en parte por D-660** (2026-10-23): Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE) salen de «Otros» y van en «🔒 Campos ocultos», un apartado plegado al final de la ficha («hiring notes» era «hidden notes»). «Otros» queda con Tipo CRM ×2, Asociado con, Cuenta unificada y Notas.
+
 **Fecha:** 2026-10-23. Hecho por un worker del orquestador en `clientes-ficha-ventana`. Sin migración.
 
 **Pedido (el dueño, 2026-10-23, por voz, literal):** «Que cuando uno le da clic al cliente, este viene y abre ese side window
@@ -47510,3 +47512,51 @@ compacta». Las claves internas (`completa` / `eficiente`, en `vistas-del-gestor
 no cambian, para que nadie pierda la vista que tenía elegida.
 
 **Prueba:** ninguna fijaba el texto del rótulo; `vistas-del-gestor.test.ts` sigue probando el selector por sus claves.
+## D-660 · Clientes: Añadido (tanda), N.º House y la CONCATENATE van en «🔒 Campos ocultos», plegado al final de la ficha
+
+**Fecha:** 2026-10-23. Hecho por un worker del orquestador en `clientes-campos-ocultos`. Sin migración. **Reemplaza en
+parte a D-654** (lleva su nota).
+
+**Pedido (el dueño, 2026-10-23, literal), con una captura de «N.º House 342 · Tienda + cuenta (CONCATENATE) MCA-5W32…»
+en «Otros»:** «this was supposed to go into another like a hidden field in customer»
+
+**Leído así:** el «hiring notes» del pedido de D-654 era «hidden notes»: esas tres no eran para «Otros», sino para un
+sitio aparte que no se ve si no se busca. Lo decidió el orquestador: un apartado plegado por defecto, al final de la
+ficha.
+
+**Qué cambia:**
+- **«🔒 Campos ocultos» / «Hidden fields»**: un `<details>` al final de la ficha, debajo de las tarjetas, que abre
+  **plegado** (sin `open`). Dentro, en este orden: Añadido (tanda), N.º House y Tienda + cuenta (CONCATENATE). Un clic en
+  el rótulo lo despliega y otro lo pliega; no se recuerda.
+  - Va dentro de `TarjetasDeLaFicha`, así que sale igual en la ventana de la lista y en la página `/customers/[id]`.
+  - Editando, sigue plegado al entrar; dentro, «Añadido (tanda)» es su campo, como antes en «Otros». N.º House y la
+    CONCATENATE se siguen leyendo (D-654). En un alta solo lleva «Añadido (tanda)».
+  - En el código: `added_batch` pasa al grupo `ocultos` de `CAMPOS`; `GRUPO_OCULTO` y `filasOcultas()` en
+    `lib/customers/reglas.ts`. `GRUPOS` (las tarjetas) no lo lleva.
+- **«Otros»** queda con Tipo CRM (tienda), Tipo CRM (grupo), Asociado con, Cuenta unificada y Notas.
+- **La lista**: ninguna de las tres era columna de entrada (`COLUMNAS_INICIALES`), y siguen sin serlo; el selector de
+  columnas las sigue ofreciendo. Queda fijado en una prueba.
+- **La página `/customers/[id]` lleva al final el hueco de la burbuja de Ayuda** (`--hueco-de-ayuda`, D-530), como la
+  ventana (D-654). Lo último de la página es ahora el apartado, y a 390 px la burbuja lo tapaba al final del
+  desplazamiento (medido: el rótulo en y 847–863 y la burbuja en x 330–376 · y 840–886). Con el hueco, 0 solapes.
+
+**Prueba:**
+- `reglas.test.ts`: «Otros» sin las tres y ninguna tarjeta con ellas; `filasOcultas` lleva las tres en orden, con
+  «Añadido (tanda)» editable y las otras dos de lectura; `GRUPOS` sin `ocultos`; cada campo sale una vez entre tarjetas y
+  apartado; ninguna de las tres en `COLUMNAS_INICIALES` ni en la preferencia inicial, y las tres en el selector.
+- `ventana.test.ts` (la ventana pintada con React en el servidor, clientes inventados del demo): el `<details>` sin
+  `open`, su rótulo «🔒 Campos ocultos», las tres dentro con su valor y detrás de «Otros», y fuera del apartado ninguna;
+  editando, plegado y con «Añadido (tanda)» como campo; solo lectura y alta.
+- 8 mutantes, los 8 caen con una prueba con nombre: `tanda-en-otros`, `ocultas-sin-solo-lectura`, `details-abierto`,
+  `sin-apartado`, `ocultas-sin-control`, `house-de-entrada`, `rotulo-en-ingles`, `alta-sin-apartado`.
+- **Navegador (demo, 390 y 1440 px, ratón de verdad por CDP):** la ventana abre con el apartado plegado (sin texto
+  dentro); un clic en el rótulo lo despliega con «Añadido (tanda) = 1 · N.º House = 6 · Tienda + cuenta = MCADemo
+  Construction Group», y otro lo pliega. «Editar» → plegado; desplegado, «Añadido (tanda)» es un campo, se escribe y
+  «Guardar» vuelve a lectura con «Guardado ✓» y el valor nuevo. La página `/customers/1`, igual, plegada al abrir.
+  0 px de desborde (página, ventana y apartado) en todos los pasos. La burbuja contra la barra de la ventana y el rótulo,
+  al final del desplazamiento, leyendo y editando: 0 solapes en los dos anchos (a 390, «Guardar» en y 778–814 y la
+  burbuja en y 840–886).
+
+**No medido:**
+- Contra la base real: el guardado de «Añadido (tanda)» se probó con el almacén del demo.
+- Safari/iPad: el triángulo del `<summary>` es el del navegador.
