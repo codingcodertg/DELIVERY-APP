@@ -134,7 +134,7 @@ describe("la 180", () => {
     const la193 = leer("supabase/migrations/193_clientes_contactos.sql");
     // Y los impuestos y el sitio web, la 195 (D-672).
     const la195 = leer("supabase/migrations/195_clientes_impuestos_y_archivos.sql");
-    // Y las redes sociales, la 197 (D-NEXT).
+    // Y las redes sociales, la 197 (D-682).
     const la197 = leer("supabase/migrations/197_clientes_redes_sociales.sql");
     const dondeEsta = (col: string) => {
       if ((COLUMNAS_DE_LA_197 as readonly string[]).includes(col)) expect(la197, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
@@ -248,7 +248,7 @@ describe("la 182 · las tres del CRM", () => {
     const r195 = await leeConRespaldo(async (cols) => { solo195.push(cols); return solo195.length < 3 ? { data: null, error: { code: "42703", message: "column customers.tax_terms does not exist" } } : { data: [{ id: 4 }], error: null }; });
     expect(solo195).toEqual([COLUMNAS, COLUMNAS_SIN_197, COLUMNAS_SIN_195]);
     expect(r195.data).toEqual([{ id: 4 }]);
-    // D-NEXT: con todo menos la 197, basta quitar socials; y las demás siguen ahí.
+    // D-682: con todo menos la 197, basta quitar socials; y las demás siguen ahí.
     for (const col of COLUMNAS_DE_LA_197) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_197).not.toContain(col); expect(COLUMNAS_SIN_195).not.toContain(col); }
     expect(COLUMNAS_SIN_197).toContain("tax_terms");
     const solo197: string[] = [];

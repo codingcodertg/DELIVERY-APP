@@ -118,7 +118,7 @@ describe("la 189 · empresas y la cola", () => {
     });
     const r = await almacenDeLaBase({ from: () => cadena } as any).guardar(7, { notes: "x" });
     expect(r.ok).toBe(true);
-    // D-NEXT: primero sin socials (197); D-672: luego sin las de la 195 (impuestos y sitio web), luego también sin contacts, y luego sin company_id.
+    // D-682: primero sin socials (197); D-672: luego sin las de la 195 (impuestos y sitio web), luego también sin contacts, y luego sin company_id.
     expect(llamadas).toHaveLength(5);
     expect(llamadas[0]).toContain("socials");
     expect(llamadas[1]).not.toContain("socials");

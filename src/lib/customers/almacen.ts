@@ -68,7 +68,7 @@ export const COLUMNAS_DE_LA_189 = ["company_id"] as const;
 export const COLUMNAS_DE_LA_193 = ["contacts"] as const;
 /** Las de la 195 (D-672): los impuestos de la tienda y el sitio web. Sin ella llegan como null. */
 export const COLUMNAS_DE_LA_195 = ["tax_terms", "website"] as const;
-/** La de la 197 (D-NEXT): las redes sociales. Sin ella llega como null. */
+/** La de la 197 (D-682): las redes sociales. Sin ella llega como null. */
 export const COLUMNAS_DE_LA_197 = ["socials"] as const;
 const sin = (fuera: readonly string[]) => COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !fuera.includes(c)).join(", ");
 export const COLUMNAS_SIN_197 = sin(COLUMNAS_DE_LA_197);

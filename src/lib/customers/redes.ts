@@ -1,7 +1,7 @@
 import type { Parche } from "./reglas";
 
 /**
- * Las redes sociales de un cliente (D-NEXT, migración 197). Roberto Rodriguez Jr (admin), 2026-10-25, en Clientes:
+ * Las redes sociales de un cliente (D-682, migración 197). Roberto Rodriguez Jr (admin), 2026-10-25, en Clientes:
  * «Lets add a Socials tab for their Facebook, Instagram, YouTube, TikTok, Twitter, Alignable, LinkedIn», señalando el
  * sitio a la derecha de las pastillas de contactos. Una pestaña «Socials» en la tarjeta «Contacto», como una pastilla
  * más: pulsarla enseña sus perfiles, cada uno abre en otra pestaña. Se guardan en `erp.customers.socials` (jsonb, un

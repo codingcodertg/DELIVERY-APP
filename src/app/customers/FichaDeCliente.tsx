@@ -48,7 +48,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * PLEGADO. Editando, «Añadido (tanda)» se corrige ahí dentro.
  *
  * La tarjeta «Contacto» abre con los contactos (D-668): leyendo, una pastilla por contacto (`ContactosParaVer`) y, si
- * la cuenta tiene redes sociales, la pastilla «🌐 Socials» (D-NEXT, 197) con sus perfiles; editando, la lista que se
+ * la cuenta tiene redes sociales, la pastilla «🌐 Socials» (D-682, 197) con sus perfiles; editando, la lista que se
  * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). Debajo, la dirección.
  */
 export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, redes, onRedes, almacen, puedeEditar = false, t }: {
@@ -60,7 +60,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
   contactos?: ContactoEnEdicion[];
   onContactos?: (c: ContactoEnEdicion[]) => void;
-  /** D-NEXT: las redes sociales mientras se editan, y quién las cambia. */
+  /** D-682: las redes sociales mientras se editan, y quién las cambia. */
   redes?: RedesEnEdicion;
   onRedes?: (r: RedesEnEdicion) => void;
   /** D-672: con él, la ficha lleva los archivos de la fila (`ArchivosDeLaFicha`; desde D-681, su tarjeta bajo «Campos ocultos»). */
@@ -221,7 +221,7 @@ function BotonCopiar({ texto, t }: { texto: string; t: T }) {
  * Los contactos de la tarjeta «Contacto» (D-668). Como las pastillas de tiendas: una pastilla por contacto, y al
  * pulsarla se ve ese; si no caben (`PASTILLAS_A_LA_VISTA`), «+N» abre un desplegable con los demás. Del elegido: el
  * nombre, el cargo y la nota, y debajo sus teléfonos (pulsar llama con RingCentral, como en RR. HH.) y sus correos
- * (pulsar abre el correo), cada uno con «📋» para solo copiarlo. Con redes sociales (D-NEXT), una pastilla más al final,
+ * (pulsar abre el correo), cada uno con «📋» para solo copiarlo. Con redes sociales (D-682), una pastilla más al final,
  * «🌐 Socials», aunque haya un solo contacto: sus perfiles, uno por red, que abren en otra pestaña. Sin contacto pero con
  * redes, salen ellas.
  */
@@ -318,7 +318,7 @@ function ContactosParaVer({ contactos, redes = {}, t }: { contactos: Contacto[];
   );
 }
 
-/** Las siete redes (D-NEXT), cada una con su casilla: la URL entera o solo el usuario. Debajo de los contactos, al editar. */
+/** Las siete redes (D-682), cada una con su casilla: la URL entera o solo el usuario. Debajo de los contactos, al editar. */
 function RedesParaEditar({ redes, onCambia, t }: { redes: RedesEnEdicion; onCambia: (r: RedesEnEdicion) => void; t: T }) {
   return (
     <fieldset className="my-3 space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-3" data-redes-editando>
@@ -519,7 +519,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const contactosOriginales = useMemo(() => contactosDe(cliente), [cliente]);
   const [contactos, setContactos] = useState<ContactoEnEdicion[]>(() => enEdicion(contactosOriginales));
   useEffect(() => { setContactos(enEdicion(contactosOriginales)); }, [contactosOriginales]);
-  // D-NEXT: y las redes sociales, igual.
+  // D-682: y las redes sociales, igual.
   const redesOriginales = useMemo(() => redesDe(cliente), [cliente]);
   const [redes, setRedes] = useState<RedesEnEdicion>(() => redesEnEdicion(redesOriginales));
   useEffect(() => { setRedes(redesEnEdicion(redesOriginales)); }, [redesOriginales]);

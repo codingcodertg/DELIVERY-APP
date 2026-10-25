@@ -48086,7 +48086,7 @@ ocultos» en la sexta celda de la rejilla (`data-grupo="archivos"`). Lo de dentr
 formulario, la lista, el tipo y «Adjuntar». En un alta, la nota de «se adjuntan después de crear» va en esa tarjeta.
 
 **No medido:** en el navegador; las pruebas de puerta (`archivos.test.ts`, `ventana.test.ts`) fijan el orden.
-## D-NEXT · Clientes: la pestaña «Socials» (Facebook, Instagram, YouTube, TikTok, X, Alignable, LinkedIn)
+## D-682 · Clientes: la pestaña «Socials» (Facebook, Instagram, YouTube, TikTok, X, Alignable, LinkedIn)
 
 **Fecha:** 2026-10-25. **Pedido:** Roberto Rodriguez Jr (admin), con la ficha abierta y señalando el sitio a la derecha
 de las pastillas de contactos: «Lets add a Socials tab for their Facebook, Instagram, YouTube, TikTok, Twitter,

@@ -8,7 +8,7 @@ import { filasDeLaEmpresa } from "./empresas";
 import { hayRedes, NOMBRE_DE_RED, normalizaRedes, parcheDeRedes, REDES, redesDe, redesEnEdicion, textoDeRed, urlDeRed } from "./redes";
 import { clienteDeLaBase, valorDeColumna, type Cliente } from "./reglas";
 
-/* D-NEXT (197). Roberto, 2026-10-25: «Lets add a Socials tab for their Facebook, Instagram, YouTube, TikTok, Twitter,
+/* D-682 (197). Roberto, 2026-10-25: «Lets add a Socials tab for their Facebook, Instagram, YouTube, TikTok, Twitter,
  * Alignable, LinkedIn». */
 const t = (_en: string, es: string) => es;
 

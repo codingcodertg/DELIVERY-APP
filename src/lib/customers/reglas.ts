@@ -64,7 +64,7 @@ export interface Cliente {
    */
   tax_terms?: string | null;
   website?: string | null;
-  /** Migración 197 (D-NEXT): las redes sociales de la cuenta, red → URL o usuario (`redes.ts`). Sin la 197, no llega. */
+  /** Migración 197 (D-682): las redes sociales de la cuenta, red → URL o usuario (`redes.ts`). Sin la 197, no llega. */
   socials?: Redes | null;
 }
 
