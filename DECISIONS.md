@@ -48059,3 +48059,19 @@ donde `pickup_name` y `store` coinciden (casi todas, D-461 contó 2 distintas) n
 (las que este cambio arregla) y 2 en un proveedor («DALTILE», D-537). **Lo que cambia para esas 2:** la fila P dice el
 proveedor en vez de la tienda dueña y, como no tiene coordenadas en Ajustes, su llegada sale «sin tienda» (antes se medía
 desde la tienda dueña, que tampoco era de donde salía el camión). No medido en el navegador con la base real.
+
+## D-680 · Gestor: la hora de llegada de una recogida agrupada decía «sin base»
+
+**Fecha:** 2026-10-25. **Pedido:** el dueño, con la ruta de Ernesto Castillo del 26-oct (1.399.0), señalando «no base» en
+P6 y P7: «whats no base?». Solo P8, la única recogida sola en su tienda, tenía hora (10:10).
+
+**Por qué:** la medida de la ruta va por PARADAS del día (`listaDelDia`): tres recogidas seguidas en la misma tienda son una
+visita, y su hora se guarda con «P:» + las órdenes de las tres. La tabla pinta una fila por orden (D-444) y buscaba la hora
+con «P:» + la orden de la fila (D-616): solo coincidía cuando la parada era de una orden. Sin hora y con tienda con punto,
+el texto de D-456 era «sin base», que además explica otra cosa (una sola parada y el chofer sin tienda).
+
+**Qué cambia:** `ordenesDeLaRecogidaMedida` (usa-medida-de-rutas.ts): la fila busca con las órdenes de SU parada del día
+(`dia.paradas[dia.deFila[k] - 1]`), y si esa parada no es una recogida que la contenga, con las suyas, como antes. Todas las
+filas de la misma parada enseñan la misma hora: la de llegar a esa tienda.
+
+**No medido:** en el navegador con la base real; en el demo la ruta no se mide (sin proveedor).

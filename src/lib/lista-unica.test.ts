@@ -459,7 +459,7 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
   it("el Gestor: cada fila P con su ID, su llegada (la de la medida, «P:» + su puesto) y la clase de su grupo; las D también", () => {
     const tarjeta = cuerpoDe(pagina, "{tarjetasDeRuta.map(([u, modoDeTarjeta]) => {", "{!ready && <div className=\"empty\">");
     expect(tarjeta).toContain("const grupos = gruposDeMismoLugar(lectura.paradas, stops);");
-    expect(tarjeta).toContain("const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(f.ordenes)] : undefined;");
+    expect(tarjeta).toContain("const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(ordenesDeLaRecogidaMedida(dia.paradas, dia.deFila[k], f.ordenes))] : undefined;"); // D-680: por su parada del día
     // La medida usa la MISMA clave para la recogida. (**Puesto al día por D-461**: lo que la recogida tarda ya no es la recarga
     // entera por fila, sino lo de su visita a la tienda —`minutosEnCadaParada`—. La clave «P:» + su puesto no cambia.)
     // (**Puesto al día por D-467**: la medida vive en `lib/usa-medida-de-rutas`, que comparten el Gestor y «Ruta de hoy».)

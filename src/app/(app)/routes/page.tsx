@@ -39,7 +39,7 @@ import { abreAlMarcar, guardaVista, leeVista, type VistaDelGestor } from "@/lib/
 import { botonDelCamion } from "@/lib/gestor/boton-del-camion";
 import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
-import { DAY_START_MIN, useMedidaDeRutas, claveDeRecogida } from "@/lib/usa-medida-de-rutas";
+import { DAY_START_MIN, useMedidaDeRutas, claveDeRecogida, ordenesDeLaRecogidaMedida } from "@/lib/usa-medida-de-rutas";
 import { carrilesDelDia, cargaDelPanel, encuadreDeLasRutas, lineasDeLasRutas, puntosDeLasRutas, rutaDeLaLinea, rutasPorChofer, type CarrilDeRuta } from "@/lib/mapa-de-rutas";
 import { listaDelDia, ordenesDeLaRutaDelDia, pendientesDelDia } from "@/lib/recogida-y-ruta-del-dia";
 import { PanelDeChoferes } from "@/components/PanelDeChoferes";
@@ -3607,8 +3607,9 @@ export default function RoutesPage() {
                         // «no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda».
                         const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
                         const o = suyas[0];
-                        // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + su puesto en la lista.
-                        const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(f.ordenes)] : undefined;
+                        // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + las órdenes de la PARADA
+                        // del día entera (D-680; con las de la fila solo acertaba la recogida que iba sola en su tienda).
+                        const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(ordenesDeLaRecogidaMedida(dia.paradas, dia.deFila[k], f.ordenes))] : undefined;
                         // Si no hay hora, por qué (D-456): la tienda sin coordenadas no se mide; con una sola parada y sin base, tampoco.
                         const paradaP = f.indice != null ? lectura.paradas[f.indice] : undefined;
                         const motivoP: MotivoSinLlegada | null = !paradaP || paradaP.tipo !== "P" ? null : !coordsDeTienda(paradaP.tienda) ? "sin_tienda" : "sin_base";
