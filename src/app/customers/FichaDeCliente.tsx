@@ -58,7 +58,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
   contactos?: ContactoEnEdicion[];
   onContactos?: (c: ContactoEnEdicion[]) => void;
-  /** D-672: con él, la ficha lleva los archivos de la fila (`ArchivosDeLaFicha`; desde D-NEXT, su tarjeta bajo «Campos ocultos»). */
+  /** D-672: con él, la ficha lleva los archivos de la fila (`ArchivosDeLaFicha`; desde D-681, su tarjeta bajo «Campos ocultos»). */
   almacen?: AlmacenDeClientes;
   puedeEditar?: boolean;
   t: T;
@@ -99,8 +99,8 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
             {filas.map(linea)}
           </section>
         ))}
-        {/* La sexta celda de la rejilla, apilada: «Campos ocultos» y, debajo, «Archivos» (D-NEXT: «keeping a compact
-            design. Lets move attachments down below Hidden Fields»; hasta D-NEXT iban al pie de «Crédito y términos»). */}
+        {/* La sexta celda de la rejilla, apilada: «Campos ocultos» y, debajo, «Archivos» (D-681: «keeping a compact
+            design. Lets move attachments down below Hidden Fields»; hasta D-681 iban al pie de «Crédito y términos»). */}
         <div className="space-y-4 self-start">
           {/* D-660: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. Desde
               D-662 va DENTRO de la rejilla, en el sitio de la sexta tarjeta (la de «Remove» de la plantilla del dueño). */}
@@ -292,7 +292,7 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
 }
 
 /**
- * Los archivos de la fila (D-672, 195), en su tarjeta bajo «Campos ocultos» (D-NEXT; antes al pie de «Crédito y
+ * Los archivos de la fila (D-672, 195), en su tarjeta bajo «Campos ocultos» (D-681; antes al pie de «Crédito y
  * términos»): el «No sales tax form»
  * firmado de ESTA tienda y lo demás. Cada uno se abre con un enlace firmado; quien edita los sube y los quita. Si la
  * tienda está marcada exenta y no tiene su formulario, lo dice en ámbar.

@@ -86,7 +86,7 @@ describe("la ficha", () => {
   }));
   const tarjeta = (html: string, g: string) => { const i = html.indexOf(`data-grupo="${g}"`); const j = html.indexOf("data-grupo=", i + 1); return html.slice(i, j < 0 ? undefined : j); };
   const galeria = CLIENTES_DEMO.find((c) => c.id === 4)!;
-  it("«Crédito y términos» lleva los impuestos; los archivos, en su tarjeta bajo «Campos ocultos» (D-NEXT); el sitio web se abre; el cargo sale aunque falte", () => {
+  it("«Crédito y términos» lleva los impuestos; los archivos, en su tarjeta bajo «Campos ocultos» (D-681); el sitio web se abre; el cargo sale aunque falte", () => {
     const html = pinta(galeria);
     const credito = tarjeta(html, "credito");
     expect(credito).toMatch(/data-campo="tax_terms"><span[^>]*>Impuestos<\/span><span[^>]*>Exento de impuesto<\/span>/);

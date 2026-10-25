@@ -48076,7 +48076,7 @@ filas de la misma parada enseñan la misma hora: la de llegar a esa tienda.
 
 **No medido:** en el navegador con la base real; en el demo la ruta no se mide (sin proveedor).
 
-## D-NEXT · Clientes: los archivos, en su tarjeta bajo «Campos ocultos»
+## D-681 · Clientes: los archivos, en su tarjeta bajo «Campos ocultos»
 
 **Fecha:** 2026-10-25. **Pedido:** el dueño, con la ficha abierta: «Thinking about keeping a compact design. Lets move
 attachments down below Hidden Fields», señalando el hueco vacío bajo «Campos ocultos».
