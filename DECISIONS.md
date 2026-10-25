@@ -48086,3 +48086,19 @@ ocultos» en la sexta celda de la rejilla (`data-grupo="archivos"`). Lo de dentr
 formulario, la lista, el tipo y «Adjuntar». En un alta, la nota de «se adjuntan después de crear» va en esa tarjeta.
 
 **No medido:** en el navegador; las pruebas de puerta (`archivos.test.ts`, `ventana.test.ts`) fijan el orden.
+## D-NEXT · Clientes: la pestaña «Socials» (Facebook, Instagram, YouTube, TikTok, X, Alignable, LinkedIn)
+
+**Fecha:** 2026-10-25. **Pedido:** Roberto Rodriguez Jr (admin), con la ficha abierta y señalando el sitio a la derecha
+de las pastillas de contactos: «Lets add a Socials tab for their Facebook, Instagram, YouTube, TikTok, Twitter,
+Alignable, LinkedIn».
+
+**Qué cambia:** migración 197: `erp.customers.socials` (jsonb, un objeto red → texto, vacío por defecto). En la tarjeta
+«Contacto», leyendo: si la cuenta tiene alguna red, una pastilla más al final de las de contactos, «🌐 Socials» (aunque
+haya un solo contacto), y al pulsarla sus perfiles, uno por red, con su nombre, que abren en otra pestaña y se copian.
+Sin contacto pero con redes, salen ellas. Editando: un apartado «Socials» con las siete casillas, bajo los contactos;
+se puede escribir la URL entera o solo el usuario («@rtg», «rtg»), y la app lo abre en su red (`urlDeRed`). El parche
+solo lleva `socials` si algo cambió (`parcheDeRedes`). Sin la 197, la lectura cae a las columnas de antes
+(`COLUMNAS_SIN_197`) y la pestaña no sale; guardar redes antes de la 197 falla y se dice.
+
+**No medido:** en el navegador; las pruebas de `redes.test.ts` fijan la librería y el HTML de la ficha (ver y editar).
+La migración se aplica con el sí del dueño.

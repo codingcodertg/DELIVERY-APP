@@ -114,17 +114,19 @@ describe("la 189 · empresas y la cola", () => {
     Object.assign(cadena, {
       update: () => cadena, eq: () => cadena,
       select: (cols: string) => { llamadas.push(cols); return cadena; },
-      maybeSingle: () => Promise.resolve(n++ < 3 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: { id: 7, store: "BRO", account: "X" }, error: null }),
+      maybeSingle: () => Promise.resolve(n++ < 4 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: { id: 7, store: "BRO", account: "X" }, error: null }),
     });
     const r = await almacenDeLaBase({ from: () => cadena } as any).guardar(7, { notes: "x" });
     expect(r.ok).toBe(true);
-    // D-672: primero sin las de la 195 (impuestos y sitio web), luego también sin contacts, y luego sin company_id.
-    expect(llamadas).toHaveLength(4);
-    expect(llamadas[0]).toContain("tax_terms");
-    expect(llamadas[1]).not.toContain("tax_terms");
-    expect(llamadas[1]).toContain("contacts");
-    expect(llamadas[2]).toContain("company_id");
-    expect(llamadas[2]).not.toContain("contacts");
-    expect(llamadas[3]).not.toContain("company_id");
+    // D-NEXT: primero sin socials (197); D-672: luego sin las de la 195 (impuestos y sitio web), luego también sin contacts, y luego sin company_id.
+    expect(llamadas).toHaveLength(5);
+    expect(llamadas[0]).toContain("socials");
+    expect(llamadas[1]).not.toContain("socials");
+    expect(llamadas[1]).toContain("tax_terms");
+    expect(llamadas[2]).not.toContain("tax_terms");
+    expect(llamadas[2]).toContain("contacts");
+    expect(llamadas[3]).toContain("company_id");
+    expect(llamadas[3]).not.toContain("contacts");
+    expect(llamadas[4]).not.toContain("company_id");
   });
 });

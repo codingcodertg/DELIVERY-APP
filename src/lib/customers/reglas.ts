@@ -1,3 +1,4 @@
+import { normalizaRedes, type Redes } from "./redes";
 import type { UserRole } from "@/lib/types";
 import { colocaColumna, mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { contactosDe } from "./contactos";
@@ -63,6 +64,8 @@ export interface Cliente {
    */
   tax_terms?: string | null;
   website?: string | null;
+  /** Migración 197 (D-NEXT): las redes sociales de la cuenta, red → URL o usuario (`redes.ts`). Sin la 197, no llega. */
+  socials?: Redes | null;
 }
 
 export type Lang = "en" | "es";
@@ -364,7 +367,7 @@ export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: 
   // D-668: contacto, cargo, teléfono y correo son los del PRIMER contacto, ya separados («956-… - OMAR» da OMAR y su
   // número), aunque la fila aún los tenga juntos en sus columnas.
   if (key === "contact_name" || key === "contact_title" || key === "phone" || key === "email") return espejoDeContactos(contactosDe(c))[key];
-  if (key === "contacts") return null;
+  if (key === "contacts" || key === "socials") return null;
   return c[key] ?? null;
 }
 
@@ -424,7 +427,7 @@ export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "q
  * parte»), y no se repiten abajo.
  */
 export type GrupoDeCampo = "cabecera" | "cuenta" | "estado" | "contacto" | "credito" | "otros" | "ocultos";
-export interface Campo { key: Exclude<keyof Cliente, "contacts">; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
+export interface Campo { key: Exclude<keyof Cliente, "contacts" | "socials">; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
 
 /** Los campos de la ficha, en su orden. Todo lo del Excel se puede corregir; lo de la app (notas) también. */
 export const CAMPOS: readonly Campo[] = [
@@ -567,7 +570,7 @@ export function formDe(c: Cliente | null): Record<string, string> {
   return f;
 }
 
-export type Parche = Partial<Record<Exclude<keyof Cliente, "contacts">, string | number | null>> & { contacts?: Contacto[] };
+export type Parche = Partial<Record<Exclude<keyof Cliente, "contacts" | "socials">, string | number | null>> & { contacts?: Contacto[]; socials?: Redes };
 
 /**
  * Lo que cambió entre la ficha original y la editada, con el tipo de la base: "" → null, los números como número.
@@ -630,6 +633,8 @@ export function clienteDeLaBase(f: Record<string, unknown>): Cliente {
     company_id: texto(f.company_id),
     // Sin la 193 la columna no llega: null, y los contactos salen de las cuatro de antes.
     contacts: Array.isArray(f.contacts) ? normalizaContactos(f.contacts) : null,
+    // Sin la 197 tampoco llega: null (y la ficha no enseña la pestaña).
+    socials: f.socials && typeof f.socials === "object" ? normalizaRedes(f.socials) : null,
   };
 }
 
