@@ -86,19 +86,24 @@ describe("la ficha", () => {
   }));
   const tarjeta = (html: string, g: string) => { const i = html.indexOf(`data-grupo="${g}"`); const j = html.indexOf("data-grupo=", i + 1); return html.slice(i, j < 0 ? undefined : j); };
   const galeria = CLIENTES_DEMO.find((c) => c.id === 4)!;
-  it("«Crédito y términos» lleva los impuestos y los archivos de la fila; el sitio web se abre; el cargo sale aunque falte", () => {
+  it("«Crédito y términos» lleva los impuestos; los archivos, en su tarjeta bajo «Campos ocultos» (D-681); el sitio web se abre; el cargo sale aunque falte", () => {
     const html = pinta(galeria);
     const credito = tarjeta(html, "credito");
     expect(credito).toMatch(/data-campo="tax_terms"><span[^>]*>Impuestos<\/span><span[^>]*>Exento de impuesto<\/span>/);
-    expect(credito).toContain("data-archivos-de-la-ficha");
-    expect(credito).toContain("data-adjuntar-archivo");
+    expect(credito).not.toContain("data-archivos-de-la-ficha");
+    const archivos = tarjeta(html, "archivos");
+    expect(archivos).toContain("data-archivos-de-la-ficha");
+    expect(archivos).toContain("data-adjuntar-archivo");
+    // Apilada con «Campos ocultos» en la misma celda de la rejilla: la de ocultos primero, y la de archivos justo detrás.
+    expect(html.indexOf('data-grupo="archivos"')).toBeGreaterThan(html.indexOf("data-campos-ocultos"));
+    expect(html.slice(html.indexOf("</details>"), html.indexOf('data-grupo="archivos"'))).not.toContain("data-grupo=");
     expect(tarjeta(html, "contacto")).toContain('href="https://demotilegallery.example.com" target="_blank" rel="noopener noreferrer"');
     const sinCargo = tarjeta(pinta(CLIENTES_DEMO.find((c) => c.id === 3)!), "contacto");
     expect(sinCargo).toMatch(/Cargo: <span[^>]*data-campo="contact_title">—<\/span>/);
   });
   it("editando, los impuestos son un desplegable; en un alta, los archivos se adjuntan después", () => {
     expect(tarjeta(pinta(galeria, true), "credito")).toMatch(/<select[^>]*data-impuestos="true">/);
-    expect(tarjeta(pinta(galeria, true), "credito")).not.toContain("data-adjuntar-archivo");
-    expect(tarjeta(pinta(null), "credito")).toContain("Los archivos se adjuntan después de crear el cliente.");
+    expect(pinta(galeria, true)).not.toContain("data-adjuntar-archivo");
+    expect(tarjeta(pinta(null), "archivos")).toContain("Los archivos se adjuntan después de crear el cliente.");
   });
 });

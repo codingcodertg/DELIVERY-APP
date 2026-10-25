@@ -48075,3 +48075,14 @@ el texto de D-456 era «sin base», que además explica otra cosa (una sola para
 filas de la misma parada enseñan la misma hora: la de llegar a esa tienda.
 
 **No medido:** en el navegador con la base real; en el demo la ruta no se mide (sin proveedor).
+
+## D-681 · Clientes: los archivos, en su tarjeta bajo «Campos ocultos»
+
+**Fecha:** 2026-10-25. **Pedido:** el dueño, con la ficha abierta: «Thinking about keeping a compact design. Lets move
+attachments down below Hidden Fields», señalando el hueco vacío bajo «Campos ocultos».
+
+**Qué cambia:** «📎 Archivos» (D-672) deja el pie de «Crédito y términos» y es su propia tarjeta, apilada con «Campos
+ocultos» en la sexta celda de la rejilla (`data-grupo="archivos"`). Lo de dentro no cambia: el aviso de la exención sin
+formulario, la lista, el tipo y «Adjuntar». En un alta, la nota de «se adjuntan después de crear» va en esa tarjeta.
+
+**No medido:** en el navegador; las pruebas de puerta (`archivos.test.ts`, `ventana.test.ts`) fijan el orden.
