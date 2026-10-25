@@ -19,7 +19,7 @@ import type { Delivery } from "@/lib/types";
  * Tipo, ciudades, Llegada, Ventanas, Etapa, con sus colores de recogida y entrega), fotografiada de la página, sin las
  * casillas ni la columna de flechas. Si la tabla no está en la página (la ruta plegada), sale la lista sencilla de antes.
  *
- * D-NEXT (el dueño, 2026-10-24, con la foto de Ernesto Castillo al lado del mapa del Gestor): el mapa de la foto es
+ * D-678 (el dueño, 2026-10-24, con la foto de Ernesto Castillo al lado del mapa del Gestor): el mapa de la foto es
  * Leaflet, no el de Google. `snapdom` no copia bien el mapa de Google: la foto salía con la región entera y sin una sola
  * marca. Leaflet pinta sus marcas como HTML y sus mosaicos como imágenes, y eso sale entero; los mosaicos son los de
  * Google (`mosaicos="google"`, por /api/map-tiles) para que se parezca al del Gestor. En el demo no hay sesión para ese

@@ -18,7 +18,7 @@ describe("qué va en la foto de UNA ruta", () => {
     expect(mias.map((p) => p.id)).toEqual(["__depot__u-carlos", "__fin__u-carlos", "__parada__Carlos R.__1", "o1", "o2"]);
     for (const p of mias) { expect(p.dimmed).toBe(false); expect("offset" in p).toBe(false); }
   });
-  it("D-NEXT: lo ya hecho de sus órdenes (`__hecha__<id>`) también; lo hecho de otro, no", () => {
+  it("D-678: lo ya hecho de sus órdenes (`__hecha__<id>`) también; lo hecho de otro, no", () => {
     const mias = puntosDeLaRuta([...points, pt("__hecha__o3"), pt("__hecha__m1")], carlos, new Set(["o1", "o3"]));
     expect(mias.map((p) => p.id)).toEqual(["__depot__u-carlos", "__fin__u-carlos", "__parada__Carlos R.__1", "o1", "__hecha__o3"]);
   });
@@ -41,7 +41,7 @@ describe("qué va en la foto de UNA ruta", () => {
   });
 });
 
-describe("D-NEXT: la ruta sin orden guardado sale numerada como su tabla", () => {
+describe("D-678: la ruta sin orden guardado sale numerada como su tabla", () => {
   // Maximo Garza, 2026-10-26: una orden, `route_seq` vacío. El Gestor la pinta como un punto sin número y sin su recogida.
   const parada = (numero: number, tipo: "P" | "D", ordenes: string[], lugar: string | null, etiquetas = [`${tipo}1`]): ParadaFisica =>
     ({ numero, tipo, filas: [], etiquetas, ordenes, lugar });
@@ -84,7 +84,7 @@ describe("la lista y el fichero", () => {
       [3, "#9", "—", "—", "—"],
     ]);
     expect(palletsDeLaFoto([d({ actual_pallets: 7, est_pallets: 5 }), d({ est_pallets: 3 }), d({})])).toBe(10);
-    // D-NEXT: la ruta de Ernesto Castillo del 2026-10-26 daba «12.399999999999999 pallets».
+    // D-678: la ruta de Ernesto Castillo del 2026-10-26 daba «12.399999999999999 pallets».
     const ernesto = [2, 3, 2, 3, 1, 0.2, 0.25, 0.5, 0.25, 0.2].map((est_pallets) => d({ est_pallets }));
     expect(ernesto.reduce((n, x) => n + (x.est_pallets as number), 0)).not.toBe(12.4);
     expect(palletsDeLaFoto(ernesto)).toBe(12.4);
@@ -152,7 +152,7 @@ describe("el Gestor y el cuadro", () => {
     const c = leer("src/components/FotoDeLaRuta.tsx");
     expect(c).toContain('import { cargaSnapdom } from "@/components/CapturaDeAyuda";');
     expect(c).toContain('snapdom.toCanvas(hoja.current!, { backgroundColor: "#ffffff", fast: true, scale: 2, exclude: ["[data-fuera-de-la-foto]", ".leaflet-control-zoom", ".gm-bundled-control"], excludeMode: "remove" })');
-    // D-NEXT: Leaflet con los mosaicos de Google (el mapa de Google salía sin marcas y con la región entera); en el demo, OSM.
+    // D-678: Leaflet con los mosaicos de Google (el mapa de Google salía sin marcas y con la región entera); en el demo, OSM.
     expect(c).toContain("<LeafletMap points={points} lines={lines} fitTo={fitTo} height={420} mosaicos={MOSAICOS_DE_LA_FOTO} />");
     expect(c).not.toContain("MapView");
     expect(c).toContain('const MOSAICOS_DE_LA_FOTO = process.env.NEXT_PUBLIC_LOCAL_MODE === "true" ? "osm" : "google";');

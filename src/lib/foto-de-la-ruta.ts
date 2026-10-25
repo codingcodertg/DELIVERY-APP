@@ -19,7 +19,7 @@ import type { Delivery } from "@/lib/types";
 
 export interface CarrilParaLaFoto { id: string; key: string }
 
-/** Lo que hace falta para numerar la foto de una ruta que el mapa del Gestor deja sin números (D-NEXT). */
+/** Lo que hace falta para numerar la foto de una ruta que el mapa del Gestor deja sin números (D-678). */
 export interface NumerosDeLaFoto {
   /** Las paradas del DÍA de la ruta (`diaDe(...).paradas`): los números de la tabla. */
   paradas: readonly ParadaFisica[];
@@ -31,10 +31,10 @@ export interface NumerosDeLaFoto {
 /**
  * Las marcas del mapa del Gestor que son de ESTA ruta: su base (`__depot__<id>`), su fin si termina en otra tienda
  * (`__fin__<id>`), sus recogidas en tienda (`__parada__<key>__N`), sus entregas (el id de la orden) y lo ya hecho de esas
- * órdenes (`__hecha__<id>`, D-NEXT). Todas encendidas: en la foto no hay otras rutas que atenuar. Sin `offset`: el abanico
+ * órdenes (`__hecha__<id>`, D-678). Todas encendidas: en la foto no hay otras rutas que atenuar. Sin `offset`: el abanico
  * era para no taparse con las demás rutas.
  *
- * D-NEXT (el dueño, 2026-10-24, con la foto de Maximo Garza: «no se miran los numeros»): una ruta que aún no tiene orden
+ * D-678 (el dueño, 2026-10-24, con la foto de Maximo Garza: «no se miran los numeros»): una ruta que aún no tiene orden
  * guardado (`route_seq` vacío en todas) sale en el mapa del Gestor sin números —un punto por entrega y ninguna recogida—,
  * pero su tabla sí los lleva. Con `numeros`, la foto se numera como la tabla: cada entrega con el número de su parada y
  * cada recogida con su marca en la tienda. Solo si el mapa no trae ya ningún número, para no pisar los del Gestor.
@@ -95,7 +95,7 @@ export function filasDeLaFoto(stops: readonly Delivery[]): FilaDeLaFoto[] {
 
 /**
  * Cuántos pallets lleva la ruta, como lo cuenta la hoja de carga: confirmados o estimados. Redondeado a centésimas
- * (D-NEXT): 0.2 + 0.25 + … daba «12.399999999999999 pallets» en la cabecera de la foto.
+ * (D-678): 0.2 + 0.25 + … daba «12.399999999999999 pallets» en la cabecera de la foto.
  */
 export function palletsDeLaFoto(stops: readonly Delivery[]): number {
   const n = stops.reduce((s, d) => s + Number(d.actual_pallets ?? d.est_pallets ?? 0), 0);

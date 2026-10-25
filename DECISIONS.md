@@ -48013,7 +48013,7 @@ pestañas, la campana y el nombre son hermanas y se reparten en las mismas filas
 fila y la barra de 168 px de alto; después, en la fila de «Auditoría / Registrar tiempo» y 127 px. A 1440 px, igual que
 antes. **No medido:** en Time Tracker de verdad (el demo no lo abre).
 
-## D-NEXT · PNG de la ruta: el mapa sale encuadrado y con sus números
+## D-678 · PNG de la ruta: el mapa sale encuadrado y con sus números
 
 **Fecha:** 2026-10-24. **Pedido:** el dueño, con el PNG de Ernesto Castillo (26-oct) al lado del mapa del Gestor: «mira
 como se mira el mapa generado por el png generator contra como se deberia de ver soluciona eso igual maximo no se miran

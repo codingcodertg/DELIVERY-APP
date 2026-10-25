@@ -143,7 +143,7 @@ export function LeafletMap({
   pickedPoint?: [number, number] | null;
   height?: number;
   /**
-   * De dónde salen los mosaicos (D-NEXT). `osm` (lo de siempre): OpenStreetMap, gratis. `google`: los de Google por
+   * De dónde salen los mosaicos (D-678). `osm` (lo de siempre): OpenStreetMap, gratis. `google`: los de Google por
    * /api/map-tiles (la llave se queda en el servidor; si falla, el mismo proxy devuelve OSM). Solo lo pide la foto de la
    * ruta (`FotoDeLaRuta`), que tiene que parecerse al mapa de Google del Gestor: son unas decenas de mosaicos por foto.
    */
@@ -183,7 +183,7 @@ export function LeafletMap({
       // Sin tope de alejamiento (D-587): la región es el encuadre por defecto, no un candado.
       map = L.map(containerRef.current).setView(startCenter, zoom);
       // Free OpenStreetMap tiles (no billing). The Google-tiles proxy at /api/map-tiles is used only where a page asks
-      // for it (`mosaicos="google"`: the route PNG, D-NEXT), to keep Map Tiles API charges to a few tiles per photo.
+      // for it (`mosaicos="google"`: the route PNG, D-678), to keep Map Tiles API charges to a few tiles per photo.
       if (mosaicos === "google") {
         L.tileLayer("/api/map-tiles/{z}/{x}/{y}", { attribution: "Map data © Google", maxZoom: 19 }).addTo(map);
       } else {
