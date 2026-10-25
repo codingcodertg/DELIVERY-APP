@@ -161,10 +161,11 @@ describe("columnas", () => {
 });
 
 describe("quién edita", () => {
-  it("admin y manager editan; los demás, y sin rol, no (espejo de erp.customers_can_write())", () => {
+  it("admin, manager y vendedor (D-NEXT) editan; los demás, y sin rol, no (espejo de erp.customers_can_write())", () => {
     expect(puedeEditar("admin")).toBe(true);
     expect(puedeEditar("manager")).toBe(true);
-    for (const r of ["sales", "warehouse", "driver", "logistics", "accounting"] as const) expect(puedeEditar(r), r).toBe(false);
+    expect(puedeEditar("sales")).toBe(true);
+    for (const r of ["warehouse", "driver", "logistics", "accounting"] as const) expect(puedeEditar(r), r).toBe(false);
     expect(puedeEditar(null)).toBe(false);
   });
 });
@@ -349,7 +350,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect(GRUPOS.at(-1)).toEqual({ key: "otros", en: "Other", es: "Otros" });
     const cuenta = filasPorGrupo()[0];
     expect(cuenta.grupo.key).toBe("cuenta");
-    expect(cuenta.filas.map((f) => [f.key, f.campo === null])).toEqual([["account", true], ["unified_account", false], ["rep_store", false], ["rep_qb", false], ["rep_history", false]]);
+    expect(cuenta.filas.map((f) => [f.key, f.campo === null])).toEqual([["account", true], ["unified_account", false], ["rep_id", false], ["rep_store", false], ["rep_qb", false], ["rep_history", false]]);
     // Los rótulos de «Estado e historial» de la plantilla.
     expect(filasPorGrupo().find((g) => g.grupo.key === "estado")!.filas.map((f) => f.en)).toEqual(
       ["Current Status (store)", "Current Status (group)", "Historical Type (store)", "Historical Type (group)", "QuickBooks Status"]);

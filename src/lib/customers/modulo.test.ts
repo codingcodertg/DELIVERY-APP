@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { accessibleModules, knownModules, landingRoute, MODULES, MODULE_ACCESS } from "@/lib/constants";
 import { securityLabel } from "@/lib/security-log";
-import { COLUMNAS, COLUMNAS_DE_LA_182, COLUMNAS_DE_LA_189, COLUMNAS_DE_LA_193, COLUMNAS_DE_LA_195, COLUMNAS_DE_LA_197, COLUMNAS_SIN_182, COLUMNAS_SIN_189, COLUMNAS_SIN_193, COLUMNAS_SIN_195, COLUMNAS_SIN_197, faltaLa182, leeConRespaldo } from "./almacen";
+import { COLUMNAS, COLUMNAS_DE_LA_182, COLUMNAS_DE_LA_189, COLUMNAS_DE_LA_193, COLUMNAS_DE_LA_195, COLUMNAS_DE_LA_197, COLUMNAS_DE_LA_198, COLUMNAS_SIN_182, COLUMNAS_SIN_189, COLUMNAS_SIN_193, COLUMNAS_SIN_195, COLUMNAS_SIN_197, COLUMNAS_SIN_198, faltaLa182, leeConRespaldo } from "./almacen";
 import { CAMPOS_DE_UNION, motivoDeDuplicado } from "./duplicados";
 import { CAMPOS, ESTADOS, HISTORIAS, QB_ESTADOS } from "./reglas";
 
@@ -136,8 +136,11 @@ describe("la 180", () => {
     const la195 = leer("supabase/migrations/195_clientes_impuestos_y_archivos.sql");
     // Y las redes sociales, la 197 (D-682).
     const la197 = leer("supabase/migrations/197_clientes_redes_sociales.sql");
+    // Y el vendedor, la 198 (D-NEXT).
+    const la198 = leer("supabase/migrations/198_clientes_vendedor.sql");
     const dondeEsta = (col: string) => {
-      if ((COLUMNAS_DE_LA_197 as readonly string[]).includes(col)) expect(la197, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
+      if ((COLUMNAS_DE_LA_198 as readonly string[]).includes(col)) expect(la198, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
+      else if ((COLUMNAS_DE_LA_197 as readonly string[]).includes(col)) expect(la197, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
       else if ((COLUMNAS_DE_LA_195 as readonly string[]).includes(col)) expect(la195, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
       else if ((COLUMNAS_DE_LA_193 as readonly string[]).includes(col)) expect(la193, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
       else if ((COLUMNAS_DE_LA_189 as readonly string[]).includes(col)) expect(la189, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
@@ -224,36 +227,36 @@ describe("la 182 · las tres del CRM", () => {
     expect(COLUMNAS_SIN_182).toContain("archived_reason");
     const pedidas: string[] = [];
     // Sin la 182 (ni la 189, la 193, la 195 ni la 197): sin socials, sin impuestos, sin contacts, sin company_id, que también fallan, y luego sin las tres.
-    const r = await leeConRespaldo(async (cols) => { pedidas.push(cols); return pedidas.length < 6 ? { data: null, error: { code: "42703", message: "column crm_type_store does not exist" } } : { data: [{ id: 1 }], error: null }; });
-    expect(pedidas).toEqual([COLUMNAS, COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]);
+    const r = await leeConRespaldo(async (cols) => { pedidas.push(cols); return pedidas.length < 7 ? { data: null, error: { code: "42703", message: "column crm_type_store does not exist" } } : { data: [{ id: 1 }], error: null }; });
+    expect(pedidas).toEqual([COLUMNAS, COLUMNAS_SIN_198, COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]);
     expect(r.data).toEqual([{ id: 1 }]);
     for (const col of COLUMNAS_DE_LA_189) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_189).not.toContain(col); expect(COLUMNAS_SIN_182).not.toContain(col); }
     expect(COLUMNAS_SIN_189).toContain("crm_type_store");
     // Con la 182 y sin la 189 (ni la 193): quitar contacts no basta; quitar también company_id, sí.
     const solo189: string[] = [];
-    const r189 = await leeConRespaldo(async (cols) => { solo189.push(cols); return solo189.length < 5 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: [{ id: 2 }], error: null }; });
-    expect(solo189).toEqual([COLUMNAS, COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189]);
+    const r189 = await leeConRespaldo(async (cols) => { solo189.push(cols); return solo189.length < 6 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: [{ id: 2 }], error: null }; });
+    expect(solo189).toEqual([COLUMNAS, COLUMNAS_SIN_198, COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189]);
     expect(r189.data).toEqual([{ id: 2 }]);
     // D-668: con todo menos la 193, basta quitar contacts; y las demás siguen ahí.
     for (const col of COLUMNAS_DE_LA_193) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_193).not.toContain(col); expect(COLUMNAS_SIN_189).not.toContain(col); }
     expect(COLUMNAS_SIN_193).toContain("company_id");
     const solo193: string[] = [];
-    const r193 = await leeConRespaldo(async (cols) => { solo193.push(cols); return solo193.length < 4 ? { data: null, error: { code: "PGRST204", message: "Could not find the 'contacts' column" } } : { data: [{ id: 3 }], error: null }; });
-    expect(solo193).toEqual([COLUMNAS, COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193]);
+    const r193 = await leeConRespaldo(async (cols) => { solo193.push(cols); return solo193.length < 5 ? { data: null, error: { code: "PGRST204", message: "Could not find the 'contacts' column" } } : { data: [{ id: 3 }], error: null }; });
+    expect(solo193).toEqual([COLUMNAS, COLUMNAS_SIN_198, COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193]);
     expect(r193.data).toEqual([{ id: 3 }]);
     // D-672: con todo menos la 195, basta quitar sus dos.
     for (const col of COLUMNAS_DE_LA_195) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_195).not.toContain(col); expect(COLUMNAS_SIN_193).not.toContain(col); }
     expect(COLUMNAS_SIN_195).toContain("contacts");
     const solo195: string[] = [];
-    const r195 = await leeConRespaldo(async (cols) => { solo195.push(cols); return solo195.length < 3 ? { data: null, error: { code: "42703", message: "column customers.tax_terms does not exist" } } : { data: [{ id: 4 }], error: null }; });
-    expect(solo195).toEqual([COLUMNAS, COLUMNAS_SIN_197, COLUMNAS_SIN_195]);
+    const r195 = await leeConRespaldo(async (cols) => { solo195.push(cols); return solo195.length < 4 ? { data: null, error: { code: "42703", message: "column customers.tax_terms does not exist" } } : { data: [{ id: 4 }], error: null }; });
+    expect(solo195).toEqual([COLUMNAS, COLUMNAS_SIN_198, COLUMNAS_SIN_197, COLUMNAS_SIN_195]);
     expect(r195.data).toEqual([{ id: 4 }]);
     // D-682: con todo menos la 197, basta quitar socials; y las demás siguen ahí.
     for (const col of COLUMNAS_DE_LA_197) { expect(COLUMNAS).toContain(col); expect(COLUMNAS_SIN_197).not.toContain(col); expect(COLUMNAS_SIN_195).not.toContain(col); }
     expect(COLUMNAS_SIN_197).toContain("tax_terms");
     const solo197: string[] = [];
-    const r197 = await leeConRespaldo(async (cols) => { solo197.push(cols); return solo197.length === 1 ? { data: null, error: { code: "42703", message: "column customers.socials does not exist" } } : { data: [{ id: 5 }], error: null }; });
-    expect(solo197).toEqual([COLUMNAS, COLUMNAS_SIN_197]);
+    const r197 = await leeConRespaldo(async (cols) => { solo197.push(cols); return solo197.length < 3 ? { data: null, error: { code: "42703", message: "column customers.socials does not exist" } } : { data: [{ id: 5 }], error: null }; });
+    expect(solo197).toEqual([COLUMNAS, COLUMNAS_SIN_198, COLUMNAS_SIN_197]);
     expect(r197.data).toEqual([{ id: 5 }]);
     // Otro error no se reintenta: se devuelve tal cual.
     const otras: string[] = [];
@@ -338,19 +341,20 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
   });
 });
 
-describe("D-570 · solo admins por ahora", async () => {
+describe("D-570 · solo admins por ahora (quitado en D-NEXT: entra quien tiene la casilla)", async () => {
   const { CLIENTES_SOLO_ADMINS, puedeEntrarAClientes, seOfreceClientes } = await import("./reglas");
-  it("el interruptor está puesto, y con él solo entra el admin aunque otro tenga la casilla", () => {
-    expect(CLIENTES_SOLO_ADMINS).toBe(true);
+  it("el interruptor está QUITADO: el admin siempre; los demás, con la casilla; sin ella, no", () => {
+    expect(CLIENTES_SOLO_ADMINS).toBe(false);
     expect(puedeEntrarAClientes({ role: "admin", module_access: [] })).toBe(true);
     for (const role of ["manager", "sales", "accounting", "logistics", "warehouse", "driver"]) {
-      expect(puedeEntrarAClientes({ role, module_access: ["customers"] })).toBe(false);
+      expect(puedeEntrarAClientes({ role, module_access: ["customers"] })).toBe(true);
+      expect(puedeEntrarAClientes({ role, module_access: ["leads"] })).toBe(false);
     }
     expect(puedeEntrarAClientes(null)).toBe(false);
   });
-  it("la casilla de Usuarios solo se ofrece al admin, y el diálogo pregunta antes de dibujar el bloque", () => {
+  it("la casilla de Usuarios se ofrece a todos, y el diálogo pregunta antes de dibujar el bloque", () => {
     expect(seOfreceClientes("admin")).toBe(true);
-    expect(seOfreceClientes("manager")).toBe(false);
+    expect(seOfreceClientes("manager")).toBe(true);
     const dialogo = leer("src/components/UserDialog.tsx");
     expect(dialogo).toContain("(m.offeredTo?.(u.role) ?? true)");
     const constantes = leer("src/lib/constants.ts");

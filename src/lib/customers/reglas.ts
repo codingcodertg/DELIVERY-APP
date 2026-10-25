@@ -66,6 +66,10 @@ export interface Cliente {
   website?: string | null;
   /** Migración 197 (D-682): las redes sociales de la cuenta, red → URL o usuario (`redes.ts`). Sin la 197, no llega. */
   socials?: Redes | null;
+  /** Migración 198 (D-NEXT): el VENDEDOR del cliente (perfil del hub). Sin la 198, null. */
+  rep_id?: string | null;
+  /** Su nombre, puesto por el almacén (`conVendedores`); no se escribe. La lista, el orden y la búsqueda leen este. */
+  rep_name?: string | null;
 }
 
 export type Lang = "en" | "es";
@@ -172,6 +176,8 @@ export const COLUMNAS: readonly Columna[] = [
   // D-669: la «Activity» del Excel es el «Type» de la plantilla del dueño (Roberto, 2026-10-24).
   { key: "activity_status", en: "Type", es: "Tipo" },
   { key: "unified_account", en: "Unified account", es: "Cuenta unificada" },
+  // D-NEXT: el vendedor de verdad (perfil del hub), antes de las iniciales de QuickBooks.
+  { key: "rep_id", en: "Sales rep", es: "Vendedor" },
   { key: "rep_store", en: "Store rep (QB)", es: "Vendedor tienda (QB)" },
   { key: "rep_qb", en: "Group rep (QB)", es: "Vendedor grupo (QB)" },
   { key: "rep_history", en: "Group rep (history)", es: "Vendedor grupo (historial)" },
@@ -194,7 +200,7 @@ export const COLUMNAS: readonly Columna[] = [
 ];
 
 /** Las de entrada: lo que cabe en un portátil y lo que se mira primero. */
-export const COLUMNAS_INICIALES: readonly string[] = ["account", "store", "store_count", "status_store", "history_store", "rep_store", "phone", "email", "terms", "credit_limit"];
+export const COLUMNAS_INICIALES: readonly string[] = ["account", "store", "store_count", "status_store", "history_store", "rep_id", "rep_store", "phone", "email", "terms", "credit_limit"];
 
 /** Las columnas elegidas, saneadas: solo claves que existen, y `account` siempre. */
 export function columnasValidas(elegidas: readonly string[] | null | undefined): string[] {
@@ -368,6 +374,8 @@ export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: 
   // número), aunque la fila aún los tenga juntos en sus columnas.
   if (key === "contact_name" || key === "contact_title" || key === "phone" || key === "email") return espejoDeContactos(contactosDe(c))[key];
   if (key === "contacts" || key === "socials") return null;
+  // D-NEXT: el vendedor se enseña, ordena y busca por su NOMBRE.
+  if (key === "rep_id") return c.rep_name ?? c.rep_id ?? null;
   return c[key] ?? null;
 }
 
@@ -415,19 +423,19 @@ export function cuentaPor(lista: readonly Cliente[], campo: "store" | "status_st
 
 // ---- Quién edita, y qué ----------------------------------------------------------------------------------------
 
-/** El espejo de `erp.customers_can_write()` (180): admin o manager del hub. Solo decide qué botones se ofrecen. */
+/** El espejo de `erp.customers_can_write()` (198): admin, manager o vendedor del hub. Solo decide qué botones se ofrecen. */
 export function puedeEditar(role: UserRole | null | undefined): boolean {
-  return role === "admin" || role === "manager";
+  return role === "admin" || role === "manager" || role === "sales";
 }
 
-export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda" | "impuesto";
+export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda" | "impuesto" | "vendedor";
 /**
  * Los grupos de la ficha, en su orden (D-634). `cabecera` no es una tarjeta: la cuenta y la tienda van arriba, en el nombre
  * y en las pestañas de tiendas (D-654, el dueño: «abajo donde dice cuenta, vuelve a decir la tienda […] elimina esa
  * parte»), y no se repiten abajo.
  */
 export type GrupoDeCampo = "cabecera" | "cuenta" | "estado" | "contacto" | "credito" | "otros" | "ocultos";
-export interface Campo { key: Exclude<keyof Cliente, "contacts" | "socials">; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
+export interface Campo { key: Exclude<keyof Cliente, "contacts" | "socials" | "rep_name">; tipo: TipoCampo; en: string; es: string; grupo: GrupoDeCampo }
 
 /** Los campos de la ficha, en su orden. Todo lo del Excel se puede corregir; lo de la app (notas) también. */
 export const CAMPOS: readonly Campo[] = [
@@ -445,6 +453,8 @@ export const CAMPOS: readonly Campo[] = [
   { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "otros" },
   // D-662: vuelve a la tarjeta «Cuenta», la primera (en D-654 había ido a «Otros» al quitar esa tarjeta).
   { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "cuenta" },
+  // D-NEXT: el vendedor (198): un desplegable con los perfiles de vendedor; «—» lo deja libre (lo ven todos).
+  { key: "rep_id", tipo: "vendedor", en: "Sales rep", es: "Vendedor", grupo: "cuenta" },
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "cuenta" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
@@ -540,6 +550,7 @@ export function textoDeFila(c: Cliente, fila: FilaDeFicha, t: T): string {
 /** El texto de un campo en la ficha completa (solo lectura): etiquetas para los cerrados, dinero, y «—» si no hay dato. */
 export function textoDeCampo(c: Cliente, campo: Campo, t: T): string {
   switch (campo.tipo) {
+    case "vendedor": return c.rep_name ?? "—";
     case "tienda": return `${nombreDeTienda(c.store)} (${c.store})`;
     case "estado": return estadoLabel(c[campo.key] as string | null, t);
     case "historia": return historiaLabel(c[campo.key] as string | null, t);
@@ -570,7 +581,7 @@ export function formDe(c: Cliente | null): Record<string, string> {
   return f;
 }
 
-export type Parche = Partial<Record<Exclude<keyof Cliente, "contacts" | "socials">, string | number | null>> & { contacts?: Contacto[]; socials?: Redes };
+export type Parche = Partial<Record<Exclude<keyof Cliente, "contacts" | "socials" | "rep_name">, string | number | null>> & { contacts?: Contacto[]; socials?: Redes };
 
 /**
  * Lo que cambió entre la ficha original y la editada, con el tipo de la base: "" → null, los números como número.
@@ -635,6 +646,8 @@ export function clienteDeLaBase(f: Record<string, unknown>): Cliente {
     contacts: Array.isArray(f.contacts) ? normalizaContactos(f.contacts) : null,
     // Sin la 197 tampoco llega: null (y la ficha no enseña la pestaña).
     socials: f.socials && typeof f.socials === "object" ? normalizaRedes(f.socials) : null,
+    // Sin la 198 no llega: null. El nombre lo pone el almacén (`conVendedores`).
+    rep_id: texto(f.rep_id), rep_name: texto(f.rep_name),
   };
 }
 
@@ -706,7 +719,7 @@ export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: 
  * del servidor (`customers/layout.tsx`) y la casilla de Usuarios (`MODULE_ACCESS`) lo leen. Con `false`, vuelve a lo de
  * la 180: entra quien tiene la casilla, y la casilla se ofrece a todos.
  */
-export const CLIENTES_SOLO_ADMINS = true;
+export const CLIENTES_SOLO_ADMINS = false; // D-NEXT: abierto a los vendedores (cada uno ve los suyos y los libres, 198).
 
 /** ¿Puede entrar a /customers? Admin siempre; los demás, solo con la casilla y solo si no está en «solo admins». */
 export function puedeEntrarAClientes(p: { role?: string | null; module_access?: string[] | null } | null | undefined): boolean {

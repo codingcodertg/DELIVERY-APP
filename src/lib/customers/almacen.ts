@@ -3,6 +3,7 @@ import { creaUnaPorUna, type ResultadoDelAlta } from "./alta";
 import { archivoDeLaBase, CUBO_DE_ARCHIVOS, MAX_BYTES_DE_ARCHIVO, rutaDeArchivo, type ArchivoDeCliente, type ClaseDeArchivo } from "./archivos";
 import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
 import { clienteDeLaBase, type Cliente, type Parche } from "./reglas";
+import { conVendedores, nombresDeVendedores, type Vendedor } from "./vendedores";
 
 /**
  * Dónde viven los clientes: `erp.customers` (migración 180). Una interfaz con dos implementaciones —la base y el
@@ -40,6 +41,8 @@ export interface AlmacenDeClientes {
   quitarArchivo(a: ArchivoDeCliente): Promise<Res<null>>;
   /** Un enlace para abrirlo (firmado, una hora). */
   enlaceDeArchivo(a: ArchivoDeCliente): Promise<Res<string>>;
+  /** D-NEXT (198): los vendedores del hub (perfiles con rol `sales`), para el desplegable y para poner nombre a `rep_id`. */
+  vendedores(): Promise<Res<Vendedor[]>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -58,7 +61,7 @@ export function esSinPermiso(error: { code?: string | null; message?: string } |
 export const COLUMNAS =
   "id, store, account, unified_account, house_no, added_batch, qb_status, activity_status, status_store, status_group, " +
   "history_store, history_group, crm_type_store, crm_type_group, associated_with, rep_history, rep_qb, rep_store, contact_name, contact_title, address, phone, email, " +
-  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id, contacts, tax_terms, website, socials";
+  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id, contacts, tax_terms, website, socials, rep_id";
 
 /** Las tres de la 182 (CRM). El código llega antes que la migración: si la base aún no las tiene, se lee sin ellas. */
 export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associated_with"] as const;
@@ -70,12 +73,15 @@ export const COLUMNAS_DE_LA_193 = ["contacts"] as const;
 export const COLUMNAS_DE_LA_195 = ["tax_terms", "website"] as const;
 /** La de la 197 (D-682): las redes sociales. Sin ella llega como null. */
 export const COLUMNAS_DE_LA_197 = ["socials"] as const;
+/** La de la 198 (D-NEXT): el vendedor. Sin ella llega como null. */
+export const COLUMNAS_DE_LA_198 = ["rep_id"] as const;
 const sin = (fuera: readonly string[]) => COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !fuera.includes(c)).join(", ");
-export const COLUMNAS_SIN_197 = sin(COLUMNAS_DE_LA_197);
-export const COLUMNAS_SIN_195 = sin([...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197]);
-export const COLUMNAS_SIN_193 = sin([...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197]);
-export const COLUMNAS_SIN_189 = sin([...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197]);
-export const COLUMNAS_SIN_182 = sin([...COLUMNAS_DE_LA_182, ...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197]);
+export const COLUMNAS_SIN_198 = sin(COLUMNAS_DE_LA_198);
+export const COLUMNAS_SIN_197 = sin([...COLUMNAS_DE_LA_197, ...COLUMNAS_DE_LA_198]);
+export const COLUMNAS_SIN_195 = sin([...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197, ...COLUMNAS_DE_LA_198]);
+export const COLUMNAS_SIN_193 = sin([...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197, ...COLUMNAS_DE_LA_198]);
+export const COLUMNAS_SIN_189 = sin([...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197, ...COLUMNAS_DE_LA_198]);
+export const COLUMNAS_SIN_182 = sin([...COLUMNAS_DE_LA_182, ...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197, ...COLUMNAS_DE_LA_198]);
 
 /** ¿«La 182 no está aplicada»? 42703 es undefined_column (Postgres); PGRST204 es lo mismo dicho por PostgREST. Solo esos. */
 export function faltaLa182(error: { code?: string | null } | null | undefined): boolean {
@@ -84,7 +90,8 @@ export function faltaLa182(error: { code?: string | null } | null | undefined): 
 }
 
 /**
- * Una lectura con respaldo: con las columnas de hoy, y si la base dice que una no existe, otra vez sin la de la 197
+ * Una lectura con respaldo: con las columnas de hoy, y si la base dice que una no existe, otra vez sin la de la 198
+ * (`rep_id`), luego sin la de la 197
  * (`socials`), luego sin las de la 195, luego sin la de la 193
  * (`contacts`: salen de las cuatro de antes), luego también sin la de la 189 (`company_id`: cada fila, su empresa), y si
  * aún falta, también sin las tres de la 182 (llegan como null). Así la lista no se queda en blanco el rato entre el
@@ -93,7 +100,7 @@ export function faltaLa182(error: { code?: string | null } | null | undefined): 
  */
 export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseLike<{ data: T; error: { code?: string | null; message: string } | null }>) {
   let r = await consulta(COLUMNAS);
-  for (const cols of [COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]) {
+  for (const cols of [COLUMNAS_SIN_198, COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]) {
     if (!(r.error && faltaLa182(r.error))) return r;
     r = await consulta(cols);
   }
@@ -117,6 +124,12 @@ const sinFila = (): Res<never> => ({ ok: false, sinTabla: false, sinPermiso: tru
 
 // El cliente del ERP (esquema `erp`): su tipo lleva el esquema, y el de Entregas no vale.
 export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenDeClientes {
+  // D-NEXT: los nombres de los vendedores, una vez; cada fila que vuelve de la base sale con el suyo (`rep_name`).
+  let nombres: ReadonlyMap<string, string> | null = null;
+  const conNombres = async <T extends Pick<Cliente, "rep_id">>(filas: T[]) => {
+    if (!nombres) { const r = await almacen.vendedores(); nombres = nombresDeVendedores(r.ok ? r.valor : []); }
+    return conVendedores(filas, nombres);
+  };
   const almacen: AlmacenDeClientes = {
     async leer() {
       const todos: Cliente[] = [];
@@ -126,19 +139,31 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
         for (const f of data ?? []) todos.push(clienteDeLaBase(f as unknown as Record<string, unknown>));
         if ((data ?? []).length < PAGINA) break;
       }
-      return { ok: true, valor: todos };
+      return { ok: true, valor: await conNombres(todos) };
     },
     async guardar(id, parche) {
       const { data, error } = await leeConRespaldo((cols) => sb.from("customers").update(parche).eq("id", id).select(cols).maybeSingle());
       if (error) return fallo(error);
       if (!data) return sinFila();
-      return { ok: true, valor: clienteDeLaBase(data as unknown as Record<string, unknown>) };
+      return { ok: true, valor: (await conNombres([clienteDeLaBase(data as unknown as Record<string, unknown>)]))[0] };
     },
     async crear(fila) {
       const { data, error } = await leeConRespaldo((cols) => sb.from("customers").insert(fila).select(cols).maybeSingle());
       if (error) return fallo(error);
       if (!data) return sinFila();
-      return { ok: true, valor: clienteDeLaBase(data as unknown as Record<string, unknown>) };
+      return { ok: true, valor: (await conNombres([clienteDeLaBase(data as unknown as Record<string, unknown>)]))[0] };
+    },
+    async vendedores() {
+      // Los perfiles son de `public`, no de `erp`. Si no se pueden leer, la lista sale igual, sin nombres (el id).
+      try {
+        const { data, error } = await sb.schema("public").from("profiles").select("id, full_name").eq("role", "sales").order("full_name");
+        if (error) return fallo(error);
+        const valor = ((data ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, full_name: p.full_name ?? "" }));
+        nombres = nombresDeVendedores(valor);
+        return { ok: true, valor };
+      } catch (e) {
+        return fallo({ message: e instanceof Error ? e.message : String(e) });
+      }
     },
     // D-664: primero UNA llamada con todas las filas. Si una choca (23505) la sentencia entera no escribe nada (es una
     // sola sentencia: todo o nada), y entonces se repite una por una para saber cuál choca y crear las demás.
@@ -149,7 +174,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
         if (esDuplicado(error) && filas.length > 1) return creaUnaPorUna(filas, (f) => almacen.crear(f));
         return fallo(error);
       }
-      const creados = ((data ?? []) as unknown as Record<string, unknown>[]).map(clienteDeLaBase);
+      const creados = await conNombres(((data ?? []) as unknown as Record<string, unknown>[]).map(clienteDeLaBase));
       if (creados.length === 0) return sinFila();
       return { ok: true, valor: { creados, noCreadas: [] } };
     },
