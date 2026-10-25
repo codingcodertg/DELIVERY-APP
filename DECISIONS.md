@@ -48060,7 +48060,7 @@ donde `pickup_name` y `store` coinciden (casi todas, D-461 contó 2 distintas) n
 proveedor en vez de la tienda dueña y, como no tiene coordenadas en Ajustes, su llegada sale «sin tienda» (antes se medía
 desde la tienda dueña, que tampoco era de donde salía el camión). No medido en el navegador con la base real.
 
-## D-NEXT · Gestor: la hora de llegada de una recogida agrupada decía «sin base»
+## D-680 · Gestor: la hora de llegada de una recogida agrupada decía «sin base»
 
 **Fecha:** 2026-10-25. **Pedido:** el dueño, con la ruta de Ernesto Castillo del 26-oct (1.399.0), señalando «no base» en
 P6 y P7: «whats no base?». Solo P8, la única recogida sola en su tienda, tenía hora (10:10).

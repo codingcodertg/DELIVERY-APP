@@ -15,12 +15,12 @@ describe("la hora estimada de una recogida se busca con la misma clave con que s
     expect(medida).toContain("puntos.push({ id: claveDeRecogida(p.ordenes)");
     expect(medida).not.toContain("id: `P:${i}`");
     const tabla = readFileSync(new URL("../app/(app)/routes/page.tsx", import.meta.url), "utf8");
-    // D-NEXT: con las órdenes de la PARADA del día, no las de la fila.
+    // D-680: con las órdenes de la PARADA del día, no las de la fila.
     expect(tabla).toContain("routeEtas[u.key]?.[claveDeRecogida(ordenesDeLaRecogidaMedida(dia.paradas, dia.deFila[k], f.ordenes))]");
     expect(tabla).not.toContain("[claveDeRecogida(f.ordenes)]");
     expect(tabla).not.toContain("[`P:${f.indice}`]");
   });
-  it("D-NEXT: la fila busca con las órdenes de su PARADA del día (la medida va por paradas: tres filas en la misma tienda, una visita)", () => {
+  it("D-680: la fila busca con las órdenes de su PARADA del día (la medida va por paradas: tres filas en la misma tienda, una visita)", () => {
     // La ruta de Ernesto (26-oct): P1-P5 en McAllen son la parada 1 («P:a,b,c,d,e»); P8 sola en Pharr, la 5 («P:h»).
     const paradas = [
       { tipo: "P" as const, ordenes: ["a", "b", "c", "d", "e"] }, { tipo: "D" as const, ordenes: ["b", "x"] }, { tipo: "D" as const, ordenes: ["a"] },

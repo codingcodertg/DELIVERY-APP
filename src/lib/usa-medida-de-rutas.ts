@@ -25,7 +25,7 @@ import type { NamedLocation } from "@/lib/types";
 export const claveDeRecogida = (ordenes: readonly string[]): string => `P:${ordenes.join(",")}`;
 
 /**
- * Las órdenes con las que se GUARDÓ la hora de una recogida: las de su PARADA del día entera (D-NEXT). La medida va por
+ * Las órdenes con las que se GUARDÓ la hora de una recogida: las de su PARADA del día entera (D-680). La medida va por
  * paradas (`listaDelDia`: tres recogidas seguidas en la misma tienda son UNA visita, «P:a,b,c»), y la tabla pinta una fila
  * por orden (D-444): buscando con las de la fila («P:a») solo acertaba la recogida que iba sola en su tienda; las demás
  * decían «sin base» (el dueño, 2026-10-25: «whats no base?»). `numero` es el de la parada del día de esa fila

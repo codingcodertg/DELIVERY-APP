@@ -3608,7 +3608,7 @@ export default function RoutesPage() {
                         const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
                         const o = suyas[0];
                         // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + las órdenes de la PARADA
-                        // del día entera (D-NEXT; con las de la fila solo acertaba la recogida que iba sola en su tienda).
+                        // del día entera (D-680; con las de la fila solo acertaba la recogida que iba sola en su tienda).
                         const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(ordenesDeLaRecogidaMedida(dia.paradas, dia.deFila[k], f.ordenes))] : undefined;
                         // Si no hay hora, por qué (D-456): la tienda sin coordenadas no se mide; con una sola parada y sin base, tampoco.
                         const paradaP = f.indice != null ? lectura.paradas[f.indice] : undefined;
