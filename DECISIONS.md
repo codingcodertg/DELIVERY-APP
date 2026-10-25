@@ -48035,3 +48035,27 @@ en la tienda, detrás de la «P» de la base). Lo ya hecho de la ruta (`__hecha_
 entregas, los números de la tabla. **No medido:** con los mosaicos de Google ni con la base real (el demo no tiene sesión
 ni tiendas con coordenadas, así que tampoco las marcas de recogida). Map Tiles API: la sesión se crea bien con la llave del
 servidor (medido hoy); cada foto pide unas decenas de mosaicos.
+
+## D-NEXT · Gestor: la recogida es donde se RECOGE (`pickup_name`), no la tienda dueña (`store`)
+
+**Fecha:** 2026-10-24. **Pedido:** el dueño, con la ruta de Ernesto Castillo del 26-oct y la ficha de FV215: «PORQUE LA
+FV215 DICE EDINGBURG EN PICKUP PERO LA ORDEN ES PHARR WESLACO PORQUE PASAS ESO QUE PASO AHI».
+
+**Qué pasó (medido en la base):** FV215 es de RDZ Edinburg (`store`). El 24-oct a las 19:44 se reprogramó al 26 y se le
+cambió la recogida a RDZ Pharr (`pickup_name`; nota: «NOT RECEIVED IN WESLACO, THE DROP IT AT PHARR»). La ficha, la fila
+de entrega «D8» y «Mi ruta» leen `pickup_name` → Pharr. La fila «P8», su número de parada, su marca en el mapa y la
+agrupación con las recogidas de al lado leían `store` → Edinburg. D-461 ya lo había anotado («en una lista que no viene
+del plan es `store`; para el motor es `pickup_name`… No se tocó»).
+
+**Qué cambia:** `tiendaDeRecogida` (lista-unica.ts): `pickup_name` y, si falta, `store`. La usan la lista del Gestor
+(`listaDelChofer`), meter órdenes en otra ruta (`listaConOrdenesEn`), reordenar entregas (`listaConEntregasEn`) y la
+recogida ya hecha de `numerosDelDia`. Es la misma regla que ya aplicaban el motor de rutas (`entrada.ts`) y la ficha del
+chofer (`recogidaParaElChofer`). Con plan publicado no cambia nada: ahí el sitio lo dice el plan.
+
+**Efecto en FV215:** su P8 pasa a RDZ Pharr; si se ordena junto a P3-P5 (también Pharr), son una sola parada. Las rutas
+donde `pickup_name` y `store` coinciden (casi todas, D-461 contó 2 distintas) no cambian.
+
+**Medido en la base (últimos 60 días):** 15 órdenes con `pickup_name` distinto de `store`; 13 se recogen en otra tienda RTG
+(las que este cambio arregla) y 2 en un proveedor («DALTILE», D-537). **Lo que cambia para esas 2:** la fila P dice el
+proveedor en vez de la tienda dueña y, como no tiene coordenadas en Ajustes, su llegada sale «sin tienda» (antes se medía
+desde la tienda dueña, que tampoco era de donde salía el camión). No medido en el navegador con la base real.

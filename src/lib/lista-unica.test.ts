@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
   cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, entregasEnOrden, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, listaDelChofer,
-  mueveEnLaLista, numeroDePallets, numeraLaLista, etiquetaDeLaParada, textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type OrdenDeLaLista, type ParadaDeLaLista,
+  mueveEnLaLista, numeroDePallets, numeraLaLista, etiquetaDeLaParada, textoDeLaCuenta, textoDelExceso, tiendaDeRecogida, tienePosicionDeRecogida, listaConOrdenesEn,
+  type OrdenDeLaLista, type ParadaDeLaLista,
 } from "./lista-unica";
 
 /**
@@ -394,6 +395,35 @@ describe("justo lleno no es pasarse (D-443)", () => {
 // D-444. El dueño, 2026-09-29, sobre la tabla del Gestor: «cada pickup tiene que tener su propio row, ahora si el sistema
 // detecta que […] hay pickups en el mismo lugar seguidos, entonces los va a poner de ese color […] y si es delivery en el
 // mismo lugar también, para que se mire como group. Pero no me los pongas en una sola línea».
+describe("D-NEXT: la recogida es donde se RECOGE (`pickup_name`), no la tienda dueña (`store`)", () => {
+  // FV215 (2026-10-26): orden de RDZ Edinburg reprogramada para recogerse en RDZ Pharr («NOT RECEIVED IN WESLACO, THE DROP IT
+  // AT PHARR»). La ficha decía Pharr; la fila P8 del Gestor, Edinburg, agrupada con las de Edinburg.
+  const fv215 = { id: "fv215", store: "RDZ Edinburg", pickup_name: "RDZ Pharr", est_pallets: 0.2, route_seq: 5 };
+  it("`tiendaDeRecogida`: `pickup_name`; si está vacío o en blanco, `store`; sin ninguno, null", () => {
+    expect(tiendaDeRecogida(fv215)).toBe("RDZ Pharr");
+    expect(tiendaDeRecogida({ store: "RDZ Edinburg", pickup_name: "  " })).toBe("RDZ Edinburg");
+    expect(tiendaDeRecogida({ store: "RDZ Edinburg", pickup_name: null })).toBe("RDZ Edinburg");
+    expect(tiendaDeRecogida({ store: " RDZ Edinburg ", pickup_name: " RDZ Pharr " })).toBe("RDZ Pharr");
+    expect(tiendaDeRecogida({})).toBeNull();
+  });
+  it("la lista del Gestor: la fila P de FV215 es en RDZ Pharr y se agrupa con las recogidas de Pharr, no con las de Edinburg", () => {
+    const ordenes = [
+      { id: "a", store: "RDZ McAllen", pickup_name: "RDZ Pharr", est_pallets: 1, route_seq: 0 },
+      { ...fv215, route_seq: 1 },
+      { id: "c", store: "RDZ Edinburg", pickup_name: "RDZ Edinburg", est_pallets: 1, route_seq: 2 },
+    ];
+    const l = listaDelChofer(ordenes, 10);
+    expect(l.slice(0, 3).map((p) => (p.tipo === "P" ? p.tienda : "?"))).toEqual(["RDZ Pharr", "RDZ Pharr", "RDZ Edinburg"]);
+    expect(gruposDeMismoLugar(l, ordenes)).toEqual([0, 0, null, null, null, null]);
+  });
+  it("también al meter órdenes en otra ruta (`listaConOrdenesEn`) y al reordenar entregas (`listaConEntregasEn`)", () => {
+    const metida = listaConOrdenesEn([], [fv215], null);
+    expect(metida[0]).toEqual({ tipo: "P", ordenes: ["fv215"], tienda: "RDZ Pharr" });
+    const reordenada = listaConEntregasEn([D("fv215")], ["fv215"], [fv215]);
+    expect(reordenada[0]).toEqual({ tipo: "P", ordenes: ["fv215"], tienda: "RDZ Pharr" });
+  });
+});
+
 describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets sin decimales de más", () => {
   it("los pallets: sin decimales si no los tiene, con los suyos si sí", () => {
     expect([4, 10, 0, 3.15, 3.6, 2.75, 0.1 + 0.2, -0].map(numeroDePallets)).toEqual(["4", "10", "0", "3.15", "3.6", "2.75", "0.3", "0"]);

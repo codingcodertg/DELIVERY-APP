@@ -1,5 +1,5 @@
 import { filasConLoHecho, type FilaPintada, type OrdenHecha } from "@/lib/hechas-del-gestor";
-import { etiquetaDeLaParada, numeraLaLista, type ParadaDeLaLista } from "@/lib/lista-unica";
+import { etiquetaDeLaParada, numeraLaLista, tiendaDeRecogida, type ParadaDeLaLista } from "@/lib/lista-unica";
 import type { LecturaDeRuta, OrdenAsignada, ParadaDelPlanMinima } from "@/lib/route-plan/lectura-de-ruta";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { paradasDeLaRuta, type FilaQueSeNumera, type ParadaFisica } from "./paradas-numeradas";
@@ -26,7 +26,7 @@ import { paradasDeLaRuta, type FilaQueSeNumera, type ParadaFisica } from "./para
  * pendiente se re-etiquetaba desde P1 al entregar; con plan, no. Ahora las dos igual, y como en «Mi ruta».
  */
 
-type ConLugar = { id: string; store?: string | null; delivery_address?: string | null };
+type ConLugar = { id: string; store?: string | null; pickup_name?: string | null; delivery_address?: string | null };
 
 export interface NumerosDelDia {
   /** Por fila PINTADA (el índice de `filasConLoHecho`): su número de parada del día. */
@@ -55,10 +55,11 @@ export function numerosDelDia(
   const porId = new Map(ordenes.map((o) => [o.id, o]));
   const delPlan = fuente === "plan" ? [...(paradasDelPlan ?? [])].sort((a, b) => a.seq - b.seq) : [];
   const delPlanDe = (tipo: "P" | "D", id: string) => delPlan.filter((p) => p.kind === tipo && ordenDeLaParte(p.order_ref) === id);
-  // El sitio de una recogida ya hecha: con plan, el del plan (como lo lee `lecturaDeLaRuta`); si no, la tienda de su orden.
+  // El sitio de una recogida ya hecha: con plan, el del plan (como lo lee `lecturaDeLaRuta`); si no, donde se recoge su
+  // orden (`tiendaDeRecogida`: `pickup_name`, y si falta `store`; D-NEXT).
   const tiendaHecha = (id: string): string | null => (fuente === "plan"
     ? delPlanDe("P", id)[0]?.place ?? null
-    : (porId.get(id)?.store ?? "").trim() || null);
+    : tiendaDeRecogida(porId.get(id) ?? {}));
   const lista: ParadaDeLaLista[] = pintadas.map((fp): ParadaDeLaLista => {
     if (!fp.hecha) return fp.fila.tipo === "P" ? { tipo: "P", ordenes: fp.fila.ordenes, tienda: fp.fila.lugar } : { tipo: "D", orden: fp.fila.orden };
     return fp.tipo === "P" ? { tipo: "P", ordenes: [fp.orden], tienda: tiendaHecha(fp.orden) } : { tipo: "D", orden: fp.orden };
