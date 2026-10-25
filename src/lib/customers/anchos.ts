@@ -20,7 +20,7 @@ export const ANCHOS_DE_PARTIDA: Readonly<Record<string, number>> = {
   qb_status: 160,
   activity_status: 120,
   unified_account: 240,
-  rep_store: 165, rep_qb: 165, rep_history: 185,
+  rep_id: 170, rep_store: 165, rep_qb: 165, rep_history: 185,
   contact_name: 160, contact_title: 120,
   phone: 140,
   email: 240,

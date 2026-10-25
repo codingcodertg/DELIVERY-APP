@@ -1,3 +1,4 @@
+import { conVendedores, nombresDeVendedores, type Vendedor } from "./vendedores";
 import { creaUnaPorUna } from "./alta";
 import type { AlmacenDeClientes } from "./almacen";
 import type { ArchivoDeCliente } from "./archivos";
@@ -11,10 +12,14 @@ import type { Cliente, Parche } from "./reglas";
  * captura de hoy y otra de mañana enseñen lo mismo. Los estados, historiales y tiendas sí son los del Excel, porque
  * son clasificación nuestra y la pantalla los traduce.
  */
+/** D-683: los vendedores del demo (los de Leads). */
+export const VENDEDORES_DEMO: readonly Vendedor[] = [{ id: "demo-ana", full_name: "Ana Demo" }, { id: "demo-beto", full_name: "Beto Demo" }];
+const NOMBRES_DEMO = nombresDeVendedores(VENDEDORES_DEMO);
+
 const base = (n: number, c: Partial<Cliente>): Cliente => ({
   id: n, store: "MCA", account: `Demo Builder ${n}`, unified_account: null, house_no: n, added_batch: "1", qb_status: "ACTIVE",
   activity_status: null, status_store: null, status_group: null, history_store: null, history_group: null,
-  crm_type_store: null, crm_type_group: null, associated_with: null, rep_history: null, rep_qb: null, rep_store: null, contact_name: null, contact_title: null, address: null, phone: null, email: null,
+  crm_type_store: null, crm_type_group: null, associated_with: null, rep_history: null, rep_qb: null, rep_store: null, rep_id: null, rep_name: null, contact_name: null, contact_title: null, address: null, phone: null, email: null,
   credit_limit: null, euler_limit: null, terms: null, account_no: null, notes: null, updated_at: "2026-10-16T12:00:00Z", updated_by: null,
   archived_at: null, archived_reason: null, company_id: `demo-empresa-${n}`,
   ...c,
@@ -22,7 +27,7 @@ const base = (n: number, c: Partial<Cliente>): Cliente => ({
 
 export const CLIENTES_DEMO: Cliente[] = [
   // 1 y 2 son la MISMA empresa en dos tiendas (189): la lista pinta una fila y la ficha cambia de tienda.
-  base(1, { store: "MCA", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER", crm_type_store: "LARGE", crm_type_group: "LARGE", associated_with: "DEMO GROUP",
+  base(1, { store: "MCA", account: "Demo Homes LLC", company_id: "demo-empresa-1", unified_account: "Demo Homes LLC", status_store: "ACTIVE INC", status_group: "ACTIVE INC", history_store: "LARGE", history_group: "LARGE", rep_store: "IM", rep_qb: "IM", rep_history: "IM", rep_id: "demo-ana", rep_name: "Ana Demo", contact_name: "Ana Demo", contact_title: "Owner", phone: "555-0101", email: "ana@example.com", terms: "Net 30", credit_limit: 20000, euler_limit: 50000, account_no: "EULER", crm_type_store: "LARGE", crm_type_group: "LARGE", associated_with: "DEMO GROUP",
     // D-668: cinco contactos (193), para que la ficha enseñe tres pastillas y «+2».
     contacts: [
       { name: "ANA DEMO", title: "OWNER", phones: ["(956) 555-0101", "(956) 555-0111"], emails: ["ana@example.com", "pagos@example.com"], note: null },
@@ -71,10 +76,11 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
   const almacen: AlmacenDeClientes = {
     async leer() { return { ok: true, valor: lista.map((c) => ({ ...c })) }; },
+    async vendedores() { return { ok: true, valor: VENDEDORES_DEMO.map((v) => ({ ...v })) }; },
     async guardar(id, parche: Parche) {
       const i = lista.findIndex((c) => c.id === id);
       if (i < 0) return sinFila;
-      const nuevo = { ...lista[i], ...(parche as Partial<Cliente>), updated_at: new Date().toISOString() } as Cliente;
+      const nuevo = conVendedores([{ ...lista[i], ...(parche as Partial<Cliente>), updated_at: new Date().toISOString() } as Cliente], NOMBRES_DEMO)[0];
       lista = lista.map((c, j) => (j === i ? nuevo : c));
       return { ok: true, valor: { ...nuevo } };
     },
@@ -84,7 +90,7 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       if (lista.some((c) => clave(c) === clave(fila))) {
         return { ok: false, sinTabla: false, sinPermiso: false, duplicado: true, error: "duplicate key value violates unique constraint" };
       }
-      const nuevo = base(siguiente++, { ...(fila as Partial<Cliente>), updated_at: new Date().toISOString() });
+      const nuevo = conVendedores([base(siguiente++, { ...(fila as Partial<Cliente>), updated_at: new Date().toISOString() })], NOMBRES_DEMO)[0];
       lista = [...lista, nuevo];
       return { ok: true, valor: { ...nuevo } };
     },

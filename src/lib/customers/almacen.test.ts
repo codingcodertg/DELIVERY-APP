@@ -114,19 +114,21 @@ describe("la 189 · empresas y la cola", () => {
     Object.assign(cadena, {
       update: () => cadena, eq: () => cadena,
       select: (cols: string) => { llamadas.push(cols); return cadena; },
-      maybeSingle: () => Promise.resolve(n++ < 4 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: { id: 7, store: "BRO", account: "X" }, error: null }),
+      maybeSingle: () => Promise.resolve(n++ < 5 ? { data: null, error: { code: "42703", message: "column customers.company_id does not exist" } } : { data: { id: 7, store: "BRO", account: "X" }, error: null }),
     });
     const r = await almacenDeLaBase({ from: () => cadena } as any).guardar(7, { notes: "x" });
     expect(r.ok).toBe(true);
-    // D-682: primero sin socials (197); D-672: luego sin las de la 195 (impuestos y sitio web), luego también sin contacts, y luego sin company_id.
-    expect(llamadas).toHaveLength(5);
-    expect(llamadas[0]).toContain("socials");
-    expect(llamadas[1]).not.toContain("socials");
-    expect(llamadas[1]).toContain("tax_terms");
-    expect(llamadas[2]).not.toContain("tax_terms");
-    expect(llamadas[2]).toContain("contacts");
-    expect(llamadas[3]).toContain("company_id");
-    expect(llamadas[3]).not.toContain("contacts");
-    expect(llamadas[4]).not.toContain("company_id");
+    // D-683: primero sin rep_id (198); D-682: sin socials (197); D-672: sin las de la 195, luego sin contacts, y luego sin company_id.
+    expect(llamadas).toHaveLength(6);
+    expect(llamadas[0]).toContain("rep_id");
+    expect(llamadas[1]).not.toContain("rep_id");
+    expect(llamadas[1]).toContain("socials");
+    expect(llamadas[2]).not.toContain("socials");
+    expect(llamadas[2]).toContain("tax_terms");
+    expect(llamadas[3]).not.toContain("tax_terms");
+    expect(llamadas[3]).toContain("contacts");
+    expect(llamadas[4]).toContain("company_id");
+    expect(llamadas[4]).not.toContain("contacts");
+    expect(llamadas[5]).not.toContain("company_id");
   });
 });

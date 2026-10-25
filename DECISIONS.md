@@ -48102,3 +48102,28 @@ solo lleva `socials` si algo cambió (`parcheDeRedes`). Sin la 197, la lectura c
 
 **No medido:** en el navegador; las pruebas de `redes.test.ts` fijan la librería y el HTML de la ficha (ver y editar).
 La migración se aplica con el sí del dueño.
+
+## D-683 · Clientes: el vendedor de cada cliente, y cada vendedor ve solo los suyos y los libres
+
+**Fecha:** 2026-10-25. **Pedido:** el dueño: «the customer app has a sales rep assigned to each customer. Right now,
+they just have initials […] they will only be able to see their own source customers and the customer assigned to them,
+and the free ones. If the customer isn't assigned to them, they will not be able to see it. And also, I want in edit,
+and when they're creating, you assign a sales rep, and also for the ones empty, you can also assign sales rep to
+those», con la hoja de los diez vendedores y sus iniciales de QuickBooks.
+
+**Qué cambia:** migración 198: `erp.customers.rep_id` (perfil del hub). Las iniciales de QB (rep_store, rep_qb,
+rep_history) se quedan. Lista: columna «Vendedor» (nombre, no id), de entrada, delante de las iniciales; ficha: fila
+«Vendedor» en «Cuenta», y al editar o crear un desplegable con los perfiles de vendedor (rol `sales`) y «—» para
+dejarlo libre. Quién entra: se quita «solo admins» (D-570): entra quien tiene la casilla, y la casilla se ofrece a
+todos. Quién escribe: también el vendedor con casilla (`customers_can_write`, 198). Quién ve: política RESTRICTIVA
+(`customers_ve_la_fila`): quien no es vendedor ve todo; un vendedor ve los libres, los suyos y los que creó él. Pasar
+un cliente a otro vendedor se puede; después ya no se ve.
+
+**El reparto por iniciales:** `scripts/asigna-vendedores.mjs` (solo filas sin vendedor; con respaldo), que además da la
+casilla «customers» a los diez perfiles. Medido antes: 241 filas caen en la hoja (FR 85, MR 79, SCG 66, RMC 7, PCC 4);
+559 tienen iniciales que no están en la hoja (IM 139, YG 88, JHR 47, EV 35, RG 29, …: se quedan libres hasta que el
+dueño diga); 389 no tienen iniciales. ZR, EP, AF, KG y MGM no aparecen en ninguna fila (EV podría ser Everto Prado:
+no se asume).
+
+**No hace:** los archivos (195) y la cola «Decidir si se juntan» (189) siguen por módulo, no por vendedor. **No
+medido:** en el navegador con la base real ni la política con una sesión de vendedor; se aplica con el sí del dueño.

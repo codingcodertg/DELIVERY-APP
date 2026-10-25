@@ -14,6 +14,7 @@ import {
   textoDeTelefonos, type Contacto, type ContactoEnEdicion,
 } from "@/lib/customers/contactos";
 import { hayRedes, NOMBRE_DE_RED, parcheDeRedes, REDES, redesDe, redesEnEdicion, textoDeRed, urlDeRed, type Redes, type RedesEnEdicion } from "@/lib/customers/redes";
+import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -51,7 +52,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * la cuenta tiene redes sociales, la pastilla «🌐 Socials» (D-682, 197) con sus perfiles; editando, la lista que se
  * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). Debajo, la dirección.
  */
-export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, redes, onRedes, almacen, puedeEditar = false, t }: {
+export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, redes, onRedes, vendedores, almacen, puedeEditar = false, t }: {
   cliente: Cliente | null;
   form?: Record<string, string>;
   editando?: boolean;
@@ -63,6 +64,8 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** D-682: las redes sociales mientras se editan, y quién las cambia. */
   redes?: RedesEnEdicion;
   onRedes?: (r: RedesEnEdicion) => void;
+  /** D-683 (198): los vendedores para el desplegable de «Vendedor» al editar. */
+  vendedores?: Vendedor[];
   /** D-672: con él, la ficha lleva los archivos de la fila (`ArchivosDeLaFicha`; desde D-681, su tarjeta bajo «Campos ocultos»). */
   almacen?: AlmacenDeClientes;
   puedeEditar?: boolean;
@@ -74,7 +77,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
       return (
         <label key={fila.key} className="block space-y-1 py-1.5" data-campo={fila.key}>
           <span className="text-xs text-slate-500">{t(fila.en, fila.es)}</span>
-          <ControlDeCampo campo={fila.campo} valor={form[fila.key] ?? ""} mal={errores.includes(fila.key)} onCambia={(v) => onCampo(fila.key, v)} t={t} />
+          <ControlDeCampo campo={fila.campo} valor={form[fila.key] ?? ""} mal={errores.includes(fila.key)} onCambia={(v) => onCampo(fila.key, v)} vendedores={vendedores} t={t} />
         </label>
       );
     }
@@ -134,9 +137,20 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
 }
 
 /** El control de un campo, según su tipo: los cerrados en desplegable, el teléfono con su molde, los nombres en MAYÚSCULAS. */
-function ControlDeCampo({ campo: f, valor, mal, onCambia, t }: { campo: Campo; valor: string; mal: boolean; onCambia: (v: string) => void; t: T }) {
+function ControlDeCampo({ campo: f, valor, mal, onCambia, vendedores = [], t }: { campo: Campo; valor: string; mal: boolean; onCambia: (v: string) => void; vendedores?: Vendedor[]; t: T }) {
   // La tienda no sale aquí: es de la cabecera y se cambia en las pastillas de tiendas (`selectorDeTienda`).
   const marca = cn(mal && "border-red-400 ring-1 ring-red-300");
+  if (f.tipo === "vendedor") {
+    // D-683: el vendedor del cliente; «—» lo deja libre (lo ven todos los vendedores). Si el guardado no está en la
+    // lista (un perfil que ya no es vendedor), se enseña igual, para no perderlo al guardar otra cosa.
+    return (
+      <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)} data-vendedor>
+        <option value="">—</option>
+        {vendedores.map((v) => <option key={v.id} value={v.id}>{v.full_name}</option>)}
+        {valor && !vendedores.some((v) => v.id === valor) && <option value={valor}>{valor}</option>}
+      </select>
+    );
+  }
   if (f.tipo === "estado") {
     return (
       <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)}>
@@ -523,6 +537,13 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const redesOriginales = useMemo(() => redesDe(cliente), [cliente]);
   const [redes, setRedes] = useState<RedesEnEdicion>(() => redesEnEdicion(redesOriginales));
   useEffect(() => { setRedes(redesEnEdicion(redesOriginales)); }, [redesOriginales]);
+  // D-683: los vendedores para el desplegable, del almacén, una vez por ventana.
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  useEffect(() => {
+    let cancelado = false;
+    void almacen.vendedores().then((r) => { if (!cancelado && r.ok) setVendedores(vendedoresEnOrden(r.valor)); });
+    return () => { cancelado = true; };
+  }, [almacen]);
   const [editando, setEditando] = useState(puedeEditar && (nuevo || editarAlAbrir));
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<{ tono: "rojo" | "verde" | "ambar"; texto: string } | null>(null);
@@ -805,7 +826,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} redes={redes} onRedes={setRedes} almacen={almacen} puedeEditar={puedeEditar} t={t} />
+          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} t={t} />
         </div>
 
         {puedeEditar && !nuevo && archivando && (
