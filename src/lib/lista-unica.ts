@@ -23,7 +23,9 @@ import { palletsDeLaOrden } from "./pallets";
 
 export interface OrdenDeLaLista {
   id: string;
+  /** La tienda DUEÑA de la orden (la que la creó). Dónde se recoge lo dice `pickup_name`; si falta, esta: `tiendaDeRecogida`. */
   store?: string | null;
+  pickup_name?: string | null;
   actual_pallets?: number | null;
   est_pallets?: number | null;
   route_seq?: number | null;
@@ -55,6 +57,16 @@ const numero = (v: unknown): number | null => {
  * viaje (publicar, hasta D-443): por eso el viaje viejo ordena antes que el puesto. Es solo lectura de lo histórico: en
  * cuanto se toca la ruta se guarda seguida y sin viaje.
  */
+/**
+ * La tienda donde se RECOGE una orden, para la fila «P» del Gestor, su número de parada, su marca en el mapa y su medida:
+ * `pickup_name` y, si falta, `store` (D-679). Lo mismo que leen el motor de rutas (`entrada.ts`), la ficha y «Mi ruta»
+ * (`recogidaParaElChofer`). Hasta D-679 la lista leía solo `store`, la tienda dueña: FV215 (RDZ Edinburg, reprogramada
+ * para recogerse en RDZ Pharr) salía como recogida en Edinburg, agrupada con las de Edinburg, y la ficha decía Pharr.
+ */
+export function tiendaDeRecogida(o: Pick<OrdenDeLaLista, "store" | "pickup_name">): string | null {
+  return (o.pickup_name ?? "").trim() || (o.store ?? "").trim() || null;
+}
+
 export function entregasEnOrden<T extends OrdenDeLaLista>(ordenes: readonly T[]): T[] {
   return ordenes
     .map((o, i) => ({ o, i }))
@@ -107,7 +119,7 @@ export function listaDelChofer(ordenes: readonly OrdenDeLaLista[], capacidad: nu
     carga += n;
   }
   const conPosicion = entregas.filter((o) => guardada(o) != null && !yaABordo(o)).sort((a, b) => guardada(a)! - guardada(b)!);
-  const recogida = (o: OrdenDeLaLista): ParadaDeLaLista => ({ tipo: "P", ordenes: [o.id], tienda: (o.store ?? "").trim() || null });
+  const recogida = (o: OrdenDeLaLista): ParadaDeLaLista => ({ tipo: "P", ordenes: [o.id], tienda: tiendaDeRecogida(o) });
 
   const sueltas: ParadaDeLaLista[] = [];
   const recogidas = new Set<string>();
@@ -437,11 +449,11 @@ export function llevaEnLaLista(paradas: readonly ParadaDeLaLista[], desde: numbe
  * pegada delante de su entrega, la precedencia no se puede romper. Una orden que ya estaba en la lista no se repite.
  */
 export function listaConOrdenesEn(
-  paradas: readonly ParadaDeLaLista[], nuevas: readonly { id: string; store?: string | null }[], indice: number | null,
+  paradas: readonly ParadaDeLaLista[], nuevas: readonly Pick<OrdenDeLaLista, "id" | "store" | "pickup_name">[], indice: number | null,
 ): ParadaDeLaLista[] {
   const ya = new Set(paradas.flatMap((p) => (p.tipo === "P" ? p.ordenes : [p.orden])));
   const entran = nuevas.filter((o) => !ya.has(o.id)).flatMap((o): ParadaDeLaLista[] => [
-    { tipo: "P", ordenes: [o.id], tienda: (o.store ?? "").trim() || null }, { tipo: "D", orden: o.id },
+    { tipo: "P", ordenes: [o.id], tienda: tiendaDeRecogida(o) }, { tipo: "D", orden: o.id },
   ]);
   const i = indice == null ? paradas.length : Math.max(0, Math.min(paradas.length, indice));
   return unaPorOrden([...paradas.slice(0, i), ...entran, ...paradas.slice(i)]);
@@ -455,7 +467,7 @@ export function listaConOrdenesEn(
  * justo delante de su entrega.
  */
 export function listaConEntregasEn(
-  paradas: readonly ParadaDeLaLista[], ids: readonly string[], ordenes: readonly { id: string; store?: string | null }[],
+  paradas: readonly ParadaDeLaLista[], ids: readonly string[], ordenes: readonly Pick<OrdenDeLaLista, "id" | "store" | "pickup_name">[],
 ): ParadaDeLaLista[] {
   const quedan = new Set(ids);
   const antesDe = new Map<string, ParadaDeLaLista[]>();
@@ -471,7 +483,7 @@ export function listaConEntregasEn(
   const out: ParadaDeLaLista[] = [];
   for (const id of ids) {
     out.push(...(antesDe.get(id) ?? []));
-    if (!recogidaDe.has(id)) out.push({ tipo: "P", ordenes: [id], tienda: (porId.get(id)?.store ?? "").trim() || null });
+    if (!recogidaDe.has(id)) out.push({ tipo: "P", ordenes: [id], tienda: tiendaDeRecogida(porId.get(id) ?? {}) });
     out.push({ tipo: "D", orden: id });
   }
   out.push(...pendientes);

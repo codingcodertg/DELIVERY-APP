@@ -93,6 +93,15 @@ describe("la regla: el Gestor numera la lista que pinta, lo hecho incluido", () 
     expect([g.primera[0], g.primera[1]]).toEqual([true, false]);
     expect(g.paradas[0]).toMatchObject({ numero: 1, tipo: "P", ordenes: ["e", "a"], lugar: "RDZ Pharr", etiquetas: ["P1", "P2"] });
   });
+  it("D-679: una recogida YA HECHA cuenta en la tienda donde se recogió (`pickup_name`), no en la dueña (`store`)", () => {
+    // B (RDZ McAllen) se recogió en RDZ Edinburg: su recogida hecha y la pendiente de C, en Edinburg, son la MISMA parada.
+    const dia = diaDeAna().map((o) => (o.id === "b" ? { ...o, pickup_name: "RDZ Edinburg" } : o));
+    const g = delGestor(dia);
+    const pB = g.paradas.find((p) => p.tipo === "P" && p.ordenes.includes("b"))!;
+    expect(pB).toMatchObject({ lugar: "RDZ Edinburg", ordenes: ["b", "c"] });
+    // Sin `pickup_name`, como siempre: dos paradas, McAllen y Edinburg.
+    expect(delGestor(diaDeAna()).paradas.filter((p) => p.tipo === "P").map((p) => p.lugar)).toEqual(["RDZ Pharr", "RDZ McAllen", "RDZ Edinburg"]);
+  });
   it("el número de cada fila PENDIENTE (mapa y horario) es el del día, con su índice de la lectura", () => {
     expect(delGestor(diaDeAna()).dePendiente).toEqual([1, 3, 5, 6]);
   });
