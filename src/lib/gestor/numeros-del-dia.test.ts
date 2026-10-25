@@ -93,7 +93,7 @@ describe("la regla: el Gestor numera la lista que pinta, lo hecho incluido", () 
     expect([g.primera[0], g.primera[1]]).toEqual([true, false]);
     expect(g.paradas[0]).toMatchObject({ numero: 1, tipo: "P", ordenes: ["e", "a"], lugar: "RDZ Pharr", etiquetas: ["P1", "P2"] });
   });
-  it("D-NEXT: una recogida YA HECHA cuenta en la tienda donde se recogió (`pickup_name`), no en la dueña (`store`)", () => {
+  it("D-679: una recogida YA HECHA cuenta en la tienda donde se recogió (`pickup_name`), no en la dueña (`store`)", () => {
     // B (RDZ McAllen) se recogió en RDZ Edinburg: su recogida hecha y la pendiente de C, en Edinburg, son la MISMA parada.
     const dia = diaDeAna().map((o) => (o.id === "b" ? { ...o, pickup_name: "RDZ Edinburg" } : o));
     const g = delGestor(dia);

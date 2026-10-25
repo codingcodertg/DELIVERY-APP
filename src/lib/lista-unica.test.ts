@@ -395,7 +395,7 @@ describe("justo lleno no es pasarse (D-443)", () => {
 // D-444. El dueño, 2026-09-29, sobre la tabla del Gestor: «cada pickup tiene que tener su propio row, ahora si el sistema
 // detecta que […] hay pickups en el mismo lugar seguidos, entonces los va a poner de ese color […] y si es delivery en el
 // mismo lugar también, para que se mire como group. Pero no me los pongas en una sola línea».
-describe("D-NEXT: la recogida es donde se RECOGE (`pickup_name`), no la tienda dueña (`store`)", () => {
+describe("D-679: la recogida es donde se RECOGE (`pickup_name`), no la tienda dueña (`store`)", () => {
   // FV215 (2026-10-26): orden de RDZ Edinburg reprogramada para recogerse en RDZ Pharr («NOT RECEIVED IN WESLACO, THE DROP IT
   // AT PHARR»). La ficha decía Pharr; la fila P8 del Gestor, Edinburg, agrupada con las de Edinburg.
   const fv215 = { id: "fv215", store: "RDZ Edinburg", pickup_name: "RDZ Pharr", est_pallets: 0.2, route_seq: 5 };

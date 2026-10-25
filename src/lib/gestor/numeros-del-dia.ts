@@ -56,7 +56,7 @@ export function numerosDelDia(
   const delPlan = fuente === "plan" ? [...(paradasDelPlan ?? [])].sort((a, b) => a.seq - b.seq) : [];
   const delPlanDe = (tipo: "P" | "D", id: string) => delPlan.filter((p) => p.kind === tipo && ordenDeLaParte(p.order_ref) === id);
   // El sitio de una recogida ya hecha: con plan, el del plan (como lo lee `lecturaDeLaRuta`); si no, donde se recoge su
-  // orden (`tiendaDeRecogida`: `pickup_name`, y si falta `store`; D-NEXT).
+  // orden (`tiendaDeRecogida`: `pickup_name`, y si falta `store`; D-679).
   const tiendaHecha = (id: string): string | null => (fuente === "plan"
     ? delPlanDe("P", id)[0]?.place ?? null
     : tiendaDeRecogida(porId.get(id) ?? {}));

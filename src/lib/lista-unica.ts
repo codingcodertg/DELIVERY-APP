@@ -59,8 +59,8 @@ const numero = (v: unknown): number | null => {
  */
 /**
  * La tienda donde se RECOGE una orden, para la fila «P» del Gestor, su número de parada, su marca en el mapa y su medida:
- * `pickup_name` y, si falta, `store` (D-NEXT). Lo mismo que leen el motor de rutas (`entrada.ts`), la ficha y «Mi ruta»
- * (`recogidaParaElChofer`). Hasta D-NEXT la lista leía solo `store`, la tienda dueña: FV215 (RDZ Edinburg, reprogramada
+ * `pickup_name` y, si falta, `store` (D-679). Lo mismo que leen el motor de rutas (`entrada.ts`), la ficha y «Mi ruta»
+ * (`recogidaParaElChofer`). Hasta D-679 la lista leía solo `store`, la tienda dueña: FV215 (RDZ Edinburg, reprogramada
  * para recogerse en RDZ Pharr) salía como recogida en Edinburg, agrupada con las de Edinburg, y la ficha decía Pharr.
  */
 export function tiendaDeRecogida(o: Pick<OrdenDeLaLista, "store" | "pickup_name">): string | null {

@@ -48036,7 +48036,7 @@ entregas, los números de la tabla. **No medido:** con los mosaicos de Google ni
 ni tiendas con coordenadas, así que tampoco las marcas de recogida). Map Tiles API: la sesión se crea bien con la llave del
 servidor (medido hoy); cada foto pide unas decenas de mosaicos.
 
-## D-NEXT · Gestor: la recogida es donde se RECOGE (`pickup_name`), no la tienda dueña (`store`)
+## D-679 · Gestor: la recogida es donde se RECOGE (`pickup_name`), no la tienda dueña (`store`)
 
 **Fecha:** 2026-10-24. **Pedido:** el dueño, con la ruta de Ernesto Castillo del 26-oct y la ficha de FV215: «PORQUE LA
 FV215 DICE EDINGBURG EN PICKUP PERO LA ORDEN ES PHARR WESLACO PORQUE PASAS ESO QUE PASO AHI».
