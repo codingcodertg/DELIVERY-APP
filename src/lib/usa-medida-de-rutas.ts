@@ -24,6 +24,20 @@ import type { NamedLocation } from "@/lib/types";
 /** La clave de la hora estimada de una recogida en `etas`: «P:» + sus órdenes, igual en la medida y en la tabla (D-616). */
 export const claveDeRecogida = (ordenes: readonly string[]): string => `P:${ordenes.join(",")}`;
 
+/**
+ * Las órdenes con las que se GUARDÓ la hora de una recogida: las de su PARADA del día entera (D-NEXT). La medida va por
+ * paradas (`listaDelDia`: tres recogidas seguidas en la misma tienda son UNA visita, «P:a,b,c»), y la tabla pinta una fila
+ * por orden (D-444): buscando con las de la fila («P:a») solo acertaba la recogida que iba sola en su tienda; las demás
+ * decían «sin base» (el dueño, 2026-10-25: «whats no base?»). `numero` es el de la parada del día de esa fila
+ * (`dia.deFila[k]`); si no es una recogida que contenga a la fila, las de la fila, como hasta aquí.
+ */
+export function ordenesDeLaRecogidaMedida(
+  paradas: readonly { tipo: "P" | "D"; ordenes: readonly string[] }[], numero: number | undefined, deLaFila: readonly string[],
+): readonly string[] {
+  const p = numero != null ? paradas[numero - 1] : undefined;
+  return p && p.tipo === "P" && deLaFila.every((id) => p.ordenes.includes(id)) ? p.ordenes : deLaFila;
+}
+
 export const DAY_START_MIN = 8 * 60; // 08:00
 
 export function fmtMinutes(min: number): string {
