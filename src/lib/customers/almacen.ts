@@ -58,7 +58,7 @@ export function esSinPermiso(error: { code?: string | null; message?: string } |
 export const COLUMNAS =
   "id, store, account, unified_account, house_no, added_batch, qb_status, activity_status, status_store, status_group, " +
   "history_store, history_group, crm_type_store, crm_type_group, associated_with, rep_history, rep_qb, rep_store, contact_name, contact_title, address, phone, email, " +
-  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id, contacts, tax_terms, website";
+  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id, contacts, tax_terms, website, socials";
 
 /** Las tres de la 182 (CRM). El código llega antes que la migración: si la base aún no las tiene, se lee sin ellas. */
 export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associated_with"] as const;
@@ -68,11 +68,14 @@ export const COLUMNAS_DE_LA_189 = ["company_id"] as const;
 export const COLUMNAS_DE_LA_193 = ["contacts"] as const;
 /** Las de la 195 (D-672): los impuestos de la tienda y el sitio web. Sin ella llegan como null. */
 export const COLUMNAS_DE_LA_195 = ["tax_terms", "website"] as const;
+/** La de la 197 (D-682): las redes sociales. Sin ella llega como null. */
+export const COLUMNAS_DE_LA_197 = ["socials"] as const;
 const sin = (fuera: readonly string[]) => COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !fuera.includes(c)).join(", ");
-export const COLUMNAS_SIN_195 = sin(COLUMNAS_DE_LA_195);
-export const COLUMNAS_SIN_193 = sin([...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195]);
-export const COLUMNAS_SIN_189 = sin([...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195]);
-export const COLUMNAS_SIN_182 = sin([...COLUMNAS_DE_LA_182, ...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195]);
+export const COLUMNAS_SIN_197 = sin(COLUMNAS_DE_LA_197);
+export const COLUMNAS_SIN_195 = sin([...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197]);
+export const COLUMNAS_SIN_193 = sin([...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197]);
+export const COLUMNAS_SIN_189 = sin([...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197]);
+export const COLUMNAS_SIN_182 = sin([...COLUMNAS_DE_LA_182, ...COLUMNAS_DE_LA_189, ...COLUMNAS_DE_LA_193, ...COLUMNAS_DE_LA_195, ...COLUMNAS_DE_LA_197]);
 
 /** ¿«La 182 no está aplicada»? 42703 es undefined_column (Postgres); PGRST204 es lo mismo dicho por PostgREST. Solo esos. */
 export function faltaLa182(error: { code?: string | null } | null | undefined): boolean {
@@ -81,7 +84,8 @@ export function faltaLa182(error: { code?: string | null } | null | undefined): 
 }
 
 /**
- * Una lectura con respaldo: con las columnas de hoy, y si la base dice que una no existe, otra vez sin la de la 193
+ * Una lectura con respaldo: con las columnas de hoy, y si la base dice que una no existe, otra vez sin la de la 197
+ * (`socials`), luego sin las de la 195, luego sin la de la 193
  * (`contacts`: salen de las cuatro de antes), luego también sin la de la 189 (`company_id`: cada fila, su empresa), y si
  * aún falta, también sin las tres de la 182 (llegan como null). Así la lista no se queda en blanco el rato entre el
  * deploy y la migración. Una escritura con `.select(cols)` falla ENTERA si una columna pedida no existe (no escribe
@@ -89,7 +93,7 @@ export function faltaLa182(error: { code?: string | null } | null | undefined): 
  */
 export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseLike<{ data: T; error: { code?: string | null; message: string } | null }>) {
   let r = await consulta(COLUMNAS);
-  for (const cols of [COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]) {
+  for (const cols of [COLUMNAS_SIN_197, COLUMNAS_SIN_195, COLUMNAS_SIN_193, COLUMNAS_SIN_189, COLUMNAS_SIN_182]) {
     if (!(r.error && faltaLa182(r.error))) return r;
     r = await consulta(cols);
   }

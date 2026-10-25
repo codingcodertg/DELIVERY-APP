@@ -13,6 +13,7 @@ import {
   contactosDe, contactoVacio, enEdicion, erroresDeContactos, parcheDeContactos, repartoDePastillas, rotuloDeContacto, textoDeCorreos,
   textoDeTelefonos, type Contacto, type ContactoEnEdicion,
 } from "@/lib/customers/contactos";
+import { hayRedes, NOMBRE_DE_RED, parcheDeRedes, REDES, redesDe, redesEnEdicion, textoDeRed, urlDeRed, type Redes, type RedesEnEdicion } from "@/lib/customers/redes";
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -46,10 +47,11 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * Debajo, «🔒 Campos ocultos» (D-660): Añadido (tanda), N.º House y la CONCATENATE, en un `<details>` que abre
  * PLEGADO. Editando, «Añadido (tanda)» se corrige ahí dentro.
  *
- * La tarjeta «Contacto» abre con los contactos (D-668): leyendo, una pastilla por contacto (`ContactosParaVer`);
- * editando, la lista que se escribe (`contactos`, `ContactosParaEditar`). Debajo, la dirección.
+ * La tarjeta «Contacto» abre con los contactos (D-668): leyendo, una pastilla por contacto (`ContactosParaVer`) y, si
+ * la cuenta tiene redes sociales, la pastilla «🌐 Socials» (D-682, 197) con sus perfiles; editando, la lista que se
+ * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). Debajo, la dirección.
  */
-export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, almacen, puedeEditar = false, t }: {
+export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, redes, onRedes, almacen, puedeEditar = false, t }: {
   cliente: Cliente | null;
   form?: Record<string, string>;
   editando?: boolean;
@@ -58,6 +60,9 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
   contactos?: ContactoEnEdicion[];
   onContactos?: (c: ContactoEnEdicion[]) => void;
+  /** D-682: las redes sociales mientras se editan, y quién las cambia. */
+  redes?: RedesEnEdicion;
+  onRedes?: (r: RedesEnEdicion) => void;
   /** D-672: con él, la ficha lleva los archivos de la fila (`ArchivosDeLaFicha`; desde D-681, su tarjeta bajo «Campos ocultos»). */
   almacen?: AlmacenDeClientes;
   puedeEditar?: boolean;
@@ -94,8 +99,11 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
           <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {grupo.key === "contacto" && (editando && contactos && onContactos
-              ? <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} t={t} />
-              : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} t={t} />)}
+              ? <>
+                  <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} t={t} />
+                  {redes && onRedes && <RedesParaEditar redes={redes} onCambia={onRedes} t={t} />}
+                </>
+              : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} redes={redesDe(cliente)} t={t} />)}
             {filas.map(linea)}
           </section>
         ))}
@@ -213,25 +221,28 @@ function BotonCopiar({ texto, t }: { texto: string; t: T }) {
  * Los contactos de la tarjeta «Contacto» (D-668). Como las pastillas de tiendas: una pastilla por contacto, y al
  * pulsarla se ve ese; si no caben (`PASTILLAS_A_LA_VISTA`), «+N» abre un desplegable con los demás. Del elegido: el
  * nombre, el cargo y la nota, y debajo sus teléfonos (pulsar llama con RingCentral, como en RR. HH.) y sus correos
- * (pulsar abre el correo), cada uno con «📋» para solo copiarlo.
+ * (pulsar abre el correo), cada uno con «📋» para solo copiarlo. Con redes sociales (D-682), una pastilla más al final,
+ * «🌐 Socials», aunque haya un solo contacto: sus perfiles, uno por red, que abren en otra pestaña. Sin contacto pero con
+ * redes, salen ellas.
  */
-function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
-  const [elegido, setElegido] = useState(0);
+function ContactosParaVer({ contactos, redes = {}, t }: { contactos: Contacto[]; redes?: Redes; t: T }) {
+  const [elegido, setElegido] = useState<number | "redes">(0);
   // «+N»: un menú propio (no un <select>: en el teléfono el nativo se estiraba y cortaba el nombre).
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useCierraAlSalir(menu, () => setMenu(false), () => [menuRef.current]);
-  if (!contactos.length) {
+  const conRedes = hayRedes(redes);
+  if (!contactos.length && !conRedes) {
     return <p className="border-b border-slate-100 py-1.5 text-sm text-slate-400" data-contactos="0">{t("No contact yet", "Sin contacto todavía")}</p>;
   }
-  const i = Math.min(elegido, contactos.length - 1);
-  const c = contactos[i];
+  const i: number | "redes" = elegido === "redes" || !contactos.length ? "redes" : Math.min(elegido, contactos.length - 1);
+  const c = i === "redes" ? null : contactos[i];
   const { pastillas, enElMenu } = repartoDePastillas(contactos.length);
   const pastilla = (activa: boolean) =>
     cn("max-w-[11rem] truncate rounded-full border px-3 py-1 text-xs", activa ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50");
   return (
     <div className="space-y-2 border-b border-slate-100 pb-3" data-contactos={contactos.length}>
-      {contactos.length > 1 && (
+      {(contactos.length > 1 || conRedes) && (
         <div role="tablist" aria-label={t("Contacts", "Contactos")} className="flex flex-wrap items-center gap-1.5">
           {pastillas.map((k) => (
             <button key={k} type="button" role="tab" aria-selected={k === i} onClick={() => setElegido(k)} className={pastilla(k === i)} title={rotuloDeContacto(contactos[k], k, t)} data-pastilla-de-contacto={k}>
@@ -240,9 +251,9 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
           ))}
           {enElMenu.length > 0 && (
             <div className="relative" ref={menuRef}>
-              <button type="button" onClick={() => setMenu((m) => !m)} className={pastilla(enElMenu.includes(i))} aria-haspopup="menu" aria-expanded={menu}
+              <button type="button" onClick={() => setMenu((m) => !m)} className={pastilla(typeof i === "number" && enElMenu.includes(i))} aria-haspopup="menu" aria-expanded={menu}
                 title={t("More contacts", "Más contactos")} data-mas-contactos={enElMenu.length}>
-                {enElMenu.includes(i) ? rotuloDeContacto(contactos[i], i, t) : `+${enElMenu.length}`} ▾
+                {typeof i === "number" && enElMenu.includes(i) ? rotuloDeContacto(contactos[i], i, t) : `+${enElMenu.length}`} ▾
               </button>
               {menu && (
                 <div role="menu" className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] max-w-[16rem] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg" data-menu-de-contactos>
@@ -257,8 +268,23 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
               )}
             </div>
           )}
+          {conRedes && (
+            <button type="button" role="tab" aria-selected={i === "redes"} onClick={() => setElegido("redes")} className={pastilla(i === "redes")} data-pastilla-de-redes>
+              🌐 {t("Socials", "Redes sociales")}
+            </button>
+          )}
         </div>
       )}
+      {c === null ? (
+        <ul className="space-y-0.5" data-redes={REDES.filter((k) => redes[k]).length}>
+          {REDES.filter((k) => redes[k]).map((k) => (
+            <li key={k} className="flex min-w-0 items-center gap-1 text-sm">
+              <span className="w-24 shrink-0 text-xs text-slate-500">{NOMBRE_DE_RED[k]}</span><a href={urlDeRed(k, redes[k]!)} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-clay-600 hover:underline" title={urlDeRed(k, redes[k]!)} data-red={k}>{textoDeRed(redes[k]!)}</a>
+              <BotonCopiar texto={urlDeRed(k, redes[k]!)} t={t} />
+            </li>
+          ))}
+        </ul>
+      ) : (
       <div className="space-y-1" data-contacto-elegido={i}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="break-words font-medium text-slate-900" data-campo="contact_name">{c.name ?? t("No name", "Sin nombre")}</span>
@@ -287,7 +313,25 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
           </ul>
         )}
       </div>
+      )}
     </div>
+  );
+}
+
+/** Las siete redes (D-682), cada una con su casilla: la URL entera o solo el usuario. Debajo de los contactos, al editar. */
+function RedesParaEditar({ redes, onCambia, t }: { redes: RedesEnEdicion; onCambia: (r: RedesEnEdicion) => void; t: T }) {
+  return (
+    <fieldset className="my-3 space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-3" data-redes-editando>
+      <legend className="text-xs font-semibold uppercase tracking-wide text-slate-400">🌐 {t("Socials", "Redes sociales")}</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {REDES.map((k) => (
+          <label key={k} className="block space-y-1">
+            <span className="text-xs text-slate-500">{NOMBRE_DE_RED[k]}</span>
+            <Input value={redes[k]} onChange={(e) => onCambia({ ...redes, [k]: e.target.value })} placeholder={t("URL or @user", "URL o @usuario")} data-red-editable={k} />
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -475,6 +519,10 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const contactosOriginales = useMemo(() => contactosDe(cliente), [cliente]);
   const [contactos, setContactos] = useState<ContactoEnEdicion[]>(() => enEdicion(contactosOriginales));
   useEffect(() => { setContactos(enEdicion(contactosOriginales)); }, [contactosOriginales]);
+  // D-682: y las redes sociales, igual.
+  const redesOriginales = useMemo(() => redesDe(cliente), [cliente]);
+  const [redes, setRedes] = useState<RedesEnEdicion>(() => redesEnEdicion(redesOriginales));
+  useEffect(() => { setRedes(redesEnEdicion(redesOriginales)); }, [redesOriginales]);
   const [editando, setEditando] = useState(puedeEditar && (nuevo || editarAlAbrir));
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<{ tono: "rojo" | "verde" | "ambar"; texto: string } | null>(null);
@@ -488,10 +536,10 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const { parche, errores } = useMemo(() => {
     const campos = parcheDe(form, original, nuevo);
     return {
-      parche: { ...campos.parche, ...parcheDeContactos(contactosOriginales, contactos, cliente) },
+      parche: { ...campos.parche, ...parcheDeContactos(contactosOriginales, contactos, cliente), ...parcheDeRedes(redesOriginales, redes) },
       errores: [...campos.errores, ...erroresDeContactos(contactos)],
     };
-  }, [form, original, nuevo, contactosOriginales, contactos, cliente]);
+  }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes]);
   const cambiado = Object.keys(parche).length > 0;
 
   // D-665: «this information matches another account». Mientras se edita (alta o ficha), lo escrito se compara con la
@@ -587,6 +635,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     if (nuevo) { pedirCierre(); return; }
     setForm(original);
     setContactos(enEdicion(contactosOriginales));
+    setRedes(redesEnEdicion(redesOriginales));
     setEditando(false);
     setAviso(null);
   };
@@ -756,7 +805,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} almacen={almacen} puedeEditar={puedeEditar} t={t} />
+          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} redes={redes} onRedes={setRedes} almacen={almacen} puedeEditar={puedeEditar} t={t} />
         </div>
 
         {puedeEditar && !nuevo && archivando && (
