@@ -66,7 +66,7 @@ export interface Cliente {
   website?: string | null;
   /** Migración 197 (D-682): las redes sociales de la cuenta, red → URL o usuario (`redes.ts`). Sin la 197, no llega. */
   socials?: Redes | null;
-  /** Migración 198 (D-NEXT): el VENDEDOR del cliente (perfil del hub). Sin la 198, null. */
+  /** Migración 198 (D-683): el VENDEDOR del cliente (perfil del hub). Sin la 198, null. */
   rep_id?: string | null;
   /** Su nombre, puesto por el almacén (`conVendedores`); no se escribe. La lista, el orden y la búsqueda leen este. */
   rep_name?: string | null;
@@ -176,7 +176,7 @@ export const COLUMNAS: readonly Columna[] = [
   // D-669: la «Activity» del Excel es el «Type» de la plantilla del dueño (Roberto, 2026-10-24).
   { key: "activity_status", en: "Type", es: "Tipo" },
   { key: "unified_account", en: "Unified account", es: "Cuenta unificada" },
-  // D-NEXT: el vendedor de verdad (perfil del hub), antes de las iniciales de QuickBooks.
+  // D-683: el vendedor de verdad (perfil del hub), antes de las iniciales de QuickBooks.
   { key: "rep_id", en: "Sales rep", es: "Vendedor" },
   { key: "rep_store", en: "Store rep (QB)", es: "Vendedor tienda (QB)" },
   { key: "rep_qb", en: "Group rep (QB)", es: "Vendedor grupo (QB)" },
@@ -374,7 +374,7 @@ export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: 
   // número), aunque la fila aún los tenga juntos en sus columnas.
   if (key === "contact_name" || key === "contact_title" || key === "phone" || key === "email") return espejoDeContactos(contactosDe(c))[key];
   if (key === "contacts" || key === "socials") return null;
-  // D-NEXT: el vendedor se enseña, ordena y busca por su NOMBRE.
+  // D-683: el vendedor se enseña, ordena y busca por su NOMBRE.
   if (key === "rep_id") return c.rep_name ?? c.rep_id ?? null;
   return c[key] ?? null;
 }
@@ -453,7 +453,7 @@ export const CAMPOS: readonly Campo[] = [
   { key: "associated_with", tipo: "text", en: "Associated with", es: "Asociado con", grupo: "otros" },
   // D-662: vuelve a la tarjeta «Cuenta», la primera (en D-654 había ido a «Otros» al quitar esa tarjeta).
   { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "cuenta" },
-  // D-NEXT: el vendedor (198): un desplegable con los perfiles de vendedor; «—» lo deja libre (lo ven todos).
+  // D-683: el vendedor (198): un desplegable con los perfiles de vendedor; «—» lo deja libre (lo ven todos).
   { key: "rep_id", tipo: "vendedor", en: "Sales rep", es: "Vendedor", grupo: "cuenta" },
   { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "cuenta" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
@@ -719,7 +719,7 @@ export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: 
  * del servidor (`customers/layout.tsx`) y la casilla de Usuarios (`MODULE_ACCESS`) lo leen. Con `false`, vuelve a lo de
  * la 180: entra quien tiene la casilla, y la casilla se ofrece a todos.
  */
-export const CLIENTES_SOLO_ADMINS = false; // D-NEXT: abierto a los vendedores (cada uno ve los suyos y los libres, 198).
+export const CLIENTES_SOLO_ADMINS = false; // D-683: abierto a los vendedores (cada uno ve los suyos y los libres, 198).
 
 /** ¿Puede entrar a /customers? Admin siempre; los demás, solo con la casilla y solo si no está en «solo admins». */
 export function puedeEntrarAClientes(p: { role?: string | null; module_access?: string[] | null } | null | undefined): boolean {

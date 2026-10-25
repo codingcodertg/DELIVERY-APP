@@ -41,7 +41,7 @@ export interface AlmacenDeClientes {
   quitarArchivo(a: ArchivoDeCliente): Promise<Res<null>>;
   /** Un enlace para abrirlo (firmado, una hora). */
   enlaceDeArchivo(a: ArchivoDeCliente): Promise<Res<string>>;
-  /** D-NEXT (198): los vendedores del hub (perfiles con rol `sales`), para el desplegable y para poner nombre a `rep_id`. */
+  /** D-683 (198): los vendedores del hub (perfiles con rol `sales`), para el desplegable y para poner nombre a `rep_id`. */
   vendedores(): Promise<Res<Vendedor[]>>;
 }
 
@@ -73,7 +73,7 @@ export const COLUMNAS_DE_LA_193 = ["contacts"] as const;
 export const COLUMNAS_DE_LA_195 = ["tax_terms", "website"] as const;
 /** La de la 197 (D-682): las redes sociales. Sin ella llega como null. */
 export const COLUMNAS_DE_LA_197 = ["socials"] as const;
-/** La de la 198 (D-NEXT): el vendedor. Sin ella llega como null. */
+/** La de la 198 (D-683): el vendedor. Sin ella llega como null. */
 export const COLUMNAS_DE_LA_198 = ["rep_id"] as const;
 const sin = (fuera: readonly string[]) => COLUMNAS.split(",").map((c) => c.trim()).filter((c) => !fuera.includes(c)).join(", ");
 export const COLUMNAS_SIN_198 = sin(COLUMNAS_DE_LA_198);
@@ -124,7 +124,7 @@ const sinFila = (): Res<never> => ({ ok: false, sinTabla: false, sinPermiso: tru
 
 // El cliente del ERP (esquema `erp`): su tipo lleva el esquema, y el de Entregas no vale.
 export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenDeClientes {
-  // D-NEXT: los nombres de los vendedores, una vez; cada fila que vuelve de la base sale con el suyo (`rep_name`).
+  // D-683: los nombres de los vendedores, una vez; cada fila que vuelve de la base sale con el suyo (`rep_name`).
   let nombres: ReadonlyMap<string, string> | null = null;
   const conNombres = async <T extends Pick<Cliente, "rep_id">>(filas: T[]) => {
     if (!nombres) { const r = await almacen.vendedores(); nombres = nombresDeVendedores(r.ok ? r.valor : []); }

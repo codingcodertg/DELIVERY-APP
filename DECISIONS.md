@@ -48103,7 +48103,7 @@ solo lleva `socials` si algo cambió (`parcheDeRedes`). Sin la 197, la lectura c
 **No medido:** en el navegador; las pruebas de `redes.test.ts` fijan la librería y el HTML de la ficha (ver y editar).
 La migración se aplica con el sí del dueño.
 
-## D-NEXT · Clientes: el vendedor de cada cliente, y cada vendedor ve solo los suyos y los libres
+## D-683 · Clientes: el vendedor de cada cliente, y cada vendedor ve solo los suyos y los libres
 
 **Fecha:** 2026-10-25. **Pedido:** el dueño: «the customer app has a sales rep assigned to each customer. Right now,
 they just have initials […] they will only be able to see their own source customers and the customer assigned to them,

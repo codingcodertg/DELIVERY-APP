@@ -55,7 +55,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   if (error) throw new Error(`customers: ${error.message}`);
   if (!data) notFound();
   const cliente: Cliente = clienteDeLaBase(data as unknown as Record<string, unknown>);
-  // D-NEXT (198): el nombre de su vendedor, que la ficha enseña en vez del id.
+  // D-683 (198): el nombre de su vendedor, que la ficha enseña en vez del id.
   if (cliente.rep_id) {
     const { data: rep } = await supabase.from("profiles").select("full_name").eq("id", cliente.rep_id).maybeSingle();
     cliente.rep_name = rep?.full_name ?? null;

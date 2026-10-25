@@ -12,7 +12,7 @@ import type { Cliente, Parche } from "./reglas";
  * captura de hoy y otra de mañana enseñen lo mismo. Los estados, historiales y tiendas sí son los del Excel, porque
  * son clasificación nuestra y la pantalla los traduce.
  */
-/** D-NEXT: los vendedores del demo (los de Leads). */
+/** D-683: los vendedores del demo (los de Leads). */
 export const VENDEDORES_DEMO: readonly Vendedor[] = [{ id: "demo-ana", full_name: "Ana Demo" }, { id: "demo-beto", full_name: "Beto Demo" }];
 const NOMBRES_DEMO = nombresDeVendedores(VENDEDORES_DEMO);
 

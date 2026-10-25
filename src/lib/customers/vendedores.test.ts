@@ -9,7 +9,7 @@ import { filasDeLaEmpresa } from "./empresas";
 import { CAMPOS, celda, clienteDeLaBase, COLUMNAS as COLUMNAS_DE_LA_LISTA, COLUMNAS_INICIALES, puedeEditar, textoDeCampo, valorDeColumna, type Cliente } from "./reglas";
 import { conVendedores, nombresDeVendedores, vendedoresEnOrden } from "./vendedores";
 
-/* D-NEXT (198). El dueño, 2026-10-25: «the customer app has a sales rep assigned to each customer. Right now, they just
+/* D-683 (198). El dueño, 2026-10-25: «the customer app has a sales rep assigned to each customer. Right now, they just
  * have initials […] they will only be able to see their own source customers and the customer assigned to them, and the
  * free ones […] in edit, and when they're creating, you assign a sales rep, and also for the ones empty». */
 const t = (_en: string, es: string) => es;

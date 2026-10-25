@@ -1,4 +1,4 @@
-// Reparto de una vez (D-NEXT, 2026-10-25): el VENDEDOR de cada cliente (`erp.customers.rep_id`, 198) a partir de las
+// Reparto de una vez (D-683, 2026-10-25): el VENDEDOR de cada cliente (`erp.customers.rep_id`, 198) a partir de las
 // iniciales de QuickBooks de la fila (`rep_store`; si está vacío, `rep_qb`). El dueño, con la hoja de vendedores: «aquí
 // están, así que asígnalos y me dices si quedaron algunos». Las iniciales de la hoja → el nombre del perfil del hub.
 // También da la casilla del módulo «Clientes» a esos perfiles (sin ella no entran).

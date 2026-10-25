@@ -161,7 +161,7 @@ describe("columnas", () => {
 });
 
 describe("quién edita", () => {
-  it("admin, manager y vendedor (D-NEXT) editan; los demás, y sin rol, no (espejo de erp.customers_can_write())", () => {
+  it("admin, manager y vendedor (D-683) editan; los demás, y sin rol, no (espejo de erp.customers_can_write())", () => {
     expect(puedeEditar("admin")).toBe(true);
     expect(puedeEditar("manager")).toBe(true);
     expect(puedeEditar("sales")).toBe(true);

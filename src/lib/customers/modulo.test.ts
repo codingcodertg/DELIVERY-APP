@@ -136,7 +136,7 @@ describe("la 180", () => {
     const la195 = leer("supabase/migrations/195_clientes_impuestos_y_archivos.sql");
     // Y las redes sociales, la 197 (D-682).
     const la197 = leer("supabase/migrations/197_clientes_redes_sociales.sql");
-    // Y el vendedor, la 198 (D-NEXT).
+    // Y el vendedor, la 198 (D-683).
     const la198 = leer("supabase/migrations/198_clientes_vendedor.sql");
     const dondeEsta = (col: string) => {
       if ((COLUMNAS_DE_LA_198 as readonly string[]).includes(col)) expect(la198, col).toMatch(new RegExp(`alter table erp\\.customers add column if not exists ${col}\\s`));
@@ -341,7 +341,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
   });
 });
 
-describe("D-570 · solo admins por ahora (quitado en D-NEXT: entra quien tiene la casilla)", async () => {
+describe("D-570 · solo admins por ahora (quitado en D-683: entra quien tiene la casilla)", async () => {
   const { CLIENTES_SOLO_ADMINS, puedeEntrarAClientes, seOfreceClientes } = await import("./reglas");
   it("el interruptor está QUITADO: el admin siempre; los demás, con la casilla; sin ella, no", () => {
     expect(CLIENTES_SOLO_ADMINS).toBe(false);

@@ -64,7 +64,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** D-682: las redes sociales mientras se editan, y quién las cambia. */
   redes?: RedesEnEdicion;
   onRedes?: (r: RedesEnEdicion) => void;
-  /** D-NEXT (198): los vendedores para el desplegable de «Vendedor» al editar. */
+  /** D-683 (198): los vendedores para el desplegable de «Vendedor» al editar. */
   vendedores?: Vendedor[];
   /** D-672: con él, la ficha lleva los archivos de la fila (`ArchivosDeLaFicha`; desde D-681, su tarjeta bajo «Campos ocultos»). */
   almacen?: AlmacenDeClientes;
@@ -141,7 +141,7 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, vendedores = [], t }: 
   // La tienda no sale aquí: es de la cabecera y se cambia en las pastillas de tiendas (`selectorDeTienda`).
   const marca = cn(mal && "border-red-400 ring-1 ring-red-300");
   if (f.tipo === "vendedor") {
-    // D-NEXT: el vendedor del cliente; «—» lo deja libre (lo ven todos los vendedores). Si el guardado no está en la
+    // D-683: el vendedor del cliente; «—» lo deja libre (lo ven todos los vendedores). Si el guardado no está en la
     // lista (un perfil que ya no es vendedor), se enseña igual, para no perderlo al guardar otra cosa.
     return (
       <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)} data-vendedor>
@@ -537,7 +537,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const redesOriginales = useMemo(() => redesDe(cliente), [cliente]);
   const [redes, setRedes] = useState<RedesEnEdicion>(() => redesEnEdicion(redesOriginales));
   useEffect(() => { setRedes(redesEnEdicion(redesOriginales)); }, [redesOriginales]);
-  // D-NEXT: los vendedores para el desplegable, del almacén, una vez por ventana.
+  // D-683: los vendedores para el desplegable, del almacén, una vez por ventana.
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   useEffect(() => {
     let cancelado = false;

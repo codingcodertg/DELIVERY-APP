@@ -118,7 +118,7 @@ describe("la 189 · empresas y la cola", () => {
     });
     const r = await almacenDeLaBase({ from: () => cadena } as any).guardar(7, { notes: "x" });
     expect(r.ok).toBe(true);
-    // D-NEXT: primero sin rep_id (198); D-682: sin socials (197); D-672: sin las de la 195, luego sin contacts, y luego sin company_id.
+    // D-683: primero sin rep_id (198); D-682: sin socials (197); D-672: sin las de la 195, luego sin contacts, y luego sin company_id.
     expect(llamadas).toHaveLength(6);
     expect(llamadas[0]).toContain("rep_id");
     expect(llamadas[1]).not.toContain("rep_id");
