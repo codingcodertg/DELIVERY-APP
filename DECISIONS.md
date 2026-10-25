@@ -48012,3 +48012,26 @@ pestañas, la campana y el nombre son hermanas y se reparten en las mismas filas
 **Medido:** en una réplica de la barra (las mismas reglas y la misma estructura) a 956 px: antes, la campana en una tercera
 fila y la barra de 168 px de alto; después, en la fila de «Auditoría / Registrar tiempo» y 127 px. A 1440 px, igual que
 antes. **No medido:** en Time Tracker de verdad (el demo no lo abre).
+
+## D-678 · PNG de la ruta: el mapa sale encuadrado y con sus números
+
+**Fecha:** 2026-10-24. **Pedido:** el dueño, con el PNG de Ernesto Castillo (26-oct) al lado del mapa del Gestor: «mira
+como se mira el mapa generado por el png generator contra como se deberia de ver soluciona eso igual maximo no se miran
+los numeros».
+
+**Por qué pasaba:** dos cosas. (1) La foto fotografiaba con `snapdom` el mapa de Google, y Google no se deja copiar
+bien: el PNG de Ernesto salía con la región entera (de Bustamante a Padre Island) y sin una sola marca. D-536 se midió con
+Leaflet, que es lo que pinta el demo. (2) La ruta de Maximo Garza no tiene orden guardado (`route_seq` vacío): el mapa del
+Gestor la pinta como un punto sin número y sin su recogida, aunque la tabla diga 1 y 2. Y la cabecera sumaba pallets con
+decimales sin redondear: «12.399999999999999 pallets».
+
+**Qué cambia:** el mapa de la foto es Leaflet (marcas de HTML y mosaicos como imágenes: salen enteros) con los mosaicos de
+Google por /api/map-tiles (`mosaicos="google"`, nuevo en `LeafletMap`; el resto de mapas sigue en OSM), para que se parezca
+al del Gestor; en el demo, sin sesión para ese proxy, OSM. Si el mapa del Gestor no trae ningún número para la ruta, la foto
+la numera como su tabla (`puntosDeLaRuta` con `numeros`: cada entrega con el número de su parada, cada recogida con su marca
+en la tienda, detrás de la «P» de la base). Lo ya hecho de la ruta (`__hecha__`) también entra. Pallets a centésimas.
+
+**Medido:** en el demo (Leaflet + OSM, ruta sin orden guardado): el PNG sale encuadrado en la ruta y con 2, 5, 6 y 8 en las
+entregas, los números de la tabla. **No medido:** con los mosaicos de Google ni con la base real (el demo no tiene sesión
+ni tiendas con coordenadas, así que tampoco las marcas de recogida). Map Tiles API: la sesión se crea bien con la llave del
+servidor (medido hoy); cada foto pide unas decenas de mosaicos.

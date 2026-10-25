@@ -117,6 +117,7 @@ export function LeafletMap({
   onPick,
   pickedPoint,
   height = 420,
+  mosaicos = "osm",
 }: {
   points?: MapPoint[];
   /** Contorno de la zona local, pintado en verde bajo todo lo demás (D-219). Opcional: los
@@ -141,6 +142,12 @@ export function LeafletMap({
   /** The currently-picked point, shown as its own marker in pickable mode. */
   pickedPoint?: [number, number] | null;
   height?: number;
+  /**
+   * De dónde salen los mosaicos (D-678). `osm` (lo de siempre): OpenStreetMap, gratis. `google`: los de Google por
+   * /api/map-tiles (la llave se queda en el servidor; si falla, el mismo proxy devuelve OSM). Solo lo pide la foto de la
+   * ruta (`FotoDeLaRuta`), que tiene que parecerse al mapa de Google del Gestor: son unas decenas de mosaicos por foto.
+   */
+  mosaicos?: "osm" | "google";
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMapInstance | null>(null);
@@ -175,13 +182,16 @@ export function LeafletMap({
       const startCenter: [number, number] = center ?? [inicio.lat, inicio.lng];
       // Sin tope de alejamiento (D-587): la región es el encuadre por defecto, no un candado.
       map = L.map(containerRef.current).setView(startCenter, zoom);
-      // Free OpenStreetMap tiles (no billing). A Google-tiles proxy exists at
-      // /api/map-tiles but is intentionally NOT used, to avoid Map Tiles API
-      // charges — switch this URL to "/api/map-tiles/{z}/{x}/{y}" to enable it.
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap contributors",
-        maxZoom: 19,
-      }).addTo(map);
+      // Free OpenStreetMap tiles (no billing). The Google-tiles proxy at /api/map-tiles is used only where a page asks
+      // for it (`mosaicos="google"`: the route PNG, D-678), to keep Map Tiles API charges to a few tiles per photo.
+      if (mosaicos === "google") {
+        L.tileLayer("/api/map-tiles/{z}/{x}/{y}", { attribution: "Map data © Google", maxZoom: 19 }).addTo(map);
+      } else {
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
+      }
       mapRef.current = map;
 
       if (pickable) {

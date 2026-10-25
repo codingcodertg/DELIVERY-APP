@@ -3452,7 +3452,7 @@ export default function RoutesPage() {
               {/* Una sola foto por ruta: en «Cuadrícula» la pinta la desplegada, que es la que tiene la tabla (D-636). */}
               {pngDe === u.key && modoDeTarjeta !== "compacta" && (
                 <FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}
-                  points={puntosDeLaRuta(points, u, new Set(stops.map((d) => d.id)))} lines={lineasDeLaRuta(lines, u.key)} />
+                  points={puntosDeLaRuta(points, u, new Set([...stops, ...hechasDe(u.key)].map((d) => d.id)), { paradas: diaDe(u.key, stops).paradas, color: colorFor(u.driver), coordsDeTienda })} lines={lineasDeLaRuta(lines, u.key)} />
               )}
               {/* En la eficiente, «⚙ Columnas» sube a esta fila (D-655): «todo va a estar en una sola línea». */}
               {eficienteAqui && hayFilas && !soloLectura && selectorDeParadas}

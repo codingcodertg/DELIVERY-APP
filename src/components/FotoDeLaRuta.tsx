@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
+import { LeafletMap, type MapLine, type MapPoint } from "@/components/LeafletMap";
 import { cargaSnapdom } from "@/components/CapturaDeAyuda";
 import { anchoSinAcciones, encuadreDeLaFoto, filasDeLaFoto, FUERA_DE_LA_TABLA, nombreDelPng, palletsDeLaFoto, puedeCompartirFicheros } from "@/lib/foto-de-la-ruta";
 import { fmtDate } from "@/lib/utils";
@@ -18,7 +18,14 @@ import type { Delivery } from "@/lib/types";
  * esto me refiero»): arriba el mapa y debajo la tabla de la ruta TAL COMO SE VE en el Gestor (Parada, Factura, Pallets,
  * Tipo, ciudades, Llegada, Ventanas, Etapa, con sus colores de recogida y entrega), fotografiada de la página, sin las
  * casillas ni la columna de flechas. Si la tabla no está en la página (la ruta plegada), sale la lista sencilla de antes.
+ *
+ * D-678 (el dueño, 2026-10-24, con la foto de Ernesto Castillo al lado del mapa del Gestor): el mapa de la foto es
+ * Leaflet, no el de Google. `snapdom` no copia bien el mapa de Google: la foto salía con la región entera y sin una sola
+ * marca. Leaflet pinta sus marcas como HTML y sus mosaicos como imágenes, y eso sale entero; los mosaicos son los de
+ * Google (`mosaicos="google"`, por /api/map-tiles) para que se parezca al del Gestor. En el demo no hay sesión para ese
+ * proxy: ahí, OpenStreetMap.
  */
+const MOSAICOS_DE_LA_FOTO = process.env.NEXT_PUBLIC_LOCAL_MODE === "true" ? "osm" : "google";
 
 /** La tabla de la ruta en la página, como imagen: en tema claro (la foto sale igual para todos), sin casillas ni acciones. */
 async function fotoDeLaTabla(tabla: HTMLElement): Promise<{ url: string; ancho: number }> {
@@ -130,7 +137,7 @@ export function FotoDeLaRuta({ chofer, fecha, laneKey, stops, points, lines, col
             <p className="hint" style={{ marginTop: 10 }}>{t("Preparing the stops table…", "Preparando la tabla de paradas…")}</p>
           ) : (
             <div style={{ marginTop: 10 }}>
-              <MapView points={points} lines={lines} fitTo={fitTo} height={420} />
+              <LeafletMap points={points} lines={lines} fitTo={fitTo} height={420} mosaicos={MOSAICOS_DE_LA_FOTO} />
             </div>
           )}
           {tabla && tabla !== "cargando" && (

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { anchoSinAcciones, encuadreDeLaFoto, filasDeLaFoto, FUERA_DE_LA_TABLA, lineasDeLaRuta, nombreDelPng, palletsDeLaFoto, puedeCompartirFicheros, puntosDeLaRuta } from "./foto-de-la-ruta";
 import type { MapLine, MapPoint } from "@/components/LeafletMap";
+import type { ParadaFisica } from "@/lib/gestor/paradas-numeradas";
 import type { Delivery } from "@/lib/types";
 
 // D-536 · «crea una opcion para crear una imagen png del schedule y el mapa con su ruta en el mapa parfa mandarlo al driver».
@@ -16,6 +17,10 @@ describe("qué va en la foto de UNA ruta", () => {
     const mias = puntosDeLaRuta(points, carlos, new Set(["o1", "o2"]));
     expect(mias.map((p) => p.id)).toEqual(["__depot__u-carlos", "__fin__u-carlos", "__parada__Carlos R.__1", "o1", "o2"]);
     for (const p of mias) { expect(p.dimmed).toBe(false); expect("offset" in p).toBe(false); }
+  });
+  it("D-678: lo ya hecho de sus órdenes (`__hecha__<id>`) también; lo hecho de otro, no", () => {
+    const mias = puntosDeLaRuta([...points, pt("__hecha__o3"), pt("__hecha__m1")], carlos, new Set(["o1", "o3"]));
+    expect(mias.map((p) => p.id)).toEqual(["__depot__u-carlos", "__fin__u-carlos", "__parada__Carlos R.__1", "o1", "__hecha__o3"]);
   });
   it("sus líneas: el trazo medido (ida y regreso) o el del plan publicado; las de otros no; encendidas y sin desplazar", () => {
     const lines: MapLine[] = [
@@ -36,6 +41,35 @@ describe("qué va en la foto de UNA ruta", () => {
   });
 });
 
+describe("D-678: la ruta sin orden guardado sale numerada como su tabla", () => {
+  // Maximo Garza, 2026-10-26: una orden, `route_seq` vacío. El Gestor la pinta como un punto sin número y sin su recogida.
+  const parada = (numero: number, tipo: "P" | "D", ordenes: string[], lugar: string | null, etiquetas = [`${tipo}1`]): ParadaFisica =>
+    ({ numero, tipo, filas: [], etiquetas, ordenes, lugar });
+  const paradas = [parada(1, "P", ["o1"], "RDZ Brownsville"), parada(2, "D", ["o1"], null)];
+  const coordsDeTienda = (n: string | null) => (n === "RDZ Brownsville" ? { lat: 25.95, lng: -97.48 } : null);
+  const numeros = { paradas, color: "#e67e22", coordsDeTienda };
+  const sinNumeros = [pt("__depot__u-carlos", { badge: "P" }), pt("o1"), pt("m1")];
+  it("la entrega lleva el número de su parada y la recogida su marca en la tienda, detrás de la base", () => {
+    const mias = puntosDeLaRuta(sinNumeros, carlos, new Set(["o1"]), numeros);
+    expect(mias.map((p) => [p.id, p.badge])).toEqual([["__depot__u-carlos", "P"], ["__parada__Carlos R.__1", "1"], ["o1", "2"]]);
+    expect(mias[1]).toMatchObject({ lat: 25.95, lng: -97.48, color: "#e67e22", dimmed: false });
+  });
+  it("una orden en dos paradas lleva los dos números; una tienda sin coordenadas no inventa marca", () => {
+    const dos = [parada(1, "P", ["o1"], "Sin coords"), parada(2, "D", ["o1"], null), parada(3, "D", ["o1"], null)];
+    const mias = puntosDeLaRuta(sinNumeros, carlos, new Set(["o1"]), { ...numeros, paradas: dos });
+    expect(mias.map((p) => [p.id, p.badge])).toEqual([["__depot__u-carlos", "P"], ["o1", "2·3"]]);
+  });
+  it("si el mapa del Gestor ya trae números (una entrega con número o una recogida), no se tocan", () => {
+    const conEntrega = [pt("__depot__u-carlos", { badge: "P" }), pt("o1", { badge: "5" })];
+    expect(puntosDeLaRuta(conEntrega, carlos, new Set(["o1"]), numeros).map((p) => [p.id, p.badge])).toEqual([["__depot__u-carlos", "P"], ["o1", "5"]]);
+    const conRecogida = [pt("__parada__Carlos R.__1", { badge: "1" }), pt("o1")];
+    expect(puntosDeLaRuta(conRecogida, carlos, new Set(["o1"]), numeros).map((p) => [p.id, p.badge])).toEqual([["__parada__Carlos R.__1", "1"], ["o1", undefined]]);
+  });
+  it("sin `numeros`, como antes", () => {
+    expect(puntosDeLaRuta(sinNumeros, carlos, new Set(["o1"])).map((p) => [p.id, p.badge])).toEqual([["__depot__u-carlos", "P"], ["o1", undefined]]);
+  });
+});
+
 describe("la lista y el fichero", () => {
   const d = (extra: Partial<Delivery>): Delivery => ({ id: "x", order_no: 7, invoice_num: null, delivery_windows: null, ...extra }) as unknown as Delivery;
   it("las filas en el orden de la ruta: #, factura (o número), cuenta, dirección, ventana, pallets", () => {
@@ -50,6 +84,10 @@ describe("la lista y el fichero", () => {
       [3, "#9", "—", "—", "—"],
     ]);
     expect(palletsDeLaFoto([d({ actual_pallets: 7, est_pallets: 5 }), d({ est_pallets: 3 }), d({})])).toBe(10);
+    // D-678: la ruta de Ernesto Castillo del 2026-10-26 daba «12.399999999999999 pallets».
+    const ernesto = [2, 3, 2, 3, 1, 0.2, 0.25, 0.5, 0.25, 0.2].map((est_pallets) => d({ est_pallets }));
+    expect(ernesto.reduce((n, x) => n + (x.est_pallets as number), 0)).not.toBe(12.4);
+    expect(palletsDeLaFoto(ernesto)).toBe(12.4);
   });
   it("el nombre del PNG: sin acentos ni espacios, con el día", () => {
     expect(nombreDelPng("Máximo Garza", "2026-10-12")).toBe("ruta-maximo-garza-2026-10-12.png");
@@ -79,7 +117,7 @@ describe("D-636: la foto lleva la tabla del Gestor", () => {
     expect(c).toContain('if (tema === "dark") raiz.setAttribute("data-theme", "light");');
     expect(c).toContain('if (tema === "dark") raiz.setAttribute("data-theme", tema);');
     expect(c).toContain("const ancho = anchoSinAcciones(tabla.offsetWidth, ultima?.offsetWidth ?? 0);");
-    const mapa = c.indexOf("<MapView points={points}");
+    const mapa = c.indexOf("<LeafletMap points={points}");
     const imagen = c.indexOf("data-tabla-en-la-foto");
     const sencilla = c.indexOf("{tabla === null && (");
     expect(mapa).toBeGreaterThan(-1);
@@ -100,7 +138,7 @@ describe("el Gestor y el cuadro", () => {
     expect(g).toContain('import { FotoDeLaRuta } from "@/components/FotoDeLaRuta";');
     expect(g).toContain("const [pngDe, setPngDe] = useState<string | null>(null);");
     expect(g).toContain('<button className="btn btn-ghost btn-sm" data-png-de-la-ruta={u.key}');
-    expect(g).toContain("points={puntosDeLaRuta(points, u, new Set(stops.map((d) => d.id)))} lines={lineasDeLaRuta(lines, u.key)} />");
+    expect(g).toContain("points={puntosDeLaRuta(points, u, new Set([...stops, ...hechasDe(u.key)].map((d) => d.id)), { paradas: diaDe(u.key, stops).paradas, color: colorFor(u.driver), coordsDeTienda })} lines={lineasDeLaRuta(lines, u.key)} />");
     expect(g).toContain("<FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}");
     // D-636: la tabla de cada ruta lleva su clave, para que la foto la encuentre.
     expect(g).toContain('<table className="orders tbl-resize tabla-de-paradas" data-tabla-de-la-ruta={u.key}');
@@ -114,7 +152,13 @@ describe("el Gestor y el cuadro", () => {
     const c = leer("src/components/FotoDeLaRuta.tsx");
     expect(c).toContain('import { cargaSnapdom } from "@/components/CapturaDeAyuda";');
     expect(c).toContain('snapdom.toCanvas(hoja.current!, { backgroundColor: "#ffffff", fast: true, scale: 2, exclude: ["[data-fuera-de-la-foto]", ".leaflet-control-zoom", ".gm-bundled-control"], excludeMode: "remove" })');
-    expect(c).toContain("<MapView points={points} lines={lines} fitTo={fitTo} height={420} />");
+    // D-678: Leaflet con los mosaicos de Google (el mapa de Google salía sin marcas y con la región entera); en el demo, OSM.
+    expect(c).toContain("<LeafletMap points={points} lines={lines} fitTo={fitTo} height={420} mosaicos={MOSAICOS_DE_LA_FOTO} />");
+    expect(c).not.toContain("MapView");
+    expect(c).toContain('const MOSAICOS_DE_LA_FOTO = process.env.NEXT_PUBLIC_LOCAL_MODE === "true" ? "osm" : "google";');
+    const l = leer("src/components/LeafletMap.tsx");
+    expect(l).toContain('mosaicos = "osm",');
+    expect(l).toContain('if (mosaicos === "google") {\n        L.tileLayer("/api/map-tiles/{z}/{x}/{y}", { attribution: "Map data © Google", maxZoom: 19 }).addTo(map);');
     expect(c).toContain("a.href = url; a.download = nombre; a.click();");
     expect(c).toContain("await navigator.share({ files: [fichero], title: `${chofer} · ${fmtDate(fecha)}` });");
     expect(c).toContain('if ((e as { name?: string })?.name !== "AbortError")');
