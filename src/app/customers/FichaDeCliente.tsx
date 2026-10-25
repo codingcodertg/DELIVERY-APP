@@ -58,7 +58,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
   contactos?: ContactoEnEdicion[];
   onContactos?: (c: ContactoEnEdicion[]) => void;
-  /** D-672: con él, «Crédito y términos» lleva los archivos de la fila (`ArchivosDeLaFicha`). */
+  /** D-672: con él, la ficha lleva los archivos de la fila (`ArchivosDeLaFicha`; desde D-NEXT, su tarjeta bajo «Campos ocultos»). */
   almacen?: AlmacenDeClientes;
   puedeEditar?: boolean;
   t: T;
@@ -97,21 +97,29 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
               ? <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} t={t} />
               : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} t={t} />)}
             {filas.map(linea)}
-            {grupo.key === "credito" && (cliente && almacen
-              ? <ArchivosDeLaFicha cliente={cliente} almacen={almacen} puedeEditar={puedeEditar && !editando} t={t} />
-              : !cliente && editando && <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">📎 {t("Files are attached after creating the customer.", "Los archivos se adjuntan después de crear el cliente.")}</p>)}
           </section>
         ))}
-        {/* D-660: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. Desde
-            D-662 va DENTRO de la rejilla, en el sitio de la sexta tarjeta (la de «Remove» de la plantilla del dueño). */}
-        {ocultas.length > 0 && (
-          <details className="group self-start rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-3" data-campos-ocultos>
-            <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">
-              🔒 {t(GRUPO_OCULTO.en, GRUPO_OCULTO.es)}
-            </summary>
-            <div className="mt-2" data-grupo={GRUPO_OCULTO.key}>{ocultas}</div>
-          </details>
-        )}
+        {/* La sexta celda de la rejilla, apilada: «Campos ocultos» y, debajo, «Archivos» (D-NEXT: «keeping a compact
+            design. Lets move attachments down below Hidden Fields»; hasta D-NEXT iban al pie de «Crédito y términos»). */}
+        <div className="space-y-4 self-start">
+          {/* D-660: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. Desde
+              D-662 va DENTRO de la rejilla, en el sitio de la sexta tarjeta (la de «Remove» de la plantilla del dueño). */}
+          {ocultas.length > 0 && (
+            <details className="group rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-3" data-campos-ocultos>
+              <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">
+                🔒 {t(GRUPO_OCULTO.en, GRUPO_OCULTO.es)}
+              </summary>
+              <div className="mt-2" data-grupo={GRUPO_OCULTO.key}>{ocultas}</div>
+            </details>
+          )}
+          {(cliente && almacen) || (!cliente && editando) ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo="archivos">
+              {cliente && almacen
+                ? <ArchivosDeLaFicha cliente={cliente} almacen={almacen} puedeEditar={puedeEditar && !editando} t={t} />
+                : <p className="text-xs text-slate-400">📎 {t("Files are attached after creating the customer.", "Los archivos se adjuntan después de crear el cliente.")}</p>}
+            </section>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -284,7 +292,8 @@ function ContactosParaVer({ contactos, t }: { contactos: Contacto[]; t: T }) {
 }
 
 /**
- * Los archivos de la fila (D-672, 195), al pie de «Crédito y términos», junto a sus impuestos: el «No sales tax form»
+ * Los archivos de la fila (D-672, 195), en su tarjeta bajo «Campos ocultos» (D-NEXT; antes al pie de «Crédito y
+ * términos»): el «No sales tax form»
  * firmado de ESTA tienda y lo demás. Cada uno se abre con un enlace firmado; quien edita los sube y los quita. Si la
  * tienda está marcada exenta y no tiene su formulario, lo dice en ámbar.
  */
@@ -327,7 +336,7 @@ function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Clie
   };
   const falta = archivos !== null && faltaElFormulario(cliente, archivos);
   return (
-    <div className="mt-3 space-y-2 border-t border-slate-100 pt-3" data-archivos-de-la-ficha={archivos?.length ?? ""}>
+    <div className="space-y-2" data-archivos-de-la-ficha={archivos?.length ?? ""}>
       {falta && (
         <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900" role="status" data-falta-formulario>
           ⚠ {t("Marked tax exempt, but this store has no signed No sales tax form.", "Marcada exenta, pero esta tienda no tiene su formulario de exención firmado.")}
