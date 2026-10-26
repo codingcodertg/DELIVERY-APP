@@ -243,7 +243,7 @@ describe("＋ Agregar empleado", () => {
     expect(ventanas).toContain('t("With a hub account", "Con cuenta del hub")');
     expect(ventanas).toContain("const r = await createEmployeeFile(f);");
     // Con cuenta no se crea otra puerta de cuentas: manda a Usuarios.
-    expect(ventanas).toContain('href="/home/users"');
+    expect(ventanas).toContain('href="/recruiting/user-creation"');
   });
 });
 

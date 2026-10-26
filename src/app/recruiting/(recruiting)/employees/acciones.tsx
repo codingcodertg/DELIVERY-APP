@@ -225,7 +225,7 @@ export function AgregarDialog({
             </p>
             <div style={pie}>
               <button className="btn btn-ghost" onClick={onClose}>{t("Close", "Cerrar")}</button>
-              <Link className="btn btn-primary" href="/home/users">{t("Go to Users", "Ir a Usuarios")}</Link>
+              <Link className="btn btn-primary" href="/recruiting/user-creation">{t("Go to Users", "Ir a Usuarios")}</Link>
             </div>
           </div>
         ) : (

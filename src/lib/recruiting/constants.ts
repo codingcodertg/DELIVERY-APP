@@ -47,25 +47,26 @@ import type { UserRole, RecruiterRecommendation } from "./types";
 // redirects there, for old bookmarks (see that file).
 // D-145: el módulo pasa a ser RR. HH. y la contratación es una parte de él, no el todo.
 // Por eso Empleados va primero: la plantilla es lo permanente, los candidatos son de paso.
-export const TABS: { id: string; label: string; href: string; adminOnly?: boolean; roles?: string[] }[] = [
+// D-704: cada pestaña lleva su menú (`grupo`): «Recruiting» o «HR»; Ajustes queda suelto (⚙️) junto a los dos.
+export const TABS: { id: string; label: string; href: string; adminOnly?: boolean; roles?: string[]; grupo: "recruiting" | "hr" | null }[] = [
   // D-619 (2026-10-20): sin casita, que la casita es la del hub. El dueño: «there is two home icons, just leave the one that sends you to the hub».
-  { id: "today", label: "📋 Today", href: "/recruiting/today" },
+  { id: "today", label: "📋 Today", href: "/recruiting/today", grupo: "recruiting" },
   // D-629 (2026-10-21): buzones de voz y llamadas agendadas que siguen pendientes (seguimiento-de-llamadas.ts).
-  { id: "calls", label: "📞 Pending calls", href: "/recruiting/calls" },
+  { id: "calls", label: "📞 Pending calls", href: "/recruiting/calls", grupo: "recruiting" },
   // Ni el reclutador ni la pestaña: el expediente lleva dirección, amonestaciones y antidoping,
   // y quien entra a mover candidatos no necesita nada de eso. Quien manda es la 094 (RLS); esto
   // solo evita enseñar una puerta que se abriría vacía.
-  { id: "employees", label: "👤 Employees", href: "/recruiting/employees", roles: ["admin", "manager"] },
+  { id: "employees", label: "👤 Employees", href: "/recruiting/employees", roles: ["admin", "manager"], grupo: "hr" },
   // D-694: las cuentas del hub, también desde RR. HH. Solo admin aquí y, en TopBar, solo si además es admin del hub
   // (role = admin): /api/invite lo exige, y el layout de la ruta lo vuelve a comprobar.
-  { id: "user-creation", label: "🔑 User creation", href: "/home/users", roles: ["admin"] },
-  { id: "candidates", label: "👥 Candidates", href: "/recruiting" },
-  { id: "board", label: "🗂 Board", href: "/recruiting/board" },
-  { id: "outcomes", label: "🤝 Outcomes", href: "/recruiting/outcomes" },
-  { id: "questions", label: "❓ Questions", href: "/recruiting/questions" },
-  { id: "metrics", label: "📊 Metrics", href: "/recruiting/metrics" },
-  { id: "calendar", label: "📅 Calendar", href: "/recruiting/calendar" },
-  { id: "settings", label: "⚙️ Settings", href: "/recruiting/settings" },
+  { id: "user-creation", label: "🔑 User creation", href: "/recruiting/user-creation", roles: ["admin"], grupo: "hr" },
+  { id: "candidates", label: "👥 Candidates", href: "/recruiting", grupo: "recruiting" },
+  { id: "board", label: "🗂 Board", href: "/recruiting/board", grupo: "recruiting" },
+  { id: "outcomes", label: "🤝 Outcomes", href: "/recruiting/outcomes", grupo: "recruiting" },
+  { id: "questions", label: "❓ Questions", href: "/recruiting/questions", grupo: "recruiting" },
+  { id: "metrics", label: "📊 Metrics", href: "/recruiting/metrics", grupo: "recruiting" },
+  { id: "calendar", label: "📅 Calendar", href: "/recruiting/calendar", grupo: "recruiting" },
+  { id: "settings", label: "⚙️ Settings", href: "/recruiting/settings", grupo: null },
 ];
 
 // Recruiter's verdict at the end of the phone interview. Separate from the

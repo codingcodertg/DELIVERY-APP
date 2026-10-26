@@ -148,7 +148,7 @@ export default function EmployeeFilesPage() {
             </button>
           ))}
           {puedeBaja && (
-            <Link href="/home/users" className="chip" data-enlace="user-creation" style={{ textDecoration: "none" }}>
+            <Link href="/recruiting/user-creation" className="chip" data-enlace="user-creation" style={{ textDecoration: "none" }}>
               🔑 {t("User creation list", "Lista de usuarios")}
             </Link>
           )}
@@ -246,7 +246,7 @@ export default function EmployeeFilesPage() {
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       {puedeBaja && !tieneUsuario(r) && !deBaja && (
-                        <Link href={"/home/users?employee=" + encodeURIComponent(r.id)} className="btn btn-ghost btn-sm"
+                        <Link href={"/recruiting/user-creation?employee=" + encodeURIComponent(r.id)} className="btn btn-ghost btn-sm"
                           style={{ marginRight: 6 }} data-accion="crear-usuario">
                           🔑 {t("Create user", "Crear usuario")}
                         </Link>
