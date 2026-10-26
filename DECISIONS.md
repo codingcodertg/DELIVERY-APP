@@ -48154,3 +48154,19 @@ parche en todas las filas (`guardarVarios`, tandas de 200; `asignarVendedor` de 
 repinta sin releer. Sin migración: la escritura ya la permite la 198.
 
 **No medido:** en el navegador con la base real.
+
+## D-NEXT · El expediente de RR. HH. enseña las horas y los pagos del Time Tracker
+
+**Pedido:** «el time tracker. Se tienen que crear un expediente ahí mismo en el HR app donde estén todas las horas del
+time tracker de cada empleado históricamente y pagos que se hayan hecho tienen que ir ahí también.»
+
+**Qué cambia:** la ficha del empleado (RR. HH. › Expedientes) lleva un bloque «Time Tracker», solo lectura, con todas
+las semanas de pago de su cuenta (`timetracker.period_hours`, 086: fichaje y horas de proyecto por separado, con la
+marca «revisar» de la vista y totales) y todos sus pagos: talones (`paystubs`, 170) y lotes de nómina (`payrolls`); un
+lote con talón sale una vez, los borradores no salen, lo pendiente se suma aparte de lo pagado. Sin cuenta vinculada, lo
+dice. Lo lee la acción `timeTrackerFor` con la llave de servicio, acotada a ese `profile_id` y tras la misma puerta de
+admin/gerente de RR. HH. que `accountFactsFor`: las políticas de la 060 solo dejan leer sesiones y nóminas ajenas al
+admin DE TIME TRACKER, y con el cliente del usuario el bloque habría salido vacío. Por eso **sin migración** (la 200
+reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez de enseñar ceros.
+
+**No medido:** en el navegador ni contra la base real (nombres de columnas leídos de las migraciones 059/086/170).

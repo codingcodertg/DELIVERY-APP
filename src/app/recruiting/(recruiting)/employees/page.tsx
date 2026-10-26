@@ -16,6 +16,7 @@ import {
   type FiltroEstado, type HechosDeCuenta,
 } from "@/lib/recruiting/employee-file";
 import { AgregarDialog, BajaDialog, ReactivarDialog, faltaMigracion } from "./acciones";
+import { BloqueTimeTracker } from "./time-tracker";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -621,6 +622,8 @@ function Ficha({
           </>
         )}
       </div>
+
+      <BloqueTimeTracker profileId={persona.profile_id} />
 
       <Bloque grupo="hr" titulo="HR" docs={docs} employeeId={persona.id}
         onChange={() => { void cargaDocs(); onSaved(); }} />

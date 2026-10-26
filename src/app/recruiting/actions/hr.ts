@@ -9,6 +9,7 @@ import {
   puedeEditarGrupoDirectorio, sin159, telefonoDeFicha, tiene159,
 } from "@/lib/recruiting/employee-file";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
+import type { FilaHoras, FilaLote, FilaTalon } from "@/lib/recruiting/horas-del-expediente";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -554,4 +555,49 @@ export async function listStoreNames(): Promise<{ ok: true; names: string[] } | 
   const { data, error } = await supabase.rpc("store_names");
   if (error) return { ok: false, message: error.message };
   return { ok: true, names: ((data ?? []) as { name: string }[]).map((r) => r.name) };
+}
+
+/**
+ * Horas y pagos del Time Tracker de una cuenta, para el expediente (D-NEXT).
+ *
+ * Mismo patrón que `accountFactsFor`: la puerta es el tramo de RR. HH. (admin/gerente) y la
+ * lectura va con la llave de servicio, acotada a ESA cuenta. No se usa el cliente del usuario
+ * porque las políticas de timetracker (060) solo dejan leer sesiones y nóminas ajenas al admin
+ * DE TIME TRACKER, y un admin de RR. HH. no tiene por qué serlo: con ese cliente el bloque
+ * saldría vacío, y vacío parece "nunca trabajó". Solo lectura.
+ */
+export async function timeTrackerFor(profileId: string): Promise<
+  | { ok: true; horas: FilaHoras[]; lotes: FilaLote[]; talones: FilaTalon[]; avisos: string[] }
+  | { ok: false; message: string }
+> {
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Employee files are for HR admins and managers." };
+  if (!profileId) return { ok: false, message: "No hub account." };
+
+  let admin;
+  try { admin = createAdminClient(); }
+  catch { return { ok: false, message: "Server not configured: SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+
+  const tt = admin.schema("timetracker");
+  const [h, l, t] = await Promise.all([
+    tt.from("period_hours").select("period_start, period_end, horas_fichaje, horas_proyecto, revisar")
+      .eq("employee_id", profileId).order("period_start", { ascending: false }),
+    tt.from("payrolls").select("id, week_of, method, total, paid, paid_at, draft, created_at")
+      .eq("employee_uid", profileId).order("created_at", { ascending: false }),
+    tt.from("paystubs").select("id, kind, period_start, period_end, pay_date, method, regular_hours, ot_hours, gross, net, payroll_id")
+      .eq("employee_uid", profileId).order("pay_date", { ascending: false }),
+  ]);
+  // Un error en una parte no tapa las otras: se avisa de cuál falta en vez de enseñar ceros.
+  const avisos: string[] = [];
+  if (h.error) avisos.push(`hours: ${h.error.message}`);
+  if (l.error) avisos.push(`payrolls: ${l.error.message}`);
+  if (t.error) avisos.push(`paystubs: ${t.error.message}`);
+  return {
+    ok: true,
+    horas: (h.data ?? []) as FilaHoras[],
+    lotes: (l.data ?? []) as FilaLote[],
+    talones: (t.data ?? []) as FilaTalon[],
+    avisos,
+  };
 }
