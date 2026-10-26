@@ -52,6 +52,7 @@ import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { AVISO_SOLO_CIUDAD, ordenSoloCiudad } from "@/lib/solo-ciudad";
 import { LocationCombo } from "@/components/LocationCombo";
 import { PhotoUpload } from "@/components/PhotoUpload";
+import { AdjuntosDeLaOrden } from "@/components/AdjuntosDeLaOrden";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { SignaturePad } from "@/components/SignaturePad";
 import { MapView } from "@/components/MapView";
@@ -2109,6 +2110,8 @@ export function OrderModal({
               </>
             )}
 
+            {/* ---------- Adjuntos (204): factura, capturas; pegar / arrastrar / elegir. Fuera del modo práctica. ---------- */}
+            {!teaching && <AdjuntosDeLaOrden deliveryId={existing.id} puedeEditar={me.role !== "driver"} t={t} />}
             {/* Customer satisfaction was removed from the order view. In
                 fifty-three orders it was never once filled in — a control
                 nobody uses still costs a reading of the screen every time
@@ -3069,6 +3072,10 @@ export function OrderModal({
           </div>
         )}
 
+        {/* Adjuntos (204): una orden nueva no tiene id todavía; se adjuntan al guardarla. */}
+        {isNew && paso === "completo" && (
+          <div className="hint" data-adjuntos-tras-guardar>📎 {t("Attachments (invoice PDF, screenshots) can be added once the order is saved.", "Los adjuntos (factura en PDF, capturas) se añaden una vez guardada la orden.")}</div>
+        )}
         {/* ---------- ACTIONS ---------- */}
         {/* Hidden during the initial new-order step (which has its own Next). */}
         {/* Viendo la orden (D-497): el menú «Acciones ▾» y la principal (`stageActions`), sin nada más — «Duplicar» y

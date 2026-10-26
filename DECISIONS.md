@@ -48234,3 +48234,22 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 **Pruebas:** `src/lib/eta-tras-lo-hecho.test.ts` (la forma de la captura; control sin nada hecho; ✓P3 suelta; una entrega hecha que vuelve a anclar; la medida y el repintado sin llamada). 3 mutantes del reloj, 3 caen; y hoy a las 11:00 con P3 hecha a las 09:37, P1/P2 a las 11:00.
 
 **No medido:** en el navegador con la base real; la hora real es la que guarda la app del chofer (`pickup_gps_at`), no el GPS del camión.
+
+## D-NEXT · Adjuntos en la orden: pegar, arrastrar o elegir la factura
+
+**Pedido:** Carlos Fuentes (oficina), Entregas: «you can't copy and paste...example, i tried copying an invoice on
+quickbooks and attach it on the app». El dueño eligió una sección «Adjuntos» en la orden.
+
+**Qué cambia:** la orden guardada lleva «📎 Adjuntos / Attachments» (`components/AdjuntosDeLaOrden.tsx`, bajo las fotos
+del material): lista con abrir (enlace firmado de una hora) y quitar, botón «Adjuntar archivo», zona para soltar, y
+PEGAR (Ctrl+V / ⌘V) en cualquier sitio mientras la orden está abierta. Un pegado sin fichero no se toca; con fichero se
+adjunta siempre, y solo se cancela el pegado normal si el foco no está en un campo de texto (`decisionAlPegar`). Una
+captura pegada («image.png») se renombra con la hora. PDF, imágenes y Office, hasta 25 MB (como Clientes, D-672). Una
+orden NUEVA no tiene id: se dice que los adjuntos se añaden una vez guardada (no se ponen en cola). Fuera del modo
+práctica; el chofer los ve pero no sube ni quita (en la pantalla; la base deja a quien ve la orden). Migración 204:
+`public.delivery_files` + cubo privado `delivery-files`; las políticas preguntan `exists (select 1 from
+public.deliveries ...)`, que hereda la RLS de `deliveries`. Sin la 204, la sección se esconde con una nota.
+
+**No medido:** no aplicada ni ensayada contra la base; no probado en el navegador (pegar desde el Explorador, una captura
+de Windows/Mac, ni el arrastre). Copiar desde la página web de QuickBooks pone TEXTO en el portapapeles, no un fichero:
+para pegar la factura hay que copiar el PDF descargado en el Explorador/Finder, o hacer una captura.
