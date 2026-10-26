@@ -3218,7 +3218,7 @@ export default function RoutesPage() {
           const g = f.indice != null ? grupos[f.indice] : null;
           if (g == null || f.indice == null) return "";
           const inicio = f.indice === 0 || grupos[f.indice - 1] !== g;
-          // D-NEXT: solo las recogidas llevan color; la entrega, ni tinte ni raya de grupo.
+          // D-698: solo las recogidas llevan color; la entrega, ni tinte ni raya de grupo.
           if (f.tipo !== "P") return "";
           return ` fila-grupo-recoger${inicio ? " fila-grupo-inicio" : ""}`;
         };

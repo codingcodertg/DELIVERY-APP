@@ -49,7 +49,7 @@ describe("la fila entera: recogida en verde muy suave, entrega en amarillo muy s
 
   it("cada parada lleva la clase de su tipo: P verde, D amarilla", () => {
     expect(claseDeLaFilaDelPlan("P")).toBe("fila-plan-recoger");
-    expect(claseDeLaFilaDelPlan("D")).toBe(""); // D-NEXT: la entrega, sin color
+    expect(claseDeLaFilaDelPlan("D")).toBe(""); // D-698: la entrega, sin color
   });
 
   it("la tabla la usa en la FILA (`<tr>`), no en una celda: se tiñen también la etiqueta, el ID y Ajustar", () => {
@@ -59,7 +59,7 @@ describe("la fila entera: recogida en verde muy suave, entrega en amarillo muy s
     expect(vista).not.toContain("otroViaje");
     // Todas las celdas: la regla va sobre cada `td` de la fila.
     expect(plano(css)).toContain("table.orders tr.fila-plan-recoger td { background: var(--plan-recoger-bg); }");
-    expect(plano(css)).not.toContain("tr.fila-plan-entregar td {"); // D-NEXT: la entrega, sin tinte
+    expect(plano(css)).not.toContain("tr.fila-plan-entregar td {"); // D-698: la entrega, sin tinte
     expect(plano(css)).not.toContain("tr.fila-grupo-entregar td {");
   });
 

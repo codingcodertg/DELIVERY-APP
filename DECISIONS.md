@@ -48323,7 +48323,7 @@ la 203 solo lee `name` y `phones` del primero. Leído en las migraciones del rep
 
 **No medido:** no probado en el navegador ni contra la base; no se copió el sitio web / dirección de la cuenta a ningún
 contacto (nada de datos en producción). La orden sigue tomando la dirección de la cuenta, no la del contacto.
-## D-NEXT · Entregas: color de fila solo para recogidas; «Sales rep» pasa a «User»
+## D-698 · Entregas: color de fila solo para recogidas; «Sales rep» pasa a «User»
 
 **Pedido (Roberto, admin, 2026-10-26):** «Pickups are one color, deliveries dont have a color. Stage doesnt affect color of
 the row». Y en Órdenes: «Instead of sales rep lets call it User».

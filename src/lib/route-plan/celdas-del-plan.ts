@@ -21,7 +21,7 @@ import type { Delivery, NamedLocation } from "@/lib/types";
  * row este highlited pero bien suave de verde y las deliveries de amarillo para poder identificarlas mejor».
  */
 export function claseDeLaFilaDelPlan(kind: "P" | "D"): "fila-plan-recoger" | "" {
-  // D-NEXT: la entrega ya no lleva tinte. El dueño, 2026-10-26: «Pickups are one color, deliveries dont have a color».
+  // D-698: la entrega ya no lleva tinte. El dueño, 2026-10-26: «Pickups are one color, deliveries dont have a color».
   return kind === "P" ? "fila-plan-recoger" : "";
 }
 
