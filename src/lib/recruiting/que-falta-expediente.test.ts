@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { camposQueFaltan, cuentaIncompletos } from "./employee-file";
 
-// D-NEXT: la ventana «qué falta» enseña exactamente esta lista; la insignia «incompleto» es lista no vacía.
+// D-703: la ventana «qué falta» enseña exactamente esta lista; la insignia «incompleto» es lista no vacía.
 const lleno = {
   date_hired: "2024-01-02", date_left: null, department: "Sales", store: "Harlingen", directory_group: null,
   account_store: null, job_title: "Rep", personal_phone: "9565550000",

@@ -48379,7 +48379,7 @@ columnas de la precarga; POST el enlace, con la misma lógica que tenía `cuenta
 
 **No medido:** no probado en el navegador ni con la base; si Vercel vuelve a morir por memoria, la causa no era el import.
 
-## D-NEXT · RR. HH.: «Expediente incompleto» dice qué falta
+## D-703 · RR. HH.: «Expediente incompleto» dice qué falta
 
 **Pedido del dueño (literal):** «donde dice expediente y incompleto al darle click me deberia abrir para decirme que es lo que hace falta».
 

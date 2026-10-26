@@ -47,7 +47,7 @@ export default function EmployeeFilesPage() {
   const [err, setErr] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [abierto, setAbierto] = useState<string | null>(null);
-  // D-NEXT: de quién se está enseñando «qué falta» (al pulsar la insignia «incompleto»).
+  // D-703: de quién se está enseñando «qué falta» (al pulsar la insignia «incompleto»).
   const [queFalta, setQueFalta] = useState<string | null>(null);
   const [buscar, setBuscar] = useState("");
   const [soloFaltan, setSoloFaltan] = useState(false);
@@ -216,7 +216,7 @@ export default function EmployeeFilesPage() {
                           {t("complete", "completo")}
                         </span>
                       ) : (
-                        /* D-NEXT: se pulsa y dice qué falta. stopPropagation por si la fila gana un onClick. */
+                        /* D-703: se pulsa y dice qué falta. stopPropagation por si la fila gana un onClick. */
                         <button type="button" className="badge" data-insignia="incompleto"
                           style={{ background: "var(--tint-warn)", color: "var(--ink)", border: "1px solid var(--tint-warn-line)", cursor: "pointer", font: "inherit" }}
                           title={sinLlenar.map((c) => ETIQUETAS_CAMPO[c][lang]).join(", ")}
@@ -902,7 +902,7 @@ function Bloque({
 }
 
 /**
- * D-NEXT: «qué le falta» a un expediente, al pulsar la insignia «incompleto».
+ * D-703: «qué le falta» a un expediente, al pulsar la insignia «incompleto».
  * La lista de campos sale de `camposQueFaltan`, la MISMA función que pinta la insignia y su número:
  * no pueden discrepar. Los papeles son los mismos que cuenta la columna «Papeles» (`faltan`).
  */
