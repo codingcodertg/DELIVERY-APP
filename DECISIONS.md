@@ -48140,3 +48140,17 @@ que la base devuelve. Los clientes sin iniciales no salen: se asignan en su fich
 la permite la 198.
 
 **No medido:** en el navegador con la base real.
+
+## D-685 · Clientes: elegir varios y hacerles lo mismo (asignar vendedor, archivar)
+
+**Fecha:** 2026-10-26. **Pedido:** el dueño: «hagamos algo en la parte de customers […] que uno puede elegir múltiple y
+así, y ahí asignar a tal persona».
+
+**Qué cambia:** en la lista, solo el admin ve una casilla junto al nombre de cada cliente. Como la lista pinta una fila por
+empresa (D-666), marcarla elige TODAS sus filas (una por tienda; `alternaEmpresa`); a medias no sale marcada. Con algo
+elegido aparece una barra encima de la tabla: cuántos clientes, «Elegir los N visibles», «Quitar elección», un desplegable
+de vendedores con «Asignar vendedor» (o «libre») y un motivo con «Archivar» (pregunta antes). Las dos guardan el mismo
+parche en todas las filas (`guardarVarios`, tandas de 200; `asignarVendedor` de D-684 ahora pasa por ahí) y la lista se
+repinta sin releer. Sin migración: la escritura ya la permite la 198.
+
+**No medido:** en el navegador con la base real.
