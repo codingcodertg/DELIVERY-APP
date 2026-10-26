@@ -11,7 +11,7 @@ import { selCls } from "./FichaDeCliente";
 type T = (en: string, es: string) => string;
 
 /**
- * La barra de lo elegido (D-NEXT), encima de la tabla, solo el admin: cuántos hay, asignar vendedor (o dejarlos libres) y
+ * La barra de lo elegido (D-685), encima de la tabla, solo el admin: cuántos hay, asignar vendedor (o dejarlos libres) y
  * archivar con su motivo, a todos de golpe (`guardarVarios`, tandas de 200). Lo que la base devuelve se pinta en la lista
  * sin releerla (`onGuardados`) y la elección se vacía.
  */

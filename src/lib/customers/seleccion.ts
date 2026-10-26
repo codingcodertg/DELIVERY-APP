@@ -1,5 +1,5 @@
 /**
- * Elegir varios clientes de la lista y hacerles lo mismo de golpe (D-NEXT). El dueño, 2026-10-26: «que uno pueda elegir
+ * Elegir varios clientes de la lista y hacerles lo mismo de golpe (D-685). El dueño, 2026-10-26: «que uno pueda elegir
  * múltiple y así, y ahí asignar a tal persona». La lista pinta una fila por EMPRESA (D-666); marcarla elige TODAS sus filas
  * (una por tienda), que es lo que se guarda. Lo puro, aquí; la barra, en `BarraDeSeleccion`.
  */

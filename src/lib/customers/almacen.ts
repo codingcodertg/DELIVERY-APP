@@ -45,7 +45,7 @@ export interface AlmacenDeClientes {
   vendedores(): Promise<Res<Vendedor[]>>;
   /** D-684: pone el vendedor (null = libre) a muchas filas de golpe; devuelve cuántas cambió la base. */
   asignarVendedor(ids: readonly number[], repId: string | null): Promise<Res<number>>;
-  /** D-NEXT: el mismo parche a muchas filas de golpe (la barra de lo elegido); devuelve cuántas cambió la base. */
+  /** D-685: el mismo parche a muchas filas de golpe (la barra de lo elegido); devuelve cuántas cambió la base. */
   guardarVarios(ids: readonly number[], parche: Parche): Promise<Res<number>>;
 }
 

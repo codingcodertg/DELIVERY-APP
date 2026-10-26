@@ -7,7 +7,7 @@ import { almacenDeLaBase } from "./almacen";
 import { almacenDemoNuevo, VENDEDORES_DEMO } from "./demo";
 import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "./seleccion";
 
-/* D-NEXT. El dueño, 2026-10-26: «que uno pueda elegir múltiple y así, y ahí asignar a tal persona». */
+/* D-685. El dueño, 2026-10-26: «que uno pueda elegir múltiple y así, y ahí asignar a tal persona». */
 const t = (_en: string, es: string) => es;
 const leer = (p: string) => readFileSync(p, "utf8");
 

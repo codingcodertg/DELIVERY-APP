@@ -62,7 +62,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo:
   const [ficha, setFicha] = useState<Ficha | null>(null);
   // D-684: «Asignar vendedores» de golpe, solo el admin.
   const [asignando, setAsignando] = useState(false);
-  // D-NEXT: elegir varios clientes (filas de la base, todas las tiendas de cada empresa marcada) y hacerles lo mismo.
+  // D-685: elegir varios clientes (filas de la base, todas las tiendas de cada empresa marcada) y hacerles lo mismo.
   const [elegidos, setElegidos] = useState<Set<number>>(() => new Set());
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   useEffect(() => {
@@ -377,7 +377,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo:
                       title={col.key === "account" ? c.account : col.key === "store" ? undefined : celda(c, col.key, t)}>
                       {col.key === "account" ? (
                         <span className="inline-flex items-center gap-1.5">
-                          {/* D-NEXT: la casilla para elegir la empresa entera (todas sus tiendas). Su clic no abre la ficha. */}
+                          {/* D-685: la casilla para elegir la empresa entera (todas sus tiendas). Su clic no abre la ficha. */}
                           {esAdmin && (
                             <input type="checkbox" className="h-4 w-4 shrink-0 cursor-pointer accent-clay-600" checked={estaMarcada(elegidos, filas.map((f) => f.id))}
                               onClick={(e) => e.stopPropagation()} onChange={() => setElegidos((s) => alternaEmpresa(s, filas.map((f) => f.id)))}

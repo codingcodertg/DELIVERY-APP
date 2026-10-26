@@ -48141,7 +48141,7 @@ la permite la 198.
 
 **No medido:** en el navegador con la base real.
 
-## D-NEXT · Clientes: elegir varios y hacerles lo mismo (asignar vendedor, archivar)
+## D-685 · Clientes: elegir varios y hacerles lo mismo (asignar vendedor, archivar)
 
 **Fecha:** 2026-10-26. **Pedido:** el dueño: «hagamos algo en la parte de customers […] que uno puede elegir múltiple y
 así, y ahí asignar a tal persona».
