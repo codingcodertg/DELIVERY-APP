@@ -472,7 +472,7 @@ export function OrderModal({
   const computeMissing = (draft: Draft): MissingField[] => {
     const base = missingFields(draft, settings.order_type_rules);
     if (needsSalesRep && !draft.assigned_sales_rep) {
-      return [...base, { key: "assigned_sales_rep", en: "Sales Rep", es: "Vendedor" }];
+      return [...base, { key: "assigned_sales_rep", en: "User", es: "Usuario" }];
     }
     return base;
   };
@@ -2345,7 +2345,7 @@ export function OrderModal({
               <div className="grid g2">
                 {needsSalesRep ? (
                   <div className="field">
-                    <label>{t("Sales Rep", "Vendedor")}{missingSet.has("assigned_sales_rep") && <span className="req-star"> *</span>}</label>
+                    <label>{t("User", "Usuario")}{missingSet.has("assigned_sales_rep") && <span className="req-star"> *</span>}</label>
                     <select
                       className={missingSet.has("assigned_sales_rep") ? "invalid" : ""}
                       value={d.assigned_sales_rep ?? ""}
@@ -2360,7 +2360,7 @@ export function OrderModal({
                   </div>
                 ) : atajoACliente && tipoCliente ? (
                   <div className="field" data-atajo-cliente>
-                    <label>{t("Sales Rep", "Vendedor")}</label>
+                    <label>{t("User", "Usuario")}</label>
                     <div className="hint" style={{ marginBottom: 6 }}>
                       {t("Store-to-store orders have no sales rep. For a customer order, switch it here.", "Una orden entre tiendas no lleva vendedor. Si es para un cliente, cámbiela aquí.")}
                     </div>

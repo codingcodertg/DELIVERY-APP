@@ -544,7 +544,7 @@ const FIELD_LABELS: Record<string, string> = {
   est_pallets: "Est. Pallets", actual_pallets: "Actual Pallets", assigned_driver: "Assigned Driver",
   delivery_address: "Delivery Address", delivery_name: "Dropoff Name", delivery_windows: "Time Window",
   account: "Account", contact: "Contact", delivery_phone: "Phone", delivery_notes: "Notes",
-  role_notes: "Note", redelivery_reason: "Re-delivery reason", assigned_sales_rep: "Sales Rep", route_seq: "Route order",
+  role_notes: "Note", redelivery_reason: "Re-delivery reason", assigned_sales_rep: "User", route_seq: "Route order",
 };
 // Keys that change on nearly every save (recomputed/auto), never worth logging.
 const NOISY_KEYS = new Set(["pickup_duration", "delivery_duration", "input_date", "input_time", "updated_at", "route_miles", "route_duration", "route_provider", "route_traffic"]);
