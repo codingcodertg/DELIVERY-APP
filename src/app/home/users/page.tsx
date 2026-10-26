@@ -4,7 +4,7 @@ import Link from "next/link";
 import { UsersManager } from "@/components/UsersManager";
 import { usePrefs } from "@/lib/prefs";
 
-// La pantalla entera vive en UsersManager desde D-NEXT, para poder abrirla también
+// La pantalla entera vive en UsersManager desde D-693, para poder abrirla también
 // desde RR. HH. (siguiente paso: Empleados → «Crear usuario»).
 export default function UsersPage() {
   const { t } = usePrefs();

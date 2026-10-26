@@ -182,7 +182,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // techo, no se salta: la regla de la tabla es que un fichero solo sube cuando la
     // decision lo dice.
     "src/components/UserDialog.tsx": 4,
-    // D-NEXT: el cuerpo de /home/users pasa a este componente (compartido con RR. HH.). Sus 4 colores ya existían en
+    // D-693: el cuerpo de /home/users pasa a este componente (compartido con RR. HH.). Sus 4 colores ya existían en
     // src/app/home/users/page.tsx, que esta prueba no recorría: no son nuevos, solo ahora se ven. 3 blancos y el ámbar del aviso.
     "src/components/UsersManager.tsx": 4,
     "src/components/UsersImportModal.tsx": 3,
@@ -253,7 +253,7 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // 70 y 56 hasta D-520: −1 blanco, el de la leyenda del mapa, que se quitó de toda la app (`MapLegend.tsx` borrado).
     // 69 y 55 hasta D-536: +5 (uno blanco) de la hoja de «📸 PNG» de la ruta, que se fotografía (ver su techo, arriba).
     // 74 y 56 hasta D-547: +1 blanco, la pastilla de etapa de cada orden de «Mi ruta» (ver su techo, arriba).
-    // 79 y 60 desde D-NEXT: +4 (3 blancos) de UsersManager.tsx, que eran de home/users/page.tsx y no se contaban.
+    // 79 y 60 desde D-693: +4 (3 blancos) de UsersManager.tsx, que eran de home/users/page.tsx y no se contaban.
     expect(total).toBe(79);
     expect(blancos).toBe(60);
   });

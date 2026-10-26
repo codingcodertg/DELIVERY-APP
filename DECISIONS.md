@@ -48254,7 +48254,7 @@ public.deliveries ...)`, que hereda la RLS de `deliveries`. Sin la 204, la secci
 de Windows/Mac, ni el arrastre). Copiar desde la página web de QuickBooks pone TEXTO en el portapapeles, no un fichero:
 para pegar la factura hay que copiar el PDF descargado en el Explorador/Finder, o hacer una captura.
 
-## D-NEXT · Usuarios: la pantalla pasa a un componente compartido (paso 1 de «usuarios en RR. HH.»)
+## D-693 · Usuarios: la pantalla pasa a un componente compartido (paso 1 de «usuarios en RR. HH.»)
 
 **Pedido:** «la opción de users donde le damos los permisos a los users y donde los creamos, eso se va a pasar al HR app».
 
