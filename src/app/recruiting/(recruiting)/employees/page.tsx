@@ -93,7 +93,7 @@ export default function EmployeeFilesPage() {
 
   const ESTADOS: { key: FiltroEstado; en: string; es: string }[] = [
     { key: "activos", en: "Active", es: "Activos" },
-    { key: "bajas", en: "Left", es: "Bajas" },
+    { key: "bajas", en: "Terminated", es: "Dados de baja" },
     { key: "todos", en: "All", es: "Todos" },
   ];
 
@@ -187,7 +187,12 @@ export default function EmployeeFilesPage() {
                 const sinLlenar = camposQueFaltan(r, con159);
                 const deBaja = estadoEmpleado(r) === "baja";
                 return (
-                  <tr key={r.id} data-fila={r.id} className={deBaja ? "atenuado" : undefined}>
+                  // D-705: la fila entera abre el expediente (antes solo «✏️ Editar»: la fila no tenía manejador, y
+                  // la celda «Expediente» era una insignia sin clic). Con teclado: Tab hasta la fila y Enter o espacio.
+                  <tr key={r.id} data-fila={r.id} className={"fila-abre" + (deBaja ? " atenuado" : "")} tabIndex={0}
+                    aria-label={t("Open file of ", "Abrir expediente de ") + r.full_name}
+                    onClick={() => setAbierto(r.id)}
+                    onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setAbierto(r.id); } }}>
                     <td style={{ fontWeight: 700 }}>
                       {r.full_name}
                       {tieneUsuario(r) && (
@@ -244,29 +249,17 @@ export default function EmployeeFilesPage() {
                         </span>
                       )}
                     </td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                       {puedeBaja && !tieneUsuario(r) && !deBaja && (
                         <Link href={"/recruiting/user-creation?employee=" + encodeURIComponent(r.id)} className="btn btn-ghost btn-sm"
                           style={{ marginRight: 6 }} data-accion="crear-usuario">
                           🔑 {t("Create user", "Crear usuario")}
                         </Link>
                       )}
+                      {/* D-705: «Dar de baja» y «Reactivar» ya no están en la fila: se dan desde dentro del expediente. */}
                       <button className="btn btn-ghost btn-sm" data-accion="editar" onClick={() => setAbierto(r.id)}>
-                        ✏️ {t("Edit", "Editar")}
+                        📂 {t("Open file", "Abrir expediente")}
                       </button>
-                      {deBaja ? (
-                        <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }} data-accion="reactivar"
-                          disabled={!puedeBaja} title={puedeBaja ? undefined : soloAdmin}
-                          onClick={() => setReactivar(r.id)}>
-                          {t("Reactivate", "Reactivar")}
-                        </button>
-                      ) : (
-                        <button className="btn btn-danger btn-sm" style={{ marginLeft: 6 }} data-accion="baja"
-                          disabled={!puedeBaja} title={puedeBaja ? undefined : soloAdmin}
-                          onClick={() => setBaja(r.id)}>
-                          {t("Deactivate", "Dar de baja")}
-                        </button>
-                      )}
                     </td>
                   </tr>
                 );

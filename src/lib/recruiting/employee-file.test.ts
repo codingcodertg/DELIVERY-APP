@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  filtraPorEstado, cuentaPorEstado,
   conHechosDeCuenta, estadoEmpleado, extensionValida, filasDeExpediente, limpiaExtension,
   normalizaGrupoDirectorio, nombreVisible, parcheAlta, parcheBaja, puedeEditarGrupoDirectorio,
   puedeElegirTienda, puedeEnlazarCuenta, puedeVerExpedientes,
@@ -412,5 +413,21 @@ describe("la barrera del servidor: solo un admin cambia el grupo del directorio"
 
   it("y rechaza un valor que la base no admitiría", () => {
     expect(acciones).toContain('if (grupo === undefined) return { ok: false, message: "Unknown directory group." };');
+  });
+});
+
+describe("D-705: de baja es la fecha que ya llegó", () => {
+  it("sin fecha, activo; con fecha de hoy o pasada, baja; con fecha futura, todavía activo", () => {
+    expect(estadoEmpleado({ date_left: null }, "2026-10-26")).toBe("activo");
+    expect(estadoEmpleado({ date_left: "  " }, "2026-10-26")).toBe("activo");
+    expect(estadoEmpleado({ date_left: "2026-10-26" }, "2026-10-26")).toBe("baja");
+    expect(estadoEmpleado({ date_left: "2026-10-25" }, "2026-10-26")).toBe("baja");
+    expect(estadoEmpleado({ date_left: "2026-10-27" }, "2026-10-26")).toBe("activo");
+  });
+  it("la lista se parte en activos y dados de baja según la fecha de hoy", () => {
+    const filas = [{ date_left: null }, { date_left: "2000-01-01" }, { date_left: "2999-01-01" }];
+    expect(filtraPorEstado(filas, "bajas")).toEqual([{ date_left: "2000-01-01" }]);
+    expect(filtraPorEstado(filas, "activos")).toEqual([{ date_left: null }, { date_left: "2999-01-01" }]);
+    expect(cuentaPorEstado(filas)).toEqual({ activos: 2, bajas: 1, todos: 3 });
   });
 });

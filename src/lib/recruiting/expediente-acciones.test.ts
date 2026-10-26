@@ -125,18 +125,20 @@ describe("dar de baja: fecha, motivo de una lista corta, nota y quién", () => {
     expect(cuerpo).toContain('if (normalizaMotivoBaja(datos.motivo) === undefined) return { ok: false');
   });
 
-  it("los botones «Dar de baja» y «Reactivar» están en la lista Y en la ficha, y solo los enciende el admin de RR. HH.", () => {
+  it("D-705: «Dar de baja» y «Reactivar» están SOLO en la ficha (no en la fila), y solo los enciende el admin de RR. HH.", () => {
     expect(puedeDarDeBaja("admin")).toBe(true);
     expect(puedeDarDeBaja("manager")).toBe(false);
     expect(puedeDarDeBaja("recruiter")).toBe(false);
     expect(puedeDarDeBaja(null)).toBe(false);
     expect(pagina).toContain("const puedeBaja = puedeDarDeBaja(me?.role);");
-    // Dos de cada uno: la fila de la tabla y la cabecera de la ficha.
-    expect(pagina.split('data-accion="baja"').length - 1).toBe(2);
-    expect(pagina.split('data-accion="reactivar"').length - 1).toBe(2);
-    expect(pagina.split("disabled={!puedeBaja}").length - 1).toBeGreaterThanOrEqual(4);
-    expect(pagina).toContain("onClick={() => setBaja(r.id)}");
-    expect(pagina).toContain("onClick={() => setReactivar(r.id)}");
+    // Uno de cada uno: la cabecera de la ficha. La fila solo abre el expediente.
+    expect(pagina.split('data-accion="baja"').length - 1).toBe(1);
+    expect(pagina.split('data-accion="reactivar"').length - 1).toBe(1);
+    expect(pagina).not.toContain("onClick={() => setBaja(r.id)}");
+    expect(pagina).not.toContain("onClick={() => setReactivar(r.id)}");
+    expect(pagina).toContain("onBaja={() => setBaja(abiertaFila.id)} onReactivar={() => setReactivar(abiertaFila.id)}");
+    expect(pagina).toContain("tabIndex={0}");
+    expect(pagina).toContain('onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setAbierto(r.id); } }}');
     expect(pagina).toContain("<BajaDialog");
     expect(pagina).toContain("<ReactivarDialog");
     // Y la barrera de verdad, en el servidor, con la misma regla.

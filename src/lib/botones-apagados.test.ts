@@ -78,7 +78,7 @@ describe("en toda la app: lo inactivo apaga su TEXTO, no sus botones", () => {
     expect(leer("src/app/timetracker/(timetracker)/people/page.tsx")).toContain('<tr className={inactive ? "atenuado" : undefined}>');
     expect(leer("src/components/timetracker/VehiclesSection.tsx")).toContain('<tr key={v.id} className={v.active ? undefined : "atenuado"}>');
     expect(leer("src/components/timetracker/GeofenceSection.tsx")).toContain('<tr key={f.id} className={f.active ? undefined : "atenuado"}>');
-    expect(leer("src/app/recruiting/(recruiting)/employees/page.tsx")).toContain('className={deBaja ? "atenuado" : undefined}>');
+    expect(leer("src/app/recruiting/(recruiting)/employees/page.tsx")).toContain('className={"fila-abre" + (deBaja ? " atenuado" : "")}');
     expect(leer("src/app/recruiting/(recruiting)/questions/page.tsx")).toContain('className={"q-block" + (q.active ? "" : " atenuado")}');
     expect(leer("src/components/recruiting/ModalHost.tsx")).toContain('<div key={q.id} className={"q-block" + (a.skipped ? " atenuado" : "")}>');
     expect(leer("src/app/(app)/track/page.tsx")).toContain('className={"chip" + (d === fecha ? " on" : "") + (!has && d !== fecha ? " chip-vacio" : "")}');
