@@ -48417,3 +48417,13 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pendiente:** esconder a quien tiene `left_at <= hoy` en cada app (hub Usuarios, Entregas, Time Tracker, chat, directorio, etc.) no está hecho: leer la columna antes de aplicar la 205 rompería esas consultas. Va después de aplicarla.
 
 **No medido:** no abierto en el navegador; la 205 no está ensayada contra la base.
+
+## D-NEXT · RR. HH.: la tabla de Empleados como la de Órdenes
+
+**Pedido:** «quiero que me hagas lo mismo que hemos hecho en el Deliveries app, en la parte de empleados. Quiero que me hagas lo mismo, que se puedan ver lo que puedan ver expedientes, hacer sort en las cosas, search, que todo sea organizado igualito que en el Deliveries app, en el order, donde mira, así quiero que se mire el table de expedientes y de empleados y así. Entonces que uno pueda resize las columnas, buscar, sort, todo eso y exportar todo eso»
+
+**Qué cambia:** la tabla de Empleados (Activos, Dados de baja y Todos) usa las piezas de Órdenes que ya usan Clientes, el Gestor y el Estimador: `useOrdenYFiltro` + `CabeceraConMenu` (el ▾ de cada cabecera: ordenar y filtrar por valores), `FiltrosPuestos`, y `useColWidthMap` con `tbl-resize` (anchos que se arrastran, doble clic restablece, guardados en este navegador). Columnas: Nombre, Puesto, Departamento, Tienda, Tel. de oficina, Ext., Ingreso, Baja, Usuario, Expediente, Papeles. La caja de buscar mira también puesto, departamento, tienda, teléfono, extensión y correos, sin acentos. Botones Excel y CSV: exportan las filas que se ven (las que la RLS dejó cargar, con los filtros puestos) y las columnas de la tabla. Lo propio de esta tabla vive en `src/lib/recruiting/tabla-de-empleados.ts`; el Excel genérico, en `src/lib/export-tabla.ts` (exceljs se carga al pulsar). La fila sigue abriendo el expediente (D-NEXT2).
+
+**Sin hacer:** el selector de columnas («⚙ Columnas») de Órdenes no está: todas las columnas salen siempre.
+
+**No medido:** no abierto en el navegador (ni el arrastre del ancho, ni el menú ▾, ni el Excel abierto en Excel).

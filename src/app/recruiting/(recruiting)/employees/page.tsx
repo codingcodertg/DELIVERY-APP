@@ -11,7 +11,7 @@ import {
 import { DOC_KINDS, REQUIRED_FORMS } from "@/lib/recruiting/hr";
 import {
   ETIQUETAS_CAMPO, camposQueFaltan, cuentaIncompletos, cuentaPorEstado, estadoEmpleado, etiquetaEstado,
-  etiquetaMotivoBaja, filtraPorEstado, puedeDarDeBaja, puedeEditarGrupoDirectorio, puedeElegirTienda,
+  etiquetaMotivoBaja, filtraPorEstado, hoyLocalISO, puedeDarDeBaja, puedeEditarGrupoDirectorio, puedeElegirTienda,
   resumenDeCuenta, saleEnDirectorio, telefonoDeFicha, tiendaVisible,
   type FiltroEstado, type HechosDeCuenta,
 } from "@/lib/recruiting/employee-file";
@@ -20,6 +20,12 @@ import Link from "next/link";
 import { cuentaPorCuenta, filtraPorCuenta, tieneUsuario, type FiltroCuenta } from "@/lib/recruiting/usuarios-rrhh";
 import { AgregarDialog, BajaDialog, ReactivarDialog, faltaMigracion } from "./acciones";
 import { BloqueTimeTracker } from "./time-tracker";
+import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
+import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto } from "@/components/CabeceraConMenu";
+import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
+import { downloadCSV, toCSV } from "@/lib/utils";
+import { exportaTablaExcel } from "@/lib/export-tabla";
+import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -40,7 +46,7 @@ type Fila = EmployeeFile & { docKinds: string[] };
 
 export default function EmployeeFilesPage() {
   const { t, lang } = usePrefs();
-  const { me } = useData();
+  const { me, notify } = useData();
   const [rows, setRows] = useState<Fila[]>([]);
   // ¿Tiene la tabla las columnas de la 159? Sin ellas los campos nuevos salen apagados.
   const [con159, setCon159] = useState(false);
@@ -78,11 +84,28 @@ export default function EmployeeFilesPage() {
   const delEstado = filtraPorEstado(rows, estado);
   const incompletos = cuentaIncompletos(delEstado, con159);
   const visibles = delEstado
-    .filter((r) => !buscar || r.full_name.toLowerCase().includes(buscar.toLowerCase()))
+    .filter((r) => coincideBusqueda({ ...r, store: tiendaVisible(r) }, buscar))
     .filter((r) => !soloFaltan || faltan(r).length > 0)
     .filter((r) => !soloIncompletos || camposQueFaltan(r, con159).length > 0)
     .filter((r) => filtraPorCuenta([r], filtroCuenta).length > 0);
   const porCuenta = cuentaPorCuenta(delEstado);
+
+  // D-NEXT: la tabla como la de Órdenes: menú ▾ por columna (ordenar + filtrar), anchos que se arrastran y se
+  // guardan en este navegador, y exportar lo que se ve (las filas que la RLS dejó cargar, con los filtros puestos).
+  const valorDe = useCallback((clave: string, r: Fila) => valorDeEmpleado(clave, { ...r, store: tiendaVisible(r) }, {
+    sinLlenar: camposQueFaltan(r, con159).length,
+    papelesQueFaltan: REQUIRED_FORMS.filter((f) => !r.docKinds.includes(f.key)).length,
+  }, (en, es) => (lang === "es" ? es : en)), [con159, lang]);
+  const orden = useOrdenYFiltro(visibles, valorDe);
+  const colw = useColWidthMap("rrhh-empleados-anchos", 130, { minimo: 60 });
+  const ancho = (c: { key: string; ancho: number }) => colw.widthOf(c.key, c.ancho);
+  const exporta = (como: "csv" | "excel") => {
+    const tabla = tablaParaExportar(COLUMNAS_DE_EMPLEADOS, orden.visibles, valorDe, lang);
+    const nombre = "empleados_" + (estado === "bajas" ? "dados_de_baja_" : "") + hoyLocalISO();
+    if (como === "csv") downloadCSV(nombre + ".csv", toCSV(tabla.cabeceras, tabla.filas));
+    else exportaTablaExcel(nombre + ".xlsx", t("Employees", "Empleados"), tabla.cabeceras, tabla.filas)
+      .catch((e: unknown) => notify(t("Could not export: ", "No se pudo exportar: ") + ((e as { message?: string })?.message ?? "")));
+  };
 
   const porId = (id: string | null) => rows.find((r) => r.id === id) ?? null;
   const abiertaFila = porId(abierto);
@@ -131,7 +154,7 @@ export default function EmployeeFilesPage() {
           <input
             value={buscar}
             onChange={(e) => setBuscar(e.target.value)}
-            placeholder={t("Search a person…", "Buscar una persona…")}
+            placeholder={t("Search name, position, phone, email…", "Buscar nombre, puesto, teléfono, correo…")}
             style={{ width: "auto", minWidth: 220 }}
           />
           <button className={"chip" + (soloIncompletos ? " on" : "")} data-filtro="incompletos"
@@ -167,22 +190,36 @@ export default function EmployeeFilesPage() {
                 : t("Nobody matches.", "Nadie coincide.")}
           </div>
         ) : (
-          <table className="cmp-tbl">
+          <>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "6px 0" }}>
+            <FiltrosPuestos estado={orden} columnas={COLUMNAS_DE_EMPLEADOS} lang={lang} t={t} />
+            <span style={{ marginLeft: "auto" }} />
+            <button className="btn btn-ghost btn-sm" data-exporta="excel" disabled={!orden.visibles.length} onClick={() => exporta("excel")}>📊 Excel</button>
+            <button className="btn btn-ghost btn-sm" data-exporta="csv" disabled={!orden.visibles.length} onClick={() => exporta("csv")}>⬇ CSV</button>
+          </div>
+          <div className="tbl-scroll tbl-fit">
+          <table className="cmp-tbl tbl-resize" style={anchoDeTabla([...COLUMNAS_DE_EMPLEADOS.map(ancho), 170])} data-tabla-de-empleados>
+            <colgroup>
+              {COLUMNAS_DE_EMPLEADOS.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
+              <col style={{ width: 170 }} />
+            </colgroup>
             <thead>
               <tr>
-                <th>{t("Name", "Nombre")}</th>
-                <th>{t("Position", "Puesto")}</th>
-                <th>{t("Department", "Departamento")}</th>
-                <th>{t("Office phone", "Tel. de oficina")}</th>
-                <th>{t("Ext.", "Ext.")}</th>
-                <th>{t("Hired", "Ingreso")}</th>
-                <th>{t("File", "Expediente")}</th>
-                <th>{t("Paperwork", "Papeles")}</th>
+                {COLUMNAS_DE_EMPLEADOS.map((c) => (
+                  <th key={c.key}>
+                    <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
+                    <span className="col-resizer" onMouseDown={colw.startResize(c.key, c.ancho)} onDoubleClick={() => colw.resetCol(c.key)}
+                      title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} data-asa-de={c.key} />
+                  </th>
+                ))}
                 <th />
               </tr>
             </thead>
             <tbody>
-              {visibles.map((r) => {
+              {orden.visibles.length === 0 && (
+                <tr><td colSpan={COLUMNAS_DE_EMPLEADOS.length + 1} className="hint">{t("Nobody matches these column filters.", "Nadie coincide con los filtros de columna.")}</td></tr>
+              )}
+              {orden.visibles.map((r) => {
                 const pend = faltan(r);
                 const sinLlenar = camposQueFaltan(r, con159);
                 const deBaja = estadoEmpleado(r) === "baja";
@@ -193,27 +230,30 @@ export default function EmployeeFilesPage() {
                     aria-label={t("Open file of ", "Abrir expediente de ") + r.full_name}
                     onClick={() => setAbierto(r.id)}
                     onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setAbierto(r.id); } }}>
-                    <td style={{ fontWeight: 700 }}>
+                    <td style={{ fontWeight: 700 }} title={r.full_name}>
                       {r.full_name}
-                      {tieneUsuario(r) && (
-                        <span className="badge" data-insignia="usuario"
-                          style={{ marginLeft: 8, background: "var(--tint-green)", color: "var(--green)" }}>
-                          {t("User created", "Con usuario")}
-                        </span>
-                      )}
                       {deBaja && (
                         <span className="badge" data-insignia="baja"
                           style={{ marginLeft: 8, background: "var(--tint-red-strong)", color: "var(--red)" }}
                           title={[r.date_left, etiquetaMotivoBaja(r.left_reason, lang)].filter(Boolean).join(" · ")}>
-                          {etiquetaEstado("baja", lang)} {r.date_left}
+                          {etiquetaEstado("baja", lang)}
                         </span>
                       )}
                     </td>
                     <td>{r.job_title || "—"}</td>
                     <td>{r.department || "—"}</td>
+                    <td>{tiendaVisible(r) || "—"}</td>
                     <td>{r.phone || "—"}</td>
                     <td>{r.ringcentral_ext || "—"}</td>
                     <td>{r.date_hired || "—"}</td>
+                    <td>{r.date_left || "—"}</td>
+                    <td>
+                      {tieneUsuario(r) ? (
+                        <span className="badge" data-insignia="usuario" style={{ background: "var(--tint-green)", color: "var(--green)" }}>
+                          {t("User created", "Con usuario")}
+                        </span>
+                      ) : <span className="hint" style={{ marginTop: 0 }}>{t("No user", "Sin usuario")}</span>}
+                    </td>
                     <td>
                       {/* Qué campos le faltan a la ficha, no cuántos tiene: es lo único que se viene a buscar. */}
                       {sinLlenar.length === 0 ? (
@@ -258,7 +298,7 @@ export default function EmployeeFilesPage() {
                       )}
                       {/* D-705: «Dar de baja» y «Reactivar» ya no están en la fila: se dan desde dentro del expediente. */}
                       <button className="btn btn-ghost btn-sm" data-accion="editar" onClick={() => setAbierto(r.id)}>
-                        📂 {t("Open file", "Abrir expediente")}
+                        📂 {t("Open", "Abrir")}
                       </button>
                     </td>
                   </tr>
@@ -266,6 +306,9 @@ export default function EmployeeFilesPage() {
               })}
             </tbody>
           </table>
+          </div>
+          <MenuDeColumnaAbierto estado={orden} columnas={COLUMNAS_DE_EMPLEADOS} lang={lang} t={t} />
+          </>
         )}
       </div>
 
