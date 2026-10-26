@@ -30,8 +30,8 @@ export function BloqueTimeTracker({ profileId }: { profileId: string | null }) {
     return () => { vivo = false; };
   }, [profileId]);
 
-  const dinero = (n: number) => n.toLocaleString(lang === "es" ? "es-US" : "en-US", { style: "currency", currency: "USD" });
-  const horas = (n: number) => n.toLocaleString(lang === "es" ? "es-US" : "en-US", { maximumFractionDigits: 2 });
+  const dinero = (n: number) => new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US", { style: "currency", currency: "USD" }).format(n);
+  const horas = (n: number) => new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US", { maximumFractionDigits: 2 }).format(n);
 
   return (
     <div data-bloque="time-tracker">
