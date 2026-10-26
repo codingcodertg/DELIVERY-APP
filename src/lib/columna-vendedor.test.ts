@@ -26,7 +26,7 @@ describe("la columna «Vendedor»", () => {
 
   it("Órdenes y el Gestor le pasan los nombres a la celda", () => {
     const tabla = leer("src/components/OrdersTable.tsx");
-    expect(tabla).toContain('{ key: "rep", en: "Sales Rep", es: "Vendedor", value: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) ?? null, cell: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) || "—" },');
+    expect(tabla).toContain('{ key: "rep", en: "User", es: "Usuario", value: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) ?? null, cell: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) || "—" },');
     expect(tabla).toContain("const nombreDe = useMemo(() => nombresPorId(users), [users]);");
     expect(leer("src/app/(app)/routes/page.tsx")).toContain("nombreDe: nombresPorId(users) }), [lang, t, settings, recibidas, marcasDeParada, users]);");
   });

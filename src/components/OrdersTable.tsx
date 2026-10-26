@@ -154,7 +154,7 @@ export const ORDER_COLUMNS: OrderColumn[] = [
   { key: "driver", en: "Driver", es: "Chofer", value: (d) => d.assigned_driver, cell: (d) => d.assigned_driver || "—" },
   // El vendedor de la orden (D-652; Roberto: «Add rep column»): `orderOwner`, el asignado o, si no hay, quien la creó —la misma
   // regla que decide de quién es la orden para verla y para los avisos—. La base guarda el id; aquí sale el nombre.
-  { key: "rep", en: "Sales Rep", es: "Vendedor", value: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) ?? null, cell: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) || "—" },
+  { key: "rep", en: "User", es: "Usuario", value: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) ?? null, cell: (d, ctx) => ctx.nombreDe?.(orderOwner(d)) || "—" },
   { key: "contact", en: "Contact", es: "Contacto", value: (d) => d.contact, cell: (d) => d.contact || "—" },
   { key: "address", en: "Delivery Address", es: "Dirección de entrega", value: (d) => d.delivery_address, cell: (d) => d.delivery_address || "—" },
 ];

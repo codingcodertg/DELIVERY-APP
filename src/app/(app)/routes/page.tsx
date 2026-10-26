@@ -2397,7 +2397,7 @@ export default function RoutesPage() {
         : t("Picked up, on the truck — it stays on the list; it can't be moved", "Recogida, en el camión — sigue en la lista; no se mueve");
       return (
         <tr key={d.id} data-orden={hecha ? "hecha" : sinChofer ? "sin-chofer" : "con-chofer"} title={titulo}
-          className={`${marcada ? "row-selected" : ""}${hecha ? ` fila-hecha${entregada ? " row-done" : ""}` : ""}`}
+          className={`${marcada ? "row-selected" : ""}${hecha ? " fila-hecha" : ""}`}
           onClick={hecha ? undefined : () => toggleOrder(d.id)}
           style={{ cursor: hecha ? undefined : "pointer", opacity: arrastrado?.tipo === "orden" && arrastrado.id === d.id ? 0.5 : undefined }}
           data-fila-arrastrable={sinChofer && !soloLectura ? "orden" : undefined} {...(sinChofer && !soloLectura ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>
@@ -3175,7 +3175,7 @@ export default function RoutesPage() {
           const hora = hecho ? horaReal(d, fp.tipo) : null;
           const que = fp.tipo === "P" ? { en: "Picked up", es: "Recogida" } : hecho ? { en: "Delivered", es: "Entregada" } : { en: "On the truck, on its way", es: "En el camión, en camino" };
           return (
-            <tr key={`hecha-${fp.tipo}-${d.id}`} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className="fila-hecha"
+            <tr key={`hecha-${fp.tipo}-${d.id}`} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className={`fila-hecha${fp.tipo === "P" ? ` ${claseDeLaFilaDelPlan("P")}` : ""}`}
               title={t(`${que.en}${hora ? ` at ${hora}` : ""} — it stays on the list; it can't be moved`, `${que.es}${hora ? ` a las ${hora}` : ""} — sigue en la lista; no se mueve`)}>
               {/* Su número de parada del día y su etiqueta (D-529; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
                   delviered dont take the number of the stop away». El ✓ o el 🚚 siguen diciendo que está hecha o en camino. */}
@@ -3218,7 +3218,9 @@ export default function RoutesPage() {
           const g = f.indice != null ? grupos[f.indice] : null;
           if (g == null || f.indice == null) return "";
           const inicio = f.indice === 0 || grupos[f.indice - 1] !== g;
-          return ` fila-grupo-${f.tipo === "P" ? "recoger" : "entregar"}${inicio ? " fila-grupo-inicio" : ""}`;
+          // D-NEXT: solo las recogidas llevan color; la entrega, ni tinte ni raya de grupo.
+          if (f.tipo !== "P") return "";
+          return ` fila-grupo-recoger${inicio ? " fila-grupo-inicio" : ""}`;
         };
         // Nadie la ordenó: su P/D sale igual, provisional y en gris (D-379); y, fila a fila, lo que aún no tiene puesto.
         const provisional = esProvisional(stops);
@@ -3651,7 +3653,7 @@ export default function RoutesPage() {
                       if (f.otraCarga) {
                         // La entrega de OTRA carga de una orden que el motor repartió: informa, no se mueve.
                         return (
-                          <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D")}>
+                          <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D") || undefined}>
                             <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
                             <td className="ordno">{facturaConSuId(d)}{iconoDeReprogramar(d)}</td>
                             {celdaDeCuenta}

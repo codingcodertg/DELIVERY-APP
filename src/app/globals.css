@@ -485,25 +485,18 @@ table.orders tr.row-urgent td { background: #fdeaea; }
 table.orders tr.row-urgent:hover td { background: #fbd8d8; }
 :root[data-theme="dark"] table.orders tr.row-urgent td { background: #3a1f21; }
 :root[data-theme="dark"] table.orders tr.row-urgent:hover td { background: #4a2529; }
-/* Already delivered — the route fills in green as the day gets done, so a
-   dispatcher sees progress without reading a single status cell. */
-table.orders tr.row-done td { background: #e9f7f0; }
-table.orders tr.row-done:hover td { background: #d8f0e4; }
-:root[data-theme="dark"] table.orders tr.row-done td { background: #16352a; }
-:root[data-theme="dark"] table.orders tr.row-done:hover td { background: #1c4535; }
+/* D-NEXT: `row-done` (el verde de «entregada») se quitó: la etapa ya no cambia el color de la fila. */
 /* La tabla del plan (D-435, `claseDeLaFilaDelPlan`): recogida en verde, entrega en amarillo, TODA la fila —la etiqueta, el
    ID y Ajustar también—. El gris de `.hint` («carga 1 de 2») bajaba a 4,3:1 sobre los tintes claros: ahí va más oscuro. */
 table.orders tr.fila-plan-recoger td { background: var(--plan-recoger-bg); }
-table.orders tr.fila-plan-entregar td { background: var(--plan-entregar-bg); }
+/* D-NEXT: la entrega no lleva color (el dueño: «deliveries dont have a color»); la recogida, UNO solo, también en grupo. */
 table.orders tr.fila-plan-recoger .hint, table.orders tr.fila-plan-entregar .hint { color: var(--ink-soft); }
 /* D-444: filas SEGUIDAS en el mismo sitio (recogidas en la misma tienda, entregas en la misma dirección), cada una en su
    fila y pintadas como grupo: un tono más fuerte, y una raya arriba donde empieza cada grupo para separar dos seguidos. */
-table.orders tr.fila-grupo-recoger td { background: var(--grupo-recoger-bg); }
-table.orders tr.fila-grupo-entregar td { background: var(--grupo-entregar-bg); }
+table.orders tr.fila-grupo-recoger td { background: var(--plan-recoger-bg); }
 /* La raya de inicio de grupo es una sombra hacia dentro, no un borde (D-459): el borde hacía esas filas medio píxel más
    altas que las demás, y la tabla de paradas tiene todas sus filas del mismo alto. */
 table.orders tr.fila-grupo-inicio.fila-grupo-recoger td { box-shadow: inset 0 2px 0 var(--green); }
-table.orders tr.fila-grupo-inicio.fila-grupo-entregar td { box-shadow: inset 0 2px 0 var(--amber); }
 /* Arrastrar una parada (D-456): la raya dice donde cae la fila que se suelta, arriba o abajo de la que tiene debajo. */
 table.orders tr.suelta-arriba td { box-shadow: inset 0 3px 0 var(--accent); }
 table.orders tr.suelta-abajo td { box-shadow: inset 0 -3px 0 var(--accent); }
@@ -536,7 +529,7 @@ table.orders.tabla-de-paradas td.celda-acciones { overflow: visible; }
 .acciones-de-parada { display: flex; gap: 3px; justify-content: flex-end; align-items: center; }
 /* Una fila ya HECHA (D-459): recogida o entregada, sigue en la lista de su chofer, apagada y sin controles. El verde es
    el de `row-done`; la entrega de una orden recogida y aún en camino va sin verde, en gris. */
-table.orders tr.fila-hecha td { color: var(--ink-soft); }
+/* D-NEXT: sin el gris de texto: «Stage doesnt affect color of the row». */
 table.orders tr.fila-hecha .ordno span[data-abre-la-orden] { font-weight: 600 !important; }
 /* La factura y, a su derecha en la MISMA línea, el ID (D-459; D-456 lo ponía debajo). El dueño, 2026-10-01: «the id
    looks blurry and awful becuase of those dots dont make the row larger just fix the view». El ID es pequeño, gris y sin

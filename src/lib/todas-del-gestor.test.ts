@@ -208,7 +208,7 @@ describe("la pantalla", () => {
     expect(fila).toContain('data-fila-arrastrable={sinChofer && !soloLectura ? "orden" : undefined} {...(sinChofer && !soloLectura ? filaArrastrable({ tipo: "orden", id: d.id }) : {})}>');
     expect(fila).toContain("onClick={hecha ? undefined : () => toggleOrder(d.id)}");
     expect(fila).toContain('<span data-hecha={entregada ? "hecho" : "en_camino"} style={{ fontWeight: 700 }}>{entregada ? "✓" : "🚚"}</span>');
-    expect(fila).toContain('className={`${marcada ? "row-selected" : ""}${hecha ? ` fila-hecha${entregada ? " row-done" : ""}` : ""}`}');
+    expect(fila).toContain('className={`${marcada ? "row-selected" : ""}${hecha ? " fila-hecha" : ""}`}'); // D-NEXT: sin row-done
     expect(fila).toContain("const hora = entregada ? horaReal(d, \"D\") : null;");
     expect(fila).toContain("{hecha || soloLectura ? null : sinChofer ? (");
     expect(fila).toContain("<select defaultValue=\"\" data-asignar-a onChange={(e) => {");
