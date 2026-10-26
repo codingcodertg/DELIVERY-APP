@@ -48342,3 +48342,14 @@ el «Sales rep» del Dashboard, el rótulo del historial (`assigned_sales_rep`) 
 
 **No medido:** no abierto en el navegador; el contraste del tinte no se volvió a medir (es el de D-435); el círculo del
 número de parada sigue apagado (opacidad 0,55) en una parada hecha: es la burbuja, no el fondo de la fila.
+
+## D-NEXT · Usuarios: «Crear usuario» desde un empleado rellena el alta y enlaza el expediente, otra vez (sin `actions/hr`)
+
+**Pedido:** «para que ahí mismo se creen los users para cada employees» (lo de D-695, que se quitó en D-696).
+
+**Qué cambia:** lo mismo que D-695 (`/home/users?employee=<id>` precarga nombre, correo y tienda; al crear, enlaza el
+expediente; arriba, cuántos empleados tienen usuario), pero la página ya no importa acciones de servidor de RR. HH.: habla con
+una ruta nueva, `src/app/api/recruiting/usuario-de-empleado/route.ts` (GET los expedientes que la RLS deja leer, solo las
+columnas de la precarga; POST el enlace, con la misma lógica que tenía `cuentas.ts` y `expedienteQueSobra`).
+
+**No medido:** no probado en el navegador ni con la base; si Vercel vuelve a morir por memoria, la causa no era el import.
