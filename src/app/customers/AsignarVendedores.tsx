@@ -69,7 +69,7 @@ export function AsignarVendedores({ lista, almacen, onAsignados, onClose, t }: {
         {aviso && <p className={cn("mt-2 rounded-md p-2 text-sm", aviso.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800")} role="status">{aviso.texto}</p>}
         <div className="mt-3 max-h-[60vh] overflow-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-white text-left text-xs uppercase text-slate-400">
+            <thead className="bg-white text-left text-xs uppercase text-slate-400">
               <tr><th className="py-1.5">{t("Initials", "Iniciales")}</th><th>{t("Customers", "Clientes")}</th><th>{t("No rep", "Sin vendedor")}</th><th>{t("Rep today", "Vendedor hoy")}</th><th className="w-56">{t("Assign to", "Asignar a")}</th><th /></tr>
             </thead>
             <tbody>
