@@ -1563,7 +1563,7 @@ function ResumeModal({ id, close }: { id: string; close: () => void }) {
     return q ? (iv.answers[q.id]?.note || "").trim() : "";
   };
   const c = candidates.find((x) => x.id === id);
-  // Arranca en el idioma del hub (D-NEXT); los chips solo cambian el idioma del resumen que se copia.
+  // Arranca en el idioma del hub (D-687); los chips solo cambian el idioma del resumen que se copia.
   const [lang, setLang] = useState<"en" | "es">(idiomaDelHub);
   const [view, setView] = useState<"full" | "short">("full");
   const it = c?.interview ?? null;

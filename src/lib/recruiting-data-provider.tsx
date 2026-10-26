@@ -54,7 +54,7 @@ interface DataState {
   updateQuestionSet: (id: string, patch: Partial<QuestionSet>) => Promise<void>;
   deleteQuestionSet: (id: string) => Promise<void>;
   importScorecard: (sc: Scorecard) => Promise<number>;
-  /** Las etapas con el nombre en el idioma de la persona (D-NEXT): lo que pinta cualquier pantalla. */
+  /** Las etapas con el nombre en el idioma de la persona (D-687): lo que pinta cualquier pantalla. */
   stages: Stage[];
   /** Las etapas tal como están en la base, sin traducir: solo para editarlas en Ajustes. */
   stagesGuardadas: Stage[];
@@ -160,7 +160,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const [stageHistory, setStageHistory] = useState<StageHistory[]>([]);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // El idioma del hub (D-NEXT). Los avisos de abajo hablaban solo inglés. `tr` va por ref para no tocar las
+  // El idioma del hub (D-687). Los avisos de abajo hablaban solo inglés. `tr` va por ref para no tocar las
   // dependencias de cada useCallback: cambia el idioma, no la identidad de las acciones.
   const { lang, t } = usePrefs();
   const tRef = useRef(t);

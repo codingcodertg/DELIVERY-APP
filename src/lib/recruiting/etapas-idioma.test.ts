@@ -27,7 +27,7 @@ describe("etiquetaDeEtapa", () => {
   });
 });
 
-// Puerta del mecanismo (D-NEXT): el idioma del hub tiene que llegar a lo que pinta RRHH.
+// Puerta del mecanismo (D-687): el idioma del hub tiene que llegar a lo que pinta RRHH.
 const raiz = join(__dirname, "..", "..");
 const proveedor = readFileSync(join(raiz, "lib", "recruiting-data-provider.tsx"), "utf8");
 

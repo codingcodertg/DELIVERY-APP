@@ -48170,7 +48170,7 @@ admin DE TIME TRACKER, y con el cliente del usuario el bloque habría salido vac
 reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez de enseñar ceros.
 
 **No medido:** en el navegador ni contra la base real (nombres de columnas leídos de las migraciones 059/086/170).
-## D-NEXT · RRHH en español: las etapas y los avisos pasan por el idioma del hub
+## D-687 · RRHH en español: las etapas y los avisos pasan por el idioma del hub
 
 **Pedido.** El dueño: «el HR app tiene un translation issue ahí porque no está funcionando, entonces revisa todo eso bien».
 

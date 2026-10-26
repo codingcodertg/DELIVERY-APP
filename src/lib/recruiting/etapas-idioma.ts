@@ -1,7 +1,7 @@
 import type { Stage } from "./types";
 
 /**
- * El nombre de una etapa en el idioma de la persona (D-NEXT).
+ * El nombre de una etapa en el idioma de la persona (D-687).
  *
  * Las etapas viven en la base (`recruiting.stages.label`), con UNA columna de nombre y escrita en inglés. Todas
  * las pantallas de RRHH pintaban ese texto tal cual, así que el tablero, las píldoras de estado, los filtros y
