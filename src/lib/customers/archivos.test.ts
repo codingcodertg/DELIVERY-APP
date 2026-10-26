@@ -73,9 +73,9 @@ describe("impuestos y sitio web", () => {
     expect(webUrl("no tiene")).toBeNull();
     expect(webUrl("")).toBeNull();
   });
-  it("cada campo, en su tarjeta: impuestos en «Crédito y términos», sitio web en «Contacto», el «Type» en «Otros»", () => {
+  it("cada campo, en su tarjeta: impuestos en «Crédito y términos», el sitio web de la cuenta en «Campos ocultos» (D-697), el «Type» en «Otros»", () => {
     const grupo = (k: string) => CAMPOS.find((c) => c.key === k)?.grupo;
-    expect([grupo("tax_terms"), grupo("website"), grupo("activity_status")]).toEqual(["credito", "contacto", "otros"]);
+    expect([grupo("tax_terms"), grupo("website"), grupo("activity_status")]).toEqual(["credito", "ocultos", "otros"]);
   });
 });
 
@@ -97,9 +97,23 @@ describe("la ficha", () => {
     // Apilada con «Campos ocultos» en la misma celda de la rejilla: la de ocultos primero, y la de archivos justo detrás.
     expect(html.indexOf('data-grupo="archivos"')).toBeGreaterThan(html.indexOf("data-campos-ocultos"));
     expect(html.slice(html.indexOf("</details>"), html.indexOf('data-grupo="archivos"'))).not.toContain("data-grupo=");
-    expect(tarjeta(html, "contacto")).toContain('href="https://demotilegallery.example.com" target="_blank" rel="noopener noreferrer"');
+    // D-697: el sitio web de la cuenta ya no va en «Contacto»: en «Campos ocultos», y se sigue abriendo.
+    expect(tarjeta(html, "contacto")).not.toContain("demotilegallery.example.com");
+    expect(tarjeta(html, "ocultos")).toContain('href="https://demotilegallery.example.com" target="_blank" rel="noopener noreferrer"');
     const sinCargo = tarjeta(pinta(CLIENTES_DEMO.find((c) => c.id === 3)!), "contacto");
     expect(sinCargo).toMatch(/Cargo: <span[^>]*data-campo="contact_title">—<\/span>/);
+  });
+  it("D-697: cada contacto con su sitio web (que se abre) y su dirección; el otro contacto, sin nada heredado", () => {
+    const conWeb = { ...galeria, contacts: [{ name: "ANA", title: null, phones: [], emails: [], note: null, website: "ana.example.com", address: "12 Main St" }, { name: "LEO", title: null, phones: [], emails: [], note: null }] };
+    const ver = tarjeta(pinta(conWeb), "contacto");
+    expect(ver).toContain('href="https://ana.example.com" target="_blank" rel="noopener noreferrer"');
+    expect(ver).toMatch(/data-direccion-de-contacto="true">📍 12 Main St</);
+    const ed = tarjeta(pinta(conWeb, true), "contacto");
+    expect(ed).toMatch(/<input[^>]*data-web-de-contacto="0" value="ana.example.com"/);
+    expect(ed).toContain("12 Main St</textarea>");
+    expect(ed).toMatch(/<textarea[^>]*data-direccion-de-contacto="0"[^>]*>12 Main St</);
+    expect(ed).toMatch(/<input[^>]*data-web-de-contacto="1" value=""/);
+    expect(ed).toMatch(/<textarea[^>]*data-direccion-de-contacto="1"[^>]*><\x2Ftextarea>/);
   });
   it("editando, los impuestos son un desplegable; en un alta, los archivos se adjuntan después", () => {
     expect(tarjeta(pinta(galeria, true), "credito")).toMatch(/<select[^>]*data-impuestos="true">/);

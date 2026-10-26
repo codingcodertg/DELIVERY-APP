@@ -341,7 +341,8 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     const deLasTarjetas = CAMPOS.filter((c) => c.key !== "account" && c.key !== "store").map((c) => c.key);
     expect([...vistos].sort()).toEqual([...deLasTarjetas].sort());
     expect(new Set(vistos).size).toBe(vistos.length);
-    for (const g of grupos) expect(g.filas.length, g.grupo.key).toBeGreaterThan(0);
+    // D-697: menos «Contacto», que ya no tiene líneas sueltas: la llenan los contactos.
+    for (const g of grupos) if (g.grupo.key !== "contacto") expect(g.filas.length, g.grupo.key).toBeGreaterThan(0);
     // Cada línea que se edita lleva SU campo (la etiqueta y el control son de esa clave).
     for (const f of grupos.flatMap((g) => g.filas)) if (f.campo) expect(f.campo.key).toBe(f.key);
   });
@@ -358,8 +359,10 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     const credito = filasPorGrupo().find((g) => g.grupo.key === "credito")!.filas;
     expect(credito.map((f) => [f.key, f.en])).toEqual([["terms", "Terms"], ["credit_limit", "Credit limit"], ["euler_limit", "Euler limit"], ["account_no", "Account / credit"], ["tax_terms", "Tax terms"]]);
     expect(credito.at(-1)?.campo?.tipo).toBe("impuesto");
-    // Y el sitio web en «Contacto», delante de la dirección.
-    expect(filasPorGrupo().find((g) => g.grupo.key === "contacto")!.filas.map((f) => f.key)).toEqual(["website", "address"]);
+    // D-697: el sitio web y la dirección de la cuenta salen de «Contacto» (son de cada contacto) y van a «Campos ocultos»;
+    // la tarjeta «Contacto» sigue, sin líneas: la llenan los contactos.
+    expect(filasPorGrupo().find((g) => g.grupo.key === "contacto")!.filas).toEqual([]);
+    expect(filasOcultas().map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "website", "address"]);
     const todas = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key));
     expect(todas.filter((k) => k === "account")).toHaveLength(1);
     expect(todas).not.toContain("store");
@@ -379,7 +382,8 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect(GRUPO_OCULTO).toEqual({ key: "ocultos", en: "Hidden fields", es: "Campos ocultos" });
     const ocultas = filasOcultas();
     // D-669: sin la actividad (D-662 la ponía detrás): es el «Type» de «Credit & terms».
-    expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate"]);
+    // D-697: detrás, el sitio web y la dirección de la cuenta (venían de «Contacto»).
+    expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "website", "address"]);
     expect(ocultas.filter((f) => f.campo === null).map((f) => f.key)).toEqual(["house_no", "concatenate"]);
     // «Añadido (tanda)» se sigue corrigiendo: lleva SU campo.
     expect(ocultas[0].campo?.key).toBe("added_batch");

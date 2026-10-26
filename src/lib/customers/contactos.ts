@@ -38,15 +38,17 @@ export function rotuloDeContacto(c: Contacto, i: number, t: T): string {
 // ---- Editar ----------------------------------------------------------------------------------------------------------
 
 /** Un contacto mientras se escribe: todo texto, sin formato todavía. */
-export interface ContactoEnEdicion { name: string; title: string; phones: string[]; emails: string[]; note: string }
+export interface ContactoEnEdicion { name: string; title: string; phones: string[]; emails: string[]; note: string; website: string; address: string }
 
-export const contactoVacio = (): ContactoEnEdicion => ({ name: "", title: "", phones: [""], emails: [""], note: "" });
+export const contactoVacio = (): ContactoEnEdicion => ({ name: "", title: "", phones: [""], emails: [""], note: "", website: "", address: "" });
 
 /** La lista para editar: la de la fila, o un contacto en blanco si no tiene (así hay dónde escribir). Cada uno con al menos un hueco de teléfono y uno de correo. */
 export function enEdicion(lista: readonly Contacto[]): ContactoEnEdicion[] {
   if (!lista.length) return [contactoVacio()];
   return lista.map((c) => ({
     name: c.name ?? "", title: c.title ?? "", note: c.note ?? "",
+    // D-697: cada contacto con su sitio web y su dirección; sin los suyos, vacíos (no hereda los de la cuenta).
+    website: c.website ?? "", address: c.address ?? "",
     phones: c.phones.length ? [...c.phones] : [""],
     emails: c.emails.length ? [...c.emails] : [""],
   }));
