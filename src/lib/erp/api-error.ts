@@ -34,7 +34,7 @@ export function classifyError(err: unknown): Classified {
 export function errorResponse(err: unknown, fallback?: ErrorCode): NextResponse {
   const c = classifyError(err);
   const code: ErrorCode = c.code === "UNKNOWN" && fallback ? fallback : c.code;
-  // Sin Sentry (D-NEXT): el fallo va al log de Vercel con una referencia corta, la misma que ve el cliente.
+  // Sin Sentry (D-700): el fallo va al log de Vercel con una referencia corta, la misma que ve el cliente.
   const ref = c.expected ? null : crypto.randomUUID().slice(0, 8);
   if (ref) console.error(`[${ref}]`, err);
   const error: ClientError & { detail?: string } = toClientError(code, ref);

@@ -123,6 +123,6 @@ const nextConfig = {
   },
 };
 
-// Sin Sentry desde D-NEXT: el dueño no lo usa, y su subida de source maps era lo último que corría antes de que el
+// Sin Sentry desde D-700: el dueño no lo usa, y su subida de source maps era lo último que corría antes de que el
 // build de Vercel muriera por memoria (SIGKILL) con cualquier cambio un poco más grande.
 export default nextConfig;

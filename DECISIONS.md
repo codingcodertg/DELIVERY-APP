@@ -48343,7 +48343,7 @@ el «Sales rep» del Dashboard, el rótulo del historial (`assigned_sales_rep`) 
 **No medido:** no abierto en el navegador; el contraste del tinte no se volvió a medir (es el de D-435); el círculo del
 número de parada sigue apagado (opacidad 0,55) en una parada hecha: es la burbuja, no el fondo de la fila.
 
-## D-NEXT · Se quita Sentry
+## D-700 · Se quita Sentry
 
 **Pedido:** «ya sentry se elimina no lo ocupo».
 
