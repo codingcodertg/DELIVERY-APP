@@ -129,7 +129,7 @@ describe("la ficha", () => {
   });
 });
 
-describe("D-NEXT: asignar vendedores de golpe (solo admin)", () => {
+describe("D-684: asignar vendedores de golpe (solo admin)", () => {
   const c = (id: number, x: Partial<Cliente>): Cliente => ({ ...CLIENTES_DEMO[0], id, rep_store: null, rep_qb: null, rep_id: null, rep_name: null, archived_at: null, ...x });
   const lista = [
     c(1, { rep_store: " im " }), c(2, { rep_store: "IM", rep_id: "demo-ana", rep_name: "Ana Demo" }), c(3, { rep_qb: "IM" }),

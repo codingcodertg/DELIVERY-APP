@@ -38,7 +38,7 @@ export interface GrupoDeIniciales {
 }
 
 /**
- * Para «Asignar vendedores» (D-NEXT): los clientes NO archivados agrupados por sus iniciales de QuickBooks, de más a menos.
+ * Para «Asignar vendedores» (D-684): los clientes NO archivados agrupados por sus iniciales de QuickBooks, de más a menos.
  * Los que no tienen iniciales no salen: no hay a quién atribuirlos de golpe (se asignan uno a uno en su ficha).
  */
 export function gruposPorIniciales(lista: readonly Cliente[]): GrupoDeIniciales[] {

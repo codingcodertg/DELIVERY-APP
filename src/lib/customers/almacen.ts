@@ -43,7 +43,7 @@ export interface AlmacenDeClientes {
   enlaceDeArchivo(a: ArchivoDeCliente): Promise<Res<string>>;
   /** D-683 (198): los vendedores del hub (perfiles con rol `sales`), para el desplegable y para poner nombre a `rep_id`. */
   vendedores(): Promise<Res<Vendedor[]>>;
-  /** D-NEXT: pone el vendedor (null = libre) a muchas filas de golpe; devuelve cuántas cambió la base. */
+  /** D-684: pone el vendedor (null = libre) a muchas filas de golpe; devuelve cuántas cambió la base. */
   asignarVendedor(ids: readonly number[], repId: string | null): Promise<Res<number>>;
 }
 

@@ -48128,7 +48128,7 @@ no se asume).
 **No hace:** los archivos (195) y la cola «Decidir si se juntan» (189) siguen por módulo, no por vendedor. **No
 medido:** en el navegador con la base real ni la política con una sesión de vendedor; se aplica con el sí del dueño.
 
-## D-NEXT · Clientes: «Asignar vendedores» de golpe, solo el admin
+## D-684 · Clientes: «Asignar vendedores» de golpe, solo el admin
 
 **Fecha:** 2026-10-26. **Pedido:** el dueño: «aún no me sale una quick way para admin only para asignar vendedores».
 

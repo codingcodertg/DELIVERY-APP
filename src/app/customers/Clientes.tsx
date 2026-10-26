@@ -56,7 +56,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo:
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
   const [cuantos, setCuantos] = useState(TANDA);
   const [ficha, setFicha] = useState<Ficha | null>(null);
-  // D-NEXT: «Asignar vendedores» de golpe, solo el admin.
+  // D-684: «Asignar vendedores» de golpe, solo el admin.
   const [asignando, setAsignando] = useState(false);
   const cajaRef = useRef<HTMLDivElement>(null);
 

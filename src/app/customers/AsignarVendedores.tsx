@@ -11,7 +11,7 @@ import { selCls } from "./FichaDeCliente";
 type T = (en: string, es: string) => string;
 
 /**
- * Asignar vendedores de golpe (D-NEXT), solo el admin. El dueño, 2026-10-26: «aún no me sale una quick way para admin only
+ * Asignar vendedores de golpe (D-684), solo el admin. El dueño, 2026-10-26: «aún no me sale una quick way para admin only
  * para asignar vendedores». Una fila por iniciales de QuickBooks (`rep_store`, o `rep_qb` si falta): cuántos clientes, cuántos
  * sin vendedor, quién los tiene hoy, y un desplegable con los vendedores. «Asignar» se lo pone a los SIN vendedor de esas
  * iniciales; con «También los que ya tienen», a todos. La base vuelve a exigir quién escribe (198).
