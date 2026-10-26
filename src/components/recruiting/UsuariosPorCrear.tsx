@@ -1,5 +1,6 @@
 "use client";
 
+import { formatoEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
@@ -24,7 +25,7 @@ export function UsuariosPorCrear() {
   useEffect(() => { if (admin) void cargar(); }, [admin, cargar]);
 
   if (!admin || rows.length === 0) return null;
-  const fecha = (iso: string) => new Date(iso).toLocaleString(lang === "es" ? "es-MX" : "en-US", { dateStyle: "medium", timeStyle: "short" });
+  const fecha = (iso: string) => formatoEnBrownsville(iso, lang === "es" ? "es-MX" : "en-US", { dateStyle: "medium", timeStyle: "short" });
 
   return (
     <div className="card" style={{ marginBottom: 12, padding: 10 }}>
