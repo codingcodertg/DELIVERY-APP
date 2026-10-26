@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 201 . Contratar desde el candidato y pedir al admin que cree el usuario (D-NEXT)
+-- 201 . Contratar desde el candidato y pedir al admin que cree el usuario
 -- ===========================================================================
 -- PEDIDO. El duenio, 2026-10-26: «en candidates tiene que tener un hire button para que el manager o el admin le
 -- pongan que ese user fue hired y él mismo puede mandar un request al admin para decir, hey, ya está creado, créale
@@ -55,4 +55,4 @@ create policy ucr_update on recruiting.user_creation_requests for update to auth
 grant select, insert, update on recruiting.user_creation_requests to authenticated;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('201_contratar_y_pedir_usuario.sql', '297e628da63c20e735321436c35ffae2f6814340497453e1175b8d907f27e6d0') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('201_contratar_y_pedir_usuario.sql', '089d5bcb93ec18175b5468bf4f16595dbf75f82d1285822a1400dc875251c6e7') on conflict (name) do nothing;
