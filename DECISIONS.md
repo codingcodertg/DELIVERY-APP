@@ -48201,7 +48201,7 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 
 **Y solo los de su tienda** (el dueño, mismo día: «cada customer tiene una tienda assign entonces solo pueden ver esos clientes si son de su tienda»): la función filtra como las órdenes (131). El admin ve todos; si no, las tiendas marcadas en `profiles.visible_stores` o, sin ellas, la de `profiles.store`; sin ninguna de las dos, todas. El código del cliente (BRO, MCA…) se traduce al nombre de la tienda del perfil.
 
-## D-NEXT · La zona local llega a la frontera, y la ciudad sin pin deja de ser «TX»
+## D-690 · La zona local llega a la frontera, y la ciudad sin pin deja de ser «TX»
 
 **Pedido.** Francisca Reyes (1.405.0, ficha de orden): «DICE QUE NO ES LOCAL PERO SI ES» — «3004 E Sabinal Ave, Hidalgo, TX, USA», sin pin, salía «NO LOCAL · TX» con aprobación del gerente. El dueño: «haz ese boundary en la mera frontera para evitar esto».
 

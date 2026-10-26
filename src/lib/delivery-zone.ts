@@ -90,7 +90,7 @@ export const LOCAL_ZONE_DEFAULT: Vertice[] = [
   [25.93, -97.57],
   [26.02, -97.75],   // Los Indios
   [26.06, -97.95],   // Progreso (puente)
-  // Hidalgo → Los Ébanos se rehízo en D-NEXT («haz ese boundary en la mera frontera»): el borde iba
+  // Hidalgo → Los Ébanos se rehízo en D-690 («haz ese boundary en la mera frontera»): el borde iba
   // en línea recta de Progreso a (26.10, −98.26) y dejaba fuera el sur de Hidalgo y el puente de
   // Pharr. Ahora sigue el río; los valores son del cauce aproximado, no medidos sobre un mapa.
   [26.052, -98.07],  // frente a Donna (puente Donna–Río Bravo)

@@ -28,7 +28,7 @@ export const LOCAL_CITIES_DEFAULT = [
   "Mission", "McAllen", "Pharr", "San Juan", "Alamo", "Donna",
   "Weslaco", "Mercedes", "La Feria", "Harlingen", "San Benito",
   "Rio Hondo", "Ranch Viejo", "Brownsville", "Port Isabel", "South Padre",
-  // Los pueblos de la frontera (D-NEXT): «haz ese boundary en la mera frontera». Solo valen como
+  // Los pueblos de la frontera (D-690): «haz ese boundary en la mera frontera». Solo valen como
   // defecto: si Ajustes ya tiene su propia lista, manda la de Ajustes.
   "Hidalgo", "Granjeno", "Progreso", "Los Indios",
 ];
@@ -326,7 +326,7 @@ export function suggestDeliveryFee(
   s?: Partial<Settings> | null,
 ): FeeSuggestion {
   const hasAddr = !!(d.delivery_address || "").trim();
-  // La ciudad la lee `ciudadDeEntrega` (D-NEXT), no `cityFromAddress`: aquella tomaba el penúltimo
+  // La ciudad la lee `ciudadDeEntrega` (D-690), no `cityFromAddress`: aquella tomaba el penúltimo
   // trozo, y con «3004 E Sabinal Ave, Hidalgo, TX, USA» devolvía «TX» — y «TX» no es local. Esta quita
   // el país, el código postal, el estado y el condado antes de leer. Tampoco busca nombres dentro del
   // texto: con la lista, «Hidalgo» casaba con «Hidalgo County» en cualquier dirección de Nominatim.

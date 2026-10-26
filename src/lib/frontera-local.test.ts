@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { suggestDeliveryFee } from "./pricing";
 import { puntoEnZonaLocal } from "./delivery-zone";
 
-// D-NEXT · «DICE QUE NO ES LOCAL PERO SI ES»: una orden sin pin a Hidalgo salía NO LOCAL · TX.
+// D-690 · «DICE QUE NO ES LOCAL PERO SI ES»: una orden sin pin a Hidalgo salía NO LOCAL · TX.
 const sinPin = (delivery_address: string) => suggestDeliveryFee({ delivery_address, route_miles: 9.3 }, {});
 
 describe("ciudad de la dirección, sin pin", () => {
