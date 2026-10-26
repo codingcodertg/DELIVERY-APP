@@ -6,7 +6,7 @@ import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
-// «User creation» dentro de RR. HH. (D-NEXT). La misma barrera que home/users/layout.tsx: solo un
+// «User creation» dentro de RR. HH. (D-688). La misma barrera que home/users/layout.tsx: solo un
 // admin del hub (`role = admin`), porque /api/invite y los guards de la base (D-050) lo exigen
 // igual desde cualquier URL. El layout de (recruiting) ya pidió recruiting_role; esto añade lo otro.
 // Monta el DataProvider del HUB (usuarios, ajustes, addUser) además del de RR. HH. que ya envuelve:

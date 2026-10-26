@@ -4,7 +4,7 @@ import Link from "next/link";
 import { UsersManager } from "@/components/UsersManager";
 import { usePrefs } from "@/lib/prefs";
 
-// La pantalla entera vive en UsersManager desde D-NEXT, compartida con RR. HH.
+// La pantalla entera vive en UsersManager desde D-688, compartida con RR. HH.
 // (/recruiting/user-creation), adonde el dueño quiere llevar las cuentas. Esta sigue
 // funcionando igual hasta que él decida cómo unificarlas.
 export default function UsersPage() {

@@ -48185,7 +48185,7 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 
 **No medido.** No se miró en el navegador ni contra los nombres reales de la tabla `stages` en producción: si el dueño ya renombró alguna etapa de fábrica, esa sigue con su nombre en los dos idiomas. Siguen en inglés los mensajes de error que devuelven las acciones de servidor (`actions/hr.ts`, se muestran tras «Error: ») y el texto que viene de la base (puestos, preguntas sin `text_es`, plantillas).
 
-## D-NEXT · Usuarios también desde RR. HH.: «User creation» en Empleados
+## D-688 · Usuarios también desde RR. HH.: «User creation» en Empleados
 
 **Pedido:** «La cosa de users, la opción de users donde le damos los permisos a los users y donde los creamos, eso se va a
 pasar al HR app […] ahí en employees va a haber una opción que dice user creation […] para que ahí mismo se creen los users

@@ -1,5 +1,5 @@
 /**
- * Crear usuarios desde RR. HH. (D-NEXT).
+ * Crear usuarios desde RR. HH. (D-688).
  *
  * La gestión de cuentas se lleva a RR. HH. sin bifurcar la lógica: la pantalla usa el mismo
  * `UsersManager`/`UserDialog` del hub. Aquí vive solo lo que es propio de RR. HH.: qué empleados

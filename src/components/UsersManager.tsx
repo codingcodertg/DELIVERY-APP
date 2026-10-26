@@ -19,7 +19,7 @@ export type UsersPrefill = { key: string; full_name: string; email: string; stor
 // admin-only gate that used to live here (a client-side "Admins only"
 // message) is gone: home/users/layout.tsx now redirects a non-admin before
 // this component ever mounts, so there's nothing left to check here.
-// D-NEXT: el cuerpo de la pantalla vive aquí para que /home/users y la de RR. HH.
+// D-688: el cuerpo de la pantalla vive aquí para que /home/users y la de RR. HH.
 // (/recruiting/user-creation) sean LA MISMA, no dos copias. `header` es lo de arriba de cada sitio,
 // `prefill` abre el alta rellena y `onCreated` avisa del id nuevo (RR. HH. enlaza el expediente).
 export function UsersManager({ header, prefill, onCreated }: {

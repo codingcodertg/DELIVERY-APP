@@ -11,7 +11,7 @@ import { linkEmployeeToAccount } from "@/app/recruiting/actions/cuentas";
 import { precargaDeEmpleado } from "@/lib/recruiting/usuarios-rrhh";
 
 /**
- * «User creation» en RR. HH. (D-NEXT). El dueño: «la opción de users donde le damos los permisos…
+ * «User creation» en RR. HH. (D-688). El dueño: «la opción de users donde le damos los permisos…
  * eso se va a pasar al HR app». Es la pantalla del hub tal cual (UsersManager + UserDialog, la misma
  * lógica de permisos y el mismo /api/invite), con dos cosas de RR. HH.:
  *  - `?employee=<id>` precarga el alta con los datos del expediente y, al crear, lo enlaza;
