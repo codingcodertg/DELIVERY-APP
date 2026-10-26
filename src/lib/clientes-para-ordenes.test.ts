@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { clienteDeLaCuenta, contactoDeLaCuenta, opcionesDeCuenta, type ClienteParaOrden } from "./clientes-para-ordenes";
 import { sugerenciasPara } from "./account-combobox";
@@ -46,5 +47,18 @@ describe("clienteDeLaCuenta / contactoDeLaCuenta", () => {
     expect(contactoDeLaCuenta(cli("Y", { contact: "Luz" }), { contact: "Viejo", phone: "9", address: "" }))
       .toEqual({ contact: "Luz", phone: "9", address: null });
     expect(contactoDeLaCuenta(undefined, undefined)).toBeUndefined();
+  });
+});
+
+describe("la 203: solo los clientes de su tienda", () => {
+  // El dueño, 2026-10-26: «cada customer tiene una tienda assign entonces solo pueden ver esos clientes si son de su tienda».
+  const sql = readFileSync("supabase/migrations/203_cuentas_de_clientes_en_ordenes.sql", "utf8").replace(/\r\n/g, "\n").split("-- @ledger-below")[0];
+  it("admin todo; si no, sus tiendas marcadas o la de su perfil; el código de la tienda se traduce a su nombre", () => {
+    expect(sql).toContain("select p.role = 'admin'");
+    expect(sql).toContain("= any(case when coalesce(cardinality(p.visible_stores), 0) > 0 then p.visible_stores else array[btrim(p.store)] end)");
+    for (const [code, nombre] of [["BRO", "RDZ Brownsville"], ["EDG", "RDZ Edinburg"], ["MCA", "RDZ McAllen"], ["PHR", "RDZ Pharr"], ["WES", "RDZ Weslaco"]]) {
+      expect(sql).toContain(`'${code}' then '${nombre}'`);
+    }
+    expect(sql).toContain("from public.profiles p where p.id = auth.uid()");
   });
 });

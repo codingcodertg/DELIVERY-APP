@@ -12,6 +12,12 @@
 -- QUIEN: autenticado con acceso a Entregas (has_deliveries_access). La regla de la 198 se respeta: un vendedor ve los
 -- clientes libres, los suyos y los que creo (erp.customers_ve_la_fila).
 --
+-- Y SOLO LOS DE SU TIENDA (el duenio, 2026-10-26: «cada customer tiene una tienda assign entonces solo pueden ver esos
+-- clientes si son de su tienda»). La misma regla que las ordenes (131): el admin ve todos; si la persona tiene tiendas
+-- marcadas (profiles.visible_stores), esas; si no, la de su perfil (profiles.store); sin ninguna de las dos, todas (como
+-- en la 131: nadie se queda a oscuras). El cliente guarda el codigo (BRO, MCA…) y el perfil el nombre («RDZ Brownsville»):
+-- se traduce aqui, igual que TIENDAS en src/lib/customers/reglas.ts.
+--
 -- QUE NO HACE: no toca erp.customers ni sus politicas; no crea clientes.
 --
 -- Sin begin/commit: quien aplica envuelve el fichero.
@@ -31,6 +37,16 @@ create or replace function public.cuentas_de_clientes()
     and c.archived_at is null
     and nullif(btrim(c.account), '') is not null
     and erp.customers_ve_la_fila(c.rep_id, c.created_by)
+    and coalesce((
+      select p.role = 'admin'
+          or (coalesce(cardinality(p.visible_stores), 0) = 0 and nullif(btrim(p.store), '') is null)
+          or (case upper(btrim(c.store))
+                when 'BRO' then 'RDZ Brownsville' when 'EDG' then 'RDZ Edinburg' when 'MCA' then 'RDZ McAllen'
+                when 'PHR' then 'RDZ Pharr' when 'WES' then 'RDZ Weslaco' when 'MIS' then 'RDZ Mission'
+                else btrim(c.store) end)
+             = any(case when coalesce(cardinality(p.visible_stores), 0) > 0 then p.visible_stores else array[btrim(p.store)] end)
+      from public.profiles p where p.id = auth.uid()
+    ), false)
   order by c.account, c.store;
 $$;
 
@@ -51,4 +67,4 @@ begin
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('203_cuentas_de_clientes_en_ordenes.sql', '408fdf1964a2110e04c17349f3bdf514df8118acc206f898af9ab48bbb870c99') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('203_cuentas_de_clientes_en_ordenes.sql', 'ff77ef7ea383ec1be573ad3565b1318e8eb4ef8795011766b8e3cef1a6c4be17') on conflict (name) do nothing;
