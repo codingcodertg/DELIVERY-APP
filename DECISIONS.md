@@ -48368,7 +48368,7 @@ faltantes), su nombre en el historial (`utils.ts`) y la tabla del Dashboard («U
 hecha ya no baja a opacidad 0.55: la etapa no cambia cómo se pinta la fila. «Mi ruta» del chofer sigue igual.
 
 **No medido:** no probado en el navegador.
-## D-NEXT · Usuarios: «Crear usuario» desde un empleado rellena el alta y enlaza el expediente, otra vez (sin `actions/hr`)
+## D-702 · Usuarios: «Crear usuario» desde un empleado rellena el alta y enlaza el expediente, otra vez (sin `actions/hr`)
 
 **Pedido:** «para que ahí mismo se creen los users para cada employees» (lo de D-695, que se quitó en D-696).
 
