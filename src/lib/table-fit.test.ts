@@ -93,9 +93,10 @@ describe("quién lleva la clase", () => {
     // Sube de cinco a seis con D-287: la vista «Ruta del día» de Almacén trae otra tabla de
     // columnas redimensionables. El número es un techo, no una estimación, así que se mueve con su
     // motivo y no se afloja. Baja a cinco con D-376: la tabla de «Programadas» del Gestor de Rutas se fue con su pestaña.
+    // Sube a seis con D-706: la tabla de Empleados de RR. HH. se arrastra como la de Órdenes.
     const { conResize, conFit, fitSinResize } = contenedores();
-    expect(conResize).toBe(5);
-    expect(conFit).toBe(5);
+    expect(conResize).toBe(6);
+    expect(conFit).toBe(6);
     expect(fitSinResize, "un `tbl-fit` sobre una tabla que no es `tbl-resize`").toEqual([]);
   });
   it("los demás `.tbl-scroll` del repo se quedan como estaban", () => {
