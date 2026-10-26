@@ -6,7 +6,7 @@ import { join } from "node:path";
 // arriba de Usuarios aunque casi siempre se venga a mirar la lista.
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
-const pagina = leer("src/app/home/users/page.tsx");
+const pagina = leer("src/components/UsersManager.tsx");
 const plano = pagina.replace(/\s+/g, " ");
 
 describe("empieza cerrado y lo abre quien va a crear", () => {

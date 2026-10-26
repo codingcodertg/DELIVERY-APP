@@ -16,6 +16,8 @@ import {
   type FiltroEstado, type HechosDeCuenta,
 } from "@/lib/recruiting/employee-file";
 import { UsuariosPorCrear } from "@/components/recruiting/UsuariosPorCrear";
+import Link from "next/link";
+import { cuentaPorCuenta, filtraPorCuenta, tieneUsuario, type FiltroCuenta } from "@/lib/recruiting/usuarios-rrhh";
 import { AgregarDialog, BajaDialog, ReactivarDialog, faltaMigracion } from "./acciones";
 import { BloqueTimeTracker } from "./time-tracker";
 
@@ -53,6 +55,8 @@ export default function EmployeeFilesPage() {
   const [baja, setBaja] = useState<string | null>(null);
   const [reactivar, setReactivar] = useState<string | null>(null);
   const [agregando, setAgregando] = useState(false);
+  // «User created» (D-NEXT): quién tiene ya cuenta del hub y quién no.
+  const [filtroCuenta, setFiltroCuenta] = useState<FiltroCuenta>("todos");
   // `me.role` es el rol de RR. HH. (el layout del módulo lo monta así). La barrera de verdad está
   // en las acciones de servidor; esto es para no ofrecer un botón que va a fallar.
   const puedeBaja = puedeDarDeBaja(me?.role);
@@ -74,7 +78,9 @@ export default function EmployeeFilesPage() {
   const visibles = delEstado
     .filter((r) => !buscar || r.full_name.toLowerCase().includes(buscar.toLowerCase()))
     .filter((r) => !soloFaltan || faltan(r).length > 0)
-    .filter((r) => !soloIncompletos || camposQueFaltan(r, con159).length > 0);
+    .filter((r) => !soloIncompletos || camposQueFaltan(r, con159).length > 0)
+    .filter((r) => filtraPorCuenta([r], filtroCuenta).length > 0);
+  const porCuenta = cuentaPorCuenta(delEstado);
 
   const porId = (id: string | null) => rows.find((r) => r.id === id) ?? null;
   const abiertaFila = porId(abierto);
@@ -132,6 +138,17 @@ export default function EmployeeFilesPage() {
           <button className={"chip" + (soloFaltan ? " on" : "")} onClick={() => setSoloFaltan(!soloFaltan)}>
             {t("Only missing paperwork", "Solo con papeles pendientes")}
           </button>
+          {(["con", "sin"] as const).map((k) => (
+            <button key={k} className={"chip" + (filtroCuenta === k ? " on" : "")} data-filtro-cuenta={k}
+              onClick={() => setFiltroCuenta(filtroCuenta === k ? "todos" : k)}>
+              {k === "con" ? t("User created", "Con usuario") : t("No user", "Sin usuario")} · {porCuenta[k]}
+            </button>
+          ))}
+          {puedeBaja && (
+            <Link href="/recruiting/user-creation" className="chip" data-enlace="user-creation" style={{ textDecoration: "none" }}>
+              🔑 {t("User creation list", "Lista de usuarios")}
+            </Link>
+          )}
         </div>
 
         {err && <div className="hint" style={{ color: "var(--red)" }}>{err}</div>}
@@ -170,6 +187,12 @@ export default function EmployeeFilesPage() {
                   <tr key={r.id} data-fila={r.id} className={deBaja ? "atenuado" : undefined}>
                     <td style={{ fontWeight: 700 }}>
                       {r.full_name}
+                      {tieneUsuario(r) && (
+                        <span className="badge" data-insignia="usuario"
+                          style={{ marginLeft: 8, background: "var(--tint-green)", color: "var(--green)" }}>
+                          {t("User created", "Con usuario")}
+                        </span>
+                      )}
                       {deBaja && (
                         <span className="badge" data-insignia="baja"
                           style={{ marginLeft: 8, background: "var(--tint-red-strong)", color: "var(--red)" }}
@@ -216,6 +239,12 @@ export default function EmployeeFilesPage() {
                       )}
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      {puedeBaja && !tieneUsuario(r) && !deBaja && (
+                        <Link href={"/recruiting/user-creation?employee=" + encodeURIComponent(r.id)} className="btn btn-ghost btn-sm"
+                          style={{ marginRight: 6 }} data-accion="crear-usuario">
+                          🔑 {t("Create user", "Crear usuario")}
+                        </Link>
+                      )}
                       <button className="btn btn-ghost btn-sm" data-accion="editar" onClick={() => setAbierto(r.id)}>
                         ✏️ {t("Edit", "Editar")}
                       </button>

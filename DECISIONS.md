@@ -48253,3 +48253,22 @@ public.deliveries ...)`, que hereda la RLS de `deliveries`. Sin la 204, la secci
 **No medido:** no aplicada ni ensayada contra la base; no probado en el navegador (pegar desde el Explorador, una captura
 de Windows/Mac, ni el arrastre). Copiar desde la página web de QuickBooks pone TEXTO en el portapapeles, no un fichero:
 para pegar la factura hay que copiar el PDF descargado en el Explorador/Finder, o hacer una captura.
+
+## D-NEXT · Usuarios también desde RR. HH.: «User creation» en Empleados
+
+**Pedido:** «La cosa de users, la opción de users donde le damos los permisos a los users y donde los creamos, eso se va a
+pasar al HR app […] ahí en employees va a haber una opción que dice user creation […] para que ahí mismo se creen los users
+para cada employees […] Después vamos a ver cómo lo unificamos.»
+
+**Qué cambia:** el cuerpo de `/home/users` pasa a `src/components/UsersManager.tsx` y lo usan las dos pantallas: la del hub
+(sigue igual, con un enlace nuevo a RR. HH.) y la nueva `/recruiting/user-creation` (pestaña «🔑 User creation / Crear
+usuarios»). Misma lista, mismo `UserDialog`, mismo `/api/invite`: no hay una segunda lógica de permisos. La ruta nueva exige
+admin del hub (`role = admin`) en su layout, como `home/users/layout.tsx`, y la pestaña solo se pinta a quien es admin de
+RR. HH. y del hub. En Empleados: insignia «User created / Con usuario», filtros «Con usuario» / «Sin usuario», y un botón
+«Crear usuario» en cada empleado sin cuenta que abre el alta precargada (nombre, correo de trabajo o personal, tienda). Al
+crear, `linkEmployeeToAccount` borra el expediente vacío que el trigger de la 106 le hace a toda cuenta nueva (solo si es
+el suyo, id = profile_id, y sin papeles) y enlaza el del empleado; la regla está en `usuarios-rrhh.ts` con sus pruebas.
+`addUser` devuelve ahora el `id` (y `signInWith`) que `/api/invite` ya mandaba. Sin migración.
+
+**No medido:** en el navegador ni contra la base real: el alta y el enlace (borrado del expediente vacío + update) no se
+han ejecutado; el aspecto de la pantalla del hub dentro de los estilos de RR. HH.
