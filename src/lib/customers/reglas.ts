@@ -460,9 +460,11 @@ export const CAMPOS: readonly Campo[] = [
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
   // D-668: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
   // la tarjeta «Contacto» pinta y edita aparte (`contactos.ts`). Las cuatro columnas quedan como espejo del primero.
-  // D-672: Roberto, «need to add Website under contact». Va tras los contactos, delante de la dirección.
-  { key: "website", tipo: "text", en: "Website", es: "Sitio web", grupo: "contacto" },
-  { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "contacto" },
+  // D-672: Roberto, «need to add Website under contact». D-NEXT: «This should be under each contact and not to apply to
+  // all contacts»: cada contacto lleva ya su sitio web y su dirección (`contacts`); las columnas de la cuenta siguen en la
+  // base (la orden y la búsqueda leen `address`) y se ven y corrigen en «Campos ocultos».
+  { key: "website", tipo: "text", en: "Website", es: "Sitio web", grupo: "ocultos" },
+  { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "ocultos" },
   { key: "terms", tipo: "text", en: "Terms", es: "Términos", grupo: "credito" },
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
@@ -526,7 +528,8 @@ export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDe
   // y aquí no se edita dos veces.
   const delante = (k: string): FilaDeFicha[] => (k === "cuenta" ? [{ key: "account", en: "Account", es: "Cuenta", campo: null }] : []);
   return GRUPOS.map((grupo) => ({ grupo, filas: [...delante(grupo.key), ...CAMPOS.filter((c) => c.grupo === grupo.key).map(filaDe)] }))
-    .filter((g) => g.filas.length > 0);
+    // «Contacto» se queda aunque no tenga líneas (D-NEXT): la llenan los contactos, que se pintan aparte.
+    .filter((g) => g.filas.length > 0 || g.grupo.key === "contacto");
 }
 
 /**
@@ -537,7 +540,9 @@ export function filasOcultas(): FilaDeFicha[] {
   // En el orden de la plantilla del dueño (D-662): Añadido (tanda), N.º House, la CONCATENATE. (La actividad iba detrás
   // hasta D-669: ahora es el «Tipo» de «Crédito y términos».)
   const ocultos = CAMPOS.filter((c) => c.grupo === GRUPO_OCULTO.key);
-  return [...ocultos.map(filaDe), ...FILAS_SOLO_DE_LECTURA];
+  // D-NEXT: el trío del dueño junto y, detrás, el sitio web y la dirección de la cuenta (salieron de «Contacto»).
+  const tanda = (c: Campo) => c.key === "added_batch";
+  return [...ocultos.filter(tanda).map(filaDe), ...FILAS_SOLO_DE_LECTURA, ...ocultos.filter((c) => !tanda(c)).map(filaDe)];
 }
 
 /** El texto de una línea de la ficha: el del campo (`textoDeCampo`), o el de las de solo lectura. */

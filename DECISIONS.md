@@ -48294,3 +48294,22 @@ usuario y cuántos no.
 `/home`, la sospecha del SIGKILL por memoria en Vercel; D-693 y D-694 construyeron sin ella.
 
 **No medido:** no probado en el navegador ni con la base.
+## D-NEXT · Clientes: sitio web y dirección por contacto
+
+**Pedido:** el dueño, con la captura de la tarjeta «Contacto» editando (WEBSITE y ADDRESS debajo de SOCIALS): «This should
+be under each contact and not to apply to all contacts. Socials dont need this.»
+
+**Qué cambia:** cada contacto de la lista `contacts` (jsonb, 193) lleva su `website` y su `address`, opcionales: se editan
+dentro de cada bloque «Contacto N» (`ContactosParaEditar`) y se ven con el contacto elegido (`ContactosParaVer`; el sitio
+web abre con `webUrl`). `normalizaContactos` los recorta (la dirección conserva sus líneas) y solo escribe la clave si
+tiene algo, así un contacto sin ellos se guarda igual que antes. Un contacto sin dirección propia no hereda la de la
+cuenta: cajas vacías. «Socials» sigue siendo de la cuenta y no los lleva. Las columnas `website` y `address` de la cuenta
+siguen en la base (la orden, `cuentas_de_clientes()` de D-689, y la búsqueda leen `address`) y pasan de la tarjeta
+«Contacto» a «Campos ocultos» (D-660/D-681), detrás de N.º House y la CONCATENATE, donde se ven y se corrigen. La tarjeta
+«Contacto» se queda aunque ya no tenga líneas sueltas (`filasPorGrupo`).
+
+**Sin migración:** la única restricción sobre `contacts` es `customers_contacts_es_lista` (`jsonb_typeof = array`, 193);
+la 203 solo lee `name` y `phones` del primero. Leído en las migraciones del repo, no en la base.
+
+**No medido:** no probado en el navegador ni contra la base; no se copió el sitio web / dirección de la cuenta a ningún
+contacto (nada de datos en producción). La orden sigue tomando la dirección de la cuenta, no la del contacto.
