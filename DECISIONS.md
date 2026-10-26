@@ -48294,7 +48294,7 @@ usuario y cuántos no.
 `/home`, la sospecha del SIGKILL por memoria en Vercel; D-693 y D-694 construyeron sin ella.
 
 **No medido:** no probado en el navegador ni con la base.
-## D-NEXT · Clientes: sitio web y dirección por contacto
+## D-696 · Clientes: sitio web y dirección por contacto
 
 **Pedido:** el dueño, con la captura de la tarjeta «Contacto» editando (WEBSITE y ADDRESS debajo de SOCIALS): «This should
 be under each contact and not to apply to all contacts. Socials dont need this.»

@@ -51,7 +51,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * La tarjeta «Contacto» abre con los contactos (D-668): leyendo, una pastilla por contacto (`ContactosParaVer`) y, si
  * la cuenta tiene redes sociales, la pastilla «🌐 Socials» (D-682, 197) con sus perfiles; editando, la lista que se
  * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). El sitio web y la dirección
- * son de cada contacto (D-NEXT); los de la cuenta, en «Campos ocultos».
+ * son de cada contacto (D-696); los de la cuenta, en «Campos ocultos».
  */
 export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, redes, onRedes, vendedores, almacen, puedeEditar = false, t }: {
   cliente: Cliente | null;
@@ -327,7 +327,7 @@ function ContactosParaVer({ contactos, redes = {}, t }: { contactos: Contacto[];
             ))}
           </ul>
         )}
-        {/* D-NEXT: el sitio web y la dirección de este contacto (no los de la cuenta: sin los suyos, no sale nada). */}
+        {/* D-696: el sitio web y la dirección de este contacto (no los de la cuenta: sin los suyos, no sale nada). */}
         {c.website && (
           <div className="min-w-0 text-sm" data-web-de-contacto>
             {webUrl(c.website)
@@ -499,7 +499,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, t }: { contactos: C
             <span className={etiqueta}>{t("Note", "Nota")}</span>
             <Input value={c.note} onChange={(e) => cambia(i, { note: e.target.value })} placeholder={t("e.g. only for POs", "p. ej. solo para POs")} data-nota-de-contacto={i} />
           </label>
-          {/* D-NEXT: «This should be under each contact and not to apply to all contacts». */}
+          {/* D-696: «This should be under each contact and not to apply to all contacts». */}
           <label className="block space-y-1">
             <span className={etiqueta}>{t("Website", "Sitio web")}</span>
             <Input value={c.website} onChange={(e) => cambia(i, { website: e.target.value })} placeholder="example.com" data-web-de-contacto={i} />

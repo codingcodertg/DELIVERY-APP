@@ -75,7 +75,7 @@ export interface Contacto {
   emails: string[];
   /** Lo que el Excel decía del contacto y no es ni nombre ni cargo: «solo Brenda le pueden hablar», «for POs». */
   note: string | null;
-  /** D-NEXT: el sitio web y la dirección de ESTE contacto («This should be under each contact»). Solo si tiene. */
+  /** D-696: el sitio web y la dirección de ESTE contacto («This should be under each contact»). Solo si tiene. */
   website?: string | null;
   address?: string | null;
 }
@@ -240,12 +240,12 @@ export function normalizaContactos(lista: unknown): Contacto[] {
     const phones = unicos(textos(o.phones).map(telefonoDeCliente).filter(Boolean));
     const emails = unicos(textos(o.emails).map(correoDeCliente).filter(Boolean));
     const note = typeof o.note === "string" ? o.note.replace(/\s+/g, " ").trim() || null : null;
-    // D-NEXT: sitio web sin espacios; dirección con sus líneas, cada una recortada y sin líneas vacías.
+    // D-696: sitio web sin espacios; dirección con sus líneas, cada una recortada y sin líneas vacías.
     const website = typeof o.website === "string" ? o.website.replace(/\s+/g, "") || null : null;
     const address = typeof o.address === "string"
       ? o.address.split(/\r?\n/).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n") || null : null;
     if (!name && !title && !phones.length && !emails.length && !note && !website && !address) continue;
-    // Las claves nuevas, solo si tienen algo: un contacto sin ellas se guarda igual que antes de D-NEXT.
+    // Las claves nuevas, solo si tienen algo: un contacto sin ellas se guarda igual que antes de D-696.
     out.push({ name, title, phones, emails, note, ...(website ? { website } : {}), ...(address ? { address } : {}) });
   }
   return out;

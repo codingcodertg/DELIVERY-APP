@@ -88,7 +88,7 @@ describe("la lista guardada (193)", () => {
       uno({ phones: ["(956) 555-0202"] }),
     ]);
     expect(normalizaContactos(null)).toEqual([]);
-    // D-NEXT: el sitio web y la dirección son de cada contacto; un contacto con solo eso se queda; sin ellos, ni la clave.
+    // D-696: el sitio web y la dirección son de cada contacto; un contacto con solo eso se queda; sin ellos, ni la clave.
     expect(normalizaContactos([{ name: "ana", website: " ana.example.com ", address: ["  12 Main St ", "", "  Laredo,  TX "].join("\r\n") }, { address: "5 Elm" }])).toEqual([
       uno({ name: "ANA", website: "ana.example.com", address: ["12 Main St", "Laredo, TX"].join("\n") }), uno({ address: "5 Elm" }),
     ]);
@@ -138,7 +138,7 @@ describe("editar los contactos", () => {
     expect(parcheDeContactos(deColumnas, enEdicion(deColumnas), { contact_name: null, contact_title: null, phone: "956-555-0101 - Omar", email: null })).toEqual({});
     expect(parcheDeContactos([], [contactoVacio()], null)).toEqual({});
   });
-  it("D-NEXT: el sitio web y la dirección de cada contacto se editan y se guardan en SU contacto", () => {
+  it("D-696: el sitio web y la dirección de cada contacto se editan y se guardan en SU contacto", () => {
     const dos = [uno({ name: "ANA", website: "ana.example.com" }), uno({ name: "LEO" })];
     const ed = enEdicion(dos);
     expect(ed.map((c) => [c.website, c.address])).toEqual([["ana.example.com", ""], ["", ""]]);
