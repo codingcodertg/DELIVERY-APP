@@ -48378,3 +48378,15 @@ una ruta nueva, `src/app/api/recruiting/usuario-de-empleado/route.ts` (GET los e
 columnas de la precarga; POST el enlace, con la misma lógica que tenía `cuentas.ts` y `expedienteQueSobra`).
 
 **No medido:** no probado en el navegador ni con la base; si Vercel vuelve a morir por memoria, la causa no era el import.
+
+## D-703 · RR. HH.: «Expediente incompleto» dice qué falta
+
+**Pedido del dueño (literal):** «donde dice expediente y incompleto al darle click me deberia abrir para decirme que es lo que hace falta».
+
+**Qué se hizo:** en `/recruiting/employees`, la insignia «incompleto · N» de la columna «Expediente» pasa a ser un botón (teclado incluido,
+`stopPropagation`). Al pulsarlo abre una ventana pequeña («Qué falta») con los campos por llenar, sacados de `camposQueFaltan` —la misma
+función que decide la insignia y su número, que ya devolvía la lista—, y debajo los papeles que faltan (los mismos de la columna «Papeles»).
+Un botón lleva al expediente para llenarlo. Prueba nueva `src/lib/recruiting/que-falta-expediente.test.ts`: un caso por campo, completo ⇒ lista
+vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de baja) tumban cada uno su prueba por nombre.
+
+**No medido:** no se abrió en el navegador (ni 390 px ni escritorio) ni contra la base; el foco al cerrar no vuelve a la insignia.

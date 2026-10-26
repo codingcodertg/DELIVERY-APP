@@ -47,6 +47,8 @@ export default function EmployeeFilesPage() {
   const [err, setErr] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [abierto, setAbierto] = useState<string | null>(null);
+  // D-703: de quién se está enseñando «qué falta» (al pulsar la insignia «incompleto»).
+  const [queFalta, setQueFalta] = useState<string | null>(null);
   const [buscar, setBuscar] = useState("");
   const [soloFaltan, setSoloFaltan] = useState(false);
   const [soloIncompletos, setSoloIncompletos] = useState(false);
@@ -85,6 +87,7 @@ export default function EmployeeFilesPage() {
   const porId = (id: string | null) => rows.find((r) => r.id === id) ?? null;
   const abiertaFila = porId(abierto);
   const bajaFila = porId(baja);
+  const queFaltaFila = porId(queFalta);
   const reactivarFila = porId(reactivar);
   const soloAdmin = t("Only an HR admin can do this.", "Solo un admin de RR. HH. puede hacer esto.");
 
@@ -213,11 +216,14 @@ export default function EmployeeFilesPage() {
                           {t("complete", "completo")}
                         </span>
                       ) : (
-                        <span className="badge" data-insignia="incompleto"
-                          style={{ background: "var(--tint-warn)", color: "var(--ink)", border: "1px solid var(--tint-warn-line)" }}
-                          title={sinLlenar.map((c) => ETIQUETAS_CAMPO[c][lang]).join(", ")}>
+                        /* D-703: se pulsa y dice qué falta. stopPropagation por si la fila gana un onClick. */
+                        <button type="button" className="badge" data-insignia="incompleto"
+                          style={{ background: "var(--tint-warn)", color: "var(--ink)", border: "1px solid var(--tint-warn-line)", cursor: "pointer", font: "inherit" }}
+                          title={sinLlenar.map((c) => ETIQUETAS_CAMPO[c][lang]).join(", ")}
+                          aria-haspopup="dialog"
+                          onClick={(e) => { e.stopPropagation(); setQueFalta(r.id); }}>
                           {t("incomplete", "incompleto")} · {sinLlenar.length}
-                        </span>
+                        </button>
                       )}
                     </td>
                     <td>
@@ -277,6 +283,11 @@ export default function EmployeeFilesPage() {
       )}
       {/* Las ventanas de acción van DESPUÉS de la ficha: se abren también desde dentro de ella y
           tienen que quedar encima. */}
+      {queFaltaFila && (
+        <QueFaltaDialog persona={queFaltaFila} con159={con159} papeles={faltan(queFaltaFila)}
+          onClose={() => setQueFalta(null)}
+          onAbrir={() => { setQueFalta(null); setAbierto(queFaltaFila.id); }} />
+      )}
       {bajaFila && (
         <BajaDialog key={"b" + bajaFila.id} persona={bajaFila} con159={con159}
           onDone={() => { setBaja(null); void load(); }} onClose={() => setBaja(null)} />
@@ -887,5 +898,59 @@ function Bloque({
         </table>
       )}
     </>
+  );
+}
+
+/**
+ * D-703: «qué le falta» a un expediente, al pulsar la insignia «incompleto».
+ * La lista de campos sale de `camposQueFaltan`, la MISMA función que pinta la insignia y su número:
+ * no pueden discrepar. Los papeles son los mismos que cuenta la columna «Papeles» (`faltan`).
+ */
+function QueFaltaDialog({
+  persona, con159, papeles, onClose, onAbrir,
+}: {
+  persona: Fila; con159: boolean; papeles: { key: string; label: string; label_es: string }[];
+  onClose: () => void; onAbrir: () => void;
+}) {
+  const { t, lang } = usePrefs();
+  const campos = camposQueFaltan(persona, con159);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onClose]);
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 440 }} data-dialogo="que-falta">
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <b style={{ flex: 1 }}>{t("What's missing", "Qué falta")} · {persona.full_name}</b>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label={t("Close", "Cerrar")}>✕</button>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <b>{t("Fields to fill", "Campos por llenar")}</b>
+          {campos.length === 0 ? (
+            <p className="hint">{t("None.", "Ninguno.")}</p>
+          ) : (
+            <ul data-lista="campos" style={{ margin: "6px 0 0 18px" }}>
+              {campos.map((c) => <li key={c}>{ETIQUETAS_CAMPO[c][lang]}</li>)}
+            </ul>
+          )}
+        </div>
+        {papeles.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <b>{t("Missing paperwork", "Papeles que faltan")}</b>
+            <ul data-lista="papeles" style={{ margin: "6px 0 0 18px" }}>
+              {papeles.map((p) => <li key={p.key}>{lang === "es" ? p.label_es : p.label}</li>)}
+            </ul>
+          </div>
+        )}
+        <div style={{ marginTop: 14, textAlign: "right" }}>
+          <button className="btn btn-sm" data-accion="abrir-ficha" onClick={onAbrir} autoFocus>
+            {t("Open file to fill it", "Abrir el expediente para llenarlo")}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
