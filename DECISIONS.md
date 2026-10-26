@@ -48170,3 +48170,17 @@ admin DE TIME TRACKER, y con el cliente del usuario el bloque habría salido vac
 reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez de enseñar ceros.
 
 **No medido:** en el navegador ni contra la base real (nombres de columnas leídos de las migraciones 059/086/170).
+## D-687 · RRHH en español: las etapas y los avisos pasan por el idioma del hub
+
+**Pedido.** El dueño: «el HR app tiene un translation issue ahí porque no está funcionando, entonces revisa todo eso bien».
+
+**Causa.** El mecanismo estaba bien montado: `PrefsProvider` envuelve todo desde `app/layout.tsx`, el idioma es el de `profiles.language` (D-266) y todas las pantallas de `src/app/recruiting` y `src/components/recruiting` usan `usePrefs().t`. Lo que no se traducía venía de los DATOS: los nombres de las etapas (`recruiting.stages.label`, una sola columna, en inglés) se pintaban tal cual en el tablero, las píldoras de estado, los filtros, las métricas, el buscador y las fichas; y los avisos (toasts) de `recruiting-data-provider.tsx` eran textos fijos en inglés porque el proveedor no leía el idioma.
+
+**Qué cambia.**
+- `lib/recruiting/etapas-idioma.ts`: traduce las seis etapas de fábrica por su `key`, y solo si el nombre sigue siendo el de fábrica; un nombre cambiado en Ajustes o una etapa propia se ven como se escribieron.
+- `DataProvider` lee `usePrefs()` y entrega `stages` ya traducidas; `stagesGuardadas` (sin traducir) solo la usa Ajustes para editar, para no guardar el nombre español encima del inglés.
+- Los 21 avisos fijos del proveedor pasan por `tr(en, es)` (por ref, sin tocar las dependencias de las acciones).
+- El resumen del candidato arranca en el idioma del hub (antes siempre en inglés); «INFO» de la ficha de empleado, traducido.
+- Prueba de puerta `etapas-idioma.test.ts`: cae si `stages` deja de salir traducida, si vuelve un aviso fijo en inglés al proveedor o si otra pantalla lee `stagesGuardadas`. Dos mutantes medidos, los dos caen.
+
+**No medido.** No se miró en el navegador ni contra los nombres reales de la tabla `stages` en producción: si el dueño ya renombró alguna etapa de fábrica, esa sigue con su nombre en los dos idiomas. Siguen en inglés los mensajes de error que devuelven las acciones de servidor (`actions/hr.ts`, se muestran tras «Error: ») y el texto que viene de la base (puestos, preguntas sin `text_es`, plantillas).

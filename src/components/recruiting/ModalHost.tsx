@@ -1545,7 +1545,7 @@ function InterviewModal({ id, close, openResume }: { id: string; close: () => vo
 /* ---------------- Resume / Summary ---------------- */
 function ResumeModal({ id, close }: { id: string; close: () => void }) {
   const { candidates, stages, settings, questions, updateCandidate, notify } = useData();
-  const { t } = usePrefs();
+  const { t, lang: idiomaDelHub } = usePrefs();
   const ui = useUI();
   const inPersonStage = stages.find((s) => s.key === "inperson");
 
@@ -1563,7 +1563,8 @@ function ResumeModal({ id, close }: { id: string; close: () => void }) {
     return q ? (iv.answers[q.id]?.note || "").trim() : "";
   };
   const c = candidates.find((x) => x.id === id);
-  const [lang, setLang] = useState<"en" | "es">("en");
+  // Arranca en el idioma del hub (D-687); los chips solo cambian el idioma del resumen que se copia.
+  const [lang, setLang] = useState<"en" | "es">(idiomaDelHub);
   const [view, setView] = useState<"full" | "short">("full");
   const it = c?.interview ?? null;
 

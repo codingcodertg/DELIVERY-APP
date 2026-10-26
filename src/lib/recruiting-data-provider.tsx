@@ -27,6 +27,8 @@ import type {
 } from "@/lib/recruiting/types";
 import { DEFAULT_SCALE } from "@/lib/recruiting/utils";
 import { DEFAULT_STAGES } from "@/lib/recruiting/constants";
+import { etapasEnIdioma } from "@/lib/recruiting/etapas-idioma";
+import { usePrefs } from "@/lib/prefs";
 import type { Scorecard } from "@/lib/recruiting/scorecards";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
@@ -52,7 +54,10 @@ interface DataState {
   updateQuestionSet: (id: string, patch: Partial<QuestionSet>) => Promise<void>;
   deleteQuestionSet: (id: string) => Promise<void>;
   importScorecard: (sc: Scorecard) => Promise<number>;
+  /** Las etapas con el nombre en el idioma de la persona (D-687): lo que pinta cualquier pantalla. */
   stages: Stage[];
+  /** Las etapas tal como están en la base, sin traducir: solo para editarlas en Ajustes. */
+  stagesGuardadas: Stage[];
   attachments: Attachment[];
   toast: string;
   notify: (msg: string) => void;
@@ -155,6 +160,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const [stageHistory, setStageHistory] = useState<StageHistory[]>([]);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // El idioma del hub (D-687). Los avisos de abajo hablaban solo inglés. `tr` va por ref para no tocar las
+  // dependencias de cada useCallback: cambia el idioma, no la identidad de las acciones.
+  const { lang, t } = usePrefs();
+  const tRef = useRef(t);
+  tRef.current = t;
+  const tr = useCallback((en: string, es: string) => tRef.current(en, es), []);
+  const stagesEnIdioma = useMemo(() => etapasEnIdioma(stages, lang), [stages, lang]);
 
   const notify = useCallback((msg: string) => {
     setToast(msg);
@@ -503,7 +515,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const path = `${candidateId}/${Date.now()}_${nombreSeguro(nombre)}`;
       const { error } = await supabase.storage.from("resumes").upload(path, file, { upsert: true });
       if (error) {
-        notify("Upload failed: " + error.message);
+        notify(tr("Upload failed: ", "No se pudo subir: ") + error.message);
         return;
       }
       // remove any previous file to avoid orphans
@@ -512,7 +524,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       // Attaching the CV *is* the proof we have their resume — flag it, instead of
       // making someone tick the box separately and forget.
       await updateCandidate(candidateId, { resume_path: path, resume_name: nombre, resume_passed: true });
-      notify("CV attached ✓");
+      notify(tr("CV attached ✓", "CV adjuntado ✓"));
     },
     [supabase, candidates, updateCandidate, notify],
   );
@@ -522,7 +534,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const c = candidates.find((x) => x.id === candidateId);
       if (c?.resume_path) await supabase.storage.from("resumes").remove([c.resume_path]);
       await updateCandidate(candidateId, { resume_path: null, resume_name: null });
-      notify("CV removed");
+      notify(tr("CV removed", "CV quitado"));
     },
     [supabase, candidates, updateCandidate, notify],
   );
@@ -535,7 +547,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         .from("resumes")
         .createSignedUrl(c.resume_path, 60);
       if (error || !data) {
-        notify("Could not open CV: " + (error?.message ?? "unknown"));
+        notify(tr("Could not open CV: ", "No se pudo abrir el CV: ") + (error?.message ?? tr("unknown", "desconocido")));
         return;
       }
       window.open(data.signedUrl, "_blank");
@@ -550,10 +562,10 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidateId }),
         });
         const b = await res.json().catch(() => ({}));
-        if (!res.ok || b.error) { notify("Could not link CV: " + (b.error ?? res.status)); return null; }
+        if (!res.ok || b.error) { notify(tr("Could not link CV: ", "No se pudo enlazar el CV: ") + (b.error ?? res.status)); return null; }
         return (b.url as string | null) ?? null;
       } catch (e) {
-        notify("Could not link CV: " + (e as Error).message);
+        notify(tr("Could not link CV: ", "No se pudo enlazar el CV: ") + (e as Error).message);
         return null;
       }
     },
@@ -571,13 +583,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `${candidateId}/att_${Math.random().toString(36).slice(2, 8)}_${safe}`;
       const { error: upErr } = await supabase.storage.from("resumes").upload(path, file, { upsert: true });
-      if (upErr) { notify("Upload failed: " + upErr.message); return; }
+      if (upErr) { notify(tr("Upload failed: ", "No se pudo subir: ") + upErr.message); return; }
       const { error } = await supabase.from("attachments").insert({
         candidate_id: candidateId, path, name: file.name, created_by: me?.id ?? null,
       });
       if (error) { notify("Error: " + error.message); return; }
       reloadAll();
-      notify("File attached ✓");
+      notify(tr("File attached ✓", "Archivo adjuntado ✓"));
     },
     [supabase, me, notify, reloadAll],
   );
@@ -589,7 +601,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       setAttachments((prev) => prev.filter((x) => x.id !== attachmentId));
       const { error } = await supabase.from("attachments").delete().eq("id", attachmentId);
       if (error) notify("Error: " + error.message);
-      else notify("File removed");
+      else notify(tr("File removed", "Archivo quitado"));
     },
     [supabase, attachments, notify],
   );
@@ -599,7 +611,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const a = attachments.find((x) => x.id === attachmentId);
       if (!a) return;
       const { data, error } = await supabase.storage.from("resumes").createSignedUrl(a.path, 60);
-      if (error || !data) { notify("Could not open file: " + (error?.message ?? "unknown")); return; }
+      if (error || !data) { notify(tr("Could not open file: ", "No se pudo abrir el archivo: ") + (error?.message ?? tr("unknown", "desconocido"))); return; }
       window.open(data.signedUrl, "_blank");
     },
     [supabase, attachments, notify],
@@ -727,7 +739,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     async (j) => {
       const { error } = await supabase.from("jobs").insert(j);
       if (error) notify("Error: " + error.message);
-      else { reloadAll(); notify("Job created ✓"); }
+      else { reloadAll(); notify(tr("Job created ✓", "Puesto creado ✓")); }
     },
     [supabase, notify, reloadAll],
   );
@@ -753,7 +765,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const isFirst = questionSets.length === 0;
       const { error } = await supabase.from("question_sets").insert({ name, is_default: isFirst });
       if (error) notify("Error: " + error.message);
-      else { reloadAll(); notify("Question set added ✓"); }
+      else { reloadAll(); notify(tr("Question set added ✓", "Grupo de preguntas agregado ✓")); }
     },
     [supabase, questionSets.length, notify, reloadAll],
   );
@@ -769,7 +781,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         // 23505 = unique violation: only one set may claim a given position.
         if (error.code === "23505" && patch.role) {
           const taken = questionSets.find((s) => s.role === patch.role && s.id !== id);
-          notify(`"${patch.role}" is already used by the "${taken?.name ?? "another"}" set. A position can only have one set.`);
+          notify(tr(`"${patch.role}" is already used by the "${taken?.name ?? "another"}" set. A position can only have one set.`, `"${patch.role}" ya lo usa el grupo "${taken?.name ?? "otro"}". Un puesto solo puede tener un grupo.`));
         } else {
           notify("Error: " + error.message);
         }
@@ -820,7 +832,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           .eq("set_id", setId);
         if (error) { notify("Error: " + error.message); return 0; }
         if ((count ?? 0) > 0) {
-          notify(`"${sc.set_name}" already has ${count} questions — nothing imported.`);
+          notify(tr(`"${sc.set_name}" already has ${count} questions — nothing imported.`, `"${sc.set_name}" ya tiene ${count} preguntas — no se importó nada.`));
           return 0;
         }
       } else {
@@ -829,7 +841,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
           .insert({ name: sc.set_name, role: sc.role, is_default: questionSets.length === 0 })
           .select("id")
           .single();
-        if (error || !data) { notify("Error: " + (error?.message ?? "could not create set")); return 0; }
+        if (error || !data) { notify("Error: " + (error?.message ?? tr("could not create set", "no se pudo crear el grupo"))); return 0; }
         setId = data.id as string;
       }
       // 3) Bulk-insert the questions.
@@ -847,7 +859,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const { error } = await supabase.from("questions").insert(rows);
       if (error) { notify("Error: " + error.message); return 0; }
       reloadAll();
-      notify(`${rows.length} questions imported ✓`);
+      notify(tr(`${rows.length} questions imported ✓`, `${rows.length} preguntas importadas ✓`));
       return rows.length;
     },
     [supabase, settings.roles, questionSets, questions.length, notify, reloadAll],
@@ -871,7 +883,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (shiftErr) { notify("Error: " + shiftErr.message); return; }
       const { error } = await supabase.from("stages").insert({ key, type: "active", color: "#6b7686", sort: newSort, ...s });
       if (error) notify("Error: " + error.message);
-      else { reloadAll(); notify("Stage added ✓"); }
+      else { reloadAll(); notify(tr("Stage added ✓", "Etapa agregada ✓")); }
     },
     [supabase, stages, notify, reloadAll],
   );
@@ -886,8 +898,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const deleteStage = useCallback<DataState["deleteStage"]>(
     async (id) => {
       const s = stages.find((x) => x.id === id);
-      if (s && s.type !== "active") { notify("The Hired/Discarded stages can't be deleted"); return; }
-      if (s && candidates.some((c) => c.status === s.key)) { notify("Move its candidates out first"); return; }
+      if (s && s.type !== "active") { notify(tr("The Hired/Discarded stages can't be deleted", "Las etapas Contratado/Descartado no se pueden borrar")); return; }
+      if (s && candidates.some((c) => c.status === s.key)) { notify(tr("Move its candidates out first", "Primero mueve sus candidatos a otra etapa")); return; }
       setStages((prev) => prev.filter((x) => x.id !== id));
       const { error } = await supabase.from("stages").delete().eq("id", id);
       if (error) notify("Error: " + error.message);
@@ -898,11 +910,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const updateUserName = useCallback<DataState["updateUserName"]>(
     async (userId, name) => {
       const clean = name.trim();
-      if (!clean) { notify("Name can't be empty"); return; }
+      if (!clean) { notify(tr("Name can't be empty", "El nombre no puede quedar vacío")); return; }
       setRecruiters((prev) => prev.map((p) => (p.id === userId ? { ...p, full_name: clean } : p)));
       const { error } = await supabase.schema("public").from("profiles").update({ full_name: clean }).eq("id", userId);
       if (error) { notify("Error: " + error.message); reloadAll(); }
-      else notify("Name updated ✓");
+      else notify(tr("Name updated ✓", "Nombre actualizado ✓"));
     },
     [supabase, notify, reloadAll],
   );
@@ -919,7 +931,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     candidates,
     contacts,
     jobs,
-    stages,
+    stages: stagesEnIdioma,
+    stagesGuardadas: stages,
     attachments,
     toast,
     notify,

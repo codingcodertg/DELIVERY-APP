@@ -11,7 +11,7 @@ import { puedeAsignarPreguntasAlPuesto, preguntasActivasPorConjunto } from "@/li
 export default function SettingsPage() {
   const { t } = usePrefs();
   const {
-    settings, roles, templates, customFields, recruiters, me, jobs, candidates, stages, questionSets, questions,
+    settings, roles, templates, customFields, recruiters, me, jobs, candidates, stagesGuardadas: stages, questionSets, questions,
     saveSettings,
     addTemplate, deleteTemplate, addCustomField, deleteCustomField, notify,
     addJob, updateJob, deleteJob, addStage, updateStage, deleteStage,
@@ -184,7 +184,7 @@ export default function SettingsPage() {
         </div>
         {stages.map((s, i) => (
           <div key={s.id} className="cand-row" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <input type="color" value={s.color} onChange={(e) => updateStage(s.id, { color: e.target.value })} style={{ width: 34, height: 30, padding: 2 }} title="Color" />
+            <input type="color" value={s.color} onChange={(e) => updateStage(s.id, { color: e.target.value })} style={{ width: 34, height: 30, padding: 2 }} title={t("Color", "Color")} />
             <input value={s.label} onChange={(e) => updateStage(s.id, { label: e.target.value })} style={{ flex: "1 1 160px" }} />
             <span className="sema" style={{ background: s.color + "22", color: s.color }}>{s.type}</span>
             {s.type === "active" && (
