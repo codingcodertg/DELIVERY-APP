@@ -48200,3 +48200,15 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 **No medido.** La 203 no está aplicada ni ensayada contra la base; no se abrió el formulario en el navegador; no se midió cuánto tarda la función con la lista real ni cuántas cuentas de órdenes pasadas quedan «no está en Clientes».
 
 **Y solo los de su tienda** (el dueño, mismo día: «cada customer tiene una tienda assign entonces solo pueden ver esos clientes si son de su tienda»): la función filtra como las órdenes (131). El admin ve todos; si no, las tiendas marcadas en `profiles.visible_stores` o, sin ellas, la de `profiles.store`; sin ninguna de las dos, todas. El código del cliente (BRO, MCA…) se traduce al nombre de la tienda del perfil.
+
+## D-NEXT · La zona local llega a la frontera, y la ciudad sin pin deja de ser «TX»
+
+**Pedido.** Francisca Reyes (1.405.0, ficha de orden): «DICE QUE NO ES LOCAL PERO SI ES» — «3004 E Sabinal Ave, Hidalgo, TX, USA», sin pin, salía «NO LOCAL · TX» con aprobación del gerente. El dueño: «haz ese boundary en la mera frontera para evitar esto».
+
+**Qué cambia.**
+- `suggestDeliveryFee` (`pricing.ts`) lee la ciudad con `ciudadDeEntrega` en vez de `cityFromAddress`. Aquella tomaba el penúltimo trozo («TX») y además casaba nombres por subcadena («Hidalgo» dentro de «Hidalgo County»). `cityFromAddress` no se toca: la siguen usando otras pantallas.
+- `LOCAL_CITIES_DEFAULT` suma Hidalgo, Granjeno, Progreso y Los Indios. Es solo el defecto: **si Ajustes tiene su lista de ciudades locales, manda la de Ajustes**, y el dueño tiene que añadir esas cuatro allí (Ajustes → ciudades locales) para que el respaldo por ciudad las acepte.
+- `LOCAL_ZONE_DEFAULT` (`delivery-zone.ts`, polígono en código, no en la base): el tramo del río entre Progreso y Los Ébanos pasa de 3 vértices a 7 siguiendo el cauce (puentes de Donna, Pharr, Hidalgo, Anzaldúas; Granjeno; Peñitas). Norte, oeste, costa y el tramo de Brownsville no se mueven.
+- Pruebas: `src/lib/frontera-local.test.ts` (direcciones con y sin ZIP, «USA»/«United States», minúsculas; puntos dentro y fuera). Mutantes: con el `pricing.ts` anterior caen 7; con el polígono anterior caen «sur de Hidalgo» y «puente de Pharr».
+
+**No medido.** Los vértices nuevos son coordenadas aproximadas del cauce, de memoria y no trazadas sobre un mapa: el margen frente a Reynosa (centro 26,08) es de ~1 km y no se cotejó contra los pedidos reales ni se miró el mapa en pantalla. Tampoco se leyó qué tiene hoy `settings.local_cities` en producción.
