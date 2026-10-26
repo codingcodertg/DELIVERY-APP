@@ -3211,7 +3211,7 @@ export default function RoutesPage() {
           if (!p) return null;
           const titulo = textoDeLaParada(p, [], t);
           return dia.primera[k]
-            ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorFor(u.driver), opacity: hecha ? 0.55 : undefined }}>{n}</span>
+            ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorFor(u.driver) }}>{n}</span>
             : <span className="numero-de-parada sigue" data-sigue-la-parada={n} title={titulo} style={{ color: colorFor(u.driver) }} />;
         };
         const claseDeGrupo = (f: FilaDeLaRuta): string => {

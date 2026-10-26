@@ -521,7 +521,7 @@ export default function DashboardPage() {
 
           {/* ---------- Sales rep performance, this month ---------- */}
           <div className="card">
-            <h2>🧑‍💼 {t("Sales reps — this month", "Vendedores — este mes")}</h2>
+            <h2>🧑‍💼 {t("Users — this month", "Usuarios — este mes")}</h2>
             {repStats.length === 0 ? (
               <div className="empty">{t("No orders logged this month.", "Sin órdenes registradas este mes.")}</div>
             ) : (
@@ -529,7 +529,7 @@ export default function DashboardPage() {
                 <table className="orders" style={{ minWidth: 480 }}>
                   <thead>
                     <tr>
-                      <th>{t("Sales rep", "Vendedor")}</th>
+                      <th>{t("User", "Usuario")}</th>
                       <th>{t("Deliveries", "Entregas")}</th>
                       <th>{t("Charged total", "Total cobrado")}</th>
                       <th>{t("Avg $/delivery", "Prom. $/entrega")}</th>

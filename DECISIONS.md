@@ -48357,3 +48357,14 @@ corto que aparece en ese mismo log. Se quedan `erp/sentry/scrub.ts` (no importa 
 en el middleware, que ya no hacen nada. Las variables SENTRY_* de Vercel quedan sin uso; se pueden borrar a mano.
 
 **No medido:** si sin Sentry el build de Vercel cabe en memoria; lo dirá este mismo release.
+## D-NEXT · «Sales Rep» pasa a «User» también en la orden y el Dashboard; el círculo de una parada hecha ya no se apaga
+
+**Pedido:** «Instead of sales rep lets call it User» y «Stage doesnt affect color of the row»; el dueño, después: «termina todo
+lo que te pedi».
+
+**Qué cambia:** el campo «Sales Rep / Vendedor» del formulario de la orden (`OrderModal.tsx`, también en la lista de
+faltantes), su nombre en el historial (`utils.ts`) y la tabla del Dashboard («Users — this month», columna «User») dicen
+«User / Usuario». El campo de la base (`assigned_sales_rep`) no cambia. En el Gestor, el círculo con el número de una parada
+hecha ya no baja a opacidad 0.55: la etapa no cambia cómo se pinta la fila. «Mi ruta» del chofer sigue igual.
+
+**No medido:** no probado en el navegador.
