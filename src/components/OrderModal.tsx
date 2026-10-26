@@ -1646,7 +1646,7 @@ export function OrderModal({
     return s;
   }, [deliveries]);
 
-  // La lista maestra de la app de Clientes (D-NEXT, migración 203). Si la función aún no existe o falla, queda vacía y
+  // La lista maestra de la app de Clientes (D-689, migración 203). Si la función aún no existe o falla, queda vacía y
   // el campo ofrece lo de antes: cuentas guardadas y nombres de órdenes pasadas.
   const [clientesMaestros, setClientesMaestros] = useState<ClienteParaOrden[]>([]);
   useEffect(() => {
@@ -2482,7 +2482,7 @@ export function OrderModal({
                   // editable). A SAVED account uses its stored record; any other
                   // account falls back to its most recent past order, so a
                   // customer that's only in the order history still pre-fills.
-                  // Clientes manda sobre lo guardado en Ajustes; lo que Clientes no tenga lo pone lo guardado (D-NEXT).
+                  // Clientes manda sobre lo guardado en Ajustes; lo que Clientes no tenga lo pone lo guardado (D-689).
                   const guardada = savedAccounts.find((a) => a.name.toLowerCase() === v.toLowerCase());
                   const cliente = clienteDeLaCuenta(clientesMaestros, v);
                   const ficha = contactoDeLaCuenta(cliente, guardada);
@@ -2502,7 +2502,7 @@ export function OrderModal({
                       // El tipo de cliente lo decide la cuenta, y cambia con ella: ya no hay selector (D-337).
                       customer_type: tipoDeClientePorDefecto(v),
                       // La dirección de la ficha de Clientes, solo si la orden aún no tiene una: pisar una ya puesta
-                      // dejaría su pin y su ruta apuntando a otro sitio (D-NEXT).
+                      // dejaría su pin y su ruta apuntando a otro sitio (D-689).
                       ...(cliente?.address?.trim() && !isIntertienda && laCuentaRecuerda(v) && !(p.delivery_address ?? "").trim()
                         ? { delivery_address: cliente.address.trim() } : {}),
                       // Do NOT auto-fill the delivery address — the rep picks the
@@ -4246,7 +4246,7 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, mi
 function AccountCombo({ val, on, options, marca, fija, disabled, placeholder, t }: {
   val: unknown; on: (v: string) => void;
   options: string[]; disabled?: boolean; placeholder?: string;
-  /** Una nota junto a la sugerencia: «no está en Clientes» (D-NEXT). */
+  /** Una nota junto a la sugerencia: «no está en Clientes» (D-689). */
   marca?: (o: string) => string | null;
   /** Una opción que está SIEMPRE a mano, fuera de la lista: «Venta al mostrador» (D-337). */
   fija?: { valor: string; etiqueta: string };

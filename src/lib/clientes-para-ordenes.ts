@@ -1,5 +1,5 @@
 /**
- * Las cuentas del formulario de orden salen de la app de Clientes (D-NEXT).
+ * Las cuentas del formulario de orden salen de la app de Clientes (D-689).
  *
  * El dueño, 2026-10-26: «cuando uno busca un customer en el order form […] esos customers tienen que ser los mismos que
  * están en el customer app […] Y eso tiene que estar conectado».
