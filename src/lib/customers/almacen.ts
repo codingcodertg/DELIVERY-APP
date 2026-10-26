@@ -43,6 +43,8 @@ export interface AlmacenDeClientes {
   enlaceDeArchivo(a: ArchivoDeCliente): Promise<Res<string>>;
   /** D-683 (198): los vendedores del hub (perfiles con rol `sales`), para el desplegable y para poner nombre a `rep_id`. */
   vendedores(): Promise<Res<Vendedor[]>>;
+  /** D-684: pone el vendedor (null = libre) a muchas filas de golpe; devuelve cuántas cambió la base. */
+  asignarVendedor(ids: readonly number[], repId: string | null): Promise<Res<number>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -152,6 +154,17 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       if (error) return fallo(error);
       if (!data) return sinFila();
       return { ok: true, valor: (await conNombres([clienteDeLaBase(data as unknown as Record<string, unknown>)]))[0] };
+    },
+    async asignarVendedor(ids, repId) {
+      // Por tandas: una URL con miles de ids se corta. Cuenta lo que la base devuelve (una fila que la RLS no deja, no vuelve).
+      let n = 0;
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data, error } = await sb.from("customers").update({ rep_id: repId }).in("id", ids.slice(i, i + 200) as number[]).select("id");
+        if (error) return fallo(error);
+        n += (data ?? []).length;
+      }
+      if (ids.length && n === 0) return sinFila();
+      return { ok: true, valor: n };
     },
     async vendedores() {
       // Los perfiles son de `public`, no de `erp`. Si no se pueden leer, la lista sale igual, sin nombres (el id).

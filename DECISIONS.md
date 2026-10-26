@@ -48127,3 +48127,16 @@ no se asume).
 
 **No hace:** los archivos (195) y la cola «Decidir si se juntan» (189) siguen por módulo, no por vendedor. **No
 medido:** en el navegador con la base real ni la política con una sesión de vendedor; se aplica con el sí del dueño.
+
+## D-684 · Clientes: «Asignar vendedores» de golpe, solo el admin
+
+**Fecha:** 2026-10-26. **Pedido:** el dueño: «aún no me sale una quick way para admin only para asignar vendedores».
+
+**Qué cambia:** en la lista de Clientes, un botón «👤 Asignar vendedores» que solo ve el admin. Abre una ventana con una fila
+por iniciales de QuickBooks (`rep_store`, o `rep_qb` si falta; `gruposPorIniciales`): cuántos clientes, cuántos sin
+vendedor, quién los tiene hoy y un desplegable con los vendedores. «Asignar N» pone el elegido (o «libre») a los SIN
+vendedor de esas iniciales; con «También los que ya tienen», a todos. Guarda en tandas de 200 (`asignarVendedor`) y cuenta lo
+que la base devuelve. Los clientes sin iniciales no salen: se asignan en su ficha (D-683). Sin migración: la escritura ya
+la permite la 198.
+
+**No medido:** en el navegador con la base real.
