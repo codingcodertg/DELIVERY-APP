@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 203 . Las cuentas del formulario de orden salen de Clientes (D-NEXT)
+-- 203 . Las cuentas del formulario de orden salen de Clientes
 -- ===========================================================================
 -- PEDIDO. El duenio, 2026-10-26: «cuando uno busca un customer en el order form […] esos customers tienen que ser los
 -- mismos que estan en el customer app […] Y eso tiene que estar conectado».
@@ -67,4 +67,4 @@ begin
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('203_cuentas_de_clientes_en_ordenes.sql', 'ff77ef7ea383ec1be573ad3565b1318e8eb4ef8795011766b8e3cef1a6c4be17') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('203_cuentas_de_clientes_en_ordenes.sql', 'e02f56ba86ae273437b85047f5505009096e332a960260f9559000c65027c5bd') on conflict (name) do nothing;
