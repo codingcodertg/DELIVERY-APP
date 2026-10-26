@@ -15,6 +15,7 @@ import {
   resumenDeCuenta, saleEnDirectorio, telefonoDeFicha, tiendaVisible,
   type FiltroEstado, type HechosDeCuenta,
 } from "@/lib/recruiting/employee-file";
+import { UsuariosPorCrear } from "@/components/recruiting/UsuariosPorCrear";
 import { AgregarDialog, BajaDialog, ReactivarDialog, faltaMigracion } from "./acciones";
 import { BloqueTimeTracker } from "./time-tracker";
 
@@ -89,6 +90,7 @@ export default function EmployeeFilesPage() {
 
   return (
     <>
+      <UsuariosPorCrear />
       <div className="card">
         <div className="sec-head" style={{ marginTop: 0 }}>
           <span className="sec-title">👤 {t("Employee files", "Expedientes")}</span>

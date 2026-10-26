@@ -9,6 +9,7 @@ import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
 import { BotonCopiarParaElGerente } from "./BotonCopiarParaElGerente";
 import { InPersonScheduleModal } from "./InPersonScheduleModal";
 import { AvisoDeChoque } from "./AvisoDeChoque";
+import { BotonContratar } from "./BotonContratar";
 import { hoyEnBrownsville, instanteDePared, paredDeInstante, sumarDias } from "@/lib/recruiting/hora-de-brownsville";
 import { avisoDeChoque, choquesDeHorario } from "@/lib/recruiting/choque-de-horario";
 import { contactoDelSeguimiento, ofreceSeguimiento, plantillaDeSeguimiento, prepararTextoDeSeguimiento, textoDeSeguimiento } from "@/lib/recruiting/texto-de-seguimiento";
@@ -341,6 +342,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
           {c.interview && <button className="btn btn-ghost" onClick={() => { close(); ui.openInterviewView(c.id); }}>👁 {t("View interview", "Ver entrevista")}</button>}
           {c.interview && <button className="btn btn-green" onClick={() => { close(); ui.openResume(c.id); }}>📋 {t("Summary", "Resumen")}</button>}
           <button className="btn btn-ghost" onClick={() => { close(); ui.openEdit(c.id); }}>✏️ {t("Edit", "Editar")}</button>
+          <BotonContratar c={c} />
           {/* reversible, so no confirm — but say what happened, since the row
               vanishes from the default list the moment it is archived */}
           <button
