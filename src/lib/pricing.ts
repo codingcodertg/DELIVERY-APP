@@ -1,5 +1,6 @@
 import type { Settings } from "@/lib/types";
-import { cityFromAddress, todayISO } from "@/lib/utils";
+import { todayISO } from "@/lib/utils";
+import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 import { puntoEnZonaLocal } from "@/lib/delivery-zone";
 
 // ============================================================
@@ -27,6 +28,9 @@ export const LOCAL_CITIES_DEFAULT = [
   "Mission", "McAllen", "Pharr", "San Juan", "Alamo", "Donna",
   "Weslaco", "Mercedes", "La Feria", "Harlingen", "San Benito",
   "Rio Hondo", "Ranch Viejo", "Brownsville", "Port Isabel", "South Padre",
+  // Los pueblos de la frontera (D-690): «haz ese boundary en la mera frontera». Solo valen como
+  // defecto: si Ajustes ya tiene su propia lista, manda la de Ajustes.
+  "Hidalgo", "Granjeno", "Progreso", "Los Indios",
 ];
 
 export function localCities(s?: Partial<Settings> | null): string[] {
@@ -322,7 +326,11 @@ export function suggestDeliveryFee(
   s?: Partial<Settings> | null,
 ): FeeSuggestion {
   const hasAddr = !!(d.delivery_address || "").trim();
-  const city = cityFromAddress(d.delivery_address, localCities(s));
+  // La ciudad la lee `ciudadDeEntrega` (D-690), no `cityFromAddress`: aquella tomaba el penúltimo
+  // trozo, y con «3004 E Sabinal Ave, Hidalgo, TX, USA» devolvía «TX» — y «TX» no es local. Esta quita
+  // el país, el código postal, el estado y el condado antes de leer. Tampoco busca nombres dentro del
+  // texto: con la lista, «Hidalgo» casaba con «Hidalgo County» en cualquier dirección de Nominatim.
+  const city = ciudadDeEntrega(d.delivery_address, localCities(s));
   // Same-day surcharge: when the delivery is today and an admin has set an
   // amount in Settings (default 0 = off).
   const surcharge = Math.max(0, Number(s?.same_day_surcharge ?? 0));

@@ -89,9 +89,16 @@ export const LOCAL_ZONE_DEFAULT: Vertice[] = [
   [25.892, -97.50],  // entre Brownsville (25.902) y Matamoros (25.880)
   [25.93, -97.57],
   [26.02, -97.75],   // Los Indios
-  [26.06, -97.95],   // Progreso
-  [26.10, -98.26],   // Hidalgo
-  [26.12, -98.35],   // Mission
+  [26.06, -97.95],   // Progreso (puente)
+  // Hidalgo → Los Ébanos se rehízo en D-690 («haz ese boundary en la mera frontera»): el borde iba
+  // en línea recta de Progreso a (26.10, −98.26) y dejaba fuera el sur de Hidalgo y el puente de
+  // Pharr. Ahora sigue el río; los valores son del cauce aproximado, no medidos sobre un mapa.
+  [26.052, -98.07],  // frente a Donna (puente Donna–Río Bravo)
+  [26.058, -98.19],  // puente Pharr–Reynosa
+  [26.083, -98.265], // puente Hidalgo–Reynosa: Reynosa centro (26.08, −98.29) queda fuera
+  [26.118, -98.305], // Granjeno
+  [26.135, -98.335], // Anzaldúas (Mission)
+  [26.20, -98.44],   // Peñitas
   [26.24, -98.56],   // Los Ébanos
 ];
 
