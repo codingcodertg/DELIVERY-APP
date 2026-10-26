@@ -23,8 +23,11 @@ describe("la medida de la ruta sale a la hora que es, no siempre a las 08:00", (
   it("puerta: la medida por calles (la que pone las llegadas) arranca de `salidaDeLaMedida(fecha)`, no de las 08:00 fijas", () => {
     const hook = readFileSync(new URL("./usa-medida-de-rutas.ts", import.meta.url), "utf8");
     expect(hook).toContain('from "./salida-de-la-medida"');
-    expect(hook).toContain("const salida = salidaDeLaMedida(e.fecha);");
-    expect(hook).toContain("let clock = salida;");
+    // D-NEXT: el reloj vive en `relojDeLaRuta` (salida-de-la-medida.ts); sin nada hecho, sale de `salidaDeLaMedida`.
+    const reloj = readFileSync(new URL("./salida-de-la-medida.ts", import.meta.url), "utf8");
+    expect(hook).toContain("relojDeLaRuta({ ...r, ordenes, ahora })");
+    expect(reloj).toContain("if (primera < 0) salida = salidaDeLaMedida(e.fecha, e.ahora);");
+    expect(reloj).toContain("let clock = salida;");
     expect(hook).toContain("start: fmtClock(salida)");
     expect(hook).not.toContain("let clock = DAY_START_MIN;");
   });

@@ -48212,3 +48212,25 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 - Pruebas: `src/lib/frontera-local.test.ts` (direcciones con y sin ZIP, «USA»/«United States», minúsculas; puntos dentro y fuera). Mutantes: con el `pricing.ts` anterior caen 7; con el polígono anterior caen «sur de Hidalgo» y «puente de Pharr».
 
 **No medido.** Los vértices nuevos son coordenadas aproximadas del cauce, de memoria y no trazadas sobre un mapa: el margen frente a Reynosa (centro 26,08) es de ~1 km y no se cotejó contra los pedidos reales ni se miró el mapa en pantalla. Tampoco se leyó qué tiene hoy `settings.local_cities` en producción.
+
+## D-NEXT · Gestor: la fila de una parada entregada ya no se pinta de verde
+
+**Fecha:** 2026-10-26. **Pedido:** Roberto Rodriguez Jr (admin), 1.405.0, ruta de Julio Jijon: «Dont turn the rows green when a delivery is delivered, the stage already says it so the row color just makes it blend with the pick ups».
+
+**Qué cambia:** en la tabla de paradas del Gestor, la fila hecha (`filaYaHecha`, «✓P3 … Delivered») y la fila de la lista dejan la clase `row-done`: sin fondo verde. Se quedan el ✓, la pastilla de la etapa, la hora real y el texto apagado de `fila-hecha`; las filas P conservan su color. La pestaña de órdenes («Todas») sigue con su verde: el pedido es de la ruta.
+
+**No medido:** en el navegador.
+
+## D-NEXT · Gestor: con parte de la ruta hecha, la llegada de lo pendiente sigue desde la última parada hecha, y la base «sale» cuando salió
+
+**Fecha:** 2026-10-26. **Pedido:** Roberto Rodriguez Jr (admin), 1.405.0, ruta de Julio Jijon: «Something is still off with the ETAs». Captura: «Base: leaves 10:31», P1 y P2 (RDZ Pharr, pendientes) 10:31, ✓P3 (RDZ Pharr) recogida a las 09:37, D1 (Weslaco) 11:25.
+
+**Causa (leída en el código):** desde D-584 se mide la ruta del DÍA (lo hecho y lo pendiente en su sitio), pero `mideLaLista` recorría todos los puntos con un reloj que salía de la base a `salidaDeLaMedida(fecha)` —«ahora» si es hoy (D-602)— sin mirar que algunos ya estaban hechos: lo hecho se recorría como pendiente y lo pendiente heredaba una salida de la base a la hora de medir (10:31; Pharr es la base, tramo 0, así que P1/P2 = 10:31). Y como hacer una parada no cambia la forma (D-584), la medida guardada no se rehacía al marcarla.
+
+**Qué cambia:** `relojDeLaRuta` (salida-de-la-medida.ts): un punto con alguna orden hecha y hora real ese día (`pickup_gps_at` / `pod_delivered_at`, zona del negocio) ANCLA el reloj en esa hora; lo siguiente suma su tramo y su servicio desde ahí. La salida de la base es la de la primera parada hecha menos lo de antes (tramos y servicios). Sin nada hecho, D-602 tal cual. Un punto hecho entero no lleva llegada estimada (la suya es la del plan, D-671). La medida guarda los tramos (`reloj`) y el hook rehace horas y tarjeta con las órdenes de ahora al cambiar (`conHorasDeAhora`), sin otra llamada al router.
+
+**Decidido sin preguntar:** lo pendiente detrás de la última hecha NO se sube a «ahora»: si el chofer va tarde, la hora sale pasada (era la regla pedida). Una recogida agrupada con una orden hecha y otras no toma la hora de la hecha.
+
+**Pruebas:** `src/lib/eta-tras-lo-hecho.test.ts` (la forma de la captura; control sin nada hecho; ✓P3 suelta; una entrega hecha que vuelve a anclar; la medida y el repintado sin llamada). 3 mutantes del reloj, 3 caen.
+
+**No medido:** en el navegador con la base real; la hora real es la que guarda la app del chofer (`pickup_gps_at`), no el GPS del camión.

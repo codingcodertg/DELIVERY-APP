@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { salidaDeLaMedida } from "./salida-de-la-medida";
+import { relojDeLaRuta, type OrdenDelReloj, type PuntoDelReloj } from "./salida-de-la-medida";
 import { serviceMin, RELOAD_MIN } from "@/lib/trip-timing";
 import { MEDIDA_FALLIDA, cuerpoDeLaMedida, firmaDeLaMedida, siguienteMedida, type EstadoDeLaMedida } from "@/lib/medida-de-ruta";
 import { minutosEnCadaParada } from "@/lib/optimiza-la-ruta";
@@ -91,13 +91,15 @@ export interface MedidaDeLaRuta {
   dayMinutes: number;
   /** Estimated arrival time per stop id, "HH:MM". */
   etas: Record<string, string>;
+  /** Lo que hace falta para rehacer las horas sin volver a llamar al router cuando se hace una parada (D-NEXT). */
+  reloj?: { puntos: PuntoDelReloj[]; legs: number[]; conBase: boolean; vuelve: boolean; fecha: string; driveMin: number };
 }
 
 /** Lo que el panel «Choferes y rutas» y la tarjeta pintan de una ruta medida. */
 export interface InfoDeRuta { miles: number; duration_text: string; minutes: number; dayMinutes: number; dayText: string }
 
 /** Lo que hace falta de una orden para medir su ruta. `Delivery` lo cumple, y la parada mínima de «Ruta de hoy» también. */
-export interface OrdenMedida {
+export interface OrdenMedida extends OrdenDelReloj {
   id: string;
   route_seq?: number | null;
   load_no?: number | null;
@@ -132,14 +134,14 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
   // Los puntos en el orden de la lista. El id de una recogida es «P:» + sus órdenes (D-616, 2026-10-20): hasta aquí era «P:» +
   // su PUESTO en la lista medida, y la tabla lo buscaba con el puesto en la lista de PENDIENTES; con paradas ya hechas delante
   // (D-529 mide el día entero) los puestos no coinciden y la recogida salía «no base» (el dueño: «WHY DOES IT SAYS NO BASE»).
-  const puntos: { id: string; lat: number; lng: number; servicio: number }[] = [];
+  const puntos: (PuntoDelReloj & { lat: number; lng: number })[] = [];
   lista.forEach((p, i) => {
     if (p.tipo === "D") {
       const d = byId.get(p.orden);
-      if (d?.delivery_lat != null && d.delivery_lng != null) puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: parado[i] });
+      if (d?.delivery_lat != null && d.delivery_lng != null) puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: parado[i], tipo: "D", ordenes: [d.id] });
     } else {
       const c = e.coordsDeTienda(p.tienda);
-      if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i] });
+      if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i], tipo: "P", ordenes: p.ordenes });
     }
   });
   const vacia: MedidaDeLaRuta = { miles: 0, seconds: 0, traces: [], stat: null, dayMinutes: 0, etas: {} };
@@ -176,26 +178,21 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
     traces = [{ delivery: geom, ret: [] }];
   }
 
-  // Walk the legs into per-stop arrival clocks. With a depot the route is [depot, s1, …, sN] so leg k drives INTO stop
-  // k; without one the first stop is the start (no lead-in drive).
-  const etas: Record<string, string> = {};
-  // D-602: la medida de hoy no sale antes de la hora que es (Ernesto: «Why does ETA say 8 to orders that havent been done yet?»).
-  const salida = salidaDeLaMedida(e.fecha);
-  let clock = salida;
-  let servicio = 0;
-  puntos.forEach((p, j) => {
-    if (depot || j > 0) clock += (legs[depot ? j : j - 1] ?? 0) / 60;
-    etas[p.id] = fmtClock(clock);
-    clock += p.servicio;
-    servicio += p.servicio;
-  });
-  if (vuelve) clock += (legs[puntos.length] ?? 0) / 60;  // empty drive back to the base (or to where the day ends, 166)
-  const driveMin = data.duration_seconds / 60;
+  // Las horas: `horasDeLaMedida` (D-602 y D-NEXT: lo ya hecho ancla el reloj en su hora real).
+  const reloj = { puntos: puntos.map(({ id, servicio, tipo, ordenes }) => ({ id, servicio, tipo, ordenes })), legs, conBase: !!depot, vuelve, fecha: e.fecha, driveMin: data.duration_seconds / 60 };
+  const { etas, stat } = horasDeLaMedida(reloj, e.ordenes);
+  return { medida: { miles: Math.round(data.miles * 10) / 10, seconds: data.duration_seconds, traces, stat: { ...stat, miles: Math.round(data.miles * 10) / 10 }, dayMinutes: stat.totalMin, etas, reloj }, proveedor };
+}
+
+/** Las llegadas y la tarjeta de una ruta medida, con las paradas hechas TAL COMO ESTÁN ahora: se rehacen sin llamar a nadie
+ *  cuando el chofer hace una parada (la forma de la ruta no cambia, D-584). */
+export function horasDeLaMedida(r: NonNullable<MedidaDeLaRuta["reloj"]>, ordenes: readonly OrdenDelReloj[], ahora?: Date): { etas: Record<string, string>; stat: TripStat } {
+  const { etas, salida, clock, servicio } = relojDeLaRuta({ ...r, ordenes, ahora });
   const stat: TripStat = {
-    miles: Math.round(data.miles * 10) / 10, driveMin, serviceMin: servicio, totalMin: driveMin + servicio,
-    stops: puntos.length, start: fmtClock(salida), end: fmtClock(clock),
+    miles: 0, driveMin: r.driveMin, serviceMin: servicio, totalMin: r.driveMin + servicio,
+    stops: r.puntos.length, start: fmtClock(salida), end: fmtClock(clock),
   };
-  return { medida: { miles: Math.round(data.miles * 10) / 10, seconds: data.duration_seconds, traces, stat, dayMinutes: stat.totalMin, etas }, proveedor };
+  return { etas, stat };
 }
 
 /** La forma de la ruta que se mide (D-456): la de `firmaDeLaMedida` —fecha, paradas, puestos, pines— MÁS la lista tal como
@@ -231,6 +228,13 @@ export interface EntradaDeLaMedida<T extends OrdenMedida> {
   /** Buscar la dirección de la base de cada ruta (`/api/geocode-point`): «siempre» (el Gestor, como hasta ahora) o solo si
    *  la tienda base no tiene coordenadas en Ajustes. */
   buscaBases?: "siempre" | "si_falta";
+}
+
+/** La medida con sus horas rehechas para las órdenes de ahora (lo hecho ancla el reloj). Sin `reloj`, tal cual. */
+export function conHorasDeAhora(m: MedidaDeLaRuta, ordenes: readonly OrdenDelReloj[], ahora?: Date): MedidaDeLaRuta {
+  if (!m.reloj || !m.stat) return m;
+  const { etas, stat } = horasDeLaMedida(m.reloj, ordenes, ahora);
+  return { ...m, etas, stat: { ...stat, miles: m.stat.miles }, dayMinutes: stat.totalMin };
 }
 
 export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>) {
@@ -330,13 +334,27 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
   };
 
   /** Pinta lo medido en la tarjeta y el mapa. Solo pinta: la ruta no se toca. */
-  const pintaLaMedida = (driver: string, m: MedidaDeLaRuta) => {
+  const pintaLaMedida = (driver: string, m0: MedidaDeLaRuta) => {
+    medidaPintada.current[driver] = m0;
+    const m = conHorasDeAhora(m0, formaActual.current.byDriver.get(driver) ?? []);
     setRouteInfo((p) => ({ ...p, [driver]: { miles: m.miles, duration_text: fmtMinutes(m.seconds / 60), minutes: m.seconds / 60, dayMinutes: m.dayMinutes, dayText: fmtMinutes(m.dayMinutes) } }));
     setRouteStats((p) => ({ ...p, [driver]: m.stat }));
     setRouteLines((p) => ({ ...p, [driver]: m.traces }));
     setRouteEtas((p) => ({ ...p, [driver]: m.etas }));
   };
 
+  // D-NEXT: hacer una parada no cambia la forma (no se vuelve a medir), pero sí las horas de lo que queda: se rehacen de la
+  // medida pintada con las órdenes de ahora, sin llamar al router.
+  const medidaPintada = useRef<Record<string, MedidaDeLaRuta>>({});
+  useEffect(() => {
+    for (const [k, m0] of Object.entries(medidaPintada.current)) {
+      if (!routeInfo[k] || !m0.reloj) continue;
+      const m = conHorasDeAhora(m0, byDriver.get(k) ?? []);
+      setRouteEtas((p) => (JSON.stringify(p[k]) === JSON.stringify(m.etas) ? p : { ...p, [k]: m.etas }));
+      setRouteStats((p) => (JSON.stringify(p[k]) === JSON.stringify(m.stat) ? p : { ...p, [k]: m.stat }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [byDriver]);
   // Lo último que se pinta, para no pintar una medida que llega tarde: si la ruta cambió mientras se medía (una flecha
   // a mitad), esa medida es de la forma de antes y se tira; la nueva forma se mide aparte.
   const formaActual = useRef({ date, byDriver });

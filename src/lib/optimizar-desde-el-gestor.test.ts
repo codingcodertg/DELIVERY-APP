@@ -505,8 +505,8 @@ describe("6 · la medida de la tarjeta cuenta las horas como el optimizador", ()
     // **Puesto al día por D-467**: la medida de una lista es `mideLaLista` (lib/usa-medida-de-rutas).
     const mide = trozo("export async function mideLaLista", "/** La forma de la ruta que se mide", plano(leer("src/lib/usa-medida-de-rutas.ts")));
     expect(mide).toContain("const parado = minutosEnCadaParada(lista, lista.map((p) => (p.tipo === \"D\" ? serviceMin(byId.get(p.orden)?.delivery_duration) : p.ordenes.reduce((n, id) => n + serviceMin(byId.get(id)?.pickup_duration), 0))), RELOAD_MIN);");
-    expect(mide).toContain("puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: parado[i] });");
-    expect(mide).toContain("if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i] });");
+    expect(mide).toContain("puntos.push({ id: d.id, lat: d.delivery_lat, lng: d.delivery_lng, servicio: parado[i], tipo: \"D\", ordenes: [d.id] });");
+    expect(mide).toContain("if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i], tipo: \"P\", ordenes: p.ordenes });");
     expect(mide).not.toContain("servicio: RELOAD_MIN");
   });
 });
