@@ -48304,7 +48304,7 @@ RR. HH. (`@/app/recruiting/actions/hr`, `cuentas.ts`). Con main así, cualquier 
 **Qué cambia:** `/home/users` vuelve a la versión de D-694 y se borra `src/app/recruiting/actions/cuentas.ts`. El botón
 «Crear usuario» del empleado sigue abriendo la pantalla, sin rellenar ni enlazar. D-695 queda revertida; rehacerla sin
 importar `actions/hr` en la página (una ruta de API pequeña o una acción propia sin dependencias de RR. HH.) es lo pendiente.
-## D-NEXT · Clientes: sitio web y dirección por contacto
+## D-697 · Clientes: sitio web y dirección por contacto
 
 **Pedido:** el dueño, con la captura de la tarjeta «Contacto» editando (WEBSITE y ADDRESS debajo de SOCIALS): «This should
 be under each contact and not to apply to all contacts. Socials dont need this.»

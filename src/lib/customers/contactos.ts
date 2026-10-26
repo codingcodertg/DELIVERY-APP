@@ -47,7 +47,7 @@ export function enEdicion(lista: readonly Contacto[]): ContactoEnEdicion[] {
   if (!lista.length) return [contactoVacio()];
   return lista.map((c) => ({
     name: c.name ?? "", title: c.title ?? "", note: c.note ?? "",
-    // D-NEXT: cada contacto con su sitio web y su dirección; sin los suyos, vacíos (no hereda los de la cuenta).
+    // D-697: cada contacto con su sitio web y su dirección; sin los suyos, vacíos (no hereda los de la cuenta).
     website: c.website ?? "", address: c.address ?? "",
     phones: c.phones.length ? [...c.phones] : [""],
     emails: c.emails.length ? [...c.emails] : [""],

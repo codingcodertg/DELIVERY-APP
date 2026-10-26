@@ -460,7 +460,7 @@ export const CAMPOS: readonly Campo[] = [
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
   // D-668: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
   // la tarjeta «Contacto» pinta y edita aparte (`contactos.ts`). Las cuatro columnas quedan como espejo del primero.
-  // D-672: Roberto, «need to add Website under contact». D-NEXT: «This should be under each contact and not to apply to
+  // D-672: Roberto, «need to add Website under contact». D-697: «This should be under each contact and not to apply to
   // all contacts»: cada contacto lleva ya su sitio web y su dirección (`contacts`); las columnas de la cuenta siguen en la
   // base (la orden y la búsqueda leen `address`) y se ven y corrigen en «Campos ocultos».
   { key: "website", tipo: "text", en: "Website", es: "Sitio web", grupo: "ocultos" },
@@ -528,7 +528,7 @@ export function filasPorGrupo(): { grupo: (typeof GRUPOS)[number]; filas: FilaDe
   // y aquí no se edita dos veces.
   const delante = (k: string): FilaDeFicha[] => (k === "cuenta" ? [{ key: "account", en: "Account", es: "Cuenta", campo: null }] : []);
   return GRUPOS.map((grupo) => ({ grupo, filas: [...delante(grupo.key), ...CAMPOS.filter((c) => c.grupo === grupo.key).map(filaDe)] }))
-    // «Contacto» se queda aunque no tenga líneas (D-NEXT): la llenan los contactos, que se pintan aparte.
+    // «Contacto» se queda aunque no tenga líneas (D-697): la llenan los contactos, que se pintan aparte.
     .filter((g) => g.filas.length > 0 || g.grupo.key === "contacto");
 }
 
@@ -540,7 +540,7 @@ export function filasOcultas(): FilaDeFicha[] {
   // En el orden de la plantilla del dueño (D-662): Añadido (tanda), N.º House, la CONCATENATE. (La actividad iba detrás
   // hasta D-669: ahora es el «Tipo» de «Crédito y términos».)
   const ocultos = CAMPOS.filter((c) => c.grupo === GRUPO_OCULTO.key);
-  // D-NEXT: el trío del dueño junto y, detrás, el sitio web y la dirección de la cuenta (salieron de «Contacto»).
+  // D-697: el trío del dueño junto y, detrás, el sitio web y la dirección de la cuenta (salieron de «Contacto»).
   const tanda = (c: Campo) => c.key === "added_batch";
   return [...ocultos.filter(tanda).map(filaDe), ...FILAS_SOLO_DE_LECTURA, ...ocultos.filter((c) => !tanda(c)).map(filaDe)];
 }
