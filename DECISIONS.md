@@ -48235,7 +48235,7 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 
 **No medido:** en el navegador con la base real; la hora real es la que guarda la app del chofer (`pickup_gps_at`), no el GPS del camión.
 
-## D-NEXT · Adjuntos en la orden: pegar, arrastrar o elegir la factura
+## D-692 · Adjuntos en la orden: pegar, arrastrar o elegir la factura
 
 **Pedido:** Carlos Fuentes (oficina), Entregas: «you can't copy and paste...example, i tried copying an invoice on
 quickbooks and attach it on the app». El dueño eligió una sección «Adjuntos» en la orden.
