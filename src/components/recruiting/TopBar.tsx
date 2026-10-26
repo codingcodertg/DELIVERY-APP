@@ -16,7 +16,7 @@ import type { Profile } from "@/lib/recruiting/types";
 import type { UserRole } from "@/lib/types";
 
 const TAB_ES: Record<string, string> = {
-  today: "📋 Hoy", calls: "📞 Llamadas pendientes", employees: "👤 Empleados", candidates: "👥 Candidatos", board: "🗂 Tablero", outcomes: "🤝 Resultados", questions: "❓ Preguntas",
+  today: "📋 Hoy", calls: "📞 Llamadas pendientes", employees: "👤 Empleados", "user-creation": "🔑 Crear usuarios", candidates: "👥 Candidatos", board: "🗂 Tablero", outcomes: "🤝 Resultados", questions: "❓ Preguntas",
   metrics: "📊 Métricas", calendar: "📅 Calendario", settings: "⚙️ Ajustes",
 };
 const ROLE_ES: Record<string, string> = { admin: "Admin", manager: "Gerente", recruiter: "Reclutador", store_manager: "Gerente de tienda" };
@@ -45,7 +45,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
     <BarraDeApp nombre={settings.app_name || "RTG·HR"} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess}>
         <div className="entregas-tras-pestanas"><GlobalSearch /></div>
         <div className="tabs">
-          {pestanasVisibles(TABS, me.role).map((t) => {
+          {pestanasVisibles(TABS, me.role).filter((t) => t.id !== "user-creation" || deliveriesRole === "admin").map((t) => {
             {/* "/recruiting" (candidates) needs an exact match — a plain
                 startsWith would also light it up on /recruiting/board etc. */}
             const active = t.href === "/recruiting" ? pathname === "/recruiting" : pathname.startsWith(t.href);

@@ -48267,3 +48267,16 @@ la página, que esa prueba no recorría.
 como el 2026-10-19. Este paso va solo para saber cuál de las dos mitades lo provoca.
 
 **No medido:** no probado en el navegador.
+
+## D-694 · RR. HH.: «Crear usuarios» y «Con usuario / Sin usuario» en Empleados (paso 2 de usuarios en RR. HH.)
+
+**Pedido:** «en employees va a haber una opción que dice user creation […] para que ahí mismo se creen los users para cada
+employees».
+
+**Qué cambia:** pestaña «🔑 User creation / Crear usuarios» en RR. HH. (solo admin de RR. HH. que además es admin del hub) que
+abre `/home/users` (la pantalla de D-693, la misma lógica de permisos). En Empleados: insignia «Con usuario», filtros
+«Con usuario» / «Sin usuario» (`src/lib/recruiting/usuarios-rrhh.ts`, con prueba) y un botón «Crear usuario» por empleado sin
+cuenta que lleva a `/home/users?employee=<id>`. Ese parámetro todavía no se lee: rellenar el formulario y enlazar el
+expediente es el paso 3, que es el que lleva la acción de servidor, la sospecha del fallo de memoria en Vercel.
+
+**No medido:** no probado en el navegador.
