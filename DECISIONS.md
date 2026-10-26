@@ -48294,3 +48294,13 @@ usuario y cuántos no.
 `/home`, la sospecha del SIGKILL por memoria en Vercel; D-693 y D-694 construyeron sin ella.
 
 **No medido:** no probado en el navegador ni con la base.
+
+## D-NEXT · Se quita el paso 3 de usuarios en RR. HH. (D-695): Vercel muere por memoria con él
+
+**Medido:** el build de producción de D-695 (dpl_J8Bwp7Zd8TZjCKZcMP6abjMBDJMn) acabó en SIGKILL con «Out of Memory»; D-693 y
+D-694, sin él, construyeron. Lo que solo trae D-695 es que `/home/users` (página de cliente) importa acciones de servidor de
+RR. HH. (`@/app/recruiting/actions/hr`, `cuentas.ts`). Con main así, cualquier release posterior moría igual.
+
+**Qué cambia:** `/home/users` vuelve a la versión de D-694 y se borra `src/app/recruiting/actions/cuentas.ts`. El botón
+«Crear usuario» del empleado sigue abriendo la pantalla, sin rellenar ni enlazar. D-695 queda revertida; rehacerla sin
+importar `actions/hr` en la página (una ruta de API pequeña o una acción propia sin dependencias de RR. HH.) es lo pendiente.
