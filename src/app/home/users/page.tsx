@@ -11,7 +11,7 @@ import { linkEmployeeToAccount } from "@/app/recruiting/actions/cuentas";
 import { precargaDeEmpleado } from "@/lib/recruiting/usuarios-rrhh";
 
 /**
- * Usuarios del hub, también la «User creation» de RR. HH. (D-NEXT). Iba a ser una página propia dentro de
+ * Usuarios del hub, también la «User creation» de RR. HH. (D-693). Iba a ser una página propia dentro de
  * /recruiting, pero montar el DataProvider del hub allí duplicaba ese grafo de cliente y el build de Vercel moría por
  * memoria (SIGKILL, dos veces). Así que la pestaña de RR. HH. trae aquí, y esta pantalla hace lo de RR. HH.: El dueño: «la opción de users donde le damos los permisos…
  * eso se va a pasar al HR app». Es la pantalla del hub tal cual (UsersManager + UserDialog, la misma

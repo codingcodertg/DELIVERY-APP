@@ -55,7 +55,7 @@ export default function EmployeeFilesPage() {
   const [baja, setBaja] = useState<string | null>(null);
   const [reactivar, setReactivar] = useState<string | null>(null);
   const [agregando, setAgregando] = useState(false);
-  // «User created» (D-NEXT): quién tiene ya cuenta del hub y quién no.
+  // «User created» (D-693): quién tiene ya cuenta del hub y quién no.
   const [filtroCuenta, setFiltroCuenta] = useState<FiltroCuenta>("todos");
   // `me.role` es el rol de RR. HH. (el layout del módulo lo monta así). La barrera de verdad está
   // en las acciones de servidor; esto es para no ofrecer un botón que va a fallar.
