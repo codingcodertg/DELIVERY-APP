@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { expedienteQueSobra } from "@/lib/recruiting/usuarios-rrhh";
 
 /**
- * Enlaza el expediente de un empleado con la cuenta que se le acaba de crear (D-NEXT).
+ * Enlaza el expediente de un empleado con la cuenta que se le acaba de crear (D-695).
  *
  * La cuenta la crea `/api/invite`, igual que en el hub. Al nacer, el trigger de la 106 le hace un
  * expediente vacío propio; aquí se borra ese vacío (si no tiene papeles) y se apunta el del

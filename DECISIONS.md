@@ -48281,7 +48281,7 @@ expediente es el paso 3, que es el que lleva la acción de servidor, la sospecha
 
 **No medido:** no probado en el navegador.
 
-## D-NEXT · Usuarios: «Crear usuario» desde un empleado rellena el alta y enlaza el expediente (paso 3)
+## D-695 · Usuarios: «Crear usuario» desde un empleado rellena el alta y enlaza el expediente (paso 3)
 
 **Pedido:** «para que ahí mismo se creen los users para cada employees».
 
