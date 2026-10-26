@@ -48357,7 +48357,7 @@ corto que aparece en ese mismo log. Se quedan `erp/sentry/scrub.ts` (no importa 
 en el middleware, que ya no hacen nada. Las variables SENTRY_* de Vercel quedan sin uso; se pueden borrar a mano.
 
 **No medido:** si sin Sentry el build de Vercel cabe en memoria; lo dirá este mismo release.
-## D-NEXT · «Sales Rep» pasa a «User» también en la orden y el Dashboard; el círculo de una parada hecha ya no se apaga
+## D-701 · «Sales Rep» pasa a «User» también en la orden y el Dashboard; el círculo de una parada hecha ya no se apaga
 
 **Pedido:** «Instead of sales rep lets call it User» y «Stage doesnt affect color of the row»; el dueño, después: «termina todo
 lo que te pedi».

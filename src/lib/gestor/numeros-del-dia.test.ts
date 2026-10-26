@@ -310,7 +310,7 @@ describe("las pantallas pintadas: el mismo número a la misma parada", () => {
     estado.me = GERENTE;
     const html = await pintaElGestor(true);
     expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "3 D2", "4 ✓P3", "5 P4", "6 D4", "7 D3"]);
-    // D-NEXT: la etapa no pinta la fila ni apaga el círculo en el Gestor (en «Mi ruta» del chofer, sí).
+    // D-701: la etapa no pinta la fila ni apaga el círculo en el Gestor (en «Mi ruta» del chofer, sí).
     const circulo = (n: number) => html.match(new RegExp(`data-numero-de-parada="${n}"[^>]*style="([^"]*)"`))![1];
     expect(circulo(2)).not.toContain("opacity");
     expect(circulo(7)).not.toContain("opacity");
