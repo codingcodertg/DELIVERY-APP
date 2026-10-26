@@ -80,6 +80,7 @@ import { conPrioridadSiCabe } from "@/lib/prioridad";
 import { conAvisosSiCabe } from "@/lib/avisos-cliente";
 import { alternaRequisito, catalogoDeRequisitos, conRequisitosSiCabe, laBaseTieneRequisitosEnOrdenes, requisitosDeLaOrden } from "@/lib/requisitos";
 import { contactoAlElegirCuenta, laCuentaRecuerda } from "@/lib/cuenta-elegida";
+import { clienteDeLaCuenta, contactoDeLaCuenta, opcionesDeCuenta, type ClienteParaOrden, type OrigenDeCuenta } from "@/lib/clientes-para-ordenes";
 import { ordenConEsaFactura } from "@/lib/misma-factura";
 import { createClient } from "@/lib/supabase/client";
 import { telHref, type PersonaDirectorio } from "@/lib/phone-book";
@@ -1630,16 +1631,6 @@ export function OrderModal({
   // been saved with contact info yet — so the list is never missing one,
   // but only saved accounts auto-fill Contact / Delivery Phone Number.
   const savedAccounts = settings.accounts ?? [];
-  const accountOptions = useMemo(() => {
-    const seen = new Set<string>();
-    for (const a of savedAccounts) if (a.name.trim()) seen.add(a.name.trim());
-    for (const x of deliveries) {
-      const a = (x.account || "").trim();
-      if (a) seen.add(a);
-    }
-    return [...seen].sort((a, b) => a.localeCompare(b));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deliveries, settings.accounts]);
 
   // Account names (lowercased) that already have at least one Intertienda order
   // in their history — picking such an account defaults the new order to
@@ -1654,6 +1645,32 @@ export function OrderModal({
     }
     return s;
   }, [deliveries]);
+
+  // La lista maestra de la app de Clientes (D-689, migración 203). Si la función aún no existe o falla, queda vacía y
+  // el campo ofrece lo de antes: cuentas guardadas y nombres de órdenes pasadas.
+  const [clientesMaestros, setClientesMaestros] = useState<ClienteParaOrden[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    void createClient().rpc("cuentas_de_clientes").then(({ data, error: e }) => {
+      if (vivo && !e && Array.isArray(data)) setClientesMaestros(data as ClienteParaOrden[]);
+    });
+    return () => { vivo = false; };
+  }, []);
+
+  const opcionesConOrigen = useMemo(() => opcionesDeCuenta({
+    clientes: clientesMaestros,
+    guardadas: savedAccounts,
+    pasadas: deliveries.map((x) => x.account),
+    intertiendaPasadas: intertiendaAccounts,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [clientesMaestros, deliveries, settings.accounts, intertiendaAccounts]);
+  const accountOptions = useMemo(() => opcionesConOrigen.map((o) => o.nombre), [opcionesConOrigen]);
+  // La marca solo tiene sentido si Clientes respondió: sin la 203, todas serían «no está en Clientes».
+  const origenDeCuenta = useMemo(() => {
+    const m = new Map<string, OrigenDeCuenta>();
+    if (clientesMaestros.length) for (const o of opcionesConOrigen) m.set(o.nombre, o.origen);
+    return m;
+  }, [opcionesConOrigen, clientesMaestros.length]);
 
   const saveAccount = (rec: AccountRecord) => {
     const next = [...savedAccounts.filter((a) => a.name.toLowerCase() !== rec.name.toLowerCase()), rec];
@@ -2465,7 +2482,11 @@ export function OrderModal({
                   // editable). A SAVED account uses its stored record; any other
                   // account falls back to its most recent past order, so a
                   // customer that's only in the order history still pre-fills.
-                  const rec = savedAccounts.find((a) => a.name.toLowerCase() === v.toLowerCase());
+                  // Clientes manda sobre lo guardado en Ajustes; lo que Clientes no tenga lo pone lo guardado (D-689).
+                  const guardada = savedAccounts.find((a) => a.name.toLowerCase() === v.toLowerCase());
+                  const cliente = clienteDeLaCuenta(clientesMaestros, v);
+                  const ficha = contactoDeLaCuenta(cliente, guardada);
+                  const rec = ficha ? { contact: ficha.contact ?? "", phone: ficha.phone ?? "", address: ficha.address ?? undefined, intertienda: guardada?.intertienda } : undefined;
                   const past = rec ? undefined : [...deliveries]
                     .filter((x) => (x.account || "").trim().toLowerCase() === v.trim().toLowerCase())
                     .sort((a, b) => b.order_no - a.order_no)[0];
@@ -2480,6 +2501,10 @@ export function OrderModal({
                       ...contactoAlElegirCuenta({ cuenta: v, guardada: rec, ultimaOrden: past, actual: p }),
                       // El tipo de cliente lo decide la cuenta, y cambia con ella: ya no hay selector (D-337).
                       customer_type: tipoDeClientePorDefecto(v),
+                      // La dirección de la ficha de Clientes, solo si la orden aún no tiene una: pisar una ya puesta
+                      // dejaría su pin y su ruta apuntando a otro sitio (D-689).
+                      ...(cliente?.address?.trim() && !isIntertienda && laCuentaRecuerda(v) && !(p.delivery_address ?? "").trim()
+                        ? { delivery_address: cliente.address.trim() } : {}),
                       // Do NOT auto-fill the delivery address — the rep picks the
                       // right site from this customer's saved sites (populated
                       // below), since a customer can have several drop-offs.
@@ -2513,6 +2538,11 @@ export function OrderModal({
                   }
                 }}
                 options={accountOptions}
+                marca={(o) => {
+                  const origen = origenDeCuenta.get(o);
+                  return origen === "fuera" ? t("not in Customers", "no está en Clientes")
+                    : origen === "interna" ? t("internal store", "tienda interna") : null;
+                }}
                 fija={{ valor: CUENTA_DE_MOSTRADOR, etiqueta: t(CUENTA_DE_MOSTRADOR_EN, CUENTA_DE_MOSTRADOR) }}
                 disabled={!salesFields}
                 placeholder={t("Select account…", "Seleccione cuenta…")}
@@ -4213,9 +4243,11 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, mi
  * se llama SOLO al confirmar —clic en una sugerencia, Enter o salir del campo—, nunca por tecla. Qué
  * se confirma lo decide `decisionAlConfirmar`, que es lo que se prueba importado.
  */
-function AccountCombo({ val, on, options, fija, disabled, placeholder, t }: {
+function AccountCombo({ val, on, options, marca, fija, disabled, placeholder, t }: {
   val: unknown; on: (v: string) => void;
   options: string[]; disabled?: boolean; placeholder?: string;
+  /** Una nota junto a la sugerencia: «no está en Clientes» (D-689). */
+  marca?: (o: string) => string | null;
   /** Una opción que está SIEMPRE a mano, fuera de la lista: «Venta al mostrador» (D-337). */
   fija?: { valor: string; etiqueta: string };
   t: (en: string, es: string) => string;
@@ -4288,6 +4320,7 @@ function AccountCombo({ val, on, options, fija, disabled, placeholder, t }: {
               onMouseDown={(e) => { e.preventDefault(); elegir(o); }}
             >
               {o}
+              {marca?.(o) && <span className="muted" style={{ marginLeft: 6, fontSize: "0.85em" }}>· {marca(o)}</span>}
             </li>
           ))}
         </ul>
