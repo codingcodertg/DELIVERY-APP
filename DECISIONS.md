@@ -48342,3 +48342,18 @@ el «Sales rep» del Dashboard, el rótulo del historial (`assigned_sales_rep`) 
 
 **No medido:** no abierto en el navegador; el contraste del tinte no se volvió a medir (es el de D-435); el círculo del
 número de parada sigue apagado (opacidad 0,55) en una parada hecha: es la burbuja, no el fondo de la fila.
+
+## D-700 · Se quita Sentry
+
+**Pedido:** «ya sentry se elimina no lo ocupo».
+
+**Por qué:** el build de Vercel moría por memoria (SIGKILL, OOM) justo después de subir los source maps a Sentry, con
+cambios cada vez más pequeños (D-695 y su segunda versión, PR #520). El dueño no usa Sentry.
+
+**Qué cambia:** fuera `@sentry/nextjs`, `withSentryConfig` en `next.config.mjs`, `instrumentation*.ts` y
+`sentry.*.config.ts`. Donde se mandaba un error a Sentry (`global-error.tsx`, `ErrorBoundary.tsx`, `erp/api-error.ts`,
+`erp/db-result.ts`) ahora va a `console.error`, que sale en los logs de Vercel; la `ref` que ve el cliente del ERP es un id
+corto que aparece en ese mismo log. Se quedan `erp/sentry/scrub.ts` (no importa Sentry) y las exclusiones de `/monitoring`
+en el middleware, que ya no hacen nada. Las variables SENTRY_* de Vercel quedan sin uso; se pueden borrar a mano.
+
+**No medido:** si sin Sentry el build de Vercel cabe en memoria; lo dirá este mismo release.

@@ -1,7 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 
-import { withSentryConfig } from "@sentry/nextjs";
 
 /**
  * D-596 (2026-10-19): en el build de VERCEL no se repiten el type-check ni el lint. Los dos ya corren en el CI de GitHub
@@ -124,11 +123,6 @@ const nextConfig = {
   },
 };
 
-// org/project/authToken come from SENTRY_ORG / SENTRY_PROJECT / SENTRY_AUTH_TOKEN
-// (Vercel env, build-time only) rather than being written here — same rule as
-// every other credential in this project.
-export default withSentryConfig(nextConfig, {
-  widenClientFileUpload: true,
-  tunnelRoute: "/monitoring",
-  silent: !process.env.CI,
-});
+// Sin Sentry desde D-700: el dueño no lo usa, y su subida de source maps era lo último que corría antes de que el
+// build de Vercel muriera por memoria (SIGKILL) con cualquier cambio un poco más grande.
+export default nextConfig;

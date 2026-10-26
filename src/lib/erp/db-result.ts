@@ -19,7 +19,6 @@
 // normal operating result of a role-gated read — are classified but not reported,
 // to protect the free quota. This module is deliberately isomorphic (no
 // "server-only"): client components hit the same PostgREST failures.
-import * as Sentry from "@sentry/nextjs";
 import { AppError, EXPECTED_CODES, type ErrorCode } from "@/lib/erp/error-codes";
 
 /** Structural shape of a PostgrestError — kept loose so plain literals also satisfy it. */
@@ -87,7 +86,7 @@ export function unwrap<R extends { data: unknown; error: DbError | null }>(
       cause: result.error,
     });
     if (!EXPECTED_CODES.has(code)) {
-      Sentry.captureException(err, { tags: { db_context: context, pg_code: pgCode } });
+      console.error(err, { db_context: context, pg_code: pgCode });
     }
     throw err;
   }
