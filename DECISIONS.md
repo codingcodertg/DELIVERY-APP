@@ -48280,3 +48280,17 @@ cuenta que lleva a `/home/users?employee=<id>`. Ese parámetro todavía no se le
 expediente es el paso 3, que es el que lleva la acción de servidor, la sospecha del fallo de memoria en Vercel.
 
 **No medido:** no probado en el navegador.
+
+## D-NEXT · Usuarios: «Crear usuario» desde un empleado rellena el alta y enlaza el expediente (paso 3)
+
+**Pedido:** «para que ahí mismo se creen los users para cada employees».
+
+**Qué cambia:** `/home/users?employee=<id>` (el botón «Crear usuario» de D-694) abre el alta con nombre, correo y tienda del
+expediente (`precargaDeEmpleado`) y, al crear, enlaza el expediente con la cuenta nueva (`linkEmployeeToAccount`,
+`src/app/recruiting/actions/cuentas.ts`, usando el `id` que `addUser` devuelve desde D-693). Arriba: cuántos empleados tienen
+usuario y cuántos no.
+
+**Por qué va solo:** es la mitad que importa acciones de servidor de RR. HH. (`hr.ts`, `cuentas.ts`) en una página de
+`/home`, la sospecha del SIGKILL por memoria en Vercel; D-693 y D-694 construyeron sin ella.
+
+**No medido:** no probado en el navegador ni con la base.
