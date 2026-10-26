@@ -32,7 +32,9 @@ export function salidaDeLaMedida(fecha: string, ahora: Date = new Date(), salida
  * Regla: una parada hecha con hora real ANCLA el reloj en esa hora (y en su sitio: el tramo siguiente sale de ella), y lo
  * pendiente sigue desde ahí con su tramo y su servicio. La salida de la base es la de la PRIMERA parada hecha menos lo que
  * cuesta llegar a ella (tramos y servicios de antes). Sin nada hecho, como D-602. Lo pendiente detrás de la última hecha
- * NO se sube a «ahora»: sigue desde la hora real (lo pidió así el orquestador; si el chofer va tarde, la hora sale pasada).
+ * hoy no llega en el pasado: si el reloj anclado va por detrás de
+ * «ahora», sale de la última parada hecha AHORA (llegada = max(seguir desde la hora real, ahora + tramo)). La salida de la
+ * base sigue siendo la real.
  * Las paradas enteramente hechas no llevan llegada estimada: la suya es la del plan (D-671) y su hora real. */
 
 /** Minutos del día de una hora real (ISO) en la zona del negocio, solo si cae en `fecha` (yyyy-mm-dd). */
@@ -81,13 +83,21 @@ export function relojDeLaRuta(e: {
     for (let j = 0; j <= primera; j++) antes += tramo(j) + (j < primera ? e.puntos[j].servicio : 0);
     salida = Math.max(0, hechas[primera].real! - antes);
   }
+  // Hoy, lo pendiente detrás de una parada hecha no llega en el pasado: si el reloj anclado va por detrás de la hora que
+  // es, el chofer está en (o después de) la última parada hecha AHORA, y se sigue desde ahí. Otro día, sin «ahora».
+  const ahora = e.ahora ?? new Date();
+  const hoyMin = salidaDeLaMedida(e.fecha, ahora, -1); // -1: no es hoy; si no, los minutos de ahora
+  const ahoraMin = hoyMin === -1 ? null : hoyMin;
   const etas: Record<string, string> = {};
   let clock = salida;
   let servicio = 0;
   e.puntos.forEach((p, j) => {
-    clock += tramo(j);
     const h = hechas[j];
+    const trasLoHecho = primera >= 0 && j > primera && ahoraMin != null;
+    if (trasLoHecho && h.real == null) clock = Math.max(clock, ahoraMin!);
+    clock += tramo(j);
     if (h.real != null) clock = h.real;
+    if (h.real != null && !h.entero && ahoraMin != null) clock = Math.max(clock, ahoraMin);
     if (!h.entero) etas[p.id] = fmtReloj(clock);
     clock += p.servicio;
     servicio += p.servicio;

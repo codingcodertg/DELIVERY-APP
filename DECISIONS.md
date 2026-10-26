@@ -48229,8 +48229,8 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 
 **Qué cambia:** `relojDeLaRuta` (salida-de-la-medida.ts): un punto con alguna orden hecha y hora real ese día (`pickup_gps_at` / `pod_delivered_at`, zona del negocio) ANCLA el reloj en esa hora; lo siguiente suma su tramo y su servicio desde ahí. La salida de la base es la de la primera parada hecha menos lo de antes (tramos y servicios). Sin nada hecho, D-602 tal cual. Un punto hecho entero no lleva llegada estimada (la suya es la del plan, D-671). La medida guarda los tramos (`reloj`) y el hook rehace horas y tarjeta con las órdenes de ahora al cambiar (`conHorasDeAhora`), sin otra llamada al router.
 
-**Decidido sin preguntar:** lo pendiente detrás de la última hecha NO se sube a «ahora»: si el chofer va tarde, la hora sale pasada (era la regla pedida). Una recogida agrupada con una orden hecha y otras no toma la hora de la hecha.
+**Hoy, nunca en el pasado:** lo pendiente detrás de lo hecho llega a max(seguir desde la hora real, ahora + tramo desde la última parada hecha); otro día y sin nada hecho, como antes; la salida de la base sigue siendo la real. **Decidido sin preguntar:** una recogida agrupada con una orden hecha y otras no toma la hora de la hecha.
 
-**Pruebas:** `src/lib/eta-tras-lo-hecho.test.ts` (la forma de la captura; control sin nada hecho; ✓P3 suelta; una entrega hecha que vuelve a anclar; la medida y el repintado sin llamada). 3 mutantes del reloj, 3 caen.
+**Pruebas:** `src/lib/eta-tras-lo-hecho.test.ts` (la forma de la captura; control sin nada hecho; ✓P3 suelta; una entrega hecha que vuelve a anclar; la medida y el repintado sin llamada). 3 mutantes del reloj, 3 caen; y hoy a las 11:00 con P3 hecha a las 09:37, P1/P2 a las 11:00.
 
 **No medido:** en el navegador con la base real; la hora real es la que guarda la app del chofer (`pickup_gps_at`), no el GPS del camión.
