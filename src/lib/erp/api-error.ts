@@ -2,7 +2,6 @@
 // client shape: { error: { code, message, ref } }. No stack / file / source ever
 // reaches the client in production.
 import "server-only";
-import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { AppError, toClientError, type ClientError, type ErrorCode } from "@/lib/erp/error-codes";
 
@@ -35,7 +34,9 @@ export function classifyError(err: unknown): Classified {
 export function errorResponse(err: unknown, fallback?: ErrorCode): NextResponse {
   const c = classifyError(err);
   const code: ErrorCode = c.code === "UNKNOWN" && fallback ? fallback : c.code;
-  const ref = c.expected ? null : Sentry.captureException(err) || null;
+  // Sin Sentry (D-NEXT): el fallo va al log de Vercel con una referencia corta, la misma que ve el cliente.
+  const ref = c.expected ? null : crypto.randomUUID().slice(0, 8);
+  if (ref) console.error(`[${ref}]`, err);
   const error: ClientError & { detail?: string } = toClientError(code, ref);
   // Dev-only debugging aid — never serialized in production.
   if (process.env.NODE_ENV !== "production") error.detail = c.message;

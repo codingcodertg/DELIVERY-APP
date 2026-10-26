@@ -1,7 +1,6 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
-import * as Sentry from "@sentry/nextjs";
 import { installedApkVersion } from "@/lib/app-update";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { appForPath } from "@/lib/app-for-path";
@@ -41,7 +40,6 @@ export class ErrorBoundary extends Component<Props, State> {
     // veces al día deja de ser una anécdota de despliegue.
     if (isStaleChunkError(error) && canAutoReload()) {
       markAutoReload();
-      Sentry.captureException(error, { tags: { role: this.props.role ?? "unknown", staleChunk: "true" } });
       location.reload();
       return;
     }
@@ -49,10 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
     const apk = typeof navigator !== "undefined" ? installedApkVersion(navigator.userAgent) : null;
     // Se guarda además de mandarse: es lo que hace falta para el botón de copiar.
     this.setState({ componentStack: info.componentStack ?? null });
-    Sentry.captureException(error, {
-      tags: { role: this.props.role ?? "unknown", apkVersion: apk ?? "web" },
-      contexts: { react: { componentStack: info.componentStack } },
-    });
+    console.error(error, { role: this.props.role ?? "unknown", apkVersion: apk ?? "web", componentStack: info.componentStack });
   }
 
   /** Todo lo que hace falta para localizar el fallo, en texto plano. */
