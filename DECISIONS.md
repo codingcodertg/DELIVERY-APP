@@ -48343,7 +48343,7 @@ el «Sales rep» del Dashboard, el rótulo del historial (`assigned_sales_rep`) 
 **No medido:** no abierto en el navegador; el contraste del tinte no se volvió a medir (es el de D-435); el círculo del
 número de parada sigue apagado (opacidad 0,55) en una parada hecha: es la burbuja, no el fondo de la fila.
 
-## D-NEXT · Usuarios: «Crear usuario» desde un empleado rellena el alta y enlaza el expediente, otra vez (sin `actions/hr`)
+## D-699 · Usuarios: «Crear usuario» desde un empleado rellena el alta y enlaza el expediente, otra vez (sin `actions/hr`)
 
 **Pedido:** «para que ahí mismo se creen los users para cada employees» (lo de D-695, que se quitó en D-696).
 

@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/api-auth";
 import { expedienteQueSobra } from "@/lib/recruiting/usuarios-rrhh";
 
 // ============================================================
-// /api/recruiting/usuario-de-empleado (D-NEXT): lo que «Crear usuario» de Empleados necesita en /home/users.
+// /api/recruiting/usuario-de-empleado (D-699): lo que «Crear usuario» de Empleados necesita en /home/users.
 // GET  → `{ files }`: los expedientes que la RLS deja leer, solo las columnas de la precarga y `profile_id`.
 // POST · { fileId, profileId } → enlaza el expediente con la cuenta recién creada.
 // Es una ruta y no una acción de servidor a propósito: D-695 importaba `actions/hr` en la página de cliente y el build
