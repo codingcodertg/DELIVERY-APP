@@ -8,7 +8,7 @@ import { veSolicitudesDeUsuario } from "@/lib/recruiting/contratar";
 import { listUserCreationRequests, markUserCreationDone, type UserCreationRequest } from "@/app/recruiting/actions/contratar";
 
 /**
- * «Usuarios por crear» (D-NEXT, 201): las solicitudes que manda «Hire». Solo el admin de RR. HH. la ve. Es un
+ * «Usuarios por crear» (D-688, 201): las solicitudes que manda «Hire». Solo el admin de RR. HH. la ve. Es un
  * bloque suelto a propósito, para colgarlo donde haga falta (hoy, arriba de Employees). Sin la 201 no pinta nada.
  */
 export function UsuariosPorCrear() {

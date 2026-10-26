@@ -48184,7 +48184,7 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 - Prueba de puerta `etapas-idioma.test.ts`: cae si `stages` deja de salir traducida, si vuelve un aviso fijo en inglés al proveedor o si otra pantalla lee `stagesGuardadas`. Dos mutantes medidos, los dos caen.
 
 **No medido.** No se miró en el navegador ni contra los nombres reales de la tabla `stages` en producción: si el dueño ya renombró alguna etapa de fábrica, esa sigue con su nombre en los dos idiomas. Siguen en inglés los mensajes de error que devuelven las acciones de servidor (`actions/hr.ts`, se muestran tras «Error: ») y el texto que viene de la base (puestos, preguntas sin `text_es`, plantillas).
-## D-NEXT · «Hire» en el candidato y la lista «Usuarios por crear» para el admin
+## D-688 · «Hire» en el candidato y la lista «Usuarios por crear» para el admin
 
 **Pedido** (el dueño, 2026-10-26): «en candidates tiene que tener un hire button para que el manager o el admin le pongan que ese user fue hired y él mismo puede mandar un request al admin para decir, hey, ya está creado, créale el usuario.»
 

@@ -1,5 +1,5 @@
 /**
- * Contratar desde el candidato y pedir al admin que cree el usuario (D-NEXT, migración 201).
+ * Contratar desde el candidato y pedir al admin que cree el usuario (D-688, migración 201).
  *
  * Lo puro vive aquí para probarlo sin base: quién puede pulsar «Hire», qué ficha sale del candidato y cómo se
  * reconoce que la 201 aún no está aplicada (la pantalla sigue funcionando sin ella).

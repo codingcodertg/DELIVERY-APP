@@ -8,7 +8,7 @@ import { hireCandidate } from "@/app/recruiting/actions/contratar";
 import type { Candidate } from "@/lib/recruiting/types";
 
 /**
- * «Hire» en la ficha del candidato (D-NEXT, 201). Gerente y admin de RR. HH.: pasa el candidato a la etapa de
+ * «Hire» en la ficha del candidato (D-688, 201). Gerente y admin de RR. HH.: pasa el candidato a la etapa de
  * contratado, crea (o reusa) su expediente y, si se marca, pide al admin que le cree el usuario.
  */
 export function BotonContratar({ c }: { c: Candidate }) {

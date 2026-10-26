@@ -6,7 +6,7 @@ import { falta201, fichaDesdeCandidato, puedeContratar, veSolicitudesDeUsuario, 
 import { hoyEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 
 /**
- * «Hire» desde el candidato (D-NEXT, migración 201).
+ * «Hire» desde el candidato (D-688, migración 201).
  *
  * El cambio de etapa a `hired` lo hace la pantalla con `updateCandidate`, que es el camino que ya guarda el
  * historial de etapas. Esto hace lo que la etapa sola no hacía: el expediente del empleado (crearlo o reusar el
