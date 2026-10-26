@@ -48401,7 +48401,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** no abierto en el navegador (ni 390 px ni escritorio); no corrido `next build`: D-693/D-695 murieron por memoria en Vercel con el DataProvider del hub dentro de /recruiting, entonces con Sentry (quitado en D-700). Si Vercel vuelve a morir, es esta ruta.
 
-## D-NEXT · RR. HH.: el expediente se abre, y la baja se da desde dentro
+## D-705 · RR. HH.: el expediente se abre, y la baja se da desde dentro
 
 **Pedido:** «yo quiero ver el expediente. Y aquí ninguno de estos expedientes se pueden abrir en empleado. Yo le doy clic a eso y nada de eso se abre. Y hoy quiero abrir el expediente, ver qué documentos tiene. Y eso de darte baja y todo eso es, tiene que entrar al expediente y ahí darle baja. Y una vez se le da de baja, se tiene que, ya no tiene que volver a salir en ninguna de las aplicaciones. Y se va a una parte de ahí que son empleados dados de baja. Entonces todo eso se tiene que generalizar en un solo app, que va a ser el HR.»
 

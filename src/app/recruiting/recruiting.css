@@ -84,7 +84,7 @@
 .recruiting-module .menu-rrhh-lista a { display: block; padding: 9px 12px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14px; }
 .recruiting-module .menu-rrhh-lista a:hover, .recruiting-module .menu-rrhh-lista a:focus { background: var(--accent-soft); outline: none; }
 .recruiting-module .menu-rrhh-lista a.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
-/* D-NEXT: en Empleados la fila entera abre el expediente. */
+/* D-705: en Empleados la fila entera abre el expediente. */
 .recruiting-module tr.fila-abre { cursor: pointer; }
 .recruiting-module tr.fila-abre:hover td { background: var(--accent-soft); }
 .recruiting-module tr.fila-abre:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }

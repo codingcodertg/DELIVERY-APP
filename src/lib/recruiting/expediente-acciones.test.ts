@@ -125,7 +125,7 @@ describe("dar de baja: fecha, motivo de una lista corta, nota y quién", () => {
     expect(cuerpo).toContain('if (normalizaMotivoBaja(datos.motivo) === undefined) return { ok: false');
   });
 
-  it("D-NEXT: «Dar de baja» y «Reactivar» están SOLO en la ficha (no en la fila), y solo los enciende el admin de RR. HH.", () => {
+  it("D-705: «Dar de baja» y «Reactivar» están SOLO en la ficha (no en la fila), y solo los enciende el admin de RR. HH.", () => {
     expect(puedeDarDeBaja("admin")).toBe(true);
     expect(puedeDarDeBaja("manager")).toBe(false);
     expect(puedeDarDeBaja("recruiter")).toBe(false);

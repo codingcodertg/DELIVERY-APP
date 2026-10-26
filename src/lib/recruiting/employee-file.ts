@@ -47,7 +47,7 @@ export interface EmployeeFileRow {
 export type EstadoEmpleado = "activo" | "baja";
 
 /** Activo mientras no haya fecha de salida. No hay tercer estado, y no hay columna.
- *  D-NEXT: y mientras la fecha no haya llegado. Una baja con fecha de mañana sigue trabajando hoy; el dueño: «una vez
+ *  D-705: y mientras la fecha no haya llegado. Una baja con fecha de mañana sigue trabajando hoy; el dueño: «una vez
  *  se le da de baja … ya no tiene que volver a salir en ninguna de las aplicaciones». Se compara con hoy en
  *  Brownsville (`hoyLocalISO`), como texto AAAA-MM-DD. */
 export function estadoEmpleado(f: Pick<EmployeeFileRow, "date_left">, hoy: string = hoyLocalISO()): EstadoEmpleado {

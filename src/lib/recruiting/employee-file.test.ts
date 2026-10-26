@@ -416,7 +416,7 @@ describe("la barrera del servidor: solo un admin cambia el grupo del directorio"
   });
 });
 
-describe("D-NEXT: de baja es la fecha que ya llegó", () => {
+describe("D-705: de baja es la fecha que ya llegó", () => {
   it("sin fecha, activo; con fecha de hoy o pasada, baja; con fecha futura, todavía activo", () => {
     expect(estadoEmpleado({ date_left: null }, "2026-10-26")).toBe("activo");
     expect(estadoEmpleado({ date_left: "  " }, "2026-10-26")).toBe("activo");

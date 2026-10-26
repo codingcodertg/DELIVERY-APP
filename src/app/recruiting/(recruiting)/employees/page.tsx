@@ -187,7 +187,7 @@ export default function EmployeeFilesPage() {
                 const sinLlenar = camposQueFaltan(r, con159);
                 const deBaja = estadoEmpleado(r) === "baja";
                 return (
-                  // D-NEXT: la fila entera abre el expediente (antes solo «✏️ Editar»: la fila no tenía manejador, y
+                  // D-705: la fila entera abre el expediente (antes solo «✏️ Editar»: la fila no tenía manejador, y
                   // la celda «Expediente» era una insignia sin clic). Con teclado: Tab hasta la fila y Enter o espacio.
                   <tr key={r.id} data-fila={r.id} className={"fila-abre" + (deBaja ? " atenuado" : "")} tabIndex={0}
                     aria-label={t("Open file of ", "Abrir expediente de ") + r.full_name}
@@ -256,7 +256,7 @@ export default function EmployeeFilesPage() {
                           🔑 {t("Create user", "Crear usuario")}
                         </Link>
                       )}
-                      {/* D-NEXT: «Dar de baja» y «Reactivar» ya no están en la fila: se dan desde dentro del expediente. */}
+                      {/* D-705: «Dar de baja» y «Reactivar» ya no están en la fila: se dan desde dentro del expediente. */}
                       <button className="btn btn-ghost btn-sm" data-accion="editar" onClick={() => setAbierto(r.id)}>
                         📂 {t("Open file", "Abrir expediente")}
                       </button>
