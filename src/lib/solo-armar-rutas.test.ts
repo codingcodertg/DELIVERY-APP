@@ -79,7 +79,7 @@ describe("medir la ruta sin reordenarla", () => {
     // D-444 cada recogida es su fila, y cinco cajas de la misma tienda eran 100 minutos. Ahora las recogidas seguidas en la
     // misma tienda son UNA visita (`minutosEnCadaParada`), como en el optimizador y en «Armar rutas». Y la base de la medida es
     // la del chofer (`baseDeLaRuta`), no la dirección de recogida más repetida. Ver `optimizar-desde-el-gestor.test.ts`.
-    expect(mide).toContain("if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i] });");
+    expect(mide).toContain("if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i], tipo: \"P\", ordenes: p.ordenes });");
     for (const escribe of ["updateDelivery(", "reorderStops(", "addNote("]) expect(mide).not.toContain(escribe);
     const pinta = trozo("const pintaLaMedida =", "const mide = async", medida);
     for (const escribe of ["updateDelivery(", "reorderStops("]) expect(pinta).not.toContain(escribe);

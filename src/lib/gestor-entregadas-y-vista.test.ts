@@ -154,9 +154,10 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       expect(pagina).toContain("const hayFilas = stops.length > 0 || hechas.length > 0;");
       expect(pagina).toContain("{hayFilas && ( <> <BarraSuperior caja={cajaDeParadas(u.key)} />");
     });
-    it("la fila hecha: ✓, el verde de `row-done`, la hora real, y NINGÚN control —ni flechas, ni «Pasar a…», ni ✕, ni arrastre, ni sitio donde soltar—", () => {
+    it("la fila hecha: ✓, sin el verde de `row-done` (D-691), la hora real, y NINGÚN control —ni flechas, ni «Pasar a…», ni ✕, ni arrastre, ni sitio donde soltar—", () => {
       const fila = trozo("const filaYaHecha = (fp: Extract<FilaPintada, { hecha: true }>, k: number) => {", "// Nadie la ordenó");
-      expect(fila).toContain('className={hecho ? "row-done fila-hecha" : "fila-hecha"}');
+      expect(fila).toContain('className="fila-hecha"');
+      expect(fila).not.toContain("row-done");
       // Nota D-529: con su número de parada del día y su etiqueta («③ ✓P2»), no solo «✓P».
       expect(fila).toContain('{numeroDeParada(k, hecho)}{hecho ? "✓" : "🚚"}{dia.etiqueta[k]}</td>');
       expect(fila).toContain("const hora = hecho ? horaReal(d, fp.tipo) : null;");

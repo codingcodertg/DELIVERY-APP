@@ -3175,7 +3175,7 @@ export default function RoutesPage() {
           const hora = hecho ? horaReal(d, fp.tipo) : null;
           const que = fp.tipo === "P" ? { en: "Picked up", es: "Recogida" } : hecho ? { en: "Delivered", es: "Entregada" } : { en: "On the truck, on its way", es: "En el camión, en camino" };
           return (
-            <tr key={`hecha-${fp.tipo}-${d.id}`} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className={hecho ? "row-done fila-hecha" : "fila-hecha"}
+            <tr key={`hecha-${fp.tipo}-${d.id}`} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className="fila-hecha"
               title={t(`${que.en}${hora ? ` at ${hora}` : ""} — it stays on the list; it can't be moved`, `${que.es}${hora ? ` a las ${hora}` : ""} — sigue en la lista; no se mueve`)}>
               {/* Su número de parada del día y su etiqueta (D-529; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
                   delviered dont take the number of the stop away». El ✓ o el 🚚 siguen diciendo que está hecha o en camino. */}
@@ -3675,9 +3675,9 @@ export default function RoutesPage() {
                       return (
                         <tr
                           key={d.id}
-                          // Delivered stops tint green, so the route visibly fills in over the day. Isolating a stop still
-                          // wins — that's a deliberate pick.
-                          className={`clickable${d.stage === "delivered" && !isolated ? " row-done" : ""}${claseDeGrupo(f)}${claseDeSoltar}`}
+                          // Sin verde de entregada (D-691, Roberto: «Dont turn the rows green when a delivery is delivered»): la etapa ya lo dice.
+                          // Aislar una parada sigue pintándola con su fondo.
+                          className={`clickable${claseDeGrupo(f)}${claseDeSoltar}`}
                           data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
                           style={{ ...(isolated ? { background: "var(--accent-soft)" } : resaltada ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}) }}
                           data-recien-movida={resaltada ? "" : undefined}

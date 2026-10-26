@@ -12,7 +12,8 @@ const fila = pagina.slice(pagina.indexOf("const filaDeLaBase = "), pagina.indexO
 
 describe("la hora de la base", () => {
   it("la medida da la salida y la llegada a la base, con el tramo vacío de vuelta", () => {
-    expect(medida).toContain("if (vuelve) clock += (legs[puntos.length] ?? 0) / 60;");
+    // D-691: el reloj vive en `relojDeLaRuta`.
+    expect(readFileSync(join(process.cwd(), "src/lib/salida-de-la-medida.ts"), "utf8")).toContain("if (e.vuelve) clock += (e.legs[e.puntos.length] ?? 0) / 60;");
     expect(medida).toContain("start: fmtClock(salida), end: fmtClock(clock),");
   });
 
