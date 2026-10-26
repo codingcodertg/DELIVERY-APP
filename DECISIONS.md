@@ -48295,7 +48295,7 @@ usuario y cuántos no.
 
 **No medido:** no probado en el navegador ni con la base.
 
-## D-NEXT · Se quita el paso 3 de usuarios en RR. HH. (D-695): Vercel muere por memoria con él
+## D-696 · Se quita el paso 3 de usuarios en RR. HH. (D-695): Vercel muere por memoria con él
 
 **Medido:** el build de producción de D-695 (dpl_J8Bwp7Zd8TZjCKZcMP6abjMBDJMn) acabó en SIGKILL con «Out of Memory»; D-693 y
 D-694, sin él, construyeron. Lo que solo trae D-695 es que `/home/users` (página de cliente) importa acciones de servidor de
