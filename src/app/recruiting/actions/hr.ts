@@ -558,7 +558,7 @@ export async function listStoreNames(): Promise<{ ok: true; names: string[] } | 
 }
 
 /**
- * Horas y pagos del Time Tracker de una cuenta, para el expediente (D-NEXT).
+ * Horas y pagos del Time Tracker de una cuenta, para el expediente (D-686).
  *
  * Mismo patrón que `accountFactsFor`: la puerta es el tramo de RR. HH. (admin/gerente) y la
  * lectura va con la llave de servicio, acotada a ESA cuenta. No se usa el cliente del usuario

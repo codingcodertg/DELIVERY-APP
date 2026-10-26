@@ -48155,7 +48155,7 @@ repinta sin releer. Sin migración: la escritura ya la permite la 198.
 
 **No medido:** en el navegador con la base real.
 
-## D-NEXT · El expediente de RR. HH. enseña las horas y los pagos del Time Tracker
+## D-686 · El expediente de RR. HH. enseña las horas y los pagos del Time Tracker
 
 **Pedido:** «el time tracker. Se tienen que crear un expediente ahí mismo en el HR app donde estén todas las horas del
 time tracker de cada empleado históricamente y pagos que se hayan hecho tienen que ir ahí también.»

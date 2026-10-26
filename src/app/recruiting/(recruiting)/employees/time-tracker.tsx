@@ -8,7 +8,7 @@ import {
 } from "@/lib/recruiting/horas-del-expediente";
 
 /**
- * El bloque «Time Tracker» del expediente (D-NEXT): todas las semanas con horas y todos los
+ * El bloque «Time Tracker» del expediente (D-686): todas las semanas con horas y todos los
  * pagos de esa cuenta, de lo más reciente a lo más viejo. Solo lectura; se carga al abrir la ficha.
  */
 export function BloqueTimeTracker({ profileId }: { profileId: string | null }) {

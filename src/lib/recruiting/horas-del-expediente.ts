@@ -1,5 +1,5 @@
 /**
- * Las horas y los pagos del Time Tracker dentro del expediente de RR. HH. (D-NEXT).
+ * Las horas y los pagos del Time Tracker dentro del expediente de RR. HH. (D-686).
  *
  * Funciones puras: la acción de servidor lee las filas crudas y esto decide cómo se pintan.
  * Nada de esto escribe en la base.
