@@ -20,6 +20,10 @@ import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen
 import { almacenDemo } from "@/lib/customers/demo";
 import { FichaEnVentana, selCls } from "./FichaDeCliente";
 import { AsignarVendedores } from "./AsignarVendedores";
+import { BarraDeSeleccion } from "./BarraDeSeleccion";
+import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "@/lib/customers/seleccion";
+import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
+import type { Parche } from "@/lib/customers/reglas";
 import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas, tiendasDeLaEmpresa } from "@/lib/customers/empresas";
 import { alPulsarCabecera, esOrdenInicial, filtraEmpresas, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
 import {
@@ -58,6 +62,15 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo:
   const [ficha, setFicha] = useState<Ficha | null>(null);
   // D-684: «Asignar vendedores» de golpe, solo el admin.
   const [asignando, setAsignando] = useState(false);
+  // D-NEXT: elegir varios clientes (filas de la base, todas las tiendas de cada empresa marcada) y hacerles lo mismo.
+  const [elegidos, setElegidos] = useState<Set<number>>(() => new Set());
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  useEffect(() => {
+    if (!esAdmin) return;
+    let cancelado = false;
+    void almacen.vendedores().then((r) => { if (!cancelado && r.ok) setVendedores(vendedoresEnOrden(r.valor)); });
+    return () => { cancelado = true; };
+  }, [almacen, esAdmin]);
   const cajaRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(async () => {
@@ -152,6 +165,12 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo:
 
   /** Lo que devolvió la base se pone en su sitio. */
   // `creados`: en un alta en varias tiendas (D-664), todas las filas nuevas, para que la ventana enseñe sus pastillas.
+  // Lo que la barra guardó, pintado sin releer: el parche, y el nombre del vendedor si lo lleva.
+  const alGuardarVarios = (ids: readonly number[], parche: Parche) => {
+    const set = new Set(ids);
+    const conNombre = "rep_id" in parche ? { rep_name: vendedores.find((v) => v.id === parche.rep_id)?.full_name ?? null } : {};
+    setLista((l) => l.map((c) => (set.has(c.id) ? ({ ...c, ...(parche as Partial<Cliente>), ...conNombre } as Cliente) : c)));
+  };
   const alAsignar = (ids: number[], v: { id: string; full_name: string } | null) => {
     const set = new Set(ids);
     setLista((l) => l.map((c) => (set.has(c.id) ? { ...c, rep_id: v?.id ?? null, rep_name: v?.full_name ?? null } : c)));
@@ -274,6 +293,10 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo:
           caja lleva alto propio (el de la ventana menos 150 px, el de `.tbl-caja`): se desplaza ella en las dos direcciones, la
           cabecera se pega a su borde de arriba (`sticky top-0`) y su barra de abajo queda en pantalla; `BarraSuperior` pone
           otra encima de la cabecera que mueve la caja a lo ancho. */}
+      {estado.tipo === "listo" && esAdmin && elegidos.size > 0 && (
+        <BarraDeSeleccion ids={[...elegidos]} empresas={empresasElegidas(elegidos, visibles)} totalVisibles={visibles.length} vendedores={vendedores}
+          almacen={almacen} onGuardados={alGuardarVarios} onTodas={() => setElegidos((s) => marcaTodas(s, visibles))} onLimpia={() => setElegidos(new Set())} t={t} />
+      )}
       {estado.tipo === "listo" && <BarraSuperior caja={cajaRef} />}
       {estado.tipo === "listo" && (
         <div ref={cajaRef} data-caja-de-clientes className="max-h-[calc(100dvh-150px)] overflow-auto rounded-lg border border-slate-200 bg-white">
@@ -354,6 +377,12 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo:
                       title={col.key === "account" ? c.account : col.key === "store" ? undefined : celda(c, col.key, t)}>
                       {col.key === "account" ? (
                         <span className="inline-flex items-center gap-1.5">
+                          {/* D-NEXT: la casilla para elegir la empresa entera (todas sus tiendas). Su clic no abre la ficha. */}
+                          {esAdmin && (
+                            <input type="checkbox" className="h-4 w-4 shrink-0 cursor-pointer accent-clay-600" checked={estaMarcada(elegidos, filas.map((f) => f.id))}
+                              onClick={(e) => e.stopPropagation()} onChange={() => setElegidos((s) => alternaEmpresa(s, filas.map((f) => f.id)))}
+                              aria-label={t(`Select ${c.account}`, `Elegir ${c.account}`)} data-elegir={c.id} />
+                          )}
                           {estaArchivado(c) ? (
                             <>
                               <span className="line-through">{c.account}</span>

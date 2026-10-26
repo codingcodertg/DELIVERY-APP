@@ -45,6 +45,8 @@ export interface AlmacenDeClientes {
   vendedores(): Promise<Res<Vendedor[]>>;
   /** D-684: pone el vendedor (null = libre) a muchas filas de golpe; devuelve cuántas cambió la base. */
   asignarVendedor(ids: readonly number[], repId: string | null): Promise<Res<number>>;
+  /** D-NEXT: el mismo parche a muchas filas de golpe (la barra de lo elegido); devuelve cuántas cambió la base. */
+  guardarVarios(ids: readonly number[], parche: Parche): Promise<Res<number>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -155,11 +157,12 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       if (!data) return sinFila();
       return { ok: true, valor: (await conNombres([clienteDeLaBase(data as unknown as Record<string, unknown>)]))[0] };
     },
-    async asignarVendedor(ids, repId) {
+    async asignarVendedor(ids, repId) { return almacen.guardarVarios(ids, { rep_id: repId }); },
+    async guardarVarios(ids, parche) {
       // Por tandas: una URL con miles de ids se corta. Cuenta lo que la base devuelve (una fila que la RLS no deja, no vuelve).
       let n = 0;
       for (let i = 0; i < ids.length; i += 200) {
-        const { data, error } = await sb.from("customers").update({ rep_id: repId }).in("id", ids.slice(i, i + 200) as number[]).select("id");
+        const { data, error } = await sb.from("customers").update(parche).in("id", ids.slice(i, i + 200) as number[]).select("id");
         if (error) return fallo(error);
         n += (data ?? []).length;
       }

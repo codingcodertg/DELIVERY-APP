@@ -77,13 +77,14 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   const almacen: AlmacenDeClientes = {
     async leer() { return { ok: true, valor: lista.map((c) => ({ ...c })) }; },
     async vendedores() { return { ok: true, valor: VENDEDORES_DEMO.map((v) => ({ ...v })) }; },
-    async asignarVendedor(ids, repId) {
+    async asignarVendedor(ids, repId) { return almacen.guardarVarios(ids, { rep_id: repId }); },
+    async guardarVarios(ids, parche: Parche) {
       const set = new Set(ids);
       let n = 0;
       lista = lista.map((c) => {
         if (!set.has(c.id)) return c;
         n++;
-        return conVendedores([{ ...c, rep_id: repId }], NOMBRES_DEMO)[0];
+        return conVendedores([{ ...c, ...(parche as Partial<Cliente>) }], NOMBRES_DEMO)[0];
       });
       return { ok: true, valor: n };
     },
