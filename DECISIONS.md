@@ -48221,7 +48221,7 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 
 **No medido:** en el navegador.
 
-## D-NEXT · Gestor: con parte de la ruta hecha, la llegada de lo pendiente sigue desde la última parada hecha, y la base «sale» cuando salió
+**Además, en la misma entrega — Gestor: con parte de la ruta hecha, la llegada de lo pendiente sigue desde la última parada hecha, y la base «sale» cuando salió:**
 
 **Fecha:** 2026-10-26. **Pedido:** Roberto Rodriguez Jr (admin), 1.405.0, ruta de Julio Jijon: «Something is still off with the ETAs». Captura: «Base: leaves 10:31», P1 y P2 (RDZ Pharr, pendientes) 10:31, ✓P3 (RDZ Pharr) recogida a las 09:37, D1 (Weslaco) 11:25.
 
