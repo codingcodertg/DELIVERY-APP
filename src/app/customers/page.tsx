@@ -20,7 +20,7 @@ export default async function CustomersPage() {
     return (
       <>
         <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" moduleAccess={null} />
-        <Clientes demo puedeEditar userId="demo" />
+        <Clientes demo puedeEditar esAdmin userId="demo" />
       </>
     );
   }
@@ -45,7 +45,7 @@ export default async function CustomersPage() {
         moduleAccess={moduleAccess}
       />
       {/* El id va a la clave de las columnas elegidas (por persona, en el navegador). Sin sesión no se llega aquí (layout). */}
-      <Clientes demo={false} puedeEditar={puedeEditar(role)} userId={user?.id ?? "anon"} />
+      <Clientes demo={false} puedeEditar={puedeEditar(role)} esAdmin={role === "admin"} userId={user?.id ?? "anon"} />
     </>
   );
 }

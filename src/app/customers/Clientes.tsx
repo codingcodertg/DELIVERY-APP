@@ -19,6 +19,7 @@ import { ANCHO_MINIMO, ANCHO_POR_DEFECTO, anchoDePartida, claveDeAncho, llaveDeA
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
 import { FichaEnVentana, selCls } from "./FichaDeCliente";
+import { AsignarVendedores } from "./AsignarVendedores";
 import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas, tiendasDeLaEmpresa } from "@/lib/customers/empresas";
 import { alPulsarCabecera, esOrdenInicial, filtraEmpresas, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
 import {
@@ -41,7 +42,7 @@ const TANDA = 100;
  * probadas sin navegador; la base las vuelve a exigir (RLS de la 180). Este componente lee, filtra y pinta, y cada
  * escritura va por el almacén, que devuelve la fila como quedó en la base: eso es lo que se pinta.
  */
-export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEditar: boolean; userId: string }) {
+export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; userId: string }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 
@@ -55,6 +56,8 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
   const [cuantos, setCuantos] = useState(TANDA);
   const [ficha, setFicha] = useState<Ficha | null>(null);
+  // D-NEXT: «Asignar vendedores» de golpe, solo el admin.
+  const [asignando, setAsignando] = useState(false);
   const cajaRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(async () => {
@@ -149,6 +152,10 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
 
   /** Lo que devolvió la base se pone en su sitio. */
   // `creados`: en un alta en varias tiendas (D-664), todas las filas nuevas, para que la ventana enseñe sus pastillas.
+  const alAsignar = (ids: number[], v: { id: string; full_name: string } | null) => {
+    const set = new Set(ids);
+    setLista((l) => l.map((c) => (set.has(c.id) ? { ...c, rep_id: v?.id ?? null, rep_name: v?.full_name ?? null } : c)));
+  };
   const alGuardar = (c: Cliente, creados: Cliente[] = []) => {
     const nuevas = [c, ...creados.filter((x) => x.id !== c.id)];
     setLista((l) => nuevas.reduce((acc, n) => (acc.some((x) => x.id === n.id) ? acc.map((x) => (x.id === n.id ? n : x)) : [...acc, n]), l));
@@ -183,6 +190,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
               onRestablece: () => cambiaColumnas((p) => ({ ...p, orden: null })),
             }}
           />
+          {esAdmin && <Button variant="outline" onClick={() => setAsignando(true)} data-abrir-asignar-vendedores>👤 {t("Assign sales reps", "Asignar vendedores")}</Button>}
           {puedeEditar && <Button onClick={() => setFicha({ tipo: "nuevo" })}>+ {t("New customer", "Nuevo cliente")}</Button>}
         </div>
       </div>
@@ -456,6 +464,7 @@ export function Clientes({ demo, puedeEditar, userId }: { demo: boolean; puedeEd
           t={t}
         />
       )}
+      {esAdmin && asignando && <AsignarVendedores lista={lista} almacen={almacen} onAsignados={alAsignar} onClose={() => setAsignando(false)} t={t} />}
     </main>
   );
 }

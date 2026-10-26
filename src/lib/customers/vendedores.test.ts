@@ -7,7 +7,8 @@ import { almacenDeLaBase, COLUMNAS, COLUMNAS_DE_LA_198, COLUMNAS_SIN_198, leeCon
 import { almacenDemo, CLIENTES_DEMO, VENDEDORES_DEMO } from "./demo";
 import { filasDeLaEmpresa } from "./empresas";
 import { CAMPOS, celda, clienteDeLaBase, COLUMNAS as COLUMNAS_DE_LA_LISTA, COLUMNAS_INICIALES, puedeEditar, textoDeCampo, valorDeColumna, type Cliente } from "./reglas";
-import { conVendedores, nombresDeVendedores, vendedoresEnOrden } from "./vendedores";
+import { conVendedores, gruposPorIniciales, idsParaAsignar, inicialesDe, nombresDeVendedores, vendedoresEnOrden } from "./vendedores";
+import { AsignarVendedores } from "@/app/customers/AsignarVendedores";
 
 /* D-683 (198). El dueño, 2026-10-25: «the customer app has a sales rep assigned to each customer. Right now, they just
  * have initials […] they will only be able to see their own source customers and the customer assigned to them, and the
@@ -45,7 +46,7 @@ describe("el vendedor en el modelo", () => {
 });
 
 describe("la migración 198", () => {
-  const sql = leer("supabase/migrations/198_clientes_vendedor.sql");
+  const sql = leer("supabase/migrations/198_clientes_vendedor.sql").replace(/\r\n/g, "\n");
   const [cuerpo] = sql.split("-- @ledger-below");
   it("es la ÚLTIMA que define customers_can_write, y deja escribir al vendedor con la casilla", () => {
     const definen = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort()
@@ -125,5 +126,60 @@ describe("la ficha", () => {
     const ficha = leer("src/app/customers/FichaDeCliente.tsx");
     expect(ficha).toContain("almacen.vendedores().then((r) => { if (!cancelado && r.ok) setVendedores(vendedoresEnOrden(r.valor)); });");
     expect(ficha).toContain('{vendedores.map((v) => <option key={v.id} value={v.id}>{v.full_name}</option>)}');
+  });
+});
+
+describe("D-NEXT: asignar vendedores de golpe (solo admin)", () => {
+  const c = (id: number, x: Partial<Cliente>): Cliente => ({ ...CLIENTES_DEMO[0], id, rep_store: null, rep_qb: null, rep_id: null, rep_name: null, archived_at: null, ...x });
+  const lista = [
+    c(1, { rep_store: " im " }), c(2, { rep_store: "IM", rep_id: "demo-ana", rep_name: "Ana Demo" }), c(3, { rep_qb: "IM" }),
+    c(4, { rep_store: "YG" }), c(5, { rep_store: "YG", archived_at: "2026-10-01" }), c(6, {}),
+  ];
+  it("las iniciales: rep_store y, si falta, rep_qb; en mayúsculas y sin espacios", () => {
+    expect(inicialesDe({ rep_store: " im ", rep_qb: "X" })).toBe("IM");
+    expect(inicialesDe({ rep_store: "", rep_qb: "yg" })).toBe("YG");
+    expect(inicialesDe({ rep_store: null, rep_qb: null })).toBeNull();
+  });
+  it("los grupos: de más a menos, sin archivados ni filas sin iniciales; cuántos sin vendedor y quién los tiene", () => {
+    const g = gruposPorIniciales(lista);
+    expect(g.map((x) => [x.iniciales, x.total, x.sinVendedor])).toEqual([["IM", 3, 2], ["YG", 1, 1]]);
+    expect(g[0].vendedores).toEqual([{ id: "demo-ana", nombre: "Ana Demo", n: 1 }]);
+    expect(idsParaAsignar(g[0], false)).toEqual([1, 3]);
+    expect(idsParaAsignar(g[0], true)).toEqual([1, 2, 3]);
+  });
+  it("el almacén demo asigna y cuenta; con null deja libre", async () => {
+    const a = almacenDemo();
+    const r = await a.asignarVendedor([1], "demo-beto");
+    expect(r.ok && r.valor).toBe(1);
+    const l = await a.leer();
+    expect(l.ok && l.valor.find((x) => x.id === 1)).toMatchObject({ rep_id: "demo-beto", rep_name: "Beto Demo" });
+    await a.asignarVendedor([1], null);
+    const l2 = await a.leer();
+    expect(l2.ok && l2.valor.find((x) => x.id === 1)).toMatchObject({ rep_id: null, rep_name: null });
+  });
+  it("el almacén real: por tandas de 200 con .in(id) y cuenta lo que vuelve; cero filas es un fallo", async () => {
+    const llamadas: unknown[][] = [];
+    const cadena: Record<string, unknown> = {};
+    Object.assign(cadena, {
+      update: (x: unknown) => { llamadas.push(["update", x]); return cadena; },
+      in: (_k: string, ids: number[]) => { llamadas.push(["in", ids.length]); return cadena; },
+      select: () => Promise.resolve({ data: (llamadas.at(-1)![1] === 0 ? [] : [{ id: 1 }, { id: 2 }]), error: null }),
+    });
+    const sb = { from: () => cadena } as any;
+    const ids = Array.from({ length: 450 }, (_, i) => i + 1);
+    const r = await almacenDeLaBase(sb).asignarVendedor(ids, "u-ana");
+    expect(llamadas.filter((x) => x[0] === "in").map((x) => x[1])).toEqual([200, 200, 50]);
+    expect(llamadas.find((x) => x[0] === "update")![1]).toEqual({ rep_id: "u-ana" });
+    expect(r.ok && r.valor).toBe(6);
+  });
+  it("la ventana: una fila por iniciales con su desplegable y su botón; y el botón de abrirla solo para el admin", () => {
+    const html = renderToStaticMarkup(createElement(AsignarVendedores, { lista, almacen: almacenDemo(), onAsignados: () => {}, onClose: () => {}, t }));
+    expect([...html.matchAll(/data-grupo-de-iniciales="(\w+)"/g)].map((m) => m[1])).toEqual(["IM", "YG"]);
+    expect(html).toMatch(/<button[^>]*data-asignar="IM"[^>]*>Asignar 2<\/button>/);
+    expect(html).toContain('data-vendedor-para="YG"');
+    const clientes = leer("src/app/customers/Clientes.tsx");
+    expect(clientes).toContain("{esAdmin && <Button variant=\"outline\" onClick={() => setAsignando(true)} data-abrir-asignar-vendedores>");
+    expect(clientes).toContain("{esAdmin && asignando && <AsignarVendedores");
+    expect(leer("src/app/customers/page.tsx")).toContain('esAdmin={role === "admin"}');
   });
 });
