@@ -455,7 +455,7 @@ function Ficha({
         )}
 
       <div className="sec-head">
-        <span className="sec-title">INFO</span>
+        <span className="sec-title">{t("INFO", "DATOS")}</span>
       </div>
       <div className="grid g3">
         {/* El nombre (con cuenta manda el del perfil, que se cambia en Usuarios). */}
