@@ -1,7 +1,7 @@
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 
 /**
- * D-NEXT: la tabla de Empleados como la de Órdenes. El dueño: «que uno pueda resize las columnas, buscar, sort, todo
+ * D-706: la tabla de Empleados como la de Órdenes. El dueño: «que uno pueda resize las columnas, buscar, sort, todo
  * eso y exportar todo eso». Las piezas son las de siempre (`useOrdenYFiltro`, `CabeceraConMenu`, `useColWidthMap`,
  * `toCSV`); aquí solo lo propio de esta tabla: qué columnas hay, qué valor da cada una, la búsqueda, y qué se exporta.
  * Lo exportado sale de las filas ya cargadas y ya filtradas: la RLS decidió qué llega, y el filtro, qué se ve.

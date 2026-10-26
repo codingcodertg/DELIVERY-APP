@@ -90,7 +90,7 @@ export default function EmployeeFilesPage() {
     .filter((r) => filtraPorCuenta([r], filtroCuenta).length > 0);
   const porCuenta = cuentaPorCuenta(delEstado);
 
-  // D-NEXT: la tabla como la de Órdenes: menú ▾ por columna (ordenar + filtrar), anchos que se arrastran y se
+  // D-706: la tabla como la de Órdenes: menú ▾ por columna (ordenar + filtrar), anchos que se arrastran y se
   // guardan en este navegador, y exportar lo que se ve (las filas que la RLS dejó cargar, con los filtros puestos).
   const valorDe = useCallback((clave: string, r: Fila) => valorDeEmpleado(clave, { ...r, store: tiendaVisible(r) }, {
     sinLlenar: camposQueFaltan(r, con159).length,

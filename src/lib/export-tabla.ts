@@ -1,4 +1,4 @@
-// D-NEXT: Excel de una tabla cualquiera (cabeceras + filas ya calculadas), para las tablas que no son Órdenes.
+// D-706: Excel de una tabla cualquiera (cabeceras + filas ya calculadas), para las tablas que no son Órdenes.
 // exceljs se carga al pulsar, como en lib/export.ts (G-20, D-209): no entra en el trozo inicial de la página.
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 

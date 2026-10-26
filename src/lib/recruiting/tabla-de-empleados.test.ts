@@ -7,7 +7,7 @@ const ana = { full_name: "Ana Núñez", job_title: "Cajera", department: "Ventas
 const beto = { full_name: "Beto Ruiz", job_title: " ", department: null, store: null, phone: null, ringcentral_ext: null,
   date_hired: null, date_left: "2026-10-01", email: null, personal_email: "beto@gmail.com", profile_id: null };
 
-describe("D-NEXT: tabla de Empleados", () => {
+describe("D-706: tabla de Empleados", () => {
   it("cada columna da su valor; vacío o en blanco es null", () => {
     const c = { sinLlenar: 0, papelesQueFaltan: 2 };
     expect(COLUMNAS_DE_EMPLEADOS.map((k) => valorDeEmpleado(k.key, ana, c, t))).toEqual(

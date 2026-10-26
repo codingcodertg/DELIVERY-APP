@@ -76,7 +76,7 @@ describe("a quién le pasaba y quién se beneficia", () => {
     // aflojarlo a un «al menos» dejaría de avisar del caso que esta prueba existe para ver, una
     // tabla redimensionable sin su marco.
     // **Seis** otra vez desde D-376: la pestaña «Programadas» del Gestor de Rutas se quitó, y su tabla con ella.
-    // **Siete** con D-NEXT: la tabla de Empleados de RR. HH., como la de Órdenes.
+    // **Siete** con D-706: la tabla de Empleados de RR. HH., como la de Órdenes.
     expect(marcos).toBe(7);
   });
 });
