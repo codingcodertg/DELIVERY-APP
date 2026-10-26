@@ -20,8 +20,9 @@ import type { Delivery, NamedLocation } from "@/lib/types";
  * (los tintes, en `globals.css`, con su par oscuro). El dueño, 2026-09-28: «quiero que en esa misma table las pickup toda la
  * row este highlited pero bien suave de verde y las deliveries de amarillo para poder identificarlas mejor».
  */
-export function claseDeLaFilaDelPlan(kind: "P" | "D"): "fila-plan-recoger" | "fila-plan-entregar" {
-  return kind === "P" ? "fila-plan-recoger" : "fila-plan-entregar";
+export function claseDeLaFilaDelPlan(kind: "P" | "D"): "fila-plan-recoger" | "" {
+  // D-698: la entrega ya no lleva tinte. El dueño, 2026-10-26: «Pickups are one color, deliveries dont have a color».
+  return kind === "P" ? "fila-plan-recoger" : "";
 }
 
 /** Builder, Intertienda, Venta al mostrador o Proveedor. `null`: la orden aún no tiene tipo de orden, y no se sabe. */

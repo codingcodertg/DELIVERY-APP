@@ -131,7 +131,7 @@ export function RutaDelPlan({ rutas, facturaDeOrden, abrirOrden, ajuste, columna
     return (
       <Fragment key={`${p.seq}`}>
       {/* D-435: recogida en verde muy suave, entrega en amarillo, la fila entera (los tintes, en `globals.css`). */}
-      <tr className={claseDeLaFilaDelPlan(p.kind)}>
+      <tr className={claseDeLaFilaDelPlan(p.kind) || undefined}>
         <td title={p.kind === "P" ? t("Pick up", "Recoger") : t("Deliver", "Entregar")}><b>{p.label}</b>{p.pinned && <span title={t("Pinned", "Fijada")}> 📌</span>}
           {quieta && <span data-no-se-mueve title={t("No longer pending that day (picked up, delivered, canceled or moved): it isn't moved or rewritten", "Ya no está pendiente ese día (recogida, entregada, anulada o movida): no se mueve ni se reescribe")}> 🔒</span>}</td>
         <td>

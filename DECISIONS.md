@@ -48323,3 +48323,22 @@ la 203 solo lee `name` y `phones` del primero. Leído en las migraciones del rep
 
 **No medido:** no probado en el navegador ni contra la base; no se copió el sitio web / dirección de la cuenta a ningún
 contacto (nada de datos en producción). La orden sigue tomando la dirección de la cuenta, no la del contacto.
+## D-698 · Entregas: color de fila solo para recogidas; «Sales rep» pasa a «User»
+
+**Pedido (Roberto, admin, 2026-10-26):** «Pickups are one color, deliveries dont have a color. Stage doesnt affect color of
+the row». Y en Órdenes: «Instead of sales rep lets call it User».
+
+**Qué cambia (color):** en el Gestor de rutas, toda fila de recogida (P) —tabla de paradas, la ya hecha, la tabla del plan
+(`RutaDelPlan`)— lleva UN tinte, `fila-plan-recoger` (verde suave, con su par oscuro en `--plan-recoger-bg`); las recogidas
+en grupo llevan el mismo tinte (antes uno más fuerte) y conservan su raya de inicio de grupo. Las entregas (D) no llevan
+fondo: `claseDeLaFilaDelPlan("D")` devuelve `""`, y se fueron `fila-plan-entregar`, `fila-grupo-entregar` y su raya ámbar.
+La etapa ya no cambia el color: se quitó `row-done` (el verde de «entregada» en la tabla de órdenes del Gestor, regla CSS
+incluida) y el gris de texto de `fila-hecha`. Lo demás de la fila hecha sigue: ✓/🚚, sin controles, no se marca, su título.
+Se queda el resaltado de la fila seleccionada. Las variables `--plan-entregar-bg`/`--grupo-*` quedan definidas sin uso.
+
+**Qué cambia (columna):** la columna `rep` de Órdenes y del Gestor se rotula «User» / «Usuario» (`OrdersTable.tsx`,
+`routes-columns.ts`); el nombre del campo y la clave no cambian. NO se tocó: el campo «Sales Rep» del formulario de la orden,
+el «Sales rep» del Dashboard, el rótulo del historial (`assigned_sales_rep`) ni el vendedor de Clientes: no son esa columna.
+
+**No medido:** no abierto en el navegador; el contraste del tinte no se volvió a medir (es el de D-435); el círculo del
+número de parada sigue apagado (opacidad 0,55) en una parada hecha: es la burbuja, no el fondo de la fila.

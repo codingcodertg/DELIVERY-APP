@@ -156,7 +156,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
     });
     it("la fila hecha: ✓, sin el verde de `row-done` (D-691), la hora real, y NINGÚN control —ni flechas, ni «Pasar a…», ni ✕, ni arrastre, ni sitio donde soltar—", () => {
       const fila = trozo("const filaYaHecha = (fp: Extract<FilaPintada, { hecha: true }>, k: number) => {", "// Nadie la ordenó");
-      expect(fila).toContain('className="fila-hecha"');
+      expect(fila).toContain('className={`fila-hecha${fp.tipo === "P" ? ` ${claseDeLaFilaDelPlan("P")}` : ""}`}'); // D-698: solo la recogida lleva tinte
       expect(fila).not.toContain("row-done");
       // Nota D-529: con su número de parada del día y su etiqueta («③ ✓P2»), no solo «✓P».
       expect(fila).toContain('{numeroDeParada(k, hecho)}{hecho ? "✓" : "🚚"}{dia.etiqueta[k]}</td>');
@@ -206,9 +206,10 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       const vaciar = trozo("const clearLane = async (laneKey: string) => {", "// Drivers on vacation/sick/maintenance");
       expect(vaciar).toContain('const stops = deliveries.filter((d) => (d.assigned_driver || "") === laneKey && !ETAPAS_HECHAS.has(d.stage));');
     });
-    it("el tono apagado de la fila hecha está en la hoja de estilos", () => {
-      expect(css).toContain("table.orders tr.fila-hecha td { color: var(--ink-soft); }");
-      expect(css).toContain("table.orders tr.row-done td { background: #e9f7f0; }");
+    it("D-698: la etapa no colorea la fila: ni el gris de la hecha ni el verde de `row-done`", () => {
+      expect(css).toContain("table.orders tr.fila-hecha .ordno"); // el bloque de la hecha sigue ahí: la búsqueda no está vacía
+      expect(css).not.toContain("tr.fila-hecha td {");
+      expect(css).not.toContain("tr.row-done td {");
     });
   });
 });

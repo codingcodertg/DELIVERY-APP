@@ -49,17 +49,18 @@ describe("la fila entera: recogida en verde muy suave, entrega en amarillo muy s
 
   it("cada parada lleva la clase de su tipo: P verde, D amarilla", () => {
     expect(claseDeLaFilaDelPlan("P")).toBe("fila-plan-recoger");
-    expect(claseDeLaFilaDelPlan("D")).toBe("fila-plan-entregar");
+    expect(claseDeLaFilaDelPlan("D")).toBe(""); // D-698: la entrega, sin color
   });
 
   it("la tabla la usa en la FILA (`<tr>`), no en una celda: se tiñen también la etiqueta, el ID y Ajustar", () => {
     const vista = plano(leer("src/components/RutaDelPlan.tsx"));
     // D-443: sin la raya de viaje que llevaba la fila (`otroViaje`).
-    expect(vista).toContain("<tr className={claseDeLaFilaDelPlan(p.kind)}>");
+    expect(vista).toContain("<tr className={claseDeLaFilaDelPlan(p.kind) || undefined}>");
     expect(vista).not.toContain("otroViaje");
     // Todas las celdas: la regla va sobre cada `td` de la fila.
     expect(plano(css)).toContain("table.orders tr.fila-plan-recoger td { background: var(--plan-recoger-bg); }");
-    expect(plano(css)).toContain("table.orders tr.fila-plan-entregar td { background: var(--plan-entregar-bg); }");
+    expect(plano(css)).not.toContain("tr.fila-plan-entregar td {"); // D-698: la entrega, sin tinte
+    expect(plano(css)).not.toContain("tr.fila-grupo-entregar td {");
   });
 
   it("los dos tintes tienen su par en oscuro, distinto del claro", () => {
