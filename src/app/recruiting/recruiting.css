@@ -78,6 +78,14 @@
 .recruiting-module .tab.active { background: var(--accent); color: #fff; }
 .recruiting-module .tab:hover:not(.active) { background: rgba(255,255,255,.08); }
 
+/* D-NEXT: los dos menús de la barra (Recruiting y HR). La lista va con `position: fixed` y la coloca TopBar con la
+   caja del botón: la fila de pestañas se desliza en el teléfono (overflow) y una lista `absolute` saldría recortada. */
+.recruiting-module .menu-rrhh-lista { position: fixed; z-index: 60; min-width: 200px; max-width: calc(100vw - 32px); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px; }
+.recruiting-module .menu-rrhh-lista a { display: block; padding: 9px 12px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14px; }
+.recruiting-module .menu-rrhh-lista a:hover, .recruiting-module .menu-rrhh-lista a:focus { background: var(--accent-soft); outline: none; }
+.recruiting-module .menu-rrhh-lista a.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.recruiting-module .tab.menu-rrhh { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: inherit; }
+
 .recruiting-module .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; }
 .recruiting-module .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
 .recruiting-module .card h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }

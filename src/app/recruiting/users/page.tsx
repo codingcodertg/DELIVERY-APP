@@ -12,5 +12,5 @@ import { redirect } from "next/navigation";
 // /login?next=/recruiting en vez de a /home/users. Fuera del grupo redirige siempre, como hace
 // src/app/(app)/users/page.tsx. No hay layout en src/app/recruiting que la vuelva a gatear.
 export default function RecruitingUsersPage() {
-  redirect("/home/users");
+  redirect("/recruiting/user-creation");
 }
