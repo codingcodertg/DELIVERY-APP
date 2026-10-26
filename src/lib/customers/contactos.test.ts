@@ -88,6 +88,11 @@ describe("la lista guardada (193)", () => {
       uno({ phones: ["(956) 555-0202"] }),
     ]);
     expect(normalizaContactos(null)).toEqual([]);
+    // D-NEXT: el sitio web y la dirección son de cada contacto; un contacto con solo eso se queda; sin ellos, ni la clave.
+    expect(normalizaContactos([{ name: "ana", website: " ana.example.com ", address: ["  12 Main St ", "", "  Laredo,  TX "].join("\r\n") }, { address: "5 Elm" }])).toEqual([
+      uno({ name: "ANA", website: "ana.example.com", address: ["12 Main St", "Laredo, TX"].join("\n") }), uno({ address: "5 Elm" }),
+    ]);
+    expect(Object.keys(normalizaContactos([{ name: "ana", website: " ", address: "" }])[0])).toEqual(["name", "title", "phones", "emails", "note"]);
     expect(normalizaContactos({})).toEqual([]);
   });
   it("el espejo de las cuatro columnas: nombre y cargo del primero, el primer teléfono y el primer correo de quien los tenga", () => {
@@ -123,7 +128,7 @@ describe("editar los contactos", () => {
   const antes = [uno({ name: "ANA", title: "OWNER", phones: ["(956) 555-0101"], emails: ["ana@x.example"] })];
   const fila = { contact_name: "ANA", contact_title: "OWNER", phone: "(956) 555-0101", email: "ana@x.example" };
   it("para editar: cada contacto con al menos un hueco de teléfono y uno de correo; sin contactos, uno en blanco", () => {
-    expect(enEdicion([uno({ name: "LEO" })])).toEqual([{ name: "LEO", title: "", phones: [""], emails: [""], note: "" }]);
+    expect(enEdicion([uno({ name: "LEO" })])).toEqual([{ name: "LEO", title: "", phones: [""], emails: [""], note: "", website: "", address: "" }]);
     expect(enEdicion([])).toEqual([contactoVacio()]);
     expect(deEdicion([contactoVacio()])).toEqual([]);
   });
@@ -132,6 +137,13 @@ describe("editar los contactos", () => {
     const deColumnas = contactosDe({ contact_name: null, contact_title: null, phone: "956-555-0101 - Omar", email: null });
     expect(parcheDeContactos(deColumnas, enEdicion(deColumnas), { contact_name: null, contact_title: null, phone: "956-555-0101 - Omar", email: null })).toEqual({});
     expect(parcheDeContactos([], [contactoVacio()], null)).toEqual({});
+  });
+  it("D-NEXT: el sitio web y la dirección de cada contacto se editan y se guardan en SU contacto", () => {
+    const dos = [uno({ name: "ANA", website: "ana.example.com" }), uno({ name: "LEO" })];
+    const ed = enEdicion(dos);
+    expect(ed.map((c) => [c.website, c.address])).toEqual([["ana.example.com", ""], ["", ""]]);
+    ed[1] = { ...ed[1], address: "5 Elm St" };
+    expect(parcheDeContactos(dos, ed, null).contacts).toEqual([uno({ name: "ANA", website: "ana.example.com" }), uno({ name: "LEO", address: "5 Elm St" })]);
   });
   it("con un cambio: la lista entera en formato, y del espejo solo lo que difiere de la fila", () => {
     const editados = enEdicion(antes);

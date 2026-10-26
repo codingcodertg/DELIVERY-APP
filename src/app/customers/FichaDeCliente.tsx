@@ -50,7 +50,8 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  *
  * La tarjeta «Contacto» abre con los contactos (D-668): leyendo, una pastilla por contacto (`ContactosParaVer`) y, si
  * la cuenta tiene redes sociales, la pastilla «🌐 Socials» (D-682, 197) con sus perfiles; editando, la lista que se
- * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). Debajo, la dirección.
+ * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). El sitio web y la dirección
+ * son de cada contacto (D-NEXT); los de la cuenta, en «Campos ocultos».
  */
 export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, redes, onRedes, vendedores, almacen, puedeEditar = false, t }: {
   cliente: Cliente | null;
@@ -326,6 +327,15 @@ function ContactosParaVer({ contactos, redes = {}, t }: { contactos: Contacto[];
             ))}
           </ul>
         )}
+        {/* D-NEXT: el sitio web y la dirección de este contacto (no los de la cuenta: sin los suyos, no sale nada). */}
+        {c.website && (
+          <div className="min-w-0 text-sm" data-web-de-contacto>
+            {webUrl(c.website)
+              ? <a href={webUrl(c.website)!} target="_blank" rel="noopener noreferrer" className="break-all text-clay-600 hover:underline">🌐 {c.website}</a>
+              : <span className="break-all text-slate-700">🌐 {c.website}</span>}
+          </div>
+        )}
+        {c.address && <p className="whitespace-pre-wrap break-words text-sm text-slate-700" data-direccion-de-contacto>📍 {c.address}</p>}
       </div>
       )}
     </div>
@@ -488,6 +498,16 @@ function ContactosParaEditar({ contactos, errores, onCambia, t }: { contactos: C
           <label className="block space-y-1">
             <span className={etiqueta}>{t("Note", "Nota")}</span>
             <Input value={c.note} onChange={(e) => cambia(i, { note: e.target.value })} placeholder={t("e.g. only for POs", "p. ej. solo para POs")} data-nota-de-contacto={i} />
+          </label>
+          {/* D-NEXT: «This should be under each contact and not to apply to all contacts». */}
+          <label className="block space-y-1">
+            <span className={etiqueta}>{t("Website", "Sitio web")}</span>
+            <Input value={c.website} onChange={(e) => cambia(i, { website: e.target.value })} placeholder="example.com" data-web-de-contacto={i} />
+          </label>
+          <label className="block space-y-1">
+            <span className={etiqueta}>{t("Address", "Dirección")}</span>
+            <textarea rows={2} value={c.address} onChange={(e) => cambia(i, { address: e.target.value })} data-direccion-de-contacto={i}
+              className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500" />
           </label>
         </fieldset>
       ))}
