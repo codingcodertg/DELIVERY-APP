@@ -7,6 +7,7 @@ import { usePrefs } from "@/lib/prefs";
 import { ROLE_ORDER, extraCaps, personBadge, roleLabel } from "@/lib/constants";
 import { avatarColor, initials } from "@/lib/utils";
 import { UsersImportModal } from "@/components/UsersImportModal";
+import { estaDadoDeBaja, soloActivos } from "@/lib/baja";
 import type { Profile, UserRole } from "@/lib/types";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
@@ -57,10 +58,14 @@ export function UsersManager({ header, prefill, onCreated }: {
   // Team grouped by assigned store, in the settings store order, with a final
   // bucket for users with no store (admin / logistics / office). Within a group,
   // sorted by role then name.
+  // D-NEXT: los dados de baja no se esconden aquí (las cuentas se administran desde esta pantalla), pero salen
+  // aparte, en «Dados de baja», cerrado. El equipo y sus grupos son solo los activos.
+  const activos = useMemo(() => soloActivos(users), [users]);
+  const deBaja = useMemo(() => users.filter((u) => estaDadoDeBaja(u.left_at)).sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")), [users]);
   const groups = useMemo(() => {
     const NO_STORE = "__none__";
     const byStore = new Map<string, Profile[]>();
-    for (const u of users) {
+    for (const u of activos) {
       const key = u.store || NO_STORE;
       (byStore.get(key) ?? byStore.set(key, []).get(key)!).push(u);
     }
@@ -70,7 +75,7 @@ export function UsersManager({ header, prefill, onCreated }: {
     if (byStore.has(NO_STORE)) out.push({ key: NO_STORE, label: t("No store (Admin / Office / Logistics)", "Sin tienda (Admin / Oficina / Logística)"), list: byStore.get(NO_STORE)! });
     for (const g of out) g.list.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role) || (a.full_name || "").localeCompare(b.full_name || ""));
     return out;
-  }, [users, settings.stores, t]);
+  }, [activos, settings.stores, t]);
 
   if (!me) return null;
 
@@ -255,7 +260,7 @@ export function UsersManager({ header, prefill, onCreated }: {
 
       <div className="card">
         <div className="page-head" style={{ marginBottom: 10 }}>
-          <h2 style={{ margin: 0 }}>{t("Team", "Equipo")} ({users.length})</h2>
+          <h2 style={{ margin: 0 }}>{t("Team", "Equipo")} ({activos.length})</h2>
           <label style={{ margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 6 }}>
             <input type="checkbox" checked={groupByStore} onChange={(e) => setGroupByStore(e.target.checked)} style={{ width: "auto" }} />
             {t("Group by store", "Agrupar por tienda")}
@@ -270,7 +275,15 @@ export function UsersManager({ header, prefill, onCreated }: {
                 {g.list.map(renderRow)}
               </div>
             ))
-          : users.map(renderRow)}
+          : activos.map(renderRow)}
+        {deBaja.length > 0 && (
+          <details style={{ marginTop: 16 }}>
+            <summary className="section-label" style={{ cursor: "pointer" }}>
+              {t("Terminated", "Dados de baja")} <span className="count-tag">{deBaja.length}</span>
+            </summary>
+            {deBaja.map(renderRow)}
+          </details>
+        )}
       </div>
 
       {bulk && <UsersImportModal onClose={() => setBulk(false)} />}

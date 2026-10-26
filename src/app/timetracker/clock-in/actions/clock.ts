@@ -1,6 +1,7 @@
 "use server";
 
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
+import { hoyEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { sitioDelFichaje, type ClienteDeSitios } from "@/lib/clockin/sitio-del-fichaje";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
@@ -567,8 +568,13 @@ export async function getCrewNow(): Promise<
   let peopleQ = supabase.from("profiles").select("id, full_name").eq("company_id", me.company_id).eq("active", true);
   if (suyas) peopleQ = peopleQ.in("store_id", suyas);
   if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
-  const { data: people } = await peopleQ.order("full_name");
-  const nombre = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
+  const [{ data: people }, { data: bajas }] = await Promise.all([
+    peopleQ.order("full_name"),
+    // D-NEXT: clockin.profiles no tiene la baja; la marca vive en public.profiles.left_at (205).
+    supabase.schema("public").from("profiles").select("id").not("left_at", "is", null).lte("left_at", hoyEnBrownsville()),
+  ]);
+  const deBaja = new Set(((bajas ?? []) as { id: string }[]).map((b) => b.id));
+  const nombre = new Map((people ?? []).filter((p) => !deBaja.has(p.id as string)).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
   const ids = [...nombre.keys()];
   const inIds = ids.length ? ids : NO_MATCH;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -74,7 +75,8 @@ export function RouteEngineSettings() {
   };
 
   // ---- Choferes ----
-  const choferes = useMemo(() => users.filter((u) => u.role === "driver").sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? "")), [users]);
+  const choferes = useMemo(() => soloActivos(users.filter((u) => u.role === "driver")).sort( // D-NEXT
+    (a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? "")), [users]);
   const [filas, setFilas] = useState<Record<string, Fila> | null>(null);
   const [sinTabla, setSinTabla] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);

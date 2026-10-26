@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { soloActivos } from "@/lib/baja";
 import { usePathname } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -59,7 +60,7 @@ export function ChatFlotante({ sinBurbuja = false }: { sinBurbuja?: boolean } = 
       if (!p || !vivo) return;
       setYo({ id: p.id, full_name: p.full_name ?? "", store: p.store ?? null, role: p.role ?? null });
       const [{ data: cs }, { data: ms }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, store, role, title").order("full_name"),
+        supabase.from("profiles").select("id, full_name, store, role, title, left_at").order("full_name"),
         supabase.from("chat_messages").select("id, from_user, to_user, body, created_at, read_at").order("created_at", { ascending: false }).limit(500),
       ]);
       if (!vivo) return;
@@ -119,7 +120,7 @@ export function ChatFlotante({ sinBurbuja = false }: { sinBurbuja?: boolean } = 
 
   const hora = (iso: string) => new Date(iso).toLocaleTimeString(lang === "es" ? "es-MX" : "en-US", { hour: "numeric", minute: "2-digit" });
   const nombreDe = (id: string) => porId.get(id)?.full_name ?? "…";
-  const lista = listaVisible(contactos, yo, busqueda);
+  const lista = listaVisible(soloActivos(contactos), yo, busqueda); // D-NEXT
   const recientes = hilosRecientes(h);
   const badge = sinLeer > 0 ? <span className="chat-badge" data-sin-leer={sinLeer}>{sinLeer > 99 ? "99+" : sinLeer}</span> : null;
 

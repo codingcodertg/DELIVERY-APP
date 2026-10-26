@@ -1,4 +1,5 @@
 import type { Stage, UserRole } from "./types";
+import { estaDadoDeBaja } from "./baja";
 import { APK_DOWNLOAD_URL } from "@/lib/app-update";
 import type { Lang } from "./prefs";
 import { PERMISO_OTRAS_TIENDAS, seOfreceOtrasTiendas } from "./leads/alcance";
@@ -820,9 +821,9 @@ export const ROLE_DEFAULT_COLUMNS: Partial<Record<UserRole, string[]>> = {
 
 /** Drivers come from the Users list — anyone with the "driver" role. They're
  * people, so they're managed in Users (one source of truth), not Settings. */
-export function driverNames(users: { full_name: string; role: UserRole }[]): string[] {
+export function driverNames(users: { full_name: string; role: UserRole; left_at?: string | null }[]): string[] {
   return users
-    .filter((u) => u.role === "driver")
+    .filter((u) => u.role === "driver" && !estaDadoDeBaja(u.left_at)) // D-NEXT: el de baja no se ofrece
     .map((u) => u.full_name)
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b));

@@ -26,6 +26,7 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
     from: (tabla: string) => ({
       select: () => ({
+        or: () => ({ order: async () => ({ data: tabla === "profiles" ? falso.perfiles : [], error: null }) }), // D-NEXT
         order: async () => ({ data: tabla === "profiles" ? falso.perfiles : [], error: null }),
         eq: () => ({ maybeSingle: async () => ({ data: { stores: [{ name: "Tienda Norte" }, { name: "Tienda Sur" }] } }) }),
       }),

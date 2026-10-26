@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/data-provider";
 import { useSoloLectura } from "@/lib/gestor/solo-lectura";
 import { useSoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
@@ -748,16 +749,18 @@ export default function RoutesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, settings.driver_colors, veCamiones, miChofer, alcanceChoferes, choferesConParada]);
 
-  const drivers = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
-  const realDriverNames = useMemo(() => new Set(drivers.map((d) => d.full_name)), [drivers]);
+  // D-NEXT: el de baja no tiene carril propio; si aún tiene órdenes ese día sale como carril huérfano (carrilesDelDia).
+  const todosLosChoferes = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
+  const drivers = useMemo(() => soloActivos(todosLosChoferes), [todosLosChoferes]);
+  const realDriverNames = useMemo(() => new Set(todosLosChoferes.map((d) => d.full_name)), [todosLosChoferes]);
   const isRealDriver = (name: string) => realDriverNames.has(name);
 
   // "Route buckets" — build routes before a real driver exists. Each bucket is a
   // pseudo-driver (its name lives in assigned_driver) so the whole route
   // machinery works on it; later the route is handed to an actual driver.
   const bucketNames = useMemo(
-    () => (settings.route_buckets ?? []).filter((n) => !drivers.some((d) => d.full_name === n)),
-    [settings.route_buckets, drivers],
+    () => (settings.route_buckets ?? []).filter((n) => !todosLosChoferes.some((d) => d.full_name === n)),
+    [settings.route_buckets, todosLosChoferes],
   );
   const isBucket = (name: string) => bucketNames.includes(name);
 

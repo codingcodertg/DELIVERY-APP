@@ -142,7 +142,7 @@ describe("de dónde lee cada vista la tienda y el puesto", () => {
   });
   it("el proveedor (todas, para el gerente): la misma regla con las fichas de todos", () => {
     const prov = leer("src/lib/timetracker-data-provider.tsx");
-    expect(prov).toContain('.select("id, full_name, timetracker_role, store")');
+    expect(prov).toContain('.select("id, full_name, timetracker_role, store, left_at")');
     expect(prov).toContain('supabase.schema("clockin").from("employee_settings").select("id, store_id, position")');
     expect(prov).toContain("...resolverTiendaYPuesto({ fichaje: fichaPorId.get(p.id), tiendas: nombreDeTienda, tiendaDelHub: p.store }),");
   });
@@ -245,7 +245,7 @@ describe("El Panel (proyectos principales) y Ahora mismo", () => {
 describe("Asignaciones: el presencial, marcado y sin ofrecerlo", () => {
   const asn = leer("src/components/timetracker/AssignmentsPanel.tsx");
   it("el desplegable de «Nueva asignación» solo lista a quien se le ofrece", () => {
-    expect(asn).toContain("const asignables = users.filter((u) => seOfreceParaAsignar(u, editandoA));");
+    expect(asn).toContain("const asignables = users.filter((u) => (u.id === editandoA || !estaDadoDeBaja(u.left_at)) && seOfreceParaAsignar(u, editandoA));");
     expect(asn).toContain("{asignables.map((u) => <option key={u.id} value={u.id}>");
     expect(asn).not.toContain("{users.map((u) => <option");
   });
@@ -253,7 +253,7 @@ describe("Asignaciones: el presencial, marcado y sin ofrecerlo", () => {
     expect(asn).toContain("const editandoA = editId ? assignments.find((a) => a.id === editId)?.employeeUid ?? null : null;");
   });
   it("los presenciales salen aparte, con «Presencial — su tienda y su puesto» y la etiqueta de cada uno", () => {
-    expect(asn).toContain("const presenciales = users.filter((u) => !necesitaProyecto(u));");
+    expect(asn).toContain("const presenciales = soloActivos(users).filter((u) => !necesitaProyecto(u));");
     expect(asn).toContain('<h2 style={{ marginTop: 0 }}>{t("mgr.asn.inhouseTitle")}</h2>');
     expect(asn).toContain("<td>{tiendaYPuesto(u, lang)}</td>");
     expect(asn).toContain('<th>{t("mgr.asn.colStore")}</th>');

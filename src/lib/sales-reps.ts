@@ -1,4 +1,5 @@
 import { ordersLikeOfficeManager, tieneAccesoAEntregas } from "./constants";
+import { soloActivos } from "./baja";
 import { isStoreToStore, type OrderTypeRules } from "./required";
 import { mismaTiendaOGrupo } from "./store-group";
 import type { NamedLocation, Profile } from "./types";
@@ -29,7 +30,7 @@ const mismaTienda = (a: string | null | undefined, b: string | null | undefined)
 };
 
 /** Lo mínimo que hace falta saber de una persona para colocarla en la lista. */
-type Candidato = Pick<Profile, "id" | "full_name" | "role" | "store">
+type Candidato = Pick<Profile, "id" | "full_name" | "role" | "store" | "left_at">
   & { permissions?: string[] | null; module_access?: string[] | null };
 
 const porNombre = <T extends Candidato>(a: T, b: T) => a.full_name.localeCompare(b.full_name);
@@ -81,8 +82,10 @@ export function vendedoresParaLaOrden<T extends Candidato>(
   actual?: string | null,
   tiendas: readonly NamedLocation[] = [],
 ): T[] {
-  const deLaTienda = vendedoresDeLaTienda(users, tiendaDeLaOrden, tiendas);
-  const base = deLaTienda.length > 0 ? deLaTienda : users.filter(puedeSerVendedor);
+  // D-NEXT: el de baja no se ofrece; el que ya tiene puesto la orden sí se queda (`suelto`, de la lista completa).
+  const activos = soloActivos(users);
+  const deLaTienda = vendedoresDeLaTienda(activos, tiendaDeLaOrden, tiendas);
+  const base = deLaTienda.length > 0 ? deLaTienda : activos.filter(puedeSerVendedor);
   const suelto = actual && !base.some((u) => u.id === actual) ? users.filter((u) => u.id === actual) : [];
   return [...base, ...suelto].sort(porNombre);
 }

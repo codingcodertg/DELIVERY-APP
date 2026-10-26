@@ -172,7 +172,7 @@ vi.mock("@/lib/api-auth", () => ({
           return { data: uno ? null : [], error: null };                     // driver_availability, route_locks
         };
         const q = {
-          select: () => q, order: () => q, limit: () => q,
+          select: () => q, order: () => q, limit: () => q, or: () => q,
           eq: (c: string, v: unknown) => { filtros[c] = v; return q; }, neq: () => q, in: () => q,
           gt: (c: string, v: unknown) => { filtros[`gt_${c}`] = v; return q; },
           insert: (v: unknown) => { op = "insert"; valor = v; return q; }, update: (v: unknown) => { op = "update"; valor = v; return q; },

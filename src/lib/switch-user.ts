@@ -1,4 +1,5 @@
 import type { NamedLocation, Profile } from "@/lib/types";
+import { soloActivos } from "@/lib/baja";
 import { esAdmin } from "@/lib/impersonation";
 
 /**
@@ -44,10 +45,11 @@ export function agruparPorTienda(
   filtro = "",
 ): GrupoTienda[] {
   const aguja = filtro.trim().toLowerCase();
+  const activos = soloActivos(users); // D-NEXT: al de baja ya no se entra
   const casan = aguja
-    ? users.filter((u) => (u.full_name || "").toLowerCase().includes(aguja)
+    ? activos.filter((u) => (u.full_name || "").toLowerCase().includes(aguja)
         || (u.username || "").toLowerCase().includes(aguja))
-    : users;
+    : activos;
 
   const porNombre = (a: Profile, b: Profile) =>
     (a.full_name || "").localeCompare(b.full_name || "", undefined, { sensitivity: "base" });

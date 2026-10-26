@@ -52,6 +52,8 @@ export interface Profile {
   /** Color de esa pastilla, como token de la paleta (`--purple`). Solo los siete
    * de TITLE_COLORS; la base rechaza el resto. Solo cuenta si hay título. */
   title_color?: string | null;
+  /** Fecha de baja (205, la copia del expediente de RR. HH.). Nula = activo. D-NEXT: `soloActivos` en los selectores. */
+  left_at?: string | null;
   /** employee | manager | owner inside clock-in (071). Null = no access. */
 }
 

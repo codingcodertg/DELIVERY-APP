@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { roleLabel, stageInfo, stageLabel } from "@/lib/constants";
@@ -94,7 +95,7 @@ export default function SummaryPage() {
         {me.role === "admin" && (
           <select value={viewUserId} onChange={(e) => setViewUserId(e.target.value)} style={{ width: "auto", maxWidth: 260 }} title={t("Whose numbers to show", "De quién mostrar los números")}>
             <option value="">👤 {t("Me", "Yo")} ({me.full_name})</option>
-            {[...users]
+            {soloActivos(users) /* D-NEXT */
               .filter((u) => u.id !== me.id)
               .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""))
               .map((u) => <option key={u.id} value={u.id}>{u.full_name} — {roleLabel(u.role, lang)}</option>)}

@@ -12,7 +12,7 @@ import { ayudaEnLaRuta } from "@/lib/ayuda-flotante";
 export const KIND_CHAT = "chat";
 export const LARGO_MAXIMO = 2000;
 
-export interface Contacto { id: string; full_name: string; store?: string | null; role?: string | null; title?: string | null }
+export interface Contacto { id: string; full_name: string; store?: string | null; role?: string | null; title?: string | null; left_at?: string | null }
 export interface Mensaje { id: string; from_user: string; to_user: string; body: string; created_at: string; read_at: string | null }
 
 /** ¿Sale la burbuja del chat en esta ruta? Las mismas pantallas sin sesión que la de Ayuda (login, track, baja…). */

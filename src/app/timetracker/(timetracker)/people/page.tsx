@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { effWorkerType } from "@/lib/timetracker/helpers";
@@ -36,7 +37,9 @@ export default function ManagerPeoplePage() {
     updateEmployeeSettings(u.id, { active: u.active === false });
   };
 
-  const others = users.filter((u) => u.id !== me.id);
+  // D-NEXT: el de baja ya no sale aquí; sus horas siguen en nómina y reportes (la lista completa del proveedor).
+  const activos = soloActivos(users);
+  const others = activos.filter((u) => u.id !== me.id);
 
   if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
@@ -66,7 +69,7 @@ export default function ManagerPeoplePage() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => {
+            {activos.map((u) => {
               const inactive = u.active === false;
               return (
                 <Fragment key={u.id}>

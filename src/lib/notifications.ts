@@ -1,4 +1,5 @@
 import type { Profile, Stage } from "@/lib/types";
+import { soloActivos } from "@/lib/baja";
 
 // ============================================================
 // Role-targeted, in-app notifications.
@@ -51,7 +52,7 @@ export function notificationsForStage(args: {
     seeds.push({ user_id: userId, delivery_id, order_no, kind, message });
   };
 
-  const withRole = (role: Profile["role"]) => users.filter((u) => u.role === role);
+  const withRole = (role: Profile["role"]) => soloActivos(users).filter((u) => u.role === role); // D-NEXT
 
   switch (stage) {
     case "pending":

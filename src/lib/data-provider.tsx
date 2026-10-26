@@ -1,6 +1,7 @@
 "use client";
 
 import { falloAlTomar, mensajeDelFallo, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
+import { soloActivos } from "@/lib/baja";
 import { EVENTO_ENSENANZA, escribeEnsenanza, leeEnsenanza } from "@/lib/boton-general";
 import { conTelefonoEstandar } from "@/lib/telefono-de-la-orden";
 import {
@@ -628,7 +629,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // just on `me` in the layout) so the Users page can show/edit another
     // person's module access without a second round trip (D-053, D-064).
     profiles: async () => {
-      const r = await supabase.from("profiles").select("id, full_name, username, role, store, visible_stores, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color").order("full_name");
+      const r = await supabase.from("profiles").select("id, full_name, username, role, store, visible_stores, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color, left_at").order("full_name");
       if (r.data) setUsers(r.data as Profile[]);
       return r;
     },
@@ -1332,7 +1333,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (nota) await logEvent(id, antes?.stage ?? "edited", nota);
       // Almacén ya la agarró: se le dice, o se entera cuando abra la orden y ya haya cargado.
       if (antes?.stage === "fulfilling") {
-        await pushNotifs(users.filter((u) => u.role === "warehouse" && u.id !== me?.id).map((u) => ({
+        await pushNotifs(soloActivos(users).filter((u) => u.role === "warehouse" && u.id !== me?.id).map((u) => ({
           user_id: u.id, delivery_id: id, order_no: antes.order_no ?? null,
           kind: "material_added", message: nota,
         })));

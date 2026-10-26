@@ -1939,7 +1939,7 @@ export function OrderModal({
           {!editing && existing && (esRolQuePide(me.role) || puedeDecidirSolicitudes(me.role)) && (
             <span style={{ flex: "0 0 auto", display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }} data-pedir-asignacion-en-ficha>
               <PedirAsignacion pedido={existing} me={me} esSuya={esMia(existing, me)}
-                choferes={users.filter((u) => u.role === "driver").map((u) => u.full_name)} t={t} notify={notify} />
+                choferes={driverNames(users)} t={t} notify={notify} />
             </span>
           )}
           <button className="btn btn-sm" onClick={requestClose} style={{ flex: "0 0 auto" }}>✕</button>

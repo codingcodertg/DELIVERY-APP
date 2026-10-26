@@ -444,7 +444,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // propia persona (`resolverTiendaYPuesto`), así que el gerente y el empleado leen lo mismo.
     const [pf, es, pr, asn, rq, au, fichas, sitios] = await Promise.all([
       supabase.schema("public").from("profiles")
-        .select("id, full_name, timetracker_role, store")
+        .select("id, full_name, timetracker_role, store, left_at")
         .not("timetracker_role", "is", null)
         .order("full_name"),
       supabase.from("employee_settings").select("*"),
@@ -462,13 +462,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       ((fichas.data as { id: string; store_id: string | null; position: string | null }[] | null) ?? []).map((f) => [f.id, f]),
     );
     const nombreDeTienda = new Map(((sitios.data as { id: string; name: string }[] | null) ?? []).map((s) => [s.id, s.name]));
-    const employees = ((pf.data as { id: string; full_name: string | null; timetracker_role: string; store: string | null }[] | null) ?? []).map((p) => {
+    const employees = ((pf.data as { id: string; full_name: string | null; timetracker_role: string; store: string | null; left_at: string | null }[] | null) ?? []).map((p) => {
       const s = esById.get(p.id);
       const emp: Employee = {
         id: p.id, fullName: p.full_name ?? "—", email: null, role: p.timetracker_role as Employee["role"],
         city: s?.city ?? null, payMethod: s?.payMethod ?? null, payDetails: s?.payDetails ?? null,
         workerType: s?.workerType ?? null, trackMode: s?.trackMode ?? null, breaksEnabled: s?.breaksEnabled ?? null,
-        active: s?.active ?? false, deletedAt: s?.deletedAt ?? null,
+        active: s?.active ?? false, deletedAt: s?.deletedAt ?? null, left_at: p.left_at ?? null,
         ...resolverTiendaYPuesto({ fichaje: fichaPorId.get(p.id), tiendas: nombreDeTienda, tiendaDelHub: p.store }),
       };
       return emp;
