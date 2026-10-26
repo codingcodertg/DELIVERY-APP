@@ -199,7 +199,7 @@ export interface DataState {
   // user management
   /** Either `email` or `username` — a person with no company address signs in
    * with a username instead (see lib/username). */
-  addUser: (input: { email?: string; username?: string; full_name: string; role: UserRole; password?: string; store?: string | null; quiet?: boolean }) => Promise<{ ok: boolean; email?: string; username?: string | null; signInWith?: string; password?: string; can_reset_own_password?: boolean; error?: string }>;
+  addUser: (input: { email?: string; username?: string; full_name: string; role: UserRole; password?: string; store?: string | null; quiet?: boolean }) => Promise<{ ok: boolean; id?: string; email?: string; username?: string | null; signInWith?: string; password?: string; can_reset_own_password?: boolean; error?: string }>;
   /** Change how someone signs in. Admin only; never touches passwords. */
   setUserIdentity: (id: string, patch: { username?: string | null; email?: string | null }) => Promise<{ ok: boolean; error?: string }>;
   /** Give someone a new password, generated server-side and returned once.
@@ -1787,7 +1787,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { if (!quiet) notify(body.error || "Could not create user"); return { ok: false, error: body.error || "Could not create user" }; }
       if (!quiet) { notify(`User ${input.email} created`); reloadAll(); }
-      return { ok: true, email: body.email, password: body.password };
+      return { ok: true, id: body.id, email: body.email, password: body.password, signInWith: body.signInWith, can_reset_own_password: body.can_reset_own_password };
     },
     [notify, reloadAll],
   );

@@ -60,7 +60,7 @@ describe("dónde se pinta la pastilla de una persona", () => {
   // la barra de Entregas ya no lleva etiqueta de rol.
   const SITIOS = [
     "src/components/UserDialog.tsx",
-    "src/app/home/users/page.tsx",
+    "src/components/UsersManager.tsx",
   ];
 
   it("los dos sitios de la insignia de una persona la piden a personBadge", () => {

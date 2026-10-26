@@ -56,6 +56,9 @@ export const TABS: { id: string; label: string; href: string; adminOnly?: boolea
   // y quien entra a mover candidatos no necesita nada de eso. Quien manda es la 094 (RLS); esto
   // solo evita enseñar una puerta que se abriría vacía.
   { id: "employees", label: "👤 Employees", href: "/recruiting/employees", roles: ["admin", "manager"] },
+  // D-NEXT: las cuentas del hub, también desde RR. HH. Solo admin aquí y, en TopBar, solo si además es admin del hub
+  // (role = admin): /api/invite lo exige, y el layout de la ruta lo vuelve a comprobar.
+  { id: "user-creation", label: "🔑 User creation", href: "/recruiting/user-creation", roles: ["admin"] },
   { id: "candidates", label: "👥 Candidates", href: "/recruiting" },
   { id: "board", label: "🗂 Board", href: "/recruiting/board" },
   { id: "outcomes", label: "🤝 Outcomes", href: "/recruiting/outcomes" },

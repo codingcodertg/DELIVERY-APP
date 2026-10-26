@@ -48184,3 +48184,22 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 - Prueba de puerta `etapas-idioma.test.ts`: cae si `stages` deja de salir traducida, si vuelve un aviso fijo en inglés al proveedor o si otra pantalla lee `stagesGuardadas`. Dos mutantes medidos, los dos caen.
 
 **No medido.** No se miró en el navegador ni contra los nombres reales de la tabla `stages` en producción: si el dueño ya renombró alguna etapa de fábrica, esa sigue con su nombre en los dos idiomas. Siguen en inglés los mensajes de error que devuelven las acciones de servidor (`actions/hr.ts`, se muestran tras «Error: ») y el texto que viene de la base (puestos, preguntas sin `text_es`, plantillas).
+
+## D-NEXT · Usuarios también desde RR. HH.: «User creation» en Empleados
+
+**Pedido:** «La cosa de users, la opción de users donde le damos los permisos a los users y donde los creamos, eso se va a
+pasar al HR app […] ahí en employees va a haber una opción que dice user creation […] para que ahí mismo se creen los users
+para cada employees […] Después vamos a ver cómo lo unificamos.»
+
+**Qué cambia:** el cuerpo de `/home/users` pasa a `src/components/UsersManager.tsx` y lo usan las dos pantallas: la del hub
+(sigue igual, con un enlace nuevo a RR. HH.) y la nueva `/recruiting/user-creation` (pestaña «🔑 User creation / Crear
+usuarios»). Misma lista, mismo `UserDialog`, mismo `/api/invite`: no hay una segunda lógica de permisos. La ruta nueva exige
+admin del hub (`role = admin`) en su layout, como `home/users/layout.tsx`, y la pestaña solo se pinta a quien es admin de
+RR. HH. y del hub. En Empleados: insignia «User created / Con usuario», filtros «Con usuario» / «Sin usuario», y un botón
+«Crear usuario» en cada empleado sin cuenta que abre el alta precargada (nombre, correo de trabajo o personal, tienda). Al
+crear, `linkEmployeeToAccount` borra el expediente vacío que el trigger de la 106 le hace a toda cuenta nueva (solo si es
+el suyo, id = profile_id, y sin papeles) y enlaza el del empleado; la regla está en `usuarios-rrhh.ts` con sus pruebas.
+`addUser` devuelve ahora el `id` (y `signInWith`) que `/api/invite` ya mandaba. Sin migración.
+
+**No medido:** en el navegador ni contra la base real: el alta y el enlace (borrado del expediente vacío + update) no se
+han ejecutado; el aspecto de la pantalla del hub dentro de los estilos de RR. HH.
