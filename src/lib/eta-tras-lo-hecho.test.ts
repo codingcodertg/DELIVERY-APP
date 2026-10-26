@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { horaHecha, minutosReales, relojDeLaRuta } from "./salida-de-la-medida";
 import { conHorasDeAhora, mideLaLista } from "./usa-medida-de-rutas";
 
-// D-NEXT (2026-10-26) · Roberto, ruta de Julio Jijon: «Something is still off with the ETAs». ✓P3 (#FV182) recogida en
+// D-691 (2026-10-26) · Roberto, ruta de Julio Jijon: «Something is still off with the ETAs». ✓P3 (#FV182) recogida en
 // RDZ Pharr a las 09:37; aun así «Base: salida 10:31» y P1/P2 (pendientes, misma tienda) a las 10:31: el reloj salía de la
 // base a la hora de medir y recorría lo hecho como si no. Lo hecho ancla el reloj en su hora real y su sitio.
 

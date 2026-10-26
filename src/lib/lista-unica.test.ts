@@ -466,7 +466,7 @@ describe("D-444: una fila por recogida, el mismo sitio como grupo, y los pallets
     expect(leer("src/lib/usa-medida-de-rutas.ts")).toContain("if (c) puntos.push({ id: claveDeRecogida(p.ordenes), lat: c.lat, lng: c.lng, servicio: parado[i], tipo: \"P\", ordenes: p.ordenes });");
     // D-456: detrás de la clase del grupo va la raya de «aquí cae» mientras se arrastra una fila.
     expect(tarjeta).toContain("className={`${claseDeLaFilaDelPlan(\"P\")}${claseDeGrupo(f)}${claseDeSoltar}`}");
-    expect(tarjeta).toContain("className={`clickable${claseDeGrupo(f)}${claseDeSoltar}`}"); // D-NEXT: sin el verde de entregada
+    expect(tarjeta).toContain("className={`clickable${claseDeGrupo(f)}${claseDeSoltar}`}"); // D-691: sin el verde de entregada
     // Desde D-452 la fila P dice también «carga 1 de 2» cuando la orden está partida (`etiquetaDeLaCarga`).
     // D-592: entre la factura y la etiqueta va el 📅 de «Reprogramar».
     expect(tarjeta).toContain("{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && \" · \"}{facturaConSuId(x)}{iconoDeReprogramar(x)}{etiquetaDeLaCarga(x)}</Fragment>)}");

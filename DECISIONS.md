@@ -48213,7 +48213,7 @@ reservada no se usa). Si una de las tres lecturas falla, se avisa cuál en vez d
 
 **No medido.** Los vértices nuevos son coordenadas aproximadas del cauce, de memoria y no trazadas sobre un mapa: el margen frente a Reynosa (centro 26,08) es de ~1 km y no se cotejó contra los pedidos reales ni se miró el mapa en pantalla. Tampoco se leyó qué tiene hoy `settings.local_cities` en producción.
 
-## D-NEXT · Gestor: la fila de una parada entregada ya no se pinta de verde
+## D-691 · Gestor: la fila de una parada entregada ya no se pinta de verde
 
 **Fecha:** 2026-10-26. **Pedido:** Roberto Rodriguez Jr (admin), 1.405.0, ruta de Julio Jijon: «Dont turn the rows green when a delivery is delivered, the stage already says it so the row color just makes it blend with the pick ups».
 

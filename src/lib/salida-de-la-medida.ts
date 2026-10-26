@@ -21,7 +21,7 @@ export function salidaDeLaMedida(fecha: string, ahora: Date = new Date(), salida
   return Math.max(salidaMin, minutosDeAhora);
 }
 
-/* ---- La hora de cada parada cuando parte de la ruta YA está hecha (D-NEXT, 2026-10-26) ----
+/* ---- La hora de cada parada cuando parte de la ruta YA está hecha (D-691, 2026-10-26) ----
  * Roberto (admin), ruta de Julio Jijon: «Something is still off with the ETAs». ✓P3 recogida en RDZ Pharr a las 09:37, y aun
  * así «Base: salida 10:31» y P1/P2 (pendientes, en la MISMA tienda) a las 10:31. Causa, en el código: desde D-584 se mide
  * la ruta del DÍA (lo hecho y lo pendiente, en su sitio), pero el reloj recorría todos los puntos desde la base a la hora

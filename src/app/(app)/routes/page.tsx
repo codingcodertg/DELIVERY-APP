@@ -3675,7 +3675,7 @@ export default function RoutesPage() {
                       return (
                         <tr
                           key={d.id}
-                          // Sin verde de entregada (D-NEXT, Roberto: «Dont turn the rows green when a delivery is delivered»): la etapa ya lo dice.
+                          // Sin verde de entregada (D-691, Roberto: «Dont turn the rows green when a delivery is delivered»): la etapa ya lo dice.
                           // Aislar una parada sigue pintándola con su fondo.
                           className={`clickable${claseDeGrupo(f)}${claseDeSoltar}`}
                           data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}

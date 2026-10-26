@@ -91,7 +91,7 @@ export interface MedidaDeLaRuta {
   dayMinutes: number;
   /** Estimated arrival time per stop id, "HH:MM". */
   etas: Record<string, string>;
-  /** Lo que hace falta para rehacer las horas sin volver a llamar al router cuando se hace una parada (D-NEXT). */
+  /** Lo que hace falta para rehacer las horas sin volver a llamar al router cuando se hace una parada (D-691). */
   reloj?: { puntos: PuntoDelReloj[]; legs: number[]; conBase: boolean; vuelve: boolean; fecha: string; driveMin: number };
 }
 
@@ -178,7 +178,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
     traces = [{ delivery: geom, ret: [] }];
   }
 
-  // Las horas: `horasDeLaMedida` (D-602 y D-NEXT: lo ya hecho ancla el reloj en su hora real).
+  // Las horas: `horasDeLaMedida` (D-602 y D-691: lo ya hecho ancla el reloj en su hora real).
   const reloj = { puntos: puntos.map(({ id, servicio, tipo, ordenes }) => ({ id, servicio, tipo, ordenes })), legs, conBase: !!depot, vuelve, fecha: e.fecha, driveMin: data.duration_seconds / 60 };
   const { etas, stat } = horasDeLaMedida(reloj, e.ordenes);
   return { medida: { miles: Math.round(data.miles * 10) / 10, seconds: data.duration_seconds, traces, stat: { ...stat, miles: Math.round(data.miles * 10) / 10 }, dayMinutes: stat.totalMin, etas, reloj }, proveedor };
@@ -343,7 +343,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
     setRouteEtas((p) => ({ ...p, [driver]: m.etas }));
   };
 
-  // D-NEXT: hacer una parada no cambia la forma (no se vuelve a medir), pero sí las horas de lo que queda: se rehacen de la
+  // D-691: hacer una parada no cambia la forma (no se vuelve a medir), pero sí las horas de lo que queda: se rehacen de la
   // medida pintada con las órdenes de ahora, sin llamar al router.
   const medidaPintada = useRef<Record<string, MedidaDeLaRuta>>({});
   useEffect(() => {
