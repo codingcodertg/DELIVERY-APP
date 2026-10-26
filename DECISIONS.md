@@ -48268,7 +48268,7 @@ como el 2026-10-19. Este paso va solo para saber cuál de las dos mitades lo pro
 
 **No medido:** no probado en el navegador.
 
-## D-NEXT · RR. HH.: «Crear usuarios» y «Con usuario / Sin usuario» en Empleados (paso 2 de usuarios en RR. HH.)
+## D-694 · RR. HH.: «Crear usuarios» y «Con usuario / Sin usuario» en Empleados (paso 2 de usuarios en RR. HH.)
 
 **Pedido:** «en employees va a haber una opción que dice user creation […] para que ahí mismo se creen los users para cada
 employees».
