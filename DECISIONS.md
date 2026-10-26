@@ -48390,7 +48390,7 @@ Un botón lleva al expediente para llenarlo. Prueba nueva `src/lib/recruiting/qu
 vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de baja) tumban cada uno su prueba por nombre.
 
 **No medido:** no se abrió en el navegador (ni 390 px ni escritorio) ni contra la base; el foco al cerrar no vuelve a la insignia.
-## D-NEXT · RR. HH. en dos menús (Recruiting y HR) y «Crear usuarios» dentro de RR. HH.
+## D-704 · RR. HH. en dos menús (Recruiting y HR) y «Crear usuarios» dentro de RR. HH.
 
 **Pedido:** «Vamos a ir a la parte de HR en dos. Todo lo que es recruiting, que es hoy, llamadas pendientes, candidatos, tablero, resultados, preguntas, métricas y calendario. Eso tiene que ir a recruiting. Y después lo que es empleados y crear usuarios es para HR. Y en el mismo solo va a haber dos, así como dos divisiones para que ya se abramos y pase un drop down de esos menús para que sepamos. Ahora, quiero otra vez. Eso es crear usuario, lo crear usuario y me manda a la página de crear usuario. No, crear usuario tiene que ir directamente a la app de HR. Y lo que queda afuera es un como un shortcut. Pero esto va directamente, eso tiene que adaptarse al HR app, al team y todo que ellos tienen. Porque ese usuario se tiene que pasar al HR app y ahí se tienen que estar creando.»
 

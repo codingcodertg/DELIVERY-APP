@@ -78,7 +78,7 @@
 .recruiting-module .tab.active { background: var(--accent); color: #fff; }
 .recruiting-module .tab:hover:not(.active) { background: rgba(255,255,255,.08); }
 
-/* D-NEXT: los dos menús de la barra (Recruiting y HR). La lista va con `position: fixed` y la coloca TopBar con la
+/* D-704: los dos menús de la barra (Recruiting y HR). La lista va con `position: fixed` y la coloca TopBar con la
    caja del botón: la fila de pestañas se desliza en el teléfono (overflow) y una lista `absolute` saldría recortada. */
 .recruiting-module .menu-rrhh-lista { position: fixed; z-index: 60; min-width: 200px; max-width: calc(100vw - 32px); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px; }
 .recruiting-module .menu-rrhh-lista a { display: block; padding: 9px 12px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14px; }

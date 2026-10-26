@@ -4,7 +4,7 @@ import { menusDeRrhh, pestanaActiva } from "@/lib/recruiting/menus-rrhh";
 
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 
-describe("D-NEXT: RR. HH. en dos menús", () => {
+describe("D-704: RR. HH. en dos menús", () => {
   it("cada pestaña cae en su menú, y Ajustes queda suelto", () => {
     const g = Object.fromEntries(TABS.map((t) => [t.id, t.grupo]));
     expect(g).toEqual({

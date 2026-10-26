@@ -47,7 +47,7 @@ import type { UserRole, RecruiterRecommendation } from "./types";
 // redirects there, for old bookmarks (see that file).
 // D-145: el módulo pasa a ser RR. HH. y la contratación es una parte de él, no el todo.
 // Por eso Empleados va primero: la plantilla es lo permanente, los candidatos son de paso.
-// D-NEXT: cada pestaña lleva su menú (`grupo`): «Recruiting» o «HR»; Ajustes queda suelto (⚙️) junto a los dos.
+// D-704: cada pestaña lleva su menú (`grupo`): «Recruiting» o «HR»; Ajustes queda suelto (⚙️) junto a los dos.
 export const TABS: { id: string; label: string; href: string; adminOnly?: boolean; roles?: string[]; grupo: "recruiting" | "hr" | null }[] = [
   // D-619 (2026-10-20): sin casita, que la casita es la del hub. El dueño: «there is two home icons, just leave the one that sends you to the hub».
   { id: "today", label: "📋 Today", href: "/recruiting/today", grupo: "recruiting" },

@@ -48,7 +48,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
     <BarraDeApp nombre={settings.app_name || "RTG·HR"} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess}>
         <div className="entregas-tras-pestanas"><GlobalSearch /></div>
         <div className="tabs">
-          {/* D-NEXT: dos menús, Recruiting y HR, y Ajustes suelto. El filtro por rol es el de antes (menus-rrhh.ts). */}
+          {/* D-704: dos menús, Recruiting y HR, y Ajustes suelto. El filtro por rol es el de antes (menus-rrhh.ts). */}
           {menus.grupos.map((g) => (
             <MenuDesplegable key={g.grupo} grupo={g.grupo} items={g.items} pathname={pathname} etiqueta={etiqueta} />
           ))}
@@ -77,7 +77,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
 
 type Item = { id: string; label: string; href: string };
 
-/** Uno de los dos menús (D-NEXT). El botón dice dónde estás si la página es de este menú, y se resalta. Se cierra con
+/** Uno de los dos menús (D-704). El botón dice dónde estás si la página es de este menú, y se resalta. Se cierra con
  *  Escape, con un clic fuera y al navegar. La lista es `position: fixed` (ver recruiting.css) y se coloca con la caja
  *  del botón, para que la fila deslizable del teléfono no la recorte. */
 function MenuDesplegable({ grupo, items, pathname, etiqueta }: { grupo: GrupoDeMenu; items: Item[]; pathname: string; etiqueta: (t: Item) => string }) {

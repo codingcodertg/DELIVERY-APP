@@ -7,7 +7,7 @@ import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
-// D-NEXT: «Crear usuarios» dentro de RR. HH. El dueño: «crear usuario tiene que ir directamente a la app de HR». Encima
+// D-704: «Crear usuarios» dentro de RR. HH. El dueño: «crear usuario tiene que ir directamente a la app de HR». Encima
 // del layout de RR. HH. (barra, tema, sesión, recruiting_role), la misma puerta que src/app/home/users/layout.tsx: solo
 // el admin del hub (role = admin), porque /api/invite y guard_recruiting_access_change lo exigen igual (D-050/D-056).
 // La pantalla es UsersManager, que lee el DataProvider DEL HUB (usuarios, addUser y las ~20 escrituras de UserDialog):

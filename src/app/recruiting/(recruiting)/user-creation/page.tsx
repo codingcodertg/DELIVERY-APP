@@ -9,7 +9,7 @@ import { useData as useHubData } from "@/lib/data-provider";
 import { precargaDeEmpleado } from "@/lib/recruiting/usuarios-rrhh";
 
 /**
- * D-NEXT: «Crear usuarios» de RR. HH., dentro de RR. HH. (antes la pestaña llevaba a /home/users, D-702). Es la misma
+ * D-704: «Crear usuarios» de RR. HH., dentro de RR. HH. (antes la pestaña llevaba a /home/users, D-702). Es la misma
  * pantalla del hub (UsersManager + UserDialog, la misma lógica de permisos y el mismo /api/invite), con la barra y el
  * tema de RR. HH. y dos cosas suyas:
  *  - `?employee=<id>` precarga el alta con los datos del expediente y, al crear, lo enlaza (por /api, no con

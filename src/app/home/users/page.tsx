@@ -5,7 +5,7 @@ import { UsersManager } from "@/components/UsersManager";
 import { usePrefs } from "@/lib/prefs";
 
 /**
- * Usuarios del hub. D-NEXT: el alta desde un empleado (`?employee=`, D-702) y el resumen de expedientes se fueron a
+ * Usuarios del hub. D-704: el alta desde un empleado (`?employee=`, D-702) y el resumen de expedientes se fueron a
  * «Crear usuarios» de RR. HH. (/recruiting/user-creation). Esta se queda como la pantalla del hub y no redirige allí:
  * la abre la tarjeta «Usuarios» del hub (HUB_TOOLS) a cualquier admin del hub, y el layout de RR. HH. echa al que no
  * tiene recruiting_role; redirigir dejaría a ese admin sin gestión de usuarios. Es la misma UsersManager, con un
