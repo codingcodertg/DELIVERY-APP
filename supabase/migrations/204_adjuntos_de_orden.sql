@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 204 . Adjuntos de una orden (D-NEXT)
+-- 204 . Adjuntos de una orden
 -- ===========================================================================
 -- PEDIDO. Carlos Fuentes (oficina), Entregas: «you can't copy and paste...example, i tried copying an invoice on
 -- quickbooks and attach it on the app». El dueño: una sección «Adjuntos» en la orden para pegar, arrastrar o elegir.
@@ -82,4 +82,4 @@ begin
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('204_adjuntos_de_orden.sql', 'b0cbcc72e543387317d3859af5f45e9ac89999f538c28f7f320d7e753a1c1122') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('204_adjuntos_de_orden.sql', 'e3ef875058a770abf9e496972fa7784aed5a8594047fe1ca5d083d6898c67356') on conflict (name) do nothing;
