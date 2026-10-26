@@ -48400,3 +48400,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 - `/home/users` NO redirige: la tarjeta «Usuarios» del hub la abre a cualquier admin del hub, y el layout de RR. HH. echa a quien no tiene `recruiting_role`; redirigir le quitaría la gestión de usuarios. Queda la pantalla del hub, sin lo de RR. HH., con un atajo a la nueva. `/recruiting/users` y los botones de Empleados llevan a la nueva.
 
 **No medido:** no abierto en el navegador (ni 390 px ni escritorio); no corrido `next build`: D-693/D-695 murieron por memoria en Vercel con el DataProvider del hub dentro de /recruiting, entonces con Sentry (quitado en D-700). Si Vercel vuelve a morir, es esta ruta.
+
+## D-NEXT · RR. HH.: el expediente se abre, y la baja se da desde dentro
+
+**Pedido:** «yo quiero ver el expediente. Y aquí ninguno de estos expedientes se pueden abrir en empleado. Yo le doy clic a eso y nada de eso se abre. Y hoy quiero abrir el expediente, ver qué documentos tiene. Y eso de darte baja y todo eso es, tiene que entrar al expediente y ahí darle baja. Y una vez se le da de baja, se tiene que, ya no tiene que volver a salir en ninguna de las aplicaciones. Y se va a una parte de ahí que son empleados dados de baja. Entonces todo eso se tiene que generalizar en un solo app, que va a ser el HR.»
+
+**Por qué no se abría:** la fila de Empleados no tenía manejador de clic, y la celda «Expediente» es una insignia (completo / incompleto) sin enlace. Lo único que abría la ficha era el botón «✏️ Editar» del final de la fila. La ficha (datos, HR y FORMS con sus documentos, y los botones de baja) ya existía.
+
+**Qué cambia:**
+- La fila entera abre el expediente (clic, o Tab hasta la fila y Enter/espacio). El botón del final dice «📂 Abrir expediente».
+- «Dar de baja» y «Reactivar» salen de la fila: solo en la cabecera de la ficha (la ventana de baja con fecha, motivo, nota y «quitar acceso al hub» es la de D-251, sin cambios).
+- El filtro «Bajas» pasa a «Dados de baja / Terminated».
+- De baja = `date_left` que ya llegó (hoy en Brownsville o antes); una baja con fecha futura sigue activa hasta ese día (`estadoEmpleado`).
+- Migración 205 (sin aplicar): `public.profiles.left_at`, copia de la `date_left` del expediente enlazado, mantenida por disparador en `recruiting.employee_files`. Es la única marca que todas las apps pueden leer (la baja vive en un esquema que solo lee RR. HH.). El ban de auth que ya existe («quitar acceso») impide entrar, pero no saca a nadie de las listas.
+
+**Pendiente:** esconder a quien tiene `left_at <= hoy` en cada app (hub Usuarios, Entregas, Time Tracker, chat, directorio, etc.) no está hecho: leer la columna antes de aplicar la 205 rompería esas consultas. Va después de aplicarla.
+
+**No medido:** no abierto en el navegador; la 205 no está ensayada contra la base.
