@@ -48253,3 +48253,17 @@ public.deliveries ...)`, que hereda la RLS de `deliveries`. Sin la 204, la secci
 **No medido:** no aplicada ni ensayada contra la base; no probado en el navegador (pegar desde el Explorador, una captura
 de Windows/Mac, ni el arrastre). Copiar desde la página web de QuickBooks pone TEXTO en el portapapeles, no un fichero:
 para pegar la factura hay que copiar el PDF descargado en el Explorador/Finder, o hacer una captura.
+
+## D-693 · Usuarios: la pantalla pasa a un componente compartido (paso 1 de «usuarios en RR. HH.»)
+
+**Pedido:** «la opción de users donde le damos los permisos a los users y donde los creamos, eso se va a pasar al HR app».
+
+**Qué cambia:** el cuerpo de `/home/users` pasa a `src/components/UsersManager.tsx`, sin cambiar lo que se ve. `addUser`
+devuelve también el `id` de la cuenta creada (lo usará el paso 2 para enlazarla al empleado). Las pruebas que leían
+`home/users/page.tsx` leen ahora el componente; el techo de colores sube +4 (3 blancos) porque esos colores ya existían en
+la página, que esa prueba no recorría.
+
+**Por qué en dos PR:** el PR entero (este + Empleados) murió dos veces en Vercel por memoria (SIGKILL) con tsc y CI verdes,
+como el 2026-10-19. Este paso va solo para saber cuál de las dos mitades lo provoca.
+
+**No medido:** no probado en el navegador.
