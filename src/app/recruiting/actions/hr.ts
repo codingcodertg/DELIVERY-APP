@@ -319,7 +319,7 @@ async function ponAcceso(profileId: string, encendida: boolean): Promise<{ ok: b
 }
 
 /**
- * Libera el correo y el usuario de una cuenta dada de baja (D-NEXT): el correo pasa al alias archivado
+ * Libera el correo y el usuario de una cuenta dada de baja (D-709): el correo pasa al alias archivado
  * (`aliasDeBaja`), el usuario se borra, y lo que tenía se guarda en `app_metadata.credenciales_liberadas`.
  * La cuenta y el perfil se quedan. Si ya estaba liberada no hace nada y devuelve `null`.
  */
@@ -350,7 +350,7 @@ async function liberaCredenciales(profileId: string): Promise<{ ok: true; libera
  * Da de baja: fecha de salida, motivo, nota y quién la registró en el expediente; y la cuenta
  * deshabilitada con su correo liberado. Sobre alguien que ya está de baja corrige los datos de la baja.
  *
- * D-NEXT: con cuenta, la baja siempre la deshabilita y libera su correo y usuario (`liberaCredenciales`); la casilla
+ * D-709: con cuenta, la baja siempre la deshabilita y libera su correo y usuario (`liberaCredenciales`); la casilla
  * «Quitar también el acceso al hub» ya no existe.
  */
 export async function deactivateEmployee(
@@ -383,7 +383,7 @@ export async function deactivateEmployee(
   }
   if (error) return { ok: false, message: error.message };
 
-  // D-NEXT: con cuenta, la baja SIEMPRE quita el acceso y libera el correo; ya no es una casilla.
+  // D-709: con cuenta, la baja SIEMPRE quita el acceso y libera el correo; ya no es una casilla.
   if (!file.profile_id) return { ok: true, sinMotivo, accesoQuitado: false };
   const ban = await ponAcceso(file.profile_id as string, false);
   if (!ban.ok) return { ok: false, sinMotivo, message: `Marked as left, but the account could not be disabled: ${ban.message}` };
@@ -418,7 +418,7 @@ export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean;
     ({ error } = await tabla().update({ ...parcheAlta(), ...sello }).eq("id", fileId));
   }
   if (error) return { ok: false, message: error.message };
-  // D-NEXT: reactivar levanta el ban, pero NO devuelve el correo ni el usuario: pueden ser ya de otra persona.
+  // D-709: reactivar levanta el ban, pero NO devuelve el correo ni el usuario: pueden ser ya de otra persona.
   if (file.profile_id) {
     const ban = await ponAcceso(file.profile_id as string, true);
     if (!ban.ok) return { ok: false, message: `Reactivated, but the account could not be re-enabled: ${ban.message}` };

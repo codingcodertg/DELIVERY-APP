@@ -161,13 +161,13 @@ describe("«Quitar también el acceso al hub» y «Reactivar no lo devuelve»", 
 
   it("la ventana usa esa regla para la casilla y la enseña en la misma ventana de la baja", () => {
     expect(ventanas).toContain("const casilla = casillaQuitarAcceso(persona);");
-    // D-NEXT: ya no es una casilla; con cuenta, la baja siempre quita el acceso y lo dice.
+    // D-709: ya no es una casilla; con cuenta, la baja siempre quita el acceso y lo dice.
     expect(ventanas).not.toContain("quitarAcceso");
     expect(ventanas).toContain("{casilla.visible ? (");
     expect(ventanas).toContain('data-aviso="quita-acceso"');
   });
 
-  it("D-NEXT: con cuenta, la baja SIEMPRE apaga la cuenta y libera el correo, en ese orden", () => {
+  it("D-709: con cuenta, la baja SIEMPRE apaga la cuenta y libera el correo, en ese orden", () => {
     const cuerpo = accion("deactivateEmployee");
     expect(cuerpo).toContain("if (!file.profile_id) return { ok: true, sinMotivo, accesoQuitado: false };");
     expect(cuerpo).not.toContain("quitarAcceso");
@@ -188,7 +188,7 @@ describe("«Quitar también el acceso al hub» y «Reactivar no lo devuelve»", 
     expect(ventanas).not.toContain("delete-user");
   });
 
-  it("D-NEXT: reactivar levanta el ban pero NO devuelve el correo ni el usuario, y la ventana lo dice", () => {
+  it("D-709: reactivar levanta el ban pero NO devuelve el correo ni el usuario, y la ventana lo dice", () => {
     const cuerpo = accion("reactivateEmployee");
     expect(cuerpo).toContain("ponAcceso(file.profile_id as string, true)");
     expect(cuerpo).not.toContain("liberaCredenciales");

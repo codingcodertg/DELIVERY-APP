@@ -1,5 +1,5 @@
 // ============================================================
-// Dar de baja libera el correo (D-NEXT)
+// Dar de baja libera el correo (D-709)
 //
 // Al dar de baja a alguien con cuenta, su correo y su usuario quedan libres para dárselos a
 // otra persona. La cuenta NO se borra (el perfil y su historial se quedan): se le cambia el

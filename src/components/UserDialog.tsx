@@ -169,7 +169,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
           <span className="sema" style={{ background: preview.color, color: "#fff" }}>{preview.text}</span>
         </div>
         <div className="hint" style={{ marginBottom: 14 }}>{lang === "es" ? info.desc_es : info.desc}</div>
-        {/* D-NEXT: una baja quita el acceso y libera el correo; aquí se ve qué tenía, para dárselo a otra persona. */}
+        {/* D-709: una baja quita el acceso y libera el correo; aquí se ve qué tenía, para dárselo a otra persona. */}
         {(estaDadoDeBaja(u.left_at) || signIn?.archivado) && (
           <div data-aviso="dado-de-baja" style={{ marginBottom: 14, padding: "8px 10px", borderRadius: 8, background: "var(--red-soft)" }}>
             <b>{t("Terminated", "Dado de baja")}</b>{" · "}

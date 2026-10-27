@@ -1,4 +1,4 @@
-// Barrido de una vez (D-NEXT, 2026-10-26): las personas YA dadas de baja (profiles.left_at <= hoy) que aún pueden
+// Barrido de una vez (D-709, 2026-10-26): las personas YA dadas de baja (profiles.left_at <= hoy) que aún pueden
 // entrar o conservan su correo/usuario. A cada una: ban indefinido (el mismo de D-251) y correo liberado
 // (alias archivado `<id>@baja.users.rdztilegroup.net`, usuario a null, lo que tenía en app_metadata.credenciales_liberadas).
 // La cuenta y el perfil NO se borran.

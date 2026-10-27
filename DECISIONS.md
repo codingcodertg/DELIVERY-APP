@@ -48447,7 +48447,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** al editar la ficha de un cliente, la tarjeta «Contacto» ya no apila Contacto 1, Contacto 2… uno debajo de otro: enseña uno, con una tira de pestañas arriba como las pastillas de la vista (`ContactosParaVer`): una por contacto con su rótulo (`rotuloEnEdicion`, la regla de `rotuloDeContacto` sobre lo escrito), las que no caben en el «+N ▾» (`repartoDePastillas`), y al final «+ Agregar contacto», que lo crea y salta a él. «Quitar contacto» sigue dentro del contacto; al quitarlo se elige el vecino (`elegidoTrasQuitar`). Los ocultos siguen en el árbol con `hidden`, así que lo escrito no se pierde al cambiar de pestaña. La pestaña de un contacto con un teléfono o correo mal escrito lleva «⚠» en rojo (`contactosConErrores`), y «Guardar» con errores salta a la primera de ellas si la elegida no tiene. Las redes («Socials») quedan como estaban, debajo.
 
 **No medido:** no abierto en el navegador (ni a 390 px ni en escritorio): ni el cambio de pestaña, ni el «+N ▾» al editar, ni el salto al guardar con errores; las pruebas pintan el HTML estático.
-## D-NEXT · Dar de baja quita el acceso y libera el correo
+## D-709 · Dar de baja quita el acceso y libera el correo
 
 **Pedido:** «Users and employees should be connected. When a user is terminated they should lose app access and their credentials should be unassigned. Im going to remove manually to give it to Maricela»
 

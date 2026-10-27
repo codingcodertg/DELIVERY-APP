@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   if (!data?.user) return NextResponse.json({ error: "No such user." }, { status: 404 });
 
   const email = data.user.email ?? "";
-  // D-NEXT: el alias de una baja tampoco es un contacto; lo que tenía va en `liberadas`.
+  // D-709: el alias de una baja tampoco es un contacto; lo que tenía va en `liberadas`.
   const archivado = esAliasDeBaja(email);
   const synthetic = isSyntheticEmail(email) || archivado;
   const liberadas = ((data.user.app_metadata ?? {}) as { credenciales_liberadas?: CredencialesLiberadas }).credenciales_liberadas ?? null;
