@@ -40,7 +40,6 @@ export function BajaDialog({
   const [fecha, setFecha] = useState(persona.date_left || hoyLocalISO());
   const [motivo, setMotivo] = useState(persona.left_reason ?? "");
   const [nota, setNota] = useState(persona.left_note ?? "");
-  const [quitarAcceso, setQuitarAcceso] = useState(casilla.marcada);
   const [busy, setBusy] = useState(false);
 
   // Con la 159 el motivo es obligatorio: una baja sin motivo es justo el expediente incompleto que esta
@@ -49,7 +48,7 @@ export function BajaDialog({
 
   async function confirma() {
     setBusy(true);
-    const r = await deactivateEmployee(persona.id, { fecha, motivo: con159 ? motivo : null, nota: con159 ? nota : null, quitarAcceso });
+    const r = await deactivateEmployee(persona.id, { fecha, motivo: con159 ? motivo : null, nota: con159 ? nota : null });
     setBusy(false);
     if (!r.ok) { notify("Error: " + (r.message ?? "")); if (r.message?.startsWith("Marked as left")) onDone(); return; }
     const partes = [yaDeBaja ? t("Leaving details saved ✓", "Baja corregida ✓") : t("Marked as left ✓", "Dado de baja ✓")];
@@ -57,6 +56,10 @@ export function BajaDialog({
       partes.push(r.accesoQuitado
         ? t("hub access removed", "acceso al hub quitado")
         : t("hub access NOT changed", "el acceso al hub NO se tocó"));
+    }
+    if (r.liberadas) {
+      const que = [r.liberadas.email, r.liberadas.username].filter(Boolean).join(" / ");
+      if (que) partes.push(t(`freed: ${que}`, `liberado: ${que}`));
     }
     if (r.sinMotivo) partes.push(t("reason not saved: migration 159 pending", "el motivo no se guardó: falta la migración 159"));
     notify(partes.join(" · "));
@@ -91,17 +94,13 @@ export function BajaDialog({
         </div>
 
         {casilla.visible ? (
-          <label style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 14, cursor: "pointer" }}>
-            <input type="checkbox" checked={quitarAcceso} onChange={(e) => setQuitarAcceso(e.target.checked)}
-              style={{ width: "auto", marginTop: 3 }} />
-            <span>
-              <b>{t("Also remove hub access", "Quitar también el acceso al hub")}</b>
-              <span className="hint" style={{ display: "block", marginTop: 2 }}>
-                {t("Their account is disabled, not deleted: they can't sign in, and nothing they did is lost.",
-                   "Su cuenta se deshabilita, no se borra: no puede entrar, y no se pierde nada de lo que hizo.")}
-              </span>
+          <div style={{ marginTop: 14 }} data-aviso="quita-acceso">
+            <b>{t("Their hub access is removed and their email/username are freed", "Se le quita el acceso al hub y se liberan su correo y su usuario")}</b>
+            <span className="hint" style={{ display: "block", marginTop: 2 }}>
+              {t("The account is disabled, not deleted: nothing they did is lost. Their email and username can be given to someone else; the old ones are kept in the leaving note and in Users.",
+                 "La cuenta se deshabilita, no se borra: no se pierde nada de lo que hizo. Su correo y su usuario se pueden dar a otra persona; los que tenía quedan en la nota de la baja y en Usuarios.")}
             </span>
-          </label>
+          </div>
         ) : (
           <div className="hint" style={{ marginTop: 14 }}>
             {t("This person has no hub account: there is no access to remove.",
@@ -142,7 +141,7 @@ export function ReactivarDialog({
     setBusy(false);
     if (!r.ok) { notify("Error: " + (r.message ?? "")); return; }
     notify(r.tieneCuenta
-      ? t("Reactivated ✓ · hub access was NOT restored", "Reactivado ✓ · el acceso al hub NO se devolvió")
+      ? t("Reactivated ✓ · set a new email/username in Users: the old ones were freed", "Reactivado ✓ · pon un correo/usuario nuevo en Usuarios: los anteriores se liberaron")
       : t("Reactivated ✓", "Reactivado ✓"));
     onDone();
   }
@@ -157,8 +156,8 @@ export function ReactivarDialog({
         </p>
         {persona.profile_id && (
           <p className="hint" style={{ marginTop: 10 }} data-aviso="acceso">
-            {t("Reactivating does NOT give hub access back. If their account was disabled, open their file and press «Restore hub access».",
-               "Reactivar NO devuelve el acceso al hub. Si su cuenta se deshabilitó, abre su ficha y pulsa «Devolver acceso al hub».")}
+            {t("Reactivating re-enables their account but does NOT give back their email or username (they may belong to someone else now). Set a new email/username in Users.",
+               "Reactivar vuelve a habilitar su cuenta pero NO le devuelve el correo ni el usuario (pueden ser ya de otra persona). Pon un correo/usuario nuevo en Usuarios.")}
           </p>
         )}
         <div style={pie}>

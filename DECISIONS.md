@@ -48447,3 +48447,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** al editar la ficha de un cliente, la tarjeta «Contacto» ya no apila Contacto 1, Contacto 2… uno debajo de otro: enseña uno, con una tira de pestañas arriba como las pastillas de la vista (`ContactosParaVer`): una por contacto con su rótulo (`rotuloEnEdicion`, la regla de `rotuloDeContacto` sobre lo escrito), las que no caben en el «+N ▾» (`repartoDePastillas`), y al final «+ Agregar contacto», que lo crea y salta a él. «Quitar contacto» sigue dentro del contacto; al quitarlo se elige el vecino (`elegidoTrasQuitar`). Los ocultos siguen en el árbol con `hidden`, así que lo escrito no se pierde al cambiar de pestaña. La pestaña de un contacto con un teléfono o correo mal escrito lleva «⚠» en rojo (`contactosConErrores`), y «Guardar» con errores salta a la primera de ellas si la elegida no tiene. Las redes («Socials») quedan como estaban, debajo.
 
 **No medido:** no abierto en el navegador (ni a 390 px ni en escritorio): ni el cambio de pestaña, ni el «+N ▾» al editar, ni el salto al guardar con errores; las pruebas pintan el HTML estático.
+## D-NEXT · Dar de baja quita el acceso y libera el correo
+
+**Pedido:** «Users and employees should be connected. When a user is terminated they should lose app access and their credentials should be unassigned. Im going to remove manually to give it to Maricela»
+
+**Qué cambia:** «Dar de baja» en el expediente, si la persona tiene cuenta, ya no pregunta: SIEMPRE la deshabilita (el mismo ban indefinido de D-251, `ponAcceso`; la casilla «Quitar también el acceso al hub» desaparece) y libera sus credenciales (`liberaCredenciales` en `src/app/recruiting/actions/hr.ts`, con la llave de servicio, solo en el servidor, tras `comoAdminDeHr`). Liberar es: el correo de Auth pasa al alias archivado `<id-de-la-cuenta>@baja.users.rdztilegroup.net` (`aliasDeBaja`, `src/lib/credenciales-liberadas.ts`) y `profiles.username` a null. El alias usa el UUID de la cuenta (no choca con nada), un subdominio sin buzón al que ningún usuario deriva (los usuarios derivan a `@users.rdztilegroup.net`), y no lleva nada del correo original (un `+alias` en el dominio real sí entregaría correo). La cuenta, el perfil y su historial se quedan.
+
+**Dónde queda lo que tenía:** en Auth, `app_metadata.credenciales_liberadas = { email, username, at }` (solo lo escribe el servicio; no se borra al reactivar), y una línea `[Credenciales liberadas: email …, usuario …]` al final de la nota de la baja del expediente. En Usuarios, la fila lleva la marca «Dado de baja» y la ventana de la persona dice «Dado de baja · sin acceso al hub» con el correo y usuario que tenía (lo lee `/api/user-identity`, que ya no enseña el alias como correo). Así el dueño puede crear a Maricela con acctphr2@….
+
+**Reactivar** levanta el ban, pero NO devuelve el correo ni el usuario (pueden ser ya de otra persona): el aviso pide poner uno nuevo en Usuarios. Esto cambia el «reactivar no devuelve el acceso» de D-251 / D-457.
+
+**Cerrar sesión:** no hay en la API de admin un «cerrar las sesiones de este usuario» por id; el ban rechaza el refresco del token, así que la sesión abierta dura como mucho lo que le quede al token de acceso (≈1 h).
+
+**Las bajas de antes:** `scripts/libera-credenciales-de-bajas.mjs` (sin `--escribe` solo enseña; con `--escribe` guarda un respaldo en D:/CLAUDE/respaldos-db y aplica ban + liberar a quien tenga `profiles.left_at <= hoy`). No se ha corrido.
+
+**No medido:** nada contra Auth real: ni el cambio de correo al alias (si GoTrue lo acepta sin mandar confirmación con `email_confirm: true`), ni el ban, ni la ventana en el navegador, ni el guion.
