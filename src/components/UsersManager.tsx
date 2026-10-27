@@ -58,7 +58,7 @@ export function UsersManager({ header, prefill, onCreated }: {
   // Team grouped by assigned store, in the settings store order, with a final
   // bucket for users with no store (admin / logistics / office). Within a group,
   // sorted by role then name.
-  // D-NEXT: los dados de baja no se esconden aquí (las cuentas se administran desde esta pantalla), pero salen
+  // D-707: los dados de baja no se esconden aquí (las cuentas se administran desde esta pantalla), pero salen
   // aparte, en «Dados de baja», cerrado. El equipo y sus grupos son solo los activos.
   const activos = useMemo(() => soloActivos(users), [users]);
   const deBaja = useMemo(() => users.filter((u) => estaDadoDeBaja(u.left_at)).sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")), [users]);

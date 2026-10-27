@@ -45,7 +45,7 @@ export function agruparPorTienda(
   filtro = "",
 ): GrupoTienda[] {
   const aguja = filtro.trim().toLowerCase();
-  const activos = soloActivos(users); // D-NEXT: al de baja ya no se entra
+  const activos = soloActivos(users); // D-707: al de baja ya no se entra
   const casan = aguja
     ? activos.filter((u) => (u.full_name || "").toLowerCase().includes(aguja)
         || (u.username || "").toLowerCase().includes(aguja))

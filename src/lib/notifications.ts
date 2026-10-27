@@ -52,7 +52,7 @@ export function notificationsForStage(args: {
     seeds.push({ user_id: userId, delivery_id, order_no, kind, message });
   };
 
-  const withRole = (role: Profile["role"]) => soloActivos(users).filter((u) => u.role === role); // D-NEXT
+  const withRole = (role: Profile["role"]) => soloActivos(users).filter((u) => u.role === role); // D-707
 
   switch (stage) {
     case "pending":

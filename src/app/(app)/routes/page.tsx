@@ -749,7 +749,7 @@ export default function RoutesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, settings.driver_colors, veCamiones, miChofer, alcanceChoferes, choferesConParada]);
 
-  // D-NEXT: el de baja no tiene carril propio; si aún tiene órdenes ese día sale como carril huérfano (carrilesDelDia).
+  // D-707: el de baja no tiene carril propio; si aún tiene órdenes ese día sale como carril huérfano (carrilesDelDia).
   const todosLosChoferes = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
   const drivers = useMemo(() => soloActivos(todosLosChoferes), [todosLosChoferes]);
   const realDriverNames = useMemo(() => new Set(todosLosChoferes.map((d) => d.full_name)), [todosLosChoferes]);

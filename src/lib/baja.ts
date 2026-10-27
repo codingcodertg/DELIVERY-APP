@@ -1,4 +1,4 @@
-// D-NEXT · Un dado de baja ya no sale en ninguna app.
+// D-707 · Un dado de baja ya no sale en ninguna app.
 // El dueño: «una vez se le da de baja, ya no tiene que volver a salir en ninguna de las aplicaciones».
 //
 // `public.profiles.left_at` (migración 205) copia la `date_left` del expediente de RR. HH. Nula = activo. Una fecha

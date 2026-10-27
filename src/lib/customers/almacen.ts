@@ -177,7 +177,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
         if (error) return fallo(error);
         const todos = (data ?? []) as { id: string; full_name: string | null; left_at: string | null }[];
         nombres = nombresDeVendedores(todos.map((p) => ({ id: p.id, full_name: p.full_name ?? "" })));
-        // D-NEXT: los nombres de todos (un cliente viejo sigue diciendo quién lo llevaba); para elegir, solo activos.
+        // D-707: los nombres de todos (un cliente viejo sigue diciendo quién lo llevaba); para elegir, solo activos.
         const valor = soloActivos(todos).map((p) => ({ id: p.id, full_name: p.full_name ?? "" }));
         return { ok: true, valor };
       } catch (e) {

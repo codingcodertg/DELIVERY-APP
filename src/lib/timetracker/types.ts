@@ -31,7 +31,7 @@ export interface Employee {
   tienda?: string | null;
   /** Su puesto de fichaje (`clockin.employee_settings.position`: sales, office…). Ídem. */
   puesto?: string | null;
-  /** `profiles.left_at` (205): fecha de baja. D-NEXT: se queda en la lista para nóminas e historial; los
+  /** `profiles.left_at` (205): fecha de baja. D-707: se queda en la lista para nóminas e historial; los
    *  selectores de gente actual pasan por `soloActivos`. */
   left_at?: string | null;
 }

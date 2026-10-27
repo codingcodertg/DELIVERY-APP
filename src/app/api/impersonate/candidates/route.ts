@@ -36,7 +36,7 @@ export async function GET() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const [{ data: perfiles, error }, { data: ajustes }] = await Promise.all([
-    admin.from("profiles").select("id, full_name, role, store").or(filtroActivos()).order("full_name"), // D-NEXT
+    admin.from("profiles").select("id, full_name, role, store").or(filtroActivos()).order("full_name"), // D-707
     admin.from("settings").select("stores").eq("id", 1).maybeSingle(),
   ]);
   if (error) return NextResponse.json({ ...nada, adminReal: true, habilitado: true });

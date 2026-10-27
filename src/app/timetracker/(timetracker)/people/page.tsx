@@ -37,7 +37,7 @@ export default function ManagerPeoplePage() {
     updateEmployeeSettings(u.id, { active: u.active === false });
   };
 
-  // D-NEXT: el de baja ya no sale aquí; sus horas siguen en nómina y reportes (la lista completa del proveedor).
+  // D-707: el de baja ya no sale aquí; sus horas siguen en nómina y reportes (la lista completa del proveedor).
   const activos = soloActivos(users);
   const others = activos.filter((u) => u.id !== me.id);
 

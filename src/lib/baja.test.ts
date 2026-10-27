@@ -1,4 +1,4 @@
-// D-NEXT · Un dado de baja ya no sale en ninguna app.
+// D-707 · Un dado de baja ya no sale en ninguna app.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";

@@ -52,7 +52,7 @@ export type EstadoEmpleado = "activo" | "baja";
  *  se le da de baja … ya no tiene que volver a salir en ninguna de las aplicaciones». Se compara con hoy en
  *  Brownsville (`hoyLocalISO`), como texto AAAA-MM-DD. */
 export function estadoEmpleado(f: Pick<EmployeeFileRow, "date_left">, hoy: string = hoyLocalISO()): EstadoEmpleado {
-  return estaDadoDeBaja(f.date_left, hoy) ? "baja" : "activo"; // D-NEXT: la misma regla que las demás apps
+  return estaDadoDeBaja(f.date_left, hoy) ? "baja" : "activo"; // D-707: la misma regla que las demás apps
 }
 
 export function etiquetaEstado(estado: EstadoEmpleado, lang: "en" | "es"): string {

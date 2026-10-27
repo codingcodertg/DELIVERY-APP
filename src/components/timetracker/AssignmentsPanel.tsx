@@ -89,7 +89,7 @@ export function AssignmentsPanel() {
   // le ofrece en «Nueva asignación» —sale aparte, con los dos— salvo para editar una que ya tenga.
   const lang = getLang();
   const editandoA = editId ? assignments.find((a) => a.id === editId)?.employeeUid ?? null : null;
-  // D-NEXT: a un dado de baja no se le asigna; si se edita una suya, sigue (editandoA).
+  // D-707: a un dado de baja no se le asigna; si se edita una suya, sigue (editandoA).
   const asignables = users.filter((u) => (u.id === editandoA || !estaDadoDeBaja(u.left_at)) && seOfreceParaAsignar(u, editandoA));
   const presenciales = soloActivos(users).filter((u) => !necesitaProyecto(u));
 

@@ -120,7 +120,7 @@ export function ChatFlotante({ sinBurbuja = false }: { sinBurbuja?: boolean } = 
 
   const hora = (iso: string) => new Date(iso).toLocaleTimeString(lang === "es" ? "es-MX" : "en-US", { hour: "numeric", minute: "2-digit" });
   const nombreDe = (id: string) => porId.get(id)?.full_name ?? "…";
-  const lista = listaVisible(soloActivos(contactos), yo, busqueda); // D-NEXT
+  const lista = listaVisible(soloActivos(contactos), yo, busqueda); // D-707
   const recientes = hilosRecientes(h);
   const badge = sinLeer > 0 ? <span className="chat-badge" data-sin-leer={sinLeer}>{sinLeer > 99 ? "99+" : sinLeer}</span> : null;
 

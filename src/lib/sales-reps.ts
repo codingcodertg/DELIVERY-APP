@@ -82,7 +82,7 @@ export function vendedoresParaLaOrden<T extends Candidato>(
   actual?: string | null,
   tiendas: readonly NamedLocation[] = [],
 ): T[] {
-  // D-NEXT: el de baja no se ofrece; el que ya tiene puesto la orden sí se queda (`suelto`, de la lista completa).
+  // D-707: el de baja no se ofrece; el que ya tiene puesto la orden sí se queda (`suelto`, de la lista completa).
   const activos = soloActivos(users);
   const deLaTienda = vendedoresDeLaTienda(activos, tiendaDeLaOrden, tiendas);
   const base = deLaTienda.length > 0 ? deLaTienda : activos.filter(puedeSerVendedor);

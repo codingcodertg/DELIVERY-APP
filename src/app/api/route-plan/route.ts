@@ -53,7 +53,7 @@ async function leeElDia(supabase: Sesion, fecha: string, extra = ""): Promise<{ 
     leeOrdenesDelDia((columnas) => supabase.from("deliveries").select(columnas).eq("delivery_date", fecha).in("stage", [...ETAPAS_RUTEABLES]), extra),
     // El catálogo de requisitos y lo que tiene cada camión (151, D-418), si la base ya los tiene; si no, sin ellos.
     leeConOpcionales((columnas) => supabase.from("settings").select(columnas).eq("id", 1).maybeSingle(), COLUMNAS_DE_AJUSTES, ["delivery_requirements"]),
-    supabase.from("profiles").select("id, full_name, role").eq("role", "driver").or(filtroActivos(fecha)), // D-NEXT: de baja ese día, fuera
+    supabase.from("profiles").select("id, full_name, role").eq("role", "driver").or(filtroActivos(fecha)), // D-707: de baja ese día, fuera
     leeConOpcionales((columnas) => supabase.from("driver_settings").select(columnas), COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER),
     supabase.from("driver_availability").select("driver_id, start_date, end_date"),
     supabase.from("route_plans").select("writes").eq("plan_date", fecha).eq("status", "published").maybeSingle(),

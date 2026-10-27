@@ -823,7 +823,7 @@ export const ROLE_DEFAULT_COLUMNS: Partial<Record<UserRole, string[]>> = {
  * people, so they're managed in Users (one source of truth), not Settings. */
 export function driverNames(users: { full_name: string; role: UserRole; left_at?: string | null }[]): string[] {
   return users
-    .filter((u) => u.role === "driver" && !estaDadoDeBaja(u.left_at)) // D-NEXT: el de baja no se ofrece
+    .filter((u) => u.role === "driver" && !estaDadoDeBaja(u.left_at)) // D-707: el de baja no se ofrece
     .map((u) => u.full_name)
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b));

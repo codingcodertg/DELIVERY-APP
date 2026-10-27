@@ -48428,7 +48428,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** no abierto en el navegador (ni el arrastre del ancho, ni el menú ▾, ni el Excel abierto en Excel).
 
-## D-NEXT · Un dado de baja ya no sale en ninguna app
+## D-707 · Un dado de baja ya no sale en ninguna app
 
 **Pedido:** «una vez se le da de baja, ya no tiene que volver a salir en ninguna de las aplicaciones»
 
