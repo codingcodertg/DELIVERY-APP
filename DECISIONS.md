@@ -48440,3 +48440,10 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** no abierto en el navegador ni contra la base con la 205 aplicada.
 
+## D-708 · Clientes: los contactos se editan en pestañas
+
+**Pedido:** «This is too long so have tabs at the top to add/ switch to the others»
+
+**Qué cambia:** al editar la ficha de un cliente, la tarjeta «Contacto» ya no apila Contacto 1, Contacto 2… uno debajo de otro: enseña uno, con una tira de pestañas arriba como las pastillas de la vista (`ContactosParaVer`): una por contacto con su rótulo (`rotuloEnEdicion`, la regla de `rotuloDeContacto` sobre lo escrito), las que no caben en el «+N ▾» (`repartoDePastillas`), y al final «+ Agregar contacto», que lo crea y salta a él. «Quitar contacto» sigue dentro del contacto; al quitarlo se elige el vecino (`elegidoTrasQuitar`). Los ocultos siguen en el árbol con `hidden`, así que lo escrito no se pierde al cambiar de pestaña. La pestaña de un contacto con un teléfono o correo mal escrito lleva «⚠» en rojo (`contactosConErrores`), y «Guardar» con errores salta a la primera de ellas si la elegida no tiene. Las redes («Socials») quedan como estaban, debajo.
+
+**No medido:** no abierto en el navegador (ni a 390 px ni en escritorio): ni el cambio de pestaña, ni el «+N ▾» al editar, ni el salto al guardar con errores; las pruebas pintan el HTML estático.

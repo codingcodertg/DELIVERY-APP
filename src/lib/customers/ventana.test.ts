@@ -218,6 +218,13 @@ describe("los contactos de la ficha (D-668)", () => {
   it("editando: cada contacto con su nombre, cargo, teléfonos, correos y nota; «+ Teléfono», «+ Correo» y «+ Agregar contacto»", () => {
     const html = contacto(pinta(dosTiendas, { editarAlAbrir: true }));
     expect(html.match(/data-contacto-editable="\d"/g)).toHaveLength(5);
+    // D-708: en pestañas, uno a la vista; los demás en el árbol pero ocultos, y «+ Agregar contacto» al final de la tira.
+    expect(html.match(/data-pestana-de-contacto="\d"/g)).toHaveLength(3);
+    expect(html).toContain('data-mas-contactos-editando="2"');
+    expect(html.match(/<fieldset hidden=""[^>]*data-contacto-editable/g)).toHaveLength(4);
+    expect(html).toMatch(/<fieldset class="[^"]*" data-contacto-editable="0"/);
+    expect(html.indexOf("data-agregar-contacto")).toBeGreaterThan(html.indexOf('data-mas-contactos-editando'));
+    expect(html.indexOf("data-agregar-contacto")).toBeLessThan(html.indexOf('data-contacto-editable="0"'));
     const entrada = (k: string) => new RegExp(`<input[^>]*${k}[^>]*>`).exec(html)?.[0] ?? "";
     expect(entrada('data-telefono-de-contacto="0.1"')).toContain('value="(956) 555-0111"');
     expect(entrada('data-correo-de-contacto="0.1"')).toContain('value="pagos@example.com"');

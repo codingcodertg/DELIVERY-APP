@@ -40,6 +40,28 @@ export function rotuloDeContacto(c: Contacto, i: number, t: T): string {
 /** Un contacto mientras se escribe: todo texto, sin formato todavía. */
 export interface ContactoEnEdicion { name: string; title: string; phones: string[]; emails: string[]; note: string; website: string; address: string }
 
+/** D-708: el rótulo de la pestaña de un contacto que se edita, con la regla de `rotuloDeContacto` sobre lo escrito. */
+export function rotuloEnEdicion(c: ContactoEnEdicion, i: number, t: T): string {
+  return c.name.trim() || c.title.trim() || t(`Contact ${i + 1}`, `Contacto ${i + 1}`);
+}
+
+/**
+ * D-708: al editar, los contactos van en pestañas (uno a la vista). Las pestañas cuyo contacto tiene algo mal escrito
+ * (las claves de `erroresDeContactos`), en orden y sin repetir: llevan su marca y «Guardar» salta a la primera.
+ */
+export function contactosConErrores(errores: readonly string[]): number[] {
+  const out = new Set<number>();
+  for (const e of errores) { const m = /^contacto\.(\d+)\./.exec(e); if (m) out.add(Number(m[1])); }
+  return [...out].sort((a, b) => a - b);
+}
+
+/** D-708: la pestaña elegida tras quitar el contacto `quitado` de `cuantos`: la misma si va antes, corrida si va después, y la vecina si era ella. */
+export function elegidoTrasQuitar(elegido: number, quitado: number, cuantos: number): number {
+  if (elegido < quitado) return elegido;
+  if (elegido > quitado) return elegido - 1;
+  return Math.max(0, Math.min(quitado, cuantos - 2));
+}
+
 export const contactoVacio = (): ContactoEnEdicion => ({ name: "", title: "", phones: [""], emails: [""], note: "", website: "", address: "" });
 
 /** La lista para editar: la de la fila, o un contacto en blanco si no tiene (así hay dónde escribir). Cada uno con al menos un hueco de teléfono y uno de correo. */
