@@ -77,18 +77,27 @@ export function tiendaDelLugar(lugar: string, tiendas: readonly Tienda[]): Tiend
 
 /** Marcadores de la cita, además de los de `mergeTemplate` ({name} {role} {recruiter} {phone}). `{when}` = «mañana a las
  *  10:00 a.m.» / «hoy a las…» / «el martes 20 de octubre a las…»; `{day}` = «mañana» / «hoy» / «el martes». */
-export const MARCADORES_DE_LA_CITA = "{when} {day} {date} {time} {place} {address}";
+export const MARCADORES_DE_LA_CITA = "{when} {day} {date} {time} {place} {address} {maps}";
+
+/** Los enlaces para llegar a la tienda, desde su dirección (D-714, el dueño: «un link de Google Maps o de Waze … que solo
+ *  apriete ahí y se abra»): uno por línea, los dos. Sin dirección, nada. */
+export function enlacesDeMapa(address: string | null | undefined): string {
+  const q = (address ?? "").trim();
+  if (!q) return "";
+  const e = encodeURIComponent(q);
+  return `Google Maps: https://www.google.com/maps/search/?api=1&query=${e}\nWaze: https://waze.com/ul?q=${e}&navigate=yes`;
+}
 
 /** La plantilla del dueño (D-604, 2026-10-19: «así es el template que yo uso, no me gustó el que hiciste»), letra por letra,
  *  con «Andrés» → `{recruiter}`, «mañana a las 10:00 a.m.» → `{when}`, «mañana» → `{day}` y el bloque de la dirección →
  *  `{address}` (la de Datos → Tiendas). Sin tienda conocida (un «Otro…» a mano), «en {place}» en vez del bloque. */
 const PLANTILLA = {
   en: {
-    tienda: "Hello, this is {recruiter}, recruiter at Rodriguez Tile Group. Thank you for your time. I'm confirming your in-person interview for {when} at our office:\n\nRodriguez Tile Group\n{address}\n\nPlease arrive a few minutes early and bring an ID. If you have any questions or need to change the time, reply to this number.\n\nSee you {day},\n{recruiter}\nRodriguez Tile Group",
+    tienda: "Hello, this is {recruiter}, recruiter at Rodriguez Tile Group. Thank you for your time. I'm confirming your in-person interview for {when} at our office:\n\nRodriguez Tile Group\n{address}\n{maps}\n\nPlease arrive a few minutes early and bring an ID. If you have any questions or need to change the time, reply to this number.\n\nSee you {day},\n{recruiter}\nRodriguez Tile Group",
     libre: "Hello, this is {recruiter}, recruiter at Rodriguez Tile Group. Thank you for your time. I'm confirming your in-person interview for {when} at {place}.\n\nPlease arrive a few minutes early and bring an ID. If you have any questions or need to change the time, reply to this number.\n\nSee you {day},\n{recruiter}\nRodriguez Tile Group",
   },
   es: {
-    tienda: "Hola, le habla {recruiter}, reclutador de Rodriguez Tile Group. Gracias por su tiempo. Le confirmo su entrevista presencial para {when} en nuestra oficina:\n\nRodriguez Tile Group\n{address}\n\nPor favor llegue unos minutos antes y traiga una identificación. Cualquier duda o si necesita cambiar la hora, respóndame a este número.\n\nNos vemos {day},\n{recruiter}\nRodriguez Tile Group",
+    tienda: "Hola, le habla {recruiter}, reclutador de Rodriguez Tile Group. Gracias por su tiempo. Le confirmo su entrevista presencial para {when} en nuestra oficina:\n\nRodriguez Tile Group\n{address}\n{maps}\n\nPor favor llegue unos minutos antes y traiga una identificación. Cualquier duda o si necesita cambiar la hora, respóndame a este número.\n\nNos vemos {day},\n{recruiter}\nRodriguez Tile Group",
     libre: "Hola, le habla {recruiter}, reclutador de Rodriguez Tile Group. Gracias por su tiempo. Le confirmo su entrevista presencial para {when} en {place}.\n\nPor favor llegue unos minutos antes y traiga una identificación. Cualquier duda o si necesita cambiar la hora, respóndame a este número.\n\nNos vemos {day},\n{recruiter}\nRodriguez Tile Group",
   },
 } as const;
@@ -132,13 +141,16 @@ export function textoConfirmacionPresencial(
   const { date, time, when, day } = fechaYHora(cita.iso, lang, ahora);
   const lugar = cita.lugar.trim() || (lang === "es" ? "nuestra oficina" : "our office");
   const tienda = tiendaDelLugar(lugar, tiendas);
-  const base = plantilla ?? PLANTILLA[lang][tienda ? "tienda" : "libre"];
+  let base = plantilla ?? PLANTILLA[lang][tienda ? "tienda" : "libre"];
+  // Una plantilla de Ajustes escrita antes de D-714 no lleva {maps}: los enlaces van debajo de la dirección igual.
+  if (tienda && !base.includes("{maps}") && base.includes("{address}")) base = base.replace("{address}", "{address}\n{maps}");
   return mergeTemplate(base, c as Candidate, recruiter)
     .replace(/\{when\}/g, when)
     .replace(/\{day\}/g, day)
     .replace(/\{date\}/g, date)
     .replace(/\{time\}/g, time)
     .replace(/\{place\}/g, lugar)
+    .replace(/\{maps\}/g, tienda ? enlacesDeMapa(tienda.address) : "")
     .replace(/\{address\}/g, tienda?.address ?? lugar)
     .replace(/[ \t]{2,}/g, " ")
     .trim();

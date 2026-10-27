@@ -48505,3 +48505,12 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Orden de publicación:** la 206 ANTES del deploy. El insert de «Marcar entrada» manda `app`; sin la columna, PostgREST responde 400 y el chofer no puede marcar entrada.
 
 **No medido:** nada en el navegador ni en un teléfono; si el plugin del GPS funciona en los teléfonos de Julio y Máximo (eso lo dirá `driver_shifts.gps` desde mañana).
+
+
+## D-NEXT · El texto de la cita lleva Google Maps y Waze, y la copia funciona con el chat ya abierto
+
+**Pedido:** «cuando yo esté mandando el mensaje de texto … si ya estoy en el mismo chat … no se copia el mensaje … quiero que en los mensajes de texto salga un link de Google Maps o de Waze … de cada tienda que uno elige … el link de ambas».
+
+**Qué cambia:** (1) El texto de la cita presencial lleva, debajo de la dirección de la tienda elegida, dos líneas: «Google Maps: …» y «Waze: …», hechas con esa dirección (`enlacesDeMapa`, marcador nuevo `{maps}`). Una plantilla de Ajustes de antes, sin `{maps}`, los recibe igual debajo de su `{address}`. Con un lugar escrito a mano («Otro…») no hay enlaces. (2) RingCentral, cuando ya tiene abierto ese chat, no cambia el texto que lleva el enlace `rcapp://`; lo único que llega es lo pegado. La copia al portapapeles era asíncrona y a ciegas (`copiado: true` sin saber si copió). Ahora primero se copia de forma síncrona (`execCommand("copy")`, dentro del clic, que sí dice si copió), y la asíncrona queda de respaldo; el aviso dice «si RingCentral se abre vacío o ya tenías ese chat abierto, pégalo (Ctrl+V)». Vale para los tres textos de RR. HH. (cita, «¿te puedo llamar?», seguimiento) porque todos salen por `abrirSmsEnRingCentral`.
+
+**No medido:** en el navegador con RingCentral abierto; que RingCentral no sobrescriba el chat abierto es lo que cuenta el dueño, no algo que yo haya reproducido.

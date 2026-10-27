@@ -15,6 +15,14 @@ describe("abrir un texto en RingCentral: en el enlace y en el portapapeles", () 
     expect(pasos).toEqual(["copiar:hola", "abrir:rcapp://r/sms?x"]);
     expect(r).toEqual({ copiado: true });
   });
+  it("la copia síncrona manda: si copia, copiado aunque no haya API asíncrona; si falla y la asíncrona existe, copiado por ella (D-714)", () => {
+    const pasos: string[] = [];
+    expect(abrirSmsEnRingCentral("rcapp://r/sms?x", "hola", { copiarAhora: (t) => { pasos.push("ahora:" + t); return true; }, abrir: (u) => pasos.push("abrir:" + u) })).toEqual({ copiado: true });
+    expect(pasos).toEqual(["ahora:hola", "abrir:rcapp://r/sms?x"]);
+    expect(abrirSmsEnRingCentral("rcapp://r/sms?x", "hola", { copiarAhora: () => false, abrir: () => {} })).toEqual({ copiado: false });
+    expect(abrirSmsEnRingCentral("rcapp://r/sms?x", "hola", { copiarAhora: () => { throw new Error("no"); }, copiar: async () => {}, abrir: () => {} })).toEqual({ copiado: true });
+  });
+
   it("sin portapapeles (navegador sin permiso o sin API) abre igual y lo dice", () => {
     const pasos: string[] = [];
     const r = abrirSmsEnRingCentral("rcapp://r/sms?x", "hola", { abrir: (u) => pasos.push("abrir:" + u) });
@@ -25,7 +33,7 @@ describe("abrir un texto en RingCentral: en el enlace y en el portapapeles", () 
     expect(pasos).toEqual(["abrir:rcapp://r/sms?x", "abrir2:rcapp://r/sms?x"]);
   });
   it("el aviso dice que se copió y que lo pegue si RingCentral sale vacío; sin copia, solo que se abrió", () => {
-    expect(avisoTrasAbrir({ copiado: true }, "es")).toBe("Texto abierto en RingCentral y copiado: si RingCentral se abre vacío, pégalo (Ctrl+V)");
+    expect(avisoTrasAbrir({ copiado: true }, "es")).toBe("Texto abierto en RingCentral y copiado: si RingCentral se abre vacío o ya tenías ese chat abierto, pégalo (Ctrl+V)");
     expect(avisoTrasAbrir({ copiado: true }, "en")).toContain("paste it");
     expect(avisoTrasAbrir({ copiado: false }, "es")).toBe("Texto abierto en RingCentral");
   });

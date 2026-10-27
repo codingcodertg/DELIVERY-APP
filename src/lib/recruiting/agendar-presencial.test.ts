@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type { Stage } from "./types";
 import {
   ETAPA_PRESENCIAL, RESULTADO_AGENDADA, RESULTADO_CONFIRMACION,
-  MARCADORES_DE_LA_CITA,
+  MARCADORES_DE_LA_CITA, enlacesDeMapa,
   contactoDeLaCita, contactoDeLaConfirmacion, etapaTrasAgendar, fechaYHora, lugaresParaAgendar, plantillaDeAjustes,
   prepararConfirmacionPresencial, textoConfirmacionPresencial, tiendaDelLugar, validarFechaPresencial,
 } from "./agendar-presencial";
@@ -123,7 +123,7 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     expect(es).toMatch(/^María\/Driver\/Andrés\/.*20 de octubre.*\/10:30 a\.m\.\/McAllen\/100 Main St, McAllen, TX\/mañana a las 10:30 a\.m\.\/mañana$/);
     // Sin tienda, {address} vale el lugar (mejor eso que un hueco en un texto que escribió el reclutador).
     expect(textoConfirmacionPresencial(cand, { ...cita, lugar: "Pharr" }, "A", "es", tiendas, "{place}|{address}")).toBe("Pharr|Pharr");
-    expect(MARCADORES_DE_LA_CITA.split(" ")).toEqual(["{when}", "{day}", "{date}", "{time}", "{place}", "{address}"]);
+    expect(MARCADORES_DE_LA_CITA.split(" ")).toEqual(["{when}", "{day}", "{date}", "{time}", "{place}", "{address}", "{maps}"]);
   });
 
   it("la confirmación va por el mismo camino que D-581: enlace rcsms con número limpio y el texto; sin teléfono, no abre nada", () => {
