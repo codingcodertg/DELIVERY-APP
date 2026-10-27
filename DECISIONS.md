@@ -48427,3 +48427,16 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Sin hacer:** el selector de columnas («⚙ Columnas») de Órdenes no está: todas las columnas salen siempre.
 
 **No medido:** no abierto en el navegador (ni el arrastre del ancho, ni el menú ▾, ni el Excel abierto en Excel).
+
+## D-707 · Un dado de baja ya no sale en ninguna app
+
+**Pedido:** «una vez se le da de baja, ya no tiene que volver a salir en ninguna de las aplicaciones»
+
+**Qué cambia:** una sola regla, `estaDadoDeBaja(left_at, hoy)` en `src/lib/baja.ts` (hoy = día de Brownsville; nula = activo; una fecha futura sigue activa hasta ese día), que también usa `estadoEmpleado` de RR. HH. Se esconde a la persona en las listas y selectores de gente *actual*: choferes de Entregas (`driverNames`, Rutas, Track, ajustes del motor de rutas, plan del día de Routes Manager por la fecha del plan), vendedor de la orden, avisos por rol, Resumen del admin, cambiar de usuario e impersonar, contactos del chat, vendedor de Clientes, personas de Leads, Personas y Asignaciones de Time Tracker y «quién está ahora» de clock-in. En Usuarios (el mismo `UsersManager` de /home/users y de RR. HH.) no se esconden: salen aparte en «Dados de baja», cerrado.
+
+**Lo histórico no cambia:** los proveedores siguen cargando a todos, así que una orden vieja sigue diciendo quién fue su chofer, un cliente su vendedor y un hilo de chat con quién era; el vendedor que ya tiene puesta una orden sigue en su desplegable. Nómina, reportes, auditoría y puntualidad de periodos pasados no filtran: quien trabajó esos días sale en ellos.
+
+**Requiere la 205** (`profiles.left_at`): sin ella las consultas con `.or(left_at…)` y los selects con `left_at` fallan. Se aplica antes de publicar esto.
+
+**No medido:** no abierto en el navegador ni contra la base con la 205 aplicada.
+

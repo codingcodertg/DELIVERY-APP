@@ -18,6 +18,7 @@
 
 import { isSyntheticEmail } from "@/lib/username";
 import { hoyEnBrownsville } from "./hora-de-brownsville";
+import { estaDadoDeBaja } from "@/lib/baja";
 
 /** La fila del expediente, tal como vive en `recruiting.employee_files` tras la 106. */
 export interface EmployeeFileRow {
@@ -51,8 +52,7 @@ export type EstadoEmpleado = "activo" | "baja";
  *  se le da de baja … ya no tiene que volver a salir en ninguna de las aplicaciones». Se compara con hoy en
  *  Brownsville (`hoyLocalISO`), como texto AAAA-MM-DD. */
 export function estadoEmpleado(f: Pick<EmployeeFileRow, "date_left">, hoy: string = hoyLocalISO()): EstadoEmpleado {
-  const fecha = (f.date_left ?? "").trim();
-  return fecha && fecha <= hoy ? "baja" : "activo";
+  return estaDadoDeBaja(f.date_left, hoy) ? "baja" : "activo"; // D-707: la misma regla que las demás apps
 }
 
 export function etiquetaEstado(estado: EstadoEmpleado, lang: "en" | "es"): string {

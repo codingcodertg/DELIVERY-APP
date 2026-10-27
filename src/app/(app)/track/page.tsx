@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -45,7 +46,7 @@ function clock(iso: string | null, lang: string): string {
 export default function TrackPage() {
   const { users, deliveries, settings, me, realRole } = useData();
   const { lang, t } = usePrefs();
-  const drivers = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
+  const drivers = useMemo(() => soloActivos(users.filter((u) => u.role === "driver")), [users]); // D-707
 
   const [driverId, setDriverId] = useState<string>("");
   const [date, setDate] = useState(todayISO());

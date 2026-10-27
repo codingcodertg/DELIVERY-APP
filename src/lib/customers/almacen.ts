@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { soloActivos } from "@/lib/baja";
 import { creaUnaPorUna, type ResultadoDelAlta } from "./alta";
 import { archivoDeLaBase, CUBO_DE_ARCHIVOS, MAX_BYTES_DE_ARCHIVO, rutaDeArchivo, type ArchivoDeCliente, type ClaseDeArchivo } from "./archivos";
 import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
@@ -172,10 +173,12 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
     async vendedores() {
       // Los perfiles son de `public`, no de `erp`. Si no se pueden leer, la lista sale igual, sin nombres (el id).
       try {
-        const { data, error } = await sb.schema("public").from("profiles").select("id, full_name").eq("role", "sales").order("full_name");
+        const { data, error } = await sb.schema("public").from("profiles").select("id, full_name, left_at").eq("role", "sales").order("full_name");
         if (error) return fallo(error);
-        const valor = ((data ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, full_name: p.full_name ?? "" }));
-        nombres = nombresDeVendedores(valor);
+        const todos = (data ?? []) as { id: string; full_name: string | null; left_at: string | null }[];
+        nombres = nombresDeVendedores(todos.map((p) => ({ id: p.id, full_name: p.full_name ?? "" })));
+        // D-707: los nombres de todos (un cliente viejo sigue diciendo quién lo llevaba); para elegir, solo activos.
+        const valor = soloActivos(todos).map((p) => ({ id: p.id, full_name: p.full_name ?? "" }));
         return { ok: true, valor };
       } catch (e) {
         return fallo({ message: e instanceof Error ? e.message : String(e) });

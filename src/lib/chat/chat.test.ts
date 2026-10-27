@@ -99,7 +99,7 @@ describe("chat interno", () => {
     expect(layout).toContain("<ChatFlotante sinBurbuja />"); // D-623: la burbuja que se ve es la general
     const comp = readFileSync(new URL("components/ChatFlotante.tsx", raiz), "utf8");
     expect(comp).toContain('fetch("/api/chat/send"');
-    expect(comp).toContain("listaVisible(contactos, yo, busqueda)");
+    expect(comp).toContain("listaVisible(soloActivos(contactos), yo, busqueda)");
     expect(comp).toContain('table: "chat_messages"');
     const ruta = readFileSync(new URL("app/api/chat/send/route.ts", raiz), "utf8");
     expect(ruta).toContain("requireUser()");

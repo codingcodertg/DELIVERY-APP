@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { filtroActivos } from "@/lib/baja";
 import { cookies } from "next/headers";
 import { createClient as createSSRClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
@@ -35,7 +36,7 @@ export async function GET() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const [{ data: perfiles, error }, { data: ajustes }] = await Promise.all([
-    admin.from("profiles").select("id, full_name, role, store").order("full_name"),
+    admin.from("profiles").select("id, full_name, role, store").or(filtroActivos()).order("full_name"), // D-707
     admin.from("settings").select("stores").eq("id", 1).maybeSingle(),
   ]);
   if (error) return NextResponse.json({ error: "perfiles" }, { status: 500 });

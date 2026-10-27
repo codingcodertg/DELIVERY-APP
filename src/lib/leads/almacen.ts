@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { filtroActivos } from "@/lib/baja";
 import { ALCANCE_SIN_REGLA, alcanceDeLaBase, type Alcance } from "./alcance";
 import { negativaDeCodigo, TOPE_POR_DEFECTO, type EstadoLead, type Etiqueta, type EventoLead, type Lead, type Negativa, type Persona, type Resultado } from "./reglas";
 
@@ -151,7 +152,7 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
     historial: (leadId) => eventos({ lead: leadId }),
     cierres: () => eventos({ kind: "closed" }),
     async personas() {
-      const { data, error } = await supabase.from("profiles").select("id, full_name, store, role, module_access");
+      const { data, error } = await supabase.from("profiles").select("id, full_name, store, role, module_access").or(filtroActivos()); // D-707
       if (error) return fallo(error);
       const filas = (data ?? []) as { id: string; full_name: string | null; store: string | null; role: string | null; module_access: string[] | null }[];
       return {

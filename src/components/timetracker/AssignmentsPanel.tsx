@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { estaDadoDeBaja, soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, money } from "@/lib/timetracker/helpers";
@@ -88,8 +89,9 @@ export function AssignmentsPanel() {
   // le ofrece en «Nueva asignación» —sale aparte, con los dos— salvo para editar una que ya tenga.
   const lang = getLang();
   const editandoA = editId ? assignments.find((a) => a.id === editId)?.employeeUid ?? null : null;
-  const asignables = users.filter((u) => seOfreceParaAsignar(u, editandoA));
-  const presenciales = users.filter((u) => !necesitaProyecto(u));
+  // D-707: a un dado de baja no se le asigna; si se edita una suya, sigue (editandoA).
+  const asignables = users.filter((u) => (u.id === editandoA || !estaDadoDeBaja(u.left_at)) && seOfreceParaAsignar(u, editandoA));
+  const presenciales = soloActivos(users).filter((u) => !necesitaProyecto(u));
 
   return (
     <>
