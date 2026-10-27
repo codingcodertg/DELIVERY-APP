@@ -389,7 +389,7 @@ export function ordenDelPunto(id: string): string | null {
  * día sin paradas (fin de semana, antes de cargar) abre sobre las tiendas y no sobre un centro fijo. Con choferes
  * marcados no entran: ahí la pregunta es «dónde va ESTE», no «dónde estamos».
  *
- * Acotado a UN chofer (`soloMiRuta`, el mapa de «Mi ruta», D-NEXT): tampoco. El dueño, con la captura del mapa bien
+ * Acotado a UN chofer (`soloMiRuta`, el mapa de «Mi ruta», D-718): tampoco. El dueño, con la captura del mapa bien
  * cerrado sobre su ruta: «asi quiero que se mire en el driver zoom in pero cuando entro se mira zoom out». Al entrar, el
  * mapa abría con todas las tiendas de Ajustes dentro (Brownsville incluida) y la ruta quedaba en una esquina; con el
  * chofer nada tiene que marcar —su ruta es la única— y la pregunta es siempre «dónde voy YO». Se encuadra lo que el mapa

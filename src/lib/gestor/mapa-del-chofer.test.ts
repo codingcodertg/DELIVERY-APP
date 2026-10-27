@@ -56,7 +56,7 @@ vi.mock("@/components/MapView", () => ({
   MapView: (p: { liveDrivers: { driver: string }[]; points: { id: string; label: string }[]; fitTo?: [number, number][] }) => { estado.mapa = p; return createElement("div", { "data-mapa": "1" }); },
 }));
 vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
-// Una tienda lejos de la ruta (D-NEXT): en el Gestor entra en el encuadre del día entero (D-580); en el mapa del chofer, no.
+// Una tienda lejos de la ruta (D-718): en el Gestor entra en el encuadre del día entero (D-580); en el mapa del chofer, no.
 const TIENDA_LEJOS: [number, number] = [25.9, -97.5];
 vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [{ name: "Tienda lejos", lat: 25.9, lng: -97.5 }] }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({}) }));
@@ -190,7 +190,7 @@ describe("la pantalla: el chofer ve EL MISMO mapa del Gestor, con sus rutas", ()
     expect(html).not.toContain("Ruta 1");
   }, 60_000);
 
-  it("el mapa abre cerrado sobre SU ruta (D-NEXT): las tiendas de Ajustes no entran en el encuadre; en el Gestor sí", async () => {
+  it("el mapa abre cerrado sobre SU ruta (D-718): las tiendas de Ajustes no entran en el encuadre; en el Gestor sí", async () => {
     estado.me = CARLOS;
     await pinta("Carlos R.");
     const suyo = estado.mapa?.fitTo ?? [];

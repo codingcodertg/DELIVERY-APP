@@ -48515,7 +48515,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** en el navegador con RingCentral abierto; que RingCentral no sobrescriba el chat abierto es lo que cuenta el dueño, no algo que yo haya reproducido.
 
-## D-NEXT · El mapa de «Mi ruta» abre cerrado sobre la ruta del chofer
+## D-718 · El mapa de «Mi ruta» abre cerrado sobre la ruta del chofer
 
 **Pedido:** con la captura del mapa bien cerrado sobre sus paradas: «asi quiero que se mire en el driver zoom in pero cuando entro se mira zoom out para el driver arregla eso».
 
