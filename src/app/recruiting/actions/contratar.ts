@@ -26,7 +26,7 @@ async function rolDeHr(supabase: Sb): Promise<{ userId: string; role: string } |
 }
 
 export async function hireCandidate(input: { candidateId: string; requestUser: boolean; note?: string | null }): Promise<
-  { ok: true; fileId: string; creado: boolean; solicitado: boolean; sinSolicitudes: boolean } | { ok: false; message: string }
+  { ok: true; fileId: string; creado: boolean; solicitado: boolean; sinSolicitudes: boolean; profileId: string | null } | { ok: false; message: string }
 > {
   const supabase = await createClient();
   const yo = await rolDeHr(supabase);
@@ -45,7 +45,9 @@ export async function hireCandidate(input: { candidateId: string; requestUser: b
 
   // 1. ¿Ya hay expediente de este candidato?
   let fileId: string | null = null;
-  const porCandidato = await tabla().select("id").eq("candidate_id", cand.id).maybeSingle();
+  // D-NEXT: `profile_id` para saber si el expediente ya tiene cuenta y no crear otra.
+  let profileId: string | null = null;
+  const porCandidato = await tabla().select("id, profile_id").eq("candidate_id", cand.id).maybeSingle();
   if (porCandidato.error) {
     if (!falta201(porCandidato.error)) return { ok: false, message: porCandidato.error.message };
     con201 = false;
@@ -53,6 +55,7 @@ export async function hireCandidate(input: { candidateId: string; requestUser: b
     if (!porNombre.error && porNombre.data?.length) fileId = porNombre.data[0].id as string;
   } else if (porCandidato.data) {
     fileId = porCandidato.data.id as string;
+    profileId = (porCandidato.data.profile_id as string | null) ?? null;
   }
 
   // 2. Si no, se crea.
@@ -88,7 +91,24 @@ export async function hireCandidate(input: { candidateId: string; requestUser: b
     else if (falta201(error)) sinSolicitudes = true;
     else return { ok: false, message: error.message };
   }
-  return { ok: true, fileId, creado, solicitado, sinSolicitudes };
+  return { ok: true, fileId, creado, solicitado, sinSolicitudes, profileId };
+}
+
+/**
+ * D-NEXT: la cuenta del contratado ya se creó y se enlazó desde «Contratar»: su solicitud pendiente se cierra.
+ * Solo el admin de RR. HH. (lo mismo que `markUserCreationDone`). `.select("id")`: cero filas no es éxito, pero
+ * aquí tampoco es error (sin la 201, o sin solicitud, no hay nada que cerrar).
+ */
+export async function closeUserRequestsForFile(fileId: string): Promise<{ ok: boolean; cerradas: number; message?: string }> {
+  const supabase = await createClient();
+  const yo = await rolDeHr(supabase);
+  if (!yo) return { ok: false, cerradas: 0, message: "Not signed in." };
+  if (!veSolicitudesDeUsuario(yo.role)) return { ok: false, cerradas: 0, message: "Only an HR admin can close a request." };
+  const { data, error } = await supabase.schema("recruiting").from("user_creation_requests")
+    .update({ status: "done", done_by: yo.userId, done_at: new Date().toISOString() })
+    .eq("employee_file_id", fileId).eq("status", "pending").select("id");
+  if (error) return falta201(error) ? { ok: true, cerradas: 0 } : { ok: false, cerradas: 0, message: error.message };
+  return { ok: true, cerradas: data?.length ?? 0 };
 }
 
 export type UserCreationRequest = {

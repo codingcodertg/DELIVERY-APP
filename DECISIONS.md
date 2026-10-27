@@ -48462,3 +48462,13 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Las bajas de antes:** `scripts/libera-credenciales-de-bajas.mjs` (sin `--escribe` solo enseña; con `--escribe` guarda un respaldo en D:/CLAUDE/respaldos-db y aplica ban + liberar a quien tenga `profiles.left_at <= hoy`). No se ha corrido.
 
 **No medido:** nada contra Auth real: ni el cambio de correo al alias (si GoTrue lo acepta sin mandar confirmación con `email_confirm: true`), ni el ban, ni la ventana en el navegador, ni el guion.
+
+## D-NEXT · Contratar crea también el usuario
+
+**Pedido:** «When a person is hired it should not only add them as an employee but create their user too. You can test it with Juan Castenon since I already did Maricela»
+
+**Qué cambia:** la ventana de «🤝 Hire» del candidato tiene «Crear también su usuario del hub» (marcada), con correo, usuario y rol precargados (`precargaDeUsuario` en `src/lib/recruiting/contratar.ts`): con correo válido del candidato va el correo; sin él, un usuario sugerido (inicial + último apellido, sin acentos: «Juan Castañón» → `jcastanon`); la tienda es la ubicación del candidato; el rol sale del puesto solo si es obvio (`rolDesdePuesto`: gerente, chofer, almacén, contabilidad, logística, ventas) y si no se propone «sales» con el aviso «revísalo». Al confirmar: expediente y solicitud como en D-688, luego la cuenta por el MISMO `/api/invite` de Usuarios (exige admin del hub; no hay otra regla de permisos), el enlace por `/api/recruiting/usuario-de-empleado` (borra el expediente vacío que la 106 crea con la cuenta; exige admin de RR. HH.) y `closeUserRequestsForFile` cierra la solicitud pendiente de ese expediente. La contraseña se enseña una vez, como en Usuarios. Si el expediente ya tenía cuenta no se crea otra.
+
+**Si no se puede:** quien contrata no es admin del hub (403) → la solicitud queda en «Usuarios por crear» y el aviso lo dice; si `/api/invite` falla → igual, con el error; si la cuenta se crea pero no se enlaza → se dice, y la solicitud sigue abierta.
+
+**No medido:** no probado contra la base ni en el navegador (lo prueba el dueño con Juan Castañón). En particular, no medido que un gerente de RR. HH. que es admin del hub pueda enlazar (la ruta pide `recruiting_role = admin`): en ese caso la cuenta queda creada sin enlazar y el aviso lo dice.
