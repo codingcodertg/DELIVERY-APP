@@ -48472,3 +48472,12 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Si no se puede:** quien contrata no es admin del hub (403) → la solicitud queda en «Usuarios por crear» y el aviso lo dice; si `/api/invite` falla → igual, con el error; si la cuenta se crea pero no se enlaza → se dice, y la solicitud sigue abierta.
 
 **No medido:** no probado contra la base ni en el navegador (lo prueba el dueño con Juan Castañón). En particular, no medido que un gerente de RR. HH. que es admin del hub pueda enlazar (la ruta pide `recruiting_role = admin`): en ese caso la cuenta queda creada sin enlazar y el aviso lo dice.
+
+
+## D-711 · La fecha de entrega no se pone en un día pasado, ni escrita ni en borrador
+
+**Pedido:** «en el order, en deliveries, ellos aún están pudiendo elegir una fecha anterior al día de hoy… solo se debería poder elegir de hoy para adelante… faded y bloqueado» (foto: orden nueva con 10/26/2026 el 10/27).
+
+**Qué cambia:** el selector ya tenía `min` = hoy (D-532), que el calendario pinta apagado; lo que entraba era la fecha **escrita a mano** y el **borrador**, que no miraba el día pasado. Ahora `Txt` de `OrderModal.tsx` ignora una fecha escrita antes de su `min`, y guardar un borrador con una fecha nueva pasada se para con el mismo aviso (`agendaEnDiaPasado`; una orden vieja que ya tenía esa fecha se sigue editando).
+
+**No medido:** no probado en el navegador; no mirado si «Misma factura que una orden anterior» copia la fecha (si la copia, el borrador ya no se guarda con ella).
