@@ -48494,7 +48494,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **No medido:** no probado en el navegador.
 
 
-## D-NEXT · El turno dice desde qué app se marcó y cómo va su GPS
+## D-714 · El turno dice desde qué app se marcó y cómo va su GPS
 
 **Pedido:** «porque los gps en los drivers julio max y ellos porque no me aparece en el app todo el recorrido de ellos» → auditoría → «haz las 3 y dame el comando de la migración».
 
