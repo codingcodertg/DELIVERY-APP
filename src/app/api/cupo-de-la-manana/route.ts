@@ -27,8 +27,7 @@ export async function GET(req: Request) {
   const reglas = reglasDeAprobacion((ajustes as { approval_rules?: never } | null)?.approval_rules);
   const { data, error } = await admin.from("deliveries")
     .select("id, store, delivery_windows, stage, is_training")
-    .eq("delivery_date", fecha)
-    .in("delivery_windows", Object.keys(reglas.cupo));
+    .eq("delivery_date", fecha); // todas: «todo el día» las suma (D-NEXT)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ocupadas: ocupadasPorVentana((data ?? []) as FilaDeCupo[], reglas, excluir) });
 }

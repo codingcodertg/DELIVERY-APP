@@ -1,4 +1,5 @@
 import { parseWindow } from "./dispatch";
+import { SATURDAY_WINDOW, WEEKDAY_ALL_DAY_WINDOW } from "./constants";
 
 /**
  * Dos razones nuevas para que la orden de un vendedor vaya a aprobación de oficina en vez de nacer aprobada (D-639).
@@ -122,15 +123,27 @@ const ETAPAS_SIN_CUPO = new Set(["draft", "canceled", "rejected"]);
 
 export interface FilaDeCupo { id: string; store: string | null; delivery_windows: string | null; stage: string | null; is_training?: boolean | null }
 
-/** Cuántas órdenes hay ya en cada ventana con cupo (sin contar `excluir`, que es la propia orden al editarla). */
+/**
+ * «Todo el día» se llena con TODAS las órdenes del día (D-NEXT). El dueño: «esas órdenes de la mañana también cuentan para
+ * all day… para que sepan cuántas órdenes hay en all day y que haya un límite. O sea, todas juntas». Las otras franjas
+ * siguen contando solo las suyas (Mañana no suma Madrugada: es la regla de Roberto, D-639).
+ */
+export const VENTANAS_DE_TODO_EL_DIA: readonly string[] = [WEEKDAY_ALL_DAY_WINDOW, SATURDAY_WINDOW];
+export const esTodoElDia = (v: string | null | undefined): boolean => VENTANAS_DE_TODO_EL_DIA.includes(v ?? "");
+
+/**
+ * Cuántas órdenes hay ya en cada ventana con cupo, y en «todo el día» siempre (sin contar `excluir`, que es la propia
+ * orden al editarla). «Todo el día» suma las de cualquier ventana.
+ */
 export function ocupadasPorVentana(filas: readonly FilaDeCupo[], reglas: ReglasDeAprobacion, excluir?: string | null): Record<string, number> {
   const cuenta: Record<string, number> = {};
-  for (const v of Object.keys(reglas.cupo)) cuenta[v] = 0;
+  for (const v of [...Object.keys(reglas.cupo), ...VENTANAS_DE_TODO_EL_DIA]) cuenta[v] = 0;
   for (const f of filas) {
     if (f.id === excluir || f.is_training || ETAPAS_SIN_CUPO.has(f.stage ?? "")) continue;
     if (tiendaSinCupo(f.store, reglas)) continue;
     const v = f.delivery_windows ?? "";
-    if (v in cuenta) cuenta[v] += 1;
+    for (const todo of VENTANAS_DE_TODO_EL_DIA) cuenta[todo] += 1;
+    if (v in cuenta && !esTodoElDia(v)) cuenta[v] += 1;
   }
   return cuenta;
 }

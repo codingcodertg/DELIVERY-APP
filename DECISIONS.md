@@ -48481,3 +48481,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** el selector ya tenía `min` = hoy (D-532), que el calendario pinta apagado; lo que entraba era la fecha **escrita a mano** y el **borrador**, que no miraba el día pasado. Ahora `Txt` de `OrderModal.tsx` ignora una fecha escrita antes de su `min`, y guardar un borrador con una fecha nueva pasada se para con el mismo aviso (`agendaEnDiaPasado`; una orden vieja que ya tenía esa fecha se sigue editando).
 
 **No medido:** no probado en el navegador; no mirado si «Misma factura que una orden anterior» copia la fecha (si la copia, el borrador ya no se guarda con ella).
+
+
+## D-NEXT · «Todo el día» cuenta todas las órdenes del día
+
+**Pedido:** «esas órdenes de la mañana también cuentan para all day… tienes que agregar esas ahí para que sepan cuántas órdenes hay en all day y que haya un límite. O sea, todas juntas» (foto: Madrugada «Llena (4 de 2)», Mañana «Llena (3 de 1)», Todo el día «Libre»).
+
+**Qué cambia:** `ocupadasPorVentana` cuenta en «Todo el día» (0830-1730, y el del sábado 0830-1530) TODAS las órdenes vivas del día, de cualquier franja; la ruta `/api/cupo-de-la-manana` ya no filtra por ventana para poder sumarlas. Las demás franjas siguen igual (Mañana no suma Madrugada: regla de Roberto, D-639). En la ficha, «Todo el día» sin tope dice «N órdenes ese día»; con tope en Ajustes → Cupo (ya editable desde D-675) se llena con todas juntas y, lleno, manda a aprobación como las demás. Las tiendas sin cupo (Brownsville) siguen fuera.
+
+**Decidido sin preguntar:** el tope de «Todo el día» no lleva número por defecto (las reglas de producción son las de defecto, `approval_rules` nulo); en los últimos 30 días hubo entre 4 y 32 órdenes vivas al día fuera de Brownsville, mediana ~19. Lo pone el dueño en Ajustes.
+
+**No medido:** no probado en el navegador.
