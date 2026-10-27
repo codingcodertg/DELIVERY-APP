@@ -4237,7 +4237,7 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, mi
     <div className="field">
       <label>{label}{invalid && <span className="req-star"> *</span>}</label>
       <input className={invalid ? "invalid" : ""} type={type} step={type === "number" ? "any" : undefined} value={(val as string) ?? ""} disabled={disabled} placeholder={placeholder} min={min} max={max} inputMode={inputMode}
-        // Una fecha antes del `min` escrita a mano no entra (D-NEXT): el selector ya la pinta apagada.
+        // Una fecha antes del `min` escrita a mano no entra (D-711): el selector ya la pinta apagada.
         onChange={(e) => { if (type === "date" && min && e.target.value && e.target.value < min) return; on(e.target.value); }} />
     </div>
   );

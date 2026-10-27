@@ -48474,7 +48474,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **No medido:** no probado contra la base ni en el navegador (lo prueba el dueño con Juan Castañón). En particular, no medido que un gerente de RR. HH. que es admin del hub pueda enlazar (la ruta pide `recruiting_role = admin`): en ese caso la cuenta queda creada sin enlazar y el aviso lo dice.
 
 
-## D-NEXT · La fecha de entrega no se pone en un día pasado, ni escrita ni en borrador
+## D-711 · La fecha de entrega no se pone en un día pasado, ni escrita ni en borrador
 
 **Pedido:** «en el order, en deliveries, ellos aún están pudiendo elegir una fecha anterior al día de hoy… solo se debería poder elegir de hoy para adelante… faded y bloqueado» (foto: orden nueva con 10/26/2026 el 10/27).
 
