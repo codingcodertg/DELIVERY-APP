@@ -48507,7 +48507,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **No medido:** nada en el navegador ni en un teléfono; si el plugin del GPS funciona en los teléfonos de Julio y Máximo (eso lo dirá `driver_shifts.gps` desde mañana).
 
 
-## D-NEXT · El texto de la cita lleva Google Maps y Waze, y la copia funciona con el chat ya abierto
+## D-717 · El texto de la cita lleva Google Maps y Waze, y la copia funciona con el chat ya abierto
 
 **Pedido:** «cuando yo esté mandando el mensaje de texto … si ya estoy en el mismo chat … no se copia el mensaje … quiero que en los mensajes de texto salga un link de Google Maps o de Waze … de cada tienda que uno elige … el link de ambas».
 
