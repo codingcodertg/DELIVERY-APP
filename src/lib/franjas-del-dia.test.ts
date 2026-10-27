@@ -56,8 +56,20 @@ describe("estado de cada franja", () => {
     const f = porVentana(franjasDelDia({ fecha: MARTES, tienda: "Tienda Centro", ocupadas: { "0830-1000": 1, "0830-1200": 1 }, reglas: R, ahora: JUEVES_1000 }));
     expect(f["0830-1000"].estado).toEqual({ tipo: "quedan", quedan: 1, tope: 2 });
     expect(f["0830-1200"].estado).toEqual({ tipo: "llena", ocupadas: 1, tope: 1 });
-    expect(f["0830-1730"].estado).toEqual({ tipo: "libre" });
+    expect(f["0830-1730"].estado).toEqual({ tipo: "cuenta", ocupadas: 0 });
     expect(f["1200-1730"].estado).toEqual({ tipo: "libre" });
+  });
+
+  it("todo el día dice cuántas hay ese día y, con tope en Ajustes, se llena con todas juntas (D-712)", () => {
+    const ocupadas = { "0830-1000": 2, "0830-1200": 1, "0830-1730": 5 };
+    const sinTope = porVentana(franjasDelDia({ fecha: MARTES, tienda: "Tienda Centro", ocupadas, reglas: R, ahora: JUEVES_1000 }));
+    expect(sinTope["0830-1730"].estado).toEqual({ tipo: "cuenta", ocupadas: 5 });
+    expect(textoDeFranja(sinTope["0830-1730"].estado, true)).toBe("5 órdenes ese día");
+    const conTope = { ...R, cupo: { ...R.cupo, "0830-1730": 5 } };
+    const lleno = porVentana(franjasDelDia({ fecha: MARTES, tienda: "Tienda Centro", ocupadas, reglas: conTope, ahora: JUEVES_1000 }));
+    expect(lleno["0830-1730"].estado).toEqual({ tipo: "llena", ocupadas: 5, tope: 5 });
+    const sinFlota = porVentana(franjasDelDia({ fecha: MARTES, tienda: "Tienda Lejos", ocupadas, reglas: R, ahora: JUEVES_1000 }));
+    expect(sinFlota["0830-1730"].estado).toEqual({ tipo: "libre" });
   });
 
   it("lleno es justo al tope, no al pasarlo; y una de más sigue llena", () => {
@@ -185,7 +197,7 @@ describe("la ruta que cuenta (/api/cupo-de-la-manana)", () => {
     h.usuario = { id: "u1" };
     h.filas = [
       fila("a", MARTES, "0830-1000"), fila("b", MARTES, "0830-1000"), fila("c", MARTES, "0830-1200"),
-      fila("d", MARTES, "0830-1730"),                                   // sin cupo: no se cuenta ni se devuelve
+      fila("d", MARTES, "0830-1730"),                                   // sin cupo propio, pero «todo el día» suma todas
       fila("e", "2026-10-28", "0830-1000"),                              // otro día
       fila("f", MARTES, "0830-1000", { store: "RDZ Brownsville" }),      // tienda sin cupo por defecto
       fila("g", MARTES, "0830-1200", { stage: "canceled" }),             // anulada
@@ -193,7 +205,7 @@ describe("la ruta que cuenta (/api/cupo-de-la-manana)", () => {
     const r = await GET(new Request(`http://x/api/cupo-de-la-manana?fecha=${MARTES}&excluir=b`));
     expect(r.status).toBe(200);
     const cuerpo = await r.json();
-    expect(cuerpo).toEqual({ ocupadas: { "0830-1000": 1, "0830-1200": 1 } });
+    expect(cuerpo).toEqual({ ocupadas: { "0830-1000": 1, "0830-1200": 1, "0830-1730": 3, "0830-1530": 3 } });
     expect(JSON.stringify(cuerpo)).not.toContain("Cliente Secreto");
     expect(h.columnas).toContain("deliveries:id, store, delivery_windows, stage, is_training");
   });
@@ -203,7 +215,7 @@ describe("la ruta que cuenta (/api/cupo-de-la-manana)", () => {
     h.ajustes = { id: 1, approval_rules: { cupo: { "0830-1000": 2, "1200-1730": 1 }, tiendas_sin_cupo: [] } };
     h.filas = [fila("a", MARTES, "1200-1730"), fila("b", MARTES, "0830-1200")];
     const cuerpo = await (await GET(new Request(`http://x/api/cupo-de-la-manana?fecha=${MARTES}`))).json();
-    expect(cuerpo).toEqual({ ocupadas: { "0830-1000": 0, "1200-1730": 1 } });
+    expect(cuerpo).toEqual({ ocupadas: { "0830-1000": 0, "1200-1730": 1, "0830-1730": 2, "0830-1530": 2 } });
   });
 
   it("fecha mala, 400", async () => {

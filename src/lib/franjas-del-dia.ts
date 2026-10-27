@@ -1,7 +1,7 @@
 import { DELIVERY_WINDOW_PRESETS } from "./constants";
 import { parseWindow } from "./dispatch";
 import { cierraA, ventanasParaLaFecha } from "./delivery-windows";
-import { motivosDeAprobacion, tiendaSinCupo, type MotivoDeAprobacion, type ReglasDeAprobacion } from "./aprobacion-por-hora-y-cupo";
+import { esTodoElDia, motivosDeAprobacion, tiendaSinCupo, type MotivoDeAprobacion, type ReglasDeAprobacion } from "./aprobacion-por-hora-y-cupo";
 
 /**
  * Las franjas de un día, con lo que queda en cada una, para la ficha de la orden (D-657).
@@ -26,6 +26,8 @@ export type EstadoDeFranja =
   | { tipo: "llena"; ocupadas: number; tope: number }
   /** Tiene cupo pero el conteo no llegó (cargando, o la ruta falló): se dice el tope y no se adivina lo ocupado. */
   | { tipo: "sin_conteo"; tope: number }
+  /** «Todo el día» sin tope en Ajustes: se dice cuántas hay ese día, sin límite (D-712). */
+  | { tipo: "cuenta"; ocupadas: number }
   /** Sin cupo: la ventana no tiene tope, o la tienda no cuenta para el cupo (flota propia). */
   | { tipo: "libre" };
 
@@ -55,7 +57,8 @@ export function ventanasDeLasFranjas(fecha: string, reglas: ReglasDeAprobacion, 
 /** El estado de una franja: el mismo tope y la misma cuenta que `motivoPorCupo`. */
 export function estadoDeFranja(ventana: string, tienda: string | null | undefined, ocupadas: Record<string, number> | null, reglas: ReglasDeAprobacion): EstadoDeFranja {
   const tope = reglas.cupo[ventana];
-  if (typeof tope !== "number" || tiendaSinCupo(tienda, reglas)) return { tipo: "libre" };
+  if (tiendaSinCupo(tienda, reglas)) return { tipo: "libre" };
+  if (typeof tope !== "number") return esTodoElDia(ventana) && ocupadas != null ? { tipo: "cuenta", ocupadas: ocupadas[ventana] ?? 0 } : { tipo: "libre" };
   if (ocupadas == null) return { tipo: "sin_conteo", tope };
   const n = ocupadas[ventana] ?? 0;
   return n >= tope ? { tipo: "llena", ocupadas: n, tope } : { tipo: "quedan", quedan: tope - n, tope };
@@ -105,6 +108,8 @@ export function textoDeFranja(e: EstadoDeFranja, es: boolean): string {
       return es ? `Llena (${e.ocupadas} de ${e.tope})` : `Full (${e.ocupadas} of ${e.tope})`;
     case "sin_conteo":
       return es ? `Cupo de ${e.tope}` : `Limit ${e.tope}`;
+    case "cuenta":
+      return es ? `${e.ocupadas} ${e.ocupadas === 1 ? "orden" : "órdenes"} ese día` : `${e.ocupadas} ${e.ocupadas === 1 ? "order" : "orders"} that day`;
     case "libre":
       return es ? "Libre" : "Open";
   }
