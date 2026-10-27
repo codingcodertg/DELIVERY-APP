@@ -2283,10 +2283,11 @@ export default function RoutesPage() {
       }
       if (pts.length) return pts;
     }
-    // Las tiendas de Ajustes entran en el día entero (D-580): la región, y encima lo de hoy.
-    return encuadreDeLasRutas(points, selected, byDriver, lanes, storeMarkers);
+    // Las tiendas de Ajustes entran en el día entero (D-580): la región, y encima lo de hoy. Acotado a un chofer («Mi
+    // ruta», D-NEXT), no: su ruta sola, cerrada, sin las tiendas de Ajustes abriendo el encuadre hasta Brownsville.
+    return encuadreDeLasRutas(points, selected, byDriver, lanes, storeMarkers, miChofer != null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, driverLocations, users, storeMarkers]);
+  }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, driverLocations, users, storeMarkers, miChofer]);
 
   if (!me) return null;
   if (!soloLectura && !canPlanRoutes(me)) {

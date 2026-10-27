@@ -48514,3 +48514,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** (1) El texto de la cita presencial lleva, debajo de la dirección de la tienda elegida, dos líneas: «Google Maps: …» y «Waze: …», hechas con esa dirección (`enlacesDeMapa`, marcador nuevo `{maps}`). Una plantilla de Ajustes de antes, sin `{maps}`, los recibe igual debajo de su `{address}`. Con un lugar escrito a mano («Otro…») no hay enlaces. (2) RingCentral, cuando ya tiene abierto ese chat, no cambia el texto que lleva el enlace `rcapp://`; lo único que llega es lo pegado. La copia al portapapeles era asíncrona y a ciegas (`copiado: true` sin saber si copió). Ahora primero se copia de forma síncrona (`execCommand("copy")`, dentro del clic, que sí dice si copió), y la asíncrona queda de respaldo; el aviso dice «si RingCentral se abre vacío o ya tenías ese chat abierto, pégalo (Ctrl+V)». Vale para los tres textos de RR. HH. (cita, «¿te puedo llamar?», seguimiento) porque todos salen por `abrirSmsEnRingCentral`.
 
 **No medido:** en el navegador con RingCentral abierto; que RingCentral no sobrescriba el chat abierto es lo que cuenta el dueño, no algo que yo haya reproducido.
+
+## D-NEXT · El mapa de «Mi ruta» abre cerrado sobre la ruta del chofer
+
+**Pedido:** con la captura del mapa bien cerrado sobre sus paradas: «asi quiero que se mire en el driver zoom in pero cuando entro se mira zoom out para el driver arregla eso».
+
+**Causa:** el mapa de «Mi ruta» es el del Gestor acotado al chofer (D-514). Sin ningún chofer marcado, el Gestor encuadra «la región y lo de hoy» (D-580): todas las tiendas de Ajustes y encima las paradas. Para el chofer, que no tiene nada que marcar, eso metía Brownsville y las demás tiendas en el encuadre y su ruta quedaba chica en una esquina; al tocar algo el mapa se cerraba y por eso «así quiero que se mire».
+
+**Qué cambia:** `encuadreDeLasRutas` recibe `soloMiRuta`; acotado a un chofer, el encuadre es lo que el mapa pinta de él (su base, sus paradas, también las hechas), sin las tiendas de Ajustes. Sin nada que pintar sigue cayendo a la región. El Gestor y «Ruta de hoy» no cambian.
+
+**Medido:** la página de verdad pintada acotada a un chofer no manda la tienda lejana en `fitTo` y sí su parada; la misma página sin acotar sí la manda (control). Un mutante que quita el acotado tumba esa prueba por nombre.
+
+**No medido:** en un teléfono; el zoom resultante depende de lo lejos que estén sus paradas entre sí (es el `fitBounds` de siempre, tope 14).

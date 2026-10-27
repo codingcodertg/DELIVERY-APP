@@ -34,7 +34,7 @@ const estado = vi.hoisted(() => ({
   paradas: [] as unknown[],
   driverLocations: [] as unknown[],
   shifts: [] as unknown[],
-  mapa: null as null | { liveDrivers: { driver: string }[]; points: { id: string; label: string }[] },
+  mapa: null as null | { liveDrivers: { driver: string }[]; points: { id: string; label: string }[]; fitTo?: [number, number][] },
 }));
 
 vi.mock("@/lib/data-provider", () => ({
@@ -53,10 +53,12 @@ vi.mock("@/lib/confirm", () => ({ useConfirm: () => async () => true }));
 // corre al pintar en el servidor. Aquí se entregan ya leídas, que es el caso que importa: la pantalla las tiene TODAS.
 vi.mock("@/lib/usa-rutas-del-dia", () => ({ useRutasDelDia: () => ({ paradas: estado.paradas, origen: "funcion" }) }));
 vi.mock("@/components/MapView", () => ({
-  MapView: (p: { liveDrivers: { driver: string }[]; points: { id: string; label: string }[] }) => { estado.mapa = p; return createElement("div", { "data-mapa": "1" }); },
+  MapView: (p: { liveDrivers: { driver: string }[]; points: { id: string; label: string }[]; fitTo?: [number, number][] }) => { estado.mapa = p; return createElement("div", { "data-mapa": "1" }); },
 }));
 vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
-vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [] }));
+// Una tienda lejos de la ruta (D-NEXT): en el Gestor entra en el encuadre del día entero (D-580); en el mapa del chofer, no.
+const TIENDA_LEJOS: [number, number] = [25.9, -97.5];
+vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [{ name: "Tienda lejos", lat: 25.9, lng: -97.5 }] }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({}) }));
 
 const CARLOS = { id: "u-carlos", role: "driver", full_name: "Carlos R." };
@@ -186,6 +188,19 @@ describe("la pantalla: el chofer ve EL MISMO mapa del Gestor, con sus rutas", ()
     expect(rutasDelPanel(html)).toEqual(["Carlos R."]);
     // Ni los demás choferes, ni la ruta temporal «Ruta 1», que `rutasConOrdenes` deja en el panel aunque esté vacía.
     expect(html).not.toContain("Ruta 1");
+  }, 60_000);
+
+  it("el mapa abre cerrado sobre SU ruta (D-NEXT): las tiendas de Ajustes no entran en el encuadre; en el Gestor sí", async () => {
+    estado.me = CARLOS;
+    await pinta("Carlos R.");
+    const suyo = estado.mapa?.fitTo ?? [];
+    expect(suyo.length).toBeGreaterThan(0);
+    expect(suyo).not.toContainEqual(TIENDA_LEJOS);
+    expect(suyo).toContainEqual([26.3, -98.2]);   // su parada
+    // Control: la misma página sin acotar encuadra la región, tienda lejana incluida.
+    estado.me = GERENTE;
+    await pinta(null);
+    expect(estado.mapa?.fitTo).toContainEqual(TIENDA_LEJOS);
   }, 60_000);
 
   it("en el mapa sale SU camión, no el de su compañero", async () => {
