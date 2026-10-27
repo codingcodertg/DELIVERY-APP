@@ -22,6 +22,8 @@ pg.types.setTypeParser(1082, (v) => v);
 
 const ruta = process.argv.find((a) => a.endsWith(".csv"));
 const escribe = process.argv.includes("--escribe");
+// El dueño, 2026-10-27: «la informacion en el excel es la correcta». Con esto, donde difieren, el archivo pisa al expediente.
+const mandaElArchivo = process.argv.includes("--manda-el-archivo");
 if (!ruta) { console.error("Uso: node --env-file=.env.local scripts/carga-herramientas-de-empleados.mjs <archivo.csv> [--escribe]"); process.exit(1); }
 
 // ---------- el archivo ----------
@@ -135,7 +137,10 @@ for (const p of personas.values()) {
     const actual = f[k];
     if (actual == null || actual === "") { parche[k] = v; continue; }
     const igual = typeof actual === "number" ? Number(actual) === Number(v) : sinAcentos(String(actual).replace(/\D/g, "") || String(actual)) === sinAcentos(String(v).replace(/\D/g, "") || String(v));
-    if (!igual && String(actual).split("T")[0] !== String(v)) conflictos.push(`${p.nombre} · ${k}: expediente «${actual}» · archivo «${v}» (se deja el expediente)`);
+    if (!igual && String(actual).split("T")[0] !== String(v)) {
+      if (mandaElArchivo) { parche[k] = v; conflictos.push(`${p.nombre} · ${k}: expediente «${actual}» → archivo «${v}» (SE PISA)`); }
+      else conflictos.push(`${p.nombre} · ${k}: expediente «${actual}» · archivo «${v}» (se deja el expediente)`);
+    }
   }
   if (Object.keys(parche).length) cambios.push({ id: f.id, quien: f.nombre_perfil || f.full_name, parche });
 }
@@ -144,7 +149,7 @@ for (const p of personas.values()) {
 console.log(`Archivo: ${registros.length} filas → ${personas.size} personas, ${licenciasSinPersona.length} licencias sin persona.`);
 console.log(`Expedientes: ${ficheros.length}. Con cambios: ${cambios.length}. Conflictos: ${conflictos.length}. Sin expediente: ${noEncontrados.length}.\n`);
 for (const ch of cambios) console.log(`+ ${ch.quien}: ${Object.entries(ch.parche).map(([k, v]) => `${k}=${v}`).join(", ")}`);
-if (conflictos.length) { console.log("\nCONFLICTOS (no se tocan):"); for (const x of conflictos) console.log("  ! " + x); }
+if (conflictos.length) { console.log(mandaElArchivo ? "\nCONFLICTOS (manda el archivo):" : "\nCONFLICTOS (no se tocan):"); for (const x of conflictos) console.log("  ! " + x); }
 if (noEncontrados.length) { console.log("\nSIN EXPEDIENTE (el dueño los agrega en RR. HH. → Agregar):"); for (const p of noEncontrados) console.log(`  ? ${p.nombre} (${p.emails.join(", ") || "sin correo"}) ${p.datos.job_title ?? ""} ${p.datos.store ?? ""}`); }
 if (avisos.length) { console.log("\nAVISOS:"); for (const a of avisos) console.log("  · " + a); }
 const costoSinPersona = licenciasSinPersona.reduce((a, l) => a + (l.costo ?? 0), 0);
