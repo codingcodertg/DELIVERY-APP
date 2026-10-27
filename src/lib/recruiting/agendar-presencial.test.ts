@@ -66,13 +66,13 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     const es = textoConfirmacionPresencial(cand, cita, "Andrés", "es", tiendas, null, hoyEs19);
     expect(es).toBe(
       "Hola, le habla Andrés, reclutador de Rodriguez Tile Group. Gracias por su tiempo. Le confirmo su entrevista presencial para mañana a las 10:30 a.m. en nuestra oficina:\n\n"
-      + "Rodriguez Tile Group\n100 Main St, McAllen, TX\n\n"
+      + "Rodriguez Tile Group\n100 Main St, McAllen, TX\nGoogle Maps: https://www.google.com/maps/search/?api=1&query=100%20Main%20St%2C%20McAllen%2C%20TX\nWaze: https://waze.com/ul?q=100%20Main%20St%2C%20McAllen%2C%20TX&navigate=yes\n\n"
       + "Por favor llegue unos minutos antes y traiga una identificación. Cualquier duda o si necesita cambiar la hora, respóndame a este número.\n\n"
       + "Nos vemos mañana,\nAndrés\nRodriguez Tile Group",
     );
     const en = textoConfirmacionPresencial(cand, cita, "Andrés", "en", tiendas, null, hoyEs19);
     expect(en).toContain("Hello, this is Andrés, recruiter at Rodriguez Tile Group.");
-    expect(en).toContain("for tomorrow at 10:30 AM at our office:\n\nRodriguez Tile Group\n100 Main St, McAllen, TX\n\n");
+    expect(en).toContain("for tomorrow at 10:30 AM at our office:\n\nRodriguez Tile Group\n100 Main St, McAllen, TX\nGoogle Maps: https://www.google.com/maps/search/?api=1&query=100%20Main%20St%2C%20McAllen%2C%20TX\nWaze: https://waze.com/ul?q=100%20Main%20St%2C%20McAllen%2C%20TX&navigate=yes\n\n");
     expect(en).toContain("See you tomorrow,\nAndrés\nRodriguez Tile Group");
     expect(en).not.toContain("{");
     expect(es).not.toContain("{");
@@ -120,7 +120,7 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     expect(plantillaDeAjustes([templates[0]])).toBeNull();
     expect(plantillaDeAjustes([{ label: "In-Person interview", text: "  " }])).toBeNull();
     const es = textoConfirmacionPresencial(cand, cita, "Andrés", "es", tiendas, plantillaDeAjustes(templates), hoyEs19);
-    expect(es).toMatch(/^María\/Driver\/Andrés\/.*20 de octubre.*\/10:30 a\.m\.\/McAllen\/100 Main St, McAllen, TX\/mañana a las 10:30 a\.m\.\/mañana$/);
+    expect(es).toMatch(/^María\/Driver\/Andrés\/.*20 de octubre.*\/10:30 a\.m\.\/McAllen\/100 Main St, McAllen, TX\nGoogle Maps: .*\nWaze: .*&navigate=yes\/mañana a las 10:30 a\.m\.\/mañana$/);
     // Sin tienda, {address} vale el lugar (mejor eso que un hueco en un texto que escribió el reclutador).
     expect(textoConfirmacionPresencial(cand, { ...cita, lugar: "Pharr" }, "A", "es", tiendas, "{place}|{address}")).toBe("Pharr|Pharr");
     expect(MARCADORES_DE_LA_CITA.split(" ")).toEqual(["{when}", "{day}", "{date}", "{time}", "{place}", "{address}", "{maps}"]);
