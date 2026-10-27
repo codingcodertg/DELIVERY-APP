@@ -132,6 +132,11 @@ export function UsersManager({ header, prefill, onCreated }: {
         </span>
         {/* A quiet marker that this person was given something beyond their
             role — otherwise the only way to know is to open all of them. */}
+        {estaDadoDeBaja(u.left_at) && (
+          <span className="sema" style={{ background: "var(--red)", color: "var(--card, #fff)" }} data-marca="dado-de-baja">
+            {t("Terminated", "Dado de baja")}
+          </span>
+        )}
         {extra.length > 0 && (
           <span className="sema" style={{ background: "var(--amber)", color: "#fff" }} title={t("Extra permissions", "Permisos extra")}>
             🔑 +{extra.length}

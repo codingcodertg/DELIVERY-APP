@@ -10,6 +10,7 @@ import { ClockinSettings } from "@/components/ClockinSettings";
 import { avatarColor, initials } from "@/lib/utils";
 import type { Profile, UserRole } from "@/lib/types";
 import { esAdmin } from "@/lib/impersonation";
+import { estaDadoDeBaja } from "@/lib/baja";
 import { normalizaTienda, seFiltraPorTienda, tiendasMarcadas } from "@/lib/visibilidad-tienda";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
@@ -26,7 +27,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 // where there is room to say what each setting means.
 // ============================================================
 
-interface SignIn { email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
+interface SignIn { archivado?: boolean; liberadas?: { email: string | null; username: string | null; at: string } | null; email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
 export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
   const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
@@ -168,6 +169,19 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
           <span className="sema" style={{ background: preview.color, color: "#fff" }}>{preview.text}</span>
         </div>
         <div className="hint" style={{ marginBottom: 14 }}>{lang === "es" ? info.desc_es : info.desc}</div>
+        {/* D-709: una baja quita el acceso y libera el correo; aquí se ve qué tenía, para dárselo a otra persona. */}
+        {(estaDadoDeBaja(u.left_at) || signIn?.archivado) && (
+          <div data-aviso="dado-de-baja" style={{ marginBottom: 14, padding: "8px 10px", borderRadius: 8, background: "var(--red-soft)" }}>
+            <b>{t("Terminated", "Dado de baja")}</b>{" · "}
+            {t("no hub access; their sign-in was freed.", "sin acceso al hub; sus credenciales se liberaron.")}
+            {signIn?.liberadas && (signIn.liberadas.email || signIn.liberadas.username) && (
+              <div className="hint" style={{ marginTop: 4 }}>
+                {t("Had", "Tenía")}: {[signIn.liberadas.email, signIn.liberadas.username && "@" + signIn.liberadas.username].filter(Boolean).join(" · ")}
+                {" — "}{t("free to give to someone else.", "libres para dárselos a otra persona.")}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ---------- Who they are ---------- */}
         <div className="section-label">{t("Identity", "Identidad")}</div>

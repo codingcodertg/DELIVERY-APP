@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logSecurity } from "@/lib/security-log-server";
 import { change } from "@/lib/security-log";
+import { esAliasDeBaja, type CredencialesLiberadas } from "@/lib/credenciales-liberadas";
 import { emailForUsername, isSyntheticEmail, isValidUsername, normalizeUsername } from "@/lib/username";
 
 // ============================================================
@@ -41,8 +42,13 @@ export async function GET(req: Request) {
   if (!data?.user) return NextResponse.json({ error: "No such user." }, { status: 404 });
 
   const email = data.user.email ?? "";
-  const synthetic = isSyntheticEmail(email);
+  // D-709: el alias de una baja tampoco es un contacto; lo que tenía va en `liberadas`.
+  const archivado = esAliasDeBaja(email);
+  const synthetic = isSyntheticEmail(email) || archivado;
+  const liberadas = ((data.user.app_metadata ?? {}) as { credenciales_liberadas?: CredencialesLiberadas }).credenciales_liberadas ?? null;
   return NextResponse.json({
+    archivado,
+    liberadas,
     // A derived address is machinery, not a contact. Reporting it as this
     // person's email would put it on a customer form one day.
     email: synthetic ? "" : email,

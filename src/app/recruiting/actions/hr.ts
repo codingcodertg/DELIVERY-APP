@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSyntheticEmail } from "@/lib/username";
+import { aliasDeBaja, credencialesAGuardar, hayQueLiberar, notaConCredenciales, type CredencialesLiberadas } from "@/lib/credenciales-liberadas";
 import {
   esColumnaQueFalta, extensionValida, filaNueva, filasDeExpediente, limpiaExtension, normalizaGrupoDirectorio,
   normalizaMotivoBaja, parcheAlta, parcheAltaCompleto, parcheBaja, parcheBajaCompleto, puedeDarDeBaja,
@@ -318,16 +319,44 @@ async function ponAcceso(profileId: string, encendida: boolean): Promise<{ ok: b
 }
 
 /**
- * Da de baja: fecha de salida, motivo, nota y quién la registró en el expediente; y, SI SE PIDE, la cuenta
- * deshabilitada. Sobre alguien que ya está de baja corrige los datos de la baja.
+ * Libera el correo y el usuario de una cuenta dada de baja (D-709): el correo pasa al alias archivado
+ * (`aliasDeBaja`), el usuario se borra, y lo que tenía se guarda en `app_metadata.credenciales_liberadas`.
+ * La cuenta y el perfil se quedan. Si ya estaba liberada no hace nada y devuelve `null`.
+ */
+async function liberaCredenciales(profileId: string): Promise<{ ok: true; liberadas: CredencialesLiberadas | null } | { ok: false; message: string }> {
+  let admin;
+  try { admin = createAdminClient(); }
+  catch { return { ok: false, message: "SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+  const { data: u, error: e1 } = await admin.auth.admin.getUserById(profileId);
+  if (e1 || !u?.user) return { ok: false, message: e1?.message ?? "No such account." };
+  const { data: perfil } = await admin.from("profiles").select("username").eq("id", profileId).maybeSingle();
+  const actual = { email: u.user.email ?? null, username: (perfil?.username as string | null) ?? null };
+  if (!hayQueLiberar(actual)) return { ok: true, liberadas: null };
+  const liberadas = credencialesAGuardar(actual);
+  const previas = (u.user.app_metadata ?? {}) as Record<string, unknown>;
+  const { error: e2 } = await admin.auth.admin.updateUserById(profileId, {
+    email: aliasDeBaja(profileId), email_confirm: true,
+    app_metadata: { ...previas, credenciales_liberadas: liberadas },
+  });
+  if (e2) return { ok: false, message: e2.message };
+  if (actual.username) {
+    const { data: filas, error: e3 } = await admin.from("profiles").update({ username: null }).eq("id", profileId).select("id");
+    if (e3 || !filas?.length) return { ok: false, message: e3?.message ?? "Username not cleared." };
+  }
+  return { ok: true, liberadas };
+}
+
+/**
+ * Da de baja: fecha de salida, motivo, nota y quién la registró en el expediente; y la cuenta
+ * deshabilitada con su correo liberado. Sobre alguien que ya está de baja corrige los datos de la baja.
  *
- * `quitarAcceso` es la casilla «Quitar también el acceso al hub» de la ventana. Antes la baja apagaba la cuenta
- * siempre; ahora es una decisión que se ve, porque hay bajas que conservan el acceso unos días.
+ * D-709: con cuenta, la baja siempre la deshabilita y libera su correo y usuario (`liberaCredenciales`); la casilla
+ * «Quitar también el acceso al hub» ya no existe.
  */
 export async function deactivateEmployee(
   fileId: string,
-  datos: { fecha?: string | null; motivo?: string | null; nota?: string | null; quitarAcceso?: boolean } = {},
-): Promise<{ ok: boolean; message?: string; sinMotivo?: boolean; accesoQuitado?: boolean }> {
+  datos: { fecha?: string | null; motivo?: string | null; nota?: string | null } = {},
+): Promise<{ ok: boolean; message?: string; sinMotivo?: boolean; accesoQuitado?: boolean; liberadas?: CredencialesLiberadas | null }> {
   const acceso = await comoAdminDeHr();
   if (!acceso.ok) return acceso;
   const { supabase, userId } = acceso;
@@ -354,10 +383,17 @@ export async function deactivateEmployee(
   }
   if (error) return { ok: false, message: error.message };
 
-  if (!file.profile_id || !datos.quitarAcceso) return { ok: true, sinMotivo, accesoQuitado: false };
+  // D-709: con cuenta, la baja SIEMPRE quita el acceso y libera el correo; ya no es una casilla.
+  if (!file.profile_id) return { ok: true, sinMotivo, accesoQuitado: false };
   const ban = await ponAcceso(file.profile_id as string, false);
   if (!ban.ok) return { ok: false, sinMotivo, message: `Marked as left, but the account could not be disabled: ${ban.message}` };
-  return { ok: true, sinMotivo, accesoQuitado: true };
+  const lib = await liberaCredenciales(file.profile_id as string);
+  if (!lib.ok) return { ok: false, sinMotivo, message: `Marked as left and access removed, but the email could not be freed: ${lib.message}` };
+  if (lib.liberadas && !sinMotivo) {
+    const nota = notaConCredenciales(datos.nota, lib.liberadas);
+    await tabla().update({ left_note: nota }).eq("id", fileId);
+  }
+  return { ok: true, sinMotivo, accesoQuitado: true, liberadas: lib.liberadas };
 }
 
 /**
@@ -382,6 +418,11 @@ export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean;
     ({ error } = await tabla().update({ ...parcheAlta(), ...sello }).eq("id", fileId));
   }
   if (error) return { ok: false, message: error.message };
+  // D-709: reactivar levanta el ban, pero NO devuelve el correo ni el usuario: pueden ser ya de otra persona.
+  if (file.profile_id) {
+    const ban = await ponAcceso(file.profile_id as string, true);
+    if (!ban.ok) return { ok: false, message: `Reactivated, but the account could not be re-enabled: ${ban.message}` };
+  }
   return { ok: true, tieneCuenta: !!file.profile_id };
 }
 
