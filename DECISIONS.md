@@ -48440,7 +48440,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** no abierto en el navegador ni contra la base con la 205 aplicada.
 
-## D-NEXT · Clientes: los contactos se editan en pestañas
+## D-708 · Clientes: los contactos se editan en pestañas
 
 **Pedido:** «This is too long so have tabs at the top to add/ switch to the others»
 

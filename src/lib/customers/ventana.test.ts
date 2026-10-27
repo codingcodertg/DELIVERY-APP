@@ -218,7 +218,7 @@ describe("los contactos de la ficha (D-668)", () => {
   it("editando: cada contacto con su nombre, cargo, teléfonos, correos y nota; «+ Teléfono», «+ Correo» y «+ Agregar contacto»", () => {
     const html = contacto(pinta(dosTiendas, { editarAlAbrir: true }));
     expect(html.match(/data-contacto-editable="\d"/g)).toHaveLength(5);
-    // D-NEXT: en pestañas, uno a la vista; los demás en el árbol pero ocultos, y «+ Agregar contacto» al final de la tira.
+    // D-708: en pestañas, uno a la vista; los demás en el árbol pero ocultos, y «+ Agregar contacto» al final de la tira.
     expect(html.match(/data-pestana-de-contacto="\d"/g)).toHaveLength(3);
     expect(html).toContain('data-mas-contactos-editando="2"');
     expect(html.match(/<fieldset hidden=""[^>]*data-contacto-editable/g)).toHaveLength(4);

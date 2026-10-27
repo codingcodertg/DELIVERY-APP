@@ -63,7 +63,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
   contactos?: ContactoEnEdicion[];
   onContactos?: (c: ContactoEnEdicion[]) => void;
-  /** D-NEXT: la pestaña de contacto a la vista al editar, si la lleva quien llama (para saltar a la que tiene errores). */
+  /** D-708: la pestaña de contacto a la vista al editar, si la lleva quien llama (para saltar a la que tiene errores). */
   contactoElegido?: number;
   onEligeContacto?: (i: number) => void;
   /** D-682: las redes sociales mientras se editan, y quién las cambia. */
@@ -454,7 +454,7 @@ function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Clie
 function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t }: {
   contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; elegido?: number; onElige?: (i: number) => void; t: T;
 }) {
-  // D-NEXT: «This is too long so have tabs at the top to add/ switch to the others». Uno a la vista, con pestañas arriba
+  // D-708: «This is too long so have tabs at the top to add/ switch to the others». Uno a la vista, con pestañas arriba
   // como las pastillas de `ContactosParaVer` (y su «+N»), y «+ Agregar contacto» al final, que lo crea y salta a él. Los
   // demás siguen en el árbol (`hidden`): lo escrito no se pierde al cambiar de pestaña. La pestaña de un contacto con
   // algo mal escrito lleva «⚠», para no pasar por alto un error que no está a la vista.
@@ -606,7 +606,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const contactosOriginales = useMemo(() => contactosDe(cliente), [cliente]);
   const [contactos, setContactos] = useState<ContactoEnEdicion[]>(() => enEdicion(contactosOriginales));
   useEffect(() => { setContactos(enEdicion(contactosOriginales)); }, [contactosOriginales]);
-  // D-NEXT: la pestaña de contacto a la vista al editar; «Guardar» con errores salta a la primera que los tiene.
+  // D-708: la pestaña de contacto a la vista al editar; «Guardar» con errores salta a la primera que los tiene.
   const [contactoElegido, setContactoElegido] = useState(0);
   useEffect(() => { setContactoElegido(0); }, [contactosOriginales]);
   // D-682: y las redes sociales, igual.

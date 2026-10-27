@@ -124,7 +124,7 @@ describe("las pastillas de contacto", () => {
   });
 });
 
-describe("D-NEXT: editar los contactos en pestañas", () => {
+describe("D-708: editar los contactos en pestañas", () => {
   it("tras quitar uno: la elegida sigue si va antes, se corre si va después, y si era ella pasa a la vecina", () => {
     expect(elegidoTrasQuitar(0, 2, 4)).toBe(0);
     expect(elegidoTrasQuitar(3, 1, 4)).toBe(2);

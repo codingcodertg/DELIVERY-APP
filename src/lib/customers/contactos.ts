@@ -40,13 +40,13 @@ export function rotuloDeContacto(c: Contacto, i: number, t: T): string {
 /** Un contacto mientras se escribe: todo texto, sin formato todavía. */
 export interface ContactoEnEdicion { name: string; title: string; phones: string[]; emails: string[]; note: string; website: string; address: string }
 
-/** D-NEXT: el rótulo de la pestaña de un contacto que se edita, con la regla de `rotuloDeContacto` sobre lo escrito. */
+/** D-708: el rótulo de la pestaña de un contacto que se edita, con la regla de `rotuloDeContacto` sobre lo escrito. */
 export function rotuloEnEdicion(c: ContactoEnEdicion, i: number, t: T): string {
   return c.name.trim() || c.title.trim() || t(`Contact ${i + 1}`, `Contacto ${i + 1}`);
 }
 
 /**
- * D-NEXT: al editar, los contactos van en pestañas (uno a la vista). Las pestañas cuyo contacto tiene algo mal escrito
+ * D-708: al editar, los contactos van en pestañas (uno a la vista). Las pestañas cuyo contacto tiene algo mal escrito
  * (las claves de `erroresDeContactos`), en orden y sin repetir: llevan su marca y «Guardar» salta a la primera.
  */
 export function contactosConErrores(errores: readonly string[]): number[] {
@@ -55,7 +55,7 @@ export function contactosConErrores(errores: readonly string[]): number[] {
   return [...out].sort((a, b) => a - b);
 }
 
-/** D-NEXT: la pestaña elegida tras quitar el contacto `quitado` de `cuantos`: la misma si va antes, corrida si va después, y la vecina si era ella. */
+/** D-708: la pestaña elegida tras quitar el contacto `quitado` de `cuantos`: la misma si va antes, corrida si va después, y la vecina si era ella. */
 export function elegidoTrasQuitar(elegido: number, quitado: number, cuantos: number): number {
   if (elegido < quitado) return elegido;
   if (elegido > quitado) return elegido - 1;
