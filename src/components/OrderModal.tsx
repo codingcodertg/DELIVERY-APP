@@ -835,6 +835,7 @@ export function OrderModal({
     }
     // Un borrador no pasa por `passesChecks`, pero su fecha tampoco puede ser domingo (sin el caso especial) ni de un año
     // imposible (D-658): enviarlo después no vuelve a escribir la fecha.
+    if ((payload.stage ?? "draft") === "draft" && agendaEnDiaPasado(payload.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
     if ((payload.stage ?? "draft") === "draft" && fechaNoVale(payload.delivery_date)) return;
     // Completas y dentro de la región, también en un borrador (D-589). Con `busy`: puede ir a buscar el punto.
     setBusy(true);
@@ -4236,7 +4237,8 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, mi
     <div className="field">
       <label>{label}{invalid && <span className="req-star"> *</span>}</label>
       <input className={invalid ? "invalid" : ""} type={type} step={type === "number" ? "any" : undefined} value={(val as string) ?? ""} disabled={disabled} placeholder={placeholder} min={min} max={max} inputMode={inputMode}
-        onChange={(e) => on(e.target.value)} />
+        // Una fecha antes del `min` escrita a mano no entra (D-NEXT): el selector ya la pinta apagada.
+        onChange={(e) => { if (type === "date" && min && e.target.value && e.target.value < min) return; on(e.target.value); }} />
     </div>
   );
 }
