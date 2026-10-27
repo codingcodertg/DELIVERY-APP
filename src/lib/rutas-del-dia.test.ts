@@ -298,6 +298,11 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
     expect(encuadreDeLasRutas(pts, new Set(), porChofer, carriles, tiendas)[0]).toEqual([26.5, -98.5]);
     expect(encuadreDeLasRutas(pts, new Set(["Beto"]), porChofer, carriles, tiendas)).toEqual([[26.19, -98.18], [26.10, -98.25]]);
     expect(encuadreDeLasRutas([], new Set(), porChofer, carriles, [])).toEqual([]);
+    // D-718: acotado a un chofer («Mi ruta»), ni las tiendas ni el filtro: lo que el mapa pinta de él, tal cual (también
+    // la base y lo hecho, que no están en `porChofer`); sin nada, vacío, y el mapa cae a la región.
+    expect(encuadreDeLasRutas(pts, new Set(), porChofer, carriles, tiendas, true)).toEqual(pts.map((p) => [p.lat, p.lng]));
+    expect(encuadreDeLasRutas(pts, new Set(["Beto"]), porChofer, carriles, tiendas, true)).toEqual(pts.map((p) => [p.lat, p.lng]));
+    expect(encuadreDeLasRutas([], new Set(), porChofer, carriles, tiendas, true)).toEqual([]);
   });
 });
 

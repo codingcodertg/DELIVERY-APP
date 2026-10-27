@@ -388,11 +388,18 @@ export function ordenDelPunto(id: string): string | null {
  * El día entero lleva también las tiendas de Ajustes (D-580): el encuadre inicial es «la región y lo de hoy», y así un
  * día sin paradas (fin de semana, antes de cargar) abre sobre las tiendas y no sobre un centro fijo. Con choferes
  * marcados no entran: ahí la pregunta es «dónde va ESTE», no «dónde estamos».
+ *
+ * Acotado a UN chofer (`soloMiRuta`, el mapa de «Mi ruta», D-718): tampoco. El dueño, con la captura del mapa bien
+ * cerrado sobre su ruta: «asi quiero que se mire en el driver zoom in pero cuando entro se mira zoom out». Al entrar, el
+ * mapa abría con todas las tiendas de Ajustes dentro (Brownsville incluida) y la ruta quedaba en una esquina; con el
+ * chofer nada tiene que marcar —su ruta es la única— y la pregunta es siempre «dónde voy YO». Se encuadra lo que el mapa
+ * pinta de él (su base, sus paradas, también las hechas), y sin nada que pintar, la región, como antes.
  */
 export function encuadreDeLasRutas(
   points: readonly MapPoint[], marcados: ReadonlySet<string>, porChofer: ReadonlyMap<string, { id: string }[]>, carriles: readonly CarrilDeRuta[],
-  tiendas: readonly { lat: number; lng: number }[] = [],
+  tiendas: readonly { lat: number; lng: number }[] = [], soloMiRuta = false,
 ): [number, number][] {
+  if (soloMiRuta) return points.map((p) => [p.lat, p.lng] as [number, number]);
   if (marcados.size === 0) return [...tiendas.map((s) => [s.lat, s.lng] as [number, number]), ...points.map((p) => [p.lat, p.lng] as [number, number])];
   const ids = new Set<string>();
   for (const key of marcados) {
