@@ -49,6 +49,9 @@ export interface TrackingGap {
   driver: string;
   /** Minutes since their last fix, or null if they never reported this shift. */
   quietForMin: number | null;
+  /** D-713: desde qué app se marcó el turno y su último estado de GPS, si el turno lo dice (migración 206). */
+  app: string | null;
+  gps: string | null;
 }
 
 /**
@@ -91,12 +94,12 @@ export function trackingGaps(
     if (lastThisShift == null) {
       // Give a driver who just clocked in time to get their first fix.
       const onShiftMin = (now - startedAt) / 60000;
-      if (onShiftMin >= staleAfterMin) out.push({ driverId: s.driver_id, driver: name, quietForMin: null });
+      if (onShiftMin >= staleAfterMin) out.push({ driverId: s.driver_id, driver: name, quietForMin: null, app: s.app ?? null, gps: s.gps ?? null });
       continue;
     }
     const quietForMin = (now - lastThisShift) / 60000;
     if (quietForMin >= staleAfterMin) {
-      out.push({ driverId: s.driver_id, driver: name, quietForMin: Math.round(quietForMin) });
+      out.push({ driverId: s.driver_id, driver: name, quietForMin: Math.round(quietForMin), app: s.app ?? null, gps: s.gps ?? null });
     }
   }
   return out.sort((a, b) => (b.quietForMin ?? Infinity) - (a.quietForMin ?? Infinity));

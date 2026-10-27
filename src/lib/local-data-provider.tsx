@@ -265,6 +265,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
   // Local demo mode: positions live only in this browser session, so the
   // driver view can be exercised without a backend.
   const [driverLocations, setDriverLocations] = useState<DriverLocation[]>([]);
+  const marcaGpsDelTurno = useCallback<DataState["marcaGpsDelTurno"]>(async () => { /* demo: no hay turno en la base */ }, []);
   const pushLocation = useCallback<DataState["pushLocation"]>(async (fix) => {
     const row: DriverLocation = {
       id: `local-${Date.now()}`,
@@ -589,13 +590,13 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
     saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
-    shifts: store.shifts ?? [], clockIn, clockOut,
+    shifts: store.shifts ?? [], clockIn, clockOut, marcaGpsDelTurno,
     incidents: store.incidents ?? [], addIncident, removeIncident,
     driverLocations, pushLocation,
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, addIncident, removeIncident, driverLocations, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, driverLocations, pushLocation]);
 
   return (
     <Ctx.Provider value={value}>

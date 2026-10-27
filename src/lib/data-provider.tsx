@@ -30,6 +30,8 @@ import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
 import { pedirAvisoEnCamino } from "@/lib/avisos-cliente";
 import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
+import { appDelTurno } from "@/lib/gps-del-turno";
+import { isNativeApp } from "@/lib/native-bridge";
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
 import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
@@ -272,6 +274,8 @@ export interface DataState {
   shifts: DriverShift[];
   clockIn: (driverId: string) => Promise<void>;
   clockOut: (driverId: string) => Promise<void>;
+  /** D-713: el rastreador escribe el último estado del GPS en el turno abierto (migración 206). */
+  marcaGpsDelTurno: (shiftId: string, gps: string) => Promise<void>;
 
   // logistics-manager driver incident log (things that cost the company money)
   incidents: DriverIncident[];
@@ -2148,7 +2152,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const { remaining } = await flushShiftOps(items, async (op) => {
         try {
           if (op.kind === "in") {
-            const { error } = await supabase.from("driver_shifts").insert({ driver_id: op.driverId, device_id: op.deviceId, started_at: op.at });
+            const { error } = await supabase.from("driver_shifts").insert({ driver_id: op.driverId, device_id: op.deviceId, started_at: op.at, app: op.app ?? null });
             if (!error) return "ok";
             return isOfflineError(error) ? "offline" : "rejected";
           }
@@ -2179,6 +2183,16 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     return () => { window.removeEventListener("online", onBack); clearInterval(id); };
   }, [flushShiftOutbox]);
 
+  /** D-713: desde qué app se marca la entrada; lo lee el UA (la APK se firma) o el bridge. */
+  const appActual = () => appDelTurno(typeof navigator === "undefined" ? null : navigator.userAgent, isNativeApp());
+
+  const marcaGpsDelTurno = useCallback<DataState["marcaGpsDelTurno"]>(async (shiftId, gps) => {
+    // Un turno que solo existe en la cola (`local-…`) aún no tiene fila; el estado se vuelve a escribir al cambiar.
+    if (teaching || shiftId.startsWith("local-")) return;
+    try { await supabase.from("driver_shifts").update({ gps, gps_at: new Date().toISOString() }).eq("id", shiftId); }
+    catch { /* sin red: el siguiente cambio de estado lo vuelve a intentar */ }
+  }, [supabase, teaching]);
+
   const clockIn = useCallback<DataState["clockIn"]>(async (driverId) => {
     // Guard against a second open shift (also enforced by a partial unique index). Looks at
     // the queue too, so a queued "in" is not tapped twice.
@@ -2187,13 +2201,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // Which phone started the shift — only it reports position for it.
     let error: { message: string } | null = null;
     try {
-      const res = await supabase.from("driver_shifts").insert({ driver_id: driverId, device_id: deviceId(), started_at: at });
+      const res = await supabase.from("driver_shifts").insert({ driver_id: driverId, device_id: deviceId(), started_at: at, app: appActual() });
       error = res.error;
     } catch (e) { error = { message: e instanceof Error ? e.message : "network error" }; }
     if (error) {
       // G-8 (D-200): no signal → the punch queues and the day starts on screen now.
       if (isOfflineError(error)) {
-        queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "in", driverId, at, deviceId: deviceId() });
+        queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "in", driverId, at, deviceId: deviceId(), app: appActual() });
         notify(t_offlineSaved());
         return;
       }
@@ -2252,7 +2266,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
-    shifts: shiftsView, clockIn, clockOut,
+    shifts: shiftsView, clockIn, clockOut, marcaGpsDelTurno,
     incidents, addIncident, removeIncident,
     driverLocations, pushLocation,
     pendingSync: outbox.length, syncing,

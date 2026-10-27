@@ -302,6 +302,11 @@ export interface DriverShift {
    * the driver's day. Null = unknown, which tracks permissively. */
   device_id: string | null;
   created_at: string;
+  /** D-713 (migración 206): desde qué app se marcó la entrada («apk/6» o «navegador»). Nula en turnos viejos. */
+  app?: string | null;
+  /** D-713: el último estado del rastreo en este turno (live, starting, denied, unavailable, off), y cuándo. */
+  gps?: string | null;
+  gps_at?: string | null;
 }
 
 /** One GPS fix from a driver's phone, sent only while they're on shift.

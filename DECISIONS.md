@@ -48492,3 +48492,16 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Decidido sin preguntar:** el tope de «Todo el día» no lleva número por defecto (las reglas de producción son las de defecto, `approval_rules` nulo); en los últimos 30 días hubo entre 4 y 32 órdenes vivas al día fuera de Brownsville, mediana ~19. Lo pone el dueño en Ajustes.
 
 **No medido:** no probado en el navegador.
+
+
+## D-714 · El turno dice desde qué app se marcó y cómo va su GPS
+
+**Pedido:** «porque los gps en los drivers julio max y ellos porque no me aparece en el app todo el recorrido de ellos» → auditoría → «haz las 3 y dame el comando de la migración».
+
+**Lo medido (2026-10-27):** `driver_locations` tiene 92 puntos en total, todos de Máximo, el último el 2 de septiembre; Máximo marca entrada a diario (19–23 oct, mismo teléfono) y no llega ni un punto; Julio nunca ha marcado entrada. La APK de Storage es la 6 (descargada y abierta: trae el servicio de GPS en segundo plano, los permisos y los dos plugins). Hasta en agosto, con la APK, llegaban 2–21 puntos al día (un camión en marcha daría ~1.500): el flujo del plugin nunca corrió en ese teléfono; solo las fijaciones de «al abrir». Desde el 3 de septiembre, cero: lo más consistente es que abre el hub en Chrome (G-26: el navegador no reporta, por diseño; la APK sin permisos no lo dejaría entrar, `DriverGate`).
+
+**Qué cambia:** (1) `LocationTracker` ya no tira el estado del rastreo: lo escribe en el turno abierto (`driver_shifts.gps`, `gps_at`) cada vez que cambia, y «Marcar entrada» escribe `driver_shifts.app` («apk/6» por el UA o el bridge, o «navegador»), también desde la cola sin red (migración **206**, pendiente de aplicar: las columnas son nulables y el cliente las manda; hasta aplicarla, PostgREST rechaza el insert de la entrada → NO publicar sin aplicarla antes, ver abajo). (2) La barra de Entregas enseña a admin/gerente/logística un «📡 N» que no se cierra, con los choferes en turno que no reportan (`trackingGaps`, igual que el aviso del Gestor, que sí se cierra para siempre, D-400); lleva a la pestaña del aviso. (3) El chofer en turno ve una tarjeta solo cuando puede arreglarlo él: «marcaste entrada desde el navegador» con el enlace a la APK, o «Android bloquea la ubicación» con el botón a ajustes; «arrancando» y «en vivo» no se enseñan (la tarjeta del turno sigue siendo solo el reloj, como pidió). En el Gestor, junto al nombre del que no reporta, sale el porqué («navegador, no la app», «apk/6, sin permiso de ubicación»).
+
+**Orden de publicación:** la 206 ANTES del deploy. El insert de «Marcar entrada» manda `app`; sin la columna, PostgREST responde 400 y el chofer no puede marcar entrada.
+
+**No medido:** nada en el navegador ni en un teléfono; si el plugin del GPS funciona en los teléfonos de Julio y Máximo (eso lo dirá `driver_shifts.gps` desde mañana).

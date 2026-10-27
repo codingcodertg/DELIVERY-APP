@@ -63,6 +63,7 @@ import type { Foto } from "@/lib/arrastre-de-paradas";
 import { driverOf, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
 import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { liveDriverNames, trackingGaps } from "@/lib/tracking-health";
+import { porQueNoReporta } from "@/lib/gps-del-turno";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
@@ -2823,7 +2824,7 @@ export default function RoutesPage() {
           <CerrarAviso aviso={AVISOS_DEL_GESTOR.choferesSinSenal} onCerrar={() => cierraAvisoDelGestor(AVISOS_DEL_GESTOR.choferesSinSenal)} />
           </div>
           <div className="hint" style={{ marginTop: 4 }}>
-            {trackingIssues.map((g) => `${g.driver} (${g.quietForMin == null ? t("no fix yet", "sin señal aún") : t(`${g.quietForMin} min`, `${g.quietForMin} min`)})`).join(" · ")}
+            {trackingIssues.map((g) => { const porQue = porQueNoReporta(g, t("en", "es") === "es"); return `${g.driver} (${g.quietForMin == null ? t("no fix yet", "sin señal aún") : t(`${g.quietForMin} min`, `${g.quietForMin} min`)}${porQue ? `, ${porQue}` : ""})`; }).join(" · ")}
             {" — "}
             {t("their phone may have paused the app to save battery, or lost signal.",
                "su teléfono pudo pausar la app para ahorrar batería, o perdió señal.")}
