@@ -26,6 +26,7 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { downloadCSV, toCSV } from "@/lib/utils";
 import { exportaTablaExcel } from "@/lib/export-tabla";
 import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
+import { COLUMNAS_207, OPCIONES_1PW, costoMensual, dinero } from "@/lib/recruiting/employee-file";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -50,6 +51,8 @@ export default function EmployeeFilesPage() {
   const [rows, setRows] = useState<Fila[]>([]);
   // ¿Tiene la tabla las columnas de la 159? Sin ellas los campos nuevos salen apagados.
   const [con159, setCon159] = useState(false);
+  // La 207 (D-NEXT): herramientas y costo. Igual que la 159: sin ella, la sección se apaga y dice por qué.
+  const [con207, setCon207] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -72,7 +75,7 @@ export default function EmployeeFilesPage() {
   const load = useCallback(async () => {
     const r = await listEmployeeFiles();
     if (!r.ok) setErr(r.message);
-    else { setErr(null); setRows(r.rows); setCon159(r.campos159); }
+    else { setErr(null); setRows(r.rows); setCon159(r.campos159); setCon207(r.campos207); }
     setCargando(false);
   }, []);
 
@@ -313,7 +316,7 @@ export default function EmployeeFilesPage() {
       </div>
 
       {abiertaFila && (
-        <Ficha key={abiertaFila.id} persona={abiertaFila} con159={con159} puedeBaja={puedeBaja}
+        <Ficha key={abiertaFila.id} persona={abiertaFila} con159={con159} con207={con207} puedeBaja={puedeBaja}
           onSaved={load} onClose={() => setAbierto(null)}
           onBaja={() => setBaja(abiertaFila.id)} onReactivar={() => setReactivar(abiertaFila.id)} />
       )}
@@ -342,9 +345,9 @@ export default function EmployeeFilesPage() {
 
 /** El expediente de una persona: datos, contacto, emergencia, estado, y debajo HR y FORMS. */
 function Ficha({
-  persona, con159, puedeBaja, onSaved, onClose, onBaja, onReactivar,
+  persona, con159, con207, puedeBaja, onSaved, onClose, onBaja, onReactivar,
 }: {
-  persona: EmployeeFile; con159: boolean; puedeBaja: boolean;
+  persona: EmployeeFile; con159: boolean; con207: boolean; puedeBaja: boolean;
   onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void;
 }) {
   const { t, lang } = usePrefs();
@@ -373,6 +376,26 @@ function Ficha({
     emergency_name: persona.emergency_name ?? "",
     emergency_relation: persona.emergency_relation ?? "",
     emergency_phone: persona.emergency_phone ?? "",
+    // ---- 207 (D-NEXT) ----
+    email_plan: persona.email_plan != null ? String(persona.email_plan) : "",
+    email_cost_year: persona.email_cost_year != null ? String(persona.email_cost_year) : "",
+    email_renewal_date: persona.email_renewal_date != null ? String(persona.email_renewal_date) : "",
+    second_email: persona.second_email != null ? String(persona.second_email) : "",
+    app_username: persona.app_username != null ? String(persona.app_username) : "",
+    onepassword: persona.onepassword != null ? String(persona.onepassword) : "",
+    previous_phone: persona.previous_phone != null ? String(persona.previous_phone) : "",
+    device_serial: persona.device_serial != null ? String(persona.device_serial) : "",
+    qb_initials: persona.qb_initials != null ? String(persona.qb_initials) : "",
+    remote_pc_name: persona.remote_pc_name != null ? String(persona.remote_pc_name) : "",
+    remote_pc_status: persona.remote_pc_status != null ? String(persona.remote_pc_status) : "",
+    rc_user_created: persona.rc_user_created != null ? String(persona.rc_user_created) : "",
+    rc_device_assigned: persona.rc_device_assigned != null ? String(persona.rc_device_assigned) : "",
+    risk_score: persona.risk_score != null ? String(persona.risk_score) : "",
+    performance_score: persona.performance_score != null ? String(persona.performance_score) : "",
+    score_status: persona.score_status != null ? String(persona.score_status) : "",
+    score_action: persona.score_action != null ? String(persona.score_action) : "",
+    tools_cost_year: persona.tools_cost_year != null ? String(persona.tools_cost_year) : "",
+    tools_note: persona.tools_note != null ? String(persona.tools_note) : "",
   });
   const [docs, setDocs] = useState<EmployeeDoc[] | null>(null);
   // Las tiendas para elegir (D-258). Vienen de `store_names()` y no de los Ajustes de Entregas,
@@ -426,14 +449,18 @@ function Ficha({
     const {
       store, directory_group, full_name,
       job_title, personal_phone, personal_email, emergency_name, emergency_relation, emergency_phone,
-      ...resto
+      ...restoCon207
     } = info;
+    // Los campos de la 207 solo viajan si la tabla los tiene (igual que los de la 159).
+    const de207 = Object.fromEntries(COLUMNAS_207.map((k) => [k, restoCon207[k]]));
+    const resto = Object.fromEntries(Object.entries(restoCon207).filter(([k]) => !(COLUMNAS_207 as readonly string[]).includes(k)));
     const r = await saveEmployeeFile(persona.id, {
       ...resto,
       ...(puedeElegirTienda(persona) ? { store, full_name } : {}),
       // Solo un admin manda el grupo: a un gerente el servidor se lo rechazaría, y «Guardar
       // datos» fallaría por un campo que ni siquiera ve.
       ...(editaGrupo ? { directory_group } : {}),
+      ...(con207 ? de207 : {}),
       // Los campos de la 159 solo viajan si la tabla los tiene: sin ella, mandarlos tumbaría el
       // guardado entero de los que sí existen.
       ...(con159 ? { job_title, personal_phone, personal_email, emergency_name, emergency_relation, emergency_phone } : {}),
@@ -460,6 +487,17 @@ function Ficha({
         onChange={(e) => setInfo({ ...info, [k]: e.target.value })}
         {...extra}
         placeholder={con159 ? extra.placeholder : faltaMigracion(t)} />
+    </div>
+  );
+  /** Un campo de la 207 (D-NEXT): apagado, y diciendo por qué, mientras la migración no esté aplicada. */
+  const campo207 = (k: Clave, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+    <div>
+      <label>{label}</label>
+      <input value={info[k]} disabled={!con207} data-campo207={k}
+        title={con207 ? undefined : faltaMigracion(t, 207)}
+        onChange={(e) => setInfo({ ...info, [k]: e.target.value })}
+        {...extra}
+        placeholder={con207 ? extra.placeholder : faltaMigracion(t, 207)} />
     </div>
   );
   /** Un teléfono: al salir del campo toma la forma de la app, 956-xxx-xxxx (D-432). */
@@ -645,6 +683,50 @@ function Ficha({
         {campo159("emergency_name", t("Name", "Nombre"))}
         {campo159("emergency_relation", t("Relationship", "Parentesco"))}
         {campo159("emergency_phone", t("Phone", "Teléfono"), { placeholder: "956-555-0123", onBlur: alSalirTel("emergency_phone") })}
+      </div>
+
+      {/* HERRAMIENTAS Y COSTO (207, D-NEXT): el correo y su plan, RingCentral, Remote PC, 1Password, QuickBooks, y lo que
+          cuesta todo al año. El costo mensual se calcula aquí, no se guarda: (correo + otras) / 12. */}
+      <div className="sec-head">
+        <span className="sec-title">{t("TOOLS & COST", "HERRAMIENTAS Y COSTO")}</span>
+        <span className="badge" data-costo-mensual style={{ marginLeft: 8, background: "var(--tint-blue)", color: "var(--blue)" }}
+          title={t("Email + other tools per year, divided by 12", "Correo + otras herramientas al año, entre 12")}>
+          {t("per month", "al mes")}: {dinero(costoMensual({ email_cost_year: Number(info.email_cost_year) || null, tools_cost_year: Number(info.tools_cost_year) || null }))}
+        </span>
+      </div>
+      <div className="grid g3">
+        {campo207("email_plan", t("Email plan (Microsoft 365)", "Plan del correo (Microsoft 365)"))}
+        {campo207("email_cost_year", t("Email cost / year (USD)", "Costo del correo al año (USD)"), { inputMode: "decimal", placeholder: "259.80" })}
+        {campo207("email_renewal_date", t("Email renewal date", "Renovación del correo"), { type: "date" })}
+        {campo207("second_email", t("Second work email", "Segundo correo de trabajo"), { type: "email" })}
+        {campo207("app_username", t("Hub username (if not the email)", "Usuario del hub (si no es el correo)"))}
+        <div>
+          <label>1Password</label>
+          <select value={info.onepassword} disabled={!con207} data-campo207="onepassword"
+            title={con207 ? undefined : faltaMigracion(t, 207)}
+            onChange={(e) => setInfo({ ...info, onepassword: e.target.value })}>
+            <option value="">{con207 ? t("— unknown —", "— no se sabe —") : faltaMigracion(t, 207)}</option>
+            {OPCIONES_1PW.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+        {campo207("previous_phone", t("Previous office number", "Número de oficina anterior"), { placeholder: "956-555-0123", onBlur: alSalirTel("previous_phone") })}
+        {campo207("device_serial", t("Desk phone serial", "Serie del teléfono de escritorio"))}
+        {campo207("qb_initials", t("QuickBooks initials", "Iniciales en QuickBooks"))}
+        {campo207("remote_pc_name", t("Remote PC name", "PC de Remote PC"))}
+        {campo207("remote_pc_status", t("Remote PC password", "Clave de Remote PC"), { placeholder: "DONE / DNE / SWITCH TO SITE" })}
+        {campo207("rc_user_created", t("RingCentral user", "Usuario de RingCentral"), { placeholder: "YES / LATER / N/A" })}
+        {campo207("rc_device_assigned", t("RingCentral device", "Teléfono de RingCentral"), { placeholder: "YES / LATER / N/A" })}
+        {campo207("tools_cost_year", t("Other tools / year (USD)", "Otras herramientas al año (USD)"), { inputMode: "decimal" })}
+        {campo207("tools_note", t("Which tools", "Qué herramientas"))}
+      </div>
+      <div className="sec-head">
+        <span className="sec-title">{t("HR SCORE", "PUNTUACIÓN DE RR. HH.")}</span>
+      </div>
+      <div className="grid g3">
+        {campo207("risk_score", t("Risk", "Riesgo"), { inputMode: "decimal" })}
+        {campo207("performance_score", t("Performance", "Desempeño"), { inputMode: "decimal" })}
+        {campo207("score_status", t("Status", "Estado"))}
+        {campo207("score_action", t("Action", "Acción"))}
       </div>
 
       <div style={{ marginTop: 12 }}>

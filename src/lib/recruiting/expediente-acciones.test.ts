@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { COLUMNAS_207, costoMensual, dinero, normaliza1Password, numeroDeFicha, sin207, tiene207 } from "@/lib/recruiting/employee-file";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -274,12 +275,12 @@ describe("teléfonos con la forma de la app (D-432: 956-xxx-xxxx)", () => {
     expect(telefonoDeFicha(null)).toBeNull();
   });
 
-  it("guardar la ficha pasa los TRES teléfonos por esa forma, y la ficha los arregla al salir del campo", () => {
+  it("guardar la ficha pasa los CUATRO teléfonos por esa forma (el anterior desde la 207), y la ficha los arregla al salir del campo", () => {
     const cuerpo = accion("saveEmployeeFile");
-    expect(cuerpo).toContain('for (const k of ["phone", "personal_phone", "emergency_phone"] as const) {');
+    expect(cuerpo).toContain('for (const k of ["phone", "personal_phone", "emergency_phone", "previous_phone"] as const) {');
     expect(cuerpo).toContain("if (patch[k] !== undefined) limpio[k] = telefonoDeFicha(patch[k]);");
     expect(pagina).toContain("setInfo((a) => ({ ...a, [k]: telefonoDeFicha(a[k]) ?? \"\" }))");
-    for (const k of ["phone", "personal_phone", "emergency_phone"]) expect(pagina).toContain(`alSalirTel("${k}")`);
+    for (const k of ["phone", "personal_phone", "emergency_phone", "previous_phone"]) expect(pagina).toContain(`alSalirTel("${k}")`);
   });
 });
 
@@ -321,7 +322,7 @@ describe("los campos de la 159, y la pantalla sin ella", () => {
 
   it("la lista avisa de que falta la 159, la acción dice si la tabla la tiene, y la ficha apaga los campos nuevos", () => {
     expect(accion("listEmployeeFiles")).toContain("campos159: tiene159((files ?? []) as Record<string, unknown>[]),");
-    expect(pagina).toContain("setCon159(r.campos159);");
+    expect(pagina).toContain("setCon159(r.campos159); setCon207(r.campos207);");
     expect(pagina).toContain('{!cargando && !err && !con159 && (');
     expect(pagina).toContain("<input value={info[k]} disabled={!con159} data-campo159={k}");
     expect(pagina).toContain("placeholder={con159 ? extra.placeholder : faltaMigracion(t)}");
@@ -451,5 +452,61 @@ describe("el directorio telefónico (T-0054) lee estos datos", () => {
     // El campo «de oficina» escribe `phone` y la extensión `ringcentral_ext`: las dos columnas que lee phone_book().
     expect(pagina).toContain('<input value={info.phone} placeholder="956-555-0123" data-campo="phone"');
     expect(pagina).toContain('<input value={info.ringcentral_ext} inputMode="numeric" data-campo="ringcentral_ext"');
+  });
+});
+
+// ============================================================
+// Las herramientas de cada empleado y lo que cuestan (migración 207, D-NEXT)
+// ============================================================
+describe("la 207: herramientas y costo", () => {
+  it("`tiene207` mira si una fila trae la clave; `sin207` quita sus columnas y deja lo demás", () => {
+    expect(tiene207([])).toBe(false);
+    expect(tiene207([{ id: "a", job_title: "x" }])).toBe(false);
+    expect(tiene207([{ id: "a", email_plan: null }])).toBe(true);
+    expect(sin207({ email_plan: "x", email_cost_year: 1, tools_note: "y", phone: "1", job_title: "z" })).toEqual({ phone: "1", job_title: "z" });
+    expect(COLUMNAS_207).toHaveLength(19);
+  });
+  it("el costo mensual es (correo + otras) / 12, redondeado a centavos; sin cifras es null, no cero", () => {
+    expect(costoMensual({ email_cost_year: 259.8 })).toBe(21.65);
+    expect(costoMensual({ email_cost_year: 259.8, tools_cost_year: 100 })).toBe(29.98);
+    expect(costoMensual({ email_cost_year: null, tools_cost_year: null })).toBeNull();
+    expect(costoMensual({})).toBeNull();
+    expect(dinero(21.65)).toBe("$21.65");
+    expect(dinero(8300.61)).toBe("$8,300.61");
+    expect(dinero(null)).toBe("—");
+  });
+  it("una cifra del formulario: «$259.80» es 259.8, vacío es null, texto se rechaza (undefined)", () => {
+    expect(numeroDeFicha("$259.80")).toBe(259.8);
+    expect(numeroDeFicha(" 1,234.5 ")).toBe(1234.5);
+    expect(numeroDeFicha("")).toBeNull();
+    expect(numeroDeFicha(null)).toBeNull();
+    expect(numeroDeFicha("abc")).toBeUndefined();
+  });
+  it("1Password: yes/no/maybe en cualquier caja; vacío es null; otra cosa se rechaza", () => {
+    expect(normaliza1Password("YES")).toBe("yes");
+    expect(normaliza1Password("maybe")).toBe("maybe");
+    expect(normaliza1Password("")).toBeNull();
+    expect(normaliza1Password("sí")).toBeUndefined();
+  });
+  it("la lista dice si la tabla tiene la 207, la ficha apaga sus campos sin ella, y «Guardar» solo los manda con ella", () => {
+    expect(accion("listEmployeeFiles")).toContain("campos207: tiene207((files ?? []) as Record<string, unknown>[]),");
+    expect(pagina).toContain("<input value={info[k]} disabled={!con207} data-campo207={k}");
+    expect(pagina).toContain("placeholder={con207 ? extra.placeholder : faltaMigracion(t, 207)}");
+    expect(pagina).toContain("...(con207 ? de207 : {}),");
+    for (const c of COLUMNAS_207) {
+      if (c === "onepassword") expect(pagina).toContain('data-campo207="onepassword"');
+      else expect(pagina).toContain(`campo207("${c}"`);
+    }
+    expect(pagina).toContain("data-costo-mensual");
+    expect(ventanas).toContain('t("migration 207 pending", "falta la migración 207")');
+  });
+  it("la lista trae los campos de la 207; sin ella llegan en null", () => {
+    const [con] = filasDeExpediente([{ id: "f-1", profile_id: null, full_name: "Zoe", email_plan: "Plus", email_cost_year: 129.9, onepassword: "yes" }], [], []);
+    expect(con.email_plan).toBe("Plus");
+    expect(con.email_cost_year).toBe(129.9);
+    expect(con.onepassword).toBe("yes");
+    const [sin] = filasDeExpediente([{ id: "f-2", profile_id: null, full_name: "Ana" }], [], []);
+    expect(sin.email_plan).toBeNull();
+    expect(sin.tools_cost_year).toBeNull();
   });
 });

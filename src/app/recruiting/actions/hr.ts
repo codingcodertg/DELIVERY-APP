@@ -8,6 +8,7 @@ import {
   esColumnaQueFalta, extensionValida, filaNueva, filasDeExpediente, limpiaExtension, normalizaGrupoDirectorio,
   normalizaMotivoBaja, parcheAlta, parcheAltaCompleto, parcheBaja, parcheBajaCompleto, puedeDarDeBaja,
   puedeEditarGrupoDirectorio, sin159, telefonoDeFicha, tiene159,
+  COLUMNAS_207, NUMERICAS_207, normaliza1Password, numeroDeFicha, tiene207,
 } from "@/lib/recruiting/employee-file";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
 import type { FilaHoras, FilaLote, FilaTalon } from "@/lib/recruiting/horas-del-expediente";
@@ -86,6 +87,26 @@ export type EmployeeFile = {
   /** El nombre de quien registró la baja, ya resuelto. De solo lectura. */
   left_by_name: string | null;
   left_recorded_at: string | null;
+  // ---- Migración 207 (D-NEXT): herramientas y costo. Null mientras no esté aplicada. ----
+  email_plan: string | null;
+  email_cost_year: number | null;
+  email_renewal_date: string | null;
+  second_email: string | null;
+  app_username: string | null;
+  onepassword: string | null;
+  previous_phone: string | null;
+  device_serial: string | null;
+  qb_initials: string | null;
+  remote_pc_name: string | null;
+  remote_pc_status: string | null;
+  rc_user_created: string | null;
+  rc_device_assigned: string | null;
+  risk_score: number | null;
+  performance_score: number | null;
+  score_status: string | null;
+  score_action: string | null;
+  tools_cost_year: number | null;
+  tools_note: string | null;
 };
 
 /** Lo que NO se guarda por «Guardar datos»: la identidad, lo derivado, y la baja, que tiene su botón. */
@@ -93,7 +114,7 @@ type NoEditable =
   | "id" | "account_store" | "profile_id" | "date_left"
   | "left_reason" | "left_note" | "left_by" | "left_by_name" | "left_recorded_at";
 const SOLO_POR_SU_BOTON = ["date_left", "left_reason", "left_note", "left_by", "left_by_name", "left_recorded_at"];
-const FALTA_159 = "Migration 159 is not applied yet: the new fields can't be saved.";
+const FALTA_159 = "A migration (159 or 207) is not applied yet: the new fields can't be saved.";
 
 export type EmployeeDoc = {
   id: string;
@@ -119,7 +140,7 @@ export type EmployeeDoc = {
  */
 export async function listEmployeeFiles(): Promise<
   // `campos159`: si la tabla ya tiene las columnas de la 159. Sin ellas la pantalla apaga los campos nuevos.
-  { ok: true; rows: (EmployeeFile & { docKinds: string[] })[]; campos159: boolean } | { ok: false; message: string }
+  { ok: true; rows: (EmployeeFile & { docKinds: string[] })[]; campos159: boolean; campos207: boolean } | { ok: false; message: string }
 > {
   const supabase = await createClient();
   const yo = await tier(supabase);
@@ -139,6 +160,7 @@ export async function listEmployeeFiles(): Promise<
   return {
     ok: true,
     campos159: tiene159((files ?? []) as Record<string, unknown>[]),
+    campos207: tiene207((files ?? []) as Record<string, unknown>[]),
     rows: filasDeExpediente(
       (files ?? []) as Record<string, unknown>[],
       (people ?? []) as { id: string; full_name?: string | null; store?: string | null }[],
@@ -237,9 +259,22 @@ export async function saveEmployeeFile(
   for (const [k, v] of Object.entries(patch)) limpio[k] = v === "" ? null : v;
   if (patch.ringcentral_ext !== undefined) limpio.ringcentral_ext = limpiaExtension(patch.ringcentral_ext);
   // Los teléfonos se guardan con la forma de la app, 956-xxx-xxxx (D-432).
-  for (const k of ["phone", "personal_phone", "emergency_phone"] as const) {
+  for (const k of ["phone", "personal_phone", "emergency_phone", "previous_phone"] as const) {
     if (patch[k] !== undefined) limpio[k] = telefonoDeFicha(patch[k]);
   }
+  // Las cifras de la 207 llegan como texto del formulario («$259.80»): número o null; otra cosa se rechaza.
+  for (const k of NUMERICAS_207) {
+    if (patch[k] === undefined) continue;
+    const n = numeroDeFicha(patch[k] as string | number | null);
+    if (n === undefined) return { ok: false, message: `"${k}" must be a number.` };
+    limpio[k] = n;
+  }
+  if (patch.onepassword !== undefined) {
+    const v = normaliza1Password(patch.onepassword as string | null);
+    if (v === undefined) return { ok: false, message: "1Password must be yes, no or maybe." };
+    limpio.onepassword = v;
+  }
+  void COLUMNAS_207;
 
   const { error } = await supabase.schema("recruiting").from("employee_files").upsert(limpio);
   if (error) return { ok: false, message: esColumnaQueFalta(error) ? FALTA_159 : error.message };
