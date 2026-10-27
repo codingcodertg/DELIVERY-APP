@@ -136,7 +136,9 @@ for (const p of personas.values()) {
     if (k === "store" && f.profile_id) continue;
     const actual = f[k];
     if (actual == null || actual === "") { parche[k] = v; continue; }
-    const igual = typeof actual === "number" ? Number(actual) === Number(v) : sinAcentos(String(actual).replace(/\D/g, "") || String(actual)) === sinAcentos(String(v).replace(/\D/g, "") || String(v));
+    // pg devuelve numeric como texto («129.90» frente a «129.9» del archivo): lo numérico se compara como número.
+    const esNumero = typeof actual === "number" || (k === "email_cost_year" && Number.isFinite(Number(actual)) && Number.isFinite(Number(v)));
+    const igual = esNumero ? Number(actual) === Number(v) : sinAcentos(String(actual).replace(/\D/g, "") || String(actual)) === sinAcentos(String(v).replace(/\D/g, "") || String(v));
     if (!igual && String(actual).split("T")[0] !== String(v)) {
       if (mandaElArchivo) { parche[k] = v; conflictos.push(`${p.nombre} · ${k}: expediente «${actual}» → archivo «${v}» (SE PISA)`); }
       else conflictos.push(`${p.nombre} · ${k}: expediente «${actual}» · archivo «${v}» (se deja el expediente)`);
