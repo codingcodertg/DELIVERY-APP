@@ -10,7 +10,8 @@ import type { AlmacenDeClientes, Res } from "@/lib/customers/almacen";
 import { CLASES_DE_ARCHIVO, claseDeArchivoLabel, faltaElFormulario, MAX_BYTES_DE_ARCHIVO, tamanoLegible, type ArchivoDeCliente, type ClaseDeArchivo } from "@/lib/customers/archivos";
 import { coincidenciasDe, motivoDeCoincidenciaLabel, type Borrador } from "@/lib/customers/coincidencias";
 import {
-  contactosDe, contactoVacio, enEdicion, erroresDeContactos, parcheDeContactos, repartoDePastillas, rotuloDeContacto, textoDeCorreos,
+  contactosConErrores, contactosDe, contactoVacio, elegidoTrasQuitar, enEdicion, erroresDeContactos, parcheDeContactos, repartoDePastillas, rotuloDeContacto,
+  rotuloEnEdicion, textoDeCorreos,
   textoDeTelefonos, type Contacto, type ContactoEnEdicion,
 } from "@/lib/customers/contactos";
 import { hayRedes, NOMBRE_DE_RED, parcheDeRedes, REDES, redesDe, redesEnEdicion, textoDeRed, urlDeRed, type Redes, type RedesEnEdicion } from "@/lib/customers/redes";
@@ -53,7 +54,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). El sitio web y la dirección
  * son de cada contacto (D-697); los de la cuenta, en «Campos ocultos».
  */
-export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, redes, onRedes, vendedores, almacen, puedeEditar = false, t }: {
+export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, contactoElegido, onEligeContacto, redes, onRedes, vendedores, almacen, puedeEditar = false, t }: {
   cliente: Cliente | null;
   form?: Record<string, string>;
   editando?: boolean;
@@ -62,6 +63,9 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** Los contactos mientras se editan, y quién los cambia. Sin ellos, la tarjeta enseña los de `cliente`. */
   contactos?: ContactoEnEdicion[];
   onContactos?: (c: ContactoEnEdicion[]) => void;
+  /** D-NEXT: la pestaña de contacto a la vista al editar, si la lleva quien llama (para saltar a la que tiene errores). */
+  contactoElegido?: number;
+  onEligeContacto?: (i: number) => void;
   /** D-682: las redes sociales mientras se editan, y quién las cambia. */
   redes?: RedesEnEdicion;
   onRedes?: (r: RedesEnEdicion) => void;
@@ -104,7 +108,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {grupo.key === "contacto" && (editando && contactos && onContactos
               ? <>
-                  <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} t={t} />
+                  <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} elegido={contactoElegido} onElige={onEligeContacto} t={t} />
                   {redes && onRedes && <RedesParaEditar redes={redes} onCambia={onRedes} t={t} />}
                 </>
               : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} redes={redesDe(cliente)} t={t} />)}
@@ -447,19 +451,71 @@ function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Clie
  * Editar los contactos (D-668): cuantos hagan falta, y cada uno con cuantos teléfonos y correos hagan falta. El nombre
  * y el cargo salen en MAYÚSCULAS al escribir; el teléfono con el molde de Entregas. Un hueco vacío no cuenta.
  */
-function ContactosParaEditar({ contactos, errores, onCambia, t }: { contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; t: T }) {
+function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t }: {
+  contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; elegido?: number; onElige?: (i: number) => void; t: T;
+}) {
+  // D-NEXT: «This is too long so have tabs at the top to add/ switch to the others». Uno a la vista, con pestañas arriba
+  // como las pastillas de `ContactosParaVer` (y su «+N»), y «+ Agregar contacto» al final, que lo crea y salta a él. Los
+  // demás siguen en el árbol (`hidden`): lo escrito no se pierde al cambiar de pestaña. La pestaña de un contacto con
+  // algo mal escrito lleva «⚠», para no pasar por alto un error que no está a la vista.
+  const [propio, setPropio] = useState(0);
+  const sel = Math.max(0, Math.min(elegido ?? propio, contactos.length - 1));
+  const elige = (k: number) => { setPropio(k); onElige?.(k); };
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useCierraAlSalir(menu, () => setMenu(false), () => [menuRef.current]);
+  const mal = contactosConErrores(errores);
+  const { pastillas, enElMenu } = repartoDePastillas(contactos.length);
+  const pastilla = (activa: boolean, conError: boolean) =>
+    cn("max-w-[11rem] truncate rounded-full border px-3 py-1 text-xs",
+      activa ? "border-clay-200 bg-clay-50 font-medium text-clay-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+      conError && "border-red-400 text-red-600");
+  const rotulo = (k: number) => (mal.includes(k) ? "⚠ " : "") + rotuloEnEdicion(contactos[k], k, t);
+  const quitarContacto = (i: number) => { onCambia(contactos.filter((_, j) => j !== i)); elige(elegidoTrasQuitar(sel, i, contactos.length)); };
+  const agregarContacto = () => { onCambia([...contactos, contactoVacio()]); elige(contactos.length); };
+  const enMenuElegido = enElMenu.includes(sel);
+  const errorEnMenu = enElMenu.some((k) => mal.includes(k));
   const cambia = (i: number, c: Partial<ContactoEnEdicion>) => onCambia(contactos.map((x, j) => (j === i ? { ...x, ...c } : x)));
   const etiqueta = "text-xs text-slate-500";
   const quitar = "shrink-0 rounded px-1.5 text-sm text-slate-400 hover:bg-slate-100 hover:text-red-600";
   const mas = "text-xs font-medium text-clay-600 hover:underline";
   return (
     <div className="space-y-3 border-b border-slate-100 pb-3" data-contactos-editando={contactos.length}>
+      <div role="tablist" aria-label={t("Contacts", "Contactos")} className="flex flex-wrap items-center gap-1.5">
+        {pastillas.map((k) => (
+          <button key={k} type="button" role="tab" aria-selected={k === sel} onClick={() => elige(k)} className={pastilla(k === sel, mal.includes(k))}
+            title={rotulo(k)} data-pestana-de-contacto={k} data-con-error={mal.includes(k) || undefined}>
+            {rotulo(k)}
+          </button>
+        ))}
+        {enElMenu.length > 0 && (
+          <div className="relative" ref={menuRef}>
+            <button type="button" onClick={() => setMenu((m) => !m)} className={pastilla(enMenuElegido, errorEnMenu)} aria-haspopup="menu" aria-expanded={menu}
+              title={t("More contacts", "Más contactos")} data-mas-contactos-editando={enElMenu.length}>
+              {enMenuElegido ? rotulo(sel) : `${errorEnMenu ? "⚠ " : ""}+${enElMenu.length}`} ▾
+            </button>
+            {menu && (
+              <div role="menu" className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] max-w-[16rem] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                {enElMenu.map((k) => (
+                  <button key={k} type="button" role="menuitem" onClick={() => { elige(k); setMenu(false); }} data-opcion-de-contacto-editando={k}
+                    className={cn("block w-full truncate px-3 py-1.5 text-left text-sm hover:bg-slate-50", k === sel ? "font-medium text-clay-700" : "text-slate-700", mal.includes(k) && "text-red-600")}>
+                    {rotulo(k)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <button type="button" onClick={agregarContacto} className="rounded-full border border-dashed border-clay-200 px-3 py-1 text-xs font-medium text-clay-600 hover:bg-clay-50" data-agregar-contacto>
+          + {t("Add contact", "Agregar contacto")}
+        </button>
+      </div>
       {contactos.map((c, i) => (
-        <fieldset key={i} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-3" data-contacto-editable={i}>
+        <fieldset key={i} hidden={i !== sel} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-3" data-contacto-editable={i}>
           <div className="flex items-center justify-between">
             <legend className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t(`Contact ${i + 1}`, `Contacto ${i + 1}`)}</legend>
             {contactos.length > 1 && (
-              <button type="button" className="text-xs text-slate-500 hover:text-red-600" onClick={() => onCambia(contactos.filter((_, j) => j !== i))} data-quitar-contacto={i}>
+              <button type="button" className="text-xs text-slate-500 hover:text-red-600" onClick={() => quitarContacto(i)} data-quitar-contacto={i}>
                 ✕ {t("Remove contact", "Quitar contacto")}
               </button>
             )}
@@ -511,9 +567,6 @@ function ContactosParaEditar({ contactos, errores, onCambia, t }: { contactos: C
           </label>
         </fieldset>
       ))}
-      <Button type="button" variant="outline" size="sm" onClick={() => onCambia([...contactos, contactoVacio()])} data-agregar-contacto>
-        + {t("Add contact", "Agregar contacto")}
-      </Button>
     </div>
   );
 }
@@ -553,6 +606,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const contactosOriginales = useMemo(() => contactosDe(cliente), [cliente]);
   const [contactos, setContactos] = useState<ContactoEnEdicion[]>(() => enEdicion(contactosOriginales));
   useEffect(() => { setContactos(enEdicion(contactosOriginales)); }, [contactosOriginales]);
+  // D-NEXT: la pestaña de contacto a la vista al editar; «Guardar» con errores salta a la primera que los tiene.
+  const [contactoElegido, setContactoElegido] = useState(0);
+  useEffect(() => { setContactoElegido(0); }, [contactosOriginales]);
   // D-682: y las redes sociales, igual.
   const redesOriginales = useMemo(() => redesDe(cliente), [cliente]);
   const [redes, setRedes] = useState<RedesEnEdicion>(() => redesEnEdicion(redesOriginales));
@@ -663,7 +719,12 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   };
 
   const guardar = async () => {
-    if (errores.length) { setAviso({ tono: "rojo", texto: t("Check the highlighted fields.", "Revisa los campos marcados.") }); return; }
+    if (errores.length) {
+      const mal = contactosConErrores(errores);
+      if (mal.length && !mal.includes(contactoElegido)) setContactoElegido(mal[0]);
+      setAviso({ tono: "rojo", texto: t("Check the highlighted fields.", "Revisa los campos marcados.") });
+      return;
+    }
     if (hayObvia && !deTodasFormas) {
       setDeTodasFormas(true);
       setAviso({ tono: "ambar", texto: t("Another account has this name. Press «Save anyway» to go on.", "Ya hay otra cuenta con este nombre. Pulsa «Guardar de todas formas» para seguir.") });
@@ -677,6 +738,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     setForm(original);
     setContactos(enEdicion(contactosOriginales));
     setRedes(redesEnEdicion(redesOriginales));
+    setContactoElegido(0);
     setEditando(false);
     setAviso(null);
   };
@@ -846,7 +908,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} t={t} />
+          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} t={t} />
         </div>
 
         {puedeEditar && !nuevo && archivando && (

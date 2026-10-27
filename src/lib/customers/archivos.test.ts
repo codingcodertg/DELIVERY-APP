@@ -112,6 +112,9 @@ describe("la ficha", () => {
     expect(ed).toMatch(/<input[^>]*data-web-de-contacto="0" value="ana.example.com"/);
     expect(ed).toContain("12 Main St</textarea>");
     expect(ed).toMatch(/<textarea[^>]*data-direccion-de-contacto="0"[^>]*>12 Main St</);
+    // D-NEXT: el 2.º contacto va en su pestaña, oculto hasta pulsarla (en el árbol, para no perder lo escrito).
+    expect(ed).toMatch(/<button[^>]*data-pestana-de-contacto="1"[^>]*>LEO</);
+    expect(ed).toMatch(/<fieldset hidden=""[^>]*data-contacto-editable="1"/);
     expect(ed).toMatch(/<input[^>]*data-web-de-contacto="1" value=""/);
     expect(ed).toMatch(/<textarea[^>]*data-direccion-de-contacto="1"[^>]*><\x2Ftextarea>/);
   });

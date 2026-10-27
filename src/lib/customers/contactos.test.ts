@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { coincidenciasDe } from "./coincidencias";
 import {
-  contactosDe, contactoVacio, deEdicion, enEdicion, erroresDeContactos, parcheDeContactos, repartoDePastillas, rotuloDeContacto,
+  contactosConErrores, contactosDe, contactoVacio, deEdicion, elegidoTrasQuitar, enEdicion, rotuloEnEdicion, erroresDeContactos, parcheDeContactos, repartoDePastillas, rotuloDeContacto,
   textoDeCorreos, textoDeTelefonos,
 } from "./contactos";
 import { contactosDeLosCampos, espejoDeContactos, normalizaContactos, type Contacto } from "./formato";
@@ -121,6 +121,28 @@ describe("las pastillas de contacto", () => {
     expect(rotuloDeContacto(uno({ name: "ANA", title: "OWNER" }), 0, t)).toBe("ANA");
     expect(rotuloDeContacto(uno({ title: "OFFICE" }), 1, t)).toBe("OFFICE");
     expect(rotuloDeContacto(uno({ phones: ["(956) 555-0101"] }), 2, t)).toBe("Contact 3");
+  });
+});
+
+describe("D-NEXT: editar los contactos en pestañas", () => {
+  it("tras quitar uno: la elegida sigue si va antes, se corre si va después, y si era ella pasa a la vecina", () => {
+    expect(elegidoTrasQuitar(0, 2, 4)).toBe(0);
+    expect(elegidoTrasQuitar(3, 1, 4)).toBe(2);
+    expect(elegidoTrasQuitar(1, 1, 4)).toBe(1); // la siguiente ocupa su sitio
+    expect(elegidoTrasQuitar(3, 3, 4)).toBe(2); // era la última: la anterior
+    expect(elegidoTrasQuitar(0, 0, 2)).toBe(0);
+    expect(elegidoTrasQuitar(1, 1, 2)).toBe(0);
+  });
+  it("las pestañas con errores: en orden, sin repetir, y solo las claves de contacto", () => {
+    expect(contactosConErrores(["contacto.3.emails.0", "store", "contacto.1.phones.0", "contacto.3.phones.1", "contacto.12.phones.0"])).toEqual([1, 3, 12]);
+    expect(contactosConErrores(["store"])).toEqual([]);
+    const lista = [contactoVacio(), { ...contactoVacio(), emails: ["mal"] }, { ...contactoVacio(), phones: ["956"] }];
+    expect(contactosConErrores(erroresDeContactos(lista))).toEqual([1, 2]);
+  });
+  it("el rótulo de la pestaña: lo escrito (nombre, si no cargo) o «Contact N»", () => {
+    expect(rotuloEnEdicion({ ...contactoVacio(), name: "ANA", title: "OWNER" }, 0, t)).toBe("ANA");
+    expect(rotuloEnEdicion({ ...contactoVacio(), name: "  ", title: "OFFICE" }, 1, t)).toBe("OFFICE");
+    expect(rotuloEnEdicion(contactoVacio(), 2, t)).toBe("Contact 3");
   });
 });
 
