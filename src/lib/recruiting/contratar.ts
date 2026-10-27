@@ -40,7 +40,7 @@ export function yaPedido(error: { code?: string | null } | null | undefined): bo
 }
 
 // ---------------------------------------------------------------------------------------------
-// D-NEXT: contratar crea también el usuario. Lo que se precarga para /api/invite.
+// D-710: contratar crea también el usuario. Lo que se precarga para /api/invite.
 // ---------------------------------------------------------------------------------------------
 
 /** Los roles que acepta /api/invite (el mismo orden que allí). */

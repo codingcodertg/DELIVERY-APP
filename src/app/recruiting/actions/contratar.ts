@@ -45,7 +45,7 @@ export async function hireCandidate(input: { candidateId: string; requestUser: b
 
   // 1. ¿Ya hay expediente de este candidato?
   let fileId: string | null = null;
-  // D-NEXT: `profile_id` para saber si el expediente ya tiene cuenta y no crear otra.
+  // D-710: `profile_id` para saber si el expediente ya tiene cuenta y no crear otra.
   let profileId: string | null = null;
   const porCandidato = await tabla().select("id, profile_id").eq("candidate_id", cand.id).maybeSingle();
   if (porCandidato.error) {
@@ -95,7 +95,7 @@ export async function hireCandidate(input: { candidateId: string; requestUser: b
 }
 
 /**
- * D-NEXT: la cuenta del contratado ya se creó y se enlazó desde «Contratar»: su solicitud pendiente se cierra.
+ * D-710: la cuenta del contratado ya se creó y se enlazó desde «Contratar»: su solicitud pendiente se cierra.
  * Solo el admin de RR. HH. (lo mismo que `markUserCreationDone`). `.select("id")`: cero filas no es éxito, pero
  * aquí tampoco es error (sin la 201, o sin solicitud, no hay nada que cerrar).
  */

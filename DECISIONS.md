@@ -48463,7 +48463,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** nada contra Auth real: ni el cambio de correo al alias (si GoTrue lo acepta sin mandar confirmación con `email_confirm: true`), ni el ban, ni la ventana en el navegador, ni el guion.
 
-## D-NEXT · Contratar crea también el usuario
+## D-710 · Contratar crea también el usuario
 
 **Pedido:** «When a person is hired it should not only add them as an employee but create their user too. You can test it with Juan Castenon since I already did Maricela»
 

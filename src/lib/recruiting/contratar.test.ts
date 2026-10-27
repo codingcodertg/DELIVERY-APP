@@ -29,7 +29,7 @@ describe("contratar", () => {
   });
 });
 
-describe("D-NEXT: precarga del usuario al contratar", () => {
+describe("D-710: precarga del usuario al contratar", () => {
   it("rol desde el puesto, solo si es obvio", () => {
     expect(rolDesdePuesto("Delivery Driver")).toBe("driver");
     expect(rolDesdePuesto("Chofer")).toBe("driver");

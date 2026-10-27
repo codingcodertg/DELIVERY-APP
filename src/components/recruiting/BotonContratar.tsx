@@ -12,7 +12,7 @@ import type { Candidate } from "@/lib/recruiting/types";
  * «Hire» en la ficha del candidato (D-688, 201). Gerente y admin de RR. HH.: pasa el candidato a la etapa de
  * contratado, crea (o reusa) su expediente y deja la solicitud «créale el usuario».
  *
- * D-NEXT: además crea la cuenta del hub en el acto, por el mismo /api/invite de Usuarios (que exige admin del hub:
+ * D-710: además crea la cuenta del hub en el acto, por el mismo /api/invite de Usuarios (que exige admin del hub:
  * no hay una segunda regla de permisos aquí), la enlaza al expediente con /api/recruiting/usuario-de-empleado (que
  * quita el expediente vacío que la 106 crea con la cuenta) y cierra la solicitud. Si quien contrata no es admin del
  * hub, o la creación falla, la solicitud se queda pendiente en «Usuarios por crear», como antes, y se dice.
