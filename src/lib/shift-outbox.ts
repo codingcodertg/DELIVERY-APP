@@ -32,6 +32,8 @@ export interface ShiftOp {
   at: string;
   /** The phone that tapped (device-id.ts); a queued "in" carries it to the row. */
   deviceId: string | null;
+  /** D-713: desde qué app se marcó («apk/6» o «navegador»); va a la fila al reenviar. */
+  app?: string | null;
 }
 
 /** Append, keeping order. Does not mutate. */
@@ -50,7 +52,7 @@ export function applyShiftOutbox(shifts: DriverShift[], items: ShiftOp[]): Drive
   for (const op of [...items].sort((a, b) => a.at.localeCompare(b.at))) {
     if (op.kind === "in") {
       if (out.some((s) => s.driver_id === op.driverId && !s.ended_at)) continue; // already open
-      out = [{ id: `local-${op.id}`, driver_id: op.driverId, started_at: op.at, ended_at: null, note: null, device_id: op.deviceId } as DriverShift, ...out];
+      out = [{ id: `local-${op.id}`, driver_id: op.driverId, started_at: op.at, ended_at: null, note: null, device_id: op.deviceId, app: op.app ?? null, gps: null, gps_at: null } as DriverShift, ...out];
     } else {
       out = out.map((s) => (s.driver_id === op.driverId && !s.ended_at ? { ...s, ended_at: op.at } : s));
     }

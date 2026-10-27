@@ -8,6 +8,7 @@ import { pestanasEnOrden } from "@/lib/orden-de-pestanas";
 import { pestanasDeLaFila } from "@/lib/barra-de-entregas";
 import { opcionesDelMenuDeCuenta } from "@/lib/account-menu";
 import { useData } from "@/lib/data-provider";
+import { trackingGaps } from "@/lib/tracking-health";
 import { usePrefs } from "@/lib/prefs";
 import { awaitingDriver } from "@/lib/utils";
 import { pestanaDelAvisoSinChofer } from "@/lib/rutas-del-dia";
@@ -28,7 +29,7 @@ const BOTON_DEL_AVISO = { marginLeft: 12, background: "rgba(255,255,255,.25)", c
 export function TopBar({ me: propMe }: { me: Profile }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { settings, deliveries, me: ctxMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData } = useData();
+  const { settings, deliveries, users, shifts, driverLocations, me: ctxMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData } = useData();
   // «Switch user» TAMBIÉN aquí (D-333), duplicado a sabiendas del de la herramienta del hub (D-306, que sigue igual).
   // Si se puede lo dice el servidor —la bandera vive en el entorno—: `habilitado` solo se le contesta a un ADMIN REAL,
   // y nunca dentro de una suplantación (ahí la ruta contesta otra cosa, sin `habilitado`): dentro manda el botón del
@@ -63,6 +64,9 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // that tab is the read-only «Today's route», so the badge goes where the work is: the Routes Manager for whoever has
   // it, and «Today's route» only for who doesn't (the manager). `pestanaDelAvisoSinChofer` decides.
   const dispatchRole = me.role === "admin" || me.role === "manager" || me.role === "logistics";
+  // D-713: choferes en turno que no reportan. El aviso del Gestor se cierra para siempre con su ✕ (D-400) y, cerrado,
+  // nadie lo veía: este contador no se cierra. Lleva a donde está el aviso con el porqué.
+  const sinGps = dispatchRole ? trackingGaps(users, shifts, driverLocations).length : 0;
   const unassignedDue = (() => {
     if (!dispatchRole) return 0;
     const now = new Date();
@@ -243,6 +247,13 @@ export function TopBar({ me: propMe }: { me: Profile }) {
             </div>
           )}
         </div>
+        {sinGps > 0 && (
+          <Link href={mainTabs.find((tb) => tb.id === pestanaDelAviso)?.href ?? "/routes"} data-aviso-gps className="tab"
+            title={t(`${sinGps} driver(s) on shift aren't reporting their location`, `${sinGps} chofer(es) en turno no están reportando su ubicación`)}
+            style={{ color: "var(--amber, #e9a13b)", fontWeight: 800 }}>
+            📡 {sinGps}
+          </Link>
+        )}
         <BotonRecargar titulo={t("Reload the app", "Recargar la app")} />
         <NotificationBell />
         {/* Tu nombre abre el menú de la cuenta (D-274). Antes llevaba a la pantalla de Cuenta y
