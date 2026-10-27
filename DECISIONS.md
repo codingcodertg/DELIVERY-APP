@@ -48483,7 +48483,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **No medido:** no probado en el navegador; no mirado si «Misma factura que una orden anterior» copia la fecha (si la copia, el borrador ya no se guarda con ella).
 
 
-## D-NEXT · «Todo el día» cuenta todas las órdenes del día
+## D-712 · «Todo el día» cuenta todas las órdenes del día
 
 **Pedido:** «esas órdenes de la mañana también cuentan para all day… tienes que agregar esas ahí para que sepan cuántas órdenes hay en all day y que haya un límite. O sea, todas juntas» (foto: Madrugada «Llena (4 de 2)», Mañana «Llena (3 de 1)», Todo el día «Libre»).
 

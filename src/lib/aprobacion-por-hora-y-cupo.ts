@@ -124,7 +124,7 @@ const ETAPAS_SIN_CUPO = new Set(["draft", "canceled", "rejected"]);
 export interface FilaDeCupo { id: string; store: string | null; delivery_windows: string | null; stage: string | null; is_training?: boolean | null }
 
 /**
- * «Todo el día» se llena con TODAS las órdenes del día (D-NEXT). El dueño: «esas órdenes de la mañana también cuentan para
+ * «Todo el día» se llena con TODAS las órdenes del día (D-712). El dueño: «esas órdenes de la mañana también cuentan para
  * all day… para que sepan cuántas órdenes hay en all day y que haya un límite. O sea, todas juntas». Las otras franjas
  * siguen contando solo las suyas (Mañana no suma Madrugada: es la regla de Roberto, D-639).
  */

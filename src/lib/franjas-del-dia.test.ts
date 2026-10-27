@@ -60,7 +60,7 @@ describe("estado de cada franja", () => {
     expect(f["1200-1730"].estado).toEqual({ tipo: "libre" });
   });
 
-  it("todo el día dice cuántas hay ese día y, con tope en Ajustes, se llena con todas juntas (D-NEXT)", () => {
+  it("todo el día dice cuántas hay ese día y, con tope en Ajustes, se llena con todas juntas (D-712)", () => {
     const ocupadas = { "0830-1000": 2, "0830-1200": 1, "0830-1730": 5 };
     const sinTope = porVentana(franjasDelDia({ fecha: MARTES, tienda: "Tienda Centro", ocupadas, reglas: R, ahora: JUEVES_1000 }));
     expect(sinTope["0830-1730"].estado).toEqual({ tipo: "cuenta", ocupadas: 5 });

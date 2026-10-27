@@ -26,7 +26,7 @@ export type EstadoDeFranja =
   | { tipo: "llena"; ocupadas: number; tope: number }
   /** Tiene cupo pero el conteo no llegó (cargando, o la ruta falló): se dice el tope y no se adivina lo ocupado. */
   | { tipo: "sin_conteo"; tope: number }
-  /** «Todo el día» sin tope en Ajustes: se dice cuántas hay ese día, sin límite (D-NEXT). */
+  /** «Todo el día» sin tope en Ajustes: se dice cuántas hay ese día, sin límite (D-712). */
   | { tipo: "cuenta"; ocupadas: number }
   /** Sin cupo: la ventana no tiene tope, o la tienda no cuenta para el cupo (flota propia). */
   | { tipo: "libre" };

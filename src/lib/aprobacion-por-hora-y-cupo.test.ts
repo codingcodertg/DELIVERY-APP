@@ -85,7 +85,7 @@ describe("cupo de la mañana", () => {
       fila("i", "0830-1730"),
     ];
     expect(ocupadasPorVentana(filas, R)).toEqual({ "0830-1000": 2, "0830-1200": 1, "0830-1730": 4, "0830-1530": 4 });
-    // «Todo el día» suma todas las vivas del día, de cualquier ventana, pero no las de la tienda sin cupo (D-NEXT).
+    // «Todo el día» suma todas las vivas del día, de cualquier ventana, pero no las de la tienda sin cupo (D-712).
     expect(ocupadasPorVentana(filas, R, "a")).toEqual({ "0830-1000": 1, "0830-1200": 1, "0830-1730": 3, "0830-1530": 3 });
   });
 
