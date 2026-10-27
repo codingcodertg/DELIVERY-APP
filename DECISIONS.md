@@ -48527,7 +48527,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** en un teléfono; el zoom resultante depende de lo lejos que estén sus paradas entre sí (es el `fitBounds` de siempre, tope 14).
 
-## D-NEXT · El expediente lleva las herramientas de cada empleado y lo que cuestan
+## D-719 · El expediente lleva las herramientas de cada empleado y lo que cuestan
 
 **Pedido:** con el archivo «RTG EMAILS(output).csv»: «quiero que todas las columnas que están en ese file se agreguen al expediente de employees en el RTG HR app ... incluso hasta el valor que cuesta la anualidad de la licencia ... cuánto se invierte en cada empleado al mes ... un expediente centralizado donde se pueda ver todos los tools que tiene, si tiene los emails, cuánto se está pagando al año ... lee los expedientes de todos los empleados y lo que no está en el app lo agregue ... con su debida categoría de segmento».
 

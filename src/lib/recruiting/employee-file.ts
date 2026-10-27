@@ -204,7 +204,7 @@ export type FilaExpediente = {
   left_by: string | null;
   left_by_name: string | null;
   left_recorded_at: string | null;
-  // ---- Migración 207 (D-NEXT): las herramientas y lo que cuestan. En null mientras no esté aplicada. ----
+  // ---- Migración 207 (D-719): las herramientas y lo que cuestan. En null mientras no esté aplicada. ----
   email_plan: string | null;
   email_cost_year: number | null;
   email_renewal_date: string | null;
@@ -403,7 +403,7 @@ export function tiene159(files: Record<string, unknown>[]): boolean {
 }
 
 // =============================================================================================
-// Las herramientas de cada empleado y lo que cuestan (migración 207, D-NEXT)
+// Las herramientas de cada empleado y lo que cuestan (migración 207, D-719)
 // =============================================================================================
 // El dueño, 2026-10-27, con el archivo «RTG EMAILS»: «quiero que todas las columnas que están en ese file se agreguen al
 // expediente ... cuánto se invierte en cada empleado al mes ... un expediente centralizado donde se pueda ver todos los

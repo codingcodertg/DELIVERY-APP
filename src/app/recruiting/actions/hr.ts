@@ -87,7 +87,7 @@ export type EmployeeFile = {
   /** El nombre de quien registró la baja, ya resuelto. De solo lectura. */
   left_by_name: string | null;
   left_recorded_at: string | null;
-  // ---- Migración 207 (D-NEXT): herramientas y costo. Null mientras no esté aplicada. ----
+  // ---- Migración 207 (D-719): herramientas y costo. Null mientras no esté aplicada. ----
   email_plan: string | null;
   email_cost_year: number | null;
   email_renewal_date: string | null;

@@ -51,7 +51,7 @@ export default function EmployeeFilesPage() {
   const [rows, setRows] = useState<Fila[]>([]);
   // ¿Tiene la tabla las columnas de la 159? Sin ellas los campos nuevos salen apagados.
   const [con159, setCon159] = useState(false);
-  // La 207 (D-NEXT): herramientas y costo. Igual que la 159: sin ella, la sección se apaga y dice por qué.
+  // La 207 (D-719): herramientas y costo. Igual que la 159: sin ella, la sección se apaga y dice por qué.
   const [con207, setCon207] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -376,7 +376,7 @@ function Ficha({
     emergency_name: persona.emergency_name ?? "",
     emergency_relation: persona.emergency_relation ?? "",
     emergency_phone: persona.emergency_phone ?? "",
-    // ---- 207 (D-NEXT) ----
+    // ---- 207 (D-719) ----
     email_plan: persona.email_plan != null ? String(persona.email_plan) : "",
     email_cost_year: persona.email_cost_year != null ? String(persona.email_cost_year) : "",
     email_renewal_date: persona.email_renewal_date != null ? String(persona.email_renewal_date) : "",
@@ -489,7 +489,7 @@ function Ficha({
         placeholder={con159 ? extra.placeholder : faltaMigracion(t)} />
     </div>
   );
-  /** Un campo de la 207 (D-NEXT): apagado, y diciendo por qué, mientras la migración no esté aplicada. */
+  /** Un campo de la 207 (D-719): apagado, y diciendo por qué, mientras la migración no esté aplicada. */
   const campo207 = (k: Clave, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div>
       <label>{label}</label>
@@ -685,7 +685,7 @@ function Ficha({
         {campo159("emergency_phone", t("Phone", "Teléfono"), { placeholder: "956-555-0123", onBlur: alSalirTel("emergency_phone") })}
       </div>
 
-      {/* HERRAMIENTAS Y COSTO (207, D-NEXT): el correo y su plan, RingCentral, Remote PC, 1Password, QuickBooks, y lo que
+      {/* HERRAMIENTAS Y COSTO (207, D-719): el correo y su plan, RingCentral, Remote PC, 1Password, QuickBooks, y lo que
           cuesta todo al año. El costo mensual se calcula aquí, no se guarda: (correo + otras) / 12. */}
       <div className="sec-head">
         <span className="sec-title">{t("TOOLS & COST", "HERRAMIENTAS Y COSTO")}</span>

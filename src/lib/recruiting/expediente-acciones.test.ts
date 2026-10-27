@@ -456,7 +456,7 @@ describe("el directorio telefónico (T-0054) lee estos datos", () => {
 });
 
 // ============================================================
-// Las herramientas de cada empleado y lo que cuestan (migración 207, D-NEXT)
+// Las herramientas de cada empleado y lo que cuestan (migración 207, D-719)
 // ============================================================
 describe("la 207: herramientas y costo", () => {
   it("`tiene207` mira si una fila trae la clave; `sin207` quita sus columnas y deja lo demás", () => {

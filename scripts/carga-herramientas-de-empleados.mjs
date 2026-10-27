@@ -1,4 +1,4 @@
-// Carga en el expediente de RR. HH. lo que dice el archivo «RTG EMAILS» del dueño (D-NEXT, migración 207).
+// Carga en el expediente de RR. HH. lo que dice el archivo «RTG EMAILS» del dueño (D-719, migración 207).
 //
 //   node --env-file=.env.local scripts/carga-herramientas-de-empleados.mjs "C:/ruta/RTG EMAILS(output).csv"            → ensayo: dice qué haría
 //   node --env-file=.env.local scripts/carga-herramientas-de-empleados.mjs "C:/ruta/RTG EMAILS(output).csv" --escribe  → escribe
