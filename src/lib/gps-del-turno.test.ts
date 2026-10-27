@@ -4,7 +4,7 @@ import { appDelTurno, avisoDeGps, porQueNoReporta } from "./gps-del-turno";
 import { trackingGaps } from "./tracking-health";
 import type { DriverLocation, DriverShift, Profile } from "./types";
 
-// D-713. El turno dice desde qué app se marcó y cómo va su GPS, y la oficina lo ve junto al nombre. Datos que
+// D-714. El turno dice desde qué app se marcó y cómo va su GPS, y la oficina lo ve junto al nombre. Datos que
 // contradicen: un UA de APK con `nativa=false` (la APK sin bridge sigue siendo APK), un turno viejo sin columnas.
 
 describe("appDelTurno", () => {

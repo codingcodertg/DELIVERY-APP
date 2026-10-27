@@ -274,7 +274,7 @@ export interface DataState {
   shifts: DriverShift[];
   clockIn: (driverId: string) => Promise<void>;
   clockOut: (driverId: string) => Promise<void>;
-  /** D-713: el rastreador escribe el último estado del GPS en el turno abierto (migración 206). */
+  /** D-714: el rastreador escribe el último estado del GPS en el turno abierto (migración 206). */
   marcaGpsDelTurno: (shiftId: string, gps: string) => Promise<void>;
 
   // logistics-manager driver incident log (things that cost the company money)
@@ -2183,7 +2183,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     return () => { window.removeEventListener("online", onBack); clearInterval(id); };
   }, [flushShiftOutbox]);
 
-  /** D-713: desde qué app se marca la entrada; lo lee el UA (la APK se firma) o el bridge. */
+  /** D-714: desde qué app se marca la entrada; lo lee el UA (la APK se firma) o el bridge. */
   const appActual = () => appDelTurno(typeof navigator === "undefined" ? null : navigator.userAgent, isNativeApp());
 
   const marcaGpsDelTurno = useCallback<DataState["marcaGpsDelTurno"]>(async (shiftId, gps) => {

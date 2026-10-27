@@ -15,7 +15,7 @@ describe("abrir un texto en RingCentral: en el enlace y en el portapapeles", () 
     expect(pasos).toEqual(["copiar:hola", "abrir:rcapp://r/sms?x"]);
     expect(r).toEqual({ copiado: true });
   });
-  it("la copia síncrona manda: si copia, copiado aunque no haya API asíncrona; si falla y la asíncrona existe, copiado por ella (D-714)", () => {
+  it("la copia síncrona manda: si copia, copiado aunque no haya API asíncrona; si falla y la asíncrona existe, copiado por ella (D-717)", () => {
     const pasos: string[] = [];
     expect(abrirSmsEnRingCentral("rcapp://r/sms?x", "hola", { copiarAhora: (t) => { pasos.push("ahora:" + t); return true; }, abrir: (u) => pasos.push("abrir:" + u) })).toEqual({ copiado: true });
     expect(pasos).toEqual(["ahora:hola", "abrir:rcapp://r/sms?x"]);

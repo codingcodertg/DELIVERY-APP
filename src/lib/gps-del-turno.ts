@@ -2,7 +2,7 @@ import { installedApkVersion } from "@/lib/app-update";
 import type { LocationStatus } from "@/lib/useLiveLocation";
 
 // ============================================================
-// Lo que el turno dice de su GPS (D-713).
+// Lo que el turno dice de su GPS (D-714).
 //
 // La auditoría del 2026-10-27: Máximo marcaba entrada todos los días y no llegaba NI UN punto desde el 2 de
 // septiembre; Julio nunca marcó entrada. La app sabía por qué (el rastreo devuelve «denied», «unavailable», o ni

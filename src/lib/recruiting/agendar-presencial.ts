@@ -79,7 +79,7 @@ export function tiendaDelLugar(lugar: string, tiendas: readonly Tienda[]): Tiend
  *  10:00 a.m.» / «hoy a las…» / «el martes 20 de octubre a las…»; `{day}` = «mañana» / «hoy» / «el martes». */
 export const MARCADORES_DE_LA_CITA = "{when} {day} {date} {time} {place} {address} {maps}";
 
-/** Los enlaces para llegar a la tienda, desde su dirección (D-714, el dueño: «un link de Google Maps o de Waze … que solo
+/** Los enlaces para llegar a la tienda, desde su dirección (D-717, el dueño: «un link de Google Maps o de Waze … que solo
  *  apriete ahí y se abra»): uno por línea, los dos. Sin dirección, nada. */
 export function enlacesDeMapa(address: string | null | undefined): string {
   const q = (address ?? "").trim();
@@ -142,7 +142,7 @@ export function textoConfirmacionPresencial(
   const lugar = cita.lugar.trim() || (lang === "es" ? "nuestra oficina" : "our office");
   const tienda = tiendaDelLugar(lugar, tiendas);
   let base = plantilla ?? PLANTILLA[lang][tienda ? "tienda" : "libre"];
-  // Una plantilla de Ajustes escrita antes de D-714 no lleva {maps}: los enlaces van debajo de la dirección igual.
+  // Una plantilla de Ajustes escrita antes de D-717 no lleva {maps}: los enlaces van debajo de la dirección igual.
   if (tienda && !base.includes("{maps}") && base.includes("{address}")) base = base.replace("{address}", "{address}\n{maps}");
   return mergeTemplate(base, c as Candidate, recruiter)
     .replace(/\{when\}/g, when)

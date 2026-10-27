@@ -49,7 +49,7 @@ export interface TrackingGap {
   driver: string;
   /** Minutes since their last fix, or null if they never reported this shift. */
   quietForMin: number | null;
-  /** D-713: desde qué app se marcó el turno y su último estado de GPS, si el turno lo dice (migración 206). */
+  /** D-714: desde qué app se marcó el turno y su último estado de GPS, si el turno lo dice (migración 206). */
   app: string | null;
   gps: string | null;
 }

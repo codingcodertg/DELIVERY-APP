@@ -32,7 +32,7 @@ export interface ShiftOp {
   at: string;
   /** The phone that tapped (device-id.ts); a queued "in" carries it to the row. */
   deviceId: string | null;
-  /** D-713: desde qué app se marcó («apk/6» o «navegador»); va a la fila al reenviar. */
+  /** D-714: desde qué app se marcó («apk/6» o «navegador»); va a la fila al reenviar. */
   app?: string | null;
 }
 

@@ -29,7 +29,7 @@ import type { Profile } from "@/lib/types";
 // that stop tracking are the ones that should: clocking out, or closing the
 // app.
 //
-// D-713: it used to render nothing and THROW AWAY the hook's status. Now the
+// D-714: it used to render nothing and THROW AWAY the hook's status. Now the
 // status is written to the open shift (`driver_shifts.gps`, migration 206) so
 // the office can see WHY a truck is silent, and the driver gets one banner for
 // the two things only they can fix: they clocked in from a browser (open the
