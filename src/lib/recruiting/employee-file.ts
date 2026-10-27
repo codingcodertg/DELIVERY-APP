@@ -204,6 +204,26 @@ export type FilaExpediente = {
   left_by: string | null;
   left_by_name: string | null;
   left_recorded_at: string | null;
+  // ---- Migración 207 (D-719): las herramientas y lo que cuestan. En null mientras no esté aplicada. ----
+  email_plan: string | null;
+  email_cost_year: number | null;
+  email_renewal_date: string | null;
+  second_email: string | null;
+  app_username: string | null;
+  onepassword: string | null;
+  previous_phone: string | null;
+  device_serial: string | null;
+  qb_initials: string | null;
+  remote_pc_name: string | null;
+  remote_pc_status: string | null;
+  rc_user_created: string | null;
+  rc_device_assigned: string | null;
+  risk_score: number | null;
+  performance_score: number | null;
+  score_status: string | null;
+  score_action: string | null;
+  tools_cost_year: number | null;
+  tools_note: string | null;
 };
 
 /**
@@ -266,6 +286,25 @@ export function filasDeExpediente(
     left_by: (f.left_by as string) ?? null,
     left_by_name: f.left_by ? (nombreDePerfil.get(f.left_by as string) || null) : null,
     left_recorded_at: (f.left_recorded_at as string) ?? null,
+    email_plan: (f.email_plan as string) ?? null,
+    email_cost_year: (f.email_cost_year as number) ?? null,
+    email_renewal_date: (f.email_renewal_date as string) ?? null,
+    second_email: (f.second_email as string) ?? null,
+    app_username: (f.app_username as string) ?? null,
+    onepassword: (f.onepassword as string) ?? null,
+    previous_phone: (f.previous_phone as string) ?? null,
+    device_serial: (f.device_serial as string) ?? null,
+    qb_initials: (f.qb_initials as string) ?? null,
+    remote_pc_name: (f.remote_pc_name as string) ?? null,
+    remote_pc_status: (f.remote_pc_status as string) ?? null,
+    rc_user_created: (f.rc_user_created as string) ?? null,
+    rc_device_assigned: (f.rc_device_assigned as string) ?? null,
+    risk_score: (f.risk_score as number) ?? null,
+    performance_score: (f.performance_score as number) ?? null,
+    score_status: (f.score_status as string) ?? null,
+    score_action: (f.score_action as string) ?? null,
+    tools_cost_year: (f.tools_cost_year as number) ?? null,
+    tools_note: (f.tools_note as string) ?? null,
   });
 
   const filas = files.map((f) =>
@@ -361,6 +400,82 @@ export type Columna159 = (typeof COLUMNAS_159)[number];
  */
 export function tiene159(files: Record<string, unknown>[]): boolean {
   return files.some((f) => "personal_phone" in f);
+}
+
+// =============================================================================================
+// Las herramientas de cada empleado y lo que cuestan (migración 207, D-719)
+// =============================================================================================
+// El dueño, 2026-10-27, con el archivo «RTG EMAILS»: «quiero que todas las columnas que están en ese file se agreguen al
+// expediente ... cuánto se invierte en cada empleado al mes ... un expediente centralizado donde se pueda ver todos los
+// tools que tiene». Mismo trato que la 159: en null mientras la tabla no las tenga, y la pantalla las apaga.
+
+/** Las columnas que añade la migración 207. */
+export const COLUMNAS_207 = [
+  "email_plan",
+  "email_cost_year",
+  "email_renewal_date",
+  "second_email",
+  "app_username",
+  "onepassword",
+  "previous_phone",
+  "device_serial",
+  "qb_initials",
+  "remote_pc_name",
+  "remote_pc_status",
+  "rc_user_created",
+  "rc_device_assigned",
+  "risk_score",
+  "performance_score",
+  "score_status",
+  "score_action",
+  "tools_cost_year",
+  "tools_note",
+] as const;
+export type Columna207 = (typeof COLUMNAS_207)[number];
+/** Las de número: el formulario las manda como texto y se guardan como número o null. */
+export const NUMERICAS_207 = ["email_cost_year", "risk_score", "performance_score", "tools_cost_year"] as const;
+
+/** ¿Está aplicada la 207? Igual que `tiene159`: basta con que una fila traiga la clave. */
+export function tiene207(files: Record<string, unknown>[]): boolean {
+  return files.some((f) => "email_plan" in f);
+}
+
+/** Quita las columnas de la 207 de un parche (para guardar en una tabla que aún no las tiene). */
+export function sin207<T extends Record<string, unknown>>(patch: T): Partial<T> {
+  const fuera = new Set<string>(COLUMNAS_207);
+  return Object.fromEntries(Object.entries(patch).filter(([k]) => !fuera.has(k))) as Partial<T>;
+}
+
+/** 1Password: lo que admite el `check` de la 207. Vacío es «no se sabe» (null); otra cosa, `undefined` = rechazar. */
+export const OPCIONES_1PW = ["yes", "no", "maybe"] as const;
+export function normaliza1Password(v: string | null | undefined): "yes" | "no" | "maybe" | null | undefined {
+  const limpio = (v ?? "").trim().toLowerCase();
+  if (!limpio) return null;
+  return (OPCIONES_1PW as readonly string[]).includes(limpio) ? (limpio as "yes" | "no" | "maybe") : undefined;
+}
+
+/** Un número del formulario: vacío es null; algo que no es número, `undefined` (quien llama lo rechaza). */
+export function numeroDeFicha(v: string | number | null | undefined): number | null | undefined {
+  if (v == null) return null;
+  const s = String(v).replace(/[$,\s]/g, "");
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Lo que cuesta tener a esta persona al mes en herramientas: el correo y lo demás, entre doce. `null` si no hay
+ * ninguna cifra (no es «cero»: es que no se sabe). Es lo que el dueño quiere ver, y no se guarda: se calcula.
+ */
+export function costoMensual(f: { email_cost_year?: number | null; tools_cost_year?: number | null }): number | null {
+  const partes = [f.email_cost_year, f.tools_cost_year].filter((x): x is number => typeof x === "number" && Number.isFinite(x));
+  if (!partes.length) return null;
+  return Math.round((partes.reduce((a, b) => a + b, 0) / 12) * 100) / 100;
+}
+
+/** «$21.65» o «—». */
+export function dinero(n: number | null | undefined): string {
+  return n == null ? "—" : "$" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 /**
