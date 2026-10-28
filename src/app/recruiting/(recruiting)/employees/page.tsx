@@ -239,7 +239,7 @@ export default function EmployeeFilesPage() {
                 return (
                   // D-705: la fila entera abre el expediente (antes solo «✏️ Editar»: la fila no tenía manejador, y
                   // la celda «Expediente» era una insignia sin clic). Con teclado: Tab hasta la fila y Enter o espacio.
-                  <tr key={r.id} data-fila={r.id} className={"fila-abre clickable" + (deBaja ? " atenuado" : "")} tabIndex={0}
+                  <tr key={r.id} data-fila={r.id} className={"fila-abre" + (deBaja ? " atenuado" : "")} tabIndex={0}
                     aria-label={t("Open file of ", "Abrir expediente de ") + r.full_name}
                     onClick={() => setAbierto(r.id)}
                     onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setAbierto(r.id); } }}>

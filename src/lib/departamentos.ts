@@ -12,7 +12,6 @@ const EN_INGLES: Record<string, string> = {
   ventas: "Sales",
   choferes: "Drivers",
   chofer: "Driver",
-  contabilidad: "Accounting",
   logistica: "Logistics",
   gerencia: "Management",
   "ai developer": "AI Developer",
