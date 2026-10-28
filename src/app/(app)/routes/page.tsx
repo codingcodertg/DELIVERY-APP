@@ -2432,7 +2432,7 @@ export default function RoutesPage() {
             {/* El número de arranque del plan (D-NEXT, 208). */}
             {Number(d.plan_rank) > 0 && (
               <span className="sema" data-arranque={d.plan_rank} title={t("Starts the plan in this position", "Arranca el plan en este puesto")}
-                style={{ marginLeft: 5, background: "var(--accent)", color: "#fff", fontWeight: 700 }}>🔢 {d.plan_rank}</span>
+                style={{ marginLeft: 5, background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--accent)", fontWeight: 700 }}>🔢 {d.plan_rank}</span>
             )}
             {marcada && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
           </td>
