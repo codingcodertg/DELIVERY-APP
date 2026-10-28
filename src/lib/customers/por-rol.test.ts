@@ -5,7 +5,7 @@ import { GRUPOS, GRUPOS_QUE_NO_VE_EL_VENDEDOR, esVendedor, puedeAsignarVendedore
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 
-// D-NEXT (2026-10-28) · El dueño: «Salesperson: can only view and open the customers assigned to them … Manager: can view
+// D-728 (2026-10-28) · El dueño: «Salesperson: can only view and open the customers assigned to them … Manager: can view
 // all customers of their store, and can assign customers to salespeople. Admin: can view everything». Y en la ficha: «hide
 // these sections completely — Archivos, Campos ocultos, Crédito y términos»; el contacto «label on the left, value on the right».
 describe("clientes por rol", () => {

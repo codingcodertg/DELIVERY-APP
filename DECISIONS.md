@@ -48624,7 +48624,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **Pruebas:** las de la cámara y las fotos siguen (146); la del tope por defecto en `camara-de-varias-fotos.test.ts`. **No medido** en el navegador.
 
-## D-NEXT · Clientes: el vendedor ve solo los suyos, el gerente los de su tienda y asigna vendedores (migración 210); al vendedor se le esconden Crédito, Campos ocultos y Archivos; el contacto con etiquetas a la izquierda
+## D-728 · Clientes: el vendedor ve solo los suyos, el gerente los de su tienda y asigna vendedores (migración 210); al vendedor se le esconden Crédito, Campos ocultos y Archivos; el contacto con etiquetas a la izquierda
 
 **Fecha:** 2026-10-28 · **Migración 210** (`210_clientes_por_rol.sql`, ensayada con ROLLBACK, pendiente de aplicar) · Hecho directo por el orquestador en `clientes-por-rol`.
 
