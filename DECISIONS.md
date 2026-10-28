@@ -48614,3 +48614,12 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 - **Cuenta del hub:** «🔒 Poner contraseña nueva» vive aquí (solo para el admin del hub, por `/api/reset-password`, que la genera y la enseña una vez) y desaparece de «Permisos» (`UserDialog` con `desdeExpediente` ya no pinta su bloque «Acceso»).
 
 **Pruebas:** `departamentos.test.ts`, `recruiting/planes-de-correo.test.ts`, `recruiting/puestos.test.ts`, `recruiting/licencia.test.ts` (estado y aviso; la lista trae el vencimiento; la ficha no pide emisión; la pantalla avisa y filtra). **No medido** en el navegador.
+## D-726 · Entregas: sin tope de fotos por entrega
+
+**Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `fotos-sin-tope`.
+
+**Pedido del dueño**, literal: *«Drivers are currently limited to uploading only 6 images per delivery. Remove that limit — drivers should be able to upload as many images as they want. Keep everything else as is.»*
+
+**Qué cambia:** `PhotoUpload` deja de tener tope por defecto (`max = Infinity`, antes 6); el aviso «Máximo N fotos» y el contador «n / N» de la ráfaga solo salen cuando el tope es finito. Lo que sí pasa un tope (el recibo de una pausa, `max={1}`; las fotos por defecto de la inspección) sigue igual. Ni la base ni el servidor limitaban el número (la 177 solo cuenta).
+
+**Pruebas:** las de la cámara y las fotos siguen (146); la del tope por defecto en `camara-de-varias-fotos.test.ts`. **No medido** en el navegador.

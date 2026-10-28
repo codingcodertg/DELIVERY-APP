@@ -227,3 +227,17 @@ describe("dónde el chofer pone fotos: con las tres opciones; los demás, como e
     }
   });
 });
+
+// D-726 (2026-10-28): «Remove that limit — drivers should be able to upload as many images as they want».
+describe("D-726: sin tope de fotos por defecto", () => {
+  it("PhotoUpload no limita si no se le pasa max, y con tope infinito no avisa de máximo", async () => {
+    const src = readFileSync(new URL("../components/PhotoUpload.tsx", import.meta.url), "utf8");
+    expect(src).toContain("max = Infinity,");
+    expect(src).not.toContain("max = 6,");
+    expect(huecoDeFotos(50, Infinity)).toBe(Infinity);
+    const { PhotoUpload } = await import("@/components/PhotoUpload");
+    const html = renderToStaticMarkup(createElement(PhotoUpload, { photos: Array.from({ length: 7 }, (_, i) => FOTO(i + 1)), onChange: () => {}, t, rafaga: true }));
+    expect(html).not.toContain("Maximum");
+    expect(html).toContain("data-foto-rafaga");
+  });
+});
