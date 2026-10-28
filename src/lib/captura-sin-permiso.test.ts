@@ -69,8 +69,9 @@ describe("la foto rápida", () => {
     expect(cuerpo).toContain("snapdom.toCanvas(document.body, opcionesDeLaPagina(true))");
   });
 
-  it("toma lo que se ve, no la página desde arriba", () => {
-    expect(captura).toContain('clip: "viewport" as const,');
+  it("toma lo que se ve, no la página desde arriba: la página entera, recortada por el scroll (D-NEXT)", () => {
+    expect(captura).not.toContain('clip: "viewport"');
+    expect(cuerpo).toContain("recorteDeLaVista(lienzo, document.body.getBoundingClientRect(), window)");
   });
 
   it("snapdom se carga al usarla, no con cada página", () => {

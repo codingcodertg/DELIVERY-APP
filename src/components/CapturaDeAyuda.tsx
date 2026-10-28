@@ -7,6 +7,7 @@ import {
   porcentajesDelRecuadro, recuadroDelArrastre, tamanoDeCaptura,
   type FalloDeCaptura, type Punto, type Rect, type Tamano,
 } from "@/lib/help-captura";
+import { recorteDeLaVista } from "@/lib/recorte-de-la-vista";
 import {
   MAX_RECUADROS, agregaRecuadro, escribeProblema, etiquetaDelRecuadro, porcentajesDeLaEtiqueta, quitaRecuadro,
   type RecuadroNumerado,
@@ -30,7 +31,7 @@ import {
  * `Access-Control-Allow-Origin`. Medido el 2026-10-10 contra el demo: el mapa sale entero.
  *
  * - `tomaFotogramaDeLaPagina` — la de por defecto: clona el DOM con `snapdom`, solo lo visible
- *   (`clip: "viewport"`, con scroll), sin diálogo. Medido en el demo a 1440×900: mediana 0,25 s en el
+ *   (la página entera recortada por el scroll, D-NEXT), sin diálogo. Medido en el demo a 1440×900: mediana 0,25 s en el
  *   Gestor con mapa y 0,60 s en Órdenes, en caliente. Ayuda se deja fuera **al clonar** (`exclude`),
  *   así que no hay que esconderla ni esperar un repintado.
  * - `tomaFotograma` — la de D-509, por `getDisplayMedia`: queda de respaldo, y solo se ofrece si la
@@ -133,16 +134,17 @@ export function cargaSnapdom(): Promise<Snapdom> {
 }
 
 /**
- * - `clip: "viewport"`: lo que la persona está viendo, con el scroll donde lo tenga — no la página
- *   desde arriba. Medido con scroll en Órdenes: las mismas filas en el mismo sitio que pinta Chrome, y
- *   los avisos fijos (`position: fixed`, que es como salen los errores) en su sitio.
+ * - Sin `clip`: la página ENTERA, y `tomaFotogramaDeLaPagina` recorta lo que se ve (D-NEXT). Antes era
+ *   el recorte «viewport» de snapdom, que en Órdenes con scroll salía bien, pero en Rutas con la ventana bajada hasta la tabla
+ *   pintaba la cabecera arriba, un hueco y las tarjetas (medido el 2026-10-28, `recorte-de-la-vista.ts` cuenta
+ *   el detalle). La página entera es asequible: las tablas largas viven en cajas con su propio scroll
+ *   (`.tbl-caja`), así que el body no mide mucho más que la ventana.
  * - `excludeMode: "hide"`: Ayuda se quita dejando su hueco, así que nada de alrededor se mueve.
  * - `fast`: `true` clona de un tirón, que es lo más rápido; `false` cede el hilo cada fotograma, que
  *   es lo que se quiere al calentar mientras la persona escribe.
  */
 function opcionesDeLaPagina(deUnTiron: boolean) {
   return {
-    clip: "viewport" as const,
     exclude: [`[${FUERA_DE_LA_CAPTURA}]`],
     excludeMode: "hide" as const,
     backgroundColor: getComputedStyle(document.body).backgroundColor,
@@ -162,11 +164,20 @@ export function calientaCaptura(): void {
     .catch(() => {});
 }
 
-/** La foto rápida: sin diálogo del navegador, solo lo que se ve, y con Ayuda fuera. */
+/** La foto rápida: sin diálogo del navegador, solo lo que se ve, y con Ayuda fuera. La página entera se pinta y
+ *  de ahí se recorta la ventana por el scroll (D-NEXT); si el recorte no sale (medidas a cero), va la foto entera. */
 export async function tomaFotogramaDeLaPagina(): Promise<FotogramaDeCaptura> {
   const snapdom = await cargaSnapdom();
   const lienzo = await snapdom.toCanvas(document.body, opcionesDeLaPagina(true));
-  return aFotograma(lienzo, { ancho: lienzo.width, alto: lienzo.height });
+  const r = recorteDeLaVista(lienzo, document.body.getBoundingClientRect(), window);
+  if (!r) return aFotograma(lienzo, { ancho: lienzo.width, alto: lienzo.height });
+  const vista = document.createElement("canvas");
+  vista.width = r.ancho;
+  vista.height = r.alto;
+  const ctx = vista.getContext("2d");
+  if (!ctx) throw new ErrorDeCaptura("sin-fotograma");
+  ctx.drawImage(lienzo, r.sx, r.sy, r.sw, r.sh, 0, 0, r.ancho, r.alto);
+  return aFotograma(vista, { ancho: r.ancho, alto: r.alto });
 }
 
 /**
