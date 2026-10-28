@@ -48592,7 +48592,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Orden de publicación:** la 209 primero (el sitio viejo no manda `store` y la función nueva lo admite ausente); el hub puede ir antes o después (lee sin la tienda si falta la columna); el sitio, **solo después** de la 209: con la función vieja, `store` es «unknown field» y el cliente que escanee un QR de tienda vería un error de servidor.
 
 **Pruebas:** hub, `encuestas/qr-por-tienda.test.ts` (enlace y archivo por tienda, tiendas de Ajustes, columnas y CSV, `porTienda`, la 209, la pantalla y la página); sitio, `tienda.test.ts`, `validacion.test.ts` (store opcional, forma si no cabe o es de otro tipo), `formulario.test.ts` (solo viaja cuando la hay) y `pantalla.test.ts` (el nombre después del teléfono; la página lee `?tienda=`). **No medido:** en el navegador ni con una respuesta real; la medida es la primera encuesta tras un QR de tienda.
-## D-NEXT · RR. HH.: la lista de Empleados como la tabla de Órdenes y a todo el ancho; departamentos en inglés; tooltip del plan de correo; la licencia solo con vencimiento y con aviso; la regla de las tablas en CLAUDE.md
+## D-725 · RR. HH.: la lista de Empleados como la tabla de Órdenes y a todo el ancho; departamentos en inglés; tooltip del plan de correo; la licencia solo con vencimiento y con aviso; la regla de las tablas en CLAUDE.md
 
 **Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `hr-tabla-y-licencia`.
 
