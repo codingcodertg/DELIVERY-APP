@@ -12,6 +12,7 @@ import {
   correoDeFicha, nombreDeFicha,
 } from "@/lib/recruiting/employee-file";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
+import { parcheLiberar, type TipoDeActivo } from "@/lib/recruiting/activos";
 import type { FilaHoras, FilaLote, FilaTalon } from "@/lib/recruiting/horas-del-expediente";
 
 /**
@@ -432,6 +433,9 @@ export async function deactivateEmployee(
   }
   if (error) return { ok: false, message: error.message };
 
+  // D-730: sus activos de la empresa: el correo queda «pendiente de respaldo», el número vuelve a «disponible».
+  await liberaActivosDeLaBaja(supabase, fileId, userId);
+
   // D-709: con cuenta, la baja SIEMPRE quita el acceso y libera el correo; ya no es una casilla.
   if (!file.profile_id) return { ok: true, sinMotivo, accesoQuitado: false };
   const ban = await ponAcceso(file.profile_id as string, false);
@@ -443,6 +447,20 @@ export async function deactivateEmployee(
     await tabla().update({ left_note: nota }).eq("id", fileId);
   }
   return { ok: true, sinMotivo, accesoQuitado: true, liberadas: lib.liberadas };
+}
+
+/**
+ * D-730: al dar de baja, lo que la persona tenía asignado se libera: el correo a «pendiente de respaldo» (hay que
+ * respaldarlo antes de dárselo a otro), el número a «disponible». Sin la 211 (la tabla no existe) no hace nada y no
+ * estorba a la baja. Es parte de la lista de quitar accesos (D-709): ban, correo y usuario liberados, y ahora esto.
+ */
+async function liberaActivosDeLaBaja(supabase: Awaited<ReturnType<typeof createClient>>, fileId: string, userId: string): Promise<void> {
+  const tabla = () => supabase.schema("recruiting").from("company_assets");
+  const { data, error } = await tabla().select("id, kind, employee_id").eq("employee_id", fileId).eq("status", "assigned");
+  if (error || !data?.length) return;
+  for (const a of data) {
+    await tabla().update({ ...parcheLiberar({ kind: a.kind as TipoDeActivo, employee_id: a.employee_id as string | null }), updated_at: new Date().toISOString(), updated_by: userId }).eq("id", a.id);
+  }
 }
 
 /**

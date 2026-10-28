@@ -57,6 +57,8 @@ export const TABS: { id: string; label: string; href: string; adminOnly?: boolea
   // y quien entra a mover candidatos no necesita nada de eso. Quien manda es la 094 (RLS); esto
   // solo evita enseñar una puerta que se abriría vacía.
   { id: "employees", label: "👤 Employees", href: "/recruiting/employees", roles: ["admin", "manager"], grupo: "hr" },
+  // D-730: los correos y números que paga la empresa, con su estado y quién los tiene.
+  { id: "assets", label: "🧰 Company assets", href: "/recruiting/assets", roles: ["admin", "manager"], grupo: "hr" },
   // D-694 puso aquí «Crear usuarios»; D-720 la quitó: la cuenta y los permisos se dan desde el expediente («Permisos»).
   { id: "candidates", label: "👥 Candidates", href: "/recruiting", grupo: "recruiting" },
   { id: "board", label: "🗂 Board", href: "/recruiting/board", grupo: "recruiting" },
