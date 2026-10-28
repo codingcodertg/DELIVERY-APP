@@ -261,6 +261,9 @@ export interface Delivery {
   /** Prioridad de la orden (D-412, migración 147): baja, normal, alta o crítica; `normal` por defecto. Opcional en el
    *  tipo porque una base sin la 147 no la trae; se lee siempre con `prioridadDe` (lib/prioridad.ts). */
   priority?: OrderPriority | null;
+  /** Arranque numerado del plan (D-722, 208): 1, 2, 3… «Armar las rutas del día» abre una ruta con estas, en este orden.
+   *  Opcional en el tipo porque una base sin la 208 no lo trae; la lista lo pide como columna opcional. */
+  plan_rank?: number | null;
   /** Avisos al cliente (D-416, migración 150): su correo, cómo quiere los avisos y su idioma. Opcionales en el tipo
    *  porque una base sin la 150 no los trae; se leen con `preferenciaDe` / `idiomaDe` (lib/avisos-cliente.ts). */
   customer_email?: string | null;

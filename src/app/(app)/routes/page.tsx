@@ -67,6 +67,7 @@ import { porQueNoReporta } from "@/lib/gps-del-turno";
 import { useAutoGeocode } from "@/lib/useAutoGeocode";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { cuentasSinAsignar, filasSinAsignar, ordenesDelDia, pendientesDeOtrosDias, sinAsignarDelGestor, type ChipSinAsignar, type ModoDelGestor } from "@/lib/ordenes-del-dia";
+import { numerosDeArranque } from "@/lib/arranque-del-plan";
 import { cuentasDeTodas, filasDeTodas, todasDelGestor } from "@/lib/todas-del-gestor";
 import { eleccionVigente, opcionesDeConductor } from "@/lib/elige-conductor";
 import { PANEL_DE_TODAS, PANEL_SIN_ASIGNAR, estaPlegada } from "@/lib/vista-del-gestor";
@@ -1771,6 +1772,23 @@ export default function RoutesPage() {
   const clearSelection = () => setSelectedOrders(new Set());
 
   // Assign every checked order to one driver.
+  // «🔢 Arrancar el plan con estas» (D-722, 208): a lo marcado se le pone 1, 2, 3… en el orden en que se marcó (el Set
+  // guarda ese orden), siguiendo a lo ya numerado del día. «Armar las rutas del día» abre una ruta con ellas, en ese
+  // orden, y no mete nada delante. No asigna nada: es un botón de acción extra, como pidió el dueño.
+  const numeraElArranque = async () => {
+    const marcadas = [...selectedOrders].filter((id) => filasAsignables.some((d) => d.id === id));
+    const numeros = numerosDeArranque(marcadas, dayOrders);
+    if (!numeros.length) return;
+    setAsignando(true);
+    let ok = true;
+    for (const n of numeros) ok = (await updateDelivery(n.id, { plan_rank: n.plan_rank }, { quiet: true })) && ok;
+    setAsignando(false);
+    notify(ok
+      ? t(`${numeros.length} order(s) numbered to start the plan (1…${numeros[numeros.length - 1].plan_rank}). Build the routes to use them.`, `${numeros.length} orden(es) numeradas para arrancar el plan (1…${numeros[numeros.length - 1].plan_rank}). Arma las rutas para usarlas.`)
+      : t("Could not number some orders (is migration 208 applied?).", "No se pudieron numerar algunas órdenes (¿está aplicada la migración 208?)."));
+    if (ok) setSelectedOrders(new Set());
+  };
+
   const bulkAssign = async (driver: string) => {
     // Lo marcado en la TABLA que se ve, con su chip: con «Todas» o «Atrasadas» se marcan órdenes de otros días (D-359, D-393).
     const ids = filasAsignables.filter((d) => selectedOrders.has(d.id)).map((d) => d.id);
@@ -2411,6 +2429,11 @@ export default function RoutesPage() {
             {hecha
               ? <span data-hecha={entregada ? "hecho" : "en_camino"} style={{ fontWeight: 700 }}>{entregada ? "✓" : "🚚"}</span>
               : soloLectura ? null : <input type="checkbox" checked={marcada} readOnly aria-label={`#${orderLabel(d)}`} />}
+            {/* El número de arranque del plan (D-722, 208). */}
+            {Number(d.plan_rank) > 0 && (
+              <span className="sema" data-arranque={d.plan_rank} title={t("Starts the plan in this position", "Arranca el plan en este puesto")}
+                style={{ marginLeft: 5, background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--accent)", fontWeight: 700 }}>🔢 {d.plan_rank}</span>
+            )}
             {marcada && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: selColorById.get(d.id), marginLeft: 5, verticalAlign: "middle", boxShadow: "0 0 0 1px var(--line)" }} />}
           </td>
           {/* Las columnas de la tabla de paradas (D-548), con la MISMA celda que allí (`celdaDeParada`). Delante, las fijas:
@@ -2641,6 +2664,10 @@ export default function RoutesPage() {
                 </span>
               )}
               <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
+              {/* D-722: numerar el arranque del plan. No asigna: «Armar las rutas del día» las pone primero, en este orden. */}
+              <button className="btn btn-ghost btn-sm" data-arranque-del-plan disabled={asignando}
+                title={t("Number the checked orders 1, 2, 3… in the order you checked them; “Build routes” starts a route with them, in that order", "Numerar las marcadas 1, 2, 3… en el orden en que las marcaste; «Armar rutas» abre una ruta con ellas, en ese orden")}
+                onClick={() => void numeraElArranque()}>🔢 {t("Start the plan with these", "Arrancar el plan con estas")}</button>
               {/* «✨ Auto-asignar las marcadas» iba aquí; se quitó en D-437. Repartir automático es «Armar las rutas del día». */}
             </div>
             {/* «Asignar a…» varios choferes (D-474): el mismo recuadro, plegado tras un botón; lo marcado se reparte entre los

@@ -42,6 +42,8 @@ type OrdenDeLaBase = Pick<Delivery,
   delivery_address?: Delivery["delivery_address"];
   /** D-412. Puede no venir: una base sin la 147 no tiene la columna, y entonces la consulta no la pide. */
   priority?: Delivery["priority"];
+  /** D-722 (208). Puede no venir: una base sin la 208 no tiene la columna. */
+  plan_rank?: Delivery["plan_rank"];
   /** D-418. Puede no venir: una base sin la 151 no tiene la columna. */
   requirements?: Delivery["requirements"] };
 
@@ -72,7 +74,7 @@ export const COLUMNAS_DE_ORDEN =
   "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_address, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
 
 /** Las que se piden si la base las tiene, en este orden. */
-export const COLUMNAS_OPCIONALES_DE_ORDEN = ["priority", "requirements"] as const;
+export const COLUMNAS_OPCIONALES_DE_ORDEN = ["priority", "requirements", "plan_rank"] as const;
 
 type Lectura = LecturaConError<unknown[] | null>;
 export { leeConOpcionales };
@@ -197,6 +199,8 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       builder: tipoDeClienteDeLaOrden(d, reglas) === "builder",
       servicioRecogidaMin: serviceMin(d.pickup_duration), servicioEntregaMin: serviceMin(d.delivery_duration),
       choferFijado,
+      // El arranque numerado (D-722, 208): solo un número positivo cuenta.
+      ...(Number(d.plan_rank) > 0 ? { puesto: Number(d.plan_rank) } : {}),
       // Solo si no es normal: sin la 147, o con todo en normal, la entrada que se guarda es la de siempre.
       ...(prioridadDe(d) !== "normal" ? { prioridad: prioridadDe(d) } : {}),
       // Lo mismo con los requisitos (D-418): solo si pide algo del catálogo.

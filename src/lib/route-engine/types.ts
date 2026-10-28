@@ -57,6 +57,9 @@ export interface OrdenEntrada {
   /** La prioridad de la orden (D-412), como OptimoRoute. Sin ella —una base sin la 147, un plan guardado de
    *  antes—, normal: el motor planifica exactamente como antes de que existiera. */
   prioridad?: PrioridadDeOrden | null;
+  /** El arranque numerado (D-722, 208): 1, 2, 3… Lo que lo lleva abre UNA ruta, en ese orden, y nada se mete delante.
+   *  Sin él —o una base sin la 208—, nada cambia. */
+  puesto?: number | null;
   /** Lo que pide del camión (D-418, 151; OptimoRoute `skills`): solo va con un chofer que lo tenga todo. Sin ella, o
    *  vacía, va con cualquiera, como antes. Un chofer fijado por una persona se respeta aunque no lo tenga. */
   requisitos?: string[] | null;

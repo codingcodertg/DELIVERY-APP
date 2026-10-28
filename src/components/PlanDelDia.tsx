@@ -8,6 +8,7 @@ import { useData } from "@/lib/data-provider";
 import { facturaYIdDeLaOrden, idDeLaOrden, nombraLaOrden } from "@/lib/route-plan/etiqueta";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { ordenesDelDia } from "@/lib/ordenes-del-dia";
+import { numeradasDelDia } from "@/lib/arranque-del-plan";
 import { RutaDelPlan, type ColumnasDeLaRuta } from "@/components/RutaDelPlan";
 import { PrecisionDelPlan } from "@/components/PrecisionDelPlan";
 import { ComparaConLaHoja } from "@/components/ComparaConLaHoja";
@@ -99,7 +100,7 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
   /** Las columnas de la tabla de paradas (D-429): las elige la persona en el ⚙ que pone la página, como el resto del Gestor. */
   columnas?: Omit<ColumnasDeLaRuta, "orden"> }) {
   const { lang, t } = usePrefs();
-  const { deliveries, notify } = useData();
+  const { deliveries, notify, updateDelivery } = useData();
   const confirmAction = useConfirm();
   const [ocupado, setOcupado] = useState<"planificando" | "publicando" | "ajustando" | null>(null);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -133,6 +134,12 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
 
   // Cuántas órdenes ruteables tiene esta fecha: las mismas que leería «planificar» (misma función, mismas etapas).
   const sinPlan = ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES).length;
+  // El arranque numerado (D-722, 208): lo que el Gestor numeró con 🔢 para esta fecha, en su orden.
+  const numeradas = numeradasDelDia(ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES));
+  const quitaElArranque = async () => {
+    for (const d of numeradas) await updateDelivery(d.id, { plan_rank: null }, { quiet: true });
+    notify(t("Start numbers cleared.", "Números de arranque quitados."));
+  };
   // Lo que la tarjeta plegada decía («Borrador v2», «N sin plan») lo dice ahora la cabecera de la página (D-459).
   const estado = estadoDelPlan(borrador, sinPlan);
   const firmaDelEstado = estado ? `${estado.tipo}:${estado.tipo === "sin_plan" ? estado.ordenes : estado.version}` : "";
@@ -201,6 +208,9 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
           : String(b.error ?? res.status));
       } else {
         const avisos = (b.notifications ?? []) as { notification_id: string }[];
+        // El arranque numerado (D-722, 208) se gasta al publicar: el plan ya lo respetó, y el siguiente día empieza
+        // limpio. Desde aquí y no desde la ruta de publicar, que no escribe nada por su cuenta (todo es la función).
+        for (const d of numeradas) void updateDelivery(d.id, { plan_rank: null }, { quiet: true });
         // El push es un extra sobre la campana: si falla, la ruta está publicada igual.
         for (const a of avisos) void fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notification_id: a.notification_id }) }).catch(() => undefined);
         setPublicado({ escritas: Number(b.written ?? 0), avisos: avisos.length });
@@ -227,6 +237,14 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
         {/* Que no se pueda no ver (D-334): el dueño buscaba P1, P2… D1, D2… y no había pulsado esto nunca. El título dice
             lo que HACE, la frase lo que DA, y sin plan el botón es el primario de la pantalla. «Motor nuevo» era jerga nuestra. */}
         <button className="btn btn-ghost btn-sm" data-cerrar-el-plan aria-expanded onClick={onCerrar} title={t("Hide", "Ocultar")}><b>🧭 {t("Build today's routes automatically", "Armar las rutas del día automáticamente")}</b> ▾</button>
+        {numeradas.length > 0 && (
+          <span className="sema" data-arranque-del-plan style={{ border: "1px solid var(--accent)", color: "var(--accent)", display: "inline-flex", alignItems: "center", gap: 6 }}
+            title={numeradas.map((d) => `${d.plan_rank}: #${idDeLaOrden(deliveries, d.id)}`).join(" · ")}>
+            🔢 {t(`${numeradas.length} numbered to start the plan`, `${numeradas.length} numeradas para arrancar el plan`)}
+            <button type="button" className="btn btn-ghost btn-sm" data-quita-arranque disabled={!!ocupado} onClick={() => void quitaElArranque()}
+              title={t("Clear the numbers", "Quitar los números")} style={{ padding: "0 4px", lineHeight: 1 }}>✕</button>
+          </span>
+        )}
         {!borrador && sinPlan > 0 && <span className="sema" style={{ border: "1px solid var(--amber)", color: "var(--amber-text)" }}>{t(`${sinPlan} order(s) on this date with no plan`, `${sinPlan} orden(es) de esta fecha sin plan`)}</span>}
         <span className="hint" style={{ margin: 0, flexBasis: "100%" }}>
           {t("Splits this date's orders among the drivers and sequences pickups (P1, P2…) and deliveries (D1, D2…) with estimated times. It's a draft: nothing is assigned until you publish.",
