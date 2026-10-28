@@ -48614,7 +48614,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 - **Cuenta del hub:** «🔒 Poner contraseña nueva» vive aquí (solo para el admin del hub, por `/api/reset-password`, que la genera y la enseña una vez) y desaparece de «Permisos» (`UserDialog` con `desdeExpediente` ya no pinta su bloque «Acceso»).
 
 **Pruebas:** `departamentos.test.ts`, `recruiting/planes-de-correo.test.ts`, `recruiting/puestos.test.ts`, `recruiting/licencia.test.ts` (estado y aviso; la lista trae el vencimiento; la ficha no pide emisión; la pantalla avisa y filtra). **No medido** en el navegador.
-## D-NEXT · Entregas: sin tope de fotos por entrega
+## D-726 · Entregas: sin tope de fotos por entrega
 
 **Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `fotos-sin-tope`.
 

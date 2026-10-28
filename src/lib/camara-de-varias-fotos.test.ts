@@ -228,8 +228,8 @@ describe("dónde el chofer pone fotos: con las tres opciones; los demás, como e
   });
 });
 
-// D-NEXT (2026-10-28): «Remove that limit — drivers should be able to upload as many images as they want».
-describe("D-NEXT: sin tope de fotos por defecto", () => {
+// D-726 (2026-10-28): «Remove that limit — drivers should be able to upload as many images as they want».
+describe("D-726: sin tope de fotos por defecto", () => {
   it("PhotoUpload no limita si no se le pasa max, y con tope infinito no avisa de máximo", async () => {
     const src = readFileSync(new URL("../components/PhotoUpload.tsx", import.meta.url), "utf8");
     expect(src).toContain("max = Infinity,");
