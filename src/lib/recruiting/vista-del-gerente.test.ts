@@ -171,7 +171,7 @@ describe("vista del gerente de tienda (D-600, migración 183)", () => {
   it("puerta: la pestaña, la página de candidatos, la fila y el hub pasan por la librería; la 183 limita candidatos y lo que cuelga de ellos", () => {
     const raiz = new URL("../../../", import.meta.url);
     const leer = (p: string) => readFileSync(new URL(p, raiz), "utf8");
-    expect(leer("src/components/recruiting/TopBar.tsx")).toContain("menusDeRrhh(TABS, me.role, deliveriesRole)");
+    expect(leer("src/components/recruiting/TopBar.tsx")).toContain("menusDeRrhh(TABS, me.role)");
     expect(leer("src/lib/recruiting/menus-rrhh.ts")).toContain("pestanasVisibles(tabs, rolRrhh)");
     expect(leer("src/app/recruiting/(recruiting)/page.tsx")).toContain("if (esGerenteDeTienda(me?.role)) return <VistaDelGerente />;");
     expect(leer("src/components/recruiting/CandidateRow.tsx")).toContain("resolucionDelGerente(");

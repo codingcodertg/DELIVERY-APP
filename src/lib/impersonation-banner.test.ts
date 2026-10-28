@@ -119,6 +119,9 @@ describe("nadie más se cuelga del borde de arriba a lo ancho", () => {
     // Y la cabecera de tienda del panel de «Switch usuario» (D-254), que se pega al borde del
     // propio panel, que tiene su `overflow-y: auto`: el banner queda fuera de esa caja.
     "src/app/globals.css": 2,
+    // La cabecera del expediente de RR. HH. (D-NEXT, `.ficha-cabecera`): se pega al borde de su ventana `.modal`, que
+    // es la caja de scroll (`max-height: 88vh; overflow: auto`), no al de la pantalla; el banner queda fuera.
+    "src/app/recruiting/recruiting.css": 1,
     // El propio banner: es EL elemento que se pega arriba, y de ahí sale la medida que usan
     // los demás. Si algún día dejara de aparecer aquí, es que dejó de estar en el borde.
     "src/components/ImpersonationBanner.tsx": 1,

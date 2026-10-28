@@ -114,7 +114,7 @@ function Cuerpo({ persona, onClose, onEnlazado }: { persona: Persona; onClose: (
           <div className="detail-row"><span className="dk">{t("Password", "Contraseña")}</span><span className="dv" style={{ fontFamily: "monospace", fontSize: 15 }}>{creado.password}</span></div>
           <div className="hint">{t("This password is shown only once. The user can change it later.", "Esta contraseña se muestra solo una vez. El usuario puede cambiarla después.")}</div>
           {!creado.canReset && (
-            <div className="hint" style={{ color: "#b9791a", fontWeight: 600, marginTop: 6 }}>
+            <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
               ⚠ {t("This account has no email, so it can never reset its own password — an admin has to set a new one.",
                    "Esta cuenta no tiene correo, así que nunca podrá restablecer su propia contraseña — un admin tendrá que ponerle una nueva.")}
             </div>
