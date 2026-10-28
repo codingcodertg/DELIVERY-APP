@@ -28,6 +28,8 @@ import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpl
 import { COLUMNAS_207, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
 import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
 import { ActivosDelEmpleado } from "@/components/recruiting/ActivosDelEmpleado";
+import { HistorialDeRrhh } from "@/components/recruiting/HistorialDeRrhh";
+import { ConfirmarConMotivo } from "@/components/recruiting/ConfirmarConMotivo";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 import { nombreDeDepartamento } from "@/lib/departamentos";
 import { PLANES_DE_CORREO, tooltipDelPlan } from "@/lib/recruiting/planes-de-correo";
@@ -473,9 +475,11 @@ function Ficha({
   useEffect(() => { void cargaCuenta(); }, [cargaCuenta]);
   const cuenta = resumenDeCuenta(persona, hechos);
 
-  async function cambiaAcceso(encendida: boolean) {
+  // D-734: quitar el acceso es deliberado: «¿Seguro? ¿Por qué?» antes, y el motivo al historial.
+  const [quitandoAcceso, setQuitandoAcceso] = useState(false);
+  async function cambiaAcceso(encendida: boolean, motivo?: string) {
     setBusy(true);
-    const r = await setHubAccess(persona.id, encendida);
+    const r = await setHubAccess(persona.id, encendida, motivo ?? null);
     setBusy(false);
     notify(r.ok
       ? (encendida ? t("Hub access restored ✓", "Acceso al hub devuelto ✓") : t("Hub access removed ✓", "Acceso al hub quitado ✓"))
@@ -864,6 +868,11 @@ function Ficha({
         <ActivosDelEmpleado employeeId={persona.id} deBaja={deBaja} />
       </Seccion>
 
+      {/* D-734: lo que pasó con esta persona: bajas, altas, acceso al hub y sus activos, con quién, cuándo y por qué. */}
+      <Seccion id="historial" titulo={t("HISTORY", "HISTORIAL")}>
+        <HistorialDeRrhh employeeId={persona.id} compacto />
+      </Seccion>
+
       <Seccion id="cuenta" titulo={t("HUB ACCOUNT", "CUENTA DEL HUB")}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }} data-bloque="cuenta">
         {!persona.profile_id ? (
@@ -889,9 +898,15 @@ function Ficha({
               </button>
             ) : (
               <button className="btn btn-danger btn-sm" data-accion="quitar-acceso" disabled={busy || !puedeBaja}
-                title={puedeBaja ? undefined : soloAdmin} onClick={() => cambiaAcceso(false)}>
+                title={puedeBaja ? undefined : soloAdmin} onClick={() => setQuitandoAcceso(true)}>
                 {t("Remove hub access", "Quitar acceso al hub")}
               </button>
+            )}
+            {quitandoAcceso && (
+              <ConfirmarConMotivo titulo={`${t("Remove hub access", "Quitar acceso al hub")} — ${persona.full_name}?`}
+                texto={t("The account is disabled, not deleted. Only an HR admin can restore it.", "La cuenta se deshabilita, no se borra. Solo un admin de RR. HH. la devuelve.")}
+                boton={t("Remove access", "Quitar acceso")} busy={busy} onClose={() => setQuitandoAcceso(false)}
+                onConfirm={async (motivo) => { await cambiaAcceso(false, motivo); setQuitandoAcceso(false); }} />
             )}
             {deBaja && !cuenta.deshabilitada && (
               <span className="hint" style={{ marginTop: 0, color: "var(--red)" }}>

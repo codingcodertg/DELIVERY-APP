@@ -170,7 +170,7 @@ describe("«Quitar también el acceso al hub» y «Reactivar no lo devuelve»", 
 
   it("D-709: con cuenta, la baja SIEMPRE apaga la cuenta y libera el correo, en ese orden", () => {
     const cuerpo = accion("deactivateEmployee");
-    expect(cuerpo).toContain("if (!file.profile_id) return { ok: true, sinMotivo, accesoQuitado: false };");
+    expect(cuerpo).toContain("if (!file.profile_id) { await anotaBaja(false); return { ok: true, sinMotivo, accesoQuitado: false }; }"); // D-734: la baja queda en el historial
     expect(cuerpo).not.toContain("quitarAcceso");
     expect(cuerpo.indexOf("ponAcceso(file.profile_id as string, false)")).toBeGreaterThan(-1);
     expect(cuerpo.indexOf("liberaCredenciales(file.profile_id as string)")).toBeGreaterThan(cuerpo.indexOf("ponAcceso(file.profile_id as string, false)"));
@@ -209,12 +209,13 @@ describe("«Quitar también el acceso al hub» y «Reactivar no lo devuelve»", 
     const cuerpo = accion("setHubAccess");
     expect(cuerpo).toContain("await comoAdminDeHr()");
     expect(cuerpo).toContain("if (!encendida && file.profile_id === userId) return { ok: false");
-    expect(cuerpo).toContain("return ponAcceso(file.profile_id as string, encendida);");
+    expect(cuerpo).toContain("const r = await ponAcceso(file.profile_id as string, encendida);"); // D-734: y después, el historial
     expect(pagina).toContain('data-accion="devolver-acceso"');
     expect(pagina).toContain('data-accion="quitar-acceso"');
     expect(pagina).toContain("onClick={() => cambiaAcceso(true)}");
-    expect(pagina).toContain("onClick={() => cambiaAcceso(false)}");
-    expect(pagina).toContain("const r = await setHubAccess(persona.id, encendida);");
+    expect(pagina).toContain("onClick={() => setQuitandoAcceso(true)}"); // D-734: quitar el acceso pide motivo (ConfirmarConMotivo) y luego cambiaAcceso(false, motivo)
+    expect(pagina).toContain("await cambiaAcceso(false, motivo)");
+    expect(pagina).toContain("const r = await setHubAccess(persona.id, encendida, motivo ?? null);");
     // El estado de la cuenta se LEE de Auth al abrir la ficha (D-251), no se guarda.
     expect(pagina).toContain("const r = await accountFactsFor([persona.profile_id]);");
     expect(pagina).toContain("const cuenta = resumenDeCuenta(persona, hechos);");

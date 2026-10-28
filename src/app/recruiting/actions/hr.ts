@@ -13,6 +13,8 @@ import {
 } from "@/lib/recruiting/employee-file";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
 import { parcheLiberar, type TipoDeActivo } from "@/lib/recruiting/activos";
+import { anotaEnHistorial } from "@/lib/recruiting/historial-escribe";
+import { textoDeActivoParaHistorial } from "@/lib/recruiting/historial";
 import type { FilaHoras, FilaLote, FilaTalon } from "@/lib/recruiting/horas-del-expediente";
 
 /**
@@ -413,10 +415,17 @@ export async function deactivateEmployee(
   if (normalizaMotivoBaja(datos.motivo) === undefined) return { ok: false, message: "Unknown reason for leaving." };
 
   const { data: file, error: leer } = await supabase
-    .schema("recruiting").from("employee_files").select("id, profile_id").eq("id", fileId).maybeSingle();
+    .schema("recruiting").from("employee_files").select("id, profile_id, date_left").eq("id", fileId).maybeSingle();
   if (leer) return { ok: false, message: leer.message };
   if (!file) return { ok: false, message: "No such employee file." };
   if (file.profile_id === userId) return { ok: false, message: "You can't deactivate your own account." };
+  // D-734: la baja (o su corrección) queda en el historial, con la fecha, el motivo y la nota.
+  const anotaBaja = (accesoQuitado: boolean) => anotaEnHistorial(supabase, userId, {
+    kind: file.date_left ? "employee_leaving_edited" : "employee_deactivated", employeeId: fileId,
+    reason: [datos.motivo, datos.nota].filter(Boolean).join(" — ") || null,
+    detail: `${datos.fecha ?? ""}${accesoQuitado ? " · hub access removed" : ""}`.trim() || null,
+    data: { fecha: datos.fecha ?? null, motivo: datos.motivo ?? null, nota: datos.nota ?? null, accesoQuitado },
+  });
 
   // La fecha primero: si el ban falla, la baja queda registrada y se puede reintentar. Al
   // reves, cuenta apagada y expediente sin fecha, nadie sabria por que esa persona no entra.
@@ -437,7 +446,7 @@ export async function deactivateEmployee(
   await liberaActivosDeLaBaja(supabase, fileId, userId);
 
   // D-709: con cuenta, la baja SIEMPRE quita el acceso y libera el correo; ya no es una casilla.
-  if (!file.profile_id) return { ok: true, sinMotivo, accesoQuitado: false };
+  if (!file.profile_id) { await anotaBaja(false); return { ok: true, sinMotivo, accesoQuitado: false }; }
   const ban = await ponAcceso(file.profile_id as string, false);
   if (!ban.ok) return { ok: false, sinMotivo, message: `Marked as left, but the account could not be disabled: ${ban.message}` };
   const lib = await liberaCredenciales(file.profile_id as string);
@@ -446,6 +455,7 @@ export async function deactivateEmployee(
     const nota = notaConCredenciales(datos.nota, lib.liberadas);
     await tabla().update({ left_note: nota }).eq("id", fileId);
   }
+  await anotaBaja(true);
   return { ok: true, sinMotivo, accesoQuitado: true, liberadas: lib.liberadas };
 }
 
@@ -456,10 +466,16 @@ export async function deactivateEmployee(
  */
 async function liberaActivosDeLaBaja(supabase: Awaited<ReturnType<typeof createClient>>, fileId: string, userId: string): Promise<void> {
   const tabla = () => supabase.schema("recruiting").from("company_assets");
-  const { data, error } = await tabla().select("id, kind, employee_id").eq("employee_id", fileId).eq("status", "assigned");
+  const { data, error } = await tabla().select("id, kind, employee_id, value, ext").eq("employee_id", fileId).eq("status", "assigned");
   if (error || !data?.length) return;
   for (const a of data) {
-    await tabla().update({ ...parcheLiberar({ kind: a.kind as TipoDeActivo, employee_id: a.employee_id as string | null }), updated_at: new Date().toISOString(), updated_by: userId }).eq("id", a.id);
+    const parche = parcheLiberar({ kind: a.kind as TipoDeActivo, employee_id: a.employee_id as string | null });
+    await tabla().update({ ...parche, updated_at: new Date().toISOString(), updated_by: userId }).eq("id", a.id);
+    await anotaEnHistorial(supabase, userId, {
+      kind: "asset_released_on_leaving", employeeId: fileId, assetId: String(a.id),
+      assetText: textoDeActivoParaHistorial({ kind: a.kind as TipoDeActivo, value: String(a.value), ext: a.ext as string | null }),
+      detail: `→ ${parche.status}`, data: { status: parche.status },
+    });
   }
 }
 
@@ -490,6 +506,7 @@ export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean;
     const ban = await ponAcceso(file.profile_id as string, true);
     if (!ban.ok) return { ok: false, message: `Reactivated, but the account could not be re-enabled: ${ban.message}` };
   }
+  await anotaEnHistorial(supabase, userId, { kind: "employee_reactivated", employeeId: fileId, detail: file.profile_id ? "hub access restored" : null });
   return { ok: true, tieneCuenta: !!file.profile_id };
 }
 
@@ -497,7 +514,7 @@ export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean;
  * Quita o devuelve el acceso al hub de la cuenta de un expediente, sin tocar su estado. Es el mismo ban de
  * D-251, con botón propio: lo que «Dar de baja» hace si se marca la casilla, y lo único que devuelve el acceso.
  */
-export async function setHubAccess(fileId: string, encendida: boolean): Promise<{ ok: boolean; message?: string }> {
+export async function setHubAccess(fileId: string, encendida: boolean, motivo?: string | null): Promise<{ ok: boolean; message?: string }> {
   const acceso = await comoAdminDeHr();
   if (!acceso.ok) return acceso;
   const { supabase, userId } = acceso;
@@ -508,7 +525,9 @@ export async function setHubAccess(fileId: string, encendida: boolean): Promise<
   if (!file) return { ok: false, message: "No such employee file." };
   if (!file.profile_id) return { ok: false, message: "This person has no hub account." };
   if (!encendida && file.profile_id === userId) return { ok: false, message: "You can't remove your own access." };
-  return ponAcceso(file.profile_id as string, encendida);
+  const r = await ponAcceso(file.profile_id as string, encendida);
+  if (r.ok) await anotaEnHistorial(supabase, userId, { kind: encendida ? "hub_access_restored" : "hub_access_removed", employeeId: fileId, reason: motivo ?? null });
+  return r;
 }
 
 /**

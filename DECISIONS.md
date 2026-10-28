@@ -48703,3 +48703,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Lo que NO arregla (y se dice en la pantalla de Ayuda no, en esta entrada sí):** snapdom no reproduce el scroll de dentro de una caja —la tabla sale desde su primera fila— ni deja la cabecera pegada arriba. Para una tabla bajada por dentro, la captura exacta sigue siendo «con el navegador» (D-509).
 
 **Pruebas:** `recorte-de-la-vista.test.ts` (549 px, sin scroll, 2×, final de página, margen del body, sin medidas, y que la foto rápida la usa sin `clip`); `captura-sin-permiso.test.ts` ajustada.
+
+## D-734 · RR. HH.: historial de todo lo que pasa con empleados y activos (bajas, altas, acceso al hub, correos y números), y «¿Seguro? ¿Por qué?» antes de liberar, respaldar, borrar o quitar el acceso (migración 212)
+
+**Fecha:** 2026-10-28 · **Migración 212** (`recruiting.hr_history`, ENSAYADA con ROLLBACK, pendiente de aplicar) · Hecho directo por el orquestador en `historial-de-rrhh`.
+
+**Qué pidió el dueño (2026-10-28, por voz):** «quiero que todas esas asignaciones … de los números, de todo eso, quede un historial. Y cada vez que un usuario, un employee se desactiva, se activa, lo que sea, … todo tiene que quedar en un historial, que se mire, no se desactivó tal día por tal cosa y así. Y también en la parte de company assets, si uno libera o respaldo, tiene que estar seguro y así, antes de hacer algo así tan deliberado como liberar».
+
+**Qué cambia:**
+- **Tabla** `recruiting.hr_history` (212): `kind` (13 tipos: baja, baja corregida, reactivación, acceso quitado/devuelto, activo agregado/editado/borrado/asignado/liberado/liberado por baja/respaldado/estado cambiado), `employee_id` + `employee_name` y `asset_id` + `asset_text` (los nombres se copian para que la fila sobreviva al expediente y al activo), `actor_id` + `actor_name`, `reason`, `detail`, `data`. Solo se inserta: políticas de lectura e inserción para admin y gerente de RR. HH., ninguna de update/delete, y el `do $chk$` lo comprueba.
+- **Quién escribe:** `anotaEnHistorial` (`src/lib/recruiting/historial-escribe.ts`, server-only) desde `deactivateEmployee` (y su corrección), `liberaActivosDeLaBaja` (una fila por activo), `reactivateEmployee`, `setHubAccess`, `saveAsset` (alta, edición con los campos que cambiaron, cambio de estado), `deleteAsset`, `assignAsset` y `releaseAsset` (liberado o respaldado). Nunca hunde la acción: sin la 212 la baja o la asignación ya están hechas.
+- **Motivo obligatorio** (`motivoValido`, 3 letras como la razón de un rechazo) y confirmación (`ConfirmarConMotivo`) antes de liberar y respaldar (en el expediente y en la pestaña), borrar un activo (antes era un `window.confirm`) y quitar el acceso al hub. El servidor lo exige también (`releaseAsset`, `deleteAsset`: «A reason is required.»). Asignar y agregar no lo piden: se deshacen liberando o borrando.
+- **Dónde se mira:** sección «HISTORIAL» en el expediente (`HistorialDeRrhh` con `employeeId`) y vista «🕘 Historial» en «Company assets» (todo). Tabla de Órdenes (CLAUDE.md), cinco/seis columnas fijas: cuándo, quién, qué, empleado, activo, detalle, motivo.
+
+**Pruebas:** `historial.test.ts`: los kinds de la librería y el `check` de la 212 son el mismo conjunto; la 212 no concede update/delete; etiquetas en dos idiomas; motivo; qué pide motivo; texto de una fila; texto del activo; cambios de un activo. Canarios globales en verde (teléfono, tabla a lo ancho, tbl-resize, botones apagados, menús RR. HH., expediente).
+
+**No verificado en pantalla:** ni el expediente ni la pestaña se abrieron en un navegador; la 212 se ensayó con ROLLBACK y falta aplicarla.

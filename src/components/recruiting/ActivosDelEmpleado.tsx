@@ -5,6 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
 import { assignAsset, listAssets, releaseAsset } from "@/app/recruiting/actions/activos";
 import { etiquetaDeTipoDeTelefono, libres, losDe, textoDeTelefono, type Activo, type TipoDeActivo } from "@/lib/recruiting/activos";
+import { ConfirmarConMotivo } from "@/components/recruiting/ConfirmarConMotivo";
 
 /**
  * «Activos de la empresa» dentro del expediente (D-730): el correo y el número que tiene esta persona, con «Liberar»; y
@@ -18,6 +19,8 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
   const [sinTabla, setSinTabla] = useState(false);
   const [busy, setBusy] = useState(false);
   const [elegido, setElegido] = useState<Record<TipoDeActivo, string>>({ email: "", phone: "" });
+  // D-734: liberar es deliberado: «¿Seguro? ¿Por qué?» antes, y el motivo al historial.
+  const [liberando, setLiberando] = useState<Activo | null>(null);
 
   const cargar = useCallback(async () => {
     const r = await listAssets();
@@ -47,7 +50,7 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
         {tiene ? (
           <>
             <span data-asignado={tiene.id}>{kind === "phone" ? `${textoDeTelefono(tiene)} · ${etiquetaDeTipoDeTelefono(tiene.phone_type, lang)}` : tiene.value}</span>
-            <button className="btn btn-ghost btn-sm" data-accion="liberar-activo" disabled={busy} onClick={() => void corre(() => releaseAsset(tiene.id))}>
+            <button className="btn btn-ghost btn-sm" data-accion="liberar-activo" disabled={busy} onClick={() => setLiberando(tiene)}>
               {t("Release", "Liberar")}
             </button>
           </>
@@ -75,9 +78,18 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
       {fila("email")}
       {fila("phone")}
       <p className="hint">
-        {t("Releasing an email leaves it pending backup; releasing a number makes it available. Deactivating someone does the same automatically.",
-           "Liberar un correo lo deja pendiente de respaldo; liberar un número lo deja disponible. Dar de baja hace lo mismo solo.")}
+        {t("Releasing an email leaves it pending backup; releasing a number makes it available. Deactivating someone does the same automatically. Everything is kept in the HR history.",
+           "Liberar un correo lo deja pendiente de respaldo; liberar un número lo deja disponible. Dar de baja hace lo mismo solo. Todo queda en el historial de RR. HH.")}
       </p>
+      {liberando && (
+        <ConfirmarConMotivo
+          titulo={`${t("Release", "Liberar")} ${liberando.kind === "phone" ? textoDeTelefono(liberando) : liberando.value}?`}
+          texto={liberando.kind === "email"
+            ? t("The email is left pending backup until someone marks it as backed up.", "El correo queda pendiente de respaldo hasta que alguien lo marque respaldado.")
+            : t("The number becomes available for someone else.", "El número queda disponible para otra persona.")}
+          boton={t("Release", "Liberar")} busy={busy} onClose={() => setLiberando(null)}
+          onConfirm={async (motivo) => { await corre(() => releaseAsset(liberando.id, undefined, motivo)); setLiberando(null); }} />
+      )}
     </div>
   );
 }
