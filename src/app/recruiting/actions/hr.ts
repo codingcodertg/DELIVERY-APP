@@ -248,7 +248,7 @@ export async function saveEmployeeFile(
   }
   // El nombre: limpio y nunca vacío. Con cuenta manda el del perfil (`nombreVisible`), así que se copia allí también.
   if ("full_name" in patch) {
-    // D-727: con mayúscula inicial si venía todo en mayúsculas o en minúsculas (`nombreDeFicha`).
+    // D-729: con mayúscula inicial si venía todo en mayúsculas o en minúsculas (`nombreDeFicha`).
     const nombre = nombreDeFicha(patch.full_name);
     if (!nombre) return { ok: false, message: "The name can't be empty." };
     patch = { ...patch, full_name: nombre };
@@ -264,7 +264,7 @@ export async function saveEmployeeFile(
   for (const k of ["phone", "personal_phone", "emergency_phone", "previous_phone"] as const) {
     if (patch[k] !== undefined) limpio[k] = telefonoDeFicha(patch[k]);
   }
-  // D-727: los correos, en minúsculas.
+  // D-729: los correos, en minúsculas.
   for (const k of ["email", "personal_email", "second_email"] as const) {
     if (patch[k] !== undefined) limpio[k] = correoDeFicha(patch[k]);
   }

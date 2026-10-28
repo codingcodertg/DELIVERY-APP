@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { correoDeFicha, nombreDeFicha, telefonoDeFicha } from "./employee-file";
 
-// D-727 (2026-10-28) · «Emails: always lowercase. Names: proper capitalization (First Last), never all caps or all lowercase».
+// D-729 (2026-10-28) · «Emails: always lowercase. Names: proper capitalization (First Last), never all caps or all lowercase».
 describe("formato de los datos del expediente", () => {
   it("el correo va en minúsculas y recortado; vacío es null", () => {
     expect(correoDeFicha("  Careers@RDZTileGroup.NET ")).toBe("careers@rdztilegroup.net");

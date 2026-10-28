@@ -87,7 +87,7 @@ function Cuerpo({ persona, onClose, onEnlazado }: { persona: Persona; onClose: (
 
   // 1. Con cuenta: la ventana del hub tal cual.
   if (profileId && !creado) {
-    // D-727: el envoltorio da el gancho de CSS (recruiting.css, `.permisos-del-empleado`) que deshace lo que las reglas
+    // D-729: el envoltorio da el gancho de CSS (recruiting.css, `.permisos-del-empleado`) que deshace lo que las reglas
     // de RR. HH. (etiquetas en mayúsculas y en bloque) le hacían a las tarjetas de permisos del hub.
     if (usuario) return <div className="permisos-del-empleado" style={{ display: "contents" }}><UserDialog user={usuario} onClose={cerrar} desdeExpediente /></div>;
     return (

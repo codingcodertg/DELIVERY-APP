@@ -64,7 +64,7 @@
 .recruiting-module input:focus, .recruiting-module select:focus, .recruiting-module textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
 .recruiting-module label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
 
-/* «Permisos» dentro del expediente (D-727). El dueño, 2026-10-28, con la captura: «the checkboxes are not aligned with
+/* «Permisos» dentro del expediente (D-729). El dueño, 2026-10-28, con la captura: «the checkboxes are not aligned with
    their labels/text, and the cards have uneven heights … less uppercase text, consistent font sizes and spacing».
    La regla de arriba (etiqueta en bloque y en mayúsculas) alcanzaba a las tarjetas `.perm-opt` del hub y las rompía:
    aquí se deshace y cada permiso es UNA fila alineada: casilla · nombre (con «del rol») · descripción. */

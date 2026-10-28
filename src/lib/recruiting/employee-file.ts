@@ -769,7 +769,7 @@ export function tienePuesto(actual: string | null | undefined, puesto: string): 
   return partesDePuesto(actual).some((p) => p.toLowerCase() === k);
 }
 
-// ---- Formato de los datos al guardar (D-727) ------------------------------------------------
+// ---- Formato de los datos al guardar (D-729) ------------------------------------------------
 /**
  * El dueño, 2026-10-28: «Emails: always lowercase. Names: proper capitalization (First Last), never all caps or all
  * lowercase … Normalize data on input/save so everything stored and displayed follows the same format». Los teléfonos
