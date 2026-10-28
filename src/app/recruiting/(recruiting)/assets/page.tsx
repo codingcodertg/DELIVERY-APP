@@ -14,6 +14,8 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 import { downloadCSV, toCSV } from "@/lib/utils";
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
+import { ConfirmarConMotivo } from "@/components/recruiting/ConfirmarConMotivo";
+import { HistorialDeRrhh } from "@/components/recruiting/HistorialDeRrhh";
 
 /**
  * «Company assets» (D-730, migración 211): los correos y números de teléfono que paga la empresa, con su estado y quién
@@ -21,7 +23,10 @@ import type { ValorDeCelda } from "@/lib/orden-y-filtro";
  * números) con la tabla de Órdenes (CLAUDE.md: toda tabla es la de Entregas), chips por estado con su cuenta, y la vista
  * «por persona»: quién tiene correo y teléfono y quién no.
  */
-type Vista = "email" | "phone" | "personas";
+type Vista = "email" | "phone" | "personas" | "historial";
+
+/** D-NEXT: lo deliberado (liberar, respaldar, borrar) pasa por «¿Seguro? ¿Por qué?». */
+type Pendiente = { accion: "liberar" | "respaldar" | "borrar"; activo: Activo };
 
 const COLUMNAS = [
   { key: "value", en: "Email / number", es: "Correo / número", ancho: 230 },
@@ -46,7 +51,9 @@ export default function AssetsPage() {
   const [buscar, setBuscar] = useState("");
   const [editando, setEditando] = useState<Partial<Activo> & { kind: TipoDeActivo } | null>(null);
   const [asignando, setAsignando] = useState<Activo | null>(null);
+  const [pendiente, setPendiente] = useState<Pendiente | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recargaHistorial, setRecargaHistorial] = useState(0);
 
   const cargar = useCallback(async () => {
     const r = await listAssets();
@@ -61,10 +68,11 @@ export default function AssetsPage() {
     setBusy(false);
     if (!r.ok) { notify("Error: " + (r.message ?? "")); return false; }
     await cargar();
+    setRecargaHistorial((n) => n + 1);
     return true;
   };
 
-  const delTipo = useMemo(() => rows.filter((a) => vista !== "personas" && a.kind === vista), [rows, vista]);
+  const delTipo = useMemo(() => rows.filter((a) => (vista === "email" || vista === "phone") && a.kind === vista), [rows, vista]);
   const cuenta = useMemo(() => cuentaPorEstado(delTipo), [delTipo]);
   const q = buscar.trim().toLowerCase();
   const visibles = useMemo(() => delTipo
@@ -91,10 +99,25 @@ export default function AssetsPage() {
   const activas = personas.filter((p) => !p.date_left);
   const vistaPersonas = useMemo(() => porPersona(rows, activas), [rows, activas]);
   const borraEditando = async () => {
-    const id = editando?.id;
-    if (!id) return;
-    if (!window.confirm(t("Delete this asset from the list?", "¿Borrar este activo de la lista?"))) return;
-    if (await corre(() => deleteAsset(id))) setEditando(null);
+    if (!editando?.id) return;
+    setPendiente({ accion: "borrar", activo: editando as Activo });
+  };
+  const confirmaPendiente = async (motivo: string) => {
+    if (!pendiente) return;
+    const { accion, activo } = pendiente;
+    const ok = await corre(() => accion === "borrar" ? deleteAsset(activo.id, motivo)
+      : accion === "respaldar" ? releaseAsset(activo.id, "available", motivo)
+      : releaseAsset(activo.id, undefined, motivo));
+    setPendiente(null);
+    if (ok && accion === "borrar") setEditando(null);
+  };
+  const textoDelPendiente = (p: Pendiente) => {
+    const nombre = p.activo.kind === "phone" ? textoDeTelefono(p.activo) : p.activo.value;
+    if (p.accion === "borrar") return { titulo: `${t("Delete", "Borrar")} ${nombre}?`, texto: t("It leaves the list; the history keeps what happened to it.", "Sale de la lista; el historial guarda lo que pasó con él."), boton: t("Delete", "Borrar") };
+    if (p.accion === "respaldar") return { titulo: `${t("Backed up", "Respaldado")}: ${nombre}?`, texto: t("It becomes available for someone else. Be sure the backup is done.", "Pasa a disponible para otra persona. Asegúrate de que el respaldo ya está hecho."), boton: t("Mark as backed up", "Marcar respaldado") };
+    return { titulo: `${t("Release", "Liberar")} ${nombre}?`, texto: p.activo.employee_name
+      ? t(`It is taken from ${p.activo.employee_name}. An email is left pending backup; a number becomes available.`, `Se le quita a ${p.activo.employee_name}. Un correo queda pendiente de respaldo; un número queda disponible.`)
+      : t("An email is left pending backup; a number becomes available.", "Un correo queda pendiente de respaldo; un número queda disponible."), boton: t("Release", "Liberar") };
   };
   const exporta = () => {
     const cab = columnas.map((c) => (lang === "es" ? c.es : c.en));
@@ -104,15 +127,16 @@ export default function AssetsPage() {
   return (
     <>
       <div className="page-head" data-cabecera-de-activos>
-        <h2>🧰 {t("Company assets", "Activos de la empresa")} <span className="count-tag">{vista === "personas" ? activas.length : orden.visibles.length}</span></h2>
+        <h2>🧰 {t("Company assets", "Activos de la empresa")} {vista !== "historial" && <span className="count-tag">{vista === "personas" ? activas.length : orden.visibles.length}</span>}</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div className="viewtoggle">
             <button className={"vt " + (vista === "email" ? "on" : "")} data-vista="email" onClick={() => { setVista("email"); setFiltroEstado(""); }}>✉️ {t("Emails", "Correos")}</button>
             <button className={"vt " + (vista === "phone" ? "on" : "")} data-vista="phone" onClick={() => { setVista("phone"); setFiltroEstado(""); }}>📞 {t("Numbers", "Números")}</button>
             <button className={"vt " + (vista === "personas" ? "on" : "")} data-vista="personas" onClick={() => setVista("personas")}>👤 {t("By person", "Por persona")}</button>
+            <button className={"vt " + (vista === "historial" ? "on" : "")} data-vista="historial" onClick={() => setVista("historial")}>🕘 {t("History", "Historial")}</button>
           </div>
-          {vista !== "personas" && <button className="btn btn-ghost" data-exporta="csv" disabled={!orden.visibles.length} onClick={exporta}>⬇ CSV</button>}
-          {vista !== "personas" && (
+          {(vista === "email" || vista === "phone") && <button className="btn btn-ghost" data-exporta="csv" disabled={!orden.visibles.length} onClick={exporta}>⬇ CSV</button>}
+          {(vista === "email" || vista === "phone") && (
             <button className="btn btn-primary" data-accion="agregar-activo" onClick={() => setEditando({ kind: vista, status: "available", phone_type: "app" })}>
               ＋ {vista === "email" ? t("Add email", "Agregar correo") : t("Add number", "Agregar número")}
             </button>
@@ -129,7 +153,7 @@ export default function AssetsPage() {
         {err && estado === "error" && <div className="hint" style={{ color: "var(--red)" }}>{err}</div>}
         {estado === "cargando" && <div className="hint">{t("Loading…", "Cargando…")}</div>}
 
-        {estado === "listo" && vista !== "personas" && (
+        {estado === "listo" && (vista === "email" || vista === "phone") && (
           <>
             <div className="filters">
               <BuscadorConBorrar maxWidth={260} valor={buscar} onValor={setBuscar} placeholder={t("Search…", "Buscar…")} />
@@ -181,11 +205,11 @@ export default function AssetsPage() {
                           <button className="btn btn-green btn-sm" data-accion="asignar" disabled={busy} onClick={() => setAsignando(a)}>{t("Assign", "Asignar")}</button>
                         )}
                         {a.status === "assigned" && (
-                          <button className="btn btn-ghost btn-sm" data-accion="liberar" disabled={busy} onClick={() => void corre(() => releaseAsset(a.id))}>{t("Release", "Liberar")}</button>
+                          <button className="btn btn-ghost btn-sm" data-accion="liberar" disabled={busy} onClick={() => setPendiente({ accion: "liberar", activo: a })}>{t("Release", "Liberar")}</button>
                         )}
                         {a.status === "pending_backup" && (
                           <button className="btn btn-ghost btn-sm" data-accion="respaldado" disabled={busy} title={t("Mark as backed up: it becomes available", "Marcar respaldado: pasa a disponible")}
-                            onClick={() => void corre(() => releaseAsset(a.id, "available"))}>✓ {t("Backed up", "Respaldado")}</button>
+                            onClick={() => setPendiente({ accion: "respaldar", activo: a })}>✓ {t("Backed up", "Respaldado")}</button>
                         )}
                         <button className="btn btn-ghost btn-sm" data-accion="editar-activo" disabled={busy} onClick={() => setEditando(a)}>✏️</button>
                       </td>
@@ -195,6 +219,13 @@ export default function AssetsPage() {
               </table>
             </div>
             <MenuDeColumnaAbierto estado={orden} columnas={columnas} lang={lang} t={t} />
+          </>
+        )}
+
+        {estado === "listo" && vista === "historial" && (
+          <>
+            <p className="hint" style={{ marginTop: 0 }}>{t("Everything that happened to the company's emails and numbers, and to the employees' files: who did it, when and why.", "Todo lo que pasó con los correos y números de la empresa, y con los expedientes: quién lo hizo, cuándo y por qué.")}</p>
+            <HistorialDeRrhh recarga={recargaHistorial} />
           </>
         )}
 
@@ -227,6 +258,9 @@ export default function AssetsPage() {
       {asignando && (
         <AsignarActivo activo={asignando} personas={activas} busy={busy} onClose={() => setAsignando(null)}
           onAssign={async (employeeId) => { if (await corre(() => assignAsset(asignando.id, employeeId))) setAsignando(null); }} />
+      )}
+      {pendiente && (
+        <ConfirmarConMotivo {...textoDelPendiente(pendiente)} busy={busy} onClose={() => setPendiente(null)} onConfirm={confirmaPendiente} />
       )}
     </>
   );

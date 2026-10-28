@@ -2,6 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { parcheAsignar, parcheLiberar, valorDeActivo, type Activo, type EstadoDeActivo, type TipoDeActivo, type TipoDeTelefono } from "@/lib/recruiting/activos";
+import { anotaEnHistorial } from "@/lib/recruiting/historial-escribe";
+import { cambiosDeActivo, detalleDeCambios, motivoValido, textoDeActivoParaHistorial } from "@/lib/recruiting/historial";
+
+/** D-NEXT: liberar, respaldar y borrar son deliberados: sin un motivo escrito no se hacen. */
+const SIN_MOTIVO = "A reason is required.";
+const CAMPOS_QUE_SE_EDITAN = ["value", "ext", "phone_type", "status", "plan", "cost_year", "note"] as const;
 
 /**
  * Los activos de la empresa (D-730, migración 211): se leen y escriben con la sesión de quien mira; la política de la
@@ -77,24 +83,46 @@ export async function saveAsset(input: {
   const tabla = supabase.schema("recruiting").from("company_assets");
   if (input.id) {
     // El estado solo cambia aquí entre los que no son «asignado»: asignar y liberar tienen su acción.
-    const { data: actual } = await tabla.select("status").eq("id", input.id).maybeSingle();
+    const { data: actual } = await tabla.select("*").eq("id", input.id).maybeSingle();
     if (status && actual?.status !== "assigned") limpio.status = status;
     const { error } = await tabla.update(limpio).eq("id", input.id);
     if (error) return { ok: false, message: error.code === "23505" ? "That email or number is already in the list." : error.message };
+    const cambios = cambiosDeActivo((actual ?? {}) as Record<string, unknown>, limpio, CAMPOS_QUE_SE_EDITAN);
+    if (Object.keys(cambios).length) {
+      await anotaEnHistorial(supabase, yo.userId, {
+        kind: "status" in cambios && Object.keys(cambios).length === 1 ? "asset_status_changed" : "asset_edited",
+        assetId: input.id, employeeId: (actual?.employee_id as string | null) ?? null,
+        assetText: textoDeActivoParaHistorial({ kind: input.kind, value, ext: input.kind === "phone" ? ext : null }),
+        detail: detalleDeCambios(cambios), data: cambios,
+      });
+    }
     return { ok: true, id: input.id };
   }
   const { data, error } = await tabla.insert({ ...limpio, status: status ?? "available" }).select("id").single();
   if (error) return { ok: false, message: error.code === "23505" ? "That email or number is already in the list." : error.message };
+  await anotaEnHistorial(supabase, yo.userId, {
+    kind: "asset_created", assetId: data.id as string,
+    assetText: textoDeActivoParaHistorial({ kind: input.kind, value, ext: input.kind === "phone" ? ext : null }),
+    detail: `status: ${status ?? "available"}`, data: { status: status ?? "available", plan: limpio.plan, cost_year: limpio.cost_year },
+  });
   return { ok: true, id: data.id as string };
 }
 
-export async function deleteAsset(id: string): Promise<{ ok: boolean; message?: string }> {
+export async function deleteAsset(id: string, motivo?: string | null): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
   const yo = await quien(supabase);
   if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Company assets are for HR admins and managers." };
+  if (!motivoValido(motivo)) return { ok: false, message: SIN_MOTIVO };
+  const { data: a } = await supabase.schema("recruiting").from("company_assets").select("id, kind, value, ext, status, employee_id").eq("id", id).maybeSingle();
   const { data, error } = await supabase.schema("recruiting").from("company_assets").delete().eq("id", id).select("id");
   if (error) return { ok: false, message: error.message };
   if (!data?.length) return { ok: false, message: "Nothing was deleted." };
+  // El activo ya no existe: la fila guarda su texto y no su id (el on delete set null lo dejaría vacío igual).
+  await anotaEnHistorial(supabase, yo.userId, {
+    kind: "asset_deleted", employeeId: (a?.employee_id as string | null) ?? null,
+    assetText: a ? textoDeActivoParaHistorial({ kind: a.kind as TipoDeActivo, value: String(a.value), ext: a.ext as string | null }) : null,
+    reason: motivo, detail: a ? `was: ${a.status}` : null, data: { status: a?.status ?? null },
+  });
   return { ok: true };
 }
 
@@ -104,7 +132,7 @@ export async function assignAsset(assetId: string, employeeId: string): Promise<
   const yo = await quien(supabase);
   if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Company assets are for HR admins and managers." };
   const tabla = () => supabase.schema("recruiting").from("company_assets");
-  const { data: a, error: e1 } = await tabla().select("id, kind, status").eq("id", assetId).maybeSingle();
+  const { data: a, error: e1 } = await tabla().select("id, kind, status, value, ext").eq("id", assetId).maybeSingle();
   if (e1) return { ok: false, message: e1.message };
   if (!a) return { ok: false, message: "No such asset." };
   const parche = parcheAsignar({ status: a.status as EstadoDeActivo }, employeeId);
@@ -114,16 +142,23 @@ export async function assignAsset(assetId: string, employeeId: string): Promise<
   const { data, error } = await tabla().update({ ...parche, updated_at: new Date().toISOString(), updated_by: yo.userId }).eq("id", assetId).eq("status", "available").select("id");
   if (error) return { ok: false, message: error.message };
   if (!data?.length) return { ok: false, message: "That asset is no longer available." };
+  await anotaEnHistorial(supabase, yo.userId, {
+    kind: "asset_assigned", employeeId, assetId,
+    assetText: textoDeActivoParaHistorial({ kind: a.kind as TipoDeActivo, value: String(a.value), ext: a.ext as string | null }),
+  });
   return { ok: true };
 }
 
-/** Libera un activo asignado: el correo a «pendiente de respaldo», el número a «disponible» (o el estado que se pida). */
-export async function releaseAsset(assetId: string, estado?: EstadoDeActivo): Promise<{ ok: boolean; message?: string }> {
+/** Libera un activo asignado: el correo a «pendiente de respaldo», el número a «disponible» (o el estado que se pida).
+ *  D-NEXT: pide motivo, y queda en el historial como «Liberado» o, si era un respaldo pendiente que pasa a disponible,
+ *  «Respaldado». */
+export async function releaseAsset(assetId: string, estado?: EstadoDeActivo, motivo?: string | null): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
   const yo = await quien(supabase);
   if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Company assets are for HR admins and managers." };
+  if (!motivoValido(motivo)) return { ok: false, message: SIN_MOTIVO };
   const tabla = () => supabase.schema("recruiting").from("company_assets");
-  const { data: a, error: e1 } = await tabla().select("id, kind, employee_id, status, last_employee_id").eq("id", assetId).maybeSingle();
+  const { data: a, error: e1 } = await tabla().select("id, kind, employee_id, status, last_employee_id, value, ext").eq("id", assetId).maybeSingle();
   if (e1) return { ok: false, message: e1.message };
   if (!a) return { ok: false, message: "No such asset." };
   const parche = a.status === "assigned"
@@ -132,5 +167,11 @@ export async function releaseAsset(assetId: string, estado?: EstadoDeActivo): Pr
   const { data, error } = await tabla().update({ ...parche, updated_at: new Date().toISOString(), updated_by: yo.userId }).eq("id", assetId).select("id");
   if (error) return { ok: false, message: error.message };
   if (!data?.length) return { ok: false, message: "Nothing changed." };
+  await anotaEnHistorial(supabase, yo.userId, {
+    kind: a.status === "pending_backup" && parche.status === "available" ? "asset_backed_up" : "asset_released",
+    employeeId: (a.employee_id as string | null) ?? (a.last_employee_id as string | null) ?? null, assetId,
+    assetText: textoDeActivoParaHistorial({ kind: a.kind as TipoDeActivo, value: String(a.value), ext: a.ext as string | null }),
+    reason: motivo, detail: `${a.status} → ${parche.status}`, data: { de: a.status, a: parche.status },
+  });
   return { ok: true };
 }
