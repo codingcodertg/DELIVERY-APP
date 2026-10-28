@@ -1,5 +1,5 @@
 /**
- * El arranque numerado del plan (D-NEXT, 208). El dueño: «yo agarro tres y le pongo 1, 2 y 3 a las primeras 3; entonces
+ * El arranque numerado del plan (D-722, 208). El dueño: «yo agarro tres y le pongo 1, 2 y 3 a las primeras 3; entonces
  * el optimizer va a respetar eso y las va a asignar de inicio en ese orden».
  *
  * `plan_rank` es el número de cada orden. Aquí solo se decide QUÉ números se ponen: lo marcado, en el orden en que se

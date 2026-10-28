@@ -609,7 +609,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         : q
       ).order("order_no", { ascending: false });
     };
-    // Las opcionales (D-NEXT: plan_rank) se piden con `leeConOpcionales`: si la base no las tiene, se quitan y se vuelve a
+    // Las opcionales (D-722: plan_rank) se piden con `leeConOpcionales`: si la base no las tiene, se quitan y se vuelve a
     // leer, en vez de perder la lista entera. Es lo que ya hacía `faltaPhotoCount` para photo_count, a mano.
     const conOpcionales = (base: string) => leeConOpcionales((columnas) => pedir(columnas), base, COLUMNAS_OPCIONALES_DE_LA_LISTA);
     const r = await conOpcionales(COLUMNAS_DE_LA_LISTA);

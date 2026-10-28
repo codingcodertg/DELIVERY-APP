@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PARAMETROS_POR_DEFECTO, planifica, type ChoferEntrada, type Entrada, type Matriz, type OrdenEntrada, type Plan } from "./index";
 
 /**
- * El arranque numerado (D-NEXT, 208): lo que lleva `puesto` (1, 2, 3…) abre UNA ruta, en ese orden, y nada se mete
+ * El arranque numerado (D-722, 208): lo que lleva `puesto` (1, 2, 3…) abre UNA ruta, en ese orden, y nada se mete
  * delante. La misma cuadrícula inventada de `route-engine.test.ts`: un punto es «x,y», se tarda su distancia en minutos.
  */
 const punto = (x: number, y = 0) => `${x},${y}`;
@@ -44,7 +44,7 @@ const dia = () => [
   orden("lejos2", { destino: punto(21) }),
 ];
 
-describe("D-NEXT: el arranque numerado", () => {
+describe("D-722: el arranque numerado", () => {
   it("control: sin números, las cercanas van antes que las lejanas", () => {
     const plan = planifica(entradaDe(dia(), [chofer("A")]), PARAMETROS_POR_DEFECTO);
     const sec = secuencia(plan, "A");

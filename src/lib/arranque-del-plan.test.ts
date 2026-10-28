@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { numeradasDelDia, numerosDeArranque } from "./arranque-del-plan";
 
-describe("D-NEXT: el arranque numerado del plan", () => {
+describe("D-722: el arranque numerado del plan", () => {
   it("lo marcado recibe 1, 2, 3… en el orden en que se marcó", () => {
     expect(numerosDeArranque(["c", "a", "b"], [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }]))
       .toEqual([{ id: "c", plan_rank: 1 }, { id: "a", plan_rank: 2 }, { id: "b", plan_rank: 3 }]);

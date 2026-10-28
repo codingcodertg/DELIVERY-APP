@@ -1772,7 +1772,7 @@ export default function RoutesPage() {
   const clearSelection = () => setSelectedOrders(new Set());
 
   // Assign every checked order to one driver.
-  // «🔢 Arrancar el plan con estas» (D-NEXT, 208): a lo marcado se le pone 1, 2, 3… en el orden en que se marcó (el Set
+  // «🔢 Arrancar el plan con estas» (D-722, 208): a lo marcado se le pone 1, 2, 3… en el orden en que se marcó (el Set
   // guarda ese orden), siguiendo a lo ya numerado del día. «Armar las rutas del día» abre una ruta con ellas, en ese
   // orden, y no mete nada delante. No asigna nada: es un botón de acción extra, como pidió el dueño.
   const numeraElArranque = async () => {
@@ -2429,7 +2429,7 @@ export default function RoutesPage() {
             {hecha
               ? <span data-hecha={entregada ? "hecho" : "en_camino"} style={{ fontWeight: 700 }}>{entregada ? "✓" : "🚚"}</span>
               : soloLectura ? null : <input type="checkbox" checked={marcada} readOnly aria-label={`#${orderLabel(d)}`} />}
-            {/* El número de arranque del plan (D-NEXT, 208). */}
+            {/* El número de arranque del plan (D-722, 208). */}
             {Number(d.plan_rank) > 0 && (
               <span className="sema" data-arranque={d.plan_rank} title={t("Starts the plan in this position", "Arranca el plan en este puesto")}
                 style={{ marginLeft: 5, background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--accent)", fontWeight: 700 }}>🔢 {d.plan_rank}</span>
@@ -2664,7 +2664,7 @@ export default function RoutesPage() {
                 </span>
               )}
               <button className="btn btn-ghost btn-sm" data-nueva-ruta-del-recuadro disabled={asignando} onClick={() => bulkAssign(addBucket())}>＋ {t("New route", "Nueva ruta")}</button>
-              {/* D-NEXT: numerar el arranque del plan. No asigna: «Armar las rutas del día» las pone primero, en este orden. */}
+              {/* D-722: numerar el arranque del plan. No asigna: «Armar las rutas del día» las pone primero, en este orden. */}
               <button className="btn btn-ghost btn-sm" data-arranque-del-plan disabled={asignando}
                 title={t("Number the checked orders 1, 2, 3… in the order you checked them; “Build routes” starts a route with them, in that order", "Numerar las marcadas 1, 2, 3… en el orden en que las marcaste; «Armar rutas» abre una ruta con ellas, en ese orden")}
                 onClick={() => void numeraElArranque()}>🔢 {t("Start the plan with these", "Arrancar el plan con estas")}</button>

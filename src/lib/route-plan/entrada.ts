@@ -42,7 +42,7 @@ type OrdenDeLaBase = Pick<Delivery,
   delivery_address?: Delivery["delivery_address"];
   /** D-412. Puede no venir: una base sin la 147 no tiene la columna, y entonces la consulta no la pide. */
   priority?: Delivery["priority"];
-  /** D-NEXT (208). Puede no venir: una base sin la 208 no tiene la columna. */
+  /** D-722 (208). Puede no venir: una base sin la 208 no tiene la columna. */
   plan_rank?: Delivery["plan_rank"];
   /** D-418. Puede no venir: una base sin la 151 no tiene la columna. */
   requirements?: Delivery["requirements"] };
@@ -199,7 +199,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       builder: tipoDeClienteDeLaOrden(d, reglas) === "builder",
       servicioRecogidaMin: serviceMin(d.pickup_duration), servicioEntregaMin: serviceMin(d.delivery_duration),
       choferFijado,
-      // El arranque numerado (D-NEXT, 208): solo un número positivo cuenta.
+      // El arranque numerado (D-722, 208): solo un número positivo cuenta.
       ...(Number(d.plan_rank) > 0 ? { puesto: Number(d.plan_rank) } : {}),
       // Solo si no es normal: sin la 147, o con todo en normal, la entrada que se guarda es la de siempre.
       ...(prioridadDe(d) !== "normal" ? { prioridad: prioridadDe(d) } : {}),

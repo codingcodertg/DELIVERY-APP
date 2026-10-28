@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { COLUMNAS_OPCIONALES_DE_ORDEN, entradaDelDia, type DatosDelDia } from "./entrada";
 
 /**
- * El arranque numerado (D-NEXT, 208), de la base a la pantalla: la columna entra al motor como \`puesto\`, el Gestor la pone,
+ * El arranque numerado (D-722, 208), de la base a la pantalla: la columna entra al motor como \`puesto\`, el Gestor la pone,
  * el plan la enseña y publicar la gasta. Qué hace el motor con ella lo mide \`route-engine/arranque-numerado.test.ts\`.
  */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
@@ -22,7 +22,7 @@ const orden = (id: string, extra: Record<string, unknown> = {}) => ({
   is_training: false, updated_at: "2026-10-27T12:00:00Z", ...extra,
 }) as unknown as DatosDelDia["ordenes"][number];
 
-describe("D-NEXT: el arranque numerado entra al motor", () => {
+describe("D-722: el arranque numerado entra al motor", () => {
   it("plan_rank se lee como columna opcional (una base sin la 208 no tumba la lectura)", () => {
     expect(COLUMNAS_OPCIONALES_DE_ORDEN).toContain("plan_rank");
   });

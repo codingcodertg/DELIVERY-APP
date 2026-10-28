@@ -134,7 +134,7 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
 
   // Cuántas órdenes ruteables tiene esta fecha: las mismas que leería «planificar» (misma función, mismas etapas).
   const sinPlan = ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES).length;
-  // El arranque numerado (D-NEXT, 208): lo que el Gestor numeró con 🔢 para esta fecha, en su orden.
+  // El arranque numerado (D-722, 208): lo que el Gestor numeró con 🔢 para esta fecha, en su orden.
   const numeradas = numeradasDelDia(ordenesDelDia(deliveries, date, "dia", ETAPAS_RUTEABLES));
   const quitaElArranque = async () => {
     for (const d of numeradas) await updateDelivery(d.id, { plan_rank: null }, { quiet: true });
@@ -208,7 +208,7 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
           : String(b.error ?? res.status));
       } else {
         const avisos = (b.notifications ?? []) as { notification_id: string }[];
-        // El arranque numerado (D-NEXT, 208) se gasta al publicar: el plan ya lo respetó, y el siguiente día empieza
+        // El arranque numerado (D-722, 208) se gasta al publicar: el plan ya lo respetó, y el siguiente día empieza
         // limpio. Desde aquí y no desde la ruta de publicar, que no escribe nada por su cuenta (todo es la función).
         for (const d of numeradas) void updateDelivery(d.id, { plan_rank: null }, { quiet: true });
         // El push es un extra sobre la campana: si falla, la ruta está publicada igual.

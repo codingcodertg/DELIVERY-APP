@@ -182,7 +182,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   const costeCon = (chofer: string, ruta: RutaEvaluada): Desglose =>
     costeDe(choferes.map((c) => (c.id === chofer ? ruta : estado.rutas.get(c.id)!)));
 
-  // ---- El arranque numerado (D-NEXT, 208) ---------------------------------------------------------
+  // ---- El arranque numerado (D-722, 208) ---------------------------------------------------------
   // El dueño: «yo agarro tres y le pongo 1, 2 y 3 […] el optimizer va a respetar eso y las va a asignar de inicio en
   // ese orden». Lo que lleva `puesto` abre UNA ruta: sus recogidas y luego sus entregas, por número; va con el chofer
   // que una persona ya le puso, o si no con el que la cabeza sale más barata sin violaciones nuevas (y con lo que pide
@@ -271,7 +271,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     // orden nueva no adelanta a las que ya estaban. Como se insertan por orden de entrada, «la que entró
     // primero va primero» sale de aquí.
     const n = base.length;
-    // Delante del arranque numerado no se prueba nada (D-NEXT).
+    // Delante del arranque numerado no se prueba nada (D-722).
     const desde = Math.min(cabeza.get(c.id) ?? 0, n);
     if (o.recogidaHecha) {
       for (let j = n; j >= desde; j--) prueba([...base.slice(0, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]);

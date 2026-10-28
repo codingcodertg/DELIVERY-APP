@@ -48559,7 +48559,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** en el navegador; ni un guardado real con cuenta (la copia al perfil usa el mismo `createAdminClient` que `ponAcceso`).
 
-## D-NEXT · El arranque numerado del plan: 1, 2, 3… y «Armar las rutas del día» las pone primero, en ese orden
+## D-722 · El arranque numerado del plan: 1, 2, 3… y «Armar las rutas del día» las pone primero, en ese orden
 
 **Pedido:** el dueño, el 2026-10-27: «en el logistic coordinator da la opción de que al momento de armar rutas, elegir y numerar ciertas órdenes para elegir que el auto assign las asigne de primero. Entonces vengo yo y hay 10 órdenes, entonces yo agarro tres y le pongo 1, 2 y 3 a las primeras 3; entonces el optimizer va a respetar eso y las va a asignar de inicio en ese orden. Pero es un botón de acción extra».
 

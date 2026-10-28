@@ -42,7 +42,7 @@ export const COLUMNAS_DE_DELIVERY = Object.keys(TODAS_LAS_COLUMNAS) as (keyof De
 export const COLUMNAS_PESADAS: readonly (keyof Delivery)[] = ["photos", "photo_meta"];
 
 /** Las columnas de la lista, separadas por comas, para `.select(...)`. */
-/** Columnas que la base puede no tener todavía (D-NEXT: `plan_rank`, 208): se piden aparte con `leeConOpcionales`, y si
+/** Columnas que la base puede no tener todavía (D-722: `plan_rank`, 208): se piden aparte con `leeConOpcionales`, y si
  *  faltan la lista llega sin ellas en vez de no llegar. `photo_count` (177) tiene su propio camino de antes. */
 export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank"];
 export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c)).join(",");
