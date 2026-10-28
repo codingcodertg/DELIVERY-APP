@@ -40,7 +40,7 @@ import type {
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-8";
+export const VERSION_DEL_MOTOR = "motor-9";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -182,6 +182,39 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   const costeCon = (chofer: string, ruta: RutaEvaluada): Desglose =>
     costeDe(choferes.map((c) => (c.id === chofer ? ruta : estado.rutas.get(c.id)!)));
 
+  // ---- El arranque numerado (D-NEXT, 208) ---------------------------------------------------------
+  // El dueño: «yo agarro tres y le pongo 1, 2 y 3 […] el optimizer va a respetar eso y las va a asignar de inicio en
+  // ese orden». Lo que lleva `puesto` abre UNA ruta: sus recogidas y luego sus entregas, por número; va con el chofer
+  // que una persona ya le puso, o si no con el que la cabeza sale más barata sin violaciones nuevas (y con lo que pide
+  // del camión). Quedan fijadas —la mejora no las toca— y `cabeza` dice cuántas paradas de esa ruta son el arranque:
+  // ningún hueco se prueba delante de ellas. Si con ningún chofer cabe, van por el camino de siempre.
+  const cabeza = new Map<string, number>();
+  {
+    const numeradas = ordenes.filter((o) => Number(o.puesto) > 0 && !ordenesFijadas.has(o.id) && (o.origen || o.destino))
+      .sort((a, b) => Number(a.puesto) - Number(b.puesto) || porClave(a, b));
+    const grupos = new Map<string | null, OrdenEntrada[]>();
+    for (const o of numeradas) grupos.set(o.choferFijado ?? null, [...(grupos.get(o.choferFijado ?? null) ?? []), o]);
+    for (const [fijado, lista] of grupos) {
+      const paradas: ParadaRef[] = [
+        ...lista.filter((o) => !o.recogidaHecha).map((o) => ({ orden: o.id, tipo: "P" as const })),
+        ...lista.map((o) => ({ orden: o.id, tipo: "D" as const })),
+      ];
+      const candidatos = fijado ? choferes.filter((c) => c.id === fijado) : choferes.filter((c) => lista.every((o) => !faltanEnElCamion(c, o).length));
+      let mejor: { c: ChoferEntrada; ruta: RutaEvaluada; coste: number } | null = null;
+      for (const c of candidatos) {
+        const ruta = evaluaRuta(c, [...paradas, ...estado.secuencias.get(c.id)!], ctx);
+        if (!fijado && ruta.violaciones.length > estado.rutas.get(c.id)!.violaciones.length) continue;
+        const total = costeCon(c.id, ruta).total;
+        if (!mejor || total < mejor.coste) mejor = { c, ruta, coste: total };
+      }
+      if (!mejor) continue;
+      estado.secuencias.set(mejor.c.id, [...paradas, ...estado.secuencias.get(mejor.c.id)!]);
+      estado.rutas.set(mejor.c.id, mejor.ruta);
+      for (const p of paradas) { fijadas.add(claveDeParada(p)); ordenesFijadas.add(p.orden); }
+      cabeza.set(mejor.c.id, (cabeza.get(mejor.c.id) ?? 0) + paradas.length);
+    }
+  }
+
   /** Lo que mide «las críticas y altas, antes»: su hora de entrega, pesada por su prioridad. Menor es mejor. Con
    *  todo en normal vale cero, y entonces no decide nada. No es un término del coste: solo desempata. */
   const adelanto = (ruta: RutaEvaluada): number => {
@@ -238,10 +271,12 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     // orden nueva no adelanta a las que ya estaban. Como se insertan por orden de entrada, «la que entró
     // primero va primero» sale de aquí.
     const n = base.length;
+    // Delante del arranque numerado no se prueba nada (D-NEXT).
+    const desde = Math.min(cabeza.get(c.id) ?? 0, n);
     if (o.recogidaHecha) {
-      for (let j = n; j >= 0; j--) prueba([...base.slice(0, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]);
+      for (let j = n; j >= desde; j--) prueba([...base.slice(0, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]);
     } else {
-      for (let i = n; i >= 0; i--) {
+      for (let i = n; i >= desde; i--) {
         for (let j = n; j >= i; j--) {
           prueba([...base.slice(0, i), { orden: o.id, tipo: "P" }, ...base.slice(i, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]);
         }
@@ -490,6 +525,7 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
         for (const o of suyas) {
           const base = estado.secuencias.get(c.id)!.filter((p) => p.orden !== o.id);
           const n = base.length;
+          const desde = Math.min(cabeza.get(c.id) ?? 0, n);
           let mejor: { secuencia: ParadaRef[]; ruta: RutaEvaluada; carga: number } | null = null;
           const prueba = (secuencia: ParadaRef[]) => {
             const ruta = evaluaRuta(c, secuencia, ctx);
@@ -499,8 +535,8 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
             if (carga > cargaActual - MARGEN_PALLET_MI || (mejor && carga >= mejor.carga)) return;
             mejor = { secuencia, ruta, carga };
           };
-          if (o.recogidaHecha) { for (let j = 0; j <= n; j++) prueba([...base.slice(0, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]); }
-          else for (let i = 0; i <= n; i++) for (let j = i; j <= n; j++) prueba([...base.slice(0, i), { orden: o.id, tipo: "P" }, ...base.slice(i, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]);
+          if (o.recogidaHecha) { for (let j = desde; j <= n; j++) prueba([...base.slice(0, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]); }
+          else for (let i = desde; i <= n; i++) for (let j = i; j <= n; j++) prueba([...base.slice(0, i), { orden: o.id, tipo: "P" }, ...base.slice(i, j), { orden: o.id, tipo: "D" }, ...base.slice(j)]);
           if (mejor) {
             const h = mejor as { secuencia: ParadaRef[]; ruta: RutaEvaluada; carga: number };
             aplica({ chofer: c.id, secuencia: h.secuencia, ruta: h.ruta, coste: costeCon(c.id, h.ruta), adelanto: adelanto(h.ruta) });

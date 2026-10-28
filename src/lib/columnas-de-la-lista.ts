@@ -31,7 +31,7 @@ const TODAS_LAS_COLUMNAS: Record<keyof Delivery, true> = {
   delivery_lat: true, delivery_lng: true, delivery_pin_source: true,
   photo_meta: true, created_by: true, assigned_sales_rep: true, approved_by: true, approved_at: true,
   csat_rating: true, csat_comment: true, customer_type: true, priority: true,
-  customer_email: true, notify_pref: true, customer_lang: true, requirements: true,
+  customer_email: true, notify_pref: true, customer_lang: true, requirements: true, plan_rank: true,
   created_at: true, updated_at: true,
 };
 
@@ -42,14 +42,18 @@ export const COLUMNAS_DE_DELIVERY = Object.keys(TODAS_LAS_COLUMNAS) as (keyof De
 export const COLUMNAS_PESADAS: readonly (keyof Delivery)[] = ["photos", "photo_meta"];
 
 /** Las columnas de la lista, separadas por comas, para `.select(...)`. */
-export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS_PESADAS.includes(c)).join(",");
+/** Columnas que la base puede no tener todavía (D-NEXT: `plan_rank`, 208): se piden aparte con `leeConOpcionales`, y si
+ *  faltan la lista llega sin ellas en vez de no llegar. `photo_count` (177) tiene su propio camino de antes. */
+export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank"];
+export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c)).join(",");
+
 
 /**
  * Lo mismo sin `photo_count`: para el rato entre que se publica el código y se aplica la 177. Sin esto, pedir una
  * columna que no existe tumba la lista entera —lo mismo que se está arreglando—. Sin conteo, la lista cuenta 0 fotos.
  */
 export const COLUMNAS_DE_LA_LISTA_SIN_CONTEO = COLUMNAS_DE_DELIVERY
-  .filter((c) => !COLUMNAS_PESADAS.includes(c) && c !== "photo_count").join(",");
+  .filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c) && c !== "photo_count").join(",");
 
 /** ¿El error es «esa columna no existe» por `photo_count` (la 177 sin aplicar)? Postgres: 42703. */
 export function faltaPhotoCount(e: { code?: string | null; message?: string | null } | null | undefined): boolean {

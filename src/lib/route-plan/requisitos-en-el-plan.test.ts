@@ -95,18 +95,18 @@ describe("la consulta del servidor, con y sin la 151 aplicada", () => {
         : { data: [{ id: "a" }], error: null };
     };
     expect(await leeOrdenesDelDia(sinLa151)).toEqual({ data: [{ id: "a" }], error: null });
-    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements`, `${COLUMNAS_DE_ORDEN}, priority`]);
+    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements, plan_rank`, `${COLUMNAS_DE_ORDEN}, priority, plan_rank`]);
   });
 
-  it("sin ninguna de las dos, tres lecturas y ninguna más; un error que nombra otra columna no se toca", async () => {
+  it("sin ninguna de las tres, cuatro lecturas y ninguna más; un error que nombra otra columna no se toca", async () => {
     const pedidas: string[] = [];
     const sinNada = async (cols: string) => {
       pedidas.push(cols);
-      const falta = ["priority", "requirements"].find((c) => cols.split(", ").includes(c));
+      const falta = ["priority", "requirements", "plan_rank"].find((c) => cols.split(", ").includes(c));
       return falta ? { data: null, error: { code: "42703", message: `column deliveries.${falta} does not exist` } } : { data: [], error: null };
     };
     await leeOrdenesDelDia(sinNada);
-    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements`, `${COLUMNAS_DE_ORDEN}, requirements`, COLUMNAS_DE_ORDEN]);
+    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements, plan_rank`, `${COLUMNAS_DE_ORDEN}, requirements, plan_rank`, `${COLUMNAS_DE_ORDEN}, plan_rank`, COLUMNAS_DE_ORDEN]);
     // «morning_priority» no es «priority»: no se quita nada.
     let n = 0;
     const otra = { code: "42703", message: "column deliveries.morning_priority does not exist" };

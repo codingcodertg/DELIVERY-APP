@@ -45,7 +45,8 @@ import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria"
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { mensajeDelGuard } from "@/lib/recogida-del-chofer";
 import { metaDeFotosAlGuardar, type LectorDeFotos } from "@/lib/fotos-de-la-orden";
-import { COLUMNAS_DE_LA_LISTA, COLUMNAS_DE_LA_LISTA_SIN_CONTEO, faltaPhotoCount, sinPhotoCount } from "@/lib/columnas-de-la-lista";
+import { COLUMNAS_DE_LA_LISTA, COLUMNAS_DE_LA_LISTA_SIN_CONTEO, COLUMNAS_OPCIONALES_DE_LA_LISTA, faltaPhotoCount, sinPhotoCount } from "@/lib/columnas-de-la-lista";
+import { leeConOpcionales } from "@/lib/columnas-opcionales";
 import { falloAlGuardarDocumento, valorDeDocumento } from "@/lib/documento-pendiente";
 import type { EscrituraDeMaterial } from "@/lib/agregar-material";
 import type { CampoDeDocumento } from "@/lib/order-document";
@@ -608,8 +609,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         : q
       ).order("order_no", { ascending: false });
     };
-    const r = await pedir(COLUMNAS_DE_LA_LISTA);
-    return faltaPhotoCount(r.error) ? await pedir(COLUMNAS_DE_LA_LISTA_SIN_CONTEO) : r;
+    // Las opcionales (D-NEXT: plan_rank) se piden con `leeConOpcionales`: si la base no las tiene, se quitan y se vuelve a
+    // leer, en vez de perder la lista entera. Es lo que ya hacía `faltaPhotoCount` para photo_count, a mano.
+    const conOpcionales = (base: string) => leeConOpcionales((columnas) => pedir(columnas), base, COLUMNAS_OPCIONALES_DE_LA_LISTA);
+    const r = await conOpcionales(COLUMNAS_DE_LA_LISTA);
+    return faltaPhotoCount(r.error) ? await conOpcionales(COLUMNAS_DE_LA_LISTA_SIN_CONTEO) : r;
   }, [supabase]);
 
   /**
