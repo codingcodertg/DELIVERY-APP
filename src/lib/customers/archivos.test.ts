@@ -101,13 +101,14 @@ describe("la ficha", () => {
     expect(tarjeta(html, "contacto")).not.toContain("demotilegallery.example.com");
     expect(tarjeta(html, "ocultos")).toContain('href="https://demotilegallery.example.com" target="_blank" rel="noopener noreferrer"');
     const sinCargo = tarjeta(pinta(CLIENTES_DEMO.find((c) => c.id === 3)!), "contacto");
-    expect(sinCargo).toMatch(/Cargo: <span[^>]*data-campo="contact_title">—<\/span>/);
+    // D-728: etiqueta a la izquierda, valor a la derecha.
+    expect(sinCargo).toMatch(/data-campo="contact_title"><span[^>]*>Cargo<\/span><span[^>]*>—<\/span>/);
   });
   it("D-697: cada contacto con su sitio web (que se abre) y su dirección; el otro contacto, sin nada heredado", () => {
     const conWeb = { ...galeria, contacts: [{ name: "ANA", title: null, phones: [], emails: [], note: null, website: "ana.example.com", address: "12 Main St" }, { name: "LEO", title: null, phones: [], emails: [], note: null }] };
     const ver = tarjeta(pinta(conWeb), "contacto");
     expect(ver).toContain('href="https://ana.example.com" target="_blank" rel="noopener noreferrer"');
-    expect(ver).toMatch(/data-direccion-de-contacto="true">📍 12 Main St</);
+    expect(ver).toMatch(/data-direccion-de-contacto="true"><span[^>]*>Dirección<\/span><span[^>]*>12 Main St</);
     const ed = tarjeta(pinta(conWeb, true), "contacto");
     expect(ed).toMatch(/<input[^>]*data-web-de-contacto="0" value="ana.example.com"/);
     expect(ed).toContain("12 Main St</textarea>");

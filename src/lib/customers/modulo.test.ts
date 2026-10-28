@@ -297,7 +297,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(pagina).toContain("if (!data) notFound();");
     expect(pagina).toContain("if (!Number.isInteger(n) || n <= 0) notFound();");
     expect(pagina).not.toMatch(/service_role|SUPABASE_SERVICE/i);
-    expect(pagina).toContain("<FichaCompleta cliente={cliente} hermanas={hermanas} puedeEditar={puedeEditar(role)} />");
+    expect(pagina).toContain("<FichaCompleta cliente={cliente} hermanas={hermanas} puedeEditar={puedeEditar(role)} esVendedor={esVendedor(role)} />");
   });
   it("«✏️ Editar» (D-648): solo para quien puede editar, abre la VENTANA de la lista con ese cliente ya editando (D-654) y quita el parámetro", () => {
     expect(ficha).toContain("{puedeEditar && (");
@@ -309,7 +309,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(lista).toContain("window.history.replaceState(null, \"\", window.location.pathname)");
   });
   it("la página pinta las MISMAS tarjetas que la ventana (D-654), y arriba el nombre sin «tienda · tienda+cuenta»", () => {
-    expect(ficha).toContain("<TarjetasDeLaFicha cliente={c} t={t} />");
+    expect(ficha).toContain("<TarjetasDeLaFicha cliente={c} esVendedor={esVendedor} t={t} />");
     expect(ficha).toContain('import { TarjetasDeLaFicha } from "../FichaDeCliente";');
     expect(ficha).toContain('<h1 className="text-2xl font-semibold">{c.account}</h1>');
     expect(ficha).not.toContain("valorDeColumna");

@@ -211,7 +211,7 @@ describe("los contactos de la ficha (D-668)", () => {
     const html = contacto(pinta(CLIENTES_DEMO.find((c) => c.id === 4)!));
     expect(html).toContain('data-contactos="1"');
     expect(html).not.toContain("data-pastilla-de-contacto");
-    expect(html).toMatch(/data-campo="contact_name">LUIS<\/span>/);
+    expect(html).toMatch(/data-campo="contact_name"><span[^>]*>Nombre<\/span><span[^>]*>LUIS<\/span>/);
     expect(html).toMatch(/data-campo="contact_title">A\/P<\/span>/);
     expect(html).toContain('href="rcapp://r/call?number=9565550104"');
   });
