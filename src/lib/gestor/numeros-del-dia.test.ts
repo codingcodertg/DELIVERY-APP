@@ -380,3 +380,38 @@ describe("la página del Gestor usa `diaDe` en todo lo que dice un número o una
 it("numerosDelDia sin filas no inventa paradas", () => {
   expect(numerosDelDia([], "derivada", [], null)).toEqual({ deFila: [], primera: [], etiqueta: [], paradas: [], dePendiente: [], etiquetaDePendiente: [], quedan: 0 });
 });
+
+// D-NEXT: una entrega asignada SIN puesto guardado (`route_seq` null) también lleva su número: el de la tabla.
+describe("D-NEXT: lo asignado sin puesto en la ruta también lleva número en el mapa", () => {
+  const sinPuesto = (ids: readonly string[]) => diaDeAna().map((d) => (ids.includes(d.id) ? { ...d, route_seq: null } as Orden : d));
+  const puntosDe = (todas: Orden[]) => {
+    const stops = todas.filter((d) => PENDIENTES.has(d.stage));
+    const hechas = hechasQueSePintan(todas, HOY, "dia");
+    const paradasDe = (k: string, s: Orden[]) => diaDeLaRuta(lecturaConLoHecho(s, CAP, null, hechas.get(k) ?? []), s, hechas.get(k) ?? [], CAP, null).paradas;
+    const puntos = puntosDeLasRutas<Orden>({
+      carriles: carrilesDelDia([{ id: "u-ana", full_name: "Ana" }], [], stops, hechas.keys()), porChofer: rutasPorChofer(stops), delDia: stops, hechas,
+      pasaFiltro: () => true, soloUnChofer: false, enfocado: false, atenuada: () => false, colorDe: () => "rojo", colorSinChofer: "gris",
+      baseDe: () => ({ coords: [26.19, -98.18], direccion: "RDZ Pharr" }), paradasDe,
+      coordsDeTienda: () => ({ lat: 26.19, lng: -98.18 }), t: (en: string) => en,
+    });
+    const numeroEnLaTabla = (id: string) => paradasDe("Ana", rutasPorChofer(stops).get("Ana") ?? []).find((p) => p.tipo === "D" && p.ordenes.includes(id))?.numero;
+    return { puntos, numeroEnLaTabla, pendientes: stops.filter((d) => d.delivery_lat != null) };
+  };
+
+  it("una sin puesto lleva el mismo número que la tabla, no un punto", () => {
+    const { puntos, numeroEnLaTabla } = puntosDe(sinPuesto(["c"]));
+    const c = puntos.find((p) => p.id === "c")!;
+    expect(numeroEnLaTabla("c")).toBeGreaterThan(0);
+    expect(c.badge).toBe(String(numeroEnLaTabla("c")));
+  });
+
+  it("una ruta donde NADA tiene puesto (recién asignada a mano) también sale numerada entera", () => {
+    const { puntos, numeroEnLaTabla, pendientes } = puntosDe(sinPuesto(diaDeAna().map((d) => d.id)));
+    for (const d of pendientes) {
+      const p = puntos.find((x) => x.id === d.id);
+      if (!p) continue; // va dentro de la burbuja de otra entrega de su misma parada
+      expect(p.badge, d.id).toBe(String(numeroEnLaTabla(d.id)));
+    }
+    expect(puntos.filter((p) => !p.id.startsWith("__") && !p.badge)).toEqual([]);
+  });
+});

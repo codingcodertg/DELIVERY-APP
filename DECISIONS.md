@@ -48568,3 +48568,11 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Medido:** `arranque-numerado.test.ts` en el motor (control sin números; con 1 y 2 la ruta abre con ellas en ese orden y nada delante, fijadas; con dos choferes van juntas en una ruta; con chofer puesto por una persona van con él; el plan sigue válido), `numerosDeArranque`/`numeradasDelDia`, la lectura del día (`puesto` solo con número positivo), y las pruebas de fuente del Gestor, el plan, publicar y la migración; `tsc` y la suite completa en verde.
 
 **No medido:** en el navegador; un día real con la 208 aplicada (el dueño la aplica).
+
+## D-NEXT · En el mapa del Gestor, toda parada del chofer lleva su número, tenga o no puesto guardado
+
+**Pedido:** el dueño, el 2026-10-27, con la ruta de un chofer en el mapa y cuatro puntos sin número: «porque esos dots no ponen el número, arréglalo».
+
+**Qué cambia:** el mapa numeraba solo las entregas con puesto guardado (`route_seq`) y saltaba entera una ruta sin ninguno; lo asignado sin puesto —lo que se acaba de asignar a mano, lo recogido y en camino sin reordenar— salía como un punto mudo, mientras la tabla y «Mi ruta» lo numeran igual que lo demás (lo sin puesto, al final). Ahora `puntosDeLasRutas` usa para TODAS las paradas la numeración de la tabla (`paradasDe`), que ya era la del día entero (D-529): tres condiciones de `route_seq != null` menos en `mapa-de-rutas.ts`, nada más.
+
+**Medido:** en `numeros-del-dia.test.ts`, una entrega sin puesto lleva el número de la tabla, y una ruta donde nada tiene puesto sale numerada entera sin ningún punto mudo (las dos caían antes del cambio). Producción (lectura): el chofer de la captura tenía dos órdenes así (una recogida y en camino, una lista sin puesto). No medido en el navegador.
