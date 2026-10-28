@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
 import { assignAsset, deleteAsset, listAssets, releaseAsset, saveAsset } from "@/app/recruiting/actions/activos";
 import {
-  ESTADOS, TIPOS_DE_TELEFONO, cuentaPorEstado, etiquetaDeEstado, etiquetaDeTipoDeTelefono, libres, porPersona, textoDeTelefono,
+  ESTADOS, TIPOS_DE_TELEFONO, cuentaPorEstado, etiquetaDeEstado, etiquetaDeTipoDeTelefono, porPersona, textoDeTelefono,
   type Activo, type EstadoDeActivo, type TipoDeActivo, type TipoDeTelefono,
 } from "@/lib/recruiting/activos";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
@@ -232,7 +232,7 @@ export default function AssetsPage() {
   );
 }
 
-export function InsigniaDeEstado({ estado, lang }: { estado: EstadoDeActivo; lang: "en" | "es" }) {
+function InsigniaDeEstado({ estado, lang }: { estado: EstadoDeActivo; lang: "en" | "es" }) {
   const estilo: Record<EstadoDeActivo, React.CSSProperties> = {
     assigned: { background: "var(--tint-green)", color: "var(--green)" },
     available: { background: "var(--tint-blue)", color: "var(--blue)" },
@@ -320,8 +320,4 @@ function AsignarActivo({ activo, personas, busy, onClose, onAssign }: {
     </div>
   );
 }
-
-/** Lo que la ficha del empleado usa para elegir entre los libres (D-730). */
-export function opcionesLibres(activos: readonly Activo[], kind: TipoDeActivo) {
-  return libres(activos, kind);
-}
+
