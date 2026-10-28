@@ -48719,3 +48719,23 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `historial.test.ts`: los kinds de la librería y el `check` de la 212 son el mismo conjunto; la 212 no concede update/delete; etiquetas en dos idiomas; motivo; qué pide motivo; texto de una fila; texto del activo; cambios de un activo. Canarios globales en verde (teléfono, tabla a lo ancho, tbl-resize, botones apagados, menús RR. HH., expediente).
 
 **No verificado en pantalla:** ni el expediente ni la pestaña se abrieron en un navegador; la 212 se ensayó con ROLLBACK y falta aplicarla.
+
+## D-735 · El chofer busca una factura sin chofer y la agrega a su ruta, sin motivo: no es una excepción (migración 213); el buscador también en «Mi ruta»
+
+**Fecha:** 2026-10-28 · **Migración 213** (`213_chofer_agrega_orden_sin_chofer.sql`, ENSAYADA con ROLLBACK contra producción, pendiente de aplicar) · Hecho directo por el orquestador en `feat/chofer-agrega-orden-sin-chofer`.
+
+**Pedido (el dueño, 2026-10-28, literal):** «if any invoice of an order is unassign the driver can look it up and search bar for the driver to look it up and add it to his routes».
+
+**Lo que ya había (D-625, 188).** El chofer busca una factura exacta en su pestaña Órdenes y, si no es suya, la toma «como excepción»: motivo obligatorio de 3 letras, nota «⚠️ Excepción: … tomó esta orden para recogerla (no tenía chofer): motivo» y aviso en ámbar a admins y logística. Para una orden que no era de nadie, eso era fricción y una alarma falsa: tomarla es justo lo que el dueño quiere que pase.
+
+**Qué cambia.**
+- **Base (213):** `tomar_orden_para_recoger` se redefine con la misma firma, los mismos permisos y el mismo bloque del guard (188). El motivo solo se exige si la orden ERA de otro chofer (`o.assigned_driver is not null and char_length(limpio) < 3`). Sin chofer de antes, la nota es «🚚 X agregó esta orden a su ruta (no tenía chofer)» (y «: motivo» solo si lo escribió) y el aviso de la campana (`tomada_por_chofer`, a admins y logística) va sin «⚠️». Lo demás igual: etapa aprobada/preparando/lista, no de práctica, pasa a su nombre, sin puesto en la ruta de nadie, para HOY, con su «edited». La búsqueda (`buscar_factura_para_recoger`) no cambia. Autocomprobación contra el catálogo.
+- **Librería** (`src/lib/tomar-orden.ts`): `pideMotivo(o)` (hay chofer de antes), `sePuedeTomar(o, motivo)`, `notaDeAgregada` y `notaAlTomar` (la que toca, como el `case` de la 213). `notaDeExcepcion` ya solo con chofer de antes. El demo (`local-data-provider`) decide igual.
+- **Tarjeta** (`TomarFacturaAjena`): las SIN chofer salen primero, en su propia tarjeta sin ámbar, con «➕ Agregar a mi ruta» de un toque (sin motivo). Las de OTRO chofer siguen como la 188 («Órdenes con esa factura que son de OTRO chofer», «🚚 Recoger (excepción)» → motivo).
+- **«Mi ruta»:** cuadro «Agregar factura # a mi ruta…» encima de Ayer/Hoy/Mañana, solo para el chofer en su propia ruta (no cuando el admin mira la ruta de otro, D-502). Agregada, el cuadro se vacía y la vista vuelve a Hoy, donde aparece por la recarga (`delivery_date` = hoy).
+
+**Qué no cambia.** La RLS del chofer; las etapas que se buscan y se toman; la pestaña Órdenes sigue con su mismo cuadro, que ahora pinta las dos tarjetas.
+
+**Pruebas:** `tomar-orden.test.ts`: motivo solo con chofer de antes; `sePuedeTomar`; las tres notas en los dos idiomas y que la 213 lleva los mismos textos; puertas de la 213 (misma firma, condición del motivo, guard, campana, grant, sin begin/commit, ledger), del demo, de la tarjeta (dos listas, sin chofer sin motivo, orden de las tarjetas) y de «Mi ruta» (solo chofer y no en solo lectura). tsc limpio.
+
+**Ensayo de la 213 con ROLLBACK contra producción:** la función se redefine y la autocomprobación pasa. **No verificado:** tomar una orden real sin chofer con la 213 aplicada (la medida es el primer chofer que lo haga), ni la pantalla en un navegador.

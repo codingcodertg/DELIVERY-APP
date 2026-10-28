@@ -4,6 +4,11 @@
  * El dueño: «Drivers will need to be able to search for invoice numbers that aren't assigned to them and pick them up
  * even if they're not assigned to them. That will be only exceptions».
  *
+ * D-735 (2026-10-28; migración 213): «if any invoice of an order is unassign the driver can look it up and search bar
+ * for the driver to look it up and add it to his routes». Una orden SIN chofer no se toma como excepción: se agrega a
+ * su ruta sin motivo (`pideMotivo`), con la nota «🚚 … agregó esta orden a su ruta» (`notaDeAgregada`). Quitársela a
+ * otro chofer sigue siendo la excepción de la 188, con motivo. El buscador está en la pestaña Órdenes y en «Mi ruta».
+ *
  * Lo que decide vive en la base (`buscar_factura_para_recoger`, `tomar_orden_para_recoger`, 188): quién, qué etapas, el
  * motivo, y cómo se parte una factura en números (`numeros_de_factura`). Aquí van la forma del texto que se manda, la
  * lectura de los errores y las etiquetas; `numerosDeFactura` es la copia de la de la base para el modo demo, que no
@@ -43,6 +48,16 @@ export function motivoLimpio(m: string | null | undefined): string {
 
 export function motivoValido(m: string | null | undefined): boolean {
   return motivoLimpio(m).length >= MINIMO_DEL_MOTIVO;
+}
+
+/** El motivo solo se pide cuando la orden ERA de otro chofer (213): sin chofer, agregarla a la ruta no es una excepción. */
+export function pideMotivo(o: { assigned_driver: string | null | undefined }): boolean {
+  return !!(o.assigned_driver ?? "").trim();
+}
+
+/** Lo que vale mandar a la base: con chofer de antes, un motivo de 3 letras o más; sin chofer, cualquier cosa (o nada). */
+export function sePuedeTomar(o: { assigned_driver: string | null | undefined }, motivo: string | null | undefined): boolean {
+  return !pideMotivo(o) || motivoValido(motivo);
 }
 
 /** Una fila de `buscar_factura_para_recoger`: solo lo necesario para reconocer la orden. */
@@ -102,11 +117,23 @@ export function mensajeDelFallo(f: FalloAlTomar, t: (en: string, es: string) => 
   }
 }
 
-/** La nota del historial en el modo demo (en la base la escribe la función, con el mismo texto). */
-export function notaDeExcepcion(a: { yo: string; antes: string | null; motivo: string; lang: "en" | "es" }): string {
+/** La nota del historial en el modo demo (en la base la escribe la función, con el mismo texto). Con chofer de antes (188). */
+export function notaDeExcepcion(a: { yo: string; antes: string; motivo: string; lang: "en" | "es" }): string {
   const m = motivoLimpio(a.motivo);
-  if (a.lang === "en") {
-    return `⚠️ Exception: ${a.yo} took this order to pick it up${a.antes ? ` (it was ${a.antes}'s)` : " (it had no driver)"}: ${m}`;
-  }
-  return `⚠️ Excepción: ${a.yo} tomó esta orden para recogerla${a.antes ? ` (era de ${a.antes})` : " (no tenía chofer)"}: ${m}`;
+  if (a.lang === "en") return `⚠️ Exception: ${a.yo} took this order to pick it up (it was ${a.antes}'s): ${m}`;
+  return `⚠️ Excepción: ${a.yo} tomó esta orden para recogerla (era de ${a.antes}): ${m}`;
+}
+
+/** La nota sin chofer de antes (213): agregada a su ruta, y el motivo solo si lo escribió. */
+export function notaDeAgregada(a: { yo: string; motivo?: string | null; lang: "en" | "es" }): string {
+  const m = motivoLimpio(a.motivo);
+  const cola = m ? `: ${m}` : "";
+  if (a.lang === "en") return `🚚 ${a.yo} added this order to their route (it had no driver)${cola}`;
+  return `🚚 ${a.yo} agregó esta orden a su ruta (no tenía chofer)${cola}`;
+}
+
+/** La nota que toca, según hubiera chofer o no (lo mismo que decide la función de la base). */
+export function notaAlTomar(a: { yo: string; antes: string | null | undefined; motivo: string; lang: "en" | "es" }): string {
+  const antes = (a.antes ?? "").trim();
+  return antes ? notaDeExcepcion({ yo: a.yo, antes, motivo: a.motivo, lang: a.lang }) : notaDeAgregada({ yo: a.yo, motivo: a.motivo, lang: a.lang });
 }
