@@ -48692,3 +48692,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `acciones-parada.test.ts`: deshacer a `ready` borra la marca y «Recoger» vuelve; `approved`/`fulfilling`/`pending` también; `note`/`edited` no.
 
 **Para el dueño:** en cuanto se publique, Julio recarga «Mi ruta» y ve «Recoger» en la 51600; no hay que tocar nada en la orden.
+## D-733 · Ayuda: la foto rápida fotografía la página entera y recorta lo que se ve (con la ventana bajada, `clip: "viewport"` de snapdom pintaba otra cosa)
+
+**Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `captura-con-scroll`.
+
+**Qué pasó:** el dueño mandó una foto de WhatsApp: «It's not capturing screenshot of what I'm looking at». Estaba en Rutas con una ruta desplegada, la ventana bajada hasta la tabla de paradas y la tabla bajada por dentro; la captura de «Mark the problems» traía la cabecera de la tabla pegada arriba, un hueco en blanco, las tarjetas de las rutas y la tabla desde su primera fila. Reproducido en el demo con `medir-captura-8.mjs` y `-9.mjs` (herramienta de revisión visual): a 1440×420, ruta desplegada, ventana en 549 y caja en 49, snapdom 3.3.3 con `clip: "viewport"` pinta exactamente eso; con la ventana en 0 o en 121 (D-513 lo midió así) sale bien. Probado y descartado: `document.documentElement` como raíz, `clip` con coordenadas de página, `fast: false`, sin `exclude`, el body con `transform` y la ventana a cero, los elementos `sticky` a `static`, las cajas con scroll congeladas con `transform`, y snapdom 3.5.0 (del 27-oct): todos igual.
+
+**Qué cambia:** `opcionesDeLaPagina` ya no lleva `clip`; `tomaFotogramaDeLaPagina` pinta el body entero y lo recorta con `recorteDeLaVista` (`src/lib/recorte-de-la-vista.ts`: por el rect del body y el ancho del lienzo, así que vale a 2×). Medido en el mismo estado: la página sale donde la persona está. Es asequible porque las tablas largas viven en cajas con scroll propio (`.tbl-caja`) y el body no mide mucho más que la ventana.
+
+**Lo que NO arregla (y se dice en la pantalla de Ayuda no, en esta entrada sí):** snapdom no reproduce el scroll de dentro de una caja —la tabla sale desde su primera fila— ni deja la cabecera pegada arriba. Para una tabla bajada por dentro, la captura exacta sigue siendo «con el navegador» (D-509).
+
+**Pruebas:** `recorte-de-la-vista.test.ts` (549 px, sin scroll, 2×, final de página, margen del body, sin medidas, y que la foto rápida la usa sin `clip`); `captura-sin-permiso.test.ts` ajustada.
