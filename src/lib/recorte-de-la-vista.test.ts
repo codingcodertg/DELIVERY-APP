@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { recorteDeLaVista } from "@/lib/recorte-de-la-vista";
 
-describe("recorteDeLaVista (D-NEXT): la foto entera se recorta por donde está la ventana", () => {
+describe("recorteDeLaVista (D-733): la foto entera se recorta por donde está la ventana", () => {
   it("con la ventana bajada 549 px, el recorte empieza en 549 y mide lo que mide la ventana", () => {
     const r = recorteDeLaVista({ width: 1440, height: 1600 }, { left: 0, top: -549, width: 1440 }, { innerWidth: 1440, innerHeight: 420 });
     expect(r).toEqual({ sx: 0, sy: 549, sw: 1440, sh: 420, ancho: 1440, alto: 420 });

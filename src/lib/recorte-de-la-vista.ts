@@ -1,5 +1,5 @@
 /**
- * El recorte de la foto rápida de Ayuda (D-NEXT): snapdom fotografía la página ENTERA y de ahí se recorta lo que la
+ * El recorte de la foto rápida de Ayuda (D-733): snapdom fotografía la página ENTERA y de ahí se recorta lo que la
  * persona está viendo.
  *
  * Por qué no `clip: "viewport"`: medido el 2026-10-28 (herramienta `medir-captura-9.mjs`, Rutas con una ruta desplegada,

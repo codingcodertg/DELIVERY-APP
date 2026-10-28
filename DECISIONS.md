@@ -48692,7 +48692,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `acciones-parada.test.ts`: deshacer a `ready` borra la marca y «Recoger» vuelve; `approved`/`fulfilling`/`pending` también; `note`/`edited` no.
 
 **Para el dueño:** en cuanto se publique, Julio recarga «Mi ruta» y ve «Recoger» en la 51600; no hay que tocar nada en la orden.
-## D-NEXT · Ayuda: la foto rápida fotografía la página entera y recorta lo que se ve (con la ventana bajada, `clip: "viewport"` de snapdom pintaba otra cosa)
+## D-733 · Ayuda: la foto rápida fotografía la página entera y recorta lo que se ve (con la ventana bajada, `clip: "viewport"` de snapdom pintaba otra cosa)
 
 **Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `captura-con-scroll`.
 

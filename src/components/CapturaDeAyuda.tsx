@@ -31,7 +31,7 @@ import {
  * `Access-Control-Allow-Origin`. Medido el 2026-10-10 contra el demo: el mapa sale entero.
  *
  * - `tomaFotogramaDeLaPagina` — la de por defecto: clona el DOM con `snapdom`, solo lo visible
- *   (la página entera recortada por el scroll, D-NEXT), sin diálogo. Medido en el demo a 1440×900: mediana 0,25 s en el
+ *   (la página entera recortada por el scroll, D-733), sin diálogo. Medido en el demo a 1440×900: mediana 0,25 s en el
  *   Gestor con mapa y 0,60 s en Órdenes, en caliente. Ayuda se deja fuera **al clonar** (`exclude`),
  *   así que no hay que esconderla ni esperar un repintado.
  * - `tomaFotograma` — la de D-509, por `getDisplayMedia`: queda de respaldo, y solo se ofrece si la
@@ -134,7 +134,7 @@ export function cargaSnapdom(): Promise<Snapdom> {
 }
 
 /**
- * - Sin `clip`: la página ENTERA, y `tomaFotogramaDeLaPagina` recorta lo que se ve (D-NEXT). Antes era
+ * - Sin `clip`: la página ENTERA, y `tomaFotogramaDeLaPagina` recorta lo que se ve (D-733). Antes era
  *   el recorte «viewport» de snapdom, que en Órdenes con scroll salía bien, pero en Rutas con la ventana bajada hasta la tabla
  *   pintaba la cabecera arriba, un hueco y las tarjetas (medido el 2026-10-28, `recorte-de-la-vista.ts` cuenta
  *   el detalle). La página entera es asequible: las tablas largas viven en cajas con su propio scroll
@@ -165,7 +165,7 @@ export function calientaCaptura(): void {
 }
 
 /** La foto rápida: sin diálogo del navegador, solo lo que se ve, y con Ayuda fuera. La página entera se pinta y
- *  de ahí se recorta la ventana por el scroll (D-NEXT); si el recorte no sale (medidas a cero), va la foto entera. */
+ *  de ahí se recorta la ventana por el scroll (D-733); si el recorte no sale (medidas a cero), va la foto entera. */
 export async function tomaFotogramaDeLaPagina(): Promise<FotogramaDeCaptura> {
   const snapdom = await cargaSnapdom();
   const lienzo = await snapdom.toCanvas(document.body, opcionesDeLaPagina(true));
