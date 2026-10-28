@@ -56,6 +56,28 @@ describe("marcasDeParadas", () => {
     ], HOY);
     expect(m.size).toBe(0);
   });
+  it("D-732: deshacer la etapa (vuelve a «ready») borra el rechazo — el chofer nuevo tiene que ver sus botones", () => {
+    const eventos = [
+      ev("a", "picked_up", "2026-10-06T14:00:00Z"),
+      ev("a", KIND_RECHAZADA, "2026-10-06T15:00:00Z", "Rejected by customer: No body there"),
+      ev("a", "ready", "2026-10-06T17:00:00Z", "Stage undone (was a mistake): Customer answered after all"),
+      ev("a", "edited", "2026-10-06T17:01:00Z", "Changed: Assigned Driver: Ernesto → Julio"),
+    ];
+    expect(marcasDeParadas(eventos, HOY).size).toBe(0);
+    expect(accionesDeParada("P", "ready", marcasDeParadas(eventos, HOY).get("a")).map((b) => b.accion)).toEqual(["recoger"]);
+    // Y cualquier otra etapa anterior al camión también la borra.
+    for (const etapa of ["approved", "fulfilling", "pending"]) {
+      expect(marcasDeParadas([eventos[1], ev("a", etapa, "2026-10-06T17:00:00Z")], HOY).size).toBe(0);
+    }
+  });
+  it("D-732: una nota o una edición después del rechazo no lo borran (solo una etapa lo hace)", () => {
+    const m = marcasDeParadas([
+      ev("a", KIND_RECHAZADA, "2026-10-06T15:00:00Z", "x"),
+      ev("a", "note", "2026-10-06T16:00:00Z", "called the customer"),
+      ev("a", "edited", "2026-10-06T16:30:00Z", "Changed: Assigned Driver: A → B"),
+    ], HOY);
+    expect(m.get("a")?.marca).toBe("rechazada");
+  });
   it("el orden lo da la hora, no el orden de la lista (el proveedor la tiene al revés)", () => {
     const m = marcasDeParadas([ev("a", KIND_RECHAZADA, "2026-10-06T16:00:00Z", "y"), ev("a", "picked_up", "2026-10-06T15:00:00Z")], HOY);
     expect(m.get("a")?.motivo).toBe("y");

@@ -22,7 +22,9 @@ import { EVENTO_DEJADO } from "@/lib/leave-at-store";
 //  - **Rechazado**: el cliente no aceptó la entrega. Evento `customer_rejected` con la razón en la nota, OBLIGATORIA.
 //    La orden se queda en `picked_up` —el material sigue en el camión— y el chofer la descarga con «Dejar en tienda»
 //    (D-224), que ya existía. La marca sigue visible para logística en Órdenes y en el Gestor hasta que la orden se
-//    vuelva a recoger o se entregue.
+//    vuelva a recoger o se entregue, o hasta que logística la vuelva a poner en marcha (D-732: deshacer la etapa a
+//    `ready`, o cualquier otra etapa anterior al camión). «Dejar en tienda» NO la borra: la orden sigue rechazada
+//    hasta que alguien decida qué hacer con ella.
 //  - **Llegué** (D-520): evento `arrived_pickup` (en la tienda) o `arrived_delivery` (con el cliente). Vale el día en
 //    que se hizo y para ESE tramo: dejar la orden en una tienda o volver a recogerla lo borra.
 //
@@ -55,8 +57,17 @@ export const KIND_DESHIZO_LLEGADA_A_ENTREGAR = "arrived_delivery_undone";
 /** La marca vigente de una parada. Desde D-520 solo existe el rechazo: el salto se fue con su botón. */
 export type MarcaDeParada = { marca: "rechazada"; at: string; motivo: string | null };
 
-/** Lo que borra la marca de rechazo: la orden volvió a salir o se cerró. */
-const CIERRAN_RECHAZO = new Set<string>(["picked_up", "delivered", KIND_RECIBIDA, "canceled"]);
+/**
+ * Lo que borra la marca de rechazo: la orden volvió a salir, se cerró, o logística la volvió a poner en marcha.
+ *
+ * D-732: el dueño (2026-10-28) deshizo la etapa de una rechazada («Customer answered after all»), la dejó en `ready`
+ * y se la asignó a otro chofer para el mismo día; el chofer no tenía botones porque la marca seguía viva. Toda etapa
+ * la borra; lo que NO la borra es «Dejar en tienda» (`dropped_at_store`), que no es una etapa: la orden sigue
+ * rechazada en la tienda hasta que alguien decida.
+ */
+const CIERRAN_RECHAZO = new Set<string>([
+  "draft", "pending", "rejected", "approved", "fulfilling", "ready", "picked_up", "delivered", "canceled", KIND_RECIBIDA,
+]);
 
 type EventoDeParada = Pick<OrderEvent, "delivery_id" | "kind" | "created_at" | "note">;
 

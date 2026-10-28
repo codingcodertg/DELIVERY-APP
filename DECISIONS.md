@@ -48680,3 +48680,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** `activos.ts` lleva su propio `telefonoDeActivo` (la misma forma 956-xxx-xxxx de D-432; la prueba lo fija contra `telefonoDeFicha`), como hace `credenciales-liberadas.ts` para el guion de D-709. El guion carga primero las filas con persona, así el número repetido se asigna a quien lo tiene.
 
 **Pruebas:** `activos.test.ts` (cuatro números, iguales a `telefonoDeFicha`). Ensayo del guion con el archivo real: 74 activos, 1 repetido, «Joseph» sin expediente.
+
+## D-732 · Chofer: deshacer la etapa de una orden rechazada le devuelve sus botones (la marca «Rechazada» se borra con cualquier etapa, no solo al recoger o entregar)
+
+**Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `rechazo-se-borra-al-reabrir`.
+
+**Qué pasó:** el dueño: «Customer didn't answer in morning so got rejected by Ernesto. Now he answered and I want to assign it for today for Julio … So I'm going to undo stage … Not letting Julio accept it». Medido en producción (orden 51600 / FV536): `customer_rejected` a las 14:36Z, «Stage undone … Customer answered after all» a las 17:20Z (evento `ready`), chofer cambiado a Julio a las 17:21Z; la orden en `ready` y sin parada en ningún plan. `marcasDeParadas` solo borraba el rechazo con `picked_up`, `delivered`, `received` o `canceled` (D-520), así que la marca seguía viva, y `accionesDeParada` con marca «rechazada» y etapa `ready` devuelve cero botones: Julio no podía recogerla. Lo de «no me deja reprogramar» es otra cosa y queda como está: reprogramar es mover la orden a OTRO día (`reprogramacionValida` rechaza la misma fecha); para el mismo día lo que toca es cambiar el chofer, que es lo que hizo.
+
+**Qué cambia:** `CIERRAN_RECHAZO` en `acciones-parada.ts` pasa a ser toda etapa (`draft`, `pending`, `rejected`, `approved`, `fulfilling`, `ready`, `picked_up`, `delivered`, `canceled`) más `received`. «Dejar en tienda» (`dropped_at_store`) sigue sin borrarla: `setStage(…, "ready", …, EVENTO_DEJADO)` escribe ese kind en vez de `ready`, así que la orden que se dejó en la tienda sigue rechazada hasta que logística decida (la prueba de D-520 «sobrevive a Dejar en tienda» sigue en pie). Una nota o una edición tampoco la borran.
+
+**Pruebas:** `acciones-parada.test.ts`: deshacer a `ready` borra la marca y «Recoger» vuelve; `approved`/`fulfilling`/`pending` también; `note`/`edited` no.
+
+**Para el dueño:** en cuanto se publique, Julio recarga «Mi ruta» y ve «Recoger» en la 51600; no hay que tocar nada en la orden.
