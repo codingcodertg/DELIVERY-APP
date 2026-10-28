@@ -212,7 +212,7 @@ describe("los contactos de la ficha (D-668)", () => {
     expect(html).toContain('data-contactos="1"');
     expect(html).not.toContain("data-pastilla-de-contacto");
     expect(html).toMatch(/data-campo="contact_name"><span[^>]*>Nombre<\/span><span[^>]*>LUIS<\/span>/);
-    expect(html).toMatch(/data-campo="contact_title"><span[^>]*>Cargo</span><span[^>]*>A\/P<\/span>/);
+    expect(html).toMatch(/data-campo="contact_title"><span[^>]*>Cargo<\/span><span[^>]*>A\/P<\/span>/);
     expect(html).toContain('href="rcapp://r/call?number=9565550104"');
   });
   it("editando: cada contacto con su nombre, cargo, teléfonos, correos y nota; «+ Teléfono», «+ Correo» y «+ Agregar contacto»", () => {
