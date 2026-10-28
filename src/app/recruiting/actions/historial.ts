@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { EntradaDeHistorial, TipoDeHistorial } from "@/lib/recruiting/historial";
 
 /**
- * Leer el historial de RR. HH. (D-NEXT, migración 212): de un empleado, de un activo, o todo. Admin y gerente de RR. HH.,
+ * Leer el historial de RR. HH. (D-734, migración 212): de un empleado, de un activo, o todo. Admin y gerente de RR. HH.,
  * como los activos y el expediente; la política de la 212 lo repite en la base.
  */
 const PUEDE = ["admin", "manager"];

@@ -19,7 +19,7 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
   const [sinTabla, setSinTabla] = useState(false);
   const [busy, setBusy] = useState(false);
   const [elegido, setElegido] = useState<Record<TipoDeActivo, string>>({ email: "", phone: "" });
-  // D-NEXT: liberar es deliberado: «¿Seguro? ¿Por qué?» antes, y el motivo al historial.
+  // D-734: liberar es deliberado: «¿Seguro? ¿Por qué?» antes, y el motivo al historial.
   const [liberando, setLiberando] = useState<Activo | null>(null);
 
   const cargar = useCallback(async () => {

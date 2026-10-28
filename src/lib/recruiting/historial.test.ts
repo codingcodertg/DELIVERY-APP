@@ -11,7 +11,7 @@ const entrada = (p: Partial<EntradaDeHistorial>): EntradaDeHistorial => ({
   actor_id: null, actor_name: null, reason: null, detail: null, data: {}, ...p,
 });
 
-describe("historial de RR. HH. (D-NEXT)", () => {
+describe("historial de RR. HH. (D-734)", () => {
   it("cada kind de la librería está en el check de la migración 212, y al revés", () => {
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/212_historial_de_rrhh.sql"), "utf8");
     const enSql = [...sql.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).filter((k) => (KINDS as readonly string[]).includes(k) || k.includes("_"));

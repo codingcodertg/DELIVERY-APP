@@ -3,7 +3,7 @@ import type { createClient } from "@/lib/supabase/server";
 import type { NuevaEntrada } from "@/lib/recruiting/historial";
 
 /**
- * Escribir una fila del historial de RR. HH. (D-NEXT, migración 212) desde una acción de servidor.
+ * Escribir una fila del historial de RR. HH. (D-734, migración 212) desde una acción de servidor.
  *
  * Se llama DESPUÉS de que la acción haya hecho lo suyo, y nunca la hunde: si la 212 no está, o la inserción falla, la
  * baja o la asignación ya están hechas y eso es lo que importa; el historial es el registro, no la acción. El nombre de

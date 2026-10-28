@@ -1,5 +1,5 @@
 /**
- * El historial de RR. HH. (D-NEXT, migración 212): qué pasó, a quién, con qué activo, quién lo hizo y por qué.
+ * El historial de RR. HH. (D-734, migración 212): qué pasó, a quién, con qué activo, quién lo hizo y por qué.
  *
  * El dueño (2026-10-28): «todo tiene que quedar en un historial, que se mire, no se desactivó tal día por tal cosa».
  * Cada baja, reactivación, acceso al hub quitado o devuelto, y cada activo creado, editado, borrado, asignado, liberado o

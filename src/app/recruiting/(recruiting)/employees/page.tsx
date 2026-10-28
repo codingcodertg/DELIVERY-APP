@@ -475,7 +475,7 @@ function Ficha({
   useEffect(() => { void cargaCuenta(); }, [cargaCuenta]);
   const cuenta = resumenDeCuenta(persona, hechos);
 
-  // D-NEXT: quitar el acceso es deliberado: «¿Seguro? ¿Por qué?» antes, y el motivo al historial.
+  // D-734: quitar el acceso es deliberado: «¿Seguro? ¿Por qué?» antes, y el motivo al historial.
   const [quitandoAcceso, setQuitandoAcceso] = useState(false);
   async function cambiaAcceso(encendida: boolean, motivo?: string) {
     setBusy(true);
@@ -868,7 +868,7 @@ function Ficha({
         <ActivosDelEmpleado employeeId={persona.id} deBaja={deBaja} />
       </Seccion>
 
-      {/* D-NEXT: lo que pasó con esta persona: bajas, altas, acceso al hub y sus activos, con quién, cuándo y por qué. */}
+      {/* D-734: lo que pasó con esta persona: bajas, altas, acceso al hub y sus activos, con quién, cuándo y por qué. */}
       <Seccion id="historial" titulo={t("HISTORY", "HISTORIAL")}>
         <HistorialDeRrhh employeeId={persona.id} compacto />
       </Seccion>

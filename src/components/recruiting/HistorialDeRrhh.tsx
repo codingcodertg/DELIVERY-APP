@@ -7,7 +7,7 @@ import { esDeEmpleado, etiquetaDeHistorial, type EntradaDeHistorial } from "@/li
 import { fmtDateTime } from "@/lib/utils";
 
 /**
- * El historial de RR. HH. (D-NEXT, migración 212) como tabla: cuándo, quién lo hizo, qué, a quién / qué activo, detalle
+ * El historial de RR. HH. (D-734, migración 212) como tabla: cuándo, quién lo hizo, qué, a quién / qué activo, detalle
  * y motivo. Sin filtro es todo; con `employeeId` lo de esa persona; con `assetId` lo de ese correo o número. La tabla
  * es la de Órdenes (CLAUDE.md), sin anchos ajustables: cinco columnas fijas que caben en cualquier sitio.
  */

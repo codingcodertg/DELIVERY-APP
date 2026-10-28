@@ -419,7 +419,7 @@ export async function deactivateEmployee(
   if (leer) return { ok: false, message: leer.message };
   if (!file) return { ok: false, message: "No such employee file." };
   if (file.profile_id === userId) return { ok: false, message: "You can't deactivate your own account." };
-  // D-NEXT: la baja (o su corrección) queda en el historial, con la fecha, el motivo y la nota.
+  // D-734: la baja (o su corrección) queda en el historial, con la fecha, el motivo y la nota.
   const anotaBaja = (accesoQuitado: boolean) => anotaEnHistorial(supabase, userId, {
     kind: file.date_left ? "employee_leaving_edited" : "employee_deactivated", employeeId: fileId,
     reason: [datos.motivo, datos.nota].filter(Boolean).join(" — ") || null,

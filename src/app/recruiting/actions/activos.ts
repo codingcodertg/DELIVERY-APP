@@ -5,7 +5,7 @@ import { parcheAsignar, parcheLiberar, valorDeActivo, type Activo, type EstadoDe
 import { anotaEnHistorial } from "@/lib/recruiting/historial-escribe";
 import { cambiosDeActivo, detalleDeCambios, motivoValido, textoDeActivoParaHistorial } from "@/lib/recruiting/historial";
 
-/** D-NEXT: liberar, respaldar y borrar son deliberados: sin un motivo escrito no se hacen. */
+/** D-734: liberar, respaldar y borrar son deliberados: sin un motivo escrito no se hacen. */
 const SIN_MOTIVO = "A reason is required.";
 const CAMPOS_QUE_SE_EDITAN = ["value", "ext", "phone_type", "status", "plan", "cost_year", "note"] as const;
 
@@ -150,7 +150,7 @@ export async function assignAsset(assetId: string, employeeId: string): Promise<
 }
 
 /** Libera un activo asignado: el correo a «pendiente de respaldo», el número a «disponible» (o el estado que se pida).
- *  D-NEXT: pide motivo, y queda en el historial como «Liberado» o, si era un respaldo pendiente que pasa a disponible,
+ *  D-734: pide motivo, y queda en el historial como «Liberado» o, si era un respaldo pendiente que pasa a disponible,
  *  «Respaldado». */
 export async function releaseAsset(assetId: string, estado?: EstadoDeActivo, motivo?: string | null): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();

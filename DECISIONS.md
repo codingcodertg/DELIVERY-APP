@@ -48704,7 +48704,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **Pruebas:** `recorte-de-la-vista.test.ts` (549 px, sin scroll, 2×, final de página, margen del body, sin medidas, y que la foto rápida la usa sin `clip`); `captura-sin-permiso.test.ts` ajustada.
 
-## D-NEXT · RR. HH.: historial de todo lo que pasa con empleados y activos (bajas, altas, acceso al hub, correos y números), y «¿Seguro? ¿Por qué?» antes de liberar, respaldar, borrar o quitar el acceso (migración 212)
+## D-734 · RR. HH.: historial de todo lo que pasa con empleados y activos (bajas, altas, acceso al hub, correos y números), y «¿Seguro? ¿Por qué?» antes de liberar, respaldar, borrar o quitar el acceso (migración 212)
 
 **Fecha:** 2026-10-28 · **Migración 212** (`recruiting.hr_history`, ENSAYADA con ROLLBACK, pendiente de aplicar) · Hecho directo por el orquestador en `historial-de-rrhh`.
 

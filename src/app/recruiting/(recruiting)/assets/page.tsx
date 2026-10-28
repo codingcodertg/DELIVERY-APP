@@ -25,7 +25,7 @@ import { HistorialDeRrhh } from "@/components/recruiting/HistorialDeRrhh";
  */
 type Vista = "email" | "phone" | "personas" | "historial";
 
-/** D-NEXT: lo deliberado (liberar, respaldar, borrar) pasa por «¿Seguro? ¿Por qué?». */
+/** D-734: lo deliberado (liberar, respaldar, borrar) pasa por «¿Seguro? ¿Por qué?». */
 type Pendiente = { accion: "liberar" | "respaldar" | "borrar"; activo: Activo };
 
 const COLUMNAS = [

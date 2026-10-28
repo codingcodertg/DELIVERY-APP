@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { MINIMO_MOTIVO, motivoValido } from "@/lib/recruiting/historial";
 
 /**
- * «¿Seguro? ¿Por qué?» antes de una acción deliberada de RR. HH. (D-NEXT): liberar o respaldar un activo, borrarlo,
+ * «¿Seguro? ¿Por qué?» antes de una acción deliberada de RR. HH. (D-734): liberar o respaldar un activo, borrarlo,
  * quitar el acceso al hub. El dueño: «antes de hacer algo así tan deliberado como liberar, tiene que estar seguro». El
  * motivo es obligatorio y va al historial; sin él, el botón no se enciende.
  */
