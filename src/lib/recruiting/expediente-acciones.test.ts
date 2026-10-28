@@ -254,7 +254,7 @@ describe("＋ Agregar empleado", () => {
     expect(ventanas).toContain('t("Without a hub account", "Sin cuenta del hub")');
     expect(ventanas).toContain('t("With a hub account", "Con cuenta del hub")');
     expect(ventanas).toContain("const r = await createEmployeeFile(f);");
-    // Con cuenta no se crea otra puerta de cuentas: se agrega al empleado y la cuenta se crea con «Permisos» (D-NEXT).
+    // Con cuenta no se crea otra puerta de cuentas: se agrega al empleado y la cuenta se crea con «Permisos» (D-720).
     expect(ventanas).toContain('data-accion="seguir-sin-cuenta" onClick={() => setModo("sin")}');
     expect(ventanas).not.toContain("user-creation");
   });
@@ -513,9 +513,9 @@ describe("la 207: herramientas y costo", () => {
 });
 
 // ============================================================
-// D-NEXT: cabecera fija con Editar/Guardar, campos bloqueados, secciones plegadas, «Permisos» en el expediente
+// D-720: cabecera fija con Editar/Guardar, campos bloqueados, secciones plegadas, «Permisos» en el expediente
 // ============================================================
-describe("D-NEXT: el expediente con cabecera fija, Editar/Guardar, secciones plegadas y Permisos", () => {
+describe("D-720: el expediente con cabecera fija, Editar/Guardar, secciones plegadas y Permisos", () => {
   // Solo la función Ficha: lo que viene después (Seccion, Bloque, QueFaltaDialog) tiene sus propios cierres.
   const ficha = pagina.slice(pagina.indexOf("function Ficha("), pagina.indexOf("function Seccion("));
   const css = leer("src/app/recruiting/recruiting.css");

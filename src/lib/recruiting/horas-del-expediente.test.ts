@@ -39,7 +39,7 @@ describe("horas del expediente", () => {
   });
 });
 
-describe("D-NEXT: semanas y pagos en una sola tabla", () => {
+describe("D-720: semanas y pagos en una sola tabla", () => {
   it("cada pago cae en la semana que empieza el día de su periodo; lo que no casa sale en fila propia, y nada se asigna dos veces", () => {
     const semanas = semanasDeHoras([
       { period_start: "2026-10-09", period_end: "2026-10-15", horas_fichaje: 0, horas_proyecto: 40, revisar: false },

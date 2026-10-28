@@ -134,7 +134,7 @@ export function totalesDePagos(pagos: Pago[]): { pagado: number; pendiente: numb
 export type SemanaConPago = SemanaDeHoras & { pago: Pago | null };
 
 /**
- * D-NEXT: una sola tabla, semana por semana, con su pago al lado (el dueño: «esas horas pueden ir en la misma cosa de
+ * D-720: una sola tabla, semana por semana, con su pago al lado (el dueño: «esas horas pueden ir en la misma cosa de
  * pagos, ahí mismo […] es lo mismo tener duplicado eso»). Un pago cae en la semana que empieza el día de su periodo
  * (el `week_of` del lote, el `period_start` del talón). Un pago que no casa con ninguna semana —otro inicio de semana,
  * un lote duplicado— sale en una fila propia sin horas, para que no se pierda. Un pago no se asigna dos veces.

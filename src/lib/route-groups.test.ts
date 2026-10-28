@@ -25,7 +25,7 @@ describe("G-4: /recruiting/users redirige siempre, fuera del grupo (recruiting)"
   it("no hay un layout propio en src/app/recruiting que la vuelva a gatear", () => {
     expect(existsSync(join(raiz, "src/app/recruiting/layout.tsx"))).toBe(false);
   });
-  it("y sigue siendo una redirección (a /recruiting/employees desde D-NEXT; antes a user-creation, D-704), sin sesión ni rol por medio", () => {
+  it("y sigue siendo una redirección (a /recruiting/employees desde D-720; antes a user-creation, D-704), sin sesión ni rol por medio", () => {
     // Sin los comentarios: el propio fichero explica por qué se movió y nombra recruiting_role.
     const src = readFileSync(join(raiz, "src/app/recruiting/users/page.tsx"), "utf8").replace(/^\s*\/\/.*$/gm, "");
     expect(src).toMatch(/redirect\("\/recruiting\/employees"\)/);

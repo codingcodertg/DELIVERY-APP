@@ -14,7 +14,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 type Persona = { id: string; profile_id: string | null; full_name: string | null; email?: string | null; personal_email?: string | null; store?: string | null };
 
 /**
- * «Permisos» del expediente (D-NEXT). El dueño: «cuando uno se mete al perfil del empleado, va a haber un botón en la
+ * «Permisos» del expediente (D-720). El dueño: «cuando uno se mete al perfil del empleado, va a haber un botón en la
  * parte de arriba que va a decir permisos. Y el permiso ahí no se va a llevar a otra window. Va a ser abrir una window
  * donde van a estar todos los permisos y uno ahí le da los permisos a la persona».
  *

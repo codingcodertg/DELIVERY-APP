@@ -4,7 +4,7 @@ import { pestanasVisibles } from "@/lib/recruiting/vista-del-gerente";
  * D-704: la barra de RR. HH. ya no es una fila de pestañas sino dos menús, «Recruiting» y «HR», más Ajustes suelto.
  * El dueño: «solo va a haber dos, así como dos divisiones para que ya se abramos y pase un drop down de esos menús».
  * El filtro por rol es el de siempre (`pestanasVisibles`); un menú que se queda sin opciones no se pinta.
- * D-NEXT: «Crear usuarios» ya no es una página: los permisos se dan desde el expediente («RRHH se va a quedar solo como
+ * D-720: «Crear usuarios» ya no es una página: los permisos se dan desde el expediente («RRHH se va a quedar solo como
  * empleados»), así que el menú HR tiene una sola entrada y el rol del hub ya no filtra nada aquí.
  */
 export type GrupoDeMenu = "recruiting" | "hr";

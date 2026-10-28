@@ -55,7 +55,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
             <Link key={t.id} href={t.href} className={"tab " + (pestanaActiva(t.href, pathname) ? "active" : "")}>{etiqueta(t)}</Link>
           ))}
         </div>
-        {/* D-NEXT: el ⇄ (ModuleSwitcher) se fue; para cambiar de app está la casa y el menú de ayuda. */}
+        {/* D-720: el ⇄ (ModuleSwitcher) se fue; para cambiar de app está la casa y el menú de ayuda. */}
         {/* El nombre abre el menú de la cuenta, el mismo de Entregas y Time Tracker (D-490). Se llevó
             el botón ES/EN —el idioma se elige en «Personalizar», en el hub— y el «Salir» suelto. La
             etiqueta del rol se queda: el dueño pidió quitarla en Time Tracker, no aquí. */}

@@ -70,7 +70,7 @@ describe("la barra de Entregas", () => {
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
 
   // Time Tracker lo dejó también en D-490 («quiero que sea igual que el Delivery app»): la casa sola.
-  it("ninguna barra monta el selector de módulos (RR. HH. lo dejó en D-NEXT, y el componente se fue con él)", () => {
+  it("ninguna barra monta el selector de módulos (RR. HH. lo dejó en D-720, y el componente se fue con él)", () => {
     expect(barra).not.toContain("ModuleSwitcher");
     expect(sinComentarios(leer("src/components/timetracker/TopBar.tsx"))).not.toContain("ModuleSwitcher");
     expect(sinComentarios(leer("src/components/recruiting/TopBar.tsx"))).not.toContain("<ModuleSwitcher");

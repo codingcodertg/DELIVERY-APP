@@ -289,7 +289,7 @@ export default function EmployeeFilesPage() {
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                       {/* D-705: «Dar de baja» y «Reactivar» ya no están en la fila: se dan desde dentro del expediente.
-                          D-NEXT: «Crear usuario» tampoco: es «Permisos», dentro del expediente. */}
+                          D-720: «Crear usuario» tampoco: es «Permisos», dentro del expediente. */}
                       <button className="btn btn-ghost btn-sm" data-accion="editar" onClick={() => setAbierto(r.id)}>
                         📂 {t("Open", "Abrir")}
                       </button>
@@ -334,7 +334,7 @@ export default function EmployeeFilesPage() {
 }
 
 /**
- * El expediente de una persona (D-NEXT, antes D-145/D-149).
+ * El expediente de una persona (D-720, antes D-145/D-149).
  *
  * El dueño, el 2026-10-27: la parte de arriba «va a estar frozen, donde dice el nombre, activo, dar de baja, y ahí
  * también va a haber un botón que dice guardar»; «toda la información que está ahí no se puede cambiar, al menos
@@ -404,7 +404,7 @@ function Ficha({
   // Lo último guardado: «Guardar» se enciende cuando `info` difiere de esto, y «salir» pregunta.
   const [guardado, setGuardado] = useState(inicial);
   const sucio = hayCambios(info, guardado);
-  // Nada se edita hasta pulsar «Editar» (D-NEXT).
+  // Nada se edita hasta pulsar «Editar» (D-720).
   const [editando, setEditando] = useState(false);
   // Quiso cerrar con cambios sin guardar: se le pregunta en la propia cabecera.
   const [saliendo, setSaliendo] = useState(false);
@@ -551,7 +551,7 @@ function Ficha({
        Es además como abre todo lo demás en este módulo (ModalHost). */
     <div className="overlay" onClick={pideCerrar}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 760 }} data-dialogo="ficha">
-        {/* La cabecera fija (D-NEXT): nombre y estado, Permisos, Dar de baja / Reactivar, Editar, Guardar, cerrar. */}
+        {/* La cabecera fija (D-720): nombre y estado, Permisos, Dar de baja / Reactivar, Editar, Guardar, cerrar. */}
         <div className="ficha-cabecera" data-cabecera="ficha">
           <h3>
             {persona.full_name}{" "}
@@ -863,7 +863,7 @@ function Ficha({
 }
 
 /**
- * Una categoría del expediente (D-NEXT): un `<details>` con el título como `summary`. `abierta` es solo el estado
+ * Una categoría del expediente (D-720): un `<details>` con el título como `summary`. `abierta` es solo el estado
  * inicial (DATOS abierto, lo demás plegado); después manda quien pulsa.
  */
 function Seccion({ id, titulo, abierta = false, extra, children }: {
@@ -880,7 +880,7 @@ function Seccion({ id, titulo, abierta = false, extra, children }: {
   );
 }
 
-/** Un grupo de documentos (HR o FORMS), una línea por tipo. El título lo pone la Seccion que lo envuelve (D-NEXT). */
+/** Un grupo de documentos (HR o FORMS), una línea por tipo. El título lo pone la Seccion que lo envuelve (D-720). */
 function Bloque({
   grupo, docs, employeeId, onChange,
 }: {

@@ -78,7 +78,7 @@ export default async function RecruitingLayout({ children }: { children: React.R
           TopBar.tsx mounts it unconditionally: a stale-JS check has nothing
           to do with recruiting's data at all (D-063). */}
       <AppUpdateBanner app="recruiting" />
-      {/* D-NEXT: el perfil del hub viaja con el de RR. HH.: «Permisos» en el expediente monta el proveedor del hub con él. */}
+      {/* D-720: el perfil del hub viaja con el de RR. HH.: «Permisos» en el expediente monta el proveedor del hub con él. */}
       <DataProvider me={me} hub={profile}>
         <UIProvider>
           <TopBar me={me} deliveriesRole={profile.role} moduleAccess={profile.module_access} />

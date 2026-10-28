@@ -14,7 +14,7 @@ describe("D-704: RR. HH. en dos menús", () => {
     });
   });
 
-  it("D-NEXT: «Crear usuarios» ya no es una página: HR es solo Empleados", () => {
+  it("D-720: «Crear usuarios» ya no es una página: HR es solo Empleados", () => {
     expect(TABS.find((t) => t.id === "user-creation")).toBeUndefined();
     expect(TABS.some((t) => t.href.includes("user-creation"))).toBe(false);
   });

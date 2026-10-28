@@ -694,7 +694,7 @@ export function filaNueva(d: {
 }
 
 /**
- * D-NEXT: ¿difiere el borrador del expediente de lo último guardado? Decide si «Guardar» se enciende y si cerrar
+ * D-720: ¿difiere el borrador del expediente de lo último guardado? Decide si «Guardar» se enciende y si cerrar
  * pregunta. Vacío y null cuentan como lo mismo: un campo que nunca se llenó no es un cambio.
  */
 export function hayCambios(borrador: Record<string, unknown>, guardado: Record<string, unknown>): boolean {

@@ -41,7 +41,7 @@ import { estandarizaCandidato } from "@/lib/recruiting/formato";
 interface DataState {
   ready: boolean;
   me: Profile | null;
-  /** El perfil DEL HUB de quien entra (D-NEXT): `role` es el de Entregas (admin = puede dar permisos), no el de RR. HH. */
+  /** El perfil DEL HUB de quien entra (D-720): `role` es el de Entregas (admin = puede dar permisos), no el de RR. HH. */
   hub: PerfilDelHub | null;
   settings: Settings;
   roles: string[];

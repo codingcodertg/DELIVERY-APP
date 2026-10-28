@@ -8,7 +8,7 @@ import {
 } from "@/lib/recruiting/horas-del-expediente";
 
 /**
- * El bloque «Time Tracker» del expediente (D-686): semana por semana, las horas y su pago, en UNA tabla (D-NEXT; el
+ * El bloque «Time Tracker» del expediente (D-686): semana por semana, las horas y su pago, en UNA tabla (D-720; el
  * dueño: «esas horas pueden ir en la misma cosa de pagos, ahí mismo […] es lo mismo tener duplicado eso»). Solo
  * lectura; se carga al abrir la ficha. El título lo pone la Seccion que lo envuelve.
  */

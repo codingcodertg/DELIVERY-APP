@@ -48539,7 +48539,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **Pendiente del dueño:** aplicar la 207 y correr la carga; decidir los 6 conflictos; el expediente duplicado de Maricela Guerra (uno con cuenta de ventas sin correo, otro de RR. HH. con fecha 2026-10-26); quién es «Joseph» (se tomó como Joseph Castillo); crear usuario a los 10 sin cuenta («todos deberían tener un usuario»).
 
-## D-NEXT · El expediente manda: cabecera fija con Editar/Guardar, secciones plegadas y «Permisos» dentro
+## D-720 · El expediente manda: cabecera fija con Editar/Guardar, secciones plegadas y «Permisos» dentro
 
 **Pedido:** el dueño, el 2026-10-27, dictado: «eso de crear usuarios lo vamos a meter en empleados […] cuando uno se mete al perfil del empleado, va a haber un botón en la parte de arriba que va a decir permisos […] abrir una window donde van a estar todos los permisos»; «RRHH se va a quedar solo como empleados»; «el botón de switch user […] eso ya tampoco se usa porque ya está en el question mark»; «la parte de arriba va a estar frozen, donde dice el nombre, activo, dar de baja, y ahí también va a haber un botón que dice guardar […] toda la información que está ahí no se puede cambiar, al menos que se apriete el botón de edit que va a estar al lado de guardar»; «cuando uno quiere salir y cambió algo y no lo ha guardado, tiene que ponerle guardar»; «en el time tracker, donde está eso de horas por semana, esas horas pueden ir en la misma cosa de pagos»; «todas las categorías como solo datos va a estar display, […] contacto de emergencia, herramientas y costos, punto de acción, cuenta del hub, time tracker, todas esas cosas, va a estar collapse».
 

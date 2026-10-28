@@ -311,7 +311,7 @@
 }
 .recruiting-module .rec-load-fail span { color: var(--ink-soft); font-size: 12px; }
 
-/* D-NEXT: el expediente. La cabecera (nombre, estado, Permisos, baja, Editar, Guardar) se queda arriba al bajar; el
+/* D-720: el expediente. La cabecera (nombre, estado, Permisos, baja, Editar, Guardar) se queda arriba al bajar; el
    modal pierde su relleno de arriba para que nada asome por encima de ella. Las categorías son <details> plegables con
    el título como summary; y los campos viven en un fieldset que, apagado, se lee como ficha y no como formulario. */
 .recruiting-module .modal[data-dialogo="ficha"] { padding-top: 0; }
