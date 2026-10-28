@@ -48623,3 +48623,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** `PhotoUpload` deja de tener tope por defecto (`max = Infinity`, antes 6); el aviso «Máximo N fotos» y el contador «n / N» de la ráfaga solo salen cuando el tope es finito. Lo que sí pasa un tope (el recibo de una pausa, `max={1}`; las fotos por defecto de la inspección) sigue igual. Ni la base ni el servidor limitaban el número (la 177 solo cuenta).
 
 **Pruebas:** las de la cámara y las fotos siguen (146); la del tope por defecto en `camara-de-varias-fotos.test.ts`. **No medido** en el navegador.
+
+## D-728 · Clientes: el vendedor ve solo los suyos, el gerente los de su tienda y asigna vendedores (migración 210); al vendedor se le esconden Crédito, Campos ocultos y Archivos; el contacto con etiquetas a la izquierda
+
+**Fecha:** 2026-10-28 · **Migración 210** (`210_clientes_por_rol.sql`, ensayada con ROLLBACK, pendiente de aplicar) · Hecho directo por el orquestador en `clientes-por-rol`.
+
+**Pedidos del dueño**, literales, dos mensajes del mismo día: *«Salesperson: can only view and open the customers assigned to them. They cannot see other customers. Manager: can view all customers of their store, and can assign customers to salespeople. Admin: can view everything across all stores, and can also assign customers to salespeople.»* · *«When a salesperson opens a customer profile, hide these sections completely — Archivos, Campos ocultos, Crédito y términos»* y *«every field has its label on the left side, like the "Cuenta" section does»*.
+
+**Qué cambia:**
+- **Base (210):** `erp.customers_ve_la_fila` pasa a tres argumentos (vendedor, creador, tienda): el vendedor solo ve los que tienen su `rep_id` o creó él (ya **no** los libres, que D-683 le enseñaba); el gerente, los de su tienda (el código de la fila, BRO/EDG/MCA/PHR/WES/MIS, contra la tienda de su perfil por `erp.customers_codigo_de_tienda`; sin tienda en el perfil, todas; con una tienda sin código, ninguna); admin y los demás roles con el módulo, todo. La política restrictiva se recrea con los tres argumentos; la función de dos se borra. Asignar: `customers_can_write` (198) ya deja al gerente actualizar, y la restrictiva lo acota a su tienda.
+- **Pantalla:** «Asignar vendedores» (botón, barra de selección, casillas) para admin y gerente (`puedeAsignarVendedores`; la prop `esAdmin` de `Clientes` pasa a significar eso). Al vendedor (`esVendedor`) la ficha —ventana y página— no le pinta «Crédito y términos», «Campos ocultos» ni «Archivos» (`GRUPOS_QUE_NO_VE_EL_VENDEDOR` y la celda apilada de la rejilla). La RLS sigue mandando: esconder no es la barrera, pero el vendedor ya no ve la tarjeta.
+- **Contacto:** cada dato en su línea con la etiqueta a la izquierda y el valor a la derecha, como «Cuenta»: Nombre, Cargo, Teléfono, Correo, y Sitio web y Dirección cuando los hay; «—» cuando no hay teléfono o correo.
+
+**Orden de publicación:** la 210 y el código son independientes (el código solo esconde y da el botón; la base decide qué filas llegan). Hasta aplicar la 210, el vendedor sigue viendo los libres y el gerente todas las tiendas.
+
+**Pruebas:** `customers/por-rol.test.ts` (reglas, la 210, la ficha y el contacto); `vendedores.test.ts` puesta al día. **No medido** en el navegador ni con una sesión de vendedor real.

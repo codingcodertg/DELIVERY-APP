@@ -22,7 +22,7 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { rcCall } from "@/lib/recruiting/utils";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
-  cierraLaFicha, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
+  cierraLaFicha, ESTADOS, GRUPOS_QUE_NO_VE_EL_VENDEDOR, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
   IMPUESTOS, impuestoLabel, MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
   textoDeFila, TIENDAS, webUrl,
   type Campo, type Cliente, type FilaDeFicha,
@@ -54,7 +54,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). El sitio web y la dirección
  * son de cada contacto (D-697); los de la cuenta, en «Campos ocultos».
  */
-export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, contactoElegido, onEligeContacto, redes, onRedes, vendedores, almacen, puedeEditar = false, t }: {
+export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, contactoElegido, onEligeContacto, redes, onRedes, vendedores, almacen, puedeEditar = false, esVendedor = false, t }: {
   cliente: Cliente | null;
   form?: Record<string, string>;
   editando?: boolean;
@@ -74,6 +74,8 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   /** D-672: con él, la ficha lleva los archivos de la fila (`ArchivosDeLaFicha`; desde D-681, su tarjeta bajo «Campos ocultos»). */
   almacen?: AlmacenDeClientes;
   puedeEditar?: boolean;
+  /** D-728: el vendedor no ve «Crédito y términos», «Campos ocultos» ni «Archivos». */
+  esVendedor?: boolean;
   t: T;
 }) {
   const deLaFila = useMemo(() => contactosDe(cliente), [cliente]);
@@ -103,7 +105,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filasPorGrupo().map(({ grupo, filas }) => (
+        {filasPorGrupo().filter(({ grupo }) => !esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key)).map(({ grupo, filas }) => (
           <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {grupo.key === "contacto" && (editando && contactos && onContactos
@@ -117,7 +119,8 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
         ))}
         {/* La sexta celda de la rejilla, apilada: «Campos ocultos» y, debajo, «Archivos» (D-681: «keeping a compact
             design. Lets move attachments down below Hidden Fields»; hasta D-681 iban al pie de «Crédito y términos»). */}
-        <div className="space-y-4 self-start">
+        {!esVendedor && (
+        <div className="space-y-4 self-start" data-solo-no-vendedor>
           {/* D-660: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. Desde
               D-662 va DENTRO de la rejilla, en el sitio de la sexta tarjeta (la de «Remove» de la plantilla del dueño). */}
           {ocultas.length > 0 && (
@@ -136,6 +139,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
             </section>
           ) : null}
         </div>
+        )}
       </div>
     </div>
   );
@@ -244,6 +248,10 @@ function BotonCopiar({ texto, t }: { texto: string; t: T }) {
  * «🌐 Socials», aunque haya un solo contacto: sus perfiles, uno por red, que abren en otra pestaña. Sin contacto pero con
  * redes, salen ellas.
  */
+/** D-728: una línea del contacto, como las de «Cuenta»: etiqueta a la izquierda, valor a la derecha. */
+const FILA_DE_CONTACTO = "flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm last:border-0";
+const ETIQUETA_DE_CONTACTO = "shrink-0 text-slate-500";
+
 function ContactosParaVer({ contactos, redes = {}, t }: { contactos: Contacto[]; redes?: Redes; t: T }) {
   const [elegido, setElegido] = useState<number | "redes">(0);
   // «+N»: un menú propio (no un <select>: en el teléfono el nativo se estiraba y cortaba el nombre).
@@ -304,42 +312,60 @@ function ContactosParaVer({ contactos, redes = {}, t }: { contactos: Contacto[];
           ))}
         </ul>
       ) : (
-      <div className="space-y-1" data-contacto-elegido={i}>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="break-words font-medium text-slate-900" data-campo="contact_name">{c.name ?? t("No name", "Sin nombre")}</span>
+      <div className="space-y-0" data-contacto-elegido={i}>
+        {/* D-728: cada dato con su etiqueta a la izquierda, como las líneas de «Cuenta». El dueño: «every field has its
+            label on the left side, like the "Cuenta" section does (label on the left, value on the right)». */}
+        <div className={FILA_DE_CONTACTO} data-campo="contact_name">
+          <span className={ETIQUETA_DE_CONTACTO}>{t("Name", "Nombre")}</span>
+          <span className="min-w-0 break-words text-right font-medium text-slate-900">{c.name ?? t("No name", "Sin nombre")}</span>
         </div>
         {/* El cargo, siempre (Roberto: «Title was removed, need it back»): «—» si no tiene. */}
-        <div className="text-xs text-slate-500">{t("Title", "Cargo")}: <span className="font-medium text-slate-700" data-campo="contact_title">{c.title ?? "—"}</span></div>
-        {c.note && <p className="break-words text-xs italic text-slate-500" data-nota-de-contacto>{c.note}</p>}
-        {c.phones.length > 0 && (
-          <ul className="space-y-0.5" data-campo="phone">
-            {c.phones.map((p) => (
-              <li key={p} className="flex items-center gap-1">
-                <a href={rcCall(p)} className="text-sm text-clay-600 hover:underline" title={t("Call with RingCentral", "Llamar con RingCentral")} data-llamar={p}>📞 {p}</a>
-                <BotonCopiar texto={p} t={t} />
-              </li>
-            ))}
-          </ul>
-        )}
-        {c.emails.length > 0 && (
-          <ul className="space-y-0.5" data-campo="email">
-            {c.emails.map((e) => (
-              <li key={e} className="flex min-w-0 items-center gap-1">
-                <a href={`mailto:${e}`} className="min-w-0 break-all text-sm text-clay-600 hover:underline" title={t("Write an email", "Escribir un correo")} data-escribir={e}>✉️ {e}</a>
-                <BotonCopiar texto={e} t={t} />
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className={FILA_DE_CONTACTO} data-campo="contact_title">
+          <span className={ETIQUETA_DE_CONTACTO}>{t("Title", "Cargo")}</span>
+          <span className="min-w-0 break-words text-right font-medium text-slate-700">{c.title ?? "—"}</span>
+        </div>
+        {c.note && <p className="break-words py-1 text-xs italic text-slate-500" data-nota-de-contacto>{c.note}</p>}
+        <div className={FILA_DE_CONTACTO} data-campo="phone">
+          <span className={ETIQUETA_DE_CONTACTO}>{t("Phone", "Teléfono")}</span>
+          {c.phones.length === 0 ? <span className="text-right text-slate-400">—</span> : (
+            <ul className="min-w-0 space-y-0.5 text-right">
+              {c.phones.map((p) => (
+                <li key={p} className="flex items-center justify-end gap-1">
+                  <a href={rcCall(p)} className="font-medium text-clay-600 hover:underline" title={t("Call with RingCentral", "Llamar con RingCentral")} data-llamar={p}>{p}</a>
+                  <BotonCopiar texto={p} t={t} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className={FILA_DE_CONTACTO} data-campo="email">
+          <span className={ETIQUETA_DE_CONTACTO}>{t("Email", "Correo")}</span>
+          {c.emails.length === 0 ? <span className="text-right text-slate-400">—</span> : (
+            <ul className="min-w-0 space-y-0.5 text-right">
+              {c.emails.map((e) => (
+                <li key={e} className="flex min-w-0 items-center justify-end gap-1">
+                  <a href={`mailto:${e}`} className="min-w-0 break-all font-medium text-clay-600 hover:underline" title={t("Write an email", "Escribir un correo")} data-escribir={e}>{e}</a>
+                  <BotonCopiar texto={e} t={t} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         {/* D-697: el sitio web y la dirección de este contacto (no los de la cuenta: sin los suyos, no sale nada). */}
         {c.website && (
-          <div className="min-w-0 text-sm" data-web-de-contacto>
+          <div className={FILA_DE_CONTACTO} data-web-de-contacto>
+            <span className={ETIQUETA_DE_CONTACTO}>{t("Website", "Sitio web")}</span>
             {webUrl(c.website)
-              ? <a href={webUrl(c.website)!} target="_blank" rel="noopener noreferrer" className="break-all text-clay-600 hover:underline">🌐 {c.website}</a>
-              : <span className="break-all text-slate-700">🌐 {c.website}</span>}
+              ? <a href={webUrl(c.website)!} target="_blank" rel="noopener noreferrer" className="min-w-0 break-all text-right font-medium text-clay-600 hover:underline">{c.website}</a>
+              : <span className="min-w-0 break-all text-right text-slate-700">{c.website}</span>}
           </div>
         )}
-        {c.address && <p className="whitespace-pre-wrap break-words text-sm text-slate-700" data-direccion-de-contacto>📍 {c.address}</p>}
+        {c.address && (
+          <div className={FILA_DE_CONTACTO} data-direccion-de-contacto>
+            <span className={ETIQUETA_DE_CONTACTO}>{t("Address", "Dirección")}</span>
+            <span className="min-w-0 whitespace-pre-wrap break-words text-right text-slate-700">{c.address}</span>
+          </div>
+        )}
       </div>
       )}
     </div>
@@ -584,14 +610,14 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
   /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
   /** Las filas de la misma empresa (189), una por tienda, en orden: las pestañas. */
   hermanas: Cliente[];
   onCambia: (c: Cliente) => void;
-  puedeEditar: boolean; almacen: AlmacenDeClientes; onClose: () => void;
+  puedeEditar: boolean; esVendedor?: boolean; almacen: AlmacenDeClientes; onClose: () => void;
   /** La fila guardada (la que se enseña) y, en un alta en varias tiendas, TODAS las creadas (D-664). */
   onGuardado: (c: Cliente, creados?: Cliente[]) => void;
   /** «✏️ Editar» de la página del cliente (D-648) llega aquí: la ventana abre ya editando. */
@@ -908,7 +934,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} t={t} />
+          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} t={t} />
         </div>
 
         {puedeEditar && !nuevo && archivando && (
