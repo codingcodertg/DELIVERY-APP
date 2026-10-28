@@ -46,7 +46,8 @@ const TANDA = 100;
  * probadas sin navegador; la base las vuelve a exigir (RLS de la 180). Este componente lee, filtra y pinta, y cada
  * escritura va por el almacén, que devuelve la fila como quedó en la base: eso es lo que se pinta.
  */
-export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; userId: string }) {
+// D-728: `esAdmin` es «puede asignar vendedores» (admin y gerente, `puedeAsignarVendedores`); `esVendedor` esconde tarjetas de la ficha.
+export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; esVendedor?: boolean; userId: string }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 
@@ -486,6 +487,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, userId }: { demo:
           lista={lista}
           onCambia={(c) => setFicha({ tipo: "ver", cliente: c })}
           puedeEditar={puedeEditar}
+          esVendedor={esVendedor}
           almacen={almacen}
           onClose={() => setFicha(null)}
           onGuardado={alGuardar}

@@ -180,6 +180,7 @@ describe("D-684: asignar vendedores de golpe (solo admin)", () => {
     const clientes = leer("src/app/customers/Clientes.tsx");
     expect(clientes).toContain("{esAdmin && <Button variant=\"outline\" onClick={() => setAsignando(true)} data-abrir-asignar-vendedores>");
     expect(clientes).toContain("{esAdmin && asignando && <AsignarVendedores");
-    expect(leer("src/app/customers/page.tsx")).toContain('esAdmin={role === "admin"}');
+    // D-728: también el gerente asigna (dentro de su tienda, que es lo único que la 210 le deja ver).
+    expect(leer("src/app/customers/page.tsx")).toContain("esAdmin={puedeAsignarVendedores(role)}");
   });
 });

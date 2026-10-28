@@ -12,7 +12,7 @@ import { TarjetasDeLaFicha } from "../FichaDeCliente";
  * las tiendas, y las tarjetas sin «Cuenta» ni «Tienda» repetidas. Solo lectura: se corrige en la ventana de la lista, que
  * ya sabe quién puede y pide la fila de vuelta.
  */
-export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false }: { cliente: Cliente; hermanas?: Cliente[]; puedeEditar?: boolean }) {
+export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false, esVendedor = false }: { cliente: Cliente; hermanas?: Cliente[]; puedeEditar?: boolean; esVendedor?: boolean }) {
   const { t } = usePrefs();
   const tel = telUrl(c.phone);
   const mail = mailUrl(c.email);
@@ -72,7 +72,7 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false }
       )}
 
       <div className="mt-6">
-        <TarjetasDeLaFicha cliente={c} t={t} />
+        <TarjetasDeLaFicha cliente={c} esVendedor={esVendedor} t={t} />
       </div>
       {/* D-660: lo último de la página es ahora «🔒 Campos ocultos», y la burbuja de Ayuda (fija abajo a la derecha) lo
           tapaba a 390 px (medido). El hueco de D-530 deja que suba por encima de ella; como en la ventana (D-654). */}

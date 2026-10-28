@@ -428,6 +428,20 @@ export function puedeEditar(role: UserRole | null | undefined): boolean {
   return role === "admin" || role === "manager" || role === "sales";
 }
 
+/** D-728: asignan vendedores el admin y el gerente (el gerente, dentro de su tienda: la 210 no le deja ver otra). */
+export function puedeAsignarVendedores(role: UserRole | null | undefined): boolean {
+  return role === "admin" || role === "manager";
+}
+
+/**
+ * D-728: al vendedor se le esconden «Archivos», «Campos ocultos» y «Crédito y términos». El dueño: «When a salesperson
+ * opens a customer profile, hide these sections completely — they must not see them».
+ */
+export function esVendedor(role: UserRole | null | undefined): boolean {
+  return role === "sales";
+}
+export const GRUPOS_QUE_NO_VE_EL_VENDEDOR: readonly string[] = ["credito"];
+
 export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda" | "impuesto" | "vendedor";
 /**
  * Los grupos de la ficha, en su orden (D-634). `cabecera` no es una tarjeta: la cuenta y la tienda van arriba, en el nombre
