@@ -2,7 +2,17 @@
  * Los activos de la empresa (D-730): correos y números de teléfono que se pagan, con su estado y quién los tiene.
  * Todo puro; la base y la pantalla están en `actions/activos.ts` y `(recruiting)/assets/page.tsx`.
  */
-import { telefonoDeFicha } from "./employee-file";
+// Sin importar `telefonoDeFicha` de employee-file: el guion de una vez (scripts/carga-activos-de-empresa.mjs) importa ESTE
+// fichero con node, que no resuelve importaciones de .ts sin extensión. La forma es la misma de la app (D-432) y la prueba
+// de formato la fija contra `telefonoDeFicha`.
+function telefonoDeActivo(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  const d = v.replace(/D/g, "");
+  const diez = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
+  if (diez.length !== 10 || /[a-z]/i.test(v)) return v;
+  return `${diez.slice(0, 3)}-${diez.slice(3, 6)}-${diez.slice(6)}`;
+}
 
 export type TipoDeActivo = "email" | "phone";
 export type EstadoDeActivo = "assigned" | "available" | "not_in_use" | "pending_backup";
@@ -50,7 +60,7 @@ export function etiquetaDeTipoDeTelefono(p: TipoDeTelefono | null, lang: "en" | 
 export function valorDeActivo(kind: TipoDeActivo, raw: string | null | undefined): string | null {
   const v = (raw ?? "").trim();
   if (!v) return null;
-  return kind === "email" ? v.toLowerCase() : (telefonoDeFicha(v) ?? v);
+  return kind === "email" ? v.toLowerCase() : (telefonoDeActivo(v) ?? v);
 }
 
 /** El número con su extensión, para enseñarlo: «956-817-1583 · ext. 111». */

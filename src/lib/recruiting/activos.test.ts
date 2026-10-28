@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { telefonoDeFicha } from "./employee-file";
 import {
   activosDeLaFila, cuentaPorEstado, estadoInicial, etiquetaDeEstado, libres, losDe, parcheAsignar, parcheLiberar, porPersona,
   textoDeTelefono, valorDeActivo, type Activo,
@@ -17,6 +18,8 @@ describe("activos de la empresa", () => {
     expect(valorDeActivo("phone", "19568171583")).toBe("956-817-1583");
     expect(valorDeActivo("phone", "(956) 817-1529")).toBe("956-817-1529");
     expect(valorDeActivo("email", "")).toBeNull();
+    // D-731: la misma forma que el expediente, sin importarla (el guion de carga importa este fichero con node).
+    for (const n of ["19568171583", "(956) 817-1529", "ext. 12", "956 563-9505"]) expect(valorDeActivo("phone", n)).toBe(telefonoDeFicha(n));
     expect(textoDeTelefono({ value: "956-817-1583", ext: "111" })).toBe("956-817-1583 · ext. 111");
   });
   it("solo se asigna lo disponible; al liberar, el correo queda pendiente de respaldo y el número disponible", () => {
