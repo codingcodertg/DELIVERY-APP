@@ -43,7 +43,7 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
     const disponibles = libres(activos, kind);
     return (
       <div key={kind} className="mini-row" data-activo-del-empleado={kind} style={{ alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ minWidth: 90, fontWeight: 700 }}>{kind === "email" ? "✉️ " + t("Email", "Correo") : "📞 " + t("Phone", "Teléfono")}</span>
+        <span style={{ minWidth: 90, fontWeight: 700 }}>{kind === "email" ? "✉️ " + t("Email", "Correo") : "📞 " + t("Line", "Línea")}</span>
         {tiene ? (
           <>
             <span data-asignado={tiene.id}>{kind === "phone" ? `${textoDeTelefono(tiene)} · ${etiquetaDeTipoDeTelefono(tiene.phone_type, lang)}` : tiene.value}</span>

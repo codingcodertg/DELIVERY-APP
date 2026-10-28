@@ -108,7 +108,7 @@ export default function AssetsPage() {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div className="viewtoggle">
             <button className={"vt " + (vista === "email" ? "on" : "")} data-vista="email" onClick={() => { setVista("email"); setFiltroEstado(""); }}>✉️ {t("Emails", "Correos")}</button>
-            <button className={"vt " + (vista === "phone" ? "on" : "")} data-vista="phone" onClick={() => { setVista("phone"); setFiltroEstado(""); }}>📞 {t("Phone numbers", "Números")}</button>
+            <button className={"vt " + (vista === "phone" ? "on" : "")} data-vista="phone" onClick={() => { setVista("phone"); setFiltroEstado(""); }}>📞 {t("Numbers", "Números")}</button>
             <button className={"vt " + (vista === "personas" ? "on" : "")} data-vista="personas" onClick={() => setVista("personas")}>👤 {t("By person", "Por persona")}</button>
           </div>
           {vista !== "personas" && <button className="btn btn-ghost" data-exporta="csv" disabled={!orden.visibles.length} onClick={exporta}>⬇ CSV</button>}
@@ -203,7 +203,7 @@ export default function AssetsPage() {
             <p className="hint" style={{ marginTop: 0 }}>{t("Active employees: who has a company email and a phone number, and who does not.", "Empleados activos: quién tiene correo y número de la empresa, y quién no.")}</p>
             <div className="tbl-scroll tbl-fit tbl-caja">
               <table className="orders" data-tabla-por-persona>
-                <thead><tr><th>{t("Employee", "Empleado")}</th><th>{t("Email", "Correo")}</th><th>{t("Phone number", "Número")}</th></tr></thead>
+                <thead><tr><th>{t("Employee", "Empleado")}</th><th>{t("Email", "Correo")}</th><th>{t("Line", "Línea")}</th></tr></thead>
                 <tbody>
                   {vistaPersonas.map((p) => (
                     <tr key={p.id} data-persona={p.id}>
@@ -255,10 +255,10 @@ function EditarActivo({ activo, busy, onClose, onSave, onDelete }: {
   return (
     <div className="overlay" onClick={onClose}>
       <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()} data-dialogo="activo">
-        <h3 style={{ margin: 0 }}>{activo.id ? "✏️" : "＋"} {esTel ? t("Phone number", "Número de teléfono") : t("Email", "Correo")}</h3>
+        <h3 style={{ margin: 0 }}>{activo.id ? "✏️" : "＋"} {esTel ? t("Line", "Línea") : t("Email", "Correo")}</h3>
         <div className="grid g2" style={{ marginTop: 12 }}>
           <div style={{ gridColumn: esTel ? undefined : "1 / -1" }}>
-            <label>{esTel ? t("Number", "Número") : t("Email", "Correo")}</label>
+            <label>{esTel ? t("Line", "Línea") : t("Email", "Correo")}</label>
             <input value={f.value} autoFocus onChange={(e) => setF({ ...f, value: e.target.value })} placeholder={esTel ? "956-555-0123" : "name@rdztilegroup.net"} />
           </div>
           {esTel && <div><label>{t("Extension", "Extensión")}</label><input value={f.ext} inputMode="numeric" onChange={(e) => setF({ ...f, ext: e.target.value })} /></div>}
