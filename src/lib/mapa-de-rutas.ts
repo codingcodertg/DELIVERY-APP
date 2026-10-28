@@ -196,7 +196,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
     if (!delDia.has(laneKey)) delDia.set(laneKey, e.paradasDe(laneKey, porChofer.get(laneKey) ?? []));
     return delDia.get(laneKey)!;
   };
-  // D-NEXT: TODAS las paradas del chofer llevan número, tengan o no puesto guardado (`route_seq`): la tabla las numera
+  // D-723: TODAS las paradas del chofer llevan número, tengan o no puesto guardado (`route_seq`): la tabla las numera
   // igual (`paradasDe` recorre la lista entera, con lo sin puesto al final), y en el mapa salían como puntos mudos. El
   // dueño, 2026-10-27, con cuatro puntos sin número: «porque esos dots no ponen el número, arréglalo».
   for (const [laneKey, list] of porChofer) {

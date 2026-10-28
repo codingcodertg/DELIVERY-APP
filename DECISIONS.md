@@ -48569,7 +48569,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** en el navegador; un día real con la 208 aplicada (el dueño la aplica).
 
-## D-NEXT · En el mapa del Gestor, toda parada del chofer lleva su número, tenga o no puesto guardado
+## D-723 · En el mapa del Gestor, toda parada del chofer lleva su número, tenga o no puesto guardado
 
 **Pedido:** el dueño, el 2026-10-27, con la ruta de un chofer en el mapa y cuatro puntos sin número: «porque esos dots no ponen el número, arréglalo».
 

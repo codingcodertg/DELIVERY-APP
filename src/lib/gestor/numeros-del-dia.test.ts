@@ -381,8 +381,8 @@ it("numerosDelDia sin filas no inventa paradas", () => {
   expect(numerosDelDia([], "derivada", [], null)).toEqual({ deFila: [], primera: [], etiqueta: [], paradas: [], dePendiente: [], etiquetaDePendiente: [], quedan: 0 });
 });
 
-// D-NEXT: una entrega asignada SIN puesto guardado (`route_seq` null) también lleva su número: el de la tabla.
-describe("D-NEXT: lo asignado sin puesto en la ruta también lleva número en el mapa", () => {
+// D-723: una entrega asignada SIN puesto guardado (`route_seq` null) también lleva su número: el de la tabla.
+describe("D-723: lo asignado sin puesto en la ruta también lleva número en el mapa", () => {
   const sinPuesto = (ids: readonly string[]) => diaDeAna().map((d) => (ids.includes(d.id) ? { ...d, route_seq: null } as Orden : d));
   const puntosDe = (todas: Orden[]) => {
     const stops = todas.filter((d) => PENDIENTES.has(d.stage));

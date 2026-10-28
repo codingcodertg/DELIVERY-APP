@@ -97,7 +97,7 @@ describe("la pantalla del Gestor usa el filtro y el plegado (D-393)", () => {
     expect(pagina).toContain("pasaFiltro, soloUnChofer: soloAlgunos(filtroChofer), enfocado: focused, atenuada: isDim,");
     expect(pagina).toContain("pasaFiltro, sigueSuPlan, colorDe: colorFor, atenuada: isDim,");
     expect(mapaDeRutas).toContain("if (!e.pasaFiltro(u.key)) continue; const base = e.baseDe(u.key);");
-    // D-NEXT: ya no se salta la ruta sin puestos guardados (sus paradas también se numeran); el filtro del chofer sigue.
+    // D-723: ya no se salta la ruta sin puestos guardados (sus paradas también se numeran); el filtro del chofer sigue.
     expect(mapaDeRutas).toContain("for (const [laneKey, list] of porChofer) { if (!e.pasaFiltro(laneKey)) continue;");
     expect(mapaDeRutas).toContain("if (!sel && !e.pasaFiltro(laneKey)) continue;");
     expect(mapaDeRutas).toContain("if (!sel && e.soloUnChofer) continue;");
