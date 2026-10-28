@@ -196,8 +196,10 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
     if (!delDia.has(laneKey)) delDia.set(laneKey, e.paradasDe(laneKey, porChofer.get(laneKey) ?? []));
     return delDia.get(laneKey)!;
   };
+  // D-723: TODAS las paradas del chofer llevan número, tengan o no puesto guardado (`route_seq`): la tabla las numera
+  // igual (`paradasDe` recorre la lista entera, con lo sin puesto al final), y en el mapa salían como puntos mudos. El
+  // dueño, 2026-10-27, con cuatro puntos sin número: «porque esos dots no ponen el número, arréglalo».
   for (const [laneKey, list] of porChofer) {
-    if (!list.some((d) => d.route_seq != null)) continue;
     if (!e.pasaFiltro(laneKey)) continue;
     const porId = new Map(list.map((d) => [d.id, d]));
     const conLoHecho = new Map([...list, ...(e.hechas.get(laneKey) ?? [])].map((d) => [d.id, d]));
@@ -221,7 +223,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
       for (const id of p.ordenes) numeroDe.set(id, [...(numeroDe.get(id) ?? []), p.numero]);
       // La burbuja la lleva la primera orden de la parada que tenga punto y no esté marcada ☑ (una marcada se pinta aparte,
       // en su color de selección).
-      const pintables = p.ordenes.filter((id) => { const d = porId.get(id); return !!d && d.route_seq != null && d.delivery_lat != null && d.delivery_lng != null && !tiene(id); });
+      const pintables = p.ordenes.filter((id) => { const d = porId.get(id); return !!d && d.delivery_lat != null && d.delivery_lng != null && !tiene(id); });
       const [lleva, ...resto] = pintables;
       if (!lleva) continue;
       const ya = paradaDe.get(lleva) ?? { numeros: [], textos: [] };
@@ -254,7 +256,7 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
     const list = porChofer.get(laneKey) ?? [];
     const idx = list.findIndex((x) => x.id === d.id);
     const parada = paradaDe.get(d.id);
-    const badge = d.route_seq != null ? (numeroDe.get(d.id)?.join("·") ?? String(idx + 1)) : undefined;
+    const badge = numeroDe.get(d.id)?.join("·") ?? String(idx + 1);
     if (parada && !sel) {
       pts.push({
         id: d.id, lat: d.delivery_lat, lng: d.delivery_lng,
