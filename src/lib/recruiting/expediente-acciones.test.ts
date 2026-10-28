@@ -215,7 +215,7 @@ describe("«Quitar también el acceso al hub» y «Reactivar no lo devuelve»", 
     expect(pagina).toContain("onClick={() => cambiaAcceso(true)}");
     expect(pagina).toContain("onClick={() => setQuitandoAcceso(true)}"); // D-734: quitar el acceso pide motivo (ConfirmarConMotivo) y luego cambiaAcceso(false, motivo)
     expect(pagina).toContain("await cambiaAcceso(false, motivo)");
-    expect(pagina).toContain("const r = await setHubAccess(persona.id, encendida);");
+    expect(pagina).toContain("const r = await setHubAccess(persona.id, encendida, motivo ?? null);");
     // El estado de la cuenta se LEE de Auth al abrir la ficha (D-251), no se guarda.
     expect(pagina).toContain("const r = await accountFactsFor([persona.profile_id]);");
     expect(pagina).toContain("const cuenta = resumenDeCuenta(persona, hechos);");
