@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
+import { nombreDeDepartamento } from "@/lib/departamentos";
 import { useData } from "@/lib/recruiting-data-provider";
 import {
   createEmployeeFile, deactivateEmployee, listStoreNames, reactivateEmployee,
@@ -177,7 +178,7 @@ export function ReactivarDialog({
 export function AgregarDialog({
   con159, onDone, onClose,
 }: { con159: boolean; onDone: (id: string) => void; onClose: () => void }) {
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const { notify, settings } = useData();
   const [modo, setModo] = useState<"sin" | "con">("sin");
   const [f, setF] = useState({
@@ -248,7 +249,7 @@ export function AgregarDialog({
                 <label>{t("Department", "Departamento")}</label>
                 <select value={f.department} onChange={(e) => pon("department", e.target.value)}>
                   <option value="">{t("— none —", "— sin departamento —")}</option>
-                  {(settings.departments ?? []).map((d) => <option key={d} value={d}>{d}</option>)}
+                  {(settings.departments ?? []).map((d) => <option key={d} value={d}>{nombreDeDepartamento(d, lang)}</option>)}
                 </select>
               </div>
               <div>

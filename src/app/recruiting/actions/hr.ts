@@ -140,7 +140,7 @@ export type EmployeeDoc = {
  */
 export async function listEmployeeFiles(): Promise<
   // `campos159`: si la tabla ya tiene las columnas de la 159. Sin ellas la pantalla apaga los campos nuevos.
-  { ok: true; rows: (EmployeeFile & { docKinds: string[] })[]; campos159: boolean; campos207: boolean } | { ok: false; message: string }
+  { ok: true; rows: (EmployeeFile & { docKinds: string[]; licencia_vence: string | null })[]; campos159: boolean; campos207: boolean } | { ok: false; message: string }
 > {
   const supabase = await createClient();
   const yo = await tier(supabase);
@@ -153,7 +153,8 @@ export async function listEmployeeFiles(): Promise<
     // abre nada que RR. HH. no pudiera ver ya.
     supabase.from("profiles").select("id, full_name, store"),
     // Solo `kind` y de quién: la lista únicamente necesita saber QUÉ hay, no su contenido.
-    supabase.schema("recruiting").from("employee_docs").select("employee_id, kind, signed_at"),
+    // D-725: y hasta cuándo vale (la licencia), para avisar cuando se acerca.
+    supabase.schema("recruiting").from("employee_docs").select("employee_id, kind, signed_at, expires_at"),
   ]);
   if (error) return { ok: false, message: error.message };
 
@@ -164,7 +165,7 @@ export async function listEmployeeFiles(): Promise<
     rows: filasDeExpediente(
       (files ?? []) as Record<string, unknown>[],
       (people ?? []) as { id: string; full_name?: string | null; store?: string | null }[],
-      (docs ?? []) as { employee_id: string; kind: string; signed_at?: string | null }[],
+      (docs ?? []) as { employee_id: string; kind: string; signed_at?: string | null; expires_at?: string | null }[],
     ),
   };
 }

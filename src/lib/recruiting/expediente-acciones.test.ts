@@ -56,7 +56,7 @@ describe("el filtro Activos / Bajas / Todos y sus contadores", () => {
     expect(pagina).toContain("const cuenta = cuentaPorEstado(rows);");
     expect(pagina).toContain("const delEstado = filtraPorEstado(rows, estado);");
     expect(pagina).toContain('useState<FiltroEstado>("activos")');
-    expect(pagina).toContain("{t(e.en, e.es)} · {cuenta[e.key]}");
+    expect(pagina).toContain("{t(e.en, e.es)}<span className=\"cnt\">{cuenta[e.key]}</span>");
     for (const k of ["activos", "bajas", "todos"]) expect(pagina).toContain(`{ key: "${k}"`);
     // Lo que se pinta sale de la lista ya filtrada por estado, no de `rows`.
     expect(pagina).toMatch(/const visibles = delEstado\s*\.filter/);
@@ -329,7 +329,9 @@ describe("los campos de la 159, y la pantalla sin ella", () => {
     expect(pagina).toContain("placeholder={con159 ? extra.placeholder : faltaMigracion(t)}");
     expect(ventanas).toContain('return t("migration 159 pending", "falta la migración 159");');
     for (const c of ["job_title", "personal_phone", "personal_email", "emergency_name", "emergency_relation", "emergency_phone"]) {
-      expect(pagina).toContain(`campo159("${c}"`);
+      // D-725: el puesto va con casillas (apagadas sin la 159), no con campo159.
+      if (c === "job_title") expect(pagina).toContain("<input type=\"checkbox\" disabled={!con159} checked={tienePuesto(info.job_title, p)}");
+      else expect(pagina).toContain(`campo159("${c}"`);
     }
   });
 
@@ -364,7 +366,8 @@ describe("los campos de la 159, y la pantalla sin ella", () => {
     expect(pagina).toContain('<input value={info.full_name} data-campo="full_name"');
     expect(pagina).toContain('<select value={tiendaDelSelector(info)} data-campo="store"');
     expect(pagina).toContain("onChange={(e) => setInfo({ ...info, ...parcheDeTienda(e.target.value, info.directory_group) })}");
-    expect(pagina).toContain('{editaGrupo && <option value={TIENDA_REMOTA}>{t("Remote", "Remoto")}</option>}');
+    // D-725: «Remoto» lo ven todos; solo el admin de RR. HH. lo puede elegir (el servidor rechaza el grupo a un gerente).
+    expect(pagina).toContain('<option value={TIENDA_REMOTA} disabled={!editaGrupo}');
     expect(pagina).toContain('store: tiendaVisible(persona) ?? "",');
   });
 });
@@ -414,7 +417,7 @@ describe("expediente incompleto: qué falta, por persona, y el contador", () => 
 
   it("la lista pinta el indicador por persona con los nombres de lo que falta, el contador arriba y el filtro", () => {
     expect(pagina).toContain("const incompletos = cuentaIncompletos(delEstado, con159);");
-    expect(pagina).toContain('{t("Incomplete files", "Expedientes incompletos")} · {incompletos}');
+    expect(pagina).toContain('{t("Incomplete files", "Expedientes incompletos")}<span className="cnt">{incompletos}</span>');
     expect(pagina).toContain("const sinLlenar = camposQueFaltan(r, con159);");
     expect(pagina).toContain("title={sinLlenar.map((c) => ETIQUETAS_CAMPO[c][lang]).join(\", \")}");
     expect(pagina).toContain(".filter((r) => !soloIncompletos || camposQueFaltan(r, con159).length > 0)");
@@ -501,8 +504,12 @@ describe("la 207: herramientas y costo", () => {
     expect(pagina).toContain("<input value={info[k]} disabled={!con207} data-campo207={k}");
     expect(pagina).toContain("placeholder={con207 ? extra.placeholder : faltaMigracion(t, 207)}");
     expect(pagina).toContain("...(con207 ? de207 : {}),");
+    // D-725: el plan tiene su propio campo (con el tooltip); 1Password, su selector; y seis columnas ya no se enseñan
+    // (clave de Remote PC, usuario y teléfono de RingCentral, otras herramientas y qué herramientas, usuario del hub).
+    const sinCampo = ["remote_pc_status", "rc_user_created", "rc_device_assigned", "tools_cost_year", "tools_note", "app_username"];
     for (const c of COLUMNAS_207) {
-      if (c === "onepassword") expect(pagina).toContain('data-campo207="onepassword"');
+      if (sinCampo.includes(c)) expect(pagina, c).not.toContain(`campo207("${c}"`);
+      else if (c === "onepassword" || c === "email_plan") expect(pagina).toContain(`data-campo207="${c}"`);
       else expect(pagina).toContain(`campo207("${c}"`);
     }
     expect(pagina).toContain("data-costo-mensual");
@@ -629,7 +636,7 @@ describe("D-721: «Permisos» sin identidad repetida, y HR como pestaña directa
     expect(ud).toContain("{!LOCAL_MODE && !desdeExpediente && (\n            <div className=\"field\">\n              <label>{t(\"Username\", \"Usuario\")}</label>");
     expect(ud).toContain("{!LOCAL_MODE && !desdeExpediente && (\n          <div className=\"field\">\n            <label>{t(\"Email\", \"Correo\")}</label>");
     // El título, el rol y los módulos siguen: no están en el expediente.
-    expect(ud.split("desdeExpediente").length - 1).toBe(5);
+    expect(ud.split("desdeExpediente").length - 1).toBe(6); // D-725: también el bloque «Acceso» (la contraseña vive en «Cuenta del hub»)
     expect(leer("src/components/recruiting/PermisosDelEmpleado.tsx")).toContain("<UserDialog user={usuario} onClose={cerrar} desdeExpediente />");
   });
 

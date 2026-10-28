@@ -25,8 +25,12 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { downloadCSV, toCSV } from "@/lib/utils";
 import { exportaTablaExcel } from "@/lib/export-tabla";
 import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
-import { COLUMNAS_207, OPCIONES_1PW, TIENDA_REMOTA, costoMensual, dinero, hayCambios, parcheDeTienda, tiendaDelSelector } from "@/lib/recruiting/employee-file";
+import { COLUMNAS_207, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
 import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
+import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
+import { nombreDeDepartamento } from "@/lib/departamentos";
+import { PLANES_DE_CORREO, tooltipDelPlan } from "@/lib/recruiting/planes-de-correo";
+import { avisoDeLicencia, estadoDeLicencia } from "@/lib/recruiting/hr";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -43,7 +47,7 @@ import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado
  * Activos / Bajas / Todos. Las acciones de baja existían desde D-251 sin ningún botón que las llamara.
  */
 
-type Fila = EmployeeFile & { docKinds: string[] };
+type Fila = EmployeeFile & { docKinds: string[]; licencia_vence: string | null };
 
 export default function EmployeeFilesPage() {
   const { t, lang } = usePrefs();
@@ -61,6 +65,9 @@ export default function EmployeeFilesPage() {
   const [buscar, setBuscar] = useState("");
   const [soloFaltan, setSoloFaltan] = useState(false);
   const [soloIncompletos, setSoloIncompletos] = useState(false);
+  // D-725: solo quien tiene la licencia vencida o por vencer.
+  const [soloLicencia, setSoloLicencia] = useState(false);
+  const hoy = hoyLocalISO();
   // Por defecto los ACTIVOS: una baja no debe estorbar en la lista de todos los días.
   const [estado, setEstado] = useState<FiltroEstado>("activos");
   const [baja, setBaja] = useState<string | null>(null);
@@ -90,12 +97,14 @@ export default function EmployeeFilesPage() {
     .filter((r) => coincideBusqueda({ ...r, store: tiendaVisible(r) }, buscar))
     .filter((r) => !soloFaltan || faltan(r).length > 0)
     .filter((r) => !soloIncompletos || camposQueFaltan(r, con159).length > 0)
+    .filter((r) => !soloLicencia || estadoDeLicencia(r.licencia_vence, hoy) !== null)
     .filter((r) => filtraPorCuenta([r], filtroCuenta).length > 0);
   const porCuenta = cuentaPorCuenta(delEstado);
+  const conLicenciaPorVencer = delEstado.filter((r) => estadoDeLicencia(r.licencia_vence, hoy) !== null).length;
 
   // D-706: la tabla como la de Órdenes: menú ▾ por columna (ordenar + filtrar), anchos que se arrastran y se
   // guardan en este navegador, y exportar lo que se ve (las filas que la RLS dejó cargar, con los filtros puestos).
-  const valorDe = useCallback((clave: string, r: Fila) => valorDeEmpleado(clave, { ...r, store: tiendaVisible(r) }, {
+  const valorDe = useCallback((clave: string, r: Fila) => valorDeEmpleado(clave, { ...r, store: tiendaVisible(r), department: nombreDeDepartamento(r.department, lang) || null }, {
     sinLlenar: camposQueFaltan(r, con159).length,
     papelesQueFaltan: REQUIRED_FORMS.filter((f) => !r.docKinds.includes(f.key)).length,
   }, (en, es) => (lang === "es" ? es : en)), [con159, lang]);
@@ -126,18 +135,21 @@ export default function EmployeeFilesPage() {
   return (
     <>
       <UsuariosPorCrear />
-      <div className="card">
-        <div className="sec-head" style={{ marginTop: 0 }}>
-          <span className="sec-title">👤 {t("Employee files", "Expedientes")}</span>
-          <span className="sec-sub">
-            {t("Everyone in the company, their details and their paperwork.",
-               "Toda la plantilla, sus datos y sus papeles.")}
-          </span>
-          <button className="btn btn-primary" style={{ marginLeft: "auto" }} data-accion="agregar"
-            onClick={() => setAgregando(true)}>
+      {/* D-725: la misma cabecera que la tabla de Órdenes —título con su cuenta, botones a la derecha— y la lista a
+          todo el ancho de la pantalla (`.wrap` deja de acotarla aquí; recruiting.css). El dueño, 2026-10-28: «The Employees
+          table in the HR app must use the same headers style, filters, sort, layout and overall look and feel as the
+          Deliveries App table … must also adapt to the full width of the screen». */}
+      <div className="page-head" data-cabecera-de-empleados>
+        <h2>👤 {t("Employees", "Empleados")} <span className="count-tag">{orden.visibles.length}</span></h2>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn-ghost" data-exporta="excel" disabled={!orden.visibles.length} onClick={() => exporta("excel")}>📊 Excel</button>
+          <button className="btn btn-ghost" data-exporta="csv" disabled={!orden.visibles.length} onClick={() => exporta("csv")}>⬇ CSV</button>
+          <button className="btn btn-primary" data-accion="agregar" onClick={() => setAgregando(true)}>
             ＋ {t("Add employee", "Agregar empleado")}
           </button>
         </div>
+      </div>
+      <div className="card" data-tabla-a-todo-el-ancho>
 
         {!cargando && !err && !con159 && (
           <div className="hint" data-aviso="159"
@@ -148,29 +160,34 @@ export default function EmployeeFilesPage() {
         )}
 
         <div className="filters">
+          <BuscadorConBorrar maxWidth={260} valor={buscar} onValor={setBuscar}
+            placeholder={t("Search…  (name, position, phone, email)", "Buscar…  (nombre, puesto, teléfono, correo)")} />
+        </div>
+        <div className="filters filters-oneline">
           {ESTADOS.map((e) => (
             <button key={e.key} className={"chip" + (estado === e.key ? " on" : "")} data-estado={e.key}
               onClick={() => setEstado(e.key)}>
-              {t(e.en, e.es)} · {cuenta[e.key]}
+              {t(e.en, e.es)}<span className="cnt">{cuenta[e.key]}</span>
             </button>
           ))}
-          <input
-            value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
-            placeholder={t("Search name, position, phone, email…", "Buscar nombre, puesto, teléfono, correo…")}
-            style={{ width: "auto", minWidth: 220 }}
-          />
           <button className={"chip" + (soloIncompletos ? " on" : "")} data-filtro="incompletos"
             onClick={() => setSoloIncompletos(!soloIncompletos)}>
-            {t("Incomplete files", "Expedientes incompletos")} · {incompletos}
+            {t("Incomplete files", "Expedientes incompletos")}<span className="cnt">{incompletos}</span>
           </button>
           <button className={"chip" + (soloFaltan ? " on" : "")} onClick={() => setSoloFaltan(!soloFaltan)}>
-            {t("Only missing paperwork", "Solo con papeles pendientes")}
+            {t("Missing paperwork", "Papeles pendientes")}
           </button>
+          {/* D-725: la licencia vencida o por vencer, en ámbar como «Factura pendiente» en Órdenes. */}
+          {(conLicenciaPorVencer > 0 || soloLicencia) && (
+            <button className={"chip chip-pend" + (soloLicencia ? " on" : "")} data-filtro="licencia"
+              onClick={() => setSoloLicencia(!soloLicencia)}>
+              {t("License expiring", "Licencia por vencer")}<span className="cnt">{conLicenciaPorVencer}</span>
+            </button>
+          )}
           {(["con", "sin"] as const).map((k) => (
             <button key={k} className={"chip" + (filtroCuenta === k ? " on" : "")} data-filtro-cuenta={k}
               onClick={() => setFiltroCuenta(filtroCuenta === k ? "todos" : k)}>
-              {k === "con" ? t("User created", "Con usuario") : t("No user", "Sin usuario")} · {porCuenta[k]}
+              {k === "con" ? t("User created", "Con usuario") : t("No user", "Sin usuario")}<span className="cnt">{porCuenta[k]}</span>
             </button>
           ))}
         </div>
@@ -191,12 +208,10 @@ export default function EmployeeFilesPage() {
           <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "6px 0" }}>
             <FiltrosPuestos estado={orden} columnas={COLUMNAS_DE_EMPLEADOS} lang={lang} t={t} />
-            <span style={{ marginLeft: "auto" }} />
-            <button className="btn btn-ghost btn-sm" data-exporta="excel" disabled={!orden.visibles.length} onClick={() => exporta("excel")}>📊 Excel</button>
-            <button className="btn btn-ghost btn-sm" data-exporta="csv" disabled={!orden.visibles.length} onClick={() => exporta("csv")}>⬇ CSV</button>
           </div>
-          <div className="tbl-scroll tbl-fit">
-          <table className="cmp-tbl tbl-resize" style={anchoDeTabla([...COLUMNAS_DE_EMPLEADOS.map(ancho), 170])} data-tabla-de-empleados>
+          {/* D-725: la tabla con las clases de la de Órdenes (`orders`: cabecera pegada, filas, tipografía) y su caja. */}
+          <div className="tbl-scroll tbl-fit tbl-caja">
+          <table className="orders tbl-resize" style={anchoDeTabla([...COLUMNAS_DE_EMPLEADOS.map(ancho), 170])} data-tabla-de-empleados>
             <colgroup>
               {COLUMNAS_DE_EMPLEADOS.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
               <col style={{ width: 170 }} />
@@ -224,7 +239,7 @@ export default function EmployeeFilesPage() {
                 return (
                   // D-705: la fila entera abre el expediente (antes solo «✏️ Editar»: la fila no tenía manejador, y
                   // la celda «Expediente» era una insignia sin clic). Con teclado: Tab hasta la fila y Enter o espacio.
-                  <tr key={r.id} data-fila={r.id} className={"fila-abre" + (deBaja ? " atenuado" : "")} tabIndex={0}
+                  <tr key={r.id} data-fila={r.id} className={"fila-abre clickable" + (deBaja ? " atenuado" : "")} tabIndex={0}
                     aria-label={t("Open file of ", "Abrir expediente de ") + r.full_name}
                     onClick={() => setAbierto(r.id)}
                     onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setAbierto(r.id); } }}>
@@ -237,9 +252,17 @@ export default function EmployeeFilesPage() {
                           {etiquetaEstado("baja", lang)}
                         </span>
                       )}
+                      {/* D-725: la licencia vencida o por vencer, a la vista en la lista. */}
+                      {estadoDeLicencia(r.licencia_vence, hoy) && (
+                        <span className="badge" data-insignia="licencia" title={avisoDeLicencia(r.licencia_vence, hoy, lang) ?? undefined}
+                          style={{ marginLeft: 8, background: estadoDeLicencia(r.licencia_vence, hoy) === "vencida" ? "var(--tint-red-strong)" : "var(--tint-warn)",
+                            color: estadoDeLicencia(r.licencia_vence, hoy) === "vencida" ? "var(--red)" : "var(--ink)", border: "1px solid var(--tint-warn-line)" }}>
+                          🪪 {estadoDeLicencia(r.licencia_vence, hoy) === "vencida" ? t("license expired", "licencia vencida") : t("license expiring", "licencia por vencer")}
+                        </span>
+                      )}
                     </td>
                     <td>{r.job_title || "—"}</td>
-                    <td>{r.department || "—"}</td>
+                    <td>{nombreDeDepartamento(r.department, lang) || "—"}</td>
                     <td>{tiendaVisible(r) || "—"}</td>
                     <td>{r.phone || "—"}</td>
                     <td>{r.ringcentral_ext || "—"}</td>
@@ -350,11 +373,26 @@ export default function EmployeeFilesPage() {
 function Ficha({
   persona, con159, con207, puedeBaja, onSaved, onClose, onBaja, onReactivar,
 }: {
-  persona: EmployeeFile; con159: boolean; con207: boolean; puedeBaja: boolean;
+  persona: Fila; con159: boolean; con207: boolean; puedeBaja: boolean;
   onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void;
 }) {
   const { t, lang } = usePrefs();
-  const { notify, settings, me, hub } = useData();
+  const { notify, settings, me, hub, roles: puestosDeAjustes } = useData();
+  // D-725: la contraseña nueva se pone desde «Cuenta del hub» (antes estaba en «Permisos»). Solo un admin del hub.
+  const [contrasenaNueva, setContrasenaNueva] = useState<string | null>(null);
+  const puedeContrasena = hub?.role === "admin" && !!persona.profile_id;
+  const ponContrasena = async () => {
+    if (!persona.profile_id) return;
+    if (!window.confirm(t(`Give ${persona.full_name} a new password? Their current one stops working immediately.`,
+      `¿Dar a ${persona.full_name} una contraseña nueva? La actual deja de servir de inmediato.`))) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/reset-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: persona.profile_id }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { notify("Error: " + (data.error || res.statusText)); return; }
+      setContrasenaNueva(data.password ?? null);
+    } finally { setBusy(false); }
+  };
   // El grupo del directorio es solo del admin de RR. HH. (D-261). `me.role` es el rol de RR. HH.
   // (el layout del módulo lo monta así); la barrera de verdad está en la acción de guardar.
   const editaGrupo = puedeEditarGrupoDirectorio(me?.role);
@@ -610,6 +648,15 @@ function Ficha({
           )}
         </div>
 
+        {/* D-725: la licencia vencida o por vencer, para pedir el documento nuevo. */}
+        {avisoDeLicencia(persona.licencia_vence, hoyLocalISO(), lang) && (
+          <div className="hint" data-aviso="licencia"
+            style={{ background: estadoDeLicencia(persona.licencia_vence, hoyLocalISO()) === "vencida" ? "var(--tint-red)" : "var(--tint-warn)",
+              border: "1px solid var(--tint-warn-line)", borderRadius: 8, padding: "8px 12px", marginTop: 10 }}>
+            <b>🪪 {avisoDeLicencia(persona.licencia_vence, hoyLocalISO(), lang)}</b> · {t("ask for the new document.", "pide el documento nuevo.")}
+          </div>
+        )}
+
         {/* Qué falta llenar, con nombres: el contador de arriba dice cuántos, esto dice cuáles. */}
         {sinLlenar.length > 0 && (
           <div className="hint" data-aviso="incompleto"
@@ -645,7 +692,19 @@ function Ficha({
           <input value={info.full_name} data-campo="full_name"
             onChange={(e) => setInfo({ ...info, full_name: e.target.value })} />
         </div>
-        {campo159("job_title", t("Position", "Puesto"))}
+        {/* D-725: varios puestos por persona, con casillas; se guardan en `job_title` separados por coma. */}
+        <div data-puestos style={{ gridColumn: "1 / -1" }}>
+          <label>{t("Position", "Puesto")}{con159 ? "" : ` · ${faltaMigracion(t)}`}</label>
+          <div style={{ display: "flex", gap: "6px 14px", flexWrap: "wrap" }}>
+            {puestosParaElegir(puestosDeAjustes, info.job_title).map((p) => (
+              <label key={p} style={{ display: "inline-flex", gap: 6, alignItems: "center", fontWeight: 500, textTransform: "none" }}>
+                <input type="checkbox" disabled={!con159} checked={tienePuesto(info.job_title, p)} data-puesto={p}
+                  onChange={() => setInfo({ ...info, job_title: alternaPuesto(info.job_title, p) })} />
+                {p}
+              </label>
+            ))}
+          </div>
+        </div>
         {campo("employee_code", "ID")}
         {campo("date_hired", t("Date hired", "Fecha de ingreso"), "date")}
         {campo("birthday", t("Birthday", "Cumpleaños"), "date")}
@@ -658,7 +717,7 @@ function Ficha({
             onChange={(e) => setInfo({ ...info, ...parcheDeTienda(e.target.value, info.directory_group) })}>
             <option value="">{t("— none —", "— sin tienda —")}</option>
             {tiendas.map((n) => <option key={n} value={n}>{n}</option>)}
-            {editaGrupo && <option value={TIENDA_REMOTA}>{t("Remote", "Remoto")}</option>}
+            <option value={TIENDA_REMOTA} disabled={!editaGrupo} title={editaGrupo ? undefined : soloAdmin}>{t("Remote", "Remoto")}</option>
             {/* Una tienda guardada que ya no está en Ajustes no se pierde al abrir la ficha. */}
             {info.store && !tiendas.includes(info.store) && (
               <option value={info.store}>{info.store}</option>
@@ -690,7 +749,7 @@ function Ficha({
           >
             <option value="">{t("— none —", "— sin departamento —")}</option>
             {(settings.departments ?? []).map((d) => (
-              <option key={d} value={d}>{d}</option>
+              <option key={d} value={d}>{nombreDeDepartamento(d, lang)}</option>
             ))}
             {/* El que ya tuviera guardado y ya no esté en la lista NO se pierde al abrir la
                 ficha: sin esto, el selector no lo encontraría, caería en la opción vacía y el
@@ -700,7 +759,6 @@ function Ficha({
             )}
           </select>
         </div>
-        {campo("days_off", t("Attendance — days off", "Asistencia — días libres"), "number")}
       </div>
       <div style={{ marginTop: 12 }}>
         <label>{t("Address", "Dirección")}</label>
@@ -757,11 +815,21 @@ function Ficha({
         </span>
       }>
       <div className="grid g3">
-        {campo207("email_plan", t("Email plan (Microsoft 365)", "Plan del correo (Microsoft 365)"))}
+        {/* D-725: al pasar el ratón por el plan, su nombre, su costo y qué incluye (del archivo «RTG EMAILS»). */}
+        <div data-plan-de-correo title={tooltipDelPlan(info.email_plan, lang) ?? undefined}>
+          <label>{t("Email plan (Microsoft 365)", "Plan del correo (Microsoft 365)")}{tooltipDelPlan(info.email_plan, lang) ? " ℹ️" : ""}</label>
+          <input value={info.email_plan} disabled={!con207} data-campo207="email_plan" list="planes-de-correo"
+            title={tooltipDelPlan(info.email_plan, lang) ?? (con207 ? undefined : faltaMigracion(t, 207))}
+            onChange={(e) => setInfo({ ...info, email_plan: e.target.value })}
+            placeholder={con207 ? undefined : faltaMigracion(t, 207)} />
+          <datalist id="planes-de-correo">
+            {PLANES_DE_CORREO.map((p) => <option key={p.nombre} value={p.nombre}>{`$${p.costoAnual.toFixed(2)}/yr · ${p.incluye.join(" · ")}`}</option>)}
+            <option value="Currently No Email" />
+          </datalist>
+        </div>
         {campo207("email_cost_year", t("Email cost / year (USD)", "Costo del correo al año (USD)"), { inputMode: "decimal", placeholder: "259.80" })}
         {campo207("email_renewal_date", t("Email renewal date", "Renovación del correo"), { type: "date" })}
         {campo207("second_email", t("Second work email", "Segundo correo de trabajo"), { type: "email" })}
-        {campo207("app_username", t("Hub username (if not the email)", "Usuario del hub (si no es el correo)"))}
         <div>
           <label>1Password</label>
           <select value={info.onepassword} disabled={!con207} data-campo207="onepassword"
@@ -775,11 +843,6 @@ function Ficha({
         {campo207("device_serial", t("Desk phone serial", "Serie del teléfono de escritorio"))}
         {campo207("qb_initials", t("QuickBooks initials", "Iniciales en QuickBooks"))}
         {campo207("remote_pc_name", t("Remote PC name", "PC de Remote PC"))}
-        {campo207("remote_pc_status", t("Remote PC password", "Clave de Remote PC"), { placeholder: "DONE / DNE / SWITCH TO SITE" })}
-        {campo207("rc_user_created", t("RingCentral user", "Usuario de RingCentral"), { placeholder: "YES / LATER / N/A" })}
-        {campo207("rc_device_assigned", t("RingCentral device", "Teléfono de RingCentral"), { placeholder: "YES / LATER / N/A" })}
-        {campo207("tools_cost_year", t("Other tools / year (USD)", "Otras herramientas al año (USD)"), { inputMode: "decimal" })}
-        {campo207("tools_note", t("Which tools", "Qué herramientas"))}
       </div>
       </Seccion>
 
@@ -829,9 +892,24 @@ function Ficha({
                 {t("Left the company but can still sign in.", "Está de baja pero todavía puede entrar.")}
               </span>
             )}
+            {puedeContrasena && !contrasenaNueva && (
+              <button className="btn btn-ghost btn-sm" data-accion="contrasena-nueva" disabled={busy} onClick={() => void ponContrasena()}>
+                🔒 {t("Set a new password", "Poner contraseña nueva")}
+              </button>
+            )}
           </>
         )}
       </div>
+      {contrasenaNueva && (
+        <div className="card" data-contrasena-nueva style={{ margin: "10px 0 0", background: "var(--accent-soft)", borderColor: "var(--accent)" }}>
+          <div><b>{t("New password", "Contraseña nueva")}:</b> <span style={{ fontFamily: "monospace", fontSize: 17 }}>{contrasenaNueva}</span></div>
+          <div className="hint">
+            {t("Shown once. Their old password stopped working when you pressed the button. They'll be asked to choose their own the next time they sign in.",
+               "Se muestra una sola vez. La anterior dejó de servir al presionar el botón. Al entrar se le pedirá que elija una suya.")}
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => navigator.clipboard?.writeText(contrasenaNueva)}>📋 {t("Copy", "Copiar")}</button>
+        </div>
+      )}
       </Seccion>
 
       <Seccion id="time-tracker" titulo="TIME TRACKER">
@@ -964,6 +1042,8 @@ function Bloque({
                       )
                     ) : (
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        {/* D-725: la licencia no pide desde cuándo, solo hasta cuándo. */}
+                        {!k.soloVence && (
                         <input
                           type="date"
                           value={uno?.signed_at ?? ""}
@@ -976,11 +1056,14 @@ function Bloque({
                             }))
                           }
                         />
+                        )}
+                        {k.soloVence && <span className="hint" style={{ marginTop: 0 }}>{t("Expires", "Vence")}:</span>}
                         {k.expires && (
                           <input
                             type="date"
                             value={uno?.expires_at ?? ""}
-                            disabled={busy || !uno}
+                            disabled={busy || (!uno && !k.soloVence)}
+                            data-vence={k.key}
                             title={t("Expires", "Vence")}
                             style={{ width: "auto" }}
                             onChange={(e) =>
