@@ -5,7 +5,7 @@ import {
   filtraPorEstado, cuentaPorEstado,
   conHechosDeCuenta, estadoEmpleado, extensionValida, filasDeExpediente, limpiaExtension,
   normalizaGrupoDirectorio, nombreVisible, parcheAlta, parcheBaja, puedeEditarGrupoDirectorio,
-  puedeElegirTienda, puedeEnlazarCuenta, puedeVerExpedientes,
+  TIENDA_REMOTA, parcheDeTienda, puedeEnlazarCuenta, puedeVerExpedientes, tiendaDelSelector,
   resumenDeCuenta, tiendaVisible, tipoDeAcceso,
 } from "./employee-file";
 import type { HechosDeCuenta } from "./employee-file";
@@ -334,9 +334,17 @@ describe("la tienda: con cuenta manda la cuenta", () => {
     expect(tiendaVisible({ account_store: null, store: "  " })).toBeNull();
   });
 
-  it("solo se elige en un expediente sin cuenta", () => {
-    expect(puedeElegirTienda({ profile_id: null })).toBe(true);
-    expect(puedeElegirTienda({ profile_id: "u-1" })).toBe(false);
+  it("D-721: se elige siempre; el selector enseña la de la cuenta, y «Remoto» cuando el grupo es remote", () => {
+    expect(tiendaDelSelector({ store: "Weslaco", account_store: "Pharr", directory_group: null })).toBe("Pharr");
+    expect(tiendaDelSelector({ store: null, account_store: null, directory_group: null })).toBe("");
+    expect(tiendaDelSelector({ store: "Pharr", account_store: null, directory_group: "remote" })).toBe(TIENDA_REMOTA);
+  });
+
+  it("D-721: elegir «Remoto» quita la tienda y pone el grupo remote; elegir una tienda saca del grupo remote y respeta sin_tienda", () => {
+    expect(parcheDeTienda(TIENDA_REMOTA, null)).toEqual({ store: "", directory_group: "remote" });
+    expect(parcheDeTienda("Pharr", "remote")).toEqual({ store: "Pharr", directory_group: "" });
+    expect(parcheDeTienda(" Pharr ", "sin_tienda")).toEqual({ store: "Pharr", directory_group: "sin_tienda" });
+    expect(parcheDeTienda("", "")).toEqual({ store: "", directory_group: "" });
   });
 
   it("la lista recibe las DOS tiendas, cada una en su campo", () => {
@@ -354,9 +362,9 @@ describe("la tienda: con cuenta manda la cuenta", () => {
   });
 });
 
-describe("la barrera del servidor: no se guarda tienda en un expediente con cuenta", () => {
-  it("la acción pregunta de quién es el expediente antes de guardar la tienda", () => {
-    expect(acciones).toContain('if ("store" in patch) {');
+describe("la barrera del servidor: con cuenta, la tienda y el nombre van al perfil (D-721; antes se rechazaban)", () => {
+  it("la acción pregunta de quién es el expediente antes de guardar la tienda o el nombre", () => {
+    expect(acciones).toContain('if ("store" in patch || "full_name" in patch) {');
     expect(acciones).toContain('.select("profile_id").eq("id", fileId).maybeSingle();');
   });
 
@@ -364,8 +372,11 @@ describe("la barrera del servidor: no se guarda tienda en un expediente con cuen
     expect(acciones).toContain("if (errActual) return { ok: false, message: errActual.message };");
   });
 
-  it("con cuenta, rechaza con el motivo", () => {
-    expect(acciones).toContain('return { ok: false, message: "This person has an account: change their store in Users." };');
+  it("D-721: con cuenta, el admin de RR. HH. la guarda y se copia al perfil; el gerente no", () => {
+    expect(acciones).toContain('if (yo.role !== "admin") return { ok: false, message: "This person has an account: only an HR admin can change their name or store here." };');
+    expect(acciones).toContain('if ("store" in patch) perfil.store = (patch.store ?? "").toString().trim() || null;');
+    expect(acciones).toContain('const { error: errPerfil } = await admin.from("profiles").update(perfil).eq("id", perfilId);');
+    expect(acciones).not.toContain("change their store in Users");
   });
 
   it("y la lista lee la tienda del perfil, que es la que se enseña de solo lectura", () => {

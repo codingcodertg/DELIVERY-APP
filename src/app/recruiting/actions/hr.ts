@@ -219,18 +219,21 @@ export async function saveEmployeeFile(
     patch = { ...patch, directory_group: grupo };
   }
 
-  // La tienda del expediente es SOLO para quien no tiene cuenta (D-258). Con cuenta manda
-  // `profiles.store`, que decide qué ve esa persona en Entregas. La ficha enseña el campo de
-  // solo lectura, pero eso es comodidad: la barrera está aquí, porque una llamada directa a
-  // esta acción no pasa por la pantalla.
-  if ("store" in patch) {
+  // D-721: con cuenta, la tienda y el nombre se eligen TAMBIÉN desde el expediente y se copian al perfil
+  // (`profiles.store`, que decide qué ve esa persona en Entregas, y `profiles.full_name`). Antes (D-258) con cuenta se
+  // rechazaban. Lo hace solo el admin de RR. HH., como enlazar la cuenta: es decir algo de la cuenta, no del expediente.
+  let perfilId: string | null = null;
+  const perfil: { store?: string | null; full_name?: string } = {};
+  if ("store" in patch || "full_name" in patch) {
     const { data: actual, error: errActual } = await supabase
       .schema("recruiting").from("employee_files").select("profile_id").eq("id", fileId).maybeSingle();
     // Si no se pudo preguntar, NO se guarda: descartar el error y seguir escribiría la tienda
     // justo en el caso que esta comprobación existe para parar.
     if (errActual) return { ok: false, message: errActual.message };
     if (actual?.profile_id) {
-      return { ok: false, message: "This person has an account: change their store in Users." };
+      if (yo.role !== "admin") return { ok: false, message: "This person has an account: only an HR admin can change their name or store here." };
+      perfilId = actual.profile_id as string;
+      if ("store" in patch) perfil.store = (patch.store ?? "").toString().trim() || null;
     }
   }
   if (patch.ringcentral_ext !== undefined && !extensionValida(patch.ringcentral_ext)) {
@@ -241,16 +244,12 @@ export async function saveEmployeeFile(
   if (SOLO_POR_SU_BOTON.some((k) => k in patch)) {
     return { ok: false, message: "Use the Deactivate / Reactivate buttons to change someone's status." };
   }
-  // El nombre del expediente solo se escribe para quien NO tiene cuenta. Con cuenta manda el del perfil
-  // (`nombreVisible`), que se cambia en Usuarios: escribirlo aquí no se vería y parecería que no guarda.
+  // El nombre: limpio y nunca vacío. Con cuenta manda el del perfil (`nombreVisible`), así que se copia allí también.
   if ("full_name" in patch) {
     const nombre = (patch.full_name ?? "").trim().replace(/\s+/g, " ");
     if (!nombre) return { ok: false, message: "The name can't be empty." };
-    const { data: actual, error: errActual } = await supabase
-      .schema("recruiting").from("employee_files").select("profile_id").eq("id", fileId).maybeSingle();
-    if (errActual) return { ok: false, message: errActual.message };
-    if (actual?.profile_id) return { ok: false, message: "This person has an account: change their name in Users." };
     patch = { ...patch, full_name: nombre };
+    if (perfilId) perfil.full_name = nombre;
   }
 
   // Las fechas vacias se guardan como NULL y no como "": una cadena vacia en una columna de
@@ -278,6 +277,14 @@ export async function saveEmployeeFile(
 
   const { error } = await supabase.schema("recruiting").from("employee_files").upsert(limpio);
   if (error) return { ok: false, message: esColumnaQueFalta(error) ? FALTA_159 : error.message };
+  // Y el perfil, con la llave de servicio: la RLS de `profiles` no deja a RR. HH. escribir la fila de otro.
+  if (perfilId && Object.keys(perfil).length) {
+    let admin;
+    try { admin = createAdminClient(); }
+    catch { return { ok: false, message: "Saved the file, but SUPABASE_SERVICE_ROLE_KEY is missing: the account was not updated." }; }
+    const { error: errPerfil } = await admin.from("profiles").update(perfil).eq("id", perfilId);
+    if (errPerfil) return { ok: false, message: "Saved the file, but the account was not updated: " + errPerfil.message };
+  }
   return { ok: true };
 }
 

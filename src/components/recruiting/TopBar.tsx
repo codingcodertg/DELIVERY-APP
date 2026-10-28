@@ -48,7 +48,13 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
         <div className="entregas-tras-pestanas"><GlobalSearch /></div>
         <div className="tabs">
           {/* D-704: dos menús, Recruiting y HR, y Ajustes suelto. El filtro por rol es el de antes (menus-rrhh.ts). */}
-          {menus.grupos.map((g) => (
+          {/* D-721: un menú con UNA opción (HR = Empleados) es una pestaña directa; el dueño: «ESTO ESTA DUPLICATE». */}
+          {menus.grupos.map((g) => g.items.length === 1 ? (
+            <Link key={g.grupo} href={g.items[0].href} data-menu={g.grupo}
+              className={"tab " + (pestanaActiva(g.items[0].href, pathname) ? "active" : "")}>
+              {lang === "es" ? NOMBRE_DEL_GRUPO[g.grupo].es : NOMBRE_DEL_GRUPO[g.grupo].en} · {etiqueta(g.items[0])}
+            </Link>
+          ) : (
             <MenuDesplegable key={g.grupo} grupo={g.grupo} items={g.items} pathname={pathname} etiqueta={etiqueta} />
           ))}
           {menus.sueltas.map((t) => (

@@ -355,10 +355,17 @@ describe("los campos de la 159, y la pantalla sin ella", () => {
     expect(sin.left_by_name).toBeNull();
   });
 
-  it("el nombre solo se edita en el expediente de quien no tiene cuenta", () => {
+  it("D-721: el nombre y la tienda se editan también con cuenta, y la acción los copia al perfil", () => {
     const cuerpo = accion("saveEmployeeFile");
-    expect(cuerpo).toContain('if (actual?.profile_id) return { ok: false, message: "This person has an account: change their name in Users." };');
-    expect(pagina).toContain("...(puedeElegirTienda(persona) ? { store, full_name } : {}),");
+    expect(cuerpo).not.toContain("change their name in Users");
+    expect(cuerpo).toContain("if (perfilId) perfil.full_name = nombre;");
+    expect(pagina).toContain("      store, full_name,");
+    expect(pagina).not.toContain("puedeElegirTienda");
+    expect(pagina).toContain('<input value={info.full_name} data-campo="full_name"');
+    expect(pagina).toContain('<select value={tiendaDelSelector(info)} data-campo="store"');
+    expect(pagina).toContain("onChange={(e) => setInfo({ ...info, ...parcheDeTienda(e.target.value, info.directory_group) })}");
+    expect(pagina).toContain('{editaGrupo && <option value={TIENDA_REMOTA}>{t("Remote", "Remoto")}</option>}');
+    expect(pagina).toContain('store: tiendaVisible(persona) ?? "",');
   });
 });
 
@@ -611,5 +618,28 @@ describe("D-720: el expediente con cabecera fija, Editar/Guardar, secciones pleg
     expect(tt).not.toContain('data-tabla="horas"');
     expect(tt).not.toContain('data-tabla="pagos"');
     expect(tt).not.toContain('className="sec-head"');
+  });
+});
+
+describe("D-721: «Permisos» sin identidad repetida, y HR como pestaña directa", () => {
+  it("desde el expediente, el diálogo del hub esconde nombre, usuario y correo (viven en el expediente)", () => {
+    const ud = leer("src/components/UserDialog.tsx");
+    expect(ud).toContain("desdeExpediente?: boolean;");
+    expect(ud).toContain("{!desdeExpediente && (\n          <div className=\"field\">\n            <label>{t(\"Full name\", \"Nombre completo\")}</label>");
+    expect(ud).toContain("{!LOCAL_MODE && !desdeExpediente && (\n            <div className=\"field\">\n              <label>{t(\"Username\", \"Usuario\")}</label>");
+    expect(ud).toContain("{!LOCAL_MODE && !desdeExpediente && (\n          <div className=\"field\">\n            <label>{t(\"Email\", \"Correo\")}</label>");
+    // El título, el rol y los módulos siguen: no están en el expediente.
+    expect(ud.split("desdeExpediente").length - 1).toBe(5);
+    expect(leer("src/components/recruiting/PermisosDelEmpleado.tsx")).toContain("<UserDialog user={usuario} onClose={cerrar} desdeExpediente />");
+  });
+
+  it("un menú con una sola opción se pinta como pestaña, no como desplegable que la repite", () => {
+    const barra = sinComentarios(leer("src/components/recruiting/TopBar.tsx"));
+    expect(barra).toContain("g.items.length === 1 ? (");
+    expect(barra).toContain("<Link key={g.grupo} href={g.items[0].href} data-menu={g.grupo}");
+  });
+
+  it("«AI Developer» está entre los departamentos de partida", () => {
+    expect(leer("src/lib/recruiting-data-provider.tsx")).toContain('"Logística", "AI Developer"]');
   });
 });

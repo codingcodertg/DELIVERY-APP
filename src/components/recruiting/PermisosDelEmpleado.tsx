@@ -87,7 +87,7 @@ function Cuerpo({ persona, onClose, onEnlazado }: { persona: Persona; onClose: (
 
   // 1. Con cuenta: la ventana del hub tal cual.
   if (profileId && !creado) {
-    if (usuario) return <UserDialog user={usuario} onClose={cerrar} />;
+    if (usuario) return <UserDialog user={usuario} onClose={cerrar} desdeExpediente />;
     return (
       <div className="overlay" onClick={cerrar}>
         <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()} data-dialogo="permisos-cargando">

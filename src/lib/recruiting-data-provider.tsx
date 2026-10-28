@@ -128,7 +128,7 @@ const DEFAULT_SETTINGS: Settings = {
   // «Contabilidad» se fue (D-261): el dueño la fundió en Oficina. Es solo el valor de partida
   // antes de cargar los ajustes; la lista de verdad vive en la base y la cambia el orquestador.
   // El rol `accounting` de Entregas no tiene nada que ver con esto y no se toca.
-  departments: ["Ventas", "Almacén", "Oficina", "Choferes", "Logística"],
+  departments: ["Ventas", "Almacén", "Oficina", "Choferes", "Logística", "AI Developer"],
   scale: DEFAULT_SCALE,
 };
 

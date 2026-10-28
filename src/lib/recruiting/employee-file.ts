@@ -340,13 +340,23 @@ export function tiendaVisible(f: { account_store?: string | null; store?: string
 }
 
 /**
- * ¿Se puede elegir la tienda desde el expediente? Solo si la persona no tiene cuenta.
- *
- * Con cuenta, el campo se enseña pero no se edita: cambiar la tienda de alguien con usuario es
- * cambiar lo que ve en Entregas, y eso se hace en Usuarios, no en RR. HH.
+ * D-721: la tienda se elige desde el expediente TAMBIÉN con cuenta («habilita que uno lo elija y que eso se
+ * sincronice»): la acción de guardar escribe `profiles.store` a la vez, así las dos siguen contando lo mismo.
+ * Y «Remoto» es una opción del selector: no es una tienda de Ajustes, es el grupo «remote» del directorio (D-261).
  */
-export function puedeElegirTienda(f: { profile_id?: string | null }): boolean {
-  return !f.profile_id;
+export const TIENDA_REMOTA = "__remoto__";
+
+/** Lo que enseña el selector de tienda: «Remoto» si el grupo del directorio es remote; si no, la tienda visible. */
+export function tiendaDelSelector(f: { store?: string | null; account_store?: string | null; directory_group?: string | null }): string {
+  if ((f.directory_group ?? "").trim() === "remote") return TIENDA_REMOTA;
+  return tiendaVisible(f) ?? "";
+}
+
+/** Lo que cambia al elegir en el selector: la tienda y, si toca, el grupo del directorio (Remoto pone «remote»; salir de Remoto lo quita). */
+export function parcheDeTienda(elegida: string, grupoActual: string | null | undefined): { store: string; directory_group: string } {
+  const grupo = (grupoActual ?? "").trim();
+  if (elegida === TIENDA_REMOTA) return { store: "", directory_group: "remote" };
+  return { store: elegida.trim(), directory_group: grupo === "remote" ? "" : grupo };
 }
 
 /**
