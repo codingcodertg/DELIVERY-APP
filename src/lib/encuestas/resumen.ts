@@ -25,11 +25,30 @@ export interface RespuestaEncuesta {
   note: string | null;
   /** Comentario opcional por área (186). */
   rating_notes?: Record<string, string> | null;
+  /** La tienda del QR con el que se abrió la encuesta (209). Null con el QR general o el enlace a secas. */
+  store?: string | null;
 }
 
 /** Las columnas que se leen, en el orden de la tabla. Una sola lista para la pantalla y la prueba. */
 export const COLUMNAS =
-  "id, created_at, nothing_to_improve, selected_areas, other_text, ratings, wants_contact, contact_name, contact_phone, contact_email, contacted, contacted_at, note, rating_notes";
+  "id, created_at, nothing_to_improve, selected_areas, other_text, ratings, wants_contact, contact_name, contact_phone, contact_email, contacted, contacted_at, note, rating_notes, store";
+/** Las mismas sin la tienda (209): hasta que la migración esté aplicada, la base no la tiene y el select caería entero. */
+export const COLUMNAS_SIN_TIENDA = COLUMNAS.replace(", store", "");
+
+/**
+ * Cuántas respuestas trae cada tienda (D-724), de más a menos y la que no tiene tienda al final. Solo las que hay:
+ * una tienda sin respuestas no sale (la lista de tiendas es de Ajustes, no de aquí).
+ */
+export function porTienda(filas: RespuestaEncuesta[]): { tienda: string | null; n: number }[] {
+  const cuenta = new Map<string | null, number>();
+  for (const f of filas) {
+    const k = f.store?.trim() || null;
+    cuenta.set(k, (cuenta.get(k) ?? 0) + 1);
+  }
+  return [...cuenta.entries()]
+    .map(([tienda, n]) => ({ tienda, n }))
+    .sort((a, b) => (a.tienda === null ? 1 : b.tienda === null ? -1 : b.n - a.n || a.tienda.localeCompare(b.tienda)));
+}
 
 /** El día de Texas (YYYY-MM-DD) de una respuesta. */
 export const diaDe = (iso: string): string => isoInTZ(new Date(iso));
@@ -173,7 +192,7 @@ export function tablaCsv(filas: RespuestaEncuesta[]): { cabeceras: string[]; fil
     "id", "created_at (Central)", "nothing_to_improve", "selected_areas",
     ...AREA_KEYS.map((k) => `rating_${k}`),
     "other_text", "wants_contact", "contact_name", "contact_phone", "contact_email", "contacted", "contacted_at (Central)",
-    "note",
+    "note", "store",
   ];
   const cuerpo = filas.map((f) => [
     f.id,
@@ -189,6 +208,7 @@ export function tablaCsv(filas: RespuestaEncuesta[]): { cabeceras: string[]; fil
     f.contacted ? "yes" : "no",
     f.contacted_at ? fechaHora(f.contacted_at) : null,
     f.note,
+    f.store ?? null,
   ]);
   return { cabeceras, filas: cuerpo };
 }
