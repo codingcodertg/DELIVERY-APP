@@ -367,7 +367,7 @@ function Ficha({
     ringcentral_ext: persona.ringcentral_ext ?? "",
     email: persona.email ?? "",
     department: persona.department ?? "",
-    // D-NEXT: con cuenta arranca con la tienda de la cuenta, que es la que se ve y la que se sincroniza al guardar.
+    // D-721: con cuenta arranca con la tienda de la cuenta, que es la que se ve y la que se sincroniza al guardar.
     store: tiendaVisible(persona) ?? "",
     directory_group: persona.directory_group ?? "",
     address: persona.address ?? "",
@@ -471,7 +471,7 @@ function Ficha({
     const resto = Object.fromEntries(Object.entries(restoCon207).filter(([k]) => !(COLUMNAS_207 as readonly string[]).includes(k)));
     const r = await saveEmployeeFile(persona.id, {
       ...resto,
-      // D-NEXT: la tienda y el nombre viajan siempre; con cuenta, el servidor los copia al perfil (solo admin de RR. HH.).
+      // D-721: la tienda y el nombre viajan siempre; con cuenta, el servidor los copia al perfil (solo admin de RR. HH.).
       store, full_name,
       // Solo un admin manda el grupo: a un gerente el servidor se lo rechazaría, y «Guardar
       // datos» fallaría por un campo que ni siquiera ve.
@@ -639,7 +639,7 @@ function Ficha({
       <fieldset className="ficha-campos" disabled={!editando} data-editando={editando}>
       <Seccion id="datos" titulo={t("INFO", "DATOS")} abierta>
       <div className="grid g3">
-        {/* El nombre (D-NEXT: también con cuenta; al guardar se copia al perfil). */}
+        {/* El nombre (D-721: también con cuenta; al guardar se copia al perfil). */}
         <div>
           <label>{t("Full name", "Nombre completo")}</label>
           <input value={info.full_name} data-campo="full_name"
@@ -649,7 +649,7 @@ function Ficha({
         {campo("employee_code", "ID")}
         {campo("date_hired", t("Date hired", "Fecha de ingreso"), "date")}
         {campo("birthday", t("Birthday", "Cumpleaños"), "date")}
-        {/* Tienda (D-258, D-NEXT). Se elige siempre, con o sin cuenta: con cuenta, al guardar se copia a
+        {/* Tienda (D-258, D-721). Se elige siempre, con o sin cuenta: con cuenta, al guardar se copia a
             `profiles.store`, que es lo que decide qué ve la persona en Entregas. «Remoto» no es una tienda:
             pone el grupo «remote» del directorio (D-261), y por eso solo lo ofrece quien puede cambiar el grupo. */}
         <div>

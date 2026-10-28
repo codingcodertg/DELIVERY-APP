@@ -219,7 +219,7 @@ export async function saveEmployeeFile(
     patch = { ...patch, directory_group: grupo };
   }
 
-  // D-NEXT: con cuenta, la tienda y el nombre se eligen TAMBIÉN desde el expediente y se copian al perfil
+  // D-721: con cuenta, la tienda y el nombre se eligen TAMBIÉN desde el expediente y se copian al perfil
   // (`profiles.store`, que decide qué ve esa persona en Entregas, y `profiles.full_name`). Antes (D-258) con cuenta se
   // rechazaban. Lo hace solo el admin de RR. HH., como enlazar la cuenta: es decir algo de la cuenta, no del expediente.
   let perfilId: string | null = null;

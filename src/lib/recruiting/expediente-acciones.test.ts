@@ -355,7 +355,7 @@ describe("los campos de la 159, y la pantalla sin ella", () => {
     expect(sin.left_by_name).toBeNull();
   });
 
-  it("D-NEXT: el nombre y la tienda se editan también con cuenta, y la acción los copia al perfil", () => {
+  it("D-721: el nombre y la tienda se editan también con cuenta, y la acción los copia al perfil", () => {
     const cuerpo = accion("saveEmployeeFile");
     expect(cuerpo).not.toContain("change their name in Users");
     expect(cuerpo).toContain("if (perfilId) perfil.full_name = nombre;");
@@ -621,7 +621,7 @@ describe("D-720: el expediente con cabecera fija, Editar/Guardar, secciones pleg
   });
 });
 
-describe("D-NEXT: «Permisos» sin identidad repetida, y HR como pestaña directa", () => {
+describe("D-721: «Permisos» sin identidad repetida, y HR como pestaña directa", () => {
   it("desde el expediente, el diálogo del hub esconde nombre, usuario y correo (viven en el expediente)", () => {
     const ud = leer("src/components/UserDialog.tsx");
     expect(ud).toContain("desdeExpediente?: boolean;");

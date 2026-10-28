@@ -340,7 +340,7 @@ export function tiendaVisible(f: { account_store?: string | null; store?: string
 }
 
 /**
- * D-NEXT: la tienda se elige desde el expediente TAMBIÉN con cuenta («habilita que uno lo elija y que eso se
+ * D-721: la tienda se elige desde el expediente TAMBIÉN con cuenta («habilita que uno lo elija y que eso se
  * sincronice»): la acción de guardar escribe `profiles.store` a la vez, así las dos siguen contando lo mismo.
  * Y «Remoto» es una opción del selector: no es una tienda de Ajustes, es el grupo «remote» del directorio (D-261).
  */

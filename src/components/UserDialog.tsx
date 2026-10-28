@@ -31,7 +31,7 @@ interface SignIn { archivado?: boolean; liberadas?: { email: string | null; user
 
 export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
   user: Profile; onClose: () => void;
-  /** D-NEXT: abierto desde el expediente de RR. HH. («Permisos»): el nombre, el usuario y el correo no se repiten
+  /** D-721: abierto desde el expediente de RR. HH. («Permisos»): el nombre, el usuario y el correo no se repiten
    *  aquí —viven en el expediente—; quedan el título, el rol, los módulos y permisos y el acceso. */
   desdeExpediente?: boolean;
 }) {

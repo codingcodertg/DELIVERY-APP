@@ -48549,7 +48549,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No medido:** la pantalla en el navegador (la cabecera pegada al bajar, los `<details>`, el fieldset apagado) ni crear una cuenta de verdad desde «Permisos»: el alta llama al mismo `addUser` y al mismo enlace por API que usaba la página que se fue.
 
-## D-NEXT · Tienda y nombre se eligen en el expediente y se copian al perfil; «Remoto» como tienda; «AI Developer»; Permisos sin identidad repetida
+## D-721 · Tienda y nombre se eligen en el expediente y se copian al perfil; «Remoto» como tienda; «AI Developer»; Permisos sin identidad repetida
 
 **Pedido:** el dueño, el 2026-10-27: «en departamento quiero que agregues AI Developer, y en tienda agrega remoto y en tienda habilita que uno lo elija y que eso se sincronice»; sobre la ventana de Permisos, con la identidad al lado del expediente: «esto ya sale en [el expediente] entonces es duplicado pero si falta algo que ahí salga ya»; y sobre el menú HR con una sola opción: «ESTO ESTA DUPLICATE».
 
