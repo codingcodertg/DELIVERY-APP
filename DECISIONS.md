@@ -48670,3 +48670,13 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Orden de publicación:** la 211 antes de usar la pestaña (sin ella la pantalla y la sección lo dicen y la baja no se entera); luego la carga con el archivo del dueño.
 
 **Pruebas:** `recruiting/activos.test.ts` (formato, asignar/liberar, cuentas, por persona, el archivo, la 211, la pestaña, la ficha y la baja); `menus-rrhh.test.ts` puesta al día. **No medido** en el navegador ni con la tabla en producción.
+
+## D-731 · Activos de la empresa: la librería sin importar el expediente (el guion de carga corre con node) y el archivo se carga con las filas con persona primero
+
+**Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `activos-guion-autonomo`.
+
+**Qué pasó:** al ensayar `scripts/carga-activos-de-empresa.mjs` (D-730) con el archivo del dueño, node no resolvió `./employee-file` desde `activos.ts` (node ejecuta .ts sin extensión en las importaciones). Y un número que aparece dos veces en el archivo (el de alguien dado de baja y el de quien lo heredó) se quedaba con la primera fila, la del que se fue.
+
+**Qué cambia:** `activos.ts` lleva su propio `telefonoDeActivo` (la misma forma 956-xxx-xxxx de D-432; la prueba lo fija contra `telefonoDeFicha`), como hace `credenciales-liberadas.ts` para el guion de D-709. El guion carga primero las filas con persona, así el número repetido se asigna a quien lo tiene.
+
+**Pruebas:** `activos.test.ts` (cuatro números, iguales a `telefonoDeFicha`). Ensayo del guion con el archivo real: 74 activos, 1 repetido, «Joseph» sin expediente.

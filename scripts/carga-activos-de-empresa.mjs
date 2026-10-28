@@ -40,8 +40,10 @@ const porNombre = new Map(expedientes.map((e) => [sinAcentos(e.nombre_perfil || 
 
 let nuevos = 0, saltados = 0, sinExpediente = [];
 const planes = [];
-for (const r of registros) {
-  const x = activosDeLaFila(r);
+// Primero las filas con persona: un número repetido (el de alguien que se fue y el de quien lo heredó) se queda con quien lo tiene.
+const ordenadas = registros.map((r) => ({ r, x: activosDeLaFila(r) })).sort((a, b) => Number(!!b.x.nombre) - Number(!!a.x.nombre));
+for (const { r, x } of ordenadas) {
+  void r;
   let exp = null;
   if (x.nombre) {
     exp = (x.email && porCorreo.get(x.email.value)) || porNombre.get(sinAcentos(x.nombre)) || null;
