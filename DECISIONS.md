@@ -48653,3 +48653,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 - **CLAUDE.md:** sección «El formato de los datos es uno en todas las apps — regla permanente».
 
 **Pruebas:** `recruiting/formato-de-datos.test.ts` (correo, nombre, teléfono; guardar y agregar pasan por el formato). La capa de CSS no tiene prueba: **no medido** en el navegador.
+## D-NEXT · RR. HH.: «Company assets» — los correos y números que paga la empresa, con su estado y quién los tiene (migración 211); asignar desde el expediente; la baja los libera
+
+**Fecha:** 2026-10-28 · **Migración 211** (`211_activos_de_empresa.sql`, ensayada con ROLLBACK, pendiente de aplicar) · Hecho directo por el orquestador en `activos-de-empresa`.
+
+**Pedido del dueño**, literal: *«add a "Company Assets" section to the UI to track paid company emails and phone numbers … Each phone number includes its extension and type: RingCentral app only, or physical phone. Each asset has a status: Assigned (shows which employee), Available / Not Assigned, Not In Use, Pending Backup … From an employee's profile I can pick an available email and/or phone number and assign it. Only available assets show up … When an employee is offboarded/terminated: remove their access, set their email to "Pending Backup" … and automatically set their phone number back to Available … Show who currently has an email and phone assigned and who does not. Filter by status.»*
+
+**Qué cambia:**
+- **Base (211):** `recruiting.company_assets` (tipo correo/número, valor único por tipo, extensión y tipo de teléfono, estado, `employee_id` solo si está asignado, `last_employee_id`, plan y costo del correo, nota). Políticas como las del expediente (094): admin y gerente de RR. HH.
+- **Pestaña «🧰 Company assets»** (menú HR, `/recruiting/assets`): tres vistas —Correos, Números, Por persona—; chips por estado con su cuenta (Pendiente de respaldo en ámbar); la tabla de Órdenes (CLAUDE.md), buscador, CSV; agregar/editar/borrar; «Asignar» (solo lo disponible, a un empleado activo), «Liberar» (correo → pendiente de respaldo, número → disponible), «Respaldado» (pendiente de respaldo → disponible). «Por persona»: cada empleado activo con su correo y su número, o «sin correo» / «sin número».
+- **Expediente, sección «Activos de la empresa»:** lo que tiene la persona con «Liberar», y un desplegable con SOLO los disponibles de cada tipo para asignar (uno de cada tipo por persona; `assignAsset` lo comprueba).
+- **Baja:** `deactivateEmployee` libera sus activos (`liberaActivosDeLaBaja`: correo → pendiente de respaldo, número → disponible), además del ban y las credenciales liberadas de D-709: esa es la lista de quitar accesos que ya existía, con un paso más. Sin la 211 no hace nada y la baja sigue.
+- **Alta:** la cuenta del hub se crea desde «Permisos» (D-720) según el rol; el correo y el número se asignan en la sección nueva. No se automatiza «si el rol lo requiere»: el dueño decide persona por persona (no sobreingeniería).
+- **Carga inicial:** `scripts/carga-activos-de-empresa.mjs <RTG EMAILS.csv> [--escribe]` (`activosDeLaFila`, `estadoInicial`): cada fila da su correo (plan y costo) y su número (extensión; físico si la serie es F0…, si no app); con persona y expediente nace asignado; TERMINATED: correo pendiente de respaldo y número disponible; DELETE-BACKUP: pendiente de respaldo; lo que ya esté no se pisa.
+
+**Orden de publicación:** la 211 antes de usar la pestaña (sin ella la pantalla y la sección lo dicen y la baja no se entera); luego la carga con el archivo del dueño.
+
+**Pruebas:** `recruiting/activos.test.ts` (formato, asignar/liberar, cuentas, por persona, el archivo, la 211, la pestaña, la ficha y la baja); `menus-rrhh.test.ts` puesta al día. **No medido** en el navegador ni con la tabla en producción.

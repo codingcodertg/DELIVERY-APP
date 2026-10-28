@@ -27,6 +27,7 @@ import { exportaTablaExcel } from "@/lib/export-tabla";
 import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
 import { COLUMNAS_207, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
 import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
+import { ActivosDelEmpleado } from "@/components/recruiting/ActivosDelEmpleado";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 import { nombreDeDepartamento } from "@/lib/departamentos";
 import { PLANES_DE_CORREO, tooltipDelPlan } from "@/lib/recruiting/planes-de-correo";
@@ -858,6 +859,11 @@ function Ficha({
 
       {/* LA CUENTA DEL HUB. Estado leído de Auth, y el botón que quita o devuelve el acceso. Reactivar a
           alguien no lo devuelve: este es el único sitio que lo hace. */}
+      {/* D-730: el correo y el número de la empresa que tiene esta persona, y asignar entre los disponibles. */}
+      <Seccion id="activos" titulo={t("COMPANY ASSETS", "ACTIVOS DE LA EMPRESA")}>
+        <ActivosDelEmpleado employeeId={persona.id} deBaja={deBaja} />
+      </Seccion>
+
       <Seccion id="cuenta" titulo={t("HUB ACCOUNT", "CUENTA DEL HUB")}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }} data-bloque="cuenta">
         {!persona.profile_id ? (
