@@ -48577,7 +48577,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **Medido:** en `numeros-del-dia.test.ts`, una entrega sin puesto lleva el número de la tabla, y una ruta donde nada tiene puesto sale numerada entera sin ningún punto mudo (las dos caían antes del cambio). Producción (lectura): el chofer de la captura tenía dos órdenes así (una recogida y en camino, una lista sin puesto). No medido en el navegador.
 
-## D-NEXT · Encuesta de clientes: un QR por tienda (migración 209) y el nombre del contacto debajo de «Teléfono o correo»
+## D-724 · Encuesta de clientes: un QR por tienda (migración 209) y el nombre del contacto debajo de «Teléfono o correo»
 
 **Fecha:** 2026-10-28 · **Migración 209** (`209_encuesta_tienda.sql`) · Sitio público `rtg-encuesta` (rama `qr-por-tienda`, se publica tras aplicar la 209) · Hecho directo por el orquestador en `qr-por-tienda`.
 

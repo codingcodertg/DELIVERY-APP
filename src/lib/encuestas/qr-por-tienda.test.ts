@@ -4,7 +4,7 @@ import { archivoDelQr, ENLACE_DE_LA_ENCUESTA, enlaceDeTienda, nombresDeTiendas }
 import { COLUMNAS, COLUMNAS_SIN_TIENDA, porTienda, tablaCsv, type RespuestaEncuesta } from "./resumen";
 import { faltaLaColumna, filaDeLaBase } from "./almacen";
 
-// D-NEXT (2026-10-28) · El dueño, por WhatsApp: «for the survey can it be a QR for each store?». Un QR por tienda: el
+// D-724 (2026-10-28) · El dueño, por WhatsApp: «for the survey can it be a QR for each store?». Un QR por tienda: el
 // enlace lleva `?tienda=`, el sitio lo manda como `store`, la 209 lo guarda y el panel lo enseña.
 
 const base: RespuestaEncuesta = {
