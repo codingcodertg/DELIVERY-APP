@@ -1,4 +1,4 @@
--- 212: El historial de RR. HH. (D-NEXT, 2026-10-28).
+-- 212: El historial de RR. HH. (D-734, 2026-10-28).
 --
 -- El dueño: «quiero que todas esas asignaciones … de los números, de todo eso, quede un historial. Y cada vez que un
 -- usuario, un employee se desactiva, se activa, lo que sea, … todo tiene que quedar en un historial, que se mire, no se
@@ -60,4 +60,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('212_historial_de_rrhh.sql', '8f94907e12dfbda6818a252c81bab7a91a6b2165885cc4bd92976d1372cb22c8') on conflict (name) do nothing;
+  values ('212_historial_de_rrhh.sql', 'fa71b3fab802b5376829316f6ed78fdac877da4768cbe9b9bcceb4e949764686') on conflict (name) do nothing;
