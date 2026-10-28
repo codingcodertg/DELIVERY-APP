@@ -48638,7 +48638,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Orden de publicación:** la 210 y el código son independientes (el código solo esconde y da el botón; la base decide qué filas llegan). Hasta aplicar la 210, el vendedor sigue viendo los libres y el gerente todas las tiendas.
 
 **Pruebas:** `customers/por-rol.test.ts` (reglas, la 210, la ficha y el contacto); `vendedores.test.ts` puesta al día. **No medido** en el navegador ni con una sesión de vendedor real.
-## D-NEXT · RR. HH.: «Permisos» del expediente como una lista alineada y sin mayúsculas; correos en minúsculas y nombres con mayúscula inicial al guardar; la regla del formato en CLAUDE.md; el directorio ya lee del expediente
+## D-729 · RR. HH.: «Permisos» del expediente como una lista alineada y sin mayúsculas; correos en minúsculas y nombres con mayúscula inicial al guardar; la regla del formato en CLAUDE.md; el directorio ya lee del expediente
 
 **Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `permisos-y-formato`.
 
