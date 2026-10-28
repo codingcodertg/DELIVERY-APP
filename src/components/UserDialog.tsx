@@ -29,7 +29,12 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 interface SignIn { archivado?: boolean; liberadas?: { email: string | null; username: string | null; at: string } | null; email: string; synthetic: boolean; can_reset_own_password: boolean; last_sign_in_at: string | null }
 
-export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () => void }) {
+export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
+  user: Profile; onClose: () => void;
+  /** D-NEXT: abierto desde el expediente de RR. HH. («Permisos»): el nombre, el usuario y el correo no se repiten
+   *  aquí —viven en el expediente—; quedan el título, el rol, los módulos y permisos y el acceso. */
+  desdeExpediente?: boolean;
+}) {
   const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -186,6 +191,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
         {/* ---------- Who they are ---------- */}
         <div className="section-label">{t("Identity", "Identidad")}</div>
         <div className="grid g2">
+          {!desdeExpediente && (
           <div className="field">
             <label>{t("Full name", "Nombre completo")}</label>
             <input
@@ -193,7 +199,8 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
               onBlur={(e) => e.target.value.trim() && e.target.value !== u.full_name && updateUserName(u.id, e.target.value.trim())}
             />
           </div>
-          {!LOCAL_MODE && (
+          )}
+          {!LOCAL_MODE && !desdeExpediente && (
             <div className="field">
               <label>{t("Username", "Usuario")}</label>
               <input
@@ -272,7 +279,7 @@ export function UserDialog({ user: u, onClose }: { user: Profile; onClose: () =>
           </div>
         </div>
 
-        {!LOCAL_MODE && (
+        {!LOCAL_MODE && !desdeExpediente && (
           <div className="field">
             <label>{t("Email", "Correo")}</label>
             <input

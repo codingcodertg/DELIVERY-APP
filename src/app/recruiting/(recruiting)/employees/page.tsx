@@ -11,7 +11,7 @@ import {
 import { DOC_KINDS, REQUIRED_FORMS } from "@/lib/recruiting/hr";
 import {
   ETIQUETAS_CAMPO, camposQueFaltan, cuentaIncompletos, cuentaPorEstado, estadoEmpleado, etiquetaEstado,
-  etiquetaMotivoBaja, filtraPorEstado, hoyLocalISO, puedeDarDeBaja, puedeEditarGrupoDirectorio, puedeElegirTienda,
+  etiquetaMotivoBaja, filtraPorEstado, hoyLocalISO, puedeDarDeBaja, puedeEditarGrupoDirectorio,
   resumenDeCuenta, saleEnDirectorio, telefonoDeFicha, tiendaVisible,
   type FiltroEstado, type HechosDeCuenta,
 } from "@/lib/recruiting/employee-file";
@@ -25,7 +25,7 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { downloadCSV, toCSV } from "@/lib/utils";
 import { exportaTablaExcel } from "@/lib/export-tabla";
 import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
-import { COLUMNAS_207, OPCIONES_1PW, costoMensual, dinero, hayCambios } from "@/lib/recruiting/employee-file";
+import { COLUMNAS_207, OPCIONES_1PW, TIENDA_REMOTA, costoMensual, dinero, hayCambios, parcheDeTienda, tiendaDelSelector } from "@/lib/recruiting/employee-file";
 import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
 
 /**
@@ -367,7 +367,8 @@ function Ficha({
     ringcentral_ext: persona.ringcentral_ext ?? "",
     email: persona.email ?? "",
     department: persona.department ?? "",
-    store: persona.store ?? "",
+    // D-NEXT: con cuenta arranca con la tienda de la cuenta, que es la que se ve y la que se sincroniza al guardar.
+    store: tiendaVisible(persona) ?? "",
     directory_group: persona.directory_group ?? "",
     address: persona.address ?? "",
     days_off: persona.days_off != null ? String(persona.days_off) : "",
@@ -470,7 +471,8 @@ function Ficha({
     const resto = Object.fromEntries(Object.entries(restoCon207).filter(([k]) => !(COLUMNAS_207 as readonly string[]).includes(k)));
     const r = await saveEmployeeFile(persona.id, {
       ...resto,
-      ...(puedeElegirTienda(persona) ? { store, full_name } : {}),
+      // D-NEXT: la tienda y el nombre viajan siempre; con cuenta, el servidor los copia al perfil (solo admin de RR. HH.).
+      store, full_name,
       // Solo un admin manda el grupo: a un gerente el servidor se lo rechazaría, y «Guardar
       // datos» fallaría por un campo que ni siquiera ve.
       ...(editaGrupo ? { directory_group } : {}),
@@ -637,41 +639,31 @@ function Ficha({
       <fieldset className="ficha-campos" disabled={!editando} data-editando={editando}>
       <Seccion id="datos" titulo={t("INFO", "DATOS")} abierta>
       <div className="grid g3">
-        {/* El nombre (con cuenta manda el del perfil, que se cambia en Usuarios). */}
+        {/* El nombre (D-NEXT: también con cuenta; al guardar se copia al perfil). */}
         <div>
           <label>{t("Full name", "Nombre completo")}</label>
-          <input value={puedeElegirTienda(persona) ? info.full_name : persona.full_name}
-            disabled={!puedeElegirTienda(persona)}
-            title={puedeElegirTienda(persona) ? undefined : t("This person has an account: change their name in Permissions.", "Esta persona tiene cuenta: su nombre se cambia en Permisos.")}
+          <input value={info.full_name} data-campo="full_name"
             onChange={(e) => setInfo({ ...info, full_name: e.target.value })} />
         </div>
         {campo159("job_title", t("Position", "Puesto"))}
         {campo("employee_code", "ID")}
         {campo("date_hired", t("Date hired", "Fecha de ingreso"), "date")}
         {campo("birthday", t("Birthday", "Cumpleaños"), "date")}
-        {/* Tienda (D-258). Con cuenta se ENSEÑA la de la cuenta y no se edita: esa tienda decide
-            qué ve la persona en Entregas y se cambia en Usuarios. Sin cuenta se elige de la lista
-            de tiendas, y es la que usa el directorio. */}
+        {/* Tienda (D-258, D-NEXT). Se elige siempre, con o sin cuenta: con cuenta, al guardar se copia a
+            `profiles.store`, que es lo que decide qué ve la persona en Entregas. «Remoto» no es una tienda:
+            pone el grupo «remote» del directorio (D-261), y por eso solo lo ofrece quien puede cambiar el grupo. */}
         <div>
           <label>{t("Store", "Tienda")}</label>
-          {puedeElegirTienda(persona) ? (
-            <select value={info.store} onChange={(e) => setInfo({ ...info, store: e.target.value })}>
-              <option value="">{t("— none —", "— sin tienda —")}</option>
-              {tiendas.map((n) => <option key={n} value={n}>{n}</option>)}
-              {/* Una tienda guardada que ya no está en Ajustes no se pierde al abrir la ficha. */}
-              {info.store && !tiendas.includes(info.store) && (
-                <option value={info.store}>{info.store}</option>
-              )}
-            </select>
-          ) : (
-            <input
-              value={tiendaVisible(persona) ?? ""}
-              placeholder={t("— none —", "— sin tienda —")}
-              readOnly
-              disabled
-              title={t("This person has an account: change their store in Permissions.", "Esta persona tiene cuenta: su tienda se cambia en Permisos.")}
-            />
-          )}
+          <select value={tiendaDelSelector(info)} data-campo="store"
+            onChange={(e) => setInfo({ ...info, ...parcheDeTienda(e.target.value, info.directory_group) })}>
+            <option value="">{t("— none —", "— sin tienda —")}</option>
+            {tiendas.map((n) => <option key={n} value={n}>{n}</option>)}
+            {editaGrupo && <option value={TIENDA_REMOTA}>{t("Remote", "Remoto")}</option>}
+            {/* Una tienda guardada que ya no está en Ajustes no se pierde al abrir la ficha. */}
+            {info.store && !tiendas.includes(info.store) && (
+              <option value={info.store}>{info.store}</option>
+            )}
+          </select>
         </div>
         {editaGrupo && (
           <div>
