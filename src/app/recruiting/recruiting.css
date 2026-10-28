@@ -91,6 +91,10 @@
 .recruiting-module .tab.menu-rrhh { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: inherit; }
 
 .recruiting-module .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; }
+/* D-725: la fila se abre con un clic: el mismo hover que una fila `clickable` de Órdenes. */
+.recruiting-module table.orders tr.fila-abre:hover td { background: var(--card-hover); cursor: pointer; }
+/* D-725: la lista de Empleados a todo el ancho de la pantalla, como la tabla de Órdenes («it has a lot of columns»). */
+.recruiting-module .wrap:has([data-tabla-a-todo-el-ancho]) { max-width: none; }
 .recruiting-module .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
 .recruiting-module .card h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
 .recruiting-module .grid { display: grid; gap: 12px; }

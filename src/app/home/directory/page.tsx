@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
+import { nombreDeDepartamento } from "@/lib/departamentos";
 import { createClient } from "@/lib/supabase/client";
 import {
   buscaPersonas, departamentosDe, grupoDe, mailtoHref, personasDe, saltaDepartamentos, telHref,
@@ -23,7 +24,7 @@ import {
  * filtro aquí que pueda decir otra cosa.
  */
 export default function DirectoryPage() {
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const [filas, setFilas] = useState<PersonaDirectorio[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
@@ -63,7 +64,8 @@ export default function DirectoryPage() {
       : g.tipo === "remote" ? "Remote"
       : g.tipo === "sin_tienda" ? t("No store", "Sin tienda")
       : (g.tienda as string);
-  const nombreDepto = (s: string | null) => s ?? t("No department", "Sin departamento");
+  // D-725: los departamentos de Ajustes están en español; en inglés se enseñan traducidos.
+  const nombreDepto = (s: string | null) => (s ? nombreDeDepartamento(s, lang) : t("No department", "Sin departamento"));
   // «<tienda> · Ext <n>» (D-273). La extensión NO es un enlace, como la de cada persona en la tarjeta, que
   // es texto plano. Recruiting abre llamadas con `rcapp://r/call?number=`, pero que eso marque una extensión
   // interna no está medido, y medirlo es hacer una llamada de verdad.

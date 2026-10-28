@@ -247,6 +247,19 @@ contraseña) y las llaves que mandan SMS, llaman por teléfono y cuestan dinero.
 Una rama sin esas llaves no puede violar la regla de efectos en terceros aunque
 quiera. Para compilar sin variables: `node scripts/verify.mjs`.
 
+## Toda tabla es la tabla de Entregas — regla permanente
+
+El dueño, 2026-10-28, literal: *«Every app I build that has a table, list, filters or sort must use the exact same
+format, style and behavior as the Deliveries App table. The Deliveries App is the reference standard for all tables
+across all my apps.»*
+
+Antes de pintar o retocar una tabla, lista, filtro u orden en cualquier app del hub (RR. HH., Clientes, Inventario,
+Time Tracker, Encuestas, Estimador…), mirar la tabla de Órdenes (`src/app/(app)/page.tsx` y `OrdersTable.tsx`) y
+reutilizar sus piezas: `page-head` con el título y su `count-tag`, `BuscadorConBorrar`, chips `.chip` con su
+`.cnt`, `CabeceraConMenu` (ordenar y filtrar por columna), `useColWidthMap` (anchos que se arrastran),
+`table.orders tbl-resize` dentro de `.tbl-scroll.tbl-fit.tbl-caja`, y Excel/CSV con lo que se ve. Ancho fluido:
+la tabla ocupa la pantalla entera, no un contenedor estrecho. No se inventa otra forma de tabla.
+
 ## Antes de cambiar comportamiento
 
 Lee `DECISIONS.md`. Si una petición contradice una decisión registrada, **dilo

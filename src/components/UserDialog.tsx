@@ -580,7 +580,8 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
         })}
 
         {/* ---------- Access ---------- */}
-        {!LOCAL_MODE && (
+        {/* D-725: desde el expediente, la contraseña se pone en «Cuenta del hub», no aquí. */}
+        {!LOCAL_MODE && !desdeExpediente && (
           <>
             <div className="section-label">{t("Access", "Acceso")}</div>
             {newPass ? (

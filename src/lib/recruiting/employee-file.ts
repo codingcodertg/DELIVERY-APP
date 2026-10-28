@@ -189,6 +189,8 @@ export type FilaExpediente = {
   days_off: number | null;
   notes: string | null;
   docKinds: string[];
+  /** Hasta cuándo vale la licencia (D-725), «AAAA-MM-DD»; null sin licencia o sin fecha. */
+  licencia_vence: string | null;
   // ---- Migración 159. Mientras no esté aplicada llegan todas en null. ----
   /** Puesto. */
   job_title: string | null;
@@ -242,14 +244,17 @@ export type FilaExpediente = {
 export function filasDeExpediente(
   files: Record<string, unknown>[],
   perfiles: { id: string; full_name?: string | null; store?: string | null }[],
-  docsEntregados: { employee_id: string; kind: string; signed_at?: string | null }[],
+  docsEntregados: { employee_id: string; kind: string; signed_at?: string | null; expires_at?: string | null }[],
 ): FilaExpediente[] {
   const nombreDePerfil = new Map(perfiles.map((p) => [p.id, (p.full_name ?? "").trim()]));
   const tiendaDePerfil = new Map(perfiles.map((p) => [p.id, (p.store ?? "").trim() || null]));
   const kindsDe = new Map<string, string[]>();
+  const venceDe = new Map<string, string>();
   for (const d of docsEntregados) {
+    // D-725: la licencia solo lleva vencimiento; se cuenta como entregada con él y se avisa cuando se acerca.
+    if (d.kind === "license" && d.expires_at) venceDe.set(d.employee_id, d.expires_at);
     // Un papel sin fecha de firma está empezado, no hecho: no cuenta como entregado.
-    if (!d.signed_at) continue;
+    if (!d.signed_at && !(d.kind === "license" && d.expires_at)) continue;
     kindsDe.set(d.employee_id, [...(kindsDe.get(d.employee_id) ?? []), d.kind]);
   }
 
@@ -275,6 +280,7 @@ export function filasDeExpediente(
     days_off: (f.days_off as number) ?? null,
     notes: (f.notes as string) ?? null,
     docKinds: kindsDe.get(f.id as string) ?? [],
+    licencia_vence: venceDe.get(f.id as string) ?? null,
     job_title: (f.job_title as string) ?? null,
     personal_phone: (f.personal_phone as string) ?? null,
     personal_email: (f.personal_email as string) ?? null,
@@ -711,4 +717,54 @@ export function hayCambios(borrador: Record<string, unknown>, guardado: Record<s
   const claves = new Set([...Object.keys(borrador), ...Object.keys(guardado)]);
   for (const k of claves) if (String(borrador[k] ?? "") !== String(guardado[k] ?? "")) return true;
   return false;
+}
+
+// ---- Puestos (D-725) --------------------------------------------------------------------------
+/**
+ * El dueño, 2026-10-28: «In the Puesto field: add "AI Developer" and "Group Representative" as options, and change it from
+ * single select to multi-select (checkboxes), since an employee can have more than one position». El puesto sigue siendo
+ * la columna de texto `job_title`; varios se guardan separados por coma («Sales Representative, Group Representative»),
+ * que es como ya venían en el archivo del dueño y como los lee el resto (directorio, tabla, exportar).
+ */
+export const PUESTOS_FIJOS = ["AI Developer", "Group Representative"] as const;
+
+/** Los puestos de un texto «A, B», recortados, sin vacíos ni repetidos. */
+export function partesDePuesto(texto: string | null | undefined): string[] {
+  const vistos = new Set<string>();
+  const salida: string[] = [];
+  for (const p of (texto ?? "").split(",")) {
+    const v = p.trim();
+    const k = v.toLowerCase();
+    if (!v || vistos.has(k)) continue;
+    vistos.add(k);
+    salida.push(v);
+  }
+  return salida;
+}
+
+/** Lo que se ofrece: los de Ajustes, los fijos, y los que la persona ya tiene (para no perder uno que ya no esté en la lista). */
+export function puestosParaElegir(deAjustes: readonly string[], actual: string | null | undefined): string[] {
+  const vistos = new Set<string>();
+  const salida: string[] = [];
+  for (const p of [...deAjustes, ...PUESTOS_FIJOS, ...partesDePuesto(actual)]) {
+    const v = p.trim();
+    const k = v.toLowerCase();
+    if (!v || vistos.has(k)) continue;
+    vistos.add(k);
+    salida.push(v);
+  }
+  return salida;
+}
+
+/** Marca o desmarca un puesto; devuelve el texto que se guarda. */
+export function alternaPuesto(actual: string | null | undefined, puesto: string): string {
+  const partes = partesDePuesto(actual);
+  const k = puesto.trim().toLowerCase();
+  const sin = partes.filter((p) => p.toLowerCase() !== k);
+  return (sin.length === partes.length ? [...partes, puesto.trim()] : sin).join(", ");
+}
+
+export function tienePuesto(actual: string | null | undefined, puesto: string): boolean {
+  const k = puesto.trim().toLowerCase();
+  return partesDePuesto(actual).some((p) => p.toLowerCase() === k);
 }
