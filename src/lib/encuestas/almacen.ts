@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { COLUMNAS, type RespuestaEncuesta } from "./resumen";
+import { COLUMNAS, COLUMNAS_SIN_TIENDA, type RespuestaEncuesta } from "./resumen";
 
 /**
  * Dónde viven las respuestas: `public.survey_responses` (migración 155). Una interfaz con dos implementaciones
@@ -56,20 +56,34 @@ export function filaDeLaBase(f: Record<string, unknown>): RespuestaEncuesta {
     contacted: f.contacted === true,
     contacted_at: texto(f.contacted_at),
     note: texto(f.note),
+    rating_notes: f.rating_notes && typeof f.rating_notes === "object" && !Array.isArray(f.rating_notes) ? (f.rating_notes as Record<string, string>) : null,
+    store: texto(f.store),
   };
+}
+
+/** ¿Es «esa columna no existe» (42703)? Con la 209 sin aplicar, el select con `store` cae así y se repite sin ella. */
+export function faltaLaColumna(error: { code?: string | null } | null | undefined): boolean {
+  return (error?.code ?? "") === "42703";
 }
 
 export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeEncuestas {
   return {
     async leer() {
       const todas: RespuestaEncuesta[] = [];
+      let columnas = COLUMNAS;
       for (let p = 0; p < MAX_PAGINAS; p++) {
-        const { data, error } = await supabase
+        const pide = () => supabase
           .from("survey_responses")
-          .select(COLUMNAS)
+          .select(columnas)
           .order("created_at", { ascending: false })
           .order("id", { ascending: true })
           .range(p * PAGINA, (p + 1) * PAGINA - 1);
+        let { data, error } = await pide();
+        if (error && columnas === COLUMNAS && faltaLaColumna(error)) {
+          // La 209 no está aplicada: se lee sin la tienda, y la pantalla sigue entera.
+          columnas = COLUMNAS_SIN_TIENDA;
+          ({ data, error } = await pide());
+        }
         if (error) return { ok: false, sinTabla: faltaLaTabla(error), error: error.message };
         const filas = (data ?? []) as unknown as Record<string, unknown>[];
         todas.push(...filas.map(filaDeLaBase));

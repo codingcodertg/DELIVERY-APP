@@ -129,7 +129,7 @@ describe("tablaCsv", () => {
   });
   const { cabeceras, filas } = tablaCsv([f]);
   it("una columna de calificación por área, alineada con su cabecera", () => {
-    expect(cabeceras).toHaveLength(20);
+    expect(cabeceras).toHaveLength(21);
     const fila = filas[0];
     expect(fila).toHaveLength(cabeceras.length);
     expect(fila[cabeceras.indexOf("rating_pricing")]).toBe(3);

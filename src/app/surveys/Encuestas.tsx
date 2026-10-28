@@ -8,18 +8,18 @@ import { areaLabel } from "@/lib/encuestas/areas";
 import { almacenDeLaBase, type AlmacenDeEncuestas } from "@/lib/encuestas/almacen";
 import { almacenDemo } from "@/lib/encuestas/demo";
 import {
-  eleccionesDe, fechaHora, filtrarPorFechas, nombreDeContacto, notasDe, paraContactar, porArea, porcentajeNada, respuestasPorDia,
+  eleccionesDe, fechaHora, filtrarPorFechas, nombreDeContacto, notasDe, paraContactar, porArea, porcentajeNada, porTienda, respuestasPorDia,
   tablaCsv, textosOther, type RespuestaEncuesta,
 } from "@/lib/encuestas/resumen";
+import { TarjetaQr } from "@/components/encuestas/QrDeLaEncuesta";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 
 /**
- * El enlace público de la encuesta (D-449: sitio aparte, `rtg2/rtg-encuesta` en Vercel) y su QR, a la vista en esta pestaña
- * (D-496). El dueño, 2026-10-07: «Have the survey link in the survey tab».
+ * El enlace público de la encuesta (D-449: sitio aparte, `rtg-encuesta` en Vercel) y su QR, a la vista en esta pestaña
+ * (D-496; el dueño, 2026-10-07: «Have the survey link in the survey tab»). Desde D-724, además, un QR por tienda: el
+ * enlace lleva `?tienda=` y cada respuesta se guarda con su tienda. El enlace vive en `lib/encuestas/qr`.
  */
-export const ENLACE_DE_LA_ENCUESTA = "https://rtg-encuesta.vercel.app";
-export const QR_DE_LA_ENCUESTA = "/encuesta-qr.png";
 
 /** Los atajos del filtro de fechas, en días hacia atrás desde hoy (incluido). null = sin límite. */
 const ATAJOS: { dias: number | null; en: string; es: string }[] = [
@@ -38,13 +38,12 @@ const ATAJOS: { dias: number | null; en: string; es: string }[] = [
  * La lista de contacto **no** obedece al filtro de fechas: una petición pendiente de hace dos meses no puede
  * esconderse porque el filtro diga «30 días». Lo demás, sí.
  */
-export function Encuestas({ demo }: { demo: boolean }) {
+export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeEncuestas = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 
   const [filas, setFilas] = useState<RespuestaEncuesta[]>([]);
   const [estado, setEstado] = useState<Estado>({ tipo: "cargando" });
-  const [copiado, setCopiado] = useState(false);
   const [hasta, setHasta] = useState<string>(() => todayISO());
   const [desde, setDesde] = useState<string>(() => shiftDateISO(todayISO(), -29));
   const [marcando, setMarcando] = useState<string | null>(null);
@@ -63,6 +62,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
   const nada = useMemo(() => porcentajeNada(visibles), [visibles]);
   const otros = useMemo(() => textosOther(visibles), [visibles]);
   const notas = useMemo(() => notasDe(visibles), [visibles]);
+  const tiendasConRespuestas = useMemo(() => porTienda(visibles), [visibles]);
   const contactar = useMemo(() => paraContactar(filas), [filas]);
   const pendientes = contactar.filter((f) => !f.contacted).length;
   const maxSerie = Math.max(1, ...serie.map((s) => s.n));
@@ -105,21 +105,23 @@ export function Encuestas({ demo }: { demo: boolean }) {
         </div>
       </div>
 
-      <div className="card" data-enlace-encuesta style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-        <img src={QR_DE_LA_ENCUESTA} alt={t("Survey QR code", "Código QR de la encuesta")} width={96} height={96}
-          style={{ borderRadius: 8, border: "1px solid var(--line)", background: "#fff", flex: "0 0 auto" }} />
-        <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-          <div style={{ fontWeight: 700 }}>🔗 {t("Survey link", "Enlace de la encuesta")}</div>
-          <a href={ENLACE_DE_LA_ENCUESTA} target="_blank" rel="noopener noreferrer" style={{ wordBreak: "break-all", fontSize: 15 }}>{ENLACE_DE_LA_ENCUESTA}</a>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-            <button className="btn btn-primary btn-sm" data-copiar-enlace onClick={() => {
-              void navigator.clipboard?.writeText(ENLACE_DE_LA_ENCUESTA).then(() => setCopiado(true), () => setCopiado(false));
-            }}>{copiado ? `✓ ${t("Copied", "Copiado")}` : `📋 ${t("Copy link", "Copiar enlace")}`}</button>
-            <a className="btn btn-ghost btn-sm" href={ENLACE_DE_LA_ENCUESTA} target="_blank" rel="noopener noreferrer">↗ {t("Open", "Abrir")}</a>
-            <a className="btn btn-ghost btn-sm" href={QR_DE_LA_ENCUESTA} download="RTG-encuesta-QR.png">⬇ {t("Download QR", "Descargar QR")}</a>
-          </div>
+      {/* Un QR por tienda (D-724): el general (el que ya está impreso) y uno por cada tienda de Ajustes, plegados. */}
+      <details className="card" data-enlace-encuesta open={tiendas.length === 0}>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+          🔗 {t("Survey links and QR codes", "Enlaces y códigos QR de la encuesta")}
+          <span className="hint" style={{ fontWeight: 400 }}> · {tiendas.length === 0 ? t("general", "general") : t(`general + ${tiendas.length} stores`, `general + ${tiendas.length} tiendas`)}</span>
+        </summary>
+        <p className="hint">
+          {t(
+            "Each store has its own QR: the survey shows the store name and every answer is saved with it. The general one is the QR already printed.",
+            "Cada tienda tiene su QR: la encuesta enseña el nombre de la tienda y cada respuesta se guarda con ella. El general es el QR que ya está impreso.",
+          )}
+        </p>
+        <div style={{ display: "grid", gap: 10 }}>
+          <TarjetaQr tienda={null} />
+          {tiendas.map((nombre) => <TarjetaQr key={nombre} tienda={nombre} />)}
         </div>
-      </div>
+      </details>
 
       {estado.tipo === "sinTabla" && (
         <div className="enc-aviso ambar" data-aviso-sin-tabla>
@@ -185,6 +187,24 @@ export function Encuestas({ demo }: { demo: boolean }) {
               </>
             )}
           </div>
+
+          {tiendasConRespuestas.some((x) => x.tienda !== null) && (
+            <div className="card" data-por-tienda>
+              <h2>🏬 {t("By store", "Por tienda")}</h2>
+              <div className="bar-list">
+                {tiendasConRespuestas.map((x) => (
+                  <div className="bar-row" key={x.tienda ?? ""} data-tienda={x.tienda ?? ""}>
+                    <span className="bar-label enc-area-label">{x.tienda ?? t("No store (general QR)", "Sin tienda (QR general)")}</span>
+                    <span className="bar-track">
+                      <span className="bar-fill" style={{ width: `${(x.n / Math.max(1, ...tiendasConRespuestas.map((y) => y.n))) * 100}%`, background: "var(--accent)" }} />
+                    </span>
+                    <span className="bar-num" title={t("Responses", "Respuestas")}>{x.n}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="hint">{t("The store of the QR each customer scanned.", "La tienda del QR que escaneó cada cliente.")}</p>
+            </div>
+          )}
 
           <div className="card">
             <h2>🧩 {t("By area", "Por área")}</h2>
@@ -252,7 +272,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
                 <table className="orders" data-contactar>
                   <thead>
                     <tr>
-                      <th>{t("Date", "Fecha")}</th><th>{t("Name", "Nombre")}</th><th>{t("Phone", "Teléfono")}</th><th>{t("Email", "Correo")}</th>
+                      <th>{t("Date", "Fecha")}</th><th>{t("Store", "Tienda")}</th><th>{t("Name", "Nombre")}</th><th>{t("Phone", "Teléfono")}</th><th>{t("Email", "Correo")}</th>
                       <th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th><th>{t("Note", "Nota")}</th>
                       <th>{t("Contacted", "Contactado")}</th>
                     </tr>
@@ -261,6 +281,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
                     {contactar.map((f) => (
                       <tr key={f.id} className={f.contacted ? "enc-contactado" : undefined}>
                         <td>{fechaHora(f.created_at)}</td>
+                        <td>{f.store ?? "—"}</td>
                         <td className={f.contact_name ? undefined : "hint"}>{nombreDeContacto(f, lang)}</td>
                         <td>{f.contact_phone ?? "—"}</td>
                         <td>{f.contact_email ? <a href={`mailto:${f.contact_email}`}>{f.contact_email}</a> : "—"}</td>
@@ -303,7 +324,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
                 <table className="orders" data-todas>
                   <thead>
                     <tr>
-                      <th>{t("Date", "Fecha")}</th><th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th>
+                      <th>{t("Date", "Fecha")}</th><th>{t("Store", "Tienda")}</th><th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th>
                       <th>{t("Note", "Nota")}</th><th>{t("Contact", "Contacto")}</th><th>{t("Contacted", "Contactado")}</th>
                     </tr>
                   </thead>
@@ -311,6 +332,7 @@ export function Encuestas({ demo }: { demo: boolean }) {
                     {visibles.map((f) => (
                       <tr key={f.id}>
                         <td>{fechaHora(f.created_at)}</td>
+                        <td>{f.store ?? "—"}</td>
                         <td style={{ whiteSpace: "normal" }}>{eleccionesDe(f, lang)}</td>
                         <td style={{ whiteSpace: "normal" }}>{f.other_text ?? ""}</td>
                         <td style={{ whiteSpace: "pre-wrap" }}>{f.note ?? ""}</td>
