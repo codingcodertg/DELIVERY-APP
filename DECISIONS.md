@@ -48681,7 +48681,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **Pruebas:** `activos.test.ts` (cuatro números, iguales a `telefonoDeFicha`). Ensayo del guion con el archivo real: 74 activos, 1 repetido, «Joseph» sin expediente.
 
-## D-NEXT · Chofer: deshacer la etapa de una orden rechazada le devuelve sus botones (la marca «Rechazada» se borra con cualquier etapa, no solo al recoger o entregar)
+## D-732 · Chofer: deshacer la etapa de una orden rechazada le devuelve sus botones (la marca «Rechazada» se borra con cualquier etapa, no solo al recoger o entregar)
 
 **Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `rechazo-se-borra-al-reabrir`.
 

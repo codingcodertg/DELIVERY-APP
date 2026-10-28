@@ -56,7 +56,7 @@ describe("marcasDeParadas", () => {
     ], HOY);
     expect(m.size).toBe(0);
   });
-  it("D-NEXT: deshacer la etapa (vuelve a «ready») borra el rechazo — el chofer nuevo tiene que ver sus botones", () => {
+  it("D-732: deshacer la etapa (vuelve a «ready») borra el rechazo — el chofer nuevo tiene que ver sus botones", () => {
     const eventos = [
       ev("a", "picked_up", "2026-10-06T14:00:00Z"),
       ev("a", KIND_RECHAZADA, "2026-10-06T15:00:00Z", "Rejected by customer: No body there"),
@@ -70,7 +70,7 @@ describe("marcasDeParadas", () => {
       expect(marcasDeParadas([eventos[1], ev("a", etapa, "2026-10-06T17:00:00Z")], HOY).size).toBe(0);
     }
   });
-  it("D-NEXT: una nota o una edición después del rechazo no lo borran (solo una etapa lo hace)", () => {
+  it("D-732: una nota o una edición después del rechazo no lo borran (solo una etapa lo hace)", () => {
     const m = marcasDeParadas([
       ev("a", KIND_RECHAZADA, "2026-10-06T15:00:00Z", "x"),
       ev("a", "note", "2026-10-06T16:00:00Z", "called the customer"),
