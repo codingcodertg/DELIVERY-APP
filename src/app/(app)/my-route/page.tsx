@@ -47,6 +47,7 @@ import { useChoferDeLaRuta } from "@/lib/ruta-de-un-chofer";
 import { rutaDeSoloLectura } from "@/lib/vista-de-chofer";
 import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 import { muestraElPlanEnMiRuta } from "@/lib/barra-de-entregas";
+import { TomarFacturaAjena } from "@/components/TomarFacturaAjena";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -117,6 +118,9 @@ export default function MyRoutePage() {
   // D-469: el chofer mira su ruta de ayer, hoy o mañana. El dueño, 2026-10-04: «que los conductores puedan ver ayer, hoy y
   // mañana… en donde salen mis rutas». `dia` es un desfase (−1, 0, 1) y no una fecha, para que a medianoche «hoy» siga siendo hoy.
   const [desfase, setDesfase] = useState<-1 | 0 | 1>(0);
+  // «Buscar factura #…» en Mi ruta (D-735): una orden sin chofer se agrega a la ruta de hoy desde aquí mismo.
+  const [facturaBuscada, setFacturaBuscada] = useState("");
+  const misIds = useMemo(() => new Set(deliveries.filter((d) => d.assigned_driver === driverName).map((d) => d.id)), [deliveries, driverName]);
   const dia = shiftDateISO(todayISO(), desfase);
   const stops = useMemo(() => {
     if (!me) return [];
@@ -430,6 +434,20 @@ export default function MyRoutePage() {
       </div>
       {/* D-518: «Haz tu inspección pre-viaje» mientras hoy no haya una. Avisa, no bloquea. Solo en su propia ruta. */}
       {!ajeno && <AvisoDeInspeccion />}
+      {/* D-735: el chofer busca una factura que no está en su ruta y, si no tiene chofer, la agrega (migración 213). Solo
+          en su propia ruta y solo el chofer: el admin que mira la ruta de otro (D-502) no toma nada en su nombre. */}
+      {!soloLectura && me?.role === "driver" && (
+        <div data-buscador-de-mi-ruta style={{ marginBottom: 8 }}>
+          <input
+            style={{ maxWidth: 260 }}
+            placeholder={t("Add an invoice # to my route…", "Agregar factura # a mi ruta…")}
+            value={facturaBuscada}
+            onChange={(e) => setFacturaBuscada(e.target.value)}
+            aria-label={t("Search invoice #", "Buscar factura #")}
+          />
+          <TomarFacturaAjena texto={facturaBuscada} misIds={misIds} alTomar={() => { setFacturaBuscada(""); setDesfase(0); }} />
+        </div>
+      )}
       <div className="viewtoggle" data-dia-de-mi-ruta style={{ marginBottom: 8 }}>
         {([[-1, t("Yesterday", "Ayer")], [0, t("Today", "Hoy")], [1, t("Tomorrow", "Mañana")]] as const).map(([d, rotulo]) => (
           <button key={d} className={`vt${desfase === d ? " on" : ""}`} onClick={() => setDesfase(d)}>{rotulo}</button>

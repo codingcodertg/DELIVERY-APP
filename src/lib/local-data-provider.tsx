@@ -21,7 +21,7 @@ import { orderLabel } from "@/lib/utils";
 import { notaDeReprogramacion } from "@/lib/reprogramar-orden";
 import { notaDeDomingo, problemaAlAgendar, textoDelProblema, usaCasoEspecial } from "@/lib/dia-de-entrega";
 import { conTelefonoEstandar } from "@/lib/telefono-de-la-orden";
-import { ETAPAS_PARA_TOMAR, facturaParaBuscar, motivoValido, notaDeExcepcion, numerosDeFactura, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
+import { ETAPAS_PARA_TOMAR, facturaParaBuscar, notaAlTomar, numerosDeFactura, sePuedeBuscar, sePuedeTomar, type OrdenParaTomar } from "@/lib/tomar-orden";
 
 // ============================================================
 // LOCAL DEMO MODE — no backend. Everything is kept in the browser
@@ -582,9 +582,9 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     tomarOrdenParaRecoger: async (id, motivo, lang) => {
       const d = storeRef.current.deliveries.find((x) => x.id === id);
       const yo = me?.full_name ?? "";
-      if (!d || !yo || !ETAPAS_PARA_TOMAR.has(d.stage) || d.assigned_driver === yo || !motivoValido(motivo)) return false;
+      if (!d || !yo || !ETAPAS_PARA_TOMAR.has(d.stage) || d.assigned_driver === yo || !sePuedeTomar(d, motivo)) return false;
       const ok = await updateDelivery(id, { assigned_driver: yo, route_seq: null, pickup_seq: null, load_no: null, delivery_date: todayISO() });
-      if (ok) await addNote(id, notaDeExcepcion({ yo, antes: d.assigned_driver ?? null, motivo, lang }));
+      if (ok) await addNote(id, notaAlTomar({ yo, antes: d.assigned_driver, motivo, lang }));
       return ok;
     },
     reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,

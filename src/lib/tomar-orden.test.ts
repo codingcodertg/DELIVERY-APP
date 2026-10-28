@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   ETAPAS_PARA_TOMAR, KIND_TOMADA_POR_CHOFER, MINIMO_PARA_BUSCAR, ajenasParaTomar, etiquetaDeLaOrden, facturaParaBuscar,
   falloAlTomar, mensajeDelFallo, motivoLimpio, motivoValido, notaDeExcepcion, numerosDeFactura, sePuedeBuscar, type OrdenParaTomar,
+  notaAlTomar, notaDeAgregada, pideMotivo, sePuedeTomar,
 } from "./tomar-orden";
 
 // D-625 (2026-10-21) · el dueño: «Drivers will need to be able to search for invoice numbers that aren't assigned to them
@@ -95,15 +96,68 @@ describe("los errores de la base, en palabras", () => {
 });
 
 describe("la nota del historial (demo) es la misma que escribe la base", () => {
-  it("con y sin chofer de antes, en los dos idiomas", () => {
+  it("con chofer de antes (188) y sin él (213), en los dos idiomas", () => {
     expect(notaDeExcepcion({ yo: "Ana", antes: "Beto", motivo: " el  otro no vino ", lang: "es" }))
       .toBe("⚠️ Excepción: Ana tomó esta orden para recogerla (era de Beto): el otro no vino");
-    expect(notaDeExcepcion({ yo: "Ana", antes: null, motivo: "urge", lang: "en" }))
-      .toBe("⚠️ Exception: Ana took this order to pick it up (it had no driver): urge");
-    const sql = leer("supabase/migrations/188_chofer_toma_orden.sql");
+    expect(notaDeExcepcion({ yo: "Ana", antes: "Beto", motivo: "urge", lang: "en" }))
+      .toBe("⚠️ Exception: Ana took this order to pick it up (it was Beto's): urge");
+    expect(notaDeAgregada({ yo: "Ana", lang: "es" })).toBe("🚚 Ana agregó esta orden a su ruta (no tenía chofer)");
+    expect(notaDeAgregada({ yo: "Ana", motivo: "  me queda  de paso ", lang: "en" }))
+      .toBe("🚚 Ana added this order to their route (it had no driver): me queda de paso");
+    // La que toca la decide el chofer de antes, como el `case when o.assigned_driver is null` de la 213.
+    expect(notaAlTomar({ yo: "Ana", antes: null, motivo: "", lang: "es" })).toBe(notaDeAgregada({ yo: "Ana", lang: "es" }));
+    expect(notaAlTomar({ yo: "Ana", antes: "  ", motivo: "x", lang: "es" })).toBe(notaDeAgregada({ yo: "Ana", motivo: "x", lang: "es" }));
+    expect(notaAlTomar({ yo: "Ana", antes: "Beto", motivo: "urge", lang: "es" })).toBe(notaDeExcepcion({ yo: "Ana", antes: "Beto", motivo: "urge", lang: "es" }));
+    const sql = leer("supabase/migrations/213_chofer_agrega_orden_sin_chofer.sql");
+    expect(sql).toContain("case when o.assigned_driver is null then");
+    expect(sql).toContain("'🚚 ' || mio || ' agregó esta orden a su ruta (no tenía chofer)'");
+    expect(sql).toContain("'🚚 ' || mio || ' added this order to their route (it had no driver)'");
+    expect(sql).toContain("|| case when limpio <> '' then ': ' || limpio else '' end");
     expect(sql).toContain("'⚠️ Excepción: ' || mio || ' tomó esta orden para recogerla'");
-    expect(sql).toContain("' (era de ' || o.assigned_driver || ')'");
-    expect(sql).toContain("' (no tenía chofer)'");
+    expect(sql).toContain("|| ' (era de ' || o.assigned_driver || ')'");
+  });
+});
+
+describe("sin chofer no hay excepción (D-735, 213)", () => {
+  it("el motivo solo se pide si la orden era de otro chofer; sin chofer se toma con nada", () => {
+    expect(pideMotivo({ assigned_driver: "Beto" })).toBe(true);
+    expect(pideMotivo({ assigned_driver: null })).toBe(false);
+    expect(pideMotivo({ assigned_driver: "  " })).toBe(false);
+    expect(sePuedeTomar({ assigned_driver: "Beto" }, "ok")).toBe(false);
+    expect(sePuedeTomar({ assigned_driver: "Beto" }, "no vino")).toBe(true);
+    expect(sePuedeTomar({ assigned_driver: null }, "")).toBe(true);
+    expect(sePuedeTomar({ assigned_driver: null }, null)).toBe(true);
+  });
+
+  it("la 213 redefine la función con la misma firma, el motivo solo con chofer de antes, y conserva el guard y la campana", () => {
+    const sql = leer("supabase/migrations/213_chofer_agrega_orden_sin_chofer.sql");
+    expect(sql).toContain("create or replace function public.tomar_orden_para_recoger(p_id uuid, p_motivo text, p_lang text default 'es')");
+    expect(sql).toContain("if o.assigned_driver is not null and char_length(limpio) < 3 then");
+    expect(sql).toContain("raise exception 'TOMAR_SIN_MOTIVO");
+    expect(sql).toContain("raise exception 'TOMAR_YA_ES_TUYA");
+    expect(sql).toContain("perform set_config('rtg.tomar_orden', p_id::text, true);");
+    expect(sql).toContain("set assigned_driver = mio, route_seq = null, pickup_seq = null, load_no = null, delivery_date = hoy");
+    expect(sql).toContain("'tomada_por_chofer'");
+    expect(sql).toContain("grant execute on function public.tomar_orden_para_recoger(uuid, text, text) to authenticated;");
+    expect(sql).not.toMatch(/^\s*(begin|commit)\s*;/im);
+    expect(sql).toContain("-- @ledger-below");
+    // El demo decide igual que la base: motivo solo con chofer de antes, y la nota que toca.
+    const demo = leer("src/lib/local-data-provider.tsx");
+    expect(demo).toContain("d.assigned_driver === yo || !sePuedeTomar(d, motivo)) return false;");
+    expect(demo).toContain("notaAlTomar({ yo, antes: d.assigned_driver, motivo, lang })");
+  });
+
+  it("la tarjeta: sin chofer «➕ Agregar a mi ruta» sin motivo; de otro, la excepción; y el buscador también en Mi ruta", () => {
+    const comp = leer("src/components/TomarFacturaAjena.tsx");
+    expect(comp).toContain("const sinChofer = ajenas.filter((o) => !pideMotivo(o));");
+    expect(comp).toContain("const deOtro = ajenas.filter((o) => pideMotivo(o));");
+    expect(comp).toContain('tomarOrdenParaRecoger(o.id, pideMotivo(o) ? motivo : "", lang === "en" ? "en" : "es")');
+    expect(comp).toContain("if ((pideMotivo(o) && !motivoValido(motivo)) || tomando) return;");
+    expect(comp).toContain("data-agregar-a-mi-ruta");
+    expect(comp.indexOf("data-ordenes-sin-chofer")).toBeLessThan(comp.indexOf("data-ordenes-ajenas"));
+    const ruta = leer("src/app/(app)/my-route/page.tsx");
+    expect(ruta).toContain('{!soloLectura && me?.role === "driver" && (\n        <div data-buscador-de-mi-ruta');
+    expect(ruta).toContain("<TomarFacturaAjena texto={facturaBuscada} misIds={misIds} alTomar={() => { setFacturaBuscada(\"\"); setDesfase(0); }} />");
   });
 });
 
