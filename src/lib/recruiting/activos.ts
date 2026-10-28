@@ -8,7 +8,7 @@
 function telefonoDeActivo(raw: string | null | undefined): string | null {
   const v = (raw ?? "").trim();
   if (!v) return null;
-  const d = v.replace(/D/g, "");
+  const d = v.replace(/\D/g, "");
   const diez = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
   if (diez.length !== 10 || /[a-z]/i.test(v)) return v;
   return `${diez.slice(0, 3)}-${diez.slice(3, 6)}-${diez.slice(6)}`;
