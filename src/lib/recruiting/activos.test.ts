@@ -5,7 +5,7 @@ import {
   textoDeTelefono, valorDeActivo, type Activo,
 } from "./activos";
 
-// D-NEXT (2026-10-28) · «add a "Company Assets" section to the UI to track paid company emails and phone numbers».
+// D-730 (2026-10-28) · «add a "Company Assets" section to the UI to track paid company emails and phone numbers».
 const a = (x: Partial<Activo>): Activo => ({
   id: "x", kind: "email", value: "a@b.c", ext: null, phone_type: null, status: "available", employee_id: null, last_employee_id: null,
   plan: null, cost_year: null, note: null, updated_at: null, ...x,

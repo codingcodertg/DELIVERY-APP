@@ -48653,7 +48653,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 - **CLAUDE.md:** sección «El formato de los datos es uno en todas las apps — regla permanente».
 
 **Pruebas:** `recruiting/formato-de-datos.test.ts` (correo, nombre, teléfono; guardar y agregar pasan por el formato). La capa de CSS no tiene prueba: **no medido** en el navegador.
-## D-NEXT · RR. HH.: «Company assets» — los correos y números que paga la empresa, con su estado y quién los tiene (migración 211); asignar desde el expediente; la baja los libera
+## D-730 · RR. HH.: «Company assets» — los correos y números que paga la empresa, con su estado y quién los tiene (migración 211); asignar desde el expediente; la baja los libera
 
 **Fecha:** 2026-10-28 · **Migración 211** (`211_activos_de_empresa.sql`, ensayada con ROLLBACK, pendiente de aplicar) · Hecho directo por el orquestador en `activos-de-empresa`.
 
