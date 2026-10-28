@@ -201,7 +201,7 @@ export default function AssetsPage() {
         {estado === "listo" && vista === "personas" && (
           <>
             <p className="hint" style={{ marginTop: 0 }}>{t("Active employees: who has a company email and a phone number, and who does not.", "Empleados activos: quién tiene correo y número de la empresa, y quién no.")}</p>
-            <div className="tbl-scroll tbl-fit tbl-caja">
+            <div className="tbl-scroll tbl-caja">
               <table className="orders" data-tabla-por-persona>
                 <thead><tr><th>{t("Employee", "Empleado")}</th><th>{t("Email", "Correo")}</th><th>{t("Line", "Línea")}</th></tr></thead>
                 <tbody>
