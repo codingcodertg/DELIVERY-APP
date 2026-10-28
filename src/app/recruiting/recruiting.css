@@ -64,6 +64,30 @@
 .recruiting-module input:focus, .recruiting-module select:focus, .recruiting-module textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
 .recruiting-module label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
 
+/* «Permisos» dentro del expediente (D-729). El dueño, 2026-10-28, con la captura: «the checkboxes are not aligned with
+   their labels/text, and the cards have uneven heights … less uppercase text, consistent font sizes and spacing».
+   La regla de arriba (etiqueta en bloque y en mayúsculas) alcanzaba a las tarjetas `.perm-opt` del hub y las rompía:
+   aquí se deshace y cada permiso es UNA fila alineada: casilla · nombre (con «del rol») · descripción. */
+.recruiting-module .permisos-del-empleado label { text-transform: none; letter-spacing: 0; font-size: 13px; }
+.recruiting-module .permisos-del-empleado .field > label,
+.recruiting-module .permisos-del-empleado .section-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.recruiting-module .permisos-del-empleado .grid.g2:has(> .perm-opt) { grid-template-columns: 1fr; gap: 6px; }
+.recruiting-module .permisos-del-empleado .perm-opt {
+  display: grid; grid-template-columns: 18px minmax(160px, 220px) 1fr; align-items: center; gap: 10px;
+  padding: 8px 10px; margin: 0; min-height: 40px; font-weight: 500; text-transform: none; letter-spacing: 0;
+}
+.recruiting-module .permisos-del-empleado .perm-opt > span { display: contents; }
+.recruiting-module .permisos-del-empleado .perm-opt input { margin: 0; width: 16px; height: 16px; }
+.recruiting-module .permisos-del-empleado .perm-opt b { font-weight: 700; white-space: normal; }
+.recruiting-module .permisos-del-empleado .perm-opt .hint { display: block; margin: 0; font-size: 12px; }
+.recruiting-module .permisos-del-empleado .perm-opt .sema { margin-left: 6px; vertical-align: middle; }
+.recruiting-module .permisos-del-empleado .card { padding: 14px; margin-bottom: 10px; }
+.recruiting-module .permisos-del-empleado .card > .perm-opt { grid-template-columns: 18px 1fr; font-size: 14px; }
+@media (max-width: 640px) {
+  .recruiting-module .permisos-del-empleado .perm-opt { grid-template-columns: 18px 1fr; }
+  .recruiting-module .permisos-del-empleado .perm-opt .hint { grid-column: 2; }
+}
+
 /* La barra es la de todas las apps (D-643, `BarraDeApp`) y la pinta globals.css: aquí solo queda lo que la hoja de
    RR. HH. obliga a repetir. Era una copia entera de `.topbar`, `.topbar h1`, `.tabs` y `.tab` con más peso que las de
    globals.css, y con eso RR. HH. no recibía las del teléfono (relleno de 10 px, nombre de 14 px, pestañas en una fila

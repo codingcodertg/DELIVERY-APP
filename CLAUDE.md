@@ -260,6 +260,21 @@ reutilizar sus piezas: `page-head` con el título y su `count-tag`, `BuscadorCon
 `table.orders tbl-resize` dentro de `.tbl-scroll.tbl-fit.tbl-caja`, y Excel/CSV con lo que se ve. Ancho fluido:
 la tabla ocupa la pantalla entera, no un contenedor estrecho. No se inventa otra forma de tabla.
 
+## El formato de los datos es uno en todas las apps — regla permanente
+
+El dueño, 2026-10-28, literal: *«Phone numbers: one consistent format everywhere … with extension shown as "ext. 123".
+Emails: always lowercase. Names: proper capitalization (First Last), never all caps or all lowercase. Fonts, sizes and
+text casing must be consistent across all fields and screens — no random uppercase labels or mixed styles. Normalize data
+on input/save so everything stored and displayed follows the same format.»*
+
+- **Teléfonos:** la forma de la app es `956-555-0123` (D-432, `telefonoDeFicha` en RR. HH.; Clientes y Entregas tienen
+  la suya equivalente). La extensión se enseña aparte como «ext. 123». No se inventa otra forma en una app nueva.
+- **Correos:** siempre en minúsculas y recortados al guardar (`correoDeFicha`).
+- **Nombres de persona:** con mayúscula inicial en cada palabra cuando llegan todo en mayúsculas o todo en minúsculas
+  (`nombreDeFicha`); lo mezclado a propósito («McAllen») se respeta.
+- **Pantallas:** mismas fuentes, tamaños y uso de mayúsculas que el resto del hub; nada en mayúsculas «porque sí».
+- La normalización vive en el servidor (acciones y rutas que guardan), no solo en el campo de la pantalla.
+
 ## Antes de cambiar comportamiento
 
 Lee `DECISIONS.md`. Si una petición contradice una decisión registrada, **dilo

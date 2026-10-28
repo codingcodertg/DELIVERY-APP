@@ -693,7 +693,7 @@ export function filaNueva(d: {
   full_name: string; date_hired?: string | null; department?: string | null; store?: string | null;
   phone?: string | null; ringcentral_ext?: string | null; job_title?: string | null; personal_phone?: string | null;
 }, con159: boolean): Record<string, unknown> | null {
-  const nombre = (d.full_name ?? "").trim().replace(/\s+/g, " ");
+  const nombre = nombreDeFicha(d.full_name);
   if (!nombre) return null;
   const txt = (v: string | null | undefined) => (v ?? "").trim() || null;
   const base: Record<string, unknown> = {
@@ -767,4 +767,32 @@ export function alternaPuesto(actual: string | null | undefined, puesto: string)
 export function tienePuesto(actual: string | null | undefined, puesto: string): boolean {
   const k = puesto.trim().toLowerCase();
   return partesDePuesto(actual).some((p) => p.toLowerCase() === k);
+}
+
+// ---- Formato de los datos al guardar (D-729) ------------------------------------------------
+/**
+ * El dueño, 2026-10-28: «Emails: always lowercase. Names: proper capitalization (First Last), never all caps or all
+ * lowercase … Normalize data on input/save so everything stored and displayed follows the same format». Los teléfonos
+ * ya tenían su forma (`telefonoDeFicha`, 956-xxx-xxxx, D-432).
+ */
+
+/** Un correo: recortado y en minúsculas; vacío ⇒ null. */
+export function correoDeFicha(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim().toLowerCase();
+  return v || null;
+}
+
+/**
+ * Un nombre de persona: espacios de más fuera, y si venía TODO en mayúsculas o todo en minúsculas, con mayúscula
+ * inicial en cada palabra (también tras un guion o un apóstrofo: «Rodríguez-Pérez», «O'Brien»). Un nombre con
+ * mayúsculas y minúsculas mezcladas se deja como está: «McAllen» o «de la Garza» ya los escribió alguien a propósito.
+ */
+export function nombreDeFicha(raw: string | null | undefined): string {
+  const limpio = (raw ?? "").trim().replace(/\s+/g, " ");
+  if (!limpio) return "";
+  const letras = limpio.replace(/[^\p{L}]/gu, "");
+  const todoMayus = letras !== "" && letras === letras.toLocaleUpperCase();
+  const todoMinus = letras !== "" && letras === letras.toLocaleLowerCase();
+  if (!todoMayus && !todoMinus) return limpio;
+  return limpio.toLocaleLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (_m, antes: string, letra: string) => antes + letra.toLocaleUpperCase());
 }
