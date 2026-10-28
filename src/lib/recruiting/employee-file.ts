@@ -692,3 +692,13 @@ export function filaNueva(d: {
   if (!con159) return base;
   return { ...base, job_title: txt(d.job_title), personal_phone: telefonoDeFicha(d.personal_phone) };
 }
+
+/**
+ * D-720: ¿difiere el borrador del expediente de lo último guardado? Decide si «Guardar» se enciende y si cerrar
+ * pregunta. Vacío y null cuentan como lo mismo: un campo que nunca se llenó no es un cambio.
+ */
+export function hayCambios(borrador: Record<string, unknown>, guardado: Record<string, unknown>): boolean {
+  const claves = new Set([...Object.keys(borrador), ...Object.keys(guardado)]);
+  for (const k of claves) if (String(borrador[k] ?? "") !== String(guardado[k] ?? "")) return true;
+  return false;
+}

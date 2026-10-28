@@ -10,35 +10,32 @@ describe("D-704: RR. HH. en dos menús", () => {
     expect(g).toEqual({
       today: "recruiting", calls: "recruiting", candidates: "recruiting", board: "recruiting", outcomes: "recruiting",
       questions: "recruiting", metrics: "recruiting", calendar: "recruiting",
-      employees: "hr", "user-creation": "hr", settings: null,
+      employees: "hr", settings: null,
     });
   });
 
-  it("«Crear usuarios» es una página de RR. HH., no el hub", () => {
-    expect(TABS.find((t) => t.id === "user-creation")?.href).toBe("/recruiting/user-creation");
+  it("D-720: «Crear usuarios» ya no es una página: HR es solo Empleados", () => {
+    expect(TABS.find((t) => t.id === "user-creation")).toBeUndefined();
+    expect(TABS.some((t) => t.href.includes("user-creation"))).toBe(false);
   });
 
-  it("el admin de RR. HH. que es admin del hub ve los dos menús enteros", () => {
-    const m = menusDeRrhh(TABS, "admin", "admin");
+  it("el admin de RR. HH. ve los dos menús enteros", () => {
+    const m = menusDeRrhh(TABS, "admin");
     expect(m.grupos.map((g) => g.grupo)).toEqual(["recruiting", "hr"]);
-    expect(ids(m.grupos[1].items)).toEqual(["employees", "user-creation"]);
+    expect(ids(m.grupos[1].items)).toEqual(["employees"]);
     expect(ids(m.grupos[0].items)).toHaveLength(8);
     expect(ids(m.sueltas)).toEqual(["settings"]);
   });
 
-  it("sin ser admin del hub, HR no trae «Crear usuarios»", () => {
-    expect(ids(menusDeRrhh(TABS, "admin", "sales").grupos[1].items)).toEqual(["employees"]);
-  });
-
   it("el gerente ve Empleados; el reclutador no tiene menú HR", () => {
-    expect(ids(menusDeRrhh(TABS, "manager", "admin").grupos[1].items)).toEqual(["employees"]);
-    const r = menusDeRrhh(TABS, "recruiter", "admin");
+    expect(ids(menusDeRrhh(TABS, "manager").grupos[1].items)).toEqual(["employees"]);
+    const r = menusDeRrhh(TABS, "recruiter");
     expect(r.grupos.map((g) => g.grupo)).toEqual(["recruiting"]);
     expect(ids(r.grupos[0].items)).toContain("today");
   });
 
   it("el gerente de tienda: solo Recruiting con Candidatos, sin Ajustes", () => {
-    const m = menusDeRrhh(TABS, "store_manager", "admin");
+    const m = menusDeRrhh(TABS, "store_manager");
     expect(m.grupos.map((g) => [g.grupo, ids(g.items)])).toEqual([["recruiting", ["candidates"]]]);
     expect(m.sueltas).toEqual([]);
   });

@@ -45,7 +45,7 @@ export default async function RecruitingLayout({ children }: { children: React.R
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("id, full_name, role, avatar_url, recruiting_role, module_access, store")
+    .select("id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access")
     .eq("id", user.id)
     .maybeSingle();
   // Tres desenlaces, no dos (D-234): si la CONSULTA fallo no se redirige, porque el
@@ -78,7 +78,8 @@ export default async function RecruitingLayout({ children }: { children: React.R
           TopBar.tsx mounts it unconditionally: a stale-JS check has nothing
           to do with recruiting's data at all (D-063). */}
       <AppUpdateBanner app="recruiting" />
-      <DataProvider me={me}>
+      {/* D-720: el perfil del hub viaja con el de RR. HH.: «Permisos» en el expediente monta el proveedor del hub con él. */}
+      <DataProvider me={me} hub={profile}>
         <UIProvider>
           <TopBar me={me} deliveriesRole={profile.role} moduleAccess={profile.module_access} />
           <div className="wrap">{children}</div>

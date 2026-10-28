@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pagosDelEmpleado, semanasDeHoras, totalesDeHoras, totalesDePagos, type FilaLote, type FilaTalon } from "./horas-del-expediente";
+import { pagosDelEmpleado, semanasConPago, semanasDeHoras, totalesDeHoras, totalesDePagos, type FilaLote, type FilaTalon } from "./horas-del-expediente";
 
 const lote = (p: Partial<FilaLote>): FilaLote => ({
   id: "L", week_of: "2026-10-02", method: "zelle", total: 100, paid: true, paid_at: null, draft: false,
@@ -36,5 +36,42 @@ describe("horas del expediente", () => {
     const p = pagosDelEmpleado([lote({ id: "viejo", paid_at: "2026-01-05T10:00:00Z" })], [talon({ id: "nuevo" })]);
     expect(p.map((x) => x.id)).toEqual(["nuevo", "viejo"]);
     expect(p[1].fecha).toBe("2026-01-05");
+  });
+});
+
+describe("D-720: semanas y pagos en una sola tabla", () => {
+  it("cada pago cae en la semana que empieza el día de su periodo; lo que no casa sale en fila propia, y nada se asigna dos veces", () => {
+    const semanas = semanasDeHoras([
+      { period_start: "2026-10-09", period_end: "2026-10-15", horas_fichaje: 0, horas_proyecto: 40, revisar: false },
+      { period_start: "2026-10-02", period_end: "2026-10-08", horas_fichaje: 0, horas_proyecto: 30, revisar: false },
+      { period_start: "2026-09-25", period_end: "2026-10-01", horas_fichaje: 8, horas_proyecto: 0, revisar: false },
+    ]);
+    const pagos = pagosDelEmpleado(
+      [
+        lote({ id: "L1", week_of: "2026-10-02", total: 360 }),
+        // El mismo lote dos veces (pasó de verdad, 2026-07-24): el segundo no se traga, sale en su fila.
+        lote({ id: "L2", week_of: "2026-10-02", total: 360, paid_at: "2026-10-03T10:00:00Z" }),
+        lote({ id: "L3", week_of: "2026-08-07", total: 100 }),
+      ],
+      [talon({ id: "T1", period_start: "2026-10-09", period_end: "2026-10-15", net: 480 })],
+    );
+    const filas = semanasConPago(semanas, pagos);
+    expect(filas.map((f) => [f.desde, f.fichaje, f.proyecto, f.pago?.id ?? null])).toEqual([
+      ["2026-10-09", 0, 40, "T1"],
+      ["2026-10-02", 0, 30, "L2"],
+      ["2026-10-02", 0, 0, "L1"],
+      ["2026-09-25", 8, 0, null],
+      ["2026-08-07", 0, 0, "L3"],
+    ]);
+    // Las sumas son las de siempre: horas de las semanas, dinero de los pagos.
+    expect(totalesDeHoras(filas)).toEqual({ fichaje: 8, proyecto: 70, semanas: 5 });
+    expect(totalesDePagos(pagos)).toEqual({ pagado: 1300, pendiente: 0 });
+  });
+
+  it("sin pagos, cada semana sale sin pago; sin semanas, cada pago sale solo", () => {
+    const s = semanasDeHoras([{ period_start: "2026-10-02", period_end: "2026-10-08", horas_fichaje: 5, horas_proyecto: 0, revisar: false }]);
+    expect(semanasConPago(s, []).map((f) => f.pago)).toEqual([null]);
+    const p = pagosDelEmpleado([lote({ id: "L", week_of: "2026-10-02" })], []);
+    expect(semanasConPago([], p).map((f) => [f.desde, f.pago?.id])).toEqual([["2026-10-02", "L"]]);
   });
 });

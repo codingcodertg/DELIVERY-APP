@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { canReachHub } from "./constants";
 import { OPCIONES_DEL_MENU, opcionesDelMenuDeCuenta } from "./account-menu";
@@ -70,10 +70,11 @@ describe("la barra de Entregas", () => {
   const barra = sinComentarios(leer("src/components/TopBar.tsx"));
 
   // Time Tracker lo dejó también en D-490 («quiero que sea igual que el Delivery app»): la casa sola.
-  it("no monta el selector de módulos, ni Time Tracker; la barra de RR. HH., sí", () => {
+  it("ninguna barra monta el selector de módulos (RR. HH. lo dejó en D-720, y el componente se fue con él)", () => {
     expect(barra).not.toContain("ModuleSwitcher");
     expect(sinComentarios(leer("src/components/timetracker/TopBar.tsx"))).not.toContain("ModuleSwitcher");
-    expect(sinComentarios(leer("src/components/recruiting/TopBar.tsx"))).toContain("<ModuleSwitcher");
+    expect(sinComentarios(leer("src/components/recruiting/TopBar.tsx"))).not.toContain("<ModuleSwitcher");
+    expect(existsSync(join(process.cwd(), "src/components/ModuleSwitcher.tsx"))).toBe(false);
   });
 
   it("la casa va justo después del nombre de la app, con el rol y los módulos efectivos", () => {
@@ -82,13 +83,9 @@ describe("la barra de Entregas", () => {
     expect(barra).toContain('<BarraDeApp nombre={settings.app_name || "RTG·HUB"} deliveriesRole={me.role} moduleAccess={me.module_access}>');
   });
 
-  it("la casa se esconde con la misma condición que tenía dentro del selector", () => {
-    const condicion = (f: string) => {
-      const m = sinComentarios(leer(f)).match(/if \(!canReachHub\([^\n]*\) return null;/g) ?? [];
-      expect(m, f).toHaveLength(1);
-      return m[0];
-    };
-    expect(condicion("src/components/HubHomeLink.tsx")).toBe(condicion("src/components/ModuleSwitcher.tsx"));
+  it("la casa se esconde con la condición que tenía el selector (canReachHub), una sola vez", () => {
+    const m = sinComentarios(leer("src/components/HubHomeLink.tsx")).match(/if \(!canReachHub\([^\n]*\) return null;/g) ?? [];
+    expect(m).toHaveLength(1);
   });
 
   it("sin etiqueta de rol y sin enlace a la Cuenta", () => {

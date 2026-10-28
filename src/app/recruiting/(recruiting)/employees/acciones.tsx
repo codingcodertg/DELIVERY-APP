@@ -220,12 +220,12 @@ export function AgregarDialog({
         {modo === "con" ? (
           <div data-modo="con">
             <p style={{ margin: 0 }}>
-              {t("Hub accounts are created in Users (role, store and apps are chosen there). The moment the account exists, this person's file appears in this list by itself — come back and fill it in.",
-                 "Las cuentas del hub se crean en Usuarios (ahí se eligen el rol, la tienda y las apps). En cuanto la cuenta existe, el expediente de esa persona aparece solo en esta lista: vuelve y complétalo.")}
+              {t("Add the employee first; then open their file and press «Permissions» to create the hub account (role, store and apps are chosen there).",
+                 "Agrega primero al empleado; después abre su expediente y pulsa «Permisos» para crearle la cuenta del hub (ahí se eligen el rol, la tienda y las apps).")}
             </p>
             <div style={pie}>
               <button className="btn btn-ghost" onClick={onClose}>{t("Close", "Cerrar")}</button>
-              <Link className="btn btn-primary" href="/recruiting/user-creation">{t("Go to Users", "Ir a Usuarios")}</Link>
+              <button className="btn btn-primary" data-accion="seguir-sin-cuenta" onClick={() => setModo("sin")}>{t("Add the employee", "Agregar al empleado")}</button>
             </div>
           </div>
         ) : (

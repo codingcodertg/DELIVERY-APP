@@ -33,6 +33,7 @@ import type { Scorecard } from "@/lib/recruiting/scorecards";
 import { checkSession } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
 import { nombreDelCv, nombreSeguro } from "@/lib/recruiting/nombre-del-cv";
+import type { Profile as PerfilDelHub } from "@/lib/types";
 import { contactoDelGuardado, TIPOS_QUE_GUARDAN, yaGuardadoEnRingCentral } from "@/lib/recruiting/contacto-ringcentral";
 import { notaDelGuardado } from "@/lib/recruiting/agendas-ringcentral";
 import { estandarizaCandidato } from "@/lib/recruiting/formato";
@@ -40,6 +41,8 @@ import { estandarizaCandidato } from "@/lib/recruiting/formato";
 interface DataState {
   ready: boolean;
   me: Profile | null;
+  /** El perfil DEL HUB de quien entra (D-720): `role` es el de Entregas (admin = puede dar permisos), no el de RR. HH. */
+  hub: PerfilDelHub | null;
   settings: Settings;
   roles: string[];
   questions: Question[];
@@ -129,7 +132,7 @@ const DEFAULT_SETTINGS: Settings = {
   scale: DEFAULT_SCALE,
 };
 
-export function DataProvider({ children, me }: { children: React.ReactNode; me: Profile | null }) {
+export function DataProvider({ children, me, hub = null }: { children: React.ReactNode; me: Profile | null; hub?: PerfilDelHub | null }) {
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
   const [authGone, setAuthGone] = useState(false);
@@ -922,6 +925,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const value: DataState = {
     ready,
     me,
+    hub,
     settings,
     roles: settings.roles || [],
     questions,

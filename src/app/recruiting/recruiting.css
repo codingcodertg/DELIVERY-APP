@@ -310,3 +310,16 @@
   box-shadow: 0 4px 16px rgba(0,0,0,.18);
 }
 .recruiting-module .rec-load-fail span { color: var(--ink-soft); font-size: 12px; }
+
+/* D-720: el expediente. La cabecera (nombre, estado, Permisos, baja, Editar, Guardar) se queda arriba al bajar; el
+   modal pierde su relleno de arriba para que nada asome por encima de ella. Las categorías son <details> plegables con
+   el título como summary; y los campos viven en un fieldset que, apagado, se lee como ficha y no como formulario. */
+.recruiting-module .modal[data-dialogo="ficha"] { padding-top: 0; }
+.recruiting-module .ficha-cabecera { position: sticky; top: 0; z-index: 2; background: var(--card); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 16px 0 10px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+.recruiting-module .ficha-cabecera h3 { margin: 0; flex: 1; min-width: 160px; }
+.recruiting-module details.seccion > summary { list-style: none; cursor: pointer; user-select: none; }
+.recruiting-module details.seccion > summary::-webkit-details-marker { display: none; }
+.recruiting-module details.seccion > summary .sec-title::before { content: "▸ "; color: var(--gray); }
+.recruiting-module details.seccion[open] > summary .sec-title::before { content: "▾ "; }
+.recruiting-module fieldset.ficha-campos { border: 0; padding: 0; margin: 0; min-width: 0; }
+.recruiting-module fieldset.ficha-campos:disabled input, .recruiting-module fieldset.ficha-campos:disabled select, .recruiting-module fieldset.ficha-campos:disabled textarea { background: transparent; border-style: dashed; color: var(--ink); cursor: default; }

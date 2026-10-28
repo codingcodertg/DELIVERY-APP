@@ -16,7 +16,6 @@ import {
   type FiltroEstado, type HechosDeCuenta,
 } from "@/lib/recruiting/employee-file";
 import { UsuariosPorCrear } from "@/components/recruiting/UsuariosPorCrear";
-import Link from "next/link";
 import { cuentaPorCuenta, filtraPorCuenta, tieneUsuario, type FiltroCuenta } from "@/lib/recruiting/usuarios-rrhh";
 import { AgregarDialog, BajaDialog, ReactivarDialog, faltaMigracion } from "./acciones";
 import { BloqueTimeTracker } from "./time-tracker";
@@ -26,7 +25,8 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { downloadCSV, toCSV } from "@/lib/utils";
 import { exportaTablaExcel } from "@/lib/export-tabla";
 import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
-import { COLUMNAS_207, OPCIONES_1PW, costoMensual, dinero } from "@/lib/recruiting/employee-file";
+import { COLUMNAS_207, OPCIONES_1PW, costoMensual, dinero, hayCambios } from "@/lib/recruiting/employee-file";
+import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -173,11 +173,6 @@ export default function EmployeeFilesPage() {
               {k === "con" ? t("User created", "Con usuario") : t("No user", "Sin usuario")} · {porCuenta[k]}
             </button>
           ))}
-          {puedeBaja && (
-            <Link href="/recruiting/user-creation" className="chip" data-enlace="user-creation" style={{ textDecoration: "none" }}>
-              🔑 {t("User creation list", "Lista de usuarios")}
-            </Link>
-          )}
         </div>
 
         {err && <div className="hint" style={{ color: "var(--red)" }}>{err}</div>}
@@ -293,13 +288,8 @@ export default function EmployeeFilesPage() {
                       )}
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
-                      {puedeBaja && !tieneUsuario(r) && !deBaja && (
-                        <Link href={"/recruiting/user-creation?employee=" + encodeURIComponent(r.id)} className="btn btn-ghost btn-sm"
-                          style={{ marginRight: 6 }} data-accion="crear-usuario">
-                          🔑 {t("Create user", "Crear usuario")}
-                        </Link>
-                      )}
-                      {/* D-705: «Dar de baja» y «Reactivar» ya no están en la fila: se dan desde dentro del expediente. */}
+                      {/* D-705: «Dar de baja» y «Reactivar» ya no están en la fila: se dan desde dentro del expediente.
+                          D-720: «Crear usuario» tampoco: es «Permisos», dentro del expediente. */}
                       <button className="btn btn-ghost btn-sm" data-accion="editar" onClick={() => setAbierto(r.id)}>
                         📂 {t("Open", "Abrir")}
                       </button>
@@ -343,7 +333,20 @@ export default function EmployeeFilesPage() {
   );
 }
 
-/** El expediente de una persona: datos, contacto, emergencia, estado, y debajo HR y FORMS. */
+/**
+ * El expediente de una persona (D-720, antes D-145/D-149).
+ *
+ * El dueño, el 2026-10-27: la parte de arriba «va a estar frozen, donde dice el nombre, activo, dar de baja, y ahí
+ * también va a haber un botón que dice guardar»; «toda la información que está ahí no se puede cambiar, al menos
+ * que se apriete el botón de edit que va a estar al lado de guardar»; «cuando uno quiere salir y cambió algo y no lo
+ * ha guardado, tiene que ponerle guardar»; «un botón en la parte de arriba que va a decir permisos […] abrir una
+ * window donde van a estar todos los permisos»; y «todas las categorías como solo datos va a estar display, […]
+ * contacto de emergencia, herramientas y costos, punto de acción, cuenta del hub, time tracker […] collapse».
+ *
+ * Así que: la cabecera es `position: sticky`; los campos viven en un `<fieldset disabled>` hasta pulsar «Editar»;
+ * «Guardar» se enciende solo con cambios (`hayCambios` contra lo último guardado); cerrar con cambios pregunta; y
+ * cada categoría es un `<details>`: DATOS abierto, lo demás plegado.
+ */
 function Ficha({
   persona, con159, con207, puedeBaja, onSaved, onClose, onBaja, onReactivar,
 }: {
@@ -351,11 +354,11 @@ function Ficha({
   onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void;
 }) {
   const { t, lang } = usePrefs();
-  const { notify, settings, me } = useData();
+  const { notify, settings, me, hub } = useData();
   // El grupo del directorio es solo del admin de RR. HH. (D-261). `me.role` es el rol de RR. HH.
   // (el layout del módulo lo monta así); la barrera de verdad está en la acción de guardar.
   const editaGrupo = puedeEditarGrupoDirectorio(me?.role);
-  const [info, setInfo] = useState({
+  const inicial = () => ({
     full_name: persona.full_name ?? "",
     employee_code: persona.employee_code ?? "",
     birthday: persona.birthday ?? "",
@@ -397,6 +400,16 @@ function Ficha({
     tools_cost_year: persona.tools_cost_year != null ? String(persona.tools_cost_year) : "",
     tools_note: persona.tools_note != null ? String(persona.tools_note) : "",
   });
+  const [info, setInfo] = useState(inicial);
+  // Lo último guardado: «Guardar» se enciende cuando `info` difiere de esto, y «salir» pregunta.
+  const [guardado, setGuardado] = useState(inicial);
+  const sucio = hayCambios(info, guardado);
+  // Nada se edita hasta pulsar «Editar» (D-720).
+  const [editando, setEditando] = useState(false);
+  // Quiso cerrar con cambios sin guardar: se le pregunta en la propia cabecera.
+  const [saliendo, setSaliendo] = useState(false);
+  // La ventana de permisos (la cuenta del hub y sus apps), encima del expediente.
+  const [permisos, setPermisos] = useState(false);
   const [docs, setDocs] = useState<EmployeeDoc[] | null>(null);
   // Las tiendas para elegir (D-258). Vienen de `store_names()` y no de los Ajustes de Entregas,
   // porque RR. HH. no tiene por qué tener Entregas. Si falla, la lista queda vacía y el campo
@@ -441,7 +454,8 @@ function Ficha({
 
   useEffect(() => { void cargaDocs(); }, [cargaDocs]);
 
-  async function guardaInfo() {
+  /** Guarda y dice si pudo: el aviso de «salir sin guardar» cierra solo si pudo. */
+  async function guardaInfo(): Promise<boolean> {
     setBusy(true);
     // La tienda y el nombre solo se mandan si la persona NO tiene cuenta. Con cuenta, el servidor los
     // rechazaría —mandan `profiles.store` y el nombre del perfil— y el «Guardar» fallaría por un
@@ -468,8 +482,19 @@ function Ficha({
     });
     setBusy(false);
     notify(r.ok ? t("Saved ✓", "Guardado ✓") : "Error: " + (r.message ?? ""));
-    if (r.ok) onSaved();
+    if (r.ok) { setGuardado(info); setEditando(false); setSaliendo(false); onSaved(); }
+    return r.ok;
   }
+
+  /** Cerrar: con cambios sin guardar se pregunta, no se pierde nada en silencio. */
+  const pideCerrar = useCallback(() => {
+    if (sucio) setSaliendo(true); else onClose();
+  }, [sucio, onClose]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape" && !permisos) pideCerrar(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [pideCerrar, permisos]);
 
   type Clave = keyof typeof info;
   const campo = (k: Clave, label: string, tipo = "text") => (
@@ -512,6 +537,10 @@ function Ficha({
     ext: t("no extension", "no tiene extensión"),
     phone: t("no office phone", "no tiene teléfono de oficina"),
   };
+  // «Permisos» es la pantalla de Usuarios del hub: solo la abre el admin del hub (/api/invite y las escrituras de
+  // permisos lo exigen igual, D-050/D-056). Al gerente de RR. HH. no se le enseña una puerta que va a fallar.
+  const puedePermisos = hub?.role === "admin";
+  const alDocs = () => { void cargaDocs(); onSaved(); };
 
   return (
     /* En ventana, no como panel al final de la página (D-149).
@@ -520,10 +549,11 @@ function Ficha({
        pantalla, "Abrir ficha" abría algo a treinta filas de distancia y desde
        arriba no se veía pasar nada. Parecía que el botón no hacía nada.
        Es además como abre todo lo demás en este módulo (ModalHost). */
-    <div className="overlay" onClick={onClose}>
+    <div className="overlay" onClick={pideCerrar}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 760 }} data-dialogo="ficha">
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
-          <h3 style={{ margin: 0, flex: 1 }}>
+        {/* La cabecera fija (D-720): nombre y estado, Permisos, Dar de baja / Reactivar, Editar, Guardar, cerrar. */}
+        <div className="ficha-cabecera" data-cabecera="ficha">
+          <h3>
             {persona.full_name}{" "}
             <span className="badge" data-insignia="estado"
               style={deBaja
@@ -532,8 +562,16 @@ function Ficha({
               {etiquetaEstado(estadoEmpleado(persona), lang)}
             </span>
           </h3>
+          {puedePermisos && (
+            <button className="btn btn-ghost btn-sm" data-accion="permisos" onClick={() => setPermisos(true)}
+              title={persona.profile_id
+                ? t("Role, store and apps of this person's hub account", "Rol, tienda y apps de la cuenta del hub de esta persona")
+                : t("Create this person's hub account", "Crear la cuenta del hub de esta persona")}>
+              🔑 {t("Permissions", "Permisos")}
+            </button>
+          )}
           {deBaja ? (
-            <button className="btn btn-primary btn-sm" data-accion="reactivar" disabled={!puedeBaja}
+            <button className="btn btn-danger btn-sm" data-accion="reactivar" disabled={!puedeBaja}
               title={puedeBaja ? undefined : soloAdmin} onClick={onReactivar}>
               {t("Reactivate", "Reactivar")}
             </button>
@@ -543,7 +581,31 @@ function Ficha({
               {t("Deactivate", "Dar de baja")}
             </button>
           )}
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          <button className={"btn btn-sm " + (editando ? "btn-primary" : "btn-ghost")} data-accion="editar-ficha"
+            aria-pressed={editando} onClick={() => setEditando((v) => !v)}>
+            ✏️ {t("Edit", "Editar")}
+          </button>
+          <button className="btn btn-primary btn-sm" data-accion="guardar" disabled={busy || !sucio} onClick={() => void guardaInfo()}
+            title={sucio ? undefined : t("Nothing changed", "No hay cambios")}>
+            💾 {t("Save", "Guardar")}
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={pideCerrar} aria-label={t("Close", "Cerrar")}>✕</button>
+          {saliendo && (
+            <div className="hint" data-aviso="sin-guardar" role="alertdialog"
+              style={{ flexBasis: "100%", marginTop: 4, background: "var(--tint-warn)", border: "1px solid var(--tint-warn-line)", borderRadius: 8, padding: "8px 12px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <b>{t("Unsaved changes.", "Hay cambios sin guardar.")}</b>
+              <button className="btn btn-primary btn-sm" data-accion="guardar-y-salir" disabled={busy}
+                onClick={async () => { if (await guardaInfo()) onClose(); }}>
+                {t("Save and close", "Guardar y salir")}
+              </button>
+              <button className="btn btn-danger btn-sm" data-accion="salir-sin-guardar" onClick={onClose}>
+                {t("Discard and close", "Salir sin guardar")}
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setSaliendo(false)}>
+                {t("Keep editing", "Seguir editando")}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Qué falta llenar, con nombres: el contador de arriba dice cuántos, esto dice cuáles. */}
@@ -570,16 +632,17 @@ function Ficha({
           </div>
         )}
 
-      <div className="sec-head">
-        <span className="sec-title">{t("INFO", "DATOS")}</span>
-      </div>
+      {/* Los campos: bloqueados hasta «Editar». Un fieldset apagado apaga todo lo que lleva dentro, sin tocar campo
+          por campo; los botones (cuenta del hub, papeles) quedan fuera a propósito y siempre funcionan. */}
+      <fieldset className="ficha-campos" disabled={!editando} data-editando={editando}>
+      <Seccion id="datos" titulo={t("INFO", "DATOS")} abierta>
       <div className="grid g3">
         {/* El nombre (con cuenta manda el del perfil, que se cambia en Usuarios). */}
         <div>
           <label>{t("Full name", "Nombre completo")}</label>
           <input value={puedeElegirTienda(persona) ? info.full_name : persona.full_name}
             disabled={!puedeElegirTienda(persona)}
-            title={puedeElegirTienda(persona) ? undefined : t("This person has an account: change their name in Users.", "Esta persona tiene cuenta: su nombre se cambia en Usuarios.")}
+            title={puedeElegirTienda(persona) ? undefined : t("This person has an account: change their name in Permissions.", "Esta persona tiene cuenta: su nombre se cambia en Permisos.")}
             onChange={(e) => setInfo({ ...info, full_name: e.target.value })} />
         </div>
         {campo159("job_title", t("Position", "Puesto"))}
@@ -606,7 +669,7 @@ function Ficha({
               placeholder={t("— none —", "— sin tienda —")}
               readOnly
               disabled
-              title={t("This person has an account: change their store in Users.", "Esta persona tiene cuenta: su tienda se cambia en Usuarios.")}
+              title={t("This person has an account: change their store in Permissions.", "Esta persona tiene cuenta: su tienda se cambia en Permisos.")}
             />
           )}
         </div>
@@ -647,18 +710,26 @@ function Ficha({
         </div>
         {campo("days_off", t("Attendance — days off", "Asistencia — días libres"), "number")}
       </div>
+      <div style={{ marginTop: 12 }}>
+        <label>{t("Address", "Dirección")}</label>
+        <input value={info.address} onChange={(e) => setInfo({ ...info, address: e.target.value })} />
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <label>{t("Notes", "Notas")}</label>
+        <textarea rows={2} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} />
+      </div>
+      </Seccion>
 
       {/* CONTACTO. Dos teléfonos y dos correos, y no se mezclan: los «de oficina» son los que enseña el
           directorio de la compañía a todo el que tenga sesión; los personales solo los ve RR. HH. */}
-      <div className="sec-head">
-        <span className="sec-title">{t("CONTACT", "CONTACTO")}</span>
+      <Seccion id="contacto" titulo={t("CONTACT", "CONTACTO")} extra={
         <span className="sec-sub" data-aviso="directorio">
           {directorio.sale
             ? t("Shows in the company phone book.", "Sale en el directorio de la compañía.")
             : t("Not in the company phone book: ", "No sale en el directorio de la compañía: ")
               + directorio.falta.map((f) => PORQUE_NO_SALE[f]).join(", ") + "."}
         </span>
-      </div>
+      }>
       <div className="grid g3">
         <div>
           <label>{t("Office phone (phone book)", "Teléfono de oficina (directorio)")}</label>
@@ -675,25 +746,24 @@ function Ficha({
           { placeholder: "956-555-0123", onBlur: alSalirTel("personal_phone") })}
         {campo159("personal_email", t("Personal email (HR only)", "Correo personal (solo RR. HH.)"), { type: "email" })}
       </div>
+      </Seccion>
 
-      <div className="sec-head">
-        <span className="sec-title">{t("EMERGENCY CONTACT", "CONTACTO DE EMERGENCIA")}</span>
-      </div>
+      <Seccion id="emergencia" titulo={t("EMERGENCY CONTACT", "CONTACTO DE EMERGENCIA")}>
       <div className="grid g3">
         {campo159("emergency_name", t("Name", "Nombre"))}
         {campo159("emergency_relation", t("Relationship", "Parentesco"))}
         {campo159("emergency_phone", t("Phone", "Teléfono"), { placeholder: "956-555-0123", onBlur: alSalirTel("emergency_phone") })}
       </div>
+      </Seccion>
 
       {/* HERRAMIENTAS Y COSTO (207, D-719): el correo y su plan, RingCentral, Remote PC, 1Password, QuickBooks, y lo que
           cuesta todo al año. El costo mensual se calcula aquí, no se guarda: (correo + otras) / 12. */}
-      <div className="sec-head">
-        <span className="sec-title">{t("TOOLS & COST", "HERRAMIENTAS Y COSTO")}</span>
+      <Seccion id="herramientas" titulo={t("TOOLS & COST", "HERRAMIENTAS Y COSTO")} extra={
         <span className="badge" data-costo-mensual style={{ marginLeft: 8, background: "var(--tint-blue)", color: "var(--blue)" }}
           title={t("Email + other tools per year, divided by 12", "Correo + otras herramientas al año, entre 12")}>
           {t("per month", "al mes")}: {dinero(costoMensual({ email_cost_year: Number(info.email_cost_year) || null, tools_cost_year: Number(info.tools_cost_year) || null }))}
         </span>
-      </div>
+      }>
       <div className="grid g3">
         {campo207("email_plan", t("Email plan (Microsoft 365)", "Plan del correo (Microsoft 365)"))}
         {campo207("email_cost_year", t("Email cost / year (USD)", "Costo del correo al año (USD)"), { inputMode: "decimal", placeholder: "259.80" })}
@@ -719,37 +789,25 @@ function Ficha({
         {campo207("tools_cost_year", t("Other tools / year (USD)", "Otras herramientas al año (USD)"), { inputMode: "decimal" })}
         {campo207("tools_note", t("Which tools", "Qué herramientas"))}
       </div>
-      <div className="sec-head">
-        <span className="sec-title">{t("HR SCORE", "PUNTUACIÓN DE RR. HH.")}</span>
-      </div>
+      </Seccion>
+
+      <Seccion id="puntuacion" titulo={t("HR SCORE", "PUNTUACIÓN DE RR. HH.")}>
       <div className="grid g3">
         {campo207("risk_score", t("Risk", "Riesgo"), { inputMode: "decimal" })}
         {campo207("performance_score", t("Performance", "Desempeño"), { inputMode: "decimal" })}
         {campo207("score_status", t("Status", "Estado"))}
         {campo207("score_action", t("Action", "Acción"))}
       </div>
-
-      <div style={{ marginTop: 12 }}>
-        <label>{t("Address", "Dirección")}</label>
-        <input value={info.address} onChange={(e) => setInfo({ ...info, address: e.target.value })} />
-      </div>
-      <div style={{ marginTop: 12 }}>
-        <label>{t("Notes", "Notas")}</label>
-        <textarea rows={2} value={info.notes} onChange={(e) => setInfo({ ...info, notes: e.target.value })} />
-      </div>
-      <button className="btn btn-primary" style={{ marginTop: 12 }} disabled={busy} onClick={guardaInfo} data-accion="guardar">
-        {t("Save info", "Guardar datos")}
-      </button>
+      </Seccion>
+      </fieldset>
 
       {/* LA CUENTA DEL HUB. Estado leído de Auth, y el botón que quita o devuelve el acceso. Reactivar a
           alguien no lo devuelve: este es el único sitio que lo hace. */}
-      <div className="sec-head">
-        <span className="sec-title">{t("HUB ACCOUNT", "CUENTA DEL HUB")}</span>
-      </div>
+      <Seccion id="cuenta" titulo={t("HUB ACCOUNT", "CUENTA DEL HUB")}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }} data-bloque="cuenta">
         {!persona.profile_id ? (
           <span className="hint" style={{ marginTop: 0 }}>
-            {t("No hub account. Accounts are created in Users.", "Sin cuenta del hub. Las cuentas se crean en Usuarios.")}
+            {t("No hub account. Create it with «Permissions», up top.", "Sin cuenta del hub. Se crea con «Permisos», arriba.")}
           </span>
         ) : !cuenta.tieneCuenta ? (
           <span className="hint" style={{ marginTop: 0 }}>
@@ -782,28 +840,51 @@ function Ficha({
           </>
         )}
       </div>
+      </Seccion>
 
-      <BloqueTimeTracker profileId={persona.profile_id} />
+      <Seccion id="time-tracker" titulo="TIME TRACKER">
+        <BloqueTimeTracker profileId={persona.profile_id} />
+      </Seccion>
 
-      <Bloque grupo="hr" titulo="HR" docs={docs} employeeId={persona.id}
-        onChange={() => { void cargaDocs(); onSaved(); }} />
-      <Bloque grupo="forms" titulo="FORMS" docs={docs} employeeId={persona.id}
-        onChange={() => { void cargaDocs(); onSaved(); }} />
+      <Seccion id="hr" titulo="HR">
+        <Bloque grupo="hr" docs={docs} employeeId={persona.id} onChange={alDocs} />
+      </Seccion>
+      <Seccion id="forms" titulo="FORMS">
+        <Bloque grupo="forms" docs={docs} employeeId={persona.id} onChange={alDocs} />
+      </Seccion>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-          <button className="btn btn-ghost" onClick={onClose}>{t("Close", "Cerrar")}</button>
-        </div>
+        {/* Encima del expediente, dentro de su ventana: el clic en el fondo de esta no cierra aquella. */}
+        {permisos && hub && (
+          <PermisosDelEmpleado persona={persona} hub={hub} onClose={() => setPermisos(false)} onEnlazado={onSaved} />
+        )}
       </div>
     </div>
   );
 }
 
-/** Un grupo de documentos (HR o FORMS), una línea por tipo. */
+/**
+ * Una categoría del expediente (D-720): un `<details>` con el título como `summary`. `abierta` es solo el estado
+ * inicial (DATOS abierto, lo demás plegado); después manda quien pulsa.
+ */
+function Seccion({ id, titulo, abierta = false, extra, children }: {
+  id: string; titulo: string; abierta?: boolean; extra?: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <details className="seccion" open={abierta} data-seccion={id}>
+      <summary className="sec-head">
+        <span className="sec-title">{titulo}</span>
+        {extra}
+      </summary>
+      {children}
+    </details>
+  );
+}
+
+/** Un grupo de documentos (HR o FORMS), una línea por tipo. El título lo pone la Seccion que lo envuelve (D-720). */
 function Bloque({
-  grupo, titulo, docs, employeeId, onChange,
+  grupo, docs, employeeId, onChange,
 }: {
   grupo: "hr" | "forms";
-  titulo: string;
   docs: EmployeeDoc[] | null;
   employeeId: string;
   onChange: () => void;
@@ -850,9 +931,6 @@ function Bloque({
 
   return (
     <>
-      <div className="sec-head">
-        <span className="sec-title">{titulo}</span>
-      </div>
       {docs === null ? (
         <div className="hint">{t("Loading…", "Cargando…")}</div>
       ) : (
