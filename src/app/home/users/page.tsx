@@ -20,8 +20,8 @@ export default function UsersPage() {
           <Link href="/home" className="hint" style={{ textDecoration: "none", marginTop: 0 }}>
             ← {t("Back to hub", "Volver al hub")}
           </Link>
-          <Link href="/recruiting/user-creation" className="hint" style={{ textDecoration: "none", marginTop: 0 }} data-enlace="user-creation">
-            🔑 {t("HR → User creation", "RR. HH. → Crear usuarios")}
+          <Link href="/recruiting/employees" className="hint" style={{ textDecoration: "none", marginTop: 0 }} data-enlace="employees">
+            👤 {t("HR → Employees (permissions live in each file)", "RR. HH. → Empleados (los permisos están en cada expediente)")}
           </Link>
         </div>
       }

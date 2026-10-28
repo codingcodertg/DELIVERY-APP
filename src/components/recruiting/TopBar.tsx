@@ -9,7 +9,6 @@ import { TABS, ROLE_INFO } from "@/lib/recruiting/constants";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { GlobalSearch } from "@/components/recruiting/GlobalSearch";
-import { ModuleSwitcher } from "@/components/ModuleSwitcher";
 import { BarraDeApp } from "@/components/BarraDeApp";
 import { OPCIONES_DEL_MENU_RRHH } from "@/lib/account-menu";
 import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
@@ -17,7 +16,7 @@ import type { Profile } from "@/lib/recruiting/types";
 import type { UserRole } from "@/lib/types";
 
 const TAB_ES: Record<string, string> = {
-  today: "📋 Hoy", calls: "📞 Llamadas pendientes", employees: "👤 Empleados", "user-creation": "🔑 Crear usuarios", candidates: "👥 Candidatos", board: "🗂 Tablero", outcomes: "🤝 Resultados", questions: "❓ Preguntas",
+  today: "📋 Hoy", calls: "📞 Llamadas pendientes", employees: "👤 Empleados", candidates: "👥 Candidatos", board: "🗂 Tablero", outcomes: "🤝 Resultados", questions: "❓ Preguntas",
   metrics: "📊 Métricas", calendar: "📅 Calendario", settings: "⚙️ Ajustes",
 };
 const ROLE_ES: Record<string, string> = { admin: "Admin", manager: "Gerente", recruiter: "Reclutador", store_manager: "Gerente de tienda" };
@@ -36,7 +35,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
   const { lang } = usePrefs();
   const role = ROLE_INFO[me.role];
   const etiqueta = (t: { id: string; label: string }) => (lang === "es" ? TAB_ES[t.id] ?? t.label : t.label);
-  const menus = menusDeRrhh(TABS, me.role, deliveriesRole);
+  const menus = menusDeRrhh(TABS, me.role);
   const avatar = recruiters.find((r) => r.id === me.id)?.avatar_url ?? me.avatar_url ?? null;
 
   return (
@@ -56,7 +55,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
             <Link key={t.id} href={t.href} className={"tab " + (pestanaActiva(t.href, pathname) ? "active" : "")}>{etiqueta(t)}</Link>
           ))}
         </div>
-        <ModuleSwitcher current="recruiting" deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />
+        {/* D-NEXT: el ⇄ (ModuleSwitcher) se fue; para cambiar de app está la casa y el menú de ayuda. */}
         {/* El nombre abre el menú de la cuenta, el mismo de Entregas y Time Tracker (D-490). Se llevó
             el botón ES/EN —el idioma se elige en «Personalizar», en el hub— y el «Salir» suelto. La
             etiqueta del rol se queda: el dueño pidió quitarla en Time Tracker, no aquí. */}

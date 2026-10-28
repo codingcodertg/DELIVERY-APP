@@ -95,16 +95,14 @@ describe("la barra del ERP ya no promete lo que no puede cumplir", () => {
 describe("los otros módulos: medidos, no supuestos", () => {
   it("HR y Time Tracker no tienen enlace propio al hub — lo pone `BarraDeApp` con `HubHomeLink`", () => {
     // Y se esconde sola con la misma regla, así que nunca tuvieron el fallo. Time Tracker cambió `ModuleSwitcher` por la
-    // casa sola en D-490, como Entregas en D-274; RR. HH. la sacó de `ModuleSwitcher` en D-643 (allí queda el ⇄).
-    for (const ruta of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx", "src/components/ModuleSwitcher.tsx"]) {
+    // casa sola en D-490, como Entregas en D-274; RR. HH. la sacó de `ModuleSwitcher` en D-643 y el ⇄ se fue en D-NEXT.
+    for (const ruta of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx"]) {
       expect(leer(ruta), ruta).not.toContain('href="/home"');
     }
-    expect(leer("src/components/recruiting/TopBar.tsx")).toContain("<ModuleSwitcher");
+    expect(leer("src/components/recruiting/TopBar.tsx")).not.toContain("<ModuleSwitcher");
     for (const ruta of ["src/components/recruiting/TopBar.tsx", "src/components/timetracker/TopBar.tsx"]) {
       expect(leer(ruta), ruta).toMatch(/<BarraDeApp nombre=[^\n]* deliveriesRole=\{deliveriesRole\} moduleAccess=\{moduleAccess\}/);
     }
-    const sw = leer("src/components/ModuleSwitcher.tsx");
-    expect(sw).toContain("if (!canReachHub({ role: deliveriesRole, module_access: moduleAccess })");
     expect(leer("src/components/HubHomeLink.tsx")).toContain("if (!canReachHub({ role: deliveriesRole, module_access: moduleAccess }) || desktopClient) return null;");
   });
   it("el «Volver al hub» de Usuarios no puede ser un callejón: solo entran admins", () => {

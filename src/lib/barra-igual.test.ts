@@ -107,7 +107,6 @@ describe("una sola pieza: nadie más pinta la barra ni la casa", () => {
     const deLasApps = [
       ...Object.values(BARRAS).flatMap((b) => recorre(b.carpeta, /\.tsx$/)),
       "src/components/TopBar.tsx",
-      "src/components/ModuleSwitcher.tsx",
       ...["recruiting", "timetracker", "erp", "customers"].flatMap((d) => recorre(`src/components/${d}`, /\.tsx$/)),
     ];
     expect(deLasApps.filter((f) => codigo(f).includes('href="/home"'))).toEqual([]);

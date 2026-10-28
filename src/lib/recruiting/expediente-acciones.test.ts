@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { COLUMNAS_207, costoMensual, dinero, normaliza1Password, numeroDeFicha, sin207, tiene207 } from "@/lib/recruiting/employee-file";
+import { COLUMNAS_207, costoMensual, dinero, hayCambios, normaliza1Password, numeroDeFicha, sin207, tiene207 } from "@/lib/recruiting/employee-file";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -254,8 +254,9 @@ describe("＋ Agregar empleado", () => {
     expect(ventanas).toContain('t("Without a hub account", "Sin cuenta del hub")');
     expect(ventanas).toContain('t("With a hub account", "Con cuenta del hub")');
     expect(ventanas).toContain("const r = await createEmployeeFile(f);");
-    // Con cuenta no se crea otra puerta de cuentas: manda a Usuarios.
-    expect(ventanas).toContain('href="/recruiting/user-creation"');
+    // Con cuenta no se crea otra puerta de cuentas: se agrega al empleado y la cuenta se crea con «Permisos» (D-NEXT).
+    expect(ventanas).toContain('data-accion="seguir-sin-cuenta" onClick={() => setModo("sin")}');
+    expect(ventanas).not.toContain("user-creation");
   });
 });
 
@@ -508,5 +509,107 @@ describe("la 207: herramientas y costo", () => {
     const [sin] = filasDeExpediente([{ id: "f-2", profile_id: null, full_name: "Ana" }], [], []);
     expect(sin.email_plan).toBeNull();
     expect(sin.tools_cost_year).toBeNull();
+  });
+});
+
+// ============================================================
+// D-NEXT: cabecera fija con Editar/Guardar, campos bloqueados, secciones plegadas, «Permisos» en el expediente
+// ============================================================
+describe("D-NEXT: el expediente con cabecera fija, Editar/Guardar, secciones plegadas y Permisos", () => {
+  // Solo la función Ficha: lo que viene después (Seccion, Bloque, QueFaltaDialog) tiene sus propios cierres.
+  const ficha = pagina.slice(pagina.indexOf("function Ficha("), pagina.indexOf("function Seccion("));
+  const css = leer("src/app/recruiting/recruiting.css");
+
+  it("los campos van en un fieldset apagado hasta «Editar», y «Guardar» solo se enciende con cambios", () => {
+    expect(ficha).toContain('<fieldset className="ficha-campos" disabled={!editando} data-editando={editando}>');
+    expect(ficha).toContain("const [editando, setEditando] = useState(false);");
+    expect(ficha).toContain("const sucio = hayCambios(info, guardado);");
+    expect(ficha).toContain('data-accion="guardar" disabled={busy || !sucio}');
+    expect(ficha).toContain('data-accion="editar-ficha"');
+    // Al guardar, lo guardado pasa a ser la base de «hay cambios» y se sale del modo edición.
+    expect(ficha).toContain("if (r.ok) { setGuardado(info); setEditando(false); setSaliendo(false); onSaved(); }");
+    // Un solo «Guardar», en la cabecera: ya no hay «Guardar datos» abajo ni un «Cerrar» suelto al final.
+    expect(ficha.split('data-accion="guardar"').length - 1).toBe(1);
+    expect(ficha).not.toContain('t("Save info", "Guardar datos")');
+    // Los botones de la cuenta y de los papeles quedan FUERA del fieldset: funcionan sin «Editar».
+    const dentro = ficha.slice(ficha.indexOf('<fieldset className="ficha-campos"'), ficha.indexOf("</fieldset>"));
+    expect(dentro).not.toContain("<button");
+    expect(dentro).not.toContain("<Bloque");
+    expect(dentro).not.toContain("<BloqueTimeTracker");
+  });
+
+  it("cerrar con cambios pregunta: el fondo, la ✕ y Escape pasan por `pideCerrar`", () => {
+    expect(ficha).toContain("if (sucio) setSaliendo(true); else onClose();");
+    expect(ficha).toContain('<div className="overlay" onClick={pideCerrar}>');
+    expect(ficha).toContain('onClick={pideCerrar} aria-label={t("Close", "Cerrar")}');
+    expect(ficha).toContain('if (e.key === "Escape" && !permisos) pideCerrar();');
+    expect(ficha).toContain('data-aviso="sin-guardar"');
+    expect(ficha).toContain('data-accion="guardar-y-salir"');
+    expect(ficha).toContain("onClick={async () => { if (await guardaInfo()) onClose(); }}");
+    expect(ficha).toContain('data-accion="salir-sin-guardar" onClick={onClose}');
+    // Ningún otro camino cierra sin pasar por la pregunta.
+    expect(ficha.split("onClick={onClose}").length - 1).toBe(1);
+  });
+
+  it("la cabecera es fija y lleva nombre, estado, Permisos, baja/reactivar, Editar y Guardar", () => {
+    expect(ficha).toContain('<div className="ficha-cabecera" data-cabecera="ficha">');
+    const cab = ficha.slice(ficha.indexOf('data-cabecera="ficha"'), ficha.indexOf('data-aviso="incompleto"'));
+    for (const a of ["permisos", "baja", "reactivar", "editar-ficha", "guardar"]) expect(cab, a).toContain(`data-accion="${a}"`);
+    expect(cab).toContain('data-insignia="estado"');
+    expect(css).toContain(".recruiting-module .ficha-cabecera { position: sticky; top: 0;");
+    expect(css).toContain('.recruiting-module .modal[data-dialogo="ficha"] { padding-top: 0; }');
+  });
+
+  it("DATOS abierto; contacto, emergencia, herramientas, puntuación, cuenta, time tracker, HR y FORMS plegados", () => {
+    expect(ficha).toContain('<Seccion id="datos" titulo={t("INFO", "DATOS")} abierta>');
+    for (const id of ["contacto", "emergencia", "herramientas", "puntuacion", "cuenta", "time-tracker", "hr", "forms"]) {
+      const m = ficha.match(new RegExp(`<Seccion id="${id}"[^>]*>`));
+      expect(m, id).not.toBeNull();
+      expect(m![0], id).not.toContain("abierta");
+    }
+    expect(pagina).toContain('<details className="seccion" open={abierta} data-seccion={id}>');
+    // Dirección y notas viven dentro de DATOS, no sueltas.
+    const datos = ficha.slice(ficha.indexOf('<Seccion id="datos"'), ficha.indexOf('<Seccion id="contacto"'));
+    expect(datos).toContain('t("Address", "Dirección")');
+    expect(datos).toContain('t("Notes", "Notas")');
+  });
+
+  it("«Permisos» solo para el admin del hub, y abre la ventana de la cuenta encima del expediente", () => {
+    expect(ficha).toContain('const puedePermisos = hub?.role === "admin";');
+    expect(ficha).toContain("{puedePermisos && (");
+    expect(ficha).toContain("<PermisosDelEmpleado persona={persona} hub={hub} onClose={() => setPermisos(false)} onEnlazado={onSaved} />");
+    // La lista ya no manda a otra página para crear usuarios, y la pestaña ya no existe.
+    expect(pagina).not.toContain("user-creation");
+    expect(pagina).not.toContain('from "next/link"');
+    expect(leer("src/lib/recruiting/constants.ts")).not.toContain('id: "user-creation"');
+    // La ventana monta el proveedor del hub con el perfil del hub, solo mientras está abierta (no en todo /recruiting).
+    const permisos = leer("src/components/recruiting/PermisosDelEmpleado.tsx");
+    expect(permisos).toContain("<ProveedorDelHub me={hub}>");
+    expect(permisos).toContain("<UserDialog user={usuario}");
+    expect(permisos).toContain('fetch("/api/recruiting/usuario-de-empleado", { method: "POST"');
+    expect(leer("src/app/recruiting/(recruiting)/layout.tsx")).toContain("<DataProvider me={me} hub={profile}>");
+  });
+
+  it("hayCambios: vacío y null son lo mismo; cualquier campo distinto cuenta", () => {
+    expect(hayCambios({ a: "", b: "x" }, { a: null, b: "x" })).toBe(false);
+    expect(hayCambios({ a: "1" }, { a: "2" })).toBe(true);
+    expect(hayCambios({ a: "1" }, {})).toBe(true);
+    expect(hayCambios({}, { a: "1" })).toBe(true);
+    expect(hayCambios({}, {})).toBe(false);
+  });
+
+  it("la barra de RR. HH. ya no monta el ⇄ ni la pestaña «Crear usuarios»", () => {
+    const barra = sinComentarios(leer("src/components/recruiting/TopBar.tsx"));
+    expect(barra).not.toContain("ModuleSwitcher");
+    expect(barra).not.toContain("user-creation");
+  });
+
+  it("el Time Tracker del expediente es UNA tabla: semana, horas y su pago", () => {
+    const tt = leer("src/app/recruiting/(recruiting)/employees/time-tracker.tsx");
+    expect(tt).toContain("semanasConPago(");
+    expect(tt).toContain('data-tabla="semanas-y-pagos"');
+    expect(tt).not.toContain('data-tabla="horas"');
+    expect(tt).not.toContain('data-tabla="pagos"');
+    expect(tt).not.toContain('className="sec-head"');
   });
 });
