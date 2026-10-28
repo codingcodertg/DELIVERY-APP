@@ -47,7 +47,9 @@ export function PhotoUpload({
   photos,
   onChange,
   disabled,
-  max = 6,
+  // D-726: sin tope por defecto. El dueño, 2026-10-28: «Drivers are currently limited to uploading only 6 images per
+  // delivery. Remove that limit — drivers should be able to upload as many images as they want».
+  max = Infinity,
   credits,
   urls,
   subir,
@@ -219,7 +221,7 @@ export function PhotoUpload({
       )}
 
       {err && <div className="hint" style={{ color: "var(--red)" }}>{err}</div>}
-      {full && <div className="hint">{t(`Maximum ${max} photos.`, `Máximo ${max} fotos.`)}</div>}
+      {full && Number.isFinite(max) && <div className="hint">{t(`Maximum ${max} photos.`, `Máximo ${max} fotos.`)}</div>}
       {photos.length === 0 && disabled && <div className="hint">{t("No photos.", "Sin fotos.")}</div>}
 
       {rafagaAbierta && (

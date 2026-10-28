@@ -71,7 +71,7 @@ export function CamaraDeVariasFotos({
         <video ref={videoRef} autoPlay muted playsInline onPlaying={() => setViendo(true)} />
         {!viendo && <div className="rafaga-cargando">{t("Opening the camera…", "Abriendo la cámara…")}</div>}
         {destello && <div className="rafaga-destello" />}
-        <span className="rafaga-contador" data-contador-rafaga>{fotos.length} / {max}</span>
+        <span className="rafaga-contador" data-contador-rafaga>{Number.isFinite(max) ? `${fotos.length} / ${max}` : fotos.length}</span>
       </div>
       <div className="rafaga-panel">
         {fotos.length > 0 && (
@@ -85,7 +85,7 @@ export function CamaraDeVariasFotos({
             ))}
           </div>
         )}
-        {llena && <div className="hint" style={{ marginTop: 0 }}>{t(`Maximum ${max} photos.`, `Máximo ${max} fotos.`)}</div>}
+        {llena && Number.isFinite(max) && <div className="hint" style={{ marginTop: 0 }}>{t(`Maximum ${max} photos.`, `Máximo ${max} fotos.`)}</div>}
         <div className="rafaga-mandos">
           <button type="button" className="btn btn-ghost" data-rafaga-cancelar onClick={() => onTerminar({ tipo: "cancelar" })}>
             {t("Cancel", "Cancelar")}
