@@ -48671,7 +48671,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **Pruebas:** `recruiting/activos.test.ts` (formato, asignar/liberar, cuentas, por persona, el archivo, la 211, la pestaña, la ficha y la baja); `menus-rrhh.test.ts` puesta al día. **No medido** en el navegador ni con la tabla en producción.
 
-## D-NEXT · Activos de la empresa: la librería sin importar el expediente (el guion de carga corre con node) y el archivo se carga con las filas con persona primero
+## D-731 · Activos de la empresa: la librería sin importar el expediente (el guion de carga corre con node) y el archivo se carga con las filas con persona primero
 
 **Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `activos-guion-autonomo`.
 
