@@ -9,6 +9,7 @@ import {
   normalizaMotivoBaja, parcheAlta, parcheAltaCompleto, parcheBaja, parcheBajaCompleto, puedeDarDeBaja,
   puedeEditarGrupoDirectorio, sin159, telefonoDeFicha, tiene159,
   COLUMNAS_207, NUMERICAS_207, normaliza1Password, numeroDeFicha, tiene207,
+  correoDeFicha, nombreDeFicha,
 } from "@/lib/recruiting/employee-file";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
 import type { FilaHoras, FilaLote, FilaTalon } from "@/lib/recruiting/horas-del-expediente";
@@ -247,7 +248,8 @@ export async function saveEmployeeFile(
   }
   // El nombre: limpio y nunca vacío. Con cuenta manda el del perfil (`nombreVisible`), así que se copia allí también.
   if ("full_name" in patch) {
-    const nombre = (patch.full_name ?? "").trim().replace(/\s+/g, " ");
+    // D-727: con mayúscula inicial si venía todo en mayúsculas o en minúsculas (`nombreDeFicha`).
+    const nombre = nombreDeFicha(patch.full_name);
     if (!nombre) return { ok: false, message: "The name can't be empty." };
     patch = { ...patch, full_name: nombre };
     if (perfilId) perfil.full_name = nombre;
@@ -261,6 +263,10 @@ export async function saveEmployeeFile(
   // Los teléfonos se guardan con la forma de la app, 956-xxx-xxxx (D-432).
   for (const k of ["phone", "personal_phone", "emergency_phone", "previous_phone"] as const) {
     if (patch[k] !== undefined) limpio[k] = telefonoDeFicha(patch[k]);
+  }
+  // D-727: los correos, en minúsculas.
+  for (const k of ["email", "personal_email", "second_email"] as const) {
+    if (patch[k] !== undefined) limpio[k] = correoDeFicha(patch[k]);
   }
   // Las cifras de la 207 llegan como texto del formulario («$259.80»): número o null; otra cosa se rechaza.
   for (const k of NUMERICAS_207) {

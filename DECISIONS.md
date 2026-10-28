@@ -48638,3 +48638,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Orden de publicación:** la 210 y el código son independientes (el código solo esconde y da el botón; la base decide qué filas llegan). Hasta aplicar la 210, el vendedor sigue viendo los libres y el gerente todas las tiendas.
 
 **Pruebas:** `customers/por-rol.test.ts` (reglas, la 210, la ficha y el contacto); `vendedores.test.ts` puesta al día. **No medido** en el navegador ni con una sesión de vendedor real.
+## D-NEXT · RR. HH.: «Permisos» del expediente como una lista alineada y sin mayúsculas; correos en minúsculas y nombres con mayúscula inicial al guardar; la regla del formato en CLAUDE.md; el directorio ya lee del expediente
+
+**Fecha:** 2026-10-28 · **Sin migración** · Hecho directo por el orquestador en `permisos-y-formato`.
+
+**Pedidos del dueño**, literales, dos mensajes del mismo día:
+- Con la captura de «Permisos»: *«the permission cards are misaligned — the checkboxes are not aligned with their labels/text, and the cards have uneven heights and spacing … Use a consistent grid with equal-height cards, or a clean list/table style with the checkbox, permission name, "DEL ROL" badge and description all on one aligned row … Reduce visual noise: less uppercase text».*
+- *«Employee data must be a single source of truth. If anything is changed or added in the employee profile … it must automatically update in the Office Directory … and vice versa»* y la regla permanente del formato (teléfonos, correos en minúsculas, nombres con mayúscula inicial, sin mayúsculas sueltas).
+
+**Qué cambia:**
+- **Permisos:** la causa era CSS: `.recruiting-module label` (en bloque y en mayúsculas) alcanzaba a las tarjetas `.perm-opt` del `UserDialog` del hub cuando se abre dentro del expediente (D-720). Ahora `PermisosDelEmpleado` envuelve el diálogo en `.permisos-del-empleado` y `recruiting.css` deshace esas reglas ahí: cada permiso es **una fila** alineada (casilla · nombre con «del rol» · descripción), de alto parejo, en una sola columna; la casilla del módulo, en su fila; etiquetas y títulos sin mayúsculas forzadas; en teléfono la descripción baja a una segunda línea. Nada cambia en el `UserDialog` del hub.
+- **Formato al guardar** (`saveEmployeeFile`, `createEmployeeFile`): correos (`email`, `personal_email`, `second_email`) en minúsculas (`correoDeFicha`); el nombre con mayúscula inicial por palabra si venía todo en mayúsculas o todo en minúsculas (`nombreDeFicha`; lo mezclado se respeta); los teléfonos ya iban con la forma de la app (D-432). No se reescribe lo ya guardado: se normaliza al tocar cada ficha.
+- **Directorio ↔ expediente:** no hacía falta sincronizar nada: el directorio del hub lee `public.phone_book()` (117), que sale de `recruiting.employee_files` y `profiles` en vivo; con D-721 el nombre y la tienda del expediente se copian al perfil. El directorio no se edita (es de solo lectura), así que «y viceversa» no tiene un camino que cerrar. Medido en el código, no en el navegador.
+- **CLAUDE.md:** sección «El formato de los datos es uno en todas las apps — regla permanente».
+
+**Pruebas:** `recruiting/formato-de-datos.test.ts` (correo, nombre, teléfono; guardar y agregar pasan por el formato). La capa de CSS no tiene prueba: **no medido** en el navegador.
