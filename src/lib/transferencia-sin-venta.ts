@@ -1,5 +1,5 @@
 /**
- * Una transferencia no vende (D-NEXT, 2026-10-29).
+ * Una transferencia no vende (D-741, 2026-10-29).
  *
  * Francis Lestarpe (office manager), desde la ficha de una orden Transfer: «when the order type is a transfer, the
  * store sold from fields should not exist since no sale was made».

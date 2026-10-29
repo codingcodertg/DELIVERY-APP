@@ -950,7 +950,7 @@ export function OrderModal({
   /** El selector de «Vendido desde» queda fijo solo si no hay a dónde moverse: la tienda del vendedor
    *  no trabaja con ninguna otra (D-293). Antes quedaba fijo siempre. */
   const origenFijo = origenFijoDelVendedor(me, reglaDelTipo, settings.stores);
-  /** Una transferencia no vende (D-NEXT, Francis: «the store sold from fields should not exist since no sale was made»):
+  /** Una transferencia no vende (D-741, Francis: «the store sold from fields should not exist since no sale was made»):
    *  «Vendido desde» no se enseña y `store` sigue al almacén de recogida (`conTiendaDeLaRecogida`). */
   const sinVenta = esTransferenciaSinVenta(reglaDelTipo);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses

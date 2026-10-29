@@ -48817,7 +48817,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador. La 215 se ensayó con ROLLBACK; aplicarla es del dueño. Hasta que esté, el vendedor sigue viendo solo los suyos (210) y la búsqueda en toda la empresa falla en silencio (la función no existe: no se suma nada).
 
-## D-NEXT · Una transferencia no vende: la ficha de una orden Transfer no enseña ni exige «Tienda (Vendido desde)»; `store` sigue al almacén de recogida
+## D-741 · Una transferencia no vende: la ficha de una orden Transfer no enseña ni exige «Tienda (Vendido desde)»; `store` sigue al almacén de recogida
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/transfer-sin-tienda-que-vende`.
 

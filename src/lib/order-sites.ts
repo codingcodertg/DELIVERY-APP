@@ -103,7 +103,7 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
     next.pickup_name = "";
     next.pickup_address = "";
   } else if (esTransferenciaSinVenta(rule)) {
-    // Una transferencia no vende (D-NEXT): `store` no es la tienda del vendedor sino la que manda (la recogida), o nada.
+    // Una transferencia no vende (D-741): `store` no es la tienda del vendedor sino la que manda (la recogida), o nada.
     // Sin recogida todavía, se propone la tienda del vendedor como recogida (como antes se proponía en «Vendido desde»).
     if (!p.pickup_name && c.miTienda) {
       const home = c.tiendas.find((s) => s.name === c.miTienda);

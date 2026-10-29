@@ -126,7 +126,7 @@ describe("cambiar el tipo con las dos puntas ya puestas", () => {
     const cliente = aplicaTipo(borradorInicial({}, VENDEDOR), "Customer", VENDEDOR);
     const conDestino = { ...cliente, delivery_name: "Obra", delivery_address: NORTE.address };
     const d = aplicaTipo(conDestino, "Transfer", VENDEDOR);
-    // D-NEXT: una transferencia no vende; `store` sigue a la recogida, que sin elegir se propone con la tienda del vendedor.
+    // D-741: una transferencia no vende; `store` sigue a la recogida, que sin elegir se propone con la tienda del vendedor.
     expect(d.pickup_name).toBe(NORTE.name);
     expect(d.store).toBe(NORTE.name);
     expect(d.delivery_address).toBe("");

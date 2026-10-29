@@ -5,7 +5,7 @@ import { missingFields } from "./required";
 import { aplicaTipo, type ContextoDelUsuario } from "./order-sites";
 import type { NamedLocation, OrderTypeRule } from "./types";
 
-/** Una transferencia no vende: sin «Vendido desde», y `store` sigue a la recogida (D-NEXT, 2026-10-29). */
+/** Una transferencia no vende: sin «Vendido desde», y `store` sigue a la recogida (D-741, 2026-10-29). */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const TIENDAS: NamedLocation[] = [
