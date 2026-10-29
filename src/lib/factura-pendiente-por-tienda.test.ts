@@ -72,7 +72,7 @@ const filasDePendiente = (c: ContextoDeLista, datos: readonly Delivery[] = PENDI
 const cuentaDePendiente = (c: ContextoDeLista, datos: readonly Delivery[] = PENDIENTES) =>
   cuentasDeOrdenes(ordenesVisibles(datos, c), PASTILLA_TODAS, () => true, REGLAS)[PESTANA_DOCUMENTO_PENDIENTE];
 
-describe("el gerente: todas las tiendas (D-NEXT, 2026-10-29)", () => {
+describe("el gerente: todas las tiendas (D-737, 2026-10-29)", () => {
   it("gerente de Norte: las cuatro, y el número = filas", () => {
     const c = ctxDe("manager", "Norte");
     expect(ids(filasDePendiente(c))).toEqual(["norte-1", "oeste-1", "sur-1", "sur-2"]);
@@ -177,7 +177,7 @@ describe("«Factura pendiente» solo de ayer en adelante, para todos (D-407)", (
 });
 
 describe("sin tienda: ninguna, y la pantalla lo sabe por el mismo valor", () => {
-  it("gerente sin tienda: las cuatro (D-NEXT)", () => {
+  it("gerente sin tienda: las cuatro (D-737)", () => {
     expect(cuentaDePendiente(ctxDe("manager", null))).toBe(4);
     expect(ordenesVisibles(PENDIENTES, ctxDe("manager", null)).alcancePendientes).toEqual({ tipo: "todas" });
   });

@@ -67,7 +67,7 @@ const visibles = (c: ContextoDeLista, datos: readonly Delivery[] = TRES) => ids(
 const encuentra = (c: ContextoDeLista, datos: readonly Delivery[] = TRES) =>
   datos.filter((d) => ordenesVisibles(datos, busca(c, d.invoice_num ?? "")).visibles.some((v) => v.id === d.id)).map((d) => d.id).sort();
 
-describe("el gerente ve toda la lista, de todas las tiendas (D-NEXT, 2026-10-29)", () => {
+describe("el gerente ve toda la lista, de todas las tiendas (D-737, 2026-10-29)", () => {
   it("gerente de Norte, sin buscar y buscando: Norte, Oeste y Sur", () => {
     expect(visibles(ctxDe("manager", "Norte"))).toEqual(["norte", "oeste", "sur"]);
     expect(encuentra(ctxDe("manager", "Norte"))).toEqual(["norte", "oeste", "sur"]);
@@ -210,7 +210,7 @@ describe("admin y logística: todo, busquen o no", () => {
 });
 
 describe("sin tienda: ninguna, y la pantalla lo sabe por el mismo valor", () => {
-  it("gerente sin tienda: todas (D-NEXT; antes D-237 lo dejaba sin tienda)", () => {
+  it("gerente sin tienda: todas (D-737; antes D-237 lo dejaba sin tienda)", () => {
     expect(visibles(ctxDe("manager", null))).toEqual(["norte", "oeste", "sur"]);
     expect(ordenesVisibles(TRES, ctxDe("manager", null)).alcanceLista).toEqual({ tipo: "todas" });
   });

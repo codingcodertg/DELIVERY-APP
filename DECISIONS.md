@@ -48755,7 +48755,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado en pantalla:** no se abrió en un navegador.
 
-## D-NEXT · Entregas: todo gerente ve las órdenes de todas las tiendas por su rol (Órdenes, Panel, Factura pendiente); «Ver todas las tiendas» pasa a ser «del rol»; Patricia Hernández, medida
+## D-737 · Entregas: todo gerente ve las órdenes de todas las tiendas por su rol (Órdenes, Panel, Factura pendiente); «Ver todas las tiendas» pasa a ser «del rol»; Patricia Hernández, medida
 
 **Fecha:** 2026-10-29 · Sin migración · **Dato en producción pendiente** (vaciar «Tiendas que ve» de Patricia) · Hecho directo por el orquestador en `feat/gerentes-ven-todas-las-tiendas`.
 

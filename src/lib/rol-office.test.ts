@@ -68,7 +68,7 @@ describe("Office crea y aprueba, como el gerente sin el panel", () => {
     expect(hasCap(office(), "dashboard")).toBe(false);
   });
 
-  it("sus capacidades son las del gerente menos el panel y menos «todas las tiendas» (D-NEXT)", () => {
+  it("sus capacidades son las del gerente menos el panel y menos «todas las tiendas» (D-737)", () => {
     expect([...ROLE_CAPS.accounting].sort()).toEqual(ROLE_CAPS.manager.filter((c) => c !== "dashboard" && c !== "all_stores").sort());
   });
 

@@ -110,7 +110,7 @@ describe("la ventana de la pestaña: la abierta entra con cualquier fecha, la en
     expect(r.filas).toEqual(abiertas.map((d) => d.id).sort());
   });
 
-  it("los cortes por rol y por tienda no se relajan: la abierta vieja de otra tienda no le sale a oficina (el gerente ve todas desde D-NEXT)", () => {
+  it("los cortes por rol y por tienda no se relajan: la abierta vieja de otra tienda no le sale a oficina (el gerente ve todas desde D-737)", () => {
     const gerente = ctx({ me: { id: "u-g", role: "accounting", store: "Norte" }, veTodoElHistorial: false });
     const suya = entre({ id: "suya", delivery_date: dia(-7) });
     const ajena = entre({ id: "ajena", store: "Oeste", delivery_name: "Este", pickup_name: "Oeste", delivery_date: dia(-7) });

@@ -54,7 +54,7 @@ describe("alcanceDelPanel: de qué tiendas son las cifras", () => {
     expect(alcanceDelPanel({ role: "logistics", store: "Tienda Oeste" }, TIENDAS)).toEqual({ tipo: "todas" });
   });
 
-  it("el gerente ve todas, con tienda o sin ella (D-NEXT, 2026-10-29)", () => {
+  it("el gerente ve todas, con tienda o sin ella (D-737, 2026-10-29)", () => {
     expect(alcanceDelPanel({ role: "manager", store: "Tienda Norte" }, TIENDAS)).toEqual({ tipo: "todas" });
     expect(alcanceDelPanel({ role: "manager", store: null }, TIENDAS)).toEqual({ tipo: "todas" });
   });
