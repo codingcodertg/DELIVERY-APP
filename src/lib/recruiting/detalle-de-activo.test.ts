@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-// D-NEXT (2026-10-29) · el dueño: «apretar el número, correo, la row esa, ahí puedo ver el historial … este es el botón de
+// D-736 (2026-10-29) · el dueño: «apretar el número, correo, la row esa, ahí puedo ver el historial … este es el botón de
 // editar, yo aquí también quiero ver los detalles de ese número y el historial». Puertas sobre la página de activos.
 const pagina = readFileSync("src/app/recruiting/(recruiting)/assets/page.tsx", "utf8");
 

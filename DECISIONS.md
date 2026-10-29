@@ -48740,7 +48740,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **Ensayo de la 213 con ROLLBACK contra producción:** la función se redefine y la autocomprobación pasa. **No verificado:** tomar una orden real sin chofer con la 213 aplicada (la medida es el primer chofer que lo haga), ni la pantalla en un navegador.
 
-## D-NEXT · Company assets: tocar la fila de un correo o número abre su detalle con sus datos, sus botones y SU historial
+## D-736 · Company assets: tocar la fila de un correo o número abre su detalle con sus datos, sus botones y SU historial
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/detalle-de-activo`.
 

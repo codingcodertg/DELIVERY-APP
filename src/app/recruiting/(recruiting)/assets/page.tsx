@@ -25,7 +25,7 @@ import { HistorialDeRrhh } from "@/components/recruiting/HistorialDeRrhh";
  */
 type Vista = "email" | "phone" | "personas" | "historial";
 
-// D-NEXT (2026-10-29): tocar la FILA de un correo o número abre su detalle —todos sus datos y SU historial— con los mismos
+// D-736 (2026-10-29): tocar la FILA de un correo o número abre su detalle —todos sus datos y SU historial— con los mismos
 // botones (asignar, liberar, respaldado, editar). El dueño: «apretar el número, correo, la row esa, ahí puedo ver el
 // historial … este es el botón de editar, yo aquí también quiero ver los detalles de ese número y el historial».
 
@@ -56,7 +56,7 @@ export default function AssetsPage() {
   const [editando, setEditando] = useState<Partial<Activo> & { kind: TipoDeActivo } | null>(null);
   const [asignando, setAsignando] = useState<Activo | null>(null);
   const [pendiente, setPendiente] = useState<Pendiente | null>(null);
-  // El id del activo cuyo detalle está abierto (D-NEXT); se lee de `rows` para que una acción lo refresque al instante.
+  // El id del activo cuyo detalle está abierto (D-736); se lee de `rows` para que una acción lo refresque al instante.
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [recargaHistorial, setRecargaHistorial] = useState(0);
@@ -291,7 +291,7 @@ function InsigniaDeEstado({ estado, lang }: { estado: EstadoDeActivo; lang: "en"
   return <span className="badge" data-estado-de-activo={estado} style={estilo[estado]}>{etiquetaDeEstado(estado, lang)}</span>;
 }
 
-/** El detalle de un correo o número (D-NEXT): sus datos, los botones de la fila y su historial (`HistorialDeRrhh` con `assetId`). */
+/** El detalle de un correo o número (D-736): sus datos, los botones de la fila y su historial (`HistorialDeRrhh` con `assetId`). */
 function DetalleDeActivo({ activo: a, busy, recarga, onClose, onAsignar, onLiberar, onRespaldar, onEditar }: {
   activo: Activo; busy: boolean; recarga: number; onClose: () => void;
   onAsignar: () => void; onLiberar: () => void; onRespaldar: () => void; onEditar: () => void;
