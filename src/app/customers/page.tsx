@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { esVendedor, puedeAsignarVendedores, puedeEditar } from "@/lib/customers/reglas";
+import { puedePedirVendedor } from "@/lib/customers/pedir-vendedor";
 import type { UserRole } from "@/lib/types";
 import { BarraDeClientes } from "@/components/customers/barra";
 import { Clientes } from "./Clientes";
@@ -46,7 +47,8 @@ export default async function CustomersPage() {
       />
       {/* El id va a la clave de las columnas elegidas (por persona, en el navegador). Sin sesión no se llega aquí (layout). */}
       {/* D-728: asignan vendedores admin y gerente; el vendedor no ve crédito, campos ocultos ni archivos. */}
-      <Clientes demo={false} puedeEditar={puedeEditar(role)} esAdmin={puedeAsignarVendedores(role)} esVendedor={esVendedor(role)} userId={user?.id ?? "anon"} />
+      {/* D-NEXT: asigna solo el admin; el gerente pide el vendedor al admin y, como el vendedor, ve solo su tienda. */}
+      <Clientes demo={false} puedeEditar={puedeEditar(role)} esAdmin={puedeAsignarVendedores(role)} esVendedor={esVendedor(role)} puedePedirVendedor={puedePedirVendedor(role)} userId={user?.id ?? "anon"} />
     </>
   );
 }

@@ -54,7 +54,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). El sitio web y la dirección
  * son de cada contacto (D-697); los de la cuenta, en «Campos ocultos».
  */
-export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, contactoElegido, onEligeContacto, redes, onRedes, vendedores, almacen, puedeEditar = false, esVendedor = false, t }: {
+export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, contactoElegido, onEligeContacto, redes, onRedes, vendedores, almacen, puedeEditar = false, esVendedor = false, puedePedirVendedor = false, t }: {
   cliente: Cliente | null;
   form?: Record<string, string>;
   editando?: boolean;
@@ -76,6 +76,8 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   puedeEditar?: boolean;
   /** D-728: el vendedor no ve «Crédito y términos», «Campos ocultos» ni «Archivos». */
   esVendedor?: boolean;
+  /** D-NEXT: el gerente no elige vendedor (lo pide al admin): el desplegable va bloqueado. */
+  puedePedirVendedor?: boolean;
   t: T;
 }) {
   const deLaFila = useMemo(() => contactosDe(cliente), [cliente]);
@@ -84,7 +86,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
       return (
         <label key={fila.key} className="block space-y-1 py-1.5" data-campo={fila.key}>
           <span className="text-xs text-slate-500">{t(fila.en, fila.es)}</span>
-          <ControlDeCampo campo={fila.campo} valor={form[fila.key] ?? ""} mal={errores.includes(fila.key)} onCambia={(v) => onCampo(fila.key, v)} vendedores={vendedores} bloqueado={esVendedor} t={t} />
+          <ControlDeCampo campo={fila.campo} valor={form[fila.key] ?? ""} mal={errores.includes(fila.key)} onCambia={(v) => onCampo(fila.key, v)} vendedores={vendedores} bloqueado={esVendedor || puedePedirVendedor} t={t} />
         </label>
       );
     }
@@ -155,7 +157,7 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, vendedores = [], bloqu
     // lista (un perfil que ya no es vendedor), se enseña igual, para no perderlo al guardar otra cosa.
     return (
       <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)} data-vendedor disabled={bloqueado}>
-        <option value="">—</option>
+        <option value="">{t("Unassigned", "Sin asignar")}</option>
         {vendedores.map((v) => <option key={v.id} value={v.id}>{v.full_name}</option>)}
         {valor && !vendedores.some((v) => v.id === valor) && <option value={valor}>{valor}</option>}
       </select>
@@ -611,7 +613,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, yo, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
   /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
@@ -625,6 +627,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   editarAlAbrir?: boolean;
   /** D-740: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
   yo?: string;
+  /** D-NEXT: el gerente no asigna vendedor: lo pide al admin con un botón que abre la ventana de quien llama. */
+  puedePedirVendedor?: boolean;
+  onPedirVendedor?: () => void;
   t: T;
 }) {
   const nuevo = cliente === null;
@@ -877,6 +882,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
           {puedeEditar && !editando && (
             <Button size="sm" onClick={() => { setEditando(true); setAviso(null); }} data-editar-en-la-ventana>✏️ {t("Edit", "Editar")}</Button>
           )}
+          {puedePedirVendedor && !editando && cliente && onPedirVendedor && (
+            <Button size="sm" variant="outline" onClick={onPedirVendedor} data-pedir-vendedor-al-admin>📩 {t("Request rep from admin", "Pedir vendedor al admin")}</Button>
+          )}
           <button type="button" onClick={pedirCierre} className="rounded-md px-2 py-1 text-lg leading-none text-slate-500 hover:bg-slate-100" aria-label={t("Close", "Cerrar")} data-cerrar-ficha>✕</button>
         </div>
 
@@ -940,7 +948,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} t={t} />
+          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />
         </div>
 
         {puedeEditar && !nuevo && archivando && (

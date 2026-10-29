@@ -48832,3 +48832,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/transferencia-sin-venta.test.ts` (qué tipo lo es, `store` tras la recogida y al cambiar de tipo, qué se exige con controles de Intertienda y Customer, y la ficha). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. Las órdenes Transfer ya guardadas con una tienda en `store` no se tocan.
+## D-NEXT · Clientes: asigna vendedores solo el admin; el gerente ve su tienda y pide el vendedor al admin; «Sin asignar» cuando no hay vendedor; sin pastillas de tiendas para quien ve solo la suya
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/gerente-pide-vendedor`. **Reemplaza en parte a D-728** (el gerente ya no asigna).
+
+**Pedido (el dueño, 2026-10-29):** «admin view in customers, they can see their whole store but to assign a customer to a sales rep they have to request it to admin» (la vista del gerente); «en vendedor en customer si está empty que se ponga unassigned»; y, con una captura de la lista del vendedor con las pastillas de tiendas: «remove that porque ellos solo pueden ver las tiendas de ellos».
+
+**Qué cambia.**
+- **Quién asigna** (`reglas.ts`, `puedeAsignarVendedores`): solo el admin. El gerente pierde «Asignar vendedores», las casillas de selección y el desplegable de «Vendedor» (bloqueado, como el del vendedor). Es un corte de pantalla: `erp.customers_can_write` (198) sigue dejando al gerente escribir la fila; si se quiere que la base también lo impida, es otra decisión con migración.
+- **El gerente pide** (`src/lib/customers/pedir-vendedor.ts`, `PedirVendedor.tsx`): en la ficha, botón «📩 Pedir vendedor al admin» (`data-pedir-vendedor-al-admin`) que abre una ventana: vendedor (o «libre») y nota. Se manda como **solicitud de ayuda** (`/api/help`, D-311/D-530), con la página `/customers?editar=<id>` para que el admin abra esa ficha ya editando: le llega a «Solicitudes de ayuda» del hub con su globo y por correo. No se inventa un canal nuevo.
+- **«Sin asignar»** (`SIN_ASIGNAR`): en la celda «Vendedor» de la lista, en la ficha y en el desplegable, cuando no hay vendedor (antes «—»).
+- **Sin pastillas de tiendas** para el vendedor y el gerente (`soloSuTienda`): «Todas las tiendas» y las tiendas no se pintan; «Archivados» sigue.
+
+**Pruebas:** `src/lib/customers/pedir-vendedor.test.ts`; `por-rol.test.ts` puesta al día. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador; no se mandó una solicitud real. Pendiente, pedido en la misma conversación: el alta de cliente de vendedor y gerente como solicitud que aprueba el admin (siguiente decisión, con migración).
