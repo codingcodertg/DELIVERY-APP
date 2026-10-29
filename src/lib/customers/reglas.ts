@@ -3,6 +3,7 @@ import type { UserRole } from "@/lib/types";
 import { colocaColumna, mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { contactosDe } from "./contactos";
 import { espejoDeContactos, formatoDeCampo, normalizaContactos, type Contacto } from "./formato";
+import { SIN_ASIGNAR } from "./pedir-vendedor";
 
 /**
  * «Clientes» (migración 180): las reglas de la pantalla, puras y probadas sin navegador. La base las vuelve a exigir
@@ -431,9 +432,9 @@ export function puedeEditar(role: UserRole | null | undefined): boolean {
   return role === "admin" || role === "manager" || role === "sales";
 }
 
-/** D-728: asignan vendedores el admin y el gerente (el gerente, dentro de su tienda: la 210 no le deja ver otra). */
+/** D-742: asigna vendedores SOLO el admin (D-728 dejaba también al gerente; ahora el gerente lo pide, `puedePedirVendedor`). */
 export function puedeAsignarVendedores(role: UserRole | null | undefined): boolean {
-  return role === "admin" || role === "manager";
+  return role === "admin";
 }
 
 /**
@@ -572,7 +573,7 @@ export function textoDeFila(c: Cliente, fila: FilaDeFicha, t: T): string {
 /** El texto de un campo en la ficha completa (solo lectura): etiquetas para los cerrados, dinero, y «—» si no hay dato. */
 export function textoDeCampo(c: Cliente, campo: Campo, t: T): string {
   switch (campo.tipo) {
-    case "vendedor": return c.rep_name ?? "—";
+    case "vendedor": return c.rep_name ?? t(SIN_ASIGNAR.en, SIN_ASIGNAR.es);
     case "tienda": return `${nombreDeTienda(c.store)} (${c.store})`;
     case "estado": return estadoLabel(c[campo.key] as string | null, t);
     case "historia": return historiaLabel(c[campo.key] as string | null, t);
@@ -732,6 +733,8 @@ export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: 
     case "credit_limit": case "euler_limit": return dinero(v as number | null);
     case "updated_at": return fecha(v as string | null);
     case "archived_reason": return motivoLabel(v as string | null, t);
+    // D-742 (el dueño: «en vendedor en customer si está empty que se ponga unassigned»).
+    case "rep_id": return v === null || v === undefined || v === "" ? t(SIN_ASIGNAR.en, SIN_ASIGNAR.es) : String(v);
     default: return v === null || v === undefined || v === "" ? "—" : String(v);
   }
 }

@@ -9,9 +9,9 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 // all customers of their store, and can assign customers to salespeople. Admin: can view everything». Y en la ficha: «hide
 // these sections completely — Archivos, Campos ocultos, Crédito y términos»; el contacto «label on the left, value on the right».
 describe("clientes por rol", () => {
-  it("asignan admin y gerente; el vendedor es solo sales", () => {
+  it("asigna solo el admin (D-742; D-728 dejaba al gerente); el vendedor es solo sales", () => {
     expect(puedeAsignarVendedores("admin")).toBe(true);
-    expect(puedeAsignarVendedores("manager")).toBe(true);
+    expect(puedeAsignarVendedores("manager")).toBe(false);
     expect(puedeAsignarVendedores("sales")).toBe(false);
     expect(puedeAsignarVendedores("accounting")).toBe(false);
     expect(esVendedor("sales")).toBe(true);
@@ -34,7 +34,7 @@ describe("clientes por rol", () => {
     const ficha = leer("src/app/customers/FichaDeCliente.tsx");
     expect(ficha).toContain("filasPorGrupo().filter(({ grupo }) => !esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key))");
     expect(ficha).toContain("{!esVendedor && (\n        <div className=\"space-y-4 self-start\" data-solo-no-vendedor>");
-    expect(ficha).toContain("esVendedor={esVendedor} t={t} />");
+    expect(ficha).toContain("esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />");
     for (const campo of ["contact_name", "contact_title", "phone", "email"]) {
       expect(ficha).toContain(`<div className={FILA_DE_CONTACTO} data-campo="${campo}">`);
     }

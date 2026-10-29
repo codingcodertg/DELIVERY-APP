@@ -35,7 +35,7 @@ describe("el vendedor en el modelo", () => {
     expect(celda(c, "rep_id", t)).toBe("Ana Demo");
     expect(valorDeColumna(c, "rep_id")).toBe("Ana Demo");
     expect(textoDeCampo(c, CAMPOS.find((x) => x.key === "rep_id")!, t)).toBe("Ana Demo");
-    expect(celda({ ...c, rep_id: null, rep_name: null }, "rep_id", t)).toBe("—");
+    expect(celda({ ...c, rep_id: null, rep_name: null }, "rep_id", t)).toBe("Sin asignar"); // D-742: antes «—»
     expect(vendedoresEnOrden([{ id: "b", full_name: "beto" }, { id: "a", full_name: "Ana" }]).map((v) => v.id)).toEqual(["a", "b"]);
   });
   it("el vendedor del hub también edita (espejo de la customers_can_write de la 198)", () => {
@@ -114,12 +114,12 @@ describe("la ficha", () => {
   const conVendedor = { ...CLIENTES_DEMO[0], rep_id: "demo-ana", rep_name: "Ana Demo" };
   it("leyendo, el nombre del vendedor en «Cuenta»; sin vendedor, «—»", () => {
     expect(tarjeta(pinta(conVendedor), "cuenta")).toMatch(/data-campo="rep_id"><span[^>]*>Vendedor<\/span><span[^>]*>Ana Demo<\/span>/);
-    expect(tarjeta(pinta({ ...conVendedor, rep_id: null, rep_name: null }), "cuenta")).toMatch(/data-campo="rep_id"><span[^>]*>Vendedor<\/span><span[^>]*>—<\/span>/);
+    expect(tarjeta(pinta({ ...conVendedor, rep_id: null, rep_name: null }), "cuenta")).toMatch(/data-campo="rep_id"><span[^>]*>Vendedor<\/span><span[^>]*>Sin asignar<\/span>/);
   });
   it("editando y en un alta, un desplegable con los vendedores (los carga del almacén) y «—» para dejarlo libre", () => {
     const cuenta = tarjeta(pinta(conVendedor, true), "cuenta");
     expect(cuenta).toMatch(/<select[^>]*data-vendedor="true"[^>]*>/);
-    expect(cuenta).toContain('<option value="">—</option>');
+    expect(cuenta).toContain('<option value="">Sin asignar</option>'); // D-742
     const alta = tarjeta(pinta(null), "cuenta");
     expect(alta).toMatch(/<select[^>]*data-vendedor="true"[^>]*>/);
     // Los vendedores llegan en un efecto (useEffect): el HTML estático trae el desplegable vacío; la puerta fija la carga.

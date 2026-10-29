@@ -20,6 +20,7 @@ import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen
 import { almacenDemo } from "@/lib/customers/demo";
 import { FichaEnVentana, selCls } from "./FichaDeCliente";
 import { AsignarVendedores } from "./AsignarVendedores";
+import { PedirVendedor } from "./PedirVendedor";
 import { BarraDeSeleccion } from "./BarraDeSeleccion";
 import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "@/lib/customers/seleccion";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
@@ -48,7 +49,8 @@ const TANDA = 100;
  * escritura va por el almacén, que devuelve la fila como quedó en la base: eso es lo que se pinta.
  */
 // D-728: `esAdmin` es «puede asignar vendedores» (admin y gerente, `puedeAsignarVendedores`); `esVendedor` esconde tarjetas de la ficha.
-export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; esVendedor?: boolean; userId: string }) {
+// D-742: `puedePedirVendedor` es el gerente: no asigna, lo pide al admin; y ve solo su tienda, sin pastillas de tiendas.
+export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = false, puedePedirVendedor = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; userId: string }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 
@@ -68,11 +70,14 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   const [elegidos, setElegidos] = useState<Set<number>>(() => new Set());
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   useEffect(() => {
-    if (!esAdmin) return;
+    if (!esAdmin && !puedePedirVendedor) return;
     let cancelado = false;
     void almacen.vendedores().then((r) => { if (!cancelado && r.ok) setVendedores(vendedoresEnOrden(r.valor)); });
     return () => { cancelado = true; };
-  }, [almacen, esAdmin]);
+  }, [almacen, esAdmin, puedePedirVendedor]);
+  // D-742: la ventana «Pedir vendedor al admin» del gerente, para el cliente de la ficha abierta.
+  const [pidiendo, setPidiendo] = useState<Cliente | null>(null);
+  const soloSuTienda = esVendedor || puedePedirVendedor;
   const cajaRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(async () => {
@@ -234,7 +239,10 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
 
       {/* Las tiendas, con su cuenta: pulsar una filtra; otra vez, todas. */}
       <div className="mb-3 flex flex-wrap gap-2">
-        <button type="button" onClick={() => setFiltro((f) => ({ ...f, tienda: "" }))} className={chip(filtro.tienda === "")}>
+        {/* D-742: quien ve solo su tienda (vendedor, gerente) no tiene pastillas de tiendas que elegir. */}
+        {!soloSuTienda && (
+          <>
+        <button type="button" onClick={() => setFiltro((f) => ({ ...f, tienda: "" }))} className={chip(filtro.tienda === "")} data-pastillas-de-tiendas>
           {t("All stores", "Todas las tiendas")} <span className="text-slate-400">{vista.length}</span>
         </button>
         {[...TIENDAS.map((x) => x.code), ...[...porTienda.keys()].filter((k) => !TIENDAS.some((x) => x.code === k))].map((code) => (
@@ -242,6 +250,8 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
             {nombreDeTienda(code)} <span className="text-slate-400">{porTienda.get(code) ?? 0}</span>
           </button>
         ))}
+          </>
+        )}
         {/* Los archivados (181): escondidos por defecto; el chip enseña SOLO esos. */}
         <button
           type="button"
@@ -511,6 +521,8 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
           onCambia={(c) => setFicha({ tipo: "ver", cliente: c })}
           puedeEditar={puedeEditar}
           esVendedor={esVendedor}
+          puedePedirVendedor={puedePedirVendedor}
+          onPedirVendedor={ficha.tipo === "ver" ? () => setPidiendo(ficha.cliente) : undefined}
           yo={userId}
           almacen={almacen}
           onClose={() => setFicha(null)}
@@ -519,6 +531,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
           t={t}
         />
       )}
+      {pidiendo && <PedirVendedor cliente={pidiendo} vendedores={vendedores} onClose={() => setPidiendo(null)} t={t} />}
       {esAdmin && asignando && <AsignarVendedores lista={lista} almacen={almacen} onAsignados={alAsignar} onClose={() => setAsignando(false)} t={t} />}
     </main>
   );
