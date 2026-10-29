@@ -48754,3 +48754,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recruiting/detalle-de-activo.test.ts` (puertas: la fila abre, la celda de botones no, el detalle se lee de las filas, lleva las cuatro acciones y el historial por activo, y se cierra al borrar). Canarios de RR. HH. en verde. tsc limpio.
 
 **No verificado en pantalla:** no se abrió en un navegador.
+
+## D-NEXT · Entregas: todo gerente ve las órdenes de todas las tiendas por su rol (Órdenes, Panel, Factura pendiente); «Ver todas las tiendas» pasa a ser «del rol»; Patricia Hernández, medida
+
+**Fecha:** 2026-10-29 · Sin migración · **Dato en producción pendiente** (vaciar «Tiendas que ve» de Patricia) · Hecho directo por el orquestador en `feat/gerentes-ven-todas-las-tiendas`.
+
+**Pedido (el dueño, 2026-10-29, literal):** «Patricia Hernández es la gerente de Brownsville. Entonces ella debería ver todas las órdenes de la tienda. Mira si los permisos están bien puestos para ella … Al igual, quiero que te vayas a todos los gerentes de las tiendas y que ellos puedan ver todos …» y, al preguntarle: «me refiero que puede ver todas las órdenes en el deliveries app».
+
+**Medido en producción (solo lectura).** Seis gerentes: Carlos Salazar (McAllen), Francis Lestarpe (sin tienda, con `all_stores`), Juan Briseno (Weslaco), Patricia Hernández (Brownsville, `visible_stores` = [RDZ Brownsville]), Roberto Rodriguez (sin tienda), Rosa Salazar (Pharr). Solo Francis tenía «Ver todas las tiendas» (D-559); los demás veían su tienda y su grupo (D-405), y Patricia además con el techo de la base (`tiendas_visibles()`, 131) por sus casillas.
+
+**Qué cambia.**
+- `ROLES_DE_TODAS_LAS_TIENDAS` (`src/lib/todas-las-tiendas.ts`) añade `manager`: `veTodasLasTiendas` dice sí a todo gerente, con o sin tienda, con o sin la casilla. Por `alcanceDelPanel` eso alcanza a Órdenes (lista y búsqueda), Panel, Factura pendiente y el tiempo inactivo de choferes. **Reemplaza a D-559** en lo del gerente (la casilla por persona) y **a D-405/D-237** en lo del gerente (su tienda y su grupo; sin tienda, nada). Ventas y oficina siguen igual.
+- `ROLE_CAPS.manager` lleva `all_stores`: en Usuarios la casilla se enseña fija, «del rol», como a admin y logística.
+- **La base no cambia:** la política de `deliveries` ya le da todo a quien no tiene tiendas marcadas. A Patricia hay que vaciarle «Tiendas que ve» (comando con el sí del dueño); a los otros cinco no hace falta nada.
+
+**Pruebas:** `todas-las-tiendas.test.ts`, `panel-por-tienda.test.ts`, `ordenes-por-tienda.test.ts`, `factura-pendiente-por-tienda.test.ts`, `factura-pendiente-de-toda-orden.test.ts`, `rol-office.test.ts`: el gerente ve todas (con tienda, sin tienda, con y sin casilla); el corte por grupo y «sin tienda» se prueban ahora con ventas y oficina, que siguen cortados; la casilla del gerente es del rol. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
+
+**No verificado:** con la sesión real de un gerente.

@@ -67,8 +67,16 @@ const visibles = (c: ContextoDeLista, datos: readonly Delivery[] = TRES) => ids(
 const encuentra = (c: ContextoDeLista, datos: readonly Delivery[] = TRES) =>
   datos.filter((d) => ordenesVisibles(datos, busca(c, d.invoice_num ?? "")).visibles.some((v) => v.id === d.id)).map((d) => d.id).sort();
 
-describe("gerente y ventas: toda la lista, su tienda y su grupo", () => {
-  for (const role of ["manager", "sales"] as const) {
+describe("el gerente ve toda la lista, de todas las tiendas (D-NEXT, 2026-10-29)", () => {
+  it("gerente de Norte, sin buscar y buscando: Norte, Oeste y Sur", () => {
+    expect(visibles(ctxDe("manager", "Norte"))).toEqual(["norte", "oeste", "sur"]);
+    expect(encuentra(ctxDe("manager", "Norte"))).toEqual(["norte", "oeste", "sur"]);
+    expect(alcanceDeLaLista(ctxDe("manager", "Norte"))).toEqual({ tipo: "todas" });
+  });
+});
+
+describe("ventas: toda la lista, su tienda y su grupo", () => {
+  for (const role of ["sales"] as const) {
     it(`${role} de Norte, sin buscar: Norte y Oeste (su grupo), nunca Sur`, () => {
       expect(visibles(ctxDe(role, "Norte"))).toEqual(["norte", "oeste"]);
     });
@@ -130,27 +138,27 @@ describe("gerente y ventas: toda la lista, su tienda y su grupo", () => {
     expect(visibles(ctxDe("sales", "Norte"), [borradorNorte, borradorSur])).toEqual(["borr-norte"]);
   });
 
-  it("gerente: la de otro vendedor de su tienda sí (el corte «solo lo suyo» es de ventas)", () => {
+  it("gerente: la de otro vendedor sí, de cualquier tienda (el corte «solo lo suyo» es de ventas)", () => {
     const deOtro = orden("norte-otro", "Norte", { created_by: OTRO, assigned_sales_rep: OTRO });
-    expect(visibles(ctxDe("manager", "Norte"), [...TRES, deOtro])).toEqual(["norte", "norte-otro", "oeste"]);
+    expect(visibles(ctxDe("manager", "Norte"), [...TRES, deOtro])).toEqual(["norte", "norte-otro", "oeste", "sur"]);
   });
 });
 
 describe("una Intertienda es de las dos tiendas (D-309)", () => {
   const entre = orden("entre", "Sur", { order_type: "Entre", pickup_name: "Sur", delivery_name: "Norte" });
 
-  it("gerente de Norte (destino) y gerente de Sur (origen) la ven los dos", () => {
-    expect(visibles(ctxDe("manager", "Norte"), [entre])).toEqual(["entre"]);
-    expect(visibles(ctxDe("manager", "Sur"), [entre])).toEqual(["entre"]);
+  it("vendedor de Norte (destino) y vendedor de Sur (origen) la ven los dos", () => {
+    expect(visibles(ctxDe("sales", "Norte"), [entre])).toEqual(["entre"]);
+    expect(visibles(ctxDe("sales", "Sur"), [entre])).toEqual(["entre"]);
   });
 
-  it("…y también la de su grupo: gerente de Oeste", () => {
-    expect(visibles(ctxDe("manager", "Oeste"), [entre])).toEqual(["entre"]);
+  it("…y también la de su grupo: vendedor de Oeste", () => {
+    expect(visibles(ctxDe("sales", "Oeste"), [entre])).toEqual(["entre"]);
   });
 
-  it("control: una orden de cliente de Sur NO la ve el gerente de Norte (solo cuenta `store`)", () => {
+  it("control: una orden de cliente de Sur NO la ve el vendedor de Norte (solo cuenta `store`)", () => {
     const cliente = orden("cli-sur", "Sur", { delivery_name: "Norte" });
-    expect(visibles(ctxDe("manager", "Norte"), [cliente])).toEqual([]);
+    expect(visibles(ctxDe("sales", "Norte"), [cliente])).toEqual([]);
   });
 });
 
@@ -202,7 +210,11 @@ describe("admin y logística: todo, busquen o no", () => {
 });
 
 describe("sin tienda: ninguna, y la pantalla lo sabe por el mismo valor", () => {
-  for (const role of ["manager", "sales"] as const) {
+  it("gerente sin tienda: todas (D-NEXT; antes D-237 lo dejaba sin tienda)", () => {
+    expect(visibles(ctxDe("manager", null))).toEqual(["norte", "oeste", "sur"]);
+    expect(ordenesVisibles(TRES, ctxDe("manager", null)).alcanceLista).toEqual({ tipo: "todas" });
+  });
+  for (const role of ["sales"] as const) {
     it(`${role} sin tienda: ninguna orden, sin buscar y buscando, y alcance «sin-tienda»`, () => {
       const c = ctxDe(role, null);
       const l = ordenesVisibles(TRES, c);
@@ -221,7 +233,7 @@ describe("sin tienda: ninguna, y la pantalla lo sabe por el mismo valor", () => 
   });
 
   it("`alcanceDeLaLista` es el que devuelve `ordenesVisibles`", () => {
-    const c = ctxDe("manager", "Norte");
+    const c = ctxDe("sales", "Norte");
     expect(ordenesVisibles([], c).alcanceLista).toEqual(alcanceDeLaLista(c));
     expect(alcanceDeLaLista(c)).toMatchObject({ tipo: "tiendas", normalizadas: ["norte", "oeste"] });
   });

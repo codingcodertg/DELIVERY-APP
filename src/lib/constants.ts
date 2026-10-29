@@ -955,7 +955,8 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
   // `all_stores` (D-559): admin y logística ya ven todas las tiendas por su rol; aquí se dice, para que el diálogo la
   // enseñe fija («del rol») en vez de ofrecer una casilla que no cambia nada.
   admin:     ["create", "approve", "fulfill", "deliver", "dashboard", "settings", "route_plan", "history", CAP_TODAS_LAS_TIENDAS],
-  manager:   ["create", "approve", "dashboard"],
+  // D-NEXT (2026-10-29): el gerente ve todas las tiendas por su rol (antes, D-559: solo con la casilla).
+  manager:   ["create", "approve", "dashboard", CAP_TODAS_LAS_TIENDAS],
   sales:     ["create"],
   warehouse: ["fulfill", "deliver"],
   // Drivers do NOT create orders — orders must be programmed by sales/office and

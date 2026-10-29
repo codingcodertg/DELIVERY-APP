@@ -54,19 +54,24 @@ describe("alcanceDelPanel: de qué tiendas son las cifras", () => {
     expect(alcanceDelPanel({ role: "logistics", store: "Tienda Oeste" }, TIENDAS)).toEqual({ tipo: "todas" });
   });
 
-  it("el gerente: la suya y las de su grupo; la que va sola, solo ella", () => {
-    const norte = alcanceDelPanel({ role: "manager", store: "Tienda Norte" }, TIENDAS);
+  it("el gerente ve todas, con tienda o sin ella (D-NEXT, 2026-10-29)", () => {
+    expect(alcanceDelPanel({ role: "manager", store: "Tienda Norte" }, TIENDAS)).toEqual({ tipo: "todas" });
+    expect(alcanceDelPanel({ role: "manager", store: null }, TIENDAS)).toEqual({ tipo: "todas" });
+  });
+
+  it("el vendedor: la suya y las de su grupo; la que va sola, solo ella", () => {
+    const norte = alcanceDelPanel({ role: "sales", store: "Tienda Norte" }, TIENDAS);
     expect(norte.tipo).toBe("tiendas");
     if (norte.tipo !== "tiendas") return;
     expect([...norte.nombres].sort()).toEqual(["Tienda Norte", "Tienda Sur"]);
     expect([...norte.normalizadas].sort()).toEqual(["tienda norte", "tienda sur"]);
-    const oeste = alcanceDelPanel({ role: "manager", store: " tienda oeste " }, TIENDAS);
+    const oeste = alcanceDelPanel({ role: "sales", store: " tienda oeste " }, TIENDAS);
     expect(oeste).toEqual({ tipo: "tiendas", nombres: ["Tienda Oeste"], normalizadas: ["tienda oeste"] });
   });
 
-  it("el gerente sin tienda NO ve la empresa: se le avisa (D-237)", () => {
-    expect(alcanceDelPanel({ role: "manager", store: null }, TIENDAS)).toEqual({ tipo: "sin-tienda" });
-    expect(alcanceDelPanel({ role: "manager", store: "   " }, TIENDAS)).toEqual({ tipo: "sin-tienda" });
+  it("el vendedor sin tienda NO ve la empresa: se le avisa (D-237)", () => {
+    expect(alcanceDelPanel({ role: "sales", store: null }, TIENDAS)).toEqual({ tipo: "sin-tienda" });
+    expect(alcanceDelPanel({ role: "sales", store: "   " }, TIENDAS)).toEqual({ tipo: "sin-tienda" });
     expect(alcanceDelPanel(null, TIENDAS)).toEqual({ tipo: "sin-tienda" });
   });
 
@@ -78,13 +83,13 @@ describe("alcanceDelPanel: de qué tiendas son las cifras", () => {
 });
 
 describe("ordenesDelPanel: las filas que cuentan", () => {
-  it("gerente de Norte: Norte, Sur y la Intertienda que recibe; nada de Oeste", () => {
-    const alcance = alcanceDelPanel({ role: "manager", store: "Tienda Norte" }, TIENDAS);
+  it("vendedor de Norte: Norte, Sur y la Intertienda que recibe; nada de Oeste", () => {
+    const alcance = alcanceDelPanel({ role: "sales", store: "Tienda Norte" }, TIENDAS);
     expect(ids(ordenesDelPanel(ORDENES, alcance, REGLAS))).toEqual(["inter-oeste-a-norte", "norte-1", "sur-1"]);
   });
 
-  it("gerente de Oeste: las suyas, incluida la Intertienda que manda", () => {
-    const alcance = alcanceDelPanel({ role: "manager", store: "Tienda Oeste" }, TIENDAS);
+  it("vendedor de Oeste: las suyas, incluida la Intertienda que manda", () => {
+    const alcance = alcanceDelPanel({ role: "sales", store: "Tienda Oeste" }, TIENDAS);
     expect(ids(ordenesDelPanel(ORDENES, alcance, REGLAS))).toEqual(["cliente-oeste-casa-norte", "inter-oeste-a-norte", "oeste-1", "oeste-2"]);
   });
 
@@ -105,8 +110,8 @@ describe("choferesDelPanel: el tiempo inactivo es de los choferes de sus tiendas
     { id: "d-nada", full_name: "Chofer Suelto", store: null },
   ];
 
-  it("gerente de Norte: los de Norte y Sur", () => {
-    const r = choferesDelPanel(alcanceDelPanel({ role: "manager", store: "Tienda Norte" }, TIENDAS), USERS);
+  it("vendedor de Norte: los de Norte y Sur", () => {
+    const r = choferesDelPanel(alcanceDelPanel({ role: "sales", store: "Tienda Norte" }, TIENDAS), USERS);
     expect(r && [...r.ids].sort()).toEqual(["d-norte", "d-sur"]);
     expect(r && [...r.nombres].sort()).toEqual(["Chofer Norte", "Chofer Sur"]);
   });

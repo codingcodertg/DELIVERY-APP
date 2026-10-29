@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { CAP_TODAS_LAS_TIENDAS, seOfreceTodasLasTiendas, veTodasLasTiendas } from "./todas-las-tiendas";
+import { CAP_TODAS_LAS_TIENDAS, ROLES_DE_TODAS_LAS_TIENDAS, seOfreceTodasLasTiendas, veTodasLasTiendas } from "./todas-las-tiendas";
 import { alcanceDelPanel, choferesDelPanel } from "./panel-por-tienda";
 import { alcanceDeLaLista, alcanceDePendientes, ordenesVisibles, type ContextoDeLista } from "./ordenes-visibles";
 import { CAPABILITIES, MODULE_ACCESS, ROLE_CAPS, extraCaps, hasCap } from "./constants";
@@ -32,14 +32,16 @@ const yo = (role: UserRole, store: string | null, permissions: string[] | null =
 const ROLES_SIN_ELLA: UserRole[] = ["sales", "accounting", "warehouse", "driver"];
 
 describe("1 · quién ve todas las tiendas", () => {
-  it("el gerente CON la capacidad, sí; sin ella, no", () => {
+  it("el gerente, siempre (D-NEXT): con la casilla, sin ella, con tienda o sin tienda", () => {
     expect(veTodasLasTiendas(yo("manager", null, [CAP_TODAS_LAS_TIENDAS]))).toBe(true);
     expect(veTodasLasTiendas(yo("manager", "Tienda Norte", [CAP_TODAS_LAS_TIENDAS]))).toBe(true);
-    expect(veTodasLasTiendas(yo("manager", "Tienda Norte"))).toBe(false);
-    expect(veTodasLasTiendas(yo("manager", null, []))).toBe(false);
+    expect(veTodasLasTiendas(yo("manager", "Tienda Norte"))).toBe(true);
+    expect(veTodasLasTiendas(yo("manager", null, []))).toBe(true);
+    expect(veTodasLasTiendas(yo("manager", null, ["leads_all_stores", "history", "dashboard"]))).toBe(true);
+    expect(ROLES_DE_TODAS_LAS_TIENDAS).toContain("manager");
   });
-  it("otra palabra en la lista —la de Leads, o «history»— no amplía las tiendas de Entregas", () => {
-    expect(veTodasLasTiendas(yo("manager", null, ["leads_all_stores", "history", "dashboard"]))).toBe(false);
+  it("otra palabra en la lista —la de Leads, o «history»— no amplía las tiendas de Entregas a quien no es gerente", () => {
+    for (const r of ROLES_SIN_ELLA) expect(veTodasLasTiendas(yo(r, null, ["leads_all_stores", "history", "dashboard"])), r).toBe(false);
   });
   it("admin y logística, siempre, sin la palabra", () => {
     expect(veTodasLasTiendas(yo("admin", null))).toBe(true);
@@ -62,13 +64,14 @@ describe("2 · el Panel (alcanceDelPanel)", () => {
   it("Francis: gerente sin tienda y con la capacidad → todas", () => {
     expect(alcanceDelPanel(yo("manager", null, [CAP_TODAS_LAS_TIENDAS]), TIENDAS)).toEqual({ tipo: "todas" });
   });
-  it("un campo sin rellenar sigue sin ampliar nada (D-237): gerente sin tienda y sin la capacidad → sin-tienda", () => {
-    expect(alcanceDelPanel(yo("manager", null), TIENDAS)).toEqual({ tipo: "sin-tienda" });
-    expect(alcanceDelPanel(yo("manager", null, ["leads_all_stores"]), TIENDAS)).toEqual({ tipo: "sin-tienda" });
+  it("gerente sin tienda y sin la casilla → todas (D-NEXT; antes D-237 lo dejaba sin tienda)", () => {
+    expect(alcanceDelPanel(yo("manager", null), TIENDAS)).toEqual({ tipo: "todas" });
+    expect(alcanceDelPanel(yo("manager", null, ["leads_all_stores"]), TIENDAS)).toEqual({ tipo: "todas" });
+    // Un vendedor sin tienda sigue sin tienda (D-237).
+    expect(alcanceDelPanel(yo("sales", null), TIENDAS)).toEqual({ tipo: "sin-tienda" });
   });
-  it("con tienda, la capacidad abre de su grupo a todas", () => {
-    const sin = alcanceDelPanel(yo("manager", "Tienda Oeste"), TIENDAS);
-    expect(sin.tipo).toBe("tiendas");
+  it("con tienda, el gerente ve todas con o sin la casilla", () => {
+    expect(alcanceDelPanel(yo("manager", "Tienda Oeste"), TIENDAS)).toEqual({ tipo: "todas" });
     expect(alcanceDelPanel(yo("manager", "Tienda Oeste", [CAP_TODAS_LAS_TIENDAS]), TIENDAS)).toEqual({ tipo: "todas" });
   });
   it("a un vendedor con la palabra no le abre nada", () => {
@@ -101,14 +104,19 @@ describe("3 · la lista de Órdenes y «Factura pendiente»", () => {
     // `conPendientes` es la base de la pestaña (ventana y tiendas); qué le falta a cada una lo decide la pestaña después.
     expect(ids(r.conPendientes)).toEqual(["norte", "oeste", "pend-sur"]);
   });
-  it("sin la capacidad, el mismo gerente sin tienda no ve nada (D-237), y el aviso sale", () => {
+  it("sin la casilla, el mismo gerente sin tienda también ve todas (D-NEXT); un vendedor sin tienda, nada (D-237)", () => {
     const r = ordenesVisibles(ORDENES, ctx(yo("manager", null)));
-    expect(r.alcanceLista).toEqual({ tipo: "sin-tienda" });
-    expect(ids(r.visibles)).toEqual([]);
-    expect(ids(r.conPendientes)).toEqual([]);
+    expect(r.alcanceLista).toEqual({ tipo: "todas" });
+    expect(ids(r.visibles)).toEqual(["norte", "oeste", "pend-sur"]);
+    const v = ordenesVisibles(ORDENES, ctx(yo("sales", null)));
+    expect(v.alcanceLista).toEqual({ tipo: "sin-tienda" });
+    expect(ids(v.visibles)).toEqual([]);
+    expect(ids(v.conPendientes)).toEqual([]);
   });
-  it("con tienda y sin la capacidad, solo su grupo; con ella, todas — también buscando", () => {
-    expect(ids(ordenesVisibles(ORDENES, ctx(yo("manager", "Tienda Norte"))).visibles)).toEqual(["norte", "pend-sur"]);
+  it("con tienda: el gerente todas, con o sin la casilla; el vendedor solo su grupo — también buscando", () => {
+    expect(ids(ordenesVisibles(ORDENES, ctx(yo("manager", "Tienda Norte"))).visibles)).toEqual(["norte", "oeste", "pend-sur"]);
+    // El corte por grupo del vendedor se prueba en ordenes-por-tienda.test.ts (aquí las órdenes son de otro, y ventas solo ve lo suyo).
+    expect(alcanceDeLaLista(ctx(yo("sales", "Tienda Norte"))).tipo).toBe("tiendas");
     expect(alcanceDeLaLista(ctx(yo("manager", "Tienda Norte", [CAP_TODAS_LAS_TIENDAS]), { busqueda: "x" }))).toEqual({ tipo: "todas" });
     expect(alcanceDePendientes(ctx(yo("manager", "Tienda Norte", [CAP_TODAS_LAS_TIENDAS])))).toEqual({ tipo: "todas" });
   });
@@ -125,14 +133,14 @@ describe("4 · la casilla en Usuarios", () => {
     expect(c).toMatchObject({ es: "Ver todas las tiendas", en: "See all stores" });
     expect(entregas.capabilities?.map((x) => x.key)).toContain(CAP_TODAS_LAS_TIENDAS);
   });
-  it("al gerente se le ofrece apagable (no viene de su rol)", () => {
+  it("al gerente se le enseña fija, del rol (D-NEXT; antes apagable, D-559): la palabra escrita a mano ya no es un extra", () => {
     expect(entregas.capabilityOffered?.(CAP_TODAS_LAS_TIENDAS, "manager")).toBe(true);
-    expect(entregas.capabilitiesFromRole?.("manager")).not.toContain(CAP_TODAS_LAS_TIENDAS);
-    expect(hasCap({ role: "manager" }, CAP_TODAS_LAS_TIENDAS)).toBe(false);
-    expect(extraCaps({ role: "manager", permissions: [CAP_TODAS_LAS_TIENDAS] })).toEqual([CAP_TODAS_LAS_TIENDAS]);
+    expect(entregas.capabilitiesFromRole?.("manager")).toContain(CAP_TODAS_LAS_TIENDAS);
+    expect(hasCap({ role: "manager" }, CAP_TODAS_LAS_TIENDAS)).toBe(true);
+    expect(extraCaps({ role: "manager", permissions: [CAP_TODAS_LAS_TIENDAS] })).toEqual([]);
   });
-  it("a admin y logística se les enseña fija, del rol", () => {
-    for (const r of ["admin", "logistics"] as const) {
+  it("a admin, logística y gerente se les enseña fija, del rol", () => {
+    for (const r of ["admin", "logistics", "manager"] as const) {
       expect(entregas.capabilityOffered?.(CAP_TODAS_LAS_TIENDAS, r), r).toBe(true);
       expect(ROLE_CAPS[r], r).toContain(CAP_TODAS_LAS_TIENDAS);
     }

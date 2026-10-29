@@ -25,8 +25,14 @@ import type { Profile, UserRole } from "@/lib/types";
 /** La palabra que va en `profiles.permissions`. */
 export const CAP_TODAS_LAS_TIENDAS = "all_stores" as const;
 
-/** Quien ve todas las tiendas por su ROL, sin permiso: admin y logística (D-374, D-396). */
-export const ROLES_DE_TODAS_LAS_TIENDAS: readonly UserRole[] = ["admin", "logistics"];
+/**
+ * Quien ve todas las tiendas por su ROL, sin permiso: admin y logística (D-374, D-396) y, desde D-NEXT (2026-10-29), el
+ * gerente. El dueño: «Patricia Hernández es la gerente de Brownsville. Entonces ella debería ver todas las órdenes … al
+ * igual … todos los gerentes de las tiendas … todas las órdenes en el deliveries app. Así debería ser». La casilla
+ * `all_stores` (D-559) queda como «del rol» para el gerente: ya no hace falta marcarla a nadie. La base sigue poniendo su
+ * techo con «Tiendas que ve» (`visible_stores`, 131): a quien tenga tiendas marcadas hay que vaciárselas.
+ */
+export const ROLES_DE_TODAS_LAS_TIENDAS: readonly UserRole[] = ["admin", "logistics", "manager"];
 
 /** ¿A este rol se le OFRECE la casilla? Solo al gerente. */
 export function seOfreceTodasLasTiendas(role: string | null | undefined): boolean {
