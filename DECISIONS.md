@@ -48769,3 +48769,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `timetracker/barra-tt.test.ts` (sin los dos botones ni su CSS; el banner sigue; el menú solo Salir y sin rastro de capacitación/cuenta/personalizar), `desktop-shell.test.ts`, `personalizar.test.ts` puestas al día. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** en la app de escritorio ni en un navegador.
+
+## D-NEXT · Panel: tarjeta «Millas y gas por tienda», con el % del gas que le toca a cada tienda
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/panel-millas-por-tienda`.
+
+**Pedido (el dueño, 2026-10-29):** primero un informe de «cuántas millas por tienda» de octubre para repartir la gasolina (se le entregó en `D:\CLAUDE\reportes\millas-por-tienda-2026-10.md`), con su regla «el envío de una Intertienda lo paga la tienda que lo recibe» y «solo el total, no clientes ni intertiendas»; después, «incluyamos estas tablas al panel».
+
+**Qué cambia.**
+- **`src/lib/millas-por-tienda.ts`** (nuevo): las reglas del informe, como código. Cuentan las órdenes **entregadas o recogidas**. **Parada** = mismo día + chofer + tienda que paga + destino (la dirección normalizada: sin país, ZIP ni puntuación; si no hay, las coordenadas); varias órdenes a la misma puerta son UNA parada con las millas de la mayor. **Millas:** `route_miles` de Google cuando la orden salió de su tienda (`pickup_name` vacío o igual a `store`) y la cifra es creíble (≤ 150: en octubre había geocodes de 700 a 1800 millas); si no, **estimada** = línea recta tienda → pin del destino × 1,3 (`haversineMi`, pin de la tienda en Ajustes); sin nada, 0 y «sin dato». **Quién paga:** la tienda que creó la orden, salvo las de tienda a tienda (por la regla del tipo, `storeToStore`, no por el nombre), que las paga la que recibe (`delivery_name`). **% del gas** = millas de la tienda ÷ millas de todas.
+- **Panel** (`dashboard/page.tsx`): tarjeta nueva «⛽ Millas y gas por tienda» (`data-panel-millas-por-tienda`) entre Tendencias y los KPIs de choferes, con el formato de las demás tablas del Panel: Tienda · Paradas · Órdenes · Millas · De ellas est. (millas estimadas y cuántas paradas, con ⚠️ si alguna quedó sin dato) · **% del gas**, y la fila **Total**. Bebe de `scoped`: el mismo rango de fechas y el mismo alcance por tienda (D-396) que el resto del Panel, así que el gerente ve las suyas y el admin, todas.
+
+**Lo que NO hace:** no reparte las millas de una ruta con varias paradas entre ellas (sería con `route_plan_stops.leg_miles`; el dueño no lo pidió); no separa local / no local (en el informe salía de la ciudad de la dirección; aquí no). Las órdenes sin chofer cuentan igual que en el informe.
+
+**Pruebas:** `src/lib/millas-por-tienda.test.ts` (qué cuenta, qué es una parada, de dónde salen las millas, quién paga, la tabla y el %). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** la tarjeta no se abrió en un navegador; los porcentajes de octubre del Panel no se cotejaron con los del informe (el Panel corta por `delivery_date` o fecha de alta, el informe por `delivery_date` solo, y el informe recortaba 4 cifras de Google a mano igual que aquí).
