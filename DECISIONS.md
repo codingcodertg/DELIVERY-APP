@@ -48770,7 +48770,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en la app de escritorio ni en un navegador.
 
-## D-NEXT · Panel: tarjeta «Millas y gas por tienda», con el % del gas que le toca a cada tienda
+## D-738 · Panel: tarjeta «Millas y gas por tienda», con el % del gas que le toca a cada tienda
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/panel-millas-por-tienda`.
 

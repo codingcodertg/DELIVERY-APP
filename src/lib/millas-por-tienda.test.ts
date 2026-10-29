@@ -6,7 +6,7 @@ import {
 import type { NamedLocation } from "./types";
 
 /**
- * Millas y reparto del gas por tienda en el Panel (D-NEXT, 2026-10-29). Las reglas del informe de
+ * Millas y reparto del gas por tienda en el Panel (D-738, 2026-10-29). Las reglas del informe de
  * octubre, medidas con órdenes de mentira: qué cuenta como viaje, qué es una parada, de dónde salen
  * las millas y quién paga una Intertienda.
  */

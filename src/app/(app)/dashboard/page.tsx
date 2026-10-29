@@ -166,7 +166,7 @@ export default function DashboardPage() {
     };
   }, [drivers, idle, quality]);
   const stores = useMemo(() => groupVolume(scoped, "store"), [scoped]);
-  // Millas y reparto del gas por tienda (D-NEXT): paradas de las órdenes entregadas/recogidas del rango,
+  // Millas y reparto del gas por tienda (D-738): paradas de las órdenes entregadas/recogidas del rango,
   // y la Intertienda la paga la tienda que recibe. Las reglas, en `millas-por-tienda.ts`.
   const gas = useMemo(
     () => millasPorTienda(paradasDeMillas(scoped, settings.stores, settings.order_type_rules)),
@@ -343,7 +343,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* ---------- Millas y gas por tienda (D-NEXT) ---------- */}
+          {/* ---------- Millas y gas por tienda (D-738) ---------- */}
           <div className="card" data-panel-millas-por-tienda>
             <h2>⛽ {t("Miles & fuel share by store", "Millas y gas por tienda")}</h2>
             <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>

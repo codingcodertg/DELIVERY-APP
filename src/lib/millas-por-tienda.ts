@@ -1,5 +1,5 @@
 /**
- * Millas y reparto del gas por tienda, para el Panel (D-NEXT, 2026-10-29).
+ * Millas y reparto del gas por tienda, para el Panel (D-738, 2026-10-29).
  *
  * El dueño pidió un informe de «cuántas millas por tienda» para repartir el gasto de gasolina entre
  * las tiendas (2026-10-29), y después «incluyamos estas tablas al panel». Lo que se hizo a mano sobre
