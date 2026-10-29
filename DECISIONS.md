@@ -48739,3 +48739,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `tomar-orden.test.ts`: motivo solo con chofer de antes; `sePuedeTomar`; las tres notas en los dos idiomas y que la 213 lleva los mismos textos; puertas de la 213 (misma firma, condición del motivo, guard, campana, grant, sin begin/commit, ledger), del demo, de la tarjeta (dos listas, sin chofer sin motivo, orden de las tarjetas) y de «Mi ruta» (solo chofer y no en solo lectura). tsc limpio.
 
 **Ensayo de la 213 con ROLLBACK contra producción:** la función se redefine y la autocomprobación pasa. **No verificado:** tomar una orden real sin chofer con la 213 aplicada (la medida es el primer chofer que lo haga), ni la pantalla en un navegador.
+
+## D-736 · Company assets: tocar la fila de un correo o número abre su detalle con sus datos, sus botones y SU historial
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/detalle-de-activo`.
+
+**Pedido (el dueño, 2026-10-29, por voz):** «En la parte donde se miran los números o los correos de la gente … apretar el número, correo, la row esa, ahí puedo ver el historial, ¿verdad? … este es el botón de editar, yo aquí también quiero ver los detalles de ese número y el historial».
+
+**Qué cambia (`src/app/recruiting/(recruiting)/assets/page.tsx`).**
+- Cada fila de Correos y Números se pulsa (`data-abre-detalle`, cursor de mano, título «Abrir detalle e historial») y abre `DetalleDeActivo`: el correo o la línea con su extensión y su insignia de estado; tipo (en líneas), asignado a, quién lo tuvo antes, plan y costo al año (en correos), nota; los mismos botones de la fila (Asignar / Liberar / ✓ Respaldado según el estado, y «✏️ Editar»); y debajo «🕘 Historial» con `HistorialDeRrhh` filtrado por `assetId` (D-734), con la columna Detalle.
+- La celda de los botones de la fila corta el clic (`stopPropagation`): pulsar un botón no abre el detalle.
+- El detalle guarda solo el id y se lee de `rows`: tras asignar, liberar, respaldar o editar, se refresca solo (y el historial con `recargaHistorial`). Borrar desde «editar» lo cierra.
+
+**Pruebas:** `src/lib/recruiting/detalle-de-activo.test.ts` (puertas: la fila abre, la celda de botones no, el detalle se lee de las filas, lleva las cuatro acciones y el historial por activo, y se cierra al borrar). Canarios de RR. HH. en verde. tsc limpio.
+
+**No verificado en pantalla:** no se abrió en un navegador.
