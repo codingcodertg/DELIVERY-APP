@@ -25,6 +25,10 @@ import { HistorialDeRrhh } from "@/components/recruiting/HistorialDeRrhh";
  */
 type Vista = "email" | "phone" | "personas" | "historial";
 
+// D-NEXT (2026-10-29): tocar la FILA de un correo o número abre su detalle —todos sus datos y SU historial— con los mismos
+// botones (asignar, liberar, respaldado, editar). El dueño: «apretar el número, correo, la row esa, ahí puedo ver el
+// historial … este es el botón de editar, yo aquí también quiero ver los detalles de ese número y el historial».
+
 /** D-734: lo deliberado (liberar, respaldar, borrar) pasa por «¿Seguro? ¿Por qué?». */
 type Pendiente = { accion: "liberar" | "respaldar" | "borrar"; activo: Activo };
 
@@ -52,6 +56,8 @@ export default function AssetsPage() {
   const [editando, setEditando] = useState<Partial<Activo> & { kind: TipoDeActivo } | null>(null);
   const [asignando, setAsignando] = useState<Activo | null>(null);
   const [pendiente, setPendiente] = useState<Pendiente | null>(null);
+  // El id del activo cuyo detalle está abierto (D-NEXT); se lee de `rows` para que una acción lo refresque al instante.
+  const [detalleId, setDetalleId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [recargaHistorial, setRecargaHistorial] = useState(0);
 
@@ -109,7 +115,7 @@ export default function AssetsPage() {
       : accion === "respaldar" ? releaseAsset(activo.id, "available", motivo)
       : releaseAsset(activo.id, undefined, motivo));
     setPendiente(null);
-    if (ok && accion === "borrar") setEditando(null);
+    if (ok && accion === "borrar") { setEditando(null); setDetalleId(null); }
   };
   const textoDelPendiente = (p: Pendiente) => {
     const nombre = p.activo.kind === "phone" ? textoDeTelefono(p.activo) : p.activo.value;
@@ -192,7 +198,8 @@ export default function AssetsPage() {
                     <tr><td colSpan={columnas.length + 1} className="hint">{t("Nothing here.", "Nada por aquí.")}</td></tr>
                   )}
                   {orden.visibles.map((a) => (
-                    <tr key={a.id} data-activo={a.id}>
+                    <tr key={a.id} data-activo={a.id} data-abre-detalle onClick={() => setDetalleId(a.id)} style={{ cursor: "pointer" }}
+                      title={t("Open details and history", "Abrir detalle e historial")}>
                       {columnas.map((c) => (
                         <td key={c.key} style={c.key === "value" ? { fontWeight: 700 } : undefined}>
                           {c.key === "status" ? <InsigniaDeEstado estado={a.status} lang={lang} />
@@ -200,7 +207,7 @@ export default function AssetsPage() {
                             : (valorDe(c.key, a) ?? "—")}
                         </td>
                       ))}
-                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                         {a.status === "available" && (
                           <button className="btn btn-green btn-sm" data-accion="asignar" disabled={busy} onClick={() => setAsignando(a)}>{t("Assign", "Asignar")}</button>
                         )}
@@ -250,6 +257,14 @@ export default function AssetsPage() {
         )}
       </div>
 
+      {detalleId && (() => {
+        const a = rows.find((x) => x.id === detalleId);
+        return a ? (
+          <DetalleDeActivo activo={a} busy={busy} recarga={recargaHistorial} onClose={() => setDetalleId(null)}
+            onAsignar={() => setAsignando(a)} onLiberar={() => setPendiente({ accion: "liberar", activo: a })}
+            onRespaldar={() => setPendiente({ accion: "respaldar", activo: a })} onEditar={() => setEditando(a)} />
+        ) : null;
+      })()}
       {editando && (
         <EditarActivo activo={editando} busy={busy} onClose={() => setEditando(null)}
           onSave={async (input) => { if (await corre(async () => { const r = await saveAsset(input); return r.ok ? { ok: true } : r; })) setEditando(null); }}
@@ -274,6 +289,45 @@ function InsigniaDeEstado({ estado, lang }: { estado: EstadoDeActivo; lang: "en"
     pending_backup: { background: "var(--tint-warn)", color: "var(--ink)", border: "1px solid var(--tint-warn-line)" },
   };
   return <span className="badge" data-estado-de-activo={estado} style={estilo[estado]}>{etiquetaDeEstado(estado, lang)}</span>;
+}
+
+/** El detalle de un correo o número (D-NEXT): sus datos, los botones de la fila y su historial (`HistorialDeRrhh` con `assetId`). */
+function DetalleDeActivo({ activo: a, busy, recarga, onClose, onAsignar, onLiberar, onRespaldar, onEditar }: {
+  activo: Activo; busy: boolean; recarga: number; onClose: () => void;
+  onAsignar: () => void; onLiberar: () => void; onRespaldar: () => void; onEditar: () => void;
+}) {
+  const { t, lang } = usePrefs();
+  const esTel = a.kind === "phone";
+  const dato = (rotulo: string, valor: React.ReactNode) => (
+    <div><label>{rotulo}</label><div style={{ fontWeight: 600 }}>{valor ?? "—"}</div></div>
+  );
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 760 }} onClick={(e) => e.stopPropagation()} data-dialogo="detalle-de-activo" data-activo-detalle={a.id}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <h3 style={{ margin: 0 }}>{esTel ? "📞" : "✉️"} {esTel ? textoDeTelefono(a) : a.value}</h3>
+          <InsigniaDeEstado estado={a.status} lang={lang} />
+        </div>
+        <div className="grid g2" style={{ marginTop: 12 }}>
+          {esTel && dato(t("Type", "Tipo"), etiquetaDeTipoDeTelefono(a.phone_type, lang))}
+          {dato(t("Assigned to", "Asignado a"), a.employee_name)}
+          {dato(t("Last had it", "Lo tuvo antes"), a.last_employee_name)}
+          {!esTel && dato(t("Plan", "Plan"), a.plan)}
+          {!esTel && dato(t("Cost / year", "Costo al año"), a.cost_year != null ? `$${a.cost_year.toFixed(2)}` : null)}
+          {dato(t("Note", "Nota"), a.note)}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+          {a.status === "available" && <button className="btn btn-green btn-sm" data-accion="asignar" disabled={busy} onClick={onAsignar}>{t("Assign", "Asignar")}</button>}
+          {a.status === "assigned" && <button className="btn btn-ghost btn-sm" data-accion="liberar" disabled={busy} onClick={onLiberar}>{t("Release", "Liberar")}</button>}
+          {a.status === "pending_backup" && <button className="btn btn-ghost btn-sm" data-accion="respaldado" disabled={busy} onClick={onRespaldar}>✓ {t("Backed up", "Respaldado")}</button>}
+          <button className="btn btn-ghost btn-sm" data-accion="editar-activo" disabled={busy} onClick={onEditar}>✏️ {t("Edit", "Editar")}</button>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ marginLeft: "auto" }}>{t("Close", "Cerrar")}</button>
+        </div>
+        <h4 style={{ margin: "16px 0 6px" }}>🕘 {t("History", "Historial")}</h4>
+        <HistorialDeRrhh assetId={a.id} recarga={recarga} />
+      </div>
+    </div>
+  );
 }
 
 function EditarActivo({ activo, busy, onClose, onSave, onDelete }: {
