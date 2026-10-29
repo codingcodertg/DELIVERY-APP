@@ -4,6 +4,7 @@ import { creaUnaPorUna, type ResultadoDelAlta } from "./alta";
 import { archivoDeLaBase, CUBO_DE_ARCHIVOS, MAX_BYTES_DE_ARCHIVO, rutaDeArchivo, type ArchivoDeCliente, type ClaseDeArchivo } from "./archivos";
 import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
 import { clienteDeLaBase, type Cliente, type Parche } from "./reglas";
+import { clienteDeBusqueda } from "./vendedor-por-tienda";
 import { conVendedores, nombresDeVendedores, type Vendedor } from "./vendedores";
 
 /**
@@ -48,6 +49,11 @@ export interface AlmacenDeClientes {
   asignarVendedor(ids: readonly number[], repId: string | null): Promise<Res<number>>;
   /** D-685: el mismo parche a muchas filas de golpe (la barra de lo elegido); devuelve cuántas cambió la base. */
   guardarVarios(ids: readonly number[], parche: Parche): Promise<Res<number>>;
+  /**
+   * D-NEXT (215): la búsqueda a nivel de toda la empresa, saltando la política de la fila, con pocas columnas (sin
+   * teléfonos, correos ni direcciones). Para el vendedor, que en su lista solo tiene su tienda y los suyos.
+   */
+  buscarEnTodaLaEmpresa(q: string): Promise<Res<Cliente[]>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -66,7 +72,7 @@ export function esSinPermiso(error: { code?: string | null; message?: string } |
 export const COLUMNAS =
   "id, store, account, unified_account, house_no, added_batch, qb_status, activity_status, status_store, status_group, " +
   "history_store, history_group, crm_type_store, crm_type_group, associated_with, rep_history, rep_qb, rep_store, contact_name, contact_title, address, phone, email, " +
-  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id, contacts, tax_terms, website, socials, rep_id";
+  "credit_limit, euler_limit, terms, account_no, notes, updated_at, updated_by, archived_at, archived_reason, company_id, contacts, tax_terms, website, socials, rep_id, created_by";
 
 /** Las tres de la 182 (CRM). El código llega antes que la migración: si la base aún no las tiene, se lee sin ellas. */
 export const COLUMNAS_DE_LA_182 = ["crm_type_store", "crm_type_group", "associated_with"] as const;
@@ -145,6 +151,11 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
         if ((data ?? []).length < PAGINA) break;
       }
       return { ok: true, valor: await conNombres(todos) };
+    },
+    async buscarEnTodaLaEmpresa(q) {
+      const { data, error } = await sb.rpc("busca_clientes_en_toda_la_empresa", { p_q: q });
+      if (error) return fallo(error);
+      return { ok: true, valor: await conNombres(((data ?? []) as Record<string, unknown>[]).map(clienteDeBusqueda)) };
     },
     async guardar(id, parche) {
       const { data, error } = await leeConRespaldo((cols) => sb.from("customers").update(parche).eq("id", id).select(cols).maybeSingle());

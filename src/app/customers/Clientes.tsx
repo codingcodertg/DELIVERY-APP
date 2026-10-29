@@ -23,6 +23,7 @@ import { AsignarVendedores } from "./AsignarVendedores";
 import { BarraDeSeleccion } from "./BarraDeSeleccion";
 import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "@/lib/customers/seleccion";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
+import { columnasDelVendedor, conLosEncontrados, puedeAbrirCliente, RETARDO_DE_BUSQUEDA_MS, seBuscaEnTodaLaEmpresa } from "@/lib/customers/vendedor-por-tienda";
 import type { Parche } from "@/lib/customers/reglas";
 import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas, tiendasDeLaEmpresa } from "@/lib/customers/empresas";
 import { alPulsarCabecera, esOrdenInicial, filtraEmpresas, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
@@ -82,6 +83,19 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
 
+  // D-NEXT (215): el vendedor busca en TODA la empresa. Con dos letras o más, y tras un respiro, se pregunta a la base;
+  // lo que llegue y no esté ya en su lista se pinta como fila que no se abre (`puedeAbrirCliente`).
+  const [encontrados, setEncontrados] = useState<Cliente[]>([]);
+  useEffect(() => {
+    if (!seBuscaEnTodaLaEmpresa(filtro.busca, esVendedor)) { setEncontrados([]); return; }
+    let vivo = true;
+    const h = setTimeout(() => {
+      void almacen.buscarEnTodaLaEmpresa(filtro.busca.trim()).then((r) => { if (vivo && r.ok) setEncontrados(r.valor); });
+    }, RETARDO_DE_BUSQUEDA_MS);
+    return () => { vivo = false; clearTimeout(h); };
+  }, [filtro.busca, esVendedor, almacen]);
+  const listaConEncontrados = useMemo(() => conLosEncontrados(lista, encontrados), [lista, encontrados]);
+
   // «✏️ Editar» de la página del cliente (D-648) llega con `?editar=<id>`: al cargar la lista se abre la ventana de ese
   // cliente ya editando (D-654) y el parámetro se quita, para que recargar no la vuelva a abrir.
   const [editarPendiente, setEditarPendiente] = useState<number | null>(null);
@@ -117,7 +131,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
 
   // UNA fila por EMPRESA (189): las filas de la misma compañía en varias tiendas se pintan juntas, con sus tiendas en
   // pastillas; con una tienda elegida sale toda empresa con fila allí, enseñando la fila de esa tienda.
-  const empresas = useMemo(() => agrupaEnEmpresas(lista, filtro), [lista, filtro]);
+  const empresas = useMemo(() => agrupaEnEmpresas(listaConEncontrados, filtro), [listaConEncontrados, filtro]);
   const visibles = useMemo(() => ordenarEmpresas(filtraEmpresas(empresas, filtrosCol), ordenes), [empresas, filtrosCol, ordenes]);
   useEffect(() => { setCuantos(TANDA); }, [filtro, filtrosCol, ordenes]);
   // Los archivados (181) se esconden por defecto: las cuentas de las tiendas y el «N clientes» son de lo que se está viendo
@@ -125,7 +139,8 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   const vista = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: filtro.archivados }), [lista, filtro.archivados]);
   const archivados = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: true }).length, [lista]);
   const porTienda = useMemo(() => empresasPorTienda(vista), [vista]);
-  const colsVisibles = columnasAPintar(prefCols);
+  // D-NEXT: el vendedor ve cuatro columnas fijas (cuenta, N.º tiendas, estado, vendedor), sin selector ni arrastre.
+  const colsVisibles = esVendedor ? columnasDelVendedor() : columnasAPintar(prefCols);
   // D-673: anchos que se arrastran, como en Órdenes (`tbl-resize`): nada salta de línea y lo que no cabe se corta con «…».
   const colw = useColWidthMap(llaveDeAnchos(userId), ANCHO_POR_DEFECTO, { minimo: ANCHO_MINIMO });
   const ancho = (k: string) => colw.widthOf(claveDeAncho(k), anchoDePartida(k));
@@ -195,6 +210,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {!esVendedor && (
           <SelectorDeColumnas
             columnas={columnasDelSelector(prefCols)}
             elegidas={prefCols.elegidas}
@@ -210,6 +226,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
               onRestablece: () => cambiaColumnas((p) => ({ ...p, orden: null })),
             }}
           />
+          )}
           {esAdmin && <Button variant="outline" onClick={() => setAsignando(true)} data-abrir-asignar-vendedores>👤 {t("Assign sales reps", "Asignar vendedores")}</Button>}
           {puedeEditar && <Button onClick={() => setFicha({ tipo: "nuevo" })}>+ {t("New customer", "Nuevo cliente")}</Button>}
         </div>
@@ -314,7 +331,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
                     <th
                       key={c.key}
                       data-columna={c.key}
-                      draggable
+                      draggable={!esVendedor}
                       onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.key); e.dataTransfer.effectAllowed = "move"; setArrastrada(c.key); }}
                       onDragOver={(e) => { if (arrastrada && arrastrada !== c.key) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setSobre(c.key); } }}
                       onDragLeave={() => setSobre((s) => (s === c.key ? null : s))}
@@ -366,12 +383,17 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
               {visibles.length === 0 && (
                 <tr><td colSpan={colsVisibles.length} className="px-3 py-6 text-center text-slate-500">{t("No customers match.", "Ningún cliente coincide.")}</td></tr>
               )}
-              {visibles.slice(0, cuantos).map(({ clave, filas, principal: c }) => (
+              {visibles.slice(0, cuantos).map(({ clave, filas, principal: c }) => {
+                // D-NEXT: el vendedor abre solo los suyos; los demás se ven y no se abren.
+                const abrible = puedeAbrirCliente(c, { esVendedor, userId });
+                return (
                 <tr
                   key={clave}
-                  onClick={() => setFicha({ tipo: "ver", cliente: c })}
-                  className={cn("cursor-pointer border-t border-slate-100 hover:bg-clay-50", estaArchivado(c) && "opacity-60")}
+                  onClick={() => { if (abrible) setFicha({ tipo: "ver", cliente: c }); }}
+                  className={cn("border-t border-slate-100", abrible ? "cursor-pointer hover:bg-clay-50" : "cursor-not-allowed text-slate-500", estaArchivado(c) && "opacity-60")}
                   data-archivado={estaArchivado(c) ? "1" : undefined}
+                  data-no-se-abre={abrible ? undefined : "1"}
+                  title={abrible ? undefined : t("Another rep's customer: it can't be opened", "Cliente de otro vendedor: no se abre")}
                 >
                   {colsVisibles.map((col) => (
                     <td key={col.key} className={cn("px-3 py-2", col.key === "account" && "font-medium text-slate-900", (col.key === "credit_limit" || col.key === "euler_limit" || col.key === "store_count") && "text-right tabular-nums")}
@@ -419,7 +441,8 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
                     </td>
                   ))}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {visibles.length > cuantos && (
@@ -488,6 +511,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
           onCambia={(c) => setFicha({ tipo: "ver", cliente: c })}
           puedeEditar={puedeEditar}
           esVendedor={esVendedor}
+          yo={userId}
           almacen={almacen}
           onClose={() => setFicha(null)}
           onGuardado={alGuardar}

@@ -84,7 +84,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
       return (
         <label key={fila.key} className="block space-y-1 py-1.5" data-campo={fila.key}>
           <span className="text-xs text-slate-500">{t(fila.en, fila.es)}</span>
-          <ControlDeCampo campo={fila.campo} valor={form[fila.key] ?? ""} mal={errores.includes(fila.key)} onCambia={(v) => onCampo(fila.key, v)} vendedores={vendedores} t={t} />
+          <ControlDeCampo campo={fila.campo} valor={form[fila.key] ?? ""} mal={errores.includes(fila.key)} onCambia={(v) => onCampo(fila.key, v)} vendedores={vendedores} bloqueado={esVendedor} t={t} />
         </label>
       );
     }
@@ -146,14 +146,15 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
 }
 
 /** El control de un campo, según su tipo: los cerrados en desplegable, el teléfono con su molde, los nombres en MAYÚSCULAS. */
-function ControlDeCampo({ campo: f, valor, mal, onCambia, vendedores = [], t }: { campo: Campo; valor: string; mal: boolean; onCambia: (v: string) => void; vendedores?: Vendedor[]; t: T }) {
+// `bloqueado` (D-NEXT): el vendedor no elige vendedor: el desplegable enseña el suyo y no se abre.
+function ControlDeCampo({ campo: f, valor, mal, onCambia, vendedores = [], bloqueado = false, t }: { campo: Campo; valor: string; mal: boolean; onCambia: (v: string) => void; vendedores?: Vendedor[]; bloqueado?: boolean; t: T }) {
   // La tienda no sale aquí: es de la cabecera y se cambia en las pastillas de tiendas (`selectorDeTienda`).
   const marca = cn(mal && "border-red-400 ring-1 ring-red-300");
   if (f.tipo === "vendedor") {
     // D-683: el vendedor del cliente; «—» lo deja libre (lo ven todos los vendedores). Si el guardado no está en la
     // lista (un perfil que ya no es vendedor), se enseña igual, para no perderlo al guardar otra cosa.
     return (
-      <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)} data-vendedor>
+      <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)} data-vendedor disabled={bloqueado}>
         <option value="">—</option>
         {vendedores.map((v) => <option key={v.id} value={v.id}>{v.full_name}</option>)}
         {valor && !vendedores.some((v) => v.id === valor) && <option value={valor}>{valor}</option>}
@@ -610,7 +611,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, yo, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
   /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
@@ -622,12 +623,17 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   onGuardado: (c: Cliente, creados?: Cliente[]) => void;
   /** «✏️ Editar» de la página del cliente (D-648) llega aquí: la ventana abre ya editando. */
   editarAlAbrir?: boolean;
+  /** D-NEXT: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
+  yo?: string;
   t: T;
 }) {
   const nuevo = cliente === null;
   const original = useMemo(() => formDe(cliente), [cliente]);
-  const [form, setForm] = useState<Record<string, string>>(original);
-  useEffect(() => { setForm(original); }, [original]);
+  // D-NEXT: en el alta, el vendedor es él (y el desplegable va bloqueado). Va en el FORMULARIO y no en `original`, para
+  // que `parcheDe` lo cuente como cambio y llegue a la base.
+  const preajuste = useMemo<Record<string, string>>(() => (nuevo && esVendedor && yo ? { rep_id: yo } : {} as Record<string, string>), [nuevo, esVendedor, yo]);
+  const [form, setForm] = useState<Record<string, string>>(() => ({ ...original, ...preajuste }));
+  useEffect(() => { setForm({ ...original, ...preajuste }); }, [original, preajuste]);
   // D-668: los contactos van aparte del resto de campos: una lista que se edita entera.
   const contactosOriginales = useMemo(() => contactosDe(cliente), [cliente]);
   const [contactos, setContactos] = useState<ContactoEnEdicion[]>(() => enEdicion(contactosOriginales));
