@@ -48800,3 +48800,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/orden-del-hub.test.ts` (quién ordena, cómo se aplica y se mueve, qué se guarda y se lee, y las tres pantallas); `routes-columns.test.ts` apunta a la 214 como última migración de la restricción. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La 214 se ensayó con ROLLBACK; aplicarla es del dueño.
+## D-740 · Clientes para el vendedor: su tienda en la lista con cuatro columnas, abre solo los suyos, busca en toda la empresa y al crear es él el vendedor (migración 215); «Store rep» pasa a «Commission rep»
+
+**Fecha:** 2026-10-29 · **Migración 215** (`215_clientes_vendedor_su_tienda_y_busqueda.sql`) · Hecho directo por el orquestador en `feat/clientes-ventas-por-tienda`. **Reemplaza en parte a D-728** (el vendedor ya no ve SOLO los suyos: ve su tienda y abre solo los suyos).
+
+**Pedido (el dueño, 2026-10-29, por voz):** «para los salespeople, ellos van a tener la regla. Si ellos buscan algo en el search, pueden buscar cualquier cliente a nivel de toda la database. Ellos solo pueden ver los clientes de su propia tienda y solo pueden abrir los que son sus clientes. Los demás clientes no se pueden abrir, pero por eso vas a cortar que ahora solo puedan ver las siguientes columnas: cuenta, número de tiendas, estado y vendedor. […] Vas a remover la opción de customize columnas en el customer view». Después: «store rep change name to comission rep». Y: «I'm trying to […] add a new customer form. It says vendedor […] automatically the system should put their name, and they should not be able to search any other's name».
+
+**Qué cambia.**
+- **La base (215):** `erp.customers_ve_la_fila` deja al vendedor leer, además de los suyos (asignado o creado por él), las filas de **su tienda** (código de la fila frente a la tienda del perfil, como el gerente; sin tienda en el perfil, solo los suyos). Y una función nueva, `erp.busca_clientes_en_toda_la_empresa(p_q)` (SECURITY DEFINER, exige el módulo y dos letras, 100 filas), que devuelve **pocas columnas** —id, tienda, cuenta, cuenta unificada, estado, vendedor, empresa, archivado— y ni teléfonos, ni correos, ni direcciones.
+- **La lista** (`Clientes.tsx`, `src/lib/customers/vendedor-por-tienda.ts`): para el vendedor, cuatro columnas fijas (`columnasDelVendedor`: cuenta, N.º tiendas, estado (tienda), vendedor), sin «⚙ Columnas» ni arrastre de cabeceras; las filas que no son suyas (`puedeAbrirCliente`: ni asignadas ni creadas por él) no abren la ficha, van en gris con «Cliente de otro vendedor: no se abre» (`data-no-se-abre`). Al escribir dos letras o más en el buscador se pregunta a la base (tras 300 ms) y lo encontrado que no esté ya en la lista se suma como fila que no se abre. El resto de roles no cambia.
+- **El alta** (`FichaDeCliente.tsx`): si quien crea es vendedor, «Vendedor» queda puesto con él (`yo`) y el desplegable bloqueado; también al editar un cliente suyo. Se pone en el formulario y no en el original, para que `parcheDe` lo mande a la base.
+- **«Store rep (QB)» → «Commission rep (QB)»** («Vendedor de comisión (QB)») en la tabla y en la ficha. Es solo el rótulo: la columna sigue siendo `rep_store`.
+- `created_by` (180) se lee ahora en la lista (`COLUMNAS` del almacén) para saber qué es suyo.
+
+**Pruebas:** `src/lib/customers/vendedor-por-tienda.test.ts` (columnas, quién abre, la búsqueda, la 215, y las pantallas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. La 215 se ensayó con ROLLBACK; aplicarla es del dueño. Hasta que esté, el vendedor sigue viendo solo los suyos (210) y la búsqueda en toda la empresa falla en silencio (la función no existe: no se suma nada).

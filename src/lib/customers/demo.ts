@@ -76,6 +76,10 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
   const almacen: AlmacenDeClientes = {
     async leer() { return { ok: true, valor: lista.map((c) => ({ ...c })) }; },
+    async buscarEnTodaLaEmpresa(q) {
+      const s = q.trim().toLowerCase();
+      return { ok: true, valor: lista.filter((c) => c.account.toLowerCase().includes(s)).map((c) => ({ ...c })) };
+    },
     async vendedores() { return { ok: true, valor: VENDEDORES_DEMO.map((v) => ({ ...v })) }; },
     async asignarVendedor(ids, repId) { return almacen.guardarVarios(ids, { rep_id: repId }); },
     async guardarVarios(ids, parche: Parche) {

@@ -317,7 +317,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
     expect(ficha).toContain('{t("← Customers", "← Clientes")}');
   });
   it("D-654: el clic en la fila abre la VENTANA (no el cajón lateral), y la fila ya no lleva el enlace «ficha»", () => {
-    expect(lista).toContain("onClick={() => setFicha({ tipo: \"ver\", cliente: c })}");
+    expect(lista).toContain("onClick={() => { if (abrible) setFicha({ tipo: \"ver\", cliente: c }); }}");
     expect(lista).toContain("<FichaEnVentana");
     expect(lista).toContain('import { FichaEnVentana, selCls } from "./FichaDeCliente";');
     expect(lista).not.toContain("function FichaDeCliente");
@@ -438,7 +438,7 @@ describe("la 189 · empresas, juntar y la cola", () => {
   });
   it("la pantalla: la lista por empresa, la ficha con pestañas, la cola llama a la base, y las rutas cuelgan del layout", () => {
     const lista = leer("src/app/customers/Clientes.tsx");
-    expect(lista).toContain("const empresas = useMemo(() => agrupaEnEmpresas(lista, filtro), [lista, filtro]);");
+    expect(lista).toContain("const empresas = useMemo(() => agrupaEnEmpresas(listaConEncontrados, filtro), [listaConEncontrados, filtro]);");
     expect(lista).toContain("ordenarEmpresas(filtraEmpresas(empresas, filtrosCol), ordenes)");
     expect(lista).toContain("hermanas={ficha.tipo === \"ver\" ? filasDeLaEmpresa(lista,");
     expect(leer("src/app/customers/FichaDeCliente.tsx")).toContain('role="tablist"');

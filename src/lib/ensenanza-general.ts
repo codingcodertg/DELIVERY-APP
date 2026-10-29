@@ -58,6 +58,7 @@ export { valorDeCapacitacion as valorDeEnsenanza };
  */
 export const RPC_QUE_SOLO_LEEN = [
   "cuentas_de_clientes", // 203: las cuentas de Clientes para el formulario de orden; solo lee.
+  "busca_clientes_en_toda_la_empresa", // 215 (D-740): la búsqueda del vendedor en toda la empresa; solo lee.
   "analytics_category_stats", "analytics_store_stats", "analytics_vendor_stats", "buscar_factura_para_recoger",
   "catalog_facets", "category_browse", "dashboard_stats", "estimator_find_estimate", "estimator_pending_approvals",
   "leads_my_scope", "list_cycle_counts", "list_purchase_orders", "my_point_balance", "my_published_stops",

@@ -44,6 +44,8 @@ export interface Cliente {
   notes: string | null;
   updated_at: string | null;
   updated_by: string | null;
+  /** Quién creó la fila (180, lo pone la base). D-740: el vendedor abre los suyos: asignados a él o creados por él. */
+  created_by?: string | null;
   /** Migración 181: null = cliente vivo. Archivado = no es un cliente (cajón de QuickBooks, interno, sin nombre…); se esconde, no se borra. */
   archived_at: string | null;
   archived_reason: string | null;
@@ -178,7 +180,8 @@ export const COLUMNAS: readonly Columna[] = [
   { key: "unified_account", en: "Unified account", es: "Cuenta unificada" },
   // D-683: el vendedor de verdad (perfil del hub), antes de las iniciales de QuickBooks.
   { key: "rep_id", en: "Sales rep", es: "Vendedor" },
-  { key: "rep_store", en: "Store rep (QB)", es: "Vendedor tienda (QB)" },
+  // D-740 (el dueño, 2026-10-29): «store rep change name to comission rep».
+  { key: "rep_store", en: "Commission rep (QB)", es: "Vendedor de comisión (QB)" },
   { key: "rep_qb", en: "Group rep (QB)", es: "Vendedor grupo (QB)" },
   { key: "rep_history", en: "Group rep (history)", es: "Vendedor grupo (historial)" },
   { key: "contact_name", en: "Contact", es: "Contacto" },
@@ -469,7 +472,7 @@ export const CAMPOS: readonly Campo[] = [
   { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "cuenta" },
   // D-683: el vendedor (198): un desplegable con los perfiles de vendedor; «—» lo deja libre (lo ven todos).
   { key: "rep_id", tipo: "vendedor", en: "Sales rep", es: "Vendedor", grupo: "cuenta" },
-  { key: "rep_store", tipo: "text", en: "Store rep (QB)", es: "Vendedor tienda (QB)", grupo: "cuenta" },
+  { key: "rep_store", tipo: "text", en: "Commission rep (QB)", es: "Vendedor de comisión (QB)", grupo: "cuenta" },
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
   // D-668: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
@@ -667,6 +670,7 @@ export function clienteDeLaBase(f: Record<string, unknown>): Cliente {
     socials: f.socials && typeof f.socials === "object" ? normalizaRedes(f.socials) : null,
     // Sin la 198 no llega: null. El nombre lo pone el almacén (`conVendedores`).
     rep_id: texto(f.rep_id), rep_name: texto(f.rep_name),
+    created_by: texto(f.created_by),
   };
 }
 
