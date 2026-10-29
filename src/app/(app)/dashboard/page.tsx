@@ -23,6 +23,7 @@ import {
 import type { Stage } from "@/lib/types";
 import { redondeaDinero, sumaDinero, sumaMillas } from "@/lib/totales";
 import { alcanceDelPanel, choferesDelPanel, ordenesDelPanel } from "@/lib/panel-por-tienda";
+import { millasPorTienda, paradasDeMillas } from "@/lib/millas-por-tienda";
 
 // Default the date-range to the last 30 days.
 function daysAgoISO(n: number): string {
@@ -165,6 +166,12 @@ export default function DashboardPage() {
     };
   }, [drivers, idle, quality]);
   const stores = useMemo(() => groupVolume(scoped, "store"), [scoped]);
+  // Millas y reparto del gas por tienda (D-738): paradas de las órdenes entregadas/recogidas del rango,
+  // y la Intertienda la paga la tienda que recibe. Las reglas, en `millas-por-tienda.ts`.
+  const gas = useMemo(
+    () => millasPorTienda(paradasDeMillas(scoped, settings.stores, settings.order_type_rules)),
+    [scoped, settings.stores, settings.order_type_rules],
+  );
   const accounts = useMemo(() => groupVolume(scoped, "account").slice(0, 8), [scoped]);
   const turnaround = useMemo(() => approvalTurnaroundMs(scoped, events), [scoped, events]);
   const overdue = useMemo(() => overdueOrders(scoped), [scoped]);
@@ -332,6 +339,54 @@ export default function DashboardPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <TrendRow label={t("Deliveries", "Entregas")} values={trend.map((p) => p.delivered)} last={trend[trend.length - 1]?.delivered ?? null} color="var(--accent)" />
                 <TrendRow label={t("On-time %", "A tiempo %")} values={trend.map((p) => p.onTimePct)} last={trend[trend.length - 1]?.onTimePct ?? null} suffix="%" color="var(--green)" />
+              </div>
+            )}
+          </div>
+
+          {/* ---------- Millas y gas por tienda (D-738) ---------- */}
+          <div className="card" data-panel-millas-por-tienda>
+            <h2>⛽ {t("Miles & fuel share by store", "Millas y gas por tienda")}</h2>
+            <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
+              {t(
+                "Delivered or picked-up orders in the range, grouped into stops (same day, driver and destination). Store-to-store orders count for the store that receives. Miles are Google's store → destination; «est.» = straight line × 1.3 when Google's figure is missing or not believable.",
+                "Órdenes entregadas o recogidas del rango, juntadas por parada (mismo día, chofer y destino). Las Intertiendas cuentan para la tienda que recibe. Millas de Google tienda → destino; «est.» = línea recta × 1,3 cuando falta o no es creíble.",
+              )}
+            </p>
+            {gas.filas.length === 0 ? (
+              <div className="empty">{t("No delivered orders in this range.", "Sin órdenes entregadas en este rango.")}</div>
+            ) : (
+              <div className="tbl-scroll" style={{ border: "none" }}>
+                <table className="orders" style={{ minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
+                  <thead>
+                    <tr>
+                      <th>{t("Store", "Tienda")}</th>
+                      <th>{t("Stops", "Paradas")}</th>
+                      <th>{t("Orders", "Órdenes")}</th>
+                      <th>{t("Miles", "Millas")}</th>
+                      <th>{t("Of which est.", "De ellas est.")}</th>
+                      <th>{t("% of fuel", "% del gas")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...gas.filas, gas.total].map((f, i) => {
+                      const esTotal = i === gas.filas.length;
+                      const negrita = esTotal ? { fontWeight: 800 } : undefined;
+                      return (
+                        <tr key={f.tienda} data-gas-tienda={f.tienda} style={esTotal ? { borderTop: "2px solid var(--line)" } : undefined}>
+                          <td style={{ fontWeight: 700, ...negrita }}>{esTotal ? t("Total", "Total") : f.tienda}</td>
+                          <td style={negrita}>{f.paradas}</td>
+                          <td style={negrita}>{f.ordenes}</td>
+                          <td style={negrita}>{f.millas.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
+                          <td style={negrita} title={f.paradasSinDato ? t(`${f.paradasSinDato} stop(s) without data (0 mi)`, `${f.paradasSinDato} parada(s) sin dato (0 mi)`) : undefined}>
+                            {f.paradasEstimadas === 0 ? "—" : `${f.millasEstimadas.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} (${f.paradasEstimadas})`}
+                            {f.paradasSinDato > 0 && <span style={{ color: "var(--amber)", fontWeight: 700 }}> ⚠️</span>}
+                          </td>
+                          <td style={{ fontWeight: 800, ...negrita }}>{f.pctGas == null ? "—" : `${f.pctGas.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
