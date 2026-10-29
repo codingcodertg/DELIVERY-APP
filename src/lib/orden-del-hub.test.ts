@@ -6,7 +6,7 @@ import {
 } from "./orden-del-hub";
 import { CLAVES_DE_PREFERENCIA, type ClienteDePrefs } from "./user-prefs";
 
-/** El admin ordena las apps del hub a su gusto (D-NEXT, 2026-10-29). */
+/** El admin ordena las apps del hub a su gusto (D-739, 2026-10-29). */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const M = [{ key: "deliveries" }, { key: "recruiting" }, { key: "customers" }, { key: "timetracker" }];

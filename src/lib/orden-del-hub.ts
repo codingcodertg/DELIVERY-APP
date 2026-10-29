@@ -1,5 +1,5 @@
 /**
- * El orden de las apps del hub, elegido por el admin (D-NEXT, 2026-10-29).
+ * El orden de las apps del hub, elegido por el admin (D-739, 2026-10-29).
  *
  * El dueño: «en la parte del hub, para los administradores solamente, deja que el admin pueda rearrange las
  * aplicaciones para que estén en el orden que mejor le convenga».

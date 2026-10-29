@@ -27,7 +27,7 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
   // own queue, logistics -> routes, not the Orders board everyone else gets).
   const hrefFor = (key: string, fallback: string) => (key === "deliveries" ? roleHome(me.role) : fallback);
 
-  // El orden de las apps, elegido por el admin (D-NEXT): se lee de `user_prefs` (o del navegador), se aplica
+  // El orden de las apps, elegido por el admin (D-739): se lee de `user_prefs` (o del navegador), se aplica
   // sobre `available`, y con «Ordenar» cada tarjeta deja de ser enlace y enseña sus flechas.
   const [orden, setOrden] = useState<string[]>([]);
   const [ordenando, setOrdenando] = useState(false);

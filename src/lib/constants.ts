@@ -608,7 +608,7 @@ export const soloAdminReal = (me: { role: UserRole; suplantando?: boolean }): bo
 export const HUB_TOOLS: HubTool[] = [
   {
     key: "users",
-    // A los empleados de RRHH, no a la lista vieja de /home/users (D-NEXT): desde D-720 la cuenta y los
+    // A los empleados de RRHH, no a la lista vieja de /home/users (D-739): desde D-720 la cuenta y los
     // permisos de cada persona se dan desde su expediente, y el dueño: «esta tab de usuario normal que
     // está en el hub ya no se va a utilizar». La página vieja sigue existiendo, pero nada la enlaza.
     href: "/recruiting/employees",

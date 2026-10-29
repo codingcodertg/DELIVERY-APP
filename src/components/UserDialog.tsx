@@ -622,7 +622,7 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
           </>
         )}
 
-        {/* El pie (D-NEXT, el dueño: «quiero que la parte donde dice listo o guardar quede al lado donde está
+        {/* El pie (D-739, el dueño: «quiero que la parte donde dice listo o guardar quede al lado donde está
             eliminar y eliminar al lado izquierdo»): «Entrar como» a la izquierda; a la derecha, «Eliminar» y
             después «Listo». */}
         <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>

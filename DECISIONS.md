@@ -48786,7 +48786,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** la tarjeta no se abrió en un navegador; los porcentajes de octubre del Panel no se cotejaron con los del informe (el Panel corta por `delivery_date` o fecha de alta, el informe por `delivery_date` solo, y el informe recortaba 4 cifras de Google a mano igual que aquí).
 
-## D-NEXT · Hub: el admin ordena sus apps (migración 214); «Usuarios» lleva a los empleados de RRHH; en la ficha del usuario, «Eliminar» y luego «Listo»
+## D-739 · Hub: el admin ordena sus apps (migración 214); «Usuarios» lleva a los empleados de RRHH; en la ficha del usuario, «Eliminar» y luego «Listo»
 
 **Fecha:** 2026-10-29 · **Migración 214** (`214_user_prefs_hub_order.sql`: `user_prefs` admite la clave `hub_order`) · Hecho directo por el orquestador en `feat/hub-orden-usuarios-botones`.
 
