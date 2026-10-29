@@ -238,7 +238,7 @@ describe("el acceso es el del hub de antes", () => {
 
   it("Usuarios solo para el admin; el directorio y los tutoriales para todos", () => {
     expect(estado("users", al("manager", ["deliveries"]))).toEqual({ estado: "sin-acceso" });
-    expect(estado("users", al("admin", ["deliveries"]))).toMatchObject({ estado: "abierta", href: "/home/users" });
+    expect(estado("users", al("admin", ["deliveries"]))).toMatchObject({ estado: "abierta", href: "/recruiting/employees" });
     expect(estado("phone-book", al("sales", ["deliveries"]))).toMatchObject({ estado: "abierta", href: "/home/directory" });
     expect(estado("tutorials", al("sales", ["deliveries"]))).toMatchObject({ estado: "abierta", href: "/home/tutorials" });
   });

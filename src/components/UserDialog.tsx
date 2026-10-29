@@ -622,8 +622,10 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
           </>
         )}
 
+        {/* El pie (D-739, el dueño: «quiero que la parte donde dice listo o guardar quede al lado donde está
+            eliminar y eliminar al lado izquierdo»): «Entrar como» a la izquierda; a la derecha, «Eliminar» y
+            después «Listo». */}
         <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
-          <button className="btn btn-primary" onClick={onClose}>{t("Done", "Listo")}</button>
           {/* «Entrar como» (D-243). Vive SOLO en la ficha y no en la fila de la lista, aunque
               el encargo pedía los dos sitios: cada fila de `home/users` es ella misma un
               `<button>`, y meter otro dentro es HTML inválido —el navegador rompe el anidado y
@@ -678,6 +680,7 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
               )) { await deleteUser(u.id); onClose(); }
             }}>{t("Remove", "Eliminar")}</button>
           )}
+          <button className="btn btn-primary" onClick={onClose}>{t("Done", "Listo")}</button>
         </div>
       </div>
     </div>

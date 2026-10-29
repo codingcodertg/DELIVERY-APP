@@ -608,12 +608,15 @@ export const soloAdminReal = (me: { role: UserRole; suplantando?: boolean }): bo
 export const HUB_TOOLS: HubTool[] = [
   {
     key: "users",
-    href: "/home/users",
+    // A los empleados de RRHH, no a la lista vieja de /home/users (D-739): desde D-720 la cuenta y los
+    // permisos de cada persona se dan desde su expediente, y el dueño: «esta tab de usuario normal que
+    // está en el hub ya no se va a utilizar». La página vieja sigue existiendo, pero nada la enlaza.
+    href: "/recruiting/employees",
     emoji: "🛡",
-    label_en: "Users",
-    label_es: "Usuarios",
-    desc_en: "Manage team access across modules",
-    desc_es: "Gestiona el acceso del equipo entre módulos",
+    label_en: "Users · permissions",
+    label_es: "Usuarios · permisos",
+    desc_en: "Each employee's file in HR: hub account and permissions",
+    desc_es: "El expediente de cada empleado en RRHH: cuenta del hub y permisos",
     visible: (me) => me.role === "admin",
   },
   {

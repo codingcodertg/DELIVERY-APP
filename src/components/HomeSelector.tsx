@@ -11,6 +11,8 @@ import type { Profile } from "@/lib/types";
 import { veAppsParaInstalar } from "@/lib/hub-apps";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 import { RUTA_MAPA_DE_LA_EMPRESA, veElMapa } from "@/lib/mapa-de-apps";
+import { guardaOrdenDelHub, leeOrdenDelHub, mueveModulo, ordenaModulos, puedeOrdenarElHub } from "@/lib/orden-del-hub";
+import type { ClienteDePrefs } from "@/lib/user-prefs";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
@@ -24,6 +26,24 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
   // deliveries actually lands depends on the person's role (warehouse -> its
   // own queue, logistics -> routes, not the Orders board everyone else gets).
   const hrefFor = (key: string, fallback: string) => (key === "deliveries" ? roleHome(me.role) : fallback);
+
+  // El orden de las apps, elegido por el admin (D-739): se lee de `user_prefs` (o del navegador), se aplica
+  // sobre `available`, y con «Ordenar» cada tarjeta deja de ser enlace y enseña sus flechas.
+  const [orden, setOrden] = useState<string[]>([]);
+  const [ordenando, setOrdenando] = useState(false);
+  useEffect(() => {
+    if (!puedeOrdenarElHub(me)) return;
+    let vivo = true;
+    void leeOrdenDelHub(createClient() as unknown as ClienteDePrefs, me.id, (k) => { try { return window.localStorage.getItem(k); } catch { return null; } })
+      .then((o) => { if (vivo) setOrden(o); });
+    return () => { vivo = false; };
+  }, [me]);
+  const modulos = ordenaModulos(available, orden);
+  const mueve = (key: string, dir: -1 | 1) => {
+    const nuevo = mueveModulo(modulos.map((m) => m.key), key, dir);
+    setOrden(nuevo);
+    void guardaOrdenDelHub(createClient() as unknown as ClienteDePrefs, me.id, nuevo, (k, v) => { try { window.localStorage.setItem(k, v); } catch { /* sin localStorage */ } });
+  };
 
   // Mensajes de ayuda sin leer, en la tarjeta que toca (D-311). El hub no tiene campana, así que
   // este número es la única señal que hay aquí. La RLS ya acota lo que se lee: una persona solo
@@ -65,8 +85,13 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
         <Link href={RUTA_PERSONALIZAR} className="hub-profile-link" data-hub-personalizar>
           🎨 {t("Customize · language, theme", "Personalizar · idioma, tema")}
         </Link>
-        <p style={{ color: "var(--ink-soft)", marginBottom: 20 }}>
-          {t("Which one do you want to open?", "¿Cuál quieres abrir?")}
+        <p style={{ color: "var(--ink-soft)", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ flex: 1 }}>{t("Which one do you want to open?", "¿Cuál quieres abrir?")}</span>
+          {puedeOrdenarElHub(me) && (
+            <button type="button" className={ordenando ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm"} data-hub-ordenar onClick={() => setOrdenando((v) => !v)}>
+              {ordenando ? t("Done", "Listo") : t("↕ Reorder", "↕ Ordenar")}
+            </button>
+          )}
         </p>
         <div className="module-pick-grid">
           {/* El mapa de la empresa (D-554) vive en su propia app, no en el inicio (D-556, el dueño: «el schema que
@@ -80,8 +105,17 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
               <span className="module-pick-desc">{t("Every app and how they connect", "Todas las apps y cómo se conectan")}</span>
             </Link>
           )}
-          {available.map((m) => (
-            <Link key={m.key} href={hrefFor(m.key, m.href)} className="module-pick-card">
+          {modulos.map((m, i) => ordenando ? (
+            <div key={m.key} className="module-pick-card" data-hub-app={m.key} style={{ position: "relative", cursor: "default" }}>
+              <span className="module-pick-emoji">{m.emoji}</span>
+              <span className="module-pick-label">{lang === "es" ? m.label_es : m.label_en}</span>
+              <span style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <button type="button" className="btn btn-ghost btn-sm" data-mueve="izq" disabled={i === 0} aria-label={t("Move earlier", "Mover antes")} onClick={() => mueve(m.key, -1)}>◀</button>
+                <button type="button" className="btn btn-ghost btn-sm" data-mueve="der" disabled={i === modulos.length - 1} aria-label={t("Move later", "Mover después")} onClick={() => mueve(m.key, 1)}>▶</button>
+              </span>
+            </div>
+          ) : (
+            <Link key={m.key} href={hrefFor(m.key, m.href)} className="module-pick-card" data-hub-app={m.key}>
               <span className="module-pick-emoji">{m.emoji}</span>
               <span className="module-pick-label">{lang === "es" ? m.label_es : m.label_en}</span>
               <span className="module-pick-desc">{lang === "es" ? m.desc_es : m.desc_en}</span>
