@@ -123,7 +123,7 @@ describe("ninguna barra elige idioma ni tema; todas llevan a Personalizar", () =
     }
   });
 
-  it("Entregas y RR. HH. lo tienen en el menú del nombre; el ERP, junto a Salir; Time Tracker ya no (D-NEXT: solo Salir)", () => {
+  it("Entregas y RR. HH. lo tienen en el menú del nombre; el ERP, junto a Salir; Time Tracker ya no (D-737: solo Salir)", () => {
     expect(OPCIONES_DEL_MENU).toContain("personalizar");
     expect([...OPCIONES_DEL_MENU_TT]).toEqual(["salir"]);
     expect(OPCIONES_DEL_MENU_RRHH).toContain("personalizar");

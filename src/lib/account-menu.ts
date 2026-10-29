@@ -71,7 +71,7 @@ export function opcionesDelMenuDeCuenta(a: {
  *   este menú, y sin esta opción la pantalla de la cuenta (forma de pago, ciudad) se quedaría sin entrada.
  * - **Personalizar** y **Cerrar sesión**, como en Entregas; Salir el último.
  *
- * **D-NEXT (2026-10-29): solo «Cerrar sesión».** El dueño, con el escritorio delante: «cuando entro a mi nombre, sale
+ * **D-737 (2026-10-29): solo «Cerrar sesión».** El dueño, con el escritorio delante: «cuando entro a mi nombre, sale
  * en modo capacitación, personalizar mi cuenta. Y acuérdate que todo eso ya sale en opción general en el hub. Y la
  * parte de modo capacitación ya está en el botón del question mark. Entonces ahí no debería haber nada más que eso,
  * solo cerrar la sesión y ya». Personalizar y Mi cuenta viven en el hub (botón General / Mi perfil); el modo

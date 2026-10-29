@@ -33,7 +33,7 @@ describe("lo que se fue de la barra", () => {
   });
 });
 
-describe("lo que se queda (D-NEXT, 2026-10-29: sin los dos botones de recargar)", () => {
+describe("lo que se queda (D-737, 2026-10-29: sin los dos botones de recargar)", () => {
   it("las pestañas y la campana; ni «Recargar la app» ni el ⟳ del escritorio", () => {
     // Nota D-528: las pestañas ya no salen directamente de `pestanasPara`, sino de `barraDeTt` (que la llama): el admin
     // lleva Ajustes y sus cuatro personales en «👤 Mío ▾». Lo prueba `barra.test.ts`.
@@ -54,7 +54,7 @@ describe("el nombre abre el menú de Entregas", () => {
     expect(barra).toContain("<MenuDeCuenta nombre={me.fullName}>");
   });
 
-  it("igual para todos y solo cerrar sesión (D-NEXT): sin capacitación, sin Mi cuenta, sin Personalizar", () => {
+  it("igual para todos y solo cerrar sesión (D-737): sin capacitación, sin Mi cuenta, sin Personalizar", () => {
     expect([...OPCIONES_DEL_MENU_TT]).toEqual(["salir"]);
     expect(barra).toContain("{() => OPCIONES_DEL_MENU_TT.map((o) => {");
     const menu = barra.slice(barra.indexOf("<MenuDeCuenta"), barra.indexOf("</MenuDeCuenta>"));

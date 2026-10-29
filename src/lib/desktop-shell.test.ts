@@ -54,7 +54,7 @@ describe("dónde está", () => {
     expect(barra).toContain('<BotonRecargar titulo={t("Reload the app", "Recargar la app")} />');
   });
 
-  it("ya no en la barra de Time Tracker (D-NEXT, 2026-10-29: «ninguno de los dos se ocupa»)", () => {
+  it("ya no en la barra de Time Tracker (D-737, 2026-10-29: «ninguno de los dos se ocupa»)", () => {
     const barra = leer("src/components/timetracker/TopBar.tsx");
     expect(barra).not.toContain("BotonRecargar");
   });

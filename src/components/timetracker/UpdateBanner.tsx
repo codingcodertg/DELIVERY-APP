@@ -73,5 +73,5 @@ function UpdateBannerBody({ u }: { u: DesktopUpdateState }) {
 
 // Manual "Check for updates" control — desktop-only, tiny, meant for the
 // TopBar corner (mirrors the original's footer link).
-// D-NEXT (2026-10-29): el botón ⟳ «buscar actualización» de la barra (TtCheckUpdateLink) se quitó: el dueño veía «dos
+// D-737 (2026-10-29): el botón ⟳ «buscar actualización» de la barra (TtCheckUpdateLink) se quitó: el dueño veía «dos
 // botones de recargar» y «ninguno de los dos se ocupa». La comprobación automática al arrancar y este banner siguen.

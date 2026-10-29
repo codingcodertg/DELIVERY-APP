@@ -24,9 +24,9 @@ import type { UserRole } from "@/lib/types";
  * Lo que queda en la barra (`BarraDeApp` desde D-643, la misma de todas las apps): el nombre de la app con la casa
  * al lado (como Entregas, D-274), las
  * pestañas, la campana, y **el nombre, que abre el menú** de Entregas —el mismo componente, `MenuDeCuenta`— con lo
- * que dice `OPCIONES_DEL_MENU_TT`: desde D-NEXT (2026-10-29), solo Cerrar sesión.
+ * que dice `OPCIONES_DEL_MENU_TT`: desde D-737 (2026-10-29), solo Cerrar sesión.
  *
- * **D-NEXT:** fuera los dos botones de recargar («Recargar la app» y el ⟳ del escritorio, que buscaba actualización) y
+ * **D-737:** fuera los dos botones de recargar («Recargar la app» y el ⟳ del escritorio, que buscaba actualización) y
  * del menú del nombre, el modo capacitación, Mi cuenta y Personalizar. El dueño: «hay dos botones de recargar la app.
  * Quitas los dos botones, ninguno de los dos se ocupa … ahí no debería haber nada más que eso, solo cerrar la sesión».
  *
@@ -86,7 +86,7 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
             />
           </div>
           <NotificationBell />
-          {/* El nombre abre el menú (D-490); desde D-NEXT solo con «Cerrar sesión». */}
+          {/* El nombre abre el menú (D-490); desde D-737 solo con «Cerrar sesión». */}
           <MenuDeCuenta nombre={me.fullName}>
             {() => OPCIONES_DEL_MENU_TT.map((o) => {
               switch (o) {

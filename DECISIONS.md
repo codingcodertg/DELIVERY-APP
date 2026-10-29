@@ -48755,7 +48755,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado en pantalla:** no se abrió en un navegador.
 
-## D-NEXT · Time Tracker: fuera los dos botones de recargar de la barra, y el menú del nombre se queda solo con «Cerrar sesión»
+## D-737 · Time Tracker: fuera los dos botones de recargar de la barra, y el menú del nombre se queda solo con «Cerrar sesión»
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/tt-barra-sin-recargar`.
 
