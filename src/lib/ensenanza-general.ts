@@ -73,6 +73,7 @@ export const RPC_QUE_ESCRIBEN = [
   "bulk_resolve_tag", "bulk_update_products", "confirm_external_match", "decide_request", "junta_clientes", "juntar_cargas",
   "leads_set_cap", "link_draft_to_product", "mark_survey_contacted", "merge_products", "partir_carga",
   "promo_set_round_closed", "publish_product", "publish_route_plan", "receive_manual", "receive_po", "rechaza_sugerencia_de_clientes",
+  "aprueba_solicitud_de_cliente", "rechaza_solicitud_de_cliente", // 216 (D-743): deciden una solicitud de cliente nuevo.
   "reconcile_cycle_count", "record_cycle_count", "reentrega_como_carga", "reject_external_match",
   "remove_product_relation", "reparte_cargas", "reprogramar_orden", "resolve_review_tag", "set_po_line_product",
   "set_request_ready", "tomar_orden_para_recoger", "update_product", "upsert_acknowledgment", "upsert_purchase_order",

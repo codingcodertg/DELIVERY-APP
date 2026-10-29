@@ -5,6 +5,7 @@ import { archivoDeLaBase, CUBO_DE_ARCHIVOS, MAX_BYTES_DE_ARCHIVO, rutaDeArchivo,
 import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
 import { clienteDeLaBase, type Cliente, type Parche } from "./reglas";
 import { clienteDeBusqueda } from "./vendedor-por-tienda";
+import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
 import { conVendedores, nombresDeVendedores, type Vendedor } from "./vendedores";
 
 /**
@@ -54,6 +55,12 @@ export interface AlmacenDeClientes {
    * teléfonos, correos ni direcciones). Para el vendedor, que en su lista solo tiene su tienda y los suyos.
    */
   buscarEnTodaLaEmpresa(q: string): Promise<Res<Cliente[]>>;
+  /** D-743 (216): el alta de vendedor y gerente es una solicitud; el admin la aprueba (crea las filas) o la rechaza. */
+  solicitarAlta(parche: Parche, tiendas: readonly string[]): Promise<Res<SolicitudDeCliente>>;
+  /** Las solicitudes que la política deja ver: las suyas, o todas si es admin. Con el nombre de quien pidió. */
+  solicitudes(): Promise<Res<SolicitudDeCliente[]>>;
+  aprobarSolicitud(id: number): Promise<Res<number[]>>;
+  rechazarSolicitud(id: number, nota: string): Promise<Res<null>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -118,6 +125,9 @@ export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseL
   return r;
 }
 
+/** Las columnas de una solicitud de cliente (216). */
+export const COLUMNAS_DE_SOLICITUD = "id, requested_by, stores, payload, status, created_at, decided_at, decision_note, created_ids";
+
 /** PostgREST corta en 1.000 filas por petición: se pagina hasta que una página venga corta. */
 export const PAGINA = 1000;
 export const MAX_PAGINAS = 20;
@@ -156,6 +166,37 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       const { data, error } = await sb.rpc("busca_clientes_en_toda_la_empresa", { p_q: q });
       if (error) return fallo(error);
       return { ok: true, valor: await conNombres(((data ?? []) as Record<string, unknown>[]).map(clienteDeBusqueda)) };
+    },
+    async solicitarAlta(parche, tiendas) {
+      const { data, error } = await sb.from("customer_requests").insert(cuerpoDeSolicitud(parche, tiendas)).select(COLUMNAS_DE_SOLICITUD).maybeSingle();
+      if (error) return fallo(error);
+      if (!data) return sinFila();
+      return { ok: true, valor: solicitudDeLaBase(data as unknown as Record<string, unknown>) };
+    },
+    async solicitudes() {
+      const { data, error } = await sb.from("customer_requests").select(COLUMNAS_DE_SOLICITUD).order("status").order("created_at", { ascending: false }).range(0, 499);
+      if (error) return fallo(error);
+      const filas = ((data ?? []) as unknown as Record<string, unknown>[]).map(solicitudDeLaBase);
+      // El nombre de quien pidió: los perfiles son de `public`; si no se pueden leer, sale el id recortado.
+      const ids = [...new Set(filas.map((f) => f.requested_by).filter(Boolean))];
+      if (ids.length) {
+        try {
+          const { data: perfiles } = await sb.schema("public").from("profiles").select("id, full_name").in("id", ids);
+          const nombre = new Map(((perfiles ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name]));
+          for (const f of filas) f.requested_name = nombre.get(f.requested_by) ?? null;
+        } catch { /* sin nombres */ }
+      }
+      return { ok: true, valor: filas };
+    },
+    async aprobarSolicitud(id) {
+      const { data, error } = await sb.rpc("aprueba_solicitud_de_cliente", { p_id: id });
+      if (error) return fallo(error);
+      return { ok: true, valor: Array.isArray(data) ? data.map(Number) : [] };
+    },
+    async rechazarSolicitud(id, nota) {
+      const { error } = await sb.rpc("rechaza_solicitud_de_cliente", { p_id: id, p_nota: nota || null });
+      if (error) return fallo(error);
+      return { ok: true, valor: null };
     },
     async guardar(id, parche) {
       const { data, error } = await leeConRespaldo((cols) => sb.from("customers").update(parche).eq("id", id).select(cols).maybeSingle());

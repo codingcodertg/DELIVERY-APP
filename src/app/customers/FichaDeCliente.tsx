@@ -16,6 +16,9 @@ import {
 } from "@/lib/customers/contactos";
 import { hayRedes, NOMBRE_DE_RED, parcheDeRedes, REDES, redesDe, redesEnEdicion, textoDeRed, urlDeRed, type Redes, type RedesEnEdicion } from "@/lib/customers/redes";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
+import { mensajeDeAltaPendiente, PAGINA_DE_SOLICITUDES, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
+import { APP_VERSIONS } from "@/lib/app-versions";
+import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -613,7 +616,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, altaComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
   /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
@@ -627,6 +630,11 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   editarAlAbrir?: boolean;
   /** D-740: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
   yo?: string;
+  /** D-743 (216): el alta no crea: manda una solicitud que aprueba el admin, y se avisa a quien llama. */
+  altaComoSolicitud?: boolean;
+  onSolicitado?: (s: SolicitudDeCliente) => void;
+  /** El idioma de quien mira, para el aviso al admin (la ficha no monta `usePrefs`: se prueba sin proveedor). */
+  lang?: "en" | "es";
   /** D-742: el gerente no asigna vendedor: lo pide al admin con un botón que abre la ventana de quien llama. */
   puedePedirVendedor?: boolean;
   onPedirVendedor?: () => void;
@@ -741,6 +749,27 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
 
   // D-664: el alta crea una fila por tienda marcada, con los mismos datos y la MISMA empresa nueva (como «Separar»). La
   // que choca no se crea y se dice cuál; las demás, sí. Se enseña la de la primera tienda marcada que se creó.
+  // D-743 (216): el alta del vendedor y del gerente se guarda como solicitud, se avisa al admin por el canal de ayuda
+  // (D-311: le llega al hub y por correo) y se le dice a quien llama. No se crea ninguna fila de cliente.
+  const solicitarEnLasTiendas = async () => {
+    setOcupado(true);
+    setAviso(null);
+    const r = await almacen.solicitarAlta(parche, tiendasAlta);
+    if (!r.ok) { setOcupado(false); setAviso({ tono: "rojo", texto: textoDelFallo(r, false) }); return; }
+    try {
+      const quien = await pideContactoDeAyuda();
+      if (quien) {
+        await enviaSolicitudDeAyuda({
+          userId: quien.id, message: mensajeDeAltaPendiente(r.valor, lang), ficheros: [], page: PAGINA_DE_SOLICITUDES,
+          senderName: quien.nombre, role: rolDeQuienEscribe(quien.rol, lang), appVersion: APP_VERSIONS.customers, lang,
+        });
+      }
+    } catch { /* la solicitud ya está guardada; el aviso es un extra */ }
+    setOcupado(false);
+    setAviso({ tono: "verde", texto: t("Request sent to the admin ✓", "Solicitud enviada al admin ✓") });
+    onSolicitado?.(r.valor);
+  };
+
   const crearEnLasTiendas = async () => {
     setOcupado(true);
     setAviso(null);
@@ -767,6 +796,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
       setAviso({ tono: "ambar", texto: t("Another account has this name. Press «Save anyway» to go on.", "Ya hay otra cuenta con este nombre. Pulsa «Guardar de todas formas» para seguir.") });
       return;
     }
+    if (nuevo && altaComoSolicitud) { await solicitarEnLasTiendas(); return; }
     if (nuevo) { await crearEnLasTiendas(); return; }
     if (await aplicar(() => almacen.guardar(cliente.id, parche), t("Saved ✓", "Guardado ✓"))) setEditando(false);
   };
@@ -984,7 +1014,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               <>
                 <Button variant="outline" onClick={cancelar} disabled={ocupado}>{t("Cancel", "Cancelar")}</Button>
                 <Button onClick={guardar} disabled={ocupado || !cambiado} data-guardar-ficha>
-                  {ocupado ? t("Saving…", "Guardando…") : deTodasFormas ? t("Save anyway", "Guardar de todas formas") : nuevo ? t("Create", "Crear") : t("Save", "Guardar")}
+                  {ocupado ? t("Saving…", "Guardando…") : deTodasFormas ? t("Save anyway", "Guardar de todas formas") : nuevo ? (altaComoSolicitud ? t("Send request", "Enviar solicitud") : t("Create", "Crear")) : t("Save", "Guardar")}
                 </Button>
               </>
             )}
