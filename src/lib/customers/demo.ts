@@ -72,7 +72,7 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   let siguiente = Math.max(...lista.map((c) => c.id)) + 1;
   let empresaNueva = 0;
   let archivos: ArchivoDeCliente[] = [];
-  // D-NEXT (216): las solicitudes de cliente nuevo, en memoria.
+  // D-743 (216): las solicitudes de cliente nuevo, en memoria.
   let solicitudes: SolicitudDeCliente[] = [];
   let solicitudNueva = 0;
   let archivoNuevo = 0;

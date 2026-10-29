@@ -6,7 +6,7 @@ import {
 } from "./solicitud-de-cliente";
 import { almacenDemoNuevo } from "./demo";
 
-/** El alta de un cliente por vendedor o gerente es una solicitud que aprueba el admin (D-NEXT, migración 216). */
+/** El alta de un cliente por vendedor o gerente es una solicitud que aprueba el admin (D-743, migración 216). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

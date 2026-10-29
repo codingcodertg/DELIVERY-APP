@@ -15,7 +15,7 @@ const ESTADO: Record<SolicitudDeCliente["status"], { en: string; es: string; cls
 };
 
 /**
- * Las solicitudes de cliente nuevo (D-NEXT, 216). El admin aprueba (crea las filas) o rechaza (con nota); vendedor y
+ * Las solicitudes de cliente nuevo (D-743, 216). El admin aprueba (crea las filas) o rechaza (con nota); vendedor y
  * gerente ven las suyas y en qué quedaron. Cada decisión la escribe la base con su función; aquí solo se pinta lo que vuelve.
  */
 export function SolicitudesDeCliente({ solicitudes, esAdmin, almacen, onDecidida, onClose, t }: {

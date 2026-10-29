@@ -630,7 +630,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   editarAlAbrir?: boolean;
   /** D-740: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
   yo?: string;
-  /** D-NEXT (216): el alta no crea: manda una solicitud que aprueba el admin, y se avisa a quien llama. */
+  /** D-743 (216): el alta no crea: manda una solicitud que aprueba el admin, y se avisa a quien llama. */
   altaComoSolicitud?: boolean;
   onSolicitado?: (s: SolicitudDeCliente) => void;
   /** El idioma de quien mira, para el aviso al admin (la ficha no monta `usePrefs`: se prueba sin proveedor). */
@@ -749,7 +749,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
 
   // D-664: el alta crea una fila por tienda marcada, con los mismos datos y la MISMA empresa nueva (como «Separar»). La
   // que choca no se crea y se dice cuál; las demás, sí. Se enseña la de la primera tienda marcada que se creó.
-  // D-NEXT (216): el alta del vendedor y del gerente se guarda como solicitud, se avisa al admin por el canal de ayuda
+  // D-743 (216): el alta del vendedor y del gerente se guarda como solicitud, se avisa al admin por el canal de ayuda
   // (D-311: le llega al hub y por correo) y se le dice a quien llama. No se crea ninguna fila de cliente.
   const solicitarEnLasTiendas = async () => {
     setOcupado(true);

@@ -52,7 +52,7 @@ const TANDA = 100;
  */
 // D-728: `esAdmin` es «puede asignar vendedores» (admin y gerente, `puedeAsignarVendedores`); `esVendedor` esconde tarjetas de la ficha.
 // D-742: `puedePedirVendedor` es el gerente: no asigna, lo pide al admin; y ve solo su tienda, sin pastillas de tiendas.
-// D-NEXT (216): `altaComoSolicitud` (vendedor, gerente): el alta se manda como solicitud y la aprueba el admin.
+// D-743 (216): `altaComoSolicitud` (vendedor, gerente): el alta se manda como solicitud y la aprueba el admin.
 export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = false, puedePedirVendedor = false, altaComoSolicitud = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; altaComoSolicitud?: boolean; userId: string }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
@@ -91,7 +91,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
 
-  // D-NEXT (216): las solicitudes de cliente nuevo. El admin las ve todas (y decide); vendedor y gerente, las suyas.
+  // D-743 (216): las solicitudes de cliente nuevo. El admin las ve todas (y decide); vendedor y gerente, las suyas.
   const [solicitudes, setSolicitudes] = useState<SolicitudDeCliente[]>([]);
   const [verSolicitudes, setVerSolicitudes] = useState(false);
   const [avisoDeSolicitud, setAvisoDeSolicitud] = useState<string | null>(null);

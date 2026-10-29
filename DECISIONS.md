@@ -48848,7 +48848,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador; no se mandó una solicitud real. Pendiente, pedido en la misma conversación: el alta de cliente de vendedor y gerente como solicitud que aprueba el admin (siguiente decisión, con migración).
 
-## D-NEXT · Clientes: el alta de un cliente por vendedor o gerente es una solicitud que aprueba el admin (migración 216)
+## D-743 · Clientes: el alta de un cliente por vendedor o gerente es una solicitud que aprueba el admin (migración 216)
 
 **Fecha:** 2026-10-29 · **Migración 216** (`216_solicitudes_de_cliente.sql`: tabla `erp.customer_requests` con RLS, y `erp.aprueba_solicitud_de_cliente` / `erp.rechaza_solicitud_de_cliente`) · Hecho directo por el orquestador en `feat/alta-de-cliente-como-solicitud`.
 

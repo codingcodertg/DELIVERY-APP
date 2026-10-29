@@ -1,4 +1,4 @@
--- 216: Clientes — el alta de un cliente por vendedor o gerente es una SOLICITUD que aprueba el admin (D-NEXT, 2026-10-29).
+-- 216: Clientes — el alta de un cliente por vendedor o gerente es una SOLICITUD que aprueba el admin (D-743, 2026-10-29).
 --
 -- El dueño: «nuevo cliente no es que lo agregan, es que ellos ponen la info y llenan un formulario, pero para ellos y
 -- para manager ellos deben mandar eso como request para que el admin lo apruebe».

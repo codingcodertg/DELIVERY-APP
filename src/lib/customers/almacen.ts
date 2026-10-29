@@ -55,7 +55,7 @@ export interface AlmacenDeClientes {
    * teléfonos, correos ni direcciones). Para el vendedor, que en su lista solo tiene su tienda y los suyos.
    */
   buscarEnTodaLaEmpresa(q: string): Promise<Res<Cliente[]>>;
-  /** D-NEXT (216): el alta de vendedor y gerente es una solicitud; el admin la aprueba (crea las filas) o la rechaza. */
+  /** D-743 (216): el alta de vendedor y gerente es una solicitud; el admin la aprueba (crea las filas) o la rechaza. */
   solicitarAlta(parche: Parche, tiendas: readonly string[]): Promise<Res<SolicitudDeCliente>>;
   /** Las solicitudes que la política deja ver: las suyas, o todas si es admin. Con el nombre de quien pidió. */
   solicitudes(): Promise<Res<SolicitudDeCliente[]>>;
