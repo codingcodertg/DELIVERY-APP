@@ -5,6 +5,7 @@ import type { ArchivoDeCliente } from "./archivos";
 import { claveDeEmpresa, juntaEnMemoria, motivoDeLaCola, sospechosos } from "./duplicados";
 import type { Sugerencia } from "./empresas";
 import type { Cliente, Parche } from "./reglas";
+import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
 
 /**
  * Clientes INVENTADOS para el modo demo (`NEXT_PUBLIC_LOCAL_MODE`), que no tiene base. Ni un dato real: los nombres
@@ -71,11 +72,37 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   let siguiente = Math.max(...lista.map((c) => c.id)) + 1;
   let empresaNueva = 0;
   let archivos: ArchivoDeCliente[] = [];
+  // D-NEXT (216): las solicitudes de cliente nuevo, en memoria.
+  let solicitudes: SolicitudDeCliente[] = [];
+  let solicitudNueva = 0;
   let archivoNuevo = 0;
   const enlaces = new Map<number, string>();
   const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
   const almacen: AlmacenDeClientes = {
     async leer() { return { ok: true, valor: lista.map((c) => ({ ...c })) }; },
+    async solicitarAlta(parche, tiendas) {
+      const c = cuerpoDeSolicitud(parche, tiendas);
+      if (!c.stores.length) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "no store chosen" };
+      const s = solicitudDeLaBase({ id: ++solicitudNueva, requested_by: "demo", requested_name: "Demo", stores: c.stores, payload: c.payload, status: "pending", created_at: new Date().toISOString() });
+      solicitudes = [s, ...solicitudes];
+      return { ok: true, valor: { ...s } };
+    },
+    async solicitudes() { return { ok: true, valor: solicitudes.map((s) => ({ ...s })) }; },
+    async aprobarSolicitud(id) {
+      const s = solicitudes.find((x) => x.id === id);
+      if (!s || s.status !== "pending") return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
+      const r = await almacen.crearVarias(s.stores.map((store) => ({ ...(s.payload as Parche), store, company_id: `demo-solicitud-${id}` })));
+      if (!r.ok) return r;
+      const ids = r.valor.creados.map((c) => c.id);
+      solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "approved", decided_at: new Date().toISOString(), created_ids: ids } : x));
+      return { ok: true, valor: ids };
+    },
+    async rechazarSolicitud(id, nota) {
+      const s = solicitudes.find((x) => x.id === id);
+      if (!s || s.status !== "pending") return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
+      solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "rejected", decided_at: new Date().toISOString(), decision_note: nota.trim() || null } : x));
+      return { ok: true, valor: null };
+    },
     async buscarEnTodaLaEmpresa(q) {
       const s = q.trim().toLowerCase();
       return { ok: true, valor: lista.filter((c) => c.account.toLowerCase().includes(s)).map((c) => ({ ...c })) };

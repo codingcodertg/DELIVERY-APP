@@ -21,6 +21,8 @@ import { almacenDemo } from "@/lib/customers/demo";
 import { FichaEnVentana, selCls } from "./FichaDeCliente";
 import { AsignarVendedores } from "./AsignarVendedores";
 import { PedirVendedor } from "./PedirVendedor";
+import { SolicitudesDeCliente } from "./SolicitudesDeCliente";
+import { pendientes, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
 import { BarraDeSeleccion } from "./BarraDeSeleccion";
 import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "@/lib/customers/seleccion";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
@@ -50,7 +52,8 @@ const TANDA = 100;
  */
 // D-728: `esAdmin` es «puede asignar vendedores» (admin y gerente, `puedeAsignarVendedores`); `esVendedor` esconde tarjetas de la ficha.
 // D-742: `puedePedirVendedor` es el gerente: no asigna, lo pide al admin; y ve solo su tienda, sin pastillas de tiendas.
-export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = false, puedePedirVendedor = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; userId: string }) {
+// D-NEXT (216): `altaComoSolicitud` (vendedor, gerente): el alta se manda como solicitud y la aprueba el admin.
+export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = false, puedePedirVendedor = false, altaComoSolicitud = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; altaComoSolicitud?: boolean; userId: string }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 
@@ -87,6 +90,21 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
     setEstado({ tipo: "listo" });
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
+
+  // D-NEXT (216): las solicitudes de cliente nuevo. El admin las ve todas (y decide); vendedor y gerente, las suyas.
+  const [solicitudes, setSolicitudes] = useState<SolicitudDeCliente[]>([]);
+  const [verSolicitudes, setVerSolicitudes] = useState(false);
+  const [avisoDeSolicitud, setAvisoDeSolicitud] = useState<string | null>(null);
+  const cargaSolicitudes = useCallback(async () => {
+    if (!esAdmin && !altaComoSolicitud) return;
+    const r = await almacen.solicitudes();
+    if (r.ok) setSolicitudes(r.valor);
+  }, [almacen, esAdmin, altaComoSolicitud]);
+  useEffect(() => { void cargaSolicitudes(); }, [cargaSolicitudes]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("solicitudes")) setVerSolicitudes(true);
+  }, []);
+  const solicitudesPendientes = pendientes(solicitudes).length;
 
   // D-740 (215): el vendedor busca en TODA la empresa. Con dos letras o más, y tras un respiro, se pregunta a la base;
   // lo que llegue y no esté ya en su lista se pinta como fila que no se abre (`puedeAbrirCliente`).
@@ -233,7 +251,12 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
           />
           )}
           {esAdmin && <Button variant="outline" onClick={() => setAsignando(true)} data-abrir-asignar-vendedores>👤 {t("Assign sales reps", "Asignar vendedores")}</Button>}
-          {puedeEditar && <Button onClick={() => setFicha({ tipo: "nuevo" })}>+ {t("New customer", "Nuevo cliente")}</Button>}
+          {(esAdmin || altaComoSolicitud) && (
+            <Button variant="outline" onClick={() => setVerSolicitudes(true)} data-abrir-solicitudes>
+              📝 {t("Requests", "Solicitudes")} {solicitudesPendientes > 0 && <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-xs text-amber-800" data-solicitudes-pendientes>{solicitudesPendientes}</span>}
+            </Button>
+          )}
+          {puedeEditar && <Button onClick={() => setFicha({ tipo: "nuevo" })}>+ {altaComoSolicitud ? t("Request new customer", "Solicitar cliente nuevo") : t("New customer", "Nuevo cliente")}</Button>}
         </div>
       </div>
 
@@ -308,6 +331,11 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
         </div>
       )}
 
+      {avisoDeSolicitud && (
+        <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status" data-aviso-de-solicitud>
+          {avisoDeSolicitud} <button type="button" className="ml-2 underline" onClick={() => setAvisoDeSolicitud(null)}>{t("Close", "Cerrar")}</button>
+        </p>
+      )}
       {estado.tipo === "cargando" && <p className="text-sm text-slate-500">{t("Loading…", "Cargando…")}</p>}
       {estado.tipo === "sinTabla" && (
         <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
@@ -524,12 +552,18 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
           puedePedirVendedor={puedePedirVendedor}
           onPedirVendedor={ficha.tipo === "ver" ? () => setPidiendo(ficha.cliente) : undefined}
           yo={userId}
+          altaComoSolicitud={altaComoSolicitud}
+          lang={lang}
+          onSolicitado={(s) => { setFicha(null); setAvisoDeSolicitud(t(`Request #${s.id} sent to the admin ✓ You'll see it under Requests.`, `Solicitud #${s.id} enviada al admin ✓ La verás en «Solicitudes».`)); void cargaSolicitudes(); }}
           almacen={almacen}
           onClose={() => setFicha(null)}
           onGuardado={alGuardar}
           editarAlAbrir={ficha.tipo === "ver" && ficha.editar === true}
           t={t}
         />
+      )}
+      {verSolicitudes && (
+        <SolicitudesDeCliente solicitudes={solicitudes} esAdmin={esAdmin} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }} onClose={() => setVerSolicitudes(false)} t={t} />
       )}
       {pidiendo && <PedirVendedor cliente={pidiendo} vendedores={vendedores} onClose={() => setPidiendo(null)} t={t} />}
       {esAdmin && asignando && <AsignarVendedores lista={lista} almacen={almacen} onAsignados={alAsignar} onClose={() => setAsignando(false)} t={t} />}

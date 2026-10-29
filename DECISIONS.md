@@ -48847,3 +48847,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/pedir-vendedor.test.ts`; `por-rol.test.ts` puesta al día. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; no se mandó una solicitud real. Pendiente, pedido en la misma conversación: el alta de cliente de vendedor y gerente como solicitud que aprueba el admin (siguiente decisión, con migración).
+
+## D-NEXT · Clientes: el alta de un cliente por vendedor o gerente es una solicitud que aprueba el admin (migración 216)
+
+**Fecha:** 2026-10-29 · **Migración 216** (`216_solicitudes_de_cliente.sql`: tabla `erp.customer_requests` con RLS, y `erp.aprueba_solicitud_de_cliente` / `erp.rechaza_solicitud_de_cliente`) · Hecho directo por el orquestador en `feat/alta-de-cliente-como-solicitud`.
+
+**Pedido (el dueño, 2026-10-29):** «nuevo cliente no es que lo agregan, es que ellos ponen la info y llenan un formulario, pero para ellos y para manager ellos deben mandar eso como request para que el admin lo apruebe».
+
+**Qué cambia.**
+- **Quién solicita** (`src/lib/customers/solicitud-de-cliente.ts`, `altaEsSolicitud`): vendedor y gerente. El admin crea directo, como siempre. El formulario es el mismo (D-664, varias tiendas); el botón dice «+ Solicitar cliente nuevo» y, al final, «Enviar solicitud».
+- **La solicitud** se guarda en `erp.customer_requests` (tiendas marcadas + campos del formulario, sin `store` ni `company_id`; pendiente). La base solo deja insertar la propia a quien puede escribir clientes y leer las suyas (el admin, todas); nadie actualiza ni borra por la tabla.
+- **El aviso al admin** va por el canal que ya mira: una solicitud de ayuda (`/api/help`, D-311/D-530) con la cuenta, las tiendas, el contacto y la página `/customers?solicitudes=1`, que abre Clientes con la ventana de solicitudes. Si el aviso falla, la solicitud ya está guardada.
+- **El admin decide** en Clientes → botón «📝 Solicitudes» (con el número de pendientes; `SolicitudesDeCliente.tsx`): **Aprobar** llama a `erp.aprueba_solicitud_de_cliente`, que crea UNA fila por tienda, todas de la misma empresa nueva y con `created_by` = quien pidió (así el vendedor la abre como suya, D-740); si una cuenta ya existe en esa tienda, no se crea nada y se dice. **Rechazar** deja una nota que ve quien pidió. Vendedor y gerente ven en la misma ventana las suyas y en qué quedaron.
+- El modo enseñanza clasifica las dos funciones como las que escriben.
+
+**Pruebas:** `src/lib/customers/solicitud-de-cliente.test.ts` (quién solicita, cuerpo y lectura, resumen y aviso, el almacén demo de punta a punta, la 216, y las pantallas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador ni se aprobó una solicitud real. La 216 se ensayó con ROLLBACK; aplicarla es del dueño. Hasta que esté, «Enviar solicitud» falla con «la tabla no existe» y el admin no ve el botón con pendientes (la lectura falla en silencio).
