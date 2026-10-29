@@ -1,5 +1,5 @@
 /**
- * El gerente pide al admin la asignación de un vendedor (D-NEXT, 2026-10-29).
+ * El gerente pide al admin la asignación de un vendedor (D-742, 2026-10-29).
  *
  * El dueño: «admin view in customers, they can see their whole store but to assign a customer to a sales rep they have
  * to request it to admin» (la vista del GERENTE: ve toda su tienda, pero no asigna; lo pide). Y: «en vendedor en customer

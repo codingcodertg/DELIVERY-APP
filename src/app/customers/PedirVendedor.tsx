@@ -14,7 +14,7 @@ import { selCls } from "./FichaDeCliente";
 type T = (en: string, es: string) => string;
 
 /**
- * «Pedir al admin» un vendedor para este cliente (D-NEXT): el gerente elige el vendedor (o «libre»), escribe una nota
+ * «Pedir al admin» un vendedor para este cliente (D-742): el gerente elige el vendedor (o «libre»), escribe una nota
  * si quiere, y se manda como solicitud de ayuda (`/api/help`): le llega al admin a «Solicitudes de ayuda» del hub y por
  * correo. No se escribe nada en el cliente: quien asigna es el admin.
  */

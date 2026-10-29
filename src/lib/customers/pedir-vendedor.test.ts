@@ -5,7 +5,7 @@ import { mensajeDePeticion, paginaDeLaPeticion, puedePedirVendedor, SIN_ASIGNAR 
 import { celda, puedeAsignarVendedores, textoDeCampo, CAMPOS, type Cliente } from "./reglas";
 import { clienteDeBusqueda } from "./vendedor-por-tienda";
 
-/** El gerente pide el vendedor al admin; «Sin asignar» cuando no hay; sin pastillas de tiendas para quien ve solo la suya (D-NEXT). */
+/** El gerente pide el vendedor al admin; «Sin asignar» cuando no hay; sin pastillas de tiendas para quien ve solo la suya (D-742). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

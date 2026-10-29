@@ -47,7 +47,7 @@ export default async function CustomersPage() {
       />
       {/* El id va a la clave de las columnas elegidas (por persona, en el navegador). Sin sesión no se llega aquí (layout). */}
       {/* D-728: asignan vendedores admin y gerente; el vendedor no ve crédito, campos ocultos ni archivos. */}
-      {/* D-NEXT: asigna solo el admin; el gerente pide el vendedor al admin y, como el vendedor, ve solo su tienda. */}
+      {/* D-742: asigna solo el admin; el gerente pide el vendedor al admin y, como el vendedor, ve solo su tienda. */}
       <Clientes demo={false} puedeEditar={puedeEditar(role)} esAdmin={puedeAsignarVendedores(role)} esVendedor={esVendedor(role)} puedePedirVendedor={puedePedirVendedor(role)} userId={user?.id ?? "anon"} />
     </>
   );

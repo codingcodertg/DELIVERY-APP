@@ -49,7 +49,7 @@ const TANDA = 100;
  * escritura va por el almacén, que devuelve la fila como quedó en la base: eso es lo que se pinta.
  */
 // D-728: `esAdmin` es «puede asignar vendedores» (admin y gerente, `puedeAsignarVendedores`); `esVendedor` esconde tarjetas de la ficha.
-// D-NEXT: `puedePedirVendedor` es el gerente: no asigna, lo pide al admin; y ve solo su tienda, sin pastillas de tiendas.
+// D-742: `puedePedirVendedor` es el gerente: no asigna, lo pide al admin; y ve solo su tienda, sin pastillas de tiendas.
 export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = false, puedePedirVendedor = false, userId }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; userId: string }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
@@ -75,7 +75,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
     void almacen.vendedores().then((r) => { if (!cancelado && r.ok) setVendedores(vendedoresEnOrden(r.valor)); });
     return () => { cancelado = true; };
   }, [almacen, esAdmin, puedePedirVendedor]);
-  // D-NEXT: la ventana «Pedir vendedor al admin» del gerente, para el cliente de la ficha abierta.
+  // D-742: la ventana «Pedir vendedor al admin» del gerente, para el cliente de la ficha abierta.
   const [pidiendo, setPidiendo] = useState<Cliente | null>(null);
   const soloSuTienda = esVendedor || puedePedirVendedor;
   const cajaRef = useRef<HTMLDivElement>(null);
@@ -239,7 +239,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
 
       {/* Las tiendas, con su cuenta: pulsar una filtra; otra vez, todas. */}
       <div className="mb-3 flex flex-wrap gap-2">
-        {/* D-NEXT: quien ve solo su tienda (vendedor, gerente) no tiene pastillas de tiendas que elegir. */}
+        {/* D-742: quien ve solo su tienda (vendedor, gerente) no tiene pastillas de tiendas que elegir. */}
         {!soloSuTienda && (
           <>
         <button type="button" onClick={() => setFiltro((f) => ({ ...f, tienda: "" }))} className={chip(filtro.tienda === "")} data-pastillas-de-tiendas>

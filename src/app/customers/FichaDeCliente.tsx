@@ -76,7 +76,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   puedeEditar?: boolean;
   /** D-728: el vendedor no ve «Crédito y términos», «Campos ocultos» ni «Archivos». */
   esVendedor?: boolean;
-  /** D-NEXT: el gerente no elige vendedor (lo pide al admin): el desplegable va bloqueado. */
+  /** D-742: el gerente no elige vendedor (lo pide al admin): el desplegable va bloqueado. */
   puedePedirVendedor?: boolean;
   t: T;
 }) {
@@ -627,7 +627,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   editarAlAbrir?: boolean;
   /** D-740: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
   yo?: string;
-  /** D-NEXT: el gerente no asigna vendedor: lo pide al admin con un botón que abre la ventana de quien llama. */
+  /** D-742: el gerente no asigna vendedor: lo pide al admin con un botón que abre la ventana de quien llama. */
   puedePedirVendedor?: boolean;
   onPedirVendedor?: () => void;
   t: T;

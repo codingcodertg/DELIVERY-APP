@@ -48832,7 +48832,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/transferencia-sin-venta.test.ts` (qué tipo lo es, `store` tras la recogida y al cambiar de tipo, qué se exige con controles de Intertienda y Customer, y la ficha). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. Las órdenes Transfer ya guardadas con una tienda en `store` no se tocan.
-## D-NEXT · Clientes: asigna vendedores solo el admin; el gerente ve su tienda y pide el vendedor al admin; «Sin asignar» cuando no hay vendedor; sin pastillas de tiendas para quien ve solo la suya
+## D-742 · Clientes: asigna vendedores solo el admin; el gerente ve su tienda y pide el vendedor al admin; «Sin asignar» cuando no hay vendedor; sin pastillas de tiendas para quien ve solo la suya
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/gerente-pide-vendedor`. **Reemplaza en parte a D-728** (el gerente ya no asigna).
 

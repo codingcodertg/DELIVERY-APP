@@ -9,7 +9,7 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 // all customers of their store, and can assign customers to salespeople. Admin: can view everything». Y en la ficha: «hide
 // these sections completely — Archivos, Campos ocultos, Crédito y términos»; el contacto «label on the left, value on the right».
 describe("clientes por rol", () => {
-  it("asigna solo el admin (D-NEXT; D-728 dejaba al gerente); el vendedor es solo sales", () => {
+  it("asigna solo el admin (D-742; D-728 dejaba al gerente); el vendedor es solo sales", () => {
     expect(puedeAsignarVendedores("admin")).toBe(true);
     expect(puedeAsignarVendedores("manager")).toBe(false);
     expect(puedeAsignarVendedores("sales")).toBe(false);

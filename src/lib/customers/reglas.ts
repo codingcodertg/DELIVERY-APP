@@ -432,7 +432,7 @@ export function puedeEditar(role: UserRole | null | undefined): boolean {
   return role === "admin" || role === "manager" || role === "sales";
 }
 
-/** D-NEXT: asigna vendedores SOLO el admin (D-728 dejaba también al gerente; ahora el gerente lo pide, `puedePedirVendedor`). */
+/** D-742: asigna vendedores SOLO el admin (D-728 dejaba también al gerente; ahora el gerente lo pide, `puedePedirVendedor`). */
 export function puedeAsignarVendedores(role: UserRole | null | undefined): boolean {
   return role === "admin";
 }
@@ -733,7 +733,7 @@ export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: 
     case "credit_limit": case "euler_limit": return dinero(v as number | null);
     case "updated_at": return fecha(v as string | null);
     case "archived_reason": return motivoLabel(v as string | null, t);
-    // D-NEXT (el dueño: «en vendedor en customer si está empty que se ponga unassigned»).
+    // D-742 (el dueño: «en vendedor en customer si está empty que se ponga unassigned»).
     case "rep_id": return v === null || v === undefined || v === "" ? t(SIN_ASIGNAR.en, SIN_ASIGNAR.es) : String(v);
     default: return v === null || v === undefined || v === "" ? "—" : String(v);
   }
