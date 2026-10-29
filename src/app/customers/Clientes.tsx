@@ -83,7 +83,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
 
-  // D-NEXT (215): el vendedor busca en TODA la empresa. Con dos letras o más, y tras un respiro, se pregunta a la base;
+  // D-740 (215): el vendedor busca en TODA la empresa. Con dos letras o más, y tras un respiro, se pregunta a la base;
   // lo que llegue y no esté ya en su lista se pinta como fila que no se abre (`puedeAbrirCliente`).
   const [encontrados, setEncontrados] = useState<Cliente[]>([]);
   useEffect(() => {
@@ -139,7 +139,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   const vista = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: filtro.archivados }), [lista, filtro.archivados]);
   const archivados = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: true }).length, [lista]);
   const porTienda = useMemo(() => empresasPorTienda(vista), [vista]);
-  // D-NEXT: el vendedor ve cuatro columnas fijas (cuenta, N.º tiendas, estado, vendedor), sin selector ni arrastre.
+  // D-740: el vendedor ve cuatro columnas fijas (cuenta, N.º tiendas, estado, vendedor), sin selector ni arrastre.
   const colsVisibles = esVendedor ? columnasDelVendedor() : columnasAPintar(prefCols);
   // D-673: anchos que se arrastran, como en Órdenes (`tbl-resize`): nada salta de línea y lo que no cabe se corta con «…».
   const colw = useColWidthMap(llaveDeAnchos(userId), ANCHO_POR_DEFECTO, { minimo: ANCHO_MINIMO });
@@ -384,7 +384,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
                 <tr><td colSpan={colsVisibles.length} className="px-3 py-6 text-center text-slate-500">{t("No customers match.", "Ningún cliente coincide.")}</td></tr>
               )}
               {visibles.slice(0, cuantos).map(({ clave, filas, principal: c }) => {
-                // D-NEXT: el vendedor abre solo los suyos; los demás se ven y no se abren.
+                // D-740: el vendedor abre solo los suyos; los demás se ven y no se abren.
                 const abrible = puedeAbrirCliente(c, { esVendedor, userId });
                 return (
                 <tr

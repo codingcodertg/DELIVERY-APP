@@ -146,7 +146,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
 }
 
 /** El control de un campo, según su tipo: los cerrados en desplegable, el teléfono con su molde, los nombres en MAYÚSCULAS. */
-// `bloqueado` (D-NEXT): el vendedor no elige vendedor: el desplegable enseña el suyo y no se abre.
+// `bloqueado` (D-740): el vendedor no elige vendedor: el desplegable enseña el suyo y no se abre.
 function ControlDeCampo({ campo: f, valor, mal, onCambia, vendedores = [], bloqueado = false, t }: { campo: Campo; valor: string; mal: boolean; onCambia: (v: string) => void; vendedores?: Vendedor[]; bloqueado?: boolean; t: T }) {
   // La tienda no sale aquí: es de la cabecera y se cambia en las pastillas de tiendas (`selectorDeTienda`).
   const marca = cn(mal && "border-red-400 ring-1 ring-red-300");
@@ -623,13 +623,13 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   onGuardado: (c: Cliente, creados?: Cliente[]) => void;
   /** «✏️ Editar» de la página del cliente (D-648) llega aquí: la ventana abre ya editando. */
   editarAlAbrir?: boolean;
-  /** D-NEXT: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
+  /** D-740: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
   yo?: string;
   t: T;
 }) {
   const nuevo = cliente === null;
   const original = useMemo(() => formDe(cliente), [cliente]);
-  // D-NEXT: en el alta, el vendedor es él (y el desplegable va bloqueado). Va en el FORMULARIO y no en `original`, para
+  // D-740: en el alta, el vendedor es él (y el desplegable va bloqueado). Va en el FORMULARIO y no en `original`, para
   // que `parcheDe` lo cuente como cambio y llegue a la base.
   const preajuste = useMemo<Record<string, string>>(() => (nuevo && esVendedor && yo ? { rep_id: yo } : {} as Record<string, string>), [nuevo, esVendedor, yo]);
   const [form, setForm] = useState<Record<string, string>>(() => ({ ...original, ...preajuste }));

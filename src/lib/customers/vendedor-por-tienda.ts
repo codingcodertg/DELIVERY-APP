@@ -1,5 +1,5 @@
 /**
- * Lo que el VENDEDOR ve, abre y busca en Clientes (D-NEXT, 2026-10-29; migración 215).
+ * Lo que el VENDEDOR ve, abre y busca en Clientes (D-740, 2026-10-29; migración 215).
  *
  * El dueño: «Si ellos buscan algo en el search, pueden buscar cualquier cliente a nivel de toda la database. Ellos solo
  * pueden ver los clientes de su propia tienda y solo pueden abrir los que son sus clientes. Los demás clientes no se

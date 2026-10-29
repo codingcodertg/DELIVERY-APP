@@ -48800,7 +48800,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/orden-del-hub.test.ts` (quién ordena, cómo se aplica y se mueve, qué se guarda y se lee, y las tres pantallas); `routes-columns.test.ts` apunta a la 214 como última migración de la restricción. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La 214 se ensayó con ROLLBACK; aplicarla es del dueño.
-## D-NEXT · Clientes para el vendedor: su tienda en la lista con cuatro columnas, abre solo los suyos, busca en toda la empresa y al crear es él el vendedor (migración 215); «Store rep» pasa a «Commission rep»
+## D-740 · Clientes para el vendedor: su tienda en la lista con cuatro columnas, abre solo los suyos, busca en toda la empresa y al crear es él el vendedor (migración 215); «Store rep» pasa a «Commission rep»
 
 **Fecha:** 2026-10-29 · **Migración 215** (`215_clientes_vendedor_su_tienda_y_busqueda.sql`) · Hecho directo por el orquestador en `feat/clientes-ventas-por-tienda`. **Reemplaza en parte a D-728** (el vendedor ya no ve SOLO los suyos: ve su tienda y abre solo los suyos).
 

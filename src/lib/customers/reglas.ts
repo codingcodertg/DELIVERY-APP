@@ -44,7 +44,7 @@ export interface Cliente {
   notes: string | null;
   updated_at: string | null;
   updated_by: string | null;
-  /** Quién creó la fila (180, lo pone la base). D-NEXT: el vendedor abre los suyos: asignados a él o creados por él. */
+  /** Quién creó la fila (180, lo pone la base). D-740: el vendedor abre los suyos: asignados a él o creados por él. */
   created_by?: string | null;
   /** Migración 181: null = cliente vivo. Archivado = no es un cliente (cajón de QuickBooks, interno, sin nombre…); se esconde, no se borra. */
   archived_at: string | null;
@@ -180,7 +180,7 @@ export const COLUMNAS: readonly Columna[] = [
   { key: "unified_account", en: "Unified account", es: "Cuenta unificada" },
   // D-683: el vendedor de verdad (perfil del hub), antes de las iniciales de QuickBooks.
   { key: "rep_id", en: "Sales rep", es: "Vendedor" },
-  // D-NEXT (el dueño, 2026-10-29): «store rep change name to comission rep».
+  // D-740 (el dueño, 2026-10-29): «store rep change name to comission rep».
   { key: "rep_store", en: "Commission rep (QB)", es: "Vendedor de comisión (QB)" },
   { key: "rep_qb", en: "Group rep (QB)", es: "Vendedor grupo (QB)" },
   { key: "rep_history", en: "Group rep (history)", es: "Vendedor grupo (historial)" },

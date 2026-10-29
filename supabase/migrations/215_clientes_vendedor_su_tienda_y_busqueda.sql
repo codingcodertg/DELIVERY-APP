@@ -1,4 +1,4 @@
--- 215: Clientes — el vendedor ve su tienda, abre solo los suyos y busca en toda la empresa (D-NEXT, 2026-10-29).
+-- 215: Clientes — el vendedor ve su tienda, abre solo los suyos y busca en toda la empresa (D-740, 2026-10-29).
 --
 -- El dueño (2026-10-29): «Si ellos buscan algo en el search, pueden buscar cualquier cliente a nivel de toda la
 -- database. Ellos solo pueden ver los clientes de su propia tienda y solo pueden abrir los que son sus clientes.»

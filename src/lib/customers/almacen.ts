@@ -50,7 +50,7 @@ export interface AlmacenDeClientes {
   /** D-685: el mismo parche a muchas filas de golpe (la barra de lo elegido); devuelve cuántas cambió la base. */
   guardarVarios(ids: readonly number[], parche: Parche): Promise<Res<number>>;
   /**
-   * D-NEXT (215): la búsqueda a nivel de toda la empresa, saltando la política de la fila, con pocas columnas (sin
+   * D-740 (215): la búsqueda a nivel de toda la empresa, saltando la política de la fila, con pocas columnas (sin
    * teléfonos, correos ni direcciones). Para el vendedor, que en su lista solo tiene su tienda y los suyos.
    */
   buscarEnTodaLaEmpresa(q: string): Promise<Res<Cliente[]>>;

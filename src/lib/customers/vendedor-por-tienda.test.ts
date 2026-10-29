@@ -7,7 +7,7 @@ import {
 import { COLUMNAS, CAMPOS, clienteDeLaBase, type Cliente } from "./reglas";
 import { COLUMNAS as COLUMNAS_DE_LA_BASE } from "./almacen";
 
-/** El vendedor en Clientes: cuatro columnas, abre solo los suyos, busca en toda la empresa, y al crear es él (D-NEXT, 215). */
+/** El vendedor en Clientes: cuatro columnas, abre solo los suyos, busca en toda la empresa, y al crear es él (D-740, 215). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
