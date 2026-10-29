@@ -48816,3 +48816,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/vendedor-por-tienda.test.ts` (columnas, quién abre, la búsqueda, la 215, y las pantallas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La 215 se ensayó con ROLLBACK; aplicarla es del dueño. Hasta que esté, el vendedor sigue viendo solo los suyos (210) y la búsqueda en toda la empresa falla en silencio (la función no existe: no se suma nada).
+
+## D-741 · Una transferencia no vende: la ficha de una orden Transfer no enseña ni exige «Tienda (Vendido desde)»; `store` sigue al almacén de recogida
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/transfer-sin-tienda-que-vende`.
+
+**Pedido (Francis Lestarpe, office manager, desde la ficha de una orden Transfer, 2026-10-29, reenviado por el dueño):** «when the order type is a transfer, the store sold from fields should not exist since no sale was made».
+
+**Qué cambia.**
+- **Qué es una transferencia sin venta** (`src/lib/transferencia-sin-venta.ts`): por la regla del tipo, no por su nombre: de tienda a tienda (`storeToStore`) SIN tienda que reciba fija (`homeIsDestination`). En producción es exactamente «Transfer»; la Intertienda (que sí la tiene) no cambia.
+- **La ficha** (`OrderModal.tsx`): la fila «Tienda (Vendido desde)» y «Dirección de tienda» no se pintan en una transferencia, en los dos sitios (formulario corto y largo); `missingFields` deja de exigir `store` en ese caso. La recogida y la tienda destino siguen pidiéndose.
+- **`store` no se queda vacío a ciegas:** sigue al **almacén de recogida** cuando es una tienda de Ajustes (`conTiendaDeLaRecogida`, al elegir la recogida y al elegir el tipo en `aplicaTipo`); si la recogida no es una tienda, vacío. Así quién ve la orden, el comprobante (que toma la dirección de origen de `store` o, si no, de la recogida), el Panel de millas (D-738) y los informes siguen teniendo una tienda: la que manda el material.
+- La prueba de D-309 que exigía la fila «sin condición» (`intertienda-contacto.test.ts`) admite ahora solo esta condición, y sigue cazando un `{false && (`.
+
+**Pruebas:** `src/lib/transferencia-sin-venta.test.ts` (qué tipo lo es, `store` tras la recogida y al cambiar de tipo, qué se exige con controles de Intertienda y Customer, y la ficha). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. Las órdenes Transfer ya guardadas con una tienda en `store` no se tocan.

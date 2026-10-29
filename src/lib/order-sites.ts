@@ -1,6 +1,7 @@
 import type { Delivery, NamedLocation, Stage } from "./types";
 import { conflictosDeSitio, isStoreToStore, orderTypeRule, type MissingField, type OrderTypeRules } from "./required";
 import { normalizaLugar, origenEsDestino } from "./order-endpoints";
+import { esTransferenciaSinVenta, tiendaDeLaRecogida } from "./transferencia-sin-venta";
 
 /**
  * Por dónde pasa una orden tienda-a-tienda antes de ir a su propio sitio (D-276).
@@ -101,6 +102,15 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
     next.store = "";
     next.pickup_name = "";
     next.pickup_address = "";
+  } else if (esTransferenciaSinVenta(rule)) {
+    // Una transferencia no vende (D-741): `store` no es la tienda del vendedor sino la que manda (la recogida), o nada.
+    // Sin recogida todavía, se propone la tienda del vendedor como recogida (como antes se proponía en «Vendido desde»).
+    if (!p.pickup_name && c.miTienda) {
+      const home = c.tiendas.find((s) => s.name === c.miTienda);
+      next.pickup_name = c.miTienda;
+      next.pickup_address = home?.address ?? "";
+    }
+    next.store = tiendaDeLaRecogida(next.pickup_name, c.tiendas);
   } else if (!p.store && c.miTienda) {
     next.store = c.miTienda; // normal direction: Sold From is the rep's store
   }

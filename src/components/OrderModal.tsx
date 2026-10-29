@@ -69,6 +69,7 @@ import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, textoDeBloqueo, type MissingField } from "@/lib/required";
 import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada, eligeRecogida, opcionesDeRecogida } from "@/lib/order-endpoints";
+import { conTiendaDeLaRecogida, esTransferenciaSinVenta } from "@/lib/transferencia-sin-venta";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
@@ -949,6 +950,9 @@ export function OrderModal({
   /** El selector de «Vendido desde» queda fijo solo si no hay a dónde moverse: la tienda del vendedor
    *  no trabaja con ninguna otra (D-293). Antes quedaba fijo siempre. */
   const origenFijo = origenFijoDelVendedor(me, reglaDelTipo, settings.stores);
+  /** Una transferencia no vende (D-741, Francis: «the store sold from fields should not exist since no sale was made»):
+   *  «Vendido desde» no se enseña y `store` sigue al almacén de recogida (`conTiendaDeLaRecogida`). */
+  const sinVenta = esTransferenciaSinVenta(reglaDelTipo);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses
   // a single Estimate #; everything else uses the Invoice # / PO # / SO # trio.
   const docRef = orderTypeRule(d.order_type, settings.order_type_rules).docRef ?? "invoice";
@@ -2207,6 +2211,7 @@ export function OrderModal({
                 placeholder={t("Select order type", "Seleccione tipo de orden")}
                 invalid={missingSet.has("order_type")}
               />
+              {!sinVenta && (
               <Sel
                 label={homeIsDestination ? t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
@@ -2217,6 +2222,7 @@ export function OrderModal({
                 placeholder={t("Select store", "Seleccione tienda")}
                 invalid={missingSet.has("store")}
               />
+              )}
             </div>
             <AddressInput
               label={t("Delivery Address", "Dirección de Entrega")}
@@ -2655,6 +2661,7 @@ export function OrderModal({
             )}
 
             {/* ---- Store (Sold From) + its address ---- */}
+            {!sinVenta && (
             <div className="grid g2">
               <Sel label={homeIsDestination ? t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
@@ -2668,6 +2675,7 @@ export function OrderModal({
                 <input value={settings.stores.find((s) => s.name === d.store)?.address ?? ""} disabled placeholder={t("from the selected store", "de la tienda seleccionada")} />
               </div>
             </div>
+            )}
 
             {/* ---- Pickup ---- */}
             {homeIsDestination ? (
@@ -2690,7 +2698,7 @@ export function OrderModal({
                 name={d.pickup_name}
                 address={d.pickup_address}
                 options={pickupOptions}
-                onName={(v) => set("pickup_name", v)}
+                onName={(v) => setD((p) => conTiendaDeLaRecogida({ ...p, pickup_name: v }, settings.stores, reglaDelTipo))}
                 onAddress={(v) => set("pickup_address", v)}
                 onSave={savePickupLocation}
                 disabled={!salesFields}

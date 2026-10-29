@@ -39,12 +39,13 @@ describe("el contacto vuelve a ser lo que era", () => {
     expect(modal).toContain('<Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)}');
   });
 
-  it("la fila de «Vendido desde» y la dirección de tienda vuelven, sin condición", () => {
-    // «Sin condición» hay que exigirlo de verdad: esconder la fila tras un `{false && (` dejaba los
-    // textos en el fichero y la prueba en verde (lo cazó un mutante). Se exige que el comentario y la
-    // fila sean líneas seguidas, sin nada en medio.
+  it("la fila de «Vendido desde» y la dirección de tienda vuelven, con UNA condición: la transferencia sin venta (D-741)", () => {
+    // Hasta D-741 se exigía «sin condición» (esconder la fila tras un `{false && (` dejaba los textos en el fichero y la
+    // prueba en verde; lo cazó un mutante). Ahora la única condición admitida es la de la transferencia, y se exige que
+    // el comentario, esa condición y la fila sean líneas seguidas, sin nada en medio.
     const SALTO = String.fromCharCode(10);
-    expect(modal).toContain('{/* ---- Store (Sold From) + its address ---- */}' + SALTO + '            <div className="grid g2">');
+    expect(modal).toContain('{/* ---- Store (Sold From) + its address ---- */}' + SALTO + '            {!sinVenta && (' + SALTO + '            <div className="grid g2">');
+    expect(modal).not.toContain("{false && (");
     const fila = modal.slice(modal.indexOf('{/* ---- Store (Sold From) + its address ---- */}'), modal.indexOf("{/* ---- Pickup ---- */}"));
     // La etiqueta es condicional desde D-312 —en un tipo que recibe dice «¿A qué tienda se lo
     // pides?»— y lo que esta prueba vigila sigue siendo que la FILA esté sin condición.
