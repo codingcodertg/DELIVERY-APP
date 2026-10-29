@@ -6,13 +6,11 @@ import { barraDeTt, claveCorta, claveDelRotulo, esPestanaActiva, opcionesDelMenu
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { OPCIONES_DEL_MENU_TT } from "@/lib/account-menu";
-import { BotonRecargar } from "@/components/BotonRecargar";
 import { BarraDeApp } from "@/components/BarraDeApp";
-import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
+import { MenuDeCuenta, OpcionSalir } from "@/components/MenuDeCuenta";
 import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 import { NotificationBell } from "@/components/timetracker/NotificationBell";
-import { TtCheckUpdateLink } from "@/components/timetracker/UpdateBanner";
-import { AvisoDeCapacitacion, useCapacitacion } from "@/components/timetracker/Capacitacion";
+import { AvisoDeCapacitacion } from "@/components/timetracker/Capacitacion";
 import type { UserRole } from "@/lib/types";
 
 /**
@@ -25,9 +23,12 @@ import type { UserRole } from "@/lib/types";
  *
  * Lo que queda en la barra (`BarraDeApp` desde D-643, la misma de todas las apps): el nombre de la app con la casa
  * al lado (como Entregas, D-274), las
- * pestañas, recargar (como Entregas), la campana, el ⟳ del escritorio, y **el nombre, que abre el menú**
- * de Entregas —el mismo componente, `MenuDeCuenta`— con lo que dice `OPCIONES_DEL_MENU_TT`: modo
- * capacitación, Mi cuenta, Personalizar y Cerrar sesión.
+ * pestañas, la campana, y **el nombre, que abre el menú** de Entregas —el mismo componente, `MenuDeCuenta`— con lo
+ * que dice `OPCIONES_DEL_MENU_TT`: desde D-NEXT (2026-10-29), solo Cerrar sesión.
+ *
+ * **D-NEXT:** fuera los dos botones de recargar («Recargar la app» y el ⟳ del escritorio, que buscaba actualización) y
+ * del menú del nombre, el modo capacitación, Mi cuenta y Personalizar. El dueño: «hay dos botones de recargar la app.
+ * Quitas los dos botones, ninguno de los dos se ocupa … ahí no debería haber nada más que eso, solo cerrar la sesión».
  *
  * Lo que se fue: la pastilla «Employee»/«Manager», el ES/EN, el 🌙 (al personalizador del hub), el
  * «Sign out» suelto (al menú) y el selector de módulos ⇄ (como en Entregas: se cambia de app desde el
@@ -45,28 +46,11 @@ import type { UserRole } from "@/lib/types";
 export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserRole; moduleAccess: string[] | null | undefined }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { me, settings, listLiveSessions, notify } = useData();
+  const { me, settings } = useData();
   const t = useT();
-  const capacitacion = useCapacitacion();
   // Empleado (y gerente): TABS en fila, ya sin «Mi diario» (D-489). Admin: las ocho de gestión de MANAGER_TABS en
   // fila, y sus cuatro personales y Ajustes dentro de «👤 Mío ▾» (D-528).
   const barra = barraDeTt(me.role, pathname);
-
-  /**
-   * Encender la práctica con el cronómetro corriendo de verdad no se deja: encenderla vuelve a montar
-   * Time Tracker, y un cronómetro real que se desmonta deja de latir —es el registro que el dueño
-   * perdió en D-470—. Si no se puede comprobar, tampoco: ante la duda, lo real manda.
-   */
-  const alternaCapacitacion = async () => {
-    if (capacitacion.activa) { capacitacion.apagar(); return; }
-    try {
-      if ((await listLiveSessions()).length > 0) { notify(t("training.timerRunning")); return; }
-    } catch {
-      notify(t("training.checkFail"));
-      return;
-    }
-    capacitacion.encender();
-  };
 
   return (
     <div className="tt-cabecera">
@@ -101,37 +85,11 @@ export function TopBar({ deliveriesRole, moduleAccess }: { deliveriesRole: UserR
               opciones={opcionesDelMenuMio(barra, t, (href) => router.push(href))}
             />
           </div>
-          <BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />
           <NotificationBell />
-          <TtCheckUpdateLink />
-          {/* El nombre abre el menú (D-490). De D-160 a D-490 llevaba a «Mi cuenta», que ahora es
-              una opción del menú; y al lado iba la pastilla del rol, que el dueño pidió quitar. */}
+          {/* El nombre abre el menú (D-490); desde D-NEXT solo con «Cerrar sesión». */}
           <MenuDeCuenta nombre={me.fullName}>
-            {(cierraMenu) => OPCIONES_DEL_MENU_TT.map((o) => {
+            {() => OPCIONES_DEL_MENU_TT.map((o) => {
               switch (o) {
-                case "capacitacion":
-                  return (
-                    <button
-                      key={o}
-                      type="button"
-                      className="col-opt"
-                      role="menuitemcheckbox"
-                      aria-checked={!!capacitacion.activa}
-                      style={{ width: "100%", textAlign: "left" }}
-                      title={t("training.menuHint")}
-                      onClick={() => { cierraMenu(); void alternaCapacitacion(); }}
-                    >
-                      {capacitacion.activa ? t("training.menuOff") : t("training.menu")}
-                    </button>
-                  );
-                case "cuenta":
-                  return (
-                    <Link key={o} href="/timetracker/account" role="menuitem" className="col-opt" style={{ textDecoration: "none" }} onClick={cierraMenu}>
-                      {t("menu.account")}
-                    </Link>
-                  );
-                case "personalizar":
-                  return <OpcionPersonalizar key={o} alPulsar={cierraMenu} />;
                 case "salir":
                   return <OpcionSalir key={o} />;
               }

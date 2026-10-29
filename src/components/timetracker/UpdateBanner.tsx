@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  desktopCheckUpdate, desktopGetUpdateState, desktopInstallUpdate, desktopOnUpdate, isDesktop,
+  desktopGetUpdateState, desktopInstallUpdate, desktopOnUpdate, isDesktop,
   type DesktopUpdateState,
 } from "@/lib/timetracker/desktop";
 import { useT } from "@/lib/timetracker/i18n";
@@ -73,19 +73,5 @@ function UpdateBannerBody({ u }: { u: DesktopUpdateState }) {
 
 // Manual "Check for updates" control — desktop-only, tiny, meant for the
 // TopBar corner (mirrors the original's footer link).
-export function TtCheckUpdateLink() {
-  const t = useT();
-  const [desktopClient, setDesktopClient] = useState(false);
-  useEffect(() => { setDesktopClient(isDesktop()); }, []);
-  if (!desktopClient) return null;
-  return (
-    <button
-      className="btn-ghost btn-sm"
-      style={{ background: "rgba(255,255,255,.1)", color: "#fff" }}
-      onClick={() => desktopCheckUpdate()}
-      title={t("update.check")}
-    >
-      ⟳
-    </button>
-  );
-}
+// D-NEXT (2026-10-29): el botón ⟳ «buscar actualización» de la barra (TtCheckUpdateLink) se quitó: el dueño veía «dos
+// botones de recargar» y «ninguno de los dos se ocupa». La comprobación automática al arrancar y este banner siguen.
