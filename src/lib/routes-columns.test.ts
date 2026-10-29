@@ -402,13 +402,13 @@ describe("137: la lista cerrada de la base es la del código", () => {
   });
   // Esta prueba NO es de las columnas del Gestor: es la invariante COMPARTIDA de `user_prefs`, y
   // vive aquí porque aquí nació. Se actualiza cuando una migración nueva toca la restricción — la
-  // 141 lo hizo, para RTG PROMOS — en vez de copiarla al fichero del módulo nuevo: dos copias de
+  // 141 lo hizo, para RTG PROMOS; 214, para el orden del hub — en vez de copiarla al fichero del módulo nuevo: dos copias de
   // «cuál es la última» acabarían señalando a dos migraciones distintas.
   it("la ÚLTIMA migración que toca esa restricción lleva exactamente las claves que usa el código", () => {
     const migraciones = readdirSync(join(process.cwd(), "supabase/migrations")).filter((f) => /^\d+_.*\.sql$/.test(f)).sort();
     const queLaTocan = migraciones.filter((f) => /add constraint user_prefs_key_permitida|constraint user_prefs_key_permitida check/.test(leer(`supabase/migrations/${f}`)));
     const ultima = queLaTocan[queLaTocan.length - 1];
-    expect(ultima).toBe("141_user_prefs_promos_columns.sql");
+    expect(ultima).toBe("214_user_prefs_hub_order.sql");
     const ultimaPlana = plano(leer(`supabase/migrations/${ultima}`).split("\n").map((l) => l.replace(/--.*$/, "")).join("\n"));
     const lista = /constraint user_prefs_key_permitida check \(key in \(([^)]*)\)\)/.exec(ultimaPlana)![1].split(",").map((k) => k.trim().replace(/'/g, "")).sort();
     expect(lista).toEqual([...CLAVES_DE_PREFERENCIA].sort());

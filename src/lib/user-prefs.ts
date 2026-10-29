@@ -33,8 +33,10 @@ export const CLAVE_DE_COLUMNAS_DEL_GESTOR = "routes_columns";
 /** Las columnas de la tabla de RTG PROMOS (141). Misma forma: `{ "<rol>": [columnas] }`, y tampoco
  *  hay nada en el navegador que sembrar. */
 export const CLAVE_DE_COLUMNAS_DE_PROMOS = "promos_columns";
+/** El orden de las apps del hub que eligió el admin (214, D-NEXT): `{ "modules": [claves] }`. Ver `orden-del-hub.ts`. */
+export const CLAVE_DE_ORDEN_DEL_HUB = "hub_order";
 /** La lista CERRADA de la base (`user_prefs_key_permitida`). Una prueba la compara con la última migración que la toca. */
-export const CLAVES_DE_PREFERENCIA = [CLAVE_DE_COLUMNAS, CLAVE_DE_COLUMNAS_DEL_GESTOR, CLAVE_DE_COLUMNAS_DE_PROMOS] as const;
+export const CLAVES_DE_PREFERENCIA = [CLAVE_DE_COLUMNAS, CLAVE_DE_COLUMNAS_DEL_GESTOR, CLAVE_DE_COLUMNAS_DE_PROMOS, CLAVE_DE_ORDEN_DEL_HUB] as const;
 export type ClaveDePreferencia = typeof CLAVES_DE_PREFERENCIA[number];
 export const claveDelNavegador = (rol: UserRole): string => `rtg_order_columns_${rol}`;
 export const ROLES_QUE_ELIGEN: readonly UserRole[] = ["admin", "manager", "warehouse", "driver", "logistics", "accounting"];

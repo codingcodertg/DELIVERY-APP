@@ -48785,3 +48785,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/millas-por-tienda.test.ts` (qué cuenta, qué es una parada, de dónde salen las millas, quién paga, la tabla y el %). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** la tarjeta no se abrió en un navegador; los porcentajes de octubre del Panel no se cotejaron con los del informe (el Panel corta por `delivery_date` o fecha de alta, el informe por `delivery_date` solo, y el informe recortaba 4 cifras de Google a mano igual que aquí).
+
+## D-NEXT · Hub: el admin ordena sus apps (migración 214); «Usuarios» lleva a los empleados de RRHH; en la ficha del usuario, «Eliminar» y luego «Listo»
+
+**Fecha:** 2026-10-29 · **Migración 214** (`214_user_prefs_hub_order.sql`: `user_prefs` admite la clave `hub_order`) · Hecho directo por el orquestador en `feat/hub-orden-usuarios-botones`.
+
+**Pedido (el dueño, 2026-10-29, por voz):** «en la parte del hub, para los administradores solamente, deja que el admin pueda rearrange las aplicaciones para que estén en el orden que mejor le convenga. […] Me voy a la casita, al hub, y miro la herramienta de usuarios. Y esa herramienta me está llevando al usuario anterior. Pero yo quiero que me lleve al permissions dentro del HR […] esta tab de usuario normal que está en el hub ya no se va a utilizar. Cuando entra una persona, quiero que la parte donde dice listo o guardar quede al lado donde está eliminar y eliminar al lado izquierdo».
+
+**Qué cambia.**
+- **Orden de las apps** (`src/lib/orden-del-hub.ts`, `HomeSelector.tsx`): solo el admin ve un botón «↕ Ordenar» (`data-hub-ordenar`) junto a «¿Cuál quieres abrir?». Ordenando, cada tarjeta deja de ser enlace y enseña ◀ ▶ (`data-mueve`); cada movimiento se guarda al instante en `user_prefs` (clave `hub_order`, `{ "modules": [claves] }`, por persona: la política de la 136 ya ata la fila a `auth.uid()`) y en el navegador (`rtg_hub_order_<id>`) como copia. Las apps que no están en la lista guardada salen después, como siempre: una app nueva aparece al final, no desaparece. Hasta que la 214 esté aplicada la base rechaza la clave y el orden vive solo en el navegador del admin.
+- **«Usuarios» del hub** (`constants.ts`, `HUB_TOOLS`): pasa de `/home/users` a `/recruiting/employees`, y se llama «Usuarios · permisos». En RRHH no hay una pestaña «Permisos»: desde D-720 la cuenta y los permisos se dan desde el expediente de cada empleado (botón 🔑 Permisos, que abre el mismo `UserDialog`). La página `/home/users` sigue existiendo pero nada la enlaza.
+- **Pie de la ficha del usuario** (`UserDialog.tsx`, la que abre Permisos en RRHH y la lista vieja): antes «Listo · Entrar como … Eliminar»; ahora «Entrar como … Eliminar · Listo». No hay «Guardar» en esa ficha: cada cambio se guarda al tocarlo y «Listo» solo cierra.
+
+**Pruebas:** `src/lib/orden-del-hub.test.ts` (quién ordena, cómo se aplica y se mueve, qué se guarda y se lee, y las tres pantallas); `routes-columns.test.ts` apunta a la 214 como última migración de la restricción. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. La 214 se ensayó con ROLLBACK; aplicarla es del dueño.
