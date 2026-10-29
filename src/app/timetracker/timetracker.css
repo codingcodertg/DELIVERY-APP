@@ -162,7 +162,6 @@
 .timetracker-module .motivo:has(input:disabled){opacity:.5;cursor:not-allowed}
 /* El ⟳ de recargar, solo dentro de la app de escritorio (D-280). Mismo aire que los botones de
    idioma y tema de esa barra, que llevan su fondo translúcido en línea. */
-.timetracker-module .topbar .tt-recargar{background:rgba(255,255,255,.1);color:#fff;font-size:15px;line-height:1;padding:5px 9px}
 /* La cabecera (D-490): el aviso del modo capacitación y la barra, pegados arriba JUNTOS. Antes la
    pegajosa era la barra sola; con el aviso encima, dos pegajosas en el mismo sitio se taparían. */
 .timetracker-module .tt-cabecera{position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;margin-bottom:6px}

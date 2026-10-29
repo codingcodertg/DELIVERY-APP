@@ -70,8 +70,14 @@ export function opcionesDelMenuDeCuenta(a: {
  * - **Mi cuenta**: el nombre era la puerta a `/timetracker/account` desde D-160. Ahora el nombre abre
  *   este menú, y sin esta opción la pantalla de la cuenta (forma de pago, ciudad) se quedaría sin entrada.
  * - **Personalizar** y **Cerrar sesión**, como en Entregas; Salir el último.
+ *
+ * **D-737 (2026-10-29): solo «Cerrar sesión».** El dueño, con el escritorio delante: «cuando entro a mi nombre, sale
+ * en modo capacitación, personalizar mi cuenta. Y acuérdate que todo eso ya sale en opción general en el hub. Y la
+ * parte de modo capacitación ya está en el botón del question mark. Entonces ahí no debería haber nada más que eso,
+ * solo cerrar la sesión y ya». Personalizar y Mi cuenta viven en el hub (botón General / Mi perfil); el modo
+ * capacitación pierde su interruptor en el menú (se apaga desde su aviso).
  */
-export const OPCIONES_DEL_MENU_TT = ["capacitacion", "cuenta", "personalizar", "salir"] as const;
+export const OPCIONES_DEL_MENU_TT = ["salir"] as const;
 export type OpcionDelMenuTt = (typeof OPCIONES_DEL_MENU_TT)[number];
 
 /**

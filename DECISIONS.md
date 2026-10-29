@@ -48754,3 +48754,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recruiting/detalle-de-activo.test.ts` (puertas: la fila abre, la celda de botones no, el detalle se lee de las filas, lleva las cuatro acciones y el historial por activo, y se cierra al borrar). Canarios de RR. HH. en verde. tsc limpio.
 
 **No verificado en pantalla:** no se abrió en un navegador.
+
+## D-737 · Time Tracker: fuera los dos botones de recargar de la barra, y el menú del nombre se queda solo con «Cerrar sesión»
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/tt-barra-sin-recargar`.
+
+**Pedido (el dueño, 2026-10-29, por voz, desde la app de escritorio):** «En el time tracker, en el desktop app, estoy viendo de que hay dos botones de recargar la app. Quitas los dos botones, ninguno de los dos se ocupa. Y segundo, cuando entro a mi nombre, sale en modo capacitación, personalizar mi cuenta. Y acuérdate que todo eso ya sale en opción general en el hub. Y la parte de modo capacitación ya está en el botón del question mark. Entonces ahí no debería haber nada más que eso, solo cerrar la sesión y ya».
+
+**Qué cambia (`src/components/timetracker/TopBar.tsx`, `src/lib/account-menu.ts`).**
+- **Los dos botones:** «Recargar la app» (`BotonRecargar`, D-490; su regla `.tt-recargar` en timetracker.css) y el ⟳ del escritorio (`TtCheckUpdateLink`, que pedía a electron-updater buscar actualización) se quitan. La comprobación automática al arrancar y el banner «lista para instalar» (`TtUpdateBanner`, D-074) siguen. El botón de recargar de Entregas no cambia.
+- **El menú del nombre:** `OPCIONES_DEL_MENU_TT` pasa de capacitación, Mi cuenta, Personalizar y Salir a **solo «Cerrar sesión»**. Personalizar y Mi cuenta ya están en el hub (botón General / Mi perfil, D-490/D-265). **Reemplaza a D-490** en lo del menú de Time Tracker.
+- **Modo capacitación:** pierde su interruptor en el menú (y con él `alternaCapacitacion`, el freno «no con un cronómetro real en marcha»). Sigue existiendo: la cookie, el aviso encima de la barra con «Salir de la práctica», y el sandbox. El dueño dice que «ya está en el botón del question mark»: medido en el código, el botón de ayuda (`HelpButton`) NO lo tiene, y el «Modo enseñanza» del botón General del hub es el de Entregas (`setTeaching`), no el de Time Tracker. Se le dijo; si lo quiere ahí, es otra decisión.
+
+**Pruebas:** `timetracker/barra-tt.test.ts` (sin los dos botones ni su CSS; el banner sigue; el menú solo Salir y sin rastro de capacitación/cuenta/personalizar), `desktop-shell.test.ts`, `personalizar.test.ts` puestas al día. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** en la app de escritorio ni en un navegador.

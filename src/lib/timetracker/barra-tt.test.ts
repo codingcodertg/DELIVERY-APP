@@ -33,64 +33,45 @@ describe("lo que se fue de la barra", () => {
   });
 });
 
-describe("lo que se queda", () => {
-  it("las pestañas, recargar, la campana y el ⟳ del escritorio", () => {
+describe("lo que se queda (D-737, 2026-10-29: sin los dos botones de recargar)", () => {
+  it("las pestañas y la campana; ni «Recargar la app» ni el ⟳ del escritorio", () => {
     // Nota D-528: las pestañas ya no salen directamente de `pestanasPara`, sino de `barraDeTt` (que la llama): el admin
     // lleva Ajustes y sus cuatro personales en «👤 Mío ▾». Lo prueba `barra.test.ts`.
     expect(barra).toContain("const barra = barraDeTt(me.role, pathname);");
-    expect(barra).toContain('<BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />');
     expect(barra).toContain("<NotificationBell />");
-    expect(barra).toContain("<TtCheckUpdateLink />");
+    expect(barra).not.toMatch(/BotonRecargar|TtCheckUpdateLink|tt-recargar|shell\.reload/);
+    // El ⟳ ya no existe; el banner de actualización del escritorio sigue.
+    const banner = sinComentarios(leer("src/components/timetracker/UpdateBanner.tsx"));
+    expect(banner).not.toContain("export function TtCheckUpdateLink");
+    expect(banner).toContain("export function TtUpdateBanner()");
+    expect(leer("src/app/timetracker/timetracker.css")).not.toContain(".tt-recargar{");
   });
 });
 
 describe("el nombre abre el menú de Entregas", () => {
   it("el mismo componente, con el nombre de quien entra", () => {
-    expect(barra).toContain('import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";');
+    expect(barra).toContain('import { MenuDeCuenta, OpcionSalir } from "@/components/MenuDeCuenta";');
     expect(barra).toContain("<MenuDeCuenta nombre={me.fullName}>");
   });
 
-  it("igual para todos: capacitación, mi cuenta, personalizar y cerrar sesión, el último", () => {
-    expect([...OPCIONES_DEL_MENU_TT]).toEqual(["capacitacion", "cuenta", "personalizar", "salir"]);
-    expect(barra).toContain("{(cierraMenu) => OPCIONES_DEL_MENU_TT.map((o) => {");
-    for (const o of OPCIONES_DEL_MENU_TT) expect(barra, o).toContain(`case "${o}":`);
-    // No depende del rol: nada en el menú pregunta por él.
+  it("igual para todos y solo cerrar sesión (D-737): sin capacitación, sin Mi cuenta, sin Personalizar", () => {
+    expect([...OPCIONES_DEL_MENU_TT]).toEqual(["salir"]);
+    expect(barra).toContain("{() => OPCIONES_DEL_MENU_TT.map((o) => {");
     const menu = barra.slice(barra.indexOf("<MenuDeCuenta"), barra.indexOf("</MenuDeCuenta>"));
-    expect(menu).not.toMatch(/me\.role|isAdmin/);
-  });
-
-  it("«Mi cuenta» sigue llevando a la cuenta de Time Tracker (era adonde iba el nombre, D-160)", () => {
-    const cuenta = barra.slice(barra.indexOf('case "cuenta":'), barra.indexOf('case "personalizar":'));
-    expect(cuenta).toContain('href="/timetracker/account"');
+    expect(menu).not.toMatch(/me\.role|isAdmin|capacitacion|OpcionPersonalizar|timetracker\/account|menu\.account/);
+    expect(barra).not.toMatch(/alternaCapacitacion|useCapacitacion|listLiveSessions/);
   });
 
   it("cerrar sesión es el formulario compartido", () => {
     expect(barra.slice(barra.indexOf('case "salir":'))).toMatch(/^case "salir":\n\s*return <OpcionSalir key=\{o\} \/>;/);
   });
 
-  it("el modo capacitación se enciende y se apaga desde ahí, y dice en qué estado está", () => {
-    const opcion = barra.slice(barra.indexOf('case "capacitacion":'), barra.indexOf('case "cuenta":'));
-    expect(opcion).toContain("onClick={() => { cierraMenu(); void alternaCapacitacion(); }}");
-    expect(opcion).toContain("aria-checked={!!capacitacion.activa}");
-    expect(opcion).toContain('{capacitacion.activa ? t("training.menuOff") : t("training.menu")}');
-  });
-
-  it("no se enciende con un cronómetro real en marcha, ni si no se puede comprobar", () => {
-    const f = barra.slice(barra.indexOf("const alternaCapacitacion = async () => {"), barra.indexOf("return (", barra.indexOf("const alternaCapacitacion")));
-    expect(f).toContain("if (capacitacion.activa) { capacitacion.apagar(); return; }");
-    expect(f).toContain('if ((await listLiveSessions()).length > 0) { notify(t("training.timerRunning")); return; }');
-    expect(f).toMatch(/catch \{\n\s*notify\(t\("training\.checkFail"\)\);\n\s*return;\n\s*\}/);
-    expect(f.indexOf("listLiveSessions()")).toBeLessThan(f.indexOf("capacitacion.encender();"));
-  });
-
-  it("los textos nuevos existen en los dos idiomas, distintos", () => {
-    for (const k of ["training.menu", "training.menuOff", "training.menuHint", "training.banner", "training.exit", "training.timerRunning", "training.checkFail", "menu.account"]) {
+  it("los textos del aviso existen en los dos idiomas, distintos", () => {
+    for (const k of ["training.banner", "training.exit", "menu.account"]) {
       expect(DICT.en[k], k).toBeTruthy();
       expect(DICT.es[k], k).toBeTruthy();
       expect(DICT.en[k], k).not.toBe(DICT.es[k]);
     }
-    expect(DICT.es["training.menu"]).toBe("🎓 Modo capacitación");
-    expect(DICT.en["training.menu"]).toBe("🎓 Training mode");
   });
 });
 

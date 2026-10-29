@@ -123,11 +123,11 @@ describe("ninguna barra elige idioma ni tema; todas llevan a Personalizar", () =
     }
   });
 
-  it("Entregas, Time Tracker y RR. HH. lo tienen en el menú del nombre; el ERP, junto a Salir", () => {
+  it("Entregas y RR. HH. lo tienen en el menú del nombre; el ERP, junto a Salir; Time Tracker ya no (D-737: solo Salir)", () => {
     expect(OPCIONES_DEL_MENU).toContain("personalizar");
-    expect(OPCIONES_DEL_MENU_TT).toContain("personalizar");
+    expect([...OPCIONES_DEL_MENU_TT]).toEqual(["salir"]);
     expect(OPCIONES_DEL_MENU_RRHH).toContain("personalizar");
-    for (const f of [barras.entregas, barras.timetracker, barras.rrhh]) {
+    for (const f of [barras.entregas, barras.rrhh]) {
       expect(sinComentarios(leer(f)), f).toMatch(/case "personalizar":\n\s*(\/\/[^\n]*\n\s*)?return <OpcionPersonalizar key=\{o\} alPulsar=\{cierraMenu\} \/>;/);
     }
     const erp = sinComentarios(leer(barras.erp));

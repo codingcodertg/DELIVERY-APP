@@ -54,9 +54,9 @@ describe("dónde está", () => {
     expect(barra).toContain('<BotonRecargar titulo={t("Reload the app", "Recargar la app")} />');
   });
 
-  it("en la barra de Time Tracker, con la clave de su diccionario", () => {
+  it("ya no en la barra de Time Tracker (D-737, 2026-10-29: «ninguno de los dos se ocupa»)", () => {
     const barra = leer("src/components/timetracker/TopBar.tsx");
-    expect(barra).toContain('<BotonRecargar titulo={t("shell.reload")} className="btn-ghost btn-sm tt-recargar" />');
+    expect(barra).not.toContain("BotonRecargar");
   });
 
   it("y esa clave existe en los dos idiomas, distinta en cada uno", () => {
@@ -65,7 +65,7 @@ describe("dónde está", () => {
     expect(dic).toContain("'shell.reload': 'Recargar la app',");
   });
 
-  it("la clase de Time Tracker tiene su regla, dentro del módulo", () => {
-    expect(leer("src/app/timetracker/timetracker.css")).toContain(".timetracker-module .topbar .tt-recargar{");
+  it("la clase de Time Tracker se fue con el botón", () => {
+    expect(leer("src/app/timetracker/timetracker.css")).not.toContain(".tt-recargar{");
   });
 });
