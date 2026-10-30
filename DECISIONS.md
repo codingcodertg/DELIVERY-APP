@@ -48978,3 +48978,17 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/oficina-solo-su-tienda.test.ts`; `ordenes-por-tienda.test.ts` puesta al día (oficina entra en los bucles de «su tienda» y «sin tienda»). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+
+## D-NEXT · Time Tracker → Auditoría → Fotos de fichaje: al abrir una foto no cargaba nunca (el visor ignoraba una URL ya firmada)
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `fix/visor-fotos-de-fichaje`.
+
+**Pedido (el dueño, 2026-10-29, con captura de Fotos de fichaje):** «a la foto le doy click para verla y nunca carga».
+
+**Qué pasaba.** `DayPhotos` (Time Tracker) pinta las miniaturas con `p.url` (una URL ya firmada del cubo de fichaje) y abre el visor del hub (`PhotoLightbox`) con esas mismas URLs. Desde D-178 (fotos de Entregas en Storage) el visor pinta con `srcDeFoto(foto, urls)`: una `data:` tal cual, una RUTA del cubo por su firma en `urls`, y lo demás **en blanco** (para no pedir una ruta a pelo al cubo privado). Time Tracker no manda `urls` (no las necesita: ya trae la URL), así que el visor recibía la URL firmada, no la encontraba en un mapa que no existe y la dejaba en blanco: la ventana se abría y la imagen nunca llegaba. Las fotos de Entregas no lo sufrían porque llegan como ruta + mapa.
+
+**Qué cambia (`src/lib/fotos-en-storage.ts`):** `srcDeFoto` devuelve tal cual también una URL ya pintable (`http(s):` o `blob:`, `esUrlPintable`). Las rutas del cubo siguen igual: con firma, la firma; sin firma, en blanco.
+
+**Pruebas:** `fotos-en-storage.test.ts` (URL firmada con y sin mapa, `blob:`, y un control que no es URL). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador; la causa se leyó en el código (`DayPhotos.tsx:205-245`, `PhotoLightbox.tsx:49`).

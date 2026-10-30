@@ -24,12 +24,18 @@ export function esFotoEmbebida(foto: string): boolean {
   return foto.startsWith("data:");
 }
 
+/** ¿Ya es una URL que se puede pintar tal cual (firmada o pública, o un `blob:` local)? */
+export function esUrlPintable(foto: string): boolean {
+  return /^(https?:|blob:)/i.test(foto);
+}
+
 /**
- * El `src` con el que se pinta una foto: una `data:` vieja, tal cual; una ruta del cubo, por su URL firmada. Una ruta
- * SIN firma (aún no llegó, o la política no dejó) se deja en blanco: pedirla a pelo sería un 400 del cubo privado.
+ * El `src` con el que se pinta una foto: una `data:` vieja, tal cual; una URL ya firmada o pública (las fotos de fichaje
+ * del Time Tracker llegan así, D-NEXT), tal cual; una ruta del cubo, por su URL firmada. Una ruta SIN firma (aún no
+ * llegó, o la política no dejó) se deja en blanco: pedirla a pelo sería un 400 del cubo privado.
  */
 export function srcDeFoto(foto: string, urls: Record<string, string> | undefined): string {
-  if (esFotoEmbebida(foto)) return foto;
+  if (esFotoEmbebida(foto) || esUrlPintable(foto)) return foto;
   return urls?.[foto] ?? "";
 }
 
