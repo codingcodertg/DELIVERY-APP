@@ -21,7 +21,7 @@
 // bajar nada (D-029/D-087) y se queda con codigo viejo sin que nadie lo note.
 // Ver "Flujo de ramas" en CLAUDE.md y docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
-  deliveries: "1.479.0",
+  deliveries: "1.480.0",
   recruiting: "0.69.0",
   timetracker: "1.14.0",
   clockin: "0.45.0",
@@ -39,7 +39,7 @@ export const APP_VERSIONS = {
   surveys: "0.6.0",
   // Leads (migración 162): modulo nuevo, sin historial que continuar; 0.1.0 como Encuestas. La entrada la pone la
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
-  leads: "0.11.0",
+  leads: "0.12.0",
   // Clientes (D-569): la primera, como leads.
   customers: "0.29.0",
 } as const;
