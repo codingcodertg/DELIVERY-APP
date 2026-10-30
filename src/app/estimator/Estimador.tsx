@@ -835,18 +835,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       {/* 5-7. La copia del cliente */}
       <div className="card">
         <h2>🖨️ {t("Customer copy", "Copia del cliente")}</h2>
-        <div className="field">
-          <label>{t("Customer display level", "Nivel de detalle para el cliente")}</label>
-          <div className="est-radios">
-            {([
-              ["basic", t("Basic — total + requested area", "Basic — total + área pedida")],
-              ["standard", t("Standard — + boxes", "Standard — + cajas")],
-              ["detailed", t("Detailed — + boxes + coverage (SF/box)", "Detailed — + cajas + cobertura (SF/caja)")],
-            ] as [DisplayLevel, string][]).map(([k, txt]) => (
-              <label key={k}><input type="radio" name="nivel" data-nivel={k} checked={draft.display_level === k} onChange={() => set("display_level", k)} /> {txt}</label>
-            ))}
-          </div>
-        </div>
+        {/* D-775: el nivel de detalle ya no está aquí: se elige en la vista previa, viendo la hoja (el dueño: «estas
+            opciones las quiero acá, en el resultado, y que si la cambio se cambie en vivo ahí mismo»). */}
         <div className="grid g3">
           <div className="field">
             <label htmlFor="est-valida">{t("Valid through", "Válida hasta")}</label>
@@ -917,6 +907,20 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           <div className="est-barra">
             <button className="btn btn-primary" data-imprimir onClick={() => window.print()}>🖨️ {t("Print", "Imprimir")}</button>
             <button className="btn btn-ghost" style={{ background: "#fff" }} onClick={() => setVistaPrevia(false)}>◂ {t("Back to edit", "Volver a editar")}</button>
+          </div>
+          {/* D-775: el nivel de detalle se cambia aquí, con la hoja a la vista; `hoja` sale del borrador, así que cambia en
+              vivo. Es un control de la pantalla, no de la hoja: al imprimir no sale (solo `.hoja-cliente` es visible). */}
+          <div className="est-barra est-nivel">
+            <span className="est-nivel-rotulo">{t("Customer display level", "Nivel de detalle para el cliente")}</span>
+          <div className="est-radios" data-nivel-de-detalle>
+            {([
+              ["basic", t("Basic — total + requested area", "Basic — total + área pedida")],
+              ["standard", t("Standard — + boxes", "Standard — + cajas")],
+              ["detailed", t("Detailed — + boxes + coverage (SF/box)", "Detailed — + cajas + cobertura (SF/caja)")],
+            ] as [DisplayLevel, string][]).map(([k, txt]) => (
+              <label key={k}><input type="radio" name="nivel" data-nivel={k} checked={draft.display_level === k} onChange={() => set("display_level", k)} /> {txt}</label>
+            ))}
+          </div>
           </div>
           <HojaCliente hoja={hoja} />
         </div>
