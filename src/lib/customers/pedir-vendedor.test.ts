@@ -68,7 +68,7 @@ describe("las pantallas", () => {
     expect(lista).toContain("puedePedirVendedor={puedePedirVendedor}");
   });
   it("sin pastillas de tiendas para quien ve solo la suya (vendedor y gerente)", () => {
-    expect(lista).toContain("const soloSuTienda = esVendedor || puedePedirVendedor;");
+    expect(lista).toContain("const soloSuTienda = vistaAcotada;");
     expect(lista).toContain("{!soloSuTienda && (");
     expect(lista).toContain("data-pastillas-de-tiendas");
   });

@@ -83,7 +83,7 @@ describe("la puerta y el tema", () => {
     expect(barra).toContain('import { SideNav } from "@/components/erp/side-nav";');
     // Desde la 189, dos pestañas: la lista y la cola «Decidir si se juntan» con las pendientes.
     expect(barra).toContain('{ href: "/customers", label: t("Customers", "Clientes") },');
-    expect(barra).toContain('{ href: "/customers/juntar", label: rotuloDeDecidir(pendientes, t) },');
+    expect(barra).toContain('...(role === "admin" ? [{ href: "/customers/juntar", label: rotuloDeDecidir(pendientes, t) }] : []),'); // D-NEXT: solo admin
   });
   it("la página dice quién mira (rol del hub) y no lee los clientes en el servidor; la pantalla usa el cliente del ERP", () => {
     const page = leer("src/app/customers/page.tsx");

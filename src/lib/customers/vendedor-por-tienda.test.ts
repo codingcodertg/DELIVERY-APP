@@ -79,9 +79,11 @@ describe("la pantalla", () => {
   const lista = sinComentarios(leer("src/app/customers/Clientes.tsx"));
   const ficha = sinComentarios(leer("src/app/customers/FichaDeCliente.tsx"));
   it("sin selector de columnas ni arrastre para el vendedor; sus cuatro columnas", () => {
-    expect(lista).toContain("{!esVendedor && (\n          <SelectorDeColumnas");
-    expect(lista).toContain("draggable={!esVendedor}");
-    expect(lista).toContain("const colsVisibles = esVendedor ? columnasDelVendedor() : columnasAPintar(prefCols);");
+    // D-NEXT: la vista acotada es la de todos menos el admin.
+    expect(lista).toContain("const vistaAcotada = !esAdmin;");
+    expect(lista).toContain("{!vistaAcotada && (\n          <SelectorDeColumnas");
+    expect(lista).toContain("draggable={!vistaAcotada}");
+    expect(lista).toContain("const colsVisibles = vistaAcotada ? columnasDelVendedor() : columnasAPintar(prefCols);");
   });
   it("la fila que no es suya no abre la ficha, y lo dice", () => {
     expect(lista).toContain("const abrible = puedeAbrirCliente(c, { esVendedor, userId });");
@@ -89,7 +91,7 @@ describe("la pantalla", () => {
     expect(lista).toContain('data-no-se-abre={abrible ? undefined : "1"}');
   });
   it("la búsqueda pregunta a toda la empresa con retardo y suma lo encontrado", () => {
-    expect(lista).toContain("seBuscaEnTodaLaEmpresa(filtro.busca, esVendedor)");
+    expect(lista).toContain("seBuscaEnTodaLaEmpresa(filtro.busca, vistaAcotada)");
     expect(lista).toContain("almacen.buscarEnTodaLaEmpresa(");
     expect(lista).toContain("conLosEncontrados(lista, encontrados)");
     expect(lista).toContain("RETARDO_DE_BUSQUEDA_MS");

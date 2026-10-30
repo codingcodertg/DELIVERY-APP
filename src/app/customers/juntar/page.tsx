@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { puedeEditar } from "@/lib/customers/reglas";
 import type { UserRole } from "@/lib/types";
@@ -36,6 +37,8 @@ export default async function JuntarPage() {
     fullName = data?.full_name?.trim() || null;
     moduleAccess = (data?.module_access as string[] | null) ?? null;
   }
+  // D-NEXT: juntar empresas es cosa del admin; a los demás, la lista.
+  if (role !== "admin") redirect("/customers");
   return (
     <>
       <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} moduleAccess={moduleAccess} />
