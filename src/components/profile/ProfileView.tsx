@@ -21,7 +21,13 @@ import { PasswordInput } from "@/components/PasswordInput";
  *   · el idioma y el tema estuvieron aquí (D-265/D-266) hasta D-490. Ahora se eligen en
  *     «Personalizar» (`/home/personalizar`), el único sitio para los dos, y aquí queda el enlace.
  */
-export function ProfileView({ id, nombre, correo, usuario }: { id: string | null; nombre: string | null; correo: string | null; usuario: string | null }) {
+export function ProfileView({ id, nombre, correo, usuario, onCerrar, onPersonalizar }: {
+  id: string | null; nombre: string | null; correo: string | null; usuario: string | null;
+  /** D-765: dentro de la tarjeta del hub. Con `onCerrar`, el botón de arriba cierra en vez de «Volver al hub». */
+  onCerrar?: () => void;
+  /** D-765: en la tarjeta, «Personalizar →» cambia a la tarjeta de personalizar sin salir del hub. */
+  onPersonalizar?: () => void;
+}) {
   const { t } = usePrefs();
   const sinDato = <span className="hint">—</span>;
 
@@ -29,7 +35,9 @@ export function ProfileView({ id, nombre, correo, usuario }: { id: string | null
     <>
       <div className="page-head">
         <h2>👤 {t("My profile", "Mi perfil")}</h2>
-        <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>
+        {onCerrar
+          ? <button type="button" className="btn btn-ghost btn-sm" data-cerrar-tarjeta onClick={onCerrar}>{t("Close", "Cerrar")}</button>
+          : <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>}
       </div>
 
       <div className="card">
@@ -69,7 +77,7 @@ export function ProfileView({ id, nombre, correo, usuario }: { id: string | null
         <p className="hint" style={{ marginTop: 0 }}>
           {t("They are chosen in one place for every app.", "Se eligen en un solo sitio para todas las apps.")}
         </p>
-        <Link href={RUTA_PERSONALIZAR} className="btn btn-primary">{t("Customize →", "Personalizar →")}</Link>
+        <Link href={RUTA_PERSONALIZAR} className="btn btn-primary" onClick={onPersonalizar && ((e) => { e.preventDefault(); onPersonalizar(); })}>{t("Customize →", "Personalizar →")}</Link>
       </div>
     </>
   );

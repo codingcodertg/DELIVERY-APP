@@ -14,14 +14,19 @@ import { OPCIONES_DE_IDIOMA, OPCIONES_DE_TEMA } from "@/lib/personalizar";
  *
  * Cada grupo es un `radiogroup`: se ve cuál está puesto sin tener que adivinarlo por el color.
  */
-export function Personalizador() {
+export function Personalizador({ onCerrar }: {
+  /** D-765: dentro de la tarjeta del hub. Con `onCerrar`, el botón de arriba cierra en vez de «Volver al hub». */
+  onCerrar?: () => void;
+} = {}) {
   const { t, lang, setLang, theme, setTheme } = usePrefs();
 
   return (
     <>
       <div className="page-head">
         <h2>🎨 {t("Customize", "Personalizar")}</h2>
-        <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>
+        {onCerrar
+          ? <button type="button" className="btn btn-ghost btn-sm" data-cerrar-tarjeta onClick={onCerrar}>{t("Close", "Cerrar")}</button>
+          : <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>}
       </div>
       <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
         {t(

@@ -7,6 +7,7 @@ import { HomeSelector } from "@/components/HomeSelector";
 import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+import { identidadVisible } from "@/lib/profile-identity";
 
 // The hub. Landing here automatically vs. being ALLOWED to visit are two
 // different questions now (D-056) — they used to be the same one.
@@ -43,7 +44,7 @@ export default async function HomePage({
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("id, full_name, role, module_access")
+    .select("id, full_name, role, module_access, username")
     .eq("id", user.id)
     .maybeSingle();
   // Tres desenlaces, no dos (D-234): si la CONSULTA fallo no se redirige, porque el
@@ -68,5 +69,7 @@ export default async function HomePage({
   // tiene que preguntarlo por su cuenta. Sin cookie no hay impersonación, que es casi siempre.
   const suplantando = desempaquetar((await cookies()).get(COOKIE_RETORNO)?.value ?? null) !== null;
 
-  return <HomeSelector me={me} suplantando={suplantando} />;
+  // D-765: Mi perfil y Personalizar se abren como tarjeta encima del hub; lo que Mi perfil enseña se lee aquí.
+  const cuenta = identidadVisible({ email: user.email, username: me.username });
+  return <HomeSelector me={me} suplantando={suplantando} cuenta={cuenta} />;
 }

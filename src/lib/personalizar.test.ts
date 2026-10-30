@@ -76,13 +76,13 @@ describe("la pantalla", () => {
 
   it("el lobby lo enlaza junto a Mi perfil", () => {
     const hub = sinComentarios(leer("src/components/HomeSelector.tsx"));
-    expect(hub).toContain("<Link href={RUTA_PERSONALIZAR} className=\"hub-profile-link\" data-hub-personalizar>");
+    expect(hub).toContain("<Link href={RUTA_PERSONALIZAR} className=\"hub-profile-link\" data-hub-personalizar onClick={abre(\"personalizar\")}>");
   });
 
   it("Mi perfil ya no elige idioma ni tema: enlaza aquí", () => {
     const perfil = sinComentarios(leer("src/components/profile/ProfileView.tsx"));
     expect(perfil).not.toMatch(/setLang|setTheme/);
-    expect(perfil).toContain("<Link href={RUTA_PERSONALIZAR} className=\"btn btn-primary\">");
+    expect(perfil).toContain("<Link href={RUTA_PERSONALIZAR} className=\"btn btn-primary\" onClick={onPersonalizar && ((e) => { e.preventDefault(); onPersonalizar(); })}>");
   });
 });
 
