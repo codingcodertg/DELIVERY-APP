@@ -31,8 +31,11 @@ export default async function CustomersPage() {
   let role: UserRole = "sales";
   let fullName: string | null = null;
   let moduleAccess: string[] | null = null;
+  // D-NEXT: la tienda de quien mira, para dejarla marcada en el alta.
+  let miTienda: string | null = null;
   if (user) {
-    const { data } = await supabase.from("profiles").select("full_name, role, module_access").eq("id", user.id).maybeSingle();
+    const { data } = await supabase.from("profiles").select("full_name, role, module_access, store").eq("id", user.id).maybeSingle();
+    miTienda = (data?.store as string | null | undefined) ?? null;
     role = (data?.role as UserRole | undefined) ?? "sales";
     fullName = data?.full_name?.trim() || null;
     moduleAccess = (data?.module_access as string[] | null) ?? null;
@@ -49,7 +52,7 @@ export default async function CustomersPage() {
       {/* El id va a la clave de las columnas elegidas (por persona, en el navegador). Sin sesión no se llega aquí (layout). */}
       {/* D-728: asignan vendedores admin y gerente; el vendedor no ve crédito, campos ocultos ni archivos. */}
       {/* D-742: asigna solo el admin; el gerente pide el vendedor al admin y, como el vendedor, ve solo su tienda. */}
-      <Clientes demo={false} puedeEditar={puedeEditar(role)} esAdmin={puedeAsignarVendedores(role)} esVendedor={esVendedor(role)} puedePedirVendedor={puedePedirVendedor(role)} altaComoSolicitud={altaEsSolicitud(role)} userId={user?.id ?? "anon"} />
+      <Clientes demo={false} puedeEditar={puedeEditar(role)} esAdmin={puedeAsignarVendedores(role)} esVendedor={esVendedor(role)} puedePedirVendedor={puedePedirVendedor(role)} altaComoSolicitud={altaEsSolicitud(role)} userId={user?.id ?? "anon"} miTienda={miTienda} />
     </>
   );
 }

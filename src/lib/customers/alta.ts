@@ -15,6 +15,18 @@ type T = (en: string, es: string) => string;
 export const TODAS = "todas" as const;
 
 /**
+ * D-NEXT: la tienda que el alta deja marcada de entrada: la de quien la pide (`profiles.store`, que guarda el NOMBRE,
+ * «RDZ Brownsville», o a veces el código). El dueño, 2026-10-30: «los users que tienen tienda asignada, cuando piden request
+ * para crear un nuevo customer, así como se llena la parte de sales rep, también se llenará el de tienda arriba». Sin tienda,
+ * o con una que no está en `TIENDAS`, nada marcado, como antes.
+ */
+export function tiendaPreelegida(store: string | null | undefined): string {
+  const s = (store ?? "").trim().toLowerCase();
+  if (!s) return "";
+  return TIENDAS.find((x) => x.code.toLowerCase() === s || x.nombre.toLowerCase() === s)?.code ?? "";
+}
+
+/**
  * Las tiendas marcadas, en el orden de `TIENDAS` (el de las casillas: la primera marcada es la que se enseña al
  * terminar), sin repetir, en mayúsculas. Un código que no esté en `TIENDAS` va al final, tal cual.
  */

@@ -49173,3 +49173,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/ficha-sin-huecos.test.ts` reescrita (las columnas son las de la hoja, cada grupo en una sola, rejilla sin estirar, ocultos al pie de la última); `ventana.test.ts` con el nuevo orden de aparición. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+
+## D-NEXT · Clientes: en el alta (y la solicitud) de cliente nuevo, la tienda de quien pide queda marcada de entrada
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/alta-cliente-tienda-preelegida`.
+
+**Pedido (el dueño, 2026-10-30):** «los users que tienen tienda asignada, cuando piden request para crear un nuevo customer, así como se llena la parte de sales rep con su tienda, pues también se llenará el de tienda arriba: se va a elegir la tienda donde el sales rep está».
+
+**Qué cambia:** la página de Clientes lee también `profiles.store` de quien mira y lo pasa hasta la ventana (`miTienda`). En un alta (`cliente === null`), `tiendaPreelegida` traduce ese valor (el nombre «RDZ Brownsville» o el código) al código de `TIENDAS`, y esa casilla nace marcada y `form.store` con ella, en el mismo `preajuste` que pone al vendedor (D-740). Se puede desmarcar o añadir otras, como antes. Vale para la solicitud (D-743) y para el alta directa del admin si tiene tienda. Sin tienda, o con una que no está en `TIENDAS`, nada marcado, como antes. Una ficha ya creada no cambia.
+
+**Pruebas:** `src/lib/customers/alta-tienda-preelegida.test.ts`; `vendedor-por-tienda.test.ts` con el `preajuste` nuevo. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.
