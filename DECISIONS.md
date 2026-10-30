@@ -49246,3 +49246,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/estimator/nivel-en-vista-previa.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+## D-776 · Quote Builder: en Mission el impuesto es 6.25 %; en las demás tiendas, 8.25 %
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/cotiza-impuesto-mission`.
+
+**Pedido (el dueño, 2026-10-30):** «in Mission in the quote builder, only for Mission, tax is 6.25».
+
+**Qué cambia:** `tasaDeImpuesto(tienda)` en `modelo.ts`: «RDZ Mission» → 6.25 %; cualquier otra tienda, o sin tienda, 8.25 % (la constante de D-442, que sigue). La tienda es la de la cotización: la guardada (D-451) o, si es nueva, la del perfil de quien la prepara (`tiendaDeLaHoja`). La usan la pantalla (totales bajo la hoja), la hoja del cliente («Tax 6.25%: $…»), el total de la lista de cotizaciones y el demo. Las cotizaciones guardadas sin tienda (hay 4) toman la del perfil de quien las abre, como ya hacía la hoja.
+
+**Pruebas:** `src/lib/estimator/impuesto-por-tienda.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador; la tasa 6.25 % es la que dijo el dueño, no se contrastó con el comptroller.

@@ -1,6 +1,7 @@
 import {
   cajasDeLinea, dinero, fechaLarga, numero, paraQuienSeImprime, porcentajeDeDescuento, preciosDeLinea, resumenDeTotales, estadoDelPrecioBajo, sfReal,
   totalDeLinea, totalRegularDeLinea, type DisplayLevel, type QuoteDraft, type QuoteLine,
+  tasaDeImpuesto,
 } from "./modelo";
 
 /**
@@ -153,7 +154,7 @@ export function hojaDelCliente(q: QuoteDraft, tienda: string | null = null): Hoj
     precioConDescuento: precioConDescuentoParaElCliente(l),
   }));
   // Subtotal regular → ahorro → impuesto → total (D-442). Solo con las líneas: la entrega no entra (D-413).
-  const r = resumenDeTotales(q.lines);
+  const r = resumenDeTotales(q.lines, tasaDeImpuesto(tienda));
   const total = r.total;
   const fecha = fechaLarga(q.valid_through);
   return {

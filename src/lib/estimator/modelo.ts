@@ -276,6 +276,17 @@ export function totalRegularDeLinea(l: QuoteLine): number | null {
  */
 export const TASA_DE_IMPUESTO = 8.25;
 
+/**
+ * D-776: la tasa según la tienda donde se hace la cotización. El dueño, 2026-10-30: «in Mission in the quote builder,
+ * only for Mission, tax is 6.25». Mission cobra solo el 6.25 % del estado; las demás, 8.25 %. Sin tienda, la de siempre.
+ * La misma función la usan la pantalla, la hoja del cliente y el total de la lista, con la tienda de la cotización (la
+ * guardada; si es nueva, la del perfil de quien la prepara: `tiendaDeLaHoja`).
+ */
+export const TASA_DE_IMPUESTO_MISSION = 6.25;
+export function tasaDeImpuesto(tienda: string | null | undefined): number {
+  return (tienda ?? "").trim().toLowerCase() === "rdz mission" ? TASA_DE_IMPUESTO_MISSION : TASA_DE_IMPUESTO;
+}
+
 export interface ResumenDeTotales {
   /** La suma de las líneas a precio regular. */
   subtotal: number;

@@ -3,6 +3,7 @@ import type { EstimadoHallado, AprobacionEstado } from "./validar";
 import {
   DEFAULT_DISPLAY_LEVEL, DEFAULT_SALUTATION, DISPLAY_LEVELS, SALUTATIONS, hoyLocal, resumenDeTotales,
   type Customer, type Delivery, type DisplayLevel, type QuoteDraft, type QuoteLine,
+  tasaDeImpuesto,
 } from "./modelo";
 import {
   aplicaAlcance, aplicaFiltro, cortaTanda, piesCuadradosPedidos, rangoDeTanda,
@@ -181,15 +182,17 @@ export function resumenDeFila(fila: Record<string, unknown>): CotizacionResumen 
   const borrador = borradorDeFila(fila);
   const dueno = fila.owner as { full_name?: unknown } | { full_name?: unknown }[] | null | undefined;
   const nombre = Array.isArray(dueno) ? dueno[0]?.full_name : dueno?.full_name;
+  const store = typeof fila.store === "string" && fila.store.trim() ? fila.store.trim() : null;
   return {
     id: String(fila.id ?? ""),
     estimate_num: borrador.estimate_num,
     owner_id: typeof fila.owner_id === "string" ? fila.owner_id : null,
     owner_name: typeof nombre === "string" && nombre.trim() ? nombre.trim() : null,
-    store: typeof fila.store === "string" && fila.store.trim() ? fila.store.trim() : null,
+    store,
     customer_name: borrador.customer.full_name.trim(),
     sf: piesCuadradosPedidos(borrador.lines),
-    total: resumenDeTotales(borrador.lines).total,
+    // D-776: con la tasa de la tienda de la cotización (Mission 6.25 %).
+    total: resumenDeTotales(borrador.lines, tasaDeImpuesto(store)).total,
     price_match_lines: lineasConPriceMatch(borrador.lines),
     print_count: num(fila.print_count) ?? 0,
     printed_at: typeof fila.printed_at === "string" ? fila.printed_at : null,

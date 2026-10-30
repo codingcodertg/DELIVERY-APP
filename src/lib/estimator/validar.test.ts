@@ -179,7 +179,7 @@ describe("la pantalla usa estas reglas, no una copia", () => {
     expect(p).toMatch(/const estado = estadoDelEstimado\(\{/);
     expect(p).toContain("const faltas = loQueFalta(draft, estado);");
     // Los totales de la pantalla salen del mismo resumen que la hoja (D-442): subtotal, ahorro, impuesto y total.
-    expect(p).toContain("const totales = resumenDeTotales(draft.lines);");
+    expect(p).toContain("const totales = resumenDeTotales(draft.lines, tasaDeImpuesto(tiendaDeLaHoja(tiendaGuardada, me?.store)));");
     for (const campo of ["subtotal", "ahorro", "impuesto", "total"]) expect(p).toContain(`dinero(totales.${campo})`);
   });
   it("el botón de generar y el Continuar de la política pasan por politica.ts", () => {
