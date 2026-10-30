@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } from "@/lib/leads/almacen";
-import { ALCANCE_SIN_REGLA, eligeTienda, leadsDelBanco, type Alcance } from "@/lib/leads/alcance";
+import { ALCANCE_SIN_REGLA, eligeTienda, leadsDelBanco, privadosVisibles, veElPoolPrivado, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO } from "@/lib/leads/demo";
 import {
   abiertosDe, bloqueado, colaDeRevision, consecuencia, cuentaPorSituacion, delExcel, dinero, enlaceSeguro, estadoLabel, eventoLabel, fecha, filtrar,
@@ -101,7 +101,9 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // tienda (los que le asignó un admin) están en «Mi pool», y no traen aquí el banco de esa tienda ni su contador.
   // D-760 (218): el «Pool privado» (leads de la fuente privada) es una pestaña aparte, solo del admin; la base ya no
   // se los manda a nadie más. Reusa los mismos filtros, orden y tarjetas que el Pool General.
-  const privados = useMemo(() => leads.filter((l) => l.source === "privado"), [leads]);
+  // D-770 (220): el STXP Pool lo ve quien tiene la casilla (y el admin), y de él su tienda y, agotada, la más cercana.
+  const veStxp = !!yo && veElPoolPrivado(yo);
+  const privados = useMemo(() => (yo ? privadosVisibles(leads, yo) : []), [leads, yo]);
   // D-762: de los cruzados, el cliente (enlace a su ficha) y el vendedor que lo lleva. Una lectura por tanda de ids.
   const [clientes, setClientes] = useState<Map<number, ClienteCruzado>>(() => new Map());
   const idsCruzados = useMemo(() => leads.map((l) => l.customer_match_id).filter((n): n is number => n != null).sort().join(","), [leads]);
@@ -129,11 +131,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       ? p : poolInicial(pools, tienda, todasPorDefecto)));
   }, [pools, tienda, todasPorDefecto, elige, poolAMano]);
 
-  const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);
+  // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra: ve su tienda y la cercana que le tocó.
+  const poolFiltro = pestana === "privado" && !elige ? null : filtroDePool(pool);
+  const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro), [delBanco, poolFiltro]);
   const porSituacion = useMemo(() => cuentaPorSituacion(delPool), [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden),
-    [delBanco, pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, orden],
+    () => ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden),
+    [delBanco, poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, orden],
   );
   useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, orden]);
 
@@ -227,7 +231,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
         <>
           <div className="ld-pestanas" role="tablist">
             <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => setPestana("banco")}>
-              🏦 {t("General Pool", "Pool General")}
+              🏦 {t("GOV Pool", "GOV Pool")}
             </button>
             <button type="button" role="tab" aria-selected={pestana === "mio"} className={`chip${pestana === "mio" ? " on" : ""}`} data-pestana="mio" onClick={() => setPestana("mio")}>
               ⭐ {t("My pool", "Mi pool")} <span className="cnt" data-mi-cuenta>{mios.length}/{tope}</span>
@@ -237,9 +241,9 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                 🛠 Admin{colaDeRevision(leads).length > 0 ? <span className="cnt">{colaDeRevision(leads).length}</span> : null}
               </button>
             )}
-            {yo.admin && (
+            {veStxp && (
               <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => setPestana("privado")}>
-                🔒 {t("Private pool", "Pool privado")} <span className="cnt" data-privados>{privados.length}</span>
+                🔒 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{privados.length}</span>
               </button>
             )}
             <button type="button" className="btn btn-ghost btn-sm ld-releer" onClick={() => void cargar()}>↻ {t("Refresh", "Actualizar")}</button>
@@ -257,13 +261,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             </div>
           )}
 
-          {(pestana === "banco" || (pestana === "privado" && yo.admin)) && (
+          {(pestana === "banco" || (pestana === "privado" && veStxp)) && (
             <>
               <div className="card ld-filtros">
                 <div className="ld-fila">
                   {elige ? (
                     <label className="ld-ancho">
-                      {t("General Pool (nearest store)", "Pool General (tienda más cercana)")}
+                      {t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}
                       <select data-pool value={pool ?? ""} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
                         {pools.length > 1 && (() => {
                           const todas = resumenDeTodas(pools);
@@ -280,10 +284,17 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                         ))}
                       </select>
                     </label>
+                  ) : pestana === "privado" ? (
+                    /* D-770: su tienda y, agotada, la más cercana: se nombran las que le tocan, en orden. */
+                    <p className="ld-ancho" data-pool-stxp>
+                      {t("STXP Pool: your store and, when it runs out, the nearest one", "STXP Pool: tu tienda y, agotada, la más cercana")}
+                      <br />
+                      <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.libres})`).join(" → ") : "—"}</b>
+                    </p>
                   ) : (
                     /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
                     <p className="ld-ancho" data-pool-fijo>
-                      {t("General Pool of your store", "Pool General de tu tienda")}
+                      {t("GOV Pool of your store", "GOV Pool de tu tienda")}
                       <br />
                       <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
                       {pools[0] ? <> — {pools[0].libres} {t("free", "libres")} / {pools[0].total}</> : null}
@@ -353,8 +364,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
               {!elige && !alcance.tienda && (
                 <div className="ld-aviso ambar" data-aviso-sin-tienda>
                   {t(
-                    "Your user has no store assigned, so there is no General Pool to show you. Ask an admin to set your store. The leads you already hold are in My pool.",
-                    "Tu usuario no tiene tienda asignada, así que no hay Pool General que enseñarte. Pide a un admin que te ponga tu tienda. Los leads que ya tienes están en Mi pool.",
+                    "Your user has no store assigned, so there is no GOV Pool to show you. Ask an admin to set your store. The leads you already hold are in My pool.",
+                    "Tu usuario no tiene tienda asignada, así que no hay GOV Pool que enseñarte. Pide a un admin que te ponga tu tienda. Los leads que ya tienes están en Mi pool.",
                   )}
                 </div>
               )}
@@ -384,7 +395,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   `Puedes tener hasta ${tope} leads abiertos. Una nota de avance deja el lead abierto; solo cerrarlo con un resultado libera su puesto.`,
                 )}
               </p>
-              {mios.length === 0 && <p className="hint">{t("Your pool is empty. Take leads from the General Pool.", "Tu pool está vacío. Toma leads del Pool General.")}</p>}
+              {mios.length === 0 && <p className="hint">{t("Your pool is empty. Take leads from the GOV Pool.", "Tu pool está vacío. Toma leads del GOV Pool.")}</p>}
               <div className="ld-lista" data-lista-mia>{ordenar(mios, "distancia").map((l) => tarjeta(l, "mio"))}</div>
               {misVentas.length > 0 && (
                 <>
@@ -664,8 +675,8 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
           {dialogo.tipo === "admin" && (
             <>
               <button type="button" className="btn btn-ghost" data-liberar disabled={enviando || l.status === "free"}
-                onClick={() => void enviar(() => almacen.liberar(l.id, nota), t("Released to the General Pool.", "Liberado al Pool General."))}>
-                {t("Release to General Pool", "Liberar al Pool General")}
+                onClick={() => void enviar(() => almacen.liberar(l.id, nota), t("Released to the GOV Pool.", "Liberado al GOV Pool."))}>
+                {t("Release to GOV Pool", "Liberar al GOV Pool")}
               </button>
               <button type="button" className="btn btn-danger" data-archivar disabled={enviando || l.status === "archived"}
                 onClick={() => void enviar(() => almacen.archivar(l.id, nota), t("Archived.", "Archivado."))}>
@@ -744,10 +755,10 @@ function Admin({ leads, tope, almacen, tarjeta, demo, onTope }: {
       </div>
 
       <div className="card">
-        <h2>🏬 {t("By General Pool", "Por Pool General")}</h2>
+        <h2>🏬 {t("By GOV Pool", "Por GOV Pool")}</h2>
         <div className="tbl-scroll">
           <table className="orders" data-por-pool>
-            <thead><tr><th>{t("General Pool", "Pool General")}</th><th>{t("Free", "Libres")}</th><th>{t("Taken", "Tomados")}</th><th>Total</th></tr></thead>
+            <thead><tr><th>{t("GOV Pool", "GOV Pool")}</th><th>{t("Free", "Libres")}</th><th>{t("Taken", "Tomados")}</th><th>Total</th></tr></thead>
             <tbody>{poolsDe(leads).map((p) => <tr key={p.pool}><td>{poolLabel(p.pool, lang)}</td><td>{p.libres}</td><td>{p.tomados}</td><td>{p.total}</td></tr>)}</tbody>
           </table>
         </div>

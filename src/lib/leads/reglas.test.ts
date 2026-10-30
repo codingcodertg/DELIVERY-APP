@@ -144,8 +144,8 @@ describe("3 · cerrar con resultado y nota", () => {
   it("lo que se dice antes de cerrar sale del mismo destino", () => {
     expect(consecuencia("sale", "es")).toMatch(/Se queda contigo/);
     expect(consecuencia("review", "es")).toMatch(/cola del admin/);
-    expect(consecuencia("nothing", "es")).toMatch(/Vuelve al Pool General/);
-    expect(consecuencia("bad_lead", "en")).toMatch(/back to the General Pool/);
+    expect(consecuencia("nothing", "es")).toMatch(/Vuelve al GOV Pool/);
+    expect(consecuencia("bad_lead", "en")).toMatch(/back to the GOV Pool/);
   });
 });
 
@@ -393,7 +393,7 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("{donde !== \"mio\" && l.status === \"free\" && (");
   });
   it("el banco se pinta filtrado y ordenado por las funciones, con «libres» y «sirve» de entrada, y en el pool de su tienda", () => {
-    expect(p).toContain("ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden)");
+    expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden)");
     expect(p).toContain('useState<Vista>("libres")');
     expect(p).toContain('useState<FiltroCategoria>("utiles")');
     // D-491: nace ordenado por pies², de mayor a menor.
@@ -406,7 +406,7 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("setPool((p) => (poolAMano && p && ");
     expect(p).toContain("onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}");
     expect(p).toContain("<option value={POOL_TODAS}>");
-    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);");
+    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro), [delBanco, poolFiltro]);");
     expect(p).toContain("const tienda = yo?.store ?? null;");
   });
   it("mi pool son mis abiertos y mis ventas, y la cuenta de la pestaña es abiertos/tope", () => {

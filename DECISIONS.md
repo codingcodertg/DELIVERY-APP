@@ -49185,3 +49185,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/alta-tienda-preelegida.test.ts`; `vendedor-por-tienda.test.ts` con el `preajuste` nuevo. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+## D-770 · Leads: el «STXP Pool» (antes «Pool privado») por permiso y por tienda, con la tienda más cercana cuando la propia se agota; «Pool General» pasa a «GOV Pool»; Leads en modo enseñanza (migración 220)
+
+**Fecha:** 2026-10-30 · **Migración 220** (`220_leads_stxp_pool.sql`) · Hecho directo por el orquestador en `feat/leads-stxp-pool`. **Reemplaza en parte a D-760** (la pestaña ya no es solo del admin).
+
+**Pedidos (el dueño, 2026-10-30, en cuatro mensajes):** «create the permission for the employees to see the private pool»; «si la tienda se acaba todas las leads de su tienda en la private pool, automáticamente podrán ver las leads de la tienda más cercana, y así sucesivamente si ya tocaron todas las leads de la tienda de ellos»; «general pool rename to GOV Pool and Private pool to STXP Pool»; «déjame probar esto en teaching mode». (Antes había pedido «if the sales person was assigned to the similar client from the leads page he can see the lead»: queda cubierto por la casilla, no por el cliente cruzado; si quiere la regla por cliente además, se añade.)
+
+**Qué cambia:**
+- **El permiso.** Casilla «Ver el STXP Pool» (`leads_private_pool` en `profiles.permissions`) en Usuarios › Leads, para cualquier rol; el admin la tiene del rol. De entrada nadie la tiene: el dueño la marca. En la base, `leads_sees_private()`.
+- **Por tienda, y la más cercana.** Quien tiene la casilla ve del STXP Pool los leads de SU tienda (`profiles.store`) y, mientras la suya no tenga ningún lead privado libre, los de la siguiente más cercana, y así hasta la primera que aún tenga libres. Orden fijo por geografía (Mission · McAllen · Pharr · Edinburg · Weslaco · Brownsville, cada una con su lista; `ORDEN_DE_TIENDAS_CERCANAS` = `leads_private_order()`). Lo que tiene a su nombre lo ve siempre. Lo decide la base (políticas de `leads` y `lead_events`, y `lead_take`), y la pantalla y el demo repiten la cuenta (`privadosVisibles`). El admin ve todo. En la pestaña, quien no elige tienda ve «STXP Pool: tu tienda y, agotada, la más cercana» con las tiendas que le tocan y sus libres.
+- **Nombres.** «Pool General» / «General Pool» → **GOV Pool**; «Pool privado» / «Private pool» → **STXP Pool**, en la pantalla y en los textos de cierre.
+- **Modo enseñanza.** Con la cookie de enseñanza puesta, `/leads` abre el demo (leads y personas inventados, nada toca la base), con un desplegable para ser Ana (ventas de Brownsville, con la casilla), Beto (sin ella), el admin o los gerentes. El demo trae diez leads del STXP Pool por tienda; Brownsville con dos libres, para ver cómo aparece Weslaco al tomarlos.
+
+**Datos:** ninguno. Los 209 privados importados en D-760 siguen con su `pool` por ciudad (Brownsville 60, Pharr 53, Mission 43, McAllen 36, Weslaco 17).
+
+**Pruebas:** `src/lib/leads/stxp-pool.test.ts` (permiso, orden de tiendas igual en código y en la 220, pools visibles, el demo tomando hasta agotar Brownsville, la pantalla, la página y la 220); `alcance`, `reglas` y `pool-privado` puestas al día. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. La 220 se ensayó con ROLLBACK; aplicarla es del dueño (comando en el mensaje).
