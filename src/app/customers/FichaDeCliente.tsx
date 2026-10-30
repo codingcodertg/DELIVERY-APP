@@ -109,7 +109,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   const ocultas = filasOcultas().map(linea).filter((x) => x !== null);
   return (
     <div className="space-y-4">
-      {/* D-NEXT: tres columnas FIJAS, las de la hoja del dueño (`COLUMNAS_DE_LA_FICHA`): Cuenta + Estado / Contacto / Crédito +
+      {/* D-766: tres columnas FIJAS, las de la hoja del dueño (`COLUMNAS_DE_LA_FICHA`): Cuenta + Estado / Contacto / Crédito +
           Otros + ocultos. Cada tarjeta mide lo suyo (`items-start`, lo que pedía D-745) y ninguna cambia de columna según
           lo alta que sea la de al lado (eso hacían las columnas que fluyen de D-745). En el teléfono, una sola columna. */}
       <div className="grid gap-4 items-start md:grid-cols-3" data-tarjetas-de-la-ficha>

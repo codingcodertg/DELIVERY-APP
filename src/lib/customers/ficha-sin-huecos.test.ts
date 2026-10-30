@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { COLUMNAS_DE_LA_FICHA, GRUPOS } from "./reglas";
 
 /**
- * La ficha de cliente en tres columnas fijas, cada tarjeta con su alto (D-NEXT, 2026-10-30, la hoja del dueño). Sustituye a
+ * La ficha de cliente en tres columnas fijas, cada tarjeta con su alto (D-766, 2026-10-30, la hoja del dueño). Sustituye a
  * las columnas que fluían de D-745: con ellas, qué tarjeta caía debajo de cuál dependía del alto de la de al lado.
  */
 

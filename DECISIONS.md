@@ -49162,7 +49162,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** en el hub, el clic en «👤 Mi perfil · contraseña» o en «🎨 Personalizar · idioma, tema» abre el mismo contenido de siempre (`ProfileView`, `Personalizador`) dentro del velo y el modal de siempre (`.overlay` + `.modal`), encima del hub. Se cierra con el velo, con Escape o con «Cerrar» (que ocupa el sitio de «Volver al hub»). Desde la tarjeta de Mi perfil, «Personalizar →» cambia a la otra tarjeta sin salir. Los enlaces conservan su ruta y las páginas `/home/profile` y `/home/personalizar` siguen existiendo: son el destino desde el menú del nombre de cada app (D-490) y del redirect de `/account` (D-274); abrir con botón central o sin JS sigue llegando allí. El servidor del hub lee además `username` y manda a la tarjeta el correo o usuario por `identidadVisible`, como hacía la página.
 
 **Pruebas:** `src/lib/hub-perfil-en-tarjeta.test.ts`; `personalizar.test.ts` actualizada a los enlaces con clic. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
-## D-NEXT · Ficha de cliente (alta y edición): tres columnas fijas como la hoja del dueño
+## D-766 · Ficha de cliente (alta y edición): tres columnas fijas como la hoja del dueño
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/ficha-cliente-orden-vendedores`. **Reemplaza a D-745** (columnas que fluyen).
 
