@@ -745,7 +745,9 @@ export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: 
  * del servidor (`customers/layout.tsx`) y la casilla de Usuarios (`MODULE_ACCESS`) lo leen. Con `false`, vuelve a lo de
  * la 180: entra quien tiene la casilla, y la casilla se ofrece a todos.
  */
-export const CLIENTES_SOLO_ADMINS = false; // D-683: abierto a los vendedores (cada uno ve los suyos y los libres, 198).
+// D-683 lo abrió a los vendedores; D-759 (2026-10-30) lo vuelve a cerrar: el dueño, «solo admins que tengan access a customer
+// por ahora». La casilla de los que ya la tienen se queda puesta: el día que se reabra, entran sin tocar nada.
+export const CLIENTES_SOLO_ADMINS = true;
 
 /** ¿Puede entrar a /customers? Admin siempre; los demás, solo con la casilla y solo si no está en «solo admins». */
 export function puedeEntrarAClientes(p: { role?: string | null; module_access?: string[] | null } | null | undefined): boolean {

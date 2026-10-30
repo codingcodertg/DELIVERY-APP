@@ -341,20 +341,22 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
   });
 });
 
-describe("D-570 · solo admins por ahora (quitado en D-683: entra quien tiene la casilla)", async () => {
+describe("D-570 · solo admins por ahora (quitado en D-683, vuelto a poner en D-759)", async () => {
   const { CLIENTES_SOLO_ADMINS, puedeEntrarAClientes, seOfreceClientes } = await import("./reglas");
-  it("el interruptor está QUITADO: el admin siempre; los demás, con la casilla; sin ella, no", () => {
-    expect(CLIENTES_SOLO_ADMINS).toBe(false);
+  it("el interruptor está PUESTO: solo el admin entra, tenga o no la casilla; los demás no, aunque la tengan", () => {
+    expect(CLIENTES_SOLO_ADMINS).toBe(true);
     expect(puedeEntrarAClientes({ role: "admin", module_access: [] })).toBe(true);
     for (const role of ["manager", "sales", "accounting", "logistics", "warehouse", "driver"]) {
-      expect(puedeEntrarAClientes({ role, module_access: ["customers"] })).toBe(true);
+      expect(puedeEntrarAClientes({ role, module_access: ["customers"] })).toBe(false);
       expect(puedeEntrarAClientes({ role, module_access: ["leads"] })).toBe(false);
     }
     expect(puedeEntrarAClientes(null)).toBe(false);
+    // Y el hub no enseña la tarjeta a quien la puerta va a rebotar.
+    expect(leer("src/components/HomeSelector.tsx")).toContain('.filter((m) => m.key !== "customers" || puedeEntrarAClientes(me))');
   });
-  it("la casilla de Usuarios se ofrece a todos, y el diálogo pregunta antes de dibujar el bloque", () => {
+  it("la casilla de Usuarios se ofrece solo al admin, y el diálogo pregunta antes de dibujar el bloque", () => {
     expect(seOfreceClientes("admin")).toBe(true);
-    expect(seOfreceClientes("manager")).toBe(true);
+    expect(seOfreceClientes("manager")).toBe(false);
     const dialogo = leer("src/components/UserDialog.tsx");
     expect(dialogo).toContain("(m.offeredTo?.(u.role) ?? true)");
     const constantes = leer("src/lib/constants.ts");
