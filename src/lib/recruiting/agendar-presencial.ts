@@ -79,13 +79,14 @@ export function tiendaDelLugar(lugar: string, tiendas: readonly Tienda[]): Tiend
  *  10:00 a.m.» / «hoy a las…» / «el martes 20 de octubre a las…»; `{day}` = «mañana» / «hoy» / «el martes». */
 export const MARCADORES_DE_LA_CITA = "{when} {day} {date} {time} {place} {address} {maps}";
 
-/** Los enlaces para llegar a la tienda, desde su dirección (D-717, el dueño: «un link de Google Maps o de Waze … que solo
- *  apriete ahí y se abra»): uno por línea, los dos. Sin dirección, nada. */
+/** El enlace para llegar a la tienda, desde su dirección (D-717, el dueño: «un link de Google Maps o de Waze … que solo
+ *  apriete ahí y se abra»). D-NEXT: solo Google Maps; con los dos, el SMS pasaba del largo que admite el chat
+ *  («Your message is too long», el dueño, 2026-10-30: «solo deja el link de google maps»). Sin dirección, nada. */
 export function enlacesDeMapa(address: string | null | undefined): string {
   const q = (address ?? "").trim();
   if (!q) return "";
   const e = encodeURIComponent(q);
-  return `Google Maps: https://www.google.com/maps/search/?api=1&query=${e}\nWaze: https://waze.com/ul?q=${e}&navigate=yes`;
+  return `Google Maps: https://www.google.com/maps/search/?api=1&query=${e}`;
 }
 
 /** La plantilla del dueño (D-604, 2026-10-19: «así es el template que yo uso, no me gustó el que hiciste»), letra por letra,

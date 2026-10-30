@@ -49140,3 +49140,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/cruzados-enlace-y-vendedor.test.ts` (ampliada: el enlace directo ya no existe; la tarjeta lista cada campo). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+
+## D-NEXT · RRHH: el SMS de la cita lleva solo el enlace de Google Maps (sin Waze)
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `fix/sms-entrevista-solo-maps`.
+
+**Pedido (el dueño, 2026-10-30, con captura del chat de Textline):** «solo deja el link de google maps porque mira mensaje muy largo». La captura: «Your message is too long. Shorten it and try again» con el texto de la cita (D-717) que lleva Google Maps y Waze.
+
+**Qué cambia:** `enlacesDeMapa` devuelve solo «Google Maps: https://www.google.com/maps/search/?api=1&query=…». La línea de Waze desaparece de la plantilla en los dos idiomas. Lo demás de D-604/D-717 queda igual.
+
+**Pruebas:** `src/lib/recruiting/agendar-presencial.test.ts` (el texto esperado sin Waze y `not.toContain("waze")`). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
+
+**No verificado:** no se mandó un SMS; el largo final depende de la dirección de la tienda.
