@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { BitacoraDelDia } from "./BitacoraDelDia";
 import {
   addEntry, deleteEntry, editEntry, getPayrollPeriod,
   approveTimesheet, unapproveTimesheet, ownerSignoff, revokeSignoff,
@@ -406,7 +407,8 @@ export function PayrollTimesheets({ period, revisar }: {
                       <table style={{ marginTop: 8 }}>
                         <tbody>
                           {suyas.map((e) => (
-                            <tr key={e.id}>
+                            <Fragment key={e.id}>
+                            <tr>
                               <td className="small nowrap">{fmtDia(e.clock_in_at)}</td>
                               <td className="small nowrap">
                                 {fmtHora(e.clock_in_at)} – {e.clock_out_at ? fmtHora(e.clock_out_at) : <span className="pill wait">open</span>}
@@ -428,6 +430,11 @@ export function PayrollTimesheets({ period, revisar }: {
                                 )}
                               </td>
                             </tr>
+                            {/* D-NEXT: la bitácora del turno, plegada: entrada, comida, visitas y salida con sus fotos. */}
+                            <tr className="bitacora-fila">
+                              <td colSpan={5}><BitacoraDelDia entryId={e.id} /></td>
+                            </tr>
+                            </Fragment>
                           ))}
                         </tbody>
                       </table>

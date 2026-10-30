@@ -49059,3 +49059,17 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `orden-del-hub.test.ts` puesta al día (colocar al arrastrar, y la pantalla sin flechas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se arrastró en un navegador.
+## D-NEXT · Nómina: bajo cada día fichado, la bitácora del turno plegada (entrada, comida, visitas, salida) con sus fotos en pequeño
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/nomina-dia-completo-plegable`.
+
+**Pedido (el dueño, 2026-10-29, por voz, con captura de Nómina → En sitio → Timesheets):** «ahí quiero que haya el glosado en esa parte que diga salió a lunch a esta hora, fue a ver a cliente a esta hora, aquí están las dos fotos, pero pequeñito, que solo para el clic y obviamente que se expanda […] que enseñe todo eso, hasta las fotos que tomó todas, las de clock-in, de clock-out, y fue a visitar a un cliente […] que todo sea collapse y se pueda expandir, pero que ahí esté todo sin necesidad de estar yendo a Auditoría».
+
+**Qué cambia.**
+- **Acción nueva** `getEntryDayLog(entryId)` (`clock-in/actions/bitacora.ts`): lo de UN fichaje, acotado por `time_entry_id` (sin cuadrar nombres ni días que cruzan la medianoche): fotos de entrada/salida, de salir y volver, y de visitas y paradas (las mismas piezas que `getDayPhotos`, por `armarFotos`), más las salidas (comida y demás, con hora de ida y vuelta) y las paradas (hora, nombre, dirección) aunque no lleven foto. Exige poder gestionar a esa persona (`canManageEmployee`), como el resto de Nómina. Firma en bloque, una hora.
+- **Componente** `BitacoraDelDia` bajo cada fila de día en Timesheets: un `<details>` plegado «📒 Día completo (fotos y paradas)»; al abrir carga (no antes: Nómina no se vuelve lenta por los días que nadie despliega) y pinta una línea por cosa, en orden de hora: miniatura de 44 px si hay foto, hora en negrita y el texto («Entrada · Pharr», «Salió · lunch», «Volvió», «Visita / parada · Casa Mayberry», «Salida»). Tocar una miniatura abre el visor del hub (`PhotoLightbox`) con todas las del turno.
+- Textos en los dos idiomas (`mgr.pay.daylog.*`); estilos `.bitacora-*` en `timetracker.css`.
+
+**Pruebas:** `src/lib/timetracker/bitacora-del-dia.test.ts` (las líneas en orden y sin duplicar salidas con foto; Nómina la monta; los textos; la acción acota y exige permiso). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador; no se midió con un turno real (el de Everto Prado de hoy tiene una foto de visita).
