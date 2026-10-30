@@ -9,7 +9,7 @@ import { createClient as createErpClient } from "@/lib/erp/supabase/client";
 import {
   borradorVacio, cajasDeLinea, cajasPorDefecto, claveDeEstimado, dinero, extensionDePartida, lineaSfVacia, lineaUnidadVacia,
   estadoDelPrecioBajo, numero, pareceDeCaja, paraQuienSeImprime, porcentajeDeDescuento, precioDeCaja, precioPorSfDeCaja, preciosDeLinea, resumenDeTotales, SALUTATIONS,
-  sfReal, telefonoAlEscribir, telefonoLimpio, totalDeLinea, totalRegularDeLinea,
+  sfReal, tasaDeImpuesto, telefonoAlEscribir, telefonoLimpio, totalDeLinea, totalRegularDeLinea,
   type DisplayLevel, type QuoteDraft, type QuoteLine, type Salutation,
 } from "@/lib/estimator/modelo";
 import { tiendaDePartida, type AjustesDeEntrega } from "@/lib/estimator/entrega";
@@ -219,7 +219,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const faltas = loQueFalta(draft, estado);
   const cortas = lineasCortas(draft);
   // Subtotal regular → ahorro → impuesto → total (D-442), el mismo cálculo que la hoja. Solo líneas: sin entrega.
-  const totales = resumenDeTotales(draft.lines);
+  // D-NEXT: con la tasa de la tienda de la cotización (Mission 6.25 %; las demás 8.25 %), la misma que la hoja.
+  const totales = resumenDeTotales(draft.lines, tasaDeImpuesto(tiendaDeLaHoja(tiendaGuardada, me?.store)));
 
   // ---- acciones -------------------------------------------------------------------------------------
   const abrirGuardada = async (id: string): Promise<boolean> => {
