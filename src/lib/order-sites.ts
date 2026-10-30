@@ -2,6 +2,7 @@ import type { Delivery, NamedLocation, Stage } from "./types";
 import { conflictosDeSitio, isStoreToStore, orderTypeRule, type MissingField, type OrderTypeRules } from "./required";
 import { normalizaLugar, origenEsDestino } from "./order-endpoints";
 import { esTransferenciaSinVenta, tiendaDeLaRecogida } from "./transferencia-sin-venta";
+import { recogidaLibre, sinRecogidaDeTienda } from "./recogida-libre";
 
 /**
  * Por dónde pasa una orden tienda-a-tienda antes de ir a su propio sitio (D-276).
@@ -117,6 +118,9 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
   // La cuenta, con el destino ya decidido (D-312). Va después del bloque de arriba a propósito: en un
   // tipo que recibe el destino se acaba de poner, y en los demás tienda-a-tienda puede estar vacío
   // todavía — entonces la cuenta también, y la escribirá `eligeDestino` cuando se elija.
+  // D-753: con recogida libre (Otro, Proveedor) la recogida no es una de nuestras tiendas: si traía una, se vacía para
+  // teclear la de verdad; una tecleada se respeta.
+  if (recogidaLibre(rule)) Object.assign(next, sinRecogidaDeTienda(next, c.tiendas));
   if (rule.storeToStore === true) next.account = next.delivery_name ?? "";
   // **Desde D-312 la punta que el tipo deja elegir es el ORIGEN**, también en un tipo que recibe: si
   // con las dos puestas chocan, se vacía «Vendido desde» y su recogida, que es lo que la persona puede

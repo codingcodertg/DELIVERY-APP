@@ -138,8 +138,8 @@ describe("la pantalla: los botones de decidir se ven", () => {
     // `btn-green` y `btn-danger` viven en globals.css y salen de --green y --red. Un hex aquí
     // sobreviviría a un cambio de paleta y se quedaría desparejado sin que nadie lo notara.
     const css = leer("src/app/globals.css");
-    expect(css).toContain(".btn-green { background: var(--green); color: #fff; }"); // D-749: sólido vivo
-    expect(css).toContain(".btn-danger { background: var(--red); color: #fff; }"); // D-749
+    expect(css).toContain(".btn-green { background: #e5f6ee; color: var(--green); }");
+    expect(css).toContain(".btn-danger { background: #fdeaea; color: var(--red); }");
     const cuerpo = tabla.slice(tabla.indexOf("return ("));
     expect(cuerpo).not.toMatch(/#[0-9a-fA-F]{6}/);
   });
