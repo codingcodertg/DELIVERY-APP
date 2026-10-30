@@ -49103,3 +49103,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/pool-privado.test.ts` (modelo, filtro, banco sin privados, el importador —mapeo, tienda por ciudad, cruce— la 218 y la pantalla). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La 218 se ensayó con ROLLBACK; aplicarla y correr el importador con `--escribe` es del dueño (dos comandos `!`). Siguiente, cuando el dueño lo diga: qué hacer con los cruzados (asignar, marcar, avisar al vendedor del cliente…).
+## D-NEXT · Entregas: una orden entregada en otro día se queda con la fecha real de entrega (migración 219)
+
+**Fecha:** 2026-10-30 · **Migración 219** (`219_entregada_en_otra_fecha.sql`: disparador `deliveries_zz_entregada_fija_fecha`) · Hecho directo por el orquestador en `feat/entregada-en-otra-fecha`.
+
+**Pedido (Roberto Rodriguez Jr, admin, con una Intertienda programada para el 31 y ya entregada el 30, reenviado por el dueño, 2026-10-30):** «If driver delivers something at a different date then update delivery date to be true».
+
+**Qué cambia:** un disparador en la base: cuando la orden **pasa** a entregada y su fecha de entrega no es el día real (el de la prueba de entrega, `pod_delivered_at`, o el de ahora, en hora de Texas), la fecha pasa a ese día y queda la nota «Entregada el 2026-10-30; estaba programada para 2026-10-31» en el historial. En la base y no en la pantalla porque todos los caminos (chofer, «Marcar entregada ya», en bloque, «Forzar estado», la cola sin cobertura) hacen el mismo UPDATE, y el chofer no puede tocar `delivery_date` por su cuenta (guard de la 168). Corre después del guard (por nombre) y el disparador de reprogramar no actúa en entregadas, así que nadie sale de su ruta. Las entregadas de antes no se tocan (medido antes de aplicar: ver el comando de ensayo). Con esto, una orden entregada hoy deja de aparecer en «Mañana».
+
+**Pruebas:** `src/lib/entregada-en-otra-fecha.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
+
+**No verificado:** no se marcó una entrega real; la 219 se ensayó con ROLLBACK, con un UPDATE de prueba dentro del mismo ensayo. Aplicarla es del dueño.
