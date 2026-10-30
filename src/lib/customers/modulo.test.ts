@@ -341,7 +341,7 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
   });
 });
 
-describe("D-570 · solo admins por ahora (quitado en D-683, vuelto a poner en D-NEXT)", async () => {
+describe("D-570 · solo admins por ahora (quitado en D-683, vuelto a poner en D-759)", async () => {
   const { CLIENTES_SOLO_ADMINS, puedeEntrarAClientes, seOfreceClientes } = await import("./reglas");
   it("el interruptor está PUESTO: solo el admin entra, tenga o no la casilla; los demás no, aunque la tengan", () => {
     expect(CLIENTES_SOLO_ADMINS).toBe(true);

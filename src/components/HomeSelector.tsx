@@ -20,7 +20,7 @@ import type { ClienteDePrefs } from "@/lib/user-prefs";
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
 export function HomeSelector({ me, suplantando = false }: { me: Profile; suplantando?: boolean }) {
   const { lang, t } = usePrefs();
-  // D-NEXT: con Clientes «solo admins», la tarjeta no se enseña a quien la puerta del servidor va a rebotar.
+  // D-759: con Clientes «solo admins», la tarjeta no se enseña a quien la puerta del servidor va a rebotar.
   const available = accessibleModules(me.module_access).filter((m) => m.key !== "customers" || puedeEntrarAClientes(me));
   // `suplantando` lo decide el servidor (home/page.tsx) y solo lo miran las herramientas del admin real.
   const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));

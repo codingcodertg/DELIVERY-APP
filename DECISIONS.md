@@ -49074,7 +49074,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador; no se midió con un turno real (el de Everto Prado de hoy tiene una foto de visita).
 
-## D-NEXT · Clientes vuelve a ser solo para admins, por ahora
+## D-759 · Clientes vuelve a ser solo para admins, por ahora
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/clientes-solo-admins-por-ahora`. **Reemplaza a D-683 en la puerta** (no en las reglas de ventas, gerente y oficina de D-740/742/743/748, que siguen escritas para cuando se reabra).
 
