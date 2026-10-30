@@ -48899,3 +48899,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/ficha-sin-huecos.test.ts` (el contenedor es de columnas y no de rejilla, y la tarjeta apilada de D-681 sigue dentro). Suite de Clientes en verde; tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; la captura del dueño es de la ficha editando a ~900 px de ancho (dos columnas).
+## D-748 · Clientes: todos salvo el admin ven solo su tienda (migración 217); el gerente y oficina con las cuatro columnas de ventas; «Decidir si se juntan», «⚙ Columnas» y «Archivados» solo para el admin
+
+**Fecha:** 2026-10-29 · **Migración 217** (`217_clientes_solo_su_tienda.sql`: `erp.customers_ve_la_fila` sin «else true») · Hecho directo por el orquestador en `feat/clientes-solo-admin-juntar-columnas-archivados`. **Reemplaza en parte a D-728/D-740/D-742.**
+
+**Pedido (el dueño, 2026-10-29):** con una captura de Carlos Salazar (gerente) en Clientes: «mira eso de decidir si se junta, eso es solo para admin, al igual que columnas y archivado, that's only for admin so take it away [a manager] y a sales»; «manager también verán las mismas columnas que sales»; y después: «todos, excepto admins, […] solo pueden ver la tienda que están asignados. Porque ahorita Carlos Fuentes puede ver todas las tiendas, al menos en la parte de customers, y no es así».
+
+**Lo medido (producción, solo lectura):** Carlos Fuentes es `accounting` con tienda RDZ Pharr y el módulo de Clientes; la 210/215 solo acotaban a vendedor y gerente, así que cualquier otro rol con el módulo veía todas las tiendas. Perfiles activos sin tienda: Claudia Rodriguez y Raquel Rojas (oficina), Francis Lestarpe y Roberto Rodriguez (gerentes), Elsa Vasquez y Nick Huerta (ventas), tres choferes. De ellos, ninguno tiene hoy el módulo de Clientes.
+
+**Qué cambia.**
+- **La base (217):** admin ve todo; cualquier otro rol, las filas de su tienda; sin tienda en el perfil, nada (antes el gerente sin tienda veía todo). El vendedor además sigue viendo los suyos. La búsqueda en toda la empresa (215, pocas columnas) sigue para quien tiene el módulo.
+- **La lista** (`Clientes.tsx`): la vista acotada (`vistaAcotada = !esAdmin`: vendedor, gerente, oficina) lleva las cuatro columnas fijas de D-740 (cuenta, N.º tiendas, estado, vendedor), sin «⚙ Columnas», sin arrastre, sin pastillas de tiendas ni «Archivados», y busca en toda la empresa con dos letras. Abrir: el vendedor solo los suyos (D-740); gerente y oficina, los de su tienda.
+- **«Decidir si se juntan»**: solo en la barra del admin, y `/customers/juntar` redirige a `/customers` a cualquier otro.
+
+**Pruebas:** `src/lib/customers/solo-su-tienda.test.ts`; puestas al día `vendedor-por-tienda`, `pedir-vendedor` y `modulo`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. La 217 se ensayó con ROLLBACK; aplicarla es del dueño. La auditoría del resto de apps (Entregas, Leads, Encuestas, Promos, Estimador, ERP, Time Tracker, RR. HH.) va aparte.

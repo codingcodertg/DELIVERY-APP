@@ -80,7 +80,10 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   }, [almacen, esAdmin, puedePedirVendedor]);
   // D-742: la ventana «Pedir vendedor al admin» del gerente, para el cliente de la ficha abierta.
   const [pidiendo, setPidiendo] = useState<Cliente | null>(null);
-  const soloSuTienda = esVendedor || puedePedirVendedor;
+  // D-748: la vista ACOTADA es la de todos menos el admin (vendedor, gerente, oficina): su tienda, cuatro columnas fijas,
+  // sin «⚙ Columnas», sin arrastre, sin pastillas de tiendas ni «Archivados», y la búsqueda en toda la empresa.
+  const vistaAcotada = !esAdmin;
+  const soloSuTienda = vistaAcotada;
   const cajaRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(async () => {
@@ -110,13 +113,13 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   // lo que llegue y no esté ya en su lista se pinta como fila que no se abre (`puedeAbrirCliente`).
   const [encontrados, setEncontrados] = useState<Cliente[]>([]);
   useEffect(() => {
-    if (!seBuscaEnTodaLaEmpresa(filtro.busca, esVendedor)) { setEncontrados([]); return; }
+    if (!seBuscaEnTodaLaEmpresa(filtro.busca, vistaAcotada)) { setEncontrados([]); return; }
     let vivo = true;
     const h = setTimeout(() => {
       void almacen.buscarEnTodaLaEmpresa(filtro.busca.trim()).then((r) => { if (vivo && r.ok) setEncontrados(r.valor); });
     }, RETARDO_DE_BUSQUEDA_MS);
     return () => { vivo = false; clearTimeout(h); };
-  }, [filtro.busca, esVendedor, almacen]);
+  }, [filtro.busca, vistaAcotada, almacen]);
   const listaConEncontrados = useMemo(() => conLosEncontrados(lista, encontrados), [lista, encontrados]);
 
   // «✏️ Editar» de la página del cliente (D-648) llega con `?editar=<id>`: al cargar la lista se abre la ventana de ese
@@ -163,7 +166,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   const archivados = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: true }).length, [lista]);
   const porTienda = useMemo(() => empresasPorTienda(vista), [vista]);
   // D-740: el vendedor ve cuatro columnas fijas (cuenta, N.º tiendas, estado, vendedor), sin selector ni arrastre.
-  const colsVisibles = esVendedor ? columnasDelVendedor() : columnasAPintar(prefCols);
+  const colsVisibles = vistaAcotada ? columnasDelVendedor() : columnasAPintar(prefCols);
   // D-673: anchos que se arrastran, como en Órdenes (`tbl-resize`): nada salta de línea y lo que no cabe se corta con «…».
   const colw = useColWidthMap(llaveDeAnchos(userId), ANCHO_POR_DEFECTO, { minimo: ANCHO_MINIMO });
   const ancho = (k: string) => colw.widthOf(claveDeAncho(k), anchoDePartida(k));
@@ -233,7 +236,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {!esVendedor && (
+          {!vistaAcotada && (
           <SelectorDeColumnas
             columnas={columnasDelSelector(prefCols)}
             elegidas={prefCols.elegidas}
@@ -276,14 +279,17 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
           </>
         )}
         {/* Los archivados (181): escondidos por defecto; el chip enseña SOLO esos. */}
+        {esAdmin && (
         <button
           type="button"
           onClick={() => setFiltro((f) => ({ ...f, archivados: !f.archivados }))}
           className={cn(chip(filtro.archivados), "ml-auto")}
           aria-pressed={filtro.archivados}
+          data-chip-archivados
         >
           {t("Archived", "Archivados")} <span className="text-slate-400">{archivados}</span>
         </button>
+        )}
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -369,7 +375,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
                     <th
                       key={c.key}
                       data-columna={c.key}
-                      draggable={!esVendedor}
+                      draggable={!vistaAcotada}
                       onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.key); e.dataTransfer.effectAllowed = "move"; setArrastrada(c.key); }}
                       onDragOver={(e) => { if (arrastrada && arrastrada !== c.key) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setSobre(c.key); } }}
                       onDragLeave={() => setSobre((s) => (s === c.key ? null : s))}
