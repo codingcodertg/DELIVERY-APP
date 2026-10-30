@@ -1,5 +1,5 @@
 import type { AlmacenDeLeads, Res } from "./almacen";
-import { alcanceDe, alcanzaElLead, esDeSuBanco, PERMISO_OTRAS_TIENDAS, type Alcance } from "./alcance";
+import { alcanceDe, alcanzaElLead, esDeSuBanco, PERMISO_OTRAS_TIENDAS, PERMISO_POOL_PRIVADO, privadosVisibles, type Alcance } from "./alcance";
 import {
   aplicarCerrar, aplicarNota, aplicarTomar, notaLimpia, TOPE_POR_DEFECTO,
   type EventoLead, type Lead, type Negativa, type Persona, type Resultado,
@@ -17,7 +17,8 @@ export const PERSONAS_DEMO: Persona[] = [
   { id: "demo-admin", name: "Admin Demo", store: null, admin: true, role: "admin" },
   // Dos managers, para enseñar el interruptor de la 163: una con «ver leads de otras tiendas» y otro sin él.
   { id: "demo-gema", name: "Gema Demo", store: "RDZ McAllen", admin: false, role: "manager", permissions: [PERMISO_OTRAS_TIENDAS] },
-  { id: "demo-hugo", name: "Hugo Demo", store: "RDZ Weslaco", admin: false, role: "manager" },
+  // D-770: Hugo tiene la casilla del STXP Pool (los demás no): ve los privados de Weslaco y, agotados, los de Pharr.
+  { id: "demo-hugo", name: "Hugo Demo", store: "RDZ Weslaco", admin: false, role: "manager", permissions: [PERMISO_POOL_PRIVADO] },
 ];
 
 /** El alcance de una persona del demo: la misma cuenta que hace la base (`leads_my_scope()`), con `alcanceDe`. */
@@ -61,6 +62,23 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
       follow_up_note: null, follow_up_at: null, last_outcome: null, last_note: null, last_by: null, last_by_name: null, last_at: null,
     });
   }
+  // D-770: el STXP Pool del demo (permisos municipales inventados, source 'privado'), por tienda. Weslaco con TRES
+  // libres: en cuanto Hugo los tome, le aparece Pharr (la más cercana), y después McAllen. Datos inventados como los
+  // demás: TABS «DEMO…», teléfonos 555-01xx, enlaces a example.com.
+  const STXP: [string, string][] = [
+    ["RDZ Brownsville", "Brownsville"], ["RDZ Brownsville", "Los Fresnos"], ["RDZ Weslaco", "Weslaco"], ["RDZ Weslaco", "Mercedes"], ["RDZ Weslaco", "Weslaco"],
+    ["RDZ Pharr", "Pharr"], ["RDZ Pharr", "San Juan"], ["RDZ McAllen", "McAllen"], ["RDZ McAllen", "Mission"], ["RDZ Edinburg", "Edinburg"],
+  ];
+  STXP.forEach(([pool, ciudad], k) => {
+    const n = String(k + 1).padStart(2, "0");
+    leads.push({
+      ...leads[k], id: `demo-stxp-${n}`, tabs_project: `DEMO-STXP-${n}`, pool, source: "privado",
+      project_name: `Permiso municipal Demo ${n}`, facility_name: null, site_city: ciudad, site_address: `${200 + k * 7} Av. Demo`,
+      owner_name: `Contratista Demo ${n} LLC`, owner_phone: `(956) 555-01${String(50 + k).padStart(2, "0")}`, tenant_name: `Propietario Demo ${n}`, tdlr_link: `https://example.com/demo/stxp/${n}`,
+      customer_match_id: k === 0 ? 1 : null, customer_match_note: k === 0 ? "teléfono igual al del cliente CONTRATISTA DEMO 01" : null,
+      status: "free", holder: null, holder_name: null, taken_at: null, touched_at: null, last_outcome: null, last_note: null, last_by: null, last_by_name: null, last_at: null,
+    });
+  });
   const [ana, beto] = PERSONAS_DEMO;
   const tomar = (i: number, p: Persona, dias: number) => {
     leads[i] = { ...leads[i], status: "taken", holder: p.id, holder_name: p.name, taken_at: hace(dias), touched_at: hace(dias) };
@@ -105,6 +123,10 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
   };
   const guarda = (l: Lead): Res<Lead> => { leads = leads.map((x) => (x.id === l.id ? l : x)); return { ok: true, valor: { ...l } }; };
   const busca = (id: string) => leads.find((l) => l.id === id);
+  // D-770: lo privado se alcanza por el STXP Pool (permiso + tienda y cercanas); lo del estado, por la 163.
+  const alcanza = (l: Lead, yo: Persona) => (l.source === "privado"
+    ? privadosVisibles(leads, { ...yo, role: yo.admin ? "admin" : yo.role }).some((x) => x.id === l.id)
+    : alcanzaElLead(l, alcanceDemo(yo), yo.id));
   const soloAdmin = (id: string, hace: (l: Lead, yo: Persona) => Res<Lead>): Res<Lead> => {
     const yo = quien();
     if (!yo.admin) return no("sin_permiso");
@@ -116,12 +138,12 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
     async leer() {
       const yo = quien();
       const alcance = alcanceDemo(yo);
-      return { ok: true, valor: { leads: leads.filter((l) => alcanzaElLead(l, alcance, yo.id)).map((l) => ({ ...l })), tope, alcance } };
+      return { ok: true, valor: { leads: leads.filter((l) => alcanza(l, yo)).map((l) => ({ ...l })), tope, alcance } };
     },
     async historial(leadId) {
       const yo = quien();
       const l = busca(leadId);
-      if (!l || !alcanzaElLead(l, alcanceDemo(yo), yo.id)) return { ok: true, valor: [] };
+      if (!l || !alcanza(l, yo)) return { ok: true, valor: [] };
       return { ok: true, valor: eventos.filter((e) => e.lead_id === leadId) };
     },
     async cierres() { return { ok: true, valor: eventos.filter((e) => e.kind === "closed") }; },
@@ -129,7 +151,8 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
     async tomar(leadId) {
       const l = busca(leadId);
       if (!l) return no("no_existe");
-      if (!esDeSuBanco(l, alcanceDemo(quien()))) return no("otra_tienda");
+      // D-770: del STXP Pool se toma lo que se alcanza (su tienda y, agotada, la más cercana); del estado, lo de su banco (163).
+      if (l.source === "privado" ? !alcanza(l, quien()) : !esDeSuBanco(l, alcanceDemo(quien()))) return no("otra_tienda");
       const r = aplicarTomar(l, leads, quien(), tope, new Date().toISOString());
       if (!r.ok) return no(r.motivo);
       apunta(l, "taken");

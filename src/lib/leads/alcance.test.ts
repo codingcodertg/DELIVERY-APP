@@ -185,7 +185,8 @@ describe("4 · el demo aplica la misma regla que la base", () => {
     expect(poolsDe(leadsDelBanco(v.leads, v.alcance)).map((p) => p.pool)).toEqual(["RDZ Brownsville"]);
   });
   it("admin y manager con permiso: todo; manager sin permiso: solo su tienda", async () => {
-    expect((await leeComo(admin)).leads).toHaveLength(44);
+    // D-770: el admin ve también los 10 del STXP Pool del demo; Gema (sin la casilla) no.
+    expect((await leeComo(admin)).leads).toHaveLength(54);
     expect((await leeComo(gema)).leads).toHaveLength(44);
     const v = await leeComo(hugo);
     expect(v.leads.length).toBeGreaterThan(0);
@@ -232,8 +233,9 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
     // D-760: el Pool privado reusa el mismo camino; fuera de esa pestaña, sigue saliendo de leadsDelBanco.
     expect(p).toContain('const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);');
     expect(p).toContain("const pools = useMemo(() => poolsDe(delBanco), [delBanco]);");
-    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);");
-    expect(p).toContain("ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden)");
+    // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra (`poolFiltro`).
+    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro), [delBanco, poolFiltro]);");
+    expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden)");
   });
   it("el selector de tienda solo se dibuja si eligeTienda; si no, su tienda fija y sin los otros bancos", () => {
     expect(p).toContain("const elige = eligeTienda(alcance);");
@@ -250,9 +252,9 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
   it("en el demo, cambiar de persona relee: cada una alcanza leads distintos", () => {
     expect(p).toContain("useEffect(() => { void cargar(); }, [cargar, idDemo]);");
   });
-  it("el conjunto de leads libres de una tienda se llama «Pool General» / «General Pool»; «Mi pool» no cambia", () => {
-    expect(p).toContain('{t("General Pool", "Pool General")}');
-    expect(p).toContain('t("Release to General Pool", "Liberar al Pool General")');
+  it("el conjunto de leads libres de una tienda se llama «GOV Pool» (D-770; antes «Pool General»); «Mi pool» no cambia", () => {
+    expect(p).toContain('{t("GOV Pool", "GOV Pool")}');
+    expect(p).toContain('t("Release to GOV Pool", "Liberar al GOV Pool")');
     expect(p).toContain('{t("My pool", "Mi pool")}');
     const visibles = [...p.matchAll(/t\(\s*"([^"]*)",\s*"([^"]*)",?\s*\)/g)].map((m) => `${m[1]} | ${m[2]}`);
     expect(visibles.length).toBeGreaterThan(40);
@@ -263,7 +265,8 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
 describe("6 · el interruptor en Usuarios", () => {
   const leads = MODULE_ACCESS.find((m) => m.key === "leads")!;
   it("es UN permiso del módulo Leads, guardado en la lista de permisos por persona con la palabra de la base", () => {
-    expect(leads.capabilities?.map((c) => c.key)).toEqual([PERMISO_OTRAS_TIENDAS]);
+    // D-770: el segundo permiso del módulo es «Ver el STXP Pool»; se prueba en stxp-pool.test.ts.
+    expect(leads.capabilities?.map((c) => c.key)).toEqual([PERMISO_OTRAS_TIENDAS, "leads_private_pool"]);
     expect(PERMISO_OTRAS_TIENDAS).toBe("leads_all_stores");
     expect(leads.capabilities?.[0].es).toBe("Ver leads de otras tiendas");
     expect(leads.capabilities?.[0].en).toBe("See leads of other stores");
@@ -274,7 +277,7 @@ describe("6 · el interruptor en Usuarios", () => {
     expect(leads.capabilityOffered?.(PERMISO_OTRAS_TIENDAS, "manager")).toBe(true);
     expect(leads.capabilitiesFromRole?.("manager")).toEqual([]);
     expect(leads.capabilityOffered?.(PERMISO_OTRAS_TIENDAS, "admin")).toBe(true);
-    expect(leads.capabilitiesFromRole?.("admin")).toEqual([PERMISO_OTRAS_TIENDAS]);
+    expect(leads.capabilitiesFromRole?.("admin")).toEqual([PERMISO_OTRAS_TIENDAS, "leads_private_pool"]);
     for (const role of ["sales", "accounting", "logistics", "warehouse", "driver"]) {
       expect(leads.capabilityOffered?.(PERMISO_OTRAS_TIENDAS, role), role).toBe(false);
       expect(leads.capabilitiesFromRole?.(role), role).toEqual([]);

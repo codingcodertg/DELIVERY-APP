@@ -76,7 +76,8 @@ describe("la puerta", () => {
   it("la página dice quién mira con su tienda y si es admin, y no lee los leads en el servidor", () => {
     const page = leer("src/app/leads/page.tsx");
     // Nota D-558: también `module_access`, solo para saber si tiene el Quote Builder («Crear cotización»).
-    expect(page).toContain('.select("full_name, store, role, module_access")');
+    // D-770: y los permisos, para saber si ve el STXP Pool.
+    expect(page).toContain('.select("full_name, store, role, module_access, permissions")');
     expect(page).toContain('admin: data?.role === "admin"');
     expect(page).toContain("store: data?.store ?? null");
     expect(page).not.toContain('.from("leads")');

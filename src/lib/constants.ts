@@ -2,7 +2,7 @@ import type { Stage, UserRole } from "./types";
 import { estaDadoDeBaja } from "./baja";
 import { APK_DOWNLOAD_URL } from "@/lib/app-update";
 import type { Lang } from "./prefs";
-import { PERMISO_OTRAS_TIENDAS, seOfreceOtrasTiendas } from "./leads/alcance";
+import { PERMISO_OTRAS_TIENDAS, PERMISO_POOL_PRIVADO, seOfreceOtrasTiendas } from "./leads/alcance";
 import { seOfreceClientes } from "./customers/reglas";
 import { CAP_TODAS_LAS_TIENDAS, seOfreceTodasLasTiendas } from "./todas-las-tiendas";
 
@@ -1194,12 +1194,19 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
         key: PERMISO_OTRAS_TIENDAS,
         en: "See leads of other stores", es: "Ver leads de otras tiendas",
         desc_en: "Sees and can take leads from every store's General Pool, not only their own. Managers only.",
-        desc_es: "Ve y puede tomar leads del Pool General de todas las tiendas, no solo de la suya. Solo para managers.",
+        desc_es: "Ve y puede tomar leads del GOV Pool de todas las tiendas, no solo de la suya. Solo para managers.",
+      },
+      {
+        // D-770 (220): el STXP Pool (permisos municipales de una fuente privada) se concede por persona, a cualquier rol.
+        key: PERMISO_POOL_PRIVADO,
+        en: "See the STXP Pool", es: "Ver el STXP Pool",
+        desc_en: "The STXP Pool (private-source municipal permits): their store's leads and, when those run out, the nearest store's. Admins always see it.",
+        desc_es: "El STXP Pool (permisos municipales de fuente privada): los de su tienda y, cuando se acaban, los de la tienda más cercana. Los admins lo ven siempre.",
       },
     ],
     capabilitiesRole: "role",
-    capabilitiesFromRole: (key) => (key === "admin" ? [PERMISO_OTRAS_TIENDAS] : []),
-    capabilityOffered: (_cap, key) => key === "admin" || seOfreceOtrasTiendas(key),
+    capabilitiesFromRole: (key) => (key === "admin" ? [PERMISO_OTRAS_TIENDAS, PERMISO_POOL_PRIVADO] : []),
+    capabilityOffered: (cap, key) => key === "admin" || cap === PERMISO_POOL_PRIVADO || seOfreceOtrasTiendas(key),
   },
   {
     key: "customers", label_en: "Customers", label_es: "Clientes",

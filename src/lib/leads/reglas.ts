@@ -475,9 +475,9 @@ export function situacionLabel(s: Situacion, lang: Idioma): string { return SITU
 /** Qué le pasa al lead con cada resultado, dicho en la pantalla antes de cerrar. Sale de `destinoAlCerrar`. */
 export function consecuencia(r: Resultado, lang: Idioma): string {
   const d = destinoAlCerrar(r);
-  if (d.estado === "won") return lang === "es" ? "Se queda contigo, fuera del Pool General." : "It stays yours, out of the General Pool.";
+  if (d.estado === "won") return lang === "es" ? "Se queda contigo, fuera del GOV Pool." : "It stays yours, out of the GOV Pool.";
   if (d.estado === "review") return lang === "es" ? "Va a la cola del admin." : "It goes to the admin's queue.";
-  return lang === "es" ? "Vuelve al Pool General con esta etiqueta y tu nota." : "It goes back to the General Pool with this tag and your note.";
+  return lang === "es" ? "Vuelve al GOV Pool con esta etiqueta y tu nota." : "It goes back to the GOV Pool with this tag and your note.";
 }
 
 const ESTADO_TXT: Record<EstadoLead, { en: string; es: string }> = {

@@ -16,6 +16,58 @@ import type { Lead } from "./reglas";
 /** La palabra que va en `profiles.permissions` (la lista de permisos por persona de la 052). La misma en la 163. */
 export const PERMISO_OTRAS_TIENDAS = "leads_all_stores";
 
+/** D-770 (220): la casilla «Ver el STXP Pool» (Usuarios › Leads). La misma palabra que `leads_sees_private()`. */
+export const PERMISO_POOL_PRIVADO = "leads_private_pool";
+
+/** D-770: ¿ve el STXP Pool? El admin siempre; los demás, con la casilla. Igual que `leads_sees_private()`. */
+export function veElPoolPrivado(p: { admin?: boolean; role?: string | null; permissions?: readonly string[] | null }): boolean {
+  return !!p.admin || p.role === "admin" || !!p.permissions?.includes(PERMISO_POOL_PRIVADO);
+}
+
+/**
+ * D-770: la tienda y, detrás, las demás de la más cercana a la más lejana (orden fijo por geografía del valle). La misma
+ * lista que `leads_private_order()` en la base. Una tienda desconocida va sola; sin tienda, nada.
+ */
+export const ORDEN_DE_TIENDAS_CERCANAS: Readonly<Record<string, readonly string[]>> = {
+  "RDZ Mission": ["RDZ Mission", "RDZ McAllen", "RDZ Pharr", "RDZ Edinburg", "RDZ Weslaco", "RDZ Brownsville"],
+  "RDZ McAllen": ["RDZ McAllen", "RDZ Pharr", "RDZ Mission", "RDZ Edinburg", "RDZ Weslaco", "RDZ Brownsville"],
+  "RDZ Pharr": ["RDZ Pharr", "RDZ McAllen", "RDZ Edinburg", "RDZ Mission", "RDZ Weslaco", "RDZ Brownsville"],
+  "RDZ Edinburg": ["RDZ Edinburg", "RDZ McAllen", "RDZ Pharr", "RDZ Mission", "RDZ Weslaco", "RDZ Brownsville"],
+  "RDZ Weslaco": ["RDZ Weslaco", "RDZ Pharr", "RDZ McAllen", "RDZ Edinburg", "RDZ Mission", "RDZ Brownsville"],
+  "RDZ Brownsville": ["RDZ Brownsville", "RDZ Weslaco", "RDZ Pharr", "RDZ McAllen", "RDZ Edinburg", "RDZ Mission"],
+};
+export function ordenDeCercanas(tienda: string | null | undefined): string[] {
+  const t = (tienda ?? "").trim();
+  if (!t) return [];
+  return [...(ORDEN_DE_TIENDAS_CERCANAS[t] ?? [t])];
+}
+
+/**
+ * D-770: los pools del STXP Pool que alcanza alguien de `tienda`: la suya y, mientras la anterior no tenga ningún lead
+ * privado LIBRE, la siguiente más cercana; la primera que aún tiene libres cierra la lista (el dueño: «si la tienda se
+ * acaba todas las leads de su tienda … podrán ver las de la tienda más cercana, y así sucesivamente»). Lo mismo que
+ * `leads_private_pools()`.
+ */
+export function poolsPrivadosVisibles(privados: readonly Pick<Lead, "pool" | "status">[], tienda: string | null | undefined): string[] {
+  const out: string[] = [];
+  for (const p of ordenDeCercanas(tienda)) {
+    out.push(p);
+    if (privados.some((l) => l.pool === p && l.status === "free")) break;
+  }
+  return out;
+}
+
+/** D-770: lo que la pestaña STXP Pool enseña a esta persona. El admin, todo; los demás, sus pools (y lo que tienen a su nombre). */
+export function privadosVisibles<L extends Pick<Lead, "pool" | "status" | "holder"> & { source?: string }>(
+  leads: readonly L[], yo: { id: string; admin?: boolean; role?: string | null; permissions?: readonly string[] | null; store?: string | null },
+): L[] {
+  const privados = leads.filter((l) => l.source === "privado");
+  if (!veElPoolPrivado(yo)) return [];
+  if (yo.admin || yo.role === "admin") return privados;
+  const pools = poolsPrivadosVisibles(privados, yo.store);
+  return privados.filter((l) => l.holder === yo.id || pools.includes(l.pool));
+}
+
 /** Lo mínimo de una persona para saber qué alcanza. */
 export interface QuienMira {
   role: string | null | undefined;
