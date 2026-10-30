@@ -71,7 +71,7 @@
 .recruiting-module .permisos-del-empleado label { text-transform: none; letter-spacing: 0; font-size: 13px; }
 .recruiting-module .permisos-del-empleado .field > label,
 .recruiting-module .permisos-del-empleado .section-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
-/* D-NEXT (2026-10-29, el dueño con la captura: descripción palabra por palabra y «del rol» estirado): la rejilla de tres
+/* D-754 (2026-10-29, el dueño con la captura: descripción palabra por palabra y «del rol» estirado): la rejilla de tres
    columnas de D-729 contaba con tres hijos (casilla · nombre · descripción) porque el `<span>` iba en `display: contents`;
    con «del rol» eran CUATRO, el globo caía en la columna ancha y la descripción en la de 18 px. Ahora dos columnas fijas
    —casilla · bloque de texto— y el bloque es un bloque: nombre y globo en línea, descripción debajo. No depende de cuántos

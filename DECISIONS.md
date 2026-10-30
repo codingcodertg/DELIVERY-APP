@@ -49009,7 +49009,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recogida-libre.test.ts` (qué tipos, el cambio de tipo con controles, la ficha y el control). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. Las órdenes ya guardadas no se tocan.
-## D-NEXT · RR. HH. → Permisos: cada permiso vuelve a ser una fila (casilla · nombre «del rol» · descripción)
+## D-754 · RR. HH. → Permisos: cada permiso vuelve a ser una fila (casilla · nombre «del rol» · descripción)
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `fix/permisos-expediente-filas`.
 

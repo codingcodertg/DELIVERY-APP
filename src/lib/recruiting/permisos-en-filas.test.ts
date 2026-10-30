@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** «Permisos» del expediente: cada permiso en una fila casilla · texto, pase lo que pase con «del rol» (D-NEXT, 2026-10-29). */
+/** «Permisos» del expediente: cada permiso en una fila casilla · texto, pase lo que pase con «del rol» (D-754, 2026-10-29). */
 
 const css = readFileSync(join(process.cwd(), "src/app/recruiting/recruiting.css"), "utf8").split("\r\n").join("\n");
 const bloque = css.slice(css.indexOf(".recruiting-module .permisos-del-empleado .perm-opt {"), css.indexOf(".recruiting-module .permisos-del-empleado .card {"));
