@@ -40,7 +40,7 @@ describe("la etiqueta del teléfono en la ficha de pedido", () => {
 });
 
 describe("el vocabulario que ya había, para que la elección conste", () => {
-  it("«Phone» / «Teléfono» aparece en 13 sitios — 4 son columnas y 3 etiquetas de campo", () => {
+  it("«Phone» / «Teléfono» aparece en 14 sitios — 4 son columnas y 4 etiquetas de campo", () => {
     // Patrón EXACTO a propósito. Uno amplio arrastra «Phone call», «Phone interview» y compañía,
     // que no son este campo — y da otro número según cómo de amplio sea: el mismo día, dos
     // sesiones midieron 17 y 41 con patrones distintos y **las dos tenían razón**, porque medían
@@ -54,7 +54,9 @@ describe("el vocabulario que ya había, para que la elección conste", () => {
       "Si has añadido una etiqueta de teléfono legítima, sube este número A CONCIENCIA: el canario " +
       "existe para que la decisión de llamarlo de otra forma se tome mirando, no por inercia. " +
       "Ver la nota de arriba y la entrada de la decisión.",
-    ).toBe(13);
+    ).toBe(14);
+    // Sube de 13 a 14 con D-763 (Leads): la tarjeta del cliente cruzado dentro de Leads lleva la etiqueta «Teléfono»
+    // junto al número del cliente; es el teléfono de un cliente, el vocabulario de siempre.
     // Sube de 12 a 13 con D-728 (Clientes): la etiqueta «Teléfono» a la izquierda del número de cada contacto.
     // BAJA de 13 a 12 con la rama `feat/expediente-acciones` (migración 159): el expediente de RR. HH. tenía
     // dos «Phone» (la columna de la lista y el campo de la ficha) y ahora que hay DOS teléfonos por persona
