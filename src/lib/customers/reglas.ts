@@ -520,6 +520,15 @@ export const GRUPOS: readonly { key: Exclude<GrupoDeCampo, "cabecera" | "ocultos
 export const GRUPO_OCULTO = { key: "ocultos", en: "Hidden fields", es: "Campos ocultos" } as const;
 
 /**
+ * D-NEXT: las tres columnas de la ficha, tal cual la hoja del dueño (2026-10-30, «así en ese orden»): la primera, «Cuenta»
+ * (con los vendedores dentro) y debajo «Estado e historial»; la segunda, «Contacto»; la tercera, «Crédito y términos», «Otros»
+ * y debajo «Campos ocultos» con «Archivos». Columnas fijas y no columnas que fluyen (D-745): con las que fluyen, qué tarjeta
+ * caía debajo de cuál dependía de lo alta que fuera cada una, y el dueño quiere cada una en su sitio. Lo pintan el alta y la
+ * edición, que son la misma tarjeta.
+ */
+export const COLUMNAS_DE_LA_FICHA: readonly (readonly (typeof GRUPOS)[number]["key"][])[] = [["cuenta", "estado"], ["contacto"], ["credito", "otros"]];
+
+/**
  * Una línea de una tarjeta de la ficha: un campo que se edita (`campo`), o uno que solo se lee (`campo: null`): House #
  * (del Excel, no se corrige a mano) y la CONCATENATE (se calcula, `valorDeColumna`).
  */

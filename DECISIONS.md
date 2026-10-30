@@ -49162,5 +49162,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** en el hub, el clic en «👤 Mi perfil · contraseña» o en «🎨 Personalizar · idioma, tema» abre el mismo contenido de siempre (`ProfileView`, `Personalizador`) dentro del velo y el modal de siempre (`.overlay` + `.modal`), encima del hub. Se cierra con el velo, con Escape o con «Cerrar» (que ocupa el sitio de «Volver al hub»). Desde la tarjeta de Mi perfil, «Personalizar →» cambia a la otra tarjeta sin salir. Los enlaces conservan su ruta y las páginas `/home/profile` y `/home/personalizar` siguen existiendo: son el destino desde el menú del nombre de cada app (D-490) y del redirect de `/account` (D-274); abrir con botón central o sin JS sigue llegando allí. El servidor del hub lee además `username` y manda a la tarjeta el correo o usuario por `identidadVisible`, como hacía la página.
 
 **Pruebas:** `src/lib/hub-perfil-en-tarjeta.test.ts`; `personalizar.test.ts` actualizada a los enlaces con clic. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+## D-NEXT · Ficha de cliente (alta y edición): tres columnas fijas como la hoja del dueño
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/ficha-cliente-orden-vendedores`. **Reemplaza a D-745** (columnas que fluyen).
+
+**Pedido (el dueño, 2026-10-30):** «haz este orden en el new client form y edit: ACCOUNT · CONTACT · CREDIT AND TERMS / STATUS AND HISTORY · OTHER», después «cuenta contacto estado e historial y otros will be abajo de historial», y la captura de su hoja de Excel: «así en ese orden». La hoja: columna A, Account (con Store rep, Group rep QB, Group rep history dentro) y debajo Status & history; columna C, Contact; columna E, Credit & terms, debajo Other y debajo Hidden.
+
+**Qué cambia:** `COLUMNAS_DE_LA_FICHA` en `reglas.ts`: `[["cuenta", "estado"], ["contacto"], ["credito", "otros"]]`. `TarjetasDeLaFicha` pinta una rejilla de tres columnas (`grid md:grid-cols-3 items-start`), cada una con sus tarjetas apiladas, y «Campos ocultos» + «Archivos» al pie de la tercera. Con `items-start` cada tarjeta mide lo suyo (lo que D-745 arreglaba), pero ninguna cambia de columna según el alto de la de al lado (lo que las columnas que fluyen hacían, y por eso el orden no se quedaba quieto). Los vendedores siguen dentro de «Cuenta» (D-662), como en la hoja. En el teléfono, una sola columna en el orden Cuenta, Estado, Contacto, Crédito, Otros. El alta y la edición son la misma tarjeta: las dos salen así.
+
+**Pruebas:** `src/lib/customers/ficha-sin-huecos.test.ts` reescrita (las columnas son las de la hoja, cada grupo en una sola, rejilla sin estirar, ocultos al pie de la última); `ventana.test.ts` con el nuevo orden de aparición. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.

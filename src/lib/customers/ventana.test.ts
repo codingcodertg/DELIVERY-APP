@@ -70,7 +70,8 @@ describe("la ficha en una ventana centrada (D-654)", () => {
   });
   it("la ficha COMPLETA abajo: «Cuenta» primero (D-662), con el nombre una sola vez y sin «Tienda»", () => {
     const html = pinta(dosTiendas);
-    expect(grupos(html)).toEqual(["cuenta", "contacto", "credito", "estado", "otros", "ocultos", "archivos"]);
+    // D-NEXT: tres columnas fijas, por orden de aparición: Cuenta + Estado / Contacto / Crédito + Otros + ocultos + archivos.
+    expect(grupos(html)).toEqual(["cuenta", "estado", "contacto", "credito", "otros", "ocultos", "archivos"]);
     const cuenta = tarjeta(html, "cuenta");
     expect(cuenta).toContain('data-campo="account"');
     expect(cuenta).toContain('data-campo="unified_account"');
