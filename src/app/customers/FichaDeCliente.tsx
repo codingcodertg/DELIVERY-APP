@@ -25,7 +25,7 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { rcCall } from "@/lib/recruiting/utils";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
-  cierraLaFicha, ESTADOS, GRUPOS_QUE_NO_VE_EL_VENDEDOR, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
+  cierraLaFicha, COLUMNAS_DE_LA_FICHA, ESTADOS, GRUPOS_QUE_NO_VE_EL_VENDEDOR, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
   IMPUESTOS, impuestoLabel, MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
   textoDeFila, TIENDAS, webUrl,
   type Campo, type Cliente, type FilaDeFicha,
@@ -109,11 +109,13 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   const ocultas = filasOcultas().map(linea).filter((x) => x !== null);
   return (
     <div className="space-y-4">
-      {/* D-745: columnas que FLUYEN (CSS columns), no una rejilla: en la rejilla cada fila medía lo que la tarjeta más alta
-          y «Cuenta» quedaba estirada con medio metro en blanco al lado de «Contacto». Ahora cada tarjeta mide lo suyo y la
-          siguiente sube a rellenar; una tarjeta nunca se parte entre columnas. */}
-      <div className="gap-4 md:columns-2 xl:columns-3 [&>*]:mb-4 [&>*]:break-inside-avoid" data-tarjetas-de-la-ficha>
-        {filasPorGrupo().filter(({ grupo }) => !esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key)).map(({ grupo, filas }) => (
+      {/* D-766: tres columnas FIJAS, las de la hoja del dueño (`COLUMNAS_DE_LA_FICHA`): Cuenta + Estado / Contacto / Crédito +
+          Otros + ocultos. Cada tarjeta mide lo suyo (`items-start`, lo que pedía D-745) y ninguna cambia de columna según
+          lo alta que sea la de al lado (eso hacían las columnas que fluyen de D-745). En el teléfono, una sola columna. */}
+      <div className="grid gap-4 items-start md:grid-cols-3" data-tarjetas-de-la-ficha>
+        {COLUMNAS_DE_LA_FICHA.map((claves, i) => (
+        <div key={i} className="space-y-4" data-columna={i + 1}>
+        {filasPorGrupo().filter(({ grupo }) => claves.includes(grupo.key) && (!esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key))).map(({ grupo, filas }) => (
           <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {grupo.key === "contacto" && (editando && contactos && onContactos
@@ -125,10 +127,10 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
             {filas.map(linea)}
           </section>
         ))}
-        {/* La sexta celda de la rejilla, apilada: «Campos ocultos» y, debajo, «Archivos» (D-681: «keeping a compact
+        {/* Al pie de la tercera columna, apilados: «Campos ocultos» y, debajo, «Archivos» (D-681: «keeping a compact
             design. Lets move attachments down below Hidden Fields»; hasta D-681 iban al pie de «Crédito y términos»). */}
-        {!esVendedor && (
-        <div className="space-y-4 self-start" data-solo-no-vendedor>
+        {!esVendedor && i === COLUMNAS_DE_LA_FICHA.length - 1 && (
+        <div className="space-y-4" data-solo-no-vendedor>
           {/* D-660: «this was supposed to go into another like a hidden field in customer». Sin `open`: abre plegado. Desde
               D-662 va DENTRO de la rejilla, en el sitio de la sexta tarjeta (la de «Remove» de la plantilla del dueño). */}
           {ocultas.length > 0 && (
@@ -148,6 +150,8 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
           ) : null}
         </div>
         )}
+        </div>
+        ))}
       </div>
     </div>
   );
