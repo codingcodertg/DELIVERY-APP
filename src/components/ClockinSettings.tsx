@@ -5,7 +5,6 @@ import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
 import {
   getClockinEmployeeSettings,
-  setEmployeeSchedule,
   setEmployeeStore,
   setEmployeeExtraStores,
   setEmployeePosition,
@@ -202,35 +201,13 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
         </div>
       )}
 
-      <div className="field">
-        <label>{t("Weekly schedule", "Horario semanal")}</label>
-        <select
-          value={s.default_schedule ?? ""}
-          disabled={busy}
-          onChange={(e) => run(() => setEmployeeSchedule(userId, e.target.value || null))}
-        >
-          <option value="">{t("None", "Ninguno")}</option>
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C">C</option>
-          <option value="custom">{t("Custom", "Personalizado")}</option>
-        </select>
-        <div className="hint">
-          {t("Picking A, B or C lays out this week and next straight away; the daily job keeps extending it.",
-             "Elegir A, B o C ya deja puesta esta semana y la siguiente; el trabajo diario la sigue extendiendo.")}
-        </div>
+      {/* El horario semanal ya NO se edita aquí (D-750; Roberto: «Why is their week schedule on permissions»; el dueño:
+          «en permissions solo es permisos, esto se configura en el time tracker»): se lleva en Time Tracker › Horario.
+          Aquí solo se dice cuál tiene, para no mandar a nadie a buscarlo a ciegas. */}
+      <div className="hint" data-horario-en-time-tracker>
+        {t("Weekly schedule: ", "Horario semanal: ")}<b>{s.default_schedule ? (s.default_schedule === "custom" ? t("custom", "personalizado") : s.default_schedule) : t("none", "ninguno")}</b>
+        {" · "}{t("It is set in Time Tracker › Schedule, not here.", "Se configura en Time Tracker › Horario, no aquí.")}
       </div>
-
-      {s.default_schedule === "custom" && (
-        <CustomWeek
-          userId={userId}
-          pattern={s.custom_schedule}
-          onSaved={load}
-          notify={notify}
-          lang={lang}
-          t={t}
-        />
-      )}
 
       {/* «Visitas y mandados (con fotos)» — antes «Runner / Repartidor» (D-455). Es quien sale a
           visitar clientes o a hacer mandados y registra cada parada con foto y ubicación, en un
@@ -296,82 +273,6 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
           </span>
         </span>
       </label>
-    </div>
-  );
-}
-
-/** The custom weekly pattern, in the hub's own controls. Saved as a whole, because a half-typed
- *  row is not a schedule — this is the one place in the dialog with a Save button. */
-function CustomWeek({
-  userId, pattern, onSaved, notify, lang, t,
-}: {
-  userId: string;
-  pattern: WeekPattern | null;
-  onSaved: () => Promise<void>;
-  notify: (m: string) => void;
-  lang: string;
-  t: (en: string, es: string) => string;
-}) {
-  type Row = { on: boolean; start: string; end: string; lunch: number };
-  const init = (): Row[] =>
-    Array.from({ length: 7 }, (_, d) => {
-      const p = pattern?.[String(d)];
-      return p
-        ? { on: true, start: p.start.slice(0, 5), end: p.end.slice(0, 5), lunch: p.lunch ?? 0 }
-        : { on: false, start: "08:00", end: "16:00", lunch: 30 };
-    });
-
-  const [rows, setRows] = useState<Row[]>(init);
-  const [busy, setBusy] = useState(false);
-  const days = lang === "es" ? DOW.es : DOW.en;
-  const set = (i: number, patch: Partial<Row>) =>
-    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-
-  async function save() {
-    const wp: WeekPattern = {};
-    for (let d = 0; d < 7; d++) {
-      const r = rows[d];
-      if (r.on && r.start && r.end) wp[String(d)] = { start: r.start, end: r.end, lunch: r.lunch };
-    }
-    if (Object.keys(wp).length === 0) {
-      notify(t("Pick at least one working day.", "Elige al menos un día de trabajo."));
-      return;
-    }
-    setBusy(true);
-    const res = await setCustomSchedule(userId, wp);
-    setBusy(false);
-    if (!res.ok) { notify(res.message); return; }
-    notify(t("Schedule saved.", "Horario guardado."));
-    await onSaved();
-  }
-
-  return (
-    <div className="card" style={{ marginTop: 6 }}>
-      <div className="section-label" style={{ marginTop: 0 }}>{t("Custom week", "Semana personalizada")}</div>
-      {rows.map((r, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-          <label className="perm-opt" style={{ width: 130, marginBottom: 0, flexShrink: 0 }}>
-            <input type="checkbox" checked={r.on} onChange={(e) => set(i, { on: e.target.checked })} />
-            <span>{days[i]}</span>
-          </label>
-          {r.on ? (
-            <>
-              <input type="time" value={r.start} style={{ width: 110 }} onChange={(e) => set(i, { start: e.target.value })} />
-              <span className="hint">–</span>
-              <input type="time" value={r.end} style={{ width: 110 }} onChange={(e) => set(i, { end: e.target.value })} />
-              <select value={r.lunch} style={{ width: 120 }} onChange={(e) => set(i, { lunch: parseInt(e.target.value, 10) })}>
-                <option value={0}>{t("No lunch", "Sin comida")}</option>
-                {[15, 30, 45, 60, 90].map((n) => <option key={n} value={n}>{n}m 🍽️</option>)}
-              </select>
-            </>
-          ) : (
-            <span className="hint">{t("Day off", "Descanso")}</span>
-          )}
-        </div>
-      ))}
-      <button className="btn btn-ghost btn-sm" disabled={busy} onClick={save}>
-        {busy ? "…" : t("Save the week", "Guardar la semana")}
-      </button>
     </div>
   );
 }

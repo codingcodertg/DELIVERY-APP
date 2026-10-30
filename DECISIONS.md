@@ -49034,3 +49034,16 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/timetracker/cronometro-sin-segundos.test.ts`; `mis-acciones.test.ts` puesta al día. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+## D-756 · Reparación: el release de D-753 deshizo D-748 (parte), D-749, D-750, D-751 y D-752; se restauran
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `fix/restaura-d748-a-d752`.
+
+**Qué pasó.** El dueño: «aún desde la web app no me deja abrir [la foto]» con D-752 ya «publicado». Medido en el historial: el commit de release de D-753 (`cd88e0c8`) tocó 27 ficheros cuando a esa decisión le tocaban 8. Los otros 19 eran ficheros que D-748 (`customers/juntar/page.tsx`), D-749 (`globals.css`, `recruiting.css`, `timetracker.css`, `erp/ui/button.tsx` y sus pruebas), D-750 (`ClockinSettings.tsx` y su prueba), D-751 (`ordenes-visibles.ts` y sus pruebas) y D-752 (`fotos-en-storage.ts` y su prueba) habían cambiado, y D-753 los devolvió a su versión anterior. Causa: la rama de D-753 se reconstruyó con `git reset --soft origin/main` sobre un árbol de trabajo que venía de un main viejo; el commit resultante fue la foto de ese árbol viejo, y el rebase posterior fue «limpio» porque el commit traía esos ficheros enteros. D-754 y D-755 llegaron después sobre ese estado y no tocan nada de lo perdido (salvo `recruiting.css`, que D-754 editó en su propio bloque).
+
+**Qué se hace.** Los 17 ficheros afectados se restauran al estado justo anterior a D-753 (`fc51b7f1`, el release de D-752) y sobre `recruiting.css` se vuelve a aplicar el bloque de D-754. Comprobado fichero a fichero que cada decisión vuelve a estar: `esUrlPintable` (752), `grayscale(1)` (749), `data-horario-en-time-tracker` (750), oficina en `ROLES_LISTA_DE_SU_TIENDA` (751), la guarda de `juntar/page.tsx` (748), y que D-753 (`recogidaLibreDelTipo`), D-754 y D-755 (`fmtClockSinSegundos`) siguen. Lo único distinto respecto a `fc51b7f1` es D-753, D-754, D-755 y las versiones.
+
+**Regla que deja:** una rama no se reconstruye con `reset --soft` desde un árbol que no sea `origin/main` recién traído; y antes de cada release, `git show --stat` del commit numerado tiene que listar solo los ficheros de esa decisión (más DECISIONS, package.json y app-versions). Va a memoria.
+
+**Pruebas:** suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
+
+**No verificado:** en navegador; el dueño prueba la foto tras publicar.
