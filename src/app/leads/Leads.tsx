@@ -98,7 +98,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
   // El banco que se enseña: todas las tiendas a quien las alcanza; a los demás, SOLO la suya. Sus leads de otra
   // tienda (los que le asignó un admin) están en «Mi pool», y no traen aquí el banco de esa tienda ni su contador.
-  // D-NEXT (218): el «Pool privado» (leads de la fuente privada) es una pestaña aparte, solo del admin; la base ya no
+  // D-760 (218): el «Pool privado» (leads de la fuente privada) es una pestaña aparte, solo del admin; la base ya no
   // se los manda a nadie más. Reusa los mismos filtros, orden y tarjetas que el Pool General.
   const privados = useMemo(() => leads.filter((l) => l.source === "privado"), [leads]);
   const [coinciden, setCoinciden] = useState(false);
@@ -284,7 +284,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       {situacionLabel(s, lang)} <span className="ld-cuenta">{porSituacion[s]}</span>
                     </button>
                   ))}
-                  {/* D-NEXT: el cruce con Clientes (lo pone el importador); solo tiene sentido donde hay cruzados. */}
+                  {/* D-760: el cruce con Clientes (lo pone el importador); solo tiene sentido donde hay cruzados. */}
                   {delPool.some(coincideConCliente) && (
                     <button type="button" className={`chip${coinciden ? " on" : ""}`} data-coinciden onClick={() => setCoinciden((v) => !v)}>
                       🤝 {t("Match customers", "Coinciden con clientes")} <span className="ld-cuenta">{delPool.filter(coincideConCliente).length}</span>
@@ -455,7 +455,7 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
       {contacto ? (
         <div className="ld-contacto" data-contacto>
           <p>
-            {/* D-NEXT: en un lead privado el que va aquí es el CONTRATISTA (a quien se le vende); el propietario, abajo. */}
+            {/* D-760: en un lead privado el que va aquí es el CONTRATISTA (a quien se le vende); el propietario, abajo. */}
             {esPrivado(l) ? <>🏗 {t("Contractor", "Contratista")}: </> : "👤 "}{l.owner_name ?? "—"}{l.owner_contact ? ` · ${l.owner_contact}` : ""}
             {l.owner_phone ? <> · {telUrl(l.owner_phone) ? <a href={telUrl(l.owner_phone)!} data-tel>📞 {l.owner_phone}</a> : l.owner_phone}</> : null}
           </p>

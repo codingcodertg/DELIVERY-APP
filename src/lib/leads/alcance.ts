@@ -79,7 +79,7 @@ export function alcanzaElLead(lead: Pick<Lead, "pool" | "holder">, alcance: Alca
  * un lead suyo de otra tienda está en «Mi pool», y no hace aparecer aquí el banco de esa tienda (ni su contador).
  */
 export function leadsDelBanco<L extends Pick<Lead, "pool"> & { source?: string }>(leads: readonly L[], alcance: Alcance): L[] {
-  // D-NEXT: lo privado no es del Pool General de nadie: tiene su pestaña, solo para el admin.
+  // D-760: lo privado no es del Pool General de nadie: tiene su pestaña, solo para el admin.
   return leads.filter((l) => l.source !== "privado" && esDeSuBanco(l, alcance));
 }
 

@@ -1,4 +1,4 @@
-// Importa el Excel de permisos municipales (fuente privada) al «Pool privado» de Leads (D-NEXT, migración 218) y cruza cada
+// Importa el Excel de permisos municipales (fuente privada) al «Pool privado» de Leads (D-760, migración 218) y cruza cada
 // lead con Clientes (erp.customers) por teléfono y por nombre.
 //
 // Uso (desde la raíz del repo, con SUPABASE_DB_URL en .env.local):

@@ -60,10 +60,10 @@ export interface Lead {
   last_by: string | null;
   last_by_name: string | null;
   last_at: string | null;
-  /** D-NEXT (218): de dónde salió. 'tdlr' (permisos del estado, lo de siempre) o 'privado' (el Excel de permisos
+  /** D-760 (218): de dónde salió. 'tdlr' (permisos del estado, lo de siempre) o 'privado' (el Excel de permisos
    *  municipales, solo para el admin). Opcional por los datos viejos y el demo: sin valor, 'tdlr'. */
   source?: "tdlr" | "privado";
-  /** D-NEXT: el cliente de erp.customers con el que coincide (teléfono o nombre), y por qué. Los pone el importador. */
+  /** D-760: el cliente de erp.customers con el que coincide (teléfono o nombre), y por qué. Los pone el importador. */
   customer_match_id?: number | null;
   customer_match_note?: string | null;
 }
@@ -322,7 +322,7 @@ export interface Filtros {
   ciudad: string;
   busca: string;
   situacion?: Situacion | "";
-  /** D-NEXT: solo los que coinciden con un cliente de Clientes. */
+  /** D-760: solo los que coinciden con un cliente de Clientes. */
   coinciden?: boolean;
 }
 

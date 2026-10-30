@@ -49086,7 +49086,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador.
 
-## D-NEXT · Leads: el «Pool privado» (permisos municipales de una fuente privada, solo para el admin) y el cruce con Clientes (migración 218)
+## D-760 · Leads: el «Pool privado» (permisos municipales de una fuente privada, solo para el admin) y el cruce con Clientes (migración 218)
 
 **Fecha:** 2026-10-30 · **Migración 218** (`218_leads_pool_privado.sql`: `leads.source`, columnas del cruce, políticas) · Hecho directo por el orquestador en `feat/leads-pool-privado`.
 

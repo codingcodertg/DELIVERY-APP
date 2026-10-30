@@ -229,7 +229,7 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
     expect(p).toContain("setAlcance(r.valor.alcance);");
   });
   it("el banco, sus contadores y sus filtros salen de leadsDelBanco, no de todos los leads leídos", () => {
-    // D-NEXT: el Pool privado reusa el mismo camino; fuera de esa pestaña, sigue saliendo de leadsDelBanco.
+    // D-760: el Pool privado reusa el mismo camino; fuera de esa pestaña, sigue saliendo de leadsDelBanco.
     expect(p).toContain('const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);');
     expect(p).toContain("const pools = useMemo(() => poolsDe(delBanco), [delBanco]);");
     expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);");

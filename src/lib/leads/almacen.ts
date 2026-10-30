@@ -91,7 +91,7 @@ export function leadDeLaBase(f: Record<string, unknown>): Lead {
     touched_at: texto(f.touched_at), follow_up_note: texto(f.follow_up_note), follow_up_at: texto(f.follow_up_at),
     last_outcome: ETIQUETAS.find((e) => e === f.last_outcome) ?? null, last_note: texto(f.last_note),
     last_by: texto(f.last_by), last_by_name: texto(f.last_by_name), last_at: texto(f.last_at),
-    // D-NEXT (218): sin la columna (base vieja) se lee como 'tdlr' y sin cliente.
+    // D-760 (218): sin la columna (base vieja) se lee como 'tdlr' y sin cliente.
     source: f.source === "privado" ? "privado" : "tdlr",
     customer_match_id: num(f.customer_match_id), customer_match_note: texto(f.customer_match_note),
   };

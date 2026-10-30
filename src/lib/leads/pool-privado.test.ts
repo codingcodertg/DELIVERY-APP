@@ -7,7 +7,7 @@ import { leadsDelBanco } from "./alcance";
 // El importador, como módulo: lo que mapea y lo que cruza, sin base.
 import { cruza, indiceDeClientes, leadDeFila, nombreClave, poolDeCiudad } from "../../../scripts/leads/importa-leads-privado.mjs";
 
-/** El «Pool privado» (solo admin) y el cruce con Clientes (D-NEXT, migración 218). */
+/** El «Pool privado» (solo admin) y el cruce con Clientes (D-760, migración 218). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

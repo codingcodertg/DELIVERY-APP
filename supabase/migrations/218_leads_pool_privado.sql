@@ -1,4 +1,4 @@
--- 218: Leads — el «Pool privado» (leads de una fuente privada, solo para el admin) y el cruce con Clientes (D-NEXT, 2026-10-30).
+-- 218: Leads — el «Pool privado» (leads de una fuente privada, solo para el admin) y el cruce con Clientes (D-760, 2026-10-30).
 --
 -- El dueño: «te estoy dando otro Excel de leads […] el leads que ya esta es por parte del gobierno, y este […] es por parte
 -- de una private company. […] Solo es para admin, nadie mas. […] Va a decir Pool General, Mi pool, Admin, y al lado
