@@ -286,10 +286,12 @@ export function ordenesVisibles(deliveries: readonly Delivery[], ctx: ContextoDe
 /**
  * Los roles cuya lista ENTERA de Órdenes va cortada por su tienda (D-405): sin buscar, buscando, en
  * el tablero, en las pastillas y en sus números. El dueño, 2026-09-26: *«y office manager, sales solo
- * pueden ver su propia tienda»*. Office (`accounting`) no está: no lo nombró, y a él solo se le
- * corta la búsqueda (ver `alcanceDeLaLista`).
+ * pueden ver su propia tienda»*; y el 2026-10-29, para todo el sistema: *«todos, excepto admins, […]
+ * solo pueden ver la tienda que están asignados»* (D-751). Office (`accounting`) entra con eso: hasta
+ * D-751 solo se le cortaba la búsqueda. Almacén sigue con su propio corte (`tiendasDeAlmacen`) y
+ * logística ve todas (es quien reparte las rutas de toda la empresa).
  */
-export const ROLES_LISTA_DE_SU_TIENDA: readonly UserRole[] = ["manager", "sales"];
+export const ROLES_LISTA_DE_SU_TIENDA: readonly UserRole[] = ["manager", "sales", "accounting"];
 
 /**
  * De qué tiendas es la lista de Órdenes para esta persona, AHORA (D-405).
