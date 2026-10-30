@@ -49047,3 +49047,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
 
 **No verificado:** en navegador; el dueño prueba la foto tras publicar.
+
+## D-757 · Hub: las apps se reordenan arrastrando (sin flechas), y el botón dice «Reordenar»
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/hub-ordenar-arrastrando`. **Reemplaza a D-739** en la forma de mover.
+
+**Pedido (el dueño, 2026-10-29, con captura del hub en modo ordenar):** «aquí quiero que solo se arrastre, no con flechas»; «y no es ordenar, es reordenar».
+
+**Qué cambia (`HomeSelector.tsx`, `orden-del-hub.ts`):** en modo «↕ Reordenar», cada tarjeta se arrastra y se suelta sobre otra (HTML5 drag & drop, el mismo que las cabeceras de Clientes, D-650): la arrastrada se atenúa, la de destino se marca, y al soltar queda en ese sitio (`colocaColumna`, la misma regla de columnas). Se guarda igual que antes (D-739: `user_prefs` `hub_order` y el navegador). Fuera las flechas ◀ ▶ y `mueveModulo`. Es de escritorio: en el teléfono el arrastre HTML5 no existe, y ahí no se reordena (el admin ordena desde su computadora; el orden vale en todos sus dispositivos).
+
+**Pruebas:** `orden-del-hub.test.ts` puesta al día (colocar al arrastrar, y la pantalla sin flechas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se arrastró en un navegador.

@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
-  CLAVE_DE_ORDEN_DEL_HUB, claveDelNavegadorDelHub, guardaOrdenDelHub, leeOrdenDelHub, mueveModulo, ordenaModulos, ordenValido,
+  CLAVE_DE_ORDEN_DEL_HUB, claveDelNavegadorDelHub, guardaOrdenDelHub, leeOrdenDelHub, ordenaModulos, ordenValido,
   puedeOrdenarElHub, valorDeOrden,
 } from "./orden-del-hub";
 import { CLAVES_DE_PREFERENCIA, type ClienteDePrefs } from "./user-prefs";
+import { colocaColumna } from "./orden-de-columnas";
 
 /** El admin ordena las apps del hub a su gusto (D-739, 2026-10-29). */
 
@@ -31,12 +32,11 @@ describe("el orden guardado se aplica", () => {
     expect(claves(ordenaModulos(M, []))).toEqual(claves(M));
     expect(claves(ordenaModulos(M, ["promos", "timetracker"]))).toEqual(["timetracker", "deliveries", "recruiting", "customers"]);
   });
-  it("mover a la izquierda o a la derecha intercambia con el vecino; en el borde no pasa nada", () => {
-    expect(mueveModulo(claves(M), "customers", -1)).toEqual(["deliveries", "customers", "recruiting", "timetracker"]);
-    expect(mueveModulo(claves(M), "customers", 1)).toEqual(["deliveries", "recruiting", "timetracker", "customers"]);
-    expect(mueveModulo(claves(M), "deliveries", -1)).toEqual(claves(M));
-    expect(mueveModulo(claves(M), "timetracker", 1)).toEqual(claves(M));
-    expect(mueveModulo(claves(M), "nadie", 1)).toEqual(claves(M));
+  it("arrastrar una app y soltarla sobre otra la coloca ahí (la misma regla que las cabeceras de Clientes, D-650)", () => {
+    expect(colocaColumna(claves(M), "timetracker", "deliveries")).toEqual(["timetracker", "deliveries", "recruiting", "customers"]);
+    expect(colocaColumna(claves(M), "deliveries", "customers")).toEqual(["recruiting", "customers", "deliveries", "timetracker"]);
+    expect(colocaColumna(claves(M), "deliveries", "deliveries")).toEqual(claves(M));
+    expect(colocaColumna(claves(M), "nadie", "deliveries")).toEqual(claves(M));
   });
 });
 
@@ -78,11 +78,15 @@ describe("lo que se guarda y lo que se lee", () => {
 describe("la pantalla", () => {
   const hub = leer("src/components/HomeSelector.tsx");
   const sinComentarios = hub.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-  it("el botón de ordenar solo para quien puede, y las flechas solo ordenando", () => {
+  it("el botón «Reordenar» solo para quien puede; reordenando, las tarjetas se arrastran (sin flechas)", () => {
     expect(sinComentarios).toContain("puedeOrdenarElHub(me) && (");
     expect(sinComentarios).toContain("data-hub-ordenar");
-    expect(sinComentarios).toContain('data-mueve="izq"');
-    expect(sinComentarios).toContain('data-mueve="der"');
+    expect(sinComentarios).toContain('t("↕ Reorder", "↕ Reordenar")');
+    expect(sinComentarios).toContain("draggable");
+    expect(sinComentarios).toContain("onDrop={(e) => { e.preventDefault(); suelta(m.key); }}");
+    expect(sinComentarios).toContain("colocaColumna(modulos.map((m) => m.key), arrastrada, destino)");
+    expect(sinComentarios).not.toContain("data-mueve");
+    expect(sinComentarios).not.toContain("mueveModulo");
     expect(sinComentarios).toContain("ordenaModulos(available, orden)");
   });
   it("Usuarios del hub manda a los empleados de RRHH, donde viven los permisos (D-720)", () => {
