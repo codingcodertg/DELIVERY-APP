@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { almacenDemo, PERSONAS_DEMO } from "./demo";
 
-/** En el lead cruzado: enlace a la ficha del cliente y el vendedor que lo lleva (D-NEXT). */
+/** En el lead cruzado: enlace a la ficha del cliente y el vendedor que lo lleva (D-762). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

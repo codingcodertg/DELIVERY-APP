@@ -101,7 +101,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // D-760 (218): el «Pool privado» (leads de la fuente privada) es una pestaña aparte, solo del admin; la base ya no
   // se los manda a nadie más. Reusa los mismos filtros, orden y tarjetas que el Pool General.
   const privados = useMemo(() => leads.filter((l) => l.source === "privado"), [leads]);
-  // D-NEXT: de los cruzados, el cliente (enlace a su ficha) y el vendedor que lo lleva. Una lectura por tanda de ids.
+  // D-762: de los cruzados, el cliente (enlace a su ficha) y el vendedor que lo lleva. Una lectura por tanda de ids.
   const [clientes, setClientes] = useState<Map<number, ClienteCruzado>>(() => new Map());
   const idsCruzados = useMemo(() => leads.map((l) => l.customer_match_id).filter((n): n is number => n != null).sort().join(","), [leads]);
   useEffect(() => {
@@ -420,7 +420,7 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
   cotizar: boolean;
   /** Las cotizaciones de este lead que quien mira ve en el Quote Builder (D-558). */
   cotizaciones: CotizacionDeLead[];
-  /** D-NEXT: el cliente con el que coincide (218), si ya se leyó: para el enlace y el vendedor. */
+  /** D-762: el cliente con el que coincide (218), si ya se leyó: para el enlace y el vendedor. */
   cliente?: ClienteCruzado;
 }) {
   const { t, lang } = usePrefs();

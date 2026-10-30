@@ -49115,7 +49115,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se marcó una entrega real; la 219 se ensayó con ROLLBACK, con un UPDATE de prueba dentro del mismo ensayo. Aplicarla es del dueño.
 
-## D-NEXT · Leads cruzados: enlace a la ficha del cliente y el vendedor que lo lleva, en la tarjeta
+## D-762 · Leads cruzados: enlace a la ficha del cliente y el vendedor que lo lleva, en la tarjeta
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/leads-cruzados-enlace-y-vendedor`.
 

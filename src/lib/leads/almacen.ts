@@ -35,7 +35,7 @@ export interface AlmacenDeLeads {
   archivar(leadId: string, nota: string): Promise<Res<Lead>>;
   ponerTope(tope: number): Promise<Res<number>>;
   /**
-   * D-NEXT: los clientes con los que coinciden los leads cruzados (218): cuenta, tienda y el vendedor que los lleva hoy
+   * D-762: los clientes con los que coinciden los leads cruzados (218): cuenta, tienda y el vendedor que los lleva hoy
    * (nombre del perfil, o null). Se leen de `erp.customers` con la sesión de quien mira: el admin los ve todos.
    */
   clientesCruzados(ids: readonly number[]): Promise<Res<Map<number, ClienteCruzado>>>;
