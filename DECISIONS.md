@@ -49009,3 +49009,16 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recogida-libre.test.ts` (qué tipos, el cambio de tipo con controles, la ficha y el control). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. Las órdenes ya guardadas no se tocan.
+## D-NEXT · RR. HH. → Permisos: cada permiso vuelve a ser una fila (casilla · nombre «del rol» · descripción)
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `fix/permisos-expediente-filas`.
+
+**Pedido (el dueño, 2026-10-29, con captura del diálogo de Permisos abierto desde el expediente):** «mira cómo se mira eso»: la descripción de cada permiso salía palabra por palabra en una columna de 18 px y el globo «del rol» estirado a todo el ancho.
+
+**Qué había (D-729):** la tarjeta `.perm-opt` iba en una rejilla de TRES columnas (casilla · nombre · descripción) con el `<span>` del texto en `display: contents`, contando con tres hijos. Con el globo «del rol» son CUATRO: el globo caía en la columna ancha (estirado) y la descripción pasaba a la fila siguiente, a la columna de la casilla (18 px): una palabra por línea. Solo se veía en los permisos que vienen del rol, que en un admin son todos.
+
+**Qué cambia (`recruiting.css`):** dos columnas fijas —casilla · bloque de texto— y el bloque es un bloque (`display: block; min-width: 0`): nombre y globo en línea, descripción debajo con saltos normales. No depende de cuántos hijos lleve, y la regla del teléfono sobra. El diálogo del hub (`/home/users`) no usa esta hoja y no cambia.
+
+**Pruebas:** `src/lib/recruiting/permisos-en-filas.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.
