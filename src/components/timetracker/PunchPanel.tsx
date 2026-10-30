@@ -7,7 +7,7 @@ import {
   MOTIVOS_DE_SALIDA, VEHICULO_POR_DEFECTO, etiquetaDeFoto, filaDeSalida, planDeSalida, seCierraDeUnToque, vehiculoDeEmpresaPorDefecto,
   type MotivoDeSalida, type PlanDeSalida, type Vehiculo,
 } from "@/lib/clockin/visitas";
-import { APP_SETTINGS, fmtClock } from "@/lib/timetracker/helpers";
+import { APP_SETTINGS, fmtClockSinSegundos } from "@/lib/timetracker/helpers";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { Modal } from "@/components/timetracker/Modal";
 import { MySections } from "@/components/timetracker/MySections";
@@ -186,7 +186,9 @@ export function PunchPanel() {
   const conContador = secciones.contador;
   useEffect(() => {
     if (!conContador) return;
-    const i = setInterval(() => setAhora(Date.now()), 1000);
+    // Sin segundos en pantalla (D-755), basta con moverlo cada 15 s: el minuto nunca llega con más de 15 s de retraso
+    // y el panel deja de repintarse 60 veces por minuto.
+    const i = setInterval(() => setAhora(Date.now()), 15000);
     return () => clearInterval(i);
   }, [conContador]);
 
@@ -424,7 +426,7 @@ export function PunchPanel() {
         {/* El contador, solo el admin (D-517): al empleado el dueño no quiere enseñarle el tiempo. */}
         {secciones.contador && (
           <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 1, margin: "8px 0" }}>
-            {dentro ? fmtClock(llevo) : "0:00:00"}
+            {dentro ? fmtClockSinSegundos(llevo) : "0:00"}
           </div>
         )}
 

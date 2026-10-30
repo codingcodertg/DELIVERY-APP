@@ -81,6 +81,11 @@ export function fmtClock(sec: number): string {
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
   return h + ":" + pad(m) + ":" + pad(s);
 }
+/** Como `fmtClock` pero sin segundos (D-755, el dueño: «Employees don't need to see seconds that they're clocked in»): «0:01», «8:07». */
+export function fmtClockSinSegundos(sec: number): string {
+  sec = Math.max(0, Math.floor(sec));
+  return Math.floor(sec / 3600) + ":" + pad(Math.floor((sec % 3600) / 60));
+}
 export function fmtHrs(sec: number): string { return (sec / 3600).toFixed(2) + " h"; }
 export function fmtHM(sec: number): string {
   const m = Math.round((sec || 0) / 60), h = Math.floor(m / 60), mm = m % 60;

@@ -49022,3 +49022,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recruiting/permisos-en-filas.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+
+## D-755 · Time Tracker → Clock in / out: el contador de «llevo trabajando» sin segundos
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/cronometro-sin-segundos`.
+
+**Pedido (el dueño, 2026-10-29, con captura del panel de fichar):** «Employees don't need to see seconds that they're clocked in».
+
+**Qué cambia (`PunchPanel.tsx`, `helpers.ts`):** el contador grande pasa de «0:01:40» a «0:01» (`fmtClockSinSegundos`: horas y minutos, los segundos se tiran). Y como ya no hay segundos que mover, el panel se repinta cada 15 s en vez de cada segundo (el minuto llega con 15 s de retraso como mucho; antes, 60 repintados por minuto en el teléfono). `fmtClock` con segundos sigue donde se usa para medir: semana, nómina, auditoría y «En vivo».
+
+**Pruebas:** `src/lib/timetracker/cronometro-sin-segundos.test.ts`; `mis-acciones.test.ts` puesta al día. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.
