@@ -49152,3 +49152,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recruiting/agendar-presencial.test.ts` (el texto esperado sin Waze y `not.toContain("waze")`). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
 
 **No verificado:** no se mandó un SMS; el largo final depende de la dirección de la tienda.
+
+## D-NEXT · Hub: Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/hub-perfil-en-tarjeta`.
+
+**Pedido (el dueño, 2026-10-30, por voz):** «En el RTG Hub, la opción de personalizar idioma y tema y mi perfil y contraseña, yo quiero que esto simplemente sea un pop-up, en vez de llevarte a otro screen, como hemos manejado siempre las cards, que así se abran … ahí mismo se puede abrir».
+
+**Qué cambia:** en el hub, el clic en «👤 Mi perfil · contraseña» o en «🎨 Personalizar · idioma, tema» abre el mismo contenido de siempre (`ProfileView`, `Personalizador`) dentro del velo y el modal de siempre (`.overlay` + `.modal`), encima del hub. Se cierra con el velo, con Escape o con «Cerrar» (que ocupa el sitio de «Volver al hub»). Desde la tarjeta de Mi perfil, «Personalizar →» cambia a la otra tarjeta sin salir. Los enlaces conservan su ruta y las páginas `/home/profile` y `/home/personalizar` siguen existiendo: son el destino desde el menú del nombre de cada app (D-490) y del redirect de `/account` (D-274); abrir con botón central o sin JS sigue llegando allí. El servidor del hub lee además `username` y manda a la tarjeta el correo o usuario por `identidadVisible`, como hacía la página.
+
+**Pruebas:** `src/lib/hub-perfil-en-tarjeta.test.ts`; `personalizar.test.ts` actualizada a los enlaces con clic. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.

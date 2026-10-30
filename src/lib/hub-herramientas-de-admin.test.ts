@@ -76,7 +76,7 @@ describe("el lobby sabe si se está suplantando, una vez y en el servidor", () =
   it("lee la cookie de retorno con el mismo lector que las rutas de impersonación", () => {
     expect(lobby).toContain('import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";');
     expect(lobby).toContain("const suplantando = desempaquetar((await cookies()).get(COOKIE_RETORNO)?.value ?? null) !== null;");
-    expect(lobby).toContain("<HomeSelector me={me} suplantando={suplantando} />");
+    expect(lobby).toContain("<HomeSelector me={me} suplantando={suplantando} cuenta={cuenta} />");
     // Y ninguna petición nueva: no se llama a /api/impersonate/state desde el lobby.
     expect(lobby).not.toContain("impersonate/state");
   });

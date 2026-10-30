@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { noLeidosPorSolicitud, repartoDeNoLeidos } from "@/lib/help-thread";
 import { usePrefs } from "@/lib/prefs";
 import { VersionFooter } from "@/components/VersionFooter";
+import { ProfileView } from "@/components/profile/ProfileView";
+import { Personalizador } from "@/components/profile/Personalizador";
 import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
 import { puedeEntrarAClientes } from "@/lib/customers/reglas";
 import type { Profile } from "@/lib/types";
@@ -18,8 +20,19 @@ import type { ClienteDePrefs } from "@/lib/user-prefs";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
-export function HomeSelector({ me, suplantando = false }: { me: Profile; suplantando?: boolean }) {
+export function HomeSelector({ me, suplantando = false, cuenta }: { me: Profile; suplantando?: boolean; cuenta?: { correo: string | null; usuario: string | null } }) {
   const { lang, t } = usePrefs();
+  // D-NEXT: Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla (el dueño,
+  // 2026-10-30: «que esto simplemente sea un pop-up … como hemos manejado siempre las cards»). El enlace conserva
+  // su ruta (sigue siendo el destino desde el menú del nombre de cada app); el clic la abre aquí.
+  const [tarjeta, setTarjeta] = useState<"perfil" | "personalizar" | null>(null);
+  const abre = (cual: "perfil" | "personalizar") => (e: React.MouseEvent) => { e.preventDefault(); setTarjeta(cual); };
+  useEffect(() => {
+    if (!tarjeta) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setTarjeta(null); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [tarjeta]);
   // D-759: con Clientes «solo admins», la tarjeta no se enseña a quien la puerta del servidor va a rebotar.
   const available = accessibleModules(me.module_access).filter((m) => m.key !== "customers" || puedeEntrarAClientes(me));
   // `suplantando` lo decide el servidor (home/page.tsx) y solo lo miran las herramientas del admin real.
@@ -87,15 +100,24 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
         {/* Mi perfil (D-265): una cuenta y una contraseña para todas las apps, así que su sitio
             es el lobby y no ninguna de ellas. Para todos los roles que llegan aquí; el chofer, que
             no llega (D-173), entra desde la «Cuenta» de Entregas. */}
-        <Link href="/home/profile" className="hub-profile-link">
+        <Link href="/home/profile" className="hub-profile-link" data-hub-perfil onClick={abre("perfil")}>
           👤 {t("My profile · password", "Mi perfil · contraseña")}
         </Link>
         {/* El personalizador (D-490): idioma y tema de TODAS las apps, elegidos solo aquí. Al lado de
             Mi perfil porque es lo mismo —lo tuyo, para todas las apps—, y las barras de cada app ya no
             tienen botón de idioma ni de tema: enlazan hasta aquí desde el menú del nombre. */}
-        <Link href={RUTA_PERSONALIZAR} className="hub-profile-link" data-hub-personalizar>
+        <Link href={RUTA_PERSONALIZAR} className="hub-profile-link" data-hub-personalizar onClick={abre("personalizar")}>
           🎨 {t("Customize · language, theme", "Personalizar · idioma, tema")}
         </Link>
+        {tarjeta && (
+          <div className="overlay" data-hub-tarjeta={tarjeta} onClick={() => setTarjeta(null)}>
+            <div className="modal hub-tarjeta" role="dialog" aria-modal="true" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+              {tarjeta === "perfil"
+                ? <ProfileView id={me.id} nombre={me.full_name} correo={cuenta?.correo ?? null} usuario={cuenta?.usuario ?? null} onCerrar={() => setTarjeta(null)} onPersonalizar={() => setTarjeta("personalizar")} />
+                : <Personalizador onCerrar={() => setTarjeta(null)} />}
+            </div>
+          </div>
+        )}
         <p style={{ color: "var(--ink-soft)", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ flex: 1 }}>{t("Which one do you want to open?", "¿Cuál quieres abrir?")}</span>
           {puedeOrdenarElHub(me) && (
