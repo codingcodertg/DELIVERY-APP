@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** La ficha de cliente sin huecos: tarjetas que fluyen en columnas, cada una con su alto (D-NEXT, 2026-10-29). */
+/** La ficha de cliente sin huecos: tarjetas que fluyen en columnas, cada una con su alto (D-745, 2026-10-29). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

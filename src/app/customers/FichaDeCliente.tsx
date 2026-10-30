@@ -109,7 +109,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   const ocultas = filasOcultas().map(linea).filter((x) => x !== null);
   return (
     <div className="space-y-4">
-      {/* D-NEXT: columnas que FLUYEN (CSS columns), no una rejilla: en la rejilla cada fila medía lo que la tarjeta más alta
+      {/* D-745: columnas que FLUYEN (CSS columns), no una rejilla: en la rejilla cada fila medía lo que la tarjeta más alta
           y «Cuenta» quedaba estirada con medio metro en blanco al lado de «Contacto». Ahora cada tarjeta mide lo suyo y la
           siguiente sube a rellenar; una tarjeta nunca se parte entre columnas. */}
       <div className="gap-4 md:columns-2 xl:columns-3 [&>*]:mb-4 [&>*]:break-inside-avoid" data-tarjetas-de-la-ficha>

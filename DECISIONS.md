@@ -48888,7 +48888,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se midió en el navegador del dueño ni con el Profiler de React; la mejora esperada sale del banco en Node y de la lectura del código.
 
-## D-NEXT · Ficha de cliente: las tarjetas fluyen en columnas y cada una mide lo suyo (sin huecos)
+## D-745 · Ficha de cliente: las tarjetas fluyen en columnas y cada una mide lo suyo (sin huecos)
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/ficha-cliente-sin-huecos`.
 
