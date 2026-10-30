@@ -534,10 +534,14 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             <label>{t("Prepared by", "Preparada por")}</label>
             <div style={{ padding: "8px 0", fontWeight: 600 }}>{me.name}</div>
           </div>
+          {/* D-771: el campo «Tienda (sale en la cotización)» solo lo ve el admin (el dueño: «for sales people remove tienda que
+              sale en cotiza»). La tienda sigue saliendo en la hoja del cliente (`tiendaHoja`, D-451): es la del perfil. */}
+          {me.admin && (
           <div className="field">
             <label>{t("Store (printed on the quote)", "Tienda (sale en la cotización)")}</label>
             <div data-tienda style={{ padding: "8px 0", fontWeight: 600 }}>{tiendaHoja ?? <span className="hint">{t("No store on your profile", "Tu perfil no tiene tienda")}</span>}</div>
           </div>
+          )}
         </div>
         {/* De qué lead salió (D-558). Interno: la hoja del cliente no lo lleva. */}
         {vinculo.estado !== "ninguno" && (

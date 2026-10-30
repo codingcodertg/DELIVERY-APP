@@ -49202,3 +49202,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/stxp-pool.test.ts` (permiso, orden de tiendas igual en código y en la 220, pools visibles, el demo tomando hasta agotar Brownsville, la pantalla, la página y la 220); `alcance`, `reglas` y `pool-privado` puestas al día. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La 220 se ensayó con ROLLBACK; aplicarla es del dueño (comando en el mensaje).
+
+## D-771 · Quote Builder: el campo «Tienda (sale en la cotización)» solo lo ve el admin
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/cotiza-sin-tienda-para-ventas`.
+
+**Pedido (el dueño, 2026-10-30):** «for sales people remove tienda que sale en cotiza».
+
+**Qué cambia:** en la cabecera de la cotización, el campo de solo lectura «Tienda (sale en la cotización)» (D-451) se pinta solo para el admin. Para ventas y oficina desaparece: la tienda es la de su perfil y no la eligen. La hoja del cliente sigue llevando la tienda (`tiendaHoja`), igual que antes.
+
+**Pruebas:** `src/lib/estimator/tienda-solo-admin.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.
