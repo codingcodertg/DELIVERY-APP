@@ -97,7 +97,7 @@ describe("la pantalla", () => {
     expect(lista).toContain("RETARDO_DE_BUSQUEDA_MS");
   });
   it("en el alta, el vendedor es él, puesto de antemano y bloqueado", () => {
-    expect(ficha).toContain("const preajuste = useMemo<Record<string, string>>(() => (nuevo && esVendedor && yo ? { rep_id: yo } : {} as Record<string, string>), [nuevo, esVendedor, yo]);");
+    expect(ficha).toContain("const preajuste = useMemo<Record<string, string>>(() => ({ ...(nuevo && esVendedor && yo ? { rep_id: yo } : {}), ...(tiendaPre ? { store: tiendaPre } : {}) }), [nuevo, esVendedor, yo, tiendaPre]);");
     expect(ficha).toContain("useEffect(() => { setForm({ ...original, ...preajuste }); }, [original, preajuste]);");
     expect(ficha).toContain("bloqueado={esVendedor || puedePedirVendedor}");
     expect(ficha).toContain("<select className={cn(selCls, \"w-full\")} value={valor} onChange={(e) => onCambia(e.target.value)} data-vendedor disabled={bloqueado}>");

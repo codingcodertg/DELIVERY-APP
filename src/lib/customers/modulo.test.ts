@@ -87,7 +87,7 @@ describe("la puerta y el tema", () => {
   });
   it("la página dice quién mira (rol del hub) y no lee los clientes en el servidor; la pantalla usa el cliente del ERP", () => {
     const page = leer("src/app/customers/page.tsx");
-    expect(page).toContain('.select("full_name, role, module_access")');
+    expect(page).toContain('.select("full_name, role, module_access, store")');
     expect(page).toContain("puedeEditar={puedeEditar(role)}");
     expect(page).not.toContain('.from("customers")');
     const pantalla = leer("src/app/customers/Clientes.tsx");

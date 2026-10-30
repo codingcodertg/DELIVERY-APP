@@ -5,7 +5,7 @@ import { Badge } from "@/components/erp/ui/badge";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
-import { avisoDeNoCreadas, filaQueSeEnsena, filasDelAlta, tiendasDelAlta } from "@/lib/customers/alta";
+import { avisoDeNoCreadas, filaQueSeEnsena, filasDelAlta, tiendaPreelegida, tiendasDelAlta } from "@/lib/customers/alta";
 import type { AlmacenDeClientes, Res } from "@/lib/customers/almacen";
 import { CLASES_DE_ARCHIVO, claseDeArchivoLabel, faltaElFormulario, MAX_BYTES_DE_ARCHIVO, tamanoLegible, type ArchivoDeCliente, type ClaseDeArchivo } from "@/lib/customers/archivos";
 import { coincidenciasDe, motivoDeCoincidenciaLabel, type Borrador } from "@/lib/customers/coincidencias";
@@ -623,7 +623,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, altaComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, miTienda = null, altaComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
   /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
@@ -637,6 +637,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   editarAlAbrir?: boolean;
   /** D-740: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
   yo?: string;
+  /** D-767: la tienda de quien mira (`profiles.store`). En un alta queda marcada de entrada, como el vendedor. */
+  miTienda?: string | null;
   /** D-743 (216): el alta no crea: manda una solicitud que aprueba el admin, y se avisa a quien llama. */
   altaComoSolicitud?: boolean;
   onSolicitado?: (s: SolicitudDeCliente) => void;
@@ -651,7 +653,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const original = useMemo(() => formDe(cliente), [cliente]);
   // D-740: en el alta, el vendedor es él (y el desplegable va bloqueado). Va en el FORMULARIO y no en `original`, para
   // que `parcheDe` lo cuente como cambio y llegue a la base.
-  const preajuste = useMemo<Record<string, string>>(() => (nuevo && esVendedor && yo ? { rep_id: yo } : {} as Record<string, string>), [nuevo, esVendedor, yo]);
+  // D-767: y la tienda de quien pide, marcada de entrada (`tiendasAlta` y `form.store`), igual que el vendedor.
+  const tiendaPre = useMemo(() => (nuevo ? tiendaPreelegida(miTienda) : ""), [nuevo, miTienda]);
+  const preajuste = useMemo<Record<string, string>>(() => ({ ...(nuevo && esVendedor && yo ? { rep_id: yo } : {}), ...(tiendaPre ? { store: tiendaPre } : {}) }), [nuevo, esVendedor, yo, tiendaPre]);
   const [form, setForm] = useState<Record<string, string>>(() => ({ ...original, ...preajuste }));
   useEffect(() => { setForm({ ...original, ...preajuste }); }, [original, preajuste]);
   // D-668: los contactos van aparte del resto de campos: una lista que se edita entera.
@@ -676,7 +680,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<{ tono: "rojo" | "verde" | "ambar"; texto: string } | null>(null);
   // D-664: las tiendas marcadas en el alta. `form.store` lleva la primera, para que «sin tienda» siga siendo un error.
-  const [tiendasAlta, setTiendasAlta] = useState<string[]>([]);
+  const [tiendasAlta, setTiendasAlta] = useState<string[]>(() => (tiendaPre ? [tiendaPre] : []));
   const marcaTiendas = (marcadas: string[]) => {
     const orden = tiendasDelAlta(marcadas);
     setTiendasAlta(orden);
