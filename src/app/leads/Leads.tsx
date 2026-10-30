@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
-import { almacenDeLaBase, type AlmacenDeLeads, type Res } from "@/lib/leads/almacen";
+import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } from "@/lib/leads/almacen";
 import { ALCANCE_SIN_REGLA, eligeTienda, leadsDelBanco, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO } from "@/lib/leads/demo";
 import {
@@ -101,6 +101,15 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // D-760 (218): el «Pool privado» (leads de la fuente privada) es una pestaña aparte, solo del admin; la base ya no
   // se los manda a nadie más. Reusa los mismos filtros, orden y tarjetas que el Pool General.
   const privados = useMemo(() => leads.filter((l) => l.source === "privado"), [leads]);
+  // D-762: de los cruzados, el cliente (enlace a su ficha) y el vendedor que lo lleva. Una lectura por tanda de ids.
+  const [clientes, setClientes] = useState<Map<number, ClienteCruzado>>(() => new Map());
+  const idsCruzados = useMemo(() => leads.map((l) => l.customer_match_id).filter((n): n is number => n != null).sort().join(","), [leads]);
+  useEffect(() => {
+    if (!idsCruzados) { setClientes(new Map()); return; }
+    let vivo = true;
+    void almacen.clientesCruzados(idsCruzados.split(",").map(Number)).then((r) => { if (vivo && r.ok) setClientes(r.valor); });
+    return () => { vivo = false; };
+  }, [almacen, idsCruzados]);
   const [coinciden, setCoinciden] = useState(false);
   const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
@@ -164,6 +173,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       onCerrar={() => setDialogo({ tipo: "cerrar", lead: l })} onAdmin={() => setDialogo({ tipo: "admin", lead: l })}
       onHistorial={() => void verHistorial(l)}
       cotizar={puedeCotizarLead(l, yo, cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
+      cliente={l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined}
     />
   );
   const leadEnfocado = enfocado ? leads.find((l) => l.id === enfocado) ?? null : null;
@@ -402,7 +412,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
 }
 
-function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial, cotizar, cotizaciones }: {
+function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial, cotizar, cotizaciones, cliente }: {
   lead: Lead; yo: Persona; donde: "banco" | "mio" | "admin"; puede: ReturnType<typeof puedeTomar>; ocupado: boolean;
   historial: EventoLead[] | null | undefined;
   onTomar: () => void; onNota: () => void; onCerrar: () => void; onAdmin: () => void; onHistorial: () => void;
@@ -410,6 +420,8 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
   cotizar: boolean;
   /** Las cotizaciones de este lead que quien mira ve en el Quote Builder (D-558). */
   cotizaciones: CotizacionDeLead[];
+  /** D-762: el cliente con el que coincide (218), si ya se leyó: para el enlace y el vendedor. */
+  cliente?: ClienteCruzado;
 }) {
   const { t, lang } = usePrefs();
   // En la pestaña del admin (cola de revisión, sin tocar) las tarjetas se leen enteras: ahí son trabajo suyo.
@@ -429,7 +441,14 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
         {l.type_of_work ? ` · ${l.type_of_work}` : ""}
       </p>
       {l.customer_match_note && (
-        <p className="ld-cliente" data-cliente={l.customer_match_id ?? ""}>🤝 {t("Customer", "Cliente")}: {l.customer_match_note}</p>
+        <p className="ld-cliente" data-cliente={l.customer_match_id ?? ""}>
+          🤝 {t("Customer", "Cliente")}:{" "}
+          {l.customer_match_id != null
+            ? <Link href={`/customers/${l.customer_match_id}`} data-ficha-cliente>{cliente ? `${cliente.account} (${cliente.store})` : l.customer_match_note}</Link>
+            : l.customer_match_note}
+          {cliente && <> · {t("Sales rep", "Vendedor")}: <b data-vendedor-cliente>{cliente.rep_name ?? t("Unassigned", "Sin asignar")}</b></>}
+          {cliente && <span className="hint"> · {l.customer_match_note}</span>}
+        </p>
       )}
 
       {l.status !== "free" && (

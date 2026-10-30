@@ -49114,3 +49114,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/entregada-en-otra-fecha.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
 
 **No verificado:** no se marcó una entrega real; la 219 se ensayó con ROLLBACK, con un UPDATE de prueba dentro del mismo ensayo. Aplicarla es del dueño.
+
+## D-762 · Leads cruzados: enlace a la ficha del cliente y el vendedor que lo lleva, en la tarjeta
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/leads-cruzados-enlace-y-vendedor`.
+
+**Pedido (el dueño, 2026-10-30, por voz):** «los que encontraron ahí la similarity con cliente que ya está en el database, quiero que esté el link ahí del database y también que salga el sales rep al cual está asignado ese lead ahí, para que sepamos en el private pool».
+
+**Qué cambia:** la tarjeta de un lead cruzado (218, D-760) dice ahora «🤝 Cliente: **ZAGAR BUILDERS (BRO)** · Vendedor: **Ana López**» (o «Sin asignar»), y la cuenta es un enlace a la ficha completa del cliente (`/customers/<id>`), con la razón del cruce en pequeño. El almacén de Leads gana `clientesCruzados(ids)`: lee cuenta, tienda y `rep_id` de `erp.customers` con la sesión de quien mira (el admin ve todos; la RLS de la 217 decide para los demás) y el nombre del vendedor de `profiles`. La pantalla lo pide una vez por tanda de ids (al cargar o al cambiar los leads), no por tarjeta. El demo contesta vacío.
+
+**Pruebas:** `src/lib/leads/cruzados-enlace-y-vendedor.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. Desde D-759 solo el admin entra a Clientes, así que el enlace lo abre el admin; a otro rol le rebotaría la puerta.
