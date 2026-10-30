@@ -8,6 +8,7 @@
  * - Se guarda **por persona** en `user_prefs` con la clave `hub_order` (migración 214 la admite), con la forma
  *   `{ "modules": ["deliveries", "customers", ...] }`; y en el navegador (`rtg_hub_order_<id>`) como copia, para que
  *   se vea al instante y para seguir funcionando si la base aún no admite la clave.
+ * - Se reordena ARRASTRANDO una tarjeta sobre otra (D-NEXT; antes flechas): el sitio nuevo lo calcula `colocaColumna`.
  * - Lo guardado es una lista de claves de módulo. Las que la persona ya no tiene se saltan; las que tiene y no están
  *   en la lista van después, en el orden de siempre: una app nueva aparece al final, no desaparece.
  */
@@ -39,16 +40,6 @@ export function ordenaModulos<T extends { key: string }>(modulos: readonly T[], 
   const conSitio = modulos.filter((m) => pos.has(m.key)).sort((a, b) => pos.get(a.key)! - pos.get(b.key)!);
   const sinSitio = modulos.filter((m) => !pos.has(m.key));
   return [...conSitio, ...sinSitio];
-}
-
-/** Mueve una app un sitio a la izquierda o a la derecha dentro de la lista tal y como se ve. */
-export function mueveModulo(claves: readonly string[], key: string, dir: -1 | 1): string[] {
-  const i = claves.indexOf(key);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= claves.length) return [...claves];
-  const r = [...claves];
-  [r[i], r[j]] = [r[j], r[i]];
-  return r;
 }
 
 /** Lee el orden: primero la base; si no se puede, el navegador. */
