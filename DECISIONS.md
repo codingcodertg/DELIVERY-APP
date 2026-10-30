@@ -49234,3 +49234,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `modulo.test.ts` y `vendedores.test.ts` fijan el interruptor quitado y la casilla ofrecida a todos los roles. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
 
 **No verificado:** no se abrió en un navegador.
+
+## D-NEXT · Quote Builder: el nivel de detalle para el cliente se elige en la vista previa, viendo la hoja y en vivo
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/cotiza-nivel-en-vista-previa`.
+
+**Pedido (el dueño, 2026-10-30, con dos capturas: las tres opciones en la tarjeta «Copia del cliente» y la vista previa):** «estas opciones las quiero acá, en el resultado, y que si la cambio pues que se cambie en vivo ahí mismo».
+
+**Qué cambia:** las tres opciones (Basic / Standard / Detailed) salen de la tarjeta «Copia del cliente» y pasan a la vista previa, en una barra bajo «Imprimir · Volver a editar», con la hoja debajo. Cambiarlas cambia el borrador (`display_level`), del que sale la hoja (`hojaDelCliente`), así que la hoja se repinta al instante. Al imprimir no salen (solo `.hoja-cliente` es visible, como antes). El valor se guarda con la cotización, igual que antes.
+
+**Pruebas:** `src/lib/estimator/nivel-en-vista-previa.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.
