@@ -49203,7 +49203,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador. La 220 se ensayó con ROLLBACK; aplicarla es del dueño (comando en el mensaje).
 
-## D-NEXT · Quote Builder: el campo «Tienda (sale en la cotización)» solo lo ve el admin
+## D-771 · Quote Builder: el campo «Tienda (sale en la cotización)» solo lo ve el admin
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/cotiza-sin-tienda-para-ventas`.
 

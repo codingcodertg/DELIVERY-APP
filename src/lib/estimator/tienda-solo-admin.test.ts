@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** En el Quote Builder, el campo «Tienda (sale en la cotización)» solo lo ve el admin (D-NEXT). */
+/** En el Quote Builder, el campo «Tienda (sale en la cotización)» solo lo ve el admin (D-771). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

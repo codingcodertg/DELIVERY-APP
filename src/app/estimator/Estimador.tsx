@@ -534,7 +534,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             <label>{t("Prepared by", "Preparada por")}</label>
             <div style={{ padding: "8px 0", fontWeight: 600 }}>{me.name}</div>
           </div>
-          {/* D-NEXT: el campo «Tienda (sale en la cotización)» solo lo ve el admin (el dueño: «for sales people remove tienda que
+          {/* D-771: el campo «Tienda (sale en la cotización)» solo lo ve el admin (el dueño: «for sales people remove tienda que
               sale en cotiza»). La tienda sigue saliendo en la hoja del cliente (`tiendaHoja`, D-451): es la del perfil. */}
           {me.admin && (
           <div className="field">
