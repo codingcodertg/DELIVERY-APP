@@ -1,10 +1,10 @@
 /**
- * Recogida libre: en «Otro» y «Proveedor» la recogida se teclea, no se elige entre nuestras tiendas (D-NEXT, 2026-10-29).
+ * Recogida libre: en «Otro» y «Proveedor» la recogida se teclea, no se elige entre nuestras tiendas (D-753, 2026-10-29).
  *
  * Roberto Rodriguez Jr, desde la ficha de una orden nueva (reenviado por el dueño): «Other and Supplier should give option
  * for pickup address to be inputted rather than saying to pickup at one of our stores».
  *
- * Por la REGLA del tipo, no por su nombre: un tipo con origen libre (`anyOrigin`, D-NEXT de «Otro») o sin cliente detrás
+ * Por la REGLA del tipo, no por su nombre: un tipo con origen libre (`anyOrigin`, D-753 de «Otro») o sin cliente detrás
  * (`hasCustomer: false`, el «Proveedor» de D-511) recoge donde sea. En producción son exactamente Other y Proveedor; Customer,
  * Intertienda y Transfer siguen igual (la recogida es una tienda).
  *

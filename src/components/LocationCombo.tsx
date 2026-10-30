@@ -50,7 +50,7 @@ export function LocationCombo({
   /** Highlight the name / address as missing required fields. */
   nameInvalid?: boolean;
   addressInvalid?: boolean;
-  /** D-NEXT: abrir en modo escribir (nombre tecleado + dirección buscada) salvo que el nombre ya sea uno guardado. Para la
+  /** D-753: abrir en modo escribir (nombre tecleado + dirección buscada) salvo que el nombre ya sea uno guardado. Para la
    *  recogida libre de «Otro» y «Proveedor»; «Elegir guardado» sigue ahí para quien quiera uno de la lista. */
   escribirPorDefecto?: boolean;
   t: (en: string, es: string) => string;

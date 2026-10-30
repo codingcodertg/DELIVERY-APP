@@ -954,7 +954,7 @@ export function OrderModal({
   /** Una transferencia no vende (D-741, Francis: «the store sold from fields should not exist since no sale was made»):
    *  «Vendido desde» no se enseña y `store` sigue al almacén de recogida (`conTiendaDeLaRecogida`). */
   const sinVenta = esTransferenciaSinVenta(reglaDelTipo);
-  /** Recogida libre (D-NEXT, Roberto: «Other and Supplier should give option for pickup address to be inputted rather than
+  /** Recogida libre (D-753, Roberto: «Other and Supplier should give option for pickup address to be inputted rather than
    *  saying to pickup at one of our stores»): en «Otro» y «Proveedor» la recogida se teclea y «Vendido desde» no la pisa. */
   const recogidaLibreDelTipo = recogidaLibre(reglaDelTipo);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses

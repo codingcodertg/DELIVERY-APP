@@ -264,7 +264,7 @@ describe("8, 9 y 10 · textos y columnas", () => {
     expect(formulario).not.toContain('t("Submit for approval", "Enviar a aprobación")');
   });
   it("9 · «Almacén de recolección», en el formulario, en lo que falta, en la vista de la orden y en el volante", () => {
-    expect(formulario).toContain(': t("Pickup warehouse", "Almacén de recolección")}'); // D-NEXT: con recogida libre el rótulo es otro
+    expect(formulario).toContain(': t("Pickup warehouse", "Almacén de recolección")}'); // D-753: con recogida libre el rótulo es otro
     expect(leer("src/lib/required.ts")).toContain('{ key: "pickup_name", en: "Pickup warehouse", es: "Almacén de recolección" }');
     expect([colLabel("Pickup Name", "es"), colLabel("Pickup Name", "en")]).toEqual(["Almacén de recolección", "Pickup warehouse"]);
     expect(colLabel("Pickup Address", "en")).toBe("Pickup Address");

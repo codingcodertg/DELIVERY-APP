@@ -4,7 +4,7 @@ import { recogidaLibre, sinRecogidaDeTienda } from "./recogida-libre";
 import { aplicaTipo, type ContextoDelUsuario } from "./order-sites";
 import type { NamedLocation, OrderTypeRule } from "./types";
 
-/** Recogida libre en «Otro» y «Proveedor»: se teclea, no se elige entre nuestras tiendas (D-NEXT, 2026-10-29). */
+/** Recogida libre en «Otro» y «Proveedor»: se teclea, no se elige entre nuestras tiendas (D-753, 2026-10-29). */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

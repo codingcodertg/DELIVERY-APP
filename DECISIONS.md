@@ -48992,7 +48992,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `fotos-en-storage.test.ts` (URL firmada con y sin mapa, `blob:`, y un control que no es URL). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; la causa se leyó en el código (`DayPhotos.tsx:205-245`, `PhotoLightbox.tsx:49`).
-## D-NEXT · Órdenes «Otro» y «Proveedor»: la recogida se teclea (nombre y dirección), no se elige entre nuestras tiendas
+## D-753 · Órdenes «Otro» y «Proveedor»: la recogida se teclea (nombre y dirección), no se elige entre nuestras tiendas
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/recogida-libre-otro-proveedor`.
 
