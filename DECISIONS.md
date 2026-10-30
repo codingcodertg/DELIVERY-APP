@@ -49174,7 +49174,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador.
 
-## D-NEXT · Clientes: en el alta (y la solicitud) de cliente nuevo, la tienda de quien pide queda marcada de entrada
+## D-767 · Clientes: en el alta (y la solicitud) de cliente nuevo, la tienda de quien pide queda marcada de entrada
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/alta-cliente-tienda-preelegida`.
 

@@ -637,7 +637,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   editarAlAbrir?: boolean;
   /** D-740: quién mira (su id). En un alta, el vendedor queda puesto como vendedor del cliente. */
   yo?: string;
-  /** D-NEXT: la tienda de quien mira (`profiles.store`). En un alta queda marcada de entrada, como el vendedor. */
+  /** D-767: la tienda de quien mira (`profiles.store`). En un alta queda marcada de entrada, como el vendedor. */
   miTienda?: string | null;
   /** D-743 (216): el alta no crea: manda una solicitud que aprueba el admin, y se avisa a quien llama. */
   altaComoSolicitud?: boolean;
@@ -653,7 +653,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const original = useMemo(() => formDe(cliente), [cliente]);
   // D-740: en el alta, el vendedor es él (y el desplegable va bloqueado). Va en el FORMULARIO y no en `original`, para
   // que `parcheDe` lo cuente como cambio y llegue a la base.
-  // D-NEXT: y la tienda de quien pide, marcada de entrada (`tiendasAlta` y `form.store`), igual que el vendedor.
+  // D-767: y la tienda de quien pide, marcada de entrada (`tiendasAlta` y `form.store`), igual que el vendedor.
   const tiendaPre = useMemo(() => (nuevo ? tiendaPreelegida(miTienda) : ""), [nuevo, miTienda]);
   const preajuste = useMemo<Record<string, string>>(() => ({ ...(nuevo && esVendedor && yo ? { rep_id: yo } : {}), ...(tiendaPre ? { store: tiendaPre } : {}) }), [nuevo, esVendedor, yo, tiendaPre]);
   const [form, setForm] = useState<Record<string, string>>(() => ({ ...original, ...preajuste }));

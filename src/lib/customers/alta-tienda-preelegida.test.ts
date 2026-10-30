@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tiendaPreelegida } from "./alta";
 
-/** En el alta (y la solicitud) de cliente, la tienda de quien pide queda marcada de entrada, como el vendedor (D-NEXT). */
+/** En el alta (y la solicitud) de cliente, la tienda de quien pide queda marcada de entrada, como el vendedor (D-767). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

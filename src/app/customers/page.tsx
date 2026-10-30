@@ -31,7 +31,7 @@ export default async function CustomersPage() {
   let role: UserRole = "sales";
   let fullName: string | null = null;
   let moduleAccess: string[] | null = null;
-  // D-NEXT: la tienda de quien mira, para dejarla marcada en el alta.
+  // D-767: la tienda de quien mira, para dejarla marcada en el alta.
   let miTienda: string | null = null;
   if (user) {
     const { data } = await supabase.from("profiles").select("full_name, role, module_access, store").eq("id", user.id).maybeSingle();
