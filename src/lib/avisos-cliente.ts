@@ -1,6 +1,7 @@
 import { hayClienteDetras, type OrderTypeRules } from "@/lib/required";
 import { BUSINESS_TZ, fmtDateShort, isoInTZ, orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 /**
  * Avisos al cliente, como OptimoRoute (D-416, migración 150). LA REGLA, sin red ni base.
@@ -119,7 +120,7 @@ export function decidirAviso(
 
 /** La hora (0-23) en Texas de un instante. */
 export function horaEnTexas(ahora: Date): number {
-  const h = new Intl.DateTimeFormat("en-US", { timeZone: BUSINESS_TZ, hour: "numeric", hourCycle: "h23" }).format(ahora);
+  const h = formateadorDeFecha("en-US", { timeZone: BUSINESS_TZ, hour: "numeric", hourCycle: "h23" }).format(ahora);
   return Number(h) % 24;
 }
 

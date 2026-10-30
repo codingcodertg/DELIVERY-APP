@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -418,12 +418,15 @@ export default function OrdersPage() {
    * dentro, D-407); `conPendientes` es la de «Factura pendiente»: lo abierto con cualquier fecha y lo
    * entregado de ayer en adelante, para todos (D-407, D-465).
    */
+  // D-744: lo tecleado se difiere (React `useDeferredValue`): el campo responde al instante y el filtrado de toda la
+  // empresa corre cuando el teclado para, no en cada pulsación.
+  const qDiferida = useDeferredValue(q);
   const { visibles: visible, conPendientes, atrasadas, alcancePendientes, alcanceLista } = useMemo(
     () => ordenesVisibles(deliveries, {
       me,
       teaching,
       veTodoElHistorial,
-      busqueda: q,
+      busqueda: qDiferida,
       reglas: settings.order_type_rules ?? {},
       tiendas: settings.stores,
       // Almacén solo ve lo de sus tiendas, también aquí (antes era solo en su cola).
@@ -431,7 +434,7 @@ export default function OrdersPage() {
       // Ventas con «Mañana» ve las de todos para mañana (D-588, `esMananaDeTodos`); con «Todas» y «Hoy», lo de siempre.
       chip: preset,
     }),
-    [deliveries, q, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores, preset],
+    [deliveries, qDiferida, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores, preset],
   );
   // Y en ese caso la tabla lleva las columnas de la tabla de paradas de «Ruta de hoy», no las suyas. La ficha de una ajena
   // no se abre: lo decide `puedeAbrirLaOrden` (D-544) en la puerta de la ficha (`OrderModalLazy`), que avisa y la cierra.
@@ -440,6 +443,14 @@ export default function OrdersPage() {
   // ¿Pasa el chip de fechas («Todas / Hoy / Mañana») que está pulsado? Lo usan la lista Y las cuentas por etapa
   // (D-357): el dueño vio «Programadas 9» con «Hoy» pulsado y una sola fila. Las cuentas dicen lo que la lista va a
   // enseñar, o no dicen nada.
+  // D-744: estable entre renders; antes era una función nueva en cada uno, y con ella cada fila volvía a calcularse.
+  const esUrgente = useCallback((d: Delivery) => {
+    const cutoff = me?.role === "manager" ? settings.manager_pending_cutoff
+      : me?.role === "sales" ? settings.sales_pending_cutoff
+      : null;
+    return isPendingUrgent(d, cutoff);
+  }, [me?.role, settings.manager_pending_cutoff, settings.sales_pending_cutoff]);
+
   const pasaElPreset = useCallback((d: Delivery): boolean => {
     if (preset === "today" && !isToday(d.delivery_date)) return false;
     if (preset === "tomorrow" && !isTomorrow(d.delivery_date)) return false;
@@ -923,12 +934,7 @@ export default function OrdersPage() {
             onToggleAll={toggleAll}
             // Arrastrar cabeceras (D-661): quien tiene «⚙ Columnas» (no ventas ni chofer), con el mismo guardado que las flechas.
             onMoverColumna={!["sales", "driver"].includes(me.role) ? (clave, destino) => guardaOrden(colocaColumna(ordenDelSelector, clave, destino)) : undefined}
-            isUrgent={(d) => {
-              const cutoff = me.role === "manager" ? settings.manager_pending_cutoff
-                : me.role === "sales" ? settings.sales_pending_cutoff
-                : null;
-              return isPendingUrgent(d, cutoff);
-            }}
+            isUrgent={esUrgente}
           />
         )
       ) : (

@@ -1,4 +1,5 @@
 import { BUSINESS_TZ } from "@/lib/utils";
+import { formateadorDeFecha } from "@/lib/formateador";
 /* ---- A qué hora «sale» la medida de una ruta (D-602, 2026-10-19) ----
  * Ernesto (chofer): «Why does ETA say 8 to orders that havent been done yet?». A las 12:40, con 11 paradas hechas, la
  * parada 12 (pendiente) decía 8:23: la medida de la ruta siempre arrancaba de la base a las 08:00 (`DAY_START_MIN`),
@@ -42,7 +43,7 @@ export function minutosReales(iso: string | null | undefined, fecha: string): nu
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  const partes = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d).map((p) => [p.type, p.value]));
+  const partes = Object.fromEntries(formateadorDeFecha("en-CA", { timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d).map((p) => [p.type, p.value]));
   if (`${partes.year}-${partes.month}-${partes.day}` !== fecha) return null;
   return Number(partes.hour) * 60 + Number(partes.minute);
 }

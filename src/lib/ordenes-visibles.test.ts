@@ -302,7 +302,7 @@ describe("la pantalla le pide las dos listas a la función", () => {
     const i = llano.indexOf("ordenesVisibles(deliveries, {");
     expect(i).toBeGreaterThan(-1);
     const args = llano.slice(i, llano.indexOf("})", i));
-    for (const dato of ["me,", "teaching,", "veTodoElHistorial,", "busqueda: q,",
+    for (const dato of ["me,", "teaching,", "veTodoElHistorial,", "busqueda: qDiferida,",
       "reglas: settings.order_type_rules ?? {},", "tiendas: settings.stores,"]) {
       expect(args, dato).toContain(dato);
     }

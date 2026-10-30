@@ -1,4 +1,5 @@
 import { BUSINESS_TZ } from "@/lib/utils";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 // ============================================================
 // Google Routes API (routes.googleapis.com) — server-side only.
@@ -78,7 +79,7 @@ export function departureTimeFor(dateISO: string | null | undefined, hour = 8): 
   // which also lands DST correctly, since the offset is read at that instant.
   const guess = Date.parse(`${dateISO}T${String(hour).padStart(2, "0")}:00:00Z`);
   if (Number.isNaN(guess)) return undefined;
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = formateadorDeFecha("en-US", {
     timeZone: BUSINESS_TZ, hour12: false,
     year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
   }).formatToParts(new Date(guess));

@@ -48864,3 +48864,26 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/solicitud-de-cliente.test.ts` (quién solicita, cuerpo y lectura, resumen y aviso, el almacén demo de punta a punta, la 216, y las pantallas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador ni se aprobó una solicitud real. La 216 se ensayó con ROLLBACK; aplicarla es del dueño. Hasta que esté, «Enviar solicitud» falla con «la tabla no existe» y el admin no ve el botón con pendientes (la lectura falla en silencio).
+
+## D-744 · Rendimiento (1): formateadores de fecha cacheados, búsqueda diferida, orden sin trabajo repetido y contexto de datos memoizado
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/rendimiento-fechas-y-tabla`.
+
+**Pedido (el dueño, 2026-10-29):** «últimamente el app se froze por segundos y hace que el app sea lento. ¿Puedes auditar el app completa y hacerla súper más rápido y eficiente?».
+
+**Lo medido antes de tocar (producción, solo lectura, y un banco en Node).**
+- El volumen NO es el problema: todas las órdenes son 951 filas (2,1 MB con fotos; la lista no carga fotos), eventos 9.532 pero la app corta a 1.000, perfiles 41, ajustes 5 kB. Eventos de órdenes: 10-30 por hora; cada uno llega por tiempo real y hace recalcular el tablero entero.
+- Construir un `Intl.DateTimeFormat` con zona horaria: 5.000 veces = **307 ms**; el mismo reutilizado = **7 ms** (44×). La app lo construía en cada llamada de `todayISO`, `fmtDateShort`, `nowHHMM` y 20 sitios más, y el tablero llama a esas funciones varias veces por fila en cada recálculo (filtros, cuentas por etapa, orden, celdas) → decenas de miles de construcciones por evento = los «segundos» congelados.
+- Dos auditorías del código (carga de datos y pintado) señalaron además: el contexto de datos era un objeto nuevo en cada render con ~100 consumidores; la búsqueda refiltraba la empresa entera en cada tecla; ordenar llamaba a `col.value` dos veces por comparación; el menú de columna recalculaba sus opciones en cada render y se recolocaba en cada evento de scroll; la tabla no está virtualizada (eso queda para la siguiente).
+
+**Qué cambia.**
+- **`src/lib/formateador.ts`** (nuevo, sin dependencias): `formateadorDeFecha` / `formateadorDeNumero`, uno por combinación de idioma y opciones, creados una vez. Todos los `new Intl.DateTimeFormat(` de `src/lib` pasan por ahí (14 ficheros; la caché de RRHH ya tenía la suya). Una prueba vigila que no vuelva ninguno suelto.
+- **Tablero** (`page.tsx`): la búsqueda va por `useDeferredValue` (el campo responde al instante; el filtrado corre cuando el teclado para); `isUrgent` es `useCallback`.
+- **Tabla** (`OrdersTable.tsx`): ordenar calcula el valor de cada fila una vez; las opciones del menú abierto se memoizan; la recolocación del menú al hacer scroll va por `requestAnimationFrame`.
+- **Proveedor** (`data-provider.tsx`): el valor del contexto va en `useMemo` con todas sus dependencias; mientras nada cambie, el mismo objeto.
+
+**Lo que NO hace (siguiente decisión):** virtualizar la tabla (ya hay `@tanstack/react-virtual` en el repo, usado en el catálogo del ERP); partir el contexto en varios para que un cambio no repinte a todos; releer por fila `driver_shifts` / `driver_availability` / `driver_incidents` en vez de la tabla entera en cada cambio; acotar `EVENTS_WINDOW`.
+
+**Pruebas:** `src/lib/formateador.test.ts` (caché, mismo resultado que antes, tiempo, ningún formateador suelto, y los cuatro cambios de pantalla). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se midió en el navegador del dueño ni con el Profiler de React; la mejora esperada sale del banco en Node y de la lectura del código.

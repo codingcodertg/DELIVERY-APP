@@ -527,13 +527,20 @@ export function OrdersTable({
   // Keep the menu pinned to its header cell while scrolling/resizing.
   useEffect(() => {
     if (!openFilter) return;
+    // D-744: una recolocación por cuadro (rAF), no una por evento de scroll: cada `setMenuAnchor` repinta la tabla.
+    let pedido = 0;
     const reposition = () => {
-      const celda = celdaRefs.current.get(openFilter);
-      if (celda) setMenuAnchor(celda.getBoundingClientRect());
+      if (pedido) return;
+      pedido = requestAnimationFrame(() => {
+        pedido = 0;
+        const celda = celdaRefs.current.get(openFilter);
+        if (celda) setMenuAnchor(celda.getBoundingClientRect());
+      });
     };
     window.addEventListener("scroll", reposition, true);
     window.addEventListener("resize", reposition);
     return () => {
+      if (pedido) cancelAnimationFrame(pedido);
       window.removeEventListener("scroll", reposition, true);
       window.removeEventListener("resize", reposition);
     };
@@ -564,14 +571,16 @@ export function OrdersTable({
     if (!sortKey || !sortDir) return filteredRows;
     const col = cols.find((c) => c.key === sortKey);
     if (!col) return filteredRows;
-    const copy = [...filteredRows];
+    // D-744: el valor de cada fila se calcula UNA vez (antes, dos por comparación: ~2·n·log n llamadas a `col.value`,
+    // muchas con fechas formateadas).
+    const valores = filteredRows.map((d) => ({ d, v: col.value(d, ctx) }));
     // Aquí el descendente invierte TODO, nulos incluidos (los trae arriba): es como estaba desde D-275 y
     // no se cambia sin decisión. `ordenaFilas` de la misma librería los deja al final en las dos direcciones.
-    copy.sort((a, b) => {
-      const cmp = comparaCeldas(col.value(a, ctx), col.value(b, ctx));
+    valores.sort((a, b) => {
+      const cmp = comparaCeldas(a.v, b.v);
       return sortDir === "asc" ? cmp : -cmp;
     });
-    return copy;
+    return valores.map((x) => x.d);
   }, [filteredRows, sortKey, sortDir, cols, lang]);
 
   // Un solo grupo sin nombre cuando no se agrupa: el cuerpo de la tabla se pinta igual en los dos casos.
@@ -582,6 +591,14 @@ export function OrdersTable({
     [agrupada, sortedRows, (tiendasPrimero ?? []).join("|")],
   );
 
+  const optionsFor = (col: OrderColumn) => opcionesDeFiltro(applyFilters(rows, col.key), (d) => col.value(d, ctx), col.filterLabel);
+  // D-744: las opciones del menú abierto, una vez por (filas, filtros, columna), no en cada render mientras está abierto.
+  const opcionesDelMenu = useMemo(
+    () => { const col = openFilter ? cols.find((c) => c.key === openFilter) : undefined; return col ? optionsFor(col) : []; },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- optionsFor cierra sobre rows/filters/cols/ctx; lo que cambia de verdad está listado
+    [rows, filters, cols, openFilter, lang],
+  );
+
   if (!rows.length) return <div className="empty">{empty}</div>;
 
   // Sorting is chosen in the header menu: ascending, descending, or none. Choosing closes it.
@@ -590,7 +607,6 @@ export function OrdersTable({
     setOpenFilter(null);
   };
 
-  const optionsFor = (col: OrderColumn) => opcionesDeFiltro(applyFilters(rows, col.key), (d) => col.value(d, ctx), col.filterLabel);
 
   // «Marcar todas» = las filas que se VEN tras los filtros de columna y el orden (D-576), no `rows`: con un filtro
   // puesto, marcaba y desmarcaba las ocultas. Lo oculto ya marcado se queda como está (`alternaTodasLasVisibles`).
@@ -765,7 +781,7 @@ export function OrdersTable({
           <ColumnFilterMenu
             menuRef={menuRef}
             col={col}
-            options={optionsFor(col)}
+            options={opcionesDelMenu}
             active={filters[openFilter]}
             orden={sortKey === openFilter ? sortDir : null}
             onOrdenar={(dir) => ordenar(openFilter, dir)}

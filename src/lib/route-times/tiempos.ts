@@ -2,6 +2,7 @@ import {
   bloqueDe, evaluaPlan, MINUTOS_POR_BLOQUE, parteOrdenesGrandes, planifica,
   type Entrada, type Matriz, type ParadaRef, type Parametros, type Plan, type Punto, type TiemposPorHora, type Tramo,
 } from "@/lib/route-engine";
+import { formateadorDeFecha } from "@/lib/formateador";
 import {
   CADUCIDAD_DIAS, claveDePunto, claveSinTrafico, diaDeLaSemana, textoDeClave, type ClaveDeTiempo, type LatLng,
 } from "./claves";
@@ -204,7 +205,7 @@ export function instanteLocalISO(fechaISO: string, minutoDelDia: number, zona: s
   const hh = String(Math.floor(minutoDelDia / 60)).padStart(2, "0"), mm = String(minutoDelDia % 60).padStart(2, "0");
   const tanteo = Date.parse(`${fechaISO}T${hh}:${mm}:00Z`);
   if (Number.isNaN(tanteo)) return null;
-  const partes = new Intl.DateTimeFormat("en-US", {
+  const partes = formateadorDeFecha("en-US", {
     timeZone: zona, hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
   }).formatToParts(new Date(tanteo));
   const n = (tipo: string) => Number(partes.find((p) => p.type === tipo)?.value ?? 0);

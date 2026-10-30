@@ -21,6 +21,7 @@
  */
 
 import { BUSINESS_TZ } from "@/lib/utils";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 /** Sin latido durante más de esto, la sesión viva es huérfana. UNA constante para todos. */
 export const LATIDO_MAX_MS = 15 * 60_000;
@@ -118,7 +119,7 @@ export type FilaSesion = {
 
 /** La jornada de negocio (Chicago) de un instante, como `YYYY-MM-DD`. */
 export const jornadaDe = (ms: number): string =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit" })
+  formateadorDeFecha("en-CA", { timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit" })
     .format(new Date(ms));
 
 export type MotivoNoReabrir =

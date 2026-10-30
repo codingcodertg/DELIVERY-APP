@@ -1,5 +1,6 @@
 import { BUSINESS_TZ } from "@/lib/utils";
 import { PUNTOS, SECCIONES, VERSION_DE_LA_LISTA, puntoPorId, type Punto, type Seccion } from "@/lib/inspeccion/puntos";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 /**
  * Las reglas de la inspección pre-viaje (D-518), sin React y sin base: qué cuenta como contestado, cuándo el camión
@@ -297,7 +298,7 @@ export function resumenDelDia(filas: readonly Inspeccion[], conRuta: readonly st
 export function horaDelNegocio(iso: string, es: boolean): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat(es ? "es-MX" : "en-US", { timeZone: BUSINESS_TZ, hour: "numeric", minute: "2-digit" }).format(d);
+  return formateadorDeFecha(es ? "es-MX" : "en-US", { timeZone: BUSINESS_TZ, hour: "numeric", minute: "2-digit" }).format(d);
 }
 
 /** «Camión 3 · TX 4KD-221». */

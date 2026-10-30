@@ -124,6 +124,6 @@ describe("las columnas son las de la tabla de paradas de «Ruta de hoy», deriva
     const pagina = leer("src/app/(app)/page.tsx");
     expect(pagina).toContain("const mananaDeTodos = mananaDeTodosParaVentas(me, preset);");
     expect(pagina).toContain("visible={mananaDeTodos ? [...COLUMNAS_DE_MANANA_PARA_VENTAS] : cols}");
-    expect(pagina).toContain("      chip: preset,\n    }),\n    [deliveries, q, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores, preset],");
+    expect(pagina).toContain("      chip: preset,\n    }),\n    [deliveries, qDiferida, me, teaching, veTodoElHistorial, settings.order_type_rules, settings.stores, preset],"); // D-744: la búsqueda diferida
   });
 });
