@@ -1,3 +1,4 @@
+import { formateadorDeFecha } from "@/lib/formateador";
 // Time / money / week helpers, ported verbatim (behavior-wise) from
 // timetracker-clean/web/src/lib/helpers.js — see D-066. computePay and the
 // week-start logic are reused exactly, unchanged, per CLAUDE.md's original
@@ -95,7 +96,7 @@ export function money(n: number | null | undefined): string {
 type DateLike = Date | number | string;
 function tzMs(x: DateLike): number { return x instanceof Date ? x.getTime() : typeof x === "number" ? x : Date.now(); }
 function dateISOInTz(ms: number, tz: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
+  return formateadorDeFecha("en-CA", {
     timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date(ms));
 }

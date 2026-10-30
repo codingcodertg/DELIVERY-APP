@@ -7,6 +7,7 @@
  */
 import { BUSINESS_TZ, isoInTZ, shiftDateISO } from "@/lib/utils";
 import { AREA_KEYS, AREA_LABELS, NADA_LABEL, type AreaKey } from "./areas";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 export interface RespuestaEncuesta {
   id: string;
@@ -178,7 +179,7 @@ export function eleccionesDe(f: RespuestaEncuesta, lang: "en" | "es"): string {
 /** La hora de Texas de un instante, «YYYY-MM-DD HH:MM», para la tabla y el CSV. */
 export function fechaHora(iso: string): string {
   const d = new Date(iso);
-  const hora = new Intl.DateTimeFormat("en-GB", { timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
+  const hora = formateadorDeFecha("en-GB", { timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
   return `${isoInTZ(d)} ${hora}`;
 }
 

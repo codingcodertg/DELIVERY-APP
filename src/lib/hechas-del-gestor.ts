@@ -4,6 +4,7 @@ import type { ModoDelGestor } from "@/lib/ordenes-del-dia";
 import type { FilaDeLaRuta, LecturaDeRuta, OrdenAsignada, ParadaDelPlanMinima } from "@/lib/route-plan/lectura-de-ruta";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { BUSINESS_TZ } from "@/lib/utils";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 /**
  * Lo ya HECHO de un chofer sigue en su lista del Gestor de Rutas (D-459).
@@ -120,5 +121,5 @@ export function horaReal(orden: { pod_delivered_at?: string | null; pickup_gps_a
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat("en-GB", { timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
+  return formateadorDeFecha("en-GB", { timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
 }

@@ -1,5 +1,6 @@
 import { parseWindow } from "./dispatch";
 import { SATURDAY_WINDOW, WEEKDAY_ALL_DAY_WINDOW } from "./constants";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 /**
  * Dos razones nuevas para que la orden de un vendedor vaya a aprobación de oficina en vez de nacer aprobada (D-639).
@@ -63,7 +64,7 @@ export function reglasDeAprobacion(guardadas: Partial<ReglasDeAprobacion> | null
 /** La fecha («YYYY-MM-DD») y el minuto del día en Texas para ese instante. */
 export function ahoraEnTexas(ahora: Date): { fecha: string; minuto: number } {
   const p = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+    formateadorDeFecha("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
       .formatToParts(ahora).map((x) => [x.type, x.value]),
   );
   return { fecha: `${p.year}-${p.month}-${p.day}`, minuto: Number(p.hour) * 60 + Number(p.minute) };

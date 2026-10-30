@@ -1,6 +1,7 @@
 import type { Delivery } from "./types";
 import { parseWindow } from "./dispatch";
 import { ROLE_CAPS } from "./constants";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 /** Deterministic fallback color for a driver with no assigned color yet, so
  * map pins/route markers are still distinguishable before a manager sets
@@ -31,7 +32,7 @@ export const BUSINESS_TZ = "America/Chicago";
 /** El día (YYYY-MM-DD) en Texas de un instante cualquiera. Exportada para quien necesita fijar «ahora»
  * en una prueba (el cron de reprogramar intertiendas, cerca de medianoche). */
 export const isoInTZ = (d: Date) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  formateadorDeFecha("en-CA", { timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 export const todayISO = () => isoInTZ(new Date());
 
 // The company's own short codes for each branch — the ones used on the
@@ -67,7 +68,7 @@ export function fmtDateShort(iso: string | null | undefined, lang: "en" | "es" =
   // value can't slip a day when it's read back in another zone.
   const d = new Date(iso.length === 10 ? iso + "T12:00:00" : iso);
   if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat(lang === "es" ? "es-MX" : "en-US", {
+  return formateadorDeFecha(lang === "es" ? "es-MX" : "en-US", {
     timeZone: BUSINESS_TZ, month: "short", day: "numeric",
   }).format(d).replace(".", "");
 }
@@ -150,7 +151,7 @@ export function endOfMonthISO(d: Date = new Date()): string {
  * so it's identical on server and client and can't desync SSR from hydration. */
 export const nowHHMM = () => {
   const n = new Date();
-  return new Intl.DateTimeFormat("en-GB", { timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(n);
+  return formateadorDeFecha("en-GB", { timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(n);
 };
 
 /** The sales rep this order belongs to, for anything that scopes by "whose

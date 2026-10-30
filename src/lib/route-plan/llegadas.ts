@@ -11,6 +11,7 @@
  *
  * Aquí no hay base, ni red, ni reloj.
  */
+import { formateadorDeFecha } from "@/lib/formateador";
 
 export interface ParadaDelPlan {
   id: string; driver_id: string | null; delivery_id: string | null; seq: number; kind: "P" | "D"; lat: number | null; lng: number | null;
@@ -201,7 +202,7 @@ export function reporteDePrecision(
 // ---------------------------------------------------------------------------------------------------------------
 
 function partesEnZona(iso: string, zona: string): Record<string, string> {
-  const f = new Intl.DateTimeFormat("en-CA", { timeZone: zona, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const f = formateadorDeFecha("en-CA", { timeZone: zona, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   return Object.fromEntries(f.formatToParts(new Date(iso)).map((p) => [p.type, p.value]));
 }
 /** A qué minuto del día local corresponde un instante: 08:30 → 510. */

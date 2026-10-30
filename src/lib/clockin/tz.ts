@@ -1,3 +1,4 @@
+import { formateadorDeFecha } from "@/lib/formateador";
 // DST-aware Central Time (America/Chicago) offset.
 //
 // The app used to hardcode a 5-hour offset, which is only correct in summer
@@ -19,7 +20,7 @@ export function centralShiftMs(at: Date = new Date()): number {
   if (cached !== undefined) return cached;
 
   const name =
-    new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", timeZoneName: "shortOffset" })
+    formateadorDeFecha("en-US", { timeZone: "America/Chicago", timeZoneName: "shortOffset" })
       .formatToParts(at)
       .find((p) => p.type === "timeZoneName")?.value ?? "GMT-6";
   const m = name.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);

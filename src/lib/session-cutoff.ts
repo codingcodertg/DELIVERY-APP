@@ -11,6 +11,7 @@
  */
 
 import { BUSINESS_TZ } from "@/lib/utils";
+import { formateadorDeFecha } from "@/lib/formateador";
 
 /**
  * La hora del corte, en la zona del negocio, en `HH:MM` de 24 h.
@@ -52,7 +53,7 @@ export function exentoDelCierre(roles: {
 
 /** La hora del negocio ahora mismo, en `HH:MM`. Misma zona en servidor y navegador. */
 export function horaDelNegocio(ahora: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  return formateadorDeFecha("en-GB", {
     timeZone: BUSINESS_TZ, hour: "2-digit", minute: "2-digit", hour12: false,
   }).format(ahora);
 }
@@ -121,9 +122,9 @@ function instanteEnZona(dia: Date, minutosDelDia: number): Date {
   // qué hora local tiene de verdad, y se corrige. Dos vueltas bastan y el cambio de horario
   // sale bien solo, sin tabla de husos ni una dependencia nueva.
   let t = Date.UTC(
-    Number(new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ, year: "numeric" }).format(dia)),
-    Number(new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ, month: "2-digit" }).format(dia)) - 1,
-    Number(new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TZ, day: "2-digit" }).format(dia)),
+    Number(formateadorDeFecha("en-CA", { timeZone: BUSINESS_TZ, year: "numeric" }).format(dia)),
+    Number(formateadorDeFecha("en-CA", { timeZone: BUSINESS_TZ, month: "2-digit" }).format(dia)) - 1,
+    Number(formateadorDeFecha("en-CA", { timeZone: BUSINESS_TZ, day: "2-digit" }).format(dia)),
     Math.floor(minutosDelDia / 60), minutosDelDia % 60,
   );
   for (let i = 0; i < 2; i++) {

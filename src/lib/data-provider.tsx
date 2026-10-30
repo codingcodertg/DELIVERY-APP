@@ -343,8 +343,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       else localStorage.removeItem("rtg_view_as");
     } catch { /* ignore */ }
   }, []);
-  const effectiveMe: Profile | null =
-    me && realRole === "admin" && viewAs ? { ...me, role: viewAs } : me;
+  // D-NEXT: memoizado: solo cambia cuando cambia el perfil, el rol real o «ver como»; antes era un objeto nuevo por render al suplantar.
+  const effectiveMe: Profile | null = useMemo(
+    () => (me && realRole === "admin" && viewAs ? { ...me, role: viewAs } : me),
+    [me, realRole, viewAs],
+  );
 
   // ---- Teaching mode: local sandbox overlay on the live data (see Overlay). ----
   const [teaching, setTeachingState] = useState(false);
@@ -2264,7 +2267,9 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     await reloadAll();
   }, [supabase, notify, reloadAll]);
 
-  const value: DataState = {
+  // D-NEXT: el mismo objeto mientras nada cambie. Antes era un literal nuevo en cada render del proveedor, y cada uno
+  // volvía a pintar a los ~100 consumidores de `useData()` aunque no hubiera cambiado nada.
+  const value: DataState = useMemo(() => ({
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
@@ -2274,7 +2279,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     incidents, addIncident, removeIncident,
     driverLocations, pushLocation,
     pendingSync: outbox.length, syncing,
-  };
+  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
 
   return (
     <Ctx.Provider value={value}>
