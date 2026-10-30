@@ -295,12 +295,22 @@
 .btn { padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: #1d47a8; }
-.btn-ghost { background: var(--accent-soft); color: var(--accent); }
-.btn-danger { background: #fdeaea; color: var(--red); }
-.btn-green { background: #e5f6ee; color: var(--green); }
-.btn-amber { background: #fbf1df; color: #b9791a; }
+/* Regla de toda la app (D-749, 2026-10-29; Roberto: «Faded colors give impression of locked buttons»; el dueño: «faded
+   es locked, fuerte y viva color es available button»). Un botón DISPONIBLE va en color vivo: relleno sólido (primario,
+   peligro, verde, ámbar) o, el secundario, con borde y texto del color de acento a plena saturación sobre fondo de
+   tarjeta —nunca un tinte pálido—. Un botón BLOQUEADO se apaga de verdad: opacidad baja Y gris (sin color), con el
+   cursor que lo dice. Así no hay dos cosas que se parezcan: lo pálido ya no existe entre los disponibles. */
+.btn-ghost { background: var(--card); color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.btn-ghost:hover { background: var(--accent); color: #fff; }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-danger:hover { filter: brightness(.92); }
+.btn-green { background: var(--green); color: #fff; }
+.btn-green:hover { filter: brightness(.92); }
+.btn-amber { background: var(--amber); color: #3a2800; }
+.btn-amber:hover { filter: brightness(.95); }
 .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
-.btn:disabled { opacity: .5; cursor: default; }
+.btn:disabled, .btn[aria-disabled="true"], button.btn:disabled { opacity: .45; filter: grayscale(1); cursor: not-allowed; box-shadow: none; }
+.btn:disabled:hover { filter: grayscale(1); }
 /* Algo INACTIVO —una fila dada de baja, una pregunta apagada, una omitida— se apaga en su TEXTO,
    nunca con `opacity` sobre el bloque entero (D-489). La opacidad también apagaba los botones de
    dentro («Editar», «Reactivar», «Encender», ▲▼, «Deshacer»), que siguen funcionando, y el dueño
