@@ -191,7 +191,7 @@ export function resumenDeFila(fila: Record<string, unknown>): CotizacionResumen 
     store,
     customer_name: borrador.customer.full_name.trim(),
     sf: piesCuadradosPedidos(borrador.lines),
-    // D-NEXT: con la tasa de la tienda de la cotización (Mission 6.25 %).
+    // D-776: con la tasa de la tienda de la cotización (Mission 6.25 %).
     total: resumenDeTotales(borrador.lines, tasaDeImpuesto(store)).total,
     price_match_lines: lineasConPriceMatch(borrador.lines),
     print_count: num(fila.print_count) ?? 0,

@@ -219,7 +219,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const faltas = loQueFalta(draft, estado);
   const cortas = lineasCortas(draft);
   // Subtotal regular → ahorro → impuesto → total (D-442), el mismo cálculo que la hoja. Solo líneas: sin entrega.
-  // D-NEXT: con la tasa de la tienda de la cotización (Mission 6.25 %; las demás 8.25 %), la misma que la hoja.
+  // D-776: con la tasa de la tienda de la cotización (Mission 6.25 %; las demás 8.25 %), la misma que la hoja.
   const totales = resumenDeTotales(draft.lines, tasaDeImpuesto(tiendaDeLaHoja(tiendaGuardada, me?.store)));
 
   // ---- acciones -------------------------------------------------------------------------------------

@@ -49246,7 +49246,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/estimator/nivel-en-vista-previa.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
-## D-NEXT · Quote Builder: en Mission el impuesto es 6.25 %; en las demás tiendas, 8.25 %
+## D-776 · Quote Builder: en Mission el impuesto es 6.25 %; en las demás tiendas, 8.25 %
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/cotiza-impuesto-mission`.
 

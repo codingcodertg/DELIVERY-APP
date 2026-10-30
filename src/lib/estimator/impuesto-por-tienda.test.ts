@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { hojaDelCliente } from "./hoja";
 import { borradorVacio, lineaUnidadVacia, resumenDeTotales, TASA_DE_IMPUESTO, tasaDeImpuesto, type UnitLine } from "./modelo";
 
-/** El impuesto según la tienda: Mission 6.25 %, las demás 8.25 % (D-NEXT). */
+/** El impuesto según la tienda: Mission 6.25 %, las demás 8.25 % (D-776). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
