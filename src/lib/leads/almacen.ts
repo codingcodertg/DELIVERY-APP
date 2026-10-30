@@ -34,7 +34,14 @@ export interface AlmacenDeLeads {
   asignar(leadId: string, persona: string, nota: string): Promise<Res<Lead>>;
   archivar(leadId: string, nota: string): Promise<Res<Lead>>;
   ponerTope(tope: number): Promise<Res<number>>;
+  /**
+   * D-NEXT: los clientes con los que coinciden los leads cruzados (218): cuenta, tienda y el vendedor que los lleva hoy
+   * (nombre del perfil, o null). Se leen de `erp.customers` con la sesión de quien mira: el admin los ve todos.
+   */
+  clientesCruzados(ids: readonly number[]): Promise<Res<Map<number, ClienteCruzado>>>;
 }
+
+export interface ClienteCruzado { id: number; account: string; store: string; rep_id: string | null; rep_name: string | null }
 
 /** ¿Es «la 162 no está aplicada»? PGRST205 (tabla) / PGRST202 (función) de PostgREST; 42P01 / 42883 de Postgres. Solo esos. */
 export function faltaLaTabla(error: { code?: string | null } | null | undefined): boolean {
@@ -154,6 +161,22 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
     },
     historial: (leadId) => eventos({ lead: leadId }),
     cierres: () => eventos({ kind: "closed" }),
+    async clientesCruzados(ids) {
+      const mapa = new Map<number, ClienteCruzado>();
+      const unicos = [...new Set(ids)].filter((n) => Number.isFinite(n));
+      if (!unicos.length) return { ok: true, valor: mapa };
+      const { data, error } = await supabase.schema("erp").from("customers").select("id, account, store, rep_id").in("id", unicos);
+      if (error) return fallo(error);
+      const filas = (data ?? []) as { id: number; account: string; store: string; rep_id: string | null }[];
+      const reps = [...new Set(filas.map((f) => f.rep_id).filter((r): r is string => !!r))];
+      const nombre = new Map<string, string>();
+      if (reps.length) {
+        const { data: perfiles } = await supabase.from("profiles").select("id, full_name").in("id", reps);
+        for (const p of (perfiles ?? []) as { id: string; full_name: string | null }[]) if (p.full_name) nombre.set(p.id, p.full_name);
+      }
+      for (const f of filas) mapa.set(Number(f.id), { id: Number(f.id), account: f.account, store: f.store, rep_id: f.rep_id, rep_name: f.rep_id ? (nombre.get(f.rep_id) ?? null) : null });
+      return { ok: true, valor: mapa };
+    },
     async personas() {
       const { data, error } = await supabase.from("profiles").select("id, full_name, store, role, module_access").or(filtroActivos()); // D-707
       if (error) return fallo(error);

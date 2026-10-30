@@ -112,6 +112,7 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
     return l ? hace(l, yo) : no("no_existe");
   };
   return {
+    async clientesCruzados() { return { ok: true, valor: new Map() }; },
     async leer() {
       const yo = quien();
       const alcance = alcanceDemo(yo);
