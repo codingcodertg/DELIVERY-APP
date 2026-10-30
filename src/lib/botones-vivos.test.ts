@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** Regla de toda la app (D-NEXT, 2026-10-29): disponible = color vivo; bloqueado = apagado y gris. */
+/** Regla de toda la app (D-749, 2026-10-29): disponible = color vivo; bloqueado = apagado y gris. */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "");

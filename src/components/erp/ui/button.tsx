@@ -8,7 +8,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-clay-500 text-white hover:bg-clay-600",
-        // D-NEXT: el secundario con borde y texto del color de acento (vivo), no gris pálido.
+        // D-749: el secundario con borde y texto del color de acento (vivo), no gris pálido.
         outline: "border-[1.5px] border-clay-500 bg-white text-clay-700 hover:bg-clay-50",
         ghost: "text-slate-600 hover:bg-slate-100",
       },
