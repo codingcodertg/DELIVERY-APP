@@ -218,12 +218,16 @@ describe("3 · el empleado no ve el contador de su tarjeta de fichar", () => {
     expect(seccionesDeFichar({ esAdmin: true }).contador).toBe(true);
   });
   it("PunchPanel lo pinta solo con secciones.contador, y no hay otro", () => {
-    expect(punch).toContain("{secciones.contador && (\n          <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 1, margin: \"8px 0\" }}>\n            {dentro ? fmtClock(llevo) : \"0:00:00\"}");
-    expect(punchCodigo.split("fmtClock(").length - 1).toBe(1);
+    // D-NEXT: sin segundos.
+    expect(punch).toContain("{secciones.contador && (\n          <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 1, margin: \"8px 0\" }}>\n            {dentro ? fmtClockSinSegundos(llevo) : \"0:00\"}");
+    expect(punchCodigo.split("fmtClockSinSegundos(").length - 1).toBe(1);
+    expect(punchCodigo).not.toContain("fmtClock(");
   });
   it("sin contador no se repinta cada segundo", () => {
     expect(punch).toContain("const conContador = secciones.contador;");
-    expect(punch).toContain("    if (!conContador) return;\n    const i = setInterval(() => setAhora(Date.now()), 1000);");
+    expect(punch).toContain("    if (!conContador) return;");
+    // D-755: y con contador, cada 15 s (sin segundos en pantalla no hace falta más).
+    expect(punch).toContain("const i = setInterval(() => setAhora(Date.now()), 15000);");
   });
 });
 
