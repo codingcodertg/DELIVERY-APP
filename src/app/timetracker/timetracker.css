@@ -42,7 +42,8 @@
 .timetracker-module button{cursor:pointer;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;
      background:var(--tt-accent);color:#fff;transition:.15s filter}
 .timetracker-module button:hover{filter:brightness(1.08)}
-.timetracker-module button:disabled{opacity:.5;cursor:not-allowed}
+/* D-NEXT: bloqueado = apagado y gris, en toda la app. */
+.timetracker-module button:disabled{opacity:.45;filter:grayscale(1);cursor:not-allowed}
 /* Botón secundario (D-489). Era un relleno gris (--tt-chip) con el texto normal: sobre el panel
    blanco del tema claro era un botón gris claro, que es justo cómo se ve un botón DESHABILITADO, y
    el dueño lo dijo así: «parecen que estuvieran desactivados». Ahora lleva un borde y un tinte del
