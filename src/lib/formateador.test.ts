@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { formateadorDeFecha, formateadorDeNumero, formateadoresEnCache } from "./formateador";
 import { fmtDateShort, isoInTZ, nowHHMM, todayISO } from "./utils";
 
-/** Formateadores cacheados y el tablero sin trabajo repetido (D-NEXT, 2026-10-29). */
+/** Formateadores cacheados y el tablero sin trabajo repetido (D-744, 2026-10-29). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

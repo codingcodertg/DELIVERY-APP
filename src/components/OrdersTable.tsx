@@ -527,7 +527,7 @@ export function OrdersTable({
   // Keep the menu pinned to its header cell while scrolling/resizing.
   useEffect(() => {
     if (!openFilter) return;
-    // D-NEXT: una recolocación por cuadro (rAF), no una por evento de scroll: cada `setMenuAnchor` repinta la tabla.
+    // D-744: una recolocación por cuadro (rAF), no una por evento de scroll: cada `setMenuAnchor` repinta la tabla.
     let pedido = 0;
     const reposition = () => {
       if (pedido) return;
@@ -571,7 +571,7 @@ export function OrdersTable({
     if (!sortKey || !sortDir) return filteredRows;
     const col = cols.find((c) => c.key === sortKey);
     if (!col) return filteredRows;
-    // D-NEXT: el valor de cada fila se calcula UNA vez (antes, dos por comparación: ~2·n·log n llamadas a `col.value`,
+    // D-744: el valor de cada fila se calcula UNA vez (antes, dos por comparación: ~2·n·log n llamadas a `col.value`,
     // muchas con fechas formateadas).
     const valores = filteredRows.map((d) => ({ d, v: col.value(d, ctx) }));
     // Aquí el descendente invierte TODO, nulos incluidos (los trae arriba): es como estaba desde D-275 y
@@ -592,7 +592,7 @@ export function OrdersTable({
   );
 
   const optionsFor = (col: OrderColumn) => opcionesDeFiltro(applyFilters(rows, col.key), (d) => col.value(d, ctx), col.filterLabel);
-  // D-NEXT: las opciones del menú abierto, una vez por (filas, filtros, columna), no en cada render mientras está abierto.
+  // D-744: las opciones del menú abierto, una vez por (filas, filtros, columna), no en cada render mientras está abierto.
   const opcionesDelMenu = useMemo(
     () => { const col = openFilter ? cols.find((c) => c.key === openFilter) : undefined; return col ? optionsFor(col) : []; },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- optionsFor cierra sobre rows/filters/cols/ctx; lo que cambia de verdad está listado

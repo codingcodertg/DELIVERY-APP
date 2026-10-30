@@ -48865,7 +48865,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador ni se aprobó una solicitud real. La 216 se ensayó con ROLLBACK; aplicarla es del dueño. Hasta que esté, «Enviar solicitud» falla con «la tabla no existe» y el admin no ve el botón con pendientes (la lectura falla en silencio).
 
-## D-NEXT · Rendimiento (1): formateadores de fecha cacheados, búsqueda diferida, orden sin trabajo repetido y contexto de datos memoizado
+## D-744 · Rendimiento (1): formateadores de fecha cacheados, búsqueda diferida, orden sin trabajo repetido y contexto de datos memoizado
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/rendimiento-fechas-y-tabla`.
 

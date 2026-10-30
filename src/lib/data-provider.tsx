@@ -343,7 +343,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       else localStorage.removeItem("rtg_view_as");
     } catch { /* ignore */ }
   }, []);
-  // D-NEXT: memoizado: solo cambia cuando cambia el perfil, el rol real o «ver como»; antes era un objeto nuevo por render al suplantar.
+  // D-744: memoizado: solo cambia cuando cambia el perfil, el rol real o «ver como»; antes era un objeto nuevo por render al suplantar.
   const effectiveMe: Profile | null = useMemo(
     () => (me && realRole === "admin" && viewAs ? { ...me, role: viewAs } : me),
     [me, realRole, viewAs],
@@ -2267,7 +2267,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     await reloadAll();
   }, [supabase, notify, reloadAll]);
 
-  // D-NEXT: el mismo objeto mientras nada cambie. Antes era un literal nuevo en cada render del proveedor, y cada uno
+  // D-744: el mismo objeto mientras nada cambie. Antes era un literal nuevo en cada render del proveedor, y cada uno
   // volvía a pintar a los ~100 consumidores de `useData()` aunque no hubiera cambiado nada.
   const value: DataState = useMemo(() => ({
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,

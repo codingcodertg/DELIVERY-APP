@@ -418,7 +418,7 @@ export default function OrdersPage() {
    * dentro, D-407); `conPendientes` es la de «Factura pendiente»: lo abierto con cualquier fecha y lo
    * entregado de ayer en adelante, para todos (D-407, D-465).
    */
-  // D-NEXT: lo tecleado se difiere (React `useDeferredValue`): el campo responde al instante y el filtrado de toda la
+  // D-744: lo tecleado se difiere (React `useDeferredValue`): el campo responde al instante y el filtrado de toda la
   // empresa corre cuando el teclado para, no en cada pulsación.
   const qDiferida = useDeferredValue(q);
   const { visibles: visible, conPendientes, atrasadas, alcancePendientes, alcanceLista } = useMemo(
@@ -443,7 +443,7 @@ export default function OrdersPage() {
   // ¿Pasa el chip de fechas («Todas / Hoy / Mañana») que está pulsado? Lo usan la lista Y las cuentas por etapa
   // (D-357): el dueño vio «Programadas 9» con «Hoy» pulsado y una sola fila. Las cuentas dicen lo que la lista va a
   // enseñar, o no dicen nada.
-  // D-NEXT: estable entre renders; antes era una función nueva en cada uno, y con ella cada fila volvía a calcularse.
+  // D-744: estable entre renders; antes era una función nueva en cada uno, y con ella cada fila volvía a calcularse.
   const esUrgente = useCallback((d: Delivery) => {
     const cutoff = me?.role === "manager" ? settings.manager_pending_cutoff
       : me?.role === "sales" ? settings.sales_pending_cutoff

@@ -85,7 +85,7 @@ describe("OrdersTable usa la librería en vez de su copia (D-360)", () => {
   const tabla = readFileSync(join(process.cwd(), "src/components/OrdersTable.tsx"), "utf8").split("\r\n").join("\n");
   it("compara, filtra y lista opciones con las funciones extraídas; su comparador ya no vive dentro", () => {
     expect(tabla.indexOf('from "@/lib/orden-y-filtro"')).toBeGreaterThan(-1);
-    expect(tabla).toContain("const cmp = comparaCeldas(col.value(a, ctx), col.value(b, ctx));");
+    expect(tabla).toContain("const cmp = comparaCeldas(a.v, b.v);"); // D-744: el valor de cada fila, calculado una vez
     expect(tabla).toContain("return filtraFilas(data, visiblesConFiltro,");
     expect(tabla).toContain("const optionsFor = (col: OrderColumn) => opcionesDeFiltro(applyFilters(rows, col.key)");
     expect(tabla).not.toContain("localeCompare(String(vb)");

@@ -1,5 +1,5 @@
 /**
- * Formateadores de fecha y número CACHEADOS (D-NEXT, 2026-10-29).
+ * Formateadores de fecha y número CACHEADOS (D-744, 2026-10-29).
  *
  * El dueño: «últimamente el app se froze por segundos». Medido: construir un `Intl.DateTimeFormat` con zona horaria
  * cuesta ~0,06 ms; 5.000 construcciones, 307 ms; el mismo formateador reutilizado, 7 ms (44 veces menos). La app lo
