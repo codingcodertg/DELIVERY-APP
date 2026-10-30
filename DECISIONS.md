@@ -48933,7 +48933,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador; el contraste se calculó, no se midió con herramienta. Si en alguna pantalla el secundario con borde se ve demasiado «fuerte» por cantidad, se decide pantalla a pantalla, no volviendo al tinte.
 
-## D-NEXT · Permisos es solo permisos: el horario semanal del Time Tracker ya no se edita en el diálogo de Permisos
+## D-750 · Permisos es solo permisos: el horario semanal del Time Tracker ya no se edita en el diálogo de Permisos
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/permisos-sin-config-de-tt`.
 

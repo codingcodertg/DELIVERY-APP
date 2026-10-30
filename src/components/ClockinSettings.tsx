@@ -201,7 +201,7 @@ export function ClockinSettings({ userId, clockinRole }: { userId: string; clock
         </div>
       )}
 
-      {/* El horario semanal ya NO se edita aquí (D-NEXT; Roberto: «Why is their week schedule on permissions»; el dueño:
+      {/* El horario semanal ya NO se edita aquí (D-750; Roberto: «Why is their week schedule on permissions»; el dueño:
           «en permissions solo es permisos, esto se configura en el time tracker»): se lleva en Time Tracker › Horario.
           Aquí solo se dice cuál tiene, para no mandar a nadie a buscarlo a ciegas. */}
       <div className="hint" data-horario-en-time-tracker>

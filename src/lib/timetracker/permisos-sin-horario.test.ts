@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** Permisos es solo permisos: el horario semanal no se edita ahí (D-NEXT, 2026-10-29). */
+/** Permisos es solo permisos: el horario semanal no se edita ahí (D-750, 2026-10-29). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
