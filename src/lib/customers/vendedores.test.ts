@@ -68,7 +68,7 @@ describe("la migración 198", () => {
     expect(pedidas).toEqual([COLUMNAS, COLUMNAS_SIN_198]);
     expect(r.data).toEqual([{ id: 6 }]);
   });
-  it("reabierto como casilla por empleado (D-NEXT, tras D-759): el vendedor entra solo con la casilla; las reglas de D-683 valen", async () => {
+  it("reabierto como casilla por empleado (D-773, tras D-759): el vendedor entra solo con la casilla; las reglas de D-683 valen", async () => {
     const { CLIENTES_SOLO_ADMINS, puedeEntrarAClientes, seOfreceClientes } = await import("./reglas");
     expect(CLIENTES_SOLO_ADMINS).toBe(false);
     expect(puedeEntrarAClientes({ role: "sales", module_access: ["customers"] })).toBe(true);

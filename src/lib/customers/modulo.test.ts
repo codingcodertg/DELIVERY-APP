@@ -341,9 +341,9 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
   });
 });
 
-describe("D-570 · el interruptor «solo admins» (puesto en D-570 y D-759; quitado en D-683 y D-NEXT)", async () => {
+describe("D-570 · el interruptor «solo admins» (puesto en D-570 y D-759; quitado en D-683 y D-773)", async () => {
   const { CLIENTES_SOLO_ADMINS, puedeEntrarAClientes, seOfreceClientes } = await import("./reglas");
-  it("el interruptor está QUITADO (D-NEXT): el admin entra siempre; los demás, solo con la casilla que el admin les marque", () => {
+  it("el interruptor está QUITADO (D-773): el admin entra siempre; los demás, solo con la casilla que el admin les marque", () => {
     expect(CLIENTES_SOLO_ADMINS).toBe(false);
     expect(puedeEntrarAClientes({ role: "admin", module_access: [] })).toBe(true);
     for (const role of ["manager", "sales", "accounting", "logistics", "warehouse", "driver"]) {
@@ -355,7 +355,7 @@ describe("D-570 · el interruptor «solo admins» (puesto en D-570 y D-759; quit
     // Y el hub no enseña la tarjeta a quien la puerta va a rebotar.
     expect(leer("src/components/HomeSelector.tsx")).toContain('.filter((m) => m.key !== "customers" || puedeEntrarAClientes(me))');
   });
-  it("la casilla de Usuarios se ofrece a todos los roles (D-NEXT), y el diálogo pregunta antes de dibujar el bloque", () => {
+  it("la casilla de Usuarios se ofrece a todos los roles (D-773), y el diálogo pregunta antes de dibujar el bloque", () => {
     expect(seOfreceClientes("admin")).toBe(true);
     expect(seOfreceClientes("manager")).toBe(true);
     expect(seOfreceClientes("sales")).toBe(true);
