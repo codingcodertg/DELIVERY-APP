@@ -49085,3 +49085,21 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `modulo.test.ts` y `vendedores.test.ts` puestas al día (fijan el interruptor puesto y la tarjeta del hub). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+
+## D-760 · Leads: el «Pool privado» (permisos municipales de una fuente privada, solo para el admin) y el cruce con Clientes (migración 218)
+
+**Fecha:** 2026-10-30 · **Migración 218** (`218_leads_pool_privado.sql`: `leads.source`, columnas del cruce, políticas) · Hecho directo por el orquestador en `feat/leads-pool-privado`.
+
+**Pedido (el dueño, 2026-10-30, por voz, con el Excel «26-Report 10-30-26.xls»):** «te estoy dando otro Excel de leads […] el leads que ya está es por parte del gobierno, y este […] es por parte de una private company. […] Solo es para admin, nadie más. […] Va a decir Pool General, Mi pool, Admin, y al lado Pool privado. […] Vas a hacer lo mismo que hiciste con los leads general, igualito, pero quiero que hagas un cross-reference de esos leads con nuestra base de datos de customers […] con un filtro que diga leads que hacen cross-reference con customers».
+
+**El Excel:** 209 permisos municipales (jul–oct 2026) con contratista, propietario, obra, tipo (RNew 121, RAdd 41, CAdd 21, RNon 17, CNew 7, CNon 2), pies², valor y ciudad (Mission 43, Brownsville 40, McAllen 36, Pharr 30, Alamo 23, Mercedes 17, Los Fresnos 13…). 168 contratistas distintos; 99 sin teléfono de contratista; 96 sin propietario.
+
+**Qué cambia.**
+- **La base (218):** `leads.source` ('tdlr' lo de siempre, 'privado' esto; defecto 'tdlr', las 566 filas no cambian). Las políticas de lectura de `leads` y `lead_events`: lo privado lo lee **solo el admin** (ni por tienda ni por dueño); lo demás, la regla de la 163. Columnas del cruce: `customer_match_id` (llave a `erp.customers`, se vacía si se borra el cliente), `customer_match_note` (por qué coincide) y `customer_matched_at`.
+- **El importador** (`scripts/leads/importa-leads-privado.mjs`, con `scripts/leads/xls-a-json.py` para el .xls): un permiso = un lead con `tabs_project` = «PRIV <permiso>», pool por ciudad de la obra (Mission/Palmhurst → Mission; Alamo/San Juan/Donna → Pharr; Mercedes/La Feria → Weslaco; Los Fresnos/Laguna Vista/Harlingen/San Benito → Brownsville…), el **contratista** en `owner_*` (es a quien se le vende) y el **propietario** en `tenant_*`, tipo legible, estructura, subdivisión/lote, pies², valor, fecha. Categoría «Sirve – usa piso» para obra nueva/ampliación y «Might be useful» para re-techos y no estructural, para que el filtro de entrada los enseñe. Ensayo con ROLLBACK; `--escribe` aplica; un permiso ya importado se actualiza sin tocar estado, dueño ni historial.
+- **El cruce con Clientes** (en el importador): por **teléfono** (10 dígitos, también los de los contactos del cliente) y, si no, por **nombre** normalizado (sin LLC/Inc/puntuación; «Apellido, Nombre» = «Nombre Apellido») contra cuenta, cuenta unificada y contactos; los archivados no cuentan. Medido con el Excel de hoy: **27 de 209 coinciden** (p. ej. Rodz Holdings, Villanueva Construction, Westin Custom Homes ×4, Kasocri Construction ×3, KMR Builders, Zagar Builders, Octavo Studio, Cantu Construction, A&A Builders).
+- **La pantalla** (`Leads.tsx`, `reglas.ts`, `alcance.ts`, `almacen.ts`): pestaña **🔒 Pool privado** (solo admin, con su número) con los mismos filtros, orden y tarjetas que el Pool General; el Pool General **no** enseña lo privado a nadie. Chip **🤝 Coinciden con clientes** (con su cuenta) donde hay cruzados. En la tarjeta: «🤝 Cliente: Teléfono 956-… = RED MOON BUILDERS (PHR)», y en los leads privados el contacto se rotula «🏗 Contratista» y «🏠 Propietario».
+
+**Pruebas:** `src/lib/leads/pool-privado.test.ts` (modelo, filtro, banco sin privados, el importador —mapeo, tienda por ciudad, cruce— la 218 y la pantalla). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. La 218 se ensayó con ROLLBACK; aplicarla y correr el importador con `--escribe` es del dueño (dos comandos `!`). Siguiente, cuando el dueño lo diga: qué hacer con los cruzados (asignar, marcar, avisar al vendedor del cliente…).

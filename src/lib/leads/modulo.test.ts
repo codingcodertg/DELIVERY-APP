@@ -201,6 +201,8 @@ describe("la 162", () => {
   it("la tabla tiene las columnas que la pantalla pide", () => {
     const tabla = /create table if not exists public\.leads \(([\s\S]*?)\n\);/.exec(cuerpo)![1];
     for (const col of COLUMNAS.split(",").map((c) => c.trim())) {
+      // D-760: las tres del cruce y la fuente vienen de la 218 (probadas en pool-privado.test.ts).
+      if (["source", "customer_match_id", "customer_match_note"].includes(col)) continue;
       expect(tabla, col).toMatch(new RegExp(`\\n  ${col}\\s`));
     }
   });

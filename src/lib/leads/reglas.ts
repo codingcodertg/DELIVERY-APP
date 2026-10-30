@@ -60,7 +60,16 @@ export interface Lead {
   last_by: string | null;
   last_by_name: string | null;
   last_at: string | null;
+  /** D-760 (218): de dónde salió. 'tdlr' (permisos del estado, lo de siempre) o 'privado' (el Excel de permisos
+   *  municipales, solo para el admin). Opcional por los datos viejos y el demo: sin valor, 'tdlr'. */
+  source?: "tdlr" | "privado";
+  /** D-760: el cliente de erp.customers con el que coincide (teléfono o nombre), y por qué. Los pone el importador. */
+  customer_match_id?: number | null;
+  customer_match_note?: string | null;
 }
+
+export const esPrivado = (l: Pick<Lead, "source">): boolean => l.source === "privado";
+export const coincideConCliente = (l: Pick<Lead, "customer_match_id">): boolean => l.customer_match_id != null;
 
 export type TipoDeEvento = "imported" | "taken" | "progress" | "closed" | "released" | "assigned" | "archived";
 
@@ -313,13 +322,15 @@ export interface Filtros {
   ciudad: string;
   busca: string;
   situacion?: Situacion | "";
+  /** D-760: solo los que coinciden con un cliente de Clientes. */
+  coinciden?: boolean;
 }
 
 const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Dónde busca la caja de búsqueda. */
 function textoDe(l: Lead): string {
-  return sinAcentos([l.project_name, l.facility_name, l.site_address, l.site_city, l.site_zip, l.owner_name, l.scope_of_work, l.tabs_project, l.tenant_name].filter(Boolean).join(" · "));
+  return sinAcentos([l.project_name, l.facility_name, l.site_address, l.site_city, l.site_zip, l.owner_name, l.scope_of_work, l.tabs_project, l.tenant_name, l.customer_match_note].filter(Boolean).join(" · "));
 }
 
 /**
@@ -330,6 +341,7 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
   const q = sinAcentos(f.busca.trim());
   return leads.filter((l) => {
     if (f.pool !== null && l.pool !== f.pool) return false;
+    if (f.coinciden && !coincideConCliente(l)) return false;
     if (f.situacion) {
       // Con situación puesta manda ella: ni la vista ni la categoría de entrada esconden lo que se pidió ver.
       if (!enSituacion(l, f.situacion)) return false;
