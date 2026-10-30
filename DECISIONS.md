@@ -48887,3 +48887,21 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/formateador.test.ts` (caché, mismo resultado que antes, tiempo, ningún formateador suelto, y los cuatro cambios de pantalla). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se midió en el navegador del dueño ni con el Profiler de React; la mejora esperada sale del banco en Node y de la lectura del código.
+
+## D-NEXT · Órdenes «Otro» y «Proveedor»: la recogida se teclea (nombre y dirección), no se elige entre nuestras tiendas
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/recogida-libre-otro-proveedor`.
+
+**Pedido (Roberto Rodriguez Jr, desde la ficha de una orden nueva, reenviado por el dueño, 2026-10-29):** «Other and Supplier should give option for pickup address to be inputted rather than saying to pickup at one of our stores».
+
+**Qué había.** El control de recogida (`LocationCombo`) ya permitía teclear («➕ Escribir uno nuevo…» al final del desplegable), pero abría en el desplegable de tiendas y puntos guardados, y elegir «Vendido desde» pisaba la recogida con esa tienda (`eligeOrigen`): en la práctica, la recogida «era» una de nuestras tiendas.
+
+**Qué cambia.**
+- **Qué tipos** (`src/lib/recogida-libre.ts`, `recogidaLibre`): por la regla, no por el nombre: origen libre (`anyOrigin`: «Otro») o sin cliente detrás (`hasCustomer: false`: «Proveedor», D-511). En producción son exactamente esos dos; Customer, Intertienda y Transfer no cambian.
+- **La ficha** (`OrderModal.tsx`): con recogida libre, el control abre en modo escribir (nombre tecleado + dirección buscada; «Elegir guardado» sigue para quien quiera uno de la lista), el rótulo dice «Recolección (nombre del sitio)» con el ejemplo «el nombre del proveedor», y elegir «Vendido desde» ya no pisa la recogida (en los dos formularios, corto y largo).
+- **Al cambiar al tipo** (`aplicaTipo`, `sinRecogidaDeTienda`): una recogida que era una de nuestras tiendas se vacía para teclear la de verdad; una tecleada se respeta.
+- `LocationCombo` gana `escribirPorDefecto` (opcional; los demás usos no cambian).
+
+**Pruebas:** `src/lib/recogida-libre.test.ts` (qué tipos, el cambio de tipo con controles, la ficha y el control). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. Las órdenes ya guardadas no se tocan.

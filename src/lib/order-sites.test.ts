@@ -232,7 +232,7 @@ describe("el modal y los dos proveedores usan esto", () => {
     // Los dos selectores de tipo, el atajo «Es para un cliente» de office (D-439) y la cuenta que trae
     // su tipo pasan por ahí.
     expect(modal.split("withTypeDefaults(").length - 1).toBe(4);
-    expect(modal).toContain("on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}");
+    expect(modal).toContain("on={(v) => setD((p) => (recogidaLibreDelTipo ? { ...p, store: v } : eligeOrigen(p, v, settings.stores)))}");
     expect(modal).toContain("setD((p) => eligeOrigen(p, v, settings.stores));");
     expect(modal).toContain("on={(v) => setD((p) => eligeDestino(p, v, settings.stores))}");
     expect(modal).toContain("const deliveryStore = tiendaDestinoMostrada(d, settings.stores);");
