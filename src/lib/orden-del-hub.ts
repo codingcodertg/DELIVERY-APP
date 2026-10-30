@@ -8,7 +8,7 @@
  * - Se guarda **por persona** en `user_prefs` con la clave `hub_order` (migración 214 la admite), con la forma
  *   `{ "modules": ["deliveries", "customers", ...] }`; y en el navegador (`rtg_hub_order_<id>`) como copia, para que
  *   se vea al instante y para seguir funcionando si la base aún no admite la clave.
- * - Se reordena ARRASTRANDO una tarjeta sobre otra (D-NEXT; antes flechas): el sitio nuevo lo calcula `colocaColumna`.
+ * - Se reordena ARRASTRANDO una tarjeta sobre otra (D-757; antes flechas): el sitio nuevo lo calcula `colocaColumna`.
  * - Lo guardado es una lista de claves de módulo. Las que la persona ya no tiene se saltan; las que tiene y no están
  *   en la lista van después, en el orden de siempre: una app nueva aparece al final, no desaparece.
  */

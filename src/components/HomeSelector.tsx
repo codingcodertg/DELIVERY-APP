@@ -40,7 +40,7 @@ export function HomeSelector({ me, suplantando = false }: { me: Profile; suplant
     return () => { vivo = false; };
   }, [me]);
   const modulos = ordenaModulos(available, orden);
-  // D-NEXT (el dueño: «aquí quiero que solo se arrastre, no con flechas»): se arrastra una tarjeta y se suelta sobre otra,
+  // D-757 (el dueño: «aquí quiero que solo se arrastre, no con flechas»): se arrastra una tarjeta y se suelta sobre otra,
   // como las cabeceras de Clientes (D-650); el orden es el que ya guardaba el hub. HTML5 drag & drop, de escritorio.
   const [arrastrada, setArrastrada] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);

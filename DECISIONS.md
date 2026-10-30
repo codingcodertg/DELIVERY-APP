@@ -49048,7 +49048,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador; el dueño prueba la foto tras publicar.
 
-## D-NEXT · Hub: las apps se reordenan arrastrando (sin flechas), y el botón dice «Reordenar»
+## D-757 · Hub: las apps se reordenan arrastrando (sin flechas), y el botón dice «Reordenar»
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/hub-ordenar-arrastrando`. **Reemplaza a D-739** en la forma de mover.
 
