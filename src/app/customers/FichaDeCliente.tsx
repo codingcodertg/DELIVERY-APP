@@ -6,6 +6,7 @@ import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
 import { avisoDeNoCreadas, filaQueSeEnsena, filasDelAlta, tiendaPreelegida, tiendasDelAlta } from "@/lib/customers/alta";
+import { faltanEnElAlta } from "@/lib/customers/obligatorios";
 import type { AlmacenDeClientes, Res } from "@/lib/customers/almacen";
 import { CLASES_DE_ARCHIVO, claseDeArchivoLabel, faltaElFormulario, MAX_BYTES_DE_ARCHIVO, tamanoLegible, type ArchivoDeCliente, type ClaseDeArchivo } from "@/lib/customers/archivos";
 import { coincidenciasDe, motivoDeCoincidenciaLabel, type Borrador } from "@/lib/customers/coincidencias";
@@ -120,7 +121,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {grupo.key === "contacto" && (editando && contactos && onContactos
               ? <>
-                  <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} elegido={contactoElegido} onElige={onEligeContacto} t={t} />
+                  <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} elegido={contactoElegido} onElige={onEligeContacto} alta={cliente === null} t={t} />
                   {redes && onRedes && <RedesParaEditar redes={redes} onCambia={onRedes} t={t} />}
                 </>
               : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} redes={redesDe(cliente)} t={t} />)}
@@ -490,8 +491,10 @@ function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Clie
  * Editar los contactos (D-668): cuantos hagan falta, y cada uno con cuantos teléfonos y correos hagan falta. El nombre
  * y el cargo salen en MAYÚSCULAS al escribir; el teléfono con el molde de Entregas. Un hueco vacío no cuenta.
  */
-function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t }: {
-  contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; elegido?: number; onElige?: (i: number) => void; t: T;
+function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, alta = false, t }: {
+  contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; elegido?: number; onElige?: (i: number) => void;
+  /** D-NEXT: en un alta, el primer contacto lleva asterisco en nombre, cargo y «teléfono o correo». */
+  alta?: boolean; t: T;
 }) {
   // D-708: «This is too long so have tabs at the top to add/ switch to the others». Uno a la vista, con pestañas arriba
   // como las pastillas de `ContactosParaVer` (y su «+N»), y «+ Agregar contacto» al final, que lo crea y salta a él. Los
@@ -516,6 +519,8 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t
   const errorEnMenu = enElMenu.some((k) => mal.includes(k));
   const cambia = (i: number, c: Partial<ContactoEnEdicion>) => onCambia(contactos.map((x, j) => (j === i ? { ...x, ...c } : x)));
   const etiqueta = "text-xs text-slate-500";
+  const rojo = (k: string) => errores.includes(k) && "border-red-400 ring-1 ring-red-300";
+  const ast = (i: number) => (alta && i === 0 ? " *" : "");
   const quitar = "shrink-0 rounded px-1.5 text-sm text-slate-400 hover:bg-slate-100 hover:text-red-600";
   const mas = "text-xs font-medium text-clay-600 hover:underline";
   return (
@@ -561,16 +566,16 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="block space-y-1">
-              <span className={etiqueta}>{t("Name", "Nombre")}</span>
-              <Input value={c.name} onChange={(e) => cambia(i, { name: enMayusculas("contact_name", e.target.value) })} data-nombre-de-contacto={i} />
+              <span className={etiqueta}>{t("Name", "Nombre")}{ast(i)}</span>
+              <Input value={c.name} onChange={(e) => cambia(i, { name: enMayusculas("contact_name", e.target.value) })} className={cn(rojo(`contacto.${i}.name`))} data-nombre-de-contacto={i} />
             </label>
             <label className="block space-y-1">
-              <span className={etiqueta}>{t("Title", "Cargo")}</span>
-              <Input value={c.title} onChange={(e) => cambia(i, { title: enMayusculas("contact_title", e.target.value) })} placeholder={t("Owner, A/P…", "Dueño, A/P…")} data-cargo-de-contacto={i} />
+              <span className={etiqueta}>{t("Title", "Cargo")}{ast(i)}</span>
+              <Input value={c.title} onChange={(e) => cambia(i, { title: enMayusculas("contact_title", e.target.value) })} placeholder={t("Owner, A/P…", "Dueño, A/P…")} className={cn(rojo(`contacto.${i}.title`))} data-cargo-de-contacto={i} />
             </label>
           </div>
           <div className="space-y-1">
-            <span className={etiqueta}>{t("Phones", "Teléfonos")}</span>
+            <span className={etiqueta}>{t("Phones", "Teléfonos")}{alta && i === 0 ? ` · ${t("phone or email *", "teléfono o correo *")}` : ""}</span>
             {c.phones.map((p, j) => (
               <div key={j} className="flex items-center gap-1">
                 <EntradaDeTelefono valor={p} mal={errores.includes(`contacto.${i}.phones.${j}`)} onCambia={(v) => cambia(i, { phones: c.phones.map((x, k) => (k === j ? v : x)) })} data-telefono-de-contacto={`${i}.${j}`} />
@@ -602,7 +607,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, t
           <label className="block space-y-1">
             <span className={etiqueta}>{t("Address", "Dirección")}</span>
             <textarea rows={2} value={c.address} onChange={(e) => cambia(i, { address: e.target.value })} data-direccion-de-contacto={i}
-              className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500" />
+              className={cn("w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500", rojo(`contacto.${i}.address`))} />
           </label>
         </fieldset>
       ))}
@@ -690,9 +695,10 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     const campos = parcheDe(form, original, nuevo);
     return {
       parche: { ...campos.parche, ...parcheDeContactos(contactosOriginales, contactos, cliente), ...parcheDeRedes(redesOriginales, redes) },
-      errores: [...campos.errores, ...erroresDeContactos(contactos)],
+      // D-NEXT: en un alta, además, lo obligatorio (términos; del primer contacto nombre, cargo y teléfono o correo).
+      errores: [...campos.errores, ...erroresDeContactos(contactos), ...(nuevo ? faltanEnElAlta(form, contactos, altaComoSolicitud) : [])],
     };
-  }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes]);
+  }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes, altaComoSolicitud]);
   const cambiado = Object.keys(parche).length > 0;
 
   // D-665: «this information matches another account». Mientras se edita (alta o ficha), lo escrito se compara con la

@@ -49212,5 +49212,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** en la cabecera de la cotización, el campo de solo lectura «Tienda (sale en la cotización)» (D-451) se pinta solo para el admin. Para ventas y oficina desaparece: la tienda es la de su perfil y no la eligen. La hoja del cliente sigue llevando la tienda (`tiendaHoja`), igual que antes.
 
 **Pruebas:** `src/lib/estimator/tienda-solo-admin.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+## D-NEXT · Alta de cliente: términos, nombre y cargo del contacto, y teléfono o correo, obligatorios
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/alta-cliente-obligatorios`.
+
+**Pedido (el dueño, 2026-10-30, con dos capturas del alta en las que escribió «REQUIRED» en cada campo):** «haz esto require; es either phone or email required». En las capturas: cuenta y tiendas (ya obligatorias), Términos, nombre y cargo del contacto 1, teléfono, y correo y dirección con «REQUIRED BUT CAN PASS TO AUTH».
+
+**Qué cambia:** `faltanEnElAlta` (`src/lib/customers/obligatorios.ts`) se suma a los errores de la ficha solo en un alta: términos; del primer contacto, nombre, cargo y un teléfono O un correo. El correo y la dirección del contacto son obligatorios en el alta directa (admin), pero una solicitud (D-743) puede ir sin ellos («can pass to auth»): los completa el admin al aprobar. Lo que falta se pinta en rojo (nombre, cargo, dirección, y teléfono y correo a la vez cuando no hay ninguno), «Guardar» dice «Revisa los campos marcados» y salta a la pestaña del contacto, como ya hacía con los teléfonos mal escritos. En el alta, el primer contacto lleva asterisco en Nombre y Cargo, y «Teléfonos · teléfono o correo *». Una ficha ya creada no pasa por esta regla: lo que le faltara de antes no bloquea un guardado.
+
+**Pruebas:** `src/lib/customers/obligatorios.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
