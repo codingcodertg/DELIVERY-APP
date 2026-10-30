@@ -9,7 +9,7 @@ import { fmtTime } from "@/lib/timetracker/helpers";
 import type { PhotoKind } from "@/lib/clockin/day-photos";
 
 /**
- * La bitácora de un fichaje, plegada bajo su fila de Nómina (D-NEXT): entrada, comida, visitas y salida, con sus horas y
+ * La bitácora de un fichaje, plegada bajo su fila de Nómina (D-758): entrada, comida, visitas y salida, con sus horas y
  * sus fotos en pequeño; al tocar una foto se abre el visor del hub. Se carga al abrir, no antes: Nómina no se vuelve lenta
  * por los días que nadie despliega.
  */

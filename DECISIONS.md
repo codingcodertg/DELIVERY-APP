@@ -49059,7 +49059,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `orden-del-hub.test.ts` puesta al día (colocar al arrastrar, y la pantalla sin flechas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se arrastró en un navegador.
-## D-NEXT · Nómina: bajo cada día fichado, la bitácora del turno plegada (entrada, comida, visitas, salida) con sus fotos en pequeño
+## D-758 · Nómina: bajo cada día fichado, la bitácora del turno plegada (entrada, comida, visitas, salida) con sus fotos en pequeño
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/nomina-dia-completo-plegable`.
 

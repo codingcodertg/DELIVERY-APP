@@ -430,7 +430,7 @@ export function PayrollTimesheets({ period, revisar }: {
                                 )}
                               </td>
                             </tr>
-                            {/* D-NEXT: la bitácora del turno, plegada: entrada, comida, visitas y salida con sus fotos. */}
+                            {/* D-758: la bitácora del turno, plegada: entrada, comida, visitas y salida con sus fotos. */}
                             <tr className="bitacora-fila">
                               <td colSpan={5}><BitacoraDelDia entryId={e.id} /></td>
                             </tr>

@@ -6,7 +6,7 @@ import { armarFotos, type EntradaTurno, type FilaExcepcion, type FilaFichaje, ty
 import type { DayPhoto } from "./photos";
 
 /**
- * La bitácora de UN fichaje (D-NEXT, 2026-10-29): todo lo que pasó en ese turno, para verlo debajo de la fila de Nómina
+ * La bitácora de UN fichaje (D-758, 2026-10-29): todo lo que pasó en ese turno, para verlo debajo de la fila de Nómina
  * sin ir a Auditoría. El dueño: «que diga salió a lunch a esta hora, fue a ver a cliente a esta hora, aquí están las dos
  * fotos […] pequeñito […] y cuando se expande, que enseñe todo eso, hasta las fotos que tomó todas».
  *
