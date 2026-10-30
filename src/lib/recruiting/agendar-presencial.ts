@@ -80,7 +80,7 @@ export function tiendaDelLugar(lugar: string, tiendas: readonly Tienda[]): Tiend
 export const MARCADORES_DE_LA_CITA = "{when} {day} {date} {time} {place} {address} {maps}";
 
 /** El enlace para llegar a la tienda, desde su dirección (D-717, el dueño: «un link de Google Maps o de Waze … que solo
- *  apriete ahí y se abra»). D-NEXT: solo Google Maps; con los dos, el SMS pasaba del largo que admite el chat
+ *  apriete ahí y se abra»). D-764: solo Google Maps; con los dos, el SMS pasaba del largo que admite el chat
  *  («Your message is too long», el dueño, 2026-10-30: «solo deja el link de google maps»). Sin dirección, nada. */
 export function enlacesDeMapa(address: string | null | undefined): string {
   const q = (address ?? "").trim();

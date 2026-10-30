@@ -73,7 +73,7 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     const en = textoConfirmacionPresencial(cand, cita, "Andrés", "en", tiendas, null, hoyEs19);
     expect(en).toContain("Hello, this is Andrés, recruiter at Rodriguez Tile Group.");
     expect(en).toContain("for tomorrow at 10:30 AM at our office:\n\nRodriguez Tile Group\n100 Main St, McAllen, TX\nGoogle Maps: https://www.google.com/maps/search/?api=1&query=100%20Main%20St%2C%20McAllen%2C%20TX\n\n");
-    // D-NEXT: sin Waze, que con los dos enlaces el SMS pasaba del largo del chat.
+    // D-764: sin Waze, que con los dos enlaces el SMS pasaba del largo del chat.
     expect(es).not.toContain("waze");
     expect(en).not.toContain("waze");
     expect(en).toContain("See you tomorrow,\nAndrés\nRodriguez Tile Group");

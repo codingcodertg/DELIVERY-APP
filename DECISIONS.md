@@ -49141,7 +49141,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador.
 
-## D-NEXT · RRHH: el SMS de la cita lleva solo el enlace de Google Maps (sin Waze)
+## D-764 · RRHH: el SMS de la cita lleva solo el enlace de Google Maps (sin Waze)
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `fix/sms-entrevista-solo-maps`.
 
