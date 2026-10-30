@@ -109,7 +109,10 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
   const ocultas = filasOcultas().map(linea).filter((x) => x !== null);
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {/* D-NEXT: columnas que FLUYEN (CSS columns), no una rejilla: en la rejilla cada fila medía lo que la tarjeta más alta
+          y «Cuenta» quedaba estirada con medio metro en blanco al lado de «Contacto». Ahora cada tarjeta mide lo suyo y la
+          siguiente sube a rellenar; una tarjeta nunca se parte entre columnas. */}
+      <div className="gap-4 md:columns-2 xl:columns-3 [&>*]:mb-4 [&>*]:break-inside-avoid" data-tarjetas-de-la-ficha>
         {filasPorGrupo().filter(({ grupo }) => !esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key)).map(({ grupo, filas }) => (
           <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
