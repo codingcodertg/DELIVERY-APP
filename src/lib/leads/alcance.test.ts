@@ -233,7 +233,7 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
     expect(p).toContain('const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);');
     expect(p).toContain("const pools = useMemo(() => poolsDe(delBanco), [delBanco]);");
     expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);");
-    expect(p).toContain("ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion, coinciden }), orden)");
+    expect(p).toContain("ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden)");
   });
   it("el selector de tienda solo se dibuja si eligeTienda; si no, su tienda fija y sin los otros bancos", () => {
     expect(p).toContain("const elige = eligeTienda(alcance);");

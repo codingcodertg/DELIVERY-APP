@@ -49126,3 +49126,17 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/cruzados-enlace-y-vendedor.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. Desde D-759 solo el admin entra a Clientes, así que el enlace lo abre el admin; a otro rol le rebotaría la puerta.
+
+## D-763 · Leads cruzados: la cuenta abre una tarjeta del cliente dentro de Leads, no la app de Clientes
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/leads-cruzados-tarjeta`.
+
+**Pedido (el dueño, 2026-10-30):** «en el pool privado a darle click al cliente me lleva al cliente app pero yo solo quiero que se abra un card con la info».
+
+**Qué cambia:** en la tarjeta del lead cruzado (D-762), la cuenta ya no es un enlace a `/customers/<id>`: es un botón que abre, encima de Leads, una tarjeta de solo lectura con tienda, vendedor, contacto, teléfono, correo, dirección, n.º de cuenta, términos, límite de crédito, estado, notas y por qué coincide. Abajo, «Cerrar» y un enlace secundario «Abrir en Clientes ↗» para quien quiera la ficha entera. Para eso `clientesCruzados` lee esas columnas de `erp.customers` (misma lectura, más columnas), bajo la misma RLS.
+
+**Y la búsqueda del pool busca en todo** («en el pool al momento del search bar déjalo poder buscar lo que sea hasta por sales people», el dueño, 2026-10-30): antes miraba diez campos (proyecto, dirección, ciudad, zip, dueño, alcance, TABS, inquilino, razón del cruce); ahora mira cada campo de texto o número del lead, incluido quién lo tiene, quién anotó la última nota, teléfonos, firma de diseño, condado, permiso y fechas estimadas, más la cuenta, el contacto y el vendedor del cliente cruzado. Fuera quedan ids y fechas en bruto. Sin acentos y sin mayúsculas, como antes.
+
+**Pruebas:** `src/lib/leads/cruzados-enlace-y-vendedor.test.ts` (ampliada: el enlace directo ya no existe; la tarjeta lista cada campo). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.

@@ -23,7 +23,8 @@ type Pestana = "banco" | "mio" | "admin" | "privado";
 type Dialogo =
   | { tipo: "cerrar"; lead: Lead }
   | { tipo: "nota"; lead: Lead }
-  | { tipo: "admin"; lead: Lead };
+  | { tipo: "admin"; lead: Lead }
+  | { tipo: "cliente"; lead: Lead; cliente: ClienteCruzado };
 
 /** Cuántas tarjetas se pintan de entrada y cuántas más con cada «ver más»: en un teléfono, 140 tarjetas de golpe pesan. */
 const TANDA = 30;
@@ -110,6 +111,11 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     void almacen.clientesCruzados(idsCruzados.split(",").map(Number)).then((r) => { if (vivo && r.ok) setClientes(r.valor); });
     return () => { vivo = false; };
   }, [almacen, idsCruzados]);
+  // D-763: la búsqueda también encuentra por el cliente cruzado y su vendedor.
+  const textoExtra = useCallback((l: Lead) => {
+    const c = l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined;
+    return c ? [c.account, c.rep_name, c.contact_name].filter(Boolean).join(" · ") : "";
+  }, [clientes]);
   const [coinciden, setCoinciden] = useState(false);
   const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
@@ -126,8 +132,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);
   const porSituacion = useMemo(() => cuentaPorSituacion(delPool), [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion, coinciden }), orden),
-    [delBanco, pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, orden],
+    () => ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden),
+    [delBanco, pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, orden],
   );
   useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, orden]);
 
@@ -174,6 +180,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       onHistorial={() => void verHistorial(l)}
       cotizar={puedeCotizarLead(l, yo, cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
       cliente={l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined}
+      onCliente={(c) => setDialogo({ tipo: "cliente", lead: l, cliente: c })}
     />
   );
   const leadEnfocado = enfocado ? leads.find((l) => l.id === enfocado) ?? null : null;
@@ -336,7 +343,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                 </div>
                 <input
                   type="search" data-busca value={busca} onChange={(e) => setBusca(e.target.value)}
-                  placeholder={t("Search project, address, owner, TABS #…", "Buscar proyecto, dirección, dueño, TABS #…")}
+                  placeholder={t("Search anything: project, address, owner, phone, sales rep, customer…", "Buscar lo que sea: proyecto, dirección, dueño, teléfono, vendedor, cliente…")}
                   aria-label={t("Search", "Buscar")}
                 />
                 <p className="hint" data-cuenta-banco>
@@ -401,7 +408,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
         </>
       )}
 
-      {dialogo && (
+      {dialogo?.tipo === "cliente" && <FichaCruzada dialogo={dialogo} onCerrar={() => setDialogo(null)} />}
+      {dialogo && dialogo.tipo !== "cliente" && (
         <Accion
           dialogo={dialogo} almacen={almacen} admin={yo.admin}
           onCerrar={() => setDialogo(null)}
@@ -412,7 +420,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
 }
 
-function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial, cotizar, cotizaciones, cliente }: {
+function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial, cotizar, cotizaciones, cliente, onCliente }: {
   lead: Lead; yo: Persona; donde: "banco" | "mio" | "admin"; puede: ReturnType<typeof puedeTomar>; ocupado: boolean;
   historial: EventoLead[] | null | undefined;
   onTomar: () => void; onNota: () => void; onCerrar: () => void; onAdmin: () => void; onHistorial: () => void;
@@ -422,6 +430,8 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
   cotizaciones: CotizacionDeLead[];
   /** D-762: el cliente con el que coincide (218), si ya se leyó: para el enlace y el vendedor. */
   cliente?: ClienteCruzado;
+  /** D-763: abre la tarjeta del cliente aquí mismo (el dueño no quiere saltar a la app de Clientes). */
+  onCliente: (c: ClienteCruzado) => void;
 }) {
   const { t, lang } = usePrefs();
   // En la pestaña del admin (cola de revisión, sin tocar) las tarjetas se leen enteras: ahí son trabajo suyo.
@@ -443,8 +453,8 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
       {l.customer_match_note && (
         <p className="ld-cliente" data-cliente={l.customer_match_id ?? ""}>
           🤝 {t("Customer", "Cliente")}:{" "}
-          {l.customer_match_id != null
-            ? <Link href={`/customers/${l.customer_match_id}`} data-ficha-cliente>{cliente ? `${cliente.account} (${cliente.store})` : l.customer_match_note}</Link>
+          {cliente
+            ? <button type="button" className="ld-enlace" data-ficha-cliente onClick={() => onCliente(cliente)}>{cliente.account} ({cliente.store})</button>
             : l.customer_match_note}
           {cliente && <> · {t("Sales rep", "Vendedor")}: <b data-vendedor-cliente>{cliente.rep_name ?? t("Unassigned", "Sin asignar")}</b></>}
           {cliente && <span className="hint"> · {l.customer_match_note}</span>}
@@ -540,6 +550,40 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
         </ul>
       )}
     </article>
+  );
+}
+
+/** D-763: la tarjeta del cliente con el que coincide un lead cruzado, dentro de Leads. Solo lectura. */
+function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo: "cliente" }>; onCerrar: () => void }) {
+  const { t } = usePrefs();
+  const c = dialogo.cliente;
+  const filas: [string, string | null][] = [
+    [t("Store", "Tienda"), c.store],
+    [t("Sales rep", "Vendedor"), c.rep_name ?? t("Unassigned", "Sin asignar")],
+    [t("Contact", "Contacto"), [c.contact_name, c.contact_title].filter(Boolean).join(" · ") || null],
+    [t("Phone", "Teléfono"), c.phone],
+    [t("Email", "Correo"), c.email],
+    [t("Address", "Dirección"), c.address],
+    [t("Account no.", "N.º de cuenta"), c.account_no],
+    [t("Terms", "Términos"), c.terms],
+    [t("Credit limit", "Límite de crédito"), c.credit_limit == null ? null : dinero(c.credit_limit)],
+    [t("Status", "Estado"), [c.activity_status, c.status_store].filter(Boolean).join(" · ") || null],
+    [t("Notes", "Notas"), c.notes],
+    [t("Why it matched", "Por qué coincide"), dialogo.lead.customer_match_note ?? null],
+  ];
+  return (
+    <div className="ld-velo" role="dialog" aria-modal="true" data-dialogo="cliente" onClick={onCerrar}>
+      <div className="ld-dialogo" onClick={(e) => e.stopPropagation()}>
+        <h2>🤝 {c.account}</h2>
+        <dl className="ld-ficha" data-ficha-cruzada={c.id}>
+          {filas.map(([k, v]) => v ? <div key={k}><dt>{k}</dt><dd>{v}</dd></div> : null)}
+        </dl>
+        <div className="ld-botones">
+          <Link className="btn btn-ghost" href={`/customers/${c.id}`} data-abrir-en-clientes>{t("Open in Customers", "Abrir en Clientes")} ↗</Link>
+          <button type="button" className="btn" onClick={onCerrar} data-cerrar-ficha>{t("Close", "Cerrar")}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 

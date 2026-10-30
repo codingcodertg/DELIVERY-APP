@@ -324,13 +324,28 @@ export interface Filtros {
   situacion?: Situacion | "";
   /** D-760: solo los que coinciden con un cliente de Clientes. */
   coinciden?: boolean;
+  /** D-763: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
+  textoExtra?: (l: Lead) => string;
 }
 
 const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Dónde busca la caja de búsqueda. */
-function textoDe(l: Lead): string {
-  return sinAcentos([l.project_name, l.facility_name, l.site_address, l.site_city, l.site_zip, l.owner_name, l.scope_of_work, l.tabs_project, l.tenant_name, l.customer_match_note].filter(Boolean).join(" · "));
+/**
+ * D-763: la búsqueda mira TODO el lead («buscar lo que sea hasta por sales people», el dueño, 2026-10-30): cada campo de
+ * texto o número, incluido quién lo tiene (`holder_name`), quién anotó, teléfonos y la razón del cruce. Fuera quedan solo
+ * los ids y las fechas en bruto (no se buscan a mano).
+ */
+const NO_SE_BUSCA = new Set(["id", "holder", "last_by", "customer_match_id", "taken_at", "touched_at", "follow_up_at", "last_at", "matched_at", "distance_miles"]);
+function textoDe(l: Lead, extra?: (l: Lead) => string): string {
+  const partes: string[] = [];
+  for (const [k, v] of Object.entries(l)) {
+    if (NO_SE_BUSCA.has(k) || v === null || v === undefined) continue;
+    if (typeof v === "string" || typeof v === "number") partes.push(String(v));
+  }
+  const e = extra?.(l);
+  if (e) partes.push(e);
+  return sinAcentos(partes.join(" · "));
 }
 
 /**
@@ -353,7 +368,7 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     }
     if (f.tipo && l.project_type !== f.tipo) return false;
     if (f.ciudad && l.site_city !== f.ciudad) return false;
-    if (q && !textoDe(l).includes(q)) return false;
+    if (q && !textoDe(l, f.textoExtra).includes(q)) return false;
     return true;
   });
 }
