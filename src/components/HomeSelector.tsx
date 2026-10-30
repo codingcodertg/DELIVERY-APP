@@ -7,6 +7,7 @@ import { noLeidosPorSolicitud, repartoDeNoLeidos } from "@/lib/help-thread";
 import { usePrefs } from "@/lib/prefs";
 import { VersionFooter } from "@/components/VersionFooter";
 import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
+import { puedeEntrarAClientes } from "@/lib/customers/reglas";
 import type { Profile } from "@/lib/types";
 import { veAppsParaInstalar } from "@/lib/hub-apps";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
@@ -19,7 +20,8 @@ import type { ClienteDePrefs } from "@/lib/user-prefs";
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
 export function HomeSelector({ me, suplantando = false }: { me: Profile; suplantando?: boolean }) {
   const { lang, t } = usePrefs();
-  const available = accessibleModules(me.module_access);
+  // D-NEXT: con Clientes «solo admins», la tarjeta no se enseña a quien la puerta del servidor va a rebotar.
+  const available = accessibleModules(me.module_access).filter((m) => m.key !== "customers" || puedeEntrarAClientes(me));
   // `suplantando` lo decide el servidor (home/page.tsx) y solo lo miran las herramientas del admin real.
   const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));
   // The deliveries card's own href is a placeholder ("/") — it's the same

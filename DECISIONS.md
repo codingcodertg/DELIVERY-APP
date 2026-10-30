@@ -49073,3 +49073,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/timetracker/bitacora-del-dia.test.ts` (las líneas en orden y sin duplicar salidas con foto; Nómina la monta; los textos; la acción acota y exige permiso). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; no se midió con un turno real (el de Everto Prado de hoy tiene una foto de visita).
+
+## D-NEXT · Clientes vuelve a ser solo para admins, por ahora
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/clientes-solo-admins-por-ahora`. **Reemplaza a D-683 en la puerta** (no en las reglas de ventas, gerente y oficina de D-740/742/743/748, que siguen escritas para cuando se reabra).
+
+**Pedido (el dueño, 2026-10-30):** «solo admins que tengan access a customer por ahora».
+
+**Qué cambia:** el interruptor de D-570 (`CLIENTES_SOLO_ADMINS`) vuelve a `true`. Con él: la puerta de `/customers` solo deja pasar al admin (los demás van a su inicio aunque tengan la casilla), la casilla «Clientes» de Usuarios/Permisos solo se ofrece al admin, y el hub deja de enseñar la tarjeta de Clientes a quien no puede entrar (`HomeSelector`, nuevo). **Las casillas ya puestas no se tocan** (hoy: Carlos Fuentes, Carlos Salazar, Francisca Reyes): el día que se reabra, entran sin tocar nada. La base (RLS 217) no cambia: si alguien llegara por la API, seguiría viendo solo su tienda.
+
+**Pruebas:** `modulo.test.ts` y `vendedores.test.ts` puestas al día (fijan el interruptor puesto y la tarjeta del hub). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.
