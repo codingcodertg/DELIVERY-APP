@@ -49103,7 +49103,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/pool-privado.test.ts` (modelo, filtro, banco sin privados, el importador —mapeo, tienda por ciudad, cruce— la 218 y la pantalla). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La 218 se ensayó con ROLLBACK; aplicarla y correr el importador con `--escribe` es del dueño (dos comandos `!`). Siguiente, cuando el dueño lo diga: qué hacer con los cruzados (asignar, marcar, avisar al vendedor del cliente…).
-## D-NEXT · Entregas: una orden entregada en otro día se queda con la fecha real de entrega (migración 219)
+## D-761 · Entregas: una orden entregada en otro día se queda con la fecha real de entrega (migración 219)
 
 **Fecha:** 2026-10-30 · **Migración 219** (`219_entregada_en_otra_fecha.sql`: disparador `deliveries_zz_entregada_fija_fecha`) · Hecho directo por el orquestador en `feat/entregada-en-otra-fecha`.
 

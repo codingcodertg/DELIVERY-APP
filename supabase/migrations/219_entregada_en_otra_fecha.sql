@@ -1,4 +1,4 @@
--- 219: Entregas — una orden entregada en OTRO dia se queda con la fecha real de entrega (D-NEXT, 2026-10-30).
+-- 219: Entregas — una orden entregada en OTRO dia se queda con la fecha real de entrega (D-761, 2026-10-30).
 --
 -- Roberto Rodriguez Jr (admin), con una orden Intertienda programada para manana y ya entregada hoy: «If driver delivers
 -- something at a different date then update delivery date to be true».

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** Una orden entregada en otro día se queda con la fecha real (D-NEXT, migración 219). */
+/** Una orden entregada en otro día se queda con la fecha real (D-761, migración 219). */
 
 const sql = readFileSync(join(process.cwd(), "supabase/migrations/219_entregada_en_otra_fecha.sql"), "utf8").split("\r\n").join("\n");
 const cuerpo = sql.slice(sql.indexOf("create or replace function public.entregada_fija_fecha()"), sql.indexOf("$$;") + 3);
