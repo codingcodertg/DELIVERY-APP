@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { faltanEnElAlta } from "./obligatorios";
 import { contactoVacio } from "./contactos";
 
-/** Lo obligatorio en el alta de cliente: términos, nombre y cargo del contacto, y teléfono o correo (D-NEXT). */
+/** Lo obligatorio en el alta de cliente: términos, nombre y cargo del contacto, y teléfono o correo (D-772). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

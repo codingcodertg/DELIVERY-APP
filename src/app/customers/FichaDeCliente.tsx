@@ -493,7 +493,7 @@ function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Clie
  */
 function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, alta = false, t }: {
   contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; elegido?: number; onElige?: (i: number) => void;
-  /** D-NEXT: en un alta, el primer contacto lleva asterisco en nombre, cargo y «teléfono o correo». */
+  /** D-772: en un alta, el primer contacto lleva asterisco en nombre, cargo y «teléfono o correo». */
   alta?: boolean; t: T;
 }) {
   // D-708: «This is too long so have tabs at the top to add/ switch to the others». Uno a la vista, con pestañas arriba
@@ -695,7 +695,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     const campos = parcheDe(form, original, nuevo);
     return {
       parche: { ...campos.parche, ...parcheDeContactos(contactosOriginales, contactos, cliente), ...parcheDeRedes(redesOriginales, redes) },
-      // D-NEXT: en un alta, además, lo obligatorio (términos; del primer contacto nombre, cargo y teléfono o correo).
+      // D-772: en un alta, además, lo obligatorio (términos; del primer contacto nombre, cargo y teléfono o correo).
       errores: [...campos.errores, ...erroresDeContactos(contactos), ...(nuevo ? faltanEnElAlta(form, contactos, altaComoSolicitud) : [])],
     };
   }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes, altaComoSolicitud]);

@@ -1,7 +1,7 @@
 import type { ContactoEnEdicion } from "./contactos";
 
 /**
- * D-NEXT: lo que un alta de cliente tiene que traer (el dueño, 2026-10-30, escribiendo «REQUIRED» en cada campo de la
+ * D-772: lo que un alta de cliente tiene que traer (el dueño, 2026-10-30, escribiendo «REQUIRED» en cada campo de la
  * captura, y «either phone or email required»): los términos, y del primer contacto el nombre, el cargo y un teléfono O un
  * correo. El correo y la dirección del contacto («REQUIRED BUT CAN PASS TO AUTH») son obligatorios en el alta directa del
  * admin, pero una SOLICITUD (D-743) puede ir sin ellos: los completa el admin al aprobar. Cuenta y tienda ya las exige

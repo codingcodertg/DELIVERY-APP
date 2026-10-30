@@ -49212,7 +49212,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** en la cabecera de la cotización, el campo de solo lectura «Tienda (sale en la cotización)» (D-451) se pinta solo para el admin. Para ventas y oficina desaparece: la tienda es la de su perfil y no la eligen. La hoja del cliente sigue llevando la tienda (`tiendaHoja`), igual que antes.
 
 **Pruebas:** `src/lib/estimator/tienda-solo-admin.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
-## D-NEXT · Alta de cliente: términos, nombre y cargo del contacto, y teléfono o correo, obligatorios
+## D-772 · Alta de cliente: términos, nombre y cargo del contacto, y teléfono o correo, obligatorios
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/alta-cliente-obligatorios`.
 
