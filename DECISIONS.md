@@ -49221,5 +49221,16 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** `faltanEnElAlta` (`src/lib/customers/obligatorios.ts`) se suma a los errores de la ficha solo en un alta: términos; del primer contacto, nombre, cargo y un teléfono O un correo. El correo y la dirección del contacto son obligatorios en el alta directa (admin), pero una solicitud (D-743) puede ir sin ellos («can pass to auth»): los completa el admin al aprobar. Lo que falta se pinta en rojo (nombre, cargo, dirección, y teléfono y correo a la vez cuando no hay ninguno), «Guardar» dice «Revisa los campos marcados» y salta a la pestaña del contacto, como ya hacía con los teléfonos mal escritos. En el alta, el primer contacto lleva asterisco en Nombre y Cargo, y «Teléfonos · teléfono o correo *». Una ficha ya creada no pasa por esta regla: lo que le faltara de antes no bloquea un guardado.
 
 **Pruebas:** `src/lib/customers/obligatorios.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+## D-NEXT · Clientes vuelve a ser un módulo que el admin concede por empleado
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/clientes-casilla-sin-nadie`. **Reemplaza a D-759.**
+
+**Pedido (el dueño, 2026-10-30):** «customer app que sí aparezca para agregar a los employees pero nadie tiene permiso aún, yo se lo asignaré».
+
+**Qué cambia:** el interruptor `CLIENTES_SOLO_ADMINS` vuelve a `false`: la casilla «Clientes» se ofrece en Usuarios/Permisos para cualquier rol, y entra quien la tenga marcada (las reglas de D-740/742/743/748 por rol y tienda ya estaban escritas y siguen). El admin entra siempre. El hub enseña la tarjeta solo a quien puede entrar (como D-759).
+
+**Datos:** la casilla seguía puesta de antes en tres perfiles que no son admin (medido en producción: Carlos Fuentes, oficina; Carlos Salazar, gerente; Francisca Reyes, ventas). Se quedan: el mismo día el dueño pidió que «Admin, Sales, and Office users are set for Leads, Customers, and Quotes», así que la casilla de Clientes (con Leads y Quote Builder) se concede a todos los de ventas y oficina con un comando del dueño (en la entrada de la decisión que lo haga).
+
+**Pruebas:** `modulo.test.ts` y `vendedores.test.ts` fijan el interruptor quitado y la casilla ofrecida a todos los roles. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc limpio.
 
 **No verificado:** no se abrió en un navegador.

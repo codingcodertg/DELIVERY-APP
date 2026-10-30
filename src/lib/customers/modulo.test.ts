@@ -341,22 +341,24 @@ describe("la ficha completa (/customers/[id]) y el orden de columnas por persona
   });
 });
 
-describe("D-570 · solo admins por ahora (quitado en D-683, vuelto a poner en D-759)", async () => {
+describe("D-570 · el interruptor «solo admins» (puesto en D-570 y D-759; quitado en D-683 y D-NEXT)", async () => {
   const { CLIENTES_SOLO_ADMINS, puedeEntrarAClientes, seOfreceClientes } = await import("./reglas");
-  it("el interruptor está PUESTO: solo el admin entra, tenga o no la casilla; los demás no, aunque la tengan", () => {
-    expect(CLIENTES_SOLO_ADMINS).toBe(true);
+  it("el interruptor está QUITADO (D-NEXT): el admin entra siempre; los demás, solo con la casilla que el admin les marque", () => {
+    expect(CLIENTES_SOLO_ADMINS).toBe(false);
     expect(puedeEntrarAClientes({ role: "admin", module_access: [] })).toBe(true);
     for (const role of ["manager", "sales", "accounting", "logistics", "warehouse", "driver"]) {
-      expect(puedeEntrarAClientes({ role, module_access: ["customers"] })).toBe(false);
+      expect(puedeEntrarAClientes({ role, module_access: ["customers"] })).toBe(true);
       expect(puedeEntrarAClientes({ role, module_access: ["leads"] })).toBe(false);
+      expect(puedeEntrarAClientes({ role, module_access: [] })).toBe(false);
     }
     expect(puedeEntrarAClientes(null)).toBe(false);
     // Y el hub no enseña la tarjeta a quien la puerta va a rebotar.
     expect(leer("src/components/HomeSelector.tsx")).toContain('.filter((m) => m.key !== "customers" || puedeEntrarAClientes(me))');
   });
-  it("la casilla de Usuarios se ofrece solo al admin, y el diálogo pregunta antes de dibujar el bloque", () => {
+  it("la casilla de Usuarios se ofrece a todos los roles (D-NEXT), y el diálogo pregunta antes de dibujar el bloque", () => {
     expect(seOfreceClientes("admin")).toBe(true);
-    expect(seOfreceClientes("manager")).toBe(false);
+    expect(seOfreceClientes("manager")).toBe(true);
+    expect(seOfreceClientes("sales")).toBe(true);
     const dialogo = leer("src/components/UserDialog.tsx");
     expect(dialogo).toContain("(m.offeredTo?.(u.role) ?? true)");
     const constantes = leer("src/lib/constants.ts");
