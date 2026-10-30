@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ROLES_LISTA_DE_SU_TIENDA, alcanceDeLaLista } from "./ordenes-visibles";
 import type { NamedLocation } from "./types";
 
-/** Entregas: oficina (accounting) ve solo su tienda, como gerente y ventas (D-NEXT, 2026-10-29). */
+/** Entregas: oficina (accounting) ve solo su tienda, como gerente y ventas (D-751, 2026-10-29). */
 
 const TIENDAS: NamedLocation[] = [{ name: "Tienda Norte", address: "1" }, { name: "Tienda Sur", address: "2" }];
 const ctx = (role: string, store: string | null, busqueda = "") =>

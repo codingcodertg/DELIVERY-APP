@@ -154,7 +154,7 @@ describe("una Intertienda es de las dos tiendas (D-309)", () => {
   });
 });
 
-describe("office: su tienda, busque o no (D-NEXT; hasta entonces solo al buscar)", () => {
+describe("office: su tienda, busque o no (D-751; hasta entonces solo al buscar)", () => {
   it("office de Norte, sin buscar: Norte y Oeste (su grupo), nunca Sur", () => {
     expect(visibles(ctxDe("accounting", "Norte"))).toEqual(["norte", "oeste"]);
   });
@@ -211,7 +211,7 @@ describe("sin tienda: ninguna, y la pantalla lo sabe por el mismo valor", () => 
     });
   }
 
-  it("office con tienda: su tienda y su grupo, busque o no (D-NEXT; hasta entonces sin buscar veía todo)", () => {
+  it("office con tienda: su tienda y su grupo, busque o no (D-751; hasta entonces sin buscar veía todo)", () => {
     const c = ctxDe("accounting", "Norte");
     expect(visibles(c)).toEqual(["norte", "oeste"]);
     expect(encuentra(c)).toEqual(["norte", "oeste"]);

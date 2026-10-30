@@ -48945,7 +48945,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador. Si el dueño quiere que puesto y sitio también salgan de Permisos, hace falta antes un sitio donde editarlos en Time Tracker (hoy no lo hay).
 
-## D-NEXT · Entregas: oficina (accounting) ve solo su tienda, como gerente y ventas; auditoría del alcance por tienda en todo el sistema
+## D-751 · Entregas: oficina (accounting) ve solo su tienda, como gerente y ventas; auditoría del alcance por tienda en todo el sistema
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/entregas-oficina-solo-su-tienda`.
 
@@ -48966,7 +48966,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 | RR. HH. | **todo** con el módulo; archivos solo gerente | módulo o rol (057/094) | no rastreado | **sin corte por tienda.** |
 | Ayuda / notificaciones | lo suyo | sí | — | no aplica. |
 
-**Perfiles activos sin tienda (producción, 2026-10-29):** oficina: Claudia Rodriguez, Raquel Rojas; gerentes: Francis Lestarpe, Roberto Rodriguez; ventas: Elsa Vasquez, Nick Huerta; choferes: Ernesto Castillo, Julio Jijon, Steven. Con la regla «sin tienda, nada», a ellos hay que asignarles tienda (o aceptar que no vean) en las apps que ya cortan (Clientes desde la 217; Entregas en pantalla desde D-405/D-NEXT).
+**Perfiles activos sin tienda (producción, 2026-10-29):** oficina: Claudia Rodriguez, Raquel Rojas; gerentes: Francis Lestarpe, Roberto Rodriguez; ventas: Elsa Vasquez, Nick Huerta; choferes: Ernesto Castillo, Julio Jijon, Steven. Con la regla «sin tienda, nada», a ellos hay que asignarles tienda (o aceptar que no vean) en las apps que ya cortan (Clientes desde la 217; Entregas en pantalla desde D-405/D-751).
 
 **Qué cambia aquí (`src/lib/ordenes-visibles.ts`):** `ROLES_LISTA_DE_SU_TIENDA` pasa de gerente y ventas a **gerente, ventas y oficina**: la lista de Órdenes de oficina es la de su tienda y su grupo, busque o no; sin tienda, ninguna y el aviso. Logística sigue viendo todas (reparte las rutas de toda la empresa) y almacén sigue con su corte propio.
 
