@@ -28,6 +28,7 @@ export function LocationCombo({
   onAddress,
   onSave,
   disabled,
+  escribirPorDefecto = false,
   namePlaceholder,
   addressPlaceholder,
   nameInvalid,
@@ -49,11 +50,14 @@ export function LocationCombo({
   /** Highlight the name / address as missing required fields. */
   nameInvalid?: boolean;
   addressInvalid?: boolean;
+  /** D-NEXT: abrir en modo escribir (nombre tecleado + dirección buscada) salvo que el nombre ya sea uno guardado. Para la
+   *  recogida libre de «Otro» y «Proveedor»; «Elegir guardado» sigue ahí para quien quiera uno de la lista. */
+  escribirPorDefecto?: boolean;
   t: (en: string, es: string) => string;
 }) {
   const known = options.some((o) => o.name && o.name === name);
   // Free-typing mode: on for a name that isn't in the saved list.
-  const [manual, setManual] = useState(!!name && !known);
+  const [manual, setManual] = useState(escribirPorDefecto ? !known : !!name && !known);
 
   const pick = (v: string) => {
     if (v === NEW) { setManual(true); onName(""); return; }

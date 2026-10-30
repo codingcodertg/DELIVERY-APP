@@ -35,7 +35,7 @@ export default async function JuntarPage() {
   let moduleAccess: string[] | null = null;
   if (user) {
     const { data: perfil, error: errorPerfil } = await supabase.from("profiles").select("full_name, role, module_access").eq("id", user.id).maybeSingle();
-    // El fallo de lectura no manda a nadie a otro sitio (D-749, misma guarda que el layout): se enseña y se reintenta.
+    // El fallo de lectura no manda a nadie a otro sitio (D-NEXT, misma guarda que el layout): se enseña y se reintenta.
     if (estadoDeLectura({ data: perfil, error: errorPerfil }) === "fallo") return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
     role = (perfil?.role as UserRole | undefined) ?? "sales";
     fullName = perfil?.full_name?.trim() || null;

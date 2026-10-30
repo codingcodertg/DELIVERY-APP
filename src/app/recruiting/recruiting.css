@@ -134,13 +134,11 @@
 .recruiting-module .btn { padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 .recruiting-module .btn-primary { background: var(--accent); color: #fff; }
 .recruiting-module .btn-primary:hover { background: var(--accent-hover); }
-/* Botones: la regla de toda la app (D-749): disponible = vivo (sólido o con borde de acento), bloqueado = apagado y gris. */
-.recruiting-module .btn-ghost { background: var(--card); color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
-.recruiting-module .btn-ghost:hover { background: var(--accent); color: #fff; }
-.recruiting-module .btn-danger { background: var(--red); color: #fff; }
-.recruiting-module .btn-green { background: var(--green); color: #fff; }
+.recruiting-module .btn-ghost { background: var(--accent-soft); color: var(--accent); }
+.recruiting-module .btn-danger { background: var(--tint-red-strong); color: var(--red); }
+.recruiting-module .btn-green { background: var(--tint-green); color: var(--green); }
 .recruiting-module .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
-.recruiting-module .btn:disabled { opacity: .45; filter: grayscale(1); cursor: not-allowed; box-shadow: none; }
+.recruiting-module .btn:disabled { opacity: .5; cursor: default; }
 
 .recruiting-module .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
 .recruiting-module .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }

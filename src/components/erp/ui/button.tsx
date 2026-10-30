@@ -3,13 +3,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/erp/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-1 disabled:opacity-45 disabled:grayscale disabled:cursor-not-allowed whitespace-nowrap",
+  "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap",
   {
     variants: {
       variant: {
         default: "bg-clay-500 text-white hover:bg-clay-600",
-        // D-749: el secundario con borde y texto del color de acento (vivo), no gris pálido.
-        outline: "border-[1.5px] border-clay-500 bg-white text-clay-700 hover:bg-clay-50",
+        outline: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
         ghost: "text-slate-600 hover:bg-slate-100",
       },
       size: { default: "h-9 px-4", sm: "h-8 px-3 text-xs", icon: "h-9 w-9 p-0" },

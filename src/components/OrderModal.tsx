@@ -70,6 +70,7 @@ import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, textoDeBloqueo, type MissingField } from "@/lib/required";
 import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada, eligeRecogida, opcionesDeRecogida } from "@/lib/order-endpoints";
 import { conTiendaDeLaRecogida, esTransferenciaSinVenta } from "@/lib/transferencia-sin-venta";
+import { recogidaLibre } from "@/lib/recogida-libre";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
@@ -953,6 +954,9 @@ export function OrderModal({
   /** Una transferencia no vende (D-741, Francis: «the store sold from fields should not exist since no sale was made»):
    *  «Vendido desde» no se enseña y `store` sigue al almacén de recogida (`conTiendaDeLaRecogida`). */
   const sinVenta = esTransferenciaSinVenta(reglaDelTipo);
+  /** Recogida libre (D-NEXT, Roberto: «Other and Supplier should give option for pickup address to be inputted rather than
+   *  saying to pickup at one of our stores»): en «Otro» y «Proveedor» la recogida se teclea y «Vendido desde» no la pisa. */
+  const recogidaLibreDelTipo = recogidaLibre(reglaDelTipo);
   // Which document-reference fields this type shows: "estimate" (Transfer) uses
   // a single Estimate #; everything else uses the Invoice # / PO # / SO # trio.
   const docRef = orderTypeRule(d.order_type, settings.order_type_rules).docRef ?? "invoice";
@@ -2217,7 +2221,7 @@ export function OrderModal({
                 val={d.store}
                 // In a store move, the destination is not offered as the origin (D-267, D-276).
                 opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))}
-                on={(v) => setD((p) => eligeOrigen(p, v, settings.stores))}
+                on={(v) => setD((p) => (recogidaLibreDelTipo ? { ...p, store: v } : eligeOrigen(p, v, settings.stores)))}
                 disabled={!salesFields || origenFijo}
                 placeholder={t("Select store", "Seleccione tienda")}
                 invalid={missingSet.has("store")}
@@ -2665,7 +2669,7 @@ export function OrderModal({
             <div className="grid g2">
               <Sel label={homeIsDestination ? t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
-                setD((p) => eligeOrigen(p, v, settings.stores));
+                setD((p) => (recogidaLibreDelTipo ? { ...p, store: v } : eligeOrigen(p, v, settings.stores)));
               }} disabled={!salesFields || origenFijo} placeholder={t("Select store", "Seleccione tienda")} invalid={missingSet.has("store")} />
               {/* La dirección de la tienda que vende, de solo lectura y sacada de Ajustes (D-309:
                   «store sold from should have the address»). Desde D-312 «Vendido desde» ya no está
@@ -2693,18 +2697,19 @@ export function OrderModal({
             ) : (
             <div className="grid g2">
               <LocationCombo
-                nameLabel={t("Pickup warehouse", "Almacén de recolección")}
+                nameLabel={recogidaLibreDelTipo ? t("Pickup (name of the place)", "Recolección (nombre del sitio)") : t("Pickup warehouse", "Almacén de recolección")}
                 addressLabel={t("Pickup Address", "Dirección de Recolección")}
                 name={d.pickup_name}
                 address={d.pickup_address}
                 options={pickupOptions}
+                escribirPorDefecto={recogidaLibreDelTipo}
                 onName={(v) => setD((p) => conTiendaDeLaRecogida({ ...p, pickup_name: v }, settings.stores, reglaDelTipo))}
                 onAddress={(v) => set("pickup_address", v)}
                 onSave={savePickupLocation}
                 disabled={!salesFields}
                 nameInvalid={missingSet.has("pickup_name")}
                 addressInvalid={missingSet.has("pickup_address")}
-                namePlaceholder={t("Select a pickup point…", "Seleccione un punto de recolección…")}
+                namePlaceholder={recogidaLibreDelTipo ? t("e.g. the supplier's name", "p. ej. el nombre del proveedor") : t("Select a pickup point…", "Seleccione un punto de recolección…")}
                 addressPlaceholder={t("Search an address…", "Busca una dirección…")}
                 t={t}
               />

@@ -36,8 +36,7 @@ describe("Time Tracker: el botón secundario y las pestañas de pantalla no pare
     expect(tt).toContain(".timetracker-module .motivo{color:var(--tt-txt);text-transform:none;letter-spacing:normal}");
   });
   it("apagado de verdad solo queda lo deshabilitado", () => {
-    // D-749: apagado = opacidad baja Y gris, en toda la app.
-    expect(tt).toContain(".timetracker-module button:disabled{opacity:.45;filter:grayscale(1);cursor:not-allowed}");
+    expect(tt).toContain(".timetracker-module button:disabled{opacity:.5;cursor:not-allowed}");
     expect(tt).toContain(".timetracker-module .motivo:has(input:disabled){opacity:.5;cursor:not-allowed}");
   });
   it("tu nombre en la barra (lleva a Mi cuenta) ya no va al 80 %", () => {
