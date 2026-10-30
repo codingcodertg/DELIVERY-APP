@@ -48932,3 +48932,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/botones-vivos.test.ts` (las cuatro hojas y el botón de Tailwind). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; el contraste se calculó, no se midió con herramienta. Si en alguna pantalla el secundario con borde se ve demasiado «fuerte» por cantidad, se decide pantalla a pantalla, no volviendo al tinte.
+
+## D-NEXT · Permisos es solo permisos: el horario semanal del Time Tracker ya no se edita en el diálogo de Permisos
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/permisos-sin-config-de-tt`.
+
+**Pedido (Roberto Rodriguez Jr desde Permisos del expediente, reenviado por el dueño, 2026-10-29):** «Why is their week schedule on permissions». El dueño: «en permissions solo es permisos, esto se configura en el time tracker».
+
+**Qué cambia (`ClockinSettings.tsx`, el bloque de Time Tracker dentro de `UserDialog`):** fuera el desplegable «Horario semanal» (Ninguno/A/B/C/Personalizado) y la «Semana personalizada» con sus horas y comida; en su lugar una línea que dice qué horario tiene y que **se configura en Time Tracker › Horario** (la pantalla de horario, `ScheduleWeek`, que ya existía y es donde se lleva). Se quedan en Permisos lo que decide qué puede hacer o ver la persona: tipo de trabajador (presencial/remoto), puesto y sitio (su geocerca y lo que ve un gerente de tienda: no tienen otro sitio donde ponerse), «Visitas y mandados», el vehículo y la casilla de activo. `CustomWeek` y las acciones `setEmployeeSchedule`/`setCustomSchedule` dejan de importarse aquí (las acciones siguen existiendo para Time Tracker).
+
+**Pruebas:** `src/lib/timetracker/permisos-sin-horario.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. Si el dueño quiere que puesto y sitio también salgan de Permisos, hace falta antes un sitio donde editarlos en Time Tracker (hoy no lo hay).
