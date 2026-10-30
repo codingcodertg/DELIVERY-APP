@@ -68,7 +68,7 @@ const DIR = "src/app/timetracker/clock-in/actions";
 /** Lo que solo lee. Si alguna empieza a escribir, el barrido de abajo lo ve y hay que quitarla de aquí. */
 const LECTURAS = new Set([
   "getCrewNow", "getMyDay", "getExceptionHistory", "getMySchedule", "getMyNotes", "getMyScorecard", "getMyNotifications",
-  "countUnread", "getDayPhotos", "getPayrollPeriod", "getEmployeeWeek", "getMyTrip", "getScheduleWeek", "getGeofences",
+  "countUnread", "getDayPhotos", "getEntryDayLog", "getPayrollPeriod", "getEmployeeWeek", "getMyTrip", "getScheduleWeek", "getGeofences",
   "geocodeForMap", "getClockinEmployeeSettings", "getPendingForInbox", "getMyTimeOff", "listVehicles",
 ]);
 /**

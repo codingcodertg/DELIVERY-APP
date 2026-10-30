@@ -304,6 +304,15 @@
 .timetracker-module .rev-item{margin:0;border:1px solid var(--tt-line);border-radius:12px;overflow:hidden;
      background:var(--tt-panel2);cursor:zoom-in}
 .timetracker-module .rev-item img{display:block;width:100%;height:150px;object-fit:cover;background:var(--tt-chip)}
+/* La bitácora del turno bajo cada fila de Nómina (D-758): plegada, y abierta una línea por cosa con su foto en pequeño. */
+.timetracker-module .bitacora-fila td{padding:0 8px 8px}
+.timetracker-module .bitacora-del-dia summary{list-style:none;display:inline-block}
+.timetracker-module .bitacora-del-dia summary::-webkit-details-marker{display:none}
+.timetracker-module .bitacora-lineas{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.timetracker-module .bitacora-linea{display:flex;align-items:center;gap:8px}
+.timetracker-module .bitacora-foto{padding:0;border:0;background:none;cursor:zoom-in;flex:0 0 auto}
+.timetracker-module .bitacora-foto img{display:block;width:44px;height:44px;object-fit:cover;border-radius:6px;background:var(--tt-chip)}
+.timetracker-module .bitacora-sin-foto{display:inline-block;width:44px;text-align:center;color:var(--tt-muted)}
 .timetracker-module .rev-item figcaption{padding:7px 8px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
 /* La nota de la excepción ocupa toda la línea y se corta: son frases libres y una larga
    descuadraba la tarjeta entera. */
