@@ -218,7 +218,7 @@ describe("3 · el empleado no ve el contador de su tarjeta de fichar", () => {
     expect(seccionesDeFichar({ esAdmin: true }).contador).toBe(true);
   });
   it("PunchPanel lo pinta solo con secciones.contador, y no hay otro", () => {
-    // D-NEXT: sin segundos.
+    // D-755: sin segundos.
     expect(punch).toContain("{secciones.contador && (\n          <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 1, margin: \"8px 0\" }}>\n            {dentro ? fmtClockSinSegundos(llevo) : \"0:00\"}");
     expect(punchCodigo.split("fmtClockSinSegundos(").length - 1).toBe(1);
     expect(punchCodigo).not.toContain("fmtClock(");

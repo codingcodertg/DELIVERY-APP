@@ -49023,7 +49023,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador.
 
-## D-NEXT · Time Tracker → Clock in / out: el contador de «llevo trabajando» sin segundos
+## D-755 · Time Tracker → Clock in / out: el contador de «llevo trabajando» sin segundos
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/cronometro-sin-segundos`.
 

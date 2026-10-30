@@ -186,7 +186,7 @@ export function PunchPanel() {
   const conContador = secciones.contador;
   useEffect(() => {
     if (!conContador) return;
-    // Sin segundos en pantalla (D-NEXT), basta con moverlo cada 15 s: el minuto nunca llega con más de 15 s de retraso
+    // Sin segundos en pantalla (D-755), basta con moverlo cada 15 s: el minuto nunca llega con más de 15 s de retraso
     // y el panel deja de repintarse 60 veces por minuto.
     const i = setInterval(() => setAhora(Date.now()), 15000);
     return () => clearInterval(i);

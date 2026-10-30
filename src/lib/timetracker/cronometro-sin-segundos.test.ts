@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fmtClock, fmtClockSinSegundos } from "./helpers";
 
-/** El contador de «Clock in / out» sin segundos (D-NEXT, 2026-10-29). */
+/** El contador de «Clock in / out» sin segundos (D-755, 2026-10-29). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 
