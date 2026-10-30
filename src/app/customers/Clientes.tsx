@@ -80,7 +80,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, esVendedor = fals
   }, [almacen, esAdmin, puedePedirVendedor]);
   // D-742: la ventana «Pedir vendedor al admin» del gerente, para el cliente de la ficha abierta.
   const [pidiendo, setPidiendo] = useState<Cliente | null>(null);
-  // D-NEXT: la vista ACOTADA es la de todos menos el admin (vendedor, gerente, oficina): su tienda, cuatro columnas fijas,
+  // D-748: la vista ACOTADA es la de todos menos el admin (vendedor, gerente, oficina): su tienda, cuatro columnas fijas,
   // sin «⚙ Columnas», sin arrastre, sin pastillas de tiendas ni «Archivados», y la búsqueda en toda la empresa.
   const vistaAcotada = !esAdmin;
   const soloSuTienda = vistaAcotada;

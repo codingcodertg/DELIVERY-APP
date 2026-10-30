@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+import { ProfileReadError } from "@/components/ProfileReadError";
 import { puedeEditar } from "@/lib/customers/reglas";
 import type { UserRole } from "@/lib/types";
 import { BarraDeClientes } from "@/components/customers/barra";
@@ -32,12 +34,14 @@ export default async function JuntarPage() {
   let fullName: string | null = null;
   let moduleAccess: string[] | null = null;
   if (user) {
-    const { data } = await supabase.from("profiles").select("full_name, role, module_access").eq("id", user.id).maybeSingle();
-    role = (data?.role as UserRole | undefined) ?? "sales";
-    fullName = data?.full_name?.trim() || null;
-    moduleAccess = (data?.module_access as string[] | null) ?? null;
+    const { data: perfil, error: errorPerfil } = await supabase.from("profiles").select("full_name, role, module_access").eq("id", user.id).maybeSingle();
+    // El fallo de lectura no manda a nadie a otro sitio (D-NEXT, misma guarda que el layout): se enseña y se reintenta.
+    if (estadoDeLectura({ data: perfil, error: errorPerfil }) === "fallo") return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+    role = (perfil?.role as UserRole | undefined) ?? "sales";
+    fullName = perfil?.full_name?.trim() || null;
+    moduleAccess = (perfil?.module_access as string[] | null) ?? null;
   }
-  // D-NEXT: juntar empresas es cosa del admin; a los demás, la lista.
+  // D-748: juntar empresas es cosa del admin; a los demás, la lista.
   if (role !== "admin") redirect("/customers");
   return (
     <>

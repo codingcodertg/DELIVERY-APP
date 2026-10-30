@@ -48899,7 +48899,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/ficha-sin-huecos.test.ts` (el contenedor es de columnas y no de rejilla, y la tarjeta apilada de D-681 sigue dentro). Suite de Clientes en verde; tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; la captura del dueño es de la ficha editando a ~900 px de ancho (dos columnas).
-## D-NEXT · Clientes: todos salvo el admin ven solo su tienda (migración 217); el gerente y oficina con las cuatro columnas de ventas; «Decidir si se juntan», «⚙ Columnas» y «Archivados» solo para el admin
+## D-748 · Clientes: todos salvo el admin ven solo su tienda (migración 217); el gerente y oficina con las cuatro columnas de ventas; «Decidir si se juntan», «⚙ Columnas» y «Archivados» solo para el admin
 
 **Fecha:** 2026-10-29 · **Migración 217** (`217_clientes_solo_su_tienda.sql`: `erp.customers_ve_la_fila` sin «else true») · Hecho directo por el orquestador en `feat/clientes-solo-admin-juntar-columnas-archivados`. **Reemplaza en parte a D-728/D-740/D-742.**
 

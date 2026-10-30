@@ -50,7 +50,7 @@ export function BarraDeClientes({ role, fullName, email, moduleAccess }: {
         brand: t("RTG Customers", "RTG Clientes"),
         badge: role,
         nav: {
-          // D-NEXT: «Decidir si se juntan» es cosa del admin (la página redirige a los demás).
+          // D-748: «Decidir si se juntan» es cosa del admin (la página redirige a los demás).
           main: [
             { href: "/customers", label: t("Customers", "Clientes") },
             ...(role === "admin" ? [{ href: "/customers/juntar", label: rotuloDeDecidir(pendientes, t) }] : []),

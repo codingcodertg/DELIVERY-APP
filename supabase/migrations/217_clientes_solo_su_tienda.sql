@@ -1,4 +1,4 @@
--- 217: Clientes — todos salvo el admin ven SOLO su tienda (D-NEXT, 2026-10-29).
+-- 217: Clientes — todos salvo el admin ven SOLO su tienda (D-748, 2026-10-29).
 --
 -- El dueño (2026-10-29): «todos, excepto admins, […] solo pueden ver la tienda que estan asignados. Porque ahorita Carlos
 -- Fuentes puede ver todas las tiendas, al menos en la parte de customers, y no es asi».

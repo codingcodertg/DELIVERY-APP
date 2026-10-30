@@ -79,7 +79,7 @@ describe("la pantalla", () => {
   const lista = sinComentarios(leer("src/app/customers/Clientes.tsx"));
   const ficha = sinComentarios(leer("src/app/customers/FichaDeCliente.tsx"));
   it("sin selector de columnas ni arrastre para el vendedor; sus cuatro columnas", () => {
-    // D-NEXT: la vista acotada es la de todos menos el admin.
+    // D-748: la vista acotada es la de todos menos el admin.
     expect(lista).toContain("const vistaAcotada = !esAdmin;");
     expect(lista).toContain("{!vistaAcotada && (\n          <SelectorDeColumnas");
     expect(lista).toContain("draggable={!vistaAcotada}");
