@@ -49235,7 +49235,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador.
 
-## D-NEXT · Quote Builder: el nivel de detalle para el cliente se elige en la vista previa, viendo la hoja y en vivo
+## D-775 · Quote Builder: el nivel de detalle para el cliente se elige en la vista previa, viendo la hoja y en vivo
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/cotiza-nivel-en-vista-previa`.
 

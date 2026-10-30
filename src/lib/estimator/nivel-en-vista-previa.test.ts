@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** El nivel de detalle para el cliente se elige en la vista previa, con la hoja a la vista y en vivo (D-NEXT). */
+/** El nivel de detalle para el cliente se elige en la vista previa, con la hoja a la vista y en vivo (D-775). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");

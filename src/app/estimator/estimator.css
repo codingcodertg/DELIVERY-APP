@@ -92,7 +92,7 @@
 
 .est-vista-previa { position: fixed; inset: 0; z-index: 60; overflow-y: auto; background: rgba(15,23,42,.72); padding: 16px; }
 .est-vista-previa .est-barra { max-width: 760px; margin: 0 auto 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-/* D-NEXT: el nivel de detalle, sobre la hoja: etiquetas blancas sobre el velo oscuro; la puesta, azul. */
+/* D-775: el nivel de detalle, sobre la hoja: etiquetas blancas sobre el velo oscuro; la puesta, azul. */
 .est-vista-previa .est-nivel { align-items: center; }
 .est-vista-previa .est-nivel-rotulo { color: #fff; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .est-vista-previa .est-radios label { background: #fff; }
