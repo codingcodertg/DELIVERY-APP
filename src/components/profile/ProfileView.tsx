@@ -23,9 +23,9 @@ import { PasswordInput } from "@/components/PasswordInput";
  */
 export function ProfileView({ id, nombre, correo, usuario, onCerrar, onPersonalizar }: {
   id: string | null; nombre: string | null; correo: string | null; usuario: string | null;
-  /** D-NEXT: dentro de la tarjeta del hub. Con `onCerrar`, el botón de arriba cierra en vez de «Volver al hub». */
+  /** D-765: dentro de la tarjeta del hub. Con `onCerrar`, el botón de arriba cierra en vez de «Volver al hub». */
   onCerrar?: () => void;
-  /** D-NEXT: en la tarjeta, «Personalizar →» cambia a la tarjeta de personalizar sin salir del hub. */
+  /** D-765: en la tarjeta, «Personalizar →» cambia a la tarjeta de personalizar sin salir del hub. */
   onPersonalizar?: () => void;
 }) {
   const { t } = usePrefs();

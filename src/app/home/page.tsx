@@ -69,7 +69,7 @@ export default async function HomePage({
   // tiene que preguntarlo por su cuenta. Sin cookie no hay impersonación, que es casi siempre.
   const suplantando = desempaquetar((await cookies()).get(COOKIE_RETORNO)?.value ?? null) !== null;
 
-  // D-NEXT: Mi perfil y Personalizar se abren como tarjeta encima del hub; lo que Mi perfil enseña se lee aquí.
+  // D-765: Mi perfil y Personalizar se abren como tarjeta encima del hub; lo que Mi perfil enseña se lee aquí.
   const cuenta = identidadVisible({ email: user.email, username: me.username });
   return <HomeSelector me={me} suplantando={suplantando} cuenta={cuenta} />;
 }

@@ -22,7 +22,7 @@ import type { ClienteDePrefs } from "@/lib/user-prefs";
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
 export function HomeSelector({ me, suplantando = false, cuenta }: { me: Profile; suplantando?: boolean; cuenta?: { correo: string | null; usuario: string | null } }) {
   const { lang, t } = usePrefs();
-  // D-NEXT: Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla (el dueño,
+  // D-765: Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla (el dueño,
   // 2026-10-30: «que esto simplemente sea un pop-up … como hemos manejado siempre las cards»). El enlace conserva
   // su ruta (sigue siendo el destino desde el menú del nombre de cada app); el clic la abre aquí.
   const [tarjeta, setTarjeta] = useState<"perfil" | "personalizar" | null>(null);

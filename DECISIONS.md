@@ -49153,7 +49153,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se mandó un SMS; el largo final depende de la dirección de la tienda.
 
-## D-NEXT · Hub: Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla
+## D-765 · Hub: Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/hub-perfil-en-tarjeta`.
 

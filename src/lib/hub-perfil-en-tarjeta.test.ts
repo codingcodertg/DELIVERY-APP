@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla (D-NEXT). */
+/** Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla (D-765). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

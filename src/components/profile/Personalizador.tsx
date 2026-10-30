@@ -15,7 +15,7 @@ import { OPCIONES_DE_IDIOMA, OPCIONES_DE_TEMA } from "@/lib/personalizar";
  * Cada grupo es un `radiogroup`: se ve cuál está puesto sin tener que adivinarlo por el color.
  */
 export function Personalizador({ onCerrar }: {
-  /** D-NEXT: dentro de la tarjeta del hub. Con `onCerrar`, el botón de arriba cierra en vez de «Volver al hub». */
+  /** D-765: dentro de la tarjeta del hub. Con `onCerrar`, el botón de arriba cierra en vez de «Volver al hub». */
   onCerrar?: () => void;
 } = {}) {
   const { t, lang, setLang, theme, setTheme } = usePrefs();
