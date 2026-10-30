@@ -48915,3 +48915,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/solo-su-tienda.test.ts`; puestas al día `vendedor-por-tienda`, `pedir-vendedor` y `modulo`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La 217 se ensayó con ROLLBACK; aplicarla es del dueño. La auditoría del resto de apps (Entregas, Leads, Encuestas, Promos, Estimador, ERP, Time Tracker, RR. HH.) va aparte.
+
+## D-NEXT · Regla de toda la app: un botón disponible va en color vivo; uno bloqueado, apagado y gris
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/botones-vivos-apagado-es-bloqueado`.
+
+**Pedido (Roberto Rodriguez Jr desde el expediente de RR. HH., reenviado por el dueño, 2026-10-29):** «Faded colors give impression of locked buttons». El dueño: «que sea una regla a nivel de app y haz una auditoría para arreglar eso a nivel de app: faded es locked, fuerte y viva color es available button».
+
+**Lo auditado.** Los botones pálidos de la captura («Permissions», «Deactivate», «Edit») y el bloqueado («Save», sin cambios) salían de las mismas cuatro variantes globales: `.btn-ghost` (tinte `--accent-soft` con texto de acento), `.btn-danger` (#fdeaea), `.btn-green` (#e5f6ee) y `.btn-amber` (#fbf1df), todas tintes pálidos aunque estén disponibles; y lo bloqueado solo bajaba la opacidad a .5, con lo que un primario bloqueado (azul al 50 %) se veía igual que un secundario disponible (azul pálido). RR. HH. repetía las mismas reglas; Time Tracker ya tenía el secundario con borde (D-489, misma queja); ERP/Clientes (Tailwind) tenían el primario vivo y el bloqueado solo con opacidad. Usos aproximados en `src`: `btn-ghost` 581, `btn-primary` 218, `btn-danger` 81, `btn-green` 54, `btn-amber` 21: por eso se arregla en las hojas, no botón por botón.
+
+**La regla, en CSS.**
+- **Disponible = vivo:** `.btn-ghost` (secundario) con borde de 1,5 px y texto del color de acento a plena saturación sobre fondo de tarjeta (en hover se rellena); `.btn-danger` rojo sólido con texto blanco; `.btn-green` verde sólido (#17804e, para contraste con blanco); `.btn-amber` ámbar sólido con texto oscuro. Fuera los tres tintes fijos (que además no cambiaban en modo oscuro).
+- **Bloqueado = apagado y gris:** `.btn:disabled` (y `aria-disabled`) con opacidad .45 **y** `grayscale(1)`, cursor `not-allowed`, sin borde. Lo mismo en RR. HH., Time Tracker y en el `Button` de ERP/Clientes (`disabled:opacity-45 disabled:grayscale disabled:cursor-not-allowed`; el `outline` pasa a borde y texto de acento).
+- **Lo que sigue pálido a propósito:** pastillas de filtro (`.chip` sin `.on`), pestañas, `stat-pill`, `grade-btn`, semáforos y enlaces del hub: son estados o selecciones, no acciones bloqueadas.
+
+**Pruebas:** `src/lib/botones-vivos.test.ts` (las cuatro hojas y el botón de Tailwind). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador; el contraste se calculó, no se midió con herramienta. Si en alguna pantalla el secundario con borde se ve demasiado «fuerte» por cantidad, se decide pantalla a pantalla, no volviendo al tinte.
