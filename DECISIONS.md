@@ -48979,7 +48979,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador.
 
-## D-NEXT · Time Tracker → Auditoría → Fotos de fichaje: al abrir una foto no cargaba nunca (el visor ignoraba una URL ya firmada)
+## D-752 · Time Tracker → Auditoría → Fotos de fichaje: al abrir una foto no cargaba nunca (el visor ignoraba una URL ya firmada)
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `fix/visor-fotos-de-fichaje`.
 

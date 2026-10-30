@@ -31,7 +31,7 @@ export function esUrlPintable(foto: string): boolean {
 
 /**
  * El `src` con el que se pinta una foto: una `data:` vieja, tal cual; una URL ya firmada o pública (las fotos de fichaje
- * del Time Tracker llegan así, D-NEXT), tal cual; una ruta del cubo, por su URL firmada. Una ruta SIN firma (aún no
+ * del Time Tracker llegan así, D-752), tal cual; una ruta del cubo, por su URL firmada. Una ruta SIN firma (aún no
  * llegó, o la política no dejó) se deja en blanco: pedirla a pelo sería un 400 del cubo privado.
  */
 export function srcDeFoto(foto: string, urls: Record<string, string> | undefined): string {

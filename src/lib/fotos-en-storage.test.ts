@@ -182,7 +182,7 @@ describe("enseñar: una foto vieja `data:` se sigue mostrando; una ruta, por su 
     expect(srcDeFoto("o-1/1-0.jpg", { "o-1/1-0.jpg": "https://x/s" })).toBe("https://x/s");
     expect(srcDeFoto("o-1/1-0.jpg", {})).toBe("");
     expect(srcDeFoto("o-1/1-0.jpg", undefined)).toBe("");
-    // D-NEXT: una URL ya firmada o pública (las fotos de fichaje del Time Tracker), tal cual, con o sin mapa de firmas.
+    // D-752: una URL ya firmada o pública (las fotos de fichaje del Time Tracker), tal cual, con o sin mapa de firmas.
     // Era el bug del dueño («a la foto le doy click para verla y nunca carga»): la miniatura pintaba la URL y el visor
     // la mandaba a buscar en el mapa de firmas, que no existe ahí, y se quedaba en blanco.
     expect(srcDeFoto("https://x.supabase.co/storage/v1/object/sign/clockin/a.jpg?token=t", undefined)).toBe("https://x.supabase.co/storage/v1/object/sign/clockin/a.jpg?token=t");
