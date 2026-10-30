@@ -105,11 +105,11 @@ describe("office, gerente y ventas: solo su tienda y las de su grupo", () => {
   });
 });
 
-describe("el corte es solo de la pestaña: la lista normal no cambia", () => {
-  it("office de Norte sigue viendo en «Todas» una orden de Sur de hoy", () => {
+describe("la lista normal de oficina también va por su tienda (D-NEXT; hasta entonces el corte era solo de la pestaña)", () => {
+  it("office de Norte ya no ve en «Todas» una orden de Sur de hoy", () => {
     const deHoySur = mkDelivery({ id: "hoy-sur", stage: "approved", order_type: "ConFactura", invoice_num: null, delivery_date: HOY, store: "Sur", created_by: YO });
     const { visibles, conPendientes } = ordenesVisibles([deHoySur], ctxDe("accounting", "Norte"));
-    expect(ids(visibles)).toEqual(["hoy-sur"]);
+    expect(ids(visibles)).toEqual([]);
     expect(ids(conPendientes)).toEqual([]);
   });
 });

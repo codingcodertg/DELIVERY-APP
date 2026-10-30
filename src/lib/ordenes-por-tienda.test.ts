@@ -67,8 +67,8 @@ const visibles = (c: ContextoDeLista, datos: readonly Delivery[] = TRES) => ids(
 const encuentra = (c: ContextoDeLista, datos: readonly Delivery[] = TRES) =>
   datos.filter((d) => ordenesVisibles(datos, busca(c, d.invoice_num ?? "")).visibles.some((v) => v.id === d.id)).map((d) => d.id).sort();
 
-describe("gerente y ventas: toda la lista, su tienda y su grupo", () => {
-  for (const role of ["manager", "sales"] as const) {
+describe("gerente, ventas y oficina: toda la lista, su tienda y su grupo", () => {
+  for (const role of ["manager", "sales", "accounting"] as const) {
     it(`${role} de Norte, sin buscar: Norte y Oeste (su grupo), nunca Sur`, () => {
       expect(visibles(ctxDe(role, "Norte"))).toEqual(["norte", "oeste"]);
     });
@@ -154,25 +154,24 @@ describe("una Intertienda es de las dos tiendas (D-309)", () => {
   });
 });
 
-describe("office: solo al buscar", () => {
-  it("office de Norte, sin buscar: la lista no cambia, también Sur", () => {
-    expect(visibles(ctxDe("accounting", "Norte"))).toEqual(["norte", "oeste", "sur"]);
+describe("office: su tienda, busque o no (D-NEXT; hasta entonces solo al buscar)", () => {
+  it("office de Norte, sin buscar: Norte y Oeste (su grupo), nunca Sur", () => {
+    expect(visibles(ctxDe("accounting", "Norte"))).toEqual(["norte", "oeste"]);
   });
 
   it("office de Norte, buscando por factura: Norte y Oeste, no Sur", () => {
     expect(encuentra(ctxDe("accounting", "Norte"))).toEqual(["norte", "oeste"]);
   });
 
-  it("buscando, la atrasada que D-404 deja salir en la normal pasa también por el corte", () => {
+  it("la atrasada de otra tienda tampoco sale en «Outdated»: el corte es de toda la lista", () => {
     const surAyer = orden("sur-ayer", "Sur", { delivery_date: AYER });
     const norteAyer = orden("norte-ayer", "Norte", { delivery_date: AYER });
     expect(encuentra(ctxDe("accounting", "Norte"), [surAyer, norteAyer])).toEqual(["norte-ayer"]);
-    // Control: sin buscar, office la ve en «Outdated» (la lista no se corta sin buscar).
-    expect(ids(ordenesVisibles([surAyer, norteAyer], ctxDe("accounting", "Norte")).atrasadas)).toEqual(["norte-ayer", "sur-ayer"]);
+    expect(ids(ordenesVisibles([surAyer, norteAyer], ctxDe("accounting", "Norte")).atrasadas)).toEqual(["norte-ayer"]);
   });
 
-  it("una búsqueda solo de espacios no es buscar", () => {
-    expect(visibles(busca(ctxDe("accounting", "Norte"), "   "))).toEqual(["norte", "oeste", "sur"]);
+  it("una búsqueda solo de espacios no es buscar, y el corte es el mismo", () => {
+    expect(visibles(busca(ctxDe("accounting", "Norte"), "   "))).toEqual(["norte", "oeste"]);
   });
 });
 
@@ -202,7 +201,7 @@ describe("admin y logística: todo, busquen o no", () => {
 });
 
 describe("sin tienda: ninguna, y la pantalla lo sabe por el mismo valor", () => {
-  for (const role of ["manager", "sales"] as const) {
+  for (const role of ["manager", "sales", "accounting"] as const) {
     it(`${role} sin tienda: ninguna orden, sin buscar y buscando, y alcance «sin-tienda»`, () => {
       const c = ctxDe(role, null);
       const l = ordenesVisibles(TRES, c);
@@ -212,12 +211,11 @@ describe("sin tienda: ninguna, y la pantalla lo sabe por el mismo valor", () => 
     });
   }
 
-  it("office sin tienda: sin buscar lo ve todo; buscando, nada, y el alcance lo dice", () => {
-    const c = ctxDe("accounting", null);
-    expect(visibles(c)).toEqual(["norte", "oeste", "sur"]);
-    expect(ordenesVisibles(TRES, c).alcanceLista).toEqual({ tipo: "todas" });
-    expect(encuentra(c)).toEqual([]);
-    expect(ordenesVisibles(TRES, busca(c, "INV")).alcanceLista).toEqual({ tipo: "sin-tienda" });
+  it("office con tienda: su tienda y su grupo, busque o no (D-NEXT; hasta entonces sin buscar veía todo)", () => {
+    const c = ctxDe("accounting", "Norte");
+    expect(visibles(c)).toEqual(["norte", "oeste"]);
+    expect(encuentra(c)).toEqual(["norte", "oeste"]);
+    expect(ordenesVisibles(TRES, c).alcanceLista).toMatchObject({ tipo: "tiendas" });
   });
 
   it("`alcanceDeLaLista` es el que devuelve `ordenesVisibles`", () => {
