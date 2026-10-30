@@ -48887,3 +48887,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/formateador.test.ts` (caché, mismo resultado que antes, tiempo, ningún formateador suelto, y los cuatro cambios de pantalla). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se midió en el navegador del dueño ni con el Profiler de React; la mejora esperada sale del banco en Node y de la lectura del código.
+
+## D-745 · Ficha de cliente: las tarjetas fluyen en columnas y cada una mide lo suyo (sin huecos)
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/ficha-cliente-sin-huecos`.
+
+**Pedido (el dueño, 2026-10-29, con captura de la ficha editando):** «mira cómo se mira todo ese empty space, quiero que todo se adapte a su tamaño y sea eficiente, hazlo».
+
+**Qué cambia (`FichaDeCliente.tsx`, `TarjetasDeLaFicha`):** la rejilla de tarjetas (`grid md:grid-cols-2 xl:grid-cols-3`) pasa a **columnas que fluyen** (`md:columns-2 xl:columns-3`, cada hija con `break-inside-avoid` y `mb-4`). En la rejilla, cada fila medía lo que la tarjeta más alta de esa fila: «Cuenta» (6 campos) al lado de «Contacto» (contactos + redes) quedaba estirada con todo ese blanco. Con columnas, cada tarjeta mide lo suyo y la siguiente sube a ocupar el hueco; ninguna se parte entre columnas. El orden de lectura pasa a ser por columna (arriba→abajo, luego la siguiente), y en el teléfono sigue siendo una sola columna. Mismo cambio para la ficha completa (`/customers/[id]`), que usa el mismo componente.
+
+**Pruebas:** `src/lib/customers/ficha-sin-huecos.test.ts` (el contenedor es de columnas y no de rejilla, y la tarjeta apilada de D-681 sigue dentro). Suite de Clientes en verde; tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador; la captura del dueño es de la ficha editando a ~900 px de ancho (dos columnas).
