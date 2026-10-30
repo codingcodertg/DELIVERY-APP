@@ -48900,7 +48900,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador; la captura del dueño es de la ficha editando a ~900 px de ancho (dos columnas).
 
-## D-NEXT · Regla de toda la app: un botón disponible va en color vivo; uno bloqueado, apagado y gris
+## D-749 · Regla de toda la app: un botón disponible va en color vivo; uno bloqueado, apagado y gris
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/botones-vivos-apagado-es-bloqueado`.
 

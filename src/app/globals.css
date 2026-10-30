@@ -295,7 +295,7 @@
 .btn { padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: #1d47a8; }
-/* Regla de toda la app (D-NEXT, 2026-10-29; Roberto: «Faded colors give impression of locked buttons»; el dueño: «faded
+/* Regla de toda la app (D-749, 2026-10-29; Roberto: «Faded colors give impression of locked buttons»; el dueño: «faded
    es locked, fuerte y viva color es available button»). Un botón DISPONIBLE va en color vivo: relleno sólido (primario,
    peligro, verde, ámbar) o, el secundario, con borde y texto del color de acento a plena saturación sobre fondo de
    tarjeta —nunca un tinte pálido—. Un botón BLOQUEADO se apaga de verdad: opacidad baja Y gris (sin color), con el
@@ -304,7 +304,7 @@
 .btn-ghost:hover { background: var(--accent); color: #fff; }
 .btn-danger { background: var(--red); color: #fff; }
 .btn-danger:hover { filter: brightness(.92); }
-.btn-green { background: #17804e; color: #fff; }
+.btn-green { background: var(--green); color: #fff; }
 .btn-green:hover { filter: brightness(.92); }
 .btn-amber { background: var(--amber); color: #3a2800; }
 .btn-amber:hover { filter: brightness(.95); }
