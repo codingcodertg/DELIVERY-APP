@@ -43,7 +43,7 @@ export interface AlmacenDeLeads {
 
 export interface ClienteCruzado {
   id: number; account: string; store: string; rep_id: string | null; rep_name: string | null;
-  // D-NEXT: lo que enseña la tarjeta del cliente dentro de Leads, sin salir a la app de Clientes.
+  // D-763: lo que enseña la tarjeta del cliente dentro de Leads, sin salir a la app de Clientes.
   contact_name: string | null; contact_title: string | null; phone: string | null; email: string | null; address: string | null;
   account_no: string | null; terms: string | null; credit_limit: number | null; activity_status: string | null; status_store: string | null; notes: string | null;
 }

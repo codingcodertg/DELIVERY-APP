@@ -49127,7 +49127,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador. Desde D-759 solo el admin entra a Clientes, así que el enlace lo abre el admin; a otro rol le rebotaría la puerta.
 
-## D-NEXT · Leads cruzados: la cuenta abre una tarjeta del cliente dentro de Leads, no la app de Clientes
+## D-763 · Leads cruzados: la cuenta abre una tarjeta del cliente dentro de Leads, no la app de Clientes
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/leads-cruzados-tarjeta`.
 

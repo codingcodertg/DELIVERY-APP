@@ -111,7 +111,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     void almacen.clientesCruzados(idsCruzados.split(",").map(Number)).then((r) => { if (vivo && r.ok) setClientes(r.valor); });
     return () => { vivo = false; };
   }, [almacen, idsCruzados]);
-  // D-NEXT: la búsqueda también encuentra por el cliente cruzado y su vendedor.
+  // D-763: la búsqueda también encuentra por el cliente cruzado y su vendedor.
   const textoExtra = useCallback((l: Lead) => {
     const c = l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined;
     return c ? [c.account, c.rep_name, c.contact_name].filter(Boolean).join(" · ") : "";
@@ -430,7 +430,7 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
   cotizaciones: CotizacionDeLead[];
   /** D-762: el cliente con el que coincide (218), si ya se leyó: para el enlace y el vendedor. */
   cliente?: ClienteCruzado;
-  /** D-NEXT: abre la tarjeta del cliente aquí mismo (el dueño no quiere saltar a la app de Clientes). */
+  /** D-763: abre la tarjeta del cliente aquí mismo (el dueño no quiere saltar a la app de Clientes). */
   onCliente: (c: ClienteCruzado) => void;
 }) {
   const { t, lang } = usePrefs();
@@ -553,7 +553,7 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
   );
 }
 
-/** D-NEXT: la tarjeta del cliente con el que coincide un lead cruzado, dentro de Leads. Solo lectura. */
+/** D-763: la tarjeta del cliente con el que coincide un lead cruzado, dentro de Leads. Solo lectura. */
 function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo: "cliente" }>; onCerrar: () => void }) {
   const { t } = usePrefs();
   const c = dialogo.cliente;

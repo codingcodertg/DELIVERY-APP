@@ -324,7 +324,7 @@ export interface Filtros {
   situacion?: Situacion | "";
   /** D-760: solo los que coinciden con un cliente de Clientes. */
   coinciden?: boolean;
-  /** D-NEXT: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
+  /** D-763: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
   textoExtra?: (l: Lead) => string;
 }
 
@@ -332,7 +332,7 @@ const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toL
 
 /** Dónde busca la caja de búsqueda. */
 /**
- * D-NEXT: la búsqueda mira TODO el lead («buscar lo que sea hasta por sales people», el dueño, 2026-10-30): cada campo de
+ * D-763: la búsqueda mira TODO el lead («buscar lo que sea hasta por sales people», el dueño, 2026-10-30): cada campo de
  * texto o número, incluido quién lo tiene (`holder_name`), quién anotó, teléfonos y la razón del cruce. Fuera quedan solo
  * los ids y las fechas en bruto (no se buscan a mano).
  */
