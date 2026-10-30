@@ -12,13 +12,14 @@ import {
   mapsUrl, negativaTexto, notaLimpia, numero, ordenar, poolInicial, poolLabel, poolsDe, puedeTomar, puestosLibres, RESULTADOS,
   POOL_TODAS, filtroDePool, resumenDeTodas,
   resultadoLabel, sinTocar, SITUACIONES, situacionLabel, tableroPorVendedor, telUrl, valoresDe, veContacto, ventasDe, NOTA_MAX,
+  coincideConCliente, esPrivado,
   ORDEN_INICIAL, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
 } from "@/lib/leads/reglas";
 import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, puedeCotizarLead, type CotizacionDeLead } from "@/lib/leads/cotizar";
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
-type Pestana = "banco" | "mio" | "admin";
+type Pestana = "banco" | "mio" | "admin" | "privado";
 type Dialogo =
   | { tipo: "cerrar"; lead: Lead }
   | { tipo: "nota"; lead: Lead }
@@ -97,7 +98,11 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
   // El banco que se enseña: todas las tiendas a quien las alcanza; a los demás, SOLO la suya. Sus leads de otra
   // tienda (los que le asignó un admin) están en «Mi pool», y no traen aquí el banco de esa tienda ni su contador.
-  const delBanco = useMemo(() => leadsDelBanco(leads, alcance), [leads, alcance]);
+  // D-NEXT (218): el «Pool privado» (leads de la fuente privada) es una pestaña aparte, solo del admin; la base ya no
+  // se los manda a nadie más. Reusa los mismos filtros, orden y tarjetas que el Pool General.
+  const privados = useMemo(() => leads.filter((l) => l.source === "privado"), [leads]);
+  const [coinciden, setCoinciden] = useState(false);
+  const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
   const elige = eligeTienda(alcance);
   // Se entra en el pool de SU tienda; cambiar de persona en el demo vuelve a elegirlo.
@@ -112,10 +117,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const delPool = useMemo(() => delBanco.filter((l) => filtroDePool(pool) === null || l.pool === pool), [delBanco, pool]);
   const porSituacion = useMemo(() => cuentaPorSituacion(delPool), [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion }), orden),
-    [delBanco, pool, vista, categoria, tipo, ciudad, busca, situacion, orden],
+    () => ordenar(filtrar(delBanco, { pool: filtroDePool(pool), vista, categoria, tipo, ciudad, busca, situacion, coinciden }), orden),
+    [delBanco, pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, orden],
   );
-  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, orden]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, orden]);
 
   if (!yo) return <div className="ld-wrap"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -215,6 +220,11 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                 🛠 Admin{colaDeRevision(leads).length > 0 ? <span className="cnt">{colaDeRevision(leads).length}</span> : null}
               </button>
             )}
+            {yo.admin && (
+              <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => setPestana("privado")}>
+                🔒 {t("Private pool", "Pool privado")} <span className="cnt" data-privados>{privados.length}</span>
+              </button>
+            )}
             <button type="button" className="btn btn-ghost btn-sm ld-releer" onClick={() => void cargar()}>↻ {t("Refresh", "Actualizar")}</button>
           </div>
 
@@ -230,7 +240,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             </div>
           )}
 
-          {pestana === "banco" && (
+          {(pestana === "banco" || (pestana === "privado" && yo.admin)) && (
             <>
               <div className="card ld-filtros">
                 <div className="ld-fila">
@@ -274,6 +284,12 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       {situacionLabel(s, lang)} <span className="ld-cuenta">{porSituacion[s]}</span>
                     </button>
                   ))}
+                  {/* D-NEXT: el cruce con Clientes (lo pone el importador); solo tiene sentido donde hay cruzados. */}
+                  {delPool.some(coincideConCliente) && (
+                    <button type="button" className={`chip${coinciden ? " on" : ""}`} data-coinciden onClick={() => setCoinciden((v) => !v)}>
+                      🤝 {t("Match customers", "Coinciden con clientes")} <span className="ld-cuenta">{delPool.filter(coincideConCliente).length}</span>
+                    </button>
+                  )}
                 </div>
                 <div className="ld-fila">
                   <label>
@@ -412,6 +428,9 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
         <span className="badge ld-cat">{delExcel(l.category, lang)}</span> {delExcel(l.project_type, lang)}
         {l.type_of_work ? ` · ${l.type_of_work}` : ""}
       </p>
+      {l.customer_match_note && (
+        <p className="ld-cliente" data-cliente={l.customer_match_id ?? ""}>🤝 {t("Customer", "Cliente")}: {l.customer_match_note}</p>
+      )}
 
       {l.status !== "free" && (
         <p className={`ld-dueno ${l.status}`} data-dueno>
@@ -436,11 +455,12 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
       {contacto ? (
         <div className="ld-contacto" data-contacto>
           <p>
-            👤 {l.owner_name ?? "—"}{l.owner_contact ? ` · ${l.owner_contact}` : ""}
+            {/* D-NEXT: en un lead privado el que va aquí es el CONTRATISTA (a quien se le vende); el propietario, abajo. */}
+            {esPrivado(l) ? <>🏗 {t("Contractor", "Contratista")}: </> : "👤 "}{l.owner_name ?? "—"}{l.owner_contact ? ` · ${l.owner_contact}` : ""}
             {l.owner_phone ? <> · {telUrl(l.owner_phone) ? <a href={telUrl(l.owner_phone)!} data-tel>📞 {l.owner_phone}</a> : l.owner_phone}</> : null}
           </p>
           {l.tenant_name && (
-            <p>🏪 {t("Tenant", "Inquilino")}: {l.tenant_name}{l.tenant_phone ? <> · {telUrl(l.tenant_phone) ? <a href={telUrl(l.tenant_phone)!}>📞 {l.tenant_phone}</a> : l.tenant_phone}</> : null}</p>
+            <p>{esPrivado(l) ? <>🏠 {t("Owner", "Propietario")}</> : <>🏪 {t("Tenant", "Inquilino")}</>}: {l.tenant_name}{l.tenant_phone ? <> · {telUrl(l.tenant_phone) ? <a href={telUrl(l.tenant_phone)!}>📞 {l.tenant_phone}</a> : l.tenant_phone}</> : null}</p>
           )}
           {l.design_firm_name && (
             <p>📐 {t("Design firm", "Despacho")}: {l.design_firm_name}{l.design_firm_phone ? <> · {telUrl(l.design_firm_phone) ? <a href={telUrl(l.design_firm_phone)!}>📞 {l.design_firm_phone}</a> : l.design_firm_phone}</> : null}</p>

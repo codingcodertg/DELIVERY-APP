@@ -58,7 +58,7 @@ export const COLUMNAS =
   "type_of_work, scope_of_work, square_footage, estimated_cost, est_start_date, est_completion_date, permit_status, " +
   "site_address, site_city, site_zip, owner_name, owner_phone, owner_contact, tenant_name, tenant_phone, " +
   "design_firm_name, design_firm_phone, tdlr_link, status, holder, holder_name, taken_at, touched_at, " +
-  "follow_up_note, follow_up_at, last_outcome, last_note, last_by, last_by_name, last_at";
+  "follow_up_note, follow_up_at, last_outcome, last_note, last_by, last_by_name, last_at, source, customer_match_id, customer_match_note";
 
 export const PAGINA = 1000;
 export const MAX_PAGINAS = 20;
@@ -91,6 +91,9 @@ export function leadDeLaBase(f: Record<string, unknown>): Lead {
     touched_at: texto(f.touched_at), follow_up_note: texto(f.follow_up_note), follow_up_at: texto(f.follow_up_at),
     last_outcome: ETIQUETAS.find((e) => e === f.last_outcome) ?? null, last_note: texto(f.last_note),
     last_by: texto(f.last_by), last_by_name: texto(f.last_by_name), last_at: texto(f.last_at),
+    // D-NEXT (218): sin la columna (base vieja) se lee como 'tdlr' y sin cliente.
+    source: f.source === "privado" ? "privado" : "tdlr",
+    customer_match_id: num(f.customer_match_id), customer_match_note: texto(f.customer_match_note),
   };
 }
 
