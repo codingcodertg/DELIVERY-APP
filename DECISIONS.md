@@ -48944,3 +48944,37 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/timetracker/permisos-sin-horario.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. Si el dueño quiere que puesto y sitio también salgan de Permisos, hace falta antes un sitio donde editarlos en Time Tracker (hoy no lo hay).
+
+## D-751 · Entregas: oficina (accounting) ve solo su tienda, como gerente y ventas; auditoría del alcance por tienda en todo el sistema
+
+**Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/entregas-oficina-solo-su-tienda`.
+
+**Pedido (el dueño, 2026-10-29):** «Quiero que hagas una auditoría a nivel de sistema y usuarios, que todos, excepto admins, […] solo pueden ver la tienda que están asignados. […] Arréglame eso y haz la auditoría a nivel de sistema.»
+
+**La auditoría (código y políticas de la base, 2026-10-29).** Qué ve hoy quien no es admin, y dónde se decide:
+
+| App / tabla | Quién ve qué | ¿Base? | ¿Pantalla? | Hueco frente a la regla |
+|---|---|---|---|---|
+| Entregas (`deliveries`) | gerente y ventas: su tienda y su grupo; **oficina: todas** (solo buscando se le cortaba); logística: todas; almacén: sus tiendas (sin tienda, todas) | la 131 corta por `visible_stores` (lo que marca el admin), **no por `profiles.store`**; sin nada marcado, todas | sí para gerente y ventas (`ROLES_LISTA_DE_SU_TIENDA`) | **oficina veía todo en pantalla** → se arregla aquí. La base sigue mandando todas las tiendas a quien no tiene `visible_stores` marcado (es otra decisión, con migración, ver abajo). |
+| Clientes (`erp.customers`) | hasta hoy: ventas y gerente su tienda; **oficina y cualquier otro rol con el módulo: todas** | sí (210/215) | ventas abre solo los suyos | **arreglado en D-748 (217)**: admin todo; los demás su tienda; sin tienda, nada. |
+| Leads | su tienda (`leads_my_store()` = `profiles.store`) y los que lleva; gerente con `leads_all_stores`, todas | sí (163) | sí | ninguno. |
+| Estimador | sus cotizaciones y las de su tienda | sí (148) | la lista de todas es solo admin | ninguno. |
+| Encuestas (`survey_responses`) | **todas las tiendas** | solo el módulo (155) | no | **sin corte por tienda.** |
+| Promos | lee **todas**; decide solo en su grupo | lectura: módulo; escritura: grupo (140) | — | **lectura sin corte.** |
+| ERP (productos, inventario, facturas) | **todo** | solo el módulo (070) | no | **sin corte por tienda** (hay `erp.user_store_assignments` sin usar). |
+| Time Tracker / fichaje | lo suyo; admin de TT y gerente de fichaje, **todos los empleados** | por dueño y rol (060/074) | — | el gerente ve todos, no solo su tienda. |
+| RR. HH. | **todo** con el módulo; archivos solo gerente | módulo o rol (057/094) | no rastreado | **sin corte por tienda.** |
+| Ayuda / notificaciones | lo suyo | sí | — | no aplica. |
+
+**Perfiles activos sin tienda (producción, 2026-10-29):** oficina: Claudia Rodriguez, Raquel Rojas; gerentes: Francis Lestarpe, Roberto Rodriguez; ventas: Elsa Vasquez, Nick Huerta; choferes: Ernesto Castillo, Julio Jijon, Steven. Con la regla «sin tienda, nada», a ellos hay que asignarles tienda (o aceptar que no vean) en las apps que ya cortan (Clientes desde la 217; Entregas en pantalla desde D-405/D-751).
+
+**Qué cambia aquí (`src/lib/ordenes-visibles.ts`):** `ROLES_LISTA_DE_SU_TIENDA` pasa de gerente y ventas a **gerente, ventas y oficina**: la lista de Órdenes de oficina es la de su tienda y su grupo, busque o no; sin tienda, ninguna y el aviso. Logística sigue viendo todas (reparte las rutas de toda la empresa) y almacén sigue con su corte propio.
+
+**Lo que queda, cada uno con su decisión y su migración si la lleva:**
+1. Entregas en la BASE: `tiendas_visibles()` (131) debería caer a `profiles.store` (y su grupo) cuando no hay `visible_stores`, para que la API no mande todas las tiendas a quien la pantalla corta.
+2. Encuestas, Promos (lectura), ERP y RR. HH.: hoy no tienen corte por tienda; cada uno es una decisión con migración de políticas.
+3. Time Tracker: el gerente de fichaje ve todos los empleados.
+
+**Pruebas:** `src/lib/oficina-solo-su-tienda.test.ts`; `ordenes-por-tienda.test.ts` puesta al día (oficina entra en los bucles de «su tienda» y «sin tienda»). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.
