@@ -86,4 +86,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('218_leads_pool_privado.sql', '4685fee3e3b3552c1d3faf4e4486705658f383072547653f1c2292adc4b583e4') on conflict (name) do nothing;
+  values ('218_leads_pool_privado.sql', 'b5026aff5e4996fb66522ffbab8a39fbe400b2ab4035f1693126575c087bf367') on conflict (name) do nothing;
