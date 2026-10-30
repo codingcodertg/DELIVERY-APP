@@ -118,7 +118,7 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
   // La cuenta, con el destino ya decidido (D-312). Va después del bloque de arriba a propósito: en un
   // tipo que recibe el destino se acaba de poner, y en los demás tienda-a-tienda puede estar vacío
   // todavía — entonces la cuenta también, y la escribirá `eligeDestino` cuando se elija.
-  // D-NEXT: con recogida libre (Otro, Proveedor) la recogida no es una de nuestras tiendas: si traía una, se vacía para
+  // D-746: con recogida libre (Otro, Proveedor) la recogida no es una de nuestras tiendas: si traía una, se vacía para
   // teclear la de verdad; una tecleada se respeta.
   if (recogidaLibre(rule)) Object.assign(next, sinRecogidaDeTienda(next, c.tiendas));
   if (rule.storeToStore === true) next.account = next.delivery_name ?? "";

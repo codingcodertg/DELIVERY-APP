@@ -48888,7 +48888,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se midió en el navegador del dueño ni con el Profiler de React; la mejora esperada sale del banco en Node y de la lectura del código.
 
-## D-NEXT · Órdenes «Otro» y «Proveedor»: la recogida se teclea (nombre y dirección), no se elige entre nuestras tiendas
+## D-746 · Órdenes «Otro» y «Proveedor»: la recogida se teclea (nombre y dirección), no se elige entre nuestras tiendas
 
 **Fecha:** 2026-10-29 · Sin migración · Hecho directo por el orquestador en `feat/recogida-libre-otro-proveedor`.
 
