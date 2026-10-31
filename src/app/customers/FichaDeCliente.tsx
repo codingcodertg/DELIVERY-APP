@@ -636,7 +636,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   hermanas: Cliente[];
   onCambia: (c: Cliente) => void;
   puedeEditar: boolean; esVendedor?: boolean; almacen: AlmacenDeClientes; onClose: () => void;
-  /** D-NEXT: archiva y desarchiva SOLO el admin, desde el botón bajo «Editar», con un «¿seguro?». */
+  /** D-778: archiva y desarchiva SOLO el admin, desde el botón bajo «Editar», con un «¿seguro?». */
   puedeArchivar?: boolean;
   /** La fila guardada (la que se enseña) y, en un alta en varias tiendas, TODAS las creadas (D-664). */
   onGuardado: (c: Cliente, creados?: Cliente[]) => void;
@@ -718,7 +718,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   useEffect(() => { setDeTodasFormas(false); }, [coinciden]);
 
   // Archivar (181) se escribe por el mismo almacén que todo lo demás: la fila vuelve de la base y es lo que se pinta.
-  // D-NEXT: ya no se pide el motivo en un panel; es un botón bajo «Editar», solo del admin, con un «¿seguro?».
+  // D-778: ya no se pide el motivo en un panel; es un botón bajo «Editar», solo del admin, con un «¿seguro?».
   const archivado = cliente !== null && estaArchivado(cliente);
 
   // Cerrar: un clic fuera, ✕ o Escape. Con algo escrito sin guardar se pregunta: un clic fuera sin querer no lo tira.
@@ -826,7 +826,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   };
   const archivar = async () => {
     if (nuevo || !puedeArchivar) return;
-    // D-NEXT: «que diga seguro»: un confirm del navegador, como el de cerrar sin guardar. Sin motivo (el dueño: «solamente así»).
+    // D-778: «que diga seguro»: un confirm del navegador, como el de cerrar sin guardar. Sin motivo (el dueño: «solamente así»).
     if (!window.confirm(t(`Archive ${cliente.account}? It disappears from the list; it can be restored.`, `¿Seguro que quieres archivar ${cliente.account}? Desaparece de la lista; se puede desarchivar.`))) return;
     await aplicar(() => almacen.guardar(cliente.id, parcheArchivar("")), t("Archived ✓", "Archivado ✓"));
   };
@@ -926,7 +926,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
             )}
           </div>
           {puedeEditar && !editando && (
-            // D-NEXT: «Editar» y, debajo, «Archivar» (o «Desarchivar»), este solo para el admin y con un «¿seguro?».
+            // D-778: «Editar» y, debajo, «Archivar» (o «Desarchivar»), este solo para el admin y con un «¿seguro?».
             <div className="flex flex-col items-stretch gap-1.5">
               <Button size="sm" onClick={() => { setEditando(true); setAviso(null); }} data-editar-en-la-ventana>✏️ {t("Edit", "Editar")}</Button>
               {puedeArchivar && !nuevo && (archivado ? (

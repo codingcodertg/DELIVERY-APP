@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { puedeArchivar, puedeAsignarVendedores } from "./reglas";
 
-/** Archivar un cliente: un botón bajo «Editar», con «¿seguro?», y solo del admin (D-NEXT). */
+/** Archivar un cliente: un botón bajo «Editar», con «¿seguro?», y solo del admin (D-778). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

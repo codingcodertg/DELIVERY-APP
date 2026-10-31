@@ -437,7 +437,7 @@ export function puedeAsignarVendedores(role: UserRole | null | undefined): boole
   return role === "admin";
 }
 
-/** D-NEXT: archiva y desarchiva un cliente SOLO el admin (el dueño, 2026-10-30: «solamente los admin pueden hacer eso»). */
+/** D-778: archiva y desarchiva un cliente SOLO el admin (el dueño, 2026-10-30: «solamente los admin pueden hacer eso»). */
 export function puedeArchivar(role: UserRole | null | undefined): boolean {
   return role === "admin";
 }

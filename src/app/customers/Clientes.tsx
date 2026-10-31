@@ -53,7 +53,7 @@ const TANDA = 100;
 // D-728: `esAdmin` es «puede asignar vendedores» (admin y gerente, `puedeAsignarVendedores`); `esVendedor` esconde tarjetas de la ficha.
 // D-742: `puedePedirVendedor` es el gerente: no asigna, lo pide al admin; y ve solo su tienda, sin pastillas de tiendas.
 // D-743 (216): `altaComoSolicitud` (vendedor, gerente): el alta se manda como solicitud y la aprueba el admin.
-export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, altaComoSolicitud = false, userId, miTienda = null }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; /** D-NEXT: archiva solo el admin. */ puedeArchivar?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; altaComoSolicitud?: boolean; userId: string; /** D-767: la tienda de quien mira (`profiles.store`): el alta la deja marcada. */ miTienda?: string | null }) {
+export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, altaComoSolicitud = false, userId, miTienda = null }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; /** D-778: archiva solo el admin. */ puedeArchivar?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; altaComoSolicitud?: boolean; userId: string; /** D-767: la tienda de quien mira (`profiles.store`): el alta la deja marcada. */ miTienda?: string | null }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 

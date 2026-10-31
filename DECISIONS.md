@@ -49270,7 +49270,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió la pestaña Encuestas en un navegador; el sitio de la encuesta en sí no cambia.
 
-## D-NEXT · Clientes: «Archivar» es un botón bajo «Editar», con «¿seguro?», y solo del admin
+## D-778 · Clientes: «Archivar» es un botón bajo «Editar», con «¿seguro?», y solo del admin
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/clientes-archivar-solo-admin`.
 
