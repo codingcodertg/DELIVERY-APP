@@ -158,7 +158,7 @@ describe("la página: las dos ciudades en las filas P y D", () => {
     expect(celda.length).toBeGreaterThan(100);
     expect(filaD).toContain("{colsParadas.map((c) => celdaDeParada(c, d, { tipo: \"D\",");
     expect(filaD).not.toContain("recogida:");
-    expect(celda).toContain('case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen)) || "—")}</td>;');
+    expect(celda).toContain('case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules)) || "—")}</td>;');
     expect(celda).toContain('case "p_address": return <td key={c.key} title={d?.delivery_address || undefined}>{(d && ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen)) || "—"}{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}</td>;');
     expect(pagina).toContain('import { esDeSuZona, zonaDeLaRecogida } from "@/lib/zonas";');
   });

@@ -191,6 +191,7 @@ describe("la pantalla", () => {
     expect(medida).toBeGreaterThan(-1);
     expect(pagina.indexOf("const llegadaDeLaOrden = useCallback(")).toBeGreaterThan(medida);
     expect(pagina.indexOf("const valorDelGestorAqui = useCallback(")).toBeGreaterThan(pagina.indexOf("const llegadaDeLaOrden = useCallback("));
-    expect(pagina).toContain("valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, { tiendas: settings.stores ?? [], llegada: llegadaDeLaOrden })");
+    // D-782: con las reglas de los tipos, para que una recogida libre diga la ciudad de su dirección.
+    expect(pagina).toContain("valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, { tiendas: settings.stores ?? [], reglas: settings.order_type_rules, llegada: llegadaDeLaOrden })");
   });
 });
