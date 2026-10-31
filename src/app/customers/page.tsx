@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { esVendedor, puedeAsignarVendedores, puedeEditar } from "@/lib/customers/reglas";
+import { esVendedor, puedeArchivar, puedeAsignarVendedores, puedeEditar } from "@/lib/customers/reglas";
 import { puedePedirVendedor } from "@/lib/customers/pedir-vendedor";
 import { altaEsSolicitud } from "@/lib/customers/solicitud-de-cliente";
 import type { UserRole } from "@/lib/types";
@@ -22,7 +22,7 @@ export default async function CustomersPage() {
     return (
       <>
         <BarraDeClientes role="admin" fullName="Demo" email="demo@example.com" moduleAccess={null} />
-        <Clientes demo puedeEditar esAdmin userId="demo" />
+        <Clientes demo puedeEditar esAdmin puedeArchivar userId="demo" />
       </>
     );
   }
@@ -52,7 +52,7 @@ export default async function CustomersPage() {
       {/* El id va a la clave de las columnas elegidas (por persona, en el navegador). Sin sesión no se llega aquí (layout). */}
       {/* D-728: asignan vendedores admin y gerente; el vendedor no ve crédito, campos ocultos ni archivos. */}
       {/* D-742: asigna solo el admin; el gerente pide el vendedor al admin y, como el vendedor, ve solo su tienda. */}
-      <Clientes demo={false} puedeEditar={puedeEditar(role)} esAdmin={puedeAsignarVendedores(role)} esVendedor={esVendedor(role)} puedePedirVendedor={puedePedirVendedor(role)} altaComoSolicitud={altaEsSolicitud(role)} userId={user?.id ?? "anon"} miTienda={miTienda} />
+      <Clientes demo={false} puedeEditar={puedeEditar(role)} esAdmin={puedeAsignarVendedores(role)} puedeArchivar={puedeArchivar(role)} esVendedor={esVendedor(role)} puedePedirVendedor={puedePedirVendedor(role)} altaComoSolicitud={altaEsSolicitud(role)} userId={user?.id ?? "anon"} miTienda={miTienda} />
     </>
   );
 }

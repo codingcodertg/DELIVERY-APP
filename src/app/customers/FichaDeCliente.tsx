@@ -27,7 +27,7 @@ import { rcCall } from "@/lib/recruiting/utils";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
   cierraLaFicha, COLUMNAS_DE_LA_FICHA, ESTADOS, GRUPOS_QUE_NO_VE_EL_VENDEDOR, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
-  IMPUESTOS, impuestoLabel, MOTIVOS_DE_ARCHIVO, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
+  IMPUESTOS, impuestoLabel, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
   textoDeFila, TIENDAS, webUrl,
   type Campo, type Cliente, type FilaDeFicha,
 } from "@/lib/customers/reglas";
@@ -628,7 +628,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, a
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, miTienda = null, altaComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, miTienda = null, altaComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
   /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
@@ -636,6 +636,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   hermanas: Cliente[];
   onCambia: (c: Cliente) => void;
   puedeEditar: boolean; esVendedor?: boolean; almacen: AlmacenDeClientes; onClose: () => void;
+  /** D-778: archiva y desarchiva SOLO el admin, desde el botón bajo «Editar», con un «¿seguro?». */
+  puedeArchivar?: boolean;
   /** La fila guardada (la que se enseña) y, en un alta en varias tiendas, TODAS las creadas (D-664). */
   onGuardado: (c: Cliente, creados?: Cliente[]) => void;
   /** «✏️ Editar» de la página del cliente (D-648) llega aquí: la ventana abre ya editando. */
@@ -715,13 +717,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const [deTodasFormas, setDeTodasFormas] = useState(false);
   useEffect(() => { setDeTodasFormas(false); }, [coinciden]);
 
-  // Archivar (181): se pide el motivo en la propia ficha (uno de los del script, o escrito), y se escribe por el mismo
-  // almacén que todo lo demás: la fila vuelve de la base y es lo que se pinta.
+  // Archivar (181) se escribe por el mismo almacén que todo lo demás: la fila vuelve de la base y es lo que se pinta.
+  // D-778: ya no se pide el motivo en un panel; es un botón bajo «Editar», solo del admin, con un «¿seguro?».
   const archivado = cliente !== null && estaArchivado(cliente);
-  const [archivando, setArchivando] = useState(false);
-  const [motivo, setMotivo] = useState("");
-  const [motivoLibre, setMotivoLibre] = useState("");
-  useEffect(() => { setArchivando(false); setMotivo(""); setMotivoLibre(""); }, [cliente]);
 
   // Cerrar: un clic fuera, ✕ o Escape. Con algo escrito sin guardar se pregunta: un clic fuera sin querer no lo tira.
   const cambiadoRef = useRef(cambiado);
@@ -827,12 +825,13 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     setAviso(null);
   };
   const archivar = async () => {
-    if (nuevo) return;
-    await aplicar(() => almacen.guardar(cliente.id, parcheArchivar(motivo === "otro" ? motivoLibre : motivo)), t("Archived ✓", "Archivado ✓"));
-    setArchivando(false);
+    if (nuevo || !puedeArchivar) return;
+    // D-778: «que diga seguro»: un confirm del navegador, como el de cerrar sin guardar. Sin motivo (el dueño: «solamente así»).
+    if (!window.confirm(t(`Archive ${cliente.account}? It disappears from the list; it can be restored.`, `¿Seguro que quieres archivar ${cliente.account}? Desaparece de la lista; se puede desarchivar.`))) return;
+    await aplicar(() => almacen.guardar(cliente.id, parcheArchivar("")), t("Archived ✓", "Archivado ✓"));
   };
   const desarchivar = async () => {
-    if (nuevo) return;
+    if (nuevo || !puedeArchivar) return;
     await aplicar(() => almacen.guardar(cliente.id, PARCHE_DESARCHIVAR), t("Restored ✓", "Desarchivado ✓"));
   };
   // Separar (189): esta fila deja la empresa y pasa a ser la suya propia (otra clave). Las demás no se tocan.
@@ -927,7 +926,15 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
             )}
           </div>
           {puedeEditar && !editando && (
-            <Button size="sm" onClick={() => { setEditando(true); setAviso(null); }} data-editar-en-la-ventana>✏️ {t("Edit", "Editar")}</Button>
+            // D-778: «Editar» y, debajo, «Archivar» (o «Desarchivar»), este solo para el admin y con un «¿seguro?».
+            <div className="flex flex-col items-stretch gap-1.5">
+              <Button size="sm" onClick={() => { setEditando(true); setAviso(null); }} data-editar-en-la-ventana>✏️ {t("Edit", "Editar")}</Button>
+              {puedeArchivar && !nuevo && (archivado ? (
+                <Button size="sm" variant="outline" onClick={desarchivar} disabled={ocupado} data-desarchivar>↩️ {t("Restore", "Desarchivar")}</Button>
+              ) : (
+                <Button size="sm" variant="outline" className="text-slate-600" onClick={archivar} disabled={ocupado} data-archivar>🗄️ {t("Archive", "Archivar")}</Button>
+              ))}
+            </div>
           )}
           {puedePedirVendedor && !editando && cliente && onPedirVendedor && (
             <Button size="sm" variant="outline" onClick={onPedirVendedor} data-pedir-vendedor-al-admin>📩 {t("Request rep from admin", "Pedir vendedor al admin")}</Button>
@@ -998,34 +1005,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
           <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />
         </div>
 
-        {puedeEditar && !nuevo && archivando && (
-          <div className="mt-3 space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-            <label className="block space-y-1">
-              <span className="text-xs text-slate-500">{t("Why is it archived?", "¿Por qué se archiva?")}</span>
-              <select className={cn(selCls, "w-full")} value={motivo} onChange={(e) => setMotivo(e.target.value)} aria-label={t("Reason", "Motivo")}>
-                <option value="">{t("Choose a reason…", "Elige un motivo…")}</option>
-                {MOTIVOS_DE_ARCHIVO.map((m) => <option key={m} value={m}>{motivoLabel(m, t)}</option>)}
-                <option value="otro">{t("Other (write it)", "Otro (escríbelo)")}</option>
-              </select>
-            </label>
-            {motivo === "otro" && (
-              <Input value={motivoLibre} onChange={(e) => setMotivoLibre(e.target.value)} placeholder={t("Reason", "Motivo")} />
-            )}
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setArchivando(false)}>{t("Cancel", "Cancelar")}</Button>
-              <Button size="sm" onClick={archivar} disabled={ocupado || motivo === "" || (motivo === "otro" && motivoLibre.trim() === "")}>
-                {ocupado ? t("Saving…", "Guardando…") : t("Archive", "Archivar")}
-              </Button>
-            </div>
-          </div>
-        )}
-        {(puedeEditar || aviso) && (
+        {(editando || aviso) && (
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-3" data-acciones-de-la-ficha>
-            {puedeEditar && !nuevo && (archivado ? (
-              <Button variant="ghost" className="mr-auto" onClick={desarchivar} disabled={ocupado || editando}>{t("Restore", "Desarchivar")}</Button>
-            ) : (
-              <Button variant="ghost" className="mr-auto text-slate-500" onClick={() => setArchivando(true)} disabled={ocupado || archivando || editando}>{t("Archive…", "Archivar…")}</Button>
-            ))}
             {aviso && <span className={cn("text-sm", aviso.tono === "verde" ? "text-emerald-600" : aviso.tono === "ambar" ? "text-amber-700" : "text-red-600")} role="status">{aviso.texto}</span>}
             {editando && (
               <>
