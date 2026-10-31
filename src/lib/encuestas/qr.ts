@@ -6,8 +6,13 @@
  * guarda (209). El QR se dibuja aquí, en el navegador, del enlace: no hay un PNG por tienda que mantener.
  */
 
-/** El enlace público de la encuesta (D-449: sitio aparte, `rtg-encuesta` en Vercel). */
-export const ENLACE_DE_LA_ENCUESTA = "https://rtg-encuesta.vercel.app";
+/**
+ * El enlace público de la encuesta (D-449: sitio aparte, `rtg-encuesta` en Vercel). D-NEXT: con dominio propio,
+ * `survey.rdztilegroup.com` (CNAME a Vercel, dado de alta el 2026-10-30; el dueño: «que no diga vercel en el url»).
+ * La dirección vieja `rtg-encuesta.vercel.app` sigue viva: el QR general ya impreso (D-496) no cambia.
+ */
+export const ENLACE_DE_LA_ENCUESTA = "https://survey.rdztilegroup.com";
+export const ENLACE_VIEJO_DE_LA_ENCUESTA = "https://rtg-encuesta.vercel.app";
 
 /** El enlace de una tienda; sin tienda, el general. El nombre va codificado (espacios, acentos). */
 export function enlaceDeTienda(tienda: string | null): string {

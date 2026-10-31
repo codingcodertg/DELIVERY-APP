@@ -49257,3 +49257,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/estimator/impuesto-por-tienda.test.ts`. Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; la tasa 6.25 % es la que dijo el dueño, no se contrastó con el comptroller.
+
+## D-NEXT · Encuestas: la encuesta vive en `survey.rdztilegroup.com`
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/encuesta-dominio-propio`.
+
+**Pedido (el dueño, 2026-10-30):** «¿cómo hacemos para que no diga vercel en el url?».
+
+**Qué cambia:** el dominio `survey.rdztilegroup.com` se dio de alta en el proyecto `rtg-encuesta` de Vercel y el dueño creó el CNAME (`survey` → `cname.vercel-dns.com`) en los DNS de Shopify, donde está el dominio. Medido: resuelve, y https contesta 200 con el título de la encuesta. `ENLACE_DE_LA_ENCUESTA` pasa a ese dominio: los enlaces y QR por tienda de la pestaña Encuestas (D-724) salen ya sin «vercel». La dirección vieja sigue viva en Vercel, así que el QR general impreso (D-496, `public/encuesta-qr.png`) no cambia; queda como `ENLACE_VIEJO_DE_LA_ENCUESTA`. Los seis PNG por tienda que se le entregaron al dueño se regeneraron con la dirección nueva (fuera del repo, en su carpeta de Descargas).
+
+**Pruebas:** `src/lib/encuestas/dominio-propio.test.ts`. tsc y eslint limpios.
+
+**No verificado:** no se abrió la pestaña Encuestas en un navegador; el sitio de la encuesta en sí no cambia.
