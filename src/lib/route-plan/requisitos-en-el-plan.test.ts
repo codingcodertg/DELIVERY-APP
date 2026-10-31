@@ -95,7 +95,7 @@ describe("la consulta del servidor, con y sin la 151 aplicada", () => {
         : { data: [{ id: "a" }], error: null };
     };
     expect(await leeOrdenesDelDia(sinLa151)).toEqual({ data: [{ id: "a" }], error: null });
-    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements, plan_rank`, `${COLUMNAS_DE_ORDEN}, priority, plan_rank`]);
+    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements, plan_rank, pickup_point_lat, pickup_point_lng`, `${COLUMNAS_DE_ORDEN}, priority, plan_rank, pickup_point_lat, pickup_point_lng`]);
   });
 
   it("sin ninguna de las tres, cuatro lecturas y ninguna más; un error que nombra otra columna no se toca", async () => {
@@ -106,7 +106,7 @@ describe("la consulta del servidor, con y sin la 151 aplicada", () => {
       return falta ? { data: null, error: { code: "42703", message: `column deliveries.${falta} does not exist` } } : { data: [], error: null };
     };
     await leeOrdenesDelDia(sinNada);
-    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements, plan_rank`, `${COLUMNAS_DE_ORDEN}, requirements, plan_rank`, `${COLUMNAS_DE_ORDEN}, plan_rank`, COLUMNAS_DE_ORDEN]);
+    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements, plan_rank, pickup_point_lat, pickup_point_lng`, `${COLUMNAS_DE_ORDEN}, requirements, plan_rank, pickup_point_lat, pickup_point_lng`, `${COLUMNAS_DE_ORDEN}, plan_rank, pickup_point_lat, pickup_point_lng`, `${COLUMNAS_DE_ORDEN}, pickup_point_lat, pickup_point_lng`]);
     // «morning_priority» no es «priority»: no se quita nada.
     let n = 0;
     const otra = { code: "42703", message: "column deliveries.morning_priority does not exist" };

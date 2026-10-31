@@ -66,12 +66,12 @@ export interface ContextoDelPlan {
  * la celda de Órdenes). La ciudad de recogida es `zonaDeLaRecogida` (D-427): la tienda de `pickup_name`, y si no está o no
  * tiene punto, la de `store` — la misma tienda que «Planificar el día» usa como origen.
  */
-export function celdaPropiaDelPlan(clave: string, d: Pick<Partial<Delivery>, "order_type" | "account" | "customer_type" | "pickup_name" | "store" | "delivery_address">, ctx: ContextoDelPlan): string | undefined {
+export function celdaPropiaDelPlan(clave: string, d: Pick<Partial<Delivery>, "order_type" | "account" | "customer_type" | "pickup_name" | "pickup_address" | "store" | "delivery_address">, ctx: ContextoDelPlan): string | undefined {
   if (clave === "pl_clase") {
     const c = claseDeLaOrden(d, ctx.reglas);
     return c ? TEXTO_DE_CLASE[c][ctx.es ? 1 : 0] : "—";
   }
-  if (clave === "pl_ciudad_recogida") return zonaDeLaRecogida(d, ctx.tiendas, ctx.conocidas) || "—";
+  if (clave === "pl_ciudad_recogida") return zonaDeLaRecogida(d, ctx.tiendas, ctx.conocidas, ctx.reglas) || "—";
   // D-435: la MISMA ciudad que la columna «Ciudad de entrega» de «Sin asignar» (D-408), con las mismas ciudades conocidas
   // (D-423). En una recogida no llega aquí: la tabla la deja vacía (`seVeEnLaRecogida`).
   if (clave === "pl_ciudad_entrega") return ciudadDeEntrega(d.delivery_address, ctx.conocidas) || "—";

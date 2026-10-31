@@ -70,7 +70,7 @@ describe("la consulta del servidor, con y sin la 147 aplicada", () => {
     };
     expect(await leeOrdenesDelDia(sinLa147)).toEqual({ data: [{ id: "a" }], error: null });
     // Desde D-418 también pide `requirements` (151) y desde D-722 `plan_rank` (208): sin la 147, se quita SOLO `priority`.
-    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements, plan_rank`, `${COLUMNAS_DE_ORDEN}, requirements, plan_rank`]);
+    expect(pedidas).toEqual([`${COLUMNAS_DE_ORDEN}, priority, requirements, plan_rank, pickup_point_lat, pickup_point_lng`, `${COLUMNAS_DE_ORDEN}, requirements, plan_rank, pickup_point_lat, pickup_point_lng`]);
   });
 
   it("con la columna, una sola lectura; y cualquier otro error se devuelve tal cual, sin reintentar", async () => {

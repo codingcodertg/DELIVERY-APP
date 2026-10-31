@@ -1413,7 +1413,7 @@ export default function RoutesPage() {
       case "p_type": return <td key={c.key} title={d?.order_type || undefined}>{d?.order_type || "—"}</td>;
       case "p_eta": return <Fragment key={c.key}>{como.llegada}</Fragment>;
       case "p_actual": return celdaReal(c.key, d, como.tipo);
-      case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen)) || "—")}</td>;
+      case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules)) || "—")}</td>;
       case "p_address": return <td key={c.key} title={d?.delivery_address || undefined}>{(d && ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen)) || "—"}{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}</td>;
       case "p_windows": return <td key={c.key}>{como.tipo === "D" && d ? fmtWindows(d.delivery_windows) : ""}</td>;
     }
@@ -1640,8 +1640,8 @@ export default function RoutesPage() {
     return llegadaEnLasOrdenes(d, ruta ? routeEtas[ruta]?.[d.id] : null, lang === "es");
   }, [routeEtas, lang]); // eslint-disable-line react-hooks/exhaustive-deps
   const valorDelGestorAqui = useCallback(
-    (clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, { tiendas: settings.stores ?? [], llegada: llegadaDeLaOrden }),
-    [deOrdenes, ciudadesQueSeConocen, settings.stores, llegadaDeLaOrden],
+    (clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, { tiendas: settings.stores ?? [], reglas: settings.order_type_rules, llegada: llegadaDeLaOrden }),
+    [deOrdenes, ciudadesQueSeConocen, settings.stores, settings.order_type_rules, llegadaDeLaOrden],
   );
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
   // «Todas» (D-462) ordena y filtra igual, con su propio estado: la columna «Chofer» va por la de Órdenes (`driver`).

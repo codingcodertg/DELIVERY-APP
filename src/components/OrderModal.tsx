@@ -70,7 +70,7 @@ import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, textoDeBloqueo, type MissingField } from "@/lib/required";
 import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada, eligeRecogida, opcionesDeRecogida } from "@/lib/order-endpoints";
 import { conTiendaDeLaRecogida, esTransferenciaSinVenta } from "@/lib/transferencia-sin-venta";
-import { recogidaLibre } from "@/lib/recogida-libre";
+import { opcionesDeRecogidaLibre, parcheDePuntoDeRecogida, recogidaLibre } from "@/lib/recogida-libre";
 import { aplicaTipo, borradorDeReentrega, borradorInicial, type ContextoDelUsuario } from "@/lib/order-sites";
 import { pasoFormulario } from "@/lib/order-form-step";
 import { borradorDuplicado } from "@/lib/order-duplicate";
@@ -584,7 +584,7 @@ export function OrderModal({
   // (D-278). Of the SAVED order: the view shows what is stored, not the draft being typed.
   const documento = existing ? documentoPrincipal(existing, settings.order_type_rules) : null;
   // De dónde se recoge, para la ficha: la tienda (sin dirección) o la dirección (D-584, `recogidaParaElChofer`).
-  const recogida = recogidaParaElChofer(existing ?? d, settings.stores ?? []);
+  const recogida = recogidaParaElChofer(existing ?? d, settings.stores ?? [], settings.order_type_rules);
   const copiaDocumento = async (numero: string) => {
     try {
       await navigator.clipboard.writeText(numero);
@@ -787,6 +787,9 @@ export function OrderModal({
           }
         } catch { /* fallo de red: pasa, y geocode-on-save lo reintentará al guardar */ }
       }
+      // D-NEXT (223): la recogida LIBRE guarda su punto (el que se acaba de buscar; o nada, si la dirección cambió y no se
+      // encontró), para que el motor de rutas y el mapa salgan de ahí y no de una tienda.
+      if (r.que === "recogida" && r.geocodificar && recogidaLibreDelTipo) Object.assign(parche, parcheDePuntoDeRecogida(punto));
       if (punto && puntoDentroDeLaRegion(punto.lat, punto.lng, settings.stores ?? []) === false) { notify(avisoFueraDeLaRegion(r.que, lang)); return { ok: false }; }
     }
     return { ok: true, parche };
@@ -1634,6 +1637,13 @@ export function OrderModal({
     });
   }, [settings.stores, settings.pickup_locations]);
 
+  // D-NEXT (223): con recogida libre, el desplegable no ofrece nuestras tiendas (Roberto: «pickup is not a store»), solo
+  // los puntos de recogida guardados que no son tienda.
+  const opcionesDeRecogidaDelTipo = useMemo(
+    () => (recogidaLibreDelTipo ? opcionesDeRecogidaLibre(settings.stores, settings.pickup_locations) : pickupOptions),
+    [recogidaLibreDelTipo, settings.stores, settings.pickup_locations, pickupOptions],
+  );
+
   const deliveryOptions = settings.delivery_locations ?? [];
 
   // Account options: saved accounts (with a contact + phone attached) plus
@@ -2215,7 +2225,7 @@ export function OrderModal({
                 placeholder={t("Select order type", "Seleccione tipo de orden")}
                 invalid={missingSet.has("order_type")}
               />
-              {!sinVenta && (
+              {!sinVenta && !(recogidaLibreDelTipo && !!d.store) && (
               <Sel
                 label={homeIsDestination ? t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")}
                 val={d.store}
@@ -2665,7 +2675,7 @@ export function OrderModal({
             )}
 
             {/* ---- Store (Sold From) + its address ---- */}
-            {!sinVenta && (
+            {!sinVenta && !(recogidaLibreDelTipo && !!d.store) && (
             <div className="grid g2">
               <Sel label={homeIsDestination ? t("What store are you buying from? (Sold From)", "¿A qué tienda le compras? (Vendido Desde)") : t("Store (Sold From)", "Tienda (Vendido Desde)")} val={d.store} opts={origenesPermitidos(opcionesDeOrigen(d, settings.stores, reglaDelTipo))} on={(v) => {
                 // Choosing a saved store auto-fills the pickup name + address from it.
@@ -2701,7 +2711,7 @@ export function OrderModal({
                 addressLabel={t("Pickup Address", "Dirección de Recolección")}
                 name={d.pickup_name}
                 address={d.pickup_address}
-                options={pickupOptions}
+                options={opcionesDeRecogidaDelTipo}
                 escribirPorDefecto={recogidaLibreDelTipo}
                 onName={(v) => setD((p) => conTiendaDeLaRecogida({ ...p, pickup_name: v }, settings.stores, reglaDelTipo))}
                 onAddress={(v) => set("pickup_address", v)}

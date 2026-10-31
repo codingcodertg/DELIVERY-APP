@@ -62,7 +62,7 @@ describe("las columnas de la lista de órdenes (D-562, 177)", () => {
     // D-722: con las opcionales por delante (plan_rank, 208), para que una base sin ellas no deje la lista vacía.
     expect(fuente).toContain("const r = await conOpcionales(COLUMNAS_DE_LA_LISTA);");
     expect(fuente).toContain("leeConOpcionales((columnas) => pedir(columnas), base, COLUMNAS_OPCIONALES_DE_LA_LISTA)");
-    expect(COLUMNAS_OPCIONALES_DE_LA_LISTA).toEqual(["plan_rank"]);
+    expect(COLUMNAS_OPCIONALES_DE_LA_LISTA).toEqual(["plan_rank", "pickup_point_lat", "pickup_point_lng"]);
     expect(lista).not.toContain("plan_rank");
     expect(COLUMNAS_DE_DELIVERY).toContain("plan_rank");
     expect(fuente).not.toMatch(/from\("deliveries"\)\s*\.select\("\*"\)/);

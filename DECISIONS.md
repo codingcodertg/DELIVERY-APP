@@ -49325,3 +49325,22 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `excel.test.ts`, describe «la forma «de pivote» (D-781)…»: se reconoce con la cabecera en la fila 4 y la completa sigue mandando; proveedor de arriba, QOH = Grand Total (72 ≠ 70 a propósito), costo y precio nulos, el pie avisado; sin Grand Total, suma; sin números, ausente. Mutantes 3 de 3 (sin la segunda forma; QOH = suma siempre; el pie entra), cada uno cae con una prueba con nombre.
 
 **No verificado:** en navegador.
+## D-NEXT · Órdenes «Otro» y «Proveedor»: la recogida libre tiene su propio punto; no es una tienda ni para el motor de rutas ni para el chofer; «Tienda (Vendido desde)» no se enseña (migración 223)
+
+**Fecha:** 2026-10-31 · **Migración 223** (`223_recogida_libre_con_punto.sql`: `pickup_point_lat/lng` en `deliveries`) · Hecho directo por el orquestador en `feat/recogida-libre-con-punto`.
+
+**Pedido (Roberto Rodriguez Jr, admin, desde la ficha y el Gestor de Rutas, reenviado por el dueño, 2026-10-31):** «When order type is Other or Supplier the store sold from does not apply and also pickup is not a store» y, con FV594 en la ruta de Julio: «Pickup is in harlingen but it put weslaco».
+
+**Qué había (medido en FV594):** tipo Otro, `pickup_name` = «RDZ Weslaco» (elegido del desplegable, que ofrecía nuestras tiendas) y `pickup_address` = «Harlingen, TX, USA». El motor (`entrada.ts`), «Mi ruta» (`recogidaParaElChofer`), la ciudad de recogida (`zonaDeLaRecogida`) y el trazo publicado toman el origen de la tienda de Ajustes cuyo nombre coincide con `pickup_name`: la P salió en Weslaco. Y una recogida libre no tenía dónde guardar su punto: `pickup_lat/lng` es el GPS del chofer al recoger.
+
+**Qué cambia:**
+- **Regla** (`recogida-libre.ts`): `recogidaLibreDeLaOrden(orden, reglas)`; con ella, `recogidaParaElChofer`, `zonaDeLaRecogida` y el motor tratan la recogida de Otro/Proveedor como NO tienda, diga lo que diga el nombre: nombre tecleado, dirección tecleada, ciudad de esa dirección.
+- **Punto propio** (223): al guardar, la dirección de recogida libre se geocodifica (ya se buscaba desde D-589 para revisarla; ahora se guarda en `pickup_point_lat/lng`). El motor la usa como origen (`recogida:<id>`); la parada P lleva el nombre tecleado; el trazo publicado pinta la P en ese punto. Sin punto (orden guardada antes de la 223, o dirección que el proveedor no encuentra), la orden queda sin origen y «Planificar el día» la saca «sin punto», en vez de mandar al chofer a una tienda equivocada.
+- **Ficha:** con recogida libre, el desplegable de recogida ya no ofrece nuestras tiendas (solo puntos de recogida guardados que no son tienda; lo normal es teclear), y «Tienda (Vendido desde)» no se enseña si la orden ya tiene tienda (la del vendedor, que sigue mandando en permisos, lista y comisiones); un admin sin tienda sí la elige.
+- Las columnas nuevas se piden como opcionales (lista y plan): sin la 223 aplicada, todo sigue leyendo; solo el guardado de una orden con recogida libre necesita la 223.
+
+**Lo que hay que hacer con FV594:** abrirla y guardarla (o editar la recogida): al guardar se busca el punto de Harlingen y la ruta sale de ahí. Las demás órdenes abiertas de Otro/Proveedor: 1 con nombre de tienda (esta), 1 sin.
+
+**Pruebas:** `src/lib/recogida-libre-con-punto.test.ts` (regla, punto, desplegable, FV594 para el chofer y la ciudad, revisión al guardar, motor, parada y trazo, ficha y pantallas, la 223); al día `columnas-de-la-lista`, `prioridad-en-el-plan`, `requisitos-en-el-plan`. tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador; la 223 se ensayó con ROLLBACK, la aplica el dueño.
