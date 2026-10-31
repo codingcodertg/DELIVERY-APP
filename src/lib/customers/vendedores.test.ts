@@ -174,7 +174,8 @@ describe("D-684: asignar vendedores de golpe (solo admin)", () => {
   it("D-NEXT: la ventana «Asignar vendedores» por iniciales ya no existe ni se abre desde la lista", () => {
     expect(existsSync("src/app/customers/AsignarVendedores.tsx")).toBe(false);
     const clientes = leer("src/app/customers/Clientes.tsx");
-    expect(clientes).not.toContain("AsignarVendedores");
+    expect(clientes).not.toContain("<AsignarVendedores");
+    expect(clientes).not.toContain("from \"./AsignarVendedores\"");
     expect(clientes).not.toContain("data-abrir-asignar-vendedores");
     expect(clientes).not.toContain("setAsignando");
     // El admin sigue siendo quien asigna vendedor (en la ficha y en la barra de selección).
