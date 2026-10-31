@@ -66,7 +66,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
   const [cuantos, setCuantos] = useState(TANDA);
   const [ficha, setFicha] = useState<Ficha | null>(null);
-  // D-NEXT: la ventana «Asignar vendedores» por iniciales (D-684) se quitó: el dueño la pidió solo para la carga inicial.
+  // D-779: la ventana «Asignar vendedores» por iniciales (D-684) se quitó: el dueño la pidió solo para la carga inicial.
   // D-685: elegir varios clientes (filas de la base, todas las tiendas de cada empresa marcada) y hacerles lo mismo.
   const [elegidos, setElegidos] = useState<Set<number>>(() => new Set());
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);

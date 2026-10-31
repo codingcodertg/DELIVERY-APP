@@ -49281,7 +49281,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/archivar-solo-admin.test.ts`. tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La base no impide que un no-admin escriba `archived_at` por otra vía: la regla es de pantalla, como la de editar.
-## D-NEXT · Clientes: fuera la ventana «Asignar vendedores» por iniciales
+## D-779 · Clientes: fuera la ventana «Asignar vendedores» por iniciales
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/clientes-sin-asignar-vendedores`.
 

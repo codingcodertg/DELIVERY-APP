@@ -171,7 +171,7 @@ describe("D-684: asignar vendedores de golpe (solo admin)", () => {
     expect(llamadas.find((x) => x[0] === "update")![1]).toEqual({ rep_id: "u-ana" });
     expect(r.ok && r.valor).toBe(6);
   });
-  it("D-NEXT: la ventana «Asignar vendedores» por iniciales ya no existe ni se abre desde la lista", () => {
+  it("D-779: la ventana «Asignar vendedores» por iniciales ya no existe ni se abre desde la lista", () => {
     expect(existsSync("src/app/customers/AsignarVendedores.tsx")).toBe(false);
     const clientes = leer("src/app/customers/Clientes.tsx");
     expect(clientes).not.toContain("<AsignarVendedores");
