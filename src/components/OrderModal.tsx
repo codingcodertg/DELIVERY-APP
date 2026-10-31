@@ -787,7 +787,7 @@ export function OrderModal({
           }
         } catch { /* fallo de red: pasa, y geocode-on-save lo reintentará al guardar */ }
       }
-      // D-NEXT (223): la recogida LIBRE guarda su punto (el que se acaba de buscar; o nada, si la dirección cambió y no se
+      // D-782 (223): la recogida LIBRE guarda su punto (el que se acaba de buscar; o nada, si la dirección cambió y no se
       // encontró), para que el motor de rutas y el mapa salgan de ahí y no de una tienda.
       if (r.que === "recogida" && r.geocodificar && recogidaLibreDelTipo) Object.assign(parche, parcheDePuntoDeRecogida(punto));
       if (punto && puntoDentroDeLaRegion(punto.lat, punto.lng, settings.stores ?? []) === false) { notify(avisoFueraDeLaRegion(r.que, lang)); return { ok: false }; }
@@ -1637,7 +1637,7 @@ export function OrderModal({
     });
   }, [settings.stores, settings.pickup_locations]);
 
-  // D-NEXT (223): con recogida libre, el desplegable no ofrece nuestras tiendas (Roberto: «pickup is not a store»), solo
+  // D-782 (223): con recogida libre, el desplegable no ofrece nuestras tiendas (Roberto: «pickup is not a store»), solo
   // los puntos de recogida guardados que no son tienda.
   const opcionesDeRecogidaDelTipo = useMemo(
     () => (recogidaLibreDelTipo ? opcionesDeRecogidaLibre(settings.stores, settings.pickup_locations) : pickupOptions),

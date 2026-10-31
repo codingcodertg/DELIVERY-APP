@@ -237,7 +237,7 @@ export interface Delivery {
   delivery_lat: number | null;
   delivery_lng: number | null;
   delivery_pin_source: "geocoded" | "manual" | null;
-  /** D-NEXT (223): el punto de una recogida LIBRE (Otro, Proveedor): la dirección tecleada, geocodificada al guardar.
+  /** D-782 (223): el punto de una recogida LIBRE (Otro, Proveedor): la dirección tecleada, geocodificada al guardar.
    *  Opcionales: la lista los pide como columnas opcionales (sin la 223, llegan sin ellos). */
   pickup_point_lat?: number | null;
   pickup_point_lng?: number | null;

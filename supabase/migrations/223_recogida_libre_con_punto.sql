@@ -1,4 +1,4 @@
--- 223: Entregas — la recogida LIBRE (Otro, Proveedor) tiene su propio punto en el mapa (D-NEXT, 2026-10-31).
+-- 223: Entregas — la recogida LIBRE (Otro, Proveedor) tiene su propio punto en el mapa (D-782, 2026-10-31).
 --
 -- Roberto Rodriguez Jr (admin), con la orden FV594 (Otro, recogida en Harlingen) en el Gestor de Rutas: «Pickup is in
 -- harlingen but it put weslaco» y «When order type is Other or Supplier the store sold from does not apply and also

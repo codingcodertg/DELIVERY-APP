@@ -27,7 +27,7 @@ export function recogidaLibreDeLaOrden(d: { order_type?: string | null }, reglas
 }
 
 /**
- * D-NEXT (223): el punto de la recogida libre, el que se geocodificó de la dirección tecleada al guardar. `0,0` y
+ * D-782 (223): el punto de la recogida libre, el que se geocodificó de la dirección tecleada al guardar. `0,0` y
  * lo que no es número cuentan como «sin punto», como `necesitaUbicacion` con la entrega.
  */
 export function puntoDeRecogidaLibre(d: { pickup_point_lat?: number | null; pickup_point_lng?: number | null }): { lat: number; lng: number } | null {

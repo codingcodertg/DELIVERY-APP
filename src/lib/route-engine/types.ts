@@ -35,7 +35,7 @@ export interface OrdenEntrada {
   id: string;
   /** El código humano de la orden; segundo criterio de desempate. */
   codigo?: string | null;
-  /** D-NEXT (223): el nombre del sitio de una recogida LIBRE (no es tienda), para la parada P del plan. */
+  /** D-782 (223): el nombre del sitio de una recogida LIBRE (no es tienda), para la parada P del plan. */
   nombreDeRecogida?: string | null;
   /** Fecha y hora en que entró, en un texto que ordene bien ("2026-09-18 0815"). Primer criterio de
    *  desempate: «la que entró primero va primero». Sin ella, va detrás de las que la tienen. */

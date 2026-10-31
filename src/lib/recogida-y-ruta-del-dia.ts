@@ -32,7 +32,7 @@ export type RecogidaParaElChofer =
 export function recogidaParaElChofer(
   d: { pickup_name?: string | null; pickup_address?: string | null; store?: string | null; order_type?: string | null },
   tiendas: readonly { name: string }[],
-  /** D-NEXT (223): con las reglas, una recogida LIBRE (Otro, Proveedor) nunca es tienda, diga lo que diga el nombre. */
+  /** D-782 (223): con las reglas, una recogida LIBRE (Otro, Proveedor) nunca es tienda, diga lo que diga el nombre. */
   reglas?: OrderTypeRules,
 ): RecogidaParaElChofer {
   if (reglas && recogidaLibreDeLaOrden(d, reglas)) {

@@ -49325,7 +49325,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `excel.test.ts`, describe «la forma «de pivote» (D-781)…»: se reconoce con la cabecera en la fila 4 y la completa sigue mandando; proveedor de arriba, QOH = Grand Total (72 ≠ 70 a propósito), costo y precio nulos, el pie avisado; sin Grand Total, suma; sin números, ausente. Mutantes 3 de 3 (sin la segunda forma; QOH = suma siempre; el pie entra), cada uno cae con una prueba con nombre.
 
 **No verificado:** en navegador.
-## D-NEXT · Órdenes «Otro» y «Proveedor»: la recogida libre tiene su propio punto; no es una tienda ni para el motor de rutas ni para el chofer; «Tienda (Vendido desde)» no se enseña (migración 223)
+## D-782 · Órdenes «Otro» y «Proveedor»: la recogida libre tiene su propio punto; no es una tienda ni para el motor de rutas ni para el chofer; «Tienda (Vendido desde)» no se enseña (migración 223)
 
 **Fecha:** 2026-10-31 · **Migración 223** (`223_recogida_libre_con_punto.sql`: `pickup_point_lat/lng` en `deliveries`) · Hecho directo por el orquestador en `feat/recogida-libre-con-punto`.
 

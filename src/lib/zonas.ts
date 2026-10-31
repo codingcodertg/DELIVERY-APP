@@ -63,7 +63,7 @@ export function zonaDeLaRecogida(
   d: Pick<Partial<Delivery>, "pickup_name" | "store" | "order_type" | "pickup_address"> | null | undefined,
   tiendas: readonly Pick<NamedLocation, "name" | "address" | "lat" | "lng">[],
   conocidas: Iterable<string> = [],
-  /** D-NEXT (223): con las reglas, una recogida LIBRE toma la ciudad de su dirección tecleada, no la de una tienda. */
+  /** D-782 (223): con las reglas, una recogida LIBRE toma la ciudad de su dirección tecleada, no la de una tienda. */
   reglas?: OrderTypeRules,
 ): string {
   if (d && reglas && recogidaLibreDeLaOrden(d, reglas)) return ciudadDeEntrega(d.pickup_address ?? "", conocidas);

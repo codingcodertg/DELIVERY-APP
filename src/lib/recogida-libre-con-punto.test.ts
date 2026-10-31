@@ -9,7 +9,7 @@ import { puntosDelTrazoPublicado } from "./route-plan/trazo-del-plan";
 import type { NamedLocation, OrderTypeRule } from "./types";
 
 /**
- * Una recogida LIBRE (Otro, Proveedor) no es una tienda: tiene su punto, su ciudad y su nombre (D-NEXT, 223).
+ * Una recogida LIBRE (Otro, Proveedor) no es una tienda: tiene su punto, su ciudad y su nombre (D-782, 223).
  * Roberto, con FV594: «Pickup is in harlingen but it put weslaco» · «the store sold from does not apply and also pickup is not a store».
  */
 

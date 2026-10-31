@@ -45,7 +45,7 @@ export function textoQueAbreLaOrden(d: Pick<Delivery, "invoice_num" | "order_cod
  *  recogida) y la llegada que pinta la celda (`llegadaEnLasOrdenes`). */
 export interface ExtraDeParadas {
   tiendas?: readonly Pick<NamedLocation, "name" | "address" | "lat" | "lng">[];
-  /** D-NEXT (223): las reglas de los tipos, para que una recogida libre diga la ciudad de su dirección. */
+  /** D-782 (223): las reglas de los tipos, para que una recogida libre diga la ciudad de su dirección. */
   reglas?: OrderTypeRules;
   llegada?: (d: Delivery) => string | null;
 }

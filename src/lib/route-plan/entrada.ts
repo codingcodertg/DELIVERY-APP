@@ -34,14 +34,14 @@ import { palletsDeLaOrden } from "../pallets";
 
 export const puntoDeTienda = (nombre: string): Punto => `tienda:${nombre.trim().toLowerCase()}`;
 export const puntoDeOrden = (id: string): Punto => `orden:${id}`;
-/** D-NEXT (223): el origen de una orden con recogida LIBRE: su propio punto, no el de una tienda. */
+/** D-782 (223): el origen de una orden con recogida LIBRE: su propio punto, no el de una tienda. */
 export const puntoDeRecogida = (id: string): Punto => `recogida:${id}`;
 
 type OrdenDeLaBase = Pick<Delivery,
   "id" | "stage" | "order_code" | "order_type" | "store" | "pickup_name" | "delivery_name" | "delivery_lat" | "delivery_lng" |
   "delivery_windows" | "est_pallets" | "actual_pallets" | "pickup_duration" | "delivery_duration" | "assigned_driver" |
   "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null;
-  /** D-NEXT (223): la dirección y el punto de la recogida libre. Opcionales: una base sin la 223 no los trae. */
+  /** D-782 (223): la dirección y el punto de la recogida libre. Opcionales: una base sin la 223 no los trae. */
   pickup_address?: string | null; pickup_point_lat?: number | null; pickup_point_lng?: number | null;
   /** D-421: de ella sale la zona (la ciudad). Opcional para quien construye la fila a mano; la consulta la pide siempre. */
   delivery_address?: Delivery["delivery_address"];
@@ -186,7 +186,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     if (loPusoUnaPersona && (!choferFijado || !ruteables.has(choferFijado))) { fuera.push({ id: d.id, motivo: "chofer_no_rutea" }); continue; }
 
     const entreTiendas = isStoreToStore(d.order_type, reglas);
-    // D-NEXT (223): una recogida LIBRE (Otro, Proveedor) no sale de una tienda: su origen es el punto de la dirección
+    // D-782 (223): una recogida LIBRE (Otro, Proveedor) no sale de una tienda: su origen es el punto de la dirección
     // tecleada (geocodificado al guardar). Sin punto, la orden queda sin origen y el motor la saca «sin punto», en vez
     // de mandar al chofer a la tienda que casualmente lleva ese nombre (FV594: «Pickup is in harlingen but it put weslaco»).
     const recogidaLibre = recogidaLibreDeLaOrden(d, reglas);
